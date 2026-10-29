@@ -1,9 +1,9 @@
 ---
 /**
- * The design catalogue (D189): the tokens, type, colour, icons and every shared component on one
- * page, drawn by the stylesheets the app ships, so the catalogue is the system itself. It is built
- * in dev and in the fixture build only (getStaticPaths yields no path otherwise), so production
- * never serves it; the design-audit agent and the browser suites screenshot it here.
+ * The design catalogue (D189, D218): the tokens, type, colour, icons and every shared component on one
+ * page, drawn by the stylesheets the app ships, so the catalogue is the system itself. It reads no
+ * content and no fixture: the specimens are written here and the tokens and usage comments are read
+ * at build time, so it is the same page in dev, in the fixture build and in production, under /admin.
  */
 import Banner from "../../components/Banner.astro";
 import EmptyState from "../../components/EmptyState.astro";
@@ -12,16 +12,11 @@ import SettingsHead from "../../components/SettingsHead.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { tokenGroups, usageComment } from "../../lib/designCatalogue";
 import { ICON_PATHS, type IconName } from "../../lib/icons";
-import { usesFixtures } from "../../lib/site";
 import "../../styles/settings.css";
 import "../../styles/manage.css";
 import "../../styles/design.css";
 
 export const prerender = true;
-
-export function getStaticPaths() {
-  return usesFixtures() || import.meta.env.DEV ? [{ params: { slug: undefined } }] : [];
-}
 
 const primitive = tokenGroups("primitive");
 const semantic = tokenGroups("semantic");

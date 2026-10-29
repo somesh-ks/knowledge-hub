@@ -7,7 +7,7 @@ How we tell that generation is healthy. Each metric has one definition, one sour
 - Briefings: `state/run-metrics.json`, one entry per pass, written in the run's own commit (`run/collectMetrics.ts`). A failed run leaves an entry too, scheduled or on demand, when the job got as far as a plan (`run/recordFailed.ts`).
 - Episodes: the `metrics` block of each entry in `state/podcast-timings.json`, written by the publish step.
 - Reliability across both workflows: GitHub's run list (`health.yml` passes it to `run_died` and `run_cancelled`).
-- Cost: the ledger, `/analytics`.
+- Cost: the ledger, `/admin/costs`.
 
 ## The metrics
 

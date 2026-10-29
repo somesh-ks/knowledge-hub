@@ -1,0 +1,35 @@
+---
+import Icon from "../../components/Icon.astro";
+import SettingsHead from "../../components/SettingsHead.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { ADMIN_PAGES } from "../../lib/adminPages";
+import "../../styles/settings.css";
+
+const title = "Admin";
+---
+
+<BaseLayout title={title} view="settings" skipLabel="Skip to the admin pages">
+  <main id="main" tabindex="-1">
+    {/* The pages for running the app (D218), listed from lib/adminPages.ts like Settings' Admin section. */}
+    <div class="settings-view" data-settings>
+      <SettingsHead title={title} note="Pages for running the app." />
+      <div class="rows card-group">
+        {
+          ADMIN_PAGES.map((page) => (
+            <a
+              class="row-action"
+              href={page.href}
+              target={page.external ? "_blank" : undefined}
+              rel={page.external ? "noopener noreferrer" : undefined}
+            >
+              <span class="settings-text">
+                <span class="settings-label">{page.label}</span>
+              </span>
+              <Icon name={page.external ? "openInNew" : "chevronRight"} />
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </main>
+</BaseLayout>

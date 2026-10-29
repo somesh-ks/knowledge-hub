@@ -25,7 +25,7 @@ The cost ledger: what each paid call cost, per run, per timezone and per user. W
 
 ### Reports
 - `singularity costs [--period day|week|month] [--from] [--to] [--by provider|kind|timezone|user|product|scope] [--tz] [--json]` totals by period in a zone (default the schedule's) with per-run and per-user averages. A day is the zone's calendar day, so the 25-hour day of a DST change is one bucket. Weeks start Monday.
-- Analytics (`/analytics`, a row on the Settings index) loads `/api/costs` after first paint (`apps/web/src/scripts/costsPage.ts`), so the page adds no start-up script. The route merges the build's bundled `state/costs-*.json` (a new ledger commit redeploys the site) with the Blob usage documents; if Blob cannot be read, the page says Play narration is left out. The route takes `period`, `by` and `days`.
+- Costs (`/admin/costs`, a row in Settings, Admin) loads `/api/costs` after first paint (`apps/web/src/scripts/costsPage.ts`), so the page adds no start-up script. The route merges the build's bundled `state/costs-*.json` (a new ledger commit redeploys the site) with the Blob usage documents; if Blob cannot be read, the page says Play narration is left out. The route takes `period`, `by` and `days`.
 - The page is one card (2026-10-22): range and breakdown chips (the shared `.sort-field`: last 30 days, 3 months or 12 months; by provider, use, shared or own, or person once two people share the app), the total as one unlabelled figure (its name is for screen readers; "Estimated spend" came out 2026-10-25), under it stat tiles (`.stat-tiles`: runs, the cost a run and the next figures the data has, a tile each, two columns on a phone and four from 40rem; pills until 2026-10-27) that follow the range and breakdown, one column a day, week or month in the accent colour that grows in from zero on first paint (fade only under reduced motion; the tooltip and the arrow keys give each column's split), then the breakdown largest first, each provider with its mark (`lib/brandMarks.ts`). A table of the periods that spent something sits under it, then "Last updated <date>" (the latest run's day in Stockholm time; the latest bucket's start in week or month view) and the caveat that days follow Swedish time and evals and code reviews are not counted. The head's note reads "Summary of all underlying paid services." A failed load or refetch says "Unavailable" and hides the chart, the breakdown and the table until the next good answer (2026-10-24).
 - Anyone who can open the site can read the totals (no passphrase, D160).
 
@@ -35,5 +35,5 @@ The cost ledger: what each paid call cost, per run, per timezone and per user. W
 - `packages/engine/src/commands/costs.ts`
 - `apps/web/src/server/costs.ts`
 - `apps/web/src/server/anthropicBilling.ts`
-- `apps/web/src/pages/analytics.astro`
+- `apps/web/src/pages/admin/costs.astro`
 - `config/prices.json`

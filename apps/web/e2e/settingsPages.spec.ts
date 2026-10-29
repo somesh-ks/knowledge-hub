@@ -1,7 +1,7 @@
 import { expect, test } from "./fixtures";
 
 // Every page reached from Settings says where it sits and starts its first block the same air under
-// its title: Costs (/analytics) lost its crumb, and the gap ran 16 to 64px from page to page
+// its title: Costs lost its crumb, and the gap ran 16 to 64px from page to page
 // (2026-10-27). Pages are compared with each other, never with a number.
 const SETTINGS_SUBPAGES = [
   "/settings/about",
@@ -14,18 +14,21 @@ const SETTINGS_SUBPAGES = [
   "/settings/privacy",
   "/settings/sounds",
   "/settings/voice",
-  "/analytics",
-  "/settings/health",
+  "/admin",
+  "/admin/costs",
+  "/admin/health",
 ];
 
-test("every settings subpage shows the Settings crumb and the same gap from its title to its first block @both", async ({
+test("every settings and admin subpage shows its crumb and the same gap from its title to its first block @both", async ({
   page,
 }) => {
   const gaps: Record<string, number> = {};
   for (const path of SETTINGS_SUBPAGES) {
     await page.goto(path);
+    // Admin sits under Settings, and what is under Admin says Admin (D218).
+    const up = path.startsWith("/admin/") ? "/admin" : "/settings";
     await expect(
-      page.locator(".settings-head .settings-crumb a[href='/settings']"),
+      page.locator(`.settings-head .settings-crumb a[href='${up}']`),
       path,
     ).toBeVisible();
     gaps[path] = await page.evaluate(() => {

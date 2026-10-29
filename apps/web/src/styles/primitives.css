@@ -1476,7 +1476,7 @@
    2026-10-27: the heading-size medium value "competes with the main cost number").
    Put .stat-tiles on the list and .stat-tile on each item, with .stat-tile-value and
    .stat-tile-label inside. Used by the Costs page (analytics.astro, costsPage.ts) and the Health
-   page's summary (settings/health.astro). */
+   page's summary (admin/health.astro). */
 .stat-tiles {
   --stat-tile-height: calc(var(--space-4) * 2 + var(--space-6) * 2);
 
@@ -1527,7 +1527,7 @@
    tones the banners use (banner.css). The words beside it always say the same, so colour is never the
    only signal; a reading with no judgement (`none`, or no tone) draws no dot and takes no room. 8px on
    the grid, round. Markup: <span class="status-dot" data-tone="good|warn|bad|none"></span>.
-   Used by the Health page (settings/health.astro, healthPage.ts), in its rows and its summary. */
+   Used by the Health page (admin/health.astro, healthPage.ts), in its rows and its summary. */
 .status-dot {
   flex: none;
   inline-size: var(--space-2);

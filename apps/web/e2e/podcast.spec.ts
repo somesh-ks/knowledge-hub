@@ -126,6 +126,10 @@ test.describe("the Settings index", () => {
       ["/settings/topics/design", /\/settings\/categories\/design$/],
       // An episode on request is set up in the Create panel.
       ["/settings/custom", /\/create$/],
+      // The pages for running the app moved under /admin (D218).
+      ["/analytics", /\/admin\/costs$/],
+      ["/settings/health", /\/admin\/health$/],
+      ["/design", /\/admin\/design$/],
     ] as const;
     for (const [old, now] of moves) {
       await page.goto(old);

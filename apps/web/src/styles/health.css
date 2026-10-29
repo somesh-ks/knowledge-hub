@@ -1,9 +1,9 @@
 /*
- * The Health page (/settings/health): a summary card, then the settings rows grouped as the index's
+ * The Health page (/admin/health): a summary card, then the settings rows grouped as the index's
  * are, each reading at its row's end as a link row's value sits (settings.css), with the shared status
  * dot before it (primitives.css). The summary card is the Costs card's shape: its padding on all four
  * sides, the answer at the display step, the shared stat tiles under it (costs.css). Imported by
- * pages/settings/health.astro after settings.css.
+ * pages/admin/health.astro after settings.css.
  */
 
 /* A content card, not rows: the card's padding on all four sides, as the Costs card's (costs.css). */

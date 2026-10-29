@@ -271,6 +271,15 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Rejected: Storybook with `@storybook-astro/framework` (a second build and dev server, a story per component); zeroheight and Supernova (Figma sync and team governance this project does not have); Backlight (shut down 2025-06-01).
 - Revisit if: a second app consumes the styles (then lift them into a workspace package under `packages/`), or the catalogue needs knobs and isolation per state (then try Storybook on a branch first).
 
+## D218: the pages for running the app live under /admin, and the design catalogue ships
+
+- Date: 2026-10-29 (the owner opened `/design` on the live site and got "Page not found": "make /design -> /admin/design, make it public, make all the admin only pages like cost, health, etc. into /admin").
+- Decision: Costs (`/analytics`), Health (`/settings/health`) and the design catalogue (`/design`) are `/admin/costs`, `/admin/health` and `/admin/design`; `/admin` lists them and the Simple Analytics link (`lib/adminPages.ts`, also the rows of Settings, Admin). The old addresses redirect with a 308. The catalogue reads no content and no fixture, so it is built in every build; the dev-and-fixture-only gate of D189 is gone. A subpage's crumb says "Admin /", and Admin's says "Settings /". There is still no sign-in, so these pages are exactly as open as they were; a gate waits for the Google login.
+- Why: the catalogue was for the owner and returned 404 where he looks; one prefix is the place to add a gate later and the one list the owner can find them by.
+- Rejected: a separate site or repository for the catalogue (D189 stands); gating now (the login is parked).
+- Revisit if: the Google login ships (gate `/admin/*` on the owner's email), or `/admin/design` should not be public.
+- Amends: D189.
+
 ## D195: settings subpages show a Settings breadcrumb
 
 - Supersedes: the no-breadcrumbs clause of D129 (the rest of D129 stands).

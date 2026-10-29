@@ -188,6 +188,10 @@ export default defineConfig({
   // Model). The addresses of the pages that came before keep working.
   redirects: {
     "/archive": { status: 308, destination: "/library" },
+    // The pages for running the app moved under /admin (D218).
+    "/analytics": { status: 308, destination: "/admin/costs" },
+    "/settings/health": { status: 308, destination: "/admin/health" },
+    "/design": { status: 308, destination: "/admin/design" },
     "/settings/podcast": { status: 308, destination: "/settings" },
     // Topics became Categories (2026-10-25): the old addresses keep working.
     "/settings/topics": { status: 308, destination: "/settings/categories" },

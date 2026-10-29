@@ -1,5 +1,5 @@
 /**
- * Costs page (/analytics). Asks /api/costs for the report and draws it into one card: the total and
+ * Costs page (/admin/costs). Asks /api/costs for the report and draws it into one card: the total and
  * its supporting line, a column chart of what each day, week or month cost, and a breakdown by the
  * chosen split, largest first. One series, so one colour: the split lives in the breakdown and the
  * tooltip, not in stacked colours (2026-10-22). Plain DOM and inline SVG, no framework and no chart

@@ -1,8 +1,8 @@
 /**
- * What the design catalogue page (/design, D189) reads at build time: the tokens from tokens.json,
+ * What the design catalogue page (/admin/design, D189, D218) reads at build time: the tokens from tokens.json,
  * grouped as the tiers group them, and the usage comment written over a shared class in its
  * stylesheet, so the page documents the system from the files the system is built from and cannot
- * drift from them. The page exists in dev and fixture builds only.
+ * drift from them. The page ships in every build.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
