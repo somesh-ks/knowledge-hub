@@ -534,7 +534,7 @@ async function commitDryRunCosts(
     const committed = await commitAndPush({
       root: deps.root,
       message: `chore(costs): dry run ${today}`,
-      command: "publish",
+      command: "costs",
       push: !options.noPush,
       git: deps.git,
     });

@@ -396,6 +396,7 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 
 - Date: 2026-10-29 (decided for the owner, who wants accurate cost data; D223's Limit).
 - Decision: when a dry run fails, `run.yml`'s Record failure step runs with `--dry-run` and `recordFailedRun` puts the run's spend in the cost ledger in a commit of the ledger alone (`chore(costs): dry run <date> failed`), as a finished dry run does. The cadence, the metrics and the digests stay as they were.
-- Why: a failed dry run pays for the calls it made before it stopped, and Firecrawl's week (D222, D223) is read from the ledger, so the count was short by exactly the runs that were being fixed.
+- Context changed: a failed dry run pays for the calls it made before it stopped, so recording nothing left Firecrawl's week short.
+- Why: Firecrawl's week (D222, D223) is read from the ledger, so the count was short by exactly the runs that were being fixed.
 - Rejected: counting the run log's `pipeline_stages` instead (Neon, not the ledger the budget reads; a second source for one number).
-- Amends: D223 (removes its Limit).
+- Amends: D223 (removes its Limit; its alert and stop stand). A dry run's ledger commit, finished or failed, uses its own `costs` allowlist (`state/costs-*.json` only), not `publish`.

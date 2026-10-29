@@ -184,7 +184,7 @@ async function recordFailedDryRun(
   const committed = await commitAndPush({
     root: deps.root,
     message,
-    command: "publish",
+    command: "costs",
     push: !options.noPush,
     git: deps.git,
   });

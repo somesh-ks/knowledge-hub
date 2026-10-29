@@ -268,7 +268,7 @@ jobs:
       # failed dry run records its spend in the ledger and nothing else (D224). A timeout is a
       # cancel, which skips this step (health warns run_cancelled).
       - name: Record failure
-        if: failure() && inputs.delete == '' && inputs.replace == ''
+        if: failure() && inputs.delete == '' && (inputs.replace == '' || inputs.dry_run == true)
         shell: bash
         env:
           INSTALLED: ${{ steps.install.outcome }}
