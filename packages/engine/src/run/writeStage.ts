@@ -18,6 +18,7 @@ import {
   authorityMatcher,
   authorityShadowMatcher,
   loadAuthority,
+  NO_AUTHORITY,
   withAuthority,
 } from "../authority/authority.js";
 import type { ApiRuntime } from "../curate/apiRuntime.js";
@@ -283,24 +284,28 @@ async function writePass(
     }
     // Topics score first and the list lifts only what no custom topic won, live and in the shadow.
     const topical = applyTopics(scoreItem(entry, preferences, item), layer);
-    const shadowed = withAuthority(topical, context.authorityShadow);
-    if (shadowed !== topical && eligibility(shadowed).eligible && !eligibility(topical).eligible) {
-      shadowHits.push(`${item.source_id}: ${item.title} (${topical.score} to ${shadowed.score})`);
-    }
-    base.push(
+    const sourceShifted = sourceShift(adjustmentAt(autoAdjust.sources[item.source_id], deps.now()));
+    // The score a story reaches before the taste check and the vote weight, as the live path computes it.
+    const adjusted = (scored: ScoredItem): ScoredItem =>
       withSourceAdjustment(
-        applyFormatMix(
-          withAuthority(topical, context.authority),
-          preferences.format_mix,
-          context.sourceFacts,
-        ),
+        applyFormatMix(scored, preferences.format_mix, context.sourceFacts),
         sourceStats,
-        sourceShift(adjustmentAt(autoAdjust.sources[item.source_id], deps.now())),
-      ),
-    );
+        sourceShifted,
+      );
+    const final = adjusted(withAuthority(topical, context.authority));
+    base.push(final);
+    if (context.authorityShadow !== NO_AUTHORITY) {
+      const withList = adjusted(withAuthority(topical, context.authorityShadow));
+      if (
+        eligibility(withList, undefined, off).eligible &&
+        !eligibility(final, undefined, off).eligible
+      ) {
+        shadowHits.push(`${item.source_id}: ${item.title} (${final.score} to ${withList.score})`);
+      }
+    }
   }
   if (shadowHits.length > 0) {
-    deps.log.info("authority list is off; with it on these would pass the bar", {
+    deps.log.info("authority list is off; of the pool, these would pass the bar with it on", {
       pass: pass.id,
       count: shadowHits.length,
       stories: shadowHits.slice(0, 10),
