@@ -89,9 +89,9 @@ describe("class detection", () => {
   // `.switch` look used in 49 files while no markup wore it, and an agent was sent to it.
   it("counts only names written as classes", () => {
     const used = classTokens(
-      `<input class="settings-switch x" role="switch" /> <a class:list={["a-b", cond && 'c-d']}> switch (mode) {} el.classList.add("e-f")`,
+      `<input class="settings-switch x" role="switch" /> <a class:list={["a-b", cond && 'c-d']}> switch (mode) {} el.classList.add("e-f") iconBtnHtml({ className: "g-h i-j" })`,
     );
-    expect([...used].sort()).toEqual(["a-b", "c-d", "e-f", "settings-switch", "x"]);
+    expect([...used].sort()).toEqual(["a-b", "c-d", "e-f", "g-h", "i-j", "settings-switch", "x"]);
   });
 });
 

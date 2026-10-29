@@ -38,7 +38,9 @@ switch (command) {
   }
   case "token": {
     const exact = system.tokens.filter(
-      (token) => token.name === argument || token.name.startsWith(`--${argument}-`),
+      (token) =>
+        (token.tier !== "primitive" || token.type !== "color") &&
+        (token.name === argument || token.name.startsWith(`--${argument}-`)),
     );
     const hits = exact.length > 0 ? exact : findTokens(system, argument, 8).map((hit) => hit.token);
     if (hits.length === 0) console.log(`No token matches "${argument}".`);

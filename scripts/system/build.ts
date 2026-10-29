@@ -74,8 +74,8 @@ function reusableTokenNames(doc: TokenDocument): Set<string> {
 }
 
 /**
- * The class names a source file writes as classes: class and className attributes, class:list
- * entries and classList calls. A word that only looks like a class ("switch" in role="switch" or in
+ * The class names a source file writes as classes: class and className attributes (or object
+ * properties, as in `iconBtnHtml({ className })`), class:list entries and classList calls. A word that only looks like a class ("switch" in role="switch" or in
  * prose) is not a use, which is how a dead class once passed for a live part.
  */
 export function classTokens(text: string): Set<string> {
@@ -84,7 +84,7 @@ export function classTokens(text: string): Set<string> {
     for (const name of value.split(/\s+/)) if (/^[a-z][\w-]*$/i.test(name)) found.add(name);
   };
   for (const [, a = "", b = "", c = ""] of text.matchAll(
-    /\bclass(?:Name)?\s*=\s*(?:"([^"]*)"|'([^']*)'|\{`([^`]*)`\})/g,
+    /\bclass(?:Name)?\s*[=:]\s*(?:"([^"]*)"|'([^']*)'|\{`([^`]*)`\})/g,
   ))
     add(a || b || c);
   for (const [, list = ""] of text.matchAll(/\bclass:list\s*=\s*\{([^}]*)\}/g))
