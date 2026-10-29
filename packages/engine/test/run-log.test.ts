@@ -148,14 +148,15 @@ describe("the run log", () => {
     expect(row).toMatchObject({ outcome: "published", work_ms: 84_000, total_ms: 104 * 60_000 });
   });
 
-  // The timing a Health row would show: a dry run is a test of the pipeline and a failed run stops
-  // early, so neither may drag a stage's median.
+  // The timing a Health row would show: a dry run is a test of the pipeline and a failed or cancelled run stops
+  // early, so none may drag a stage's median.
   it("reads a stage's median from finished runs only", async () => {
     const { sql } = neon();
     await leaveRun(PLAN);
     await logRun(sql, "--result", "success", "--outcome", "published");
     for (const [created, args] of [
       ["2026-10-28T05:13:00.000Z", ["--result", "failure"]],
+      ["2026-10-26T05:13:00.000Z", ["--result", "cancelled"]],
       ["2026-10-27T05:13:00.000Z", ["--result", "success", "--outcome", "published"]],
     ] as const) {
       await leaveRun(

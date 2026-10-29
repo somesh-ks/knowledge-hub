@@ -8,7 +8,7 @@ Updated 2026-10-29. Rewrite, never append. [Specs](specs/README.md), [decisions]
 - Reader (Latest, Library, Catch up, Settings, `/design`): [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
 - Player as one surface: transcript with word light, chapters in the bar, a queue with Up next (D126): [player](specs/player.md).
 - Narration on Play, story by story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes; Opus, MP3 fallback (D198): [narration](specs/narration.md), [create](specs/create.md).
-- Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up show in one run card; a failed run says why (D204). Generations under way list with Cancel (D208).
+- Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up show in one run card; a failed run says why (D204). The list of generations under way has Cancel (D208).
 - Saved copies, offline shell, downloads, the PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Schedule (D61, D197): made ahead, published 07:00.
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merge by hand (D143).
@@ -22,7 +22,7 @@ Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs, 10 min. Pla
 
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the first daily aired after the merge ends "That's the podcast.".
 - A page's More menu has Download and Add to queue (D214). closed when: the owner signs off the screenshots.
-- Two Catch ups in 24 hours (D213). closed when: a third answers "That's today's limit" live and a regenerate or delete uses none up.
+- Two Catch ups made or under way in 24 hours (D213). closed when: a third answers "That's today's limit" live and a regenerate or delete uses none up.
 - Three regenerations per podcast, counted in its own file (D212). closed when: one regenerated live shows "2 of 3 regenerations left" and its file has `regenerations: 1`.
 - Short podcasts (D204, D216): the 2026-10-29 daily aired about 3.8 of 5 minutes because ticked general topics had no section under the Designer profile; D216 adds them, sized to length (dry run: 11 of 52 stories selected before the sizing). A Catch up lost its episode to a push conflict (10-27). closed when: two dailies in a row air within 10% of their length, `singularity metrics` has ten runs with `length_share` at 0.9 and `failure_rate` at 0.1 or less, and a Regenerate pressed during a Catch up publishes both.
 - Run names (D217) and the Neon run log (D218). closed when: a daily is named `daily <date>`, absent from the queue, and has a `pipeline_runs` row with stage rows.

@@ -147,14 +147,14 @@ const TIMINGS_SQL = `select r.workflow, r.kind, s.stage, count(*)::int as runs,
   avg(s.usd) as avg_usd
 from pipeline_stages s join pipeline_runs r using (run_id)
 where r.started_at > to_timestamp($1::float8 / 1000) - $2::int * interval '1 day'
-  and r.dry_run = false and r.outcome <> 'failed'
+  and r.dry_run = false and r.outcome in ('published', 'nothing')
 group by r.workflow, r.kind, s.stage
 order by r.workflow, r.kind, s.stage`;
 
 /**
  * Each stage's median and p90 time over the last `days` before `now` (epoch ms), per workflow and
- * kind, from runs that finished: a dry run is a test of the pipeline and a failed run stops early, so
- * neither says how long a stage takes. No table yet reads as no runs. Throws when the database does.
+ * kind, from runs that finished: a dry run is a test of the pipeline and a failed or cancelled run stops
+ * early, so none says how long a stage takes. No table yet reads as no runs. Throws when the database does.
  */
 export async function readStageTimings(
   sql: SqlClient,
