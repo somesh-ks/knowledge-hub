@@ -131,7 +131,7 @@ describe("singularity health", () => {
 
   // Firecrawl's 100 a week stopped 15 listing sources by Tuesday, because dry runs and regenerations
   // spend it too; it is now a soft ceiling (D223) that says so before it stops anything.
-  it("warns when a week of Firecrawl passes one and a half normal weeks and faults at the stop", async () => {
+  it("warns when a week of Firecrawl passes 210, above a normal week of about 150, and faults at the stop", async () => {
     const spent = (credits: number, at = "2026-10-20T06:00:00Z", n = 0) => ({
       id: `fc-${at}-${n}`,
       at,
@@ -156,15 +156,15 @@ describe("singularity health", () => {
       );
       return collectHealth({ root, now: NOW, monthlyChars: 500_000, ceilingUsd: 5, site: null });
     };
-    // Two records of 60 are 120 credits, under the alert: each needs its own id or they merge into one.
-    const normal = await read([60, 60]);
+    // A normal week (about 150) must not warn; two records need their own ids or they merge into one.
+    const normal = await read([100, 50]);
     expect(codes(normal.findings, "warning")).not.toContain("firecrawl_week_high");
-    expect(normal.passed).toContain("Firecrawl used 120 requests in 7 days");
-    // Exactly 150 is still a normal-plus week: the warning needs more than 150.
-    const boundary = await read([100, 50]);
+    expect(normal.passed).toContain("Firecrawl used 150 requests in 7 days");
+    // Exactly 210 is still quiet: the warning needs more than 210.
+    const boundary = await read([100, 110]);
     expect(codes(boundary.findings, "warning")).not.toContain("firecrawl_week_high");
-    expect(boundary.passed).toContain("Firecrawl used 150 requests in 7 days");
-    const high = await read([100, 60]);
+    expect(boundary.passed).toContain("Firecrawl used 210 requests in 7 days");
+    const high = await read([100, 111]);
     expect(codes(high.findings, "warning")).toContain("firecrawl_week_high");
     expect(codes(high.findings, "fault")).not.toContain("firecrawl_week_stopped");
     expect(codes((await read([200, 100])).findings, "fault")).toContain("firecrawl_week_stopped");
