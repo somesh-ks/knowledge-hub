@@ -32,6 +32,9 @@ function markupFiles(dir: string): string[] {
 
 const sheet = (name: string) => readFileSync(join(STYLES, name), "utf8");
 const wholeClass = (name: string) => new RegExp(`(?<![\\w-])${name}(?![\\w-])`);
+/** The text inside quotes, where a class is written; a variable named `btn` is not a class. */
+const quoted = (text: string) =>
+  [...text.matchAll(/(["'`])((?:\\.|(?!\1)[^\\])*)\1/g)].map((m) => m[2]).join("\n");
 
 describe("design-system components", () => {
   it.each(COMPONENTS)(
@@ -78,7 +81,7 @@ describe("design-system components", () => {
       const written = [...c.classes, ...c.retired];
       const offenders = APPS.flatMap((root) =>
         markupFiles(root).flatMap((file) => {
-          const text = readFileSync(file, "utf8");
+          const text = quoted(readFileSync(file, "utf8"));
           return written
             .filter((name) => wholeClass(name).test(text))
             .map((name) => `${relative(join(SRC, "..", "..", ".."), file)}: ${name}`);
