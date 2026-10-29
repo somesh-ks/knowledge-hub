@@ -178,7 +178,8 @@ describe("the spend record", () => {
     expect(other.totals().requests.jev).toBeUndefined();
   });
 
-  // The owner set Firecrawl to 100 requests a week (2026-10-24); a run only knew its own 30.
+  // The owner set Firecrawl to 100 requests a week (2026-10-24); a run only knew its own 30. The
+  // weekly stop is three normal weeks since D222, so the week's spend scales with the constant.
   it("gives a run what the 7 days before it left of the weekly budget", async () => {
     const root = await mkdtemp(join(tmpdir(), "spend-"));
     dirs.push(root);
@@ -201,7 +202,7 @@ describe("the spend record", () => {
     const month = (name: string, records: unknown[]) =>
       writeFile(join(root, `state/costs-${name}.json`), JSON.stringify({ version: 1, records }));
     await mkdir(join(root, "state"));
-    const before = 30;
+    const before = FIRECRAWL_WEEKLY_BUDGET - 80;
     const after = 40;
     await month("2026-10", [
       spent("2026-10-25T05:37:00.000Z", 50), // eight days back: outside the week

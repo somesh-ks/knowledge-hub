@@ -238,5 +238,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D219 | A day's Catch ups are one album, chosen by a select before Play | active |
 | D220 | Over-limit summaries and headlines are cut | active |
 | D221 | Runs are logged to Neon with stage times and costs | active |
+| D222 | Firecrawl's week alerts, stops at 300 | amends D166 |
 
 ---

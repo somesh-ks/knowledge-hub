@@ -373,3 +373,12 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Open before step 4: the reply ceiling is not what costs money. `THINKING_HEADROOM` (8,000) already sits on top of it, a tight ceiling once cut the writer's JSON off mid-object, and `TokenBudget.check` counts the ceiling in its estimate, so raising it alone trips the 400,000-token run budget sooner (the 2026-10-25 weekly wrote 403,000). `story_writer` sets no `effort`, so its thinking is billed as output. Measure stories written against stories aired, and the writer at lower effort on `loop/`'s replay, before the batch.
 - Supersedes: D135 once step 3 ships (its revisit condition, an earlier start, is met, and the hold gives the batch its wait). Amends: D197 (the strict publish time stays; the hold no longer holds the lane).
 - Revisit if: a held publish job is replaced while pending (GitHub keeps one pending run per group), or a batch misses 15 minutes before publish on more than one run in ten.
+
+## D222: Firecrawl's week is a soft ceiling that alerts
+
+- Date: 2026-10-29 (the owner, 2026-10-28: "a high safety ceiling that alerts, not a hard cap"; made for him while the plan's Step 1 ran).
+- Decision: a normal week stays 100 requests (D166). Health warns (`firecrawl_week_high`) once the ledger's last 7 days pass 150, and faults (`firecrawl_week_stopped`) at 300, which is where runs stop listing through Firecrawl (`FIRECRAWL_WEEKLY_BUDGET`, was 100). The 50 a run (`FIRECRAWL_RUN_CEILING`) stays.
+- Why: dry runs and regenerations spend the same week as the schedule, so a hard 100 was gone by Tuesday and left 15 listing sources skipped and 7 YouTube feeds failing for the rest of the week. A stop at three times normal still bounds a runaway; the alert says so before anything is skipped.
+- Rejected: no stop at all (a loop or a mistaken monitor could spend the account); counting dry runs apart (they pay real credits).
+- Revisit if: the alert fires in a week with no extra runs (normal has grown), or monitors replace listing scrapes (Step 2).
+- Amends: D166.
