@@ -95,20 +95,20 @@ interface Group {
 
 const WEIGHT: Record<Tone, number> = { bad: 0, warn: 1, good: 2, none: 3 };
 
-function healthTile(label: string, r: HealthBody["rows"][number]): HTMLElement {
-  const item = element("a", "ov-tile");
+/** One flagged check on one line: its glyph, its name and its reading; the full line is its tooltip. */
+function flagged(label: string, r: HealthBody["rows"][number]): HTMLElement {
+  const item = element("a", "ov-flag");
   item.setAttribute("href", href("/health"));
+  item.setAttribute("title", r.detail);
   item.dataset.tone = r.tone;
-  const icon = element("span", "ov-tile-icon");
+  const icon = element("span", "ov-flag-icon");
   const mark = glyph(r.tone);
   if (mark) icon.append(mark);
   item.append(
     icon,
-    element("span", "ov-tile-value", r.value),
-    element("span", "ov-tile-label", label),
+    element("span", "ov-flag-name", label),
+    element("span", "ov-flag-value", r.value),
   );
-  if (r.tone === "warn" || r.tone === "bad")
-    item.append(element("span", "ov-tile-detail", r.detail));
   return item;
 }
 
@@ -117,8 +117,9 @@ function renderHealth(body: HealthBody, groups: Group[]): void {
   if (!root) return;
   const { count, tone } = body.attention;
   const level: Tone = count === 0 ? "good" : tone;
+  // A state, never an instruction: the page says how things stand, the lines under it say what.
   const words = pick<HTMLElement>("[data-attention]");
-  if (words) words.textContent = count === 0 ? "All running" : `${count} to check`;
+  if (words) words.textContent = count === 0 ? "Healthy" : level === "bad" ? "Failing" : "Degraded";
   const badge = pick<HTMLElement>("[data-badge]");
   if (badge) {
     badge.dataset.tone = level;
@@ -152,12 +153,17 @@ function renderHealth(body: HealthBody, groups: Group[]): void {
     .flatMap((g) => g.items.map((i) => ({ ...i, label: `${g.title} · ${i.label}` })))
     .filter((i) => i.row.tone === "warn" || i.row.tone === "bad")
     .sort((a, b) => WEIGHT[a.row.tone] - WEIGHT[b.row.tone]);
-  const tiles = element("ul", "ov-tiles");
-  tiles.setAttribute("role", "list");
+  const total = judged.reduce((sum, g) => sum + g.items.length, 0);
+  const sub = pick<HTMLElement>("[data-health-sub]");
+  if (sub)
+    sub.textContent =
+      count === 0 ? `All ${total} checks passing` : `${count} of ${total} checks flagged`;
+  const flags = element("ul", "ov-flags");
+  flags.setAttribute("role", "list");
   for (const { label, row } of attention) {
-    const li = element("li", "ov-cell");
-    li.append(healthTile(label, row));
-    tiles.append(li);
+    const li = element("li", "ov-flag-item");
+    li.append(flagged(label, row));
+    flags.append(li);
   }
   const strips = element("div", "ov-strips");
   for (const group of judged) {
@@ -179,7 +185,7 @@ function renderHealth(body: HealthBody, groups: Group[]): void {
     strips.append(line);
   }
   pick<HTMLElement>("[data-health-groups]")?.replaceChildren(
-    ...(attention.length ? [tiles] : []),
+    ...(attention.length ? [flags] : []),
     strips,
   );
   root.removeAttribute("data-loading");
@@ -367,11 +373,23 @@ async function ask<T>(url: string): Promise<T | null> {
   }
 }
 
+/** A card whose ask failed says so where its answer would be, and drops what would have drawn on it. */
 function failed(selector: string, words: string): void {
   const root = pick<HTMLElement>(selector);
-  root?.removeAttribute("data-loading");
-  const note = element("p", "settings-note", words);
-  root?.querySelector(".card-group")?.append(note);
+  if (!root) return;
+  root.removeAttribute("data-loading");
+  root.dataset.failed = "";
+  const title = root.querySelector<HTMLElement>("[data-attention], [data-spend-total]");
+  if (title) title.textContent = "No answer";
+  const sub = root.querySelector<HTMLElement>("[data-health-sub], [data-spend-sub]");
+  if (sub) sub.textContent = "";
+  const badge = root.querySelector<HTMLElement>("[data-badge]");
+  if (badge) {
+    badge.dataset.tone = "none";
+    const mark = glyph("none");
+    badge.replaceChildren(...(mark ? [mark] : []));
+  }
+  root.querySelector(".card-group")?.append(element("p", "settings-note", words));
 }
 
 const groups = JSON.parse(pick<HTMLElement>("[data-overview]")?.dataset.groups ?? "[]") as Group[];

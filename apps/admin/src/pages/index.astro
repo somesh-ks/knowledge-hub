@@ -31,7 +31,10 @@ const groups = HEALTH_GROUPS.map((group) => ({
       <div class="card-group ov-card">
         <div class="ov-answer ov-data" aria-live="polite">
           <span class="ov-badge" data-tone="none" data-badge></span>
-          <p class="ov-figure" data-attention>Checking</p>
+          <div>
+            <p class="ov-figure" data-attention>Checking</p>
+            <p class="ov-sub" data-health-sub></p>
+          </div>
         </div>
         <p class="settings-note" data-health-note hidden></p>
         <div class="ov-groups ov-data" data-health-groups></div>
