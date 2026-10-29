@@ -170,7 +170,7 @@
 
 /* On the episode's own colour the glyph is a darker step of it, so it reads on any tint. */
 .gen-thumb[data-tinted] {
-  color: color-mix(in oklch, var(--gen-tint), var(--color-blue-900) 70%);
+  color: color-mix(in oklch, var(--gen-tint), var(--color-blue-900) 85%);
 }
 
 .gen-thumb-glyph {

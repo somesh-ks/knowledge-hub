@@ -121,7 +121,7 @@ const SURFACE_LEVELS = {
 
 const RAMP_DESCRIPTIONS: Record<RampName, string> = {
   grey: "Neutral. The blue hue at a whisper of chroma, so greys sit with the accent. 50 and 900 are the light and dark pages; surfaces between them are the elevation group.",
-  blue: "The one accent. 500 is the light-mode accent and the Catch up action tone, 300 the dark-mode accent; 100 and 700 are the light and dark containers behind a selected control.",
+  blue: "The one accent. Low steps are tints, middle steps fills and accent text, high steps ink; which step a role takes is in the semantic tokens.",
   green: "Success.",
   amber: "Warning.",
   red: "Danger.",
