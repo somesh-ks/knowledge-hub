@@ -877,7 +877,6 @@
         "--color-success-subtle",
         "--color-warning",
         "--color-warning-subtle",
-        "--layout-aside",
         "--size-icon"
       ],
       "usedIn": 2
@@ -1038,6 +1037,7 @@
         "--cta-fg",
         "--field-border",
         "--field-height",
+        "--field-label-gap",
         "--field-padding",
         "--field-radius",
         "--size-touch"
@@ -3885,6 +3885,13 @@
       "type": "dimension",
       "light": "20rem",
       "role": "A multi-line field grows with its text up to this, then scrolls inside, so what sits under it (a count, a Reset) stays in reach (the Structure prompt, 2026-10-24)."
+    },
+    {
+      "name": "--field-label-gap",
+      "tier": "component",
+      "type": "dimension",
+      "light": "0.75rem",
+      "role": "A label onto the field it names: 12px, a step over 8 so the label does not sit on the outline, and under the gap between two fields (24px) so it still belongs to its own (owner, 2026-10-29)."
     },
     {
       "name": "--field-padding",
