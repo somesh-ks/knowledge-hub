@@ -212,8 +212,8 @@
 
 .sheet-field {
   display: grid;
-  gap: var(--space-2);
-  margin-block-start: var(--space-4);
+  gap: var(--field-label-gap);
+  margin-block-start: var(--space-6);
 }
 
 /* A group of choices is a field like any other: no frame of the browser's own. */

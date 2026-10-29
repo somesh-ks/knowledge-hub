@@ -12,7 +12,6 @@ Updated 2026-10-29. Rewrite, never append. [Specs](specs/README.md), [decisions]
 - Saved copies, offline shell, downloads, the PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Schedule (D61, D197): made ahead, aired 07:00.
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merge by hand (D143).
-- Tooling: subagents, `/close-session` ([roster](history/2026-10-08-subagent-roster.md)).
 
 ## Tests
 
@@ -33,7 +32,7 @@ Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs, 10 min. Pla
 - Discovery copies rank below an outlet's own entry in dedupe (10-28). closed when: a run's dedupe report keeps the outlet's entry where a discovery copy was found.
 - Opus on runners (D198, #381, #388). closed when: an audio run logs `ffmpeg version`, its digest has `m4a_url`, and the owner plays /d/2026-10-24 on an iPhone.
 - Alexandria pilot (D200). closed when: a run log shows `anthropic-blog` fetched via `alexandria:anthropic-com` with dated posts.
-- Owner's eye: the bar's centring (more than 1px), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off on a phone and a laptop.
+- Owner's eye: the bar's centring (more than 1px), the centred column and label gap (D229), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off on a phone and a laptop.
 - Live content (plan 20): an open page elsewhere does not refresh within 60 s; `smokeLive.mjs --apply` never ran on production (criterion 10, owner's); offline copies of a removed episode and Listen now after a delete are unaudited. closed when: each is checked.
 - Settings paint the kept store copy at once, the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change still waits for the store, up to 2.5 s. closed when: the owner signs off on a phone.
 - Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push`; no run used a mix, perspective or cap. closed when: a production source's format comes from Jev and a digest follows a mix change.
