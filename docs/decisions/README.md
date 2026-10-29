@@ -205,7 +205,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D186 | Every control is a pill | amends D167 |
 | D187 | Glyphs align by ink | active |
 | D188 | Script-drawn markup | active |
-| D189 | Catalogue route | active |
+| D189 | Catalogue route | superseded by D224 |
 | D190 | Votes tune weights | partly superseded by D194 for topics |
 | D191 | Structure by profile | amends D170, D176 |
 | D192 | CodeRabbit review agent | amends D143 |
@@ -240,6 +240,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D221 | Runs are logged to Neon with stage times and costs | active |
 | D222 | Firecrawl: 300 a week, 60 a run | amends D166 |
 | D223 | Firecrawl warns at 150 | amends D222 |
-| D224 | A Haiku call shortens an over-limit headline | active |
+| D224 | Admin and style guide: own apps | active; supersedes D189 |
+| D225 | A Haiku call shortens an over-limit headline | active |
 
 ---

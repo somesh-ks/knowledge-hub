@@ -280,7 +280,7 @@ What an episode or briefing is: kinds and structure, length, regenerate, Catch u
 - Revisit if: a cut headline reads wrong in a published episode, or the summary's last sentence turns out to carry the story's point.
 - Amends: none.
 
-## D224: a headline over its word limit is shortened by a cheap model call
+## D225: a headline over its word limit is shortened by a cheap model call
 
 - Date: 2026-10-29 (decided for the owner while away; the coordinator: no hard word cut, one Haiku-class call for only the over-limit headline).
 - Decision: when a headline's only fault is its length and D220's clause cut finds no break, `rewriteOnce` sends a `shorten` request. `LlmWriter` runs it on the new `headline_shorten` step (Claude Haiku, then Gemini Flash-Lite) with a short prompt: keep the subject, the fact and every number, drop qualifiers, at most 11 words. The result is linted and cut again as before. A shortening that fails, changes the numbers the headline stated or still fails lint falls back to the full rewrite.
