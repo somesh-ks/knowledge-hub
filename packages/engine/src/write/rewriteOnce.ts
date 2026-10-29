@@ -73,13 +73,12 @@ export async function rewriteOnce(args: RewriteOnceArgs): Promise<RewriteOnceRes
     args.field === "headline" && args.violations.every((v) => v.rule === "too_many_words");
   let rewritten = await ask(shorten);
   if (shorten) {
-    // The shortening is usable when it kept the numbers and passes lint, or a clause cut makes it pass.
-    const usable =
-      rewritten === null || !keepsNumbers(args.text, rewritten)
-        ? null
-        : args.linter.lint(args.field, rewritten).length === 0
-          ? rewritten
-          : trimToLimit(args.field, rewritten, args.linter);
+    // The shortening is usable when it passes lint, or a clause cut makes it pass, and the result keeps the numbers.
+    const cut =
+      rewritten === null || args.linter.lint(args.field, rewritten).length === 0
+        ? rewritten
+        : trimToLimit(args.field, rewritten, args.linter);
+    const usable = cut !== null && keepsNumbers(args.text, cut) ? cut : null;
     rewritten = usable ?? (await ask(false));
   }
   if (rewritten === null) {
