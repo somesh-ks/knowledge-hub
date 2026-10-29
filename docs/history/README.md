@@ -4,7 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
-| 2026-10-29 | [The podcast queue](2026-10-29-podcast-queue.md) | A dock above the bottom bar and a popover from the side column listing a Catch up or a regeneration while it is made, a ring with the percent, finished runs leaving with a toast (D218) |
+| 2026-10-29 | [The podcast queue](2026-10-29-podcast-queue.md) | A dock above the bottom bar and a popover from the side column listing a Catch up or a regeneration while it is made, a ring with the percent, finished runs leaving with a toast (D219) |
 | 2026-10-28 | [A list of generations, with Cancel](2026-10-28-generations-list.md) | An icon and popover on desktop and a sheet on a phone listing every generation under way with cover, bar, time left and Cancel; `/api/generations`, `/api/cancel`, a cancelled run ending as Cancelled (D208) |
 | 2026-10-28 | [The Health page](2026-10-28-health-page.md) | Settings, Analytics, Health: briefings, run times, field speed, errors, workflow runs and services read live, judged by the daily check's lines (D203) |
 | 2026-10-27 | [Deploys load themselves](2026-10-27-auto-update.md) | The Reload toast replaced by a guarded automatic reload (D202); the build check read the swapped head meta |

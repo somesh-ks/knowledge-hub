@@ -224,7 +224,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D205 | Settings paint the kept copy at once | amends D172 |
 | D206 | Stay on npm; pnpm spiked | active |
 | D207 | A Regenerate asks for its own length | amends D204 |
-| D208 | A list of generations, with Cancel | amends D204; list superseded by D218 |
+| D208 | A list of generations, with Cancel | amends D204; list superseded by D219 |
 | D209 | Lane free in the hold | supersedes D135; amends D197 |
 | D210 | Typed HTML builders | active |
 | D211 | Copy says podcast, not briefing; code names keep briefing | active |
@@ -234,6 +234,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D215 | Daily and Weekly have no Look back and no Format | active; supersedes D184 |
 | D216 | Ticked general topics get a length-sized section | active; amends D170, D191 |
 | D217 | `run.yml` names every run for what it is | active; amends D61, D213 |
-| D218 | A podcast queue replaces the generations list and the run strip | active; supersedes D208's list |
+| D218 | A block's count is a proportion; the length is the limit | active; amends D170 |
+| D219 | A podcast queue replaces the generations list and the run strip | active; supersedes D208's list |
 
 ---
