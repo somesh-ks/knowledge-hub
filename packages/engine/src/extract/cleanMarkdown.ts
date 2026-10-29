@@ -62,42 +62,74 @@ function isBoilerplate(line: string): boolean {
   );
 }
 
+const UNSEARCHED = -2;
 const BLOCK_TAGS = ["script", "style", "noscript", "svg"];
 
 /**
  * Tags, comments and script or style blocks a scraper left in the Markdown, in one scan: what is
- * cut is not rescanned. A tag is cut only when its `>` is on the same line, so prose like
- * `if a<b then` keeps its `<` and the lines after it; an unclosed script or style block takes the
- * rest of the page, as a browser would read it.
+ * cut is not rescanned. Code spans are copied as written, so an article about `<script>` keeps its
+ * words and the text after them. A tag is cut only when its `>` is on the same line, so prose like
+ * `if a<b then` keeps its `<` and the lines after it (a script or style tag may span lines); an
+ * unclosed script or style block takes the rest of the page, as a browser would read it.
  */
 function dropMarkupOnce(markdown: string): string {
   const lower = markdown.toLowerCase();
+  // Lowercasing can change the length (`İ`); then match block ends by their written case.
+  const haystack = lower.length === markdown.length ? lower : markdown;
+  // The next `<`, backtick, `>` and newline, searched again only once the scan has passed them.
+  const next = {
+    open: markdown.indexOf("<"),
+    tick: markdown.indexOf("`"),
+    gt: UNSEARCHED,
+    line: UNSEARCHED,
+  };
+  const find = (char: string, from: number, known: number): number =>
+    known === UNSEARCHED || (known !== -1 && known < from) ? markdown.indexOf(char, from) : known;
   let out = "";
   let at = 0;
   while (at < markdown.length) {
-    const open = markdown.indexOf("<", at);
-    if (open === -1) break;
+    next.open = find("<", at, next.open);
+    next.tick = find("`", at, next.tick);
+    if (next.open === -1 && next.tick === -1) break;
+    if (next.tick !== -1 && (next.open === -1 || next.tick < next.open)) {
+      const tick = next.tick;
+      let width = 1;
+      while (markdown[tick + width] === "`") width++;
+      const fence = "`".repeat(width);
+      let close = markdown.indexOf(fence, tick + width);
+      while (close !== -1 && (markdown[close - 1] === "`" || markdown[close + width] === "`")) {
+        close = markdown.indexOf(fence, close + 1);
+      }
+      const end = close === -1 ? tick + width : close + width;
+      out += markdown.slice(at, end);
+      at = end;
+      continue;
+    }
+    const open = next.open;
     out += markdown.slice(at, open);
     at = open + 1;
-    if (lower.startsWith("<!--", open)) {
+    if (haystack.startsWith("<!--", open)) {
       const end = markdown.indexOf("-->", open + 4);
       at = end === -1 ? markdown.length : end + 3;
       continue;
     }
     const tag = /^<(\/?)([a-z][a-z0-9]*)/i.exec(markdown.slice(open, open + 20));
-    const tagEnd = markdown.indexOf(">", open);
-    const lineEnd = markdown.indexOf("\n", open);
-    if (!tag || tagEnd === -1 || (lineEnd !== -1 && tagEnd > lineEnd)) {
+    const name = (tag?.[2] ?? "").toLowerCase();
+    const blockOpen =
+      tag?.[1] === "" &&
+      BLOCK_TAGS.includes(name) &&
+      /[\s>/]/.test(markdown[open + 1 + name.length] ?? "");
+    next.gt = find(">", open, next.gt);
+    next.line = find("\n", open, next.line);
+    const gt = next.gt;
+    if (!tag || gt === -1 || (!blockOpen && next.line !== -1 && gt > next.line)) {
       out += "<";
-      continue;
-    }
-    const name = (tag[2] ?? "").toLowerCase();
-    if (tag[1] === "" && BLOCK_TAGS.includes(name) && markdown[tagEnd - 1] !== "/") {
-      const close = lower.indexOf(`</${name}`, tagEnd);
+    } else if (blockOpen && markdown[gt - 1] !== "/") {
+      const close = haystack.indexOf(`</${name}`, gt);
       const closeEnd = close === -1 ? -1 : markdown.indexOf(">", close);
       at = closeEnd === -1 ? markdown.length : closeEnd + 1;
     } else {
-      at = tagEnd + 1;
+      at = gt + 1;
     }
   }
   return out + markdown.slice(at);
