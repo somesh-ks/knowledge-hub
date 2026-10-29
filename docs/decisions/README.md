@@ -245,6 +245,10 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D227 | Firecrawl warns at 210 | supersedes D223 |
 | D228 | A failed dry run records its spend | amends D223, D227 |
 | D229 | Column centred; 12px label gap | active |
+| D232 | One cleaner turns scraped Markdown into prose | active |
+| D233 | Ingest in shadow: free sources, Blob text | active |
+| D234 | Vetted publishers pass the bar; topic rubric | active |
 | D237 | Controls are components; design-system PRs apart | amends D189 |
+| D239 | A travelling device is offered the new zone | active; amends D100 |
 
 ---

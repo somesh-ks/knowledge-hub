@@ -82,6 +82,29 @@ sources with a missing API key skip. Agent mode starts here (see \`singularity r
     load: async () => (await import("./commands/fetch.js")).run,
   },
   {
+    name: "ingest",
+    summary: "Read the free sources, archive each story's text in Blob and Neon (shadow, D233)",
+    help: `Usage: singularity ingest [--since <iso>] [--max <n>] [--dry-run]
+       singularity ingest --coverage
+
+Reads the free sources over the last 3 days, extracts each story the store does not hold, archives
+its text in Blob under a random key and records it in Neon. Needs DATABASE_URL and
+BLOB_READ_WRITE_TOKEN. It spends no Firecrawl, Exa or model call and changes nothing a briefing reads.
+--coverage prints how many of the recent dailies' stories the store holds, by source type, and
+whether the shadow exit is met. Needs DATABASE_URL.`,
+    load: async () => (await import("./commands/ingest.js")).run,
+  },
+  {
+    name: "authority",
+    summary: "Replay the owner's authority list over past pools (D234)",
+    help: `Usage: singularity authority replay <pools-dir> [--days <n>]
+
+Scores the pools in <pools-dir> (the run artifacts, unpacked; the newest 14 days by default) from the
+cached judgments, with and without config/authority.json, and prints what would newly pass the bar,
+each domain's pass share and any domain over 30%. The list is read as if on. Offline and free.`,
+    load: async () => (await import("./commands/authority.js")).run,
+  },
+  {
     name: "curate",
     summary: "Judge, select, write and ground a pool (api) or validate a selection (agent)",
     help: `Usage: singularity curate [--mode api|agent] [--kind regular|weekly|on-demand] [--pool <path>]
