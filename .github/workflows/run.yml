@@ -2,10 +2,11 @@ name: run
 
 # A run is named for what it is (D217), so the run list, health.yml and the site's queue tell them
 # apart and an analyst can group them: `delete <id>`, `dry run <mode>`, `regenerate <id>`, the
-# scheduler's own label (`daily 2026-10-29`, `weekly 2026-10-25`), `on-demand`, or `scheduled` for
-# GitHub's late fallback. The `delete ` and `dry run` prefixes are read by the Regenerate rate limit
-# and health.yml's run_died and run_cancelled, which count neither: they write no record.
-run-name: ${{ inputs.delete != '' && format('delete {0}', inputs.delete) || inputs.dry_run && format('dry run {0}', inputs.mode || 'scheduled') || inputs.replace != '' && format('regenerate {0}', inputs.replace) || inputs.label != '' && inputs.label || inputs.mode == 'on-demand' && 'on-demand' || 'scheduled' }}
+# scheduler's own label (`daily 2026-10-29`, `weekly 2026-10-25`), `on-demand`, `weekly` (a weekly
+# pass started by hand) or `scheduled` for GitHub's late fallback. The `delete ` and `dry run`
+# prefixes are read by the Regenerate rate limit and health.yml's run_died and run_cancelled, which
+# count neither: they write no record.
+run-name: ${{ inputs.delete != '' && format('delete {0}', inputs.delete) || inputs.dry_run && format('dry run {0}', inputs.mode || 'scheduled') || inputs.replace != '' && format('regenerate {0}', inputs.replace) || inputs.label != '' && inputs.label || inputs.mode == 'on-demand' && 'on-demand' || inputs.mode == 'weekly' && 'weekly' || 'scheduled' }}
 
 # Produces a digest on the chosen cadence (schedule), on demand (workflow_dispatch), and the weekly pass.
 # Step names are part of a contract: the site's Generate sheet maps them to its progress list.
