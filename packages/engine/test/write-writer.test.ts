@@ -576,10 +576,30 @@ describe("enforceVoice", () => {
     const out = await enforceVoice({ written: [wordy], materials, writer, linter });
     expect(writer.requests[0]?.shorten).toBe(true);
     expect(out.dropped).toEqual([]);
-    const banned = { ...good(m.id), headline: "An incredible release!" };
+    // Over the limit and also carrying a banned word: the full rewrite, not a shortening.
+    const banned = {
+      ...good(m.id),
+      headline:
+        "An incredible release keeps every drawer velocity intact across slow phones this spring",
+    };
     const other = scriptedWriter(["Springlet 2.0 retargets springs"]);
     await enforceVoice({ written: [banned], materials, writer: other, linter });
     expect(other.requests[0]?.shorten).toBeUndefined();
+  });
+
+  it("falls back to the full rewrite when a shortening drops a number or fails", async () => {
+    const wordy = {
+      ...good(m.id),
+      headline:
+        "Springlet 2.0 retargets springs mid flight and keeps every drawer velocity intact on slow phones",
+    };
+    // The cut loses "2.0" in the first case and the call returns nothing in the second.
+    for (const first of ["Springlet retargets springs mid flight", null]) {
+      const writer = scriptedWriter([first, "Springlet 2.0 retargets springs mid flight"]);
+      const out = await enforceVoice({ written: [wordy], materials, writer, linter });
+      expect(writer.requests.map((r) => r.shorten)).toEqual([true, undefined]);
+      expect(out.passed[0]?.item.headline).toBe("Springlet 2.0 retargets springs mid flight");
+    }
   });
 
   it("rewrites a failing field once and keeps the item", async () => {

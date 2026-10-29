@@ -24,8 +24,8 @@ Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs, 10 min. Pla
 - More menu (D214); Catch up album, Share circle, cards (D219). closed when: signed off.
 - Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused; a regenerate or delete uses none.
 - Three regenerations per podcast, counted in its own file (D212). closed when: one regenerated live shows "2 of 3 regenerations left" and its file has `regenerations: 1`.
-- Short podcasts (D204, D216 to D223). closed when: two dailies in a row air within 10% of their length, `singularity metrics` shows ten runs at `length_share` 0.9, `failure_rate` 0.1 or less, and a Regenerate pressed during a Catch up publishes both.
-- Run names (D217) and the Neon run log (D221). closed when: a daily is named `daily <date>`, is off the queue and has `pipeline_runs` rows.
+- Short podcasts (D204, D216 to D223). closed when: two dailies in a row air within 10% of their length, `singularity metrics` shows ten runs at `length_share` 0.9 or more, `failure_rate` 0.1 or less, and a Regenerate pressed during a Catch up publishes both.
+- Run names (D217), Neon run log (D221). closed when: a daily is named `daily <date>`, is off the queue, with `pipeline_runs` rows.
 - `.github/workflows/podcast.yml` lost its ffmpeg step in this branch (workflow files need a manual merge). closed when: the owner merges it and a Catch up reaches its first stage within 5 s of the runner starting.
 - A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): `run.yml` gained a `length_minutes` input, which must merge with the site code or GitHub refuses the dispatch. closed when: a Regenerate at 10 minutes airs within 10% of 10.
 - Generations list and Cancel (D208): only against fakes. `POST /api/cancel` needs the token's Actions write (unchecked since 2026-10-14); a cancelled Catch up leaves its live copy "writing" for the 24 h prune and, stopped while recording voices, loses that run's usage charge; no timed runs yet for a time left. closed when: the owner cancels a real Catch up from the list, it ends as Cancelled, and a briefing shows a time left.

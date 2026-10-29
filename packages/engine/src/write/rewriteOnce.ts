@@ -1,5 +1,6 @@
 import { truncateAtParagraph } from "../extract/truncate.js";
 import type { Linter, Violation, ViolationRule, VoiceField } from "../voice/lint.js";
+import { numberValues } from "./spokenCheck.js";
 import type { SourceMaterial, Writer } from "./types.js";
 
 /** Rules whose `match` is a passage of the field, quoted back to the model as data. */
@@ -11,6 +12,13 @@ const FOCUS_RULES: ReadonlySet<ViolationRule> = new Set(["banned_pattern", "sent
  * these ran a briefing (2026-10-24), each resending up to 10k characters (D181).
  */
 const REWRITE_SOURCE_CHARS = 4_000;
+
+/** Every number the old text states is still stated, by value. */
+function keepsNumbers(before: string, after: string): boolean {
+  const kept = numberValues(after);
+  for (const value of numberValues(before)) if (!kept.has(value)) return false;
+  return true;
+}
 
 export interface RewriteOnceArgs {
   writer: Writer;
@@ -45,21 +53,27 @@ export async function rewriteOnce(args: RewriteOnceArgs): Promise<RewriteOnceRes
         .filter((match) => match.length > 0),
     ),
   ];
+  const ask = (shorten: boolean): Promise<string | null> =>
+    args.writer.rewrite({
+      material: {
+        ...args.material,
+        text: truncateAtParagraph(args.material.text, REWRITE_SOURCE_CHARS).text,
+      },
+      field: args.field,
+      current: args.text,
+      problems: args.violations.map((v) => v.message),
+      ...(focus.length > 0 ? { focus } : {}),
+      ...(shorten ? { shorten } : {}),
+    });
   // A headline over its word limit and nothing else needs a cut, not a new voice: the full rewrite
-  // left 2 of 15 headlines at 14 words (2026-10-29).
+  // left 2 of 15 headlines at 14 words (2026-10-29). A shortening that fails, or drops a number the
+  // headline stated, falls back to the full rewrite.
   const shorten =
     args.field === "headline" && args.violations.every((v) => v.rule === "too_many_words");
-  const rewritten = await args.writer.rewrite({
-    material: {
-      ...args.material,
-      text: truncateAtParagraph(args.material.text, REWRITE_SOURCE_CHARS).text,
-    },
-    field: args.field,
-    current: args.text,
-    problems: args.violations.map((v) => v.message),
-    ...(focus.length > 0 ? { focus } : {}),
-    ...(shorten ? { shorten } : {}),
-  });
+  let rewritten = await ask(shorten);
+  if (shorten && (rewritten === null || !keepsNumbers(args.text, rewritten))) {
+    rewritten = await ask(false);
+  }
   if (rewritten === null) {
     return { text: args.text, violations: [...args.violations], rewritten: false };
   }
