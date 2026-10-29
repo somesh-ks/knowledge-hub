@@ -185,14 +185,13 @@ idle(() => {
 const zone = (): void => {
   if (navigator.onLine) void import("./zonePrompt").then((prompt) => prompt.checkZone());
 };
-let zoneChecked = "";
-const zoneOnPage = (): void => {
-  if (zoneChecked === location.href) return;
-  zoneChecked = location.href;
-  idle(zone);
-};
-zoneOnPage();
-document.addEventListener("astro:page-load", zoneOnPage);
+idle(zone);
+// The first astro:page-load is the load just checked; every later one is a page replaced or entered.
+let firstPage = true;
+document.addEventListener("astro:page-load", () => {
+  if (firstPage) firstPage = false;
+  else idle(zone);
+});
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") zone();
 });

@@ -116,17 +116,29 @@ const noteOutcome = (outcome: "agree" | "dismissed" | "offered" | "unsupported")
   document.documentElement.dataset.zonePrompt = outcome;
 };
 
+/** The offer on screen, kept to take it away where it must not stay (Settings). */
+let offered: string | null = null;
+
+const deviceZone = (): string | undefined => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return undefined;
+  }
+};
+
 /** Compares the device's zone with the schedule's and offers the switch when they differ. */
 export function checkZone(): void {
-  if (!navigator.onLine || location.pathname.startsWith("/settings")) return;
-  const saved = savedZone();
-  if (!saved) return;
-  let device: string;
-  try {
-    device = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  } catch {
+  if (!navigator.onLine) return;
+  if (location.pathname.startsWith("/settings")) {
+    // The toast outlives a client-side navigation; Settings is where the zone is set by hand.
+    if (offered) sendToast({ dismiss: offered });
+    offered = null;
     return;
   }
+  const saved = savedZone();
+  const device = deviceZone();
+  if (!saved || !device) return;
   const suggestion = suggestZone(device, saved);
   if (!suggestion) {
     if (sameClock(device, saved)) {
@@ -144,14 +156,20 @@ export function checkZone(): void {
     noteOutcome("dismissed");
     return;
   }
+  const message = suggestion.exact
+    ? `You're in ${place(suggestion)}`
+    : `You're on ${suggestion.label} time`;
+  offered = message;
   sendToast(
     {
-      message: suggestion.exact
-        ? `You're in ${place(suggestion)}`
-        : `You're on ${suggestion.label} time`,
+      message,
       actionLabel: "Switch timezone",
       oneLine: true,
-      onAction: () => void switchTo(suggestion),
+      onAction: () => {
+        // The device moved on while the offer stood: ask again for the zone it is in now.
+        if (deviceZone() === device) void switchTo(suggestion);
+        else checkZone();
+      },
       onDismiss: () => keep([...new Set([...dismissed(), device])]),
     },
     document,
