@@ -31,6 +31,10 @@ const PLACEHOLDERS: Record<string, string[]> = {
   // Offline here: the contract run must not reach the live site.
   '"$CEILING"': ["5", "--offline"],
   '"$DELETE_ID"': ["2026-10-01"],
+  // run.yml's Log run step: job.status and the commit stage's outcome.
+  '"$RESULT"': ["success"],
+  '"$STARTED_AT"': ["2026-10-29T05:00:00Z"],
+  '"$OUTCOME"': ["published"],
   // health.yml's `gh run list` output: an empty list.
   '"$runs"': [RUNS_FILE],
   // health.yml's probe output (empty on a day without the probe); a failed probe wrote none,

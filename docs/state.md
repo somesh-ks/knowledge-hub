@@ -1,31 +1,31 @@
 # State
 
-Updated 2026-10-29. Rewrite, never append. Behaviour: [specs](specs/README.md). Why: [decisions](decisions/README.md). Sessions: [history](history/README.md).
+Updated 2026-10-29. Rewrite, never append. [Specs](specs/README.md), [decisions](decisions/README.md), [history](history/README.md).
 
 ## Working
 
-- Engine live end to end (fetch, Jev judge, writer, validate, commit), sized by the owner's length with spares: [engine](specs/engine.md). A run that loses stories or races another run's push degrades instead of failing, and each run records its health (D204): [resilience](engineering/generation-resilience.md), [metrics](engineering/metrics.md).
-- Reader: Latest, Library, Catch up, Settings, `/design`: [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
-- Player as one surface, transcript with word light, chapters in the bar, a queue with Up next (D126): [player](specs/player.md).
-- Narration on Play, story by story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes; Opus with an MP3 fallback (D198): [narration](specs/narration.md), [create](specs/create.md).
-- Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up are followed in one run card; a failed run says why (D204). Every generation under way is listed with Cancel (D208).
-- Saved-copy navigation, offline shell, downloads, the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
-- Schedule (D61, D197): generated ahead, published at 07:00.
-- Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merges by hand (D143).
-- Tooling (D38 [roster](history/2026-10-08-subagent-roster.md)): subagents, `/close-session`.
+- Engine live end to end (fetch, Jev judge, writer, validate, commit), sized by the owner's length with spares: [engine](specs/engine.md). A run that loses stories or races a push degrades instead of failing, and records its health (D204): [resilience](engineering/generation-resilience.md), [metrics](engineering/metrics.md).
+- Reader (Latest, Library, Catch up, Settings, `/design`): [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
+- Player as one surface: transcript with word light, chapters in the bar, a queue with Up next (D126): [player](specs/player.md).
+- Narration on Play, story by story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes; Opus, MP3 fallback (D198): [narration](specs/narration.md), [create](specs/create.md).
+- Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up show in one run card; a failed run says why (D204). Generations under way list with Cancel (D208).
+- Saved copies, offline shell, downloads, the PWA: [navigation and offline](specs/navigation-and-offline.md).
+- Schedule (D61, D197): made ahead, published 07:00.
+- Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merge by hand (D143).
+- Tooling: subagents, `/close-session` ([roster](history/2026-10-08-subagent-roster.md)).
 
 ## Tests
 
-Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs (10-28), 10 min. Player e2e: 77 runs, 6 min.
+Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs, 10 min. Player e2e: 77 runs, 6 min.
 
 ## Not working or unverified
 
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the first daily aired after the merge ends "That's the podcast.".
 - A page's More menu has Download and Add to queue (D214). closed when: the owner signs off the screenshots.
-- Two Catch ups in 24 hours, made or under way (D213). closed when: a third answers "That's today's limit" live and a regenerate or delete uses none up.
+- Two Catch ups in 24 hours (D213). closed when: a third answers "That's today's limit" live and a regenerate or delete uses none up.
 - Three regenerations per podcast, counted in its own file (D212). closed when: one regenerated live shows "2 of 3 regenerations left" and its file has `regenerations: 1`.
 - Short podcasts (D204, D216): the 2026-10-29 daily aired about 3.8 of 5 minutes because ticked general topics had no section under the Designer profile; D216 adds them, sized to length (dry run: 11 of 52 stories selected before the sizing). A Catch up lost its episode to a push conflict (10-27). closed when: two dailies in a row air within 10% of their length, `singularity metrics` has ten runs with `length_share` at 0.9 and `failure_rate` at 0.1 or less, and a Regenerate pressed during a Catch up publishes both.
-- Run names (D217). closed when: a daily is named `daily <date>` and absent from the queue.
+- Run names (D217) and the Neon run log (D218). closed when: a daily is named `daily <date>`, absent from the queue, and has a `pipeline_runs` row with stage rows.
 - `.github/workflows/podcast.yml` lost its ffmpeg step in this branch (workflow files need a manual merge). closed when: the owner merges it and a Catch up reaches its first stage within 5 s of the runner starting.
 - A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): `run.yml` gained a `length_minutes` input, which must merge with the site code or GitHub refuses the dispatch. closed when: a Regenerate at 10 minutes airs within 10% of 10.
 - Generations list and Cancel (D208): only against fakes. `POST /api/cancel` needs the token's Actions write (unchecked since 2026-10-14); a cancelled Catch up leaves its live copy "writing" for the 24 h prune and, stopped while recording voices, loses that run's usage charge; no timed runs yet for a time left. closed when: the owner cancels a real Catch up from the list, it ends as Cancelled, and a briefing shows a time left.
@@ -52,7 +52,7 @@ Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs (10-28), 10 
 - A 15 minute episode falls short (71% general, 45% owner topics, 12-story day); the app does not say how much a window holds. closed when: an episode airs within 10% of 15 minutes, or the form shows what the window holds.
 - Costs (D137) and Firecrawl's week (D166): every price in `config/prices.json` is unconfirmed; the 10-24 run is the ledger's first. closed when: the owner confirms the prices, /analytics shows a real run and a week's runs are all in the ledger.
 - Catch up: 2 of 7 `podcast.yml` runs failed by 10-28, the last too. closed when: the cause is named.
-- Thirty-five older items are parked: [five](history/2026-10-21-owner-backlog-in-parallel.md#parked), [twelve](history/2026-10-27-session-close.md#parked), [seven](history/2026-10-27-generation-health.md#parked), [eleven](history/2026-10-28-generations-list.md#parked). closed when: each closes.
+- 35 older items are parked: [five](history/2026-10-21-owner-backlog-in-parallel.md#parked), [twelve](history/2026-10-27-session-close.md#parked), [seven](history/2026-10-27-generation-health.md#parked), [eleven](history/2026-10-28-generations-list.md#parked). closed when: each closes.
 
 ## Known risks
 

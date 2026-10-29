@@ -97,6 +97,18 @@ jobs:
         shell: bash
         run: npm run --silent singularity -- podcast --request "$REQUEST" --stage publish --artifacts "$RUNNER_TEMP/podcast-stages"
 
+      # Writes this run to Neon with the time of each stage and the writer's cost, whatever its end
+      # (D218), so a Catch up that failed is on record too. A delete is not logged. A measurement
+      # never fails the run it measures.
+      - name: Log run
+        if: always()
+        continue-on-error: true
+        shell: bash
+        env:
+          RESULT: ${{ job.status }}
+          STARTED_AT: ${{ github.run_started_at }}
+        run: npm run --silent singularity -- log-run --workflow podcast --result "$RESULT" --request "$REQUEST" --artifacts "$RUNNER_TEMP/podcast-stages" --started-at "$STARTED_AT"
+
   # Narrates the new episode turn by turn into the files the site plays from, so its first Play
   # starts from stored audio. A separate job: the episode is already committed, so a failure here
   # never undoes it, and the next audio run (or Play) narrates what is missing.

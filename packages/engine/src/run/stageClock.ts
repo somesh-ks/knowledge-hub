@@ -15,6 +15,8 @@ const StageClockFile = z.object({
   /** The plan's `created_at`; a file from another run is ignored. */
   run: z.string(),
   stages: z.record(z.string(), z.number().nonnegative()),
+  /** What each stage's paid calls cost in dollars (D218); older files and unpriced stages have none. */
+  usd: z.record(z.string(), z.number().nonnegative()).optional(),
   /** The stage that failed and why, in a sentence, for the failed run's record. */
   failure: z.object({ stage: z.string(), reason: z.string() }).optional(),
 });
@@ -47,6 +49,25 @@ export async function addStageTime(
     await writeJson(clockPath(root), clock);
   } catch {
     // The run goes on without its timing.
+  }
+}
+
+/** Add a stage's cost in dollars to this run's total for it; ignore I/O failures. */
+export async function addStageCost(
+  root: string,
+  run: string,
+  stage: string,
+  usd: number,
+): Promise<void> {
+  if (!(usd > 0)) return;
+  try {
+    const clock = await readStageClock(root, run);
+    await writeJson(clockPath(root), {
+      ...clock,
+      usd: { ...clock.usd, [stage]: (clock.usd?.[stage] ?? 0) + usd },
+    });
+  } catch {
+    // As above.
   }
 }
 

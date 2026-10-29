@@ -281,6 +281,19 @@ jobs:
           [ "$FORCE" = "true" ] && args+=(--force)
           npm run --silent singularity -- run --record-failed "${args[@]}"
 
+      # Writes this run to Neon with the time and cost of each stage, whatever its end (D218): a dry
+      # run, a regeneration, a failure and a cancel too, which the committed metrics and the ledger
+      # only hold for runs that published. A measurement never fails the run it measures.
+      - name: Log run
+        if: always() && inputs.delete == '' && steps.gate.outputs.due == 'true'
+        continue-on-error: true
+        shell: bash
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RESULT: ${{ job.status }}
+          OUTCOME: ${{ steps.commit.outputs.outcome }}
+        run: npm run --silent singularity -- log-run --result "$RESULT" --outcome "$OUTCOME"
+
   # The Commit push does not deploy: vercel.json's ignoreCommand skips it (D199) and content.yml
   # mirrors the digest into the store the pages read. This job adds narration afterwards, which
   # reaches the site through the same sync.
