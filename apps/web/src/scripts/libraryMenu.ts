@@ -25,6 +25,17 @@ function toast(message: string, kind?: "success" | "error"): void {
   sendToast({ message, ...(kind ? { kind } : {}) });
 }
 
+/** A page's header says "Downloaded" at the end of its facts line (components/HeroDownloaded.astro). */
+function markHero(on: boolean): void {
+  const facts = document.querySelector(".hero-facts");
+  const marked = facts?.querySelector(".hero-downloaded");
+  if (!on) marked?.remove();
+  else if (facts && !marked) {
+    const mark = facts.querySelector<HTMLTemplateElement>("template[data-downloaded-mark]");
+    if (mark) facts.append(mark.content.cloneNode(true));
+  }
+}
+
 function setDownloaded(root: HTMLElement, on: boolean): void {
   holderOf(root).toggleAttribute("data-downloaded", on);
   const sub = root.closest("[data-card]")?.querySelector(".card-sub");
@@ -36,6 +47,7 @@ function setDownloaded(root: HTMLElement, on: boolean): void {
       ?.querySelector<HTMLTemplateElement>("template[data-downloaded-mark]");
     if (mark) sub.prepend(mark.content.cloneNode(true));
   }
+  if (holderOf(root) === root) markHero(on);
   const item = root.querySelector<HTMLElement>('[data-menu="download"]');
   const label = item?.querySelector("[data-menu-label]");
   if (label) label.textContent = on ? "Remove download" : "Download";

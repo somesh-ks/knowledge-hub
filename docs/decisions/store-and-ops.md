@@ -194,7 +194,7 @@ Where data lives (Postgres, Blob, git), config, health, analytics, deploys, acce
 - Why: the owner asked for app health, performance and times in Analytics. The daily check's report lives only in an Actions run and an issue; reading the same sources live needs no workflow change, and one module of lines means the page and the issue cannot disagree. The ledger's and the run record's `at` is the publish time for a run started ahead (D193), which read 96 minutes for a 3 minute run.
 - Revisit if: OAuth lands (Health becomes admin-only with Costs, D201), or GitHub's run list for run.yml outgrows two pages a week.
 
-## D219: every run is logged to Neon with the time and cost of each stage
+## D220: every run is logged to Neon with the time and cost of each stage
 
 - Date: 2026-10-29 (Step 1 of the pipeline plan, `docs/design` handoff: measure before changing).
 - Decision: `run.yml`'s last step, `singularity log-run`, writes the run that just ended to Neon's `pipeline_runs` (kind, mode, outcome, the digest ids, started and finished, work time apart from the wait for the publish time, dollars, the failed stage and why) and `pipeline_stages` (time and dollars per stage). It runs for a published run, a run that found nothing, a failure, a cancel, a regeneration and a dry run; `podcast.yml`'s last step logs a Catch up the same way (select, script, voices, publish). The stages price their own calls (`priceSpend`, the ledger's prices) into `.cache/run/stage-ms.json` as they end. The log is best effort: no `DATABASE_URL`, no plan or a Neon error warns and exits 0, and the tables are created by the first write. The committed run metrics and the cost ledger stay (git is still the truth until Step 6).

@@ -34,7 +34,7 @@ const SpendFile = z.object({
   }),
 });
 
-/** What a run has spent so far, as the run log prices it (D219). */
+/** What a run has spent so far, as the run log prices it (D220). */
 export interface SpendSnapshot {
   requests: Record<string, number>;
   units: Record<string, number>;

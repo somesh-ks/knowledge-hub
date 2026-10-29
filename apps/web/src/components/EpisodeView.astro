@@ -1,4 +1,5 @@
 ---
+import type { AlbumOption } from "../lib/catchUps";
 import { episodeCover } from "../lib/covers";
 import { storyCount } from "../lib/digestView";
 import { episodeSections } from "../lib/episodeHighlights";
@@ -11,6 +12,7 @@ import Chapter from "./Chapter.astro";
 import ChapterAside from "./ChapterAside.astro";
 import Cover from "./Cover.astro";
 import EpisodeActions from "./EpisodeActions.astro";
+import HeroDownloaded from "./HeroDownloaded.astro";
 import HeroMenu from "./HeroMenu.astro";
 import PlayCta from "./PlayCta.astro";
 import PlayerData from "./PlayerData.astro";
@@ -26,11 +28,13 @@ interface Props {
   topics?: ReadonlyMap<string, string>;
   /** Briefing sections by item id: the highlights are grouped under them (highlightSections). */
   sections?: ReadonlyMap<string, SectionRef>;
+  /** The day's Catch ups when it has two or more (D219): a select before Play moves between them. */
+  album?: readonly AlbumOption[];
   /** Set on a shared page, /s/<token> (D153): no owner actions, and Play goes through the link. */
   shareToken?: string;
 }
 
-const { entry, summaries, topics, sections: sectionOf, shareToken } = Astro.props;
+const { entry, summaries, topics, sections: sectionOf, album, shareToken } = Astro.props;
 const { episode } = entry;
 const length = episodeLength(episode);
 const sections = episodeSections(episode, { summaries, sections: sectionOf });
@@ -59,7 +63,7 @@ const fallbackTopic = episode.request.topic_ids[0] ?? "general";
       <h1 class="page-title" id="page-title" tabindex="-1">{episode.title}</h1>
       {/* As a briefing's facts ("Weekly · 12 stories"): the date is on the cover. */}
       <p class="meta hero-facts">
-        <span>{FORMAT_LABELS[episode.format]}</span><span>{storyCount(episode.sources.length)}</span>
+        <span>{FORMAT_LABELS[episode.format]}</span><span>{storyCount(episode.sources.length)}</span><HeroDownloaded />
       </p>
     </div>
     {
@@ -83,6 +87,7 @@ const fallbackTopic = episode.request.topic_ids[0] ?? "general";
       length={length}
       noun="episode"
       share={sharedTarget(entry.id, "episode", shareToken)}
+      album={shareToken ? undefined : album}
     />
   </header>
 
@@ -156,7 +161,9 @@ const fallbackTopic = episode.request.topic_ids[0] ?? "general";
 <script>
   // Shared with the briefing pages: it shares the page's address.
   void import("../scripts/briefingPage");
+  import { installCatchUpAlbum } from "../scripts/catchUpAlbum";
   import { installEpisodeActions } from "../scripts/episodeActionsEntry";
 
   installEpisodeActions();
+  installCatchUpAlbum();
 </script>

@@ -15,7 +15,7 @@ const StageClockFile = z.object({
   /** The plan's `created_at`; a file from another run is ignored. */
   run: z.string(),
   stages: z.record(z.string(), z.number().nonnegative()),
-  /** What each stage's paid calls cost in dollars (D219); older files and unpriced stages have none. */
+  /** What each stage's paid calls cost in dollars (D220); older files and unpriced stages have none. */
   usd: z.record(z.string(), z.number().nonnegative()).optional(),
   /** The stage that failed and why, in a sentence, for the failed run's record. */
   failure: z.object({ stage: z.string(), reason: z.string() }).optional(),

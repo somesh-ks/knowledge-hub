@@ -11,7 +11,7 @@ export type JobResult = "success" | "failure" | "cancelled";
  * The record of the run in progress, from what its stages left on the runner: the plan, the stage
  * clock (time and cost per stage, and the stage that failed) and the spend. Null when the run has no
  * plan (the job died before the gate wrote one), which nothing can be said of. Missing pieces read
- * as zero, never as a failure: the log describes a run, it never stops one (D219).
+ * as zero, never as a failure: the log describes a run, it never stops one (D220).
  */
 export async function buildRunRecord(input: {
   root: string;

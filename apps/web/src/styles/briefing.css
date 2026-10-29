@@ -27,10 +27,10 @@ html[data-has-tabs] {
   padding-block: var(--space-12) var(--space-6);
 }
 
-/* The hairlines between stories start and end at the text column's edges. */
-.chapter .rows > * + *::before {
-  inset-inline: 0;
-}
+/* A section's stories are one card under their header, as a Settings group is (.card-group,
+   primitives.css; owner, 2026-10-29: "big cards for the different topic sections ... so it is easy
+   to keep track"). The hairlines between stories run the card's width, as they do in a Settings
+   card; until then they stopped at the text column's edges. */
 
 /* Under the section tabs the first heading names the tab marked just above it, so it does not need
    the band of air that sets a section apart from the one before: the strip does that. */
@@ -118,11 +118,8 @@ html[data-has-tabs] {
   }
 }
 
-/* The header belongs to the story under it: the first row gives up half its top padding, so there
-   is twice the room above a header that there is below it. */
-.chapter > .rows > :first-child {
-  padding-block-start: var(--space-2);
-}
+/* The header sits above its card now, so the first story keeps its full padding like the rest; the
+   card's top inset is all that differs from a story between two others. */
 
 /* ------------------------------------------------------------------ a story */
 
