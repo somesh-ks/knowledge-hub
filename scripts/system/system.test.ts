@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   buildSystem,
+  classTokens,
   LLMS_PATH,
   readBespoke,
   renderLlms,
@@ -80,6 +81,17 @@ describe("the design system file", () => {
   // Prevents the index outgrowing its purpose: it is read whole, so each byte is paid for on every task.
   it("keeps llms.txt under 14 KB", () => {
     expect(Buffer.byteLength(renderLlms(system))).toBeLessThan(14 * 1024);
+  });
+});
+
+describe("class detection", () => {
+  // Prevents a dead class passing for a live part: role="switch" and the word in prose once made
+  // `.switch` look used in 49 files while no markup wore it, and an agent was sent to it.
+  it("counts only names written as classes", () => {
+    const used = classTokens(
+      `<input class="settings-switch x" role="switch" /> <a class:list={["a-b", cond && 'c-d']}> switch (mode) {} el.classList.add("e-f")`,
+    );
+    expect([...used].sort()).toEqual(["a-b", "c-d", "e-f", "settings-switch", "x"]);
   });
 });
 

@@ -287,11 +287,14 @@ export const PARTS: PartSource[] = [
     id: "switch",
     name: "Switch",
     kind: "selection",
-    summary: "An on/off switch with a thumb that stretches under the finger.",
-    classes: ["switch"],
-    when: ["turn a setting on or off, applied at once"],
+    summary: "An on/off switch: a checkbox with role switch, drawn as a track and a thumb.",
+    classes: ["settings-switch"],
+    when: ["turn a setting on or off, applied at once", "a notifications or autoplay toggle"],
     not: [{ when: "choosing one of several values", use: "segmented-choice" }],
-    keywords: ["toggle", "on off", "boolean"],
+    keywords: ["toggle", "on off", "boolean", "enable"],
+    markup:
+      '<div class="settings-row"><label class="settings-label" for="autoplay">Autoplay</label><input class="settings-switch" id="autoplay" name="autoplay" type="checkbox" role="switch" /></div>',
+    rules: ["`.switch` in sheets.css has no markup anywhere; it is a duplicate, not a part."],
   },
   {
     id: "banner",
@@ -376,6 +379,7 @@ export const PARTS: PartSource[] = [
     rules: [
       "Never hand-write the header or a close button.",
       "Motion uses --duration-sheet-in, --duration-sheet-out and --ease-drawer.",
+      "`.sheet-actions` is one column, so Cancel stacks under the primary; side by side is `.confirm-actions`.",
     ],
   },
   {
@@ -422,6 +426,7 @@ export const PARTS: PartSource[] = [
     when: ["link out to a publisher from a story or highlight"],
     not: [{ when: "a link inside a line of small text", use: "text-link" }],
     keywords: ["external link", "publisher"],
+    rules: ["The player has its own copy, `.player-source-link` (player.css); do not add a third."],
   },
   {
     id: "text-link",

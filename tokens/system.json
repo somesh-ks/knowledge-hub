@@ -256,7 +256,7 @@
         "--size-icon-lg",
         "--size-touch"
       ],
-      "usedIn": 102
+      "usedIn": 23
     },
     {
       "id": "icon-btn-tonal",
@@ -349,7 +349,7 @@
         "--color-surface-sunken",
         "--size-touch"
       ],
-      "usedIn": 36
+      "usedIn": 1
     },
     {
       "id": "filter-chip",
@@ -470,7 +470,7 @@
         "--size-icon-sm",
         "--size-touch"
       ],
-      "usedIn": 4
+      "usedIn": 3
     },
     {
       "id": "segmented-choice",
@@ -574,7 +574,7 @@
         "--segmented-padding",
         "--size-touch"
       ],
-      "usedIn": 6
+      "usedIn": 5
     },
     {
       "id": "tabs",
@@ -622,7 +622,7 @@
         "--tabs-indicator-height",
         "--tabs-indicator-radius"
       ],
-      "usedIn": 50
+      "usedIn": 2
     },
     {
       "id": "row-action",
@@ -675,7 +675,7 @@
         "--row-tile-radius",
         "--size-touch-comfortable"
       ],
-      "usedIn": 19
+      "usedIn": 15
     },
     {
       "id": "card-group",
@@ -725,7 +725,7 @@
         "--color-surface-overlay",
         "--row-padding-block"
       ],
-      "usedIn": 57
+      "usedIn": 14
     },
     {
       "id": "settings-row",
@@ -772,18 +772,19 @@
         "--size-touch-comfortable",
         "--slider-max-width"
       ],
-      "usedIn": 20
+      "usedIn": 16
     },
     {
       "id": "switch",
       "name": "Switch",
       "kind": "selection",
-      "summary": "An on/off switch with a thumb that stretches under the finger.",
+      "summary": "An on/off switch: a checkbox with role switch, drawn as a track and a thumb.",
       "classes": [
-        "switch"
+        "settings-switch"
       ],
       "when": [
-        "turn a setting on or off, applied at once"
+        "turn a setting on or off, applied at once",
+        "a notifications or autoplay toggle"
       ],
       "not": [
         {
@@ -794,23 +795,34 @@
       "keywords": [
         "toggle",
         "on off",
-        "boolean"
+        "boolean",
+        "enable"
+      ],
+      "markup": "<div class=\"settings-row\"><label class=\"settings-label\" for=\"autoplay\">Autoplay</label><input class=\"settings-switch\" id=\"autoplay\" name=\"autoplay\" type=\"checkbox\" role=\"switch\" /></div>",
+      "rules": [
+        "`.switch` in sheets.css has no markup anywhere; it is a duplicate, not a part."
       ],
       "styles": [
-        "sheets.css"
+        "settings.css"
       ],
-      "usage": "",
+      "usage": "A checkbox with role=\"switch\", drawn as a track; its ::before is the thumb.",
       "tokens": [
         "--color-accent",
+        "--color-accent-hover",
+        "--color-accent-pressed",
         "--color-border-control",
         "--color-on-accent",
+        "--color-on-surface",
+        "--size-touch",
         "--switch-height",
         "--switch-padding",
         "--switch-radius",
         "--switch-thumb",
+        "--switch-thumb-bg",
+        "--switch-thumb-radius",
         "--switch-width"
       ],
-      "usedIn": 49
+      "usedIn": 3
     },
     {
       "id": "banner",
@@ -868,7 +880,7 @@
         "--layout-aside",
         "--size-icon"
       ],
-      "usedIn": 7
+      "usedIn": 2
     },
     {
       "id": "toast",
@@ -922,7 +934,7 @@
         "--toast-bg",
         "--toast-fg"
       ],
-      "usedIn": 34
+      "usedIn": 2
     },
     {
       "id": "empty-state",
@@ -968,7 +980,7 @@
       "tokens": [
         "--color-on-surface"
       ],
-      "usedIn": 75
+      "usedIn": 6
     },
     {
       "id": "sheet",
@@ -1009,7 +1021,8 @@
       "markup": "<SheetFrame open={open} onOpenChange={setOpen} title=\"Create\" closeLabel=\"Close\">...</SheetFrame>",
       "rules": [
         "Never hand-write the header or a close button.",
-        "Motion uses --duration-sheet-in, --duration-sheet-out and --ease-drawer."
+        "Motion uses --duration-sheet-in, --duration-sheet-out and --ease-drawer.",
+        "`.sheet-actions` is one column, so Cancel stacks under the primary; side by side is `.confirm-actions`."
       ],
       "styles": [
         "episode-actions.css",
@@ -1029,7 +1042,7 @@
         "--field-radius",
         "--size-touch"
       ],
-      "usedIn": 5
+      "usedIn": 4
     },
     {
       "id": "menu-sheet",
@@ -1077,7 +1090,7 @@
         "--size-icon",
         "--size-touch"
       ],
-      "usedIn": 11
+      "usedIn": 9
     },
     {
       "id": "multiselect",
@@ -1120,7 +1133,7 @@
         "--field-padding",
         "--size-icon"
       ],
-      "usedIn": 2
+      "usedIn": 1
     },
     {
       "id": "search-field",
@@ -1182,6 +1195,9 @@
       "keywords": [
         "external link",
         "publisher"
+      ],
+      "rules": [
+        "The player has its own copy, `.player-source-link` (player.css); do not add a third."
       ],
       "styles": [
         "foundations.css",
@@ -1262,7 +1278,7 @@
         "--color-success",
         "--color-warning"
       ],
-      "usedIn": 2
+      "usedIn": 1
     },
     {
       "id": "stat-tiles",
@@ -1338,7 +1354,7 @@
       "tokens": [
         "--color-on-surface-muted"
       ],
-      "usedIn": 40
+      "usedIn": 4
     },
     {
       "id": "cover",
@@ -1372,7 +1388,7 @@
         "--cover-radius-hero",
         "--cover-shadow"
       ],
-      "usedIn": 75
+      "usedIn": 1
     },
     {
       "id": "fab",
@@ -1419,7 +1435,7 @@
         "--color-surface-sunken",
         "--size-icon-lg"
       ],
-      "usedIn": 8
+      "usedIn": 4
     }
   ],
   "bespoke": [

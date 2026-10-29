@@ -242,5 +242,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D223 | Firecrawl warns at 150 | amends D222 |
 | D224 | Admin and style guide: own apps | active; supersedes D189 |
 | D225 | A Haiku call shortens an over-limit headline | active |
+| D236 | Design system file for agents | active |
 
 ---

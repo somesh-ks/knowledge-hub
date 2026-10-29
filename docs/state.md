@@ -5,18 +5,18 @@ Updated 2026-10-29. Rewrite, never append. [Specs](specs/README.md), [decisions]
 ## Working
 
 - Engine live end to end (fetch, Jev judge, writer, validate, commit), sized by the owner's length with spares: [engine](specs/engine.md). A run that loses stories or races a push degrades, not fails, and records its health (D204): [resilience](engineering/generation-resilience.md), [metrics](engineering/metrics.md).
-- Reader (Latest, Library, Catch up, Settings, `/design`): [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
+- Reader (Latest, Library, Catch up, Settings): [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
 - Player as one surface: transcript with word light, chapters in the bar, a queue with Up next (D126): [player](specs/player.md).
 - Narration on Play, story by story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes; Opus, MP3 fallback (D198): [narration](specs/narration.md), [create](specs/create.md).
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up show in one run card; a failed run says why (D204). The list of generations under way has Cancel (D208).
 - Saved copies, offline shell, downloads, the PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Schedule (D61, D197): made ahead, aired 07:00.
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merge by hand (D143).
-- Tooling: subagents, `/close-session` ([roster](history/2026-10-08-subagent-roster.md)).
+- Tooling: subagents, `/close-session` ([roster](history/2026-10-08-subagent-roster.md)). Design lookup: `npm run ds -- find "<need>"` (D236).
 
 ## Tests
 
-Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs, 10 min. Player e2e: 77 runs, 6 min.
+Unit (CI): 312 files, 5,029 tests (10-29), 86 s. Site e2e: 411 runs, 10 min. Player e2e: 77 runs, 6 min.
 
 ## Not working or unverified
 

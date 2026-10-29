@@ -42,10 +42,6 @@ function filesUnder(dir: string, extensions: string[], skip: (path: string) => b
 
 const escapeRegex = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** `name` as a whole class name in source text. */
-const wholeClass = (name: string): RegExp =>
-  new RegExp(`(?<![\\w-])${escapeRegex(name)}(?![\\w-])`);
-
 /** A rule that is about the class itself: some selector of its list begins with `.name`. */
 const ruleOf = (name: string): RegExp => new RegExp(`(?:^|,)\\s*\\.${escapeRegex(name)}(?![\\w-])`);
 
@@ -77,21 +73,46 @@ function reusableTokenNames(doc: TokenDocument): Set<string> {
   );
 }
 
-function sourceFiles(): { path: string; text: string }[] {
+/**
+ * The class names a source file writes as classes: class and className attributes, class:list
+ * entries and classList calls. A word that only looks like a class ("switch" in role="switch" or in
+ * prose) is not a use, which is how a dead class once passed for a live part.
+ */
+export function classTokens(text: string): Set<string> {
+  const found = new Set<string>();
+  const add = (value: string): void => {
+    for (const name of value.split(/\s+/)) if (/^[a-z][\w-]*$/i.test(name)) found.add(name);
+  };
+  for (const [, a = "", b = "", c = ""] of text.matchAll(
+    /\bclass(?:Name)?\s*=\s*(?:"([^"]*)"|'([^']*)'|\{`([^`]*)`\})/g,
+  ))
+    add(a || b || c);
+  for (const [, list = ""] of text.matchAll(/\bclass:list\s*=\s*\{([^}]*)\}/g))
+    for (const [, quoted = ""] of list.matchAll(/["'`]([^"'`]*)["'`]/g)) add(quoted);
+  for (const [, args = ""] of text.matchAll(
+    /classList\.(?:add|toggle|remove|contains)\(([^)]*)\)/g,
+  ))
+    for (const [, quoted = ""] of args.matchAll(/["'`]([^"'`]*)["'`]/g)) add(quoted);
+  return found;
+}
+
+function sourceFiles(): { path: string; text: string; tokens: Set<string> }[] {
   return filesUnder(
     SRC,
     [".astro", ".tsx", ".ts", ".js"],
     (path) => path.endsWith(".test.ts") || posix(path).includes("/pages/design/"),
-  ).map((path) => ({ path, text: readFileSync(path, "utf8") }));
+  ).map((path) => {
+    const text = readFileSync(path, "utf8");
+    return { path, text, tokens: classTokens(text) };
+  });
 }
 
 function derive(
   source: PartSource,
   sheets: Stylesheet[],
-  sources: { path: string; text: string }[],
+  sources: { path: string; text: string; tokens: Set<string> }[],
   reusable: Set<string>,
 ): Part {
-  const patterns = source.classes.map(wholeClass);
   const rulePatterns = source.classes.map(ruleOf);
   const styles = new Set<string>();
   const tokens = new Set<string>();
@@ -107,8 +128,8 @@ function derive(
     usage = usageComment(file, `.${source.classes[0]}`, ROOT);
     if (usage) break;
   }
-  const usedIn = sources.filter(({ text }) =>
-    patterns.some((pattern) => pattern.test(text)),
+  const usedIn = sources.filter(({ tokens: used }) =>
+    source.classes.some((name) => used.has(name)),
   ).length;
   return {
     ...source,
