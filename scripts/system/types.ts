@@ -61,6 +61,8 @@ export interface SystemToken {
 export interface BespokeControl {
   class: string;
   reason: string;
+  /** The part that lists this class, when one does: the class is used through that part. */
+  part?: string;
 }
 
 export interface System {

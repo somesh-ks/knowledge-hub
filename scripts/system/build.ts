@@ -169,7 +169,9 @@ function tokenRecord(token: Token, doc: TokenDocument): SystemToken {
   if (token.description) record.role = token.description;
   if (token.dark !== undefined) record.dark = render(token.dark);
   if (token.reducedMotion) record.reducedMotion = token.reducedMotion;
-  if (token.type === "color") {
+  // A translucent color has no single hex: the alpha would be dropped and an opaque value published.
+  const translucent = [record.light, record.dark].some((value) => value?.includes(" / "));
+  if (token.type === "color" && !translucent) {
     try {
       record.hex = {
         light: hexFor(doc, token.dotPath, "light"),
@@ -187,10 +189,14 @@ export function buildSystem(): System {
   const sheets = readStylesheets();
   const sources = sourceFiles();
   const reusable = reusableTokenNames(doc);
+  const parts = PARTS.map((part) => derive(part, sheets, sources, reusable));
   return {
     generated: GENERATED,
-    parts: PARTS.map((part) => derive(part, sheets, sources, reusable)),
-    bespoke: readBespoke(),
+    parts,
+    bespoke: readBespoke().map((item) => {
+      const owner = parts.find((part) => part.classes.includes(item.class));
+      return owner ? { ...item, part: owner.id } : item;
+    }),
     tokens: doc.tokens.map((token) => tokenRecord(token, doc)),
   };
 }
@@ -256,7 +262,7 @@ export function renderLlms(system: System): string {
     `Sizes and bindings per part: ${[...groups].map(([group, count]) => `${group} (${count})`).join(", ")}. List one with \`npm run ds -- token <group>\`.`,
     "",
     "## Bespoke controls",
-    `${system.bespoke.length} controls are built for one place (floating actions, the player transport and dock, toasts, source rows). They are not for reuse; \`npm run ds -- part bespoke\` lists them with the reason.`,
+    `${system.bespoke.filter((item) => !item.part).length} controls are built for one place (the player transport and dock, speed controls, source rows). They are not for reuse. ${system.bespoke.filter((item) => item.part).length} more belong to a part above and are used through it. \`npm run ds -- part bespoke\` lists all with the reason.`,
     "",
   );
   return lines.join("\n");

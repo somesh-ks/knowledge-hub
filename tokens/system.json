@@ -760,7 +760,7 @@
         "primitives.css",
         "settings.css"
       ],
-      "usage": "In a settings row the field is the row's value, as a select is there (settings.css): words and a chevron with no outline, as wide as its words, at the end of the row. Its list opens under it and grows toward the start of the row.",
+      "usage": "Label and description at the start, the control at the end. The row grammar adds the padding and the hairline; with that padding this minimum is the 48px floor, and most rows are taller.",
       "tokens": [
         "--button-radius",
         "--card-inset",
@@ -1082,7 +1082,7 @@
       "styles": [
         "hero.css"
       ],
-      "usage": "An item of the menu: its icon at the start, then the word.",
+      "usage": "",
       "tokens": [
         "--color-on-surface",
         "--color-on-surface-disabled",
@@ -1441,15 +1441,18 @@
   "bespoke": [
     {
       "class": "create-fab",
-      "reason": "the extended floating create button (D133); its own size, label and sheet origin"
+      "reason": "the extended floating create button (D133); its own size, label and sheet origin",
+      "part": "fab"
     },
     {
       "class": "play-fab",
-      "reason": "the floating play button of a story, a circle over a cover"
+      "reason": "the floating play button of a story, a circle over a cover",
+      "part": "fab"
     },
     {
       "class": "add-fab",
-      "reason": "the Topics floating add button"
+      "reason": "the Topics floating add button",
+      "part": "fab"
     },
     {
       "class": "view-btn",
@@ -1501,7 +1504,8 @@
     },
     {
       "class": "hero-menu-item",
-      "reason": "a row of the hero's popover menu"
+      "reason": "a row of the hero's popover menu",
+      "part": "menu-sheet"
     },
     {
       "class": "hero-menu-delete",
@@ -1513,19 +1517,23 @@
     },
     {
       "class": "toast-action",
-      "reason": "a toast's text action"
+      "reason": "a toast's text action",
+      "part": "toast"
     },
     {
       "class": "toast-dismiss",
-      "reason": "a toast's close control"
+      "reason": "a toast's close control",
+      "part": "toast"
     },
     {
       "class": "multiselect-trigger",
-      "reason": "the multi-select's field-like trigger"
+      "reason": "the multi-select's field-like trigger",
+      "part": "multiselect"
     },
     {
       "class": "search-clear",
-      "reason": "the clear control inside .search-field"
+      "reason": "the clear control inside .search-field",
+      "part": "search-field"
     },
     {
       "class": "player-notice-action",
@@ -3027,11 +3035,7 @@
       "tier": "semantic",
       "type": "color",
       "light": "oklch(20% 0.005 260 / 0.42)",
-      "dark": "oklch(8% 0.005 260 / 0.6)",
-      "hex": {
-        "light": "#151618",
-        "dark": "#010202"
-      }
+      "dark": "oklch(8% 0.005 260 / 0.6)"
     },
     {
       "name": "--color-image-outline",
@@ -3039,11 +3043,7 @@
       "type": "color",
       "light": "oklch(0% 0 0 / 0.1)",
       "role": "1px outline on covers for perceived edge, per DESIGN.md.",
-      "dark": "oklch(100% 0 0 / 0.1)",
-      "hex": {
-        "light": "#000000",
-        "dark": "#ffffff"
-      }
+      "dark": "oklch(100% 0 0 / 0.1)"
     },
     {
       "name": "--color-success",

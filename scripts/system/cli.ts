@@ -25,7 +25,10 @@ switch (command) {
     break;
   case "part": {
     if (argument === "bespoke") {
-      for (const item of system.bespoke) console.log(`.${item.class}: ${item.reason}`);
+      for (const item of system.bespoke)
+        console.log(
+          `.${item.class}${item.part ? ` (use the ${item.part} part)` : " (not for reuse)"}: ${item.reason}`,
+        );
       break;
     }
     const part = system.parts.find((candidate) => candidate.id === argument);

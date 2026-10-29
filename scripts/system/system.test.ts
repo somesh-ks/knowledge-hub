@@ -1,7 +1,16 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { usageComment } from "../../apps/web/src/lib/designCatalogue.js";
 import {
   buildSystem,
   classTokens,
@@ -76,6 +85,38 @@ describe("the design system file", () => {
   it("reads the bespoke controls from the style test", () => {
     expect(readBespoke().length).toBeGreaterThan(20);
     expect(system.bespoke.every((item) => item.reason.length > 0)).toBe(true);
+  });
+
+  // Prevents telling an agent a part's own class is "not for reuse": the floating actions and toast
+  // buttons are on the bespoke list and also belong to a part, which is how they are used.
+  it("points a bespoke class that a part lists to that part", () => {
+    const owned = system.bespoke.filter((item) => item.part);
+    expect(owned.length).toBeGreaterThan(0);
+    for (const item of owned)
+      expect(system.parts.find((part) => part.id === item.part)?.classes).toContain(item.class);
+    for (const item of system.bespoke.filter((entry) => !entry.part))
+      expect(system.parts.flatMap((part) => part.classes)).not.toContain(item.class);
+  });
+
+  // Prevents publishing an opaque hex for a translucent color: the scrim was listed as #151618, which
+  // reads as solid and drops the 42% that makes it a scrim.
+  it("gives no hex to a translucent color", () => {
+    const scrim = system.tokens.find((token) => token.name === "--color-scrim");
+    expect(scrim?.light).toContain(" / ");
+    expect(scrim?.hex).toBeUndefined();
+    expect(system.tokens.find((token) => token.name === "--color-surface")?.hex).toBeDefined();
+  });
+
+  // Prevents a part showing another rule's comment: `.settings-row .multiselect` has a comment of its
+  // own, and it was shown as the usage of the settings row.
+  it("takes a usage comment from the rule of the class alone", () => {
+    const root = mkdtempSync(join(tmpdir(), "usage-"));
+    mkdirSync(join(root, "apps/web/src/styles"), { recursive: true });
+    writeFileSync(
+      join(root, "apps/web/src/styles/x.css"),
+      "/* inside the row */\n.row .field {\n  color: red;\n}\n\n/* the row itself */\n.row {\n  color: blue;\n}\n",
+    );
+    expect(usageComment("x.css", ".row", root)).toBe("the row itself");
   });
 
   // Prevents the index outgrowing its purpose: it is read whole, so each byte is paid for on every task.
