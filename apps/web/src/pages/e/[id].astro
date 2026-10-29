@@ -3,6 +3,7 @@ import type { GetStaticPaths } from "astro";
 import EmptyState from "../../components/EmptyState.astro";
 import EpisodeView from "../../components/EpisodeView.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import { type AlbumOption, catchUpAlbum } from "../../lib/catchUps";
 import { episodeSections } from "../../lib/episodeHighlights";
 import { type EpisodeEntry, episodeLength, storyLookups } from "../../lib/episodes";
 import { episodeCard } from "../../lib/linkCard";
@@ -17,7 +18,10 @@ export const prerender = false;
 export const getStaticPaths = (async () => {
   const site = await getSite();
   const lookups = storyLookups(site.entries);
-  return site.episodes.map((entry) => ({ params: { id: entry.id }, props: { entry, ...lookups } }));
+  return site.episodes.map((entry) => ({
+    params: { id: entry.id },
+    props: { entry, ...lookups, album: catchUpAlbum(site.episodes, entry.id) },
+  }));
 }) satisfies GetStaticPaths;
 
 interface Props {
@@ -25,6 +29,7 @@ interface Props {
   summaries: ReadonlyMap<string, string>;
   topics: ReadonlyMap<string, string>;
   sections: ReadonlyMap<string, SectionRef>;
+  album: AlbumOption[];
 }
 
 let props = Astro.props as Props;
@@ -40,12 +45,12 @@ if (!Astro.isPrerendered) {
     Astro.response.status = 404;
     Astro.response.headers.set("Vercel-CDN-Cache-Control", CONTENT_CDN_CACHE);
   } else {
-    props = { entry, ...storyLookups(site.entries) };
+    props = { entry, ...storyLookups(site.entries), album: catchUpAlbum(site.episodes, entry.id) };
     Astro.response.headers.set("Vercel-CDN-Cache-Control", CONTENT_CDN_CACHE);
   }
 }
 
-const { entry, summaries, topics, sections } = props;
+const { entry, summaries, topics, sections, album } = props;
 const tabs = entry ? episodeSections(entry.episode, { summaries, sections }).length > 1 : false;
 ---
 
@@ -73,7 +78,7 @@ const tabs = entry ? episodeSections(entry.episode, { summaries, sections }).len
   tabs={tabs}
   skipLabel="Skip to the episode"
 >
-  <EpisodeView entry={entry} summaries={summaries} topics={topics} sections={sections} />
+  <EpisodeView entry={entry} summaries={summaries} topics={topics} sections={sections} album={album} />
 </BaseLayout>
   )
 }

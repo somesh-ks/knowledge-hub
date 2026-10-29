@@ -10,7 +10,7 @@ Visual language, covers and the header light, empty states, interface sounds, st
 - A press never scales words: label controls and worded buttons show a press on their fill. Settings rows and menu options press as a tile off hairlines (`.row-action`), round on the page, concentric in a card (one-row card radius 24px, a third of height). Segmented controls have a sliding thumb that moves immediately with keys.
 - Sideways scrollers (section tabs, Earlier shelf, Costs table) fade hidden edges with `.scroll-fade-inline`; concentric radii for cover frame and search clear; layer stacking: `--z-beneath`, `--z-base`, `--z-raised`, `--z-overlay`.
 - Dropdowns share one chevron gap. Glyphs ending a row land ink at the word end (`--ink-end`, D187).
-- Hero Share action is `.btn-secondary.hero-share`: tonal, Play's pill and height, touch area 44px (D153).
+- Hero Share action is the secondary icon button, `.icon-btn.icon-btn-tonal.hero-share`: a circle on the select chip's fill, as tall as Play, touch area 44px (D153, D219).
 - Latest icon is a bolt (outline, filled when active) (D129, D168). Theme select in Appearance renders blank until stored value loads to avoid theme flashes (D129).
 
 ### Covers and the header light
@@ -40,7 +40,7 @@ Three layers catch regressions (owner, 2026-10-21):
 - Hook: `.claude/hooks/design-check.mjs`, PostToolUse hook on Edit/Write for `apps/web/src/**` and `tokens/**`.
 - Audit: `design-audit` agent (`.claude/agents/design-audit.md`) screenshots pages at mobile and desktop viewports in light and dark before PRs.
 CI runs rules in unit tests and `designSystem.spec.ts` in browser suite. Components change in shared class, component, or token with ledger records in one PR (owner, 2026-10-24).
-Key variants: `.segmented-nav-compact` (chip height, 44px columns); `.stat-tile` (metric over label, 2-4 columns); `.status-dot` (8px, status tones); `.scroll-fade-inline` (overflow edge mask with `--scroll-fade-inset`); `.tabs-in-card`; `data-quiet` (muted disabled rows); `sheetHead.ts` header/menus (D188); `.confirm-actions.is-stacked` (unsaved-changes modal from `sheetGuard.ts`); `.queue-dock`, `.queue-row`, `.queue-ring`, `.queue-pop` (the podcast queue, D219, `queue.css`).
+Key variants: `.segmented-nav-compact` (chip height, 44px columns); `.stat-tile` (metric over label, 2-4 columns); `.status-dot` (8px, status tones); `.scroll-fade-inline` (overflow edge mask with `--scroll-fade-inset`); `.tabs-in-card`; `data-quiet` (muted disabled rows); `sheetHead.ts` header/menus (D188); `.confirm-actions.is-stacked` (unsaved-changes modal from `sheetGuard.ts`); `.queue-dock`, `.queue-row`, `.queue-ring` (sizes `-fold` and `-nav`), `.queue-play`, `.queue-stage-icon` (morphing icons), `.queue-word` (the text-only shimmer), `.queue-pop` (the podcast queue, D221, `queue.css`).
 
 ### Agentic design conventions
 Coding agents building or modifying UI follow these contracts (adapted from Astryx best practices):

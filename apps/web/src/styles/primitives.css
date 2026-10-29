@@ -968,7 +968,8 @@
 /* ------------------------------------------------------------------ select chip */
 
 /*
- * A compact select drawn as a chip: the Library's sort, the Costs chart's range and breakdown. It
+ * A compact select drawn as a chip: the Library's sort, the Costs chart's range and breakdown, and the
+ * hero's select of a day's Catch ups (hero.css, D219). It
  * opens the drawn list below. Its fill is --sort-field-bg, so a chip on a card's tone can step up
  * (costs.css). Moved here from library.css on 2026-10-22 when Costs took it; the rules are as they
  * were. Markup: <label class="sort-field"><span class="sr-only">Sort</span><select>..</select><svg/></label>
