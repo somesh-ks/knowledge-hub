@@ -6,15 +6,17 @@ const COPIED_MS = 2000;
 
 /** What a failed run's Details dialog shows (scripts/queue.ts builds it from the run's record). */
 export interface QueueDetails {
-  /** What went wrong, in a sentence. */
-  lede: string;
-  /** What is known of the run, as `name: value` lines in the snippet. */
+  /** What went wrong, in a sentence a person can read. */
+  what: string;
+  /** Why, in the engine's own sentence, when it gave one. */
+  why: string;
+  /** What is known of the run, as `Name: value` lines in the snippet. */
   fields: [name: string, value: string][];
   /** The run's log on GitHub, where the full error is; "" when there is none. */
   log: string;
 }
 
-/** The snippet's text: one `name: value` line for each field that has a value. */
+/** The snippet's text: one `Name: value` line for each field that has a value. */
 export const detailsSnippet = (fields: QueueDetails["fields"]): string =>
   fields
     .filter(([, value]) => value)
@@ -22,8 +24,8 @@ export const detailsSnippet = (fields: QueueDetails["fields"]): string =>
     .join("\n");
 
 /**
- * Details of a failed run (2026-10-29): what went wrong in a sentence, then the facts of the run as a
- * snippet with a Copy button, so the person can paste them where they ask for help. The dialog is
+ * Details of a failed run (2026-10-29): what went wrong in plain words and what to do, then the facts of
+ * the run as a snippet with a Copy button, so the person can paste them where they ask for help. The dialog is
  * the share dialog's own shape (shareDialog.ts), built on demand; the words come from the queue's
  * data attributes.
  */
@@ -35,7 +37,8 @@ export function openQueueDetails(details: QueueDetails, words: DOMStringMap): vo
   dialog.setAttribute("aria-labelledby", "queue-details-title");
   dialog.innerHTML =
     `${sheetHeadHtml(words.wordDetailsTitle ?? "", "queue-details-title", "data-dialog-close")}` +
-    `<p class="share-about">${escapeHtml(details.lede)}</p>` +
+    `<p class="share-about">${escapeHtml([details.what, details.why].filter(Boolean).join(" "))}</p>` +
+    `<p class="share-about">${escapeHtml(words.wordDetailsHint ?? "")}</p>` +
     `<pre class="queue-snippet" tabindex="0" data-queue-snippet>${escapeHtml(snippet)}</pre>` +
     `<div class="share-actions queue-details-actions">` +
     (details.log

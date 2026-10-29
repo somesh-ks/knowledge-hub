@@ -22,7 +22,6 @@ import {
 } from "../lib/generations";
 import { DAY_KEY, type DayEntry, isToday, readDay } from "../lib/queueDay";
 import { clockTime, type QueueWords, queueNames } from "../lib/queueNames";
-import { stageKind } from "../lib/queueStage";
 import { GENERATION_STARTED_EVENT, RUN_EVENT, RUN_STORAGE_KEY } from "../lib/runRecord";
 import { BRIEFING_STAGES, EPISODE_STAGES } from "../lib/runStages";
 import type { GenerationRow, GenerationsResponse } from "../types/contracts";
@@ -242,7 +241,7 @@ function setIcon(slot: Element | null, kind: string | null): void {
   if (next) element.append(next);
 }
 
-/** The stage a row is in, or how it ended: the words a screen reader hears, and what a row falls back to. */
+/** The stage a row is in, or how it ended. */
 function statusOf(item: Item, view: GenerationView, data: DOMStringMap): string {
   if (item.ended === "cancelled") return data.cancelled ?? "";
   if (item.ended === "started") return data.started ?? "";
@@ -254,19 +253,6 @@ function statusOf(item: Item, view: GenerationView, data: DOMStringMap): string 
   return view.status;
 }
 
-/**
- * The one line under a row's name. A run going says the time left (the stage is the icon at the row's
- * end); a run that ended says when, then how: "14:32 · Podcast ready". One line, always.
- */
-function subtitleOf(item: Item, view: GenerationView, data: DOMStringMap, stage: string): string {
-  if (item.ended) {
-    return [item.at ? clockTime(item.at) : "", stage].filter(Boolean).join(" · ");
-  }
-  if (!view.running) return data.wordWaiting ?? "";
-  if (view.eta) return view.eta;
-  return view.slow ? (data.wordSlow ?? "") : stage;
-}
-
 /** A failed run's Details: what went wrong, and the facts of the run to copy. */
 function detailsOf(item: Item, name: string, data: DOMStringMap): QueueDetails | null {
   const run = item.record;
@@ -274,17 +260,17 @@ function detailsOf(item: Item, name: string, data: DOMStringMap): QueueDetails |
   const iso = (ms: number | null | undefined): string => (ms ? new Date(ms).toISOString() : "");
   const log = run.log?.startsWith("https://github.com/") ? run.log : "";
   return {
-    lede: [statusLine(run, data), run.reason].filter(Boolean).join(" "),
+    what: statusLine(run, data),
+    why: run.reason ?? "",
     fields: [
-      ["run", String(run.id)],
-      ["podcast", name],
-      ["step", run.step ?? ""],
-      ["stage", run.failedStage ?? run.label ?? ""],
-      ["kept", run.kept?.join(", ") ?? ""],
-      ["reason", run.reason ?? ""],
-      ["started", iso(run.t0)],
-      ["ended", iso(item.at)],
-      ["log", log],
+      ["Podcast", name],
+      ["Run", String(run.id)],
+      ["Stopped at", run.failedStage ?? run.step ?? run.label ?? ""],
+      ["Saved", run.kept?.join(", ") ?? ""],
+      ["Reason", run.reason ?? ""],
+      ["Started", iso(run.t0)],
+      ["Ended", iso(item.at)],
+      ["Log", log],
     ],
     log,
   };
@@ -302,24 +288,22 @@ function paintRow(
   const going = item.ended === null;
   li.dataset.state = item.ended ?? (view.running ? "running" : "queued");
   setText(li.querySelector("[data-queue-name]"), name);
-  setText(
-    li.querySelector("[data-queue-note]"),
-    row.kind === "regenerate" ? (data.wordRegeneration ?? "") : "",
-  );
-  const stage = statusOf(item, view, data);
-  setText(li.querySelector("[data-queue-stage]"), stage);
   // A row being cancelled says so until the stop lands; a redraw must not take the word away.
   if (!li.hasAttribute("data-cancelling")) {
-    setText(li.querySelector("[data-queue-status]"), subtitleOf(item, view, data, stage));
+    setText(li.querySelector("[data-queue-status]"), statusOf(item, view, data));
   }
+  // Once it ended the line starts with when ("14:32 · Podcast ready").
+  setText(li.querySelector("[data-queue-when]"), item.ended && item.at ? clockTime(item.at) : "");
 
-  // The lead: the ring while it goes; once it ended, Start listening when there is a podcast to open,
-  // else the icon that says how it ended.
+  // The lead: the ring with the time left under it while it goes; once it ended, Start listening when
+  // there is a podcast to open, else the icon that says how it ended.
   const ring = li.querySelector<HTMLElement>("[data-queue-ring]");
   const percent = Math.max(view.percent, furthest.get(row.run_id) ?? 0);
   if (going) furthest.set(row.run_id, percent);
+  const goingBox = li.querySelector<HTMLElement>(".queue-going");
+  if (goingBox) goingBox.hidden = !going;
+  setText(li.querySelector("[data-queue-time]"), going ? view.eta : "");
   if (ring) {
-    ring.hidden = !going;
     ring.style.setProperty("--queue-p", String(percent));
     ring.style.setProperty("--queue-span", `${OPEN_POLL_MS / 1000}s`);
     ring.setAttribute("aria-valuenow", String(percent));
@@ -327,7 +311,6 @@ function paintRow(
       "aria-label",
       fillTemplate(data.wordProgressLabel ?? "", { title: name, pct: String(percent) }),
     );
-    setText(ring.querySelector("[data-queue-ring-text]"), going ? `${percent}%` : "");
   }
   const href = item.ended === "done" ? (item.record?.href ?? "") : "";
   const play = li.querySelector<HTMLAnchorElement>("[data-queue-play]");
@@ -340,13 +323,6 @@ function paintRow(
   if (endIcon) {
     endIcon.hidden = going || Boolean(href);
     setIcon(endIcon, going || href ? null : item.ended);
-  }
-
-  // The stage is the icon at the row's end, which morphs as the run moves on.
-  const mark = li.querySelector<HTMLElement>("[data-queue-row-icon]");
-  if (mark) {
-    setIcon(mark, going ? stageKind(row) : null);
-    mark.toggleAttribute("data-live", going);
   }
 
   const cancel = li.querySelector<HTMLButtonElement>("[data-queue-cancel]");
@@ -436,6 +412,8 @@ function context(): GenerationContext {
     words: {
       waiting: data.wordWaiting ?? "",
       left: data.wordLeft ?? "",
+      leftSec: data.wordLeftSec ?? "",
+      leftHr: data.wordLeftHr ?? "",
       slow: data.wordSlow ?? "",
     },
     followed: followed(run),
@@ -753,12 +731,7 @@ export function mountQueue(startedHere = false): void {
     if (target.closest("[data-queue-details]")) {
       const li = target.closest<HTMLElement>("[data-queue-row-item]");
       const item = currentItems().find((entry) => String(entry.row.run_id) === li?.dataset.run);
-      const name = [
-        li?.querySelector("[data-queue-name]")?.textContent,
-        li?.querySelector("[data-queue-note]")?.textContent,
-      ]
-        .filter(Boolean)
-        .join(" ");
+      const name = li?.querySelector("[data-queue-name]")?.textContent ?? "";
       const details = item ? detailsOf(item, name, root?.dataset ?? {}) : null;
       if (details) {
         popover()?.hidePopover?.();

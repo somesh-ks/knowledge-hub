@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { GenerationRow } from "../types/contracts";
-import { describeGeneration, type GenerationWords } from "./generations";
+import { describeGeneration, type GenerationWords, roundedLeft } from "./generations";
 
 const words: GenerationWords = {
   waiting: "Waiting to start",
-  left: "{n} min left",
+  left: "{n} min",
+  leftSec: "{n} sec",
+  leftHr: "{n} hr",
   slow: "Taking longer than usual",
 };
 
@@ -24,6 +26,15 @@ const row = (over: Partial<GenerationRow> = {}): GenerationRow => ({
 
 const NOW = Date.parse("2026-10-28T09:02:00Z");
 
+describe("the time left, as a person says it", () => {
+  // "4 min 20 sec" read as a clock; the owner asked for the nearest ten seconds, minute or hour.
+  it("rounds to ten seconds, a minute or an hour and never mixes units", () => {
+    const say = (seconds: number) => roundedLeft(seconds * 1000, words);
+    expect([3, 38, 44, 52].map(say)).toEqual(["10 sec", "40 sec", "40 sec", "50 sec"]);
+    expect([55, 70, 260, 5399].map(say)).toEqual(["1 min", "1 min", "4 min", "2 hr"]);
+  });
+});
+
 describe("a row of the podcast queue", () => {
   it("says the stage and the time left, slow past one and a half times the usual, and waiting while queued", () => {
     const estimates = [10_000, 240_000, null, null, null, null];
@@ -33,7 +44,7 @@ describe("a row of the podcast queue", () => {
         words,
         followed: { id: 7, stageAt: NOW - elapsedMs },
       });
-    expect(at(60_000)).toMatchObject({ eta: "3 min left", status: "Writing the script" });
+    expect(at(60_000)).toMatchObject({ eta: "3 min", status: "Writing the script" });
     expect(at(400_000)).toMatchObject({
       eta: "",
       status: "Taking longer than usual · Writing the script",

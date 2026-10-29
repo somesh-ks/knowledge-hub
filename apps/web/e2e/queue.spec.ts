@@ -155,7 +155,7 @@ test.describe("the podcast queue", () => {
     ).toBeVisible();
 
     list = [row(41, { stage: 4, label: "Recording voices" })];
-    await expect(rows(page).first().locator("[data-queue-stage]")).toHaveText("Recording voices", {
+    await expect(rows(page).first().locator("[data-queue-status]")).toHaveText("Recording voices", {
       timeout: 15_000,
     });
     await expect(
@@ -189,7 +189,7 @@ test.describe("the podcast queue", () => {
         stage_estimates_ms: [600_000, 240_000, 10_000, 10_000, 30_000, 40_000],
       }),
     ];
-    await expect(rows(page).first().locator("[data-queue-stage]")).toContainText(
+    await expect(rows(page).first().locator("[data-queue-status]")).toContainText(
       "Gathering stories",
       {
         timeout: 15_000,
@@ -247,7 +247,6 @@ test.describe("the podcast queue", () => {
     await expect(folded).toHaveText("Podcast queue");
 
     await openQueue(page);
-    await expect(rows(page).first()).toContainText("(Regeneration)");
     const listen = page
       .getByRole("link", { name: /^Start listening/ })
       .and(page.locator(":visible"));
@@ -286,10 +285,10 @@ test.describe("the podcast queue", () => {
     else await expect(page.locator("[data-queue-dock]")).toHaveAttribute("data-expanded", "");
     await rows(page).first().getByRole("button", { name: "Details" }).click();
     const dialog = page.getByRole("dialog", { name: "What went wrong" });
-    await expect(dialog).toContainText("run: 43");
+    await expect(dialog).toContainText("Run: 43");
     await expect(dialog.getByRole("link", { name: "Open the log" })).toBeVisible();
     await dialog.getByRole("button", { name: "Copy details" }).click();
     await expect(dialog.getByRole("button", { name: "Copied" })).toBeVisible();
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("run: 43");
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("Run: 43");
   });
 });

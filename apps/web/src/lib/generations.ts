@@ -1,6 +1,6 @@
 import type { GenerationRow } from "../types/contracts";
 import { queuePercent } from "./queuePercent";
-import { EPISODE_STAGES, NAMED_EPISODE_STAGES, NAMED_EPISODE_STEPS, timeLeft } from "./runStages";
+import { EPISODE_STAGES, NAMED_EPISODE_STAGES, NAMED_EPISODE_STEPS, timeLeftMs } from "./runStages";
 
 /**
  * What a row of the podcast queue says besides its name (lib/queueNames.ts): the time left and the
@@ -9,11 +9,26 @@ import { EPISODE_STAGES, NAMED_EPISODE_STAGES, NAMED_EPISODE_STEPS, timeLeft } f
  * attributes) are passed in.
  */
 
-/** The sentences a row is made of. `left` carries `{n}`, whole minutes. */
+/** The sentences a row is made of. `left`, `leftSec` and `leftHr` carry `{n}`: whole minutes, seconds or hours. */
 export interface GenerationWords {
   waiting: string;
   left: string;
+  leftSec: string;
+  leftHr: string;
   slow: string;
+}
+
+/**
+ * The time left, rounded the way a person says it (2026-10-29): "40 sec" to the nearest ten under a
+ * minute, "4 min" to the nearest minute, "2 hr" from ninety minutes. Never "4 min 20 sec".
+ */
+export function roundedLeft(ms: number, words: GenerationWords): string {
+  const seconds = Math.ceil(ms / 1000);
+  if (seconds < 55)
+    return words.leftSec.replace("{n}", String(Math.max(10, Math.round(seconds / 10) * 10)));
+  const minutes = Math.max(1, Math.round(seconds / 60));
+  if (minutes >= 90) return words.leftHr.replace("{n}", String(Math.round(minutes / 60)));
+  return words.left.replace("{n}", String(minutes));
 }
 
 /** The run this device started and follows (the run indicator's record), when it is the row's. */
@@ -49,7 +64,7 @@ export interface GenerationView {
   id: number;
   kind: GenerationRow["kind"];
   running: boolean;
-  /** The time left ("3 min left"), or "" when the engine has no estimate or the run is waiting. */
+  /** The time left ("3 min"), or "" when the engine has no estimate or the run is waiting. */
   eta: string;
   /** The stage; "Taking longer than usual" leads it past one and a half times the usual; waiting while queued. */
   status: string;
@@ -91,9 +106,9 @@ export function describeGeneration(row: GenerationRow, context: GenerationContex
   let eta = "";
   let slow = false;
   if (running) {
-    const left = timeLeft(row.stage, estimates, elapsed);
-    if (left.kind === "slow") slow = true;
-    else if (left.kind === "left") eta = words.left.replace("{n}", String(left.minutes));
+    const left = timeLeftMs(row.stage, estimates, elapsed);
+    if (left === "slow") slow = true;
+    else if (left !== null) eta = roundedLeft(left, words);
   }
   const status = !running ? words.waiting : slow ? `${words.slow} · ${row.label}` : row.label;
 

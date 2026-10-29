@@ -7,8 +7,8 @@ const { class: className = "", ...attributes } = Astro.props;
 ---
 
 {/* A drawn arc: 100 units round, the fill a share of them (queue.css, --queue-p). What sits inside it
-     (a percent, a stage icon) is the slot. The queue's rows, the dock's folded row and the side column's
-     row each hold one, in their own size (--queue-ring-size). */}
+     (nothing while it goes, a check or an alert once it is over) is the slot. The queue's rows, the dock's
+     folded row and the side column's row each hold one, in their own size (--queue-ring-size). */}
 <span class:list={["queue-ring", className]} {...attributes}>
   <svg viewBox="0 0 44 44" aria-hidden="true" focusable="false">
     <circle class="queue-ring-track" cx="22" cy="22" r="19" pathLength="100"></circle>
