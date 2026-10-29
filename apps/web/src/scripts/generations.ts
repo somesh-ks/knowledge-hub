@@ -82,6 +82,8 @@ function rowFromRecord(): GenerationRow | null {
   const run = readRunRecord(() => localStorage);
   if (!run || typeof run.id !== "number") return null;
   if (run.phase !== "queued" && run.phase !== "running") return null;
+  // A removal is a run of the workflow, but nobody waits for a podcast from it: the server leaves it out too.
+  if (run.kind === "delete") return null;
   const replaced = run.retry?.body.replace;
   const target = run.episode ?? (typeof replaced === "string" ? replaced : null);
   return {
