@@ -178,10 +178,9 @@ export const fetchFirecrawl: SourceFetcher = async (source, window, deps): Promi
   if (dated.length + headings.length + undated.length > 0) return items;
   if (page.markdown.trim() === "") throw new Error(FIRECRAWL_NO_ITEMS);
 
-  const whole: RawItem = {
-    url: pageUrl,
-    title: page.title ?? source.name,
-    summary: cleanMarkdown(page.markdown),
-  };
+  const summary = cleanMarkdown(page.markdown);
+  // A page of nothing but furniture cleans to nothing: a broken source, not an empty story.
+  if (summary === "") throw new Error(FIRECRAWL_NO_ITEMS);
+  const whole: RawItem = { url: pageUrl, title: page.title ?? source.name, summary };
   return buildItems([whole], { source, window, fetchedAt, undated: "keep" });
 };

@@ -502,6 +502,17 @@ describe("fetchFirecrawl", () => {
     ).rejects.toThrow(/no items/);
   });
 
+  it("fails with 'no items' when the page is nothing but furniture, not an empty story", async () => {
+    const fake = fakeFetch({
+      "https://api.firecrawl.dev/v2/scrape": scrape(
+        "Skip to content\n\nWe use cookies. Accept all",
+      ),
+    });
+    await expect(
+      fetchFirecrawl(source, WIDE, makeDeps(fake, { firecrawl: { apiKey: "fc-key-123456789" } })),
+    ).rejects.toThrow(/no items/);
+  });
+
   it("fails when the scraped page itself returned an error status", async () => {
     const fake = fakeFetch({
       "https://api.firecrawl.dev/v2/scrape": scrape("", { statusCode: 404 }),

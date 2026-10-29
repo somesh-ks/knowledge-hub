@@ -5,18 +5,25 @@
  * and `markdownToText` both used to pass them on as the story's words.
  */
 
+/** Cookie-banner phrasing, not the topic: an article may explain how cookie consent works. */
+const COOKIE_BANNER: readonly RegExp[] = [
+  /\b(we|this (web)?site|our (web)?site) uses? cookies\b/i,
+  /\b(accept|reject|decline) (all )?cookies\b/i,
+  /\b(manage|cookie) (cookie )?(settings|preferences)\b/i,
+];
+
 /** A line that is nothing but links is a menu, a breadcrumb or a share row, not a sentence. */
 const MAX_NAV_LINK_CHARS = 40;
+const MAX_NAV_LINK_WORDS = 3;
 const MAX_BOILERPLATE_LINE_CHARS = 200;
+/** A cookie banner can run to a paragraph; its phrasing is specific enough to match at any length. */
+const MAX_BANNER_LINE_CHARS = 600;
 
 const LINK = /!?\[([^\]]*)\]\([^)]*\)/g;
 
 /** Page furniture that survives main-content extraction. Only ever matched on a short line. */
 const BOILERPLATE: readonly RegExp[] = [
   /^skip to (main )?content\b/i,
-  /\bcookies?\b.*\b(accept|consent|settings|preferences|banner|policy|manage)\b/i,
-  /\b(accept|reject|decline) (all|cookies)\b/i,
-  /\bwe use cookies\b/i,
   /^(subscribe|sign up|join)\b.*\b(newsletter|updates|mailing list|inbox)\b/i,
   /^(share|follow us|tweet)\b.*\b(x|twitter|facebook|linkedin|reddit|email|link)\b/i,
   /^(copy|share) (link|this)\b/i,
@@ -35,11 +42,21 @@ function isLinkRow(line: string): boolean {
   if (texts.length === 0) return false;
   const rest = withoutBullet.replace(LINK, "").replace(/[\s|·•>/,:–—-]+/g, "");
   if (rest !== "") return false;
-  return texts.every((text) => text.length <= MAX_NAV_LINK_CHARS && !/[.!?]$/.test(text));
+  // A lone link is a menu item only when it is a word or two; a longer one may be a linked statement.
+  const maxWords = texts.length === 1 ? MAX_NAV_LINK_WORDS : Number.POSITIVE_INFINITY;
+  return texts.every(
+    (text) =>
+      text.length <= MAX_NAV_LINK_CHARS &&
+      text.split(/\s+/).length <= maxWords &&
+      !/[.!?]$/.test(text),
+  );
 }
 
 function isBoilerplate(line: string): boolean {
   const text = line.trim();
+  if (text.length <= MAX_BANNER_LINE_CHARS && COOKIE_BANNER.some((pattern) => pattern.test(text))) {
+    return true;
+  }
   return (
     text.length <= MAX_BOILERPLATE_LINE_CHARS && BOILERPLATE.some((pattern) => pattern.test(text))
   );
@@ -56,7 +73,7 @@ function dropMarkup(markdown: string): string {
   do {
     previous = text;
     text = text
-      .replace(/<(script|style|noscript|svg)\b[\s\S]*?<\/\1>/gi, "")
+      .replace(/<(script|style|noscript|svg)\b[\s\S]*?<\/\1\s*>/gi, "")
       .replace(/<!--[\s\S]*?-->/g, "")
       .replace(/<\/?[a-z][^>]*>/gi, "");
   } while (text !== previous);
@@ -71,7 +88,10 @@ function dropMarkup(markdown: string): string {
 export function cleanMarkdown(markdown: string): string {
   const lines = dropMarkup(markdown.replace(/\r\n/g, "\n"))
     .split("\n")
-    .filter((line) => !isLinkRow(line) && !isBoilerplate(line))
+    .filter((line) => {
+      const body = line.replace(/^\s*#{1,6}\s+/, "");
+      return !isLinkRow(body) && !isBoilerplate(body);
+    })
     .map((line) =>
       line
         .replace(/!\[[^\]]*\]\([^)]*\)/g, "")

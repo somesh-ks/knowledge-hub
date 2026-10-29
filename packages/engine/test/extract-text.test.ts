@@ -439,4 +439,19 @@ describe("cleanMarkdown", () => {
       "OpenAI announced a new model for developers on Tuesday.\n\nBrowsers now block third-party cookies by default, and that changes how analytics vendors attribute visits.",
     );
   });
+
+  // The bug it prevents: article text that looks like furniture being cut, and furniture in a
+  // spelling the first rules missed being kept (review of the cleaner, D232).
+  it("keeps short linked statements and cookie-consent articles, drops banners and headed menus", () => {
+    const keep =
+      "[Revenue grew by 70%](https://x.dev/a)\n\nThird-party cookies require user consent in Safari.";
+    expect(cleanMarkdown(keep)).toBe(
+      "Revenue grew by 70%\n\nThird-party cookies require user consent in Safari.",
+    );
+    const banner = `We use cookies to improve your experience, measure traffic and personalise content, ${"and for more reasons ".repeat(10)}. Accept all`;
+    const text = cleanMarkdown(
+      `## [Home](/) | [Pricing](/pricing)\n\n${banner}\n\n<script>var a = 1;</script >Body line.`,
+    );
+    expect(text).toBe("Body line.");
+  });
 });
