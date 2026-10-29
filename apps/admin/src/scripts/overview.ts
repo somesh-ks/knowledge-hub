@@ -8,6 +8,7 @@
 type Tone = "good" | "warn" | "bad" | "none";
 interface HealthBody {
   attention: { count: number; tone: Tone };
+  parts?: { content?: string; database?: string; github?: string };
   tiles: Record<string, string>;
   rows: Array<{ id: string; value: string; detail: string; tone: Tone }>;
 }
@@ -17,6 +18,9 @@ interface Rollup {
 }
 interface CostBody {
   time_zone: string;
+  site?: string;
+  engine?: string;
+  billing?: string;
   report: {
     buckets: Array<{ bucket: string; total: Rollup; groups: Record<string, Rollup> }>;
     total: Rollup;
@@ -31,7 +35,7 @@ const NAMES: Record<string, string> = {
   firecrawl: "Firecrawl",
   gemini: "Gemini",
   speechify: "Speechify",
-  typesafe: "Jev",
+  typesafe: "TypeSafe",
 };
 const DAYS = 30;
 const PAD = { top: 8, bottom: 24, left: 36 };
@@ -80,13 +84,16 @@ const shift = (date: string, days: number): string => {
   at.setUTCDate(at.getUTCDate() + days);
   return at.toISOString().slice(0, 10);
 };
-const today = (zone: string): string =>
-  new Intl.DateTimeFormat("en-CA", {
+const today = (zone: string): string => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: zone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(new Date());
+  }).formatToParts(new Date());
+  const value = (type: string): string => parts.find((part) => part.type === type)?.value ?? "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
+};
 const dayLabel = (date: string): string =>
   new Date(`${date}T00:00:00Z`).toLocaleDateString("en-GB", {
     day: "numeric",
@@ -111,6 +118,18 @@ function renderHealth(body: HealthBody, labels: Record<string, string>): void {
   pick<HTMLElement>("[data-attention-dot]")?.setAttribute("data-tone", count === 0 ? "good" : tone);
   for (const el of root.querySelectorAll<HTMLElement>("[data-health-tile]")) {
     el.textContent = body.tiles[el.dataset.healthTile ?? ""] ?? "No data";
+  }
+  const missing = [
+    body.parts?.content === "fallback" && "the content store answered from this build's copy",
+    body.parts?.content === "saved" && "the content store answered from its last saved list",
+    body.parts?.database === "unavailable" && "the database did not answer",
+    body.parts?.github === "unavailable" && "GitHub did not answer",
+    body.parts?.github === "partial" && "GitHub answered for some workflows only",
+  ].filter(Boolean);
+  const note = pick<HTMLElement>("[data-health-note]");
+  if (note) {
+    note.textContent = missing.length ? `Partial: ${missing.join("; ")}.` : "";
+    note.hidden = missing.length === 0;
   }
   const rows = body.rows.filter((r) => r.tone === "warn" || r.tone === "bad");
   const list = pick<HTMLElement>("[data-attention-rows]");
@@ -224,6 +243,16 @@ function renderSpend(body: CostBody): void {
       row(nameOf(key), `${Math.round((value / total) * 100)}% of the spend`, usd(value)),
     ),
   );
+  const unread = [
+    body.site === "unavailable" && "the site's own spend",
+    body.engine === "unavailable" && "the engine's ledger",
+    body.billing === "unavailable" && "Anthropic's bill",
+  ].filter(Boolean);
+  const note = pick<HTMLElement>("[data-spend-note]");
+  if (note) {
+    note.textContent = unread.length ? `Not counted: ${unread.join(", ")} did not answer.` : "";
+    note.hidden = unread.length === 0;
+  }
   drawChart(body);
   let width = pick<HTMLElement>("[data-spend-plot]")?.clientWidth ?? 0;
   new ResizeObserver(() => {

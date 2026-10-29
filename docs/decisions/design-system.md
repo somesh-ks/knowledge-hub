@@ -286,4 +286,5 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Why: a route inside the reader shares its chrome, bundle and keys; separate deploys keep both apart while one domain keeps the owner's addresses and his theme choice (same origin).
 - Rejected: a separate repository (D189: one maintainer, no second consumer); `/admin` routes inside the reader (PR #420, closed); subdomains (not the addresses asked for); Storybook (D189).
 - Revisit if: the data code moves into a package (then remove the reader's routes), or a second consumer of the components appears.
-- Amends: D189.
+- Supersedes: the route half of D189 (`/design` inside the site); its no-separate-repository and no-Storybook rulings stand.
+- Context changed: D189 said a second app consuming the styles would lift them into a package. D221 adds that second app and defers the package: the apps import the reader's files by relative path until that hurts.

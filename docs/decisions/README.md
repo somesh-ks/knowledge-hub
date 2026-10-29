@@ -205,7 +205,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D186 | Every control is a pill | amends D167 |
 | D187 | Glyphs align by ink | active |
 | D188 | Script-drawn markup | active |
-| D189 | Catalogue route | active |
+| D189 | Catalogue route | superseded by D221 |
 | D190 | Votes tune weights | partly superseded by D194 for topics |
 | D191 | Structure by profile | amends D170, D176 |
 | D192 | CodeRabbit review agent | amends D143 |
@@ -237,6 +237,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D218 | A block's count is a proportion; the length is the limit | active; amends D170 |
 | D219 | A day's Catch ups are one album, chosen by a select before Play | active |
 | D220 | Over-limit summaries and headlines are cut | active |
-| D221 | Admin and the style guide are their own apps | active; amends D189 |
+| D221 | Admin and the style guide are their own apps | active; supersedes D189 |
 
 ---

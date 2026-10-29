@@ -26,6 +26,7 @@ const labels = Object.fromEntries(
           <span class="status-dot" data-tone="none" data-attention-dot></span>
           <span data-attention>Checking</span>
         </p>
+        <p class="settings-note" data-health-note hidden></p>
         <ul class="stat-tiles health-data" role="list" aria-label="Health figures">
           {
             HEALTH_TILES.map((tile) => (
@@ -51,6 +52,7 @@ const labels = Object.fromEntries(
       <h2 class="section-head">Spend, last 30 days</h2>
       <div class="card-group costs-card" aria-label="Spend">
         <p class="costs-total costs-data"><span class="sr-only">Total spend </span><span data-spend-total>Loading</span></p>
+        <p class="settings-note" data-spend-note hidden></p>
         <ul class="stat-tiles costs-stats costs-data" role="list" aria-label="Spend figures" data-spend-stats></ul>
         <div class="costs-plot costs-data" data-spend-plot></div>
       </div>
