@@ -60,7 +60,8 @@ function dropMarkup(markdown: string): string {
       .replace(/<!--[\s\S]*?-->/g, "")
       .replace(/<\/?[a-z][^>]*>/gi, "");
   } while (text !== previous);
-  return text;
+  // Whatever still opens a tag (an unclosed `<scr` at the end of a page) loses its bracket.
+  return text.replace(/<(?=[a-z!/])/gi, "");
 }
 
 /**
