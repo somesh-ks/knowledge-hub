@@ -19,7 +19,7 @@ import { fitStories, shapeStories } from "../src/podcast/structure.js";
 import type { PodcastStory } from "../src/podcast/types.js";
 import { RELEASE_CATEGORY } from "../src/score/releaseNotes.js";
 import { loadSectionPlan, sectionPlanFor } from "../src/score/sectionPlan.js";
-import { selectItems } from "../src/score/selectItems.js";
+import { GENERAL_ALLOWANCE, selectItems } from "../src/score/selectItems.js";
 import type { ScoredItem } from "../src/score/types.js";
 import { REQUEST } from "./podcast-fixtures.js";
 import { buildFixtureDigest } from "./render-factories.js";
@@ -77,6 +77,25 @@ describe("a ticked general topic airs under a profile's structure", () => {
       true,
     ]);
     expect(["business", "sports"].map((id) => weekly.includes(id))).toEqual([false, false]);
+  });
+
+  // With the sections back the 2026-10-29 dry run still selected 11 of 52 qualifying stories: 30
+  // went to the 2-story allowance of each general section, though the length wanted about 15.
+  it("lets an added section hold more than the flat allowance, and more in a longer episode", async () => {
+    const root = await mkdtemp(join(tmpdir(), "section-plan-"));
+    await mkdir(join(root, "config"), { recursive: true });
+    await writeFile(
+      join(root, "config/structure.json"),
+      JSON.stringify({ version: 1, profile: "designer" }),
+    );
+    await writeFile(
+      join(root, "config/schedule.json"),
+      JSON.stringify({ ...DEFAULT_SCHEDULE, skip_topics: [], general_scoped: true }),
+    );
+    const short = await loadSectionPlan(root, "regular", 5);
+    const long = await loadSectionPlan(root, "regular", 15);
+    expect(short.limit("world") ?? 0).toBeGreaterThan(GENERAL_ALLOWANCE);
+    expect(long.limit("world") ?? 0).toBeGreaterThan(short.limit("world") ?? 0);
   });
 });
 
