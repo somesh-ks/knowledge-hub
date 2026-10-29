@@ -25,6 +25,7 @@ export const MODEL_STEPS = [
   "grounding",
   "story_writer",
   "story_rewrite",
+  "headline_shorten",
   "podcast_script",
   "podcast_opening",
   "podcast_rewrite",
