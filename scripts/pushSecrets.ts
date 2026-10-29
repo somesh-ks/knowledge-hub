@@ -59,6 +59,9 @@ const VERCEL_ENV = [
  */
 const VERCEL_ADMIN_ENV = ["ADMIN_PASSWORD", "ADMIN_SESSION_SECRET"];
 
+/** The singularity-admin project's id. `vercel link` may have been pointed at another project. */
+const ADMIN_PROJECT_ID = "prj_2T9RXkKkI7mZBKGOEUzYVfsAuSjE";
+
 /** What `vercel env pull` writes in place of a hidden value. Sending it on would overwrite the real one. */
 const SENSITIVE_PLACEHOLDER = "[SENSITIVE]";
 
@@ -186,6 +189,10 @@ function main(): void {
   // The reader's project: the repository root or apps/web. The admin project: apps/admin only.
   const vercelDir = linkedVercelDir([".", "apps/web"]);
   const adminDir = linkedVercelDir(["apps/admin"]);
+  const adminLinkOk =
+    adminDir !== undefined &&
+    JSON.parse(readFileSync(join(adminDir, ".vercel", "project.json"), "utf8")).projectId ===
+      ADMIN_PROJECT_ID;
   if (!vercelDir && only !== "github" && !dryRun) {
     console.error(
       "The Vercel project is not linked. Run `vercel link` first, or use --only github.",
@@ -228,7 +235,7 @@ function main(): void {
           );
           break;
         case "vercel-admin":
-          if (!adminDir) {
+          if (!adminDir || !adminLinkOk) {
             throw new Error("apps/admin is not linked to singularity-admin: run vercel link there");
           }
           run(
