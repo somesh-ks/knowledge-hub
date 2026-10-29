@@ -2,6 +2,7 @@ import { parseArgs } from "node:util";
 import { type CommandContext, type CommandRun, redact, secretsFromEnv } from "../context.js";
 import { emit } from "../curate/output.js";
 import { createHttpClient } from "../http.js";
+import { measureCoverage, readRecentDailies, SHADOW_DAYS } from "../ingest/coverage.js";
 import {
   DEFAULT_MAX_EXTRACTIONS,
   INGEST_WINDOW_DAYS,
@@ -13,11 +14,14 @@ import { loadSources } from "../sources/registry.js";
 import { connectConfigStore, databaseSecrets, type SqlClient } from "../store/configPaths.js";
 
 const USAGE = `Usage: singularity ingest [--since <iso>] [--max <n>] [--dry-run]
+       singularity ingest --coverage
 
 Reads the free sources (rss, github, hn, arxiv, crossref, lobsters, producthunt) over the last ${INGEST_WINDOW_DAYS} days,
 extracts each story the store does not hold, archives its text in Blob and records it in Neon
 (D233). Needs DATABASE_URL and BLOB_READ_WRITE_TOKEN; --dry-run needs neither and writes nothing.
-It reads nothing a briefing uses and spends no Firecrawl, Exa or model call.`;
+It reads nothing a briefing uses and spends no Firecrawl, Exa or model call.
+--coverage reads nothing from the sources: it prints how many of the stories the recent dailies
+aired the store holds, by source type, and whether the shadow exit is met. Needs DATABASE_URL.`;
 
 const DAY_MS = 86_400_000;
 
@@ -31,7 +35,13 @@ export interface IngestDeps {
 /** `singularity ingest`: the ingest layer in shadow beside the daily fetch (D233). */
 export function makeIngestCommand(deps: IngestDeps = {}): CommandRun {
   return async (argv: string[], ctx: CommandContext): Promise<number> => {
-    let values: { since?: string; max?: string; "dry-run"?: boolean; help?: boolean };
+    let values: {
+      since?: string;
+      max?: string;
+      coverage?: boolean;
+      "dry-run"?: boolean;
+      help?: boolean;
+    };
     try {
       values = parseArgs({
         args: argv,
@@ -40,6 +50,7 @@ export function makeIngestCommand(deps: IngestDeps = {}): CommandRun {
         options: {
           since: { type: "string" },
           max: { type: "string" },
+          coverage: { type: "boolean" },
           "dry-run": { type: "boolean" },
           help: { type: "boolean", short: "h" },
         },
@@ -53,6 +64,7 @@ export function makeIngestCommand(deps: IngestDeps = {}): CommandRun {
       return 0;
     }
     const now = ctx.now();
+    if (values.coverage) return coverage(deps, ctx);
     const from = values.since
       ? new Date(values.since)
       : new Date(now.getTime() - INGEST_WINDOW_DAYS * DAY_MS);
@@ -116,6 +128,49 @@ export function makeIngestCommand(deps: IngestDeps = {}): CommandRun {
       return 1;
     }
   };
+}
+
+function percent(value: number | null): string {
+  return value === null ? "none yet" : `${(value * 100).toFixed(0)}%`;
+}
+
+/** `ingest --coverage`: the shadow's measure (D233), from the committed dailies and Neon. */
+async function coverage(deps: IngestDeps, ctx: CommandContext) {
+  const databaseUrl = ctx.env.DATABASE_URL;
+  if (!deps.sql && !databaseUrl) {
+    ctx.log.error("DATABASE_URL is needed to measure coverage.");
+    return 1;
+  }
+  const secrets = [
+    ...secretsFromEnv(ctx.env),
+    ...(databaseUrl ? databaseSecrets(databaseUrl) : []),
+  ];
+  try {
+    const sql = deps.sql ?? (await connectConfigStore(databaseUrl as string));
+    const now = ctx.now();
+    const result = await measureCoverage({
+      sql,
+      dailies: await readRecentDailies(ctx.root, now),
+      now,
+    });
+    const types = Object.entries(result.by_source_type)
+      .sort(([, a], [, b]) => b.aired - a.aired)
+      .map(([type, n]) => `${type} ${n.held}/${n.aired}`);
+    emit(
+      ctx,
+      [
+        `ingest coverage, last ${SHADOW_DAYS} days: ${result.since ? `running since ${result.since} (${result.days_observed} days)` : "no run yet"}`,
+        `held: ${result.held} of ${result.aired} aired stories (${percent(result.held_share)}); by source type: ${types.join(", ") || "none yet"}`,
+        `read: ${percent(result.read_share)} of the pages tried`,
+        `shadow exit (${SHADOW_DAYS} days, 90% of each): ${result.met ? "met" : "not met"}`,
+      ],
+      { ...result },
+    );
+    return 0;
+  } catch (error) {
+    ctx.log.error(redact(error instanceof Error ? error.message : String(error), secrets));
+    return 1;
+  }
 }
 
 export const run: CommandRun = makeIngestCommand();

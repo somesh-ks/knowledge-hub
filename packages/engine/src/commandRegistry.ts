@@ -85,10 +85,13 @@ sources with a missing API key skip. Agent mode starts here (see \`singularity r
     name: "ingest",
     summary: "Read the free sources, archive each story's text in Blob and Neon (shadow, D233)",
     help: `Usage: singularity ingest [--since <iso>] [--max <n>] [--dry-run]
+       singularity ingest --coverage
 
 Reads the free sources over the last 3 days, extracts each story the store does not hold, archives
 its text in Blob under a random key and records it in Neon. Needs DATABASE_URL and
-BLOB_READ_WRITE_TOKEN. It spends no Firecrawl, Exa or model call and changes nothing a briefing reads.`,
+BLOB_READ_WRITE_TOKEN. It spends no Firecrawl, Exa or model call and changes nothing a briefing reads.
+--coverage prints how many of the recent dailies' stories the store holds, by source type, and
+whether the shadow exit is met. Needs DATABASE_URL.`,
     load: async () => (await import("./commands/ingest.js")).run,
   },
   {
