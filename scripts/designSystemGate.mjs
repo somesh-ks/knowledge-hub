@@ -65,7 +65,12 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     console.error("BASE (the pull request's base commit) is required.");
     process.exit(2);
   }
-  const files = execFileSync("git", ["diff", "--name-only", `${base}...HEAD`], { encoding: "utf8" })
+  // CI checks out the pull request merged into the base as it is now, which can be newer than the
+  // base commit the event names; the merge's first parent is that newer base, so diffing against it
+  // lists only what the pull request changes. Without a merge commit (a local run) fall back to BASE.
+  const git = (...args) => execFileSync("git", args, { encoding: "utf8" });
+  const merged = git("rev-list", "--parents", "-n", "1", "HEAD").trim().split(" ").length === 3;
+  const files = git("diff", "--name-only", merged ? "HEAD^1" : `${base}...HEAD`, "HEAD")
     .split("\n")
     .filter(Boolean);
   const problems = checkDesignSystemPr({ files, labels });
