@@ -525,6 +525,15 @@ textarea.sheet-input {
     display var(--duration-press-in) allow-discrete;
 }
 
+/* A toast that asks to stay on one line (oneLine, toastStore.ts; the time zone offer, D239) keeps
+   its words whole and ends them with an ellipsis rather than wrap. Its copy is written to fit. */
+.toast[data-one-line] .toast-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Under the finger the toast follows at once; the spring back and the leave run on the transition. */
 .toast[data-dragging] {
   transition: none;
@@ -540,6 +549,12 @@ textarea.sheet-input {
 
   .toast-text {
     flex: 1 1 auto;
+  }
+
+  /* A one-line toast gives its close button's room to its words on a phone, where a swipe takes it
+     away (Toaster.tsx), so "You're in Johannesburg" and its action fit without an ellipsis. */
+  .toast[data-one-line] .toast-dismiss {
+    display: none;
   }
 }
 

@@ -79,6 +79,7 @@ export default function Toaster() {
       // Leaving, it keeps sliding the way it went while the popover's own exit fades it.
       if (swipeLeaves(dx, element.offsetWidth, tracker.velocity())) {
         element.style.translate = `${Math.sign(dx) * element.offsetWidth * 1.5}px 0`;
+        getToast()?.onDismiss?.();
         dismissToast();
       } else element.style.translate = "";
     };
@@ -100,6 +101,7 @@ export default function Toaster() {
       className="toast"
       popover="manual"
       role={shown?.kind === "error" ? "alert" : "status"}
+      data-one-line={shown?.oneLine ? "" : undefined}
     >
       {shown?.kind ? (
         <Icon className="toast-icon" name={shown.kind === "error" ? "alert" : "check"} />
@@ -122,7 +124,10 @@ export default function Toaster() {
           className="toast-dismiss press"
           type="button"
           aria-label="Dismiss"
-          onClick={dismissToast}
+          onClick={() => {
+            shown.onDismiss?.();
+            dismissToast();
+          }}
         >
           <Icon name="close" />
         </button>

@@ -178,6 +178,16 @@ const idle = window.requestIdleCallback ?? ((run: () => void) => setTimeout(run,
 idle(() => {
   void import("./navigationBoost").then((boost) => boost.installNavigationBoost());
 });
+// The schedule's time zone against the device's (D239): a lazy module offers the switch when they
+// differ, at idle and whenever the app comes back to the front, which is when a trip shows. Offline
+// the import is left alone (Chromium remembers a failed one, as navigationBoost's note says).
+const zone = (): void => {
+  if (navigator.onLine) void import("./zonePrompt").then((prompt) => prompt.checkZone());
+};
+idle(zone);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") zone();
+});
 // Field Web Vitals (D156), with the analytics opt-outs (the production host, no Do Not Track or
 // Global Privacy Control): a lazy module measures this page load and sends it once when the page is
 // first hidden. It loads at idle, or at the first visibility change if that comes sooner (a reader
