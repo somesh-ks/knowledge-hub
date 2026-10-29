@@ -495,6 +495,19 @@ export function selectItems(input: SelectInput): SelectResult {
     if (chosen.has(candidate) || !fits(candidate)) continue;
     if ((perSection.get(candidate.home) ?? 0) < SECTION_TARGET_MAX) take(candidate);
   }
+  // Each block reaches its own count before any section takes spares, so a count-1 section's strong
+  // leftovers cannot crowd out a section still short of its count (D217).
+  for (const candidate of main) {
+    if (chosen.size >= limit) break;
+    if (
+      !chosen.has(candidate) &&
+      !isReleaseStory(candidate) &&
+      plan.limit(candidate.home) !== null &&
+      fits(candidate)
+    ) {
+      take(candidate);
+    }
+  }
   // A block's count is the proportion between sections, not a ceiling (D217): the settings length is
   // the only size limit (#147), so room left after the counts goes to the best stories that remain.
   // Validation cuts the narration to the length, so these stand as spares for a story lost in writing.

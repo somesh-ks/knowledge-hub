@@ -232,6 +232,40 @@ describe("a block's count is a proportion, not a ceiling, when the length wants 
     expect(wide.selected.length).toBeLessThanOrEqual(5);
   });
 
+  it("meets every block's count before one section takes the spares", () => {
+    // Section counts 5 and 1 at a length of 6: the best-ranked leftovers belong to the count-1 section,
+    // but its count is met, so the room goes to the section still short of its own (CodeRabbit, #418).
+    const other = homeSection("ai_ux_interaction_patterns") ?? "ai";
+    const mixed = [
+      ...Array.from({ length: 4 }, (_, n) =>
+        scoredIn("ai_ux_interaction_patterns", 0.95 - n * 0.01, n + 20),
+      ),
+      ...Array.from({ length: 6 }, (_, n) =>
+        scoredIn("design_engineering_craft", 0.8 - n * 0.01, n + 1),
+      ),
+    ];
+    const counted = sectionPlanFor(
+      blocks([
+        { type: "hello" },
+        { type: "section", id: home, max_stories: 5 },
+        { type: "section", id: other, max_stories: 1 },
+        { type: "sign_off" },
+      ]),
+    );
+    const result = selectItems({
+      scored: mixed,
+      kind: "regular",
+      floor: 1,
+      cap: 12,
+      total: 6,
+      plan: counted,
+    });
+    const taken = (section: string) =>
+      result.selected.filter((item) => item.section === section).length;
+    expect(taken(home)).toBe(5);
+    expect(taken(other)).toBe(1);
+  });
+
   it("keeps to the count when the length asks for no more", () => {
     const narrow = selectItems({ scored, kind: "regular", floor: 1, cap: 12, total: 2, plan });
     expect(narrow.selected).toHaveLength(2);
