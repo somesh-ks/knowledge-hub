@@ -5,7 +5,7 @@ Why pull requests, CI, builds and deployments failed from 2026-10-15 to 2026-10-
 ## The rules
 
 1. **One push per PR, after the checks pass locally.** `npm run gate -- --build`, both browser suites for site changes, and Biome on the touched files in a worktree (`npm run lint` checks nothing there). Every push to an open PR cancels the last CI run and starts a new one, and both are billed (classes 1, 4, 5).
-2. **A preview deploys only from a branch named `preview/*`.** Any other branch, the agents' included, gets no Vercel preview and no Neon branch (class 2).
+2. **A preview deploys only from a branch named `preview/*`, in every Vercel project.** Any other branch, the agents' included, gets no Vercel preview and no Neon branch (classes 2, 15). A new project's `vercel.json` carries `git.deploymentEnabled` from day one.
 3. **Merge `main` into an open branch after `main` changes `apps/web/vercel.json` or a workflow.** Vercel and Actions read those files from the branch's own commit, so an old branch keeps the old rules (class 2).
 4. **A red check is classified before anyone acts on it:** billing, Vercel branch limit, a cancelled run, an ignored build, a known flake, or a real failure. Only the last needs a code change (classes 1 to 6).
 5. **Never remove a worktree or branch another session made.** A worktree with no commits looks merged and is someone's work in progress (class 8).
@@ -32,6 +32,7 @@ Why pull requests, CI, builds and deployments failed from 2026-10-15 to 2026-10-
 | 12 | Decision number collision (D157, D159, D176) | Multiple parallel worktrees assigned the next decision ID locally | Fixed | Rule 7: workers allocate no D-numbers; lead numbers on `main` before merge |
 | 13 | Silent config reversion (2026-10-25) | PR edited repo config while live config store held newer state; store snapshot undid PR edit (D185) | Fixed | Rule 8: sync store before config edits; write guard allows snapshot |
 | 14 | A browser spec broken by the PR's own change (`topics.spec.ts`: a reload no longer showed a source another device added) first failed on the merge commit `5af78ab` (2026-10-28) | `edaf1fa` made a store read reused within a second answer from the device's copy at once, as the first did (D205), where before it waited for the store; `ci` runs on `pull_request`, which GitHub did not start for `dd261c2`, `edaf1fa` and `d598485` while the PR conflicted with `main` (#393 landed under it); the 49 specs run locally did not include this one. The old spec passes on the old code and fails on the new (reproduced) | Fixed (`8c976f3`: the spec reloads twice) | Rule 9 |
+| 15 | The Hobby limit of 100 deployments a day hit on 2026-10-29; `Vercel – singularity-admin` red on PRs | `apps/admin/vercel.json` lacked the `git.deploymentEnabled` that class 2 added to the reader, so every push to every agent branch made an admin deployment: 98 that day (82 from `claude/*` branches, 42 of them cancelled by `ignore-build.sh` but still counted), against 43 for the reader | Fixed: admin allows `main` and `preview/*` only. Branches cut earlier keep the old `vercel.json` until they merge `main` (rule 3) | Rule 2 |
 
 ## The merge flow, as designed (not failures)
 
