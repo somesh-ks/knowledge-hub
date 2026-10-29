@@ -42,15 +42,32 @@ describe("loadSchedule", () => {
   // Daily and Weekly look back since their last episode and have no type to set. A stored lookback
   // that still acted would narrow a podcast with no row left to clear it.
   it("reads past a lookback and a weekly type from an older file, and writes neither", async () => {
+    const kept = {
+      hour: 9,
+      skip_topics: ["trending"],
+      length_minutes: 5 as const,
+      weekly: {
+        ...DEFAULT_SCHEDULE.weekly,
+        enabled: false,
+        day: 5,
+        hour: 18,
+        skip_topics: ["design"],
+        length_minutes: 15 as const,
+      },
+    };
     const older = {
       ...DEFAULT_SCHEDULE,
+      ...kept,
       lookback_hours: 24,
-      weekly: { ...DEFAULT_SCHEDULE.weekly, lookback_hours: 168, format: "discussion" },
+      weekly: { ...kept.weekly, lookback_hours: 168, format: "discussion" },
     };
     await writeFile(join(root, "config", "schedule.json"), JSON.stringify(older));
     const read = await loadSchedule(root);
-    expect(read).toEqual(DEFAULT_SCHEDULE);
-    expect(serializeSchedule(read)).not.toMatch(/lookback_hours|"format": "discussion"/);
+    expect(read).toEqual({ ...DEFAULT_SCHEDULE, ...kept });
+    const written = JSON.parse(serializeSchedule(read));
+    expect(written).not.toHaveProperty("lookback_hours");
+    expect(written.weekly).not.toHaveProperty("lookback_hours");
+    expect(written.weekly).not.toHaveProperty("format");
   });
 
   it("reads a file written before length existed", async () => {
