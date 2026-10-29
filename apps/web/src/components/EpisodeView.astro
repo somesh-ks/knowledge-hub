@@ -62,7 +62,20 @@ const fallbackTopic = episode.request.topic_ids[0] ?? "general";
         <span>{FORMAT_LABELS[episode.format]}</span><span>{storyCount(episode.sources.length)}</span>
       </p>
     </div>
-    {!shareToken && <HeroMenu episodeId={entry.id} regenerations={episode.regenerations} />}
+    {
+      !shareToken && (
+        <HeroMenu
+          episodeId={entry.id}
+          regenerations={episode.regenerations}
+          page={{
+            id: entry.id,
+            title: episode.title,
+            path: `/e/${entry.id}`,
+            audio: `/api/narrate?digest=${encodeURIComponent(entry.id)}`,
+          }}
+        />
+      )
+    }
     {/* The same path a briefing takes: audio is made when Play is pressed, one turn at a time. */}
     <PlayCta
       digestId={entry.id}

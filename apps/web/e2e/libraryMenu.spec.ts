@@ -47,6 +47,42 @@ test("a row's menu shares a link when the browser has no share sheet, and queues
   expect(new URL(page.url()).pathname).toBe("/library");
 });
 
+test("a podcast page's More menu downloads and queues the podcast, as its row in the Library does", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.assign(window, { queued: [] as string[] });
+    document.addEventListener("singularity:queue-add", (event) =>
+      (window as unknown as { queued: string[] }).queued.push((event as CustomEvent).detail.id),
+    );
+  });
+  await page.goto(`/d/${AUDIO_ID}`);
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.reload();
+  const menu = page.locator("[data-page-menu]");
+  await expect(menu).toHaveAttribute("data-menus-ready", "");
+  const open = async () => {
+    await menu.locator("[data-hero-more]").click();
+    await expect(menu.locator(".hero-menu-list")).toBeVisible();
+  };
+
+  await open();
+  await menu.getByRole("menuitem", { name: "Add to queue" }).click();
+  await expect(page.getByText("Added to queue")).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { queued: string[] }).queued)).toEqual([
+    AUDIO_ID,
+  ]);
+
+  await open();
+  await menu.getByRole("menuitem", { name: "Download" }).click();
+  await expect(menu).toHaveAttribute("data-downloaded", "");
+  // Still marked after a reload: the state comes from Cache Storage, as in the Library.
+  await page.reload();
+  await expect(menu).toHaveAttribute("data-downloaded", "");
+  await open();
+  await expect(menu.getByRole("menuitem", { name: "Remove download" })).toBeVisible();
+});
+
 test("pressing a row's three dots moves nothing: not the card, its title or the dots' own glyph, and they sit beside the title", async ({
   page,
 }) => {

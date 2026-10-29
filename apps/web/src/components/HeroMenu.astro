@@ -12,15 +12,21 @@ interface Props {
   deletable?: boolean;
   /** Times this podcast was regenerated, for the Regenerate item's counter (D212). */
   regenerations?: number | undefined;
+  /**
+   * The page itself, so Download and Add to queue sit in the menu as they do in the Library row's
+   * (LibraryItemMenu.astro; scripts/libraryMenu.ts wires them). `audio` is the file to download;
+   * without it only Add to queue is offered.
+   */
+  page?: { id: string; title: string; path: string; audio?: string | undefined };
 }
 
-const { episodeId, briefingId, deletable = true, regenerations } = Astro.props;
+const { episodeId, briefingId, deletable = true, regenerations, page } = Astro.props;
 const regen = regenerationHint(regenerations);
 ---
 
-{/* One More button beside the title and the small menu it opens: Regenerate and Delete, on a
-     briefing and on an episode alike (Share sits beside Play, PlayCta.astro; Stop sharing is in the
-     Library's row menu only). The menu is a native popover, so light dismiss and Escape are
+{/* One More button beside the title and the small menu it opens: Download, Add to queue, Regenerate
+     and Delete, on a briefing and on an episode alike, in the order of the Library row's menu (Share
+     sits beside Play, PlayCta.astro; Stop sharing is in the Library's row menu only). The menu is a native popover, so light dismiss and Escape are
      the browser's; scripts/heroMenu.ts adds the arrow keys and focus. On an episode
      Regenerate opens the rewrite panel (scripts/episodeActionsEntry.ts); on a briefing it opens the
      Generate sheet, which sends this digest's id so the new one replaces it. Delete opens the
@@ -31,6 +37,11 @@ const regen = regenerationHint(regenerations);
   data-episode-actions=""
   data-episode={episodeId}
   data-briefing={briefingId}
+  data-page-menu={page ? "" : undefined}
+  data-id={page?.id}
+  data-path={page?.path}
+  data-title={page?.title}
+  data-audio={page?.audio}
 >
   <button
     class="icon-btn hero-more press"
@@ -44,6 +55,20 @@ const regen = regenerationHint(regenerations);
     <Icon name="check" class="more-done" />
   </button>
   <MenuSheet id="hero-menu" title="More actions">
+    {
+      page?.audio && (
+        <button class="hero-menu-item" type="button" role="menuitem" data-menu="download">
+          <Icon name="download" class="dl-add" /><Icon name="downloadRemove" class="dl-remove" /><span data-menu-label>Download</span>
+        </button>
+      )
+    }
+    {
+      page && (
+        <button class="hero-menu-item" type="button" role="menuitem" data-menu="queue">
+          <Icon name="queueAdd" />Add to queue
+        </button>
+      )
+    }
     {
       episodeId ? (
         <button

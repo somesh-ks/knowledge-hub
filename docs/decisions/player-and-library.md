@@ -301,3 +301,11 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Why: the desktop bar had no visible way to the full player, and a remembered speed carried into episodes where it did not fit.
 - Rejected: a chevron on the phone bar (D102, the bar is the target); remembering the last speed (the old behaviour); counting every slider step.
 - Amends: D102, D126.
+
+## D214: a page's More menu offers Download and Add to queue, as its Library row does
+
+- Date: 2026-10-29 (the owner: "one shared menu so Library and the podcast page match").
+- Decision: the More menu on a podcast page (HeroMenu.astro) lists Download (when the podcast has audio), Add to queue, Regenerate and Delete, in the Library row menu's order. Download and Add to queue are the Library's own code (`libraryMenu.ts`, loaded at idle on a page) acting on `[data-page-menu]`; the downloaded state is kept on the menu itself where a row keeps it on its card. Share stays beside Play and Stop sharing in the Library row (D153).
+- Why: the same podcast offered different actions in two places, and a page it could not be saved or queued from.
+- Rejected: Share in the page menu (it sits beside Play); one component for both menus (a row's menu hangs from its card's anchor, the page's from the header).
+

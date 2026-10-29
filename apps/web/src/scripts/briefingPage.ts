@@ -4,6 +4,7 @@
  * view. A bundled module runs once per session, so the per-page work listens for astro:page-load.
  */
 import { installHeroMenu } from "./heroMenu";
+import { warmWhenIdle } from "./idle";
 import { prepareEarly, shareItem, shareLink } from "./shareLink";
 import { sendToast } from "./toastEvent";
 
@@ -311,5 +312,16 @@ new MutationObserver(() => {
   if (document.querySelector("[data-section-tabs]")) watchSections({ keepHeld: true });
 }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-bar-hidden"] });
 
+/**
+ * The More menu's Download and Add to queue (HeroMenu.astro) are the Library row's, wired by
+ * libraryMenu.ts; its code loads at idle, not with the page.
+ */
+function wirePageMenu(): void {
+  if (!document.querySelector("[data-page-menu]")) return;
+  warmWhenIdle(() => import("./libraryMenu").then((menu) => menu.installLibraryMenu()));
+}
+
 document.addEventListener("astro:page-load", watchPage);
+document.addEventListener("astro:page-load", wirePageMenu);
 watchPage();
+wirePageMenu();
