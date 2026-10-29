@@ -922,6 +922,72 @@
       },
       "usd": 0.07,
       "estimated": true
+    },
+    {
+      "id": "2026-10-29T10:16:34.073Z|on_demand|fetch|firecrawl|alexandria|owner",
+      "at": "2026-10-29T10:18:03.357Z",
+      "run_id": "2026-10-29T10:16:34.073Z",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "fetch",
+      "provider": "firecrawl",
+      "product": "alexandria",
+      "units": {
+        "credits": 5
+      },
+      "usd": 0.00415
+    },
+    {
+      "id": "2026-10-29T10:16:34.073Z|on_demand|write|anthropic|claude-sonnet-5-5|owner",
+      "at": "2026-10-29T10:18:03.357Z",
+      "run_id": "2026-10-29T10:16:34.073Z",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "write",
+      "provider": "anthropic",
+      "product": "claude-sonnet-5-5",
+      "units": {
+        "input_tokens": 58630,
+        "output_tokens": 16150
+      },
+      "usd": 0.41814
+    },
+    {
+      "id": "2026-10-29T10:16:34.073Z|on_demand|judge|typesafe|jev|owner",
+      "at": "2026-10-29T10:18:03.357Z",
+      "run_id": "2026-10-29T10:16:34.073Z",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "judge",
+      "provider": "typesafe",
+      "product": "jev",
+      "units": {
+        "requests": 474
+      },
+      "usd": 0
+    },
+    {
+      "id": "2026-10-29T10:16:34.073Z|on_demand|fetch|exa|search|owner",
+      "at": "2026-10-29T10:18:03.357Z",
+      "run_id": "2026-10-29T10:16:34.073Z",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "fetch",
+      "provider": "exa",
+      "product": "search",
+      "units": {
+        "requests": 14
+      },
+      "usd": 0.07,
+      "estimated": true
     }
   ]
 }
