@@ -233,6 +233,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D214 | A page's More menu offers Download and Add to queue like its Library row | active |
 | D215 | Daily and Weekly have no Look back and no Format | active; supersedes D184 |
 | D216 | Ticked general topics get a length-sized section | active; amends D170, D191 |
-| D217 | A block's count is a proportion; the length is the limit | active; amends D170 |
+| D217 | `run.yml` names every run for what it is | active; amends D61, D213 |
+| D218 | A block's count is a proportion; the length is the limit | active; amends D170 |
 
 ---

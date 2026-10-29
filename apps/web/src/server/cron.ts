@@ -218,7 +218,9 @@ export async function handleCron(
       return { status: 200, body: { dispatched: false, reason: decision.reason } };
     }
 
-    const runId = await github.dispatch({ mode: "scheduled" });
+    // Named for what it makes (D217): the run list and health tell the kinds apart by it.
+    const label = `${decision.runWeekly ? (decision.due ? "daily and weekly" : "weekly") : "daily"} ${decision.date}`;
+    const runId = await github.dispatch({ mode: "scheduled", label });
     deps.log?.(`dispatched run.yml at the ${slot} hour: ${decision.reason}`);
     return { status: 200, body: { dispatched: true, run_id: runId, reason: decision.reason } };
   } catch (error) {

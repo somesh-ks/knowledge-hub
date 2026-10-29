@@ -388,8 +388,9 @@ export async function checkEpisodes(
 
 /**
  * One run of run.yml, as `gh run list --json databaseId,status,conclusion,createdAt,event,displayTitle`
- * lists it (health.yml). run.yml names a briefing run "run", a dry run "dry run" and a delete
- * "delete <id>".
+ * lists it (health.yml). run.yml names a run for what it is (D217): "daily <date>" or "weekly <date>"
+ * from the schedule, "regenerate <id>", "on-demand", "scheduled" (GitHub's fallback), a dry run
+ * "dry run <mode>" and a delete "delete <id>". Runs from before D217 are all named "run".
  */
 export interface WorkflowRun {
   databaseId: number;
@@ -404,7 +405,10 @@ export interface WorkflowRun {
 export const RUN_DIED_WINDOW_MS = 3 * DAY_MS;
 const DIED = new Set(["failure", "timed_out", "startup_failure"]);
 
-const isBriefing = (run: WorkflowRun): boolean => (run.displayTitle ?? "run") === "run";
+const isBriefing = (run: WorkflowRun): boolean => {
+  const title = run.displayTitle ?? "run";
+  return !title.startsWith("delete ") && !title.startsWith("dry run");
+};
 
 /**
  * `run_died`: a briefing run of run.yml that failed or timed out with no run record written after

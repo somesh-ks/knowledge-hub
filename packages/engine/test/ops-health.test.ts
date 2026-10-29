@@ -383,9 +383,18 @@ describe("singularity health", () => {
       passed: [],
     };
     const records = [{ at: "2026-10-20T07:13:00Z" }];
-    const quiet = [run(1, "failure", "dry run"), run(2, "failure", "delete 2026-10-20")];
-    checkRunsDied(records, [...quiet, run(3, "cancelled", "run")], NOW, sink);
-    expect({ faults, warnings }).toEqual({ faults: [], warnings: ["run_cancelled"] });
+    const quiet = [
+      run(1, "failure", "dry run scheduled"),
+      run(2, "failure", "delete 2026-10-20"),
+      run(4, "failure", "dry run"),
+    ];
+    // The names run.yml gives a briefing run since D217 count as one, the old "run" too.
+    for (const name of ["run", "daily 2026-10-21", "weekly 2026-10-18", "regenerate 2026-10-19"]) {
+      faults.length = 0;
+      warnings.length = 0;
+      checkRunsDied(records, [...quiet, run(3, "cancelled", name)], NOW, sink);
+      expect({ faults, warnings }).toEqual({ faults: [], warnings: ["run_cancelled"] });
+    }
   });
 
   // Any run under way silenced the check, so an hourly run in progress hid one that died before it.
