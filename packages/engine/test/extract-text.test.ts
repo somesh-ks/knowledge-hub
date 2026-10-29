@@ -454,4 +454,14 @@ describe("cleanMarkdown", () => {
     );
     expect(text).toBe("Body line.");
   });
+
+  // The bug it prevents: a stray `<` in prose (or an unclosed tag) eating every line after it, or an
+  // unclosed script leaking its body into the story.
+  it("keeps prose around a lone angle bracket and drops an unclosed script's body", () => {
+    expect(cleanMarkdown("If a<b then continue.\n\nNext line.\n\n> quoted")).toBe(
+      "If a<b then continue.\n\nNext line.\n\n> quoted",
+    );
+    expect(cleanMarkdown("Intro.\n\n<script>\nvar a = 1;\nmore.")).toBe("Intro.");
+    expect(cleanMarkdown("Before.<svg />After.")).toBe("Before.After.");
+  });
 });

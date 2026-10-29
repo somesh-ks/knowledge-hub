@@ -66,7 +66,9 @@ const BLOCK_TAGS = ["script", "style", "noscript", "svg"];
 
 /**
  * Tags, comments and script or style blocks a scraper left in the Markdown, in one scan: what is
- * cut is not rescanned, and a `<` that opens a tag with no closing `>` is dropped.
+ * cut is not rescanned. A tag is cut only when its `>` is on the same line, so prose like
+ * `if a<b then` keeps its `<` and the lines after it; an unclosed script or style block takes the
+ * rest of the page, as a browser would read it.
  */
 function dropMarkupOnce(markdown: string): string {
   const lower = markdown.toLowerCase();
@@ -76,26 +78,26 @@ function dropMarkupOnce(markdown: string): string {
     const open = markdown.indexOf("<", at);
     if (open === -1) break;
     out += markdown.slice(at, open);
-    const next = markdown[open + 1] ?? "";
+    at = open + 1;
     if (lower.startsWith("<!--", open)) {
       const end = markdown.indexOf("-->", open + 4);
       at = end === -1 ? markdown.length : end + 3;
-    } else if (
-      /[a-z/]/i.test(next) &&
-      /[a-z]/i.test(markdown[open + (next === "/" ? 2 : 1)] ?? "")
-    ) {
-      const name = /^<\/?([a-z][a-z0-9]*)/i.exec(markdown.slice(open, open + 20))?.[1] ?? "";
-      const closing = next === "/";
-      const blockEnd =
-        !closing && BLOCK_TAGS.includes(name.toLowerCase())
-          ? lower.indexOf(`</${name.toLowerCase()}`, open)
-          : -1;
-      const from = blockEnd === -1 ? open : blockEnd;
-      const end = markdown.indexOf(">", from);
-      at = end === -1 ? markdown.length : end + 1;
-    } else {
+      continue;
+    }
+    const tag = /^<(\/?)([a-z][a-z0-9]*)/i.exec(markdown.slice(open, open + 20));
+    const tagEnd = markdown.indexOf(">", open);
+    const lineEnd = markdown.indexOf("\n", open);
+    if (!tag || tagEnd === -1 || (lineEnd !== -1 && tagEnd > lineEnd)) {
       out += "<";
-      at = open + 1;
+      continue;
+    }
+    const name = (tag[2] ?? "").toLowerCase();
+    if (tag[1] === "" && BLOCK_TAGS.includes(name) && markdown[tagEnd - 1] !== "/") {
+      const close = lower.indexOf(`</${name}`, tagEnd);
+      const closeEnd = close === -1 ? -1 : markdown.indexOf(">", close);
+      at = closeEnd === -1 ? markdown.length : closeEnd + 1;
+    } else {
+      at = tagEnd + 1;
     }
   }
   return out + markdown.slice(at);
