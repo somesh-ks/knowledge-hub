@@ -10,7 +10,7 @@ Visual language, covers and the header light, empty states, interface sounds, st
 - A press never scales words: label controls and worded buttons show a press on their fill. Settings rows and menu options press as a tile off hairlines (`.row-action`), round on the page, concentric in a card (one-row card radius 24px, a third of height). Segmented controls have a sliding thumb that moves immediately with keys.
 - Sideways scrollers (section tabs, Earlier shelf, Costs table) fade hidden edges with `.scroll-fade-inline`; concentric radii for cover frame and search clear; layer stacking: `--z-beneath`, `--z-base`, `--z-raised`, `--z-overlay`.
 - Dropdowns share one chevron gap. Glyphs ending a row land ink at the word end (`--ink-end`, D187).
-- Hero Share action is the secondary icon button, `.icon-btn.icon-btn-tonal.hero-share`: a circle on the select chip's fill, as tall as Play, touch area 44px (D153, D218).
+- Hero Share action is the secondary icon button, `.icon-btn.icon-btn-tonal.hero-share`: a circle on the select chip's fill, as tall as Play, touch area 44px (D153, D219).
 - Latest icon is a bolt (outline, filled when active) (D129, D168). Theme select in Appearance renders blank until stored value loads to avoid theme flashes (D129).
 
 ### Covers and the header light
