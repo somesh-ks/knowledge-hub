@@ -1,0 +1,45 @@
+name: ingest
+
+# Shadow ingest (D233): three times a day `singularity ingest` reads the free sources, extracts each
+# story the store does not hold and saves its text in Vercel Blob and Neon. It runs beside the daily
+# fetch and changes nothing a briefing reads, so a failure here costs no briefing; it commits nothing.
+# The owner's current sources come from the config store, as for a podcast (D149).
+
+on:
+  schedule:
+    - cron: "23 1,9,17 * * *"
+  workflow_dispatch:
+
+# One ingest at a time; a queued one covers the stories the one before it left.
+concurrency:
+  group: ingest
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          # The config store copy compares the files with their history (configBase); a shallow clone has none.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
+
+      - name: Ingest
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE || vars.DISPATCH_CONFIG_STORE }}
+        run: npm run --silent singularity -- ingest

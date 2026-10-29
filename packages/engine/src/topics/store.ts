@@ -56,6 +56,7 @@ export function serializeTopics(file: TopicsFile): string {
       id: t.id,
       name: t.name,
       description: t.description,
+      ...(t.rubric ? { rubric: t.rubric } : {}),
       enabled: t.enabled,
       keywords: t.keywords,
       section_id: t.section_id,

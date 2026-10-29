@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-29 | [Authority list](2026-10-29-authority-list.md) | Vetted publishers' announcements pass the bar, Exa restricted to their domains, shadow log and replay; shipped off (D234) |
 | 2026-10-29 | [Short dailies: Step 0](2026-10-29-short-dailies-step-zero.md) | Why the daily aired 3.8 of 5 minutes and the five fixes (D216 to D225); the exit check is two real dailies within 10% |
 | 2026-10-28 | [A list of generations, with Cancel](2026-10-28-generations-list.md) | An icon and popover on desktop and a sheet on a phone listing every generation under way with cover, bar, time left and Cancel; `/api/generations`, `/api/cancel`, a cancelled run ending as Cancelled (D208) |
 | 2026-10-28 | [The Health page](2026-10-28-health-page.md) | Settings, Analytics, Health: briefings, run times, field speed, errors, workflow runs and services read live, judged by the daily check's lines (D203) |

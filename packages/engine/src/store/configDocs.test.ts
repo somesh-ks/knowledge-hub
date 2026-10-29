@@ -74,6 +74,14 @@ describe("readsConfigAtStart", () => {
   });
 });
 
+describe("readsConfigAtStart for ingest", () => {
+  // The bug it prevents: ingest reading the committed sources, which lack every source the owner
+  // added from the app since the last run.
+  it("copies the store before ingest reads the sources", () => {
+    expect(readsConfigAtStart("ingest", [])).toBe(true);
+  });
+});
+
 /** A config_documents table in memory that answers the statements seed sends. */
 function memoryTable(rows: { path: string; content: string; version: number }[]): SqlClient {
   return {

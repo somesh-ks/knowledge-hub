@@ -1,5 +1,6 @@
 import type { Item } from "@singularity/core";
 import { z } from "zod";
+import { cleanMarkdown } from "../extract/cleanMarkdown.js";
 import { type HttpClient, HttpError } from "../http.js";
 import { buildItems, type RawItem } from "../normalize/buildItem.js";
 import { fetchAlexandriaAnthropic, VIA_ALEXANDRIA_ANTHROPIC } from "./alexandriaSource.js";
@@ -177,10 +178,9 @@ export const fetchFirecrawl: SourceFetcher = async (source, window, deps): Promi
   if (dated.length + headings.length + undated.length > 0) return items;
   if (page.markdown.trim() === "") throw new Error(FIRECRAWL_NO_ITEMS);
 
-  const whole: RawItem = {
-    url: pageUrl,
-    title: page.title ?? source.name,
-    summary: page.markdown.replace(/[#*_`>[\]()]/g, " "),
-  };
+  const summary = cleanMarkdown(page.markdown);
+  // A page of nothing but furniture cleans to nothing: a broken source, not an empty story.
+  if (summary === "") throw new Error(FIRECRAWL_NO_ITEMS);
+  const whole: RawItem = { url: pageUrl, title: page.title ?? source.name, summary };
   return buildItems([whole], { source, window, fetchedAt, undated: "keep" });
 };

@@ -381,6 +381,7 @@
   --field-radius: var(--radius-round);
   --field-radius-multiline: var(--radius-xl);
   --field-max-height-multiline: 20rem;
+  --field-label-gap: 0.75rem;
   --field-padding: var(--space-4);
   --field-chevron-gap: var(--space-4);
   --field-border: var(--color-border-control);
