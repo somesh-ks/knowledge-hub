@@ -1,4 +1,5 @@
 ---
+import type { AlbumOption } from "../lib/catchUps";
 import type { AudioMode } from "../lib/digests";
 import { AUDIO_UNAVAILABLE_COPY } from "../lib/digestView";
 import type { HeroShare } from "../lib/share";
@@ -14,14 +15,34 @@ interface Props {
   /** What the chip plays, in its accessible name. */
   noun?: ChipNoun;
   share?: HeroShare;
+  /** The day's Catch ups, earliest first, when it has two or more (D216): a select before Play. */
+  album?: readonly AlbumOption[];
 }
 
-const { digestId, mode, length, noun = "podcast", share } = Astro.props;
+const { digestId, mode, length, noun = "podcast", share, album } = Astro.props;
 const chip = idleBriefingChip(length, noun);
 const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
 ---
 
-<div class="hero-actions">
+<div class="hero-actions scroll-fade-inline">
+  {/* A day's other Catch up (D216): the same select chip as the Library's sort. Choosing one opens
+       its page (scripts/catchUpAlbum.ts). Every name stays in the select, so its width is the
+       longest name's whichever is shown, and Play beside it never moves. */}
+  {
+    album && album.length > 1 && (
+      <label class="sort-field hero-album">
+        <span class="sr-only">Catch up</span>
+        <select data-album-pick data-current={digestId}>
+          {album.map((option) => (
+            <option value={option.id} data-at={option.at} selected={option.id === digestId}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <Icon name="chevronDown" />
+      </label>
+    )
+  }
   {/* The page's main action: the hero's chip is filled (hero.css). The player owns it once it
        hydrates (readerSync writes its state, label and name). Without audio the chip still works:
        pressing it makes the audio first (narration on Play). Only audio that has expired gets a
@@ -37,21 +58,22 @@ const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
     data-noun={noun}
     data-minutes={Number.parseInt(length, 10)}
   />
-  {/* Share, the page's second action (D153), tonal beside the filled Play (.hero-share in hero.css).
+  {/* Share, the page's second action (D153), an icon button after the filled Play (.hero-share in hero.css).
        scripts/briefingPage.ts handles the press; the link is asked for once the page is idle
        (data-share-early, scripts/shareLink.ts), so the share sheet opens inside the first tap. */}
   {
     share && (
       <button
-        class="btn-secondary hero-share"
+        class="icon-btn press hero-share"
         type="button"
+        aria-label="Share"
         data-share={share.path}
         data-share-item={share.item}
         data-share-early={share.item ? "" : undefined}
         data-share-kind={share.kind}
         data-share-of={share.of}
       >
-        <Icon name="shareArrow" />Share
+        <Icon name="shareArrow" />
       </button>
     )
   }

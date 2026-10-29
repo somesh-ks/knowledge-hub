@@ -4,6 +4,7 @@ import DigestView from "../components/DigestView.astro";
 import EmptyState from "../components/EmptyState.astro";
 import EpisodeView from "../components/EpisodeView.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { catchUpAlbum } from "../lib/catchUps";
 import { hasSectionTabs, listenLength } from "../lib/digestView";
 import { episodeSections } from "../lib/episodeHighlights";
 import { episodeLength, storyLookups } from "../lib/episodes";
@@ -58,7 +59,7 @@ const earlier = site.entries.slice(1, 4);
       tabs={episodeTabs}
       skipLabel="Skip to the episode"
     >
-      <EpisodeView entry={episode} {...lookups} />
+      <EpisodeView entry={episode} {...lookups} album={catchUpAlbum(site.episodes, episode.id)} />
     </BaseLayout>
   ) : (
 <BaseLayout

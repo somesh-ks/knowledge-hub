@@ -1,0 +1,10 @@
+---
+import Icon from "./Icon.astro";
+---
+
+{/* The mark a downloaded page adds to the hero's facts line, as the Library's card does with its own
+     (LibraryItemMenu.astro): scripts/libraryMenu.ts copies it in once the page is saved offline and
+     takes it out again, so an undownloaded page has nothing here. The template is no fact itself. */}
+<template data-downloaded-mark>
+  <span class="hero-downloaded"><Icon name="checkCircle" />Downloaded</span>
+</template>
