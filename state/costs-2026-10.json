@@ -1253,6 +1253,86 @@
         "output_tokens": 6100
       },
       "usd": 0.129681
+    },
+    {
+      "id": "ep-20261030-0025|on_demand|narration|speechify|simba-3.2|owner|674fecb9-ae6b-4f2a-9195-9a3a83eb3851",
+      "at": "2026-10-29T23:27:25.569Z",
+      "run_id": "ep-20261030-0025",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 234
+      },
+      "usd": 0.00234
+    },
+    {
+      "id": "ep-20261030-0025|on_demand|narration|speechify|simba-3.2|owner|5686aa7c-9637-47ac-93a6-36a3b36fa4fa",
+      "at": "2026-10-29T23:27:27.623Z",
+      "run_id": "ep-20261030-0025",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 523
+      },
+      "usd": 0.00523
+    },
+    {
+      "id": "ep-20261030-0025|on_demand|narration|speechify|simba-3.2|owner|aa444094-0eb3-4d19-97ed-4f6b26adb5c1",
+      "at": "2026-10-29T23:27:29.567Z",
+      "run_id": "ep-20261030-0025",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 489
+      },
+      "usd": 0.00489
+    },
+    {
+      "id": "ep-20261030-0025|on_demand|narration|speechify|simba-3.2|owner|74babcae-6c1b-46e0-ac6e-704d9262f0e5",
+      "at": "2026-10-29T23:27:31.293Z",
+      "run_id": "ep-20261030-0025",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 397
+      },
+      "usd": 0.00397
+    },
+    {
+      "id": "ep-20261030-0025|on_demand|narration|speechify|simba-3.2|owner|9487d73a-cc80-4e53-8c3a-dc6cf3074fc3",
+      "at": "2026-10-29T23:27:32.397Z",
+      "run_id": "ep-20261030-0025",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 51
+      },
+      "usd": 0.00051
     }
   ]
 }
