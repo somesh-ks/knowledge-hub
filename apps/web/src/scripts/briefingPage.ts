@@ -323,8 +323,17 @@ function wirePageMenu(): void {
   const install = (): Promise<void> =>
     import("./libraryMenu").then((module) => module.installLibraryMenu());
   warmWhenIdle(install);
-  for (const type of ["pointerdown", "focusin"])
-    menu.addEventListener(type, () => void install().catch(() => undefined), { once: true });
+  // A failed load (offline, chunk not cached) leaves the listeners armed, so the next touch tries again.
+  const types = ["pointerdown", "focusin"];
+  const touch = (): void => {
+    void install().then(
+      () => {
+        for (const type of types) menu.removeEventListener(type, touch);
+      },
+      () => undefined,
+    );
+  };
+  for (const type of types) menu.addEventListener(type, touch);
 }
 
 document.addEventListener("astro:page-load", watchPage);
