@@ -65,6 +65,7 @@ const lines = {
 
 // The queue's own words. {n} is a number, {title} a row's name, {pct} a percent.
 const words = {
+  "data-word-title": "Podcast queue",
   "data-word-waiting": "Waiting to start",
   "data-word-left": "{n} min left",
   "data-word-slow": "Taking longer than usual",
@@ -72,27 +73,18 @@ const words = {
   "data-word-weekly": "Weekly podcast",
   "data-word-podcast": "Podcast",
   "data-word-catch-up": "Catch up",
-  // The head's word while something is being made: one pool for each kind of stage
-  // (lib/queueStage.ts), walked in order every few seconds, `|` between the words.
-  "data-word-pool-wait": "Warming up|Lining up|Stretching",
-  "data-word-pool-gather": "Gathering|Rounding up|Skimming|Foraging",
-  "data-word-pool-choose": "Choosing|Weighing|Sifting|Curating",
-  "data-word-pool-write": "Scribbling|Writing|Drafting|Composing",
-  "data-word-pool-art": "Sketching|Painting|Doodling",
-  "data-word-pool-check": "Fact-checking|Double-checking|Verifying",
-  "data-word-pool-publish": "Polishing|Wrapping up|Tidying",
-  "data-word-pool-voices": "Recording|Musifying|Rehearsing|Humming",
-  "data-word-pool-finish": "Polishing|Shipping|Almost there",
-  "data-word-head-failed": "Couldn't make the podcast",
-  "data-word-head-complete": "Complete",
-  "data-word-head-ended": "Podcast queue",
-  "data-word-nav-failed": "Couldn't finish",
+  "data-word-regeneration": "(Regeneration)",
   "data-word-expand": "Show the podcast queue",
   "data-word-collapse": "Hide the podcast queue",
   "data-word-progress-label": "{title}, {pct} percent",
   "data-word-cancel-label": "Cancel {title}",
   "data-word-listen-label": "Start listening to {title}",
-  "data-word-clear": "Clear queue",
+  // Details of a failed run (scripts/queueDetails.ts).
+  "data-word-details-title": "What went wrong",
+  "data-word-details-copy": "Copy details",
+  "data-word-details-copied": "Copied",
+  "data-word-details-log": "Open the log",
+  "data-word-details-close": "Close",
 };
 
 // The icons the queue draws, one for each kind of stage and for how a row ended. Rendered here, once,
@@ -111,14 +103,13 @@ const icons: Record<string, IconName> = {
   failed: "alert",
   started: "info",
   cancelled: "close",
-  refresh: "refresh",
 };
 ---
 
 {/* The podcast queue (D222): what is being made, as a browser lists its downloads, and what was made
      today. Below 64rem a dock sits directly above the bottom bar, never a modal: one row when folded
-     (a ring, a word that changes with the stage, the percent), the rows when opened, and the bar and
-     the app bar stay usable either way. From 64rem a row at the foot of the side column (AppNav.astro)
+     (a small ring, "Podcast queue", the percent), the rows when opened, and the bar and the app bar
+     stay usable either way. From 64rem a row at the foot of the side column (AppNav.astro)
      opens the same rows in a popover. One markup holds the words, the icons, the status region and
      both surfaces; scripts/queue.ts fills them. Persisted across navigations, so what the script put
      in it is still there on the next page. */}
@@ -127,17 +118,14 @@ const icons: Record<string, IconName> = {
 
   <section class="queue-dock" data-queue-dock aria-label="Podcast queue" hidden>
     <button class="queue-fold" type="button" data-queue-toggle aria-expanded="false">
-      <QueueRing class="queue-ring-fold" data-queue-fold-ring>
-        <span class="queue-stage-icon" data-queue-stage-icon="fold"></span>
+      <QueueRing class="queue-ring-head" data-queue-fold-ring>
+        <span class="queue-stage-icon" data-queue-head-icon="fold"></span>
       </QueueRing>
       <span class="queue-fold-text queue-word" data-queue-title></span>
       <span class="queue-fold-percent" data-queue-percent></span>
       <Icon name="chevronDown" class="queue-chevron icon-lg" />
     </button>
     <div class="queue-body" data-queue-body>
-      <div class="queue-head">
-        <button class="btn queue-clear" type="button" data-queue-clear hidden>Clear queue</button>
-      </div>
       <ul class="queue-list" role="list" data-queue-list></ul>
     </div>
   </section>
@@ -153,9 +141,8 @@ const icons: Record<string, IconName> = {
     data-picker
     data-queue-pop
   >
-    <div class="queue-head queue-pop-head">
-      <h2 class="queue-pop-title" id="queue-pop-title">Podcast queue</h2>
-      <button class="btn queue-clear" type="button" data-queue-clear hidden>Clear queue</button>
+    <div class="queue-pop-head">
+      <h2 class="queue-pop-title" id="queue-pop-title">{words["data-word-title"]}</h2>
     </div>
     <div class="queue-body">
       <ul class="queue-list" role="list" data-queue-list></ul>
@@ -187,21 +174,24 @@ const icons: Record<string, IconName> = {
         <span class="queue-end-icon" data-queue-end-icon hidden></span>
       </div>
       <div class="queue-main">
-        <p class="queue-name" data-queue-name></p>
-        <p class="queue-status">
-          <span class="queue-status-icon queue-stage-icon" data-queue-status-icon></span>
-          <span class="queue-status-text" data-queue-status></span>
+        <p class="queue-name">
+          <span class="queue-name-text" data-queue-name></span>
+          <span class="queue-name-note" data-queue-note></span>
         </p>
+        {/* One line: the time left while it goes; the time it ended and how, once it has. */}
+        <p class="queue-status" data-queue-status></p>
+        {/* The stage in words, for a screen reader: the sighted see it as the icon at the end of the row. */}
+        <span class="sr-only" data-queue-stage></span>
         <div class="queue-actions">
           <button class="btn queue-cancel" type="button" data-queue-cancel>Cancel</button>
           <button class="btn-primary queue-listen" type="button" data-queue-listen hidden>Listen now</button>
           <button class="btn queue-retry" type="button" data-queue-retry hidden>Try again</button>
           <button class="btn queue-check" type="button" data-queue-check hidden>Check again</button>
-          <a class="text-link queue-details" href="#" target="_blank" rel="noopener noreferrer" data-queue-details hidden>Details</a>
+          <button class="btn queue-details" type="button" data-queue-details hidden>Details</button>
         </div>
       </div>
-      {/* The time left while it goes, the time it ended once it has. */}
-      <span class="queue-eta" data-queue-eta></span>
+      {/* The stage, as an icon that morphs from one stage to the next. */}
+      <span class="queue-stage-icon queue-row-stage" data-queue-row-icon aria-hidden="true"></span>
     </li>
   </template>
 </div>

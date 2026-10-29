@@ -1,6 +1,6 @@
 /**
  * The day's queue: the runs that ended (a podcast made, a failure, a stop) stay in the podcast queue
- * until the person clears it or the day changes. Kept in this browser, in localStorage, because a run
+ * until the day changes. Kept in this browser, in localStorage, because a run
  * is followed by the browser that started it. Pure over a storage, so scripts/runStatus.ts (which
  * writes it when a run ends) and scripts/queue.ts (which draws it) share one shape.
  */
@@ -81,14 +81,5 @@ export function forget(store: Store, id: number, now = Date.now()): void {
       store,
       entries.filter((entry) => entry.run.id !== id),
     );
-  }
-}
-
-/** Clear queue. */
-export function clearDay(store: Store): void {
-  try {
-    store.removeItem(DAY_KEY);
-  } catch {
-    // Nothing to clear when storage is blocked.
   }
 }

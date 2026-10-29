@@ -51,8 +51,8 @@ test("Regenerate while a podcast plays: the queue's dock stands clear above the 
   expect(strip.y + strip.height).toBeLessThanOrEqual(bar.y + 1);
   await page.clock.runFor(4_100);
   await page.clock.runFor(4_100);
-  // Finished, the run stays in the queue: the folded row says so and its row opens the new podcast.
-  await expect(card.locator("[data-queue-title]")).toHaveText("Complete");
+  // Finished, the run stays in the queue: the folded row shows a check and its row opens the new podcast.
+  await expect(card.locator('[data-queue-fold-ring][data-ended="done"]')).toBeVisible();
   await player.finger.press(card.locator("[data-queue-toggle]"));
   const listen = card.getByRole("link", { name: /^Start listening/ });
   await expect(listen).toBeVisible();

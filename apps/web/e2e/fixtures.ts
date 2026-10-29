@@ -93,16 +93,19 @@ export const test = base.extend<Options & { problems: Problems }>({
 
 export { expect };
 
-/** The podcast queue's dock on a phone: shown while a run is going and for the day after one ended, until Clear queue. */
+/** The podcast queue's dock on a phone: shown while a run is going and for the day after one ended. */
 export const queueDock = (page: Page): Locator => page.locator("[data-queue-dock]");
 
-/** What the queue's newest row says, whether the dock is folded or open. */
+/**
+ * The stage the queue's newest row is in (or how it ended), in words. Sighted people see it as the
+ * icon at the row's end; a screen reader hears this, whether the dock is folded or open.
+ */
 export const queueStatus = (page: Page): Locator =>
-  page.locator("[data-queue-dock] [data-queue-status]").first();
+  page.locator("[data-queue-dock] [data-queue-stage]").first();
 
-/** The dock's folded word: the stage while a run goes, "Complete" once every run of the day is over. */
-export const queueTitle = (page: Page): Locator =>
-  page.locator("[data-queue-dock] [data-queue-title]");
+/** The dock's head once every run of the day is over and made: its ring has become a check. */
+export const queueComplete = (page: Page): Locator =>
+  page.locator('[data-queue-dock] [data-queue-fold-ring][data-ended="done"]');
 
 /** Opens the dock if it is folded, and gives its Start listening link: a finished run stays in the queue with it. */
 export async function startListening(page: Page): Promise<Locator> {

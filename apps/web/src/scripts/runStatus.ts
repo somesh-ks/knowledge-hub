@@ -11,11 +11,11 @@
  *
  * A run keeps the request that started it, so a failed one offers Try again: the same request goes
  * out again and the new run is followed. A run that ended is kept for the day in the podcast queue
- * (lib/queueDay.ts) until it is cleared; the sheets island plays the cue for a podcast.
+ * (lib/queueDay.ts) until the day changes; the sheets island plays the cue for a podcast.
  */
 
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
-import { clearDay, forget, remember } from "../lib/queueDay";
+import { forget, remember } from "../lib/queueDay";
 import { GENERATION_STARTED_EVENT, RUN_EVENT, RUN_STORAGE_KEY } from "../lib/runRecord";
 import { briefingFailureLine, failureLine } from "../lib/runStages";
 
@@ -185,24 +185,8 @@ function clearTitle(): void {
 // Looking at the tab again takes the badge off its title.
 if (typeof document !== "undefined") document.addEventListener("visibilitychange", clearTitle);
 
-/** Clear queue: the day's ended runs go, and so does the run on record when it ended. Focus is given a home. */
-export function clearQueue(): void {
-  try {
-    clearDay(localStorage);
-  } catch {
-    // Without storage there is no day to clear.
-  }
-  const run = read();
-  if (run && FINISHED.includes(run.phase)) {
-    following = 0;
-    write(null);
-  }
-  show(null);
-  focusCreate();
-}
-
 /**
- * The button that was pressed is gone with the card: focus goes to the Create button in view, or,
+ * The button that was pressed is gone with its card: focus goes to the Create button in view, or,
  * on a page that shows none, to the page's main region, so it never drops to the body.
  */
 export function focusCreate(): void {

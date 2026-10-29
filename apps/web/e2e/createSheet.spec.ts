@@ -3,8 +3,8 @@ import {
   expect,
   expectNoViolationsInEitherScheme,
   hydrated,
+  queueComplete,
   queueDock,
-  queueTitle,
   test,
 } from "./fixtures";
 
@@ -167,7 +167,7 @@ test.describe("Create as the primary action", () => {
     await page.reload();
     await expect(queueDock(page)).toBeVisible();
     // Finished, it stays in the queue for the day, and the folded row says so.
-    await expect(queueTitle(page)).toHaveText("Complete", { timeout: 15_000 });
+    await expect(queueComplete(page)).toBeVisible({ timeout: 15_000 });
     await expect(queueDock(page)).toBeVisible();
   });
 

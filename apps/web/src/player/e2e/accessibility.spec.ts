@@ -100,8 +100,14 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
     await page.clock.runFor(4_100);
     // The step that failed is named, with a way to the run and a way to try again.
     await expect(card.locator("[data-queue-status]").first()).toContainText("couldn't be written");
-    await expect(card.getByRole("link", { name: "Details" })).toHaveAttribute("href", /runs\/79/);
     await expectAccessible(page, "the queue failed");
+    await player.finger.press(card.getByRole("button", { name: "Details" }));
+    await expect(page.getByRole("link", { name: "Open the log" })).toHaveAttribute(
+      "href",
+      /runs\/79/,
+    );
+    await expectAccessible(page, "the queue's details");
+    await player.finger.press(page.getByRole("button", { name: "Close" }).last());
     await expect(card.getByRole("button", { name: "Try again" })).toBeVisible();
   });
 });

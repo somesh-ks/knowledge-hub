@@ -2,7 +2,7 @@ import type { GenerationRow } from "../types/contracts";
 import { BRIEFING_STAGES, EPISODE_STAGES, NAMED_EPISODE_STAGES } from "./runStages";
 
 /**
- * What a run is doing, in the few kinds the queue has a word and an icon for (Queue.astro holds both).
+ * What a run is doing, in the few kinds the queue has an icon for (Queue.astro holds them).
  * The stage lists differ by run (a briefing's seven, an episode's six named or three plain), so the
  * kind is read from the position in the list the run reports, never from its label. Pure, so the
  * queue's script carries only the DOM.
@@ -46,9 +46,4 @@ export function stageKind(
           ? PLAIN
           : null;
   return list?.[row.stage] ?? "write";
-}
-
-/** The word to show at `tick`: the pool is walked in order, one step each time the queue's clock ticks. */
-export function pickWord(pool: readonly string[], tick: number): string {
-  return pool.length ? (pool[tick % pool.length] ?? "") : "";
 }

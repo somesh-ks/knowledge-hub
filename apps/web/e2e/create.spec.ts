@@ -5,9 +5,9 @@ import { BUILT_FILES, routeConfigStore } from "./configServer";
 import {
   expect,
   expectNoViolationsInEitherScheme,
+  queueComplete,
   queueDock,
   queueStatus,
-  queueTitle,
   seedStorage,
   startListening,
   test,
@@ -279,7 +279,7 @@ test.describe("the Create page", () => {
     await expect(text).toHaveText("Writing your episode");
     await page.clock.runFor(4000);
     // Finished, it stays in the queue for the day, and the folded row says so.
-    await expect(queueTitle(page)).toHaveText("Complete");
+    await expect(queueComplete(page)).toBeVisible();
     await expect(queueDock(page)).toBeVisible();
     expect(asked).toEqual(["4242", "4242", "4242"]);
   });
@@ -344,7 +344,7 @@ test.describe("the Create page", () => {
     live = true;
     await expect(async () => {
       await page.clock.runFor(10_000);
-      await expect(queueTitle(page)).toHaveText("Complete", { timeout: 500 });
+      await expect(queueComplete(page)).toBeVisible({ timeout: 500 });
     }).toPass();
     // The new episode is offered in its row, which is not the page on screen.
     await expect(await startListening(page)).toBeVisible();
@@ -448,10 +448,8 @@ test.describe("the Create page", () => {
     await expect(page.locator("[data-create-open]").first()).toHaveAccessibleDescription(busy);
   });
 
-  // The 2026-10-29 owner ask: a finished run stays for the day, with Start listening, until Clear queue.
-  test("a finished episode stays in the queue with Start listening, and Clear queue gives the room back", async ({
-    page,
-  }) => {
+  // The 2026-10-29 owner ask: a finished run stays for the day, with Start listening.
+  test("a finished episode stays in the queue with Start listening", async ({ page }) => {
     await page.clock.install();
     await mockPodcast(page, 202, { status: 202, run_id: 25, started_at: "x" });
     await page.route("**/api/status?**", (route) =>
@@ -484,7 +482,7 @@ test.describe("the Create page", () => {
     await page.clock.runFor(4000);
     await expect(async () => {
       await page.clock.runFor(3000);
-      await expect(queueTitle(page)).toHaveText("Complete", { timeout: 500 });
+      await expect(queueComplete(page)).toBeVisible({ timeout: 500 });
     }).toPass();
     // The run is over but its row stays, and so does the room for the dock.
     await expect(queueDock(page)).toBeVisible();
@@ -495,11 +493,8 @@ test.describe("the Create page", () => {
     await expect
       .poll(() => page.evaluate(() => localStorage.getItem("singularity:run")))
       .toBeNull();
-    await expect(queueTitle(page)).toHaveText("Complete");
-    await page.locator("[data-queue-toggle]").click();
-    await page.getByRole("button", { name: "Clear queue" }).click();
-    await expect(queueDock(page)).toBeHidden();
-    await expect(page.locator("html")).not.toHaveAttribute("data-run", /.*/);
+    await expect(queueComplete(page)).toBeVisible();
+    await expect(queueDock(page)).toBeVisible();
   });
 
   test("a finished run whose episode is on screen is forgotten as the record, and its row stays for the day", async ({
@@ -512,9 +507,9 @@ test.describe("the Create page", () => {
     });
     await page.goto("/library");
     // A run that ended earlier today is in the day's queue, and is not announced again.
-    await expect(queueTitle(page)).toHaveText("Complete");
+    await expect(queueComplete(page)).toBeVisible();
     await page.goto(EPISODE);
-    await expect(queueTitle(page)).toHaveText("Complete");
+    await expect(queueComplete(page)).toBeVisible();
     expect(await page.evaluate(() => localStorage.getItem("singularity:run"))).toBeNull();
     expect(await page.evaluate(() => sessionStorage.getItem("singularity:run"))).toBeNull();
   });

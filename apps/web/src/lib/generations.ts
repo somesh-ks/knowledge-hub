@@ -53,6 +53,8 @@ export interface GenerationView {
   eta: string;
   /** The stage; "Taking longer than usual" leads it past one and a half times the usual; waiting while queued. */
   status: string;
+  /** The stage has run past one and a half times the usual. */
+  slow: boolean;
   /** The whole number in the queue's ring: 0 while queued, else 1 to 99 (lib/queuePercent.ts). */
   percent: number;
   /** A plain hex colour for the thumbnail's ground, or null. */
@@ -111,6 +113,7 @@ export function describeGeneration(row: GenerationRow, context: GenerationContex
     running,
     eta,
     status,
+    slow,
     percent: queuePercent({
       stage: row.stage,
       stages: row.stages,

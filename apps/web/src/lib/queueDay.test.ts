@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clearDay, forget, readDay, remember } from "./queueDay";
+import { forget, readDay, remember } from "./queueDay";
 
 const store = () => {
   const data = new Map<string, string>();
@@ -25,13 +25,11 @@ describe("the day's queue", () => {
     expect(readDay(s, nextMorning)).toEqual([]);
   });
 
-  it("forgets one run for Check again and Try again, and all of them for Clear queue", () => {
+  it("forgets one run for Check again and Try again", () => {
     const s = store();
     remember(s, { id: 1 }, noon, noon);
     remember(s, { id: 2 }, noon - 1, noon);
     forget(s, 1, noon);
     expect(readDay(s, noon).map((entry) => entry.run.id)).toEqual([2]);
-    clearDay(s);
-    expect(readDay(s, noon)).toEqual([]);
   });
 });

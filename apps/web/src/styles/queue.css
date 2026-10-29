@@ -2,21 +2,20 @@
  * The podcast queue (components/Queue.astro, scripts/queue.ts): what is being made, and what was made
  * today, as a browser lists its downloads. Below 64rem a dock sits directly above the bottom bar,
  * never a modal or a sheet: no scrim, nothing inert, the bar and the app bar stay usable. Folded it is
- * one row (a ring, a word that changes with the stage, the percent); opened it lists the rows. From
- * 64rem a row at the foot of the side column (shell.css, .app-nav-queue) opens the same rows in a
- * popover beside the column.
+ * one row (a small ring, "Podcast queue", the percent); opened it lists the rows. From 64rem a row at
+ * the foot of the side column (shell.css, .app-nav-queue) opens the same rows in a popover beside it.
  *
  * Usage: a row is .queue-row: .queue-lead (the .queue-ring with its percent while the run goes;
  * .queue-play, a link to the podcast, once it is made; .queue-end-icon for how any other run ended),
- * .queue-main (.queue-name, .queue-status with its icon, .queue-actions with the shared .btn buttons)
- * and .queue-eta (the time left; the time it ended once it has). Nothing in a row moves when the
- * stage, the time left or the percent changes: the eta has a width of its own, the percent is
- * tabular, the status icon has a box of its own, and the actions line is always there.
+ * .queue-main (.queue-name with its "(Regeneration)" note, .queue-status, one line: the time left, or
+ * when and how it ended; .queue-actions with the shared .btn buttons) and .queue-row-stage, the stage as
+ * an icon centred on the lead's line at the row's end. Nothing in a row moves when the stage, the time
+ * left or the percent changes: the percent is tabular, the stage icon has a box of its own, and the
+ * actions line is always there.
  *
- * The word in the folded row and in the side column is the only thing that shimmers (.queue-word):
- * the text, never a background. Stage icons morph by cross-fading and turning (.queue-stage-icon);
- * the regeneration's refresh icon turns once each time the queue opens. Both hold still under
- * reduced motion.
+ * The title in the folded row and in the side column shimmers while a run goes (.queue-word): the
+ * text, never a background. Stage icons morph by cross-fading and turning (.queue-stage-icon). Both
+ * hold still under reduced motion.
  *
  * Contract with the shell (shell.css): the dock rests on --bottom-nav-height and --dock-room, and
  * scripts/queue.ts publishes its height as --run-room so the floating button, the toasts and the
@@ -114,22 +113,14 @@ html[data-player="open"] .queue-dock {
   overscroll-behavior: contain;
 }
 
-/* ------------------------------------------------------------------ the head: Clear queue */
-
-/* Clear queue sits at the top right of the panel once every run has ended. The line is only there
-   while the button is, so a dock with runs under way is not taller for it. */
-.queue-head {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-4), var(--safe-right));
+/* Opened, the dock's list starts a little below the head, so the first row is not tight against it; and
+   while runs go the ring gives way to the percent alone (a finished or failed run keeps its check or
+   alert). */
+.queue-dock .queue-list {
+  padding-block-start: var(--space-2);
 }
 
-.queue-head:not(.queue-pop-head):has(.queue-clear[hidden]) {
-  display: none;
-}
-
-.queue-clear[hidden] {
+.queue-dock[data-expanded] .queue-ring-head:not([data-ended]) {
   display: none;
 }
 
@@ -137,7 +128,7 @@ html[data-player="open"] .queue-dock {
 
 .queue {
   /* A row: the name, the status, the actions line, and the row's padding. Sizes the dock's scroll. */
-  --queue-row-height: 8.5rem;
+  --queue-row-height: 7.5rem;
   /* How long the icon takes to breathe once and the word's light to cross it. */
   --queue-breath: 2400ms;
   --queue-sheen: 2400ms;
@@ -154,14 +145,14 @@ html[data-player="open"] .queue-dock {
   display: none;
 }
 
-/* The ring (or Start listening) on the left, the name and the status beside it, the time at the far
-   end. The actions hang under the status. */
+/* The ring (or Start listening) on the left, the name and the status beside it, the stage's icon at
+   the end. The actions hang under the status. 16px above and below each row. */
 .queue-row {
   display: grid;
-  grid-template-columns: var(--size-touch) minmax(0, 1fr) auto;
+  grid-template-columns: var(--size-touch) minmax(0, 1fr) var(--size-icon-lg);
   align-items: start;
   column-gap: var(--space-4);
-  padding-block: var(--space-2);
+  padding-block: var(--space-4);
   padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-4), var(--safe-right));
 }
 
@@ -177,72 +168,66 @@ html[data-player="open"] .queue-dock {
   min-width: 0;
 }
 
-/* The name and the status sit on the 44px lead's centre line: the name's line is the lead's top half. */
+/* The name and the status sit on the 44px lead's centre line: the name's line is the lead's top half.
+   The note ("(Regeneration)") goes under the name when the two do not fit one line. */
 .queue-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-2);
   margin: 0;
   min-width: 0;
-  overflow: hidden;
   font-size: var(--font-size-body);
   line-height: var(--font-leading-label);
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.queue-status {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin: 0;
+.queue-name-text {
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.queue-name-note {
+  flex: none;
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
 }
 
-.queue-status-text {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* The status icon has a box of 16px whether or not it holds one, so the words never shift when the
-   icon arrives or morphs. */
-.queue-status-icon {
-  flex: none;
-  width: var(--space-4);
-  height: var(--space-4);
-}
-
-.queue-status-icon .icon {
-  width: var(--space-4);
-  height: var(--space-4);
-}
-
-.queue-status-icon:empty {
+.queue-name-note:empty {
   display: none;
 }
 
-/* A failed run's sentence is the point of the row: it wraps and is the danger colour. */
-.queue-row[data-state="failed"] .queue-status {
-  align-items: start;
-  color: var(--color-danger);
-}
-
-.queue-row[data-state="failed"] .queue-status-text {
-  overflow: visible;
-  white-space: normal;
-}
-
-/* The time sits at the far end in a width of its own, so the name is never re-cut as the minutes
-   tick down. */
-.queue-eta {
-  min-width: 5rem;
+/* One line, always: a long sentence is cut, and Details has the whole of it. */
+.queue-status {
+  margin: 0;
+  min-height: calc(1em * var(--font-leading-label));
+  min-width: 0;
+  overflow: hidden;
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   font-variant-numeric: tabular-nums;
   line-height: var(--font-leading-label);
-  text-align: end;
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.queue-row[data-state="failed"] .queue-status {
+  color: var(--color-danger);
+}
+
+/* The stage, centred on the lead's line at the end of the row, in a box of its own so the words
+   never shift when it arrives or morphs. */
+.queue-row-stage {
+  align-self: start;
+  width: var(--size-icon-lg);
+  height: var(--size-touch);
+  color: var(--color-on-surface-muted);
+}
+
+.queue-row-stage .icon {
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
 }
 
 /* The actions line is always there, so Cancel leaving (the voices stage) or Listen now arriving
@@ -256,7 +241,7 @@ html[data-player="open"] .queue-dock {
 }
 
 /* A text button's label lines up with the words above it; its padding stays as the touch target. */
-.queue-actions :is(.queue-cancel, .queue-retry, .queue-check) {
+.queue-actions :is(.queue-cancel, .queue-retry, .queue-check, .queue-details) {
   margin-inline-start: calc(var(--space-4) * -1);
 }
 
@@ -270,17 +255,11 @@ html[data-player="open"] .queue-dock {
   display: none;
 }
 
-.queue-details {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--size-touch);
-}
-
 /* ------------------------------------------------------------------ the lead: ring, play, end icon */
 
 /* A drawn arc: 100 units round, the fill a share of them. scripts/queue.ts sets --queue-p (0 to 100)
    and --queue-span, the seconds the move takes, so it glides between two answers and never goes back.
-   What sits inside is the slot: the percent in a row, a stage icon in the folded row. */
+   What sits inside is the slot: the percent in a row, nothing in the head's ring. */
 .queue-ring {
   --queue-ring-size: var(--size-touch);
   --queue-ring-stroke: 3;
@@ -292,14 +271,8 @@ html[data-player="open"] .queue-dock {
   height: var(--queue-ring-size);
 }
 
-/* The dock's folded row: a 32px ring holding the stage's icon. */
-.queue-ring-fold {
-  --queue-ring-size: var(--space-8);
-  --queue-ring-stroke: 4;
-}
-
-/* The side column's row: a 24px ring, nothing inside, in the place of the icon it replaced. */
-.queue-ring-nav {
+/* The head's ring, in the dock's folded row and the side column's: 24px, nothing inside while it goes. */
+.queue-ring-head {
   --queue-ring-size: var(--size-icon-lg);
   --queue-ring-stroke: 5;
 }
@@ -334,7 +307,7 @@ html[data-player="open"] .queue-dock {
   line-height: 1;
 }
 
-/* Everything made: the ring gives way to a check, in the ring's own place and size. */
+/* Everything made, or something failed: the ring gives way to a check or an alert, in the ring's own place and size. */
 .queue-ring[data-ended] > svg {
   display: none;
 }
@@ -350,11 +323,6 @@ html[data-player="open"] .queue-dock {
 .queue-ring[data-ended] .queue-stage-icon .icon {
   width: var(--size-icon-lg);
   height: var(--size-icon-lg);
-}
-
-.queue-ring-fold .queue-stage-icon .icon {
-  width: var(--space-4);
-  height: var(--space-4);
 }
 
 .queue-ring[hidden],
@@ -434,24 +402,9 @@ html[data-player="open"] .queue-dock {
   }
 }
 
-/* The regeneration's icon turns once each time the queue opens: the dock's rows are shown, or the
-   popover is. Hidden surfaces do not render, so each open starts the turn again. */
-@media (prefers-reduced-motion: no-preference) {
-  .queue-dock[data-expanded] .queue-status-icon[data-turns] .icon,
-  .queue-pop:popover-open .queue-status-icon[data-turns] .icon {
-    animation: queue-turn var(--duration-spring-settle) var(--ease-out) 1 both;
-  }
-}
-
-@keyframes queue-turn {
-  from {
-    transform: rotate(-360deg);
-  }
-}
-
 /* ------------------------------------------------------------------ the word's shimmer */
 
-/* A light band crosses the word. The text is clipped to a gradient, so nothing but the letters
+/* A light band crosses the title. The text is clipped to a gradient, so nothing but the letters
    shimmer. Still, and plainly coloured, under reduced motion and forced colours. */
 .queue-word[data-live] {
   background:
@@ -485,7 +438,7 @@ html[data-player="open"] .queue-dock {
   inset: auto auto calc(var(--dock-room) + var(--space-4))
     calc(var(--side-nav-width) + var(--space-2));
   flex-direction: column;
-  width: 28rem;
+  width: 26rem;
   max-height: min(36rem, 70dvh);
   padding: 0;
   transform-origin: bottom left;
@@ -503,9 +456,8 @@ html[data-player="open"] .queue-dock {
 }
 
 /* The title is 20px and regular: headings are never bold (D125), so the weight of the hierarchy is the
-   size and the room around it (2026-10-29). */
+   size and the room around it (2026-10-29). 24px above it and 24px below the last row, in every state. */
 .queue-pop-head {
-  justify-content: space-between;
   padding: var(--space-6) var(--space-6) var(--space-2);
 }
 
@@ -521,12 +473,44 @@ html[data-player="open"] .queue-dock {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  padding-block-end: var(--space-4);
 }
 
-/* More air than the dock: 24px at the edges and 16px above and below each row. */
+/* 24px at the edges. */
 .queue-pop .queue-row {
-  padding-block: var(--space-4);
   padding-inline: var(--space-6);
+}
+
+/* ------------------------------------------------------------------ Details of a failed run */
+
+/* The share dialog's own shape (create-sheet.css) with the run's facts as a snippet: on the tonal
+   ground the share dialog's link field has, wrapped, never wider than the dialog. */
+.queue-snippet {
+  display: block;
+  margin: 0 var(--space-4);
+  padding: var(--space-4);
+  max-height: 40dvh;
+  overflow: auto;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-label);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.queue-snippet:focus-visible {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+.queue-details-actions {
+  gap: var(--space-2);
+}
+
+.queue-details-actions .btn {
+  white-space: nowrap;
 }
 
 /* ------------------------------------------------------------------ the foot of the side column */

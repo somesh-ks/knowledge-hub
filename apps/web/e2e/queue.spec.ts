@@ -155,7 +155,7 @@ test.describe("the podcast queue", () => {
     ).toBeVisible();
 
     list = [row(41, { stage: 4, label: "Recording voices" })];
-    await expect(rows(page).first().locator("[data-queue-status]")).toHaveText("Recording voices", {
+    await expect(rows(page).first().locator("[data-queue-stage]")).toHaveText("Recording voices", {
       timeout: 15_000,
     });
     await expect(
@@ -189,7 +189,7 @@ test.describe("the podcast queue", () => {
         stage_estimates_ms: [600_000, 240_000, 10_000, 10_000, 30_000, 40_000],
       }),
     ];
-    await expect(rows(page).first().locator("[data-queue-status]")).toContainText(
+    await expect(rows(page).first().locator("[data-queue-stage]")).toContainText(
       "Gathering stories",
       {
         timeout: 15_000,
@@ -198,7 +198,7 @@ test.describe("the podcast queue", () => {
     expect(await height()).toBe(before);
   });
 
-  test("a run that was cancelled stays as Cancelled, with nothing to try again, until the queue is cleared", async ({
+  test("a run that was cancelled stays as Cancelled for the day, with nothing to try again", async ({
     page,
   }) => {
     await mock(page, () => []);
@@ -206,18 +206,19 @@ test.describe("the podcast queue", () => {
     await page.goto("/library");
     await hydrated(page);
     await openQueue(page);
-    await expect(rows(page).first().locator("[data-queue-status]")).toHaveText("Cancelled", {
+    await expect(rows(page).first().locator("[data-queue-status]")).toContainText("Cancelled", {
       timeout: 15_000,
     });
     await expect(rows(page).first().getByRole("button", { name: "Try again" })).toBeHidden();
-
-    await page.getByRole("button", { name: "Clear queue" }).and(page.locator(":visible")).click();
-    await expect(rows(page)).toHaveCount(0);
+    await page.reload();
+    await hydrated(page);
+    await openQueue(page);
+    await expect(rows(page)).toHaveCount(1);
   });
 
-  // The 2026-10-29 owner ask: what was made today stays in the queue, the folded row says Complete,
-  // the ring has become Start listening, and Clear queue (shown once nothing is going) empties it.
-  test("a podcast made today stays across a reload, opens from Start listening, and goes with Clear queue", async ({
+  // The 2026-10-29 owner ask: what was made today stays in the queue, whose title never changes, and
+  // the ring has become Start listening. There is no Clear queue: the day's list goes when the day does.
+  test("a podcast made today stays across a reload and opens from Start listening", async ({
     page,
   }) => {
     await mock(page, () => []);
@@ -240,21 +241,55 @@ test.describe("the podcast queue", () => {
     await hydrated(page);
     const wide = (page.viewportSize()?.width ?? 0) >= 1024;
     const folded = page.locator(wide ? "[data-queue-trigger-title]" : "[data-queue-title]");
-    await expect(folded).toHaveText("Complete");
+    await expect(folded).toHaveText("Podcast queue");
     await page.reload();
     await hydrated(page);
-    await expect(folded).toHaveText("Complete");
+    await expect(folded).toHaveText("Podcast queue");
 
     await openQueue(page);
+    await expect(rows(page).first()).toContainText("(Regeneration)");
     const listen = page
       .getByRole("link", { name: /^Start listening/ })
       .and(page.locator(":visible"));
     await expect(listen).toHaveAttribute("href", "/d/2026-10-07");
-    await page.getByRole("button", { name: "Clear queue" }).and(page.locator(":visible")).click();
-    await expect(rows(page)).toHaveCount(0);
-    await page.reload();
+    await expect(page.getByRole("button", { name: "Clear queue" })).toHaveCount(0);
+  });
+
+  // The 2026-10-29 owner ask: the row's line is one line, and Details holds the whole story with a
+  // snippet to copy.
+  test("a failed run's Details says what went wrong and copies the facts of the run", async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await mock(page, () => []);
+    const now = Date.now();
+    await seedStorage(page, {
+      local: {
+        "singularity:run": JSON.stringify({
+          id: 43,
+          phase: "failed",
+          what: "briefing",
+          kind: "regenerate",
+          episode: "2026-10-09",
+          step: "writing",
+          log: "https://github.com/somesh-ks/knowledge-hub/actions/runs/43",
+          t0: now - 120_000,
+          stageAt: now - 60_000,
+        }),
+      },
+    });
+    await page.goto("/library");
     await hydrated(page);
-    await expect(page.locator("[data-queue-dock]")).toBeHidden();
-    await expect(page.locator("[data-queue-trigger]")).toBeHidden();
+    // A failed run opens the phone's dock by itself; the desktop's popover is opened from the side column.
+    if ((page.viewportSize()?.width ?? 0) >= 1024) await openQueue(page);
+    else await expect(page.locator("[data-queue-dock]")).toHaveAttribute("data-expanded", "");
+    await rows(page).first().getByRole("button", { name: "Details" }).click();
+    const dialog = page.getByRole("dialog", { name: "What went wrong" });
+    await expect(dialog).toContainText("run: 43");
+    await expect(dialog.getByRole("link", { name: "Open the log" })).toBeVisible();
+    await dialog.getByRole("button", { name: "Copy details" }).click();
+    await expect(dialog.getByRole("button", { name: "Copied" })).toBeVisible();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("run: 43");
   });
 });

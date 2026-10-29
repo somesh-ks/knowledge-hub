@@ -8,8 +8,10 @@
  * what it is called; this file carries only the DOM.
  *
  * Only a Catch up and a regeneration are rows. A run that ended stays for the day (a podcast made
- * with Start listening, a failure, a stop, a lost run with what can be done about it) until Clear
- * queue. Every sentence is in the element's data attributes, so this file carries no copy.
+ * with Start listening, a failure with its Details, a stop, a lost run with what can be done about
+ * it) until the day changes. The head always says "Podcast queue"; a row says the time left, and its
+ * stage is the icon at its end. Every sentence is in the element's data attributes, so this file
+ * carries no copy.
  */
 import { cancelRun } from "../lib/cancelRun";
 import {
@@ -20,13 +22,13 @@ import {
 } from "../lib/generations";
 import { DAY_KEY, type DayEntry, isToday, readDay } from "../lib/queueDay";
 import { clockTime, type QueueWords, queueNames } from "../lib/queueNames";
-import { pickWord, type StageKind, stageKind } from "../lib/queueStage";
+import { stageKind } from "../lib/queueStage";
 import { GENERATION_STARTED_EVENT, RUN_EVENT, RUN_STORAGE_KEY } from "../lib/runRecord";
 import { BRIEFING_STAGES, EPISODE_STAGES } from "../lib/runStages";
 import type { GenerationRow, GenerationsResponse } from "../types/contracts";
+import { openQueueDetails, type QueueDetails } from "./queueDetails";
 import {
   checkAgain,
-  clearQueue,
   listenLive,
   liveHint,
   readRun,
@@ -44,8 +46,6 @@ const CANCELLED_HIDE_MS = 45_000;
 const OPEN_AFTER_START_MS = 450;
 /** A swipe this long, in pixels, opens or folds the dock. */
 const SWIPE_PX = 32;
-/** The head's word changes this often while something is going. */
-const WORD_MS = 4000;
 /** How long an icon takes to turn out, before it is taken out of the slot. */
 const ICON_OUT_MS = 300;
 /** The failed run whose row has opened the dock already, kept for the tab so a reload does not open it again. */
@@ -66,10 +66,9 @@ interface Item {
   at: number | null;
 }
 
-/** What the head says: how many are going, in which stage, and how far along. */
+/** What the head shows: how many are going, and how far along they are together. */
 interface Head {
   going: number;
-  kind: StageKind;
   percent: number;
   /** With nothing going: how the day's runs ended. */
   ended: "done" | "failed" | "other" | null;
@@ -90,10 +89,9 @@ const furthest = new Map<number, number>();
 /** The failed or lost run whose row has opened the dock once already. */
 let opened = "";
 let announced = "";
-let head: Head = { going: 0, kind: "wait", percent: 0, ended: null };
-/** Which word of its pool the head shows: one step every WORD_MS. */
-let tick = 0;
-let wordTimer = 0;
+let head: Head = { going: 0, percent: 0, ended: null };
+/** A run was seen going in this page's life: its end is then worth saying aloud. */
+let seenGoing = false;
 
 const dock = (): HTMLElement | null =>
   root?.querySelector<HTMLElement>("[data-queue-dock]") ?? null;
@@ -244,7 +242,7 @@ function setIcon(slot: Element | null, kind: string | null): void {
   if (next) element.append(next);
 }
 
-/** What a row says under its name: the stage, or why it ended. */
+/** The stage a row is in, or how it ended: the words a screen reader hears, and what a row falls back to. */
 function statusOf(item: Item, view: GenerationView, data: DOMStringMap): string {
   if (item.ended === "cancelled") return data.cancelled ?? "";
   if (item.ended === "started") return data.started ?? "";
@@ -254,6 +252,42 @@ function statusOf(item: Item, view: GenerationView, data: DOMStringMap): string 
   // A run that is going but has not named its stage yet says what kind of run it is.
   if (!view.status && view.running && item.record) return statusLine(item.record, data);
   return view.status;
+}
+
+/**
+ * The one line under a row's name. A run going says the time left (the stage is the icon at the row's
+ * end); a run that ended says when, then how: "14:32 · Podcast ready". One line, always.
+ */
+function subtitleOf(item: Item, view: GenerationView, data: DOMStringMap, stage: string): string {
+  if (item.ended) {
+    return [item.at ? clockTime(item.at) : "", stage].filter(Boolean).join(" · ");
+  }
+  if (!view.running) return data.wordWaiting ?? "";
+  if (view.eta) return view.eta;
+  return view.slow ? (data.wordSlow ?? "") : stage;
+}
+
+/** A failed run's Details: what went wrong, and the facts of the run to copy. */
+function detailsOf(item: Item, name: string, data: DOMStringMap): QueueDetails | null {
+  const run = item.record;
+  if (!run) return null;
+  const iso = (ms: number | null | undefined): string => (ms ? new Date(ms).toISOString() : "");
+  const log = run.log?.startsWith("https://github.com/") ? run.log : "";
+  return {
+    lede: [statusLine(run, data), run.reason].filter(Boolean).join(" "),
+    fields: [
+      ["run", String(run.id)],
+      ["podcast", name],
+      ["step", run.step ?? ""],
+      ["stage", run.failedStage ?? run.label ?? ""],
+      ["kept", run.kept?.join(", ") ?? ""],
+      ["reason", run.reason ?? ""],
+      ["started", iso(run.t0)],
+      ["ended", iso(item.at)],
+      ["log", log],
+    ],
+    log,
+  };
 }
 
 function paintRow(
@@ -268,14 +302,15 @@ function paintRow(
   const going = item.ended === null;
   li.dataset.state = item.ended ?? (view.running ? "running" : "queued");
   setText(li.querySelector("[data-queue-name]"), name);
-  // The time left while it goes; the time it ended once it has.
   setText(
-    li.querySelector("[data-queue-eta]"),
-    going ? view.eta : item.at ? clockTime(item.at) : "",
+    li.querySelector("[data-queue-note]"),
+    row.kind === "regenerate" ? (data.wordRegeneration ?? "") : "",
   );
+  const stage = statusOf(item, view, data);
+  setText(li.querySelector("[data-queue-stage]"), stage);
   // A row being cancelled says so until the stop lands; a redraw must not take the word away.
   if (!li.hasAttribute("data-cancelling")) {
-    setText(li.querySelector("[data-queue-status]"), statusOf(item, view, data));
+    setText(li.querySelector("[data-queue-status]"), subtitleOf(item, view, data, stage));
   }
 
   // The lead: the ring while it goes; once it ended, Start listening when there is a podcast to open,
@@ -307,14 +342,11 @@ function paintRow(
     setIcon(endIcon, going || href ? null : item.ended);
   }
 
-  // The status line starts with an icon: a regeneration's refresh, which turns once each time the
-  // queue opens; a Catch up's stage, which morphs as the run moves on.
-  const mark = li.querySelector<HTMLElement>("[data-queue-status-icon]");
+  // The stage is the icon at the row's end, which morphs as the run moves on.
+  const mark = li.querySelector<HTMLElement>("[data-queue-row-icon]");
   if (mark) {
-    const regenerating = row.kind === "regenerate";
-    setIcon(mark, !going ? null : regenerating ? "refresh" : stageKind(row));
-    mark.toggleAttribute("data-turns", going && regenerating);
-    mark.toggleAttribute("data-live", going && !regenerating);
+    setIcon(mark, going ? stageKind(row) : null);
+    mark.toggleAttribute("data-live", going);
   }
 
   const cancel = li.querySelector<HTMLButtonElement>("[data-queue-cancel]");
@@ -330,15 +362,8 @@ function paintRow(
   if (again) again.hidden = !(item.ended === "failed" && item.record?.retry && latest);
   const check = li.querySelector<HTMLElement>("[data-queue-check]");
   if (check) check.hidden = !(item.ended === "started" && latest);
-  const details = li.querySelector<HTMLAnchorElement>("[data-queue-details]");
-  if (details) {
-    const log =
-      item.ended === "failed" && item.record?.log?.startsWith("https://github.com/")
-        ? item.record.log
-        : "";
-    if (log && details.getAttribute("href") !== log) details.setAttribute("href", log);
-    details.hidden = !log;
-  }
+  const details = li.querySelector<HTMLElement>("[data-queue-details]");
+  if (details) details.hidden = !(item.ended === "failed" && item.record);
   li.toggleAttribute("data-cancelling", li.hasAttribute("data-cancelling") && going);
 }
 
@@ -377,7 +402,7 @@ function paintList(
   }
 }
 
-/** What the side column's row shows: the ring (with the stage's icon, or a check once all is done), and the word. */
+/** What the side column's row shows: "Podcast queue" with the ring while it goes, a check or an alert once it is over. */
 let lastTrigger = { shown: false, title: "", percent: 0, ended: "", live: false };
 
 /** The foot of the side column. The navigation is redrawn on every page, so this also runs after a swap. */
@@ -396,7 +421,7 @@ function paintTrigger(): void {
     else delete ring.dataset.ended;
   }
   // The ring alone while it goes; a check, or what went wrong, once it is over.
-  setIcon(ring?.querySelector("[data-queue-stage-icon]") ?? null, endIconOf(lastTrigger.ended));
+  setIcon(ring?.querySelector("[data-queue-head-icon]") ?? null, endIconOf(lastTrigger.ended));
 }
 
 const endIconOf = (ended: string): string | null =>
@@ -433,33 +458,21 @@ function setExpanded(open: boolean): void {
   syncPolling();
 }
 
-/** The head's word for the stage the newest run is in: one word of its pool, and how many are going when several are. */
-function headWord(data: DOMStringMap): string {
-  const kind = head.kind[0]?.toUpperCase() + head.kind.slice(1);
-  const word = pickWord((data[`wordPool${kind}`] ?? "").split("|"), tick);
-  return head.going > 1 ? `${word} · ${head.going}` : word;
-}
-
-/** The head, from `head` and the clock: the dock's folded row and the side column's row. Cheap, so the clock can call it. */
+/** The head, from `head`: the dock's folded row and the side column's row. */
 function applyHead(): void {
   if (!root) return;
-  const data = root.dataset;
-  let title = data.wordHeadEnded ?? "";
-  let navTitle = title;
-  let percent = "";
-  let ended = "";
+  const title = root.dataset.wordTitle ?? "";
   const live = head.going > 0;
-  if (live) {
-    title = navTitle = headWord(data);
-    if (head.going === 1) percent = `${head.percent}%`;
-  } else if (head.ended === "failed") {
-    title = data.wordHeadFailed ?? "";
-    navTitle = data.wordNavFailed ?? "";
-    ended = "failed";
-  } else if (head.ended === "done") {
-    title = navTitle = data.wordHeadComplete ?? "";
-    ended = "done";
-  } else if (head.ended) ended = "other";
+  const percent = live ? `${head.percent}%` : "";
+  const ended = live
+    ? ""
+    : head.ended === "failed"
+      ? "failed"
+      : head.ended === "done"
+        ? "done"
+        : head.ended
+          ? "other"
+          : "";
 
   const panel = dock();
   if (panel) {
@@ -474,31 +487,11 @@ function applyHead(): void {
       if (ended) ring.dataset.ended = ended;
       else delete ring.dataset.ended;
     }
-    const slot = panel.querySelector<HTMLElement>("[data-queue-stage-icon]");
-    setIcon(slot, live ? head.kind : endIconOf(ended));
-    slot?.toggleAttribute("data-live", live);
+    // The ring alone while it goes; a check, or what went wrong, once it is over.
+    setIcon(panel.querySelector("[data-queue-head-icon]"), endIconOf(ended));
   }
-  lastTrigger = {
-    shown: dock()?.hidden === false,
-    title: navTitle,
-    percent: head.percent,
-    ended,
-    live,
-  };
+  lastTrigger = { shown: dock()?.hidden === false, title, percent: head.percent, ended, live };
   paintTrigger();
-}
-
-/** The word changes every few seconds while something is going; nothing else is redrawn. */
-function syncWords(): void {
-  if (head.going > 0 && !wordTimer) {
-    wordTimer = window.setInterval(() => {
-      tick += 1;
-      applyHead();
-    }, WORD_MS);
-  } else if (head.going === 0 && wordTimer) {
-    clearInterval(wordTimer);
-    wordTimer = 0;
-  }
 }
 
 function openedBefore(): string {
@@ -546,7 +539,6 @@ function render(): void {
   );
   head = {
     going: going.length,
-    kind: lead ? stageKind(lead.item.row) : "wait",
     percent: percents.length
       ? Math.round(percents.reduce((sum, value) => sum + value, 0) / percents.length)
       : 0,
@@ -563,11 +555,6 @@ function render(): void {
   const panel = dock();
   if (panel) panel.hidden = entries.length === 0;
   applyHead();
-  syncWords();
-  // Clear queue appears at the top right once every run has ended.
-  for (const clear of root.querySelectorAll<HTMLElement>("[data-queue-clear]")) {
-    clear.hidden = !(going.length === 0 && entries.length > 0);
-  }
 
   // The page keeps room for the dock (shell.css, --run-room), and the whole page knows a run is up.
   const page = document.documentElement;
@@ -595,13 +582,16 @@ function render(): void {
     if (pop?.matches(":popover-open")) pop.hidePopover();
   }
 
-  // A screen reader hears the stage, or how the day went, and only when it changes (not at every percent).
+  // A screen reader hears the stage, or how a run ended, and only when it changes (not at every percent).
+  // An end is said for a run seen going on this page, or one that failed; a page opened later stays quiet about a podcast made earlier.
+  if (lead) seenGoing = true;
+  const newest = entries[0];
   const said = lead
     ? lead.view.status
-    : head.ended === "failed"
-      ? (data.wordHeadFailed ?? "")
-      : head.ended === "done"
-        ? (data.wordHeadComplete ?? "")
+    : alarm
+      ? statusOf(alarm.item, alarm.view, data)
+      : seenGoing && newest
+        ? statusOf(newest.item, newest.view, data)
         : "";
   const region = root.querySelector("[data-run-announce]");
   if (region && said !== announced) {
@@ -760,9 +750,20 @@ export function mountQueue(startedHere = false): void {
     if (cancel) void stop(cancel);
     if (target.closest("[data-queue-retry]")) void retry();
     if (target.closest("[data-queue-check]")) checkAgain();
-    if (target.closest("[data-queue-clear]")) {
-      clearQueue();
-      render();
+    if (target.closest("[data-queue-details]")) {
+      const li = target.closest<HTMLElement>("[data-queue-row-item]");
+      const item = currentItems().find((entry) => String(entry.row.run_id) === li?.dataset.run);
+      const name = [
+        li?.querySelector("[data-queue-name]")?.textContent,
+        li?.querySelector("[data-queue-note]")?.textContent,
+      ]
+        .filter(Boolean)
+        .join(" ");
+      const details = item ? detailsOf(item, name, root?.dataset ?? {}) : null;
+      if (details) {
+        popover()?.hidePopover?.();
+        openQueueDetails(details, root?.dataset ?? {});
+      }
     }
     if (target.closest("[data-queue-listen]")) {
       popover()?.hidePopover?.();
@@ -788,7 +789,7 @@ export function mountQueue(startedHere = false): void {
 
   // The run on record changed: the rows are drawn again.
   document.addEventListener(RUN_EVENT, render);
-  // Another tab ended a run or cleared the queue.
+  // Another tab ended a run.
   window.addEventListener("storage", (event) => {
     if (event.key === DAY_KEY || event.key === RUN_STORAGE_KEY) render();
   });

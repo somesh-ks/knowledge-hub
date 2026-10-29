@@ -2,9 +2,9 @@ import type { Page } from "@playwright/test";
 import {
   expect,
   hydrated,
+  queueComplete,
   queueDock,
   queueStatus,
-  queueTitle,
   startListening,
   test,
 } from "./fixtures";
@@ -83,7 +83,7 @@ test.describe("a Regenerate, followed in the podcast queue", () => {
     await expect(text(page)).toHaveText(/Waiting to start|Gathering stories/);
     await expect(text(page)).toHaveText("Writing the podcast", { timeout: 15_000 });
     // Finished, it stays in the queue for the day: the folded row says Complete, and Start listening opens the new podcast.
-    await expect(queueTitle(page)).toHaveText("Complete", { timeout: 15_000 });
+    await expect(queueComplete(page)).toBeVisible({ timeout: 15_000 });
     await (await startListening(page)).click();
     await expect(page).toHaveURL(new RegExp(`/d/${ID}$`));
   });
@@ -117,25 +117,17 @@ test.describe("a Regenerate, followed in the podcast queue", () => {
     const card = queueDock(page);
     // A failed run opens the dock, so its whole sentence and its three actions are in view.
     await expect(card.getByRole("button", { name: "Try again" })).toBeVisible();
-    await expect(card.getByRole("link", { name: "Details" })).toBeVisible();
-    await expect(card.getByRole("button", { name: "Clear queue" })).toBeVisible();
-    // Try again and Details sit on one row under the sentence; Clear queue is at the panel's top right,
-    // on screen.
-    const box = async (role: "button" | "link", name: string) =>
+    await expect(card.getByRole("button", { name: "Details" })).toBeVisible();
+    // Try again and Details sit on one row under the sentence.
+    const box = async (role: "button", name: string) =>
       (await card.getByRole(role, { name }).boundingBox()) as {
         x: number;
         y: number;
         width: number;
         height: number;
       };
-    const [again, details, clear] = [
-      await box("button", "Try again"),
-      await box("link", "Details"),
-      await box("button", "Clear queue"),
-    ];
+    const [again, details] = [await box("button", "Try again"), await box("button", "Details")];
     expect(Math.abs(again.y - details.y)).toBeLessThan(4);
-    const viewport = page.viewportSize()?.width ?? 0;
-    expect(clear.x + clear.width).toBeLessThanOrEqual(viewport);
 
     await card.getByRole("button", { name: "Try again" }).click();
     await expect.poll(() => bodies.length).toBe(2);

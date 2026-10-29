@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { pickWord, stageKind } from "./queueStage";
+import { stageKind } from "./queueStage";
 import { BRIEFING_STAGES, EPISODE_STAGES, NAMED_EPISODE_STAGES } from "./runStages";
 
 const running = { state: "running" as const };
 
-describe("what stage a run is in, for its word and icon", () => {
-  // The queue says "Recording" next to a waveform while the voices are made. A list that changes
-  // length (a stage added to run.yml) would silently shift every word one stage early or late.
+describe("what stage a run is in, for its icon", () => {
+  // The queue shows a waveform while the voices are made. A list that changes
+  // length (a stage added to run.yml) would silently shift every icon one stage early or late.
   it("reads the kind from the position in each stage list the engine reports", () => {
     const kinds = (what: "briefing" | "episode", stages: number) =>
       Array.from({ length: stages }, (_, stage) => stageKind({ ...running, what, stage, stages }));
@@ -33,11 +33,5 @@ describe("what stage a run is in, for its word and icon", () => {
   it("calls a queued run waiting, and a list of an unknown shape plain writing", () => {
     expect(stageKind({ state: "queued", what: "episode", stage: 3, stages: 6 })).toBe("wait");
     expect(stageKind({ ...running, what: "episode", stage: 1, stages: 9 })).toBe("write");
-  });
-
-  it("walks a word pool in order and wraps", () => {
-    const pool = ["a", "b", "c"];
-    expect([0, 1, 2, 3, 4].map((tick) => pickWord(pool, tick))).toEqual(["a", "b", "c", "a", "b"]);
-    expect(pickWord([], 5)).toBe("");
   });
 });
