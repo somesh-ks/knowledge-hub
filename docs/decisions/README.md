@@ -247,5 +247,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D229 | Column centred; 12px label gap | active |
 | D232 | One cleaner turns scraped Markdown into prose | active |
 | D233 | Ingest in shadow: free sources, Blob text | active |
+| D239 | A travelling device is offered the new zone | active; amends D100 |
 
 ---

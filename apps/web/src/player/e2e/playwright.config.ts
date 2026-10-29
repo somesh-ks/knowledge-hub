@@ -38,7 +38,8 @@ export default defineConfig({
   retries: 0,
   reporter: [["list"]],
   outputDir: "../../../test-results/player",
-  use: { colorScheme: "light", baseURL: siteURL },
+  // The device sits in the schedule's zone, so the time zone prompt (D239) stays out of every test.
+  use: { colorScheme: "light", baseURL: siteURL, timezoneId: "Europe/Stockholm" },
   projects: [
     { name: "site-phone", grepInvert: /@wide/, use: phone },
     { name: "site-desktop", grep: /@desktop|@wide/, use: desktop },
