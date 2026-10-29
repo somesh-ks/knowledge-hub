@@ -67,6 +67,7 @@ const hasCount = segments.length > 2;
         kind="briefing"
         audio={entry.audioMode === "ready" ? entry.player.audio?.url : undefined}
         deletable={digest.kind === "on-demand"}
+        regenerations={digest.regenerations}
       />
     )
   }

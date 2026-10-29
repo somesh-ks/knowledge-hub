@@ -37,7 +37,11 @@ const title = hero.title.replace(/(\d+) /, "$1 ");
   </div>
   {
     !shareToken && (
-      <HeroMenu briefingId={entry.id} deletable={entry.digest.kind === "on-demand"} />
+      <HeroMenu
+        briefingId={entry.id}
+        deletable={entry.digest.kind === "on-demand"}
+        regenerations={entry.digest.regenerations}
+      />
     )
   }
   <PlayCta

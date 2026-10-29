@@ -57,6 +57,8 @@ export interface BuildDigestInput {
   sectionTitles?: Readonly<Record<string, string>>;
   /** The kind's structure (D170): section order and Top picks. Absent is the default. */
   plan?: SectionPlan;
+  /** Set when the digest replaces an earlier one: the owner's regenerations so far (D212). */
+  regenerations?: number;
 }
 
 /**
@@ -133,6 +135,7 @@ export function buildDigest(input: BuildDigestInput): Digest {
     cover: input.coverPicker({ digestId: id, date, kind: input.kind, items }),
     ...(sectionTitles ? { section_titles: sectionTitles } : {}),
     ...(input.plan?.rundown ? { rundown: input.plan.rundown } : {}),
+    ...(input.regenerations ? { regenerations: input.regenerations } : {}),
     items,
   });
 }

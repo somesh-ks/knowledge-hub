@@ -21,6 +21,7 @@ Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs (10-28), 10 
 ## Not working or unverified
 
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the first daily aired after the merge ends "That's the podcast.".
+- A podcast takes three regenerations, counted in its own file, with no limit per day (D212). closed when: a podcast regenerated on the live site shows "2 of 3 regenerations left" and its file carries `regenerations: 1`.
 - Short briefings and lost runs (D204): the 2026-10-27 Regenerate aired 2 of 5 minutes and its Catch up lost its episode to a push conflict; the fixes ran only against fakes. closed when: `singularity metrics` has ten runs with `length_share` at 0.9 and `failure_rate` at 0.1 or less, and a Regenerate pressed during a Catch up publishes both.
 - `.github/workflows/podcast.yml` lost its ffmpeg step in this branch (workflow files need a manual merge). closed when: the owner merges it and a Catch up reaches its first stage within 5 s of the runner starting.
 - A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): `run.yml` gained a `length_minutes` input, which must merge with the site code or GitHub refuses the dispatch. closed when: a Regenerate at 10 minutes airs within 10% of 10.

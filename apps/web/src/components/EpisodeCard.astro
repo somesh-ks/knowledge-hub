@@ -57,5 +57,6 @@ const [format, length] = facts.line.split(FACT_SEPARATOR);
     kind="episode"
     audio={`/api/narrate?digest=${encodeURIComponent(entry.id)}`}
     topics={episode.request.topic_ids}
+    regenerations={episode.regenerations}
   />
 </li>

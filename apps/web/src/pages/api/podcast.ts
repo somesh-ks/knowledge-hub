@@ -2,7 +2,7 @@ import { del, head, put } from "@vercel/blob";
 import type { APIRoute } from "astro";
 import { createVercelBlobStore } from "../../server/blobStore";
 import { readBlobCredentials } from "../../server/config";
-import { contentEpisodeIds } from "../../server/contentSources";
+import { contentEpisodeIds, contentEpisodeRegenerations } from "../../server/contentSources";
 import { MAX_BODY_CHARS } from "../../server/generate";
 import { answerWithRef, toResponse } from "../../server/http";
 import { handlePodcast } from "../../server/podcast";
@@ -30,6 +30,7 @@ export const POST: APIRoute = ({ request, url }) =>
         delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
         burst: burstCap("podcast", REQUESTS_PER_MINUTE),
         episodeIds: () => contentEpisodeIds(),
+        regenerations: (id) => contentEpisodeRegenerations(id),
         tombstone: async (id) => {
           const credentials = readBlobCredentials(process.env, () =>
             request.headers.get("x-vercel-oidc-token"),

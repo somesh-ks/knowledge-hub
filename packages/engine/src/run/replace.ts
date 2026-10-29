@@ -5,6 +5,7 @@ import {
   type DigestId,
   type DigestKind,
   digestRelPath,
+  MAX_REGENERATIONS,
   parseDigestFile,
 } from "@singularity/core";
 import { commitAndPush } from "../git/commit.js";
@@ -42,6 +43,16 @@ export async function replacementPass(
     mode: MODE_OF_KIND[old.kind],
     itemIds: old.items.map((item) => item.id),
   };
+}
+
+/**
+ * The regenerations a digest replacing `id` carries: the old count plus one (D212). A refused
+ * fourth is the server's to stop; here the count is capped so a hand-run `--replace` still writes a
+ * valid file.
+ */
+export async function nextRegenerations(root: string, id: DigestId): Promise<number> {
+  const old = parseDigestFile(await readFile(join(root, digestRelPath(id)), "utf8"));
+  return Math.min((old.regenerations ?? 0) + 1, MAX_REGENERATIONS);
 }
 
 /**

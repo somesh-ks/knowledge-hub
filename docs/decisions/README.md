@@ -105,7 +105,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D82 | Play keeps an early tap, a new episode is pre-narrated, the deploy is noticed in 2.5 s | active |
 | D83 | Settings shows a source's score as one word, a source's name opens its editor, and the Model default is called Default | active; amends D55's pips and D69's name links |
 | D84 | A failed run keeps its request and offers Try again; a finished run clears itself; one run at a time | active |
-| D85 | The player's chapters are timed and play their story, a discussion without stored names is named from its voices, and one length rule runs everywhere | active; amends D74 for episodes made before names were stored |
+| D85 | The player's chapters are timed and play their story, a discussion without stored names is named from its voices, one length rule everywhere | active; amends D74 for episodes made before names were stored |
 | D86 | An action has its own tone, the player bar is one tonal block with the navigation, and reading text keeps a 34rem measure | active; extends D72 |
 | D87 | New episode says when a choice changed the topics and offers Undo; the Library searches with an excerpt around the match | active; amends D76 and D78 |
 | D88 | On a reading page the section strip is opaque, a focused headline is ringed as one block, the playing hero Play is tonal, and an older briefing offers Share only | active; amends D77 |
@@ -123,9 +123,9 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D100 | The time zone selector returns and the schedule counts in the chosen zone; Daily and Weekly offer Format and a second voice again; every voice row keeps its play button | active; amends D71, D89 and D91 |
 | D101 | A long list is a searchable list; the bar keeps its controls on a wide screen; every recording has a transcript; every topic is shown | active; amends D76, D90, D92 and D100 |
 | D102 | General topics play in Daily and Weekly, a topic is always on and has a summary card, titles are bigger, and the gate runs in parallel | active; amends D69, D87, D89, D90, D101 |
-| D103 | Source scores are out of 5 again, shown as a star rating; long source lists fold at seven; topic delete asks first; Regenerate on Today takes feedback; the first-load budget is 150 KB | active; amends D55, D83, D53 |
+| D103 | Source scores out of 5 as stars; long source lists fold at seven; topic delete asks first; Regenerate on Today takes feedback; first-load budget 150 KB | active; amends D55, D83, D53 |
 | D104 | Every briefing, daily or weekly, latest or older, has Share, Regenerate and Delete; Regenerate replaces that digest over its own window; Delete removes its file and timeline | active; amends D88, D103 |
-| D105 | A new episode is playable from a live copy in Blob while it is still being written; mobile sounds unlock on click and play through the silent switch; the spoken word lights without lag | active; amends D82, D101 |
+| D105 | A new episode plays from a live Blob copy while it is written; mobile sounds unlock on click and play through the silent switch; the spoken word lights without lag | active; amends D82, D101 |
 | D106 | The wide bar leads with what is playing and hides its volume slider until hover; bottom sheets lose the grabber and the corners; a played chip offers Play again | active; amends D46, D58, D101 |
 | D107 | The transcript's highlight pauses while the host speaks words the page does not show | active; amends D101, D105 |
 | D108 | A user profile holds blocked domains and story votes; a block cuts an outlet on every fetch path; votes nudge ranking, listings and the writer, and are never shown | active |
@@ -134,7 +134,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D111 | The open player has no drag handle and square top corners at every point of its travel | active; amends D32, D106 |
 | D112 | Every page modulepreloads what it loads at start; code a press needs loads at idle, never on the press; the player's motion loads after first paint; the first-load budget is 109 KB | active; amends D53, D103 |
 | D113 | Claude Sonnet 5.5 is the default writer for the page and the engine; the Model list has no Default row; Nebius starts on GLM-5.3 | active; amends D46, D106 |
-| D114 | Every episode is written for the owner: the General audience is retired, and the New episode form is Title, Topics, Length, Look back, with Format, Voice and Tone under More | active; amends D39, D67, D76, D101 |
+| D114 | Every episode is written for the owner: the General audience is retired; the New episode form is Title, Topics, Length, Look back, with Format, Voice, Tone under More | active; amends D39, D67, D76, D101 |
 | D115 | Settings save quietly: no toast while a change saves or once it is saved; the toast is for a failure, an Undo or a partial save | active; amends D79, D91, D98 |
 | D116 | docs/ is grouped by purpose: the record at the top, plan/, engineering/, design/, reference/; audits fold into their history notes; docs/README.md maps it all | active; amends D14 |
 | D117 | The Model picker reads Anthropic's and Nebius's model lists live, cached five minutes; a Claude model past the built-in two saves only when Anthropic lists it | active; amends D46, D58 |
@@ -143,9 +143,9 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D120 | Science takes a one-outlet story that is clearly on topic; the other general topics keep the two-outlet rule | active; amends D40, D43 |
 | D121 | Covers are drawn at medium chroma (OKLCH 0.12 or less); each monthly series has its own style set and prints on its own close tint of the month's paper | active; amends D110 |
 | D122 | Covers a step brighter in both themes; the header light takes its colours from the drawn cover and is three drifting lights; a theme change waits for the covers on screen | active; amends D48, D77, D121 |
-| D123 | One AI model select on Settings (newest Claude models, five curated Nebius models); the manifest names no colour so Android's bars follow the system; a launch screen; the playing cover lights the player page | active; amends D51, D101 |
-| D124 | Weights are five named stops and Off as never-publish; every source has a Jev-classified format; a format mix per page, a Perspective slider on general topics, two stories per outlet | active; amends D57, D69, D83 |
-| D125 | Headings never bold (title and lead roles regular); Settings H2s at the 22px heading role; an Intelligence section for the model; Topics and sources is a search and a floating Add | active; amends D73, D123, D124 |
+| D123 | One AI model select on Settings; no manifest colour, so Android's bars follow the system; a launch screen; the playing cover lights the player page | active; amends D51, D101 |
+| D124 | Weights are five named stops and Off; every source has a Jev-classified format; a format mix per page, a Perspective slider, two stories per outlet | active; amends D57, D69, D83 |
+| D125 | Headings never bold; Settings H2s at the 22px heading role; an Intelligence section for the model; Topics and sources is a search and a floating Add | active; amends D73, D123, D124 |
 | D126 | A play queue, an Up next peek and sheet, a collapse chevron, Space to play | active; amends D102, D111 |
 | D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, at most 10 | active; amends D123 |
 | D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by content hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
@@ -228,5 +228,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D209 | Lane free in the hold | supersedes D135; amends D197 |
 | D210 | Typed HTML builders | active |
 | D211 | Copy says podcast, not briefing; code names keep briefing for now | active |
+| D212 | Three regenerations per podcast, no day limit | active |
 
 ---

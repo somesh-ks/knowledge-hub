@@ -1,4 +1,5 @@
 ---
+import { regenerationHint } from "../lib/regenerations";
 import Icon from "./Icon.astro";
 import MenuSheet from "./MenuSheet.astro";
 
@@ -16,9 +17,12 @@ interface Props {
   deletable?: boolean;
   /** An episode's topic ids, so Regenerate starts with the ones it was made with. */
   topics?: readonly string[];
+  /** Times this podcast was regenerated, for the Regenerate item's counter (D212). */
+  regenerations?: number | undefined;
 }
 
-const { id, title, path, kind, audio, deletable = true, topics } = Astro.props;
+const { id, title, path, kind, audio, deletable = true, topics, regenerations } = Astro.props;
+const regen = regenerationHint(regenerations);
 const menuId = `card-menu-${id}`;
 ---
 
@@ -73,6 +77,8 @@ const menuId = `card-menu-${id}`;
           type="button"
           role="menuitem"
           data-episode-action="regenerate"
+          title={regen.title}
+          disabled={regen.exhausted}
         >
           <Icon name="refresh" />Regenerate
         </button>
@@ -83,6 +89,8 @@ const menuId = `card-menu-${id}`;
           role="menuitem"
           data-open="generate"
           aria-haspopup="dialog"
+          title={regen.title}
+          disabled={regen.exhausted}
         >
           <Icon name="refresh" />Regenerate
         </button>

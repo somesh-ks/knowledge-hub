@@ -196,6 +196,30 @@ describe("handleGenerate", () => {
     expect(dispatches().at(-1)?.body).not.toHaveProperty("inputs.feedback");
   });
 
+  it("regenerates a podcast three times with no day limit, then refuses the fourth before it costs a run", async () => {
+    const counts: Record<string, number> = { "2026-10-07": 2, "2026-10-06": 3 };
+    const { deps, github } = setup({
+      digestIds: () => Object.keys(counts),
+      regenerations: async (id) => counts[id] ?? 0,
+    });
+    // Two runs in the last hour: the 6-hour cooldown of a new briefing would refuse a third.
+    const recent = [1, 2].map((hours) => runJson({ created_at: hoursAgo(hours / 4) }));
+    github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: recent } });
+    github.on("POST /actions/workflows/run.yml/dispatches", { json: { workflow_run_id: 5 } });
+    const send = (body: Record<string, unknown>) =>
+      handleGenerate(input(JSON.stringify(body)), deps);
+    const dispatches = () => github.requests.filter((request) => request.method === "POST");
+
+    expect((await send({ replace: "2026-10-07" })).status).toBe(202);
+    const spent = await send({ replace: "2026-10-06" });
+    expect(spent).toMatchObject({ status: 409, body: { error: "regeneration_limit" } });
+    expect(dispatches()).toHaveLength(1);
+    // A delete is not a regeneration, so a spent podcast can still go.
+    expect((await send({ action: "delete", id: "2026-10-06" })).status).toBe(202);
+    // A new briefing keeps the cooldown.
+    expect((await send({})).status).toBe(429);
+  });
+
   it("refuses to delete a Daily or Weekly briefing, so only on-demand ones can go", async () => {
     const kinds: Record<string, string> = {
       "2026-10-07": "regular",

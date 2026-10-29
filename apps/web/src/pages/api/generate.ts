@@ -1,5 +1,9 @@
 import type { APIRoute } from "astro";
-import { contentDigestIds, contentDigestKind } from "../../server/contentSources";
+import {
+  contentDigestIds,
+  contentDigestKind,
+  contentDigestRegenerations,
+} from "../../server/contentSources";
 import { handleGenerate, MAX_BODY_CHARS } from "../../server/generate";
 import { answerWithRef, toResponse } from "../../server/http";
 import { burstCap } from "../../server/rateLimit";
@@ -27,6 +31,7 @@ export const POST: APIRoute = ({ request, url }) =>
         burst: burstCap("generate", STARTS_PER_MINUTE),
         digestIds: () => contentDigestIds(),
         digestKind: (id) => contentDigestKind(id),
+        regenerations: (id) => contentDigestRegenerations(id),
         log,
       },
     );

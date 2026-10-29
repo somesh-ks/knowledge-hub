@@ -1,8 +1,9 @@
+import { MAX_REGENERATIONS } from "@singularity/core";
 import type { GenerateResponse } from "../types/contracts";
 import { missingSettings, readServerConfig, type ServerEnv, secretsOf } from "./config";
 import { createGitHubClient, type FetchLike } from "./github";
 import type { ApiResult } from "./http";
-import { DELETE_POLICY, evaluateLimits } from "./limits";
+import { DELETE_POLICY, evaluateLimits, REGENERATE_POLICY } from "./limits";
 import { cleanFeedback } from "./podcast";
 import { cooldownRefusal } from "./rateLimit";
 import { describeError } from "./redact";
@@ -29,6 +30,8 @@ export interface GenerateDeps {
   digestIds?: () => readonly string[] | Promise<readonly string[]>;
   /** A digest's kind ("regular", "weekly", "on-demand"); Delete refuses the scheduled ones. */
   digestKind?: (id: string) => Promise<string | null>;
+  /** How many times a podcast (a digest or an episode id) was regenerated; Regenerate stops at three. */
+  regenerations?: (id: string) => Promise<number>;
   log?: (message: string) => void;
 }
 
@@ -47,6 +50,19 @@ const unavailable: GenerateResult = {
   body: { status: 503, error: "unavailable" },
 };
 const invalid: GenerateResult = { status: 400, body: { status: 400, error: "invalid_request" } };
+/** The podcast has used its regenerations (D212). */
+export const regenerationLimit = {
+  status: 409,
+  body: { status: 409, error: "regeneration_limit" },
+} as const;
+
+/** Whether the podcast `id` has no regeneration left, by the count its own file carries. */
+export async function regenerationsSpent(
+  deps: Pick<GenerateDeps, "regenerations">,
+  id: string,
+): Promise<boolean> {
+  return ((await deps.regenerations?.(id)) ?? 0) >= MAX_REGENERATIONS;
+}
 
 /**
  * Whether the body is one JSON object of a size the route reads. A `passphrase` field that a page
@@ -174,6 +190,9 @@ export async function handleGenerate(
     if (kind === "regular" || kind === "weekly") return invalid;
   }
 
+  // A podcast takes three regenerations (D212); the fourth is refused before it costs a run.
+  if (!deleting && id !== null && (await regenerationsSpent(deps, id))) return regenerationLimit;
+
   // The shared burst cap (D150), taken only by a request that passed the checks above.
   const burstWait = (await deps.burst?.()) ?? 0;
   if (burstWait > 0) return cooldownRefusal(burstWait);
@@ -186,7 +205,9 @@ export async function handleGenerate(
       .filter((run) => deleting || !run.title.startsWith("delete "))
       .map((run) => Date.parse(run.createdAt))
       .filter(Number.isFinite);
-    const decision = evaluateLimits(started, deps.now(), deleting ? DELETE_POLICY : undefined);
+    // A regeneration has no daily limit of its own (D212): its count of three is the limit.
+    const policy = deleting ? DELETE_POLICY : id === null ? undefined : REGENERATE_POLICY;
+    const decision = evaluateLimits(started, deps.now(), policy);
     if (!decision.allowed) {
       return {
         status: 429,

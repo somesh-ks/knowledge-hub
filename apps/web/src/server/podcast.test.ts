@@ -323,14 +323,32 @@ describe("handlePodcast for an episode action", () => {
     });
   });
 
-  it("holds regenerate to the episode policy, like a new episode", async () => {
-    const { deps, github } = setup();
+  it("holds regenerate to a double-tap cooldown, not the episode limits, and stops at three regenerations (D212)", async () => {
+    const { deps, github } = setup({ regenerations: async () => 2 });
+    github.on(DISPATCH, { json: { workflow_run_id: 9 } });
+    const secondsAgo = (seconds: number) => new Date(NOW - seconds * 1000).toISOString();
+
+    // A new episode two minutes ago would hold a new episode; a regenerate waits only 30 seconds.
     github.on(RUNS, { json: { workflow_runs: [podcastRun({ created_at: minutesAgo(1) })] } });
-    const result = await handlePodcast(input(regen()), deps);
-    expect(result).toMatchObject({
+    expect((await handlePodcast(input(regen()), deps)).status).toBe(202);
+    github.on(RUNS, { json: { workflow_runs: [podcastRun({ created_at: secondsAgo(10) })] } });
+    expect(await handlePodcast(input(regen()), deps)).toMatchObject({
       status: 429,
-      body: { error: "cooldown", retry_after_s: PODCAST_COOLDOWN_MS / 1000 - 60 },
+      body: { error: "cooldown", retry_after_s: 20 },
     });
+  });
+
+  it("refuses the fourth regeneration of an episode before it costs a run", async () => {
+    const { deps, github } = setup({ regenerations: async () => 3 });
+    github.on(RUNS, { json: { workflow_runs: [] } });
+    github.on(DISPATCH, { json: { workflow_run_id: 9 } });
+    expect(await handlePodcast(input(regen()), deps)).toMatchObject({
+      status: 409,
+      body: { error: "regeneration_limit" },
+    });
+    expect(github.requests.filter((request) => request.method === "POST")).toHaveLength(0);
+    // Delete is not a regeneration.
+    expect((await handlePodcast(input(del()), deps)).status).toBe(202);
   });
 });
 

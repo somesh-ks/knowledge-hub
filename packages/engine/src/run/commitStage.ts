@@ -63,7 +63,7 @@ import {
   runTopicJudgmentsPath,
   writePlan,
 } from "./plan.js";
-import { removeDigestFiles } from "./replace.js";
+import { nextRegenerations, removeDigestFiles } from "./replace.js";
 import { markAdoptedCommitted, resolveCommitPlan } from "./resolveCommitPlan.js";
 import { readSourceCounts } from "./sourceCounts.js";
 import { recordSpend } from "./spend.js";
@@ -271,6 +271,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
       verified: selection.mode === "agent" ? false : selection.verified,
       topics,
       plan: sectionPlan,
+      ...(replaces === undefined ? {} : { regenerations: await nextRegenerations(root, replaces) }),
     });
     const report = validateDigest(digest, {
       pool: pool.items,

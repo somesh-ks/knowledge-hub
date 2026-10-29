@@ -60,6 +60,9 @@ export const DigestItem = z.object({
 export type DigestItem = z.infer<typeof DigestItem>;
 
 /** The frontmatter of a digest file. The site renders from this; the Markdown body is generated. */
+/** Regenerations one podcast takes (D212): the owner's count, with no limit per day. */
+export const MAX_REGENERATIONS = 3;
+
 export const Digest = z.object({
   id: DigestId,
   /** Stockholm calendar date, YYYY-MM-DD. */
@@ -92,6 +95,11 @@ export const Digest = z.object({
    * means no rundown, as every briefing before the structure.
    */
   rundown: z.number().int().min(1).max(6).optional(),
+  /**
+   * How many times the owner has regenerated this podcast (D212). Written by the replacement run,
+   * the old count plus one; absent means never. A podcast takes `MAX_REGENERATIONS`.
+   */
+  regenerations: z.number().int().min(1).max(MAX_REGENERATIONS).optional(),
   /** Weekly cap (18) plus the tech allowance and the allowances of custom sections. */
   items: z.array(DigestItem).min(3).max(48),
 });

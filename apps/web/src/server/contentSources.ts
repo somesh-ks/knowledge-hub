@@ -177,6 +177,24 @@ export async function contentDigestKind(
   return text ? (/^kind:\s*(\S+)/m.exec(text)?.[1] ?? null) : null;
 }
 
+/** How many times a briefing was regenerated, from its front matter (D212); 0 when never or unknown. */
+export async function contentDigestRegenerations(
+  id: string,
+  deps: () => ContentRepoDeps = runtime,
+): Promise<number> {
+  const text = await contentDigests(deps).readDigest(id);
+  return text ? Number(/^regenerations:\s*(\d+)/m.exec(text)?.[1] ?? 0) : 0;
+}
+
+/** How many times an episode was regenerated, from its front matter (D212); 0 when never or unknown. */
+export async function contentEpisodeRegenerations(
+  id: string,
+  deps: () => ContentRepoDeps = runtime,
+): Promise<number> {
+  const text = await contentEpisodes(deps).readEpisode(id);
+  return text ? Number(/^regenerations:\s*(\d+)/m.exec(text)?.[1] ?? 0) : 0;
+}
+
 /** The engine's cost ledger, every month of it. */
 export async function contentCostRecords(
   deps: () => ContentRepoDeps = runtime,

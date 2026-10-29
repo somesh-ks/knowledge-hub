@@ -17,6 +17,7 @@ export type StartRejection =
   | "offline"
   | "cooldown"
   | "dailyCap"
+  | "regenerationLimit"
   | "unavailable"
   | "invalid"
   | "network";
@@ -32,6 +33,7 @@ export const MESSAGES = {
   crashed:
     "The server crashed before it could answer, so nothing changed. Its log on Vercel has the error.",
   invalid: "The server turned that request down. Reload the page and try again.",
+  regenerationLimit: "This podcast has been regenerated 3 times, the most it takes.",
   network: "Couldn't reach the site. Check your connection, then try again.",
 } as const;
 
@@ -129,6 +131,8 @@ export async function startGenerate(
     }
     case 400:
       return { kind: "rejected", reason: "invalid", message: MESSAGES.invalid };
+    case 409:
+      return { kind: "rejected", reason: "regenerationLimit", message: MESSAGES.regenerationLimit };
     case 429: {
       const seconds = retryAfterSeconds(body, response);
       const wait = formatRetryAfter(seconds);

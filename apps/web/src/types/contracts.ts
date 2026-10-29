@@ -107,6 +107,8 @@ export interface GenerateRequest {
 export type GenerateResponse =
   | { status: 202; run_id: number; started_at: string }
   | { status: 400; error: "invalid_request" }
+  // The podcast was already regenerated three times (D212).
+  | { status: 409; error: "regeneration_limit" }
   | { status: 429; error: "cooldown" | "daily_cap"; retry_after_s: number }
   | { status: 503; error: "unavailable" };
 
@@ -539,6 +541,8 @@ export type PodcastActionRequest =
 export type PodcastCreateResponse =
   | { status: 202; run_id: number; started_at: string }
   | { status: 400; error: "invalid_request" }
+  // The episode was already regenerated three times (D212).
+  | { status: 409; error: "regeneration_limit" }
   | { status: 429; error: "cooldown" | "daily_cap"; retry_after_s: number }
   | { status: 503; error: "unavailable" };
 

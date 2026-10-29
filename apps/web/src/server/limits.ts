@@ -28,6 +28,12 @@ export const PODCAST_POLICY: LimitPolicy = {
   dailyCap: PODCAST_DAILY_CAP,
 };
 
+/**
+ * Regenerating a podcast (D212): its own count of three decides (MAX_REGENERATIONS), with no limit per
+ * day. What is left here is a guard against a double tap and a ceiling against a runaway script.
+ */
+export const REGENERATE_POLICY: LimitPolicy = { cooldownMs: 30 * 1000, dailyCap: 50 };
+
 /** Deleting an episode: a short cooldown against double taps, and twenty a day. */
 export const DELETE_POLICY: LimitPolicy = { cooldownMs: 10 * 1000, dailyCap: 20 };
 
