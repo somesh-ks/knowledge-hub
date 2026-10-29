@@ -374,7 +374,7 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Supersedes: D135 once step 3 ships (its revisit condition, an earlier start, is met, and the hold gives the batch its wait). Amends: D197 (the strict publish time stays; the hold no longer holds the lane).
 - Revisit if: a held publish job is replaced while pending (GitHub keeps one pending run per group), or a batch misses 15 minutes before publish on more than one run in ten.
 
-## D221: Firecrawl gets 300 requests a week, at most 60 a run
+## D222: Firecrawl gets 300 requests a week, at most 60 a run
 
 - Date: 2026-10-29 (decided for the owner by the coordinator while the owner is away; amends D166)
 - Context changed: D166's 100 a week was spent by four runs in three days, which left every later daily with no Firecrawl room.

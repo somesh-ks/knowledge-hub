@@ -4,7 +4,7 @@ import type { Source } from "@singularity/core";
  * Firecrawl requests all runs together may make in any 7 days, listing pages and article scrapes.
  * Read from the cost ledger at each stage (`run/spend.ts`). 100 (the owner, 2026-10-24) was spent
  * in four runs, and every daily after it aired without listings or scrapes; 300 is about 0.25 USD
- * (D221).
+ * (D222).
  */
 export const FIRECRAWL_WEEKLY_BUDGET = 300;
 

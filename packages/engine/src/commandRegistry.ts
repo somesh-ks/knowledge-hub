@@ -48,6 +48,15 @@ reviewed lean.json into config/sources.json and config/sources.user.json. Uses T
     load: async () => (await import("./commands/sources.js")).run,
   },
   {
+    name: "log-run",
+    summary: "Write the run that just ended, with each stage's time and cost, to Neon",
+    help: `Usage: singularity log-run --result <success|failure|cancelled> [--outcome <published|nothing>]
+
+run.yml's last step (D221): writes the run in .cache/run to the pipeline_runs and pipeline_stages
+tables in DATABASE_URL, whatever its end. A log that cannot be written warns and exits 0.`,
+    load: async () => (await import("./commands/logRun.js")).run,
+  },
+  {
     name: "config",
     summary: "Apply one topic or source change from the app, and commit it",
     help: `Usage:
