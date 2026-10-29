@@ -14,7 +14,7 @@ import type { RepoPair } from "./git-testRepo.js";
 import { createRepoPair, git, put, SEED_DIGEST_ID, SEED_DIGEST_PATH } from "./git-testRepo.js";
 
 describe("ALLOWLISTS", () => {
-  it("names the four commands and their paths", () => {
+  it("names the commands and their paths", () => {
     expect(ALLOWLISTS).toEqual({
       run: ["Digests/", "state/"],
       publish: [
@@ -23,6 +23,7 @@ describe("ALLOWLISTS", () => {
         "state/usage.json",
         "state/costs-*.json",
       ],
+      costs: ["state/costs-*.json"],
       learn: ["config/preferences.json"],
       podcast: ["Podcasts/", "state/costs-*.json", "state/podcast-timings.json"],
       config: [
@@ -37,6 +38,14 @@ describe("ALLOWLISTS", () => {
         "state/source-candidates.json",
       ],
     });
+  });
+
+  // The bug it prevents: a dry run's ledger commit also taking a digest or usage change that was in
+  // the tree (D228), which `publish` would have allowed.
+  it("lets a dry run's ledger commit take the ledger and nothing else", () => {
+    expect(isPathAllowed("state/costs-2026-10.json", ALLOWLISTS.costs)).toBe(true);
+    expect(isPathAllowed("state/usage.json", ALLOWLISTS.costs)).toBe(false);
+    expect(isPathAllowed("Digests/2026/10/2026-10-29.md", ALLOWLISTS.costs)).toBe(false);
   });
 
   it.each([
