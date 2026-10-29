@@ -8,7 +8,7 @@ Updated 2026-10-29. Rewrite, never append. [Specs](specs/README.md), [decisions]
 - Reader (Latest, Library, Catch up, Settings, `/design`): [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
 - Player as one surface: transcript with word light, chapters in the bar, a queue with Up next (D126): [player](specs/player.md).
 - Narration on Play, story by story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes; Opus, MP3 fallback (D198): [narration](specs/narration.md), [create](specs/create.md).
-- Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up show in one run card; a failed run says why (D204). The list of generations under way has Cancel (D208).
+- Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up are followed in the podcast queue, each with Cancel; ended runs stay for the day (D204, D231).
 - Saved copies, offline shell, downloads, the PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merge by hand (D143).
 
@@ -28,7 +28,7 @@ Unit (CI): 313 files, 5,022 tests, 86 s. Site e2e: 411 runs, 10 min. Player e2e:
 - Run names (D217), Neon run log (D221). closed when: a daily is named `daily <date>`, is off the queue, with `pipeline_runs` rows.
 - `.github/workflows/podcast.yml` lost its ffmpeg step in this branch (workflow files need a manual merge). closed when: the owner merges it and a Catch up reaches its first stage within 5 s of the runner starting.
 - A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): `run.yml` gained a `length_minutes` input, which must merge with the site code or GitHub refuses the dispatch. closed when: a Regenerate at 10 minutes airs within 10% of 10.
-- Generations list and Cancel (D208): only against fakes. `POST /api/cancel` needs the token's Actions write; a cancelled Catch up stays "writing" until the 24 h prune and, stopped while recording voices, loses its usage charge. closed when: the owner cancels a real Catch up and it ends as Cancelled.
+- Podcast queue (D231): fakes only; Cancel needs the token's Actions write (unchecked). closed when: the owner runs a Catch up and a regeneration, cancels one, opens the other, and reads a failed run's Details.
 - Discovery copies rank below an outlet's own entry in dedupe. closed when: a run's dedupe report keeps the outlet's entry where a discovery copy was found.
 - Opus on runners (D198, #381, #388). closed when: an audio run logs `ffmpeg version`, its digest has `m4a_url`, and the owner plays /d/2026-10-24 on an iPhone.
 - Alexandria pilot (D200). closed when: a run log shows `anthropic-blog` fetched via `alexandria:anthropic-com` with dated posts.

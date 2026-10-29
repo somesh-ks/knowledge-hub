@@ -12,7 +12,8 @@
 
 import { ARRIVED_ATTRIBUTE } from "./navigation";
 
-const NAV_ITEM = ".app-nav-item";
+/** Links only: the side column also has a button (the queue's row), which has no page to go to. */
+const NAV_ITEM = "a.app-nav-item";
 const NAV_BRAND = ".app-nav-brand";
 /** Root attribute that says the page itself, not a view transition, draws this move. */
 export const SWAP_ATTRIBUTE = "data-nav-swap";

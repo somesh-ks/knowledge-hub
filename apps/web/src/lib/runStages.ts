@@ -163,17 +163,29 @@ export function timeLeft(
   estimates: readonly unknown[] | undefined,
   elapsedInStageMs: number,
 ): TimeLeft {
+  const left = timeLeftMs(stage, estimates, elapsedInStageMs);
+  if (left === null) return { kind: "none" };
+  if (left === "slow") return { kind: "slow" };
+  return { kind: "left", minutes: Math.max(1, Math.ceil(left / 60_000)) };
+}
+
+/** The same sum in milliseconds, for a caller that rounds it its own way (the queue's ring); "slow" and null as timeLeft's slow and none. */
+export function timeLeftMs(
+  stage: number,
+  estimates: readonly unknown[] | undefined,
+  elapsedInStageMs: number,
+): number | "slow" | null {
   const usual = (index: number) => {
     const value = estimates?.[index];
     return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
   };
   const current = usual(stage);
-  if (!current) return { kind: "none" };
+  if (!current) return null;
   const spent = Math.max(0, elapsedInStageMs);
-  if (spent > current * SLOW_FACTOR) return { kind: "slow" };
+  if (spent > current * SLOW_FACTOR) return "slow";
   let left = Math.max(0, current - spent);
   for (let index = stage + 1; index < (estimates?.length ?? 0); index += 1) left += usual(index);
-  return { kind: "left", minutes: Math.max(1, Math.ceil(left / 60_000)) };
+  return left;
 }
 
 export interface StageInfo {

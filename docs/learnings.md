@@ -9,9 +9,9 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-22: in the cloud container Chromium goes through the agent proxy, so `--host-resolver-rules` (a build served under the production host, to see a host-gated script) did nothing until launched with `--no-proxy-server`.
 - 2026-10-21: `context.route` misses the worker's requests: fake a deploy in `staticServer.mjs`.
 - 2026-10-19: a source added in script was a tinted stub (no address, rating or checkbox) whose `box-shadow` spread 8px over the next row; the specs checked text, never the row's parts. A row made in script mirrors its Astro component's markup and its spec asserts the parts; a `box-shadow` or outline state spreads past the box.
-- 2026-10-23: PR 227's card tokens let `.card-group`'s row padding beat the Costs card's (chips 8px under a 32px corner on a phone; `/analytics` is not in the grid spec). Screenshot every page using a primitive whose tokens change.
-- 2026-10-23: a one-line story row passed its hold-still test while every publisher kept 10px at 320 and 50px at 360. Measure what a layout's flexible part keeps at 320 and 360 first.
-- 2026-10-23: reduced motion in the tokens alone (enter and exit kept, distance and scale collapsed) missed every raw travel on those durations: chip labels slid, the nav pill scaled, the floating button glided. Sweep the CSS with the tokens; check with `document.getAnimations()` under emulated reduced motion.
+- 2026-10-23: new card tokens let `.card-group`'s row padding beat the Costs card's (`/analytics` is not in the grid spec). Screenshot every page using a primitive whose tokens change.
+- 2026-10-23: a story row passed its hold-still test while publishers kept 10px at 320. Measure what a layout's flexible part keeps at 320 and 360 first.
+- 2026-10-23: reduced motion in the tokens alone missed every raw travel on those durations (chip labels, nav pill, floating button). Sweep the CSS with the tokens; check with `document.getAnimations()` under emulated reduced motion.
 - 2026-10-08: `getByRole("button", { name: "All" })` matched "Gallery view". Use `exact: true` for short names.
 - 2026-10-12: a mocked route answers while the browser context is offline. A test of an offline save takes its mock offline with it (`route.abort`), and waits for the lazy chunk it needs before going offline.
 - 2026-10-12: `waitForLoadState("networkidle")` returns at once when the page has been idle before, so a test went offline while a lazy chunk was still on its way (one run in four). Wait for the response itself, then `finished()`.
@@ -72,6 +72,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Site and service worker
 
+- 2026-10-29: a `button.app-nav-item` made `navigationBoost` fetch `/undefined`; it takes `a.app-nav-item` only. A run's end toast needs the sheets island awake.
 - 2026-10-28: a layout element's `data-briefing="Briefing"` made every Regenerate send `replace: "Briefing"` (forms read `dataset.briefing` off the page). Words in a layout take a `data-word-` prefix.
 - 2026-10-28: a fixed wait for an answer that is nearly always slower is paid on every visit: measure it on the built site with a slow store stub. The browser suites need `node e2e/run.mjs --build-only`.
 - 2026-10-27: in-app moves swap the head's build meta: read it once (D202).

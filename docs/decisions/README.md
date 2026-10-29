@@ -224,7 +224,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D205 | Settings paint the kept copy at once | amends D172 |
 | D206 | Stay on npm; pnpm spiked | active |
 | D207 | A Regenerate asks for its own length | amends D204 |
-| D208 | A list of generations, with Cancel | amends D204 |
+| D208 | A list of generations, with Cancel | amends D204; list superseded by D231 |
 | D209 | Lane free in the hold | supersedes D135; amends D197 |
 | D210 | Typed HTML builders | active |
 | D211 | Copy says podcast, not briefing; code names keep briefing | active |
@@ -245,10 +245,11 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D227 | Firecrawl warns at 210 | supersedes D223 |
 | D228 | A failed dry run records its spend | amends D223, D227 |
 | D229 | Column centred; 12px label gap | active |
+| D231 | The podcast queue; its runs stay for the day | active; supersedes D208's list |
 | D232 | One cleaner turns scraped Markdown into prose | active |
 | D233 | Ingest in shadow: free sources, Blob text | active |
 | D234 | Vetted publishers pass the bar; topic rubric | active |
-| D238 | Color ramps: ten OKLCH steps | active |
+| D238 | Ten-step OKLCH ramps | active |
 | D239 | A travelling device is offered the new zone | active; amends D100 |
 
 ---
