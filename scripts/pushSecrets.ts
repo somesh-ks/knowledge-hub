@@ -59,6 +59,9 @@ const VERCEL_ENV = [
  */
 const VERCEL_ADMIN_ENV = ["ADMIN_PASSWORD", "ADMIN_SESSION_SECRET"];
 
+/** The admin gate's shortest session secret (MIN_SECRET in apps/admin/src/gate/gate.ts); shorter ones keep sign-in shut. */
+const ADMIN_SECRET_MIN = 32;
+
 /** The singularity-admin project's id. `vercel link` may have been pointed at another project. */
 const ADMIN_PROJECT_ID = "prj_2T9RXkKkI7mZBKGOEUzYVfsAuSjE";
 
@@ -189,10 +192,15 @@ function main(): void {
   // The reader's project: the repository root or apps/web. The admin project: apps/admin only.
   const vercelDir = linkedVercelDir([".", "apps/web"]);
   const adminDir = linkedVercelDir(["apps/admin"]);
-  const adminLinkOk =
-    adminDir !== undefined &&
-    JSON.parse(readFileSync(join(adminDir, ".vercel", "project.json"), "utf8")).projectId ===
-      ADMIN_PROJECT_ID;
+  let adminLinkOk = false;
+  if (adminDir) {
+    try {
+      const link = JSON.parse(readFileSync(join(adminDir, ".vercel", "project.json"), "utf8"));
+      adminLinkOk = link?.projectId === ADMIN_PROJECT_ID;
+    } catch {
+      // A truncated link file counts as no link.
+    }
+  }
   if (!vercelDir && only !== "github" && !dryRun) {
     console.error(
       "The Vercel project is not linked. Run `vercel link` first, or use --only github.",
@@ -237,6 +245,9 @@ function main(): void {
         case "vercel-admin":
           if (!adminDir || !adminLinkOk) {
             throw new Error("apps/admin is not linked to singularity-admin: run vercel link there");
+          }
+          if (target.name === "ADMIN_SESSION_SECRET" && value.length < ADMIN_SECRET_MIN) {
+            throw new Error(`ADMIN_SESSION_SECRET needs ${ADMIN_SECRET_MIN} or more characters`);
           }
           run(
             "npx",
