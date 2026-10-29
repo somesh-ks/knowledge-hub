@@ -186,7 +186,7 @@ test.describe("one page gutter", () => {
     // Latest's desktop hero is centred in its own layout, so it joins on the phone only.
     const width = page.viewportSize()?.width ?? 0;
     const wide = width >= 1024;
-    // From 80rem the Library is as wide as the column and a contents list together, centred (D224), so
+    // From 80rem the Library is as wide as the column and a contents list together, centred (D225), so
     // its title is not the column's.
     const paths = [
       ...(wide ? [] : ["/"]),

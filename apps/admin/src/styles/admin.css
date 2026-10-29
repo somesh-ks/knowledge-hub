@@ -1,0 +1,279 @@
+/*
+ * What the command center adds to the reader's own stylesheets (Shell.astro imports those). Kept to
+ * what the reader has no class for.
+ */
+
+/* A card that holds a figure and its chart, spaced as the Costs and Health summary cards are. */
+.card-group.admin-card {
+  display: grid;
+  gap: var(--space-8);
+  padding: var(--card-padding);
+}
+
+/* A card and the rows that follow it in one section are two cards, a gap apart. */
+.settings-view section > .card-group + .card-group {
+  margin-block-start: var(--space-4);
+}
+
+/* ------------------------------------------------------------------ the name */
+
+/* "Singularity" with a quiet "Admin" tag beside it: the product is one product, this is its back
+   room (2026-10-29, the owner). The tag is the overlay tone at the meta step, a pill. */
+.app-nav-brand {
+  padding-inline-end: 0;
+}
+
+/* The side column is 16rem here, so the name and its tag fit on one line (the reader's is 13rem). */
+:root {
+  --nav-side-width: 16rem;
+}
+
+.admin-tag {
+  margin-inline-start: calc(var(--space-1) * -1);
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-round);
+  background: var(--color-surface-overlay);
+  color: var(--color-on-surface-muted);
+  font-size: var(--text-meta-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--space-6);
+}
+
+/* ------------------------------------------------------------------ the overview */
+
+/* The Overview's two cards read at a glance: a status badge or a figure first, then marks, with
+   words only where a mark cannot say it (2026-10-29, the owner: too much text, no visuals). */
+.ov-card {
+  display: grid;
+  margin-block-start: 0;
+  padding: var(--card-padding);
+}
+
+/* A card is blocks a hairline apart (2026-10-29, the owner: dividers are welcome): the answer, then
+   what backs it. 16px either side of the line. */
+.ov-card > * + *,
+.ov-groups > * + * {
+  margin-block-start: var(--space-4);
+  padding-block-start: var(--space-4);
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+}
+
+.ov-block {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.ov-split {
+  gap: var(--space-6);
+}
+
+.ov-data {
+  transition: opacity var(--duration-state) var(--ease-out);
+}
+
+[data-loading] .ov-data {
+  opacity: 0.6;
+}
+
+.ov-answer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.ov-figure {
+  margin: 0;
+  font-family: var(--text-display-family);
+  font-size: var(--text-display-size);
+  font-weight: var(--text-display-weight);
+  letter-spacing: var(--text-display-tracking);
+  line-height: var(--text-display-leading);
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-sub {
+  margin: 0;
+  color: var(--color-on-surface-muted);
+  font-size: var(--text-meta-size);
+  line-height: var(--space-6);
+}
+
+.ov-badge,
+.ov-flag-icon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  color: var(--ov-tone, var(--color-on-surface-muted));
+}
+
+/* The verdict is a glyph in its tone, on the card's own surface: no disc, no tinted card. */
+.ov-badge .icon {
+  inline-size: var(--space-8);
+  block-size: var(--space-8);
+}
+
+[data-tone="good"] {
+  --ov-tone: var(--color-success);
+}
+
+[data-tone="warn"] {
+  --ov-tone: var(--color-warning);
+}
+
+[data-tone="bad"] {
+  --ov-tone: var(--color-danger);
+}
+
+/* Health: what needs a look is one line each, worst first; what is fine is one dot per check in a
+   strip per group, so a page of good news is four short lines. */
+.ov-groups {
+  display: grid;
+}
+
+.ov-flags {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Rows in a list are a hairline apart too. */
+.ov-flag-item + .ov-flag-item,
+.ov-strip + .ov-strip {
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+}
+
+/* A flagged check is one line: glyph, name, reading. The fuller line is its tooltip and the Health
+   page's. */
+.ov-flag {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--size-touch);
+  color: var(--color-on-surface);
+  line-height: var(--space-6);
+  text-decoration: none;
+}
+
+.ov-flag-icon .icon {
+  inline-size: var(--size-icon);
+  block-size: var(--size-icon);
+}
+
+.ov-flag-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-flag-value {
+  color: var(--color-on-surface-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ov-strips {
+  display: grid;
+}
+
+.ov-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-block-size: var(--size-touch);
+  color: var(--color-on-surface);
+  text-decoration: none;
+}
+
+.ov-dots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* Spend: the chart is the reader's (costs.css); its plot is positioned for the hover readout, and a
+   hovered day lifts out of the others. */
+.ov-plot {
+  position: relative;
+  margin-block-start: 0;
+}
+
+.ov-tip {
+  position: absolute;
+  inset-block-start: 0;
+  translate: -50% 0;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-on-surface);
+  color: var(--color-surface);
+  font-size: var(--text-meta-size);
+  line-height: var(--space-4);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  white-space: pre;
+}
+
+.costs-columns[data-hover] .costs-mark:not([data-on]) {
+  opacity: 0.4;
+}
+
+/* The split by service: one bar, one hue, darkest for the largest, a gap between segments. */
+.ov-share {
+  display: flex;
+  gap: var(--space-1);
+  block-size: var(--space-2);
+  border-radius: var(--radius-round);
+  overflow: hidden;
+}
+
+.ov-share-seg,
+.ov-swatch {
+  background: color-mix(in oklab, var(--color-accent) var(--tint), var(--color-surface-overlay));
+}
+
+.ov-share-seg {
+  min-inline-size: var(--space-1);
+}
+
+.ov-legend {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ov-legend-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-2);
+  line-height: var(--space-6);
+}
+
+.ov-swatch {
+  inline-size: var(--space-2);
+  block-size: var(--space-2);
+  border-radius: var(--radius-round);
+}
+
+.ov-legend-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-legend-share {
+  min-inline-size: 3ch;
+  color: var(--color-on-surface-muted);
+  font-size: var(--text-meta-size);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+/* A failed ask leaves its figure and its note, nothing to plot. */
+[data-failed] :is(.ov-plot, .ov-share, .ov-legend) {
+  display: none;
+}
