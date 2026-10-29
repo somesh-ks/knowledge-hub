@@ -14,7 +14,7 @@ Updated 2026-10-29. Rewrite, never append. [Specs](specs/README.md), [decisions]
 
 ## Tests
 
-Unit (CI): 311 files, 5,010 tests, 86 s. Site e2e: 411 runs, 10 min. Player e2e: 77 runs, 6 min.
+Unit (CI): 312 files, 5,017 tests, 86 s. Site e2e: 411 runs, 10 min. Player e2e: 77 runs, 6 min.
 
 ## Not working or unverified
 
@@ -23,17 +23,17 @@ Unit (CI): 311 files, 5,010 tests, 86 s. Site e2e: 411 runs, 10 min. Player e2e:
 - Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused; a regenerate or delete uses none.
 - Three regenerations per podcast, counted in its own file (D212). closed when: one regenerated live shows "2 of 3 regenerations left" and its file has `regenerations: 1`.
 - Short podcasts (D204, D216 to D225). closed when: two dailies in a row air within 10% of their length, `singularity metrics` shows ten runs at `length_share` 0.9 or more, `failure_rate` 0.1 or less, and a Regenerate pressed during a Catch up publishes both.
+- Ingest in shadow (D233). closed when: for 7 days the store holds 90% of each daily's aired stories and read 90% of pages tried (check next).
 - Run names (D217), Neon run log (D221). closed when: a daily is named `daily <date>`, is off the queue, with `pipeline_runs` rows.
 - `.github/workflows/podcast.yml` lost its ffmpeg step in this branch (workflow files need a manual merge). closed when: the owner merges it and a Catch up reaches its first stage within 5 s of the runner starting.
 - A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): `run.yml` gained a `length_minutes` input, which must merge with the site code or GitHub refuses the dispatch. closed when: a Regenerate at 10 minutes airs within 10% of 10.
 - Generations list and Cancel (D208): only against fakes. `POST /api/cancel` needs the token's Actions write; a cancelled Catch up stays "writing" until the 24 h prune and, stopped while recording voices, loses its usage charge. closed when: the owner cancels a real Catch up and it ends as Cancelled.
-- Not built: a length option above 15 minutes (the narration request is full). closed when: the owner asks for it.
 - Discovery copies rank below an outlet's own entry in dedupe. closed when: a run's dedupe report keeps the outlet's entry where a discovery copy was found.
 - Opus on runners (D198, #381, #388). closed when: an audio run logs `ffmpeg version`, its digest has `m4a_url`, and the owner plays /d/2026-10-24 on an iPhone.
 - Alexandria pilot (D200). closed when: a run log shows `anthropic-blog` fetched via `alexandria:anthropic-com` with dated posts.
-- Owner's eye: the bar's centring (more than 1px), the centred column and label gap (D229), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off on a phone and a laptop.
+- Owner's eye: the bar's centring (over 1px), the centred column and label gap (D229), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off on a phone and a laptop.
 - Live content (plan 20): an open page elsewhere does not refresh within 60 s; `smokeLive.mjs --apply` never ran on production (criterion 10, owner's); offline copies of a removed episode and Listen now after a delete are unaudited. closed when: each is checked.
-- Settings paint the kept store copy at once, the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change still waits for the store, up to 2.5 s. closed when: the owner signs off on a phone.
+- Settings paint the kept store copy at once, the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change waits for the store, up to 2.5 s. closed when: the owner signs off on a phone.
 - Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push`; no run used a mix, perspective or cap. closed when: a production source's format comes from Jev and a digest follows a mix change.
 - YouTube text: Firecrawl's transcripts answered live (10-24), Gemini 10-19; no full run used either. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
 - YouTube feeds 404 on runners (since 10-14); #235 reads them via Firecrawl. closed when: a run's fetch lists the five in `relayed_sources`.
@@ -55,16 +55,16 @@ Unit (CI): 311 files, 5,010 tests, 86 s. Site e2e: 411 runs, 10 min. Player e2e:
 
 ## Known risks
 
-- Vercel storage near 10 GB (10-24), not explained by narration (4 MB a digest, pruned at 120 days). closed when: explained.
+- Vercel storage near 10 GB (10-24), not narration (4 MB a digest, pruned at 120 days). closed when: explained.
 - No passphrase (D160): anyone with the URL can run, narrate, delete and edit config, inside the caps.
 - Budget counters can read below real spend (an edit that does not lengthen a briefing, two charges at once, a function killed mid-synthesis); the workflow and site keep separate counters against one Speechify allowance.
-- A save made while a briefing runs waits in the `singularity` queue; a later save replaces an earlier waiting one; closing the tab in the 10 s gap loses it (D79, D91).
+- A save made while a briefing runs waits in the `singularity` queue; a later save replaces it; closing the tab in the 10 s gap loses it (D79, D91).
 
 ## Next
 
 1. Free the lane in the hold ([D209](decisions/engine.md)).
 2. Owner: regenerate the 3-story 10-27 briefing? Revoke the Vercel token pasted in chat; delete the empty store `store_JmrDq8MB5Kwn3ejW`; the open calls in [the PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md).
-3. Firecrawl: a per-source yield table (21 sources gave about 1 story per 4,460 credits a month) for the owner to prune; changelog providers (Claude, OpenAI) once the pilot holds.
+3. Firecrawl: a per-source yield table for the owner to prune (21 sources gave 1 story per 4,460 credits a month); changelog providers once the pilot holds.
 4. Lighthouse: defer BaseLayout's 34 KiB CSS without breaking the resumed bar; the 19 KiB unused; the 1.4 s chain (share, overlays, Create tools on touch). Re-run after CSS changes.
 5. `topic` to `category` end to end (plan 14): an inventory the owner reviews, dual-name readers, a store-synced migration, the rename, workflow outputs, then the old names go; only with no other PR open ([starting points](history/2026-10-25-owner-feedback-pass.md#left-out-for-a-later-session)).
 6. Design-system sweep (plan 17): `/settings/*`, category pages, player, create; light and dark at 390 and 1280; one PR per component family.
