@@ -205,19 +205,8 @@ function scheduleOps(
     set.length_minutes = stored.lengthMinutes as ScheduleSet["length_minutes"];
   if (built.voiceId !== stored.voiceId) set.voice_id = stored.voiceId;
   if (built.voiceIdB !== stored.voiceIdB) set.voice_id_b = stored.voiceIdB;
-  if (built.lookbackHours !== stored.lookbackHours)
-    set.lookback_hours = stored.lookbackHours as ScheduleSet["lookback_hours"];
   const weekly: NonNullable<ScheduleSet["weekly"]> = {};
-  for (const key of [
-    "enabled",
-    "day",
-    "hour",
-    "format",
-    "length_minutes",
-    "voice_id",
-    "voice_id_b",
-    "lookback_hours",
-  ] as const)
+  for (const key of ["enabled", "day", "hour", "length_minutes", "voice_id", "voice_id_b"] as const)
     if (built.weekly[key] !== stored.weekly[key])
       Object.assign(weekly, { [key]: stored.weekly[key] });
   if (Object.keys(weekly).length > 0) set.weekly = weekly;

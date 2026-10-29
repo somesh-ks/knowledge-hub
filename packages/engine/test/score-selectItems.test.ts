@@ -103,43 +103,6 @@ describe("sections from the schedule", () => {
     });
     expect(result.outcome).toBe("nothing");
   });
-
-  // The owner sets how far back a podcast looks on its settings page; a story older than that
-  // would air as news after the owner said it was too old to.
-  it("leaves out a story older than the podcast's lookback, dated by its fetch when it has no date", () => {
-    const now = new Date("2026-10-24T06:00:00Z");
-    const fresh = scored("design_engineering_craft", 0.9, { published_at: "2026-10-23T12:00:00Z" });
-    const old = scored("frontier_model_releases", 0.85, { published_at: "2026-10-21T06:00:00Z" });
-    const undated = scored("hci_empirical_research", 0.8, {
-      published_at: undefined,
-      fetched_at: "2026-10-20T06:00:00Z",
-    });
-    const items = [fresh, old, undated];
-    const limited = selectItems({
-      scored: items,
-      kind: "regular",
-      floor: 1,
-      cap: 12,
-      lookbackHours: 24,
-      now,
-    });
-    expect(ids(limited.selected)).toEqual([fresh.item.id]);
-    expect(
-      limited.dropped
-        .filter((d) => d.reason === "too_old")
-        .map((d) => d.id)
-        .sort(),
-    ).toEqual([old.item.id, undated.item.id].sort());
-    const auto = selectItems({
-      scored: items,
-      kind: "regular",
-      floor: 1,
-      cap: 12,
-      lookbackHours: null,
-      now,
-    });
-    expect(auto.selected).toHaveLength(3);
-  });
 });
 
 describe("eligibility", () => {

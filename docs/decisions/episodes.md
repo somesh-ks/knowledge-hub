@@ -184,6 +184,7 @@ What an episode or briefing is: kinds and structure, length, regenerate, Catch u
 - Decision: Daily and Weekly each have a Look back row in Episode: since the last episode (the default, no field written) or 12 hours, 1, 2, 3 or 7 days, stored as `lookback_hours` at the top of `config/schedule.json` and in `weekly`. Selection drops a story dated (or, undated, fetched) before the lookback as `too_old`. Catch up and briefings run by hand ignore it.
 - Why: the fetch window (since the last fetch, at most 7 days) decides what is read; the lookback only narrows what airs, so it cannot reach stories the engine never fetched, and an unset field keeps every run as it was.
 - Revisit if: a lookback longer than the fetch window is wanted, which needs the fetch to read further back.
+- Superseded by: D215 (2026-10-29): the row, the stored fields and the `too_old` drop are gone.
 
 ## D191: one podcast structure, chosen by listener profile, sized to the episode's length
 

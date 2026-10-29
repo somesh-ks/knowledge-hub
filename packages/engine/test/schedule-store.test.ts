@@ -39,21 +39,18 @@ describe("loadSchedule", () => {
     expect(await loadSchedule(root)).toEqual(saved);
   });
 
-  // The file is written field by field: a field left out of the writer is lost on the next edit.
-  it("keeps each podcast's lookback through a write and a read, and writes none while it is Auto", async () => {
-    const saved = {
+  // Daily and Weekly look back since their last episode and have no type to set. A stored lookback
+  // that still acted would narrow a podcast with no row left to clear it.
+  it("reads past a lookback and a weekly type from an older file, and writes neither", async () => {
+    const older = {
       ...DEFAULT_SCHEDULE,
-      lookback_hours: 24 as const,
-      weekly: { ...DEFAULT_SCHEDULE.weekly, lookback_hours: 168 as const },
+      lookback_hours: 24,
+      weekly: { ...DEFAULT_SCHEDULE.weekly, lookback_hours: 168, format: "discussion" },
     };
-    await writeFile(join(root, "config", "schedule.json"), serializeSchedule(saved));
+    await writeFile(join(root, "config", "schedule.json"), JSON.stringify(older));
     const read = await loadSchedule(root);
-    expect(read.lookback_hours).toBe(24);
-    expect(read.weekly.lookback_hours).toBe(168);
-    expect(serializeSchedule({ ...saved, lookback_hours: null })).toBe(
-      serializeSchedule({ ...DEFAULT_SCHEDULE, weekly: saved.weekly }),
-    );
-    expect(serializeSchedule(DEFAULT_SCHEDULE)).not.toContain("lookback_hours");
+    expect(read).toEqual(DEFAULT_SCHEDULE);
+    expect(serializeSchedule(read)).not.toMatch(/lookback_hours|"format": "discussion"/);
   });
 
   it("reads a file written before length existed", async () => {

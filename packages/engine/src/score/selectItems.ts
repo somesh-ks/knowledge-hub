@@ -54,8 +54,6 @@ export type DropReason =
   | "never_publish"
   | "below_threshold"
   | "over_cap"
-  /** Older than the podcast's lookback (`lookback_hours` in config/schedule.json). */
-  | "too_old"
   /** A third story or later from one outlet (OUTLET_CAP), or past its block's own count. */
   | "over_outlet"
   /** A Tech releases candidate beyond that section's own allowance. */
@@ -107,9 +105,6 @@ export interface SelectInput {
   onlyTopics?: readonly string[];
   /** The briefing's structure: section order, Top picks and allowances. Absent is the default. */
   plan?: SectionPlan;
-  /** The podcast's lookback in hours and the run's clock; either absent looks back without a limit. */
-  lookbackHours?: number | null;
-  now?: Date;
 }
 
 export interface SelectResult {
@@ -383,18 +378,7 @@ export function selectItems(input: SelectInput): SelectResult {
   const dropped: DroppedItem[] = [];
   const candidates: Candidate[] = [];
 
-  const lookback = input.lookbackHours ?? null;
-  const oldest =
-    lookback === null || input.now === undefined
-      ? Number.NEGATIVE_INFINITY
-      : input.now.getTime() - lookback * 3_600_000;
   for (const scored of input.scored) {
-    // A story is as old as its publication, or its fetch when the source gave no date.
-    const at = Date.parse(scored.item.published_at ?? scored.item.fetched_at);
-    if (at < oldest) {
-      dropped.push({ id: scored.item.id, reason: "too_old", score: scored.score });
-      continue;
-    }
     const verdict = eligibility(scored, threshold, input.offCategories);
     if (verdict.eligible) {
       if (

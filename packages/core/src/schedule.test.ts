@@ -88,7 +88,6 @@ describe("ScheduleFile", () => {
       day: 0,
       hour: 9,
       skip_topics: [],
-      format: "readout",
       length_minutes: 10,
       voice_id: null,
       voice_id_b: null,
@@ -121,17 +120,14 @@ describe("ScheduleFile", () => {
     }
   });
 
-  it("refuses a weekly day outside 0 to 6, an hour outside 0 to 23 and the headlines type", () => {
+  it("refuses a weekly day outside 0 to 6 and an hour outside 0 to 23", () => {
     const weekly = (patch: object) => ({
       ...DEFAULT_SCHEDULE,
       weekly: { ...DEFAULT_SCHEDULE.weekly, ...patch },
     });
     expect(ScheduleFile.safeParse(weekly({ day: 7 })).success).toBe(false);
     expect(ScheduleFile.safeParse(weekly({ hour: 24 })).success).toBe(false);
-    expect(ScheduleFile.safeParse(weekly({ format: "headlines" })).success).toBe(false);
-    expect(ScheduleFile.safeParse(weekly({ day: 6, hour: 23, format: "discussion" })).success).toBe(
-      true,
-    );
+    expect(ScheduleFile.safeParse(weekly({ day: 6, hour: 23 })).success).toBe(true);
   });
 
   it("accepts every length and refuses others", () => {
