@@ -11,7 +11,7 @@ import { type Plan, writePlan } from "../src/run/plan.js";
 import { SpendTracker, spendDelta } from "../src/run/spend.js";
 import { addStageCost, addStageTime, noteStageFailure } from "../src/run/stageClock.js";
 import type { SqlClient } from "../src/store/configPaths.js";
-import { readStageTimings } from "../src/store/runsStore.js";
+import { type RunRecord, readStageTimings, recordPipelineRun } from "../src/store/runsStore.js";
 import { captureLog } from "./write-fakes.js";
 
 vi.setConfig({ testTimeout: 30_000 });
@@ -146,6 +146,38 @@ describe("the run log", () => {
     ).rows;
     // Started 05:13, logged 06:57: 104 minutes in all, 84 seconds of work.
     expect(row).toMatchObject({ outcome: "published", work_ms: 84_000, total_ms: 104 * 60_000 });
+  });
+
+  // A Catch up resumed after a failed attempt writes its run again with the retry's own span.
+  it("keeps a resumed run's first start and spans it to the last finish", async () => {
+    const { sql, db } = neon();
+    const attempt = (startedAt: string, finishedAt: string, totalMs: number): RunRecord => ({
+      run_id: "ep-20261029-1405",
+      workflow: "podcast",
+      kind: "catch_up",
+      mode: "create",
+      replaces: null,
+      dry_run: false,
+      outcome: "published",
+      podcasts: ["ep-20261029-1405"],
+      started_at: startedAt,
+      finished_at: finishedAt,
+      work_ms: 125_000,
+      total_ms: totalMs,
+      usd: 0.4,
+      failure: null,
+      github_run_id: "99",
+      stages: [],
+    });
+    await recordPipelineRun(sql, attempt("2026-10-29T14:05:00Z", "2026-10-29T14:08:00Z", 180_000));
+    await recordPipelineRun(sql, attempt("2026-10-29T14:06:55Z", "2026-10-29T14:09:00Z", 125_000));
+    const [row] = (
+      await db.query<{ started_at: Date; total_ms: number }>(
+        "select started_at, total_ms from pipeline_runs",
+      )
+    ).rows;
+    expect(row?.started_at.toISOString()).toBe("2026-10-29T14:05:00.000Z");
+    expect(row?.total_ms).toBe(240_000);
   });
 
   // The timing a Health row would show: a dry run is a test of the pipeline and a failed or cancelled run stops
