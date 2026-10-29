@@ -70,9 +70,12 @@ export function checkDocs(root) {
     if (!entries.has(id)) fails.push(`docs/decisions/README.md: Index row ${id} has no entry`);
   for (const id of entries)
     if (!rows.has(id)) fails.push(`docs/decisions/README.md: ${id} has no Index row`);
-  for (const m of decisions.matchAll(/superseded by (D\d+)/gi)) {
-    if (!entries.has(m[1]))
-      fails.push(`docs/decisions: "${m[0]}" names a decision that does not exist`);
+  const superseded = new Map(
+    [...`${index}\n${decisions}`.matchAll(/superseded by (D\d+)/gi)].map((m) => [m[0], m[1]]),
+  );
+  for (const [phrase, id] of superseded) {
+    if (!entries.has(id))
+      fails.push(`docs/decisions: "${phrase}" names a decision that does not exist`);
   }
 
   // An open item says what closes it, so a stale note can be told from a real question.

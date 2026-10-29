@@ -17,8 +17,9 @@ function repo(files: Record<string, string>): string {
     "docs/state.md":
       "# State\n\n## Not working or unverified\n\n- The flick. closed when: it passes ten runs.\n",
     "docs/decisions/README.md":
-      "# Decisions\n\n## Index\n\n| ID | Decision | Status |\n| D1 | One | active |\n",
+      "# Decisions\n\n## Index\n\n| ID | Decision | Status |\n| D1 | One | active |\n| D2 | Two | active |\n",
     "docs/decisions/area.md": "# Area\n\n## D1: One\n\nBody.\n",
+    "docs/decisions/area-two.md": "# Area two\n\n## D2: Two\n\nBody.\n",
   };
   for (const [rel, text] of Object.entries({ ...base, ...files })) {
     mkdirSync(dirname(join(root, rel)), { recursive: true });
@@ -43,6 +44,7 @@ describe("docs check", () => {
         "docs/decisions/README.md":
           "## Index\n\n| D1 | One | superseded by D9 |\n| D2 | Two | active |\n",
         "docs/decisions/area.md": "## D1: One\n\nsuperseded by D9\n",
+        "docs/decisions/area-two.md": "# Area two\n",
         "docs/learnings.md": "See [the note](history/gone.md). Fixed in `scripts/moved.ts`.\n",
       }),
     );
