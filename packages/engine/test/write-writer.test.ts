@@ -529,6 +529,36 @@ describe("enforceVoice", () => {
     ]);
   });
 
+  // 2026-10-29 dry run: 4 of 15 stories were dropped for a fifth summary sentence or a headline two
+  // words over, after a rewrite that missed the limit again. A cut fixes both with no model call.
+  it("cuts a summary's fifth sentence and a headline's trailing clause instead of rewriting them", async () => {
+    const writer = scriptedWriter([]);
+    const long = {
+      ...good(m.id),
+      headline:
+        "Springlet 2.0 now retargets springs mid-flight, and keeps every drawer's velocity intact across slow phones",
+      summary: `${good(m.id).summary} The release notes list nine more fixes. A migration guide ships separately.`,
+      // 5 sentences: the good summary has 3.
+    };
+    const out = await enforceVoice({ written: [long], materials, writer, linter });
+    expect(writer.requests).toHaveLength(0);
+    expect(out.dropped).toEqual([]);
+    expect(out.passed[0]?.item.headline).toBe("Springlet 2.0 now retargets springs mid-flight");
+    expect(out.passed[0]?.item.summary).toBe(
+      `${good(m.id).summary} The release notes list nine more fixes.`,
+    );
+  });
+
+  it("cuts the rewrite too when the rewrite is still over the limit", async () => {
+    const wordy = { ...good(m.id), headline: "An incredible release!" };
+    const writer = scriptedWriter([
+      "Springlet 2.0 now retargets springs mid-flight, and keeps every drawer's velocity intact across slow phones",
+    ]);
+    const out = await enforceVoice({ written: [wordy], materials, writer, linter });
+    expect(out.dropped).toEqual([]);
+    expect(out.passed[0]?.item.headline).toBe("Springlet 2.0 now retargets springs mid-flight");
+  });
+
   it("rewrites a failing field once and keeps the item", async () => {
     const writer = scriptedWriter(["Springlet 2.0 retargets springs"]);
     const bad = { ...good(m.id), headline: "An incredible release!" };

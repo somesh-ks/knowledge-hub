@@ -102,7 +102,7 @@ jobs:
         run: npm run --silent singularity -- podcast --request "$REQUEST" --stage publish --artifacts "$RUNNER_TEMP/podcast-stages"
 
       # Writes this run to Neon with the time of each stage and the writer's cost, whatever its end
-      # (D220), so a Catch up that failed is on record too. A delete is not logged. A measurement
+      # (D221), so a Catch up that failed is on record too. A delete is not logged. A measurement
       # never fails the run it measures.
       - name: Log run
         if: always()

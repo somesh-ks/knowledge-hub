@@ -236,6 +236,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D217 | `run.yml` names every run for what it is | active; amends D61, D213 |
 | D218 | A block's count is a proportion; the length is the limit | active; amends D170 |
 | D219 | A day's Catch ups are one album, chosen by a select before Play | active |
-| D220 | Runs are logged to Neon with stage times and costs | active |
+| D220 | Over-limit summaries and headlines are cut | active |
+| D221 | Runs are logged to Neon with stage times and costs | active |
 
 ---

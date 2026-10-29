@@ -17,7 +17,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 /**
- * The record of the Catch up run in progress (D220), from what its steps left in the artifact
+ * The record of the Catch up run in progress (D221), from what its steps left in the artifact
  * directory: the episode id the select stage allocated, the stage times, and the stage that failed.
  * The cost is what the ledger holds for the episode (the script step records the writer's tokens
  * there), shown on the script stage. A delete is not a run worth measuring, so it has no record.

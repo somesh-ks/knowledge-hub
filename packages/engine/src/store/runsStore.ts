@@ -2,7 +2,7 @@ import type { SqlClient } from "./configPaths.js";
 import { missingTable, withTable } from "./pgErrors.js";
 
 /**
- * Every generation run in Neon (D220): one row in `pipeline_runs` and one per stage in
+ * Every generation run in Neon (D221): one row in `pipeline_runs` and one per stage in
  * `pipeline_stages`, written by the engine when a run ends, whatever its end (published, nothing,
  * failed) and whatever its kind (a dry run, a regeneration, a Catch up). It is the measuring layer
  * of the store-as-truth plan: timings and cost per stage that the committed run metrics and the
