@@ -21,6 +21,13 @@ describe("a day's Catch ups as one album", () => {
     ]);
   });
 
+  it("keeps two names apart when the clocks go back and one local time is lived twice", () => {
+    // On 2026-10-25 Stockholm repeats 02:30: 00:30Z is summer time (+2), 01:30Z is winter time (+1).
+    expect(
+      albumLabels(["2026-10-25T00:30:00Z", "2026-10-25T01:30:00Z"], "Europe/Stockholm"),
+    ).toEqual(["Catch up at 02:30 (GMT+2)", "Catch up at 02:30 (GMT+1)"]);
+  });
+
   it("holds the episodes of one Stockholm day, earliest first, and none for a day with one", () => {
     const episodes = [
       entry("late", "2026-10-06T20:00:00Z", "2026-10-06"),

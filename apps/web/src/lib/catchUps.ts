@@ -23,26 +23,37 @@ interface AlbumEpisode {
   episode: { date: string; generated_at: string };
 }
 
-function timeOf(at: string, zone: string | undefined): { hour: string; minute: string } {
+function timeOf(
+  at: string,
+  zone: string | undefined,
+): { hour: string; minute: string; offset: string } {
   const parts = new Intl.DateTimeFormat("en-GB", {
     ...(zone ? { timeZone: zone } : {}),
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
+    timeZoneName: "shortOffset",
   }).formatToParts(new Date(at));
   const of = (type: string) => parts.find((part) => part.type === type)?.value ?? "00";
-  return { hour: of("hour"), minute: of("minute") };
+  return { hour: of("hour"), minute: of("minute"), offset: of("timeZoneName") };
 }
 
 /**
  * The names of a set of Catch ups, by their start times, in `zone` (the viewer's own when left out).
- * The hour is two digits ("09"), so a name is as wide at 9 as at 14. Two started in one hour would
- * read the same, so every name then carries its minutes.
+ * The hour is two digits ("09"), so a name is as wide as any other. Two started in one hour would
+ * read the same, so every name then carries its minutes; two that still read the same (the hour the
+ * clocks go back is lived twice) also carry their offset from UTC.
  */
 export function albumLabels(ats: readonly string[], zone?: string): string[] {
   const times = ats.map((at) => timeOf(at, zone));
-  const clash = new Set(times.map((time) => time.hour)).size < times.length;
-  return times.map(({ hour, minute }) => `Catch up at ${hour}${clash ? `:${minute}` : ""}`);
+  const distinct = (key: (time: (typeof times)[number]) => string) =>
+    new Set(times.map(key)).size === times.length;
+  const withMinutes = !distinct((time) => time.hour);
+  const withOffset = withMinutes && !distinct((time) => `${time.hour}:${time.minute}`);
+  return times.map(
+    ({ hour, minute, offset }) =>
+      `Catch up at ${hour}${withMinutes ? `:${minute}` : ""}${withOffset ? ` (${offset})` : ""}`,
+  );
 }
 
 /**
