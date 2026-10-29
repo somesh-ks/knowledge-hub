@@ -296,6 +296,7 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Why: the shell reserved the contents list's 14rem track on every page, so the column sat left of the pane's middle (96px on the left and 384px on the right at 1280) whether or not the page had a list; 8px between a label and its field left it on the outline. The blue ring on the admin sign-in is the focus ring of an autofocused field, not a resting colour.
 - Rejected: mirroring the track on the left (a column of air beside a column of air); hiding the list below 90rem (the owner asked for it at 80rem).
 - Revisit if: the contents list needs more than 11rem at 80rem (a long section name wraps).
+
 ## D238: every color ramp is ten steps on one OKLCH curve
 
 - Date: 2026-10-29 (the owner: "certain colors only have limited shades and blue and gray have so many ... only 10 shades per color ... a color theme generation curve that we respect, linked to OKLCH").
