@@ -479,7 +479,10 @@ export function selectItems(input: SelectInput): SelectResult {
     (!isReleaseStory(candidate) || releasesIn() < releaseRoom) && roomIn(candidate);
   const take = (candidate: Candidate): void => {
     chosen.add(candidate);
-    perSection.set(candidate.home, (perSection.get(candidate.home) ?? 0) + 1);
+    // A release story airs under release news, so it does not use up its home section's count.
+    if (!isReleaseStory(candidate)) {
+      perSection.set(candidate.home, (perSection.get(candidate.home) ?? 0) + 1);
+    }
   };
   // Every topic with a story that cleared the bar gets its best one first, so a strong section
   // cannot crowd a selected topic out of the briefing.
@@ -497,16 +500,11 @@ export function selectItems(input: SelectInput): SelectResult {
   }
   // Each block reaches its own count before any section takes spares, so a count-1 section's strong
   // leftovers cannot crowd out a section still short of its count (D217).
+  const counted = (candidate: Candidate): boolean =>
+    plan.limit(isReleaseStory(candidate) ? RELEASE_SECTION : candidate.home) !== null;
   for (const candidate of main) {
     if (chosen.size >= limit) break;
-    if (
-      !chosen.has(candidate) &&
-      !isReleaseStory(candidate) &&
-      plan.limit(candidate.home) !== null &&
-      fits(candidate)
-    ) {
-      take(candidate);
-    }
+    if (!chosen.has(candidate) && counted(candidate) && fits(candidate)) take(candidate);
   }
   // A block's count is the proportion between sections, not a ceiling (D217): the settings length is
   // the only size limit (#147), so room left after the counts goes to the best stories that remain.

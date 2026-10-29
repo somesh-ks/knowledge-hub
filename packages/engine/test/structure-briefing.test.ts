@@ -266,6 +266,47 @@ describe("a block's count is a proportion, not a ceiling, when the length wants 
     expect(taken(other)).toBe(1);
   });
 
+  it("meets a release-news count above the per-section target, and a release does not use up its home section's count", () => {
+    // Release stories air under release news, so they neither use up their home section's count nor
+    // stop short of their own at 3 (CodeRabbit, #418).
+    const release = (n: number) => scoredIn("developer_tool_launches", 0.7 - n * 0.01, n + 40);
+    const spareFirst = [
+      ...Array.from({ length: 8 }, (_, n) =>
+        scoredIn("ai_ux_interaction_patterns", 0.95 - n * 0.01, n + 20),
+      ),
+      ...Array.from({ length: 7 }, (_, n) =>
+        scoredIn("software_engineering_depth", 0.8 - n * 0.01, n + 60),
+      ),
+      ...Array.from({ length: 5 }, (_, n) => release(n)),
+    ].map((scoredItem, n) => {
+      const isRelease = scoredItem.topCategory === "developer_tool_launches";
+      const title = isRelease ? `Library ${n} 2.0 ships` : scoredItem.item.title;
+      return { ...scoredItem, item: { ...scoredItem.item, title } };
+    });
+    const counted = sectionPlanFor(
+      blocks([
+        { type: "hello" },
+        { type: "section", id: "ai", max_stories: 1 },
+        { type: "section", id: "software", max_stories: 5 },
+        { type: "release_news", stories: 4 },
+        { type: "sign_off" },
+      ]),
+    );
+    const result = selectItems({
+      scored: spareFirst,
+      kind: "regular",
+      floor: 1,
+      cap: 20,
+      total: 10,
+      plan: counted,
+    });
+    const taken = (section: string) =>
+      result.selected.filter((item) => item.section === section).length;
+    expect(taken("launches")).toBe(4);
+    expect(taken("software")).toBe(5);
+    expect(taken("ai")).toBe(1);
+  });
+
   it("keeps to the count when the length asks for no more", () => {
     const narrow = selectItems({ scored, kind: "regular", floor: 1, cap: 12, total: 2, plan });
     expect(narrow.selected).toHaveLength(2);
