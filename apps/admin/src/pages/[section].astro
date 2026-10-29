@@ -1,10 +1,11 @@
 ---
+import AdminHead from "../components/AdminHead.astro";
 import Shell from "../layouts/Shell.astro";
-import { SECTIONS, STATUS_LABEL } from "../lib/sections";
+import { SECTIONS } from "../lib/sections";
 
 export function getStaticPaths() {
-  return SECTIONS.map((section) => ({
-    params: { section: section.href.slice(1) },
+  return SECTIONS.filter((section) => section.path !== "").map((section) => ({
+    params: { section: section.path.slice(1) },
     props: { section },
   }));
 }
@@ -12,21 +13,16 @@ export function getStaticPaths() {
 const { section } = Astro.props;
 ---
 
-<Shell title={section.label}>
-  <div class="page-head">
-    <p class="kicker">{section.label}</p>
-    <h1 class="page-title">{section.label}</h1>
-    <p class="page-note">{section.question}</p>
-  </div>
-  <div class="panels">
-    <div class="panel">
-      <div class="panel-head">
-        <span>Status</span>
-        <span class="status" data-status={section.status}>{STATUS_LABEL[section.status]}</span>
+<Shell title={section.label} current={section.path}>
+  <div class="settings-view" data-settings>
+    <AdminHead title={section.label} note={section.question} />
+    <section>
+      <div class="rows card-group">
+        <div class="settings-row">
+          <span class="settings-label">Status</span>
+          <span class="settings-hint">{section.status}</span>
+        </div>
       </div>
-      <div class="panel-body">
-        <p class="panel-note">Nothing is drawn here yet.</p>
-      </div>
-    </div>
+    </section>
   </div>
 </Shell>

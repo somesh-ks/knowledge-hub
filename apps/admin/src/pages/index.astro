@@ -1,28 +1,30 @@
 ---
+import Icon from "../../../web/src/components/Icon.astro";
+import AdminHead from "../components/AdminHead.astro";
 import Shell from "../layouts/Shell.astro";
-import { SECTIONS, STATUS_LABEL } from "../lib/sections";
+import { href, SECTIONS } from "../lib/sections";
+
+const sections = SECTIONS.filter((section) => section.path !== "");
 ---
 
-<Shell title="Overview">
-  <div class="page-head">
-    <p class="kicker">Overview</p>
-    <h1 class="page-title">Singularity command center</h1>
-    <p class="page-note">One place for the design system, what the app costs and how it is running.</p>
-  </div>
-  <div class="panels">
-    {
-      SECTIONS.map((section) => (
-        <a class="panel" href={section.href}>
-          <div class="panel-head">
-            <span>{section.label}</span>
-            <span class="status" data-status={section.status}>{STATUS_LABEL[section.status]}</span>
-          </div>
-          <div class="panel-body">
-            <h2 class="panel-title">{section.label}</h2>
-            <p class="panel-note">{section.question}</p>
-          </div>
-        </a>
-      ))
-    }
+<Shell title="Overview" current="">
+  <div class="settings-view" data-settings>
+    <AdminHead title="Overview" note="How the app is doing, what it costs and how well the design system is used." />
+    <section>
+      <h2 class="section-head">Sections</h2>
+      <div class="rows card-group">
+        {
+          sections.map((section) => (
+            <a class="row-action" href={href(section.path)}>
+              <span class="settings-text">
+                <span class="settings-label">{section.label}</span>
+                <span class="settings-hint">{section.status}</span>
+              </span>
+              <Icon name="chevronRight" />
+            </a>
+          ))
+        }
+      </div>
+    </section>
   </div>
 </Shell>

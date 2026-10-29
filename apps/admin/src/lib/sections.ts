@@ -1,40 +1,48 @@
-/** The command center's sections, in nav order. `status` says what the page holds today. */
+import type { IconName } from "../../../web/src/lib/icons";
+
+/** The command center's sections, in nav order. `hint` is the line under the name on the overview. */
 export interface Section {
-  href: string;
+  /** The path under the base: "" for the overview. */
+  path: string;
   label: string;
-  /** One line under the name: what the section answers. */
+  icon: IconName;
+  /** What the section answers. */
   question: string;
-  status: "next" | "planned";
+  /** What the page holds today. */
+  status: string;
 }
 
 export const SECTIONS: readonly Section[] = [
   {
-    href: "/design",
-    label: "Design system",
-    question: "Colours, type, tokens and every component, live.",
-    status: "next",
+    path: "",
+    label: "Overview",
+    icon: "viewGrid",
+    question: "Everything at a glance.",
+    status: "",
   },
   {
-    href: "/coverage",
+    path: "/coverage",
     label: "Coverage",
-    question: "How much of the app uses the shared parts.",
-    status: "planned",
+    icon: "table",
+    question: "How much of the app uses the shared design-system parts.",
+    status: "Planned",
   },
   {
-    href: "/costs",
+    path: "/costs",
     label: "Costs",
+    icon: "chartBar",
     question: "What the paid services cost.",
-    status: "next",
+    status: "Moves here next",
   },
   {
-    href: "/health",
+    path: "/health",
     label: "Health",
+    icon: "waveform",
     question: "How the runs, pages and services are doing.",
-    status: "next",
+    status: "Moves here next",
   },
 ];
 
-export const STATUS_LABEL: Record<Section["status"], string> = {
-  next: "Moves here next",
-  planned: "Planned",
-};
+/** An address under the base ("/admin"), which Astro writes with or without a closing slash. */
+export const href = (path: string): string =>
+  `${import.meta.env.BASE_URL.replace(/\/$/, "")}${path}` || "/";

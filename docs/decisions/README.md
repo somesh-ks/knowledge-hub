@@ -234,6 +234,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D215 | Daily and Weekly have no Look back and no Format | active; supersedes D184 |
 | D216 | Ticked general topics get a length-sized section | active; amends D170, D191 |
 | D217 | `run.yml` names every run for what it is | active; amends D61, D213 |
-| D218 | Admin pages move to their own app, `apps/admin` | active; amends D189 |
+| D218 | Admin and the style guide become their own apps | active; amends D189 |
 
 ---

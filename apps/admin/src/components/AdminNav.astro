@@ -1,0 +1,38 @@
+---
+import BrandMark from "../../../web/src/components/BrandMark.astro";
+import Icon from "../../../web/src/components/Icon.astro";
+import { href, SECTIONS } from "../lib/sections";
+
+interface Props {
+  /** The section's path under the base; "" for the overview. */
+  current: string;
+}
+
+const { current } = Astro.props;
+---
+
+{/* The reader's navigation, drawn by its own classes (shell.css): a bottom bar below 64rem and a side
+     column from it. The wordmark names the section. */}
+<nav class="app-nav" aria-label="Command center" data-bottom-nav>
+  <a class="app-nav-brand wordmark" href={href("")} aria-label="Singularity admin">
+    <BrandMark />
+    <span>Admin</span>
+  </a>
+  <ul class="app-nav-list" role="list">
+    {
+      SECTIONS.map((section) => (
+        <li>
+          <a class="app-nav-item" href={href(section.path)} aria-current={section.path === current ? "page" : undefined}>
+            <span class="app-nav-indicator">
+              <Icon name={section.icon} class="icon-lg app-nav-icon-rest" />
+              <Icon name={section.icon} class="icon-lg app-nav-icon-current" />
+            </span>
+            <span>{section.label}</span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+  {/* The side column's foot, where the reader shows its build day. */}
+  <p class="app-nav-updated"><a class="text-link" href="/">Back to the app</a></p>
+</nav>
