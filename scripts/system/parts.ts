@@ -3,9 +3,9 @@
  * Everything checkable (the class exists, who styles it, which tokens it reads, where it is used) is
  * derived from the code by build.ts, so this file holds only judgment.
  *
- * Interim: the design-system components (apps/web/src/design-system) own the same facts for the
- * families that became real components. A family that has moved there deletes its entries here; a
- * test fails while both define an id.
+ * Interim: the design-system components (apps/web/src/design-system) will own the same facts for the
+ * families that become real components. A family that moves there deletes its entries here. No test
+ * compares the two yet; system.test.ts checks ids only within this list.
  */
 import type { PartSource } from "./types.js";
 

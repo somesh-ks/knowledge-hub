@@ -36,7 +36,7 @@ describe("the design system file", () => {
         ? [`${part.id}: no stylesheet rule starts with .${part.classes[0]}`]
         : []),
       ...part.classes
-        .filter((name) => !allCss.includes(`.${name}`))
+        .filter((name) => !new RegExp(`\\.${name}(?![\\w-])`).test(allCss))
         .map((name) => `${part.id}: .${name} is in no stylesheet`),
       ...(part.files ?? [])
         .filter((file) => !existsSync(join(ROOT, "apps/web/src", file)))

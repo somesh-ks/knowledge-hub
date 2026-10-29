@@ -89,7 +89,7 @@ A phone shows a dialog or a menu as a bottom sheet; from 40rem it is a centered 
 
 ## 3. Bespoke Controls Inventory
 
-The only non-standard control classes are the ones listed in `BESPOKE_CONTROLS` in `apps/web/src/styles/styles.test.ts`, each with the reason it exists (the floating actions, the player transport and dock, the speed controls, the source row actions, menu rows, toast actions and a few more). Read that list instead of a copy here: it is the one the test enforces. A new control reuses a matrix archetype; adding to the list needs the owner's approval.
+The only non-standard control classes are the ones listed in `BESPOKE_CONTROLS` in `apps/web/src/styles/styles.test.ts`, each with the reason it exists (the floating actions, the player transport and dock, the speed controls, the source row actions, menu rows, toast actions and a few more). Read that list instead of a copy here: it is the one the test enforces. A new control reuses a part from `npm run ds -- list`; adding to the list needs the owner's approval.
 
 ---
 
