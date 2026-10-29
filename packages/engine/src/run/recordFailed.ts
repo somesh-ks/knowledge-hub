@@ -9,13 +9,13 @@ import { readPlan } from "./plan.js";
 import { recordSpend } from "./spend.js";
 import type { CommitReport, RunDeps, RunOptions } from "./types.js";
 
-function report(reason: string, commit: CommitReport["commit"]): CommitReport {
+function report(reason: string, commit: CommitReport["commit"], dryRun = false): CommitReport {
   return {
     outcome: "failed",
     digests: [],
     deploy: false,
     items: 0,
-    dry_run: false,
+    dry_run: dryRun,
     commit,
     reason,
   };
@@ -88,26 +88,26 @@ function reportCommit(
   committed: Awaited<ReturnType<typeof commitAndPush>>,
   reason: string,
   message: string,
+  dryRun = false,
 ): CommitReport {
   switch (committed.status) {
     case "pushed":
     case "committed":
-      return report(reason, { status: committed.status, sha: committed.sha, message });
+      return report(reason, { status: committed.status, sha: committed.sha, message }, dryRun);
     case "nothing_to_commit":
-      return report(reason, { status: "nothing_to_commit", message });
+      return report(reason, { status: "nothing_to_commit", message }, dryRun);
     case "refused":
-      return report(`${reason} The commit was refused (${committed.reason}).`, {
-        status: "refused",
-        message,
-        detail: committed.offending.join(", "),
-      });
+      return report(
+        `${reason} The commit was refused (${committed.reason}).`,
+        { status: "refused", message, detail: committed.offending.join(", ") },
+        dryRun,
+      );
     case "push_failed":
-      return report(`${reason} The push failed (${committed.reason}).`, {
-        status: "push_failed",
-        sha: committed.sha,
-        message,
-        detail: committed.detail,
-      });
+      return report(
+        `${reason} The push failed (${committed.reason}).`,
+        { status: "push_failed", sha: committed.sha, message, detail: committed.detail },
+        dryRun,
+      );
   }
 }
 
@@ -188,5 +188,5 @@ async function recordFailedDryRun(
     push: !options.noPush,
     git: deps.git,
   });
-  return reportCommit(committed, "Recorded the failed dry run's spend.", message);
+  return reportCommit(committed, "Recorded the failed dry run's spend.", message, true);
 }

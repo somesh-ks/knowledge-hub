@@ -371,7 +371,9 @@ describe("a run that died before the commit stage", () => {
     await stage.begin(repo.root, run);
     for (let i = 0; i < 4; i++) stage.guard.takeScrape();
     await stage.save(repo.root);
-    expect((await runStage(world, { recordFailed: true })).code).toBe(0);
+    const recorded = await runStage(world, { recordFailed: true });
+    expect(recorded.code).toBe(0);
+    expect(recorded.report).toMatchObject({ outcome: "failed", dry_run: true });
     expect(git(repo.remote, "log", "-1", "--format=%s", "main")).toBe(
       "chore(costs): dry run 2026-10-07 failed",
     );
