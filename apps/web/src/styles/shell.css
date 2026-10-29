@@ -31,6 +31,9 @@
   --sticky-top: calc(var(--app-bar-height) + var(--safe-top));
   /* The text column itself: the page width less its two gutters. */
   --column-inner: calc(var(--layout-column) - var(--page-gutter) * 2);
+  /* From 80rem, the width of a page that takes more than the text column: the column, a step, and what a
+     contents list takes. */
+  --column-wide: calc(var(--column-inner) + var(--space-12) + var(--layout-aside));
   /* Anchors and focus scrolling land below the sticky chrome, not under it, and above everything
      that stacks on the bottom edge: the bar, the player bar and the run indicator. */
   scroll-padding-block: calc(var(--sticky-top) + var(--space-4))
@@ -659,19 +662,21 @@ html[data-mini="visible"] main {
   padding-block-end: var(--space-24);
 }
 
-/* The reading column must not jump sideways between destinations, so from 80rem every page reserves
-   the track that a briefing fills with its contents list, whether or not the page has one. */
+/* The reading column sits on the middle of the pane on every page, so the room left and right of it is
+   equal, and it does not jump sideways between destinations. A page with a contents list puts it in the
+   room to the column's right, which is all it takes from the margin: a page without one leaves the margin
+   as air on both sides (2026-10-29: the column used to share the pane with a reserved track, which left
+   it left of the middle and the right margin four times the left). A page that wants more width (the
+   Library, Create) takes --column-wide, centred. */
 @media (width >= 80rem) {
   .shell {
     display: grid;
-    grid-template-columns: minmax(0, var(--column-inner)) var(--layout-aside);
-    column-gap: var(--space-12);
-    justify-content: center;
+    grid-template-columns: minmax(0, 1fr) minmax(0, var(--column-inner)) minmax(0, 1fr);
     max-width: none;
   }
 
   .shell > main {
-    grid-column: 1;
+    grid-column: 2;
     grid-row: 1;
   }
 
@@ -680,19 +685,12 @@ html[data-mini="visible"] main {
     grid-column: 1 / -1;
   }
 
+  /* From a step past the column's edge to the pane's own gutter, at most --layout-aside wide. */
   .shell > .aside {
-    grid-column: 2;
+    grid-column: 3;
     grid-row: 1;
-  }
-
-  .banner-stack {
-    max-width: calc(
-      var(--column-inner) +
-      var(--space-12) +
-      var(--layout-aside) +
-      var(--page-gutter) *
-      2
-    );
-    padding-inline-end: calc(var(--page-gutter-end) + var(--space-12) + var(--layout-aside));
+    justify-self: start;
+    inline-size: min(var(--layout-aside), calc(100% - var(--space-8)));
+    margin-inline-start: calc(var(--space-8) - var(--space-1));
   }
 }

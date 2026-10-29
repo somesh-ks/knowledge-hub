@@ -56,7 +56,7 @@
   display: grid;
   /* One column that may shrink: a feed address on one line must not widen the form past its sheet. */
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-4);
+  gap: var(--space-6);
   padding-block-end: var(--space-2);
 }
 
@@ -64,9 +64,11 @@
   padding-block: var(--space-6) 0;
 }
 
+/* A label is 12px above its field and the fields of a form 24px apart, so a label belongs to the field
+   under it, not the one above (2026-10-29, D224: 8px left the label on the outline). */
 .manage-field {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--field-label-gap);
 }
 
 /* A field's label is the body size, as the Create panel's are: the Add source panel wears that panel's

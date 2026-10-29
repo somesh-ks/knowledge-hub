@@ -278,3 +278,11 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Date: 2026-10-25 (the owner's ask).
 - Decision: each settings subpage has a small "Settings /" line above its title (`.settings-crumb`), a `.text-link` with a 44px target.
 - Why: one tap up beats the app bar's back, which can leave settings.
+
+## D224: the reading column sits on the pane's middle, and a label is 12px from its field
+
+- Date: 2026-10-29 (the owner: "on the left side it is less, and on the right side it is more on the page. I have this everywhere throughout the app"; labels "so close" to their fields)
+- Decision: from 80rem the shell has three tracks, `1fr` the column `1fr`, so the column is centred in the pane on every page, and a contents list takes the right margin's room (at most 14rem, a step off the column). A page that wants more width (Library, Create) is `--column-wide` (shell.css), centred. A label is `--field-label-gap` (12px) above its field, and the fields of a form or sheet are 24px apart, so a label belongs to the field below it. A field's resting outline stays `--field-border` (grey); the accent shows on focus only.
+- Why: the shell reserved the contents list's 14rem track on every page, so the column sat left of the pane's middle (96px on the left and 384px on the right at 1280) whether or not the page had a list; 8px between a label and its field left it on the outline. The blue ring on the admin sign-in is the focus ring of an autofocused field, not a resting colour.
+- Rejected: mirroring the track on the left (a column of air beside a column of air); hiding the list below 90rem (the owner asked for it at 80rem).
+- Revisit if: the contents list needs more than 11rem at 80rem (a long section name wraps).

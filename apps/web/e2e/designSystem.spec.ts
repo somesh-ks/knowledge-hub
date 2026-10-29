@@ -184,8 +184,16 @@ test.describe("one page gutter", () => {
   }, async ({ page }) => {
     test.setTimeout(120_000);
     // Latest's desktop hero is centred in its own layout, so it joins on the phone only.
-    const wide = (page.viewportSize()?.width ?? 0) >= 1024;
-    const paths = [...(wide ? [] : ["/"]), "/library", "/settings", "/settings/preferences"];
+    const width = page.viewportSize()?.width ?? 0;
+    const wide = width >= 1024;
+    // From 80rem the Library is as wide as the column and a contents list together, centred (D224), so
+    // its title is not the column's.
+    const paths = [
+      ...(wide ? [] : ["/"]),
+      ...(width >= 1280 ? [] : ["/library"]),
+      "/settings",
+      "/settings/preferences",
+    ];
     const titles: number[] = [];
     for (const path of paths) {
       await page.goto(path);
@@ -210,6 +218,29 @@ test.describe("one page gutter", () => {
     }
     for (const [index, title] of titles.entries()) {
       expect(title, `${paths[index]} title against ${paths[0]}`).toBeCloseTo(titles[0] ?? 0, 0);
+    }
+  });
+
+  // The shell once reserved the contents list's track on every page, so a column on a wide window sat
+  // left of the middle: 96px of room on its left and 384px on its right (owner, 2026-10-29).
+  test("a reading column has the same room on both sides of the pane", { tag: "@desktop" }, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    for (const path of ["/settings", "/d/2026-10-07"]) {
+      await page.goto(path);
+      await expect(page.locator("main h1, main .hero").first()).toBeVisible();
+      const room = await page.evaluate(() => {
+        const main = document.querySelector("main")?.getBoundingClientRect();
+        const nav = document.querySelector(".app-nav")?.getBoundingClientRect();
+        if (!main || !nav) throw new Error("no main or navigation");
+        // The body's edge, not the window's: a reserved scrollbar gutter is no room of the page's.
+        return [main.left - nav.right, document.body.getBoundingClientRect().right - main.right];
+      });
+      expect(
+        Math.abs((room[0] ?? 0) - (room[1] ?? 0)),
+        `${path}: ${room.join(" against ")}`,
+      ).toBeLessThan(2);
     }
   });
 });
