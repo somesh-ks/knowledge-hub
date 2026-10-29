@@ -337,6 +337,12 @@ describe("LlmWriter.rewrite", () => {
     expect(llm.calls[0]?.step).toBe("story_rewrite");
   });
 
+  it("routes a shortening to the cheap headline step", async () => {
+    const llm = new FakeLlm(() => ({ text: "Springlet 2.0 retargets springs" }));
+    await new LlmWriter({ llm, voice }).rewrite({ ...request(material()), shorten: true });
+    expect(llm.calls[0]?.step).toBe("headline_shorten");
+  });
+
   it("returns null when the model fails, and rethrows a budget error", async () => {
     const m = material();
     const failing = new FakeLlm(() => {
@@ -557,6 +563,51 @@ describe("enforceVoice", () => {
     const out = await enforceVoice({ written: [wordy], materials, writer, linter });
     expect(out.dropped).toEqual([]);
     expect(out.passed[0]?.item.headline).toBe("Springlet 2.0 now retargets springs mid-flight");
+  });
+
+  // 2026-10-29: two 14-word headlines stayed over the limit after the full rewrite, losing both stories.
+  it("asks for a plain shortening when a headline's only fault is its length", async () => {
+    const wordy = {
+      ...good(m.id),
+      headline:
+        "Springlet two point oh retargets springs mid flight and keeps every drawer velocity intact on slow phones",
+    };
+    const writer = scriptedWriter(["Springlet two point oh retargets springs mid flight"]);
+    const out = await enforceVoice({ written: [wordy], materials, writer, linter });
+    expect(writer.requests[0]?.shorten).toBe(true);
+    expect(out.dropped).toEqual([]);
+    // Over the limit and also carrying a banned word: the full rewrite, not a shortening.
+    const banned = {
+      ...good(m.id),
+      headline:
+        "An incredible release keeps every drawer velocity intact across slow phones this spring",
+    };
+    const other = scriptedWriter(["Springlet 2.0 retargets springs"]);
+    await enforceVoice({ written: [banned], materials, writer: other, linter });
+    expect(other.requests[0]?.shorten).toBeUndefined();
+  });
+
+  it("falls back to the full rewrite when a shortening drops a number or fails", async () => {
+    const wordy = {
+      ...good(m.id),
+      headline:
+        "Springlet 2.0 retargets springs mid flight and keeps every drawer velocity intact on slow phones",
+    };
+    // The cut loses "2.0" in the first case, returns nothing in the second, is still too long in the third
+    // in the fourth keeps "2.0" only in a trailing clause that the clause cut then removes and
+    // in the fifth invents a number.
+    for (const first of [
+      "Springlet retargets springs mid flight",
+      null,
+      "Springlet 2.0 retargets springs mid flight and keeps every drawer velocity intact on phones",
+      "Springlet retargets springs mid flight again, keeping every drawer velocity intact on phones 2.0",
+      "Springlet 2.0 retargets 40 springs mid flight",
+    ]) {
+      const writer = scriptedWriter([first, "Springlet 2.0 retargets springs mid flight"]);
+      const out = await enforceVoice({ written: [wordy], materials, writer, linter });
+      expect(writer.requests.map((r) => r.shorten)).toEqual([true, undefined]);
+      expect(out.passed[0]?.item.headline).toBe("Springlet 2.0 retargets springs mid flight");
+    }
   });
 
   it("rewrites a failing field once and keeps the item", async () => {
