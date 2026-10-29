@@ -392,7 +392,7 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Limit: the week is read from the ledger, and a failed dry run records nothing (`recordFailed.ts`), so its Firecrawl requests are not counted.
 - Amends: D222 (adds the alert; the 300 and the 60 a run are D222's).
 
-## D225: A failed dry run records its spend
+## D226: A failed dry run records its spend
 
 - Date: 2026-10-29 (decided for the owner, who wants accurate cost data; D223's Limit).
 - Decision: when a dry run fails, `run.yml`'s Record failure step runs with `--dry-run` and `recordFailedRun` puts the run's spend in the cost ledger in a commit of the ledger alone (`chore(costs): dry run <date> failed`), as a finished dry run does. The cadence, the metrics and the digests stay as they were.

@@ -34,7 +34,7 @@ function report(reason: string, commit: CommitReport["commit"]): CommitReport {
  * leaves its metrics entry, a replacement or an on-demand run also its spend, which is how a failed
  * run shows in the failure rate; an on-demand run's cadence record stays as it was.
  *
- * A failed dry run leaves its spend and nothing else (D225): it paid for the same calls as a real
+ * A failed dry run leaves its spend and nothing else (D226): it paid for the same calls as a real
  * run, and Firecrawl's weekly count is read from the ledger.
  */
 export async function recordFailedRun(deps: RunDeps, options: RunOptions): Promise<CommitReport> {

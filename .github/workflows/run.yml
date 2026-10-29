@@ -265,7 +265,7 @@ jobs:
       # run before it. This records `failed` for what the run was due to make, through the write
       # guard, so the next health check reports run_failed and heals once. The engine records
       # nothing for an on-demand run, a run that was not due or one Commit already committed. A
-      # failed dry run records its spend in the ledger and nothing else (D225). A timeout is a
+      # failed dry run records its spend in the ledger and nothing else (D226). A timeout is a
       # cancel, which skips this step (health warns run_cancelled).
       - name: Record failure
         if: failure() && inputs.delete == '' && (inputs.replace == '' || inputs.dry_run == true)
