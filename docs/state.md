@@ -4,7 +4,7 @@ Updated 2026-10-29. Rewrite, never append. [Specs](specs/README.md), [decisions]
 
 ## Working
 
-- Engine live end to end (fetch, Jev judge, writer, validate, commit), sized by the owner's length with spares: [engine](specs/engine.md). A run that loses stories or races a push degrades, not fails, and records its health (D204): [resilience](engineering/generation-resilience.md), [metrics](engineering/metrics.md).
+- Engine live end to end (fetch, Jev judge, writer, validate, commit): [engine](specs/engine.md). A run that loses stories or races a push degrades, not fails, and records its health (D204): [resilience](engineering/generation-resilience.md), [metrics](engineering/metrics.md).
 - Reader (Latest, Library, Catch up, Settings, `/design`): [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
 - Player as one surface: transcript with word light, chapters in the bar, a queue with Up next (D126): [player](specs/player.md).
 - Narration on Play, story by story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes; Opus, MP3 fallback (D198): [narration](specs/narration.md), [create](specs/create.md).
