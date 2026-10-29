@@ -459,11 +459,20 @@ export function selectItems(input: SelectInput): SelectResult {
     dropped.push({ id: candidate.item.id, reason: "not_in_structure", score: candidate.score });
     return false;
   });
-  // The main sections leave room for one story from each section with an allowance of its own.
-  const ownSections = new Set(own.map((candidate) => candidate.home)).size;
+  // The main sections leave room for one story from each section with an allowance of its own, or
+  // for the count the structure gives it, so their spares cannot crowd that count out (D218).
+  const ownReserved = [...new Set(own.map((candidate) => candidate.home))].reduce(
+    (sum, section) =>
+      sum +
+      Math.min(
+        own.filter((candidate) => candidate.home === section).length,
+        plan.limit(section) ?? 1,
+      ),
+    0,
+  );
   // A briefing sized by the owner's length is held to that length, not to the kind's count cap.
   const kindCap = input.total === undefined ? capFor(input.kind) : total;
-  const limit = Math.min(input.cap, kindCap, Math.max(0, total - ownSections));
+  const limit = Math.min(input.cap, kindCap, Math.max(0, total - ownReserved));
 
   const chosen = new Set<Candidate>();
   const perSection = new Map<string, number>();
@@ -479,7 +488,10 @@ export function selectItems(input: SelectInput): SelectResult {
     (!isReleaseStory(candidate) || releasesIn() < releaseRoom) && roomIn(candidate);
   const take = (candidate: Candidate): void => {
     chosen.add(candidate);
-    perSection.set(candidate.home, (perSection.get(candidate.home) ?? 0) + 1);
+    // A release story airs under release news, so it does not use up its home section's count.
+    if (!isReleaseStory(candidate)) {
+      perSection.set(candidate.home, (perSection.get(candidate.home) ?? 0) + 1);
+    }
   };
   // Every topic with a story that cleared the bar gets its best one first, so a strong section
   // cannot crowd a selected topic out of the briefing.
@@ -495,9 +507,22 @@ export function selectItems(input: SelectInput): SelectResult {
     if (chosen.has(candidate) || !fits(candidate)) continue;
     if ((perSection.get(candidate.home) ?? 0) < SECTION_TARGET_MAX) take(candidate);
   }
+  // Each block reaches its own count before any section takes spares, so a count-1 section's strong
+  // leftovers cannot crowd out a section still short of its count (D218).
+  const counted = (candidate: Candidate): boolean =>
+    plan.limit(isReleaseStory(candidate) ? RELEASE_SECTION : candidate.home) !== null;
   for (const candidate of main) {
     if (chosen.size >= limit) break;
-    if (!chosen.has(candidate) && fits(candidate)) take(candidate);
+    if (!chosen.has(candidate) && counted(candidate) && fits(candidate)) take(candidate);
+  }
+  // A block's count is the proportion between sections, not a ceiling (D218): the settings length is
+  // the only size limit (#147), so room left after the counts goes to the best stories that remain.
+  // Validation cuts the narration to the length, so these stand as spares for a story lost in writing.
+  const fitsRelease = (candidate: Candidate): boolean =>
+    !isReleaseStory(candidate) || releasesIn() < releaseRoom;
+  for (const candidate of main) {
+    if (chosen.size >= limit) break;
+    if (!chosen.has(candidate) && fitsRelease(candidate)) take(candidate);
   }
 
   const ownTaken = takeOwnSections(own, total - chosen.size, plan);
@@ -505,11 +530,7 @@ export function selectItems(input: SelectInput): SelectResult {
   for (const candidate of main) {
     if (!chosen.has(candidate)) {
       const reason =
-        isReleaseStory(candidate) && releasesIn() >= releaseRoom
-          ? "release_note"
-          : roomIn(candidate)
-            ? "over_cap"
-            : "over_section_cap";
+        isReleaseStory(candidate) && releasesIn() >= releaseRoom ? "release_note" : "over_cap";
       dropped.push({ id: candidate.item.id, reason, score: candidate.score });
     }
   }
