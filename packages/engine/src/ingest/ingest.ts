@@ -13,6 +13,7 @@ import {
   type KnownItems,
   MAX_ATTEMPTS,
   readKnownItems,
+  readReferencedKeys,
   recordIngestItems,
   recordIngestRun,
   touchIngestItems,
@@ -205,12 +206,21 @@ export async function runIngest(input: IngestInput): Promise<IngestReport> {
     try {
       await recordIngestItems(sql, rows);
     } catch (error) {
-      // The texts saved this run have no row to find them by, and the next run would save them
-      // again under new keys: take them back out, as far as Blob allows.
-      const orphans = outcomes.flatMap((outcome) =>
+      // The texts saved this run may have no row to find them by, and the next run would save them
+      // again under new keys: take out those no row points at. A write whose answer was lost may
+      // have landed, so a key is deleted only when the database confirms nothing refers to it.
+      const saved = outcomes.flatMap((outcome) =>
         outcome.kind === "archived" ? [outcome.key] : [],
       );
-      if (blob && orphans.length > 0) await blob.del(orphans).catch(() => {});
+      if (blob && saved.length > 0) {
+        try {
+          const referenced = await readReferencedKeys(sql, saved);
+          const orphans = saved.filter((key) => !referenced.has(key));
+          if (orphans.length > 0) await blob.del(orphans);
+        } catch {
+          // Unknown is kept: a stray text costs a file, a deleted one costs a story.
+        }
+      }
       throw error;
     }
     await touchIngestItems(

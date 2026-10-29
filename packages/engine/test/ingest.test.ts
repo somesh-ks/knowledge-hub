@@ -196,6 +196,20 @@ describe("ingest", () => {
     expect(blob.store.size).toBe(0);
   });
 
+  it("keeps a text whose row did land although the write reported failure", async () => {
+    const { db, blob, run } = setup();
+    const lostAnswer: SqlClient = {
+      query: async (text, params) => {
+        const rows = await db.sql.query(text, params);
+        if (text.includes("insert into ingest_items")) throw new Error("connection reset");
+        return rows;
+      },
+    };
+
+    await expect(run({ sql: lostAnswer })).rejects.toThrow("connection reset");
+    expect(blob.store.size).toBe(2);
+  });
+
   it("reads the copy of a story that carries its own text when two sources return it", async () => {
     const thin = makeItem({ url: "https://example.com/one", title: "One", source_id: "a" });
     const full = { ...thin, source_id: "b", content: "The whole article, in the feed." };

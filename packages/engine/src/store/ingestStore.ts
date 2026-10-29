@@ -99,7 +99,8 @@ from unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::timestamptz[], $
   as n(id, url, source, title, published, seen, status, method, chars, truncated, key)
 on conflict (item_id) do update set
   last_seen_at = excluded.last_seen_at, source_id = excluded.source_id, title = excluded.title,
-  published_at = excluded.published_at, status = excluded.status, method = excluded.method,
+  published_at = coalesce(excluded.published_at, ingest_items.published_at),
+  status = excluded.status, method = excluded.method,
   chars = excluded.chars, truncated = excluded.truncated, archive_key = excluded.archive_key,
   attempts = ingest_items.attempts + 1
 where ingest_items.status <> 'archived'`;
@@ -164,6 +165,24 @@ export async function readKnownItems(sql: SqlClient, ids: readonly string[]): Pr
     });
   }
   return known;
+}
+
+/** The Blob keys among `keys` that a row points at. No table yet reads as none. Throws when the database does. */
+export async function readReferencedKeys(
+  sql: SqlClient,
+  keys: readonly string[],
+): Promise<ReadonlySet<string>> {
+  if (keys.length === 0) return new Set();
+  try {
+    const rows = await sql.query(
+      "select archive_key from ingest_items where archive_key = any($1::text[])",
+      [[...keys]],
+    );
+    return new Set(rows.map((row) => String(row.archive_key)));
+  } catch (error) {
+    if (missingTable(error)) return new Set();
+    throw error;
+  }
 }
 
 const RUN_SQL = `insert into ingest_runs (run_id, started_at, finished_at, window_from, window_to,
