@@ -11,15 +11,21 @@ import "../../../web/src/styles/shell.css";
 import "../../../web/src/styles/buttons.css";
 import "../../../web/src/styles/primitives.css";
 import "../../../web/src/styles/settings.css";
+import "../../../web/src/styles/manage.css";
+import "../../../web/src/styles/health.css";
+import "../../../web/src/styles/costs.css";
 import "../../../web/src/styles/utilities.css";
+import "../styles/admin.css";
 
 interface Props {
   title: string;
   /** The section's path under the base; "" for the overview. */
   current: string;
+  /** The login page: no navigation, since every address it links to is behind the gate. */
+  bare?: boolean;
 }
 
-const { title, current } = Astro.props;
+const { title, current, bare = false } = Astro.props;
 ---
 
 <!doctype html>
@@ -40,16 +46,21 @@ const { title, current } = Astro.props;
     <header class="app-bar">
       <div class="app-bar-inner page">
         {/* The bar shows below 64rem, where the nav's foot link is hidden; the reader's Back button, to the reader. */}
-        <a class="icon-btn app-bar-back" href={READER_HREF} aria-label="Back to the app">
-          <Icon name="arrowBack" />
-        </a>
+        {
+          !bare && (
+            <a class="icon-btn app-bar-back" href={READER_HREF} aria-label="Back to the app">
+              <Icon name="arrowBack" />
+            </a>
+          )
+        }
         <a class="wordmark" href={href("")} aria-label="Singularity admin">
           <BrandMark />
-          <span>Admin</span>
+          <span>Singularity</span>
+          <span class="admin-tag">Admin</span>
         </a>
       </div>
     </header>
-    <AdminNav current={current} />
+    {!bare && <AdminNav current={current} />}
     <div class="shell page">
       <main id="main" tabindex="-1">
         <slot />

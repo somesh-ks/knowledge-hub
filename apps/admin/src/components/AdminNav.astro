@@ -16,7 +16,8 @@ const { current } = Astro.props;
 <nav class="app-nav" aria-label="Command center" data-bottom-nav>
   <a class="app-nav-brand wordmark" href={href("")} aria-label="Singularity admin">
     <BrandMark />
-    <span>Admin</span>
+    <span>Singularity</span>
+    <span class="admin-tag">Admin</span>
   </a>
   <ul class="app-nav-list" role="list">
     {
@@ -25,7 +26,7 @@ const { current } = Astro.props;
           <a class="app-nav-item" href={href(section.path)} aria-current={section.path === current ? "page" : undefined}>
             <span class="app-nav-indicator">
               <Icon name={section.icon} class="icon-lg app-nav-icon-rest" />
-              <Icon name={section.icon} class="icon-lg app-nav-icon-current" />
+              <Icon name={section.iconCurrent} class="icon-lg app-nav-icon-current" />
             </span>
             <span>{section.label}</span>
           </a>

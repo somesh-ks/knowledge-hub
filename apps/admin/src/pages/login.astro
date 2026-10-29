@@ -1,0 +1,36 @@
+---
+import AdminHead from "../components/AdminHead.astro";
+import Shell from "../layouts/Shell.astro";
+import { href } from "../lib/sections";
+---
+
+<Shell title="Sign in" current="" bare>
+  <div class="settings-view" data-settings>
+    <AdminHead title="Sign in" />
+    <section>
+      {/* The gate (src/gate/gate.ts) answers this form; a wrong password comes back as ?e=1. */}
+      <form class="card-group admin-card" method="post" action={href("/login")}>
+        <div class="manage-field">
+          <label class="field-label" for="password">Password</label>
+          <input
+            class="manage-input"
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+          <p class="settings-note" role="alert" data-wrong hidden>That password is not right.</p>
+        </div>
+        <button class="btn-primary" type="submit">Sign in</button>
+      </form>
+    </section>
+  </div>
+</Shell>
+
+<script>
+  if (new URLSearchParams(location.search).has("e")) {
+    document.querySelector<HTMLElement>("[data-wrong]")?.removeAttribute("hidden");
+    document.querySelector("#password")?.setAttribute("aria-invalid", "true");
+  }
+</script>

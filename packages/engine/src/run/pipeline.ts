@@ -1,4 +1,5 @@
 import { redact } from "../context.js";
+import { priceSpend } from "../cost/ledger.js";
 import { describeError } from "../llm/errors.js";
 import { commitStage } from "./commitStage.js";
 import { StageFailure, UsageError } from "./errors.js";
@@ -8,7 +9,8 @@ import { judgeStage } from "./judgeStage.js";
 import { type Plan, requirePlan } from "./plan.js";
 import { recordFailedRun } from "./recordFailed.js";
 import { deleteDigest } from "./replace.js";
-import { addStageTime, noteStageFailure } from "./stageClock.js";
+import { spendDelta } from "./spend.js";
+import { addStageCost, addStageTime, noteStageFailure } from "./stageClock.js";
 import type {
   CommitReport,
   FailureReport,
@@ -65,6 +67,7 @@ async function runPassStage(
   // workflow) carries on from the same Firecrawl ceiling and the commit stage can report it all.
   await deps.spend?.begin(deps.root, plan.created_at, deps.log);
   const started = deps.now().getTime();
+  const before = deps.spend?.snapshot();
   try {
     const report = await runStage(deps, plan, stage, options.feedback, options.topics);
     return deps.spend ? { ...report, spend: deps.spend.totals() } : report;
@@ -82,6 +85,11 @@ async function runPassStage(
     throw error;
   } finally {
     await addStageTime(deps.root, plan.created_at, stage, deps.now().getTime() - started);
+    if (deps.spend && before) {
+      // What this stage's calls cost, for the run log (D221). A stage that failed spent that much too.
+      const usd = await priceSpend(deps.root, spendDelta(before, deps.spend.snapshot()));
+      await addStageCost(deps.root, plan.created_at, stage, usd);
+    }
     await deps.spend?.save(deps.root);
   }
 }

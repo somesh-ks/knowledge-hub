@@ -31,6 +31,9 @@ const PLACEHOLDERS: Record<string, string[]> = {
   // Offline here: the contract run must not reach the live site.
   '"$CEILING"': ["5", "--offline"],
   '"$DELETE_ID"': ["2026-10-01"],
+  // run.yml's Log run step: the commit stage's outcome (job.status is run for each value below).
+  '"$STARTED_AT"': ["2026-10-29T05:00:00Z"],
+  '"$OUTCOME"': ["published"],
   // health.yml's `gh run list` output: an empty list.
   '"$runs"': [RUNS_FILE],
   // health.yml's probe output (empty on a day without the probe); a failed probe wrote none,
@@ -48,10 +51,10 @@ const PLACEHOLDERS: Record<string, string[]> = {
   ],
 };
 
-function tokens(line: string): string[] {
+function tokens(line: string, result = "success"): string[] {
   const out: string[] = [];
   for (const raw of line.match(/"[^"]*"|\S+/g) ?? []) {
-    const placeholder = PLACEHOLDERS[raw];
+    const placeholder = raw === '"$RESULT"' ? [result] : PLACEHOLDERS[raw];
     if (placeholder) out.push(...placeholder);
     else if (raw.includes("$")) throw new Error(`no placeholder for ${raw} in: ${line}`);
     else out.push(raw.replace(/^"(.*)"$/, "$1"));
@@ -84,16 +87,19 @@ describe("workflow calls", () => {
   });
 
   it.each(calls)("%s still parses", async (_name, args) => {
-    let err = "";
-    const code = await runCli([...tokens(args), "--root", root], {
-      cwd: root,
-      env: {},
-      stdout: () => {},
-      stderr: (text) => {
-        err += text;
-      },
-    });
-    expect(code, err).not.toBe(2);
+    // `log-run` takes job.status, which a failed or cancelled job passes too.
+    for (const result of args.includes('"$RESULT"') ? ["success", "failure", "cancelled"] : [""]) {
+      let err = "";
+      const code = await runCli([...tokens(args, result || undefined), "--root", root], {
+        cwd: root,
+        env: {},
+        stdout: () => {},
+        stderr: (text) => {
+          err += text;
+        },
+      });
+      expect(code, err).not.toBe(2);
+    }
   });
 });
 

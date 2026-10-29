@@ -1,30 +1,70 @@
 ---
 import Icon from "../../../web/src/components/Icon.astro";
+import { HEALTH_GROUPS } from "../../../web/src/lib/healthRows";
 import AdminHead from "../components/AdminHead.astro";
 import Shell from "../layouts/Shell.astro";
-import { href, SECTIONS } from "../lib/sections";
 
-const sections = SECTIONS.filter((section) => section.path !== "");
+// Each judged row's name and the title of the group it sits under, for the tiles' captions.
+const groups = HEALTH_GROUPS.map((group) => ({
+  id: group.id,
+  title: group.title,
+  rows: group.rows.map((row) => ({ id: row.id, label: row.label })),
+}));
 ---
 
 <Shell title="Overview" current="">
-  <div class="settings-view" data-settings>
-    <AdminHead title="Overview" note="How the app is doing, what it costs and how well the design system is used." />
-    <section>
-      <h2 class="section-head">Sections</h2>
-      <div class="rows card-group">
-        {
-          sections.map((section) => (
-            <a class="row-action" href={href(section.path)}>
-              <span class="settings-text">
-                <span class="settings-label">{section.label}</span>
-                <span class="settings-hint">{section.status}</span>
-              </span>
-              <Icon name="chevronRight" />
-            </a>
-          ))
-        }
+  <div class="settings-view" data-overview data-groups={JSON.stringify(groups)}>
+    <AdminHead title="Overview" />
+
+    {/* Static shells: each card is drawn here, and scripts/overview.ts fills them from the reader's
+         /api/health and /api/costs, so nothing moves when the answers arrive. The three status
+         glyphs wait here as templates, so the script draws no markup of its own. */}
+    <template data-glyphs>
+      <span data-glyph="good"><Icon name="checkCircle" /></span>
+      <span data-glyph="warn"><Icon name="alert" /></span>
+      <span data-glyph="bad"><Icon name="blocked" /></span>
+      <span data-glyph="none"><Icon name="clock" /></span>
+    </template>
+
+    <section data-overview-health data-loading>
+      <h2 class="section-head">Health</h2>
+      <div class="card-group ov-card">
+        <div class="ov-block ov-data" aria-live="polite">
+          <div class="ov-answer">
+            <span class="ov-badge" data-tone="none" data-badge></span>
+            <div>
+              <p class="ov-figure" data-attention>Checking</p>
+              <p class="ov-sub" data-health-sub></p>
+            </div>
+          </div>
+          <p class="settings-note" data-health-note hidden></p>
+        </div>
+        <div class="ov-groups ov-data" data-health-groups></div>
+      </div>
+    </section>
+
+    <section data-overview-spend data-loading>
+      <h2 class="section-head">Spend</h2>
+      <div class="card-group ov-card">
+        <div class="ov-block ov-data">
+          <div class="ov-answer">
+            <p class="ov-figure"><span class="sr-only">Total spend </span><span data-spend-total>Loading</span></p>
+            <p class="ov-sub" data-spend-sub>Last 30 days</p>
+          </div>
+          <p class="settings-note" data-spend-note hidden></p>
+        </div>
+        <div class="ov-block ov-data">
+          <div class="costs-plot ov-plot" data-spend-plot></div>
+        </div>
+        <div class="ov-block ov-split ov-data">
+          <div class="ov-share" role="img" data-spend-share></div>
+          <ul class="ov-legend" role="list" data-spend-legend></ul>
+        </div>
       </div>
     </section>
   </div>
 </Shell>
+
+<script>
+  import "../scripts/overview";
+</script>

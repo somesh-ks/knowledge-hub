@@ -52,6 +52,10 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE || vars.DISPATCH_CONFIG_STORE }}
     steps:
+      # `github.run_started_at` does not exist; the job's own start is within seconds of the run's.
+      - name: Note the start time
+        run: echo "RUN_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
@@ -96,6 +100,18 @@ jobs:
       - name: Publishing
         shell: bash
         run: npm run --silent singularity -- podcast --request "$REQUEST" --stage publish --artifacts "$RUNNER_TEMP/podcast-stages"
+
+      # Writes this run to Neon with the time of each stage and the writer's cost, whatever its end
+      # (D221), so a Catch up that failed is on record too. A delete is not logged. A measurement
+      # never fails the run it measures.
+      - name: Log run
+        if: always()
+        continue-on-error: true
+        shell: bash
+        env:
+          RESULT: ${{ job.status }}
+          STARTED_AT: ${{ env.RUN_STARTED_AT }}
+        run: npm run --silent singularity -- log-run --workflow podcast --result "$RESULT" --request "$REQUEST" --artifacts "$RUNNER_TEMP/podcast-stages" --started-at "$STARTED_AT"
 
   # Narrates the new episode turn by turn into the files the site plays from, so its first Play
   # starts from stored audio. A separate job: the episode is already committed, so a failure here

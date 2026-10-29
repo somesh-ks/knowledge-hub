@@ -183,7 +183,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D160 | No passphrase | active |
 | D161 | Publisher above the headline | active; amends D31 |
 | D165 | Captions via Firecrawl | amends D138 |
-| D166 | Firecrawl 100 a week | amends D42 |
+| D166 | Firecrawl 100 a week | amends D42; limits superseded by D222 |
 | D167 | One shape per control | amends D72 |
 | D168 | Catch up, bolt, swipe toasts | amends D52 |
 | D169 | Queue gestures | amends D126 |
@@ -205,7 +205,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D186 | Every control is a pill | amends D167 |
 | D187 | Glyphs align by ink | active |
 | D188 | Script-drawn markup | active |
-| D189 | Catalogue route | active |
+| D189 | Catalogue route | superseded by D224 |
 | D190 | Votes tune weights | partly superseded by D194 for topics |
 | D191 | Structure by profile | amends D170, D176 |
 | D192 | CodeRabbit review agent | amends D143 |
@@ -234,7 +234,13 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D215 | Daily and Weekly have no Look back and no Format | active; supersedes D184 |
 | D216 | Ticked general topics get a length-sized section | active; amends D170, D191 |
 | D217 | `run.yml` names every run for what it is | active; amends D61, D213 |
-| D218 | Admin and the style guide become their own apps | active; amends D189 |
-| D222 | The style guide shows only components the app imports | active; amends D189 |
+| D218 | A block's count is a proportion; the length is the limit | active; amends D170 |
+| D219 | A day's Catch ups are one album, chosen by a select before Play | active |
+| D220 | Over-limit summaries and headlines are cut | active |
+| D221 | Runs are logged to Neon with stage times and costs | active |
+| D222 | Firecrawl: 300 a week, 60 a run | amends D166 |
+| D223 | Firecrawl warns at 150 | amends D222 |
+| D224 | Admin and style guide: own apps | active; supersedes D189 |
+| D225 | The guide shows only components the app imports | amends D224 |
 
 ---

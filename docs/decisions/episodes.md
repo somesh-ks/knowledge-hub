@@ -253,3 +253,29 @@ What an episode or briefing is: kinds and structure, length, regenerate, Catch u
 - Why: every briefing run was titled `run`, so a regeneration had no target, the schedule's run was counted as a Regenerate press (D61's noted cost) and nothing could be grouped by type.
 - Rejected: a date in the Catch up name (the dispatch cannot know the episode id; the queue names it from its start time); a run-name per run number (unique but groups nothing).
 - Amends: D61, D213.
+
+## D218: a block's story count is a proportion, not a ceiling; the length is the limit
+
+- Date: 2026-10-29 (decided for the owner while away, from his #147 rule that the settings length is the only size limit and D119's spares).
+- Decision: selection takes each block's count first (so the sections keep their proportions), then fills the room the length leaves (the sized total with spares) with the best remaining stories, ignoring the counts. Validation already cuts the narration to the length, so the extras stand as spares for a story lost in writing. Release news keeps its tenth of the cap; a custom or general section with an allowance of its own keeps that allowance (D216).
+- Why: the 2026-10-29 dry run after D216 selected 13 of 51 stories, exactly the Designer profile's counts scaled to 5 minutes; two were lost in writing, the refill kept none, and 11 items aired against about 15 wanted. The counts had left no spares.
+- Rejected: raising the preset counts (changes what a profile means and still leaves no spares); a hard cap at the counts with validation trimming to them (the owner's length is the limit).
+- Revisit if: one section crowds out the rest of an episode, or writing the extra stories costs more than the length they buy.
+- Amends: D170, D176.
+
+## D219: a day's Catch ups are one album, chosen by a select before Play
+
+- Date: 2026-10-29 (the owner: "keep both catchups under same album ... a dropdown selector before the play button ... Catchup at 14, Catchup at 22"; "no shaking"; "share button an icon button"; "big cards for the different topic sections like in the settings page"; "Downloaded next to the subtitle").
+- Decision: the Catch ups with one Stockholm date (`episode.date`) form an album. The grouping is by that date; D213's cap counts a rolling 24 hours, so the two are separate rules. A Catch up's page, and Latest when one is the newest, shows a select of them before Play when there are two or more; choosing one opens its page. Each option is named `Catch up at HH` for the hour it started, two digits so the names are one width, `HH:MM` on all of them when two started in one hour. The page script names them in the browser's zone for that visit only (nothing stored); the server draws Stockholm's hour, and the day boundaries and the grouping stay Stockholm's. The select is the shared `.sort-field`, as wide as its longest name, so switching moves nothing. The hero's row scrolls sideways when select, Play and Share do not fit (to the screen's edges on a phone). Share is a circle on the select's fill (the shared `.icon-btn` with its `.icon-btn-tonal` modifier, the secondary icon button) on every podcast page. A section's stories sit in one `.card-group` under the section's header, on briefings and episodes alike. "Downloaded" with a check circle ends the hero's facts line once the page is saved offline.
+- Why: two Catch ups a day were two unrelated pages with unrelated covers; the owner thinks of them as one thing with two takes.
+- Rejected: one Library card per day (a card's menu acts on one id, so Delete and Regenerate would be ambiguous; not asked for); switching in place without navigation (the player, transcript and story controls all read the page's own data); a select on a day with one Catch up.
+- Revisit if: the owner wants the Library to group them, or the cap moves above two.
+
+## D220: a summary or headline a little over its limit is cut, not rewritten
+
+- Date: 2026-10-29 (decided for the owner while away; the coordinator: trim deterministically before paying for another model call).
+- Decision: before the voice rewrite, a summary over four sentences loses its trailing sentences and a headline over twelve words its trailing clause (cut at a comma, colon, semicolon or dash, keeping at least six words). The cut text is kept only if it lints clean. A rewrite that still runs over gets the same cut.
+- Why: in the 2026-10-29 dry run after D218, of 15 selected stories 3 failed extraction and 4 were lost to a fifth summary sentence or a headline two words over, each after a rewrite that missed the limit again; 8 were written, the refill kept 2 more, and 10 items aired of about 15 wanted.
+- Rejected: a second rewrite (another model call that can miss again); cutting any other rule's violation (a banned word or a missing beat needs the writer).
+- Revisit if: a cut headline reads wrong in a published episode, or the summary's last sentence turns out to carry the story's point.
+- Amends: none.

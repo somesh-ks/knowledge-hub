@@ -243,6 +243,32 @@ export function callsFromSpend(
   return calls;
 }
 
+/**
+ * What a spend costs in dollars, priced the way the ledger prices it (config/prices.json), without
+ * recording anything: a stage's share of a run, for the run log (D221). A price file that does not
+ * read, or a spend with nothing in it, is 0: the number is a measurement, it never stops a run.
+ */
+export async function priceSpend(
+  root: string,
+  spend: RunSpendInput,
+  table?: PriceTable,
+): Promise<number> {
+  try {
+    const prices = table ?? (await loadPrices(root));
+    const calls = callsFromSpend(spend, {
+      at: new Date(0).toISOString(),
+      runId: "price",
+      kind: "daily",
+      timezone: "UTC",
+    });
+    return calls
+      .filter((call) => Object.values(call.units).some((n) => n > 0))
+      .reduce((sum, call) => sum + toRecord(prices, call).usd, 0);
+  } catch {
+    return 0;
+  }
+}
+
 const KIND_OF_PASS: Record<string, CostKind> = {
   regular: "daily",
   weekly: "weekly",

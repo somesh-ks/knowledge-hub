@@ -6,6 +6,7 @@ import {
   DEFAULT_SCHEDULE,
   defaultStructure,
   digestSections,
+  homeSection,
   parseDigestFile,
   type StructureBlockInput,
   StructureBlocks,
@@ -197,6 +198,150 @@ it("a structure of Top picks and release news alone still airs both, though it l
     "top",
     "launches",
   ]);
+});
+
+// 2026-10-29 dry run: the Designer profile's counts, scaled to 5 minutes, summed to 13, so selection
+// stopped at 13 with no spare for a story lost in writing and the daily aired 11 of about 15. The
+// owner's rule is that the settings length is the only size limit (#147, D216): counts are the
+// proportions between sections, and room left over after them goes to the best remaining stories.
+describe("a block's count is a proportion, not a ceiling, when the length wants more", () => {
+  const scoredIn = (category: Category, score: number, n: number): ScoredItem => {
+    const item = makeItem({
+      id: n.toString(16).padStart(12, "0"),
+      title: `Distinct story number ${n} ${category}`,
+    });
+    const entry = makeEntry(item, { category });
+    const breakdown = { taste: score, craftFactor: 1, penaltyFactor: 1, bonus: 0 };
+    return { item, entry, score, topCategory: category, breakdown };
+  };
+  const home = homeSection("design_engineering_craft") ?? "design";
+  const plan = sectionPlanFor(
+    blocks([
+      { type: "hello" },
+      { type: "section", id: home, max_stories: 2 },
+      { type: "sign_off" },
+    ]),
+  );
+  const scored = Array.from({ length: 6 }, (_, n) =>
+    scoredIn("design_engineering_craft", 0.9 - n * 0.01, n + 1),
+  );
+
+  it("takes more than the count when the length leaves room, and no more than the room", () => {
+    const wide = selectItems({ scored, kind: "regular", floor: 1, cap: 12, total: 5, plan });
+    expect(wide.selected.length).toBeGreaterThan(2);
+    expect(wide.selected.length).toBeLessThanOrEqual(5);
+  });
+
+  it("meets every block's count before one section takes the spares", () => {
+    // Section counts 5 and 1 at a length of 6: the best-ranked leftovers belong to the count-1 section,
+    // but its count is met, so the room goes to the section still short of its own (CodeRabbit, #418).
+    const other = homeSection("ai_ux_interaction_patterns") ?? "ai";
+    const mixed = [
+      ...Array.from({ length: 4 }, (_, n) =>
+        scoredIn("ai_ux_interaction_patterns", 0.95 - n * 0.01, n + 20),
+      ),
+      ...Array.from({ length: 6 }, (_, n) =>
+        scoredIn("design_engineering_craft", 0.8 - n * 0.01, n + 1),
+      ),
+    ];
+    const counted = sectionPlanFor(
+      blocks([
+        { type: "hello" },
+        { type: "section", id: home, max_stories: 5 },
+        { type: "section", id: other, max_stories: 1 },
+        { type: "sign_off" },
+      ]),
+    );
+    const result = selectItems({
+      scored: mixed,
+      kind: "regular",
+      floor: 1,
+      cap: 12,
+      total: 6,
+      plan: counted,
+    });
+    const taken = (section: string) =>
+      result.selected.filter((item) => item.section === section).length;
+    expect(taken(home)).toBe(5);
+    expect(taken(other)).toBe(1);
+  });
+
+  it("meets a release-news count above the per-section target, and a release does not use up its home section's count", () => {
+    // Release stories air under release news, so they neither use up their home section's count nor
+    // stop short of their own at 3 (CodeRabbit, #418).
+    const release = (n: number) => scoredIn("developer_tool_launches", 0.7 - n * 0.01, n + 40);
+    const spareFirst = [
+      ...Array.from({ length: 8 }, (_, n) =>
+        scoredIn("ai_ux_interaction_patterns", 0.95 - n * 0.01, n + 20),
+      ),
+      ...Array.from({ length: 7 }, (_, n) =>
+        scoredIn("software_engineering_depth", 0.8 - n * 0.01, n + 60),
+      ),
+      ...Array.from({ length: 5 }, (_, n) => release(n)),
+    ].map((scoredItem, n) => {
+      const isRelease = scoredItem.topCategory === "developer_tool_launches";
+      const title = isRelease ? `Library ${n} 2.0 ships` : scoredItem.item.title;
+      return { ...scoredItem, item: { ...scoredItem.item, title } };
+    });
+    const counted = sectionPlanFor(
+      blocks([
+        { type: "hello" },
+        { type: "section", id: "ai", max_stories: 1 },
+        { type: "section", id: "software", max_stories: 5 },
+        { type: "release_news", stories: 4 },
+        { type: "sign_off" },
+      ]),
+    );
+    const result = selectItems({
+      scored: spareFirst,
+      kind: "regular",
+      floor: 1,
+      cap: 20,
+      total: 10,
+      plan: counted,
+    });
+    const taken = (section: string) =>
+      result.selected.filter((item) => item.section === section).length;
+    expect(taken("launches")).toBe(4);
+    expect(taken("software")).toBe(5);
+    expect(taken("ai")).toBe(1);
+  });
+
+  it("reserves a section with its own allowance its count before the main sections take spares", () => {
+    const own = [
+      ...Array.from({ length: 8 }, (_, n) =>
+        scoredIn("design_engineering_craft", 0.9 - n * 0.01, n + 1),
+      ),
+      ...Array.from({ length: 5 }, (_, n) =>
+        scoredIn("consumer_tech_releases", 0.6 - n * 0.01, n + 80),
+      ),
+    ];
+    const counted = sectionPlanFor(
+      blocks([
+        { type: "hello" },
+        { type: "section", id: home, max_stories: 2 },
+        { type: "section", id: "tech", max_stories: 4 },
+        { type: "sign_off" },
+      ]),
+    );
+    const result = selectItems({
+      scored: own,
+      kind: "regular",
+      floor: 1,
+      cap: 20,
+      total: 6,
+      plan: counted,
+    });
+    const taken = (section: string) =>
+      result.selected.filter((item) => item.section === section).length;
+    expect(taken("tech")).toBe(4);
+    expect(taken(home)).toBe(2);
+  });
+
+  it("keeps to the count when the length asks for no more", () => {
+    const narrow = selectItems({ scored, kind: "regular", floor: 1, cap: 12, total: 2, plan });
+    expect(narrow.selected).toHaveLength(2);
+  });
 });
 
 // ep-20261027-2333: eight slots were filled by rank, the structure's scaled caps then cut the design
