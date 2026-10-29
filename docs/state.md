@@ -24,7 +24,7 @@ Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs (10-28), 10 
 - More menu (D214); Catch up album, Share circle, cards (D219). closed when: signed off.
 - Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused; a regenerate or delete uses none.
 - Three regenerations per podcast, counted in its own file (D212). closed when: one regenerated live shows "2 of 3 regenerations left" and its file has `regenerations: 1`.
-- Short podcasts (D204, D216, D218): the 2026-10-29 daily aired about 3.8 of 5 minutes: no section for ticked general topics (D216), no spares past block counts (D218). A Catch up lost its episode to a push conflict (10-27). closed when: two dailies in a row air within 10% of their length, `singularity metrics` has ten runs with `length_share` at 0.9 and `failure_rate` at 0.1 or less, and a Regenerate pressed during a Catch up publishes both.
+- Short podcasts (D204, D216, D218, D220): the 2026-10-29 daily aired 3.8 of 5 minutes (D216, D218); a D218 dry run lost 3 of 15 to extraction, 4 to voice limits (D220). closed when: two dailies in a row air within 10% of their length, `singularity metrics` has ten runs with `length_share` at 0.9 and `failure_rate` at 0.1 or less, and a Regenerate pressed during a Catch up publishes both.
 - Run names (D217). closed when: a daily is named `daily <date>` and absent from the queue.
 - `.github/workflows/podcast.yml` lost its ffmpeg step in this branch (workflow files need a manual merge). closed when: the owner merges it and a Catch up reaches its first stage within 5 s of the runner starting.
 - A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): `run.yml` gained a `length_minutes` input, which must merge with the site code or GitHub refuses the dispatch. closed when: a Regenerate at 10 minutes airs within 10% of 10.
@@ -51,7 +51,7 @@ Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs (10-28), 10 
 - A pending `config.yml` run can be cancelled by GitHub after a 202 (shared `singularity` group); production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 2026-10-14. closed when: a config save from the site produces a commit.
 - A 15 minute episode falls short (71% general, 45% owner topics, 12-story day); the app does not say how much a window holds. closed when: an episode airs within 10% of 15 minutes, or the form shows what the window holds.
 - Costs (D137, D166): `config/prices.json` is unconfirmed. closed when: the owner confirms it, /analytics shows a real run and a week's runs are in the ledger.
-- Admin and style guide apps (D221): admin has a gate (tests only). closed when: live at /admin and /design, a private window shows the sign-in page.
+- Admin and style guide apps (D221): the gate is tests only. closed when: live at /admin and /design, a private window shows the sign-in page.
 - Catch up: 2 of 7 `podcast.yml` runs failed by 10-28, the last too. closed when: the cause is named.
 - Thirty-five older items are parked: [five](history/2026-10-21-owner-backlog-in-parallel.md#parked), [twelve](history/2026-10-27-session-close.md#parked), [seven](history/2026-10-27-generation-health.md#parked), [eleven](history/2026-10-28-generations-list.md#parked). closed when: each closes.
 
