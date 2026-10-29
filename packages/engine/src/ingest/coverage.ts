@@ -36,24 +36,31 @@ export interface Coverage {
   by_source_type: Record<string, { aired: number; held: number }>;
   /** Pages tried in the window that a free route read. */
   read_share: number | null;
-  /** True when both shares reach the target after SHADOW_DAYS of ingest. */
+  /** True when every counted daily and the pages tried reach the target after SHADOW_DAYS of ingest. */
   met: boolean;
 }
 
-/** The regular dailies generated in the last `days` days, newest first. */
-export async function readRecentDailies(root: string, now: Date, days: number): Promise<Digest[]> {
-  const from = now.getTime() - days * DAY_MS;
+/**
+ * The regular dailies generated in the last SHADOW_DAYS days, newest first. A daily in the window
+ * that cannot be read stops the measurement, naming it: leaving it out would let the others
+ * report an exit that its stories might have failed.
+ */
+export async function readRecentDailies(root: string, now: Date): Promise<Digest[]> {
+  const from = now.getTime() - SHADOW_DAYS * DAY_MS;
+  // An id starts with its date; one a day before the window can still hold a daily generated inside it.
+  const earliest = new Date(from - DAY_MS).toISOString().slice(0, 10);
   const dailies: Digest[] = [];
   for (const id of (await listDigestIds(root)).reverse()) {
+    if (id.slice(0, 10) < earliest) break;
     let digest: Digest;
     try {
       digest = parseDigestFile(await readFile(join(root, digestRelPath(id)), "utf8"));
-    } catch {
-      continue;
+    } catch (error) {
+      throw new Error(
+        `Digest ${id} could not be read: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
-    if (digest.kind !== "regular") continue;
-    if (Date.parse(digest.generated_at) < from) break;
-    dailies.push(digest);
+    if (digest.kind === "regular" && Date.parse(digest.generated_at) >= from) dailies.push(digest);
   }
   return dailies;
 }
@@ -68,10 +75,8 @@ export async function measureCoverage(input: {
   sql: SqlClient;
   dailies: readonly Digest[];
   now: Date;
-  days?: number;
 }): Promise<Coverage> {
-  const days = input.days ?? SHADOW_DAYS;
-  const from = new Date(input.now.getTime() - days * DAY_MS).toISOString();
+  const from = new Date(input.now.getTime() - SHADOW_DAYS * DAY_MS).toISOString();
   const tally = await readIngestTally(input.sql, from);
   const since = tally.first_run_at;
   const counted = input.dailies.filter((digest) => since !== null && digest.generated_at >= since);
@@ -113,10 +118,10 @@ export async function measureCoverage(input: {
     by_source_type: bySourceType,
     read_share: readShare,
     met:
-      observed >= days &&
-      heldShare !== null &&
+      observed >= SHADOW_DAYS &&
+      digests.length > 0 &&
+      digests.every((d) => d.aired === 0 || d.held / d.aired >= COVERAGE_TARGET) &&
       readShare !== null &&
-      heldShare >= COVERAGE_TARGET &&
       readShare >= COVERAGE_TARGET,
   };
 }

@@ -85,7 +85,7 @@ sources with a missing API key skip. Agent mode starts here (see \`singularity r
     name: "ingest",
     summary: "Read the free sources, archive each story's text in Blob and Neon (shadow, D233)",
     help: `Usage: singularity ingest [--since <iso>] [--max <n>] [--dry-run]
-       singularity ingest --coverage [--days <n>]
+       singularity ingest --coverage
 
 Reads the free sources over the last 3 days, extracts each story the store does not hold, archives
 its text in Blob under a random key and records it in Neon. Needs DATABASE_URL and

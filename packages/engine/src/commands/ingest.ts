@@ -14,7 +14,7 @@ import { loadSources } from "../sources/registry.js";
 import { connectConfigStore, databaseSecrets, type SqlClient } from "../store/configPaths.js";
 
 const USAGE = `Usage: singularity ingest [--since <iso>] [--max <n>] [--dry-run]
-       singularity ingest --coverage [--days <n>]
+       singularity ingest --coverage
 
 Reads the free sources (rss, github, hn, arxiv, crossref, lobsters, producthunt) over the last ${INGEST_WINDOW_DAYS} days,
 extracts each story the store does not hold, archives its text in Blob and records it in Neon
@@ -38,7 +38,6 @@ export function makeIngestCommand(deps: IngestDeps = {}): CommandRun {
     let values: {
       since?: string;
       max?: string;
-      days?: string;
       coverage?: boolean;
       "dry-run"?: boolean;
       help?: boolean;
@@ -51,7 +50,6 @@ export function makeIngestCommand(deps: IngestDeps = {}): CommandRun {
         options: {
           since: { type: "string" },
           max: { type: "string" },
-          days: { type: "string" },
           coverage: { type: "boolean" },
           "dry-run": { type: "boolean" },
           help: { type: "boolean", short: "h" },
@@ -66,7 +64,7 @@ export function makeIngestCommand(deps: IngestDeps = {}): CommandRun {
       return 0;
     }
     const now = ctx.now();
-    if (values.coverage) return coverage(values.days, deps, ctx);
+    if (values.coverage) return coverage(deps, ctx);
     const from = values.since
       ? new Date(values.since)
       : new Date(now.getTime() - INGEST_WINDOW_DAYS * DAY_MS);
@@ -137,13 +135,8 @@ function percent(value: number | null): string {
 }
 
 /** `ingest --coverage`: the shadow's measure (D233), from the committed dailies and Neon. */
-async function coverage(daysFlag: string | undefined, deps: IngestDeps, ctx: CommandContext) {
-  const days = daysFlag === undefined ? SHADOW_DAYS : Number(daysFlag);
+async function coverage(deps: IngestDeps, ctx: CommandContext) {
   const databaseUrl = ctx.env.DATABASE_URL;
-  if (!Number.isInteger(days) || days < 1) {
-    ctx.log.error(`--days must be a whole number. ${USAGE}`);
-    return 2;
-  }
   if (!deps.sql && !databaseUrl) {
     ctx.log.error("DATABASE_URL is needed to measure coverage.");
     return 1;
@@ -157,9 +150,8 @@ async function coverage(daysFlag: string | undefined, deps: IngestDeps, ctx: Com
     const now = ctx.now();
     const result = await measureCoverage({
       sql,
-      dailies: await readRecentDailies(ctx.root, now, days),
+      dailies: await readRecentDailies(ctx.root, now),
       now,
-      days,
     });
     const types = Object.entries(result.by_source_type)
       .sort(([, a], [, b]) => b.aired - a.aired)
@@ -167,7 +159,7 @@ async function coverage(daysFlag: string | undefined, deps: IngestDeps, ctx: Com
     emit(
       ctx,
       [
-        `ingest coverage, last ${days} days: ${result.since ? `running since ${result.since} (${result.days_observed} days)` : "no run yet"}`,
+        `ingest coverage, last ${SHADOW_DAYS} days: ${result.since ? `running since ${result.since} (${result.days_observed} days)` : "no run yet"}`,
         `held: ${result.held} of ${result.aired} aired stories (${percent(result.held_share)}); by source type: ${types.join(", ") || "none yet"}`,
         `read: ${percent(result.read_share)} of the pages tried`,
         `shadow exit (${SHADOW_DAYS} days, 90% of each): ${result.met ? "met" : "not met"}`,

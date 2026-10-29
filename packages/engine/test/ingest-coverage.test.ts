@@ -1,6 +1,9 @@
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, describe, expect, it, vi } from "vitest";
-import { measureCoverage } from "../src/ingest/coverage.js";
+import { measureCoverage, readRecentDailies } from "../src/ingest/coverage.js";
 import type { SqlClient } from "../src/store/configPaths.js";
 import {
   type IngestItemRow,
@@ -109,5 +112,39 @@ describe("ingest coverage", () => {
     const result = await measureCoverage({ sql: neon(), dailies: [], now: NOW });
 
     expect(result).toMatchObject({ since: null, held_share: null, read_share: null, met: false });
+  });
+
+  it("does not let a good daily hide a bad one", async () => {
+    const rows = [...Array(18).keys()].map((n) => row(n + 1, "archived"));
+    const sql = await store(rows);
+    const good = makeDigest(
+      "2026-10-25",
+      "2026-10-25T06:00:00.000Z",
+      [...Array(10).keys()].map((n) => ({ n: n + 1 })),
+    );
+    const bad = makeDigest(
+      "2026-10-27",
+      "2026-10-27T06:00:00.000Z",
+      [...Array(10).keys()].map((n) => ({ n: n + 11 })),
+    );
+
+    const result = await measureCoverage({ sql, dailies: [bad, good], now: NOW });
+
+    expect(result.held_share).toBeCloseTo(0.9);
+    expect(result.met).toBe(false);
+  });
+
+  it("stops and names a daily in the window that cannot be read", async () => {
+    const root = await mkdtemp(join(tmpdir(), "coverage-"));
+    try {
+      await mkdir(join(root, "Digests/2026/10"), { recursive: true });
+      await writeFile(join(root, "Digests/2026/10/2026-10-28.md"), "not a digest", "utf8");
+
+      await expect(readRecentDailies(root, NOW)).rejects.toThrow(
+        "Digest 2026-10-28 could not be read",
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });
