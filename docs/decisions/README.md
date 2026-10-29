@@ -89,12 +89,12 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D66 | General news topics are topics; their feeds are sources Jev judges every run, for scores and episodes only | active |
 | D67 | Create shows one list of topic chips; the audience presets them; an episode can mix briefing and general topics | active |
 | D68 | An episode opens with a rundown, deep-dives its lead stories, gives the rest as nuggets and closes short | active |
-| D69 | Design, AI and Technology gather the judge topics; one alphabetical list where each topic sets its scope; every source filed under a topic | active |
-| D70 | A scoring sample judges a few items a run for scores alone, so every source reaches a score, switched-off ones included | active |
-| D71 | Streamlined add topic modal, live suggested sources with TypeSafe Jev scores, schedule timezone and topic scope indicator chips | active; amended by D75, D79, D89 |
+| D69 | Design, AI and Technology gather the judge topics; one alphabetical list; every source filed under a topic | active |
+| D70 | A scoring sample judges a few items a run, so every source reaches a score | active |
+| D71 | Streamlined add topic modal, live suggested sources with Jev scores, scope chips | active; amended by D75, D79, D89 |
 | D72 | The look is tonal: containers, state layers and round buttons instead of outlines and invisible hover fills | active |
 | D73 | A steadier type scale: 16px reading, 18 to 20px headlines, 14px meta, 22px regular section headings | active |
-| D74 | A discussion's hosts are named after their voices; the transcript names a speaker only where the speaker changes | active |
+| D74 | A discussion's hosts are named after their voices; the transcript names a speaker at a change | active |
 | D75 | Suggested sources are chosen from the source catalogue when the page is built, with no live lookup and no scores | active |
 | D76 | Create is the New episode form: three questions first, the defaults under More options | active |
 | D77 | A reading page: the headline is the link, Play is the one filled action, one hero for any title | active |
@@ -149,7 +149,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D126 | A play queue, an Up next peek and sheet, a collapse chevron, Space to play | active; amends D102, D111 |
 | D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, at most 10 | active; amends D123 |
 | D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by content hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
-| D129 | Settings restructured: a Sources or Preferences switch per topic, one voice pair, one type mix, Theme select, no breadcrumbs | partly superseded by D195; amends D51, D87, D124, D125 |
+| D129 | Settings restructured: Sources or Preferences per topic, one voice pair, Theme select | partly superseded by D195; amends D51, D87, D124, D125 |
 | D130 | Kimi models are never offered; the Nebius five are ranked by EQ-Bench longform; a weekly scheduled check proposes a refresh by PR | active; amends D123 |
 | D131 | An 8pt spacing system (4px only for named fine cases), rows that carry their own rhythm, headings never bold, enforced by `npm run design-check` | active; amends D73 |
 | D132 | Two segmented controls (a choice with a check; a navigation tablist with a sliding pill) and one sheet header with Close at the end | active; amends D106 |
@@ -239,5 +239,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D220 | Over-limit summaries and headlines are cut | active |
 | D221 | Runs are logged to Neon with stage times and costs | active |
 | D222 | Firecrawl: 300 a week, 60 a run | amends D166 |
+| D223 | Six expressive spring tokens | active |
 
 ---
