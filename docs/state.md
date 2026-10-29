@@ -8,8 +8,8 @@ Updated 2026-10-29. Rewrite, never append. Behaviour: [specs](specs/README.md). 
 - Reader: Latest, Library, Catch up, Settings, `/design`: [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
 - Player as one surface, transcript with word light, chapters in the bar, a queue with Up next (D126): [player](specs/player.md).
 - Narration on Play, story by story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes; Opus with an MP3 fallback (D198): [narration](specs/narration.md), [create](specs/create.md).
-- Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up are followed in one run card; a failed run says why (D204). Every generation under way is listed with Cancel, in a popover from the side column's icon and a sheet on a phone (D208).
-- Saved-copy navigation, offline shell, downloads for offline listening, the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
+- Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up are followed in one run card; a failed run says why (D204). Every generation under way is listed with Cancel (D208).
+- Saved-copy navigation, offline shell, downloads, the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Schedule (D61, D197): generated ahead, published at 07:00.
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merges by hand (D143).
 - Tooling (D38 [roster](history/2026-10-08-subagent-roster.md)): subagents, `/close-session`.
@@ -20,20 +20,20 @@ Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs (10-28), 10 
 
 ## Not working or unverified
 
-- Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the first daily aired after the merge ends "That's the podcast.".
-- A page's More menu (D214) and a Catch up album, icon Share and section cards (D216). closed when: signed off on screenshots.
-- Two Catch ups in 24 hours, made or under way (D213). closed when: a third answers "That's today's limit" live and a regenerate or delete uses none up.
+- Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily ends "That's the podcast.".
+- More menu (D214); Catch up album, circle Share, section cards (D218). closed when: signed off.
+- Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused and a delete uses none up.
 - Three regenerations per podcast, counted in its own file (D212). closed when: one regenerated live shows "2 of 3 regenerations left" and its file has `regenerations: 1`.
-- Short briefings and lost runs (D204): the 2026-10-27 Regenerate aired 2 of 5 minutes and its Catch up lost its episode to a push conflict; the fixes ran against fakes only. closed when: `singularity metrics` has ten runs with `length_share` at 0.9 and `failure_rate` at 0.1 or less, and a Regenerate pressed during a Catch up publishes both.
+- Short podcasts (D204, D216): the 2026-10-29 daily aired about 3.8 of 5 minutes because ticked general topics had no section under the Designer profile; D216 adds them, sized to length (dry run: 11 of 52 stories selected before the sizing). A Catch up lost its episode to a push conflict (10-27). closed when: two dailies in a row air within 10% of their length, `singularity metrics` has ten runs with `length_share` at 0.9 and `failure_rate` at 0.1 or less, and a Regenerate pressed during a Catch up publishes both.
+- Run names (D217). closed when: a daily is named `daily <date>` and absent from the queue.
 - `.github/workflows/podcast.yml` lost its ffmpeg step in this branch (workflow files need a manual merge). closed when: the owner merges it and a Catch up reaches its first stage within 5 s of the runner starting.
 - A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): `run.yml` gained a `length_minutes` input, which must merge with the site code or GitHub refuses the dispatch. closed when: a Regenerate at 10 minutes airs within 10% of 10.
-- Generations list and Cancel (D208): only against fakes. `POST /api/cancel` needs the token's Actions write (unchecked since 2026-10-14); a cancelled Catch up leaves its live copy "writing" for the 24 h prune and, stopped while recording voices, loses that run's usage charge; a time left needs three timed runs in `state/run-metrics.json` (none). closed when: the owner cancels a real Catch up from the list, it ends as Cancelled, and a briefing shows a time left.
-- Not built: a length above 15 minutes (the narration request is full at 15). closed when: the owner asks.
-- Discovery copies rank below an outlet's own entry in dedupe (2026-10-28). closed when: a dedupe report keeps the outlet's entry.
-- Opus on runners (D198, #381, #388). closed when: an audio run logs `ffmpeg version`, its digest has `m4a_url`, and /d/2026-10-24 plays on an iPhone.
+- Generations list and Cancel (D208): only against fakes. `POST /api/cancel` needs the token's Actions write (unchecked since 2026-10-14); a cancelled Catch up leaves its live copy "writing" for the 24 h prune and, stopped while recording voices, loses that run's usage charge; no timed runs yet for a time left. closed when: the owner cancels a real Catch up from the list, it ends as Cancelled, and a briefing shows a time left.
+- Not built: a length option above 15 minutes (the 19,000-character narration request is full at 15). closed when: the owner asks for it.
+- Discovery copies rank below an outlet's own entry in dedupe (2026-10-28). closed when: a run's dedupe report keeps the outlet's entry where a discovery copy was found.
+- Opus on runners (D198, #381, #388). closed when: an audio run logs `ffmpeg version`, its digest has `m4a_url`, and the owner plays /d/2026-10-24 on an iPhone.
 - Alexandria pilot (D200). closed when: a run log shows `anthropic-blog` fetched via `alexandria:anthropic-com` with dated posts.
-- Episode length (#327). closed when: a podcast's "Script length" line reaches 90% of its target.
-- Owner's eye: the bar's centring, Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off on a phone and a laptop.
+- Owner's eye: the bar's centring (more than 1px), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off on a phone and a laptop.
 - Live content (plan 20): an open page elsewhere does not refresh within 60 s (criterion 3); `smokeLive.mjs --apply` never ran on production (criterion 10, owner's); offline copies of a removed episode, Listen now after a delete unaudited. closed when: each is built or checked.
 - Settings paint the kept store copy at once and the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change still waits for the store, up to 2.5 s. closed when: the owner signs off on a phone.
 - Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push` (a rule guesses first); no run used a mix, perspective or cap. closed when: a production source's format comes from Jev and a digest follows a mix change.
@@ -45,7 +45,7 @@ Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs (10-28), 10 
 - Safari and WebKit: the iPhone `@smoke` set (`PLAYER_WEBKIT=1`) never ran. Checklist: six old failures, drawn selects and sheets (D167), the searchable list, device sounds, the address-bar move (#120). closed when: an iPhone and an Android phone each pass it.
 - "Narration is not available right now" (2026-10-12): not reproduced. A failing try leaves a `server` fault for `api/narrate`. closed when: one names the step.
 - Time zone (D100) only faked: no non-Stockholm zone, fallback or clock change; `sinceLabel`, `pendingAudio` and `podcast/select` still use Stockholm's today. closed when: a run across the 2026-10-25 clock change publishes on the right day.
-- General topics (D66 to D69, D102): no run judged the general feeds or put a general topic in a briefing; the first fetch of the 21 new sources; a mixed episode. closed when: a digest with a ticked general topic has its section and the judge reports the feeds.
+- General topics (D66 to D69, D102): no committed digest has a general topic's section yet. closed when: one does.
 - Config through `config.yml` never seen live: `topic.scope`, rename or move from the panel, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics (D108, D109), delete and regenerate an episode. closed when: each op lands as a `main` commit from the site.
 - Config store (D149, D185), on since 2026-10-24. closed when: a phone's edit shows on a laptop.
 - A pending `config.yml` run can be cancelled by GitHub after a 202 (shared `singularity` group); production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 2026-10-14. closed when: a config save from the site produces a commit.
@@ -59,7 +59,6 @@ Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs (10-28), 10 
 - Vercel storage near 10 GB (2026-10-24), unexplained by narration (4 MB a digest, pruned at 120 days). closed when: explained.
 - No passphrase (D160): anyone with the URL can run, narrate, delete and edit config, inside the caps.
 - Budget counters can read below real spend (an edit that does not lengthen a briefing, two charges at once, a function killed mid-synthesis); the workflow and the site keep separate counters against one Speechify allowance.
-- `markSeen` records every judged id, so items cut by the cap are hidden for 90 days.
 - A save made while a briefing runs waits in the `singularity` queue; a later save replaces an earlier waiting one; closing the tab in the 10 s gap loses it (D79, D91).
 
 ## Next

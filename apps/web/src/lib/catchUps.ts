@@ -1,5 +1,5 @@
 /**
- * A day's Catch ups as one album (D216): the two a day D213 allows share one page family, and a
+ * A day's Catch ups as one album (D218): the two a day D213 allows share one page family, and a
  * select before Play moves between them. The album is every episode with the same Stockholm date,
  * the date the server counts the cap in. Each option is named for the hour it was started in the
  * viewer's own time zone ("Catch up at 14"), which the page script sets for that visit only

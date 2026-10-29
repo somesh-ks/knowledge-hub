@@ -237,7 +237,24 @@ What an episode or briefing is: kinds and structure, length, regenerate, Catch u
 - Rejected: counting episode files from the store (a delete would free a slot and a delete-and-remake loop would get round the cap); a counter in the settings store (a second place to drift).
 - Revisit if: two a day turns out too tight for the owner, or the run list (30 runs) stops covering a day.
 
-## D216: a day's Catch ups are one album, chosen by a select before Play
+## D216: a ticked general topic gets a section under any profile, sized to the episode's length
+
+- Date: 2026-10-29 (decided for the owner while away, from his #147 rule that the settings length is the only size limit and his repeated complaints of short podcasts).
+- Decision: `loadSectionPlan` adds a brief section for each general topic the podcast ticks and the stored structure leaves out (D191 presets list none), before the sign-off, with `max_stories` 5 at the 10-minute reference, scaled by the episode's length (3 at 5 minutes). The same plan feeds selection and the validator, so the larger allowance holds through both.
+- Why: the 2026-10-29 dry run showed 36 of 53 qualifying stories dropped `not_in_structure`, so the daily aired about 3.8 of 5 minutes. With the sections back it still selected 11 of 52 (30 `over_section_cap`) because a general section held a flat 2.
+- Rejected: a flat higher allowance (ignores the length); skipping the allowance when under length (the validator would trim it back).
+- Revisit if: the next two dailies still miss their length by more than 10%, or general topics crowd out the owner's own topics.
+- Amends: D170, D191.
+
+## D217: run.yml names every run for what it is
+
+- Date: 2026-10-29 (the owner: unique run names per type for analytics and debugging; the queue shows only Catch ups and regenerations).
+- Decision: `run.yml`'s `run-name` is `delete <id>`, `dry run <mode>`, `regenerate <digest id>`, the scheduler's `label` input (`daily <date>`, `weekly <date>`, `daily and weekly <date>`; the cron route sets it from the gate's decision), `on-demand`, or `scheduled` for GitHub's late fallback. The old name `run` is read as a briefing run. The generations list leaves out the schedule's own runs and any dry run, and a regeneration names its target; the Regenerate cooldown and health's `run_died` and `run_cancelled` read the prefixes. `podcast.yml` keeps `episode`, `regenerate <id>` and `delete <id>` (D213).
+- Why: every briefing run was titled `run`, so a regeneration had no target, the schedule's run was counted as a Regenerate press (D61's noted cost) and nothing could be grouped by type.
+- Rejected: a date in the Catch up name (the dispatch cannot know the episode id; the queue names it from its start time); a run-name per run number (unique but groups nothing).
+- Amends: D61, D213.
+
+## D218: a day's Catch ups are one album, chosen by a select before Play
 
 - Date: 2026-10-29 (the owner: "keep both catchups under same album ... a dropdown selector before the play button ... Catchup at 14, Catchup at 22"; "no shaking"; "share button an icon button"; "big cards for the different topic sections like in the settings page"; "Downloaded next to the subtitle").
 - Decision: the Catch ups with one Stockholm date (`episode.date`, the day D213 counts in) form an album. A Catch up's page, and Latest when one is the newest, shows a select of them before Play when there are two or more; choosing one opens its page. Each option is named `Catch up at HH` for the hour it started, two digits so the names are one width, `HH:MM` on all of them when two started in one hour. The page script names them in the browser's zone for that visit only (nothing stored); the server draws Stockholm's hour, and the day boundaries, the cap and the grouping stay Stockholm's. The select is the shared `.sort-field`, as wide as its longest name, so switching moves nothing. The hero's row scrolls sideways when select, Play and Share do not fit (to the screen's edges on a phone). Share is a circle on the select's fill (the shared `.icon-btn` with its `.icon-btn-tonal` modifier, the secondary icon button) on every podcast page. A section's stories sit in one `.card-group` under the section's header, on briefings and episodes alike. "Downloaded" with a check circle ends the hero's facts line once the page is saved offline.

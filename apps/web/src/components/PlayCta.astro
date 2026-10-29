@@ -15,7 +15,7 @@ interface Props {
   /** What the chip plays, in its accessible name. */
   noun?: ChipNoun;
   share?: HeroShare;
-  /** The day's Catch ups, earliest first, when it has two or more (D216): a select before Play. */
+  /** The day's Catch ups, earliest first, when it has two or more (D218): a select before Play. */
   album?: readonly AlbumOption[];
 }
 
@@ -25,7 +25,7 @@ const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
 ---
 
 <div class="hero-actions scroll-fade-inline">
-  {/* A day's other Catch up (D216): the same select chip as the Library's sort. Choosing one opens
+  {/* A day's other Catch up (D218): the same select chip as the Library's sort. Choosing one opens
        its page (scripts/catchUpAlbum.ts). Every name stays in the select, so its width is the
        longest name's whichever is shown, and Play beside it never moves. */}
   {

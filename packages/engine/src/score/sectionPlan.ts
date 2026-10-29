@@ -1,6 +1,8 @@
 import {
   blockStoryRules,
   type DigestKind,
+  effectiveSkipTopics,
+  GENERAL_TOPICS,
   isBuiltinSection,
   RELEASE_NEWS_SECTION,
   SECTIONS,
@@ -16,6 +18,9 @@ import {
 } from "@singularity/core";
 import { loadSchedule } from "../schedule/store.js";
 import { loadStructureFile } from "../structure/store.js";
+
+/** Stories a ticked general section the structure left out holds in a reference-length episode. */
+const ADDED_SECTION_STORIES = 5;
 
 /** Top picks a briefing carries when its structure leaves the count to the engine. */
 export const DEFAULT_TOP_PICKS = 3;
@@ -114,13 +119,42 @@ export async function loadSectionPlan(
   if (structureKind === null) return DEFAULT_SECTION_PLAN;
   const file: StructureFile | null = await loadStructureFile(root);
   const stored = storedStructure(file);
-  const minutes = stored === null ? 0 : (asked ?? (await lengthMinutes(root, structureKind)));
-  return sectionPlanFor(stored && scaleStructure(stored, minutes), file?.prompts);
+  if (stored === null) return sectionPlanFor(null, file?.prompts);
+  const schedule = await loadSchedule(root);
+  const scope = structureKind === "weekly" ? "weekly" : "daily";
+  const minutes =
+    asked ?? (scope === "weekly" ? schedule.weekly.length_minutes : schedule.length_minutes);
+  const ticked = withTickedGeneralSections(stored, effectiveSkipTopics(schedule, scope));
+  return sectionPlanFor(scaleStructure(ticked, minutes), file?.prompts);
 }
 
-async function lengthMinutes(root: string, kind: StructureKind): Promise<number> {
-  const schedule = await loadSchedule(root);
-  return kind === "weekly" ? schedule.weekly.length_minutes : schedule.length_minutes;
+/**
+ * The structure with a section for each general news topic the podcast has ticked and the list
+ * leaves out. A profile's preset lists none of them, so World, Business and Science, ticked on the
+ * 2026-10-29 daily, lost 36 of its 53 qualifying stories as `not_in_structure` and it aired 3.8 of
+ * 5 minutes. They go before the sign-off. Each holds `ADDED_SECTION_STORIES` at the reference
+ * length and scales with the episode (scaleStructure), not the flat two of a general section: with
+ * the flat two the same run still selected only 11 of 52, and the owner's rule is that the
+ * settings length is the only size limit (#147).
+ */
+export function withTickedGeneralSections(
+  blocks: readonly StructureBlock[],
+  skipped: readonly string[],
+): StructureBlock[] {
+  const listed = new Set(structureSectionOrder(blocks));
+  const added: StructureBlock[] = GENERAL_TOPICS.filter(
+    (topic) => !skipped.includes(topic.id) && !listed.has(topic.id),
+  ).map((topic) => ({
+    type: "section",
+    id: topic.id,
+    depth: "brief",
+    max_stories: ADDED_SECTION_STORIES,
+  }));
+  if (added.length === 0) return [...blocks];
+  const close = blocks.findIndex((block) => block.type === "sign_off");
+  return close < 0
+    ? [...blocks, ...added]
+    : [...blocks.slice(0, close), ...added, ...blocks.slice(close)];
 }
 
 /**

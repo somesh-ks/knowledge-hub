@@ -56,14 +56,76 @@ describe("the list of generations", () => {
     });
   });
 
-  // A delete and a dry run are runs of run.yml, but nobody waits for a briefing from them.
-  it("leaves out a delete and a dry run", async () => {
+  // A delete and a dry run are runs of run.yml, but nobody waits for a briefing from them, and the
+  // schedule's Daily and Weekly are made in the background (D217).
+  it("leaves out a delete, a dry run and the schedule's own runs", async () => {
     const github = setup([
       runJson({ id: 21, status: "in_progress", display_title: "delete 2026-10-27" }),
-      runJson({ id: 22, status: "in_progress", display_title: "dry run" }),
+      runJson({ id: 22, status: "in_progress", display_title: "dry run scheduled" }),
+      runJson({ id: 23, status: "in_progress", display_title: "daily 2026-10-27" }),
+      runJson({ id: 24, status: "in_progress", display_title: "weekly 2026-10-25" }),
+      runJson({ id: 25, status: "in_progress", display_title: "scheduled" }),
     ]);
     const result = await handleGenerations({ env, fetch: github.fetch });
     expect(result.body).toEqual({ generations: [] });
+  });
+
+  // The queue names a row for what it is (lib/queueNames.ts) and shows only what a person asked for.
+  it("tells a Catch up from a regeneration, and names the podcast a regeneration replaces", async () => {
+    const episodes = [
+      runJson({
+        id: 41,
+        path: ".github/workflows/podcast.yml",
+        status: "in_progress",
+        display_title: "episode",
+        created_at: "2026-10-28T05:00:00Z",
+      }),
+      runJson({
+        id: 42,
+        path: ".github/workflows/podcast.yml",
+        status: "in_progress",
+        display_title: "regenerate ep-20261027-1405",
+        created_at: "2026-10-28T05:10:00Z",
+      }),
+      runJson({
+        id: 43,
+        path: ".github/workflows/podcast.yml",
+        status: "in_progress",
+        display_title: "regenerate not an id",
+        created_at: "2026-10-28T05:20:00Z",
+      }),
+      runJson({
+        id: 44,
+        path: ".github/workflows/podcast.yml",
+        status: "in_progress",
+        display_title: "delete ep-20261027-1405",
+        created_at: "2026-10-28T05:30:00Z",
+      }),
+    ];
+    const github = setup(
+      [
+        runJson({
+          id: 45,
+          status: "in_progress",
+          display_title: "regenerate 2026-10-26",
+          created_at: "2026-10-28T04:00:00Z",
+        }),
+      ],
+      episodes,
+    );
+    for (const id of [41, 42, 43, 45]) {
+      github.on(`GET /actions/runs/${id}/jobs`, { json: { jobs: [{ steps: [] }] } });
+    }
+    const result = await handleGenerations({ env, fetch: github.fetch });
+    const rows = (
+      result.body as { generations: { run_id: number; kind: string; target: string | null }[] }
+    ).generations;
+    expect(rows.map(({ run_id, kind, target }) => [run_id, kind, target])).toEqual([
+      [45, "regenerate", "2026-10-26"],
+      [41, "catch_up", null],
+      [42, "regenerate", "ep-20261027-1405"],
+      [43, "regenerate", null],
+    ]);
   });
 
   it("leaves out a run that is not ours, and answers 503 without leaking when GitHub fails", async () => {

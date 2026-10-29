@@ -1,4 +1,5 @@
 import type { GenerationRow } from "../types/contracts";
+import { queuePercent } from "./queuePercent";
 import { timeLeft } from "./runStages";
 
 /**
@@ -55,6 +56,8 @@ export interface GenerationView {
   meta: string;
   /** 0 to 1: how far along the run is. */
   progress: number;
+  /** The whole number in the queue's ring: 0 while queued, else 1 to 99 (lib/queuePercent.ts). */
+  percent: number;
   /** A plain hex colour for the thumbnail's ground, or null. */
   tint: string | null;
   /** A cover image to draw in the thumbnail (a Regenerate's briefing), or null. */
@@ -115,6 +118,14 @@ export function describeGeneration(row: GenerationRow, context: GenerationContex
     ? QUEUED_PROGRESS
     : Math.min(MAX_PROGRESS, Math.max(MIN_PROGRESS, (row.stage + within) / spans));
 
+  const percent = queuePercent({
+    stage: row.stage,
+    stages: row.stages,
+    elapsedInStageMs: elapsed,
+    estimates,
+    queued: !running,
+  });
+
   return {
     id: row.run_id,
     kind: row.what,
@@ -122,6 +133,7 @@ export function describeGeneration(row: GenerationRow, context: GenerationContex
     title,
     meta,
     progress,
+    percent,
     tint: live?.tint && HEX_COLOR.test(live.tint) ? live.tint : null,
     cover: DIGEST_ID.test(replacing) ? `/covers/${replacing}-512.webp` : null,
     listen: running && row.what === "episode" && live !== null,

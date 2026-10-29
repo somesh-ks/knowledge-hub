@@ -59,7 +59,7 @@
   grid-area: menu;
 }
 
-/* The day's Catch up select (D216), Play, and Share beside it (PlayCta.astro). The row scrolls
+/* The day's Catch up select (D218), Play, and Share beside it (PlayCta.astro). The row scrolls
    sideways when they do not fit (a phone with the longest names: owner, 2026-10-29), and its padding
    holds the focus rings the scroll box would clip; the negative margins take the padding back, so
    the row stands where it did. Nothing in it shrinks: Play and the select keep their width. */
@@ -86,7 +86,7 @@
 }
 
 /*
- * The select of a day's Catch ups (D216) is the shared select chip (.sort-field, primitives.css) at
+ * The select of a day's Catch ups (D218) is the shared select chip (.sort-field, primitives.css) at
  * the hero chip's height, so it and Play read as one row. A select is as wide as its longest option
  * whichever is chosen, and the names are one width (lib/catchUps.ts), so switching moves nothing.
  */

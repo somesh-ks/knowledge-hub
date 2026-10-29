@@ -4,7 +4,7 @@ import { isSameOrigin } from "./generate";
 import { createGitHubClient, type FetchLike, type WorkflowRun } from "./github";
 import type { ApiResult } from "./http";
 import { describeError } from "./redact";
-import { isOurRun, isPodcastRun, parseRunId, progressOf } from "./status";
+import { isOurRun, isPodcastRun, isScheduledRun, parseRunId, progressOf } from "./status";
 
 /**
  * GET /api/generations: what is being made right now, and POST /api/cancel: stop one of them. A
@@ -41,9 +41,33 @@ export interface CancelDeps extends GenerationsDeps {
 export const GENERATIONS_CACHE_CONTROL = "private, max-age=3";
 export const MAX_CANCEL_BODY_CHARS = 256;
 
-/** A delete and a dry run are runs of run.yml too, but nobody is waiting for a briefing from them. */
+/**
+ * run.yml names its runs (D217). A delete and a dry run are runs too, but nobody is waiting for a
+ * briefing from them, and the schedule's own Daily and Weekly are made in the background, so the
+ * queue shows only a Catch up and a regeneration (the owner's call, 2026-10-29). The old name
+ * "run" was every dispatched briefing, so it still lists.
+ */
 const isGeneration = (run: WorkflowRun): boolean =>
-  !run.title.startsWith("delete ") && run.title !== "dry run";
+  !run.title.startsWith("delete ") && !run.title.startsWith("dry run") && !isScheduledRun(run);
+
+/** A digest id or an episode id, the only targets a row carries to the page. */
+const TARGET_ID = /^(\d{4}-\d{2}-\d{2}(-weekly|-[2-9]|-[1-9]\d+)?|ep-\d{8}-\d{4})$/;
+
+/**
+ * What a run is, from its title. podcast.yml names a regeneration "regenerate <episode id>" and a
+ * Catch up "episode" (D213), and run.yml a regeneration "regenerate <digest id>" (D217). What is left
+ * of run.yml (an "on-demand" or the old "run") is a briefing made by hand, so a regeneration whose
+ * target is unknown here.
+ */
+export function kindOf(run: WorkflowRun): Pick<GenerationRow, "kind" | "target"> {
+  if (run.title === "regenerate" || run.title.startsWith("regenerate ")) {
+    const named = run.title.slice("regenerate ".length).trim();
+    return { kind: "regenerate", target: TARGET_ID.test(named) ? named : null };
+  }
+  return isPodcastRun(run)
+    ? { kind: "catch_up", target: null }
+    : { kind: "regenerate", target: null };
+}
 
 export async function handleGenerations(
   deps: GenerationsDeps,
@@ -62,6 +86,7 @@ export async function handleGenerations(
         return {
           run_id: run.id,
           what: isPodcastRun(run) ? "episode" : "briefing",
+          ...kindOf(run),
           // The list holds runs that have not finished, so a state of "completed" cannot arise
           // unless the run ended between the two calls; it reads as running until the next poll.
           state: state === "queued" ? "queued" : "running",

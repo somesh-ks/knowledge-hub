@@ -8,7 +8,7 @@ What it does now. Reasons: D44, D59, D60, D77, D78, D88, D97, D104, D109, D127; 
 - The first destination is called Latest; its id stays `today`. Destinations: Latest, Library, Catch up, Settings.
 - No banner says how old a briefing is; offline is the one device banner.
 - The latest briefing's three-dots menu offers Share and New briefing; an older briefing has a Share button.
-- Every briefing has Share, Regenerate and Delete in its More menu (D104); a podcast page's More menu also offers Download and Add to queue (D214). Share is a secondary icon button (a circle on the select's fill) after Play (D216). Regenerate replaces that digest over its own window (`singularity run --replace`); Delete removes the digest and its timeline (`singularity run --delete`). Both go through `run.yml` and `/api/generate`. Today's Regenerate takes feedback for the writer and makes a new digest, not a replacement (D103).
+- Every briefing has Share, Regenerate and Delete in its More menu (D104); a podcast page's More menu also offers Download and Add to queue (D214). Share is a secondary icon button (a circle on the select's fill) after Play (D218). Regenerate replaces that digest over its own window (`singularity run --replace`); Delete removes the digest and its timeline (`singularity run --delete`). Both go through `run.yml` and `/api/generate`. Today's Regenerate takes feedback for the writer and makes a new digest, not a replacement (D103).
 - Regenerate chooses the topics again and takes comments, for an episode and a briefing (D109). A briefing's also takes a Length (Usual, 3, 5, 10 or 15 min). Usual sends no override and keeps the run's own sizing (the schedule's, or none for an on-demand run); the others size the run to that length (D207).
 - Each story has like, dislike and "Stop hearing from" controls.
 - The hero Play chip, the floating Play and the cards show resume, played and heard state (D97, see player.md).
@@ -16,7 +16,7 @@ What it does now. Reasons: D44, D59, D60, D77, D78, D88, D97, D104, D109, D127; 
 ### Episode pages
 - An episode's menu offers Share, Regenerate and Delete (D88, D44). Both actions go through `/api/podcast` and `podcast.yml`.
 - Scenario: WHEN an episode is deleted THEN it is hidden at once on the device that asked, while the workflow and the redeploy finish.
-- A day's Catch ups are one album (D216): a select of "Catch up at 14" names (the start hour in the browser's zone) stands before Play when the day has two or more; choosing one opens its page. The hero's row scrolls sideways when select, Play and Share do not fit.
+- A day's Catch ups are one album (D218): a select of "Catch up at 14" names (the start hour in the browser's zone) stands before Play when the day has two or more; choosing one opens its page. The hero's row scrolls sideways when select, Play and Share do not fit.
 - A section's stories sit in one card under the section's header, on every podcast page. A downloaded page ends its facts line with a check circle and "Downloaded".
 - An episode page shows Highlights with links, not the script: a briefing's summary where the story is in one, else what the hosts said without segues and questions.
 
