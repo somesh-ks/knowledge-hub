@@ -13,6 +13,10 @@ on:
         type: string
         required: true
 
+# What the run list shows for each run, so the site can tell a new Catch up from a regeneration or a
+# delete (D213): the request carries `action` and `id` for the last two and neither for a new episode.
+run-name: ${{ fromJSON(inputs.request).action && format('{0} {1}', fromJSON(inputs.request).action, fromJSON(inputs.request).id) || 'episode' }}
+
 # The same group as run.yml, so an episode and a digest never push at the same moment. GitHub keeps
 # one pending run per group, so a request made while a digest is running waits for it to finish.
 concurrency:

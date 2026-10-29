@@ -29,6 +29,14 @@ export const PODCAST_POLICY: LimitPolicy = {
 };
 
 /**
+ * Catch up episodes a day (D213): two that came out or are still being made. A run that failed or was
+ * cancelled does not count, so a Catch up that fails can be tried again; PODCAST_POLICY still bounds
+ * the tries (two minutes apart, twelve a day) so a loop of failures cannot run up the writer's bill.
+ */
+export const CATCH_UP_DAILY_CAP = 2;
+export const CATCH_UP_POLICY: LimitPolicy = { cooldownMs: 0, dailyCap: CATCH_UP_DAILY_CAP };
+
+/**
  * Regenerating a podcast (D212): its own count of three decides (MAX_REGENERATIONS), with no limit per
  * day of its own. What is left here is a guard against a double tap and a ceiling against a runaway
  * script. The ceiling counts the runs of the route's own workflow in 24 hours, from a list GitHub cuts
