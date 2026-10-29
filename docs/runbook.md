@@ -66,6 +66,10 @@ Vercel deploys through its GitHub integration (D25). No Vercel token is needed i
 3. Add the two Vercel environment variables (`GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY`) in section 1.9, or by hand in the dashboard.
 4. Hobby deploys only commits authored by the Hobby team owner. The GitHub login connected to Vercel must be the account that owns the team, and it must match the committer. The engine commits as that owner through the GitHub Actions variables `SINGULARITY_GIT_NAME` and `SINGULARITY_GIT_EMAIL`, which section 1.9 sends. If both are unset the engine commits as `singularity-bot`, and Hobby blocks those deploys.
 
+### 1.4a Create the admin project (D224)
+
+The command center is a second Vercel project, `singularity-admin`, from the same repo: Root Directory `apps/admin`, "Include source files outside of the Root Directory" on, Production Deployment Protection off (the app gates itself; Vercel protection cannot guard a project reached through a rewrite). The reader's `apps/web/vercel.json` rewrites `/admin` to its `singularity-admin-psi.vercel.app` address. In the project's Environment Variables (Production) set `ADMIN_PASSWORD` and `ADMIN_SESSION_SECRET` (32 or more random characters). Until both exist the app answers 503 to everyone.
+
 ### 1.5 Create the Blob store
 
 1. In the Vercel dashboard, open Storage and create a Blob store (or run `vercel blob store add`).

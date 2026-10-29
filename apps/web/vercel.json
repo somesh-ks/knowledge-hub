@@ -112,6 +112,10 @@
   ],
   "rewrites": [
     {
+      "source": "/admin/:path*",
+      "destination": "https://singularity-admin-psi.vercel.app/admin/:path*"
+    },
+    {
       "source": "/covers/:path*",
       "destination": "https://irmb7o0qwtveacjt.public.blob.vercel-storage.com/content/covers/:path*"
     }
