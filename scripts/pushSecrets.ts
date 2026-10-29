@@ -178,6 +178,10 @@ function main(): void {
   // passing it to the CLI as well made every Vercel push fail with "Could not retrieve Project
   // Settings" once that token was rotated or revoked, while the login still worked.
   delete childEnv.VERCEL_TOKEN;
+  // These would override each directory's own link (the reader's and the admin project's), and send a
+  // value to whichever project they name.
+  delete childEnv.VERCEL_ORG_ID;
+  delete childEnv.VERCEL_PROJECT_ID;
 
   // The reader's project: the repository root or apps/web. The admin project: apps/admin only.
   const vercelDir = linkedVercelDir([".", "apps/web"]);
