@@ -30,7 +30,7 @@ const { current } = Astro.props;
         const inside = children?.some((child) => child.path === current) ?? false;
         const open = inside || page.path === current;
         return (
-          <li class="guide-nav-entry">
+          <li class:list={["guide-nav-entry", children && "guide-nav-group"]}>
             <a
               class="app-nav-item"
               href={href(page.path)}

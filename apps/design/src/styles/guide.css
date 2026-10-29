@@ -18,7 +18,7 @@
   }
 }
 
-.guide-page > section + section {
+.guide-page > section:not([hidden]) ~ section:not([hidden]) {
   margin-block-start: var(--space-12);
 }
 
@@ -355,6 +355,8 @@
 
 /* The search and its filter in one row, kept under the app bar as the page scrolls. */
 .guide-toolbar {
+  /* The select chip is as tall as the field beside it: one row, one height. */
+  --chip-height: var(--field-height);
   position: sticky;
   inset-block-start: var(--sticky-top);
   z-index: calc(var(--z-header) - 1);
@@ -601,11 +603,21 @@
     padding-inline: var(--space-4);
   }
 
+  /* A page with pages under it sits in one tonal container with them, so they read as a section.
+     It grows a step past the column's rows and pads that step back, so the rows inside stay on the
+     same left edge as the rows outside. */
+  .guide-nav-group {
+    margin-inline: calc(var(--space-1) * -1);
+    padding: var(--space-1);
+    border-radius: var(--radius-xl);
+    background: var(--color-surface-container);
+  }
+
   /* The chevron sits on the row's end and turns when it opens. */
   .guide-nav-toggle {
     position: absolute;
-    inset-block-start: calc((var(--nav-side-item-height) - var(--size-touch)) / 2);
-    inset-inline-end: var(--space-1);
+    inset-block-start: calc((var(--nav-side-item-height) - var(--size-touch)) / 2 + var(--space-1));
+    inset-inline-end: var(--space-2);
     display: inline-flex;
   }
 
