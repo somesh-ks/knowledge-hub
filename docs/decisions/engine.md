@@ -391,3 +391,51 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Revisit if: the alert fires in a week with no extra runs (normal has grown), monitors replace listing scrapes (Step 2), or a week goes from past 150 to the stop before the owner saw the warning (the warning reaches the owner only in the Monday `health-warnings` issue and `singularity health`, not the Health page; the stop opens a `health` issue only if it still stands when the daily check runs; a same-day warning is then the fix).
 - Limit: the week is read from the ledger, and a failed dry run records nothing (`recordFailed.ts`), so its Firecrawl requests are not counted.
 - Amends: D222 (adds the alert; the 300 and the 60 a run are D222's).
+- Status: Superseded by D227 (the alert moves from 150 to 210).
+
+## D227: Firecrawl's week alerts at 210, not 150
+
+- Date: 2026-10-29 (the same day as D223; the owner asked for the open questions to be decided).
+- Decision: `FIRECRAWL_WEEKLY_ALERT` is 210. Health warns (`firecrawl_week_high`) once the last 7 days pass 210. The fault at 300 and the 60 a run are unchanged.
+- Context changed: D223 chose 150, but D222 measured a normal week at about 150 (a daily asks for about 40), so a 150 warning would fire every normal week and be ignored.
+- Rejected: a same-day alert path (the 300 stop is the backstop; build it only if the stop is ever hit).
+- Revisit if: the alert fires in a week with no extra runs (normal has grown), or monitors replace listing scrapes (Step 2).
+- Supersedes: D223's threshold.
+
+
+## D228: A failed dry run records its spend
+
+- Date: 2026-10-29 (decided for the owner, who wants accurate cost data; D223's Limit).
+- Decision: when a dry run fails, `run.yml`'s Record failure step runs with `--dry-run` and `recordFailedRun` puts the run's spend in the cost ledger in a commit of the ledger alone (`chore(costs): dry run <date> failed`), as a finished dry run does. The cadence, the metrics and the digests stay as they were.
+- Context changed: a failed dry run pays for the calls it made before it stopped, so recording nothing left Firecrawl's week short.
+- Why: Firecrawl's week (D222, D223) is read from the ledger, so the count was short by exactly the runs that were being fixed.
+- Rejected: counting the run log's `pipeline_stages` instead (Neon, not the ledger the budget reads; a second source for one number).
+- Limit: the ledger commit still refuses when the tree holds any other change (for example config copied from the store that git does not yet have), and a ledger write that fails is swallowed by design ("a ledger failure never fails a run"); either leaves that run's spend uncounted, and both only warn.
+- Amends: D223 (removes its Limit; the alert is D227's now and the stop of 300 stands). A dry run's ledger commit, finished or failed, uses its own `costs` allowlist (`state/costs-*.json` only), not `publish`.
+
+## D232: One cleaner turns scraped Markdown into prose
+
+- Date: 2026-10-29 (Step 2 of the pipeline plan; the owner asked for "cleaner output to avoid unwanted html/scripts/etc.").
+- Decision: `extract/cleanMarkdown.ts` is the one place scraped Markdown becomes text. It drops lines that are only links (menus, breadcrumbs, share rows), short boilerplate lines (skip link, cookie banner, newsletter prompt, footer legal, previous/next), script and style blocks, tags, images and bare URLs, and keeps every other line with its links reduced to their text. `markdownToText` (article extraction by Firecrawl) and the whole-page fallback in `fetch/firecrawl.ts` both use it.
+- Why: the fallback used to turn the whole page, navigation and addresses included, into a story's summary, and `markdownToText` kept bare URLs and menus; the judge scores the first 1,200 characters and the writer reads the rest.
+- Rejected: asking Firecrawl for `excludeTags` (no evidence `onlyMainContent` fails on a page we use, and a request option changes what the credits buy); a model pass to clean text (a paid call per page for a rule that fits in 60 lines).
+- Revisit if: a published story's text shows menu or banner words the rules miss (add the line to the fixture), or a real body line is dropped (the rules only drop short all-link rows (a lone link only up to three words) and short boilerplate matches).
+
+## D233: Ingest runs beside the daily fetch, free sources only, text in Blob under random keys
+
+- Date: 2026-10-29 (Step 2 of the pipeline plan; decided for the owner, who asked for a raw news archive and a pipeline that reads before each podcast).
+- Decision: `singularity ingest` (`ingest.yml`, 01:23, 09:23 and 17:23 UTC) reads the rss, github, hn, arxiv, crossref, lobsters and producthunt sources over the last 3 days, extracts each story the store does not hold (`extractFullText` with no scrape), saves its text as JSON in Blob at `ingest/<year>/<month>/<random>.json` and records it in Neon (`ingest_items`, keyed by the item id, with the Blob key; `ingest_runs`, one row a run). A story is read once; one no free route can read is tried for 3 runs. At most 600 stories a run; the 3-day window brings the rest to the next. It reads the owner's current sources from the config store and writes nothing a briefing reads.
+- Why free sources only: Exa and Firecrawl spend the weekly allowance the daily needs (D222), and YouTube falls back to Firecrawl. The shadow week should show what the free sources miss before anything is paid for.
+- Why random keys: Blob is public-only with readable pathnames (D173), so a key made from the story's address would let anyone check whether a story is archived and read it. The key lives in Neon.
+- Shadow exit: after 7 days, the store holds 90% or more of the stories each daily aired, and 90% of the stories it tried were read. Then the daily reads the store instead of fetching (a later step). `singularity ingest --coverage` measures it from the committed dailies and Neon; a story only Exa or Firecrawl found counts as not held, which shows what the free sources miss.
+- Rejected: ingest inside `run.yml` (a failure would cost a briefing); archiving the old fetch's pool (the shadow would share the path it is meant to test); keys from the URL's hash (guessable); keeping HTML (size, and nothing reads it).
+- Revisit if: a week of runs leaves more than 10% of aired stories out (add a source type, paid last), or Neon's Free limits near (rows are about 300 bytes; the text is in Blob).
+
+## D234: Vetted publishers' announcements pass the bar; a topic may carry a rubric
+
+- Date: 2026-10-29 (Step 2 of the pipeline plan; the owner's list is his to sign off, so it ships off).
+- Decision: `config/authority.json` lists domains and the categories the owner vetted each for. With `enabled: true`, an item from a listed domain whose most probable category is one of the domain's (1) is read at craft depth 0.25 at least with the hype and sponsored flags ignored (score about 0.52), (2) passes the prefilter as high signal and (3) gets one Exa query per category restricted to the listed domains (`include_domains`). Shipped off: the write stage logs the stories the list would add. A topic judged by fit may carry an optional `rubric` ("What counts: ...") in its question; only that topic is asked again. Seeded with the three labs whose own feeds fail the bar (openai.com 9 of 85 judged passed, anthropic.com 0 of 15, deepmind.google 1 of 17); the other 31 of the 34 `high_signal` sources were cut: GitHub releases and the changelog already pass (shadcn-ui 19 of 19), personal blogs and YouTube channels are voices, not first-party announcers, and a newsletter is an aggregator.
+- Why: official announcements describe no technique, so the depth score (0.7 x 0.55 = 0.385) and the hype flag (openai-blog: 33 of 85 flagged) sink them under the 0.4 bar; no signal said the owner trusts the source. Exa's open queries returned small or SEO-looking domains (6 of 11), so the trusted queries name their domains.
+- Rejected: a bonus added to every `high_signal` source (rewards volume, not first-party authority; 31 of the 34 already pass); authority on the whole host (a lab's customer stories and job posts are `none`, which the category check leaves alone); a tier number per domain (one lift, vetted per category, is all the owner decides); seeding rubrics (they change what airs, so they wait for the owner's wording).
+- Limit: no pool survives to replay, since the run artifacts are empty, so the list could not be tested on 14 days of history. Instead the write stage logs what it would add while off, and `singularity authority replay` reads any unpacked pools. At most 47 of the 49 judged frontier items could newly pass if every one came from a vetted domain, so the 30% line is the watch.
+- Revisit if: a vetted domain passes over 30% of its judged items, or an announcement outranks technique in a daily.

@@ -239,9 +239,16 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D220 | Over-limit summaries and headlines are cut | active |
 | D221 | Runs are logged to Neon with stage times and costs | active |
 | D222 | Firecrawl: 300 a week, 60 a run | amends D166 |
-| D223 | Firecrawl warns at 150 | amends D222 |
+| D223 | Firecrawl warns at 150 | Superseded by D227 |
 | D224 | Admin and style guide: own apps | active; supersedes D189 |
 | D225 | A Haiku call shortens an over-limit headline | active |
+| D227 | Firecrawl warns at 210 | supersedes D223 |
+| D228 | A failed dry run records its spend | amends D223, D227 |
+| D229 | Column centred; 12px label gap | active |
 | D231 | The podcast queue; its runs stay for the day | active; supersedes D208's list |
+| D232 | One cleaner turns scraped Markdown into prose | active |
+| D233 | Ingest in shadow: free sources, Blob text | active |
+| D234 | Vetted publishers pass the bar; topic rubric | active |
+| D239 | A travelling device is offered the new zone | active; amends D100 |
 
 ---

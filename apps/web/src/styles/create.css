@@ -429,12 +429,14 @@
 
 /* ------------------------------------------------------------------ a wide /create page */
 
-/* From 80rem the page takes the track the shell keeps for a contents list as well, and More options
-   stands open in it beside the main questions, so the right of the window is not left empty and
-   the whole form is in view at once. The title keeps the place it has on every other page. */
+/* From 80rem the page is as wide as the column and a contents list together, centred (--column-wide,
+   shell.css), and More options stands open in the room beside the main questions, so the whole form
+   is in view at once. The title keeps the place it has on every other page. */
 @media (width >= 80rem) {
   .shell:has(.create-page) > main {
     grid-column: 1 / -1;
+    justify-self: center;
+    inline-size: min(100%, var(--column-wide));
   }
 
   .create-page [data-create-form] {

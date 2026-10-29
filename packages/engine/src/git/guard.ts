@@ -5,7 +5,7 @@ import { parseDigestFile } from "@singularity/core";
 import type { GitRunner } from "./runGit.js";
 import { gitOutput } from "./runGit.js";
 
-export type GitCommand = "run" | "publish" | "learn" | "podcast" | "config";
+export type GitCommand = "run" | "publish" | "learn" | "podcast" | "config" | "costs";
 
 /**
  * Where each bot command may write. An entry ending in "/" allows everything beneath it; "*" matches
@@ -15,6 +15,8 @@ export type GitCommand = "run" | "publish" | "learn" | "podcast" | "config";
 export const ALLOWLISTS: Record<GitCommand, readonly string[]> = {
   run: ["Digests/", "state/"],
   publish: ["Digests/**/*.audio.json", "Digests/**/*.md", "state/usage.json", "state/costs-*.json"],
+  // A dry run's spend, alone: the ledger and nothing a dry run could have written (D228).
+  costs: ["state/costs-*.json"],
   learn: ["config/preferences.json"],
   podcast: ["Podcasts/", "state/costs-*.json", "state/podcast-timings.json"],
   // Exactly the files `singularity config apply` and `singularity sources suggest` write, and no others.

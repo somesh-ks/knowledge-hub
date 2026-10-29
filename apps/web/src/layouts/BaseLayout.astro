@@ -14,6 +14,7 @@ import { BUILD_ID } from "../lib/buildId";
 import { loadConfigHash } from "../lib/configHash";
 import { fabFor } from "../lib/fab";
 import type { LinkCard } from "../lib/linkCard";
+import { loadScheduleView } from "../lib/schedule";
 import PlayerRoot from "../player/PlayerRoot";
 // The device banners go in before first paint too, by an inline script hashed the same way.
 import bannersInit from "../scripts/bannersInit.js?raw";
@@ -119,6 +120,9 @@ const configStore =
   (process.env.SINGULARITY_CONFIG_STORE ?? process.env.DISPATCH_CONFIG_STORE) === "postgres"
     ? await loadConfigHash()
     : null;
+// The zone the schedule counts in as built, which the time zone prompt (scripts/zonePrompt.ts)
+// compares with the device's, after the edits saved since.
+const { timezone: scheduleTimezone } = await loadScheduleView();
 const fab = fabFor({ path, playable: Boolean(audio && digestId) });
 // A page one level down (a briefing or an episode, a Settings sub-page, the Create page) leads back
 // in the app bar: to where the person came from when that was in the app, else to its list.
@@ -164,6 +168,7 @@ const back =
     <meta name="description" content={description} />
     <meta name="singularity-build" content={BUILD_ID} />
     {configStore && <meta name="singularity-config-store" content={configStore} />}
+    <meta name="singularity-timezone" content={scheduleTimezone} />
     <title>{pageTitle}</title>
     {
       card && (

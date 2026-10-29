@@ -320,3 +320,13 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Revisit if: another device's run must show here without a run of this device's own (one cheap check a tab session); a dock that stays above the bottom bar all day after one Catch up, or a failed run that cannot be removed, proves too much (fold the dock by itself after a while, or a per-row remove); Start listening should start playing, not open the page (the player has no autoplay-on-open yet).
 - Context changed: the owner asked for a queue that reads as downloads do; the same day he reversed "a finished run leaves" into "the queue is kept for the day".
 - Supersedes: D208's list and card; amends D204's strip.
+
+## D239: A device in another zone is asked whether to switch the schedule zone, never switched
+
+- Date: 2026-10-29 (the owner: the app's time zone "can be smartly detected by system time"; picked "suggest and let me confirm").
+- Decision: when the device's system zone (`Intl`) keeps a different clock than the saved schedule zone (D100), a toast says "You're in Tokyo 🇯🇵" with a "Switch timezone" button. Every message of it stays on one line (`oneLine` on a toast, ellipsis as a last resort; on a phone its close button gives way and a swipe dismisses). Switch saves `schedule.set` through the Settings pages' own sender, so the server's gap, refusals and saved-edit copies behave as there; "Switched to Tokyo 🇯🇵" confirms and a failure offers Retry. A dismissal is kept per device zone on the device and ends once the clocks agree again, so a stay is not nagged and a second trip asks again. Same clock means no prompt (Oslo against Stockholm); a zone off the list is offered as the first listed zone with its clock, without a flag ("You're on Amsterdam time"); one no entry matches (Kathmandu) gets none. Not on Settings pages, which have the control, and not offline.
+- Why: the saved zone is global (the 07:00 daily, the Catch up cap's day), so a silent switch on a trip would move the owner's schedule; displayed times already follow the browser zone per visit and need none of this.
+- Cost: a lazy module (`scripts/zonePrompt.ts`) at idle and when the app returns to the front, a `singularity-timezone` meta on every page, and the e2e device now sits in Europe/Stockholm. The saved zone is the built one under this device's saved edits and its copy of the store, so another device's switch can leave a harmless stale offer until the build lands.
+- Rejected: switching silently; a per-device zone (the engine has one clock); every IANA zone (D100).
+- Amends: D100.
+

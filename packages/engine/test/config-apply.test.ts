@@ -1,3 +1,5 @@
+import { readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import type { Preferences, Source, SourcesUserFile, TopicsFile } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeConfigCommand } from "../src/commands/config.js";
@@ -141,6 +143,23 @@ describe("topic.upsert", () => {
     const before = await repo.read("config/queries.json");
     await apply(toggled);
     expect(await repo.read("config/queries.json")).toBe(before);
+  });
+
+  it("keeps a topic's rubric when the app saves the topic without one", async () => {
+    await apply(QUANTUM);
+    const path = join(repo.root, "config/topics.json");
+    const file = JSON.parse(await readFile(path, "utf8")) as TopicsFile;
+    const topic = file.topics.find((t) => t.id === "quantum_computing");
+    if (topic) topic.rubric = "Hardware results only.";
+    await writeFile(path, JSON.stringify(file, null, 2));
+    await apply({
+      op: "topic.upsert",
+      topic: { ...QUANTUM.topic, description: "Photonic and superconducting machines." },
+    });
+    const after = await repo.readJson<TopicsFile>("config/topics.json");
+    expect(after.topics.find((t) => t.id === "quantum_computing")?.rubric).toBe(
+      "Hardware results only.",
+    );
   });
 
   it("renames a custom topic's own section with it, and leaves a section titled apart alone", async () => {

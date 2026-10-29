@@ -2,9 +2,11 @@ import {
   type DigestKind,
   feedsGeneralOnly,
   type Item,
+  resolveTopics,
   type Source,
   type SourcesFile,
 } from "@singularity/core";
+import { authorityMatcher, authorityQueries, loadAuthority } from "../authority/authority.js";
 import { loadPreferences } from "../curate/inputs.js";
 import { dedupe } from "../dedupe/dedupe.js";
 import { fetchAll, selectSources } from "../fetch/fetchAll.js";
@@ -78,13 +80,23 @@ export interface GatherResult {
  */
 export async function gatherPool(input: GatherInput): Promise<GatherResult> {
   const { root, now, setup } = input;
-  const [configured, health, preferences, seen, queries] = await Promise.all([
-    loadSources(root),
-    readSourceHealth(root),
-    loadPreferences(root),
-    readSeen(root),
-    loadQueries(root),
-  ]);
+  const [configured, health, preferences, seen, queries, authority, topicsFile] = await Promise.all(
+    [
+      loadSources(root),
+      readSourceHealth(root),
+      loadPreferences(root),
+      readSeen(root),
+      loadQueries(root),
+      loadAuthority(root),
+      loadTopicsFile(root),
+    ],
+  );
+  // The owner's vetted publishers (D234): their own Exa queries, and the matcher the prefilter reads.
+  const authorityMatch = authorityMatcher(authority);
+  const exaQueries = [
+    ...queries.queries,
+    ...authorityQueries(authority, resolveTopics(topicsFile).topics),
+  ];
   // Health lives in state/, not config/, so a run never rewrites hand-edited configuration.
   const sources = overlayHealth(configured, health);
   // The owner's blocklist applies to every path: a blocked source is not fetched, and what the
@@ -95,7 +107,7 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
 
   // The regular pass reads every general topic (their feeds are scored); the weekly pass only
   // those its podcast plays, so a weekly that skips them all reads no general feed.
-  const everyGeneral = activeGeneralFrom(await loadTopicsFile(root)).map((t) => t.id);
+  const everyGeneral = activeGeneralFrom(topicsFile).map((t) => t.id);
   const weeklyGeneral =
     input.kind === "weekly" ? generalIdsFor(await loadSchedule(root), "weekly", "weekly") : [];
   const activeGeneral = new Set(
@@ -141,7 +153,7 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
     {
       http: setup.http,
       now: () => now,
-      exa: { apiKey: setup.exaKey, queries: queries.queries },
+      exa: { apiKey: setup.exaKey, queries: exaQueries },
       firecrawl: { apiKey: setup.firecrawlKey, guard },
     },
     {
@@ -172,6 +184,7 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
     preferences,
     sources: sources.sources,
     now,
+    authority: authorityMatch,
     ...(input.poolCap === undefined ? {} : { cap: input.poolCap }),
   });
   const kept = new Set(filtered.items.map((item) => item.id));
