@@ -154,8 +154,8 @@ const RAW_SVG_ALLOWED: [file: string, reason: string][] = [
   ["components/BrandMark.astro", "the wordmark's own mark, not a glyph"],
   ["components/EmptyArt.astro", "empty-state illustrations, coloured by classes (own rule above)"],
   [
-    "components/GenerationsMenu.astro",
-    "the progress ring around the generations icon: a drawn arc, coloured by classes, not a glyph",
+    "components/QueueRing.astro",
+    "the progress ring of the podcast queue: a drawn arc, coloured by classes, not a glyph",
   ],
   [
     "sheets/GenerateSheet.tsx",
@@ -213,6 +213,14 @@ const BESPOKE_CONTROLS: [name: string, reason: string][] = [
   ["search-clear", "the clear control inside .search-field"],
   ["player-notice-action", "a text action in the player's notice"],
   ["player-fallback-action", "a text action in the player's fallback card"],
+  [
+    "queue-fold",
+    "the podcast queue dock's whole-row button that folds and opens it: a row, not a control face",
+  ],
+  [
+    "app-nav-queue",
+    "the side column's queue row: the navigation row's own look (app-nav-item) on a button",
+  ],
   ["player-queue-row", "a queue row: a row-sized button, not a control face"],
   ["player-upnext-row", "an Up next row: a row-sized button, not a control face"],
   ["story-row", "a story row in the player's list"],

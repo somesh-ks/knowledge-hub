@@ -1,4 +1,4 @@
-import { isBriefingGoing, readRunRecord } from "../lib/runRecord";
+import { GENERATION_STARTED_EVENT, isRunGoing, readRunRecord } from "../lib/runRecord";
 import { isSheetName, type SheetName } from "../sheets/sheetEvents";
 import { whenIdle } from "./idle";
 import { TOAST_EVENT } from "./toastEvent";
@@ -68,9 +68,11 @@ export function installIslandWake(): void {
   );
   // A toast sent before the sheets loaded waits for their store (toastEvent.ts), which this brings.
   document.addEventListener(TOAST_EVENT, wakeIslands);
+  // A run started here ends with a toast the sheets island raises, so it is awake before the run ends.
+  document.addEventListener(GENERATION_STARTED_EVENT, wakeIslands);
   // A briefing run remembered from before a reload ends with a sound the sheets island plays, so the
   // sheets come now.
-  if (isBriefingGoing(readRunRecord(() => localStorage))) {
+  if (isRunGoing(readRunRecord(() => localStorage))) {
     wakeIslands();
     return;
   }

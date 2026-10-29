@@ -115,8 +115,6 @@ const NOT_YET_COMPONENTS = [
   "text-link",
   "source-link",
   "player-source-link",
-  "run-link",
-  "run-details",
   "edit-address-link",
   "story-link",
   "aside-link",

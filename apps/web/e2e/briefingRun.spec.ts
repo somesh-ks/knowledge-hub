@@ -1,8 +1,16 @@
 import type { Page } from "@playwright/test";
-import { expect, hydrated, test } from "./fixtures";
+import {
+  expect,
+  hydrated,
+  queueComplete,
+  queueDock,
+  queueStatus,
+  startListening,
+  test,
+} from "./fixtures";
 
 const ID = "2026-10-07";
-const text = (page: Page) => page.locator("[data-run-text]");
+const text = queueStatus;
 const dialog = (page: Page) => page.getByRole("dialog", { name: "Regenerate" });
 
 async function openRegenerate(page: Page): Promise<void> {
@@ -39,9 +47,9 @@ async function mock(page: Page, states: unknown[]): Promise<Array<Record<string,
   return bodies;
 }
 
-// The 2026-10-27 owner ask: a Regenerate is followed in the same line and bar a Catch up has, above
+// The 2026-10-27 owner ask: a Regenerate is followed in the same queue a Catch up has, above
 // the navigation, not in a sheet that has to stay open. The sheet is the form and nothing else.
-test.describe("a Regenerate, followed in the run indicator", () => {
+test.describe("a Regenerate, followed in the podcast queue", () => {
   test("the sheet closes at once, the line names each stage and the new podcast is offered", async ({
     page,
   }) => {
@@ -71,15 +79,13 @@ test.describe("a Regenerate, followed in the run indicator", () => {
     await expect.poll(() => bodies.length).toBe(1);
     expect(bodies[0]).toEqual({ feedback: "More on design systems", replace: ID });
     await expect(dialog(page)).toBeHidden();
-    await expect(page.locator("[data-run-card]")).toBeVisible();
-    await expect(text(page)).toHaveText(/Waiting for a slot|Gathering stories/);
+    await expect(queueDock(page)).toBeVisible();
+    await expect(text(page)).toHaveText(/Waiting to start|Gathering stories/);
     await expect(text(page)).toHaveText("Writing the podcast", { timeout: 15_000 });
-    await expect(text(page)).toHaveText("Podcast ready", { timeout: 15_000 });
-    // The page on screen is the old briefing: the line offers the new one, on this very page.
-    const open = page.locator("[data-run-library]");
-    await expect(open).toHaveText("Open podcast");
-    await expect(open).toHaveAttribute("href", `/d/${ID}`);
-    await expect(open).toBeVisible();
+    // Finished, it stays in the queue for the day: the folded row says Complete, and Start listening opens the new podcast.
+    await expect(queueComplete(page)).toBeVisible({ timeout: 15_000 });
+    await (await startListening(page)).click();
+    await expect(page).toHaveURL(new RegExp(`/d/${ID}$`));
   });
 
   test("a failure names the step, keeps nothing changed, and Try again sends the same request", async ({
@@ -108,33 +114,25 @@ test.describe("a Regenerate, followed in the run indicator", () => {
     await expect(text(page)).toHaveText("The podcast couldn't be written. Nothing was changed.", {
       timeout: 15_000,
     });
-    const card = page.locator("[data-run-card]");
-    // A failed run opens the strip, so its whole sentence and its three actions are in view.
+    const card = queueDock(page);
+    // A failed run opens the dock, so its whole sentence and its three actions are in view.
     await expect(card.getByRole("button", { name: "Try again" })).toBeVisible();
-    await expect(card.getByRole("link", { name: "Details" })).toBeVisible();
-    await expect(card.getByRole("button", { name: "Dismiss" })).toBeVisible();
-    // The actions sit on one row under the sentence, inside the card and the screen.
-    const box = async (name: string, role: "button" | "link") =>
+    await expect(card.getByRole("button", { name: "Details" })).toBeVisible();
+    // Try again and Details sit on one row under the sentence.
+    const box = async (role: "button", name: string) =>
       (await card.getByRole(role, { name }).boundingBox()) as {
         x: number;
         y: number;
         width: number;
         height: number;
       };
-    const [again, details, dismiss] = [
-      await box("Try again", "button"),
-      await box("Details", "link"),
-      await box("Dismiss", "button"),
-    ];
+    const [again, details] = [await box("button", "Try again"), await box("button", "Details")];
     expect(Math.abs(again.y - details.y)).toBeLessThan(4);
-    expect(Math.abs(again.y - dismiss.y)).toBeLessThan(4);
-    const viewport = page.viewportSize()?.width ?? 0;
-    expect(dismiss.x + dismiss.width).toBeLessThanOrEqual(viewport);
 
     await card.getByRole("button", { name: "Try again" }).click();
     await expect.poll(() => bodies.length).toBe(2);
     expect(bodies[1]).toEqual(bodies[0]);
-    await expect(text(page)).toHaveText(/Waiting for a slot|Gathering stories/, {
+    await expect(text(page)).toHaveText(/Waiting to start|Gathering stories/, {
       timeout: 15_000,
     });
   });
@@ -158,11 +156,11 @@ test.describe("a Regenerate, followed in the run indicator", () => {
     await expect(text(page)).toHaveText("The podcast couldn't be written. Nothing was changed.", {
       timeout: 15_000,
     });
-    await page.locator("[data-run-card]").getByRole("button", { name: "Try again" }).click();
+    await queueDock(page).getByRole("button", { name: "Try again" }).click();
     await expect.poll(() => bodies.length).toBe(2);
     expect(bodies[1]).toEqual(bodies[0]);
 
-    await expect(text(page)).toHaveText(/Waiting for a slot|Gathering/, { timeout: 15_000 });
+    await expect(text(page)).toHaveText(/Waiting to start|Gathering/, { timeout: 15_000 });
   });
 
   test("a second run is not started while one is going, and the sheet says why", async ({
@@ -181,7 +179,7 @@ test.describe("a Regenerate, followed in the run indicator", () => {
     await openRegenerate(page);
     await dialog(page).getByRole("button", { name: "Regenerate" }).click();
     await expect(dialog(page)).toBeHidden();
-    await expect(page.locator("[data-run-card]")).toBeVisible();
+    await expect(queueDock(page)).toBeVisible();
 
     await openRegenerate(page);
     await dialog(page).getByRole("button", { name: "Regenerate" }).click();
