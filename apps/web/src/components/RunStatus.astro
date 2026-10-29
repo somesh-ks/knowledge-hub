@@ -40,7 +40,7 @@ const lines = {
   // failure ({wait} is the server's own wait).
   "data-starting": "Starting…",
   "data-retry-cooldown": "You can make another episode in {wait}.",
-  "data-retry-briefing-cooldown": "You can make another briefing in {wait}.",
+  "data-retry-briefing-cooldown": "You can make another podcast in {wait}.",
   "data-retry-429": "Too many requests just now. Try again in {wait}.",
   "data-retry-daily_cap": "That's today's limit. Try again in {wait}.",
   // A 5xx: the server logged why, and the reference it sent is added to this (lib/errorRef.ts).
@@ -53,15 +53,15 @@ const lines = {
   // from the status route like an episode's (lib/runStages.ts). A nothing or a gated run is a done
   // one with its own sentence; a failed one names its step (briefingFailureLine).
   "data-briefing-queued": "Waiting for a slot",
-  "data-briefing-running": "Making your briefing",
-  "data-briefing-done": "Briefing ready",
-  "data-briefing-nothing": "Nothing cleared the bar, so the briefing stays as it was.",
+  "data-briefing-running": "Making your podcast",
+  "data-briefing-done": "Podcast ready",
+  "data-briefing-nothing": "Nothing cleared the bar, so the podcast stays as it was.",
   "data-briefing-gated": "The schedule held this run back.",
-  "data-briefing-failed": "Couldn't make the briefing",
-  "data-open-briefing": "Open briefing",
+  "data-briefing-failed": "Couldn't make the podcast",
+  "data-open-briefing": "Open podcast",
   // The Create form and the New episode buttons say this while a run is still going (createPage.ts).
   "data-busy-create": "An episode is still being made. You can start another when it's ready.",
-  "data-busy-briefing": "A briefing is still being made. You can start another when it's ready.",
+  "data-busy-briefing": "A podcast is still being made. You can start another when it's ready.",
 };
 ---
 

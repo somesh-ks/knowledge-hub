@@ -63,7 +63,7 @@ describe("topicSummary", () => {
   });
 
   it("says Never for a topic that never publishes", () => {
-    expect(topicSummary(topic({ never_publish: true }), 0)).toBe("Never in a briefing");
+    expect(topicSummary(topic({ never_publish: true }), 0)).toBe("Never in a podcast");
   });
 });
 

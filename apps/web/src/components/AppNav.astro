@@ -15,7 +15,7 @@ interface Props {
 const { current } = Astro.props;
 // The wordmark goes to Today: it names the briefing only when there is one.
 const homeLabel =
-  (await getSite()).entries.length > 0 ? "Singularity, latest briefing" : "Singularity, Latest";
+  (await getSite()).entries.length > 0 ? "Singularity, latest podcast" : "Singularity, Latest";
 // On the Create page the New episode button is the place you are on, not an action to take.
 const onCreate = Astro.url.pathname.replace(/\/$/, "") === "/create";
 

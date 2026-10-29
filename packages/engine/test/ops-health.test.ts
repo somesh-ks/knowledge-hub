@@ -105,7 +105,7 @@ const codes = (findings: ReadonlyArray<{ code: string; severity: string }>, seve
 
 describe("singularity health", () => {
   // Each of these was an ordinary line in `singularity status` that nobody read.
-  it("faults a failed run, a missed run, missing narration, a broken digest, a short episode, a thin briefing, a stub story and a runaway spend", async () => {
+  it("faults a failed run, a missed run, missing narration, a broken digest, a short episode, a thin podcast, a stub story and a runaway spend", async () => {
     const report = await collectHealth({
       root,
       now: NOW,
@@ -130,7 +130,7 @@ describe("singularity health", () => {
   });
 
   // A deploy Vercel skipped (a wrong author on Hobby) or one that lost vercel.json looks fine to CI.
-  it("faults a live site that lost its headers, serves an old briefing or build, cannot tell an app it changed and lost the narration file", async () => {
+  it("faults a live site that lost its headers, serves an old podcast or build, cannot tell an app it changed and lost the narration file", async () => {
     const asked: string[] = [];
     const answer = (status: number, body = "", headers: Record<string, string> = {}) => ({
       status,
@@ -195,7 +195,7 @@ describe("singularity health", () => {
 
   // Regenerating an older briefing keeps its date and id but writes a new generated_at; the site
   // still serves the newest by date, and health took the regenerated one for the newest and faulted.
-  it("never calls the site stale for serving the newest briefing after an older one is regenerated", async () => {
+  it("never calls the site stale for serving the newest podcast after an older one is regenerated", async () => {
     const regenerated = makeDigest({
       id: "2026-10-19",
       date: "2026-10-19",
@@ -367,7 +367,7 @@ describe("singularity health", () => {
 
   // A dry run or a delete writes no record and read as died; a cancel (the owner's, or a timeout:
   // GitHub reports both alike) is only a warning, so it never opens a fault on a guess.
-  it("warns on a cancelled briefing run and never counts a dry run or a delete", () => {
+  it("warns on a cancelled podcast run and never counts a dry run or a delete", () => {
     const run = (databaseId: number, conclusion: string, displayTitle: string) => ({
       databaseId,
       status: "completed",
@@ -584,7 +584,7 @@ describe("singularity health", () => {
   });
 
   // health does not hydrate config: a briefing switched off only in the store read as overdue.
-  it("does not call a briefing overdue that the stored schedule switched off", async () => {
+  it("does not call a podcast overdue that the stored schedule switched off", async () => {
     const stored = JSON.stringify({
       version: 1,
       hour: 7,
@@ -609,6 +609,6 @@ describe("singularity health", () => {
       store,
     });
     expect(codes(report.findings, "fault")).not.toContain("run_overdue");
-    expect(report.passed).toContain("the daily briefing is switched off");
+    expect(report.passed).toContain("the daily podcast is switched off");
   });
 });

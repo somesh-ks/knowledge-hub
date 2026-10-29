@@ -111,18 +111,18 @@ describe("a failed story", () => {
   });
 });
 
-describe("a briefing without audio, from its page's estimate", () => {
+describe("a podcast without audio, from its page's estimate", () => {
   it("offers the time left, Played, or its length", () => {
-    expect(rememberedChip({ seconds: 60, played: false, heard: [] }, 180, "briefing")).toEqual({
+    expect(rememberedChip({ seconds: 60, played: false, heard: [] }, 180, "podcast")).toEqual({
       state: "idle",
       playing: false,
       label: "2 min left",
-      name: "Resume the briefing, 2 min left",
+      name: "Resume the podcast, 2 min left",
     });
-    expect(rememberedChip({ seconds: 0, played: true, heard: [] }, 180, "briefing").label).toBe(
+    expect(rememberedChip({ seconds: 0, played: true, heard: [] }, 180, "podcast").label).toBe(
       "Played",
     );
-    expect(rememberedChip(undefined, 180, "briefing")).toEqual(idleBriefingChip("3 min"));
+    expect(rememberedChip(undefined, 180, "podcast")).toEqual(idleBriefingChip("3 min"));
   });
 });
 
@@ -130,9 +130,9 @@ describe("the floating Play button", () => {
   it("says the chip's words after its verb", () => {
     expect(fabLabel(idleBriefingChip("5 min"))).toBe("Play · 5 min");
     expect(
-      fabLabel(rememberedChip({ seconds: 120, played: false, heard: [] }, 180, "briefing")),
+      fabLabel(rememberedChip({ seconds: 120, played: false, heard: [] }, 180, "podcast")),
     ).toBe("Resume · 1 min left");
-    expect(fabLabel(rememberedChip({ seconds: 0, played: true, heard: [] }, 180, "briefing"))).toBe(
+    expect(fabLabel(rememberedChip({ seconds: 0, played: true, heard: [] }, 180, "podcast"))).toBe(
       "Played",
     );
   });

@@ -35,7 +35,7 @@ export function briefingCard(entry: DigestEntry): LinkCard {
     title: entry.player.title,
     description: cardDescription(entry.items.map((item) => item.headline)),
     image: coverPng(entry),
-    imageAlt: `Cover of the Singularity briefing for ${entry.player.title}`,
+    imageAlt: `Cover of the Singularity podcast for ${entry.player.title}`,
   };
 }
 

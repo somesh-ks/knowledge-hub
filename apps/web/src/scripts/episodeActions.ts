@@ -177,7 +177,7 @@ export function openEpisodeAction(trigger: HTMLElement): void {
   rootOf.set(dialog, root);
   // One dialog serves every row of the Library, so it is set for the row that opened it.
   if (kind === "delete") {
-    const noun = root.dataset.libraryBriefing ? "briefing" : "episode";
+    const noun = root.dataset.libraryBriefing || root.dataset.briefing ? "podcast" : "episode";
     const title = dialog.querySelector("#delete-title");
     if (title) title.textContent = `Delete this ${noun}?`;
   } else if (root.dataset.topics !== undefined) {

@@ -26,7 +26,7 @@ const episodes = (...texts: string[]) =>
   buildEpisodeEntries(texts.map((text) => parseEpisodeFile(text)));
 
 describe("cardFacts", () => {
-  it("follows one pattern, kind then contents then length, for every briefing", () => {
+  it("follows one pattern, kind then contents then length, for every podcast", () => {
     const entries = buildEntries([
       { digest: makeDigest({ id: "2026-10-04-weekly", kind: "weekly" }), timeline: null },
       { digest: makeDigest({ id: "2026-10-05" }), timeline: null },
@@ -42,10 +42,10 @@ describe("cardFacts", () => {
     });
     expect(facts("regular")?.line).toBe("Daily \u00b7 4 stories \u00b7 4 min");
     // Under Episodes, a briefing made on request follows an episode's pattern: format, then length.
-    expect(facts("on-demand")?.line).toBe("Briefing \u00b7 4 min");
+    expect(facts("on-demand")?.line).toBe("Podcast \u00b7 4 min");
   });
 
-  it("finds a briefing by its date in any form", () => {
+  it("finds a podcast by its date in any form", () => {
     const entries = buildEntries([{ digest: makeDigest({ id: "2026-10-07" }), timeline: null }]);
     const entry = entries[0];
     const facts = entry ? cardFacts(entry) : null;
@@ -117,7 +117,7 @@ describe("episodeFacts", () => {
 });
 
 describe("searchIndex", () => {
-  it("holds an episode's whole script and a briefing's story text, normalized, one blob each", () => {
+  it("holds an episode's whole script and a podcast's story text, normalized, one blob each", () => {
     const [episode] = episodes(
       episodeText("ep-20261007-1930", "2026-10-07T17:30:00Z").replace(
         "text: Hello.",
@@ -136,7 +136,7 @@ describe("searchIndex", () => {
 });
 
 describe("libraryItems", () => {
-  it("puts briefings and episodes in one list, newest first, an episode after a briefing written later that day", () => {
+  it("puts podcasts and episodes in one list, newest first, an episode after a podcast written later that day", () => {
     const entries = buildEntries([
       { digest: makeDigest({ id: "2026-10-07" }), timeline: null },
       { digest: makeDigest({ id: "2026-10-05" }), timeline: null },

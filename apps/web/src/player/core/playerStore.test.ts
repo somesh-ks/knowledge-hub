@@ -611,7 +611,7 @@ describe("errors", () => {
     harness.audio.emit("error");
     const error = harness.store.getState().error;
     expect(error?.kind).toBe("unavailable");
-    expect(error?.message).toBe("Audio is not available for this briefing.");
+    expect(error?.message).toBe("Audio is not available for this podcast.");
   });
 
   it("in a standing refusal, a play tries the element again: a story whose file is made plays", () => {

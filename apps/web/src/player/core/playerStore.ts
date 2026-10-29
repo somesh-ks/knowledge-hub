@@ -407,7 +407,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
   /** What the error copy calls the recording: an episode carries its script. */
   function audioNoun(): AudioNoun {
-    return track?.digest.turns ? "episode" : "briefing";
+    return track?.digest.turns ? "episode" : "podcast";
   }
 
   function onError(): void {

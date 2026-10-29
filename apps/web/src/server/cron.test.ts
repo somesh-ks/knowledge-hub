@@ -53,7 +53,7 @@ function setup(files: { schedule?: string; lastRun?: string } = {}) {
 const dispatches = (github: ReturnType<typeof createFakeGitHub>) =>
   github.requests.filter((request) => request.method === "POST");
 
-describe("a daily briefing that is switched off", () => {
+describe("a daily podcast that is switched off", () => {
   it("is not the daily slot, and the call dispatches nothing at its hour", async () => {
     const off = { ...DEFAULT_SCHEDULE, enabled: false };
     expect(slotAt(off, new Date("2026-10-27T06:30:00Z"))).toBeNull();
@@ -182,7 +182,7 @@ describe("GET /api/cron/run", () => {
     ]);
   });
 
-  it("at the daily hour, with a briefing due, dispatches a scheduled run", async () => {
+  it("at the daily hour, with a podcast due, dispatches a scheduled run", async () => {
     const { github, logs, run } = setup({ lastRun: lastRun("2026-10-08T11:58:00.000Z") });
     // Saturday, 07:30 in Stockholm.
     const result = await run(new Date("2026-10-10T05:30:00Z"));
@@ -290,7 +290,7 @@ describe("GET /api/cron/run", () => {
     expect(dispatches(github)).toEqual([]);
   });
 
-  it("on the weekly day, starts the weekly pass at its hour and no briefing at the daily hour", async () => {
+  it("on the weekly day, starts the weekly pass at its hour and no podcast at the daily hour", async () => {
     const schedule = JSON.stringify({
       version: 1,
       hour: 9,
@@ -309,7 +309,7 @@ describe("GET /api/cron/run", () => {
     });
     expect((await run(new Date("2026-10-11T07:20:00Z"))).body).toEqual({
       dispatched: false,
-      reason: "today is the weekly podcast's day; no briefing",
+      reason: "today is the weekly podcast's day; no daily podcast",
     });
     expect(dispatches(github)).toHaveLength(0);
   });

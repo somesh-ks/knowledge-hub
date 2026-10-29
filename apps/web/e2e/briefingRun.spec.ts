@@ -42,7 +42,7 @@ async function mock(page: Page, states: unknown[]): Promise<Array<Record<string,
 // The 2026-10-27 owner ask: a Regenerate is followed in the same line and bar a Catch up has, above
 // the navigation, not in a sheet that has to stay open. The sheet is the form and nothing else.
 test.describe("a Regenerate, followed in the run indicator", () => {
-  test("the sheet closes at once, the line names each stage and the new briefing is offered", async ({
+  test("the sheet closes at once, the line names each stage and the new podcast is offered", async ({
     page,
   }) => {
     const bodies = await mock(page, [
@@ -60,7 +60,7 @@ test.describe("a Regenerate, followed in the run indicator", () => {
         step: "writing",
         stage: 3,
         stages: 7,
-        label: "Writing the briefing",
+        label: "Writing the podcast",
       },
       { run_id: 91, state: "completed", step: null, outcome: "published", digest_id: ID },
     ]);
@@ -73,11 +73,11 @@ test.describe("a Regenerate, followed in the run indicator", () => {
     await expect(dialog(page)).toBeHidden();
     await expect(page.locator("[data-run-card]")).toBeVisible();
     await expect(text(page)).toHaveText(/Waiting for a slot|Gathering stories/);
-    await expect(text(page)).toHaveText("Writing the briefing", { timeout: 15_000 });
-    await expect(text(page)).toHaveText("Briefing ready", { timeout: 15_000 });
+    await expect(text(page)).toHaveText("Writing the podcast", { timeout: 15_000 });
+    await expect(text(page)).toHaveText("Podcast ready", { timeout: 15_000 });
     // The page on screen is the old briefing: the line offers the new one, on this very page.
     const open = page.locator("[data-run-library]");
-    await expect(open).toHaveText("Open briefing");
+    await expect(open).toHaveText("Open podcast");
     await expect(open).toHaveAttribute("href", `/d/${ID}`);
     await expect(open).toBeVisible();
   });
@@ -105,7 +105,7 @@ test.describe("a Regenerate, followed in the run indicator", () => {
     await openRegenerate(page);
     await dialog(page).getByRole("button", { name: "Regenerate" }).click();
 
-    await expect(text(page)).toHaveText("The briefing couldn't be written. Nothing was changed.", {
+    await expect(text(page)).toHaveText("The podcast couldn't be written. Nothing was changed.", {
       timeout: 15_000,
     });
     const card = page.locator("[data-run-card]");
@@ -155,7 +155,7 @@ test.describe("a Regenerate, followed in the run indicator", () => {
     await expect.poll(() => bodies.length).toBe(1);
     expect(bodies[0]).toEqual({ length_minutes: 10, replace: ID });
 
-    await expect(text(page)).toHaveText("The briefing couldn't be written. Nothing was changed.", {
+    await expect(text(page)).toHaveText("The podcast couldn't be written. Nothing was changed.", {
       timeout: 15_000,
     });
     await page.locator("[data-run-card]").getByRole("button", { name: "Try again" }).click();

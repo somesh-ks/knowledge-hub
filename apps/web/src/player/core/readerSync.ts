@@ -239,7 +239,7 @@ export function createReaderSync(
     }
 
     for (const chip of elements.playDigest) {
-      const noun = chip.dataset.noun === "episode" ? "episode" : "briefing";
+      const noun = chip.dataset.noun === "episode" ? "episode" : "podcast";
       // Without audio, while narration makes the first file, the chip is narration's.
       if (!audio && chip.hasAttribute("aria-busy")) continue;
       const view = audio

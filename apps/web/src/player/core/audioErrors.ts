@@ -6,7 +6,7 @@ export const MEDIA_ERR_NETWORK = 2;
 export const MEDIA_ERR_DECODE = 3;
 export const MEDIA_ERR_SRC_NOT_SUPPORTED = 4;
 
-export type AudioNoun = "briefing" | "episode";
+export type AudioNoun = "podcast" | "episode";
 
 /**
  * Plain-language messages: what happened, then what to do (config/voice.md). Returns null for an
@@ -16,7 +16,7 @@ export function describeMediaError(
   code: number | undefined,
   isOnline: boolean,
   /** What the recording is called: an episode has a transcript, a briefing its text. */
-  noun: AudioNoun = "briefing",
+  noun: AudioNoun = "podcast",
 ): PlayerError | null {
   if (code === MEDIA_ERR_ABORTED) return null;
   if (!isOnline) {
@@ -57,7 +57,7 @@ export function describeMediaError(
 export function describePlayRejection(
   error: unknown,
   isOnline: boolean,
-  noun: AudioNoun = "briefing",
+  noun: AudioNoun = "podcast",
 ): PlayerError | null {
   const name = error instanceof Error ? error.name : "";
   if (name === "AbortError") return null;

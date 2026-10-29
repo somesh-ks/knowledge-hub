@@ -11,7 +11,7 @@ test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
 });
 
-/** Narration on Play for the briefing without audio, every file already made. */
+/** Narration on Play for the podcast without audio, every file already made. */
 async function narrateSilent(page: Page): Promise<void> {
   const ids = await page.evaluate(() => {
     const data = JSON.parse(
@@ -77,25 +77,25 @@ test("the stories heard keep their Played marks after another recording and a re
   await page.goto("/d/2026-10-07");
   await hydrated(page);
   await expectHeard(page, 4);
-  await expect(chip).toHaveAccessibleName(/^Resume the briefing, \d+ min left$/);
+  await expect(chip).toHaveAccessibleName(/^Resume the podcast, \d+ min left$/);
 
   await page.reload();
   await hydrated(page);
   await expectHeard(page, 4);
   await expect(story(page, 4)).not.toHaveAttribute("data-state", "played");
-  await expect(chip).toHaveAccessibleName(/^Resume the briefing, \d+ min left$/);
+  await expect(chip).toHaveAccessibleName(/^Resume the podcast, \d+ min left$/);
 });
 
-test("a briefing without audio says where it was left, as its cards do", async ({ page }) => {
+test("a podcast without audio says where it was left, as its cards do", async ({ page }) => {
   await seedStorage(page, { local: { "singularity:resume:2026-10-05": "60" } });
   await page.goto(SILENT_DIGEST);
   await hydrated(page);
   const chip = page.locator(".hero [data-play-digest]");
   await expect(chip.locator("[data-chip-label]")).toHaveText("2 min left");
-  await expect(chip).toHaveAccessibleName("Resume the briefing, 2 min left");
+  await expect(chip).toHaveAccessibleName("Resume the podcast, 2 min left");
   await expect(page.locator(".play-fab")).toHaveAttribute(
     "aria-label",
-    "Resume the briefing, 2 min left",
+    "Resume the podcast, 2 min left",
   );
   await expect(page.locator(".play-fab [data-chip-label]")).toHaveText("Resume · 2 min left");
 
@@ -111,7 +111,7 @@ test("a briefing without audio says where it was left, as its cards do", async (
   await expect(shelf.locator("[data-cover-progress]")).toBeVisible();
 });
 
-test("a briefing without audio keeps the stories heard when its page opens", async ({ page }) => {
+test("a podcast without audio keeps the stories heard when its page opens", async ({ page }) => {
   await page.goto(SILENT_DIGEST);
   await hydrated(page);
   const first = await page.locator("[data-item-id]").first().getAttribute("data-item-id");
@@ -135,7 +135,7 @@ test("a briefing without audio keeps the stories heard when its page opens", asy
   }
 });
 
-test("a briefing without audio heard to the end says Played everywhere", async ({ page }) => {
+test("a podcast without audio heard to the end says Played everywhere", async ({ page }) => {
   await seedStorage(page, { local: { "singularity:played:2026-10-05": "1" } });
   await page.goto(SILENT_DIGEST);
   await hydrated(page);
@@ -145,7 +145,7 @@ test("a briefing without audio heard to the end says Played everywhere", async (
   await expect(page.locator(".play-fab [data-chip-label]")).toHaveText("Played");
   await expect(page.locator(".play-fab")).toHaveAttribute(
     "aria-label",
-    "Play the briefing again, played",
+    "Play the podcast again, played",
   );
 
   await page.goto("/library");
@@ -170,7 +170,7 @@ test("the floating Play on Today follows the chip", async ({ page }) => {
   const fab = page.locator(".play-fab");
   await expect(chip.locator("[data-chip-label]")).toHaveText("1 min left");
   await expect(fab.locator("[data-chip-label]")).toHaveText("Resume · 1 min left");
-  await expect(fab).toHaveAttribute("aria-label", "Resume the briefing, 1 min left");
+  await expect(fab).toHaveAttribute("aria-label", "Resume the podcast, 1 min left");
 });
 
 // Bug it prevents: the rename (D179) gave every saved key a new name, and a phone that saved under

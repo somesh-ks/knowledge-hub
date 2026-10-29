@@ -92,7 +92,7 @@ export default function UpNext() {
     <button className="player-upnext-row" type="button" onClick={() => playQueueItem(previous)}>
       <span className="player-upnext-text">
         <span className="player-upnext-date">{longDateFromDigestId(previous)}</span>
-        <span className="player-upnext-hint">The previous briefing</span>
+        <span className="player-upnext-hint">The previous podcast</span>
       </span>
       <Icon name="chevronRight" />
     </button>

@@ -9,7 +9,7 @@ function reply(route: Route, status: number, body: Record<string, unknown>) {
 // the navigation, where the player's bar is also standing (2026-10-27). Its journeys (the request,
 // the stages, the new briefing) are in e2e/briefingRun.spec.ts; what only the player can break is
 // that the indicator and the bar do not sit on each other.
-test("Regenerate while a briefing plays: the run line stands clear above the bar and opens the new briefing", async ({
+test("Regenerate while a podcast plays: the run line stands clear above the bar and opens the new podcast", async ({
   player,
   page,
 }) => {

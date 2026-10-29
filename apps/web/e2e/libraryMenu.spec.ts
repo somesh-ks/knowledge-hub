@@ -1,6 +1,6 @@
 import { expect, hydrated, test } from "./fixtures";
 
-/** The briefing with an audio file: the only kind a row can download. */
+/** The podcast with an audio file: the only kind a row can download. */
 const AUDIO_ID = "2026-10-07";
 const row = (page: import("@playwright/test").Page, id: string) =>
   page.locator(`[data-card][data-id="${id}"]`);
@@ -96,11 +96,11 @@ test("opening a row's menu leaves the card stack where it was", { tag: "@both" }
   expect(await boxes()).toEqual(rest);
 });
 
-test.describe("a briefing download", () => {
+test.describe("a podcast download", () => {
   // Offline, a cover the download did not save fails to load; the player's art is not under test.
   test.use({ allowNetworkErrors: true });
 
-  test("a downloaded briefing opens offline and its audio is answered from the saved file, Range included", async ({
+  test("a downloaded podcast opens offline and its audio is answered from the saved file, Range included", async ({
     page,
     context,
   }) => {

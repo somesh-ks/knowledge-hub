@@ -807,7 +807,7 @@ test.describe("an episode page", () => {
     await expect(page.locator("body")).not.toContainText("Exa discovery");
   });
 
-  test("hands the player the data a briefing hands it: the episode, its stories, one section", async ({
+  test("hands the player the data a podcast hands it: the episode, its stories, one section", async ({
     page,
   }) => {
     await page.goto(EPISODE);

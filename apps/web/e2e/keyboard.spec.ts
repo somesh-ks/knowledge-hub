@@ -12,12 +12,12 @@ async function focused(page: import("@playwright/test").Page): Promise<string> {
 }
 
 test.describe("keyboard", { tag: "@desktop" }, () => {
-  test("the skip link is the first thing Tab reaches and jumps to the briefing", async ({
+  test("the skip link is the first thing Tab reaches and jumps to the podcast", async ({
     page,
   }) => {
     await page.goto("/");
     await page.keyboard.press("Tab");
-    expect(await focused(page)).toBe("a: Skip to the briefing");
+    expect(await focused(page)).toBe("a: Skip to the podcast");
     await expect(page.locator(".skip-link")).toBeInViewport();
     await page.keyboard.press("Enter");
     await expect(page.locator("main")).toBeFocused();
@@ -33,8 +33,8 @@ test.describe("keyboard", { tag: "@desktop" }, () => {
       seen.push(await focused(page));
     }
     expect(seen).toEqual([
-      "a: Skip to the briefing",
-      "a: Singularity, latest briefing",
+      "a: Skip to the podcast",
+      "a: Singularity, latest podcast",
       // Create is first in the side column.
       "a: Catch up",
       "a: Latest",
@@ -43,7 +43,7 @@ test.describe("keyboard", { tag: "@desktop" }, () => {
       // The generations list's icon ends the side column (a phone has it behind the run strip).
       "button: Generations",
       "button: More actions",
-      "button: Play the briefing, 1 min",
+      "button: Play the podcast, 1 min",
       "button: Share",
       // A story is its headline link, then its play chip, then its like, dislike and options; the
       // publisher beside the chip is only attribution, out of the tab order and hidden from screen

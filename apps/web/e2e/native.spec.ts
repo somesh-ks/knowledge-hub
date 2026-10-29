@@ -64,7 +64,7 @@ async function serveNarration(page: Page): Promise<void> {
 }
 
 test.describe("the floating button", () => {
-  test("is Create on the Library, Play on Today, a briefing or an episode, Add on Categories and sources, and absent elsewhere", async ({
+  test("is Create on the Library, Play on Today, a podcast or an episode, Add on Categories and sources, and absent elsewhere", async ({
     page,
   }) => {
     // Short enough that even an episode's page scrolls its hero's Play out of view.
@@ -75,10 +75,10 @@ test.describe("the floating button", () => {
     // Today and the latest briefing at its dated address, which the navigation marks as Today, play
     // like any other briefing.
     for (const [path, noun] of [
-      ["/", "briefing"],
-      ["/d/2026-10-07", "briefing"],
-      ["/d/2026-10-05", "briefing"],
-      ["/d/2026-10-04-weekly", "briefing"],
+      ["/", "podcast"],
+      ["/d/2026-10-07", "podcast"],
+      ["/d/2026-10-05", "podcast"],
+      ["/d/2026-10-04-weekly", "podcast"],
       ["/e/ep-20261007-1930", "episode"],
     ] as const) {
       await page.goto(path);
@@ -123,7 +123,7 @@ test.describe("the floating button", () => {
     await expect(createFab(page)).toBeVisible();
   });
 
-  test("at the end of a briefing the last line stays clear of Play", async ({ page }) => {
+  test("at the end of a podcast the last line stays clear of Play", async ({ page }) => {
     for (const width of [360, 390]) {
       await page.setViewportSize({ width, height: 800 });
       for (const path of ["/", "/d/2026-10-07"]) {
@@ -176,7 +176,7 @@ test.describe("the floating button", () => {
     await expect(root).not.toHaveAttribute("data-fab");
     await expect(playFab(page)).toBeHidden();
     // The player writes the chip's face on it, its name too.
-    await expect(playFab(page)).toHaveAttribute("aria-label", /^Pause the briefing, \d+ min left$/);
+    await expect(playFab(page)).toHaveAttribute("aria-label", /^Pause the podcast, \d+ min left$/);
 
     // On a page whose audio the bar does not hold, Play is back, above the bar and clear of it.
     await page.locator('a[href="/d/2026-10-04-weekly"]').first().click();
@@ -266,7 +266,7 @@ test.describe("the tab bar", () => {
     expect(await page.evaluate(() => (window as unknown as { kept?: boolean }).kept)).toBe(true);
   });
 
-  test("on the latest briefing's dated page, Today goes to its top, as on Today itself", async ({
+  test("on the latest podcast's dated page, Today goes to its top, as on Today itself", async ({
     page,
   }) => {
     await page.goto("/d/2026-10-07");

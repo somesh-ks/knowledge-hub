@@ -83,13 +83,13 @@ describe("matchCount", () => {
 });
 
 describe("matchesFilter", () => {
-  it("separates weekly briefings from the rest", () => {
+  it("separates weekly podcasts from the rest", () => {
     expect(matchesFilter(card({ kind: "weekly" }), "weekly")).toBe(true);
     expect(matchesFilter(card({ kind: "weekly" }), "daily")).toBe(false);
     expect(matchesFilter(card({ kind: "regular" }), "daily")).toBe(true);
   });
 
-  it("puts everything made on request under Catch up: episodes and generated briefings", () => {
+  it("puts everything made on request under Catch up: episodes and generated podcasts", () => {
     const episode = card({ kind: "episode" });
     const generated = card({ kind: "on-demand" });
     for (const made of [episode, generated]) {
@@ -245,18 +245,18 @@ describe("emptyCopy", () => {
   });
 
   it("says nothing of a kind exists when only a filter is on", () => {
-    expect(emptyCopy("  ", "weekly").message).toBe("No weekly briefings yet");
+    expect(emptyCopy("  ", "weekly").message).toBe("No weekly podcasts yet");
     expect(emptyCopy("", "custom").message).toBe("No episodes yet");
     expect(emptyCopy("", "weekly").resets).toBe("everything");
     expect(emptyCopy("", "weekly").action).toBe("Show all");
   });
 
-  it("names the kind in full: daily briefings, not daily", () => {
+  it("names the kind in full: daily podcasts, not daily", () => {
     expect(emptyCopy("zzz", "daily").message).toBe(
-      "No results for \u201czzz\u201d in daily briefings",
+      "No results for \u201czzz\u201d in daily podcasts",
     );
     expect(emptyCopy("zzz", "weekly").message).toBe(
-      "No results for \u201czzz\u201d in weekly briefings",
+      "No results for \u201czzz\u201d in weekly podcasts",
     );
   });
 });

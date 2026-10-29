@@ -42,7 +42,7 @@ interface GenerateSheetProps {
 }
 
 /** Said when another run is still going: the run indicator holds one run at a time. */
-const BUSY = "A briefing or an episode is still being made. You can start another when it's ready.";
+const BUSY = "A podcast or an episode is still being made. You can start another when it's ready.";
 
 /**
  * Regenerate a briefing: its topics (this run only, ticked from the original), optional length in

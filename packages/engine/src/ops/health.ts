@@ -164,15 +164,15 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
     }
   }
   if (slotSchedule?.enabled === false) {
-    passed.push("the daily briefing is switched off");
+    passed.push("the daily podcast is switched off");
   } else if (status.next_regular_due < status.today) {
     fault(
       "run_overdue",
       "reliability",
-      `The regular briefing was due ${status.next_regular_due} and no run has published since: the scheduled trigger missed it.`,
+      `The regular podcast was due ${status.next_regular_due} and no run has published since: the scheduled trigger missed it.`,
     );
   } else {
-    passed.push(`next regular briefing due ${status.next_regular_due}`);
+    passed.push(`next regular podcast due ${status.next_regular_due}`);
   }
 
   // The slot's own hour has passed with its briefing unpublished: said the same day, not the next
@@ -522,7 +522,7 @@ async function checkSite(
         `The site serves ${served.id ?? "nothing"}, but ${latest.id} was committed ${Math.round(age / 60_000)} minutes ago: the deploy did not happen.`,
       );
     } else {
-      sink.passed.push(`the site serves ${served.id ?? "no briefing"}`);
+      sink.passed.push(`the site serves ${served.id ?? "no podcast"}`);
     }
   } else if (answer) {
     sink.fault("site_api", "reliability", `/latest.json answered ${answer.status}.`);

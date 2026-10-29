@@ -137,7 +137,7 @@ test.describe("service worker", () => {
   test.describe("offline without a saved copy", () => {
     test.use({ allowNetworkErrors: true });
 
-    test("shows the offline page for a briefing it has never opened", async ({ page, context }) => {
+    test("shows the offline page for a podcast it has never opened", async ({ page, context }) => {
       await page.goto("/");
       await page.evaluate(() => navigator.serviceWorker.ready);
       // The worker stores the islands' stylesheets as the page fetches them at idle: going offline

@@ -243,22 +243,22 @@ describe("what the card says for a run", () => {
     failedStage: "Stopped while {label}",
     regenerateRunning: "Rewriting your episode",
     briefingQueued: "Waiting for a slot",
-    briefingRunning: "Making your briefing",
-    briefingDone: "Briefing ready",
-    briefingNothing: "Nothing cleared the bar, so the briefing stays as it was.",
+    briefingRunning: "Making your podcast",
+    briefingDone: "Podcast ready",
+    briefingNothing: "Nothing cleared the bar, so the podcast stays as it was.",
     briefingGated: "The schedule held this run back.",
-    briefingFailed: "Couldn't make the briefing",
+    briefingFailed: "Couldn't make the podcast",
   };
   const run = (extra: Record<string, unknown>) => ({ id: 1, phase: "running", ...extra }) as never;
 
-  it("names a briefing's stage while it runs and says what happened when it is done", () => {
+  it("names a podcast's stage while it runs and says what happened when it is done", () => {
     expect(statusLine(run({ what: "briefing", phase: "queued" }), words)).toBe(
       "Waiting for a slot",
     );
-    expect(statusLine(run({ what: "briefing", label: "Writing the briefing" }), words)).toBe(
-      "Writing the briefing",
+    expect(statusLine(run({ what: "briefing", label: "Writing the podcast" }), words)).toBe(
+      "Writing the podcast",
     );
-    expect(statusLine(run({ what: "briefing", phase: "done" }), words)).toBe("Briefing ready");
+    expect(statusLine(run({ what: "briefing", phase: "done" }), words)).toBe("Podcast ready");
     expect(statusLine(run({ what: "briefing", phase: "done", outcome: "nothing" }), words)).toMatch(
       /stays as it was/,
     );
@@ -269,18 +269,18 @@ describe("what the card says for a run", () => {
 
   // A failed publish is retried by the job's recovery step, which can push the digest after all; the
   // card must not say nothing was changed then (CodeRabbit, PR 391, fourth round).
-  it("does not claim nothing changed when the briefing failed while publishing", () => {
+  it("does not claim nothing changed when the podcast failed while publishing", () => {
     const line = briefingFailureLine("publishing");
     expect(line).toMatch(/published/);
     expect(line).not.toMatch(/nothing was changed/i);
     expect(briefingFailureLine("writing")).toMatch(/nothing was changed/i);
   });
 
-  it("says which step a failed briefing stopped in, and that nothing was changed", () => {
+  it("says which step a failed podcast stopped in, and that nothing was changed", () => {
     const line = statusLine(run({ what: "briefing", phase: "failed", step: "writing" }), words);
-    expect(line).toBe("The briefing couldn't be written. Nothing was changed.");
+    expect(line).toBe("The podcast couldn't be written. Nothing was changed.");
     expect(statusLine(run({ what: "briefing", phase: "failed" }), words)).toBe(
-      "Couldn't make the briefing",
+      "Couldn't make the podcast",
     );
   });
 
@@ -304,12 +304,12 @@ describe("what the card says for a run", () => {
 describe("a refused Try again", () => {
   const words: Record<string, string> = {
     "data-retry-cooldown": "You can make another episode in {wait}.",
-    "data-retry-briefing-cooldown": "You can make another briefing in {wait}.",
+    "data-retry-briefing-cooldown": "You can make another podcast in {wait}.",
     "data-retry-429": "Too many requests just now. Try again in {wait}.",
   };
   const root = { getAttribute: (name: string) => words[name] ?? null };
 
-  it("names a briefing, not an episode, when a Regenerate is retried too soon", () => {
+  it("names a podcast, not an episode, when a Regenerate is retried too soon", () => {
     const reply = { error: "cooldown", retry_after_s: 120 };
     expect(refusal(root, { status: 429 }, reply, true)).not.toMatch(/episode/i);
     expect(refusal(root, { status: 429 }, reply, false)).toMatch(/episode/i);
@@ -323,8 +323,8 @@ describe("a refused Try again", () => {
 // A briefing queued behind a scheduled run that is holding for its publish time waits far longer
 // than the 20 minutes an episode is followed for; the card said "Lost track of this run" and the end
 // cue never played (independent review, PR 391).
-describe("following a briefing for as long as it can take", () => {
-  it("is still asking after 25 minutes, and shows the briefing when it lands", async () => {
+describe("following a podcast for as long as it can take", () => {
+  it("is still asking after 25 minutes, and shows the podcast when it lands", async () => {
     const store = new Map<string, string>();
     vi.stubGlobal("localStorage", {
       getItem: (key: string) => store.get(key) ?? null,
@@ -442,7 +442,7 @@ describe("a run that was cancelled", () => {
     };
   }
 
-  it("ends as cancelled for a briefing and for an episode, with a plain line", async () => {
+  it("ends as cancelled for a podcast and for an episode, with a plain line", async () => {
     expect(await endsAs(true, 61)).toEqual({ phase: "cancelled", line: "Cancelled" });
     expect(await endsAs(false, 62)).toEqual({ phase: "cancelled", line: "Cancelled" });
   });

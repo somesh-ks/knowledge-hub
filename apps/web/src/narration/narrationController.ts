@@ -140,7 +140,7 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
   /** Bumped by every play, so an attempt that was overtaken stops quietly. */
   let attempt = 0;
   // What the recording being started is called, for the copy of a refusal.
-  let noun: NarrationNoun = "briefing";
+  let noun: NarrationNoun = "podcast";
 
   function installAdapter(): void {
     if (adapterInstalled) return;
@@ -303,7 +303,7 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
     itemId?: string,
     live?: LiveSource,
   ): Promise<PlayOutcome> {
-    noun = digest.turns || digest.kind === "on-demand" ? "episode" : "briefing";
+    noun = digest.turns || digest.kind === "on-demand" ? "episode" : "podcast";
     attempt += 1;
     const mine = attempt;
 

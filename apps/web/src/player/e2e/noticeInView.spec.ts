@@ -1,7 +1,7 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, fulfillNarration, test } from "./helpers";
 
-/** A briefing narrated on Play: the intro's file is made, every story after it is refused (daily cap). */
+/** A podcast narrated on Play: the intro's file is made, every story after it is refused (daily cap). */
 async function serveRefusal(page: Page): Promise<void> {
   const ids = await page.evaluate(() => {
     const data = JSON.parse(

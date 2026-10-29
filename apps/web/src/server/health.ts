@@ -221,7 +221,7 @@ function briefingRows(input: HealthInput, now: Date): HealthRow[] {
   // The newest briefing's narration against the length its kind is set to (`episode_short`).
   const newest = byNewest[0];
   if (!newest) {
-    rows.push(row("narration", "No data", "No briefing found", "none"));
+    rows.push(row("narration", "No data", "No podcast found", "none"));
   } else if (!newest.audio) {
     const today = dateInZone(now.toISOString(), zone);
     rows.push(
@@ -288,7 +288,7 @@ function timeRows(digests: readonly Digest[]): { rows: HealthRow[]; dailyMedian:
     const times = timed(kind);
     const middle = median(times);
     if (kind === "regular") dailyMedian = middle;
-    if (middle === null) return row(id, "No data", "No briefing timed yet", "none");
+    if (middle === null) return row(id, "No data", "No podcast timed yet", "none");
     return row(
       id,
       duration(middle),

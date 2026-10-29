@@ -7,7 +7,7 @@ const words: GenerationWords = {
   left: "About {n} min left",
   slow: "Taking longer than usual",
   episode: "Catch up",
-  briefing: "Briefing",
+  briefing: "Podcast",
   regenerate: "Regenerate",
 };
 
@@ -38,7 +38,7 @@ describe("a row of the generations list", () => {
     expect(describeGeneration(row(), { now: NOW, words, followed }).title).toBe("Design weekly");
     expect(describeGeneration(row(), { now: NOW, words }).title).toBe("Catch up");
     expect(describeGeneration(row({ what: "briefing" }), { now: NOW, words }).title).toBe(
-      "Briefing",
+      "Podcast",
     );
     // Another run's live copy or record says nothing of this one.
     expect(

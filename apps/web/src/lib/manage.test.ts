@@ -39,18 +39,18 @@ describe("recordInWords", () => {
     published,
   });
 
-  it("says how many judged stories made a briefing", () => {
-    expect(recordInWords(stats(40, 12, 52))).toBe("12 of 40 stories made a briefing");
-    expect(recordInWords(stats(1, 1))).toBe("1 of 1 story made a briefing");
+  it("says how many judged stories made a podcast", () => {
+    expect(recordInWords(stats(40, 12, 52))).toBe("12 of 40 stories made a podcast");
+    expect(recordInWords(stats(1, 1))).toBe("1 of 1 story made a podcast");
   });
 
   it("falls back to the stories fetched before judging was counted", () => {
-    expect(recordInWords(stats(0, 3, 9))).toBe("3 of 9 stories made a briefing");
+    expect(recordInWords(stats(0, 3, 9))).toBe("3 of 9 stories made a podcast");
   });
 
   it("says so plainly when none made it", () => {
-    expect(recordInWords(stats(30, 0))).toBe("None of 30 stories made a briefing");
-    expect(recordInWords(stats(1, 0))).toBe("The 1 story did not make a briefing");
+    expect(recordInWords(stats(30, 0))).toBe("None of 30 stories made a podcast");
+    expect(recordInWords(stats(1, 0))).toBe("The 1 story did not make a podcast");
   });
 
   it("gives no record when there is nothing to count", () => {
@@ -59,7 +59,7 @@ describe("recordInWords", () => {
   });
 
   it("never claims more published than judged", () => {
-    expect(recordInWords(stats(5, 9))).toBe("5 of 5 stories made a briefing");
+    expect(recordInWords(stats(5, 9))).toBe("5 of 5 stories made a podcast");
   });
 });
 
@@ -210,9 +210,9 @@ describe("buildSources: a general news feed", () => {
         now: new Date("2026-10-01T00:00:00Z"),
       })[0];
     const news = run("world");
-    const briefing = run("motion");
+    const podcast = run("motion");
     expect(news?.score).not.toBeNull();
-    expect(news?.score).toBeGreaterThan(briefing?.score ?? 0);
+    expect(news?.score).toBeGreaterThan(podcast?.score ?? 0);
   });
 });
 
@@ -298,7 +298,7 @@ describe("buildSources", () => {
       health: { sources: { flaky: { failures: 4, last_ok: "2026-10-01T00:00:00.000Z" } } },
     });
     const byId = Object.fromEntries(rows.map((row) => [row.id, row]));
-    expect(byId["alpha-blog"]?.record).toBe("12 of 40 stories made a briefing");
+    expect(byId["alpha-blog"]?.record).toBe("12 of 40 stories made a podcast");
     expect(byId["zeta-blog"]?.record).toBeNull();
     expect(byId.flaky?.struggling).toBe(true);
     expect(byId["alpha-blog"]?.struggling).toBe(false);
@@ -609,7 +609,7 @@ describe("loadManage", () => {
     ]);
     expect(data.sources[0]).toMatchObject({
       pinned: true,
-      record: "2 of 4 stories made a briefing",
+      record: "2 of 4 stories made a podcast",
     });
     expect(data.candidates[0]).toMatchObject({ domain: "new.example", quality: "Strong match" });
   });

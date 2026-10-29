@@ -54,10 +54,10 @@ const inScope = (ids: readonly string[]): boolean =>
 <div class="podcast-profile" data-profile={id}>
   {/* The on/off switch (2026-10-26, Q16). Off, the controls below are disabled and dimmed, not
        hidden, and a quiet line says why; the page script keeps the fieldset in step (podcastPage.ts). */}
-  <section class="podcast-section" aria-label={`${label} briefing`}>
+  <section class="podcast-section" aria-label={`${label} podcast`}>
     <div class="rows card-group">
       <div class="settings-row">
-        <label class="settings-label" for={`${id}-enabled`}>{label} briefing</label>
+        <label class="settings-label" for={`${id}-enabled`}>{label} podcast</label>
         <input
           class="settings-switch"
           id={`${id}-enabled`}
@@ -70,7 +70,7 @@ const inScope = (ids: readonly string[]): boolean =>
       </div>
     </div>
     <p class="settings-hint podcast-hint" data-off-note hidden={values.enabled}>
-      Off: no {label.toLowerCase()} briefing is made
+      Off: no {label.toLowerCase()} podcast is made
     </p>
   </section>
 

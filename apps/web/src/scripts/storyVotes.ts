@@ -333,7 +333,7 @@ function block(controls: HTMLElement): void {
   // Pressed again while it waits for Undo or for the server: it is already on its way.
   if (!host || blocks.has(host) || outbox().some((entry) => entry.domain === host)) return;
   const outlet = controls.dataset.outlet || host;
-  const message = `No more stories from ${outlet}, from the next briefing.`;
+  const message = `No more stories from ${outlet}, from the next podcast.`;
   const entry: Block = {
     timer: window.setTimeout(() => commitBlock(entry), UNDO_MS),
     message,

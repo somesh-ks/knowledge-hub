@@ -16,7 +16,7 @@ interface Props {
   share?: HeroShare;
 }
 
-const { digestId, mode, length, noun = "briefing", share } = Astro.props;
+const { digestId, mode, length, noun = "podcast", share } = Astro.props;
 const chip = idleBriefingChip(length, noun);
 const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
 ---

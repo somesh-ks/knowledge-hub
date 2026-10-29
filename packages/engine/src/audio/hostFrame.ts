@@ -268,10 +268,10 @@ export function storyConnective(args: {
 export function signOff(kind: DigestKind): string {
   switch (kind) {
     case "weekly":
-      return "That's the weekly briefing. Back next week.";
+      return "That's the weekly podcast. Back next week.";
     case "on-demand":
-      return "That's the briefing.";
+      return "That's the podcast.";
     default:
-      return "That's the briefing. More in two days.";
+      return "That's the podcast. More in two days.";
   }
 }

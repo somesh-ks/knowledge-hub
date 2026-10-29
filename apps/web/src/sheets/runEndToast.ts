@@ -19,7 +19,7 @@ export function toastForEndedRun(run: RunRecord, ended: "finished" | "failed"): 
   if (document.documentElement.dataset.player !== "open") return;
   if (ended === "failed") {
     showToast({
-      message: briefingFailureLine(run.step) ?? "The briefing couldn't be made.",
+      message: briefingFailureLine(run.step) ?? "The podcast couldn't be made.",
       kind: "error",
     });
     return;
@@ -27,7 +27,7 @@ export function toastForEndedRun(run: RunRecord, ended: "finished" | "failed"): 
   const digestId = /^\/d\/([\w-]+)$/.exec(run.href ?? "")?.[1];
   if (digestId) {
     showToast({
-      message: "Briefing ready",
+      message: "Podcast ready",
       kind: "success",
       actionLabel: "Open",
       onAction: () => openBriefing(digestId),

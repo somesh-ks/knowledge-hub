@@ -72,7 +72,7 @@ describe("buildSpokenText opening line", () => {
       expect(text).not.toMatch(/good (morning|evening|afternoon)/i);
   });
 
-  it("starts with the section the briefing actually opens on", () => {
+  it("starts with the section the podcast actually opens on", () => {
     const text = buildSpokenText(digestWith(["research", "research", "research"])).text;
     expect(text).toContain("Three stories today, starting with research.");
   });
@@ -243,9 +243,9 @@ describe("buildSpokenText structure", () => {
   it("ends with the sign-off after the last item, and the item range stops before it", () => {
     const digest = makeDigest({}, 5);
     const { text, ranges } = buildSpokenText(digest);
-    expect(text.endsWith("\n\nThat's the briefing. More in two days.")).toBe(true);
+    expect(text.endsWith("\n\nThat's the podcast. More in two days.")).toBe(true);
     const last = must(ranges.at(-1));
-    expect(text.slice(last.end)).toBe("\n\nThat's the briefing. More in two days.");
+    expect(text.slice(last.end)).toBe("\n\nThat's the podcast. More in two days.");
     expect(text.slice(last.start, last.end).endsWith(`${must(digest.items.at(-1)).why}.`)).toBe(
       true,
     );
@@ -254,11 +254,11 @@ describe("buildSpokenText structure", () => {
   it("signs off a weekly and a special edition in their own words", () => {
     expect(
       buildSpokenText(makeDigest({ kind: "weekly" }, 5)).text.endsWith(
-        "That's the weekly briefing. Back next week.",
+        "That's the weekly podcast. Back next week.",
       ),
     ).toBe(true);
     const onDemand = buildSpokenText(makeDigest({ kind: "on-demand" }, 5)).text;
-    expect(onDemand.endsWith("That's the briefing.")).toBe(true);
+    expect(onDemand.endsWith("That's the podcast.")).toBe(true);
     expect(onDemand).not.toContain("More in two days");
   });
 
@@ -532,7 +532,7 @@ describe("buildSpokenText with a spoken version", () => {
     expect(text).not.toContain("Copy the pattern from item 1");
   });
 
-  it("falls back to the headline and the summary for a story without one, in the same briefing", () => {
+  it("falls back to the headline and the summary for a story without one, in the same podcast", () => {
     const digest = makeDigest({
       items: [
         makeStory(0, { spoken: "A spoken story. It has two sentences." }),
@@ -621,7 +621,7 @@ describe("buildSpokenText keeps the host frame out of the page", () => {
   });
 });
 
-describe("how long a full briefing runs", () => {
+describe("how long a full podcast runs", () => {
   /** 62 ms per character: the rate Speechify's narration has measured in this product. */
   const MS_PER_CHAR = 62;
   const minutes = (chars: number): number => (chars * MS_PER_CHAR) / 60_000;
@@ -658,7 +658,7 @@ describe("how long a full briefing runs", () => {
     expect(minutes(buildSpokenText(fullDigest(17, longest)).text.length)).toBeLessThan(13);
   });
 
-  it("runs under seven minutes for a typical 14-story briefing, well under ten", () => {
+  it("runs under seven minutes for a typical 14-story podcast, well under ten", () => {
     expect(countWords(TYPICAL_TELLING)).toBeGreaterThanOrEqual(VOICE_LIMITS.spokenMinWords);
     expect(countWords(TYPICAL_TELLING)).toBeLessThanOrEqual(VOICE_LIMITS.spokenWords);
     const { text } = buildSpokenText(fullDigest(14, TYPICAL_TELLING));

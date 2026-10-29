@@ -6,7 +6,7 @@ import { expect, hydrated, SILENT_DIGEST, seedStorage, test } from "./fixtures";
 const FIRST_HEADLINE =
   "Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity";
 
-test.describe("the briefing header", () => {
+test.describe("the podcast header", () => {
   test("renders the date, the play chip with the story count, and the More menu", async ({
     page,
   }) => {
@@ -19,14 +19,14 @@ test.describe("the briefing header", () => {
     await expect(chip).toHaveCount(1);
     await expect(chip).toHaveAttribute("data-play-digest", "2026-10-07");
     await expect(chip.locator("[data-chip-label]")).toHaveText("1 min");
-    await expect(chip).toHaveAccessibleName("Play the briefing, 1 min");
+    await expect(chip).toHaveAccessibleName("Play the podcast, 1 min");
     await expect(chip).toHaveAttribute("data-state", "idle");
     await expect(chip).not.toHaveAttribute("aria-disabled", "true");
     await expect(page.getByRole("button", { name: "More actions" })).toBeVisible();
     await expect(page.locator(".hero-hint")).toHaveCount(0);
   });
 
-  test("a briefing without audio keeps a working chip and says nothing about it", async ({
+  test("a podcast without audio keeps a working chip and says nothing about it", async ({
     page,
   }) => {
     await page.goto(SILENT_DIGEST);
@@ -99,7 +99,7 @@ test.describe("the briefing header", () => {
     expect(new Set(asked).size).toBe(asked.length);
   });
 
-  test("pressing play on a briefing without audio narrates it story by story", async ({ page }) => {
+  test("pressing play on a podcast without audio narrates it story by story", async ({ page }) => {
     await page.goto(SILENT_DIGEST);
     await hydrated(page);
     const ids = await page.evaluate(() => {
@@ -186,7 +186,7 @@ test.describe("sharing", () => {
   });
 
   // Only on-demand briefings and episodes can be deleted (#152): a Daily or Weekly has no Delete.
-  test("every briefing offers Regenerate, which asks what to improve, and a daily no Delete", async ({
+  test("every podcast offers Regenerate, which asks what to improve, and a daily no Delete", async ({
     page,
   }) => {
     for (const path of ["/", "/d/2026-10-07"]) {
@@ -322,7 +322,7 @@ test.describe("sections and stories", () => {
     await expect(source).toHaveAttribute("aria-hidden", "true");
   });
 
-  test("a briefing narrated on Play has its Play unavailable offline, and back when online", async ({
+  test("a podcast narrated on Play has its Play unavailable offline, and back when online", async ({
     page,
     context,
   }) => {
@@ -344,7 +344,7 @@ test.describe("sections and stories", () => {
     await expect(chip).toHaveAttribute("data-state", before ?? "");
   });
 
-  test("Today's briefing chip says what the Library's card says: time left, or Played", async ({
+  test("Today's podcast chip says what the Library's card says: time left, or Played", async ({
     page,
   }) => {
     await seedStorage(page, { local: { "singularity:resume:2026-10-07": "20" } });
@@ -362,7 +362,7 @@ test.describe("sections and stories", () => {
     await page.goto("/");
     await hydrated(page);
     await expect(chip.locator("[data-chip-label]")).toHaveText("Played");
-    await expect(chip).toHaveAccessibleName("Play the briefing again, played");
+    await expect(chip).toHaveAccessibleName("Play the podcast again, played");
     await expect(chip).toHaveAttribute("data-state", "played");
   });
 
@@ -385,7 +385,7 @@ test.describe("sections and stories", () => {
     expect(Math.abs((await page.evaluate(() => scrollY)) - away)).toBeLessThan(40);
   });
 
-  test("keeps story chips in the page, hidden, while a briefing has no audio", async ({ page }) => {
+  test("keeps story chips in the page, hidden, while a podcast has no audio", async ({ page }) => {
     await page.goto(SILENT_DIGEST);
     await expect(page.locator(".story")).toHaveCount(8);
     const chips = page.locator("[data-play-item]");
@@ -507,7 +507,7 @@ test.describe("section tabs", () => {
       .toBe(true);
   });
 
-  test("an episode page says episode, not briefing, to assistive tech", async ({ page }) => {
+  test("an episode page says episode, not podcast, to assistive tech", async ({ page }) => {
     await page.goto("/e/ep-20261007-1930");
     await expect(page.locator(".skip-link")).toHaveText("Skip to the episode");
     await expect(page.locator(".hero [data-play-digest]")).toHaveAccessibleName(
@@ -790,12 +790,12 @@ test.describe("a tab's jump with the app bar", () => {
   });
 });
 
-test.describe("earlier briefings", () => {
-  test("lists the earlier briefings and a way to all of them", async ({ page }) => {
+test.describe("earlier podcasts", () => {
+  test("lists the earlier podcasts and a way to all of them", async ({ page }) => {
     await page.goto("/");
     // A shelf of covers, not a list: the same card the Library uses.
     await expect(
-      page.getByRole("heading", { level: 2, name: "Earlier briefings", exact: true }),
+      page.getByRole("heading", { level: 2, name: "Earlier podcasts", exact: true }),
     ).toBeVisible();
     await expect(page.locator(".earlier .shelf > .card")).toHaveCount(2);
     await expect(page.getByRole("link", { name: "See all" })).toHaveAttribute("href", "/library");
@@ -805,7 +805,7 @@ test.describe("earlier briefings", () => {
     ]);
   });
 
-  test("marks the weekly deep dive in the list of earlier briefings", async ({ page }) => {
+  test("marks the weekly deep dive in the list of earlier podcasts", async ({ page }) => {
     await page.goto(SILENT_DIGEST);
     const weekly = page.locator(".earlier .card", { hasText: "Weekly" });
     await expect(weekly).toHaveCount(1);
@@ -814,7 +814,7 @@ test.describe("earlier briefings", () => {
     await expect(page.locator(".earlier .cover[data-weekly]")).toHaveCount(1);
   });
 
-  test("is left out under the oldest briefing, which has nothing before it", async ({ page }) => {
+  test("is left out under the oldest podcast, which has nothing before it", async ({ page }) => {
     await page.goto("/d/2026-10-04-weekly");
     await expect(page.locator(".story")).toHaveCount(14);
     await expect(page.locator(".earlier")).toHaveCount(0);
@@ -854,7 +854,7 @@ test.describe("the page head", () => {
 });
 
 test.describe("the page's chrome", () => {
-  test("the latest briefing at its dated address is the home page: no Back in the app bar", async ({
+  test("the latest podcast at its dated address is the home page: no Back in the app bar", async ({
     page,
   }) => {
     await page.goto("/d/2026-10-07");
@@ -873,7 +873,7 @@ test.describe("the app bar's Back", () => {
     if (size && size.width >= 1024) await page.setViewportSize({ width: 900, height: size.height });
   }
 
-  test("Back returns to the page you came from: Today, then an earlier briefing", async ({
+  test("Back returns to the page you came from: Today, then an earlier podcast", async ({
     page,
   }) => {
     await narrow(page);

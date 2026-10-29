@@ -11,7 +11,7 @@ interface Props {
   /** The episode or briefing these actions are about. */
   id: string;
   /** A briefing regenerates in the Generate sheet, so only its Delete confirm is here. */
-  noun?: "episode" | "briefing";
+  noun?: "episode" | "podcast";
   /** The topic ids the episode or briefing was made with: the chips start ticked from these. */
   selected?: readonly string[];
 }
@@ -134,7 +134,7 @@ const COPY = {
 }
 
 {
-  noun === "briefing" && (
+  noun === "podcast" && (
     <script
       type="application/json"
       id="regenerate-topics"

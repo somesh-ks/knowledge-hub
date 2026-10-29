@@ -155,7 +155,7 @@ describe("decideRun: daylight saving changeovers", () => {
 describe("decideRun: weekly pass on Sundays", () => {
   const sunday = "2026-10-11T05:13:00Z";
 
-  it("runs the weekly pass on a Sunday, and a briefing due that day waits", () => {
+  it("runs the weekly pass on a Sunday, and a podcast due that day waits", () => {
     const decision = scheduled(sunday, lastWith(record("2026-10-09T05:13:00Z")));
     expect(decision).toMatchObject({ due: false, runWeekly: true, date: "2026-10-11" });
   });
@@ -207,11 +207,11 @@ describe("decideRun: the weekly podcast takes its day", () => {
   // Friday 9 October briefing; Sunday 11 October is the weekly day.
   const friday = record("2026-10-09T05:13:00Z");
 
-  it("makes no briefing on the weekly day, before or after the weekly hour", () => {
+  it("makes no podcast on the weekly day, before or after the weekly hour", () => {
     expect(at("2026-10-11T05:13:00Z", lastWith(friday))).toMatchObject({
       due: false,
       runWeekly: false,
-      reason: "today is the weekly podcast's day; no briefing",
+      reason: "today is the weekly podcast's day; no daily podcast",
     });
     expect(at("2026-10-11T16:10:00Z", lastWith(friday))).toMatchObject({
       due: false,
@@ -219,7 +219,7 @@ describe("decideRun: the weekly podcast takes its day", () => {
     });
   });
 
-  it("counts the cadence from the weekly podcast, so the next briefing keeps its spacing", () => {
+  it("counts the cadence from the weekly podcast, so the next podcast keeps its spacing", () => {
     const weekly = lastWith(friday, record("2026-10-11T16:20:00Z"));
     expect(at("2026-10-12T05:13:00Z", weekly)).toMatchObject({
       due: false,
@@ -242,13 +242,13 @@ describe("decideRun: the weekly podcast takes its day", () => {
     expect(at("2026-10-15T05:13:00Z", later).due).toBe(true);
   });
 
-  it("leaves Sunday to the briefing while the weekly podcast is off", () => {
+  it("leaves Sunday to the podcast while the weekly podcast is off", () => {
     expect(at("2026-10-11T05:13:00Z", lastWith(friday), { ...slot, enabled: false }).due).toBe(
       true,
     );
   });
 
-  it("still runs a briefing the owner asks for", () => {
+  it("still runs a podcast the owner asks for", () => {
     const forced = decideRun({
       now: new Date("2026-10-11T05:13:00Z"),
       mode: "scheduled",
@@ -450,7 +450,7 @@ describe("decideRun: generate ahead, publish at the scheduled hour", () => {
     expect(at("2026-10-25T06:30:00Z", done)).toMatchObject({ runWeekly: false, publishAt: null });
   });
 
-  it("gives the daily briefing its publish time when the schedule's hour is known", () => {
+  it("gives the daily podcast its publish time when the schedule's hour is known", () => {
     const daily = decideRun({
       now: new Date("2026-10-27T05:30:00Z"),
       mode: "scheduled",
@@ -463,7 +463,7 @@ describe("decideRun: generate ahead, publish at the scheduled hour", () => {
   });
 });
 
-describe("decideRun: a daily briefing that is switched off", () => {
+describe("decideRun: a daily podcast that is switched off", () => {
   const daily = (dailyEnabled: boolean) =>
     decideRun({
       now: new Date("2026-10-27T05:30:00Z"),

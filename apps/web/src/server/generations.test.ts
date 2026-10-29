@@ -10,9 +10,9 @@ const ORIGIN = "https://news.example";
 beforeEach(resetTimingsCaches);
 
 /** A fake with the two workflows' run lists and the jobs of the runs in them. */
-function setup(briefings: unknown[] = [], episodes: unknown[] = []) {
+function setup(podcasts: unknown[] = [], episodes: unknown[] = []) {
   const github = createFakeGitHub();
-  github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: briefings } });
+  github.on("GET /actions/workflows/run.yml/runs", { json: { workflow_runs: podcasts } });
   github.on("GET /actions/workflows/podcast.yml/runs", { json: { workflow_runs: episodes } });
   return github;
 }
@@ -51,7 +51,7 @@ describe("the list of generations", () => {
     expect(result.body).toMatchObject({
       generations: [
         { run_id: 12, what: "episode", state: "queued", stage: 0 },
-        { run_id: 11, what: "briefing", state: "running", stage: 3, label: "Writing the briefing" },
+        { run_id: 11, what: "briefing", state: "running", stage: 3, label: "Writing the podcast" },
       ],
     });
   });

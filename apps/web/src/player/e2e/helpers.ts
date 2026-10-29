@@ -25,7 +25,7 @@ export const SITE = {
   /** A second page reached by a client-side link, with the islands carried over. */
   nextLink: /^Library$/,
   nextUrl: /\/library$/,
-  /** A briefing with no audio: Up next offers it, and the Generate mock reports it as published. */
+  /** A podcast with no audio: Up next offers it, and the Generate mock reports it as published. */
   earlier: "2026-10-05",
 } as const;
 
@@ -513,7 +513,7 @@ export class PlayerPage {
     await expect(this.page).toHaveURL(SITE.nextUrl);
   }
 
-  /** Opens the Generate sheet the way a person does: More on the briefing, then Regenerate. */
+  /** Opens the Generate sheet the way a person does: More on the podcast, then Regenerate. */
   async openGenerate(): Promise<Locator> {
     await this.finger.press(this.page.getByRole("button", { name: "More actions" }));
     await this.finger.press(this.page.getByRole("menuitem", { name: "Regenerate" }));

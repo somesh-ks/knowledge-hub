@@ -330,7 +330,7 @@ export const RECIPES: Readonly<Record<SoundName, SoundRecipe>> = {
   generateDone: {
     name: "generateDone",
     intent:
-      "The signature. A new briefing is ready. Two sustained bars, A4 then D5, a perfect fourth up that resolves the dominant onto the tonic, each lightly doubled and detuned for a warm shimmer.",
+      "The signature. A new podcast is ready. Two sustained bars, A4 then D5, a perfect fourth up that resolves the dominant onto the tonic, each lightly doubled and detuned for a warm shimmer.",
     layers: [
       bar(0, PITCH.A4, 0.135, 300, { partials: chimePartials }),
       bar(0, PITCH.A4, 0.052, 280, { detuneCents: 5, woodGain: 0 }),

@@ -103,7 +103,7 @@ describe("spokenSegments", () => {
     expect(segments.at(-1)).toEqual({
       key: OUTRO_KEY,
       itemId: null,
-      text: "That's the briefing. More in two days.",
+      text: "That's the podcast. More in two days.",
     });
   });
 

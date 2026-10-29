@@ -174,7 +174,7 @@ export function decideRun({
     return {
       due: false,
       runWeekly: weeklyDue,
-      reason: "the daily briefing is switched off",
+      reason: "the daily podcast is switched off",
       date,
       publishAt: weeklyDue ? weeklyAt : null,
     };
@@ -194,7 +194,7 @@ export function decideRun({
     return {
       due: false,
       runWeekly: weeklyDue,
-      reason: "today is the weekly podcast's day; no briefing",
+      reason: "today is the weekly podcast's day; no daily podcast",
       date,
       publishAt: weeklyDue ? weeklyAt : null,
     };

@@ -85,7 +85,7 @@ export function splitArgs(argv: readonly string[]): ParsedArgs {
 export function topLevelHelp(commands: readonly CommandSpec[] = COMMANDS): string {
   const width = Math.max(...commands.map((command) => command.name.length));
   const lines = commands.map((command) => `  ${command.name.padEnd(width)}  ${command.summary}`);
-  return `Singularity: a private design-engineering news briefing.
+  return `Singularity: a private design-engineering news podcast.
 
 Usage: singularity <command> [args] [--json] [--root <path>]
 

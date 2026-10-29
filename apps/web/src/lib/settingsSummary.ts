@@ -56,7 +56,7 @@ export function weeklySummary(input: { day: number; hour: number; timezone?: str
  * "No sources yet" with none, and "Never in a briefing" for a topic that never publishes.
  */
 export function sourcesSummary(input: { total: number; never?: boolean }): string {
-  if (input.never) return "Never in a briefing";
+  if (input.never) return "Never in a podcast";
   if (input.total === 0) return "No sources yet";
   return plural(input.total, "source");
 }
