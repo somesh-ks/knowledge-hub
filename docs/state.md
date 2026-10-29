@@ -1,6 +1,6 @@
 # State
 
-Updated 2026-10-28. Rewrite, never append. Behaviour: [specs](specs/README.md). Why: [decisions](decisions.md). Sessions: [history](history/README.md).
+Updated 2026-10-28. Rewrite, never append. Behaviour: [specs](specs/README.md). Why: [decisions](decisions/README.md). Sessions: [history](history/README.md).
 
 ## Working
 
@@ -60,7 +60,7 @@ Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs (10-28), 10 
 
 ## Next
 
-1. Free the lane in the hold ([D209](decisions.md)).
+1. Free the lane in the hold ([D209](decisions/engine.md)).
 2. Owner: regenerate the 3-story 2026-10-27 briefing? Revoke the Vercel token pasted in chat (2026-10-07); delete the empty store `store_JmrDq8MB5Kwn3ejW`; the open calls in [the PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md).
 3. Firecrawl: a per-source yield table (21 scraped sources gave about 1 published story per 4,460 credits a month) for the owner to prune; changelog providers (Claude, OpenAI release notes) once the pilot holds.
 4. Lighthouse: defer BaseLayout's 34 KiB CSS without breaking the resumed bar; the 19 KiB unused; the 1.4 s chain (share, overlays and Create tools on interaction). Re-run after any CSS change.

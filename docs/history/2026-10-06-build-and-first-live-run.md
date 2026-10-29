@@ -10,7 +10,7 @@
 
 ## Decisions
 
-D19 to D27 in [decisions.md](../decisions.md).
+D19 to D27 in [decisions](../decisions/foundations.md).
 
 ## Failures
 

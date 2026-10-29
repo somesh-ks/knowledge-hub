@@ -1,6 +1,6 @@
 # No island at first load
 
-The owner asked for every accepted idea to be built; cut 1 of [first-load-js.md](../engineering/first-load-js.md), parked since 2026-10-14, was one. [D178](../decisions.md#d178-no-island-loads-with-the-page-the-islands-wake-when-needed) records the decision.
+The owner asked for every accepted idea to be built; cut 1 of [first-load-js.md](../engineering/first-load-js.md), parked since 2026-10-14, was one. [D178](../decisions/player-and-library.md#d178-no-island-loads-with-the-page-the-islands-wake-when-needed) records the decision.
 
 ## What changed
 

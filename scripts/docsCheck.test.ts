@@ -13,11 +13,13 @@ function repo(files: Record<string, string>): string {
   roots.push(root);
   const base = {
     "AGENTS.md": "# Agents\n\nRead [state](docs/state.md).\n",
-    "docs/README.md": "# Docs\n\n[state.md](state.md) [decisions.md](decisions.md)\n",
+    "docs/README.md": "# Docs\n\n[state.md](state.md) [decisions](decisions/README.md)\n",
     "docs/state.md":
       "# State\n\n## Not working or unverified\n\n- The flick. closed when: it passes ten runs.\n",
-    "docs/decisions.md":
-      "# Decisions\n\n## Index\n\n| ID | Decision | Status |\n| D1 | One | active |\n\n## D1: One\n\nBody.\n",
+    "docs/decisions/README.md":
+      "# Decisions\n\n## Index\n\n| ID | Decision | Status |\n| D1 | One | active |\n| D2 | Two | active |\n",
+    "docs/decisions/area.md": "# Area\n\n## D1: One\n\nBody.\n",
+    "docs/decisions/area-two.md": "# Area two\n\n## D2: Two\n\nBody.\n",
   };
   for (const [rel, text] of Object.entries({ ...base, ...files })) {
     mkdirSync(dirname(join(root, rel)), { recursive: true });
@@ -39,8 +41,10 @@ describe("docs check", () => {
     const { fails } = checkDocs(
       repo({
         "docs/state.md": `# State\n\n${"x".repeat(12_001)}\n\n## Not working or unverified\n\n- The flick is flaky.\n`,
-        "docs/decisions.md":
-          "## Index\n\n| D1 | One | superseded by D9 |\n| D2 | Two | active |\n\n## D1: One\n\nsuperseded by D9\n",
+        "docs/decisions/README.md":
+          "## Index\n\n| D1 | One | superseded by D9 |\n| D2 | Two | active |\n",
+        "docs/decisions/area.md": "## D1: One\n\nBody.\n",
+        "docs/decisions/area-two.md": "# Area two\n",
         "docs/learnings.md": "See [the note](history/gone.md). Fixed in `scripts/moved.ts`.\n",
       }),
     );
@@ -48,7 +52,7 @@ describe("docs check", () => {
       expect.arrayContaining([
         expect.stringMatching(/^docs\/state\.md: \d+ bytes, budget 12000$/),
         expect.stringContaining('unverified item without "closed when:": The flick is flaky.'),
-        "docs/decisions.md: Index row D2 has no entry",
+        "docs/decisions/README.md: Index row D2 has no entry",
         expect.stringContaining('"superseded by D9" names a decision that does not exist'),
         "docs/learnings.md: broken link history/gone.md",
         "docs/learnings.md: names a missing file scripts/moved.ts",

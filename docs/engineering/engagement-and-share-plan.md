@@ -1,6 +1,6 @@
 # User engagement and sharing: the plan
 
-Approved by the owner on 2026-10-22 ([D153](../decisions.md)), with the passphrase skipped (D160); aligned with Simple Analytics (D154) on 2026-10-24 so the two do not overlap. Built one stage per PR, link previews first.
+Approved by the owner on 2026-10-22 ([D153](../decisions/store-and-ops.md)), with the passphrase skipped (D160); aligned with Simple Analytics (D154) on 2026-10-24 so the two do not overlap. Built one stage per PR, link previews first.
 
 What counts behaviour is D154's: Simple Analytics on the production host, its nine events, `?ref=share`, the loops and their numbers in [specs/analytics.md](../specs/analytics.md), and `/settings/privacy`. This plan adds the share link and its listen page on top, and keeps first-party only what a vendor cannot do. Vendor facts were read from each vendor's page (sources at the end); anything not confirmed there is marked unverified.
 

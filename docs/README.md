@@ -6,7 +6,7 @@ Where each kind of fact lives. Each fact is kept in one place; the others link t
 | :--- | :--- | :--- |
 | [state.md](state.md) | What works, what is unverified (each with `closed when:`), risks, next | Every session |
 | [backlog.md](backlog.md) | Long-term memory, future ideas, parked tasks, and shipped milestones | Before planning new features or offloading cold tasks |
-| [decisions.md](decisions.md) | Every decision, D1 onward; grep its Index | For the reason behind a choice |
+| [decisions/](decisions/README.md) | Every decision, D1 onward: the Index, and one file per area | For the reason behind a choice |
 | [learnings.md](learnings.md) | Gotchas by area, one line each | Before debugging |
 | [specs/README.md](specs/README.md) | What each capability does now, one spec each | Before changing a capability you do not know |
 | [design-engineering-ledger.md](design-engineering-ledger.md) | The owner's taste, every design ask and fix by surface, gaps, open asks | Before UI work |

@@ -1,6 +1,6 @@
 # The store's answer kept on the device
 
-The owner asked why Spotify's settings feel instant and how to make Dispatch professional. The answer for a one-user static site is not a database read per page but the pattern the big apps use at the edge: keep the user's data on the device and refresh it from the network. [D172](../decisions.md#d172-a-settings-page-keeps-the-stores-last-answer-on-the-device) records the decision.
+The owner asked why Spotify's settings feel instant and how to make Dispatch professional. The answer for a one-user static site is not a database read per page but the pattern the big apps use at the edge: keep the user's data on the device and refresh it from the network. [D172](../decisions/store-and-ops.md#d172-a-settings-page-keeps-the-stores-last-answer-on-the-device) records the decision.
 
 ## What changed
 
