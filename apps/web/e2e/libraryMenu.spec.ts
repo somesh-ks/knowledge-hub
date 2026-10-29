@@ -79,6 +79,8 @@ test("a podcast page's More menu downloads and queues the podcast, as its row in
   // Still marked after a reload: the state comes from Cache Storage, as in the Library.
   await page.reload();
   await expect(menu).toHaveAttribute("data-downloaded", "");
+  // The header says so beside the story count, not only the menu's wording.
+  await expect(page.locator(".hero-facts .hero-downloaded")).toBeVisible();
   await open();
   await expect(menu.getByRole("menuitem", { name: "Remove download" })).toBeVisible();
 });

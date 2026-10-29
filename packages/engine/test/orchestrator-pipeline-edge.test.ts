@@ -678,7 +678,8 @@ describe("grounding and validation", () => {
 
   // The 2026-10-27 daily (owner's structure, five minutes): section counts held selection to 8
   // stories, grounding cut 5, and the reserve was empty because it was chosen under the same
-  // counts, so nothing replaced them and 3 stories aired (79 s).
+  // counts, so nothing replaced them and 3 stories aired (79 s). Since D218 the counts no longer
+  // hold selection either, and the refill still has stories to draw on.
   it("refills from spares the structure's section counts would not have chosen", LONG, async () => {
     const section = (id: string, max: number) => ({
       type: "section",
@@ -723,8 +724,8 @@ describe("grounding and validation", () => {
     const world = makeWorld(repo.root, { now: WED, feeds: manyOutlets(45), writer });
     const stages = await stagedWithRefill(world, () => startRefill("ok"));
     const [pass] = (stages.write as { passes: Array<{ selected: number }> }).passes;
-    // Selection stays under the structure's counts, and grounding cuts all but three.
-    expect(pass?.selected).toBeLessThan(12);
+    // Selection draws spares beyond the structure's counts (D218), and grounding cuts all but three.
+    expect(pass?.selected).toBeGreaterThan(12);
     const report = await validateReport();
     expect(report.grounding_dropped).toBeGreaterThanOrEqual(3);
     expect(report.refill_written).toBeGreaterThan(0);

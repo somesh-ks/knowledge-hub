@@ -59,35 +59,61 @@
   grid-area: menu;
 }
 
-/* Play, the page's main action, and Share beside it (PlayCta.astro). */
+/* The day's Catch up select (D219), Play, and Share beside it (PlayCta.astro). The row scrolls
+   sideways when they do not fit (a phone with the longest names: owner, 2026-10-29), and its padding
+   holds the focus rings the scroll box would clip; the negative margins take the padding back, so
+   the row stands where it did. Nothing in it shrinks: Play and the select keep their width. */
 .hero-actions {
   grid-area: actions;
   display: flex;
   align-items: center;
   gap: var(--space-2);
   min-height: var(--size-touch);
-  margin-block-start: var(--space-4);
+  margin-block: calc(var(--space-4) - var(--space-1)) calc(var(--space-1) * -1);
+  margin-inline: calc(var(--space-1) * -1);
+  padding: var(--space-1);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.hero-actions::-webkit-scrollbar {
+  display: none;
+}
+
+.hero-actions > * {
+  flex: none;
 }
 
 /*
- * Share (D153): the tonal button at the hero chip's height and in its pill, so Play and Share read
- * as one row with Play the filled one. Its own width, not the sheet button's full row.
+ * The select of a day's Catch ups (D219) is the shared select chip (.sort-field, primitives.css) at
+ * the hero chip's height, so it and Play read as one row. A select is as wide as its longest option
+ * whichever is chosen, and the names are one width (lib/catchUps.ts), so switching moves nothing.
  */
-.hero-share {
-  position: relative;
-  width: auto;
-  min-height: calc(var(--size-touch) - var(--space-1));
-  padding-inline: var(--space-4) var(--space-6);
-  border-radius: var(--chip-radius);
-  font-size: var(--font-size-label);
+.hero-album {
+  --chip-height: calc(var(--size-touch) - var(--space-1));
 }
 
-/* 40px tall, as the chip beside it; its target is 44px, as the chip's is (buttons.css). */
+.hero-album > select {
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Share (D153): the secondary icon button (.icon-btn-tonal, buttons.css) after Play, a circle on the
+ * select's fill (owner, 2026-10-29). It is as tall as the chip and the select beside it, and its
+ * 44px target reaches past the circle as the chip's does.
+ */
+.hero-share {
+  --chip-height: calc(var(--size-touch) - var(--space-1));
+  position: relative;
+  min-width: var(--chip-height);
+  min-height: var(--chip-height);
+}
+
 .hero-share::after {
   content: "";
   position: absolute;
-  inset-inline: 0;
-  inset-block: calc((var(--size-touch) - 100%) / -2);
+  inset: calc((var(--size-touch) - var(--chip-height)) / -2);
 }
 
 /*
@@ -141,6 +167,22 @@
 /* Heard to the end: the fill steps down to the tonal container, with the check, until it plays again. */
 .hero-actions > .chip[data-state="played"] {
   background: var(--color-surface-container);
+}
+
+/* Downloaded, after the facts (owner, 2026-10-29): the filled check circle a Library card shows
+   (.card-downloaded, library.css) and the word. libraryMenu.ts puts it in the facts line once the
+   page is saved offline, so it takes no room before. */
+.hero-downloaded {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.hero-downloaded .icon {
+  flex: none;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  color: var(--color-accent);
 }
 
 /* Why the chip above cannot play. One or two short sentences, never a paragraph. */
@@ -415,7 +457,16 @@
 
   .hero-actions {
     align-self: end;
-    margin-block-start: var(--space-4);
+  }
+}
+
+/* A phone's row scrolls to the screen's edges, so what runs past the column slides off the screen,
+   not off a margin (as the section tabs do, primitives.css); its first item still starts on the gutter. */
+@media (width < 40rem) {
+  .hero-actions {
+    margin-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
+    padding-inline: var(--page-gutter-start) var(--page-gutter-end);
+    scroll-padding-inline: var(--page-gutter-start);
   }
 }
 

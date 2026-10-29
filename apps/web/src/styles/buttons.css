@@ -108,6 +108,34 @@
   background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
+/* The secondary icon button (2026-10-29, owner: "a circle as a secondary button"): an .icon-btn on the
+   fill of the select chip (--color-surface-container), so it sits beside Play and a dropdown as one
+   row in both themes. Usage: add it with .icon-btn for the companion of a primary action (Share
+   beside Play); a lone toolbar glyph stays a plain .icon-btn. Its ink is full strength, not muted,
+   because the fill already marks it as a control. */
+.icon-btn-tonal {
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .icon-btn-tonal:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+}
+
+.icon-btn-tonal:active {
+  background: color-mix(
+    in oklch,
+    var(--color-surface-container),
+    var(--color-on-surface) var(--state-press)
+  );
+}
+
 /* A press on an icon button shows its state layer and nothing else: the glyph never scales or
    moves (owner, 2026-10-21; .press in foundations is layered, so this unlayered rule wins). Label
    buttons and nav tabs keep their own press. */
