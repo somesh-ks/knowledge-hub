@@ -137,7 +137,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D114 | Every episode is written for the owner: General audience retired; New episode form is Title, Topics, Length, Look back, with Format, Voice, Tone under More | active; amends D39, D67, D76, D101 |
 | D115 | Settings save quietly: no toast while a change saves or once it is saved; the toast is for a failure, an Undo or a partial save | active; amends D79, D91, D98 |
 | D116 | docs/ is grouped by purpose: the record at the top, plan/, engineering/, design/, reference/; audits fold into their history notes; docs/README.md maps it all | active; amends D14 |
-| D117 | The Model picker reads Anthropic's and Nebius's model lists live, cached five minutes; a Claude model past the built-in two saves only when Anthropic lists it | active; amends D46, D58 |
+| D117 | The Model picker reads Anthropic's and Nebius's model lists live, cached five minutes | active; amends D46, D58 |
 | D118 | Jev 1.14.0 is pinned; Jev checks the strongest candidates against the owner's taste (votes, opens), replacing the vote nudge, within 15% | active; amends D3, D108 |
 | D119 | A briefing sized by the owner's length writes 30% spares; validation airs the best survivors until measured narration fills the length, each topic's best kept | active |
 | D120 | Science takes a one-outlet story that is clearly on topic; the other general topics keep the two-outlet rule | active; amends D40, D43 |
@@ -250,5 +250,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D233 | Ingest in shadow: free sources, Blob text | active |
 | D234 | Vetted publishers pass the bar; topic rubric | active |
 | D239 | A travelling device is offered the new zone | active; amends D100 |
+| D241 | Structure phase 3 not built | active; amends D170 |
 
 ---

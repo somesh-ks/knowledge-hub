@@ -82,4 +82,4 @@ One vocabulary of blocks for every kind, and each kind its own list (the owner, 
 
 1. Schema, file, op, engine reading the defaults: no visible change, every test green.
 2. The Preferences switch and the Structure view with reorder, add, remove and edit, the `custom` block included.
-3. Weekly's own blocks (a recap of the week's dailies, a long read).
+3. Weekly's own blocks (a recap of the week's dailies, a long read): not built. D191 made one structure for every podcast, so a block only the Weekly may hold waits for a type that needs one (D241).
