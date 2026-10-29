@@ -235,6 +235,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D216 | Ticked general topics get a length-sized section | active; amends D170, D191 |
 | D217 | `run.yml` names every run for what it is | active; amends D61, D213 |
 | D218 | A block's count is a proportion; the length is the limit | active; amends D170 |
-| D219 | Over-limit summaries and headlines are cut | active |
+| D219 | A day's Catch ups are one album, chosen by a select before Play | active |
+| D220 | Over-limit summaries and headlines are cut | active |
 
 ---

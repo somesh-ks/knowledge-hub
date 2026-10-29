@@ -263,7 +263,15 @@ What an episode or briefing is: kinds and structure, length, regenerate, Catch u
 - Revisit if: one section crowds out the rest of an episode, or writing the extra stories costs more than the length they buy.
 - Amends: D170, D176.
 
-## D219: a summary or headline a little over its limit is cut, not rewritten
+## D219: a day's Catch ups are one album, chosen by a select before Play
+
+- Date: 2026-10-29 (the owner: "keep both catchups under same album ... a dropdown selector before the play button ... Catchup at 14, Catchup at 22"; "no shaking"; "share button an icon button"; "big cards for the different topic sections like in the settings page"; "Downloaded next to the subtitle").
+- Decision: the Catch ups with one Stockholm date (`episode.date`) form an album. The grouping is by that date; D213's cap counts a rolling 24 hours, so the two are separate rules. A Catch up's page, and Latest when one is the newest, shows a select of them before Play when there are two or more; choosing one opens its page. Each option is named `Catch up at HH` for the hour it started, two digits so the names are one width, `HH:MM` on all of them when two started in one hour. The page script names them in the browser's zone for that visit only (nothing stored); the server draws Stockholm's hour, and the day boundaries and the grouping stay Stockholm's. The select is the shared `.sort-field`, as wide as its longest name, so switching moves nothing. The hero's row scrolls sideways when select, Play and Share do not fit (to the screen's edges on a phone). Share is a circle on the select's fill (the shared `.icon-btn` with its `.icon-btn-tonal` modifier, the secondary icon button) on every podcast page. A section's stories sit in one `.card-group` under the section's header, on briefings and episodes alike. "Downloaded" with a check circle ends the hero's facts line once the page is saved offline.
+- Why: two Catch ups a day were two unrelated pages with unrelated covers; the owner thinks of them as one thing with two takes.
+- Rejected: one Library card per day (a card's menu acts on one id, so Delete and Regenerate would be ambiguous; not asked for); switching in place without navigation (the player, transcript and story controls all read the page's own data); a select on a day with one Catch up.
+- Revisit if: the owner wants the Library to group them, or the cap moves above two.
+
+## D220: a summary or headline a little over its limit is cut, not rewritten
 
 - Date: 2026-10-29 (decided for the owner while away; the coordinator: trim deterministically before paying for another model call).
 - Decision: before the voice rewrite, a summary over four sentences loses its trailing sentences and a headline over twelve words its trailing clause (cut at a comma, colon, semicolon or dash, keeping at least six words). The cut text is kept only if it lints clean. A rewrite that still runs over gets the same cut.
