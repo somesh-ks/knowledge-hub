@@ -42,6 +42,8 @@ Audit all seven canonical states. Any state that does not apply must be explicit
 
 Pick every control from the decision matrix in [references/controls-guide.md](references/controls-guide.md) (sections 1 and 4: the matrix and the universal rules; open the markup contracts for the control you use). That file is the one copy of the matrix; this skill does not repeat it, so the two cannot drift. Never invent bespoke control classes: a new one needs an entry in `BESPOKE_CONTROLS` in `apps/web/src/styles/styles.test.ts` with an owner-approved reason.
 
+For any transition, animation or gesture-driven movement, follow [the motion skill](../motion/SKILL.md) and [docs/specs/motion.md](../../../docs/specs/motion.md).
+
 ### 4. Design System & Budget Contract
 
 - Identify exact semantic tokens to be used (`--color-surface-*`, `--color-on-surface-*`, `--color-accent-*`, `--space-*`, `--radius-*`; the names are in `apps/web/src/styles/tokens.css`).

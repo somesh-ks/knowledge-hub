@@ -11,10 +11,14 @@ const chains = [
   [{ name: "typecheck", command: "npm run typecheck:packages" }],
   [{ name: "lint", command: "npm run lint" }],
   [{ name: "test", command: "npm test" }],
-  [{ name: "site types", command: "npm run check -w @singularity/web" }],
+  [
+    { name: "site types", command: "npm run check -w @singularity/web" },
+    { name: "admin types", command: "npm run check -w @singularity/admin" },
+  ],
   [{ name: "docs", command: "node scripts/docsCheck.mjs" }],
 ];
 if (process.argv.includes("--build")) {
+  // Behind both type checks: each app writes its own .astro, and the site's build follows its check.
   chains[3].push({
     name: "build",
     command: "npm run build",

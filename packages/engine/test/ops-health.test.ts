@@ -129,6 +129,61 @@ describe("singularity health", () => {
     );
   });
 
+  // Firecrawl's 100 a week stopped 15 listing sources by Tuesday, because dry runs and regenerations
+  // spend it too; it is now a soft ceiling (D223) that says so before it stops anything.
+  it("warns when a week of Firecrawl passes one and a half normal weeks and faults at the stop", async () => {
+    const spent = (credits: number, at = "2026-10-20T06:00:00Z", n = 0) => ({
+      id: `fc-${at}-${n}`,
+      at,
+      run_id: at,
+      kind: "daily",
+      timezone: "Europe/Stockholm",
+      user: "owner",
+      scope: "shared",
+      stage: "fetch",
+      provider: "firecrawl",
+      product: "scrape",
+      units: { credits },
+      usd: 0,
+    });
+    const read = async (credits: number[]) => {
+      await writeFile(
+        join(root, "state/costs-2026-10.json"),
+        JSON.stringify({
+          version: 1,
+          records: credits.map((each, n) => spent(each, undefined, n)),
+        }),
+      );
+      return collectHealth({ root, now: NOW, monthlyChars: 500_000, ceilingUsd: 5, site: null });
+    };
+    // Two records of 60 are 120 credits, under the alert: each needs its own id or they merge into one.
+    const normal = await read([60, 60]);
+    expect(codes(normal.findings, "warning")).not.toContain("firecrawl_week_high");
+    expect(normal.passed).toContain("Firecrawl used 120 requests in 7 days");
+    // Exactly 150 is still a normal-plus week: the warning needs more than 150.
+    const boundary = await read([100, 50]);
+    expect(codes(boundary.findings, "warning")).not.toContain("firecrawl_week_high");
+    expect(boundary.passed).toContain("Firecrawl used 150 requests in 7 days");
+    const high = await read([100, 60]);
+    expect(codes(high.findings, "warning")).toContain("firecrawl_week_high");
+    expect(codes(high.findings, "fault")).not.toContain("firecrawl_week_stopped");
+    expect(codes((await read([200, 100])).findings, "fault")).toContain("firecrawl_week_stopped");
+    // Eight days back is another week.
+    const old = spent(400, "2026-10-12T06:00:00Z");
+    await writeFile(
+      join(root, "state/costs-2026-10.json"),
+      JSON.stringify({ version: 1, records: [old] }),
+    );
+    const quiet = await collectHealth({
+      root,
+      now: NOW,
+      monthlyChars: 500_000,
+      ceilingUsd: 5,
+      site: null,
+    });
+    expect(codes(quiet.findings, "fault")).not.toContain("firecrawl_week_stopped");
+  });
+
   // A deploy Vercel skipped (a wrong author on Hobby) or one that lost vercel.json looks fine to CI.
   it("faults a live site that lost its headers, serves an old podcast or build, cannot tell an app it changed and lost the narration file", async () => {
     const asked: string[] = [];
