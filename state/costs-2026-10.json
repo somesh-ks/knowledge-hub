@@ -823,6 +823,39 @@
         "characters": 4178
       },
       "usd": 0.04178
+    },
+    {
+      "id": "2026-10-29T08:28:40.060Z|daily|judge|typesafe|jev|owner",
+      "at": "2026-10-29T08:28:58.328Z",
+      "run_id": "2026-10-29T08:28:40.060Z",
+      "kind": "daily",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "judge",
+      "provider": "typesafe",
+      "product": "jev",
+      "units": {
+        "requests": 97
+      },
+      "usd": 0
+    },
+    {
+      "id": "2026-10-29T08:28:40.060Z|daily|fetch|exa|search|owner",
+      "at": "2026-10-29T08:28:58.328Z",
+      "run_id": "2026-10-29T08:28:40.060Z",
+      "kind": "daily",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "fetch",
+      "provider": "exa",
+      "product": "search",
+      "units": {
+        "requests": 14
+      },
+      "usd": 0.07,
+      "estimated": true
     }
   ]
 }
