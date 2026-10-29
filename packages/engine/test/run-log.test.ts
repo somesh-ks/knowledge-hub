@@ -247,6 +247,17 @@ describe("the run log", () => {
       failure: { stage: "publish", reason: "push rejected" },
     });
     expect(failed?.stages.find((stage) => stage.stage === "script")?.usd).toBe(0.4);
+    // A retry restores the first attempt's stage times: the run cannot have taken less than its work.
+    const retried = await buildEpisodeRunRecord({
+      ...input,
+      startedAt: "2026-10-29T14:08:30Z",
+      result: "success",
+    });
+    expect(retried).toMatchObject({
+      work_ms: 125_000,
+      total_ms: 125_000,
+      started_at: "2026-10-29T14:06:55.000Z",
+    });
     const regenerated = await buildEpisodeRunRecord({
       ...input,
       request: JSON.stringify({ action: "regenerate", id: "ep-20261028-0900" }),

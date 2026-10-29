@@ -30,7 +30,7 @@ export async function buildEpisodeRunRecord(input: {
   /** Where the steps keep their results (`$RUNNER_TEMP/podcast-stages`). */
   artifacts: string;
   now: Date;
-  /** `github.run_started_at`: when the job began. */
+  /** When this job began (`RUN_STARTED_AT`). A resumed attempt restores the earlier attempts' stage times. */
   startedAt: string | undefined;
   result: JobResult;
   githubRunId: string | undefined;
@@ -67,6 +67,9 @@ export async function buildEpisodeRunRecord(input: {
   const started = Date.parse(input.startedAt ?? "");
   const finished = input.now.getTime();
   const workMs = stages.reduce((sum, stage) => sum + stage.ms, 0);
+  // A retry restores the first attempt's stage times, so the job's own span can be shorter than the
+  // work it reports; the run then starts that much earlier and total_ms never falls below work_ms.
+  const totalMs = Number.isFinite(started) ? Math.max(workMs, finished - started) : workMs;
   return {
     run_id: runId,
     workflow: "podcast",
@@ -76,12 +79,10 @@ export async function buildEpisodeRunRecord(input: {
     dry_run: false,
     outcome,
     podcasts: episodeId ? [episodeId] : [],
-    started_at: Number.isFinite(started)
-      ? new Date(started).toISOString()
-      : input.now.toISOString(),
+    started_at: new Date(finished - totalMs).toISOString(),
     finished_at: input.now.toISOString(),
     work_ms: workMs,
-    total_ms: Number.isFinite(started) ? Math.max(0, finished - started) : workMs,
+    total_ms: totalMs,
     usd,
     failure:
       outcome === "published"
