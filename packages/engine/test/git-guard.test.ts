@@ -41,7 +41,7 @@ describe("ALLOWLISTS", () => {
   });
 
   // The bug it prevents: a dry run's ledger commit also taking a digest or usage change that was in
-  // the tree (D226), which `publish` would have allowed.
+  // the tree (D228), which `publish` would have allowed.
   it("lets a dry run's ledger commit take the ledger and nothing else", () => {
     expect(isPathAllowed("state/costs-2026-10.json", ALLOWLISTS.costs)).toBe(true);
     expect(isPathAllowed("state/usage.json", ALLOWLISTS.costs)).toBe(false);
