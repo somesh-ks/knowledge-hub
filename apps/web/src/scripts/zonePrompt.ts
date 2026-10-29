@@ -12,7 +12,7 @@
  * store; until then a stale offer is possible and harmless, since the switch it asks for is the one
  * already saved.
  */
-import { scheduleZone, suggestZone } from "@singularity/core/time";
+import { sameClock, scheduleZone, suggestZone } from "@singularity/core/time";
 import { SAVED_KEY } from "../lib/savedKey";
 import { parseSaved, savedFields, withStore } from "../lib/savedOverlay";
 import { cachedStore } from "./configStoreRead";
@@ -112,7 +112,7 @@ async function switchTo(offer: Offer): Promise<void> {
 }
 
 /** Said on the root when a check ends, for a reader of the page that waits on it (the e2e). */
-const noteOutcome = (outcome: "agree" | "dismissed" | "offered"): void => {
+const noteOutcome = (outcome: "agree" | "dismissed" | "offered" | "unsupported"): void => {
   document.documentElement.dataset.zonePrompt = outcome;
 };
 
@@ -129,9 +129,15 @@ export function checkZone(): void {
   }
   const suggestion = suggestZone(device, saved);
   if (!suggestion) {
-    // The clocks agree (or the device's cannot be stood for): the trip is over, and so are its dismissals.
-    keep([]);
-    noteOutcome("agree");
+    if (sameClock(device, saved)) {
+      // The clocks agree: the trip is over, and so are its dismissals.
+      keep([]);
+      noteOutcome("agree");
+    } else {
+      // A zone no listed entry can stand for (Kathmandu): nothing to offer, and a dismissal made
+      // before the stop there still holds for the zone it was made in.
+      noteOutcome("unsupported");
+    }
     return;
   }
   if (dismissed().includes(device)) {

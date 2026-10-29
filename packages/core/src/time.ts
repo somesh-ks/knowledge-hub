@@ -158,6 +158,13 @@ function clockSignature(zone: string, at: Date): string | null {
   return signature;
 }
 
+/** Whether two zones keep the same clock, daylight saving included; false when either is unknown. */
+export function sameClock(a: string, b: string, at: Date = new Date()): boolean {
+  if (a === b) return true;
+  const mine = clockSignature(a, at);
+  return mine !== null && mine === clockSignature(b, at);
+}
+
 /** The zone the schedule could move to, from the one a device reports. */
 export interface ZoneSuggestion {
   zone: string;

@@ -179,12 +179,20 @@ idle(() => {
   void import("./navigationBoost").then((boost) => boost.installNavigationBoost());
 });
 // The schedule's time zone against the device's (D239): a lazy module offers the switch when they
-// differ, at idle and whenever the app comes back to the front, which is when a trip shows. Offline
-// the import is left alone (Chromium remembers a failed one, as navigationBoost's note says).
+// differ, at idle on each page (the check skips Settings, so a move off it asks) and whenever the app
+// comes back to the front, which is when a trip shows. Offline the import is left alone (Chromium
+// remembers a failed one, as navigationBoost's note says).
 const zone = (): void => {
   if (navigator.onLine) void import("./zonePrompt").then((prompt) => prompt.checkZone());
 };
-idle(zone);
+let zoneChecked = "";
+const zoneOnPage = (): void => {
+  if (zoneChecked === location.href) return;
+  zoneChecked = location.href;
+  idle(zone);
+};
+zoneOnPage();
+document.addEventListener("astro:page-load", zoneOnPage);
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") zone();
 });

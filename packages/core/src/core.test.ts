@@ -17,6 +17,7 @@ import {
   Preferences,
   parseDigestFile,
   SUPPORTED_TIMEZONES,
+  sameClock,
   seedTopicsFile,
   serializeDigestFile,
   stockholmDate,
@@ -163,6 +164,11 @@ describe("time", () => {
       expect(suggestZone("Asia/Kathmandu", "Europe/Stockholm", at)).toBeNull();
       expect(suggestZone("Mars/Olympus", "Europe/Stockholm", at)).toBeNull();
       expect(suggestZone(undefined, "Europe/Stockholm", at)).toBeNull();
+    });
+    it("tells a shared clock from a zone with no stand-in, so only the first ends a dismissal", () => {
+      expect(sameClock("Europe/Oslo", "Europe/Stockholm", at)).toBe(true);
+      expect(sameClock("Asia/Kathmandu", "Europe/Stockholm", at)).toBe(false);
+      expect(sameClock("Mars/Olympus", "Europe/Stockholm", at)).toBe(false);
     });
   });
   it("counts calendar days and weekdays", () => {
