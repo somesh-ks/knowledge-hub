@@ -1,6 +1,6 @@
 # Podcast structure: a modular script for every kind of episode
 
-A design for the owner's ask of 2026-10-23: "In preferences page there must be a segmented selector, one for source types, another for podcast structure (making it modular, able to add and delete new sections). This will enable dynamic podcast structure for script generation. The scope is set for all kinds of podcasts. Evolve this idea to address all gaps before building it." Phase 1 is built (D176, which records where the build departs from this design: daily and weekly have no rundown or close by default, counts are optional, 32 blocks); D170 records the design as accepted, with the owner's answers of 2026-10-24 folded in below. Code and tests win where they differ once it is built.
+A design for the owner's ask of 2026-10-23: "In preferences page there must be a segmented selector, one for source types, another for podcast structure (making it modular, able to add and delete new sections). This will enable dynamic podcast structure for script generation. The scope is set for all kinds of podcasts. Evolve this idea to address all gaps before building it." Phase 1 is built (D176, which records where the build departs from this design: daily and weekly have no rundown or close by default, counts are optional, 32 blocks); D170 records the design as accepted, with the owner's answers of 2026-10-24 folded in below. Code and tests win where they differ once it is built. D191 later replaced the per-kind lists described below with one structure for every podcast, chosen by listener profile; read "each kind" as the first design.
 
 ## What exists today
 
@@ -82,4 +82,4 @@ One vocabulary of blocks for every kind, and each kind its own list (the owner, 
 
 1. Schema, file, op, engine reading the defaults: no visible change, every test green.
 2. The Preferences switch and the Structure view with reorder, add, remove and edit, the `custom` block included.
-3. Weekly's own blocks (a recap of the week's dailies, a long read).
+3. Weekly's own blocks (a recap of the week's dailies, a long read): not built. D191 made one structure for every podcast, so a block only the Weekly may hold waits for a type that needs one (D241).
