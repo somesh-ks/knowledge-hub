@@ -1,6 +1,7 @@
 import { truncateAtParagraph } from "../extract/truncate.js";
 import type { Linter, Violation, ViolationRule, VoiceField } from "../voice/lint.js";
 import { numberValues } from "./spokenCheck.js";
+import { trimToLimit } from "./trimToLimit.js";
 import type { SourceMaterial, Writer } from "./types.js";
 
 /** Rules whose `match` is a passage of the field, quoted back to the model as data. */
@@ -66,13 +67,20 @@ export async function rewriteOnce(args: RewriteOnceArgs): Promise<RewriteOnceRes
       ...(shorten ? { shorten } : {}),
     });
   // A headline over its word limit and nothing else needs a cut, not a new voice: the full rewrite
-  // left 2 of 15 headlines at 14 words (2026-10-29). A shortening that fails, or drops a number the
-  // headline stated, falls back to the full rewrite.
+  // left 2 of 15 headlines at 14 words (2026-10-29). A shortening that fails, drops a number the
+  // headline stated or still fails lint falls back to the full rewrite.
   const shorten =
     args.field === "headline" && args.violations.every((v) => v.rule === "too_many_words");
   let rewritten = await ask(shorten);
-  if (shorten && (rewritten === null || !keepsNumbers(args.text, rewritten))) {
-    rewritten = await ask(false);
+  if (shorten) {
+    // The shortening is usable when it kept the numbers and passes lint, or a clause cut makes it pass.
+    const usable =
+      rewritten === null || !keepsNumbers(args.text, rewritten)
+        ? null
+        : args.linter.lint(args.field, rewritten).length === 0
+          ? rewritten
+          : trimToLimit(args.field, rewritten, args.linter);
+    rewritten = usable ?? (await ask(false));
   }
   if (rewritten === null) {
     return { text: args.text, violations: [...args.violations], rewritten: false };

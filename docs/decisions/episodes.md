@@ -283,7 +283,7 @@ What an episode or briefing is: kinds and structure, length, regenerate, Catch u
 ## D223: a headline over its word limit is shortened by a cheap model call
 
 - Date: 2026-10-29 (decided for the owner while away; the coordinator: no hard word cut, one Haiku-class call for only the over-limit headline).
-- Decision: when a headline's only fault is its length and D220's clause cut finds no break, `rewriteOnce` sends a `shorten` request. `LlmWriter` runs it on the new `headline_shorten` step (Claude Haiku, then Gemini Flash-Lite) with a short prompt: keep the subject, the fact and every number, drop qualifiers, at most 11 words. The result is linted and cut again as before. A shortening that fails or drops a number the headline stated falls back to the full rewrite.
+- Decision: when a headline's only fault is its length and D220's clause cut finds no break, `rewriteOnce` sends a `shorten` request. `LlmWriter` runs it on the new `headline_shorten` step (Claude Haiku, then Gemini Flash-Lite) with a short prompt: keep the subject, the fact and every number, drop qualifiers, at most 11 words. The result is linted and cut again as before. A shortening that fails, drops a number the headline stated or still fails lint falls back to the full rewrite.
 - Why: the full rewrite (Sonnet, the whole voice brief and 4,000 characters of source) left two 14-word headlines over the limit in the 2026-10-29 dry run, losing both stories. Shortening needs only the headline.
 - Rejected: a hard cut at word 12 (reads as a broken sentence); a second full rewrite.
 - Revisit if: shortened headlines read worse than the long ones, or Haiku misses the limit often (then `story_rewrite`'s model with the same short prompt).

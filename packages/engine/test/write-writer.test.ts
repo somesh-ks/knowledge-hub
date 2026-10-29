@@ -593,8 +593,12 @@ describe("enforceVoice", () => {
       headline:
         "Springlet 2.0 retargets springs mid flight and keeps every drawer velocity intact on slow phones",
     };
-    // The cut loses "2.0" in the first case and the call returns nothing in the second.
-    for (const first of ["Springlet retargets springs mid flight", null]) {
+    // The cut loses "2.0" in the first case, returns nothing in the second and is still too long in the third.
+    for (const first of [
+      "Springlet retargets springs mid flight",
+      null,
+      "Springlet 2.0 retargets springs mid flight and keeps every drawer velocity intact on phones",
+    ]) {
       const writer = scriptedWriter([first, "Springlet 2.0 retargets springs mid flight"]);
       const out = await enforceVoice({ written: [wordy], materials, writer, linter });
       expect(writer.requests.map((r) => r.shorten)).toEqual([true, undefined]);
