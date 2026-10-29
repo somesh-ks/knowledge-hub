@@ -278,3 +278,13 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Date: 2026-10-25 (the owner's ask).
 - Decision: each settings subpage has a small "Settings /" line above its title (`.settings-crumb`), a `.text-link` with a 44px target.
 - Why: one tap up beats the app bar's back, which can leave settings.
+
+## D224: the admin pages become a command center app, the style guide its own app
+
+- Date: 2026-10-29 (the owner opened `/design` on the live site and got "Page not found", then: the admin pages "should not be part of the Singularity app visually anymore ... its own dashboard, separately", the style guide "on its own", `news.someshks.work/design` and `/admin`).
+- Decision: `apps/admin` (the command center: Coverage, Costs, Health, later Sentry and analytics) and `apps/design` (the style guide: colour, type, tokens, atomic components with live states, search) are two Astro apps in this repo, each its own Vercel project and reached at `/admin` and `/design` by rewrites in the reader's `vercel.json`; each carries its path as its Astro `base`. Both are drawn with the reader's own stylesheets and shell classes, so they look like it. Costs and Health leave the reader and Settings when the command center has them (their old addresses redirect). The command center reads the reader's `/api/costs` and `/api/health` until the data code moves into a package; `/admin` is gated in the app (Vercel protection cannot guard a project reached through a rewrite): an owner password and a signed cookie, run as Routing Middleware, shut when its two variables are missing; Google login later. Each component gets a `*.design.ts` spec beside it in `apps/web`. Plan: `docs/design/command-center.md`.
+- Why: a route inside the reader shares its chrome, bundle and keys; separate deploys keep both apart while one domain keeps the owner's addresses and his theme choice (same origin).
+- Rejected: a separate repository (D189: one maintainer, no second consumer); `/admin` routes inside the reader (PR #420, closed); subdomains (not the addresses asked for); Storybook (D189).
+- Revisit if: the data code moves into a package (then remove the reader's routes), or a second consumer of the components appears.
+- Supersedes: the route half of D189 (`/design` inside the site); its no-separate-repository and no-Storybook rulings stand.
+- Context changed: D189 said a second app consuming the styles would lift them into a package. D224 adds that second app and defers the package: the apps import the reader's files by relative path until that hurts.

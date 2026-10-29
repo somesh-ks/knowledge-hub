@@ -88,7 +88,7 @@ const DIGEST_ID = /^\d{4}-\d{2}-\d{2}(-weekly|-[2-9]|-[1-9]\d+)?$/;
 
 const text = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
 
-/** The stage from which a Catch up's voices are being recorded: stopping it there loses that run's usage charge (D208, D224). */
+/** The stage from which a Catch up's voices are being recorded: stopping it there loses that run's usage charge (D208, D231). */
 const VOICES_STAGE = NAMED_EPISODE_STEPS.indexOf("Recording voices");
 
 export function describeGeneration(row: GenerationRow, context: GenerationContext): GenerationView {
