@@ -312,6 +312,17 @@
   height: var(--size-icon);
 }
 
+/* Download shows the cloud with a cross once the page's item is downloaded, to go with "Remove
+   download" (the Library row's is the same, library.css). */
+[data-page-menu] .dl-remove,
+[data-page-menu][data-downloaded] .dl-add {
+  display: none;
+}
+
+[data-page-menu][data-downloaded] .dl-remove {
+  display: block;
+}
+
 /* From 40rem the header is the sheet's alone. */
 .menu-sheet > .create-sheet-head {
   display: none;

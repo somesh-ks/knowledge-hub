@@ -4,6 +4,7 @@
  * view. A bundled module runs once per session, so the per-page work listens for astro:page-load.
  */
 import { installHeroMenu } from "./heroMenu";
+import { warmWhenIdle } from "./idle";
 import { prepareEarly, shareItem, shareLink } from "./shareLink";
 import { sendToast } from "./toastEvent";
 
@@ -311,5 +312,31 @@ new MutationObserver(() => {
   if (document.querySelector("[data-section-tabs]")) watchSections({ keepHeld: true });
 }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-bar-hidden"] });
 
+/**
+ * The More menu's Download and Add to queue (HeroMenu.astro) are the Library row's, wired by
+ * libraryMenu.ts; its code loads at idle, not with the page. Offline the idle load is skipped and
+ * an early press can beat it, so the first touch of the menu loads it too (it installs once).
+ */
+function wirePageMenu(): void {
+  const menu = document.querySelector("[data-page-menu]");
+  if (!menu) return;
+  const install = (): Promise<void> =>
+    import("./libraryMenu").then((module) => module.installLibraryMenu());
+  warmWhenIdle(install);
+  // A failed load (offline, chunk not cached) leaves the listeners armed, so the next touch tries again.
+  const types = ["pointerdown", "focusin"];
+  const touch = (): void => {
+    void install().then(
+      () => {
+        for (const type of types) menu.removeEventListener(type, touch);
+      },
+      () => undefined,
+    );
+  };
+  for (const type of types) menu.addEventListener(type, touch);
+}
+
 document.addEventListener("astro:page-load", watchPage);
+document.addEventListener("astro:page-load", wirePageMenu);
 watchPage();
+wirePageMenu();

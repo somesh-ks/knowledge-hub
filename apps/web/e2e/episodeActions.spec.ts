@@ -54,7 +54,7 @@ async function mock(page: Page, states: unknown[]): Promise<Array<Record<string,
 }
 
 test.describe("regenerate and delete an episode", () => {
-  test("one More button holds the far end of the title row and opens a menu of two items", async ({
+  test("one More button holds the far end of the title row and opens a menu of four items", async ({
     page,
   }) => {
     await open(page);
@@ -72,7 +72,7 @@ test.describe("regenerate and delete an episode", () => {
     await button.click();
     await expect(menu(page)).toBeVisible();
     const items = menu(page).getByRole("menuitem");
-    await expect(items).toHaveText(["Regenerate", "Delete"]);
+    await expect(items).toHaveText(["Download", "Add to queue", "Regenerate", "Delete"]);
     await expect(items.first()).toBeFocused();
     // The menu hangs under the button, not at the edge of the page.
     const m = await menu(page).boundingBox();
@@ -82,10 +82,11 @@ test.describe("regenerate and delete an episode", () => {
     );
     await page.keyboard.press("ArrowDown");
     await expect(items.nth(1)).toBeFocused();
-    await page.keyboard.press("ArrowDown");
-    await expect(items.first()).toBeFocused();
     await page.keyboard.press("ArrowUp");
-    await expect(items.nth(1)).toBeFocused();
+    await expect(items.first()).toBeFocused();
+    // The ends join: up from the first lands on the last.
+    await page.keyboard.press("ArrowUp");
+    await expect(items.last()).toBeFocused();
     await page.keyboard.press("Escape");
     await expect(menu(page)).toBeHidden();
     await expect(button).toBeFocused();

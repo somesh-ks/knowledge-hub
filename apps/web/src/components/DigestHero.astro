@@ -41,6 +41,12 @@ const title = hero.title.replace(/(\d+) /, "$1 ");
         briefingId={entry.id}
         deletable={entry.digest.kind === "on-demand"}
         regenerations={entry.digest.regenerations}
+        page={{
+          id: entry.id,
+          title,
+          path: `/d/${entry.id}`,
+          audio: entry.audioMode === "ready" ? entry.player.audio?.url : undefined,
+        }}
       />
     )
   }

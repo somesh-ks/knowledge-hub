@@ -194,7 +194,8 @@ test.describe("sharing", () => {
       await hydrated(page);
       await page.getByRole("button", { name: "More actions" }).click();
       const items = page.locator("#hero-menu [role=menuitem]");
-      await expect(items).toHaveText(["Regenerate"]);
+      await expect(items.filter({ hasText: "Regenerate" })).toHaveCount(1);
+      await expect(items.filter({ hasText: "Delete" })).toHaveCount(0);
     }
     await openNewBriefing(page);
   });
