@@ -1,6 +1,6 @@
 # Motion
 
-How things move, as rules an agent can apply without asking. The values live in `tokens/tokens.json` (built to `apps/web/src/styles/tokens.css`); the design site's Motion page runs them live. Rests on D94, D95, D225 and the owner's taste in [the ledger](../design-engineering-ledger.md) (section 1).
+How things move, as rules an agent can apply without asking. The values live in `tokens/tokens.json` (built to `apps/web/src/styles/tokens.css`); the design site's Motion page runs them live. Rests on D94, D95, D230 and the owner's taste in [the ledger](../design-engineering-ledger.md) (section 1).
 
 ## The one rule
 

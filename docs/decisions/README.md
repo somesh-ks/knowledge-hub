@@ -241,6 +241,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D222 | Firecrawl: 300 a week, 60 a run | amends D166 |
 | D223 | Firecrawl warns at 150 | amends D222 |
 | D224 | Admin and style guide: own apps | active; supersedes D189 |
-| D225 | Six expressive spring tokens | active |
+| D225 | A Haiku call shortens an over-limit headline | active |
+| D230 | Six expressive spring tokens | active |
 
 ---

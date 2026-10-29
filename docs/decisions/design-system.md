@@ -289,7 +289,7 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Supersedes: the route half of D189 (`/design` inside the site); its no-separate-repository and no-Storybook rulings stand.
 - Context changed: D189 said a second app consuming the styles would lift them into a package. D224 adds that second app and defers the package: the apps import the reader's files by relative path until that hurts.
 
-## D225: motion gets six spring tokens from Material 3 Expressive, adopted a moment at a time
+## D230: motion gets six spring tokens from Material 3 Expressive, adopted a moment at a time
 
 - Date: 2026-10-29 (the owner: the app has M3's structure but none of Expressive's motion; "I'll start conservative and show me some visuals").
 - Decision: `tokens.json` holds six `linear()` springs, `--ease-spring-spatial-{fast,default,slow}` (stiffness 800, 380, 200; damping 0.6, 0.8, 0.8) and `--ease-spring-effects-{fast,default,slow}` (3800, 1600, 800; damping 1), each with a `--duration-spring-*` total. Spatial springs move and reshape and may overshoot (9.5% fast, 1.5% the others); effects springs fade and recolour and never pass their target. Reduced motion collapses the spatial durations and keeps the effects ones, as it does for fades. `scripts/springCurve.ts` draws the curves; `buildTokens.test.ts` re-derives each from the stiffness and damping its token records. No component uses them yet; the three older springs (settle, release, pop) stay.
