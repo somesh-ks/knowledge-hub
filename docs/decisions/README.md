@@ -224,7 +224,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D205 | Settings paint the kept copy at once | amends D172 |
 | D206 | Stay on npm; pnpm spiked | active |
 | D207 | A Regenerate asks for its own length | amends D204 |
-| D208 | A list of generations, with Cancel | amends D204; list superseded by D221 |
+| D208 | A list of generations, with Cancel | amends D204; list superseded by D222 |
 | D209 | Lane free in the hold | supersedes D135; amends D197 |
 | D210 | Typed HTML builders | active |
 | D211 | Copy says podcast, not briefing; code names keep briefing | active |
@@ -236,6 +236,8 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D217 | `run.yml` names every run for what it is | active; amends D61, D213 |
 | D218 | A block's count is a proportion; the length is the limit | active; amends D170 |
 | D219 | A day's Catch ups are one album, chosen by a select before Play | active |
-| D221 | The podcast queue; its runs stay for the day | active; supersedes D208's list |
+| D220 | Over-limit summaries and headlines are cut | active |
+| D221 | Runs are logged to Neon with stage times and costs | active |
+| D222 | The podcast queue; its runs stay for the day | active; supersedes D208's list |
 
 ---

@@ -2,6 +2,7 @@ import { mapConcurrent } from "../llm/concurrency.js";
 import { type Linter, type Violation, VOICE_FIELDS } from "../voice/lint.js";
 import { rewriteOnce } from "./rewriteOnce.js";
 import { spokenIsGrounded, ungroundedNumbers } from "./spokenCheck.js";
+import { trimToLimit } from "./trimToLimit.js";
 import type { SourceMaterial, Writer, WrittenItem } from "./types.js";
 
 /** Stories voice-checked at once; the writer's own batches run four at a time too. */
@@ -56,6 +57,13 @@ export async function enforceVoice(args: {
         // The writer produces no why line, so there is usually nothing to lint for that field.
         if (text === undefined) continue;
         const violations = args.linter.lint(field, text);
+        // A fifth sentence or a headline a few words long is cut, not rewritten: a cut costs no model
+        // call and cannot miss the limit again, as a rewrite did for 4 of 15 stories (2026-10-29).
+        const cut = violations.length > 0 ? trimToLimit(field, text, args.linter) : null;
+        if (cut !== null) {
+          item[field] = cut;
+          continue;
+        }
         const result = await rewriteOnce({
           writer: args.writer,
           linter: args.linter,
@@ -64,9 +72,11 @@ export async function enforceVoice(args: {
           text,
           violations,
         });
-        item[field] = result.text;
+        const recut =
+          result.violations.length > 0 ? trimToLimit(field, result.text, args.linter) : null;
+        item[field] = recut ?? result.text;
         if (result.rewritten) rewrittenFields.push(field);
-        remaining.push(...result.violations);
+        if (recut === null) remaining.push(...result.violations);
       }
       if (remaining.length > 0) return { dropped: { id: item.id, violations: remaining } };
       if (item.spoken !== undefined) {

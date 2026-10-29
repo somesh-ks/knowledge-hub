@@ -31,7 +31,7 @@
   inset-block-end: calc(var(--bottom-nav-height) + var(--dock-room));
   z-index: var(--z-header);
   /* The bottom bar's own tone, so the dock reads as part of the bar it sits on; a hairline between
-     them says where one ends (D221, 2026-10-29). */
+     them says where one ends (D222, 2026-10-29). */
   background: var(--color-surface-container);
   border-block-end: var(--stroke-hairline) solid var(--color-border-hairline);
   font-size: var(--font-size-label);
