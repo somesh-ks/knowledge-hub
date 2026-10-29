@@ -18,6 +18,7 @@ export const SYSTEM_PATHS = [
   "tokens/",
   "apps/design/",
   ".github/CODEOWNERS",
+  ".claude/skills/feature/references/controls-guide.md",
 ];
 
 /** Where a design-system pull request may change files: the system itself and what moves with it. */

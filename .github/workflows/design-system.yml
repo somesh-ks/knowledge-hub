@@ -17,6 +17,7 @@ on:
       - tokens/**
       - apps/design/**
       - .github/CODEOWNERS
+      - .claude/skills/feature/references/controls-guide.md
 
 concurrency:
   group: design-system-${{ github.ref }}
