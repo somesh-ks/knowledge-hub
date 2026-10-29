@@ -594,12 +594,14 @@ describe("enforceVoice", () => {
         "Springlet 2.0 retargets springs mid flight and keeps every drawer velocity intact on slow phones",
     };
     // The cut loses "2.0" in the first case, returns nothing in the second, is still too long in the third
-    // and in the fourth keeps "2.0" only in a trailing clause that the clause cut then removes.
+    // in the fourth keeps "2.0" only in a trailing clause that the clause cut then removes and
+    // in the fifth invents a number.
     for (const first of [
       "Springlet retargets springs mid flight",
       null,
       "Springlet 2.0 retargets springs mid flight and keeps every drawer velocity intact on phones",
       "Springlet retargets springs mid flight again, keeping every drawer velocity intact on phones 2.0",
+      "Springlet 2.0 retargets 40 springs mid flight",
     ]) {
       const writer = scriptedWriter([first, "Springlet 2.0 retargets springs mid flight"]);
       const out = await enforceVoice({ written: [wordy], materials, writer, linter });

@@ -14,11 +14,11 @@ const FOCUS_RULES: ReadonlySet<ViolationRule> = new Set(["banned_pattern", "sent
  */
 const REWRITE_SOURCE_CHARS = 4_000;
 
-/** Every number the old text states is still stated, by value. */
-function keepsNumbers(before: string, after: string): boolean {
-  const kept = numberValues(after);
-  for (const value of numberValues(before)) if (!kept.has(value)) return false;
-  return true;
+/** The two texts state the same numbers, by value: none dropped, none added. */
+function sameNumbers(before: string, after: string): boolean {
+  const a = numberValues(before);
+  const b = numberValues(after);
+  return a.size === b.size && [...a].every((value) => b.has(value));
 }
 
 export interface RewriteOnceArgs {
@@ -73,12 +73,12 @@ export async function rewriteOnce(args: RewriteOnceArgs): Promise<RewriteOnceRes
     args.field === "headline" && args.violations.every((v) => v.rule === "too_many_words");
   let rewritten = await ask(shorten);
   if (shorten) {
-    // The shortening is usable when it passes lint, or a clause cut makes it pass, and the result keeps the numbers.
+    // The shortening is usable when it passes lint, or a clause cut makes it pass, and the result neither drops nor adds a number.
     const cut =
       rewritten === null || args.linter.lint(args.field, rewritten).length === 0
         ? rewritten
         : trimToLimit(args.field, rewritten, args.linter);
-    const usable = cut !== null && keepsNumbers(args.text, cut) ? cut : null;
+    const usable = cut !== null && sameNumbers(args.text, cut) ? cut : null;
     rewritten = usable ?? (await ask(false));
   }
   if (rewritten === null) {
