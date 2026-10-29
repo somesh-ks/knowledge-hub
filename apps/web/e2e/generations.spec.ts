@@ -53,7 +53,7 @@ test.describe("the generations list", () => {
   test("@desktop Cancel stops one generation and leaves the other running", async ({ page }) => {
     const cancelled = await mock(page, () => [
       row(41),
-      row(42, { what: "briefing", label: "Writing the briefing" }),
+      row(42, { what: "briefing", label: "Writing the podcast" }),
     ]);
     await page.goto("/library");
     await hydrated(page);

@@ -123,10 +123,7 @@ test.describe("a recording that fails", () => {
     await expect(page.locator(".dock-caption")).toHaveText("Daily limit reached");
     // The chip under the page says what the disc and the bar say: Play, with the reason.
     await expect(player.cta).toHaveAttribute("data-state", "idle");
-    await expect(player.cta).toHaveAttribute(
-      "aria-label",
-      "Play the briefing, Daily limit reached",
-    );
+    await expect(player.cta).toHaveAttribute("aria-label", "Play the podcast, Daily limit reached");
     // A press on Play sends nothing; the reason's alert is put in again, so it is said again.
     await notice.evaluate((element) => {
       element.setAttribute("data-seen", "");

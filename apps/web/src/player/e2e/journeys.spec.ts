@@ -38,7 +38,7 @@ test("a listening journey across pages: A on Today, B from the Library, back to 
   );
   await expect(page).toHaveURL(/\/$/);
   // A offers the time left from where it stopped, not a fresh start.
-  await expect(player.cta).toHaveAccessibleName(/^Resume the briefing, \d+ min left$/);
+  await expect(player.cta).toHaveAccessibleName(/^Resume the podcast, \d+ min left$/);
   // Played only on the story that was heard.
   await expect(page.locator(`[data-item-id="${first}"]`)).toHaveAttribute("data-state", "played");
   await expect(page.locator('[data-item-id][data-state="played"]')).toHaveCount(1);

@@ -13,7 +13,7 @@ function formatSummary(summary: Summary): string {
       .map(([name, value]) => `${name} ${(value / 1000).toFixed(0)}s`)
       .join(", ") || "none yet";
   return [
-    `Briefings (${summary.briefings.runs} runs, up to ${WINDOW})`,
+    `Podcasts (${summary.briefings.runs} runs, up to ${WINDOW})`,
     ...summary.briefings.readings.map((entry) => `  ${formatReading(entry)}`),
     `  median stage times: ${stages(summary.briefings.stage_ms)}`,
     "",

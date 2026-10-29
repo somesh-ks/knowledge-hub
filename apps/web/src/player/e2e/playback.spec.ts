@@ -16,7 +16,7 @@ async function playOnOutOf(player: PlayerPage, index: number): Promise<void> {
 const time = async (page: Page): Promise<number> =>
   page.evaluate(() => window.__audios[0]?.currentTime ?? 0);
 
-test.describe("playback on a briefing", () => {
+test.describe("playback on a podcast", () => {
   test("pauses and resumes from the bar @smoke", async ({ player, audio, page }) => {
     await player.open();
     await player.play();
@@ -27,10 +27,10 @@ test.describe("playback on a briefing", () => {
     await expect(player.cta).toHaveAttribute("data-state", "current");
     await expect(player.cta).toHaveAttribute("data-playing", "false");
     await expect(player.cta.locator("[data-chip-label]")).toHaveText(/^\d+ min left$/);
-    await expect(player.cta).toHaveAccessibleName(/^Resume the briefing, \d+ min left$/);
+    await expect(player.cta).toHaveAccessibleName(/^Resume the podcast, \d+ min left$/);
     await player.finger.press(player.dock.getByRole("button", { name: "Play", exact: true }));
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-    await expect(player.cta).toHaveAccessibleName(/^Pause the briefing, \d+ min left$/);
+    await expect(player.cta).toHaveAccessibleName(/^Pause the podcast, \d+ min left$/);
   });
 
   test("a story chip keeps one width through idle, playing, paused and played, so the controls beside it never move", async ({
@@ -206,7 +206,7 @@ test.describe("playback on a briefing", () => {
     // Nothing is loaded yet, but the chip offers the place that was kept.
     await expect(player.cta).toHaveAttribute("data-state", "idle");
     await expect(player.cta.locator("[data-chip-label]")).toHaveText(/^\d+ min left$/);
-    await expect(player.cta).toHaveAccessibleName(/^Resume the briefing, \d+ min left$/);
+    await expect(player.cta).toHaveAccessibleName(/^Resume the podcast, \d+ min left$/);
     await player.finger.press(player.cta);
     await expect(player.root).toHaveAttribute("data-player-state", "playing");
     // It plays on from the kept place, not from the top.

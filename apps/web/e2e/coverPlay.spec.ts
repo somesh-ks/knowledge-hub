@@ -12,7 +12,7 @@ test.describe("the play button over a cover", () => {
     await expect(page.locator("[data-cover-play]").first()).toBeHidden();
   });
 
-  test("a card's button appears on hover and plays that briefing on its page", {
+  test("a card's button appears on hover and plays that podcast on its page", {
     tag: "@desktop",
   }, async ({ page }) => {
     await page.goto("/library");

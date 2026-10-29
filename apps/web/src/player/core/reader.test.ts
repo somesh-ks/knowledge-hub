@@ -122,7 +122,7 @@ describe("reader markup contract", () => {
 });
 
 describe("chip lengths", () => {
-  it("writes a briefing as whole minutes, never less than one", () => {
+  it("writes a podcast as whole minutes, never less than one", () => {
     expect(briefingLengthLabel(480_000)).toBe("8 min");
     expect(briefingLengthLabel(449_000)).toBe("7 min");
     expect(briefingLengthLabel(450_000)).toBe("8 min");
@@ -138,7 +138,7 @@ describe("chip lengths", () => {
   });
 });
 
-describe("the briefing chip", () => {
+describe("the podcast chip", () => {
   function stateFor(status: Parameters<typeof briefingChipView>[0]["status"], extra = {}) {
     const harness = createHarness();
     harness.store.load(makeDigest());
@@ -150,9 +150,9 @@ describe("the briefing chip", () => {
       state: "idle",
       playing: false,
       label: "2 min",
-      name: "Play the briefing, 2 min",
+      name: "Play the podcast, 2 min",
     });
-    expect(idleBriefingChip("8 min").name).toBe("Play the briefing, 8 min");
+    expect(idleBriefingChip("8 min").name).toBe("Play the podcast, 8 min");
   });
 
   it("offers to resume a remembered position, in whole minutes left", () => {
@@ -160,7 +160,7 @@ describe("the briefing chip", () => {
       state: "idle",
       playing: false,
       label: "2 min left",
-      name: "Resume the briefing, 2 min left",
+      name: "Resume the podcast, 2 min left",
     });
     expect(briefingChipView(stateFor("idle"), 61, makeDigest()).label).toBe("1 min left");
     expect(briefingChipView(stateFor("idle"), 119, makeDigest()).label).toBe("1 min left");
@@ -171,21 +171,21 @@ describe("the briefing chip", () => {
     const other = { ...stateFor("paused"), digestId: "another-recording" };
     // Left half way: the time left. Heard to the end: Played. Neither: the length.
     expect(
-      briefingChipView(other, 30, digest, "briefing", { seconds: 60, played: false, heard: [] }),
+      briefingChipView(other, 30, digest, "podcast", { seconds: 60, played: false, heard: [] }),
     ).toMatchObject({
       state: "idle",
       label: "1 min left",
-      name: "Resume the briefing, 1 min left",
+      name: "Resume the podcast, 1 min left",
     });
     expect(
-      briefingChipView(other, 30, digest, "briefing", { seconds: 0, played: true, heard: [] }),
-    ).toMatchObject({ state: "played", label: "Played", name: "Play the briefing again, played" });
+      briefingChipView(other, 30, digest, "podcast", { seconds: 0, played: true, heard: [] }),
+    ).toMatchObject({ state: "played", label: "Played", name: "Play the podcast again, played" });
     expect(
-      briefingChipView(other, 30, digest, "briefing", { seconds: 0, played: false, heard: [] }),
+      briefingChipView(other, 30, digest, "podcast", { seconds: 0, played: false, heard: [] }),
     ).toEqual(idleBriefingChip("2 min"));
     // Nothing loaded yet (a page just opened): Played is shown too.
     expect(
-      briefingChipView(stateFor("idle"), 0, digest, "briefing", {
+      briefingChipView(stateFor("idle"), 0, digest, "podcast", {
         seconds: 0,
         played: true,
         heard: [],
@@ -213,19 +213,19 @@ describe("the briefing chip", () => {
       state: "current",
       playing: true,
       label: "1 min left",
-      name: "Pause the briefing, 1 min left",
+      name: "Pause the podcast, 1 min left",
     });
     expect(briefingChipView(stateFor("paused"), 30, makeDigest())).toEqual({
       state: "current",
       playing: false,
       label: "2 min left",
-      name: "Resume the briefing, 2 min left",
+      name: "Resume the podcast, 2 min left",
     });
     expect(briefingChipView(stateFor("ended"), 120, makeDigest())).toEqual({
       state: "played",
       playing: false,
       label: "Played",
-      name: "Play the briefing again, played",
+      name: "Play the podcast again, played",
     });
     expect(briefingChipView(stateFor("error"), 86, makeDigest())).toEqual({
       state: "error",
@@ -245,7 +245,7 @@ describe("the briefing chip", () => {
       state: "idle",
       playing: false,
       label: "Daily limit reached",
-      name: "Play the briefing, Daily limit reached",
+      name: "Play the podcast, Daily limit reached",
     });
     // Offline the chip says so, as the bar does, and offers no Try again.
     const offline = stateFor("error", {
@@ -262,7 +262,7 @@ describe("the briefing chip", () => {
       state: "preparing",
       playing: true,
       label: "Loading",
-      name: "Pause the briefing, loading",
+      name: "Pause the podcast, loading",
     });
   });
 
@@ -280,7 +280,7 @@ describe("the briefing chip", () => {
     for (const name of names) expect(name).not.toContain("briefing");
   });
 
-  it("is a plain play chip when another briefing is loaded", () => {
+  it("is a plain play chip when another podcast is loaded", () => {
     const other = makeDigest({ id: "2026-10-05", audio: { url: "/a.mp3", duration_ms: 480_000 } });
     expect(briefingChipView(stateFor("playing"), 86, other)).toEqual(idleBriefingChip("8 min"));
   });
@@ -332,7 +332,7 @@ describe("a story chip", () => {
     expect(storyChipView("", true, false, "0:30", headline).label).toBe("0:30");
   });
 
-  it("has a name without a length while the briefing has no audio", () => {
+  it("has a name without a length while the podcast has no audio", () => {
     expect(idleStoryChip("", headline)).toEqual({
       state: "idle",
       playing: false,
@@ -380,7 +380,7 @@ describe("what a tap on the page does", () => {
     return harness;
   }
 
-  it("toggles the page's digest from the briefing chip", () => {
+  it("toggles the page's digest from the podcast chip", () => {
     const { store, audio } = playing();
     togglePageDigest(store);
     audio.startPlaying();
@@ -444,7 +444,7 @@ describe("what a tap on the page does", () => {
 });
 
 describe("navigation", () => {
-  it("points forward to a newer briefing and back to an older one", () => {
+  it("points forward to a newer podcast and back to an older one", () => {
     expect(directionBetween("2026-10-05", "2026-10-07")).toBe("forward");
     expect(directionBetween("2026-10-07", "2026-10-05")).toBe("back");
     expect(directionBetween("2026-10-07", "2026-10-07-weekly")).toBe("forward");

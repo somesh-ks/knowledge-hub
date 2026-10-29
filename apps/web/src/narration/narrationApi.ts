@@ -204,7 +204,7 @@ export async function narrateSegment(
 }
 
 /** What a recording is called in copy: an episode has a transcript, a briefing its text. */
-export type NarrationNoun = "briefing" | "episode";
+export type NarrationNoun = "podcast" | "episode";
 
 /** What to tell the listener, and what to do next, naming the recording as the page does. */
 export function failureCopy(reason: NarrationFailure, noun: NarrationNoun): string {

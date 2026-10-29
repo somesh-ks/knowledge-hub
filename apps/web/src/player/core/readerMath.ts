@@ -145,7 +145,7 @@ export function storyLengthLabel(startMs: number | null, endMs: number | null): 
 }
 
 /** What the page's chip plays, in its accessible name: an episode page calls it an episode. */
-export type ChipNoun = "briefing" | "episode";
+export type ChipNoun = "podcast" | "episode";
 
 /**
  * The bar holds the audio of the page `digestId` names: something has played this session, so the
@@ -160,7 +160,7 @@ export function barHolds(
 }
 
 /** The briefing's chip before anything has played. The pages render this one at build time. */
-export function idleBriefingChip(length: string, noun: ChipNoun = "briefing"): ChipView {
+export function idleBriefingChip(length: string, noun: ChipNoun = "podcast"): ChipView {
   return { state: "idle", playing: false, label: length, name: `Play the ${noun}, ${length}` };
 }
 
@@ -214,7 +214,7 @@ export function briefingChipView(
   state: PlayerState,
   timeSeconds: number,
   pageDigest: PlayerDigestData,
-  noun: ChipNoun = "briefing",
+  noun: ChipNoun = "podcast",
   remembered?: Remembered,
 ): ChipView {
   const pageDurationMs = pageDigest.audio?.duration_ms ?? 0;

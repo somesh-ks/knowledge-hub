@@ -153,7 +153,7 @@ test.describe("the profile pages", () => {
 
   test("Weekly starts on: its switch is on and its schedule shows", async ({ page }) => {
     await open(page, "weekly");
-    await expect(page.getByRole("switch", { name: "Weekly briefing" })).toBeChecked();
+    await expect(page.getByRole("switch", { name: "Weekly podcast" })).toBeChecked();
     await expect(page.locator("#weekly-day")).toHaveValue("0");
     await expect(page.locator("#weekly-hour")).toHaveValue("7");
   });

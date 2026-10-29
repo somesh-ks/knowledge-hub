@@ -148,7 +148,7 @@ describe("announcements", () => {
   it("announces speed, the end and errors in plain words", () => {
     // The slider and the pressed preset say the speed; the live region would say it twice.
     expect(announcementForEvent({ type: "rateChanged", rate: 1.25 }, track)).toBeNull();
-    expect(announcementForEvent({ type: "ended" }, track)).toBe("Briefing finished.");
+    expect(announcementForEvent({ type: "ended" }, track)).toBe("Podcast finished.");
     const episode = { ...track, digest: { ...track.digest, turns: [] } } as typeof track;
     expect(announcementForEvent({ type: "ended" }, episode)).toBe("Episode finished.");
     expect(

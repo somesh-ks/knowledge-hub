@@ -187,7 +187,7 @@ test("a shared link opens the app's page in a fresh browser, plays its stored au
   await hydrated(listener);
   await expect(listener.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(listener.getByRole("button", { name: "More actions" })).toHaveCount(0);
-  await listener.getByRole("button", { name: /^Play the briefing/ }).click();
+  await listener.getByRole("button", { name: /^Play the podcast/ }).click();
   // The player fetches the link's stored files, which the play route answered.
   await expect.poll(() => asked.some((url) => url.startsWith(`${BLOB}/audio/${ID}/`))).toBe(true);
 

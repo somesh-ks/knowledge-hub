@@ -14,11 +14,11 @@ import {
 
 /**
  * The kind a briefing's line starts with. One made on request sits under Episodes, so its line
- * follows an episode's pattern, its format then its length: "Briefing · 4 min".
+ * follows an episode's pattern, its format then its length: "Podcast · 4 min".
  */
 export function briefingKindLabel(kind: string): string {
   if (kind === "weekly") return "Weekly";
-  if (kind === "on-demand") return "Briefing";
+  if (kind === "on-demand") return "Podcast";
   return "Daily";
 }
 

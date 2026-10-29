@@ -70,7 +70,7 @@ const earlier = site.entries.slice(1, 4);
   digestId={latest?.id}
   card={latest && briefingCard(latest)}
   audio={latest && {
-    noun: "briefing",
+    noun: "podcast",
     length: listenLength(latest),
     expired: latest.audioMode === "expired",
   }}
@@ -82,7 +82,7 @@ const earlier = site.entries.slice(1, 4);
           tone="info"
           icon="info"
           title="Nothing cleared the bar."
-          body={`No new stories since ${longDate(latest.digest.date)}. The next briefing is due within two days.`}
+          body={`No new stories since ${longDate(latest.digest.date)}. The next podcast is due within two days.`}
         />
       )
     }

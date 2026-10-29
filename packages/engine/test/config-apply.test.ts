@@ -322,7 +322,7 @@ describe("schedule.set", () => {
     const { code, report } = await apply(SET);
     expect(code).toBe(0);
     expect(report.files).toEqual(["config/schedule.json"]);
-    expect(report.summary).toBe("set the briefing to 09:00, every 3 days");
+    expect(report.summary).toBe("set the podcast to 09:00, every 3 days");
     expect(await repo.readJson("config/schedule.json")).toEqual({
       version: 1,
       timezone: "Europe/Stockholm",

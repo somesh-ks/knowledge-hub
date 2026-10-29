@@ -352,8 +352,8 @@ export function scoreReasons(parts: SourceScoreParts | null, c: ScoreCounters): 
       }
       const publishable = c.judged - Math.min(c.judged, c.sampled ?? 0);
       return c.published === 0
-        ? "None of its posts has reached a briefing yet."
-        : `Few of its posts reach a briefing: ${c.published} of ${publishable} published.`;
+        ? "None of its posts has reached a podcast yet."
+        : `Few of its posts reach a podcast: ${c.published} of ${publishable} published.`;
     },
     trust: () =>
       `${Math.round((c.flagged / Math.max(1, c.asked)) * 10)} in 10 of its posts were flagged as hype or sponsored.`,

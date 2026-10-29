@@ -11,7 +11,7 @@ describe("audio error copy", () => {
       "Audio is not available for this episode.",
     );
     expect(describeMediaError(MEDIA_ERR_SRC_NOT_SUPPORTED, true)?.message).toBe(
-      "Audio is not available for this briefing.",
+      "Audio is not available for this podcast.",
     );
   });
 

@@ -261,8 +261,8 @@ export interface EmptyCopy {
 }
 
 const FILTER_NOUNS: Record<Exclude<LibraryFilter, "all">, string> = {
-  daily: "daily briefings",
-  weekly: "weekly briefings",
+  daily: "daily podcasts",
+  weekly: "weekly podcasts",
   custom: "episodes",
 };
 
@@ -292,7 +292,7 @@ export function emptyCopy(query: string, filter: LibraryFilter): EmptyCopy {
       resets: "everything",
     };
   }
-  const noun = filter === "all" ? "briefings or episodes" : FILTER_NOUNS[filter];
+  const noun = filter === "all" ? "podcasts or episodes" : FILTER_NOUNS[filter];
   return { message: `No ${noun} yet`, action: "Show all", resets: "everything" };
 }
 

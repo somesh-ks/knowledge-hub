@@ -157,7 +157,7 @@ test.describe("settings page", () => {
     await expect(volume(page)).toHaveValue("0.7");
   });
 
-  test("a client-side navigation from the briefing fills the controls in", async ({ page }) => {
+  test("a client-side navigation from the podcast fills the controls in", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "light" });
     await page.addInitScript(([key, value]) => localStorage.setItem(key, value), [
       PREFERENCES_KEY,

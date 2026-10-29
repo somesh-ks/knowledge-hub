@@ -33,17 +33,17 @@ test.describe("routes and headers", () => {
     }
   });
 
-  test("the not found page for a missing briefing or episode reads the same", async ({ page }) => {
+  test("the not found page for a missing podcast or episode reads the same", async ({ page }) => {
     for (const path of ["/d/1999-01-01", "/e/ep-none"]) {
       const response = await page.goto(path);
       expect(response?.status(), path).toBe(404);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText("Page not found");
-      // Nothing names a briefing for a missing episode.
-      await expect(page.locator("#main")).not.toContainText("briefing");
+      // Nothing names a podcast for a missing episode.
+      await expect(page.locator("#main")).not.toContainText("podcast");
     }
   });
 
-  test("an older briefing leads back to where the person came from", async ({ page }) => {
+  test("an older podcast leads back to where the person came from", async ({ page }) => {
     await page.goto("/library");
     await page.locator('a[href="/d/2026-10-05"]').first().click();
     await expect(page).toHaveURL(/\/d\/2026-10-05$/);

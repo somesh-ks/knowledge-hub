@@ -28,7 +28,7 @@ export type StartResult =
 export const MESSAGES = {
   offline: "You are offline. Reconnect, then try again.",
   // The server logged why; the reference it sent is added to this (lib/errorRef.ts).
-  unavailable: "The server ran into a problem, so no briefing was started.",
+  unavailable: "The server ran into a problem, so no podcast was started.",
   crashed:
     "The server crashed before it could answer, so nothing changed. Its log on Vercel has the error.",
   invalid: "The server turned that request down. Reload the page and try again.",

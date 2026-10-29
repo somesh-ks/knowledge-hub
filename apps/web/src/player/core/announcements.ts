@@ -35,7 +35,7 @@ export function announcementForEvent(
       return `${itemPositionLabel(track?.timeline ?? null, event.index)}: ${item.headline}`;
     }
     case "ended":
-      return track?.digest.turns ? "Episode finished." : "Briefing finished.";
+      return track?.digest.turns ? "Episode finished." : "Podcast finished.";
     case "interrupted":
       return context.open ? null : "Paused by another app.";
     case "error":

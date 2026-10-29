@@ -33,14 +33,14 @@ export function buildManifest(): WebManifest {
     id: "/",
     name: "Singularity",
     short_name: "Singularity",
-    description: "A private tech and design engineering briefing, read or heard in minutes.",
+    description: "A private tech and design engineering podcast, read or heard in minutes.",
     start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "any",
     // Long-press on the Android icon. The 192px icon is reused: a shortcut gets no icon of its own.
     shortcuts: [
-      { name: "Latest briefing", short_name: "Latest", url: "/" },
+      { name: "Latest podcast", short_name: "Latest", url: "/" },
       { name: "Library", short_name: "Library", url: "/library" },
       { name: "Catch up", short_name: "Catch up", url: "/create" },
     ].map((shortcut) => ({

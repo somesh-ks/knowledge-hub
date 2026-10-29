@@ -243,7 +243,7 @@ describe("failureCopy", () => {
 
   it("says what happened and what to do, in plain sentences", () => {
     for (const reason of reasons) {
-      const message = failureCopy(reason, "briefing");
+      const message = failureCopy(reason, "podcast");
       expect(message, reason).toMatch(/^[A-Z].*\.$/);
       expect(message, reason).not.toMatch(/[\u2014\u2013!]/);
       // It never explains the interface ("the text is still here to read").
@@ -266,21 +266,21 @@ describe("failureCopy", () => {
 describe("describeNarrationFailure", () => {
   it("does not repeat a Try again the notice already offers", async () => {
     const { describeNarrationFailure } = await import("./narrationApi");
-    expect(describeNarrationFailure("failed", "briefing")?.message).toBe(
+    expect(describeNarrationFailure("failed", "podcast")?.message).toBe(
       "The audio could not be made.",
     );
-    expect(describeNarrationFailure("daily_cap", "briefing")?.standing).toBe(true);
-    expect(describeNarrationFailure("failed", "briefing")?.standing).toBe(false);
+    expect(describeNarrationFailure("daily_cap", "podcast")?.standing).toBe(true);
+    expect(describeNarrationFailure("failed", "podcast")?.standing).toBe(false);
   });
 
   it("says a failed file one way, in the notice and on the bar", async () => {
     const { describeNarrationFailure } = await import("./narrationApi");
-    expect(describeNarrationFailure("failed", "briefing")?.summary).toBe("Audio could not be made");
+    expect(describeNarrationFailure("failed", "podcast")?.summary).toBe("Audio could not be made");
   });
 
   it("treats the server's 503 as passing: Try again, not a refusal that stands", async () => {
     const { describeNarrationFailure } = await import("./narrationApi");
-    expect(describeNarrationFailure("unavailable", "briefing")).toEqual({
+    expect(describeNarrationFailure("unavailable", "podcast")).toEqual({
       message: "Narration ran into a problem on the server.",
       summary: "Narration failed on the server",
       standing: false,

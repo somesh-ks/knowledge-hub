@@ -17,7 +17,7 @@ export const BRIEFING_STAGES = [
   "Checking the schedule",
   "Gathering stories from your sources",
   "Choosing what matters",
-  "Writing the briefing",
+  "Writing the podcast",
   "Checking the facts",
   "Publishing",
   BRIEFING_UPDATING_LABEL,
@@ -60,12 +60,12 @@ export const STAGE_IDS: Record<string, string> = {
  * leaves the earlier briefing as it was; one in it may or may not have landed.
  */
 const BRIEFING_FAILED: Record<GenerateStep, string> = {
-  waiting: "The briefing couldn't start.",
+  waiting: "The podcast couldn't start.",
   reading: "The stories couldn't be gathered.",
   judging: "The stories couldn't be chosen.",
-  writing: "The briefing couldn't be written.",
+  writing: "The podcast couldn't be written.",
   checking: "The facts couldn't be checked.",
-  publishing: "The briefing couldn't be published.",
+  publishing: "The podcast couldn't be published.",
 };
 
 /** Look up a briefing step's failure line, returning null when the lookup finds no sentence. */
@@ -75,7 +75,7 @@ export function briefingFailureLine(step: unknown): string | null {
   if (!sentence) return null;
   // The job's recovery step pushes again after a failed publish, so that briefing may have landed.
   return step === "publishing"
-    ? `${sentence} It may still have landed; check the briefing before trying again.`
+    ? `${sentence} It may still have landed; check the podcast before trying again.`
     : `${sentence} Nothing was changed.`;
 }
 

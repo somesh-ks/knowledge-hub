@@ -179,10 +179,10 @@ export function recordInWords(stats: SourceStats | null | undefined): string | n
   const published = Math.min(stats.published, total);
   if (published <= 0) {
     return total === 1
-      ? "The 1 story did not make a briefing"
-      : `None of ${total} stories made a briefing`;
+      ? "The 1 story did not make a podcast"
+      : `None of ${total} stories made a podcast`;
   }
-  return `${published} of ${total} ${total === 1 ? "story" : "stories"} made a briefing`;
+  return `${published} of ${total} ${total === 1 ? "story" : "stories"} made a podcast`;
 }
 
 /**
@@ -200,7 +200,7 @@ export function reachInWords(
   const stories = `${count} ${count === 1 ? "story" : "stories"}`;
   if (feedsGeneral)
     return count > 0 ? `${stories} shared with other outlets` : "No shared stories yet";
-  return count > 0 ? `${stories} in briefings` : "In no briefing yet";
+  return count > 0 ? `${stories} in podcasts` : "In no podcast yet";
 }
 
 export { readableUrl } from "./readableUrl";

@@ -364,7 +364,7 @@ describe("scoreReasons", () => {
       "Few of its stories are carried by another outlet: 3 of 40 judged.",
     ]);
     expect(scoreReasons(parts, { ...base, published: 2, sampled: 10 })).toEqual([
-      "Few of its posts reach a briefing: 2 of 30 published.",
+      "Few of its posts reach a podcast: 2 of 30 published.",
     ]);
   });
 });

@@ -561,7 +561,7 @@ function setSchedule(
   }
   if (op.hour !== undefined || op.cadence_days !== undefined) {
     parts.push(
-      `set the briefing to ${String(hour).padStart(2, "0")}:00, every ${cadence} day${cadence === 1 ? "" : "s"}`,
+      `set the podcast to ${String(hour).padStart(2, "0")}:00, every ${cadence} day${cadence === 1 ? "" : "s"}`,
     );
   }
   if (op.weekly) parts.push("set the weekly podcast");

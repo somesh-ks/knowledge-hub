@@ -3,7 +3,7 @@ import { expect, hydrated, seedStorage, test } from "./fixtures";
 
 const DISCUSSION = "Quiet interfaces and fast latency";
 const HEADLINES = "AI headlines";
-/** Every card, newest first: the day, then when each was written (the discussion came after the briefing). */
+/** Every card, newest first: the day, then when each was written (the discussion came after the podcast). */
 const NEWEST_FIRST = [
   "Wednesday 7 October",
   DISCUSSION,
@@ -67,7 +67,7 @@ const shown = (page: Page) =>
     );
 
 test.describe("the library", () => {
-  test("shows every briefing and episode as a cover card, newest first, with no month headings", async ({
+  test("shows every podcast and episode as a cover card, newest first, with no month headings", async ({
     page,
   }) => {
     await page.goto("/library");
@@ -88,7 +88,7 @@ test.describe("the library", () => {
     await expect(page.locator("[data-library-status]")).toHaveText("5 results");
   });
 
-  test("opens a briefing from its card", async ({ page }) => {
+  test("opens a podcast from its card", async ({ page }) => {
     await page.goto("/library");
     await page.getByRole("link", { name: /Monday 5 October/ }).click();
     await expect(page).toHaveURL(/\/d\/2026-10-05$/);
@@ -156,9 +156,7 @@ for (const width of [360, 390]) {
 }
 
 test.describe("library search", () => {
-  test("keeps the briefings with a matching story and says why they are there", async ({
-    page,
-  }) => {
+  test("keeps the podcasts with a matching story and says why they are there", async ({ page }) => {
     await page.goto("/library");
     await ready(page);
     await page.getByRole("searchbox").fill("forty minute");
@@ -224,7 +222,7 @@ test.describe("library search", () => {
     await filter(page, "Weekly");
     await page.getByRole("searchbox").fill("zzzz");
     await expect(page.locator("[data-library-empty]")).toContainText(
-      "No results for \u201czzzz\u201d in weekly briefings",
+      "No results for \u201czzzz\u201d in weekly podcasts",
     );
     await page.getByRole("button", { name: "Show all" }).click();
     await expect.poll(() => shown(page)).toBe("all");

@@ -23,6 +23,6 @@ describe("settings summaries", () => {
   it("count every source, on or off", () => {
     expect(sourcesSummary({ total: 11 })).toBe("11 sources");
     expect(sourcesSummary({ total: 0 })).toBe("No sources yet");
-    expect(sourcesSummary({ total: 2, never: true })).toBe("Never in a briefing");
+    expect(sourcesSummary({ total: 2, never: true })).toBe("Never in a podcast");
   });
 });

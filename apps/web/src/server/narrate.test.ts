@@ -482,7 +482,7 @@ describe("GET /api/narrate", () => {
     expect(other).not.toBe(usual);
   });
 
-  describe("a briefing's voice comes from the schedule", () => {
+  describe("a podcast's voice comes from the schedule", () => {
     const WEEKLY_ID = "2026-10-11-weekly";
     const schedule = {
       version: 1,
@@ -500,7 +500,7 @@ describe("GET /api/narrate", () => {
     const firstUrl = async (context: Setup, id: string) =>
       lookupBody(await lookup(context, id)).segments[0]?.audio?.url;
 
-    it("reads a daily and a weekly briefing in the shared voice, as the engine does", async () => {
+    it("reads a daily and a weekly podcast in the shared voice, as the engine does", async () => {
       const weekly = makeDigest({ id: WEEKLY_ID, kind: "weekly" });
       const context = withSchedule(schedule, {
         env: { SPEECHIFY_VOICE_ID: "env_v" },
@@ -1643,7 +1643,7 @@ describe("POST /api/narrate with a segment", () => {
     const context = setup();
     const outro = segmentOf(context.digest, "outro");
     expect(outro.itemId).toBeNull();
-    expect(outro.text).toBe("That's the briefing. More in two days.");
+    expect(outro.text).toBe("That's the podcast. More in two days.");
     const narrated = segmentBody(await postSegment(context, "outro"));
     expect(narrated.item_id).toBeNull();
     expect(context.speech.calls[0]?.body.input).toBe(outro.text);

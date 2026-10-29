@@ -32,8 +32,8 @@ export interface HealthBody {
 }
 
 export const HEALTH_TILES = [
-  { id: "last_briefing", label: "Last briefing" },
-  { id: "briefing_time", label: "Briefing time" },
+  { id: "last_briefing", label: "Last podcast" },
+  { id: "briefing_time", label: "Podcast time" },
   { id: "page_load", label: "Page load" },
   { id: "errors_today", label: "Errors today" },
 ] as const;
@@ -55,7 +55,7 @@ export const HEALTH_SPEED = [
 export const HEALTH_GROUPS = [
   {
     id: "briefings",
-    title: "Briefings",
+    title: "Podcasts",
     rows: [
       { id: "daily", label: "Daily" },
       { id: "weekly", label: "Weekly" },
@@ -86,7 +86,7 @@ export const HEALTH_GROUPS = [
     id: "jobs",
     title: "Jobs",
     rows: [
-      { id: "job_run", label: "Briefings" },
+      { id: "job_run", label: "Podcasts" },
       { id: "job_podcast", label: "Catch up" },
       { id: "job_audio", label: "Narration" },
       { id: "job_content", label: "Content sync" },
