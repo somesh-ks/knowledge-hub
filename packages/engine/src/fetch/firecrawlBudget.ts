@@ -1,17 +1,20 @@
 import type { Source } from "@singularity/core";
 
 /**
- * Firecrawl requests all runs together may make in any 7 days, listing pages and article scrapes
- * (the owner, 2026-10-24). Read from the cost ledger at each stage (`run/spend.ts`).
+ * Firecrawl requests all runs together may make in any 7 days, listing pages and article scrapes.
+ * Read from the cost ledger at each stage (`run/spend.ts`). 100 (the owner, 2026-10-24) was spent
+ * in four runs, and every daily after it aired without listings or scrapes; 300 is about 0.25 USD
+ * (D222).
  */
-export const FIRECRAWL_WEEKLY_BUDGET = 100;
+export const FIRECRAWL_WEEKLY_BUDGET = 300;
 
 /**
- * The most Firecrawl requests one run may make, listing pages and article scrapes together: half
- * the week, so one run can never spend it all. Metered by request, so the run holds itself to a
- * fixed number however many sources are configured.
+ * The most Firecrawl requests one run may make, listing pages and article scrapes together: a
+ * fifth of the week, so a few runs can never spend it all. Metered by request, so the run holds
+ * itself to a fixed number however many sources are configured. The 17 listing sources, the
+ * YouTube feeds and the article scrapes of a daily come to about 40.
  */
-export const FIRECRAWL_RUN_CEILING = 50;
+export const FIRECRAWL_RUN_CEILING = 60;
 
 /** Share of the ceiling that listing pages (sources of type firecrawl) may use; scraping gets the rest. */
 export const FIRECRAWL_LISTING_SHARE = 0.55;
