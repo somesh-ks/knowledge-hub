@@ -172,17 +172,18 @@ const icons: Record<string, IconName> = {
         <p class="queue-name" data-queue-name></p>
         {/* One line: the stage while it goes; when it ended and how, once it has. */}
         <p class="queue-status"><span class="queue-when" data-queue-when></span><span data-queue-status></span></p>
-        <div class="queue-actions">
-          <button class="btn-primary queue-listen" type="button" data-queue-listen hidden>Listen now</button>
-          <button class="btn queue-retry" type="button" data-queue-retry hidden>Try again</button>
-          <button class="btn queue-check" type="button" data-queue-check hidden>Check again</button>
-          <button class="btn queue-details" type="button" data-queue-details hidden>Details</button>
-        </div>
       </div>
       {/* Cancel is the X at the row's end, while the run goes. */}
       <button class="icon-btn icon-btn-end press queue-cancel" type="button" data-queue-cancel hidden>
         <Icon name="close" class="icon-lg" />
       </button>
+      {/* What can be done to a run that ended or is lost, under the text. */}
+      <div class="queue-actions">
+        <button class="btn-primary queue-listen" type="button" data-queue-listen hidden>Listen now</button>
+        <button class="btn queue-retry" type="button" data-queue-retry hidden>Try again</button>
+        <button class="btn queue-check" type="button" data-queue-check hidden>Check again</button>
+        <button class="btn queue-details" type="button" data-queue-details hidden>Details</button>
+      </div>
     </li>
   </template>
 </div>

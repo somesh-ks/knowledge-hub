@@ -148,7 +148,7 @@ html[data-player="open"] .queue-dock {
 .queue-row {
   display: grid;
   grid-template-columns: var(--size-touch) minmax(0, 1fr);
-  align-items: start;
+  align-items: center;
   column-gap: var(--space-4);
   padding-block: var(--space-4);
   padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-4), var(--safe-right));
@@ -160,7 +160,7 @@ html[data-player="open"] .queue-dock {
 
 .queue-lead {
   display: grid;
-  place-items: start center;
+  place-items: center;
   width: var(--size-touch);
   min-height: var(--size-touch);
 }
@@ -201,15 +201,13 @@ html[data-player="open"] .queue-dock {
   color: var(--color-danger);
 }
 
-/* The small ring, centred on the name and the status like the X at the other end, with the time left
-   hanging under it: whole minutes, seconds to ten or hours, no word of "left" (2026-10-29). Tabular
-   so the digits never shift, and out of the flow, so a row is as tall with a time as without. */
+/* The small ring with the time left under it, whole minutes, seconds to ten or hours, no word of
+   "left" (2026-10-29). Together they are no taller than the name and the status beside them, so the
+   row's height is its 44px touch targets and everything in it sits on one centre line. Tabular so the
+   digits never shift. */
 .queue-going {
-  position: relative;
   display: grid;
-  place-items: center;
-  width: var(--size-touch);
-  height: var(--size-touch);
+  justify-items: center;
 }
 
 .queue-going[hidden] {
@@ -217,23 +215,15 @@ html[data-player="open"] .queue-dock {
 }
 
 .queue-time {
-  position: absolute;
-  inset-block-start: calc((var(--size-touch) + var(--space-8)) / 2 + var(--space-2));
-  inset-inline: 0;
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-caption);
   font-variant-numeric: tabular-nums;
-  line-height: 1;
-  text-align: center;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
-/* Cancel is an X, level with the ring. While the run goes it keeps its cell when it is hidden (the
+/* Cancel is an X, on the same centre line as the ring. While the run goes it keeps its cell when it is hidden (the
    voices stage), so the words never shift; a row that ended has no cell for it. */
-.queue-cancel {
-  align-self: start;
-}
-
 .queue-row:is([data-state="queued"], [data-state="running"]) .queue-cancel[hidden] {
   display: inline-flex;
   visibility: hidden;
@@ -245,6 +235,8 @@ html[data-player="open"] .queue-dock {
 
 /* The actions line is only there while it holds a button: Try again, Details, Check again, Listen now. */
 .queue-actions {
+  grid-column: 2;
+  grid-row: 2;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -281,9 +273,9 @@ html[data-player="open"] .queue-dock {
   height: var(--queue-ring-size);
 }
 
-/* A row's ring: 32px, nothing inside (the time is under it). */
+/* A row's ring: 24px, nothing inside (the time is under it). */
 .queue-ring-row {
-  --queue-ring-size: var(--space-8);
+  --queue-ring-size: var(--size-icon-lg);
   --queue-ring-stroke: 5;
 }
 
