@@ -40,7 +40,8 @@ function report(reason: string, commit: CommitReport["commit"], dryRun = false):
 export async function recordFailedRun(deps: RunDeps, options: RunOptions): Promise<CommitReport> {
   const now = deps.now();
   const plan = await readPlan(deps.root).catch(() => null);
-  const skip = (reason: string) => report(reason, { status: "nothing_to_commit" });
+  const dry = plan?.dry_run === true || options.dryRun;
+  const skip = (reason: string) => report(reason, { status: "nothing_to_commit" }, dry);
   if (plan?.committed_at !== undefined) return skip("The commit stage already committed this run.");
   if (plan?.dry_run || options.dryRun) {
     return plan

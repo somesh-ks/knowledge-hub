@@ -391,6 +391,17 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Revisit if: the alert fires in a week with no extra runs (normal has grown), monitors replace listing scrapes (Step 2), or a week goes from past 150 to the stop before the owner saw the warning (the warning reaches the owner only in the Monday `health-warnings` issue and `singularity health`, not the Health page; the stop opens a `health` issue only if it still stands when the daily check runs; a same-day warning is then the fix).
 - Limit: the week is read from the ledger, and a failed dry run records nothing (`recordFailed.ts`), so its Firecrawl requests are not counted.
 - Amends: D222 (adds the alert; the 300 and the 60 a run are D222's).
+- Status: Superseded by D227 (the alert moves from 150 to 210).
+
+## D227: Firecrawl's week alerts at 210, not 150
+
+- Date: 2026-10-29 (the same day as D223; the owner asked for the open questions to be decided).
+- Decision: `FIRECRAWL_WEEKLY_ALERT` is 210. Health warns (`firecrawl_week_high`) once the last 7 days pass 210. The fault at 300 and the 60 a run are unchanged.
+- Context changed: D223 chose 150, but D222 measured a normal week at about 150 (a daily asks for about 40), so a 150 warning would fire every normal week and be ignored.
+- Rejected: a same-day alert path (the 300 stop is the backstop; build it only if the stop is ever hit).
+- Revisit if: the alert fires in a week with no extra runs (normal has grown), or monitors replace listing scrapes (Step 2).
+- Supersedes: D223's threshold.
+
 
 ## D228: A failed dry run records its spend
 
@@ -400,4 +411,4 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Why: Firecrawl's week (D222, D223) is read from the ledger, so the count was short by exactly the runs that were being fixed.
 - Rejected: counting the run log's `pipeline_stages` instead (Neon, not the ledger the budget reads; a second source for one number).
 - Limit: the ledger commit still refuses when the tree holds any other change (for example config copied from the store that git does not yet have), and a ledger write that fails is swallowed by design ("a ledger failure never fails a run"); either leaves that run's spend uncounted, and both only warn.
-- Amends: D223 (removes its Limit; its alert and stop stand). A dry run's ledger commit, finished or failed, uses its own `costs` allowlist (`state/costs-*.json` only), not `publish`.
+- Amends: D223 (removes its Limit; the alert is D227's now and the stop of 300 stands). A dry run's ledger commit, finished or failed, uses its own `costs` allowlist (`state/costs-*.json` only), not `publish`.
