@@ -278,3 +278,12 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Date: 2026-10-25 (the owner's ask).
 - Decision: each settings subpage has a small "Settings /" line above its title (`.settings-crumb`), a `.text-link` with a 44px target.
 - Why: one tap up beats the app bar's back, which can leave settings.
+
+## D218: the admin pages become a separate command center app
+
+- Date: 2026-10-29 (the owner opened `/design` on the live site and got "Page not found", then: the admin pages "should not be part of the Singularity app visually anymore ... its own dashboard, separately, with a different UI", with Sentry and analytics to come).
+- Decision: `apps/admin` is a second Astro app in this repo with its own Vercel project and look, locked by Vercel's own protection instead of an in-app login. Costs, Health and the design catalogue move there and leave the reader and Settings, their old addresses redirecting. Until the data code moves into a shared package, it reads the reader's `/api/costs` and `/api/health`; new sources (Sentry, analytics) get routes of its own. Each component gets a `*.design.ts` spec beside it in `apps/web`, which feeds the dashboard's pages and its coverage numbers. Plan: `docs/design/command-center.md`.
+- Why: a route inside the reader shares its chrome, bundle and exposure; its own deploy can be locked and can hold keys the reader should never see.
+- Rejected: a separate repository (D189 still holds: one maintainer, no second consumer); routes under `/admin` in the reader (PR #420, closed); Storybook (D189).
+- Revisit if: the data code moves into a package (then remove the reader's routes), or a second consumer of the components appears.
+- Amends: D189.

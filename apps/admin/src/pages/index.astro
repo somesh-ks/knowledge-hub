@@ -1,0 +1,28 @@
+---
+import Shell from "../layouts/Shell.astro";
+import { SECTIONS, STATUS_LABEL } from "../lib/sections";
+---
+
+<Shell title="Overview">
+  <div class="page-head">
+    <p class="kicker">Overview</p>
+    <h1 class="page-title">Singularity command center</h1>
+    <p class="page-note">One place for the design system, what the app costs and how it is running.</p>
+  </div>
+  <div class="panels">
+    {
+      SECTIONS.map((section) => (
+        <a class="panel" href={section.href}>
+          <div class="panel-head">
+            <span>{section.label}</span>
+            <span class="status" data-status={section.status}>{STATUS_LABEL[section.status]}</span>
+          </div>
+          <div class="panel-body">
+            <h2 class="panel-title">{section.label}</h2>
+            <p class="panel-note">{section.question}</p>
+          </div>
+        </a>
+      ))
+    }
+  </div>
+</Shell>
