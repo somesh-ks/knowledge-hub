@@ -380,5 +380,5 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Decision: a normal week stays 100 requests (D166). Health warns (`firecrawl_week_high`) once the ledger's last 7 days pass 150, and faults (`firecrawl_week_stopped`) at 300, which is where runs stop listing through Firecrawl (`FIRECRAWL_WEEKLY_BUDGET`, was 100). The 50 a run (`FIRECRAWL_RUN_CEILING`) stays.
 - Why: dry runs and regenerations spend the same week as the schedule, so a hard 100 was gone by Tuesday and left 15 listing sources skipped and 7 YouTube feeds failing for the rest of the week. A stop at three times normal still bounds a runaway; the alert says so before anything is skipped.
 - Rejected: no stop at all (a loop or a mistaken monitor could spend the account); counting dry runs apart (they pay real credits).
-- Revisit if: the alert fires in a week with no extra runs (normal has grown), or monitors replace listing scrapes (Step 2).
+- Revisit if: the alert fires in a week with no extra runs (normal has grown), monitors replace listing scrapes (Step 2), or a week goes from past 150 to the stop before the owner saw the warning (it shows on Health at once, in the Monday warnings issue, and the stop opens a `health` issue within a day; a same-day warning is then the fix).
 - Amends: D166.
