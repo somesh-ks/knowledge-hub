@@ -15,6 +15,10 @@ export interface RunRecord {
   id?: number;
   phase?: string;
   what?: string;
+  /** A rewrite or a removal of an episode that exists; absent for a new episode. */
+  kind?: string;
+  /** The episode that rewrite or removal is about. */
+  episode?: string;
   /** A finished briefing's page, `/d/<id>`. */
   href?: string;
   /** A finished run that published nothing: why. */

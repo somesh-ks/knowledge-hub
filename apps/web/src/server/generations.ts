@@ -45,6 +45,24 @@ export const MAX_CANCEL_BODY_CHARS = 256;
 const isGeneration = (run: WorkflowRun): boolean =>
   !run.title.startsWith("delete ") && run.title !== "dry run";
 
+/** A digest id or an episode id, the only targets a row carries to the page. */
+const TARGET_ID = /^(\d{4}-\d{2}-\d{2}(-weekly|-[2-9]|-[1-9]\d+)?|ep-\d{8}-\d{4})$/;
+
+/**
+ * What a run is, from its title. podcast.yml names a regeneration "regenerate <episode id>" and a
+ * Catch up "episode" (D213). Every dispatched run of run.yml is a regeneration (nothing else makes a
+ * briefing by hand), whose title does not yet name its digest, so its target is unknown here.
+ */
+export function kindOf(run: WorkflowRun): Pick<GenerationRow, "kind" | "target"> {
+  if (run.title === "regenerate" || run.title.startsWith("regenerate ")) {
+    const named = run.title.slice("regenerate ".length).trim();
+    return { kind: "regenerate", target: TARGET_ID.test(named) ? named : null };
+  }
+  return isPodcastRun(run)
+    ? { kind: "catch_up", target: null }
+    : { kind: "regenerate", target: null };
+}
+
 export async function handleGenerations(
   deps: GenerationsDeps,
 ): Promise<ApiResult<GenerationsBody>> {
@@ -62,6 +80,7 @@ export async function handleGenerations(
         return {
           run_id: run.id,
           what: isPodcastRun(run) ? "episode" : "briefing",
+          ...kindOf(run),
           // The list holds runs that have not finished, so a state of "completed" cannot arise
           // unless the run ended between the two calls; it reads as running until the next poll.
           state: state === "queued" ? "queued" : "running",
