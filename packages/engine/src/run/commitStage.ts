@@ -518,7 +518,7 @@ async function commitGated(
 /**
  * A dry run makes the paid calls a real run makes (45 Claude calls, about $1, on 2026-10-24) and
  * recorded none, so the Costs page missed them. Its spend goes to the ledger in a commit of the
- * ledger alone, under the publish allowlist, which holds the ledger and no digest the dry run
+ * ledger alone, under the costs allowlist, which holds the ledger and no digest the dry run
  * could have written; any other change in the tree refuses the commit, and a refusal only warns.
  */
 async function commitDryRunCosts(
