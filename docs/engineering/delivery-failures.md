@@ -6,7 +6,7 @@ Why pull requests, CI, builds and deployments failed from 2026-10-15 to 2026-10-
 
 1. **One push per PR, after the checks pass locally.** `npm run gate -- --build`, both browser suites for site changes, and Biome on the touched files in a worktree (`npm run lint` checks nothing there). Every push to an open PR cancels the last CI run and starts a new one, and both are billed (classes 1, 4, 5).
 2. **A preview deploys only from a branch named `preview/*`, in every Vercel project.** Any other branch, the agents' included, gets no Vercel preview and no Neon branch (classes 2, 15). A new project's `vercel.json` carries `git.deploymentEnabled` from day one.
-3. **Merge `main` into an open branch after `main` changes `apps/web/vercel.json` or a workflow.** Vercel and Actions read those files from the branch's own commit, so an old branch keeps the old rules (class 2).
+3. **Merge `main` into an open branch after `main` changes `apps/web/vercel.json`, `apps/admin/vercel.json` or a workflow.** Vercel and Actions read those files from the branch's own commit, so an old branch keeps the old rules (class 2).
 4. **A red check is classified before anyone acts on it:** billing, Vercel branch limit, a cancelled run, an ignored build, a known flake, or a real failure. Only the last needs a code change (classes 1 to 6).
 5. **Never remove a worktree or branch another session made.** A worktree with no commits looks merged and is someone's work in progress (class 8).
 6. **Verify branch HEAD after pushing.** After `git push`, compare `git ls-remote origin <branch>` with `git rev-parse HEAD`. A push on a detached HEAD reports "Everything up-to-date" while remote remains stale (class 11).
