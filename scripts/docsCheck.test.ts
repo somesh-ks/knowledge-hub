@@ -43,7 +43,7 @@ describe("docs check", () => {
         "docs/state.md": `# State\n\n${"x".repeat(12_001)}\n\n## Not working or unverified\n\n- The flick is flaky.\n`,
         "docs/decisions/README.md":
           "## Index\n\n| D1 | One | superseded by D9 |\n| D2 | Two | active |\n",
-        "docs/decisions/area.md": "## D1: One\n\nsuperseded by D9\n",
+        "docs/decisions/area.md": "## D1: One\n\nBody.\n",
         "docs/decisions/area-two.md": "# Area two\n",
         "docs/learnings.md": "See [the note](history/gone.md). Fixed in `scripts/moved.ts`.\n",
       }),
