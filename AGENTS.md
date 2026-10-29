@@ -35,7 +35,7 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (the c
 - A component changes in the design system, never on one page only: in its shared class, component or token, and its record in the same PR (the usage comment over its class, its ledger line, a new variant in `docs/specs/look-and-sound.md`).
 - Design fixes are load-bearing. Markup or rules with a rationale comment (date, D-number, sizer, specificity bump) are never removed or rewritten to make another task work: extend or ask. Check history (`git log -L '/<selector>/,+20:<file>'`) and the ledger before changing shared CSS (`player.css`, `primitives.css`, `buttons.css`, tokens). CSS is checked by browser suites only.
 - Scope: one task per branch. Before a PR, `git diff --stat origin/main` must list only files the task needs; name any shared stylesheet or component in it, and why, in the PR body.
-- Feature workflow: new features and non-trivial UI follow `.claude/skills/feature/`; choose buttons and controls from `.claude/skills/feature/references/controls-guide.md`. Never invent bespoke control classes.
+- UI parts: before you write a class, token or value, run `npm run ds -- find "<need>"` (the part, its use-when, its tokens; index in `tokens/llms.txt`). Never invent control classes. New features and non-trivial UI follow `.claude/skills/feature/`.
 - State authority: the config store owns runtime preferences. Never edit `config/` in Git during active workflow runs or from parallel branches without store synchronization (D149, D185).
 - Pipeline discipline: verify the core daily loop runs green in production before adding new intake types or audience matrices.
 

@@ -1,24 +1,12 @@
 # Control Archetypes Guide
 
-Standardized control reference for Singularity. When adding or modifying interactive controls (buttons, chips, tabs, switches, sheets), select directly from this catalog. Creating bespoke button classes is strictly forbidden unless formally added to `BESPOKE_CONTROLS` in `styles.test.ts` with an approved decision rationale.
+Standardized control reference for Singularity. When adding or modifying interactive controls (buttons, chips, tabs, switches, sheets), select with `npm run ds -- find "<need>"`. Creating bespoke button classes is strictly forbidden unless formally added to `BESPOKE_CONTROLS` in `styles.test.ts` with an approved decision rationale.
 
 ---
 
 ## 1. Decision Matrix
 
-| Archetype | Class / Element | Primary Purpose | When to Use |
-| :--- | :--- | :--- | :--- |
-| **Primary Button** | `.btn-primary` | High-emphasis trigger | Single primary action per card or surface (Hero Play, Sheet Submit). |
-| **Secondary Button** | `.btn-secondary` | Medium-emphasis companion | Paired alongside a primary button (Share, Cancel, Dismiss). |
-| **Tonal Button** | `.btn` | Low-emphasis neutral trigger | Standard surface actions (Settings head links, Library filters). |
-| **Icon Button** | `.icon-btn.press` | Single glyph action | Compact controls (More options, Close, Edit, Reorder grip). |
-| **Action Chip** | `.chip` | Status + action pill | Episode duration, playback status pill. Uses fixed-width sizers. |
-| **Filter Chip** | `.filter-chip` | Multi-select toggle | Category and format filtering (Daily, Weekly, Episodes). Wraps input. |
-| **Segmented Nav** | `.segmented-nav-tab` | View switcher | Sliding pill tablist switching active view (Stories vs Transcript). |
-| **Segmented Choice** | `.segmented-choice-item` | Single option picker | Radio group for discrete values (3 min, 5 min, 10 min). |
-| **Row Action** | `.row-action` | Full-row navigation trigger | Settings and menu rows acting as pressable tiles off hairlines. |
-| **Floating Action** | `CreateFab.astro`, `AddFab.astro` | Floating action trigger | Prominent mobile creation triggers pinned above bottom dock. |
-| **Bottom Sheet** | `SheetFrame.tsx` (dialogs), `MenuSheet.astro` (menus) | Bottom-sheet presentation under 40rem | Dialogs are modal; menus are popovers styled as bottom sheets. Lists, menus and selects on a phone sit in one, never in a small popover. |
+Which part for which need is generated, so it cannot drift from the code: `npm run ds -- find "<need>"` answers one need, `npm run ds -- list` lists every part, and `tokens/llms.txt` is the whole index with each part's use-when and what to use instead. The source is `scripts/system/parts.ts`; a test holds it against the stylesheets. Section 2 has the markup of the common parts.
 
 ---
 
