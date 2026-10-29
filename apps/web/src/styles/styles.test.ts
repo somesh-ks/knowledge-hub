@@ -791,10 +791,12 @@ describe("house rules", () => {
 
 describe("component stylesheets", () => {
   it("covers every stylesheet the layout or an island imports", () => {
-    const src = SRC;
-    const sources = readdirSync(src, { recursive: true, encoding: "utf8" })
-      .filter((file) => /\.(astro|tsx)$/.test(file))
-      .map((file) => readFileSync(join(src, file), "utf8"));
+    // The command center (D224) imports the Costs and Health sheets from here.
+    const sources = [SRC, join(SRC, "..", "..", "admin", "src")].flatMap((src) =>
+      readdirSync(src, { recursive: true, encoding: "utf8" })
+        .filter((file) => /\.(astro|tsx)$/.test(file))
+        .map((file) => readFileSync(join(src, file), "utf8")),
+    );
     const imported = sources.flatMap((text) =>
       [...text.matchAll(/styles\/([a-z-]+\.css)/g)].map((match) => match[1]),
     );

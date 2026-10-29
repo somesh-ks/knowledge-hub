@@ -2,7 +2,7 @@
  * The overview's numbers. Asks the reader's /api/health and /api/costs (the same origin once the
  * command center is served beside the reader) and fills the static shell: nothing moves when the
  * answers arrive, and a failed ask says so in place. Plain DOM and one inline SVG, as the reader's
- * own pages do it (scripts/costsPage.ts, healthPage.ts).
+ * own pages do it (costsPage.ts, healthPage.ts, beside this file).
  */
 
 import { href } from "../lib/sections";

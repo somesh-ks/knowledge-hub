@@ -1,10 +1,10 @@
 /**
- * Health page (/settings/health). Asks /api/health once and fills the rows and tiles the page drew
+ * Health page (/admin/health). Asks /api/health once and fills the rows and tiles the page drew
  * at build (lib/healthRows.ts): a value, a line and a dot per row, by id. The Speed card shows one
  * device at a time; its select repaints from the same answer, with no second fetch. A failed fetch
  * says so in the summary and leaves the rows on "Checking".
  */
-import type { HealthBody, HealthRow } from "../lib/healthRows";
+import type { HealthBody, HealthRow } from "../../../web/src/lib/healthRows";
 
 const root = document.querySelector<HTMLElement>("[data-health]");
 const device = document.querySelector<HTMLSelectElement>("#health-device");
