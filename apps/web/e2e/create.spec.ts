@@ -492,7 +492,9 @@ test.describe("the Create page", () => {
     await (await startListening(page)).click();
     await expect(page).toHaveURL(new RegExp(`${EPISODE}$`));
     // The episode is on screen: the record is forgotten, the day's row is not.
-    expect(await page.evaluate(() => localStorage.getItem("singularity:run"))).toBeNull();
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem("singularity:run")))
+      .toBeNull();
     await expect(queueTitle(page)).toHaveText("Complete");
     await page.locator("[data-queue-toggle]").click();
     await page.getByRole("button", { name: "Clear queue" }).click();
