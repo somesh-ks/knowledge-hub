@@ -6,6 +6,8 @@ export interface Section {
   path: string;
   label: string;
   icon: IconName;
+  /** The filled twin the nav shows for the current section, as the reader's does. */
+  iconCurrent: IconName;
   /** What the section answers. */
   question: string;
   /** What the page holds today. */
@@ -16,29 +18,33 @@ export const SECTIONS: readonly Section[] = [
   {
     path: "",
     label: "Overview",
-    icon: "viewGrid",
-    question: "Everything at a glance.",
+    icon: "gauge",
+    iconCurrent: "gaugeFill",
+    question: "At a glance.",
     status: "",
   },
   {
     path: "/coverage",
     label: "Coverage",
-    icon: "table",
-    question: "How much of the app uses the shared design-system parts.",
+    icon: "chartDonut",
+    iconCurrent: "chartDonutFill",
+    question: "Design-system use.",
     status: "Planned",
   },
   {
     path: "/costs",
     label: "Costs",
-    icon: "chartBar",
-    question: "What the paid services cost.",
+    icon: "coins",
+    iconCurrent: "coinsFill",
+    question: "Paid services.",
     status: "Moves here next",
   },
   {
     path: "/health",
     label: "Health",
-    icon: "waveform",
-    question: "How the runs, pages and services are doing.",
+    icon: "heartbeat",
+    iconCurrent: "heartbeatFill",
+    question: "Runs, pages, services.",
     status: "Moves here next",
   },
 ];

@@ -25,7 +25,7 @@ const { current } = Astro.props;
           <a class="app-nav-item" href={href(section.path)} aria-current={section.path === current ? "page" : undefined}>
             <span class="app-nav-indicator">
               <Icon name={section.icon} class="icon-lg app-nav-icon-rest" />
-              <Icon name={section.icon} class="icon-lg app-nav-icon-current" />
+              <Icon name={section.iconCurrent} class="icon-lg app-nav-icon-current" />
             </span>
             <span>{section.label}</span>
           </a>

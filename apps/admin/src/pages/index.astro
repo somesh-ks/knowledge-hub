@@ -1,30 +1,82 @@
 ---
 import Icon from "../../../web/src/components/Icon.astro";
+import { HEALTH_GROUPS, HEALTH_TILES } from "../../../web/src/lib/healthRows";
 import AdminHead from "../components/AdminHead.astro";
 import Shell from "../layouts/Shell.astro";
-import { href, SECTIONS } from "../lib/sections";
+import { href } from "../lib/sections";
 
-const sections = SECTIONS.filter((section) => section.path !== "");
+// A row's name with its group's, because "Daily" and "Narration" each appear under two groups.
+const labels = Object.fromEntries(
+  HEALTH_GROUPS.flatMap((group) =>
+    group.rows.map((row) => [row.id, `${group.title}: ${row.label}`]),
+  ),
+);
 ---
 
 <Shell title="Overview" current="">
-  <div class="settings-view" data-settings>
-    <AdminHead title="Overview" note="How the app is doing, what it costs and how well the design system is used." />
+  <div class="settings-view" data-settings data-overview data-labels={JSON.stringify(labels)}>
+    <AdminHead title="Overview" />
+
+    {/* Static shells: each card is drawn here, and scripts/overview.ts fills the figures from the
+         reader's /api/health and /api/costs, so nothing moves when they arrive. */}
+    <section class="health" data-overview-health data-loading>
+      <h2 class="section-head">Health</h2>
+      <div class="card-group health-card" aria-label="Health summary">
+        <p class="health-answer health-data" aria-live="polite">
+          <span class="status-dot" data-tone="none" data-attention-dot></span>
+          <span data-attention>Checking</span>
+        </p>
+        <ul class="stat-tiles health-data" role="list" aria-label="Health figures">
+          {
+            HEALTH_TILES.map((tile) => (
+              <li class="stat-tile">
+                <strong class="stat-tile-value" data-health-tile={tile.id}>
+                  No data
+                </strong>
+                <span class="stat-tile-label">{tile.label}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+      <div class="rows card-group health-data" data-attention-rows>
+        <a class="row-action" href={href("/health")}>
+          <span class="settings-text"><span class="settings-label">All health checks</span></span>
+          <Icon name="chevronRight" />
+        </a>
+      </div>
+    </section>
+
+    <section class="costs" data-overview-spend data-loading>
+      <h2 class="section-head">Spend, last 30 days</h2>
+      <div class="card-group costs-card" aria-label="Spend">
+        <p class="costs-total costs-data"><span class="sr-only">Total spend </span><span data-spend-total>Loading</span></p>
+        <ul class="stat-tiles costs-stats costs-data" role="list" aria-label="Spend figures" data-spend-stats></ul>
+        <div class="costs-plot costs-data" data-spend-plot></div>
+      </div>
+      <div class="rows card-group costs-data" data-spend-rows>
+        <a class="row-action" href={href("/costs")}>
+          <span class="settings-text"><span class="settings-label">All costs</span></span>
+          <Icon name="chevronRight" />
+        </a>
+      </div>
+    </section>
+
     <section>
-      <h2 class="section-head">Sections</h2>
+      <h2 class="section-head">Design system</h2>
       <div class="rows card-group">
-        {
-          sections.map((section) => (
-            <a class="row-action" href={href(section.path)}>
-              <span class="settings-text">
-                <span class="settings-label">{section.label}</span>
-                <span class="settings-hint">{section.status}</span>
-              </span>
-              <Icon name="chevronRight" />
-            </a>
-          ))
-        }
+        <a class="row-action" href={href("/coverage")}>
+          <span class="settings-text">
+            <span class="settings-label">Coverage</span>
+            <span class="settings-hint">Planned</span>
+          </span>
+          <Icon name="chevronRight" />
+        </a>
       </div>
     </section>
   </div>
 </Shell>
+
+<script>
+  import "../scripts/overview";
+</script>

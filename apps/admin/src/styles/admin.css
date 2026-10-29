@@ -1,0 +1,25 @@
+/*
+ * What the command center adds to the reader's own stylesheets (Shell.astro imports those). Kept to
+ * what the reader has no class for.
+ */
+
+/* From 80rem the reader reserves a 14rem track beside every page for a briefing's contents list
+   (shell.css). The command center has no list, so the reserved room only pushed the content off
+   centre (2026-10-29, the owner: more room on the right than the left): one column, centred. */
+@media (width >= 80rem) {
+  .shell {
+    grid-template-columns: minmax(0, var(--column-inner));
+  }
+}
+
+/* A card that holds a figure and its chart, spaced as the Costs and Health summary cards are. */
+.card-group.admin-card {
+  display: grid;
+  gap: var(--space-8);
+  padding: var(--card-padding);
+}
+
+/* A card and the rows that follow it in one section are two cards, a gap apart. */
+.settings-view section > .card-group + .card-group {
+  margin-block-start: var(--space-4);
+}
