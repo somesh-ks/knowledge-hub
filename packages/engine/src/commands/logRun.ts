@@ -10,7 +10,7 @@ const USAGE =
 const RESULTS: readonly string[] = ["success", "failure", "cancelled"];
 
 /**
- * `singularity log-run`: run.yml's last step (D218). Writes the run that just ended, with the time
+ * `singularity log-run`: run.yml's last step (D219). Writes the run that just ended, with the time
  * and cost of each stage, to Neon's `pipeline_runs` and `pipeline_stages`, whatever its end: a dry
  * run, a failure and a cancel too. A log that cannot be written (no DATABASE_URL, Neon down, no
  * plan) says so and exits 0, because a measurement must never fail the run it measures.

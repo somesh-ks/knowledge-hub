@@ -86,7 +86,7 @@ async function runPassStage(
   } finally {
     await addStageTime(deps.root, plan.created_at, stage, deps.now().getTime() - started);
     if (deps.spend && before) {
-      // What this stage's calls cost, for the run log (D218). A stage that failed spent that much too.
+      // What this stage's calls cost, for the run log (D219). A stage that failed spent that much too.
       const usd = await priceSpend(deps.root, spendDelta(before, deps.spend.snapshot()));
       await addStageCost(deps.root, plan.created_at, stage, usd);
     }

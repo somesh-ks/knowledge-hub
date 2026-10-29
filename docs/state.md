@@ -4,13 +4,13 @@ Updated 2026-10-29. Rewrite, never append. [Specs](specs/README.md), [decisions]
 
 ## Working
 
-- Engine live end to end (fetch, Jev judge, writer, validate, commit), sized by the owner's length with spares: [engine](specs/engine.md). A run that loses stories or races a push degrades instead of failing, and records its health (D204): [resilience](engineering/generation-resilience.md), [metrics](engineering/metrics.md).
+- Engine live end to end (fetch, Jev judge, writer, validate, commit), sized by the owner's length with spares: [engine](specs/engine.md). A run that loses stories or races a push degrades, not fails, and records its health (D204): [resilience](engineering/generation-resilience.md), [metrics](engineering/metrics.md).
 - Reader (Latest, Library, Catch up, Settings, `/design`): [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
 - Player as one surface: transcript with word light, chapters in the bar, a queue with Up next (D126): [player](specs/player.md).
 - Narration on Play, story by story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes; Opus, MP3 fallback (D198): [narration](specs/narration.md), [create](specs/create.md).
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up show in one run card; a failed run says why (D204). The list of generations under way has Cancel (D208).
 - Saved copies, offline shell, downloads, the PWA: [navigation and offline](specs/navigation-and-offline.md).
-- Schedule (D61, D197): made ahead, published 07:00.
+- Schedule (D61, D197): made ahead, aired 07:00.
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merge by hand (D143).
 - Tooling: subagents, `/close-session` ([roster](history/2026-10-08-subagent-roster.md)).
 
@@ -24,8 +24,8 @@ Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs, 10 min. Pla
 - A page's More menu has Download and Add to queue (D214). closed when: the owner signs off the screenshots.
 - Two Catch ups made or under way in 24 hours (D213). closed when: a third answers "That's today's limit" live and a regenerate or delete uses none up.
 - Three regenerations per podcast, counted in its own file (D212). closed when: one regenerated live shows "2 of 3 regenerations left" and its file has `regenerations: 1`.
-- Short podcasts (D204, D216): the 2026-10-29 daily aired about 3.8 of 5 minutes because ticked general topics had no section under the Designer profile; D216 adds them, sized to length (dry run: 11 of 52 stories selected before the sizing). A Catch up lost its episode to a push conflict (10-27). closed when: two dailies in a row air within 10% of their length, `singularity metrics` has ten runs with `length_share` at 0.9 and `failure_rate` at 0.1 or less, and a Regenerate pressed during a Catch up publishes both.
-- Run names (D217) and the Neon run log (D218). closed when: a daily is named `daily <date>`, absent from the queue, and has a `pipeline_runs` row with stage rows.
+- Short podcasts (D204, D216, D218): the 2026-10-29 daily aired about 3.8 of 5 minutes: no section for ticked general topics (D216), no spares past block counts (D218). A Catch up lost its episode to a push conflict (10-27). closed when: two dailies in a row air within 10% of their length, `singularity metrics` has ten runs with `length_share` at 0.9 and `failure_rate` at 0.1 or less, and a Regenerate pressed during a Catch up publishes both.
+- Run names (D217) and the Neon run log (D219). closed when: a daily is named `daily <date>`, absent from the queue, and has a `pipeline_runs` row with stage rows.
 - `.github/workflows/podcast.yml` lost its ffmpeg step in this branch (workflow files need a manual merge). closed when: the owner merges it and a Catch up reaches its first stage within 5 s of the runner starting.
 - A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): `run.yml` gained a `length_minutes` input, which must merge with the site code or GitHub refuses the dispatch. closed when: a Regenerate at 10 minutes airs within 10% of 10.
 - Generations list and Cancel (D208): only against fakes. `POST /api/cancel` needs the token's Actions write (unchecked since 2026-10-14); a cancelled Catch up leaves its live copy "writing" for the 24 h prune and, stopped while recording voices, loses that run's usage charge; no timed runs yet for a time left. closed when: the owner cancels a real Catch up from the list, it ends as Cancelled, and a briefing shows a time left.
@@ -35,7 +35,7 @@ Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs, 10 min. Pla
 - Alexandria pilot (D200). closed when: a run log shows `anthropic-blog` fetched via `alexandria:anthropic-com` with dated posts.
 - Owner's eye: the bar's centring (more than 1px), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off on a phone and a laptop.
 - Live content (plan 20): an open page elsewhere does not refresh within 60 s (criterion 3); `smokeLive.mjs --apply` never ran on production (criterion 10, owner's); offline copies of a removed episode, Listen now after a delete unaudited. closed when: each is built or checked.
-- Settings paint the kept store copy at once and the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change still waits for the store, up to 2.5 s. closed when: the owner signs off on a phone.
+- Settings paint the kept store copy at once, the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change still waits for the store, up to 2.5 s. closed when: the owner signs off on a phone.
 - Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push` (a rule guesses first); no run used a mix, perspective or cap. closed when: a production source's format comes from Jev and a digest follows a mix change.
 - YouTube text: Firecrawl's transcripts answered live (2026-10-24), Gemini 2026-10-19; no full run used either. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
 - YouTube feeds 404 on runners (since about 10-14); #235 reads them via Firecrawl. closed when: a run's fetch lists the five in `relayed_sources`.
@@ -50,9 +50,9 @@ Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs, 10 min. Pla
 - Config store (D149, D185), on since 2026-10-24. closed when: a phone's edit shows on a laptop.
 - A pending `config.yml` run can be cancelled by GitHub after a 202 (shared `singularity` group); production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 2026-10-14. closed when: a config save from the site produces a commit.
 - A 15 minute episode falls short (71% general, 45% owner topics, 12-story day); the app does not say how much a window holds. closed when: an episode airs within 10% of 15 minutes, or the form shows what the window holds.
-- Costs (D137) and Firecrawl's week (D166): every price in `config/prices.json` is unconfirmed; the 10-24 run is the ledger's first. closed when: the owner confirms the prices, /analytics shows a real run and a week's runs are all in the ledger.
+- Costs (D137), Firecrawl's week (D166): every price in `config/prices.json` is unconfirmed; the 10-24 run is the ledger's first. closed when: the owner confirms the prices, /analytics shows a real run and a week's runs are all in the ledger.
 - Catch up: 2 of 7 `podcast.yml` runs failed by 10-28, the last too. closed when: the cause is named.
-- 35 older items are parked: [five](history/2026-10-21-owner-backlog-in-parallel.md#parked), [twelve](history/2026-10-27-session-close.md#parked), [seven](history/2026-10-27-generation-health.md#parked), [eleven](history/2026-10-28-generations-list.md#parked). closed when: each closes.
+- 35 older items parked: [five](history/2026-10-21-owner-backlog-in-parallel.md#parked), [twelve](history/2026-10-27-session-close.md#parked), [seven](history/2026-10-27-generation-health.md#parked), [eleven](history/2026-10-28-generations-list.md#parked). closed when: each closes.
 
 ## Known risks
 

@@ -245,7 +245,7 @@ export function callsFromSpend(
 
 /**
  * What a spend costs in dollars, priced the way the ledger prices it (config/prices.json), without
- * recording anything: a stage's share of a run, for the run log (D218). A price file that does not
+ * recording anything: a stage's share of a run, for the run log (D219). A price file that does not
  * read, or a spend with nothing in it, is 0: the number is a measurement, it never stops a run.
  */
 export async function priceSpend(

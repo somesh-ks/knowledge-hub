@@ -253,3 +253,12 @@ What an episode or briefing is: kinds and structure, length, regenerate, Catch u
 - Why: every briefing run was titled `run`, so a regeneration had no target, the schedule's run was counted as a Regenerate press (D61's noted cost) and nothing could be grouped by type.
 - Rejected: a date in the Catch up name (the dispatch cannot know the episode id; the queue names it from its start time); a run-name per run number (unique but groups nothing).
 - Amends: D61, D213.
+
+## D218: a block's story count is a proportion, not a ceiling; the length is the limit
+
+- Date: 2026-10-29 (decided for the owner while away, from his #147 rule that the settings length is the only size limit and D119's spares).
+- Decision: selection takes each block's count first (so the sections keep their proportions), then fills the room the length leaves (the sized total with spares) with the best remaining stories, ignoring the counts. Validation already cuts the narration to the length, so the extras stand as spares for a story lost in writing. Release news keeps its tenth of the cap; a custom or general section with an allowance of its own keeps that allowance (D216).
+- Why: the 2026-10-29 dry run after D216 selected 13 of 51 stories, exactly the Designer profile's counts scaled to 5 minutes; two were lost in writing, the refill kept none, and 11 items aired against about 15 wanted. The counts had left no spares.
+- Rejected: raising the preset counts (changes what a profile means and still leaves no spares); a hard cap at the counts with validation trimming to them (the owner's length is the limit).
+- Revisit if: one section crowds out the rest of an episode, or writing the extra stories costs more than the length they buy.
+- Amends: D170, D176.
