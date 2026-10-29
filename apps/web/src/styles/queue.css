@@ -454,7 +454,8 @@ html[data-player="open"] .queue-dock {
 /* A light band crosses the word. The text is clipped to a gradient, so nothing but the letters
    shimmer. Still, and plainly coloured, under reduced motion and forced colours. */
 .queue-word[data-live] {
-  background: linear-gradient(
+  background:
+    linear-gradient(
       90deg,
       var(--color-on-surface-muted) 40%,
       var(--color-on-surface) 50%,
