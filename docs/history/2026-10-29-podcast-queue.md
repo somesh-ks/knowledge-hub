@@ -11,7 +11,7 @@ The owner's queue plan, after the generations list (D208): what is being made sh
 
 ## Decisions
 
-[D217](../decisions/settings-and-create.md).
+[D218](../decisions/settings-and-create.md).
 
 ## Not verified
 

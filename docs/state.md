@@ -8,7 +8,7 @@ Updated 2026-10-29. Rewrite, never append. Behaviour: [specs](specs/README.md). 
 - Reader: Latest, Library, Catch up, Settings, `/design`: [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
 - Player as one surface, transcript with word light, chapters in the bar, a queue with Up next (D126): [player](specs/player.md).
 - Narration on Play, story by story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes; Opus with an MP3 fallback (D198): [narration](specs/narration.md), [create](specs/create.md).
-- Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up are followed in the podcast queue (a dock on a phone, a popover from the side column), each with Cancel; a failed run says why (D204, D217).
+- Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up are followed in the podcast queue (a dock on a phone, a popover from the side column), each with Cancel; a failed run says why (D204, D218).
 - Saved-copy navigation, offline shell, downloads for offline listening, the installed PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Schedule (D61, D197): generated ahead, published at 07:00.
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merges by hand (D143).
@@ -24,9 +24,10 @@ Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs (10-28), 10 
 - Two Catch ups in 24 hours, made or under way (D213). closed when: a third answers "That's today's limit" live and a regenerate or delete uses none up.
 - Three regenerations per podcast, counted in its own file (D212). closed when: one regenerated live shows "2 of 3 regenerations left" and its file has `regenerations: 1`.
 - Short podcasts (D204, D216): the 2026-10-29 daily aired about 3.8 of 5 minutes because ticked general topics had no section under the Designer profile; D216 adds them, sized to length (dry run: 11 of 52 stories selected before the sizing). A Catch up lost its episode to a push conflict (10-27). closed when: two dailies in a row air within 10% of their length, `singularity metrics` has ten runs with `length_share` at 0.9 and `failure_rate` at 0.1 or less, and a Regenerate pressed during a Catch up publishes both.
+- Run names (D217). closed when: a daily is named `daily <date>` and absent from the queue.
 - `.github/workflows/podcast.yml` lost its ffmpeg step in this branch (workflow files need a manual merge). closed when: the owner merges it and a Catch up reaches its first stage within 5 s of the runner starting.
 - A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): `run.yml` gained a `length_minutes` input, which must merge with the site code or GitHub refuses the dispatch. closed when: a Regenerate at 10 minutes airs within 10% of 10.
-- Podcast queue (D217): fakes and the built site only; Cancel needs the token's Actions write (unchecked since 2026-10-14), and a Catch up stopped while recording voices loses that run's usage charge; other devices' runs show only while this one has something showing, `run.yml` runs (named `run`) only as this browser's own. closed when: the owner starts a Catch up and a regeneration, sees both rows move, cancels one, and the finished one's toast opens it.
+- Podcast queue (D218): fakes and the built site only; Cancel needs the token's Actions write (unchecked since 2026-10-14), and a Catch up stopped while recording voices loses that run's usage charge; other devices' runs show only while this one has something showing. closed when: the owner starts a Catch up and a regeneration, sees both rows move, cancels one, and the finished one's toast opens it.
 - Not built: a length option above 15 minutes (the 19,000-character narration request is full at 15). closed when: the owner asks for it.
 - Discovery copies rank below an outlet's own entry in dedupe (2026-10-28). closed when: a run's dedupe report keeps the outlet's entry where a discovery copy was found.
 - Opus on runners (D198, #381, #388). closed when: an audio run logs `ffmpeg version`, its digest has `m4a_url`, and the owner plays /d/2026-10-24 on an iPhone.
@@ -57,7 +58,6 @@ Unit (CI): 311 files, 5,010 tests (10-28), 86 s. Site e2e: 411 runs (10-28), 10 
 - Vercel storage near 10 GB (2026-10-24), unexplained by narration (4 MB a digest, pruned at 120 days). closed when: explained.
 - No passphrase (D160): anyone with the URL can run, narrate, delete and edit config, inside the caps.
 - Budget counters can read below real spend (an edit that does not lengthen a briefing, two charges at once, a function killed mid-synthesis); the workflow and the site keep separate counters against one Speechify allowance.
-- `markSeen` records every judged id, so items cut by the cap are hidden for 90 days.
 - A save made while a briefing runs waits in the `singularity` queue; a later save replaces an earlier waiting one; closing the tab in the 10 s gap loses it (D79, D91).
 
 ## Next

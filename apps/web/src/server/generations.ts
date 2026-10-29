@@ -4,7 +4,7 @@ import { isSameOrigin } from "./generate";
 import { createGitHubClient, type FetchLike, type WorkflowRun } from "./github";
 import type { ApiResult } from "./http";
 import { describeError } from "./redact";
-import { isOurRun, isPodcastRun, parseRunId, progressOf } from "./status";
+import { isOurRun, isPodcastRun, isScheduledRun, parseRunId, progressOf } from "./status";
 
 /**
  * GET /api/generations: what is being made right now, and POST /api/cancel: stop one of them. A
@@ -41,17 +41,23 @@ export interface CancelDeps extends GenerationsDeps {
 export const GENERATIONS_CACHE_CONTROL = "private, max-age=3";
 export const MAX_CANCEL_BODY_CHARS = 256;
 
-/** A delete and a dry run are runs of run.yml too, but nobody is waiting for a briefing from them. */
+/**
+ * run.yml names its runs (D217). A delete and a dry run are runs too, but nobody is waiting for a
+ * briefing from them, and the schedule's own Daily and Weekly are made in the background, so the
+ * queue shows only a Catch up and a regeneration (the owner's call, 2026-10-29). The old name
+ * "run" was every dispatched briefing, so it still lists.
+ */
 const isGeneration = (run: WorkflowRun): boolean =>
-  !run.title.startsWith("delete ") && run.title !== "dry run";
+  !run.title.startsWith("delete ") && !run.title.startsWith("dry run") && !isScheduledRun(run);
 
 /** A digest id or an episode id, the only targets a row carries to the page. */
 const TARGET_ID = /^(\d{4}-\d{2}-\d{2}(-weekly|-[2-9]|-[1-9]\d+)?|ep-\d{8}-\d{4})$/;
 
 /**
  * What a run is, from its title. podcast.yml names a regeneration "regenerate <episode id>" and a
- * Catch up "episode" (D213). Every dispatched run of run.yml is a regeneration (nothing else makes a
- * briefing by hand), whose title does not yet name its digest, so its target is unknown here.
+ * Catch up "episode" (D213), and run.yml a regeneration "regenerate <digest id>" (D217). What is left
+ * of run.yml (an "on-demand" or the old "run") is a briefing made by hand, so a regeneration whose
+ * target is unknown here.
  */
 export function kindOf(run: WorkflowRun): Pick<GenerationRow, "kind" | "target"> {
   if (run.title === "regenerate" || run.title.startsWith("regenerate ")) {

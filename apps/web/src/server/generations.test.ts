@@ -56,11 +56,15 @@ describe("the list of generations", () => {
     });
   });
 
-  // A delete and a dry run are runs of run.yml, but nobody waits for a briefing from them.
-  it("leaves out a delete and a dry run", async () => {
+  // A delete and a dry run are runs of run.yml, but nobody waits for a briefing from them, and the
+  // schedule's Daily and Weekly are made in the background (D217).
+  it("leaves out a delete, a dry run and the schedule's own runs", async () => {
     const github = setup([
       runJson({ id: 21, status: "in_progress", display_title: "delete 2026-10-27" }),
-      runJson({ id: 22, status: "in_progress", display_title: "dry run" }),
+      runJson({ id: 22, status: "in_progress", display_title: "dry run scheduled" }),
+      runJson({ id: 23, status: "in_progress", display_title: "daily 2026-10-27" }),
+      runJson({ id: 24, status: "in_progress", display_title: "weekly 2026-10-25" }),
+      runJson({ id: 25, status: "in_progress", display_title: "scheduled" }),
     ]);
     const result = await handleGenerations({ env, fetch: github.fetch });
     expect(result.body).toEqual({ generations: [] });
@@ -99,7 +103,14 @@ describe("the list of generations", () => {
       }),
     ];
     const github = setup(
-      [runJson({ id: 45, status: "in_progress", display_title: "run" })],
+      [
+        runJson({
+          id: 45,
+          status: "in_progress",
+          display_title: "regenerate 2026-10-26",
+          created_at: "2026-10-28T04:00:00Z",
+        }),
+      ],
       episodes,
     );
     for (const id of [41, 42, 43, 45]) {
@@ -110,7 +121,7 @@ describe("the list of generations", () => {
       result.body as { generations: { run_id: number; kind: string; target: string | null }[] }
     ).generations;
     expect(rows.map(({ run_id, kind, target }) => [run_id, kind, target])).toEqual([
-      [45, "regenerate", null],
+      [45, "regenerate", "2026-10-26"],
       [41, "catch_up", null],
       [42, "regenerate", "ep-20261027-1405"],
       [43, "regenerate", null],

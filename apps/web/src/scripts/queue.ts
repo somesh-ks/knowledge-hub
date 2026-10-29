@@ -125,9 +125,9 @@ function currentItems(): Item[] {
   const now = Date.now();
   for (const [id, at] of stopped) if (now - at > CANCELLED_HIDE_MS) stopped.delete(id);
   const run = record();
-  // run.yml names every dispatched run "run", so a briefing run from another device cannot be told from
-  // the schedule's Daily or Weekly, which are never listed. Only this browser's own is drawn until
-  // run.yml names a regeneration "regenerate <id>" (D217).
+  // run.yml names a regeneration "regenerate <id>" and the schedule's Daily and Weekly are never listed
+  // (D217). A briefing row without a target is a run under the old name "run" or one made by hand, which
+  // nobody here asked for: only this browser's own is drawn.
   const items: Item[] = rows
     .filter((row) => !stopped.has(row.run_id))
     .filter((row) => row.what !== "briefing" || row.target !== null || row.run_id === run?.id)

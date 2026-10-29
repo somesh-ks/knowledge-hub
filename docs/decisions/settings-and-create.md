@@ -311,12 +311,12 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Rejected: keeping the stored fields as dormant data (a value nobody can see or clear would still narrow a run); a real two-host weekly (a larger build, not asked for).
 - Supersedes: D184. Amends: D91, D100, D133 (the Weekly Format back and forth ends).
 
-## D217: the podcast queue replaces the generations list and the run strip
+## D218: the podcast queue replaces the generations list and the run strip
 
 - Date: 2026-10-29 (the owner's queue plan, and his answers on the table).
 - Decision: what is being made shows in one queue, drawn from one script and one list of rows. It lists a Catch up and a regeneration while they are made, never a Daily, a Weekly or a delete, and it exists only while there is something to show. Below 64rem a dock sits directly above the bottom bar (never a modal): one row folded ("Generating podcast 45%"), the rows when opened. From 64rem a row under "Updated {date}" in the side column opens the rows in a popover. A row is a thumbnail, a name (`Catch up · 7 Oct`, `Weekly podcast · W24`), the time left, the stage, Cancel, and a ring with the percent. Cancel goes once the voices are being recorded. A run that ends well leaves, and a toast with Open says so; a failed, lost or cancelled one stays with its action until dismissed. The percent is a share of expected time weighed by stage length, and a ring never goes back. The old top-of-column icon, the side card and the strip's expanded card are gone.
 - Why: the owner wanted a queue that reads as downloads do, and the strip, the card and the list each told the same run differently. A run that finished lingered in all three.
 - Rejected: a modal or sheet for the dock (it blocked the bar); album art in the rows (the owner: not needed); polling `/api/generations` on every page to find another device's run (a GitHub call a page; the queue asks only while this device has something to show); a login gate on Cancel (owner: keep it open).
-- Revisit if: another device's run must show here without a run of this device's own (one cheap check a tab session), or `run.yml` names a regeneration `regenerate <id>` so the queue can tell it from the schedule's run.
+- Revisit if: another device's run must show here without a run of this device's own (one cheap check a tab session); `run.yml` now names a regeneration `regenerate <id>` (D217), so only a briefing under the old name `run` or made by hand is still hidden for other devices.
 - Supersedes: D208's list and card; amends D204's strip.
 
