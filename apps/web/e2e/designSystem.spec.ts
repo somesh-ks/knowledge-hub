@@ -227,7 +227,8 @@ test.describe("one page gutter", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    for (const path of ["/settings", "/d/2026-10-07"]) {
+    const widths: Record<string, number> = {};
+    for (const path of ["/settings", "/d/2026-10-07", "/library", "/create"]) {
       await page.goto(path);
       await expect(page.locator("main h1, main .hero").first()).toBeVisible();
       const room = await page.evaluate(() => {
@@ -235,13 +236,21 @@ test.describe("one page gutter", () => {
         const nav = document.querySelector(".app-nav")?.getBoundingClientRect();
         if (!main || !nav) throw new Error("no main or navigation");
         // The body's edge, not the window's: a reserved scrollbar gutter is no room of the page's.
-        return [main.left - nav.right, document.body.getBoundingClientRect().right - main.right];
+        return [
+          main.left - nav.right,
+          document.body.getBoundingClientRect().right - main.right,
+          main.width,
+        ];
       });
       expect(
         Math.abs((room[0] ?? 0) - (room[1] ?? 0)),
         `${path}: ${room.join(" against ")}`,
       ).toBeLessThan(2);
+      widths[path] = room[2] ?? 0;
     }
+    // The Library and Create take the width of a column and a contents list together, not the column's.
+    expect(widths["/library"]).toBeGreaterThan((widths["/settings"] ?? 0) + 100);
+    expect(widths["/create"]).toBeGreaterThan((widths["/settings"] ?? 0) + 100);
   });
 });
 
