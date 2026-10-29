@@ -6,6 +6,7 @@ import { extractEntries, findDate } from "../src/fetch/firecrawlExtract.js";
 import { fetchHn, hnQueryUrl } from "../src/fetch/hn.js";
 import { fetchLobsters } from "../src/fetch/lobsters.js";
 import type { ExaQuery } from "../src/fetch/queries.js";
+import { fetchReddit } from "../src/fetch/reddit.js";
 import { SourceSkipped } from "../src/fetch/types.js";
 import { fakeFetch, fixture, makeDeps, makeSource, NOW, WIDE } from "./fetch-helpers.js";
 
@@ -76,6 +77,15 @@ describe("fetchHn", () => {
     await expect(fetchHn(source, WIDE, deps)).rejects.toThrow(/unexpected Hacker News response/);
   });
 
+  it("asks for the stories about a source's words, any one of them matching", () => {
+    const url = new URL(hnQueryUrl("https://x.test/s", "story", 50, 5, "LLM agents"));
+    expect(url.searchParams.get("query")).toBe("LLM agents");
+    expect(url.searchParams.get("optionalWords")).toBe("LLM agents");
+    expect(new URL(hnQueryUrl("https://x.test/s", "story", 50, 5)).searchParams.has("query")).toBe(
+      false,
+    );
+  });
+
   it("builds the query URL", () => {
     expect(hnQueryUrl("https://x.test/s", "story", 100, 5)).toBe(
       "https://x.test/s?tags=story&numericFilters=points%3E100%2Ccreated_at_i%3E5&hitsPerPage=100",
@@ -121,6 +131,59 @@ describe("fetchLobsters", () => {
     const items = await fetchLobsters(source, WIDE, deps);
     expect(items[0]?.url).toBe("https://lobste.rs/s/abc123");
     expect(items[0]?.author).toBe("alice");
+  });
+});
+
+describe("fetchReddit", () => {
+  const source = makeSource({
+    id: "reddit-localllama",
+    type: "reddit",
+    feed_url: "https://www.reddit.com/r/LocalLLaMA/top.json?t=day&limit=100",
+    options: { subreddit: "LocalLLaMA", min_score: "50" },
+  });
+  const post = (overrides: Record<string, unknown>) => ({
+    data: {
+      title: "A post",
+      url: "https://example.com/a",
+      permalink: "/r/LocalLLaMA/comments/abc/a_post/",
+      author: "someone",
+      score: 300,
+      num_comments: 80,
+      created_utc: Date.parse("2026-10-05T10:00:00Z") / 1000,
+      is_self: false,
+      ...overrides,
+    },
+  });
+  const listing = (...posts: unknown[]) => JSON.stringify({ data: { children: posts } });
+
+  it("keeps posts above the score floor with score and comments as signals", async () => {
+    const deps = makeDeps(
+      fakeFetch({
+        [source.feed_url as string]: listing(
+          post({}),
+          post({ title: "Pinned", stickied: true }),
+          post({ title: "Quiet", score: 10 }),
+          post({ title: "Adult", over_18: true }),
+          post({
+            title: "Self post",
+            is_self: true,
+            url: "https://www.reddit.com/r/LocalLLaMA/comments/def/",
+            permalink: "/r/LocalLLaMA/comments/def/self_post/",
+            selftext: "Hello",
+          }),
+        ),
+      }),
+    );
+    const items = await fetchReddit(source, WIDE, deps);
+    expect(items.map((item) => item.title)).toEqual(["A post", "Self post"]);
+    expect(items[0]?.signals).toEqual({ reddit_score: 300, reddit_comments: 80 });
+    expect(items[1]?.url).toBe("https://www.reddit.com/r/LocalLLaMA/comments/def/self_post/");
+  });
+
+  it("fails on an unexpected shape, and without a subreddit", async () => {
+    const deps = makeDeps(fakeFetch({ [source.feed_url as string]: '{"message":"Blocked"}' }));
+    await expect(fetchReddit(source, WIDE, deps)).rejects.toThrow(/unexpected Reddit response/);
+    await expect(fetchReddit({ ...source, options: {} }, WIDE, deps)).rejects.toThrow(/subreddit/);
   });
 });
 

@@ -44,6 +44,10 @@ function problemsOf(source: Source): string[] {
       return source.options.issn && ISSN.test(source.options.issn)
         ? []
         : [`${where}: crossref needs options.issn`];
+    case "reddit":
+      return source.options.subreddit && /^\w+$/.test(source.options.subreddit)
+        ? []
+        : [`${where}: reddit needs options.subreddit`];
     case "hn":
     case "arxiv":
     case "lobsters":

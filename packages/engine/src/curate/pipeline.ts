@@ -6,6 +6,7 @@ import {
   VOICE_LIMITS,
 } from "@singularity/core";
 import { type AuthorityMatcher, withAuthority } from "../authority/authority.js";
+import { type CommunityFile, withCommunity } from "../community/community.js";
 import type { Logger } from "../context.js";
 import type { ExtractedText } from "../extract/extractText.js";
 import { judgeWithCache } from "../judge/cache.js";
@@ -49,6 +50,7 @@ export interface CurateInput {
   offCategories?: readonly string[];
   /** The owner's vetted publishers (D234). */
   authority?: AuthorityMatcher;
+  community?: CommunityFile;
 }
 
 export interface CurateCounts {
@@ -166,7 +168,12 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
   for (const entry of judged.entries) {
     const item = byId.get(entry.item_id);
     if (item)
-      scored.push(withAuthority(scoreItem(entry, input.preferences, item), input.authority));
+      scored.push(
+        withCommunity(
+          withAuthority(scoreItem(entry, input.preferences, item), input.authority),
+          input.community,
+        ),
+      );
   }
 
   const selection = selectItems({

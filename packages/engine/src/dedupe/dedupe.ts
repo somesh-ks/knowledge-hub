@@ -95,6 +95,8 @@ function absorb(keep: Item, dropped: Item, sources: ReadonlyMap<string, Source>)
   const hnPoints = maxOf(keep.signals.hn_points, dropped.signals.hn_points);
   const hnComments = maxOf(keep.signals.hn_comments, dropped.signals.hn_comments);
   const lobsters = maxOf(keep.signals.lobsters_score, dropped.signals.lobsters_score);
+  const redditScore = maxOf(keep.signals.reddit_score, dropped.signals.reddit_score);
+  const redditComments = maxOf(keep.signals.reddit_comments, dropped.signals.reddit_comments);
   const coverage = maxOf(keep.signals.coverage, dropped.signals.coverage);
   const author = keep.author ?? dropped.author;
   const published = keep.published_at ?? dropped.published_at;
@@ -116,6 +118,8 @@ function absorb(keep: Item, dropped: Item, sources: ReadonlyMap<string, Source>)
       ...(hnPoints === undefined ? {} : { hn_points: hnPoints }),
       ...(hnComments === undefined ? {} : { hn_comments: hnComments }),
       ...(lobsters === undefined ? {} : { lobsters_score: lobsters }),
+      ...(redditScore === undefined ? {} : { reddit_score: redditScore }),
+      ...(redditComments === undefined ? {} : { reddit_comments: redditComments }),
       ...(coverage === undefined ? {} : { coverage }),
     },
     ...(hint ? { category_hint: hint } : {}),

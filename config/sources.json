@@ -1003,7 +1003,7 @@
       "url": "https://ui.shadcn.com/docs/changelog",
       "feed_url": "https://ui.shadcn.com/rss.xml",
       "tier": "daily",
-      "high_signal": true,
+      "high_signal": false,
       "category_hint": "ui_component_primitives",
       "enabled": true,
       "failures": 0,
@@ -1454,7 +1454,7 @@
       "url": "https://github.com/shadcn-ui/ui/releases",
       "feed_url": "https://github.com/shadcn-ui/ui/releases.atom",
       "tier": "daily",
-      "high_signal": true,
+      "high_signal": false,
       "category_hint": "ui_component_primitives",
       "enabled": true,
       "failures": 0,
@@ -1470,7 +1470,7 @@
       "url": "https://github.com/radix-ui/primitives/releases",
       "feed_url": "https://github.com/radix-ui/primitives/releases.atom",
       "tier": "daily",
-      "high_signal": true,
+      "high_signal": false,
       "category_hint": "ui_component_primitives",
       "enabled": true,
       "failures": 0,
@@ -1486,7 +1486,7 @@
       "url": "https://github.com/emilkowalski/sonner/releases",
       "feed_url": "https://github.com/emilkowalski/sonner/releases.atom",
       "tier": "daily",
-      "high_signal": true,
+      "high_signal": false,
       "category_hint": "ui_component_primitives",
       "enabled": true,
       "failures": 0,
@@ -1502,7 +1502,7 @@
       "url": "https://github.com/emilkowalski/vaul/releases",
       "feed_url": "https://github.com/emilkowalski/vaul/releases.atom",
       "tier": "daily",
-      "high_signal": true,
+      "high_signal": false,
       "category_hint": "ui_component_primitives",
       "enabled": true,
       "failures": 0,
@@ -1518,7 +1518,7 @@
       "url": "https://github.com/motiondivision/motion/releases",
       "feed_url": "https://github.com/motiondivision/motion/releases.atom",
       "tier": "daily",
-      "high_signal": true,
+      "high_signal": false,
       "category_hint": "css_canvas_motion_techniques",
       "enabled": true,
       "failures": 0,
@@ -1534,7 +1534,7 @@
       "url": "https://github.com/darkroomengineering/lenis/releases",
       "feed_url": "https://github.com/darkroomengineering/lenis/releases.atom",
       "tier": "daily",
-      "high_signal": true,
+      "high_signal": false,
       "category_hint": "css_canvas_motion_techniques",
       "enabled": true,
       "failures": 0,
@@ -1550,7 +1550,7 @@
       "url": "https://github.com/assistant-ui/assistant-ui/releases",
       "feed_url": "https://github.com/assistant-ui/assistant-ui/releases.atom",
       "tier": "daily",
-      "high_signal": true,
+      "high_signal": false,
       "category_hint": "ai_ux_interaction_patterns",
       "enabled": true,
       "failures": 0,
@@ -1566,7 +1566,7 @@
       "url": "https://github.com/mui/base-ui/releases",
       "feed_url": "https://github.com/mui/base-ui/releases.atom",
       "tier": "daily",
-      "high_signal": true,
+      "high_signal": false,
       "category_hint": "ui_component_primitives",
       "enabled": true,
       "failures": 0,
@@ -1673,6 +1673,142 @@
       "options": {
         "min_points": "30",
         "tags": "show_hn"
+      }
+    },
+    {
+      "id": "hn-ai",
+      "name": "Hacker News: AI",
+      "type": "hn",
+      "url": "https://news.ycombinator.com/news",
+      "feed_url": "https://hn.algolia.com/api/v1/search_by_date",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "frontier_model_releases",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "min_points": "50",
+        "query": "LLM AI agents Claude GPT Gemini model",
+        "tags": "story"
+      }
+    },
+    {
+      "id": "hn-design",
+      "name": "Hacker News: design",
+      "type": "hn",
+      "url": "https://news.ycombinator.com/best",
+      "feed_url": "https://hn.algolia.com/api/v1/search_by_date",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "ui_component_primitives",
+      "enabled": true,
+      "failures": 0,
+      "options": {
+        "min_points": "30",
+        "query": "design CSS UI UX typography animation Figma",
+        "tags": "story"
+      }
+    },
+    {
+      "id": "reddit-localllama",
+      "name": "Reddit: r/LocalLLaMA",
+      "type": "reddit",
+      "url": "https://www.reddit.com/r/LocalLLaMA",
+      "feed_url": "https://www.reddit.com/r/LocalLLaMA/top.json?t=day&limit=100",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "frontier_model_releases",
+      "enabled": false,
+      "failures": 0,
+      "options": {
+        "min_score": "50",
+        "note": "Off until a run shows Reddit lets a runner in (D240).",
+        "subreddit": "LocalLLaMA"
+      }
+    },
+    {
+      "id": "reddit-claudeai",
+      "name": "Reddit: r/ClaudeAI",
+      "type": "reddit",
+      "url": "https://www.reddit.com/r/ClaudeAI",
+      "feed_url": "https://www.reddit.com/r/ClaudeAI/top.json?t=day&limit=100",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "frontier_model_releases",
+      "enabled": false,
+      "failures": 0,
+      "options": {
+        "min_score": "50",
+        "note": "Off until a run shows Reddit lets a runner in (D240).",
+        "subreddit": "ClaudeAI"
+      }
+    },
+    {
+      "id": "reddit-webdev",
+      "name": "Reddit: r/webdev",
+      "type": "reddit",
+      "url": "https://www.reddit.com/r/webdev",
+      "feed_url": "https://www.reddit.com/r/webdev/top.json?t=day&limit=100",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "software_engineering_depth",
+      "enabled": false,
+      "failures": 0,
+      "options": {
+        "min_score": "100",
+        "note": "Off until a run shows Reddit lets a runner in (D240).",
+        "subreddit": "webdev"
+      }
+    },
+    {
+      "id": "reddit-css",
+      "name": "Reddit: r/css",
+      "type": "reddit",
+      "url": "https://www.reddit.com/r/css",
+      "feed_url": "https://www.reddit.com/r/css/top.json?t=day&limit=100",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "css_canvas_motion_techniques",
+      "enabled": false,
+      "failures": 0,
+      "options": {
+        "min_score": "50",
+        "note": "Off until a run shows Reddit lets a runner in (D240).",
+        "subreddit": "css"
+      }
+    },
+    {
+      "id": "reddit-uxdesign",
+      "name": "Reddit: r/UXDesign",
+      "type": "reddit",
+      "url": "https://www.reddit.com/r/UXDesign",
+      "feed_url": "https://www.reddit.com/r/UXDesign/top.json?t=day&limit=100",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "design_engineering_craft",
+      "enabled": false,
+      "failures": 0,
+      "options": {
+        "min_score": "30",
+        "note": "Off until a run shows Reddit lets a runner in (D240).",
+        "subreddit": "UXDesign"
+      }
+    },
+    {
+      "id": "reddit-web-design",
+      "name": "Reddit: r/web_design",
+      "type": "reddit",
+      "url": "https://www.reddit.com/r/web_design",
+      "feed_url": "https://www.reddit.com/r/web_design/top.json?t=day&limit=100",
+      "tier": "daily",
+      "high_signal": false,
+      "category_hint": "design_engineering_craft",
+      "enabled": false,
+      "failures": 0,
+      "options": {
+        "min_score": "30",
+        "note": "Off until a run shows Reddit lets a runner in (D240).",
+        "subreddit": "web_design"
       }
     },
     {

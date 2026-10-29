@@ -209,7 +209,8 @@ describe("the committed registry", () => {
     // Al Jazeera's top stories and its World desk share one feed; the top-stories source is off.
     const feeds = sources
       .filter((s) => s.enabled && s.feed_url)
-      .map((s) => `${feedsGeneralOnly(s.topic_ids)} ${s.feed_url}`);
+      // A Hacker News source asks one endpoint a question of its own (`options.query`, D240).
+      .map((s) => `${feedsGeneralOnly(s.topic_ids)} ${s.feed_url} ${s.options.query ?? ""}`);
     expect(feeds.length).toBe(new Set(feeds).size);
     // Every source is filed under a topic (D69), except the Exa searches, which carry their own.
     const neverPublish = new Set(["venture_capital_and_gossip", "generic_ai_hype_listicles"]);

@@ -147,6 +147,22 @@ describe("prefilter", () => {
     expect(run([strong, edge]).items.map((i) => i.title)).toEqual(["Plain launch"]);
   });
 
+  it("keeps strongly voted Reddit items over 200 points but not at exactly 200", () => {
+    const strong = makeItem({
+      url: "https://a.example/1",
+      title: "Plain thread",
+      source_id: "reddit",
+      signals: { reddit_score: 201 },
+    });
+    const edge = makeItem({
+      url: "https://a.example/2",
+      title: "Another plain thread",
+      source_id: "reddit",
+      signals: { reddit_score: 200 },
+    });
+    expect(run([strong, edge]).items.map((i) => i.title)).toEqual(["Plain thread"]);
+  });
+
   it("ranks keyword-rich, high-signal and well-voted items first, deterministically", () => {
     const keywordTitle = makeItem({
       url: "https://a.example/1",
