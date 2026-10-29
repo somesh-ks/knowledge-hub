@@ -19,7 +19,8 @@ const MAX_BOILERPLATE_LINE_CHARS = 200;
 /** A cookie banner can run to a paragraph; its phrasing is specific enough to match at any length. */
 const MAX_BANNER_LINE_CHARS = 600;
 
-const LINK = /!?\[([^\]]*)\]\([^)]*\)/g;
+// A link label may hold an image (`[![Logo](logo.png)](/)`).
+const LINK = /!?\[((?:[^\][]|!\[[^\]]*\]\([^)]*\))*)\]\([^)]*\)/g;
 
 /** Page furniture that survives main-content extraction. Only ever matched on a short line. */
 const BOILERPLATE: readonly RegExp[] = [
@@ -159,6 +160,8 @@ export function cleanMarkdown(markdown: string): string {
     .map((line) =>
       line
         .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+        // A link that wrapped only an image has no text left.
+        .replace(/\[\s*\]\([^)]*\)/g, "")
         // A link whose text is its own address says nothing; any other link keeps its text.
         .replace(/\[\s*https?:\/\/[^\]\s]*\s*\]\([^)]*\)/g, "")
         .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")

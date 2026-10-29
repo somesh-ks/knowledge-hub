@@ -463,6 +463,9 @@ describe("cleanMarkdown", () => {
     );
     expect(cleanMarkdown("Intro.\n\n<script>\nvar a = 1;\nmore.")).toBe("Intro.");
     expect(cleanMarkdown("Before.<svg />After.")).toBe("Before.After.");
+    expect(
+      cleanMarkdown("[![Logo](logo.png)](/)\n\nBody text. [![](x.png)](https://a.dev/b)"),
+    ).toBe("Body text.");
     expect(cleanMarkdown("Use `<script>` to load code.\n\nThe rest of the article.")).toBe(
       "Use `<script>` to load code.\n\nThe rest of the article.",
     );
