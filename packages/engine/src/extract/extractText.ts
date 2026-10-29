@@ -1,5 +1,6 @@
 import type { Item } from "@singularity/core";
 import type { Logger } from "../context.js";
+import { cleanMarkdown } from "./cleanMarkdown.js";
 import { type FetchHtmlOptions, fetchHtml } from "./fetchHtml.js";
 import { articleText, plainTextOf } from "./htmlToText.js";
 import { MAX_TEXT_CHARS, truncateAtParagraph } from "./truncate.js";
@@ -41,18 +42,9 @@ export interface ExtractDeps extends FetchHtmlOptions {
   maxChars?: number;
 }
 
-/** Light cleanup so scraped Markdown reads as prose: links keep their text, images and markers go. */
+/** Scraped Markdown as prose: links keep their text; images, menus, banners and bare URLs go. */
 export function markdownToText(markdown: string): string {
-  return markdown
-    .replace(/\r\n/g, "\n")
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/(\*\*|__)(.+?)\1/g, "$2")
-    .replace(/^```.*$/gm, "")
-    .replace(/[ \t]+/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  return cleanMarkdown(markdown);
 }
 
 interface Candidate {
