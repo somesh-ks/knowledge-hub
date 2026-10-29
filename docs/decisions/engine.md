@@ -391,7 +391,7 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Revisit if: the alert fires in a week with no extra runs (normal has grown), monitors replace listing scrapes (Step 2), or a week goes from past 150 to the stop before the owner saw the warning (the warning reaches the owner only in the Monday `health-warnings` issue and `singularity health`, not the Health page; the stop opens a `health` issue only if it still stands when the daily check runs; a same-day warning is then the fix).
 - Limit: the week is read from the ledger, and a failed dry run records nothing (`recordFailed.ts`), so its Firecrawl requests are not counted.
 - Amends: D222 (adds the alert; the 300 and the 60 a run are D222's).
-- Status: superseded by D227 (the alert moves from 150 to 210).
+- Status: Superseded by D227 (the alert moves from 150 to 210).
 
 ## D227: Firecrawl's week alerts at 210, not 150
 
