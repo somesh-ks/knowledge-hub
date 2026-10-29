@@ -26,7 +26,7 @@ Vercel's deployment protection cannot guard a project that is reached through an
 
 1. **Command center shell** (PR #421): `apps/admin` with Overview and a stub per section, in the reader's language.
 2. **Move what exists.** Costs and Health pages in the admin app, reading the reader's APIs, behind the gate; then remove `/analytics`, `/settings/health`, `/design` and Settings' Analytics rows from the reader, redirecting to the new addresses. Needs the rewrites.
-3. **Style guide** (`apps/design`), its own thread: colours, typography, tokens, atomic components, search, live states, the `*.design.ts` specs.
+3. **Style guide** (`apps/design`, D220, [spec](../specs/style-guide.md)): built in its own thread. Colours with live contrast, type, tokens, 44 component specs in atomic order with search, per-component live controls and cards that step through their states on hover. The reader's own `/design` page (D189) goes when the rewrite is live.
 4. **Coverage analytics:** from the specs and a scan of the app's CSS and markup, which shared parts have a spec, how much of the app uses them instead of one-off rules, which tokens are unused; the `design-check` rules feed it.
 5. **Sentry and analytics:** routes of the admin app that hold their own keys.
 

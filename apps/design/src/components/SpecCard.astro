@@ -1,0 +1,27 @@
+---
+import { type DesignSpec, defaultState } from "../../../web/src/lib/designSpec";
+import { componentHref } from "../lib/guide";
+
+interface Props {
+  spec: DesignSpec;
+}
+
+const { spec } = Astro.props;
+const haystack = [spec.title, spec.id, spec.category, spec.level, spec.summary, ...spec.classes]
+  .join(" ")
+  .toLowerCase();
+---
+
+{/* A component's card: its drawing in the middle, live. Hovering or focusing the card steps the
+     drawing through the component's states (thumbs.ts), so the card shows what the part does. The
+     drawing is inert (it can hold links and buttons, which must not nest in the card's own link),
+     and the title's link covers the card. */}
+<article class="guide-card" data-card data-level={spec.level} data-category={spec.category} data-haystack={haystack}>
+  <div class="guide-card-thumb" inert>
+    <div class="guide-card-art" data-thumb={spec.id} data-frame={spec.frame ?? "row"} set:html={spec.render(defaultState(spec.controls))} />
+  </div>
+  <div class="guide-card-body">
+    <a class="guide-card-title" href={componentHref(spec)}>{spec.title}</a>
+    <span class="guide-card-meta">{spec.category}</span>
+  </div>
+</article>

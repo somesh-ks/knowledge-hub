@@ -1,0 +1,15 @@
+---
+/**
+ * Which theme the page is drawn in, for looking at both without leaving the guide. It sets
+ * data-theme on the page for this tab only (themeChoice.ts); the reader's saved theme is untouched.
+ */
+---
+
+<fieldset class="segmented-choice" role="radiogroup" aria-label="Theme" data-theme-choice>
+  <label class="segmented-choice-item"><input type="radio" name="design-theme" value="system" checked /><span>System</span></label>
+  <label class="segmented-choice-item"><input type="radio" name="design-theme" value="light" /><span>Light</span></label>
+  <label class="segmented-choice-item"><input type="radio" name="design-theme" value="dark" /><span>Dark</span></label>
+</fieldset>
+<script>
+  import "../scripts/themeChoice";
+</script>

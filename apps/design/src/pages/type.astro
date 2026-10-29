@@ -1,0 +1,101 @@
+---
+import PageHead from "../components/PageHead.astro";
+import Shell from "../layouts/Shell.astro";
+import { primitive, semantic } from "../lib/guide";
+import { SECTIONS } from "../lib/sections";
+
+const section = SECTIONS.find((item) => item.path === "/type");
+const roles = semantic.get("text") ?? [];
+const sizes = (primitive.get("font") ?? []).filter((token) => token.path.startsWith("font.size."));
+const leading = (primitive.get("font") ?? []).filter((token) =>
+  token.path.startsWith("font.leading."),
+);
+const NOTES: Record<string, string> = {
+  display: "A page's title.",
+  lead: "A hero's title and the line that introduces a page.",
+  title: "A story's headline; one clear step above the text under it.",
+  heading: "A section heading: regular weight, never bold.",
+  label: "A control's words.",
+  body: "The interface's running text.",
+  reading: "Story and summary text: 16px at every width, one ink step under the headline.",
+  meta: "A line of facts under a title.",
+  caption: "The smallest text: a swatch's note, a count.",
+};
+---
+
+<Shell title="Type" current="/type">
+  <div class="settings-view guide-page" data-settings data-ready data-type>
+    <PageHead title="Type" note={section?.note ?? ""} />
+
+    <section aria-labelledby="specimen">
+      <h2 class="section-head" id="specimen">Typeface</h2>
+      <p class="guide-note">One family, Google Sans Flex, latin only, with a metric-matched fallback. Two weights, regular and medium; a test bans a third (D90).</p>
+      <p class="guide-type-sample" style="--sample-size: var(--font-size-section)">Aa Bb Cc Dd Ee Ff Gg Hh Ii Jj Kk Ll Mm Nn Oo Pp Qq Rr Ss Tt Uu Vv Ww Xx Yy Zz 0123456789</p>
+      <p class="guide-type-sample" style="--sample-weight: var(--font-weight-medium); --sample-size: var(--font-size-section)">Medium weight: the quick brown fox jumps over the lazy dog</p>
+    </section>
+
+    <section aria-labelledby="roles">
+      <h2 class="section-head" id="roles">Roles</h2>
+      <p class="guide-note">Each role is a family, size, weight, tracking and leading, read by components as one token. Type your own sample to try it.</p>
+      <label class="search-field guide-sample-field">
+        <span class="sr-only">Sample text</span>
+        <input type="text" value="The quick brown fox jumps over the lazy dog" maxlength="80" autocomplete="off" data-sample-input />
+      </label>
+      <ul class="guide-type-list" role="list">
+        {
+          roles.map((token) => {
+            const role = token.path.split(".").at(-1) ?? "";
+            return (
+              <li class="guide-type-row" id={`text-${role}`}>
+                <p class="guide-type-sample" data-sample style={`--sample-family: var(${token.name}-family); --sample-size: var(${token.name}-size); --sample-weight: var(${token.name}-weight); --sample-tracking: var(${token.name}-tracking); --sample-leading: var(${token.name}-leading)`}>The quick brown fox jumps over the lazy dog</p>
+                <span class="guide-type-spec" data-role-spec>
+                  <span>{token.name}</span>
+                  <span data-size />
+                  <span data-weight />
+                  <span data-leading />
+                </span>
+                <span class="guide-swatch-note">{NOTES[role] ?? ""}</span>
+              </li>
+            );
+          })
+        }
+      </ul>
+    </section>
+
+    <section aria-labelledby="sizes">
+      <h2 class="section-head" id="sizes">Size scale</h2>
+      <p class="guide-note">The sizes alone. A title, lead and display size are fluid: they grow between a phone and a laptop.</p>
+      <div class="guide-table-wrap">
+        <table class="guide-table">
+          <thead><tr><th>Token</th><th>Value</th><th>Sample</th></tr></thead>
+          <tbody>
+            {
+              sizes.map((token) => (
+                <tr>
+                  <td><code>{token.name}</code></td>
+                  <td>{token.type === "dimension" ? token.value : "fluid"}</td>
+                  <td><span class="guide-type-sample" style={`--sample-size: var(${token.name})`}>Singularity</span></td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="leading">
+      <h2 class="section-head" id="leading">Leading</h2>
+      <div class="guide-table-wrap">
+        <table class="guide-table">
+          <thead><tr><th>Token</th><th>Value</th></tr></thead>
+          <tbody>
+            {leading.map((token) => <tr><td><code>{token.name}</code></td><td>{token.value}</td></tr>)}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</Shell>
+<script>
+  import "../scripts/type";
+</script>

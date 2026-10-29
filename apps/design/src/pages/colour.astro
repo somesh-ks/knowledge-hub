@@ -1,0 +1,78 @@
+---
+import PageHead from "../components/PageHead.astro";
+import ThemeChoice from "../components/ThemeChoice.astro";
+import Shell from "../layouts/Shell.astro";
+import { COLOUR_GROUPS, COLOUR_PAIRS, colourToken, primitive } from "../lib/guide";
+import { SECTIONS } from "../lib/sections";
+
+const section = SECTIONS.find((item) => item.path === "/colour");
+const ramps = ["grey", "blue", "green", "amber", "red"].map((hue) => ({
+  hue,
+  steps: (primitive.get("color") ?? []).filter((token) => token.path.startsWith(`color.${hue}.`)),
+}));
+---
+
+<Shell title="Colour" current="/colour">
+  <div class="settings-view guide-page" data-settings data-ready data-colour>
+    <PageHead title="Colour" note={section?.note ?? ""} />
+    <ThemeChoice />
+
+    {
+      COLOUR_GROUPS.map((group) => (
+        <section aria-labelledby={`g-${group.title}`}>
+          <h2 class="section-head" id={`g-${group.title}`}>{group.title}</h2>
+          <p class="guide-note">{group.note}</p>
+          <ul class="guide-swatches" role="list">
+            {group.names.map((name) => {
+              const token = colourToken(name);
+              return (
+                <li class="guide-swatch" id={name} style={`--swatch: var(--color-${name})`}>
+                  <span class="guide-swatch-fill" aria-hidden="true" />
+                  <span class="guide-swatch-name">--color-{name}</span>
+                  <span class="guide-swatch-value" data-resolve={`--color-${name}`}>{token?.value}</span>
+                  {token?.description && <span class="guide-swatch-note">{token.description.split(". ")[0]?.replace(/\.$/, "")}.</span>}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))
+    }
+
+    <section aria-labelledby="pairs">
+      <h2 class="section-head" id="pairs">Contrast</h2>
+      <p class="guide-note">Each pair as the app sets it, measured in the current theme. Switch the theme above to check the other.</p>
+      <ul class="guide-pairs" role="list">
+        {
+          COLOUR_PAIRS.map((pair) => (
+            <li class="guide-pair" data-pair data-fg={`--color-${pair.fg}`} data-bg={`--color-${pair.bg}`} data-min={pair.min}>
+              <span class="guide-pair-sample" style={`--pair-fg: var(--color-${pair.fg}); --pair-bg: var(--color-${pair.bg})`}>
+                <span>Aa</span>
+                <span class="guide-pair-ratio" data-ratio data-min={pair.min}>…</span>
+              </span>
+              <span class="guide-swatch-note">{pair.note}: {pair.fg} on {pair.bg}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section aria-labelledby="palette">
+      <h2 class="section-head" id="palette">Palette</h2>
+      <p class="guide-note">The primitive ramps the roles above are built from. A component never reads these; it reads a role.</p>
+      {
+        ramps.map((ramp) => (
+          <div>
+            <h3 class="guide-group-name">{ramp.hue}</h3>
+            <ul class="guide-ramp" role="list">
+              {ramp.steps.map((token) => <li style={`--swatch: var(--${token.name.slice(2)})`} title={`${token.name} ${token.value}`} />)}
+            </ul>
+          </div>
+        ))
+      }
+    </section>
+  </div>
+</Shell>
+<script>
+  import "../scripts/colour";
+</script>

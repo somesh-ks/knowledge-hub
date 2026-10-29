@@ -139,6 +139,7 @@ Ask, then what was built, then the decision. Values are as built.
   - Reading measure 34rem (D86).
   - Every page starts 64px down from 40rem (D102).
   - Pages share one top rhythm to 1px (`e2e/rhythm.spec.ts`).
+- **The style guide** (2026-10-29, D220). The owner: the design system "should move out on its own", with "all the controls that I need, like search and categorized components", a component page that "has the controls to switch different states", and thumbnails with "some nice interaction of the component itself" (m3.material.io as the example), drawn in the app's own language ("the good design language we have from the main app is not reflected" in the first admin attempt). Built as `apps/design`: a spec per part, a coverage test, cards that step through a part's states on hover, live contrast on the Colour page. Not built: a per-part "on this page" rail, the spec markup rendered from the `.astro` itself (it is a hand-copied string, so it can drift).
 
 ### Colour, theme and art
 - **Colour model.**

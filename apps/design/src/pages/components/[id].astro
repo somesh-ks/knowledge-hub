@@ -1,0 +1,197 @@
+---
+import Icon from "../../../../web/src/components/Icon.astro";
+import {
+  type DesignControl,
+  type DesignSpec,
+  type DesignState,
+  defaultState,
+} from "../../../../web/src/lib/designSpec";
+import PageHead from "../../components/PageHead.astro";
+import ThemeChoice from "../../components/ThemeChoice.astro";
+import Shell from "../../layouts/Shell.astro";
+import { prettyMarkup } from "../../lib/format";
+import { componentHref, designSpecs, LEVEL_TITLES, usageOf } from "../../lib/guide";
+import { href } from "../../lib/sections";
+
+export function getStaticPaths() {
+  return designSpecs.map((spec, index) => ({
+    params: { id: spec.id },
+    props: { spec, previous: designSpecs[index - 1], next: designSpecs[index + 1] },
+  }));
+}
+
+interface Props {
+  spec: DesignSpec;
+  previous?: DesignSpec;
+  next?: DesignSpec;
+}
+
+const { spec, previous, next } = Astro.props;
+const state = defaultState(spec.controls);
+const usage = usageOf(spec);
+const frame = spec.frame ?? "row";
+
+// The controls, filed under their group in the order each group first appears.
+const groups = new Map<string, DesignControl[]>();
+for (const control of spec.controls)
+  groups.set(control.group, [...(groups.get(control.group) ?? []), control]);
+
+// "States at a glance": every option of every choice, and both values of every toggle, drawn with
+// the other controls at their defaults.
+interface GalleryRow {
+  control: DesignControl;
+  cells: { label: string; state: DesignState }[];
+}
+const gallery = spec.controls.flatMap((control): GalleryRow[] => {
+  if (control.kind === "choice")
+    return [
+      {
+        control,
+        cells: control.options.map((option) => ({
+          label: option.label,
+          state: { ...state, [control.id]: option.value },
+        })),
+      },
+    ];
+  if (control.kind === "toggle")
+    return [
+      {
+        control,
+        cells: [false, true].map((value) => ({
+          label: value ? "On" : "Off",
+          state: { ...state, [control.id]: value },
+        })),
+      },
+    ];
+  return [];
+});
+const related = designSpecs.filter(
+  (other) => other.category === spec.category && other.id !== spec.id,
+);
+---
+
+<Shell title={spec.title} current="">
+  <div class="settings-view guide-page" data-settings data-ready data-spec={spec.id}>
+    <a class="settings-crumb text-link" href={href("")}>Components /</a>
+    <PageHead title={spec.title} note={spec.summary} />
+    <p class="guide-meta">{LEVEL_TITLES[spec.level].slice(0, -1)} · {spec.category}{spec.decisions?.length ? ` · ${spec.decisions.join(", ")}` : ""}</p>
+
+    <section aria-labelledby="preview">
+      <h2 class="section-head" id="preview">Try it</h2>
+      <div class="guide-stage" data-frame={frame} data-stage set:html={spec.render(state)} />
+      {
+        groups.size > 0 && (
+          <form class="manage-form guide-controls" data-controls novalidate>
+            {[...groups.entries()].map(([group, controls]) => (
+              <fieldset class="guide-control-group">
+                <legend class="guide-group-name">{group}</legend>
+                {controls.map((control) => (
+                  <div class="manage-field">
+                    {control.kind === "choice" && (
+                      <>
+                        <span class="field-label" id={`c-${control.id}`}>{control.label}</span>
+                        <fieldset class="segmented-choice" role="radiogroup" aria-labelledby={`c-${control.id}`}>
+                          {control.options.map((option) => (
+                            <label class="segmented-choice-item"><input type="radio" name={control.id} value={option.value} checked={option.value === control.value} data-control={control.id} /><span>{option.label}</span></label>
+                          ))}
+                        </fieldset>
+                      </>
+                    )}
+                    {control.kind === "toggle" && (
+                      <div class="settings-row guide-toggle-row">
+                        <label class="settings-label" for={`c-${control.id}`}>{control.label}</label>
+                        <input class="settings-switch" id={`c-${control.id}`} type="checkbox" role="switch" checked={control.value} data-control={control.id} />
+                      </div>
+                    )}
+                    {control.kind === "text" && (
+                      <>
+                        <label for={`c-${control.id}`}>{control.label}</label>
+                        <input class="manage-input" id={`c-${control.id}`} type="text" value={control.value} maxlength={control.max} autocomplete="off" data-control={control.id} />
+                      </>
+                    )}
+                  </div>
+                ))}
+              </fieldset>
+            ))}
+            <div class="manage-field">
+              <span class="field-label" id="c-theme">Theme</span>
+              <ThemeChoice />
+            </div>
+          </form>
+        )
+      }
+    </section>
+
+    {
+      gallery.length > 0 && (
+        <section aria-labelledby="states">
+          <h2 class="section-head" id="states">At a glance</h2>
+          {gallery.map(({ control, cells }) => (
+            <div class="guide-gallery">
+              <h3 class="guide-group-name">{control.label}</h3>
+              <ul class="guide-cells" role="list" data-frame={frame}>
+                {cells.map((cell) => (
+                  <li class="guide-cell">
+                    <div class="guide-cell-frame" data-frame={frame} set:html={spec.render(cell.state)} />
+                    <span class="guide-cell-label">{cell.label}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+      )
+    }
+
+    <section aria-labelledby="use">
+      <h2 class="section-head" id="use">Use</h2>
+      {usage.map((text) => <p class="guide-prose">{text}</p>)}
+      {
+        spec.guidance && spec.guidance.length > 0 && (
+          <ul class="guide-list">
+            {spec.guidance.map((line) => <li>{line}</li>)}
+          </ul>
+        )
+      }
+      {usage.length === 0 && !spec.guidance?.length && <p class="guide-note">No usage note yet.</p>}
+    </section>
+
+    <section aria-labelledby="markup">
+      <h2 class="section-head" id="markup">Markup</h2>
+      <p class="guide-note">The component as the app draws it. It follows the controls above.</p>
+      <div class="guide-code-wrap">
+        <pre class="guide-code" tabindex="0"><code data-code>{prettyMarkup(spec.render(state))}</code></pre>
+        <button class="btn-secondary guide-copy" type="button" data-copy><Icon name="share" /><span>Copy</span></button>
+      </div>
+      <h3 class="guide-group-name">Classes</h3>
+      <ul class="guide-tags" role="list">
+        {spec.classes.map((name) => <li><code>.{name}</code></li>)}
+      </ul>
+    </section>
+
+    {
+      (previous || next || related.length > 0) && (
+        <section aria-labelledby="more">
+          <h2 class="section-head" id="more">More</h2>
+          <div class="rows card-group">
+            {previous && (
+              <a class="row-action" href={componentHref(previous)}>
+                <span class="settings-text"><span class="settings-label">{previous.title}</span><span class="settings-hint">Previous · {previous.category}</span></span>
+                <Icon name="chevronLeft" />
+              </a>
+            )}
+            {next && (
+              <a class="row-action" href={componentHref(next)}>
+                <span class="settings-text"><span class="settings-label">{next.title}</span><span class="settings-hint">Next · {next.category}</span></span>
+                <Icon name="chevronRight" />
+              </a>
+            )}
+          </div>
+        </section>
+      )
+    }
+  </div>
+</Shell>
+<script>
+  import "../../scripts/stage";
+</script>

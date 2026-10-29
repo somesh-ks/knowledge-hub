@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-29 | [The style guide as its own app](2026-10-29-style-guide.md) | `apps/design` at `/design`: a spec per shared part with live state controls, cards that react to hover, live contrast, search; a test fails on a shared class with no spec (D220) |
 | 2026-10-28 | [A list of generations, with Cancel](2026-10-28-generations-list.md) | An icon and popover on desktop and a sheet on a phone listing every generation under way with cover, bar, time left and Cancel; `/api/generations`, `/api/cancel`, a cancelled run ending as Cancelled (D208) |
 | 2026-10-28 | [The Health page](2026-10-28-health-page.md) | Settings, Analytics, Health: briefings, run times, field speed, errors, workflow runs and services read live, judged by the daily check's lines (D203) |
 | 2026-10-27 | [Deploys load themselves](2026-10-27-auto-update.md) | The Reload toast replaced by a guarded automatic reload (D202); the build check read the swapped head meta |

@@ -287,3 +287,13 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Rejected: a separate repository (D189: one maintainer, no second consumer); `/admin` routes inside the reader (PR #420, closed); subdomains (not the addresses asked for); Storybook (D189).
 - Revisit if: the data code moves into a package (then remove the reader's routes), or a second consumer of the components appears.
 - Amends: D189.
+
+## D220: the style guide is drawn from component specs
+
+- Date: 2026-10-29 (the owner: the style guide "should move out on its own", with the app's design language, search, categories, a component's states to switch, and cards that react to hover, "like m3.material.io").
+- Decision: `apps/design` is a static Astro app served at `/design` (own Vercel project, reached by the reader's rewrite), drawn with the reader's own stylesheets. Every shared part has a spec, `*.design.ts` beside its component or stylesheet in `apps/web/src`: data (id, level, category, the classes it draws, controls) and a `render(state)` returning the markup as a string, so one spec runs at build (the page), in the browser (the state controls and the card's hover steps edit the live nodes in place, so the part's own transitions play) and in a test. `designSpecs.test.ts` fails when a class in `buttons.css`, `primitives.css`, `banner.css` or its short list of shared Settings, form, menu and shell classes has no spec, when a spec claims a class it never draws, or when two share an id. Pages: Components (atomic order, search over components, colours and tokens, level and category filters), a page per component (live controls, every state at a glance, usage comment, markup), Colour (values and WCAG ratios measured live in the current theme), Type, Tokens (motion tokens run on a press) and Principles. The guide's theme choice is per tab and never writes the reader's preferences.
+- Why: the old catalogue (D189) was one long page of hand-written specimens in the reader; specs next to the parts make a missing or stale entry a failing test, and the string markup is the only form that can re-render in the browser.
+- Rejected: Storybook (D189); rendering the `.astro` components (they cannot run in a browser, so a control could not change them); a screenshot gallery.
+- Revisit if: a spec's markup drifts from its component (then render the `.astro` with Astro's container API at build and drop the controls that need script), or a second consumer of the parts appears.
+- Amends: D189.
+
