@@ -52,6 +52,17 @@ describe("design-system components", () => {
         expect(part.summary, `${label}: summary`).not.toBe("");
         expect(part.useWhen.length, `${label}: useWhen`).toBeGreaterThan(0);
         expect(part.dontUseWhen.length, `${label}: dontUseWhen`).toBeGreaterThan(0);
+        for (const { when, instead } of part.dontUseWhen) {
+          expect(when, `${label}: a dontUseWhen with no situation`).not.toBe("");
+          // A pointer into a component the system already has must name a variant or tone it has.
+          const [target, partName] = (instead ?? "").split(".");
+          const known = COMPONENTS.find((k) => k.name === target);
+          if (known && partName) {
+            expect(Object.keys(known.parts), `${label}: "${when}" points at ${instead}`).toContain(
+              partName,
+            );
+          }
+        }
       }
     },
   );
