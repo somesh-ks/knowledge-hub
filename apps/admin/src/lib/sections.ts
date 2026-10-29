@@ -46,3 +46,6 @@ export const SECTIONS: readonly Section[] = [
 /** An address under the base ("/admin"), which Astro writes with or without a closing slash. */
 export const href = (path: string): string =>
   `${import.meta.env.BASE_URL.replace(/\/$/, "")}${path}` || "/";
+
+/** The reader. On the shared domain it is "/"; the dev server of this app is another port, so it asks the reader's (4321). */
+export const READER_HREF: string = import.meta.env.DEV ? "http://localhost:4321/" : "/";
