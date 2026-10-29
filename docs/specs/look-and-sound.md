@@ -41,7 +41,7 @@ Three layers catch regressions (owner, 2026-10-21):
 - Hook: `.claude/hooks/design-check.mjs`, PostToolUse hook on Edit/Write for `apps/web/src/**` and `tokens/**`.
 - Audit: `design-audit` agent (`.claude/agents/design-audit.md`) screenshots pages at mobile and desktop viewports in light and dark before PRs.
 CI runs rules in unit tests and `designSystem.spec.ts` in browser suite. Components change in shared class, component, or token with ledger records in one PR (owner, 2026-10-24).
-Key variants: `.segmented-nav-compact` (chip height, 44px columns); `.stat-tile` (metric over label, 2-4 columns); `.status-dot` (8px, status tones); `.scroll-fade-inline` (overflow edge mask with `--scroll-fade-inset`); `.tabs-in-card`; `data-quiet` (muted disabled rows); `sheetHead.ts` header/menus (D188); `.confirm-actions.is-stacked` (unsaved-changes modal from `sheetGuard.ts`).
+Key variants: `.segmented-nav-compact` (chip height, 44px columns); `.stat-tile` (metric over label, 2-4 columns); `.status-dot` (8px, status tones); `.scroll-fade-inline` (overflow edge mask with `--scroll-fade-inset`); `.tabs-in-card`; `data-quiet` (muted disabled rows); `sheetHead.ts` header/menus (D188); `.confirm-actions.is-stacked` (unsaved-changes modal from `sheetGuard.ts`); `.queue-dock`, `.queue-row`, `.queue-ring` (`-head`, 24px, for the dock and the side column; `-row`, 24px), `.queue-play`, `.queue-stage-icon` (the head's icon), `.queue-word` (the text-only shimmer), `.queue-snippet` (the Details dialog's facts), `.queue-pop` (the podcast queue, D231, `queue.css`).
 
 ### Agentic design conventions
 Coding agents building or modifying UI follow these contracts (adapted from Astryx best practices):

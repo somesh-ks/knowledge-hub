@@ -5,10 +5,9 @@ import AppNav, { type Destination } from "../components/AppNav.astro";
 import Banner from "../components/Banner.astro";
 import CreateFab from "../components/CreateFab.astro";
 import CreateSheet from "../components/CreateSheet.astro";
-import GenerationsMenu from "../components/GenerationsMenu.astro";
 import LaunchScreen from "../components/LaunchScreen.astro";
 import PlayFab, { type PageAudio } from "../components/PlayFab.astro";
-import RunStatus from "../components/RunStatus.astro";
+import Queue from "../components/Queue.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import { readBrandColors } from "../lib/brandColors";
 import { BUILD_ID } from "../lib/buildId";
@@ -42,7 +41,7 @@ import "../styles/library.css";
 import "../styles/aside.css";
 import "../styles/view-transitions.css";
 import "../styles/create-sheet.css";
-import "../styles/generations.css";
+import "../styles/queue.css";
 import "../styles/utilities.css";
 
 interface Props {
@@ -203,8 +202,7 @@ const back =
     <SiteHeader back={back} />
     <AppNav current={destination} />
     {fab === "create" && <CreateFab />}
-    <RunStatus />
-    <GenerationsMenu />
+    <Queue />
     {/* The offline banner is cloned from this, so its markup has one home: by the script after the
          stack before first paint, and by deviceBanners.ts from then on. */}
     <template id="banner-offline">

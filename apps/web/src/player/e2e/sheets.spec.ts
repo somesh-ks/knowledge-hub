@@ -5,11 +5,11 @@ function reply(route: Route, status: number, body: Record<string, unknown>) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
 
-// The Regenerate sheet used to carry a stepper of its own; the run now rides in the indicator above
-// the navigation, where the player's bar is also standing (2026-10-27). Its journeys (the request,
+// The Regenerate sheet used to carry a stepper of its own; the run now rides in the podcast queue's dock
+// above the navigation, where the player's bar is also standing (2026-10-27). Its journeys (the request,
 // the stages, the new briefing) are in e2e/briefingRun.spec.ts; what only the player can break is
-// that the indicator and the bar do not sit on each other.
-test("Regenerate while a podcast plays: the run line stands clear above the bar and opens the new podcast", async ({
+// that the dock and the bar do not sit on each other.
+test("Regenerate while a podcast plays: the queue's dock stands clear above the bar and its Start listening opens the new podcast", async ({
   player,
   page,
 }) => {
@@ -37,22 +37,25 @@ test("Regenerate while a podcast plays: the run line stands clear above the bar 
   });
   await player.open();
   await player.play();
-  // The indicator polls on the page clock, so the run's minutes pass in a moment.
+  // The queue polls on the page clock, so the run's minutes pass in a moment.
   await page.clock.install();
   const dialog = await player.openGenerate();
   await player.finger.press(dialog.getByRole("button", { name: "Regenerate" }));
   await expect(dialog).toBeHidden();
   // Regenerate replaces the briefing on the page over its own window (D104).
   expect(sent).toEqual({ replace: SITE.path.replace("/d/", "") });
-  const card = page.locator("[data-run-card]");
+  const card = page.locator("[data-queue-dock]");
   await expect(card).toBeVisible();
   const bar = await player.dockSettled();
   const strip = await player.boxOf(card);
   expect(strip.y + strip.height).toBeLessThanOrEqual(bar.y + 1);
   await page.clock.runFor(4_100);
   await page.clock.runFor(4_100);
-  const open = page.locator("[data-run-library]");
-  await expect(open).toBeVisible();
-  await player.finger.press(open);
+  // Finished, the run stays in the queue: the folded row shows a check and its row opens the new podcast.
+  await expect(card.locator('[data-queue-fold-ring][data-ended="done"]')).toBeVisible();
+  await player.finger.press(card.locator("[data-queue-toggle]"));
+  const listen = card.getByRole("link", { name: /^Start listening/ });
+  await expect(listen).toBeVisible();
+  await player.finger.press(listen);
   await expect(page).toHaveURL(new RegExp(`/d/${SITE.earlier}$`));
 });
