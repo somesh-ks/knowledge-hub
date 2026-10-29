@@ -45,22 +45,21 @@ function isBoilerplate(line: string): boolean {
   );
 }
 
-/** Tags a scraper left in the Markdown. A script or style block goes with its contents. */
-function dropMarkupOnce(markdown: string): string {
-  return markdown
-    .replace(/<(script|style|noscript|svg)\b[\s\S]*?<\/\1>/gi, "")
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<\/?[a-z][^>]*>/gi, "");
-}
-
-/** Repeats until stable: removing a tag can join the halves of another (`<scr<b>ipt>`). */
+/**
+ * Tags a scraper left in the Markdown. A script or style block goes with its contents. Removal
+ * repeats until the text stops changing: taking out one tag can join the halves of another
+ * (`<scr<b>ipt>`).
+ */
 function dropMarkup(markdown: string): string {
   let text = markdown;
-  for (let pass = 0; pass < 5; pass++) {
-    const next = dropMarkupOnce(text);
-    if (next === text) break;
-    text = next;
-  }
+  let previous: string;
+  do {
+    previous = text;
+    text = text
+      .replace(/<(script|style|noscript|svg)\b[\s\S]*?<\/\1>/gi, "")
+      .replace(/<!--[\s\S]*?-->/g, "")
+      .replace(/<\/?[a-z][^>]*>/gi, "");
+  } while (text !== previous);
   return text;
 }
 
