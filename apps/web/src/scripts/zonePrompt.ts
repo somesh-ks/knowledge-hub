@@ -78,7 +78,7 @@ const place = (offer: Offer): string => (offer.flag ? `${offer.label} ${offer.fl
  * Every message of this prompt is short and on one line (a snackbar's words never wrap): a failure
  * says only that it failed and offers Retry, as the server logs the reason under its own reference.
  */
-async function switchTo(offer: Offer): Promise<void> {
+async function switchTo(offer: Offer, device: string): Promise<void> {
   const say = (state: SaveState): void => {
     if (state === "saving") return;
     if (state === "error") {
@@ -87,7 +87,8 @@ async function switchTo(offer: Offer): Promise<void> {
         kind: "error",
         oneLine: true,
         actionLabel: "Retry",
-        onAction: () => void switchTo(offer),
+        // The device may have moved on since the failure: a stale zone is never saved.
+        onAction: () => (deviceZone() === device ? void switchTo(offer, device) : checkZone()),
       });
       return;
     }
@@ -166,7 +167,7 @@ export function checkZone(): void {
       actionLabel: "Switch timezone",
       oneLine: true,
       onAction: () => {
-        if (deviceZone() === device) void switchTo(suggestion);
+        if (deviceZone() === device) void switchTo(suggestion, device);
         // The device moved on while the offer stood: ask again for the zone it is in now, once the
         // tapped toast has left (a check while it is still up would be dropped as a second offer).
         else setTimeout(checkZone, 400);

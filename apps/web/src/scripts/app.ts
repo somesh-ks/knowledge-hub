@@ -192,6 +192,7 @@ document.addEventListener("astro:page-load", () => {
   if (firstPage) firstPage = false;
   else idle(zone);
 });
+addEventListener("online", zone);
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") zone();
 });
