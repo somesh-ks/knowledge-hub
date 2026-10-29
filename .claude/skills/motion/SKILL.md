@@ -10,7 +10,7 @@ The rules are in [docs/specs/motion.md](../../../docs/specs/motion.md); this ski
 ## Steps
 
 1. **Ask if it should move.** Read the one rule in the spec. If the reader did not move it and it tells them nothing, do not animate it. State the reason in one line before writing CSS.
-2. **Pick tokens, not values.** Follow "Choosing a token" in the spec: effects spring for fades and colour, spatial spring for travel and reshape, `--duration-press-*` and `--duration-hover` for presses, sheet and drawer tokens for sheets. A literal duration, a private easing, `transition: all` or a raw length fails `styles.test.ts`.
+2. **Pick tokens, not values.** Follow "Choosing a token" in the spec: an effects token for fades and colour (an effects spring, or `--duration-state`, `-enter` or `-exit` with `--ease-out`), spatial spring for travel and reshape, `--duration-press-*` and `--duration-hover` for presses, sheet and drawer tokens for sheets. A literal duration, a private easing, `transition: all` or a raw length fails `styles.test.ts`.
 3. **Default to Calm.** Take the 1.5% spatial springs (default, slow). Use the fast, 9.5% spring only where a finger is on the thing.
 4. **Animate cheap properties.** `transform`, `opacity`, `clip-path`. A control holds one box across its states; a hidden copy holds the room when content swaps.
 5. **Write the reduced-motion path in the same edit.** Travel collapses, fades keep their time, loops hold one shape and pulse. A raw-value move needs its own `prefers-reduced-motion` rule.

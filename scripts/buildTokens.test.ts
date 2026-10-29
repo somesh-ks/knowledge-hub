@@ -490,6 +490,12 @@ describe("generated CSS", () => {
     expect(buildCss(loadTokens())).toBe(css);
   });
 
+  it("emits the spatial spring reduced-motion overrides, so a travelling spring collapses to nothing", () => {
+    for (const size of ["fast", "default", "slow"]) {
+      expect(css).toContain(`--duration-spring-spatial-${size}: 0.01ms;`);
+    }
+  });
+
   it("matches the committed tokens.css", () => {
     expect(existsSync(TOKENS_CSS_PATH), "run npx tsx scripts/buildTokens.ts").toBe(true);
     expect(readFileSync(TOKENS_CSS_PATH, "utf8")).toBe(css);

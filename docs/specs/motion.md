@@ -25,7 +25,7 @@ Ask in this order and stop at the first yes.
 | Sheet in, out | `--duration-sheet-in` (300), `-sheet-out` (220) | `--ease-drawer` |
 | Full-height drawer | `--duration-drawer-full` (500), the one exception to 300 | `--ease-drawer` |
 
-A spring's duration is when it has settled to within 0.2%, not how long it feels. Most of the travel is done in the first 40%, which is why a 420 ms spring still reads as quick. Older springs (`settle`, `release`, `pop`) stay for what already uses them; new work takes the spatial and effects springs.
+For a generated CSS spring token, the duration is the total curve time until it stays within 0.2% of its target, not how long it feels. A gesture-driven JS spring takes `singularity.perceptualMs` instead; its settling tail runs on after that value. Most of the travel is done in the first 40%, which is why a 420 ms spring still reads as quick. Older springs (`settle`, `release`, `pop`) stay for what already uses them; new work takes the spatial and effects springs.
 
 ## Spatial and effects
 
