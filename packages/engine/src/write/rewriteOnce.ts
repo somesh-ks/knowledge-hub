@@ -45,6 +45,10 @@ export async function rewriteOnce(args: RewriteOnceArgs): Promise<RewriteOnceRes
         .filter((match) => match.length > 0),
     ),
   ];
+  // A headline over its word limit and nothing else needs a cut, not a new voice: the full rewrite
+  // left 2 of 15 headlines at 14 words (2026-10-29).
+  const shorten =
+    args.field === "headline" && args.violations.every((v) => v.rule === "too_many_words");
   const rewritten = await args.writer.rewrite({
     material: {
       ...args.material,
@@ -54,6 +58,7 @@ export async function rewriteOnce(args: RewriteOnceArgs): Promise<RewriteOnceRes
     current: args.text,
     problems: args.violations.map((v) => v.message),
     ...(focus.length > 0 ? { focus } : {}),
+    ...(shorten ? { shorten } : {}),
   });
   if (rewritten === null) {
     return { text: args.text, violations: [...args.violations], rewritten: false };

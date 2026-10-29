@@ -337,6 +337,12 @@ describe("LlmWriter.rewrite", () => {
     expect(llm.calls[0]?.step).toBe("story_rewrite");
   });
 
+  it("routes a shortening to the cheap headline step", async () => {
+    const llm = new FakeLlm(() => ({ text: "Springlet 2.0 retargets springs" }));
+    await new LlmWriter({ llm, voice }).rewrite({ ...request(material()), shorten: true });
+    expect(llm.calls[0]?.step).toBe("headline_shorten");
+  });
+
   it("returns null when the model fails, and rethrows a budget error", async () => {
     const m = material();
     const failing = new FakeLlm(() => {
@@ -557,6 +563,23 @@ describe("enforceVoice", () => {
     const out = await enforceVoice({ written: [wordy], materials, writer, linter });
     expect(out.dropped).toEqual([]);
     expect(out.passed[0]?.item.headline).toBe("Springlet 2.0 now retargets springs mid-flight");
+  });
+
+  // 2026-10-29: two 14-word headlines stayed over the limit after the full rewrite, losing both stories.
+  it("asks for a plain shortening when a headline's only fault is its length", async () => {
+    const wordy = {
+      ...good(m.id),
+      headline:
+        "Springlet two point oh retargets springs mid flight and keeps every drawer velocity intact on slow phones",
+    };
+    const writer = scriptedWriter(["Springlet two point oh retargets springs mid flight"]);
+    const out = await enforceVoice({ written: [wordy], materials, writer, linter });
+    expect(writer.requests[0]?.shorten).toBe(true);
+    expect(out.dropped).toEqual([]);
+    const banned = { ...good(m.id), headline: "An incredible release!" };
+    const other = scriptedWriter(["Springlet 2.0 retargets springs"]);
+    await enforceVoice({ written: [banned], materials, writer: other, linter });
+    expect(other.requests[0]?.shorten).toBeUndefined();
   });
 
   it("rewrites a failing field once and keeps the item", async () => {
