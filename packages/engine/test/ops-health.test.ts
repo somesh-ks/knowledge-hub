@@ -160,6 +160,10 @@ describe("singularity health", () => {
     const normal = await read([60, 60]);
     expect(codes(normal.findings, "warning")).not.toContain("firecrawl_week_high");
     expect(normal.passed).toContain("Firecrawl used 120 requests in 7 days");
+    // Exactly 150 is still a normal-plus week: the warning needs more than 150.
+    const boundary = await read([100, 50]);
+    expect(codes(boundary.findings, "warning")).not.toContain("firecrawl_week_high");
+    expect(boundary.passed).toContain("Firecrawl used 150 requests in 7 days");
     const high = await read([100, 60]);
     expect(codes(high.findings, "warning")).toContain("firecrawl_week_high");
     expect(codes(high.findings, "fault")).not.toContain("firecrawl_week_stopped");
