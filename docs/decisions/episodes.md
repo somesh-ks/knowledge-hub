@@ -288,3 +288,11 @@ What an episode or briefing is: kinds and structure, length, regenerate, Catch u
 - Rejected: a hard cut at word 12 (reads as a broken sentence); a second full rewrite.
 - Revisit if: shortened headlines read worse than the long ones, or Haiku misses the limit often (then `story_rewrite`'s model with the same short prompt).
 
+## D241: weekly-only structure blocks are not built; phase 3 of D170 is closed
+
+- Date: 2026-10-29 (decided for the owner while away, with the coordinator).
+- Decision: D170's phase 3 (blocks only the Weekly may hold: a recap of the week's dailies, a long read) is not built. The per-block controls D170 called for (depth, stories, most from one source, close length) are already in the Structure view, with the prompt kept as an advanced field.
+- Why: D191 made one structure for every podcast, chosen by listener profile, and named the one case that reopens it. Nobody has asked for such a block since, and a recap block would be new behaviour the owner has not approved.
+- Revisit if: a podcast type needs a block the others must not have (D191's own test); then add a per-type override on top of the profile, not a second list.
+- Amends: D170.
+

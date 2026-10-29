@@ -1588,420 +1588,550 @@
       "name": "--color-grey-50",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(98.16% 0.0017 247.8)",
+      "light": "oklch(98.00% 0.0015 260)",
       "hex": {
-        "light": "#f8f9fa",
-        "dark": "#f8f9fa"
+        "light": "#f8f8f9",
+        "dark": "#f8f8f9"
       }
     },
     {
       "name": "--color-grey-100",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(96.29% 0.0025 228.8)",
+      "light": "oklch(91.85% 0.0035 260)",
       "hex": {
-        "light": "#f1f3f4",
-        "dark": "#f1f3f4"
-      }
-    },
-    {
-      "name": "--color-grey-150",
-      "tier": "primitive",
-      "type": "color",
-      "light": "oklch(95% 0.006 255)",
-      "hex": {
-        "light": "#eceff2",
-        "dark": "#eceff2"
+        "light": "#e3e4e6",
+        "dark": "#e3e4e6"
       }
     },
     {
       "name": "--color-grey-200",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(93.64% 0.0046 258.3)",
+      "light": "oklch(84.23% 0.0062 260)",
       "hex": {
-        "light": "#e8eaed",
-        "dark": "#e8eaed"
+        "light": "#c9cbcf",
+        "dark": "#c9cbcf"
       }
     },
     {
       "name": "--color-grey-300",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(89.41% 0.0059 264.5)",
+      "light": "oklch(75.56% 0.0088 260)",
       "hex": {
-        "light": "#dadce0",
-        "dark": "#dadce0"
+        "light": "#acb0b5",
+        "dark": "#acb0b5"
       }
     },
     {
       "name": "--color-grey-400",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(80.93% 0.0083 253.9)",
+      "light": "oklch(66.26% 0.0106 260)",
       "hex": {
-        "light": "#bdc1c6",
-        "dark": "#bdc1c6"
-      }
-    },
-    {
-      "name": "--color-grey-450",
-      "tier": "primitive",
-      "type": "color",
-      "light": "oklch(75.19% 0.0103 252.8)",
-      "hex": {
-        "light": "#aaafb5",
-        "dark": "#aaafb5"
+        "light": "#8f939a",
+        "dark": "#8f939a"
       }
     },
     {
       "name": "--color-grey-500",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(70.28% 0.0111 248)",
+      "light": "oklch(56.74% 0.0109 260)",
       "hex": {
-        "light": "#9aa0a6",
-        "dark": "#9aa0a6"
+        "light": "#73777d",
+        "dark": "#73777d"
       }
     },
     {
       "name": "--color-grey-600",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(61.67% 0.0104 242.9)",
+      "light": "oklch(47.44% 0.0096 260)",
       "hex": {
-        "light": "#80868b",
-        "dark": "#80868b"
-      }
-    },
-    {
-      "name": "--color-grey-650",
-      "tier": "primitive",
-      "type": "color",
-      "light": "oklch(53.21% 0.0099 248)",
-      "hex": {
-        "light": "#686d72",
-        "dark": "#686d72"
+        "light": "#595c62",
+        "dark": "#595c62"
       }
     },
     {
       "name": "--color-grey-700",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(49.79% 0.0094 253.9)",
+      "light": "oklch(38.77% 0.0072 260)",
       "hex": {
-        "light": "#5f6368",
-        "dark": "#5f6368"
-      }
-    },
-    {
-      "name": "--color-grey-750",
-      "tier": "primitive",
-      "type": "color",
-      "light": "oklch(36.88% 0.0074 240)",
-      "hex": {
-        "light": "#3c4043",
-        "dark": "#3c4043"
+        "light": "#424548",
+        "dark": "#424548"
       }
     },
     {
       "name": "--color-grey-800",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(33.34% 0.0071 274.8)",
+      "light": "oklch(31.15% 0.0046 260)",
       "hex": {
-        "light": "#35363a",
-        "dark": "#35363a"
-      }
-    },
-    {
-      "name": "--color-grey-850",
-      "tier": "primitive",
-      "type": "color",
-      "light": "oklch(30.13% 0.0056 271.2)",
-      "hex": {
-        "light": "#2d2e31",
-        "dark": "#2d2e31"
+        "light": "#2f3133",
+        "dark": "#2f3133"
       }
     },
     {
       "name": "--color-grey-900",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(28.11% 0.0057 271.2)",
+      "light": "oklch(25.00% 0.0024 260)",
       "hex": {
-        "light": "#28292c",
-        "dark": "#28292c"
-      }
-    },
-    {
-      "name": "--color-grey-950",
-      "tier": "primitive",
-      "type": "color",
-      "light": "oklch(24.79% 0.0058 271.2)",
-      "hex": {
-        "light": "#202124",
-        "dark": "#202124"
+        "light": "#212223",
+        "dark": "#212223"
       }
     },
     {
       "name": "--color-blue-50",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(95.32% 0.0207 261.8)",
+      "light": "oklch(98.00% 0.0092 260)",
       "hex": {
-        "light": "#e8f0fe",
-        "dark": "#e8f0fe"
+        "light": "#f5f9ff",
+        "dark": "#f5f9ff"
       }
     },
     {
       "name": "--color-blue-100",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(91.09% 0.0388 257.9)",
+      "light": "oklch(91.85% 0.0382 260)",
       "hex": {
-        "light": "#d2e3fc",
-        "dark": "#d2e3fc"
+        "light": "#d6e5fe",
+        "dark": "#d6e5fe"
       }
     },
     {
       "name": "--color-blue-200",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(83.69% 0.0733 260)",
+      "light": "oklch(84.23% 0.0760 260)",
       "hex": {
-        "light": "#aecbfa",
-        "dark": "#aecbfa"
+        "light": "#afcdfe",
+        "dark": "#afcdfe"
       }
     },
     {
       "name": "--color-blue-300",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(76.61% 0.1083 259.8)",
+      "light": "oklch(75.56% 0.1218 260)",
       "hex": {
-        "light": "#8ab4f8",
-        "dark": "#8ab4f8"
+        "light": "#82b0fd",
+        "dark": "#82b0fd"
       }
     },
     {
       "name": "--color-blue-400",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(69.74% 0.1439 259.6)",
+      "light": "oklch(66.26% 0.1743 260)",
       "hex": {
-        "light": "#669df6",
-        "dark": "#669df6"
+        "light": "#4f90fc",
+        "dark": "#4f90fc"
       }
     },
     {
       "name": "--color-blue-500",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(63.04% 0.18 260)",
+      "light": "oklch(56.74% 0.1932 260)",
       "hex": {
-        "light": "#4285f4",
-        "dark": "#4285f4"
+        "light": "#2770e6",
+        "dark": "#2770e6"
       }
     },
     {
       "name": "--color-blue-600",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(57.37% 0.1946 257.9)",
+      "light": "oklch(47.44% 0.1697 260)",
       "hex": {
-        "light": "#1a73e8",
-        "dark": "#1a73e8"
+        "light": "#1755b9",
+        "dark": "#1755b9"
       }
     },
     {
       "name": "--color-blue-700",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(53.18% 0.1807 258.3)",
+      "light": "oklch(38.77% 0.1274 260)",
       "hex": {
-        "light": "#1967d2",
-        "dark": "#1967d2"
+        "light": "#164087",
+        "dark": "#164087"
       }
     },
     {
       "name": "--color-blue-800",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(48.69% 0.1677 259.1)",
+      "light": "oklch(31.15% 0.0811 260)",
       "hex": {
-        "light": "#185abc",
-        "dark": "#185abc"
+        "light": "#162f59",
+        "dark": "#162f59"
       }
     },
     {
       "name": "--color-blue-900",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(44.32% 0.1531 259.9)",
+      "light": "oklch(25.00% 0.0434 260)",
       "hex": {
-        "light": "#174ea6",
-        "dark": "#174ea6"
-      }
-    },
-    {
-      "name": "--color-blue-910",
-      "tier": "primitive",
-      "type": "color",
-      "light": "oklch(42% 0.095 260)",
-      "hex": {
-        "light": "#2d4c80",
-        "dark": "#2d4c80"
-      }
-    },
-    {
-      "name": "--color-blue-925",
-      "tier": "primitive",
-      "type": "color",
-      "light": "oklch(37% 0.075 260)",
-      "hex": {
-        "light": "#273f67",
-        "dark": "#273f67"
-      }
-    },
-    {
-      "name": "--color-blue-950",
-      "tier": "primitive",
-      "type": "color",
-      "light": "oklch(31.25% 0.0331 262.9)",
-      "hex": {
-        "light": "#283142",
-        "dark": "#283142"
-      }
-    },
-    {
-      "name": "--color-blue-975",
-      "tier": "primitive",
-      "type": "color",
-      "light": "oklch(18% 0.05 262)",
-      "hex": {
-        "light": "#051027",
-        "dark": "#051027"
+        "light": "#152236",
+        "dark": "#152236"
       }
     },
     {
       "name": "--color-green-50",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(96.5% 0.03 155)",
+      "light": "oklch(98.00% 0.0206 155)",
       "hex": {
-        "light": "#e5faeb",
-        "dark": "#e5faeb"
+        "light": "#eefdf2",
+        "dark": "#eefdf2"
+      }
+    },
+    {
+      "name": "--color-green-100",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(91.85% 0.0480 155)",
+      "hex": {
+        "light": "#cceed6",
+        "dark": "#cceed6"
+      }
+    },
+    {
+      "name": "--color-green-200",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(84.23% 0.0844 155)",
+      "hex": {
+        "light": "#9fdcb3",
+        "dark": "#9fdcb3"
       }
     },
     {
       "name": "--color-green-300",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(78% 0.13 155)",
+      "light": "oklch(75.56% 0.1207 155)",
       "hex": {
-        "light": "#6cd092",
-        "dark": "#6cd092"
+        "light": "#6bc68e",
+        "dark": "#6bc68e"
+      }
+    },
+    {
+      "name": "--color-green-400",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(66.26% 0.1450 155)",
+      "hex": {
+        "light": "#32ac6a",
+        "dark": "#32ac6a"
+      }
+    },
+    {
+      "name": "--color-green-500",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(56.74% 0.1365 155)",
+      "hex": {
+        "light": "#0f8d51",
+        "dark": "#0f8d51"
       }
     },
     {
       "name": "--color-green-600",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(45% 0.11 155)",
+      "light": "oklch(47.44% 0.1143 155)",
       "hex": {
-        "light": "#036639",
-        "dark": "#036639"
+        "light": "#086e3e",
+        "dark": "#086e3e"
+      }
+    },
+    {
+      "name": "--color-green-700",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(38.77% 0.0938 155)",
+      "hex": {
+        "light": "#04522d",
+        "dark": "#04522d"
+      }
+    },
+    {
+      "name": "--color-green-800",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(31.15% 0.0624 155)",
+      "hex": {
+        "light": "#113a22",
+        "dark": "#113a22"
       }
     },
     {
       "name": "--color-green-900",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(26% 0.05 155)",
+      "light": "oklch(25.00% 0.0334 155)",
       "hex": {
-        "light": "#0c2b19",
-        "dark": "#0c2b19"
+        "light": "#14261b",
+        "dark": "#14261b"
       }
     },
     {
       "name": "--color-amber-50",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(96.5% 0.03 85)",
+      "light": "oklch(98.00% 0.0177 80)",
       "hex": {
-        "light": "#fdf2dd",
-        "dark": "#fdf2dd"
+        "light": "#fff7eb",
+        "dark": "#fff7eb"
+      }
+    },
+    {
+      "name": "--color-amber-100",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(91.85% 0.0448 80)",
+      "hex": {
+        "light": "#f4e1c3",
+        "dark": "#f4e1c3"
+      }
+    },
+    {
+      "name": "--color-amber-200",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(84.23% 0.0788 80)",
+      "hex": {
+        "light": "#e7c690",
+        "dark": "#e7c690"
       }
     },
     {
       "name": "--color-amber-300",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(82% 0.13 85)",
+      "light": "oklch(75.56% 0.1126 80)",
       "hex": {
-        "light": "#ebbd57",
-        "dark": "#ebbd57"
+        "light": "#d5a757",
+        "dark": "#d5a757"
+      }
+    },
+    {
+      "name": "--color-amber-400",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(66.26% 0.1334 80)",
+      "hex": {
+        "light": "#bd8811",
+        "dark": "#bd8811"
+      }
+    },
+    {
+      "name": "--color-amber-500",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(56.74% 0.1144 80)",
+      "hex": {
+        "light": "#9a6e0b",
+        "dark": "#9a6e0b"
+      }
+    },
+    {
+      "name": "--color-amber-600",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(47.44% 0.0959 80)",
+      "hex": {
+        "light": "#785506",
+        "dark": "#785506"
       }
     },
     {
       "name": "--color-amber-700",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(46% 0.09 70)",
+      "light": "oklch(38.77% 0.0788 80)",
       "hex": {
-        "light": "#784e14",
-        "dark": "#784e14"
+        "light": "#5a3f03",
+        "dark": "#5a3f03"
+      }
+    },
+    {
+      "name": "--color-amber-800",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(31.15% 0.0582 80)",
+      "hex": {
+        "light": "#402d07",
+        "dark": "#402d07"
       }
     },
     {
       "name": "--color-amber-900",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(27% 0.05 80)",
+      "light": "oklch(25.00% 0.0312 80)",
       "hex": {
-        "light": "#332305",
-        "dark": "#332305"
+        "light": "#292010",
+        "dark": "#292010"
       }
     },
     {
       "name": "--color-red-50",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(96.5% 0.015 28)",
+      "light": "oklch(98.00% 0.0095 28)",
       "hex": {
-        "light": "#fef0ee",
-        "dark": "#fef0ee"
+        "light": "#fff6f5",
+        "dark": "#fff6f5"
+      }
+    },
+    {
+      "name": "--color-red-100",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(91.85% 0.0406 28)",
+      "hex": {
+        "light": "#fedbd5",
+        "dark": "#fedbd5"
+      }
+    },
+    {
+      "name": "--color-red-200",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(84.23% 0.0842 28)",
+      "hex": {
+        "light": "#feb7ad",
+        "dark": "#feb7ad"
       }
     },
     {
       "name": "--color-red-300",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(78% 0.12 28)",
+      "light": "oklch(75.56% 0.1423 28)",
       "hex": {
-        "light": "#fb998c",
-        "dark": "#fb998c"
+        "light": "#fd8a7c",
+        "dark": "#fd8a7c"
+      }
+    },
+    {
+      "name": "--color-red-400",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(66.26% 0.1837 28)",
+      "hex": {
+        "light": "#ee5b4f",
+        "dark": "#ee5b4f"
+      }
+    },
+    {
+      "name": "--color-red-500",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(56.74% 0.1883 28)",
+      "hex": {
+        "light": "#ce3830",
+        "dark": "#ce3830"
       }
     },
     {
       "name": "--color-red-600",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(49% 0.17 28)",
+      "light": "oklch(47.44% 0.1653 28)",
       "hex": {
-        "light": "#ac2722",
-        "dark": "#ac2722"
+        "light": "#a5251f",
+        "dark": "#a5251f"
+      }
+    },
+    {
+      "name": "--color-red-700",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(38.77% 0.1241 28)",
+      "hex": {
+        "light": "#79201a",
+        "dark": "#79201a"
+      }
+    },
+    {
+      "name": "--color-red-800",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(31.15% 0.0790 28)",
+      "hex": {
+        "light": "#521e19",
+        "dark": "#521e19"
       }
     },
     {
       "name": "--color-red-900",
       "tier": "primitive",
       "type": "color",
-      "light": "oklch(27% 0.06 28)",
+      "light": "oklch(25.00% 0.0423 28)",
       "hex": {
-        "light": "#3f1915",
-        "dark": "#3f1915"
+        "light": "#331916",
+        "dark": "#331916"
+      }
+    },
+    {
+      "name": "--color-elevation-light-sunken",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(96.00% 0.0015 260)",
+      "hex": {
+        "light": "#f1f2f3",
+        "dark": "#f1f2f3"
+      }
+    },
+    {
+      "name": "--color-elevation-light-container",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(95.00% 0.0015 260)",
+      "hex": {
+        "light": "#eeeeef",
+        "dark": "#eeeeef"
+      }
+    },
+    {
+      "name": "--color-elevation-dark-sunken",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(28.00% 0.0024 260)",
+      "hex": {
+        "light": "#28292a",
+        "dark": "#28292a"
+      }
+    },
+    {
+      "name": "--color-elevation-dark-container",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(30.00% 0.0024 260)",
+      "hex": {
+        "light": "#2d2e2f",
+        "dark": "#2d2e2f"
+      }
+    },
+    {
+      "name": "--color-elevation-dark-overlay",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(33.00% 0.0024 260)",
+      "hex": {
+        "light": "#353537",
+        "dark": "#353537"
       }
     },
     {
@@ -2668,34 +2798,34 @@
       "type": "color",
       "light": "var(--color-grey-50)",
       "role": "Page background. Safari 26 samples this for the status bar tint. A cool off-white in light mode: pure white behind a full page of text glares; sheets and floating chrome stay white and read as raised.",
-      "dark": "var(--color-grey-950)",
+      "dark": "var(--color-grey-900)",
       "hex": {
-        "light": "#f8f9fa",
-        "dark": "#202124"
+        "light": "#f8f8f9",
+        "dark": "#212223"
       }
     },
     {
       "name": "--color-surface-sunken",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-grey-100)",
+      "light": "var(--color-elevation-light-sunken)",
       "role": "Wells, inputs, hover fills, track backgrounds.",
-      "dark": "var(--color-grey-900)",
+      "dark": "var(--color-elevation-dark-sunken)",
       "hex": {
-        "light": "#f1f3f4",
-        "dark": "#28292c"
+        "light": "#f1f2f3",
+        "dark": "#28292a"
       }
     },
     {
       "name": "--color-surface-container",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-grey-150)",
+      "light": "var(--color-elevation-light-container)",
       "role": "The tonal fill of a control that sits on the page: the search pill, a play chip, a secondary button, an unselected filter chip. Reads against the page without an outline.",
-      "dark": "var(--color-grey-850)",
+      "dark": "var(--color-elevation-dark-container)",
       "hex": {
-        "light": "#eceff2",
-        "dark": "#2d2e31"
+        "light": "#eeeeef",
+        "dark": "#2d2e2f"
       }
     },
     {
@@ -2704,10 +2834,10 @@
       "type": "color",
       "light": "var(--color-white)",
       "role": "Sheets and dialogs.",
-      "dark": "var(--color-grey-850)",
+      "dark": "var(--color-elevation-dark-container)",
       "hex": {
         "light": "#ffffff",
-        "dark": "#2d2e31"
+        "dark": "#2d2e2f"
       }
     },
     {
@@ -2716,81 +2846,81 @@
       "type": "color",
       "light": "var(--color-white)",
       "role": "Floating chrome: mini player, popovers.",
-      "dark": "var(--color-grey-800)",
+      "dark": "var(--color-elevation-dark-overlay)",
       "hex": {
         "light": "#ffffff",
-        "dark": "#35363a"
+        "dark": "#353537"
       }
     },
     {
       "name": "--color-surface-inverse",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-grey-850)",
+      "light": "var(--color-grey-800)",
       "role": "Toasts.",
-      "dark": "var(--color-grey-200)",
+      "dark": "var(--color-grey-100)",
       "hex": {
-        "light": "#2d2e31",
-        "dark": "#e8eaed"
+        "light": "#2f3133",
+        "dark": "#e3e4e6"
       }
     },
     {
       "name": "--color-on-surface",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-grey-950)",
-      "dark": "var(--color-grey-200)",
+      "light": "var(--color-grey-900)",
+      "dark": "var(--color-grey-100)",
       "hex": {
-        "light": "#202124",
-        "dark": "#e8eaed"
+        "light": "#212223",
+        "dark": "#e3e4e6"
       }
     },
     {
       "name": "--color-on-surface-reading",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-grey-750)",
+      "light": "var(--color-grey-700)",
       "role": "Running text read under a heading in on-surface: a story's summary, an episode highlight. One step under the heading's ink so the headline leads with no change of size or weight (no heading is bold, D125); 7:1 on the page and 4.5:1 on every surface.",
-      "dark": "var(--color-grey-400)",
+      "dark": "var(--color-grey-200)",
       "hex": {
-        "light": "#3c4043",
-        "dark": "#bdc1c6"
+        "light": "#424548",
+        "dark": "#c9cbcf"
       }
     },
     {
       "name": "--color-on-surface-muted",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-grey-700)",
+      "light": "var(--color-grey-600)",
       "role": "Secondary text. 4.5:1 on every surface.",
-      "dark": "var(--color-grey-450)",
+      "dark": "var(--color-grey-300)",
       "hex": {
-        "light": "#5f6368",
-        "dark": "#aaafb5"
+        "light": "#595c62",
+        "dark": "#acb0b5"
       }
     },
     {
       "name": "--color-on-surface-subtle",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-grey-650)",
+      "light": "var(--color-grey-600)",
       "role": "Tertiary text. Still 4.5:1 on every surface; never lighter.",
-      "dark": "var(--color-grey-500)",
+      "dark": "var(--color-grey-300)",
       "hex": {
-        "light": "#686d72",
-        "dark": "#9aa0a6"
+        "light": "#595c62",
+        "dark": "#acb0b5"
       }
     },
     {
       "name": "--color-on-surface-disabled",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-grey-500)",
+      "light": "var(--color-grey-400)",
       "role": "Disabled controls only. Exempt from contrast by WCAG 1.4.3.",
-      "dark": "var(--color-grey-650)",
+      "dark": "var(--color-grey-500)",
       "hex": {
-        "light": "#9aa0a6",
-        "dark": "#686d72"
+        "light": "#8f939a",
+        "dark": "#73777d"
       }
     },
     {
@@ -2798,92 +2928,92 @@
       "tier": "semantic",
       "type": "color",
       "light": "var(--color-grey-100)",
-      "dark": "var(--color-grey-950)",
+      "dark": "var(--color-grey-900)",
       "hex": {
-        "light": "#f1f3f4",
-        "dark": "#202124"
+        "light": "#e3e4e6",
+        "dark": "#212223"
       }
     },
     {
       "name": "--color-border-hairline",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-grey-300)",
+      "light": "var(--color-grey-100)",
       "role": "Decorative dividers. Below 3:1 by intent; never the only identifier of a control.",
-      "dark": "var(--color-grey-750)",
+      "dark": "var(--color-grey-700)",
       "hex": {
-        "light": "#dadce0",
-        "dark": "#3c4043"
+        "light": "#e3e4e6",
+        "dark": "#424548"
       }
     },
     {
       "name": "--color-border-control",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-grey-600)",
+      "light": "var(--color-grey-500)",
       "role": "Boundary of an input or segmented control. 3:1 against its surface (WCAG 1.4.11).",
-      "dark": "var(--color-grey-600)",
+      "dark": "var(--color-grey-400)",
       "hex": {
-        "light": "#80868b",
-        "dark": "#80868b"
+        "light": "#73777d",
+        "dark": "#8f939a"
       }
     },
     {
       "name": "--color-track",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-grey-300)",
+      "light": "var(--color-grey-200)",
       "role": "Rail and scrubber track.",
-      "dark": "var(--color-grey-750)",
+      "dark": "var(--color-grey-700)",
       "hex": {
-        "light": "#dadce0",
-        "dark": "#3c4043"
+        "light": "#c9cbcf",
+        "dark": "#424548"
       }
     },
     {
       "name": "--color-track-strong",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-grey-400)",
+      "light": "var(--color-grey-300)",
       "role": "Unplayed item ticks and upcoming nodes.",
-      "dark": "var(--color-grey-600)",
+      "dark": "var(--color-grey-500)",
       "hex": {
-        "light": "#bdc1c6",
-        "dark": "#80868b"
+        "light": "#acb0b5",
+        "dark": "#73777d"
       }
     },
     {
       "name": "--color-accent",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-blue-700)",
+      "light": "var(--color-blue-600)",
       "role": "Lingonberry. Interactive emphasis, progress, current state. Used as text at 4.5:1.",
       "dark": "var(--color-blue-300)",
       "hex": {
-        "light": "#1967d2",
-        "dark": "#8ab4f8"
+        "light": "#1755b9",
+        "dark": "#82b0fd"
       }
     },
     {
       "name": "--color-accent-hover",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-blue-800)",
+      "light": "var(--color-blue-700)",
       "dark": "var(--color-blue-200)",
       "hex": {
-        "light": "#185abc",
-        "dark": "#aecbfa"
+        "light": "#164087",
+        "dark": "#afcdfe"
       }
     },
     {
       "name": "--color-accent-pressed",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-blue-900)",
+      "light": "var(--color-blue-800)",
       "dark": "var(--color-blue-400)",
       "hex": {
-        "light": "#174ea6",
-        "dark": "#669df6"
+        "light": "#162f59",
+        "dark": "#4f90fc"
       }
     },
     {
@@ -2892,10 +3022,10 @@
       "type": "color",
       "light": "var(--color-blue-50)",
       "role": "Tint behind the current row. Text on it stays on-surface or accent.",
-      "dark": "var(--color-blue-950)",
+      "dark": "var(--color-blue-800)",
       "hex": {
-        "light": "#e8f0fe",
-        "dark": "#283142"
+        "light": "#f5f9ff",
+        "dark": "#162f59"
       }
     },
     {
@@ -2904,22 +3034,22 @@
       "type": "color",
       "light": "var(--color-blue-100)",
       "role": "The selected state of a control: a chosen chip or segment, the current destination, a tonal button, the playing chip. Text on it is on-accent-container.",
-      "dark": "var(--color-blue-925)",
+      "dark": "var(--color-blue-800)",
       "hex": {
-        "light": "#d2e3fc",
-        "dark": "#273f67"
+        "light": "#d6e5fe",
+        "dark": "#162f59"
       }
     },
     {
       "name": "--color-on-accent-container",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-blue-900)",
+      "light": "var(--color-blue-800)",
       "role": "Text and icons on accent-container.",
       "dark": "var(--color-blue-100)",
       "hex": {
-        "light": "#174ea6",
-        "dark": "#d2e3fc"
+        "light": "#162f59",
+        "dark": "#d6e5fe"
       }
     },
     {
@@ -2928,34 +3058,34 @@
       "type": "color",
       "light": "var(--color-blue-200)",
       "role": "The tone of an action that is not a place: the New episode buttons. Stronger than accent-container, so it is not read as the current destination or a chosen chip beside it. Text on it is on-accent-container-high.",
-      "dark": "var(--color-blue-910)",
+      "dark": "var(--color-blue-700)",
       "hex": {
-        "light": "#aecbfa",
-        "dark": "#2d4c80"
+        "light": "#afcdfe",
+        "dark": "#164087"
       }
     },
     {
       "name": "--color-on-accent-container-high",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-blue-950)",
+      "light": "var(--color-blue-900)",
       "role": "Text and icons on accent-container-high.",
       "dark": "var(--color-blue-50)",
       "hex": {
-        "light": "#283142",
-        "dark": "#e8f0fe"
+        "light": "#152236",
+        "dark": "#f5f9ff"
       }
     },
     {
       "name": "--color-accent-action",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-blue-600)",
-      "role": "The tone of the one creating action in the side column (Catch up). Richer than accent-container, so it reads as an action and never as the current place. A saturated blue in both themes, as the greyed blues before it looked muddy in light and desaturated in dark (owner, 2026-10-27): in light blue-600 with white words, a step brighter than the full accent; in dark blue-500 with the darkest blue's words (the owner's pick). It reaches 3:1 against the page as a shape, with no outline or shadow. Text on it is on-accent-action.",
-      "dark": "var(--color-blue-500)",
+      "light": "var(--color-blue-500)",
+      "role": "The tone of the one creating action in the side column (Catch up). Richer than accent-container, so it reads as an action and never as the current place. A saturated blue in both themes, as the greyed blues before it looked muddy in light and desaturated in dark (owner, 2026-10-27): in light blue-500 with white words, a step brighter than the full accent (blue-600); in dark blue-400 with the darkest blue's words. It reaches 3:1 against the page as a shape, with no outline or shadow. Text on it is on-accent-action.",
+      "dark": "var(--color-blue-400)",
       "hex": {
-        "light": "#1a73e8",
-        "dark": "#4285f4"
+        "light": "#2770e6",
+        "dark": "#4f90fc"
       }
     },
     {
@@ -2964,22 +3094,22 @@
       "type": "color",
       "light": "var(--color-white)",
       "role": "Text and icons on accent-action, at 4.5:1 in rest, hover and press.",
-      "dark": "var(--color-blue-975)",
+      "dark": "var(--color-blue-900)",
       "hex": {
         "light": "#ffffff",
-        "dark": "#051027"
+        "dark": "#152236"
       }
     },
     {
       "name": "--color-accent-action-state",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-blue-975)",
+      "light": "var(--color-blue-900)",
       "role": "The ink accent-action's hover and press layers mix in. It moves the fill away from the words, so they gain contrast in every state: in light the words are white and the fill deepens toward the darkest blue; in dark the words are the darkest blue and the fill lightens toward blue-50, a white that keeps the blue's hue (pure white has none, and the oklch mix drifted toward violet).",
       "dark": "var(--color-blue-50)",
       "hex": {
-        "light": "#051027",
-        "dark": "#e8f0fe"
+        "light": "#152236",
+        "dark": "#f5f9ff"
       }
     },
     {
@@ -2987,10 +3117,10 @@
       "tier": "semantic",
       "type": "color",
       "light": "var(--color-white)",
-      "dark": "var(--color-grey-950)",
+      "dark": "var(--color-grey-900)",
       "hex": {
         "light": "#ffffff",
-        "dark": "#202124"
+        "dark": "#212223"
       }
     },
     {
@@ -3001,8 +3131,8 @@
       "role": "Defaults to the accent. The expanded player overrides it per digest from the cover palette (see design spec, color flow).",
       "dark": "var(--color-accent)",
       "hex": {
-        "light": "#1967d2",
-        "dark": "#8ab4f8"
+        "light": "#1755b9",
+        "dark": "#82b0fd"
       }
     },
     {
@@ -3013,7 +3143,7 @@
       "dark": "var(--color-on-accent)",
       "hex": {
         "light": "#ffffff",
-        "dark": "#202124"
+        "dark": "#212223"
       }
     },
     {
@@ -3023,8 +3153,8 @@
       "light": "var(--color-accent)",
       "dark": "var(--color-accent)",
       "hex": {
-        "light": "#1967d2",
-        "dark": "#8ab4f8"
+        "light": "#1755b9",
+        "dark": "#82b0fd"
       }
     },
     {
@@ -3035,8 +3165,8 @@
       "role": "Inner ring color. Components on raised surfaces override it locally.",
       "dark": "var(--color-surface)",
       "hex": {
-        "light": "#f8f9fa",
-        "dark": "#202124"
+        "light": "#f8f8f9",
+        "dark": "#212223"
       }
     },
     {
@@ -3061,8 +3191,8 @@
       "light": "var(--color-green-600)",
       "dark": "var(--color-green-300)",
       "hex": {
-        "light": "#036639",
-        "dark": "#6cd092"
+        "light": "#086e3e",
+        "dark": "#6bc68e"
       }
     },
     {
@@ -3072,19 +3202,19 @@
       "light": "var(--color-green-50)",
       "dark": "var(--color-green-900)",
       "hex": {
-        "light": "#e5faeb",
-        "dark": "#0c2b19"
+        "light": "#eefdf2",
+        "dark": "#14261b"
       }
     },
     {
       "name": "--color-warning",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-amber-700)",
+      "light": "var(--color-amber-600)",
       "dark": "var(--color-amber-300)",
       "hex": {
-        "light": "#784e14",
-        "dark": "#ebbd57"
+        "light": "#785506",
+        "dark": "#d5a757"
       }
     },
     {
@@ -3094,8 +3224,8 @@
       "light": "var(--color-amber-50)",
       "dark": "var(--color-amber-900)",
       "hex": {
-        "light": "#fdf2dd",
-        "dark": "#332305"
+        "light": "#fff7eb",
+        "dark": "#292010"
       }
     },
     {
@@ -3105,8 +3235,8 @@
       "light": "var(--color-red-600)",
       "dark": "var(--color-red-300)",
       "hex": {
-        "light": "#ac2722",
-        "dark": "#fb998c"
+        "light": "#a5251f",
+        "dark": "#fd8a7c"
       }
     },
     {
@@ -3116,19 +3246,19 @@
       "light": "var(--color-red-50)",
       "dark": "var(--color-red-900)",
       "hex": {
-        "light": "#fef0ee",
-        "dark": "#3f1915"
+        "light": "#fff6f5",
+        "dark": "#331916"
       }
     },
     {
       "name": "--color-info",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-blue-700)",
+      "light": "var(--color-blue-600)",
       "dark": "var(--color-blue-300)",
       "hex": {
-        "light": "#1967d2",
-        "dark": "#8ab4f8"
+        "light": "#1755b9",
+        "dark": "#82b0fd"
       }
     },
     {
@@ -3136,10 +3266,10 @@
       "tier": "semantic",
       "type": "color",
       "light": "var(--color-blue-50)",
-      "dark": "var(--color-blue-950)",
+      "dark": "var(--color-blue-800)",
       "hex": {
-        "light": "#e8f0fe",
-        "dark": "#283142"
+        "light": "#f5f9ff",
+        "dark": "#162f59"
       }
     },
     {
@@ -3477,8 +3607,8 @@
       "type": "color",
       "light": "var(--color-track)",
       "hex": {
-        "light": "#dadce0",
-        "dark": "#3c4043"
+        "light": "#c9cbcf",
+        "dark": "#424548"
       }
     },
     {
@@ -3487,8 +3617,8 @@
       "type": "color",
       "light": "var(--color-accent)",
       "hex": {
-        "light": "#1967d2",
-        "dark": "#8ab4f8"
+        "light": "#1755b9",
+        "dark": "#82b0fd"
       }
     },
     {
@@ -3497,8 +3627,8 @@
       "type": "color",
       "light": "var(--color-track-strong)",
       "hex": {
-        "light": "#bdc1c6",
-        "dark": "#80868b"
+        "light": "#acb0b5",
+        "dark": "#73777d"
       }
     },
     {
@@ -3544,8 +3674,8 @@
       "type": "color",
       "light": "var(--color-accent)",
       "hex": {
-        "light": "#1967d2",
-        "dark": "#8ab4f8"
+        "light": "#1755b9",
+        "dark": "#82b0fd"
       }
     },
     {
@@ -3554,8 +3684,8 @@
       "type": "color",
       "light": "var(--color-accent-hover)",
       "hex": {
-        "light": "#185abc",
-        "dark": "#aecbfa"
+        "light": "#164087",
+        "dark": "#afcdfe"
       }
     },
     {
@@ -3564,8 +3694,8 @@
       "type": "color",
       "light": "var(--color-accent-pressed)",
       "hex": {
-        "light": "#174ea6",
-        "dark": "#669df6"
+        "light": "#162f59",
+        "dark": "#4f90fc"
       }
     },
     {
@@ -3575,7 +3705,7 @@
       "light": "var(--color-on-accent)",
       "hex": {
         "light": "#ffffff",
-        "dark": "#202124"
+        "dark": "#212223"
       }
     },
     {
@@ -3591,8 +3721,8 @@
       "type": "color",
       "light": "var(--color-accent-action)",
       "hex": {
-        "light": "#1a73e8",
-        "dark": "#4285f4"
+        "light": "#2770e6",
+        "dark": "#4f90fc"
       }
     },
     {
@@ -3602,7 +3732,7 @@
       "light": "var(--color-on-accent-action)",
       "hex": {
         "light": "#ffffff",
-        "dark": "#051027"
+        "dark": "#152236"
       }
     },
     {
@@ -3611,8 +3741,8 @@
       "type": "color",
       "light": "var(--color-accent-action-state)",
       "hex": {
-        "light": "#051027",
-        "dark": "#e8f0fe"
+        "light": "#152236",
+        "dark": "#f5f9ff"
       }
     },
     {
@@ -3684,8 +3814,8 @@
       "type": "color",
       "light": "var(--color-surface-container)",
       "hex": {
-        "light": "#eceff2",
-        "dark": "#2d2e31"
+        "light": "#eeeeef",
+        "dark": "#2d2e2f"
       }
     },
     {
@@ -3708,7 +3838,7 @@
       "role": "Neutral. The player no longer takes a tint from the cover.",
       "hex": {
         "light": "#ffffff",
-        "dark": "#2d2e31"
+        "dark": "#2d2e2f"
       }
     },
     {
@@ -3865,7 +3995,7 @@
       "dark": "var(--color-surface-overlay)",
       "hex": {
         "light": "#ffffff",
-        "dark": "#35363a"
+        "dark": "#353537"
       }
     },
     {
@@ -3921,8 +4051,8 @@
       "type": "color",
       "light": "var(--color-border-control)",
       "hex": {
-        "light": "#80868b",
-        "dark": "#80868b"
+        "light": "#73777d",
+        "dark": "#8f939a"
       }
     },
     {
@@ -3931,8 +4061,8 @@
       "type": "color",
       "light": "var(--color-surface-sunken)",
       "hex": {
-        "light": "#f1f3f4",
-        "dark": "#28292c"
+        "light": "#f1f2f3",
+        "dark": "#28292a"
       }
     },
     {
@@ -3980,7 +4110,7 @@
       "dark": "var(--color-on-surface)",
       "hex": {
         "light": "#ffffff",
-        "dark": "#e8eaed"
+        "dark": "#e3e4e6"
       }
     },
     {
@@ -4002,7 +4132,7 @@
       "light": "var(--color-surface-raised)",
       "hex": {
         "light": "#ffffff",
-        "dark": "#2d2e31"
+        "dark": "#2d2e2f"
       }
     },
     {
@@ -4049,8 +4179,8 @@
       "type": "color",
       "light": "var(--color-surface-inverse)",
       "hex": {
-        "light": "#2d2e31",
-        "dark": "#e8eaed"
+        "light": "#2f3133",
+        "dark": "#e3e4e6"
       }
     },
     {
@@ -4059,8 +4189,8 @@
       "type": "color",
       "light": "var(--color-on-surface-inverse)",
       "hex": {
-        "light": "#f1f3f4",
-        "dark": "#202124"
+        "light": "#e3e4e6",
+        "dark": "#212223"
       }
     },
     {
@@ -4153,8 +4283,8 @@
       "type": "color",
       "light": "var(--color-surface-container)",
       "hex": {
-        "light": "#eceff2",
-        "dark": "#2d2e31"
+        "light": "#eeeeef",
+        "dark": "#2d2e2f"
       }
     },
     {
@@ -4163,8 +4293,8 @@
       "type": "color",
       "light": "var(--color-accent)",
       "hex": {
-        "light": "#1967d2",
-        "dark": "#8ab4f8"
+        "light": "#1755b9",
+        "dark": "#82b0fd"
       }
     },
     {
@@ -4173,8 +4303,8 @@
       "type": "color",
       "light": "var(--color-accent-container)",
       "hex": {
-        "light": "#d2e3fc",
-        "dark": "#273f67"
+        "light": "#d6e5fe",
+        "dark": "#162f59"
       }
     },
     {
@@ -4183,8 +4313,8 @@
       "type": "color",
       "light": "var(--color-on-accent-container)",
       "hex": {
-        "light": "#174ea6",
-        "dark": "#d2e3fc"
+        "light": "#162f59",
+        "dark": "#d6e5fe"
       }
     },
     {
@@ -4241,8 +4371,8 @@
       "light": "var(--color-accent-container)",
       "role": "Fill behind the current destination: the pill in the bottom bar and the row in the side column.",
       "hex": {
-        "light": "#d2e3fc",
-        "dark": "#273f67"
+        "light": "#d6e5fe",
+        "dark": "#162f59"
       }
     },
     {
@@ -4252,8 +4382,8 @@
       "light": "var(--color-on-accent-container)",
       "role": "Label and icon of the current destination.",
       "hex": {
-        "light": "#174ea6",
-        "dark": "#d2e3fc"
+        "light": "#162f59",
+        "dark": "#d6e5fe"
       }
     },
     {

@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-29 | [Podcast run audit](2026-10-29-podcast-run-audit.md) | Every Catch up, Regenerate and scheduled failure traced to a merged fix; a live Regenerate and Catch up started 2 s apart both published |
 | 2026-10-29 | [The podcast queue](2026-10-29-podcast-queue.md) | A dock above the bottom bar and a popover from the side column listing a Catch up or a regeneration while it is made, a ring with the percent, finished runs staying for the day with Start listening, a title that never changes, an X to cancel and Details for a failure (D231) |
 | 2026-10-29 | [Authority list](2026-10-29-authority-list.md) | Vetted publishers' announcements pass the bar, Exa restricted to their domains, shadow log and replay; shipped off (D234) |
 | 2026-10-29 | [Agent-ready design system](2026-10-29-agent-ready-design-system.md) | A generated file and `npm run ds` for parts and tokens: -20% tokens, -44% tool calls on 19 lookup tasks (D236) |
