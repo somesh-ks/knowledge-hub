@@ -60,13 +60,16 @@ describe("a row of the podcast queue", () => {
   // The voices are billed as they are made and the usage ledger is written when they end, so a stop
   // there leaves a charge the app never records (D208's known gap). The wait for the site has ended
   // the run, so there is nothing to stop either.
-  it("offers Cancel until the voices are recorded, and not in the wait for the site", () => {
+  it("offers Cancel until the voices are being recorded, and not in the wait for the site", () => {
     const cancellable = (over: Partial<GenerationRow>) =>
       describeGeneration(row(over), { now: NOW, words }).cancellable;
     expect(cancellable({ stage: 0 })).toBe(true);
     expect(cancellable({ stage: 3, label: "Publishing" })).toBe(true);
     expect(cancellable({ stage: 4, label: "Recording voices" })).toBe(false);
     expect(cancellable({ stage: 5, label: "Adding it to your Library" })).toBe(false);
+    // A run with unnamed steps cannot say when its voices start, so it waits out "Making the episode".
+    expect(cancellable({ stages: 3, stage: 0, label: "Getting ready" })).toBe(true);
+    expect(cancellable({ stages: 3, stage: 1, label: "Making the episode" })).toBe(false);
     // A briefing's run has no voices step, and ends with its commit.
     expect(
       cancellable({

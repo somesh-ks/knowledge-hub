@@ -1,6 +1,6 @@
 import type { GenerationRow } from "../types/contracts";
 import { queuePercent } from "./queuePercent";
-import { NAMED_EPISODE_STAGES, NAMED_EPISODE_STEPS, timeLeft } from "./runStages";
+import { EPISODE_STAGES, NAMED_EPISODE_STAGES, NAMED_EPISODE_STEPS, timeLeft } from "./runStages";
 
 /**
  * What a row of the podcast queue says besides its name (lib/queueNames.ts): the time left and the
@@ -97,7 +97,12 @@ export function describeGeneration(row: GenerationRow, context: GenerationContex
 
   // The last stage of a run's list is the wait for the site (a Catch up's; a briefing is live as it
   // commits), which the workflow cannot see: the run is over, so there is nothing to stop.
-  const voices = row.stages === NAMED_EPISODE_STAGES.length && row.stage >= VOICES_STAGE;
+  // A run whose steps are not named reports three stages and cannot say when its voices start, so its
+  // "Making the episode" stage may already be recording them: Cancel waits for the named stages.
+  const voices =
+    row.stages === NAMED_EPISODE_STAGES.length
+      ? row.stage >= VOICES_STAGE
+      : row.what === "episode" && row.stages === EPISODE_STAGES.length && row.stage >= 1;
   const waiting = row.what === "episode" && row.stage >= row.stages - 1;
 
   return {
