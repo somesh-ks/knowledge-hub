@@ -502,10 +502,6 @@ export function selectItems(input: SelectInput): SelectResult {
 
   const ownTaken = takeOwnSections(own, total - chosen.size, plan);
   const chosenTech = ownTaken.chosen;
-  if (chosen.size + chosenTech.length < input.floor) {
-    return { outcome: "nothing", selected: [], dropped, qualifying: ranked.length };
-  }
-
   for (const candidate of main) {
     if (!chosen.has(candidate)) {
       const reason =
@@ -523,6 +519,10 @@ export function selectItems(input: SelectInput): SelectResult {
       reason: isTech(candidate) ? "over_tech_cap" : "over_section_cap",
       score: candidate.score,
     });
+  }
+  // Below the floor nothing publishes, but the capacity drops above still say why the pool fell short.
+  if (chosen.size + chosenTech.length < input.floor) {
+    return { outcome: "nothing", selected: [], dropped, qualifying: ranked.length };
   }
   return {
     outcome: "selected",
