@@ -260,6 +260,12 @@ html[data-player="open"] .queue-dock {
   margin-inline-start: calc(var(--space-4) * -1);
 }
 
+/* A row that ended with nothing to do (a podcast made has its Start listening in the lead; a cancelled
+   run has nothing) gives the actions line back. Rows still going keep it, so nothing there moves. */
+.queue-row:is([data-state="done"], [data-state="cancelled"]) .queue-actions {
+  display: none;
+}
+
 .queue-actions [hidden] {
   display: none;
 }
@@ -298,7 +304,7 @@ html[data-player="open"] .queue-dock {
   --queue-ring-stroke: 5;
 }
 
-.queue-ring svg {
+.queue-ring > svg {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -329,7 +335,7 @@ html[data-player="open"] .queue-dock {
 }
 
 /* Everything made: the ring gives way to a check, in the ring's own place and size. */
-.queue-ring[data-ended] svg {
+.queue-ring[data-ended] > svg {
   display: none;
 }
 
