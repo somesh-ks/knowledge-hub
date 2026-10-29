@@ -1,5 +1,7 @@
 import { truncateAtParagraph } from "../extract/truncate.js";
 import type { Linter, Violation, ViolationRule, VoiceField } from "../voice/lint.js";
+import { numberValues } from "./spokenCheck.js";
+import { trimToLimit } from "./trimToLimit.js";
 import type { SourceMaterial, Writer } from "./types.js";
 
 /** Rules whose `match` is a passage of the field, quoted back to the model as data. */
@@ -11,6 +13,13 @@ const FOCUS_RULES: ReadonlySet<ViolationRule> = new Set(["banned_pattern", "sent
  * these ran a briefing (2026-10-24), each resending up to 10k characters (D181).
  */
 const REWRITE_SOURCE_CHARS = 4_000;
+
+/** The two texts state the same numbers, by value: none dropped, none added. */
+function sameNumbers(before: string, after: string): boolean {
+  const a = numberValues(before);
+  const b = numberValues(after);
+  return a.size === b.size && [...a].every((value) => b.has(value));
+}
 
 export interface RewriteOnceArgs {
   writer: Writer;
@@ -45,16 +54,33 @@ export async function rewriteOnce(args: RewriteOnceArgs): Promise<RewriteOnceRes
         .filter((match) => match.length > 0),
     ),
   ];
-  const rewritten = await args.writer.rewrite({
-    material: {
-      ...args.material,
-      text: truncateAtParagraph(args.material.text, REWRITE_SOURCE_CHARS).text,
-    },
-    field: args.field,
-    current: args.text,
-    problems: args.violations.map((v) => v.message),
-    ...(focus.length > 0 ? { focus } : {}),
-  });
+  const ask = (shorten: boolean): Promise<string | null> =>
+    args.writer.rewrite({
+      material: {
+        ...args.material,
+        text: truncateAtParagraph(args.material.text, REWRITE_SOURCE_CHARS).text,
+      },
+      field: args.field,
+      current: args.text,
+      problems: args.violations.map((v) => v.message),
+      ...(focus.length > 0 ? { focus } : {}),
+      ...(shorten ? { shorten } : {}),
+    });
+  // A headline over its word limit and nothing else needs a cut, not a new voice: the full rewrite
+  // left 2 of 15 headlines at 14 words (2026-10-29). A shortening that fails, drops a number the
+  // headline stated or still fails lint falls back to the full rewrite.
+  const shorten =
+    args.field === "headline" && args.violations.every((v) => v.rule === "too_many_words");
+  let rewritten = await ask(shorten);
+  if (shorten) {
+    // The shortening is usable when it passes lint, or a clause cut makes it pass, and the result neither drops nor adds a number.
+    const cut =
+      rewritten === null || args.linter.lint(args.field, rewritten).length === 0
+        ? rewritten
+        : trimToLimit(args.field, rewritten, args.linter);
+    const usable = cut !== null && sameNumbers(args.text, cut) ? cut : null;
+    rewritten = usable ?? (await ask(false));
+  }
   if (rewritten === null) {
     return { text: args.text, violations: [...args.violations], rewritten: false };
   }
