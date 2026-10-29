@@ -26,6 +26,7 @@ Unit (CI): 313 files, 5,022 tests, 86 s. Site e2e: 411 runs, 10 min. Player e2e:
 - Ingest in shadow (D233). closed when: for 7 days the store holds 90% of each daily's stories and reads 90% of pages tried (`ingest --coverage`).
 - Authority list (D234), shipped off. closed when: Somesh signs off `config/authority.json`, it is on, and a daily airs a lab story with each domain passing at most 30% of its judged items (`authority replay`).
 - Run names (D217), Neon run log (D221). `pipeline_runs` holds the 10-29 Regenerate and Catch up. closed when: a scheduled daily is named `daily <date>`, is off the queue, and has its row.
+- `podcast.yml` no longer installs ffmpeg (merged). The first stage starts 9 s after the job starts on 10-29 (29 s before); checkout, Node and install take about 7 s of it. closed when: Somesh accepts 9 s or sets a new target.
 - A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): `run.yml` gained a `length_minutes` input, which must merge with the site code or GitHub refuses the dispatch. closed when: a Regenerate at 10 minutes airs within 10% of 10.
 - Podcast queue (D231): fakes only; Cancel needs the token's Actions write (unchecked). closed when: the owner runs a Catch up and a regeneration, cancels one, opens the other, and reads a failed run's Details.
 - Discovery copies rank below an outlet's own entry in dedupe. closed when: a run's dedupe report keeps the outlet's entry where a discovery copy was found.
