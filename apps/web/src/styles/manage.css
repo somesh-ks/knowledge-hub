@@ -65,7 +65,7 @@
 }
 
 /* A label is 12px above its field and the fields of a form 24px apart, so a label belongs to the field
-   under it, not the one above (2026-10-29, D225: 8px left the label on the outline). */
+   under it, not the one above (2026-10-29, D229: 8px left the label on the outline). */
 .manage-field {
   display: grid;
   gap: var(--field-label-gap);

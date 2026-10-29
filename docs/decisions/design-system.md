@@ -289,7 +289,7 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Supersedes: the route half of D189 (`/design` inside the site); its no-separate-repository and no-Storybook rulings stand.
 - Context changed: D189 said a second app consuming the styles would lift them into a package. D224 adds that second app and defers the package: the apps import the reader's files by relative path until that hurts.
 
-## D225: the reading column sits on the pane's middle, and a label is 12px from its field
+## D229: the reading column sits on the pane's middle, and a label is 12px from its field
 
 - Date: 2026-10-29 (the owner: "on the left side it is less, and on the right side it is more on the page. I have this everywhere throughout the app"; labels "so close" to their fields)
 - Decision: from 80rem the shell has three tracks, `1fr` the column `1fr`, so the column is centred in the pane on every page, and a contents list takes the right margin's room (at most 14rem, a step off the column). A page that wants more width (Library, Create) is `--column-wide` (shell.css), centred. A label is `--field-label-gap` (12px) above its field, and the fields of a form or sheet are 24px apart, so a label belongs to the field below it (Create's group headings keep their own 16px rhythm: they also name chips and segmented choices). A field's resting outline stays `--field-border` (grey); the accent shows on focus only.
