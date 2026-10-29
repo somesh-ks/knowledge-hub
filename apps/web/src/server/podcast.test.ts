@@ -18,8 +18,9 @@ const ORIGIN = "https://news.someshks.work";
 const minutesAgo = (minutes: number) => new Date(NOW - minutes * 60_000).toISOString();
 const RUNS = "GET /actions/workflows/podcast.yml/runs";
 const DISPATCH = "POST /actions/workflows/podcast.yml/dispatches";
+// A new Catch up is named "episode" by podcast.yml's run-name (D213).
 const podcastRun = (overrides: Record<string, unknown> = {}) =>
-  runJson({ path: ".github/workflows/podcast.yml", ...overrides });
+  runJson({ path: ".github/workflows/podcast.yml", display_title: "episode", ...overrides });
 
 const EPISODE_ID = "ep-20261007-0900";
 const REQUEST: PodcastRequest = {
@@ -436,26 +437,83 @@ describe("handlePodcast", () => {
     expect(github.requests.some((request) => request.method === "POST")).toBe(false);
   });
 
-  it("allows a day's episodes up to the cap and answers 429 for the next", async () => {
+  it("lets failed tries run up to twelve a day, then answers 429 for the next", async () => {
     const { deps, github } = setup();
-    // Spread between one and five hours ago, the oldest exactly five hours back.
-    const runsToday = (count: number) =>
+    // Spread between one and five hours ago, the oldest exactly five hours back. A failed run
+    // is not a Catch up (D213), so only the twelve-a-day guard on tries applies.
+    const failedToday = (count: number) =>
       Array.from({ length: count }, (_, index) =>
         podcastRun({
           id: index + 1,
+          status: "completed",
+          conclusion: "failure",
           created_at: minutesAgo(index === count - 1 ? 5 * 60 : 60 + index * 10),
         }),
       );
     github.on(DISPATCH, { json: { workflow_run_id: 9 } });
-    github.on(RUNS, { json: { workflow_runs: runsToday(PODCAST_DAILY_CAP - 1) } });
+    github.on(RUNS, { json: { workflow_runs: failedToday(PODCAST_DAILY_CAP - 1) } });
     expect((await handlePodcast(input(body()), deps)).status).toBe(202);
 
-    github.on(RUNS, { json: { workflow_runs: runsToday(PODCAST_DAILY_CAP) } });
+    github.on(RUNS, { json: { workflow_runs: failedToday(PODCAST_DAILY_CAP) } });
     const refused = await handlePodcast(input(body()), deps);
     expect(refused).toMatchObject({
       status: 429,
       body: { error: "daily_cap", retry_after_s: 19 * 3600 },
     });
+  });
+
+  it("allows two Catch ups a day that came out or are being made, and a third waits for the oldest to age out (D213)", async () => {
+    const { deps, github } = setup();
+    github.on(DISPATCH, { json: { workflow_run_id: 9 } });
+    const done = (id: number, hoursAgo: number) =>
+      podcastRun({
+        id,
+        status: "completed",
+        conclusion: "success",
+        created_at: minutesAgo(hoursAgo * 60),
+      });
+    const failed = (id: number, hoursAgo: number) =>
+      podcastRun({
+        id,
+        status: "completed",
+        conclusion: "failure",
+        created_at: minutesAgo(hoursAgo * 60),
+      });
+    const making = (id: number, hoursAgo: number) =>
+      podcastRun({ id, created_at: minutesAgo(hoursAgo * 60) });
+    const aTry = async (runs: unknown[]) => {
+      github.on(RUNS, { json: { workflow_runs: runs } });
+      return handlePodcast(input(body()), deps);
+    };
+
+    // One made, one failed, one deleted and one regenerated since: still room for a second.
+    const others = [
+      failed(2, 3),
+      podcastRun({
+        id: 3,
+        display_title: `delete ${EPISODE_ID}`,
+        status: "completed",
+        conclusion: "success",
+        created_at: minutesAgo(120),
+      }),
+      podcastRun({
+        id: 4,
+        display_title: `regenerate ${EPISODE_ID}`,
+        status: "completed",
+        conclusion: "success",
+        created_at: minutesAgo(90),
+      }),
+    ];
+    expect((await aTry([done(1, 5), ...others])).status).toBe(202);
+
+    // Two came out (or one is still being made): the third waits until the older one is a day old.
+    const refused = await aTry([done(1, 5), making(2, 3)]);
+    expect(refused).toMatchObject({
+      status: 429,
+      body: { error: "daily_cap", retry_after_s: 19 * 3600 },
+    });
+    expect(await aTry([done(1, 25), done(2, 3)])).toMatchObject({ status: 202 });
+    expect(github.requests.filter((request) => request.method === "POST")).toHaveLength(2);
   });
 
   it("finds the run by listing when GitHub dispatches without naming it", async () => {

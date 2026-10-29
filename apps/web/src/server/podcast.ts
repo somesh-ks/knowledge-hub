@@ -8,9 +8,15 @@ import {
   regenerationAllowance,
   regenerationLimit,
 } from "./generate";
-import { createGitHubClient, PODCAST_WORKFLOW_FILE } from "./github";
+import { createGitHubClient, PODCAST_WORKFLOW_FILE, type WorkflowRun } from "./github";
 import type { ApiResult } from "./http";
-import { DELETE_POLICY, evaluateLimits, PODCAST_POLICY, REGENERATE_POLICY } from "./limits";
+import {
+  CATCH_UP_POLICY,
+  DELETE_POLICY,
+  evaluateLimits,
+  PODCAST_POLICY,
+  REGENERATE_POLICY,
+} from "./limits";
 import { cooldownRefusal } from "./rateLimit";
 import { describeError } from "./redact";
 import { resolveHostNames } from "./voices";
@@ -30,6 +36,18 @@ export type PodcastDeps = GenerateDeps & {
 };
 export type PodcastInput = GenerateInput;
 type PodcastResult = ApiResult<PodcastCreateResponse>;
+
+/**
+ * podcast.yml names a run "episode" for a new Catch up and "regenerate <id>" or "delete <id>" for the
+ * rest (its run-name). "podcast" is the name before that, kept for a day after the change so a run
+ * of the old name is still counted.
+ */
+const isNewEpisodeRun = (run: WorkflowRun): boolean =>
+  run.title === "episode" || run.title === "podcast";
+
+/** A run that came out, or is still being made: one that failed or was cancelled used no Catch up. */
+const countsAsCatchUp = (run: WorkflowRun): boolean =>
+  run.conclusion === null || run.conclusion === "success";
 
 /** A guard on the request's size (core's PODCAST_MAX_TOPICS), not a product limit. */
 const MAX_TOPICS = 50;
@@ -237,9 +255,13 @@ export async function handlePodcast(
   const github = createGitHubClient(config, deps.fetch);
   try {
     const runs = await github.listWorkflowFileRuns(PODCAST_WORKFLOW_FILE);
-    const started = runs.map((run) => Date.parse(run.createdAt)).filter(Number.isFinite);
-    const decision = evaluateLimits(
-      started,
+    const times = (list: readonly WorkflowRun[]) =>
+      list.map((run) => Date.parse(run.createdAt)).filter(Number.isFinite);
+    // A new Catch up is held to the runs that made one; a regeneration or a delete is held to every
+    // run of the workflow, as before.
+    const made = runs.filter(isNewEpisodeRun);
+    let decision = evaluateLimits(
+      times("action" in body ? runs : made),
       deps.now(),
       "action" in body
         ? body.action === "delete"
@@ -247,6 +269,10 @@ export async function handlePodcast(
           : REGENERATE_POLICY
         : PODCAST_POLICY,
     );
+    // Two Catch ups a day that came out or are still being made (D213); a failed run is not one.
+    if (decision.allowed && !("action" in body)) {
+      decision = evaluateLimits(times(made.filter(countsAsCatchUp)), deps.now(), CATCH_UP_POLICY);
+    }
     if (!decision.allowed) {
       return {
         status: 429,
