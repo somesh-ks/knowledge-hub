@@ -16,7 +16,7 @@ export const BUDGETS = {
 export const SPEC_BUDGET = 8_000;
 export const READ_FIRST_BUDGET = 40_000;
 // Folders with an index of their own, left out of the docs README check.
-const OWN_INDEX = ["history/", "prototype/", "specs/"];
+const OWN_INDEX = ["decisions/", "history/", "prototype/", "specs/"];
 
 const read = (path) => readFileSync(path, "utf8").replace(/\r\n/g, "\n");
 
@@ -51,9 +51,12 @@ export function checkDocs(root) {
     }
   }
 
-  const decisionsPath = at("docs/decisions.md");
-  const decisions = existsSync(decisionsPath) ? read(decisionsPath) : "";
-  const index = decisionsIndex(decisions);
+  // The Index lives in docs/decisions/README.md; the entries are spread over the area files beside it.
+  const decisionsDir = at("docs/decisions");
+  const readmePath = join(decisionsDir, "README.md");
+  const index = existsSync(readmePath) ? decisionsIndex(read(readmePath)) : "";
+  const entryFiles = markdownFiles(decisionsDir).filter((file) => file !== readmePath);
+  const decisions = entryFiles.map(read).join("\n");
   const readFirst = ["AGENTS.md", "docs/state.md"]
     .filter((rel) => existsSync(at(rel)))
     .reduce((sum, rel) => sum + size(rel), Buffer.byteLength(index));
@@ -64,12 +67,12 @@ export function checkDocs(root) {
   const rows = new Set([...index.matchAll(/^\| (D\d+) \|/gm)].map((m) => m[1]));
   const entries = new Set([...decisions.matchAll(/^## (D\d+):/gm)].map((m) => m[1]));
   for (const id of rows)
-    if (!entries.has(id)) fails.push(`docs/decisions.md: Index row ${id} has no entry`);
+    if (!entries.has(id)) fails.push(`docs/decisions/README.md: Index row ${id} has no entry`);
   for (const id of entries)
-    if (!rows.has(id)) fails.push(`docs/decisions.md: ${id} has no Index row`);
+    if (!rows.has(id)) fails.push(`docs/decisions/README.md: ${id} has no Index row`);
   for (const m of decisions.matchAll(/superseded by (D\d+)/gi)) {
     if (!entries.has(m[1]))
-      fails.push(`docs/decisions.md: "${m[0]}" names a decision that does not exist`);
+      fails.push(`docs/decisions: "${m[0]}" names a decision that does not exist`);
   }
 
   // An open item says what closes it, so a stale note can be told from a real question.

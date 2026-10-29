@@ -22,7 +22,7 @@ Follows "Keeping the record" in `AGENTS.md`. Each fact lives in one place; link 
 1. List from this conversation: what changed, what failed, what was decided, what was not verified. Use `git diff --stat` and `git log` to confirm.
 2. `docs/specs/`: only if this session found a spec wrong or changed what one describes, fix those lines.
 3. `docs/state.md`: rewrite the affected lines so it describes now. Never append a log; the story of the session goes in the history note. Every new unverified line ends with `closed when:` and one testable condition; delete the lines this session closed. If tests were added or removed, update their counts and run times there.
-4. `docs/decisions.md`: only if direction changed. Grep the Index for the last D-number, add the next entry and an Index row (status `active`). Mark any decision it replaces; the new entry adds `- Context changed:`, and `- Revisit if:` when its reason can expire.
+4. `docs/decisions/`: only if direction changed. Grep the Index in its README for the last D-number, add the next entry at the end of the area file that fits it (see the README's Files list) and an Index row (status `active`). Mark any decision it replaces; the new entry adds `- Context changed:`, and `- Revisit if:` when its reason can expire.
 5. `docs/learnings.md`: one line per failure or gotcha, under its area heading. Grep first; skip duplicates. Delete a gotcha that code, a check or `AGENTS.md` now enforces.
 6. `docs/history/`: one note named `YYYY-MM-DD-<topic>.md`, only the why behind the change. Match the format in `docs/history/README.md`.
 7. Run `node scripts/docsCheck.mjs` and fix what it reports.

@@ -10,7 +10,7 @@ Repository: `somesh-ks/knowledge-hub` (private). Site: `news.someshks.work`.
 
 ## 1. First-time setup
 
-Accounts for Anthropic, Google AI Studio (Gemini), TypeSafe, Exa, Firecrawl and Speechify already exist (D13 in [decisions.md](decisions.md)). You also need GitHub, Vercel (Hobby) and Cloudflare (DNS only).
+Accounts for Anthropic, Google AI Studio (Gemini), TypeSafe, Exa, Firecrawl and Speechify already exist (D13 in [decisions](decisions/foundations.md)). You also need GitHub, Vercel (Hobby) and Cloudflare (DNS only).
 
 **Cost.** About 2 USD per month, dominated by Exa. Judgments cost about 0.01 USD per run and the writer under 0.07 USD per run. Speechify, Vercel Hobby, GitHub Actions (about 120 of 2,000 free minutes) and Cloudflare DNS use free tiers. Details: `git show 91bc533:docs/plan/build-plan.md` Section 10.
 

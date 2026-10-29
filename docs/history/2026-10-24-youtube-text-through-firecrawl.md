@@ -1,6 +1,6 @@
 # YouTube text through Firecrawl
 
-The owner asked for yt-dlp to make YouTube transcript extraction reliable, then for workarounds that make it reliable. [D165](../decisions.md#d165-youtube-captions-come-through-firecrawl-when-youtube-refuses-the-runner) records the outcome; this note keeps the evidence.
+The owner asked for yt-dlp to make YouTube transcript extraction reliable, then for workarounds that make it reliable. [D165](../decisions/engine.md#d165-youtube-captions-come-through-firecrawl-when-youtube-refuses-the-runner) records the outcome; this note keeps the evidence.
 
 ## What was measured
 

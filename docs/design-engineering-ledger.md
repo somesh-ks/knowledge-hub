@@ -3,7 +3,7 @@
 Every design-engineering tweak and visual change asked for on this project, what was built, what the code does as a result, where it falls short, and what could come next. Written 2026-10-14; the chat pass added sections 2, 5 and 10 and dated quotes throughout.
 
 Sources:
-- `decisions.md` D1 to D115.
+- `docs/decisions/` D1 to D115.
 - The notes in `history/`, including the two 2026-10-11 audits folded into them.
 - `design/design-spec.md`, `design/sound-design.md` and `plan/vision.md`.
 - `learnings.md`.

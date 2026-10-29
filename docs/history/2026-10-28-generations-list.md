@@ -10,7 +10,7 @@ The owner, after the generation-health work: "a simpler way to track the queue o
 
 ## Decisions
 
-[D208](../decisions.md). The feature rides on the PR of the generation-health branch (#391); its commits are separable if the owner wants it in its own PR.
+[D208](../decisions/episodes.md). The feature rides on the PR of the generation-health branch (#391); its commits are separable if the owner wants it in its own PR.
 
 ## Not verified
 
