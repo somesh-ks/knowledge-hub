@@ -13,6 +13,15 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  */
 const OVERLAP_MS = DAY_MS;
 
+/** An image, video or gallery on Reddit's own hosts has no text to read; its thread is the story. */
+function hostedOnReddit(url: string): boolean {
+  try {
+    return /(^|\.)(reddit\.com|redd\.it)$/i.test(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
 /** The shortest of Reddit's top-listing periods that reaches back to `from`. */
 function periodFor(from: Date, to: Date): "day" | "week" | "month" | "year" {
   const span = to.getTime() - from.getTime();
@@ -70,11 +79,11 @@ export const fetchReddit: SourceFetcher = async (source, window, deps): Promise<
     if (post.data.stickied || post.data.over_18) continue;
     if (typeof score !== "number" || score < minScore) continue;
     const discussion = `${REDDIT}${permalink}`;
-    const target = post.data.is_self || !url ? discussion : url;
+    const target = post.data.is_self || !url || hostedOnReddit(url) ? discussion : url;
     const kept = byUrl.get(target);
     if (kept && (kept.signals?.reddit_score ?? 0) >= score) continue;
     byUrl.set(target, {
-      // A text post links to its own thread; a link post to the page it shares.
+      // A text post, or a link to Reddit's own media, goes to its thread; any other link to the page it shares.
       url: target,
       title,
       author: author ?? undefined,

@@ -214,6 +214,26 @@ describe("fetchReddit", () => {
     });
   });
 
+  it("sends Reddit's own media to its thread, and other links to the page", async () => {
+    const deps = makeDeps(
+      fakeFetch({
+        [source.feed_url as string]: listing(
+          post({
+            title: "Picture",
+            url: "https://i.redd.it/abc.png",
+            permalink: "/r/LocalLLaMA/comments/img/picture/",
+          }),
+          post({ title: "Article", url: "https://example.com/article" }),
+        ),
+      }),
+    );
+    const items = await fetchReddit(source, WIDE, deps);
+    expect(items.find((item) => item.title === "Picture")?.url).toBe(
+      "https://www.reddit.com/r/LocalLLaMA/comments/img/picture/",
+    );
+    expect(items.find((item) => item.title === "Article")?.url).toBe("https://example.com/article");
+  });
+
   it("keeps a text post's full text as content", async () => {
     const text = "A long self post about springs. ".repeat(20);
     const deps = makeDeps(

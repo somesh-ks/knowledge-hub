@@ -69,6 +69,25 @@ describe("validateSources", () => {
     expect(problems.join("\n")).toMatch(/short-channel: youtube needs options.channel_id/);
   });
 
+  it("flags an enabled Reddit source without a subreddit or with a floor that is not a number", () => {
+    const reddit = (id: string, options: Record<string, string>) =>
+      makeSource({ id, type: "reddit", options });
+    const problems = validateSources(
+      registry(
+        reddit("ok", { subreddit: "css", min_score: "50" }),
+        reddit("no-floor", { subreddit: "css" }),
+        reddit("no-sub", { min_score: "50" }),
+        reddit("blank", { subreddit: "css", min_score: " " }),
+        reddit("words", { subreddit: "css", min_score: "fifty" }),
+      ),
+    );
+    expect(problems.map((p) => p.split(":")[0])).toEqual([
+      "source no-sub",
+      "source blank",
+      "source words",
+    ]);
+  });
+
   it("does not hold disabled sources to those requirements", () => {
     expect(
       validateSources(registry(makeSource({ id: "later", type: "youtube", enabled: false }))),
