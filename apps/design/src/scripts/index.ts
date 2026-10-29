@@ -22,8 +22,15 @@ interface Entry {
 let entries: Promise<Entry[]> | undefined;
 const load = (): Promise<Entry[]> => {
   entries ??= fetch(page?.dataset.indexUrl ?? "")
-    .then((response) => response.json() as Promise<Entry[]>)
-    .catch(() => []);
+    .then((response) => {
+      if (!response.ok) throw new Error(`Search index request failed: ${response.status}`);
+      return response.json() as Promise<Entry[]>;
+    })
+    // A failed load answers empty now and is tried again on the next search.
+    .catch(() => {
+      entries = undefined;
+      return [];
+    });
   return entries;
 };
 

@@ -19,7 +19,7 @@ Vercel's deployment protection cannot guard a project that is reached through an
 
 1. Separate apps, not routes in the reader (own bundle, keys and look; separate repo stays ruled out by D189).
 2. The command center reads the reader's `/api/costs` and `/api/health` first; new sources get routes of its own; costs and health move into a shared package later, which lets the reader's public routes go.
-3. Component specs live beside the components in `apps/web` (`*.design.ts`), changed in the same PR; a test fails when a shared class has no spec. They feed the style guide and the coverage numbers.
+3. The style guide lists only the Astro components the app itself imports (D222); no hand-written spec copies. Component changes go through design-system-only pull requests.
 4. First milestone: the command center shell, then everything that exists moves in.
 
 ## Phases
@@ -27,7 +27,7 @@ Vercel's deployment protection cannot guard a project that is reached through an
 1. **Command center shell** (PR #421): `apps/admin` with Overview and a stub per section, in the reader's language.
 2. **Move what exists.** Costs and Health pages in the admin app, reading the reader's APIs, behind the gate; then remove `/analytics`, `/settings/health`, `/design` and Settings' Analytics rows from the reader, redirecting to the new addresses. Needs the rewrites.
 3. **Style guide** (`apps/design`, D222, [spec](../specs/style-guide.md)): built in its own thread. Colours with live contrast, type, tokens, principles and a search over them; components wait until the app has real ones to show (D222). The reader's own `/design` page (D189) goes when the rewrite is live.
-4. **Coverage analytics:** from the specs and a scan of the app's CSS and markup, which shared parts have a spec, how much of the app uses them instead of one-off rules, which tokens are unused; the `design-check` rules feed it.
+4. **Coverage analytics:** from the app's imported components and a scan of its CSS and markup, how much of the app uses them instead of one-off rules, which tokens are unused; the `design-check` rules feed it.
 5. **Sentry and analytics:** routes of the admin app that hold their own keys.
 
 ## Design references (Mobbin, 2026-10-29)

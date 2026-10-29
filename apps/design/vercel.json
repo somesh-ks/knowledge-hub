@@ -3,6 +3,10 @@
   "installCommand": "cd ../.. && npm ci --ignore-scripts",
   "buildCommand": "npm run build",
   "ignoreCommand": "sh ignore-build.sh",
+  "rewrites": [
+    { "source": "/design", "destination": "/" },
+    { "source": "/design/:path*", "destination": "/:path*" }
+  ],
   "headers": [
     { "source": "/(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] }
   ]

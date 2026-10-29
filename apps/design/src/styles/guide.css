@@ -301,6 +301,10 @@
   overflow-wrap: anywhere;
 }
 
+.guide-icon[hidden] {
+  display: none;
+}
+
 .guide-jump {
   margin-block-end: var(--space-6);
 }
