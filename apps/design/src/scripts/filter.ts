@@ -1,7 +1,8 @@
 /**
  * A page's filter: typing narrows every [data-filter-item] to those whose name or text holds each
- * word, and a section left with none steps aside. The query is not kept; the page is small enough to
- * start again from the top.
+ * word, and a section left with none steps aside. A [data-filter-tier] select also keeps only the
+ * sections of that [data-tier]. The query is not kept; the page is small enough to start again from
+ * the top.
  */
 export {};
 
@@ -16,12 +17,15 @@ function apply(): void {
     const text = `${item.dataset.name ?? ""} ${item.textContent ?? ""}`.toLowerCase();
     item.hidden = !terms.every((term) => text.includes(term));
   }
+  const wanted = tier?.value ?? "all";
   for (const section of document.querySelectorAll<HTMLElement>(".guide-page section")) {
     const own = section.querySelectorAll("[data-filter-item]");
-    section.hidden =
+    const otherTier = wanted !== "all" && !!section.dataset.tier && section.dataset.tier !== wanted;
+    const nothingLeft =
       terms.length > 0 &&
       own.length > 0 &&
       !section.querySelector("[data-filter-item]:not([hidden])");
+    section.hidden = otherTier || nothingLeft;
   }
   // A jump link to a section that stepped aside would lead nowhere: it steps aside too.
   for (const link of document.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')) {
