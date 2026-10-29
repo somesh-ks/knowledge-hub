@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   type Category,
+  DEFAULT_SCHEDULE,
   defaultStructure,
   digestSections,
   parseDigestFile,
@@ -40,6 +41,42 @@ describe("a Regenerate's asked length sizes its sections", () => {
     const asked = await loadSectionPlan(root, "regular", 15);
     expect(asked.limit("design")).toBeGreaterThan(usual.limit("design") ?? 0);
     expect(asked.limit("ai")).toBeGreaterThan(usual.limit("ai") ?? 0);
+  });
+});
+
+describe("a ticked general topic airs under a profile's structure", () => {
+  // The 2026-10-29 daily ticked World, Business and Science, but the Designer profile lists none of
+  // them: 36 of its 53 qualifying stories were dropped as not_in_structure and it aired 3.8 of 5 minutes.
+  it("adds a section for each general topic the podcast has ticked, and none for one it skips", async () => {
+    const root = await mkdtemp(join(tmpdir(), "section-plan-"));
+    await mkdir(join(root, "config"), { recursive: true });
+    await writeFile(
+      join(root, "config/structure.json"),
+      JSON.stringify({ version: 1, profile: "designer" }),
+    );
+    await writeFile(
+      join(root, "config/schedule.json"),
+      JSON.stringify({
+        ...DEFAULT_SCHEDULE,
+        skip_topics: ["sports", "culture"],
+        weekly: { ...DEFAULT_SCHEDULE.weekly, skip_topics: ["business", "sports"] },
+        general_scoped: true,
+      }),
+    );
+    const daily = await loadSectionPlan(root, "regular");
+    expect(["world", "business", "science"].map((id) => daily.includes(id))).toEqual([
+      true,
+      true,
+      true,
+    ]);
+    expect(["sports", "culture"].map((id) => daily.includes(id))).toEqual([false, false]);
+    const weekly = await loadSectionPlan(root, "weekly");
+    expect(["world", "science", "culture"].map((id) => weekly.includes(id))).toEqual([
+      true,
+      true,
+      true,
+    ]);
+    expect(["business", "sports"].map((id) => weekly.includes(id))).toEqual([false, false]);
   });
 });
 
