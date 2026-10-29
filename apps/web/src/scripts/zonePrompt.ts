@@ -88,7 +88,7 @@ async function switchTo(offer: Offer, device: string): Promise<void> {
         oneLine: true,
         actionLabel: "Retry",
         // The device may have moved on since the failure: a stale zone is never saved.
-        onAction: () => (deviceZone() === device ? void switchTo(offer, device) : checkZone()),
+        onAction: () => (deviceZone() === device ? void switchTo(offer, device) : askAgain()),
       });
       return;
     }
@@ -111,6 +111,12 @@ async function switchTo(offer: Offer, device: string): Promise<void> {
     say("error");
   }
 }
+
+/**
+ * Asks again for the zone the device is in now, once the tapped toast has left (a check while it is
+ * still up would be dropped as a second offer).
+ */
+const askAgain = (): void => void setTimeout(checkZone, 400);
 
 /** Said on the root when a check ends, for a reader of the page that waits on it (the e2e). */
 const noteOutcome = (outcome: "agree" | "dismissed" | "offered" | "unsupported"): void => {
@@ -168,9 +174,7 @@ export function checkZone(): void {
       oneLine: true,
       onAction: () => {
         if (deviceZone() === device) void switchTo(suggestion, device);
-        // The device moved on while the offer stood: ask again for the zone it is in now, once the
-        // tapped toast has left (a check while it is still up would be dropped as a second offer).
-        else setTimeout(checkZone, 400);
+        else askAgain();
       },
       onDismiss: () => keep([...new Set([...dismissed(), device])]),
     },
