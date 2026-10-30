@@ -9,5 +9,6 @@
 /tokens/ @somesh-ks
 /apps/design/ @somesh-ks
 /scripts/system/ @somesh-ks
+/scripts/colorRamp.ts @somesh-ks
 /.github/CODEOWNERS @somesh-ks
 /.claude/skills/feature/references/controls-guide.md @somesh-ks
