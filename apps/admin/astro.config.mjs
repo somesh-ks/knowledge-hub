@@ -1,3 +1,4 @@
+import react from "@astrojs/react";
 import { defineConfig } from "astro/config";
 
 // The command center (D224): its own app and deploy, reached at news.someshks.work/admin by a rewrite
@@ -12,6 +13,7 @@ export default defineConfig({
   site: "https://news.someshks.work",
   base: "/admin",
   output: "static",
+  integrations: [react()],
   trailingSlash: "never",
   compressHTML: true,
   vite: {
