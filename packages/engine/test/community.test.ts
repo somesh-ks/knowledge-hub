@@ -71,6 +71,7 @@ describe("community lift", () => {
   it("counts votes on every platform and grows slower the more there are", () => {
     expect(communityVotes({ hn_points: 100, hn_comments: 50, reddit_score: 200 })).toBe(350);
     expect(communityVotes({ lobsters_score: 40 })).toBe(200);
+    expect(communityVotes({ youtube_votes: 500, hn_points: 20 })).toBe(520);
     expect(communityStrength({ hn_points: 100 }, on)).toBeNull();
     const mid = communityStrength({ hn_points: 500 }, on) ?? 0;
     const top = communityStrength({ hn_points: 1500 }, on) ?? 0;

@@ -65,14 +65,17 @@ const LOBSTERS_WEIGHT = 5;
 
 /**
  * Votes across every community that carried the story: points plus comments on each platform,
- * summed, so a story on two platforms counts for both. A comment counts as a vote because a
- * thread people argue in is attention that a bare upvote does not show.
+ * and a YouTube video's votes against its channel, summed, so a story on two platforms counts for
+ * both. A comment counts as a vote because a thread people argue in is attention that a bare
+ * upvote does not show.
  */
 export function communityVotes(signals: Item["signals"]): number {
   const hn = (signals.hn_points ?? 0) + (signals.hn_comments ?? 0);
   const lobsters = Math.max(0, signals.lobsters_score ?? 0) * LOBSTERS_WEIGHT;
   const reddit = Math.max(0, signals.reddit_score ?? 0) + (signals.reddit_comments ?? 0);
-  return hn + lobsters + reddit;
+  // Already in vote-equivalents: the fetcher scores a video against its own channel's median (D244).
+  const youtube = Math.max(0, signals.youtube_votes ?? 0);
+  return hn + lobsters + reddit + youtube;
 }
 
 /**

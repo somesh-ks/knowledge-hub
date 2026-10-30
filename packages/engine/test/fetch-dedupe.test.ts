@@ -133,9 +133,22 @@ describe("dedupe", () => {
       source_type: "reddit",
       signals: { reddit_score: 640, reddit_comments: 95 },
     });
-    const { items } = dedupe({ items: [blog, reddit], sources, seen: emptySeen });
+    const video = makeItem({
+      url: "https://example.com/post",
+      title: "Why springs feel right",
+      source_id: "channel",
+      source_type: "youtube",
+      signals: { youtube_views: 90000, youtube_votes: 520 },
+    });
+    const { items } = dedupe({ items: [blog, reddit, video], sources, seen: emptySeen });
     expect(items).toHaveLength(1);
-    expect(items[0]?.signals).toEqual({ hn_points: 120, reddit_score: 640, reddit_comments: 95 });
+    expect(items[0]?.signals).toEqual({
+      hn_points: 120,
+      reddit_score: 640,
+      reddit_comments: 95,
+      youtube_views: 90000,
+      youtube_votes: 520,
+    });
   });
 
   it("collapses near-duplicate titles across sources, keeping the one with more HN points", () => {
