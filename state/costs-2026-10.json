@@ -1433,6 +1433,22 @@
         "output_tokens": 3216
       },
       "usd": 0.078609
+    },
+    {
+      "id": "ep-20261030-2010|on_demand|narration|speechify|simba-3.2|owner|3cf50519-65be-4442-a277-d19de4b2a982",
+      "at": "2026-10-30T19:11:23.584Z",
+      "run_id": "ep-20261030-2010",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 261
+      },
+      "usd": 0.00261
     }
   ]
 }
