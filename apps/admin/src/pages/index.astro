@@ -1,7 +1,7 @@
 ---
-import Icon from "../../../web/src/components/Icon.astro";
 import { HEALTH_DEVICES, HEALTH_GROUPS, HEALTH_SPEED } from "../../../web/src/lib/healthRows";
 import AdminHead from "../components/AdminHead.astro";
+import StatusGlyphs from "../components/StatusGlyphs.astro";
 import Shell from "../layouts/Shell.astro";
 
 // The ring's four pillars are the places to look, not the kinds of fault: a fault class (errors) cuts
@@ -63,14 +63,8 @@ const groups = [
     <AdminHead title="Overview" />
 
     {/* Static shells: each card is drawn here, and scripts/overview.ts fills them from the reader's
-         /api/health and /api/costs, so nothing moves when the answers arrive. The three status
-         glyphs wait here as templates, so the script draws no markup of its own. */}
-    <template data-glyphs>
-      <span data-glyph="good"><Icon name="checkCircle" /></span>
-      <span data-glyph="warn"><Icon name="alert" /></span>
-      <span data-glyph="bad"><Icon name="blocked" /></span>
-      <span data-glyph="more"><Icon name="chevronDown" /></span>
-    </template>
+         /api/health and /api/costs, so nothing moves when the answers arrive. */}
+    <StatusGlyphs />
 
     <section data-overview-health data-loading>
       <h2 class="section-head">Health</h2>

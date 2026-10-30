@@ -1,10 +1,10 @@
 /**
  * Health page (/admin/health). Asks /api/health once and fills the rows and tiles the page drew
- * at build (lib/healthRows.ts): a value, a line and a dot per row, by id. The Speed card shows one
- * device at a time; its select repaints from the same answer, with no second fetch. A failed fetch
- * says so in the summary and leaves the rows on "Checking".
+ * at build (lib/healthRows.ts): a value, a line and, on a row that needs a look, a glyph, by id.
+ * The Speed card shows one device at a time; its select repaints from the same answer, with no
+ * second fetch. A failed fetch says so in the summary and leaves the rows on "Checking".
  */
-import type { HealthBody, HealthRow } from "../../../web/src/lib/healthRows";
+import type { HealthBody, HealthRow, HealthTone } from "../../../web/src/lib/healthRows";
 
 const root = document.querySelector<HTMLElement>("[data-health]");
 const device = document.querySelector<HTMLSelectElement>("#health-device");
@@ -12,13 +12,28 @@ let answer: HealthBody | null = null;
 
 const DEVICE_KEY = "singularity:health-device";
 
+/** The title says how it stands, never what to do about it. */
+const STATES = { good: "Healthy", warn: "Degraded", bad: "Failing", none: "Healthy" } as const;
+
+/** A copy of a status glyph from the page's template (StatusGlyphs.astro), so no markup is drawn here. */
+function setMark(mark: Element | null, tone: HealthTone): void {
+  if (!mark) return;
+  mark.setAttribute("data-tone", tone);
+  const copy = document
+    .querySelector<HTMLTemplateElement>("template[data-glyphs]")
+    ?.content.querySelector(`[data-glyph="${tone}"] > svg`)
+    ?.cloneNode(true);
+  mark.replaceChildren(...(copy ? [copy] : []));
+}
+
+/** Only a row that needs a look carries a glyph: a fine row is quiet. */
 function paintRow(element: HTMLElement, row: HealthRow | undefined): void {
   const value = element.querySelector<HTMLElement>("[data-value]");
   const detail = element.querySelector<HTMLElement>("[data-detail]");
-  const dot = element.querySelector<HTMLElement>(".status-dot");
   if (value) value.textContent = row?.value ?? "No data";
   if (detail) detail.textContent = row?.detail ?? "Not checked";
-  dot?.setAttribute("data-tone", row?.tone ?? "none");
+  const tone = row?.tone === "warn" || row?.tone === "bad" ? row.tone : "none";
+  setMark(element.querySelector("[data-mark]"), tone);
 }
 
 function paint(): void {
@@ -34,18 +49,18 @@ function paint(): void {
       answer.tiles[element.dataset.healthTile as keyof HealthBody["tiles"]] ?? "No data";
   }
   const { count, tone } = answer.attention;
-  const words = root.querySelector<HTMLElement>("[data-health-attention]");
-  if (words)
-    words.textContent =
-      count === 0 ? "All good" : `${count} ${count === 1 ? "needs" : "need"} a look`;
-  root
-    .querySelector("[data-health-attention-dot]")
-    ?.setAttribute("data-tone", count === 0 ? "good" : tone);
+  const state = count === 0 ? "good" : tone;
+  const words = root.querySelector<HTMLElement>("[data-health-state]");
+  if (words) words.textContent = STATES[state];
+  setMark(root.querySelector("[data-health-state-mark]"), state);
 
   const checked = new Date(answer.checked_at).toLocaleTimeString("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
   });
+  const sub = root.querySelector<HTMLElement>("[data-health-sub]");
+  if (sub)
+    sub.textContent = count > 0 ? `${count} flagged · checked ${checked}` : `Checked ${checked}`;
   const missing = [
     answer.parts.content === "fallback" && "the content store answered from this build's copy",
     answer.parts.content === "saved" && "the content store answered from its last saved list",
@@ -55,7 +70,7 @@ function paint(): void {
   ].filter(Boolean);
   const note = root.querySelector<HTMLElement>("[data-health-note]");
   if (note) {
-    note.textContent = `Checked at ${checked}.${missing.length ? ` Partial: ${missing.join("; ")}.` : ""}`;
+    note.textContent = missing.length ? `Partial: ${missing.join("; ")}.` : "";
   }
 }
 
@@ -67,9 +82,9 @@ async function load(): Promise<void> {
     answer = (await response.json()) as HealthBody;
     paint();
   } catch {
-    const words = root.querySelector<HTMLElement>("[data-health-attention]");
-    if (words) words.textContent = "Could not check";
-    root.querySelector("[data-health-attention-dot]")?.setAttribute("data-tone", "none");
+    const words = root.querySelector<HTMLElement>("[data-health-state]");
+    if (words) words.textContent = "No answer";
+    setMark(root.querySelector("[data-health-state-mark]"), "none");
   } finally {
     delete root.dataset.loading;
   }

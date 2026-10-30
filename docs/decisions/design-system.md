@@ -390,3 +390,11 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Revisit if: the Google login replaces the password (the cookie's meaning stays; only how it is issued changes), or another page needs these numbers without a session.
 - Amends: D201 (for these two routes), D224.
 
+## D259: Health reads as a state with glyphs on what needs a look, and shows stage times
+
+- Date: 2026-10-30 (the owner: the admin pages should match the Overview; the previous thread's handoff names the stage times). Amends D203.
+- Decision: the page leads with a state title (Healthy, Degraded, Failing) and its glyph, never a count of what to do. A row that needs a look carries its tone's glyph before its reading; a fine row draws nothing, so the page is quiet when it is well. The status dot is retired from the design system (nothing else drew it). A Stage times card per kind of run shows each stage's median and slowest tenth over 14 days as bars, from `readStageTimings` through `api/stages.ts`, a function on the admin project behind the gate.
+- Why: a green dot on every row was noise the Overview had already dropped, and the runs table held stage times nothing displayed.
+- Rejected: p90 as a second printed figure per row (two numbers a row read as a table, and the lighter reach says it); a colour per stage (grey at rest, nothing here is picked).
+- Revisit if: the owner wants the p90 as a number, or stages are needed per run rather than per kind.
+- Amends: D203.
