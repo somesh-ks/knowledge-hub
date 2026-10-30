@@ -30,11 +30,13 @@ import {
 import {
   checkConfig,
   checkConfigStore,
+  checkDeploymentRate,
   checkEpisodes,
   checkPerf,
   checkRunMetrics,
   checkRunsDied,
   checkStore,
+  type DeploymentReading,
   type FieldReading,
   type HealthAspect,
   type HealthFetch,
@@ -51,7 +53,15 @@ import {
 } from "./healthLimits.js";
 import { collectStatus } from "./statusReport.js";
 
-export type { FieldReading, HealthAspect, HealthFetch, StoreReading, WatchedHead, WorkflowRun };
+export type {
+  DeploymentReading,
+  FieldReading,
+  HealthAspect,
+  HealthFetch,
+  StoreReading,
+  WatchedHead,
+  WorkflowRun,
+};
 export { SHORT_EPISODE_FAULT, SHORT_EPISODE_WARN, THIN_DIGEST_ITEMS };
 
 /**
@@ -97,6 +107,8 @@ export interface HealthOptions {
   store?: StoreReading;
   /** The newest commit the site would deploy (the command reads git when online); absent skips `site_behind`. */
   main?: WatchedHead;
+  /** Vercel's deployments in the last 24 hours (the command reads them with `VERCEL_TOKEN`); absent skips `deploy_rate`. */
+  deployments?: DeploymentReading;
   /** The voices episodes are narrated in, so their stored segments are found by address. */
   voices?: EpisodeVoiceEnv;
 }
@@ -392,6 +404,9 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
   await checkRunMetrics(root, { fault, warn, passed });
 
   if (options.perf !== undefined) checkPerf(options.perf, { fault, warn, passed });
+  if (options.deployments !== undefined) {
+    checkDeploymentRate(options.deployments, { fault, warn, passed });
+  }
   if (options.store !== undefined) {
     checkStore(options.store, { fault, warn, passed });
     const documents = "documents" in options.store ? options.store.documents : undefined;

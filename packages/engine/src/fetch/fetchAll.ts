@@ -26,6 +26,8 @@ export const DEFAULT_TYPE_LIMITS: Partial<Record<SourceType, TypeLimit>> = {
   exa: { concurrency: 1, timeoutMs: 40_000 },
   arxiv: { concurrency: 1, minIntervalMs: 3_000 },
   crossref: { concurrency: 2 },
+  // Reddit throttles unauthenticated clients hard; one listing every 2 seconds stays under it.
+  reddit: { concurrency: 1, minIntervalMs: 2_000 },
 };
 
 export interface FetchAllOptions {

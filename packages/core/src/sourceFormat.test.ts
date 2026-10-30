@@ -23,6 +23,7 @@ describe("source format", () => {
       crossref: "research",
       hn: "forum",
       lobsters: "forum",
+      reddit: "forum",
       rss: "blog",
       exa: "blog",
       firecrawl: "blog",

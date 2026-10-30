@@ -119,6 +119,38 @@ describe("dedupe", () => {
     expect(items[0]?.author).toBe("someone");
   });
 
+  it("keeps the votes of every platform that carried a story", () => {
+    const blog = makeItem({
+      url: "https://example.com/post",
+      title: "Why springs feel right",
+      source_id: "craft",
+      signals: { hn_points: 120 },
+    });
+    const reddit = makeItem({
+      url: "https://example.com/post",
+      title: "Why springs feel right",
+      source_id: "reddit",
+      source_type: "reddit",
+      signals: { reddit_score: 640, reddit_comments: 95 },
+    });
+    const video = makeItem({
+      url: "https://example.com/post",
+      title: "Why springs feel right",
+      source_id: "channel",
+      source_type: "youtube",
+      signals: { youtube_views: 90000, youtube_votes: 520 },
+    });
+    const { items } = dedupe({ items: [blog, reddit, video], sources, seen: emptySeen });
+    expect(items).toHaveLength(1);
+    expect(items[0]?.signals).toEqual({
+      hn_points: 120,
+      reddit_score: 640,
+      reddit_comments: 95,
+      youtube_views: 90000,
+      youtube_votes: 520,
+    });
+  });
+
   it("collapses near-duplicate titles across sources, keeping the one with more HN points", () => {
     const low = makeItem({
       url: "https://a.example/launch",

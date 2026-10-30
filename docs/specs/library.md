@@ -22,7 +22,7 @@ What it does now. Reasons: D44, D59, D60, D77, D78, D88, D97, D104, D109, D127; 
 
 ### Library list
 - Three single-select filter chips by kind: Daily, Weekly, Catch up (everything made on request, D125). None ticked means all.
-- A card has one facts line: kind, then contents, then length ("Daily · 12 stories · 8 min", "Discussion · 5 min").
+- A card has one facts line: kind, then contents, then length ("Daily · 12 stories · 8 min", "Catch up · 5 min").
 - Search finds a date in any form and searches inside episode scripts. Search, filter and order stay in the address.
 - A recording heard to its end says Played (D78).
 - The Library has a List view and a play button on covers. Sort is a drawn select, absent on a phone (below 40rem), where the chips and the view switch share one line (chips scroll at 360px).

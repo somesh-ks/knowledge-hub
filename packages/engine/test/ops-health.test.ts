@@ -6,11 +6,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { collectHealth, type HealthFetch } from "../src/ops/health.js";
 import {
   checkClientFaults,
+  checkDeploymentRate,
   checkFieldVitals,
   checkPerf,
   checkRunsDied,
   checkStore,
   FIELD_MIN_SAMPLES,
+  readDeploymentCount,
   readStore,
   readWatchedHead,
   type StoreReading,
@@ -674,5 +676,43 @@ describe("singularity health", () => {
     });
     expect(codes(report.findings, "fault")).not.toContain("run_overdue");
     expect(report.passed).toContain("the daily podcast is switched off");
+  });
+
+  // 2026-10-29: an app built every agent branch, 143 deployments in a day, and Vercel refused every
+  // deploy for a day with nothing to warn the owner first.
+  it("warns when Vercel's deployments in 24 hours near the cap, counting every page, and says when it cannot count", async () => {
+    const pages: Array<{ deployments: unknown[]; pagination: { next: number | null } }> = [
+      { deployments: new Array(100).fill({}), pagination: { next: 1_000 } },
+      { deployments: new Array(10).fill({}), pagination: { next: null } },
+    ];
+    const urls: string[] = [];
+    const answer = (status: number) => async (url: string) => {
+      urls.push(url);
+      return { status, json: async () => pages[urls.length - 1] };
+    };
+    const found = await readDeploymentCount("tok-secret-123", NOW, answer(200));
+    expect(found).toEqual({ count: 110 });
+    expect(urls[0]).toContain(`since=${NOW.getTime() - 86_400_000}`);
+    expect(urls[1]).toContain("until=1000");
+    const sink = (code: string[]) => ({
+      fault: () => undefined,
+      warn: (c: string) => void code.push(c),
+      passed: [] as string[],
+    });
+    const warned: string[] = [];
+    checkDeploymentRate({ count: 70 }, sink(warned));
+    checkDeploymentRate({ count: 69 }, sink(warned));
+    expect(warned).toEqual(["deploy_rate"]);
+    // No token is no reading; a refusal or a thrown token is a warning with the token taken out.
+    expect(await readDeploymentCount(undefined, NOW, answer(200))).toBeUndefined();
+    const refused = await readDeploymentCount("tok-secret-123", NOW, answer(403));
+    expect(refused).toEqual({ error: "Vercel answered 403" });
+    const broken = await readDeploymentCount("tok-secret-123", NOW, async () => {
+      throw new Error("bad Bearer tok-secret-123");
+    });
+    expect(JSON.stringify(broken)).not.toContain("tok-secret-123");
+    const unread: string[] = [];
+    checkDeploymentRate(broken as { error: string }, sink(unread));
+    expect(unread).toEqual(["deploy_rate_unread"]);
   });
 });

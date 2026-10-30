@@ -25,23 +25,34 @@ export function hnQueryUrl(
   tags: string,
   minPoints: number,
   fromSeconds: number,
+  query?: string,
 ): string {
   const params = new URLSearchParams({
     tags,
     numericFilters: `points>${minPoints},created_at_i>${fromSeconds}`,
     hitsPerPage: "100",
   });
+  // Any one word may match, so a topic's words find its stories; the points floor keeps the noise out.
+  if (query) {
+    params.set("query", query);
+    params.set("optionalWords", query);
+  }
   return `${base}?${params.toString()}`;
 }
 
-/** Hacker News through Algolia: recent Show HN posts above a points floor. */
+/**
+ * Hacker News through Algolia: recent posts above a points floor. Show HN by default; a source
+ * with `options.query` takes the stories about its words instead (`options.tags: story`), so the
+ * community's own discussion of a topic reaches the pool (D240).
+ */
 export const fetchHn: SourceFetcher = async (source, window, deps): Promise<Item[]> => {
   const tags = source.options.tags ?? DEFAULT_TAGS;
   const minPoints = Number(source.options.min_points ?? DEFAULT_MIN_POINTS);
   const base = source.feed_url ?? HN_SEARCH_BY_DATE;
   const fromSeconds = Math.floor(window.from.getTime() / 1000);
+  const query = source.options.query?.trim() || undefined;
   const body = HnResponse.safeParse(
-    await deps.http.getJson(hnQueryUrl(base, tags, minPoints, fromSeconds), {
+    await deps.http.getJson(hnQueryUrl(base, tags, minPoints, fromSeconds, query), {
       signal: deps.signal,
     }),
   );

@@ -16,6 +16,7 @@ import {
 } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { parseAuthority } from "../src/authority/authority.js";
+import { parseCommunity } from "../src/community/community.js";
 import { parseQueries } from "../src/fetch/queries.js";
 import { parseVoice } from "../src/voice/voice.js";
 import { REPO_ROOT } from "./score-factories.js";
@@ -31,6 +32,7 @@ const SCHEMAS: Record<string, { parse: (value: unknown) => unknown }> = {
   "config/models.json": ModelRouting,
   "config/queries.json": { parse: parseQueries },
   "config/authority.json": { parse: parseAuthority },
+  "config/community.json": { parse: parseCommunity },
   "state/judgments.json": JudgmentsFile,
   "state/last-run.json": LastRunFile,
   "state/seen.json": SeenFile,
