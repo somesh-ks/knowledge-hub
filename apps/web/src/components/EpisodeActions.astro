@@ -1,4 +1,5 @@
 ---
+import Button from "../design-system/Button.astro";
 import { briefingChips } from "../lib/briefingChips";
 import { topicOptions } from "../lib/createForm";
 import { loadManage } from "../lib/manage";
@@ -97,9 +98,9 @@ const COPY = {
                 <p class="create-hint regen-count" id="regen-count" data-count aria-live="polite" hidden />
               </section>
               <div class="create-submit">
-                <button class="btn-primary" type="submit" data-submit>
+                <Button variant="filled" type="submit" data-submit>
                   Regenerate episode
-                </button>
+                </Button>
                 <p class="create-error" role="alert" data-error hidden>
                   <Icon name="alert" /><span />
                 </p>
@@ -121,8 +122,8 @@ const COPY = {
               <Icon name="alert" /><span />
             </p>
             <div class="confirm-actions">
-              <button class="btn" type="button" data-dialog-close autofocus>Cancel</button>
-              <button class="btn confirm-delete" type="submit" data-submit>Delete</button>
+              <Button variant="text" data-dialog-close autofocus>Cancel</Button>
+              <Button variant="text" tone="danger" type="submit" data-submit>Delete</Button>
             </div>
           </form>
           <div hidden data-copy>

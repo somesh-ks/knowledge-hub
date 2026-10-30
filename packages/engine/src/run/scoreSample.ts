@@ -12,7 +12,7 @@ import {
   type SourceType,
 } from "@singularity/core";
 import { z } from "zod";
-import { type AuthorityMatcher, withAuthority } from "../authority/authority.js";
+import { type CommunityFile, withCommunity } from "../community/community.js";
 import { readJsonIfExists } from "../curate/inputs.js";
 import { FETCHERS } from "../fetch/fetchers.js";
 import type { SourceFetcher, SourceResult } from "../fetch/types.js";
@@ -21,6 +21,10 @@ import { mapConcurrent } from "../llm/concurrency.js";
 import { scoreItem } from "../score/scoreItem.js";
 import { eligibility } from "../score/selectItems.js";
 import type { SourceCounts } from "../state/sourceStats.js";
+import {
+  type TrustedPublisherMatcher,
+  withTrustedPublishers,
+} from "../trustedPublishers/trustedPublishers.js";
 import { isFlagged } from "./sourceCounts.js";
 
 /**
@@ -304,7 +308,8 @@ export function countSample(input: {
   /** Built-in categories the pass has muted. */
   offCategories?: readonly string[];
   /** The owner's vetted publishers: a lifted announcement counts as passed, as it will in the pool. */
-  authority?: AuthorityMatcher;
+  trustedPublishers?: TrustedPublisherMatcher;
+  community?: CommunityFile;
 }): Record<string, SourceCounts> {
   const out: Record<string, SourceCounts> = {};
   const row = (id: string): SourceCounts => {
@@ -322,7 +327,10 @@ export function countSample(input: {
     counts.sampled = (counts.sampled ?? 0) + 1;
     counts.asked = (counts.asked ?? 0) + 1;
     if (isFlagged(entry.flags)) counts.flagged = (counts.flagged ?? 0) + 1;
-    const scored = withAuthority(scoreItem(entry, input.preferences, item), input.authority);
+    const scored = withCommunity(
+      withTrustedPublishers(scoreItem(entry, input.preferences, item), input.trustedPublishers),
+      input.community,
+    );
     if (eligibility(scored, undefined, input.offCategories).eligible) counts.passed += 1;
   }
   const unanswered = new Set(input.judged.unjudged);

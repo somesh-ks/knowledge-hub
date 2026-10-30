@@ -14,13 +14,11 @@ import {
 import { isThinText } from "../alexandria/alexandria.js";
 import { MAX_SPOKEN_CHARS } from "../audio/spokenText.js";
 import {
-  type AuthorityMatcher,
-  authorityMatcher,
-  authorityShadowMatcher,
-  loadAuthority,
-  NO_AUTHORITY,
-  withAuthority,
-} from "../authority/authority.js";
+  type CommunityFile,
+  communityShadow,
+  loadCommunity,
+  withCommunity,
+} from "../community/community.js";
 import type { ApiRuntime } from "../curate/apiRuntime.js";
 import {
   loadPool,
@@ -66,6 +64,14 @@ import type { ScoredItem, SelectedItem } from "../score/types.js";
 import { readSeen, readSourceStats } from "../state/store.js";
 import { loadTopics } from "../topics/store.js";
 import { writerCategory } from "../topics/writerCategory.js";
+import {
+  loadTrustedPublishers,
+  NO_TRUSTED_PUBLISHERS,
+  type TrustedPublisherMatcher,
+  trustedPublisherMatcher,
+  trustedPublisherShadowMatcher,
+  withTrustedPublishers,
+} from "../trustedPublishers/trustedPublishers.js";
 import { createLinter, type Linter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
 import { enforceVoice } from "../write/enforceVoice.js";
@@ -107,9 +113,13 @@ interface PassContext {
   /** Each source's format and lean, for the type mix and perspective. */
   sourceFacts: Record<string, SourceFacts>;
   /** The owner's vetted publishers (D234): finds nothing while the list is off. */
-  authority: AuthorityMatcher;
+  trustedPublishers: TrustedPublisherMatcher;
   /** The list read as if on while it is off, to log what it would add; finds nothing otherwise. */
-  authorityShadow: AuthorityMatcher;
+  trustedPublisherShadow: TrustedPublisherMatcher;
+  /** What the community voted up (D240): lifts nothing while the file is off. */
+  community: CommunityFile;
+  /** The same file read as if on while it is off, to log what it would add; undefined otherwise. */
+  communityShadow: CommunityFile | undefined;
   /** Enabled custom topics, scored against the fits the judge stage recorded. */
   customTopics: ReturnType<typeof activeFitTopics>;
   /** Sections a scheduled regular briefing covers; null for every section and for other modes. */
@@ -167,7 +177,8 @@ export async function writeStage(
   const taste = tasteHeadlines(profile.votes);
   const fullSchedule = await loadSchedule(deps.root);
   const schedule = plan.mode === "scheduled" ? fullSchedule : null;
-  const authorityFile = await loadAuthority(deps.root);
+  const trustedPublishersFile = await loadTrustedPublishers(deps.root);
+  const communityFile = await loadCommunity(deps.root);
   const context: PassContext = {
     deps,
     runtime,
@@ -175,8 +186,10 @@ export async function writeStage(
     preferences,
     sourceNames: sourceNameMap(sources),
     sourceFacts: sourceFactsMap(sources),
-    authority: authorityMatcher(authorityFile),
-    authorityShadow: authorityShadowMatcher(authorityFile),
+    trustedPublishers: trustedPublisherMatcher(trustedPublishersFile),
+    trustedPublisherShadow: trustedPublisherShadowMatcher(trustedPublishersFile),
+    community: communityFile,
+    communityShadow: communityShadow(communityFile),
     customTopics: activeFitTopics(topics),
     offCategories: offCategories(topics),
     skipTopics: schedule?.skip_topics ?? [],
@@ -275,6 +288,7 @@ async function writePass(
   };
   const base: ScoredItem[] = [];
   const shadowHits: string[] = [];
+  const communityHits: string[] = [];
   for (const entry of judged.entries) {
     const item = byId.get(entry.item_id);
     if (!item) continue;
@@ -292,23 +306,43 @@ async function writePass(
         sourceStats,
         sourceShifted,
       );
-    const final = adjusted(withAuthority(topical, context.authority));
+    // Each list is also read as if on while it is off, one at a time, against the live other.
+    const lifted = (
+      trustedPublishers: TrustedPublisherMatcher,
+      community: CommunityFile,
+    ): ScoredItem =>
+      adjusted(withCommunity(withTrustedPublishers(topical, trustedPublishers), community));
+    const final = lifted(context.trustedPublishers, context.community);
     base.push(final);
-    if (context.authorityShadow !== NO_AUTHORITY) {
-      const withList = adjusted(withAuthority(topical, context.authorityShadow));
-      if (
-        eligibility(withList, undefined, off).eligible &&
-        !eligibility(final, undefined, off).eligible
-      ) {
-        shadowHits.push(`${item.source_id}: ${item.title} (${final.score} to ${withList.score})`);
+    const passes = (scored: ScoredItem): boolean => eligibility(scored, undefined, off).eligible;
+    const note = (withList: ScoredItem): string =>
+      `${item.source_id}: ${item.title} (${final.score} to ${withList.score})`;
+    if (!passes(final)) {
+      if (context.trustedPublisherShadow !== NO_TRUSTED_PUBLISHERS) {
+        const withList = lifted(context.trustedPublisherShadow, context.community);
+        if (passes(withList)) shadowHits.push(note(withList));
+      }
+      if (context.communityShadow) {
+        const withList = lifted(context.trustedPublishers, context.communityShadow);
+        if (passes(withList)) communityHits.push(note(withList));
       }
     }
   }
   if (shadowHits.length > 0) {
-    deps.log.info("authority list is off; of the pool, these would pass the bar with it on", {
+    deps.log.info(
+      "trusted publishers list is off; of the pool, these would pass the bar with it on",
+      {
+        pass: pass.id,
+        count: shadowHits.length,
+        stories: shadowHits.slice(0, 10),
+      },
+    );
+  }
+  if (communityHits.length > 0) {
+    deps.log.info("community lift is off; of the pool, these would pass the bar with it on", {
       pass: pass.id,
-      count: shadowHits.length,
-      stories: shadowHits.slice(0, 10),
+      count: communityHits.length,
+      stories: communityHits.slice(0, 10),
     });
   }
   // Jev's taste check, for the strongest candidates only: the change matters near the cut.
@@ -413,7 +447,8 @@ async function writePass(
         judged: sampleFiles.judged,
         preferences,
         offCategories: off,
-        authority: context.authority,
+        trustedPublishers: context.trustedPublishers,
+        community: context.community,
       })
     : {};
   await writeJson(file("source-counts.json"), {

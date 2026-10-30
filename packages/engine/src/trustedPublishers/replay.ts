@@ -3,12 +3,17 @@ import { DEFAULT_JEV_MODEL } from "../judge/jev.js";
 import { QUESTIONS_HASH } from "../judge/questions.js";
 import { scoreItem } from "../score/scoreItem.js";
 import { eligibility } from "../score/selectItems.js";
-import { type AuthorityFile, authorityMatcher, isAuthority, withAuthority } from "./authority.js";
+import {
+  isTrustedPublisher,
+  type TrustedPublishersFile,
+  trustedPublisherMatcher,
+  withTrustedPublishers,
+} from "./trustedPublishers.js";
 
-/** The reassessment line (D234): an authority domain whose judged items pass more often than this. */
-export const AUTHORITY_PASS_GUARD = 0.3;
+/** The reassessment line (D234): a trusted domain whose judged items pass more often than this. */
+export const TRUSTED_PUBLISHERS_PASS_GUARD = 0.3;
 /** Fewer judged items than this say nothing about a domain's rate. */
-export const AUTHORITY_GUARD_MIN = 5;
+export const TRUSTED_PUBLISHERS_GUARD_MIN = 5;
 
 export interface DomainReplay {
   judged: number;
@@ -30,19 +35,19 @@ export interface NewlyPassing {
   rank_after: number;
 }
 
-export interface AuthorityReplay {
+export interface TrustedPublishersReplay {
   /** Distinct items in the pools. */
   items: number;
   /** Items with a cached judgment, the only ones that can be scored. */
   judged: number;
   /** Judged items whose host is on the list. */
-  authority_items: number;
+  trusted_items: number;
   passed_before: number;
   passed_after: number;
   newly_passing: NewlyPassing[];
   /** Per list domain, over judged items. */
   domains: Record<string, DomainReplay>;
-  /** Domains over AUTHORITY_PASS_GUARD with at least AUTHORITY_GUARD_MIN judged items. */
+  /** Domains over TRUSTED_PUBLISHERS_PASS_GUARD with at least TRUSTED_PUBLISHERS_GUARD_MIN judged items. */
   over_guard: string[];
 }
 
@@ -83,13 +88,13 @@ function hostOf(url: string): string {
  * because of the list (a vetted page that matched no keyword) is not replayed: the pools hold only
  * what the old prefilter kept.
  */
-export function replayAuthority(input: {
+export function replayTrustedPublishers(input: {
   pools: readonly Item[];
   judgments: JudgmentsFile;
   preferences: Preferences;
-  authority: AuthorityFile;
-}): AuthorityReplay {
-  const matcher = authorityMatcher({ ...input.authority, enabled: true });
+  trustedPublishers: TrustedPublishersFile;
+}): TrustedPublishersReplay {
+  const matcher = trustedPublisherMatcher({ ...input.trustedPublishers, enabled: true });
   const byId = new Map(input.pools.map((item) => [item.id, item]));
   const entries = entryByItem(input.judgments);
   const rows: {
@@ -105,7 +110,7 @@ export function replayAuthority(input: {
     const entry = entries.get(item.id);
     if (!entry) continue;
     const base = scoreItem(entry, input.preferences, item);
-    const lifted = withAuthority(base, matcher);
+    const lifted = withTrustedPublishers(base, matcher);
     rows.push({
       item,
       category: base.topCategory,
@@ -113,14 +118,14 @@ export function replayAuthority(input: {
       after: lifted.score,
       passBefore: eligibility(base).eligible,
       passAfter: eligibility(lifted).eligible,
-      listed: isAuthority(matcher, item),
+      listed: isTrustedPublisher(matcher, item),
     });
   }
 
   const passing = rows.filter((row) => row.passAfter).sort((a, b) => b.after - a.after);
   const rank = new Map(passing.map((row, index) => [row.item.id, index + 1]));
   const domains: Record<string, DomainReplay> = {};
-  for (const entry of input.authority.entries) {
+  for (const entry of input.trustedPublishers.entries) {
     const domain = entry.domain;
     const own = rows.filter((row) => {
       const host = hostOf(row.item.url);
@@ -137,7 +142,7 @@ export function replayAuthority(input: {
   return {
     items: byId.size,
     judged: rows.length,
-    authority_items: rows.filter((row) => row.listed).length,
+    trusted_items: rows.filter((row) => row.listed).length,
     passed_before: rows.filter((row) => row.passBefore).length,
     passed_after: passing.length,
     newly_passing: rows
@@ -157,7 +162,8 @@ export function replayAuthority(input: {
     over_guard: Object.entries(domains)
       .filter(
         ([, d]) =>
-          d.judged >= AUTHORITY_GUARD_MIN && d.passed_after / d.judged > AUTHORITY_PASS_GUARD,
+          d.judged >= TRUSTED_PUBLISHERS_GUARD_MIN &&
+          d.passed_after / d.judged > TRUSTED_PUBLISHERS_PASS_GUARD,
       )
       .map(([domain]) => domain),
   };

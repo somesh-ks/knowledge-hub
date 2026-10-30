@@ -4,6 +4,7 @@ import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
 import SheetHeader from "../../components/SheetHeader.astro";
+import Button from "../../design-system/Button.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { blockedDomainOf, outletsSummary } from "../../lib/blockedOutlets";
 import { loadBlockedDomains } from "../../lib/blockedProfile";
@@ -64,10 +65,10 @@ const offers = (await loadSourceCatalog()).flatMap((offer) => {
                 <Icon name="close" />
               </button>
             </div>
-            <button class="btn-secondary topic-add-source" type="submit">
+            <Button variant="tonal" class="topic-add-source" type="submit">
               <Icon name="plus" />
               <span>Block</span>
-            </button>
+            </Button>
           </div>
         </form>
 
@@ -210,7 +211,7 @@ const offers = (await loadSourceCatalog()).flatMap((offer) => {
             </ul>
           </div>
           <div class="source-sheet-foot">
-            <button class="btn-primary" type="button" disabled data-sheet-go>Block</button>
+            <Button variant="filled" disabled data-sheet-go>Block</Button>
           </div>
         </dialog>
       </template>

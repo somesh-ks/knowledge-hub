@@ -256,7 +256,7 @@
 }
 
 @media (width >= 40rem) {
-  .create-view .create-submit > .btn-primary {
+  .create-view .create-submit > .button-filled {
     width: auto;
     min-width: 14rem;
     justify-self: start;
@@ -306,22 +306,22 @@
    (createPage.ts swaps the words): it is working, not unavailable. The spinner is in the button's
    row, next to the words it belongs to. createPage.ts ignores a press then, so the press does not
    shrink it. */
-.create-view .btn-primary > .spinner {
+.create-view .button-filled > .spinner {
   display: none;
 }
 
-.create-view .btn-primary[data-busy="true"] > .spinner {
+.create-view .button-filled[data-busy="true"] > .spinner {
   display: block;
   flex: none;
 }
 
-.create-submit .btn-primary[data-busy="true"] {
+.create-submit .button-filled[data-busy="true"] {
   background: var(--cta-bg);
   color: var(--cta-fg);
   cursor: progress;
 }
 
-.create-submit .btn-primary[aria-disabled="true"]:active {
+.create-submit .button-filled[aria-disabled="true"]:active {
   transform: none;
 }
 

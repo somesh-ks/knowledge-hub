@@ -1,3 +1,4 @@
+import { buttonClass } from "../design-system/button";
 import { escapeHtml, sheetHeadHtml } from "../lib/sheetHead";
 import { dismissOnScrim } from "./pullDismiss";
 
@@ -42,9 +43,9 @@ export function openQueueDetails(details: QueueDetails, words: DOMStringMap): vo
     `<pre class="queue-snippet" tabindex="0" data-queue-snippet>${escapeHtml(snippet)}</pre>` +
     `<div class="share-actions queue-details-actions">` +
     (details.log
-      ? `<a class="btn" href="${escapeHtml(details.log)}" target="_blank" rel="noopener noreferrer">${escapeHtml(words.wordDetailsLog ?? "")}</a>`
+      ? `<a class="${buttonClass("text")}" href="${escapeHtml(details.log)}" target="_blank" rel="noopener noreferrer">${escapeHtml(words.wordDetailsLog ?? "")}</a>`
       : "") +
-    `<button class="btn-primary" type="button" data-queue-copy>${escapeHtml(words.wordDetailsCopy ?? "")}</button></div>` +
+    `<button class="${buttonClass("filled")}" type="button" data-queue-copy>${escapeHtml(words.wordDetailsCopy ?? "")}</button></div>` +
     `<span class="sr-only" role="status" data-queue-copied></span>`;
   document.body.append(dialog);
 

@@ -5,7 +5,7 @@ import {
   type Preferences,
   VOICE_LIMITS,
 } from "@singularity/core";
-import { type AuthorityMatcher, withAuthority } from "../authority/authority.js";
+import { type CommunityFile, withCommunity } from "../community/community.js";
 import type { Logger } from "../context.js";
 import type { ExtractedText } from "../extract/extractText.js";
 import { judgeWithCache } from "../judge/cache.js";
@@ -15,6 +15,10 @@ import { scoreItem } from "../score/scoreItem.js";
 import { assignSections, capFor, selectItems } from "../score/selectItems.js";
 import type { ScoredItem, SelectedItem } from "../score/types.js";
 import { writerCategory } from "../topics/writerCategory.js";
+import {
+  type TrustedPublisherMatcher,
+  withTrustedPublishers,
+} from "../trustedPublishers/trustedPublishers.js";
 import type { Grounder } from "../validate/grounding.js";
 import { groundAndRepair } from "../validate/groundingRepair.js";
 import type { Linter } from "../voice/lint.js";
@@ -48,7 +52,8 @@ export interface CurateInput {
   /** Built-in categories set never to publish. */
   offCategories?: readonly string[];
   /** The owner's vetted publishers (D234). */
-  authority?: AuthorityMatcher;
+  trustedPublishers?: TrustedPublisherMatcher;
+  community?: CommunityFile;
 }
 
 export interface CurateCounts {
@@ -166,7 +171,12 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
   for (const entry of judged.entries) {
     const item = byId.get(entry.item_id);
     if (item)
-      scored.push(withAuthority(scoreItem(entry, input.preferences, item), input.authority));
+      scored.push(
+        withCommunity(
+          withTrustedPublishers(scoreItem(entry, input.preferences, item), input.trustedPublishers),
+          input.community,
+        ),
+      );
   }
 
   const selection = selectItems({

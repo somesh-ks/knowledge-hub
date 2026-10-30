@@ -35,9 +35,9 @@ function filesUnder(dir: string, extensions: string[]): string[] {
  * a text action, a card with a title. A press shows on their fill, their colour or an icon.
  */
 const LABEL_CONTROLS = [
-  "btn",
-  "btn-primary",
-  "btn-secondary",
+  "button-text",
+  "button-filled",
+  "button-tonal",
   "source-main",
   "segmented-choice-item",
   "segmented-nav-tab",
@@ -70,7 +70,7 @@ const LABEL_CONTROLS = [
 const ALLOWED_4PX: [selector: string, reason: string][] = [
   [".aside", "the rail's hit area reaching past the column's edge"],
   [".aside-rail", "the rail's track padding, around its own segments"],
-  [".banner > .btn", "the action's hit area reaching into the banner's padding"],
+  [".banner > .button-text", "the action's hit area reaching into the banner's padding"],
   [".banner-body", "a banner's title onto its body, inside one banner"],
   [".structure-row", "the dots' and pencil's ink, 28px in from the card's corner, not 24"],
   [
@@ -172,9 +172,9 @@ const SHARED_CONTROL_SHEETS = ["buttons.css", "primitives.css"];
 
 /** The shared control classes, defined in buttons.css and primitives.css. */
 const SHARED_CONTROLS = [
-  "btn",
-  "btn-primary",
-  "btn-secondary",
+  "button-text",
+  "button-filled",
+  "button-tonal",
   "icon-btn",
   "icon-btn-tonal",
   "chip",
@@ -718,7 +718,7 @@ const RULES: Rule[] = [
       ),
   },
   {
-    // Prevents a second button, chip or pill style: a new control needs the shared .btn, .icon-btn,
+    // Prevents a second button, chip or pill style: a new control needs the shared .button-*, .icon-btn,
     // .chip or .filter-chip classes. A control-named class styled outside buttons.css and
     // primitives.css must be one of the named bespoke ones, each with why.
     name: "a control-named class is styled in buttons.css or primitives.css, or is a named bespoke one",

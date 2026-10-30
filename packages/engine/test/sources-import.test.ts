@@ -92,7 +92,7 @@ describe("buildRegistry from config/sources.md", () => {
 
   it("produces a registry that passes validation, with unique kebab-case ids", () => {
     expect(() => parseSources(file)).not.toThrow();
-    expect(file.sources).toHaveLength(165);
+    expect(file.sources).toHaveLength(167);
     expect(new Set(file.sources.map((s) => s.id)).size).toBe(file.sources.length);
     expect(warnings).toEqual([]);
   });
@@ -125,9 +125,21 @@ describe("buildRegistry from config/sources.md", () => {
     }
   });
 
+  const RELEASE_FEEDS = [
+    "assistant-ui",
+    "astro",
+    "base-ui",
+    "lenis",
+    "motion",
+    "radix-ui",
+    "shadcn-ui",
+    "sonner",
+    "vaul",
+  ];
+
   it("seeds the nine GitHub release feeds named in the plan", () => {
     const repos = file.sources
-      .filter((s) => (s.type === "github" && s.high_signal) || s.id === "astro")
+      .filter((s) => RELEASE_FEEDS.includes(s.id))
       .map((s) => s.options.repo)
       .sort();
     expect(repos).toEqual([
@@ -171,17 +183,18 @@ describe("buildRegistry from config/sources.md", () => {
     expect(byId.get("exa-discovery")).toMatchObject({ type: "exa" });
   });
 
-  it("marks the individual craft blogs, Simon Willison and shadcn as high signal", () => {
+  it("marks the individual craft blogs and Simon Willison as high signal, release feeds as low (D240)", () => {
     for (const id of [
       "rauno-freiberg",
       "emil-kowalski",
       "josh-w-comeau",
       "jhey-tompkins",
       "simon-willison",
-      "shadcn-changelog",
-      "shadcn-ui",
     ]) {
       expect(byId.get(id)?.high_signal, id).toBe(true);
+    }
+    for (const id of [...RELEASE_FEEDS, "shadcn-changelog"]) {
+      expect(byId.get(id)?.high_signal, id).toBe(false);
     }
     expect(byId.get("the-verge")?.high_signal).toBe(false);
   });

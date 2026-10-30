@@ -1,4 +1,5 @@
 ---
+import Button from "../design-system/Button.astro";
 import type { IconName } from "../lib/icons";
 import Icon from "./Icon.astro";
 
@@ -22,5 +23,5 @@ const { tone, icon, title, body, bodyId, action } = Astro.props;
     <p class="banner-title" id={body ? undefined : bodyId}>{title}</p>
     {body && <p class="banner-body" id={bodyId}>{body}</p>}
   </div>
-  {action && <a class="btn" href={action.href}>{action.label}</a>}
+  {action && <Button variant="text" href={action.href}>{action.label}</Button>}
 </div>

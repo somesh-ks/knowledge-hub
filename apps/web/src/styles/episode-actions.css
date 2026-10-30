@@ -42,22 +42,3 @@
   margin-block-start: var(--space-2);
   font-variant-numeric: tabular-nums;
 }
-
-/* Red only here, once the person has asked to delete. */
-.confirm-delete {
-  color: var(--color-danger);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .confirm-delete:hover {
-    background: var(--color-danger-subtle);
-  }
-}
-
-.confirm-delete:active {
-  background: var(--color-danger-subtle);
-}
-
-.confirm-delete:disabled {
-  color: var(--color-on-surface-disabled);
-}

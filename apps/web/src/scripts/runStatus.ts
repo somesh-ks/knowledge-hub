@@ -1,3 +1,4 @@
+import { rememberCancelToken } from "../lib/cancelTokens";
 /**
  * Follows the run this browser started and keeps its record. It lives in the layout and persists
  * across client-side navigations; the run is kept in localStorage, so a reload, or another tab, picks
@@ -612,6 +613,7 @@ export async function retry(): Promise<void> {
       : run.kind && run.episode
         ? { kind: run.kind, episode: run.episode }
         : undefined;
+    rememberCancelToken(reply.run_id, reply.cancel_token);
     startRun(reply.run_id, about, run.retry);
     focusCreate();
     return;

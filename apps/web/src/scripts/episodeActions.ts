@@ -1,3 +1,4 @@
+import { rememberCancelToken } from "../lib/cancelTokens";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import { isChipOn } from "../lib/regenTopics";
 import { hasSaved, storeOn } from "../lib/savedKey";
@@ -161,6 +162,7 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       return;
     }
     // The request goes with the run, so a failure can send it again (Try again).
+    rememberCancelToken(reply.run_id, reply.cancel_token);
     startRun(reply.run_id, { kind, episode: id }, { body });
     form.reset();
     if (count) count.hidden = true;

@@ -11,7 +11,8 @@ What each capability does now, one file each. A spec states requirements in the 
 | Health page | [health.md](health.md) | `apps/web/src/server/health.ts` |
 | Engine | [engine.md](engine.md) | `packages/engine/src` |
 | Narration | [narration.md](narration.md) | `apps/web/src/narration` |
-| Authority list | [authority.md](authority.md) | `packages/engine/src/authority` |
+| Trusted publishers list | [trusted-publishers.md](trusted-publishers.md) | `packages/engine/src/trustedPublishers` |
+| Community signal | [community.md](community.md) | `packages/engine/src/community` |
 | Costs | [costs.md](costs.md) | `packages/core/src/costs.ts` |
 | Analytics and privacy | [analytics.md](analytics.md) | `apps/web/src/lib/analytics.ts` |
 | Sharing | [sharing.md](sharing.md) | `apps/web/src/server/share.ts` |

@@ -1457,7 +1457,7 @@
   color: var(--color-on-accent-container);
 }
 
-.card-group-accent :is(.settings-hint, .btn) {
+.card-group-accent :is(.settings-hint, .button-text) {
   color: inherit;
 }
 

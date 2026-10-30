@@ -4,7 +4,6 @@ import Shell from "../layouts/Shell.astro";
 import { SECTIONS } from "../lib/sections";
 
 export function getStaticPaths() {
-  // A section with a page of its own (Costs, Health) leaves the stub: its status is empty.
   return SECTIONS.filter((section) => section.status !== "").map((section) => ({
     params: { section: section.path.slice(1) },
     props: { section },

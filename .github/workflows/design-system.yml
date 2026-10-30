@@ -1,0 +1,45 @@
+name: design-system
+
+# The design system changes only in pull requests of its own (owner, 2026-10-29). This runs for a
+# pull request that touches the system and checks the two halves of the rule: it carries the
+# design-system label, and a pull request with the label holds nothing but the system, the app
+# code that calls it, the guide and the docs. It reads the diff and the labels only, so it installs
+# nothing and bills about a minute (D148). Re-run when a label is added or removed.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+    paths:
+      - apps/web/src/design-system/**
+      - apps/web/src/styles/buttons.css
+      - apps/web/src/styles/primitives.css
+      - apps/web/src/styles/foundations.css
+      - apps/web/src/styles/tokens.css
+      - tokens/**
+      - apps/design/**
+      - scripts/system/**
+      - .github/CODEOWNERS
+      - .claude/skills/feature/references/controls-guide.md
+
+concurrency:
+  group: design-system-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Label and scope
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: node scripts/designSystemGate.mjs

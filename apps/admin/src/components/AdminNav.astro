@@ -1,7 +1,7 @@
 ---
 import BrandMark from "../../../web/src/components/BrandMark.astro";
 import Icon from "../../../web/src/components/Icon.astro";
-import { href, READER_HREF, SECTIONS } from "../lib/sections";
+import { href, SECTIONS } from "../lib/sections";
 
 interface Props {
   /** The section's path under the base; "" for the overview. */
@@ -34,8 +34,4 @@ const { current } = Astro.props;
       ))
     }
   </ul>
-  {/* The side column's foot, where the reader shows its build day; hidden below 64rem, where the bar's Back button stands in. */}
-  <div class="app-nav-foot">
-    <p class="app-nav-updated"><a class="text-link" href={READER_HREF}>Back to the app</a></p>
-  </div>
 </nav>

@@ -14,7 +14,7 @@ vi.mock("./soundController", () => ({
 const { document, Element, HTMLInputElement, HTMLDetailsElement } = parseHTML(`<!doctype html><body>
   <button id="save">Save</button>
   <button id="off" disabled><span id="off-inner">Off</span></button>
-  <a id="link" class="btn-primary" href="/create"><span id="link-inner">Catch up</span></a>
+  <a id="link" class="button-filled" href="/create"><span id="link-inner">Catch up</span></a>
   <div id="option" role="option" aria-selected="true">Design</div>
 </body>`);
 let onUiEvent: (event: Event) => void;

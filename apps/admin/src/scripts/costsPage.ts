@@ -5,6 +5,7 @@
  * tooltip, not in stacked colours (2026-10-22). Plain DOM and inline SVG, no framework and no chart
  * library: the numbers are one fetch, and this page loads nothing else.
  */
+import { buttonClass } from "../../../web/src/design-system/button";
 import { BRAND_MARKS } from "../../../web/src/lib/brandMarks";
 import { mountSegmentedNav } from "../../../web/src/scripts/segmentedNav";
 
@@ -602,7 +603,7 @@ function failure(text: string): HTMLElement {
   line.append(`${text} `);
   const retry = document.createElement("button");
   retry.type = "button";
-  retry.className = "btn";
+  retry.className = buttonClass("text");
   retry.textContent = "Try again";
   retry.addEventListener("click", () => void load());
   line.append(retry);

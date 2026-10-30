@@ -22,6 +22,8 @@
     "dev": "npm run dev -w @singularity/web",
     "dev:admin": "npm run dev -w @singularity/admin",
     "tokens": "tsx scripts/buildTokens.ts",
+    "system": "tsx scripts/system/build.ts",
+    "ds": "tsx scripts/system/cli.ts",
     "design-check": "vitest run apps/web/src/styles/styles.test.ts scripts/buildTokens.test.ts",
     "blast-radius": "node scripts/blastRadius.mjs",
     "glyphs": "tsx scripts/buildGlyphs.ts",

@@ -19,7 +19,10 @@ export interface Curation {
 type Draft = Omit<Source, "failures" | "last_ok">;
 
 const api = (
-  partial: Omit<Draft, "enabled" | "options"> & { options?: Record<string, string> },
+  partial: Omit<Draft, "enabled" | "options"> & {
+    enabled?: boolean;
+    options?: Record<string, string>;
+  },
 ): Draft => ({
   enabled: true,
   options: {},
@@ -38,56 +41,56 @@ export const GITHUB_SEED: readonly {
     id: "shadcn-ui",
     name: "shadcn/ui",
     repo: "shadcn-ui/ui",
-    high_signal: true,
+    high_signal: false,
     category_hint: "ui_component_primitives",
   },
   {
     id: "radix-ui",
     name: "Radix UI",
     repo: "radix-ui/primitives",
-    high_signal: true,
+    high_signal: false,
     category_hint: "ui_component_primitives",
   },
   {
     id: "sonner",
     name: "Sonner",
     repo: "emilkowalski/sonner",
-    high_signal: true,
+    high_signal: false,
     category_hint: "ui_component_primitives",
   },
   {
     id: "vaul",
     name: "Vaul",
     repo: "emilkowalski/vaul",
-    high_signal: true,
+    high_signal: false,
     category_hint: "ui_component_primitives",
   },
   {
     id: "motion",
     name: "Motion",
     repo: "motiondivision/motion",
-    high_signal: true,
+    high_signal: false,
     category_hint: "css_canvas_motion_techniques",
   },
   {
     id: "lenis",
     name: "Lenis",
     repo: "darkroomengineering/lenis",
-    high_signal: true,
+    high_signal: false,
     category_hint: "css_canvas_motion_techniques",
   },
   {
     id: "assistant-ui",
     name: "assistant-ui",
     repo: "assistant-ui/assistant-ui",
-    high_signal: true,
+    high_signal: false,
     category_hint: "ai_ux_interaction_patterns",
   },
   {
     id: "base-ui",
     name: "Base UI",
     repo: "mui/base-ui",
-    high_signal: true,
+    high_signal: false,
     category_hint: "ui_component_primitives",
   },
   {
@@ -147,6 +150,36 @@ export const API_SEED: readonly Draft[] = [
     high_signal: false,
     category_hint: "developer_tool_launches",
     options: { tags: "show_hn", min_points: "30" },
+  }),
+  api({
+    id: "hn-ai",
+    name: "Hacker News: AI",
+    type: "hn",
+    url: "https://news.ycombinator.com/news",
+    feed_url: "https://hn.algolia.com/api/v1/search_by_date",
+    tier: "daily",
+    high_signal: false,
+    category_hint: "frontier_model_releases",
+    options: {
+      tags: "story",
+      min_points: "50",
+      query: "LLM AI agents Claude GPT Gemini model",
+    },
+  }),
+  api({
+    id: "hn-design",
+    name: "Hacker News: design",
+    type: "hn",
+    url: "https://news.ycombinator.com/best",
+    feed_url: "https://hn.algolia.com/api/v1/search_by_date",
+    tier: "daily",
+    high_signal: false,
+    category_hint: "ui_component_primitives",
+    options: {
+      tags: "story",
+      min_points: "30",
+      query: "design CSS UI UX typography animation Figma",
+    },
   }),
   api({
     id: "arxiv-cs-hc",
@@ -825,7 +858,7 @@ export const CURATIONS: Readonly<Record<string, Curation>> = {
   "this-week-in-react": { category_hint: DEV },
   "better-stack-blog": { category_hint: DEV },
   // UI library repos and changelogs
-  "shadcn-changelog": { high_signal: true, category_hint: UI },
+  "shadcn-changelog": { high_signal: false, category_hint: UI },
   "headless-ui": { category_hint: UI },
   "ark-ui": { category_hint: UI },
   "melt-ui": { category_hint: UI },

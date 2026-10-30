@@ -24,7 +24,7 @@ import {
   planEpisodeNarration,
   segmentMarksPath,
 } from "../audio/segmentStore.js";
-import { parseAuthority } from "../authority/authority.js";
+import { parseCommunity } from "../community/community.js";
 import { redact } from "../context.js";
 import { parseQueries } from "../fetch/queries.js";
 import { readRunMetrics } from "../metrics/runMetrics.js";
@@ -32,7 +32,6 @@ import { formatReading, summarize } from "../metrics/summary.js";
 import { readTimings } from "../podcast/timings.js";
 import { listEpisodeIds } from "../publish/publishEpisodes.js";
 import { readConfigDocuments } from "../store/configDocs.js";
-
 import {
   CONFIG_DOCUMENT_PATHS,
   type ConfigDocument,
@@ -52,6 +51,7 @@ import {
   VITALS_WINDOW_DAYS,
   type VitalSummary,
 } from "../store/vitalsStore.js";
+import { parseTrustedPublishers } from "../trustedPublishers/trustedPublishers.js";
 import { configChecks } from "./doctorOffline.js";
 import { firstIssue, readFileIfPresent } from "./doctorTypes.js";
 import {
@@ -116,7 +116,8 @@ const CONFIG_SCHEMAS: Array<[string, (json: unknown) => unknown]> = [
   ["config/prices.json", (json) => PriceTable.parse(json)],
   ["config/source-catalog.json", (json) => parseSourceCatalog(json)],
   ["config/sources.user.json", (json) => SourcesUserFile.parse(json)],
-  ["config/authority.json", (json) => parseAuthority(json)],
+  ["config/trusted-publishers.json", (json) => parseTrustedPublishers(json)],
+  ["config/community.json", (json) => parseCommunity(json)],
 ];
 
 /** The newest main commit Vercel would deploy, and whether a given build contains it. */
@@ -597,6 +598,83 @@ export async function readStore(
     faults,
     ...(documents ? { documents } : {}),
   };
+}
+
+/** Hobby stops every deploy at this many in a rolling 24 hours, cancelled builds counted (D247). */
+export const DEPLOYS_PER_DAY_CAP = 100;
+/** Seventy a day leaves a day of headroom to find what is building too often. */
+export const DEPLOYS_WARN_PER_DAY = 70;
+const DEPLOY_PAGE_SIZE = 100;
+const DEPLOY_MAX_PAGES = 5;
+
+/** How many deployments Vercel made in the last 24 hours across the account, or why it did not say. */
+export type DeploymentReading = { count: number } | { error: string };
+
+type DeploymentFetch = (
+  url: string,
+  init: { headers: Record<string, string>; signal: AbortSignal },
+) => Promise<{ status: number; json: () => Promise<unknown> }>;
+
+/**
+ * Counts the account's deployments in the last 24 hours (D247): Hobby's cap is a rolling window over
+ * every project, cancelled and ignored builds included, and GitHub's deployments list does not
+ * mirror it. Without a token nothing is read. Never throws; a failure is a reading that says why,
+ * with the token taken out of it.
+ */
+export async function readDeploymentCount(
+  token: string | undefined,
+  now: Date,
+  fetcher: DeploymentFetch = fetch,
+): Promise<DeploymentReading | undefined> {
+  if (!token) return undefined;
+  const since = now.getTime() - DAY_MS;
+  let until: number | undefined;
+  let count = 0;
+  try {
+    for (let page = 0; page < DEPLOY_MAX_PAGES; page++) {
+      const response = await fetcher(
+        `https://api.vercel.com/v6/deployments?limit=${DEPLOY_PAGE_SIZE}&since=${since}${until ? `&until=${until}` : ""}`,
+        { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(TIMEOUT_MS) },
+      );
+      if (response.status !== 200) return { error: `Vercel answered ${response.status}` };
+      const body = (await response.json()) as {
+        deployments?: unknown[];
+        pagination?: { next?: number | null };
+      };
+      count += body.deployments?.length ?? 0;
+      const next = body.pagination?.next;
+      if (!next || !body.deployments?.length) return { count };
+      until = next;
+    }
+    return { count };
+  } catch (error) {
+    return { error: redact(message(error), [token]) };
+  }
+}
+
+/**
+ * `deploy_rate` (D247), a warning only: at DEPLOYS_WARN_PER_DAY deployments in 24 hours something
+ * builds more often than merges explain (on 2026-10-29 an app built every agent branch, 143 in a
+ * day, and Vercel refused every deploy for a day). A count that did not read is `deploy_rate_unread`.
+ */
+export function checkDeploymentRate(reading: DeploymentReading, sink: Sink): void {
+  if ("error" in reading) {
+    sink.warn(
+      "deploy_rate_unread",
+      "reliability",
+      `Vercel's deployment count did not read: ${reading.error}. The ${DEPLOYS_PER_DAY_CAP} a day cap goes unwatched.`,
+    );
+  } else if (reading.count >= DEPLOYS_WARN_PER_DAY) {
+    sink.warn(
+      "deploy_rate",
+      "reliability",
+      `${reading.count} Vercel deployments in 24 hours; Hobby stops every deploy at ${DEPLOYS_PER_DAY_CAP}, cancelled builds included. Find the project that builds more than merges explain.`,
+    );
+  } else {
+    sink.passed.push(
+      `${reading.count} Vercel deployments in 24 hours, under the ${DEPLOYS_PER_DAY_CAP} cap`,
+    );
+  }
 }
 
 /** Stored text as inline code in a GitHub issue, so an `@name` or a link in it does nothing. */
