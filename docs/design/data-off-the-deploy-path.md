@@ -23,7 +23,7 @@ The files keep the repository's format, so the site reads them with the parsers 
 ## The pages
 
 - **Home, Library, a briefing (`/d/<id>`), an episode (`/e/<id>`), `/latest.json`, the search index:** rendered on request through the content repository, with the short shared cache.
-- **Covers:** the build draws what it holds; after each sync `apps/web/scripts/storeCovers.ts` draws, once per id, the covers of the store's content into `content/covers/` (eight files an id), and a `vercel.json` rewrite sends a `/covers/` request the build cannot answer there.
+- **Covers:** the build draws what it holds; a `/covers/` request it cannot answer goes to `/api/cover/`, which draws the cover from the stored record and lets the CDN keep it (D256).
 - **`/api/narrate`, `/api/narrate-marks`, `/api/generate`, `/api/podcast`** read briefings, timelines and episodes through `server/contentSources.ts`: the store first, the bundle when the store cannot answer or lacks the file.
 - **Offline:** the service worker keeps the pages it has served, as today.
 

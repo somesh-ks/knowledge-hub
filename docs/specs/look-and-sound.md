@@ -9,7 +9,7 @@ Visual language, covers and the header light, empty states, interface sounds, st
 - Story and summary text is 16px, headlines 18 to 20px, meta 14px, section headings (Settings H2s) 18 to 20px regular, never bold (D73, D125).
 - A press never scales words: label controls and worded buttons show a press on their fill. Settings rows and menu options press as a tile off hairlines (`.row-action`), round on the page, concentric in a card (one-row card radius 24px, a third of height). Segmented controls have a sliding thumb that moves immediately with keys.
 - Sideways scrollers (section tabs, Earlier shelf, Costs table) fade hidden edges with `.scroll-fade-inline`; concentric radii for cover frame and search clear; layer stacking: `--z-beneath`, `--z-base`, `--z-raised`, `--z-overlay`.
-- Dropdowns share one chevron gap. Glyphs ending a row land ink at the word end (`--ink-end`, D187).
+- Dropdowns share a chevron gap. Glyphs ending a row land ink at the word end (`--ink-end`, D187).
 - Hero Share action is the secondary icon button, `.icon-btn.icon-btn-tonal.hero-share`: a circle on the select chip's fill, as tall as Play, touch area 44px (D153, D219).
 - Latest icon is a bolt (outline, filled when active) (D129, D168). Theme select in Appearance renders blank until stored value loads to avoid theme flashes (D129).
 
@@ -17,7 +17,7 @@ Visual language, covers and the header light, empty states, interface sounds, st
 - Covers dated 2026-10 or later draw monthly (D110, `packages/cover/src/season.ts`, `MONTHLY_FROM`): set layout for Daily and Weekly (weekly shows ISO week number and range); On demand and episodes use a round plate on matte; type 4.5:1, spot ink 3:1 on paper. Earlier covers keep mixed palettes.
 - Covers have richer saturation in both themes (paper chroma 0.045, spot and tint 25% richer, under 0.12 cap); card progress scrim covers bottom quarter only (D122).
 - Ambient light (D48): soft cover-colored light behind Latest and episode headers, drawn by WebGL canvas on GPU and CSS layer fallback (D122).
-- Covers ship as lossless WebP (about 1/3 PNG bytes), encoded with sharp at build time; PNG retained for lock screen media controls.
+- Covers are lossless WebP (a third of PNG bytes), PNG for the lock screen; newer than the deploy: drawn on request (D256).
 - Toast variant: `oneLine` keeps its words on one line, cut by an ellipsis (the time zone offer, D239); below 40rem its close is `.sr-only`, as a sheet's is (D144), and a swipe dismisses.
 - Safari workarounds: sheets, Delete confirm, hero menu, and toasts stack for exit; speed panel closes immediately; heights do not animate to auto.
 - Scenario: WHEN theme changes THEN covers decode before crossfade and bars fade with page.

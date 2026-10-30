@@ -29,3 +29,18 @@ export const RESVG_FONT_OPTIONS: {
 
 /** Font stack for SVG text. The named family is bundled; the rest only matter outside resvg. */
 export const FONT_STACK = `${FONT_FAMILY}, system-ui, sans-serif`;
+
+const FONT_FILE_NAMES = WEIGHT_FILES.map((weight) => `SchibstedGrotesk-${weight}.ttf`);
+
+/**
+ * Points the renderer at a directory that holds the font files. A bundled server function runs from
+ * a different place than the source tree the build pinned the paths to, so the code that finds the
+ * shipped files calls this before its first render.
+ */
+export function setFontDirectory(directory: string): void {
+  const base = directory.replaceAll("\\", "/").replace(/\/$/, "");
+  RESVG_FONT_OPTIONS.fontFiles = FONT_FILE_NAMES.map((name) => `${base}/${name}`);
+}
+
+/** The font file names the renderer needs, so a caller can check a directory holds them all. */
+export const FONT_FILE_BASENAMES: readonly string[] = FONT_FILE_NAMES;

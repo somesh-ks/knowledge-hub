@@ -13,24 +13,33 @@ import { writeFileAtomic } from "../state/atomicWrite.js";
 export const EPISODE_STAGE_IDS = ["select", "cover", "script", "publish"] as const;
 export type EpisodeStageId = (typeof EPISODE_STAGE_IDS)[number];
 
-/** Where a run's artifacts live in Blob, so a rerun (`resume_from`) can read them. */
+/** Where a failed run's artifacts live in Blob, so a rerun (`resume_from`) can read them. */
 export const ARTIFACT_PREFIX = "podcast-runs/";
+/** The one object a failed run leaves: the failure record and every artifact the run kept. */
+export const FAILURE_FILE = "failure";
 const ARTIFACT_CACHE_SECONDS = 60;
 /** How long a Blob read may take before the artifact counts as missing and the stage reruns. */
 const READ_TIMEOUT_MS = 10_000;
 
-/** The artifacts of one run: the runner's disk first, then the run being resumed in Blob. */
+/** The artifacts of one run: the runner's disk first, then the failed run being resumed in Blob. */
 export interface ArtifactStore {
   read(name: string): Promise<unknown | null>;
+  /** Kept on the runner's disk, which the steps of one job share. Nothing goes to Blob here. */
   write(name: string, value: unknown): Promise<void>;
   /** Names of the artifacts this run holds, for the failure record. */
   names(): Promise<string[]>;
+  /**
+   * Saves the failure record and every artifact on disk as one Blob object, so a rerun can resume.
+   * Called only when the run fails: a put is one of Hobby's 2,000 advanced operations a month, and
+   * a run that succeeds has no use for its artifacts (D256).
+   */
+  preserve(failure: Record<string, unknown>): Promise<void>;
 }
 
 export interface ArtifactStoreInput {
   /** A directory outside the repository (the guard would refuse it in a commit). */
   dir: string;
-  /** Mirror of every write, so a failed run's artifacts outlive the runner. Absent: disk only. */
+  /** Where a failed run's artifacts are saved. Absent: disk only. */
   blob?: BlobClient | null;
   runId: string;
   /** An earlier run whose artifacts this run may reuse. */
@@ -40,6 +49,9 @@ export interface ArtifactStoreInput {
 }
 
 const key = (runId: string, name: string): string => `${ARTIFACT_PREFIX}${runId}/${name}.json`;
+
+/** Files on disk that belong in the pack besides the stages: how long each stage took. */
+const EXTRA_ARTIFACTS = ["timings"] as const;
 
 export function createArtifactStore(input: ArtifactStoreInput): ArtifactStore {
   const { dir, blob, runId, resumeFrom, log } = input;
@@ -54,21 +66,24 @@ export function createArtifactStore(input: ArtifactStoreInput): ArtifactStore {
     }
   }
 
-  async function readResumed(name: string): Promise<unknown | null> {
-    if (!blob || !resumeFrom) return null;
+  // The failed run's pack, read once: every stage of the rerun asks for its own artifact.
+  let resumed: Promise<Record<string, unknown>> | undefined;
+  async function loadResumed(): Promise<Record<string, unknown>> {
+    if (!blob || !resumeFrom) return {};
     try {
-      const wanted = key(resumeFrom, name);
+      const wanted = key(resumeFrom, FAILURE_FILE);
       const page = await blob.list({ prefix: wanted });
       const found = page.blobs.find((item) => item.pathname === wanted);
-      if (!found) return null;
+      if (!found) return {};
       const response = await doFetch(found.url, { signal: AbortSignal.timeout(READ_TIMEOUT_MS) });
-      return response.ok ? await response.json() : null;
+      const pack = response.ok ? await response.json() : null;
+      const artifacts = pack?.artifacts;
+      return typeof artifacts === "object" && artifacts !== null ? artifacts : {};
     } catch (error) {
-      log?.warn("A saved stage could not be read; it will run again", {
-        name,
+      log?.warn("The failed run's saved stages could not be read; they will run again", {
         reason: error instanceof Error ? error.message : "unknown",
       });
-      return null;
+      return {};
     }
   }
 
@@ -76,33 +91,44 @@ export function createArtifactStore(input: ArtifactStoreInput): ArtifactStore {
     async read(name) {
       const here = await readDisk(name);
       if (here !== null) return here;
-      const earlier = await readResumed(name);
+      resumed ??= loadResumed();
+      const earlier = (await resumed)[name] ?? null;
       // Copied to disk, so the later steps of this job find it without another Blob read.
       if (earlier !== null) await this.write(name, earlier);
       return earlier;
     },
     async write(name, value) {
-      const text = `${JSON.stringify(value)}\n`;
       await mkdir(dirname(path(name)), { recursive: true });
-      await writeFileAtomic(path(name), text);
-      if (!blob) return;
-      try {
-        await blob.put(key(runId, name), new TextEncoder().encode(text), {
-          contentType: "application/json",
-          cacheControlMaxAge: ARTIFACT_CACHE_SECONDS,
-        });
-      } catch (error) {
-        // The disk copy still serves the later steps of this run; only a rerun loses it.
-        log?.warn("A stage's artifact could not be saved to Blob", {
-          name,
-          reason: error instanceof Error ? error.message : "unknown",
-        });
-      }
+      await writeFileAtomic(path(name), `${JSON.stringify(value)}\n`);
     },
     async names() {
       const found: string[] = [];
       for (const id of EPISODE_STAGE_IDS) if ((await readDisk(id)) !== null) found.push(id);
       return found;
+    },
+    async preserve(failure) {
+      if (!blob) return;
+      // A stage this run skipped and never read is still in the failed run's pack: carry it on, so
+      // a second failure does not lose what the first one kept.
+      resumed ??= loadResumed();
+      const earlier = await resumed;
+      const artifacts: Record<string, unknown> = {};
+      for (const name of [...EPISODE_STAGE_IDS, ...EXTRA_ARTIFACTS]) {
+        const value = (await readDisk(name)) ?? earlier[name] ?? null;
+        if (value !== null) artifacts[name] = value;
+      }
+      try {
+        await blob.put(
+          key(runId, FAILURE_FILE),
+          new TextEncoder().encode(`${JSON.stringify({ ...failure, artifacts })}\n`),
+          { contentType: "application/json", cacheControlMaxAge: ARTIFACT_CACHE_SECONDS },
+        );
+      } catch (error) {
+        // The page then names no stage and a rerun starts over; the run's own failure is the news.
+        log?.warn("The failed run's stages could not be saved to Blob", {
+          reason: error instanceof Error ? error.message : "unknown",
+        });
+      }
     },
   };
 }

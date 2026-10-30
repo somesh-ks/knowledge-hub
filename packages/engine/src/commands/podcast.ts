@@ -227,7 +227,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
     const recordFailure = async (reason?: string): Promise<void> => {
       if (store && current) {
         await store
-          .write("failure", {
+          .preserve({
             failed_stage: current,
             kept: await store.names(),
             ...(reason ? { reason } : {}),
@@ -316,7 +316,8 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
             }
           : undefined;
       // Each finished stage is saved, so a rerun with `resume_from` (the id of the failed run) skips
-      // it. Kept on the runner's disk for the later steps of this job, and mirrored to Blob.
+      // it. Kept on the runner's disk for the later steps of this job; a failed run saves them all
+      // to Blob as one object (D256).
       if (only !== undefined || values.artifacts !== undefined || resumeFrom !== undefined) {
         store = createArtifactStore({
           dir: values.artifacts ?? join(process.env.RUNNER_TEMP ?? tmpdir(), "podcast-stages"),

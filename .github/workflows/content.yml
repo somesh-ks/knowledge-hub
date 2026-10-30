@@ -1,9 +1,10 @@
 name: content
 
 # Mirrors the site's content (Digests/, Podcasts/, the run state) into the content store in Vercel
-# Blob after every workflow that commits it (D173), then draws the covers of what the build has not
-# drawn (apps/web/scripts/storeCovers.ts). The pages read the store; git stays the backup. `singularity content sync` sends only what changed and is safe to run again,
-# so a failed or skipped sync is finished by the next one. Run it by hand to fill the store.
+# Blob after every workflow that commits it (D173). The pages read the store; git stays the backup.
+# `singularity content sync` sends only what changed and is safe to run again, so a failed or skipped
+# sync is finished by the next one. Run it by hand to fill the store. Covers are not stored: the site
+# draws a cover the build lacks when it is asked for (D256).
 #
 # workflow_run for the engine: it pushes with the Actions token, and GitHub starts no workflow for a
 # push made with it. push for everything else that changes content on main, such as a merged PR
@@ -47,8 +48,3 @@ jobs:
         env:
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
         run: npm run --silent singularity -- content sync
-
-      - name: Covers
-        env:
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
-        run: npx tsx apps/web/scripts/storeCovers.ts
