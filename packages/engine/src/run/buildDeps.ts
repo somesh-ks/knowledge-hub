@@ -4,9 +4,27 @@ import { type ApiRuntime, createApiRuntime } from "../curate/apiRuntime.js";
 import { createGitRunner } from "../git/runGit.js";
 import { createHttpClient } from "../http.js";
 import { meterExa } from "../llm/requestMeter.js";
+import { configStoreUrl, connectConfigStore } from "../store/configPaths.js";
+import { recordExperimentHits } from "../store/experimentHits.js";
 import { loadVoice } from "../voice/voice.js";
 import { SpendTracker } from "./spend.js";
 import type { RunDeps } from "./types.js";
+
+/** How long a save that only adds to a page may hold the run (the driver sets no timeout). */
+const SAVE_SECONDS = 10;
+
+/** Runs `task`, and rejects when it has not finished in `seconds`; the task itself is left to end. */
+async function withinSeconds<T>(seconds: number, task: () => Promise<T>): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`no answer in ${seconds} s`)), seconds * 1000);
+  });
+  try {
+    return await Promise.race([task(), late]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /**
  * The real dependencies, from the command context: HTTP for the fetchers, the model clients
@@ -18,6 +36,7 @@ import type { RunDeps } from "./types.js";
 export function buildDeps(ctx: CommandContext): RunDeps {
   let runtime: Promise<ApiRuntime> | undefined;
   const spend = new SpendTracker();
+  const storeUrl = configStoreUrl(ctx.env);
   return {
     root: ctx.root,
     now: ctx.now,
@@ -37,5 +56,12 @@ export function buildDeps(ctx: CommandContext): RunDeps {
     },
     pickCover,
     git: createGitRunner(ctx.root),
+    // With the config store on, the shadow counts go to Neon for the admin app; off, they stay in the log.
+    recordExperimentHits: storeUrl
+      ? async (hits) =>
+          withinSeconds(SAVE_SECONDS, async () =>
+            recordExperimentHits(await connectConfigStore(storeUrl), hits, ctx.now().getTime()),
+          )
+      : undefined,
   };
 }

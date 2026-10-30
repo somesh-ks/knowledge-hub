@@ -666,10 +666,6 @@ html[data-mini="visible"] main {
   display: block;
 }
 
-.page-end {
-  padding-block-end: var(--space-24);
-}
-
 /* The reading column sits on the middle of the pane on every page, so the room left and right of it is
    equal, and it does not jump sideways between destinations. A page with a contents list puts it in the
    room to the column's right, which is all it takes from the margin: a page without one leaves the margin

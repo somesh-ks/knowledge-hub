@@ -42,6 +42,8 @@ Audit all seven canonical states. Any state that does not apply must be explicit
 
 Pick every control and token with `npm run ds -- find "<need>"`: the part, when to use it, what to use instead, its markup and tokens. `tokens/llms.txt` is the one-page index; [references/controls-guide.md](references/controls-guide.md) has the markup contracts (section 2) and the universal rules (section 4). Neither repeats the other, so they cannot drift. Never invent bespoke control classes: a new one needs an entry in `BESPOKE_CONTROLS` in `apps/web/src/styles/styles.test.ts` with an owner-approved reason; a part that does not exist yet is a question for the owner, and a new part is added in `scripts/system/parts.ts` in the same change.
 
+For any transition, animation or gesture-driven movement, follow [the motion skill](../motion/SKILL.md) and [docs/specs/motion.md](../../../docs/specs/motion.md).
+
 ### 4. Design System & Budget Contract
 
 - Identify exact semantic tokens to be used (`npm run ds -- token <words>`; the color roles are in `tokens/llms.txt`).
@@ -55,7 +57,7 @@ Pick every control and token with `npm run ds -- find "<need>"`: the part, when 
 
 ## Phase 2: Surgical Implementation
 
-1. **Reuse Existing Primitives**: Never invent new button or control classes. Reuse the parts `npm run ds -- list` shows. When asked to fix a component, change the component first (its class, variant or token, in a `design-system` PR), never a page override; a page patch needs its reason in the PR body (D237).
+1. **Reuse Existing Primitives**: Never invent new button or control classes. Reuse the parts `npm run ds -- list` shows. When asked to fix a component, change the component first (its class, variant or token, in the rolling `design-system` PR, D254), never a page override; a page patch needs its reason in the PR body (D237).
 2. **Preserve Load-Bearing Rules**: Never remove or rewrite CSS rules or markup containing rationale comments (dates, D-numbers, sizers, specificity bumps).
 3. **No Layout Shift**: Ensure labels on dynamic buttons or chips use fixed-width sizer copies or stable gutters so text does not shake.
 4. **Regular Headings**: Heading elements and button labels stay regular weight (400 or 500); never bold (D73, D125).

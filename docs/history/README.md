@@ -4,10 +4,13 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-30 | [Fewer PRs](2026-10-30-fewer-prs.md) | One PR per task, one rolling design-system PR, small fixes batched (D254) |
+| 2026-10-30 | [Experiments page](2026-10-30-experiments-page.md) | Switches, Promote and shadow counts on one admin page (D249) |
 | 2026-10-29 | [The style guide as its own app](2026-10-29-style-guide.md) | `apps/design` at `/design`: colour with live contrast, type, tokens; hand-written component specs built and cut for parity (D226) |
 | 2026-10-30 | [Trusted publishers list renamed](2026-10-30-trusted-publishers-rename.md) | "authority" became "trusted publishers" in file, code and command; the six Reddit seeds dropped from the registry (D250) |
 | 2026-10-29 | [The Cancel route gets a key](2026-10-29-cancel-token.md) | Open `/api/cancel` stopped any run; a per-run HMAC token held by the starter (D242) |
 | 2026-10-29 | [Podcast run audit](2026-10-29-podcast-run-audit.md) | Every Catch up, Regenerate and scheduled failure traced to a merged fix; a live Regenerate and Catch up started 2 s apart both published |
+| 2026-10-29 | [Design-system consolidation](2026-10-29-design-system-consolidation.md) | Inventory of thirteen duplicate families and 60 unused classes; the six-PR plan (D243) |
 | 2026-10-29 | [The podcast queue](2026-10-29-podcast-queue.md) | A dock above the bottom bar and a popover from the side column listing a Catch up or a regeneration while it is made, a ring with the percent, finished runs staying for the day with Start listening, a title that never changes, an X to cancel and Details for a failure (D231) |
 | 2026-10-29 | [Community signal](2026-10-29-community-signal.md) | Community votes floor the depth score, HN topic queries, Reddit source type, release feeds demoted; shipped off (D240) |
 | 2026-10-29 | [Authority list](2026-10-29-authority-list.md) | Vetted publishers' announcements pass the bar, Exa restricted to their domains, shadow log and replay; shipped off (D234) |

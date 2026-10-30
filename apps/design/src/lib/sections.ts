@@ -28,6 +28,17 @@ export const PRINCIPLES: Section = {
   note: "What the app is for.",
 };
 
+/** The pages under Principles. */
+export const PRINCIPLES_PAGES: readonly Section[] = [
+  {
+    path: "/taste",
+    label: "Taste",
+    icon: "starOutline",
+    iconCurrent: "starOutline",
+    note: "What the owner likes, as values beside Material 3's, with the words behind each.",
+  },
+];
+
 export const FOUNDATIONS: Section = {
   path: "/foundations",
   label: "Foundations",
@@ -80,6 +91,7 @@ export const COMPONENTS: Section = {
 export const SECTIONS: readonly Section[] = [
   OVERVIEW,
   PRINCIPLES,
+  ...PRINCIPLES_PAGES,
   FOUNDATIONS,
   ...FOUNDATION_PAGES,
   COMPONENTS,
@@ -88,7 +100,7 @@ export const SECTIONS: readonly Section[] = [
 /** The navigation: top-level pages, and the one group that has pages under it. */
 export const NAV: readonly { page: Section; children?: readonly Section[] }[] = [
   { page: OVERVIEW },
-  { page: PRINCIPLES },
+  { page: PRINCIPLES, children: PRINCIPLES_PAGES },
   { page: FOUNDATIONS, children: FOUNDATION_PAGES },
   { page: COMPONENTS },
 ];

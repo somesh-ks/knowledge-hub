@@ -20,5 +20,6 @@ git diff --quiet "$VERCEL_GIT_PREVIOUS_SHA" HEAD -- \
   ../web/src/scripts/segmentedNav.ts \
   ../web/src/scripts/themeInit.js \
   ../../packages/engine/src/store/experimentFlags.ts \
+  ../../packages/engine/src/store/experimentHits.ts \
   ../../package.json \
   ../../package-lock.json

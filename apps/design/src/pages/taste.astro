@@ -1,0 +1,66 @@
+---
+import Icon from "../../../web/src/components/Icon.astro";
+import PageHead from "../components/PageHead.astro";
+import Shell from "../layouts/Shell.astro";
+import { TASTE_GROUPS } from "../lib/taste";
+
+let index = 0;
+const next = (): string => `--n: ${index++}`;
+---
+
+<Shell title="Taste" current="/taste">
+  <div class="settings-view guide-page" data-settings data-ready>
+    <PageHead title="Taste" />
+
+    <p class="guide-lead">What he reaches for, as rules to apply. The words behind each live in the decisions.</p>
+
+    <div class="guide-toolbar">
+      <label class="search-field">
+        <Icon name="search" />
+        <span class="sr-only">Search taste</span>
+        <input type="search" placeholder="Search taste" autocomplete="off" data-filter />
+      </label>
+      <label class="sort-field">
+        <span class="sr-only">Show</span>
+        <select data-filter-tier>
+          <option value="all">All</option>
+          {TASTE_GROUPS.map((group) => <option value={group.id}>{group.label}</option>)}
+        </select>
+        <Icon name="chevronDown" />
+      </label>
+    </div>
+
+    {
+      TASTE_GROUPS.map((group) => (
+        <section aria-labelledby={group.id} data-tier={group.id}>
+          <details class="guide-fold" data-fold>
+            <summary>
+              <h2 class="section-head" id={group.id}>{group.label}</h2>
+              <span class="guide-fold-count">{group.values.length}</span>
+              <Icon name="chevronDown" class="guide-fold-chevron" />
+            </summary>
+            {group.note && <p class="guide-note">{group.note}</p>}
+            <ol class="guide-cards guide-cards-read" role="list">
+              {
+                group.values.map((item) => (
+                  <li class="guide-card" style={next()} data-filter-item data-name={`${group.label} ${item.title}`}>
+                    <span class="guide-card-icon" aria-hidden="true"><Icon name={item.icon} class="icon-lg" /></span>
+                    <h3>{item.title}</h3>
+                    <p>{item.rule}</p>
+                    {item.refs && <span class="guide-card-ref">{item.refs}</span>}
+                  </li>
+                ))
+              }
+            </ol>
+          </details>
+        </section>
+      ))
+    }
+
+    <p class="guide-note" hidden data-filter-empty>Nothing matches. Try <code>blue</code>, <code>sheet</code> or <code>Material</code>.</p>
+  </div>
+</Shell>
+<script>
+  import "../scripts/filter";
+  import "../scripts/taste";
+</script>
