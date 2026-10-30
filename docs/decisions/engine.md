@@ -296,6 +296,7 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Why: the block is on the address, not the tool. Measured from a datacenter address on 2026-10-24: the watch page answers 429 and every yt-dlp player client (default, tv, mweb, web_embedded) ends in "Sign in to confirm you're not a bot"; yt-dlp's maintainers say a PO-token provider does not lift that wall (yt-dlp #15865) and point to cookies. Firecrawl already holds a key, a budget and a ledger row here (D138), and its provider makes the InnerTube call our own code makes, from an address YouTube serves. Measured live the same day: a full transcript in one call.
 - Rejected: yt-dlp with a Google account's cookies in a secret (works, but YouTube may flag the account for automated use, the cookies expire, and the workflow gains Python and a secret to rotate); a PO-token sidecar (does not answer the sign-in wall); a paid residential proxy (a monthly bill for one feature); a hosted transcript API (a new vendor and key for what Firecrawl already sells).
 - Revisit if: Firecrawl's provider goes away or its price rises above a scrape's worth (then yt-dlp with a throwaway account's cookies is the next step, behind the same `relay` budget), or YouTube serves the runners again (then the free path answers first and Firecrawl is never asked).
+- Amended 2026-10-30 (the owner: keep Firecrawl and Gemini by default): the free youtube.com attempt is removed, since no runner reached it. The order is cache, Firecrawl, Gemini. Reinstate it only with the Revisit trigger above.
 
 ## D166: Firecrawl gets 100 requests a week, at most 50 a run
 
@@ -458,3 +459,22 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Limit: Reddit refused the cloud container (403 for JSON, 429 for RSS) and no runner has tried, so the six subreddits ship off. YouTube counts join as votes through D244, normalised per channel. The thresholds are guesses to tune from the shadow log. No pools survive to replay.
 - Revisit if: a Reddit source gets through from a runner (switch it on, or add OAuth credentials if it does not), a source passes over 30% of its judged items, or a heavily voted but shallow story airs above a technique piece.
 - Amends: D234 (the authority list stays, off, as the second signal).
+
+## D248: A favorite creator's videos are trusted: read at a minimum depth, sponsor reads cut by the writer
+
+- Date: 2026-10-30 (the owner: a video should not be judged on title, views or likes; the creator already filters; strip sponsored parts of the transcript).
+- Decision: a video from a YouTube channel marked Favorite carries `signals.creator_vetted`. `withCreator` (score/creator.ts) reads it at craft depth 0.25 at least with the hype and sponsored flags ignored, the same lift as D234, applied to every video whose category the judge placed (not `none`). The writer's source block tells it a video text is a transcript and to leave out sponsor reads, ads, discount codes, affiliate links, product plugs and calls to subscribe. The transcript still comes only for a selected story (cache, Firecrawl, Gemini; D244 found 13 judged and none selected).
+- Why: Jev sees a title and 1,200 characters of description, which say little about a video; views and likes track channel size (D244 scales them per channel, but a score from them is still not the content). A creator who covers a subject has picked it. Sponsor reads sit in the transcript, so the writer is where they come out.
+- Rejected: fetching every transcript before judging (credits and time for videos the creator-trust makes unnecessary to judge); a regex strip of sponsor segments (they are phrased freely); a lift on every YouTube video (the owner's Favorite switch is the filter).
+- Limit: YouTube refuses its caption API to GitHub's runners (yt-dlp too, 2026-10-24), so a selected video's transcript costs Firecrawl credits (about 5) or a Gemini transcription. Selection caps keep that to a few videos a run.
+- Revisit if: favorited videos air without a transcript (extract falls back to the description), or a sponsor read reaches a summary.
+
+## D250: The vetted-publishers file is named for what it is; Reddit leaves the registry
+
+- Date: 2026-10-30 (the owner: "Authority" is a poor name, rename everything; Reddit blocks bot scraping, so drop it or archive it).
+- Decision: (1) `config/authority.json` is `config/trusted-publishers.json`, with the same shape and `enabled: false`. The module is `trustedPublishers/`, the command `singularity publishers replay` (was `authority replay`), the score breakdown flag `trusted_publisher` (was `authority`, stored in no file). (2) The six Reddit seeds are out of the seed list and `config/sources.json`. The `reddit` source type, its vote fields and the prefilter term stay as dormant code. Sources stay grouped by topic category; the list is keyed by domain and is not a second grouping of sources.
+- Why: the old name said nothing about what the file holds, and Reddit refuses datacenter addresses, so the six subreddits only ever failed or sat off.
+- Rejected: moving the Reddit rows to a disabled archive file (a second source list for rows that cannot run); renaming only the file (the code and the command would keep the word the owner dislikes).
+- Limit: the runtime source list lives in the config store (D149), where the six disabled rows may remain; they fetch nothing. D240's decision text still lists the six subreddits as shipped off; this entry replaces that part.
+- Revisit if: the owner wants Reddit back (add OAuth credentials and new `reddit` entries).
+- Amends: D234 (file, module and command names), D240 (Reddit sources removed).

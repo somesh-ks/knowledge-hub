@@ -15,8 +15,10 @@ export interface ScoreBreakdown {
   bonus: number;
   /** Change from the source's 30-day pass rate, within SOURCE_ADJUSTMENT_MAX. Absent when 0. */
   source?: number;
-  /** True when the owner's authority list lifted this score (authority/authority.ts, D234). */
-  authority?: boolean;
+  /** True when the owner's trusted publishers list lifted this score (trustedPublishers/trustedPublishers.ts, D234). */
+  trusted_publisher?: boolean;
+  /** True when the video's creator, a favorite of the owner, lifted this score (score/creator.ts, D248). */
+  creator?: boolean;
   /** Strength 0 to 1 of the community lift, when it raised this score (community/community.ts, D240). */
   community?: number;
 }

@@ -92,7 +92,7 @@ describe("buildRegistry from config/sources.md", () => {
 
   it("produces a registry that passes validation, with unique kebab-case ids", () => {
     expect(() => parseSources(file)).not.toThrow();
-    expect(file.sources).toHaveLength(173);
+    expect(file.sources).toHaveLength(167);
     expect(new Set(file.sources.map((s) => s.id)).size).toBe(file.sources.length);
     expect(warnings).toEqual([]);
   });

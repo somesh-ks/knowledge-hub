@@ -7,75 +7,57 @@ import { FirecrawlGuard } from "../src/fetch/firecrawlBudget.js";
 import { makeItem } from "./score-factories.js";
 
 const speech = "Today we look at the new release and what it changes for designers. ".repeat(6);
-const track = {
-  baseUrl: "https://www.youtube.com/api/timedtext?v=abcdefghijk&lang=en",
-  languageCode: "en",
-  kind: "asr",
-};
 const video = makeItem({
   url: "https://www.youtube.com/watch?v=abcdefghijk",
   source_type: "youtube",
   snippet: "short",
 });
 
-function fakeNet(opts: { captions: boolean; blocked?: boolean }) {
+function fakeNet() {
   const calls: string[] = [];
   const fn = (async (input: RequestInfo | URL) => {
     const url = String(input);
-    calls.push(
-      url.startsWith("https://generativelanguage")
-        ? "gemini"
-        : url.startsWith("https://api.firecrawl.dev/")
-          ? "firecrawl"
-          : url,
-    );
+    calls.push(url.startsWith("https://generativelanguage") ? "gemini" : "firecrawl");
     if (url.startsWith("https://generativelanguage")) {
       return Response.json({ candidates: [{ content: { parts: [{ text: speech }] } }] });
     }
-    if (url.startsWith("https://api.firecrawl.dev/")) {
-      return Response.json({
-        success: true,
-        data: {
-          creditsCost: 5,
-          alexandria: [{ data: { has_transcript: true, full_text: speech } }],
-        },
-      });
-    }
-    // YouTube to a datacenter address: a 429 on the player, as GitHub's runners see (2026-10-24).
-    if (opts.blocked) return new Response("", { status: 429 });
-    if (url.includes("/youtubei/v1/player")) {
-      const captionTracks = opts.captions ? [track] : [];
-      return Response.json({ captions: { playerCaptionsTracklistRenderer: { captionTracks } } });
-    }
-    return Response.json({ events: [{ segs: [{ utf8: speech }] }] });
+    return Response.json({
+      success: true,
+      data: {
+        creditsCost: 5,
+        alexandria: [{ data: { has_transcript: true, full_text: speech } }],
+      },
+    });
   }) as typeof fetch;
   return { fn, calls };
 }
 
 describe("YouTube video text", () => {
-  it("reads captions first, transcribes only without them, and never repeats a video", async () => {
+  it("reads captions through Firecrawl first, transcribes only without them, and never repeats a video", async () => {
     const cachePath = join(mkdtempSync(join(tmpdir(), "video-text-")), "video-text.json");
-    const withCaptions = fakeNet({ captions: true });
+    const relayed = fakeNet();
     const first = createVideoText({
       apiKey: "k",
       models: async () => ["m"],
       cachePath,
-      fetchImpl: withCaptions.fn,
+      fetchImpl: relayed.fn,
+      firecrawl: { apiKey: "fc" },
     });
     expect((await first(video))?.method).toBe("captions");
-    expect(withCaptions.calls).not.toContain("gemini");
+    expect(relayed.calls).toEqual(["firecrawl"]);
 
-    const again = fakeNet({ captions: true });
+    const again = fakeNet();
     const second = createVideoText({
       apiKey: "k",
       models: async () => ["m"],
       cachePath,
       fetchImpl: again.fn,
+      firecrawl: { apiKey: "fc" },
     });
     expect((await second(video))?.method).toBe("captions");
     expect(again.calls).toEqual([]);
 
-    const none = fakeNet({ captions: false });
+    const none = fakeNet();
     const other = makeItem({
       url: "https://www.youtube.com/watch?v=zzzzzzzzzzz",
       source_type: "youtube",
@@ -87,14 +69,14 @@ describe("YouTube video text", () => {
       fetchImpl: none.fn,
     });
     expect((await third(other))?.method).toBe("transcription");
-    expect(none.calls).toContain("gemini");
+    expect(none.calls).toEqual(["gemini"]);
   });
 
-  it("with youtube.com refusing the runner, captions come through Firecrawl from the scrape budget, and Gemini is asked only once that budget is spent", async () => {
+  it("captions come through Firecrawl from the scrape budget, and Gemini is asked only once that budget is spent", async () => {
     const dir = mkdtempSync(join(tmpdir(), "video-text-"));
     const guard = new FirecrawlGuard(undefined, { ceiling: 1, listing: 0 });
     const credits: number[] = [];
-    const blocked = fakeNet({ captions: false, blocked: true });
+    const blocked = fakeNet();
     const read = createVideoText({
       apiKey: "k",
       models: async () => ["m"],
@@ -118,7 +100,7 @@ describe("YouTube video text", () => {
 
   it("falls back to the description, or nothing, when captions and transcription both fail", async () => {
     const cachePath = join(mkdtempSync(join(tmpdir(), "video-text-")), "c.json");
-    const none = fakeNet({ captions: false });
+    const none = fakeNet();
     const general = vi.fn(async () => null);
     const extract = withVideoText(general, createVideoText({ cachePath, fetchImpl: none.fn }));
     expect(await extract(video)).toBeNull();
@@ -130,12 +112,7 @@ describe("YouTube video text", () => {
   it("counts every paid transcription attempt against the cap, and stops at a short answer", async () => {
     const dir = mkdtempSync(join(tmpdir(), "video-text-"));
     const gemini = { calls: 0, reply: (): string | null => null };
-    const fetchImpl = (async (input: RequestInfo | URL) => {
-      if (String(input).includes("/youtubei/v1/player")) {
-        return Response.json({
-          captions: { playerCaptionsTracklistRenderer: { captionTracks: [] } },
-        });
-      }
+    const fetchImpl = (async () => {
       gemini.calls += 1;
       return Response.json({ candidates: [{ content: { parts: [{ text: gemini.reply() }] } }] });
     }) as typeof fetch;
