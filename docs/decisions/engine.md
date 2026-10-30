@@ -488,3 +488,14 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Limit: the remaining writers are covers (about nine puts for each new briefing or episode, `storeCovers.ts`), live scripts (two copies a write), stage artifacts (one per stage) and content sync (one per changed file). They stay inside the allowance at one briefing and a few episodes a day; a fourth episode a day would need covers packed or drawn on request.
 - Revisit if: Blob operations in the Vercel dashboard pass 1,000 a month, or something reads one story's text (then split the pack by source or hour so a read fetches less).
 - Amends: D233 (the key names a pack, not a story).
+
+## D255: A favorite creator's video is judged on its transcript, not its description
+
+- Date: 2026-10-30 (the owner: judge a video lightly on its transcript, never on title, views or likes).
+- Decision: before judging, a video from a Favorite channel (`creator_vetted`) goes through the run's extractor (cache, Firecrawl, Gemini; D248), and the judge sees an excerpt in place of the description: three stretches spread through the transcript, at most 1,200 characters (`judge/videoExcerpt.ts`, called by `judgeStage`). An entry cached from the description is dropped and asked again. A video with no transcript keeps its description. The run logs each such video, and each selected video with its channel, score and extract method.
+- Why: the description is links and a sponsor line. Since 9 Oct the judge flagged every favorite video it saw (21 of 21, none passed), and the 10-30 dry run's one video scored 0.389 against the 0.4 bar even after D248's lift. The transcript is the content the owner wants judged.
+- Rejected: raising the lift's depth until that one video clears the bar (one case, and it tunes the bar to a result); a regex strip of sponsor segments (phrased freely, D248); fetching a transcript for every video in the pool (only favorites are the owner's filter).
+- Limit: a transcript costs about 5 Firecrawl credits or a Gemini call, once per video (`state/video-text.json`). The excerpt can still catch a sponsor read, which the lift ignores (D248) and the writer cuts. Whether this lets a video clear the bar is unproven until a run selects one.
+- Revisit if: favorite videos still never reach the bar after three daily runs (read the `Video selected` and judged-basis log lines), or transcript cost passes a few cents a day.
+- Amends: D248 (its rejection of fetching transcripts before judging).
+
