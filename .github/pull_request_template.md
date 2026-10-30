@@ -10,6 +10,10 @@ Closed: the `docs/state.md` items this settles. Opened: what is now unverified, 
 
 For a UI fix: the component, class or token that changed. If a page was patched instead, why the component could not hold it. Or "no UI change".
 
+## Batching
+
+The open PR this could have joined, and why it did not (a design-system change joins the rolling `design-system` PR). Or "none".
+
 ## Shared files
 
 Any shared stylesheet or component in `git diff --stat origin/main`, and why. Otherwise "none".
