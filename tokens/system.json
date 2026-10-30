@@ -464,6 +464,71 @@
       ]
     },
     {
+      "id": "menu",
+      "name": "Menu",
+      "kind": "selection",
+      "summary": "A short list of actions that opens from an icon button: a row each, with its glyph at the start.",
+      "classes": [
+        "menu-list",
+        "menu-sheet",
+        "menu-item",
+        "menu-item-danger"
+      ],
+      "files": [
+        "design-system/Menu.astro",
+        "design-system/menu.ts"
+      ],
+      "when": [
+        "A card, a header or a row has more actions than it has room for: Download, Add to queue, Share, Delete",
+        "Each action is one tap and needs no choice of its own"
+      ],
+      "not": [
+        {
+          "when": "The person picks one value from a list",
+          "use": "select"
+        },
+        {
+          "when": "The only action is the one the button already names",
+          "use": "button-text"
+        }
+      ],
+      "keywords": [
+        "popover",
+        "dots menu",
+        "context menu",
+        "action sheet",
+        "more menu",
+        "overflow menu"
+      ],
+      "markup": "<Menu id=\"row-menu-3\" title=\"Daily\"><MenuItem><Icon name=\"pencilSimple\" />Edit</MenuItem><MenuItem tone=\"danger\"><Icon name=\"trash\" />Delete</MenuItem></Menu>",
+      "rules": [
+        "Under 40rem a menu is a sheet, never a small popover.",
+        "A script finds one with MENU_SELECTORS (design-system/menu.ts); a string builder or an island takes menuListClass() and menuItemClass()."
+      ],
+      "styles": [
+        "library.css",
+        "menu.css",
+        "queue.css",
+        "story-controls.css",
+        "topics.css"
+      ],
+      "usage": "A popover lives in the top layer, so it is placed against the viewport, not the row. Where anchor positioning exists it hangs under the button, right edges level; elsewhere heroMenu.ts writes --menu-top and --menu-right from the button's box when it opens.",
+      "tokens": [
+        "--color-danger",
+        "--color-on-surface",
+        "--color-on-surface-disabled",
+        "--color-scrim",
+        "--color-surface-overlay",
+        "--layout-column",
+        "--shadow-popover",
+        "--sheet-bg",
+        "--sheet-radius",
+        "--sheet-shadow",
+        "--size-icon",
+        "--size-touch"
+      ]
+    },
+    {
       "id": "btn-action-tonal",
       "name": "Tonal action",
       "kind": "action",
@@ -1177,11 +1242,11 @@
       "not": [
         {
           "when": "a menu of choices",
-          "use": "menu-sheet"
+          "use": "menu"
         },
         {
           "when": "a small popover on a phone",
-          "use": "menu-sheet"
+          "use": "menu"
         }
       ],
       "keywords": [
@@ -1205,53 +1270,6 @@
         "--cta-bg",
         "--cta-fg",
         "--field-label-gap",
-        "--size-touch"
-      ]
-    },
-    {
-      "id": "menu-sheet",
-      "name": "Menu sheet",
-      "kind": "container",
-      "summary": "A popover menu that is a bottom sheet on a phone and a small menu from 40rem.",
-      "classes": [
-        "menu-sheet",
-        "hero-menu-item"
-      ],
-      "files": [
-        "components/MenuSheet.astro",
-        "components/SheetHeader.astro",
-        "scripts/heroMenu.ts"
-      ],
-      "when": [
-        "a row's more menu",
-        "a list of actions or choices on a phone",
-        "select-like menus"
-      ],
-      "not": [
-        {
-          "when": "a modal form",
-          "use": "sheet"
-        }
-      ],
-      "keywords": [
-        "popover",
-        "dots menu",
-        "context menu",
-        "action sheet"
-      ],
-      "markup": "<MenuSheet id=\"row-menu-3\" title=\"Daily\"><button class=\"hero-menu-item\" type=\"button\" role=\"menuitem\">Edit</button></MenuSheet>",
-      "rules": [
-        "Under 40rem a menu is a sheet, never a small popover."
-      ],
-      "styles": [
-        "hero.css"
-      ],
-      "usage": "",
-      "tokens": [
-        "--color-on-surface",
-        "--color-on-surface-disabled",
-        "--color-scrim",
-        "--size-icon",
         "--size-touch"
       ]
     },
@@ -1656,13 +1674,14 @@
       "reason": "the podcast voice sample row control"
     },
     {
-      "class": "hero-menu-item",
-      "reason": "a row of the hero's popover menu",
-      "part": "menu-sheet"
+      "class": "menu-item",
+      "reason": "a row of the popover menu",
+      "part": "menu"
     },
     {
-      "class": "hero-menu-delete",
-      "reason": "the menu's destructive row"
+      "class": "menu-item-danger",
+      "reason": "the menu's destructive row",
+      "part": "menu"
     },
     {
       "class": "topic-delete",

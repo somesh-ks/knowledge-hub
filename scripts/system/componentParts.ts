@@ -7,6 +7,7 @@
 import { BUTTON } from "../../apps/web/src/design-system/button.js";
 import { FIELD } from "../../apps/web/src/design-system/field.js";
 import type { ComponentRef, Guidance } from "../../apps/web/src/design-system/guidance.js";
+import { MENU } from "../../apps/web/src/design-system/menu.js";
 import { SELECT } from "../../apps/web/src/design-system/select.js";
 import { SLIDER } from "../../apps/web/src/design-system/slider.js";
 import { SWITCH } from "../../apps/web/src/design-system/switch.js";
@@ -22,6 +23,7 @@ const PART_OF: Record<string, string> = {
   Slider: "slider",
   Field: "field",
   Select: "select",
+  Menu: "menu",
 };
 
 const partOf = (ref: ComponentRef | undefined, fallback: string): string => {
@@ -166,6 +168,23 @@ export const componentParts = (): PartSource[] => [
     rules: [
       'Outlined (the default) is a value in a form; tonal is a sort or a filter and takes data-active on its wrapper (find it with closest("[data-select]")) once its value is not the default.',
       'A select inside a settings row takes class="value-select" from settings.css, which draws it as the row\'s value.',
+    ],
+  }),
+  control("menu", "Menu", MENU, {
+    classes: ["menu-list", "menu-sheet", "menu-item", "menu-item-danger"],
+    keywords: [
+      "popover",
+      "dots menu",
+      "context menu",
+      "action sheet",
+      "more menu",
+      "overflow menu",
+    ],
+    markup:
+      '<Menu id="row-menu-3" title="Daily"><MenuItem><Icon name="pencilSimple" />Edit</MenuItem><MenuItem tone="danger"><Icon name="trash" />Delete</MenuItem></Menu>',
+    rules: [
+      "Under 40rem a menu is a sheet, never a small popover.",
+      "A script finds one with MENU_SELECTORS (design-system/menu.ts); a string builder or an island takes menuListClass() and menuItemClass().",
     ],
   }),
 ];

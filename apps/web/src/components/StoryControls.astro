@@ -1,8 +1,9 @@
 ---
+import Menu from "../design-system/Menu.astro";
+import MenuItem from "../design-system/MenuItem.astro";
 import { sourceIdOf } from "../lib/sourceIds";
 import { HEADLINE_MAX } from "../lib/storyVotes";
 import Icon from "./Icon.astro";
-import MenuSheet from "./MenuSheet.astro";
 import "../styles/story-controls.css";
 
 interface Props {
@@ -72,11 +73,11 @@ const menuId = `story-menu-${id}`;
         >
           <Icon name="moreVert" />
         </button>
-        <MenuSheet id={menuId} title="Story options" class="story-menu-list">
-          <button class="hero-menu-item" type="button" role="menuitem" data-block>
+        <Menu id={menuId} title="Story options" class="story-menu-list">
+          <MenuItem data-block>
             <Icon name="blocked" />Stop hearing from {outlet}
-          </button>
-        </MenuSheet>
+          </MenuItem>
+        </Menu>
       </div>
     )
   }

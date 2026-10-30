@@ -39,22 +39,22 @@ describe("sheetHead helpers", () => {
       glyph: "pencilSimple",
       label: "Edit block",
     });
-    expect(item).toContain('class="hero-menu-item"');
+    expect(item).toContain('class="menu-item"');
     expect(item).toContain('role="menuitem"');
     expect(item).toContain('data-act="edit"');
     expect(item).toContain('data-icon="pencilSimple"');
     expect(item).toContain("Edit block");
   });
 
-  it("renders a disabled menu item with extra classes", () => {
+  it("renders a disabled menu item in the danger tone", () => {
     const item = menuItemHtml({
       act: "remove",
       glyph: "trash",
       label: "Remove",
       disabled: true,
-      extraClass: "hero-menu-delete",
+      tone: "danger",
     });
-    expect(item).toContain('class="hero-menu-item hero-menu-delete"');
+    expect(item).toContain('class="menu-item menu-item-danger"');
     expect(item).toContain(" disabled");
     expect(item).toContain('data-act="remove"');
   });
@@ -101,7 +101,7 @@ describe("sheetHead helpers", () => {
       extraClass: 'bad" class="injected',
     });
     expect(item).toContain('data-act="edit&quot; data-evil=&quot;true"');
-    expect(item).toContain('class="hero-menu-item bad&quot; class=&quot;injected"');
+    expect(item).toContain('class="menu-item bad&quot; class=&quot;injected"');
 
     const btn = iconBtnHtml({
       label: "Safe Btn",

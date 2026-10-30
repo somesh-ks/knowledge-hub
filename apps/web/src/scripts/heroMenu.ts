@@ -3,10 +3,11 @@
  * own popover. The listeners sit on the document, so they outlive a client-side navigation that
  * swaps the menu for another page's. Loaded by the briefing and episode pages.
  */
+import { MENU_SELECTORS } from "../design-system/menu";
 import { pullToDismiss } from "./pullDismiss";
 
 // The emoji picker (data-picker) is the same popover but its own: its keys, focus and Close are emojiPicker.ts.
-const LIST = ".hero-menu-list:not([data-picker])";
+const LIST = `${MENU_SELECTORS.list}:not([data-picker])`;
 const wired = new WeakSet<Element>();
 
 const itemsOf = (list: Element): HTMLElement[] =>
@@ -40,7 +41,7 @@ export function installHeroMenu(): void {
       if ((event as ToggleEvent).newState !== "open") return;
       // A phone shows the menu, and the emoji picker, as a sheet: pulled down, it closes (light
       // dismiss is the popover's own).
-      if (list.matches?.(".hero-menu-list.menu-sheet") && !wired.has(list)) {
+      if (list.matches?.(MENU_SELECTORS.sheet) && !wired.has(list)) {
         wired.add(list);
         pullToDismiss(list, () => list.hidePopover());
       }

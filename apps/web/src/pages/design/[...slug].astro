@@ -13,6 +13,8 @@ import Button from "../../design-system/Button.astro";
 import { buttonClass } from "../../design-system/button";
 import Field from "../../design-system/Field.astro";
 import { fieldClass } from "../../design-system/field";
+import MenuItem from "../../design-system/MenuItem.astro";
+import { menuBodyClass, menuItemClass, menuSheetClass } from "../../design-system/menu";
 import Select from "../../design-system/Select.astro";
 import Slider from "../../design-system/Slider.astro";
 import Switch from "../../design-system/Switch.astro";
@@ -79,7 +81,7 @@ const parts: [title: string, sheet: string, selector: string][] = [
   ["Search", "library.css", ".search-field"],
   ["Card group", "primitives.css", ".card-group"],
   ["Banner", "banner.css", ".banner"],
-  ["Menu", "hero.css", ".hero-menu-item"],
+  ["Menu", "menu.css", `.${menuItemClass()}`],
   ["Section heading", "primitives.css", ".section-head"],
 ];
 const usage = Object.fromEntries(
@@ -339,12 +341,12 @@ const title = "Design system";
         <h3 class="section-head">Menu</h3>
         <p class="design-usage">{usage.Menu}</p>
         <div class="design-specimen">
-          <div class="menu-sheet design-menu">
-            <div class="menu-sheet-items" role="menu" aria-label="Design menu">
-              <button class="hero-menu-item" type="button" role="menuitem"><Icon name="arrowUp" />Move up</button>
-              <button class="hero-menu-item" type="button" role="menuitem"><Icon name="arrowDown" />Move down</button>
-              <button class="hero-menu-item" type="button" role="menuitem"><Icon name="pencilSimple" />Edit</button>
-              <button class="hero-menu-item hero-menu-delete" type="button" role="menuitem"><Icon name="trash" />Remove</button>
+          <div class:list={[menuSheetClass(), "design-menu"]}>
+            <div class={menuBodyClass()} role="menu" aria-label="Design menu">
+              <MenuItem><Icon name="arrowUp" />Move up</MenuItem>
+              <MenuItem><Icon name="arrowDown" />Move down</MenuItem>
+              <MenuItem><Icon name="pencilSimple" />Edit</MenuItem>
+              <MenuItem tone="danger"><Icon name="trash" />Remove</MenuItem>
             </div>
           </div>
         </div>

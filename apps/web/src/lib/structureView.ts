@@ -6,6 +6,7 @@
  * same text: one markup, one source.
  */
 import type { NamedProfile, StructureBlock, StructureProfile } from "@singularity/core";
+import { menuBodyClass, menuListClass } from "../design-system/menu";
 import type { ConfigOp } from "../types/contracts";
 import {
   escapeHtml,
@@ -312,7 +313,7 @@ export function moved(
 /**
  * The rows: a body row's grip to drag it (or to move it with the arrow keys), the block's
  * name and what it holds, its dots with Move up, Move down, Edit and Remove (the More menu,
- * MenuSheet.astro's markup through sheetHead.ts: a bottom sheet on a phone). The hello and the
+ * Menu.astro's markup through sheetHead.ts: a bottom sheet on a phone). The hello and the
  * sign-off are left out: they never move or leave, and their prompts stay the built-in ones (owner,
  * 2026-10-27). A section whose every topic is left out of the briefing stays, quiet, and says so. The dots and the pencil end the row as every row's end glyph
  * does (`icon-btn-end`, D187).
@@ -358,9 +359,9 @@ export function rowsHtml(
         text,
         `<div class="structure-menu" style="--row-anchor: --${menu}">`,
         moreBtn,
-        `<div class="hero-menu-list menu-sheet structure-menu-list" id="${menu}" popover>`,
+        `<div class="${menuListClass()} structure-menu-list" id="${menu}" popover>`,
         sheetHeadHtml(name, `${menu}-title`, "data-menu-close"),
-        `<div class="menu-sheet-items" role="menu" aria-label="${escapeHtml(name)}">`,
+        `<div class="${menuBodyClass()}" role="menu" aria-label="${escapeHtml(name)}">`,
         menuItemHtml({ act: "up", glyph: "arrowUp", label: "Move up", disabled: index <= 1 }),
         menuItemHtml({
           act: "down",
@@ -375,7 +376,7 @@ export function rowsHtml(
           act: "remove",
           glyph: "trash",
           label: "Remove",
-          extraClass: "hero-menu-delete",
+          tone: "danger",
         }),
         `</div></div></div></li>`,
       ].join("");

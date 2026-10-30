@@ -6,7 +6,6 @@ import EmojiPicker from "../../../components/EmojiPicker.astro";
 import EmptyArt from "../../../components/EmptyArt.astro";
 import Icon from "../../../components/Icon.astro";
 import ManageChrome from "../../../components/ManageChrome.astro";
-import MenuSheet from "../../../components/MenuSheet.astro";
 import MultiSelect from "../../../components/MultiSelect.astro";
 import SettingsHead from "../../../components/SettingsHead.astro";
 import SourceFilter from "../../../components/SourceFilter.astro";
@@ -15,6 +14,8 @@ import SuggestedSources from "../../../components/SuggestedSources.astro";
 import TopicsPanel from "../../../components/TopicsPanel.astro";
 import WeightRow from "../../../components/WeightRow.astro";
 import Button from "../../../design-system/Button.astro";
+import Menu from "../../../design-system/Menu.astro";
+import MenuItem from "../../../design-system/MenuItem.astro";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { loadManage, type ManageSource, type ManageTopic } from "../../../lib/manage";
 import { loadScheduleView } from "../../../lib/schedule";
@@ -222,23 +223,16 @@ const facts = topic && {
                   >
                     <Icon name="moreVert" />
                   </button>
-                  <MenuSheet id="topic-menu" title={name}>
-                    <button
-                      class="hero-menu-item"
-                      type="button"
-                      role="menuitem"
+                  <Menu id="topic-menu" title={name}>
+                    <MenuItem
                       aria-haspopup="dialog"
                       aria-label={`Edit category ${name}`}
                       data-edit-topic={JSON.stringify(facts)}
-                      data-topic-base={upsert}
-                    >
+                      data-topic-base={upsert}>
                       <Icon name="pencilSimple" />Edit
-                    </button>
+                    </MenuItem>
                     {topic.origin === "custom" && (
-                      <button
-                        class="hero-menu-item hero-menu-delete topic-delete"
-                        type="button"
-                        role="menuitem"
+                      <MenuItem tone="danger" class="topic-delete"
                         data-pressed="false"
                         aria-label={`Delete category ${name}`}
                         data-name={name}
@@ -246,13 +240,12 @@ const facts = topic && {
                         data-label-undo={`Keep category ${name}`}
                         data-op={JSON.stringify({ op: "topic.remove", id: topic.id })}
                         data-remove
-                        data-confirm
-                      >
+                        data-confirm>
                         <Icon name="trash" /><span class="topic-delete-do">Delete</span>
                         <span class="topic-delete-undo">Keep category</span>
-                      </button>
+                      </MenuItem>
                     )}
-                  </MenuSheet>
+                  </Menu>
                 </div>
               )
             }

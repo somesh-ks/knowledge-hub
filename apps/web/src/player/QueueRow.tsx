@@ -1,4 +1,5 @@
 import type { DragEvent, KeyboardEvent, PointerEvent, ToggleEvent } from "react";
+import { menuItemClass, menuListClass } from "../design-system/menu";
 import { longDateFromDigestId } from "./core/formatTime";
 import { getPlayQueue, playQueueItem } from "./core/playerRuntime";
 import { useQueueMeta } from "./hooks/useQueue";
@@ -110,7 +111,7 @@ export default function QueueRow({ id, index, count, gestures }: QueueRowProps) 
       </button>
       <div
         id={menuId}
-        className="hero-menu-list menu-sheet player-queue-menu"
+        className={`${menuListClass()} player-queue-menu`}
         popover="auto"
         role="menu"
         aria-label={title}
@@ -118,7 +119,7 @@ export default function QueueRow({ id, index, count, gestures }: QueueRowProps) 
         onKeyDown={onMenuKey}
       >
         <button
-          className="hero-menu-item"
+          className={menuItemClass()}
           type="button"
           role="menuitem"
           disabled={index === 0}
@@ -130,7 +131,7 @@ export default function QueueRow({ id, index, count, gestures }: QueueRowProps) 
           Move up
         </button>
         <button
-          className="hero-menu-item"
+          className={menuItemClass()}
           type="button"
           role="menuitem"
           disabled={index === count - 1}
@@ -142,7 +143,7 @@ export default function QueueRow({ id, index, count, gestures }: QueueRowProps) 
           Move down
         </button>
         <button
-          className="hero-menu-item hero-menu-delete"
+          className={menuItemClass("danger")}
           type="button"
           role="menuitem"
           onClick={() => {

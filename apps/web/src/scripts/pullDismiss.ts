@@ -11,8 +11,10 @@
  * (`dismissOnScrim`); a popover has light dismiss of its own.
  */
 
+import { MENU_SELECTORS } from "../design-system/menu";
+
 const HEAD = ".create-sheet-head, .sheet-head";
-const BODY = ".create-sheet-body, .menu-sheet-items, .sheet-panel, .emoji-body, .gen-body";
+const BODY = `.create-sheet-body, ${MENU_SELECTORS.body}, .sheet-panel, .emoji-body, .gen-body`;
 
 /** A pull this far down before the sheet follows, so a tap or a sideways swipe never moves it. */
 const SLOP_PX = 10;

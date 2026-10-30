@@ -759,7 +759,7 @@ html[data-library-page="empty"] {
 }
 
 /* Under its own row's button, as a story's menu hangs under its own (story-controls.css). */
-.hero-menu-list.card-menu-list {
+.menu-list.card-menu-list {
   position-anchor: var(--card-anchor);
 }
 
@@ -774,7 +774,7 @@ html[data-library-page="empty"] {
 }
 
 @media (width >= 40rem) {
-  .hero-menu-list.card-menu-list {
+  .menu-list.card-menu-list {
     margin-inline-end: var(--space-2);
   }
 }

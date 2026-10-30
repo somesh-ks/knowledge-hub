@@ -7,6 +7,7 @@
 import { BUTTON, BUTTON_CLASSES, BUTTON_RETIRED } from "./button";
 import { FIELD, FIELD_CLASSES, FIELD_RETIRED } from "./field";
 import type { Guidance } from "./guidance";
+import { MENU, MENU_CLASSES, MENU_RETIRED } from "./menu";
 import { SELECT, SELECT_CLASSES, SELECT_RETIRED } from "./select";
 import { SLIDER, SLIDER_CLASSES, SLIDER_RETIRED } from "./slider";
 import { SWITCH, SWITCH_CLASSES, SWITCH_RETIRED } from "./switch";
@@ -79,5 +80,16 @@ export const COMPONENTS: DesignSystemComponent[] = [
     useWhen: SELECT.useWhen,
     dontUseWhen: SELECT.dontUseWhen,
     parts: SELECT.variants,
+  },
+  {
+    name: "Menu",
+    sheet: "menu.css",
+    prefix: "menu-",
+    classes: MENU_CLASSES,
+    retired: MENU_RETIRED,
+    summary: MENU.summary,
+    useWhen: MENU.useWhen,
+    dontUseWhen: MENU.dontUseWhen,
+    parts: MENU.tones,
   },
 ];

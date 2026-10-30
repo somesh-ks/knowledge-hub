@@ -124,6 +124,19 @@ export function classTokens(text: string): Set<string> {
     if (tonal > 0) found.add("select-tonal");
     if (all > tonal) found.add("select-outlined");
   }
+  // The Menu: its list by the tag or the class helper, its rows likewise (the danger tone by its name).
+  if (/<Menu\b|\bmenuListClass\(|\bmenuSheetClass\(/.test(code)) {
+    found.add("menu-list");
+    found.add("menu-sheet");
+  }
+  if (/<MenuItem\b|\bmenuItemClass\(/.test(code)) found.add("menu-item");
+  if (
+    /<MenuItem\b[^>]*\btone="danger"|\bmenuItemClass\(\s*["']danger["']|tone:\s*["']danger["']/.test(
+      code,
+    )
+  ) {
+    found.add("menu-item-danger");
+  }
   for (const [, variant = "outlined"] of code.matchAll(/\bselectClass\(\s*(?:["'](\w+)["'])?/g)) {
     found.add(`select-${variant}`);
   }
@@ -150,6 +163,10 @@ export function sourceFiles(): { path: string; text: string; tokens: Set<string>
       tokens.delete("field-input");
       tokens.delete("select-outlined");
       tokens.delete("select-tonal");
+      tokens.delete("menu-list");
+      tokens.delete("menu-item");
+      tokens.delete("menu-sheet");
+      tokens.delete("menu-item-danger");
     }
     return { path, text, tokens };
   });

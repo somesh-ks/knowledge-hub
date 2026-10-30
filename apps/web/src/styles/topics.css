@@ -1666,11 +1666,11 @@ html:has(.source-filter[data-chips]) {
   line-height: 1;
 }
 
-/* The emoji picker: the More menu's popover (hero.css, .menu-sheet) holding a search field and the
+/* The emoji picker: the More menu's popover (menu.css, .menu-sheet) holding a search field and the
    emoji by category. From 40rem it hangs under the emoji button, start edges level; the phone's
    bottom sheet is taller and rides above the keyboard (keyboardFit.ts writes --keyboard). The extra
    class beats the menu's own rules, which it reuses for the surface, the slide and the scrim. */
-.hero-menu-list.emoji-picker {
+.menu-list.emoji-picker {
   --emoji-bg: var(--color-surface-overlay);
   inset-inline: var(--menu-left, 0) auto;
   flex-direction: column;
@@ -1680,19 +1680,19 @@ html:has(.source-filter[data-chips]) {
 }
 
 @supports (top: anchor(bottom)) {
-  .hero-menu-list.emoji-picker {
+  .menu-list.emoji-picker {
     position-anchor: --emoji-pick;
     inset-inline: anchor(left) auto;
   }
 }
 
-.hero-menu-list.emoji-picker:popover-open {
+.menu-list.emoji-picker:popover-open {
   display: flex;
 }
 
 @media (width < 40rem) {
-  .hero-menu-list.menu-sheet.emoji-picker,
-  .hero-menu-list.menu-sheet.emoji-picker:popover-open {
+  .menu-list.menu-sheet.emoji-picker,
+  .menu-list.menu-sheet.emoji-picker:popover-open {
     --emoji-bg: var(--sheet-bg);
     inset: auto 0 var(--keyboard, 0px) 0;
     width: min(100%, var(--layout-column));
@@ -1968,7 +1968,7 @@ html:has(.source-filter[data-chips]) {
     anchor-name: var(--row-anchor);
   }
 
-  .hero-menu-list.structure-menu-list {
+  .menu-list.structure-menu-list {
     position-anchor: var(--row-anchor);
   }
 }

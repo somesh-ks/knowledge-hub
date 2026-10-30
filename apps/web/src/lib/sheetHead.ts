@@ -3,6 +3,7 @@
  * (SheetHeader.astro, Icon.astro) and for the lists a script redraws (structureView.ts), so a menu
  * a script builds is the same menu a page builds (the design-system audit, 2026-10-25).
  */
+import { menuItemClass } from "../design-system/menu";
 import { ICON_PATHS, ICON_VIEW_BOX, type IconName } from "./icons";
 
 export const escapeHtml = (text: string): string =>
@@ -51,11 +52,14 @@ export interface MenuItemOptions {
   glyph: IconName;
   label: string;
   disabled?: boolean;
+  /** The danger tone, for the one row that destroys. */
+  tone?: "danger";
+  /** For placing the row where it stands. Never its look. */
   extraClass?: string;
 }
 
 /**
- * A menu's row, as MenuSheet.astro's slot holds them: its glyph at the start, then the word.
+ * A menu's row, as Menu.astro's slot holds them: its glyph at the start, then the word.
  * Carries role="menuitem" and data-act for click delegation.
  */
 export function menuItemHtml({
@@ -63,9 +67,10 @@ export function menuItemHtml({
   glyph,
   label,
   disabled = false,
+  tone,
   extraClass = "",
 }: MenuItemOptions): string {
-  const cls = ["hero-menu-item", extraClass].filter(Boolean).map(escapeHtml).join(" ");
+  const cls = [menuItemClass(tone), extraClass].filter(Boolean).map(escapeHtml).join(" ");
   return `<button class="${cls}" type="button" role="menuitem" data-act="${escapeHtml(act)}"${disabled ? " disabled" : ""}>${iconHtml(glyph)}${escapeHtml(label)}</button>`;
 }
 

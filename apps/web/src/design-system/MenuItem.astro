@@ -1,0 +1,27 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { type MenuItemTone, menuItemClass } from "./menu";
+import "../styles/menu.css";
+
+interface MenuItemProps {
+  /** The danger tone, for the one row that destroys. */
+  tone?: MenuItemTone;
+  /** For placing the row where it stands. Never its look. */
+  class?: string;
+}
+
+type Props = MenuItemProps & Omit<HTMLAttributes<"button">, keyof MenuItemProps | "role">;
+
+const { tone, class: placement, type = "button", slot: _slot, ...passed } = Astro.props;
+
+// A bare data attribute (data-block) is true on a component and would print as data-block="true";
+// on a plain element it is empty. The menu's scripts read both, so the row keeps the empty form.
+const rest = Object.fromEntries(
+  Object.entries(passed).map(([name, value]) => [
+    name,
+    value === true && name.startsWith("data-") ? "" : value,
+  ]),
+);
+---
+
+<button class:list={[menuItemClass(tone), placement]} type={type} role="menuitem" {...rest}><slot /></button>
