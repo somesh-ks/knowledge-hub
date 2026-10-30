@@ -66,28 +66,28 @@
 
 /* The thumb stretches toward the other side while pressed, so the control answers before the finger
    lifts. */
-.switch-input:active::before {
+.switch-input:enabled:active::before {
   scale: 1.12 1;
   transition-duration:
     var(--duration-state), var(--duration-press-in), var(--duration-state), var(--duration-state);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .switch-input:hover {
+  .switch-input:enabled:hover {
     background: color-mix(in oklch, var(--color-on-surface) 12%, var(--color-border-control));
   }
 
-  .switch-input:checked:hover {
+  .switch-input:enabled:checked:hover {
     background: var(--color-accent-hover);
   }
 }
 
-/* After the hover rules and no less specific, so a press under a mouse still shows as a press. */
-.switch-input:active {
+/* A disabled switch never answers a hover or a press. After the hover rules and no less specific, so a press under a mouse still shows as a press. */
+.switch-input:enabled:active {
   background: color-mix(in oklch, var(--color-on-surface) 12%, var(--color-border-control));
 }
 
-.switch-input:checked:active {
+.switch-input:enabled:checked:active {
   background: var(--color-accent-pressed);
 }
 

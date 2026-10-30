@@ -387,3 +387,16 @@ const title = "Design system";
     </div>
   </main>
 </BaseLayout>
+
+<script>
+  import { sliderClass } from "../../design-system/slider";
+
+  // The catalogue's sliders are bare specimens; the caller keeps --range-fill at the thumb (slider.ts).
+  document.addEventListener("input", (event) => {
+    const slider = event.target;
+    if (!(slider instanceof HTMLInputElement) || !slider.matches(`.${sliderClass()}`)) return;
+    const min = Number(slider.min) || 0;
+    const max = Number(slider.max) || 1;
+    slider.style.setProperty("--range-fill", `${((slider.valueAsNumber - min) / (max - min)) * 100}%`);
+  });
+</script>
