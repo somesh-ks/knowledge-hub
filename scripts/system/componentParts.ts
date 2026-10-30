@@ -235,6 +235,7 @@ export const componentParts = (): PartSource[] => [
       '<Dialog aria-labelledby="t"><h2 class="sheet-title" id="t">Delete?</h2><DialogActions><Button variant="text">Cancel</Button></DialogActions></Dialog>',
     rules: [
       "A script finds one with DIALOG_SELECTOR; one it builds uses dialogClass(), dialogBodyClass() and dialogActionsClass().",
+      "It renders closed: the script opens it with dialog.showModal() and closes it with dialog.close() from the Cancel button's click.",
     ],
   }),
 ];

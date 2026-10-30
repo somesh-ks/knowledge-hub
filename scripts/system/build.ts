@@ -42,8 +42,9 @@ function filesUnder(dir: string, extensions: string[], skip: (path: string) => b
 
 const escapeRegex = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** A rule that is about the class itself: some selector of its list begins with `.name`. */
-const ruleOf = (name: string): RegExp => new RegExp(`(?:^|,)\\s*\\.${escapeRegex(name)}(?![\\w-])`);
+/** A rule that is about the class itself: some selector of its list begins with `.name`, or with `tag.name`. */
+const ruleOf = (name: string): RegExp =>
+  new RegExp(`(?:^|,)\\s*(?:[a-z][\\w-]*)?\\.${escapeRegex(name)}(?![\\w-])`);
 
 interface Stylesheet {
   file: string;

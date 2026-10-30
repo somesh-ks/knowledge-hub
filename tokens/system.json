@@ -378,18 +378,24 @@
       "styles": [
         "episode-actions.css",
         "field.css",
-        "manage.css"
+        "manage.css",
+        "topics.css"
       ],
       "usage": "The text field, and the select and textarea that share its looks: a filled pill (D186; a textarea 24px), the one control with an outline, which shows on focus.",
       "tokens": [
+        "--button-radius",
         "--color-accent",
         "--color-danger",
         "--color-on-surface",
         "--color-on-surface-muted",
         "--field-border",
+        "--field-chevron-gap",
         "--field-height",
+        "--field-max-height-multiline",
         "--field-padding",
-        "--field-radius"
+        "--field-radius",
+        "--field-radius-multiline",
+        "--size-icon"
       ]
     },
     {
@@ -618,14 +624,20 @@
       ],
       "markup": "<Dialog aria-labelledby=\"t\"><h2 class=\"sheet-title\" id=\"t\">Delete?</h2><DialogActions><Button variant=\"text\">Cancel</Button></DialogActions></Dialog>",
       "rules": [
-        "A script finds one with DIALOG_SELECTOR; one it builds uses dialogClass(), dialogBodyClass() and dialogActionsClass()."
+        "A script finds one with DIALOG_SELECTOR; one it builds uses dialogClass(), dialogBodyClass() and dialogActionsClass().",
+        "It renders closed: the script opens it with dialog.showModal() and closes it with dialog.close() from the Cancel button's click."
       ],
       "styles": [
         "buttons.css",
         "dialog.css"
       ],
       "usage": "",
-      "tokens": []
+      "tokens": [
+        "--color-on-surface",
+        "--color-scrim",
+        "--sheet-bg",
+        "--sheet-shadow"
+      ]
     },
     {
       "id": "btn-action-tonal",
