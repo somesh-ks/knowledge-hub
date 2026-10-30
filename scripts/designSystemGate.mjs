@@ -18,6 +18,7 @@ export const SYSTEM_PATHS = [
   "tokens/",
   "apps/design/",
   "scripts/system/",
+  "scripts/colorRamp.ts",
   ".github/CODEOWNERS",
   ".claude/skills/feature/references/controls-guide.md",
 ];
