@@ -297,6 +297,26 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Rejected: mirroring the track on the left (a column of air beside a column of air); hiding the list below 90rem (the owner asked for it at 80rem).
 - Revisit if: the contents list needs more than 11rem at 80rem (a long section name wraps).
 
+## D236: the design system is a generated file an agent queries
+
+- Date: 2026-10-29 (the owner: make the design system "agentic ready", so an agent spends less time and fewer tokens finding the right component and stays consistent).
+- Decision: `npm run system` builds `tokens/system.json` (every token with its value, and its dark value and role where it has them; every part with classes, files, use-when, not-when and what to use instead, markup, the tokens its rules read, who styles it, how many files use it) and `tokens/llms.txt` (the one-page index). `npm run ds -- find "<need>"`, `part <id>` and `token <words>` answer from the file in 0.4 s. The judgment (use-when, not-when) is written once in `scripts/system/parts.ts`; everything checkable is derived from the code. A test fails when either file is stale, a part names a class no stylesheet rule or no markup uses, a file is gone, an alternative points nowhere, or a shared control has no part.
+- Why: 19 lookup tasks given to the same small model, once on the repo as it was and once with the file: tokens 88.9k to 71.1k (-20%), tool calls 13.0 to 7.3 (-44%), time 41 s to 28 s (-31%); every answer that came back was right in both arms, so the gain is cost, not accuracy. Holding the file to the code mattered at once: the first draft listed `.switch`, a class with no markup, and an agent had to ignore the tool; the check now counts a class only where markup writes it.
+- Rejected: a hand-written page per part (the first guide had 44 and the owner cut them; they drift); an embeddings or MCP server (a JSON file and a 0.4 s command answer the same needs); deriving use-when from the stylesheets (their comments say how a class looks, not when to pick it).
+- Revisit if: the design-system components (`apps/web/src/design-system`) land, when their entries replace the ones in `parts.ts` (a family that moved deletes its entries here); a lookup is wrong twice, when the keywords or the part are fixed in `parts.ts`.
+- Amends: D189's catalogue idea for agents, not for people; D226 (the guide shows only real components) is unchanged.
+
+## D238: every color ramp is ten steps on one OKLCH curve
+
+- Date: 2026-10-29 (the owner: "certain colors only have limited shades and blue and gray have so many ... only 10 shades per color ... a color theme generation curve that we respect, linked to OKLCH").
+- Decision: each ramp (grey, blue, green, amber, red) has steps 50 to 900 and is a hue plus a peak chroma. Lightness follows one shared curve (98 to 25, a straight line with 35% S-curve), chroma a bell over lightness, capped at the sRGB gamut. `scripts/colorRamp.ts` derives the values, `npx tsx scripts/colorRamp.ts` writes them into `tokens/tokens.json`, and a test re-derives them. Grey is the blue hue at 0.011 chroma.
+- Surfaces are not steps: ten steps sit 8 points apart and elevation reads at 2 to 5. They are `primitive.color.elevation.*`, the page step (grey-50 light, grey-900 dark) moved by small lightness offsets (owner pick, "Offsets from the ramp"). White stays the raised surface in light.
+- Why: 14 hand-picked blues, 16 greys and 4 of each status color meant new hues were guesses and "600" meant different things. One curve makes a step number mean the same lightness, and so the same contrast, in every hue.
+- Visible change: light accent is blue-600 (L 53 to 48), hover and press one step deeper; the dark selected container is blue-800 and shares a step with the quiet tint, with a little more chroma than the hand-tuned ones; muted and subtle text share a step. Every contrast test passes unedited.
+- Rejected: hand-snapping the old values to ten steps (keeps the guesswork); surfaces as ramp steps (flattens dark elevation).
+- Context changed: D54's disabled-ink refinement (grey-650) is replaced, as grey-650 is not a step; its text-field outline ruling stands. Disabled ink now sits 2.07:1 from muted in dark (was 2.37) and 2.17 in light (was 2.29), still clear of the 1.67 that read as enabled.
+- Revisit if: a color needs a role between two steps. Add a role offset, not an 11th step.
+
 ## D243: each shared component has one version, shipped as design-system PRs
 
 - Date: 2026-10-29 (the owner: "are we looking into consolidating our design system components? there are so many variations and duplicates"; then, going away: "fire away, if they are stuck check with the advisor and move on").
