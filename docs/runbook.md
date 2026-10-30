@@ -180,7 +180,7 @@ Monthly:
 
 Vercel itself builds every push to `main`, except pushes that touch nothing the site reads (`state`, `config`, docs and `.github`). A published digest therefore deploys twice: the text first, then the audio.
 
-Other branches do not deploy (`git.deploymentEnabled` in `apps/web/vercel.json`), except ones named `preview/<name>`: push a branch under that name when you want a preview URL. Every preview made Neon's Vercel integration create a database branch, and on 2026-10-22 the free plan's branch limit filled and every preview failed ("Branch limit reached"). `branches.yml` removes what is left.
+Other branches do not deploy (`git.deploymentEnabled` in `apps/web/vercel.json` and `apps/admin/vercel.json`), except ones named `preview/<name>`: push a branch under that name when you want a preview URL. Every preview made Neon's Vercel integration create a database branch, and on 2026-10-22 the free plan's branch limit filled and every preview failed ("Branch limit reached"). `branches.yml` removes what is left.
 
 Every `run.yml` run ends in one outcome:
 
