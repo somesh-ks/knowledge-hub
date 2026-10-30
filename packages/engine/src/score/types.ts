@@ -17,6 +17,8 @@ export interface ScoreBreakdown {
   source?: number;
   /** True when the owner's authority list lifted this score (authority/authority.ts, D234). */
   authority?: boolean;
+  /** True when the video's creator, a favorite of the owner, lifted this score (score/creator.ts, D248). */
+  creator?: boolean;
   /** Strength 0 to 1 of the community lift, when it raised this score (community/community.ts, D240). */
   community?: number;
 }

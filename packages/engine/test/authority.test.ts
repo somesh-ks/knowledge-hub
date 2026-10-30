@@ -9,6 +9,7 @@ import {
 import { replayAuthority } from "../src/authority/replay.js";
 import { judgmentKey } from "../src/judge/cache.js";
 import { prefilter } from "../src/prefilter/prefilter.js";
+import { withCreator } from "../src/score/creator.js";
 import { scoreItem } from "../src/score/scoreItem.js";
 import { DEFAULT_SCORE_THRESHOLD, eligibility } from "../src/score/selectItems.js";
 import { makeItem, makeSource, NOW } from "./fetch-helpers.js";
@@ -59,6 +60,31 @@ describe("authority lift", () => {
     expect(hit("https://www.openai.com/a")).toBe(true);
     expect(hit("https://notopenai.com/a")).toBe(false);
     expect(hit("https://openai.com.example.net/a")).toBe(false);
+  });
+});
+
+describe("a favorite creator's video", () => {
+  /** A video as Jev scores it from its title and description: right category, no depth, flagged sponsored. */
+  function video(vetted: boolean, category: "ai_ux_interaction_patterns" | "none") {
+    const url = "https://www.youtube.com/watch?v=abcdefghijk";
+    const item = makeScoredItem({
+      url,
+      canonical_url: url,
+      source_id: "fireship",
+      source_type: "youtube",
+      signals: vetted ? { creator_vetted: true } : {},
+    });
+    const entry = makeEntry(item, { category, p: 0.95, depth: 0, hype: 0.6, sponsored: 0.5 });
+    return scoreItem(entry, prefs, item);
+  }
+
+  it("reaches the bar only when its channel is a favorite and the judge placed it in a topic", () => {
+    const plain = video(false, "ai_ux_interaction_patterns");
+    expect(eligibility(plain).eligible).toBe(false);
+    expect(withCreator(plain)).toBe(plain);
+    expect(eligibility(withCreator(video(true, "ai_ux_interaction_patterns"))).eligible).toBe(true);
+    const offTopic = video(true, "none");
+    expect(withCreator(offTopic)).toBe(offTopic);
   });
 });
 

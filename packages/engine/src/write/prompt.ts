@@ -46,11 +46,19 @@ export function writerSystemPrompt(voice: VoiceConfig, rules = BRIEFING_STORY_PR
   ].join("\n");
 }
 
+/**
+ * A transcript carries the creator's own sponsor reads, discount codes and asks to subscribe. They
+ * are not the story and must not reach the summary or the spoken text (D248).
+ */
+const VIDEO_NOTE =
+  "Leave out sponsor reads, ads, discount codes, affiliate links, product plugs and calls to like, subscribe or join; use only what the video explains or reports.";
+
 function materialBlock(material: SourceMaterial, boundary: string): string {
   const body = [
     `title: ${material.title}`,
     `source: ${material.source}`,
     `author: ${material.author ?? "unknown"}`,
+    ...(material.spoken ? ["note: the text is a video transcript. " + VIDEO_NOTE] : []),
     "text:",
     material.text,
   ].join("\n");

@@ -50,6 +50,7 @@ import {
   voteReportLine,
 } from "../profile/votes.js";
 import { loadSchedule } from "../schedule/store.js";
+import { withCreator } from "../score/creator.js";
 import { isReleaseStory, RELEASE_SECTION } from "../score/releaseNotes.js";
 import { scoreItem } from "../score/scoreItem.js";
 import {
@@ -308,7 +309,7 @@ async function writePass(
       );
     // Each list is also read as if on while it is off, one at a time, against the live other.
     const lifted = (authority: AuthorityMatcher, community: CommunityFile): ScoredItem =>
-      adjusted(withCommunity(withAuthority(topical, authority), community));
+      adjusted(withCommunity(withCreator(withAuthority(topical, authority)), community));
     const final = lifted(context.authority, context.community);
     base.push(final);
     const passes = (scored: ScoredItem): boolean => eligibility(scored, undefined, off).eligible;

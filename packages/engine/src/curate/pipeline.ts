@@ -12,6 +12,7 @@ import type { ExtractedText } from "../extract/extractText.js";
 import { judgeWithCache } from "../judge/cache.js";
 import type { Judge } from "../judge/types.js";
 import { mapConcurrent } from "../llm/concurrency.js";
+import { withCreator } from "../score/creator.js";
 import { scoreItem } from "../score/scoreItem.js";
 import { assignSections, capFor, selectItems } from "../score/selectItems.js";
 import type { ScoredItem, SelectedItem } from "../score/types.js";
@@ -170,7 +171,7 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
     if (item)
       scored.push(
         withCommunity(
-          withAuthority(scoreItem(entry, input.preferences, item), input.authority),
+          withCreator(withAuthority(scoreItem(entry, input.preferences, item), input.authority)),
           input.community,
         ),
       );
@@ -270,6 +271,7 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
       ...(sel.item.author ? { author: sel.item.author } : {}),
       category: writerCategory(sel.category, undefined),
       text: text.text,
+      ...(sel.item.source_type === "youtube" && text.method !== "snippet" ? { spoken: true } : {}),
     });
   }
   counts.extracted = materials.size;

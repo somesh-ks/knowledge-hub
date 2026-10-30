@@ -244,6 +244,14 @@ describe("fetchYoutube", () => {
     expect(items[0]?.source_type).toBe("youtube");
     // The community score reads this; the feed's media:community block is the only place it lives.
     expect(items[0]?.signals.youtube_views).toBe(93644);
+    // The score trusts a favorite channel's videos; only the owner's Favorite switch sets it.
+    expect(items[0]?.signals.creator_vetted).toBeUndefined();
+    const favorite = await fetchYoutube(
+      { ...source, high_signal: true },
+      window("2026-10-01T00:00:00Z"),
+      deps,
+    );
+    expect(favorite.every((item) => item.signals.creator_vetted === true)).toBe(true);
   });
 
   it("builds the feed address from the channel id and skips Shorts", async () => {
