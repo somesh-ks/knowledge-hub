@@ -1,6 +1,7 @@
 import type { Item } from "@singularity/core";
 import { z } from "zod";
 import { buildItems, type RawItem } from "../normalize/buildItem.js";
+import { canonicalizeUrl } from "../normalize/canonicalizeUrl.js";
 import type { SourceFetcher } from "./types.js";
 
 const REDDIT = "https://www.reddit.com";
@@ -82,7 +83,9 @@ export const fetchReddit: SourceFetcher = async (source, window, deps): Promise<
     if (typeof score !== "number" || score < minScore) continue;
     const discussion = `${REDDIT}${permalink}`;
     const target = post.data.is_self || !url || hostedOnReddit(url) ? discussion : url;
-    const kept = byUrl.get(target);
+    // The same article with and without a tracking parameter is one link.
+    const key = canonicalizeUrl(target) ?? target;
+    const kept = byUrl.get(key);
     if (kept && (kept.signals?.reddit_score ?? 0) >= score) continue;
     const candidate: RawItem = {
       // A text post, or a link to Reddit's own media, goes to its thread; any other link to the page it shares.
@@ -100,7 +103,7 @@ export const fetchReddit: SourceFetcher = async (source, window, deps): Promise<
           : {}),
       },
     };
-    if (buildItems([candidate], context).length > 0) byUrl.set(target, candidate);
+    if (buildItems([candidate], context).length > 0) byUrl.set(key, candidate);
   }
   return buildItems([...byUrl.values()], context);
 };

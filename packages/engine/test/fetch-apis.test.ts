@@ -202,7 +202,11 @@ describe("fetchReddit", () => {
             created_utc: Date.parse("2026-10-04T12:00:00Z") / 1000,
           }),
           post({ title: "Same link, more votes", score: 900, num_comments: 300 }),
-          post({ title: "Same link, fewer votes", score: 60 }),
+          post({
+            title: "Same link, fewer votes",
+            score: 60,
+            url: "https://example.com/a?utm_source=reddit",
+          }),
         ),
       }),
     );
@@ -261,7 +265,7 @@ describe("fetchReddit", () => {
       }),
     );
     const [item] = await fetchReddit(source, WIDE, deps);
-    expect(item?.content?.startsWith("A long self post")).toBe(true);
+    expect(item?.content).toBe(text.trim());
   });
 
   it("fails on an unexpected shape, and without a subreddit", async () => {
