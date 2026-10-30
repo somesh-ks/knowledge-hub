@@ -1,6 +1,6 @@
 # Trusted publishers list gets a name that says what it is
 
-2026-10-30. The owner read `config/authority.json` and asked for a name that says what the file is, and for Reddit to go because Reddit blocks bot scraping.
+2026-10-30 (D250). The owner read `config/authority.json` and asked for a name that says what the file is, and for Reddit to go because Reddit blocks bot scraping.
 
 ## What changed
 
