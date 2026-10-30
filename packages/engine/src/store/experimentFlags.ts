@@ -69,20 +69,32 @@ export async function setExperimentEnabled(
   return rows.length > 0;
 }
 
-/** Marks an experiment promoted, which also turns it on; `false` takes the mark back (Undo) and keeps its switch. */
+/**
+ * Marks an experiment promoted, which also turns it on; `false` takes the mark back (Undo) and keeps
+ * its switch. Taking it back never creates a row: no row means the file still decides.
+ */
 export async function setExperimentPromoted(
   sql: SqlClient,
   id: string,
   promoted: boolean,
 ): Promise<void> {
+  if (!promoted) {
+    await withTable(sql, EXPERIMENT_FLAGS_SCHEMA_SQL, () =>
+      sql.query(
+        "update experiment_flags set promoted_at = null, updated_at = now() where id = $1",
+        [id],
+      ),
+    );
+    return;
+  }
   await withTable(sql, EXPERIMENT_FLAGS_SCHEMA_SQL, () =>
     sql.query(
-      `insert into experiment_flags (id, enabled, promoted_at) values ($1, true, case when $2 then now() end)
+      `insert into experiment_flags (id, enabled, promoted_at) values ($1, true, now())
        on conflict (id) do update set
-         enabled = experiment_flags.enabled or $2,
-         promoted_at = case when $2 then now() end,
+         enabled = true,
+         promoted_at = now(),
          updated_at = now()`,
-      [id, promoted],
+      [id],
     ),
   );
 }
