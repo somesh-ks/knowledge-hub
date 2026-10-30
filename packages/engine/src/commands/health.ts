@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import type { CommandRun } from "../context.js";
 import { collectHealth, formatHealth, type WorkflowRun } from "../ops/health.js";
-import { readStore, readWatchedHead } from "../ops/healthChecks.js";
+import { readDeploymentCount, readStore, readWatchedHead } from "../ops/healthChecks.js";
 import { configStoreUrl } from "../store/configPaths.js";
 
 const USAGE =
@@ -81,6 +81,9 @@ export const run: CommandRun = async (argv, ctx) => {
           }),
           readWatchedHead(ctx.root),
         ]);
+  // Hobby's 100 deployments a day, read from Vercel when a token is set (D247).
+  const deployments =
+    site === null ? undefined : await readDeploymentCount(ctx.env.VERCEL_TOKEN, ctx.now());
   const report = await collectHealth({
     root: ctx.root,
     now: ctx.now(),
@@ -91,6 +94,7 @@ export const run: CommandRun = async (argv, ctx) => {
     ...(perfPath ? { perf } : {}),
     ...(store ? { store } : {}),
     ...(main ? { main } : {}),
+    ...(deployments ? { deployments } : {}),
     voices: {
       SPEECHIFY_VOICE_ID: ctx.env.SPEECHIFY_VOICE_ID,
       SPEECHIFY_VOICE_ID_B: ctx.env.SPEECHIFY_VOICE_ID_B,
