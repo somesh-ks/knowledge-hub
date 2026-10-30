@@ -269,7 +269,7 @@ export function renderLlms(system: System): string {
 }
 
 export function renderSystemJson(system: System): string {
-  return `${JSON.stringify(system, null, 2)}\n`;
+  return `${JSON.stringify(system, (key, value) => (key === "usedIn" ? undefined : value), 2)}\n`;
 }
 
 function main(): void {
