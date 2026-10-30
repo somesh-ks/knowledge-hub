@@ -1,0 +1,35 @@
+---
+import { resolve } from "node:path";
+import AdminHead from "../components/AdminHead.astro";
+import Shell from "../layouts/Shell.astro";
+import { loadExperiments } from "../lib/experiments";
+import { SECTIONS } from "../lib/sections";
+
+// The build runs in apps/admin; the switches live in the repository's config/.
+const experiments = await loadExperiments(resolve(process.cwd(), "../.."));
+const section = SECTIONS.find((candidate) => candidate.path === "/experiments");
+const WORDS = { on: "On", shadow: "Shadow", off: "Off" } as const;
+---
+
+<Shell title="Experiments" current="/experiments">
+  <div class="settings-view" data-settings>
+    <AdminHead title="Experiments" note={section?.question} />
+    <section>
+      <div class="rows card-group">
+        {
+          experiments.map((experiment) => (
+            <div class="settings-row" data-experiment={experiment.id}>
+              <span class="settings-text">
+                <span class="settings-label">{experiment.name}</span>
+                <span class="settings-hint">{experiment.line}</span>
+                <span class="settings-hint">{experiment.switch}</span>
+              </span>
+              <span class="health-value" data-state={experiment.state}>{WORDS[experiment.state]}</span>
+            </div>
+          ))
+        }
+      </div>
+      <p class="settings-note">As of the last deploy.</p>
+    </section>
+  </div>
+</Shell>
