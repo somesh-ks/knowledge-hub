@@ -10,7 +10,7 @@ export interface Section {
   iconCurrent: IconName;
   /** What the section answers. */
   question: string;
-  /** What the page holds today. */
+  /** What a placeholder page says it holds; empty once the section has a page of its own. */
   status: string;
 }
 
@@ -46,6 +46,14 @@ export const SECTIONS: readonly Section[] = [
     iconCurrent: "heartbeatFill",
     question: "Runs, pages, services.",
     status: "Moves here next",
+  },
+  {
+    path: "/experiments",
+    label: "Experiments",
+    icon: "flask",
+    iconCurrent: "flaskFill",
+    question: "On changes the daily. Shadow only logs what it would change.",
+    status: "",
   },
 ];
 

@@ -4,7 +4,7 @@ import Shell from "../layouts/Shell.astro";
 import { SECTIONS } from "../lib/sections";
 
 export function getStaticPaths() {
-  return SECTIONS.filter((section) => section.path !== "").map((section) => ({
+  return SECTIONS.filter((section) => section.status !== "").map((section) => ({
     params: { section: section.path.slice(1) },
     props: { section },
   }));
