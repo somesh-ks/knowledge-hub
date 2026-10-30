@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-29 | [Design-system consolidation](2026-10-29-design-system-consolidation.md) | Inventory of thirteen duplicate families and 60 unused classes; the six-PR plan (D243) |
 | 2026-10-29 | [The podcast queue](2026-10-29-podcast-queue.md) | A dock above the bottom bar and a popover from the side column listing a Catch up or a regeneration while it is made, a ring with the percent, finished runs staying for the day with Start listening, a title that never changes, an X to cancel and Details for a failure (D231) |
 | 2026-10-29 | [Authority list](2026-10-29-authority-list.md) | Vetted publishers' announcements pass the bar, Exa restricted to their domains, shadow log and replay; shipped off (D234) |
 | 2026-10-29 | [Short dailies: Step 0](2026-10-29-short-dailies-step-zero.md) | Why the daily aired 3.8 of 5 minutes and the five fixes (D216 to D225); the exit check is two real dailies within 10% |

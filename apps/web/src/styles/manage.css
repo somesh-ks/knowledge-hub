@@ -19,17 +19,7 @@
 .manage:not([data-ready]) [data-needs-js] {
   visibility: hidden;
 }
-
-.manage:not([data-ready]) .manage-row :is(input, button) {
-  pointer-events: none;
-}
-
 /* ------------------------------------------------------------------ the top of the page */
-
-/* A quiet line under a section heading, with air between them. */
-.manage-below {
-  padding-block-end: var(--space-2);
-}
 
 .manage-note {
   color: var(--color-on-surface-muted);
@@ -150,96 +140,7 @@ textarea.manage-input {
   }
 }
 
-.manage-form .manage-submit {
-  width: 100%;
-}
-
-@media (width >= 40rem) {
-  .manage-form .manage-submit {
-    width: auto;
-    justify-self: start;
-    padding-inline: var(--space-6);
-  }
-}
-
-.manage-tools {
-  padding-block: var(--space-6) 0;
-}
-
-.manage-tools.library-tools {
-  padding-block-end: 0;
-}
-
-/* ------------------------------------------------------------------ suggested sources */
-
-.manage-suggest-group {
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.manage-legend {
-  padding: 0;
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--font-leading-label);
-}
-
-/* The quiet line goes under its title with air between them. */
-.manage-legend-hint {
-  margin-block: var(--space-2) var(--space-2);
-}
-
-/* A whole row is one checkbox target, at least 44px tall. */
-.manage-pick {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  min-height: var(--size-touch-comfortable);
-  padding-block: var(--space-2);
-  cursor: pointer;
-}
-
-.manage-pick > input {
-  flex: none;
-  width: var(--size-icon);
-  height: var(--size-icon);
-  margin: 0;
-  accent-color: var(--color-accent);
-}
-
-.manage-pick:has(input:focus-visible) {
-  outline: var(--stroke-ring) solid var(--color-focus-ring);
-  outline-offset: var(--stroke-ring-gap);
-}
-
-/* ------------------------------------------------------------------ rows */
-
-.manage-row {
-  scroll-margin-block-end: calc(var(--size-touch-comfortable) + var(--space-8));
-}
-
-.manage-main {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  min-height: var(--size-touch);
-}
-
-.manage-text {
-  display: grid;
-  flex: 1 1 0;
-  gap: var(--space-1);
-  min-width: 0;
-}
-
-.manage-name {
-  font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--font-leading-label);
-  overflow-wrap: anywhere;
-}
+/* ------------------------------------------------------------------ a quiet line */
 
 .manage-quiet {
   color: var(--color-on-surface-muted);
@@ -248,109 +149,15 @@ textarea.manage-input {
   overflow-wrap: anywhere;
 }
 
-/* A row waiting to be removed says so in place of its line, and its name is struck through. */
-.manage-flag {
-  display: none;
-}
-
-.manage-row:has([data-remove][aria-pressed="true"]) .manage-flag {
-  display: block;
-}
-
-.manage-row:has([data-remove][aria-pressed="true"]) [data-line] {
-  display: none;
-}
-
-.manage-row:has([data-remove][aria-pressed="true"]) .manage-name {
-  text-decoration: line-through;
-}
-
-/* Saved, so out of the list. The next build drops it for good. */
-.manage-row[data-gone] {
-  display: none;
-}
-
 /* The search hides rows by text (the hidden attribute); a section left with no row goes with them. */
 .manage-fields [data-section-of]:not(:has([data-find]:not([hidden], [data-gone]))) {
   display: none;
 }
 
 /* The chips only name a filter on the page; these rules do the filtering. */
-.manage[data-filter="pinned"] .manage-row[data-find]:not(:has([data-pin][aria-pressed="true"])),
-.manage[data-filter="off"] .manage-row[data-find]:not(:has(.settings-switch:not(:checked))),
 .manage[data-filter="suggested"] [data-section-of="sources"],
 .manage:is([data-filter="pinned"], [data-filter="off"]) [data-section-of="suggested"] {
   display: none;
-}
-
-/* The icon buttons sit flush with the gutter at the end of the row. */
-.manage-main > .icon-btn:last-child {
-  margin-inline-end: calc(var(--space-2) * -1);
-}
-
-.manage-pin[aria-pressed="true"] {
-  color: var(--color-accent);
-}
-
-.manage-pin .icon:first-child {
-  display: block;
-}
-
-.manage-pin .icon:last-child,
-.manage-pin[aria-pressed="true"] .icon:first-child {
-  display: none;
-}
-
-.manage-pin[aria-pressed="true"] .icon:last-child {
-  display: block;
-}
-
-.manage-remove[aria-pressed="true"] {
-  color: var(--color-danger);
-}
-
-/* The amount: a five-step slider and, beside it, the step in words. */
-.manage-weight {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  margin-block-start: var(--space-2);
-}
-
-.manage-weight > .settings-range {
-  flex: 1 1 auto;
-}
-
-/* A topic that is off keeps its slider, set where it was, and shows it as unused. */
-.manage-row:has(.settings-switch:not(:checked)) .settings-range {
-  opacity: var(--opacity-disabled);
-}
-
-.manage-word {
-  flex: none;
-  min-width: 6rem;
-  text-align: end;
-}
-
-/* A suggestion's button shows Add, or Added once it is picked. */
-.manage-suggest {
-  margin-inline-end: calc(var(--space-4) * -1);
-}
-
-.manage-suggest .icon:last-of-type,
-.manage-suggest-added,
-.manage-suggest[aria-pressed="true"] .icon:first-of-type,
-.manage-suggest[aria-pressed="true"] .manage-suggest-add {
-  display: none;
-}
-
-.manage-suggest[aria-pressed="true"] .icon:last-of-type,
-.manage-suggest[aria-pressed="true"] .manage-suggest-added {
-  display: inline;
-}
-
-.manage-suggest[aria-pressed="true"] .icon:last-of-type {
-  display: block;
 }
 
 /* ------------------------------------------------------------------ the saving toast */
@@ -392,23 +199,9 @@ html[data-manage-toast-open] {
   }
 }
 
-@media (forced-colors: active) {
-  .manage-pin[aria-pressed="true"] {
-    color: Highlight;
-  }
-}
-
 /* Rows are separated by space, never by a line; only sections are divided. */
 .manage .rows > * + *::before {
   content: none;
-}
-
-.manage-row .manage-text {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.manage-add > summary {
-  margin-inline-start: calc(var(--space-4) * -1);
 }
 
 /* ------------------------------------------------------------------ selects and pick lists */
@@ -468,34 +261,4 @@ select.manage-input:focus-visible {
   .manage-select > .icon {
     color: ButtonText;
   }
-}
-
-/* The checklist heading sits with its rows, and a row is as tall as a comfortable target. */
-.daily-panel .manage-suggest-group > .rows {
-  margin-block-start: var(--space-2);
-}
-
-/* A list: the label is the whole row, so there is no dead zone between rows, and a hairline divides
-   them as on the Settings index. */
-.daily-panel .manage-suggest-group > .rows > * {
-  padding-block: 0;
-  margin-block-start: 0;
-}
-
-.daily-panel .manage-suggest-group > .rows > * + *::before {
-  content: "";
-}
-
-.daily-panel .manage-pick {
-  align-items: flex-start;
-  min-height: var(--size-touch);
-  padding-block: var(--space-4);
-}
-
-/* The box sits on the first line of the label, whether the row has one line or two. */
-.daily-panel .manage-pick > input {
-  margin-block-start: calc(
-    (var(--font-size-body) * var(--font-leading-label) - var(--size-icon)) /
-    2
-  );
 }

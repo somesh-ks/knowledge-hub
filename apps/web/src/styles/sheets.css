@@ -149,7 +149,7 @@
   }
 }
 
-/* ------------------------------------------------------------------ head, lede, groups */
+/* ------------------------------------------------------------------ head */
 
 /* The title in the heading role and a round close control (.icon-btn) at the end. */
 .sheet-head {
@@ -186,26 +186,6 @@
   font-weight: var(--text-heading-weight);
   letter-spacing: var(--text-heading-tracking);
   line-height: var(--text-heading-leading);
-}
-
-.sheet-lede {
-  padding-inline: var(--space-2);
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
-}
-
-.sheet-group {
-  margin-block-start: var(--space-6);
-}
-
-.sheet-group > h3,
-.sheet-group .segmented-legend {
-  display: block;
-  margin-block: 0 var(--space-2);
-  padding-inline: var(--space-2);
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-regular);
 }
 
 /* ------------------------------------------------------------------ fields and actions */
@@ -276,12 +256,6 @@ textarea.sheet-input {
   color: var(--color-on-surface-disabled);
 }
 
-.sheet-field-hint {
-  padding-inline: var(--space-2);
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
-}
-
 .sheet-field-error {
   display: flex;
   align-items: flex-start;
@@ -321,157 +295,6 @@ textarea.sheet-input {
 .sheet-actions .btn-primary[aria-disabled="true"]:active {
   transform: none;
 }
-
-/* ------------------------------------------------------------------ settings: switch, range, hint */
-
-.setting-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  min-height: var(--size-touch-comfortable);
-  padding: var(--space-2);
-  border-radius: var(--sheet-row-radius);
-}
-
-.setting-text {
-  display: grid;
-}
-
-.setting-hint {
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
-}
-
-.switch {
-  position: relative;
-  flex: none;
-  width: var(--switch-width);
-  height: var(--switch-height);
-  padding: 0;
-  border: 0;
-  border-radius: var(--switch-radius);
-  /* The same track as the settings page: a grey that stands 3 to 1 against the sheet and the thumb. */
-  background: var(--color-border-control);
-  cursor: pointer;
-  transition: background-color var(--duration-state) var(--ease-out);
-}
-
-.switch[data-checked] {
-  background: var(--color-accent);
-}
-
-.switch-thumb {
-  position: absolute;
-  inset-block-start: var(--switch-padding);
-  inset-inline-start: var(--switch-padding);
-  width: var(--switch-thumb);
-  height: calc(var(--switch-height) - var(--switch-padding) * 2);
-  border-radius: var(--switch-thumb-radius);
-  background: var(--switch-thumb-bg);
-  transition:
-    transform var(--duration-state) var(--ease-out),
-    scale var(--duration-press-out) var(--ease-out),
-    background-color var(--duration-state) var(--ease-out);
-}
-
-/* On the accent the thumb takes the on-accent colour: in dark mode the idle thumb is nearly as light
-   as the accent, and its position would be hard to see. */
-.switch[data-checked] .switch-thumb {
-  background: var(--color-on-accent);
-  transform: translateX(
-    calc(var(--switch-width) - var(--switch-thumb) - var(--switch-padding) * 2)
-  );
-}
-
-/* The thumb stretches while pressed, so the control answers before the finger lifts. */
-.switch:active .switch-thumb {
-  scale: 1.12 1;
-  transition-duration: var(--duration-state), var(--duration-press-in), var(--duration-state);
-}
-
-.range {
-  display: grid;
-  padding: var(--space-2) var(--space-2) 0;
-}
-
-.range-label {
-  font-weight: var(--font-weight-regular);
-}
-
-.range-control {
-  display: flex;
-  align-items: center;
-  height: var(--size-touch);
-  margin-inline: calc(var(--space-2) * -1);
-  padding-inline: var(--space-2);
-  touch-action: none;
-  cursor: pointer;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-.range-track {
-  position: relative;
-  width: 100%;
-  height: var(--scrubber-track);
-  border-radius: var(--radius-xs);
-  background: var(--color-track-strong);
-}
-
-.range-indicator {
-  border-radius: inherit;
-  background: var(--color-accent);
-}
-
-.range-thumb {
-  width: var(--scrubber-thumb);
-  height: var(--scrubber-thumb);
-  border-radius: var(--radius-round);
-  background: var(--color-accent);
-  box-shadow: 0 0 0 var(--scrubber-thumb-ring) var(--color-surface-raised);
-}
-
-.range[data-disabled] {
-  opacity: var(--opacity-disabled);
-}
-
-.range[data-disabled] .range-control {
-  cursor: default;
-}
-
-/* How to add the app to the Home Screen: a quiet block with a text button to put it away. */
-.sheet-hint-card {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--space-4);
-  padding: var(--banner-padding);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface-sunken);
-}
-
-.sheet-hint-card .ui-icon {
-  block-size: 1lh;
-  color: var(--color-accent);
-}
-
-.sheet-hint-title {
-  margin-block-end: var(--space-1);
-  font-weight: var(--font-weight-regular);
-}
-
-.sheet-hint-body {
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
-}
-
-/* The button's label lines up with the text above it; its padding hangs into the gap. */
-.sheet-hint-card .btn {
-  grid-column: 2;
-  justify-self: start;
-  margin-inline-start: calc(var(--space-4) * -1);
-}
-
 /* ------------------------------------------------------------------ toast */
 
 /*
@@ -703,24 +526,6 @@ html[data-mini="visible"] .toast {
   .sheet-panel,
   .toast {
     border: var(--stroke-hairline) solid CanvasText;
-  }
-
-  .switch {
-    border: var(--stroke-rail) solid ButtonText;
-  }
-
-  .switch[data-checked] {
-    background: Highlight;
-  }
-
-  .range-indicator,
-  .range-thumb {
-    background: Highlight;
-    forced-color-adjust: none;
-  }
-
-  .range-track {
-    background: GrayText;
   }
 }
 

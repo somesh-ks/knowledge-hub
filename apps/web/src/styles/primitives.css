@@ -103,13 +103,12 @@
 /* The one separator (2026-10-22): every quiet line of facts draws its dot here, centred in a box of
    one width, as wide as the " · " a Library card writes into its text, so "Weekly · 14 stories"
    measures the same in the hero, on a card and under a source. Silent to a screen reader: the parts
-   are separate words already. .meta-wrap (reader.css) clips by the same width. */
+   are separate words already. */
 :root {
   --meta-dot: calc(var(--space-2) + var(--space-1));
 }
 
 .meta > * + *::before,
-.meta-wrap > *::before,
 .source-meta > .source-host:not(:empty) + .score::before,
 .source-meta > .source-host:not(:empty) + .source-cadence::before {
   content: "\00b7" / "";
@@ -774,25 +773,6 @@
   margin: 0;
   padding: 0;
   border: 0;
-}
-
-/* A row of chips that scrolls sideways when it does not fit, with room inside it for the focus ring
-   and the 44px targets: Sources and a topic's page use it as the Library's kind chips do. */
-.filter-chips-scroll {
-  flex-wrap: nowrap;
-  margin: calc(var(--space-1) * -1);
-  padding: var(--space-1);
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
-}
-
-.filter-chips-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-.filter-chips-scroll > .filter-chip {
-  flex: none;
 }
 
 /* The filter chip: a checkbox drawn as a pill that takes the accent container when checked, its

@@ -296,3 +296,12 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Why: the shell reserved the contents list's 14rem track on every page, so the column sat left of the pane's middle (96px on the left and 384px on the right at 1280) whether or not the page had a list; 8px between a label and its field left it on the outline. The blue ring on the admin sign-in is the focus ring of an autofocused field, not a resting colour.
 - Rejected: mirroring the track on the left (a column of air beside a column of air); hiding the list below 90rem (the owner asked for it at 80rem).
 - Revisit if: the contents list needs more than 11rem at 80rem (a long section name wraps).
+
+## D243: each shared component has one version, shipped as design-system PRs
+
+- Date: 2026-10-29 (the owner: "are we looking into consolidating our design system components? there are so many variations and duplicates"; then, going away: "fire away, if they are stuck check with the advisor and move on").
+- Decision: beyond buttons (D237), thirteen families that exist more than once become one component each, in six design-system-only PRs the owner merges by hand: A deletes the classes no markup uses; B switch, slider, progress; C field, select, menu; D notice, sheet, dialog; E row, card, segmented control; F icon, badge, type roles. Icon button, FAB, chip and link stay with the buttons thread (D237). A PR that merges variants that differ says what the owner will see.
+- Why: a scan of 730 classes found 60 that no markup uses and thirteen families drawn two to seven ways: `.sheet-input` and `.manage-input` are one field, `.switch` copies `.settings-switch` with no markup, the slider's unfilled track is grey-400 on Settings and grey-600 in the player, source and score cards use a 16px corner where every other card uses 32px, and a banner and the player notice are one component. Each copy is a place a design fix lands on one and not the other.
+- Calls made for the owner while he was away (his options not yet seen; each is one line to reverse): the player's darker slider track for every slider; the 32px card corner for source and score cards; the filled segmented control (Library, player) over the outlined one (Settings); the player notice as a banner.
+- Rejected: one large PR (nothing could be reviewed or reverted by family); keeping the unused `text-*` roles out of the system (F gives them their users instead).
+- Revisit if: the owner reverses a call; a family's copies turn out to differ on purpose (then the component gets a variant, not a merge).
