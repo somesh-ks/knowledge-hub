@@ -37,6 +37,14 @@ export const Item = z.object({
       hn_points: z.number().int().nonnegative().optional(),
       hn_comments: z.number().int().nonnegative().optional(),
       lobsters_score: z.number().int().optional(),
+      /** Views on a YouTube video when its channel feed was read. */
+      youtube_views: z.number().int().nonnegative().optional(),
+      /**
+       * That video's views against its channel's other recent videos, in the vote-equivalents the
+       * community score reads: near 0 for a typical video, about 500 at 3 times the channel's
+       * median views and about 1500 at 10 times. Absent when the feed gave too few videos to tell.
+       */
+      youtube_votes: z.number().int().nonnegative().optional(),
       /**
        * How many different sources covered the same story, when story clustering merged their
        * items into this one. Two or more; absent for a story only one source carried.

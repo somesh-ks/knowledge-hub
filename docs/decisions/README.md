@@ -134,7 +134,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D111 | The open player has no drag handle and square top corners at every point of its travel | active; amends D32, D106 |
 | D112 | Every page modulepreloads what it loads at start; press code loads at idle; the player's motion after first paint; first-load budget 109 KB | active; amends D53, D103 |
 | D113 | Claude Sonnet 5.5 is the default writer for the page and the engine; the Model list has no Default row; Nebius starts on GLM-5.3 | active; amends D46, D106 |
-| D114 | Every episode is written for the owner: General audience retired; New episode form is Title, Topics, Length, Look back, with Format, Voice, Tone under More | active; amends D39, D67, D76, D101 |
+| D114 | Every episode is for the owner; New episode form is short | active; amends D39, D67, D76, D101 |
 | D115 | Settings save quietly: no toast while a change saves or once it is saved; the toast is for a failure, an Undo or a partial save | active; amends D79, D91, D98 |
 | D116 | docs/ is grouped by purpose: the record at the top, plan/, engineering/, design/, reference/; audits fold into their history notes; docs/README.md maps it all | active; amends D14 |
 | D117 | Model picker: Anthropic, Nebius lists live (5 min cache); a Claude beyond the built-in two saves only if Anthropic lists it | active; amends D46, D58 |
@@ -253,5 +253,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D239 | A travelling device is offered the new zone | active; amends D100 |
 | D241 | No Weekly-only blocks | amends D170 |
 | D242 | Starter-only Cancel | amends D201, D208 |
+| D244 | YouTube views vs channel median are votes | active |
 
 ---
