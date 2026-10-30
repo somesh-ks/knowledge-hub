@@ -26,8 +26,8 @@ export const EXPERIMENTS: readonly Experiment[] = [
     id: "trusted-publishers",
     name: "Trusted publishers",
     line: "Lets a lab's own announcement pass the bar.",
-    switch: "config/authority.json",
-    flag: { file: "config/authority.json", key: "enabled" },
+    switch: "config/trusted-publishers.json",
+    flag: { file: "config/trusted-publishers.json", key: "enabled" },
     rest: "shadow",
   },
   {
