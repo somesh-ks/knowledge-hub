@@ -93,6 +93,11 @@ export function classTokens(text: string): Set<string> {
     /classList\.(?:add|toggle|remove|contains)\(([^)]*)\)/g,
   ))
     for (const [, quoted = ""] of args.matchAll(/["'`]([^"'`]*)["'`]/g)) add(quoted);
+  // The command center's scripts draw nodes with element(tag, className).
+  for (const [, className = ""] of text.matchAll(
+    /\belement\(\s*["'][^"']*["']\s*,\s*["']([^"']*)["']/g,
+  ))
+    add(className);
   // The Button draws its classes from its props, so the markup never writes them (D237).
   for (const [, props = ""] of text.matchAll(/<Button\b([^>]*)>/g)) {
     const variant = /\bvariant="(\w+)"/.exec(props)?.[1];
