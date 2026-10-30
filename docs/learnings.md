@@ -9,7 +9,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-22: in the cloud container Chromium goes through the agent proxy, so `--host-resolver-rules` (a build served under the production host, to see a host-gated script) did nothing until launched with `--no-proxy-server`.
 - 2026-10-21: `context.route` misses the worker's requests: fake a deploy in `staticServer.mjs`.
 - 2026-10-19: a source added in script was a tinted stub (no address, rating or checkbox) whose `box-shadow` spread 8px over the next row; the specs checked text, never the row's parts. A row made in script mirrors its Astro component's markup and its spec asserts the parts; a `box-shadow` or outline state spreads past the box.
-- 2026-10-23: new card tokens let `.card-group`'s row padding beat the Costs card's (`/analytics` is not in the grid spec). Screenshot every page using a primitive whose tokens change.
+- 2026-10-23: new card tokens let `.card-group`'s row padding beat the Costs card's (Costs is not in the grid spec). Screenshot every page using a primitive whose tokens change.
 - 2026-10-23: a story row passed its hold-still test while publishers kept 10px at 320. Measure what a layout's flexible part keeps at 320 and 360 first.
 - 2026-10-23: reduced motion in the tokens alone missed every raw travel on those durations (chip labels, nav pill, floating button). Sweep the CSS with the tokens; check with `document.getAnimations()` under emulated reduced motion.
 - 2026-10-08: `getByRole("button", { name: "All" })` matched "Gallery view". Use `exact: true` for short names.

@@ -1,7 +1,7 @@
 import { expect, test } from "./fixtures";
 
 // Every page reached from Settings says where it sits and starts its first block the same air under
-// its title: Costs (/analytics) lost its crumb, and the gap ran 16 to 64px from page to page
+// its title: Costs lost its crumb, and the gap ran 16 to 64px from page to page
 // (2026-10-27). Pages are compared with each other, never with a number.
 const SETTINGS_SUBPAGES = [
   "/settings/about",
@@ -14,8 +14,6 @@ const SETTINGS_SUBPAGES = [
   "/settings/privacy",
   "/settings/sounds",
   "/settings/voice",
-  "/analytics",
-  "/settings/health",
 ];
 
 test("every settings subpage shows the Settings crumb and the same gap from its title to its first block @both", async ({

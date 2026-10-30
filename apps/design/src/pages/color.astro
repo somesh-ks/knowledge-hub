@@ -1,0 +1,89 @@
+---
+import ColorSwatch from "../components/ColorSwatch.astro";
+import ColorToolbar from "../components/ColorToolbar.astro";
+import PageHead from "../components/PageHead.astro";
+import Shell from "../layouts/Shell.astro";
+import { COLOR_GROUPS, COLOR_PAIRS, componentColors, primitive, swatchSpec } from "../lib/guide";
+
+const ramps = ["grey", "blue", "green", "amber", "red"].map((hue) => ({
+  hue,
+  steps: (primitive.get("color") ?? []).filter((token) => token.path.startsWith(`color.${hue}.`)),
+}));
+const components = componentColors();
+const id = (title: string): string => `g-${title.toLowerCase().replaceAll(" ", "-")}`;
+---
+
+<Shell title="Color" current="/color">
+  <div class="settings-view guide-page" data-settings data-ready data-color>
+    <PageHead title="Color" />
+    <ColorToolbar />
+
+    {
+      COLOR_GROUPS.map((group) => (
+        <section aria-labelledby={id(group.title)} data-tier="semantic">
+          <h2 class="section-head" id={id(group.title)}>{group.title}</h2>
+          <ul class="guide-swatches" role="list">
+            {group.names.map((name) => {
+              const spec = swatchSpec(name);
+              return (
+                <ColorSwatch
+                  name={name}
+                  variable={`--color-${name}`}
+                  fill={`--color-${spec.fill}`}
+                  ink={spec.ink && `--color-${spec.ink}`}
+                  fg={`--color-${spec.fg}`}
+                  bg={`--color-${spec.bg}`}
+                />
+              );
+            })}
+          </ul>
+        </section>
+      ))
+    }
+
+    <section aria-labelledby="pairs" data-tier="semantic">
+      <h2 class="section-head" id="pairs">Contrast</h2>
+      <ul class="guide-pairs" role="list">
+        {
+          COLOR_PAIRS.map((pair) => (
+            <li class="guide-pair" data-filter-item data-name={`${pair.fg} ${pair.bg} ${pair.note}`} data-pair data-fg={`--color-${pair.fg}`} data-bg={`--color-${pair.bg}`} data-min={pair.min}>
+              <span class="guide-pair-sample" style={`--pair-fg: var(--color-${pair.fg}); --pair-bg: var(--color-${pair.bg})`}>
+                <span>Aa</span>
+                <span class="guide-pair-ratio" data-ratio data-min={pair.min}>…</span>
+              </span>
+              <span class="guide-swatch-note">{pair.note}</span>
+              <span class="guide-swatch-note">{pair.fg} on {pair.bg}, needs {pair.min}:1</span>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section aria-labelledby="primitive" data-tier="primitive">
+      <h2 class="section-head" id="primitive">Primitive</h2>
+      {
+        ramps.map((ramp) => (
+          <div>
+            <h3 class="guide-group-name">{ramp.hue}</h3>
+            <ul class="guide-ramp" role="list">
+              {ramp.steps.map((token) => <li style={`--swatch: var(${token.name})`} data-filter-item data-name={`${token.name} ${token.value}`} title={`${token.name} ${token.value}`}><span>{token.path.split(".").at(-1)}</span></li>)}
+            </ul>
+          </div>
+        ))
+      }
+    </section>
+
+    <section aria-labelledby="component" data-tier="component">
+      <h2 class="section-head" id="component">Component</h2>
+      <ul class="guide-swatches" role="list">
+        {components.map(({ token, role }) => <ColorSwatch name={token.name.slice(2)} variable={token.name} points={role} />)}
+      </ul>
+    </section>
+
+    <p class="guide-note" hidden data-filter-empty>Nothing matches. Try <code>surface</code> or <code>oklch</code>.</p>
+  </div>
+</Shell>
+<script>
+  import "../scripts/filter";
+  import "../scripts/color";
+</script>

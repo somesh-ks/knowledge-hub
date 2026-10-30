@@ -1,0 +1,22 @@
+---
+import Icon from "../../../web/src/components/Icon.astro";
+
+/**
+ * Light or dark, one press. The glyph shows where a press goes (the sun in the dark theme), and the
+ * label says it too. The choice is kept in this browser under the guide's own key and defaults to
+ * dark; the reader's saved theme is never touched (themeToggle.ts).
+ */
+interface Props {
+  class?: string;
+}
+
+const { class: className = "" } = Astro.props;
+---
+
+<button class:list={["icon-btn", className]} type="button" aria-label="Switch to light theme" data-theme-toggle>
+  <Icon name="sun" class="guide-theme-sun" />
+  <Icon name="moon" class="guide-theme-moon" />
+</button>
+<script>
+  import "../scripts/themeToggle";
+</script>

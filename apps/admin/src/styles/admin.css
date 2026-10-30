@@ -277,3 +277,8 @@
 [data-failed] :is(.ov-plot, .ov-share, .ov-legend) {
   display: none;
 }
+
+/* Promote keeps its place in a row that cannot use it, so turning a switch never resizes the row. */
+.settings-row [data-promote]:disabled {
+  visibility: hidden;
+}

@@ -800,24 +800,24 @@ describe("house rules", () => {
  * other test and the component quietly forks, page by page.
  */
 const PAGE_OVERRIDES: string[] = [
-  'banner.css: .banner > .button-text',
-  'create-sheet.css: dialog.create-sheet .create-submit > .button-filled',
+  "banner.css: .banner > .button-text",
+  "create-sheet.css: dialog.create-sheet .create-submit > .button-filled",
   'create.css: .create-submit .button-filled[aria-disabled="true"]:active',
   'create.css: .create-submit .button-filled[data-busy="true"]',
-  'create.css: .create-view .button-filled > .spinner',
+  "create.css: .create-view .button-filled > .spinner",
   'create.css: .create-view .button-filled[data-busy="true"] > .spinner',
-  'create.css: .create-view .create-submit > .button-filled',
-  'empty.css: .empty-actions > .button-filled, .empty-actions > .button-tonal',
-  'library.css: .shelf-head > .button-text',
-  'primitives.css: .card-group-accent :is(.settings-hint, .button-text)',
-  'queue.css: .queue-details-actions .button-filled',
-  'queue.css: .queue-details-actions .button-text',
+  "create.css: .create-view .create-submit > .button-filled",
+  "empty.css: .empty-actions > .button-filled, .empty-actions > .button-tonal",
+  "library.css: .shelf-head > .button-text",
+  "primitives.css: .card-group-accent :is(.settings-hint, .button-text)",
+  "queue.css: .queue-details-actions .button-filled",
+  "queue.css: .queue-details-actions .button-text",
   'sheets.css: .sheet-actions .button-filled[aria-disabled="true"]:active',
   'sheets.css: .sheet-actions .button-filled[data-busy="true"]',
-  'sheets.css: .sheet-hint-card .button-text',
-  'topics.css: .source-sheet-foot > .button-filled',
-  'topics.css: .structure-add > .button-tonal',
-  'topics.css: .structure-prompt-foot > .button-text',
+  "sheets.css: .sheet-hint-card .button-text",
+  "topics.css: .source-sheet-foot > .button-filled",
+  "topics.css: .structure-add > .button-tonal",
+  "topics.css: .structure-prompt-foot > .button-text",
 ];
 
 describe("design-system components in page stylesheets", () => {
@@ -843,10 +843,12 @@ describe("design-system components in page stylesheets", () => {
 
 describe("component stylesheets", () => {
   it("covers every stylesheet the layout or an island imports", () => {
-    const src = SRC;
-    const sources = readdirSync(src, { recursive: true, encoding: "utf8" })
-      .filter((file) => /\.(astro|tsx)$/.test(file))
-      .map((file) => readFileSync(join(src, file), "utf8"));
+    // The command center (D224) imports the Costs and Health sheets from here.
+    const sources = [SRC, join(SRC, "..", "..", "admin", "src")].flatMap((src) =>
+      readdirSync(src, { recursive: true, encoding: "utf8" })
+        .filter((file) => /\.(astro|tsx)$/.test(file))
+        .map((file) => readFileSync(join(src, file), "utf8")),
+    );
     const imported = sources.flatMap((text) =>
       [...text.matchAll(/styles\/([a-z-]+\.css)/g)].map((match) => match[1]),
     );
