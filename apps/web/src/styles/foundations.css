@@ -129,9 +129,9 @@
     label,
     a:is(
       .tab,
-      .btn,
-      .btn-primary,
-      .btn-secondary,
+      .button-text,
+      .button-filled,
+      .button-tonal,
       .card-link,
       .source-link,
       .player-source-link,

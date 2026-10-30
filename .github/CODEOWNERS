@@ -1,0 +1,13 @@
+# The design system is a product with one owner. Every change to a component, a shared stylesheet,
+# the tokens or the guide is reviewed by the owner and merged by hand; it travels in a pull request
+# of its own, labelled design-system (scripts/designSystemGate.mjs, .github/workflows/design-system.yml).
+/apps/web/src/design-system/ @somesh-ks
+/apps/web/src/styles/buttons.css @somesh-ks
+/apps/web/src/styles/primitives.css @somesh-ks
+/apps/web/src/styles/foundations.css @somesh-ks
+/apps/web/src/styles/tokens.css @somesh-ks
+/tokens/ @somesh-ks
+/apps/design/ @somesh-ks
+/scripts/system/ @somesh-ks
+/.github/CODEOWNERS @somesh-ks
+/.claude/skills/feature/references/controls-guide.md @somesh-ks

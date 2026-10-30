@@ -1,4 +1,5 @@
 ---
+import Button from "../design-system/Button.astro";
 import EmptyArt, { type ArtName } from "./EmptyArt.astro";
 
 interface Action {
@@ -58,9 +59,9 @@ const headingId = level === 1 ? "page-title" : "empty-title";
   </Heading>
   <p class="empty-body">{body}</p>
   <div class="empty-actions">
-    <a class="btn-primary" href={primary.href} data-astro-reload={primary.reload}>
+    <Button variant="filled" href={primary.href} data-astro-reload={primary.reload ? "true" : undefined}>
       {primary.label}
-    </a>
-    {secondary && <a class="btn" href={secondary.href}>{secondary.label}</a>}
+    </Button>
+    {secondary && <Button variant="text" href={secondary.href}>{secondary.label}</Button>}
   </div>
 </section>

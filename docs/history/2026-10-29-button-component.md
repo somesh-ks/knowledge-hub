@@ -1,0 +1,17 @@
+# Button, the first control as a component
+
+2026-10-29. The owner, on the style guide: it must show the components the app really uses, named for what they are ("not source link, tonal action, player button"), with every button in one section and every link in another, 100% parity between guide and app, and any change to the system in a design-system pull request of its own that he merges.
+
+What the code was: about 25 classes drawing 7 controls, each named for where it first appeared, written by hand in 20 files; the guide's first build copied that markup, so it could drift (it was removed from #423). The plan is in the project folder (`design-system/`, "Design system as a product").
+
+Button is first because it is the most written (`btn`, `btn-primary`, `btn-secondary`: 12 Astro files, 5 scripts and islands). `Button.astro` draws Filled, Tonal and Text; `button.ts` holds the variants and `buttonClass()` for the scripts and React islands that draw a button without Astro; `registry.ts` lists what the system has. The classes became `button-filled`, `button-tonal`, `button-text`. The aim was no change on screen, and it was checked rather than assumed: the built HTML matches the old HTML (classes mapped), and every element's computed style at rest, and each control's at hover, press and focus, matches on 25 pages at 390 and 1280 px in light and dark (58,094 elements, 10,200 control states), with one exception below. What differs between runs of the same build (the launch screen's timing, a pulsing span's opacity) was measured on two runs of the old build and set aside.
+
+Four things the move turned up:
+- The Delete confirm buttons (`.confirm-delete`, in `episode-actions.css`) never showed red on the categories and sources pages: that sheet loads before `BaseLayout.css`, so `.btn`'s accent colour won on equal specificity. They are now the `danger` tone of Button, after the variants in `buttons.css`, and show red (68 computed-colour differences, all these buttons). This is the one visible change in the pull request.
+- A bare `data-x` on a component prints `data-x="true"`; on an element it is empty. `Button.astro` turns it back, so scripts that read the attribute see what they did.
+- `slot="action"` on a component is passed to it as a prop and would print as an attribute; `Button.astro` drops it.
+- Adding a module that many pages import reordered two stylesheet links in the built pages (a chunk named for `Icon` and the 804-byte `episode-actions.css` swapped). The computed-style comparison is what showed whether that mattered; keep it for the next family.
+
+Gates, so the guide cannot drift: `designSystem.test.ts` fails a hand-written `button-*` class, a class with no rule and a rule no component draws, and lists the classes not yet components (the list is the plan). `scripts/designSystemGate.mjs`, run by `design-system.yml` on a pull request that touches the system, requires the `design-system` label and, with the label, nothing outside the system, its call sites, the guide and the docs. `.github/CODEOWNERS` names the owner.
+
+Not done, for the owner: make `design-system` a required check or require code-owner review in the ruleset (a PR opened from the owner's own login cannot be approved by him as a code owner, so the label and his hand merge are the working gate); the guide (#423) imports `Button.astro` and `BUTTON` and `COMPONENTS` once it merges. Next families, one pull request each: Icon button, FAB (with the Catch up colour, `btn-action-tonal`), Chip, Link.

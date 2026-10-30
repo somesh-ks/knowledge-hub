@@ -76,7 +76,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D53 | First-load JavaScript budget 110 KB, kept as low as the code allows | active |
 | D54 | Form fields carry a 3:1 outline; in the player only Play is in full ink | active for text fields (ink: D238); selects, segmented controls and chips are tonal since D72 |
 | D55 | A source's score is out of 3: health, quality and trust, combined so a weak part cannot be bought back | active; shown as a word, not pips and a number, since D83 |
-| D56 | One panel adds a topic or a source and edits a source; Settings has no Custom page | active |
+| D56 | One panel adds a topic or a source and edits a source; no Custom page | active |
 | D57 | A topic's page edits its details and adds the sources that suit it; topics are listed by name | active; amended by D64 and D69 |
 | D58 | The Model page offers six top Nebius writers by name, live list or not | active |
 | D59 | On a phone, Play takes the floating button's place on an episode and an older briefing | active; Today floats Play too since D60 |
@@ -92,9 +92,9 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D69 | Design, AI and Technology gather the judge topics; one alphabetical list where each topic sets its scope; every source filed under a topic | active |
 | D70 | A scoring sample judges a few items a run for scores alone, so every source reaches a score, switched-off ones included | active |
 | D71 | Streamlined add topic modal, live suggested sources with TypeSafe Jev scores, schedule timezone and topic scope indicator chips | active; amended by D75, D79, D89 |
-| D72 | The look is tonal: containers, state layers and round buttons instead of outlines and invisible hover fills | active |
+| D72 | The look is tonal: containers, state layers and round buttons, not outlines and invisible hovers | active |
 | D73 | A steadier type scale: 16px reading, 18 to 20px headlines, 14px meta, 22px regular section headings | active |
-| D74 | A discussion's hosts are named after their voices; the transcript names a speaker only where the speaker changes | active |
+| D74 | A discussion's hosts are named for their voices; the transcript names a speaker only on a change of speaker | active |
 | D75 | Suggested sources are chosen from the source catalogue when the page is built, with no live lookup and no scores | active |
 | D76 | Create is the New episode form: three questions first, the defaults under More options | active |
 | D77 | A reading page: the headline is the link, Play is the one filled action, one hero for any title | active |
@@ -103,34 +103,34 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D80 | An episode is written to 95% of what its stories can carry, and a script a little under the floor is kept | active |
 | D81 | A workflow installs only what it runs; the audio job skips the Vercel pull when the Blob token is set | active; the owner merges the workflow files by hand |
 | D82 | Play keeps an early tap, a new episode is pre-narrated, the deploy is noticed in 2.5 s | active |
-| D83 | Settings shows a source's score as one word, a source's name opens its editor, and the Model default is called Default | active; amends D55's pips and D69's name links |
+| D83 | Settings shows a source's score as one word, its name opens its editor, and the Model default is called Default | active; amends D55's pips and D69's name links |
 | D84 | A failed run keeps its request and offers Try again; a finished run clears itself; one run at a time | active |
 | D85 | The player's chapters are timed and play their story, a discussion without stored names is named from its voices, one length rule | active; amends D74 |
 | D86 | An action has its own tone, the player bar is one tonal block with the navigation, and reading text keeps a 34rem measure | active; extends D72 |
 | D87 | New episode says when a choice changed the topics and offers Undo; the Library searches with an excerpt around the match | active; amends D76 and D78 |
-| D88 | On a reading page the section strip is opaque, a focused headline is ringed as one block, the playing hero Play is tonal, and an older briefing offers Share only | active; amends D77 |
+| D88 | A reading page's section strip is opaque, a focused headline rings as one block, the playing hero Play is tonal, an older briefing offers Share only | active; amends D77 |
 | D89 | The time zone selector is withdrawn until the engine counts in a chosen zone; summaries follow what was saved | active; amends D71 and D79; the time zone selector returned in D100 |
 | D90 | The open player has one left edge, an even rhythm and two weights; its lists are one Tab stop each; a story is a story everywhere; Back goes back | active; amends D85 |
 | D91 | Daily and Weekly offer only what a briefing uses; an edit made inside the server's gap survives leaving the page | active; amends D74, D79; D100 restored Format and the second voice |
 | D92 | The rundown is no story, a listener's move never scrolls the page, the open page owns the transport, and a glyph says what its button does | active; amends D85 and D90 |
 | D93 | A tab's jump puts the app bar away first, a headline word kept whole stays atomic, and offline switches off every control that starts a run | active; amends D88 |
-| D94 | Up next narrates a briefing without audio, a phone's page never scrolls itself, a failure is told once, and the open page closes with a mouse | active; amends D92 |
+| D94 | Up next narrates a briefing without audio, a phone's page never scrolls itself, a failure is told once, the open page closes with a mouse | active; amends D92 |
 | D95 | The Library's search finds the start of words, a list row keeps its title level, and a segmented choice keeps its width | active; amends D78 |
 | D96 | An empty screen is one simple illustration, a title, one line and one filled action | active |
 | D97 | What the device remembers reads the same everywhere, the worker keeps what a page fetches, and a refusal reads the same on every control | active; amends D92, D93 and D94 |
-| D98 | A lost held change is told to the page that is open, a failure notice takes the story line's place, and an empty scene draws an object, not a control | active; amends D94, D96 and D97 |
+| D98 | A lost held change is told to the open page, a failure notice replaces the story line, an empty scene draws an object, not a control | active; amends D94, D96 and D97 |
 | D99 | The test suite protects what fails silently, in one layer, once; the dev lab is retired; refused, lost and failed actions are told | active; amends D91, D97 and D98 |
-| D100 | The time zone selector returns and the schedule counts in the chosen zone; a second voice; voice rows keep their play button | active; amends D71, D89 and D91; Format ended in D215 |
+| D100 | The time zone selector returns and the schedule counts in the chosen zone; a second voice; voice rows keep Play | active; amends D71, D89 and D91; Format ended in D215 |
 | D101 | A long list is a searchable list; the bar keeps its controls on a wide screen; every recording has a transcript; every topic is shown | active; amends D76, D90, D92 and D100 |
 | D102 | General topics play in Daily and Weekly, a topic is always on and has a summary card, titles are bigger, and the gate runs in parallel | active; amends D69, D87, D89, D90, D101 |
-| D103 | Source scores out of 5 as stars; long source lists fold at seven; topic delete asks first; Regenerate on Today takes feedback; first-load budget 150 KB | active; amends D55, D83, D53 |
+| D103 | Source scores out of 5 as stars; source lists fold at seven; topic delete asks first; Regenerate on Today takes feedback; first-load budget 150 KB | active; amends D55, D83, D53 |
 | D104 | Every briefing has Share, Regenerate and Delete; Regenerate replaces that digest over its window; Delete removes its file and timeline | active; amends D88, D103 |
 | D105 | A new episode plays from a live Blob copy while it is written; mobile sounds unlock on click; the spoken word lights at once | active; amends D82, D101 |
 | D106 | The wide bar leads with what is playing and hides its volume slider until hover; bottom sheets lose the grabber; a played chip offers Play again | active; amends D46, D58, D101 |
 | D107 | The transcript's highlight pauses while the host speaks words the page does not show | active; amends D101, D105 |
 | D108 | A user profile holds blocked domains and story votes; a block cuts an outlet on every fetch path; votes nudge ranking, listings and the writer, and are never shown | active |
 | D109 | Regenerate chooses the topics again and takes comments, for an episode and a briefing, for that run only | active; amends D44, D103, D104 |
-| D110 | Covers dated 2026-10 or later take one colour scheme per month, set layouts for Daily and Weekly and a round plate for On demand, with contrast enforced in code | active |
+| D110 | Covers dated 2026-10 or later take one colour scheme a month, set layouts for Daily and Weekly, a round plate for On demand, contrast enforced in code | active |
 | D111 | The open player has no drag handle and square top corners at every point of its travel | active; amends D32, D106 |
 | D112 | Every page modulepreloads what it loads at start; press code loads at idle; the player's motion after first paint; first-load budget 109 KB | active; amends D53, D103 |
 | D113 | Claude Sonnet 5.5 is the default writer for the page and the engine; the Model list has no Default row; Nebius starts on GLM-5.3 | active; amends D46, D106 |
@@ -142,14 +142,14 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D119 | A briefing sized by the owner's length writes 30% spares; validation airs the best survivors until measured narration fills the length, each topic's best kept | active |
 | D120 | Science takes a one-outlet story that is clearly on topic; the other general topics keep the two-outlet rule | active; amends D40, D43 |
 | D121 | Covers are drawn at medium chroma (OKLCH 0.12 or less); each monthly series has its own style set and prints on its own close tint of the month's paper | active; amends D110 |
-| D122 | Covers a step brighter in both themes; the header light takes the drawn cover's colours as three drifting lights; a theme change waits for the covers | active; amends D48, D77, D121 |
+| D122 | Covers a step brighter in both themes; the header light takes the cover's colours as three drifting lights; a theme change waits for the covers | active; amends D48, D77, D121 |
 | D123 | One AI model select on Settings; no manifest colour, so Android's bars follow the system; a launch screen; the playing cover lights the player page | active; amends D51, D101 |
 | D124 | Weights are five named stops and Off; every source has a Jev-classified format; a format mix per page, a Perspective slider, two stories per outlet | active; amends D57, D69, D83 |
-| D125 | Headings never bold; Settings H2s at the 22px heading role; an Intelligence section for the model; Topics and sources is a search and a floating Add | active; amends D73, D123, D124 |
+| D125 | Headings never bold; Settings H2s at the 22px role; an Intelligence section for the model; Topics and sources is a search and a floating Add | active; amends D73, D123, D124 |
 | D126 | A play queue, an Up next peek and sheet, a collapse chevron, Space to play | active; amends D102, D111 |
 | D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, at most 10 | active; amends D123 |
 | D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by content hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
-| D129 | Settings restructured: a Sources or Preferences switch per topic, one voice pair, one type mix, Theme select, no breadcrumbs | partly superseded by D195; amends D51, D87, D124, D125 |
+| D129 | Settings restructured: a Sources or Preferences switch per topic, one voice pair, one type mix, Theme select, no crumbs | partly superseded by D195; amends D51, D87, D124, D125 |
 | D130 | Kimi models are never offered; the Nebius five are ranked by EQ-Bench longform; a weekly scheduled check proposes a refresh by PR | active; amends D123 |
 | D131 | An 8pt spacing system (4px only for named fine cases), rows that carry their own rhythm, headings never bold, enforced by `npm run design-check` | active; amends D73 |
 | D132 | Two segmented controls (a choice with a check; a navigation tablist with a sliding pill) and one sheet header with Close at the end | active; amends D106 |
@@ -251,6 +251,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D233 | Ingest in shadow: free sources, Blob text | active |
 | D234 | Vetted publishers pass the bar; topic rubric | active |
 | D236 | Agent design lookup | active |
+| D237 | Controls are components; design-system PRs apart | amends D189 |
 | D238 | Ten-step OKLCH ramps | active |
 | D239 | A travelling device is offered the new zone | active; amends D100 |
 | D240 | Community votes outrank publisher status | active; amends D234 |

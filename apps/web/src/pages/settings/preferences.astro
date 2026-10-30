@@ -13,6 +13,7 @@ import ManageChrome from "../../components/ManageChrome.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
 import SheetHeader from "../../components/SheetHeader.astro";
 import WeightRow from "../../components/WeightRow.astro";
+import Button from "../../design-system/Button.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { loadManage } from "../../lib/manage";
 import { loadScheduleView } from "../../lib/schedule";
@@ -178,20 +179,19 @@ const offers = addOffers(structure.blocks, structure.sections);
               <div class="topic-sources-head structure-list-head">
                 <h2 class="section-head" data-block-count>{blockCount(structure.blocks.length - 2)}</h2>
                 <div class="structure-list-actions">
-                  <button class="btn-secondary structure-reorder" type="button" data-reorder data-needs-js>
+                  <Button variant="tonal" class="structure-reorder" data-reorder data-needs-js>
                     <span data-reorder-label>Reorder</span>
-                  </button>
+                  </Button>
                   <span class="structure-add" style="--row-anchor: --structure-add">
-                    <button
-                      class="btn-secondary"
-                      type="button"
+                    <Button
+                      variant="tonal"
                       data-add-block
                       data-needs-js
                       disabled={offers.length === 0}
                     >
                       <Icon name="plus" />
                       <span>Add section</span>
-                    </button>
+                    </Button>
                   </span>
                 </div>
               </div>
@@ -244,8 +244,8 @@ const offers = addOffers(structure.blocks, structure.sections);
             Your custom structure is kept and you can switch back.
           </p>
           <div class="confirm-actions">
-            <button class="btn" type="button" data-profile-keep autofocus>Cancel</button>
-            <button class="btn-primary" type="button" data-profile-replace>Switch</button>
+            <Button variant="text" data-profile-keep autofocus>Cancel</Button>
+            <Button variant="filled" data-profile-replace>Switch</Button>
           </div>
         </div>
       </dialog>
@@ -354,7 +354,7 @@ const offers = addOffers(structure.blocks, structure.sections);
                   aria-describedby="structure-prompt-count"></textarea>
                 <div class="structure-prompt-foot">
                   <p class="manage-quiet" id="structure-prompt-count" data-count></p>
-                  <button class="btn" type="button" data-reset>Reset to built-in</button>
+                  <Button variant="text" data-reset>Reset to built-in</Button>
                 </div>
                 <p class="manage-error" role="alert" data-error="prompt" hidden>
                   <Icon name="alert" /><span>Too long to save in one go. Shorten it a little.</span>
@@ -366,7 +366,7 @@ const offers = addOffers(structure.blocks, structure.sections);
           </form>
         </div>
         <div class="source-sheet-foot">
-          <button class="btn-primary" type="button" data-sheet-done>Save</button>
+          <Button variant="filled" data-sheet-done>Save</Button>
         </div>
       </dialog>
     </template>

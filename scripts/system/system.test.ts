@@ -161,9 +161,9 @@ describe("the lookup", () => {
     ["let the user choose a summary length: exactly one of 3, 5 or 10 minutes", "segmented-choice"],
     ["let the user tick several topics to include", "filter-chip"],
     ["a new bottom sheet needs a title and a close control in its header", "sheet"],
-    ["a new form sheet needs one main Save button and a Cancel beside it", "btn-primary"],
+    ["a new form sheet needs one main Save button and a Cancel beside it", "button-filled"],
     // A phrase a part lists under "not when" must not rank that part first.
-    ["a second action beside the main one", "btn-secondary"],
+    ["a second action beside the main one", "button-tonal"],
     ["a new page has nothing to list yet and must say so", "empty-state"],
     ["tell the user, persistently at the top of a page, that a download failed", "banner"],
     ["after the user deletes an episode, show a brief message with an Undo action", "toast"],
