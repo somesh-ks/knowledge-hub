@@ -149,7 +149,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D126 | A play queue, an Up next peek and sheet, a collapse chevron, Space to play | active; amends D102, D111 |
 | D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, at most 10 | active; amends D123 |
 | D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by content hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
-| D129 | Settings restructured: a Sources or Preferences switch per topic, one voice pair, one type mix, Theme select, no crumbs | partly superseded by D195; amends D51, D87, D124, D125 |
+| D129 | Settings restructured: Sources or Preferences per topic, one voice pair, Theme select | partly superseded by D195; amends D51, D87, D124, D125 |
 | D130 | Kimi models are never offered; the Nebius five are ranked by EQ-Bench longform; a weekly scheduled check proposes a refresh by PR | active; amends D123 |
 | D131 | An 8pt spacing system (4px only for named fine cases), rows that carry their own rhythm, headings never bold, enforced by `npm run design-check` | active; amends D73 |
 | D132 | Two segmented controls (a choice with a check; a navigation tablist with a sliding pill) and one sheet header with Close at the end | active; amends D106 |
@@ -246,6 +246,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D227 | Firecrawl warns at 210 | supersedes D223 |
 | D228 | A failed dry run records its spend | amends D223, D227 |
 | D229 | Column centred; 12px label gap | active |
+| D230 | Six spring tokens | active |
 | D231 | The podcast queue; its runs stay for the day | active; supersedes D208's list |
 | D232 | One cleaner turns scraped Markdown into prose | active |
 | D233 | Ingest in shadow: free sources, Blob text | active |

@@ -197,7 +197,7 @@ Ask, then what was built, then the decision. Values are as built.
   - The pressed nav item lights up before the page arrives.
 - **Motion rules in tokens.**
   - Press in 100 ms, out 160 ms (in faster than out, tested).
-  - Durations at most 300 ms, except the 500 ms drawer.
+  - Durations at most 300 ms, except the 500 ms drawer; a spring is measured by its token's `perceptualMs`, not its settle time.
   - No plain ease-in (tested).
   - Three `linear()` springs: settle (no overshoot), release (1.0062 peak), pop (1.0284 peak).
   - Press scale 0.97, enter 0.96.
