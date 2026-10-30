@@ -320,7 +320,7 @@ dialog.create-sheet {
     opacity var(--duration-state) var(--ease-out),
     overlay var(--duration-sheet-out) allow-discrete,
     display var(--duration-sheet-out) allow-discrete;
-  /* Above the bars while Safari plays the exit outside the top layer (dialog.sheet, foundations.css). */
+  /* Above the bars while Safari plays the exit outside the top layer (the sheets and dialogs). */
   z-index: var(--z-sheet);
 }
 

@@ -265,7 +265,7 @@ fieldset.sheet-field {
   --toast-nav: var(--bottom-nav-height, var(--safe-bottom));
   --toast-dock: 0px;
   --toast-lift: 0px;
-  /* Above the bars while Safari plays the exit outside the top layer (dialog.sheet, foundations.css). */
+  /* Above the bars while Safari plays the exit outside the top layer (the sheets and dialogs). */
   z-index: var(--z-toast);
   /* The page accent is tuned for the page, so on the inverse surface the other theme's accent is used. */
   --toast-accent: var(--color-blue-300);

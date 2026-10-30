@@ -12,7 +12,7 @@
  */
 .menu-list {
   position: fixed;
-  /* Above the bars while Safari plays the exit outside the top layer (dialog.sheet, foundations.css). */
+  /* Above the bars while Safari plays the exit outside the top layer (the sheets and dialogs). */
   z-index: var(--z-sheet);
   inset: auto;
   inset-block-start: var(--menu-top, 0);
@@ -146,7 +146,7 @@
 
 /* A phone shows the menu as a bottom sheet (owner, 2026-10-21, every ⋮ menu): the popover pinned to the bottom edge
    on the sheet surface, its header the shared SheetHeader, a scrim behind. It slides up like
-   dialog.sheet (foundations.css) and is as specific as the popover's own open rules (hero.css). */
+   the other sheets and is as specific as the popover's own open rules (hero.css). */
 @media (width < 40rem) {
   .menu-list.menu-sheet,
   .menu-list.menu-sheet:popover-open {
