@@ -175,9 +175,14 @@
 
 /* ------------------------------------------------------------------ the library page */
 
-/* A gallery wants the width: from 80rem it takes the track a briefing gives to its contents list. */
-.shell > main.library {
-  grid-column: 1 / -1;
+/* A gallery wants the width: from 80rem it spans the pane, as wide as the column and a contents list
+   together, centred (--column-wide, shell.css). */
+@media (width >= 80rem) {
+  .shell > main.library {
+    grid-column: 1 / -1;
+    justify-self: center;
+    inline-size: min(100%, var(--column-wide));
+  }
 }
 
 .shell > main.library {
@@ -637,7 +642,7 @@ html[data-library-page="empty"] {
   line-height: var(--text-heading-leading);
 }
 
-.shelf-head > .btn {
+.shelf-head > .button-text {
   margin-inline-end: calc(var(--space-4) * -1);
 }
 

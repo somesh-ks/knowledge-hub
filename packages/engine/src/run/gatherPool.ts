@@ -2,6 +2,7 @@ import {
   type DigestKind,
   feedsGeneralOnly,
   type Item,
+  resolveTopics,
   type Source,
   type SourcesFile,
 } from "@singularity/core";
@@ -25,6 +26,11 @@ import { loadSources } from "../sources/registry.js";
 import { overlayHealth } from "../state/sourceHealth.js";
 import { readSeen, readSourceHealth } from "../state/store.js";
 import { loadTopicsFile } from "../topics/store.js";
+import {
+  loadTrustedPublishers,
+  trustedPublisherMatcher,
+  trustedPublisherQueries,
+} from "../trustedPublishers/trustedPublishers.js";
 import { activeGeneralFrom, buildGeneralPool, type GeneralPoolFile } from "./generalNews.js";
 import { generalIdsFor } from "./generalScope.js";
 import type { FetchSetup } from "./types.js";
@@ -78,13 +84,22 @@ export interface GatherResult {
  */
 export async function gatherPool(input: GatherInput): Promise<GatherResult> {
   const { root, now, setup } = input;
-  const [configured, health, preferences, seen, queries] = await Promise.all([
-    loadSources(root),
-    readSourceHealth(root),
-    loadPreferences(root),
-    readSeen(root),
-    loadQueries(root),
-  ]);
+  const [configured, health, preferences, seen, queries, trustedPublishers, topicsFile] =
+    await Promise.all([
+      loadSources(root),
+      readSourceHealth(root),
+      loadPreferences(root),
+      readSeen(root),
+      loadQueries(root),
+      loadTrustedPublishers(root),
+      loadTopicsFile(root),
+    ]);
+  // The owner's vetted publishers (D234): their own Exa queries, and the matcher the prefilter reads.
+  const trustedPublisherMatch = trustedPublisherMatcher(trustedPublishers);
+  const exaQueries = [
+    ...queries.queries,
+    ...trustedPublisherQueries(trustedPublishers, resolveTopics(topicsFile).topics),
+  ];
   // Health lives in state/, not config/, so a run never rewrites hand-edited configuration.
   const sources = overlayHealth(configured, health);
   // The owner's blocklist applies to every path: a blocked source is not fetched, and what the
@@ -95,7 +110,7 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
 
   // The regular pass reads every general topic (their feeds are scored); the weekly pass only
   // those its podcast plays, so a weekly that skips them all reads no general feed.
-  const everyGeneral = activeGeneralFrom(await loadTopicsFile(root)).map((t) => t.id);
+  const everyGeneral = activeGeneralFrom(topicsFile).map((t) => t.id);
   const weeklyGeneral =
     input.kind === "weekly" ? generalIdsFor(await loadSchedule(root), "weekly", "weekly") : [];
   const activeGeneral = new Set(
@@ -141,7 +156,7 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
     {
       http: setup.http,
       now: () => now,
-      exa: { apiKey: setup.exaKey, queries: queries.queries },
+      exa: { apiKey: setup.exaKey, queries: exaQueries },
       firecrawl: { apiKey: setup.firecrawlKey, guard },
     },
     {
@@ -172,6 +187,7 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
     preferences,
     sources: sources.sources,
     now,
+    trustedPublishers: trustedPublisherMatch,
     ...(input.poolCap === undefined ? {} : { cap: input.poolCap }),
   });
   const kept = new Set(filtered.items.map((item) => item.id));

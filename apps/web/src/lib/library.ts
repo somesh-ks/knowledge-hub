@@ -57,7 +57,7 @@ export interface CardData {
 }
 
 export interface CardFacts {
-  /** The line under the title: "Daily · 12 stories · 8 min", "Discussion · 5 min". */
+  /** The line under the title: "Daily · 12 stories · 8 min", "Catch up · 5 min". */
   line: string;
   minutes: number;
   /**

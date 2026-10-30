@@ -8,19 +8,19 @@ Private design-engineering news briefing. A GitHub Actions engine writes a diges
 2. [docs/learnings.md](docs/learnings.md): gotchas by area. Search it before debugging.
 3. [docs/decisions/](docs/decisions/README.md): grep the Index; open an area file only for an entry's reasoning.
 
-On demand: [docs/specs/](docs/specs/README.md) for what a capability does (the code and tests win where they differ; fix a spec you find wrong), [docs/history/](docs/history/README.md) for the why of a past change, and [the test postmortem](docs/engineering/postmortem-test-suite.md) before you add, change or delete a test. `node scripts/docsCheck.mjs` (in the gate) holds the docs to their budgets.
+On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code and tests win; fix a wrong spec), [docs/history/](docs/history/README.md) for the why of a past change, and [the test postmortem](docs/engineering/postmortem-test-suite.md) before you add, change or delete a test. `node scripts/docsCheck.mjs` (in the gate) holds the budgets.
 
-[docs/README.md](docs/README.md) maps every doc; [docs/runbook.md](docs/runbook.md) is owner setup. Before UI work, read [docs/design-engineering-ledger.md](docs/design-engineering-ledger.md): every design ask so far, the owner's taste, the code's gaps and the ideas not yet built.
+[docs/README.md](docs/README.md) maps every doc; [docs/runbook.md](docs/runbook.md) is owner setup. Before UI work, read [docs/design-engineering-ledger.md](docs/design-engineering-ledger.md): the owner's taste, the code's gaps, ideas not yet built.
 
 ## Commands
 
 - `npm run singularity -- <command>`: engine CLI (`doctor`, `status`, `models`, `run`, `publish`).
-- `npm run gate -- --build`: typecheck, `astro check`, lint, unit tests, the docs check and the static build, in parallel (about 80 s); all must pass. `npm test`, `npm run typecheck` and `npm run lint` run alone.
+- `npm run gate -- --build`: typecheck, `astro check`, lint, unit tests, the docs check and the static build, in parallel (80 s); all must pass. `npm test`, `npm run typecheck` and `npm run lint` run alone.
 - Run commands through PowerShell, not Git Bash: a Git Bash process costs 3 to 8 s here, PowerShell 50 ms ([learnings](docs/learnings.md)). Never stop what listens on port 4321 (the owner's dev server, on `[::1]`; screenshot `http://localhost:4321`); run browser suites with `PORT` set above 4400.
 - A worktree gets its packages from `node scripts/worktreeLinks.mjs <path>` and loses them with `--remove` before `git worktree remove`.
 - `npm run e2e -w @singularity/web` and `npm run e2e:player -w @singularity/web` (about 6 minutes each): the browser suites. Run both before every PR that touches the site, `packages` or the tokens (CI runs them for some paths), then push once. Red check: [delivery failures](docs/engineering/delivery-failures.md) (D148).
 - `SINGULARITY_STATIC_ONLY=1 npm run build`: local site build (the Vercel adapter fails on Windows symlinks).
-- `npm run dev`: the site with the Agentation toolbar for notes on elements; `checkBundle` fails a build that contains it. Stop it when done (`npx astro dev stop` in `apps/web`): left running across an install, it serves broken islands.
+- `npm run dev`: the site with the Agentation toolbar; `checkBundle` fails a build that contains it. Stop it when done (`npx astro dev stop` in `apps/web`): left running across an install, it serves broken islands.
 
 ## Rules
 
@@ -31,11 +31,11 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (the c
 - Changes to `.github/workflows` need a manual merge (the auto-merge token cannot merge them).
 - Code review before every merge (D143, D192). CodeRabbit reviews PRs on GitHub; merge by hand once its review lands and findings are fixed. Large changes: run `/code-review` first.
 - TypeScript stays on 6.x.
-- UI keeps the 8pt grid (4px for named cases only) and the design system, in three layers: `npm run design-check` (a hook on each UI edit), e2e/designSystem.spec.ts (CI), the `design-audit` agent before the PR. Screenshot open states first.
-- A component changes in the design system, never on one page only: in its shared class, component or token, and its record in the same PR (the usage comment over its class, its ledger line, a new variant in `docs/specs/look-and-sound.md`).
+- UI keeps the 8pt grid (4px for named cases only) and the design system, in three layers: `npm run design-check` (a hook on each UI edit), e2e/designSystem.spec.ts (CI), the `design-audit` agent before the PR.
+- The design system is a product (D237, D253). A control is a component in `apps/web/src/design-system/` named for what it is (Button); a page draws it, never types its class. A UI fix starts at the component; a page patch needs a PR reason and a `PAGE_OVERRIDES` entry. Changes go in a `design-system` PR the owner merges.
 - Design fixes are load-bearing. Markup or rules with a rationale comment (date, D-number, sizer, specificity bump) are never removed or rewritten to make another task work: extend or ask. Check history (`git log -L '/<selector>/,+20:<file>'`) and the ledger before changing shared CSS (`player.css`, `primitives.css`, `buttons.css`, tokens). CSS is checked by browser suites only.
 - Scope: one task per branch. Before a PR, `git diff --stat origin/main` must list only files the task needs; name any shared stylesheet or component in it, and why, in the PR body.
-- Feature workflow: new features and non-trivial UI follow `.claude/skills/feature/`; choose buttons and controls from `.claude/skills/feature/references/controls-guide.md`. Never invent bespoke control classes.
+- UI parts: before you write a class, token or value, run `npm run ds -- find "<need>"`. Features: `.claude/skills/feature/`.
 - State authority: the config store owns runtime preferences. Never edit `config/` in Git during active workflow runs or from parallel branches without store synchronization (D149, D185).
 - Pipeline discipline: verify the core daily loop runs green in production before adding new intake types or audience matrices.
 

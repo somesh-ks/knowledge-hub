@@ -296,3 +296,65 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Why: a fixed pair of numbers per speed, with a physical meaning, lets every later component inherit one motion language; CSS `linear()` needs no library.
 - Rejected: adding a spring library (the tokens and the existing `spring.ts` cover transitions and gestures); one token per component (they would drift).
 - Revisit if: the owner approves the Play morph, wavy scrubber and morphing loader; each then lands in its own design-system PR and may retire an older spring.
+
+## D229: the reading column sits on the pane's middle, and a label is 12px from its field
+
+- Date: 2026-10-29 (the owner: "on the left side it is less, and on the right side it is more on the page. I have this everywhere throughout the app"; labels "so close" to their fields)
+- Decision: from 80rem the shell has three tracks, `1fr` the column `1fr`, so the column is centred in the pane on every page, and a contents list takes the right margin's room (at most 14rem, a step off the column). A page that wants more width (Library, Create) is `--column-wide` (shell.css), centred. A label is `--field-label-gap` (12px) above its field, and the fields of a form or sheet are 24px apart, so a label belongs to the field below it (Create's group headings keep their own 16px rhythm: they also name chips and segmented choices). A field's resting outline stays `--field-border` (grey); the accent shows on focus only.
+- Why: the shell reserved the contents list's 14rem track on every page, so the column sat left of the pane's middle (96px on the left and 384px on the right at 1280) whether or not the page had a list; 8px between a label and its field left it on the outline. The blue ring on the admin sign-in is the focus ring of an autofocused field, not a resting colour.
+- Rejected: mirroring the track on the left (a column of air beside a column of air); hiding the list below 90rem (the owner asked for it at 80rem).
+- Revisit if: the contents list needs more than 11rem at 80rem (a long section name wraps).
+
+## D236: the design system is a generated file an agent queries
+
+- Date: 2026-10-29 (the owner: make the design system "agentic ready", so an agent spends less time and fewer tokens finding the right component and stays consistent).
+- Decision: `npm run system` builds `tokens/system.json` (every token with its value, and its dark value and role where it has them; every part with classes, files, use-when, not-when and what to use instead, markup, the tokens its rules read, who styles it, how many files use it) and `tokens/llms.txt` (the one-page index). `npm run ds -- find "<need>"`, `part <id>` and `token <words>` answer from the file in 0.4 s. The judgment (use-when, not-when) is written once in `scripts/system/parts.ts`; everything checkable is derived from the code. A test fails when either file is stale, a part names a class no stylesheet rule or no markup uses, a file is gone, an alternative points nowhere, or a shared control has no part.
+- Why: 19 lookup tasks given to the same small model, once on the repo as it was and once with the file: tokens 88.9k to 71.1k (-20%), tool calls 13.0 to 7.3 (-44%), time 41 s to 28 s (-31%); every answer that came back was right in both arms, so the gain is cost, not accuracy. Holding the file to the code mattered at once: the first draft listed `.switch`, a class with no markup, and an agent had to ignore the tool; the check now counts a class only where markup writes it.
+- Rejected: a hand-written page per part (the first guide had 44 and the owner cut them; they drift); an embeddings or MCP server (a JSON file and a 0.4 s command answer the same needs); deriving use-when from the stylesheets (their comments say how a class looks, not when to pick it).
+- Revisit if: the design-system components (`apps/web/src/design-system`) land, when their entries replace the ones in `parts.ts` (a family that moved deletes its entries here); a lookup is wrong twice, when the keywords or the part are fixed in `parts.ts`.
+- Amends: D189's catalogue idea for agents, not for people; D226 (the guide shows only real components) is unchanged.
+
+## D237: a control is a component with its real name, one family at a time
+
+- Date: 2026-10-29 (the owner: "I want this documentation to reflect the actual component library ... we need 100% parity or coupling between the design system and the app ... components named not by how they are used in the app, rather by their actual names ... all the buttons must be collected in one section").
+- Decision: a control is an Astro component in `apps/web/src/design-system/`, with its variants and class names in a `.ts` beside it (`button.ts`: a script or island takes its class from there) and an entry in `registry.ts`. Button is first: `Button.astro` with `filled`, `tonal` and `text`; their classes are `button-filled`, `button-tonal`, `button-text` (were `btn-primary`, `btn-secondary`, `btn`) plus a `danger` tone (was `.confirm-delete`). The markup and every computed style are unchanged except the Delete confirm buttons on the categories and sources pages, which were blue by a stylesheet-order accident and are now red as written. A page draws the component and never types its class; `designSystem.test.ts` fails a hand-written class, a class with no rule and a rule no component draws, and lists the classes not yet components (each family's PR removes its own). A change to the system goes in a PR labelled `design-system` that holds nothing else: app files only where they name a component or a class it replaced, records and tooling by exact path (`scripts/designSystemGate.mjs`, run by `design-system.yml`; the owner asked for it strict, 2026-10-29), owned by the owner in `.github/CODEOWNERS` and merged by hand. The style guide imports the same components.
+- Why: the guide's hand-written specs copied the app's markup and could drift; 25 classes drew 7 controls under names taken from where each first appeared (`btn-primary`, `source-link`).
+- Rejected: renaming the guide's pages only (parity would stay a promise); one PR for every family (a taste change in one hides in the rest); a new required status check (it would block every PR that does not touch the system).
+- Next: Icon button, FAB (with `btn-action-tonal`, the Catch up colour), Chip, Link (`source-link`, `run-link`, `text-link`).
+
+## D238: every color ramp is ten steps on one OKLCH curve
+
+- Date: 2026-10-29 (the owner: "certain colors only have limited shades and blue and gray have so many ... only 10 shades per color ... a color theme generation curve that we respect, linked to OKLCH").
+- Decision: each ramp (grey, blue, green, amber, red) has steps 50 to 900 and is a hue plus a peak chroma. Lightness follows one shared curve (98 to 25, a straight line with 35% S-curve), chroma a bell over lightness, capped at the sRGB gamut. `scripts/colorRamp.ts` derives the values, `npx tsx scripts/colorRamp.ts` writes them into `tokens/tokens.json`, and a test re-derives them. Grey is the blue hue at 0.011 chroma.
+- Surfaces are not steps: ten steps sit 8 points apart and elevation reads at 2 to 5. They are `primitive.color.elevation.*`, the page step (grey-50 light, grey-900 dark) moved by small lightness offsets (owner pick, "Offsets from the ramp"). White stays the raised surface in light.
+- Why: 14 hand-picked blues, 16 greys and 4 of each status color meant new hues were guesses and "600" meant different things. One curve makes a step number mean the same lightness, and so the same contrast, in every hue.
+- Visible change: light accent is blue-600 (L 53 to 48), hover and press one step deeper; the dark selected container is blue-800 and shares a step with the quiet tint, with a little more chroma than the hand-tuned ones; muted and subtle text share a step. Every contrast test passes unedited.
+- Rejected: hand-snapping the old values to ten steps (keeps the guesswork); surfaces as ramp steps (flattens dark elevation).
+- Context changed: D54's disabled-ink refinement (grey-650) is replaced, as grey-650 is not a step; its text-field outline ruling stands. Disabled ink now sits 2.07:1 from muted in dark (was 2.37) and 2.17 in light (was 2.29), still clear of the 1.67 that read as enabled.
+- Revisit if: a color needs a role between two steps. Add a role offset, not an 11th step.
+
+## D245: system.json leaves out how many files use a part
+
+- Date: 2026-10-30 (found while merging #433 into a main that kept moving).
+- Decision: `tokens/system.json` stores no `usedIn`. `build.ts` still counts the files that write a part's classes, and `system.test.ts` still fails a part with none and a class no markup writes; the count is held in memory, not in the file.
+- Why: the count moves with every markup edit, so any UI PR that touched a class name made the committed file differ from the rebuilt one and failed the "matches the code it is built from" test until `npm run system` ran. No lookup command prints the count. What stays in the file (defining stylesheets, tokens read, usage comment, bespoke list) changes only when a part's own rules move.
+- Rejected: leaving the count in and making every UI PR regenerate (a tax for a number nobody reads); dropping the dead-part test (it caught `.switch` and `.filter-chips-scroll`).
+- Revisit if: an agent needs a use count to choose between parts; then print it from the build, not the stored file.
+- Amends: D236 (what the file holds).
+
+## D226: the style guide shows only components the app imports
+
+- Date: 2026-10-29 (the owner: the guide must "reflect the actual component library", with "100% parity or coupling" between it and the app, components "named not by how they are used in the app, rather by their actual names", all buttons in one section and all links in another, duplicates consolidated, a change to a component going through him in a design-system-only pull request).
+- Decision: `apps/design` is a static Astro app served at `/design` (own Vercel project, reached by the reader's rewrite), drawn with the reader's own stylesheets: Overview (a visual page of cards), Principles, Foundations (Color with OKLCH and WCAG contrast, Typography, Motion, Tokens; each page filters its own content), Components. A theme icon button, dark by default. It lists a component only when it is the Astro component the app itself imports; until then it lists none. The first build drew each part from a hand-written spec (44 `*.design.ts`); it was removed before merge because a copy can drift. Next: merge duplicate classes into true components (Filled, Tonal, Text and Icon buttons, FAB, Chip, Link) one family per pull request, give each an Astro component the app and the guide both import, and add the gates (a check that fails a pull request mixing design-system files with app code, an orphan-class test, a `design-system` label). Design-system pull requests are merged by the owner by hand.
+- Why: a guide that copies the markup by hand can show a part the app no longer draws; one source for both makes drift impossible, not just reviewable.
+- Rejected: hand-written specs with a drift test (still a copy); rendering real components only for the 10 that are `.astro` files (the 33 class-only parts would stay copies); Storybook (D189).
+- Revisit if: a part cannot be an Astro component (a class set no page shares), or the pure-pull-request check blocks work it should allow.
+- Amends: D224.
+
+## D253: a UI fix starts at the design-system component
+
+- Date: 2026-10-30 (the owner: "whenever I ask you to fix a UI component, first attempt to fix/improve the centralized design system component, document and enforce this rule"). Amends D237.
+- Decision: a request to fix or restyle a UI component starts at the component, in its own class, variant or token, never as a page override. A page may patch it only when the component cannot hold the change, and the PR body says why. Enforced in four places: `design-audit` flags a page override, CodeRabbit's path instruction does the same, the PR template asks where the fix landed, and `styles.test.ts` fails a page rule on a component's class that is not on its debt list.
+- Why: a page override passes every other test and forks the component one page at a time, which is how the 18 rules on that list came to be.
+- Rejected: a lint that bans every selector on a component class (the 18 existing rules would block it; the list lets it start now and only shrink); relying on the rule in `AGENTS.md` alone (an agent that does not read it cannot be caught).
+- Next: each design-system PR that moves an override into its component deletes its line from `PAGE_OVERRIDES`.

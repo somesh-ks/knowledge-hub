@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
+import { cleanMarkdown } from "../src/extract/cleanMarkdown.js";
 import {
   extractFullText,
   MIN_ACCEPT_CHARS,
@@ -391,5 +392,85 @@ describe("createFirecrawlScrape", () => {
     expect(await scrape("http://localhost/x")).toBeNull();
     expect(await scrape("file:///etc/passwd")).toBeNull();
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+});
+
+describe("cleanMarkdown", () => {
+  // The bug it prevents: a scraped page's menu, cookie banner, share row, footer, bare URLs and
+  // script text reaching the judge and the writer as the story's words (plan, "cleaner scraping").
+  it("keeps the article's sentences and drops the page furniture around them", () => {
+    const text = cleanMarkdown(read("extract-noisy-page.md"));
+    expect(text).toContain("Anchor positioning ships in every browser");
+    expect(text).toContain("a tooltip can follow its trigger without a line of measurement code");
+    expect(text).toContain("We deleted 1,200 lines of JavaScript");
+    expect(text).toContain("which had been our top support complaint");
+    for (const noise of [
+      "Skip to content",
+      "Pricing",
+      "cookies",
+      "dataLayer",
+      "https://",
+      "Previous post",
+      "Share on X",
+      "newsletter",
+      "All rights reserved",
+      "Careers",
+      "diagram",
+    ]) {
+      expect(text.toLowerCase()).not.toContain(noise.toLowerCase());
+    }
+  });
+
+  // The bug it prevents: removing one tag joining the halves of another, so `<script>` survives
+  // the single pass (CodeQL "incomplete multi-character sanitization").
+  it("leaves no tag behind when removing one joins the halves of another", () => {
+    const text = cleanMarkdown(
+      "Body line.\n\n<scr<b>ipt>alert(1)</scr</b>ipt>\n\n<!<!-- x -->-- y -->Last line.",
+    );
+    expect(text).not.toMatch(/<\/?script|<!--/i);
+    expect(text).toContain("Body line.");
+    expect(text).toContain("Last line.");
+  });
+
+  it("keeps a body sentence that is one link or that mentions cookies", () => {
+    const md =
+      "[OpenAI announced a new model for developers on Tuesday.](https://x.dev/a)\n\nBrowsers now block third-party cookies by default, and that changes how analytics vendors attribute visits.";
+    expect(cleanMarkdown(md)).toBe(
+      "OpenAI announced a new model for developers on Tuesday.\n\nBrowsers now block third-party cookies by default, and that changes how analytics vendors attribute visits.",
+    );
+  });
+
+  // The bug it prevents: article text that looks like furniture being cut, and furniture in a
+  // spelling the first rules missed being kept (review of the cleaner, D232).
+  it("keeps short linked statements and cookie-consent articles, drops banners and headed menus", () => {
+    const keep =
+      "[Revenue grew by 70%](https://x.dev/a)\n\nThird-party cookies require user consent in Safari.";
+    expect(cleanMarkdown(keep)).toBe(
+      "Revenue grew by 70%\n\nThird-party cookies require user consent in Safari.",
+    );
+    const banner = `We use cookies to improve your experience, measure traffic and personalise content, ${"and for more reasons ".repeat(10)}. Accept all`;
+    const text = cleanMarkdown(
+      `## [Home](/) | [Pricing](/pricing)\n\n${banner}\n\n<script>var a = 1;</script >Body line.`,
+    );
+    expect(text).toBe("Body line.");
+  });
+
+  // The bug it prevents: a stray `<` in prose (or an unclosed tag) eating every line after it, or an
+  // unclosed script leaking its body into the story.
+  it("keeps prose around a lone angle bracket and drops an unclosed script's body", () => {
+    expect(cleanMarkdown("If a<b then continue.\n\nNext line.\n\n> quoted")).toBe(
+      "If a<b then continue.\n\nNext line.\n\n> quoted",
+    );
+    expect(cleanMarkdown("Intro.\n\n<script>\nvar a = 1;\nmore.")).toBe("Intro.");
+    expect(cleanMarkdown("Before.<svg />After.")).toBe("Before.After.");
+    expect(
+      cleanMarkdown("[![Logo](logo.png)](/)\n\nBody text. [![](x.png)](https://a.dev/b)"),
+    ).toBe("Body text.");
+    expect(cleanMarkdown("Use `<script>` to load code.\n\nThe rest of the article.")).toBe(
+      "Use `<script>` to load code.\n\nThe rest of the article.",
+    );
+    expect(cleanMarkdown('Top.\n\n<script\n  src="app.js">\nvar a = 1;\n</script>\n\nEnd.')).toBe(
+      "Top.\n\nEnd.",
+    );
   });
 });

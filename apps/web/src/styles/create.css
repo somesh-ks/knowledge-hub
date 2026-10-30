@@ -256,7 +256,7 @@
 }
 
 @media (width >= 40rem) {
-  .create-view .create-submit > .btn-primary {
+  .create-view .create-submit > .button-filled {
     width: auto;
     min-width: 14rem;
     justify-self: start;
@@ -306,22 +306,22 @@
    (createPage.ts swaps the words): it is working, not unavailable. The spinner is in the button's
    row, next to the words it belongs to. createPage.ts ignores a press then, so the press does not
    shrink it. */
-.create-view .btn-primary > .spinner {
+.create-view .button-filled > .spinner {
   display: none;
 }
 
-.create-view .btn-primary[data-busy="true"] > .spinner {
+.create-view .button-filled[data-busy="true"] > .spinner {
   display: block;
   flex: none;
 }
 
-.create-submit .btn-primary[data-busy="true"] {
+.create-submit .button-filled[data-busy="true"] {
   background: var(--cta-bg);
   color: var(--cta-fg);
   cursor: progress;
 }
 
-.create-submit .btn-primary[aria-disabled="true"]:active {
+.create-submit .button-filled[aria-disabled="true"]:active {
   transform: none;
 }
 
@@ -429,12 +429,14 @@
 
 /* ------------------------------------------------------------------ a wide /create page */
 
-/* From 80rem the page takes the track the shell keeps for a contents list as well, and More options
-   stands open in it beside the main questions, so the right of the window is not left empty and
-   the whole form is in view at once. The title keeps the place it has on every other page. */
+/* From 80rem the page is as wide as the column and a contents list together, centred (--column-wide,
+   shell.css), and More options stands open in the room beside the main questions, so the whole form
+   is in view at once. The title keeps the place it has on every other page. */
 @media (width >= 80rem) {
   .shell:has(.create-page) > main {
     grid-column: 1 / -1;
+    justify-self: center;
+    inline-size: min(100%, var(--column-wide));
   }
 
   .create-page [data-create-form] {

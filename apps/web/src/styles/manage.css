@@ -45,7 +45,7 @@
   border: 0;
 }
 
-.manage-fields:disabled :is(.settings-switch, .sort-field, .manage-input, .search-field) {
+.manage-fields:disabled :is(.switch-input, .sort-field, .manage-input, .search-field) {
   opacity: var(--opacity-disabled);
   cursor: default;
 }
@@ -56,7 +56,7 @@
   display: grid;
   /* One column that may shrink: a feed address on one line must not widen the form past its sheet. */
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-4);
+  gap: var(--space-6);
   padding-block-end: var(--space-2);
 }
 
@@ -64,9 +64,11 @@
   padding-block: var(--space-6) 0;
 }
 
+/* A label is 12px above its field and the fields of a form 24px apart, so a label belongs to the field
+   under it, not the one above (2026-10-29, D229: 8px left the label on the outline). */
 .manage-field {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--field-label-gap);
 }
 
 /* A field's label is the body size, as the Create panel's are: the Add source panel wears that panel's
@@ -275,7 +277,7 @@ textarea.manage-input {
 
 /* The chips only name a filter on the page; these rules do the filtering. */
 .manage[data-filter="pinned"] .manage-row[data-find]:not(:has([data-pin][aria-pressed="true"])),
-.manage[data-filter="off"] .manage-row[data-find]:not(:has(.settings-switch:not(:checked))),
+.manage[data-filter="off"] .manage-row[data-find]:not(:has(.switch-input:not(:checked))),
 .manage[data-filter="suggested"] [data-section-of="sources"],
 .manage:is([data-filter="pinned"], [data-filter="off"]) [data-section-of="suggested"] {
   display: none;
@@ -315,12 +317,12 @@ textarea.manage-input {
   margin-block-start: var(--space-2);
 }
 
-.manage-weight > .settings-range {
+.manage-weight > .slider-input {
   flex: 1 1 auto;
 }
 
 /* A topic that is off keeps its slider, set where it was, and shows it as unused. */
-.manage-row:has(.settings-switch:not(:checked)) .settings-range {
+.manage-row:has(.switch-input:not(:checked)) .slider-input {
   opacity: var(--opacity-disabled);
 }
 

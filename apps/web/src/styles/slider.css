@@ -1,0 +1,132 @@
+/*
+ * The Slider (design-system/Slider.astro): a native range. Where it stands (a width, a flex basis)
+ * is its place's rule; how it looks is here. The page or sheet it sits on sets --slider-ring to
+ * that surface's colour when it is not the page's own.
+ */
+
+/*
+ * A value between two ends, set by dragging a thumb or with the arrow keys. A native range. WebKit has no pseudo-element for the filled part of the track, so the track paints
+ * it as a gradient up to --range-fill, which the script keeps at (value - min) / (max - min) as a percentage. Firefox has
+ * ::-moz-range-progress and ignores the gradient. The two engines' pseudo-elements cannot share a
+ * rule: a selector one engine does not know drops the whole rule in the other.
+ */
+.slider-input {
+  --range-fill: 0%;
+  --range-fill-color: var(--color-accent);
+  --range-track-color: var(--color-border-control);
+  --slider-ring: var(--color-surface);
+  /* The track is 4px; the input is the 44px target. */
+  height: var(--size-touch);
+  margin: 0;
+  appearance: none;
+  border-radius: var(--button-radius);
+  background: none;
+  cursor: pointer;
+}
+
+.slider-input::-webkit-slider-runnable-track {
+  height: var(--scrubber-track);
+  border-radius: var(--radius-round);
+  background: linear-gradient(
+    to right,
+    var(--range-fill-color) var(--range-fill),
+    var(--range-track-color) var(--range-fill)
+  );
+}
+
+.slider-input::-webkit-slider-thumb {
+  width: var(--scrubber-thumb);
+  height: var(--scrubber-thumb);
+  /* Without the native appearance the thumb hangs from the top of the track; this centres it. */
+  margin-block-start: calc((var(--scrubber-track) - var(--scrubber-thumb)) / 2);
+  appearance: none;
+  border-radius: var(--radius-round);
+  background: var(--range-fill-color);
+  /* A ring in the surface's colour parts the thumb from the track it rides on. */
+  box-shadow: 0 0 0 var(--scrubber-thumb-ring) var(--slider-ring);
+  transition:
+    scale var(--duration-press-out) var(--ease-out),
+    opacity var(--duration-state) var(--ease-out);
+}
+
+.slider-input::-moz-range-track {
+  height: var(--scrubber-track);
+  border-radius: var(--radius-round);
+  background: var(--range-track-color);
+}
+
+.slider-input::-moz-range-progress {
+  height: var(--scrubber-track);
+  border-radius: var(--radius-round);
+  background: var(--range-fill-color);
+}
+
+.slider-input::-moz-range-thumb {
+  width: var(--scrubber-thumb);
+  height: var(--scrubber-thumb);
+  border: 0;
+  border-radius: var(--radius-round);
+  background: var(--range-fill-color);
+  box-shadow: 0 0 0 var(--scrubber-thumb-ring) var(--slider-ring);
+  transition:
+    scale var(--duration-press-out) var(--ease-out),
+    opacity var(--duration-state) var(--ease-out);
+}
+
+.slider-input:active::-webkit-slider-thumb {
+  scale: var(--scrubber-thumb-active-scale);
+  transition-duration: var(--duration-press-in), var(--duration-state);
+}
+
+.slider-input:active::-moz-range-thumb {
+  scale: var(--scrubber-thumb-active-scale);
+  transition-duration: var(--duration-press-in), var(--duration-state);
+}
+
+/* A slider that cannot be set stays where it is, dimmed. */
+.slider-input:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .slider-input:enabled:hover {
+    --range-fill-color: var(--color-accent-hover);
+  }
+}
+
+.slider-input:enabled:active {
+  --range-fill-color: var(--color-accent-pressed);
+}
+
+/* Forced colours drops fills and shadows, so the slider gets a highlight fill on a text-coloured track. */
+@media (forced-colors: active) {
+  /* The filled track is a gradient, which forced colours removes along with every other background
+       image. Opting the slider out keeps it, and the system colours here keep it legible. */
+
+  .slider-input {
+    --range-fill-color: Highlight;
+    --range-track-color: ButtonText;
+    forced-color-adjust: none;
+  }
+
+  .slider-input::-webkit-slider-thumb {
+    box-shadow: none;
+  }
+
+  .slider-input::-moz-range-thumb {
+    box-shadow: none;
+  }
+
+  /* Opted out, the slider would keep the page's own ring colour; this gives it the system's. */
+
+  .slider-input:focus-visible {
+    outline-color: Highlight;
+  }
+
+  .slider-input:disabled {
+    --range-fill-color: GrayText;
+    --range-track-color: GrayText;
+    opacity: 1;
+  }
+}

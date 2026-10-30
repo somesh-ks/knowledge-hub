@@ -110,7 +110,23 @@
       "schedule": "0 23 * * *"
     }
   ],
+  "redirects": [
+    {
+      "source": "/analytics",
+      "destination": "/admin/costs",
+      "permanent": false
+    },
+    {
+      "source": "/settings/health",
+      "destination": "/admin/health",
+      "permanent": false
+    }
+  ],
   "rewrites": [
+    {
+      "source": "/admin/:path*",
+      "destination": "https://singularity-admin-psi.vercel.app/:path*"
+    },
     {
       "source": "/covers/:path*",
       "destination": "https://irmb7o0qwtveacjt.public.blob.vercel-storage.com/content/covers/:path*"

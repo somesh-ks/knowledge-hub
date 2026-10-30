@@ -24,6 +24,7 @@ import {
   type Rgb,
   relativeLuminance,
 } from "./colorMath.js";
+import { derivedColors, RAMP_STEPS, RAMPS, type RampName, rampStep } from "./colorRamp.js";
 import { type SpringParams, springCurve } from "./springCurve.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -332,6 +333,48 @@ describe("scales", () => {
         );
       }
     }
+  });
+
+  // Blue once had 14 hand-picked steps, grey 16 and the status colors 4, and no two agreed on what
+  // "600" meant. Every color is a hue and a peak chroma on the one curve in scripts/colorRamp.ts.
+  it("gives every color ramp the same ten steps, at the same lightness, inside sRGB", () => {
+    for (const name of Object.keys(RAMPS) as RampName[]) {
+      const steps = doc.tokens
+        .filter((token) => token.dotPath.startsWith(`primitive.color.${name}.`))
+        .map((token) => ({ step: Number(token.path[3]), color: parseOklch(String(token.value)) }));
+      expect(
+        steps.map((entry) => entry.step),
+        name,
+      ).toEqual([...RAMP_STEPS]);
+      for (const { step, color } of steps) {
+        expect(color.l, `${name}-${step} lightness`).toBeCloseTo(rampStep("blue", step as 50).l, 3);
+        expect(
+          oklchStringToRgb(String(doc.byPath.get(`primitive.color.${name}.${step}`)?.value))
+            .inGamut,
+        ).toBe(true);
+      }
+    }
+  });
+
+  it("matches tokens.json to the curve, so a hand edit to a ramp fails here", () => {
+    const committed = Object.fromEntries(
+      doc.tokens
+        .filter((token) => token.path[0] === "primitive" && token.path[1] === "color")
+        .map((token) => [token.path.slice(2).join("."), String(token.value)]),
+    );
+    const derived: Record<string, string> = {};
+    for (const [group, node] of Object.entries(derivedColors())) {
+      if (group.startsWith("$")) continue;
+      if ("$value" in (node as object))
+        derived[group] = String((node as { $value: string }).$value);
+      else {
+        for (const [key, leaf] of Object.entries(node as object)) {
+          if (!key.startsWith("$"))
+            derived[`${group}.${key}`] = String((leaf as { $value: string }).$value);
+        }
+      }
+    }
+    expect(committed).toEqual(derived);
   });
 
   it("keeps adjacent spacing steps at least 25 percent apart", () => {

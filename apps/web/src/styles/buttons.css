@@ -1,6 +1,7 @@
 /*
- * Controls: icons, the text button, the icon button, the two block buttons, the play chip and the
- * play and pause glyph swap. One accent carries every control. Hover and press are state layers
+ * Controls: icons, the Button (filled, tonal and text), the icon button, the play chip and the play
+ * and pause glyph swap. The Button is drawn by design-system/Button.astro and nowhere else (a script
+ * or an island takes its class from design-system/button.ts). One accent carries every control. Hover and press are state layers
  * (primitives.css): the control's text colour laid over its own fill. Hover only inside
  * (hover: hover) and (pointer: fine); a press on an icon comes from the .press utility in foundations.
  */
@@ -51,8 +52,10 @@
 
 /* ------------------------------------------------------------------ text and icon buttons */
 
-/* The text button: an accent label with no container until it is hovered or pressed. */
-.btn,
+/* Button, text variant (design-system/Button.astro): an accent label with no container until it is
+   hovered or pressed. Usage: Cancel, Clear, Try again; the quiet action beside or under a filled
+   button. */
+.button-text,
 .icon-btn {
   display: inline-flex;
   align-items: center;
@@ -94,7 +97,7 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .btn:hover {
+  .button-text:hover {
     background: color-mix(in oklch, var(--color-accent) var(--state-hover), transparent);
   }
 
@@ -153,9 +156,10 @@
 
 /* ------------------------------------------------------------------ block buttons */
 
-/* Filled and outlined: the one committing action of a sheet or an empty page, and its alternative. */
-.btn-primary,
-.btn-secondary {
+/* Button, filled and tonal variants (design-system/Button.astro): the one committing action of a
+   sheet or an empty page, and its alternative. Both fill their row. */
+.button-filled,
+.button-tonal {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -170,26 +174,33 @@
   text-decoration: none;
 }
 
-.btn-primary {
+/* In a row of dialog actions (.confirm-actions) the block buttons hug their label instead of filling
+   what the text button leaves (owner, 2026-10-30). Stacked, the column stretches them again. */
+.confirm-actions > :is(.button-filled, .button-tonal) {
+  width: auto;
+}
+
+/* Button, filled variant: the accent fill under its own words. At most one per surface. */
+.button-filled {
   background: var(--cta-bg);
   color: var(--cta-fg);
   /* The ring's gap must read against the page, not against the fill. */
   --color-focus-gap: var(--color-surface);
 }
 
-/* Tonal: the accent container under its own words, with no outline. Quieter than the filled button
+/* Button, tonal variant: the accent container under its own words, with no outline. Quieter than the filled button
    and still a button, which an outlined box on the page's own surface was not. */
-.btn-secondary {
+.button-tonal {
   background: var(--color-accent-container);
   color: var(--color-on-accent-container);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .btn-primary:hover {
+  .button-filled:hover {
     background: var(--cta-bg-hover);
   }
 
-  .btn-secondary:hover {
+  .button-tonal:hover {
     background: color-mix(
       in oklch,
       var(--color-accent-container),
@@ -198,17 +209,17 @@
   }
 }
 
-.btn-primary:active {
+.button-filled:active {
   background: var(--cta-bg-pressed);
 }
 
 /* A press on a worded button shows on its fill, one step past the hover's, so it reads as a press
    with a mouse too; its words keep their size (pressText.test.ts), so none of these take .press. */
-.btn:active {
+.button-text:active {
   background: color-mix(in oklch, var(--color-accent) var(--state-press), transparent);
 }
 
-.btn-secondary:active {
+.button-tonal:active {
   background: color-mix(
     in oklch,
     var(--color-accent-container),
@@ -256,29 +267,50 @@
 
 /* Fills are dropped in forced colours, so the filled and the tonal button keep an edge of their own. */
 @media (forced-colors: active) {
-  .btn-primary,
-  .btn-secondary,
+  .button-filled,
+  .button-tonal,
   .btn-action-tonal {
     border: var(--stroke-hairline) solid ButtonText;
   }
 }
 
-.btn,
-.btn-primary,
-.btn-secondary {
+.button-text,
+.button-filled,
+.button-tonal {
   transition:
     background-color var(--duration-hover) var(--ease-hover),
     color var(--duration-hover) var(--ease-hover);
 }
 
-:is(.btn, .icon-btn, .btn-primary, .btn-secondary):is(:disabled, [aria-disabled="true"]) {
+:is(.button-text, .icon-btn, .button-filled, .button-tonal):is(:disabled, [aria-disabled="true"]) {
   color: var(--color-on-surface-disabled);
   cursor: default;
 }
 
-.btn-primary:is(:disabled, [aria-disabled="true"]),
-.btn-secondary:is(:disabled, [aria-disabled="true"]) {
+.button-filled:is(:disabled, [aria-disabled="true"]),
+.button-tonal:is(:disabled, [aria-disabled="true"]) {
   background: var(--color-surface-container);
+}
+
+/* Button, danger tone (text variant; was .confirm-delete in episode-actions.css): red only here,
+   once the person has asked to delete. Usage: the confirm of a delete dialog, Delete and Delete
+   source. After the disabled rule above, which it must outrank at the same specificity. */
+.button-danger {
+  color: var(--color-danger);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .button-danger:hover {
+    background: var(--color-danger-subtle);
+  }
+}
+
+.button-danger:active {
+  background: var(--color-danger-subtle);
+}
+
+.button-danger:disabled {
+  color: var(--color-on-surface-disabled);
 }
 
 /* ------------------------------------------------------------------ play and pause swap */

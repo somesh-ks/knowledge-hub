@@ -1,4 +1,5 @@
 import { useEffect, useRef, useSyncExternalStore } from "react";
+import { buttonClass } from "../design-system/button";
 import { getSpeedDefault } from "./core/speedDefaultRuntime";
 import { rateLabel } from "./SpeedControl";
 
@@ -38,11 +39,15 @@ export default function SpeedOffer() {
           Make {label} your default speed?
         </h2>
         <div className="confirm-actions">
-          <button className="btn" type="button" onClick={() => ref.current?.close()}>
+          <button
+            className={buttonClass("text")}
+            type="button"
+            onClick={() => ref.current?.close()}
+          >
             Not now
           </button>
           <button
-            className="btn"
+            className={buttonClass("text")}
             type="button"
             onClick={() => {
               getSpeedDefault().accept();

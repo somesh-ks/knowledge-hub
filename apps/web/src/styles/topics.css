@@ -338,12 +338,12 @@
   align-items: baseline;
 }
 
-.topic-weight > .settings-range {
+.topic-weight > .slider-input {
   flex: 1 1 auto;
 }
 
 @media (width >= 40rem) {
-  .topic-weight > .settings-range {
+  .topic-weight > .slider-input {
     flex: 0 1 var(--settings-control-width);
     margin-inline-start: auto;
   }
@@ -376,7 +376,7 @@
    as heavy; the owner asked for a calmer slider). Each dot is drawn in a thumb-sized box placed by
    percent, which the browser measures over the track less one thumb: the same travel the thumb takes,
    so a dot sits under the thumb's centre at its stop. */
-.settings-range[data-stops] {
+.slider-input[data-stops] {
   --stop-dot: radial-gradient(
     circle at center,
     var(--color-on-surface-subtle) 0 calc(var(--stroke-hairline) * 3),
@@ -865,7 +865,7 @@
   background: var(--sheet-bg);
 }
 
-.source-sheet-foot > .btn-primary {
+.source-sheet-foot > .button-filled {
   flex: 1 1 auto;
 }
 
@@ -1974,7 +1974,7 @@ html:has(.source-filter[data-chips]) {
 }
 
 /* Tonal, as wide as its words, beside Reorder in the list's head. */
-.structure-add > .btn-secondary {
+.structure-add > .button-tonal {
   width: auto;
 }
 
@@ -2005,7 +2005,7 @@ textarea.manage-input.structure-prompt {
   gap: var(--space-4);
 }
 
-.structure-prompt-foot > .btn {
+.structure-prompt-foot > .button-text {
   flex: none;
   margin-inline-end: calc(var(--space-4) * -1);
 }

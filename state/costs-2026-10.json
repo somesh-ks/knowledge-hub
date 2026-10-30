@@ -1236,6 +1236,219 @@
       },
       "usd": 0.07,
       "estimated": true
+    },
+    {
+      "id": "ep-20261030-0025|on_demand|write|anthropic|claude-sonnet-5-5|owner",
+      "at": "2026-10-29T23:26:33.460Z",
+      "run_id": "ep-20261030-0025",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "write",
+      "provider": "anthropic",
+      "product": "claude-sonnet-5-5",
+      "units": {
+        "input_tokens": 12727,
+        "output_tokens": 6100
+      },
+      "usd": 0.129681
+    },
+    {
+      "id": "ep-20261030-0025|on_demand|narration|speechify|simba-3.2|owner|674fecb9-ae6b-4f2a-9195-9a3a83eb3851",
+      "at": "2026-10-29T23:27:25.569Z",
+      "run_id": "ep-20261030-0025",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 234
+      },
+      "usd": 0.00234
+    },
+    {
+      "id": "ep-20261030-0025|on_demand|narration|speechify|simba-3.2|owner|5686aa7c-9637-47ac-93a6-36a3b36fa4fa",
+      "at": "2026-10-29T23:27:27.623Z",
+      "run_id": "ep-20261030-0025",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 523
+      },
+      "usd": 0.00523
+    },
+    {
+      "id": "ep-20261030-0025|on_demand|narration|speechify|simba-3.2|owner|aa444094-0eb3-4d19-97ed-4f6b26adb5c1",
+      "at": "2026-10-29T23:27:29.567Z",
+      "run_id": "ep-20261030-0025",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 489
+      },
+      "usd": 0.00489
+    },
+    {
+      "id": "ep-20261030-0025|on_demand|narration|speechify|simba-3.2|owner|74babcae-6c1b-46e0-ac6e-704d9262f0e5",
+      "at": "2026-10-29T23:27:31.293Z",
+      "run_id": "ep-20261030-0025",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 397
+      },
+      "usd": 0.00397
+    },
+    {
+      "id": "ep-20261030-0025|on_demand|narration|speechify|simba-3.2|owner|9487d73a-cc80-4e53-8c3a-dc6cf3074fc3",
+      "at": "2026-10-29T23:27:32.397Z",
+      "run_id": "ep-20261030-0025",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 51
+      },
+      "usd": 0.00051
+    },
+    {
+      "id": "2026-10-29T23:25:51.922Z|daily|write|anthropic|claude-sonnet-5-5|owner",
+      "at": "2026-10-29T23:29:53.764Z",
+      "run_id": "2026-10-29T23:25:51.922Z",
+      "kind": "daily",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "write",
+      "provider": "anthropic",
+      "product": "claude-sonnet-5-5",
+      "units": {
+        "input_tokens": 70456,
+        "output_tokens": 38336
+      },
+      "usd": 0.786408
+    },
+    {
+      "id": "2026-10-29T23:25:51.922Z|daily|judge|typesafe|jev|owner",
+      "at": "2026-10-29T23:29:53.764Z",
+      "run_id": "2026-10-29T23:25:51.922Z",
+      "kind": "daily",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "judge",
+      "provider": "typesafe",
+      "product": "jev",
+      "units": {
+        "requests": 686
+      },
+      "usd": 0
+    },
+    {
+      "id": "2026-10-29T23:25:51.922Z|daily|fetch|exa|search|owner",
+      "at": "2026-10-29T23:29:53.764Z",
+      "run_id": "2026-10-29T23:25:51.922Z",
+      "kind": "daily",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "fetch",
+      "provider": "exa",
+      "product": "search",
+      "units": {
+        "requests": 14
+      },
+      "usd": 0.07,
+      "estimated": true
+    },
+    {
+      "id": "2026-10-29T23:25:51.922Z|daily|fetch|firecrawl|scrape|owner",
+      "at": "2026-10-29T23:29:53.764Z",
+      "run_id": "2026-10-29T23:25:51.922Z",
+      "kind": "daily",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "fetch",
+      "provider": "firecrawl",
+      "product": "scrape",
+      "units": {
+        "credits": 23
+      },
+      "usd": 0.01909,
+      "estimated": true
+    },
+    {
+      "id": "2026-10-27|daily|narration|speechify|simba-3.2|owner|07543879-0964-442e-ac62-7ff6d14da6ff",
+      "at": "2026-10-29T23:31:07.279Z",
+      "run_id": "2026-10-27",
+      "kind": "daily",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 5690
+      },
+      "usd": 0.0569
+    },
+    {
+      "id": "ep-20261030-2010|on_demand|write|anthropic|claude-sonnet-5-5|owner",
+      "at": "2026-10-30T19:10:44.241Z",
+      "run_id": "ep-20261030-2010",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "write",
+      "provider": "anthropic",
+      "product": "claude-sonnet-5-5",
+      "units": {
+        "input_tokens": 10123,
+        "output_tokens": 3216
+      },
+      "usd": 0.078609
+    },
+    {
+      "id": "ep-20261030-2010|on_demand|narration|speechify|simba-3.2|owner|3cf50519-65be-4442-a277-d19de4b2a982",
+      "at": "2026-10-30T19:11:23.584Z",
+      "run_id": "ep-20261030-2010",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 261
+      },
+      "usd": 0.00261
     }
   ]
 }

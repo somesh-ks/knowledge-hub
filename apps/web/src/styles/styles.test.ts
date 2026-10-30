@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { extname, join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
+import { COMPONENTS } from "../design-system/registry";
 
 /**
  * House rules for the shell's own CSS, checked on the files it owns. tokens.css and foundations.css
@@ -35,9 +36,9 @@ function filesUnder(dir: string, extensions: string[]): string[] {
  * a text action, a card with a title. A press shows on their fill, their colour or an icon.
  */
 const LABEL_CONTROLS = [
-  "btn",
-  "btn-primary",
-  "btn-secondary",
+  "button-text",
+  "button-filled",
+  "button-tonal",
   "source-main",
   "segmented-choice-item",
   "segmented-nav-tab",
@@ -70,7 +71,7 @@ const LABEL_CONTROLS = [
 const ALLOWED_4PX: [selector: string, reason: string][] = [
   [".aside", "the rail's hit area reaching past the column's edge"],
   [".aside-rail", "the rail's track padding, around its own segments"],
-  [".banner > .btn", "the action's hit area reaching into the banner's padding"],
+  [".banner > .button-text", "the action's hit area reaching into the banner's padding"],
   [".banner-body", "a banner's title onto its body, inside one banner"],
   [".structure-row", "the dots' and pencil's ink, 28px in from the card's corner, not 24"],
   [
@@ -154,8 +155,8 @@ const RAW_SVG_ALLOWED: [file: string, reason: string][] = [
   ["components/BrandMark.astro", "the wordmark's own mark, not a glyph"],
   ["components/EmptyArt.astro", "empty-state illustrations, coloured by classes (own rule above)"],
   [
-    "components/GenerationsMenu.astro",
-    "the progress ring around the generations icon: a drawn arc, coloured by classes, not a glyph",
+    "components/QueueRing.astro",
+    "the progress ring of the podcast queue: a drawn arc, coloured by classes, not a glyph",
   ],
   [
     "sheets/GenerateSheet.tsx",
@@ -172,9 +173,9 @@ const SHARED_CONTROL_SHEETS = ["buttons.css", "primitives.css"];
 
 /** The shared control classes, defined in buttons.css and primitives.css. */
 const SHARED_CONTROLS = [
-  "btn",
-  "btn-primary",
-  "btn-secondary",
+  "button-text",
+  "button-filled",
+  "button-tonal",
   "icon-btn",
   "icon-btn-tonal",
   "chip",
@@ -213,6 +214,14 @@ const BESPOKE_CONTROLS: [name: string, reason: string][] = [
   ["search-clear", "the clear control inside .search-field"],
   ["player-notice-action", "a text action in the player's notice"],
   ["player-fallback-action", "a text action in the player's fallback card"],
+  [
+    "queue-fold",
+    "the podcast queue dock's whole-row button that folds and opens it: a row, not a control face",
+  ],
+  [
+    "app-nav-queue",
+    "the side column's queue row: the navigation row's own look (app-nav-item) on a button",
+  ],
   ["player-queue-row", "a queue row: a row-sized button, not a control face"],
   ["player-upnext-row", "an Up next row: a row-sized button, not a control face"],
   ["story-row", "a story row in the player's list"],
@@ -710,7 +719,7 @@ const RULES: Rule[] = [
       ),
   },
   {
-    // Prevents a second button, chip or pill style: a new control needs the shared .btn, .icon-btn,
+    // Prevents a second button, chip or pill style: a new control needs the shared .button-*, .icon-btn,
     // .chip or .filter-chip classes. A control-named class styled outside buttons.css and
     // primitives.css must be one of the named bespoke ones, each with why.
     name: "a control-named class is styled in buttons.css or primitives.css, or is a named bespoke one",
@@ -781,12 +790,67 @@ describe("house rules", () => {
   });
 });
 
+/**
+ * The page rules that still restyle a design-system component's classes, each as "file: selector".
+ * A component is fixed in its own sheet, never bent on one page (AGENTS.md, D253, owner, 2026-10-30:
+ * "whenever I ask you to fix a UI component, first attempt to fix/improve the centralized design
+ * system component"). A page rule that overrides a Button is debt: moving it into the component
+ * deletes a line here, and this list only shrinks. Naming the selector, not counting them, means a
+ * rule swapped for another one on the same page fails too. It reads a component's own classes only:
+ * a class a page passes to a Button (`class="structure-reorder"`) and then restyles is a known gap,
+ * not yet caught. Without this a new override passes every other test and the component quietly
+ * forks, page by page.
+ */
+const PAGE_OVERRIDES: string[] = [
+  "banner.css: .banner > .button-text",
+  "create-sheet.css: dialog.create-sheet .create-submit > .button-filled",
+  'create.css: .create-submit .button-filled[aria-disabled="true"]:active',
+  'create.css: .create-submit .button-filled[data-busy="true"]',
+  "create.css: .create-view .button-filled > .spinner",
+  'create.css: .create-view .button-filled[data-busy="true"] > .spinner',
+  "create.css: .create-view .create-submit > .button-filled",
+  "empty.css: .empty-actions > .button-filled, .empty-actions > .button-tonal",
+  "library.css: .shelf-head > .button-text",
+  "primitives.css: .card-group-accent :is(.settings-hint, .button-text)",
+  "queue.css: .queue-details-actions .button-filled",
+  "queue.css: .queue-details-actions .button-text",
+  'sheets.css: .sheet-actions .button-filled[aria-disabled="true"]:active',
+  'sheets.css: .sheet-actions .button-filled[data-busy="true"]',
+  "sheets.css: .sheet-hint-card .button-text",
+  "topics.css: .source-sheet-foot > .button-filled",
+  "topics.css: .structure-add > .button-tonal",
+  "topics.css: .structure-prompt-foot > .button-text",
+];
+
+describe("design-system components in page stylesheets", () => {
+  it("are restyled only where the debt list says", () => {
+    const found: string[] = [];
+    for (const component of COMPONENTS) {
+      const named = new RegExp(`\\.(?:${component.classes.join("|")})(?![\\w-])`);
+      for (const [file, css] of ownCss()) {
+        if (file === component.sheet) continue;
+        // A rule's selector is the text before its `{`; an at-rule's own prelude names no class.
+        for (const [, prelude] of css.matchAll(/([^{}]+)\{/g)) {
+          const selector = (prelude ?? "").replace(/\s+/g, " ").trim();
+          if (named.test(selector)) found.push(`${file}: ${selector}`);
+        }
+      }
+    }
+    expect(
+      found.sort(),
+      "change the component in its own stylesheet (a design-system PR) instead of overriding it on a page; this list only shrinks",
+    ).toEqual(PAGE_OVERRIDES);
+  });
+});
+
 describe("component stylesheets", () => {
   it("covers every stylesheet the layout or an island imports", () => {
-    const src = SRC;
-    const sources = readdirSync(src, { recursive: true, encoding: "utf8" })
-      .filter((file) => /\.(astro|tsx)$/.test(file))
-      .map((file) => readFileSync(join(src, file), "utf8"));
+    // The command center (D224) imports the Costs and Health sheets from here.
+    const sources = [SRC, join(SRC, "..", "..", "admin", "src")].flatMap((src) =>
+      readdirSync(src, { recursive: true, encoding: "utf8" })
+        .filter((file) => /\.(astro|tsx)$/.test(file))
+        .map((file) => readFileSync(join(src, file), "utf8")),
+    );
     const imported = sources.flatMap((text) =>
       [...text.matchAll(/styles\/([a-z-]+\.css)/g)].map((match) => match[1]),
     );

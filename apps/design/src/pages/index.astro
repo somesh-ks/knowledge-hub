@@ -1,0 +1,31 @@
+---
+import Icon from "../../../web/src/components/Icon.astro";
+import GuideTile from "../components/GuideTile.astro";
+import Shell from "../layouts/Shell.astro";
+import { COMPONENTS, FOUNDATIONS, OVERVIEW, PRINCIPLES } from "../lib/sections";
+---
+
+<Shell title="Overview" current="">
+  <div class="settings-view guide-page" data-settings data-ready>
+    <header class="guide-hero">
+      <div class="guide-hero-text">
+        <h1 class="guide-hero-title" id="page-title" tabindex="-1">Singularity design system</h1>
+        <p class="guide-hero-lead">{OVERVIEW.note}</p>
+      </div>
+      <div class="guide-hero-art" aria-hidden="true">
+        <span class="guide-shape guide-shape-aa">Aa</span>
+        <span class="guide-shape guide-shape-play"><Icon name="play" class="icon-lg" /></span>
+        <span class="guide-shape guide-shape-bars"><i /><i /><i /><i /></span>
+        <span class="guide-shape guide-shape-dots"><i /><i /><i /><i /><i /><i /></span>
+        <span class="guide-shape guide-shape-track"><i /></span>
+        <span class="guide-shape guide-shape-round" />
+      </div>
+    </header>
+
+    <section aria-label="Pages" class="guide-tiles">
+      <GuideTile page={PRINCIPLES} art="principles" />
+      <GuideTile page={FOUNDATIONS} art="foundations" />
+      <GuideTile page={COMPONENTS} art="components" />
+    </section>
+  </div>
+</Shell>

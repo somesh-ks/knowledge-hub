@@ -1,3 +1,4 @@
+import { buttonClass } from "../design-system/button";
 import { escapeHtml, sheetHeadHtml } from "../lib/sheetHead";
 import { dismissOnScrim } from "./pullDismiss";
 
@@ -18,7 +19,7 @@ export function openShareDialog(title: string, url: string): Promise<"copied" | 
     `${sheetHeadHtml("Share link", "share-title", "data-dialog-close")}` +
     `<p class="share-about">${escapeHtml(title)}</p>` +
     `<input class="share-url" type="text" readonly value="${escapeHtml(url)}" aria-label="Link" />` +
-    `<div class="share-actions"><button class="btn-primary" type="button" data-share-copy>Copy link</button></div>` +
+    `<div class="share-actions"><button class="${buttonClass("filled")}" type="button" data-share-copy>Copy link</button></div>` +
     `<span class="sr-only" role="status" data-share-said></span>`;
   document.body.append(dialog);
 

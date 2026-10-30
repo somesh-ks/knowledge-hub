@@ -8,6 +8,10 @@ export interface ToastContent {
   kind?: "success" | "error";
   actionLabel?: string;
   onAction?: () => void;
+  /** Its words stay on one line, cut with an ellipsis when they cannot fit: a short message only. */
+  oneLine?: boolean;
+  /** Run when the person closes the toast without using its action (its close button, a swipe). */
+  onDismiss?: () => void;
 }
 
 type Listener = () => void;

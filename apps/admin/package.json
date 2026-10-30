@@ -10,12 +10,18 @@
     "check": "astro check"
   },
   "dependencies": {
+    "@astrojs/react": "^7.1.1",
+    "@singularity/engine": "*",
     "@vercel/functions": "^3.9.11",
-    "astro": "^7.4.2"
+    "astro": "^7.4.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
     "@singularity/web": "*",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "typescript": "~6.0.3"
   }
 }

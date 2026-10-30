@@ -9,4 +9,12 @@ export const FORMAT_LABELS = {
   headlines: "Readout",
 } as const;
 
+/**
+ * The kind of everything made on request, as the Library's filter names it. A card, the player's
+ * caption and the page's facts line lead with the kind (Daily, Weekly, Catch up), never with an
+ * episode's format (Readout, Discussion): that is a choice inside the Catch up, and it stays
+ * searchable.
+ */
+export const CATCH_UP_LABEL = "Catch up";
+
 export type EpisodeFormat = keyof typeof FORMAT_LABELS;

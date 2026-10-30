@@ -13,6 +13,12 @@ import {
 } from "@singularity/core";
 import { isThinText } from "../alexandria/alexandria.js";
 import { MAX_SPOKEN_CHARS } from "../audio/spokenText.js";
+import {
+  type CommunityFile,
+  communityShadow,
+  loadCommunity,
+  withCommunity,
+} from "../community/community.js";
 import type { ApiRuntime } from "../curate/apiRuntime.js";
 import {
   loadPool,
@@ -36,6 +42,7 @@ import {
   voteReportLine,
 } from "../profile/votes.js";
 import { loadSchedule } from "../schedule/store.js";
+import { withCreator } from "../score/creator.js";
 import { isReleaseStory, RELEASE_SECTION } from "../score/releaseNotes.js";
 import { scoreItem } from "../score/scoreItem.js";
 import {
@@ -46,12 +53,26 @@ import {
   type TopicLayer,
 } from "../score/scoreTopics.js";
 import { loadSectionPlan } from "../score/sectionPlan.js";
-import { assignSections, capFor, compareCandidates, selectItems } from "../score/selectItems.js";
+import {
+  assignSections,
+  capFor,
+  compareCandidates,
+  eligibility,
+  selectItems,
+} from "../score/selectItems.js";
 import { withSourceAdjustment, withVoteWeight } from "../score/sourceAdjust.js";
 import type { ScoredItem, SelectedItem } from "../score/types.js";
 import { readSeen, readSourceStats } from "../state/store.js";
 import { loadTopics } from "../topics/store.js";
 import { writerCategory } from "../topics/writerCategory.js";
+import {
+  loadTrustedPublishers,
+  NO_TRUSTED_PUBLISHERS,
+  type TrustedPublisherMatcher,
+  trustedPublisherMatcher,
+  trustedPublisherShadowMatcher,
+  withTrustedPublishers,
+} from "../trustedPublishers/trustedPublishers.js";
 import { createLinter, type Linter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
 import { enforceVoice } from "../write/enforceVoice.js";
@@ -92,6 +113,14 @@ interface PassContext {
   sourceNames: Record<string, string>;
   /** Each source's format and lean, for the type mix and perspective. */
   sourceFacts: Record<string, SourceFacts>;
+  /** The owner's vetted publishers (D234): finds nothing while the list is off. */
+  trustedPublishers: TrustedPublisherMatcher;
+  /** The list read as if on while it is off, to log what it would add; finds nothing otherwise. */
+  trustedPublisherShadow: TrustedPublisherMatcher;
+  /** What the community voted up (D240): lifts nothing while the file is off. */
+  community: CommunityFile;
+  /** The same file read as if on while it is off, to log what it would add; undefined otherwise. */
+  communityShadow: CommunityFile | undefined;
   /** Enabled custom topics, scored against the fits the judge stage recorded. */
   customTopics: ReturnType<typeof activeFitTopics>;
   /** Sections a scheduled regular briefing covers; null for every section and for other modes. */
@@ -149,6 +178,8 @@ export async function writeStage(
   const taste = tasteHeadlines(profile.votes);
   const fullSchedule = await loadSchedule(deps.root);
   const schedule = plan.mode === "scheduled" ? fullSchedule : null;
+  const trustedPublishersFile = await loadTrustedPublishers(deps.root);
+  const communityFile = await loadCommunity(deps.root);
   const context: PassContext = {
     deps,
     runtime,
@@ -156,6 +187,10 @@ export async function writeStage(
     preferences,
     sourceNames: sourceNameMap(sources),
     sourceFacts: sourceFactsMap(sources),
+    trustedPublishers: trustedPublisherMatcher(trustedPublishersFile),
+    trustedPublisherShadow: trustedPublisherShadowMatcher(trustedPublishersFile),
+    community: communityFile,
+    communityShadow: communityShadow(communityFile),
     customTopics: activeFitTopics(topics),
     offCategories: offCategories(topics),
     skipTopics: schedule?.skip_topics ?? [],
@@ -253,6 +288,8 @@ async function writePass(
     sources: context.sourceFacts,
   };
   const base: ScoredItem[] = [];
+  const shadowHits: string[] = [];
+  const communityHits: string[] = [];
   for (const entry of judged.entries) {
     const item = byId.get(entry.item_id);
     if (!item) continue;
@@ -260,17 +297,55 @@ async function writePass(
       drop(item.id, "select", "written for an earlier digest of this run");
       continue;
     }
-    base.push(
+    // Topics score first and the list lifts only what no custom topic won, live and in the shadow.
+    // A favorite creator's video is lifted first, so a custom topic competes with the lifted score.
+    const topical = applyTopics(withCreator(scoreItem(entry, preferences, item)), layer);
+    const sourceShifted = sourceShift(adjustmentAt(autoAdjust.sources[item.source_id], deps.now()));
+    // The score a story reaches before the taste check and the vote weight, as the live path computes it.
+    const adjusted = (scored: ScoredItem): ScoredItem =>
       withSourceAdjustment(
-        applyFormatMix(
-          applyTopics(scoreItem(entry, preferences, item), layer),
-          preferences.format_mix,
-          context.sourceFacts,
-        ),
+        applyFormatMix(scored, preferences.format_mix, context.sourceFacts),
         sourceStats,
-        sourceShift(adjustmentAt(autoAdjust.sources[item.source_id], deps.now())),
-      ),
+        sourceShifted,
+      );
+    // Each list is also read as if on while it is off, one at a time, against the live other.
+    const lifted = (
+      trustedPublishers: TrustedPublisherMatcher,
+      community: CommunityFile,
+    ): ScoredItem =>
+      adjusted(withCommunity(withTrustedPublishers(topical, trustedPublishers), community));
+    const final = lifted(context.trustedPublishers, context.community);
+    base.push(final);
+    const passes = (scored: ScoredItem): boolean => eligibility(scored, undefined, off).eligible;
+    const note = (withList: ScoredItem): string =>
+      `${item.source_id}: ${item.title} (${final.score} to ${withList.score})`;
+    if (!passes(final)) {
+      if (context.trustedPublisherShadow !== NO_TRUSTED_PUBLISHERS) {
+        const withList = lifted(context.trustedPublisherShadow, context.community);
+        if (passes(withList)) shadowHits.push(note(withList));
+      }
+      if (context.communityShadow) {
+        const withList = lifted(context.trustedPublishers, context.communityShadow);
+        if (passes(withList)) communityHits.push(note(withList));
+      }
+    }
+  }
+  if (shadowHits.length > 0) {
+    deps.log.info(
+      "trusted publishers list is off; of the pool, these would pass the bar with it on",
+      {
+        pass: pass.id,
+        count: shadowHits.length,
+        stories: shadowHits.slice(0, 10),
+      },
     );
+  }
+  if (communityHits.length > 0) {
+    deps.log.info("community lift is off; of the pool, these would pass the bar with it on", {
+      pass: pass.id,
+      count: communityHits.length,
+      stories: communityHits.slice(0, 10),
+    });
   }
   // Jev's taste check, for the strongest candidates only: the change matters near the cut.
   const tasteFits =
@@ -374,6 +449,8 @@ async function writePass(
         judged: sampleFiles.judged,
         preferences,
         offCategories: off,
+        trustedPublishers: context.trustedPublishers,
+        community: context.community,
       })
     : {};
   await writeJson(file("source-counts.json"), {
@@ -631,6 +708,7 @@ export async function writeFinalists(args: {
       ...(sel.item.author ? { author: sel.item.author } : {}),
       category: sel.category,
       text: text.text,
+      ...(sel.item.source_type === "youtube" && text.method !== "snippet" ? { spoken: true } : {}),
       ...(sel.prompt === undefined ? {} : { prompt: sel.prompt }),
     });
   }

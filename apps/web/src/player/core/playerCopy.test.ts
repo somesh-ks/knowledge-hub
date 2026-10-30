@@ -29,23 +29,15 @@ describe("recordingCaption", () => {
     expect(recordingCaption({ ...base, kind: "weekly" })).toBe("Weekly · 2 min");
   });
 
-  it("calls an episode with two voices a discussion and any other an episode", () => {
+  // The 2026-10-30 Catch up card said "Readout · 2 min": the kind of everything made on request is
+  // Catch up, whatever its format, as the Library's filter names it.
+  it("calls everything made on request a Catch up, whatever its format", () => {
     const turn = (speaker: "a" | "b") => ({ speaker }) as never;
-    expect(recordingCaption({ ...base, turns: [turn("a"), turn("b")] })).toBe("Discussion · 2 min");
-    expect(recordingCaption({ ...base, turns: [turn("a")] })).toBe("Episode · 2 min");
-  });
-
-  it("uses the episode's format, as the Library does", () => {
-    const turn = (speaker: "a" | "b") => ({ speaker }) as never;
-    expect(recordingCaption({ ...base, format: "readout", turns: [turn("a")] })).toBe(
-      "Readout · 2 min",
-    );
-    expect(recordingCaption({ ...base, format: "headlines", turns: [turn("a")] })).toBe(
-      "Readout · 2 min",
-    );
-    expect(recordingCaption({ ...base, format: "discussion", turns: [turn("a")] })).toBe(
-      "Discussion · 2 min",
-    );
+    for (const format of ["readout", "discussion", "headlines"] as const) {
+      expect(recordingCaption({ ...base, format, turns: [turn("a")] })).toBe("Catch up · 2 min");
+    }
+    expect(recordingCaption({ ...base, turns: [turn("a"), turn("b")] })).toBe("Catch up · 2 min");
+    expect(recordingCaption({ ...base, kind: "on-demand" })).toBe("Catch up · 2 min");
   });
 
   it("takes the loaded audio's real length over the estimate", () => {

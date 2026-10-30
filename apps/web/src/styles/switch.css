@@ -1,0 +1,123 @@
+/*
+ * The Switch (design-system/Switch.astro): a checkbox with role="switch" drawn as a track and a
+ * thumb. Its classes are written in design-system/switch.ts and nowhere else.
+ */
+
+/* One setting that is on or off, a checkbox with role="switch" drawn as a track; its ::before is the thumb. */
+.switch-input {
+  position: relative;
+  flex: none;
+  width: var(--switch-width);
+  height: var(--switch-height);
+  margin: 0;
+  appearance: none;
+  border-radius: var(--switch-radius);
+  /* Off, the track is the control's whole outline, and the thumb's place on it is the state. The
+     control-edge colour is the one grey that stands 3 to 1 against both the page and the thumb. */
+  background: var(--color-border-control);
+  cursor: pointer;
+  transition: background-color var(--duration-state) var(--ease-out);
+}
+
+/* A switch that cannot be flipped reads as such. A disabled fieldset dims it the same way (manage.css), on the same element, so the two never stack. */
+.switch-input:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+/* The track is 32px tall; its target is 44px. */
+.switch-input::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block: calc((var(--size-touch) - var(--switch-height)) / -2);
+}
+
+.switch-input::before {
+  content: "";
+  position: absolute;
+  inset-block-start: var(--switch-padding);
+  inset-inline-start: var(--switch-padding);
+  width: var(--switch-thumb);
+  height: calc(var(--switch-height) - var(--switch-padding) * 2);
+  border-radius: var(--switch-thumb-radius);
+  background: var(--switch-thumb-bg);
+  transform-origin: 0 50%;
+  transition:
+    transform var(--duration-state) var(--ease-out),
+    scale var(--duration-press-out) var(--ease-out),
+    background-color var(--duration-state) var(--ease-out),
+    opacity var(--duration-state) var(--ease-out);
+}
+
+.switch-input:checked {
+  background: var(--color-accent);
+}
+
+/* On the accent the thumb takes the on-accent colour: in dark mode the idle thumb is nearly as light
+   as the accent, and its position would be hard to see. */
+.switch-input:checked::before {
+  background: var(--color-on-accent);
+  transform: translateX(
+    calc(var(--switch-width) - var(--switch-thumb) - var(--switch-padding) * 2)
+  );
+  transform-origin: 100% 50%;
+}
+
+/* The thumb stretches toward the other side while pressed, so the control answers before the finger
+   lifts. */
+.switch-input:enabled:active::before {
+  scale: 1.12 1;
+  transition-duration:
+    var(--duration-state), var(--duration-press-in), var(--duration-state), var(--duration-state);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .switch-input:enabled:hover {
+    background: color-mix(in oklch, var(--color-on-surface) 12%, var(--color-border-control));
+  }
+
+  .switch-input:enabled:checked:hover {
+    background: var(--color-accent-hover);
+  }
+}
+
+/* A disabled switch never answers a hover or a press. After the hover rules and no less specific, so a press under a mouse still shows as a press. */
+.switch-input:enabled:active {
+  background: color-mix(in oklch, var(--color-on-surface) 12%, var(--color-border-control));
+}
+
+.switch-input:enabled:checked:active {
+  background: var(--color-accent-pressed);
+}
+
+/* The thumb changes sides without travelling; the track still fades between its two colours. */
+@media (prefers-reduced-motion: reduce) {
+  .switch-input::before {
+    transition-property: background-color, opacity;
+  }
+}
+
+/* Forced colours drops fills and shadows, so the switch gets an outline and a thumb that turns to the
+   highlight when on. */
+@media (forced-colors: active) {
+  .switch-input {
+    border: var(--stroke-rail) solid ButtonText;
+  }
+
+  /* The border moved the thumb's reference edge inward; this puts the thumb back where it was. */
+
+  .switch-input::before {
+    inset-block-start: calc(var(--switch-padding) - var(--stroke-rail));
+    inset-inline-start: calc(var(--switch-padding) - var(--stroke-rail));
+    background: ButtonText;
+  }
+
+  .switch-input:checked {
+    border-color: Highlight;
+  }
+
+  .switch-input:checked::before {
+    background: Highlight;
+  }
+}

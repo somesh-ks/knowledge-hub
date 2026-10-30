@@ -1,0 +1,22 @@
+---
+import GuideTile from "../components/GuideTile.astro";
+import PageHead from "../components/PageHead.astro";
+import Shell from "../layouts/Shell.astro";
+import { FOUNDATION_PAGES } from "../lib/sections";
+
+const art = {
+  "/color": "color",
+  "/type": "type",
+  "/motion": "motion",
+  "/tokens": "tokens",
+} as const;
+---
+
+<Shell title="Foundations" current="/foundations">
+  <div class="settings-view guide-page" data-settings data-ready>
+    <PageHead title="Foundations" />
+    <section aria-label="Foundations" class="guide-tiles">
+      {FOUNDATION_PAGES.map((page) => <GuideTile page={page} art={art[page.path as keyof typeof art]} />)}
+    </section>
+  </div>
+</Shell>

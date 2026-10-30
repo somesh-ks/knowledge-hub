@@ -2,7 +2,16 @@ import type { Page, Route } from "@playwright/test";
 import { DEFAULT_SCHEDULE } from "@singularity/core";
 import { configHash } from "../src/lib/configHash";
 import { BUILT_FILES, routeConfigStore } from "./configServer";
-import { expect, expectNoViolationsInEitherScheme, seedStorage, test } from "./fixtures";
+import {
+  expect,
+  expectNoViolationsInEitherScheme,
+  queueComplete,
+  queueDock,
+  queueStatus,
+  seedStorage,
+  startListening,
+  test,
+} from "./fixtures";
 import { choose, openPicker, pickerList } from "./picker";
 
 const EPISODE = "/e/ep-20261007-1930";
@@ -68,8 +77,8 @@ test.describe("the Create page", () => {
     await openCreate(page);
     // Hidden in the DOM is not enough: a display rule on the line once showed its icon anyway.
     for (const line of await page.locator("[data-error]").all()) await expect(line).toBeHidden();
-    // Nothing is running, so the indicator has nothing to say.
-    await expect(page.locator("[data-run-card]")).toBeHidden();
+    // Nothing is running, so the queue has nothing to say.
+    await expect(queueDock(page)).toBeHidden();
   });
 
   test("while the request is out the button says Starting…, with its spinner", async ({ page }) => {
@@ -203,7 +212,7 @@ test.describe("the Create page", () => {
     await page.locator("[data-submit]").click();
     await expect.poll(() => mock.bodies.length).toBe(1);
     expect(mock.bodies[0]).not.toHaveProperty("passphrase");
-    await expect(page.locator("[data-run-card]")).toBeVisible();
+    await expect(queueDock(page)).toBeVisible();
     await expect(page.getByRole("dialog")).toHaveCount(0);
   });
 
@@ -258,28 +267,21 @@ test.describe("the Create page", () => {
       },
     });
 
-    // The form stays; the progress is a line in the indicator, which says so in words.
-    const card = page.locator("[data-run-card]");
-    const text = page.locator("[data-run-text]");
-    await expect(card).toBeVisible();
+    // The form stays; the progress is a row in the queue, which says so in words.
+    const text = queueStatus(page);
+    await expect(queueDock(page)).toBeVisible();
     await expect(page.locator("[data-create-form]")).toBeVisible();
-    await expect(text).toHaveText("Episode queued");
+    await expect(text).toHaveText("Waiting to start");
 
     await page.clock.runFor(4000);
-    await expect(text).toHaveText("Episode queued");
+    await expect(text).toHaveText("Waiting to start");
     await page.clock.runFor(4000);
     await expect(text).toHaveText("Writing your episode");
     await page.clock.runFor(4000);
-    await expect(text).toHaveText("Episode ready");
+    // Finished, it stays in the queue for the day, and the folded row says so.
+    await expect(queueComplete(page)).toBeVisible();
+    await expect(queueDock(page)).toBeVisible();
     expect(asked).toEqual(["4242", "4242", "4242"]);
-    await expect(page.getByRole("link", { name: "Open Library" })).toHaveAttribute(
-      "href",
-      "/library",
-    );
-
-    // Once finished it can be dismissed, and then it is gone.
-    await page.getByRole("button", { name: "Dismiss" }).click();
-    await expect(card).toBeHidden();
   });
 
   test("names each stage, fills the bar, and waits for the new page", async ({ page }) => {
@@ -323,26 +325,29 @@ test.describe("the Create page", () => {
     });
     await openCreate(page);
     await submit(page).click();
-    const text = page.locator("[data-run-text]");
-    const card = page.locator("[data-run-card]");
-    await expect(text).toHaveText("Episode queued");
+    const text = queueStatus(page);
+    await expect(text).toHaveText("Waiting to start");
     await page.clock.runFor(4000);
     await expect(text).toHaveText("Getting ready");
     await page.clock.runFor(4000);
     await expect(text).toHaveText("Making the episode");
-    // The bar is a share of the whole, never past the start of the next stage.
-    const share = () => card.evaluate((el) => Number(el.style.getPropertyValue("--run-to")));
-    expect(await share()).toBeGreaterThanOrEqual(1 / 3);
-    expect(await share()).toBeLessThan(2 / 3);
+    // The ring is a share of the whole: started, and nowhere near done in the middle stage.
+    const share = () =>
+      page
+        .locator("[data-queue-dock] [data-queue-ring]")
+        .first()
+        .evaluate((el) => Number(el.style.getPropertyValue("--queue-p")));
+    expect(await share()).toBeGreaterThan(0);
+    expect(await share()).toBeLessThan(99);
     await page.clock.runFor(4000);
     await expect(text).toHaveText("Adding it to your Library");
     live = true;
     await expect(async () => {
       await page.clock.runFor(10_000);
-      await expect(text).toHaveText("Episode ready", { timeout: 500 });
+      await expect(queueComplete(page)).toBeVisible({ timeout: 500 });
     }).toPass();
-    await expect(page.locator("[data-run-library]")).toHaveAttribute("href", "/e/ep-new");
-    await expect(page.locator("[data-run-library]")).toHaveText("Open episode");
+    // The new episode is offered in its row, which is not the page on screen.
+    await expect(await startListening(page)).toBeVisible();
   });
 
   // A failed run's line: the stage it stopped in when the status names one, and a plain failure
@@ -373,10 +378,9 @@ test.describe("the Create page", () => {
       );
       await openCreate(page);
       await submit(page).click();
-      await expect(page.locator("[data-run-card]")).toBeVisible();
+      await expect(queueDock(page)).toBeVisible();
       await page.clock.runFor(4000);
-      await expect(page.locator("[data-run-text]")).toHaveText(words);
-      await expect(page.getByRole("link", { name: "Open Library" })).toBeHidden();
+      await expect(queueStatus(page)).toHaveText(words);
     });
   }
 
@@ -402,7 +406,7 @@ test.describe("the Create page", () => {
     await submit(page).click();
     await expect.poll(() => mock.bodies.length).toBe(1);
     await page.clock.runFor(4000);
-    const text = page.locator("[data-run-text]");
+    const text = queueStatus(page);
     await expect(text).toHaveText("Couldn't make the episode");
     const again = page.getByRole("button", { name: "Try again" });
     await expect(again).toBeVisible();
@@ -413,7 +417,7 @@ test.describe("the Create page", () => {
     await expect.poll(() => second.bodies.length).toBe(1);
     expect(second.bodies[0]).toEqual(mock.bodies[0]);
     expect(second.bodies[0]?.request).toMatchObject({ length_minutes: 10 });
-    await expect(text).toHaveText("Episode queued");
+    await expect(text).toHaveText("Waiting to start");
     await expect(again).toBeHidden();
     // It survives a reload: the stored run still holds the request.
     const stored = await page.evaluate(() =>
@@ -435,7 +439,7 @@ test.describe("the Create page", () => {
     await openCreate(page);
     await submit(page).click();
     await expect.poll(() => mock.bodies.length).toBe(1);
-    await expect(page.locator("[data-run-card]")).toBeVisible();
+    await expect(queueDock(page)).toBeVisible();
     await submit(page).click();
     const busy = "An episode is still being made. You can start another when it's ready.";
     await expect(page.locator('[data-error="form"]')).toHaveText(busy);
@@ -444,9 +448,8 @@ test.describe("the Create page", () => {
     await expect(page.locator("[data-create-open]").first()).toHaveAccessibleDescription(busy);
   });
 
-  test("Episode ready goes once the episode is opened, and gives the room back", async ({
-    page,
-  }) => {
+  // The 2026-10-29 owner ask: a finished run stays for the day, with Start listening.
+  test("a finished episode stays in the queue with Start listening", async ({ page }) => {
     await page.clock.install();
     await mockPodcast(page, 202, { status: 202, run_id: 25, started_at: "x" });
     await page.route("**/api/status?**", (route) =>
@@ -479,28 +482,36 @@ test.describe("the Create page", () => {
     await page.clock.runFor(4000);
     await expect(async () => {
       await page.clock.runFor(3000);
-      await expect(page.locator("[data-run-text]")).toHaveText("Episode ready", { timeout: 500 });
+      await expect(queueComplete(page)).toBeVisible({ timeout: 500 });
     }).toPass();
-    await expect(page.locator("html")).toHaveAttribute("data-run", "done");
-    await page.getByRole("link", { name: "Open episode" }).click();
+    // The run is over but its row stays, and so does the room for the dock.
+    await expect(queueDock(page)).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("data-run", /.*/);
+    await (await startListening(page)).click();
     await expect(page).toHaveURL(new RegExp(`${EPISODE}$`));
-    await expect(page.locator("[data-run-card]")).toBeHidden();
-    await expect(page.locator("html")).not.toHaveAttribute("data-run", /.*/);
-    expect(await page.evaluate(() => localStorage.getItem("singularity:run"))).toBeNull();
+    // The episode is on screen: the record is forgotten, the day's row is not.
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem("singularity:run")))
+      .toBeNull();
+    await expect(queueComplete(page)).toBeVisible();
+    await expect(queueDock(page)).toBeVisible();
   });
 
-  test("a finished run whose episode is on screen goes away by itself", async ({ page }) => {
+  test("a finished run whose episode is on screen is forgotten as the record, and its row stays for the day", async ({
+    page,
+  }) => {
     await seedStorage(page, {
       session: {
         "singularity:run": JSON.stringify({ id: 26, phase: "done", t0: Date.now(), href: EPISODE }),
       },
     });
     await page.goto("/library");
-    await expect(page.locator("[data-run-text]")).toHaveText("Episode ready");
-    await expect(page.locator("html")).toHaveAttribute("data-run", "done");
+    // A run that ended earlier today is in the day's queue, and is not announced again.
+    await expect(queueComplete(page)).toBeVisible();
     await page.goto(EPISODE);
-    await expect(page.locator("[data-run-card]")).toBeHidden();
-    await expect(page.locator("html")).not.toHaveAttribute("data-run", /.*/);
+    await expect(queueComplete(page)).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem("singularity:run"))).toBeNull();
+    expect(await page.evaluate(() => sessionStorage.getItem("singularity:run"))).toBeNull();
   });
 });
 
@@ -685,7 +696,7 @@ test.describe("the Create page when the server says no", () => {
       await page.locator("[data-submit]").click();
       await expect(page.locator('[data-error="form"]')).toHaveText(words);
       await expect(page.locator("[data-create-form]")).toBeVisible();
-      await expect(page.locator("[data-run-card]")).toBeHidden();
+      await expect(queueDock(page)).toBeHidden();
     }
   });
 
@@ -712,7 +723,7 @@ test.describe("the Create page when the server says no", () => {
     await openCreate(page);
     await submit(page).click();
     await page.clock.runFor(4000);
-    const text = page.locator("[data-run-text]");
+    const text = queueStatus(page);
     await expect(text).toHaveText("Stopped while making the episode");
     await page.unroute("**/api/podcast");
     await mockPodcast(page, 429, { status: 429, error: "cooldown", retry_after_s: 400 });
@@ -726,8 +737,8 @@ test.describe("navigation with three destinations and one action", () => {
   test("fits at 320px and marks the Library as current on Create", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 640 });
     await openCreate(page);
-    await expect(page.locator(".app-nav-item")).toHaveText(["Latest", "Library", "Settings"]);
-    for (const item of await page.locator(".app-nav-item").all())
+    await expect(page.locator("a.app-nav-item")).toHaveText(["Latest", "Library", "Settings"]);
+    for (const item of await page.locator("a.app-nav-item").all())
       await expect(item).toBeInViewport();
     // Create sits under the Library, where episodes are kept.
     await expect(page.locator('.app-nav-item[aria-current="page"]')).toHaveText("Library");
@@ -752,10 +763,10 @@ test.describe("an episode page", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Quiet interfaces and fast latency",
     );
-    // The format and the story count stand under the title, as a briefing's facts (owner,
+    // The kind and the story count stand under the title, as a briefing's facts (owner,
     // 2026-10-24); the length is the chip's label, said once.
     await expect(page.locator(".hero-text .hero-facts > span")).toHaveText([
-      "Discussion",
+      "Catch up",
       "2 stories",
     ]);
     await expect(page.locator('.hero .cover img[data-mode="light"]')).toHaveAttribute(

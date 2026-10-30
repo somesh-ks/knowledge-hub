@@ -1,0 +1,48 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { type ButtonTone, type ButtonVariant, buttonClass } from "./button";
+
+interface ButtonProps {
+  /** Filled, tonal or text (button.ts says what each is for). */
+  variant: ButtonVariant;
+  /** The danger tone, for a text button that confirms a delete. */
+  tone?: ButtonTone;
+  /** Draws a link instead of a button, for an action that goes to an address. */
+  href?: string;
+  target?: string;
+  rel?: string;
+  /** For placing the button where it stands (a margin, a grid area). Never its look. */
+  class?: string;
+}
+
+type Props = ButtonProps & Omit<HTMLAttributes<"button">, keyof ButtonProps>;
+
+// `slot` places the button in its parent's slot; it is not an attribute of the button.
+const {
+  variant,
+  tone,
+  href,
+  class: placement,
+  type = "button",
+  slot: _slot,
+  ...passed
+} = Astro.props;
+
+// A bare data attribute (data-submit) is true on a component and would print as data-submit="true";
+// on a plain element it is empty. Scripts read both, so the button keeps the empty form.
+const rest = Object.fromEntries(
+  Object.entries(passed).map(([name, value]) => [
+    name,
+    value === true && name.startsWith("data-") ? "" : value,
+  ]),
+);
+const classes = [buttonClass(variant, tone), placement];
+---
+
+{
+  href ? (
+    <a class:list={classes} href={href} {...rest}><slot /></a>
+  ) : (
+    <button class:list={classes} type={type} {...rest}><slot /></button>
+  )
+}

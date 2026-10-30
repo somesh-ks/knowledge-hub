@@ -12,6 +12,7 @@ export const SOURCE_TYPES = [
   "arxiv",
   "lobsters",
   "producthunt",
+  "reddit",
 ] as const;
 export const SourceType = z.enum(SOURCE_TYPES);
 export type SourceType = z.infer<typeof SourceType>;
@@ -37,6 +38,22 @@ export const Item = z.object({
       hn_points: z.number().int().nonnegative().optional(),
       hn_comments: z.number().int().nonnegative().optional(),
       lobsters_score: z.number().int().optional(),
+      /** Reddit post score and comment count, when a Reddit source fetched the story (D240). */
+      reddit_score: z.number().int().optional(),
+      reddit_comments: z.number().int().nonnegative().optional(),
+      /** Views on a YouTube video when its channel feed was read. */
+      youtube_views: z.number().int().nonnegative().optional(),
+      /**
+       * That video's views against its channel's other recent videos, in the vote-equivalents the
+       * community score reads: near 0 for a typical video, about 500 at 3 times the channel's
+       * median views and about 1500 at 10 times. Absent when the feed gave too few videos to tell.
+       */
+      youtube_votes: z.number().int().nonnegative().optional(),
+      /**
+       * True on a video from a YouTube channel the owner marked as a favorite. Such a creator already
+       * picks and filters what to cover, so the score reads the video at a minimum depth (D248).
+       */
+      creator_vetted: z.boolean().optional(),
       /**
        * How many different sources covered the same story, when story clustering merged their
        * items into this one. Two or more; absent for a story only one source carried.

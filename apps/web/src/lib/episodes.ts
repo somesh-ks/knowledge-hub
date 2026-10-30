@@ -14,7 +14,7 @@ import { type SectionRef, sectionLabel } from "./sectionLabel";
  * warning, so one bad file never takes the site down.
  */
 
-export { FORMAT_LABELS } from "./formatLabels";
+export { CATCH_UP_LABEL, FORMAT_LABELS } from "./formatLabels";
 
 /** "8 min": how long an episode takes to hear, which its page's play controls say before it plays. */
 export function episodeLength(episode: Pick<Episode, "listen_minutes">): string {

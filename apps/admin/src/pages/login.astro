@@ -1,4 +1,5 @@
 ---
+import Button from "../../../web/src/design-system/Button.astro";
 import AdminHead from "../components/AdminHead.astro";
 import Shell from "../layouts/Shell.astro";
 import { href } from "../lib/sections";
@@ -22,7 +23,7 @@ import { href } from "../lib/sections";
           />
           <p class="settings-note" role="alert" data-wrong hidden>That password is not right.</p>
         </div>
-        <button class="btn-primary" type="submit">Sign in</button>
+        <Button variant="filled" type="submit">Sign in</Button>
       </form>
     </section>
   </div>

@@ -1,6 +1,7 @@
 import { basename, join } from "node:path";
 import { parseArgs } from "node:util";
 import { DigestKind, JudgmentsFile, offCategories } from "@singularity/core";
+import { loadCommunity } from "../community/community.js";
 import { type CommandContext, type CommandRun, secretsFromEnv } from "../context.js";
 import { validateAgentSelection } from "../curate/agentMode.js";
 import { type ApiRuntimeFactory, createApiRuntime } from "../curate/apiRuntime.js";
@@ -21,6 +22,10 @@ import { resolveWindow } from "../curate/window.js";
 import { mergeJudgments, pruneJudgments } from "../judge/cache.js";
 import { describeError } from "../llm/errors.js";
 import { loadTopics } from "../topics/store.js";
+import {
+  loadTrustedPublishers,
+  trustedPublisherMatcher,
+} from "../trustedPublishers/trustedPublishers.js";
 import { createLinter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
 import { writtenText } from "../write/text.js";
@@ -166,12 +171,15 @@ async function runApi(
   // An empty pool is a quiet day. A pool whose entries were all malformed is a broken fetch.
   if (pool.items.length === 0 && pool.invalid > 0) throw new Error("The pool has no valid items.");
 
-  const [preferences, sources, stateJudgments, lastRun] = await Promise.all([
-    loadPreferences(root),
-    loadSources(root),
-    loadJudgments(root),
-    loadLastRun(root),
-  ]);
+  const [preferences, sources, stateJudgments, lastRun, trustedPublishers, community] =
+    await Promise.all([
+      loadPreferences(root),
+      loadSources(root),
+      loadJudgments(root),
+      loadLastRun(root),
+      loadTrustedPublishers(root),
+      loadCommunity(root),
+    ]);
   const judgments = await withRunJudgments(stateJudgments, join(paths.outDir, "judgments.json"));
   const now = ctx.now();
   const window = resolveWindow({
@@ -195,6 +203,8 @@ async function runApi(
     {
       pool: pool.items,
       preferences,
+      trustedPublishers: trustedPublisherMatcher(trustedPublishers),
+      community,
       judgments,
       kind,
       window,

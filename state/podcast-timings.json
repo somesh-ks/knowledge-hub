@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "runs": [
+    {
+      "at": "2026-10-29T23:26:35.920Z",
+      "run_id": "40973051794",
+      "format": "readout",
+      "length_minutes": 5,
+      "stages": {
+        "select": 36,
+        "cover": 1,
+        "script": 46273,
+        "publish": 14
+      },
+      "metrics": {
+        "stories": 3,
+        "matched": 10,
+        "empty_topics": 0,
+        "budget_chars": 4840,
+        "script_chars": 1694,
+        "share": 0.35,
+        "writer_calls": 1
+      }
+    },
+    {
+      "at": "2026-10-30T19:10:46.930Z",
+      "run_id": "41112986316",
+      "format": "readout",
+      "length_minutes": 5,
+      "stages": {
+        "select": 47,
+        "cover": 1,
+        "script": 24236,
+        "publish": 13
+      },
+      "metrics": {
+        "stories": 10,
+        "matched": 15,
+        "empty_topics": 0,
+        "budget_chars": 4840,
+        "script_chars": 4482,
+        "share": 0.93,
+        "writer_calls": 1
+      }
+    }
+  ]
+}

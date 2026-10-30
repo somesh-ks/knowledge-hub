@@ -33,6 +33,11 @@ export const test = base.extend<Options & { problems: Problems }>({
           json: costsReport(new URL(route.request().url()).searchParams.get("by") ?? "provider"),
         }),
       );
+      // The podcast queue asks which runs are going while this browser has one on record: none, unless a
+      // test says otherwise (a later route answers first).
+      await page.route("**/api/generations", (route) =>
+        route.fulfill({ status: 200, json: { generations: [] } }),
+      );
       // The Health page draws from /api/health: a frozen answer with a reading of every tone.
       await page.route("**/api/health", (route) => route.fulfill({ json: healthReport() }));
       // The sources' own icons (https://<host>/favicon.ico) are on invented hosts; a one-pixel image
@@ -88,6 +93,24 @@ export const test = base.extend<Options & { problems: Problems }>({
 
 export { expect };
 
+/** The podcast queue's dock on a phone: shown while a run is going and for the day after one ended. */
+export const queueDock = (page: Page): Locator => page.locator("[data-queue-dock]");
+
+/** What the queue's newest row says under its name: the stage while it goes, when and how once it ended. */
+export const queueStatus = (page: Page): Locator =>
+  page.locator("[data-queue-dock] [data-queue-status]").first();
+
+/** The dock's head once every run of the day is over and made: its ring has become a check. */
+export const queueComplete = (page: Page): Locator =>
+  page.locator('[data-queue-dock] [data-queue-fold-ring][data-ended="done"]');
+
+/** Opens the dock if it is folded, and gives its Start listening link: a finished run stays in the queue with it. */
+export async function startListening(page: Page): Promise<Locator> {
+  const toggle = page.locator("[data-queue-toggle]");
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+  return page.locator("[data-queue-dock]").getByRole("link", { name: /^Start listening/ });
+}
+
 export const ROUTES = [
   { name: "home", path: "/" },
   { name: "latest digest", path: "/d/2026-10-07" },
@@ -116,8 +139,8 @@ export const SITE_PAGES = [
   "/settings/categories/audio_interfaces",
   "/settings/categories/other",
   // Left out until 2026-10-23, so a change to the card tokens reached the Costs card unchecked.
-  "/analytics",
-  "/settings/health",
+  "/admin/costs",
+  "/admin/health",
   // The design catalogue (D189): every shared component on one page, held to the same grid.
   "/design",
 ];

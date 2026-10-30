@@ -6,7 +6,7 @@
  * properties, so the transitions here are plain CSS: sheet in 300ms on the drawer curve, sheet out
  * 220ms, scaled by how hard the sheet was flicked away.
  *
- * A sheet is a flat surface with one accent. Its buttons are the shared ones (.btn-primary, .btn,
+ * A sheet is a flat surface with one accent. Its buttons are the shared ones (.button-filled, .button-text,
  * .icon-btn in buttons.css), so a page that mounts the sheets loads that file too. The Settings
  * sheet also takes its segmented control and its icons from player.css.
  */
@@ -212,8 +212,8 @@
 
 .sheet-field {
   display: grid;
-  gap: var(--space-2);
-  margin-block-start: var(--space-4);
+  gap: var(--field-label-gap);
+  margin-block-start: var(--space-6);
 }
 
 /* A group of choices is a field like any other: no frame of the browser's own. */
@@ -304,7 +304,7 @@ textarea.sheet-input {
   margin-block-start: var(--space-4);
 }
 
-/* One filled button for the action that commits (.btn-primary), text buttons for the rest (.btn). */
+/* One filled button for the action that commits (.button-filled), text buttons for the rest (.button-text). */
 .sheet-actions {
   display: grid;
   gap: var(--space-2);
@@ -312,13 +312,13 @@ textarea.sheet-input {
 }
 
 /* Busy keeps its accent fill: the spinner and the word say "working", not "unavailable". */
-.sheet-actions .btn-primary[data-busy="true"] {
+.sheet-actions .button-filled[data-busy="true"] {
   background: var(--cta-bg);
   color: var(--cta-fg);
   cursor: progress;
 }
 
-.sheet-actions .btn-primary[aria-disabled="true"]:active {
+.sheet-actions .button-filled[aria-disabled="true"]:active {
   transform: none;
 }
 
@@ -466,7 +466,7 @@ textarea.sheet-input {
 }
 
 /* The button's label lines up with the text above it; its padding hangs into the gap. */
-.sheet-hint-card .btn {
+.sheet-hint-card .button-text {
   grid-column: 2;
   justify-self: start;
   margin-inline-start: calc(var(--space-4) * -1);
@@ -525,6 +525,15 @@ textarea.sheet-input {
     display var(--duration-press-in) allow-discrete;
 }
 
+/* A toast that asks to stay on one line (oneLine, toastStore.ts; the time zone offer, D239) keeps
+   its words whole and ends them with an ellipsis rather than wrap. Its copy is written to fit. */
+.toast[data-one-line] .toast-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Under the finger the toast follows at once; the spring back and the leave run on the transition. */
 .toast[data-dragging] {
   transition: none;
@@ -540,6 +549,20 @@ textarea.sheet-input {
 
   .toast-text {
     flex: 1 1 auto;
+  }
+
+  /* A one-line toast gives its close button's room to its words on a phone, where a swipe takes it
+     away (Toaster.tsx), so "You're in Johannesburg" and its action fit without an ellipsis. The
+     button stays for a keyboard and a screen reader, as a sheet's Close does (D144, above). */
+  .toast[data-one-line] .toast-dismiss {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }
 

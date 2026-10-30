@@ -1,4 +1,5 @@
 ---
+import Button from "../design-system/Button.astro";
 import type { ManageSource } from "../lib/manage";
 import { FORMAT_LABEL } from "../lib/sourceFilter";
 import Icon from "./Icon.astro";
@@ -71,6 +72,6 @@ const shownChips = chips && formats.length > 1;
   }
   <p class="filter-none" role="status" hidden data-filter-none>
     <span>No sources match.</span>
-    <button class="btn" type="button" data-filter-clear>Clear</button>
+    <Button variant="text" data-filter-clear>Clear</Button>
   </p>
 </div>

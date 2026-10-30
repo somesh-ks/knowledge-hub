@@ -4,6 +4,16 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-29 | [The style guide as its own app](2026-10-29-style-guide.md) | `apps/design` at `/design`: colour with live contrast, type, tokens; hand-written component specs built and cut for parity (D226) |
+| 2026-10-30 | [Trusted publishers list renamed](2026-10-30-trusted-publishers-rename.md) | "authority" became "trusted publishers" in file, code and command; the six Reddit seeds dropped from the registry (D250) |
+| 2026-10-29 | [The Cancel route gets a key](2026-10-29-cancel-token.md) | Open `/api/cancel` stopped any run; a per-run HMAC token held by the starter (D242) |
+| 2026-10-29 | [Podcast run audit](2026-10-29-podcast-run-audit.md) | Every Catch up, Regenerate and scheduled failure traced to a merged fix; a live Regenerate and Catch up started 2 s apart both published |
+| 2026-10-29 | [The podcast queue](2026-10-29-podcast-queue.md) | A dock above the bottom bar and a popover from the side column listing a Catch up or a regeneration while it is made, a ring with the percent, finished runs staying for the day with Start listening, a title that never changes, an X to cancel and Details for a failure (D231) |
+| 2026-10-29 | [Community signal](2026-10-29-community-signal.md) | Community votes floor the depth score, HN topic queries, Reddit source type, release feeds demoted; shipped off (D240) |
+| 2026-10-29 | [Authority list](2026-10-29-authority-list.md) | Vetted publishers' announcements pass the bar, Exa restricted to their domains, shadow log and replay; shipped off (D234) |
+| 2026-10-29 | [Agent-ready design system](2026-10-29-agent-ready-design-system.md) | A generated file and `npm run ds` for parts and tokens: -20% tokens, -44% tool calls on 19 lookup tasks (D236) |
+| 2026-10-29 | [Short dailies: Step 0](2026-10-29-short-dailies-step-zero.md) | Why the daily aired 3.8 of 5 minutes and the five fixes (D216 to D225); the exit check is two real dailies within 10% |
+| 2026-10-29 | [Button, the first control as a component](2026-10-29-button-component.md) | `Button.astro` with filled, tonal and text (were `btn-primary`, `btn-secondary`, `btn`), nothing on screen changed; a test that fails a hand-written class and a gate that keeps design-system changes in their own labelled pull request (D237) |
 | 2026-10-28 | [A list of generations, with Cancel](2026-10-28-generations-list.md) | An icon and popover on desktop and a sheet on a phone listing every generation under way with cover, bar, time left and Cancel; `/api/generations`, `/api/cancel`, a cancelled run ending as Cancelled (D208) |
 | 2026-10-28 | [The Health page](2026-10-28-health-page.md) | Settings, Analytics, Health: briefings, run times, field speed, errors, workflow runs and services read live, judged by the daily check's lines (D203) |
 | 2026-10-27 | [Deploys load themselves](2026-10-27-auto-update.md) | The Reload toast replaced by a guarded automatic reload (D202); the build check read the swapped head meta |

@@ -28,6 +28,28 @@ function channelIdOf(channelId: string | undefined, url: string): string | undef
   }
 }
 
+/** Videos a feed needs for a median worth comparing against. */
+const MIN_VIDEOS_FOR_MEDIAN = 5;
+
+function medianOf(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2
+    ? (sorted[mid] as number)
+    : ((sorted[mid - 1] as number) + (sorted[mid] as number)) / 2;
+}
+
+/**
+ * A video's views as vote-equivalents against its own channel: views are not comparable across
+ * channels (a million-subscriber channel's dull video beats a small channel's best), so the
+ * measure is the multiple of the channel's median. A line through 3 times the median = 500 and
+ * 10 times = 1500 (the community score's own scale), floored at 0 below about 1.6 times.
+ */
+export function youtubeVotes(views: number, median: number): number {
+  if (median <= 0) return 0;
+  return Math.max(0, Math.round(830 * Math.log(views / median) - 410));
+}
+
 /** YouTube channel feed (videos.xml). Needs a channel id, not a handle. */
 export const fetchYoutube: SourceFetcher = async (source, window, deps): Promise<Item[]> => {
   const channelId = source.options.channel_id;
@@ -48,5 +70,17 @@ export const fetchYoutube: SourceFetcher = async (source, window, deps): Promise
     }
   }
   const entries = feed.entries.filter((entry) => !entry.link?.includes("/shorts/"));
-  return buildItems(entries.map(entryToRaw), { source, window, fetchedAt: deps.now() });
+  const counted = feed.entries.flatMap((entry) => (entry.views === undefined ? [] : [entry.views]));
+  const median = counted.length >= MIN_VIDEOS_FOR_MEDIAN ? medianOf(counted) : undefined;
+  const raws = entries.map((entry) => ({
+    ...entryToRaw(entry),
+    signals: {
+      ...(source.high_signal ? { creator_vetted: true } : {}),
+      ...(entry.views === undefined ? {} : { youtube_views: entry.views }),
+      ...(entry.views === undefined || median === undefined
+        ? {}
+        : { youtube_votes: youtubeVotes(entry.views, median) }),
+    },
+  }));
+  return buildItems(raws, { source, window, fetchedAt: deps.now() });
 };

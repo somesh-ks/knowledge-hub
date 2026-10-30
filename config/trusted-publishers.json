@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "enabled": false,
+  "entries": [
+    {
+      "domain": "openai.com",
+      "categories": ["frontier_model_releases"],
+      "note": "first-party lab; openai-blog passed 9 of 85 judged (10-29)"
+    },
+    {
+      "domain": "anthropic.com",
+      "categories": ["frontier_model_releases"],
+      "note": "first-party lab; anthropic-blog passed 0 of 15"
+    },
+    {
+      "domain": "deepmind.google",
+      "categories": ["frontier_model_releases"],
+      "note": "first-party lab; deepmind-blog passed 1 of 17"
+    }
+  ]
+}

@@ -12,6 +12,10 @@ import {
   isTopicTagged,
   isTrendingHinted,
 } from "../sources/hint.js";
+import {
+  isTrustedPublisher,
+  type TrustedPublisherMatcher,
+} from "../trustedPublishers/trustedPublishers.js";
 import { authorMatches, containsPhrase, keywordRegExp } from "./phrase.js";
 import { releaseWeight } from "./releaseWeight.js";
 
@@ -33,6 +37,8 @@ export const TRENDING_CAP = 12;
 export const MIN_TRENDING_COVERAGE = 2;
 /** HN points above which an item stays even with no keyword or author match. */
 export const STRONG_HN_POINTS = 100;
+/** The same for a Reddit score: its threads run higher in the subreddits we read (D240). */
+export const STRONG_REDDIT_SCORE = 200;
 
 /**
  * Items one source may contribute, so a high-volume feed (a monorepo's releases, a journal's
@@ -61,6 +67,8 @@ export interface PrefilterInput {
   techCap?: number;
   /** Cap for the Trending beat. */
   trendingCap?: number;
+  /** The owner's vetted publishers (D234): their pages count as high signal, as a favourite source's do. */
+  trustedPublishers?: TrustedPublisherMatcher;
 }
 
 export interface PrefilterReport {
@@ -174,6 +182,7 @@ export function prefilter({
   cap = DEFAULT_CAP,
   techCap = TECH_CAP,
   trendingCap = TRENDING_CAP,
+  trustedPublishers,
 }: PrefilterInput): PrefilterResult {
   const sourceById = new Map(sources.map((source) => [source.id, source]));
   const keywords = preferences.preferred_keywords.map((keyword) => keywordRegExp(keyword));
@@ -223,9 +232,10 @@ export function prefilter({
     const authorHit = preferences.preferred_authors.some((name) =>
       authorMatches(item.author, name),
     );
-    const highSignal = source?.high_signal === true;
+    const highSignal = source?.high_signal === true || isTrustedPublisher(trustedPublishers, item);
     const hnPoints = item.signals.hn_points ?? 0;
-    const strong = hnPoints > STRONG_HN_POINTS;
+    const redditScore = item.signals.reddit_score ?? 0;
+    const strong = hnPoints > STRONG_HN_POINTS || redditScore > STRONG_REDDIT_SCORE;
 
     // A source shipped for Design is relevant by being tagged, as the tech beat is by its hint, and
     // an engineering blog filed for Software Engineering by its hint or tag (D155), unless that
@@ -248,7 +258,8 @@ export function prefilter({
     const categoryWeight = hint ? NORMAL_TASTE : 0.5;
     const votes =
       Math.min(3, Math.log10(1 + hnPoints)) +
-      Math.min(2, Math.log10(1 + Math.max(0, item.signals.lobsters_score ?? 0)));
+      Math.min(2, Math.log10(1 + Math.max(0, item.signals.lobsters_score ?? 0))) +
+      Math.min(2, Math.log10(1 + Math.max(0, redditScore)));
     const score =
       3 * titleHits +
       snippetHits +

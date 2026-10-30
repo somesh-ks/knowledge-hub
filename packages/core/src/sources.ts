@@ -30,6 +30,7 @@ export function deriveSourceFormat(type: SourceType): SourceFormat {
       return "research";
     case "hn":
     case "lobsters":
+    case "reddit":
       return "forum";
     default:
       return "blog";

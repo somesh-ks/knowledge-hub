@@ -1,5 +1,5 @@
-/** What can float over the bottom of the page: the bottom bar, the player, the run card, the buttons. */
-export const FLOATING = ".app-nav, .player-dock, .run-card, .create-fab, .manage-bar";
+/** What can float over the bottom of the page: the bottom bar, the player, the queue dock, the buttons. */
+export const FLOATING = ".app-nav, .player-dock, .queue-dock, .create-fab, .manage-bar";
 
 /**
  * How far down the screen a list opening under `field` may reach: the top of the highest thing that

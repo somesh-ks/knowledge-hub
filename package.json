@@ -11,17 +11,19 @@
   ],
   "scripts": {
     "singularity": "tsx packages/engine/src/cli.ts",
-    "typecheck": "npm run typecheck:packages && npm run check -w @singularity/web && npm run check -w @singularity/admin",
+    "typecheck": "npm run typecheck:packages && npm run check -w @singularity/web && npm run check -w @singularity/admin && npm run check -w @singularity/design",
     "typecheck:packages": "tsc --noEmit -p tsconfig.json",
     "lint": "biome check .",
     "format": "biome format --write .",
     "test": "vitest run",
     "test:fast": "vitest run --exclude '**/git-*.test.ts'",
     "gate": "node scripts/gate.mjs",
-    "build": "npm run build -w @singularity/web && npm run build -w @singularity/admin",
+    "build": "npm run build -w @singularity/web && npm run build -w @singularity/admin && npm run build -w @singularity/design",
     "dev": "npm run dev -w @singularity/web",
     "dev:admin": "npm run dev -w @singularity/admin",
     "tokens": "tsx scripts/buildTokens.ts",
+    "system": "tsx scripts/system/build.ts",
+    "ds": "tsx scripts/system/cli.ts",
     "design-check": "vitest run apps/web/src/styles/styles.test.ts scripts/buildTokens.test.ts",
     "blast-radius": "node scripts/blastRadius.mjs",
     "glyphs": "tsx scripts/buildGlyphs.ts",
@@ -31,7 +33,8 @@
     "sound-lab": "tsx scripts/buildSoundLab.ts",
     "covers:sheet": "tsx packages/cover/scripts/contactSheet.ts",
     "secrets:push": "tsx scripts/pushSecrets.ts",
-    "backfill:opus": "tsx scripts/backfillOpus.ts"
+    "backfill:opus": "tsx scripts/backfillOpus.ts",
+    "dev:design": "npm run dev -w @singularity/design"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
