@@ -261,13 +261,14 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D243 | One of each | active |
 | D244 | YouTube views vs median = votes | active |
 | D245 | system.json omits the file-use count | amends D236 |
-| D246 | Catch up kind label; counts yield to slots | active; amends D218 |
+| D246 | Catch up label; counts yield to slots | amends D218 |
 | D247 | Deploy-count warning | active |
 | D248 | Favorite creators trusted | active |
 | D249 | Neon switches beat config files | active |
-| D250 | Publishers renamed; Reddit dropped | active; amends D234, D240 |
-| D251 | Ingest packs a run into one Blob object | active; amends D233 |
+| D250 | Publishers renamed; no Reddit | amends D234, D240 |
+| D251 | Ingest: one Blob object a run | amends D233 |
 | D253 | UI fixes start at the component | active; amends D237 |
 | D254 | One PR per task; one rolling DS PR | active; amends D237 |
+| D255 | Videos judged on transcripts | active; amends D248 |
 
 ---

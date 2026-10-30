@@ -14,6 +14,7 @@ import {
 } from "../src/judge/cache.js";
 import { FallbackJudge } from "../src/judge/fallbackJudge.js";
 import type { Judge } from "../src/judge/types.js";
+import { withBasis, withoutStaleJudgments, withVideoExcerpts } from "../src/judge/videoExcerpt.js";
 import { makeEntry, makeItem } from "./score-factories.js";
 import { captureLog } from "./write-fakes.js";
 
@@ -172,5 +173,80 @@ describe("FallbackJudge", () => {
     );
     expect(judge.model).toBe(MODEL);
     expect(judge.questionsHash).toBe(HASH);
+  });
+});
+
+describe("a favorite creator's video", () => {
+  const sponsor = "This video is sponsored by Acme, use code SAVE at acme.example. ";
+  const spoken = `${sponsor}${"Here is how the editor handles state. ".repeat(80)}`;
+
+  /** Records the snippet each judged item carried. */
+  function snippetJudge(): Judge & { seen: Map<string, string> } {
+    const seen = new Map<string, string>();
+    return {
+      seen,
+      name: "stub",
+      model: MODEL,
+      questionsHash: HASH,
+      async judge(items) {
+        for (const item of items) seen.set(item.id, item.snippet);
+        return items.map((item) => ({
+          ...makeEntry(item, { model: MODEL }),
+          questions_hash: HASH,
+        }));
+      },
+    };
+  }
+
+  it("is judged on its transcript, once per excerpt, never on a description cached from before", async () => {
+    const video = makeItem({
+      source_type: "youtube",
+      snippet: "Links and a sponsor line",
+      signals: { creator_vetted: true },
+    });
+    const stranger = makeItem({ source_type: "youtube", snippet: "A video from no favorite" });
+    const silent = makeItem({
+      source_type: "youtube",
+      snippet: "No captions here",
+      signals: { creator_vetted: true },
+    });
+    const items = [video, stranger, silent];
+    const transcriptOf = (text: string) => async (item: Item) =>
+      item.id === video.id ? { text, method: "captions" as const, truncated: false } : null;
+
+    /** One run's judging: what the stage does with the cache, and what the judge was asked. */
+    async function run(cache: JudgmentsFile, extract: ReturnType<typeof transcriptOf>) {
+      const excerpts = await withVideoExcerpts(items, extract);
+      const fresh = withoutStaleJudgments(cache, excerpts.basis);
+      const judge = snippetJudge();
+      const judged = await judgeWithCache(judge, excerpts.items, fresh.cache);
+      const marked = judged.entries.map((entry) => withBasis(entry, excerpts.basis));
+      return { judge, stale: fresh.stale, cache: mergeJudgments(judged.cache, marked) };
+    }
+
+    const cached = mergeJudgments(
+      EMPTY_JUDGMENTS,
+      items.map((i) => makeEntry(i)),
+    );
+    const first = await run(cached, transcriptOf(spoken));
+    // Only the video with a transcript is asked again; the others keep their cached answer.
+    expect([...first.judge.seen.keys()]).toEqual([video.id]);
+    expect([...first.stale]).toEqual([video.id]);
+    const snippet = first.judge.seen.get(video.id) ?? "";
+    expect(snippet.length).toBeLessThanOrEqual(1_200);
+    expect(snippet).toContain("editor handles state");
+    expect(snippet).not.toContain("sponsored by Acme");
+
+    // The same transcript on the next run is a cache hit: no second paid request.
+    const again = await run(first.cache, transcriptOf(spoken));
+    expect(again.judge.seen.size).toBe(0);
+    expect(again.stale.size).toBe(0);
+
+    // A different transcript is a different excerpt and is judged again.
+    const changed = await run(
+      again.cache,
+      transcriptOf(`${"A different video about motion curves. ".repeat(80)}`),
+    );
+    expect([...changed.judge.seen.keys()]).toEqual([video.id]);
   });
 });
