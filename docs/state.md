@@ -24,7 +24,7 @@ Unit (CI): 324 files, 5,132 tests, 86 s. Site e2e: 411 runs, 10 min. Player e2e:
 - Three regenerations per podcast, counted in its own file (D212). The file counts (`regenerations: 1` after the 10-29 live Regenerate). closed when: the page shows "2 of 3 regenerations left" for it.
 - Short podcasts (D204, D216 to D225). closed when: two dailies in a row air within 10% of their length, `singularity metrics` shows ten runs at `length_share` 0.9 or more, and `failure_rate` 0.1 or less. A Regenerate and a Catch up started 2 s apart both published on 10-29.
 - Ingest in shadow (D233). closed when: for 7 days the store holds 90% of each daily's stories and reads 90% of pages tried (`ingest --coverage`).
-- Authority list (D234), community lift (D240) and Reddit sources, shipped off. closed when: Somesh signs off both files and they are on, a runner reads a Reddit source, and a daily airs a lab story and a community-voted one, no source over 30% passing.
+- Authority list (D234), community lift (D240) and Reddit sources, shipped off. closed when: Somesh signs off both files and they are on, a runner reads a Reddit source, and a daily airs a lab story and a community-voted one, none over 30% passing.
 - Run names (D217), Neon run log (D221). `pipeline_runs` holds the 10-29 Regenerate and Catch up. closed when: a scheduled daily is named `daily <date>`, is off the queue, and has its row.
 - `podcast.yml` no longer installs ffmpeg (merged). The first stage starts 9 s after the job starts on 10-29 (29 s before); checkout, Node and install take about 7 s of it. closed when: Somesh accepts 9 s or sets a new target.
 - A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): `run.yml`'s `length_minutes` input must merge with the site code. closed when: a Regenerate at 10 minutes airs within 10% of 10.
@@ -34,7 +34,7 @@ Unit (CI): 324 files, 5,132 tests, 86 s. Site e2e: 411 runs, 10 min. Player e2e:
 - Alexandria pilot (D200). closed when: a run log shows `anthropic-blog` fetched via `alexandria:anthropic-com` with dated posts.
 - Owner's eye: the bar's centring (over 1px), the centred column and label gap (D229), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off on a phone and a laptop.
 - Live content (plan 20): an open page elsewhere does not refresh within 60 s; `smokeLive.mjs --apply` never ran on production; offline copies of a removed episode and Listen now after a delete are unaudited. closed when: each is checked.
-- Settings paint the kept store copy at once, the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change waits for the store, up to 2.5 s. closed when: the owner signs off on a phone.
+- Settings paint the kept copy at once, the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change waits for the store, up to 2.5 s. closed when: the owner signs off on a phone.
 - Sources design (D124) live: production asks Jev for a source's format only after `npm run secrets:push`; no run used a mix, perspective or cap. closed when: a production source's format comes from Jev and a digest follows a mix change.
 - YouTube text: Firecrawl's transcripts answered live (10-24), Gemini 10-19; no full run used either. closed when: a committed digest has a YouTube finalist with `extract_method` captions or transcription.
 - YouTube feeds 404 on runners (since 10-14); #235 reads them via Firecrawl. closed when: a run's fetch lists the five in `relayed_sources`.
