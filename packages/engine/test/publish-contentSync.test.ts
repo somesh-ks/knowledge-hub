@@ -55,6 +55,15 @@ it("sends only what changed and deletes what is gone", async () => {
   expect(blob.store.has("content/Digests/2026/10/2026-10-20.md")).toBe(false);
 });
 
+it("writes nothing when nothing changed, because each write spends the Hobby allowance", async () => {
+  await writeRepoFile(temp.root, "Digests/2026/10/2026-10-20.md", "one");
+  await sync();
+  blob.puts.length = 0;
+
+  expect((await sync()).uploaded).toEqual([]);
+  expect(blob.puts).toEqual([]);
+});
+
 it("leaves the old manifest when an upload fails, so the next sync sends the file again", async () => {
   await writeRepoFile(temp.root, "Digests/2026/10/2026-10-20.md", "one");
   await sync();
