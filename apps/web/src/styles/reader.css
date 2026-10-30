@@ -35,3 +35,32 @@
   outline: none;
   box-shadow: none;
 }
+
+/* A plain page header: the title and one line under it. */
+.page-head {
+  display: grid;
+  gap: var(--space-2);
+  padding-block: var(--space-6) var(--space-2);
+}
+
+@media (width >= 40rem) {
+  .page-head {
+    padding-block-start: var(--space-8);
+  }
+}
+
+/* ------------------------------------------------------------------ meta line that wraps */
+
+/*
+ * A wrapped .meta line would open its second line with a dot. Here every part carries its dot in a
+ * box of one fixed width, and the line is shifted back and clipped by that width, so the dot of
+ * whichever part starts a line falls outside the clip. Physical sides: the copy is left to right.
+ */
+.meta-wrap {
+  margin-inline-start: calc(var(--meta-dot) * -1);
+  clip-path: inset(
+    calc(var(--space-1) * -1) calc(var(--space-1) * -1) calc(var(--space-1) * -1) var(--meta-dot)
+  );
+}
+
+/* Every part's dot, the first one too, is the one separator (primitives.css). */

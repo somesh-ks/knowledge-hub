@@ -6,7 +6,7 @@ The owner asked whether the design system's components could be consolidated ("s
 
 A scan of every selector in `apps/*/src/styles` (730 classes) against every markup and script file, then the real CSS rendered side by side at 390px.
 
-- **60 classes no markup uses.** The old manage rows (20), the unused Base UI switch, range and hint card in `sheets.css` (15), four player leftovers, and ten `text-*` type roles with `scroll-area`, `pad-safe-*`, `stagger` and `is-loading` in `foundations.css`. PR A removes 45 of them; the 15 foundations utilities stay for PR F to give users.
+- **60 classes no markup uses.** The old manage rows (20), the unused Base UI switch, range and hint card in `sheets.css` (15), four player leftovers, and ten `text-*` type roles with `scroll-area`, `pad-safe-*`, `stagger` and `is-loading` in `foundations.css`. PR A removes 43. The 15 foundations utilities stay for PR F to give users, and `filter-chips-scroll` and `meta-wrap` stay for the system PRs: `primitives.css` is a system file, and a system file's change travels in a labeled design-system PR (D237).
 - **Thirteen families drawn more than once:**
 
 | Family | Copies today | Becomes |
