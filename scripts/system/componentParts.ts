@@ -124,12 +124,12 @@ export const componentParts = (): PartSource[] => [
     };
   }),
   control("switch", "Switch", SWITCH, {
-    keywords: ["toggle", "on off", "boolean", "enable"],
+    keywords: ["switch", "toggle", "on off", "boolean", "enable"],
     markup:
       '<div class="settings-row"><label class="settings-label" for="autoplay">Autoplay</label><Switch id="autoplay" name="autoplay" /></div>',
   }),
   control("slider", "Slider", SLIDER, {
-    keywords: ["range", "volume", "speed", "scrub"],
+    keywords: ["slider", "range", "volume", "speed", "scrub"],
     markup:
       '<Slider aria-label="Volume" min="0" max="1" step="0.05" value="0.7" style="--range-fill: 70%" />',
     rules: [

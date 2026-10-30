@@ -246,6 +246,7 @@
         }
       ],
       "keywords": [
+        "switch",
         "toggle",
         "on off",
         "boolean",
@@ -301,6 +302,7 @@
         }
       ],
       "keywords": [
+        "slider",
         "range",
         "volume",
         "speed",
