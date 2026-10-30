@@ -12,8 +12,12 @@ git diff --quiet "$VERCEL_GIT_PREVIOUS_SHA" HEAD -- \
   ../../tokens \
   ../web/src/styles \
   ../web/src/components \
+  ../web/src/design-system \
   ../web/src/assets \
   ../web/src/lib/icons.ts \
+  ../web/src/lib/brandMarks.ts \
+  ../web/src/lib/healthRows.ts \
+  ../web/src/scripts/segmentedNav.ts \
   ../web/src/scripts/themeInit.js \
   ../../packages/engine/src/store/experimentFlags.ts \
   ../../package.json \

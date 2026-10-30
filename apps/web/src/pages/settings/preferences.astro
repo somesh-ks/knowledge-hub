@@ -14,6 +14,7 @@ import SettingsHead from "../../components/SettingsHead.astro";
 import SheetHeader from "../../components/SheetHeader.astro";
 import WeightRow from "../../components/WeightRow.astro";
 import Button from "../../design-system/Button.astro";
+import Switch from "../../design-system/Switch.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { loadManage } from "../../lib/manage";
 import { loadScheduleView } from "../../lib/schedule";
@@ -70,7 +71,7 @@ const offers = addOffers(structure.blocks, structure.sections);
         <div class="rows card-group">
           <div class="settings-row">
             <label class="settings-label" for="settings-autoplay">Podcast autoplay</label>
-            <input class="settings-switch" id="settings-autoplay" name="autoplay" type="checkbox" role="switch" />
+            <Switch id="settings-autoplay" name="autoplay" />
           </div>
           {/* Where every episode starts (2026-10-25), in the playback card under Autoplay (owner,
                2026-10-27). A speed chosen in the player lasts one episode. Saved on this device with

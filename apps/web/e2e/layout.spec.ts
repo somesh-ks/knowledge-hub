@@ -18,8 +18,8 @@ const PAGES = [
   "/settings/privacy",
   "/e/ep-20261007-1930",
   // Left out until 2026-10-24, so its chart and table switch answered a touch across 36px unseen.
-  "/analytics",
-  "/settings/health",
+  "/admin/costs",
+  "/admin/health",
 ];
 
 /** Eighty words: the longest summary the voice allows. */

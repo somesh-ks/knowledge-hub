@@ -1,6 +1,7 @@
 ---
 import { resolve } from "node:path";
 import Button from "../../../web/src/design-system/Button.astro";
+import Switch from "../../../web/src/design-system/Switch.astro";
 import Toaster from "../../../web/src/sheets/Toaster";
 import AdminHead from "../components/AdminHead.astro";
 import Shell from "../layouts/Shell.astro";
@@ -43,10 +44,7 @@ const WORDS = { on: "On", shadow: "Shadow", off: "Off" } as const;
               {experiment.flag ? (
                 <>
                   <Button variant="text" data-promote disabled>Promote</Button>
-                  <input
-                    class="settings-switch"
-                    type="checkbox"
-                    role="switch"
+                  <Switch
                     aria-labelledby={`experiment-${experiment.id}`}
                     checked={experiment.state === "on"}
                     disabled
