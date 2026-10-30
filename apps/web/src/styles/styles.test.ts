@@ -791,38 +791,51 @@ describe("house rules", () => {
 });
 
 /**
- * The stylesheets that still restyle a design-system component's classes, with the number of times
- * each names them. A component is fixed in its own sheet, never bent on one page (AGENTS.md, owner,
- * 2026-10-30: "whenever I ask you to fix a UI component, first attempt to fix/improve the
- * centralized design system component"). A page rule that overrides a Button is debt: moving it
- * into the component lowers a count, and this list only shrinks. Without it a new override passes
- * every other test and the component quietly forks, page by page.
+ * The page rules that still restyle a design-system component's classes, each as "file: selector".
+ * A component is fixed in its own sheet, never bent on one page (AGENTS.md, D251, owner, 2026-10-30:
+ * "whenever I ask you to fix a UI component, first attempt to fix/improve the centralized design
+ * system component"). A page rule that overrides a Button is debt: moving it into the component
+ * deletes a line here, and this list only shrinks. Naming the selector, not counting them, means a
+ * rule swapped for another one on the same page fails too. Without this a new override passes every
+ * other test and the component quietly forks, page by page.
  */
-const PAGE_OVERRIDES: Record<string, number> = {
-  "banner.css": 1,
-  "create-sheet.css": 1,
-  "create.css": 5,
-  "empty.css": 2,
-  "library.css": 1,
-  "primitives.css": 1,
-  "queue.css": 2,
-  "sheets.css": 3,
-  "topics.css": 3,
-};
+const PAGE_OVERRIDES: string[] = [
+  'banner.css: .banner > .button-text',
+  'create-sheet.css: dialog.create-sheet .create-submit > .button-filled',
+  'create.css: .create-submit .button-filled[aria-disabled="true"]:active',
+  'create.css: .create-submit .button-filled[data-busy="true"]',
+  'create.css: .create-view .button-filled > .spinner',
+  'create.css: .create-view .button-filled[data-busy="true"] > .spinner',
+  'create.css: .create-view .create-submit > .button-filled',
+  'empty.css: .empty-actions > .button-filled, .empty-actions > .button-tonal',
+  'library.css: .shelf-head > .button-text',
+  'primitives.css: .card-group-accent :is(.settings-hint, .button-text)',
+  'queue.css: .queue-details-actions .button-filled',
+  'queue.css: .queue-details-actions .button-text',
+  'sheets.css: .sheet-actions .button-filled[aria-disabled="true"]:active',
+  'sheets.css: .sheet-actions .button-filled[data-busy="true"]',
+  'sheets.css: .sheet-hint-card .button-text',
+  'topics.css: .source-sheet-foot > .button-filled',
+  'topics.css: .structure-add > .button-tonal',
+  'topics.css: .structure-prompt-foot > .button-text',
+];
 
 describe("design-system components in page stylesheets", () => {
   it("are restyled only where the debt list says", () => {
-    const found: Record<string, number> = {};
+    const found: string[] = [];
     for (const component of COMPONENTS) {
-      const named = new RegExp(`\\.(?:${component.classes.join("|")})(?![\\w-])`, "g");
+      const named = new RegExp(`\\.(?:${component.classes.join("|")})(?![\\w-])`);
       for (const [file, css] of ownCss()) {
         if (file === component.sheet) continue;
-        const count = css.match(named)?.length ?? 0;
-        if (count > 0) found[file] = (found[file] ?? 0) + count;
+        // A rule's selector is the text before its `{`; an at-rule's own prelude names no class.
+        for (const [, prelude] of css.matchAll(/([^{}]+)\{/g)) {
+          const selector = (prelude ?? "").replace(/\s+/g, " ").trim();
+          if (named.test(selector)) found.push(`${file}: ${selector}`);
+        }
       }
     }
     expect(
-      found,
+      found.sort(),
       "change the component in its own stylesheet (a design-system PR) instead of overriding it on a page; this list only shrinks",
     ).toEqual(PAGE_OVERRIDES);
   });
