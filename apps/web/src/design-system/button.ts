@@ -29,6 +29,7 @@ export const BUTTON: Guidance & {
       summary: "The accent fill under its own words; the most prominent button.",
       useWhen: [
         "It is the one action that commits a sheet, a dialog or an empty page: Save, Add category, Listen now.",
+        "It saves or submits a form sheet, or confirms a dialog.",
       ],
       dontUseWhen: [
         {
