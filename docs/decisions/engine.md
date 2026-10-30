@@ -440,6 +440,15 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Limit: no pool survives to replay, since the run artifacts are empty, so the list could not be tested on 14 days of history. Instead the write stage logs what it would add while off, and `singularity authority replay` reads any unpacked pools. At most 47 of the 49 judged frontier items could newly pass if every one came from a vetted domain, so the 30% line is the watch.
 - Revisit if: a vetted domain passes over 30% of its judged items, or an announcement outranks technique in a daily.
 
+## D244: A YouTube video's views, against its channel's median, count as community votes
+
+- Date: 2026-10-29 (the owner ranks YouTube, Hacker News, Reddit and blogs as the highest signal, and releases and changelogs as low).
+- Decision: the YouTube fetcher reads each video's views from the feed's `media:statistics` and sets `signals.youtube_views`. When the feed holds at least 5 videos with views, it also sets `signals.youtube_votes`: `max(0, round(830 x ln(views / median) - 410))`, the median being that feed's. A typical video scores 0, 3 times the median about 500, 10 times about 1500, the range of D240's `communityStrength` (150 to 1500). `communityVotes` reads `youtube_votes` as one more platform's votes (a later change in `community.ts`).
+- Why: views are not comparable across channels, so a raw count would lift every video of a big channel and none of a small one. The multiple of the channel's own median says "this one got noticed", which is what a HN score says for a link. The fetch is the only place the channel's other videos are visible.
+- Found on the way: the transcript path never ran because a video is judged on its title and description, scores low on craft depth, is never selected, and transcripts are fetched only for selected stories (25 videos fetched, 13 judged, 0 passed by 29 Oct). The community lift is what lets a noticed video reach selection, where its transcript is then read.
+- Rejected: raw views (above); likes from `media:starRating` (a second number that tracks views closely, and the owner asked for one signal); fetching transcripts before judging (5 Firecrawl credits a video for items most of which would still fail the bar).
+- Revisit if: the feed stops giving views, or videos with votes still never pass for lack of text (then fetch the transcript before judging, for videos above 500 votes only).
+
 ## D240: What the community discusses outranks what a publisher announces
 
 - Date: 2026-10-29 (the owner: GitHub releases and changelogs are low signal; community discussion, Hacker News, Reddit, blogs and YouTube are the highest; "cut through noise, get real data").
@@ -449,12 +458,3 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Limit: Reddit refused the cloud container (403 for JSON, 429 for RSS) and no runner has tried, so the six subreddits ship off. YouTube counts join as votes through D244, normalised per channel. The thresholds are guesses to tune from the shadow log. No pools survive to replay.
 - Revisit if: a Reddit source gets through from a runner (switch it on, or add OAuth credentials if it does not), a source passes over 30% of its judged items, or a heavily voted but shallow story airs above a technique piece.
 - Amends: D234 (the authority list stays, off, as the second signal).
-
-## D244: A YouTube video's views, against its channel's median, count as community votes
-
-- Date: 2026-10-29 (the owner ranks YouTube, Hacker News, Reddit and blogs as the highest signal, and releases and changelogs as low).
-- Decision: the YouTube fetcher reads each video's views from the feed's `media:statistics` and sets `signals.youtube_views`. When the feed holds at least 5 videos with views, it also sets `signals.youtube_votes`: `max(0, round(830 x ln(views / median) - 410))`, the median being that feed's. A typical video scores 0, 3 times the median about 500, 10 times about 1500, the range of D240's `communityStrength` (150 to 1500). `communityVotes` reads `youtube_votes` as one more platform's votes (a later change in `community.ts`).
-- Why: views are not comparable across channels, so a raw count would lift every video of a big channel and none of a small one. The multiple of the channel's own median says "this one got noticed", which is what a HN score says for a link. The fetch is the only place the channel's other videos are visible.
-- Found on the way: the transcript path never ran because a video is judged on its title and description, scores low on craft depth, is never selected, and transcripts are fetched only for selected stories (25 videos fetched, 13 judged, 0 passed by 29 Oct). The community lift is what lets a noticed video reach selection, where its transcript is then read.
-- Rejected: raw views (above); likes from `media:starRating` (a second number that tracks views closely, and the owner asked for one signal); fetching transcripts before judging (5 Firecrawl credits a video for items most of which would still fail the bar).
-- Revisit if: the feed stops giving views, or videos with votes still never pass for lack of text (then fetch the transcript before judging, for videos above 500 votes only).
