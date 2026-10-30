@@ -136,7 +136,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D113 | Claude Sonnet 5.5 is the default writer for the page and the engine; the Model list has no Default row; Nebius starts on GLM-5.3 | active; amends D46, D106 |
 | D114 | Every episode is for the owner; New episode form is short | active; amends D39, D67, D76, D101 |
 | D115 | Settings save quietly: no toast while a change saves or once it is saved; the toast is for a failure, an Undo or a partial save | active; amends D79, D91, D98 |
-| D116 | docs/ is grouped by purpose: the record at the top, plan/, engineering/, design/, reference/; audits fold into their history notes; docs/README.md maps it all | active; amends D14 |
+| D116 | docs/ is grouped by purpose: the record at the top, plan/, engineering/, design/, reference/; audits fold into history notes | active; amends D14 |
 | D117 | Model picker: Anthropic, Nebius lists live (5 min cache); a Claude beyond the built-in two saves only if Anthropic lists it | active; amends D46, D58 |
 | D118 | Jev 1.14.0 is pinned; Jev checks the strongest candidates against the owner's taste (votes, opens), replacing the vote nudge, within 15% | active; amends D3, D108 |
 | D119 | A briefing sized by the owner's length writes 30% spares; validation airs the best survivors until measured narration fills the length, each topic's best kept | active |
@@ -256,10 +256,11 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D240 | Community votes outrank publisher status | active; amends D234 |
 | D241 | No Weekly-only blocks | amends D170 |
 | D242 | Starter-only Cancel | amends D201, D208 |
-| D244 | YouTube views vs channel median are votes | active |
+| D244 | YouTube views vs median = votes | active |
 | D245 | system.json omits the file-use count | amends D236 |
 | D246 | Catch up kind label; counts yield to slots | active; amends D218 |
 | D247 | Deploy-count warning | active |
-| D250 | Trusted publishers renamed; Reddit dropped | active; amends D234, D240 |
+| D248 | Favorite creators trusted | active |
+| D250 | Publishers renamed; Reddit dropped | active; amends D234, D240 |
 
 ---
