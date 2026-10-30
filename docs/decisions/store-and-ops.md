@@ -221,3 +221,11 @@ Where data lives (Postgres, Blob, git), config, health, analytics, deploys, acce
 - Rejected: counting GitHub's deployments list (it showed 5 admin previews against Vercel's 101); a fault at 100 (production is already down by then); a daily batched deploy (a fix would wait up to a day and a bad deploy could not be traced to one PR).
 - Revisit if: main-only deploys alone pass about 80 a day (batch hourly, not daily), or the plan changes from Hobby.
 - Amends: D159 (deploys that fail silently).
+
+## D249: experiment switches live in Neon and override the config file
+
+- Date: 2026-10-30 (the owner: switching an experiment must not cost a deploy; a confirm dialog and an Undo snackbar guard each switch).
+- Decision: one table, `experiment_flags` (`id`, `enabled`, `promoted_at`), written by the admin app and read once when `run`, `podcast` or `ingest` starts, beside the config-store copy (`cli.ts`). The rows are saved to `.cache/experiment-flags.json` (gitignored) so every stage of a run reads the same switches; `loadTrustedPublishers`, `loadCommunity` and `loadAlexandriaConfig` let an entry override the file's `enabled`. No row, no cache or an unreadable store: the file decides, as before. A switch takes effect at the next run, never in one under way. Promotion sets `promoted_at` and leaves the flag on; deleting the flag from the code is a normal pull request.
+- Why: the flags were lines in git files, so a switch meant a commit and a deploy, and the owner wants to save Vercel deploys (D247). The files stay the default and the audit trail of what ships; the table holds only the owner's choice.
+- Rejected: new config ops through the reader's open `/api/config` route (an open route for a paid switch; the admin app has the gate); patching the files in the run's checkout (the commit guard would refuse or commit them, the D185 incident); a deploy-time read (the cost this removes).
+- Revisit if: an experiment needs a switch the reader shows (a screen, not a pipeline step); the reader would then need a flags endpoint.

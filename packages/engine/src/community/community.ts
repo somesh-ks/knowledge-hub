@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { type Item, TECH_CATEGORY } from "@singularity/core";
 import { z } from "zod";
+import { EXPERIMENT_IDS, experimentOverride } from "../experiments/overrides.js";
 import { clamp01, round4 } from "../score/numbers.js";
 import { craftFactor } from "../score/scoreItem.js";
 import type { ScoredItem } from "../score/types.js";
@@ -45,6 +46,13 @@ export function parseCommunity(json: unknown): CommunityFile {
 
 /** Missing file means no community lift, not an error. */
 export async function loadCommunity(root: string): Promise<CommunityFile> {
+  const file = await readCommunity(root);
+  // The owner's switch in the admin app wins over the file (experiments/overrides.ts).
+  const enabled = await experimentOverride(root, EXPERIMENT_IDS.communityRanking);
+  return enabled === undefined ? file : { ...file, enabled };
+}
+
+async function readCommunity(root: string): Promise<CommunityFile> {
   let text: string;
   try {
     text = await readFile(join(root, COMMUNITY_PATH), "utf8");

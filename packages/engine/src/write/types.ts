@@ -10,6 +10,8 @@ export interface SourceMaterial {
   author?: string;
   category: Category;
   text: string;
+  /** True when `text` is what a video says: it carries sponsor reads and plugs the writer leaves out. */
+  spoken?: boolean;
   /** The owner's prompt for the block this story airs in (D182); absent for the built-in one. */
   prompt?: string;
 }

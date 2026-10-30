@@ -11,6 +11,7 @@ import type { ExtractedText } from "../extract/extractText.js";
 import { judgeWithCache } from "../judge/cache.js";
 import type { Judge } from "../judge/types.js";
 import { mapConcurrent } from "../llm/concurrency.js";
+import { withCreator } from "../score/creator.js";
 import { scoreItem } from "../score/scoreItem.js";
 import { assignSections, capFor, selectItems } from "../score/selectItems.js";
 import type { ScoredItem, SelectedItem } from "../score/types.js";
@@ -173,7 +174,12 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
     if (item)
       scored.push(
         withCommunity(
-          withTrustedPublishers(scoreItem(entry, input.preferences, item), input.trustedPublishers),
+          withCreator(
+            withTrustedPublishers(
+              scoreItem(entry, input.preferences, item),
+              input.trustedPublishers,
+            ),
+          ),
           input.community,
         ),
       );
@@ -216,7 +222,12 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
           outcome === "selected"
             ? kept.map((sel) => {
                 const text = writtenText(texts.get(sel.item.id) as WrittenText);
-                return { id: sel.item.id, category: sel.category, score: sel.score, ...text };
+                return {
+                  id: sel.item.id,
+                  category: sel.category,
+                  score: sel.score,
+                  ...text,
+                };
               })
             : [],
       },
@@ -273,6 +284,7 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
       ...(sel.item.author ? { author: sel.item.author } : {}),
       category: writerCategory(sel.category, undefined),
       text: text.text,
+      ...(sel.item.source_type === "youtube" && text.method !== "snippet" ? { spoken: true } : {}),
     });
   }
   counts.extracted = materials.size;
@@ -341,7 +353,9 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
       log.error(failure);
       return failed(failure, counts, { ...writtenFile, items: [] }, judged.cache, scoredTop);
     }
-    log.info("Too few items survived writing and validation", { survivors: survivors.length });
+    log.info("Too few items survived writing and validation", {
+      survivors: survivors.length,
+    });
     return finish("nothing", [], { ...writtenFile, items: [] }, false, new Map());
   }
   return finish("selected", survivors, writtenFile, grounding.verified, texts);
