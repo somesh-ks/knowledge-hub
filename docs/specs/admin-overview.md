@@ -18,7 +18,7 @@ The command center's front page: how the app stands and what it costs, at a glan
 
 ## Scenarios
 
-- WHEN a pillar has a warning check and another check is failing THEN the arc is the failing tone and the label reads "N failing".
+- WHEN a pillar has a warning check and a failing check THEN the arc is the failing tone and the label reads "2 flagged" (a count of both), not "1 failing".
 - WHEN `/api/health` does not answer THEN the ring's middle reads "No answer", a note says the checks did not answer, and no arc is drawn.
 - WHEN a pillar's label would reach the ring's edge THEN it stays inside the card (the vertical offset is clamped).
 

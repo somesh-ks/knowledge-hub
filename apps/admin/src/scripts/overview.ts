@@ -321,6 +321,9 @@ interface Day {
   groups: Array<[string, number]>;
 }
 
+/** A day spent something if it ran or was billed: spend can land with no run counted against it. */
+const spent = (day: Day): boolean => day.runs > 0 || day.usd > 0;
+
 /** The week strip and the line under it: the days are radios, the pick sets the line, grey at rest and blue when picked. */
 function drawWeek(body: CostBody): void {
   const holder = pick<HTMLElement>("[data-spend-days]");
@@ -350,7 +353,7 @@ function drawWeek(body: CostBody): void {
           weekday: "long",
           timeZone: "UTC",
         });
-    if (figure) figure.textContent = day.runs ? usd(day.usd) : "No runs";
+    if (figure) figure.textContent = spent(day) ? usd(day.usd) : "No runs";
     if (detail)
       detail.textContent = [
         `${name}, ${dayLabel(day.date)}`,
@@ -361,7 +364,7 @@ function drawWeek(body: CostBody): void {
         .join(" · ");
   };
   // The newest day with a run is the one open on arrival; none ran, today.
-  const open = days.reduce((a, d, i) => (d.runs ? i : a), WEEK - 1);
+  const open = days.reduce((a, d, i) => (spent(d) ? i : a), WEEK - 1);
   holder.replaceChildren(
     ...days.map((day, i) => {
       const last = i === WEEK - 1;
@@ -372,13 +375,13 @@ function drawWeek(body: CostBody): void {
       input.checked = i === open;
       input.setAttribute(
         "aria-label",
-        `${last ? "Today" : dayLabel(day.date)}: ${day.runs ? usd(day.usd) : "no runs"}`,
+        `${last ? "Today" : dayLabel(day.date)}: ${spent(day) ? usd(day.usd) : "no runs"}`,
       );
       input.addEventListener("change", () => pickDay(day, last));
       const dial = svgEl("svg", { class: "ov-dial", viewBox: "0 0 28 28", "aria-hidden": "true" });
       dial.append(svgEl("circle", { class: "ov-dial-track", cx: 14, cy: 14, r: 11 }));
-      // A day with no runs draws no fill: a zero-length dash under a round cap would show as a dot.
-      if (day.runs)
+      // A day with no spend draws no fill: a zero-length dash under a round cap would show as a dot.
+      if (spent(day))
         dial.append(
           svgEl("circle", {
             class: "ov-dial-fill",
