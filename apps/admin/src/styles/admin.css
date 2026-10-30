@@ -109,24 +109,8 @@
   --ov-tone: var(--color-success);
 }
 
-/* Orange, not the reader's amber-700, which reads brown (2026-10-30, the owner). Proposed for the
-   design system's --color-warning; here until a design-system PR takes it. */
-:root {
-  --ov-warning: oklch(60% 0.16 52);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --ov-warning: oklch(78% 0.15 60);
-  }
-}
-
-:root[data-theme="dark"] {
-  --ov-warning: oklch(78% 0.15 60);
-}
-
 [data-tone="warn"] {
-  --ov-tone: var(--ov-warning);
+  --ov-tone: var(--color-warning);
 }
 
 [data-tone="bad"] {
