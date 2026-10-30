@@ -352,3 +352,11 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Context changed: the owner read the amber warning color as brown, so the ramp D238 drew for it missed the clear orange he asked for.
 - Revisit if: warning text on a light surface is needed (it would take step 600, which reads brown), or a fifth status color arrives.
 - Amends: D238 (the ramp list; the curve is unchanged).
+
+## D253: a UI fix starts at the design-system component
+
+- Date: 2026-10-30 (the owner: "whenever I ask you to fix a UI component, first attempt to fix/improve the centralized design system component, document and enforce this rule"). Amends D237.
+- Decision: a request to fix or restyle a UI component starts at the component, in its own class, variant or token, never as a page override. A page may patch it only when the component cannot hold the change, and the PR body says why. Enforced in four places: `design-audit` flags a page override, CodeRabbit's path instruction does the same, the PR template asks where the fix landed, and `styles.test.ts` fails a page rule on a component's class that is not on its debt list.
+- Why: a page override passes every other test and forks the component one page at a time, which is how the 18 rules on that list came to be.
+- Rejected: a lint that bans every selector on a component class (the 18 existing rules would block it; the list lets it start now and only shrink); relying on the rule in `AGENTS.md` alone (an agent that does not read it cannot be caught).
+- Next: each design-system PR that moves an override into its component deletes its line from `PAGE_OVERRIDES`.

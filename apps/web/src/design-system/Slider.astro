@@ -1,0 +1,16 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { sliderClass } from "./slider";
+import "../styles/slider.css";
+
+interface SliderProps {
+  /** For placing the slider where it stands (a width, a flex basis). Never its look. */
+  class?: string;
+}
+
+type Props = SliderProps & Omit<HTMLAttributes<"input">, keyof SliderProps | "type">;
+
+const { class: placement, ...rest } = Astro.props;
+---
+
+<input class:list={[sliderClass(), placement]} type="range" {...rest} />

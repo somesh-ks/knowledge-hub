@@ -97,7 +97,7 @@ describe("ingest", () => {
 
     expect(first.run).toMatchObject({ fetched: 2, archived: 2, known: 0 });
     expect(second.run).toMatchObject({ fetched: 2, archived: 0, known: 2 });
-    expect(blob.store.size).toBe(2);
+    expect(blob.store.size).toBe(1);
     const rows = await db.sql.query(
       "select count(*)::int as n, max(last_seen_at) as seen from ingest_items",
     );
@@ -105,20 +105,25 @@ describe("ingest", () => {
     expect(new Date(rows[0]?.seen as string).toISOString()).toBe(later.toISOString());
   });
 
-  it("keeps each story's text under a key that does not name its address", async () => {
+  it("saves a run's stories in one Blob write, because each write spends the Hobby allowance", async () => {
     const { blob, run } = setup();
     await run();
 
-    const keys = [...blob.store.keys()];
-    expect(new Set(keys).size).toBe(2);
+    expect([...blob.store.keys()]).toHaveLength(1);
+    const [key] = [...blob.store.keys()];
     for (const item of STORIES) {
-      for (const key of keys) {
-        expect(key).not.toContain(item.id);
-        expect(key).not.toContain("example");
-      }
+      expect(key).not.toContain(item.id);
+      expect(key).not.toContain("example");
     }
-    const archived = JSON.parse([...blob.store.values()][0] ?? "{}") as Record<string, unknown>;
-    expect(archived).toMatchObject({ version: 1, method: "readability" });
+    const pack = JSON.parse([...blob.store.values()][0] ?? "{}") as {
+      version: number;
+      items: { item_id: string; method: string; text: string }[];
+    };
+    expect(pack.version).toBe(2);
+    expect(pack.items.map((entry) => entry.item_id).sort()).toEqual(
+      STORIES.map((item) => item.id).sort(),
+    );
+    expect(pack.items[0]).toMatchObject({ method: "readability" });
   });
 
   it("never fetches a source type that spends a paid allowance", async () => {
@@ -148,9 +153,9 @@ describe("ingest", () => {
     ]);
   });
 
-  it("does not record a story Blob refused, so the next run tries it again", async () => {
+  it("records nothing while Blob refuses the write, so the next run tries every story again", async () => {
     const { db } = setup();
-    const refusing = fakeBlob({ failFor: (body) => body.includes("Body of One") });
+    const refusing = fakeBlob({ failFor: () => true });
     const build = (blob: BlobClient, when: Date) =>
       runIngest({
         sources: [makeSource({ id: "feed" })],
@@ -167,10 +172,10 @@ describe("ingest", () => {
       });
 
     const first = await build(refusing.client, NOW);
-    expect(first.run).toMatchObject({ archived: 1, errors: 1 });
+    expect(first.run).toMatchObject({ archived: 0, errors: 2 });
     const healthy = fakeBlob();
     const second = await build(healthy.client, new Date(NOW.getTime() + 3_600_000));
-    expect(second.run).toMatchObject({ archived: 1, known: 1, errors: 0 });
+    expect(second.run).toMatchObject({ archived: 2, known: 0, errors: 0 });
     expect(healthy.store.size).toBe(1);
   });
 
@@ -207,7 +212,7 @@ describe("ingest", () => {
     };
 
     await expect(run({ sql: lostAnswer })).rejects.toThrow("connection reset");
-    expect(blob.store.size).toBe(2);
+    expect(blob.store.size).toBe(1);
   });
 
   it("reads the copy of a story that carries its own text when two sources return it", async () => {

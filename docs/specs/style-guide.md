@@ -14,11 +14,12 @@ The reader's design system as its own site, "Singularity design": `news.someshks
 - **Motion.** Durations and curves (a press runs one, and the dot returns), and the press, hover and enter tokens; a filter narrows them. The expressive motion work extends this page.
 - **Tokens.** Space, radius and stroke, shadow, layers, layout, component tokens and every icon; a filter narrows them.
 - **Theme.** One secondary icon button, in the app bar below 64rem and above the date in the side column's foot from it, switches light and dark. It shows where a press goes. The guide opens dark; the choice is kept in this browser under `design:theme`. The reader's saved preferences are never read or written. The foot also shows the day the guide was built.
+- **For agents.** `/design/system.json` and `/design/llms.txt` serve `tokens/system.json` and `tokens/llms.txt` as written (D236); `npm run ds` reads the same files.
 - **Tests.** `npm run gate -- --build` type checks and builds the app.
 
 ## Code
 
-- `apps/design/src` (pages, `scripts/`, `lib/`, `styles/guide.css`), `apps/design/vercel.json`
+- `apps/design/src` (pages, including `system.json.ts` and `llms.txt.ts`, `scripts/`, `lib/`, `styles/guide.css`), `apps/design/vercel.json`
 - `apps/web/src/lib/designCatalogue.ts` (tokens and usage comments)
 
 ## Gotchas

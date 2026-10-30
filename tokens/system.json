@@ -212,6 +212,122 @@
       ]
     },
     {
+      "id": "switch",
+      "name": "Switch",
+      "kind": "selection",
+      "summary": "A track and a thumb for one setting that is on or off, with its label beside it.",
+      "classes": [
+        "switch-input"
+      ],
+      "files": [
+        "design-system/Switch.astro",
+        "design-system/switch.ts"
+      ],
+      "when": [
+        "A setting is on or off and applies as soon as it is flipped: Sounds, Autoplay, a podcast's Enabled",
+        "It sits at the end of a settings row, with the row's label as its name"
+      ],
+      "not": [
+        {
+          "when": "The choice is one of several values, or needs a Save to apply",
+          "use": "filter-chip"
+        },
+        {
+          "when": "The control starts an action (Catch up, Delete) and has no state of its own",
+          "use": "button-text"
+        },
+        {
+          "when": "Several options may be ticked together in a list",
+          "use": "filter-chip"
+        }
+      ],
+      "keywords": [
+        "switch",
+        "toggle",
+        "on off",
+        "boolean",
+        "enable"
+      ],
+      "markup": "<div class=\"settings-row\"><label class=\"settings-label\" for=\"autoplay\">Autoplay</label><Switch id=\"autoplay\" name=\"autoplay\" /></div>",
+      "styles": [
+        "switch.css"
+      ],
+      "usage": "One setting that is on or off, a checkbox with role=\"switch\" drawn as a track; its ::before is the thumb.",
+      "tokens": [
+        "--color-accent",
+        "--color-accent-hover",
+        "--color-accent-pressed",
+        "--color-border-control",
+        "--color-on-accent",
+        "--color-on-surface",
+        "--size-touch",
+        "--switch-height",
+        "--switch-padding",
+        "--switch-radius",
+        "--switch-thumb",
+        "--switch-thumb-bg",
+        "--switch-thumb-radius",
+        "--switch-width"
+      ]
+    },
+    {
+      "id": "slider",
+      "name": "Slider",
+      "kind": "selection",
+      "summary": "A track with a thumb: a value between two ends, set by dragging or by the arrow keys.",
+      "classes": [
+        "slider-input"
+      ],
+      "files": [
+        "design-system/Slider.astro",
+        "design-system/slider.ts"
+      ],
+      "when": [
+        "The value is on a scale where nearby values are alike: Volume, Playback speed, a topic's weight",
+        "A person may want to set it without a number in front of them"
+      ],
+      "not": [
+        {
+          "when": "There are two to five named options and none is between the others",
+          "use": "filter-chip"
+        },
+        {
+          "when": "Only on and off are possible",
+          "use": "switch"
+        }
+      ],
+      "keywords": [
+        "slider",
+        "range",
+        "volume",
+        "speed",
+        "scrub"
+      ],
+      "markup": "<Slider aria-label=\"Volume\" min=\"0\" max=\"1\" step=\"0.05\" value=\"0.7\" style=\"--range-fill: 70%\" />",
+      "rules": [
+        "WebKit paints the filled track from --range-fill, which starts at 0%: set it to (value - min) / (max - min) as a percentage and update it on input."
+      ],
+      "styles": [
+        "slider.css",
+        "topics.css"
+      ],
+      "usage": "A value between two ends, set by dragging a thumb or with the arrow keys. A native range. WebKit has no pseudo-element for the filled part of the track, so the track paints it as a gradient up to --range-fill, which the script keeps at (value - min) / (max - min) as a percentage. Firefox has ::-moz-range-progress and ignores the gradient. The two engines' pseudo-elements cannot share a rule: a selector one engine does not know drops the whole rule in the other.",
+      "tokens": [
+        "--button-radius",
+        "--color-accent",
+        "--color-accent-hover",
+        "--color-accent-pressed",
+        "--color-border-control",
+        "--color-on-surface-subtle",
+        "--color-surface",
+        "--scrubber-thumb",
+        "--scrubber-thumb-active-scale",
+        "--scrubber-thumb-ring",
+        "--scrubber-track",
+        "--size-touch"
+      ]
+    },
+    {
       "id": "btn-action-tonal",
       "name": "Tonal action",
       "kind": "action",
@@ -810,55 +926,6 @@
         "--size-icon",
         "--size-touch-comfortable",
         "--slider-max-width"
-      ]
-    },
-    {
-      "id": "switch",
-      "name": "Switch",
-      "kind": "selection",
-      "summary": "An on/off switch: a checkbox with role switch, drawn as a track and a thumb.",
-      "classes": [
-        "settings-switch"
-      ],
-      "when": [
-        "turn a setting on or off, applied at once",
-        "a notifications or autoplay toggle"
-      ],
-      "not": [
-        {
-          "when": "choosing one of several values",
-          "use": "segmented-choice"
-        }
-      ],
-      "keywords": [
-        "toggle",
-        "on off",
-        "boolean",
-        "enable"
-      ],
-      "markup": "<div class=\"settings-row\"><label class=\"settings-label\" for=\"autoplay\">Autoplay</label><input class=\"settings-switch\" id=\"autoplay\" name=\"autoplay\" type=\"checkbox\" role=\"switch\" /></div>",
-      "rules": [
-        "`.switch` in sheets.css has no markup anywhere; it is a duplicate, not a part."
-      ],
-      "styles": [
-        "settings.css"
-      ],
-      "usage": "A checkbox with role=\"switch\", drawn as a track; its ::before is the thumb.",
-      "tokens": [
-        "--color-accent",
-        "--color-accent-hover",
-        "--color-accent-pressed",
-        "--color-border-control",
-        "--color-on-accent",
-        "--color-on-surface",
-        "--size-touch",
-        "--switch-height",
-        "--switch-padding",
-        "--switch-radius",
-        "--switch-thumb",
-        "--switch-thumb-bg",
-        "--switch-thumb-radius",
-        "--switch-width"
       ]
     },
     {

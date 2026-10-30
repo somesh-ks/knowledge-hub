@@ -1,4 +1,6 @@
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
+import { sliderClass } from "../design-system/slider";
+import "../styles/slider.css";
 import { getPlayerStore } from "./core/playerRuntime";
 import { playerSheet } from "./core/playerSheet";
 import {
@@ -124,7 +126,7 @@ export default function SpeedControl() {
     // first and the watch for scrolls starts after it (in the effect), so it cannot close the panel.
     makeRoom(panel, buttonRef.current);
     place(panel, buttonRef.current);
-    panel.querySelector<HTMLElement>(".speed-slider")?.focus({ preventScroll: true });
+    panel.querySelector<HTMLElement>(`.${sliderClass()}`)?.focus({ preventScroll: true });
     setOpen(true);
   }
 
@@ -174,7 +176,7 @@ export default function SpeedControl() {
       >
         <div className="speed-panel-body">
           <input
-            className="speed-slider"
+            className={sliderClass()}
             type="range"
             min={MIN_PLAYBACK_RATE}
             max={MAX_PLAYBACK_RATE}
