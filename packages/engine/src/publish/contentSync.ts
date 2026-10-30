@@ -145,6 +145,11 @@ export async function syncContent(input: SyncContentInput): Promise<ContentSyncR
   ) {
     await publishEpisodeIndex(client, root, now);
   }
+  // An unchanged store keeps its manifest: every put is one of the Hobby plan's 2,000 advanced
+  // operations a month, and most syncs follow a workflow that changed no content.
+  if (uploaded.length === 0 && deleted.length === 0 && Object.keys(stored).length > 0) {
+    return { uploaded, deleted, unchanged: files.size };
+  }
   // Last: a sync that stops before here leaves the old manifest, so the next one redoes the work.
   await client.put(CONTENT_MANIFEST_KEY, new TextEncoder().encode(JSON.stringify(manifest)), {
     contentType: "application/json",

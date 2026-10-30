@@ -343,7 +343,7 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Revisit if: a part cannot be an Astro component (a class set no page shares), or the pure-pull-request check blocks work it should allow.
 - Amends: D224.
 
-## D251: a UI fix starts at the design-system component
+## D253: a UI fix starts at the design-system component
 
 - Date: 2026-10-30 (the owner: "whenever I ask you to fix a UI component, first attempt to fix/improve the centralized design system component, document and enforce this rule"). Amends D237.
 - Decision: a request to fix or restyle a UI component starts at the component, in its own class, variant or token, never as a page override. A page may patch it only when the component cannot hold the change, and the PR body says why. Enforced in four places: `design-audit` flags a page override, CodeRabbit's path instruction does the same, the PR template asks where the fix landed, and `styles.test.ts` fails a page rule on a component's class that is not on its debt list.

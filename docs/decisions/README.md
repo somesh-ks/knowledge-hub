@@ -264,6 +264,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D248 | Favorite creators trusted | active |
 | D249 | Neon switches beat config files | active |
 | D250 | Publishers renamed; Reddit dropped | active; amends D234, D240 |
-| D251 | UI fixes start at the component | amends D237 |
+| D251 | Ingest packs a run into one Blob object | active; amends D233 |
+| D253 | UI fixes start at the component | active; amends D237 |
 
 ---

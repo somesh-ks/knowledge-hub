@@ -792,7 +792,7 @@ describe("house rules", () => {
 
 /**
  * The page rules that still restyle a design-system component's classes, each as "file: selector".
- * A component is fixed in its own sheet, never bent on one page (AGENTS.md, D251, owner, 2026-10-30:
+ * A component is fixed in its own sheet, never bent on one page (AGENTS.md, D253, owner, 2026-10-30:
  * "whenever I ask you to fix a UI component, first attempt to fix/improve the centralized design
  * system component"). A page rule that overrides a Button is debt: moving it into the component
  * deletes a line here, and this list only shrinks. Naming the selector, not counting them, means a
