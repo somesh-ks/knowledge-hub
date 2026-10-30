@@ -501,7 +501,7 @@
 
   /* The dialog and its panel receive focus on open, as containers. The controls inside carry the ring. */
   dialog:focus-visible,
-  .sheet-panel:focus-visible {
+  .drawer-panel:focus-visible {
     outline: none; /* a landing point, not a control: the ring is each control's (:focus-visible) */
     box-shadow: none;
   }

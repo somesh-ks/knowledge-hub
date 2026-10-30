@@ -69,7 +69,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D46 | The writer's provider and model are chosen in Settings | active |
 | D47 | A move between pages is answered from a saved copy and swapped at once | active |
 | D48 | One shader: a light in the cover's colours behind the header, on a GPU only | active |
-| D49 | One Podcast settings page: Daily, Weekly, Custom profiles, shared writer vendor and model, topics and sources clubbed | layout superseded by D51; the 0 to 5 score by D55 |
+| D49 | One Podcast settings page: Daily, Weekly, Custom profiles, shared writer, topics and sources | layout superseded by D51; the 0 to 5 score by D55 |
 | D50 | The open player: a speed slider, Chapters or a Speechify-style transcript, word marks stored beside each segment | active |
 | D51 | Settings is two levels and saves itself; every select opens one drawn list | active; the Custom page superseded by D56 |
 | D52 | On a phone Create floats only on Today and the Library, extended till you scroll | superseded by D60: Create floats on the Library alone |
@@ -109,7 +109,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D86 | An action has its own tone, the player bar is one tonal block with the navigation, reading text keeps a 34rem measure | active; extends D72 |
 | D87 | New episode says when a choice changed the topics, with Undo; the Library searches with an excerpt around the match | active; amends D76 and D78 |
 | D88 | A reading page's section strip is opaque, a focused headline rings as one block, the playing hero Play is tonal, an old briefing offers Share | active; amends D77 |
-| D89 | The time zone selector is withdrawn until the engine counts in a chosen zone; summaries follow what is saved | active; amends D71 and D79; the time zone selector returned in D100 |
+| D89 | Time zone selector withdrawn until the engine counts in a chosen zone | active; amends D71 and D79; the time zone selector returned in D100 |
 | D90 | The open player has one left edge, an even rhythm and two weights; its lists are one Tab stop each; Back goes back | active; amends D85 |
 | D91 | Daily and Weekly offer only what a briefing uses; an edit made in the server's gap survives leaving the page | active; amends D74, D79; D100 restored Format and the second voice |
 | D92 | The rundown is no story, a listener's move never scrolls the page, the open page owns the transport, a glyph says what its button does | active; amends D85 and D90 |
@@ -273,5 +273,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D255 | Videos judged on transcripts | active; amends D248 |
 | D256 | Covers drawn on request; failed-run stages in one Blob object | active; amends D173, D251 |
 | D257 | Report routes need sign-in | amends D201, D224 |
+| D258 | Sheet and Drawer are two parts | active; amends D243 |
 
 ---

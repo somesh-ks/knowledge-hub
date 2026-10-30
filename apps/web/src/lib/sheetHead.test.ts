@@ -27,7 +27,7 @@ describe("sheetHead helpers", () => {
     const head = sheetHeadHtml("Edit block", "title-1", "data-menu-close", {
       "data-sheet-title": "",
     });
-    expect(head).toContain('class="create-sheet-head"');
+    expect(head).toContain('class="sheet-head"');
     expect(head).toContain('<h2 class="sheet-title" id="title-1" data-sheet-title>Edit block</h2>');
     expect(head).toContain("data-menu-close");
     expect(head).toContain('aria-label="Close"');

@@ -1,0 +1,196 @@
+/*
+ * The Drawer: the Base UI islands' modal (Generate, the Settings sheet). A bottom sheet on a phone,
+ * resting on the screen's edge, and a centred dialog from 40rem. Drawn by sheets/SheetFrame.tsx from
+ * design-system/drawer.ts. A panel that slides in from the right is a Sheet (sheet.css).
+ *
+ * Reads semantic and component tokens only. Base UI's Drawer supplies the states as attributes
+ * (data-starting-style, data-ending-style, data-swiping) and the swipe values as custom
+ * properties, so the transitions here are plain CSS: sheet in 300ms on the drawer curve, sheet out
+ * 220ms, scaled by how hard the sheet was flicked away.
+ * Loaded with the islands (sheets/SheetsRoot.tsx), not globally.
+ */
+
+/* ------------------------------------------------------------------ the surface */
+
+.drawer-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet);
+  min-height: 100dvh;
+  background: var(--color-scrim);
+  opacity: calc(1 - var(--drawer-swipe-progress, 0));
+  transition: opacity var(--duration-sheet-in) var(--ease-out);
+}
+
+@supports (-webkit-touch-callout: none) {
+  /* iOS 26 clips fixed elements to the inner viewport; absolute covers everything visible. */
+  .drawer-scrim {
+    position: absolute;
+  }
+}
+
+.drawer-scrim[data-starting-style],
+.drawer-scrim[data-ending-style] {
+  opacity: 0;
+}
+
+.drawer-scrim[data-ending-style] {
+  transition-duration: calc(var(--duration-sheet-out) * var(--drawer-swipe-strength, 1));
+}
+
+.drawer-scrim[data-swiping] {
+  transition-duration: 0ms;
+}
+
+/* On a phone the sheet rests on the bottom edge of the screen and only its top corners are round. */
+.drawer-viewport {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  /* Only the sheet takes the pointer; the scrim behind it handles dismissal. */
+  pointer-events: none;
+}
+
+.drawer-popup {
+  --color-focus-gap: var(--color-surface-raised);
+  position: relative;
+  width: min(100%, var(--layout-column));
+  color: var(--color-on-surface);
+  outline: none;
+  pointer-events: auto;
+  transform: translateY(var(--drawer-swipe-movement-y, 0px));
+  transition:
+    transform var(--duration-sheet-in) var(--ease-drawer),
+    opacity var(--duration-state) var(--ease-out);
+}
+
+/* A sheet can be pulled a little above its resting place. Its surface continues below the screen
+   edge, so that pull never opens a gap under it. */
+.drawer-popup::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 100%;
+  height: 100vh;
+  background: var(--sheet-bg);
+}
+
+.drawer-popup[data-starting-style],
+.drawer-popup[data-ending-style] {
+  opacity: 0;
+  transform: translateY(100%);
+}
+
+.drawer-popup[data-ending-style] {
+  transition-duration:
+    calc(var(--duration-sheet-out) * var(--drawer-swipe-strength, 1)), var(--duration-state);
+}
+
+.drawer-popup[data-swiping] {
+  transition-duration: 0ms;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.drawer-popup:focus-visible {
+  /* The panel takes focus on open as a container; the controls inside carry the ring. */
+  outline: none;
+  box-shadow: none;
+}
+
+/* A sheet on its way out shows no ring. Escape is a key, and a key makes the focused control match
+   :focus-visible, so a Close button focused by the opening press lit up for the whole exit. */
+.drawer-popup[data-ending-style] :focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.drawer-panel {
+  max-height: calc(var(--sheet-max-height) - var(--space-4));
+  /* The last control stays clear of the home indicator. */
+  padding: var(--space-2) var(--sheet-padding) max(var(--sheet-padding), var(--safe-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  border-radius: 0;
+  background: var(--sheet-bg);
+  box-shadow: var(--sheet-shadow);
+}
+
+/* From 40rem a sheet is a centered dialog. Modals stay centered and scale in. */
+@media (width >= 40rem) {
+  .drawer-viewport {
+    align-items: center;
+  }
+
+  .drawer-popup {
+    width: min(100%, var(--layout-dialog));
+    transform: scale(1);
+  }
+
+  .drawer-popup[data-starting-style],
+  .drawer-popup[data-ending-style] {
+    transform: scale(var(--scale-enter));
+  }
+
+  .drawer-panel {
+    max-height: var(--sheet-max-height);
+    padding: var(--sheet-padding);
+    /* A centred dialog is not a bottom sheet: it keeps its corners. */
+    border-radius: var(--sheet-radius);
+  }
+
+  .drawer-popup::after {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ head */
+
+/* The title in the heading role and a round close control (.icon-btn) at the end. */
+.drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: var(--size-touch);
+  margin-block-end: var(--space-2);
+  padding-inline-start: var(--space-2);
+}
+
+/* On a phone a sheet has no visible Close (owner, 2026-10-21, D144): it is pulled down or tapped away.
+   The button stays for a keyboard and a screen reader, as the .sr-only utility. Doubled class so
+   it outranks the shared .icon-btn sizing wherever that loads. */
+@media (width < 40rem) {
+  .drawer-head > .icon-btn.icon-btn {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+/* ------------------------------------------------------------------ chips on the panel */
+
+/* On a sheet. A sheet's own tone is the container's in dark and white in light, and a chip's own is
+   the container's, so an unticked chip showed as loose words in one theme or the other. Its face is
+   the sheet's tone with a state layer of the ink mixed in, which separates in both (2026-10-27,
+   owner screenshot of Regenerate). */
+.drawer-panel .filter-chip:not(:has(input:checked)) {
+  background: color-mix(in oklch, var(--sheet-bg), var(--color-on-surface) var(--state-hover));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .drawer-panel .filter-chip:not(:has(input:checked, input:disabled)):hover {
+    background: color-mix(in oklch, var(--sheet-bg), var(--color-on-surface) var(--state-press));
+  }
+}

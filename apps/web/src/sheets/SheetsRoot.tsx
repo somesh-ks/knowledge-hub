@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import "../styles/player.css";
+import "../styles/drawer.css";
 import "../styles/sheets.css";
 import { claimEnd, endedRecently, RUN_EVENT, readRunRecord } from "../lib/runRecord";
 import { startThemeSync } from "../player/core/themeRuntime";

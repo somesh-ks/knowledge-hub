@@ -7,10 +7,12 @@
 import { BANNER } from "../../apps/web/src/design-system/banner.js";
 import { BUTTON } from "../../apps/web/src/design-system/button.js";
 import { DIALOG } from "../../apps/web/src/design-system/dialog.js";
+import { DRAWER } from "../../apps/web/src/design-system/drawer.js";
 import { FIELD } from "../../apps/web/src/design-system/field.js";
 import type { ComponentRef, Guidance } from "../../apps/web/src/design-system/guidance.js";
 import { MENU } from "../../apps/web/src/design-system/menu.js";
 import { SELECT } from "../../apps/web/src/design-system/select.js";
+import { SHEET } from "../../apps/web/src/design-system/sheet.js";
 import { SLIDER } from "../../apps/web/src/design-system/slider.js";
 import { SWITCH } from "../../apps/web/src/design-system/switch.js";
 import type { PartSource } from "./types.js";
@@ -28,6 +30,8 @@ const PART_OF: Record<string, string> = {
   Menu: "menu",
   Banner: "banner",
   Dialog: "dialog",
+  Sheet: "sheet",
+  Drawer: "drawer",
 };
 
 const partOf = (ref: ComponentRef | undefined, fallback: string): string => {
@@ -77,6 +81,7 @@ const control = (
     markup: string;
     rules?: string[];
     classes?: string[];
+    files?: string[];
     /** Exclusions that point at a part not yet a component (a hand-written one in parts.ts). */
     not?: { when: string; use: string }[];
     kind?: PartSource["kind"];
@@ -87,7 +92,7 @@ const control = (
   kind: extra.kind ?? "selection",
   summary: guidance.summary,
   classes: [`${id}-input`],
-  files: [`design-system/${name}.astro`, `design-system/${id}.ts`],
+  files: extra.files ?? [`design-system/${name}.astro`, `design-system/${id}.ts`],
   when: sentences(guidance.useWhen),
   // An exclusion with no `instead` has no part to point at: the lookup leaves it out rather than guess.
   not: [
@@ -228,14 +233,73 @@ export const componentParts = (): PartSource[] => [
   }),
   control("dialog", "Dialog", DIALOG, {
     kind: "container",
-    classes: ["dialog-panel", "dialog-body", "dialog-actions", "dialog-actions-stacked"],
+    classes: [
+      "dialog-panel",
+      "dialog-title",
+      "dialog-body",
+      "dialog-actions",
+      "dialog-actions-stacked",
+    ],
     not: [{ when: "a form that slides in, with fields", use: "sheet" }],
+    files: [
+      "design-system/Dialog.astro",
+      "design-system/DialogActions.astro",
+      "design-system/DialogTitle.astro",
+      "design-system/dialog.ts",
+    ],
     keywords: ["confirm", "modal", "yes or no", "are you sure", "delete confirm"],
     markup:
-      '<Dialog aria-labelledby="t"><h2 class="sheet-title" id="t">Delete?</h2><DialogActions><Button variant="text">Cancel</Button></DialogActions></Dialog>',
+      '<Dialog aria-labelledby="t"><DialogTitle id="t">Delete?</DialogTitle><DialogActions><Button variant="text">Cancel</Button></DialogActions></Dialog>',
     rules: [
       "A script finds one with DIALOG_SELECTOR; one it builds uses dialogClass(), dialogBodyClass() and dialogActionsClass().",
       "It renders closed: the script opens it with dialog.showModal() and closes it with dialog.close() from the Cancel button's click.",
+    ],
+  }),
+  control("sheet", "Sheet", SHEET, {
+    kind: "container",
+    classes: ["sheet-side", "sheet-head", "sheet-body", "sheet-title"],
+    files: [
+      "design-system/Sheet.astro",
+      "design-system/sheet.ts",
+      "components/SheetHeader.astro",
+      "lib/sheetHead.ts",
+    ],
+    not: [
+      { when: "a form in a Base UI island", use: "drawer" },
+      { when: "a short list of actions", use: "menu" },
+    ],
+    keywords: [
+      "bottom sheet",
+      "title and close control",
+      "panel",
+      "side panel",
+      "form sheet",
+      "full screen sheet",
+      "slide over",
+      "modal form",
+    ],
+    markup:
+      '<Sheet title="Regenerate" titleId="regen-title" close="data-dialog-close"><form>...</form></Sheet>',
+    rules: [
+      'A script finds one with SHEET_SELECTOR (design-system/sheet.ts); kind="create" is the New episode sheet, every other is a "panel".',
+      "A header a script builds is sheetHeadHtml() (lib/sheetHead.ts); never write the row or its Close by hand.",
+      "`sheet-field*`, `sheet-form` and `sheet-actions` are form layout in sheets.css, not the shell.",
+    ],
+  }),
+  control("drawer", "Drawer", DRAWER, {
+    kind: "container",
+    classes: ["drawer-scrim", "drawer-viewport", "drawer-popup", "drawer-panel", "drawer-head"],
+    files: ["sheets/SheetFrame.tsx", "design-system/drawer.ts"],
+    not: [
+      { when: "a form drawn by Astro or a script", use: "sheet" },
+      { when: "one question and its answers", use: "dialog" },
+    ],
+    keywords: ["island sheet", "swipe to dismiss", "Base UI drawer", "react sheet"],
+    markup:
+      '<SheetFrame open={open} onOpenChange={setOpen} title="Create" closeLabel="Close">...</SheetFrame>',
+    rules: [
+      "Mount SheetFrame; it draws the scrim, viewport, popup, panel and head from drawer.ts.",
+      "Motion uses --duration-sheet-in, --duration-sheet-out and --ease-drawer.",
     ],
   }),
 ];

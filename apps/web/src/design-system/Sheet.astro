@@ -1,0 +1,47 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import SheetHeader from "../components/SheetHeader.astro";
+import type { SheetClose } from "../lib/sheetHead";
+import "../styles/sheet.css";
+import { sheetBodyClass, sheetClass } from "./sheet";
+
+interface SheetProps {
+  /** The sheet's name: an h2 whose id the dialog's aria-labelledby names. */
+  title: string;
+  titleId: string;
+  /** The data attribute the sheet's script finds its Close button by. */
+  close: SheetClose;
+  /** Any data attribute the title carries for its script, such as data-panel-title. */
+  titleData?: Record<`data-${string}`, string | boolean>;
+  /** "create" is the New episode sheet; every other sheet is a "panel". */
+  kind?: "create" | "panel";
+  /** For placing the sheet where it stands. Never its look. */
+  class?: string;
+}
+
+type Props = SheetProps & Omit<HTMLAttributes<"dialog">, keyof SheetProps>;
+
+const {
+  title,
+  titleId,
+  close,
+  titleData,
+  kind = "panel",
+  class: placement,
+  ...passed
+} = Astro.props;
+// A bare data attribute (data-mode) is true on a component and would print as data-mode="true"; on a
+// plain element it is empty. Scripts read both, so the sheet keeps the empty form.
+const rest = Object.fromEntries(
+  Object.entries(passed).map(([name, value]) => [
+    name,
+    value === true && name.startsWith("data-") ? "" : value,
+  ]),
+);
+---
+
+<dialog class:list={[sheetClass(), placement]} data-sheet={kind} aria-labelledby={titleId} {...rest}>
+  <SheetHeader title={title} titleId={titleId} close={close} titleData={titleData} />
+  <div class={sheetBodyClass()}><slot /></div>
+  <slot name="after" />
+</dialog>

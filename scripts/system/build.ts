@@ -138,10 +138,34 @@ export function classTokens(text: string): Set<string> {
   ) {
     found.add("menu-item-danger");
   }
-  // The Dialog: the tag, its actions row (stacked by its prop), or the class helpers.
+  // The Dialog: the tag, its actions row (stacked by its prop), its heading, or the class helpers.
   if (/<Dialog\b|\bdialogClass\(/.test(code)) {
     found.add("dialog-panel");
     found.add("dialog-body");
+  }
+  if (/<DialogTitle\b|\bdialogTitleClass\(/.test(code)) found.add("dialog-title");
+  // The Sheet: the tag (its header and body come with it) or the helpers a script builds with.
+  if (/<Sheet\b|\bsheetClass\(/.test(code)) {
+    found.add("sheet-side");
+    found.add("sheet-head");
+    found.add("sheet-body");
+    found.add("sheet-title");
+  }
+  if (/\bsheetHeadClass\(|\bsheetHeadHtml\(|<SheetHeader\b/.test(code)) {
+    found.add("sheet-head");
+    found.add("sheet-title");
+  }
+  if (/\bsheetBodyClass\(/.test(code)) found.add("sheet-body");
+  if (/\bsheetTitleClass\(/.test(code)) found.add("sheet-title");
+  // The Drawer: SheetFrame draws it from the helpers.
+  for (const [helper, name] of [
+    ["drawerScrimClass", "drawer-scrim"],
+    ["drawerViewportClass", "drawer-viewport"],
+    ["drawerPopupClass", "drawer-popup"],
+    ["drawerPanelClass", "drawer-panel"],
+    ["drawerHeadClass", "drawer-head"],
+  ] as const) {
+    if (code.includes(`${helper}(`)) found.add(name);
   }
   if (/<DialogActions\b|\bdialogActionsClass\(/.test(code)) found.add("dialog-actions");
   if (/<DialogActions\b[^>]*\bstacked\b|\bdialogActionsClass\(\s*true/.test(code)) {
@@ -187,9 +211,19 @@ export function sourceFiles(): { path: string; text: string; tokens: Set<string>
       }
       for (const name of [
         "dialog-panel",
+        "dialog-title",
         "dialog-body",
         "dialog-actions",
         "dialog-actions-stacked",
+        "sheet-side",
+        "sheet-head",
+        "sheet-body",
+        "sheet-title",
+        "drawer-scrim",
+        "drawer-viewport",
+        "drawer-popup",
+        "drawer-panel",
+        "drawer-head",
       ]) {
         tokens.delete(name);
       }
