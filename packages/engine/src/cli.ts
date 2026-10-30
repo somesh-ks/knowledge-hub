@@ -243,8 +243,18 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
       err("singularity: .cache/config-store.json cannot be removed; remove it, then run again.\n");
       return 1;
     }
-    // Switches saved by an earlier run on this machine must not outlive the store they came from.
-    if (storeUrl === null) await writeExperimentFlagCache(root, null).catch(() => {});
+    // Switches saved by an earlier run on this machine must not outlive its read: a store that then
+    // fails would leave them in charge. A cache that cannot be removed stops the run, as the note does.
+    const cleared = await writeExperimentFlagCache(root, null).then(
+      () => true,
+      () => false,
+    );
+    if (!cleared) {
+      err(
+        "singularity: .cache/experiment-flags.json cannot be removed; remove it, then run again.\n",
+      );
+      return 1;
+    }
     if (storeUrl !== null && noted) {
       try {
         const sql = await (io.connectConfigStore ?? connectConfigStore)(storeUrl);

@@ -48,22 +48,28 @@ export async function readExperimentFlags(sql: SqlClient): Promise<ExperimentFla
   return flags;
 }
 
-/** Switches an experiment on or off; its promotion, if any, is kept. */
+/**
+ * Switches an experiment on or off; its promotion, if any, is kept. A promoted experiment stays
+ * on, so the write that would turn one off touches no row and throws.
+ */
 export async function setExperimentEnabled(
   sql: SqlClient,
   id: string,
   enabled: boolean,
 ): Promise<void> {
-  await withTable(sql, EXPERIMENT_FLAGS_SCHEMA_SQL, () =>
+  const rows = await withTable(sql, EXPERIMENT_FLAGS_SCHEMA_SQL, () =>
     sql.query(
       `insert into experiment_flags (id, enabled) values ($1, $2)
-       on conflict (id) do update set enabled = excluded.enabled, updated_at = now()`,
+       on conflict (id) do update set enabled = excluded.enabled, updated_at = now()
+       where experiment_flags.promoted_at is null or excluded.enabled
+       returning id`,
       [id, enabled],
     ),
   );
+  if (rows.length === 0) throw new Error(`${id} is promoted and stays on`);
 }
 
-/** Marks an experiment promoted, which also leaves it on; `null` takes the mark back (Undo). */
+/** Marks an experiment promoted, which also turns it on; `false` takes the mark back (Undo) and keeps its switch. */
 export async function setExperimentPromoted(
   sql: SqlClient,
   id: string,
@@ -72,7 +78,10 @@ export async function setExperimentPromoted(
   await withTable(sql, EXPERIMENT_FLAGS_SCHEMA_SQL, () =>
     sql.query(
       `insert into experiment_flags (id, enabled, promoted_at) values ($1, true, case when $2 then now() end)
-       on conflict (id) do update set promoted_at = case when $2 then now() end, updated_at = now()`,
+       on conflict (id) do update set
+         enabled = experiment_flags.enabled or $2,
+         promoted_at = case when $2 then now() end,
+         updated_at = now()`,
       [id, promoted],
     ),
   );

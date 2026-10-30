@@ -30,14 +30,17 @@ export async function writeExperimentFlagCache(
     await rm(path, { force: true });
     return;
   }
-  await writeFileAtomic(path, `${JSON.stringify(flags)}\n`);
+  // Persisted keys are snake_case, so an experiment id is a value here, not a key.
+  const entries = Object.entries(flags).map(([id, flag]) => ({ id, ...flag }));
+  await writeFileAtomic(path, `${JSON.stringify({ flags: entries })}\n`);
 }
 
 /** The owner's switch for an experiment in this run, or undefined when the config file decides. */
 export async function experimentOverride(root: string, id: string): Promise<boolean | undefined> {
   try {
     const text = await readFile(join(root, EXPERIMENT_FLAGS_CACHE), "utf8");
-    const flag = (JSON.parse(text) as ExperimentFlags)[id];
+    const { flags } = JSON.parse(text) as { flags: Array<{ id: string; enabled?: unknown }> };
+    const flag = flags.find((entry) => entry.id === id);
     return typeof flag?.enabled === "boolean" ? flag.enabled : undefined;
   } catch {
     // No cache, or one that cannot be read: a switch is a convenience, so the file decides.
