@@ -1,6 +1,7 @@
 ---
 import Button from "../design-system/Button.astro";
 import Field from "../design-system/Field.astro";
+import Select from "../design-system/Select.astro";
 import {
   DEFAULTS,
   FORMATS,
@@ -191,23 +192,21 @@ const COPY = {
                 <div class="create-voice" data-voice={voice.name} hidden={index === 1 && startFormat !== "discussion"}>
                   <label class="create-voice-name" for={`create-${voice.name}`} data-voice-caption data-host={voice.index} data-unnamed={voice.caption} data-named="{name}'s voice" hidden={startFormat !== "discussion"}>{voice.caption}</label>
                   <div class="create-voice-field">
-                    <span class="create-select">
-                      <select
-                        id={`create-${voice.name}`}
-                        name={voice.name}
-                        data-saved={voice.saved ?? ""}
-                        data-one={voice.label}
-                        data-two={voice.hostLabel}
-                        data-two-named="{name}'s voice"
-                        data-picker="voice"
-                        aria-label={startFormat === "discussion" ? voice.hostLabel : voice.label}
-                        autocomplete="off"
-                      >
-                        <option value="">Default</option>
-                        {voice.saved && <option value={voice.saved} selected>Saved voice</option>}
-                      </select>
-                      <Icon name="chevronDown" />
-                    </span>
+                    <Select
+                      class="create-voice-select"
+                      id={`create-${voice.name}`}
+                      name={voice.name}
+                      data-saved={voice.saved ?? ""}
+                      data-one={voice.label}
+                      data-two={voice.hostLabel}
+                      data-two-named="{name}'s voice"
+                      data-picker="voice"
+                      aria-label={startFormat === "discussion" ? voice.hostLabel : voice.label}
+                      autocomplete="off"
+                    >
+                      <option value="">Default</option>
+                      {voice.saved && <option value={voice.saved} selected>Saved voice</option>}
+                    </Select>
                     {/* As on Daily and Weekly: dimmed while the voice has no sample, never absent. */}
                     <button
                       class="podcast-sample"

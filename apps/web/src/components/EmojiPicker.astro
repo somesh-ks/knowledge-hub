@@ -1,4 +1,5 @@
 ---
+import { menuListClass } from "../design-system/menu";
 import Icon from "./Icon.astro";
 import SheetHeader from "./SheetHeader.astro";
 
@@ -9,11 +10,11 @@ interface Props {
 const { id } = Astro.props;
 ---
 
-{/* The emoji picker (2026-10-21): the More menu's popover (hero.css, .menu-sheet), a bottom sheet on a
+{/* The emoji picker (2026-10-21): the More menu's popover (menu.css), a bottom sheet on a
      phone and a popover under the emoji button from 40rem. Only the frame is here; emojiPicker.ts
      fills it when it first opens, with the list fetched then (public/emoji.json), so no page
      carries it. data-picker keeps heroMenu.ts's menu keys and focus rules off it. */}
-<div class="hero-menu-list menu-sheet emoji-picker" id={id} popover role="dialog" aria-labelledby={`${id}-title`} data-picker>
+<div class:list={[menuListClass(), "emoji-picker"]} id={id} popover role="dialog" aria-labelledby={`${id}-title`} data-picker>
   <SheetHeader title="Choose an emoji" titleId={`${id}-title`} close="data-menu-close" />
   <div class="search-wrap emoji-search">
     <label class="search-field">

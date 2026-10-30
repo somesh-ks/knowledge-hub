@@ -423,7 +423,7 @@ html[data-player="open"] .queue-dock {
 
 /* Beside the side column, level with its foot: it covers the page and never the navigation. The extra
    class beats the menu's own rules (hero.css). */
-.hero-menu-list.queue-pop {
+.menu-list.queue-pop {
   inset: auto auto calc(var(--dock-room) + var(--space-4))
     calc(var(--side-nav-width) + var(--space-2));
   flex-direction: column;
@@ -433,13 +433,13 @@ html[data-player="open"] .queue-dock {
   transform-origin: bottom left;
 }
 
-.hero-menu-list.queue-pop:popover-open {
+.menu-list.queue-pop:popover-open {
   display: flex;
 }
 
 @media (width < 64rem) {
-  .hero-menu-list.queue-pop,
-  .hero-menu-list.queue-pop:popover-open {
+  .menu-list.queue-pop,
+  .menu-list.queue-pop:popover-open {
     display: none;
   }
 }

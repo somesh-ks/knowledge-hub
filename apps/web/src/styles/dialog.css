@@ -1,0 +1,113 @@
+/*
+ * The Dialog: the small yes or no box (Delete, the speed offer, Save changes?). Drawn by
+ * design-system/Dialog.astro and DialogActions.astro; islands and scripts use dialog.ts. The
+ * stylesheet is global (BaseLayout) because a script builds one on first use.
+ */
+
+dialog.dialog-panel {
+  --color-focus-gap: var(--sheet-bg);
+  /* Placed and stacked by itself, not by the modal state: Safari ends that as the exit begins, and
+     the fade plays outside the top layer (dialog.sheet, foundations.css). */
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet);
+  width: min(24rem, calc(100% - var(--space-8)));
+  margin: auto;
+  padding: var(--space-6);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--sheet-bg);
+  box-shadow: var(--sheet-shadow);
+  color: var(--color-on-surface);
+  /* Closed it is display: none; it fades and scales out, then goes. */
+  opacity: 0;
+  transform: scale(var(--scale-enter));
+  transition:
+    opacity var(--duration-exit) var(--ease-out),
+    transform var(--duration-exit) var(--ease-out),
+    overlay var(--duration-exit) allow-discrete,
+    display var(--duration-exit) allow-discrete;
+}
+
+dialog.dialog-panel[open] {
+  opacity: 1;
+  transform: none;
+  transition-duration: var(--duration-enter);
+}
+
+@starting-style {
+  dialog.dialog-panel[open] {
+    opacity: 0;
+    transform: scale(var(--scale-enter));
+  }
+}
+
+/* The scrim only fades. */
+dialog.dialog-panel::backdrop {
+  background: var(--color-scrim);
+  opacity: 0;
+  transition:
+    opacity var(--duration-exit) var(--ease-out),
+    overlay var(--duration-exit) allow-discrete,
+    display var(--duration-exit) allow-discrete;
+}
+
+dialog.dialog-panel[open]::backdrop {
+  opacity: 1;
+  transition-duration: var(--duration-enter);
+}
+
+@starting-style {
+  dialog.dialog-panel[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+/* Reduced motion: it fades where it stands. The durations are the state's, which reduced motion does
+   not collapse, so the fade stays. */
+@media (prefers-reduced-motion: reduce) {
+  dialog.dialog-panel,
+  dialog.dialog-panel[open] {
+    transform: none;
+    transition-duration: var(--duration-state);
+  }
+
+  dialog.dialog-panel::backdrop,
+  dialog.dialog-panel[open]::backdrop {
+    transition-duration: var(--duration-state);
+  }
+
+  @starting-style {
+    dialog.dialog-panel[open] {
+      transform: none;
+    }
+  }
+}
+
+dialog.dialog-panel:focus-visible {
+  outline: none;
+}
+
+@media (forced-colors: active) {
+  dialog.dialog-panel {
+    border: var(--stroke-hairline) solid CanvasText;
+  }
+}
+
+.dialog-body {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-block-start: var(--space-4);
+}
+
+/* Three choices stacked, the committing one first: the unsaved-changes guard (sheetGuard.ts). */
+.dialog-actions-stacked {
+  flex-direction: column;
+  align-items: stretch;
+}

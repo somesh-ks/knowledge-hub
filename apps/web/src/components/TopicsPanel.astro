@@ -1,8 +1,10 @@
 ---
+import Dialog from "../design-system/Dialog.astro";
+import DialogActions from "../design-system/DialogActions.astro";
 import Field from "../design-system/Field.astro";
-import { fieldClass } from "../design-system/field";
+import Select from "../design-system/Select.astro";
 import { FORMAT_LABEL } from "../lib/sourceFilter";
-// The unsaved-changes dialog (sheetGuard.ts) is a confirm-dialog: its styles come with the sheet.
+// The unsaved-changes dialog (sheetGuard.ts) is a Dialog: its styles come with BaseLayout.
 import "../styles/episode-actions.css";
 import Button from "../design-system/Button.astro";
 import Icon from "./Icon.astro";
@@ -138,21 +140,15 @@ const { topics } = Astro.props;
         </div>
         <div class="manage-field">
           <label for="panel-source-topic">Category</label>
-          <div class="manage-select">
-            <select class={fieldClass()} id="panel-source-topic" name="topic" data-source-topic>
-              {topics.map((topic) => <option value={topic.id}>{topic.name}</option>)}
-            </select>
-            <Icon name="chevronDown" />
-          </div>
+          <Select id="panel-source-topic" name="topic" data-source-topic>
+            {topics.map((topic) => <option value={topic.id}>{topic.name}</option>)}
+          </Select>
         </div>
         <div class="manage-field">
           <label for="panel-source-format">Type</label>
-          <div class="manage-select">
-            <select class={fieldClass()} id="panel-source-format" name="format" data-source-format>
-              {Object.entries(FORMAT_LABEL).map(([value, label]) => <option value={value}>{label}</option>)}
-            </select>
-            <Icon name="chevronDown" />
-          </div>
+          <Select id="panel-source-format" name="format" data-source-format>
+            {Object.entries(FORMAT_LABEL).map(([value, label]) => <option value={value}>{label}</option>)}
+          </Select>
         </div>
         <div class="source-preview" aria-live="polite" data-source-preview data-state="idle"></div>
         {/* The catalogue's feeds that fit the topic chosen above (topicsPanel.ts), drawn as a topic page's
@@ -183,21 +179,15 @@ const { topics } = Astro.props;
         </div>
         <div class="manage-field">
           <label for="panel-edit-topic">Category</label>
-          <div class="manage-select">
-            <select class={fieldClass()} id="panel-edit-topic" name="topic" data-edit-topic>
-              {topics.map((topic) => <option value={topic.id}>{topic.name}</option>)}
-            </select>
-            <Icon name="chevronDown" />
-          </div>
+          <Select id="panel-edit-topic" name="topic" data-edit-topic>
+            {topics.map((topic) => <option value={topic.id}>{topic.name}</option>)}
+          </Select>
         </div>
         <div class="manage-field">
           <label for="panel-edit-format">Type</label>
-          <div class="manage-select">
-            <select class={fieldClass()} id="panel-edit-format" name="format" data-edit-format>
-              {Object.entries(FORMAT_LABEL).map(([value, label]) => <option value={value}>{label}</option>)}
-            </select>
-            <Icon name="chevronDown" />
-          </div>
+          <Select id="panel-edit-format" name="format" data-edit-format>
+            {Object.entries(FORMAT_LABEL).map(([value, label]) => <option value={value}>{label}</option>)}
+          </Select>
         </div>
         {/* A favorite (high_signal) skips the keyword filter: every post goes to the judge, ranked up.
             The app's checkbox (.suggest-box), its words beside it (owner, 2026-10-24). */}
@@ -210,17 +200,14 @@ const { topics } = Astro.props;
         </label>
         <div class="manage-field" data-edit-lean-field hidden>
           <label for="panel-edit-lean">Political lean</label>
-          <div class="manage-select">
-            <select class={fieldClass()} id="panel-edit-lean" name="lean" data-edit-lean>
-              <option value="">Unrated</option>
-              <option value="-2">Left</option>
-              <option value="-1">Centre-left</option>
-              <option value="0">Centre</option>
-              <option value="1">Centre-right</option>
-              <option value="2">Right</option>
-            </select>
-            <Icon name="chevronDown" />
-          </div>
+          <Select id="panel-edit-lean" name="lean" data-edit-lean>
+            <option value="">Unrated</option>
+            <option value="-2">Left</option>
+            <option value="-1">Centre-left</option>
+            <option value="0">Centre</option>
+            <option value="1">Centre-right</option>
+            <option value="2">Right</option>
+          </Select>
         </div>
         <div class="edit-address">
           <span class="edit-address-label">Address</span>
@@ -277,15 +264,13 @@ const { topics } = Astro.props;
 
 {/* What Delete source asks before it deletes (topicsEditor.ts, removeSource): the topic's confirm
      dialog, worn again. It opens over the panel; Cancel returns to it. */}
-<dialog class="confirm-dialog" aria-labelledby="source-delete-title" data-source-confirm>
-  <div class="confirm-form">
-    <h2 class="sheet-title" id="source-delete-title" data-source-confirm-title>Delete source?</h2>
-    <div class="confirm-actions">
-      <Button variant="text" data-source-cancel autofocus>Cancel</Button>
-      <Button variant="text" tone="danger" data-source-delete>Delete</Button>
-    </div>
-  </div>
-</dialog>
+<Dialog aria-labelledby="source-delete-title" data-source-confirm>
+  <h2 class="sheet-title" id="source-delete-title" data-source-confirm-title>Delete source?</h2>
+  <DialogActions>
+    <Button variant="text" data-source-cancel autofocus>Cancel</Button>
+    <Button variant="text" tone="danger" data-source-delete>Delete</Button>
+  </DialogActions>
+</Dialog>
 
 {/* Suggested sources for a topic added before the build gives it a page: on the page that shows such
      a topic (D142), scripts/savedView.ts ranks the catalogue in the browser, puts this section where

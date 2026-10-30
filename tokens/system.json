@@ -155,7 +155,7 @@
       ],
       "markup": "<Button variant=\"text\">Cancel</Button>",
       "rules": [
-        "In a dialog, Cancel and the filled button sit in a `.confirm-actions` row (EpisodeActions.astro); a form sheet keeps its one filled button in `.sheet-actions`."
+        "In a dialog, Cancel and the filled button sit in a DialogActions row (EpisodeActions.astro); a form sheet keeps its one filled button in `.sheet-actions`."
       ],
       "styles": [
         "buttons.css",
@@ -331,7 +331,7 @@
       "id": "field",
       "name": "Field",
       "kind": "selection",
-      "summary": "An outlined box for text or a pick: one line, several lines (multiline) or a native select.",
+      "summary": "An outlined box for text a person types: one line, or several lines (multiline).",
       "classes": [
         "field-input"
       ],
@@ -341,13 +341,16 @@
       ],
       "when": [
         "A person types a short value or a few lines: a title, a feed address, a prompt",
-        "A person picks one value from a list that is too long for a segmented choice, with a native select",
         "It sits under its own label in a form or a settings row, and a refused value shows as an invalid field"
       ],
       "not": [
         {
           "when": "The value is one of two to four short options",
           "use": "filter-chip"
+        },
+        {
+          "when": "A person picks one value from a list",
+          "use": "select"
         },
         {
           "when": "The setting is on or off and applies as soon as it is flipped",
@@ -375,18 +378,265 @@
       "styles": [
         "episode-actions.css",
         "field.css",
-        "manage.css"
+        "manage.css",
+        "topics.css"
       ],
       "usage": "The text field, and the select and textarea that share its looks: a filled pill (D186; a textarea 24px), the one control with an outline, which shows on focus.",
       "tokens": [
+        "--button-radius",
         "--color-accent",
         "--color-danger",
         "--color-on-surface",
         "--color-on-surface-muted",
         "--field-border",
+        "--field-chevron-gap",
         "--field-height",
+        "--field-max-height-multiline",
         "--field-padding",
-        "--field-radius"
+        "--field-radius",
+        "--field-radius-multiline",
+        "--size-icon"
+      ]
+    },
+    {
+      "id": "select",
+      "name": "Select",
+      "kind": "selection",
+      "summary": "A native select with its own chevron: a person picks one value from a list that is too long to show.",
+      "classes": [
+        "select-outlined",
+        "select-tonal"
+      ],
+      "files": [
+        "design-system/Select.astro",
+        "design-system/select.ts"
+      ],
+      "when": [
+        "A person picks one value from a list of five or more, or of names that are too long for a row of chips",
+        "It sits under its own label in a form, or in a toolbar as a sort or a filter"
+      ],
+      "not": [
+        {
+          "when": "the value is one of two to four short options",
+          "use": "segmented-choice"
+        },
+        {
+          "when": "several values may be ticked together",
+          "use": "multiselect"
+        }
+      ],
+      "keywords": [
+        "select",
+        "dropdown",
+        "sort",
+        "sort by",
+        "order by",
+        "picker",
+        "choose one",
+        "filter"
+      ],
+      "markup": "<Select variant=\"tonal\" label=\"Sort\" data-library-sort><option value=\"newest\">Newest first</option></Select>",
+      "rules": [
+        "Outlined (the default) is a value in a form; tonal is a sort or a filter and takes data-active on its wrapper (find it with closest(\"[data-select]\")) once its value is not the default.",
+        "A select inside a settings row takes class=\"value-select\" from settings.css, which draws it as the row's value."
+      ],
+      "styles": [
+        "select.css"
+      ],
+      "usage": "The box and its text are the Field's (field.css, select.field-input); the wrapper holds the chevron a select draws for itself, in the muted ink, never taking a press.",
+      "tokens": [
+        "--button-radius",
+        "--chip-height",
+        "--color-accent",
+        "--color-accent-container",
+        "--color-border-hairline",
+        "--color-focus-ring",
+        "--color-on-accent-container",
+        "--color-on-surface",
+        "--color-on-surface-muted",
+        "--color-scrim",
+        "--color-surface-container",
+        "--color-surface-overlay",
+        "--field-chevron-gap",
+        "--layout-column",
+        "--row-radius",
+        "--shadow-popover",
+        "--sheet-bg",
+        "--sheet-radius",
+        "--sheet-shadow",
+        "--size-icon",
+        "--size-icon-sm",
+        "--size-touch"
+      ]
+    },
+    {
+      "id": "menu",
+      "name": "Menu",
+      "kind": "selection",
+      "summary": "A short list of actions that opens from an icon button: a row each, with its glyph at the start.",
+      "classes": [
+        "menu-list",
+        "menu-sheet",
+        "menu-item",
+        "menu-item-danger"
+      ],
+      "files": [
+        "design-system/Menu.astro",
+        "design-system/menu.ts"
+      ],
+      "when": [
+        "A card, a header or a row has more actions than it has room for: Download, Add to queue, Share, Delete",
+        "Each action is one tap and needs no choice of its own"
+      ],
+      "not": [
+        {
+          "when": "The person picks one value from a list",
+          "use": "select"
+        },
+        {
+          "when": "The only action is the one the button already names",
+          "use": "button-text"
+        }
+      ],
+      "keywords": [
+        "popover",
+        "dots menu",
+        "context menu",
+        "action sheet",
+        "more menu",
+        "overflow menu"
+      ],
+      "markup": "<Menu id=\"row-menu-3\" title=\"Daily\"><MenuItem><Icon name=\"pencilSimple\" />Edit</MenuItem><MenuItem tone=\"danger\"><Icon name=\"trash\" />Delete</MenuItem></Menu>",
+      "rules": [
+        "Under 40rem a menu is a sheet, never a small popover.",
+        "A script finds one with MENU_SELECTORS (design-system/menu.ts); a string builder or an island takes menuListClass() and menuItemClass()."
+      ],
+      "styles": [
+        "library.css",
+        "menu.css",
+        "queue.css",
+        "story-controls.css",
+        "topics.css"
+      ],
+      "usage": "A popover lives in the top layer, so it is placed against the viewport, not the row. Where anchor positioning exists it hangs under the button, right edges level; elsewhere heroMenu.ts writes --menu-top and --menu-right from the button's box when it opens.",
+      "tokens": [
+        "--color-danger",
+        "--color-on-surface",
+        "--color-on-surface-disabled",
+        "--color-scrim",
+        "--color-surface-overlay",
+        "--layout-column",
+        "--shadow-popover",
+        "--sheet-bg",
+        "--sheet-radius",
+        "--sheet-shadow",
+        "--size-icon",
+        "--size-touch"
+      ]
+    },
+    {
+      "id": "banner",
+      "name": "Banner",
+      "kind": "feedback",
+      "summary": "A tinted block with an icon, a title, an optional line and at most one text button.",
+      "classes": [
+        "banner-notice",
+        "banner-text",
+        "banner-title",
+        "banner-body"
+      ],
+      "files": [
+        "design-system/Banner.astro",
+        "design-system/banner.ts"
+      ],
+      "when": [
+        "A state a person must know about stays on screen: offline, a failed run, a playback error"
+      ],
+      "not": [
+        {
+          "when": "a message that clears itself",
+          "use": "toast"
+        },
+        {
+          "when": "a page with nothing to list",
+          "use": "empty-state"
+        }
+      ],
+      "keywords": [
+        "alert",
+        "notice",
+        "warning",
+        "error message",
+        "persistent"
+      ],
+      "markup": "<Banner tone=\"danger\" icon=\"alert\" title=\"Download failed\" />",
+      "rules": [
+        "Only the icon takes the tone.",
+        "An island draws one with bannerClass() and bannerText."
+      ],
+      "styles": [
+        "banner.css"
+      ],
+      "usage": "Banners, and the pages with nothing to list. A banner is flat: a tinted ground, an icon in the tone's colour, a title, a line of text and at most one text button. The tone sets the tint.",
+      "tokens": [
+        "--banner-padding",
+        "--color-danger",
+        "--color-danger-subtle",
+        "--color-info",
+        "--color-info-subtle",
+        "--color-success",
+        "--color-success-subtle",
+        "--color-warning",
+        "--color-warning-subtle",
+        "--size-icon"
+      ]
+    },
+    {
+      "id": "dialog",
+      "name": "Dialog",
+      "kind": "container",
+      "summary": "A small centred box with a heading and a row of buttons: one question, one tap.",
+      "classes": [
+        "dialog-panel",
+        "dialog-body",
+        "dialog-actions",
+        "dialog-actions-stacked"
+      ],
+      "files": [
+        "design-system/Dialog.astro",
+        "design-system/dialog.ts"
+      ],
+      "when": [
+        "A person confirms what cannot be undone: Delete, Discard, Switch profile"
+      ],
+      "not": [
+        {
+          "when": "a form that slides in, with fields",
+          "use": "sheet"
+        }
+      ],
+      "keywords": [
+        "confirm",
+        "modal",
+        "yes or no",
+        "are you sure",
+        "delete confirm"
+      ],
+      "markup": "<Dialog aria-labelledby=\"t\"><h2 class=\"sheet-title\" id=\"t\">Delete?</h2><DialogActions><Button variant=\"text\">Cancel</Button></DialogActions></Dialog>",
+      "rules": [
+        "A script finds one with DIALOG_SELECTOR; one it builds uses dialogClass(), dialogBodyClass() and dialogActionsClass().",
+        "It renders closed: the script opens it with dialog.showModal() and closes it with dialog.close() from the Cancel button's click."
+      ],
+      "styles": [
+        "buttons.css",
+        "dialog.css"
+      ],
+      "usage": "",
+      "tokens": [
+        "--color-on-surface",
+        "--color-scrim",
+        "--sheet-bg",
+        "--sheet-shadow"
       ]
     },
     {
@@ -632,69 +882,6 @@
       ]
     },
     {
-      "id": "sort-field",
-      "name": "Sort field",
-      "kind": "selection",
-      "summary": "A compact select drawn as a chip.",
-      "classes": [
-        "sort-field"
-      ],
-      "when": [
-        "sort a list by date or title",
-        "a range or breakdown picker on a chart",
-        "a compact dropdown in a toolbar"
-      ],
-      "not": [
-        {
-          "when": "a form field or a setting",
-          "use": "settings-row"
-        },
-        {
-          "when": "an on/off filter",
-          "use": "filter-chip"
-        }
-      ],
-      "keywords": [
-        "dropdown",
-        "select",
-        "order by",
-        "sort by"
-      ],
-      "markup": "<label class=\"sort-field\"><span class=\"sr-only\">Sort</span><select>...</select><Icon name=\"chevronDown\" /></label>",
-      "rules": [
-        "Takes the chosen look when its value is not the default."
-      ],
-      "styles": [
-        "manage.css",
-        "primitives.css"
-      ],
-      "usage": "A compact select drawn as a chip: the Library's sort, the Costs chart's range and breakdown, and the hero's select of a day's Catch ups (hero.css, D219). It opens the drawn list below. Its fill is --sort-field-bg, so a chip on a card's tone can step up (costs.css). Moved here from library.css on 2026-10-22 when Costs took it; the rules are as they were.",
-      "tokens": [
-        "--button-radius",
-        "--chip-height",
-        "--color-accent",
-        "--color-accent-container",
-        "--color-border-hairline",
-        "--color-focus-ring",
-        "--color-on-accent-container",
-        "--color-on-surface",
-        "--color-on-surface-muted",
-        "--color-scrim",
-        "--color-surface-container",
-        "--color-surface-overlay",
-        "--field-chevron-gap",
-        "--layout-column",
-        "--row-radius",
-        "--shadow-popover",
-        "--sheet-bg",
-        "--sheet-radius",
-        "--sheet-shadow",
-        "--size-icon",
-        "--size-icon-sm",
-        "--size-touch"
-      ]
-    },
-    {
       "id": "segmented-choice",
       "name": "Segmented choice",
       "kind": "selection",
@@ -928,6 +1115,7 @@
       "styles": [
         "multiselect.css",
         "primitives.css",
+        "select.css",
         "settings.css"
       ],
       "usage": "A group of settings rows in one rounded container on the container tone, as Material 3 groups an Android settings screen: the group is told apart from the page by tone alone, never by a shadow or a line. Put the class on the .rows list itself; the rows keep their own padding. Its words sit the card's padding in from its edge, and a row's hover tile keeps clear of the corners. 2026-10-22, \"the padding around the list menus ... must be spacious\": the words 24px in, the tiles 16px in on every side. The card adds half the inset above and below and each tile takes the other half inside its row, so the first and last tiles sit one inset from the edge, two tiles sit one inset apart, and the rows keep their 64px rhythm. 2026-10-24, the owner: \"I want the padding to be less and the list items to be spacious to improve click area ... 4px padding is decent\": the inset is 4px, a link row's box is its tile (one inset from the card's edges, its words still the padding in), so the whole tile is the target and nothing outside it is. The card adds the inset above and below and two rows sit one inset apart; each row keeps 64px.",
@@ -988,62 +1176,6 @@
         "--size-icon",
         "--size-touch-comfortable",
         "--slider-max-width"
-      ]
-    },
-    {
-      "id": "banner",
-      "name": "Banner",
-      "kind": "feedback",
-      "summary": "A flat tinted notice at the top of a page, with an icon in the tone's color.",
-      "classes": [
-        "banner",
-        "banner-stack"
-      ],
-      "files": [
-        "components/Banner.astro"
-      ],
-      "when": [
-        "tell the user something that stays until it is fixed or dismissed",
-        "a persistent warning or error at the top of a page",
-        "offline notice"
-      ],
-      "not": [
-        {
-          "when": "a message that clears itself",
-          "use": "toast"
-        },
-        {
-          "when": "a page with nothing to list",
-          "use": "empty-state"
-        }
-      ],
-      "keywords": [
-        "alert",
-        "notice",
-        "warning",
-        "error message",
-        "persistent"
-      ],
-      "markup": "<Banner tone=\"danger\" icon=\"alert\" title=\"Download failed\" />",
-      "rules": [
-        "Tone is info, warning, danger or success; only the icon takes the tone."
-      ],
-      "styles": [
-        "banner.css",
-        "shell.css"
-      ],
-      "usage": "Banners, and the pages with nothing to list. A banner is flat: a tinted ground, an icon in the tone's colour, a title, a line of text and at most one text button. The tone sets the tint.",
-      "tokens": [
-        "--banner-padding",
-        "--color-danger",
-        "--color-danger-subtle",
-        "--color-info",
-        "--color-info-subtle",
-        "--color-success",
-        "--color-success-subtle",
-        "--color-warning",
-        "--color-warning-subtle",
-        "--size-icon"
       ]
     },
     {
@@ -1165,11 +1297,11 @@
       "not": [
         {
           "when": "a menu of choices",
-          "use": "menu-sheet"
+          "use": "menu"
         },
         {
           "when": "a small popover on a phone",
-          "use": "menu-sheet"
+          "use": "menu"
         }
       ],
       "keywords": [
@@ -1183,7 +1315,7 @@
       "rules": [
         "Never hand-write the header or a close button.",
         "Motion uses --duration-sheet-in, --duration-sheet-out and --ease-drawer.",
-        "`.sheet-actions` is one column, so Cancel stacks under the primary; side by side is `.confirm-actions`."
+        "`.sheet-actions` is one column, so Cancel stacks under the primary; side by side is a DialogActions row."
       ],
       "styles": [
         "sheets.css"
@@ -1193,53 +1325,6 @@
         "--cta-bg",
         "--cta-fg",
         "--field-label-gap",
-        "--size-touch"
-      ]
-    },
-    {
-      "id": "menu-sheet",
-      "name": "Menu sheet",
-      "kind": "container",
-      "summary": "A popover menu that is a bottom sheet on a phone and a small menu from 40rem.",
-      "classes": [
-        "menu-sheet",
-        "hero-menu-item"
-      ],
-      "files": [
-        "components/MenuSheet.astro",
-        "components/SheetHeader.astro",
-        "scripts/heroMenu.ts"
-      ],
-      "when": [
-        "a row's more menu",
-        "a list of actions or choices on a phone",
-        "select-like menus"
-      ],
-      "not": [
-        {
-          "when": "a modal form",
-          "use": "sheet"
-        }
-      ],
-      "keywords": [
-        "popover",
-        "dots menu",
-        "context menu",
-        "action sheet"
-      ],
-      "markup": "<MenuSheet id=\"row-menu-3\" title=\"Daily\"><button class=\"hero-menu-item\" type=\"button\" role=\"menuitem\">Edit</button></MenuSheet>",
-      "rules": [
-        "Under 40rem a menu is a sheet, never a small popover."
-      ],
-      "styles": [
-        "hero.css"
-      ],
-      "usage": "",
-      "tokens": [
-        "--color-on-surface",
-        "--color-on-surface-disabled",
-        "--color-scrim",
-        "--size-icon",
         "--size-touch"
       ]
     },
@@ -1644,13 +1729,14 @@
       "reason": "the podcast voice sample row control"
     },
     {
-      "class": "hero-menu-item",
-      "reason": "a row of the hero's popover menu",
-      "part": "menu-sheet"
+      "class": "menu-item",
+      "reason": "a row of the popover menu",
+      "part": "menu"
     },
     {
-      "class": "hero-menu-delete",
-      "reason": "the menu's destructive row"
+      "class": "menu-item-danger",
+      "reason": "the menu's destructive row",
+      "part": "menu"
     },
     {
       "class": "topic-delete",
@@ -1675,10 +1761,6 @@
       "class": "search-clear",
       "reason": "the clear control inside .search-field",
       "part": "search-field"
-    },
-    {
-      "class": "player-notice-action",
-      "reason": "a text action in the player's notice"
     },
     {
       "class": "player-fallback-action",

@@ -1,5 +1,6 @@
 ---
 import Button from "../design-system/Button.astro";
+import { menuListClass } from "../design-system/menu";
 import type { IconName } from "../lib/icons";
 import { UPDATING_LABEL } from "../lib/runStages";
 import Icon from "./Icon.astro";
@@ -128,7 +129,7 @@ const icons: Record<string, IconName> = {
   {/* The popover is the More menu's own surface (hero.css) with its own place and size (queue.css).
        It opens only from the side column's row, which shows once something has been made today. */}
   <div
-    class="hero-menu-list queue-pop"
+    class:list={[menuListClass(false), "queue-pop"]}
     id="queue-pop"
     popover
     role="dialog"

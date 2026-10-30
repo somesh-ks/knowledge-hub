@@ -4,9 +4,13 @@
  * designSystem.test.ts holds the app to them. A new component is added here in the PR that adds it;
  * a class not listed here is not part of the system.
  */
+import { BANNER, BANNER_CLASSES, BANNER_RETIRED } from "./banner";
 import { BUTTON, BUTTON_CLASSES, BUTTON_RETIRED } from "./button";
+import { DIALOG, DIALOG_CLASSES, DIALOG_RETIRED } from "./dialog";
 import { FIELD, FIELD_CLASSES, FIELD_RETIRED } from "./field";
 import type { Guidance } from "./guidance";
+import { MENU, MENU_CLASSES, MENU_RETIRED } from "./menu";
+import { SELECT, SELECT_CLASSES, SELECT_RETIRED } from "./select";
 import { SLIDER, SLIDER_CLASSES, SLIDER_RETIRED } from "./slider";
 import { SWITCH, SWITCH_CLASSES, SWITCH_RETIRED } from "./switch";
 
@@ -66,6 +70,50 @@ export const COMPONENTS: DesignSystemComponent[] = [
     summary: FIELD.summary,
     useWhen: FIELD.useWhen,
     dontUseWhen: FIELD.dontUseWhen,
+    parts: {},
+  },
+  {
+    name: "Select",
+    sheet: "select.css",
+    prefix: "select-",
+    classes: SELECT_CLASSES,
+    retired: SELECT_RETIRED,
+    summary: SELECT.summary,
+    useWhen: SELECT.useWhen,
+    dontUseWhen: SELECT.dontUseWhen,
+    parts: SELECT.variants,
+  },
+  {
+    name: "Menu",
+    sheet: "menu.css",
+    prefix: "menu-",
+    classes: MENU_CLASSES,
+    retired: MENU_RETIRED,
+    summary: MENU.summary,
+    useWhen: MENU.useWhen,
+    dontUseWhen: MENU.dontUseWhen,
+    parts: MENU.tones,
+  },
+  {
+    name: "Banner",
+    sheet: "banner.css",
+    prefix: "banner-",
+    classes: BANNER_CLASSES,
+    retired: BANNER_RETIRED,
+    summary: BANNER.summary,
+    useWhen: BANNER.useWhen,
+    dontUseWhen: BANNER.dontUseWhen,
+    parts: BANNER.tones,
+  },
+  {
+    name: "Dialog",
+    sheet: "dialog.css",
+    prefix: "dialog-",
+    classes: DIALOG_CLASSES,
+    retired: DIALOG_RETIRED,
+    summary: DIALOG.summary,
+    useWhen: DIALOG.useWhen,
+    dontUseWhen: DIALOG.dontUseWhen,
     parts: {},
   },
 ];

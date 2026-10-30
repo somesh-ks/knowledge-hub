@@ -68,20 +68,20 @@ Settings row or menu option acting as a tactile tile.
 ```
 * **Rules**: Presses as an elevated tile off dividing hairlines. Label is regular weight, never bold.
 
-### Bottom Sheet (`SheetFrame.tsx`, `MenuSheet.astro`)
+### Bottom Sheet (`SheetFrame.tsx`, `design-system/Menu.astro`)
 
 A phone shows a dialog or a menu as a bottom sheet; from 40rem it is a centered dialog or a small menu under its button (D167, Ledger section 11). There are two builds, and neither is hand-written markup:
 
 * **A dialog** (Create, Settings, Generate): mount `apps/web/src/sheets/SheetFrame.tsx`. It wraps Base UI's `Drawer`, which provides the dialog semantics, focus trap, inert background, Escape, scrim tap, swipe to dismiss and Back-closes-the-sheet. It renders `.sheet-scrim`, `.sheet-viewport`, `.sheet-popup`, `.sheet-panel` and the `.sheet-head` with the title and Close; the title is a `Drawer.Title`, so its id is generated per instance.
-* **A menu** (a row's dots, the More menu): put its items in `components/MenuSheet.astro`. It is a `popover` element (`.hero-menu-list.menu-sheet`) with `SheetHeader.astro` (title at the start, Close at the end) and `.hero-menu-item` rows; `scripts/heroMenu.ts` runs its keys, focus and pull-to-close. A script that redraws rows at runtime builds them with the helpers in `lib/sheetHead.ts`.
+* **A menu** (a row's dots, the More menu): put its items in `design-system/Menu.astro`. It is a `popover` element with `SheetHeader.astro` (title at the start, Close at the end) and `<MenuItem>` rows; `scripts/heroMenu.ts` runs its keys, focus and pull-to-close. A script that redraws rows at runtime builds them with the helpers in `lib/sheetHead.ts` (`menuItemClass()`, `menuListClass()`).
 
 ```astro
-<MenuSheet id="row-menu-3" title="Daily">
-  <button class="hero-menu-item" type="button" role="menuitem" data-act="edit">Edit</button>
-</MenuSheet>
+<Menu id="row-menu-3" title="Daily">
+  <MenuItem data-act="edit">Edit</MenuItem>
+</Menu>
 ```
 
-* **Rules**: Under 40rem, selects and menus open as bottom sheets, never popovers a tap can fall through. Top corners rounded only (`--radius-sheet`). Motion uses `--duration-sheet-in` (300 ms), `--duration-sheet-out` (220 ms) and `--ease-drawer`; a dialog's height cap is `--sheet-max-height` (a `MenuSheet` has none, so keep its item list short); the bottom padding clears `--safe-bottom`. All of it is in `sheets.css` and `hero.css`; never restyle it per page.
+* **Rules**: Under 40rem, selects and menus open as bottom sheets, never popovers a tap can fall through. Top corners rounded only (`--radius-sheet`). Motion uses `--duration-sheet-in` (300 ms), `--duration-sheet-out` (220 ms) and `--ease-drawer`; a dialog's height cap is `--sheet-max-height` (a `Menu` has none, so keep its item list short); the bottom padding clears `--safe-bottom`. All of it is in `sheets.css`, `menu.css` and `select.css`; never restyle it per page.
 
 ---
 

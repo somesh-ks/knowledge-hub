@@ -39,6 +39,16 @@ He went away after "fire away". Made on his behalf, each reversible: the darker 
 
 Calls made for the owner: a disabled field dims like a disabled switch (`--opacity-disabled`) instead of the Generate sheet's lighter border and ink, because a disabled fieldset already dims its fields and the two looks would stack. The Generate sheet's textarea and Regenerate's now grow with their text from the shared 6rem minimum, as every other textarea does. The 28 page rules that bend a field (Create's filled title, the Settings select, the Topics panel) are listed in `PAGE_OVERRIDES` as debt; they were invisible to D253's test until the field became a component. Select and Menu follow in the same pull request.
 
+## Select and Menu (C, parts 2 and 3)
+
+`design-system/Select.astro` draws the select and its chevron in two variants: outlined (a value in a form; the Field's looks on a pill) and tonal (a sort or a filter chip, with `data-active` when its value is not the default). It replaces `manage-select` (14 sites), `sort-field` (6, in the reader, admin and design apps) and `create-select`; the wrapper's rules and the one open list moved from `manage.css`, `create.css`, `costs.css` and `primitives.css` into `select.css`. Scripts find a select with `closest("[data-select]")`. `value-select` (a select as a settings row's value) stays a page modifier in `settings.css` until Row becomes a component.
+
+`design-system/Menu.astro` and `MenuItem.astro` draw the popover list and its rows: `hero-menu-list`, `hero-menu-item` and `hero-menu-delete` become `menu-list`, `menu-item` and `menu-item-danger`, with `menuListClass()` and `menuItemClass()` for islands and string builders and `MENU_SELECTORS` for scripts. The rules moved from `hero.css` into `menu.css`; `MenuSheet.astro` is gone. The picker's and the multi-select's option rows are not folded in yet: they are built by script with their own keys.
+
+Proof: computed styles of every select (wrapper, native select, chevron, picker button) at rest, hover and focus on 13 pages at 390 and 1280, light and dark: 64 selects, 238 checks, no difference outside Create. Every popover menu forced open (156, 312 checks): no difference. The open lists of a sort and a settings select are pixel-identical.
+
+Calls made for the owner: Create's voice select is outlined, not tonal. Filled with the container tone it sat on the More options card's own tone and showed no edge, only its chevron. The 12 page rules that place a menu (a Library card's, the Queue's, a story's, the emoji picker's, a structure row's) are listed as debt, as the Field's were.
+
 ## Not verified
 
 Classes built from strings at run time (none found by search); the open states of every sheet and menu are not in the page-level comparison, so each family PR screenshots them.

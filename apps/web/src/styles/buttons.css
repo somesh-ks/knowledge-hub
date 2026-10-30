@@ -174,9 +174,9 @@
   text-decoration: none;
 }
 
-/* In a row of dialog actions (.confirm-actions) the block buttons hug their label instead of filling
+/* In a row of dialog actions (.dialog-actions) the block buttons hug their label instead of filling
    what the text button leaves (owner, 2026-10-30). Stacked, the column stretches them again. */
-.confirm-actions > :is(.button-filled, .button-tonal) {
+.dialog-actions > :is(.button-filled, .button-tonal) {
   width: auto;
 }
 

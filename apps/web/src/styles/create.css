@@ -340,7 +340,7 @@
   gap: var(--space-2);
 }
 
-.create-voice-field > .create-select {
+.create-voice-field > .create-voice-select {
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -355,72 +355,6 @@
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-label);
   line-height: var(--font-leading-label);
-}
-
-/* A tonal select with its own chevron: the container tone, no outline, the pill every select is
-   (D167; the row's corners until 2026-10-23). The text stays at the body size, so iOS never zooms
-   into it. */
-.create-select {
-  position: relative;
-  display: grid;
-}
-
-.create-select > select {
-  inline-size: 100%;
-  min-height: var(--field-height);
-  padding-inline: var(--field-padding)
-    calc(var(--space-4) + var(--size-icon) + var(--field-chevron-gap));
-  border: var(--stroke-hairline) solid transparent;
-  border-radius: var(--button-radius);
-  background: var(--color-surface-container);
-  color: var(--color-on-surface);
-  font: inherit;
-  font-size: var(--font-size-body);
-  text-overflow: ellipsis;
-  appearance: none;
-  cursor: pointer;
-  transition: background-color var(--duration-hover) var(--ease-hover);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .create-select > select:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-surface-container),
-      var(--color-on-surface) var(--state-hover)
-    );
-  }
-}
-
-.create-select > select:focus-visible {
-  outline-offset: var(--stroke-ring-gap);
-}
-
-/* A press that opens the list keeps the field's fill and takes the press layer, as the Library's
-   sort does: the ring and the accent edge are the keyboard's (primitives.css draws both). */
-:root:not([data-input="keyboard"]) .create-select > select:open {
-  border-color: transparent;
-  outline: none;
-  background: color-mix(
-    in oklch,
-    var(--color-surface-container),
-    var(--color-on-surface) var(--state-press)
-  );
-}
-
-.create-select > .icon {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-end: var(--space-4);
-  margin-block: auto;
-  color: var(--color-on-surface-muted);
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .create-select > select {
-    border-color: CanvasText;
-  }
 }
 
 .create-view [hidden] {

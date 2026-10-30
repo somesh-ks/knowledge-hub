@@ -102,11 +102,11 @@ describe("structureView", () => {
     expect(html).toContain('aria-label="Move Design &amp; UX"');
 
     // Menu actions rendered via menuItemHtml
-    expect(html).toContain('class="hero-menu-item" type="button" role="menuitem" data-act="up"');
-    expect(html).toContain('class="hero-menu-item" type="button" role="menuitem" data-act="down"');
-    expect(html).toContain('class="hero-menu-item" type="button" role="menuitem" data-act="edit"');
+    expect(html).toContain('class="menu-item" type="button" role="menuitem" data-act="up"');
+    expect(html).toContain('class="menu-item" type="button" role="menuitem" data-act="down"');
+    expect(html).toContain('class="menu-item" type="button" role="menuitem" data-act="edit"');
     expect(html).toContain(
-      'class="hero-menu-item hero-menu-delete" type="button" role="menuitem" data-act="remove"',
+      'class="menu-item menu-item-danger" type="button" role="menuitem" data-act="remove"',
     );
 
     // Data-icon ink alignment

@@ -86,7 +86,7 @@
 }
 
 /*
- * The select of a day's Catch ups (D219) is the shared select chip (.sort-field, primitives.css) at
+ * The select of a day's Catch ups (D219) is the tonal Select (select.css) at
  * the hero chip's height, so it and Play read as one row. A select is as wide as its longest option
  * whichever is chosen, and the names are one width (lib/catchUps.ts), so switching moves nothing.
  */
@@ -220,140 +220,6 @@
   display: block;
 }
 
-/*
- * A popover lives in the top layer, so it is placed against the viewport, not the row. Where anchor
- * positioning exists it hangs under the button, right edges level; elsewhere heroMenu.ts writes
- * --menu-top and --menu-right from the button's box when it opens.
- */
-.hero-menu-list {
-  position: fixed;
-  /* Above the bars while Safari plays the exit outside the top layer (dialog.sheet, foundations.css). */
-  z-index: var(--z-sheet);
-  inset: auto;
-  inset-block-start: var(--menu-top, 0);
-  inset-inline-end: var(--menu-right, 0);
-  min-width: 10rem;
-  margin: 0;
-  padding: var(--space-2);
-  border: 0;
-  border-radius: var(--radius-md);
-  background: var(--color-surface-overlay);
-  box-shadow: var(--shadow-popover);
-  color: var(--color-on-surface);
-  --color-focus-gap: var(--color-surface-overlay);
-  /* Closed, a popover is display: none; the open state alone turns it on. */
-  display: none;
-  opacity: 0;
-  /* It grows out of the corner by the More button. */
-  transform: scale(var(--scale-enter));
-  transform-origin: top right;
-  transition:
-    opacity var(--duration-exit) var(--ease-out),
-    transform var(--duration-exit) var(--ease-out),
-    overlay var(--duration-exit) allow-discrete,
-    display var(--duration-exit) allow-discrete;
-}
-
-@supports (top: anchor(bottom)) {
-  .hero-menu-list {
-    position-anchor: --hero-more;
-    inset-block-start: anchor(bottom);
-    inset-inline-end: anchor(right);
-    margin-block-start: var(--space-2);
-    position-try-fallbacks: flip-block;
-  }
-}
-
-.hero-menu-list:popover-open {
-  display: block;
-  opacity: 1;
-  transform: none;
-  transition-duration: var(--duration-enter);
-}
-
-@starting-style {
-  .hero-menu-list:popover-open {
-    opacity: 0;
-    transform: scale(var(--scale-enter));
-  }
-}
-
-/* Opened or closed with a key, the menu is there or gone at once: what a key starts is never
-   animated (data-input, app.ts). A press still grows it out of the corner. */
-:root[data-input="keyboard"] .hero-menu-list {
-  transition: none;
-}
-
-/* Reduced motion: the menu fades in and out where it stands. The durations are the state's, which
-   reduced motion does not collapse, so the fade stays. */
-@media (prefers-reduced-motion: reduce) {
-  .hero-menu-list,
-  .hero-menu-list:popover-open {
-    transform: none;
-    transition-duration: var(--duration-state);
-  }
-
-  @starting-style {
-    .hero-menu-list:popover-open {
-      transform: none;
-    }
-  }
-}
-
-/* A row of the menu. A press fills it and never scales its words. The fills are the item's own ink
-   at low strength, so they lift the row on the panel in either scheme instead of sinking it. */
-.hero-menu-item {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  min-height: var(--size-touch);
-  padding-inline: var(--space-4);
-  border-radius: var(--radius-sm);
-  color: var(--color-on-surface);
-  font-size: var(--font-size-body);
-  line-height: var(--font-leading-label);
-  text-align: start;
-  transition: background-color var(--duration-hover) var(--ease-hover);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .hero-menu-item:hover {
-    background: color-mix(in oklab, currentColor 8%, transparent);
-  }
-}
-
-.hero-menu-item:active {
-  background: color-mix(in oklab, currentColor 12%, transparent);
-}
-
-/* The ring is drawn inside the row, so it never meets the panel's edge. */
-.hero-menu-item:focus-visible {
-  outline-offset: calc(var(--stroke-ring) * -1);
-  box-shadow: none;
-}
-
-/* Red marks the one that destroys; the confirm still asks before anything is removed. */
-.hero-menu-delete {
-  color: var(--color-danger);
-}
-
-.hero-menu-item[aria-disabled="true"],
-.hero-menu-item:disabled {
-  color: var(--color-on-surface-disabled);
-  cursor: default;
-}
-
-/* An item of the menu: its icon at the start, then the word. */
-.menu-sheet .hero-menu-item {
-  gap: var(--space-4);
-}
-
-.menu-sheet .hero-menu-item .icon {
-  flex: none;
-  width: var(--size-icon);
-  height: var(--size-icon);
-}
-
 /* Download shows the cloud with a cross once the page's item is downloaded, to go with "Remove
    download" (the Library row's is the same, library.css). */
 [data-page-menu] .dl-remove,
@@ -363,72 +229,6 @@
 
 [data-page-menu][data-downloaded] .dl-remove {
   display: block;
-}
-
-/* From 40rem the header is the sheet's alone. */
-.menu-sheet > .create-sheet-head {
-  display: none;
-}
-
-/* A phone shows the menu as a bottom sheet (owner, 2026-10-21, every ⋮ menu): the popover pinned to the bottom edge
-   on the sheet surface, its header the shared SheetHeader, a scrim behind. It slides up like
-   dialog.sheet (foundations.css) and is as specific as the popover's own open rules (hero.css). */
-@media (width < 40rem) {
-  .hero-menu-list.menu-sheet,
-  .hero-menu-list.menu-sheet:popover-open {
-    position: fixed;
-    inset: auto 0 0 0;
-    width: min(100%, var(--layout-column));
-    max-width: none;
-    min-width: 0;
-    margin: 0 auto;
-    padding: 0 var(--space-2) max(var(--space-2), var(--safe-bottom));
-    border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
-    background: var(--sheet-bg);
-    box-shadow: var(--sheet-shadow);
-    --color-focus-gap: var(--sheet-bg);
-    opacity: 1;
-    transform: translateY(105%);
-    transform-origin: bottom;
-    transition:
-      transform var(--duration-sheet-out) var(--ease-drawer),
-      overlay var(--duration-sheet-out) allow-discrete,
-      display var(--duration-sheet-out) allow-discrete;
-  }
-
-  .hero-menu-list.menu-sheet:popover-open {
-    display: block;
-    transform: none;
-    transition-duration: var(--duration-sheet-in);
-  }
-
-  @starting-style {
-    .hero-menu-list.menu-sheet:popover-open {
-      transform: translateY(105%);
-    }
-  }
-
-  .menu-sheet::backdrop {
-    background: var(--color-scrim);
-  }
-
-  .menu-sheet > .create-sheet-head {
-    display: flex;
-    padding-block: var(--space-1);
-    padding-inline: var(--space-2) var(--space-1);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .hero-menu-list.menu-sheet,
-    .hero-menu-list.menu-sheet:popover-open {
-      transform: none;
-      transition-duration: var(--duration-state);
-    }
-
-    .hero-menu-list.menu-sheet:not(:popover-open) {
-      opacity: 0;
-    }
-  }
 }
 
 @media (width >= 40rem) {
@@ -473,13 +273,5 @@
 @media (forced-colors: active) {
   .hero-more .more-done {
     color: Highlight;
-  }
-
-  .hero-menu-list {
-    border: var(--stroke-hairline) solid CanvasText;
-  }
-
-  .hero-menu-item[aria-disabled="true"] {
-    color: GrayText;
   }
 }

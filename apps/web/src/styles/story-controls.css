@@ -73,12 +73,12 @@
 }
 
 /* The menu hangs under its own story's button, not the header's. */
-.hero-menu-list.story-menu-list {
+.menu-list.story-menu-list {
   position-anchor: var(--story-anchor);
 }
 
 @media (width >= 40rem) {
-  .hero-menu-list.story-menu-list {
+  .menu-list.story-menu-list {
     margin-inline-end: var(--space-2);
   }
 }

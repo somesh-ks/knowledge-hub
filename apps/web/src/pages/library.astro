@@ -5,6 +5,7 @@ import EpisodeActions from "../components/EpisodeActions.astro";
 import EpisodeCard from "../components/EpisodeCard.astro";
 import Icon from "../components/Icon.astro";
 import Button from "../design-system/Button.astro";
+import Select from "../design-system/Select.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { LIBRARY_FILTERS, LIBRARY_SORTS, resultSummary } from "../lib/library";
 import { libraryItems } from "../lib/libraryCard";
@@ -89,15 +90,11 @@ const items = libraryItems(entries, episodes);
                   </label>
                 ))}
               </fieldset>
-              <label class="sort-field">
-                <span class="sr-only">Sort</span>
-                <select data-library-sort>
-                  {LIBRARY_SORTS.map((sort) => (
-                    <option value={sort.id}>{sort.label}</option>
-                  ))}
-                </select>
-                <Icon name="chevronDown" />
-              </label>
+              <Select variant="tonal" label="Sort" class="library-sort" data-library-sort>
+                {LIBRARY_SORTS.map((sort) => (
+                  <option value={sort.id}>{sort.label}</option>
+                ))}
+              </Select>
               {/* How the library is laid out: covers in a grid, or compact rows. Remembered on this device. */}
               <div class="view-switch" role="group" aria-label="View">
                 <button class="view-btn press press-subtle" type="button" aria-pressed="true" aria-label="Gallery view" data-library-view="gallery">

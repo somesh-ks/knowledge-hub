@@ -42,8 +42,9 @@ function filesUnder(dir: string, extensions: string[], skip: (path: string) => b
 
 const escapeRegex = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** A rule that is about the class itself: some selector of its list begins with `.name`. */
-const ruleOf = (name: string): RegExp => new RegExp(`(?:^|,)\\s*\\.${escapeRegex(name)}(?![\\w-])`);
+/** A rule that is about the class itself: some selector of its list begins with `.name`, or with `tag.name`. */
+const ruleOf = (name: string): RegExp =>
+  new RegExp(`(?:^|,)\\s*(?:[a-z][\\w-]*)?\\.${escapeRegex(name)}(?![\\w-])`);
 
 interface Stylesheet {
   file: string;
@@ -117,6 +118,43 @@ export function classTokens(text: string): Set<string> {
   if (/<Slider\b|\bsliderClass\(/.test(code)) found.add("slider-input");
   // The Field is drawn by the tag (not Base UI's Field.Root) or by the class helper, for a select.
   if (/<Field(?![\w.])|\bfieldClass\(/.test(code)) found.add("field-input");
+  // The Select is drawn by the tag or by the class helper, in the variant it names (outlined by default).
+  if (/<Select\b/.test(code)) {
+    const tonal = [...code.matchAll(/<Select\b[^>]*\bvariant="tonal"/g)].length;
+    const all = [...code.matchAll(/<Select\b/g)].length;
+    if (tonal > 0) found.add("select-tonal");
+    if (all > tonal) found.add("select-outlined");
+  }
+  // The Menu: its list by the tag or the class helper, its rows likewise (the danger tone by its name).
+  if (/<Menu\b|\bmenuListClass\(|\bmenuSheetClass\(/.test(code)) {
+    found.add("menu-list");
+    found.add("menu-sheet");
+  }
+  if (/<MenuItem\b|\bmenuItemClass\(/.test(code)) found.add("menu-item");
+  if (
+    /<MenuItem\b[^>]*\btone="danger"|\bmenuItemClass\(\s*["']danger["']|tone:\s*["']danger["']/.test(
+      code,
+    )
+  ) {
+    found.add("menu-item-danger");
+  }
+  // The Dialog: the tag, its actions row (stacked by its prop), or the class helpers.
+  if (/<Dialog\b|\bdialogClass\(/.test(code)) {
+    found.add("dialog-panel");
+    found.add("dialog-body");
+  }
+  if (/<DialogActions\b|\bdialogActionsClass\(/.test(code)) found.add("dialog-actions");
+  if (/<DialogActions\b[^>]*\bstacked\b|\bdialogActionsClass\(\s*true/.test(code)) {
+    found.add("dialog-actions-stacked");
+  }
+  // The Banner is drawn by the tag or by the class helper; its parts come with it.
+  if (/<Banner\b|\bbannerClass\(/.test(code)) {
+    for (const name of ["banner-notice", "banner-text", "banner-title", "banner-body"])
+      found.add(name);
+  }
+  for (const [, variant = "outlined"] of code.matchAll(/\bselectClass\(\s*(?:["'](\w+)["'])?/g)) {
+    found.add(`select-${variant}`);
+  }
   return found;
 }
 
@@ -138,6 +176,23 @@ export function sourceFiles(): { path: string; text: string; tokens: Set<string>
       tokens.delete("switch-input");
       tokens.delete("slider-input");
       tokens.delete("field-input");
+      tokens.delete("select-outlined");
+      tokens.delete("select-tonal");
+      tokens.delete("menu-list");
+      tokens.delete("menu-item");
+      tokens.delete("menu-sheet");
+      tokens.delete("menu-item-danger");
+      for (const name of ["banner-notice", "banner-text", "banner-title", "banner-body"]) {
+        tokens.delete(name);
+      }
+      for (const name of [
+        "dialog-panel",
+        "dialog-body",
+        "dialog-actions",
+        "dialog-actions-stacked",
+      ]) {
+        tokens.delete(name);
+      }
     }
     return { path, text, tokens };
   });
@@ -261,7 +316,7 @@ export function renderLlms(system: System): string {
       .join(" ");
     const use = part.when.slice(0, 2).join("; ");
     const not = (part.not ?? [])
-      .slice(0, 2)
+      .slice(0, 1)
       .map((item) => `${item.when} → ${item.use}`)
       .join("; ");
     lines.push(

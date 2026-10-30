@@ -1,0 +1,13 @@
+---
+import { dialogActionsClass } from "./dialog";
+import "../styles/dialog.css";
+
+interface Props {
+  /** Three answers in a column, the committing one first. */
+  stacked?: boolean;
+}
+
+const { stacked = false } = Astro.props;
+---
+
+<div class={dialogActionsClass(stacked)}><slot /></div>

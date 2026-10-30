@@ -168,7 +168,7 @@ describe("the lookup", () => {
     ["tell the user, persistently at the top of a page, that a download failed", "banner"],
     ["after the user deletes an episode, show a brief message with an Undo action", "toast"],
     ["add a row that opens a sub-page when tapped", "row-action"],
-    ["add a compact dropdown to sort a list by date or by title", "sort-field"],
+    ["add a compact dropdown to sort a list by date or by title", "select"],
   ];
 
   it.each(NEEDS)("answers %j with %s first", (need, part) => {

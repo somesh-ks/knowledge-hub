@@ -1,7 +1,8 @@
 ---
+import Menu from "../design-system/Menu.astro";
+import MenuItem from "../design-system/MenuItem.astro";
 import { regenerationHint } from "../lib/regenerations";
 import Icon from "./Icon.astro";
-import MenuSheet from "./MenuSheet.astro";
 
 interface Props {
   /** Set on an episode page: Regenerate and Delete then act on this episode. */
@@ -54,60 +55,48 @@ const regen = regenerationHint(regenerations);
     <Icon name="moreVert" class="more-icon" />
     <Icon name="check" class="more-done" />
   </button>
-  <MenuSheet id="hero-menu" title="More actions">
+  <Menu id="hero-menu" title="More actions">
     {
       page?.audio && (
-        <button class="hero-menu-item" type="button" role="menuitem" data-menu="download" aria-disabled="true">
+        <MenuItem data-menu="download" aria-disabled="true">
           <Icon name="download" class="dl-add" /><Icon name="downloadRemove" class="dl-remove" /><span data-menu-label>Download</span>
-        </button>
+        </MenuItem>
       )
     }
     {
       page && (
-        <button class="hero-menu-item" type="button" role="menuitem" data-menu="queue" aria-disabled="true">
+        <MenuItem data-menu="queue" aria-disabled="true">
           <Icon name="queueAdd" />Add to queue
-        </button>
+        </MenuItem>
       )
     }
     {
       episodeId ? (
-        <button
-          class="hero-menu-item"
-          type="button"
-          role="menuitem"
+        <MenuItem
           data-episode-action="regenerate"
           title={regen.title}
-          disabled={regen.exhausted}
-        >
+          disabled={regen.exhausted}>
           <Icon name="refresh" />Regenerate
-        </button>
+        </MenuItem>
       ) : (
-        <button
-          class="hero-menu-item"
-          type="button"
-          role="menuitem"
+        <MenuItem
           data-open="generate"
           aria-haspopup="dialog"
           title={regen.title}
-          disabled={regen.exhausted}
-        >
+          disabled={regen.exhausted}>
           <Icon name="refresh" />Regenerate
-        </button>
+        </MenuItem>
       )
     }
     {
       deletable && (
-        <button
-          class="hero-menu-item hero-menu-delete"
-          type="button"
-          role="menuitem"
-          data-episode-action="delete"
-        >
+        <MenuItem tone="danger"
+          data-episode-action="delete">
           <Icon name="trash" />Delete
-        </button>
+        </MenuItem>
       )
     }
-  </MenuSheet>
+  </Menu>
   <span class="sr-only" role="status" data-share-status></span>
   {
     episodeId && (

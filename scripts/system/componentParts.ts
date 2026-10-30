@@ -4,9 +4,13 @@
  * words a lookup matches against and the one-line rules the registry does not hold. A family that
  * becomes a component adds its entry here and deletes its hand-written ones from parts.ts.
  */
+import { BANNER } from "../../apps/web/src/design-system/banner.js";
 import { BUTTON } from "../../apps/web/src/design-system/button.js";
+import { DIALOG } from "../../apps/web/src/design-system/dialog.js";
 import { FIELD } from "../../apps/web/src/design-system/field.js";
 import type { ComponentRef, Guidance } from "../../apps/web/src/design-system/guidance.js";
+import { MENU } from "../../apps/web/src/design-system/menu.js";
+import { SELECT } from "../../apps/web/src/design-system/select.js";
 import { SLIDER } from "../../apps/web/src/design-system/slider.js";
 import { SWITCH } from "../../apps/web/src/design-system/switch.js";
 import type { PartSource } from "./types.js";
@@ -20,6 +24,10 @@ const PART_OF: Record<string, string> = {
   Switch: "switch",
   Slider: "slider",
   Field: "field",
+  Select: "select",
+  Menu: "menu",
+  Banner: "banner",
+  Dialog: "dialog",
 };
 
 const partOf = (ref: ComponentRef | undefined, fallback: string): string => {
@@ -44,7 +52,7 @@ const words: Record<string, { keywords: string[]; markup: string; rules?: string
     keywords: ["cancel", "text action", "tertiary", "dismiss", "quiet button"],
     markup: '<Button variant="text">Cancel</Button>',
     rules: [
-      "In a dialog, Cancel and the filled button sit in a `.confirm-actions` row (EpisodeActions.astro); a form sheet keeps its one filled button in `.sheet-actions`.",
+      "In a dialog, Cancel and the filled button sit in a DialogActions row (EpisodeActions.astro); a form sheet keeps its one filled button in `.sheet-actions`.",
     ],
   },
   danger: {
@@ -64,20 +72,37 @@ const control = (
   id: string,
   name: string,
   guidance: Guidance,
-  extra: { keywords: string[]; markup: string; rules?: string[] },
+  extra: {
+    keywords: string[];
+    markup: string;
+    rules?: string[];
+    classes?: string[];
+    /** Exclusions that point at a part not yet a component (a hand-written one in parts.ts). */
+    not?: { when: string; use: string }[];
+    kind?: PartSource["kind"];
+  },
 ): PartSource => ({
   id,
   name,
-  kind: "selection",
+  kind: extra.kind ?? "selection",
   summary: guidance.summary,
   classes: [`${id}-input`],
   files: [`design-system/${name}.astro`, `design-system/${id}.ts`],
   when: sentences(guidance.useWhen),
-  not: guidance.dontUseWhen.map((item) => ({
-    when: item.when.replace(/\.$/, ""),
-    use: partOf(item.instead, "button-text"),
-  })),
-  ...extra,
+  // An exclusion with no `instead` has no part to point at: the lookup leaves it out rather than guess.
+  not: [
+    ...guidance.dontUseWhen
+      .filter((item) => item.instead)
+      .map((item) => ({
+        when: item.when.replace(/\.$/, ""),
+        use: partOf(item.instead, "button-text"),
+      })),
+    ...(extra.not ?? []),
+  ],
+  keywords: extra.keywords,
+  markup: extra.markup,
+  rules: extra.rules,
+  ...(extra.classes ? { classes: extra.classes } : {}),
 });
 
 export const componentParts = (): PartSource[] => [
@@ -145,6 +170,72 @@ export const componentParts = (): PartSource[] => [
     rules: [
       "Draw it with <Field> (multiline for a textarea); a select or a script takes the class from fieldClass().",
       "A disabled field dims like a disabled switch; a disabled fieldset dims it the same way, on the same element.",
+    ],
+  }),
+  control("select", "Select", SELECT, {
+    not: [
+      { when: "the value is one of two to four short options", use: "segmented-choice" },
+      { when: "several values may be ticked together", use: "multiselect" },
+    ],
+    classes: ["select-outlined", "select-tonal"],
+    keywords: [
+      "select",
+      "dropdown",
+      "sort",
+      "sort by",
+      "order by",
+      "picker",
+      "choose one",
+      "filter",
+    ],
+    markup:
+      '<Select variant="tonal" label="Sort" data-library-sort><option value="newest">Newest first</option></Select>',
+    rules: [
+      'Outlined (the default) is a value in a form; tonal is a sort or a filter and takes data-active on its wrapper (find it with closest("[data-select]")) once its value is not the default.',
+      'A select inside a settings row takes class="value-select" from settings.css, which draws it as the row\'s value.',
+    ],
+  }),
+  control("menu", "Menu", MENU, {
+    classes: ["menu-list", "menu-sheet", "menu-item", "menu-item-danger"],
+    keywords: [
+      "popover",
+      "dots menu",
+      "context menu",
+      "action sheet",
+      "more menu",
+      "overflow menu",
+    ],
+    markup:
+      '<Menu id="row-menu-3" title="Daily"><MenuItem><Icon name="pencilSimple" />Edit</MenuItem><MenuItem tone="danger"><Icon name="trash" />Delete</MenuItem></Menu>',
+    rules: [
+      "Under 40rem a menu is a sheet, never a small popover.",
+      "A script finds one with MENU_SELECTORS (design-system/menu.ts); a string builder or an island takes menuListClass() and menuItemClass().",
+    ],
+  }),
+  control("banner", "Banner", BANNER, {
+    kind: "feedback",
+    classes: ["banner-notice", "banner-text", "banner-title", "banner-body"],
+    keywords: ["alert", "notice", "warning", "error message", "persistent"],
+    not: [
+      { when: "a message that clears itself", use: "toast" },
+      { when: "a page with nothing to list", use: "empty-state" },
+    ],
+    markup: '<Banner tone="danger" icon="alert" title="Download failed" />',
+    rules: [
+      "Only the icon takes the tone.",
+      "An island draws one with bannerClass() and bannerText.",
+    ],
+  }),
+  control("dialog", "Dialog", DIALOG, {
+    kind: "container",
+    classes: ["dialog-panel", "dialog-body", "dialog-actions", "dialog-actions-stacked"],
+    not: [{ when: "a form that slides in, with fields", use: "sheet" }],
+    keywords: ["confirm", "modal", "yes or no", "are you sure", "delete confirm"],
+    markup:
+      '<Dialog aria-labelledby="t"><h2 class="sheet-title" id="t">Delete?</h2><DialogActions><Button variant="text">Cancel</Button></DialogActions></Dialog>',
+    rules: [
+      "A script finds one with DIALOG_SELECTOR; one it builds uses dialogClass(), dialogBodyClass() and dialogActionsClass().",
+      "It renders closed: the script opens it with dialog.showModal() and closes it with dialog.close() from the Cancel button's click.",
     ],
   }),
 ];

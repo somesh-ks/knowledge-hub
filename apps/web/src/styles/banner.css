@@ -3,7 +3,7 @@
  * tone's colour, a title, a line of text and at most one text button. The tone sets the tint.
  */
 
-.banner {
+.banner-notice {
   display: flex;
   align-items: flex-start;
   gap: var(--space-4);
@@ -12,29 +12,29 @@
   background: var(--tone-bg);
 }
 
-.banner[data-tone="info"] {
+.banner-notice[data-tone="info"] {
   --tone-bg: var(--color-info-subtle);
   --tone: var(--color-info);
 }
 
-.banner[data-tone="warning"] {
+.banner-notice[data-tone="warning"] {
   --tone-bg: var(--color-warning-subtle);
   --tone: var(--color-warning);
 }
 
-.banner[data-tone="danger"] {
+.banner-notice[data-tone="danger"] {
   --tone-bg: var(--color-danger-subtle);
   --tone: var(--color-danger);
 }
 
-.banner[data-tone="success"] {
+.banner-notice[data-tone="success"] {
   --tone-bg: var(--color-success-subtle);
   --tone: var(--color-success);
 }
 
 /* Only the icon takes the tone. The text stays at full ink on the tint, so its contrast never
    depends on the tone, and the two lines differ by weight, not by a grey. */
-.banner > .icon {
+.banner-notice > :is(.icon, .ui-icon) {
   /* Centred on the title's first line. */
   margin-block-start: calc(
     (var(--text-label-size) * var(--text-label-leading) - var(--size-icon)) /
@@ -61,7 +61,7 @@
 }
 
 /* The button's target is 44px; negative margins keep it from making a one-line banner taller. */
-.banner > .button-text {
+.banner-notice > .button-text {
   flex: none;
   align-self: center;
   margin-block: calc(var(--space-2) * -1);
@@ -70,7 +70,7 @@
 
 /* Forced colors drops the tint, so an edge is what makes the banner a block. */
 @media (forced-colors: active) {
-  .banner {
+  .banner-notice {
     border: var(--stroke-hairline) solid CanvasText;
   }
 }

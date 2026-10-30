@@ -1,5 +1,6 @@
 ---
 import Icon from "../../../web/src/components/Icon.astro";
+import Select from "../../../web/src/design-system/Select.astro";
 import AdminHead from "../components/AdminHead.astro";
 import Shell from "../layouts/Shell.astro";
 
@@ -30,20 +31,12 @@ const SPLITS = [
     <section class="card-group costs-card" aria-label="Spend">
       <div class="costs-head">
         <div class="costs-filters">
-          <label class="sort-field">
-            <span class="sr-only">Range</span>
-            <select id="costs-range" autocomplete="off">
-              {RANGES.map((range) => <option value={range.value} data-days={range.days}>{range.label}</option>)}
-            </select>
-            <Icon name="chevronDown" />
-          </label>
-          <label class="sort-field">
-            <span class="sr-only">Breakdown</span>
-            <select id="costs-by" autocomplete="off">
-              {SPLITS.map((split) => <option value={split.value}>{split.label}</option>)}
-            </select>
-            <Icon name="chevronDown" />
-          </label>
+          <Select variant="tonal" label="Range" id="costs-range" autocomplete="off">
+            {RANGES.map((range) => <option value={range.value} data-days={range.days}>{range.label}</option>)}
+          </Select>
+          <Select variant="tonal" label="Breakdown" id="costs-by" autocomplete="off">
+            {SPLITS.map((split) => <option value={split.value}>{split.label}</option>)}
+          </Select>
         </div>
         <div class="costs-answer costs-data" aria-live="polite">
           <p class="costs-total"><span class="sr-only">Total spend </span><span data-costs-total>Loading</span></p>

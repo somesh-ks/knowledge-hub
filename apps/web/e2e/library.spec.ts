@@ -373,7 +373,7 @@ test.describe("library fixes", () => {
     await page.mouse.move(0, 0);
     await expect.poll(fill).toBe(before);
     // The order is a value chip: chosen, it takes the accent container.
-    const order = page.locator(".library-bar .sort-field");
+    const order = page.locator(".library-bar [data-select]");
     await expect(order).not.toHaveAttribute("data-active", "");
     await page.getByRole("combobox", { name: "Sort" }).selectOption("oldest");
     await expect(order).toHaveAttribute("data-active", "");

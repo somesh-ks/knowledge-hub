@@ -1,4 +1,5 @@
 ---
+import Select from "../design-system/Select.astro";
 import type { AlbumOption } from "../lib/catchUps";
 import type { AudioMode } from "../lib/digests";
 import { AUDIO_UNAVAILABLE_COPY } from "../lib/digestView";
@@ -30,17 +31,13 @@ const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
        longest name's whichever is shown, and Play beside it never moves. */}
   {
     album && album.length > 1 && (
-      <label class="sort-field hero-album">
-        <span class="sr-only">Catch up</span>
-        <select data-album-pick data-current={digestId}>
-          {album.map((option) => (
-            <option value={option.id} data-at={option.at} selected={option.id === digestId}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <Icon name="chevronDown" />
-      </label>
+      <Select variant="tonal" label="Catch up" class="hero-album" data-album-pick data-current={digestId}>
+        {album.map((option) => (
+          <option value={option.id} data-at={option.at} selected={option.id === digestId}>
+            {option.label}
+          </option>
+        ))}
+      </Select>
     )
   }
   {/* The page's main action: the hero's chip is filled (hero.css). The player owns it once it

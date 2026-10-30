@@ -1,0 +1,30 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import Icon from "../components/Icon.astro";
+import { fieldClass } from "./field";
+import { type SelectVariant, selectClass } from "./select";
+import "../styles/field.css";
+import "../styles/select.css";
+
+interface SelectProps {
+  /** Outlined for a value in a form, tonal for a sort or a filter (select.ts says which is which). */
+  variant?: SelectVariant;
+  /** A name for a select that has no label of its own; read aloud, never drawn. Draws a label around it. */
+  label?: string;
+  /** For placing the select where it stands (a width, a margin). Never its look. */
+  class?: string;
+}
+
+type Props = SelectProps & Omit<HTMLAttributes<"select">, keyof SelectProps>;
+
+const { variant = "outlined", label, class: placement, ...rest } = Astro.props;
+const Wrapper = label ? "label" : "span";
+// An outlined select is a Field's looks inside the wrapper; a tonal one is drawn by the wrapper.
+const own = variant === "outlined" ? fieldClass() : undefined;
+---
+
+<Wrapper class:list={[selectClass(variant), placement]} data-select>
+  {label && <span class="sr-only">{label}</span>}
+  <select class={own} {...rest}><slot /></select>
+  <Icon name="chevronDown" />
+</Wrapper>

@@ -65,39 +65,34 @@
   background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
-/* In the Create form it is a tonal field, as the select it replaces: the container tone, the row's
-   corners, the text at the body size so iOS never zooms into it. */
-.create-select > .picker-trigger {
+/* In the Create form it is an outlined select, as the one it replaces (select.css): the Field's edge
+   on a pill, the text at the body size so iOS never zooms into it. */
+.create-voice-select > .picker-trigger {
   inline-size: 100%;
   min-block-size: var(--field-height);
   padding-inline: var(--field-padding)
     calc(var(--space-4) + var(--size-icon) + var(--field-chevron-gap));
+  border-color: var(--field-border);
   border-radius: var(--button-radius);
-  background: var(--color-surface-container);
+  transition: border-color var(--duration-hover) var(--ease-hover);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .create-select > .picker-trigger:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-surface-container),
-      var(--color-on-surface) var(--state-hover)
-    );
+  .create-voice-select > .picker-trigger:hover {
+    border-color: var(--color-on-surface);
   }
 }
 
-.create-select > .picker-trigger:active,
-.create-select > .picker-trigger[aria-expanded="true"] {
-  background: color-mix(
-    in oklch,
-    var(--color-surface-container),
-    var(--color-on-surface) var(--state-press)
-  );
+/* Focused or open, one accent line on its edge, as a focused field's. */
+.create-voice-select > .picker-trigger:focus-visible,
+.create-voice-select > .picker-trigger[aria-expanded="true"] {
+  border-color: var(--color-accent);
+  outline-offset: calc(var(--stroke-hairline) * -1);
 }
 
 @media (forced-colors: active) {
-  .create-select > .picker-trigger {
-    border-color: CanvasText;
+  .create-voice-select > .picker-trigger {
+    border-color: ButtonBorder;
   }
 
   /* The value in a settings row and the search pill are drawn by their fills, which forced colours

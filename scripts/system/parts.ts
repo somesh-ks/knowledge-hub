@@ -104,26 +104,6 @@ export const PARTS: PartSource[] = [
     rules: ["Always wraps a real checkbox or radio input."],
   },
   {
-    id: "sort-field",
-    name: "Sort field",
-    kind: "selection",
-    summary: "A compact select drawn as a chip.",
-    classes: ["sort-field"],
-    when: [
-      "sort a list by date or title",
-      "a range or breakdown picker on a chart",
-      "a compact dropdown in a toolbar",
-    ],
-    not: [
-      { when: "a form field or a setting", use: "settings-row" },
-      { when: "an on/off filter", use: "filter-chip" },
-    ],
-    keywords: ["dropdown", "select", "order by", "sort by"],
-    markup:
-      '<label class="sort-field"><span class="sr-only">Sort</span><select>...</select><Icon name="chevronDown" /></label>',
-    rules: ["Takes the chosen look when its value is not the default."],
-  },
-  {
     id: "segmented-choice",
     name: "Segmented choice",
     kind: "selection",
@@ -225,26 +205,6 @@ export const PARTS: PartSource[] = [
     keywords: ["preference", "toggle row", "setting"],
   },
   {
-    id: "banner",
-    name: "Banner",
-    kind: "feedback",
-    summary: "A flat tinted notice at the top of a page, with an icon in the tone's color.",
-    classes: ["banner", "banner-stack"],
-    files: ["components/Banner.astro"],
-    when: [
-      "tell the user something that stays until it is fixed or dismissed",
-      "a persistent warning or error at the top of a page",
-      "offline notice",
-    ],
-    not: [
-      { when: "a message that clears itself", use: "toast" },
-      { when: "a page with nothing to list", use: "empty-state" },
-    ],
-    keywords: ["alert", "notice", "warning", "error message", "persistent"],
-    markup: '<Banner tone="danger" icon="alert" title="Download failed" />',
-    rules: ["Tone is info, warning, danger or success; only the icon takes the tone."],
-  },
-  {
     id: "toast",
     name: "Toast",
     kind: "feedback",
@@ -298,8 +258,8 @@ export const PARTS: PartSource[] = [
       "a dialog on a phone",
     ],
     not: [
-      { when: "a menu of choices", use: "menu-sheet" },
-      { when: "a small popover on a phone", use: "menu-sheet" },
+      { when: "a menu of choices", use: "menu" },
+      { when: "a small popover on a phone", use: "menu" },
     ],
     keywords: ["modal", "drawer", "bottom sheet", "dialog", "form sheet"],
     markup:
@@ -307,22 +267,8 @@ export const PARTS: PartSource[] = [
     rules: [
       "Never hand-write the header or a close button.",
       "Motion uses --duration-sheet-in, --duration-sheet-out and --ease-drawer.",
-      "`.sheet-actions` is one column, so Cancel stacks under the primary; side by side is `.confirm-actions`.",
+      "`.sheet-actions` is one column, so Cancel stacks under the primary; side by side is a DialogActions row.",
     ],
-  },
-  {
-    id: "menu-sheet",
-    name: "Menu sheet",
-    kind: "container",
-    summary: "A popover menu that is a bottom sheet on a phone and a small menu from 40rem.",
-    classes: ["menu-sheet", "hero-menu-item"],
-    files: ["components/MenuSheet.astro", "components/SheetHeader.astro", "scripts/heroMenu.ts"],
-    when: ["a row's more menu", "a list of actions or choices on a phone", "select-like menus"],
-    not: [{ when: "a modal form", use: "sheet" }],
-    keywords: ["popover", "dots menu", "context menu", "action sheet"],
-    markup:
-      '<MenuSheet id="row-menu-3" title="Daily"><button class="hero-menu-item" type="button" role="menuitem">Edit</button></MenuSheet>',
-    rules: ["Under 40rem a menu is a sheet, never a small popover."],
   },
   {
     id: "multiselect",

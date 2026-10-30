@@ -1,10 +1,12 @@
 ---
-import Button from "../design-system/Button.astro";
+import Icon from "../components/Icon.astro";
 import type { IconName } from "../lib/icons";
-import Icon from "./Icon.astro";
+import Button from "./Button.astro";
+import { type BannerTone, bannerClass, bannerText } from "./banner";
+import "../styles/banner.css";
 
 interface Props {
-  tone: "info" | "warning" | "danger" | "success";
+  tone: BannerTone;
   icon: IconName;
   title: string;
   body?: string;
@@ -17,11 +19,11 @@ interface Props {
 const { tone, icon, title, body, bodyId, action } = Astro.props;
 ---
 
-<div class="banner" data-tone={tone} role={tone === "danger" ? "alert" : "status"}>
+<div class={bannerClass()} data-tone={tone} role={tone === "danger" ? "alert" : "status"}>
   <Icon name={icon} />
-  <div class="banner-text">
-    <p class="banner-title" id={body ? undefined : bodyId}>{title}</p>
-    {body && <p class="banner-body" id={bodyId}>{body}</p>}
+  <div class={bannerText.column}>
+    <p class={bannerText.title} id={body ? undefined : bodyId}>{title}</p>
+    {body && <p class={bannerText.body} id={bodyId}>{body}</p>}
   </div>
   {action && <Button variant="text" href={action.href}>{action.label}</Button>}
 </div>

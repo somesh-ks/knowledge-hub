@@ -1,7 +1,8 @@
 ---
+import Menu from "../design-system/Menu.astro";
+import MenuItem from "../design-system/MenuItem.astro";
 import { regenerationHint } from "../lib/regenerations";
 import Icon from "./Icon.astro";
-import MenuSheet from "./MenuSheet.astro";
 
 interface Props {
   /** The digest id ("2026-10-07") or episode id ("ep-20261007-1930"). */
@@ -59,69 +60,53 @@ const menuId = `card-menu-${id}`;
   >
     <Icon name="moreVert" />
   </button>
-  <MenuSheet id={menuId} title={title} class="card-menu-list">
+  <Menu id={menuId} title={title} class="card-menu-list">
     {
       audio && (
-        <button class="hero-menu-item" type="button" role="menuitem" data-menu="download">
+        <MenuItem data-menu="download">
           <Icon name="download" class="dl-add" /><Icon name="downloadRemove" class="dl-remove" /><span data-menu-label>Download</span>
-        </button>
+        </MenuItem>
       )
     }
-    <button class="hero-menu-item" type="button" role="menuitem" data-menu="queue">
+    <MenuItem data-menu="queue">
       <Icon name="queueAdd" />Add to queue
-    </button>
+    </MenuItem>
     {
       kind === "episode" ? (
-        <button
-          class="hero-menu-item"
-          type="button"
-          role="menuitem"
+        <MenuItem
           data-episode-action="regenerate"
           title={regen.title}
-          disabled={regen.exhausted}
-        >
+          disabled={regen.exhausted}>
           <Icon name="refresh" />Regenerate
-        </button>
+        </MenuItem>
       ) : (
-        <button
-          class="hero-menu-item"
-          type="button"
-          role="menuitem"
+        <MenuItem
           data-open="generate"
           aria-haspopup="dialog"
           title={regen.title}
-          disabled={regen.exhausted}
-        >
+          disabled={regen.exhausted}>
           <Icon name="refresh" />Regenerate
-        </button>
+        </MenuItem>
       )
     }
-    <button class="hero-menu-item" type="button" role="menuitem" data-menu="share" data-share-item={id}>
+    <MenuItem data-menu="share" data-share-item={id}>
       <Icon name="shareArrow" />Share
-    </button>
+    </MenuItem>
     {/* Put in by scripts/shareLink.ts once this device made the row's listen link (D153). */}
     <template data-share-stop-template>
-      <button
-        class="hero-menu-item"
-        type="button"
-        role="menuitem"
+      <MenuItem
         data-menu="unshare"
-        data-share-stop={id}
-      >
+        data-share-stop={id}>
         <Icon name="blocked" />Stop sharing
-      </button>
+      </MenuItem>
     </template>
     {
       deletable && (
-        <button
-          class="hero-menu-item hero-menu-delete"
-          type="button"
-          role="menuitem"
-          data-episode-action="delete"
-        >
+        <MenuItem tone="danger"
+          data-episode-action="delete">
           <Icon name="trash" />Delete
-        </button>
+        </MenuItem>
       )
     }
-  </MenuSheet>
+  </Menu>
 </div>

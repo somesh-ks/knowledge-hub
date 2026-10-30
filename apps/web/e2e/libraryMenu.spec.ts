@@ -7,7 +7,7 @@ const row = (page: import("@playwright/test").Page, id: string) =>
 
 async function openMenu(page: import("@playwright/test").Page, id: string) {
   await row(page, id).locator("[data-hero-more]").click();
-  await expect(row(page, id).locator(".hero-menu-list")).toBeVisible();
+  await expect(row(page, id).locator(".menu-list")).toBeVisible();
 }
 
 test("a row's menu shares a link when the browser has no share sheet, and queues the item without opening it", async ({
@@ -63,7 +63,7 @@ test("a podcast page's More menu downloads and queues the podcast, as its row in
   await expect(menu).toHaveAttribute("data-menus-ready", "");
   const open = async () => {
     await menu.locator("[data-hero-more]").click();
-    await expect(menu.locator(".hero-menu-list")).toBeVisible();
+    await expect(menu.locator(".menu-list")).toBeVisible();
   };
 
   await open();
@@ -338,7 +338,7 @@ test("a phone's menu sheet has no visible Close, a short pull springs back to th
     for (let step = 1; step <= 6; step++) await touch("touchMove", from + (by * step) / 6);
     await touch("touchEnd", from + by);
   };
-  const sheet = row(page, AUDIO_ID).locator(".hero-menu-list");
+  const sheet = row(page, AUDIO_ID).locator(".menu-list");
   const dots = row(page, AUDIO_ID).locator("[data-hero-more]");
 
   await openMenu(page, AUDIO_ID);

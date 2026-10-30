@@ -334,7 +334,7 @@
     flex-wrap: nowrap;
   }
 
-  .library-bar .sort-field {
+  .library-bar .library-sort {
     display: none;
   }
 
@@ -350,7 +350,7 @@
 }
 
 @media (width >= 40rem) {
-  .library-bar .sort-field {
+  .library-bar .library-sort {
     margin-inline-start: auto;
   }
 
@@ -358,9 +358,6 @@
     margin-inline-start: 0;
   }
 }
-
-/* The sort control is the shared select chip (.sort-field, primitives.css, since 2026-10-22 when the
-   Costs page took it too). */
 
 /* Every control in the bar fills the same way under the pointer: the search field as the chip. */
 @media (hover: hover) and (pointer: fine) {
@@ -762,7 +759,7 @@ html[data-library-page="empty"] {
 }
 
 /* Under its own row's button, as a story's menu hangs under its own (story-controls.css). */
-.hero-menu-list.card-menu-list {
+.menu-list.card-menu-list {
   position-anchor: var(--card-anchor);
 }
 
@@ -777,7 +774,7 @@ html[data-library-page="empty"] {
 }
 
 @media (width >= 40rem) {
-  .hero-menu-list.card-menu-list {
+  .menu-list.card-menu-list {
     margin-inline-end: var(--space-2);
   }
 }

@@ -1,5 +1,7 @@
 ---
 import Button from "../design-system/Button.astro";
+import Dialog from "../design-system/Dialog.astro";
+import DialogActions from "../design-system/DialogActions.astro";
 import Field from "../design-system/Field.astro";
 import { briefingChips } from "../lib/briefingChips";
 import { topicOptions } from "../lib/createForm";
@@ -114,8 +116,7 @@ const COPY = {
           </div>
         </dialog>
       ) : (
-        <dialog class="confirm-dialog" aria-labelledby="delete-title" aria-describedby="delete-lede">
-          <form class="confirm-form" data-delete-form novalidate>
+        <Dialog aria-labelledby="delete-title" aria-describedby="delete-lede" form={{ "data-delete-form": "", novalidate: true }}>
             <h2 class="sheet-title" id="delete-title">Delete this {noun}?</h2>
             <p class="create-hint confirm-lede" id="delete-lede">
               It will be removed from the Library on every device. This cannot be undone.
@@ -123,15 +124,14 @@ const COPY = {
             <p class="create-error" role="alert" data-error hidden>
               <Icon name="alert" /><span />
             </p>
-            <div class="confirm-actions">
+            <DialogActions>
               <Button variant="text" data-dialog-close autofocus>Cancel</Button>
               <Button variant="text" tone="danger" type="submit" data-submit>Delete</Button>
-            </div>
-          </form>
-          <div hidden data-copy>
+            </DialogActions>
+          <div slot="after" hidden data-copy>
             {Object.entries(COPY).map(([key, text]) => <p data-k={key}>{text}</p>)}
           </div>
-        </dialog>
+        </Dialog>
       )}
     </template>
   ))

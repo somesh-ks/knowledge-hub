@@ -1,5 +1,5 @@
 ---
-import { fieldClass } from "../../design-system/field";
+import Select from "../../design-system/Select.astro";
 import "../../styles/field.css";
 import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
@@ -50,20 +50,15 @@ const VOICES = [
                   <div class="settings-row" data-voice-row={voice.key}>
                     <label class="settings-label" for={`podcast-${voice.key}`}>{voice.name}</label>
                     <div class="podcast-voice" data-store-held>
-                      <span class="manage-select value-select">
-                        <select
-                          class={fieldClass()}
+                      <Select class="value-select"
                           id={`podcast-${voice.key}`}
                           data-f={`daily.${voice.key}`}
                           data-saved={voice.saved ?? ""}
                           data-picker="voice"
-                          autocomplete="off"
-                        >
-                          <option value="">Default</option>
-                          {voice.saved && <option value={voice.saved} selected>Saved voice</option>}
-                        </select>
-                        <Icon name="chevronDown" />
-                      </span>
+                          autocomplete="off">
+                        <option value="">Default</option>
+                        {voice.saved && <option value={voice.saved} selected>Saved voice</option>}
+                      </Select>
                       {/* A round play button on every voice row, as every play control in the app is
                            drawn. Choosing a voice plays its sample too. While the voice has no sample
                            (or the list has not arrived) the button stays, dimmed and not pressable,

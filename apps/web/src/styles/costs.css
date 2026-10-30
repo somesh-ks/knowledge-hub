@@ -74,25 +74,6 @@
   gap: var(--space-2);
 }
 
-/* On the card's tone a chip steps up to the overlay tone, as a card's filter chips do. Its shape and
-   padding are the shared select chip's (primitives.css), as the Library's: one control, one shape
-   (owner, 2026-10-23, D167; until then a concentric 8px corner and a chevron 8px from the end). */
-.costs-card .sort-field {
-  --sort-field-bg: var(--color-surface-overlay);
-}
-
-/* And it hovers as a card's chip does: the card's chip layer, half the state layer in light, so a
-   white chip under the pointer stays above the card's tone (owner, 2026-10-24). */
-@media (hover: hover) and (pointer: fine) {
-  .costs-card .sort-field:not([data-active]):hover {
-    background: color-mix(
-      in oklch,
-      var(--sort-field-bg),
-      var(--color-on-surface) var(--card-chip-hover)
-    );
-  }
-}
-
 .costs-answer {
   grid-area: answer;
   display: grid;
