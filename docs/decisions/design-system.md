@@ -297,6 +297,15 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Rejected: mirroring the track on the left (a column of air beside a column of air); hiding the list below 90rem (the owner asked for it at 80rem).
 - Revisit if: the contents list needs more than 11rem at 80rem (a long section name wraps).
 
+## D236: the design system is a generated file an agent queries
+
+- Date: 2026-10-29 (the owner: make the design system "agentic ready", so an agent spends less time and fewer tokens finding the right component and stays consistent).
+- Decision: `npm run system` builds `tokens/system.json` (every token with its value, and its dark value and role where it has them; every part with classes, files, use-when, not-when and what to use instead, markup, the tokens its rules read, who styles it, how many files use it) and `tokens/llms.txt` (the one-page index). `npm run ds -- find "<need>"`, `part <id>` and `token <words>` answer from the file in 0.4 s. The judgment (use-when, not-when) is written once in `scripts/system/parts.ts`; everything checkable is derived from the code. A test fails when either file is stale, a part names a class no stylesheet rule or no markup uses, a file is gone, an alternative points nowhere, or a shared control has no part.
+- Why: 19 lookup tasks given to the same small model, once on the repo as it was and once with the file: tokens 88.9k to 71.1k (-20%), tool calls 13.0 to 7.3 (-44%), time 41 s to 28 s (-31%); every answer that came back was right in both arms, so the gain is cost, not accuracy. Holding the file to the code mattered at once: the first draft listed `.switch`, a class with no markup, and an agent had to ignore the tool; the check now counts a class only where markup writes it.
+- Rejected: a hand-written page per part (the first guide had 44 and the owner cut them; they drift); an embeddings or MCP server (a JSON file and a 0.4 s command answer the same needs); deriving use-when from the stylesheets (their comments say how a class looks, not when to pick it).
+- Revisit if: the design-system components (`apps/web/src/design-system`) land, when their entries replace the ones in `parts.ts` (a family that moved deletes its entries here); a lookup is wrong twice, when the keywords or the part are fixed in `parts.ts`.
+- Amends: D189's catalogue idea for agents, not for people; D226 (the guide shows only real components) is unchanged.
+
 ## D238: every color ramp is ten steps on one OKLCH curve
 
 - Date: 2026-10-29 (the owner: "certain colors only have limited shades and blue and gray have so many ... only 10 shades per color ... a color theme generation curve that we respect, linked to OKLCH").
