@@ -24,11 +24,11 @@ function settle(): void {
 }
 
 // On a wide screen a click or key press on the heading must not shut the section.
-folds.forEach((fold) =>
+for (const fold of folds) {
   fold.querySelector("summary")?.addEventListener("click", (event) => {
     if (wide.matches) event.preventDefault();
-  }),
-);
+  });
+}
 
 field?.addEventListener("input", settle);
 group?.addEventListener("change", settle);
