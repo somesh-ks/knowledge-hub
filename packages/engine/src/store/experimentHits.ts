@@ -21,6 +21,9 @@ export const EXPERIMENT_HITS_SCHEMA_SQL = [
   "create index if not exists experiment_hits_at on experiment_hits (at)",
 ] as const;
 
+const PRUNE_SQL = `delete from experiment_hits
+where at <= to_timestamp($1::float8 / 1000) - $2::int * interval '1 day'`;
+
 /** One pass's count for one experiment. */
 export interface ExperimentHit {
   id: string;
@@ -40,7 +43,15 @@ export async function recordExperimentHits(
   hits: readonly ExperimentHit[],
   now: number,
 ): Promise<void> {
-  if (hits.length === 0) return;
+  if (hits.length === 0) {
+    // Both lists are on: nothing to add, but what fell out of the window still goes.
+    try {
+      await sql.query(PRUNE_SQL, [now, EXPERIMENT_HITS_WINDOW_DAYS]);
+    } catch (error) {
+      if (!missingTable(error)) throw error;
+    }
+    return;
+  }
   await withTable(sql, EXPERIMENT_HITS_SCHEMA_SQL, () =>
     sql.query(
       `with gone as (

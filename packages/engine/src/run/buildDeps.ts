@@ -10,6 +10,22 @@ import { loadVoice } from "../voice/voice.js";
 import { SpendTracker } from "./spend.js";
 import type { RunDeps } from "./types.js";
 
+/** How long a save that only adds to a page may hold the run (the driver sets no timeout). */
+const SAVE_SECONDS = 10;
+
+/** Runs `task`, and rejects when it has not finished in `seconds`; the task itself is left to end. */
+async function withinSeconds<T>(seconds: number, task: () => Promise<T>): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`no answer in ${seconds} s`)), seconds * 1000);
+  });
+  try {
+    return await Promise.race([task(), late]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * The real dependencies, from the command context: HTTP for the fetchers, the model clients
  * (built on first use, so the gate, fetch and commit stages need no key), Firecrawl scraping
@@ -43,7 +59,9 @@ export function buildDeps(ctx: CommandContext): RunDeps {
     // With the config store on, the shadow counts go to Neon for the admin app; off, they stay in the log.
     recordExperimentHits: storeUrl
       ? async (hits) =>
-          recordExperimentHits(await connectConfigStore(storeUrl), hits, ctx.now().getTime())
+          withinSeconds(SAVE_SECONDS, async () =>
+            recordExperimentHits(await connectConfigStore(storeUrl), hits, ctx.now().getTime()),
+          )
       : undefined,
   };
 }
