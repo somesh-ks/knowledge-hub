@@ -1,23 +1,24 @@
+import { rememberCancelToken } from "../lib/cancelTokens";
 /**
- * The run indicator: one line of status over a thin progress bar, in the side column from 64rem and
- * above the player bar below it. It lives in the layout and persists across client-side navigations;
- * the run is kept in localStorage, so a reload, or another tab, picks it up (a run an older page
- * kept in sessionStorage is read once and moved). The status route names
- * the stage (n of m, lib/runStages.ts); the bar sits at the start of that stage and creeps toward,
- * never to, the next one on a slow CSS transition, so it never stands still and never goes back.
- * After the workflow has published, the last stage waits for the new page. Every sentence is in the
- * element (`data-<state>`, or `data-<kind>-<state>` for a rewrite or a removal), except a failed
- * stage's sentence (lib/runStages.ts); this file imports only that, the error reference helper and
- * the cancel call up front; the episode prewarm is loaded only once a new episode is live.
+ * Follows the run this browser started and keeps its record. It lives in the layout and persists
+ * across client-side navigations; the run is kept in localStorage, so a reload, or another tab, picks
+ * it up (a run an older page kept in sessionStorage is read once and moved). The status route names
+ * the stage (n of m, lib/runStages.ts); after the workflow has published, the last stage waits for
+ * the new page. It draws nothing: the podcast queue (scripts/queue.ts) paints the record on every
+ * change of it (RUN_EVENT), with the sentences in the element (`data-<state>`, or
+ * `data-<kind>-<state>` for a rewrite or a removal), except a failed stage's sentence
+ * (lib/runStages.ts); this file imports only that and the error reference helper; the episode
+ * prewarm is loaded only once a new episode is live.
  *
  * A run keeps the request that started it, so a failed one offers Try again: the same request goes
- * out again and the new run is followed. A finished run goes away once its episode has been opened.
+ * out again and the new run is followed. A run that ended is kept for the day in the podcast queue
+ * (lib/queueDay.ts) until the day changes; the sheets island plays the cue for a podcast.
  */
 
-import { cancelRun } from "../lib/cancelRun";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
+import { forget, remember } from "../lib/queueDay";
 import { GENERATION_STARTED_EVENT, RUN_EVENT, RUN_STORAGE_KEY } from "../lib/runRecord";
-import { briefingFailureLine, failureLine, timeLeft } from "../lib/runStages";
+import { briefingFailureLine, failureLine } from "../lib/runStages";
 
 const KEY = RUN_STORAGE_KEY;
 const POLL_MS = 4000;
@@ -39,7 +40,7 @@ export const SITE_POLL_MS = 2500;
 /** Ten minutes of asking, as before, at the faster pace. */
 const SITE_POLLS = 240;
 
-type Phase = "queued" | "running" | "updating" | "done" | "started" | "failed" | "cancelled";
+export type Phase = "queued" | "running" | "updating" | "done" | "started" | "failed" | "cancelled";
 /** What the run does to an episode that exists. Absent means a new episode. */
 type Kind = "regenerate" | "delete";
 /** What it takes to send a run's request again: its body, and where it goes (episodes by default). */
@@ -49,7 +50,7 @@ export interface Retry {
 }
 /** A briefing run: Regenerate or Generate, followed through the same status route as an episode. */
 type What = "briefing";
-interface Stored {
+export interface Stored {
   id: number;
   phase: Phase;
   kind?: Kind;
@@ -182,80 +183,11 @@ function clearTitle(): void {
   }
 }
 
-/** What a refused Cancel says under the stage, for a few seconds, so the next poll does not erase it. */
-const CANCEL_NOTE_MS = 8000;
-let cancelNote: { id: number; text: string; until: number } | null = null;
-
-/** A failed run's reason, or its time-left line; "" when neither is available (runStages.ts). */
-function etaLine(root: HTMLElement, run: Stored | null): string {
-  if (run && cancelNote?.id === run.id && Date.now() < cancelNote.until) return cancelNote.text;
-  // A failed run says why where a running one says the time left.
-  if (run?.phase === "failed" && run.reason) return run.reason;
-  if (!run || run.kind || run.what || !GOING.includes(run.phase)) return "";
-  const left = timeLeft(
-    run.stage ?? 0,
-    run.estimates,
-    Date.now() - (run.stageAt ?? run.t0 ?? Date.now()),
-  );
-  if (left.kind === "slow") return root.dataset.slow ?? "";
-  if (left.kind === "left") return (root.dataset.eta ?? "").replace("{n}", String(left.minutes));
-  return "";
-}
-
-/** Writes the time left under the stage name, and tells a screen reader once when the words change. */
-function showEta(root: HTMLElement, card: HTMLElement, run: Stored | null): void {
-  const eta = card.querySelector<HTMLElement>("[data-run-eta]");
-  const text = etaLine(root, run);
-  if (eta && eta.textContent !== text) eta.textContent = text;
-  if (eta) eta.hidden = !text;
-  const announce = root.querySelector("[data-run-announce]");
-  const line = card.querySelector("[data-run-text]")?.textContent ?? "";
-  const said = text ? `${line}. ${text}` : line;
-  if (announce && run && announce.textContent !== said) announce.textContent = said;
-}
-
-/** The minutes move on between polls: the line is brought up to date without redrawing the card. */
-function refreshEta(): void {
-  const root = document.querySelector<HTMLElement>("[data-run-status]");
-  const card = root?.querySelector<HTMLElement>("[data-run-card]");
-  if (root && card && !card.hidden) showEta(root, card, read());
-}
+// Looking at the tab again takes the badge off its title.
+if (typeof document !== "undefined") document.addEventListener("visibilitychange", clearTitle);
 
 /**
- * The card arrives from where the Create sheet was (a FLIP on transform and opacity only: it starts
- * at the sheet's centre, smaller, and settles into its place). Below 64rem the strip fades in, and
- * with reduced motion every width crossfades (fades keep their time, travel goes).
- */
-export function morphFrom(from: DOMRect): void {
-  const card = document.querySelector<HTMLElement>("[data-run-card]");
-  if (!card || card.hidden || typeof card.animate !== "function") return;
-  const to = card.getBoundingClientRect();
-  if (!to.width) return;
-  const css = getComputedStyle(card);
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const wide = matchMedia("(width >= 64rem)").matches;
-  const duration =
-    Number.parseFloat(css.getPropertyValue(reduced ? "--duration-enter" : "--duration-sheet-in")) ||
-    300;
-  const easing = css.getPropertyValue("--ease-out").trim() || "ease-out";
-  const dx = from.left + from.width / 2 - (to.left + to.width / 2);
-  const dy = from.top + from.height / 2 - (to.top + to.height / 2);
-  const start =
-    reduced || !wide
-      ? { opacity: 0 }
-      : { opacity: 0, transform: `translate(${dx}px, ${dy}px) scale(0.6)` };
-  card.animate([start, { opacity: 1, transform: "none" }], { duration, easing });
-}
-
-function dismiss(): void {
-  following = 0;
-  write(null);
-  show(null);
-  focusCreate();
-}
-
-/**
- * The button that was pressed is gone with the card: focus goes to the Create button in view, or,
+ * The button that was pressed is gone with its card: focus goes to the Create button in view, or,
  * on a page that shows none, to the page's main region, so it never drops to the body.
  */
 export function focusCreate(): void {
@@ -316,147 +248,27 @@ export function statusLine(run: Stored, words: Record<string, string | undefined
 }
 
 /**
- * The page keeps room for the card as tall as the card is. Below 64rem the strip opens (a failed
- * run opens it, and its actions take a second row), and the floating button, the toasts and the
- * page's own foot all stack on `--run-room`, which is one line (3rem) until this says otherwise.
- * From 64rem the side column carries the card and the page needs none.
- */
-function keepRoom(card: HTMLElement): void {
-  if (typeof ResizeObserver !== "function") return;
-  new ResizeObserver(() => {
-    const page = document.documentElement;
-    if (card.hidden || matchMedia("(width >= 64rem)").matches)
-      page.style.removeProperty("--run-room");
-    else
-      page.style.setProperty("--run-room", `${Math.ceil(card.getBoundingClientRect().height)}px`);
-  }).observe(card);
-}
-
-/**
- * Draw or hide the run card, update its actions and page spacing, and announce its status.
- * A completed episode already open is cleared from storage. Dispatches RUN_EVENT after drawing
- * when the card exists, so listeners can react to the remembered run.
+ * Draws the run: the queue (scripts/queue.ts) paints it from the record and is told by an event, so
+ * this keeps the page's own state in step: the Create buttons say why they cannot start another run
+ * while one goes, and a finished episode already on screen is forgotten as the record (not as a row of
+ * the queue). A run that ended is kept for the day first (lib/queueDay.ts): the queue draws it from there.
  */
 function show(run: Stored | null): void {
   const root = document.querySelector<HTMLElement>("[data-run-status]");
-  const card = root?.querySelector<HTMLElement>("[data-run-card]");
-  if (!root || !card) return;
-  if (!root.hasAttribute("data-bound")) {
-    root.setAttribute("data-bound", "");
-    keepRoom(card);
-    document.addEventListener("visibilitychange", clearTitle);
-    root.addEventListener("click", (event) => {
-      const target = event.target as Element;
-      if (target.closest("[data-run-dismiss]")) dismiss();
-      if (target.closest("[data-run-retry]")) void retry();
-      if (target.closest("[data-run-play]")) void listenLive();
-      if (target.closest("[data-run-check]")) checkAgain();
-      if (target.closest("[data-run-cancel]")) void stop(target.closest("[data-run-cancel]"));
-      // Below 64rem the strip is one slim line; a press on it, or on its chevron, opens it.
-      if (
-        target.closest("[data-run-expand]") ||
-        (target.closest(".run-text") && !matchMedia("(width >= 64rem)").matches)
-      ) {
-        const open = card.toggleAttribute("data-expanded");
-        card.querySelector("[data-run-expand]")?.setAttribute("aria-expanded", String(open));
-      }
-      // The episode, or the Library, is being opened: the line has said what it had to. It goes
-      // after the press has been handled, so the link still leads where it points.
-      if (target.closest("[data-run-library]")) {
-        write(null);
-        setTimeout(() => {
-          if (!read()) show(null);
-        });
-      }
-    });
+  if (!root) return;
+  if (run && run.kind !== "delete") {
+    try {
+      if (FINISHED.includes(run.phase)) remember(localStorage, run, run.stageAt ?? Date.now());
+      else forget(localStorage, run.id);
+    } catch {
+      // The queue then shows only the run on record.
+    }
   }
-  // The new episode is the page on screen: it has been found, so the line goes and gives back the
-  // room it kept.
+  // The new episode is the page on screen: it has been found, so there is nothing to open.
   if (run?.phase === "done" && run.href && !run.what && samePage(run.href)) {
     write(null);
     run = null;
   }
-  const finished = run ? FINISHED.includes(run.phase) : false;
-  const announce = root.querySelector("[data-run-announce]");
-  card.hidden = !run;
-  if (run) {
-    card.dataset.state = run.phase;
-    // A failed or lost run opens the strip once, so its whole sentence reads on a phone (the owner
-    // asked for plain error messages). The reader can close it again: it opens once for each run.
-    const alarm = run.phase === "failed" || run.phase === "started" ? `${run.id}:${run.phase}` : "";
-    if (alarm && card.dataset.opened !== alarm) {
-      card.dataset.opened = alarm;
-      card.setAttribute("data-expanded", "");
-      card.querySelector("[data-run-expand]")?.setAttribute("aria-expanded", "true");
-    }
-    const text = card.querySelector("[data-run-text]");
-    // A rewrite in the "running" phase reads data-regenerate-running; a new episode reads data-running.
-    const line = statusLine(run, root.dataset);
-    if (text && text.textContent !== line) text.textContent = line;
-    // The status region hears the line and the time left together, and only when they change.
-    showEta(root, card, run);
-    fill(card, run);
-  } else if (announce) {
-    // The card is gone and so is what it said: browse mode must not read a finished run's last line.
-    announce.textContent = "";
-  }
-  const library = card.querySelector<HTMLAnchorElement>("[data-run-library]");
-  if (library) {
-    // A new episode's link leads to it once the site lists it; anything else leads to the Library.
-    const href = run?.href ?? "/library";
-    if (library.getAttribute("href") !== href) library.setAttribute("href", href);
-    // Not `data-library`: that is the Library page's own root, and a link carrying it was found first.
-    library.dataset.runWords ??= library.textContent ?? "";
-    const words = run?.href
-      ? run.what
-        ? root.dataset.openBriefing
-        : root.dataset.open
-      : library.dataset.runWords;
-    if (words && library.textContent !== words) library.textContent = words;
-    // A link to the page on screen would only load it again, so the line offers none there. A
-    // regenerated briefing is the exception: the page on screen is the old one, and opening it
-    // brings the new one in. One that published nothing has nothing to open.
-    library.hidden =
-      (run?.phase !== "done" && run?.phase !== "started") ||
-      run?.kind === "delete" ||
-      (run?.what !== undefined && run.phase === "done" && !run.href) ||
-      (samePage(href) && !run?.what);
-  }
-  // Listen now: offered while the episode is being written and its first turns exist; once the
-  // committed episode is found, Open episode is the way in.
-  const listen = card.querySelector<HTMLButtonElement>("[data-run-play]");
-  if (listen) {
-    listen.hidden = !(
-      run &&
-      !run.kind &&
-      !run.what &&
-      live?.runId === run.id &&
-      GOING.includes(run.phase)
-    );
-  }
-  // A failed run links to its log, which says what went wrong.
-  const log = card.querySelector<HTMLAnchorElement>("[data-run-log]");
-  if (log) {
-    const href =
-      run?.phase === "failed" && run.log?.startsWith("https://github.com/") ? run.log : "";
-    if (href && log.getAttribute("href") !== href) log.setAttribute("href", href);
-    log.hidden = !href;
-  }
-  const check = card.querySelector<HTMLButtonElement>("[data-run-check]");
-  if (check) check.hidden = run?.phase !== "started";
-  // A run that is waiting or running can be stopped from the strip, and the whole list is one press
-  // away (scripts/generations.ts). The site's own last stage cannot be stopped: the run has ended.
-  const stoppable = run?.phase === "queued" || run?.phase === "running";
-  for (const button of card.querySelectorAll<HTMLElement>("[data-run-cancel], [data-run-queue]")) {
-    button.hidden = !stoppable;
-  }
-  const again = card.querySelector<HTMLButtonElement>("[data-run-retry]");
-  if (again) again.hidden = !(run?.phase === "failed" && run.retry);
-  const close = card.querySelector<HTMLElement>("[data-run-dismiss]");
-  if (close) close.hidden = !finished;
-  // The page reserves room for the indicator while it is up, the way it does for the player bar.
-  if (run) document.documentElement.dataset.run = run.phase;
-  else delete document.documentElement.dataset.run;
   // New episode says why it cannot start another while this one is going.
   const going = run ? GOING.includes(run.phase) : false;
   for (const create of document.querySelectorAll<HTMLElement>("[data-create-open]")) {
@@ -465,42 +277,9 @@ function show(run: Stored | null): void {
       create.setAttribute("aria-description", busy ?? "");
     } else create.removeAttribute("aria-description");
   }
-  // The episode page listens, so it can disable its actions while its own episode is being changed.
+  // The queue and the episode page listen, so each can redraw: the page disables its actions while
+  // its own episode is being changed.
   document.dispatchEvent(new Event(RUN_EVENT));
-}
-
-/** The bar: at the start of the stage at once, then slowly toward its end, and never back. */
-let creep = 0;
-/**
- * Advance the progress bar for this run without moving it backward; a new run resets it.
- * Briefings and episode changes omit the site's final stage. Reduced motion disables the drift.
- */
-export function fill(card: HTMLElement, run: Stored): void {
-  // A rewrite or a removal has no last stage of its own: the page has nothing to wait for.
-  const total = (run.stages ?? 3) - (run.kind || run.what ? 1 : 0);
-  const stage = Math.min(run.stage ?? 0, total - 1);
-  const key = `${run.id}:${run.phase}:${stage}`;
-  if (card.dataset.fill === key) return;
-  card.dataset.fill = key;
-  clearTimeout(creep);
-  // A new run (a Try again) starts from nothing: the failed run's fill is not its progress. The bar
-  // never goes back within one run only.
-  if (card.dataset.run !== String(run.id)) {
-    card.dataset.run = String(run.id);
-    card.style.setProperty("--run-to", "0");
-    card.style.setProperty("--run-span", "0s");
-    // The empty bar is drawn before the new stage's fill starts from it.
-    card.getBoundingClientRect();
-  }
-  const at = (to: number, seconds: number) => {
-    const now = Number(card.style.getPropertyValue("--run-to")) || 0;
-    card.style.setProperty("--run-to", String(Math.max(now, to)));
-    card.style.setProperty("--run-span", `${seconds}s`);
-  };
-  at(stage / total, 0.4);
-  // With reduced motion the bar waits at the start of the stage instead of drifting.
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  creep = window.setTimeout(() => at((stage + 0.9) / total, 60), 400);
 }
 
 function set(run: Stored): void {
@@ -509,33 +288,8 @@ function set(run: Stored): void {
   if (FINISHED.includes(run.phase) && run.phase !== "cancelled") markTitle();
 }
 
-/**
- * Cancel on the strip: asks the server to stop the run on record and says so while it does. The
- * next poll of the run reads "cancelled" and the strip settles on it; a refusal leaves the run as it
- * was, with the button back, and the line saying it could not.
- */
-async function stop(button: Element | null): Promise<void> {
-  const run = read();
-  if (!run || !(button instanceof HTMLButtonElement) || button.disabled) return;
-  const root = document.querySelector<HTMLElement>("[data-run-status]");
-  const words = button.textContent;
-  button.disabled = true;
-  button.textContent = root?.dataset.cancelling ?? words;
-  const result = await cancelRun(run.id);
-  button.disabled = false;
-  button.textContent = words;
-  if (result === "failed") {
-    cancelNote = {
-      id: run.id,
-      text: root?.dataset.cancelFailed ?? "",
-      until: Date.now() + CANCEL_NOTE_MS,
-    };
-    refreshEta();
-  }
-}
-
 /** Check again: polling ran out, so ask once more where the run is, the way it was asked before. */
-function checkAgain(): void {
+export function checkAgain(): void {
   const run = read();
   if (!run || run.phase !== "started") return;
   const phase: Phase = run.lostIn === "site" ? "updating" : "running";
@@ -665,7 +419,6 @@ async function follow(run: Stored, now: boolean): Promise<void> {
     // that and stop asking. A hiccup is asked again, until the loop runs out.
     if (res && res.status < 500 && !res.ok) break;
     if (!body?.state) continue;
-    refreshEta();
     if (body.state === "running") void watchStream(run);
     if (body.state === "completed" && run.what) {
       // A briefing is live as soon as the workflow has committed it (live content, D199): there is
@@ -821,15 +574,18 @@ export function refusal(
  * Try again: the failed run's request goes out again and the new run is followed. A refusal says
  * why in the line, in the form's words; a cooldown names its own wait.
  */
-async function retry(): Promise<void> {
+export async function retry(): Promise<void> {
   const run = read();
   const root = document.querySelector<HTMLElement>("[data-run-status]");
-  const button = root?.querySelector<HTMLButtonElement>("[data-run-retry]");
-  if (!run?.retry || !root || !button || retrying) return;
+  // The dock and the popover each hold a row, so each has a Try again.
+  const buttons = [...(root?.querySelectorAll<HTMLButtonElement>("[data-queue-retry]") ?? [])];
+  if (!run?.retry || !root || buttons.length === 0 || retrying) return;
   retrying = true;
-  const words = button.textContent;
-  button.setAttribute("aria-disabled", "true");
-  button.textContent = root.dataset.starting ?? "";
+  const words = buttons[0]?.textContent ?? "";
+  for (const button of buttons) {
+    button.setAttribute("aria-disabled", "true");
+    button.textContent = root.dataset.starting ?? "";
+  }
   const res = await fetch(run.retry.endpoint ?? "/api/podcast", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -841,14 +597,23 @@ async function retry(): Promise<void> {
   }).catch(() => null);
   const reply = (await res?.json().catch(() => null)) ?? {};
   retrying = false;
-  button.removeAttribute("aria-disabled");
-  button.textContent = words;
+  for (const button of buttons) {
+    button.removeAttribute("aria-disabled");
+    button.textContent = words;
+  }
   if (res?.status === 202 && reply.run_id) {
+    // The new run replaces the failed one in the queue.
+    try {
+      forget(localStorage, run.id);
+    } catch {
+      // Nothing kept to forget.
+    }
     const about = run.what
       ? { what: run.what }
       : run.kind && run.episode
         ? { kind: run.kind, episode: run.episode }
         : undefined;
+    rememberCancelToken(reply.run_id, reply.cancel_token);
     startRun(reply.run_id, about, run.retry);
     focusCreate();
     return;

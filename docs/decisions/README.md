@@ -74,7 +74,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D51 | Settings is two levels and saves itself; every select opens one drawn list | active; the Custom page superseded by D56 |
 | D52 | On a phone the Create button floats only on Today and the Library, extended until you scroll | superseded by D60: Create floats on the Library alone |
 | D53 | First-load JavaScript budget 110 KB, kept as low as the code allows | active |
-| D54 | Form fields carry a 3:1 outline; in the player only Play is in full ink | active for text fields; selects, segmented controls and chips are tonal since D72 |
+| D54 | Form fields carry a 3:1 outline; in the player only Play is in full ink | active for text fields (ink: D238); selects, segmented controls and chips are tonal since D72 |
 | D55 | A source's score is out of 3: health, quality and trust, combined so a weak part cannot be bought back | active; shown as a word, not pips and a number, since D83 |
 | D56 | One panel adds a topic or a source and edits a source; Settings has no Custom page | active |
 | D57 | A topic's page edits its details and adds the sources that suit it; topics are listed by name | active; amended by D64 and D69 |
@@ -134,10 +134,10 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D111 | The open player has no drag handle and square top corners at every point of its travel | active; amends D32, D106 |
 | D112 | Every page modulepreloads what it loads at start; press code loads at idle; the player's motion after first paint; first-load budget 109 KB | active; amends D53, D103 |
 | D113 | Claude Sonnet 5.5 is the default writer for the page and the engine; the Model list has no Default row; Nebius starts on GLM-5.3 | active; amends D46, D106 |
-| D114 | Every episode is written for the owner: General audience retired; New episode form is Title, Topics, Length, Look back, with Format, Voice, Tone under More | active; amends D39, D67, D76, D101 |
+| D114 | Every episode is for the owner; New episode form is short | active; amends D39, D67, D76, D101 |
 | D115 | Settings save quietly: no toast while a change saves or once it is saved; the toast is for a failure, an Undo or a partial save | active; amends D79, D91, D98 |
 | D116 | docs/ is grouped by purpose: the record at the top, plan/, engineering/, design/, reference/; audits fold into their history notes; docs/README.md maps it all | active; amends D14 |
-| D117 | The Model picker reads Anthropic's and Nebius's model lists live, cached five minutes; a Claude model past the built-in two saves only when Anthropic lists it | active; amends D46, D58 |
+| D117 | Model picker: Anthropic, Nebius lists live (5 min cache); a Claude beyond the built-in two saves only if Anthropic lists it | active; amends D46, D58 |
 | D118 | Jev 1.14.0 is pinned; Jev checks the strongest candidates against the owner's taste (votes, opens), replacing the vote nudge, within 15% | active; amends D3, D108 |
 | D119 | A briefing sized by the owner's length writes 30% spares; validation airs the best survivors until measured narration fills the length, each topic's best kept | active |
 | D120 | Science takes a one-outlet story that is clearly on topic; the other general topics keep the two-outlet rule | active; amends D40, D43 |
@@ -224,7 +224,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D205 | Settings paint the kept copy at once | amends D172 |
 | D206 | Stay on npm; pnpm spiked | active |
 | D207 | A Regenerate asks for its own length | amends D204 |
-| D208 | A list of generations, with Cancel | amends D204 |
+| D208 | A list of generations, with Cancel | amends D204; list superseded by D231 |
 | D209 | Lane free in the hold | supersedes D135; amends D197 |
 | D210 | Typed HTML builders | active |
 | D211 | Copy says podcast, not briefing; code names keep briefing | active |
@@ -239,9 +239,26 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D220 | Over-limit summaries and headlines are cut | active |
 | D221 | Runs are logged to Neon with stage times and costs | active |
 | D222 | Firecrawl: 300 a week, 60 a run | amends D166 |
-| D223 | Firecrawl warns at 150 | amends D222 |
+| D223 | Firecrawl warns at 150 | Superseded by D227 |
 | D224 | Admin and style guide: own apps | active; supersedes D189 |
 | D225 | A Haiku call shortens an over-limit headline | active |
-| D226 | The guide shows only components the app imports | amends D224 |
+| D226 | The guide lists only imported components | amends D224 |
+| D227 | Firecrawl warns at 210 | supersedes D223 |
+| D228 | A failed dry run records its spend | amends D223, D227 |
+| D229 | Column centred; 12px label gap | active |
+| D231 | The podcast queue; its runs stay for the day | active; supersedes D208's list |
+| D232 | One cleaner turns scraped Markdown into prose | active |
+| D233 | Ingest in shadow: free sources, Blob text | active |
+| D234 | Vetted publishers pass the bar; topic rubric | active |
+| D236 | Agent design lookup | active |
+| D238 | Ten-step OKLCH ramps | active |
+| D239 | A travelling device is offered the new zone | active; amends D100 |
+| D240 | Community votes outrank publisher status | active; amends D234 |
+| D241 | No Weekly-only blocks | amends D170 |
+| D242 | Starter-only Cancel | amends D201, D208 |
+| D244 | YouTube views vs channel median are votes | active |
+| D245 | system.json omits the file-use count | amends D236 |
+| D246 | Catch up kind label; counts yield to slots | active; amends D218 |
+| D247 | Deploy-count warning | active |
 
 ---

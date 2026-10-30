@@ -94,7 +94,7 @@ const MIN_EPISODE_STORIES = 2;
  * smaller candidate pool can leave fewer stories; the function never adds stories.
  */
 export function fitStories(
-  candidates: readonly PodcastStory[],
+  allCandidates: readonly PodcastStory[],
   blocks: readonly StructureBlock[],
   prompts: Readonly<Record<string, string>>,
   slots: number,
@@ -102,8 +102,13 @@ export function fitStories(
   // An episode keeps its two stories (the selection's own floor) whatever the structure leaves room
   // for: a short episode with many blocks plans one slot and must not be cut under what select kept.
   const max = Math.max(MIN_EPISODE_STORIES, slots);
+  // A mixed Catch up can carry one item from the briefings and from a feed: it airs once.
+  const candidates = allCandidates.filter(
+    (story, at) => allCandidates.findIndex((other) => other.item_id === story.item_id) === at,
+  );
   const shaped = shapeStories(candidates, blocks, prompts);
-  if (shaped.stories.length <= max) return shaped;
+  if (shaped.stories.length < max) return fillSlots(candidates, blocks, prompts, shaped, max);
+  if (shaped.stories.length === max) return shaped;
   // A story ranks by its place inside the block it airs in first, so the cut takes each block's tail
   // before any block's best: a mixed episode lists its topics one after another, and cutting by
   // position alone would take the whole last topic (2026-10-28, independent review). A release story
@@ -130,6 +135,51 @@ export function fitStories(
   return shapeStories(
     candidates.filter((story) => kept.has(story.item_id)),
     blocks,
+    prompts,
+  );
+}
+
+/**
+ * A block's count is a proportion between the blocks, not a ceiling (D218): the length is the only
+ * limit (#147). When the counts leave slots empty and candidates stand unused, the best of them
+ * fill the slots, in the order they came; only release news keeps its own count, being what the
+ * length can do without first. The 2026-10-30 Catch up found seven Top picks and one story of its
+ * own, the Top picks block (2 at 5 minutes) cut it to three stories, and it aired 2 of 5 minutes.
+ * A block's per-outlet limit still holds, so one outlet cannot fill the spare slots.
+ */
+function fillSlots(
+  candidates: readonly PodcastStory[],
+  blocks: readonly StructureBlock[],
+  prompts: Readonly<Record<string, string>>,
+  shaped: { stories: PodcastStory[]; shape: ScriptShape },
+  slots: number,
+): { stories: PodcastStory[]; shape: ScriptShape } {
+  const uncounted = blocks.map((block): StructureBlock => {
+    if (block.type === "section") {
+      const { max_stories: _count, ...rest } = block;
+      return rest;
+    }
+    if (block.type === "top_picks" || block.type === "trending") {
+      const { stories: _count, ...rest } = block;
+      return rest;
+    }
+    return block;
+  });
+  const have = new Set(shaped.stories.map((story) => story.item_id));
+  // The same candidates through the same blocks without their counts say which may air (a block's
+  // per-outlet limit still turns some away); the spares are taken by candidate rank, not block order.
+  const eligible = new Set(
+    shapeStories(candidates, uncounted, prompts).stories.map((story) => story.item_id),
+  );
+  const spares = candidates
+    .filter((story) => eligible.has(story.item_id) && !have.has(story.item_id))
+    .slice(0, slots - shaped.stories.length)
+    .map((story) => story.item_id);
+  if (spares.length === 0) return shaped;
+  const kept = new Set([...have, ...spares]);
+  return shapeStories(
+    candidates.filter((story) => kept.has(story.item_id)),
+    uncounted,
     prompts,
   );
 }

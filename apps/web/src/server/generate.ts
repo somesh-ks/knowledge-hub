@@ -1,5 +1,6 @@
 import { MAX_REGENERATIONS } from "@singularity/core";
 import type { GenerateResponse } from "../types/contracts";
+import { cancelTokenFor } from "./cancelToken";
 import { missingSettings, readServerConfig, type ServerEnv, secretsOf } from "./config";
 import { createGitHubClient, type FetchLike } from "./github";
 import type { ApiResult } from "./http";
@@ -248,6 +249,9 @@ export async function handleGenerate(
             ...(id ? { replace: id } : {}),
           },
     );
+    // Only an id GitHub named for this dispatch gets a token (D242): one picked from the list by
+    // its creation time could be another request's run, and its token would stop that one.
+    const named = runId !== null;
     for (let attempt = 0; runId === null && attempt < RUN_LOOKUP_ATTEMPTS; attempt += 1) {
       // GitHub started the run but did not name it. The newest singularity run created since the
       // request is the one.
@@ -266,7 +270,12 @@ export async function handleGenerate(
 
     return {
       status: 202,
-      body: { status: 202, run_id: runId, started_at: new Date(startedAt).toISOString() },
+      body: {
+        status: 202,
+        run_id: runId,
+        started_at: new Date(startedAt).toISOString(),
+        ...(named ? { cancel_token: cancelTokenFor(config.token, runId) } : {}),
+      },
     };
   } catch (error) {
     log(`generate failed: ${describeError(error, secretsOf(config))}`);

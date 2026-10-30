@@ -43,6 +43,7 @@ Never paste a key into chat. The agent cannot read `.env`; keep it that way.
 | `BLOB_READ_WRITE_TOKEN` | Section 1.5 |
 | `SINGULARITY_GIT_NAME`, `SINGULARITY_GIT_EMAIL` | Plain configuration, no secret. `Somesh Kesarla Suresh` and `26426782+somesh-ks@users.noreply.github.com` (section 1.4) |
 | `GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY` | Section 1.7 |
+| `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET` | You choose them; the command center's sign-in (section 1.4a). Sent to the admin project only |
 | Models | Not env vars: `config/models.json` routes each step (Section 1.3) |
 
 ### 1.3 Pick the writer model
@@ -62,9 +63,13 @@ npm run singularity -- eval --yes --only bakeoff --models <id>,<id>
 Vercel deploys through its GitHub integration (D25). No Vercel token is needed in GitHub or `.env`.
 
 1. In the Vercel dashboard, choose Add New, Project, and import the GitHub repo `knowledge-hub`. Name the project `knowledge-hub`; the production branch is `main`.
-2. Set Root Directory to `apps/web`. Leave "Include source files outside of the Root Directory" on (the default). `apps/web/vercel.json` already sets the install, build and ignore commands.
+2. Set Root Directory to `apps/web`. Leave "Include source files outside the Root Directory" on (the default). `apps/web/vercel.json` already sets the install, build and ignore commands.
 3. Add the two Vercel environment variables (`GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY`) in section 1.9, or by hand in the dashboard.
 4. Hobby deploys only commits authored by the Hobby team owner. The GitHub login connected to Vercel must be the account that owns the team, and it must match the committer. The engine commits as that owner through the GitHub Actions variables `SINGULARITY_GIT_NAME` and `SINGULARITY_GIT_EMAIL`, which section 1.9 sends. If both are unset the engine commits as `singularity-bot`, and Hobby blocks those deploys.
+
+### 1.4a Create the admin project (D224)
+
+The command center is a second Vercel project, `singularity-admin`, from the same repo: Root Directory `apps/admin`, "Include source files outside of the Root Directory" on, Production Deployment Protection off (the app gates itself; Vercel protection cannot guard a project reached through a rewrite). The reader's `apps/web/vercel.json` rewrites `/admin` to its `singularity-admin-psi.vercel.app` address. Set `ADMIN_PASSWORD` (a long random password) and `ADMIN_SESSION_SECRET` (a random string of 32 or more characters) in `.env`; `npm run secrets:push` sends them to this project once `apps/admin` is linked (`cd apps/admin && npx vercel link`), or add them by hand under the project's Environment Variables (Production). Until both exist the app answers 503 to everyone.
 
 ### 1.5 Create the Blob store
 
@@ -169,12 +174,13 @@ Monthly:
 | --- | --- | --- |
 | `run.yml` | Dispatched by `/api/cron/run` in the schedule's hour, its own hourly schedule as a late fallback, or on demand | Runs the engine stage by stage (Gate, Fetch, Judge, Write, Validate), commits the digest and state (Commit) as the owner identity, then calls `audio.yml` when a digest was published or a digest from the last 7 days still lacks audio |
 | `audio.yml` | Called by `run.yml`, or on demand | Checks out `main`, runs `singularity publish --prune 120` (Audio: narrates digests that lack audio, uploads to Blob, prunes, then commits and pushes the timeline metadata as the owner). That push triggers a second Vercel deploy |
+| `ingest.yml` | Three times a day, or on demand | Runs `singularity ingest` (D233): reads the free sources and saves each new story's text to Blob and Neon. Reads the config store; commits nothing; spends no paid call |
 | `ci.yml` | A pull request | Runs typecheck, lint, tests and the build when code changed, always gitleaks and the audit, and both browser suites for some paths (D148). It does not deploy |
 | `branches.yml` | A pull request closing, daily, or on demand | Deletes the head branch of a closed pull request, and daily every branch whose pull requests are all closed (one with an open pull request, or none, stays). With the `NEON_API_KEY` secret and `NEON_PROJECT_ID` variable it also deletes Neon `preview/*` branches whose git branch is gone and keeps the newest two |
 
 Vercel itself builds every push to `main`, except pushes that touch nothing the site reads (`state`, `config`, docs and `.github`). A published digest therefore deploys twice: the text first, then the audio.
 
-Other branches do not deploy (`git.deploymentEnabled` in `apps/web/vercel.json`), except ones named `preview/<name>`: push a branch under that name when you want a preview URL. Every preview made Neon's Vercel integration create a database branch, and on 2026-10-22 the free plan's branch limit filled and every preview failed ("Branch limit reached"). `branches.yml` removes what is left.
+Other branches do not deploy (`git.deploymentEnabled` in `apps/web/vercel.json` and `apps/admin/vercel.json`), except ones named `preview/<name>`: push a branch under that name when you want a preview URL. Every preview made Neon's Vercel integration create a database branch, and on 2026-10-22 the free plan's branch limit filled and every preview failed ("Branch limit reached"). `branches.yml` removes what is left.
 
 Every `run.yml` run ends in one outcome:
 
@@ -306,7 +312,7 @@ Models are resolved at run start from the providers' lists. Symptoms: the run lo
 
 1. Open the project's Deployments in the Vercel dashboard and read the latest deployment. After a run concludes, the site updates when Vercel finishes, usually a minute or two.
 2. No deployment appeared, or it says blocked: Hobby accepts only commits authored by the team owner. Check that `SINGULARITY_GIT_NAME` and `SINGULARITY_GIT_EMAIL` are set (`gh variable list -R somesh-ks/knowledge-hub`), that the commit author is the owner, and that the GitHub login connected to Vercel matches.
-3. A deployment shows as skipped (Canceled by Ignored Build Step): the push touched nothing the site reads, which is expected for `state`, `config`, docs and `.github`. If a digest push was skipped, check the `ignoreCommand` in `apps/web/vercel.json`; `singularity health` warns `site_behind` when this happens, and faults (the `health` issue) once the oldest commit the site lacks is a day old (D159). Vercel refuses an `ignoreCommand` over 256 characters (the whole deploy fails), so keep it short.
+3. A deployment shows as skipped (Canceled by Ignored Build Step): the push touched nothing the site reads, which is expected for `state`, `config`, docs and `.github`. If a digest push was skipped, check the `ignoreCommand` in `apps/web/vercel.json`; `singularity health` warns `site_behind` when this happens, and faults (the `health` issue) once the oldest commit the site lacks is a day old (D159). Vercel refuses an `ignoreCommand` over 256 characters (the whole deploy fails), so keep it short. Hobby also refuses every deploy at 100 in a rolling 24 hours, cancelled builds included ("Deployment rate limited"); `health` warns `deploy_rate` at 70 (D247), and the cure is to find the project that builds more than merges explain.
 4. A build error about missing packages or paths: check Root Directory is `apps/web`, "Include source files outside of the Root Directory" is on, and the `installCommand` in `apps/web/vercel.json` runs `npm ci` from the repository root.
 5. `news.someshks.work` shows an old page but the deploy succeeded: wait a minute, then hard refresh. Check that the DNS record is DNS only. A proxied record (orange cloud) breaks certificate issuance.
 

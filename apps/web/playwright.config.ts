@@ -21,6 +21,8 @@ export default defineConfig({
   outputDir: "./test-results",
   use: {
     baseURL: `http://127.0.0.1:${PORT}`,
+    // The device sits in the schedule's zone, so the time zone prompt (D239) stays out of every test.
+    timezoneId: "Europe/Stockholm",
     trace: "retain-on-failure",
     // Narration needs no tap in a test browser, so a started audio file plays at once.
     launchOptions: { args: ["--autoplay-policy=no-user-gesture-required"] },

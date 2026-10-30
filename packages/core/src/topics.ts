@@ -160,6 +160,12 @@ export const Topic = z.preprocess(
     name: z.string().trim().min(1).max(60),
     /** What belongs in the topic. Read by the judge for a custom topic, so it should be concrete. */
     description: z.string().trim().min(1).max(400),
+    /**
+     * What counts and what does not, in the owner's words (D234). Added to the fit question of a
+     * topic Jev judges by fit (custom, Design, general); the twelve built-in categories are judged
+     * by their fixed criteria and ignore it. Absent leaves the question exactly as it was.
+     */
+    rubric: z.string().trim().min(1).max(600).optional(),
     enabled: z.boolean(),
     /** A candidate must contain one of these (or come from a tagged source) to be judged for a custom topic. */
     keywords: z.array(z.string().trim().min(1).max(60)).max(MAX_KEYWORDS),

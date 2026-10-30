@@ -17,10 +17,12 @@ import {
   Preferences,
   parseDigestFile,
   SUPPORTED_TIMEZONES,
+  sameClock,
   seedTopicsFile,
   serializeDigestFile,
   stockholmDate,
   stockholmHour,
+  suggestZone,
   Topic,
   VOICE_LIMITS,
   weekday,
@@ -129,6 +131,45 @@ describe("time", () => {
     ).toBe("Stockholm (GMT+2)");
     const values = SUPPORTED_TIMEZONES.map((option) => option.value);
     expect(new Set(values).size).toBe(values.length);
+  });
+  // The device's zone against the schedule's (D239): a prompt is for a different clock, not a different name.
+  describe("suggestZone", () => {
+    const at = new Date("2026-10-29T09:00:00Z");
+    it("offers the device's own zone when the list has it", () => {
+      expect(suggestZone("Asia/Tokyo", "Europe/Stockholm", at)).toEqual({
+        zone: "Asia/Tokyo",
+        label: "Tokyo",
+        exact: true,
+        flag: "\u{1F1EF}\u{1F1F5}",
+      });
+    });
+    it("offers nothing for the same zone, or another name for the same clock", () => {
+      expect(suggestZone("Europe/Stockholm", "Europe/Stockholm", at)).toBeNull();
+      // Oslo is not on the list and keeps Stockholm's time, daylight saving included.
+      expect(suggestZone("Europe/Oslo", "Europe/Stockholm", at)).toBeNull();
+      expect(suggestZone("Europe/Berlin", "Europe/Stockholm", at)).toBeNull();
+    });
+    it("tells a zone without daylight saving from one with it", () => {
+      expect(suggestZone("America/Phoenix", "America/Denver", at)?.zone).toBe("America/Phoenix");
+    });
+    it("stands in a listed zone with the same clock for one the list lacks", () => {
+      const offer = suggestZone("Europe/Oslo", "America/New_York", at);
+      expect(offer?.exact).toBe(false);
+      expect(offer?.flag).toBeUndefined();
+      expect(["Europe/Amsterdam", "Europe/Berlin", "Europe/Paris", "Europe/Stockholm"]).toContain(
+        offer?.zone,
+      );
+    });
+    it("offers nothing it cannot stand for, or cannot read", () => {
+      expect(suggestZone("Asia/Kathmandu", "Europe/Stockholm", at)).toBeNull();
+      expect(suggestZone("Mars/Olympus", "Europe/Stockholm", at)).toBeNull();
+      expect(suggestZone(undefined, "Europe/Stockholm", at)).toBeNull();
+    });
+    it("tells a shared clock from a zone with no stand-in, so only the first ends a dismissal", () => {
+      expect(sameClock("Europe/Oslo", "Europe/Stockholm", at)).toBe(true);
+      expect(sameClock("Asia/Kathmandu", "Europe/Stockholm", at)).toBe(false);
+      expect(sameClock("Mars/Olympus", "Europe/Stockholm", at)).toBe(false);
+    });
   });
   it("counts calendar days and weekdays", () => {
     expect(daysBetween("2026-10-05", "2026-10-07")).toBe(2);

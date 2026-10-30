@@ -242,6 +242,8 @@ describe("fetchYoutube", () => {
     expect(items[0]?.author).toBe("Fireship");
     expect(items[0]?.snippet).toContain("Namespace is actually the fastest way");
     expect(items[0]?.source_type).toBe("youtube");
+    // The community score reads this; the feed's media:community block is the only place it lives.
+    expect(items[0]?.signals.youtube_views).toBe(93644);
   });
 
   it("builds the feed address from the channel id and skips Shorts", async () => {
@@ -254,6 +256,33 @@ describe("fetchYoutube", () => {
     });
     const items = await fetchYoutube({ ...source, feed_url: null }, WIDE, makeDeps(fake));
     expect(items.map((i) => i.title)).toEqual(["Long"]);
+  });
+
+  it("scores a video's views against its own channel's median, not against other channels", async () => {
+    const entry = (n: number, views: number) =>
+      `<entry><title>V${n}</title><link rel="alternate" href="https://www.youtube.com/watch?v=vid${String(n).padStart(8, "0")}"/>
+      <published>2026-10-05T00:00:00+00:00</published>
+      <media:group><media:community><media:statistics views="${views}"/></media:community></media:group></entry>`;
+    const feed = (counts: number[]) =>
+      `<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">${counts
+        .map((views, n) => entry(n, views))
+        .join("")}</feed>`;
+    const url = "https://www.youtube.com/feeds/videos.xml?channel_id=UCsBjURrPoezykLs9EqgamOA";
+    const read = (counts: number[]) =>
+      fetchYoutube(
+        { ...source, feed_url: null },
+        WIDE,
+        makeDeps(fakeFetch({ [url]: feed(counts) })),
+      );
+    // The same 10 times its channel's median is worth the same votes on a small and a large channel.
+    const small = await read([100, 100, 100, 100, 1000]);
+    const large = await read([1e6, 1e6, 1e6, 1e6, 1e7]);
+    expect(small[4]?.signals.youtube_votes).toBe(large[4]?.signals.youtube_votes);
+    expect(small[4]?.signals.youtube_votes).toBeGreaterThan(1400);
+    expect(small[0]?.signals.youtube_votes).toBe(0);
+    // Too few videos to know what is typical: views are kept, no votes are invented.
+    const few = await read([100, 5000]);
+    expect(few[1]?.signals.youtube_votes).toBeUndefined();
   });
 
   it("reads the uploads playlist feed when YouTube answers the channel feed with 404", async () => {

@@ -44,6 +44,16 @@ function problemsOf(source: Source): string[] {
       return source.options.issn && ISSN.test(source.options.issn)
         ? []
         : [`${where}: crossref needs options.issn`];
+    case "reddit": {
+      const problems: string[] = [];
+      if (!source.options.subreddit || !/^\w+$/.test(source.options.subreddit))
+        problems.push(`${where}: reddit needs options.subreddit`);
+      // A blank or non-numeric floor reads as NaN, which lets every post through.
+      const floor = source.options.min_score;
+      if (floor !== undefined && (floor.trim() === "" || !Number.isFinite(Number(floor))))
+        problems.push(`${where}: reddit options.min_score must be a number`);
+      return problems;
+    }
     case "hn":
     case "arxiv":
     case "lobsters":

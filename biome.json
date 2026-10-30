@@ -16,6 +16,7 @@
       "!loop/results",
       "!package-lock.json",
       "!apps/web/public/emoji.json",
+      "!tokens/system.json",
       "!state",
       "!config"
     ]

@@ -109,6 +109,14 @@ function readCache(): ConfigReadBody | null {
   }
 }
 
+/**
+ * What the device last read from the store, for this build, without asking: for a reader that must
+ * not cost a request or a reload offer on a page of its own (the time zone prompt).
+ */
+export function cachedStore(): ConfigReadBody | null {
+  return current !== null && current.built === builtHere() ? current : readCache();
+}
+
 /** The page's store value takes an answer unless the one it holds was written later. */
 function adopt(body: ConfigReadBody): void {
   if (

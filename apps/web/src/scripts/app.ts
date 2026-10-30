@@ -3,10 +3,10 @@ import { watchPlatformFaults } from "../lib/platformFaults";
 import { installCreateEntry } from "./createEntry";
 import { installDeviceBanners } from "./deviceBanners";
 import { installDisabledGuard } from "./disabledGuard";
-import { installGenerationsEntry } from "./generationsEntry";
 import { captureInstallPrompt } from "./installPrompt";
 import { installIslandWake } from "./islandWake";
 import { installNavigation } from "./navigation";
+import { installQueueEntry } from "./queueEntry";
 import { installRootState } from "./rootState";
 import { installThemeColor } from "./themeColor";
 import { trackTyping } from "./typing";
@@ -25,7 +25,7 @@ captureInstallPrompt();
 installNavigation();
 installRootState();
 installCreateEntry();
-installGenerationsEntry();
+installQueueEntry();
 installDeviceBanners();
 installThemeColor();
 installUiSound();
@@ -177,6 +177,24 @@ const idle = window.requestIdleCallback ?? ((run: () => void) => setTimeout(run,
 // What makes a move between destinations immediate is not needed for first paint.
 idle(() => {
   void import("./navigationBoost").then((boost) => boost.installNavigationBoost());
+});
+// The schedule's time zone against the device's (D239): a lazy module offers the switch when they
+// differ, at idle on each page (the check skips Settings, so a move off it asks) and whenever the app
+// comes back to the front, which is when a trip shows. Offline the import is left alone (Chromium
+// remembers a failed one, as navigationBoost's note says).
+const zone = (): void => {
+  if (navigator.onLine) void import("./zonePrompt").then((prompt) => prompt.checkZone());
+};
+idle(zone);
+// The first astro:page-load is the load just checked; every later one is a page replaced or entered.
+let firstPage = true;
+document.addEventListener("astro:page-load", () => {
+  if (firstPage) firstPage = false;
+  else idle(zone);
+});
+addEventListener("online", zone);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") zone();
 });
 // Field Web Vitals (D156), with the analytics opt-outs (the production host, no Do Not Track or
 // Global Privacy Control): a lazy module measures this page load and sends it once when the page is

@@ -1,7 +1,14 @@
 import { readFile } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { parseArgs } from "node:util";
-import { CONFIG_FILES, type DigestKind, Preferences, zonedDate } from "@singularity/core";
+import {
+  CONFIG_FILES,
+  type DigestKind,
+  Preferences,
+  resolveTopics,
+  zonedDate,
+} from "@singularity/core";
+import { authorityMatcher, authorityQueries, loadAuthority } from "../authority/authority.js";
 import { type CommandContext, type CommandRun, redact, secretsFromEnv } from "../context.js";
 import { dedupe } from "../dedupe/dedupe.js";
 import { fetchAll } from "../fetch/fetchAll.js";
@@ -16,6 +23,7 @@ import { loadSources } from "../sources/registry.js";
 import { listDigestIds } from "../state/digestIds.js";
 import { applySourceResults, overlayHealth, toHealthFile } from "../state/sourceHealth.js";
 import { readLastRun, readSeen, readSourceHealth, writeSourceHealth } from "../state/store.js";
+import { loadTopicsFile } from "../topics/store.js";
 
 const USAGE = `Usage: singularity fetch [--since <iso>] [--weekly] [--out <path>] [--id <digest-id>] [--update-health]
 
@@ -69,14 +77,17 @@ export const run: CommandRun = async (argv: string[], ctx: CommandContext): Prom
   const secrets = secretsFromEnv(ctx.env);
 
   try {
-    const [configuredSources, health, preferences, seen, lastRun, queries] = await Promise.all([
-      loadSources(ctx.root),
-      readSourceHealth(ctx.root),
-      loadPreferences(ctx.root),
-      readSeen(ctx.root),
-      readLastRun(ctx.root),
-      loadQueries(ctx.root),
-    ]);
+    const [configuredSources, health, preferences, seen, lastRun, queries, authority, topicsFile] =
+      await Promise.all([
+        loadSources(ctx.root),
+        readSourceHealth(ctx.root),
+        loadPreferences(ctx.root),
+        readSeen(ctx.root),
+        readLastRun(ctx.root),
+        loadQueries(ctx.root),
+        loadAuthority(ctx.root),
+        loadTopicsFile(ctx.root),
+      ]);
     // Health lives in state/, not config/, so a run never rewrites hand-edited configuration.
     const sourcesFile = overlayHealth(configuredSources, health);
 
@@ -100,7 +111,13 @@ export const run: CommandRun = async (argv: string[], ctx: CommandContext): Prom
       {
         http: createHttpClient({ retries: 2 }),
         now: ctx.now,
-        exa: { apiKey: ctx.env.EXA_API_KEY, queries: queries.queries },
+        exa: {
+          apiKey: ctx.env.EXA_API_KEY,
+          queries: [
+            ...queries.queries,
+            ...authorityQueries(authority, resolveTopics(topicsFile).topics),
+          ],
+        },
         firecrawl: { apiKey: ctx.env.FIRECRAWL_API_KEY },
       },
       { mode: kind === "weekly" ? "weekly" : "regular" },
@@ -112,6 +129,7 @@ export const run: CommandRun = async (argv: string[], ctx: CommandContext): Prom
       preferences,
       sources: sourcesFile.sources,
       now,
+      authority: authorityMatcher(authority),
     });
 
     const id =

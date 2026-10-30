@@ -9,6 +9,7 @@ export const AGGREGATOR_SOURCE_TYPES: readonly SourceType[] = [
   "hn",
   "lobsters",
   "producthunt",
+  "reddit",
 ];
 
 /** Display names for hosts this briefing links to often. Keys are bare hosts, without "www.". */
