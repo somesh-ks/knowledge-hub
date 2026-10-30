@@ -17,6 +17,7 @@ export const SHEET: Guidance = {
   dontUseWhen: [
     { when: "One question and its answers.", instead: "Dialog" },
     { when: "A short list of actions.", instead: "Menu" },
+    { when: "A form in a Base UI island.", instead: "Drawer" },
   ],
 };
 

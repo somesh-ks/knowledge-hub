@@ -677,12 +677,8 @@
           "use": "menu"
         },
         {
-          "when": "a form in a Base UI island",
+          "when": "A form in a Base UI island",
           "use": "drawer"
-        },
-        {
-          "when": "a short list of actions",
-          "use": "menu"
         }
       ],
       "keywords": [
@@ -746,14 +742,6 @@
         {
           "when": "One question and its answers",
           "use": "dialog"
-        },
-        {
-          "when": "a form drawn by Astro or a script",
-          "use": "sheet"
-        },
-        {
-          "when": "one question and its answers",
-          "use": "dialog"
         }
       ],
       "keywords": [
@@ -771,7 +759,7 @@
         "drawer.css",
         "foundations.css"
       ],
-      "usage": "------------------------------------------------------------------ the surface",
+      "usage": "The Drawer's surface: a scrim over the page that fades as the sheet is swiped away, a viewport, and the popup that rests on the screen's edge.",
       "tokens": [
         "--color-on-surface",
         "--color-scrim",

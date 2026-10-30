@@ -264,10 +264,6 @@ export const componentParts = (): PartSource[] => [
       "components/SheetHeader.astro",
       "lib/sheetHead.ts",
     ],
-    not: [
-      { when: "a form in a Base UI island", use: "drawer" },
-      { when: "a short list of actions", use: "menu" },
-    ],
     keywords: [
       "bottom sheet",
       "title and close control",
@@ -290,10 +286,6 @@ export const componentParts = (): PartSource[] => [
     kind: "container",
     classes: ["drawer-scrim", "drawer-viewport", "drawer-popup", "drawer-panel", "drawer-head"],
     files: ["sheets/SheetFrame.tsx", "design-system/drawer.ts"],
-    not: [
-      { when: "a form drawn by Astro or a script", use: "sheet" },
-      { when: "one question and its answers", use: "dialog" },
-    ],
     keywords: ["island sheet", "swipe to dismiss", "Base UI drawer", "react sheet"],
     markup:
       '<SheetFrame open={open} onOpenChange={setOpen} title="Create" closeLabel="Close">...</SheetFrame>',

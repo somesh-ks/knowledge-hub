@@ -12,6 +12,7 @@
 
 /* ------------------------------------------------------------------ the surface */
 
+/* The Drawer's surface: a scrim over the page that fades as the sheet is swiped away, a viewport, and the popup that rests on the screen's edge. */
 .drawer-scrim {
   position: fixed;
   inset: 0;
