@@ -329,16 +329,19 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-1);
-  color: var(--ov-tone, var(--color-on-surface-muted));
+  color: var(--color-on-surface-muted);
 }
 
+/* Only the glyph takes the tone; the words stay in ink, so their contrast never rests on orange. */
 .ov-quad-sub .icon {
   flex: none;
+  color: var(--ov-tone, var(--color-on-surface-muted));
   inline-size: var(--size-icon-sm);
   block-size: var(--size-icon-sm);
 }
 
-.ov-quad:has(input:checked) .ov-quad-sub {
+.ov-quad:has(input:checked) .ov-quad-sub,
+.ov-quad:has(input:checked) .ov-quad-sub .icon {
   color: inherit;
 }
 

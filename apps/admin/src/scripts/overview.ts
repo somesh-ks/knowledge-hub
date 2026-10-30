@@ -191,7 +191,11 @@ function drawQuads(judged: Judged[], level: Tone): void {
   const report = pick<HTMLElement>("[data-health-groups]");
   if (!svg || !ring || !holder || !report) return;
   const groups = judged.filter((g) => g.items.length);
-  if (!groups.length) return;
+  if (!groups.length) {
+    const name = pick<HTMLElement>("[data-quad-name]");
+    if (name) name.textContent = "No checks";
+    return;
+  }
   const tones = groups.map((g) =>
     g.items.reduce<Tone>((w, i) => (WEIGHT[i.row.tone] < WEIGHT[w] ? i.row.tone : w), "good"),
   );
@@ -372,17 +376,19 @@ function drawWeek(body: CostBody): void {
       );
       input.addEventListener("change", () => pickDay(day, last));
       const dial = svgEl("svg", { class: "ov-dial", viewBox: "0 0 28 28", "aria-hidden": "true" });
-      dial.append(
-        svgEl("circle", { class: "ov-dial-track", cx: 14, cy: 14, r: 11 }),
-        svgEl("circle", {
-          class: "ov-dial-fill",
-          cx: 14,
-          cy: 14,
-          r: 11,
-          pathLength: 1,
-          style: `--fill:${day.runs ? Math.max(0.06, day.usd / max).toFixed(3) : 0};--i:${i}`,
-        }),
-      );
+      dial.append(svgEl("circle", { class: "ov-dial-track", cx: 14, cy: 14, r: 11 }));
+      // A day with no runs draws no fill: a zero-length dash under a round cap would show as a dot.
+      if (day.runs)
+        dial.append(
+          svgEl("circle", {
+            class: "ov-dial-fill",
+            cx: 14,
+            cy: 14,
+            r: 11,
+            pathLength: 1,
+            style: `--fill:${Math.max(0.06, day.usd / max).toFixed(3)};--i:${i}`,
+          }),
+        );
       label.append(
         input,
         element(
