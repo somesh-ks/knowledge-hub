@@ -26,10 +26,9 @@ export interface ArtifactStore {
   read(name: string): Promise<unknown | null>;
   /** Kept on the runner's disk, which the steps of one job share. Nothing goes to Blob here. */
   write(name: string, value: unknown): Promise<void>;
-  /** Names of the artifacts this run holds, for the failure record. */
-  names(): Promise<string[]>;
   /**
-   * Saves the failure record and every artifact on disk as one Blob object, so a rerun can resume.
+   * Saves the failure record, the stages kept (`kept`) and every artifact as one Blob object, so a
+   * rerun can resume.
    * Called only when the run fails: a put is one of Hobby's 2,000 advanced operations a month, and
    * a run that succeeds has no use for its artifacts (D256).
    */
@@ -76,9 +75,16 @@ export function createArtifactStore(input: ArtifactStoreInput): ArtifactStore {
       const found = page.blobs.find((item) => item.pathname === wanted);
       if (!found) return {};
       const response = await doFetch(found.url, { signal: AbortSignal.timeout(READ_TIMEOUT_MS) });
-      const pack = response.ok ? await response.json() : null;
-      const artifacts = pack?.artifacts;
-      return typeof artifacts === "object" && artifacts !== null ? artifacts : {};
+      if (!response.ok) {
+        log?.warn("The failed run's saved stages could not be fetched; they will run again", {
+          status: response.status,
+        });
+        return {};
+      }
+      const artifacts = (await response.json())?.artifacts;
+      if (typeof artifacts === "object" && artifacts !== null) return artifacts;
+      log?.warn("The failed run's saved pack has no stages; they will run again");
+      return {};
     } catch (error) {
       log?.warn("The failed run's saved stages could not be read; they will run again", {
         reason: error instanceof Error ? error.message : "unknown",
@@ -101,11 +107,6 @@ export function createArtifactStore(input: ArtifactStoreInput): ArtifactStore {
       await mkdir(dirname(path(name)), { recursive: true });
       await writeFileAtomic(path(name), `${JSON.stringify(value)}\n`);
     },
-    async names() {
-      const found: string[] = [];
-      for (const id of EPISODE_STAGE_IDS) if ((await readDisk(id)) !== null) found.push(id);
-      return found;
-    },
     async preserve(failure) {
       if (!blob) return;
       // A stage this run skipped and never read is still in the failed run's pack: carry it on, so
@@ -117,10 +118,11 @@ export function createArtifactStore(input: ArtifactStoreInput): ArtifactStore {
         const value = (await readDisk(name)) ?? earlier[name] ?? null;
         if (value !== null) artifacts[name] = value;
       }
+      const kept = EPISODE_STAGE_IDS.filter((id) => id in artifacts);
       try {
         await blob.put(
           key(runId, FAILURE_FILE),
-          new TextEncoder().encode(`${JSON.stringify({ ...failure, artifacts })}\n`),
+          new TextEncoder().encode(`${JSON.stringify({ ...failure, kept, artifacts })}\n`),
           { contentType: "application/json", cacheControlMaxAge: ARTIFACT_CACHE_SECONDS },
         );
       } catch (error) {

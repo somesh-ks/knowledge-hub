@@ -229,7 +229,6 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
         await store
           .preserve({
             failed_stage: current,
-            kept: await store.names(),
             ...(reason ? { reason } : {}),
           })
           .catch(() => {});

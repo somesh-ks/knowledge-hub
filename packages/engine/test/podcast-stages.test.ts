@@ -47,7 +47,7 @@ it("saves a failed run's stages as one object that the rerun resumes from", asyn
   const failed = store("1");
   await failed.write("select", { stories: 3 });
   await failed.write("cover", { id: "x" });
-  await failed.preserve({ failed_stage: "script", kept: await failed.names() });
+  await failed.preserve({ failed_stage: "script" });
 
   expect(blob.puts).toEqual(["podcast-runs/1/failure.json"]);
 
@@ -55,10 +55,11 @@ it("saves a failed run's stages as one object that the rerun resumes from", asyn
   expect(await rerun.read("select")).toEqual({ stories: 3 });
   expect(await rerun.read("script")).toBeNull();
   // A second failure keeps what the first one kept, though the rerun never read the cover.
-  await rerun.preserve({ failed_stage: "script", kept: [] });
+  await rerun.preserve({ failed_stage: "script" });
   const pack = JSON.parse(
     new TextDecoder().decode(blob.store.get("podcast-runs/2/failure.json")?.body),
   );
   expect(Object.keys(pack.artifacts).sort()).toEqual(["cover", "select"]);
   expect(pack.failed_stage).toBe("script");
+  expect(pack.kept).toEqual(["select", "cover"]);
 });
