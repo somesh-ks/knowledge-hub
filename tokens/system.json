@@ -328,6 +328,68 @@
       ]
     },
     {
+      "id": "field",
+      "name": "Field",
+      "kind": "selection",
+      "summary": "An outlined box for text or a pick: one line, several lines (multiline) or a native select.",
+      "classes": [
+        "field-input"
+      ],
+      "files": [
+        "design-system/Field.astro",
+        "design-system/field.ts"
+      ],
+      "when": [
+        "A person types a short value or a few lines: a title, a feed address, a prompt",
+        "A person picks one value from a list that is too long for a segmented choice, with a native select",
+        "It sits under its own label in a form or a settings row, and a refused value shows as an invalid field"
+      ],
+      "not": [
+        {
+          "when": "The value is one of two to four short options",
+          "use": "filter-chip"
+        },
+        {
+          "when": "The setting is on or off and applies as soon as it is flipped",
+          "use": "switch"
+        },
+        {
+          "when": "The value is a number on a scale",
+          "use": "slider"
+        }
+      ],
+      "keywords": [
+        "field",
+        "input",
+        "text field",
+        "textarea",
+        "select",
+        "dropdown",
+        "form"
+      ],
+      "markup": "<div class=\"manage-field\"><label for=\"title\">Title</label><Field id=\"title\" name=\"title\" type=\"text\" /></div>",
+      "rules": [
+        "Draw it with <Field> (multiline for a textarea); a select or a script takes the class from fieldClass().",
+        "A disabled field dims like a disabled switch; a disabled fieldset dims it the same way, on the same element."
+      ],
+      "styles": [
+        "episode-actions.css",
+        "field.css",
+        "manage.css"
+      ],
+      "usage": "The text field, and the select and textarea that share its looks: a filled pill (D186; a textarea 24px), the one control with an outline, which shows on focus.",
+      "tokens": [
+        "--color-accent",
+        "--color-danger",
+        "--color-on-surface",
+        "--color-on-surface-muted",
+        "--field-border",
+        "--field-height",
+        "--field-padding",
+        "--field-radius"
+      ]
+    },
+    {
       "id": "btn-action-tonal",
       "name": "Tonal action",
       "kind": "action",
@@ -1090,8 +1152,7 @@
       "classes": [
         "sheet-head",
         "sheet-actions",
-        "sheet-field",
-        "sheet-input"
+        "sheet-field"
       ],
       "files": [
         "sheets/SheetFrame.tsx"
@@ -1125,22 +1186,13 @@
         "`.sheet-actions` is one column, so Cancel stacks under the primary; side by side is `.confirm-actions`."
       ],
       "styles": [
-        "episode-actions.css",
         "sheets.css"
       ],
       "usage": "The title in the heading role and a round close control (.icon-btn) at the end.",
       "tokens": [
-        "--color-border-hairline",
-        "--color-danger",
-        "--color-on-surface",
-        "--color-on-surface-disabled",
         "--cta-bg",
         "--cta-fg",
-        "--field-border",
-        "--field-height",
         "--field-label-gap",
-        "--field-padding",
-        "--field-radius",
         "--size-touch"
       ]
     },
@@ -1248,7 +1300,7 @@
       "not": [
         {
           "when": "a text field in a form",
-          "use": "sheet"
+          "use": "field"
         }
       ],
       "keywords": [

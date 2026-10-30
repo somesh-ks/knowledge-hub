@@ -1,5 +1,6 @@
 ---
 import Button from "../design-system/Button.astro";
+import Field from "../design-system/Field.astro";
 import {
   DEFAULTS,
   FORMATS,
@@ -88,8 +89,8 @@ const COPY = {
       <h2 class="section-head">
         <label for="create-title">Title <span class="create-optional">(optional)</span></label>
       </h2>
-      <input
-        class="sheet-input create-title"
+      <Field
+        class="create-title"
         id="create-title"
         name="title"
         type="text"

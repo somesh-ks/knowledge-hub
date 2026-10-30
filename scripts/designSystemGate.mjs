@@ -14,6 +14,7 @@ export const SYSTEM_PATHS = [
   "apps/web/src/styles/buttons.css",
   "apps/web/src/styles/switch.css",
   "apps/web/src/styles/slider.css",
+  "apps/web/src/styles/field.css",
   "apps/web/src/styles/primitives.css",
   "apps/web/src/styles/foundations.css",
   "apps/web/src/styles/tokens.css",
@@ -60,7 +61,7 @@ const CALL_SITES = ["apps/web/src/", "apps/web/e2e/", "apps/admin/src/"];
  * replaced. A family's pull request adds the names it retires here, so its own call sites count.
  */
 export const SYSTEM_NAMES =
-  /\bButton\b|buttonClass|button-(?:filled|tonal|text|danger)|\bbtn\b|btn-primary|btn-secondary|confirm-delete|\bSwitch\b|\bSlider\b|switchClass|sliderClass|\.(?:switch|slider)-input\b|settings-switch|settings-range|speed-slider/;
+  /\bButton\b|buttonClass|button-(?:filled|tonal|text|danger)|\bbtn\b|btn-primary|btn-secondary|confirm-delete|\bSwitch\b|\bSlider\b|switchClass|sliderClass|\.(?:switch|slider)-input\b|settings-switch|settings-range|speed-slider|<Field(?![\w.])|fieldClass|field-input|manage-input|sheet-input/;
 
 const startsWithAny = (file, prefixes) => prefixes.some((prefix) => file.startsWith(prefix));
 

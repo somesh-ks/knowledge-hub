@@ -35,7 +35,7 @@
   border: 0;
 }
 
-.manage-fields:disabled :is(.switch-input, .sort-field, .manage-input, .search-field) {
+.manage-fields:disabled :is(.switch-input, .sort-field, .field-input, .search-field) {
   opacity: var(--opacity-disabled);
   cursor: default;
 }
@@ -88,58 +88,6 @@
   block-size: 1lh;
 }
 
-/* The text field, and the select and textarea that share its looks: a filled pill (D186; a textarea
-   24px), the one control with an outline, which shows on focus. */
-.manage-input {
-  width: 100%;
-  min-height: var(--field-height);
-  padding-inline: var(--field-padding);
-  /* An outline on the page's own surface, no fill, so the outline is what shows the field is
-     there: at 3:1 (--field-border, WCAG 1.4.11), as Material's outlined fields are. */
-  border: var(--stroke-hairline) solid var(--field-border);
-  border-radius: var(--field-radius);
-  background: none;
-  color: var(--color-on-surface);
-  /* The body size, 16px, so iOS never zooms into a field. */
-  font-size: var(--font-size-body);
-  line-height: var(--font-leading-body);
-  transition: border-color var(--duration-hover) var(--ease-hover);
-}
-
-/* It grows with what is typed, so it needs no grip to drag. */
-textarea.manage-input {
-  min-block-size: 6rem;
-  border-radius: var(--field-radius-multiline);
-  padding-block: var(--field-padding);
-  field-sizing: content;
-  resize: none;
-}
-
-.manage-input::placeholder {
-  color: var(--color-on-surface-muted);
-  opacity: 1;
-}
-
-/* The focus ring sits on the field's own edge and covers it, so a focused field has one accent line. */
-.manage-input:focus-visible {
-  outline-offset: calc(var(--stroke-hairline) * -1);
-  border-color: var(--color-accent);
-  box-shadow: none;
-}
-
-/* The ring turns with the edge: focus returns to a field that failed, and an accent ring would hide
-   the edge that says so. */
-.manage-input[aria-invalid]:not([aria-invalid="false"]) {
-  --color-focus-ring: var(--color-danger);
-  border-color: var(--color-danger);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .manage-input:not(:focus-visible, [aria-invalid]):hover {
-    border-color: var(--color-on-surface);
-  }
-}
-
 /* ------------------------------------------------------------------ a quiet line */
 
 .manage-quiet {
@@ -189,16 +137,6 @@ html[data-manage-toast-open] {
   );
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .manage-input:hover {
-    border-color: var(--color-on-surface);
-  }
-
-  .manage-input:hover:focus-visible {
-    border-color: var(--color-accent);
-  }
-}
-
 /* Rows are separated by space, never by a line; only sections are divided. */
 .manage .rows > * + *::before {
   content: none;
@@ -216,20 +154,6 @@ html[data-manage-toast-open] {
   display: grid;
 }
 
-/* Every select is one height, and its line fills the box inside the border, so the text sits on the
-   same centre line as the chevron in every engine. */
-select.manage-input {
-  block-size: var(--field-height);
-  padding-block: 0;
-  padding-inline-end: calc(var(--space-4) + var(--size-icon) + var(--field-chevron-gap));
-  line-height: calc(var(--field-height) - var(--stroke-hairline) * 2);
-  /* A pill, as every select is (D167); the text fields beside it keep the field radius. */
-  border-radius: var(--button-radius);
-  border-color: var(--field-border);
-  background: none;
-  cursor: pointer;
-}
-
 .manage-select > .icon {
   position: absolute;
   inset-block: 0;
@@ -239,25 +163,7 @@ select.manage-input {
   pointer-events: none;
 }
 
-select.manage-input:focus-visible {
-  border-color: var(--color-accent);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  select.manage-input:hover {
-    border-color: var(--color-on-surface);
-  }
-
-  select.manage-input:hover:focus-visible {
-    border-color: var(--color-accent);
-  }
-}
-
 @media (forced-colors: active) {
-  select.manage-input {
-    border-color: ButtonBorder;
-  }
-
   .manage-select > .icon {
     color: ButtonText;
   }

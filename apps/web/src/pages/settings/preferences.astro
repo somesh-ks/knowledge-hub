@@ -14,6 +14,8 @@ import SettingsHead from "../../components/SettingsHead.astro";
 import SheetHeader from "../../components/SheetHeader.astro";
 import WeightRow from "../../components/WeightRow.astro";
 import Button from "../../design-system/Button.astro";
+import Field from "../../design-system/Field.astro";
+import { fieldClass } from "../../design-system/field";
 import Switch from "../../design-system/Switch.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { loadManage } from "../../lib/manage";
@@ -79,7 +81,7 @@ const offers = addOffers(structure.blocks, structure.sections);
           <div class="settings-row">
             <label class="settings-label" for="default-speed">Default playback speed</label>
             <span class="manage-select value-select">
-              <select class="manage-input" id="default-speed" autocomplete="off" data-needs-js data-default-speed>
+              <select class={fieldClass()} id="default-speed" autocomplete="off" data-needs-js data-default-speed>
                 {PLAYBACK_RATES.map((rate) => <option value={rate}>{rate}x</option>)}
               </select>
               <Icon name="chevronDown" />
@@ -161,7 +163,7 @@ const offers = addOffers(structure.blocks, structure.sections);
                   {/* The shared settings select, as Theme's on /settings: no rule of its own (2026-10-27). */}
                   <div class="topic-card-menu settings-row">
                     <span class="manage-select value-select">
-                      <select class="manage-input" id="structure-profile" aria-label="Profile" autocomplete="off" data-needs-js>
+                      <select class={fieldClass()} id="structure-profile" aria-label="Profile" autocomplete="off" data-needs-js>
                         {
                           STRUCTURE_PROFILES.map((id) => (
                             <option value={id} data-note={PROFILE_NOTE[id]} selected={id === structure.profile}>{PROFILE_LABEL[id]}</option>
@@ -267,8 +269,7 @@ const offers = addOffers(structure.blocks, structure.sections);
           <form class="manage-form structure-form" novalidate>
             <div class="manage-field" data-part="title">
               <label for="structure-title">Title</label>
-              <input
-                class="manage-input"
+              <Field
                 id="structure-title"
                 name="title"
                 type="text"
@@ -283,13 +284,14 @@ const offers = addOffers(structure.blocks, structure.sections);
             </div>
             <div class="manage-field" data-part="brief">
               <label for="structure-brief">What it says</label>
-              <textarea
-                class="manage-input"
+              <Field
+                multiline
                 id="structure-brief"
                 name="brief"
                 maxlength="280"
                 rows="3"
-                aria-describedby="structure-brief-error"></textarea>
+                aria-describedby="structure-brief-error"
+              />
               <p class="manage-error" id="structure-brief-error" role="alert" data-error="brief" hidden>
                 <Icon name="alert" /><span>Say what it should cover.</span>
               </p>
@@ -316,7 +318,7 @@ const offers = addOffers(structure.blocks, structure.sections);
               <div class="settings-row" data-part="stories">
                 <label class="settings-label" for="structure-stories">Stories</label>
                 <span class="manage-select value-select">
-                  <select class="manage-input" id="structure-stories" name="stories" autocomplete="off">
+                  <select class={fieldClass()} id="structure-stories" name="stories" autocomplete="off">
                     <option value="">Auto</option>
                   </select>
                   <Icon name="chevronDown" />
@@ -325,7 +327,7 @@ const offers = addOffers(structure.blocks, structure.sections);
               <div class="settings-row" data-part="per-source">
                 <label class="settings-label" for="structure-per-source">Most from one source</label>
                 <span class="manage-select value-select">
-                  <select class="manage-input" id="structure-per-source" name="per_source" autocomplete="off">
+                  <select class={fieldClass()} id="structure-per-source" name="per_source" autocomplete="off">
                     <option value="">Auto</option>
                     {Array.from({ length: PER_SOURCE_MAX }, (_, at) => <option value={String(at + 1)}>{String(at + 1)}</option>)}
                   </select>
@@ -346,13 +348,15 @@ const offers = addOffers(structure.blocks, structure.sections);
               </summary>
               <div class="create-more-body manage-field">
                 <label for="structure-prompt">Instructions for the model</label>
-                <textarea
-                  class="manage-input structure-prompt"
+                <Field
+                  multiline
+                  class="structure-prompt"
                   id="structure-prompt"
                   name="prompt"
                   rows="8"
                   spellcheck="false"
-                  aria-describedby="structure-prompt-count"></textarea>
+                  aria-describedby="structure-prompt-count"
+                />
                 <div class="structure-prompt-foot">
                   <p class="manage-quiet" id="structure-prompt-count" data-count></p>
                   <Button variant="text" data-reset>Reset to built-in</Button>

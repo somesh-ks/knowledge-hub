@@ -95,7 +95,7 @@
     margin-inline: calc(var(--space-2) * -1) 0;
   }
 
-  .settings-row[data-voice-row] .value-select > :is(select.manage-input, .picker-trigger) {
+  .settings-row[data-voice-row] .value-select > :is(select.field-input, .picker-trigger) {
     justify-content: flex-start;
     padding-inline-start: var(--space-2);
     text-align: start;
@@ -108,20 +108,20 @@
 
 /* Text inputs are drawn like the selects: an outline on the page's own surface. Focus and a refused
    value keep their colours. */
-.daily-panel input.manage-input {
+.daily-panel input.field-input {
   border-color: var(--field-border);
   background: none;
 }
 
-.daily-panel input.manage-input:focus-visible {
+.daily-panel input.field-input:focus-visible {
   border-color: var(--color-accent);
 }
 
-.daily-panel input.manage-input[aria-invalid] {
+.daily-panel input.field-input[aria-invalid] {
   border-color: var(--color-danger);
 }
 
-.daily-panel .manage-input[aria-invalid]:focus-visible {
+.daily-panel .field-input[aria-invalid]:focus-visible {
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: var(--stroke-ring-gap);
 }

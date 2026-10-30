@@ -1,4 +1,6 @@
 ---
+import { fieldClass } from "../../design-system/field";
+import "../../styles/field.css";
 import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
@@ -50,7 +52,7 @@ const VOICES = [
                     <div class="podcast-voice" data-store-held>
                       <span class="manage-select value-select">
                         <select
-                          class="manage-input"
+                          class={fieldClass()}
                           id={`podcast-${voice.key}`}
                           data-f={`daily.${voice.key}`}
                           data-saved={voice.saved ?? ""}

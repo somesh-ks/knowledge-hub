@@ -1,5 +1,6 @@
 ---
 import Button from "../design-system/Button.astro";
+import Field from "../design-system/Field.astro";
 import { briefingChips } from "../lib/briefingChips";
 import { topicOptions } from "../lib/createForm";
 import { loadManage } from "../lib/manage";
@@ -86,8 +87,9 @@ const COPY = {
                 <label class="sheet-field-label regen-label" for="regen-feedback">
                   Comments (optional)
                 </label>
-                <textarea
-                  class="sheet-input regen-feedback"
+                <Field
+                  multiline
+                  class="regen-feedback"
                   id="regen-feedback"
                   name="feedback"
                   rows="6"

@@ -290,7 +290,7 @@ export const PARTS: PartSource[] = [
     name: "Dialog sheet",
     kind: "container",
     summary: "A modal bottom sheet on a phone, a centered dialog from 40rem.",
-    classes: ["sheet-head", "sheet-actions", "sheet-field", "sheet-input"],
+    classes: ["sheet-head", "sheet-actions", "sheet-field"],
     files: ["sheets/SheetFrame.tsx"],
     when: [
       "a new bottom sheet with a title and a close control",
@@ -342,7 +342,7 @@ export const PARTS: PartSource[] = [
     summary: "The Library's rounded search pill, on the container tone.",
     classes: ["search-field", "search-clear"],
     when: ["search or filter a list by text"],
-    not: [{ when: "a text field in a form", use: "sheet" }],
+    not: [{ when: "a text field in a form", use: "field" }],
     keywords: ["search bar", "filter input", "text filter"],
   },
   {

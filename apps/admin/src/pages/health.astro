@@ -1,4 +1,6 @@
 ---
+import { fieldClass } from "../../../web/src/design-system/field";
+import "../../../web/src/styles/field.css";
 import Icon from "../../../web/src/components/Icon.astro";
 import {
   HEALTH_DEVICES,
@@ -75,7 +77,7 @@ type Row = { id: string; label: string };
         <div class="settings-row">
           <label class="settings-label" for="health-device">Device</label>
           <span class="manage-select value-select">
-            <select class="manage-input" id="health-device" name="device" autocomplete="off">
+            <select class={fieldClass()} id="health-device" name="device" autocomplete="off">
               {HEALTH_DEVICES.map((device) => <option value={device.id}>{device.label}</option>)}
             </select>
             <Icon name="chevronDown" />

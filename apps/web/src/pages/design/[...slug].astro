@@ -11,6 +11,8 @@ import Icon from "../../components/Icon.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
 import Button from "../../design-system/Button.astro";
 import { buttonClass } from "../../design-system/button";
+import Field from "../../design-system/Field.astro";
+import { fieldClass } from "../../design-system/field";
 import Slider from "../../design-system/Slider.astro";
 import Switch from "../../design-system/Switch.astro";
 import { sliderClass } from "../../design-system/slider";
@@ -72,7 +74,7 @@ const parts: [title: string, sheet: string, selector: string][] = [
   ["Row action", "primitives.css", ".row-action"],
   ["Switch", "switch.css", `.${switchClass()}`],
   ["Slider", "slider.css", `.${sliderClass()}`],
-  ["Fields", "manage.css", ".manage-input"],
+  ["Fields", "field.css", `.${fieldClass()}`],
   ["Search", "library.css", ".search-field"],
   ["Card group", "primitives.css", ".card-group"],
   ["Banner", "banner.css", ".banner"],
@@ -256,7 +258,7 @@ const title = "Design system";
           <div class="settings-row">
             <label class="settings-label" for="design-theme">Theme</label>
             <span class="manage-select value-select">
-              <select class="manage-input" id="design-theme" name="design-theme" autocomplete="off">
+              <select class={fieldClass()} id="design-theme" name="design-theme" autocomplete="off">
                 <option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option>
               </select>
               <Icon name="chevronDown" />
@@ -295,11 +297,11 @@ const title = "Design system";
         <form class="manage-form" novalidate>
           <div class="manage-field">
             <label for="design-title">Title</label>
-            <input class="manage-input" id="design-title" name="design-title" type="text" placeholder="Design Engineering" autocomplete="off" />
+            <Field id="design-title" name="design-title" type="text" placeholder="Design Engineering" autocomplete="off" />
           </div>
           <div class="manage-field">
             <label for="design-brief">Brief</label>
-            <textarea class="manage-input" id="design-brief" name="design-brief" rows="3" placeholder="What this block covers"></textarea>
+            <Field multiline id="design-brief" name="design-brief" rows="3" placeholder="What this block covers" />
           </div>
           <div class="manage-field">
             <span class="field-label" id="design-depth-label">Depth</span>

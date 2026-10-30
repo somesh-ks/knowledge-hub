@@ -211,51 +211,6 @@ fieldset.sheet-field {
   line-height: var(--font-leading-label);
 }
 
-.sheet-input {
-  min-height: var(--field-height);
-  padding-inline: var(--field-padding);
-  border: var(--stroke-hairline) solid var(--field-border);
-  border-radius: var(--field-radius);
-  background: none;
-  color: var(--color-on-surface);
-  /* 16px or larger, so iOS never zooms. The token is the body size, 1rem. */
-  font-size: var(--font-size-body);
-  transition: border-color var(--duration-hover) var(--ease-hover);
-}
-
-/* A multi-line field has the same room above and below as at its sides, and the one-line field's
-   corner arc where a pill would clip its lines. */
-textarea.sheet-input {
-  padding-block: var(--field-padding);
-  border-radius: var(--field-radius-multiline);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .sheet-input:hover {
-    border-color: var(--color-on-surface);
-  }
-}
-
-/* The focus ring sits on the field's own edge and covers it, so a focused field has one accent line
-   around it, not a border inside a ring. */
-.sheet-input:focus-visible {
-  outline-offset: calc(var(--stroke-hairline) * -1);
-  box-shadow: none;
-}
-
-/* After the hover rule, so the invalid edge outranks it. The ring turns with it: focus returns to a
-   field that failed, and the ring would otherwise hide the edge that says so. */
-.sheet-input[aria-invalid="true"] {
-  --color-focus-ring: var(--color-danger);
-  border-color: var(--color-danger);
-}
-
-.sheet-input[data-disabled],
-.sheet-input:disabled {
-  border-color: var(--color-border-hairline);
-  color: var(--color-on-surface-disabled);
-}
-
 .sheet-field-error {
   display: flex;
   align-items: flex-start;

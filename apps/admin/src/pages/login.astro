@@ -1,5 +1,6 @@
 ---
 import Button from "../../../web/src/design-system/Button.astro";
+import Field from "../../../web/src/design-system/Field.astro";
 import AdminHead from "../components/AdminHead.astro";
 import Shell from "../layouts/Shell.astro";
 import { href } from "../lib/sections";
@@ -13,8 +14,7 @@ import { href } from "../lib/sections";
       <form class="card-group admin-card" method="post" action={href("/login")}>
         <div class="manage-field">
           <label class="field-label" for="password">Password</label>
-          <input
-            class="manage-input"
+          <Field
             id="password"
             name="password"
             type="password"

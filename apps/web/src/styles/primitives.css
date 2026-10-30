@@ -1462,7 +1462,7 @@
 }
 
 /* The muted ink fails 4.5 to 1 on the container tone; a quiet value in a card takes the full ink. */
-.card-group .settings-row[data-models] .value-select > select.manage-input {
+.card-group .settings-row[data-models] .value-select > select.field-input {
   color: var(--color-on-surface);
 }
 

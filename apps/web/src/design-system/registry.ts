@@ -5,6 +5,7 @@
  * a class not listed here is not part of the system.
  */
 import { BUTTON, BUTTON_CLASSES, BUTTON_RETIRED } from "./button";
+import { FIELD, FIELD_CLASSES, FIELD_RETIRED } from "./field";
 import type { Guidance } from "./guidance";
 import { SLIDER, SLIDER_CLASSES, SLIDER_RETIRED } from "./slider";
 import { SWITCH, SWITCH_CLASSES, SWITCH_RETIRED } from "./switch";
@@ -54,6 +55,17 @@ export const COMPONENTS: DesignSystemComponent[] = [
     summary: SLIDER.summary,
     useWhen: SLIDER.useWhen,
     dontUseWhen: SLIDER.dontUseWhen,
+    parts: {},
+  },
+  {
+    name: "Field",
+    sheet: "field.css",
+    prefix: "field-",
+    classes: FIELD_CLASSES,
+    retired: FIELD_RETIRED,
+    summary: FIELD.summary,
+    useWhen: FIELD.useWhen,
+    dontUseWhen: FIELD.dontUseWhen,
     parts: {},
   },
 ];

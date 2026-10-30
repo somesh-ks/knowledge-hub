@@ -1,6 +1,7 @@
 import { Field } from "@base-ui/react/field";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { buttonClass } from "../design-system/button";
+import { fieldClass } from "../design-system/field";
 import { ICON_PATHS, ICON_VIEW_BOX } from "../lib/icons";
 import { idsOfChips, isChipOn, type RegenChip } from "../lib/regenTopics";
 import { playUiCue } from "../player/sound/soundController";
@@ -8,6 +9,7 @@ import { cueForGenerate } from "../player/sound/soundMap";
 import Icon from "../player/ui/LazyIcon";
 import { MESSAGES, startGenerate } from "./generate/generateClient";
 import SheetFrame from "./SheetFrame";
+import "../styles/field.css";
 
 /** The same cap as an episode's Regenerate feedback (server/podcast.ts). */
 const FEEDBACK_MAX = 500;
@@ -207,7 +209,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
           <Field.Label className="sheet-field-label">Comments (optional)</Field.Label>
           <textarea
             ref={feedbackRef}
-            className="sheet-input"
+            className={fieldClass()}
             name="feedback"
             rows={4}
             maxLength={FEEDBACK_MAX}

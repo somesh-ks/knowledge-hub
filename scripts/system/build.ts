@@ -115,6 +115,8 @@ export function classTokens(text: string): Set<string> {
   const code = text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
   if (/<Switch\b|\bswitchClass\(/.test(code)) found.add("switch-input");
   if (/<Slider\b|\bsliderClass\(/.test(code)) found.add("slider-input");
+  // The Field is drawn by the tag (not Base UI's Field.Root) or by the class helper, for a select.
+  if (/<Field(?![\w.])|\bfieldClass\(/.test(code)) found.add("field-input");
   return found;
 }
 
@@ -135,6 +137,7 @@ export function sourceFiles(): { path: string; text: string; tokens: Set<string>
     if (posix(path).includes("/design-system/")) {
       tokens.delete("switch-input");
       tokens.delete("slider-input");
+      tokens.delete("field-input");
     }
     return { path, text, tokens };
   });

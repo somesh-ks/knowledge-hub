@@ -1,4 +1,6 @@
 ---
+import Field from "../design-system/Field.astro";
+import { fieldClass } from "../design-system/field";
 import { FORMAT_LABEL } from "../lib/sourceFilter";
 // The unsaved-changes dialog (sheetGuard.ts) is a confirm-dialog: its styles come with the sheet.
 import "../styles/episode-actions.css";
@@ -66,8 +68,7 @@ const { topics } = Astro.props;
           </p>
           <div class="manage-field">
             <label for="panel-topic-name">Name</label>
-            <input
-              class="manage-input"
+            <Field
               id="panel-topic-name"
               name="name"
               type="text"
@@ -83,14 +84,15 @@ const { topics } = Astro.props;
           </div>
           <div class="manage-field">
             <label for="panel-topic-description">What should count as this category</label>
-            <textarea
-              class="manage-input"
+            <Field
+              multiline
               id="panel-topic-description"
               name="description"
               required
               maxlength="400"
               rows="3"
-              aria-describedby="panel-topic-description-error"></textarea>
+              aria-describedby="panel-topic-description-error"
+            />
             <p class="manage-error" id="panel-topic-description-error" role="alert" data-error="description" hidden>
               <Icon name="alert" /><span></span>
             </p>
@@ -117,8 +119,7 @@ const { topics } = Astro.props;
       <div class="manage-form source-form topics-pane" id="topics-panel-pane-source" data-pane="source" hidden>
         <div class="manage-field">
           <label for="panel-source-url">Site or feed address</label>
-          <input
-            class="manage-input"
+          <Field
             id="panel-source-url"
             name="url"
             type="url"
@@ -138,7 +139,7 @@ const { topics } = Astro.props;
         <div class="manage-field">
           <label for="panel-source-topic">Category</label>
           <div class="manage-select">
-            <select class="manage-input" id="panel-source-topic" name="topic" data-source-topic>
+            <select class={fieldClass()} id="panel-source-topic" name="topic" data-source-topic>
               {topics.map((topic) => <option value={topic.id}>{topic.name}</option>)}
             </select>
             <Icon name="chevronDown" />
@@ -147,7 +148,7 @@ const { topics } = Astro.props;
         <div class="manage-field">
           <label for="panel-source-format">Type</label>
           <div class="manage-select">
-            <select class="manage-input" id="panel-source-format" name="format" data-source-format>
+            <select class={fieldClass()} id="panel-source-format" name="format" data-source-format>
               {Object.entries(FORMAT_LABEL).map(([value, label]) => <option value={value}>{label}</option>)}
             </select>
             <Icon name="chevronDown" />
@@ -166,8 +167,7 @@ const { topics } = Astro.props;
       <div class="manage-form topics-pane" data-pane="edit" hidden>
         <div class="manage-field">
           <label for="panel-edit-name">Name</label>
-          <input
-            class="manage-input"
+          <Field
             id="panel-edit-name"
             name="name"
             type="text"
@@ -184,7 +184,7 @@ const { topics } = Astro.props;
         <div class="manage-field">
           <label for="panel-edit-topic">Category</label>
           <div class="manage-select">
-            <select class="manage-input" id="panel-edit-topic" name="topic" data-edit-topic>
+            <select class={fieldClass()} id="panel-edit-topic" name="topic" data-edit-topic>
               {topics.map((topic) => <option value={topic.id}>{topic.name}</option>)}
             </select>
             <Icon name="chevronDown" />
@@ -193,7 +193,7 @@ const { topics } = Astro.props;
         <div class="manage-field">
           <label for="panel-edit-format">Type</label>
           <div class="manage-select">
-            <select class="manage-input" id="panel-edit-format" name="format" data-edit-format>
+            <select class={fieldClass()} id="panel-edit-format" name="format" data-edit-format>
               {Object.entries(FORMAT_LABEL).map(([value, label]) => <option value={value}>{label}</option>)}
             </select>
             <Icon name="chevronDown" />
@@ -211,7 +211,7 @@ const { topics } = Astro.props;
         <div class="manage-field" data-edit-lean-field hidden>
           <label for="panel-edit-lean">Political lean</label>
           <div class="manage-select">
-            <select class="manage-input" id="panel-edit-lean" name="lean" data-edit-lean>
+            <select class={fieldClass()} id="panel-edit-lean" name="lean" data-edit-lean>
               <option value="">Unrated</option>
               <option value="-2">Left</option>
               <option value="-1">Centre-left</option>
