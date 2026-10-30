@@ -467,3 +467,13 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Rejected: fetching every transcript before judging (credits and time for videos the creator-trust makes unnecessary to judge); a regex strip of sponsor segments (they are phrased freely); a lift on every YouTube video (the owner's Favorite switch is the filter).
 - Limit: free captions are refused to GitHub's runners (yt-dlp too, 2026-10-24), so a selected video's transcript costs Firecrawl credits (about 5) or a Gemini transcription. Selection caps keep that to a few videos a run.
 - Revisit if: favorited videos air without a transcript (extract falls back to the description), or a sponsor read reaches a summary.
+
+## D250: The vetted-publishers file is named for what it is; Reddit leaves the registry
+
+- Date: 2026-10-30 (the owner: "Authority" is a poor name, rename everything; Reddit blocks bot scraping, so drop it or archive it).
+- Decision: (1) `config/authority.json` is `config/trusted-publishers.json`, with the same shape and `enabled: false`. The module is `trustedPublishers/`, the command `singularity publishers replay` (was `authority replay`), the score breakdown flag `trusted_publisher` (was `authority`, stored in no file). (2) The six Reddit seeds are out of the seed list and `config/sources.json`. The `reddit` source type, its vote fields and the prefilter term stay as dormant code. Sources stay grouped by topic category; the list is keyed by domain and is not a second grouping of sources.
+- Why: the old name said nothing about what the file holds, and Reddit refuses datacenter addresses, so the six subreddits only ever failed or sat off.
+- Rejected: moving the Reddit rows to a disabled archive file (a second source list for rows that cannot run); renaming only the file (the code and the command would keep the word the owner dislikes).
+- Limit: the runtime source list lives in the config store (D149), where the six disabled rows may remain; they fetch nothing. D240's decision text still lists the six subreddits as shipped off; this entry replaces that part.
+- Revisit if: the owner wants Reddit back (add OAuth credentials and new `reddit` entries).
+- Amends: D234 (file, module and command names), D240 (Reddit sources removed).
