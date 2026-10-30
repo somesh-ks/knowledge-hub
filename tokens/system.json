@@ -209,8 +209,7 @@
         "--color-danger",
         "--color-danger-subtle",
         "--color-on-surface-disabled"
-      ],
-      "usedIn": 3
+      ]
     },
     {
       "id": "btn-action-tonal",
