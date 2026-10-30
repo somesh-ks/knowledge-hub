@@ -15,7 +15,7 @@ Updated 2026-10-29. Rewrite, never append. [Specs](specs/README.md), [decisions]
 
 ## Tests
 
-Unit (CI): 325 files, 5,150 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min.
+Unit (CI): 326 files, 5,170 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min.
 
 ## Not working or unverified
 
@@ -25,7 +25,7 @@ Unit (CI): 325 files, 5,150 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Three regenerations per podcast, counted in its own file (D212). The file counts (`regenerations: 1` after the 10-29 live Regenerate). closed when: the page shows "2 of 3 regenerations left" for it.
 - Short podcasts (D204, D216 to D225). closed when: two dailies in a row air within 10% of their length, `singularity metrics` shows ten runs at `length_share` 0.9 or more, and `failure_rate` 0.1 or less. A Regenerate and a Catch up started 2 s apart both published on 10-29.
 - Ingest in shadow (D233). closed when: for 7 days the store holds 90% of each daily's stories and reads 90% of pages tried (`ingest --coverage`).
-- Authority list (D234), shipped off. closed when: Somesh signs off `config/authority.json`, it is on, and a daily airs a lab story with each domain passing at most 30% of its judged items (`authority replay`).
+- Authority list (D234), community lift (D240) and Reddit sources, shipped off. closed when: Somesh signs off both files and they are on, a runner reads a Reddit source, and a daily airs a lab story and a community-voted one, no source over 30% of judged items.
 - Run names (D217), Neon run log (D221). `pipeline_runs` holds the 10-29 Regenerate and Catch up. closed when: a scheduled daily is named `daily <date>`, is off the queue, and has its row.
 - `podcast.yml` no longer installs ffmpeg (merged). The first stage starts 9 s after the job starts on 10-29 (29 s before); checkout, Node and install take about 7 s of it. closed when: Somesh accepts 9 s or sets a new target.
 - A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): `run.yml` gained a `length_minutes` input, which must merge with the site code or GitHub refuses the dispatch. closed when: a Regenerate at 10 minutes airs within 10% of 10.
@@ -46,11 +46,11 @@ Unit (CI): 325 files, 5,150 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - "Narration is not available right now" (10-12): not reproduced. A failing try leaves a `server` fault for `api/narrate`. closed when: one names the step.
 - Time zone (D100, D239 prompt) only faked: no non-Stockholm zone, fallback or clock change; `sinceLabel`, `pendingAudio` and `podcast/select` still use Stockholm's today. closed when: a run across the 10-25 clock change publishes on the right day.
 - General topics (D66 to D69, D102): no committed digest has a general topic's section yet. closed when: one does.
-- Config through `config.yml` never seen live: `topic.scope`, rename or move from the panel, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics (D108, D109), episode delete and regenerate. closed when: each lands as a `main` commit from the site.
+- Config through `config.yml` never seen live: `topic.scope`, rename or move, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics, episode delete and regenerate. closed when: each lands as a `main` commit from the site.
 - Config store (D149, D185), on since 10-24. closed when: a phone's edit shows on a laptop.
 - A pending `config.yml` run can be cancelled by GitHub after a 202 (shared `singularity` group); production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 10-14. closed when: a config save from the site produces a commit.
-- A 15 minute episode falls short; the app does not say how much a window holds. closed when: an episode airs within 10% of 15 minutes, or the form shows what the window holds.
-- Costs (D137), Firecrawl's week (D166, D222): every price in `config/prices.json` is unconfirmed. closed when: the owner confirms the prices, /analytics shows a real run and a week's runs are all in the ledger.
+- A 15-minute episode falls short; the app does not say what a window holds. closed when: an episode airs within 10% of 15 minutes, or the form shows what the window holds.
+- Costs (D137), Firecrawl's week (D166, D222): `config/prices.json` prices are unconfirmed. closed when: the owner confirms the prices, /analytics shows a real run and a week's runs are all in the ledger.
 - Admin (D224) unreachable. closed when: /admin is live and a private window sees sign-in.
 - 35 older items parked: [five](history/2026-10-21-owner-backlog-in-parallel.md#parked), [twelve](history/2026-10-27-session-close.md#parked), [seven](history/2026-10-27-generation-health.md#parked), [eleven](history/2026-10-28-generations-list.md#parked). closed when: each closes.
 
@@ -67,6 +67,6 @@ Unit (CI): 325 files, 5,150 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 2. Owner: regenerate the 3-story 10-27 briefing? Revoke the Vercel token pasted in chat; delete the empty store `store_JmrDq8MB5Kwn3ejW`; the open calls in [the PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md).
 3. Firecrawl: a per-source yield table for the owner to prune (21 sources gave 1 story per 4,460 credits a month); changelog providers once the pilot holds.
 4. Lighthouse: defer BaseLayout's 34 KiB CSS without breaking the bar; the 1.4 s chain.
-5. `topic` to `category` end to end (plan 14): an inventory the owner reviews, dual-name readers, a store-synced migration, the rename, workflow outputs, then the old names go; only with no other PR open ([starting points](history/2026-10-25-owner-feedback-pass.md#left-out-for-a-later-session)).
+5. `topic` to `category` end to end (plan 14): an inventory, dual-name readers, a store-synced migration, the rename, then the old names go; only with no other PR open ([starting points](history/2026-10-25-owner-feedback-pass.md#left-out-for-a-later-session)).
 6. Design-system sweep (plan 17): `/settings/*`, category pages, player, create; light and dark at 390 and 1280; one PR per component family.
 7. Performance: one fetch for both briefing passes, rewrite only a thin story, split a long first turn (D141, D178).

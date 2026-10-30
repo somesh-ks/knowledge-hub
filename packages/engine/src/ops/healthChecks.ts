@@ -25,6 +25,7 @@ import {
   segmentMarksPath,
 } from "../audio/segmentStore.js";
 import { parseAuthority } from "../authority/authority.js";
+import { parseCommunity } from "../community/community.js";
 import { redact } from "../context.js";
 import { parseQueries } from "../fetch/queries.js";
 import { readRunMetrics } from "../metrics/runMetrics.js";
@@ -117,6 +118,7 @@ const CONFIG_SCHEMAS: Array<[string, (json: unknown) => unknown]> = [
   ["config/source-catalog.json", (json) => parseSourceCatalog(json)],
   ["config/sources.user.json", (json) => SourcesUserFile.parse(json)],
   ["config/authority.json", (json) => parseAuthority(json)],
+  ["config/community.json", (json) => parseCommunity(json)],
 ];
 
 /** The newest main commit Vercel would deploy, and whether a given build contains it. */

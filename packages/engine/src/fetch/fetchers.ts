@@ -7,6 +7,7 @@ import { fetchGithub } from "./github.js";
 import { fetchHn } from "./hn.js";
 import { fetchLobsters } from "./lobsters.js";
 import { fetchProductHunt } from "./producthunt.js";
+import { fetchReddit } from "./reddit.js";
 import { fetchRss } from "./rss.js";
 import type { SourceFetcher } from "./types.js";
 import { fetchYoutube } from "./youtube.js";
@@ -23,4 +24,5 @@ export const FETCHERS: Record<SourceType, SourceFetcher> = {
   arxiv: fetchArxiv,
   lobsters: fetchLobsters,
   producthunt: fetchProductHunt,
+  reddit: fetchReddit,
 };
