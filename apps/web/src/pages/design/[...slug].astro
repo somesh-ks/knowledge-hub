@@ -1,4 +1,7 @@
 ---
+import EmptyState from "../../components/EmptyState.astro";
+import Icon from "../../components/Icon.astro";
+import SettingsHead from "../../components/SettingsHead.astro";
 /**
  * The design catalogue (D189): the tokens, type, colour, icons and every shared component on one
  * page, drawn by the stylesheets the app ships, so the catalogue is the system itself. It is built
@@ -6,11 +9,8 @@
  * never serves it; the design-audit agent and the browser suites screenshot it here.
  */
 import Banner from "../../design-system/Banner.astro";
-import { bannerClass } from "../../design-system/banner";
-import EmptyState from "../../components/EmptyState.astro";
-import Icon from "../../components/Icon.astro";
-import SettingsHead from "../../components/SettingsHead.astro";
 import Button from "../../design-system/Button.astro";
+import { bannerClass } from "../../design-system/banner";
 import { buttonClass } from "../../design-system/button";
 import Field from "../../design-system/Field.astro";
 import { fieldClass } from "../../design-system/field";
