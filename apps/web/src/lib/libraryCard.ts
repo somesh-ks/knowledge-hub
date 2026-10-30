@@ -39,7 +39,10 @@ export function cardFacts(entry: DigestEntry): CardFacts {
   const meta = [
     dateSearchLine(digest.date, longDate(digest.date)),
     entry.player.title,
-    briefingKindLabel(digest.kind),
+    // A briefing run on demand was a "Podcast" to search before it was a Catch up.
+    digest.kind === "on-demand"
+      ? `${briefingKindLabel(digest.kind)} podcast`
+      : briefingKindLabel(digest.kind),
   ];
   const lines = [...meta];
   // One line per story, headline and publisher together, so a story counts once however it matches.
@@ -65,7 +68,7 @@ export function episodeFacts(entry: EpisodeEntry): CardFacts {
   const meta = [
     dateSearchLine(episode.date, longDate(episode.date)),
     episode.title,
-    `catch up ${format}`,
+    `catch up episode ${format}`,
   ];
   const lines = [...meta];
   for (const source of episode.sources) lines.push(storyLine(source.headline, source.source));

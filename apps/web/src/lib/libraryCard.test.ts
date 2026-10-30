@@ -73,13 +73,13 @@ describe("episodeFacts", () => {
       line: "Catch up \u00b7 5 min",
       minutes: 5,
     });
-    expect(entry && episodeFacts(entry).search).toContain("catch up Discussion");
+    expect(entry && episodeFacts(entry).search).toContain("catch up episode Discussion");
     const [headlines] = episodes(
       episodeText("ep-20261007-1930", "2026-10-07T17:30:00Z", "headlines"),
     );
     // Whatever the format, the card says Catch up; a stored headlines episode searches as a readout.
     expect(headlines && episodeFacts(headlines).line).toBe("Catch up \u00b7 5 min");
-    expect(headlines && episodeFacts(headlines).search).toContain("catch up Readout");
+    expect(headlines && episodeFacts(headlines).search).toContain("catch up episode Readout");
   });
 
   it("finds an episode by its date in any form, not as a matching story", () => {

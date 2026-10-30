@@ -162,10 +162,13 @@ function fillSlots(
     return block;
   });
   const have = new Set(shaped.stories.map((story) => story.item_id));
-  // The same candidates through the same blocks without their counts: a superset of what aired, in
-  // each block's rank order, so the first spares are the best.
-  const spares = shapeStories(candidates, uncounted, prompts)
-    .stories.filter((story) => !have.has(story.item_id))
+  // The same candidates through the same blocks without their counts say which may air (a block's
+  // per-outlet limit still turns some away); the spares are taken by candidate rank, not block order.
+  const eligible = new Set(
+    shapeStories(candidates, uncounted, prompts).stories.map((story) => story.item_id),
+  );
+  const spares = candidates
+    .filter((story) => eligible.has(story.item_id) && !have.has(story.item_id))
     .slice(0, slots - shaped.stories.length)
     .map((story) => story.item_id);
   if (spares.length === 0) return shaped;
