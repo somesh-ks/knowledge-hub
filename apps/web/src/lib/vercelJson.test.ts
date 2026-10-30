@@ -15,11 +15,18 @@ describe("vercel.json", () => {
   // 100 a day stopped every deploy, production included. A new app's file must carry the block.
   it("deploys only main and preview branches, and only on its own changes, in every app", () => {
     const apps = new URL("../../../", import.meta.url);
-    const files = readdirSync(apps).filter((name) =>
-      existsSync(new URL(`${name}/vercel.json`, apps)),
-    );
-    expect(files).toContain("admin");
-    for (const name of files) {
+    // Every app is a Vercel project; one that is not would be listed here. A folder without the
+    // file fails below, so a new app cannot slip past by having none.
+    const notOnVercel: string[] = [];
+    const names = readdirSync(apps, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && !notOnVercel.includes(entry.name))
+      .map((entry) => entry.name);
+    expect(names).toContain("admin");
+    for (const name of names) {
+      expect({ name, hasVercelJson: existsSync(new URL(`${name}/vercel.json`, apps)) }).toEqual({
+        name,
+        hasVercelJson: true,
+      });
       const { git, ignoreCommand } = JSON.parse(
         readFileSync(new URL(`${name}/vercel.json`, apps), "utf8"),
       ) as { git?: { deploymentEnabled?: Record<string, boolean> }; ignoreCommand?: string };
