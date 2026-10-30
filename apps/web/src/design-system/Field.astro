@@ -14,13 +14,13 @@ type Props = FieldProps &
   Omit<HTMLAttributes<"input">, keyof FieldProps> &
   Pick<HTMLAttributes<"textarea">, "rows" | "cols" | "wrap">;
 
-const { multiline = false, class: placement, ...rest } = Astro.props;
+const { multiline = false, class: placement, value, ...rest } = Astro.props;
 ---
 
 {
   multiline ? (
-    <textarea class:list={[fieldClass(), placement]} {...rest} />
+    <textarea class:list={[fieldClass(), placement]} {...rest}>{value}</textarea>
   ) : (
-    <input class:list={[fieldClass(), placement]} {...rest} />
+    <input class:list={[fieldClass(), placement]} value={value} {...rest} />
   )
 }

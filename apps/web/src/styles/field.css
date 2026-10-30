@@ -21,13 +21,18 @@
   transition: border-color var(--duration-hover) var(--ease-hover);
 }
 
-/* It grows with what is typed, so it needs no grip to drag. */
 textarea.field-input {
   min-block-size: 6rem;
   border-radius: var(--field-radius-multiline);
   padding-block: var(--field-padding);
-  field-sizing: content;
-  resize: none;
+}
+
+/* It grows with what is typed, so it needs no grip to drag. Without auto-size, the grip stays. */
+@supports (field-sizing: content) {
+  textarea.field-input {
+    field-sizing: content;
+    resize: none;
+  }
 }
 
 .field-input::placeholder {
