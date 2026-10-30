@@ -35,6 +35,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Alexandria pilot (D200). closed when: a run log shows `anthropic-blog` fetched via `alexandria:anthropic-com`.
 - Owner's eye: bar centring (over 1px), centred column and label gap (D229), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off.
 - Live content (plan 20): an open page elsewhere does not refresh within 60 s; `smokeLive.mjs --apply` never ran on production; offline copies of a removed episode are unaudited. closed when: checked.
+- Reload mid-write keeps a setting (D259). closed when: the owner presses one on the phone and reloads.
 - Settings paint the stored copy at once, the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change waits up to 2.5 s for the store. closed when: the owner signs off on a phone.
 - Sources design (D124) live: production asks Jev for a source's format only after `secrets:push`; no run used a mix or cap. closed when: a production source's format comes from Jev and a digest follows a mix change.
 - YouTube text: Firecrawl and Gemini transcripts answered live; no full run used either. closed when: a digest has a YouTube finalist with `extract_method` captions or transcription.
@@ -46,13 +47,13 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - "Narration is not available right now" (10-12): not reproduced; a failure leaves a `server` fault. closed when: one names the step.
 - Time zone (D100, D239) only faked: no other zone or clock change; `sinceLabel`, `pendingAudio` and `podcast/select` still use Stockholm's today. closed when: a run across the 10-25 clock change publishes on the right day.
 - General topics (D66 to D69, D102): no digest has one. closed when: one does.
-- Config through `config.yml` never seen live: `topic.scope`, rename or move, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics, episode delete and regenerate. closed when: each lands as a `main` commit.
+- Config through `config.yml` never seen live (topic scope, rename, batch add, block, votes, Regenerate with topics, episode delete). closed when: each lands as a `main` commit.
 - Admin env (D249, D257): `singularity-admin` needs `DATABASE_URL` and `SINGULARITY_CONFIG_STORE=postgres`, the reader `ADMIN_SESSION_SECRET`. closed when: a toggle holds after reload and `/api/health` answers 401 signed out.
 - Config store (D149, D185). closed when: a phone's edit shows on a laptop.
 - A pending `config.yml` run can be cancelled by GitHub after a 202 (shared `singularity` group); production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 10-14. closed when: a config save from the site produces a commit.
 - A 15-minute episode falls short; the app does not say what a window holds. closed when: one airs within 10% of 15 minutes, or the form shows the window.
 - Costs (D137), Firecrawl's week (D166, D222): `config/prices.json` is unconfirmed. closed when: the owner confirms the prices, /analytics shows a real run and a week's runs are all in the ledger.
-- 35 older items parked: [five](history/2026-10-21-owner-backlog-in-parallel.md#parked), [twelve](history/2026-10-27-session-close.md#parked), [seven](history/2026-10-27-generation-health.md#parked), [eleven](history/2026-10-28-generations-list.md#parked). closed when: each closes.
+- 35 older items parked in history (`#parked` of the 10-21, 10-27 and 10-28 notes). closed when: each closes.
 
 ## Known risks
 

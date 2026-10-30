@@ -16,8 +16,6 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-12: a mocked route answers while the browser context is offline. A test of an offline save takes its mock offline with it (`route.abort`), and waits for the lazy chunk it needs before going offline.
 - 2026-10-12: `waitForLoadState("networkidle")` returns at once when the page has been idle before, so a test went offline while a lazy chunk was still on its way (one run in four). Wait for the response itself, then `finished()`.
 - 2026-10-17: easing the open player's Play disc press scale (a `transform` transition) made a press in the error state reset the scroll to the top one run in five (noticeInView.spec), with no script or focus behind it; the disc keeps an instant press. Bisect a flaky browser test with `--repeat-each 10` per variant.
-- 2026-10-14: headless Chromium has no mobile address bar, so the bottom-stack drift cannot be reproduced in the browser suites or in screenshots. Reason from the anchors, and ask for a recording on a phone.
-- 2026-10-13: the voice-picker specs failed only beside others: a scroll after the press closed the open list, as the trace's last frame showed; `openPicker` (`e2e/picker.ts`) presses until it stays open. When a spec fails only in company, read its trace's last frame before touching the product.
 - 2026-10-12: an axe scan after `emulateMedia` read colours mid-fade. Wait for the page's `CSSTransition`s to finish first, and cap that wait, because an infinite or paused animation never finishes.
 - 2026-10-12: Playwright can want a newer Chromium than is cached (1243 cached, 1248 wanted): an untracked `playwright.override.config.ts` beside each config sets `launchOptions.executablePath` to the cached headless shell; one PORT per worktree. Never commit a topics snapshot.
 - 2026-10-12: a leftover server or build makes a suite test the wrong build: Playwright reuses a listening server and skips the build (`taskkill`; Git Bash `kill $!` leaves a Windows `node`); a stale static server serves old stubs. Stop old servers, one worktree per session, a fresh PORT after a page edit.
@@ -72,6 +70,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Site and service worker
 
+- 2026-10-30: a change reloaded mid-write came back undone: Chromium rejects a request still out at unload (`keepalive` keeps the request, not the promise) before pagehide runs. Ask `endedByLeaving()` (`apps/web/src/scripts/pageLeaving.ts`) before calling no answer a failure; test on a real server, not routes.
 - 2026-10-29: a `button.app-nav-item` made `navigationBoost` fetch `/undefined`; it takes `a.app-nav-item` only. A run's end toast needs the sheets island awake.
 - 2026-10-28: a layout element's `data-briefing="Briefing"` made every Regenerate send `replace: "Briefing"` (forms read `dataset.briefing` off the page). Words in a layout take a `data-word-` prefix.
 - 2026-10-28: a fixed wait for an answer that is nearly always slower is paid on every visit: measure it on the built site with a slow store stub. The browser suites need `node e2e/run.mjs --build-only`.
