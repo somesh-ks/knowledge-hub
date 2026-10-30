@@ -160,7 +160,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D137 | A cost ledger records every paid call (measured where the provider reports usage), split into shared and per-user costs, shown by `dispatch costs` and /analytics | active |
 | D138 | Alexandria enriches thin text, never replaces it | active |
 | D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, pushes retry a lost ref-lock, the site reports its errors | active |
-| D140 | The design system is enforced in three layers: `npm run design-check` (a hook on each UI edit), e2e and the `design-audit` agent; icons come only from Phosphor | active; amends D131 |
+| D140 | Design system enforced in three layers (`design-check` hook, e2e, `design-audit` agent); icons only from Phosphor | active; amends D131 |
 | D141 | The first-load budget is 130 KB | active; replaces D112's 109 KB |
 | D142 | A new topic is a row at once and opens a page before the build; one save carries Jev's emoji; a removal leaves the page at once with Undo | active; amends D79 |
 | D143 | Every PR gets a code review before it merges: the `review` label on opening, a hand merge after the review lands and its blocking findings are fixed | active |
@@ -261,6 +261,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D246 | Catch up kind label; counts yield to slots | active; amends D218 |
 | D247 | Deploy-count warning | active |
 | D248 | Favorite creators trusted | active |
+| D249 | Neon switches beat config files | active |
 | D250 | Publishers renamed; Reddit dropped | active; amends D234, D240 |
 
 ---
