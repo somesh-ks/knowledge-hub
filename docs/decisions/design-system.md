@@ -289,6 +289,14 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Supersedes: the route half of D189 (`/design` inside the site); its no-separate-repository and no-Storybook rulings stand.
 - Context changed: D189 said a second app consuming the styles would lift them into a package. D224 adds that second app and defers the package: the apps import the reader's files by relative path until that hurts.
 
+## D230: motion gets six spring tokens from Material 3 Expressive, adopted a moment at a time
+
+- Date: 2026-10-29 (the owner: the app has M3's structure but none of Expressive's motion; "I'll start conservative and show me some visuals").
+- Decision: `tokens.json` holds six `linear()` springs, `--ease-spring-spatial-{fast,default,slow}` (stiffness 800, 380, 200; damping 0.6, 0.8, 0.8) and `--ease-spring-effects-{fast,default,slow}` (3800, 1600, 800; damping 1), each with a `--duration-spring-*` total. Spatial springs move and reshape and may overshoot (9.5% fast, 1.5% the others); effects springs fade and recolour and never pass their target. Reduced motion collapses the spatial durations and keeps the effects ones, as it does for fades. `scripts/springCurve.ts` draws the curves; `buildTokens.test.ts` re-derives each from the stiffness and damping its token records. No component uses them yet; the three older springs (settle, release, pop) stay. The curve script, its test, the motion spec and the motion skill land in a follow-up PR (the design-system gate keeps them out of this one).
+- Why: a fixed pair of numbers per speed, with a physical meaning, lets every later component inherit one motion language; CSS `linear()` needs no library.
+- Rejected: adding a spring library (the tokens and the existing `spring.ts` cover transitions and gestures); one token per component (they would drift).
+- Revisit if: the owner approves the Play morph, wavy scrubber and morphing loader; each then lands in its own design-system PR and may retire an older spring.
+
 ## D229: the reading column sits on the pane's middle, and a label is 12px from its field
 
 - Date: 2026-10-29 (the owner: "on the left side it is less, and on the right side it is more on the page. I have this everywhere throughout the app"; labels "so close" to their fields)

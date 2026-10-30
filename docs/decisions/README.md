@@ -60,38 +60,38 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D37 | Custom podcast episodes live in `Podcasts/` and are built by a workflow | active |
 | D38 | Subagents are few, narrow, enforced and capped | active |
 | D39 | Five topics, Top picks always included, General and Customized audiences | active; Create's topics are one list since D67 |
-| D40 | Trending is ranked by coverage; discovery only suggests | active for discovery; Trending is off and its outlets feed World since D69 |
+| D40 | Trending is ranked by coverage; discovery only suggests | active for discovery; Trending off, its outlets feed World since D69 |
 | D41 | Passphrase off, code kept | superseded by D160 |
 | D42 | One Jev request per item, and a per-run Firecrawl ceiling | active |
-| D43 | General episodes are built from general-news feeds, ranked by coverage | active; general ids mix with briefing ids since D67, and their feeds are judged sources since D66 |
+| D43 | General episodes are built from general-news feeds, ranked by coverage | active; ids mix with briefing ids since D67, feeds are judged sources since D66 |
 | D44 | An episode can be deleted, or regenerated with the listener's feedback | active |
 | D45 | The briefing's hour, cadence and topics are set in Settings | active; `RUN_CRON` is the fallback trigger since D61 |
 | D46 | The writer's provider and model are chosen in Settings | active |
 | D47 | A move between pages is answered from a saved copy and swapped at once | active |
 | D48 | One shader: a light in the cover's colours behind the header, on a GPU only | active |
-| D49 | One Podcast settings page: Daily, Weekly and Custom profiles, a shared writer vendor and model, topics and sources clubbed | page layout superseded by D51; the 0 to 5 score by D55 |
+| D49 | One Podcast settings page: Daily, Weekly and Custom profiles, shared writer vendor and model, topics and sources clubbed | page layout superseded by D51; the 0 to 5 score by D55 |
 | D50 | The open player: a speed slider, Chapters or a Speechify-style transcript, word marks stored beside each segment | active |
 | D51 | Settings is two levels and saves itself; every select opens one drawn list | active; the Custom page superseded by D56 |
-| D52 | On a phone the Create button floats only on Today and the Library, extended until you scroll | superseded by D60: Create floats on the Library alone |
+| D52 | On a phone Create floats only on Today and the Library, extended till you scroll | superseded by D60: Create floats on the Library alone |
 | D53 | First-load JavaScript budget 110 KB, kept as low as the code allows | active |
-| D54 | Form fields carry a 3:1 outline; in the player only Play is in full ink | active for text fields (ink: D238); selects, segmented controls and chips are tonal since D72 |
-| D55 | A source's score is out of 3: health, quality and trust, combined so a weak part cannot be bought back | active; shown as a word, not pips and a number, since D83 |
+| D54 | Form fields carry a 3:1 outline; in the player only Play is full ink | active for text fields (ink: D238); selects, segments, chips tonal since D72 |
+| D55 | A source's score is out of 3: health, quality and trust; a weak part cannot be bought back | active; shown as a word, not pips and a number, since D83 |
 | D56 | One panel adds a topic or a source and edits a source; no Custom page | active |
-| D57 | A topic's page edits its details and adds the sources that suit it; topics are listed by name | active; amended by D64 and D69 |
+| D57 | A topic's page edits its details and adds suiting sources; topics are listed by name | active; amended by D64 and D69 |
 | D58 | The Model page offers six top Nebius writers by name, live list or not | active |
-| D59 | On a phone, Play takes the floating button's place on an episode and an older briefing | active; Today floats Play too since D60 |
-| D60 | On a phone Create floats on the Library alone; every page with audio floats Play, Today included | active; Play floats only once the hero's Play has scrolled away since D77 |
+| D59 | On a phone, Play takes the floating button's place on an episode or older briefing | active; Today floats Play too since D60 |
+| D60 | On a phone Create floats on the Library alone; every page with audio floats Play | active; Play floats once the hero's Play scrolls away since D77 |
 | D61 | Vercel Cron starts the scheduled briefing in its hour; GitHub's schedule is the fallback | active |
-| D62 | Daily and Weekly each choose their topics; voice samples play through the site | active; each topic's Scope sets them since D69 |
-| D63 | Daily and Weekly leave out topics, one chip per topic, stored as the topics left out | superseded by D69: the storage stays, the chips moved to each topic's Scope |
+| D62 | Daily and Weekly each choose their topics; voice samples play in the site | active; each topic's Scope sets them since D69 |
+| D63 | Daily and Weekly leave out topics, one chip each, stored as the topics left out | superseded by D69: storage stays, the chips moved to each topic's Scope |
 | D64 | Every topic can be renamed; what counts edits wherever the judge reads it | active |
 | D65 | The weekly podcast takes its day; the daily cadence counts from it | active |
 | D66 | General news topics are topics; their feeds are sources Jev judges every run, for scores and episodes only | active |
 | D67 | Create shows one list of topic chips; the audience presets them; an episode can mix briefing and general topics | active |
 | D68 | An episode opens with a rundown, deep-dives its lead stories, gives the rest as nuggets and closes short | active |
-| D69 | Design, AI and Technology gather the judge topics; one alphabetical list where each topic sets its scope; every source filed under a topic | active |
-| D70 | A scoring sample judges a few items a run for scores alone, so every source reaches a score, switched-off ones included | active |
-| D71 | Streamlined add topic modal, live suggested sources with TypeSafe Jev scores, schedule timezone and topic scope indicator chips | active; amended by D75, D79, D89 |
+| D69 | Design, AI and Technology gather the judge topics; one alphabetical list, each topic sets its scope; every source filed under a topic | active |
+| D70 | A scoring sample judges a few items a run for scores alone, so every source gets a score, switched-off ones too | active |
+| D71 | Add topic modal: live suggested sources with Jev scores, timezone and scope chips | active; amended by D75, D79, D89 |
 | D72 | The look is tonal: containers, state layers and round buttons, not outlines and invisible hovers | active |
 | D73 | A steadier type scale: 16px reading, 18 to 20px headlines, 14px meta, 22px regular section headings | active |
 | D74 | A discussion's hosts are named for their voices; the transcript names a speaker only on a change of speaker | active |
@@ -101,11 +101,11 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D78 | The Library has one facts line per card, finds dates, keeps its search in the address and remembers what was played | active |
 | D79 | A saved setting shows before the build, and a new topic stays on its list with its suggestions at once | active |
 | D80 | An episode is written to 95% of what its stories can carry, and a script a little under the floor is kept | active |
-| D81 | A workflow installs only what it runs; the audio job skips the Vercel pull when the Blob token is set | active; the owner merges the workflow files by hand |
+| D81 | A workflow installs only what it runs; the audio job skips the Vercel pull with a Blob token | active; the owner merges the workflow files by hand |
 | D82 | Play keeps an early tap, a new episode is pre-narrated, the deploy is noticed in 2.5 s | active |
-| D83 | Settings shows a source's score as one word, its name opens its editor, and the Model default is called Default | active; amends D55's pips and D69's name links |
+| D83 | Settings shows a source's score as one word, its name opens its editor; the Model default is called Default | active; amends D55's pips and D69's name links |
 | D84 | A failed run keeps its request and offers Try again; a finished run clears itself; one run at a time | active |
-| D85 | The player's chapters are timed and play their story, a discussion without stored names is named from its voices, one length rule | active; amends D74 |
+| D85 | The player's chapters are timed and play their story; a discussion without stored names is named from its voices; one length rule | active; amends D74 |
 | D86 | An action has its own tone, the player bar is one tonal block with the navigation, and reading text keeps a 34rem measure | active; extends D72 |
 | D87 | New episode says when a choice changed the topics and offers Undo; the Library searches with an excerpt around the match | active; amends D76 and D78 |
 | D88 | A reading page's section strip is opaque, a focused headline rings as one block, the playing hero Play is tonal, an older briefing offers Share only | active; amends D77 |
@@ -149,7 +149,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D126 | A play queue, an Up next peek and sheet, a collapse chevron, Space to play | active; amends D102, D111 |
 | D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, at most 10 | active; amends D123 |
 | D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by content hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
-| D129 | Settings restructured: a Sources or Preferences switch per topic, one voice pair, one type mix, Theme select, no crumbs | partly superseded by D195; amends D51, D87, D124, D125 |
+| D129 | Settings restructured: Sources or Preferences per topic, one voice pair, Theme select | partly superseded by D195; amends D51, D87, D124, D125 |
 | D130 | Kimi models are never offered; the Nebius five are ranked by EQ-Bench longform; a weekly scheduled check proposes a refresh by PR | active; amends D123 |
 | D131 | An 8pt spacing system (4px only for named fine cases), rows that carry their own rhythm, headings never bold, enforced by `npm run design-check` | active; amends D73 |
 | D132 | Two segmented controls (a choice with a check; a navigation tablist with a sliding pill) and one sheet header with Close at the end | active; amends D106 |
@@ -163,7 +163,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D140 | Design system enforced in three layers (`design-check` hook, e2e, `design-audit` agent); icons only from Phosphor | active; amends D131 |
 | D141 | The first-load budget is 130 KB | active; replaces D112's 109 KB |
 | D142 | A new topic is a row at once and opens a page before the build; one save carries Jev's emoji; a removal leaves the page at once with Undo | active; amends D79 |
-| D143 | Every PR gets a code review before it merges: the `review` label on opening, a hand merge after the review lands and its blocking findings are fixed | active |
+| D143 | Every PR gets a code review before it merges, by hand once blocking findings are fixed | active |
 | D144 | Phone sheets close by pull or tap outside and show no Close | active; amends D132 |
 | D145 | Network-first page loads; a build check on return | amends D47 |
 | D146 | A deploy is offered in a toast; Vitals wait | amends D145 |
@@ -246,6 +246,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D227 | Firecrawl warns at 210 | supersedes D223 |
 | D228 | A failed dry run records its spend | amends D223, D227 |
 | D229 | Column centred; 12px label gap | active |
+| D230 | Six spring tokens | active |
 | D231 | The podcast queue; its runs stay for the day | active; supersedes D208's list |
 | D232 | One cleaner turns scraped Markdown into prose | active |
 | D233 | Ingest in shadow: free sources, Blob text | active |
@@ -266,5 +267,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D250 | Publishers renamed; Reddit dropped | active; amends D234, D240 |
 | D251 | Ingest packs a run into one Blob object | active; amends D233 |
 | D253 | UI fixes start at the component | active; amends D237 |
+| D254 | One PR per task; one rolling DS PR | active; amends D237 |
 
 ---

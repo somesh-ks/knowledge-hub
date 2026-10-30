@@ -1449,6 +1449,90 @@
         "characters": 261
       },
       "usd": 0.00261
+    },
+    {
+      "id": "2026-10-30T20:21:14.609Z|on_demand|write|anthropic|claude-sonnet-5-5|owner",
+      "at": "2026-10-30T20:29:55.951Z",
+      "run_id": "2026-10-30T20:21:14.609Z",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "write",
+      "provider": "anthropic",
+      "product": "claude-sonnet-5-5",
+      "units": {
+        "input_tokens": 48580,
+        "output_tokens": 19812
+      },
+      "usd": 0.44292
+    },
+    {
+      "id": "2026-10-30T20:21:14.609Z|on_demand|extract|gemini|gemini-3.8-flash|owner",
+      "at": "2026-10-30T20:29:55.951Z",
+      "run_id": "2026-10-30T20:21:14.609Z",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "extract",
+      "provider": "gemini",
+      "product": "gemini-3.8-flash",
+      "units": {
+        "input_tokens": 8282,
+        "output_tokens": 3677
+      },
+      "usd": 0.002299
+    },
+    {
+      "id": "2026-10-30T20:21:14.609Z|on_demand|judge|typesafe|jev|owner",
+      "at": "2026-10-30T20:29:55.951Z",
+      "run_id": "2026-10-30T20:21:14.609Z",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "judge",
+      "provider": "typesafe",
+      "product": "jev",
+      "units": {
+        "requests": 758
+      },
+      "usd": 0
+    },
+    {
+      "id": "2026-10-30T20:21:14.609Z|on_demand|fetch|exa|search|owner",
+      "at": "2026-10-30T20:29:55.951Z",
+      "run_id": "2026-10-30T20:21:14.609Z",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "fetch",
+      "provider": "exa",
+      "product": "search",
+      "units": {
+        "requests": 14
+      },
+      "usd": 0.07,
+      "estimated": true
+    },
+    {
+      "id": "2026-10-30T20:21:14.609Z|on_demand|fetch|firecrawl|scrape|owner",
+      "at": "2026-10-30T20:29:55.951Z",
+      "run_id": "2026-10-30T20:21:14.609Z",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "fetch",
+      "provider": "firecrawl",
+      "product": "scrape",
+      "units": {
+        "credits": 16
+      },
+      "usd": 0.01328,
+      "estimated": true
     }
   ]
 }

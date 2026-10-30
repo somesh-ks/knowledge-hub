@@ -49,13 +49,13 @@ const { current } = Astro.props;
                   class="icon-btn guide-nav-toggle"
                   type="button"
                   aria-expanded={open ? "true" : "false"}
-                  aria-controls="nav-sub"
+                  aria-controls={`nav-sub-${page.label.toLowerCase()}`}
                   aria-label={`${page.label} pages`}
                   data-nav-toggle
                 >
                   <Icon name="chevronDown" />
                 </button>
-                <ul class="guide-nav-sub" id="nav-sub" role="list" hidden={!open}>
+                <ul class="guide-nav-sub" id={`nav-sub-${page.label.toLowerCase()}`} role="list" hidden={!open}>
                   {children.map((child) => (
                     <li>
                       <a class="guide-nav-subitem" href={href(child.path)} aria-current={child.path === current ? "page" : undefined}>
