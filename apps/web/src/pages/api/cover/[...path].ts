@@ -5,18 +5,21 @@ import { FONT_FILE_BASENAMES, setFontDirectory } from "@singularity/cover";
 import type { APIRoute, GetStaticPaths } from "astro";
 import { coverPng, coverWebp } from "../../../lib/covers";
 import { findRepoRoot } from "../../../lib/repoRoot";
-import { loadStoreSite } from "../../../server/contentRepo";
+import { loadStoreSite, resetContentRepo } from "../../../server/contentRepo";
 import {
+  type CoverResolution,
   coverCacheHeaders,
-  findCoverRecord,
   NOT_FOUND_HEADERS,
   parseCoverPath,
+  resolveCover,
+  splitVersion,
 } from "../../../server/coverRoute";
 
 /**
  * A cover the build did not draw, drawn when it is asked for (D256). vercel.json sends `/covers/*`
  * here when no built file answers: a briefing or episode newer than the last deploy (D173). The
- * build's own routes draw the rest.
+ * build's own routes draw the rest. The path is `<version>/<cover path>`: vercel.json moves the
+ * address's `?v=` there, because the CDN keys a cover by its path alone.
  */
 export const prerender = false;
 // The static test build prerenders every route; no cover is drawn on demand there.
@@ -38,18 +41,41 @@ function loadShippedFonts(): void {
 
 const CACHE = { cacheDir: join(tmpdir(), "singularity-covers"), fingerprint: "function" };
 
-export const GET: APIRoute = async ({ params, url }) => {
-  const request = parseCoverPath(params.path ?? "");
-  if (!request) return new Response("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
-  try {
-    const site = await loadStoreSite({
+const BEHIND_HEADERS = { "Cache-Control": "no-store", "Retry-After": "5" } as const;
+
+export const GET: APIRoute = async ({ params }) => {
+  const split = splitVersion(params.path ?? "");
+  const request = split && parseCoverPath(split.rest);
+  if (!split || !request) {
+    return new Response("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
+  }
+  const load = () =>
+    loadStoreSite({
       env: process.env,
       fetch,
       now: Date.now,
       log: (message) => console.error(`[api/cover] ${message}`),
     });
-    const record = site ? findCoverRecord(site, request.id) : null;
-    if (!record) return new Response("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
+  try {
+    let site = await load();
+    let resolution: CoverResolution = site
+      ? resolveCover(site, request.id, split.version)
+      : { kind: "missing" };
+    if (resolution.kind !== "draw") {
+      // A page is drawn from the store's newest manifest, and this instance may hold an older one
+      // for up to its window. The CDN keeps whatever is answered here, so read the store once more
+      // before saying a cover is missing or behind.
+      resetContentRepo();
+      site = await load();
+      resolution = site ? resolveCover(site, request.id, split.version) : { kind: "missing" };
+    }
+    if (resolution.kind === "missing") {
+      return new Response("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
+    }
+    if (resolution.kind === "behind") {
+      return new Response("This cover is not ready yet.", { status: 503, headers: BEHIND_HEADERS });
+    }
+    const { record } = resolution;
     loadShippedFonts();
     const source = request.mode ? { ...record.source, mode: request.mode } : record.source;
     const draw = request.format === "png" ? coverPng : coverWebp;
@@ -57,7 +83,7 @@ export const GET: APIRoute = async ({ params, url }) => {
     return new Response(body, {
       headers: {
         "Content-Type": request.format === "png" ? "image/png" : "image/webp",
-        ...coverCacheHeaders(url.searchParams.get("v") ?? "", record),
+        ...coverCacheHeaders(split.version, record),
       },
     });
   } catch (error) {

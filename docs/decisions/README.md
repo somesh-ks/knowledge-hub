@@ -272,5 +272,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D254 | One PR per task; one rolling DS PR | active; amends D237 |
 | D255 | Videos judged on transcripts | active; amends D248 |
 | D256 | Covers drawn on request; failed-run stages in one Blob object | active; amends D173, D251 |
+| D257 | Cover version in its path | active; amends D256 |
 
 ---

@@ -133,7 +133,12 @@
     },
     {
       "source": "/covers/:path*",
-      "destination": "/api/cover/:path*"
+      "has": [{ "type": "query", "key": "v", "value": "(?<v>[a-z0-9]{1,12})" }],
+      "destination": "/api/cover/:v/:path*"
+    },
+    {
+      "source": "/covers/:path*",
+      "destination": "/api/cover/0/:path*"
     }
   ],
   "headers": [

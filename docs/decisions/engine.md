@@ -508,3 +508,14 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Limit: the first request for a new cover waits for the draw (about 40 ms plus the manifest read); later ones come from the CDN. A run killed by the 15-minute timeout saves nothing, because its process never reaches the failure path, so a rerun starts over (before, stages written earlier survived). Live script copies (`streams/`) and audio segments are still written to Blob. Old `content/covers/` objects stay unused until deleted.
 - Revisit if: Blob operations in the dashboard still pass 1,000 a month (then the audio segments and live scripts are next), covers show a blank date (the fonts did not ship), or reruns after a timeout matter (save the pack from a workflow step that runs on cancel).
 - Amends: D173 (covers are no longer stored), D251 (its Limit lists `storeCovers.ts` and stage artifacts as writers).
+
+## D257: A cover's version is part of its path, and a cover is never answered "missing" from a stale read
+
+- Date: 2026-10-30 (production check of D256, 23:13Z).
+- Decision: `vercel.json` rewrites `/covers/*?v=<version>` to `/api/cover/<version>/*` (and an address with no `?v=` to `/api/cover/0/*`), so the version is in the path. The route reads the store again, once, when the id is missing or the address names a newer version than the instance holds, and answers 503 (not kept) when the record is still behind. A cover is drawn for an older version as the current one.
+- Why: measured on the live site, the CDN keys a function's answer by path and ignores the query, and takes its lifetime from the `/covers/` header rules in `vercel.json`, not from the function's `Cache-Control` or `Vercel-CDN-Cache-Control`. A cover asked for under `?v=zzzzzz` was served another address's entry, and a 404 sent `no-store` was kept (61 s and more). So a regenerated record could have kept its old cover, and a cover asked for before this instance read its record could have stayed 404 for up to an hour.
+- Rejected: dropping the `/covers/` header rules (built covers would lose their year-long cache); a `Vary` on the query (not obeyed by the CDN for functions, unproven).
+- Limit: a 404 for an id the store lacks is still kept for the header rule's hour; only a junk address gets one. The path-version rewrite is unproven until a deploy (see `docs/state.md`).
+- Revisit if: a cover shows blank or old after a regeneration, or the rewrite's `has` capture does not reach the route (the probe in state shows a 404 for every cover).
+- Amends: D256 (its cache rule: a year only under the current `?v=`, a minute otherwise, 404s never kept).
+
