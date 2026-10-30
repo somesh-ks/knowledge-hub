@@ -1,5 +1,12 @@
 /** A component's name; `Name.part` points at one of its variants or tones, e.g. `Button.text`. */
-export type ComponentName = "Button" | "Icon button" | "FAB" | "Chip" | "Link";
+export type ComponentName =
+  | "Button"
+  | "Icon button"
+  | "FAB"
+  | "Chip"
+  | "Link"
+  | "Switch"
+  | "Slider";
 export type ComponentRef = ComponentName | `${ComponentName}.${string}`;
 
 export interface DontUse {

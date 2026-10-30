@@ -1945,75 +1945,12 @@
   padding: var(--space-4);
 }
 
-/*
- * A native range, painted like the volume slider: WebKit fills the track with a gradient up to
- * --range-fill, Firefox with ::-moz-range-progress. The two engines' pseudo-elements cannot share
- * a rule.
- */
-.speed-slider {
-  --range-fill: 0%;
-  --range-fill-color: var(--color-accent);
+/* The speed slider is the Slider (design-system/Slider.astro), as wide as the panel and on the panel's
+   own surface, so its thumb's ring takes that colour. */
+.speed-panel-body > .slider-input {
+  --slider-ring: var(--color-surface-overlay);
   display: block;
   width: 100%;
-  height: var(--size-touch);
-  margin: 0;
-  appearance: none;
-  border-radius: var(--button-radius);
-  background: none;
-  cursor: pointer;
-}
-
-.speed-slider::-webkit-slider-runnable-track {
-  height: var(--scrubber-track);
-  border-radius: var(--radius-round);
-  background: linear-gradient(
-    to right,
-    var(--range-fill-color) var(--range-fill),
-    var(--color-border-control) var(--range-fill)
-  );
-}
-
-.speed-slider::-webkit-slider-thumb {
-  width: var(--scrubber-thumb);
-  height: var(--scrubber-thumb);
-  margin-block-start: calc((var(--scrubber-track) - var(--scrubber-thumb)) / 2);
-  appearance: none;
-  border-radius: var(--radius-round);
-  background: var(--range-fill-color);
-  box-shadow: 0 0 0 var(--scrubber-thumb-ring) var(--color-surface-overlay);
-  transition: scale var(--duration-press-out) var(--ease-out);
-}
-
-.speed-slider::-moz-range-track {
-  height: var(--scrubber-track);
-  border-radius: var(--radius-round);
-  background: var(--color-border-control);
-}
-
-.speed-slider::-moz-range-progress {
-  height: var(--scrubber-track);
-  border-radius: var(--radius-round);
-  background: var(--range-fill-color);
-}
-
-.speed-slider::-moz-range-thumb {
-  width: var(--scrubber-thumb);
-  height: var(--scrubber-thumb);
-  border: 0;
-  border-radius: var(--radius-round);
-  background: var(--range-fill-color);
-  box-shadow: 0 0 0 var(--scrubber-thumb-ring) var(--color-surface-overlay);
-  transition: scale var(--duration-press-out) var(--ease-out);
-}
-
-.speed-slider:active::-webkit-slider-thumb {
-  scale: var(--scrubber-thumb-active-scale);
-  transition-duration: var(--duration-press-in);
-}
-
-.speed-slider:active::-moz-range-thumb {
-  scale: var(--scrubber-thumb-active-scale);
-  transition-duration: var(--duration-press-in);
 }
 
 /* The common speeds under the slider, whose fine steps are hard to land on by finger: quiet pills,
