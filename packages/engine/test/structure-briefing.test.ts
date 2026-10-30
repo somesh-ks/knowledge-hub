@@ -378,6 +378,74 @@ describe("a Catch up fills its slots after the structure's caps", () => {
     expect(fitted.stories.map((each) => each.item_id)).not.toContain("w7");
   });
 
+  // ep-20261030-0025: a 5 minute Catch up on one topic found seven Top picks of other topics and one
+  // story of its own; the Top picks block (2 at 5 minutes) cut it to three stories and it aired 2 of 5
+  // minutes. A block's count is a proportion, not a ceiling (D218): the length is the limit (#147).
+  it("lets the counts give way when nothing else can fill the slots", () => {
+    const thin = blocks([
+      { type: "hello" },
+      { type: "top_picks", stories: 2, depth: "deep" },
+      { type: "section", id: "ui-craft", max_stories: 2 },
+      { type: "release_news", stories: 1 },
+      { type: "sign_off" },
+    ]);
+    const release = (id: string): PodcastStory => ({
+      ...story(id, "world"),
+      category: RELEASE_CATEGORY,
+    });
+    const candidates = [
+      ...["t1", "t2", "t3", "t4", "t5", "t6", "t7"].map((id) => story(id, "top")),
+      story("u1", "ui-craft"),
+      release("r1"),
+      release("r2"),
+    ];
+    expect(shapeStories(candidates, thin).stories).toHaveLength(4);
+    const fitted = fitStories(candidates, thin, {}, 12);
+    const ids = fitted.stories.map((each) => each.item_id);
+    expect(ids).toEqual(expect.arrayContaining(["t1", "t2", "t3", "t4", "t5", "t6", "t7", "u1"]));
+    // Release news keeps its own count: it is the first thing the length can do without.
+    expect(ids.filter((id) => id.startsWith("r"))).toHaveLength(1);
+    // The slots still hold the length: nothing is added beyond them.
+    expect(fitStories(candidates, thin, {}, 5).stories).toHaveLength(5);
+  });
+
+  // The spares are the best-ranked candidates left, not the first of the earliest block (CodeRabbit, PR 450).
+  it("fills the last slot with the best-ranked spare, not the first in block order", () => {
+    const two = blocks([
+      { type: "hello" },
+      { type: "section", id: "design", max_stories: 1 },
+      { type: "section", id: "world", max_stories: 1 },
+      { type: "sign_off" },
+    ]);
+    const candidates = [
+      story("w1", "world"),
+      story("w2", "world"),
+      story("d1", "design"),
+      story("d2", "design"),
+    ];
+    const ids = fitStories(candidates, two, {}, 3).stories.map((each) => each.item_id);
+    expect(ids).toHaveLength(3);
+    expect(ids).toContain("w2");
+    expect(ids).not.toContain("d2");
+  });
+
+  it("airs an item that came from two groups once when it fills a slot", () => {
+    const two = blocks([
+      { type: "hello" },
+      { type: "section", id: "design", max_stories: 1 },
+      { type: "sign_off" },
+    ]);
+    const candidates = [
+      story("d1", "design"),
+      story("w1", "world"),
+      story("w1", "world"),
+      story("w2", "world"),
+    ];
+    const ids = fitStories(candidates, two, {}, 3).stories.map((each) => each.item_id);
+    expect(ids).toHaveLength(3);
+    expect(new Set(ids).size).toBe(3);
+  });
+
   // The wide selection lists a mixed episode's topics one after another; cutting it by position took
   // the whole last topic (independent review, PR 391).
   it("cuts each section's tail first, so a later topic keeps its best stories", () => {
