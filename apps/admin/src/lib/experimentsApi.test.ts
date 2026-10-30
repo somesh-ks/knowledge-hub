@@ -43,4 +43,17 @@ describe("the Experiments switch route", () => {
     expect(answer.status).toBe(200);
     expect(store.writes).toEqual(["alexandria true"]);
   });
+
+  // The bug it prevents: a stale tab turning off an experiment another tab promoted was refused with
+  // no state to show, so the tab kept its old switch and every retry was refused again.
+  it("a refused switch-off returns the current flags so the page can catch up", async () => {
+    const promoted = { id: "alexandria", enabled: true, promoted_at: 1 };
+    const store: ExperimentStore = {
+      read: async () => [promoted],
+      setEnabled: async () => false,
+      setPromoted: async () => {},
+    };
+    const answer = await handleExperiments(post({ id: "alexandria", action: "off" }), store);
+    expect(answer).toEqual({ status: 409, body: { error: "promoted", flags: [promoted] } });
+  });
 });

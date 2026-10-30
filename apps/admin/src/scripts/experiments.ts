@@ -16,6 +16,8 @@ const NOTE_OFFLINE = "The store cannot be reached. Showing the last deploy.";
 const root = document.querySelector<HTMLElement>("[data-experiments]");
 const rows = [...document.querySelectorAll<HTMLElement>("[data-experiment][data-built]")];
 const flags = new Map<string, FlagRow>();
+/** Experiments with a write under way: a second one waits, so an older answer cannot land last. */
+const pending = new Set<string>();
 
 const part = <T extends Element>(row: ParentNode, selector: string): T | null =>
   row.querySelector<T>(selector);
@@ -37,10 +39,11 @@ function render(row: HTMLElement): void {
   const promote = part<HTMLButtonElement>(row, "[data-promote]");
   if (!control || !promote || !label) return;
   label.textContent = word;
+  const waiting = pending.has(row.dataset.experiment ?? "");
   control.checked = on;
-  control.disabled = promoted;
+  control.disabled = promoted || waiting;
   // Promote waits, unseen but in its place, in a row that cannot use it (admin.css).
-  promote.disabled = on === false || promoted;
+  promote.disabled = on === false || promoted || waiting;
 }
 
 function renderAll(): void {
@@ -62,13 +65,13 @@ async function ask(init?: { id: string; action: ExperimentAction }): Promise<Res
 
 /** Writes one switch; true when the store has it. A failure says so in a toast and changes nothing. */
 async function write(id: string, action: ExperimentAction): Promise<boolean> {
+  if (pending.has(id)) return false;
+  pending.add(id);
+  renderAll();
   try {
     const response = await ask({ id, action });
     const body = (await response.json()) as { flags?: FlagRow[]; error?: string };
-    if (body.flags) {
-      take(body);
-      renderAll();
-    }
+    if (body.flags) take(body);
     if (response.ok) return true;
     toast(
       body.error === "promoted" ? "A promoted experiment stays on." : "Could not save. Try again.",
@@ -76,6 +79,9 @@ async function write(id: string, action: ExperimentAction): Promise<boolean> {
     );
   } catch {
     toast("Could not save. Try again.", "error");
+  } finally {
+    pending.delete(id);
+    renderAll();
   }
   return false;
 }

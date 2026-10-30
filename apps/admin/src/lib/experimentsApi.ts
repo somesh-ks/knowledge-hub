@@ -59,7 +59,7 @@ export async function handleExperiments(
   }
   if (asked.action === "on" || asked.action === "off") {
     if (!(await store.setEnabled(asked.id, asked.action === "on"))) {
-      return { status: 409, body: { error: "promoted" } };
+      return { status: 409, body: { error: "promoted", flags: await store.read() } };
     }
   } else await store.setPromoted(asked.id, asked.action === "promote");
   return { status: 200, body: { flags: await store.read() } };
