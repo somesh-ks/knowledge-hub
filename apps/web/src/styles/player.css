@@ -128,10 +128,6 @@
   fill: currentColor;
 }
 
-.ui-icon-solid {
-  fill: currentColor;
-}
-
 .icon-lg {
   width: var(--size-icon-lg);
   height: var(--size-icon-lg);
@@ -509,26 +505,6 @@
 
 .player-list {
   padding-block-start: var(--space-2);
-}
-
-/* The name of a list that has no switch beside it ("Stories", "Up next"): plain text. The tab row's
-   hairline belongs to a real tab row; a lone title with a rule under it reads as one tab. */
-.player-section-title {
-  margin: 0;
-  padding-block: var(--space-2) 0;
-  padding-inline: var(--space-4);
-  color: var(--color-on-surface);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-regular);
-}
-
-.segmented-legend {
-  display: block;
-  margin-block: var(--space-4) var(--space-2);
-  padding: 0;
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
-  font-weight: var(--font-weight-medium);
 }
 
 /* What stands in for the controls while their code is on the way, or did not arrive. */
@@ -2377,16 +2353,7 @@
     forced-color-adjust: none;
   }
 }
-
 /* ------------------------------------------------------------------ segmented control */
-
-/* Used by the Settings sheet, which imports this stylesheet for it. */
-.segmented-group {
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
 
 /* The same control as the Settings page's segmented choice (settings.css), which this stylesheet
    cannot import: the same track, thumb, type, targets and timing. */
