@@ -47,6 +47,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Time zone (D100, D239 prompt) only faked: no non-Stockholm zone, fallback or clock change; `sinceLabel`, `pendingAudio` and `podcast/select` still use Stockholm's today. closed when: a run across the 10-25 clock change publishes on the right day.
 - General topics (D66 to D69, D102): no digest has a general section yet. closed when: one does.
 - Config through `config.yml` never seen live: `topic.scope`, rename or move, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics, episode delete and regenerate. closed when: each lands as a `main` commit from the site.
+- Experiments page (D249; `/admin/experiments`): switches, Promote, Undo and per-row shadow counts (`experiment_hits`, 7 days) merged (#459, #461, #470); production needs `DATABASE_URL` and `SINGULARITY_CONFIG_STORE=postgres` on `singularity-admin` and a redeploy. closed when: signed in, a toggle holds after reload, and after the next daily with the store on the two list rows show a number.
 - Config store (D149, D185). closed when: a phone's edit shows on a laptop.
 - A pending `config.yml` run can be cancelled by GitHub after a 202 (shared `singularity` group); production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 10-14. closed when: a config save from the site produces a commit.
 - A 15-minute episode falls short; the app does not say what a window holds. closed when: an episode airs within 10% of 15 minutes, or the form shows what the window holds.
