@@ -50,8 +50,8 @@ export const SECTIONS: readonly Section[] = [
   {
     path: "/experiments",
     label: "Experiments",
-    icon: "flask",
-    iconCurrent: "flaskFill",
+    icon: "lightning",
+    iconCurrent: "lightningFill",
     question: "On changes the daily. Shadow only logs what it would change.",
     status: "",
   },
