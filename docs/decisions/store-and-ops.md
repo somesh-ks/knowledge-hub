@@ -201,3 +201,14 @@ Where data lives (Postgres, Blob, git), config, health, analytics, deploys, acce
 - Why: the committed metrics and the ledger hold only runs that published, so the 28 Oct daily that aired nothing for $1.18 left no stage times, and "why do runs take so long and cost so much" could not be answered from stored data.
 - Rejected: writing from the Commit step (a failed job never reaches it); a row per pass (a run is the unit that costs and fails); moving the ledger to Neon now (Step 6).
 - Revisit if: Neon's plan limits the rows (a run is about 5 rows; 4 a day is about 7,000 a year).
+
+## D242: only the person who started a run can cancel it
+
+- Date: 2026-10-29 (the owner, AFK: gate the open Cancel route; a stranger must not stop runs).
+- Decision: `/api/generate` and `/api/podcast` return a `cancel_token` with a run's id: an HMAC-SHA256 of the id, keyed by the site's GitHub token (`server/cancelToken.ts`; no new secret). `/api/cancel` needs it with `run_id` and answers 403 `forbidden` for a missing, wrong or stale one, before the burst cap or any GitHub call. The browser keeps the tokens of the runs it started in localStorage (`lib/cancelTokens.ts`, the latest 20, shared by its tabs), and the queue shows the X only on a run it holds a token for.
+- Why: the route's checks were not auth. A request with no `Origin` header passes `isSameOrigin`, and a forged one passes too, so `curl` stopped any run of ours; on 2026-10-29 it cancelled a real dry run of `run.yml`, which also showed the site token has Actions write. A token for a run's id lets a reader stop what they started and nothing else: not another reader's run, not the schedule's. The reader has no password, and the admin cookie is scoped to `/admin`, so a shared secret or the admin session would have cost a login or a change to the other app.
+- Rejected: a password on the reader (D201: friends use it); the admin session (cookie path `/admin`, a separate Vercel project and secret); a token in the run list (anyone can read the list, which is the hole).
+- A run id found by listing (GitHub dispatched without naming it) gets no token: picked by creation time it could be another request's run (CodeRabbit).
+- Cost: a run started on another device, or by the schedule, can no longer be stopped from the queue; stop it from GitHub Actions. Clearing site data drops the tokens.
+- Revisit if: the owner wants Cancel on every device (add the admin session as a second key), or OAuth lands (D201).
+- Amends: D201 (the one open write that now has a key), D208 (Cancel was open to anyone with the URL).

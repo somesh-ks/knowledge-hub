@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createFakeGitHub, REPO, runJson, stepJson } from "../testing/fakeGitHub";
+import { cancelTokenFor } from "./cancelToken";
 import { handleCancel, handleGenerations, parseCancelBody } from "./generations";
 import { resetTimingsCaches } from "./status";
 
@@ -154,6 +155,9 @@ describe("cancelling a generation", () => {
     origin,
     expectedOrigin: ORIGIN,
   });
+  /** The body the starter of run 4242 sends: its id and the token the start handed back. */
+  const owned = (runId = 4242, token = cancelTokenFor(TOKEN, 4242)) =>
+    JSON.stringify({ run_id: runId, cancel_token: token });
 
   it("reads a run id from the body and nothing else", () => {
     expect(parseCancelBody('{"run_id": 4242}')).toBe(4242);
@@ -174,7 +178,7 @@ describe("cancelling a generation", () => {
     const github = createFakeGitHub();
     github.on("GET /actions/runs/4242", { json: runJson({ status: "in_progress" }) });
     github.on("POST /actions/runs/4242/cancel", { status: 202, json: {} });
-    const result = await handleCancel(ask('{"run_id":4242}'), { env, fetch: github.fetch });
+    const result = await handleCancel(ask(owned()), { env, fetch: github.fetch });
     expect(result).toEqual({ status: 202, body: { run_id: 4242, cancelled: true } });
     expect(github.requests.filter((r) => r.path.endsWith("/cancel"))).toHaveLength(1);
   });
@@ -186,15 +190,48 @@ describe("cancelling a generation", () => {
     });
     github.on("POST /actions/runs/4242/cancel", { status: 202, json: {} });
     const refused = [
-      await handleCancel(ask('{"run_id":4242}', "https://evil.example"), {
+      await handleCancel(ask(owned(), "https://evil.example"), {
         env,
         fetch: github.fetch,
       }),
       await handleCancel(ask("not json"), { env, fetch: github.fetch }),
-      await handleCancel(ask('{"run_id":4242}'), { env, fetch: github.fetch }),
+      await handleCancel(ask(owned()), { env, fetch: github.fetch }),
     ];
     expect(refused.map((r) => r.status)).toEqual([400, 400, 404]);
     expect(github.requests.some((r) => r.path.endsWith("/cancel"))).toBe(false);
+  });
+
+  // The route had no auth (D201): a request with no Origin, or a forged one, stopped any run of ours,
+  // the schedule's included. Only the starter holds a run's token, so this is the check that closes it.
+  it("refuses a missing, a wrong and another run's token before the cap or GitHub", async () => {
+    const github = createFakeGitHub();
+    github.on("GET /actions/runs/4242", { json: runJson({ status: "in_progress" }) });
+    github.on("POST /actions/runs/4242/cancel", { status: 202, json: {} });
+    let taken = 0;
+    const burst = async () => {
+      taken += 1;
+      return 0;
+    };
+    const refused = [
+      await handleCancel(ask('{"run_id":4242}'), { env, fetch: github.fetch, burst }),
+      await handleCancel(ask(owned(4242, "0".repeat(64))), { env, fetch: github.fetch, burst }),
+      await handleCancel(ask(owned(4242, "short")), { env, fetch: github.fetch, burst }),
+      await handleCancel(ask(owned(4242, cancelTokenFor(TOKEN, 4243))), {
+        env,
+        fetch: github.fetch,
+        burst,
+      }),
+      await handleCancel(ask(owned(4242, cancelTokenFor("another-secret", 4242))), {
+        env,
+        fetch: github.fetch,
+        burst,
+      }),
+    ];
+    expect(refused.map((r) => [r.status, "error" in r.body ? r.body.error : null])).toEqual(
+      Array(5).fill([403, "forbidden"]),
+    );
+    expect(taken).toBe(0);
+    expect(github.requests).toHaveLength(0);
   });
 
   it("says a run that has ended is finished, and does not call cancel", async () => {
@@ -203,7 +240,7 @@ describe("cancelling a generation", () => {
       json: runJson({ status: "completed", conclusion: "success" }),
     });
     github.on("POST /actions/runs/4242/cancel", { status: 202, json: {} });
-    const result = await handleCancel(ask('{"run_id":4242}'), { env, fetch: github.fetch });
+    const result = await handleCancel(ask(owned()), { env, fetch: github.fetch });
     expect(result).toEqual({ status: 409, body: { error: "already_finished" } });
     expect(github.requests.some((r) => r.path.endsWith("/cancel"))).toBe(false);
   });
@@ -216,13 +253,13 @@ describe("cancelling a generation", () => {
       taken += 1;
       return 30;
     };
-    await handleCancel(ask('{"run_id":4242}', "https://evil.example"), {
+    await handleCancel(ask(owned(), "https://evil.example"), {
       env,
       fetch: github.fetch,
       burst,
     });
     expect(taken).toBe(0);
-    const result = await handleCancel(ask('{"run_id":4242}'), { env, fetch: github.fetch, burst });
+    const result = await handleCancel(ask(owned()), { env, fetch: github.fetch, burst });
     expect(result).toMatchObject({ status: 429, body: { error: "cooldown", retry_after_s: 30 } });
     expect(github.requests).toHaveLength(0);
   });
@@ -235,7 +272,7 @@ describe("cancelling a generation", () => {
       json: { message: "Resource not accessible" },
     });
     const logs: string[] = [];
-    const result = await handleCancel(ask('{"run_id":4242}'), {
+    const result = await handleCancel(ask(owned()), {
       env,
       fetch: github.fetch,
       log: (m) => logs.push(m),
