@@ -8,5 +8,6 @@
 /apps/web/src/styles/tokens.css @somesh-ks
 /tokens/ @somesh-ks
 /apps/design/ @somesh-ks
+/scripts/system/ @somesh-ks
 /.github/CODEOWNERS @somesh-ks
 /.claude/skills/feature/references/controls-guide.md @somesh-ks
