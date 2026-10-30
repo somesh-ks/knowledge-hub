@@ -2,23 +2,45 @@
  * The Experiments page's switches. The page is drawn from the last deploy's files; this asks the
  * store (api/experiments.ts) for the owner's switches, lays them over it, and writes one when the
  * owner turns a switch or promotes: each asks first (the confirm dialog) and, once done, offers
- * Undo (the toast). A switch changes the next run, never one under way (D249).
+ * Undo (the toast). A switch changes the next run, never one under way (D249). A switch moves when
+ * it is pressed; the change is kept across a reload until the store has it (lib/pendingFlags.ts).
  */
 
 import { sendToast } from "../../../web/src/scripts/toastEvent";
 import type { ExperimentAction, FlagRow, HitTotal } from "../lib/experimentsApi";
+import { intended, type PendingMap, unsettled } from "../lib/pendingFlags";
 import { href } from "../lib/sections";
 
 const API = href("/api/experiments");
 const WORDS = { on: "On", shadow: "Shadow", off: "Off", promoted: "Promoted" } as const;
 const NOTE_OFFLINE = "The store cannot be reached. Showing the last deploy.";
+const PENDING_KEY = "experiments.pending";
+/** How often a page that reloaded mid-write asks the store again until it has the change. */
+const RECHECK_MS = 1500;
 
 const root = document.querySelector<HTMLElement>("[data-experiments]");
 const rows = [...document.querySelectorAll<HTMLElement>("[data-experiment][data-built]")];
 const flags = new Map<string, FlagRow>();
 /** What each experiment in shadow would have added this week, as the store counted it. */
 const hits = new Map<string, HitTotal>();
-/** Writes not yet answered, by experiment: its controls wait for them. */
+/** Changes pressed and not yet in the store, by experiment; kept in the tab across a reload. */
+let intents: PendingMap = loadIntents();
+function loadIntents(): PendingMap {
+  try {
+    return JSON.parse(sessionStorage.getItem(PENDING_KEY) ?? "{}") as PendingMap;
+  } catch {
+    return {};
+  }
+}
+function saveIntents(): void {
+  try {
+    if (Object.keys(intents).length === 0) sessionStorage.removeItem(PENDING_KEY);
+    else sessionStorage.setItem(PENDING_KEY, JSON.stringify(intents));
+  } catch {
+    // Private mode: the change still goes to the store, it just is not kept across a reload.
+  }
+}
+/** Writes not yet answered, by experiment: Promote waits for them. */
 const pending = new Map<string, number>();
 const count = (id: string, by: number): void => {
   pending.set(id, (pending.get(id) ?? 0) + by);
@@ -33,9 +55,10 @@ function shadowLine(word: string, hit: HitTotal | undefined): string {
   return `${word} · +${hit.stories} ${hit.stories === 1 ? "story" : "stories"} this week`;
 }
 
-/** What the row is now: the store's switch where it has one, else the file the page was built from. */
+/** What the row is now: the change just pressed, else the store's switch, else the file the page was built from. */
 function render(row: HTMLElement): void {
-  const flag = flags.get(row.dataset.experiment ?? "");
+  const id = row.dataset.experiment ?? "";
+  const flag = intents[id]?.flag ?? flags.get(id);
   const on = flag ? flag.enabled : row.dataset.built === "on";
   const promoted = flag?.promoted_at != null;
   const word = promoted
@@ -53,7 +76,7 @@ function render(row: HTMLElement): void {
     word === WORDS.shadow ? shadowLine(word, hits.get(row.dataset.experiment ?? "")) : word;
   const waiting = (pending.get(row.dataset.experiment ?? "") ?? 0) > 0;
   control.checked = on;
-  control.disabled = promoted || waiting;
+  control.disabled = promoted;
   // Promote waits, unseen but in its place, in a row that cannot use it (admin.css).
   promote.disabled = on === false || promoted || waiting;
 }
@@ -65,24 +88,34 @@ function renderAll(): void {
 function take(body: { flags?: FlagRow[] }): void {
   flags.clear();
   for (const flag of body.flags ?? []) flags.set(flag.id, flag);
+  intents = unsettled([...flags.values()], intents, Date.now());
+  saveIntents();
 }
 
 async function ask(init?: { id: string; action: ExperimentAction }): Promise<Response> {
   return fetch(API, {
     method: init ? "POST" : "GET",
+    // A reload right after a press must not cancel the write on its way.
+    keepalive: init !== undefined,
     headers: init ? { "content-type": "application/json" } : undefined,
     body: init ? JSON.stringify(init) : undefined,
   });
 }
 
 /**
- * Writes one switch; true when the store has it. A failure says so in a toast and changes nothing.
- * Writes go one at a time, in the order asked: each answer is every switch as the store has it, so
- * an older answer must not land after a newer one, and an Undo made while its write is under way
- * runs after it.
+ * Writes one switch; true when the store has it. The switch moves at once; a failure puts it back
+ * and says so in a toast. Writes go one at a time, in the order asked: each answer is every switch
+ * as the store has it, so an older answer must not land after a newer one, and an Undo made while
+ * its write is under way runs after it.
  */
 let queue: Promise<unknown> = Promise.resolve();
 function write(id: string, action: ExperimentAction): Promise<boolean> {
+  const now = Date.now();
+  const row = rows.find((candidate) => candidate.dataset.experiment === id);
+  const current = intents[id]?.flag ??
+    flags.get(id) ?? { id, enabled: row?.dataset.built === "on", promoted_at: null };
+  intents[id] = { flag: intended(current, action, now), at: now };
+  saveIntents();
   count(id, 1);
   renderAll();
   const run = queue.then(() => send(id, action));
@@ -105,6 +138,9 @@ async function send(id: string, action: ExperimentAction): Promise<boolean> {
     toast("Could not save. Try again.", "error");
   } finally {
     count(id, -1);
+    // A refused or failed write puts the switch back, unless a later press for it is waiting.
+    if ((pending.get(id) ?? 0) === 0) delete intents[id];
+    saveIntents();
     renderAll();
   }
   return false;
@@ -218,6 +254,24 @@ async function start(): Promise<void> {
   }
   renderAll();
   ready();
+  recheck();
+}
+
+/** A page reloaded mid-write asks again until the store has the change, or the wait runs out. */
+function recheck(): void {
+  if (Object.keys(intents).length === 0) return;
+  setTimeout(async () => {
+    try {
+      const response = await ask();
+      if (response.ok) take((await response.json()) as { flags?: FlagRow[] });
+    } catch {
+      // Still unreachable: the wait runs out on its own.
+    }
+    intents = unsettled([...flags.values()], intents, Date.now());
+    saveIntents();
+    renderAll();
+    recheck();
+  }, RECHECK_MS);
 }
 
 /** The switches are neutral tracks until their values are known (settings.css, data-ready). */
