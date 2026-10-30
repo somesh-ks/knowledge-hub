@@ -6,6 +6,7 @@ import { extractEntries, findDate } from "../src/fetch/firecrawlExtract.js";
 import { fetchHn, hnQueryUrl } from "../src/fetch/hn.js";
 import { fetchLobsters } from "../src/fetch/lobsters.js";
 import type { ExaQuery } from "../src/fetch/queries.js";
+import { fetchReddit } from "../src/fetch/reddit.js";
 import { SourceSkipped } from "../src/fetch/types.js";
 import { fakeFetch, fixture, makeDeps, makeSource, NOW, WIDE } from "./fetch-helpers.js";
 
@@ -76,6 +77,15 @@ describe("fetchHn", () => {
     await expect(fetchHn(source, WIDE, deps)).rejects.toThrow(/unexpected Hacker News response/);
   });
 
+  it("asks for the stories about a source's words, any one of them matching", () => {
+    const url = new URL(hnQueryUrl("https://x.test/s", "story", 50, 5, "LLM agents"));
+    expect(url.searchParams.get("query")).toBe("LLM agents");
+    expect(url.searchParams.get("optionalWords")).toBe("LLM agents");
+    expect(new URL(hnQueryUrl("https://x.test/s", "story", 50, 5)).searchParams.has("query")).toBe(
+      false,
+    );
+  });
+
   it("builds the query URL", () => {
     expect(hnQueryUrl("https://x.test/s", "story", 100, 5)).toBe(
       "https://x.test/s?tags=story&numericFilters=points%3E100%2Ccreated_at_i%3E5&hitsPerPage=100",
@@ -121,6 +131,147 @@ describe("fetchLobsters", () => {
     const items = await fetchLobsters(source, WIDE, deps);
     expect(items[0]?.url).toBe("https://lobste.rs/s/abc123");
     expect(items[0]?.author).toBe("alice");
+  });
+});
+
+describe("fetchReddit", () => {
+  const source = makeSource({
+    id: "reddit-localllama",
+    type: "reddit",
+    feed_url: "https://www.reddit.com/r/LocalLLaMA/top.json",
+    options: { subreddit: "LocalLLaMA", min_score: "50" },
+  });
+  const post = (overrides: Record<string, unknown>) => ({
+    data: {
+      title: "A post",
+      url: "https://example.com/a",
+      permalink: "/r/LocalLLaMA/comments/abc/a_post/",
+      author: "someone",
+      score: 300,
+      num_comments: 80,
+      created_utc: Date.parse("2026-10-05T10:00:00Z") / 1000,
+      is_self: false,
+      ...overrides,
+    },
+  });
+  const listing = (...posts: unknown[]) => JSON.stringify({ data: { children: posts } });
+
+  it("keeps posts above the score floor with score and comments as signals", async () => {
+    const deps = makeDeps(
+      fakeFetch({
+        [source.feed_url as string]: listing(
+          post({}),
+          post({ title: "Pinned", stickied: true }),
+          post({ title: "Quiet", score: 10 }),
+          post({ title: "Adult", over_18: true }),
+          post({
+            title: "Self post",
+            is_self: true,
+            url: "https://www.reddit.com/r/LocalLLaMA/comments/def/",
+            permalink: "/r/LocalLLaMA/comments/def/self_post/",
+            selftext: "Hello",
+          }),
+        ),
+      }),
+    );
+    const items = await fetchReddit(source, WIDE, deps);
+    expect(items.map((item) => item.title)).toEqual(["A post", "Self post"]);
+    expect(items[0]?.signals).toEqual({ reddit_score: 300, reddit_comments: 80 });
+    expect(items[1]?.url).toBe("https://www.reddit.com/r/LocalLLaMA/comments/def/self_post/");
+  });
+
+  it("asks for unescaped JSON and the period that reaches back past the window", async () => {
+    const fake = fakeFetch({ [source.feed_url as string]: listing() });
+    await fetchReddit(source, window("2026-10-04T00:00:00Z"), makeDeps(fake));
+    const url = new URL(fake.calls[0] ?? "");
+    expect(url.searchParams.get("raw_json")).toBe("1");
+    expect(url.searchParams.get("t")).toBe("week");
+    const wide = fakeFetch({ [source.feed_url as string]: listing() });
+    await fetchReddit(source, WIDE, makeDeps(wide));
+    expect(new URL(wide.calls[0] ?? "").searchParams.get("t")).toBe("year");
+  });
+
+  it("sees a post that crossed the floor after the last fetch, once, and one link posted twice", async () => {
+    const deps = makeDeps(
+      fakeFetch({
+        [source.feed_url as string]: listing(
+          // Made 12 hours before the window opened, voted up since.
+          post({
+            title: "Late riser",
+            url: "https://example.com/late",
+            created_utc: Date.parse("2026-10-04T12:00:00Z") / 1000,
+          }),
+          post({ title: "Same link, more votes", score: 900, num_comments: 300 }),
+          post({
+            title: "Same link, fewer votes",
+            score: 60,
+            url: "https://example.com/a?utm_source=reddit",
+          }),
+        ),
+      }),
+    );
+    const items = await fetchReddit(source, window("2026-10-05T00:00:00Z"), deps);
+    expect(items.map((item) => item.title).sort()).toEqual(["Late riser", "Same link, more votes"]);
+    expect(items.find((item) => item.title.startsWith("Same"))?.signals).toEqual({
+      reddit_score: 900,
+      reddit_comments: 300,
+    });
+  });
+
+  it("keeps an in-window repost when a more voted one of the same link is out of the window", async () => {
+    const deps = makeDeps(
+      fakeFetch({
+        [source.feed_url as string]: listing(
+          post({
+            title: "Old repost",
+            score: 2000,
+            created_utc: Date.parse("2026-09-01T00:00:00Z") / 1000,
+          }),
+          post({ title: "Fresh repost", score: 80 }),
+        ),
+      }),
+    );
+    const items = await fetchReddit(source, window("2026-10-05T00:00:00Z"), deps);
+    expect(items.map((item) => item.title)).toEqual(["Fresh repost"]);
+  });
+
+  it("sends Reddit's own media to its thread, and other links to the page", async () => {
+    const deps = makeDeps(
+      fakeFetch({
+        [source.feed_url as string]: listing(
+          post({
+            title: "Picture",
+            url: "https://i.redd.it/abc.png",
+            permalink: "/r/LocalLLaMA/comments/img/picture/",
+          }),
+          post({ title: "Article", url: "https://example.com/article" }),
+        ),
+      }),
+    );
+    const items = await fetchReddit(source, WIDE, deps);
+    expect(items.find((item) => item.title === "Picture")?.url).toBe(
+      "https://www.reddit.com/r/LocalLLaMA/comments/img/picture/",
+    );
+    expect(items.find((item) => item.title === "Article")?.url).toBe("https://example.com/article");
+  });
+
+  it("keeps a text post's full text as content", async () => {
+    const text = "A long self post about springs. ".repeat(20);
+    const deps = makeDeps(
+      fakeFetch({
+        [source.feed_url as string]: listing(
+          post({ is_self: true, selftext: text, permalink: "/r/LocalLLaMA/comments/zzz/long/" }),
+        ),
+      }),
+    );
+    const [item] = await fetchReddit(source, WIDE, deps);
+    expect(item?.content).toBe(text.trim());
+  });
+
+  it("fails on an unexpected shape, and without a subreddit", async () => {
+    const deps = makeDeps(fakeFetch({ [source.feed_url as string]: '{"message":"Blocked"}' }));
+    await expect(fetchReddit(source, WIDE, deps)).rejects.toThrow(/unexpected Reddit response/);
+    await expect(fetchReddit({ ...source, options: {} }, WIDE, deps)).rejects.toThrow(/subreddit/);
   });
 });
 

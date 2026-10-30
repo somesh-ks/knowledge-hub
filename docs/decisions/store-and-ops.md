@@ -212,3 +212,12 @@ Where data lives (Postgres, Blob, git), config, health, analytics, deploys, acce
 - Cost: a run started on another device, or by the schedule, can no longer be stopped from the queue; stop it from GitHub Actions. Clearing site data drops the tokens.
 - Revisit if: the owner wants Cancel on every device (add the admin session as a second key), or OAuth lands (D201).
 - Amends: D201 (the one open write that now has a key), D208 (Cancel was open to anyone with the URL).
+
+## D247: health warns at 70 Vercel deployments in 24 hours
+
+- Date: 2026-10-30 (the owner approved with "yup" after the 2026-10-29 cap).
+- Decision: `singularity health` counts the account's Vercel deployments of the last 24 hours (`GET /v6/deployments?since=`, up to 500) with `VERCEL_TOKEN` and warns `deploy_rate` at 70; a count that did not read warns `deploy_rate_unread`. No token, no check. `health.yml` passes the existing `VERCEL_TOKEN` secret (audio.yml's). A warning only, so the daily `health` issue is not opened for it.
+- Why: Hobby refuses every deploy at 100 in a rolling 24 hours, cancelled and ignored builds counted, for all projects together. On 2026-10-29 admin built every agent branch (101 in a day against the reader's 42) and the reader's production stayed on its 23:16 build for the next day. Nothing warned first, and `site_behind` only faults a day after the fact. Seventy leaves a day to find the cause.
+- Rejected: counting GitHub's deployments list (it showed 5 admin previews against Vercel's 101); a fault at 100 (production is already down by then); a daily batched deploy (a fix would wait up to a day and a bad deploy could not be traced to one PR).
+- Revisit if: main-only deploys alone pass about 80 a day (batch hourly, not daily), or the plan changes from Hobby.
+- Amends: D159 (deploys that fail silently).

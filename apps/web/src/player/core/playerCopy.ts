@@ -1,4 +1,4 @@
-import { FORMAT_LABELS } from "../../lib/formatLabels";
+import { CATCH_UP_LABEL } from "../../lib/formatLabels";
 import type { PlayerDigestData } from "../../types/contracts";
 import type { PlayerError, PlayerErrorKind, PlayerState } from "./playerTypes";
 import { briefingLengthLabel } from "./readerMath";
@@ -20,17 +20,14 @@ export function recordingCaption(
 
 /**
  * The word the Library puts first on its card for the same recording: Daily or Weekly for a
- * briefing, the episode's format (Readout, Discussion) for an episode, Episode for one that does
- * not say.
+ * briefing, Catch up for everything made on request, an episode or a briefing run on demand. The
+ * episode's format (Readout, Discussion) is a choice inside a Catch up and is not named here.
  */
 export function recordingKind(digest: PlayerDigestData): string {
-  const format = digest.format;
-  if (format && Object.hasOwn(FORMAT_LABELS, format)) return FORMAT_LABELS[format];
-  // An episode carries its script; a briefing does not.
-  if (digest.turns)
-    return digest.turns.some((turn) => turn.speaker === "b") ? "Discussion" : "Episode";
+  // An episode carries its script and its format; a briefing carries neither.
+  if (digest.format || digest.turns) return CATCH_UP_LABEL;
   if (digest.kind === "weekly") return "Weekly";
-  return digest.kind === "on-demand" ? "Episode" : "Daily";
+  return digest.kind === "on-demand" ? CATCH_UP_LABEL : "Daily";
 }
 
 /** One short line for the mini player, where the full message would not fit. */

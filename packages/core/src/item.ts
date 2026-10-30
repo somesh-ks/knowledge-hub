@@ -12,6 +12,7 @@ export const SOURCE_TYPES = [
   "arxiv",
   "lobsters",
   "producthunt",
+  "reddit",
 ] as const;
 export const SourceType = z.enum(SOURCE_TYPES);
 export type SourceType = z.infer<typeof SourceType>;
@@ -37,6 +38,9 @@ export const Item = z.object({
       hn_points: z.number().int().nonnegative().optional(),
       hn_comments: z.number().int().nonnegative().optional(),
       lobsters_score: z.number().int().optional(),
+      /** Reddit post score and comment count, when a Reddit source fetched the story (D240). */
+      reddit_score: z.number().int().optional(),
+      reddit_comments: z.number().int().nonnegative().optional(),
       /** Views on a YouTube video when its channel feed was read. */
       youtube_views: z.number().int().nonnegative().optional(),
       /**

@@ -21,6 +21,12 @@ import {
   NO_AUTHORITY,
   withAuthority,
 } from "../authority/authority.js";
+import {
+  type CommunityFile,
+  communityShadow,
+  loadCommunity,
+  withCommunity,
+} from "../community/community.js";
 import type { ApiRuntime } from "../curate/apiRuntime.js";
 import {
   loadPool,
@@ -110,6 +116,10 @@ interface PassContext {
   authority: AuthorityMatcher;
   /** The list read as if on while it is off, to log what it would add; finds nothing otherwise. */
   authorityShadow: AuthorityMatcher;
+  /** What the community voted up (D240): lifts nothing while the file is off. */
+  community: CommunityFile;
+  /** The same file read as if on while it is off, to log what it would add; undefined otherwise. */
+  communityShadow: CommunityFile | undefined;
   /** Enabled custom topics, scored against the fits the judge stage recorded. */
   customTopics: ReturnType<typeof activeFitTopics>;
   /** Sections a scheduled regular briefing covers; null for every section and for other modes. */
@@ -168,6 +178,7 @@ export async function writeStage(
   const fullSchedule = await loadSchedule(deps.root);
   const schedule = plan.mode === "scheduled" ? fullSchedule : null;
   const authorityFile = await loadAuthority(deps.root);
+  const communityFile = await loadCommunity(deps.root);
   const context: PassContext = {
     deps,
     runtime,
@@ -177,6 +188,8 @@ export async function writeStage(
     sourceFacts: sourceFactsMap(sources),
     authority: authorityMatcher(authorityFile),
     authorityShadow: authorityShadowMatcher(authorityFile),
+    community: communityFile,
+    communityShadow: communityShadow(communityFile),
     customTopics: activeFitTopics(topics),
     offCategories: offCategories(topics),
     skipTopics: schedule?.skip_topics ?? [],
@@ -275,6 +288,7 @@ async function writePass(
   };
   const base: ScoredItem[] = [];
   const shadowHits: string[] = [];
+  const communityHits: string[] = [];
   for (const entry of judged.entries) {
     const item = byId.get(entry.item_id);
     if (!item) continue;
@@ -292,15 +306,22 @@ async function writePass(
         sourceStats,
         sourceShifted,
       );
-    const final = adjusted(withAuthority(topical, context.authority));
+    // Each list is also read as if on while it is off, one at a time, against the live other.
+    const lifted = (authority: AuthorityMatcher, community: CommunityFile): ScoredItem =>
+      adjusted(withCommunity(withAuthority(topical, authority), community));
+    const final = lifted(context.authority, context.community);
     base.push(final);
-    if (context.authorityShadow !== NO_AUTHORITY) {
-      const withList = adjusted(withAuthority(topical, context.authorityShadow));
-      if (
-        eligibility(withList, undefined, off).eligible &&
-        !eligibility(final, undefined, off).eligible
-      ) {
-        shadowHits.push(`${item.source_id}: ${item.title} (${final.score} to ${withList.score})`);
+    const passes = (scored: ScoredItem): boolean => eligibility(scored, undefined, off).eligible;
+    const note = (withList: ScoredItem): string =>
+      `${item.source_id}: ${item.title} (${final.score} to ${withList.score})`;
+    if (!passes(final)) {
+      if (context.authorityShadow !== NO_AUTHORITY) {
+        const withList = lifted(context.authorityShadow, context.community);
+        if (passes(withList)) shadowHits.push(note(withList));
+      }
+      if (context.communityShadow) {
+        const withList = lifted(context.authority, context.communityShadow);
+        if (passes(withList)) communityHits.push(note(withList));
       }
     }
   }
@@ -309,6 +330,13 @@ async function writePass(
       pass: pass.id,
       count: shadowHits.length,
       stories: shadowHits.slice(0, 10),
+    });
+  }
+  if (communityHits.length > 0) {
+    deps.log.info("community lift is off; of the pool, these would pass the bar with it on", {
+      pass: pass.id,
+      count: communityHits.length,
+      stories: communityHits.slice(0, 10),
     });
   }
   // Jev's taste check, for the strongest candidates only: the change matters near the cut.
@@ -414,6 +442,7 @@ async function writePass(
         preferences,
         offCategories: off,
         authority: context.authority,
+        community: context.community,
       })
     : {};
   await writeJson(file("source-counts.json"), {

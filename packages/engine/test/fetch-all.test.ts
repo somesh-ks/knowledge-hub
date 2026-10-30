@@ -258,6 +258,7 @@ describe("fetchAll", () => {
       "hn",
       "lobsters",
       "producthunt",
+      "reddit",
       "rss",
       "youtube",
     ]);
