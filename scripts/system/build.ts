@@ -109,11 +109,16 @@ export function classTokens(text: string): Set<string> {
   return found;
 }
 
+/** The apps that draw the system's parts: the reader and the command center, which imports its sheets. */
+const APP_SOURCES = [SRC, join(ROOT, "apps/admin/src")];
+
 export function sourceFiles(): { path: string; text: string; tokens: Set<string> }[] {
-  return filesUnder(
-    SRC,
-    [".astro", ".tsx", ".ts", ".js"],
-    (path) => path.endsWith(".test.ts") || posix(path).includes("/pages/design/"),
+  return APP_SOURCES.flatMap((dir) =>
+    filesUnder(
+      dir,
+      [".astro", ".tsx", ".ts", ".js"],
+      (path) => path.endsWith(".test.ts") || posix(path).includes("/pages/design/"),
+    ),
   ).map((path) => {
     const text = readFileSync(path, "utf8");
     return { path, text, tokens: classTokens(text) };
