@@ -78,6 +78,15 @@ export function resetContentRepo(): void {
   savedContent = false;
 }
 
+/**
+ * Makes the next read fetch the manifest, however recently it was read. The held site stays: it is
+ * reloaded only if the store's manifest has changed, so this costs one small read, not a reload.
+ * For a request that names content this instance may not have seen yet (a cover, D258).
+ */
+export function expireContentManifest(): void {
+  if (heldManifest) heldManifest = { ...heldManifest, at: Number.NEGATIVE_INFINITY };
+}
+
 /** Deleted episodes the manifest may still list (tombstones.ts), read at most once per window. */
 function currentTombstones(base: string, deps: ContentRepoDeps): Promise<ReadonlySet<string>> {
   if (heldTombstones && deps.now() - heldTombstones.at < MANIFEST_TTL_MS) return heldTombstones.ids;

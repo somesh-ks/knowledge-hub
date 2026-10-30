@@ -5,7 +5,7 @@ import { FONT_FILE_BASENAMES, setFontDirectory } from "@singularity/cover";
 import type { APIRoute, GetStaticPaths } from "astro";
 import { coverPng, coverWebp } from "../../../lib/covers";
 import { findRepoRoot } from "../../../lib/repoRoot";
-import { loadStoreSite, resetContentRepo } from "../../../server/contentRepo";
+import { expireContentManifest, loadStoreSite } from "../../../server/contentRepo";
 import {
   type CoverResolution,
   coverCacheHeaders,
@@ -41,6 +41,10 @@ function loadShippedFonts(): void {
 
 const CACHE = { cacheDir: join(tmpdir(), "singularity-covers"), fingerprint: "function" };
 
+/** At most one extra manifest read this often per instance, so junk addresses cost a bounded few reads. */
+const MIN_REFRESH_MS = 5_000;
+let lastRefresh = Number.NEGATIVE_INFINITY;
+
 const BEHIND_HEADERS = { "Cache-Control": "no-store", "Retry-After": "5" } as const;
 
 export const GET: APIRoute = async ({ params }) => {
@@ -63,11 +67,14 @@ export const GET: APIRoute = async ({ params }) => {
       : { kind: "missing" };
     if (resolution.kind !== "draw") {
       // A page is drawn from the store's newest manifest, and this instance may hold an older one
-      // for up to its window. The CDN keeps whatever is answered here, so read the store once more
-      // before saying a cover is missing or behind.
-      resetContentRepo();
-      site = await load();
-      resolution = site ? resolveCover(site, request.id, split.version) : { kind: "missing" };
+      // for up to its window. The CDN keeps whatever is answered here, so read the manifest once
+      // more before saying a cover is missing or behind. The held site reloads only if it changed.
+      if (Date.now() - lastRefresh >= MIN_REFRESH_MS) {
+        lastRefresh = Date.now();
+        expireContentManifest();
+        site = await load();
+        resolution = site ? resolveCover(site, request.id, split.version) : { kind: "missing" };
+      }
     }
     if (resolution.kind === "missing") {
       return new Response("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
