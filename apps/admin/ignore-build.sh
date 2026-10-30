@@ -11,6 +11,7 @@ git diff --quiet "$VERCEL_GIT_PREVIOUS_SHA" HEAD -- \
   ../../tokens \
   ../web/src/styles \
   ../web/src/components \
+  ../web/src/design-system \
   ../web/src/assets \
   ../web/src/lib/icons.ts \
   ../web/src/lib/brandMarks.ts \
