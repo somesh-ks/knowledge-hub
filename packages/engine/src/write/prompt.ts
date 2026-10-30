@@ -166,6 +166,7 @@ export function rewriteUserMessage(request: RewriteRequest, boundary: string): s
     ...(focus.length > 0
       ? ["Passages the problems refer to:", wrapUntrusted(focus.join("\n"), boundary, "passages")]
       : []),
+    ...videoNote([request.material]),
     "",
     "Source:",
     materialBlock(request.material, boundary),
