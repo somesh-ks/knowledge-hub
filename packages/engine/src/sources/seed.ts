@@ -139,8 +139,6 @@ export const YOUTUBE_SEED: readonly {
  * Sources that are APIs rather than pages. Crossref ISSNs were checked against Crossref's journal
  * registry: TOCHI is 1073-0516 (print) and 1557-7325 (electronic); PACMHCI is 2573-0142.
  */
-const REDDIT_OFF = "Off until a run shows Reddit lets a runner in (D240).";
-
 export const API_SEED: readonly Draft[] = [
   api({
     id: "hn-show",
@@ -182,79 +180,6 @@ export const API_SEED: readonly Draft[] = [
       min_points: "30",
       query: "design CSS UI UX typography animation Figma",
     },
-  }),
-  // Reddit threads: the community's own signal (D240). Off until a run shows Reddit lets a runner in.
-  api({
-    id: "reddit-localllama",
-    name: "Reddit: r/LocalLLaMA",
-    type: "reddit",
-    url: "https://www.reddit.com/r/LocalLLaMA",
-    feed_url: "https://www.reddit.com/r/LocalLLaMA/top.json",
-    tier: "daily",
-    high_signal: false,
-    category_hint: "frontier_model_releases",
-    enabled: false,
-    options: { note: REDDIT_OFF, subreddit: "LocalLLaMA", min_score: "50" },
-  }),
-  api({
-    id: "reddit-claudeai",
-    name: "Reddit: r/ClaudeAI",
-    type: "reddit",
-    url: "https://www.reddit.com/r/ClaudeAI",
-    feed_url: "https://www.reddit.com/r/ClaudeAI/top.json",
-    tier: "daily",
-    high_signal: false,
-    category_hint: "frontier_model_releases",
-    enabled: false,
-    options: { note: REDDIT_OFF, subreddit: "ClaudeAI", min_score: "50" },
-  }),
-  api({
-    id: "reddit-webdev",
-    name: "Reddit: r/webdev",
-    type: "reddit",
-    url: "https://www.reddit.com/r/webdev",
-    feed_url: "https://www.reddit.com/r/webdev/top.json",
-    tier: "daily",
-    high_signal: false,
-    category_hint: "software_engineering_depth",
-    enabled: false,
-    options: { note: REDDIT_OFF, subreddit: "webdev", min_score: "100" },
-  }),
-  api({
-    id: "reddit-css",
-    name: "Reddit: r/css",
-    type: "reddit",
-    url: "https://www.reddit.com/r/css",
-    feed_url: "https://www.reddit.com/r/css/top.json",
-    tier: "daily",
-    high_signal: false,
-    category_hint: "css_canvas_motion_techniques",
-    enabled: false,
-    options: { note: REDDIT_OFF, subreddit: "css", min_score: "50" },
-  }),
-  api({
-    id: "reddit-uxdesign",
-    name: "Reddit: r/UXDesign",
-    type: "reddit",
-    url: "https://www.reddit.com/r/UXDesign",
-    feed_url: "https://www.reddit.com/r/UXDesign/top.json",
-    tier: "daily",
-    high_signal: false,
-    category_hint: "design_engineering_craft",
-    enabled: false,
-    options: { note: REDDIT_OFF, subreddit: "UXDesign", min_score: "30" },
-  }),
-  api({
-    id: "reddit-web-design",
-    name: "Reddit: r/web_design",
-    type: "reddit",
-    url: "https://www.reddit.com/r/web_design",
-    feed_url: "https://www.reddit.com/r/web_design/top.json",
-    tier: "daily",
-    high_signal: false,
-    category_hint: "design_engineering_craft",
-    enabled: false,
-    options: { note: REDDIT_OFF, subreddit: "web_design", min_score: "30" },
   }),
   api({
     id: "arxiv-cs-hc",
