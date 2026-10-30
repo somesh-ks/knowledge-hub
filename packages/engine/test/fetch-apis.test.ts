@@ -214,6 +214,23 @@ describe("fetchReddit", () => {
     });
   });
 
+  it("keeps an in-window repost when a more voted one of the same link is out of the window", async () => {
+    const deps = makeDeps(
+      fakeFetch({
+        [source.feed_url as string]: listing(
+          post({
+            title: "Old repost",
+            score: 2000,
+            created_utc: Date.parse("2026-09-01T00:00:00Z") / 1000,
+          }),
+          post({ title: "Fresh repost", score: 80 }),
+        ),
+      }),
+    );
+    const items = await fetchReddit(source, window("2026-10-05T00:00:00Z"), deps);
+    expect(items.map((item) => item.title)).toEqual(["Fresh repost"]);
+  });
+
   it("sends Reddit's own media to its thread, and other links to the page", async () => {
     const deps = makeDeps(
       fakeFetch({

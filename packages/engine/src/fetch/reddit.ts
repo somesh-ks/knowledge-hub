@@ -70,7 +70,9 @@ export const fetchReddit: SourceFetcher = async (source, window, deps): Promise<
   );
   if (!body.success) throw new Error("unexpected Reddit response shape");
 
-  // One URL posted twice in a subreddit is one story: keep the more voted post, not both.
+  const context = { source, window: reach, fetchedAt: deps.now() };
+  // One URL posted twice in a subreddit is one story: keep the more voted post, not both. A post
+  // outside the window cannot win, or it would take the place of a repost that is inside it.
   const byUrl = new Map<string, RawItem>();
   for (const child of body.data.data.children) {
     const post = Post.safeParse(child.data);
@@ -82,7 +84,7 @@ export const fetchReddit: SourceFetcher = async (source, window, deps): Promise<
     const target = post.data.is_self || !url || hostedOnReddit(url) ? discussion : url;
     const kept = byUrl.get(target);
     if (kept && (kept.signals?.reddit_score ?? 0) >= score) continue;
-    byUrl.set(target, {
+    const candidate: RawItem = {
       // A text post, or a link to Reddit's own media, goes to its thread; any other link to the page it shares.
       url: target,
       title,
@@ -97,11 +99,8 @@ export const fetchReddit: SourceFetcher = async (source, window, deps): Promise<
           ? { reddit_comments: Math.max(0, Math.trunc(num_comments)) }
           : {}),
       },
-    });
+    };
+    if (buildItems([candidate], context).length > 0) byUrl.set(target, candidate);
   }
-  return buildItems([...byUrl.values()], {
-    source,
-    window: reach,
-    fetchedAt: deps.now(),
-  });
+  return buildItems([...byUrl.values()], context);
 };
