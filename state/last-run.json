@@ -1,15 +1,16 @@
 {
   "version": 1,
   "last_cover": {
-    "palette": "oxblood",
-    "template": "spring"
+    "palette": "sea-lingonberry",
+    "template": "contour"
   },
   "last_fetch_at": "2026-10-29T04:20:37.380Z",
   "on_demand": {
-    "at": "2026-10-28T08:42:07.787Z",
-    "generated_at": "2026-10-28T08:42:07.787Z",
-    "items": 0,
-    "outcome": "nothing"
+    "at": "2026-10-29T23:29:53.764Z",
+    "digest_id": "2026-10-27",
+    "generated_at": "2026-10-29T23:29:53.733Z",
+    "items": 13,
+    "outcome": "published"
   },
   "regular": {
     "at": "2026-10-29T05:57:00.316Z",
@@ -19,31 +20,15 @@
     "outcome": "published"
   },
   "spend": {
-    "at": "2026-10-29T05:57:00.316Z",
+    "at": "2026-10-29T23:29:53.764Z",
     "firecrawl_rate_limited": 0,
-    "firecrawl_skipped": [
-      "jhey-tompkins",
-      "lee-robinson",
-      "material-design-blog",
-      "meta-ai-blog",
-      "rauno-freiberg",
-      "the-batch",
-      "toools-newsletter",
-      "xai-blog",
-      "anthropic-blog",
-      "better-stack-blog",
-      "brutalist-report",
-      "bytes",
-      "codrops",
-      "darkroom-engineering",
-      "emil-kowalski"
-    ],
+    "firecrawl_skipped": [],
     "requests": {
-      "anthropic": 13,
+      "anthropic": 9,
       "exa": 14,
-      "firecrawl_listing": 0,
-      "firecrawl_scrape": 0,
-      "jev": 515
+      "firecrawl_listing": 15,
+      "firecrawl_scrape": 8,
+      "jev": 686
     }
   },
   "weekly": {

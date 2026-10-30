@@ -74,7 +74,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D51 | Settings is two levels and saves itself; every select opens one drawn list | active; the Custom page superseded by D56 |
 | D52 | On a phone the Create button floats only on Today and the Library, extended until you scroll | superseded by D60: Create floats on the Library alone |
 | D53 | First-load JavaScript budget 110 KB, kept as low as the code allows | active |
-| D54 | Form fields carry a 3:1 outline; in the player only Play is in full ink | active for text fields; selects, segmented controls and chips are tonal since D72 |
+| D54 | Form fields carry a 3:1 outline; in the player only Play is in full ink | active for text fields (ink: D238); selects, segmented controls and chips are tonal since D72 |
 | D55 | A source's score is out of 3: health, quality and trust, combined so a weak part cannot be bought back | active; shown as a word, not pips and a number, since D83 |
 | D56 | One panel adds a topic or a source and edits a source; no Custom page | active |
 | D57 | A topic's page edits its details and adds the sources that suit it; topics are listed by name | active; amended by D64 and D69 |
@@ -136,8 +136,8 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D113 | Claude Sonnet 5.5 is the default writer for the page and the engine; the Model list has no Default row; Nebius starts on GLM-5.3 | active; amends D46, D106 |
 | D114 | Every episode is written for the owner: General audience retired; New episode form is Title, Topics, Length, Look back, with Format, Voice, Tone under More | active; amends D39, D67, D76, D101 |
 | D115 | Settings save quietly: no toast while a change saves or once it is saved; the toast is for a failure, an Undo or a partial save | active; amends D79, D91, D98 |
-| D116 | docs/ is grouped by purpose: the record on top, plan/, engineering/, design/, reference/; audits fold into history notes; docs/README.md maps it | active; amends D14 |
-| D117 | The Model picker reads Anthropic's and Nebius's lists live, cached five minutes; a Claude model past the built-in two saves only if Anthropic lists it | active; amends D46, D58 |
+| D116 | docs/ is grouped by purpose: the record at the top, plan/, engineering/, design/, reference/; audits fold into their history notes; docs/README.md maps it all | active; amends D14 |
+| D117 | Model picker: Anthropic, Nebius lists live (5 min cache); a Claude beyond the built-in two saves only if Anthropic lists it | active; amends D46, D58 |
 | D118 | Jev 1.14.0 is pinned; Jev checks the strongest candidates against the owner's taste (votes, opens), replacing the vote nudge, within 15% | active; amends D3, D108 |
 | D119 | A briefing sized by the owner's length writes 30% spares; validation airs the best survivors until measured narration fills the length, each topic's best kept | active |
 | D120 | Science takes a one-outlet story that is clearly on topic; the other general topics keep the two-outlet rule | active; amends D40, D43 |
@@ -250,6 +250,8 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D233 | Ingest in shadow: free sources, Blob text | active |
 | D234 | Vetted publishers pass the bar; topic rubric | active |
 | D237 | Controls are components; design-system PRs apart | amends D189 |
+| D238 | Ten-step OKLCH ramps | active |
 | D239 | A travelling device is offered the new zone | active; amends D100 |
+| D241 | No Weekly-only blocks | amends D170 |
 
 ---

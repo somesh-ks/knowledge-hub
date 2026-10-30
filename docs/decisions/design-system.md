@@ -304,3 +304,14 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Why: the guide's hand-written specs copied the app's markup and could drift; 25 classes drew 7 controls under names taken from where each first appeared (`btn-primary`, `source-link`).
 - Rejected: renaming the guide's pages only (parity would stay a promise); one PR for every family (a taste change in one hides in the rest); a new required status check (it would block every PR that does not touch the system).
 - Next: Icon button, FAB (with `btn-action-tonal`, the Catch up colour), Chip, Link (`source-link`, `run-link`, `text-link`).
+
+## D238: every color ramp is ten steps on one OKLCH curve
+
+- Date: 2026-10-29 (the owner: "certain colors only have limited shades and blue and gray have so many ... only 10 shades per color ... a color theme generation curve that we respect, linked to OKLCH").
+- Decision: each ramp (grey, blue, green, amber, red) has steps 50 to 900 and is a hue plus a peak chroma. Lightness follows one shared curve (98 to 25, a straight line with 35% S-curve), chroma a bell over lightness, capped at the sRGB gamut. `scripts/colorRamp.ts` derives the values, `npx tsx scripts/colorRamp.ts` writes them into `tokens/tokens.json`, and a test re-derives them. Grey is the blue hue at 0.011 chroma.
+- Surfaces are not steps: ten steps sit 8 points apart and elevation reads at 2 to 5. They are `primitive.color.elevation.*`, the page step (grey-50 light, grey-900 dark) moved by small lightness offsets (owner pick, "Offsets from the ramp"). White stays the raised surface in light.
+- Why: 14 hand-picked blues, 16 greys and 4 of each status color meant new hues were guesses and "600" meant different things. One curve makes a step number mean the same lightness, and so the same contrast, in every hue.
+- Visible change: light accent is blue-600 (L 53 to 48), hover and press one step deeper; the dark selected container is blue-800 and shares a step with the quiet tint, with a little more chroma than the hand-tuned ones; muted and subtle text share a step. Every contrast test passes unedited.
+- Rejected: hand-snapping the old values to ten steps (keeps the guesswork); surfaces as ramp steps (flattens dark elevation).
+- Context changed: D54's disabled-ink refinement (grey-650) is replaced, as grey-650 is not a step; its text-field outline ruling stands. Disabled ink now sits 2.07:1 from muted in dark (was 2.37) and 2.17 in light (was 2.29), still clear of the 1.67 that read as enabled.
+- Revisit if: a color needs a role between two steps. Add a role offset, not an 11th step.
