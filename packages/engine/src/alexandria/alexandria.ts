@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Item } from "@singularity/core";
 import { z } from "zod";
+import { EXPERIMENT_IDS, experimentOverride } from "../experiments/overrides.js";
 import { FEED_TEXT_ENOUGH_CHARS } from "../extract/extractText.js";
 import type { FirecrawlGuard } from "../fetch/firecrawlBudget.js";
 import { contentTokens } from "../validate/excerpt.js";
@@ -28,6 +29,13 @@ export type AlexandriaConfig = z.infer<typeof AlexandriaConfig>;
 export const ALEXANDRIA_CONFIG_FILE = "config/alexandria.json";
 
 export async function loadAlexandriaConfig(root: string): Promise<AlexandriaConfig> {
+  const config = await readAlexandriaConfig(root);
+  // The owner's switch in the admin app wins over the file (experiments/overrides.ts).
+  const enabled = await experimentOverride(root, EXPERIMENT_IDS.alexandria);
+  return enabled === undefined ? config : { ...config, enabled };
+}
+
+async function readAlexandriaConfig(root: string): Promise<AlexandriaConfig> {
   try {
     const raw = await readFile(join(root, ALEXANDRIA_CONFIG_FILE), "utf8");
     const parsed = AlexandriaConfig.safeParse(JSON.parse(raw));

@@ -12,6 +12,7 @@ import {
   redact,
   secretsFromEnv,
 } from "./context.js";
+import { cacheExperimentFlags, writeExperimentFlagCache } from "./experiments/overrides.js";
 import { configBase } from "./git/configBase.js";
 import { createGitRunner } from "./git/runGit.js";
 import {
@@ -242,6 +243,8 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
       err("singularity: .cache/config-store.json cannot be removed; remove it, then run again.\n");
       return 1;
     }
+    // Switches saved by an earlier run on this machine must not outlive the store they came from.
+    if (storeUrl === null) await writeExperimentFlagCache(root, null).catch(() => {});
     if (storeUrl !== null && noted) {
       try {
         const sql = await (io.connectConfigStore ?? connectConfigStore)(storeUrl);
@@ -249,6 +252,7 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
         const changed = await hydrateConfig(root, sql, log, base ?? undefined);
         log.info(`config store: ${changed.length === 0 ? "files current" : changed.join(", ")}`);
         await markCopiedFromStore(root, true, true);
+        await cacheExperimentFlags(root, sql, log);
       } catch (error) {
         // Either copy would lose an edit, so the run stops here, before it spends anything, and its
         // failure record must not carry the unsynced files as a snapshot.

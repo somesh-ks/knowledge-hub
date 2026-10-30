@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Category, type Item, type Topic } from "@singularity/core";
 import { z } from "zod";
+import { EXPERIMENT_IDS, experimentOverride } from "../experiments/overrides.js";
 import type { ExaQuery } from "../fetch/queries.js";
 import { clamp01, round4 } from "../score/numbers.js";
 import { craftFactor, penaltyFactor } from "../score/scoreItem.js";
@@ -43,6 +44,13 @@ export function parseTrustedPublishers(json: unknown): TrustedPublishersFile {
 
 /** Missing file means no trusted publishers list, not an error. */
 export async function loadTrustedPublishers(root: string): Promise<TrustedPublishersFile> {
+  const file = await readTrustedPublishers(root);
+  // The owner's switch in the admin app wins over the file (experiments/overrides.ts).
+  const enabled = await experimentOverride(root, EXPERIMENT_IDS.trustedPublishers);
+  return enabled === undefined ? file : { ...file, enabled };
+}
+
+async function readTrustedPublishers(root: string): Promise<TrustedPublishersFile> {
   let text: string;
   try {
     text = await readFile(join(root, TRUSTED_PUBLISHERS_PATH), "utf8");
