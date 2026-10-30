@@ -5,13 +5,13 @@ Updated 2026-10-30. Rewrite, never append. [Specs](specs/README.md), [decisions]
 ## Working
 
 - Engine live end to end (fetch, judge, write, validate, commit): [engine](specs/engine.md). A run that loses stories or races a push degrades, not fails, and records health (D204): [resilience](engineering/generation-resilience.md), [metrics](engineering/metrics.md).
-- Reader (Latest, Library, Catch up, Settings, `/design`): [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
+- Reader (Latest, Library, Catch up, Settings, `/design`): [library](specs/library.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
 - Player as one surface: transcript with word light, chapters in the bar, queue with Up next (D126): [player](specs/player.md).
 - Narration on Play, per story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes; Opus, MP3 fallback (D198): [narration](specs/narration.md), [create](specs/create.md).
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up are followed in the podcast queue, each with Cancel; ended runs stay for the day (D204, D231).
 - Saved copies, offline shell, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merge by hand (D143).
-- Tooling: subagents, `/close-session` ([roster](history/2026-10-08-subagent-roster.md)); `npm run ds` (D236)
+- Tooling: subagents, `/close-session`; `npm run ds` (D236)
 
 ## Tests
 
