@@ -19,6 +19,12 @@
   transition: background-color var(--duration-state) var(--ease-out);
 }
 
+/* A switch that cannot be flipped reads as such. A disabled fieldset dims it the same way (manage.css), on the same element, so the two never stack. */
+.switch-input:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
 /* The track is 32px tall; its target is 44px. */
 .switch-input::after {
   content: "";
