@@ -1,0 +1,114 @@
+{
+  "digest": "2026-10-30",
+  "voice": "geffen_32",
+  "model": "simba-3.2",
+  "timeline": "marks",
+  "duration_ms": 298887,
+  "text_chars": 5283,
+  "items": [
+    {
+      "id": "af62b90bdf5c",
+      "section": "top",
+      "start_ms": 8439,
+      "end_ms": 34167
+    },
+    {
+      "id": "f27f16d814f0",
+      "section": "top",
+      "start_ms": 34167,
+      "end_ms": 56908
+    },
+    {
+      "id": "d4927bf863d6",
+      "section": "top",
+      "start_ms": 56908,
+      "end_ms": 80503
+    },
+    {
+      "id": "feac7a33f772",
+      "section": "ui-craft",
+      "start_ms": 80503,
+      "end_ms": 104614
+    },
+    {
+      "id": "bf5aaab63512",
+      "section": "software",
+      "start_ms": 104614,
+      "end_ms": 131670
+    },
+    {
+      "id": "4e2c9c66b20a",
+      "section": "ai",
+      "start_ms": 131670,
+      "end_ms": 154156
+    },
+    {
+      "id": "58bdc6b4d610",
+      "section": "ai",
+      "start_ms": 154156,
+      "end_ms": 178306
+    },
+    {
+      "id": "2970e7b6eee4",
+      "section": "tech",
+      "start_ms": 178306,
+      "end_ms": 195927
+    },
+    {
+      "id": "56f4b98d9f80",
+      "section": "tech",
+      "start_ms": 195927,
+      "end_ms": 213120
+    },
+    {
+      "id": "df56a26ce091",
+      "section": "tech",
+      "start_ms": 213120,
+      "end_ms": 231680
+    },
+    {
+      "id": "9e7f82479359",
+      "section": "tech",
+      "start_ms": 231680,
+      "end_ms": 248575
+    },
+    {
+      "id": "18a7220d810d",
+      "section": "tech",
+      "start_ms": 248575,
+      "end_ms": 270506
+    },
+    {
+      "id": "ec4647add744",
+      "section": "launches",
+      "start_ms": 270506,
+      "end_ms": 298887
+    }
+  ],
+  "sections": [
+    {
+      "slug": "top",
+      "start_ms": 8439
+    },
+    {
+      "slug": "ui-craft",
+      "start_ms": 78668
+    },
+    {
+      "slug": "software",
+      "start_ms": 102864
+    },
+    {
+      "slug": "ai",
+      "start_ms": 130006
+    },
+    {
+      "slug": "tech",
+      "start_ms": 176684
+    },
+    {
+      "slug": "launches",
+      "start_ms": 269524
+    }
+  ]
+}

@@ -1634,6 +1634,182 @@
       },
       "usd": 0.01411,
       "estimated": true
+    },
+    {
+      "id": "2026-10-30|on_demand|narration|speechify|simba-3.2|owner|e3b21082-93ee-4915-a251-ff588f0c7f4e",
+      "at": "2026-10-30T22:18:09.657Z",
+      "run_id": "2026-10-30",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 5283
+      },
+      "usd": 0.05283
+    },
+    {
+      "id": "ep-20261030-2010|on_demand|narration|speechify|simba-3.2|owner|29fb33b7-9b1f-4256-88c2-f6755b5db9e4",
+      "at": "2026-10-30T22:18:15.508Z",
+      "run_id": "ep-20261030-2010",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 401
+      },
+      "usd": 0.00401
+    },
+    {
+      "id": "ep-20261030-2010|on_demand|narration|speechify|simba-3.2|owner|31825379-37c7-4f49-b482-8f888773cf5e",
+      "at": "2026-10-30T22:18:17.472Z",
+      "run_id": "ep-20261030-2010",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 425
+      },
+      "usd": 0.00425
+    },
+    {
+      "id": "ep-20261030-2010|on_demand|narration|speechify|simba-3.2|owner|e6ae77b6-9d8c-4d1d-a480-54fa6b2fac34",
+      "at": "2026-10-30T22:18:19.507Z",
+      "run_id": "ep-20261030-2010",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 417
+      },
+      "usd": 0.00417
+    },
+    {
+      "id": "ep-20261030-2010|on_demand|narration|speechify|simba-3.2|owner|c369e9de-e800-4e36-936e-114e890183a2",
+      "at": "2026-10-30T22:18:21.323Z",
+      "run_id": "ep-20261030-2010",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 420
+      },
+      "usd": 0.0042
+    },
+    {
+      "id": "ep-20261030-2010|on_demand|narration|speechify|simba-3.2|owner|b27fac27-453b-4e23-b967-7d5ec2be8296",
+      "at": "2026-10-30T22:18:22.801Z",
+      "run_id": "ep-20261030-2010",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 420
+      },
+      "usd": 0.0042
+    },
+    {
+      "id": "ep-20261030-2010|on_demand|narration|speechify|simba-3.2|owner|537809f8-692f-4906-a155-7e493b18555a",
+      "at": "2026-10-30T22:18:24.483Z",
+      "run_id": "ep-20261030-2010",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 406
+      },
+      "usd": 0.00406
+    },
+    {
+      "id": "ep-20261030-2010|on_demand|narration|speechify|simba-3.2|owner|2139df96-ad46-42f8-bde2-b358ae4332ce",
+      "at": "2026-10-30T22:18:26.284Z",
+      "run_id": "ep-20261030-2010",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 416
+      },
+      "usd": 0.00416
+    },
+    {
+      "id": "ep-20261030-2010|on_demand|narration|speechify|simba-3.2|owner|7d353578-9630-4312-b575-76fdd507c33c",
+      "at": "2026-10-30T22:18:28.020Z",
+      "run_id": "ep-20261030-2010",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 442
+      },
+      "usd": 0.00442
+    },
+    {
+      "id": "ep-20261030-2010|on_demand|narration|speechify|simba-3.2|owner|21c0f712-2a6b-4167-ac50-03b098e8bd8a",
+      "at": "2026-10-30T22:18:29.884Z",
+      "run_id": "ep-20261030-2010",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 373
+      },
+      "usd": 0.00373
+    },
+    {
+      "id": "ep-20261030-2010|on_demand|narration|speechify|simba-3.2|owner|e99b3e30-cfbb-4fb8-be8b-e42680a44a47",
+      "at": "2026-10-30T22:18:30.496Z",
+      "run_id": "ep-20261030-2010",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 51
+      },
+      "usd": 0.00051
     }
   ]
 }
