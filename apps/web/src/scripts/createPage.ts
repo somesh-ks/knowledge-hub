@@ -1,4 +1,5 @@
 import { track } from "../lib/analytics";
+import { rememberCancelToken } from "../lib/cancelTokens";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import { hasSaved, storeOn } from "../lib/savedKey";
 import type { Voice } from "../lib/voices";
@@ -250,6 +251,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
         return;
       }
       // The request goes with the run, so a failure can send it again (Try again).
+      rememberCancelToken(body.run_id, body.cancel_token);
       startRun(body.run_id, undefined, { body: { request: sent } });
       onStart?.();
     } finally {

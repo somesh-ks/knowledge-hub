@@ -52,7 +52,11 @@ async function follow(page: Page, status: Record<string, unknown> | null = null)
     }),
   );
   await seedStorage(page, {
-    local: { "singularity:run": JSON.stringify({ id: 41, phase: "running", t0: Date.now() }) },
+    local: {
+      "singularity:run": JSON.stringify({ id: 41, phase: "running", t0: Date.now() }),
+      // Runs 41 and 42 were started in this browser (D242); a run without a token is another device's.
+      "singularity:cancel-tokens": JSON.stringify({ "41": "token-41", "42": "token-42" }),
+    },
   });
 }
 
@@ -66,7 +70,7 @@ async function openQueue(page: Page): Promise<void> {
 // the navigation on a phone, a row in the side column that opens a popover on a desktop. It shows only
 // while something is being made (a Catch up or a regeneration), and nothing in a row moves as it goes.
 test.describe("the podcast queue", () => {
-  test("a Catch up on record folds to one row, opens to its rows, and Cancel stops the other device's run only", async ({
+  test("a Catch up on record folds to one row, opens to its rows, and Cancel stops only a run started here", async ({
     page,
   }) => {
     // The weekly's own cover is not in the test site: a one-pixel image answers.
@@ -89,18 +93,21 @@ test.describe("the podcast queue", () => {
         stages: 7,
         stage: 3,
       }),
+      // Another device's run: listed, but this browser holds no token to stop it with.
+      row(43),
     ]);
     await follow(page);
     await page.goto("/library");
     await hydrated(page);
     await openQueue(page);
-    await expect(rows(page)).toHaveCount(2);
+    await expect(rows(page)).toHaveCount(3);
+    await expect(rowOf(page, 43).getByRole("button", { name: /^Cancel/ })).toHaveCount(0);
 
     await rowOf(page, 42)
       .getByRole("button", { name: /^Cancel/ })
       .click();
     await expect.poll(() => cancelled.length).toBe(1);
-    expect(cancelled[0]).toEqual({ run_id: 42 });
+    expect(cancelled[0]).toEqual({ run_id: 42, cancel_token: "token-42" });
     await expect(rowOf(page, 42)).toBeHidden();
     await expect(rowOf(page, 41)).toBeVisible();
   });
