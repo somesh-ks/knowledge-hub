@@ -796,8 +796,10 @@ describe("house rules", () => {
  * "whenever I ask you to fix a UI component, first attempt to fix/improve the centralized design
  * system component"). A page rule that overrides a Button is debt: moving it into the component
  * deletes a line here, and this list only shrinks. Naming the selector, not counting them, means a
- * rule swapped for another one on the same page fails too. Without this a new override passes every
- * other test and the component quietly forks, page by page.
+ * rule swapped for another one on the same page fails too. It reads a component's own classes only:
+ * a class a page passes to a Button (`class="structure-reorder"`) and then restyles is a known gap,
+ * not yet caught. Without this a new override passes every other test and the component quietly
+ * forks, page by page.
  */
 const PAGE_OVERRIDES: string[] = [
   "banner.css: .banner > .button-text",
