@@ -8,17 +8,18 @@
 
 import { sendToast } from "../../../web/src/scripts/toastEvent";
 import type { ExperimentAction, FlagRow, HitTotal } from "../lib/experimentsApi";
-import { intended, type PendingMap, unsettled } from "../lib/pendingFlags";
+import { intended, type PendingMap, parsePending, unsettled } from "../lib/pendingFlags";
 import { href } from "../lib/sections";
 
 const API = href("/api/experiments");
 const WORDS = { on: "On", shadow: "Shadow", off: "Off", promoted: "Promoted" } as const;
 const NOTE_OFFLINE = "The store cannot be reached. Showing the last deploy.";
 const PENDING_KEY = "experiments.pending";
-/** How often a page that reloaded mid-write asks the store again until it has the change. */
-const RECHECK_MS = 1500;
+/** How often a page holding an unconfirmed change expires it and asks the store again. */
+const WATCH_MS = 1500;
 
 const root = document.querySelector<HTMLElement>("[data-experiments]");
+const NOTE_DEFAULT = document.querySelector<HTMLElement>("[data-note]")?.textContent ?? "";
 const rows = [...document.querySelectorAll<HTMLElement>("[data-experiment][data-built]")];
 const flags = new Map<string, FlagRow>();
 /** What each experiment in shadow would have added this week, as the store counted it. */
@@ -27,7 +28,7 @@ const hits = new Map<string, HitTotal>();
 let intents: PendingMap = loadIntents();
 function loadIntents(): PendingMap {
   try {
-    return JSON.parse(sessionStorage.getItem(PENDING_KEY) ?? "{}") as PendingMap;
+    return parsePending(sessionStorage.getItem(PENDING_KEY));
   } catch {
     return {};
   }
@@ -109,6 +110,8 @@ async function ask(init?: { id: string; action: ExperimentAction }): Promise<Res
  * its write is under way runs after it.
  */
 let queue: Promise<unknown> = Promise.resolve();
+/** Counts presses, so an answer to a question asked before the latest one is not taken for the store's. */
+let generation = 0;
 function write(id: string, action: ExperimentAction): Promise<boolean> {
   const now = Date.now();
   const row = rows.find((candidate) => candidate.dataset.experiment === id);
@@ -116,8 +119,10 @@ function write(id: string, action: ExperimentAction): Promise<boolean> {
     flags.get(id) ?? { id, enabled: row?.dataset.built === "on", promoted_at: null };
   intents[id] = { flag: intended(current, action, now), at: now };
   saveIntents();
+  generation += 1;
   count(id, 1);
   renderAll();
+  watch();
   const run = queue.then(() => send(id, action));
   queue = run;
   return run;
@@ -125,11 +130,15 @@ function write(id: string, action: ExperimentAction): Promise<boolean> {
 
 /** One write and its answer; never rejects. */
 async function send(id: string, action: ExperimentAction): Promise<boolean> {
+  let saved = false;
   try {
     const response = await ask({ id, action });
     const body = (await response.json()) as { flags?: FlagRow[]; error?: string };
     if (body.flags) take(body);
-    if (response.ok) return true;
+    if (response.ok) {
+      saved = true;
+      return true;
+    }
     toast(
       body.error === "promoted" ? "A promoted experiment stays on." : "Could not save. Try again.",
       "error",
@@ -138,8 +147,9 @@ async function send(id: string, action: ExperimentAction): Promise<boolean> {
     toast("Could not save. Try again.", "error");
   } finally {
     count(id, -1);
-    // A refused or failed write puts the switch back, unless a later press for it is waiting.
-    if ((pending.get(id) ?? 0) === 0) delete intents[id];
+    // A refused or failed write puts the switch back, unless a later press for it is waiting. One
+    // the store took stays until the store's own answer matches it (watch, take).
+    if (!saved && (pending.get(id) ?? 0) === 0) delete intents[id];
     saveIntents();
     renderAll();
   }
@@ -249,29 +259,51 @@ async function start(): Promise<void> {
     for (const [id, total] of Object.entries(body.hits ?? {})) hits.set(id, total);
   } catch {
     if (note) note.textContent = NOTE_OFFLINE;
+    renderAll();
     ready();
+    watch();
     return;
   }
   renderAll();
   ready();
-  recheck();
+  watch();
 }
 
-/** A page reloaded mid-write asks again until the store has the change, or the wait runs out. */
-function recheck(): void {
-  if (Object.keys(intents).length === 0) return;
-  setTimeout(async () => {
-    try {
-      const response = await ask();
-      if (response.ok) take((await response.json()) as { flags?: FlagRow[] });
-    } catch {
-      // Still unreachable: the wait runs out on its own.
-    }
+let watching = false;
+
+/**
+ * While a change is unconfirmed, expire it when its wait runs out, which never depends on the
+ * network, and (with no write of this page under way) ask the store again until it has the change.
+ */
+function watch(): void {
+  if (watching || Object.keys(intents).length === 0) return;
+  watching = true;
+  const tick = (): void => {
     intents = unsettled([...flags.values()], intents, Date.now());
     saveIntents();
     renderAll();
-    recheck();
-  }, RECHECK_MS);
+    if (Object.keys(intents).length === 0) {
+      watching = false;
+      return;
+    }
+    if ([...pending.values()].every((n) => n === 0)) void recheck();
+    setTimeout(tick, WATCH_MS);
+  };
+  setTimeout(tick, WATCH_MS);
+}
+
+async function recheck(): Promise<void> {
+  const asked = generation;
+  try {
+    const response = await ask();
+    if (!response.ok || asked !== generation) return;
+    take((await response.json()) as { flags?: FlagRow[] });
+    const note = document.querySelector<HTMLElement>("[data-note]");
+    if (note) note.textContent = NOTE_DEFAULT;
+    renderAll();
+  } catch {
+    // Still unreachable: the wait runs out on its own.
+  }
 }
 
 /** The switches are neutral tracks until their values are known (settings.css, data-ready). */

@@ -46,3 +46,29 @@ export function unsettled(stored: FlagRow[], pending: PendingMap, now: number): 
   }
   return kept;
 }
+
+/** The map saved in the tab, or none when what is there is not one (a tab's storage can hold anything). */
+export function parsePending(text: string | null): PendingMap {
+  if (text === null) return {};
+  let value: unknown;
+  try {
+    value = JSON.parse(text);
+  } catch {
+    return {};
+  }
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
+  const kept: PendingMap = {};
+  for (const [id, entry] of Object.entries(value)) {
+    const { flag, at } = (entry ?? {}) as Partial<Pending>;
+    if (
+      typeof at === "number" &&
+      flag !== undefined &&
+      flag !== null &&
+      typeof flag.enabled === "boolean" &&
+      (flag.promoted_at === null || typeof flag.promoted_at === "number")
+    ) {
+      kept[id] = { flag: { id, enabled: flag.enabled, promoted_at: flag.promoted_at }, at };
+    }
+  }
+  return kept;
+}

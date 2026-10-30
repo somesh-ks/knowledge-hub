@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FlagRow } from "./experimentsApi";
-import { intended, PENDING_SECONDS, unsettled } from "./pendingFlags";
+import { intended, PENDING_SECONDS, parsePending, unsettled } from "./pendingFlags";
 
 const row = (id: string, enabled: boolean, promoted_at: number | null = null): FlagRow => ({
   id,
@@ -38,5 +38,17 @@ describe("a switch written just before a reload", () => {
     expect(promote.community.flag.promoted_at).toBe(NOW);
     const undone = intended(promote.community.flag, "unpromote", NOW);
     expect(undone).toEqual(row("community", true));
+  });
+});
+
+describe("the change saved in the tab", () => {
+  it("is read back as it was saved", () => {
+    const saved = { community: { flag: row("community", true), at: NOW } };
+    expect(parsePending(JSON.stringify(saved))).toEqual(saved);
+  });
+
+  it("is dropped when storage holds anything else, so the page still loads", () => {
+    const strange = [null, "", "null", "[]", "3", "{", '{"a":{"flag":1,"at":"x"}}', '{"a":null}'];
+    for (const text of strange) expect(parsePending(text)).toEqual({});
   });
 });
