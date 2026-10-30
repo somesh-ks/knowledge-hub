@@ -1,0 +1,16 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { switchClass } from "./switch";
+import "../styles/switch.css";
+
+interface SwitchProps {
+  /** For placing the switch where it stands (a margin, a grid area). Never its look. */
+  class?: string;
+}
+
+type Props = SwitchProps & Omit<HTMLAttributes<"input">, keyof SwitchProps | "type" | "role">;
+
+const { class: placement, ...rest } = Astro.props;
+---
+
+<input class:list={[switchClass(), placement]} type="checkbox" role="switch" {...rest} />

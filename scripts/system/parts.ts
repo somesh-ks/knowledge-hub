@@ -225,19 +225,6 @@ export const PARTS: PartSource[] = [
     keywords: ["preference", "toggle row", "setting"],
   },
   {
-    id: "switch",
-    name: "Switch",
-    kind: "selection",
-    summary: "An on/off switch: a checkbox with role switch, drawn as a track and a thumb.",
-    classes: ["settings-switch"],
-    when: ["turn a setting on or off, applied at once", "a notifications or autoplay toggle"],
-    not: [{ when: "choosing one of several values", use: "segmented-choice" }],
-    keywords: ["toggle", "on off", "boolean", "enable"],
-    markup:
-      '<div class="settings-row"><label class="settings-label" for="autoplay">Autoplay</label><input class="settings-switch" id="autoplay" name="autoplay" type="checkbox" role="switch" /></div>',
-    rules: ["`.switch` in sheets.css has no markup anywhere; it is a duplicate, not a part."],
-  },
-  {
     id: "banner",
     name: "Banner",
     kind: "feedback",
