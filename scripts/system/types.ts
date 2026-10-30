@@ -39,7 +39,7 @@ export interface Part extends PartSource {
   usage: string;
   /** Semantic and component tokens the part's rules read. */
   tokens: string[];
-  /** Source files that name one of its classes. Zero would mean a dead part. */
+  /** Source files that name one of its classes. Zero would mean a dead part. Not written to system.json: it shifts with every UI edit and would make the file stale. */
   usedIn: number;
 }
 

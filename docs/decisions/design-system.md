@@ -316,3 +316,12 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Rejected: hand-snapping the old values to ten steps (keeps the guesswork); surfaces as ramp steps (flattens dark elevation).
 - Context changed: D54's disabled-ink refinement (grey-650) is replaced, as grey-650 is not a step; its text-field outline ruling stands. Disabled ink now sits 2.07:1 from muted in dark (was 2.37) and 2.17 in light (was 2.29), still clear of the 1.67 that read as enabled.
 - Revisit if: a color needs a role between two steps. Add a role offset, not an 11th step.
+
+## D245: system.json leaves out how many files use a part
+
+- Date: 2026-10-30 (found while merging #433 into a main that kept moving).
+- Decision: `tokens/system.json` stores no `usedIn`. `build.ts` still counts the files that write a part's classes, and `system.test.ts` still fails a part with none and a class no markup writes; the count is held in memory, not in the file.
+- Why: the count moves with every markup edit, so any UI PR that touched a class name made the committed file differ from the rebuilt one and failed the "matches the code it is built from" test until `npm run system` ran. No lookup command prints the count. What stays in the file (defining stylesheets, tokens read, usage comment, bespoke list) changes only when a part's own rules move.
+- Rejected: leaving the count in and making every UI PR regenerate (a tax for a number nobody reads); dropping the dead-part test (it caught `.switch` and `.filter-chips-scroll`).
+- Revisit if: an agent needs a use count to choose between parts; then print it from the build, not the stored file.
+- Amends: D236 (what the file holds).

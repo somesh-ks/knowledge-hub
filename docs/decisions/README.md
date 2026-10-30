@@ -256,6 +256,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D241 | No Weekly-only blocks | amends D170 |
 | D242 | Starter-only Cancel | amends D201, D208 |
 | D244 | YouTube views vs channel median are votes | active |
+| D245 | system.json omits the file-use count | amends D236 |
 | D246 | Catch up kind label; counts yield to slots | active; amends D218 |
 | D247 | Deploy-count warning | active |
 
