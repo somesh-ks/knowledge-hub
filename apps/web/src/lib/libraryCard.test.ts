@@ -41,8 +41,8 @@ describe("cardFacts", () => {
       minutes: 4,
     });
     expect(facts("regular")?.line).toBe("Daily \u00b7 4 stories \u00b7 4 min");
-    // Under Episodes, a briefing made on request follows an episode's pattern: format, then length.
-    expect(facts("on-demand")?.line).toBe("Podcast \u00b7 4 min");
+    // A briefing made on request is a Catch up and follows an episode's pattern: kind, then length.
+    expect(facts("on-demand")?.line).toBe("Catch up \u00b7 4 min");
   });
 
   it("finds a podcast by its date in any form", () => {
@@ -67,17 +67,19 @@ describe("cardFacts", () => {
 });
 
 describe("episodeFacts", () => {
-  it("names the format and the length on the quiet line", () => {
+  it("names the kind and the length on the quiet line, and keeps the format searchable", () => {
     const [entry] = episodes(episodeText("ep-20261007-1930", "2026-10-07T17:30:00Z"));
     expect(entry && episodeFacts(entry)).toMatchObject({
-      line: "Discussion \u00b7 5 min",
+      line: "Catch up \u00b7 5 min",
       minutes: 5,
     });
+    expect(entry && episodeFacts(entry).search).toContain("catch up Discussion");
     const [headlines] = episodes(
       episodeText("ep-20261007-1930", "2026-10-07T17:30:00Z", "headlines"),
     );
-    // Create no longer offers headlines: a stored one reads as a readout.
-    expect(headlines && episodeFacts(headlines).line).toBe("Readout \u00b7 5 min");
+    // Whatever the format, the card says Catch up; a stored headlines episode searches as a readout.
+    expect(headlines && episodeFacts(headlines).line).toBe("Catch up \u00b7 5 min");
+    expect(headlines && episodeFacts(headlines).search).toContain("catch up Readout");
   });
 
   it("finds an episode by its date in any form, not as a matching story", () => {

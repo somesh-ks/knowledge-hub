@@ -296,3 +296,12 @@ What an episode or briefing is: kinds and structure, length, regenerate, Catch u
 - Revisit if: a podcast type needs a block the others must not have (D191's own test); then add a per-type override on top of the profile, not a second list.
 - Amends: D170.
 
+
+## D246: everything made on request is a Catch up, and a Catch up's block counts give way to fill its slots
+
+- Date: 2026-10-30 (the owner: "the podcast type must be Catch up instead of readout ... and it is so short, 2 mins").
+- Decision: a card, the player's caption and an episode page's facts line lead with the kind: Daily, Weekly, or Catch up (an episode, or a briefing run on demand), as the Library's filter already names it. The format (Readout, Discussion) is a choice inside a Catch up: it is no longer shown on those lines, and stays searchable ("catch up Readout"). On the episode path, `fitStories` fills the slots the counts leave empty with the best unused candidates, ignoring a block's count; release news keeps its own count and a block's per-outlet limit still holds. This is D218 on the path D218 did not reach: the daily's selection already did it.
+- Why: ep-20261030-0025 asked for 5 minutes on one topic and found 7 Top picks of other topics and one story of its own. The Designer structure's Top picks count (3 at 10 minutes, 2 at 5) cut the 8 to 3, and the script aired 2 of 5 minutes, accepted as all three stories could carry. Reproduced offline on the repo at that commit: 3 stories before, 8 after.
+- Rejected: raising the preset counts (D218 rejected it too); a wider window for a thin topic (it changes what the owner asked for).
+- Revisit if: a Discussion needs telling apart from a Readout on the card (add the format as a second word), or one block crowds out a Catch up.
+- Amends: D218.

@@ -3,6 +3,7 @@ import type { DigestEntry } from "./digests";
 import { listenLength, storyCount } from "./digestView";
 import { type EpisodeEntry, FORMAT_LABELS } from "./episodes";
 import { longDate } from "./format";
+import { CATCH_UP_LABEL } from "./formatLabels";
 import {
   type CardFacts,
   dateSearchLine,
@@ -13,12 +14,12 @@ import {
 } from "./library";
 
 /**
- * The kind a briefing's line starts with. One made on request sits under Episodes, so its line
- * follows an episode's pattern, its format then its length: "Podcast · 4 min".
+ * The kind a briefing's line starts with. One made on request is a Catch up, so its line follows an
+ * episode's pattern, its kind then its length: "Catch up · 4 min".
  */
 export function briefingKindLabel(kind: string): string {
   if (kind === "weekly") return "Weekly";
-  if (kind === "on-demand") return "Podcast";
+  if (kind === "on-demand") return CATCH_UP_LABEL;
   return "Daily";
 }
 
@@ -53,10 +54,10 @@ export function cardFacts(entry: DigestEntry): CardFacts {
 }
 
 /**
- * What a Library card says about one episode, in the same pattern: "Discussion · 5 min". Its format
- * says it is an episode, as a briefing's kind says it is one, and the line stays short enough for the
- * narrowest card to hold it on one line. Search finds its date (in any form), its title and format,
- * then each story it covers.
+ * What a Library card says about one episode, in the same pattern: "Catch up · 5 min". Its kind
+ * says what it is, as a briefing's kind does, and the line stays short enough for the narrowest card
+ * to hold it on one line. Search finds its date (in any form), its title, "catch up" and its format
+ * (Readout, Discussion), then each story it covers.
  */
 export function episodeFacts(entry: EpisodeEntry): CardFacts {
   const { episode } = entry;
@@ -64,12 +65,12 @@ export function episodeFacts(entry: EpisodeEntry): CardFacts {
   const meta = [
     dateSearchLine(episode.date, longDate(episode.date)),
     episode.title,
-    `episode ${format}`,
+    `catch up ${format}`,
   ];
   const lines = [...meta];
   for (const source of episode.sources) lines.push(storyLine(source.headline, source.source));
   return {
-    line: factsLine([format, `${episode.listen_minutes} min`]),
+    line: factsLine([CATCH_UP_LABEL, `${episode.listen_minutes} min`]),
     minutes: episode.listen_minutes,
     search: lines.join("\n"),
     metaLines: meta.length,
