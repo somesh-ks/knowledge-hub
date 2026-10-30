@@ -152,7 +152,8 @@ function countOf(value: unknown): number | undefined {
 /** The views in a YouTube entry's media:community block. */
 function viewsOf(entry: Node): number | undefined {
   const group = entry["media:group"];
-  const community = isNode(group) ? group["media:community"] : entry["media:community"];
+  const community =
+    (isNode(group) ? group["media:community"] : undefined) ?? entry["media:community"];
   const statistics = isNode(community) ? community["media:statistics"] : undefined;
   return isNode(statistics) ? countOf(statistics["@_views"]) : undefined;
 }
