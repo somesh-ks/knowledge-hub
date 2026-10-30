@@ -80,7 +80,7 @@ function install(): void {
   if (!grid) return;
   // Whether the order is offered here (library.css hides it on a phone). getComputedStyle, not
   // checkVisibility(), which Safari only has from 17.4.
-  const sortField = select?.closest<HTMLElement>(".sort-field") ?? null;
+  const sortField = select?.closest<HTMLElement>("[data-select]") ?? null;
   const sortShown = (): boolean =>
     sortField !== null && getComputedStyle(sortField).display !== "none";
   const cards = [...grid.querySelectorAll<HTMLElement>("[data-card]")].map(readCard);
@@ -181,7 +181,7 @@ function install(): void {
     const sort = (sortShown() ? (select?.value ?? "newest") : "newest") as LibrarySort;
     const filter = chipFilter(chips.filter((chip) => chip.checked).map((chip) => chip.value));
     // A narrowed order says so on its control, as a chosen chip does.
-    select?.closest(".sort-field")?.toggleAttribute("data-active", sort !== "newest");
+    select?.closest("[data-select]")?.toggleAttribute("data-active", sort !== "newest");
     // Only the cards still in the page: one this device deleted (deletedEpisodes.ts) may have been
     // taken out after this script read the list, and must not come back with a new order.
     const live = cards.filter((card) => card.element.isConnected);

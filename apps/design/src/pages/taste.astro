@@ -1,5 +1,6 @@
 ---
 import Icon from "../../../web/src/components/Icon.astro";
+import Select from "../../../web/src/design-system/Select.astro";
 import PageHead from "../components/PageHead.astro";
 import Shell from "../layouts/Shell.astro";
 import { TASTE_GROUPS } from "../lib/taste";
@@ -20,14 +21,10 @@ const next = (): string => `--n: ${index++}`;
         <span class="sr-only">Search taste</span>
         <input type="search" placeholder="Search taste" autocomplete="off" data-filter />
       </label>
-      <label class="sort-field">
-        <span class="sr-only">Show</span>
-        <select data-filter-tier>
-          <option value="all">All</option>
-          {TASTE_GROUPS.map((group) => <option value={group.id}>{group.label}</option>)}
-        </select>
-        <Icon name="chevronDown" />
-      </label>
+      <Select variant="tonal" label="Show" data-filter-tier>
+        <option value="all">All</option>
+        {TASTE_GROUPS.map((group) => <option value={group.id}>{group.label}</option>)}
+      </Select>
     </div>
 
     {

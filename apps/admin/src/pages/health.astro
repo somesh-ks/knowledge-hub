@@ -1,7 +1,6 @@
 ---
-import { fieldClass } from "../../../web/src/design-system/field";
+import Select from "../../../web/src/design-system/Select.astro";
 import "../../../web/src/styles/field.css";
-import Icon from "../../../web/src/components/Icon.astro";
 import {
   HEALTH_DEVICES,
   HEALTH_GROUPS,
@@ -76,12 +75,9 @@ type Row = { id: string; label: string };
       <div class="rows card-group health-data">
         <div class="settings-row">
           <label class="settings-label" for="health-device">Device</label>
-          <span class="manage-select value-select">
-            <select class={fieldClass()} id="health-device" name="device" autocomplete="off">
-              {HEALTH_DEVICES.map((device) => <option value={device.id}>{device.label}</option>)}
-            </select>
-            <Icon name="chevronDown" />
-          </span>
+          <Select class="value-select" id="health-device" name="device" autocomplete="off">
+            {HEALTH_DEVICES.map((device) => <option value={device.id}>{device.label}</option>)}
+          </Select>
         </div>
         {
           HEALTH_SPEED.map((metric) => (

@@ -1,6 +1,6 @@
 ---
 import Field from "../design-system/Field.astro";
-import { fieldClass } from "../design-system/field";
+import Select from "../design-system/Select.astro";
 import { FORMAT_LABEL } from "../lib/sourceFilter";
 // The unsaved-changes dialog (sheetGuard.ts) is a confirm-dialog: its styles come with the sheet.
 import "../styles/episode-actions.css";
@@ -138,21 +138,15 @@ const { topics } = Astro.props;
         </div>
         <div class="manage-field">
           <label for="panel-source-topic">Category</label>
-          <div class="manage-select">
-            <select class={fieldClass()} id="panel-source-topic" name="topic" data-source-topic>
-              {topics.map((topic) => <option value={topic.id}>{topic.name}</option>)}
-            </select>
-            <Icon name="chevronDown" />
-          </div>
+          <Select id="panel-source-topic" name="topic" data-source-topic>
+            {topics.map((topic) => <option value={topic.id}>{topic.name}</option>)}
+          </Select>
         </div>
         <div class="manage-field">
           <label for="panel-source-format">Type</label>
-          <div class="manage-select">
-            <select class={fieldClass()} id="panel-source-format" name="format" data-source-format>
-              {Object.entries(FORMAT_LABEL).map(([value, label]) => <option value={value}>{label}</option>)}
-            </select>
-            <Icon name="chevronDown" />
-          </div>
+          <Select id="panel-source-format" name="format" data-source-format>
+            {Object.entries(FORMAT_LABEL).map(([value, label]) => <option value={value}>{label}</option>)}
+          </Select>
         </div>
         <div class="source-preview" aria-live="polite" data-source-preview data-state="idle"></div>
         {/* The catalogue's feeds that fit the topic chosen above (topicsPanel.ts), drawn as a topic page's
@@ -183,21 +177,15 @@ const { topics } = Astro.props;
         </div>
         <div class="manage-field">
           <label for="panel-edit-topic">Category</label>
-          <div class="manage-select">
-            <select class={fieldClass()} id="panel-edit-topic" name="topic" data-edit-topic>
-              {topics.map((topic) => <option value={topic.id}>{topic.name}</option>)}
-            </select>
-            <Icon name="chevronDown" />
-          </div>
+          <Select id="panel-edit-topic" name="topic" data-edit-topic>
+            {topics.map((topic) => <option value={topic.id}>{topic.name}</option>)}
+          </Select>
         </div>
         <div class="manage-field">
           <label for="panel-edit-format">Type</label>
-          <div class="manage-select">
-            <select class={fieldClass()} id="panel-edit-format" name="format" data-edit-format>
-              {Object.entries(FORMAT_LABEL).map(([value, label]) => <option value={value}>{label}</option>)}
-            </select>
-            <Icon name="chevronDown" />
-          </div>
+          <Select id="panel-edit-format" name="format" data-edit-format>
+            {Object.entries(FORMAT_LABEL).map(([value, label]) => <option value={value}>{label}</option>)}
+          </Select>
         </div>
         {/* A favorite (high_signal) skips the keyword filter: every post goes to the judge, ranked up.
             The app's checkbox (.suggest-box), its words beside it (owner, 2026-10-24). */}
@@ -210,17 +198,14 @@ const { topics } = Astro.props;
         </label>
         <div class="manage-field" data-edit-lean-field hidden>
           <label for="panel-edit-lean">Political lean</label>
-          <div class="manage-select">
-            <select class={fieldClass()} id="panel-edit-lean" name="lean" data-edit-lean>
-              <option value="">Unrated</option>
-              <option value="-2">Left</option>
-              <option value="-1">Centre-left</option>
-              <option value="0">Centre</option>
-              <option value="1">Centre-right</option>
-              <option value="2">Right</option>
-            </select>
-            <Icon name="chevronDown" />
-          </div>
+          <Select id="panel-edit-lean" name="lean" data-edit-lean>
+            <option value="">Unrated</option>
+            <option value="-2">Left</option>
+            <option value="-1">Centre-left</option>
+            <option value="0">Centre</option>
+            <option value="1">Centre-right</option>
+            <option value="2">Right</option>
+          </Select>
         </div>
         <div class="edit-address">
           <span class="edit-address-label">Address</span>

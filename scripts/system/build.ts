@@ -117,6 +117,16 @@ export function classTokens(text: string): Set<string> {
   if (/<Slider\b|\bsliderClass\(/.test(code)) found.add("slider-input");
   // The Field is drawn by the tag (not Base UI's Field.Root) or by the class helper, for a select.
   if (/<Field(?![\w.])|\bfieldClass\(/.test(code)) found.add("field-input");
+  // The Select is drawn by the tag or by the class helper, in the variant it names (outlined by default).
+  if (/<Select\b/.test(code)) {
+    const tonal = [...code.matchAll(/<Select\b[^>]*\bvariant="tonal"/g)].length;
+    const all = [...code.matchAll(/<Select\b/g)].length;
+    if (tonal > 0) found.add("select-tonal");
+    if (all > tonal) found.add("select-outlined");
+  }
+  for (const [, variant = "outlined"] of code.matchAll(/\bselectClass\(\s*(?:["'](\w+)["'])?/g)) {
+    found.add(`select-${variant}`);
+  }
   return found;
 }
 
@@ -138,6 +148,8 @@ export function sourceFiles(): { path: string; text: string; tokens: Set<string>
       tokens.delete("switch-input");
       tokens.delete("slider-input");
       tokens.delete("field-input");
+      tokens.delete("select-outlined");
+      tokens.delete("select-tonal");
     }
     return { path, text, tokens };
   });

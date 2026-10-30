@@ -17,7 +17,7 @@ const PIXEL = Buffer.from(
 const HAIRLINE = [
   ".chip",
   ".filter-chip",
-  ".sort-field",
+  ".select-tonal",
   ".search-field",
   ".tab",
   ".tabs",

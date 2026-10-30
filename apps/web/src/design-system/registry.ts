@@ -7,6 +7,7 @@
 import { BUTTON, BUTTON_CLASSES, BUTTON_RETIRED } from "./button";
 import { FIELD, FIELD_CLASSES, FIELD_RETIRED } from "./field";
 import type { Guidance } from "./guidance";
+import { SELECT, SELECT_CLASSES, SELECT_RETIRED } from "./select";
 import { SLIDER, SLIDER_CLASSES, SLIDER_RETIRED } from "./slider";
 import { SWITCH, SWITCH_CLASSES, SWITCH_RETIRED } from "./switch";
 
@@ -67,5 +68,16 @@ export const COMPONENTS: DesignSystemComponent[] = [
     useWhen: FIELD.useWhen,
     dontUseWhen: FIELD.dontUseWhen,
     parts: {},
+  },
+  {
+    name: "Select",
+    sheet: "select.css",
+    prefix: "select-",
+    classes: SELECT_CLASSES,
+    retired: SELECT_RETIRED,
+    summary: SELECT.summary,
+    useWhen: SELECT.useWhen,
+    dontUseWhen: SELECT.dontUseWhen,
+    parts: SELECT.variants,
   },
 ];

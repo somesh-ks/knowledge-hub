@@ -331,7 +331,7 @@
       "id": "field",
       "name": "Field",
       "kind": "selection",
-      "summary": "An outlined box for text or a pick: one line, several lines (multiline) or a native select.",
+      "summary": "An outlined box for text a person types: one line, or several lines (multiline).",
       "classes": [
         "field-input"
       ],
@@ -341,13 +341,16 @@
       ],
       "when": [
         "A person types a short value or a few lines: a title, a feed address, a prompt",
-        "A person picks one value from a list that is too long for a segmented choice, with a native select",
         "It sits under its own label in a form or a settings row, and a refused value shows as an invalid field"
       ],
       "not": [
         {
           "when": "The value is one of two to four short options",
           "use": "filter-chip"
+        },
+        {
+          "when": "A person picks one value from a list",
+          "use": "select"
         },
         {
           "when": "The setting is on or off and applies as soon as it is flipped",
@@ -387,6 +390,77 @@
         "--field-height",
         "--field-padding",
         "--field-radius"
+      ]
+    },
+    {
+      "id": "select",
+      "name": "Select",
+      "kind": "selection",
+      "summary": "A native select with its own chevron: a person picks one value from a list that is too long to show.",
+      "classes": [
+        "select-outlined",
+        "select-tonal"
+      ],
+      "files": [
+        "design-system/Select.astro",
+        "design-system/select.ts"
+      ],
+      "when": [
+        "A person picks one value from a list of five or more, or of names that are too long for a row of chips",
+        "It sits under its own label in a form, or in a toolbar as a sort or a filter"
+      ],
+      "not": [
+        {
+          "when": "The value is one of two to four short options",
+          "use": "filter-chip"
+        },
+        {
+          "when": "The list needs a search box (a time zone, a voice), or several values may be ticked",
+          "use": "button-text"
+        }
+      ],
+      "keywords": [
+        "select",
+        "dropdown",
+        "sort",
+        "sort by",
+        "order by",
+        "picker",
+        "choose one",
+        "filter"
+      ],
+      "markup": "<Select variant=\"tonal\" label=\"Sort\" data-library-sort><option value=\"newest\">Newest first</option></Select>",
+      "rules": [
+        "Outlined (the default) is a value in a form; tonal is a sort or a filter and takes data-active on its wrapper (find it with closest(\"[data-select]\")) once its value is not the default.",
+        "A select inside a settings row takes class=\"value-select\" from settings.css, which draws it as the row's value."
+      ],
+      "styles": [
+        "select.css"
+      ],
+      "usage": "The box and its text are the Field's (field.css, select.field-input); the wrapper holds the chevron a select draws for itself, in the muted ink, never taking a press.",
+      "tokens": [
+        "--button-radius",
+        "--chip-height",
+        "--color-accent",
+        "--color-accent-container",
+        "--color-border-hairline",
+        "--color-focus-ring",
+        "--color-on-accent-container",
+        "--color-on-surface",
+        "--color-on-surface-muted",
+        "--color-scrim",
+        "--color-surface-container",
+        "--color-surface-overlay",
+        "--field-chevron-gap",
+        "--layout-column",
+        "--row-radius",
+        "--shadow-popover",
+        "--sheet-bg",
+        "--sheet-radius",
+        "--sheet-shadow",
+        "--size-icon",
+        "--size-icon-sm",
+        "--size-touch"
       ]
     },
     {
@@ -632,69 +706,6 @@
       ]
     },
     {
-      "id": "sort-field",
-      "name": "Sort field",
-      "kind": "selection",
-      "summary": "A compact select drawn as a chip.",
-      "classes": [
-        "sort-field"
-      ],
-      "when": [
-        "sort a list by date or title",
-        "a range or breakdown picker on a chart",
-        "a compact dropdown in a toolbar"
-      ],
-      "not": [
-        {
-          "when": "a form field or a setting",
-          "use": "settings-row"
-        },
-        {
-          "when": "an on/off filter",
-          "use": "filter-chip"
-        }
-      ],
-      "keywords": [
-        "dropdown",
-        "select",
-        "order by",
-        "sort by"
-      ],
-      "markup": "<label class=\"sort-field\"><span class=\"sr-only\">Sort</span><select>...</select><Icon name=\"chevronDown\" /></label>",
-      "rules": [
-        "Takes the chosen look when its value is not the default."
-      ],
-      "styles": [
-        "manage.css",
-        "primitives.css"
-      ],
-      "usage": "A compact select drawn as a chip: the Library's sort, the Costs chart's range and breakdown, and the hero's select of a day's Catch ups (hero.css, D219). It opens the drawn list below. Its fill is --sort-field-bg, so a chip on a card's tone can step up (costs.css). Moved here from library.css on 2026-10-22 when Costs took it; the rules are as they were.",
-      "tokens": [
-        "--button-radius",
-        "--chip-height",
-        "--color-accent",
-        "--color-accent-container",
-        "--color-border-hairline",
-        "--color-focus-ring",
-        "--color-on-accent-container",
-        "--color-on-surface",
-        "--color-on-surface-muted",
-        "--color-scrim",
-        "--color-surface-container",
-        "--color-surface-overlay",
-        "--field-chevron-gap",
-        "--layout-column",
-        "--row-radius",
-        "--shadow-popover",
-        "--sheet-bg",
-        "--sheet-radius",
-        "--sheet-shadow",
-        "--size-icon",
-        "--size-icon-sm",
-        "--size-touch"
-      ]
-    },
-    {
       "id": "segmented-choice",
       "name": "Segmented choice",
       "kind": "selection",
@@ -928,6 +939,7 @@
       "styles": [
         "multiselect.css",
         "primitives.css",
+        "select.css",
         "settings.css"
       ],
       "usage": "A group of settings rows in one rounded container on the container tone, as Material 3 groups an Android settings screen: the group is told apart from the page by tone alone, never by a shadow or a line. Put the class on the .rows list itself; the rows keep their own padding. Its words sit the card's padding in from its edge, and a row's hover tile keeps clear of the corners. 2026-10-22, \"the padding around the list menus ... must be spacious\": the words 24px in, the tiles 16px in on every side. The card adds half the inset above and below and each tile takes the other half inside its row, so the first and last tiles sit one inset from the edge, two tiles sit one inset apart, and the rows keep their 64px rhythm. 2026-10-24, the owner: \"I want the padding to be less and the list items to be spacious to improve click area ... 4px padding is decent\": the inset is 4px, a link row's box is its tile (one inset from the card's edges, its words still the padding in), so the whole tile is the target and nothing outside it is. The card adds the inset above and below and two rows sit one inset apart; each row keeps 64px.",

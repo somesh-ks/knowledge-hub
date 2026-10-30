@@ -1,5 +1,6 @@
 ---
 import Icon from "../../../web/src/components/Icon.astro";
+import Select from "../../../web/src/design-system/Select.astro";
 
 /**
  * The page's search and its tier filter in one row, which stays under the app bar as the page
@@ -13,14 +14,10 @@ import Icon from "../../../web/src/components/Icon.astro";
     <span class="sr-only">Search colors</span>
     <input type="search" placeholder="Search colors" autocomplete="off" data-filter />
   </label>
-  <label class="sort-field">
-    <span class="sr-only">Show</span>
-    <select data-filter-tier>
-      <option value="all">All</option>
-      <option value="semantic">Semantic</option>
-      <option value="primitive">Primitive</option>
-      <option value="component">Component</option>
-    </select>
-    <Icon name="chevronDown" />
-  </label>
+  <Select variant="tonal" label="Show" data-filter-tier>
+    <option value="all">All</option>
+    <option value="semantic">Semantic</option>
+    <option value="primitive">Primitive</option>
+    <option value="component">Component</option>
+  </Select>
 </div>

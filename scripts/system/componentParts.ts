@@ -7,6 +7,7 @@
 import { BUTTON } from "../../apps/web/src/design-system/button.js";
 import { FIELD } from "../../apps/web/src/design-system/field.js";
 import type { ComponentRef, Guidance } from "../../apps/web/src/design-system/guidance.js";
+import { SELECT } from "../../apps/web/src/design-system/select.js";
 import { SLIDER } from "../../apps/web/src/design-system/slider.js";
 import { SWITCH } from "../../apps/web/src/design-system/switch.js";
 import type { PartSource } from "./types.js";
@@ -20,6 +21,7 @@ const PART_OF: Record<string, string> = {
   Switch: "switch",
   Slider: "slider",
   Field: "field",
+  Select: "select",
 };
 
 const partOf = (ref: ComponentRef | undefined, fallback: string): string => {
@@ -64,7 +66,7 @@ const control = (
   id: string,
   name: string,
   guidance: Guidance,
-  extra: { keywords: string[]; markup: string; rules?: string[] },
+  extra: { keywords: string[]; markup: string; rules?: string[]; classes?: string[] },
 ): PartSource => ({
   id,
   name,
@@ -145,6 +147,25 @@ export const componentParts = (): PartSource[] => [
     rules: [
       "Draw it with <Field> (multiline for a textarea); a select or a script takes the class from fieldClass().",
       "A disabled field dims like a disabled switch; a disabled fieldset dims it the same way, on the same element.",
+    ],
+  }),
+  control("select", "Select", SELECT, {
+    classes: ["select-outlined", "select-tonal"],
+    keywords: [
+      "select",
+      "dropdown",
+      "sort",
+      "sort by",
+      "order by",
+      "picker",
+      "choose one",
+      "filter",
+    ],
+    markup:
+      '<Select variant="tonal" label="Sort" data-library-sort><option value="newest">Newest first</option></Select>',
+    rules: [
+      'Outlined (the default) is a value in a form; tonal is a sort or a filter and takes data-active on its wrapper (find it with closest("[data-select]")) once its value is not the default.',
+      'A select inside a settings row takes class="value-select" from settings.css, which draws it as the row\'s value.',
     ],
   }),
 ];

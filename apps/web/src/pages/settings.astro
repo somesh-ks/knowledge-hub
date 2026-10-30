@@ -1,5 +1,5 @@
 ---
-import { fieldClass } from "../design-system/field";
+import Select from "../design-system/Select.astro";
 import "../styles/field.css";
 import Icon from "../components/Icon.astro";
 import ManageChrome from "../components/ManageChrome.astro";
@@ -152,12 +152,9 @@ const THEME_LABELS: Record<ThemePreference, string> = {
                one back. */}
           <div class="settings-row">
             <label class="settings-label" for="settings-theme">Theme</label>
-            <span class="manage-select value-select theme-select">
-              <select class={fieldClass()} id="settings-theme" name="theme" autocomplete="off" inert>
-                {THEME_PREFERENCES.map((theme) => <option value={theme}>{THEME_LABELS[theme]}</option>)}
-              </select>
-              <Icon name="chevronDown" />
-            </span>
+            <Select class="value-select theme-select" id="settings-theme" name="theme" autocomplete="off" inert>
+              {THEME_PREFERENCES.map((theme) => <option value={theme}>{THEME_LABELS[theme]}</option>)}
+            </Select>
           </div>
         </div>
         {/* Runs before the row is first drawn and puts this device's theme in the select. */}

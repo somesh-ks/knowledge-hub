@@ -1,5 +1,5 @@
 ---
-import { fieldClass } from "../design-system/field";
+import Select from "../design-system/Select.astro";
 import "../styles/field.css";
 import { SUPPORTED_TIMEZONES, zoneLabel } from "@singularity/core";
 import Switch from "../design-system/Switch.astro";
@@ -76,16 +76,13 @@ const inScope = (ids: readonly string[]): boolean =>
     <div class="rows card-group">
       <div class="settings-row">
         <label class="settings-label" for={`${id}-length`}>Max length</label>
-        <span class="manage-select value-select">
-          <select class={fieldClass()} id={`${id}-length`} data-f={`${id}.length`} autocomplete="off">
-            {LENGTHS.map((entry) => (
-              <option value={String(entry.value)} selected={entry.value === values.lengthMinutes}>
-                {entry.label}
-              </option>
-            ))}
-          </select>
-          <Icon name="chevronDown" />
-        </span>
+        <Select class="value-select" id={`${id}-length`} data-f={`${id}.length`} autocomplete="off">
+          {LENGTHS.map((entry) => (
+            <option value={String(entry.value)} selected={entry.value === values.lengthMinutes}>
+              {entry.label}
+            </option>
+          ))}
+        </Select>
       </div>
     </div>
   </section>
@@ -96,53 +93,42 @@ const inScope = (ids: readonly string[]): boolean =>
       {/* One setting for both podcasts: the cron route, the gate and the next line count on its clock. */}
       <div class="settings-row">
         <label class="settings-label" for={`${id}-timezone`}>Time zone</label>
-        <span class="manage-select value-select">
-          <select
-            class={fieldClass()}
+        <Select class="value-select"
             id={`${id}-timezone`}
             data-f={`${id}.timezone`}
             data-picker="time zone"
-            autocomplete="off"
-          >
-            {zones.map((zone, index) => (
-              <option
-                value={zone.value}
-                data-place={SUPPORTED_TIMEZONES[index]?.label}
-                data-keywords={zone.value.replaceAll("_", " ")}
-                selected={zone.value === values.timezone}
-              >
-                {zone.label}
-              </option>
-            ))}
-          </select>
-          <Icon name="chevronDown" />
-        </span>
+            autocomplete="off">
+          {zones.map((zone, index) => (
+            <option
+              value={zone.value}
+              data-place={SUPPORTED_TIMEZONES[index]?.label}
+              data-keywords={zone.value.replaceAll("_", " ")}
+              selected={zone.value === values.timezone}
+            >
+              {zone.label}
+            </option>
+          ))}
+        </Select>
       </div>
       {
         id === "weekly" && (
           <div class="settings-row">
             <label class="settings-label" for="weekly-day">Day</label>
-            <span class="manage-select value-select">
-              <select class={fieldClass()} id="weekly-day" data-f="weekly.day" autocomplete="off">
-                {WEEKDAYS.map((name, value) => (
-                  <option value={value} selected={value === values.day}>{name}</option>
-                ))}
-              </select>
-              <Icon name="chevronDown" />
-            </span>
+            <Select class="value-select" id="weekly-day" data-f="weekly.day" autocomplete="off">
+              {WEEKDAYS.map((name, value) => (
+                <option value={value} selected={value === values.day}>{name}</option>
+              ))}
+            </Select>
           </div>
         )
       }
       <div class="settings-row">
         <label class="settings-label" for={`${id}-hour`}>Time</label>
-        <span class="manage-select value-select">
-          <select class={fieldClass()} id={`${id}-hour`} data-f={`${id}.hour`} autocomplete="off">
-            {hours.map((value) => (
-              <option value={value} selected={value === values.hour}>{hourLabel(value)}</option>
-            ))}
-          </select>
-          <Icon name="chevronDown" />
-        </span>
+        <Select class="value-select" id={`${id}-hour`} data-f={`${id}.hour`} autocomplete="off">
+          {hours.map((value) => (
+            <option value={value} selected={value === values.hour}>{hourLabel(value)}</option>
+          ))}
+        </Select>
       </div>
       {
         id === "daily" && (
@@ -150,21 +136,16 @@ const inScope = (ids: readonly string[]): boolean =>
             <div class="settings-text">
               <label class="settings-label" for="daily-cadence">Repeat</label>
             </div>
-            <span class="manage-select value-select">
-              <select
-                class={fieldClass()}
+            <Select class="value-select"
                 id="daily-cadence"
                 data-f="daily.cadence"
-                autocomplete="off"
-              >
-                {CADENCES.map((cadence) => (
-                  <option value={cadence.days} selected={cadence.days === values.cadenceDays}>
-                    {cadence.label}
-                  </option>
-                ))}
-              </select>
-              <Icon name="chevronDown" />
-            </span>
+                autocomplete="off">
+              {CADENCES.map((cadence) => (
+                <option value={cadence.days} selected={cadence.days === values.cadenceDays}>
+                  {cadence.label}
+                </option>
+              ))}
+            </Select>
           </div>
         )
       }

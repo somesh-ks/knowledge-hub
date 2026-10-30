@@ -35,7 +35,7 @@
   border: 0;
 }
 
-.manage-fields:disabled :is(.switch-input, .sort-field, .field-input, .search-field) {
+.manage-fields:disabled :is(.switch-input, .field-input, .search-field) {
   opacity: var(--opacity-disabled);
   cursor: default;
 }
@@ -140,31 +140,4 @@ html[data-manage-toast-open] {
 /* Rows are separated by space, never by a line; only sections are divided. */
 .manage .rows > * + *::before {
   content: none;
-}
-
-/* ------------------------------------------------------------------ selects and pick lists */
-
-/* Used by the Daily podcast page: a native select with the page's own chevron, and a list
-   of checkboxes or radios where each label is a whole row. Topics and Sources keep the plainer
-   checklist above. Last in the file, as these rules were when they lived in the page stylesheet
-   loaded after this one: they refine the general rules, including the ones in the blocks above. */
-/* A select drawn like the Library's search field and sort control: its own chevron, no browser arrow. */
-.manage-select {
-  position: relative;
-  display: grid;
-}
-
-.manage-select > .icon {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-end: var(--space-4);
-  margin-block: auto;
-  color: var(--color-on-surface-muted);
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .manage-select > .icon {
-    color: ButtonText;
-  }
 }

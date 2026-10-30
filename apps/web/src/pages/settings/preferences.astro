@@ -15,7 +15,7 @@ import SheetHeader from "../../components/SheetHeader.astro";
 import WeightRow from "../../components/WeightRow.astro";
 import Button from "../../design-system/Button.astro";
 import Field from "../../design-system/Field.astro";
-import { fieldClass } from "../../design-system/field";
+import Select from "../../design-system/Select.astro";
 import Switch from "../../design-system/Switch.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { loadManage } from "../../lib/manage";
@@ -80,12 +80,9 @@ const offers = addOffers(structure.blocks, structure.sections);
                the player's other preferences, not through the config store. */}
           <div class="settings-row">
             <label class="settings-label" for="default-speed">Default playback speed</label>
-            <span class="manage-select value-select">
-              <select class={fieldClass()} id="default-speed" autocomplete="off" data-needs-js data-default-speed>
-                {PLAYBACK_RATES.map((rate) => <option value={rate}>{rate}x</option>)}
-              </select>
-              <Icon name="chevronDown" />
-            </span>
+            <Select class="value-select" id="default-speed" autocomplete="off" data-needs-js data-default-speed>
+              {PLAYBACK_RATES.map((rate) => <option value={rate}>{rate}x</option>)}
+            </Select>
           </div>
         </div>
       </div>
@@ -162,16 +159,13 @@ const offers = addOffers(structure.blocks, structure.sections);
                   </div>
                   {/* The shared settings select, as Theme's on /settings: no rule of its own (2026-10-27). */}
                   <div class="topic-card-menu settings-row">
-                    <span class="manage-select value-select">
-                      <select class={fieldClass()} id="structure-profile" aria-label="Profile" autocomplete="off" data-needs-js>
-                        {
-                          STRUCTURE_PROFILES.map((id) => (
-                            <option value={id} data-note={PROFILE_NOTE[id]} selected={id === structure.profile}>{PROFILE_LABEL[id]}</option>
-                          ))
-                        }
-                      </select>
-                      <Icon name="chevronDown" />
-                    </span>
+                    <Select class="value-select" id="structure-profile" aria-label="Profile" autocomplete="off" data-needs-js>
+                      {
+                        STRUCTURE_PROFILES.map((id) => (
+                          <option value={id} data-note={PROFILE_NOTE[id]} selected={id === structure.profile}>{PROFILE_LABEL[id]}</option>
+                        ))
+                      }
+                    </Select>
                   </div>
                 </div>
               </div>
@@ -317,22 +311,16 @@ const offers = addOffers(structure.blocks, structure.sections);
             <div class="rows card-group structure-rules" data-part="rules">
               <div class="settings-row" data-part="stories">
                 <label class="settings-label" for="structure-stories">Stories</label>
-                <span class="manage-select value-select">
-                  <select class={fieldClass()} id="structure-stories" name="stories" autocomplete="off">
-                    <option value="">Auto</option>
-                  </select>
-                  <Icon name="chevronDown" />
-                </span>
+                <Select class="value-select" id="structure-stories" name="stories" autocomplete="off">
+                  <option value="">Auto</option>
+                </Select>
               </div>
               <div class="settings-row" data-part="per-source">
                 <label class="settings-label" for="structure-per-source">Most from one source</label>
-                <span class="manage-select value-select">
-                  <select class={fieldClass()} id="structure-per-source" name="per_source" autocomplete="off">
-                    <option value="">Auto</option>
-                    {Array.from({ length: PER_SOURCE_MAX }, (_, at) => <option value={String(at + 1)}>{String(at + 1)}</option>)}
-                  </select>
-                  <Icon name="chevronDown" />
-                </span>
+                <Select class="value-select" id="structure-per-source" name="per_source" autocomplete="off">
+                  <option value="">Auto</option>
+                  {Array.from({ length: PER_SOURCE_MAX }, (_, at) => <option value={String(at + 1)}>{String(at + 1)}</option>)}
+                </Select>
               </div>
             </div>
             {/* The prompt, kept but out of the way: closed under its own row at the sheet's foot, as

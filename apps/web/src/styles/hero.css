@@ -86,7 +86,7 @@
 }
 
 /*
- * The select of a day's Catch ups (D219) is the shared select chip (.sort-field, primitives.css) at
+ * The select of a day's Catch ups (D219) is the tonal Select (select.css) at
  * the hero chip's height, so it and Play read as one row. A select is as wide as its longest option
  * whichever is chosen, and the names are one width (lib/catchUps.ts), so switching moves nothing.
  */

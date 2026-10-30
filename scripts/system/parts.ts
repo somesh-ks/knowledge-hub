@@ -104,26 +104,6 @@ export const PARTS: PartSource[] = [
     rules: ["Always wraps a real checkbox or radio input."],
   },
   {
-    id: "sort-field",
-    name: "Sort field",
-    kind: "selection",
-    summary: "A compact select drawn as a chip.",
-    classes: ["sort-field"],
-    when: [
-      "sort a list by date or title",
-      "a range or breakdown picker on a chart",
-      "a compact dropdown in a toolbar",
-    ],
-    not: [
-      { when: "a form field or a setting", use: "settings-row" },
-      { when: "an on/off filter", use: "filter-chip" },
-    ],
-    keywords: ["dropdown", "select", "order by", "sort by"],
-    markup:
-      '<label class="sort-field"><span class="sr-only">Sort</span><select>...</select><Icon name="chevronDown" /></label>',
-    rules: ["Takes the chosen look when its value is not the default."],
-  },
-  {
     id: "segmented-choice",
     name: "Segmented choice",
     kind: "selection",

@@ -32,7 +32,7 @@ function apply(): void {
     const target = document.getElementById(link.hash.slice(1))?.closest("section");
     if (target) link.hidden = target.hidden;
   }
-  tier?.closest(".sort-field")?.toggleAttribute("data-active", tier.value !== "all");
+  tier?.closest("[data-select]")?.toggleAttribute("data-active", tier.value !== "all");
   // A page's fixed sections (the typeface) stay on screen, so "nothing" is no item left in a shown section.
   const anyItem = items.some((item) => !item.hidden && !item.closest("section")?.hidden);
   if (empty) empty.hidden = anyItem || (terms.length === 0 && tier?.value === "all");

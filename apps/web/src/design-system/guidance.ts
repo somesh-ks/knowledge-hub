@@ -7,7 +7,8 @@ export type ComponentName =
   | "Link"
   | "Switch"
   | "Slider"
-  | "Field";
+  | "Field"
+  | "Select";
 export type ComponentRef = ComponentName | `${ComponentName}.${string}`;
 
 export interface DontUse {
