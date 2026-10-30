@@ -86,11 +86,20 @@ function renderAll(): void {
   for (const row of rows) render(row);
 }
 
+/** Lets go of changes the store has or that ran out of time, but not while a write of theirs is under way. */
+function reconcile(): void {
+  const kept = unsettled([...flags.values()], intents, Date.now());
+  for (const [id, held] of Object.entries(intents)) {
+    if ((pending.get(id) ?? 0) > 0) kept[id] = held;
+  }
+  intents = kept;
+  saveIntents();
+}
+
 function take(body: { flags?: FlagRow[] }): void {
   flags.clear();
   for (const flag of body.flags ?? []) flags.set(flag.id, flag);
-  intents = unsettled([...flags.values()], intents, Date.now());
-  saveIntents();
+  reconcile();
 }
 
 async function ask(init?: { id: string; action: ExperimentAction }): Promise<Response> {
@@ -287,8 +296,7 @@ function watch(): void {
   if (watching || Object.keys(intents).length === 0) return;
   watching = true;
   const tick = (): void => {
-    intents = unsettled([...flags.values()], intents, Date.now());
-    saveIntents();
+    reconcile();
     renderAll();
     if (Object.keys(intents).length === 0) {
       watching = false;
@@ -300,17 +308,25 @@ function watch(): void {
   setTimeout(tick, WATCH_MS);
 }
 
+/** One question at a time: a slow answer must not land after a newer one. */
+let rechecking = false;
+
 async function recheck(): Promise<void> {
+  if (rechecking) return;
+  rechecking = true;
   const asked = generation;
   try {
     const response = await ask();
+    const body = (await response.json()) as { flags?: FlagRow[] };
     if (!response.ok || asked !== generation) return;
-    take((await response.json()) as { flags?: FlagRow[] });
+    take(body);
     const note = document.querySelector<HTMLElement>("[data-note]");
     if (note) note.textContent = NOTE_DEFAULT;
     renderAll();
   } catch {
     // Still unreachable: the wait runs out on its own.
+  } finally {
+    rechecking = false;
   }
 }
 
