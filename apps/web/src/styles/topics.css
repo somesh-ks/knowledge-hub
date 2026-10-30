@@ -901,10 +901,10 @@
    transparent edge keeps the size, and forced colours draw it), a state layer under the pointer. The
    text fields were outlined while the selects were filled; one style now (owner, 2026-10-21). A
    focused or failed text field keeps its accent or danger edge. */
-.topics-panel select.manage-input,
+.topics-panel select.field-input,
 .topics-panel .multiselect-trigger,
 .topics-panel
-  :is(input, textarea).manage-input:not(
+  :is(input, textarea).field-input:not(
     :focus-visible,
     [readonly],
     [aria-invalid]:not([aria-invalid="false"])
@@ -915,10 +915,10 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .topics-panel select.manage-input:hover,
+  .topics-panel select.field-input:hover,
   .topics-panel .multiselect-trigger:hover,
   .topics-panel
-    :is(input, textarea).manage-input:not(
+    :is(input, textarea).field-input:not(
       :focus-visible,
       [readonly],
       [aria-invalid]:not([aria-invalid="false"])
@@ -937,7 +937,7 @@
    switch and search field do (.topic-panel above), and stays a field you can see. */
 .topics-panel
   .card-group
-  :is(input, textarea).manage-input:not(
+  :is(input, textarea).field-input:not(
     :focus-visible,
     [readonly],
     [aria-invalid]:not([aria-invalid="false"])
@@ -948,7 +948,7 @@
 @media (hover: hover) and (pointer: fine) {
   .topics-panel
     .card-group
-    :is(input, textarea).manage-input:not(
+    :is(input, textarea).field-input:not(
       :focus-visible,
       [readonly],
       [aria-invalid]:not([aria-invalid="false"])
@@ -961,7 +961,7 @@
   }
 }
 
-.topics-panel select.manage-input:active,
+.topics-panel select.field-input:active,
 .topics-panel .multiselect-trigger:is(:active, [aria-expanded="true"]) {
   border-color: transparent;
   background: color-mix(
@@ -971,14 +971,14 @@
   );
 }
 
-.topics-panel select.manage-input:focus-visible,
+.topics-panel select.field-input:focus-visible,
 .topics-panel .multiselect-trigger:focus-visible {
   border-color: transparent;
 }
 
 /* A shipped topic's name and what counts can be read, not changed: a sunken field in quieter ink, so
    it never looks like a field waiting for typing. */
-.topics-panel .manage-input[readonly] {
+.topics-panel .field-input[readonly] {
   border-color: var(--color-border-hairline);
   background: var(--color-surface-sunken);
   color: var(--color-on-surface-muted);
@@ -1993,7 +1993,7 @@ html:has(.source-filter[data-chips]) {
 }
 
 /* A long prompt scrolls inside its field, so the count and Reset stay in reach under it. */
-textarea.manage-input.structure-prompt {
+textarea.field-input.structure-prompt {
   max-block-size: var(--field-max-height-multiline);
   overflow-y: auto;
 }

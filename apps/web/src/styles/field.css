@@ -1,0 +1,107 @@
+/*
+ * The Field (design-system/Field.astro): a text input, a textarea or a select, outlined on the page's own
+ * surface. Its classes are written in design-system/field.ts and nowhere else.
+ */
+
+/* The text field, and the select and textarea that share its looks: a filled pill (D186; a textarea
+   24px), the one control with an outline, which shows on focus. */
+.field-input {
+  width: 100%;
+  min-height: var(--field-height);
+  padding-inline: var(--field-padding);
+  /* An outline on the page's own surface, no fill, so the outline is what shows the field is
+     there: at 3:1 (--field-border, WCAG 1.4.11), as Material's outlined fields are. */
+  border: var(--stroke-hairline) solid var(--field-border);
+  border-radius: var(--field-radius);
+  background: none;
+  color: var(--color-on-surface);
+  /* The body size, 16px, so iOS never zooms into a field. */
+  font-size: var(--font-size-body);
+  line-height: var(--font-leading-body);
+  transition: border-color var(--duration-hover) var(--ease-hover);
+}
+
+/* It grows with what is typed, so it needs no grip to drag. */
+textarea.field-input {
+  min-block-size: 6rem;
+  border-radius: var(--field-radius-multiline);
+  padding-block: var(--field-padding);
+  field-sizing: content;
+  resize: none;
+}
+
+.field-input::placeholder {
+  color: var(--color-on-surface-muted);
+  opacity: 1;
+}
+
+/* The focus ring sits on the field's own edge and covers it, so a focused field has one accent line. */
+.field-input:focus-visible {
+  outline-offset: calc(var(--stroke-hairline) * -1);
+  border-color: var(--color-accent);
+  box-shadow: none;
+}
+
+/* The ring turns with the edge: focus returns to a field that failed, and an accent ring would hide
+   the edge that says so. */
+.field-input[aria-invalid]:not([aria-invalid="false"]) {
+  --color-focus-ring: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .field-input:not(:focus-visible, [aria-invalid]):hover {
+    border-color: var(--color-on-surface);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .field-input:hover {
+    border-color: var(--color-on-surface);
+  }
+
+  .field-input:hover:focus-visible {
+    border-color: var(--color-accent);
+  }
+}
+
+/* Every select is one height, and its line fills the box inside the border, so the text sits on the
+   same centre line as the chevron in every engine. */
+select.field-input {
+  block-size: var(--field-height);
+  padding-block: 0;
+  padding-inline-end: calc(var(--space-4) + var(--size-icon) + var(--field-chevron-gap));
+  line-height: calc(var(--field-height) - var(--stroke-hairline) * 2);
+  /* A pill, as every select is (D167); the text fields beside it keep the field radius. */
+  border-radius: var(--button-radius);
+  border-color: var(--field-border);
+  background: none;
+  cursor: pointer;
+}
+
+select.field-input:focus-visible {
+  border-color: var(--color-accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  select.field-input:hover {
+    border-color: var(--color-on-surface);
+  }
+
+  select.field-input:hover:focus-visible {
+    border-color: var(--color-accent);
+  }
+}
+
+@media (forced-colors: active) {
+  select.field-input {
+    border-color: ButtonBorder;
+  }
+}
+
+/* A field that cannot be edited dims like every disabled control. A disabled fieldset dims it the same
+   way (manage.css), on the same element, so the two never stack. */
+.field-input:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}

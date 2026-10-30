@@ -23,8 +23,7 @@ const HAIRLINE = [
   ".tabs",
   ".app-nav-create",
   ".create-fab",
-  ".manage-input",
-  ".sheet-input",
+  ".field-input",
 ];
 
 /**
@@ -46,7 +45,7 @@ const EXEMPT = [
   // row's end: a row's chevron, a select's or a multi-select's in a row, Create's More options and
   // an icon button that ends a row.
   ".row-action .icon",
-  ".settings-row .value-select > select.manage-input",
+  ".settings-row .value-select > select.field-input",
   ".settings-row .multiselect-trigger",
   ".create-more-chevron",
   ".icon-btn-end",

@@ -33,6 +33,12 @@ Six design-system PRs, each with 390 and 1280 screenshots in light and dark and 
 
 He went away after "fire away". Made on his behalf, each reversible: the darker slider track; the 32px corner for source and score cards; the player notice as a banner. The owner's reply (2026-10-30): the two segmented kinds are deliberate and stay; the rest can take expressive Material styling as it consolidates.
 
+## Field (C, part 1)
+
+`design-system/Field.astro` draws the text input, textarea and select: one class, `field-input`, replacing `manage-input` (32 call sites) and `sheet-input` (3). Its rules moved from `manage.css` and `sheets.css` into `field.css`. Computed styles of every field on 13 pages, at 390 and 1280, light and dark, rest, hover and focus, before and after: 0 differences (64 fields, 196 state checks).
+
+Calls made for the owner: a disabled field dims like a disabled switch (`--opacity-disabled`) instead of the Generate sheet's lighter border and ink, because a disabled fieldset already dims its fields and the two looks would stack. The Generate sheet's textarea and Regenerate's now grow with their text from the shared 6rem minimum, as every other textarea does. The 28 page rules that bend a field (Create's filled title, the Settings select, the Topics panel) are listed in `PAGE_OVERRIDES` as debt; they were invisible to D253's test until the field became a component. Select and Menu follow in the same pull request.
+
 ## Not verified
 
 Classes built from strings at run time (none found by search); the open states of every sheet and menu are not in the page-level comparison, so each family PR screenshots them.

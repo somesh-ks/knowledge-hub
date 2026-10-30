@@ -5,6 +5,7 @@
  * becomes a component adds its entry here and deletes its hand-written ones from parts.ts.
  */
 import { BUTTON } from "../../apps/web/src/design-system/button.js";
+import { FIELD } from "../../apps/web/src/design-system/field.js";
 import type { ComponentRef, Guidance } from "../../apps/web/src/design-system/guidance.js";
 import { SLIDER } from "../../apps/web/src/design-system/slider.js";
 import { SWITCH } from "../../apps/web/src/design-system/switch.js";
@@ -18,6 +19,7 @@ const PART_OF: Record<string, string> = {
   Link: "text-link",
   Switch: "switch",
   Slider: "slider",
+  Field: "field",
 };
 
 const partOf = (ref: ComponentRef | undefined, fallback: string): string => {
@@ -134,6 +136,15 @@ export const componentParts = (): PartSource[] => [
       '<Slider aria-label="Volume" min="0" max="1" step="0.05" value="0.7" style="--range-fill: 70%" />',
     rules: [
       "WebKit paints the filled track from --range-fill, which starts at 0%: set it to (value - min) / (max - min) as a percentage and update it on input.",
+    ],
+  }),
+  control("field", "Field", FIELD, {
+    keywords: ["field", "input", "text field", "textarea", "select", "dropdown", "form"],
+    markup:
+      '<div class="manage-field"><label for="title">Title</label><Field id="title" name="title" type="text" /></div>',
+    rules: [
+      "Draw it with <Field> (multiline for a textarea); a select or a script takes the class from fieldClass().",
+      "A disabled field dims like a disabled switch; a disabled fieldset dims it the same way, on the same element.",
     ],
   }),
 ];

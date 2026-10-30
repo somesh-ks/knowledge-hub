@@ -5,7 +5,7 @@ Visual language, covers and the header light, empty states, interface sounds, st
 ## Requirements
 
 ### Visual language
-- The reader follows Google Podcasts and Material 3 (D31, D72). Controls are tonal: container fill, accent container for chosen/current item, 8% and 12% state layers, pill buttons (Catch up: `.btn-action-tonal`, flat, 16px; `design-system/` holds Button (filled, tonal, text; D237), Switch and Slider (D243)), chips, selects, text fields (multi-line 24px, D186; a label 12px above its field, fields 24px apart, D229), 12px rows, no outline except on text fields.
+- The reader follows Google Podcasts and Material 3 (D31, D72). Controls are tonal: container fill, accent container for chosen/current item, 8% and 12% state layers, pill buttons (Catch up: `.btn-action-tonal`, flat, 16px; `design-system/` holds Button (filled, tonal, text; D237), Switch, Slider and Field (D243)), chips, selects, text fields (multi-line 24px, D186; a label 12px above its field, fields 24px apart, D229), 12px rows, no outline except on text fields.
 - Story and summary text is 16px, headlines 18 to 20px, meta 14px, section headings (Settings H2s) 18 to 20px regular, never bold (D73, D125).
 - A press never scales words: label controls and worded buttons show a press on their fill. Settings rows and menu options press as a tile off hairlines (`.row-action`), round on the page, concentric in a card (one-row card radius 24px, a third of height). Segmented controls have a sliding thumb that moves immediately with keys.
 - Sideways scrollers (section tabs, Earlier shelf, Costs table) fade hidden edges with `.scroll-fade-inline`; concentric radii for cover frame and search clear; layer stacking: `--z-beneath`, `--z-base`, `--z-raised`, `--z-overlay`.

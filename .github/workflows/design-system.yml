@@ -13,6 +13,7 @@ on:
       - apps/web/src/styles/buttons.css
       - apps/web/src/styles/switch.css
       - apps/web/src/styles/slider.css
+      - apps/web/src/styles/field.css
       - apps/web/src/styles/primitives.css
       - apps/web/src/styles/foundations.css
       - apps/web/src/styles/tokens.css

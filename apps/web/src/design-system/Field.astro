@@ -1,0 +1,26 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { fieldClass } from "./field";
+import "../styles/field.css";
+
+interface FieldProps {
+  /** Several lines that grow with the text; the corner arc is a pill's, shortened. */
+  multiline?: boolean;
+  /** For placing the field where it stands (a width, a margin). Never its look. */
+  class?: string;
+}
+
+type Props = FieldProps &
+  Omit<HTMLAttributes<"input">, keyof FieldProps> &
+  Pick<HTMLAttributes<"textarea">, "rows" | "cols" | "wrap">;
+
+const { multiline = false, class: placement, ...rest } = Astro.props;
+---
+
+{
+  multiline ? (
+    <textarea class:list={[fieldClass(), placement]} {...rest} />
+  ) : (
+    <input class:list={[fieldClass(), placement]} {...rest} />
+  )
+}

@@ -1,4 +1,6 @@
 ---
+import { fieldClass } from "../design-system/field";
+import "../styles/field.css";
 import { SUPPORTED_TIMEZONES, zoneLabel } from "@singularity/core";
 import Switch from "../design-system/Switch.astro";
 import { LENGTHS } from "../lib/createForm";
@@ -75,7 +77,7 @@ const inScope = (ids: readonly string[]): boolean =>
       <div class="settings-row">
         <label class="settings-label" for={`${id}-length`}>Max length</label>
         <span class="manage-select value-select">
-          <select class="manage-input" id={`${id}-length`} data-f={`${id}.length`} autocomplete="off">
+          <select class={fieldClass()} id={`${id}-length`} data-f={`${id}.length`} autocomplete="off">
             {LENGTHS.map((entry) => (
               <option value={String(entry.value)} selected={entry.value === values.lengthMinutes}>
                 {entry.label}
@@ -96,7 +98,7 @@ const inScope = (ids: readonly string[]): boolean =>
         <label class="settings-label" for={`${id}-timezone`}>Time zone</label>
         <span class="manage-select value-select">
           <select
-            class="manage-input"
+            class={fieldClass()}
             id={`${id}-timezone`}
             data-f={`${id}.timezone`}
             data-picker="time zone"
@@ -121,7 +123,7 @@ const inScope = (ids: readonly string[]): boolean =>
           <div class="settings-row">
             <label class="settings-label" for="weekly-day">Day</label>
             <span class="manage-select value-select">
-              <select class="manage-input" id="weekly-day" data-f="weekly.day" autocomplete="off">
+              <select class={fieldClass()} id="weekly-day" data-f="weekly.day" autocomplete="off">
                 {WEEKDAYS.map((name, value) => (
                   <option value={value} selected={value === values.day}>{name}</option>
                 ))}
@@ -134,7 +136,7 @@ const inScope = (ids: readonly string[]): boolean =>
       <div class="settings-row">
         <label class="settings-label" for={`${id}-hour`}>Time</label>
         <span class="manage-select value-select">
-          <select class="manage-input" id={`${id}-hour`} data-f={`${id}.hour`} autocomplete="off">
+          <select class={fieldClass()} id={`${id}-hour`} data-f={`${id}.hour`} autocomplete="off">
             {hours.map((value) => (
               <option value={value} selected={value === values.hour}>{hourLabel(value)}</option>
             ))}
@@ -150,7 +152,7 @@ const inScope = (ids: readonly string[]): boolean =>
             </div>
             <span class="manage-select value-select">
               <select
-                class="manage-input"
+                class={fieldClass()}
                 id="daily-cadence"
                 data-f="daily.cadence"
                 autocomplete="off"

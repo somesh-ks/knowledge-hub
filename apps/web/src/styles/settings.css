@@ -275,7 +275,7 @@
  * In a settings row a select is the row's value, as a list preference reads on a phone: the words
  * and a chevron, with no outline and no box. It is as wide as its words, sits at the end of the row,
  * keeps a full-size target and shows its extent as a fill under a pointer and while it is open.
- * Markup: <span class="manage-select value-select"><select class="manage-input">..</select><svg/></span>
+ * Markup: <span class="manage-select value-select"><select class="field-input">..</select><svg/></span>
  */
 /* A row whose value is a select is as tall as the select's target and no taller. */
 .settings-row:has(> :is(.value-select, .podcast-voice)) {
@@ -317,7 +317,7 @@
   --value-select-end: var(--space-2);
 }
 
-.settings-row .value-select > select.manage-input {
+.settings-row .value-select > select.field-input {
   inline-size: auto;
   min-inline-size: 0;
   max-inline-size: 100%;
@@ -352,7 +352,7 @@
 
 /* On Settings the model is a row's current value, as every other row's hint is: the muted colour at
    the regular weight. In the text colour at medium it read as the darkest words on the page. */
-.settings-row[data-models] .value-select > select.manage-input {
+.settings-row[data-models] .value-select > select.field-input {
   color: var(--color-on-surface-muted);
   font-weight: var(--font-weight-regular);
 }
@@ -360,28 +360,28 @@
 /* The same on the index for any select (Theme): its value sits at the row's end among the link rows'
    values (2026-10-22), so it reads as they do. No more specific than the rule that hides it until
    the stored value is set, which comes later and so still wins. */
-.settings-view .value-select > select.manage-input {
+.settings-view .value-select > select.field-input {
   color: var(--color-on-surface-muted);
   font-weight: var(--font-weight-regular);
 }
 
-.settings-row .value-select > select.manage-input:focus-visible {
+.settings-row .value-select > select.field-input:focus-visible {
   border-color: transparent;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .settings-row .value-select > select.manage-input:hover {
+  .settings-row .value-select > select.field-input:hover {
     border-color: transparent;
     background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
   }
 }
 
-.settings-row .value-select > select.manage-input:active {
+.settings-row .value-select > select.field-input:active {
   background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
 }
 
 /* Open, it holds its fill and flips its chevron, as the multi-select does, with no ring. */
-.settings-row .value-select > select.manage-input:open {
+.settings-row .value-select > select.field-input:open {
   border-color: transparent;
   outline: none;
   box-shadow: none;
