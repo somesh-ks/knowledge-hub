@@ -19,17 +19,17 @@ Vercel's deployment protection cannot guard a project that is reached through an
 
 1. Separate apps, not routes in the reader (own bundle, keys and look; separate repo stays ruled out by D189).
 2. The command center reads the reader's `/api/costs` and `/api/health` first; new sources get routes of its own; costs and health move into a shared package later, which lets the reader's public routes go.
-3. Component specs live beside the components in `apps/web` (`*.design.ts`), changed in the same PR; a test fails when a shared class has no spec. They feed the style guide and the coverage numbers.
+3. The style guide shows only components the app itself imports (D226), not hand-written specs; each component family is a design-system-only PR that adds its Astro component and its guide page.
 4. First milestone: the command center shell, then everything that exists moves in.
 
 ## Phases
 
 1. **Command center shell** (PR #421): `apps/admin` with the gate, an Overview that shows the real health and 30-day spend (from the reader's two APIs), and a stub per section, in the reader's language.
 2. **Move what exists.** Costs and Health pages in the admin app, reading the reader's APIs, behind the gate; then remove `/analytics`, `/settings/health`, `/design` and Settings' Analytics rows from the reader, redirecting to the new addresses. Needs the rewrites.
-3. **Style guide** (`apps/design`), its own thread: colours, typography, tokens, atomic components, search, live states, the `*.design.ts` specs.
-4. **Coverage analytics:** from the specs and a scan of the app's CSS and markup, which shared parts have a spec, how much of the app uses them instead of one-off rules, which tokens are unused; the `design-check` rules feed it.
+3. **Style guide** (`apps/design`), its own thread: colours, typography, tokens, components as the app imports them, a filter on each page.
+4. **Coverage analytics:** from the components the app imports and a scan of the app's CSS and markup, which shared parts are components, how much of the app uses them instead of one-off rules, which tokens are unused; the `design-check` rules feed it.
 5. **Sentry and analytics:** routes of the admin app that hold their own keys.
-6. **Experiments** (`/admin/experiments`): every feature built but not yet trusted, one row each. To add one, add a line to `apps/admin/src/lib/experiments.ts`; its state (on, shadow, off) is read from its flag file at build (an entry with no flag, like ingest, declares its own) and shown "as of the last deploy", because a flag change does not trigger an admin deploy (owner, 2026-10-30: save Vercel deploys); a test fails when a flag file or key is gone. Not yet: what each shadow would have added (the write stage only logs it).
+6. **Experiments** (`/admin/experiments`): every feature built but not yet trusted, one row each. To add one, add a line to `apps/admin/src/lib/experiments.ts`; a test fails when a flag file or key is gone. A row with a flag has a switch and, while on, Promote; each asks first (the confirm dialog) and offers Undo (the toast). They write Neon's `experiment_flags` through `apps/admin/api/experiments.ts` (behind the same gate; the admin Vercel project needs `DATABASE_URL` and `SINGULARITY_CONFIG_STORE=postgres`), and the next run reads them (D249), so a switch costs no commit and no deploy. The page is drawn from the last deploy's files and the store's switches are laid over it on load; with the store out of reach the controls stay still and the page says so. An entry with no flag (ingest) declares its own state. Not yet: what each shadow would have added (the write stage only logs it).
 
 ## Design references (Mobbin, 2026-10-29)
 

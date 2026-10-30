@@ -34,6 +34,13 @@ const MAY_CHANGE = [
   "docs/history/",
   "docs/design-engineering-ledger.md",
   "docs/specs/look-and-sound.md",
+  // The guide's own record and wiring (owner, 2026-10-30): its spec, its plan, the specs index, the
+  // icons built from tokens/glyphs.json, and the gate that type checks the app.
+  "docs/specs/style-guide.md",
+  "docs/design/command-center.md",
+  "docs/specs/README.md",
+  "apps/web/src/lib/icons.ts",
+  "scripts/gate.mjs",
   "docs/state.md",
   "docs/learnings.md",
   "scripts/designSystemGate",
