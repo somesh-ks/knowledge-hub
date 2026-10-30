@@ -298,7 +298,8 @@ async function writePass(
       continue;
     }
     // Topics score first and the list lifts only what no custom topic won, live and in the shadow.
-    const topical = applyTopics(scoreItem(entry, preferences, item), layer);
+    // A favorite creator's video is lifted first, so a custom topic competes with the lifted score.
+    const topical = applyTopics(withCreator(scoreItem(entry, preferences, item)), layer);
     const sourceShifted = sourceShift(adjustmentAt(autoAdjust.sources[item.source_id], deps.now()));
     // The score a story reaches before the taste check and the vote weight, as the live path computes it.
     const adjusted = (scored: ScoredItem): ScoredItem =>
@@ -309,7 +310,7 @@ async function writePass(
       );
     // Each list is also read as if on while it is off, one at a time, against the live other.
     const lifted = (authority: AuthorityMatcher, community: CommunityFile): ScoredItem =>
-      adjusted(withCommunity(withCreator(withAuthority(topical, authority)), community));
+      adjusted(withCommunity(withAuthority(topical, authority), community));
     const final = lifted(context.authority, context.community);
     base.push(final);
     const passes = (scored: ScoredItem): boolean => eligibility(scored, undefined, off).eligible;
@@ -701,6 +702,7 @@ export async function writeFinalists(args: {
       ...(sel.item.author ? { author: sel.item.author } : {}),
       category: sel.category,
       text: text.text,
+      ...(sel.item.source_type === "youtube" && text.method !== "snippet" ? { spoken: true } : {}),
       ...(sel.prompt === undefined ? {} : { prompt: sel.prompt }),
     });
   }

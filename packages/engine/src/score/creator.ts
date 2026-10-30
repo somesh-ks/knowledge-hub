@@ -12,7 +12,12 @@ import type { ScoredItem } from "./types.js";
  * counts, a video the judge found off-topic ("none") keeps its score, and the score never goes down.
  */
 export function withCreator(scored: ScoredItem): ScoredItem {
-  if (!scored.item.signals.creator_vetted || scored.topic || scored.topCategory === "none") {
+  if (
+    scored.item.source_type !== "youtube" ||
+    !scored.item.signals.creator_vetted ||
+    scored.topic ||
+    scored.topCategory === "none"
+  ) {
     return scored;
   }
   const depth = Math.max(scored.breakdown.craftFactor, craftFactor(AUTHORITY_DEPTH));
