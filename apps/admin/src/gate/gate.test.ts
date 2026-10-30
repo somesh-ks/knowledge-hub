@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createSession, type GateEnv, guard, sessionValid } from "./gate";
+import { type GateEnv, guard } from "./gate";
+import { createSession, sessionValid } from "./session";
 
 const ENV = { password: "correct horse battery staple", secret: "x".repeat(40) };
 const NOW = Date.UTC(2026, 9, 29, 12);
@@ -62,5 +63,26 @@ describe("the command center's gate", () => {
     expect(
       (await visit("/costs", undefined, { password: ENV.password, secret: "short" }))?.status,
     ).toBe(503);
+  });
+
+  // The reader's /api/costs and /api/health check this cookie; one scoped to /admin never reaches them.
+  it("sets the session for the whole domain and clears the old /admin one, as sign-out does", async () => {
+    const cookie = (await login(ENV.password))?.headers.get("set-cookie") ?? "";
+    expect(cookie).toContain("Path=/;");
+    const issued = (await login(ENV.password))?.headers.getSetCookie() ?? [];
+    expect(issued.some((line) => line.includes("Path=/admin;") && line.includes("Max-Age=0"))).toBe(
+      true,
+    );
+
+    const out = await guard(
+      new Request("https://news.someshks.work/admin/logout", { method: "POST" }),
+      ENV,
+      NOW,
+      instant,
+    );
+    const cleared = out?.headers.getSetCookie() ?? [];
+    expect(cleared.some((line) => line.includes("Path=/;"))).toBe(true);
+    expect(cleared.some((line) => line.includes("Path=/admin;"))).toBe(true);
+    expect(cleared.every((line) => line.includes("Max-Age=0"))).toBe(true);
   });
 });

@@ -50,6 +50,8 @@ const VERCEL_ENV = [
   "GEMINI_API_KEY",
   "CRON_SECRET",
   "DATABASE_URL",
+  // The report routes (/api/costs, /api/health) verify the command center's session cookie (D257).
+  "ADMIN_SESSION_SECRET",
 ];
 
 /**

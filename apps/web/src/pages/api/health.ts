@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { guardAdmin } from "../../server/adminGuard";
 import { serveHealth } from "../../server/healthSources";
 import { recordingFaults, toResponse } from "../../server/http";
 import { sharedLimit } from "../../server/rateLimit";
@@ -6,11 +7,13 @@ import { sharedLimit } from "../../server/rateLimit";
 // Runs on demand: the Health page's readings come from the content store, Neon and GitHub.
 export const prerender = false;
 
-// Open, as every route is (D160), and each answer reads GitHub and Neon: at most this many a minute
-// across instances; past it the answer is 429.
+// Not open: it answers only the command center's session (D257). Each answer reads GitHub and Neon:
+// at most this many a minute across instances; past it the answer is 429.
 const REPORTS_PER_MINUTE = 30;
 
-const get: APIRoute = async () => {
+const get: APIRoute = async ({ request }) => {
+  const refused = await guardAdmin(request);
+  if (refused) return refused;
   if (!(await sharedLimit("health", REPORTS_PER_MINUTE))) {
     return toResponse({
       status: 429,

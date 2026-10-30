@@ -1,6 +1,7 @@
 import { type CostRecord, dateInZone, type PriceTable, TIME_ZONE } from "@singularity/core";
 import { del, head, put } from "@vercel/blob";
 import type { APIRoute } from "astro";
+import { guardAdmin } from "../../server/adminGuard";
 import { anthropicBilledDays } from "../../server/anthropicBilling";
 import { createVercelBlobStore, readFresh } from "../../server/blobStore";
 import { readBlobCredentials } from "../../server/config";
@@ -16,8 +17,8 @@ import { sharedLimit } from "../../server/rateLimit";
 // function's usage documents from Blob and, with an Admin key, Anthropic's cost report.
 export const prerender = false;
 
-// The route is open on purpose (the site has no passphrase, D160) and each answer reads
-// Blob, so the site answers at most this many a minute across instances; past it the answer is 429.
+// The route answers only the command center's session (D257), and each answer reads Blob, so the
+// site answers at most this many a minute across instances; past it the answer is 429.
 const REPORTS_PER_MINUTE = 30;
 
 const OIDC_HEADER = "x-vercel-oidc-token";
@@ -69,6 +70,8 @@ async function billedDays(days: number, now: Date): Promise<Map<string, number> 
 }
 
 const get: APIRoute = async ({ request, url }) => {
+  const refused = await guardAdmin(request);
+  if (refused) return refused;
   if (!(await sharedLimit("costs", REPORTS_PER_MINUTE))) {
     return toResponse({
       status: 429,

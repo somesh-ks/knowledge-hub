@@ -13,12 +13,12 @@ Both are drawn with the reader's own stylesheets and shell classes (tokens, foun
 
 Each app sets its path as the Astro `base` (`/admin`, `/design`). The reader's `vercel.json` rewrites `/admin/:path*` to `https://<admin project>/:path*` (the build puts files at the root, the HTML asks for `/admin/...`). The rewrites wait until the projects exist and their addresses are known.
 
-Vercel's deployment protection cannot guard a project that is reached through another project's rewrite, so `/admin` is gated in the app. `middleware.ts` (Vercel Routing Middleware, logic in `src/gate/gate.ts`) sends every address without a session to `/admin/login`, except that page and its assets. The password is `ADMIN_PASSWORD`, the cookie is signed with `ADMIN_SESSION_SECRET` (32 characters or more), 30 days. With either missing the app answers 503 to everything. The Google login replaces the password when it ships. The reader's `/api/costs` and `/api/health` stay public until their code moves into a package.
+Vercel's deployment protection cannot guard a project that is reached through another project's rewrite, so `/admin` is gated in the app. `middleware.ts` (Vercel Routing Middleware, logic in `src/gate/gate.ts`) sends every address without a session to `/admin/login`, except that page and its assets. The password is `ADMIN_PASSWORD`, the cookie is signed with `ADMIN_SESSION_SECRET` (32 characters or more), 30 days. With either missing the app answers 503 to everything. The Google login replaces the password when it ships. The reader's `/api/costs` and `/api/health` check the same cookie (D257), so the cookie is site-wide (`Path=/`) and the reader's project holds the same `ADMIN_SESSION_SECRET`.
 
 ## Decisions taken
 
 1. Separate apps, not routes in the reader (own bundle, keys and look; separate repo stays ruled out by D189).
-2. The command center reads the reader's `/api/costs` and `/api/health` first; new sources get routes of its own; costs and health move into a shared package later, which lets the reader's public routes go.
+2. The command center reads the reader's `/api/costs` and `/api/health` first; new sources get routes of its own; costs and health may move into a shared package later; until then the reader's routes answer the session only.
 3. The style guide shows only components the app itself imports (D226), not hand-written specs; each component family is a design-system-only PR that adds its Astro component and its guide page.
 4. First milestone: the command center shell, then everything that exists moves in.
 
@@ -47,5 +47,5 @@ Vercel's deployment protection cannot guard a project that is reached through an
 
 - Two or three deploys: a reader change under `apps/web/src/styles` or `components` rebuilds the apps (their ignore rules list those paths).
 - The apps import the reader's files by relative path; move them to a shared package only if that becomes painful.
-- Until costs and health move into a package, `/api/costs` and `/api/health` stay public on the reader.
+- Until costs and health move into a package, `/api/costs` and `/api/health` stay on the reader behind the session cookie (D257).
 - The gate is new code and must be built before Costs and Health move.

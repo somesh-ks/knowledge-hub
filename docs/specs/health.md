@@ -5,7 +5,7 @@ The app's health on one page, read live: whether briefings published, how long r
 ## Requirements
 
 - `/admin/health` in the command center (D203, D224; `/settings/health` redirects there): a summary card (how many rows need a look, then four stat tiles: last briefing, briefing time, phone page load, errors today) and grouped rows: Briefings (Daily, Weekly, Catch up, Narration, Model fallbacks), Run times, Speed (a Device select, then LCP, INP and CLS p75), Errors (24 hours, the week in each line), Jobs (each workflow's runs this week from GitHub) and Sources and services. Each row: name, a line, its reading at the end with a status dot; the line says what the dot does.
-- `GET /api/health` reads the content store (`state/last-run.json`, `state/source-health.json`, the newest 14 briefings), Neon (field vitals, client faults) and GitHub's run list, each part within 4 s, and judges with `singularity health`'s lines (`@singularity/engine/health-limits`). A briefing's time is `generated_at` less `window.to` (its run's start), never the record's `at`, which waits for the publish slot. Open, as every route (D201); 30 a minute across instances; one answer kept 20 s per instance.
+- `GET /api/health` reads the content store (`state/last-run.json`, `state/source-health.json`, the newest 14 briefings), Neon (field vitals, client faults) and GitHub's run list, each part within 4 s, and judges with `singularity health`'s lines (`@singularity/engine/health-limits`). A briefing's time is `generated_at` less `window.to` (its run's start), never the record's `at`, which waits for the publish slot. Answers only the command center session cookie, 401 without it (D257); 30 a minute across instances; one answer kept 20 s per instance.
 
 ## Scenarios
 
