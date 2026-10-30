@@ -66,6 +66,39 @@
       },
       "verified": true,
       "model_fallbacks": 0
+    },
+    {
+      "run_id": "2026-10-30T22:13:23.447Z",
+      "at": "2026-10-30T22:17:19.999Z",
+      "digest_id": "2026-10-30",
+      "kind": "on-demand",
+      "mode": "on-demand",
+      "replace": false,
+      "outcome": "published",
+      "stage_ms": {
+        "fetch": 91617,
+        "judge": 79169,
+        "write": 61104,
+        "validate": 407
+      },
+      "total_ms": 236538,
+      "funnel": {
+        "pool": 577,
+        "written": 15,
+        "grounding_dropped": 0,
+        "grounding_pruned": 9,
+        "validate_dropped": 2,
+        "refill_written": 0,
+        "refill_kept": 0,
+        "aired": 13
+      },
+      "length": {
+        "asked_chars": null,
+        "aired_chars": 5283,
+        "share": null
+      },
+      "verified": true,
+      "model_fallbacks": 0
     }
   ]
 }

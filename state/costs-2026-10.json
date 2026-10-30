@@ -1533,6 +1533,107 @@
       },
       "usd": 0.01328,
       "estimated": true
+    },
+    {
+      "id": "2026-10-30T22:13:23.447Z|on_demand|extract|gemini|gemini-3.5-flash-lite|owner",
+      "at": "2026-10-30T22:17:19.999Z",
+      "run_id": "2026-10-30T22:13:23.447Z",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "extract",
+      "provider": "gemini",
+      "product": "gemini-3.5-flash-lite",
+      "units": {
+        "input_tokens": 371352,
+        "output_tokens": 17519
+      },
+      "usd": 0.044143
+    },
+    {
+      "id": "2026-10-30T22:13:23.447Z|on_demand|write|anthropic|claude-sonnet-5-5|owner",
+      "at": "2026-10-30T22:17:19.999Z",
+      "run_id": "2026-10-30T22:13:23.447Z",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "write",
+      "provider": "anthropic",
+      "product": "claude-sonnet-5-5",
+      "units": {
+        "input_tokens": 53325,
+        "output_tokens": 23498
+      },
+      "usd": 0.512445
+    },
+    {
+      "id": "2026-10-30T22:13:23.447Z|on_demand|write|anthropic|claude-haiku-5-5|owner",
+      "at": "2026-10-30T22:17:19.999Z",
+      "run_id": "2026-10-30T22:13:23.447Z",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "write",
+      "provider": "anthropic",
+      "product": "claude-haiku-5-5",
+      "units": {
+        "input_tokens": 686,
+        "output_tokens": 554
+      },
+      "usd": 0.010368
+    },
+    {
+      "id": "2026-10-30T22:13:23.447Z|on_demand|judge|typesafe|jev|owner",
+      "at": "2026-10-30T22:17:19.999Z",
+      "run_id": "2026-10-30T22:13:23.447Z",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "judge",
+      "provider": "typesafe",
+      "product": "jev",
+      "units": {
+        "requests": 606
+      },
+      "usd": 0
+    },
+    {
+      "id": "2026-10-30T22:13:23.447Z|on_demand|fetch|exa|search|owner",
+      "at": "2026-10-30T22:17:19.999Z",
+      "run_id": "2026-10-30T22:13:23.447Z",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "fetch",
+      "provider": "exa",
+      "product": "search",
+      "units": {
+        "requests": 14
+      },
+      "usd": 0.07,
+      "estimated": true
+    },
+    {
+      "id": "2026-10-30T22:13:23.447Z|on_demand|fetch|firecrawl|scrape|owner",
+      "at": "2026-10-30T22:17:19.999Z",
+      "run_id": "2026-10-30T22:13:23.447Z",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "fetch",
+      "provider": "firecrawl",
+      "product": "scrape",
+      "units": {
+        "credits": 17
+      },
+      "usd": 0.01411,
+      "estimated": true
     }
   ]
 }
