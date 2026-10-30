@@ -4,7 +4,6 @@
  * stylesheet is global (BaseLayout) because a script builds one on first use.
  */
 
-
 dialog.dialog-panel {
   --color-focus-gap: var(--sheet-bg);
   /* Placed and stacked by itself, not by the modal state: Safari ends that as the exit begins, and
