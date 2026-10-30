@@ -106,6 +106,9 @@ export function classTokens(text: string): Set<string> {
     found.add(`button-${variant}`);
     if (tone) found.add(`button-${tone}`);
   }
+  // The Switch and the Slider are single-class components, drawn by the tag or by the class helper.
+  if (/<Switch\b|\bswitchClass\(/.test(text)) found.add("switch-input");
+  if (/<Slider\b|\bsliderClass\(/.test(text)) found.add("slider-input");
   return found;
 }
 
