@@ -3,6 +3,15 @@
   "installCommand": "cd ../.. && npm ci --ignore-scripts",
   "buildCommand": "npm run build",
   "ignoreCommand": "sh ignore-build.sh",
+  "git": {
+    "deploymentEnabled": {
+      "*": false,
+      "*/*": false,
+      "*/*/*": false,
+      "main": true,
+      "preview/*": true
+    }
+  },
   "rewrites": [
     { "source": "/design", "destination": "/" },
     { "source": "/design/:path*", "destination": "/:path*" }
