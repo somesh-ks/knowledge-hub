@@ -8,7 +8,8 @@ import { fileURLToPath } from "node:url";
  * adapter, so this serves the build output the way Vercel would: clean URLs, the headers from
  * vercel.json (the Content-Security-Policy included, so a violation fails a test), Range requests
  * for audio, and 404.html for unknown paths. The API routes are functions and are not served here;
- * they are covered by unit tests with injected fetch.
+ * they are covered by unit tests with injected fetch. `mounts` serves another build under a prefix
+ * the way the reader's rewrite does (the admin app at /admin, its prefix stripped).
  *
  * Usage: node e2e/staticServer.mjs [directory] [port]
  */
@@ -40,7 +41,7 @@ function loadHeaderRules() {
   }));
 }
 
-export function startServer({ root, port }) {
+export function startServer({ root, port, mounts = {} }) {
   const rules = loadHeaderRules();
 
   function headersFor(pathname) {
@@ -53,9 +54,17 @@ export function startServer({ root, port }) {
   }
 
   function resolveFile(pathname) {
-    const clean = normalize(decodeURIComponent(pathname)).replace(/^([/\\])+/, "");
-    const target = join(root, clean);
-    if (!target.startsWith(root)) return null;
+    let base = root;
+    let path = pathname;
+    for (const [prefix, dir] of Object.entries(mounts)) {
+      if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
+        base = dir;
+        path = pathname.slice(prefix.length) || "/";
+      }
+    }
+    const clean = normalize(decodeURIComponent(path)).replace(/^([/\\])+/, "");
+    const target = join(base, clean);
+    if (!target.startsWith(base)) return null;
     for (const candidate of [target, join(target, "index.html"), `${target}.html`]) {
       if (existsSync(candidate) && statSync(candidate).isFile()) return candidate;
     }

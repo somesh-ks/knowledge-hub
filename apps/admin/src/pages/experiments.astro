@@ -1,9 +1,16 @@
 ---
 import { resolve } from "node:path";
+import Button from "../../../web/src/design-system/Button.astro";
+import Toaster from "../../../web/src/sheets/Toaster";
 import AdminHead from "../components/AdminHead.astro";
 import Shell from "../layouts/Shell.astro";
 import { loadExperiments } from "../lib/experiments";
 import { SECTIONS } from "../lib/sections";
+import "../../../web/src/styles/create-sheet.css";
+import "../../../web/src/styles/episode-actions.css";
+import "../../../web/src/styles/sheets.css";
+// The toast's glyphs are the player's (.ui-icon): the reader loads that sheet everywhere.
+import "../../../web/src/styles/player.css";
 
 // The build runs in apps/admin; the switches live in the repository's config/.
 const experiments = await loadExperiments(resolve(process.cwd(), "../.."));
@@ -12,24 +19,65 @@ const WORDS = { on: "On", shadow: "Shadow", off: "Off" } as const;
 ---
 
 <Shell title="Experiments" current="/experiments">
-  <div class="settings-view" data-settings>
+  <div class="settings-view" data-settings data-experiments>
     <AdminHead title="Experiments" note={section?.question} />
     <section>
+      {/* Drawn from the last deploy's files; scripts/experiments.ts lays the store's switches over
+           it (api/experiments.ts), and until it has them the controls wait. */}
       <div class="rows card-group">
         {
           experiments.map((experiment) => (
-            <div class="settings-row" data-experiment={experiment.id}>
+            <div
+              class="settings-row"
+              data-experiment={experiment.id}
+              data-built={experiment.state}
+              data-rest={experiment.rest}
+            >
               <span class="settings-text">
-                <span class="settings-label">{experiment.name}</span>
+                <span class="settings-label" id={`experiment-${experiment.id}`}>{experiment.name}</span>
                 <span class="settings-hint">{experiment.line}</span>
-                <span class="settings-hint">{experiment.switch}</span>
+                <span class="settings-hint" data-state>
+                  {experiment.flag ? WORDS[experiment.state] : experiment.switch}
+                </span>
               </span>
-              <span class="health-value" data-state={experiment.state}>{WORDS[experiment.state]}</span>
+              {experiment.flag ? (
+                <>
+                  <Button variant="text" data-promote disabled>Promote</Button>
+                  <input
+                    class="settings-switch"
+                    type="checkbox"
+                    role="switch"
+                    aria-labelledby={`experiment-${experiment.id}`}
+                    checked={experiment.state === "on"}
+                    disabled
+                    data-switch
+                  />
+                </>
+              ) : (
+                <span class="health-value" data-state-word={experiment.state}>{WORDS[experiment.state]}</span>
+              )}
             </div>
           ))
         }
       </div>
-      <p class="settings-note">As of the last deploy.</p>
+      <p class="settings-note" data-note>Changes apply from the next run.</p>
     </section>
   </div>
+
+  {/* What a switch or a promotion asks before it acts: the reader's confirm dialog, worn again. */}
+  <dialog class="confirm-dialog" aria-labelledby="experiment-confirm-title" aria-describedby="experiment-confirm-lede" data-confirm>
+    <div class="confirm-form">
+      <h2 class="sheet-title" id="experiment-confirm-title" data-confirm-title></h2>
+      <p class="create-hint confirm-lede" id="experiment-confirm-lede" data-confirm-lede></p>
+      <div class="confirm-actions">
+        <Button variant="text" data-confirm-cancel autofocus>Cancel</Button>
+        <Button variant="filled" data-confirm-go></Button>
+      </div>
+    </div>
+  </dialog>
+  <Toaster client:load />
 </Shell>
+
+<script>
+  import "../scripts/experiments";
+</script>

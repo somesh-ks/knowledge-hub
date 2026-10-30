@@ -6,7 +6,7 @@ import { costsReport, expect, test } from "./fixtures";
  */
 test("the chart and breakdown follow the split", async ({ page }) => {
   await page.clock.setFixedTime(new Date("2026-10-22T10:00:00Z"));
-  await page.goto("/analytics");
+  await page.goto("/admin/costs");
   const breakdown = page.locator("[data-costs-rank] > li");
   await expect(breakdown).toHaveCount(2);
   const first = await breakdown.first().textContent();
@@ -25,7 +25,7 @@ test.describe("when the costs cannot be fetched", () => {
     page,
   }) => {
     await page.clock.setFixedTime(new Date("2026-10-22T10:00:00Z"));
-    await page.goto("/analytics");
+    await page.goto("/admin/costs");
     const plot = page.locator("[data-costs-plot]");
     const breakdown = page.locator("[data-costs-rank]");
     const table = page.locator("[data-costs-table]");
@@ -81,7 +81,7 @@ test.describe("on a phone", () => {
         },
       }),
     );
-    await page.goto("/analytics");
+    await page.goto("/admin/costs");
     await expect(page.locator(".costs-mark")).toHaveCount(1);
     await page.locator("#costs-view-table").click();
     const scroller = page.locator("[data-costs-table-scroll]");

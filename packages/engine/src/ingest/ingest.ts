@@ -41,7 +41,7 @@ export const INGEST_WINDOW_DAYS = 3;
 export const DEFAULT_MAX_EXTRACTIONS = 600;
 const DEFAULT_CONCURRENCY = 8;
 const ARCHIVE_PREFIX = "ingest/";
-/** The key is random and never changes, so a year of caching is safe. */
+/** The pack's key is random and never changes, so a year of caching is safe. */
 const ARCHIVE_CACHE_SECONDS = 365 * 24 * 60 * 60;
 
 export interface IngestInput {
@@ -71,7 +71,12 @@ export interface IngestReport {
   results: SourceResult[];
 }
 
-/** Where a story's text lives in Blob. Random, because a public Blob URL must not be derivable from the story's address. */
+/**
+ * Where a run's story texts live in Blob: one pack for the whole run. Vercel Blob counts every put
+ * as one of the Hobby plan's 2,000 advanced operations a month, so a put a story spent that budget
+ * in a day (2026-10-30); a put a run is three a day. Random, because a public Blob URL must not be
+ * derivable from a story's address.
+ */
 export function archiveKey(now: Date, id: string): string {
   const year = now.getUTCFullYear();
   const month = String(now.getUTCMonth() + 1).padStart(2, "0");
@@ -79,7 +84,7 @@ export function archiveKey(now: Date, id: string): string {
 }
 
 type Outcome =
-  | { kind: "archived"; item: Item; extracted: ExtractedText; key: string }
+  | { kind: "archived"; item: Item; extracted: ExtractedText }
   | { kind: "unreadable"; item: Item }
   | { kind: "error"; item: Item };
 
@@ -126,41 +131,52 @@ export async function runIngest(input: IngestInput): Promise<IngestReport> {
 
   const extract = input.extract ?? ((item: Item) => extractFullText(item, { scrape: null }));
   const randomId = input.randomId ?? randomUUID;
-  const outcomes: Outcome[] = [];
+  let outcomes: Outcome[] = [];
+  let packKey: string | null = null;
   if (!input.dryRun && blob) {
     const limiter = createLimiter(input.concurrency ?? DEFAULT_CONCURRENCY);
-    outcomes.push(
-      ...(await Promise.all(
-        todo.map((item) =>
-          limiter.run(async (): Promise<Outcome> => {
-            try {
-              const extracted = await extract(item);
-              if (!extracted) return { kind: "unreadable", item };
-              const key = archiveKey(started, randomId());
-              const body = JSON.stringify({
-                version: 1,
-                item_id: item.id,
-                url: item.canonical_url,
-                title: item.title,
-                source_id: item.source_id,
-                published_at: item.published_at ?? null,
-                fetched_at: item.fetched_at,
-                method: extracted.method,
-                truncated: extracted.truncated,
-                text: extracted.text,
-              });
-              await blob.put(key, new TextEncoder().encode(body), {
-                contentType: "application/json",
-                cacheControlMaxAge: ARCHIVE_CACHE_SECONDS,
-              });
-              return { kind: "archived", item, extracted, key };
-            } catch {
-              return { kind: "error", item };
-            }
-          }),
-        ),
-      )),
+    outcomes = await Promise.all(
+      todo.map((item) =>
+        limiter.run(async (): Promise<Outcome> => {
+          try {
+            const extracted = await extract(item);
+            return extracted ? { kind: "archived", item, extracted } : { kind: "unreadable", item };
+          } catch {
+            return { kind: "error", item };
+          }
+        }),
+      ),
     );
+    const archived = outcomes.flatMap((outcome) => (outcome.kind === "archived" ? [outcome] : []));
+    if (archived.length > 0) {
+      const key = archiveKey(started, randomId());
+      const body = JSON.stringify({
+        version: 2,
+        items: archived.map(({ item, extracted }) => ({
+          item_id: item.id,
+          url: item.canonical_url,
+          title: item.title,
+          source_id: item.source_id,
+          published_at: item.published_at ?? null,
+          fetched_at: item.fetched_at,
+          method: extracted.method,
+          truncated: extracted.truncated,
+          text: extracted.text,
+        })),
+      });
+      try {
+        await blob.put(key, new TextEncoder().encode(body), {
+          contentType: "application/json",
+          cacheControlMaxAge: ARCHIVE_CACHE_SECONDS,
+        });
+        packKey = key;
+      } catch {
+        // Nothing was saved, so no story has a row and the next run reads them all again.
+        outcomes = outcomes.map((outcome) =>
+          outcome.kind === "archived" ? { kind: "error", item: outcome.item } : outcome,
+        );
+      }
+    }
   }
 
   const seenAt = started.toISOString();
@@ -179,7 +195,7 @@ export async function runIngest(input: IngestInput): Promise<IngestReport> {
       method: outcome.kind === "archived" ? outcome.extracted.method : null,
       chars: outcome.kind === "archived" ? outcome.extracted.text.length : 0,
       truncated: outcome.kind === "archived" ? outcome.extracted.truncated : false,
-      archive_key: outcome.kind === "archived" ? outcome.key : null,
+      archive_key: outcome.kind === "archived" ? packKey : null,
     });
   }
 
@@ -209,14 +225,10 @@ export async function runIngest(input: IngestInput): Promise<IngestReport> {
       // The texts saved this run may have no row to find them by, and the next run would save them
       // again under new keys: take out those no row points at. A write whose answer was lost may
       // have landed, so a key is deleted only when the database confirms nothing refers to it.
-      const saved = outcomes.flatMap((outcome) =>
-        outcome.kind === "archived" ? [outcome.key] : [],
-      );
-      if (blob && saved.length > 0) {
+      if (blob && packKey !== null) {
         try {
-          const referenced = await readReferencedKeys(sql, saved);
-          const orphans = saved.filter((key) => !referenced.has(key));
-          if (orphans.length > 0) await blob.del(orphans);
+          const referenced = await readReferencedKeys(sql, [packKey]);
+          if (!referenced.has(packKey)) await blob.del([packKey]);
         } catch {
           // Unknown is kept: a stray text costs a file, a deleted one costs a story.
         }

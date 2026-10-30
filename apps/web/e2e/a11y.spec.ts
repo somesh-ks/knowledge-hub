@@ -59,7 +59,7 @@ test("axe, the Costs page in chart and table view, its table scrolling sideways"
       },
     }),
   );
-  await page.goto("/analytics");
+  await page.goto("/admin/costs");
   await expect(page.locator(".costs-mark")).toHaveCount(1);
   await expectNoViolationsInEitherScheme(page);
   await page.locator("#costs-view-table").click();

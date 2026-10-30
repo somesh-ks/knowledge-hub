@@ -37,7 +37,7 @@ export const SECTIONS: readonly Section[] = [
     icon: "coins",
     iconCurrent: "coinsFill",
     question: "Paid services.",
-    status: "Moves here next",
+    status: "",
   },
   {
     path: "/health",
@@ -45,7 +45,7 @@ export const SECTIONS: readonly Section[] = [
     icon: "heartbeat",
     iconCurrent: "heartbeatFill",
     question: "Runs, pages, services.",
-    status: "Moves here next",
+    status: "",
   },
   {
     path: "/experiments",

@@ -1,10 +1,10 @@
 /*
- * The Costs page (/analytics): one card that answers it all (2026-10-22, the owner). Its top holds
+ * The Costs page (/admin/costs): one card that answers it all (2026-10-22, the owner). Its top holds
  * the range and breakdown chips (the shared select chip, primitives.css) and the total with one
  * supporting line; then a column chart of each day's, week's or month's spend; then the breakdown,
  * largest first. One series, so one colour, the accent: the split lives in the breakdown and the
- * tooltip, never in a stack of hues the design system does not have. Drawn by scripts/costsPage.ts
- * as plain DOM and inline SVG. Imported by pages/analytics.astro after settings.css.
+ * tooltip, never in a stack of hues the design system does not have. Drawn by apps/admin/src/scripts/costsPage.ts
+ * as plain DOM and inline SVG. Imported by the admin app's Shell (apps/admin/src/pages/costs.astro).
  */
 
 /* ------------------------------------------------------------------ the card */
