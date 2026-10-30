@@ -101,7 +101,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D78 | The Library has one facts line per card, finds dates, keeps its search in the address and remembers what was played | active |
 | D79 | A saved setting shows before the build, and a new topic stays on its list with its suggestions at once | active |
 | D80 | An episode is written to 95% of what its stories can carry, and a script a little under the floor is kept | active |
-| D81 | A workflow installs only what it runs; the audio job skips the Vercel pull with a Blob token | active; the owner merges workflow files by hand |
+| D81 | A workflow installs only what it runs; the audio job skips the Vercel pull with a Blob token | active; owner merges workflow files by hand |
 | D82 | Play keeps an early tap, a new episode is pre-narrated, the deploy is noticed in 2.5 s | active |
 | D83 | Settings shows a source's score as a word, its name opens its editor; Model default is called Default | active; amends D55's pips and D69's name links |
 | D84 | A failed run keeps its request and offers Try again; a finished run clears itself; one run at a time | active |
