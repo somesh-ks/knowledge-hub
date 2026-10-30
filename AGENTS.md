@@ -16,11 +16,11 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code 
 
 - `npm run singularity -- <command>`: engine CLI (`doctor`, `status`, `models`, `run`, `publish`).
 - `npm run gate -- --build`: typecheck, `astro check`, lint, unit tests, the docs check and the static build, in parallel (80 s); all must pass. `npm test`, `npm run typecheck` and `npm run lint` run alone.
-- Run commands through PowerShell, not Git Bash: a Git Bash process costs 3 to 8 s here, PowerShell 50 ms ([learnings](docs/learnings.md)). Never stop what listens on port 4321 (the owner's dev server, on `[::1]`; screenshot `http://localhost:4321`); run browser suites with `PORT` set above 4400.
+- Run commands through PowerShell, not Git Bash (3 to 8 s a process against 50 ms; [learnings](docs/learnings.md)). Never stop what listens on port 4321 (the owner's dev server, on `[::1]`; screenshot `http://localhost:4321`); give browser suites a `PORT` above 4400.
 - A worktree gets its packages from `node scripts/worktreeLinks.mjs <path>` and loses them with `--remove` before `git worktree remove`.
-- `npm run e2e -w @singularity/web` and `npm run e2e:player -w @singularity/web` (about 6 minutes each): the browser suites. Run both before every PR that touches the site, `packages` or the tokens (CI runs them for some paths); push once. Red check: [delivery failures](docs/engineering/delivery-failures.md) (D148).
+- `npm run e2e -w @singularity/web` and `npm run e2e:player -w @singularity/web` (about 6 min each): the browser suites. Run both before a PR that touches the site, `packages` or the tokens; push once. Red check: [delivery failures](docs/engineering/delivery-failures.md) (D148).
 - `SINGULARITY_STATIC_ONLY=1 npm run build`: local site build (the Vercel adapter fails on Windows symlinks).
-- `npm run dev`: the site with the Agentation toolbar; `checkBundle` fails a build that contains it. Stop it when done (`npx astro dev stop` in `apps/web`); left running across an install, it serves broken islands.
+- `npm run dev`: the site with the Agentation toolbar; `checkBundle` fails a build that contains it. Stop it when done (`npx astro dev stop` in `apps/web`); left running over an install it serves broken islands.
 
 ## Rules
 
@@ -29,7 +29,7 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code 
 - No em dashes. Persisted data is snake_case; docs and config files are lowercase kebab-case.
 - Do not edit `Digests/` or `state/` by hand.
 - Changes to `.github/workflows` need a manual merge (the auto-merge token cannot merge them).
-- Code review before every merge (D143, D192). CodeRabbit reviews PRs on GitHub; merge by hand once its review lands and findings are fixed. Docs outside `docs/decisions/`, test data or a typo skip it (D254): `[skip-review]` in the title, merge on green CI. Large changes: run `/code-review` first.
+- Code review before every merge (D143, D192). CodeRabbit reviews PRs on GitHub; merge by hand once its review lands and findings are fixed. `[skip-review]` in the title (D254) only if every file is under `docs/` but not `decisions/`, `engineering/`, `design/` or the ledger, test data or fixtures, or a few-line typo or copy fix in code outside the pipeline, store, auth, billing, workflows and design system; merge on green CI. Large changes: run `/code-review` first.
 - TypeScript stays on 6.x.
 - UI keeps the 8pt grid (4px for named cases only) and the design system, in three layers: `npm run design-check` (a hook on each UI edit), e2e/designSystem.spec.ts (CI), the `design-audit` agent before the PR.
 - The design system is a product (D237, D253). A control is a component in `apps/web/src/design-system/` named for what it is (Button); a page draws it, never types its class. A UI fix starts at the component; a page patch needs a PR reason and a `PAGE_OVERRIDES` entry. Changes join the one open `design-system` PR the owner merges (D254).
@@ -54,6 +54,6 @@ Few, one layer each, aimed at what fails silently ([evidence](docs/engineering/p
 
 Project agents (`singularity-verify`, `singularity-worker`) are in `.claude/agents/`; `/close-session` runs the steps below.
 
-After a large piece of work: clean up scratch files, servers, stashes, and local branches. Review merged diff (CodeRabbit or code-review skill), fix findings, and verify Vercel production deployment.
+After a large piece of work: clean up scratch files, servers, stashes and local branches; review the merged diff (CodeRabbit or code-review), fix findings, verify the Vercel production deploy.
 
 At the end of a session: update `docs/state.md`, add a decision (next D-number, and a row in the Index) for anything that changes direction, add one line to `docs/learnings.md` per failure, and add a note under `docs/history/`. Keep each fact in one place and link to it.
