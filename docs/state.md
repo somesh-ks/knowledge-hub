@@ -11,7 +11,6 @@ Updated 2026-10-30. Rewrite, never append. [Specs](specs/README.md), [decisions]
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up are followed in the podcast queue, each with Cancel; ended runs stay for the day (D204, D231).
 - Saved copies, offline shell, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merge by hand (D143).
-- Tooling: subagents, `/close-session`; `npm run ds` (D236)
 
 ## Tests
 
