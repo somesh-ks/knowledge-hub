@@ -110,6 +110,11 @@ async function ask(init?: { id: string; action: ExperimentAction }): Promise<Res
  * its write is under way runs after it.
  */
 let queue: Promise<unknown> = Promise.resolve();
+/** Set as the page goes: the browser fails a request in flight then, though keepalive lets it finish. */
+let leaving = false;
+addEventListener("pagehide", () => {
+  leaving = true;
+});
 /** Counts presses, so an answer to a question asked before the latest one is not taken for the store's. */
 let generation = 0;
 function write(id: string, action: ExperimentAction): Promise<boolean> {
@@ -144,14 +149,17 @@ async function send(id: string, action: ExperimentAction): Promise<boolean> {
       "error",
     );
   } catch {
-    toast("Could not save. Try again.", "error");
+    if (!leaving) toast("Could not save. Try again.", "error");
   } finally {
     count(id, -1);
     // A refused or failed write puts the switch back, unless a later press for it is waiting. One
     // the store took stays until the store's own answer matches it (watch, take).
-    if (!saved && (pending.get(id) ?? 0) === 0) delete intents[id];
-    saveIntents();
-    renderAll();
+    // A page that is going keeps its change for the next one to show.
+    if (!leaving) {
+      if (!saved && (pending.get(id) ?? 0) === 0) delete intents[id];
+      saveIntents();
+      renderAll();
+    }
   }
   return false;
 }
