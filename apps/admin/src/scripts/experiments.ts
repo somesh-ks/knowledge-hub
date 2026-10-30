@@ -6,7 +6,7 @@
  */
 
 import { sendToast } from "../../../web/src/scripts/toastEvent";
-import type { ExperimentAction, FlagRow } from "../lib/experimentsApi";
+import type { ExperimentAction, FlagRow, HitTotal } from "../lib/experimentsApi";
 import { href } from "../lib/sections";
 
 const API = href("/api/experiments");
@@ -16,6 +16,8 @@ const NOTE_OFFLINE = "The store cannot be reached. Showing the last deploy.";
 const root = document.querySelector<HTMLElement>("[data-experiments]");
 const rows = [...document.querySelectorAll<HTMLElement>("[data-experiment][data-built]")];
 const flags = new Map<string, FlagRow>();
+/** What each experiment in shadow would have added this week, as the store counted it. */
+const hits = new Map<string, HitTotal>();
 /** Writes not yet answered, by experiment: its controls wait for them. */
 const pending = new Map<string, number>();
 const count = (id: string, by: number): void => {
@@ -24,6 +26,12 @@ const count = (id: string, by: number): void => {
 
 const part = <T extends Element>(row: ParentNode, selector: string): T | null =>
   row.querySelector<T>(selector);
+
+/** The state word, and for a shadow what it would have added this week: "+0" says it ran and found nothing. */
+function shadowLine(word: string, hit: HitTotal | undefined): string {
+  if (!hit) return word;
+  return `${word} · +${hit.stories} ${hit.stories === 1 ? "story" : "stories"} this week`;
+}
 
 /** What the row is now: the store's switch where it has one, else the file the page was built from. */
 function render(row: HTMLElement): void {
@@ -41,7 +49,8 @@ function render(row: HTMLElement): void {
   const control = part<HTMLInputElement>(row, "[data-switch]");
   const promote = part<HTMLButtonElement>(row, "[data-promote]");
   if (!control || !promote || !label) return;
-  label.textContent = word;
+  label.textContent =
+    word === WORDS.shadow ? shadowLine(word, hits.get(row.dataset.experiment ?? "")) : word;
   const waiting = (pending.get(row.dataset.experiment ?? "") ?? 0) > 0;
   control.checked = on;
   control.disabled = promoted || waiting;
@@ -199,7 +208,9 @@ async function start(): Promise<void> {
   try {
     const response = await ask();
     if (!response.ok) throw new Error(String(response.status));
-    take((await response.json()) as { flags?: FlagRow[] });
+    const body = (await response.json()) as { flags?: FlagRow[]; hits?: Record<string, HitTotal> };
+    take(body);
+    for (const [id, total] of Object.entries(body.hits ?? {})) hits.set(id, total);
   } catch {
     if (note) note.textContent = NOTE_OFFLINE;
     ready();

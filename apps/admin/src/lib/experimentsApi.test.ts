@@ -6,6 +6,7 @@ function recordingStore(): ExperimentStore & { writes: string[] } {
   return {
     writes,
     read: async () => [],
+    hits: async () => ({}),
     setEnabled: async (id, enabled) => {
       writes.push(`${id} ${enabled}`);
       return true;
@@ -50,10 +51,30 @@ describe("the Experiments switch route", () => {
     const promoted = { id: "alexandria", enabled: true, promoted_at: 1 };
     const store: ExperimentStore = {
       read: async () => [promoted],
+      hits: async () => ({}),
       setEnabled: async () => false,
       setPromoted: async () => {},
     };
     const answer = await handleExperiments(post({ id: "alexandria", action: "off" }), store);
     expect(answer).toEqual({ status: 409, body: { error: "promoted", flags: [promoted] } });
+  });
+
+  // The bug it prevents: the shadow counts are an extra, so a table that cannot be read must not
+  // take the switches down with it, or the owner loses the controls over a missing statistic.
+  it("the switches still answer when the shadow counts cannot be read", async () => {
+    const flag = { id: "alexandria", enabled: true, promoted_at: null };
+    const store: ExperimentStore = {
+      read: async () => [flag],
+      hits: async () => {
+        throw new Error("no table");
+      },
+      setEnabled: async () => true,
+      setPromoted: async () => {},
+    };
+    const answer = await handleExperiments(
+      { method: "GET", contentType: null, bodyText: "" },
+      store,
+    );
+    expect(answer).toEqual({ status: 200, body: { flags: [flag], hits: {} } });
   });
 });

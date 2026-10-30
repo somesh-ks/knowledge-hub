@@ -6,6 +6,7 @@ import type { SourceFetcher } from "../fetch/types.js";
 import type { RunMode } from "../gate/decideRun.js";
 import type { GitRunner } from "../git/runGit.js";
 import type { HttpClient } from "../http.js";
+import type { ExperimentHit } from "../store/experimentHits.js";
 import type { SpendTotals, SpendTracker } from "./spend.js";
 
 export type { RunMode };
@@ -114,6 +115,8 @@ export interface RunDeps {
   wait?: (ms: number) => Promise<void>;
   /** Counts paid requests and holds the Firecrawl ceiling for the run. Absent in most tests. */
   spend?: SpendTracker;
+  /** Saves what the experiments in shadow would have added; absent with the store off. */
+  recordExperimentHits?: (hits: ExperimentHit[]) => Promise<void>;
 }
 
 /** One pass of a run, as the stages report it. */
