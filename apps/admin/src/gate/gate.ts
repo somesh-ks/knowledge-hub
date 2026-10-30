@@ -78,7 +78,12 @@ export async function guard(
     const form = await request.formData().catch(() => null);
     const given = form?.get("password");
     if (typeof given === "string" && (await passwordMatches(given, password, secret))) {
-      return redirect(BASE, cookieHeader(await createSession(secret, now), SESSION_SECONDS));
+      return redirect(
+        BASE,
+        cookieHeader(await createSession(secret, now), SESSION_SECONDS),
+        // A cookie from before the cookie went site-wide would be sent first and could shadow this one.
+        cookieHeader("", 0, BASE),
+      );
     }
     await wait(WRONG_PASSWORD_MS);
     return redirect(`${BASE}/login?e=1`);

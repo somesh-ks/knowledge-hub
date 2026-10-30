@@ -66,9 +66,13 @@ describe("the command center's gate", () => {
   });
 
   // The reader's /api/costs and /api/health check this cookie; one scoped to /admin never reaches them.
-  it("sets the session for the whole domain, and sign-out clears it there and under the old /admin path", async () => {
+  it("sets the session for the whole domain and clears the old /admin one, as sign-out does", async () => {
     const cookie = (await login(ENV.password))?.headers.get("set-cookie") ?? "";
     expect(cookie).toContain("Path=/;");
+    const issued = (await login(ENV.password))?.headers.getSetCookie() ?? [];
+    expect(issued.some((line) => line.includes("Path=/admin;") && line.includes("Max-Age=0"))).toBe(
+      true,
+    );
 
     const out = await guard(
       new Request("https://news.someshks.work/admin/logout", { method: "POST" }),

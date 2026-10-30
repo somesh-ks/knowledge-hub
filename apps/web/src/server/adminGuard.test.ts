@@ -1,5 +1,8 @@
-import { describe, expect, it } from "vitest";
+import type { APIContext } from "astro";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createSession } from "../../../admin/src/gate/session";
+import { GET as costs } from "../pages/api/costs";
+import { GET as health } from "../pages/api/health";
 import { adminOnly } from "./adminGuard";
 
 const SECRET = "x".repeat(40);
@@ -39,5 +42,22 @@ describe("the report routes' admin guard", () => {
 
   it("lets local development through, where the command center's dev proxy sends no cookie", async () => {
     expect(await adminOnly(ask(), { dev: true }, NOW)).toBeNull();
+  });
+});
+
+// The bug it prevents: a route that stops calling the guard. Vitest runs with DEV on, which bypasses
+// it, so these switch to the production setting and send a request without a session.
+describe("the report routes", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it.each([
+    ["/api/costs", costs],
+    ["/api/health", health],
+  ])("%s refuses a request without the session before any report work", async (path, route) => {
+    vi.stubEnv("DEV", false);
+    vi.stubEnv("ADMIN_SESSION_SECRET", SECRET);
+    const request = new Request(`https://news.someshks.work${path}`);
+    const answer = await route({ request, url: new URL(request.url) } as APIContext);
+    expect((answer as Response).status).toBe(401);
   });
 });
