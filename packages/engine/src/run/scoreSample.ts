@@ -72,10 +72,7 @@ const READ_CONCURRENCY = 6;
 const READ_TIMEOUT_MS = 15_000;
 
 /** Source types whose items the sample can read from the source's own feed. */
-const READABLE: ReadonlySet<SourceType> = new Set<SourceType>([
-  "rss",
-  "github",
-]);
+const READABLE: ReadonlySet<SourceType> = new Set<SourceType>(["rss", "github"]);
 
 /** `.cache/run/<id>/sample.json`: what one pass judges for the score alone. */
 export const SampleFile = z.object({
@@ -86,9 +83,7 @@ export const SampleFile = z.object({
   /** Posts each read feed held in its look-back: under ten, the source posts rarely. */
   feed_posts: z.record(z.string(), z.number().int().nonnegative()).default({}),
   /** Switched-off general feeds the pass tried for their check, with the stories each gave. */
-  general_reads: z
-    .record(z.string(), z.number().int().nonnegative())
-    .default({}),
+  general_reads: z.record(z.string(), z.number().int().nonnegative()).default({}),
 });
 export type SampleFile = z.infer<typeof SampleFile>;
 
@@ -152,8 +147,7 @@ export function planReads(input: {
     if (!source.enabled) {
       if (!due(s, source.id, today, PROBE_DAYS)) continue;
       if (general) {
-        if (source.type === "rss" && source.feed_url !== null)
-          probeGeneral.push(source);
+        if (source.type === "rss" && source.feed_url !== null) probeGeneral.push(source);
       } else if (readable(source)) {
         reads.push({
           source,
@@ -164,12 +158,10 @@ export function planReads(input: {
       continue;
     }
     // A general feed has every story judged already (D66); the rest wait until they need more.
-    if (general || !readable(source) || judgedOf(s, source.id) >= MIN_JUDGED)
-      continue;
+    if (general || !readable(source) || judgedOf(s, source.id) >= MIN_JUDGED) continue;
     if (source.failures >= REFILL_MAX_FAILURES) continue;
     if (!due(s, source.id, today, REFILL_DAYS)) continue;
-    const back =
-      s[source.id]?.sampled_at === undefined ? BACKFILL_DAYS : REFILL_DAYS;
+    const back = s[source.id]?.sampled_at === undefined ? BACKFILL_DAYS : REFILL_DAYS;
     reads.push({
       source,
       reason: "refill",
@@ -178,8 +170,7 @@ export function planReads(input: {
   }
   reads.sort(
     (a, b) =>
-      judgedOf(s, a.source.id) - judgedOf(s, b.source.id) ||
-      a.source.id.localeCompare(b.source.id),
+      judgedOf(s, a.source.id) - judgedOf(s, b.source.id) || a.source.id.localeCompare(b.source.id),
   );
   return {
     reads: reads.slice(0, input.readCeiling ?? FEED_READ_CEILING),
@@ -202,8 +193,7 @@ export async function readFeeds(
   const items = new Map<string, Item[]>();
   const results = await mapConcurrent(reads, READ_CONCURRENCY, async (read) => {
     const started = Date.now();
-    const fetcher =
-      deps.fetchers?.[read.source.type] ?? FETCHERS[read.source.type];
+    const fetcher = deps.fetchers?.[read.source.type] ?? FETCHERS[read.source.type];
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       // The signal stops a well-behaved fetcher; the race stops one that ignores it.
@@ -248,8 +238,7 @@ export async function readFeeds(
 }
 
 function newestFirst(a: Item, b: Item): number {
-  const at = (item: Item): number =>
-    Date.parse(item.published_at ?? item.fetched_at) || 0;
+  const at = (item: Item): number => Date.parse(item.published_at ?? item.fetched_at) || 0;
   return at(b) - at(a) || a.id.localeCompare(b.id);
 }
 
@@ -268,9 +257,7 @@ export function pickSample(input: {
   ceiling?: number;
 }): Item[] {
   const s = input.stats.sources;
-  const reasons = new Map(
-    input.reads.map((read) => [read.source.id, read.reason]),
-  );
+  const reasons = new Map(input.reads.map((read) => [read.source.id, read.reason]));
   const leftovers = new Map<string, Item[]>();
   for (const item of input.leftovers) {
     const list = leftovers.get(item.source_id) ?? [];
@@ -286,10 +273,7 @@ export function pickSample(input: {
   };
   const order = [...input.sources]
     .filter((source) => quota(source) > 0)
-    .sort(
-      (a, b) =>
-        judgedOf(s, a.id) - judgedOf(s, b.id) || a.id.localeCompare(b.id),
-    );
+    .sort((a, b) => judgedOf(s, a.id) - judgedOf(s, b.id) || a.id.localeCompare(b.id));
 
   const ceiling = input.ceiling ?? SAMPLE_CEILING;
   const taken = new Set<string>();
@@ -303,12 +287,9 @@ export function pickSample(input: {
       ...(input.read.get(source.id) ?? []),
       ...(leftovers.get(source.id) ?? []),
     ]) {
-      if (!taken.has(item.id) && !input.known(item.id))
-        candidates.set(item.id, item);
+      if (!taken.has(item.id) && !input.known(item.id)) candidates.set(item.id, item);
     }
-    for (const item of [...candidates.values()]
-      .sort(newestFirst)
-      .slice(0, room)) {
+    for (const item of [...candidates.values()].sort(newestFirst).slice(0, room)) {
       taken.add(item.id);
       picked.push(item);
     }
@@ -321,13 +302,8 @@ export function pickSample(input: {
  * briefing pool. The fetch stage has no judge yet, so the model does not narrow it; an item judged
  * under older questions is left alone too, which is the safe side for counting.
  */
-export function answeredBefore(
-  cache: JudgmentsFile,
-  seen: SeenFile,
-): (itemId: string) => boolean {
-  const judged = new Set(
-    Object.values(cache.entries).map((entry) => entry.item_id),
-  );
+export function answeredBefore(cache: JudgmentsFile, seen: SeenFile): (itemId: string) => boolean {
+  const judged = new Set(Object.values(cache.entries).map((entry) => entry.item_id));
   return (itemId) => seen.items[itemId] !== undefined || judged.has(itemId);
 }
 
@@ -364,8 +340,7 @@ export function countSample(input: {
     };
     return out[id];
   };
-  for (const id of Object.keys(input.sample.general_reads))
-    row(id).read_feed = true;
+  for (const id of Object.keys(input.sample.general_reads)) row(id).read_feed = true;
   if (input.judged === null) return out;
   const items = new Map(input.sample.items.map((item) => [item.id, item]));
   for (const entry of input.judged.entries) {
@@ -378,21 +353,15 @@ export function countSample(input: {
     if (isFlagged(entry.flags)) counts.flagged = (counts.flagged ?? 0) + 1;
     const scored = withCommunity(
       withCreator(
-        withTrustedPublishers(
-          scoreItem(entry, input.preferences, item),
-          input.trustedPublishers,
-        ),
+        withTrustedPublishers(scoreItem(entry, input.preferences, item), input.trustedPublishers),
       ),
       input.community,
     );
-    if (eligibility(scored, undefined, input.offCategories).eligible)
-      counts.passed += 1;
+    if (eligibility(scored, undefined, input.offCategories).eligible) counts.passed += 1;
   }
   const unanswered = new Set(input.judged.unjudged);
   const waiting = new Set(
-    input.sample.items
-      .filter((item) => unanswered.has(item.id))
-      .map((item) => item.source_id),
+    input.sample.items.filter((item) => unanswered.has(item.id)).map((item) => item.source_id),
   );
   for (const id of input.sample.reads) {
     if (waiting.has(id)) continue;
@@ -430,11 +399,7 @@ export async function readSampleFiles(
   samplePath: string,
   judgedPath: string,
 ): Promise<{ sample: SampleFile | null; judged: SampleJudgedFile | null }> {
-  const read = async <T>(
-    path: string,
-    schema: z.ZodType<T>,
-    name: string,
-  ): Promise<T | null> => {
+  const read = async <T>(path: string, schema: z.ZodType<T>, name: string): Promise<T | null> => {
     try {
       const parsed = schema.safeParse(await readJsonIfExists(path, name));
       return parsed.success ? parsed.data : null;

@@ -129,10 +129,7 @@ function nothing(
  * spend guard (BudgetExceededError) aborts it. Fewer than three survivors is the "nothing"
  * outcome, never padded.
  */
-export async function curatePool(
-  deps: CurateDeps,
-  input: CurateInput,
-): Promise<CurateResult> {
+export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<CurateResult> {
   const { log } = deps;
   const dropped: WrittenFile["dropped"] = [];
   const drop = (id: string, stage: DropStage, reason: string): void => {
@@ -156,12 +153,7 @@ export async function curatePool(
 
   if (input.pool.length === 0) {
     log.info("The pool is empty");
-    return nothing(
-      input,
-      counts,
-      { version: 1, items: [], dropped },
-      input.judgments,
-    );
+    return nothing(input, counts, { version: 1, items: [], dropped }, input.judgments);
   }
 
   const judged = await judgeWithCache(deps.judge, input.pool, input.judgments);
@@ -203,8 +195,7 @@ export async function curatePool(
   });
   counts.qualifying = selection.qualifying;
   counts.selected = selection.selected.length;
-  for (const d of selection.dropped)
-    drop(d.id, "select", `${d.reason} (score ${d.score})`);
+  for (const d of selection.dropped) drop(d.id, "select", `${d.reason} (score ${d.score})`);
   const scoredTop = [...scored]
     .sort((a, b) => b.score - a.score)
     .slice(0, 20)
@@ -274,14 +265,10 @@ export async function curatePool(
   }
 
   // Extract finalists' text. A finalist with no readable source cannot be written, so it drops.
-  const extracted = await mapConcurrent(
-    selection.selected,
-    EXTRACT_CONCURRENCY,
-    async (sel) => ({
-      sel,
-      text: await deps.extract(sel.item),
-    }),
-  );
+  const extracted = await mapConcurrent(selection.selected, EXTRACT_CONCURRENCY, async (sel) => ({
+    sel,
+    text: await deps.extract(sel.item),
+  }));
   const materials = new Map<string, SourceMaterial>();
   const methods = new Map<string, string>();
   for (const { sel, text } of extracted) {
@@ -297,16 +284,13 @@ export async function curatePool(
       ...(sel.item.author ? { author: sel.item.author } : {}),
       category: writerCategory(sel.category, undefined),
       text: text.text,
-      ...(sel.item.source_type === "youtube" && text.method !== "snippet"
-        ? { spoken: true }
-        : {}),
+      ...(sel.item.source_type === "youtube" && text.method !== "snippet" ? { spoken: true } : {}),
     });
   }
   counts.extracted = materials.size;
 
   const writeResult = await deps.writer.write([...materials.values()]);
-  for (const failure of writeResult.failed)
-    drop(failure.id, "write", failure.reason);
+  for (const failure of writeResult.failed) drop(failure.id, "write", failure.reason);
   counts.written = writeResult.written.length;
 
   const voice = await enforceVoice({
@@ -317,11 +301,7 @@ export async function curatePool(
   });
   counts.voiceDropped = voice.dropped.length;
   for (const d of voice.dropped) {
-    drop(
-      d.id,
-      "voice",
-      d.violations.map((v) => v.message).join(" ") || "no source material",
-    );
+    drop(d.id, "voice", d.violations.map((v) => v.message).join(" ") || "no source material");
   }
 
   const grounding = await groundAndRepair({
@@ -341,24 +321,17 @@ export async function curatePool(
   }
 
   const keptIds = new Set(grounding.kept.map((k) => k.item.id));
-  const survivors = assignSections(
-    selection.selected.filter((sel) => keptIds.has(sel.item.id)),
-  );
-  const texts = new Map(
-    grounding.kept.map((k) => [k.item.id, writtenText(k.item)]),
-  );
+  const survivors = assignSections(selection.selected.filter((sel) => keptIds.has(sel.item.id)));
+  const texts = new Map(grounding.kept.map((k) => [k.item.id, writtenText(k.item)]));
 
   const writtenFile: WrittenFile = {
     version: 1,
     items: grounding.kept.map((k) => ({
       id: k.item.id,
       ...writtenText(k.item),
-      ...(methods.get(k.item.id)
-        ? { extract_method: methods.get(k.item.id) as string }
-        : {}),
+      ...(methods.get(k.item.id) ? { extract_method: methods.get(k.item.id) as string } : {}),
       rewritten_fields: [
-        ...(voice.passed.find((p) => p.item.id === k.item.id)
-          ?.rewrittenFields ?? []),
+        ...(voice.passed.find((p) => p.item.id === k.item.id)?.rewrittenFields ?? []),
         ...k.rewrittenFields,
       ],
       verified: k.verified,
@@ -374,29 +347,16 @@ export async function curatePool(
 
   if (survivors.length < VOICE_LIMITS.items.floor) {
     // Extraction and writing failures are infrastructure; voice and grounding drops are editorial.
-    const infra =
-      selection.selected.length - materials.size + writeResult.failed.length;
+    const infra = selection.selected.length - materials.size + writeResult.failed.length;
     if (mostlyFailed(infra, selection.selected.length)) {
       const failure = `${infra} of ${selection.selected.length} finalists could not be extracted or written. That looks like an outage, not a quiet day.`;
       log.error(failure);
-      return failed(
-        failure,
-        counts,
-        { ...writtenFile, items: [] },
-        judged.cache,
-        scoredTop,
-      );
+      return failed(failure, counts, { ...writtenFile, items: [] }, judged.cache, scoredTop);
     }
     log.info("Too few items survived writing and validation", {
       survivors: survivors.length,
     });
-    return finish(
-      "nothing",
-      [],
-      { ...writtenFile, items: [] },
-      false,
-      new Map(),
-    );
+    return finish("nothing", [], { ...writtenFile, items: [] }, false, new Map());
   }
   return finish("selected", survivors, writtenFile, grounding.verified, texts);
 }

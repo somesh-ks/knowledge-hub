@@ -4,10 +4,7 @@ import { judgmentKey } from "../src/judge/cache.js";
 import { prefilter } from "../src/prefilter/prefilter.js";
 import { withCreator } from "../src/score/creator.js";
 import { scoreItem } from "../src/score/scoreItem.js";
-import {
-  DEFAULT_SCORE_THRESHOLD,
-  eligibility,
-} from "../src/score/selectItems.js";
+import { DEFAULT_SCORE_THRESHOLD, eligibility } from "../src/score/selectItems.js";
 import { replayTrustedPublishers } from "../src/trustedPublishers/replay.js";
 import {
   type TrustedPublishersFile,
@@ -16,11 +13,7 @@ import {
   withTrustedPublishers,
 } from "../src/trustedPublishers/trustedPublishers.js";
 import { makeItem, makeSource, NOW } from "./fetch-helpers.js";
-import {
-  makeEntry,
-  makeItem as makeScoredItem,
-  plainPreferences,
-} from "./score-factories.js";
+import { makeEntry, makeItem as makeScoredItem, plainPreferences } from "./score-factories.js";
 
 const list: TrustedPublishersFile = {
   version: 1,
@@ -47,9 +40,7 @@ function announcement(
 
 describe("trusted publishers lift", () => {
   it("lets a vetted lab's announcement past the bar that depth and the hype flag sank it under", () => {
-    const { scored } = announcement(
-      "https://openai.com/index/introducing-a-model",
-    );
+    const { scored } = announcement("https://openai.com/index/introducing-a-model");
     expect(eligibility(scored).eligible).toBe(false);
     const lifted = withTrustedPublishers(scored, trustedPublisherMatcher(list));
     expect(lifted.score).toBeGreaterThanOrEqual(DEFAULT_SCORE_THRESHOLD);
@@ -64,10 +55,7 @@ describe("trusted publishers lift", () => {
     const other = announcement("https://example.com/news/x").scored;
     expect(withTrustedPublishers(other, on)).toBe(other);
     // The same publisher's off-topic page: Jev placed it nowhere.
-    const customer = announcement(
-      "https://openai.com/index/customer-story",
-      "none",
-    ).scored;
+    const customer = announcement("https://openai.com/index/customer-story", "none").scored;
     expect(withTrustedPublishers(customer, on)).toBe(customer);
   });
 
@@ -83,10 +71,7 @@ describe("trusted publishers lift", () => {
 
 describe("a favorite creator's video", () => {
   /** A video as Jev scores it from its title and description: right category, no depth, flagged sponsored. */
-  function video(
-    vetted: boolean,
-    category: "ai_ux_interaction_patterns" | "none",
-  ) {
+  function video(vetted: boolean, category: "ai_ux_interaction_patterns" | "none") {
     const url = "https://www.youtube.com/watch?v=abcdefghijk";
     const item = makeScoredItem({
       url,
@@ -109,10 +94,7 @@ describe("a favorite creator's video", () => {
     const plain = video(false, "ai_ux_interaction_patterns");
     expect(eligibility(plain).eligible).toBe(false);
     expect(withCreator(plain)).toBe(plain);
-    expect(
-      eligibility(withCreator(video(true, "ai_ux_interaction_patterns")))
-        .eligible,
-    ).toBe(true);
+    expect(eligibility(withCreator(video(true, "ai_ux_interaction_patterns"))).eligible).toBe(true);
     const offTopic = video(true, "none");
     expect(withCreator(offTopic)).toBe(offTopic);
   });
@@ -153,14 +135,10 @@ describe("trusted publishers queries", () => {
   });
 
   it("asks nothing while the list is off or for a topic that is switched off", () => {
-    expect(
-      trustedPublisherQueries({ ...list, enabled: false }, topics),
-    ).toEqual([]);
+    expect(trustedPublisherQueries({ ...list, enabled: false }, topics)).toEqual([]);
     const off: TrustedPublishersFile = {
       ...list,
-      entries: [
-        { domain: "radix-ui.com", categories: ["ui_component_primitives"] },
-      ],
+      entries: [{ domain: "radix-ui.com", categories: ["ui_component_primitives"] }],
     };
     expect(trustedPublisherQueries(off, topics)).toEqual([]);
   });
@@ -176,9 +154,7 @@ describe("prefilter with the list", () => {
       title: "Introducing our newest model",
       snippet: "Today we are releasing.",
     });
-    const run = (
-      trustedPublishers?: ReturnType<typeof trustedPublisherMatcher>,
-    ) =>
+    const run = (trustedPublishers?: ReturnType<typeof trustedPublisherMatcher>) =>
       prefilter({
         items: [item],
         preferences: prefs,
@@ -193,13 +169,8 @@ describe("prefilter with the list", () => {
 
 describe("trusted publishers replay", () => {
   it("reports the new passers and flags a domain whose items mostly pass", () => {
-    const urls = Array.from(
-      { length: 6 },
-      (_, i) => `https://openai.com/index/post-${i}`,
-    );
-    const items = urls.map((url) =>
-      makeScoredItem({ url, canonical_url: url, source_id: "lab" }),
-    );
+    const urls = Array.from({ length: 6 }, (_, i) => `https://openai.com/index/post-${i}`);
+    const items = urls.map((url) => makeScoredItem({ url, canonical_url: url, source_id: "lab" }));
     // The cache is keyed item:questions_hash:model; an older judgment of the same item must not win.
     const judged = items.map((item) =>
       makeEntry(item, {
