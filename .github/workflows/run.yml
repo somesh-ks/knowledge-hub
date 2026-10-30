@@ -203,6 +203,9 @@ jobs:
         if: steps.gate.outputs.due == 'true'
         env:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+          # A favorite creator's video is judged on its transcript (D255): Firecrawl captions first, so
+          # Gemini's three transcriptions a run are kept for videos with none.
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
         run: npm run --silent singularity -- run --stage judge --json
 
       - name: Write
