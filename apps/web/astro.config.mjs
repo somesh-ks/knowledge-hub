@@ -157,6 +157,10 @@ function stubApiRoutesForStaticBuild() {
 const FILES_PAGES_READ = [
   "./src/styles/tokens.css",
   "../../packages/core/package.json",
+  // The covers drawn on request (D256) load their fonts from the function's own copy of these.
+  ...["Regular", "Medium", "Bold", "Black"].map(
+    (weight) => `../../packages/cover/fonts/SchibstedGrotesk-${weight}.ttf`,
+  ),
   // Written during the build, before the adapter packs the function (preloadPageModules).
   MODULE_GRAPH_FILE,
   // config/structure.json exists only once the owner edits a structure (D170); the adapter refuses

@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Digest } from "@singularity/core";
 import { type CoverMode, coverColors, renderCoverPng } from "@singularity/cover";
@@ -51,6 +51,16 @@ export function coverSrc(id: string, size: CoverSize, generatedAt?: string): str
 
 export type CoverSize = 512 | 1024;
 export const COVER_SIZES: readonly CoverSize[] = [512, 1024];
+
+/**
+ * Written under a name of its own and renamed into place, so a request that reads the cache while
+ * another writes it never sees half an image: a cover drawn on request (D256) is kept for a year.
+ */
+async function writeCacheFile(file: string, body: Uint8Array): Promise<void> {
+  const temporary = `${file}.${randomUUID()}.tmp`;
+  await writeFile(temporary, body);
+  await rename(temporary, file);
+}
 
 async function listFiles(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { recursive: true, withFileTypes: true });
@@ -122,7 +132,7 @@ export async function coverPng(
     ),
   );
   await mkdir(options.cacheDir, { recursive: true });
-  await writeFile(file, png);
+  await writeCacheFile(file, png);
   return png;
 }
 
@@ -145,6 +155,6 @@ export async function coverWebp(
   }
   const png = await coverPng(digest, size, options);
   const webp = new Uint8Array(await sharp(png).webp({ lossless: true, effort: 6 }).toBuffer());
-  await writeFile(file, webp);
+  await writeCacheFile(file, webp);
   return webp;
 }

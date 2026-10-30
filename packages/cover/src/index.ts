@@ -4,6 +4,7 @@
  */
 
 export { coverColors } from "./context.js";
+export { FONT_FILE_BASENAMES, setFontDirectory } from "./fonts.js";
 export { COVER_MODES, type CoverMode } from "./mode.js";
 export { getPalette, PALETTE_IDS, paletteAccent } from "./palettes.js";
 export { pickCover } from "./pick.js";
