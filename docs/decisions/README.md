@@ -261,5 +261,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D245 | system.json omits the file-use count | amends D236 |
 | D246 | Catch up kind label; counts yield to slots | active; amends D218 |
 | D247 | Deploy-count warning | active |
+| D250 | Trusted publishers renamed; Reddit dropped | active; amends D234, D240 |
 
 ---

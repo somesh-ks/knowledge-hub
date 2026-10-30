@@ -29,6 +29,7 @@ Vercel's deployment protection cannot guard a project that is reached through an
 3. **Style guide** (`apps/design`), its own thread: colours, typography, tokens, components as the app imports them, a filter on each page.
 4. **Coverage analytics:** from the components the app imports and a scan of the app's CSS and markup, which shared parts are components, how much of the app uses them instead of one-off rules, which tokens are unused; the `design-check` rules feed it.
 5. **Sentry and analytics:** routes of the admin app that hold their own keys.
+6. **Experiments** (`/admin/experiments`): every feature built but not yet trusted, one row each. To add one, add a line to `apps/admin/src/lib/experiments.ts`; its state (on, shadow, off) is read from its flag file at build (an entry with no flag, like ingest, declares its own) and shown "as of the last deploy", because a flag change does not trigger an admin deploy (owner, 2026-10-30: save Vercel deploys); a test fails when a flag file or key is gone. Not yet: what each shadow would have added (the write stage only logs it).
 
 ## Design references (Mobbin, 2026-10-29)
 

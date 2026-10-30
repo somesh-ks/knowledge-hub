@@ -1,20 +1,20 @@
 import { JudgmentsFile } from "@singularity/core";
 import { describe, expect, it } from "vitest";
-import {
-  type AuthorityFile,
-  authorityMatcher,
-  authorityQueries,
-  withAuthority,
-} from "../src/authority/authority.js";
-import { replayAuthority } from "../src/authority/replay.js";
 import { judgmentKey } from "../src/judge/cache.js";
 import { prefilter } from "../src/prefilter/prefilter.js";
 import { scoreItem } from "../src/score/scoreItem.js";
 import { DEFAULT_SCORE_THRESHOLD, eligibility } from "../src/score/selectItems.js";
+import { replayTrustedPublishers } from "../src/trustedPublishers/replay.js";
+import {
+  type TrustedPublishersFile,
+  trustedPublisherMatcher,
+  trustedPublisherQueries,
+  withTrustedPublishers,
+} from "../src/trustedPublishers/trustedPublishers.js";
 import { makeItem, makeSource, NOW } from "./fetch-helpers.js";
 import { makeEntry, makeItem as makeScoredItem, plainPreferences } from "./score-factories.js";
 
-const list: AuthorityFile = {
+const list: TrustedPublishersFile = {
   version: 1,
   enabled: true,
   entries: [{ domain: "openai.com", categories: ["frontier_model_releases"] }],
@@ -31,29 +31,29 @@ function announcement(
   return { item, scored: scoreItem(entry, prefs, item) };
 }
 
-describe("authority lift", () => {
+describe("trusted publishers lift", () => {
   it("lets a vetted lab's announcement past the bar that depth and the hype flag sank it under", () => {
     const { scored } = announcement("https://openai.com/index/introducing-a-model");
     expect(eligibility(scored).eligible).toBe(false);
-    const lifted = withAuthority(scored, authorityMatcher(list));
+    const lifted = withTrustedPublishers(scored, trustedPublisherMatcher(list));
     expect(lifted.score).toBeGreaterThanOrEqual(DEFAULT_SCORE_THRESHOLD);
     expect(eligibility(lifted).eligible).toBe(true);
   });
 
   it("changes nothing while the list is off, for another host, or for a category it was not vetted for", () => {
-    const off = authorityMatcher({ ...list, enabled: false });
-    const on = authorityMatcher(list);
+    const off = trustedPublisherMatcher({ ...list, enabled: false });
+    const on = trustedPublisherMatcher(list);
     const lab = announcement("https://openai.com/index/x").scored;
-    expect(withAuthority(lab, off)).toBe(lab);
+    expect(withTrustedPublishers(lab, off)).toBe(lab);
     const other = announcement("https://example.com/news/x").scored;
-    expect(withAuthority(other, on)).toBe(other);
+    expect(withTrustedPublishers(other, on)).toBe(other);
     // The same publisher's off-topic page: Jev placed it nowhere.
     const customer = announcement("https://openai.com/index/customer-story", "none").scored;
-    expect(withAuthority(customer, on)).toBe(customer);
+    expect(withTrustedPublishers(customer, on)).toBe(customer);
   });
 
   it("matches a host and its subdomains, never a lookalike", () => {
-    const on = authorityMatcher(list);
+    const on = trustedPublisherMatcher(list);
     const hit = (url: string) => on({ url }).length > 0;
     expect(hit("https://openai.com/a")).toBe(true);
     expect(hit("https://www.openai.com/a")).toBe(true);
@@ -62,7 +62,7 @@ describe("authority lift", () => {
   });
 });
 
-describe("authority queries", () => {
+describe("trusted publishers queries", () => {
   const topics = [
     {
       id: "frontier_model_releases",
@@ -74,16 +74,16 @@ describe("authority queries", () => {
   ];
 
   it("asks one query per vetted topic, restricted to its domains", () => {
-    const file: AuthorityFile = {
+    const file: TrustedPublishersFile = {
       ...list,
       entries: [
         ...list.entries,
         { domain: "anthropic.com", categories: ["frontier_model_releases"] },
       ],
     };
-    expect(authorityQueries(file, topics)).toEqual([
+    expect(trustedPublisherQueries(file, topics)).toEqual([
       {
-        id: "authority-frontier-model-releases",
+        id: "trusted-publisher-frontier-model-releases",
         query: "Model releases: Model cards, benchmarks",
         include_domains: ["openai.com", "anthropic.com"],
         category_hint: "frontier_model_releases",
@@ -92,12 +92,12 @@ describe("authority queries", () => {
   });
 
   it("asks nothing while the list is off or for a topic that is switched off", () => {
-    expect(authorityQueries({ ...list, enabled: false }, topics)).toEqual([]);
-    const off: AuthorityFile = {
+    expect(trustedPublisherQueries({ ...list, enabled: false }, topics)).toEqual([]);
+    const off: TrustedPublishersFile = {
       ...list,
       entries: [{ domain: "radix-ui.com", categories: ["ui_component_primitives"] }],
     };
-    expect(authorityQueries(off, topics)).toEqual([]);
+    expect(trustedPublisherQueries(off, topics)).toEqual([]);
   });
 });
 
@@ -111,14 +111,14 @@ describe("prefilter with the list", () => {
       title: "Introducing our newest model",
       snippet: "Today we are releasing.",
     });
-    const run = (authority?: ReturnType<typeof authorityMatcher>) =>
-      prefilter({ items: [item], preferences: prefs, sources, now: NOW, authority }).items;
+    const run = (trustedPublishers?: ReturnType<typeof trustedPublisherMatcher>) =>
+      prefilter({ items: [item], preferences: prefs, sources, now: NOW, trustedPublishers }).items;
     expect(run()).toHaveLength(0);
-    expect(run(authorityMatcher(list))).toHaveLength(1);
+    expect(run(trustedPublisherMatcher(list))).toHaveLength(1);
   });
 });
 
-describe("authority replay", () => {
+describe("trusted publishers replay", () => {
   it("reports the new passers and flags a domain whose items mostly pass", () => {
     const urls = Array.from({ length: 6 }, (_, i) => `https://openai.com/index/post-${i}`);
     const items = urls.map((url) => makeScoredItem({ url, canonical_url: url, source_id: "lab" }));
@@ -135,11 +135,11 @@ describe("authority replay", () => {
         entry,
       ]),
     );
-    const report = replayAuthority({
+    const report = replayTrustedPublishers({
       pools: items,
       judgments: JudgmentsFile.parse({ version: 1, entries }),
       preferences: prefs,
-      authority: list,
+      trustedPublishers: list,
     });
     expect(report.passed_before).toBe(0);
     expect(report.passed_after).toBe(6);

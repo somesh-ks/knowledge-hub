@@ -33,10 +33,9 @@ function apply(): void {
     if (target) link.hidden = target.hidden;
   }
   tier?.closest(".sort-field")?.toggleAttribute("data-active", tier.value !== "all");
-  const anySection = Array.from(document.querySelectorAll<HTMLElement>(".guide-page section")).some(
-    (section) => !section.hidden,
-  );
-  if (empty) empty.hidden = anySection || (terms.length === 0 && tier?.value === "all");
+  // A page's fixed sections (the typeface) stay on screen, so "nothing" is no item left in a shown section.
+  const anyItem = items.some((item) => !item.hidden && !item.closest("section")?.hidden);
+  if (empty) empty.hidden = anyItem || (terms.length === 0 && tier?.value === "all");
 }
 
 field?.addEventListener("input", apply);

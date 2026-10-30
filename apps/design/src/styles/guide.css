@@ -22,6 +22,10 @@
   margin-block-start: var(--space-12);
 }
 
+.guide-page [hidden] {
+  display: none;
+}
+
 .guide-note {
   margin: 0 0 var(--space-4);
   color: var(--color-on-surface-muted);
