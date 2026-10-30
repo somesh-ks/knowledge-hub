@@ -16,7 +16,7 @@ A scan of every selector in `apps/*/src/styles` (730 classes) against every mark
 | Field | `sheet-input` = `manage-input`; `search-field`, `sort-field`, four selects (`picker`, `multiselect`, `create-select`, native) | Field, Search field, Select |
 | Menu | `hero-menu-list`, `menu-sheet`, `multiselect-list`, `picker-pop`; two option rows | Menu, Option |
 | Notice | `banner`, `player-notice`; three field-error lines | Banner, Field error |
-| Segmented | `segmented-nav`, `segmented-choice`, `segmented` | Segmented control |
+| Segmented | `segmented-nav`, `segmented-choice` (both deliberate: filled to navigate, outlined to pick a value), `segmented` (a third copy of the filled one) | Two kinds stay; `segmented` folds into `segmented-nav` |
 | Sheet and dialog | `create-sheet`, `confirm-dialog`, `share-dialog`, the speed dialog, the React drawer | Sheet, Dialog |
 | Row | `row-action`, `settings-row`, `source-row`, `story-row`, `player-upnext-row`, `player-queue-row`, `queue-row` | List row |
 | Card | `card-group`, `topic-card` (32px corner), `source-card`, `score-card` (16px) | Card |
@@ -31,7 +31,7 @@ Six design-system PRs, each with 390 and 1280 screenshots in light and dark and 
 
 ## Calls made for the owner
 
-He went away after "fire away". Made on his behalf, each reversible: the darker slider track; the 32px corner for source and score cards; the filled segmented control; the player notice as a banner.
+He went away after "fire away". Made on his behalf, each reversible: the darker slider track; the 32px corner for source and score cards; the player notice as a banner. The owner's reply (2026-10-30): the two segmented kinds are deliberate and stay; the rest can take expressive Material styling as it consolidates.
 
 ## Not verified
 
