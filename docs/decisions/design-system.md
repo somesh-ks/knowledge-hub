@@ -313,6 +313,7 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Why: the guide's hand-written specs copied the app's markup and could drift; 25 classes drew 7 controls under names taken from where each first appeared (`btn-primary`, `source-link`).
 - Rejected: renaming the guide's pages only (parity would stay a promise); one PR for every family (a taste change in one hides in the rest); a new required status check (it would block every PR that does not touch the system).
 - Next: Icon button, FAB (with `btn-action-tonal`, the Catch up colour), Chip, Link (`source-link`, `run-link`, `text-link`).
+- Amended 2026-10-30 (the owner: "whenever I ask you to fix a UI component, first attempt to fix/improve the centralized design system component, document and enforce this rule"): a request to fix or restyle a component starts at the component, in its own class, variant or token, never as a page override. A page may patch it only when the component cannot hold the change, and the PR body says why. Enforced by review, not by trust: `design-audit` flags a page override, CodeRabbit is told to, the PR template asks where the fix landed, and `styles.test.ts` fails a new page rule on a component's class (the overrides that exist today are listed there and only shrink).
 
 ## D238: every color ramp is ten steps on one OKLCH curve
 

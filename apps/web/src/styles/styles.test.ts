@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { extname, join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
+import { COMPONENTS } from "../design-system/registry";
 
 /**
  * House rules for the shell's own CSS, checked on the files it owns. tokens.css and foundations.css
@@ -786,6 +787,44 @@ const RULES: Rule[] = [
 describe("house rules", () => {
   it.each(RULES)("$name", ({ offenders }) => {
     expect(offenders()).toEqual([]);
+  });
+});
+
+/**
+ * The stylesheets that still restyle a design-system component's classes, with the number of times
+ * each names them. A component is fixed in its own sheet, never bent on one page (AGENTS.md, owner,
+ * 2026-10-30: "whenever I ask you to fix a UI component, first attempt to fix/improve the
+ * centralized design system component"). A page rule that overrides a Button is debt: moving it
+ * into the component lowers a count, and this list only shrinks. Without it a new override passes
+ * every other test and the component quietly forks, page by page.
+ */
+const PAGE_OVERRIDES: Record<string, number> = {
+  "banner.css": 1,
+  "create-sheet.css": 1,
+  "create.css": 5,
+  "empty.css": 2,
+  "library.css": 1,
+  "primitives.css": 1,
+  "queue.css": 2,
+  "sheets.css": 3,
+  "topics.css": 3,
+};
+
+describe("design-system components in page stylesheets", () => {
+  it("are restyled only where the debt list says", () => {
+    const found: Record<string, number> = {};
+    for (const component of COMPONENTS) {
+      const named = new RegExp(`\\.(?:${component.classes.join("|")})(?![\\w-])`, "g");
+      for (const [file, css] of ownCss()) {
+        if (file === component.sheet) continue;
+        const count = css.match(named)?.length ?? 0;
+        if (count > 0) found[file] = (found[file] ?? 0) + count;
+      }
+    }
+    expect(
+      found,
+      "change the component in its own stylesheet (a design-system PR) instead of overriding it on a page; this list only shrinks",
+    ).toEqual(PAGE_OVERRIDES);
   });
 });
 

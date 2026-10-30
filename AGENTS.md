@@ -32,10 +32,10 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code 
 - Code review before every merge (D143, D192). CodeRabbit reviews PRs on GitHub; merge by hand once its review lands and findings are fixed. Large changes: run `/code-review` first.
 - TypeScript stays on 6.x.
 - UI keeps the 8pt grid (4px for named cases only) and the design system, in three layers: `npm run design-check` (a hook on each UI edit), e2e/designSystem.spec.ts (CI), the `design-audit` agent before the PR. Screenshot open states first.
-- The design system is a product (D237). A control is a component in `apps/web/src/design-system/` named for what it is (Button, not primary action); a page draws it, never types its class. Changes go in a `design-system` PR the owner merges, with their record.
+- The design system is a product (D237). A control is a component in `apps/web/src/design-system/` named for what it is (Button, not primary action); a page draws it, never types its class. Asked to fix a UI component, fix the component, not a page override; a page patch needs a PR reason, and `styles.test.ts` fails a new one. Changes go in a `design-system` PR the owner merges, with their record.
 - Design fixes are load-bearing. Markup or rules with a rationale comment (date, D-number, sizer, specificity bump) are never removed or rewritten to make another task work: extend or ask. Check history (`git log -L '/<selector>/,+20:<file>'`) and the ledger before changing shared CSS (`player.css`, `primitives.css`, `buttons.css`, tokens). CSS is checked by browser suites only.
 - Scope: one task per branch. Before a PR, `git diff --stat origin/main` must list only files the task needs; name any shared stylesheet or component in it, and why, in the PR body.
-- UI parts: before you write a class, token or value, run `npm run ds -- find "<need>"`. Never invent control classes. Features: `.claude/skills/feature/`.
+- UI parts: before you write a class, token or value, run `npm run ds -- find "<need>"`. Features: `.claude/skills/feature/`.
 - State authority: the config store owns runtime preferences. Never edit `config/` in Git during active workflow runs or from parallel branches without store synchronization (D149, D185).
 - Pipeline discipline: verify the core daily loop runs green in production before adding new intake types or audience matrices.
 
