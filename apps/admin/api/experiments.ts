@@ -5,6 +5,7 @@ import {
   setExperimentEnabled,
   setExperimentPromoted,
 } from "@singularity/engine/experiment-flags";
+import { readExperimentHits } from "@singularity/engine/experiment-hits";
 import { connectNeon } from "@singularity/engine/neon";
 import {
   type ExperimentStore,
@@ -25,6 +26,7 @@ function storeFor(env: NodeJS.ProcessEnv): ExperimentStore | null {
   const sql = connectNeon(url);
   return {
     read: async () => rows(await readExperimentFlags(sql)),
+    hits: () => readExperimentHits(sql, Date.now()),
     setEnabled: (id, enabled) => setExperimentEnabled(sql, id, enabled),
     setPromoted: (id, promoted) => setExperimentPromoted(sql, id, promoted),
   };

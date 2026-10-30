@@ -11,6 +11,7 @@
     "./config-store": "./src/config/applyDocuments.ts",
     "./neon": "./src/store/neon.ts",
     "./experiment-flags": "./src/store/experimentFlags.ts",
+    "./experiment-hits": "./src/store/experimentHits.ts",
     "./rate-counter": "./src/store/rateCounter.ts",
     "./gate": "./src/gate/decideRun.ts",
     "./health-limits": "./src/ops/healthLimits.ts",

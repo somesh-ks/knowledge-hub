@@ -15,6 +15,7 @@ import {
   staticImports,
   unallowedInlineScripts,
   unhintedModules,
+  wakeModules,
   wakeStylesheets,
   withModulePreloads,
   withoutStylesheets,
@@ -75,6 +76,21 @@ describe("entryScripts", () => {
     const html = page({
       head: '<script type="module" src="/_astro/page.js"></script><link rel="modulepreload" href="/_astro/chunk.js">',
       body: '<astro-island component-url="/_astro/Player.js" renderer-url="/_astro/client.js" before-hydration-url=""></astro-island>',
+    });
+    expect(entryScripts(html).sort()).toEqual([
+      "/_astro/Player.js",
+      "/_astro/chunk.js",
+      "/_astro/client.js",
+      "/_astro/page.js",
+    ]);
+  });
+
+  // On Vercel with skew protection the adapter writes `?dpl=<deployment>` after every asset URL; the
+  // build then failed reading "/_astro/x.js?dpl=..." from the output (2026-10-30, every main deploy).
+  it("names a file by its path, whatever deployment id the URL carries", () => {
+    const html = page({
+      head: '<script type="module" src="/_astro/page.js?dpl=dpl_abc"></script><link rel="modulepreload" href="/_astro/chunk.js?dpl=dpl_abc#x">',
+      body: '<astro-island component-url="/_astro/Player.js?dpl=dpl_abc" renderer-url="/_astro/client.js?dpl=dpl_abc"></astro-island>',
     });
     expect(entryScripts(html).sort()).toEqual([
       "/_astro/Player.js",
@@ -199,6 +215,11 @@ describe("module preload hints", () => {
     ]);
   });
 
+  it("hints nothing for a script the page already names with a deployment id", () => {
+    const stamped = html.replace('src="/_astro/page.js"', 'src="/_astro/page.js?dpl=dpl_abc"');
+    expect(unhintedModules(stamped, read).sort()).toEqual(unhintedModules(html, read).sort());
+  });
+
   it("leaves a hinted page with nothing unhinted, its scripts unchanged and its policy intact", () => {
     const hinted = withModulePreloads(html, read);
     expect(unhintedModules(hinted, read)).toEqual([]);
@@ -211,6 +232,18 @@ describe("module preload hints", () => {
   it("gives a page from the recorded graph the same hints the build gives it from the files", () => {
     const graph = importGraph(Object.keys(files), read);
     expect(withModulePreloads(html, readFromGraph(graph))).toBe(withModulePreloads(html, read));
+  });
+
+  it("reads a wake island named with a deployment id", () => {
+    const waking = page({
+      body: '<astro-island component-url="/_astro/Player.js?dpl=dpl_abc" renderer-url="/_astro/client.js?dpl=dpl_abc" client="wake"></astro-island>',
+    });
+    expect(wakeModules(waking, read).flat().sort()).toEqual([
+      "/_astro/Player.js",
+      "/_astro/client.js",
+      "/_astro/react.js",
+      "/_astro/shared.js",
+    ]);
   });
 
   // A hint for an island that waits to be woken fetches React at load and silently undoes the wait

@@ -15,8 +15,16 @@ export interface FlagRow {
   promoted_at: number | null;
 }
 
+/** What an experiment in shadow would have added over the window (store/experimentHits.ts). */
+export interface HitTotal {
+  stories: number;
+  passes: number;
+}
+
 export interface ExperimentStore {
   read(): Promise<FlagRow[]>;
+  /** The shadow counts by experiment id; none for an experiment that has not run in shadow. */
+  hits(): Promise<Record<string, HitTotal>>;
   /** False when the store refused: a promoted experiment stays on (D249). */
   setEnabled(id: string, enabled: boolean): Promise<boolean>;
   setPromoted(id: string, promoted: boolean): Promise<void>;
@@ -46,7 +54,11 @@ export async function handleExperiments(
     return { status: 405, body: { error: "method_not_allowed" } };
   }
   if (store === null) return { status: 503, body: { error: "no_store" } };
-  if (request.method === "GET") return { status: 200, body: { flags: await store.read() } };
+  if (request.method === "GET") {
+    // The counts are an extra: a store that cannot give them still gives the switches.
+    const hits = await store.hits().catch(() => ({}));
+    return { status: 200, body: { flags: await store.read(), hits } };
+  }
 
   // JSON is what a page sends and what a form on another site cannot: it makes the browser ask
   // first (the session cookie is SameSite=Lax besides).

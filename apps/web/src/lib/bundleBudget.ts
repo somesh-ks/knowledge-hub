@@ -95,9 +95,14 @@ const WAKE_ISLAND = /<astro-island\b[^>]*\bclient="wake"[^>]*>/g;
 function islandModules(tag: string): string[] {
   const urls: string[] = [];
   for (const match of tag.matchAll(/\b(?:component-url|renderer-url)=["']([^"']+)["']/g)) {
-    if (match[1]) urls.push(match[1]);
+    if (match[1]) urls.push(bare(match[1]));
   }
   return urls;
+}
+
+/** A file's path without the `?dpl=<deployment>` Vercel's skew protection appends, or a hash. */
+function bare(url: string): string {
+  return url.replace(/[?#].*$/, "");
 }
 
 /**
@@ -118,7 +123,9 @@ export function entryScripts(page: string): string[] {
   )) {
     if (match[1]) urls.add(match[1]);
   }
-  return [...urls].filter((url) => url.startsWith("/") && !url.startsWith("//"));
+  return [...new Set([...urls].map(bare))].filter(
+    (url) => url.startsWith("/") && !url.startsWith("//"),
+  );
 }
 
 /** The modules a file imports statically. Dynamic import() is lazy and not part of first load. */
@@ -187,11 +194,11 @@ export function firstLoadReport(
  */
 export function unhintedModules(html: string, read: (url: string) => string | null): string[] {
   const named = new Set<string>();
-  for (const tag of parseScripts(html)) if (tag.src) named.add(tag.src);
+  for (const tag of parseScripts(html)) if (tag.src) named.add(bare(tag.src));
   for (const match of html.matchAll(
     /<link\b[^>]*rel=["']modulepreload["'][^>]*href=["']([^"']+)["']/g,
   )) {
-    if (match[1]) named.add(match[1]);
+    if (match[1]) named.add(bare(match[1]));
   }
   const entries = entryScripts(html);
   const islands = entries.filter((url) => !named.has(url));
@@ -264,7 +271,7 @@ export function withoutStylesheets(html: string, hrefs: readonly string[]): stri
   return html.replace(/<link\b[^>]*>/g, (tag) => {
     if (!/\brel=["']stylesheet["']/.test(tag)) return tag;
     const href = /\bhref=["']([^"']+)["']/.exec(tag)?.[1];
-    return href !== undefined && hrefs.includes(href) ? "" : tag;
+    return href !== undefined && hrefs.includes(bare(href)) ? "" : tag;
   });
 }
 
