@@ -343,7 +343,7 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Revisit if: a part cannot be an Astro component (a class set no page shares), or the pure-pull-request check blocks work it should allow.
 - Amends: D224.
 
-## D251: the warning color is the orange ramp
+## D252: the warning color is the orange ramp
 
 - Date: 2026-10-30 (the owner: "orange instead of brown", "warning color clear orange, not brown amber"; and, when a UI needs fixing, fix the central design-system component first, not a local override).
 - Decision: the `amber` ramp (hue 80) becomes `orange` (hue 47, peak chroma 0.17), the same ten steps on the same lightness curve (D238). `--color-warning` takes step 500 in light mode (it was amber 600) and 300 in dark; `--color-warning-subtle` takes 50 and 900. Step 600 of a warm hue at that lightness is brown, so warning sits one step lighter than success and danger. It still reads as text: step 500 is 4.5:1 or better on the page, the raised surface and its tint, which `buildTokens.test.ts` holds. The hue is 47, not 55 (a cleaner orange), because at 55 step 500 falls 0.04 short of 4.5:1; 47 stays 19 degrees from danger red (28) and reads as orange beside it. The admin overview's local `--ov-warning` goes in its own PR.
