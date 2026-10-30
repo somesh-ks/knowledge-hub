@@ -14,6 +14,7 @@ import {
 } from "../src/judge/cache.js";
 import { FallbackJudge } from "../src/judge/fallbackJudge.js";
 import type { Judge } from "../src/judge/types.js";
+import { withoutJudgments, withVideoExcerpts } from "../src/judge/videoExcerpt.js";
 import { makeEntry, makeItem } from "./score-factories.js";
 import { captureLog } from "./write-fakes.js";
 
@@ -172,5 +173,64 @@ describe("FallbackJudge", () => {
     );
     expect(judge.model).toBe(MODEL);
     expect(judge.questionsHash).toBe(HASH);
+  });
+});
+
+describe("a favorite creator's video", () => {
+  const sponsor = "This video is sponsored by Acme, use code SAVE at acme.example. ";
+  const spoken = `${sponsor}${"Here is how the editor handles state. ".repeat(80)}`;
+
+  /** Records the snippet each judged item carried. */
+  function snippetJudge(): Judge & { seen: Map<string, string> } {
+    const seen = new Map<string, string>();
+    return {
+      seen,
+      name: "stub",
+      model: MODEL,
+      questionsHash: HASH,
+      async judge(items) {
+        for (const item of items) seen.set(item.id, item.snippet);
+        return items.map((item) => ({
+          ...makeEntry(item, { model: MODEL }),
+          questions_hash: HASH,
+        }));
+      },
+    };
+  }
+
+  it("is judged on its transcript, not on a description cached from before", async () => {
+    const video = makeItem({
+      source_type: "youtube",
+      snippet: "Links and a sponsor line",
+      signals: { creator_vetted: true },
+    });
+    const stranger = makeItem({ source_type: "youtube", snippet: "A video from no favorite" });
+    const silent = makeItem({
+      source_type: "youtube",
+      snippet: "No captions here",
+      signals: { creator_vetted: true },
+    });
+    const cached = mergeJudgments(
+      EMPTY_JUDGMENTS,
+      [video, stranger, silent].map((i) => makeEntry(i)),
+    );
+    const extract = async (item: Item) =>
+      item.id === video.id ? { text: spoken, method: "captions" as const, truncated: false } : null;
+
+    const excerpts = await withVideoExcerpts([video, stranger, silent], extract);
+    const judge = snippetJudge();
+    const judged = await judgeWithCache(
+      judge,
+      excerpts.items,
+      withoutJudgments(cached, excerpts.transcribed),
+    );
+
+    // Only the video with a transcript is asked again; the others keep their cached answer.
+    expect([...judge.seen.keys()]).toEqual([video.id]);
+    const snippet = judge.seen.get(video.id) ?? "";
+    expect(snippet.length).toBeLessThanOrEqual(1_200);
+    expect(snippet).toContain("editor handles state");
+    expect(snippet).not.toContain("sponsored by Acme");
+    expect(judged.entries).toHaveLength(3);
   });
 });

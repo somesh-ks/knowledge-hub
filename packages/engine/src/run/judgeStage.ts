@@ -5,6 +5,7 @@ import { judgeWithCache, lookupJudgments, mergeJudgments } from "../judge/cache.
 import type { CombinedRequest } from "../judge/combinedJudge.js";
 import { finishTopicJudging, planTopicJudging } from "../judge/topicJudge.js";
 import { neutralEntry, topicOnlyTopics } from "../judge/topicOnly.js";
+import { withoutJudgments, withVideoExcerpts } from "../judge/videoExcerpt.js";
 import { readTopicJudgments } from "../state/store.js";
 import { loadTopicsFile } from "../topics/store.js";
 import { type JudgedFile, withRunJudgments, withRunTopicJudgments } from "./artifacts.js";
@@ -61,8 +62,13 @@ export async function judgeStage(deps: RunDeps, plan: Plan): Promise<StageReport
   let outage: string | undefined;
   for (const pass of plan.passes) {
     await requireStage(deps.root, pass, "fetch", "judging");
-    const pool = await loadPool(passFile(deps.root, pass.id, "pool.json"));
+    const loaded = await loadPool(passFile(deps.root, pass.id, "pool.json"));
     const now = deps.now();
+    // A favorite creator's video is judged on what it says, not on its description (D248), so an
+    // entry cached from the description is dropped and asked again.
+    const spoken = await withVideoExcerpts(loaded.items, runtime.extract, deps.log);
+    cache = withoutJudgments(cache, spoken.transcribed);
+    const pool = { ...loaded, items: spoken.items };
     // Jev takes one item per request, so what an item needs is asked in one request: the six main
     // questions and its topic fits together, only the fits for an item a coverage topic decides
     // alone, only the six for everything else. Cached answers are never asked again.
