@@ -29,7 +29,7 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code 
 - No em dashes. Persisted data is snake_case; docs and config files are lowercase kebab-case.
 - Do not edit `Digests/` or `state/` by hand.
 - Changes to `.github/workflows` need a manual merge (the auto-merge token cannot merge them).
-- Code review before every merge (D143, D192). CodeRabbit reviews PRs on GitHub; merge by hand once its review lands and findings are fixed. Large changes: run `/code-review` first.
+- Code review before every merge (D143, D192). CodeRabbit reviews PRs on GitHub; merge by hand once its review lands and findings are fixed. Docs outside `docs/decisions/`, test data or a typo skip it (D254): `[skip-review]` in the title, merge on green CI. Large changes: run `/code-review` first.
 - TypeScript stays on 6.x.
 - UI keeps the 8pt grid (4px for named cases only) and the design system, in three layers: `npm run design-check` (a hook on each UI edit), e2e/designSystem.spec.ts (CI), the `design-audit` agent before the PR.
 - The design system is a product (D237, D253). A control is a component in `apps/web/src/design-system/` named for what it is (Button); a page draws it, never types its class. A UI fix starts at the component; a page patch needs a PR reason and a `PAGE_OVERRIDES` entry. Changes join the one open `design-system` PR the owner merges (D254).

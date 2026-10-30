@@ -11,6 +11,8 @@ reviews:
   auto_review:
     enabled: true
     drafts: false
+    ignore_title_keywords:
+      - "[skip-review]"
     base_branches:
       - ".*"
   path_filters:
@@ -18,6 +20,15 @@ reviews:
     - "!Podcasts/**"
     - "!state/**"
     - "!docs/history/**"
+    - "!docs/engineering/**"
+    - "!docs/specs/**"
+    - "!docs/prototype/**"
+    - "!docs/reference/**"
+    - "!docs/design/**"
+    - "!docs/design-engineering-ledger.md"
+    - "!docs/learnings.md"
+    - "!docs/state.md"
+    - "!docs/backlog.md"
     - "!package-lock.json"
     - "!**/dist/**"
     - "!**/.astro/**"
