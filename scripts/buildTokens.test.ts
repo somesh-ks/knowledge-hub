@@ -25,6 +25,7 @@ import {
   relativeLuminance,
 } from "./colorMath.js";
 import { derivedColors, RAMP_STEPS, RAMPS, type RampName, rampStep } from "./colorRamp.js";
+import { type SpringParams, springCurve } from "./springCurve.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const doc: TokenDocument = loadTokens();
@@ -489,11 +490,57 @@ describe("motion tokens", () => {
   });
 });
 
+describe("expressive spring tokens", () => {
+  const springs = doc.tokens.filter(
+    (token) => token.path[1] === "ease" && typeof token.extensions.spring === "object",
+  );
+
+  it("draws each curve from the stiffness and damping its token records, so a hand edit cannot drift", () => {
+    expect(springs.length).toBe(6);
+    for (const token of springs) {
+      const params = token.extensions.spring as SpringParams;
+      const name = token.path.at(-1) ?? "";
+      const samples = name.includes("spatial") ? 36 : 24;
+      const curve = springCurve(params, samples);
+      expect(token.value, name).toBe(curve.easing);
+      const duration = doc.byPath.get(`primitive.duration.${name}`);
+      expect(duration?.value, name).toBe(`${curve.durationMs}ms`);
+    }
+  });
+
+  it("lets only spatial springs overshoot; an effects spring on a fade or a colour never flickers past its target", () => {
+    for (const token of springs) {
+      const peak = springCurve(token.extensions.spring as SpringParams, 24).peak;
+      if (token.path.at(-1)?.includes("effects"))
+        expect(peak, token.dotPath).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("collapses spatial springs under reduced motion and keeps effects springs, which are fades", () => {
+    for (const size of ["fast", "default", "slow"]) {
+      const spatial = doc.byPath.get(`primitive.duration.spring-spatial-${size}`);
+      const effects = doc.byPath.get(`primitive.duration.spring-effects-${size}`);
+      expect(spatial?.reducedMotion).toBe("0.01ms");
+      expect(effects?.reducedMotion).toBeUndefined();
+    }
+  });
+});
+
 describe("generated CSS", () => {
   const css = buildCss(doc);
 
   it("is deterministic", () => {
     expect(buildCss(loadTokens())).toBe(css);
+  });
+
+  it("emits the spatial spring reduced-motion overrides, so a travelling spring collapses to nothing", () => {
+    const reduced =
+      css.match(
+        /@media \(prefers-reduced-motion: reduce\) \{\n {2}:root \{([\s\S]*?)\n {2}\}\n\}/,
+      )?.[1] ?? "";
+    for (const size of ["fast", "default", "slow"]) {
+      expect(reduced).toContain(`--duration-spring-spatial-${size}: 0.01ms;`);
+    }
   });
 
   it("matches the committed tokens.css", () => {

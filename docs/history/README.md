@@ -9,6 +9,7 @@ One note per session, newest first. Read a note only to learn why something was 
 | 2026-10-30 | [Trusted publishers list renamed](2026-10-30-trusted-publishers-rename.md) | "authority" became "trusted publishers" in file, code and command; the six Reddit seeds dropped from the registry (D250) |
 | 2026-10-29 | [The Cancel route gets a key](2026-10-29-cancel-token.md) | Open `/api/cancel` stopped any run; a per-run HMAC token held by the starter (D242) |
 | 2026-10-29 | [Podcast run audit](2026-10-29-podcast-run-audit.md) | Every Catch up, Regenerate and scheduled failure traced to a merged fix; a live Regenerate and Catch up started 2 s apart both published |
+| 2026-10-29 | [Design-system consolidation](2026-10-29-design-system-consolidation.md) | Inventory of thirteen duplicate families and 60 unused classes; the six-PR plan (D243) |
 | 2026-10-29 | [The podcast queue](2026-10-29-podcast-queue.md) | A dock above the bottom bar and a popover from the side column listing a Catch up or a regeneration while it is made, a ring with the percent, finished runs staying for the day with Start listening, a title that never changes, an X to cancel and Details for a failure (D231) |
 | 2026-10-29 | [Community signal](2026-10-29-community-signal.md) | Community votes floor the depth score, HN topic queries, Reddit source type, release feeds demoted; shipped off (D240) |
 | 2026-10-29 | [Authority list](2026-10-29-authority-list.md) | Vetted publishers' announcements pass the bar, Exa restricted to their domains, shadow log and replay; shipped off (D234) |
