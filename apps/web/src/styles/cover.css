@@ -118,11 +118,6 @@
   color: var(--color-accent);
 }
 
-.cover-placeholder-mark {
-  width: 22cqi;
-  height: 33cqi;
-}
-
 .cover-frame {
   /* A line that reads on the cover's own ground: light on a dark palette, dark on a light one. The
      text color is the fallback where relative color syntax is missing. */

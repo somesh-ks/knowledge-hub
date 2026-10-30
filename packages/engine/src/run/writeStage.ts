@@ -29,6 +29,7 @@ import {
 } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import type { DropStage, Selection, WrittenFile } from "../curate/selectionFile.js";
+import { EXPERIMENT_IDS } from "../experiments/overrides.js";
 import type { ExtractedText } from "../extract/extractText.js";
 import type { RunMode } from "../gate/decideRun.js";
 import { mapConcurrent } from "../llm/concurrency.js";
@@ -63,6 +64,7 @@ import {
 import { withSourceAdjustment, withVoteWeight } from "../score/sourceAdjust.js";
 import type { ScoredItem, SelectedItem } from "../score/types.js";
 import { readSeen, readSourceStats } from "../state/store.js";
+import type { ExperimentHit } from "../store/experimentHits.js";
 import { loadTopics } from "../topics/store.js";
 import { writerCategory } from "../topics/writerCategory.js";
 import {
@@ -121,6 +123,8 @@ interface PassContext {
   community: CommunityFile;
   /** The same file read as if on while it is off, to log what it would add; undefined otherwise. */
   communityShadow: CommunityFile | undefined;
+  /** A dry run stores nothing outside the repository. */
+  dryRun: boolean;
   /** Enabled custom topics, scored against the fits the judge stage recorded. */
   customTopics: ReturnType<typeof activeFitTopics>;
   /** Sections a scheduled regular briefing covers; null for every section and for other modes. */
@@ -196,6 +200,7 @@ export async function writeStage(
     skipTopics: schedule?.skip_topics ?? [],
     onlyTopics: chosenTopics && chosenTopics.length > 0 ? new Set(chosenTopics) : null,
     weeklySkipTopics: fullSchedule.weekly.skip_topics,
+    dryRun: plan.dry_run,
     sourceStats: await readSourceStats(deps.root),
     votePrefs,
     autoAdjust: profile.auto_adjust,
@@ -345,6 +350,23 @@ async function writePass(
       pass: pass.id,
       count: communityHits.length,
       stories: communityHits.slice(0, 10),
+    });
+  }
+  // The admin app's Experiments page shows these counts. A shadow that ran and found nothing counts 0.
+  const hits: ExperimentHit[] = [];
+  if (context.trustedPublisherShadow !== NO_TRUSTED_PUBLISHERS) {
+    hits.push({ id: EXPERIMENT_IDS.trustedPublishers, pass: pass.id, stories: shadowHits.length });
+  }
+  if (context.communityShadow) {
+    hits.push({
+      id: EXPERIMENT_IDS.communityRanking,
+      pass: pass.id,
+      stories: communityHits.length,
+    });
+  }
+  if (!context.dryRun && deps.recordExperimentHits) {
+    await deps.recordExperimentHits(hits).catch((error: unknown) => {
+      deps.log.warn(`experiment counts not saved: ${String(error).split("\n")[0]}`);
     });
   }
   // Jev's taste check, for the strongest candidates only: the change matters near the cut.
