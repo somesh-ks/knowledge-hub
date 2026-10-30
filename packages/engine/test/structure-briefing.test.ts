@@ -429,6 +429,23 @@ describe("a Catch up fills its slots after the structure's caps", () => {
     expect(ids).not.toContain("d2");
   });
 
+  it("airs an item that came from two groups once when it fills a slot", () => {
+    const two = blocks([
+      { type: "hello" },
+      { type: "section", id: "design", max_stories: 1 },
+      { type: "sign_off" },
+    ]);
+    const candidates = [
+      story("d1", "design"),
+      story("w1", "world"),
+      story("w1", "world"),
+      story("w2", "world"),
+    ];
+    const ids = fitStories(candidates, two, {}, 3).stories.map((each) => each.item_id);
+    expect(ids).toHaveLength(3);
+    expect(new Set(ids).size).toBe(3);
+  });
+
   // The wide selection lists a mixed episode's topics one after another; cutting it by position took
   // the whole last topic (independent review, PR 391).
   it("cuts each section's tail first, so a later topic keeps its best stories", () => {

@@ -94,7 +94,7 @@ const MIN_EPISODE_STORIES = 2;
  * smaller candidate pool can leave fewer stories; the function never adds stories.
  */
 export function fitStories(
-  candidates: readonly PodcastStory[],
+  allCandidates: readonly PodcastStory[],
   blocks: readonly StructureBlock[],
   prompts: Readonly<Record<string, string>>,
   slots: number,
@@ -102,6 +102,10 @@ export function fitStories(
   // An episode keeps its two stories (the selection's own floor) whatever the structure leaves room
   // for: a short episode with many blocks plans one slot and must not be cut under what select kept.
   const max = Math.max(MIN_EPISODE_STORIES, slots);
+  // A mixed Catch up can carry one item from the briefings and from a feed: it airs once.
+  const candidates = allCandidates.filter(
+    (story, at) => allCandidates.findIndex((other) => other.item_id === story.item_id) === at,
+  );
   const shaped = shapeStories(candidates, blocks, prompts);
   if (shaped.stories.length < max) return fillSlots(candidates, blocks, prompts, shaped, max);
   if (shaped.stories.length === max) return shaped;
