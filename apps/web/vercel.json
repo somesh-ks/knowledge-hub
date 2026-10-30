@@ -110,6 +110,18 @@
       "schedule": "0 23 * * *"
     }
   ],
+  "redirects": [
+    {
+      "source": "/analytics",
+      "destination": "/admin/costs",
+      "permanent": false
+    },
+    {
+      "source": "/settings/health",
+      "destination": "/admin/health",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/admin/:path*",

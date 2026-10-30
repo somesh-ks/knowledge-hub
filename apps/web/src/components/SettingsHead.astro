@@ -4,12 +4,13 @@ interface Props {
   title: string;
   /** One quiet line under the title: what the page is for. */
   note?: string;
-  /** Show the "Settings /" crumb on a page reached from Settings outside /settings/ (Costs). */
+  /** Show the "Settings /" crumb on a page reached from Settings outside /settings/. */
   crumb?: boolean;
 }
 
 // A settings subpage says where it sits (owner, 2026-10-25); Settings itself and the pages outside it do
-// not, unless Settings links to them: Costs lives at /analytics and once lost its crumb (2026-10-27).
+// not, unless Settings links to them (Costs once lived at /analytics and lost its crumb, 2026-10-27; it is in the
+// admin app now).
 const { title, note, crumb = Astro.url.pathname.startsWith("/settings/") } = Astro.props;
 ---
 
