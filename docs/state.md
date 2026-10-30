@@ -4,14 +4,14 @@ Updated 2026-10-30. Rewrite, never append. [Specs](specs/README.md), [decisions]
 
 ## Working
 
-- Engine live end to end (fetch, Jev judge, writer, validate, commit): [engine](specs/engine.md). A run that loses stories or races a push degrades, not fails, and records its health (D204): [resilience](engineering/generation-resilience.md), [metrics](engineering/metrics.md).
+- Engine live end to end (fetch, judge, write, validate, commit): [engine](specs/engine.md). A run that loses stories or races a push degrades, not fails, and records health (D204): [resilience](engineering/generation-resilience.md), [metrics](engineering/metrics.md).
 - Reader (Latest, Library, Catch up, Settings, `/design`): [library](specs/library.md), [create](specs/create.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
-- Player as one surface: transcript with word light, chapters in the bar, a queue with Up next (D126): [player](specs/player.md).
-- Narration on Play, story by story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes; Opus, MP3 fallback (D198): [narration](specs/narration.md), [create](specs/create.md).
+- Player as one surface: transcript with word light, chapters in the bar, queue with Up next (D126): [player](specs/player.md).
+- Narration on Play, per story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes; Opus, MP3 fallback (D198): [narration](specs/narration.md), [create](specs/create.md).
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up are followed in the podcast queue, each with Cancel; ended runs stay for the day (D204, D231).
-- Saved copies, offline shell, downloads, the PWA: [navigation and offline](specs/navigation-and-offline.md).
+- Saved copies, offline shell, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merge by hand (D143).
-- Tooling: subagents, `/close-session` ([roster](history/2026-10-08-subagent-roster.md)). Lookup: `npm run ds` (D236)
+- Tooling: subagents, `/close-session` ([roster](history/2026-10-08-subagent-roster.md)); `npm run ds` (D236)
 
 ## Tests
 
@@ -22,12 +22,12 @@ Unit (CI): 326 files, 5,170 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily ends "the podcast".
 - More menu (D214); Catch up album, Share circle, cards (D219). closed when: signed off.
 - Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused; a regenerate or delete uses none.
-- Three regenerations per podcast, counted in its own file (D212). The file counts (`regenerations: 1` after the 10-29 live Regenerate). closed when: the page shows "2 of 3 regenerations left" for it.
+- Three regenerations per podcast, counted in its own file (D212; `regenerations: 1` after the 10-29 live Regenerate). closed when: the page shows "2 of 3 regenerations left".
 - Short podcasts (D204, D216 to D225). closed when: two dailies in a row air within 10% of their length, `singularity metrics` shows ten runs at `length_share` 0.9 or more, and `failure_rate` 0.1 or less. A Regenerate and a Catch up started 2 s apart both published on 10-29.
 - Ingest in shadow (D233). closed when: for 7 days the store holds 90% of each daily's stories and reads 90% of pages tried (`ingest --coverage`).
 - Authority list (D234), community lift (D240) and Reddit sources, shipped off. closed when: Somesh signs off both files and they are on, a runner reads a Reddit source, and a daily airs a lab story and a community-voted one, no source over 30% of judged items.
 - Run names (D217), Neon run log (D221). `pipeline_runs` holds the 10-29 Regenerate and Catch up. closed when: a scheduled daily is named `daily <date>`, is off the queue, and has its row.
-- `podcast.yml` no longer installs ffmpeg (merged). The first stage starts 9 s after the job starts on 10-29 (29 s before); checkout, Node and install take about 7 s of it. closed when: Somesh accepts 9 s or sets a new target.
+- `podcast.yml` no longer installs ffmpeg (merged). The first stage starts 9 s into the job on 10-29 (29 s before); checkout, Node and install take about 7 s. closed when: Somesh accepts 9 s or sets a new target.
 - A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): `run.yml` gained a `length_minutes` input, which must merge with the site code or GitHub refuses the dispatch. closed when: a Regenerate at 10 minutes airs within 10% of 10.
 - Podcast queue (D231, D242): fakes only. closed when: the owner cancels a Catch up and reads a failed run's Details.
 - Discovery copies rank below an outlet's own entry in dedupe. closed when: a run's dedupe report keeps the outlet's entry where a discovery copy was found.
