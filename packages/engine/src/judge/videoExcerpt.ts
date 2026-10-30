@@ -1,4 +1,5 @@
-import type { Item, JudgmentsFile } from "@singularity/core";
+import { createHash } from "node:crypto";
+import type { Item, JudgmentEntry, JudgmentsFile, TopicJudgmentsFile } from "@singularity/core";
 import type { Logger } from "../context.js";
 import type { ExtractedText } from "../extract/extractText.js";
 import { STATE_LIMITS } from "./questions.js";
@@ -24,8 +25,13 @@ export function transcriptExcerpt(text: string, limit: number = STATE_LIMITS.sni
 export interface VideoExcerpts {
   /** The items in order; a favorite creator's video that has a transcript carries its excerpt as the snippet. */
   items: Item[];
-  /** Ids of the videos now judged on what they say. */
-  transcribed: Set<string>;
+  /** Fingerprint of the excerpt, by id, for each video now judged on what it says. */
+  basis: Map<string, string>;
+}
+
+/** What identifies the text the judge was shown, so an unchanged excerpt is never judged twice. */
+export function excerptBasis(snippet: string): string {
+  return createHash("sha256").update(snippet).digest("hex").slice(0, 12);
 }
 
 /**
@@ -40,7 +46,7 @@ export async function withVideoExcerpts(
   log?: Logger,
 ): Promise<VideoExcerpts> {
   const out: Item[] = [];
-  const transcribed = new Set<string>();
+  const basis = new Map<string, string>();
   for (const item of items) {
     if (item.source_type !== "youtube" || !item.signals.creator_vetted) {
       out.push(item);
@@ -60,20 +66,51 @@ export async function withVideoExcerpts(
       out.push(item);
       continue;
     }
-    transcribed.add(item.id);
+    const snippet = transcriptExcerpt(spoken.text);
+    basis.set(item.id, excerptBasis(snippet));
     log?.info("Favorite creator video judged on its transcript", {
       itemId: item.id,
       channel: item.source_id,
       method: spoken.method,
     });
-    out.push({ ...item, snippet: transcriptExcerpt(spoken.text) });
+    out.push({ ...item, snippet });
   }
-  return { items: out, transcribed };
+  return { items: out, basis };
 }
 
-/** The cache without these items, so they are judged again: an entry from their description would be read as current. */
-export function withoutJudgments(cache: JudgmentsFile, ids: ReadonlySet<string>): JudgmentsFile {
+/**
+ * The cache without the entries these videos were judged on a different text for: from the
+ * description (no basis) or from another excerpt. An entry judged on the same excerpt stays.
+ * `stale` names the videos that lost one, so their topic fits can be asked again too.
+ */
+export function withoutStaleJudgments(
+  cache: JudgmentsFile,
+  basis: ReadonlyMap<string, string>,
+): { cache: JudgmentsFile; stale: Set<string> } {
+  const stale = new Set<string>();
+  const kept = Object.entries(cache.entries).filter(([, entry]) => {
+    const current = basis.get(entry.item_id);
+    if (current === undefined || entry.basis === current) return true;
+    stale.add(entry.item_id);
+    return false;
+  });
+  return stale.size === 0
+    ? { cache, stale }
+    : { cache: { version: 1, entries: Object.fromEntries(kept) }, stale };
+}
+
+/** The topic fits without these items, asked again with the category judgment they went stale with. */
+export function withoutTopicFits(
+  cache: TopicJudgmentsFile,
+  ids: ReadonlySet<string>,
+): TopicJudgmentsFile {
   if (ids.size === 0) return cache;
   const kept = Object.entries(cache.entries).filter(([, entry]) => !ids.has(entry.item_id));
   return { version: 1, entries: Object.fromEntries(kept) };
+}
+
+/** An entry marked with the excerpt it was judged on. */
+export function withBasis(entry: JudgmentEntry, basis: ReadonlyMap<string, string>): JudgmentEntry {
+  const current = basis.get(entry.item_id);
+  return current === undefined ? entry : { ...entry, basis: current };
 }

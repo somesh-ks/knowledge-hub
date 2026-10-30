@@ -14,7 +14,7 @@ import {
 } from "../src/judge/cache.js";
 import { FallbackJudge } from "../src/judge/fallbackJudge.js";
 import type { Judge } from "../src/judge/types.js";
-import { withoutJudgments, withVideoExcerpts } from "../src/judge/videoExcerpt.js";
+import { withBasis, withoutStaleJudgments, withVideoExcerpts } from "../src/judge/videoExcerpt.js";
 import { makeEntry, makeItem } from "./score-factories.js";
 import { captureLog } from "./write-fakes.js";
 
@@ -198,7 +198,7 @@ describe("a favorite creator's video", () => {
     };
   }
 
-  it("is judged on its transcript, not on a description cached from before", async () => {
+  it("is judged on its transcript, once per excerpt, never on a description cached from before", async () => {
     const video = makeItem({
       source_type: "youtube",
       snippet: "Links and a sponsor line",
@@ -210,27 +210,43 @@ describe("a favorite creator's video", () => {
       snippet: "No captions here",
       signals: { creator_vetted: true },
     });
+    const items = [video, stranger, silent];
+    const transcriptOf = (text: string) => async (item: Item) =>
+      item.id === video.id ? { text, method: "captions" as const, truncated: false } : null;
+
+    /** One run's judging: what the stage does with the cache, and what the judge was asked. */
+    async function run(cache: JudgmentsFile, extract: ReturnType<typeof transcriptOf>) {
+      const excerpts = await withVideoExcerpts(items, extract);
+      const fresh = withoutStaleJudgments(cache, excerpts.basis);
+      const judge = snippetJudge();
+      const judged = await judgeWithCache(judge, excerpts.items, fresh.cache);
+      const marked = judged.entries.map((entry) => withBasis(entry, excerpts.basis));
+      return { judge, stale: fresh.stale, cache: mergeJudgments(judged.cache, marked) };
+    }
+
     const cached = mergeJudgments(
       EMPTY_JUDGMENTS,
-      [video, stranger, silent].map((i) => makeEntry(i)),
+      items.map((i) => makeEntry(i)),
     );
-    const extract = async (item: Item) =>
-      item.id === video.id ? { text: spoken, method: "captions" as const, truncated: false } : null;
-
-    const excerpts = await withVideoExcerpts([video, stranger, silent], extract);
-    const judge = snippetJudge();
-    const judged = await judgeWithCache(
-      judge,
-      excerpts.items,
-      withoutJudgments(cached, excerpts.transcribed),
-    );
-
+    const first = await run(cached, transcriptOf(spoken));
     // Only the video with a transcript is asked again; the others keep their cached answer.
-    expect([...judge.seen.keys()]).toEqual([video.id]);
-    const snippet = judge.seen.get(video.id) ?? "";
+    expect([...first.judge.seen.keys()]).toEqual([video.id]);
+    expect([...first.stale]).toEqual([video.id]);
+    const snippet = first.judge.seen.get(video.id) ?? "";
     expect(snippet.length).toBeLessThanOrEqual(1_200);
     expect(snippet).toContain("editor handles state");
     expect(snippet).not.toContain("sponsored by Acme");
-    expect(judged.entries).toHaveLength(3);
+
+    // The same transcript on the next run is a cache hit: no second paid request.
+    const again = await run(first.cache, transcriptOf(spoken));
+    expect(again.judge.seen.size).toBe(0);
+    expect(again.stale.size).toBe(0);
+
+    // A different transcript is a different excerpt and is judged again.
+    const changed = await run(
+      again.cache,
+      transcriptOf(`${"A different video about motion curves. ".repeat(80)}`),
+    );
+    expect([...changed.judge.seen.keys()]).toEqual([video.id]);
   });
 });

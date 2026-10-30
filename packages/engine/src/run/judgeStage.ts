@@ -5,7 +5,12 @@ import { judgeWithCache, lookupJudgments, mergeJudgments } from "../judge/cache.
 import type { CombinedRequest } from "../judge/combinedJudge.js";
 import { finishTopicJudging, planTopicJudging } from "../judge/topicJudge.js";
 import { neutralEntry, topicOnlyTopics } from "../judge/topicOnly.js";
-import { withoutJudgments, withVideoExcerpts } from "../judge/videoExcerpt.js";
+import {
+  withBasis,
+  withoutStaleJudgments,
+  withoutTopicFits,
+  withVideoExcerpts,
+} from "../judge/videoExcerpt.js";
 import { readTopicJudgments } from "../state/store.js";
 import { loadTopicsFile } from "../topics/store.js";
 import { type JudgedFile, withRunJudgments, withRunTopicJudgments } from "./artifacts.js";
@@ -64,10 +69,12 @@ export async function judgeStage(deps: RunDeps, plan: Plan): Promise<StageReport
     await requireStage(deps.root, pass, "fetch", "judging");
     const loaded = await loadPool(passFile(deps.root, pass.id, "pool.json"));
     const now = deps.now();
-    // A favorite creator's video is judged on what it says, not on its description (D248), so an
-    // entry cached from the description is dropped and asked again.
+    // A favorite creator's video is judged on what it says, not on its description (D255), so an
+    // entry cached from the description or from another excerpt is dropped and asked again.
     const spoken = await withVideoExcerpts(loaded.items, runtime.extract, deps.log);
-    cache = withoutJudgments(cache, spoken.transcribed);
+    const fresh = withoutStaleJudgments(cache, spoken.basis);
+    cache = fresh.cache;
+    topicCache = withoutTopicFits(topicCache, fresh.stale);
     const pool = { ...loaded, items: spoken.items };
     // Jev takes one item per request, so what an item needs is asked in one request: the six main
     // questions and its topic fits together, only the fits for an item a coverage topic decides
@@ -115,7 +122,13 @@ export async function judgeStage(deps: RunDeps, plan: Plan): Promise<StageReport
     if (topics !== null) topicCache = topics.cache;
 
     const byId = new Map<string, JudgmentEntry>();
-    for (const entry of [...judged.entries, ...combined.entries]) byId.set(entry.item_id, entry);
+    const marked: JudgmentEntry[] = [];
+    for (const answer of [...judged.entries, ...combined.entries]) {
+      const entry = withBasis(answer, spoken.basis);
+      byId.set(entry.item_id, entry);
+      if (entry !== answer) marked.push(entry);
+    }
+    cache = mergeJudgments(cache, marked);
     const neutralIds: string[] = [];
     for (const item of pool.items) {
       // Only a story the topic actually scored stands in; one it could not reach is retried next run.
