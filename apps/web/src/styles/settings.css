@@ -67,7 +67,7 @@
    stays on its row, dimmed and named). With Sounds off, Volume is one; a row says `data-quiet` for
    the rest (the Structure's frames, and a block whose topics are off, 2026-10-25).
    Markup: <li class="settings-row" data-quiet>...</li> */
-.settings-row:is([data-quiet], :has(.settings-range:disabled)) .settings-label {
+.settings-row:is([data-quiet], :has(.slider-input:disabled)) .settings-label {
   color: var(--color-on-surface-muted);
 }
 
@@ -229,275 +229,39 @@
   margin-block-start: 0;
 }
 
-/* ------------------------------------------------------------------ switch */
+/* ------------------------------------------------------------------ switch and slider */
 
-/* A checkbox with role="switch", drawn as a track; its ::before is the thumb. */
-.settings-switch {
-  position: relative;
-  flex: none;
-  width: var(--switch-width);
-  height: var(--switch-height);
-  margin: 0;
-  appearance: none;
-  border-radius: var(--switch-radius);
-  /* Off, the track is the control's whole outline, and the thumb's place on it is the state. The
-     control-edge colour is the one grey that stands 3 to 1 against both the page and the thumb. */
-  background: var(--color-border-control);
-  cursor: pointer;
-  transition: background-color var(--duration-state) var(--ease-out);
-}
-
-/* The track is 32px tall; its target is 44px. */
-.settings-switch::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  inset-block: calc((var(--size-touch) - var(--switch-height)) / -2);
-}
-
-.settings-switch::before {
-  content: "";
-  position: absolute;
-  inset-block-start: var(--switch-padding);
-  inset-inline-start: var(--switch-padding);
-  width: var(--switch-thumb);
-  height: calc(var(--switch-height) - var(--switch-padding) * 2);
-  border-radius: var(--switch-thumb-radius);
-  background: var(--switch-thumb-bg);
-  transform-origin: 0 50%;
-  transition:
-    transform var(--duration-state) var(--ease-out),
-    scale var(--duration-press-out) var(--ease-out),
-    background-color var(--duration-state) var(--ease-out),
-    opacity var(--duration-state) var(--ease-out);
-}
-
-.settings-switch:checked {
-  background: var(--color-accent);
-}
-
-/* On the accent the thumb takes the on-accent colour: in dark mode the idle thumb is nearly as light
-   as the accent, and its position would be hard to see. */
-.settings-switch:checked::before {
-  background: var(--color-on-accent);
-  transform: translateX(
-    calc(var(--switch-width) - var(--switch-thumb) - var(--switch-padding) * 2)
-  );
-  transform-origin: 100% 50%;
-}
-
-/* The thumb stretches toward the other side while pressed, so the control answers before the finger
-   lifts. */
-.settings-switch:active::before {
-  scale: 1.12 1;
-  transition-duration:
-    var(--duration-state), var(--duration-press-in), var(--duration-state), var(--duration-state);
-}
-
-/* ------------------------------------------------------------------ slider */
-
-/*
- * A native range. WebKit has no pseudo-element for the filled part of the track, so the track paints
- * it as a gradient up to --range-fill, which the script keeps equal to the value. Firefox has
- * ::-moz-range-progress and ignores the gradient. The two engines' pseudo-elements cannot share a
- * rule: a selector one engine does not know drops the whole rule in the other.
- */
-.settings-range {
-  --range-fill: 0%;
-  --range-fill-color: var(--color-accent);
-  --range-track-color: var(--color-track-strong);
+/* A slider in a row takes the control column's width; a row's own rules (topics.css, manage.css) widen it. */
+:where(.settings-row) > .slider-input {
   flex: 0 1 var(--settings-control-width);
   min-width: 0;
-  /* The track is 4px; the input is the 44px target. */
-  height: var(--size-touch);
-  margin: 0;
-  appearance: none;
-  border-radius: var(--button-radius);
-  background: none;
-  cursor: pointer;
-}
-
-.settings-range::-webkit-slider-runnable-track {
-  height: var(--scrubber-track);
-  border-radius: var(--radius-round);
-  background: linear-gradient(
-    to right,
-    var(--range-fill-color) var(--range-fill),
-    var(--range-track-color) var(--range-fill)
-  );
-}
-
-.settings-range::-webkit-slider-thumb {
-  width: var(--scrubber-thumb);
-  height: var(--scrubber-thumb);
-  /* Without the native appearance the thumb hangs from the top of the track; this centres it. */
-  margin-block-start: calc((var(--scrubber-track) - var(--scrubber-thumb)) / 2);
-  appearance: none;
-  border-radius: var(--radius-round);
-  background: var(--range-fill-color);
-  /* A ring in the page colour parts the thumb from the track it rides on. */
-  box-shadow: 0 0 0 var(--scrubber-thumb-ring) var(--color-surface);
-  transition:
-    scale var(--duration-press-out) var(--ease-out),
-    opacity var(--duration-state) var(--ease-out);
-}
-
-.settings-range::-moz-range-track {
-  height: var(--scrubber-track);
-  border-radius: var(--radius-round);
-  background: var(--range-track-color);
-}
-
-.settings-range::-moz-range-progress {
-  height: var(--scrubber-track);
-  border-radius: var(--radius-round);
-  background: var(--range-fill-color);
-}
-
-.settings-range::-moz-range-thumb {
-  width: var(--scrubber-thumb);
-  height: var(--scrubber-thumb);
-  border: 0;
-  border-radius: var(--radius-round);
-  background: var(--range-fill-color);
-  box-shadow: 0 0 0 var(--scrubber-thumb-ring) var(--color-surface);
-  transition:
-    scale var(--duration-press-out) var(--ease-out),
-    opacity var(--duration-state) var(--ease-out);
-}
-
-.settings-range:active::-webkit-slider-thumb {
-  scale: var(--scrubber-thumb-active-scale);
-  transition-duration: var(--duration-press-in), var(--duration-state);
-}
-
-.settings-range:active::-moz-range-thumb {
-  scale: var(--scrubber-thumb-active-scale);
-  transition-duration: var(--duration-press-in), var(--duration-state);
-}
-
-/* Sounds are off, so there is no level to set. */
-.settings-range:disabled {
-  opacity: var(--opacity-disabled);
-  cursor: default;
-}
-
-/* ------------------------------------------------------------------ hover and pressed */
-
-@media (hover: hover) and (pointer: fine) {
-  .settings-switch:hover {
-    background: color-mix(in oklch, var(--color-on-surface) 12%, var(--color-border-control));
-  }
-
-  .settings-switch:checked:hover {
-    background: var(--color-accent-hover);
-  }
-
-  .settings-range:enabled:hover {
-    --range-fill-color: var(--color-accent-hover);
-  }
-}
-
-/* After the hover rules and no less specific, so a press under a mouse still shows as a press. */
-.settings-switch:active {
-  background: color-mix(in oklch, var(--color-on-surface) 12%, var(--color-border-control));
-}
-
-.settings-switch:checked:active {
-  background: var(--color-accent-pressed);
-}
-
-.settings-range:enabled:active {
-  --range-fill-color: var(--color-accent-pressed);
 }
 
 /* ------------------------------------------------------------------ before the values arrive */
 
 /* Until the stored value is known the switch is a neutral track with no thumb, not an "off" one. No
    transition here: the first value lands in place, and only then does the thumb fade in. */
-.settings-view:not([data-ready]) .settings-switch {
+.settings-view:not([data-ready]) .switch-input {
   background: var(--color-track);
   transition: none;
 }
 
-.settings-view:not([data-ready]) .settings-switch::before {
+.settings-view:not([data-ready]) .switch-input::before {
   opacity: 0;
   transition: none;
 }
 
-.settings-view:not([data-ready]) .settings-range::-webkit-slider-thumb {
+.settings-view:not([data-ready]) .slider-input::-webkit-slider-thumb {
   opacity: 0;
 }
 
-.settings-view:not([data-ready]) .settings-range::-moz-range-thumb {
+.settings-view:not([data-ready]) .slider-input::-moz-range-thumb {
   opacity: 0;
 }
 
 /* A range with no value set rests at its midpoint, which Firefox would paint as half full. */
-.settings-view:not([data-ready]) .settings-range::-moz-range-progress {
+.settings-view:not([data-ready]) .slider-input::-moz-range-progress {
   opacity: 0;
-}
-
-/* ------------------------------------------------------------------ preferences */
-
-/* The thumb changes sides without travelling; the track still fades between its two colours. */
-@media (prefers-reduced-motion: reduce) {
-  .settings-switch::before {
-    transition-property: background-color, opacity;
-  }
-}
-
-/*
- * Forced colours drops fills and shadows, so each state gets an edge or a system colour: the
- * switch an outline and a thumb that turns to the highlight when on,
- * the slider a highlight fill on a text-coloured track.
- */
-@media (forced-colors: active) {
-  .settings-switch {
-    border: var(--stroke-rail) solid ButtonText;
-  }
-
-  /* The border moved the thumb's reference edge inward; this puts the thumb back where it was. */
-  .settings-switch::before {
-    inset-block-start: calc(var(--switch-padding) - var(--stroke-rail));
-    inset-inline-start: calc(var(--switch-padding) - var(--stroke-rail));
-    background: ButtonText;
-  }
-
-  .settings-switch:checked {
-    border-color: Highlight;
-  }
-
-  .settings-switch:checked::before {
-    background: Highlight;
-  }
-
-  /* The filled track is a gradient, which forced colours removes along with every other background
-     image. Opting the slider out keeps it, and the system colours here keep it legible. */
-  .settings-range {
-    --range-fill-color: Highlight;
-    --range-track-color: ButtonText;
-    forced-color-adjust: none;
-  }
-
-  .settings-range::-webkit-slider-thumb {
-    box-shadow: none;
-  }
-
-  .settings-range::-moz-range-thumb {
-    box-shadow: none;
-  }
-
-  /* Opted out, the slider would keep the page's own ring colour; this gives it the system's. */
-  .settings-range:focus-visible {
-    outline-color: Highlight;
-  }
-
-  .settings-range:disabled {
-    --range-fill-color: GrayText;
-    --range-track-color: GrayText;
-    opacity: 1;
-  }
 }
 
 /* The model select answers once the editor (scripts/podcastEntry.ts) has mounted and not before. */

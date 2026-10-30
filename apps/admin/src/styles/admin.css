@@ -43,19 +43,11 @@
 
 /* The Overview's two cards read at a glance: a status badge or a figure first, then marks, with
    words only where a mark cannot say it (2026-10-29, the owner: too much text, no visuals). */
-.ov-card {
+.card-group.ov-card {
   display: grid;
+  gap: var(--space-8);
   margin-block-start: 0;
   padding: var(--card-padding);
-}
-
-/* A card is blocks a hairline apart (2026-10-29, the owner: dividers are welcome): the answer, then
-   what backs it. 16px either side of the line. */
-.ov-card > * + *,
-.ov-groups > * + * {
-  margin-block-start: var(--space-4);
-  padding-block-start: var(--space-4);
-  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
 }
 
 .ov-block {
@@ -96,7 +88,7 @@
   margin: 0;
   color: var(--color-on-surface-muted);
   font-size: var(--text-meta-size);
-  line-height: var(--space-6);
+  line-height: var(--text-meta-leading);
 }
 
 .ov-badge,
@@ -117,16 +109,32 @@
   --ov-tone: var(--color-success);
 }
 
+/* Orange, not the reader's amber-700, which reads brown (2026-10-30, the owner). Proposed for the
+   design system's --color-warning; here until a design-system PR takes it. */
+:root {
+  --ov-warning: oklch(60% 0.16 52);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ov-warning: oklch(78% 0.15 60);
+  }
+}
+
+:root[data-theme="dark"] {
+  --ov-warning: oklch(78% 0.15 60);
+}
+
 [data-tone="warn"] {
-  --ov-tone: var(--color-warning);
+  --ov-tone: var(--ov-warning);
 }
 
 [data-tone="bad"] {
   --ov-tone: var(--color-danger);
 }
 
-/* Health: what needs a look is one line each, worst first; what is fine is one dot per check in a
-   strip per group, so a page of good news is four short lines. */
+/* Health: what needs a look is one line each, worst first; what is fine is one line that opens, so a
+   page of good news is a ring and a line. */
 .ov-groups {
   display: grid;
 }
@@ -138,12 +146,6 @@
   list-style: none;
 }
 
-/* Rows in a list are a hairline apart too. */
-.ov-flag-item + .ov-flag-item,
-.ov-strip + .ov-strip {
-  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
-}
-
 /* A flagged check is one line: glyph, name, reading. The fuller line is its tooltip and the Health
    page's. */
 .ov-flag {
@@ -153,7 +155,7 @@
   gap: var(--space-2);
   min-block-size: var(--size-touch);
   color: var(--color-on-surface);
-  line-height: var(--space-6);
+  line-height: var(--text-body-leading);
   text-decoration: none;
 }
 
@@ -174,51 +176,325 @@
   white-space: nowrap;
 }
 
-.ov-strips {
-  display: grid;
-}
+/* The ring: one arc a judged group, in the tone of its worst check, its name and state out beside
+   it on the arc's own bearing (2026-10-30, the owner: too many cells, no way to tell which is which,
+   not Material's thick stroke). Only the sweep-in on arrival moves, once. The middle names the
+   group that is open. */
+.ov-ring {
+  /* The ring's ink sits 48px in from its box on every side; the names sit in the corners that leaves. */
+  --ring-room: var(--space-12);
 
-.ov-strip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  min-block-size: var(--size-touch);
-  color: var(--color-on-surface);
-  text-decoration: none;
-}
-
-.ov-dots {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: var(--space-2);
-}
-
-/* Spend: the chart is the reader's (costs.css); its plot is positioned for the hover readout, and a
-   hovered day lifts out of the others. */
-.ov-plot {
   position: relative;
-  margin-block-start: 0;
+  inline-size: min(100%, calc(var(--space-16) * 5));
+  aspect-ratio: 1;
+  margin-inline: auto;
 }
 
-.ov-tip {
+.ov-ring-svg {
   position: absolute;
-  inset-block-start: 0;
-  translate: -50% 0;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  background: var(--color-on-surface);
-  color: var(--color-surface);
-  font-size: var(--text-meta-size);
-  line-height: var(--space-4);
-  font-variant-numeric: tabular-nums;
-  pointer-events: none;
-  white-space: pre;
+  inset: var(--ring-room);
+  inline-size: calc(100% - var(--ring-room) * 2);
+  block-size: calc(100% - var(--ring-room) * 2);
+  touch-action: pan-y;
 }
 
-.costs-columns[data-hover] .costs-mark:not([data-on]) {
-  opacity: 0.4;
+.ov-ring-track,
+.ov-arc {
+  fill: none;
+  stroke-width: 5;
+}
+
+.ov-ring-track {
+  stroke: var(--color-surface-container);
+}
+
+[data-drawn] .ov-ring-track {
+  display: none;
+}
+
+.ov-arc {
+  stroke: var(--ov-tone, var(--color-on-surface-muted));
+  stroke-linecap: round;
+  transition: stroke-width var(--duration-state) var(--ease-out);
+}
+
+/* The open group's arc is a stroke thicker. */
+.ov-arc[data-on] {
+  stroke-width: 7;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-drawn] .ov-arc {
+    stroke-dasharray: 1;
+    animation: ov-sweep var(--duration-enter) var(--ease-out) backwards;
+    animation-delay: calc(var(--i) * var(--duration-stagger));
+  }
+}
+
+@keyframes ov-sweep {
+  from {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+}
+
+/* Inside the arcs, one line each, never wider. */
+.ov-ring-centre {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--space-1);
+  padding-inline: calc(var(--ring-room) + var(--space-6));
+  text-align: center;
+  pointer-events: none;
+}
+
+.ov-ring-centre > * {
+  max-inline-size: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-ring-centre .ov-figure {
+  font-size: var(--text-title-size);
+  letter-spacing: var(--text-title-tracking);
+  line-height: var(--text-title-leading);
+}
+
+/* The groups' names and states, round the ring: each a press target on the bearing of its arc. They
+   sit further out up and down than sideways: a name is wider than it is tall, and its inner corner
+   must clear the arc, selected tile included. */
+.ov-quads {
+  display: contents;
+}
+
+.ov-quad {
+  position: absolute;
+  inset-inline-start: calc(50% + var(--x) * (50% - var(--space-4)));
+  inset-block-start: calc(
+    50% +
+    clamp(-1 * (50% - var(--space-6)), var(--y) * (50% + var(--space-4)), 50% - var(--space-6))
+  );
+  translate: -50% -50%;
+  display: grid;
+  justify-items: center;
+  inline-size: max-content;
+  min-inline-size: calc(var(--size-touch) * 2);
+  min-block-size: var(--size-touch);
+  white-space: nowrap;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--card-content-radius);
+  color: var(--color-on-surface);
+  font-size: var(--text-meta-size);
+  line-height: var(--text-meta-leading);
+  text-align: center;
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+.ov-quad input {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  margin: 0;
+  appearance: none;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.ov-quad:has(input:checked) {
+  background-color: var(--color-accent-container);
+  color: var(--color-on-accent-container);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ov-quad:hover {
+    background-image: linear-gradient(
+      color-mix(in oklch, currentColor var(--state-hover), transparent),
+      color-mix(in oklch, currentColor var(--state-hover), transparent)
+    );
+  }
+}
+
+.ov-quad:has(input:focus-visible) {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+.ov-quad-sub {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  color: var(--color-on-surface-muted);
+}
+
+/* Only the glyph takes the tone; the words stay in ink, so their contrast never rests on orange. */
+.ov-quad-sub .icon {
+  flex: none;
+  color: var(--ov-tone, var(--color-on-surface-muted));
+  inline-size: var(--size-icon-sm);
+  block-size: var(--size-icon-sm);
+}
+
+.ov-quad:has(input:checked) .ov-quad-sub,
+.ov-quad:has(input:checked) .ov-quad-sub .icon {
+  color: inherit;
+}
+
+/* What is fine is one line that opens: a count, a chevron. */
+.ov-fine > summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--size-touch);
+  color: var(--color-on-surface-muted);
+  line-height: var(--text-body-leading);
+  list-style: none;
+  cursor: pointer;
+}
+
+.ov-fine > summary::-webkit-details-marker {
+  display: none;
+}
+
+.ov-fine-chevron .icon {
+  inline-size: var(--size-icon);
+  block-size: var(--size-icon);
+  transition: rotate var(--duration-state) var(--ease-out);
+}
+
+.ov-fine[open] .ov-fine-chevron .icon {
+  rotate: 180deg;
+}
+
+.ov-fine .ov-flag {
+  color: var(--color-on-surface-muted);
+}
+
+/* The report keeps the room of the tallest group, so opening another moves nothing under it. */
+.ov-groups {
+  min-block-size: calc(var(--rows, 5) * var(--size-touch));
+}
+
+.ov-groups:empty {
+  display: none;
+}
+
+/* Spend: a week of days, a ring each, grey at rest and blue on the one picked; the line under it
+   says what ran. The cells are radios under a cover input, 44px wide at least. */
+.ov-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.ov-day {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  min-inline-size: var(--size-touch);
+  padding-block: var(--space-2);
+  border-radius: var(--card-content-radius);
+  color: var(--color-on-surface-muted);
+  font-size: var(--text-meta-size);
+  line-height: var(--text-meta-leading);
+  font-variant-numeric: tabular-nums;
+  transition:
+    background-color var(--duration-hover) var(--ease-hover),
+    color var(--duration-hover) var(--ease-hover);
+}
+
+.ov-day input {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  margin: 0;
+  appearance: none;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.ov-day:has(input:checked) {
+  background-color: var(--color-accent-container);
+  color: var(--color-on-accent-container);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ov-day:hover {
+    background-image: linear-gradient(
+      color-mix(in oklch, currentColor var(--state-hover), transparent),
+      color-mix(in oklch, currentColor var(--state-hover), transparent)
+    );
+  }
+}
+
+.ov-day:has(input:focus-visible) {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+.ov-dial {
+  inline-size: var(--space-8);
+  block-size: var(--space-8);
+  rotate: -90deg;
+}
+
+.ov-dial-track,
+.ov-dial-fill {
+  fill: none;
+  stroke-width: 3;
+}
+
+.ov-dial-track {
+  stroke: color-mix(in oklch, currentColor 22%, transparent);
+}
+
+.ov-dial-fill {
+  stroke: currentColor;
+  stroke-dasharray: var(--fill) 1;
+  stroke-linecap: round;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ov-dial-fill {
+    animation: ov-fill var(--duration-enter) var(--ease-out) backwards;
+    animation-delay: calc(var(--i) * var(--duration-stagger));
+  }
+}
+
+@keyframes ov-fill {
+  from {
+    stroke-dasharray: 0 1;
+  }
+}
+
+/* Two lines of room, so a long line of providers never moves what is under it. */
+.ov-day-detail {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.ov-day-figure {
+  margin: 0;
+  font-size: var(--text-title-size);
+  letter-spacing: var(--text-title-tracking);
+  line-height: var(--text-title-leading);
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-day-detail .ov-sub {
+  min-block-size: calc(var(--text-meta-leading) * var(--text-meta-size) * 2);
 }
 
 /* The split by service: one bar, one hue, darkest for the largest, a gap between segments. */
@@ -252,7 +528,7 @@
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: var(--space-2);
-  line-height: var(--space-6);
+  line-height: var(--text-body-leading);
 }
 
 .ov-swatch {
@@ -266,7 +542,7 @@
 }
 
 .ov-legend-share {
-  min-inline-size: 3ch;
+  min-inline-size: var(--space-8);
   color: var(--color-on-surface-muted);
   font-size: var(--text-meta-size);
   font-variant-numeric: tabular-nums;

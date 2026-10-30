@@ -478,3 +478,13 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Limit: the runtime source list lives in the config store (D149), where the six disabled rows may remain; they fetch nothing. D240's decision text still lists the six subreddits as shipped off; this entry replaces that part.
 - Revisit if: the owner wants Reddit back (add OAuth credentials and new `reddit` entries).
 - Amends: D234 (file, module and command names), D240 (Reddit sources removed).
+
+## D251: Ingest saves a run's stories as one Blob object; an unchanged content sync writes nothing
+
+- Date: 2026-10-30 (the Blob store was blocked at 100% of Hobby's 2,000 advanced operations; the site answered 503 until it lifts).
+- Decision: `runIngest` extracts every story first, then saves them in one pack, `ingest/<year>/<month>/<random>.json` (`{ version: 2, items: [{ item_id, url, title, source_id, published_at, fetched_at, method, truncated, text }] }`), one `put` a run. Every row of the run keeps that key in `archive_key`; the story is the pack item with its `item_id`. A refused write archives nothing: the run counts every extracted story as an error and the next run reads them again. `syncContent` leaves the manifest alone when it uploaded and deleted nothing.
+- Why: a `put` is one advanced operation, and the old ingest spent one per story, up to 600 a run, three runs a day. Three runs used most of the month's 2,000. A pack makes it three a day.
+- Rejected: moving the texts to Neon (500 MB Free, and a few MB a day of article text would fill it in months); fewer ingest runs (the cost was per story, not per run); a Pro plan (the project stays on free plans).
+- Limit: the remaining writers are covers (about nine puts for each new briefing or episode, `storeCovers.ts`), live scripts (two copies a write), stage artifacts (one per stage) and content sync (one per changed file). They stay inside the allowance at one briefing and a few episodes a day; a fourth episode a day would need covers packed or drawn on request.
+- Revisit if: Blob operations in the Vercel dashboard pass 1,000 a month, or something reads one story's text (then split the pack by source or hour so a read fetches less).
+- Amends: D233 (the key names a pack, not a story).

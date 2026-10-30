@@ -6,6 +6,8 @@
  */
 import { BUTTON, BUTTON_CLASSES, BUTTON_RETIRED } from "./button";
 import type { Guidance } from "./guidance";
+import { SLIDER, SLIDER_CLASSES, SLIDER_RETIRED } from "./slider";
+import { SWITCH, SWITCH_CLASSES, SWITCH_RETIRED } from "./switch";
 
 export interface DesignSystemComponent extends Guidance {
   name: string;
@@ -31,5 +33,27 @@ export const COMPONENTS: DesignSystemComponent[] = [
     useWhen: BUTTON.useWhen,
     dontUseWhen: BUTTON.dontUseWhen,
     parts: { ...BUTTON.variants, ...BUTTON.tones },
+  },
+  {
+    name: "Switch",
+    sheet: "switch.css",
+    prefix: "switch-",
+    classes: SWITCH_CLASSES,
+    retired: SWITCH_RETIRED,
+    summary: SWITCH.summary,
+    useWhen: SWITCH.useWhen,
+    dontUseWhen: SWITCH.dontUseWhen,
+    parts: {},
+  },
+  {
+    name: "Slider",
+    sheet: "slider.css",
+    prefix: "slider-",
+    classes: SLIDER_CLASSES,
+    retired: SLIDER_RETIRED,
+    summary: SLIDER.summary,
+    useWhen: SLIDER.useWhen,
+    dontUseWhen: SLIDER.dontUseWhen,
+    parts: {},
   },
 ];

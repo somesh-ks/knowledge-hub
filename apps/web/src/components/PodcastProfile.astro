@@ -1,5 +1,6 @@
 ---
 import { SUPPORTED_TIMEZONES, zoneLabel } from "@singularity/core";
+import Switch from "../design-system/Switch.astro";
 import { LENGTHS } from "../lib/createForm";
 import { CADENCES, hourLabel, WEEKDAYS } from "../lib/schedule";
 import Icon from "./Icon.astro";
@@ -54,11 +55,8 @@ const inScope = (ids: readonly string[]): boolean =>
     <div class="rows card-group">
       <div class="settings-row">
         <label class="settings-label" for={`${id}-enabled`}>{label} podcast</label>
-        <input
-          class="settings-switch"
+        <Switch
           id={`${id}-enabled`}
-          type="checkbox"
-          role="switch"
           data-f={`${id}.enabled`}
           checked={values.enabled}
           autocomplete="off"
