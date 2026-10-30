@@ -498,12 +498,12 @@ html[data-player="open"] .queue-dock {
   gap: var(--space-2);
 }
 
-.queue-details-actions .btn {
+.queue-details-actions .button-text {
   white-space: nowrap;
 }
 
 /* The filled button is full width by default; here it hugs its words. */
-.queue-details-actions .btn-primary {
+.queue-details-actions .button-filled {
   flex: none;
   width: auto;
 }

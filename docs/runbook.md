@@ -180,7 +180,7 @@ Monthly:
 
 Vercel itself builds every push to `main`, except pushes that touch nothing the site reads (`state`, `config`, docs and `.github`). A published digest therefore deploys twice: the text first, then the audio.
 
-Other branches do not deploy (`git.deploymentEnabled` in `apps/web/vercel.json`), except ones named `preview/<name>`: push a branch under that name when you want a preview URL. Every preview made Neon's Vercel integration create a database branch, and on 2026-10-22 the free plan's branch limit filled and every preview failed ("Branch limit reached"). `branches.yml` removes what is left.
+Other branches do not deploy (`git.deploymentEnabled` in `apps/web/vercel.json` and `apps/admin/vercel.json`), except ones named `preview/<name>`: push a branch under that name when you want a preview URL. Every preview made Neon's Vercel integration create a database branch, and on 2026-10-22 the free plan's branch limit filled and every preview failed ("Branch limit reached"). `branches.yml` removes what is left.
 
 Every `run.yml` run ends in one outcome:
 
@@ -312,7 +312,7 @@ Models are resolved at run start from the providers' lists. Symptoms: the run lo
 
 1. Open the project's Deployments in the Vercel dashboard and read the latest deployment. After a run concludes, the site updates when Vercel finishes, usually a minute or two.
 2. No deployment appeared, or it says blocked: Hobby accepts only commits authored by the team owner. Check that `SINGULARITY_GIT_NAME` and `SINGULARITY_GIT_EMAIL` are set (`gh variable list -R somesh-ks/knowledge-hub`), that the commit author is the owner, and that the GitHub login connected to Vercel matches.
-3. A deployment shows as skipped (Canceled by Ignored Build Step): the push touched nothing the site reads, which is expected for `state`, `config`, docs and `.github`. If a digest push was skipped, check the `ignoreCommand` in `apps/web/vercel.json`; `singularity health` warns `site_behind` when this happens, and faults (the `health` issue) once the oldest commit the site lacks is a day old (D159). Vercel refuses an `ignoreCommand` over 256 characters (the whole deploy fails), so keep it short.
+3. A deployment shows as skipped (Canceled by Ignored Build Step): the push touched nothing the site reads, which is expected for `state`, `config`, docs and `.github`. If a digest push was skipped, check the `ignoreCommand` in `apps/web/vercel.json`; `singularity health` warns `site_behind` when this happens, and faults (the `health` issue) once the oldest commit the site lacks is a day old (D159). Vercel refuses an `ignoreCommand` over 256 characters (the whole deploy fails), so keep it short. Hobby also refuses every deploy at 100 in a rolling 24 hours, cancelled builds included ("Deployment rate limited"); `health` warns `deploy_rate` at 70 (D247), and the cure is to find the project that builds more than merges explain.
 4. A build error about missing packages or paths: check Root Directory is `apps/web`, "Include source files outside of the Root Directory" is on, and the `installCommand` in `apps/web/vercel.json` runs `npm ci` from the repository root.
 5. `news.someshks.work` shows an old page but the deploy succeeded: wait a minute, then hard refresh. Check that the DNS record is DNS only. A proxied record (orange cloud) breaks certificate issuance.
 

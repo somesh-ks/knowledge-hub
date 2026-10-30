@@ -306,6 +306,14 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Revisit if: the design-system components (`apps/web/src/design-system`) land, when their entries replace the ones in `parts.ts` (a family that moved deletes its entries here); a lookup is wrong twice, when the keywords or the part are fixed in `parts.ts`.
 - Amends: D189's catalogue idea for agents, not for people; D226 (the guide shows only real components) is unchanged.
 
+## D237: a control is a component with its real name, one family at a time
+
+- Date: 2026-10-29 (the owner: "I want this documentation to reflect the actual component library ... we need 100% parity or coupling between the design system and the app ... components named not by how they are used in the app, rather by their actual names ... all the buttons must be collected in one section").
+- Decision: a control is an Astro component in `apps/web/src/design-system/`, with its variants and class names in a `.ts` beside it (`button.ts`: a script or island takes its class from there) and an entry in `registry.ts`. Button is first: `Button.astro` with `filled`, `tonal` and `text`; their classes are `button-filled`, `button-tonal`, `button-text` (were `btn-primary`, `btn-secondary`, `btn`) plus a `danger` tone (was `.confirm-delete`). The markup and every computed style are unchanged except the Delete confirm buttons on the categories and sources pages, which were blue by a stylesheet-order accident and are now red as written. A page draws the component and never types its class; `designSystem.test.ts` fails a hand-written class, a class with no rule and a rule no component draws, and lists the classes not yet components (each family's PR removes its own). A change to the system goes in a PR labelled `design-system` that holds nothing else: app files only where they name a component or a class it replaced, records and tooling by exact path (`scripts/designSystemGate.mjs`, run by `design-system.yml`; the owner asked for it strict, 2026-10-29), owned by the owner in `.github/CODEOWNERS` and merged by hand. The style guide imports the same components.
+- Why: the guide's hand-written specs copied the app's markup and could drift; 25 classes drew 7 controls under names taken from where each first appeared (`btn-primary`, `source-link`).
+- Rejected: renaming the guide's pages only (parity would stay a promise); one PR for every family (a taste change in one hides in the rest); a new required status check (it would block every PR that does not touch the system).
+- Next: Icon button, FAB (with `btn-action-tonal`, the Catch up colour), Chip, Link (`source-link`, `run-link`, `text-link`).
+
 ## D238: every color ramp is ten steps on one OKLCH curve
 
 - Date: 2026-10-29 (the owner: "certain colors only have limited shades and blue and gray have so many ... only 10 shades per color ... a color theme generation curve that we respect, linked to OKLCH").
@@ -327,3 +335,12 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - The owner also says the rest of the UI can be pimped up from expressive Material and consolidated: families that merge take expressive shape and motion from the spring tokens (D230), not only one class.
 - Rejected: one large PR (nothing could be reviewed or reverted by family); keeping the unused `text-*` roles out of the system (F gives them their users instead).
 - Revisit if: the owner reverses a call; a family's copies turn out to differ on purpose (then the component gets a variant, not a merge).
+
+## D245: system.json leaves out how many files use a part
+
+- Date: 2026-10-30 (found while merging #433 into a main that kept moving).
+- Decision: `tokens/system.json` stores no `usedIn`. `build.ts` still counts the files that write a part's classes, and `system.test.ts` still fails a part with none and a class no markup writes; the count is held in memory, not in the file.
+- Why: the count moves with every markup edit, so any UI PR that touched a class name made the committed file differ from the rebuilt one and failed the "matches the code it is built from" test until `npm run system` ran. No lookup command prints the count. What stays in the file (defining stylesheets, tokens read, usage comment, bespoke list) changes only when a part's own rules move.
+- Rejected: leaving the count in and making every UI PR regenerate (a tax for a number nobody reads); dropping the dead-part test (it caught `.switch` and `.filter-chips-scroll`).
+- Revisit if: an agent needs a use count to choose between parts; then print it from the build, not the stored file.
+- Amends: D236 (what the file holds).

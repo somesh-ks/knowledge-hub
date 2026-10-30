@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "enabled": false,
+  "min_votes": 150,
+  "full_votes": 1500,
+  "max_depth": 0.25
+}

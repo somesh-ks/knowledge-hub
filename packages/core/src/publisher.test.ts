@@ -65,7 +65,13 @@ describe("displaySource", () => {
   const url = "https://www.theverge.com/2026/10/6/ipad-pro";
 
   it("credits the publisher for every aggregator source type", () => {
-    expect([...AGGREGATOR_SOURCE_TYPES]).toEqual(["exa", "hn", "lobsters", "producthunt"]);
+    expect([...AGGREGATOR_SOURCE_TYPES]).toEqual([
+      "exa",
+      "hn",
+      "lobsters",
+      "producthunt",
+      "reddit",
+    ]);
     for (const sourceType of AGGREGATOR_SOURCE_TYPES) {
       expect(displaySource({ url, sourceType, sourceName: "Exa discovery" })).toBe("The Verge");
     }

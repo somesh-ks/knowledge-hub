@@ -2,6 +2,7 @@ import { HOST_NAME_POOLS, hostNamesFor } from "@singularity/core/hosts";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createFakeGitHub, REPO, runJson } from "../testing/fakeGitHub";
 import type { PodcastRequest } from "../types/contracts";
+import { cancelTokenFor } from "./cancelToken";
 import { PODCAST_COOLDOWN_MS, PODCAST_DAILY_CAP } from "./limits";
 import {
   handlePodcast,
@@ -251,7 +252,10 @@ describe("handlePodcast for an episode action", () => {
     github.on(RUNS, { json: { workflow_runs: [] } });
     github.on(DISPATCH, { json: { workflow_run_id: 55 } });
     const result = await handlePodcast(input(del()), deps);
-    expect(result).toMatchObject({ status: 202, body: { run_id: 55 } });
+    expect(result).toMatchObject({
+      status: 202,
+      body: { run_id: 55, cancel_token: cancelTokenFor(TOKEN, 55) },
+    });
     expect(dispatchOf(github)?.body).toEqual({
       ref: "main",
       inputs: { request: `{"action":"delete","id":"${EPISODE_ID}"}` },
@@ -387,7 +391,12 @@ describe("handlePodcast", () => {
     const result = await handlePodcast(input(body()), deps);
     expect(result).toEqual({
       status: 202,
-      body: { status: 202, run_id: 4242, started_at: "2026-10-07T12:00:00.000Z" },
+      body: {
+        status: 202,
+        run_id: 4242,
+        started_at: "2026-10-07T12:00:00.000Z",
+        cancel_token: cancelTokenFor(TOKEN, 4242),
+      },
     });
     expect(delays).toEqual([]);
     const dispatch = github.requests.find((request) => request.method === "POST");

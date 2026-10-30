@@ -17,6 +17,8 @@ export interface ScoreBreakdown {
   source?: number;
   /** True when the owner's authority list lifted this score (authority/authority.ts, D234). */
   authority?: boolean;
+  /** Strength 0 to 1 of the community lift, when it raised this score (community/community.ts, D240). */
+  community?: number;
 }
 
 /** The custom topic that outscored the built-in categories for an item. */

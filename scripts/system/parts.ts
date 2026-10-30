@@ -3,81 +3,15 @@
  * Everything checkable (the class exists, who styles it, which tokens it reads, where it is used) is
  * derived from the code by build.ts, so this file holds only judgment.
  *
- * Interim: the design-system components (apps/web/src/design-system) will own the same facts for the
- * families that become real components. A family that moves there deletes its entries here. No test
- * compares the two yet; system.test.ts checks ids only within this list.
+ * The families that are real components (apps/web/src/design-system) come from componentParts.ts,
+ * built from the registry; a family that moves there deletes its entries here. system.test.ts
+ * checks ids only within the whole list.
  */
+import { componentParts } from "./componentParts.js";
 import type { PartSource } from "./types.js";
 
 export const PARTS: PartSource[] = [
-  {
-    id: "btn-primary",
-    name: "Primary button",
-    kind: "action",
-    summary: "The filled button: the one committing action of a surface.",
-    classes: ["btn-primary"],
-    when: [
-      "save or submit a form sheet",
-      "the one main action of an empty page",
-      "confirm a dialog",
-    ],
-    not: [
-      { when: "a second action beside the main one", use: "btn-secondary" },
-      { when: "cancel, dismiss, or any quiet action", use: "btn" },
-      { when: "an action that only creates, in the side column", use: "btn-action-tonal" },
-    ],
-    keywords: ["save", "submit", "cta", "main button", "filled"],
-    markup: '<button class="btn-primary" type="submit">Save</button>',
-    rules: ["At most one per surface.", "Never a bold label."],
-  },
-  {
-    id: "btn-secondary",
-    name: "Tonal button",
-    kind: "action",
-    summary: "A tonal button on the accent container: quieter than the filled one, still a button.",
-    classes: ["btn-secondary"],
-    when: [
-      "a second action beside the main one, such as Share beside Play",
-      "an add control inside a settings section",
-    ],
-    not: [
-      { when: "Cancel or Dismiss in a sheet or dialog", use: "btn" },
-      { when: "the one committing action", use: "btn-primary" },
-    ],
-    keywords: [
-      "secondary",
-      "companion",
-      "second action",
-      "beside the primary",
-      "outlined",
-      "tonal",
-    ],
-    markup: '<button class="btn-secondary" type="button">Share</button>',
-    rules: ["Matches the primary's height.", "No outline."],
-  },
-  {
-    id: "btn",
-    name: "Text button",
-    kind: "action",
-    summary: "An accent label with no container until it is hovered or pressed.",
-    classes: ["btn"],
-    when: [
-      "cancel in a sheet or dialog, beside a primary",
-      "a low-emphasis action: edit, remove, dismiss",
-      "the action inside a banner",
-      "a link-like action in a settings head",
-    ],
-    not: [
-      { when: "the committing action", use: "btn-primary" },
-      { when: "an action with only a glyph", use: "icon-btn" },
-      { when: "a link inside a line of small text", use: "text-link" },
-    ],
-    keywords: ["cancel", "text action", "tertiary", "dismiss", "quiet button"],
-    markup: '<button class="btn" type="button">Cancel</button>',
-    rules: [
-      "In a dialog, Cancel and the primary sit in a `.confirm-actions` row (EpisodeActions.astro); a form sheet keeps its one primary in `.sheet-actions`.",
-    ],
-  },
+  ...componentParts(),
   {
     id: "btn-action-tonal",
     name: "Tonal action",
@@ -86,7 +20,7 @@ export const PARTS: PartSource[] = [
     classes: ["btn-action-tonal"],
     files: ["components/AppNav.astro"],
     when: ["the Catch up action in the side column"],
-    not: [{ when: "any other button", use: "btn-secondary" }],
+    not: [{ when: "any other button", use: "button-tonal" }],
     keywords: ["catch up", "side column", "create action"],
   },
   {
@@ -102,7 +36,7 @@ export const PARTS: PartSource[] = [
       "edit, reorder grip, back, share glyph",
     ],
     not: [
-      { when: "an action that needs a word", use: "btn" },
+      { when: "an action that needs a word", use: "button-text" },
       { when: "a glyph that is a secondary button next to a primary", use: "icon-btn-tonal" },
     ],
     keywords: ["close", "x", "dots", "more", "glyph button", "toolbar"],
@@ -255,7 +189,7 @@ export const PARTS: PartSource[] = [
     ],
     not: [
       { when: "a row that holds a switch or a select", use: "settings-row" },
-      { when: "a destructive or non-navigating action", use: "btn" },
+      { when: "a destructive or non-navigating action", use: "button-text" },
     ],
     keywords: ["settings link", "navigation row", "chevron", "list item", "tappable row"],
     markup:
@@ -442,7 +376,7 @@ export const PARTS: PartSource[] = [
     summary: "A link inside a line of small text; the words stay inline, the target is 44px.",
     classes: ["text-link"],
     when: ["a link inside a hint or a sentence"],
-    not: [{ when: "a standalone action", use: "btn" }],
+    not: [{ when: "a standalone action", use: "button-text" }],
     keywords: ["inline link", "hint link"],
   },
   {
@@ -502,7 +436,7 @@ export const PARTS: PartSource[] = [
     classes: ["create-fab", "add-fab", "play-fab"],
     files: ["components/CreateFab.astro", "components/AddFab.astro", "components/PlayFab.astro"],
     when: ["the page's one creating action on a phone", "play a story from its cover"],
-    not: [{ when: "an action in a form", use: "btn-primary" }],
+    not: [{ when: "an action in a form", use: "button-filled" }],
     keywords: ["floating button", "fab", "create button"],
   },
 ];

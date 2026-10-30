@@ -14,8 +14,8 @@ const NEWEST_FIRST = [
 /** What each card says under its title, in the same order. */
 const REST_FACTS = [
   "Daily · 12 stories · 1 min",
-  "Discussion · 5 min",
-  "Readout · 3 min",
+  "Catch up · 5 min",
+  "Catch up · 3 min",
   "Daily · 8 stories · 3 min",
   "Weekly · 14 stories · 8 min",
 ];
@@ -411,7 +411,7 @@ test.describe("library fixes", () => {
     expect(new Set(gaps.map((card) => card.facts)).size, JSON.stringify(gaps)).toBe(1);
   });
 
-  test("a finished episode keeps its format and only the length gives way to Played", async ({
+  test("a finished episode keeps its kind and only the length gives way to Played", async ({
     page,
   }) => {
     await page.addInitScript(() => {
@@ -420,13 +420,13 @@ test.describe("library fixes", () => {
     await page.goto("/library");
     await ready(page);
     const facts = page.locator("[data-card][data-id='ep-20261007-1930'] .card-facts");
-    await expect(facts).toHaveText("Discussion · Played");
-    // Heard again from the start: the mark goes and the length comes back, with the format.
+    await expect(facts).toHaveText("Catch up · Played");
+    // Heard again from the start: the mark goes and the length comes back, with the kind.
     await page.evaluate(() => {
       localStorage.removeItem("singularity:played:ep-20261007-1930");
       window.dispatchEvent(new Event("pageshow"));
     });
-    await expect(facts).toHaveText("Discussion · 5 min");
+    await expect(facts).toHaveText("Catch up · 5 min");
   });
 });
 

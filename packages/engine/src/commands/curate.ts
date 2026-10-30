@@ -2,6 +2,7 @@ import { basename, join } from "node:path";
 import { parseArgs } from "node:util";
 import { DigestKind, JudgmentsFile, offCategories } from "@singularity/core";
 import { authorityMatcher, loadAuthority } from "../authority/authority.js";
+import { loadCommunity } from "../community/community.js";
 import { type CommandContext, type CommandRun, secretsFromEnv } from "../context.js";
 import { validateAgentSelection } from "../curate/agentMode.js";
 import { type ApiRuntimeFactory, createApiRuntime } from "../curate/apiRuntime.js";
@@ -167,12 +168,13 @@ async function runApi(
   // An empty pool is a quiet day. A pool whose entries were all malformed is a broken fetch.
   if (pool.items.length === 0 && pool.invalid > 0) throw new Error("The pool has no valid items.");
 
-  const [preferences, sources, stateJudgments, lastRun, authority] = await Promise.all([
+  const [preferences, sources, stateJudgments, lastRun, authority, community] = await Promise.all([
     loadPreferences(root),
     loadSources(root),
     loadJudgments(root),
     loadLastRun(root),
     loadAuthority(root),
+    loadCommunity(root),
   ]);
   const judgments = await withRunJudgments(stateJudgments, join(paths.outDir, "judgments.json"));
   const now = ctx.now();
@@ -198,6 +200,7 @@ async function runApi(
       pool: pool.items,
       preferences,
       authority: authorityMatcher(authority),
+      community,
       judgments,
       kind,
       window,

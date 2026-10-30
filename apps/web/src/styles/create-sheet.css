@@ -535,7 +535,7 @@ dialog.create-sheet[data-more] .create-submit::before {
   opacity: 1;
 }
 
-dialog.create-sheet .create-submit > .btn-primary {
+dialog.create-sheet .create-submit > .button-filled {
   width: 100%;
   min-width: 0;
   justify-self: stretch;

@@ -93,6 +93,19 @@ export function classTokens(text: string): Set<string> {
     /classList\.(?:add|toggle|remove|contains)\(([^)]*)\)/g,
   ))
     for (const [, quoted = ""] of args.matchAll(/["'`]([^"'`]*)["'`]/g)) add(quoted);
+  // The Button draws its classes from its props, so the markup never writes them (D237).
+  for (const [, props = ""] of text.matchAll(/<Button\b([^>]*)>/g)) {
+    const variant = /\bvariant="(\w+)"/.exec(props)?.[1];
+    const tone = /\btone="(\w+)"/.exec(props)?.[1];
+    if (variant) found.add(`button-${variant}`);
+    if (tone) found.add(`button-${tone}`);
+  }
+  for (const [, variant = "", tone] of text.matchAll(
+    /\bbuttonClass\(\s*["'](\w+)["'](?:\s*,\s*["'](\w+)["'])?/g,
+  )) {
+    found.add(`button-${variant}`);
+    if (tone) found.add(`button-${tone}`);
+  }
   return found;
 }
 
@@ -269,7 +282,7 @@ export function renderLlms(system: System): string {
 }
 
 export function renderSystemJson(system: System): string {
-  return `${JSON.stringify(system, null, 2)}\n`;
+  return `${JSON.stringify(system, (key, value) => (key === "usedIn" ? undefined : value), 2)}\n`;
 }
 
 function main(): void {

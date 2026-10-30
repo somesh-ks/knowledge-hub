@@ -3,6 +3,15 @@
   "installCommand": "cd ../.. && npm ci --ignore-scripts",
   "buildCommand": "npm run build",
   "ignoreCommand": "sh ignore-build.sh",
+  "git": {
+    "deploymentEnabled": {
+      "*": false,
+      "*/*": false,
+      "*/*/*": false,
+      "main": true,
+      "preview/*": true
+    }
+  },
   "headers": [
     { "source": "/(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] }
   ]
