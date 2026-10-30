@@ -155,7 +155,7 @@
       ],
       "markup": "<Button variant=\"text\">Cancel</Button>",
       "rules": [
-        "In a dialog, Cancel and the filled button sit in a `.confirm-actions` row (EpisodeActions.astro); a form sheet keeps its one filled button in `.sheet-actions`."
+        "In a dialog, Cancel and the filled button sit in a DialogActions row (EpisodeActions.astro); a form sheet keeps its one filled button in `.sheet-actions`."
       ],
       "styles": [
         "buttons.css",
@@ -584,6 +584,48 @@
         "--color-warning-subtle",
         "--size-icon"
       ]
+    },
+    {
+      "id": "dialog",
+      "name": "Dialog",
+      "kind": "container",
+      "summary": "A small centred box with a heading and a row of buttons: one question, one tap.",
+      "classes": [
+        "dialog-panel",
+        "dialog-body",
+        "dialog-actions",
+        "dialog-actions-stacked"
+      ],
+      "files": [
+        "design-system/Dialog.astro",
+        "design-system/dialog.ts"
+      ],
+      "when": [
+        "A person confirms what cannot be undone: Delete, Discard, Switch profile"
+      ],
+      "not": [
+        {
+          "when": "a form that slides in, with fields",
+          "use": "sheet"
+        }
+      ],
+      "keywords": [
+        "confirm",
+        "modal",
+        "yes or no",
+        "are you sure",
+        "delete confirm"
+      ],
+      "markup": "<Dialog aria-labelledby=\"t\"><h2 class=\"sheet-title\" id=\"t\">Delete?</h2><DialogActions><Button variant=\"text\">Cancel</Button></DialogActions></Dialog>",
+      "rules": [
+        "A script finds one with DIALOG_SELECTOR; one it builds uses dialogClass(), dialogBodyClass() and dialogActionsClass()."
+      ],
+      "styles": [
+        "buttons.css",
+        "dialog.css"
+      ],
+      "usage": "",
+      "tokens": []
     },
     {
       "id": "btn-action-tonal",
@@ -1261,7 +1303,7 @@
       "rules": [
         "Never hand-write the header or a close button.",
         "Motion uses --duration-sheet-in, --duration-sheet-out and --ease-drawer.",
-        "`.sheet-actions` is one column, so Cancel stacks under the primary; side by side is `.confirm-actions`."
+        "`.sheet-actions` is one column, so Cancel stacks under the primary; side by side is a DialogActions row."
       ],
       "styles": [
         "sheets.css"

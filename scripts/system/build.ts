@@ -137,6 +137,15 @@ export function classTokens(text: string): Set<string> {
   ) {
     found.add("menu-item-danger");
   }
+  // The Dialog: the tag, its actions row (stacked by its prop), or the class helpers.
+  if (/<Dialog\b|\bdialogClass\(/.test(code)) {
+    found.add("dialog-panel");
+    found.add("dialog-body");
+  }
+  if (/<DialogActions\b|\bdialogActionsClass\(/.test(code)) found.add("dialog-actions");
+  if (/<DialogActions\b[^>]*\bstacked\b|\bdialogActionsClass\(\s*true/.test(code)) {
+    found.add("dialog-actions-stacked");
+  }
   // The Banner is drawn by the tag or by the class helper; its parts come with it.
   if (/<Banner\b|\bbannerClass\(/.test(code)) {
     for (const name of ["banner-notice", "banner-text", "banner-title", "banner-body"])
@@ -173,6 +182,14 @@ export function sourceFiles(): { path: string; text: string; tokens: Set<string>
       tokens.delete("menu-sheet");
       tokens.delete("menu-item-danger");
       for (const name of ["banner-notice", "banner-text", "banner-title", "banner-body"]) {
+        tokens.delete(name);
+      }
+      for (const name of [
+        "dialog-panel",
+        "dialog-body",
+        "dialog-actions",
+        "dialog-actions-stacked",
+      ]) {
         tokens.delete(name);
       }
     }
@@ -298,7 +315,7 @@ export function renderLlms(system: System): string {
       .join(" ");
     const use = part.when.slice(0, 2).join("; ");
     const not = (part.not ?? [])
-      .slice(0, 2)
+      .slice(0, 1)
       .map((item) => `${item.when} → ${item.use}`)
       .join("; ");
     lines.push(

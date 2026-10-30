@@ -14,6 +14,8 @@ import SettingsHead from "../../components/SettingsHead.astro";
 import SheetHeader from "../../components/SheetHeader.astro";
 import WeightRow from "../../components/WeightRow.astro";
 import Button from "../../design-system/Button.astro";
+import Dialog from "../../design-system/Dialog.astro";
+import DialogActions from "../../design-system/DialogActions.astro";
 import Field from "../../design-system/Field.astro";
 import Select from "../../design-system/Select.astro";
 import Switch from "../../design-system/Switch.astro";
@@ -229,23 +231,20 @@ const offers = addOffers(structure.blocks, structure.sections);
 
       {/* What leaving Custom asks (structureEditor.ts): the shared confirm dialog, saying the owner's
            own list is kept and comes back with Custom (owner, 2026-10-27). */}
-      <dialog
-        class="confirm-dialog"
+      <Dialog
         aria-labelledby="profile-confirm-title"
         aria-describedby="profile-confirm-lede"
         data-profile-confirm
       >
-        <div class="confirm-form">
-          <h2 class="sheet-title" id="profile-confirm-title" data-profile-confirm-title>Switch profile?</h2>
-          <p class="create-hint confirm-lede" id="profile-confirm-lede">
-            Your custom structure is kept and you can switch back.
-          </p>
-          <div class="confirm-actions">
-            <Button variant="text" data-profile-keep autofocus>Cancel</Button>
-            <Button variant="filled" data-profile-replace>Switch</Button>
-          </div>
-        </div>
-      </dialog>
+        <h2 class="sheet-title" id="profile-confirm-title" data-profile-confirm-title>Switch profile?</h2>
+        <p class="create-hint confirm-lede" id="profile-confirm-lede">
+          Your custom structure is kept and you can switch back.
+        </p>
+        <DialogActions>
+          <Button variant="text" data-profile-keep autofocus>Cancel</Button>
+          <Button variant="filled" data-profile-replace>Switch</Button>
+        </DialogActions>
+      </Dialog>
     </div>
 
     {/* A block's Edit sheet, cloned by structureEditor.ts each time it opens: the Topics panel's

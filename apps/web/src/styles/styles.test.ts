@@ -799,6 +799,7 @@ describe("house rules", () => {
  */
 const PAGE_OVERRIDES: string[] = [
   "banner.css: .banner-notice > .button-text",
+  "buttons.css: .dialog-actions > :is(.button-filled, .button-tonal)",
   "create-sheet.css: dialog.create-sheet .create-submit > .button-filled",
   'create.css: .create-submit .button-filled[aria-disabled="true"]:active',
   'create.css: .create-submit .button-filled[data-busy="true"]',

@@ -6,6 +6,7 @@
  */
 import { BANNER } from "../../apps/web/src/design-system/banner.js";
 import { BUTTON } from "../../apps/web/src/design-system/button.js";
+import { DIALOG } from "../../apps/web/src/design-system/dialog.js";
 import { FIELD } from "../../apps/web/src/design-system/field.js";
 import type { ComponentRef, Guidance } from "../../apps/web/src/design-system/guidance.js";
 import { MENU } from "../../apps/web/src/design-system/menu.js";
@@ -26,6 +27,7 @@ const PART_OF: Record<string, string> = {
   Select: "select",
   Menu: "menu",
   Banner: "banner",
+  Dialog: "dialog",
 };
 
 const partOf = (ref: ComponentRef | undefined, fallback: string): string => {
@@ -50,7 +52,7 @@ const words: Record<string, { keywords: string[]; markup: string; rules?: string
     keywords: ["cancel", "text action", "tertiary", "dismiss", "quiet button"],
     markup: '<Button variant="text">Cancel</Button>',
     rules: [
-      "In a dialog, Cancel and the filled button sit in a `.confirm-actions` row (EpisodeActions.astro); a form sheet keeps its one filled button in `.sheet-actions`.",
+      "In a dialog, Cancel and the filled button sit in a DialogActions row (EpisodeActions.astro); a form sheet keeps its one filled button in `.sheet-actions`.",
     ],
   },
   danger: {
@@ -219,6 +221,17 @@ export const componentParts = (): PartSource[] => [
     rules: [
       "Only the icon takes the tone.",
       "An island draws one with bannerClass() and bannerText.",
+    ],
+  }),
+  control("dialog", "Dialog", DIALOG, {
+    kind: "container",
+    classes: ["dialog-panel", "dialog-body", "dialog-actions", "dialog-actions-stacked"],
+    not: [{ when: "a form that slides in, with fields", use: "sheet" }],
+    keywords: ["confirm", "modal", "yes or no", "are you sure", "delete confirm"],
+    markup:
+      '<Dialog aria-labelledby="t"><h2 class="sheet-title" id="t">Delete?</h2><DialogActions><Button variant="text">Cancel</Button></DialogActions></Dialog>',
+    rules: [
+      "A script finds one with DIALOG_SELECTOR; one it builds uses dialogClass(), dialogBodyClass() and dialogActionsClass().",
     ],
   }),
 ];

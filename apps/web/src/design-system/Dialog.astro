@@ -1,0 +1,30 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { dialogBodyClass, dialogClass } from "./dialog";
+import "../styles/dialog.css";
+
+interface DialogProps {
+  /** Attributes for a form body: the dialog then submits. Without it the body is a plain box. */
+  form?: Record<string, unknown>;
+  /** For placing the dialog where it stands. Never its look. */
+  class?: string;
+}
+
+type Props = DialogProps & Omit<HTMLAttributes<"dialog">, keyof DialogProps>;
+
+const { form, class: placement, ...passed } = Astro.props;
+// A bare data attribute (data-confirm) is true on a component and would print as data-confirm="true";
+// on a plain element it is empty. Scripts read both, so the dialog keeps the empty form.
+const rest = Object.fromEntries(
+  Object.entries(passed).map(([name, value]) => [
+    name,
+    value === true && name.startsWith("data-") ? "" : value,
+  ]),
+);
+const Body = form ? "form" : "div";
+---
+
+<dialog class:list={[dialogClass(), placement]} data-dialog {...rest}>
+  <Body class={dialogBodyClass()} {...form}><slot /></Body>
+  <slot name="after" />
+</dialog>

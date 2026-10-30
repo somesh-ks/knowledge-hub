@@ -1,11 +1,12 @@
 import { buttonClass } from "../design-system/button";
+import { dialogActionsClass, dialogBodyClass, dialogClass } from "../design-system/dialog";
 import { dismissOnScrim } from "./pullDismiss";
 
 /**
  * The unsaved-changes guard every edit sheet shares (2026-10-25). A sheet saves only with its own
  * Save button; nothing saves on an outside click. When the form differs from what it opened with,
  * the scrim, the Close button, Escape, a pull down and browser Back all ask "Save changes?" in the
- * confirm dialog (confirm-dialog, create-sheet.css) instead of closing: Save, Discard or Keep
+ * confirm dialog (dialog.ts, dialog.css) instead of closing: Save, Discard or Keep
  * editing. A sheet with nothing changed closes at once.
  */
 
@@ -68,13 +69,14 @@ export function guardSheet(sheet: HTMLDialogElement, options: SheetGuardOptions)
     serial += 1;
     const id = `sheet-guard-${serial}`;
     const dialog = document.createElement("dialog");
-    dialog.className = "confirm-dialog";
+    dialog.className = dialogClass();
+    dialog.dataset.dialog = "";
     dialog.setAttribute("aria-labelledby", id);
     dialog.dataset.sheetGuard = "";
     // Fixed markup: nothing from the page goes into it.
-    dialog.innerHTML = `<div class="confirm-form">
+    dialog.innerHTML = `<div class="${dialogBodyClass()}">
       <h2 class="sheet-title">Save changes?</h2>
-      <div class="confirm-actions is-stacked">
+      <div class="${dialogActionsClass(true)}">
         <button class="${buttonClass("filled")}" type="button" data-guard-save autofocus>Save</button>
         <button class="${buttonClass("text")}" type="button" data-guard-discard>Discard</button>
         <button class="${buttonClass("text")}" type="button" data-guard-keep>Keep editing</button>

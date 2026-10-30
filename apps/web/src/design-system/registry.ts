@@ -6,6 +6,7 @@
  */
 import { BANNER, BANNER_CLASSES, BANNER_RETIRED } from "./banner";
 import { BUTTON, BUTTON_CLASSES, BUTTON_RETIRED } from "./button";
+import { DIALOG, DIALOG_CLASSES, DIALOG_RETIRED } from "./dialog";
 import { FIELD, FIELD_CLASSES, FIELD_RETIRED } from "./field";
 import type { Guidance } from "./guidance";
 import { MENU, MENU_CLASSES, MENU_RETIRED } from "./menu";
@@ -103,5 +104,16 @@ export const COMPONENTS: DesignSystemComponent[] = [
     useWhen: BANNER.useWhen,
     dontUseWhen: BANNER.dontUseWhen,
     parts: BANNER.tones,
+  },
+  {
+    name: "Dialog",
+    sheet: "dialog.css",
+    prefix: "dialog-",
+    classes: DIALOG_CLASSES,
+    retired: DIALOG_RETIRED,
+    summary: DIALOG.summary,
+    useWhen: DIALOG.useWhen,
+    dontUseWhen: DIALOG.dontUseWhen,
+    parts: {},
   },
 ];

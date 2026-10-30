@@ -298,7 +298,7 @@ export async function mountStructure(root: HTMLElement, pane: HTMLElement): Prom
 
   // Choosing a profile applies and saves it (owner, 2026-10-27). A named profile runs its preset and
   // keeps the owner's own list aside; Custom puts that list back. Leaving Custom asks first, in the
-  // shared confirm dialog (confirm-dialog), saying the list is kept.
+  // shared Dialog, saying the list is kept.
   let asked: NamedProfile | null = null;
   /** The confirm dialog, worded for what it asks: leaving Custom, or making an edit Custom. */
   const LEDE = confirm.querySelector("#profile-confirm-lede")?.textContent?.trim() ?? "";

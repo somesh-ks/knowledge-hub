@@ -1,8 +1,10 @@
 ---
+import Dialog from "../design-system/Dialog.astro";
+import DialogActions from "../design-system/DialogActions.astro";
 import Field from "../design-system/Field.astro";
 import Select from "../design-system/Select.astro";
 import { FORMAT_LABEL } from "../lib/sourceFilter";
-// The unsaved-changes dialog (sheetGuard.ts) is a confirm-dialog: its styles come with the sheet.
+// The unsaved-changes dialog (sheetGuard.ts) is a Dialog: its styles come with BaseLayout.
 import "../styles/episode-actions.css";
 import Button from "../design-system/Button.astro";
 import Icon from "./Icon.astro";
@@ -262,15 +264,13 @@ const { topics } = Astro.props;
 
 {/* What Delete source asks before it deletes (topicsEditor.ts, removeSource): the topic's confirm
      dialog, worn again. It opens over the panel; Cancel returns to it. */}
-<dialog class="confirm-dialog" aria-labelledby="source-delete-title" data-source-confirm>
-  <div class="confirm-form">
-    <h2 class="sheet-title" id="source-delete-title" data-source-confirm-title>Delete source?</h2>
-    <div class="confirm-actions">
-      <Button variant="text" data-source-cancel autofocus>Cancel</Button>
-      <Button variant="text" tone="danger" data-source-delete>Delete</Button>
-    </div>
-  </div>
-</dialog>
+<Dialog aria-labelledby="source-delete-title" data-source-confirm>
+  <h2 class="sheet-title" id="source-delete-title" data-source-confirm-title>Delete source?</h2>
+  <DialogActions>
+    <Button variant="text" data-source-cancel autofocus>Cancel</Button>
+    <Button variant="text" tone="danger" data-source-delete>Delete</Button>
+  </DialogActions>
+</Dialog>
 
 {/* Suggested sources for a topic added before the build gives it a page: on the page that shows such
      a topic (D142), scripts/savedView.ts ranks the catalogue in the browser, puts this section where

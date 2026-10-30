@@ -1,5 +1,6 @@
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import { buttonClass } from "../design-system/button";
+import { dialogActionsClass, dialogBodyClass, dialogClass } from "../design-system/dialog";
 import { getSpeedDefault } from "./core/speedDefaultRuntime";
 import { rateLabel } from "./SpeedControl";
 
@@ -20,7 +21,7 @@ export default function SpeedOffer() {
   const ref = useRef<HTMLDialogElement>(null);
 
   // Mounted only while an offer stands, so no second confirm dialog sits in the page for Delete's
-  // `dialog.confirm-dialog` lookup to find.
+  // `dialog[data-dialog]` lookup to find.
   useEffect(() => {
     if (rate !== null && ref.current && !ref.current.open) ref.current.showModal();
   }, [rate]);
@@ -30,15 +31,16 @@ export default function SpeedOffer() {
   return (
     <dialog
       ref={ref}
-      className="confirm-dialog"
+      className={dialogClass()}
+      data-dialog=""
       aria-labelledby="speed-offer-title"
       onClose={() => getSpeedDefault().dismiss()}
     >
-      <div className="confirm-form">
+      <div className={dialogBodyClass()}>
         <h2 className="sheet-title" id="speed-offer-title">
           Make {label} your default speed?
         </h2>
-        <div className="confirm-actions">
+        <div className={dialogActionsClass()}>
           <button
             className={buttonClass("text")}
             type="button"

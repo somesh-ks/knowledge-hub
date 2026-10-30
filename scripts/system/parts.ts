@@ -267,7 +267,7 @@ export const PARTS: PartSource[] = [
     rules: [
       "Never hand-write the header or a close button.",
       "Motion uses --duration-sheet-in, --duration-sheet-out and --ease-drawer.",
-      "`.sheet-actions` is one column, so Cancel stacks under the primary; side by side is `.confirm-actions`.",
+      "`.sheet-actions` is one column, so Cancel stacks under the primary; side by side is a DialogActions row.",
     ],
   },
   {

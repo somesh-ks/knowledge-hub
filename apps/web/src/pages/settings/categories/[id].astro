@@ -14,6 +14,8 @@ import SuggestedSources from "../../../components/SuggestedSources.astro";
 import TopicsPanel from "../../../components/TopicsPanel.astro";
 import WeightRow from "../../../components/WeightRow.astro";
 import Button from "../../../design-system/Button.astro";
+import Dialog from "../../../design-system/Dialog.astro";
+import DialogActions from "../../../design-system/DialogActions.astro";
 import Menu from "../../../design-system/Menu.astro";
 import MenuItem from "../../../design-system/MenuItem.astro";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
@@ -423,16 +425,14 @@ const facts = topic && {
       <TopicsPanel topics={choices} />
       {
         topic?.origin === "custom" && (
-          <dialog class="confirm-dialog" aria-labelledby="topic-delete-title" aria-describedby="topic-delete-lede" data-topic-confirm>
-            <div class="confirm-form">
-              <h2 class="sheet-title" id="topic-delete-title">{`Delete ${name}?`}</h2>
-              <p class="create-hint confirm-lede" id="topic-delete-lede">Its sources move to Other.</p>
-              <div class="confirm-actions">
-                <Button variant="text" data-confirm-cancel autofocus>Cancel</Button>
-                <Button variant="text" tone="danger" data-confirm-delete>Delete</Button>
-              </div>
-            </div>
-          </dialog>
+          <Dialog aria-labelledby="topic-delete-title" aria-describedby="topic-delete-lede" data-topic-confirm>
+            <h2 class="sheet-title" id="topic-delete-title">{`Delete ${name}?`}</h2>
+            <p class="create-hint confirm-lede" id="topic-delete-lede">Its sources move to Other.</p>
+            <DialogActions>
+              <Button variant="text" data-confirm-cancel autofocus>Cancel</Button>
+              <Button variant="text" tone="danger" data-confirm-delete>Delete</Button>
+            </DialogActions>
+          </Dialog>
         )
       }
     </div>

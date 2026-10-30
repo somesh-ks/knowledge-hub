@@ -27,7 +27,7 @@ async function choose(page: Page, item: "Regenerate" | "Delete"): Promise<void> 
   }).toPass({ timeout: 15_000 });
 }
 const panel = (page: Page) => page.locator("dialog.regen-sheet");
-const confirm = (page: Page) => page.locator("dialog.confirm-dialog");
+const confirm = (page: Page) => page.locator("dialog[data-dialog]");
 const card = (page: Page) => page.locator(`[data-card] a[href="/e/${ID}"]`);
 
 async function open(page: Page): Promise<void> {

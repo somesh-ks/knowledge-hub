@@ -1,3 +1,4 @@
+import { DIALOG_SELECTOR } from "../design-system/dialog";
 import { rememberCancelToken } from "../lib/cancelTokens";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import { isChipOn } from "../lib/regenTopics";
@@ -175,7 +176,7 @@ export function openEpisodeAction(trigger: HTMLElement): void {
   const kind = trigger.dataset.episodeAction as Kind;
   const root = trigger.closest<HTMLElement>("[data-episode-actions]");
   if (!root || (kind !== "regenerate" && kind !== "delete")) return;
-  const selector = kind === "delete" ? "dialog.confirm-dialog" : "dialog.regen-sheet";
+  const selector = kind === "delete" ? DIALOG_SELECTOR : "dialog.regen-sheet";
   const dialog = document.querySelector<HTMLDialogElement>(selector) ?? build(kind, root);
   if (!dialog || dialog.open) return;
   rootOf.set(dialog, root);

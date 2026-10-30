@@ -17,6 +17,7 @@ on:
       - apps/web/src/styles/select.css
       - apps/web/src/styles/menu.css
       - apps/web/src/styles/banner.css
+      - apps/web/src/styles/dialog.css
       - apps/web/src/styles/primitives.css
       - apps/web/src/styles/foundations.css
       - apps/web/src/styles/tokens.css
