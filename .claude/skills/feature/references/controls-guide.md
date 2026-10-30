@@ -23,7 +23,7 @@ A script or island that draws one takes the class from `design-system/button.ts`
 * **Filled**: at most one per surface. Minimum 44px touch target. Never bold label text.
 * **Tonal**: always matches the filled button's height. Tonal background, no border outline.
 * **Text**: an accent label with no container until hovered or pressed.
-* **Changing a Button** is a design-system change: its own `design-system` PR, merged by the owner.
+* **Changing a Button** is a design-system change: the rolling `design-system` PR, merged by the owner (D254).
 
 ### Icon Action Button (`.icon-btn.press`)
 Single icon button for toolbars and sheet headers.

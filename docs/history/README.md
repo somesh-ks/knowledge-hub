@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-30 | [Fewer PRs](2026-10-30-fewer-prs.md) | One PR per task, one rolling design-system PR, small fixes batched (D254) |
 | 2026-10-29 | [The style guide as its own app](2026-10-29-style-guide.md) | `apps/design` at `/design`: colour with live contrast, type, tokens; hand-written component specs built and cut for parity (D226) |
 | 2026-10-30 | [Trusted publishers list renamed](2026-10-30-trusted-publishers-rename.md) | "authority" became "trusted publishers" in file, code and command; the six Reddit seeds dropped from the registry (D250) |
 | 2026-10-29 | [The Cancel route gets a key](2026-10-29-cancel-token.md) | Open `/api/cancel` stopped any run; a per-run HMAC token held by the starter (D242) |
