@@ -607,13 +607,17 @@
     padding-inline: var(--space-4);
   }
 
-  /* A page with pages under it sits in one tonal container with them, so they read as a section.
-     It grows a step past the column's rows and pads that step back, so the rows inside stay on the
-     same left edge as the rows outside. */
+  /* A page with pages under it sits in one tonal container with them while it is open, so they read
+     as a section. The box is always there, a step past the column's rows with that step padded back,
+     so the rows inside stay on the same left edge as the rows outside and opening shifts nothing;
+     only the fill comes and goes. */
   .guide-nav-group {
     margin-inline: calc(var(--space-1) * -1);
     padding: var(--space-1);
     border-radius: var(--radius-xl);
+  }
+
+  .guide-nav-group:has(> .guide-nav-sub:not([hidden])) {
     background: var(--color-surface-container);
   }
 
