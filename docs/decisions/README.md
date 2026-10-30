@@ -74,10 +74,10 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D51 | Settings is two levels and saves itself; every select opens one drawn list | active; the Custom page superseded by D56 |
 | D52 | On a phone Create floats only on Today and the Library, extended till you scroll | superseded by D60: Create floats on the Library alone |
 | D53 | First-load JavaScript budget 110 KB, kept as low as the code allows | active |
-| D54 | Form fields carry a 3:1 outline; in the player only Play is ink | active for text fields (ink: D238); selects, segments, chips tonal since D72 |
+| D54 | Form fields carry a 3:1 outline; in the player only Play is full ink | active for text fields (ink: D238); selects, segments, chips tonal since D72 |
 | D55 | A source's score is out of 3: health, quality and trust; a weak part is not bought back | active; a word, not pips and a number, since D83 |
 | D56 | One panel adds a topic or a source and edits a source; no Custom page | active |
-| D57 | A topic's page edits its details and adds suiting sources; topics list by name | active; amended by D64 and D69 |
+| D57 | A topic's page edits its details and adds suiting sources; topics are listed by name | active; amended by D64 and D69 |
 | D58 | The Model page offers six top Nebius writers by name, live list or not | active |
 | D59 | On a phone, Play takes the floating button's place on an episode or old briefing | active; Today floats Play too since D60 |
 | D60 | On a phone Create floats on the Library alone; every page with audio floats Play | active; Play floats once the hero's Play scrolls off since D77 |
@@ -101,7 +101,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D78 | The Library has one facts line per card, finds dates, keeps its search in the address and remembers what was played | active |
 | D79 | A saved setting shows before the build, and a new topic stays on its list with its suggestions at once | active |
 | D80 | An episode is written to 95% of what its stories can carry, and a script a little under the floor is kept | active |
-| D81 | A workflow installs only what it runs; the audio job skips the Vercel pull given a Blob token | active; the owner merges the workflow files by hand |
+| D81 | A workflow installs only what it runs; the audio job skips the Vercel pull with a Blob token | active; the owner merges workflow files by hand |
 | D82 | Play keeps an early tap, a new episode is pre-narrated, the deploy is noticed in 2.5 s | active |
 | D83 | Settings shows a source's score as a word, its name opens its editor; Model default is called Default | active; amends D55's pips and D69's name links |
 | D84 | A failed run keeps its request and offers Try again; a finished run clears itself; one run at a time | active |
