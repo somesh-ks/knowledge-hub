@@ -95,8 +95,6 @@ export function usageComment(
       .replace(/^\s*\*\s?/gm, "")
       .replace(/\s+/g, " ")
       .trim();
-    // A section divider ("---- the surface") labels a group of rules; it says nothing of the class.
-    if (/^-{3,}/.test(text)) continue;
     // The page shows the usage, not the markup sample some comments end with.
     const markup = text.indexOf("Markup:");
     return (markup > 0 ? text.slice(0, markup) : text).trim();
