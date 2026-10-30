@@ -67,5 +67,5 @@ Unit (CI): 326 files, 5,170 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 3. Firecrawl: a per-source yield table for the owner to prune (21 sources gave 1 story per 4,460 credits a month); changelog providers once the pilot holds.
 4. Lighthouse: defer BaseLayout's 34 KiB CSS without breaking the bar; the 1.4 s chain.
 5. `topic` to `category` end to end (plan 14): an inventory, dual-name readers, a store-synced migration, the rename, then the old names go; only with no other PR open ([starting points](history/2026-10-25-owner-feedback-pass.md#left-out-for-a-later-session)).
-6. Controls (D237): next Icon button, FAB, Chip, Link. closed when: `designSystem.test.ts` is empty.
+6. Controls (D237): next Icon button, FAB, Chip, Link. closed when: `NOT_YET_COMPONENTS` is empty.
 7. Performance: one fetch for both briefing passes, rewrite only a thin story, split a long first turn (D141, D178).
