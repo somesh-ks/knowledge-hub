@@ -4,6 +4,8 @@ import { type ApiRuntime, createApiRuntime } from "../curate/apiRuntime.js";
 import { createGitRunner } from "../git/runGit.js";
 import { createHttpClient } from "../http.js";
 import { meterExa } from "../llm/requestMeter.js";
+import { configStoreUrl, connectConfigStore } from "../store/configPaths.js";
+import { recordExperimentHits } from "../store/experimentHits.js";
 import { loadVoice } from "../voice/voice.js";
 import { SpendTracker } from "./spend.js";
 import type { RunDeps } from "./types.js";
@@ -18,6 +20,7 @@ import type { RunDeps } from "./types.js";
 export function buildDeps(ctx: CommandContext): RunDeps {
   let runtime: Promise<ApiRuntime> | undefined;
   const spend = new SpendTracker();
+  const storeUrl = configStoreUrl(ctx.env);
   return {
     root: ctx.root,
     now: ctx.now,
@@ -37,5 +40,10 @@ export function buildDeps(ctx: CommandContext): RunDeps {
     },
     pickCover,
     git: createGitRunner(ctx.root),
+    // With the config store on, the shadow counts go to Neon for the admin app; off, they stay in the log.
+    recordExperimentHits: storeUrl
+      ? async (hits) =>
+          recordExperimentHits(await connectConfigStore(storeUrl), hits, ctx.now().getTime())
+      : undefined,
   };
 }
