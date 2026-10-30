@@ -69,7 +69,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D46 | The writer's provider and model are chosen in Settings | active |
 | D47 | A move between pages is answered from a saved copy and swapped at once | active |
 | D48 | One shader: a light in the cover's colours behind the header, on a GPU only | active |
-| D49 | One Podcast settings page: Daily, Weekly and Custom profiles, shared writer, topics and sources clubbed | page layout superseded by D51; the 0 to 5 score by D55 |
+| D49 | One Podcast settings page: Daily, Weekly and Custom profiles, shared writer vendor and model, topics and sources clubbed | page layout superseded by D51; the 0 to 5 score by D55 |
 | D50 | The open player: a speed slider, Chapters or a Speechify-style transcript, word marks stored beside each segment | active |
 | D51 | Settings is two levels and saves itself; every select opens one drawn list | active; the Custom page superseded by D56 |
 | D52 | On a phone Create floats only on Today and the Library, extended until you scroll | superseded by D60: Create floats on the Library alone |
@@ -80,10 +80,10 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D57 | A topic's page edits its details and adds the sources that suit it; topics are listed by name | active; amended by D64 and D69 |
 | D58 | The Model page offers six top Nebius writers by name, live list or not | active |
 | D59 | On a phone, Play takes the floating button's place on an episode and an older briefing | active; Today floats Play too since D60 |
-| D60 | On a phone Create floats on the Library alone; every page with audio floats Play, Today included | active; Play floats only once the hero's Play has scrolled away since D77 |
+| D60 | On a phone Create floats on the Library alone; every page with audio floats Play, Today included | active; Play floats once the hero's Play scrolls away since D77 |
 | D61 | Vercel Cron starts the scheduled briefing in its hour; GitHub's schedule is the fallback | active |
 | D62 | Daily and Weekly each choose their topics; voice samples play through the site | active; each topic's Scope sets them since D69 |
-| D63 | Daily and Weekly leave out topics, one chip per topic, stored as the topics left out | superseded by D69: the storage stays, the chips moved to each topic's Scope |
+| D63 | Daily and Weekly leave out topics, one chip each, stored as the topics left out | superseded by D69: the storage stays, the chips moved to each topic's Scope |
 | D64 | Every topic can be renamed; what counts edits wherever the judge reads it | active |
 | D65 | The weekly podcast takes its day; the daily cadence counts from it | active |
 | D66 | General news topics are topics; their feeds are sources Jev judges every run, for scores and episodes only | active |
