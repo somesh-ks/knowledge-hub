@@ -253,6 +253,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D238 | Ten-step OKLCH ramps | active |
 | D239 | A travelling device is offered the new zone | active; amends D100 |
 | D241 | No Weekly-only blocks | amends D170 |
+| D242 | Starter-only Cancel | amends D201, D208 |
 | D244 | YouTube views vs channel median are votes | active |
 
 ---

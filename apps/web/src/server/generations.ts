@@ -1,4 +1,5 @@
 import type { GenerationRow } from "../types/contracts";
+import { cancelTokenMatches } from "./cancelToken";
 import { readServerConfig, type ServerEnv, secretsOf } from "./config";
 import { isSameOrigin } from "./generate";
 import { createGitHubClient, type FetchLike, type WorkflowRun } from "./github";
@@ -12,8 +13,9 @@ import { isOurRun, isPodcastRun, isScheduledRun, parseRunId, progressOf } from "
  * this person, another device or the schedule. The list is built from GitHub's own run list, so it
  * keeps no state, and each row is built field by field like the status route's. A cancel answers
  * only for a dispatched run of those two workflows (the status route's own test), so it cannot be
- * used to stop a config save or anything else in the repository. The schedule's briefing is one
- * of them, and with no auth (D201) anyone with the URL can stop it, as they can already delete.
+ * used to stop a config save or anything else in the repository. It also needs the run's cancel
+ * token (cancelToken.ts, D242), which only the person who started the run holds, so the schedule's
+ * briefing and other people's runs cannot be stopped from the site.
  */
 
 /** Most rows a list answers with: one running and one waiting run for each of the two workflows. */
@@ -24,7 +26,7 @@ export type GenerationsBody = { generations: GenerationRow[] } | { error: "unava
 export type CancelBody =
   | { run_id: number; cancelled: true }
   | { error: "cooldown"; retry_after_s: number }
-  | { error: "invalid_request" | "not_found" | "already_finished" | "unavailable" };
+  | { error: "invalid_request" | "forbidden" | "not_found" | "already_finished" | "unavailable" };
 
 export interface GenerationsDeps {
   env: ServerEnv;
@@ -121,6 +123,17 @@ export function parseCancelBody(bodyText: string): number | null {
   }
 }
 
+/** The cancel token of a cancel request's body (`{"cancel_token": "..."}`), or null. */
+export function parseCancelToken(bodyText: string): string | null {
+  try {
+    const body: unknown = JSON.parse(bodyText);
+    const token = (body as { cancel_token?: unknown } | null)?.cancel_token;
+    return typeof token === "string" ? token : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function handleCancel(
   input: { bodyText: string; origin: string | null; expectedOrigin: string },
   deps: CancelDeps,
@@ -132,6 +145,11 @@ export async function handleCancel(
   }
   const runId = parseCancelBody(input.bodyText);
   if (runId === null) return { status: 400, body: { error: "invalid_request" } };
+  // Only the person who started a run holds its token (D242): the same answer for a missing, a wrong
+  // and a stale one, and before any call to GitHub or the burst cap.
+  if (!cancelTokenMatches(config.token, runId, parseCancelToken(input.bodyText))) {
+    return { status: 403, body: { error: "forbidden" } };
+  }
 
   const wait = (await deps.burst?.()) ?? 0;
   if (wait > 0) {
