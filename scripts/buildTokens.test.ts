@@ -534,8 +534,12 @@ describe("generated CSS", () => {
   });
 
   it("emits the spatial spring reduced-motion overrides, so a travelling spring collapses to nothing", () => {
+    const reduced =
+      css.match(
+        /@media \(prefers-reduced-motion: reduce\) \{\n {2}:root \{([\s\S]*?)\n {2}\}\n\}/,
+      )?.[1] ?? "";
     for (const size of ["fast", "default", "slow"]) {
-      expect(css).toContain(`--duration-spring-spatial-${size}: 0.01ms;`);
+      expect(reduced).toContain(`--duration-spring-spatial-${size}: 0.01ms;`);
     }
   });
 

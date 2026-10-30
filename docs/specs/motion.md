@@ -35,7 +35,7 @@ The model uses unit mass; each token records stiffness and damping in its `singu
 
 ## Reduced motion
 
-Fewer and gentler, never none (D94). Travel collapses: spatial spring and sheet durations become 0.01 ms, distances become 0, the enter scale becomes 1. Fades and effects keep their time, so every state change stays visible. A move written as a raw value needs its own `prefers-reduced-motion` rule; sweep the CSS with the tokens. Anything that loops (a wave, a loader) holds one shape and pulses instead. Check with `document.getAnimations()` under emulated reduced motion.
+Fewer and gentler, never none (D94). Travel collapses: spatial spring and sheet durations become 0.01 ms, distances become 0, the enter scale becomes 1. Fades and effects keep their time, so every state change stays visible. A move written as a raw value needs its own `prefers-reduced-motion` rule; sweep the CSS with the tokens. Anything that loops (a wave, a loader) holds one shape and gives one finite pulse instead. Check with `document.getAnimations()` under emulated reduced motion.
 
 ## Calm by default
 
@@ -47,11 +47,11 @@ Shown on the design site's Motion page beside what the app does today. Each land
 
 - **Play and pause:** the button is round while paused and a rounded square while playing, squarer under a finger; the glyph morphs from triangle to bars on a spatial spring.
 - **Wavy progress:** the played part ripples while audio plays and flattens on pause; the thumb is a pill that narrows when held. It moves only while playback runs.
-- **Loading shape:** one shape that keeps changing form while a podcast is made, beside the queue's stage words. Under reduced motion it holds one shape and pulses.
+- **Loading shape:** one shape that keeps changing form while a podcast is made, beside the queue's stage words. Under reduced motion it holds one shape and gives one finite pulse.
 
 ## Never
 
-- A spring on a fade, or an overshoot on a colour.
+- A spring that passes its target on a fade or a colour.
 - A duration over 300 ms, or a plain ease-in (tests fail both). The drawer (500 ms) is the one exception. A spring token's settle time may pass 300 ms; the ceiling measures its own `singularity.perceptualMs` (80 to 240 ms for the six expressive springs).
 - `transition: all`, a literal duration, a private easing, a raw length (`styles.test.ts`).
 - Animating `width`, `height`, `max-width` or `margin` when `transform`, `opacity` or `clip-path` does the job.

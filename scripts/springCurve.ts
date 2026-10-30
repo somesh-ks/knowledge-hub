@@ -40,6 +40,8 @@ export function settleSeconds(params: SpringParams, tolerance = 0.002): number {
   for (let t = 0; t < 5; t += step) {
     if (Math.abs(stepResponse(params, t) - 1) > tolerance) last = t;
   }
+  if (last >= 5 - step)
+    throw new Error(`spring ${JSON.stringify(params)} does not settle within 5 s`);
   return last + step;
 }
 
