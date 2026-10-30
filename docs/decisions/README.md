@@ -69,20 +69,20 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D46 | The writer's provider and model are chosen in Settings | active |
 | D47 | A move between pages is answered from a saved copy and swapped at once | active |
 | D48 | One shader: a light in the cover's colours behind the header, on a GPU only | active |
-| D49 | One Podcast settings page: Daily, Weekly and Custom profiles, shared writer vendor and model, topics and sources clubbed | layout superseded by D51; the 0 to 5 score by D55 |
+| D49 | One Podcast settings page: Daily, Weekly, Custom profiles, shared writer vendor and model, topics and sources clubbed | layout superseded by D51; the 0 to 5 score by D55 |
 | D50 | The open player: a speed slider, Chapters or a Speechify-style transcript, word marks stored beside each segment | active |
 | D51 | Settings is two levels and saves itself; every select opens one drawn list | active; the Custom page superseded by D56 |
 | D52 | On a phone Create floats only on Today and the Library, extended till you scroll | superseded by D60: Create floats on the Library alone |
 | D53 | First-load JavaScript budget 110 KB, kept as low as the code allows | active |
-| D54 | Form fields carry a 3:1 outline; in the player only Play is full ink | active for text fields (ink: D238); selects, segments, chips tonal since D72 |
-| D55 | A source's score is out of 3: health, quality and trust; a weak part cannot be bought back | active; a word, not pips and a number, since D83 |
+| D54 | Form fields carry a 3:1 outline; in the player only Play is ink | active for text fields (ink: D238); selects, segments, chips tonal since D72 |
+| D55 | A source's score is out of 3: health, quality and trust; a weak part is not bought back | active; a word, not pips and a number, since D83 |
 | D56 | One panel adds a topic or a source and edits a source; no Custom page | active |
-| D57 | A topic's page edits its details and adds suiting sources; topics are listed by name | active; amended by D64 and D69 |
+| D57 | A topic's page edits its details and adds suiting sources; topics list by name | active; amended by D64 and D69 |
 | D58 | The Model page offers six top Nebius writers by name, live list or not | active |
-| D59 | On a phone, Play takes the floating button's place on an episode or older briefing | active; Today floats Play too since D60 |
+| D59 | On a phone, Play takes the floating button's place on an episode or old briefing | active; Today floats Play too since D60 |
 | D60 | On a phone Create floats on the Library alone; every page with audio floats Play | active; Play floats once the hero's Play scrolls off since D77 |
 | D61 | Vercel Cron starts the scheduled briefing in its hour; GitHub's schedule is the fallback | active |
-| D62 | Daily and Weekly each choose their topics; voice samples play in the site | active; each topic's Scope sets them since D69 |
+| D62 | Daily and Weekly each choose topics; voice samples play in the site | active; each topic's Scope sets them since D69 |
 | D63 | Daily and Weekly leave out topics, one chip each, stored as those left out | superseded by D69: storage stays, chips moved to each topic's Scope |
 | D64 | Every topic can be renamed; what counts edits wherever the judge reads it | active |
 | D65 | The weekly podcast takes its day; the daily cadence counts from it | active |
@@ -103,18 +103,18 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D80 | An episode is written to 95% of what its stories can carry, and a script a little under the floor is kept | active |
 | D81 | A workflow installs only what it runs; the audio job skips the Vercel pull given a Blob token | active; the owner merges the workflow files by hand |
 | D82 | Play keeps an early tap, a new episode is pre-narrated, the deploy is noticed in 2.5 s | active |
-| D83 | Settings shows a source's score as one word, its name opens its editor; Model default is called Default | active; amends D55's pips and D69's name links |
+| D83 | Settings shows a source's score as a word, its name opens its editor; Model default is called Default | active; amends D55's pips and D69's name links |
 | D84 | A failed run keeps its request and offers Try again; a finished run clears itself; one run at a time | active |
 | D85 | The player's chapters are timed and play their story; an unnamed discussion is named from its voices; one length rule | active; amends D74 |
 | D86 | An action has its own tone, the player bar is one tonal block with the navigation, reading text keeps a 34rem measure | active; extends D72 |
 | D87 | New episode says when a choice changed the topics, with Undo; the Library searches with an excerpt around the match | active; amends D76 and D78 |
-| D88 | A reading page's section strip is opaque, a focused headline rings as one block, the playing hero Play is tonal, an older briefing offers Share | active; amends D77 |
+| D88 | A reading page's section strip is opaque, a focused headline rings as one block, the playing hero Play is tonal, an old briefing offers Share | active; amends D77 |
 | D89 | The time zone selector is withdrawn until the engine counts in a chosen zone; summaries follow what is saved | active; amends D71 and D79; the time zone selector returned in D100 |
 | D90 | The open player has one left edge, an even rhythm and two weights; its lists are one Tab stop each; Back goes back | active; amends D85 |
-| D91 | Daily and Weekly offer only what a briefing uses; an edit made inside the server's gap survives leaving the page | active; amends D74, D79; D100 restored Format and the second voice |
-| D92 | The rundown is no story, a listener's move never scrolls the page, the open page owns the transport, and a glyph says what its button does | active; amends D85 and D90 |
-| D93 | A tab's jump puts the app bar away first, a headline word kept whole stays atomic, offline switches off every control that starts a run | active; amends D88 |
-| D94 | Up next narrates a briefing without audio, a phone's page never scrolls itself, a failure is told once, the open page closes with a mouse | active; amends D92 |
+| D91 | Daily and Weekly offer only what a briefing uses; an edit made in the server's gap survives leaving the page | active; amends D74, D79; D100 restored Format and the second voice |
+| D92 | The rundown is no story, a listener's move never scrolls the page, the open page owns the transport, a glyph says what its button does | active; amends D85 and D90 |
+| D93 | A tab's jump puts the app bar away first, a kept-whole headline word stays atomic, offline switches off every control that starts a run | active; amends D88 |
+| D94 | Up next narrates a briefing without audio, a phone's page never scrolls itself, a failure is told once, the open page closes by mouse | active; amends D92 |
 | D95 | The Library's search finds the start of words, a list row keeps its title level, and a segmented choice keeps its width | active; amends D78 |
 | D96 | An empty screen is one simple illustration, a title, one line and one filled action | active |
 | D97 | What the device remembers reads the same everywhere, the worker keeps what a page fetches, and a refusal reads the same on every control | active; amends D92, D93 and D94 |
