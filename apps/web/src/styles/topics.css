@@ -865,7 +865,7 @@
   background: var(--sheet-bg);
 }
 
-.source-sheet-foot > .btn-primary {
+.source-sheet-foot > .button-filled {
   flex: 1 1 auto;
 }
 
@@ -1974,7 +1974,7 @@ html:has(.source-filter[data-chips]) {
 }
 
 /* Tonal, as wide as its words, beside Reorder in the list's head. */
-.structure-add > .btn-secondary {
+.structure-add > .button-tonal {
   width: auto;
 }
 
@@ -2005,7 +2005,7 @@ textarea.manage-input.structure-prompt {
   gap: var(--space-4);
 }
 
-.structure-prompt-foot > .btn {
+.structure-prompt-foot > .button-text {
   flex: none;
   margin-inline-end: calc(var(--space-4) * -1);
 }

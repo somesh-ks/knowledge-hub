@@ -9,6 +9,8 @@ import Banner from "../../components/Banner.astro";
 import EmptyState from "../../components/EmptyState.astro";
 import Icon from "../../components/Icon.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
+import Button from "../../design-system/Button.astro";
+import { buttonClass } from "../../design-system/button";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { tokenGroups, usageComment } from "../../lib/designCatalogue";
 import { ICON_PATHS, type IconName } from "../../lib/icons";
@@ -55,7 +57,7 @@ const icons = Object.keys(ICON_PATHS) as IconName[];
 
 /** A component's record: its name, the stylesheet and class whose usage comment describes it. */
 const parts: [title: string, sheet: string, selector: string][] = [
-  ["Buttons", "buttons.css", ".btn"],
+  ["Buttons", "buttons.css", `.${buttonClass("text")}`],
   ["Icon buttons", "buttons.css", ".icon-btn"],
   ["Chip", "buttons.css", ".chip"],
   ["Filter chips", "primitives.css", ".filter-chip"],
@@ -175,11 +177,11 @@ const title = "Design system";
         <h3 class="section-head">Buttons</h3>
         <p class="design-usage">{usage.Buttons}</p>
         <div class="design-specimen">
-          <button class="btn-primary" type="button">Play</button>
-          <button class="btn-secondary" type="button">Share</button>
-          <button class="btn" type="button">Settings</button>
-          <button class="btn-primary" type="button" disabled>Play</button>
-          <button class="btn-secondary" type="button" disabled>Share</button>
+          <Button variant="filled">Play</Button>
+          <Button variant="tonal">Share</Button>
+          <Button variant="text">Settings</Button>
+          <Button variant="filled" disabled>Play</Button>
+          <Button variant="tonal" disabled>Share</Button>
         </div>
 
         <h3 class="section-head">Icon buttons</h3>

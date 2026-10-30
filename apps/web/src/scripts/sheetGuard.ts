@@ -1,3 +1,4 @@
+import { buttonClass } from "../design-system/button";
 import { dismissOnScrim } from "./pullDismiss";
 
 /**
@@ -74,9 +75,9 @@ export function guardSheet(sheet: HTMLDialogElement, options: SheetGuardOptions)
     dialog.innerHTML = `<div class="confirm-form">
       <h2 class="sheet-title">Save changes?</h2>
       <div class="confirm-actions is-stacked">
-        <button class="btn-primary" type="button" data-guard-save autofocus>Save</button>
-        <button class="btn" type="button" data-guard-discard>Discard</button>
-        <button class="btn" type="button" data-guard-keep>Keep editing</button>
+        <button class="${buttonClass("filled")}" type="button" data-guard-save autofocus>Save</button>
+        <button class="${buttonClass("text")}" type="button" data-guard-discard>Discard</button>
+        <button class="${buttonClass("text")}" type="button" data-guard-keep>Keep editing</button>
       </div>
     </div>`;
     const heading = dialog.querySelector("h2");

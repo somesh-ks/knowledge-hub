@@ -1,6 +1,7 @@
 ---
 import Icon from "../components/Icon.astro";
 import ManageChrome from "../components/ManageChrome.astro";
+import Button from "../design-system/Button.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { buildDay } from "../lib/buildDay";
 import { loadManage } from "../lib/manage";
@@ -231,7 +232,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
               <span class="settings-label">Install Singularity</span>
               <span class="settings-hint">Opens on its own, like an app, and works offline.</span>
             </div>
-            <button class="btn" type="button" data-install-app-button>Install</button>
+            <Button variant="text" data-install-app-button>Install</Button>
           </div>
         </div>
       </section>
@@ -243,7 +244,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
               <span class="settings-label">Add Singularity to your Home Screen</span>
               <span class="settings-hint">In Safari, tap Share, then Add to Home Screen.</span>
             </div>
-            <button class="btn" type="button" data-install-dismiss>Hide this</button>
+            <Button variant="text" data-install-dismiss>Hide this</Button>
           </div>
         </div>
       </section>

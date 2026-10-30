@@ -14,6 +14,7 @@ import SourceRow from "../../../components/SourceRow.astro";
 import SuggestedSources from "../../../components/SuggestedSources.astro";
 import TopicsPanel from "../../../components/TopicsPanel.astro";
 import WeightRow from "../../../components/WeightRow.astro";
+import Button from "../../../design-system/Button.astro";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { loadManage, type ManageSource, type ManageTopic } from "../../../lib/manage";
 import { loadScheduleView } from "../../../lib/schedule";
@@ -357,16 +358,16 @@ const facts = topic && {
                  sources has no search, so it keeps the heading's end. */}
             {
               list.length === 0 && (
-                <button
-                  class="btn-secondary topic-add-source"
-                  type="button"
+                <Button
+                  variant="tonal"
+                  class="topic-add-source"
                   aria-label={`Add source to ${name}`}
                   data-add-source={addTo}
                   data-needs-js
                 >
                   <Icon name="plus" />
                   <span>Add source</span>
-                </button>
+                </Button>
               )
             }
           </div>
@@ -376,17 +377,17 @@ const facts = topic && {
             {
               list.length > 0 && (
                 <SourceFilter sources={list} chips>
-                  <button
+                  <Button
+                    variant="tonal"
                     slot="action"
-                    class="btn-secondary topic-add-source"
-                    type="button"
+                    class="topic-add-source"
                     aria-label={`Add source to ${name}`}
                     data-add-source={addTo}
                     data-needs-js
                   >
                     <Icon name="plus" />
                     <span>Add source</span>
-                  </button>
+                  </Button>
                 </SourceFilter>
               )
             }
@@ -402,9 +403,9 @@ const facts = topic && {
             </ul>
             {
               hidden > 0 && (
-                <button class="btn topic-show-all" type="button" data-show-all>
+                <Button variant="text" class="topic-show-all" data-show-all>
                   {`Show ${hidden} more`}
-                </button>
+                </Button>
               )
             }
             {/* Shown by topics.css while the list above has no row: the section is otherwise blank. */}
@@ -434,8 +435,8 @@ const facts = topic && {
               <h2 class="sheet-title" id="topic-delete-title">{`Delete ${name}?`}</h2>
               <p class="create-hint confirm-lede" id="topic-delete-lede">Its sources move to Other.</p>
               <div class="confirm-actions">
-                <button class="btn" type="button" data-confirm-cancel autofocus>Cancel</button>
-                <button class="btn confirm-delete" type="button" data-confirm-delete>Delete</button>
+                <Button variant="text" data-confirm-cancel autofocus>Cancel</Button>
+                <Button variant="text" tone="danger" data-confirm-delete>Delete</Button>
               </div>
             </div>
           </dialog>
