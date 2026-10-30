@@ -1,0 +1,151 @@
+---
+import Icon from "../../../web/src/components/Icon.astro";
+import type { IconName } from "../../../web/src/lib/icons";
+import PageHead from "../components/PageHead.astro";
+import Shell from "../layouts/Shell.astro";
+
+// Written from the product brief (apps/web/PRODUCT.md), the design-engineering ledger and the
+// decisions it cites. The D-numbers are the repo's decisions; a principle changes there first.
+// One line each: the reasoning lives in the decision the number points to.
+const principles: { title: string; line: string; ref: string; icon: IconName; tone: string }[] = [
+  {
+    title: "A real app",
+    line: "A podcast app first: tonal, flat, no outlines except on text fields.",
+    ref: "D31, D72",
+    icon: "play",
+    tone: "accent",
+  },
+  {
+    title: "Nothing moves unasked",
+    line: "Controls hold one box through every state.",
+    ref: "D94, D95",
+    icon: "pin",
+    tone: "success",
+  },
+  {
+    title: "Quiet and live",
+    line: "It speaks only when the reader can act.",
+    ref: "D94, D115",
+    icon: "wifi",
+    tone: "info",
+  },
+  {
+    title: "Looks like what it does",
+    line: "A glyph says the press; a disabled control stays, dimmed.",
+    ref: "D92, D98",
+    icon: "thumbsUp",
+    tone: "warning",
+  },
+  {
+    title: "Less is more",
+    line: "Fewer controls, fewer words, one filled action per screen.",
+    ref: "D77, D84, D96",
+    icon: "shapes",
+    tone: "danger",
+  },
+  {
+    title: "Space makes the hierarchy",
+    line: "Wide steps, the 8pt grid, regular weight, nothing bold.",
+    ref: "D31, D73, D125, D131",
+    icon: "viewList",
+    tone: "accent",
+  },
+  {
+    title: "Every control is complete",
+    line: "A 44px target, a sound, a press state, a focus ring.",
+    ref: "D72, D101",
+    icon: "checkCircle",
+    tone: "success",
+  },
+  {
+    title: "Accessible to the standard",
+    line: "WCAG 2.2 AA; color is never the only signal.",
+    ref: "D54",
+    icon: "info",
+    tone: "info",
+  },
+  {
+    title: "Tokens are the only values",
+    line: "Primitive, semantic, component; no literals.",
+    ref: "D131",
+    icon: "palette",
+    tone: "warning",
+  },
+  {
+    title: "Fixes with a reason stay",
+    line: "A dated rule is load-bearing: extend it or ask.",
+    ref: "",
+    icon: "pencilSimple",
+    tone: "danger",
+  },
+];
+
+const bans = [
+  "Outlined boxes and cards in cards",
+  "Gradient washes, grey shadows, cream, terracotta",
+  "Italic accents, monospace eyebrows, all caps",
+  "A chevron on the bar, a grabber, a drag handle",
+  "A meta line above a headline",
+  "Em dashes",
+];
+
+const kept: { title: string; line: string; icon: IconName }[] = [
+  {
+    title: "On each edit",
+    line: "A static check for literals and off-grid space.",
+    icon: "pencilSimple",
+  },
+  { title: "On every page", line: "A browser suite measures the rendered grid.", icon: "viewGrid" },
+  {
+    title: "Before a merge",
+    line: "A design audit, light and dark, phone and desktop.",
+    icon: "search",
+  },
+];
+---
+
+<Shell title="Principles" current="/principles">
+  <div class="settings-view guide-page" data-settings data-ready>
+    <PageHead title="Principles" />
+
+    <p class="guide-lead">A private briefing for one design engineer, read with one hand. Quick, plain, out of the way.</p>
+
+    <section aria-labelledby="rules">
+      <h2 class="section-head" id="rules">What it follows</h2>
+      <ol class="guide-cards" role="list">
+        {
+          principles.map((principle, index) => (
+            <li class="guide-card" data-tone={principle.tone} style={`--n: ${index}`}>
+              <span class="guide-card-icon" aria-hidden="true"><Icon name={principle.icon} class="icon-lg" /></span>
+              <h3>{principle.title}</h3>
+              <p>{principle.line}</p>
+              {principle.ref && <span class="guide-card-ref">{principle.ref}</span>}
+            </li>
+          ))
+        }
+      </ol>
+    </section>
+
+    <section aria-labelledby="bans">
+      <h2 class="section-head" id="bans">Not here</h2>
+      <ul class="guide-bans" role="list">
+        {bans.map((ban) => <li><Icon name="close" class="icon-lg" />{ban}</li>)}
+      </ul>
+    </section>
+
+    <section aria-labelledby="kept">
+      <h2 class="section-head" id="kept">How it is kept</h2>
+      <ol class="guide-cards" role="list">
+        {
+          kept.map((step, index) => (
+            <li class="guide-card" data-tone="accent" style={`--n: ${index}`}>
+              <span class="guide-card-icon" aria-hidden="true"><Icon name={step.icon} class="icon-lg" /></span>
+              <h3>{step.title}</h3>
+              <p>{step.line}</p>
+            </li>
+          ))
+        }
+      </ol>
+    </section>
+  </div>
+</Shell>

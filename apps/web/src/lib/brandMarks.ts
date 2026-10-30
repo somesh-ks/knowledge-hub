@@ -1,5 +1,5 @@
 /**
- * Small monochrome marks for the paid services the Costs page names (pages/analytics.astro, drawn by
+ * Small monochrome marks for the paid services the Costs page names (apps/admin/src/pages/costs.astro, drawn by
  * scripts/costsPage.ts). Filled paths in currentColor, so they take the text's ink in either theme.
  * Not the glyph set (lib/icons.ts is generated from Phosphor and holds only icons). The marks are the
  * companies' own: Anthropic, Vercel, GitHub and Gemini from Simple Icons (CC0, simpleicons.org,

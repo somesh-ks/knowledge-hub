@@ -242,6 +242,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D223 | Firecrawl warns at 150 | Superseded by D227 |
 | D224 | Admin and style guide: own apps | active; supersedes D189 |
 | D225 | A Haiku call shortens an over-limit headline | active |
+| D226 | The guide lists only imported components | amends D224 |
 | D227 | Firecrawl warns at 210 | supersedes D223 |
 | D228 | A failed dry run records its spend | amends D223, D227 |
 | D229 | Column centred; 12px label gap | active |
@@ -264,5 +265,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D248 | Favorite creators trusted | active |
 | D249 | Neon switches beat config files | active |
 | D250 | Publishers renamed; Reddit dropped | active; amends D234, D240 |
+| D251 | Ingest packs a run into one Blob object | active; amends D233 |
+| D253 | UI fixes start at the component | active; amends D237 |
 
 ---

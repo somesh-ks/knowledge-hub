@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-29 | [The style guide as its own app](2026-10-29-style-guide.md) | `apps/design` at `/design`: colour with live contrast, type, tokens; hand-written component specs built and cut for parity (D226) |
 | 2026-10-30 | [Trusted publishers list renamed](2026-10-30-trusted-publishers-rename.md) | "authority" became "trusted publishers" in file, code and command; the six Reddit seeds dropped from the registry (D250) |
 | 2026-10-29 | [The Cancel route gets a key](2026-10-29-cancel-token.md) | Open `/api/cancel` stopped any run; a per-run HMAC token held by the starter (D242) |
 | 2026-10-29 | [Podcast run audit](2026-10-29-podcast-run-audit.md) | Every Catch up, Regenerate and scheduled failure traced to a merged fix; a live Regenerate and Catch up started 2 s apart both published |

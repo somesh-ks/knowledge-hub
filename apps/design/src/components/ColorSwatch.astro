@@ -1,0 +1,36 @@
+---
+/**
+ * One color as a card: the fill (with the ink laid on it, when the pair is measured), then its name,
+ * OKLCH and hex in the current theme, and the contrast of the pair or the role it points at. The
+ * values are written by scripts/color.ts, because they depend on the theme.
+ */
+interface Props {
+  /** The label, and the card's id. */
+  name: string;
+  /** The custom property this card shows: "--color-surface". */
+  variable: string;
+  /** The color the fill is drawn in (a custom property), when it is not the token itself. */
+  fill?: string;
+  /** The ink laid on the fill (a custom property); a pair that is measured shows it as "Aa". */
+  ink?: string;
+  /** The measured pair, foreground on background (custom properties). */
+  fg?: string;
+  bg?: string;
+  /** What this token points at, when there is no pair to measure. */
+  points?: string;
+}
+
+const { name, variable, fill, ink, fg, bg, points } = Astro.props;
+---
+
+<li class="guide-swatch" id={name} data-filter-item data-name={name} data-fg={fg} data-bg={bg}>
+  <span class="guide-swatch-fill" style={`--swatch: var(${fill ?? variable}); --ink: var(${ink ?? fill ?? variable})`}>
+    {ink && <span class="guide-swatch-ink" aria-hidden="true">Aa</span>}
+  </span>
+  <span class="guide-swatch-meta">
+    <span class="guide-swatch-name">{name}</span>
+    <span class="guide-swatch-value" data-oklch data-resolve={variable}>…</span>
+    <span class="guide-swatch-value" data-hex>…</span>
+    {fg ? <span class="guide-swatch-contrast" data-contrast>…</span> : points && <span class="guide-swatch-value">{points}</span>}
+  </span>
+</li>

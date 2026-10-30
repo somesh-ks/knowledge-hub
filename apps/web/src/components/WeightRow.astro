@@ -1,4 +1,6 @@
 ---
+import Slider from "../design-system/Slider.astro";
+
 /** The slider's stops (a format mix, a perspective), the op it sends and the field it sets. */
 interface Custom {
   stops: readonly { name: string; value: number }[];
@@ -32,10 +34,8 @@ const stopName = stops[place]?.name ?? "Normal";
     <label class="settings-label" for={`weight-${id}`}>{label}</label>
     <output class="settings-hint" for={`weight-${id}`} data-word>{stopName}</output>
   </div>
-  <input
-    class="settings-range"
+  <Slider
     id={`weight-${id}`}
-    type="range"
     min="0"
     max={stops.length - 1}
     step="1"

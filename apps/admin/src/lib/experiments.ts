@@ -4,7 +4,8 @@ import { join } from "node:path";
 /**
  * What the Experiments page lists: a feature built but not yet trusted. To add one, add a line
  * here; the page draws it. A state with a `flag` is read from that file's boolean at build time, so
- * it cannot drift from the config; an entry with none says its own.
+ * it cannot drift from the config, and the owner's switch in the store (api/experiments.ts) is laid
+ * over it on the page; an entry with none says its own and has no switch.
  */
 export interface Experiment {
   id: string;

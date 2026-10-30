@@ -55,7 +55,7 @@ Pick every control and token with `npm run ds -- find "<need>"`: the part, when 
 
 ## Phase 2: Surgical Implementation
 
-1. **Reuse Existing Primitives**: Never invent new button or control classes. Reuse the parts `npm run ds -- list` shows.
+1. **Reuse Existing Primitives**: Never invent new button or control classes. Reuse the parts `npm run ds -- list` shows. When asked to fix a component, change the component first (its class, variant or token, in a `design-system` PR), never a page override; a page patch needs its reason in the PR body (D237).
 2. **Preserve Load-Bearing Rules**: Never remove or rewrite CSS rules or markup containing rationale comments (dates, D-numbers, sizers, specificity bumps).
 3. **No Layout Shift**: Ensure labels on dynamic buttons or chips use fixed-width sizer copies or stable gutters so text does not shake.
 4. **Regular Headings**: Heading elements and button labels stay regular weight (400 or 500); never bold (D73, D125).

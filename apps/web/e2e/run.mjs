@@ -13,6 +13,7 @@ import { startServer } from "./staticServer.mjs";
  */
 
 const appRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+const adminRoot = join(appRoot, "..", "admin");
 const flags = new Set(process.argv.slice(2));
 const port = Number(process.env.PORT ?? 4321);
 
@@ -22,12 +23,21 @@ if (!flags.has("--serve-only")) {
     "bin",
     "astro.mjs",
   );
-  const build = spawnSync(process.execPath, [astroBin, "build"], {
-    cwd: appRoot,
-    stdio: "inherit",
-    env: { ...process.env, SINGULARITY_FIXTURES: "1", SINGULARITY_STATIC_ONLY: "1" },
-  });
-  if (build.status !== 0) process.exit(build.status ?? 1);
+  // The reader, then the admin app, which the reader's rewrite serves at /admin.
+  for (const cwd of [appRoot, adminRoot]) {
+    const build = spawnSync(process.execPath, [astroBin, "build"], {
+      cwd,
+      stdio: "inherit",
+      env: { ...process.env, SINGULARITY_FIXTURES: "1", SINGULARITY_STATIC_ONLY: "1" },
+    });
+    if (build.status !== 0) process.exit(build.status ?? 1);
+  }
 }
 
-if (!flags.has("--build-only")) startServer({ root: join(appRoot, "dist"), port });
+if (!flags.has("--build-only")) {
+  startServer({
+    root: join(appRoot, "dist"),
+    port,
+    mounts: { "/admin": join(adminRoot, "dist") },
+  });
+}

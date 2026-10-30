@@ -1,0 +1,95 @@
+---
+import BrandMark from "../../../web/src/components/BrandMark.astro";
+import Icon from "../../../web/src/components/Icon.astro";
+import themeInit from "../../../web/src/scripts/themeInit.js?raw";
+import Nav from "../components/Nav.astro";
+import ThemeToggle from "../components/ThemeToggle.astro";
+import { href, NAV } from "../lib/sections";
+import "../../../web/src/styles/tokens.css";
+import "../../../web/src/styles/foundations.css";
+import "../../../web/src/styles/fonts.css";
+import "../../../web/src/styles/shell.css";
+import "../../../web/src/styles/buttons.css";
+import "../../../web/src/styles/primitives.css";
+import "../../../web/src/styles/settings.css";
+import "../../../web/src/styles/manage.css";
+import "../../../web/src/styles/banner.css";
+import "../../../web/src/styles/empty.css";
+import "../../../web/src/styles/hero.css";
+import "../../../web/src/styles/library.css";
+import "../../../web/src/styles/cover.css";
+import "../../../web/src/styles/briefing.css";
+import "../../../web/src/styles/story-controls.css";
+import "../../../web/src/styles/create-sheet.css";
+import "../../../web/src/styles/episode-actions.css";
+import "../../../web/src/styles/create.css";
+import "../../../web/src/styles/multiselect.css";
+import "../../../web/src/styles/topics.css";
+import "../../../web/src/styles/sheets.css";
+import "../../../web/src/styles/player.css";
+import "../../../web/src/styles/reader.css";
+import "../../../web/src/styles/health.css";
+import "../../../web/src/styles/utilities.css";
+import "../styles/guide.css";
+
+interface Props {
+  title: string;
+  /** The section's path under the base; "" for the overview. */
+  current: string;
+}
+
+const { title, current } = Astro.props;
+
+// A page under Foundations has no bottom-bar item of its own, so the app bar says where it sits and
+// takes you up one level, as the reader's sub pages do.
+const parent = NAV.find((entry) => entry.children?.some((child) => child.path === current))?.page;
+
+// The guide's theme, applied before first paint over the reader's saved one: dark unless the person
+// chose light here (themeToggle.ts). The reader's own preference is never read.
+const savedTheme = `(() => { let t = "dark"; try { if (localStorage.getItem("design:theme") === "light") t = "light"; } catch {} document.documentElement.dataset.theme = t; })();`;
+---
+
+<!doctype html>
+<html lang="en" data-view="settings" data-layout="single" data-player="closed" data-mini="hidden">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} · Singularity design</title>
+    <link rel="icon" href={href("/favicon.svg")} type="image/svg+xml" />
+    {/* The reader's own script (its back-navigation guard); the theme line after it decides the theme. */}
+    <script is:inline set:html={themeInit.trim()} />
+    <script is:inline set:html={savedTheme} />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to the content</a>
+    <header class="app-bar">
+      <div class="app-bar-inner page">
+        {/* The bar shows below 64rem, where the nav's side column is hidden. */}
+        {
+          parent && (
+            <a class="icon-btn app-bar-back" href={href(parent.path)} aria-label={parent.label}>
+              <Icon name="arrowBack" />
+            </a>
+          )
+        }
+        <a class="wordmark" href={href("")} aria-label="Singularity design system">
+          <BrandMark />
+          <span>Singularity</span>
+          <span class="guide-tag">Design</span>
+        </a>
+        <ThemeToggle class="guide-bar-end" />
+      </div>
+    </header>
+    <Nav current={current} />
+    <div class="shell page">
+      <main id="main" tabindex="-1">
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>
+<script>
+  import "../scripts/inputMode";
+</script>

@@ -35,7 +35,7 @@
   border: 0;
 }
 
-.manage-fields:disabled :is(.settings-switch, .sort-field, .manage-input, .search-field) {
+.manage-fields:disabled :is(.switch-input, .sort-field, .manage-input, .search-field) {
   opacity: var(--opacity-disabled);
   cursor: default;
 }
