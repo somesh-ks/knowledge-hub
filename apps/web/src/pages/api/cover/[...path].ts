@@ -5,7 +5,11 @@ import { FONT_FILE_BASENAMES, setFontDirectory } from "@singularity/cover";
 import type { APIRoute, GetStaticPaths } from "astro";
 import { coverPng, coverWebp } from "../../../lib/covers";
 import { findRepoRoot } from "../../../lib/repoRoot";
-import { expireContentManifest, loadStoreSite } from "../../../server/contentRepo";
+import {
+  expireContentManifest,
+  isShowingSavedContent,
+  loadStoreSite,
+} from "../../../server/contentRepo";
 import {
   type CoverResolution,
   coverCacheHeaders,
@@ -65,6 +69,8 @@ export const GET: APIRoute = async ({ params }) => {
     let resolution: CoverResolution = site
       ? resolveCover(site, request.id, split.version)
       : { kind: "missing" };
+    // Whether the store's newest manifest, not a held one, backs a non-draw answer.
+    let confirmed = false;
     if (resolution.kind !== "draw") {
       // A page is drawn from the store's newest manifest, and this instance may hold an older one
       // for up to its window. The CDN keeps whatever is answered here, so read the manifest once
@@ -74,9 +80,18 @@ export const GET: APIRoute = async ({ params }) => {
         expireContentManifest();
         site = await load();
         resolution = site ? resolveCover(site, request.id, split.version) : { kind: "missing" };
+        // A failed read keeps the held manifest (isShowingSavedContent), which proves nothing.
+        confirmed = !isShowingSavedContent();
       }
     }
     if (resolution.kind === "missing") {
+      // A 404 is kept for an hour, or a year with a `?v=`: only the store's word can earn one.
+      if (!confirmed) {
+        return new Response("This cover is not ready yet.", {
+          status: 503,
+          headers: BEHIND_HEADERS,
+        });
+      }
       return new Response("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
     }
     if (resolution.kind === "behind") {
