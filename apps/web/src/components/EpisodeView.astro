@@ -3,8 +3,9 @@ import type { AlbumOption } from "../lib/catchUps";
 import { episodeCover } from "../lib/covers";
 import { storyCount } from "../lib/digestView";
 import { episodeSections } from "../lib/episodeHighlights";
-import { type EpisodeEntry, episodeLength, FORMAT_LABELS } from "../lib/episodes";
+import { type EpisodeEntry, episodeLength } from "../lib/episodes";
 import { headlineParts, madeAt } from "../lib/format";
+import { CATCH_UP_LABEL } from "../lib/formatLabels";
 import type { SectionRef } from "../lib/sectionLabel";
 import { sharedPlayer, sharedTarget } from "../lib/share";
 import AmbientLight from "./AmbientLight.astro";
@@ -63,7 +64,7 @@ const fallbackTopic = episode.request.topic_ids[0] ?? "general";
       <h1 class="page-title" id="page-title" tabindex="-1">{episode.title}</h1>
       {/* As a briefing's facts ("Weekly · 12 stories"): the date is on the cover. */}
       <p class="meta hero-facts">
-        <span>{FORMAT_LABELS[episode.format]}</span><span>{storyCount(episode.sources.length)}</span><HeroDownloaded />
+        <span>{CATCH_UP_LABEL}</span><span>{storyCount(episode.sources.length)}</span><HeroDownloaded />
       </p>
     </div>
     {

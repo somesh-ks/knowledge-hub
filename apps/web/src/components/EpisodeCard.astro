@@ -16,7 +16,7 @@ interface Props {
 const { entry, priority = false } = Astro.props;
 const { episode } = entry;
 const facts = episodeFacts(entry);
-// Format, length: the length is its own span, so "Played" can take its place and the format stays.
+// Kind, length: the length is its own span, so "Played" can take its place and the kind stays.
 const [format, length] = facts.line.split(FACT_SEPARATOR);
 ---
 
