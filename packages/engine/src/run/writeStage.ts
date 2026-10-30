@@ -574,6 +574,16 @@ async function writePass(
     taste: context.taste,
     drop,
   });
+  for (const sel of chosen.selected) {
+    if (sel.item.source_type !== "youtube") continue;
+    deps.log.info("Video selected", {
+      pass: pass.id,
+      itemId: sel.item.id,
+      channel: sel.item.source_id,
+      score: sel.score,
+      extract: methods.get(sel.item.id) ?? "dropped",
+    });
+  }
 
   // A sized briefing keeps the next stories selection would have taken, best first, so
   // validation can write replacements when grounding cuts it short of its length (refill).

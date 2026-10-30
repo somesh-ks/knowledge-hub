@@ -2,6 +2,7 @@ import { readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import {
   COVER_TEMPLATES,
+  type JudgmentEntry,
   type JudgmentsFile,
   type LastRunFile,
   type SeenFile,
@@ -770,6 +771,53 @@ describe("judgments cache", () => {
     );
     expect(judged.counts).toMatchObject({ cache_hits: 5, fresh: 3 });
   });
+
+  it(
+    "judges a favorite creator's video on its transcript, not on a cached description",
+    LONG,
+    async () => {
+      const feeds = goodFeeds(8);
+      const video = {
+        ...feedItem({ sourceId: "blog-a", slug: "video", tag: "none" }),
+        source_type: "youtube" as const,
+        signals: { creator_vetted: true },
+      };
+      feeds["blog-a"] = [...(feeds["blog-a"] ?? []), video];
+      const transcript = "judge:design_engineering_craft ".concat(
+        "The editor handles state. ".repeat(40),
+      );
+      const world = makeWorld(repo.root, {
+        now: WED,
+        feeds,
+        extract: async (item) =>
+          item.id === video.id
+            ? { text: transcript, method: "captions", truncated: false }
+            : { text: `${item.title}. `.repeat(60), method: "readability", truncated: false },
+      });
+      // Judged once from its description, which says nothing about the craft.
+      const [fromDescription] = await world.judge.judge([video]);
+      world.judge.asked.length = 0;
+      const cache: JudgmentsFile = {
+        version: 1,
+        entries: {
+          [`${video.id}:${fromDescription?.questions_hash}:${fromDescription?.model}`]:
+            fromDescription as JudgmentEntry,
+        },
+      };
+      await seed(repo.root, { "state/judgments.json": json(cache) });
+
+      await runStage(world);
+      // The cached description answer was not reused, and the new one records its excerpt.
+      expect(world.judge.asked.flat()).toContain(video.id);
+      const judged = await readJson<{ entries: JudgmentEntry[] }>(
+        repo.root,
+        ".cache/run/2026-10-07/judged.json",
+      );
+      const entry = judged.entries.find((candidate) => candidate.item_id === video.id);
+      expect(entry?.basis).toMatch(/^[0-9a-f]{12}$/);
+      expect(entry?.category_probs.design_engineering_craft).toBeGreaterThan(0.5);
+    },
+  );
 
   it("resumes a judge stage without judging again", LONG, async () => {
     const world = makeWorld(repo.root, { now: WED });

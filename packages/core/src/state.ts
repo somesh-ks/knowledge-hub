@@ -46,6 +46,11 @@ export const JudgmentEntry = z.object({
     sponsored: z.number().min(0).max(1),
     funding: z.number().min(0).max(1),
   }),
+  /**
+   * Fingerprint of the transcript excerpt a favorite creator's video was judged on (D255). Absent
+   * when the judge saw the description, so a cached description entry is asked again.
+   */
+  basis: z.string().optional(),
 });
 export type JudgmentEntry = z.infer<typeof JudgmentEntry>;
 
