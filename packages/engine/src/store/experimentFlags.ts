@@ -50,13 +50,13 @@ export async function readExperimentFlags(sql: SqlClient): Promise<ExperimentFla
 
 /**
  * Switches an experiment on or off; its promotion, if any, is kept. A promoted experiment stays
- * on, so the write that would turn one off touches no row and throws.
+ * on, so the write that would turn one off touches no row and answers false.
  */
 export async function setExperimentEnabled(
   sql: SqlClient,
   id: string,
   enabled: boolean,
-): Promise<void> {
+): Promise<boolean> {
   const rows = await withTable(sql, EXPERIMENT_FLAGS_SCHEMA_SQL, () =>
     sql.query(
       `insert into experiment_flags (id, enabled) values ($1, $2)
@@ -66,7 +66,7 @@ export async function setExperimentEnabled(
       [id, enabled],
     ),
   );
-  if (rows.length === 0) throw new Error(`${id} is promoted and stays on`);
+  return rows.length > 0;
 }
 
 /** Marks an experiment promoted, which also turns it on; `false` takes the mark back (Undo) and keeps its switch. */
