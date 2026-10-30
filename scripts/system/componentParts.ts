@@ -16,6 +16,8 @@ const PART_OF: Record<string, string> = {
   Chip: "filter-chip",
   FAB: "fab",
   Link: "text-link",
+  Switch: "switch",
+  Slider: "slider",
 };
 
 const partOf = (ref: ComponentRef | undefined, fallback: string): string => {
@@ -128,6 +130,10 @@ export const componentParts = (): PartSource[] => [
   }),
   control("slider", "Slider", SLIDER, {
     keywords: ["range", "volume", "speed", "scrub"],
-    markup: '<Slider aria-label="Volume" min="0" max="1" step="0.05" value="0.7" />',
+    markup:
+      '<Slider aria-label="Volume" min="0" max="1" step="0.05" value="0.7" style="--range-fill: 70%" />',
+    rules: [
+      "WebKit paints the filled track from --range-fill, which starts at 0%: set it to the value's percentage and update it on input.",
+    ],
   }),
 ];

@@ -107,8 +107,9 @@ export function classTokens(text: string): Set<string> {
     if (tone) found.add(`button-${tone}`);
   }
   // The Switch and the Slider are single-class components, drawn by the tag or by the class helper.
-  if (/<Switch\b|\bswitchClass\(/.test(text)) found.add("switch-input");
-  if (/<Slider\b|\bsliderClass\(/.test(text)) found.add("slider-input");
+  const code = text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  if (/<Switch\b|\bswitchClass\(/.test(code)) found.add("switch-input");
+  if (/<Slider\b|\bsliderClass\(/.test(code)) found.add("slider-input");
   return found;
 }
 
@@ -119,7 +120,13 @@ export function sourceFiles(): { path: string; text: string; tokens: Set<string>
     (path) => path.endsWith(".test.ts") || posix(path).includes("/pages/design/"),
   ).map((path) => {
     const text = readFileSync(path, "utf8");
-    return { path, text, tokens: classTokens(text) };
+    const tokens = classTokens(text);
+    // The component files define the two controls; only a caller outside them is a use.
+    if (posix(path).includes("/design-system/")) {
+      tokens.delete("switch-input");
+      tokens.delete("slider-input");
+    }
+    return { path, text, tokens };
   });
 }
 
