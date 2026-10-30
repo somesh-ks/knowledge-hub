@@ -459,6 +459,15 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Revisit if: a Reddit source gets through from a runner (switch it on, or add OAuth credentials if it does not), a source passes over 30% of its judged items, or a heavily voted but shallow story airs above a technique piece.
 - Amends: D234 (the authority list stays, off, as the second signal).
 
+## D248: A favorite creator's videos are trusted: read at a minimum depth, sponsor reads cut by the writer
+
+- Date: 2026-10-30 (the owner: a video should not be judged on title, views or likes; the creator already filters; strip sponsored parts of the transcript).
+- Decision: a video from a YouTube channel marked Favorite carries `signals.creator_vetted`. `withCreator` (score/creator.ts) reads it at craft depth 0.25 at least with the hype and sponsored flags ignored, the same lift as D234, applied to every video whose category the judge placed (not `none`). The writer's source block tells it a video text is a transcript and to leave out sponsor reads, ads, discount codes, affiliate links, product plugs and calls to subscribe. The transcript still comes only for a selected story (cache, free captions, Firecrawl, Gemini; D244 found 13 judged and none selected).
+- Why: Jev sees a title and 1,200 characters of description, which say little about a video; views and likes track channel size (D244 scales them per channel, but a score from them is still not the content). A creator who covers a subject has picked it. Sponsor reads sit in the transcript, so the writer is where they come out.
+- Rejected: fetching every transcript before judging (credits and time for videos the creator-trust makes unnecessary to judge); a regex strip of sponsor segments (they are phrased freely); a lift on every YouTube video (the owner's Favorite switch is the filter).
+- Limit: free captions are refused to GitHub's runners (yt-dlp too, 2026-10-24), so a selected video's transcript costs Firecrawl credits (about 5) or a Gemini transcription. Selection caps keep that to a few videos a run.
+- Revisit if: favorited videos air without a transcript (extract falls back to the description), or a sponsor read reaches a summary.
+
 ## D250: The vetted-publishers file is named for what it is; Reddit leaves the registry
 
 - Date: 2026-10-30 (the owner: "Authority" is a poor name, rename everything; Reddit blocks bot scraping, so drop it or archive it).

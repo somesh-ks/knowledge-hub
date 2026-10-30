@@ -99,6 +99,8 @@ function absorb(keep: Item, dropped: Item, sources: ReadonlyMap<string, Source>)
   const redditComments = maxOf(keep.signals.reddit_comments, dropped.signals.reddit_comments);
   const youtubeViews = maxOf(keep.signals.youtube_views, dropped.signals.youtube_views);
   const youtubeVotes = maxOf(keep.signals.youtube_votes, dropped.signals.youtube_votes);
+  // Trust belongs to the video: a kept article does not borrow it from a duplicate video.
+  const vetted = keep.signals.creator_vetted;
   const coverage = maxOf(keep.signals.coverage, dropped.signals.coverage);
   const author = keep.author ?? dropped.author;
   const published = keep.published_at ?? dropped.published_at;
@@ -124,6 +126,7 @@ function absorb(keep: Item, dropped: Item, sources: ReadonlyMap<string, Source>)
       ...(redditComments === undefined ? {} : { reddit_comments: redditComments }),
       ...(youtubeViews === undefined ? {} : { youtube_views: youtubeViews }),
       ...(youtubeVotes === undefined ? {} : { youtube_votes: youtubeVotes }),
+      ...(vetted ? { creator_vetted: true } : {}),
       ...(coverage === undefined ? {} : { coverage }),
     },
     ...(hint ? { category_hint: hint } : {}),
