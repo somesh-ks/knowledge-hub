@@ -453,7 +453,7 @@
 
 /* In the story's room: the action brings its own 44px, so the notice's own padding above and below
    is small, and two lines of reason with the action fit the room. */
-.player-meta-line > .player-notice {
+.player-meta-line > .banner-notice {
   justify-self: stretch;
   margin-block: 0;
   padding-block: var(--space-1);
@@ -2674,56 +2674,6 @@
   );
 }
 
-/* Rounder than the button inside it, which keeps the banner's padding from its edge. */
-.player-notice {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-4);
-  margin-block-end: var(--space-4);
-  padding: var(--banner-padding);
-  border-radius: var(--radius-lg);
-  background: var(--tone-bg);
-  font-size: var(--font-size-meta);
-}
-
-.player-notice[data-tone="danger"] {
-  --tone-bg: var(--color-danger-subtle);
-  --tone: var(--color-danger);
-}
-
-.player-notice[data-tone="info"] {
-  --tone-bg: var(--color-info-subtle);
-  --tone: var(--color-info);
-}
-
-.player-notice .ui-icon {
-  color: var(--tone);
-}
-
-/* A text button in the notice's own tone (danger ink on the danger container), with the standard
-   state layers of that ink: no grey fill muddying the tinted container. */
-.player-notice-action {
-  min-height: var(--size-touch);
-  padding-inline: var(--space-4);
-  border-radius: var(--button-radius);
-  background: transparent;
-  color: var(--tone);
-  font-weight: var(--font-weight-medium);
-  transition: background-color var(--duration-press-in) var(--ease-out);
-}
-
-/* A text button: its ink's state layers over the notice, and no fill of its own at rest. */
-@media (hover: hover) and (pointer: fine) {
-  .player-notice-action:hover {
-    background: color-mix(in oklch, var(--tone) var(--state-hover), transparent);
-  }
-}
-
-.player-notice-action:active {
-  background: color-mix(in oklch, var(--tone) var(--state-press), transparent);
-}
-
 .player-upnext-row {
   display: flex;
   align-items: center;
@@ -2932,10 +2882,6 @@
     align-items: center;
   }
 
-  .player-controls > .player-notice {
-    grid-column: 1 / -1;
-  }
-
   /* One timeline: the bar's. The page keeps the cover, the title, the source, the skips and the
      speed between them. The story's headline is the bar's caption, so only its source stays here,
      the one way to open it. */
@@ -3110,7 +3056,6 @@ html:is([data-player="open"], :has(dialog[open])) .player-dock {
   .speed-btn,
   .speed-preset,
   .story-row,
-  .player-notice-action,
   .script-back,
   .segmented {
     border: var(--stroke-hairline) solid ButtonText;

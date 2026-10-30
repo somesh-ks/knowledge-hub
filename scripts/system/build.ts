@@ -137,6 +137,11 @@ export function classTokens(text: string): Set<string> {
   ) {
     found.add("menu-item-danger");
   }
+  // The Banner is drawn by the tag or by the class helper; its parts come with it.
+  if (/<Banner\b|\bbannerClass\(/.test(code)) {
+    for (const name of ["banner-notice", "banner-text", "banner-title", "banner-body"])
+      found.add(name);
+  }
   for (const [, variant = "outlined"] of code.matchAll(/\bselectClass\(\s*(?:["'](\w+)["'])?/g)) {
     found.add(`select-${variant}`);
   }
@@ -167,6 +172,9 @@ export function sourceFiles(): { path: string; text: string; tokens: Set<string>
       tokens.delete("menu-item");
       tokens.delete("menu-sheet");
       tokens.delete("menu-item-danger");
+      for (const name of ["banner-notice", "banner-text", "banner-title", "banner-body"]) {
+        tokens.delete(name);
+      }
     }
     return { path, text, tokens };
   });

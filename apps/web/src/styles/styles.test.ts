@@ -56,7 +56,6 @@ const LABEL_CONTROLS = [
   "menu-item",
   "story-row",
   "player-upnext-row",
-  "player-notice-action",
   "player-fallback-action",
   "script-back",
   "speed-btn",
@@ -71,7 +70,7 @@ const LABEL_CONTROLS = [
 const ALLOWED_4PX: [selector: string, reason: string][] = [
   [".aside", "the rail's hit area reaching past the column's edge"],
   [".aside-rail", "the rail's track padding, around its own segments"],
-  [".banner > .button-text", "the action's hit area reaching into the banner's padding"],
+  [".banner-notice > .button-text", "the action's hit area reaching into the banner's padding"],
   [".banner-body", "a banner's title onto its body, inside one banner"],
   [".structure-row", "the dots' and pencil's ink, 28px in from the card's corner, not 24"],
   [
@@ -210,7 +209,6 @@ const BESPOKE_CONTROLS: [name: string, reason: string][] = [
   ["toast-dismiss", "a toast's close control"],
   ["multiselect-trigger", "the multi-select's field-like trigger"],
   ["search-clear", "the clear control inside .search-field"],
-  ["player-notice-action", "a text action in the player's notice"],
   ["player-fallback-action", "a text action in the player's fallback card"],
   [
     "queue-fold",
@@ -800,7 +798,7 @@ describe("house rules", () => {
  * forks, page by page.
  */
 const PAGE_OVERRIDES: string[] = [
-  "banner.css: .banner > .button-text",
+  "banner.css: .banner-notice > .button-text",
   "create-sheet.css: dialog.create-sheet .create-submit > .button-filled",
   'create.css: .create-submit .button-filled[aria-disabled="true"]:active',
   'create.css: .create-submit .button-filled[data-busy="true"]',
@@ -819,6 +817,7 @@ const PAGE_OVERRIDES: string[] = [
   "library.css: .shelf-head > .button-text",
   "manage.css: .manage-fields:disabled :is(.switch-input, .field-input, .search-field)",
   "manage.css: .manage-fields:disabled :is(.switch-input, .field-input, .search-field)",
+  "player.css: .player-meta-line > .banner-notice",
   "player.css: .speed-panel-body > .slider-input",
   "podcast.css: .daily-panel .field-input[aria-invalid]:focus-visible",
   "podcast.css: .daily-panel input.field-input",

@@ -1,5 +1,7 @@
 import { useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
+import { bannerClass, bannerText } from "../design-system/banner";
+import { buttonClass } from "../design-system/button";
 import { INTERRUPTED_LINE, noticeAction } from "./core/playerCopy";
 import { getPlayerStore } from "./core/playerRuntime";
 import { usePlayerState } from "./hooks/usePlayer";
@@ -92,12 +94,14 @@ export default function PlayerNotice({ onRetry }: PlayerNoticeProps) {
     // A missing file is not fixed by trying again; the Play disc still offers it, once.
     const action = noticeAction(state.error.kind);
     notice = (
-      <div className="player-notice" data-tone="danger" role="alert" key={errorKey}>
+      <div className={bannerClass()} data-tone="danger" role="alert" key={errorKey}>
         <Icon name="alert" />
-        <p>{state.error.message}</p>
+        <div className={bannerText.column}>
+          <p className={bannerText.title}>{state.error.message}</p>
+        </div>
         {action ? (
           <button
-            className="player-notice-action"
+            className={buttonClass("text")}
             type="button"
             onClick={() => {
               keepFocus();
@@ -111,11 +115,13 @@ export default function PlayerNotice({ onRetry }: PlayerNoticeProps) {
     );
   } else if (state.interrupted) {
     notice = (
-      <div className="player-notice" data-tone="info" role="status">
+      <div className={bannerClass()} data-tone="info" role="status">
         <Icon name="info" />
-        <p>{INTERRUPTED_LINE}</p>
+        <div className={bannerText.column}>
+          <p className={bannerText.title}>{INTERRUPTED_LINE}</p>
+        </div>
         <button
-          className="player-notice-action"
+          className={buttonClass("text")}
           type="button"
           onClick={() => {
             keepFocus();

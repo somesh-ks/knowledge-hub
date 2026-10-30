@@ -53,7 +53,7 @@ const EXEMPT = [
   ".emoji-cell",
   // Centred on the title's first line by the label's leading (banner.css); seen on /design, where a
   // banner is always shown.
-  ".banner > .icon",
+  ".banner-notice > .icon",
 ];
 
 const PAGES = [

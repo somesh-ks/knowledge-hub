@@ -529,6 +529,63 @@
       ]
     },
     {
+      "id": "banner",
+      "name": "Banner",
+      "kind": "feedback",
+      "summary": "A tinted block with an icon, a title, an optional line and at most one text button.",
+      "classes": [
+        "banner-notice",
+        "banner-text",
+        "banner-title",
+        "banner-body"
+      ],
+      "files": [
+        "design-system/Banner.astro",
+        "design-system/banner.ts"
+      ],
+      "when": [
+        "A state a person must know about stays on screen: offline, a failed run, a playback error"
+      ],
+      "not": [
+        {
+          "when": "a message that clears itself",
+          "use": "toast"
+        },
+        {
+          "when": "a page with nothing to list",
+          "use": "empty-state"
+        }
+      ],
+      "keywords": [
+        "alert",
+        "notice",
+        "warning",
+        "error message",
+        "persistent"
+      ],
+      "markup": "<Banner tone=\"danger\" icon=\"alert\" title=\"Download failed\" />",
+      "rules": [
+        "Only the icon takes the tone.",
+        "An island draws one with bannerClass() and bannerText."
+      ],
+      "styles": [
+        "banner.css"
+      ],
+      "usage": "Banners, and the pages with nothing to list. A banner is flat: a tinted ground, an icon in the tone's colour, a title, a line of text and at most one text button. The tone sets the tint.",
+      "tokens": [
+        "--banner-padding",
+        "--color-danger",
+        "--color-danger-subtle",
+        "--color-info",
+        "--color-info-subtle",
+        "--color-success",
+        "--color-success-subtle",
+        "--color-warning",
+        "--color-warning-subtle",
+        "--size-icon"
+      ]
+    },
+    {
       "id": "btn-action-tonal",
       "name": "Tonal action",
       "kind": "action",
@@ -1065,62 +1122,6 @@
         "--size-icon",
         "--size-touch-comfortable",
         "--slider-max-width"
-      ]
-    },
-    {
-      "id": "banner",
-      "name": "Banner",
-      "kind": "feedback",
-      "summary": "A flat tinted notice at the top of a page, with an icon in the tone's color.",
-      "classes": [
-        "banner",
-        "banner-stack"
-      ],
-      "files": [
-        "components/Banner.astro"
-      ],
-      "when": [
-        "tell the user something that stays until it is fixed or dismissed",
-        "a persistent warning or error at the top of a page",
-        "offline notice"
-      ],
-      "not": [
-        {
-          "when": "a message that clears itself",
-          "use": "toast"
-        },
-        {
-          "when": "a page with nothing to list",
-          "use": "empty-state"
-        }
-      ],
-      "keywords": [
-        "alert",
-        "notice",
-        "warning",
-        "error message",
-        "persistent"
-      ],
-      "markup": "<Banner tone=\"danger\" icon=\"alert\" title=\"Download failed\" />",
-      "rules": [
-        "Tone is info, warning, danger or success; only the icon takes the tone."
-      ],
-      "styles": [
-        "banner.css",
-        "shell.css"
-      ],
-      "usage": "Banners, and the pages with nothing to list. A banner is flat: a tinted ground, an icon in the tone's colour, a title, a line of text and at most one text button. The tone sets the tint.",
-      "tokens": [
-        "--banner-padding",
-        "--color-danger",
-        "--color-danger-subtle",
-        "--color-info",
-        "--color-info-subtle",
-        "--color-success",
-        "--color-success-subtle",
-        "--color-warning",
-        "--color-warning-subtle",
-        "--size-icon"
       ]
     },
     {
@@ -1706,10 +1707,6 @@
       "class": "search-clear",
       "reason": "the clear control inside .search-field",
       "part": "search-field"
-    },
-    {
-      "class": "player-notice-action",
-      "reason": "a text action in the player's notice"
     },
     {
       "class": "player-fallback-action",

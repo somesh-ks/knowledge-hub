@@ -17,6 +17,7 @@ export const SYSTEM_PATHS = [
   "apps/web/src/styles/field.css",
   "apps/web/src/styles/select.css",
   "apps/web/src/styles/menu.css",
+  "apps/web/src/styles/banner.css",
   "apps/web/src/styles/primitives.css",
   "apps/web/src/styles/foundations.css",
   "apps/web/src/styles/tokens.css",
@@ -65,7 +66,7 @@ const CALL_SITES = ["apps/web/src/", "apps/web/e2e/", "apps/admin/src/"];
  * replaced. A family's pull request adds the names it retires here, so its own call sites count.
  */
 export const SYSTEM_NAMES =
-  /\bButton\b|buttonClass|button-(?:filled|tonal|text|danger)|\bbtn\b|btn-primary|btn-secondary|confirm-delete|\bSwitch\b|\bSlider\b|switchClass|sliderClass|\.(?:switch|slider)-input\b|settings-switch|settings-range|speed-slider|<Field(?![\w.])|fieldClass|field-input|manage-input|sheet-input|<Select(?![\w.])|selectClass|select-(?:outlined|tonal)|manage-select|sort-field|create-select|styles\/(?:menu|select)\.css|MENU_SELECTORS|<Menu(?:Item)?(?![\w.])|menuItemClass|menuListClass|menu-(?:list|item)|hero-menu-(?:list|item|delete)/;
+  /\bButton\b|buttonClass|button-(?:filled|tonal|text|danger)|\bbtn\b|btn-primary|btn-secondary|confirm-delete|\bSwitch\b|\bSlider\b|switchClass|sliderClass|\.(?:switch|slider)-input\b|settings-switch|settings-range|speed-slider|<Field(?![\w.])|fieldClass|field-input|manage-input|sheet-input|<Select(?![\w.])|selectClass|select-(?:outlined|tonal)|manage-select|sort-field|create-select|styles\/(?:menu|select)\.css|MENU_SELECTORS|<Menu(?:Item)?(?![\w.])|menuItemClass|menuListClass|menu-(?:list|item)|hero-menu-(?:list|item|delete)|<Banner(?![\w.])|bannerClass|bannerText|player-notice/;
 
 const startsWithAny = (file, prefixes) => prefixes.some((prefix) => file.startsWith(prefix));
 

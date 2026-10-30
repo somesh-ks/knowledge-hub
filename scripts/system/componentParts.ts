@@ -4,6 +4,7 @@
  * words a lookup matches against and the one-line rules the registry does not hold. A family that
  * becomes a component adds its entry here and deletes its hand-written ones from parts.ts.
  */
+import { BANNER } from "../../apps/web/src/design-system/banner.js";
 import { BUTTON } from "../../apps/web/src/design-system/button.js";
 import { FIELD } from "../../apps/web/src/design-system/field.js";
 import type { ComponentRef, Guidance } from "../../apps/web/src/design-system/guidance.js";
@@ -24,6 +25,7 @@ const PART_OF: Record<string, string> = {
   Field: "field",
   Select: "select",
   Menu: "menu",
+  Banner: "banner",
 };
 
 const partOf = (ref: ComponentRef | undefined, fallback: string): string => {
@@ -75,11 +77,12 @@ const control = (
     classes?: string[];
     /** Exclusions that point at a part not yet a component (a hand-written one in parts.ts). */
     not?: { when: string; use: string }[];
+    kind?: PartSource["kind"];
   },
 ): PartSource => ({
   id,
   name,
-  kind: "selection",
+  kind: extra.kind ?? "selection",
   summary: guidance.summary,
   classes: [`${id}-input`],
   files: [`design-system/${name}.astro`, `design-system/${id}.ts`],
@@ -202,6 +205,20 @@ export const componentParts = (): PartSource[] => [
     rules: [
       "Under 40rem a menu is a sheet, never a small popover.",
       "A script finds one with MENU_SELECTORS (design-system/menu.ts); a string builder or an island takes menuListClass() and menuItemClass().",
+    ],
+  }),
+  control("banner", "Banner", BANNER, {
+    kind: "feedback",
+    classes: ["banner-notice", "banner-text", "banner-title", "banner-body"],
+    keywords: ["alert", "notice", "warning", "error message", "persistent"],
+    not: [
+      { when: "a message that clears itself", use: "toast" },
+      { when: "a page with nothing to list", use: "empty-state" },
+    ],
+    markup: '<Banner tone="danger" icon="alert" title="Download failed" />',
+    rules: [
+      "Only the icon takes the tone.",
+      "An island draws one with bannerClass() and bannerText.",
     ],
   }),
 ];

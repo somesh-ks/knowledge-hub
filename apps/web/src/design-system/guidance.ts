@@ -9,7 +9,8 @@ export type ComponentName =
   | "Slider"
   | "Field"
   | "Select"
-  | "Menu";
+  | "Menu"
+  | "Banner";
 export type ComponentRef = ComponentName | `${ComponentName}.${string}`;
 
 export interface DontUse {

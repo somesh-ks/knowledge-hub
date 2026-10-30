@@ -205,26 +205,6 @@ export const PARTS: PartSource[] = [
     keywords: ["preference", "toggle row", "setting"],
   },
   {
-    id: "banner",
-    name: "Banner",
-    kind: "feedback",
-    summary: "A flat tinted notice at the top of a page, with an icon in the tone's color.",
-    classes: ["banner", "banner-stack"],
-    files: ["components/Banner.astro"],
-    when: [
-      "tell the user something that stays until it is fixed or dismissed",
-      "a persistent warning or error at the top of a page",
-      "offline notice",
-    ],
-    not: [
-      { when: "a message that clears itself", use: "toast" },
-      { when: "a page with nothing to list", use: "empty-state" },
-    ],
-    keywords: ["alert", "notice", "warning", "error message", "persistent"],
-    markup: '<Banner tone="danger" icon="alert" title="Download failed" />',
-    rules: ["Tone is info, warning, danger or success; only the icon takes the tone."],
-  },
-  {
     id: "toast",
     name: "Toast",
     kind: "feedback",

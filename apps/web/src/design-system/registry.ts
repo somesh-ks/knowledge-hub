@@ -4,6 +4,7 @@
  * designSystem.test.ts holds the app to them. A new component is added here in the PR that adds it;
  * a class not listed here is not part of the system.
  */
+import { BANNER, BANNER_CLASSES, BANNER_RETIRED } from "./banner";
 import { BUTTON, BUTTON_CLASSES, BUTTON_RETIRED } from "./button";
 import { FIELD, FIELD_CLASSES, FIELD_RETIRED } from "./field";
 import type { Guidance } from "./guidance";
@@ -91,5 +92,16 @@ export const COMPONENTS: DesignSystemComponent[] = [
     useWhen: MENU.useWhen,
     dontUseWhen: MENU.dontUseWhen,
     parts: MENU.tones,
+  },
+  {
+    name: "Banner",
+    sheet: "banner.css",
+    prefix: "banner-",
+    classes: BANNER_CLASSES,
+    retired: BANNER_RETIRED,
+    summary: BANNER.summary,
+    useWhen: BANNER.useWhen,
+    dontUseWhen: BANNER.dontUseWhen,
+    parts: BANNER.tones,
   },
 ];
