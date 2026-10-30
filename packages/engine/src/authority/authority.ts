@@ -7,7 +7,7 @@ import { clamp01, round4 } from "../score/numbers.js";
 import { craftFactor, penaltyFactor } from "../score/scoreItem.js";
 import type { ScoredItem } from "../score/types.js";
 
-export const AUTHORITY_PATH = "config/authority.json";
+export const TRUSTED_PUBLISHERS_PATH = "config/trusted-publishers.json";
 
 /**
  * One publisher the owner vetted as the first-hand source for some categories. `domain` is a host
@@ -41,7 +41,7 @@ export function parseAuthority(json: unknown): AuthorityFile {
 export async function loadAuthority(root: string): Promise<AuthorityFile> {
   let text: string;
   try {
-    text = await readFile(join(root, AUTHORITY_PATH), "utf8");
+    text = await readFile(join(root, TRUSTED_PUBLISHERS_PATH), "utf8");
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return EMPTY_AUTHORITY;
     throw error;

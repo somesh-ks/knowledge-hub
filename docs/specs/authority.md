@@ -4,7 +4,7 @@ The owner's vetted publishers, by category, and what the engine does for them. R
 
 ## Requirements
 
-- `config/authority.json` lists domains, each with the categories the owner vetted it for (`openai.com`: `frontier_model_releases`). A domain covers its subdomains, never a lookalike host. `enabled: false` (the shipped state) makes every live rule below a no-op; only the shadow log and `replay` still read the list. The file is hand-edited and git-only: the config store never holds it.
+- `config/trusted-publishers.json` lists domains, each with the categories the owner vetted it for (`openai.com`: `frontier_model_releases`). A domain covers its subdomains, never a lookalike host. `enabled: false` (the shipped state) makes every live rule below a no-op; only the shadow log and `replay` still read the list. The file is hand-edited and git-only: the config store never holds it.
 - Judge: a first-party announcement shows no technique, so craft depth sinks it (anthropic-blog passed 0 of 15). With the list on, an item from a vetted domain whose most probable category is one of that domain's is read at craft depth 0.25 at least, and its hype and sponsored flags no longer count (funding still does). It scores about 0.52, over the 0.4 bar and under real technique (`withAuthority`). A custom topic that outscored the category keeps its own score.
 - Prefilter: a vetted domain's page counts as high signal, so an announcement that names none of the owner's keywords is not dropped.
 - Exa: one query per vetted category, worded from its topic's name and description, restricted to that category's domains (`include_domains`). Open queries are unchanged. A category whose topic is off asks nothing.

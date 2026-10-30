@@ -117,7 +117,7 @@ const CONFIG_SCHEMAS: Array<[string, (json: unknown) => unknown]> = [
   ["config/prices.json", (json) => PriceTable.parse(json)],
   ["config/source-catalog.json", (json) => parseSourceCatalog(json)],
   ["config/sources.user.json", (json) => SourcesUserFile.parse(json)],
-  ["config/authority.json", (json) => parseAuthority(json)],
+  ["config/trusted-publishers.json", (json) => parseAuthority(json)],
   ["config/community.json", (json) => parseCommunity(json)],
 ];
 

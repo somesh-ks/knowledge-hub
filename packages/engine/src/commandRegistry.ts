@@ -100,7 +100,7 @@ whether the shadow exit is met. Needs DATABASE_URL.`,
     help: `Usage: singularity authority replay <pools-dir> [--days <n>]
 
 Scores the pools in <pools-dir> (the run artifacts, unpacked; the newest 14 days by default) from the
-cached judgments, with and without config/authority.json, and prints what would newly pass the bar,
+cached judgments, with and without config/trusted-publishers.json, and prints what would newly pass the bar,
 each domain's pass share and any domain over 30%. The list is read as if on. Offline and free.`,
     load: async () => (await import("./commands/authority.js")).run,
   },

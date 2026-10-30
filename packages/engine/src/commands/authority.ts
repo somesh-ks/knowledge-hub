@@ -54,7 +54,7 @@ function format(report: AuthorityReplay, pools: number): string {
 }
 
 /**
- * `singularity authority replay <dir>`: what config/authority.json would change, scored from the
+ * `singularity authority replay <dir>`: what config/trusted-publishers.json would change, scored from the
  * cached judgments (state/judgments.json) and the pools in <dir> (the run artifacts, unpacked).
  * Offline and free; the list is read as if on. Changes nothing.
  */
@@ -115,7 +115,7 @@ export const run: CommandRun = async (argv, ctx) => {
     ),
   ]);
   if (authority.entries.length === 0) {
-    ctx.log.error("config/authority.json lists no domain");
+    ctx.log.error("config/trusted-publishers.json lists no domain");
     return 1;
   }
   const report = replayAuthority({ pools: items, judgments, preferences, authority });

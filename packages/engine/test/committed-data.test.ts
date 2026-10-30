@@ -31,7 +31,7 @@ const SCHEMAS: Record<string, { parse: (value: unknown) => unknown }> = {
   "config/topics.json": TopicsFile,
   "config/models.json": ModelRouting,
   "config/queries.json": { parse: parseQueries },
-  "config/authority.json": { parse: parseAuthority },
+  "config/trusted-publishers.json": { parse: parseAuthority },
   "config/community.json": { parse: parseCommunity },
   "state/judgments.json": JudgmentsFile,
   "state/last-run.json": LastRunFile,
