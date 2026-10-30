@@ -5,7 +5,7 @@ import PageHead from "../components/PageHead.astro";
 import Shell from "../layouts/Shell.astro";
 import { COLOR_GROUPS, COLOR_PAIRS, componentColors, primitive, swatchSpec } from "../lib/guide";
 
-const ramps = ["grey", "blue", "green", "amber", "red"].map((hue) => ({
+const ramps = ["grey", "blue", "green", "orange", "red"].map((hue) => ({
   hue,
   steps: (primitive.get("color") ?? []).filter((token) => token.path.startsWith(`color.${hue}.`)),
 }));

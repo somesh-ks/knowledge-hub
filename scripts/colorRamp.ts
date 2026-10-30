@@ -42,7 +42,7 @@ export const RAMPS = {
   grey: { hue: 260, peak: 0.011 },
   blue: { hue: 260, peak: 0.195 },
   green: { hue: 155, peak: 0.15 },
-  amber: { hue: 80, peak: 0.14 },
+  orange: { hue: 47, peak: 0.17 },
   red: { hue: 28, peak: 0.19 },
 } as const satisfies Record<string, RampSpec>;
 export type RampName = keyof typeof RAMPS;
@@ -123,7 +123,7 @@ const RAMP_DESCRIPTIONS: Record<RampName, string> = {
   grey: "Neutral. The blue hue at a whisper of chroma, so greys sit with the accent. 50 and 900 are the light and dark pages; surfaces between them are the elevation group.",
   blue: "The one accent. Low steps are tints, middle steps fills and accent text, high steps ink; which step a role takes is in the semantic tokens.",
   green: "Success.",
-  amber: "Warning.",
+  orange: "Warning. Clear orange, not brown: hue 47 keeps step 500 at 4.5:1 as text.",
   red: "Danger.",
 };
 

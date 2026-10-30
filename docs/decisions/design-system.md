@@ -362,6 +362,16 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Revisit if: a part cannot be an Astro component (a class set no page shares), or the pure-pull-request check blocks work it should allow.
 - Amends: D224.
 
+## D252: the warning color is the orange ramp
+
+- Date: 2026-10-30 (the owner: "orange instead of brown", "warning color clear orange, not brown amber"; and, when a UI needs fixing, fix the central design-system component first, not a local override).
+- Decision: the `amber` ramp (hue 80) becomes `orange` (hue 47, peak chroma 0.17), the same ten steps on the same lightness curve (D238). `--color-warning` takes step 500 in light mode (it was amber 600) and 300 in dark; `--color-warning-subtle` takes 50 and 900. Step 600 of a warm hue at that lightness is brown, so in light mode warning sits one step lighter than success and danger; in dark mode all three use step 300. It still reads as text: step 500 is 4.5:1 or better on the page, the raised surface and its tint, which `buildTokens.test.ts` holds. The hue is 47, not 55 (a cleaner orange), because at 55 step 500 falls 0.04 short of 4.5:1; 47 stays 19 degrees from danger red (28) and reads as orange beside it. The admin overview's local `--ov-warning` goes in its own PR.
+- Why: the owner read amber 600 as brown in the reader and the admin; a per-app literal would fork the warning color from the one the reader's banners and status dots use.
+- Rejected: keeping amber and raising its chroma (hue 80 darkens to olive, not orange); a second `orange` ramp beside `amber` (nothing else would use amber, so the guide would carry a dead ramp); a local override in the admin (the owner's rule).
+- Context changed: the owner read the amber warning color as brown, so the ramp D238 drew for it missed the clear orange he asked for.
+- Revisit if: warning text on a light surface is needed (it would take step 600, which reads brown), or a fifth status color arrives.
+- Amends: D238 (the ramp list; the curve is unchanged).
+
 ## D253: a UI fix starts at the design-system component
 
 - Date: 2026-10-30 (the owner: "whenever I ask you to fix a UI component, first attempt to fix/improve the centralized design system component, document and enforce this rule"). Amends D237.
