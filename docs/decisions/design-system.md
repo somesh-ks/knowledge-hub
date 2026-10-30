@@ -379,3 +379,14 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Why: a page override passes every other test and forks the component one page at a time, which is how the 18 rules on that list came to be.
 - Rejected: a lint that bans every selector on a component class (the 18 existing rules would block it; the list lets it start now and only shrink); relying on the rule in `AGENTS.md` alone (an agent that does not read it cannot be caught).
 - Next: each design-system PR that moves an override into its component deletes its line from `PAGE_OVERRIDES`.
+
+## D257: the report routes answer only the owner's session
+
+- Date: 2026-10-30 (the owner: "fix the errors first, then go sequentially" through the admin scope; the open routes were the first item on that list).
+- Decision: `/api/costs` and `/api/health` answer only a request that carries the command center's session cookie: 401 without one, 503 while `ADMIN_SESSION_SECRET` is missing or short, as the gate itself fails closed. The session logic moves to `apps/admin/src/gate/session.ts`, which the gate and the reader's `server/adminGuard.ts` both import. The cookie is now `Path=/` (it was `/admin`), or it would never reach `/api/*`; sign-out clears both paths. The reader's project needs the same `ADMIN_SESSION_SECRET`. `astro dev` skips the check, because the admin dev proxy carries no cookie.
+- Why: D201 left every read route open until OAuth, but these two show spend, provider billing and fault counts, and nothing public draws them. Moving the code into a package (D224's plan) would have closed the exposure only after a rewrite; the cookie closes it now with a shared 60-line module.
+- Rejected: a package that moves costs and health into the admin's own functions (days of work for the same effect); a second shared secret in a header (the admin pages would have to hold it); gating by IP (the owner's phone moves).
+- Context changed: the admin scripts are the only callers, they run on the same domain, and the cookie already proves the owner.
+- Revisit if: the Google login replaces the password (the cookie's meaning stays; only how it is issued changes), or another page needs these numbers without a session.
+- Amends: D201 (for these two routes), D224.
+
