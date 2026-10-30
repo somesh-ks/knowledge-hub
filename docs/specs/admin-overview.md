@@ -14,7 +14,7 @@ The command center's front page: how the app stands and what it costs, at a glan
 - A press on an arc or its label (a radio in a radiogroup, so the arrow keys walk them) opens that pillar's report below: flagged rows first, the fine ones collapsed under "N fine". The worst pillar is open on arrival.
 - A check with no judgement (too few visits, or its part did not answer) is left out of the arcs; the note names a part that did not answer. A pillar with no judged check draws no arc.
 - Spend is the 30-day total, a week strip of one ring a day (filled by that day's cost; a press shows what ran), and a split bar with its legend.
-- All spacing, radius and type come from the design tokens. The warning orange is admin-local (`--ov-warning`) until the palette has a warning step.
+- All spacing, radius and type come from the design tokens. The warning orange is `--color-warning` (D252).
 
 ## Scenarios
 
