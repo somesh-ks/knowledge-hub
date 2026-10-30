@@ -36,6 +36,7 @@ reviews:
         - Shared design tokens: Use existing tokens from tokens.json and primitives.css rather than ad-hoc inline styles or uncurated colors.
         - Load-bearing design fixes: Any rule or markup with a rationale comment (date, D-number, sizer) must not be casually removed or rewritten to make another task work.
         - Astro and CSS: Use Vanilla CSS and Astro components.
+        - Fix at the component: a UI fix changes the design-system component (its class, variant or token in apps/web/src/design-system/ and its stylesheet), never a page rule, inline style or one-off modifier that overrides it. Flag a page-level override of a component, and a PR body that does not say why the component could not hold the change.
   tools:
     ast-grep:
       enabled: true
