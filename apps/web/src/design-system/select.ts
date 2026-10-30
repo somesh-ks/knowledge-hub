@@ -21,7 +21,6 @@ export const SELECT: Guidance & {
   dontUseWhen: [
     {
       when: "The value is one of two to four short options.",
-      instead: "Chip",
     },
     {
       when: "The list is long enough to need a search box (a time zone, a voice).",

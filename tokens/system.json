@@ -411,8 +411,8 @@
       ],
       "not": [
         {
-          "when": "The value is one of two to four short options",
-          "use": "filter-chip"
+          "when": "the value is one of two to four short options",
+          "use": "segmented-choice"
         },
         {
           "when": "several values may be ticked together",

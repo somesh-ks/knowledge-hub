@@ -173,7 +173,10 @@ export const componentParts = (): PartSource[] => [
     ],
   }),
   control("select", "Select", SELECT, {
-    not: [{ when: "several values may be ticked together", use: "multiselect" }],
+    not: [
+      { when: "the value is one of two to four short options", use: "segmented-choice" },
+      { when: "several values may be ticked together", use: "multiselect" },
+    ],
     classes: ["select-outlined", "select-tonal"],
     keywords: [
       "select",
