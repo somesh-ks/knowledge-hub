@@ -5,7 +5,6 @@ import {
   type Source,
   type SourceType,
 } from "@singularity/core";
-import { type AuthorityMatcher, isAuthority } from "../authority/authority.js";
 import {
   categoryHint,
   isDesignHinted,
@@ -13,6 +12,10 @@ import {
   isTopicTagged,
   isTrendingHinted,
 } from "../sources/hint.js";
+import {
+  isTrustedPublisher,
+  type TrustedPublisherMatcher,
+} from "../trustedPublishers/trustedPublishers.js";
 import { authorMatches, containsPhrase, keywordRegExp } from "./phrase.js";
 import { releaseWeight } from "./releaseWeight.js";
 
@@ -65,7 +68,7 @@ export interface PrefilterInput {
   /** Cap for the Trending beat. */
   trendingCap?: number;
   /** The owner's vetted publishers (D234): their pages count as high signal, as a favourite source's do. */
-  authority?: AuthorityMatcher;
+  trustedPublishers?: TrustedPublisherMatcher;
 }
 
 export interface PrefilterReport {
@@ -179,7 +182,7 @@ export function prefilter({
   cap = DEFAULT_CAP,
   techCap = TECH_CAP,
   trendingCap = TRENDING_CAP,
-  authority,
+  trustedPublishers,
 }: PrefilterInput): PrefilterResult {
   const sourceById = new Map(sources.map((source) => [source.id, source]));
   const keywords = preferences.preferred_keywords.map((keyword) => keywordRegExp(keyword));
@@ -229,7 +232,7 @@ export function prefilter({
     const authorHit = preferences.preferred_authors.some((name) =>
       authorMatches(item.author, name),
     );
-    const highSignal = source?.high_signal === true || isAuthority(authority, item);
+    const highSignal = source?.high_signal === true || isTrustedPublisher(trustedPublishers, item);
     const hnPoints = item.signals.hn_points ?? 0;
     const redditScore = item.signals.reddit_score ?? 0;
     const strong = hnPoints > STRONG_HN_POINTS || redditScore > STRONG_REDDIT_SCORE;

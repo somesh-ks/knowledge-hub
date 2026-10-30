@@ -75,6 +75,7 @@ export const fetchYoutube: SourceFetcher = async (source, window, deps): Promise
   const raws = entries.map((entry) => ({
     ...entryToRaw(entry),
     signals: {
+      ...(source.high_signal ? { creator_vetted: true } : {}),
       ...(entry.views === undefined ? {} : { youtube_views: entry.views }),
       ...(entry.views === undefined || median === undefined
         ? {}

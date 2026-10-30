@@ -5,17 +5,21 @@ import {
   type Preferences,
   VOICE_LIMITS,
 } from "@singularity/core";
-import { type AuthorityMatcher, withAuthority } from "../authority/authority.js";
 import { type CommunityFile, withCommunity } from "../community/community.js";
 import type { Logger } from "../context.js";
 import type { ExtractedText } from "../extract/extractText.js";
 import { judgeWithCache } from "../judge/cache.js";
 import type { Judge } from "../judge/types.js";
 import { mapConcurrent } from "../llm/concurrency.js";
+import { withCreator } from "../score/creator.js";
 import { scoreItem } from "../score/scoreItem.js";
 import { assignSections, capFor, selectItems } from "../score/selectItems.js";
 import type { ScoredItem, SelectedItem } from "../score/types.js";
 import { writerCategory } from "../topics/writerCategory.js";
+import {
+  type TrustedPublisherMatcher,
+  withTrustedPublishers,
+} from "../trustedPublishers/trustedPublishers.js";
 import type { Grounder } from "../validate/grounding.js";
 import { groundAndRepair } from "../validate/groundingRepair.js";
 import type { Linter } from "../voice/lint.js";
@@ -49,7 +53,7 @@ export interface CurateInput {
   /** Built-in categories set never to publish. */
   offCategories?: readonly string[];
   /** The owner's vetted publishers (D234). */
-  authority?: AuthorityMatcher;
+  trustedPublishers?: TrustedPublisherMatcher;
   community?: CommunityFile;
 }
 
@@ -170,7 +174,12 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
     if (item)
       scored.push(
         withCommunity(
-          withAuthority(scoreItem(entry, input.preferences, item), input.authority),
+          withCreator(
+            withTrustedPublishers(
+              scoreItem(entry, input.preferences, item),
+              input.trustedPublishers,
+            ),
+          ),
           input.community,
         ),
       );
@@ -213,7 +222,12 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
           outcome === "selected"
             ? kept.map((sel) => {
                 const text = writtenText(texts.get(sel.item.id) as WrittenText);
-                return { id: sel.item.id, category: sel.category, score: sel.score, ...text };
+                return {
+                  id: sel.item.id,
+                  category: sel.category,
+                  score: sel.score,
+                  ...text,
+                };
               })
             : [],
       },
@@ -270,6 +284,7 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
       ...(sel.item.author ? { author: sel.item.author } : {}),
       category: writerCategory(sel.category, undefined),
       text: text.text,
+      ...(sel.item.source_type === "youtube" && text.method !== "snippet" ? { spoken: true } : {}),
     });
   }
   counts.extracted = materials.size;
@@ -338,7 +353,9 @@ export async function curatePool(deps: CurateDeps, input: CurateInput): Promise<
       log.error(failure);
       return failed(failure, counts, { ...writtenFile, items: [] }, judged.cache, scoredTop);
     }
-    log.info("Too few items survived writing and validation", { survivors: survivors.length });
+    log.info("Too few items survived writing and validation", {
+      survivors: survivors.length,
+    });
     return finish("nothing", [], { ...writtenFile, items: [] }, false, new Map());
   }
   return finish("selected", survivors, writtenFile, grounding.verified, texts);

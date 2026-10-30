@@ -50,6 +50,11 @@ export const Item = z.object({
        */
       youtube_votes: z.number().int().nonnegative().optional(),
       /**
+       * True on a video from a YouTube channel the owner marked as a favorite. Such a creator already
+       * picks and filters what to cover, so the score reads the video at a minimum depth (D248).
+       */
+      creator_vetted: z.boolean().optional(),
+      /**
        * How many different sources covered the same story, when story clustering merged their
        * items into this one. Two or more; absent for a story only one source carried.
        */

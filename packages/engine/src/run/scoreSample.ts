@@ -12,16 +12,20 @@ import {
   type SourceType,
 } from "@singularity/core";
 import { z } from "zod";
-import { type AuthorityMatcher, withAuthority } from "../authority/authority.js";
 import { type CommunityFile, withCommunity } from "../community/community.js";
 import { readJsonIfExists } from "../curate/inputs.js";
 import { FETCHERS } from "../fetch/fetchers.js";
 import type { SourceFetcher, SourceResult } from "../fetch/types.js";
 import type { HttpClient } from "../http.js";
 import { mapConcurrent } from "../llm/concurrency.js";
+import { withCreator } from "../score/creator.js";
 import { scoreItem } from "../score/scoreItem.js";
 import { eligibility } from "../score/selectItems.js";
 import type { SourceCounts } from "../state/sourceStats.js";
+import {
+  type TrustedPublisherMatcher,
+  withTrustedPublishers,
+} from "../trustedPublishers/trustedPublishers.js";
 import { isFlagged } from "./sourceCounts.js";
 
 /**
@@ -158,13 +162,20 @@ export function planReads(input: {
     if (source.failures >= REFILL_MAX_FAILURES) continue;
     if (!due(s, source.id, today, REFILL_DAYS)) continue;
     const back = s[source.id]?.sampled_at === undefined ? BACKFILL_DAYS : REFILL_DAYS;
-    reads.push({ source, reason: "refill", from: new Date(now.getTime() - back * DAY_MS) });
+    reads.push({
+      source,
+      reason: "refill",
+      from: new Date(now.getTime() - back * DAY_MS),
+    });
   }
   reads.sort(
     (a, b) =>
       judgedOf(s, a.source.id) - judgedOf(s, b.source.id) || a.source.id.localeCompare(b.source.id),
   );
-  return { reads: reads.slice(0, input.readCeiling ?? FEED_READ_CEILING), probeGeneral };
+  return {
+    reads: reads.slice(0, input.readCeiling ?? FEED_READ_CEILING),
+    probeGeneral,
+  };
 }
 
 /**
@@ -190,7 +201,11 @@ export async function readFeeds(
         fetcher(
           read.source,
           { from: read.from, to: deps.now },
-          { http: deps.http, now: () => deps.now, signal: AbortSignal.timeout(READ_TIMEOUT_MS) },
+          {
+            http: deps.http,
+            now: () => deps.now,
+            signal: AbortSignal.timeout(READ_TIMEOUT_MS),
+          },
         ),
         new Promise<never>((_, reject) => {
           timer = setTimeout(
@@ -200,7 +215,12 @@ export async function readFeeds(
         }),
       ]);
       items.set(read.source.id, got);
-      return { source_id: read.source.id, ok: true, count: got.length, ms: Date.now() - started };
+      return {
+        source_id: read.source.id,
+        ok: true,
+        count: got.length,
+        ms: Date.now() - started,
+      };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return {
@@ -305,12 +325,19 @@ export function countSample(input: {
   /** Built-in categories the pass has muted. */
   offCategories?: readonly string[];
   /** The owner's vetted publishers: a lifted announcement counts as passed, as it will in the pool. */
-  authority?: AuthorityMatcher;
+  trustedPublishers?: TrustedPublisherMatcher;
   community?: CommunityFile;
 }): Record<string, SourceCounts> {
   const out: Record<string, SourceCounts> = {};
   const row = (id: string): SourceCounts => {
-    out[id] ??= { fetched: 0, judged: 0, passed: 0, asked: 0, flagged: 0, sampled: 0 };
+    out[id] ??= {
+      fetched: 0,
+      judged: 0,
+      passed: 0,
+      asked: 0,
+      flagged: 0,
+      sampled: 0,
+    };
     return out[id];
   };
   for (const id of Object.keys(input.sample.general_reads)) row(id).read_feed = true;
@@ -325,7 +352,9 @@ export function countSample(input: {
     counts.asked = (counts.asked ?? 0) + 1;
     if (isFlagged(entry.flags)) counts.flagged = (counts.flagged ?? 0) + 1;
     const scored = withCommunity(
-      withAuthority(scoreItem(entry, input.preferences, item), input.authority),
+      withCreator(
+        withTrustedPublishers(scoreItem(entry, input.preferences, item), input.trustedPublishers),
+      ),
       input.community,
     );
     if (eligibility(scored, undefined, input.offCategories).eligible) counts.passed += 1;

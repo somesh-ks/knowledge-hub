@@ -93,6 +93,11 @@ export function classTokens(text: string): Set<string> {
     /classList\.(?:add|toggle|remove|contains)\(([^)]*)\)/g,
   ))
     for (const [, quoted = ""] of args.matchAll(/["'`]([^"'`]*)["'`]/g)) add(quoted);
+  // The command center's scripts draw nodes with element(tag, className).
+  for (const [, className = ""] of text.matchAll(
+    /\belement\(\s*["'][^"']*["']\s*,\s*["']([^"']*)["']/g,
+  ))
+    add(className);
   // The Button draws its classes from its props, so the markup never writes them (D237).
   for (const [, props = ""] of text.matchAll(/<Button\b([^>]*)>/g)) {
     const variant = /\bvariant="(\w+)"/.exec(props)?.[1];
@@ -109,11 +114,16 @@ export function classTokens(text: string): Set<string> {
   return found;
 }
 
+/** The apps that draw the system's parts: the reader and the command center, which imports its sheets. */
+const APP_SOURCES = [SRC, join(ROOT, "apps/admin/src")];
+
 export function sourceFiles(): { path: string; text: string; tokens: Set<string> }[] {
-  return filesUnder(
-    SRC,
-    [".astro", ".tsx", ".ts", ".js"],
-    (path) => path.endsWith(".test.ts") || posix(path).includes("/pages/design/"),
+  return APP_SOURCES.flatMap((dir) =>
+    filesUnder(
+      dir,
+      [".astro", ".tsx", ".ts", ".js"],
+      (path) => path.endsWith(".test.ts") || posix(path).includes("/pages/design/"),
+    ),
   ).map((path) => {
     const text = readFileSync(path, "utf8");
     return { path, text, tokens: classTokens(text) };

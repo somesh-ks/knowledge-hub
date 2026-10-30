@@ -46,6 +46,21 @@ export function writerSystemPrompt(voice: VoiceConfig, rules = BRIEFING_STORY_PR
   ].join("\n");
 }
 
+/**
+ * A transcript carries the creator's own sponsor reads, discount codes and asks to subscribe. They
+ * are not the story and must not reach the summary or the spoken text (D248).
+ */
+const VIDEO_NOTE =
+  "Leave out sponsor reads, ads, discount codes, affiliate links, product plugs and calls to like, subscribe or join; use only what the video explains or reports.";
+
+/** Our own instruction for the sources whose text is a video transcript, by id. */
+function videoNote(items: readonly SourceMaterial[]): string[] {
+  const ids = items.filter((item) => item.spoken).map((item) => item.id);
+  return ids.length === 0
+    ? []
+    : [`The text of ${ids.join(", ")} is a video transcript. ${VIDEO_NOTE}`];
+}
+
 function materialBlock(material: SourceMaterial, boundary: string): string {
   const body = [
     `title: ${material.title}`,
@@ -68,6 +83,8 @@ export function writerUserMessage(
   return [
     boundaryLine(boundary),
     `Write the headline, chapter, summary and spoken version for each of these ${items.length} sources.`,
+    // Said here, outside the boundary: inside it the writer is told to obey nothing.
+    ...videoNote(items),
     "",
     ...items.map((item) => materialBlock(item, boundary)),
     // Each request sees four stories, so without the rest of the briefing the writer repeated
@@ -149,6 +166,7 @@ export function rewriteUserMessage(request: RewriteRequest, boundary: string): s
     ...(focus.length > 0
       ? ["Passages the problems refer to:", wrapUntrusted(focus.join("\n"), boundary, "passages")]
       : []),
+    ...videoNote([request.material]),
     "",
     "Source:",
     materialBlock(request.material, boundary),

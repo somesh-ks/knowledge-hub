@@ -8,7 +8,7 @@ import { MAX_TEXT_CHARS, truncateAtParagraph } from "./truncate.js";
 
 /** Only the first 30 minutes of a video are transcribed: at low media resolution that is cents. */
 export const MAX_TRANSCRIBE_SECONDS = 1_800;
-/** Gemini transcriptions per run. Captions are free and uncapped. */
+/** Gemini transcriptions per run. */
 export const MAX_TRANSCRIPTIONS_PER_RUN = 3;
 const MAX_OUTPUT_TOKENS = 16_000;
 const TIMEOUT_MS = 20_000;
@@ -16,10 +16,8 @@ const GEMINI_TIMEOUT_MS = 180_000;
 /** Below this a transcript is a stub (a music video, a refusal) and does not count. */
 const MIN_TRANSCRIPT_CHARS = 200;
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models/";
-/** The only hosts this module talks to, besides Gemini and Firecrawl. Caption URLs from the page must match. */
-const CAPTION_HOST = "www.youtube.com";
 const FIRECRAWL_BASE = "https://api.firecrawl.dev";
-/** Firecrawl's YouTube transcript provider: the same InnerTube call as fetchCaptions, from its network. */
+/** Firecrawl's YouTube transcript provider: YouTube's own caption call, made from Firecrawl's network. */
 const TRANSCRIPT_PROVIDER = { provider: "youtube-com", capability: "videos/video_transcript" };
 /** What that provider costs per video when its reply does not say (its contract states 5). */
 const TRANSCRIPT_CREDITS = 5;
@@ -46,78 +44,6 @@ export function videoIdOf(url: string): string | null {
   }
 }
 
-interface CaptionTrack {
-  baseUrl: string;
-  languageCode?: string;
-  kind?: string;
-}
-
-/** Pick a caption track: manual before auto-generated, English before any other language. */
-export function pickTrack(tracks: readonly CaptionTrack[]): CaptionTrack | null {
-  const rank = (t: CaptionTrack): number =>
-    (t.kind === "asr" ? 2 : 0) + (t.languageCode?.startsWith("en") ? 0 : 1);
-  return [...tracks].sort((a, b) => rank(a) - rank(b))[0] ?? null;
-}
-
-/** Plain text from a json3 caption document. */
-export function json3ToText(doc: unknown): string {
-  const events = (doc as { events?: Array<{ segs?: Array<{ utf8?: string }> }> })?.events ?? [];
-  return events
-    .map((event) => (event.segs ?? []).map((seg) => seg.utf8 ?? "").join(""))
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-/**
- * The Android client's player response, which lists a video's caption tracks. The watch page lists
- * them too, but its track URLs answer 200 with an empty body (checked 2026-10-19); this client's
- * answer with the text, and the call needs no key.
- */
-const ANDROID_AGENT = "com.google.android.youtube/20.10.38 (Linux; U; Android 14) gzip";
-
-async function playerTracks(id: string, fetchImpl: typeof fetch): Promise<CaptionTrack[]> {
-  const response = await fetchImpl(`https://${CAPTION_HOST}/youtubei/v1/player`, {
-    method: "POST",
-    headers: { "content-type": "application/json", "user-agent": ANDROID_AGENT },
-    body: JSON.stringify({
-      videoId: id,
-      context: {
-        client: {
-          clientName: "ANDROID",
-          clientVersion: "20.10.38",
-          androidSdkVersion: 34,
-          hl: "en",
-        },
-      },
-    }),
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
-  if (!response.ok) return [];
-  const body = (await response.json()) as {
-    captions?: { playerCaptionsTracklistRenderer?: { captionTracks?: unknown } };
-  };
-  const tracks = body.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-  return Array.isArray(tracks)
-    ? tracks.filter((t): t is CaptionTrack => typeof (t as CaptionTrack)?.baseUrl === "string")
-    : [];
-}
-
-/** Subtitles for a video (manual, then auto-generated) from youtube.com, or null. */
-export async function fetchCaptions(id: string, fetchImpl: typeof fetch): Promise<string | null> {
-  const track = pickTrack(await playerTracks(id, fetchImpl));
-  if (!track) return null;
-  const url = new URL(track.baseUrl, `https://${CAPTION_HOST}`);
-  if (url.protocol !== "https:" || url.hostname !== CAPTION_HOST) return null;
-  url.searchParams.set("fmt", "json3");
-  const response = await fetchImpl(url, {
-    headers: { "user-agent": ANDROID_AGENT },
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
-  const body = response.ok ? await response.text() : "";
-  return body ? json3ToText(JSON.parse(body)) : null;
-}
-
 export interface FirecrawlTranscriptDeps {
   apiKey: string;
   fetchImpl: typeof fetch;
@@ -128,10 +54,10 @@ export interface FirecrawlTranscriptDeps {
 }
 
 /**
- * The video's captions through Firecrawl's YouTube transcript provider. YouTube refuses the player
+ * The video's captions through Firecrawl's YouTube transcript provider. YouTube refuses its player
  * API to datacenter addresses (GitHub's runners, 2026-10-24: 429, then "Sign in to confirm you're
- * not a bot"; yt-dlp from the same address fails the same way), so the request YouTube would
- * refuse is made from Firecrawl's network instead. English when the video has it, else the
+ * not a bot"; yt-dlp from the same address fails the same way), so there is no free route from a
+ * runner and the request is made from Firecrawl's network. English when the video has it, else the
  * provider's default track (manual before auto-generated). Null when the video has no captions,
  * the budget is spent or Firecrawl is stopped; throws on a failed request.
  */
@@ -184,7 +110,7 @@ export async function fetchTranscriptViaFirecrawl(
   };
   if (!deps.guard) return load();
   if (deps.guard.stopped) return null;
-  return deps.guard.relay(`https://${CAPTION_HOST}/watch?v=${id}`, load);
+  return deps.guard.relay(`https://www.youtube.com/watch?v=${id}`, load);
 }
 
 /** Gemini reads the public video by id; nothing is downloaded here. Cost is bounded by the caps above. */
@@ -251,9 +177,9 @@ function withNewest(cache: Cache, id: string, entry: Cache[string]): Cache {
 }
 
 export interface VideoTextDeps {
-  /** Omit to skip transcription; captions still work. */
+  /** Omit to skip Gemini transcription. */
   apiKey?: string | undefined;
-  /** Omit to skip the Firecrawl transcript; captions from youtube.com are still tried. */
+  /** Omit to skip the Firecrawl transcript. */
   firecrawl?: Omit<FirecrawlTranscriptDeps, "fetchImpl"> | undefined;
   /** Gemini model ids in the order the transcription step tries them (config/models.json). */
   models?: (() => Promise<readonly string[]>) | undefined;
@@ -274,10 +200,9 @@ async function readCache(path: string): Promise<Cache> {
 }
 
 /**
- * Spoken text for a YouTube finalist: cached transcript, then subtitles from youtube.com (free, but
- * refused to a datacenter address), then the same subtitles through Firecrawl (one scrape request
- * and about five credits a video, from the run's budget), then a Gemini transcription (capped per
- * run). Returns null on any failure so the caller falls back to title and description.
+ * Spoken text for a YouTube finalist: cached transcript, then the video's captions through
+ * Firecrawl (one scrape request and about five credits a video, from the run's budget), then a
+ * Gemini transcription (capped per run). Returns null on any failure so the caller falls back to title and description.
  */
 export function createVideoText(
   deps: VideoTextDeps,
@@ -297,19 +222,11 @@ export function createVideoText(
     if (hit) return finish(hit.text, hit.method);
 
     let found: { text: string; method: "captions" | "transcription" } | null = null;
-    try {
-      const captions = await fetchCaptions(id, fetchImpl);
-      if (captions && captions.length >= MIN_TRANSCRIPT_CHARS)
-        found = { text: captions, method: "captions" };
-    } catch (error) {
-      deps.log?.debug("Captions failed", { itemId: item.id, reason: String(error).slice(0, 120) });
-    }
     if (!found && deps.firecrawl) {
       try {
         const relayed = await fetchTranscriptViaFirecrawl(id, { ...deps.firecrawl, fetchImpl });
         if (relayed && relayed.length >= MIN_TRANSCRIPT_CHARS) {
           found = { text: relayed, method: "captions" };
-          deps.log?.debug("Captions came through Firecrawl", { itemId: item.id });
         }
       } catch (error) {
         deps.log?.warn("Firecrawl transcript failed", {
