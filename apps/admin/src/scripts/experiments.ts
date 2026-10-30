@@ -16,8 +16,11 @@ const NOTE_OFFLINE = "The store cannot be reached. Showing the last deploy.";
 const root = document.querySelector<HTMLElement>("[data-experiments]");
 const rows = [...document.querySelectorAll<HTMLElement>("[data-experiment][data-built]")];
 const flags = new Map<string, FlagRow>();
-/** Experiments with a write under way: a second one waits, so an older answer cannot land last. */
-const pending = new Set<string>();
+/** Writes not yet answered, by experiment: its controls wait for them. */
+const pending = new Map<string, number>();
+const count = (id: string, by: number): void => {
+  pending.set(id, (pending.get(id) ?? 0) + by);
+};
 
 const part = <T extends Element>(row: ParentNode, selector: string): T | null =>
   row.querySelector<T>(selector);
@@ -39,7 +42,7 @@ function render(row: HTMLElement): void {
   const promote = part<HTMLButtonElement>(row, "[data-promote]");
   if (!control || !promote || !label) return;
   label.textContent = word;
-  const waiting = pending.has(row.dataset.experiment ?? "");
+  const waiting = (pending.get(row.dataset.experiment ?? "") ?? 0) > 0;
   control.checked = on;
   control.disabled = promoted || waiting;
   // Promote waits, unseen but in its place, in a row that cannot use it (admin.css).
@@ -63,11 +66,23 @@ async function ask(init?: { id: string; action: ExperimentAction }): Promise<Res
   });
 }
 
-/** Writes one switch; true when the store has it. A failure says so in a toast and changes nothing. */
-async function write(id: string, action: ExperimentAction): Promise<boolean> {
-  if (pending.has(id)) return false;
-  pending.add(id);
+/**
+ * Writes one switch; true when the store has it. A failure says so in a toast and changes nothing.
+ * Writes go one at a time, in the order asked: each answer is every switch as the store has it, so
+ * an older answer must not land after a newer one, and an Undo made while its write is under way
+ * runs after it.
+ */
+let queue: Promise<unknown> = Promise.resolve();
+function write(id: string, action: ExperimentAction): Promise<boolean> {
+  count(id, 1);
   renderAll();
+  const run = queue.then(() => send(id, action));
+  queue = run;
+  return run;
+}
+
+/** One write and its answer; never rejects. */
+async function send(id: string, action: ExperimentAction): Promise<boolean> {
   try {
     const response = await ask({ id, action });
     const body = (await response.json()) as { flags?: FlagRow[]; error?: string };
@@ -80,7 +95,7 @@ async function write(id: string, action: ExperimentAction): Promise<boolean> {
   } catch {
     toast("Could not save. Try again.", "error");
   } finally {
-    pending.delete(id);
+    count(id, -1);
     renderAll();
   }
   return false;
