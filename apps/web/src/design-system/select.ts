@@ -24,7 +24,10 @@ export const SELECT: Guidance & {
       instead: "Chip",
     },
     {
-      when: "The list needs a search box (a time zone, a voice), or several values may be ticked.",
+      when: "The list is long enough to need a search box (a time zone, a voice).",
+    },
+    {
+      when: "Several values may be ticked together.",
     },
   ],
   variants: {

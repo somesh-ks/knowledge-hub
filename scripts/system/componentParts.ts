@@ -68,7 +68,14 @@ const control = (
   id: string,
   name: string,
   guidance: Guidance,
-  extra: { keywords: string[]; markup: string; rules?: string[]; classes?: string[] },
+  extra: {
+    keywords: string[];
+    markup: string;
+    rules?: string[];
+    classes?: string[];
+    /** Exclusions that point at a part not yet a component (a hand-written one in parts.ts). */
+    not?: { when: string; use: string }[];
+  },
 ): PartSource => ({
   id,
   name,
@@ -77,11 +84,20 @@ const control = (
   classes: [`${id}-input`],
   files: [`design-system/${name}.astro`, `design-system/${id}.ts`],
   when: sentences(guidance.useWhen),
-  not: guidance.dontUseWhen.map((item) => ({
-    when: item.when.replace(/\.$/, ""),
-    use: partOf(item.instead, "button-text"),
-  })),
-  ...extra,
+  // An exclusion with no `instead` has no part to point at: the lookup leaves it out rather than guess.
+  not: [
+    ...guidance.dontUseWhen
+      .filter((item) => item.instead)
+      .map((item) => ({
+        when: item.when.replace(/\.$/, ""),
+        use: partOf(item.instead, "button-text"),
+      })),
+    ...(extra.not ?? []),
+  ],
+  keywords: extra.keywords,
+  markup: extra.markup,
+  rules: extra.rules,
+  ...(extra.classes ? { classes: extra.classes } : {}),
 });
 
 export const componentParts = (): PartSource[] => [
@@ -152,6 +168,7 @@ export const componentParts = (): PartSource[] => [
     ],
   }),
   control("select", "Select", SELECT, {
+    not: [{ when: "several values may be ticked together", use: "multiselect" }],
     classes: ["select-outlined", "select-tonal"],
     keywords: [
       "select",

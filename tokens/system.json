@@ -415,8 +415,8 @@
           "use": "filter-chip"
         },
         {
-          "when": "The list needs a search box (a time zone, a voice), or several values may be ticked",
-          "use": "button-text"
+          "when": "several values may be ticked together",
+          "use": "multiselect"
         }
       ],
       "keywords": [
