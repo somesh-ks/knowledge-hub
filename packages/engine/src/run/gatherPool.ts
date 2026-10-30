@@ -6,7 +6,6 @@ import {
   type Source,
   type SourcesFile,
 } from "@singularity/core";
-import { authorityMatcher, authorityQueries, loadAuthority } from "../authority/authority.js";
 import { loadPreferences } from "../curate/inputs.js";
 import { dedupe } from "../dedupe/dedupe.js";
 import { fetchAll, selectSources } from "../fetch/fetchAll.js";
@@ -27,6 +26,11 @@ import { loadSources } from "../sources/registry.js";
 import { overlayHealth } from "../state/sourceHealth.js";
 import { readSeen, readSourceHealth } from "../state/store.js";
 import { loadTopicsFile } from "../topics/store.js";
+import {
+  loadTrustedPublishers,
+  trustedPublisherMatcher,
+  trustedPublisherQueries,
+} from "../trustedPublishers/trustedPublishers.js";
 import { activeGeneralFrom, buildGeneralPool, type GeneralPoolFile } from "./generalNews.js";
 import { generalIdsFor } from "./generalScope.js";
 import type { FetchSetup } from "./types.js";
@@ -80,22 +84,21 @@ export interface GatherResult {
  */
 export async function gatherPool(input: GatherInput): Promise<GatherResult> {
   const { root, now, setup } = input;
-  const [configured, health, preferences, seen, queries, authority, topicsFile] = await Promise.all(
-    [
+  const [configured, health, preferences, seen, queries, trustedPublishers, topicsFile] =
+    await Promise.all([
       loadSources(root),
       readSourceHealth(root),
       loadPreferences(root),
       readSeen(root),
       loadQueries(root),
-      loadAuthority(root),
+      loadTrustedPublishers(root),
       loadTopicsFile(root),
-    ],
-  );
+    ]);
   // The owner's vetted publishers (D234): their own Exa queries, and the matcher the prefilter reads.
-  const authorityMatch = authorityMatcher(authority);
+  const trustedPublisherMatch = trustedPublisherMatcher(trustedPublishers);
   const exaQueries = [
     ...queries.queries,
-    ...authorityQueries(authority, resolveTopics(topicsFile).topics),
+    ...trustedPublisherQueries(trustedPublishers, resolveTopics(topicsFile).topics),
   ];
   // Health lives in state/, not config/, so a run never rewrites hand-edited configuration.
   const sources = overlayHealth(configured, health);
@@ -184,7 +187,7 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
     preferences,
     sources: sources.sources,
     now,
-    authority: authorityMatch,
+    trustedPublishers: trustedPublisherMatch,
     ...(input.poolCap === undefined ? {} : { cap: input.poolCap }),
   });
   const kept = new Set(filtered.items.map((item) => item.id));

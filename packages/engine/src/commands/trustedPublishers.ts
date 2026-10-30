@@ -2,17 +2,17 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { type Item, JudgmentsFile } from "@singularity/core";
-import { loadAuthority } from "../authority/authority.js";
-import {
-  AUTHORITY_PASS_GUARD,
-  type AuthorityReplay,
-  replayAuthority,
-} from "../authority/replay.js";
 import type { CommandRun } from "../context.js";
 import { loadPreferences } from "../curate/inputs.js";
 import { PoolFile } from "../fetch/pool.js";
+import {
+  replayTrustedPublishers,
+  TRUSTED_PUBLISHERS_PASS_GUARD,
+  type TrustedPublishersReplay,
+} from "../trustedPublishers/replay.js";
+import { loadTrustedPublishers } from "../trustedPublishers/trustedPublishers.js";
 
-const USAGE = "Usage: singularity authority replay <pools-dir> [--days <n>]";
+const USAGE = "Usage: singularity publishers replay <pools-dir> [--days <n>]";
 const DEFAULT_DAYS = 14;
 const DAY_MS = 86_400_000;
 
@@ -27,9 +27,9 @@ async function findPools(dir: string): Promise<string[]> {
   return found;
 }
 
-function format(report: AuthorityReplay, pools: number): string {
+function format(report: TrustedPublishersReplay, pools: number): string {
   const lines = [
-    `Authority replay over ${pools} pools: ${report.items} items, ${report.judged} with a judgment, ${report.authority_items} from the list`,
+    `Trusted publishers replay over ${pools} pools: ${report.items} items, ${report.judged} with a judgment, ${report.trusted_items} from the list`,
     `Passing the bar: ${report.passed_before} without the list, ${report.passed_after} with it`,
     "",
     "By domain (judged, passed before, passed after, share after)",
@@ -47,14 +47,14 @@ function format(report: AuthorityReplay, pools: number): string {
   if (report.over_guard.length > 0) {
     lines.push(
       "",
-      `Over ${Math.round(AUTHORITY_PASS_GUARD * 100)}% of judged items pass: ${report.over_guard.join(", ")}. Reassess the list before switching it on.`,
+      `Over ${Math.round(TRUSTED_PUBLISHERS_PASS_GUARD * 100)}% of judged items pass: ${report.over_guard.join(", ")}. Reassess the list before switching it on.`,
     );
   }
   return lines.join("\n");
 }
 
 /**
- * `singularity authority replay <dir>`: what config/trusted-publishers.json would change, scored from the
+ * `singularity publishers replay <dir>`: what config/trusted-publishers.json would change, scored from the
  * cached judgments (state/judgments.json) and the pools in <dir> (the run artifacts, unpacked).
  * Offline and free; the list is read as if on. Changes nothing.
  */
@@ -107,18 +107,23 @@ export const run: CommandRun = async (argv, ctx) => {
     pools += 1;
     items.push(...parsed.data.items);
   }
-  const [authority, preferences, judgments] = await Promise.all([
-    loadAuthority(ctx.root),
+  const [trustedPublishers, preferences, judgments] = await Promise.all([
+    loadTrustedPublishers(ctx.root),
     loadPreferences(ctx.root),
     readFile(join(ctx.root, "state", "judgments.json"), "utf8").then((text) =>
       JudgmentsFile.parse(JSON.parse(text)),
     ),
   ]);
-  if (authority.entries.length === 0) {
+  if (trustedPublishers.entries.length === 0) {
     ctx.log.error("config/trusted-publishers.json lists no domain");
     return 1;
   }
-  const report = replayAuthority({ pools: items, judgments, preferences, authority });
+  const report = replayTrustedPublishers({
+    pools: items,
+    judgments,
+    preferences,
+    trustedPublishers,
+  });
   process.stdout.write(`${ctx.json ? JSON.stringify(report) : format(report, pools)}\n`);
   return 0;
 };

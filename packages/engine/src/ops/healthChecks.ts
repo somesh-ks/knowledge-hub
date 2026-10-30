@@ -24,7 +24,6 @@ import {
   planEpisodeNarration,
   segmentMarksPath,
 } from "../audio/segmentStore.js";
-import { parseAuthority } from "../authority/authority.js";
 import { parseCommunity } from "../community/community.js";
 import { redact } from "../context.js";
 import { parseQueries } from "../fetch/queries.js";
@@ -33,7 +32,6 @@ import { formatReading, summarize } from "../metrics/summary.js";
 import { readTimings } from "../podcast/timings.js";
 import { listEpisodeIds } from "../publish/publishEpisodes.js";
 import { readConfigDocuments } from "../store/configDocs.js";
-
 import {
   CONFIG_DOCUMENT_PATHS,
   type ConfigDocument,
@@ -53,6 +51,7 @@ import {
   VITALS_WINDOW_DAYS,
   type VitalSummary,
 } from "../store/vitalsStore.js";
+import { parseTrustedPublishers } from "../trustedPublishers/trustedPublishers.js";
 import { configChecks } from "./doctorOffline.js";
 import { firstIssue, readFileIfPresent } from "./doctorTypes.js";
 import {
@@ -117,7 +116,7 @@ const CONFIG_SCHEMAS: Array<[string, (json: unknown) => unknown]> = [
   ["config/prices.json", (json) => PriceTable.parse(json)],
   ["config/source-catalog.json", (json) => parseSourceCatalog(json)],
   ["config/sources.user.json", (json) => SourcesUserFile.parse(json)],
-  ["config/trusted-publishers.json", (json) => parseAuthority(json)],
+  ["config/trusted-publishers.json", (json) => parseTrustedPublishers(json)],
   ["config/community.json", (json) => parseCommunity(json)],
 ];
 
