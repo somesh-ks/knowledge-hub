@@ -2,7 +2,7 @@
  * The Slider: one value on a line, set by dragging a thumb. The one place its class is written.
  * Slider.astro renders from it; a script or a React island that draws a slider calls sliderClass();
  * the style guide lists SLIDER. The rules are in styles/slider.css; the caller keeps --range-fill
- * (a percentage) equal to the value, because WebKit paints the filled part of the track from it.
+ * (a percentage) at (value - min) / (max - min), because WebKit paints the filled part of the track from it.
  */
 import type { Guidance } from "./guidance";
 

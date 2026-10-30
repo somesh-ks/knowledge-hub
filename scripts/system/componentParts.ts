@@ -133,7 +133,7 @@ export const componentParts = (): PartSource[] => [
     markup:
       '<Slider aria-label="Volume" min="0" max="1" step="0.05" value="0.7" style="--range-fill: 70%" />',
     rules: [
-      "WebKit paints the filled track from --range-fill, which starts at 0%: set it to the value's percentage and update it on input.",
+      "WebKit paints the filled track from --range-fill, which starts at 0%: set it to (value - min) / (max - min) as a percentage and update it on input.",
     ],
   }),
 ];
