@@ -45,7 +45,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - YouTube feeds 404 on runners; #235 reads them via Firecrawl. closed when: a fetch lists the five in `relayed_sources`.
 - D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone app loads a deploy itself (D202), health shows `field` lines, a Monday opens or closes `health-warnings`.
 - Downloads (D127, D281) on a phone: Blob CORS. closed when: Play works in airplane mode.
-- Episode quality (D119, D120), refill: no live spares. closed when: a digest that lost stories in grounding airs within 10% length.
+- Episode quality (D119, D120), refill: no live spares. closed when: a digest that lost stories in grounding airs within 10%.
 - Safari and WebKit: the iPhone `@smoke` set (`PLAYER_WEBKIT=1`) has not run. closed when: an iPhone passes.
 - "Narration is not available right now" (10-12): not reproduced. closed when: a failure's `server` fault names the step.
 - Time zone (D100, D239) only faked; `sinceLabel`, `pendingAudio` and `podcast/select` still use Stockholm's today. closed when: a run across the 10-25 clock change publishes on the right day.
