@@ -235,6 +235,54 @@ test.describe("the chrome holds still on a move", () => {
   });
 });
 
+test.describe("a second press while the pill is still sliding", () => {
+  test("starts the next slide from where the pill is drawn, not from its tab", async ({ page }) => {
+    await openWarm(page);
+    await page.evaluate(() => {
+      const w = window as unknown as { __press: { before: number; after: number } };
+      w.__press = { before: Number.NaN, after: Number.NaN };
+      // Where the pill is drawn: its tab's box plus the slide it is still making.
+      const x = () => {
+        const tab = document.querySelector('.app-nav-item[aria-current="page"] .app-nav-indicator');
+        if (!tab) return Number.NaN;
+        const slide = Number.parseFloat(getComputedStyle(tab, "::before").translate);
+        return tab.getBoundingClientRect().left + (Number.isNaN(slide) ? 0 : slide);
+      };
+      let presses = 0;
+      document.addEventListener(
+        "click",
+        () => {
+          presses += 1;
+          if (presses === 2) w.__press.before = x();
+        },
+        { capture: true },
+      );
+      document.addEventListener("astro:before-preparation", () => {
+        if (presses === 2) w.__press.after = x();
+      });
+    });
+    const library = await item(page, "/library").locator(".app-nav-indicator").boundingBox();
+    await item(page, "/library").click();
+    // Slowed to a crawl 30 ms in: the pill is far from under its tab when the second press comes.
+    await page.evaluate(() => {
+      for (const animation of document.getAnimations()) {
+        if ((animation as CSSAnimation).animationName === "nav-pill-slide") {
+          animation.effect?.updateTiming({ delay: 0 });
+          animation.currentTime = 30;
+          animation.updatePlaybackRate(0.01);
+        }
+      }
+    });
+    await item(page, "/settings").click();
+    await expect(heading(page)).toHaveText("Settings");
+    const { before, after } = await page.evaluate(
+      () => (window as unknown as { __press: { before: number; after: number } }).__press,
+    );
+    expect(Math.abs(before - (library?.x ?? 0)), "the pill was mid-slide").toBeGreaterThan(8);
+    expect(Math.abs(after - before)).toBeLessThan(16);
+  });
+});
+
 test.describe("a cover carries you in and out", () => {
   test("it lands on the box of the cover it becomes, so nothing jumps when it arrives", async ({
     page,

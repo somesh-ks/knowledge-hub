@@ -2896,6 +2896,13 @@
       "light": "150ms"
     },
     {
+      "name": "--duration-travel",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "300ms",
+      "role": "A thing that stays on screen and moves from where it was to where it is: the nav pill between tabs, a cover between its card and the page's hero. On --ease-out, so it lands once and stops."
+    },
+    {
       "name": "--duration-sheet-in",
       "tier": "primitive",
       "type": "duration",

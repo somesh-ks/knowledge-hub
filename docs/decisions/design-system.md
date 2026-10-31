@@ -439,15 +439,14 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Revisit if: a style needs to change a color ramp (the rule against primitives and the cover, ambient-light and `theme-color` observers need a design first), or two styles want one structural rule that tokens cannot express.
 - Amends: D125.
 
-## D271: a thing that stays on screen and moves rides the default spatial spring
+## D271: a thing that stays on screen and moves travels in 300 ms on the out curve
 
-- Date: 2026-10-31 (the owner, 16:39: "morph away, it looks good" for the cover; the rest called for him, who is away). Amends D230.
-- Decision: the nav pill slides from the tab it left to the new one (`nav-pill-slide`, shell.css; `navigationBoost.ts` measures the distance on the press and `navigation.ts` carries it across the swap with the elapsed time). A cover flies between its card and the page's hero on a drill in and out (`coverMorph.ts`: a copy of the leaving cover drawn over the page, the real one hidden until it lands; its radius travels with it). Both use `--duration-spring-spatial-default` and `--ease-spring-spatial-default` (420 ms, 1.5% overshoot): rule 2 of `docs/specs/motion.md`. A move between tabs keeps its quick fade; the pill is its motion. Reduced motion has no slide and no flight.
+- Date: 2026-10-31 (the owner, 16:39: "morph away, it looks good" for the cover; the rest called for him, who is away).
+- Decision: the nav pill slides from the tab it left to the new one (`nav-pill-slide`, shell.css; `navigationBoost.ts` measures the distance on the press and `navigation.ts` carries it across the swap with the elapsed time). A cover flies between its card and the page's hero on a drill in and out (`coverMorph.ts`: a copy of the leaving cover drawn over the page, the real one hidden until it lands; its radius travels with it). Both use `--duration-travel` (300 ms, the ceiling) on `--ease-out`: they land once and stop. They first rode the default spatial spring (420 ms, 1.5% overshoot); the owner, 17:29: "feels tiny bit slower", asked for 300. A move between tabs keeps its quick fade; the pill is its motion. Reduced motion has no slide and no flight.
 - Why: the page move was a hard cut and a 100 ms fade, and the spring tokens of D230 had no user. A flight by copy keeps the swap free of the two snapshot frames a view transition costs (D47).
-- Calls made for the owner: no role token (`--duration-travel`): the primitive tier is literal (`buildTokens.test.ts`) and the spatial spring already names the job. The side column (64rem and up) draws the row itself, so it has no pill to slide and keeps its fade. The flight is skipped when the card is off screen.
-- Rejected: view-transition names on the cover (two snapshot frames on every move); a bounce past 1.5%; sliding the desktop rows.
-- Revisit if: a flight stutters on a slow phone, or the owner wants tab moves to travel as well.
-- Amends: D230.
+- Calls made for the owner: `--duration-travel` is a literal primitive, not an alias (the tier is literal, `buildTokens.test.ts`); no spring, as none has a 300 ms form (the fastest is 350 ms with a 9% bounce). The side column (64rem and up) draws the row itself, so it has no pill to slide and keeps its fade. The flight is skipped when the card is off screen.
+- Rejected: view-transition names on the cover (two snapshot frames on every move); the 350 ms fast spring (9% bounce); sliding the desktop rows.
+- Revisit if: a flight stutters on a slow phone, the owner wants the small settle back, or tab moves should travel as well.
 
 ## D272: no persisted floating button
 

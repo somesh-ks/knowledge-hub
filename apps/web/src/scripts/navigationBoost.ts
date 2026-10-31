@@ -52,7 +52,7 @@ export function markCurrent(item: HTMLAnchorElement, root: ParentNode): void {
 }
 
 /**
- * How far the pill has to travel to get from under the current tab to under `item`, in pixels, or
+ * How far the pill has to travel to get from where it is drawn to under `item`, in pixels, or
  * null when there is nothing to slide: no current tab, or a side column, which draws a row and no pill.
  */
 export function pillDistance(item: HTMLAnchorElement, root: ParentNode): number | null {
@@ -61,7 +61,10 @@ export function pillDistance(item: HTMLAnchorElement, root: ParentNode): number 
   const from = current.querySelector<HTMLElement>(".app-nav-indicator");
   const to = item.querySelector<HTMLElement>(".app-nav-indicator");
   if (!from || !to || getComputedStyle(from, "::before").content === "none") return null;
-  return Math.round(from.getBoundingClientRect().left - to.getBoundingClientRect().left);
+  // A pill still sliding from the last move is drawn off its tab by what is left of that slide.
+  const sliding = Number.parseFloat(getComputedStyle(from, "::before").translate);
+  const drawn = from.getBoundingClientRect().left + (Number.isFinite(sliding) ? sliding : 0);
+  return Math.round(drawn - to.getBoundingClientRect().left);
 }
 
 /** The pages worth keeping saved: every destination except the one on screen. */

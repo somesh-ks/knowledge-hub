@@ -455,8 +455,7 @@ html[data-mini="visible"] main {
   }
 
   html[data-nav-arrived="slide"] .app-nav-item[aria-current="page"] .app-nav-indicator::before {
-    animation: nav-pill-slide var(--duration-spring-spatial-default)
-      var(--ease-spring-spatial-default);
+    animation: nav-pill-slide var(--duration-travel) var(--ease-out);
     animation-delay: calc(var(--nav-pill-elapsed, 0ms) * -1);
   }
 }
