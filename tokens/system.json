@@ -1559,42 +1559,6 @@
       ]
     },
     {
-      "id": "status-dot",
-      "name": "Status dot",
-      "kind": "feedback",
-      "summary": "A dot that judges a reading good, worth a look or wrong.",
-      "classes": [
-        "status-dot"
-      ],
-      "when": [
-        "a health reading",
-        "a status next to a label, always with a word"
-      ],
-      "not": [
-        {
-          "when": "a message the user must act on",
-          "use": "banner"
-        }
-      ],
-      "keywords": [
-        "health",
-        "indicator",
-        "traffic light"
-      ],
-      "rules": [
-        "Color is information: a word or a glyph always says it too."
-      ],
-      "styles": [
-        "primitives.css"
-      ],
-      "usage": "A status dot: a reading judged good, worth a look or wrong, in the success, warning and danger tones the banners use (banner.css). The words beside it always say the same, so colour is never the only signal; a reading with no judgement (`none`, or no tone) draws no dot and takes no room. 8px on the grid, round.",
-      "tokens": [
-        "--color-danger",
-        "--color-success",
-        "--color-warning"
-      ]
-    },
-    {
       "id": "stat-tiles",
       "name": "Stat tiles",
       "kind": "container",
