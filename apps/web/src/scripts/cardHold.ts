@@ -121,6 +121,18 @@ export function installCardHold(): void {
     true,
   );
 
+  // A key, or a click (the hold's own is cancelled above), is the person closing or picking: that
+  // close is theirs, whatever the clock says (Escape, a keyboard or screen reader activation).
+  for (const type of ["keydown", "click"]) {
+    document.addEventListener(
+      type,
+      () => {
+        opened = null;
+      },
+      true,
+    );
+  }
+
   // Android reads a hold on a link as its link menu, and iOS and Android as a drag of it: the card
   // has its own menu now. A mouse's right click keeps the browser's (copy link).
   document.addEventListener("contextmenu", (event) => {

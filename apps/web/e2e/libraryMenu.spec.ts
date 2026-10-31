@@ -412,8 +412,13 @@ test("a long press on a card opens its menu and leaves the card unopened", async
   await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
   const again = await holdFinger(page, row(page, AUDIO_ID).locator(".card-title"));
   await expect(menu).toBeVisible();
+  // The close is made by the page at the lift itself, as Safari's would be, so a slow runner cannot
+  // push it past the grace.
+  await menu.evaluate((list) =>
+    document.addEventListener("pointerup", () => (list as HTMLElement).hidePopover(), {
+      once: true,
+    }),
+  );
   await again();
-  await menu.evaluate((list) => (list as HTMLElement).hidePopover());
-  await frames();
-  expect(await menu.evaluate((list) => list.matches(":popover-open"))).toBe(true);
+  await expect.poll(() => menu.evaluate((list) => list.matches(":popover-open"))).toBe(true);
 });
