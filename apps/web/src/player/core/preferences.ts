@@ -1,6 +1,7 @@
 import { isFiniteNumber } from "./mathUtils";
 import { isPlaybackRate, type PlaybackRate } from "./playerTypes";
 import { type StorageLike, safeLocalStorage } from "./resume";
+import { tabShared } from "./tabSlot";
 
 /**
  * One JSON object under one key. The layout's inline theme script reads the same key before first
@@ -139,13 +140,15 @@ export function prefersReducedMotion(): boolean {
   );
 }
 
-let shared: PreferencesStore | null = null;
-
-/** The app-wide store. Created on first use so importing this module costs nothing. */
+/**
+ * The app-wide store. Created on first use so importing this module costs nothing. One per tab
+ * (tabSlot.ts): the runtime a first copy started reads it, and a newer copy's Settings writes it.
+ */
 export function getPreferences(): PreferencesStore {
-  shared ??= createPreferencesStore({
-    storage: safeLocalStorage(),
-    defaultSounds: () => !prefersReducedMotion(),
-  });
-  return shared;
+  return tabShared("preferences", () =>
+    createPreferencesStore({
+      storage: safeLocalStorage(),
+      defaultSounds: () => !prefersReducedMotion(),
+    }),
+  );
 }

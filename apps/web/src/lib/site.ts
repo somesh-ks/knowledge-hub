@@ -4,7 +4,7 @@ import { readDigestFiles } from "./digestFiles";
 import { buildEntries, type DigestEntry } from "./digests";
 import { buildEpisodeEntries, type EpisodeEntry, readEpisodeFiles } from "./episodes";
 import { findRepoRoot } from "./repoRoot";
-import { type LastRunSummary, readLastRun, showsNothingBanner } from "./runState";
+import { type LastRunSummary, readLastRun } from "./runState";
 
 /** Fixture digests point their audio here. It is replaced by a same-origin file at build time. */
 export const FIXTURE_AUDIO_HOST = "fixtures.singularity.invalid";
@@ -28,7 +28,6 @@ export interface Site {
   /** Podcast episodes, newest first. Empty until Podcasts/ has a file. */
   episodes: EpisodeEntry[];
   lastRun: LastRunSummary;
-  showNothingBanner: boolean;
   fixtures: boolean;
 }
 
@@ -66,12 +65,10 @@ export async function loadSite(options: LoadSiteOptions = {}): Promise<Site> {
   for (const message of episodeFiles.warnings) warn(message);
   const episodes = buildEpisodeEntries(episodeFiles.episodes);
   const lastRun = await readLastRun(fixtures ? fixturesRoot : root, options.files);
-  const latest = entries[0];
   return {
     entries,
     episodes,
     lastRun,
-    showNothingBanner: showsNothingBanner(lastRun, latest?.digest.generated_at ?? null),
     fixtures,
   };
 }

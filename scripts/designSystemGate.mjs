@@ -19,6 +19,7 @@ export const SYSTEM_PATHS = [
   "apps/web/src/styles/field.css",
   "apps/web/src/styles/select.css",
   "apps/web/src/styles/picker.css",
+  "apps/web/src/styles/wheel.css",
   "apps/web/src/styles/menu.css",
   "apps/web/src/styles/banner.css",
   "apps/web/src/styles/dialog.css",
@@ -53,6 +54,16 @@ const MAY_CHANGE = [
   "docs/design/command-center.md",
   "docs/specs/README.md",
   "apps/web/src/lib/icons.ts",
+  // The rest of what tokens/glyphs.json builds: the player's two registries, the generator and its
+  // test. glyphs.json is a system path, and a change to it (a bold twin per glyph, D274) must
+  // regenerate all three registries in the same pull request or `glyphs --check` fails.
+  "apps/web/src/player/ui/iconPaths.tsx",
+  "apps/web/src/player/ui/iconPathsLazy.tsx",
+  "scripts/buildGlyphs.ts",
+  "scripts/buildGlyphs.test.ts",
+  // The cover is a shared component outside design-system/; its corner rule (D268) follows the
+  // cover-radius tokens, so a token change that needs a cap changes this stylesheet with it.
+  "apps/web/src/styles/cover.css",
   "scripts/gate.mjs",
   "docs/state.md",
   // The Icon moved into the system (D266); its old path is deleted.

@@ -1,5 +1,5 @@
 /**
- * Wires the player to the page: the audio store (a module singleton, so playback outlives any
+ * Wires the player to the page: the audio store (one per tab, so playback outlives any
  * island), Media Session, the reader coupling, announcements, sounds, theme and root attributes.
  *
  * `getPlayerStore()` is cheap and safe to call from render. `startPlayerRuntime()` attaches the
@@ -44,9 +44,8 @@ import { safeLocalStorage } from "./resume";
 import { reapplyRootState, setRootAttribute, setRootProperty } from "./rootAttributes";
 import { getSpeedDefault } from "./speedDefaultRuntime";
 import { loadTimeline, skipper, suggestNext } from "./suggested";
+import { tabShared } from "./tabSlot";
 import { reapplyTheme, startThemeSync } from "./themeRuntime";
-
-let store: PlayerStore | null = null;
 
 function onPageHide(callback: () => void): () => void {
   if (typeof window === "undefined") return () => undefined;
@@ -61,14 +60,13 @@ function onPageHide(callback: () => void): () => void {
   };
 }
 
-let playerAudio: SwitchableAudio | null = null;
-
 /**
  * The one audio element, behind a seam (see narration/switchableAudio.ts). Created in script and
  * never placed in the DOM, so a router that swaps the page cannot take it down with the markup.
+ * One per tab, not per copy of this module (tabSlot.ts): a deploy mid-session loads a second copy.
  */
 export function getPlayerAudio(): SwitchableAudio {
-  if (!playerAudio) {
+  return tabShared("audio", () => {
     // The element a Play pressed before the player loaded has already unlocked, when there is one.
     const element = takeEarlyAudio() ?? new Audio();
     // CORS mode (an early element already asked for it, from its first load). The audio lives on the Blob host, another origin, and
@@ -76,9 +74,8 @@ export function getPlayerAudio(): SwitchableAudio {
     // the next range read failed, so a downloaded briefing stopped after a second offline
     // (2026-10-22, the owner's phone). The Blob host answers with Access-Control-Allow-Origin: *.
     element.crossOrigin = "anonymous";
-    playerAudio = createSwitchableAudio(element);
-  }
-  return playerAudio;
+    return createSwitchableAudio(element);
+  });
 }
 
 /** A tap on Play for a briefing with no finished audio: unlock the element now, narrate next. */
@@ -101,22 +98,26 @@ export function playPageStory(digestId: string, itemId: string): void {
   narrateFromTap(itemId);
 }
 
-let activeReader: ReaderSync | null = null;
+/** The running runtime's reader coupling, which `playBriefingOnArrival` tells where the listener is going. */
+const readerSlot = (): { current: ReaderSync | null } =>
+  tabShared("reader", () => ({ current: null as ReaderSync | null }));
 
 /**
  * Plays a briefing the listener is being taken to (Up next): the same road as a cover press, so one
  * with no finished audio is narrated once its page has loaded.
  */
 export function playBriefingOnArrival(digestId: string): void {
-  activeReader?.expectPage(digestId);
+  readerSlot().current?.expectPage(digestId);
   getPlayerStore().playWhenPageLoads(digestId);
 }
 
-let queue: PlayQueue | null = null;
-
 /** The listener's queue (playQueue.ts). Every change is told to the page as singularity:queue-changed. */
 export function getPlayQueue(): PlayQueue {
-  queue ??= createPlayQueue({
+  return tabShared("queue", () => createQueue());
+}
+
+function createQueue(): PlayQueue {
+  return createPlayQueue({
     storage: safeLocalStorage(),
     // Only an item that has started counts as now playing: one a page merely loaded, idle, can
     // still be queued.
@@ -128,7 +129,6 @@ export function getPlayQueue(): PlayQueue {
       document.dispatchEvent(new CustomEvent(QUEUE_CHANGED_EVENT, { detail: { ids: [...ids] } }));
     },
   });
-  return queue;
 }
 
 /** The suggested items after what is playing: the list Up next shows and Autoplay draws from. */
@@ -140,7 +140,7 @@ export async function loadSuggested(): Promise<string[] | null> {
 }
 
 /** Bumped when the listener picks an item, so an autoplay still loading its list gives way. */
-let playSelections = 0;
+const selections = (): { count: number } => tabShared("selections", () => ({ count: 0 }));
 
 /**
  * Starts what comes next: the first queued item, or else, when `suggest` allows, the first
@@ -155,10 +155,10 @@ export async function playUpNext(
   if (next) return playQueueItem(next);
   if (!suggest) return;
   const wasEnded = getPlayerStore().getState().status === "ended";
-  const selections = playSelections;
+  const selectionsBefore = selections().count;
   const [first] = (await loadSuggested()) ?? [];
   // The listener may have queued something or moved on while the list loaded: the queue wins.
-  if (selections !== playSelections) return;
+  if (selectionsBefore !== selections().count) return;
   if ((getPlayerStore().getState().track?.digest.id ?? null) !== endedId) return;
   // A replay of the same ended track keeps its id: leaving "ended" means the listener restarted it.
   if (wasEnded && getPlayerStore().getState().status !== "ended") return;
@@ -175,7 +175,7 @@ export async function playUpNext(
  * already trusts. The player goes down first, as before every navigation.
  */
 export function playQueueItem(id: string): void {
-  playSelections += 1;
+  selections().count += 1;
   const current = getPlayerStore().getState().track?.digest.id ?? null;
   getPlayQueue().remove(id);
   playBriefingOnArrival(id);
@@ -184,17 +184,19 @@ export function playQueueItem(id: string): void {
     .then(() => navigateTo(queueItemUrl(id), { direction: directionBetween(current, id) }));
 }
 
+/** The audio store, one per tab (tabSlot.ts): a second copy of this module gets the first one's. */
 export function getPlayerStore(): PlayerStore {
-  store ??= createPlayerStore({
-    createAudio: getPlayerAudio,
-    storage: safeLocalStorage(),
-    getPreferredRate: () => getSpeedDefault().getDefaultRate(),
-    // A speed chosen here lasts this episode; the default is only a Settings choice or an accepted offer.
-    onRateChange: (rate) =>
-      getSpeedDefault().noteRate(store?.getState().track?.digest.id ?? null, rate),
-    onPageHide,
-  });
-  return store;
+  return tabShared("store", () =>
+    createPlayerStore({
+      createAudio: getPlayerAudio,
+      storage: safeLocalStorage(),
+      getPreferredRate: () => getSpeedDefault().getDefaultRate(),
+      // A speed chosen here lasts this episode; the default is only a Settings choice or an accepted offer.
+      onRateChange: (rate) =>
+        getSpeedDefault().noteRate(getPlayerStore().getState().track?.digest.id ?? null, rate),
+      onPageHide,
+    }),
+  );
 }
 
 function syncRootState(playerStore: PlayerStore): void {
@@ -241,6 +243,13 @@ function toggleOnSpace(playerStore: PlayerStore): (event: KeyboardEvent) => void
 }
 
 export function startPlayerRuntime(): () => void {
+  // A deploy while the tab is open loads a second copy of the bundle on the next page move, and its
+  // layout script starts the runtime again. One runtime serves the tab: the first copy's listeners
+  // already answer this page's controls, on the store and audio the bar shows. A second one would
+  // answer them too, with a store and audio of its own.
+  const claim = tabShared("runtime", () => ({ running: false }));
+  if (claim.running) return () => undefined;
+  claim.running = true;
   const playerStore = getPlayerStore();
   const preferences = getPreferences();
   // Counted for the install hint on Settings; nothing on this page waits on it, so it loads late.
@@ -254,7 +263,7 @@ export function startPlayerRuntime(): () => void {
     onNextPastEnd: () => void playUpNext(true),
   });
   const reader = createReaderSync(playerStore, narrateFromTap);
-  activeReader = reader;
+  readerSlot().current = reader;
   const stopSound = startSound({ store: playerStore, preferences });
 
   const stopTheme = startThemeSync();
@@ -410,7 +419,8 @@ export function startPlayerRuntime(): () => void {
     removeEventListener("singularity:back", onBack);
     stopTheme();
     stopSound();
-    if (activeReader === reader) activeReader = null;
+    if (readerSlot().current === reader) readerSlot().current = null;
+    claim.running = false;
     reader.destroy();
     detachMediaSession();
   };

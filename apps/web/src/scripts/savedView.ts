@@ -525,6 +525,52 @@ function recount(root: HTMLElement, ops: readonly ConfigOp[]): boolean {
 
 type Upsert = Extract<ConfigOp, { op: "topic.upsert" }>["topic"];
 
+/**
+ * A group's emoji (Design, AI, Technology, Software Engineering) is kept on its home topic
+ * (2026-10-31): a saved pick shows on the group's row in the list and on its page's button, and the
+ * page's next pick sends the home topic with it.
+ */
+function groupEmoji(root: HTMLElement, home: string, topic: Upsert): boolean {
+  let shown = false;
+  const pick = root.querySelector<HTMLElement>(`[data-change-emoji][data-home="${home}"]`);
+  const base = JSON.parse(pick?.dataset.topicBase ?? "{}");
+  // An edit that leaves the emoji out keeps the stored one (the server does).
+  const kept: string | undefined = topic.emoji ?? base.topic?.emoji;
+  for (const row of root.querySelectorAll<HTMLElement>(`a.row-action[data-home="${home}"]`)) {
+    if (kept === undefined) break;
+    const mark = row.querySelector(".topic-emoji");
+    if (mark && mark.textContent !== kept) {
+      mark.textContent = kept;
+      shown = true;
+    }
+  }
+  if (!pick) return shown;
+  const emoji =
+    kept ??
+    topicEmoji({
+      id: root.dataset.page ?? home,
+      name: document.getElementById("page-title")?.textContent ?? "",
+    });
+  // The next pick sends the home topic as it is stored now, not as the build had it.
+  const { emoji: _, ...rest } = base.topic ?? {};
+  const { name, description, enabled, keywords, section_id } = topic;
+  pick.dataset.topicBase = JSON.stringify({
+    ...base,
+    topic: {
+      ...rest,
+      name,
+      description,
+      enabled,
+      keywords,
+      section_id,
+      ...(kept ? { emoji: kept } : {}),
+    },
+  });
+  if (pick.textContent === emoji) return shown;
+  pick.textContent = emoji;
+  return true;
+}
+
 /** A topic's new name and what counts, on its page and on its row in the list. */
 function renameTopic(root: HTMLElement, id: string, topic: Upsert): boolean {
   let shown = false;
@@ -540,6 +586,7 @@ function renameTopic(root: HTMLElement, id: string, topic: Upsert): boolean {
     mark.textContent = emoji;
     shown = true;
   }
+  shown = groupEmoji(root, id, topic) || shown;
   const trigger = root.querySelector<HTMLElement>("[data-edit-topic]");
   if (!byId(root, "[data-topic]", id) || !trigger) return shown;
   // A saved emoji shows on the list's row and on the topic's page, and its next edit keeps it.

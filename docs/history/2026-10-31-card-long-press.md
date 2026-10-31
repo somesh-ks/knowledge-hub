@@ -13,3 +13,11 @@ Seven tests opened the menu by clicking the ⋮, which a phone can no longer pre
 ## Left
 
 A real phone, iOS especially: the focus ring on the sheet's first row shows in the CDP harness after a hold.
+
+## After the merge: iPhone closed the sheet
+
+The owner's iPhone showed the sheet for a flash and closed it (19:27, 31 Oct). The pointer capture that keeps the lift from light-dismissing it works in Chromium; why Safari still closed it is unverified (the card's link callout was already off). `cardHold.ts` now opens the sheet again, at most twice, for any close while the finger is down or within 400 ms of the lift; a new touch ends that, so a pick or a tap outside is never undone. The long-press test counts closes (Chromium must have none) and closes the sheet itself near a lift to check the reopen. Left: the owner's phone decides whether the cause is gone; if the sheet still flickers, open it on the lift instead.
+
+## A tap outside a sheet clicked the page underneath
+
+The owner (20:16): a tap outside the bottom sheet "tries to go up, then vanishes". The close itself is a plain slide down (sampled per frame in Chromium, no upward step). The cause found: the popover's light dismiss hides the sheet and its scrim when the finger lifts, and the tap's click is then hit-tested against the page behind, so a tap at the top of the screen followed the app bar's Home link and one over a card opened it. `scripts/sheetTap.ts` (installed with the menu script) swallows the click that follows a press outside a phone's menu sheet. The long-press test taps outside right after a lift and checks the sheet stays closed and the page stays on `/library`. Not covered: the Settings select's sheet (`design-system/selectSheet.ts`) shares the sheet but not the script; a design-system change.

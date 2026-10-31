@@ -190,7 +190,7 @@ Every `run.yml` run ends in one outcome:
 | --- | --- | --- |
 | `published` | A digest was written and committed | Nothing |
 | `gated` | A regular digest is not due yet | Nothing. Use an on-demand run if you want one now |
-| `nothing` | Fewer than three items cleared the bar | Nothing. The site says "Nothing cleared the bar." |
+| `nothing` | Fewer than three items cleared the bar | Nothing. The site shows no notice; the home page keeps the latest podcast. |
 | `failed` | A stage failed | Read the run (section 5). The window and seen list are untouched, so a rerun loses nothing |
 
 ---
