@@ -14,6 +14,8 @@
  * `picker:sync` to the select to bring the button's words up to date.
  */
 
+import { iconClass } from "../design-system/icon";
+import { ICON_PATHS, ICON_VIEW_BOX } from "../lib/icons";
 import { matchesQuery, pickerCount, pickerNoMatch } from "../lib/pickerFilter";
 import { FLOATING, roomFloor } from "../lib/roomFloor";
 import { flagNode } from "../lib/voices";
@@ -43,7 +45,101 @@ interface Choice {
   keywords: string;
   /** The region whose flag leads the words (a voice's accent), or "". */
   region: string;
+  /**
+   * A voice's drawn form (lib/voices.ts fillVoiceSelect): its name alone as the title, a line under
+   * it, the words around a Default's title, and the voice whose sample the list's play control plays.
+   * Absent on a list that is plain words (a time zone).
+   */
+  title: string;
+  sub: string;
+  lead: string;
+  tail: string;
+  sample: string;
 }
+
+/** A Phosphor glyph as an <svg>, for a control a script draws. */
+function glyph(name: "playOutline" | "pause"): SVGSVGElement {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("class", `${iconClass()} picker-${name === "pause" ? "pause" : "play-glyph"}`);
+  svg.setAttribute("data-icon", name);
+  svg.setAttribute("viewBox", ICON_VIEW_BOX);
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  const path = document.createElementNS(ns, "path");
+  path.setAttribute("d", ICON_PATHS[name]);
+  svg.append(path);
+  return svg;
+}
+
+/**
+ * The samples a voice list plays from its rows, one at a time across every list on the page. The
+ * audio is built on the first press, so a page loads none up front; samples come through the site
+ * (/api/voice-sample) because the page may play audio only from its own address and the Blob store.
+ */
+const audition = {
+  audio: undefined as HTMLAudioElement | undefined,
+  /** The control whose sample is playing: it shows pause until the sample ends or stops. */
+  playing: null as HTMLElement | null,
+  /** Counts the plays started, so a rejection of an earlier one (its source was replaced while it
+   *  loaded) cannot clear the control of the sample that replaced it. */
+  attempt: 0,
+  /** The voice playing, so a redrawn list can find its new control. */
+  sampleId: "",
+  /** Says a failure to the list that started the sample (its live region). */
+  tell: null as ((text: string) => void) | null,
+  mark(control: HTMLElement | null): void {
+    this.playing?.setAttribute("aria-pressed", "false");
+    this.playing = control;
+    control?.setAttribute("aria-pressed", "true");
+  },
+  toggle(control: HTMLElement, id: string, tell: (text: string) => void): void {
+    const url = `/api/voice-sample?voice=${encodeURIComponent(id)}`;
+    if (!this.audio) {
+      const audio = new Audio();
+      audio.addEventListener("pause", () => this.mark(null));
+      audio.addEventListener("ended", () => this.mark(null));
+      // A sample that cannot be played dims its control and says so, rather than failing in silence.
+      audio.addEventListener("error", () => {
+        if (this.playing) {
+          this.playing.dataset.silent = "";
+          this.tell?.("The sample could not be played");
+        }
+        this.mark(null);
+      });
+      this.audio = audio;
+      // A sample stops when the page is left, by a link in the app (the page swaps in place, so the
+      // audio would play on over the next one) or by closing or leaving the tab.
+      document.addEventListener("astro:before-swap", () => this.stop());
+      addEventListener("pagehide", () => this.stop());
+      // A hidden tab (another tab, a locked phone) must not keep playing a sample nobody is choosing.
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") this.stop();
+      });
+    }
+    if (this.playing === control && !this.audio.paused) {
+      // A stop settles a pending play() as a rejection; it is not a failure to announce.
+      this.attempt += 1;
+      this.audio.pause();
+      return;
+    }
+    const attempt = ++this.attempt;
+    this.sampleId = id;
+    this.tell = tell;
+    this.audio.src = url;
+    this.mark(control);
+    void this.audio.play().catch(() => {
+      if (attempt !== this.attempt) return;
+      this.tell?.("The sample could not be played");
+      this.mark(null);
+    });
+  },
+  stop(): void {
+    this.attempt += 1;
+    this.audio?.pause();
+    this.mark(null);
+  },
+};
 
 function mountPicker(select: HTMLSelectElement): void {
   const holder = select.parentElement;
@@ -110,7 +206,11 @@ function mountPicker(select: HTMLSelectElement): void {
   list.setAttribute("role", "listbox");
   const count = element("p", "sr-only");
   count.setAttribute("aria-live", "polite");
-  pop.append(search, note, list, count);
+  // A voice list is heard from the keyboard too: Shift+Enter plays the highlighted voice (a pointer
+  // presses its Play control, which is not a tab stop; the search field keeps the focus).
+  const hint = element("p", "sr-only", "Press Shift and Enter to hear the highlighted voice.");
+  hint.id = `${id}-hint`;
+  pop.append(search, note, list, count, hint);
 
   holder.classList.add("picker");
   select.classList.add("picker-native");
@@ -129,14 +229,35 @@ function mountPicker(select: HTMLSelectElement): void {
       label: option.textContent ?? "",
       keywords: option.dataset.keywords ?? "",
       region: option.dataset.region ?? "",
+      title: option.dataset.title ?? "",
+      sub: option.dataset.sub ?? "",
+      lead: option.dataset.lead ?? "",
+      tail: option.dataset.tail ?? "",
+      sample: option.dataset.sample ?? "",
     }));
+
+  /**
+   * A voice's title as the words of the button and of a row: a Default's "Default (" flag name ")",
+   * any other voice's flag and name. A list with no titles is its option's own words and flag.
+   */
+  const titleNodes = (choice: Choice): (Node | string)[] => {
+    if (choice.title === "") {
+      return [...(choice.region ? [flagNode(choice.region)] : []), choice.label];
+    }
+    if (choice.lead !== "") {
+      return [
+        choice.lead,
+        ...(choice.region ? [flagNode(choice.region)] : []),
+        `${choice.title}${choice.tail}`,
+      ];
+    }
+    return [...(choice.region ? [flagNode(choice.region)] : []), choice.title];
+  };
 
   const sync = (): void => {
     const chosen = select.selectedOptions[0];
-    value.replaceChildren(
-      ...(chosen?.dataset.region ? [flagNode(chosen.dataset.region)] : []),
-      chosen?.textContent ?? "",
-    );
+    const current = chosen ? readChoices()[chosen.index] : undefined;
+    value.replaceChildren(...(current ? titleNodes(current) : []));
     name();
   };
 
@@ -161,6 +282,21 @@ function mountPicker(select: HTMLSelectElement): void {
     } else input.removeAttribute("aria-activedescendant");
   };
 
+  /** Plays, or stops, the sample of a voice's Play control, and says so to a screen reader. */
+  const hear = (play: HTMLElement): void => {
+    const name = play.closest("[role=option]")?.querySelector(".picker-option-title")?.textContent;
+    // The control is aria-hidden (an option's children are presentational), so its state is said here.
+    if (!play.dataset.sample || play.hasAttribute("data-silent")) {
+      count.textContent = `No sample for ${name ?? "this voice"}`;
+      return;
+    }
+    const was = play.getAttribute("aria-pressed") === "true";
+    audition.toggle(play, play.dataset.sample, (text) => {
+      count.textContent = text;
+    });
+    count.textContent = `${was ? "Stopped" : "Playing"} ${name ?? "the sample"}`;
+  };
+
   const draw = (query: string, from?: number): void => {
     shown = choices.filter((choice) => matchesQuery(`${choice.label} ${choice.keywords}`, query));
     list.replaceChildren(
@@ -170,13 +306,48 @@ function mountPicker(select: HTMLSelectElement): void {
         item.setAttribute("role", "option");
         item.setAttribute("aria-selected", String(choice.value === select.value));
         item.dataset.index = String(index);
-        if (choice.region) item.append(flagNode(choice.region));
-        item.append(element("span", "picker-option-name", choice.label));
+        if (choice.title === "") {
+          if (choice.region) item.append(flagNode(choice.region));
+          item.append(element("span", "picker-option-name", choice.label));
+          return item;
+        }
+        // A voice: a play control at the start, then its title with the gender and accent under it.
+        // The check at the end is drawn by CSS on the chosen row.
+        item.classList.add("picker-option-voice");
+        const play = element("span", "picker-play");
+        play.setAttribute("aria-hidden", "true");
+        play.setAttribute("aria-pressed", "false");
+        // Not aria-disabled: the page's disabledGuard would swallow the press before it said why.
+        if (choice.sample === "") play.dataset.silent = "";
+        else play.dataset.sample = choice.sample;
+        play.append(glyph("playOutline"), glyph("pause"));
+        const words = element("span", "picker-option-name");
+        const title = element("span", "picker-option-title");
+        title.append(...titleNodes(choice));
+        words.append(title);
+        if (choice.sub !== "") words.append(element("span", "picker-option-sub", choice.sub));
+        item.append(play, words);
         return item;
       }),
     );
+    // A search redraws the rows: the playing voice keeps its pressed control if it is still listed,
+    // and stops if it is not, so no sample plays on with nothing to stop it.
+    if (audition.playing && !audition.playing.isConnected) {
+      const again = list.querySelector<HTMLElement>(
+        `.picker-play[data-sample="${CSS.escape(audition.sampleId)}"]`,
+      );
+      if (again) audition.mark(again);
+      else audition.stop();
+    }
     if (shown.length === 0) list.append(element("p", "picker-empty", pickerNoMatch(query, noun)));
     count.textContent = pickerCount(shown.length, noun);
+    if (shown.some((choice) => choice.title !== "")) {
+      input.setAttribute("aria-describedby", hint.id);
+      input.setAttribute("aria-keyshortcuts", "Shift+Enter");
+    } else {
+      input.removeAttribute("aria-describedby");
+      input.removeAttribute("aria-keyshortcuts");
+    }
     const start =
       from ??
       (query.trim() === "" ? shown.findIndex((choice) => choice.value === select.value) : 0);
@@ -270,6 +441,8 @@ function mountPicker(select: HTMLSelectElement): void {
       else pop.focus({ preventScroll: true });
       return;
     }
+    // A sample heard from the list stops with it.
+    audition.stop();
     if (document.activeElement === document.body || pop.contains(document.activeElement))
       trigger.focus({ preventScroll: true });
   });
@@ -301,6 +474,10 @@ function mountPicker(select: HTMLSelectElement): void {
             ? shown.length - 1
             : active - 1;
       highlight(next);
+    } else if (key === "Enter" && event.shiftKey) {
+      event.preventDefault();
+      const play = document.querySelector<HTMLElement>(`#${id}-option-${active} .picker-play`);
+      if (play) hear(play);
     } else if (key === "Enter") {
       event.preventDefault();
       const choice = shown[active];
@@ -317,6 +494,12 @@ function mountPicker(select: HTMLSelectElement): void {
   // The pointer takes over from the keyboard: the hover tint shows the row, the ring goes.
   list.addEventListener("pointermove", () => list.removeAttribute("data-keyboard"));
   list.addEventListener("click", (event) => {
+    // A voice's play control hears its sample and leaves the list open and the choice as it was.
+    const play = (event.target as Element).closest<HTMLElement>(".picker-play");
+    if (play) {
+      hear(play);
+      return;
+    }
     const item = (event.target as Element).closest<HTMLElement>("[role=option]");
     const choice = item ? shown[Number(item.dataset.index)] : undefined;
     if (choice) choose(choice);
