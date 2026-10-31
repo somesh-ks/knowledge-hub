@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { AUDIO_DIGEST, expect, hydrated, ROUTES, SITE_PAGES, test } from "./fixtures";
+import { AUDIO_DIGEST, expect, hydrated, openRowMenu, ROUTES, SITE_PAGES, test } from "./fixtures";
 
 /**
  * The 8pt system, as the browser draws it. styles.test.ts holds the stylesheets to the scale; this
@@ -155,10 +155,7 @@ test.describe("the 8pt spacing system", () => {
     // A Library row's More actions menu.
     await page.goto("/library");
     await hydrated(page);
-    await page
-      .getByRole("button", { name: /^More actions for / })
-      .first()
-      .click();
+    await openRowMenu(page, page.locator("[data-card]").first());
     await expect(page.getByRole("menu").first()).toBeVisible();
     expect.soft(await offGrid(page), "a Library row's menu").toEqual([]);
 

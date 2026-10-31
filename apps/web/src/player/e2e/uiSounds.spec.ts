@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { openRowMenu } from "../../../e2e/fixtures";
 import { expect, test } from "./helpers";
 
 declare global {
@@ -110,10 +111,7 @@ test.describe("interface cues by kind of action", () => {
     // moved beside Play (D153).
     await player.open("/library");
     await prime(page);
-    await page
-      .getByRole("button", { name: /^More actions for / })
-      .first()
-      .click();
+    await openRowMenu(page, page.locator("[data-card]").first());
     await expect.poll(() => heard(page)).toEqual(["sheetOpen"]);
     // The menu action is a plain button: a soft tap, never a select.
     await page.getByRole("menuitem", { name: "Share" }).click();
