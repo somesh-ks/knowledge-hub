@@ -5,9 +5,9 @@ Updated 2026-10-31. Rewrite, never append.
 ## Working
 
 - Engine live end to end: [engine](specs/engine.md). A run that loses stories or races a push degrades, not fails, and records health (D204): [resilience](engineering/generation-resilience.md), [metrics](engineering/metrics.md).
-- Reader (Latest, Library, Catch up, Settings): [library](specs/library.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
-- Player as one surface: transcript, chapters, a queue that keeps played items (D126, D277): [player](specs/player.md).
-- Narration on Play, per story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes; Opus, MP3 fallback (D198): [narration](specs/narration.md), [create](specs/create.md).
+- Reader: [library](specs/library.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
+- Player as one surface: transcript, chapters, a queue that keeps played items (D277): [player](specs/player.md).
+- Narration on Play, per story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes (D198): [narration](specs/narration.md), [create](specs/create.md).
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). Regenerate and Catch up show in the podcast queue with Cancel; ended runs stay for the day (D204, D231).
 - Saved copies, offline shell, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192, D143).
@@ -60,7 +60,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 
 ## Known risks
 
-- Vercel storage near 10 GB (10-24). closed when: explained.
+- Vercel storage near 10 GB. closed when: explained.
 - No passphrase (D160): anyone with the URL can run, narrate, delete and edit config, within the caps.
 - Budget counters can read below real spend: workflow and site count apart against one Speechify allowance.
 - A save made while a briefing runs waits in the `singularity` queue; a later save replaces it; closing the tab within 10 s loses it (D79, D91).

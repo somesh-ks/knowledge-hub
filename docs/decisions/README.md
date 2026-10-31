@@ -142,7 +142,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D119 | A briefing sized by the owner's length writes 30% spares; validation airs the best survivors until measured narration fills the length, each topic's best kept | active |
 | D120 | Science takes a one-outlet story that is clearly on topic; the other general topics keep the two-outlet rule | active; amends D40, D43 |
 | D121 | Covers are drawn at medium chroma (OKLCH 0.12 or less); each monthly series has its own style set and prints on its own close tint of the month's paper | active; amends D110 |
-| D122 | Covers a step brighter in both themes; the header light takes the cover's colours; a theme change waits for the covers | active; amends D48, D77, D121 |
+| D122 | Covers a step brighter in both themes; the header light takes the cover's colours as three drifting lights; a theme change waits for the covers | active; amends D48, D77, D121 |
 | D123 | One AI model select on Settings; no manifest colour, so Android's bars follow the system; a launch screen; the playing cover lights the player page | active; amends D51, D101 |
 | D124 | Weights are five named stops and Off; sources have a Jev-classified format; a format mix per page; two stories per outlet | active; amends D57, D69, D83 |
 | D125 | Headings never bold; Settings H2s at the 22px role; an Intelligence section for the model; Topics and sources is a search and a floating Add | active; amends D73, D123, D124 |
@@ -159,7 +159,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D136 | One model orchestrator: every call through `config/models.json` (Jev, Claude, Gemini; never Opus), with fallback chains | active; replaces D46, D58, D113, D130 |
 | D137 | A cost ledger records every paid call (measured where the provider reports usage), split into shared and per-user costs, shown by `dispatch costs` and /analytics | active |
 | D138 | Alexandria enriches thin text, never replaces it | active |
-| D139 | Hardening: health reports silent faults, a daily workflow opens a `health` issue and retries once, pushes retry a lost ref-lock | active |
+| D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, pushes retry a lost ref-lock, the site reports its errors | active |
 | D140 | Design system enforced in three layers (`design-check` hook, e2e, `design-audit` agent); icons only from Phosphor | active; amends D131 |
 | D141 | The first-load budget is 130 KB | active; replaces D112's 109 KB |
 | D142 | A new topic is a row at once and opens a page before the build; one save carries Jev's emoji; a removal leaves the page at once with Undo | active; amends D79 |
