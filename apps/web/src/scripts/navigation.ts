@@ -68,6 +68,31 @@ export const NAV_ATTRIBUTE = "data-astro-nav";
  */
 export const ARRIVED_ATTRIBUTE = "data-nav-arrived";
 
+/**
+ * Set on the incoming document's root while the pill is still growing when its page arrives: how
+ * many milliseconds of the growth have already played, so the new bar picks it up where the old
+ * one was cut (shell.css). A cached page swaps in tens of milliseconds after the press; without
+ * this the pill stopped a quarter of the way and the new bar drew it whole.
+ */
+export const PILL_ELAPSED_PROPERTY = "--nav-pill-elapsed";
+
+/** Milliseconds of the pill's growth already played on the page that is leaving, or null if it is not growing. */
+export function pillElapsed(root: ParentNode): number | null {
+  const indicator = root.querySelector(".app-nav-item[aria-current='page'] .app-nav-indicator");
+  for (const animation of indicator?.getAnimations({ subtree: true }) ?? []) {
+    if (
+      "animationName" in animation &&
+      String(animation.animationName).startsWith("nav-pill") &&
+      animation.playState === "running"
+    ) {
+      // A carried growth starts with a negative delay: the time played is the clock less the delay.
+      const delay = Number(animation.effect?.getComputedTiming().delay ?? 0);
+      return Math.max(0, Math.round(Number(animation.currentTime ?? 0) - delay));
+    }
+  }
+  return null;
+}
+
 /** Puts the mark for this move on the incoming document, so it is still there when the move is drawn. */
 export function carryNavigationKind(from: HTMLElement, to: HTMLElement): void {
   const kind = from.getAttribute(NAV_ATTRIBUTE);
@@ -76,9 +101,12 @@ export function carryNavigationKind(from: HTMLElement, to: HTMLElement): void {
 
 export function installNavigation(): void {
   let isNavigating = false;
+  // Counts moves begun: a move's marks are cleared only by that move, not by an earlier one still settling.
+  let generation = 0;
 
   document.addEventListener("astro:before-preparation", (event) => {
     isNavigating = true;
+    generation += 1;
     const kind = navigationKind(event.from, event.to);
     document.documentElement.setAttribute(NAV_ATTRIBUTE, kind);
   });
@@ -90,11 +118,35 @@ export function installNavigation(): void {
     const moved =
       root.getAttribute(NAV_ATTRIBUTE) !== "none" && !root.hasAttribute(ARRIVED_ATTRIBUTE);
     if (moved) event.newDocument.documentElement.setAttribute(ARRIVED_ATTRIBUTE, "");
+    else {
+      // The press lit the item on this page and its pill is still growing: the new bar takes over.
+      const elapsed = pillElapsed(document);
+      if (elapsed !== null) {
+        event.newDocument.documentElement.setAttribute(ARRIVED_ATTRIBUTE, "");
+        event.newDocument.documentElement.style.setProperty(PILL_ELAPSED_PROPERTY, `${elapsed}ms`);
+      }
+    }
+    const mine = generation;
     const clear = (): void => {
+      if (mine !== generation) return;
       document.documentElement.removeAttribute(NAV_ATTRIBUTE);
       document.documentElement.removeAttribute(ARRIVED_ATTRIBUTE);
+      document.documentElement.style.removeProperty(PILL_ELAPSED_PROPERTY);
     };
-    void event.viewTransition.finished.then(clear, clear);
+    // The marks go once the pill has finished, not when the move's own settle time is up: that is
+    // shorter than the growth, and removing the mark ends the animation where it stands.
+    const settle = (): void => {
+      const growing = document
+        .querySelector(".app-nav-item[aria-current='page'] .app-nav-indicator")
+        ?.getAnimations({ subtree: true })
+        .filter((animation) => "animationName" in animation && animation.playState === "running");
+      if (growing?.length) {
+        void Promise.allSettled(growing.map((animation) => animation.finished)).then(clear);
+      } else {
+        clear();
+      }
+    };
+    void event.viewTransition.finished.then(settle, settle);
   });
 
   // On a route change focus moves to the new heading, without scrolling, as a page load would.
