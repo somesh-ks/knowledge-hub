@@ -8,7 +8,7 @@ Updated 2026-10-31. Rewrite, never append.
 - Reader (Latest, Library, Catch up, Settings): [library](specs/library.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
 - Player as one surface: transcript with word light, chapters in the bar, queue with Up next (D126): [player](specs/player.md).
 - Narration on Play, per story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes; Opus, MP3 fallback (D198): [narration](specs/narration.md), [create](specs/create.md).
-- Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up are followed in the podcast queue, each with Cancel; ended runs stay for the day (D204, D231).
+- Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up show in the podcast queue with Cancel; ended runs stay for the day (D204, D231).
 - Saved copies, offline shell, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192); merge by hand (D143).
 
@@ -29,7 +29,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Trusted publishers list (D234, `config/trusted-publishers.json`) and community lift (D240), shipped off. closed when: Somesh turns both on, and a daily airs a lab story and a community-voted one, no source over 30%.
 - Run names (D217), Neon run log (D221). `pipeline_runs` holds the 10-29 Regenerate and Catch up. closed when: a scheduled daily is named `daily <date>`, is off the queue, and has its row.
 - `podcast.yml` no longer installs ffmpeg; its first stage starts 9 s into the job (29 s before). closed when: 9 s is accepted or a target set.
-- A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): `run.yml` gained a `length_minutes` input; merge it with the site code or dispatch fails. closed when: a 10-minute Regenerate airs within 10% of 10.
+- A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): `run.yml` has a `length_minutes` input; merge it with the site code or dispatch fails. closed when: a 10-minute Regenerate airs within 10% of 10.
 - Podcast queue (D231, D242): fakes only. closed when: a Catch up is cancelled and a failed run's Details read.
 - Discovery copies rank below an outlet's own entry in dedupe. closed when: dedupe keeps the outlet's entry.
 - Opus on runners (D198). closed when: an audio run logs `ffmpeg version`, its digest has `m4a_url`, and /d/2026-10-24 plays on iPhone.
