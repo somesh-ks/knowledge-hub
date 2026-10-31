@@ -29,7 +29,7 @@ export const PARTS: PartSource[] = [
     kind: "action",
     summary: "A glyph in a round 44px target, quiet until used.",
     classes: ["icon-btn", "press", "icon-btn-end"],
-    files: ["components/Icon.astro"],
+    files: ["design-system/Icon.astro"],
     when: [
       "close a sheet or dialog",
       "a row's more menu (the dots)",
@@ -286,17 +286,6 @@ export const PARTS: PartSource[] = [
     when: ["a link inside a hint or a sentence"],
     not: [{ when: "a standalone action", use: "button-text" }],
     keywords: ["inline link", "hint link"],
-  },
-  {
-    id: "status-dot",
-    name: "Status dot",
-    kind: "feedback",
-    summary: "A dot that judges a reading good, worth a look or wrong.",
-    classes: ["status-dot"],
-    when: ["a health reading", "a status next to a label, always with a word"],
-    not: [{ when: "a message the user must act on", use: "banner" }],
-    keywords: ["health", "indicator", "traffic light"],
-    rules: ["Color is information: a word or a glyph always says it too."],
   },
   {
     id: "stat-tiles",

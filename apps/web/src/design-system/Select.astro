@@ -1,7 +1,7 @@
 ---
 import type { HTMLAttributes } from "astro/types";
-import Icon from "../components/Icon.astro";
 import { fieldClass } from "./field";
+import Icon from "./Icon.astro";
 import { type SelectVariant, selectClass } from "./select";
 import "../styles/field.css";
 import "../styles/select.css";
@@ -28,3 +28,9 @@ const own = variant === "outlined" ? fieldClass() : undefined;
   <select class={own} {...rest}><slot /></select>
   <Icon name="chevronDown" />
 </Wrapper>
+
+<script>
+  import { installSelectSheet } from "./selectSheet";
+
+  installSelectSheet();
+</script>

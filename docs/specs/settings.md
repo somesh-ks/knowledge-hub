@@ -1,6 +1,6 @@
 # Settings
 
-Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reasons: D45 to D132; history: docs/history/.
+Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reasons: D45 to D132.
 
 ## Requirements
 
@@ -37,10 +37,11 @@ Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reason
 - No model select: models follow `config/models.json` (engine spec).
 
 ### Autosave and the edit gap
-- Changes save themselves (`autosave.ts`, D115): 1.2 s after the last change, at most 8 ops a request. The toast is only for a failure (reason, Retry), an Undo or the time refused. A removal leaves at once; its request waits 5 s with Undo (D142). A 400 naming its op (`op_index`) drops only that change.
-- Scenario: WHEN a second change comes inside the server's 10 s gap THEN it waits and goes with the rest in one request, also when the page is left: waiting edits are kept in storage, marked pending, for up to 90 s (D91).
+- Changes save themselves (`autosave.ts`, D115): 1.2 s after the last, at most 8 ops a request. The toast is only for a failure (reason, Retry), an Undo or the refused time. A removal leaves at once; its request waits 5 s with Undo (D142). A 400 naming its op drops only that change.
+- Scenario: WHEN a second change comes inside the server's 10 s gap THEN it waits and goes with the rest in one request, also when the page is left: waiting edits are kept, marked pending, up to 90 s (D91).
+- Scenario: WHEN a page reloads while its request is out THEN the next shows the change (D259).
 - Scenario: WHEN the held request fails THEN the open page shows "Not saved yet" with the reason and Retry, and the index says "Your last change was not saved." (D98). Elsewhere a toast names the page with Open (D99).
-- For three minutes after a save a settings page that opens shows the saved value, not the stale built-in one, with no line saying so (`singularity:saved-edits`, D79, D115).
+- For three minutes after a save a settings page shows the saved value, with no line saying so (`singularity:saved-edits`, D79, D115).
 - With the config store on (D149) a settings page lays what the store holds over its built copy; slow or down, what this device last read (D172), else the build. What it changes, index lines too, waits hidden.
 
 ### Blocked outlets and votes
@@ -50,7 +51,7 @@ Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reason
 ## Code
 - `apps/web/src/pages/settings.astro`, `settings/about.astro`, `lib/changelog.ts`
 - `apps/web/src/pages/settings/categories.astro`, `categories/[id].astro`, `preferences.astro`, `voice.astro`
-- `apps/web/src/scripts/autosave.ts`, `structureEditor.ts`
+- `apps/web/src/scripts/autosave.ts`, `pageLeaving.ts`, `structureEditor.ts`
 - `apps/web/src/scripts/settingsPage.ts`
 - `apps/web/src/pages/api/config.ts`, `server/configView.ts`
 - `packages/core/src/configOps.ts`

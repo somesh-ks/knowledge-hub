@@ -29,11 +29,6 @@
 
 /* A story's title, as in a briefing. */
 .episode-highlight-title {
-  font-family: var(--text-title-family);
-  font-size: var(--text-title-size);
-  font-weight: var(--text-title-weight);
-  letter-spacing: var(--text-title-tracking);
-  line-height: var(--text-title-leading);
   overflow-wrap: anywhere;
 }
 

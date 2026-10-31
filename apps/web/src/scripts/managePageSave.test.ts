@@ -18,6 +18,10 @@ import {
   remember,
   type SaveContext,
 } from "./managePageSave";
+import { endedByLeaving } from "./pageLeaving";
+
+// The page is not unloading in a test; one test says it is.
+vi.mock("./pageLeaving", () => ({ endedByLeaving: vi.fn(async () => false) }));
 
 /** A control as settle reads one: not a row, not a remove button. */
 const control = (): HTMLElement =>
@@ -130,6 +134,23 @@ describe("flush", () => {
     await flush(context(changes));
     const kept = parseSaved(localStorage.getItem(SAVED_KEY), Date.now());
     expect(savedOps(kept, Date.now())).toEqual([{ op: "schedule.set", hour: 7 }]);
+  });
+
+  // 2026-10-30: a reload while the store was taking a save rejected the request's promise before the
+  // page could mark the change pending; the save read that as a failure and the reload showed the
+  // old state (D259).
+  it("keeps a change pending, and says nothing, when its request ends because the page is leaving", async () => {
+    vi.mocked(fetch).mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    vi.mocked(endedByLeaving).mockResolvedValueOnce(true);
+    const changes = new Map([["a", change({ op: "schedule.set", hour: 7 })]]);
+    const run = flush(context(changes));
+    await vi.advanceTimersByTimeAsync(100);
+    await run;
+    const kept = parseSaved(localStorage.getItem(SAVED_KEY), Date.now());
+    expect(anyPending(kept, Date.now())).toBe(true);
+    expect(savedOps(kept, Date.now())).toEqual([{ op: "schedule.set", hour: 7 }]);
+    expect(states).not.toContain("error");
+    expect(changes.get("a")?.failed).not.toBe(true);
   });
 
   it("tells a row that reports its own state when its request did not go, and when it did", async () => {
@@ -448,7 +469,7 @@ describe("a left page's held run", () => {
   it("offers a change lost with the connection again, for Retry once it is back", async () => {
     const { run } = await leaveInGap();
     answers.push(0);
-    await vi.advanceTimersByTimeAsync(GAP_MS);
+    await vi.advanceTimersByTimeAsync(GAP_MS + 100);
     await run;
     expect(heard[0]?.failure).toBe("Couldn't reach the site. Not saved yet.");
     const { context: open, said } = page(new Map(), true);

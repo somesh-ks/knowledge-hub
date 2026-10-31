@@ -48,7 +48,7 @@ function SuggestedRow({ id }: { id: string }) {
         aria-label={`Add ${title} to the queue`}
         onClick={() => getPlayQueue().add(id)}
       >
-        <Icon name="plus" className="icon" />
+        <Icon name="plus" />
       </button>
     </li>
   );

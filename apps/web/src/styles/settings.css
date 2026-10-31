@@ -17,14 +17,6 @@
   padding-block: var(--page-top) var(--space-8);
 }
 
-.settings-view h1 {
-  font-family: var(--text-display-family);
-  font-size: var(--text-display-size);
-  font-weight: var(--text-display-weight);
-  letter-spacing: var(--text-display-tracking);
-  line-height: var(--text-display-leading);
-}
-
 /* The heading takes focus after a navigation, as a place to read from, not as a control. */
 .settings-view h1:focus {
   outline: none;
@@ -53,14 +45,6 @@
 
 .topic-card .settings-head {
   margin-block-end: 0;
-}
-
-.settings-head > h1 {
-  font-family: var(--text-display-family);
-  font-size: var(--text-display-size);
-  font-weight: var(--text-display-weight);
-  letter-spacing: var(--text-display-tracking);
-  line-height: var(--text-display-leading);
 }
 
 /* A quiet row: its label in the muted colour, the row where it is (D100: a control that cannot act
@@ -205,7 +189,7 @@
   contain: inline-size;
 }
 
-:is(.settings-view, .manage) .row-action .icon {
+:is(.settings-view, .manage) .row-action .icon-glyph {
   /* The glyph sits inside its box; this pulls its ink out to the switch's and the segments' edge. */
   margin-inline-end: calc(var(--size-icon) * var(--ink-end, 0) * -1);
   color: var(--color-on-surface-subtle);
@@ -340,7 +324,7 @@
 }
 
 /* The chevron's ink, not its box, ends where the link rows' chevrons and the switch end (D187). */
-.settings-row .value-select > .icon {
+.settings-row .value-select > .icon-glyph {
   inset-inline-end: calc(
     var(--space-2) +
     var(--value-select-pull, 0px) +
@@ -388,17 +372,17 @@
   background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
-.settings-row .value-select > .icon {
+.settings-row .value-select > .icon-glyph {
   transition: rotate var(--duration-enter) var(--ease-out);
 }
 
-.settings-row .value-select:has(> select:open) > .icon {
+.settings-row .value-select:has(> select:open) > .icon-glyph {
   rotate: 180deg;
 }
 
 /* Reduced motion: the chevron turns at once. */
 @media (prefers-reduced-motion: reduce) {
-  .settings-row .value-select > .icon {
+  .settings-row .value-select > .icon-glyph {
     transition: none;
   }
 }

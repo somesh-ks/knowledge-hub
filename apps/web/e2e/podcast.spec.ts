@@ -160,6 +160,22 @@ test.describe("the profile pages", () => {
     await expect(page.locator("#weekly-format, #weekly-lookback")).toHaveCount(0);
   });
 
+  // The bug (owner, 2026-10-31): the hour's list was a second kind of bottom sheet, drawn by the browser
+  // with no title or Close. The sheet that replaced it must still set the select and be saved.
+  test("a select opens the standard sheet on a phone, and a pick is saved", async ({ page }) => {
+    await page.clock.install();
+    const sent = await mockConfig(page);
+    await open(page, "daily");
+    await page.locator("#daily-hour").tap();
+    const sheet = page.locator("[data-select-sheet]:popover-open");
+    await expect(sheet.getByRole("heading", { name: "Time" })).toBeVisible();
+    await sheet.getByRole("option", { name: "09:00" }).tap();
+    await expect(sheet).toHaveCount(0);
+    await expect(page.locator("#daily-hour")).toHaveValue("9");
+    await page.clock.runFor(2000);
+    await expect.poll(() => scheduleSent(sent)).toEqual({ op: "schedule.set", hour: 9 });
+  });
+
   test("unticking every topic says the episode has nothing to cover", async ({ page }) => {
     await mockConfig(page);
     await open(page, "daily");

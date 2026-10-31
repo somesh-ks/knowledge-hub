@@ -16,8 +16,8 @@ describe("sheetHead helpers", () => {
   });
 
   it("renders an icon with data-icon for ink alignment", () => {
-    const icon = iconHtml("close", "icon-lg");
-    expect(icon).toContain('class="icon icon-lg"');
+    const icon = iconHtml("close", "lg");
+    expect(icon).toContain('class="icon-glyph icon-glyph-lg"');
     expect(icon).toContain('data-icon="close"');
     expect(icon).toContain('aria-hidden="true"');
     expect(icon).toContain("<svg");
@@ -28,7 +28,9 @@ describe("sheetHead helpers", () => {
       "data-sheet-title": "",
     });
     expect(head).toContain('class="sheet-head"');
-    expect(head).toContain('<h2 class="sheet-title" id="title-1" data-sheet-title>Edit block</h2>');
+    expect(head).toContain(
+      '<h2 class="sheet-title text-heading" id="title-1" data-sheet-title>Edit block</h2>',
+    );
     expect(head).toContain("data-menu-close");
     expect(head).toContain('aria-label="Close"');
   });
