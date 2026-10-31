@@ -39,6 +39,14 @@
   line-height: var(--space-6);
 }
 
+/* Coverage's rows name parts and the reasons a control is bespoke, which run long: the hint wraps where
+   Health's single line clips it (2026-10-31, review on the Coverage PR). */
+.health-row.cov-row .settings-hint {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
 /* ------------------------------------------------------------------ the overview */
 
 /* The Overview's two cards read at a glance: a status badge or a figure first, then marks, with

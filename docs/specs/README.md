@@ -10,6 +10,7 @@ What each capability does now, one file each. A spec states requirements in the 
 | Settings | [settings.md](settings.md) | `apps/web/src/pages/settings` |
 | Health page | [health.md](health.md) | `apps/web/src/server/health.ts` |
 | Admin overview | [admin-overview.md](admin-overview.md) | `apps/admin/src/pages/index.astro` |
+| Admin coverage | [admin-coverage.md](admin-coverage.md) | `apps/admin/src/pages/coverage.astro` |
 | Engine | [engine.md](engine.md) | `packages/engine/src` |
 | Narration | [narration.md](narration.md) | `apps/web/src/narration` |
 | Trusted publishers list | [trusted-publishers.md](trusted-publishers.md) | `packages/engine/src/trustedPublishers` |

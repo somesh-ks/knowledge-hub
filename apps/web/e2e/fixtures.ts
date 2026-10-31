@@ -141,6 +141,7 @@ export const SITE_PAGES = [
   // Left out until 2026-10-23, so a change to the card tokens reached the Costs card unchecked.
   "/admin/costs",
   "/admin/health",
+  "/admin/coverage",
   // The design catalogue (D189): every shared component on one page, held to the same grid.
   "/design",
 ];

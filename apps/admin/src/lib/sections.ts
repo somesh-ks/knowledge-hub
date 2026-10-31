@@ -29,7 +29,7 @@ export const SECTIONS: readonly Section[] = [
     icon: "chartDonut",
     iconCurrent: "chartDonutFill",
     question: "Design-system use.",
-    status: "Planned",
+    status: "",
   },
   {
     path: "/costs",
