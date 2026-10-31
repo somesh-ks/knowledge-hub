@@ -33,6 +33,7 @@
     "sound-lab": "tsx scripts/buildSoundLab.ts",
     "covers:sheet": "tsx packages/cover/scripts/contactSheet.ts",
     "secrets:push": "tsx scripts/pushSecrets.ts",
+    "vapid:keys": "tsx scripts/vapidKeys.ts",
     "backfill:opus": "tsx scripts/backfillOpus.ts",
     "dev:design": "npm run dev -w @singularity/design"
   },

@@ -20,6 +20,9 @@ const GITHUB_SECRETS = [
   "VERCEL_TOKEN",
   "GEMINI_API_KEY",
   "DATABASE_URL",
+  // Web Push (D284): content.yml signs the messages with the private key.
+  "VAPID_PUBLIC_KEY",
+  "VAPID_PRIVATE_KEY",
 ];
 
 /** Plain configuration, stored as GitHub Actions variables so it stays visible in workflow runs. */
@@ -28,6 +31,7 @@ const GITHUB_VARIABLES = [
   "SPEECHIFY_MONTHLY_CHARS",
   "SINGULARITY_GIT_NAME",
   "SINGULARITY_GIT_EMAIL",
+  "VAPID_SUBJECT",
 ];
 
 /**
@@ -52,6 +56,8 @@ const VERCEL_ENV = [
   "DATABASE_URL",
   // The report routes (/api/costs, /api/health) verify the command center's session cookie (D257).
   "ADMIN_SESSION_SECRET",
+  // The key the browser subscribes with (D284). The private half stays on GitHub.
+  "VAPID_PUBLIC_KEY",
 ];
 
 /**
