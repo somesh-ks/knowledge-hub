@@ -40,7 +40,9 @@ const rows = [
   ...groups.map((group) => ({
     id: group.id,
     name: group.name,
-    emoji: topicEmoji(group),
+    // A group's emoji is its home topic's (2026-10-31), the one its page's picker sets.
+    emoji: topicEmoji({ ...group, emoji: topics.find((topic) => topic.id === group.home)?.emoji }),
+    home: group.home,
     hint: topicSummary(null, counts(group.id)),
     members: group.members.map((member) => member.id),
     never: undefined,
@@ -49,6 +51,7 @@ const rows = [
     id: topic.id,
     name: topic.name,
     emoji: topicEmoji(topic),
+    home: undefined,
     hint: topicSummary(topic, counts(topic.id)),
     members: [topic.id],
     never: topic.never_publish ? "" : undefined,
@@ -120,6 +123,7 @@ const choices = topicChoicesOf(layout);
                 href={`/settings/categories/${row.id}`}
                 data-page={row.id}
                 data-members={row.members.join(" ")}
+                data-home={row.home}
                 data-never={row.never}
               >
                 <span class="topic-emoji" aria-hidden="true">{row.emoji}</span>
