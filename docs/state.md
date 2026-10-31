@@ -20,7 +20,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 
 - Blob on Pro trial since 10-30 (D251, D256). closed when: ops stay under 1,000 a month.
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily says "podcast".
-- More menu (D214); Catch up album, Share circle, cards (D219). closed when: signed off.
+- More menu (D214); Catch up album, Share circle, cards (D219); card long press (D264). closed when: signed off.
 - Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused; a regenerate or delete uses none.
 - Three regenerations per podcast, counted in its own file (D212; `regenerations: 1` after the 10-29 live Regenerate). closed when: the page shows "2 of 3 regenerations left".
 - Short podcasts (D204, D216 to D225). closed when: two dailies in a row air within 10% of their length, and `singularity metrics` shows ten runs at `length_share` 0.9+ and `failure_rate` 0.1 or less.

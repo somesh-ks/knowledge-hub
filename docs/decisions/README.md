@@ -111,7 +111,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D88 | A reading page's section strip is opaque, a focused headline rings as one block, the playing hero Play is tonal, an old briefing offers Share | active; amends D77 |
 | D89 | The time zone selector is withdrawn until the engine counts in a chosen zone; summaries follow what is saved | active; amends D71 and D79; the selector returned in D100 |
 | D90 | The open player has one left edge, an even rhythm and two weights; its lists are one Tab stop each; Back goes back | active; amends D85 |
-| D91 | Daily and Weekly offer only what a briefing uses; an edit made in the server's gap survives leaving the page | active; amends D74, D79; D100 restored Format and the second voice |
+| D91 | Daily and Weekly offer only what a briefing uses; an edit made in the server's gap survives leaving the page | active; amends D74, D79 |
 | D92 | The rundown is no story, a listener's move never scrolls the page, the open page owns the transport, a glyph says what its button does | active; amends D85 and D90 |
 | D93 | A tab's jump puts the app bar away first, a kept-whole headline word stays atomic, offline switches off every control that starts a run | active; amends D88 |
 | D94 | Up next narrates a briefing without audio, a phone's page never scrolls itself, a failure is told once, the open page closes by mouse | active; amends D92 |
@@ -123,7 +123,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D100 | The time zone selector returns and the schedule counts in the chosen zone; a second voice; voice rows keep Play | active; amends D71, D89 and D91; Format ended in D215 |
 | D101 | A long list is a searchable list; the bar keeps its controls on a wide screen; every recording has a transcript; every topic is shown | active; amends D76, D90, D92 and D100 |
 | D102 | General topics play in Daily and Weekly, a topic is always on and has a summary card, titles are bigger, and the gate runs in parallel | active; amends D69, D87, D89, D90, D101 |
-| D103 | Source scores out of 5 as stars; source lists fold at seven; topic delete asks first; Regenerate on Today takes feedback; first-load budget 150 KB | active; amends D55, D83, D53 |
+| D103 | Source scores out of 5 as stars; source lists fold at seven; topic delete asks first; Regenerate on Today takes feedback | active; amends D55, D83, D53 |
 | D104 | Every briefing has Share, Regenerate and Delete; Regenerate replaces that digest over its window; Delete removes its file and timeline | active; amends D88, D103 |
 | D105 | A new episode plays from a live Blob copy while it is written; mobile sounds unlock on click; the spoken word lights at once | active; amends D82, D101 |
 | D106 | The wide bar leads with what is playing and hides its volume slider until hover; bottom sheets lose the grabber; a played chip offers Play again | active; amends D46, D58, D101 |
@@ -276,5 +276,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D258 | Cover version in its path | active; amends D256 |
 | D262 | Sheet and Drawer split | active; amends D243 |
 | D263 | Cover version in URL | proposed; amends D258 |
+| D264 | Card menu by long press | proposed |
 
 ---
