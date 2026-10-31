@@ -7,6 +7,7 @@ import { loadSite } from "../lib/site";
 import {
   expireContentManifest,
   isShowingSavedContent,
+  loadPageSite,
   loadStoreSite,
   loadStoreSiteChecked,
   MANIFEST_TTL_MS,
@@ -119,6 +120,44 @@ it("keeps the last content and says so while the store cannot be reached", async
   down = false;
   now = 2 * MANIFEST_TTL_MS + 2;
   expect((await loadStoreSiteChecked(deps))?.saved).toBe(false);
+  expect(isShowingSavedContent()).toBe(false);
+});
+
+// Bug: a cold function instance whose Blob store was blocked answered every page 503, so the whole
+// site went down on 2026-10-30 although the build held every briefing.
+it("draws a cold instance from the build's copy when the store cannot be reached, and says so", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  const built = [...store.keys()].filter((key) => key.startsWith("content/"));
+  const bundled = {
+    list: async (dir: string) =>
+      built.map((k) => k.slice(8)).filter((p) => p.startsWith(`${dir}/`)),
+    read: async (path: string) => store.get(`content/${path}`) ?? null,
+  };
+  const expected = (await loadStoreSite({ env: ENV, fetch: fakeFetch, now: () => 0 }))?.entries
+    .length;
+  resetContentRepo();
+  let now = 0;
+  let attempts = 0;
+  const deps = {
+    env: ENV,
+    fetch: async () => {
+      attempts += 1;
+      throw new Error("store blocked");
+    },
+    now: () => now,
+  };
+  const page = await loadPageSite(deps, bundled);
+  expect(page.saved).toBe(true);
+  expect(page.site.entries.length).toBe(expected);
+  expect(isShowingSavedContent()).toBe(true);
+  // Requests in the same window do not each wait on the dead store.
+  const tried = attempts;
+  await loadPageSite(deps, bundled);
+  expect(attempts).toBe(tried);
+
+  now = MANIFEST_TTL_MS + 1;
+  const recovered = await loadPageSite({ ...deps, fetch: fakeFetch }, bundled);
+  expect(recovered.saved).toBe(false);
   expect(isShowingSavedContent()).toBe(false);
 });
 

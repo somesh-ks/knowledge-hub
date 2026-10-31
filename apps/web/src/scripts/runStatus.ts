@@ -386,6 +386,19 @@ export async function listenLive(): Promise<void> {
   runtime.narrateLive(doc as never, runId);
 }
 
+/** Resolves when the tab is visible again; at once when it is. A hidden tab asks GitHub for nothing (COST-02). */
+function untilVisible(): Promise<void> {
+  if (typeof document === "undefined" || !document.hidden) return Promise.resolve();
+  return new Promise((resolve) => {
+    const onChange = (): void => {
+      if (document.hidden) return;
+      document.removeEventListener("visibilitychange", onChange);
+      resolve();
+    };
+    document.addEventListener("visibilitychange", onChange);
+  });
+}
+
 /**
  * Follow workflow status until completion, replacement by another run, or the polling limit.
  * `now` skips the initial delay. Briefings finish from the workflow result; new episodes may then
@@ -404,6 +417,7 @@ async function follow(run: Stored, now: boolean): Promise<void> {
       const wait = turn >= MAX_POLLS ? SLOW_POLL_MS : POLL_MS;
       await new Promise((resolve) => setTimeout(resolve, wait));
     }
+    await untilVisible();
     if (following !== run.id) return;
     const asked = run.retry?.body.request as
       | { format?: string; length_minutes?: number }

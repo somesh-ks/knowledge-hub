@@ -112,13 +112,31 @@ export interface GitHubClient {
   readFile(path: string, ref: string): Promise<string | null>;
 }
 
+/**
+ * A queue open on two devices asks for the run lists every 4 s, and each ask spends GitHub calls
+ * from the token the hourly cron dispatches with (5,000 an hour). A list is kept for this long per
+ * function instance, and then asked again with its ETag: a 304 costs nothing against the limit.
+ * Only the queue's polling uses it (listActiveRuns): the cooldown and daily caps read exact lists.
+ * Keyed by the fetch in use, so each test's fake has its own.
+ */
+const RUN_LIST_MEMO_MS = 4_000;
+interface RunListMemo {
+  at: number;
+  etag: string | null;
+  runs: WorkflowRun[];
+}
+const runListMemos = new WeakMap<FetchLike, Map<string, RunListMemo>>();
+
 export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): GitHubClient {
   const base = `${API}/repos/${config.owner}/${config.repo}`;
+  const memos = runListMemos.get(fetchImpl) ?? new Map<string, RunListMemo>();
+  runListMemos.set(fetchImpl, memos);
 
   async function request(path: string, init: RequestInit = {}, accept?: string): Promise<Response> {
     return fetchImpl(`${base}${path}`, {
       ...init,
       headers: {
+        ...(init.headers as Record<string, string> | undefined),
         Authorization: `Bearer ${config.token}`,
         Accept: accept ?? "application/vnd.github+json",
         "X-GitHub-Api-Version": API_VERSION,
@@ -142,12 +160,24 @@ export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): 
     return `/actions/workflows/${file}`;
   }
 
-  async function listRuns(file: string): Promise<WorkflowRun[]> {
-    const body = await json(
-      `${workflowPath(file)}/runs?event=workflow_dispatch&branch=main&per_page=30`,
+  async function listRuns(file: string, memoize = false): Promise<WorkflowRun[]> {
+    const path = `${workflowPath(file)}/runs?event=workflow_dispatch&branch=main&per_page=30`;
+    const memo = memoize ? memos.get(path) : undefined;
+    if (memo && Date.now() - memo.at < RUN_LIST_MEMO_MS) return memo.runs;
+    const response = await request(
+      path,
+      memo?.etag ? { headers: { "If-None-Match": memo.etag } } : {},
     );
-    const runs = isRecord(body) && Array.isArray(body.workflow_runs) ? body.workflow_runs : [];
-    return runs.map(parseRun).filter((run): run is WorkflowRun => run !== null);
+    if (response.status === 304 && memo) {
+      memo.at = Date.now();
+      return memo.runs;
+    }
+    if (!response.ok) throw new GitHubError(response.status);
+    const body: unknown = await response.json();
+    const list = isRecord(body) && Array.isArray(body.workflow_runs) ? body.workflow_runs : [];
+    const runs = list.map(parseRun).filter((run): run is WorkflowRun => run !== null);
+    if (memoize) memos.set(path, { at: Date.now(), etag: response.headers.get("etag"), runs });
+    return runs;
   }
 
   async function dispatchFile(
@@ -160,6 +190,8 @@ export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): 
       body: JSON.stringify({ ref: "main", inputs, return_run_details: true }),
     });
     if (!response.ok) throw new GitHubError(response.status);
+    // The next list must show the run this dispatch made, not a copy from before it.
+    memos.clear();
     if (response.status === 204) return null;
     const body: unknown = await response.json().catch(() => null);
     return isRecord(body) && typeof body.workflow_run_id === "number" ? body.workflow_run_id : null;
@@ -168,8 +200,8 @@ export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): 
   return {
     async listActiveRuns() {
       const [briefings, episodes] = await Promise.all([
-        listRuns(WORKFLOW_FILE),
-        listRuns(PODCAST_WORKFLOW_FILE),
+        listRuns(WORKFLOW_FILE, true),
+        listRuns(PODCAST_WORKFLOW_FILE, true),
       ]);
       return [...briefings, ...episodes]
         .filter((run) => run.status !== "completed")
@@ -181,6 +213,7 @@ export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): 
       // 409: the run is not in a state that can be cancelled, which is to say it has ended.
       if (response.status === 409) return "finished";
       if (!response.ok) throw new GitHubError(response.status);
+      memos.clear();
       return "cancelled";
     },
 
