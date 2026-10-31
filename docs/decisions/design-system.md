@@ -409,6 +409,26 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Revisit if: a phone browser opens its own list despite the stop (the press and the click are both stopped, as browsers differ), or the picker's sheet and this one should be one component.
 
 
+## D266: type roles, Icon and Badge are system parts
+
+- Date: 2026-10-31 (the coordinator, for the owner: finish D243 parts E and F). Amends D243.
+- Decision: a rule that restated a type role's five properties (`page-title`, `costs-total`, `health-answer`, `story-title`, `episode-highlight-title`, `player-title`, `section-head`, the settings `h1`s, `dialog-title`) is deleted, and the markup takes `text-display`, `text-title` or `text-heading` instead. `dialog-title` is retired: `dialogTitleClass()` is `text-heading`, and a sheet's title is `sheet-title text-heading` (the class stays as the hook for `min-width: 0`). The Icon is one component: `icon-glyph` and `icon-glyph-lg` (`size="lg"`) replace the Astro `.icon`, the React `.ui-icon` and both `.icon-lg`; `Icon.astro` moves into `design-system/`, `styles/icon.css` holds the rules. The Badge is one grey label (`badge-label`, `Badge.astro`) for the Admin tag and the guide's fold count; both used a different fill and weight.
+- Why: the roles were defined and unused, so each page copied them and could drift; the two icon classes carried the same rule in two sheets.
+- Calls made for the owner: the Admin tag changes from the white overlay fill to the grey container fill (light theme only), and the fold count goes from regular to medium. The player's hidden collapse chip now reads in its inverse ink (a stylesheet-order accident had given it the muted icon-button ink). `flag-badge` (a flag's stand-in) and `card-downloaded` (a check glyph) are not badges and stay; `status-dot` goes with #493. The class is `badge-label` because the pill rule in `styles.test.ts` bans any new `*-pill`.
+- Debt: containers that size or place a glyph (`.dock-btn .icon-glyph`, `.row-action .icon-glyph`, about 60 rules) join `PAGE_OVERRIDES`. Next: a size scale (`sm`, `md`, `lg`) so a control sets `size` instead of a rule.
+- Rejected: leaving the bare class `icon` (a plain word fails the by-hand test); a `size` for every pixel value now.
+- Revisit if: the owner wants a size scale first, or Admin's white tag back.
+- Amends: D243.
+
+## D267: Card and Row are tokens, not components
+
+- Date: 2026-10-31 (call made for the owner, who is away).
+- Decision: Card is the `--card-radius`, `--card-padding` and container fill that `card-group`, `topic-card`, `topic-panel` and `changelog-entry` already share; the source card and the score card now take `--card-radius` (32px, was 16px, D243). Row stays seven layouts (`row-action`, `settings-row`, `source-row`, `story-row`, `player-upnext-row`, `player-queue-row`, `queue-row`) whose shared values are already tokens (`--row-padding-block`, `--row-tile-radius`, `--size-touch-comfortable`, `--source-row`).
+- Why: `card-group` is a list layout worn by 40 elements of five kinds (`div`, `ul`, `form`, `fieldset`, `details`); a component would rewrite them and 80 references to `settings-row`, in tests too, to rename classes that already read the same tokens.
+- Rejected: a `Card.astro` wrapper (the tag varies); renaming `settings-row` to a Row class (80 references, no change in look).
+- Revisit if: a card needs a second look (outlined, raised), or a row drifts from the tokens.
+- Amends: D243.
+
 ## D268: a style is a set of token overrides under `data-style`; an opt-in style may bold the page title
 
 - Date: 2026-10-31 (the owner: "style" choices in Appearance beside the theme, Default as today, Expressive, later seasonal ones; and, on a decision card, Expressive may bold the page title only). Amends D125.

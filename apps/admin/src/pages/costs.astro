@@ -1,5 +1,5 @@
 ---
-import Icon from "../../../web/src/components/Icon.astro";
+import Icon from "../../../web/src/design-system/Icon.astro";
 import Select from "../../../web/src/design-system/Select.astro";
 import AdminHead from "../components/AdminHead.astro";
 import Shell from "../layouts/Shell.astro";
@@ -39,7 +39,7 @@ const SPLITS = [
           </Select>
         </div>
         <div class="costs-answer costs-data" aria-live="polite">
-          <p class="costs-total"><span class="sr-only">Total spend </span><span data-costs-total>Loading</span></p>
+          <p class="costs-total text-display"><span class="sr-only">Total spend </span><span data-costs-total>Loading</span></p>
         </div>
         {/* Runs, the average a run and the next most useful figures, as stat tiles (costsPage.ts). */}
         <ul class="stat-tiles costs-stats costs-data" role="list" aria-label="Spend figures" data-costs-stats></ul>

@@ -112,8 +112,16 @@ export function classTokens(text: string): Set<string> {
     found.add(`button-${variant}`);
     if (tone) found.add(`button-${tone}`);
   }
-  // The Switch and the Slider are single-class components, drawn by the tag or by the class helper.
   const code = text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  // The Icon is drawn by the tag, the island's tag or the class helper; the large size by its prop.
+  if (/<(?:Lazy)?Icon\b|\biconClass\(|\biconHtml\(/.test(code)) found.add("icon-glyph");
+  if (/<(?:Lazy)?Icon\b[^>]*\bsize="lg"|\bicon(?:Class|Html)\([^)]*["']lg["']/.test(code)) {
+    found.add("icon-glyph-lg");
+  }
+  if (/<PlayPauseIcons\b[^>]*\bsize="lg"/.test(code)) found.add("icon-glyph-lg");
+  // The Badge is a single-class component, drawn by the tag or by the class helper.
+  if (/<Badge\b|\bbadgeClass\(/.test(code)) found.add("badge-label");
+  // The Switch and the Slider are single-class components, drawn by the tag or by the class helper.
   if (/<Switch\b|\bswitchClass\(/.test(code)) found.add("switch-input");
   if (/<Slider\b|\bsliderClass\(/.test(code)) found.add("slider-input");
   // The Field is drawn by the tag (not Base UI's Field.Root) or by the class helper, for a select.
@@ -143,7 +151,6 @@ export function classTokens(text: string): Set<string> {
     found.add("dialog-panel");
     found.add("dialog-body");
   }
-  if (/<DialogTitle\b|\bdialogTitleClass\(/.test(code)) found.add("dialog-title");
   // The Sheet: the tag (its header and body come with it) or the helpers a script builds with.
   if (/<Sheet\b|\bsheetClass\(/.test(code)) {
     found.add("sheet-side");
@@ -197,6 +204,9 @@ export function sourceFiles(): { path: string; text: string; tokens: Set<string>
     const tokens = classTokens(text);
     // The component files define the two controls; only a caller outside them is a use.
     if (posix(path).includes("/design-system/")) {
+      tokens.delete("badge-label");
+      tokens.delete("icon-glyph");
+      tokens.delete("icon-glyph-lg");
       tokens.delete("switch-input");
       tokens.delete("slider-input");
       tokens.delete("field-input");
@@ -211,7 +221,6 @@ export function sourceFiles(): { path: string; text: string; tokens: Set<string>
       }
       for (const name of [
         "dialog-panel",
-        "dialog-title",
         "dialog-body",
         "dialog-actions",
         "dialog-actions-stacked",

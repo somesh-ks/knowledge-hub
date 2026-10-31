@@ -1,0 +1,19 @@
+/*
+ * The Badge (design-system/Badge.astro): a grey pill that holds one word or one number. One size, one
+ * fill. It is as wide as its words and no narrower than it is high, so a single digit stays round.
+ * Grey, so the blue stays with the controls (owner, 2026-10-30).
+ */
+.badge-label {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: var(--space-6);
+  block-size: var(--space-6);
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-round);
+  background: var(--color-surface-container);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}

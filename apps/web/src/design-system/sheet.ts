@@ -45,4 +45,4 @@ export const sheetBodyClass = (): string => "sheet-body";
 export const sheetHeadClass = (): string => "sheet-head";
 
 /** The heading in that row, and in a Drawer's. */
-export const sheetTitleClass = (): string => "sheet-title";
+export const sheetTitleClass = (): string => "sheet-title text-heading";

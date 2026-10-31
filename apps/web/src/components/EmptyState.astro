@@ -51,7 +51,7 @@ const headingId = level === 1 ? "page-title" : "empty-title";
 >
   {scenes.map((scene) => <EmptyArt art={scene} size={compact ? "compact" : "regular"} />)}
   <Heading
-    class:list={["empty-title", { "page-title": level === 1 }]}
+    class:list={["empty-title", { "page-title text-display": level === 1 }]}
     id={headingId}
     tabindex={level === 1 ? "-1" : undefined}
   >

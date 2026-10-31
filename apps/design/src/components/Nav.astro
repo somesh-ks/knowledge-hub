@@ -1,6 +1,6 @@
 ---
 import BrandMark from "../../../web/src/components/BrandMark.astro";
-import Icon from "../../../web/src/components/Icon.astro";
+import Icon from "../../../web/src/design-system/Icon.astro";
 import { buildDay } from "../../../web/src/lib/buildDay";
 import { href, NAV } from "../lib/sections";
 import ThemeToggle from "./ThemeToggle.astro";
@@ -38,8 +38,8 @@ const { current } = Astro.props;
               data-group-current={inside ? "" : undefined}
             >
               <span class="app-nav-indicator">
-                <Icon name={page.icon} class="icon-lg app-nav-icon-rest" />
-                <Icon name={page.iconCurrent} class="icon-lg app-nav-icon-current" />
+                <Icon name={page.icon} size="lg" class="app-nav-icon-rest" />
+                <Icon name={page.iconCurrent} size="lg" class="app-nav-icon-current" />
               </span>
               <span>{page.label}</span>
             </a>
@@ -59,7 +59,7 @@ const { current } = Astro.props;
                   {children.map((child) => (
                     <li>
                       <a class="guide-nav-subitem" href={href(child.path)} aria-current={child.path === current ? "page" : undefined}>
-                        <Icon name={child.path === current ? child.iconCurrent : child.icon} class="icon-lg" />
+                        <Icon name={child.path === current ? child.iconCurrent : child.icon} size="lg" />
                         <span>{child.label}</span>
                       </a>
                     </li>

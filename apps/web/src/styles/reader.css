@@ -20,15 +20,8 @@
 
 /* ------------------------------------------------------------------ page title */
 
-/* The one h1 of a page: a date, or the page's name. Regular weight at the display size. */
-.page-title {
-  font-family: var(--text-display-family);
-  font-size: var(--text-display-size);
-  font-weight: var(--text-display-weight);
-  letter-spacing: var(--text-display-tracking);
-  line-height: var(--text-display-leading);
-}
-
+/* The one h1 of a page: a date, or the page's name. It takes the display role (text-display) in its
+   markup, and this class is the hook for the focus rule below. */
 /* Focus lands here after a navigation so a screen reader starts at the title. It is a place, not a
    control, so it shows no ring. */
 .page-title:focus {

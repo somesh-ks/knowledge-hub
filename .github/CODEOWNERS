@@ -3,6 +3,8 @@
 # of its own, labelled design-system (scripts/designSystemGate.mjs, .github/workflows/design-system.yml).
 /apps/web/src/design-system/ @somesh-ks
 /apps/web/src/styles/buttons.css @somesh-ks
+/apps/web/src/styles/icon.css @somesh-ks
+/apps/web/src/styles/badge.css @somesh-ks
 /apps/web/src/styles/switch.css @somesh-ks
 /apps/web/src/styles/slider.css @somesh-ks
 /apps/web/src/styles/field.css @somesh-ks

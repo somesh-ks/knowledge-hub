@@ -1,8 +1,8 @@
 ---
-import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import PodcastProfile from "../../components/PodcastProfile.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
+import Icon from "../../design-system/Icon.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { loadManage } from "../../lib/manage";
 import { loadScheduleView } from "../../lib/schedule";
@@ -82,7 +82,7 @@ const { title, values } = PAGES[profile];
             builtTopics={topics.map((topic) => topic.id)}
           />
           <section class="podcast-section" aria-labelledby={`${profile}-structure-head`}>
-            <h2 class="section-head" id={`${profile}-structure-head`}>Structure</h2>
+            <h2 class="section-head text-heading" id={`${profile}-structure-head`}>Structure</h2>
             <div class="rows card-group">
               <a class="row-action" href="/settings/preferences?view=structure">
                 <span class="settings-text">
