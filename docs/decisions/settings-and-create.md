@@ -348,3 +348,14 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Rejected: settling on the write's answer (the bug); a cache-busting query on the read (the worker saves a copy per query and pushes real pages out of its 60); a second `sw.js` change from this thread (#494 owns the worker); a version or ordering guard on the write (one editor, and the stale-write window is a second dialog inside a 1 to 3 s write; add one if the page gains editors).
 - Revisit if: the page gains more than one editor (version the write), or the worker or the CDN is made to cache `/admin` reads again.
 - Amends: D249, D259.
+
+## D276: a voice is heard from its list; the page row is a plain value row
+
+- Date: 2026-10-31 (the owner: the Podcast voice item "feels very out of sync from the rest of the design language"; he chose B5 from mocks, 7 rounds).
+- Decision: a voice list item is a Play control at the start, the flag and the voice's name as the title (cut with an ellipsis), and "Gender, accent" under it; the Default item is one line, "Default (flag name)". Play auditions without choosing, by pointer, or by Shift+Enter in the search field on the highlighted voice (the field stays the one focus stop; `aria-keyshortcuts` and a hidden hint say so). The Podcast voice row is label left, value right, as Theme is, with no Play on the page. The Create form drops its separate Play chip and hears voices from the same list; choosing a voice no longer plays it. The list's data comes from the option's `data-title`, `-sub`, `-lead`, `-tail` and `-sample` (`fillVoiceSelect`); the option's own text is unchanged for forms and search.
+- Why: the tonal disc was the one filled control on a quiet card, and the value sat under its label unlike every other select. Preview is how a voice is chosen, so it moves into the list, where a person compares voices; Play on the left keeps the end of the item for the check. A name as the title and the gender and accent below let a long name use the width.
+- Rejected: Play on the right of the item (B, A: the check and Play compete at the end); the flag in its own column (B3: more width, a second place to look); a Play control that is a tab stop (the list is one combobox; a stop per voice makes Tab a long walk); a pointer-only Play (not accessible).
+- Revisit if: Speechify adds a third descriptor (it follows the accent after a comma), or a list needs auditioning at more than one speed.
+- Decided on the owner's behalf while he was away (coordinator, 2026-10-31): dropping the Create chip and the keyboard Play; the screenshots went to him for a veto.
+- Amends: D101, D129.
+
