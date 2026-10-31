@@ -120,7 +120,13 @@ jobs:
           # run.yml starts every hour, so its last 3 days (RUN_DIED_WINDOW_MS) are about 72 runs.
           since=$(date -u -d '3 days ago' +%Y-%m-%dT%H:%M:%SZ)
           gh run list --workflow run.yml --created ">=$since" --limit 200 --json databaseId,status,conclusion,createdAt,event,displayTitle > "$runs" || echo '[]' > "$runs"
-          npm run --silent singularity -- health --json --ceiling-usd "$CEILING" --runs "$runs" --perf "$PERF" | tee "$RUNNER_TEMP/health.json" >/dev/null
+          # The other workflows whose failure leaves the site stale or a podcast missing (OBS-01).
+          for wf in content ingest podcast; do
+            gh run list --workflow "$wf.yml" --created ">=$since" --limit 50 --json databaseId,status,conclusion,createdAt,event,displayTitle > "$RUNNER_TEMP/side-$wf.json" || echo '[]' > "$RUNNER_TEMP/side-$wf.json"
+          done
+          side="$RUNNER_TEMP/side-runs.json"
+          jq -n --slurpfile c "$RUNNER_TEMP/side-content.json" --slurpfile i "$RUNNER_TEMP/side-ingest.json" --slurpfile p "$RUNNER_TEMP/side-podcast.json" '{content: $c[0], ingest: $i[0], podcast: $p[0]}' > "$side" || echo '{}' > "$side"
+          npm run --silent singularity -- health --json --ceiling-usd "$CEILING" --runs "$runs" --side-runs "$side" --perf "$PERF" | tee "$RUNNER_TEMP/health.json" >/dev/null
           echo "exit=${PIPESTATUS[0]}"
           jq -r '.findings[] | "\(.severity) [\(.aspect)] \(.code): \(.message)"' "$RUNNER_TEMP/health.json" || true
           # Performance findings are mostly warnings, which open no issue (D147, D156), so they go on

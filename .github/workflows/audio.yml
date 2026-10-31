@@ -7,13 +7,33 @@ name: audio
 
 on:
   workflow_call:
+    secrets:
+      VERCEL_TOKEN:
+        required: false
+      BLOB_READ_WRITE_TOKEN:
+        required: false
+      SPEECHIFY_API_KEY:
+        required: false
     inputs:
       # What the step is called, so an episode run can show it as "Recording voices". run.yml leaves
       # it out and its step keeps the name "Audio", which the status route reads.
       step_name:
         type: string
         default: Audio
+      prune_now:
+        type: boolean
+        default: false
   workflow_dispatch:
+    inputs:
+      # The prune lists all of audio/ and so runs on Sundays only; this runs it on any day.
+      prune_now:
+        description: Prune old audio now, whatever the day
+        type: boolean
+        default: false
+  # Pruning must not wait for a publish: a seven-day cadence can skip every Sunday. Nothing is
+  # narrated here unless something is pending, so a quiet week costs one Blob listing.
+  schedule:
+    - cron: "17 3 * * 0"
 
 # A separate group from run.yml: a called workflow that shares its caller's group is cancelled.
 concurrency:
@@ -68,11 +88,43 @@ jobs:
           fi
           ffmpeg -hide_banner -version </dev/null | sed -n 1p
 
+      # The Vercel CLI is the fallback for a missing long-lived Blob token. Its token lives in this
+      # step alone, so no package the engine loads can read an account-wide Vercel token (SEC-03).
+      - name: Blob credentials
+        shell: bash
+        env:
+          HAS_BLOB: ${{ secrets.BLOB_READ_WRITE_TOKEN != '' }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          # With the long-lived Blob token the engine needs nothing from Vercel: the pull below (which
+          # also needs a working VERCEL_TOKEN, and failed with "User not found" while that secret was
+          # dead, leaving every briefing without stored audio) is skipped, saving its 10 to 20 seconds.
+          if [ "$HAS_BLOB" = "true" ]; then exit 0; fi
+          # Vercel Blob hides its long-lived token and issues short-lived OIDC credentials instead.
+          # Pull them with the Vercel token; the engine reads VERCEL_OIDC_TOKEN and BLOB_STORE_ID.
+          # The CLI edits .gitignore and writes .vercel and .env.local, which the publish write guard
+          # refuses, so it runs in a scratch directory outside the checkout.
+          mkdir -p "$RUNNER_TEMP/vercel"
+          (
+            cd "$RUNNER_TEMP/vercel"
+            npx --yes vercel@65.8.0 link --yes --project knowledge-hub --scope somesh-ks-projects
+            npx --yes vercel@65.8.0 env pull "$RUNNER_TEMP/audio.env" --environment=production --yes
+          )
+          # Take only the two Blob credentials. Sourcing the whole file would let any pulled variable
+          # override a GitHub secret and would mangle values that contain a dollar sign. Hidden
+          # secrets come back as the text [SENSITIVE], which the engine ignores.
+          pulled() { grep -m1 "^$1=" "$RUNNER_TEMP/audio.env" | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//'; }
+          VERCEL_OIDC_TOKEN=$(pulled VERCEL_OIDC_TOKEN) || { echo "::error::VERCEL_OIDC_TOKEN missing from the pulled env"; exit 1; }
+          echo "::add-mask::$VERCEL_OIDC_TOKEN"
+          BLOB_STORE_ID=$(pulled BLOB_STORE_ID) || { echo "::error::BLOB_STORE_ID missing from the pulled env"; exit 1; }
+          rm -f "$RUNNER_TEMP/audio.env"
+          # Later steps read them; the engine step is the only one.
+          { echo "VERCEL_OIDC_TOKEN=$VERCEL_OIDC_TOKEN"; echo "BLOB_STORE_ID=$BLOB_STORE_ID"; } >> "$GITHUB_ENV"
+
       # Audio failures leave audio null and never block the text digest.
       - name: ${{ inputs.step_name || 'Audio' }}
         shell: bash
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           # When set, the engine uploads with this long-lived token and ignores the OIDC pair below,
           # which the CLI issues for the development environment that the Blob store may not allow.
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
@@ -84,28 +136,8 @@ jobs:
           SPEECHIFY_MONTHLY_CHARS: ${{ vars.SPEECHIFY_MONTHLY_CHARS }}
           SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME || vars.DISPATCH_GIT_NAME }}
           SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL || vars.DISPATCH_GIT_EMAIL }}
+          PRUNE_NOW: ${{ inputs.prune_now }}
         run: |
-          # With the long-lived Blob token the engine needs nothing from Vercel: the pull below (which
-          # also needs a working VERCEL_TOKEN, and failed with "User not found" while that secret was
-          # dead, leaving every briefing without stored audio) is skipped, saving its 10 to 20 seconds.
-          if [ -z "${BLOB_READ_WRITE_TOKEN:-}" ]; then
-            # Vercel Blob hides its long-lived token and issues short-lived OIDC credentials instead.
-            # Pull them with the Vercel token; the engine reads VERCEL_OIDC_TOKEN and BLOB_STORE_ID.
-            # The CLI edits .gitignore and writes .vercel and .env.local, which the publish write guard
-            # refuses, so it runs in a scratch directory outside the checkout.
-            mkdir -p "$RUNNER_TEMP/vercel"
-            (
-              cd "$RUNNER_TEMP/vercel"
-              npx vercel link --yes --project knowledge-hub --scope somesh-ks-projects
-              npx vercel env pull "$RUNNER_TEMP/audio.env" --environment=production --yes
-            )
-            # Take only the two Blob credentials. Sourcing the whole file would let any pulled variable
-            # override a GitHub secret and would mangle values that contain a dollar sign. Hidden
-            # secrets come back as the text [SENSITIVE], which the engine ignores.
-            pulled() { grep -m1 "^$1=" "$RUNNER_TEMP/audio.env" | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//'; }
-            VERCEL_OIDC_TOKEN=$(pulled VERCEL_OIDC_TOKEN) || { echo "::error::VERCEL_OIDC_TOKEN missing from the pulled env"; exit 1; }
-            echo "::add-mask::$VERCEL_OIDC_TOKEN"
-            BLOB_STORE_ID=$(pulled BLOB_STORE_ID) || { echo "::error::BLOB_STORE_ID missing from the pulled env"; exit 1; }
-            export VERCEL_OIDC_TOKEN BLOB_STORE_ID
-          fi
-          npm run --silent singularity -- publish --prune 120
+          args=(--prune 120)
+          [ "$PRUNE_NOW" = "true" ] && args+=(--prune-now)
+          npm run --silent singularity -- publish "${args[@]}"
