@@ -192,6 +192,11 @@
     padding-inline: var(--space-2) var(--space-1);
   }
 
+  /* The rows of the sheet are as tall as a select's and a picker's (--size-option). */
+  .menu-sheet .menu-item {
+    min-height: var(--size-option);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .menu-list.menu-sheet,
     .menu-list.menu-sheet:popover-open {

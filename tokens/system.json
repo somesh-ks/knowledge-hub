@@ -466,6 +466,7 @@
         "--sheet-shadow",
         "--size-icon",
         "--size-icon-sm",
+        "--size-option",
         "--size-touch"
       ]
     },
@@ -531,6 +532,7 @@
         "--sheet-radius",
         "--sheet-shadow",
         "--size-icon",
+        "--size-option",
         "--size-touch"
       ]
     },
@@ -3774,6 +3776,13 @@
       "tier": "semantic",
       "type": "dimension",
       "light": "3rem"
+    },
+    {
+      "name": "--size-option",
+      "tier": "semantic",
+      "type": "dimension",
+      "light": "3rem",
+      "role": "A row in a list that opens as a bottom sheet on a phone: a select's, a picker's, a menu's. One height, so they read as one sheet."
     },
     {
       "name": "--size-icon-sm",

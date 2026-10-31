@@ -272,6 +272,9 @@
     padding-block: var(--space-2);
     padding-inline: var(--space-4);
     border-radius: var(--row-radius);
+    /* No fill of its own: the browser's option is a shade off the surface in dark, which drew every
+       row as a button (owner, 2026-10-31). Hover and focus draw the state layer below. */
+    background: transparent;
     font-size: var(--font-size-body);
     font-weight: var(--font-weight-medium);
     line-height: var(--font-leading-label);
@@ -280,6 +283,13 @@
 
   :is(.select-outlined, .select-tonal) > select option + option {
     margin-block-start: var(--space-2);
+  }
+
+  /* Where the list is a sheet its rows are as tall as the menu's and the picker's (--size-option). */
+  @media (width < 40rem) {
+    :is(.select-outlined, .select-tonal) > select option {
+      min-block-size: var(--size-option);
+    }
   }
 
   /* A group's heading starts where its options' words do, whatever side the field aligns its value
