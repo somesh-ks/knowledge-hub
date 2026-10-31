@@ -117,7 +117,8 @@ function mountSettings(root: HTMLElement): () => void {
   // The index's Interface sounds row: its line says whether they are on in this browser.
   const soundsHint = root.querySelector<HTMLElement>("[data-sounds-hint] [data-hint]");
   const hint = root.querySelector<HTMLElement>("[data-install-hint]");
-  const hasNotifications = root.querySelector('input[name="notifications"]');
+  const hasNotifications =
+    root.hasAttribute("data-notifications-page") || root.querySelector("[data-notifications-hint]");
   const installApp = root.querySelector<HTMLElement>("[data-install-app]");
 
   // An edit saved in the last few minutes is not in this page until the next build: the rows' lines

@@ -1,0 +1,60 @@
+---
+import SettingsHead from "../../components/SettingsHead.astro";
+import Switch from "../../design-system/Switch.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import "../../styles/settings.css";
+
+const title = "Notifications";
+---
+
+<BaseLayout title={title} view="settings" skipLabel="Skip to the notification settings">
+  <main id="main" tabindex="-1">
+    {/* Kept in this browser (its permission, its push subscription and the person's switches), so
+         nothing is set here: notificationsSettings.ts fills the switches in and marks the page ready,
+         as settingsPage.ts does for the other pages. The first switch is the whole group's: mixed
+         while only some of the three are on. */}
+    <div class="settings-view" data-settings data-notifications-page>
+      <SettingsHead title={title} note="Hear when a podcast is ready." />
+      <noscript>
+        <p class="settings-note">These settings need JavaScript, which is turned off in this browser.</p>
+      </noscript>
+      <section>
+        <div class="rows card-group">
+          <div class="settings-row">
+            <label class="settings-label" for="settings-notifications-all">All notifications</label>
+            <Switch id="settings-notifications-all" name="all" />
+          </div>
+          <div class="settings-row">
+            <div class="settings-text">
+              <label class="settings-label" for="settings-notifications-daily">Daily</label>
+              <span class="settings-hint">When your Daily is ready.</span>
+            </div>
+            <Switch id="settings-notifications-daily" name="daily" />
+          </div>
+          <div class="settings-row">
+            <div class="settings-text">
+              <label class="settings-label" for="settings-notifications-weekly">Weekly</label>
+              <span class="settings-hint">When your Weekly is ready.</span>
+            </div>
+            <Switch id="settings-notifications-weekly" name="weekly" />
+          </div>
+          <div class="settings-row">
+            <div class="settings-text">
+              <label class="settings-label" for="settings-notifications-ready">Podcast ready</label>
+              <span class="settings-hint">When a Catch up or new take you started finishes.</span>
+            </div>
+            <Switch id="settings-notifications-ready" name="ready" />
+          </div>
+        </div>
+        {/* Says why the switches cannot be turned on; empty while they can. */}
+        <p class="settings-note" data-notifications-note hidden></p>
+      </section>
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { installSettingsPage } from "../../scripts/settingsPage";
+
+  installSettingsPage();
+</script>

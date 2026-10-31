@@ -292,6 +292,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D276 | Voice list | amends D101 |
 | D277 | Queue keeps played items; a tap plays in place | amends D126 |
 | D278 | Softer light covers | amends D121 |
-| D284 | Push ping when your run ends | amends D11 |
+| D284 | Push pings | amends D11 |
 
 ---

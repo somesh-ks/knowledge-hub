@@ -24,6 +24,18 @@ export const PUSH_SCHEMA_SQL = [
   primary key (run_id, endpoint)
 )`,
   "create index if not exists push_watches_created on push_watches (created_at)",
+  `create table if not exists push_devices (
+  endpoint text primary key,
+  p256dh text not null,
+  auth text not null,
+  daily boolean not null,
+  weekly boolean not null,
+  updated_at timestamptz not null
+)`,
+  `create table if not exists push_announced (
+  run_id text primary key,
+  announced_at timestamptz not null
+)`,
   `create table if not exists push_keys (
   id integer primary key,
   public_key text not null,
@@ -270,5 +282,127 @@ returning 1 as gone`,
         throw again;
       });
     return rows.length;
+  }
+}
+
+/** Most devices that may ask for the Daily and the Weekly: one person's phones and laptops, not a crowd. */
+export const MAX_DEVICES = 20;
+
+/** The scheduled podcasts a device can ask to hear about. */
+export type ScheduledKind = "daily" | "weekly";
+
+export interface PushDevice extends PushTarget {
+  daily: boolean;
+  weekly: boolean;
+}
+
+/**
+ * Sets what this browser wants to hear about (the Daily, the Weekly), or refreshes its keys. False when
+ * MAX_DEVICES other browsers already ask: the cap is in the statement, as the watches' is. A device
+ * that wants neither is removed.
+ */
+export async function setPushDevice(
+  sql: SqlClient,
+  device: PushDevice,
+  now: number,
+): Promise<boolean> {
+  if (!device.daily && !device.weekly) {
+    await removePushDevice(sql, device.endpoint);
+    return true;
+  }
+  const write = async (): Promise<boolean> => {
+    const rows = await sql.query(
+      `insert into push_devices (endpoint, p256dh, auth, daily, weekly, updated_at)
+select $1, $2, $3, $4, $5, $6::timestamptz
+where (select count(*) from push_devices where endpoint <> $1) < $7
+on conflict (endpoint) do update set p256dh = excluded.p256dh, auth = excluded.auth,
+  daily = excluded.daily, weekly = excluded.weekly, updated_at = excluded.updated_at
+returning 1 as stored`,
+      [
+        device.endpoint,
+        device.p256dh,
+        device.auth,
+        device.daily,
+        device.weekly,
+        new Date(now).toISOString(),
+        MAX_DEVICES,
+      ],
+    );
+    return rows.length > 0;
+  };
+  return withTable(sql, PUSH_SCHEMA_SQL, write);
+}
+
+/** This browser no longer hears about the Daily or the Weekly. */
+export async function removePushDevice(sql: SqlClient, endpoint: string): Promise<void> {
+  try {
+    await sql.query("delete from push_devices where endpoint = $1", [endpoint]);
+  } catch (error) {
+    if (!missingTable(error)) throw error;
+  }
+}
+
+/** A scheduled podcast that has just been published and not yet announced. */
+export interface NewScheduledRun {
+  run_id: string;
+  kind: ScheduledKind;
+  /** The id of the digest it made, for the message's link. */
+  podcast: string | null;
+}
+
+/** A run older than this is not news any more: the first sync after the keys exist stays quiet about old runs. */
+const ANNOUNCE_WINDOW_MS = 6 * 3_600_000;
+
+/**
+ * Claims the Daily and Weekly runs that published since the last call, so each is announced once
+ * whoever asks: the claim and the read are one statement, and a run is claimed whether or not any
+ * device wants it (a device added later is not sent an old run). A regeneration (it replaces a
+ * podcast), a dry run and a run of any other kind are not announced here: a person who asked for
+ * one hears of it through a watch.
+ */
+export async function claimNewScheduledRuns(
+  sql: SqlClient,
+  now: number,
+): Promise<NewScheduledRun[]> {
+  try {
+    const rows = await sql.query(
+      `with claimed as (
+  insert into push_announced (run_id, announced_at)
+  select r.run_id, $1::timestamptz from pipeline_runs r
+  where r.workflow = 'run' and r.outcome = 'published' and not r.dry_run and r.replaces is null
+    and r.kind in ('daily', 'weekly') and r.finished_at > $2::timestamptz
+  on conflict (run_id) do nothing
+  returning run_id
+)
+select r.run_id, r.kind, r.podcasts from pipeline_runs r join claimed c on c.run_id = r.run_id`,
+      [new Date(now).toISOString(), new Date(now - ANNOUNCE_WINDOW_MS).toISOString()],
+    );
+    return rows.map((row) => ({
+      run_id: String(row.run_id),
+      kind: row.kind === "weekly" ? "weekly" : "daily",
+      podcast: Array.isArray(row.podcasts) && row.podcasts[0] ? String(row.podcasts[0]) : null,
+    }));
+  } catch (error) {
+    // `pipeline_runs` or the claim table is not there yet: nothing has run, or no browser has asked.
+    if (!missingTable(error)) throw error;
+    for (const statement of PUSH_SCHEMA_SQL) await sql.query(statement);
+    return [];
+  }
+}
+
+/** The devices that asked to hear about this kind of run. */
+export async function devicesFor(sql: SqlClient, kind: ScheduledKind): Promise<PushTarget[]> {
+  try {
+    const rows = await sql.query(
+      `select endpoint, p256dh, auth from push_devices where ${kind === "weekly" ? "weekly" : "daily"}`,
+    );
+    return rows.map((row) => ({
+      endpoint: String(row.endpoint),
+      p256dh: String(row.p256dh),
+      auth: String(row.auth),
+    }));
+  } catch (error) {
+    if (missingTable(error)) return [];
+    throw error;
   }
 }

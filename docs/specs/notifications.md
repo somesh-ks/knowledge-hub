@@ -1,12 +1,13 @@
 # Notifications
 
-A Catch up or a regeneration started on a device pings that device when it ends (D284). Daily and Weekly do not ping.
+A device can be pinged when the Daily or the Weekly is published, and when a Catch up or regeneration it started ends (D284).
 
 ## Requirements
 
-- Settings has a Notifications section with one switch, per browser. Turning it on asks the browser's permission from that press and subscribes with the site's public key (`GET /api/push`). Off drops the subscription. A line under it says why it cannot be turned on: blocked in the browser's site settings, or (iOS) the app must be added to the Home Screen first.
-- Starting a Catch up (`createPage.ts`) or a regeneration (`episodeActions.ts`) with it On sends the browser's address and keys with the run's cancel token (`POST /api/push`, `lib/pushClient.ts`). A run's token is held only by the device that started it (D242), so only that device can be pinged. The server accepts only https addresses at the Google, Mozilla, Apple and Windows push hosts, at most two browsers per run, kept six hours.
-- After each content sync, `content.yml` runs `singularity push notify`. A watched run whose `pipeline_runs` row is published sends "ready" (a tap opens `/e/<episode>`); failed sends "did not finish" (a tap opens the Library); nothing or cancelled sends nothing. A sent, gone (404 or 410) or unsendable row is deleted; a push service that is down leaves the row for the next sync. With no keys the command warns and exits 0.
+- Settings has a Notifications section; its page has a global switch and one each for Daily, Weekly and Podcast ready, per browser. The global switch is mixed while only some are on (the Switch's `indeterminate`); pressing it turns all on, or off when all are on. The first switch turned on asks the browser's permission from that press and subscribes with the site's public key (`GET /api/push`); the last one turned off drops the subscription. A line says why they cannot be turned on: blocked in the browser's site settings, or (iOS) the app must be added to the Home Screen first.
+- Daily and Weekly: the browser's address and keys go to `PUT /api/push-device` (`push_devices`), at most 20 devices. After each content sync `singularity push notify` claims the Daily and Weekly runs that just published (once each, in `push_announced`; a regeneration is not one) and messages the devices that asked; a tap opens the podcast.
+- Podcast ready: starting a Catch up (`createPage.ts`) or a regeneration (`episodeActions.ts`) with it on sends the address and keys with the run's cancel token (`POST /api/push`, `lib/pushClient.ts`). Only the device that started a run holds its token (D242). At most two browsers per run, kept six hours. A published run sends "ready" (a tap opens `/e/<episode>`), a failed one "did not finish" (the Library); nothing or cancelled sends nothing.
+- Only https addresses at the Google, Mozilla, Apple and Windows push hosts are accepted. A gone address (404 or 410) is dropped; with no keys or no database the command warns and exits 0.
 - The service worker always shows a notification for a push and opens or focuses a window on this site when it is tapped (`public/sw.js`).
 
 ## Keys
@@ -15,4 +16,4 @@ There is nothing to set up. The signing key pair (VAPID) is made by the site the
 
 ## Code
 
-`packages/engine/src/store/pushStore.ts`, `packages/engine/src/commands/push.ts`, `apps/web/src/server/pushWatch.ts`, `apps/web/src/pages/api/push.ts`, `apps/web/src/lib/pushClient.ts`, `apps/web/src/scripts/notificationsSettings.ts`, `apps/web/src/pages/settings.astro`.
+`packages/engine/src/store/pushStore.ts`, `packages/engine/src/commands/push.ts`, `apps/web/src/server/pushWatch.ts`, `apps/web/src/server/pushDevice.ts`, `apps/web/src/pages/api/push.ts`, `apps/web/src/lib/pushClient.ts`, `apps/web/src/scripts/notificationsSettings.ts`, `apps/web/src/pages/settings.astro`.

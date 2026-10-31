@@ -6,6 +6,7 @@ import {
   addPushWatch,
   isPushEndpoint,
   MAX_WATCHES_PER_RUN,
+  setPushDevice,
   WATCH_LIFETIME_MS,
 } from "../store/pushStore.js";
 import { RUNS_SCHEMA_SQL } from "../store/runsStore.js";
@@ -100,6 +101,44 @@ describe("push notify (D284)", () => {
     const down = makePushCommand({ connect: async () => sql, send: async () => "failed" });
     expect(await down(["notify"], context(env))).toBe(0);
     expect((await sql.query("select 1 from push_watches")).length).toBe(1);
+  });
+
+  // The bug it prevents: the Daily announced twice (one ping per sync), sent to a device that asked
+  // only for the Weekly, or a regeneration announced as if it were the new Daily.
+  it("announces a published Daily once, to the devices that asked for Dailies", async () => {
+    const sql = store();
+    const phone = { endpoint: EP(1), p256dh: "p", auth: "a" };
+    expect(await setPushDevice(sql, { ...phone, daily: true, weekly: false }, NOW)).toBe(true);
+    await setPushDevice(sql, { ...phone, endpoint: EP(2), daily: false, weekly: true }, NOW);
+    await setPushDevice(sql, { ...phone, endpoint: EP(3), daily: true, weekly: true }, NOW);
+    for (const statement of RUNS_SCHEMA_SQL) await sql.query(statement);
+    const row = (id: string, kind: string, replaces: string | null) =>
+      sql.query(
+        `insert into pipeline_runs (run_id, workflow, kind, mode, replaces, dry_run, outcome, podcasts,
+started_at, finished_at, work_ms, total_ms, usd)
+values ($1, 'run', $2, 'api', $3, false, 'published', $4::text[], $5::timestamptz, $5::timestamptz, 1, 1, 0)`,
+        [id, kind, replaces, ["2026-10-31"], new Date(NOW - 60_000).toISOString()],
+      );
+    await row("daily-1", "daily", null);
+    await row("daily-redo", "daily", "2026-10-29");
+
+    const calls: string[] = [];
+    const send: PushSender = async (target, message) => {
+      calls.push(`${target.endpoint} ${message.title} ${message.url}`);
+      return target.endpoint === EP(3) ? "gone" : "sent";
+    };
+    const command = makePushCommand({ connect: async () => sql, send });
+    const env = { DATABASE_URL: "postgres://x" };
+    await command(["notify"], context(env));
+    expect(calls.sort()).toEqual([
+      `${EP(1)} Your Daily is ready /d/2026-10-31`,
+      `${EP(3)} Your Daily is ready /d/2026-10-31`,
+    ]);
+    // The dead address is forgotten; a second sync says nothing more about the same run.
+    expect((await sql.query("select endpoint from push_devices order by endpoint")).length).toBe(2);
+    calls.length = 0;
+    await command(["notify"], context(env));
+    expect(calls).toEqual([]);
   });
 
   it("does nothing, and does not fail the sync, when push is not set up", async () => {

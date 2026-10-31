@@ -1,18 +1,22 @@
 import {
-  disableNotifications,
-  enableNotifications,
+  applyChoices,
+  type Choices,
+  globalState,
+  KINDS,
+  type Kind,
   type NotificationState,
   notificationState,
   readCapabilities,
+  readChoices,
 } from "../lib/pushClient";
 
 /**
- * The Notifications switch on the Settings index (D284). Whether they are on is read from this
- * browser (its permission, its push subscription and the person's choice), so the page is static
- * HTML that this fills in. Loaded only by a page that has the switch.
+ * The Notifications page's switches and the index row's line (D284). What is on is read from this
+ * browser (its permission, its push subscription and the person's choices), so the pages are static
+ * HTML that this fills in. Loaded only by a page that has them.
  */
 
-/** Empty while the switch can be turned on: the row's own line already says what it is for. */
+/** Empty while the switches can be turned on: the rows' own lines say what they are for. */
 const NOTE: Record<NotificationState, string> = {
   on: "",
   off: "",
@@ -23,37 +27,58 @@ const NOTE: Record<NotificationState, string> = {
 };
 
 export function mountNotifications(root: HTMLElement): () => void {
-  const toggle = root.querySelector<HTMLInputElement>('input[name="notifications"]');
+  const all = root.querySelector<HTMLInputElement>('input[name="all"]');
+  const switches = new Map<Kind, HTMLInputElement | null>(
+    KINDS.map((kind) => [kind, root.querySelector<HTMLInputElement>(`input[name="${kind}"]`)]),
+  );
   const note = root.querySelector<HTMLElement>("[data-notifications-note]");
+  const indexHint = root.querySelector<HTMLElement>("[data-notifications-hint] [data-hint]");
   let alive = true;
 
-  const show = (state: NotificationState): void => {
+  const show = (choices: Choices): void => {
     if (!alive) return;
-    if (toggle) {
-      toggle.checked = state === "on";
-      toggle.disabled = state === "unsupported" || state === "needs_install" || state === "blocked";
+    const state = notificationState(readCapabilities());
+    const locked = state === "unsupported" || state === "needs_install" || state === "blocked";
+    const group = globalState(choices);
+    for (const [kind, input] of switches) {
+      if (!input) continue;
+      input.checked = choices[kind];
+      input.disabled = locked;
+    }
+    if (all) {
+      // Mixed is the native indeterminate state, drawn by the Switch; pressing it turns all on.
+      all.checked = group === "on";
+      all.indeterminate = group === "mixed";
+      all.disabled = locked;
     }
     if (note) {
       note.textContent = NOTE[state];
       note.hidden = NOTE[state] === "";
     }
+    if (indexHint) {
+      indexHint.textContent = group === "on" ? "On" : group === "mixed" ? "Some" : "Off";
+    }
   };
 
-  show(notificationState(readCapabilities()));
+  show(readChoices());
 
   const onChange = async (event: Event): Promise<void> => {
-    if (event.target !== toggle || !toggle) return;
-    if (toggle.checked) {
-      // The browser asks from this press, as iOS requires. The switch already says On; a refusal
-      // puts it back.
-      show(await enableNotifications());
-    } else {
-      await disableNotifications();
-      show(notificationState(readCapabilities()));
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement)) return;
+    const kind = KINDS.find((candidate) => switches.get(candidate) === target);
+    if (target !== all && !kind) return;
+    const next: Choices = { ...readChoices() };
+    for (const each of KINDS) {
+      if (target === all) next[each] = target.checked;
+      else if (each === kind) next[each] = target.checked;
     }
+    // The switches move at once; a refusal from the browser puts them back.
+    show(next);
+    show(await applyChoices(next));
   };
   const listener = (event: Event): void => void onChange(event);
   root.addEventListener("change", listener);
+  // The index row has no switches: its line is all it fills in.
   return () => {
     alive = false;
     root.removeEventListener("change", listener);

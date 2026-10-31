@@ -3,12 +3,16 @@ import type { CommandRun } from "../context.js";
 import { describeError } from "../llm/errors.js";
 import { connectConfigStore, databaseSecrets, type SqlClient } from "../store/configPaths.js";
 import {
+  claimNewScheduledRuns,
   deletePushWatches,
+  devicesFor,
   type EndedWatch,
   endedPushWatches,
   isPushEndpoint,
+  type NewScheduledRun,
   type PushTarget,
   readPushKeys,
+  removePushDevice,
   sweepPushWatches,
 } from "../store/pushStore.js";
 
@@ -31,6 +35,15 @@ export function messageFor(watch: EndedWatch): PushMessage {
   const id = watch.podcast;
   const url = id?.startsWith("ep-") ? `/e/${id}` : id ? `/d/${id}` : "/library";
   return { title: `${what} is ready`, body: "Tap to listen.", url };
+}
+
+/** The Daily and the Weekly: a tap opens the podcast. */
+export function scheduledMessage(run: NewScheduledRun): PushMessage {
+  return {
+    title: run.kind === "weekly" ? "Your Weekly is ready" : "Your Daily is ready",
+    body: "Tap to listen.",
+    url: run.podcast ? `/d/${run.podcast}` : "/library",
+  };
 }
 
 /** The push service's word on a send. Gone means the browser dropped the subscription for good. */
@@ -101,34 +114,47 @@ export function makePushCommand(deps: PushDeps = {}): CommandRun {
     let privateKey = "";
     try {
       const sql = await (deps.connect ?? connectConfigStore)(databaseUrl);
+      const now = ctx.now().getTime();
       const ended = await endedPushWatches(sql);
+      const scheduled = await claimNewScheduledRuns(sql, now);
       let send = deps.send;
-      if (!send) {
+      if (!send && ended.length + scheduled.length > 0) {
         // The site makes the pair when the first browser asks for the public key; none yet means
         // no browser has switched notifications on, so there is nothing to send.
-        const keys = ended.length > 0 ? await readPushKeys(sql) : null;
-        if (!keys) {
-          await sweepPushWatches(sql, ctx.now().getTime());
-          return 0;
+        const keys = await readPushKeys(sql);
+        if (keys) {
+          privateKey = keys.privateKey;
+          send = await webPushSender(keys);
         }
-        privateKey = keys.privateKey;
-        send = await webPushSender(keys);
       }
       const done: EndedWatch[] = [];
       let sent = 0;
       let failed = 0;
-      for (const watch of ended) {
-        // A row the site would not have stored: drop it unsent.
-        const result = isPushEndpoint(watch.endpoint)
-          ? await send(watch, messageFor(watch))
-          : "gone";
-        if (result === "failed") failed += 1;
-        else done.push(watch);
-        if (result === "sent") sent += 1;
+      if (send) {
+        for (const watch of ended) {
+          // A row the site would not have stored: drop it unsent.
+          const result = isPushEndpoint(watch.endpoint)
+            ? await send(watch, messageFor(watch))
+            : "gone";
+          if (result === "failed") failed += 1;
+          else done.push(watch);
+          if (result === "sent") sent += 1;
+        }
+        // A scheduled run is announced once (it was claimed above): a device that is down misses it.
+        for (const run of scheduled) {
+          for (const device of await devicesFor(sql, run.kind)) {
+            const result = isPushEndpoint(device.endpoint)
+              ? await send(device, scheduledMessage(run))
+              : "gone";
+            if (result === "sent") sent += 1;
+            else if (result === "gone") await removePushDevice(sql, device.endpoint);
+            else failed += 1;
+          }
+        }
       }
       await deletePushWatches(sql, done);
-      const swept = await sweepPushWatches(sql, ctx.now().getTime());
-      const line = `Push: ${sent} sent, ${failed} to retry, ${done.length - sent} dropped, ${swept} swept.`;
+      const swept = await sweepPushWatches(sql, now);
+      const line = `Push: ${sent} sent, ${failed} to retry, ${Math.max(0, done.length - sent)} dropped, ${swept} swept.`;
       process.stdout.write(`${ctx.json ? JSON.stringify({ sent, retry: failed, swept }) : line}\n`);
     } catch (error) {
       let reason = describeError(error, []);

@@ -10,13 +10,20 @@ import { cancelTokenOf } from "./cancelTokens";
 
 const KEY = "singularity:notifications";
 
+/** What the person asked to hear about. */
+export type Kind = "daily" | "weekly" | "ready";
+export const KINDS: readonly Kind[] = ["daily", "weekly", "ready"];
+export type Choices = Record<Kind, boolean>;
+const NONE: Choices = { daily: false, weekly: false, ready: false };
+
 export type NotificationState =
-  /** This browser cannot receive them. The Settings row is hidden. */
+  /** This browser cannot receive them. The page says so. */
   | "unsupported"
   /** An iPhone or iPad outside the Home Screen app, the only place iOS delivers them. */
   | "needs_install"
   /** The browser's permission was refused: only its own site settings can undo that. */
   | "blocked"
+  /** At least one kind is on and the browser will deliver it. */
   | "on"
   | "off";
 
@@ -28,15 +35,21 @@ export interface Capabilities {
   /** Opened from the Home Screen. */
   standalone: boolean;
   permission: NotificationPermission | "none";
-  /** What localStorage says; the person's own switch. */
-  chosen: boolean;
+  /** What localStorage says; the person's own switches. */
+  chosen: Choices;
 }
 
-/** What the Settings row shows, from what the browser can do and what the person chose. */
+/** What the page shows, from what the browser can do and what the person chose. */
 export function notificationState(c: Capabilities): NotificationState {
   if (!c.supported) return c.apple && !c.standalone ? "needs_install" : "unsupported";
   if (c.permission === "denied") return "blocked";
-  return c.chosen && c.permission === "granted" ? "on" : "off";
+  return KINDS.some((kind) => c.chosen[kind]) && c.permission === "granted" ? "on" : "off";
+}
+
+/** The global switch: all of the kinds on, none, or some (the mixed state). */
+export function globalState(chosen: Choices): "on" | "off" | "mixed" {
+  const on = KINDS.filter((kind) => chosen[kind]).length;
+  return on === 0 ? "off" : on === KINDS.length ? "on" : "mixed";
 }
 
 /** The VAPID public key as the bytes `pushManager.subscribe` wants. */
@@ -50,27 +63,33 @@ export function keyBytes(key: string): Uint8Array<ArrayBuffer> {
   return bytes;
 }
 
-function chosen(): boolean {
+export function readChoices(): Choices {
   try {
-    return localStorage.getItem(KEY) === "on";
+    const parsed: unknown = JSON.parse(localStorage.getItem(KEY) ?? "{}");
+    const record = parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+    return {
+      daily: record.daily === true,
+      weekly: record.weekly === true,
+      ready: record.ready === true,
+    };
   } catch {
-    return false;
+    return { ...NONE };
   }
 }
 
-function choose(on: boolean): void {
+function saveChoices(choices: Choices): void {
   try {
-    if (on) localStorage.setItem(KEY, "on");
+    if (KINDS.some((kind) => choices[kind])) localStorage.setItem(KEY, JSON.stringify(choices));
     else localStorage.removeItem(KEY);
   } catch {
-    // Storage is off: the switch cannot be kept, so it reads Off next time.
+    // Storage is off: the choice cannot be kept, so it reads Off next time.
   }
 }
 
 export function readCapabilities(): Capabilities {
+  const ua = navigator.userAgent;
   const apple =
-    /iPhone|iPad|iPod/.test(navigator.userAgent) ||
-    (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+    /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
   const supported =
     "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
   const standalone =
@@ -81,7 +100,7 @@ export function readCapabilities(): Capabilities {
     apple,
     standalone,
     permission: "Notification" in window ? Notification.permission : "none",
-    chosen: chosen(),
+    chosen: readChoices(),
   };
 }
 
@@ -90,47 +109,78 @@ async function subscription(): Promise<PushSubscription | null> {
   return (await registration?.pushManager.getSubscription()) ?? null;
 }
 
-/**
- * Switches notifications on: asks the browser's permission (from the press that called this, as iOS
- * requires), subscribes with the site's key and keeps the choice. The state it ends in; "blocked"
- * when the person said no, "off" when anything else went wrong.
- */
-export async function enableNotifications(): Promise<NotificationState> {
+/** Asks the browser's permission (from the press that called this, as iOS requires) and subscribes. */
+async function ensureSubscribed(): Promise<boolean> {
   try {
-    if ((await Notification.requestPermission()) !== "granted")
-      return notificationState(readCapabilities());
+    if (
+      Notification.permission !== "granted" &&
+      (await Notification.requestPermission()) !== "granted"
+    ) {
+      return false;
+    }
+    if (await subscription()) return true;
     const response = await fetch("/api/push");
     const { public_key: key } = (await response.json()) as { public_key?: string };
-    if (!response.ok || !key) return "off";
+    if (!response.ok || !key) return false;
     const registration = await navigator.serviceWorker.ready;
-    const existing = await registration.pushManager.getSubscription();
-    if (!existing) {
-      await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: keyBytes(key),
-      });
-    }
-    choose(true);
-    return "on";
+    await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: keyBytes(key),
+    });
+    return true;
   } catch {
-    return "off";
+    return false;
   }
 }
 
-/** Switches them off: drops the subscription, so watches already placed find a dead address. */
-export async function disableNotifications(): Promise<void> {
-  choose(false);
+/** Tells the server which scheduled podcasts this browser wants (or that it wants none). */
+async function syncDevice(choices: Choices): Promise<void> {
   try {
-    await (await subscription())?.unsubscribe();
+    const current = await subscription();
+    if (!current) return;
+    const wants = choices.daily || choices.weekly;
+    await fetch("/api/push-device", {
+      method: wants ? "PUT" : "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(
+        wants
+          ? { subscription: current.toJSON(), daily: choices.daily, weekly: choices.weekly }
+          : { endpoint: current.endpoint },
+      ),
+    });
   } catch {
-    // Already gone, or the browser refused: the choice is off either way.
+    // Offline: the next change sends it again.
   }
+}
+
+/**
+ * Sets which kinds this browser hears about and makes the browser and the server agree: the first
+ * kind turned on asks permission and subscribes, the last one turned off drops the subscription.
+ * Returns the choices now in force: what was asked for, or what it was before when the browser said no.
+ */
+export async function applyChoices(next: Choices): Promise<Choices> {
+  const before = readChoices();
+  if (KINDS.some((kind) => next[kind])) {
+    if (!(await ensureSubscribed())) return before;
+    saveChoices(next);
+    await syncDevice(next);
+    return next;
+  }
+  saveChoices(next);
+  try {
+    const current = await subscription();
+    await syncDevice(next);
+    await current?.unsubscribe();
+  } catch {
+    // Already gone, or the browser refused: the choices are off either way.
+  }
+  return { ...NONE };
 }
 
 export type WatchKind = "catch_up" | "regenerate";
 
 /**
- * Asks to be told when run `runId` ends. A no-op unless notifications are on here and the run's
+ * Asks to be told when run `runId` ends. A no-op unless "Podcast ready" is on here and the run's
  * cancel token is known (the token is the proof that this device started it).
  */
 export async function watchRun(
@@ -140,7 +190,8 @@ export async function watchRun(
 ): Promise<void> {
   try {
     const token = cancelTokenOf(runId);
-    if (!token || notificationState(readCapabilities()) !== "on") return;
+    const capabilities = readCapabilities();
+    if (!token || !capabilities.chosen.ready || notificationState(capabilities) !== "on") return;
     const current = await subscription();
     if (!current) return;
     await send("/api/push", {
