@@ -264,4 +264,15 @@ test.describe("the whole bottom bar is the tab", () => {
       );
     }
   });
+
+  // A phone on its side is wider than the 40rem column: the bar shows either side of the tabs, and
+  // that bar belongs to the outer two.
+  test("a press on the bar beside the column opens the outer tab", async ({ page }) => {
+    await page.setViewportSize({ width: 880, height: 600 });
+    await page.goto("/");
+    const bar = await page.locator(".app-nav").boundingBox();
+    if (!bar) throw new Error("the bar is not on screen");
+    await page.touchscreen.tap(bar.x + bar.width - 3, bar.y + bar.height / 2);
+    await expect(heading(page)).toHaveText("Settings");
+  });
 });

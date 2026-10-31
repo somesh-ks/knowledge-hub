@@ -443,6 +443,8 @@ html[data-mini="visible"] main {
     animation: nav-pill var(--duration-sheet-in) var(--ease-hover);
     /* A move that arrived mid-growth carries on from where the old bar's pill was (navigation.ts). */
     animation-delay: calc(var(--nav-pill-elapsed, 0ms) * -1);
+    /* The fill is the animation's, not the 150 ms hover fade: a press on this page marks its tab at once. */
+    transition: none;
   }
 }
 
@@ -509,6 +511,21 @@ html[data-mini="visible"] main {
     position: absolute;
     inset: 0;
     inset-block-end: calc(var(--safe-bottom) * -1);
+  }
+
+  /* From 40rem the list is a centred column with bar showing either side (a phone on its side). The
+     outer two tabs reach out to the bar's edges, so that bar is theirs too: the column's side margin
+     plus the bar's own safe-area padding. */
+  .app-nav-item:first-child::after {
+    inset-inline-start: calc(
+      (var(--safe-left) + max(0px, (100vw - var(--safe-left) - var(--safe-right) - var(--layout-column)) / 2)) * -1
+    );
+  }
+
+  .app-nav-item:last-child::after {
+    inset-inline-end: calc(
+      (var(--safe-right) + max(0px, (100vw - var(--safe-left) - var(--safe-right) - var(--layout-column)) / 2)) * -1
+    );
   }
 }
 
