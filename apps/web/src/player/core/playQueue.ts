@@ -142,7 +142,10 @@ export function startItem(
   id: string,
 ): { played: string[]; current: string; upcoming: string[] } {
   const { played, current, upcoming } = state;
-  if (id === current) return { played: [...played], current: id, upcoming: [...upcoming] };
+  // Already current, though it may have been queued again since (a reload forgets what played):
+  // it is playing, so it is not also to come.
+  if (id === current)
+    return { played: [...played], current: id, upcoming: upcoming.filter((entry) => entry !== id) };
   const at = upcoming.indexOf(id);
   if (at >= 0) {
     // Jumped ahead: what was skipped over has been passed.

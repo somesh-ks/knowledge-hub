@@ -50,6 +50,8 @@ export function startQueuePrefetch(queue: PlayQueue, fetcher: typeof fetch = fet
       });
       // Read to the end so the cache keeps the part; a refusal is simply tried again on a later change.
       if (!response.ok) warmed.delete(url);
+      // A host that ignores Range answers 200 with the whole file: drop it unread, the cap holds.
+      else if (response.status !== 206) void response.body?.cancel();
       else await response.arrayBuffer();
     } catch {
       warmed.delete(url);

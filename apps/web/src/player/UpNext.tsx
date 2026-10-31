@@ -138,19 +138,23 @@ export default function UpNext() {
   }
   // A list that loaded but holds nothing eligible is empty; the previous briefing stands in only
   // where the list could not be read.
+  // What played stays listed in every case (D277); the empty line only stands where nothing is.
   if (suggested || !previous) {
-    return <p className="player-empty">Nothing is queued.</p>;
+    return passed ?? <p className="player-empty">Nothing is queued.</p>;
   }
   // The new page's data arrives after the navigation; the store plays it then, on the same audio
   // element, which the browser already trusts to play. A briefing with no finished audio is
   // narrated there, as a cover press does.
   return (
-    <button className="player-upnext-row" type="button" onClick={() => playQueueItem(previous)}>
-      <span className="player-upnext-text">
-        <span className="player-upnext-date">{longDateFromDigestId(previous)}</span>
-        <span className="player-upnext-hint">The previous podcast</span>
-      </span>
-      <Icon name="chevronRight" />
-    </button>
+    <>
+      {passed}
+      <button className="player-upnext-row" type="button" onClick={() => playQueueItem(previous)}>
+        <span className="player-upnext-text">
+          <span className="player-upnext-date">{longDateFromDigestId(previous)}</span>
+          <span className="player-upnext-hint">The previous podcast</span>
+        </span>
+        <Icon name="chevronRight" />
+      </button>
+    </>
   );
 }
