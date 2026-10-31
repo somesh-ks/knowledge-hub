@@ -210,6 +210,7 @@ export const componentParts = (): PartSource[] => [
       "design-system/Select.astro",
       "design-system/select.ts",
       "design-system/selectSheet.ts",
+      "design-system/wheel.ts",
     ],
     keywords: [
       "select",
@@ -226,6 +227,7 @@ export const componentParts = (): PartSource[] => [
     rules: [
       'Outlined (the default) is a value in a form; tonal is a sort or a filter and takes data-active on its wrapper (find it with closest("[data-select]")) once its value is not the default.',
       'A select inside a settings row takes class="value-select" from settings.css, which draws it as the row\'s value.',
+      "data-wheel on a short ordered run (the hours of a day) opens its phone sheet as a Wheel (design-system/wheel.ts), not as rows.",
     ],
   }),
   control("menu", "Menu", MENU, {

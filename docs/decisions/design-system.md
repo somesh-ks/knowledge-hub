@@ -481,3 +481,12 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Rejected: an Expressive-only lift (covers have no style layer; a per-style mode would be a new mechanism for one value); lifting the ground (the papers are D122's brightness).
 - Revisit if: a cover's figure loses its edge on its ground in the light theme (the family tests hold 4.5:1 for text only).
 - Amends: D121.
+
+## D269: the hour select opens as a wheel in the phone sheet
+
+- Date: 2026-10-31 (the owner, after D265: "keep the sheet for now and if possible we can have the 3d rotating cylinder selector as in iphone"). Amends D265.
+- Decision: a Select with `data-wheel` opens its phone sheet (D265) with a Wheel in place of the rows: a new design-system component (`design-system/wheel.ts`, `styles/wheel.css`, classes `wheel-frame`, `wheel-list`, `wheel-option`). The Daily and Weekly time are the only users. It is a scroll-snap list; `wheel.ts` sets each row's distance from the band as `--wheel-d` while it scrolls and the stylesheet turns it into a tilt, a pull toward the band and a fade, so the rows sit on a drum. The title and Close are the sheet's. The sheet ends in a filled Save button: Save (or Enter on the wheel) sets the select to the row under the band, so it is saved; closing any other way (Escape, a press outside, a pull down) leaves the select as it was. A tap on a row or an arrow key turns the wheel, and Save pressed mid-glide takes the tapped row. Each row that passes the band fires `wheeldetent` on the list, the hook for a haptic tick (none is built). Below 40rem only; from 40rem the select keeps its own list.
+- Why: an ordered run of 24 hours is spun to, not read, and the owner asked for the iPhone's look inside the one sheet D265 made, then for a Save button and haptics (the haptics thread's dispatcher listens for `wheeldetent`; the Wheel makes no sound or haptic call).
+- Calls made for the owner: five rows in view; a Save button because the owner asked for one (settings elsewhere save at once, this one is confirmed); the wheel is a component of its own, not a mode of the Menu.
+- Rejected: the browser's `type="time"` clock (an unstyled dialog outside the system, minutes the schedule does not store); a wheel for every select (names have no order to spin through).
+- Revisit if: a real iPhone's scroll feel or snapping reads wrong, or a second select asks for `data-wheel`.
