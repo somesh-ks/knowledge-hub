@@ -60,6 +60,9 @@ const MAY_CHANGE = [
   "apps/web/src/player/ui/iconPathsLazy.tsx",
   "scripts/buildGlyphs.ts",
   "scripts/buildGlyphs.test.ts",
+  // The cover is a shared component outside design-system/; its corner rule (D268) follows the
+  // cover-radius tokens, so a token change that needs a cap changes this stylesheet with it.
+  "apps/web/src/styles/cover.css",
   "scripts/gate.mjs",
   "docs/state.md",
   // The Icon moved into the system (D266); its old path is deleted.
