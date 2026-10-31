@@ -142,13 +142,13 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D119 | A briefing sized by the owner's length writes 30% spares; validation airs the best survivors until measured narration fills the length, each topic's best kept | active |
 | D120 | Science takes a one-outlet story that is clearly on topic; the other general topics keep the two-outlet rule | active; amends D40, D43 |
 | D121 | Covers are drawn at medium chroma (OKLCH 0.12 or less); each monthly series has its own style set and prints on its own close tint of the month's paper | active; amends D110 |
-| D122 | Covers a step brighter in both themes; the header light takes the cover's colours as three drifting lights; a theme change waits for the covers | active; amends D48, D77, D121 |
-| D123 | One AI model select on Settings; no manifest colour, so Android's bars follow the system; a launch screen; the playing cover lights the player page | active; amends D51, D101 |
+| D122 | Covers a step brighter in both themes; the header light takes the cover's colours as three drifting lights; a theme change waits for covers | active; amends D48, D77, D121 |
+| D123 | One AI model select on Settings; no manifest colour, so Android's bars follow the system; a launch screen; the playing cover lights the player | active; amends D51, D101 |
 | D124 | Weights are five named stops and Off; sources have a Jev-classified format; a format mix per page; two stories per outlet | active; amends D57, D69, D83 |
-| D125 | Headings never bold; Settings H2s at the 22px role; an Intelligence section for the model; Topics and sources is a search and a floating Add | active; amends D73, D123, D124 |
+| D125 | Headings never bold; Settings H2s at the 22px role; an Intelligence section for the model; Topics and sources: a search and a floating Add | active; amends D73, D123, D124 |
 | D126 | A play queue, an Up next peek and sheet, a collapse chevron, Space to play | active; amends D102, D111 |
-| D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, at most 10 | active; amends D123 |
-| D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by content hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
+| D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, max 10 | active; amends D123 |
+| D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
 | D129 | Settings restructured: Sources or Preferences per topic, one voice pair, Theme select | partly superseded by D195; amends D51, D87, D124, D125 |
 | D130 | Kimi models are never offered; the Nebius five are ranked by EQ-Bench longform; a weekly scheduled check proposes a refresh by PR | active; amends D123 |
 | D131 | An 8pt spacing system (4px only for named fine cases), rows that carry their own rhythm, headings never bold, enforced by `npm run design-check` | active; amends D73 |
@@ -159,7 +159,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D136 | One model orchestrator: every call through `config/models.json` (Jev, Claude, Gemini; never Opus), with fallback chains | active; replaces D46, D58, D113, D130 |
 | D137 | A cost ledger records every paid call (measured where the provider reports usage), split into shared and per-user costs, shown by `dispatch costs` and /analytics | active |
 | D138 | Alexandria enriches thin text, never replaces it | active |
-| D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, pushes retry a lost ref-lock, the site reports its errors | active |
+| D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, the site reports its errors | active |
 | D140 | Design system enforced in three layers (`design-check` hook, e2e, `design-audit` agent); icons only from Phosphor | active; amends D131 |
 | D141 | The first-load budget is 130 KB | active; replaces D112's 109 KB |
 | D142 | A new topic is a row at once and opens a page before the build; one save carries Jev's emoji; a removal leaves the page at once with Undo | active; amends D79 |
@@ -269,21 +269,27 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D251 | Ingest: one Blob object a run | amends D233 |
 | D252 | Warning is orange | active; amends D238 |
 | D253 | UI fixes start at the component | active; amends D237 |
-| D254 | One PR per task; one rolling DS PR | active; amends D237 |
-| D255 | Videos judged on transcripts | active; amends D248 |
-| D256 | Covers drawn on request; failed-run stages in one Blob object | active; amends D173, D251 |
+| D254 | One PR per task; one rolling DS PR | amends D237 |
+| D255 | Videos judged on transcripts | amends D248 |
+| D256 | Covers drawn on request; failed-run stages in one Blob object | amends D173, D251 |
 | D257 | Report routes need sign-in | amends D201, D224 |
-| D258 | Cover version in its path | active; amends D256 |
+| D258 | Cover version in its path | amends D256 |
 | D259 | Saves kept before sending | amends D79, D91, D115, D249 |
-| D262 | Sheet and Drawer split | active; amends D243 |
+| D262 | Sheet and Drawer split | amends D243 |
 | D263 | Cover version in URL | proposed; amends D258 |
 | D264 | Card long press | active |
-| D265 | A select's phone list is the sheet | active; amends D167 |
+| D265 | A select's phone list is the sheet | amends D167 |
 | D266 | Icon, Badge, type | amends D243 |
 | D267 | Card, Row | amends D243 |
 | D268 | Styles: token overrides | amends D125 |
-| D270 | Experiments: a change settles on a read, not its write's answer | amends D249, D259 |
-| D271 | Pill slide and cover flight travel in 250 ms on the out curve | active |
+| D269 | Hour wheel | amends D265 |
+| D270 | Experiments settle on a read | amends D249, D259 |
+| D271 | Pill and cover travel in 250 ms | active |
 | D272 | No persisted floating button | active |
+| D273 | Haptic tokens | amends D52 |
+| D274 | Icon weight token | amends D268 |
+| D275 | Concentric picker | amends D167 |
+| D276 | Voice list | amends D101 |
+| D278 | Softer light covers | amends D121 |
 
 ---

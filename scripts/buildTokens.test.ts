@@ -8,6 +8,7 @@ import {
   cssName,
   declarationsFor,
   fluidClamp,
+  hapticModule,
   hexFor,
   loadTokens,
   type Mode,
@@ -661,5 +662,35 @@ describe("styles", () => {
     expect(() => withStyle({ semantic: { color: { surface: "oklch(99% 0 0)" } } })).toThrow(
       /expected a token or a group/,
     );
+  });
+});
+
+describe("haptic tokens", () => {
+  const raw = JSON.parse(
+    readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "../tokens/tokens.json"), "utf8"),
+  );
+  const withPattern = (name: string, value: unknown) => {
+    const copy = structuredClone(raw);
+    copy.primitive.haptic[name] = { $value: value };
+    return parseTokens(copy);
+  };
+
+  it("fails the build for a pattern that is silent on one phone, so a token never does nothing on one of them unannounced", () => {
+    expect(() =>
+      hapticModule(withPattern("android-only", { android: [10], ios: { ticks: 0, gap_ms: 0 } })),
+    ).toThrow(/silent on one phone/);
+    expect(() =>
+      hapticModule(withPattern("ios-only", { android: [], ios: { ticks: 1, gap_ms: 0 } })),
+    ).toThrow(/silent on one phone/);
+  });
+
+  it("fails the build for an intent that points at nothing", () => {
+    const copy = structuredClone(raw);
+    copy.semantic.haptic.open.$value = "{primitive.haptic.missing}";
+    expect(() => hapticModule(parseTokens(copy))).toThrow(/must name a primitive.haptic pattern/);
+  });
+
+  it("keeps haptics out of the stylesheet, which no rule reads", () => {
+    expect(buildCss(loadTokens())).not.toMatch(/haptic|--tick/);
   });
 });

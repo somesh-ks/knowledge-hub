@@ -114,26 +114,6 @@ export function voiceKeywords(voice: Voice): string {
   return [words, code].filter((part) => part !== "").join(" ");
 }
 
-/** The accent in words ("British English" for en-GB), or "" when the locale has no name. */
-export function voiceAccent(voice: Voice): string {
-  const code = voice.language ?? "";
-  if (code === "") return "";
-  try {
-    return new Intl.DisplayNames(["en"], { type: "language" }).of(code) ?? "";
-  } catch {
-    // A locale code Intl cannot name: no accent is shown.
-    return "";
-  }
-}
-
-/** The line under a voice's name in the list: its gender, then its accent, "Female, British English". */
-export function voiceSubtitle(voice: Voice): string {
-  const gender = voice.gender
-    ? voice.gender.charAt(0).toUpperCase() + voice.gender.slice(1).toLowerCase()
-    : "";
-  return [gender, voiceAccent(voice)].filter((part) => part !== "").join(", ");
-}
-
 /**
  * Fills a voice select: the default first (value ""), named after `fallback` when it is known, then
  * the voices, then the saved voice when it is not among them, so a stored choice is never silently
@@ -146,59 +126,24 @@ export function fillVoiceSelect(
   fallback?: Voice,
 ): void {
   const options: HTMLOptionElement[] = [];
-  /**
-   * `title` is what the list and the button draw as the voice's name; `sub` the line under it;
-   * `sample` the id of the voice whose sample the list's play control plays, absent when it has none;
-   * `lead` and `tail` wrap the Default's title ("Default (" Ada ")"). The option's own text stays the
-   * long label ("Ada, female"): the native select, the search and a screen reader read it.
-   */
-  const add = (
-    value: string,
-    text: string,
-    extra: {
-      keywords?: string;
-      region?: string;
-      title?: string;
-      sub?: string;
-      sample?: string;
-      lead?: string;
-      tail?: string;
-    } = {},
-  ): void => {
+  const add = (value: string, text: string, keywords = "", region = ""): void => {
     const option = document.createElement("option");
     option.value = value;
     option.textContent = text;
-    if (extra.keywords) option.dataset.keywords = extra.keywords;
+    if (keywords !== "") option.dataset.keywords = keywords;
     // The picker draws this region's flag before the words.
-    if (extra.region) option.dataset.region = extra.region;
-    if (extra.title) option.dataset.title = extra.title;
-    if (extra.sub) option.dataset.sub = extra.sub;
-    if (extra.sample) option.dataset.sample = extra.sample;
-    if (extra.lead) option.dataset.lead = extra.lead;
-    if (extra.tail) option.dataset.tail = extra.tail;
+    if (region !== "") option.dataset.region = region;
     options.push(option);
   };
-  add("", fallback ? `Default (${fallback.name})` : "Default", {
-    region: fallback ? voiceFlag(fallback.language) : "",
-    ...(fallback
-      ? {
-          title: fallback.name,
-          lead: "Default (",
-          tail: ")",
-          sample: fallback.preview_url ? fallback.id : "",
-        }
-      : { title: "Default" }),
-  });
+  add(
+    "",
+    fallback ? `Default (${fallback.name})` : "Default",
+    "",
+    fallback ? voiceFlag(fallback.language) : "",
+  );
   for (const voice of voices)
-    add(voice.id, voiceLabel(voice), {
-      keywords: voiceKeywords(voice),
-      region: voiceFlag(voice.language),
-      title: voice.name,
-      sub: voiceSubtitle(voice),
-      sample: voice.preview_url ? voice.id : "",
-    });
-  if (chosen !== "" && !voices.some((voice) => voice.id === chosen))
-    add(chosen, "Saved voice", { title: "Saved voice" });
+    add(voice.id, voiceLabel(voice), voiceKeywords(voice), voiceFlag(voice.language));
+  if (chosen !== "" && !voices.some((voice) => voice.id === chosen)) add(chosen, "Saved voice");
   select.replaceChildren(...options);
   select.value = chosen;
   // A search list drawn over this select reads its options again.

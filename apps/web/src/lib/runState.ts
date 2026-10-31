@@ -35,12 +35,3 @@ export async function readLastRun(
     return NO_RUN;
   }
 }
-
-/**
- * The "Nothing cleared the bar." banner shows when the newest run found nothing and it ran after
- * the latest digest was written, so a later digest always clears it.
- */
-export function showsNothingBanner(run: LastRunSummary, latestGeneratedAt: string | null): boolean {
-  if (run.outcome !== "nothing" || !run.at) return false;
-  return latestGeneratedAt === null || run.at > latestGeneratedAt;
-}

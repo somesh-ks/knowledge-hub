@@ -4,6 +4,7 @@
  */
 import { parseStreamDoc, type StreamDoc } from "../lib/liveStream";
 import { getPlayerAudio, getPlayerStore } from "../player/core/playerRuntime";
+import { tabShared } from "../player/core/tabSlot";
 import { showToast } from "../sheets/toastStore";
 import { liveDigestFrom } from "./liveEpisode";
 import { createNarrationController, type NarrationController } from "./narrationController";
@@ -33,21 +34,21 @@ function setPreparing(digestId: string | null): void {
   }
 }
 
-let controller: NarrationController | null = null;
-
+/** One per tab (tabSlot.ts): two controllers would each narrate into the one audio. */
 function getController(): NarrationController {
-  controller ??= createNarrationController({
-    store: getPlayerStore(),
-    audio: getPlayerAudio(),
-    api: {
-      fetch: (input, init) => fetch(input, init),
-      isOnline: () => navigator.onLine,
-      shareToken,
-    },
-    notify: (message) => showToast({ message }),
-    setPreparing,
-  });
-  return controller;
+  return tabShared("narration", () =>
+    createNarrationController({
+      store: getPlayerStore(),
+      audio: getPlayerAudio(),
+      api: {
+        fetch: (input, init) => fetch(input, init),
+        isOnline: () => navigator.onLine,
+        shareToken,
+      },
+      notify: (message) => showToast({ message }),
+      setPreparing,
+    }),
+  );
 }
 
 /**

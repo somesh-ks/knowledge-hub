@@ -856,6 +856,7 @@ const PAGE_OVERRIDES: string[] = [
   "podcast.css: .daily-panel input.field-input",
   "podcast.css: .daily-panel input.field-input:focus-visible",
   "podcast.css: .daily-panel input.field-input[aria-invalid]",
+  "podcast.css: .settings-row[data-voice-row] .value-select > :is(select.field-input, .picker-trigger)",
   "primitives.css: .card-group .settings-row[data-models] .value-select > select.field-input",
   "primitives.css: .card-group-accent :is(.settings-hint, .button-text)",
   "primitives.css: .filter-chip > .icon-glyph",

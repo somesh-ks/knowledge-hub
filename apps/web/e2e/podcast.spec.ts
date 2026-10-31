@@ -160,20 +160,35 @@ test.describe("the profile pages", () => {
     await expect(page.locator("#weekly-format, #weekly-lookback")).toHaveCount(0);
   });
 
-  // The bug (owner, 2026-10-31): the hour's list was a second kind of bottom sheet, drawn by the browser
-  // with no title or Close. The sheet that replaced it must still set the select and be saved.
+  // The bug (owner, 2026-10-31): a select's list was a second kind of bottom sheet, drawn by the browser
+  // with no title or Close. The sheet that replaced it must still set the select and be saved, as rows
+  // (a length) and as the wheel the hour asks for (data-wheel), which changes nothing until Save.
   test("a select opens the standard sheet on a phone, and a pick is saved", async ({ page }) => {
-    await page.clock.install();
+    await page.clock.install({ time: new Date("2026-10-31T10:00:00Z") });
     const sent = await mockConfig(page);
     await open(page, "daily");
-    await page.locator("#daily-hour").tap();
+    // The clock stands still, so both picks fall in one save however slow the run is.
+    await page.clock.pauseAt(new Date("2026-10-31T10:01:00Z"));
     const sheet = page.locator("[data-select-sheet]:popover-open");
+    await page.locator("#daily-length").tap();
+    await sheet.getByRole("option", { name: "15 min" }).tap();
+    await expect(sheet).toHaveCount(0);
+    await expect(page.locator("#daily-length")).toHaveValue("15");
+    await page.locator("#daily-hour").tap();
     await expect(sheet.getByRole("heading", { name: "Time" })).toBeVisible();
+    await sheet.getByRole("option", { name: "08:00" }).tap();
+    await page.keyboard.press("Escape");
+    await expect(sheet).toHaveCount(0);
+    await expect(page.locator("#daily-hour")).toHaveValue("7");
+    await page.locator("#daily-hour").tap();
     await sheet.getByRole("option", { name: "09:00" }).tap();
+    await sheet.getByRole("button", { name: "Save" }).tap();
     await expect(sheet).toHaveCount(0);
     await expect(page.locator("#daily-hour")).toHaveValue("9");
     await page.clock.runFor(2000);
-    await expect.poll(() => scheduleSent(sent)).toEqual({ op: "schedule.set", hour: 9 });
+    await expect
+      .poll(() => scheduleSent(sent))
+      .toEqual({ op: "schedule.set", hour: 9, length_minutes: 15 });
   });
 
   test("unticking every topic says the episode has nothing to cover", async ({ page }) => {
@@ -199,39 +214,41 @@ test.describe("the profile pages", () => {
     for (const field of voices) {
       await expect(field).toBeVisible();
       await openPicker(page, field);
-      // Each voice's accent flag is an SVG beside its name (2026-10-25), and its gender and accent
-      // are the line under it (2026-10-31).
       await expect(pickerList(page).getByRole("option")).toHaveText([
         "Default",
-        /^Ada/,
-        /^Leo/,
-        /^Nora/,
+        // Each voice's accent flag is an SVG beside the text (2026-10-25), not part of it.
+        "Ada, female",
+        "Leo, male",
+        "Nora, female",
       ]);
       // The search narrows the list by name, and by accent in words.
       await pickerList(page).getByRole("combobox").fill("british");
-      await expect(pickerList(page).getByRole("option")).toHaveText([/^Nora/]);
+      await expect(pickerList(page).getByRole("option")).toHaveText([/Nora, female/]);
       await page.keyboard.press("Escape");
     }
     await expect(page.locator(".podcast-voice select")).toHaveCount(2);
   });
 
-  test("a voice is heard from the list it is chosen in, without choosing it", async ({ page }) => {
+  test("each voice row has its own play button, which plays the chosen voice's sample", async ({
+    page,
+  }) => {
     await open(page, "voice");
-    const second = page.locator("#podcast-voice_b");
-    await openPicker(page, second);
+    const first = page.locator("[data-voice-row=voice] [data-preview]");
+    const second = page.locator("[data-voice-row=voice_b] [data-preview]");
+    // Both buttons are on the page; a voice with no sample leaves its own dimmed and not pressable.
+    await expect(first).toBeDisabled();
+    await expect(second).toBeDisabled();
     // The page plays audio only from its own address, so the sample comes through /api.
     const sample = page.waitForRequest("**/api/voice-sample?voice=voice-ada");
-    await pickerList(page).getByRole("option", { name: /^Ada/ }).locator(".picker-play").click();
+    await choose(page, page.locator("#podcast-voice_b"), /Ada, female/);
     await sample;
-    // Hearing a voice leaves the list open and the choice as it was; a voice with no sample has a
-    // dimmed control that does nothing.
-    await expect(pickerList(page)).toBeVisible();
-    await expect(second).not.toContainText("Ada");
-    await expect(
-      pickerList(page).getByRole("option", { name: /^Nora/ }).locator(".picker-play"),
-    ).toHaveAttribute("aria-disabled", "true");
-    await pickerList(page).getByRole("option", { name: /^Ada/ }).click();
-    await expect(second).toContainText("Ada");
+    await expect(second).toBeEnabled();
+    await expect(second).toHaveAccessibleName("Play a sample of the secondary voice");
+    await expect(first).toBeDisabled();
+    await choose(page, page.locator("#podcast-voice"), /Leo, male/);
+    await expect(first).toBeDisabled();
+    await expect(first).toHaveAccessibleName("No sample for the primary voice");
+    await expect(second).toBeEnabled();
   });
 
   test("a playing sample stops when the page is left", async ({ page }) => {
@@ -247,7 +264,7 @@ test.describe("the profile pages", () => {
     await mockConfig(page);
     await open(page, "voice");
     const sample = page.waitForRequest("**/api/voice-sample?voice=voice-ada");
-    await choose(page, page.locator("#podcast-voice"), /^Ada/);
+    await choose(page, page.locator("#podcast-voice"), /Ada, female/);
     await sample;
     await expect(spoken(page)).toHaveText(SAVED);
     const before = await page.evaluate(() => (window as unknown as { pauses: number }).pauses);
@@ -477,7 +494,7 @@ test.describe("saving on its own", () => {
   }) => {
     const sent = await mockConfig(page);
     await open(page, "voice");
-    await choose(page, page.locator("#podcast-voice"), /^Leo/);
+    await choose(page, page.locator("#podcast-voice"), /Leo, male/);
     await expect
       .poll(() => scheduleSent(sent))
       .toEqual({ op: "schedule.set", voice_id: "voice-leo" });

@@ -5,6 +5,7 @@
 
 import type { Voice, VoiceDefaults } from "../lib/voices";
 import type { ConfigOp } from "../types/contracts";
+import { mountSamples } from "./voiceSamples";
 
 const LIST_TIMEOUT_MS = 10_000;
 
@@ -67,6 +68,13 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
   let voices: Voice[] = [];
   /** The voices Default stands for, from /api/voices; null until the list is in. */
   let defaults: VoiceDefaults | null = null;
+  /** The voice a select stands for: its own, or for Default the one the engine reads with. */
+  const voiceOf = (select: HTMLSelectElement): Voice | undefined => {
+    const second = (select.dataset.f ?? "").endsWith("voice_b");
+    const id = select.value || (second ? defaults?.voice_b : defaults?.voice) || "";
+    return voices.find((voice) => voice.id === id);
+  };
+  const syncSample = mountSamples(root, ".podcast-voice", voiceOf);
 
   void import("@singularity/core/time").then(({ zoneLabel }) => {
     const now = new Date();
@@ -98,10 +106,12 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
           (voice) => voice.id === (second ? defaults?.voice_b : defaults?.voice),
         );
         lib.fillVoiceSelect(select, voices, select.value, fallback);
+        syncSample(select);
       }
     } catch {
       voices = [];
       note = VOICES_UNAVAILABLE;
+      for (const select of selects) syncSample(select);
     }
     for (const select of selects) {
       if (note) select.dataset.note = note;

@@ -67,6 +67,7 @@ const GENERIC_FAMILIES = new Set([
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const TOKENS_JSON_PATH = resolve(ROOT, "tokens/tokens.json");
 export const TOKENS_CSS_PATH = resolve(ROOT, "apps/web/src/styles/tokens.css");
+export const HAPTICS_TS_PATH = resolve(ROOT, "apps/web/src/design-system/hapticTokens.ts");
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -343,6 +344,8 @@ export function declarationsFor(
   doc: TokenDocument,
 ): Declaration[] {
   const base = cssName(token.path);
+  // A haptic is read by script, never by a stylesheet (hapticModule writes it out).
+  if (token.type === HAPTIC_TYPE) return [];
   if (token.type === "typography") {
     if (typeof value !== "object" || value === null || Array.isArray(value)) {
       throw new Error(`Typography ${token.dotPath} needs an object`);
@@ -516,24 +519,117 @@ export function hexFor(doc: TokenDocument, dotPath: string, mode: Mode): string 
   return toHex(oklchStringToRgb(literal));
 }
 
+const HAPTIC_TYPE = "singularity-haptic";
+/** What a phone's motor can be asked for in one pattern, in ms: a longer one is a notification, not a touch. */
+const HAPTIC_MAX_MS = 250;
+
+/**
+ * The haptic tokens as a TypeScript module: the patterns, and the intents that point at them. A
+ * pattern must give both phones something or neither, so a token never does nothing on one of them
+ * without saying so (`none` is the one pattern with no beats), and an intent must name a pattern.
+ */
+export function hapticModule(doc: TokenDocument): string {
+  const patterns: string[] = [];
+  const beats = new Map<string, number>();
+  for (const token of doc.tokens) {
+    if (token.type !== HAPTIC_TYPE || token.tier !== "primitive") continue;
+    const name = token.path[token.path.length - 1] as string;
+    const value = token.value;
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      throw new Error(`Haptic ${token.dotPath} needs {android, ios}`);
+    }
+    const android = value.android;
+    const ios = value.ios;
+    if (!Array.isArray(android) || !android.every((n) => typeof n === "number" && n >= 0)) {
+      throw new Error(`Haptic ${token.dotPath} needs an android array of milliseconds`);
+    }
+    if (typeof ios !== "object" || ios === null || Array.isArray(ios)) {
+      throw new Error(`Haptic ${token.dotPath} needs an ios {ticks, gap_ms}`);
+    }
+    const ticks = ios.ticks;
+    const gap = ios.gap_ms;
+    if (!Number.isInteger(ticks) || typeof ticks !== "number" || ticks < 0) {
+      throw new Error(`Haptic ${token.dotPath} needs ios.ticks, a whole number`);
+    }
+    if (typeof gap !== "number" || gap < 0 || (ticks > 1 && gap === 0)) {
+      throw new Error(`Haptic ${token.dotPath} needs ios.gap_ms above 0 for more than one tick`);
+    }
+    if ((android.length === 0) !== (ticks === 0)) {
+      throw new Error(`Haptic ${token.dotPath} is silent on one phone and not the other`);
+    }
+    let total = 0;
+    for (const n of android) total += n as number;
+    if (total > HAPTIC_MAX_MS) {
+      throw new Error(`Haptic ${token.dotPath} runs past ${HAPTIC_MAX_MS} ms`);
+    }
+    beats.set(name, ticks);
+    patterns.push(
+      `  ${JSON.stringify(name)}: { android: [${android.join(", ")}], ios: { ticks: ${ticks}, gap_ms: ${gap} } },`,
+    );
+  }
+  const intents: string[] = [];
+  for (const token of doc.tokens) {
+    if (token.type !== HAPTIC_TYPE || token.tier !== "semantic") continue;
+    const target = aliasTarget(token.value);
+    const pattern = target?.startsWith("primitive.haptic.") ? target.slice(17) : undefined;
+    if (!pattern || !beats.has(pattern)) {
+      throw new Error(`Haptic intent ${token.dotPath} must name a primitive.haptic pattern`);
+    }
+    intents.push(
+      `  ${JSON.stringify(token.path[token.path.length - 1])}: ${JSON.stringify(pattern)},`,
+    );
+  }
+  return [
+    "/* biome-ignore-all format: generated file, formatted by scripts/buildTokens.ts */",
+    "/*",
+    " * GENERATED FILE. Do not edit.",
+    " * Source: tokens/tokens.json (primitive.haptic, semantic.haptic). Build: npx tsx scripts/buildTokens.ts",
+    " * Android plays `android` through navigator.vibrate; iPhone plays `ios.ticks` ticks, `ios.gap_ms` apart.",
+    " */",
+    "",
+    "export const HAPTIC_PATTERNS = {",
+    ...patterns,
+    "} as const;",
+    "",
+    "export type HapticPattern = keyof typeof HAPTIC_PATTERNS;",
+    "",
+    "/** What a control asks for. A call site names one of these and never a pattern. */",
+    "export const HAPTIC_INTENTS = {",
+    ...intents,
+    "} as const satisfies Record<string, HapticPattern>;",
+    "",
+    "export type HapticIntent = keyof typeof HAPTIC_INTENTS;",
+    "",
+  ].join("\n");
+}
+
 export function buildTokensCss(): string {
   return buildCss(loadTokens());
 }
 
 function main(): void {
   const css = buildTokensCss();
+  const haptics = hapticModule(loadTokens());
+  const outputs: ReadonlyArray<[string, string]> = [
+    [TOKENS_CSS_PATH, css],
+    [HAPTICS_TS_PATH, haptics],
+  ];
   if (process.argv.includes("--check")) {
-    const current = existsSync(TOKENS_CSS_PATH) ? readFileSync(TOKENS_CSS_PATH, "utf8") : "";
-    if (current !== css) {
-      console.error("apps/web/src/styles/tokens.css is stale. Run: npx tsx scripts/buildTokens.ts");
-      process.exit(1);
+    for (const [path, text] of outputs) {
+      const current = existsSync(path) ? readFileSync(path, "utf8") : "";
+      if (current !== text) {
+        console.error(`${path} is stale. Run: npx tsx scripts/buildTokens.ts`);
+        process.exit(1);
+      }
     }
-    console.log("tokens.css is up to date");
+    console.log("tokens.css and hapticTokens.ts are up to date");
     return;
   }
-  mkdirSync(dirname(TOKENS_CSS_PATH), { recursive: true });
-  writeFileSync(TOKENS_CSS_PATH, css, "utf8");
-  console.log(`Wrote ${TOKENS_CSS_PATH}`);
+  for (const [path, text] of outputs) {
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, text, "utf8");
+    console.log(`Wrote ${path}`);
+  }
 }
 
 const isMain =

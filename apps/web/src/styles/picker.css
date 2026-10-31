@@ -2,7 +2,8 @@
  * A select with a search box (scripts/picker.ts): a button that wears the select's looks in its
  * place, and a list under a search field. The select stays in the page, hidden, and holds the value.
  * Also the round button that plays a voice's sample, which the voice rows of Settings and the Create
- * form share. Imported by components/PodcastProfile.astro and CreateForm.astro.
+ * form share, and a voice's list item with its own Play control. Imported by
+ * components/PodcastProfile.astro and CreateForm.astro.
  */
 
 /* The select is still in the page for the form and for a script that reads it, but it is not drawn
@@ -121,7 +122,7 @@
   padding: 0;
   overflow: hidden;
   border: var(--stroke-hairline) solid var(--color-border-hairline);
-  border-radius: var(--radius-md);
+  border-radius: var(--picker-radius);
   background: var(--color-surface-overlay);
   box-shadow: var(--shadow-popover);
   color: var(--color-on-surface);
@@ -189,7 +190,7 @@
     margin: 0 auto;
     padding-block-end: max(var(--space-2), var(--safe-bottom));
     border: 0;
-    border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+    border-radius: var(--picker-radius) var(--picker-radius) 0 0;
     background: var(--sheet-bg);
     box-shadow: var(--sheet-shadow);
     opacity: 1;
@@ -228,10 +229,10 @@
   flex: none;
   align-items: center;
   gap: var(--space-2);
-  margin: var(--space-2);
+  margin: var(--picker-inset);
   padding-inline: var(--space-4);
   block-size: var(--field-height);
-  border-radius: var(--radius-round);
+  border-radius: var(--picker-inner-radius);
   background: var(--color-surface-container);
   color: var(--color-on-surface-muted);
   cursor: text;
@@ -303,7 +304,7 @@
   grid-auto-rows: max-content;
   gap: var(--space-2);
   min-block-size: 0;
-  padding: var(--space-2);
+  padding: var(--picker-inset);
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
@@ -317,7 +318,7 @@
   min-block-size: var(--size-touch);
   padding-block: var(--space-2);
   padding-inline: var(--space-4);
-  border-radius: var(--row-radius);
+  border-radius: var(--picker-inner-radius);
   cursor: pointer;
   user-select: none;
 }
@@ -447,7 +448,8 @@
 
 /* The play control is a plain glyph, not a disc: the target is 48px and the glyph sits on the row's
    start edge, so the list's left edge is the glyph's, as a row's tile is. It is pressed with a pointer;
-   it is not in the tab order, since the list is one combobox, and a voice's row still chooses it. */
+   from the keyboard Shift+Enter in the search field plays the highlighted voice (the list is one
+   combobox, so the control is not a tab stop), and a press on the row still chooses it. */
 .picker-play {
   grid-column: 1;
   grid-row: 1;
