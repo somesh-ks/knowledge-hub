@@ -390,7 +390,7 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Revisit if: the Google login replaces the password (the cookie's meaning stays; only how it is issued changes), or another page needs these numbers without a session.
 - Amends: D201 (for these two routes), D224.
 
-## D261: Sheet and Drawer are two components; the dialog heading is the Dialog's
+## D262: Sheet and Drawer are two components; the dialog heading is the Dialog's
 
 - Date: 2026-10-30 (the coordinator, for the owner: finish D243 part D). Amends D243.
 - Decision: the panel that slides over the page (native `<dialog>`: the whole screen on a phone, a side panel from 40rem) is the Sheet (`sheet-side`, `sheet-head`, `sheet-body`, `sheet-title`; `styles/sheet.css`, `Sheet.astro`, `SHEET_SELECTOR`). The Base UI island modal (a bottom sheet on a phone, a centred dialog from 40rem; Generate and Settings) is the Drawer (`drawer-*`; `styles/drawer.css`, drawn by `SheetFrame.tsx`). The Dialog gets its own heading, `dialog-title`.
