@@ -50,7 +50,7 @@
 /* A voice: its select, the row's value as Theme's is, at the row's end (the label's next sibling takes
    the auto margin, settings.css). A long name is cut by the button's own ellipsis (picker.css), and the
    label keeps its words: a label that gave up width wrapped to two lines (2026-10-31). Playing a
-   voice's sample is in the list (picker.css, a voice's row), not on the page (D274). */
+   voice's sample is in the list (picker.css, a voice's row), not on the page (D276). */
 .podcast-voice {
   display: flex;
   flex: 0 1 auto;
