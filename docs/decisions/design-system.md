@@ -399,3 +399,12 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Rejected: one Sheet with a `drawer` variant in one stylesheet (the ordering risk above); folding `sheet-field*`, `sheet-form` and `sheet-actions` into the Sheet (they are form layout, left in `sheets.css`).
 - Revisit if: the owner wants one component with two looks (then load order is proved with the browser suites first).
 
+## D265: a select's list on a phone is the standard bottom sheet
+
+- Date: 2026-10-31 (the owner: the time picker's sheet in Daily and Weekly "shouldn't exist": "a very weird bottom sheet with the highlights", rows too close; "consolidate and use just one type of bottom sheet everywhere as much as possible", at design-system level). Amends D167.
+- Decision: below 40rem a Select does not open the browser's own list. `design-system/selectSheet.ts` (loaded by `Select.astro`) stops it and opens the Menu's sheet (`menu-list menu-sheet`): the field's label as the title, Close at the end, one row for each option with the chosen one in the accent and a check, a pull down to close. A choice sets the select and fires `input` and `change`, so every listener hears it as before. The rows are `--size-option` (48px, was 44px with 8px between them) in the select, picker and menu sheets; a select's options draw no fill of their own (the browser's was a shade off the surface in dark). A menu sheet stops at 70% of the screen and its rows scroll under the head. From 40rem the select keeps its own list under the field.
+- Why: D167 drew the browser's list as a sheet by CSS, but a list the browser draws cannot hold a header or a Close, so it was a second kind of bottom sheet; a script-drawn one is the first kind.
+- Calls made for the owner: 48px rows, not 52 or 56; the 8px gap stays; the searchable picker (time zone, voice) keeps its search box and its own sheet for now, and the multi-select stays an anchored popover; the CSS sheet for `::picker(select)` was removed, so a phone where the script has not loaded shows the anchored list.
+- Rejected: restyling the native list only (no header); giving every select the picker's search sheet (a search box over 24 hours).
+- Revisit if: a phone browser opens its own list despite the stop (the press and the click are both stopped, as browsers differ), or the picker's sheet and this one should be one component.
+

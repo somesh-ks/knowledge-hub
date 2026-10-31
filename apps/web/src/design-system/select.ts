@@ -13,7 +13,7 @@ export const SELECT: Guidance & {
   variants: Record<SelectVariant, Guidance & { label: string }>;
 } = {
   summary:
-    "A native select with its own chevron: a person picks one value from a list that is too long to show.",
+    "A native select with its own chevron: a person picks one value from a list that is too long to show. On a phone its list is the standard bottom sheet, with the field's label as the title.",
   useWhen: [
     "A person picks one value from a list of five or more, or of names that are too long for a row of chips.",
     "It sits under its own label in a form, or in a toolbar as a sort or a filter.",

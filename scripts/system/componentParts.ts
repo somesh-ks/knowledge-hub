@@ -183,6 +183,11 @@ export const componentParts = (): PartSource[] => [
       { when: "several values may be ticked together", use: "multiselect" },
     ],
     classes: ["select-outlined", "select-tonal"],
+    files: [
+      "design-system/Select.astro",
+      "design-system/select.ts",
+      "design-system/selectSheet.ts",
+    ],
     keywords: [
       "select",
       "dropdown",

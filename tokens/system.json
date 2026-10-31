@@ -402,14 +402,15 @@
       "id": "select",
       "name": "Select",
       "kind": "selection",
-      "summary": "A native select with its own chevron: a person picks one value from a list that is too long to show.",
+      "summary": "A native select with its own chevron: a person picks one value from a list that is too long to show. On a phone its list is the standard bottom sheet, with the field's label as the title.",
       "classes": [
         "select-outlined",
         "select-tonal"
       ],
       "files": [
         "design-system/Select.astro",
-        "design-system/select.ts"
+        "design-system/select.ts",
+        "design-system/selectSheet.ts"
       ],
       "when": [
         "A person picks one value from a list of five or more, or of names that are too long for a row of chips",
@@ -454,16 +455,11 @@
         "--color-on-accent-container",
         "--color-on-surface",
         "--color-on-surface-muted",
-        "--color-scrim",
         "--color-surface-container",
         "--color-surface-overlay",
         "--field-chevron-gap",
-        "--layout-column",
         "--row-radius",
         "--shadow-popover",
-        "--sheet-bg",
-        "--sheet-radius",
-        "--sheet-shadow",
         "--size-icon",
         "--size-icon-sm",
         "--size-touch"
@@ -520,6 +516,7 @@
       ],
       "usage": "A popover lives in the top layer, so it is placed against the viewport, not the row. Where anchor positioning exists it hangs under the button, right edges level; elsewhere heroMenu.ts writes --menu-top and --menu-right from the button's box when it opens.",
       "tokens": [
+        "--color-accent",
         "--color-danger",
         "--color-on-surface",
         "--color-on-surface-disabled",
@@ -531,6 +528,7 @@
         "--sheet-radius",
         "--sheet-shadow",
         "--size-icon",
+        "--size-option",
         "--size-touch"
       ]
     },
@@ -3738,6 +3736,13 @@
       "tier": "semantic",
       "type": "dimension",
       "light": "3rem"
+    },
+    {
+      "name": "--size-option",
+      "tier": "semantic",
+      "type": "dimension",
+      "light": "3rem",
+      "role": "A row in a list that opens as a bottom sheet on a phone: a select's, a picker's, a menu's. One height, so they read as one sheet."
     },
     {
       "name": "--size-icon-sm",

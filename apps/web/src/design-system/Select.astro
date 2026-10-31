@@ -28,3 +28,9 @@ const own = variant === "outlined" ? fieldClass() : undefined;
   <select class={own} {...rest}><slot /></select>
   <Icon name="chevronDown" />
 </Wrapper>
+
+<script>
+  import { installSelectSheet } from "./selectSheet";
+
+  installSelectSheet();
+</script>
