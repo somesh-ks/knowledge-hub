@@ -1,8 +1,8 @@
 /**
- * What the design catalogue page (/design, D189) reads at build time: the tokens from tokens.json,
+ * What the style guide (apps/design, D226) reads at build time: the tokens from tokens.json,
  * grouped as the tiers group them, and the usage comment written over a shared class in its
- * stylesheet, so the page documents the system from the files the system is built from and cannot
- * drift from them. The page exists in dev and fixture builds only.
+ * stylesheet, so the guide documents the system from the files the system is built from and cannot
+ * drift from them. The reader's own catalogue page (D189) is gone.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

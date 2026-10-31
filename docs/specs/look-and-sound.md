@@ -51,7 +51,7 @@ Coding agents building or modifying UI follow these contracts (adapted from Astr
 - **Verification**: Run `npm run design-check` after modifying any CSS or markup to ensure instant adherence to house rules.
 
 ## Code
-- `apps/web/src/pages/design/[...slug].astro` and `apps/web/src/lib/designCatalogue.ts`: the reader's catalogue (D189), replaced by the [style guide](style-guide.md) (D226)
+- `apps/web/src/lib/designCatalogue.ts`: the tokens and usage comments the [style guide](style-guide.md) reads (D226); the reader's own `/design` catalogue page (D189) is gone
 - `apps/web/src/styles/tokens.css`
 - `apps/web/src/styles/primitives.css`
 - `apps/web/src/styles/empty.css`
