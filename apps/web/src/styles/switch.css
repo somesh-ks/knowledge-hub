@@ -64,6 +64,22 @@
   transform-origin: 100% 50%;
 }
 
+/* Mixed (a master over a group of which only some are on): the script sets `indeterminate` and unchecks
+   it. A tonal track edged in the accent, so it reads as part way to on, with the thumb halfway along
+   it in the accent. After the checked rules, so it wins if both ever apply. */
+.switch-input:indeterminate {
+  background: var(--color-accent-container);
+  box-shadow: inset 0 0 0 var(--stroke-rail) var(--color-accent);
+}
+
+.switch-input:indeterminate::before {
+  background: var(--color-accent);
+  transform: translateX(
+    calc((var(--switch-width) - var(--switch-thumb) - var(--switch-padding) * 2) / 2)
+  );
+  transform-origin: 50% 50%;
+}
+
 /* The thumb stretches toward the other side while pressed, so the control answers before the finger
    lifts. */
 .switch-input:enabled:active::before {
@@ -118,6 +134,14 @@
   }
 
   .switch-input:checked::before {
+    background: Highlight;
+  }
+
+  .switch-input:indeterminate {
+    border-color: Highlight;
+  }
+
+  .switch-input:indeterminate::before {
     background: Highlight;
   }
 }
