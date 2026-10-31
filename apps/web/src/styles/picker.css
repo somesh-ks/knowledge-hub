@@ -34,11 +34,11 @@
 }
 
 /* The chevron is the holder's own, drawn over the button's end and turned while the list is open. */
-.picker > .icon {
+.picker > .icon-glyph {
   transition: rotate var(--duration-enter) var(--ease-out);
 }
 
-.picker:has(> .picker-trigger[aria-expanded="true"]) > .icon {
+.picker:has(> .picker-trigger[aria-expanded="true"]) > .icon-glyph {
   rotate: 180deg;
 }
 
@@ -167,7 +167,7 @@
   }
 
   /* The chevron turns at once: the turn is movement, the fade is not. */
-  .picker > .icon {
+  .picker > .icon-glyph {
     transition: none;
   }
 
@@ -210,6 +210,11 @@
     .picker-pop[data-sheet]:popover-open {
       translate: 0 105%;
     }
+  }
+
+  /* The rows of the sheet are as tall as the menu's and a select's (--size-option). */
+  .picker-pop[data-sheet] .picker-option {
+    min-block-size: var(--size-option);
   }
 
   .picker-pop[data-sheet]::backdrop {
@@ -443,7 +448,7 @@
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
-.podcast-sample > .icon {
+.podcast-sample > .icon-glyph {
   position: relative;
 }
 

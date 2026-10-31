@@ -47,7 +47,13 @@ export const MENU: Guidance & {
 };
 
 /** Every class the Menu draws, for the registry and its test. */
-export const MENU_CLASSES: string[] = ["menu-list", "menu-sheet", "menu-item", "menu-item-danger"];
+export const MENU_CLASSES: string[] = [
+  "menu-list",
+  "menu-sheet",
+  "menu-sheet-items",
+  "menu-item",
+  "menu-item-danger",
+];
 
 /** Classes the Menu replaced; none may be written again, in any app that draws the system. */
 export const MENU_RETIRED: string[] = ["hero-menu-list", "hero-menu-item", "hero-menu-delete"];
@@ -66,7 +72,7 @@ export const menuListClass = (sheet = true): string =>
 /** The sheet's own gap and icon rules alone, for a menu shown in place, not in the top layer. */
 export const menuSheetClass = (): string => "menu-sheet";
 
-/** The class that marks a menu's body inside a sheet: no rules, a hook for the sheet's pull to dismiss. */
+/** The class that marks a menu's body inside a sheet: it scrolls past 70% of the screen, and the sheet's pull to dismiss finds it. */
 export const menuBodyClass = (): string => "menu-sheet-items";
 
 /** The class that draws a row of the menu. */

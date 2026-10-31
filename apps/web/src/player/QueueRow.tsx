@@ -107,7 +107,7 @@ export default function QueueRow({ id, index, count, gestures }: QueueRowProps) 
         aria-haspopup="menu"
         aria-label={`More for ${title}`}
       >
-        <Icon name="moreVert" className="icon" />
+        <Icon name="moreVert" />
       </button>
       <div
         id={menuId}

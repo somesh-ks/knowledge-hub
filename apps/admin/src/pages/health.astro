@@ -27,7 +27,7 @@ type Row = { id: string; label: string };
     <AdminHead title={title} note="How the podcasts, the pages and the services behind them are running." />
 
     <section class="card-group health-card" aria-label="Summary">
-      <p class="health-answer health-data" aria-live="polite">
+      <p class="health-answer text-display health-data" aria-live="polite">
         <span class="status-dot" data-health-attention-dot data-tone="none"></span>
         <span data-health-attention>Checking</span>
       </p>
@@ -48,7 +48,7 @@ type Row = { id: string; label: string };
     {
       leading.map((group) => (
         <section>
-          <h2 class="section-head">{group.title}</h2>
+          <h2 class="section-head text-heading">{group.title}</h2>
           <div class="rows card-group health-data">
             {(group.rows as readonly Row[]).map((row) => (
               <div class="settings-row health-row" data-health-row={row.id}>
@@ -71,7 +71,7 @@ type Row = { id: string; label: string };
 
     {/* One device at a time, picked by a select drawn as Theme's is (settings.astro). */}
     <section>
-      <h2 class="section-head">Speed</h2>
+      <h2 class="section-head text-heading">Speed</h2>
       <div class="rows card-group health-data">
         <div class="settings-row">
           <label class="settings-label" for="health-device">Device</label>
@@ -102,7 +102,7 @@ type Row = { id: string; label: string };
     {
       rest.map((group) => (
         <section>
-          <h2 class="section-head">{group.title}</h2>
+          <h2 class="section-head text-heading">{group.title}</h2>
           <div class="rows card-group health-data">
             {(group.rows as readonly Row[]).map((row) => (
               <div class="settings-row health-row" data-health-row={row.id}>

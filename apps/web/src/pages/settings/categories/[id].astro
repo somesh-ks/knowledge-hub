@@ -4,7 +4,6 @@ import { topicArt } from "@singularity/cover";
 import AddFab from "../../../components/AddFab.astro";
 import EmojiPicker from "../../../components/EmojiPicker.astro";
 import EmptyArt from "../../../components/EmptyArt.astro";
-import Icon from "../../../components/Icon.astro";
 import ManageChrome from "../../../components/ManageChrome.astro";
 import MultiSelect from "../../../components/MultiSelect.astro";
 import SettingsHead from "../../../components/SettingsHead.astro";
@@ -17,6 +16,7 @@ import Button from "../../../design-system/Button.astro";
 import Dialog from "../../../design-system/Dialog.astro";
 import DialogActions from "../../../design-system/DialogActions.astro";
 import DialogTitle from "../../../design-system/DialogTitle.astro";
+import Icon from "../../../design-system/Icon.astro";
 import Menu from "../../../design-system/Menu.astro";
 import MenuItem from "../../../design-system/MenuItem.astro";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
@@ -320,7 +320,7 @@ const facts = topic && {
                 {
                   perspective && topic && (
                     <section class="topic-weights" aria-labelledby="perspective-head">
-                      <h2 class="section-head" id="perspective-head">Perspective</h2>
+                      <h2 class="section-head text-heading" id="perspective-head">Perspective</h2>
                       <div class="rows topic-controls">
                         <WeightRow
                           id={`perspective-${topic.id}`}
@@ -349,7 +349,7 @@ const facts = topic && {
           {/* Under the Sources tab the tab names the list, so the heading is for screen readers only
                (2026-10-21); Other, with no tabs, keeps it on screen. */}
           <div class="topic-sources-head" data-quiet={hasPreferences ? "" : undefined}>
-            <h2 class:list={["section-head", { "sr-only": hasPreferences }]}>Sources</h2>
+            <h2 class:list={["section-head", "text-heading", { "sr-only": hasPreferences }]}>Sources</h2>
             {/* From 64rem the button sits beside the search (SourceFilter's action); a topic with no
                  sources has no search, so it keeps the heading's end. */}
             {

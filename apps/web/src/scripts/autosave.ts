@@ -214,6 +214,13 @@ export function mountAutosave(
 
   return {
     changed() {
+      // Loaded now, not at idle: a page left in the next moments must keep this change, marked
+      // pending, with no wait for a chunk (leave).
+      if (!saver)
+        void import("./managePageSave")
+          .then((module) => (saver ??= module))
+          // A chunk that cannot be fetched is reported by now(), when the save is sent.
+          .catch(() => {});
       window.clearTimeout(still);
       const removal = changes.size > 0 ? (options.removing?.() ?? null) : null;
       if (removal) show(removal, "undo");

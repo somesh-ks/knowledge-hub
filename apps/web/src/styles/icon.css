@@ -1,0 +1,46 @@
+/*
+ * The Icon (design-system/Icon.astro): one Phosphor glyph. Its size is the Icon's size prop; a
+ * control that holds a glyph sizes it by its own rule (the dock, the transport, the chip).
+ */
+
+/* Phosphor: every glyph is one filled path, so an icon is just its colour and its size. */
+.icon-glyph {
+  width: var(--size-icon);
+  height: var(--size-icon);
+  flex: none;
+  fill: currentColor;
+}
+
+.icon-glyph-lg {
+  width: var(--size-icon-lg);
+  height: var(--size-icon-lg);
+}
+
+/* Glyph ink. A Phosphor glyph's ink stops short of its box by its own margin, a fraction of the box:
+   a chevron right 0.28 at its end, a chevron down 0.16, a close 0.19, the More dots 0.44 (each path's
+   getBBox in the 256 grid, 2026-10-25). A glyph that ends a row lands its ink on the row's end, where
+   the words end, not its box (owner, 2026-10-25: "not aligned optically on both sides", D187). Set on
+   the glyph and on what holds it, so a button can pull itself out by its glyph's margin. */
+:is(.icon-glyph[data-icon="chevronRight"], :has(> .icon-glyph[data-icon="chevronRight"])) {
+  --ink-end: 0.281;
+}
+
+:is(.icon-glyph[data-icon="chevronDown"], :has(> .icon-glyph[data-icon="chevronDown"])) {
+  --ink-end: 0.156;
+}
+
+:is(.icon-glyph[data-icon="openInNew"], :has(> .icon-glyph[data-icon="openInNew"])) {
+  --ink-end: 0.125;
+}
+
+:is(.icon-glyph[data-icon="close"], :has(> .icon-glyph[data-icon="close"])) {
+  --ink-end: 0.187;
+}
+
+:is(.icon-glyph[data-icon="moreVert"], :has(> .icon-glyph[data-icon="moreVert"])) {
+  --ink-end: 0.438;
+}
+
+:is(.icon-glyph[data-icon="pencilSimple"], :has(> .icon-glyph[data-icon="pencilSimple"])) {
+  --ink-end: 0.094;
+}

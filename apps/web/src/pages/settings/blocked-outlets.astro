@@ -1,9 +1,9 @@
 ---
 import EmptyArt from "../../components/EmptyArt.astro";
-import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
 import Button from "../../design-system/Button.astro";
+import Icon from "../../design-system/Icon.astro";
 import Sheet from "../../design-system/Sheet.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { blockedDomainOf, outletsSummary } from "../../lib/blockedOutlets";
@@ -73,7 +73,7 @@ const offers = (await loadSourceCatalog()).flatMap((offer) => {
         </form>
 
         <section class="blocked-list" aria-labelledby="blocked-head">
-          <h2 class="section-head" id="blocked-head" data-count>{outletsSummary(domains.length)}</h2>
+          <h2 class="section-head text-heading" id="blocked-head" data-count>{outletsSummary(domains.length)}</h2>
           <ul class="rows card-group" role="list" data-list aria-labelledby="blocked-head">
             {
               domains.map((domain) => (

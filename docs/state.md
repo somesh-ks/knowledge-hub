@@ -1,11 +1,11 @@
 # State
 
-Updated 2026-10-31. Rewrite, never append. [Specs](specs/README.md), [decisions](decisions/README.md), [history](history/README.md).
+Updated 2026-10-31. Rewrite, never append.
 
 ## Working
 
 - Engine live end to end (fetch, judge, write, validate, commit): [engine](specs/engine.md). A run that loses stories or races a push degrades, not fails, and records health (D204): [resilience](engineering/generation-resilience.md), [metrics](engineering/metrics.md).
-- Reader (Latest, Library, Catch up, Settings, `/design`): [library](specs/library.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
+- Reader (Latest, Library, Catch up, Settings): [library](specs/library.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
 - Player as one surface: transcript with word light, chapters in the bar, queue with Up next (D126): [player](specs/player.md).
 - Narration on Play, per story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes; Opus, MP3 fallback (D198): [narration](specs/narration.md), [create](specs/create.md).
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). A Regenerate and a Catch up are followed in the podcast queue, each with Cancel; ended runs stay for the day (D204, D231).
@@ -35,6 +35,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Alexandria pilot (D200). closed when: a run logs `anthropic-blog` fetched via `alexandria:anthropic-com`.
 - Owner's eye: bar centring (over 1px), centred column and label gap (D229), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off.
 - Live content (plan 20): an open page elsewhere does not refresh within 60 s; `smokeLive.mjs --apply` never ran on production; offline copies of a removed episode are unaudited. closed when: checked.
+- Reload mid-write (D259). closed when: a phone flip, then reload, holds.
 - Settings paint the stored copy at once, the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change waits up to 2.5 s for the store. closed when: the owner signs off on a phone.
 - Sources design (D124) live: production asks Jev for a source's format only after `secrets:push`; no run used a mix or cap. closed when: a production source's format comes from Jev and a digest follows a mix change.
 - YouTube text: Firecrawl and Gemini transcripts answered live; no full run used either. closed when: a digest has a YouTube finalist with `extract_method` captions or transcription.
@@ -47,12 +48,12 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Time zone (D100, D239) only faked: no other zone or clock change; `sinceLabel`, `pendingAudio` and `podcast/select` still use Stockholm's today. closed when: a run across the 10-25 clock change publishes on the right day.
 - General topics (D66 to D69, D102): no digest has one yet. closed when: one does.
 - Config through `config.yml` never seen live: `topic.scope`, rename or move, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics, episode delete and regenerate. closed when: each lands as a `main` commit.
-- Admin env (D249, D257): `singularity-admin` needs `DATABASE_URL` and `SINGULARITY_CONFIG_STORE=postgres`, the reader `ADMIN_SESSION_SECRET`. closed when: a toggle holds after reload and `/api/health` answers 401 signed out.
+- Admin env (D257): the reader needs `ADMIN_SESSION_SECRET`. closed when: `/api/health` answers 401 signed out.
 - Config store (D149, D185). closed when: a phone's edit shows on a laptop.
 - A pending `config.yml` run can be cancelled by GitHub after a 202 (shared `singularity` group); production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 10-14. closed when: a config save from the site produces a commit.
 - A 15-minute episode falls short; the app does not say what a window holds. closed when: one airs within 10% of 15 minutes, or the form shows the window.
 - Costs (D137), Firecrawl's week (D166, D222): `config/prices.json` is unconfirmed. closed when: the owner confirms the prices, /analytics shows a real run and a week's runs are all in the ledger.
-- 35 older items parked: [five](history/2026-10-21-owner-backlog-in-parallel.md#parked), [twelve](history/2026-10-27-session-close.md#parked), [seven](history/2026-10-27-generation-health.md#parked), [eleven](history/2026-10-28-generations-list.md#parked). closed when: each closes.
+- 35 older items parked in history (`#parked` of the 10-21, 10-27 and 10-28 notes). closed when: each closes.
 
 ## Known risks
 
@@ -68,5 +69,5 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 3. Firecrawl: a per-source yield table for the owner to prune (21 sources gave 1 story per 4,460 credits a month); changelog providers once the pilot holds.
 4. Lighthouse: defer BaseLayout's 34 KiB CSS without breaking the bar; the 1.4 s chain.
 5. `topic` to `category` end to end (plan 14): an inventory, dual-name readers, a store-synced migration, the rename, then the old names go; only with no other PR open ([start](history/2026-10-25-owner-feedback-pass.md#left-out-for-a-later-session)).
-6. Controls (D237): next Icon button, FAB, Chip, Link. closed when: `NOT_YET_COMPONENTS` is empty.
+6. Controls (D237): Icon button, FAB, Chip, Link next. closed when: `NOT_YET_COMPONENTS` is empty. Icon size scale (D266).
 7. Performance: one fetch for both briefing passes, rewrite only a thin story, split a long first turn (D141, D178).

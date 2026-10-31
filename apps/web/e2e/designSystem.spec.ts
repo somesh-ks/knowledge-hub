@@ -44,7 +44,7 @@ const EXEMPT = [
   // An optical nudge sized by the glyph's own side bearing (--ink-end, D187), so its ink meets the
   // row's end: a row's chevron, a select's or a multi-select's in a row, Create's More options and
   // an icon button that ends a row.
-  ".row-action .icon",
+  ".row-action .icon-glyph",
   ".settings-row .value-select > select.field-input",
   ".settings-row .multiselect-trigger",
   ".create-more-chevron",
@@ -53,7 +53,7 @@ const EXEMPT = [
   ".emoji-cell",
   // Centred on the title's first line by the label's leading (banner.css); kept for any page that
   // shows a banner (the catalogue that always showed one is gone).
-  ".banner-notice > .icon",
+  ".banner-notice > .icon-glyph",
 ];
 
 const PAGES = [

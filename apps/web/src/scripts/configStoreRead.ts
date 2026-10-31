@@ -13,6 +13,8 @@
  * new, is offered in a toast as a reload (D173). With no copy, an outage costs freshness, never the
  * page.
  */
+import { SAVED_KEY } from "../lib/savedKey";
+import { anyPending, parseSaved } from "../lib/savedOverlay";
 import type { ConfigOp, ConfigReadBody, StoreSource } from "../types/contracts";
 import { sendToast } from "./toastEvent";
 
@@ -58,9 +60,23 @@ function ownWrite(): number {
   }
 }
 
-/** True when the answer is no newer than this device's own latest save. */
+/**
+ * A save of this device is on its way, or left by a page that is gone before it heard the store take
+ * it (a reload while the store was slow, D259): the answer holding it is this device's own edit,
+ * not another device's.
+ */
+function ownSaveOnItsWay(): boolean {
+  try {
+    const now = Date.now();
+    return anyPending(parseSaved(localStorage.getItem(SAVED_KEY), now), now);
+  } catch {
+    return false;
+  }
+}
+
+/** True when the answer is no newer than this device's own latest save, or may hold one on its way. */
 const isOwn = (body: ConfigReadBody): boolean =>
-  body.written_at !== null && body.written_at <= ownWrite();
+  (body.written_at !== null && body.written_at <= ownWrite()) || ownSaveOnItsWay();
 
 let last: { at: number; read: Promise<ConfigReadBody | null> } | undefined;
 let current: ConfigReadBody | null = null;

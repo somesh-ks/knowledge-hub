@@ -399,3 +399,42 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Rejected: one Sheet with a `drawer` variant in one stylesheet (the ordering risk above); folding `sheet-field*`, `sheet-form` and `sheet-actions` into the Sheet (they are form layout, left in `sheets.css`).
 - Revisit if: the owner wants one component with two looks (then load order is proved with the browser suites first).
 
+## D265: a select's list on a phone is the standard bottom sheet
+
+- Date: 2026-10-31 (the owner: the time picker's sheet in Daily and Weekly "shouldn't exist": "a very weird bottom sheet with the highlights", rows too close; "consolidate and use just one type of bottom sheet everywhere as much as possible", at design-system level). Amends D167.
+- Decision: below 40rem a Select does not open the browser's own list. `design-system/selectSheet.ts` (loaded by `Select.astro`) stops it and opens the Menu's sheet (`menu-list menu-sheet`): the field's label as the title, Close at the end, one row for each option with the chosen one in the accent and a check, a pull down to close. A choice sets the select and fires `input` and `change`, so every listener hears it as before. The rows are `--size-option` (48px, was 44px with 8px between them) in the select, picker and menu sheets; a select's options draw no fill of their own (the browser's was a shade off the surface in dark). A menu sheet stops at 70% of the screen and its rows scroll under the head. From 40rem the select keeps its own list under the field.
+- Why: D167 drew the browser's list as a sheet by CSS, but a list the browser draws cannot hold a header or a Close, so it was a second kind of bottom sheet; a script-drawn one is the first kind.
+- Calls made for the owner: 48px rows, not 52 or 56; the 8px gap stays; the searchable picker (time zone, voice) keeps its search box and its own sheet for now, and the multi-select stays an anchored popover; the CSS sheet for `::picker(select)` was removed, so a phone where the script has not loaded shows the anchored list.
+- Rejected: restyling the native list only (no header); giving every select the picker's search sheet (a search box over 24 hours).
+- Revisit if: a phone browser opens its own list despite the stop (the press and the click are both stopped, as browsers differ), or the picker's sheet and this one should be one component.
+
+
+## D266: type roles, Icon and Badge are system parts
+
+- Date: 2026-10-31 (the coordinator, for the owner: finish D243 parts E and F). Amends D243.
+- Decision: a rule that restated a type role's five properties (`page-title`, `costs-total`, `health-answer`, `story-title`, `episode-highlight-title`, `player-title`, `section-head`, the settings `h1`s, `dialog-title`) is deleted, and the markup takes `text-display`, `text-title` or `text-heading` instead. `dialog-title` is retired: `dialogTitleClass()` is `text-heading`, and a sheet's title is `sheet-title text-heading` (the class stays as the hook for `min-width: 0`). The Icon is one component: `icon-glyph` and `icon-glyph-lg` (`size="lg"`) replace the Astro `.icon`, the React `.ui-icon` and both `.icon-lg`; `Icon.astro` moves into `design-system/`, `styles/icon.css` holds the rules. The Badge is one grey label (`badge-label`, `Badge.astro`) for the Admin tag and the guide's fold count; both used a different fill and weight.
+- Why: the roles were defined and unused, so each page copied them and could drift; the two icon classes carried the same rule in two sheets.
+- Calls made for the owner: the Admin tag changes from the white overlay fill to the grey container fill (light theme only), and the fold count goes from regular to medium. The player's hidden collapse chip now reads in its inverse ink (a stylesheet-order accident had given it the muted icon-button ink). `flag-badge` (a flag's stand-in) and `card-downloaded` (a check glyph) are not badges and stay; `status-dot` goes with #493. The class is `badge-label` because the pill rule in `styles.test.ts` bans any new `*-pill`.
+- Debt: containers that size or place a glyph (`.dock-btn .icon-glyph`, `.row-action .icon-glyph`, about 60 rules) join `PAGE_OVERRIDES`. Next: a size scale (`sm`, `md`, `lg`) so a control sets `size` instead of a rule.
+- Rejected: leaving the bare class `icon` (a plain word fails the by-hand test); a `size` for every pixel value now.
+- Revisit if: the owner wants a size scale first, or Admin's white tag back.
+- Amends: D243.
+
+## D267: Card and Row are tokens, not components
+
+- Date: 2026-10-31 (call made for the owner, who is away).
+- Decision: Card is the `--card-radius`, `--card-padding` and container fill that `card-group`, `topic-card`, `topic-panel` and `changelog-entry` already share; the source card and the score card now take `--card-radius` (32px, was 16px, D243). Row stays seven layouts (`row-action`, `settings-row`, `source-row`, `story-row`, `player-upnext-row`, `player-queue-row`, `queue-row`) whose shared values are already tokens (`--row-padding-block`, `--row-tile-radius`, `--size-touch-comfortable`, `--source-row`).
+- Why: `card-group` is a list layout worn by 40 elements of five kinds (`div`, `ul`, `form`, `fieldset`, `details`); a component would rewrite them and 80 references to `settings-row`, in tests too, to rename classes that already read the same tokens.
+- Rejected: a `Card.astro` wrapper (the tag varies); renaming `settings-row` to a Row class (80 references, no change in look).
+- Revisit if: a card needs a second look (outlined, raised), or a row drifts from the tokens.
+- Amends: D243.
+
+## D268: a style is a set of token overrides under `data-style`; an opt-in style may bold the page title
+
+- Date: 2026-10-31 (the owner: "style" choices in Appearance beside the theme, Default as today, Expressive, later seasonal ones; and, on a decision card, Expressive may bold the page title only). Amends D125.
+- Decision: `tokens/tokens.json` may hold a top-level `styles` group, one group per style name, each mirroring the token tree. `buildTokens` writes a style after the base's dark blocks as `:root[data-style="<name>"]` plus its two dark forms, so at equal weight it wins. A style replaces existing tokens only, never a primitive, and gives a dark value exactly where the base has one (a light-only color would let the base's dark value show through; the build fails). The device's choice is `style` in the preferences object (`"default"` or a style name), applied as `data-style` (absent for the default), written before first paint by `themeInit.js`, carried across a client navigation like `data-theme`, and changed through the same crossfade as the theme. No component carries a per-style rule: a structural difference becomes a component token whose Default value is today's. D125 stands for Default and for every heading but one: a style may set the display role's weight, which only the page title uses.
+- Why: a style is then a few lines of data the guide can show, the contrast test can loop over, and Default cannot drift from. The bigger model's check of the first overlay (170 lines of class selectors, 14 `!important`) found a second, hidden design system tied to markup the consolidation was changing. Nine overrides of existing tokens reproduced the title and corner changes of the Expressive mock.
+- Rejected: a stylesheet for each style (a flash, an extra request, offline caching, CSP); per-style structural CSS (D237 and D253 forbid page patches); auto-applying a seasonal style by date (a surprise in a calm tool, depends on the clock and breaks offline copies); a bold heading anywhere but the page title.
+- Context changed: this step is the mechanism only. No style exists yet and `tokens.css` is unchanged; the Expressive tokens, the role tokens they need (the raw radius uses in component CSS move to roles first) and the Appearance control follow as design-system PRs.
+- Revisit if: a style needs to change a color ramp (the rule against primitives and the cover, ambient-light and `theme-color` observers need a design first), or two styles want one structural rule that tokens cannot express.
+- Amends: D125.

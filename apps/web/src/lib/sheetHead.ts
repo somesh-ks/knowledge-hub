@@ -3,6 +3,7 @@
  * (SheetHeader.astro, Icon.astro) and for the lists a script redraws (structureView.ts), so a menu
  * a script builds is the same menu a page builds (the design-system audit, 2026-10-25).
  */
+import { type IconSize, iconClass } from "../design-system/icon";
 import { menuItemClass } from "../design-system/menu";
 import { sheetHeadClass, sheetTitleClass } from "../design-system/sheet";
 import { ICON_PATHS, ICON_VIEW_BOX, type IconName } from "./icons";
@@ -16,8 +17,8 @@ export const escapeHtml = (text: string): string =>
     .replace(/'/g, "&#39;");
 
 /** One glyph, as Icon.astro draws it: `data-icon` names it for buttons.css's ink margins (D187). */
-export const iconHtml = (name: IconName, className = ""): string =>
-  `<svg class="${["icon", className].filter(Boolean).join(" ")}" data-icon="${name}" viewBox="${ICON_VIEW_BOX}" aria-hidden="true" focusable="false"><path d="${ICON_PATHS[name]}"></path></svg>`;
+export const iconHtml = (name: IconName, size: IconSize = "md"): string =>
+  `<svg class="${iconClass(size)}" data-icon="${name}" viewBox="${ICON_VIEW_BOX}" aria-hidden="true" focusable="false"><path d="${ICON_PATHS[name]}"></path></svg>`;
 
 export type SheetClose =
   | "data-create-close"
@@ -44,7 +45,7 @@ export function sheetHeadHtml(
     .join("");
   return (
     `<div class="${sheetHeadClass()}"><h2 class="${sheetTitleClass()}" id="${titleId}"${data}>${escapeHtml(title)}</h2>` +
-    `<button class="icon-btn press" type="button" aria-label="Close" ${close}>${iconHtml("close", "icon-lg")}</button></div>`
+    `<button class="icon-btn press" type="button" aria-label="Close" ${close}>${iconHtml("close", "lg")}</button></div>`
   );
 }
 

@@ -9,6 +9,7 @@ import { SAVED_KEY, storeOn } from "../lib/savedKey";
 import { addSaved, parseSaved, withPending } from "../lib/savedOverlay";
 import type { ConfigOp, ConfigResponse } from "../types/contracts";
 import { afterOwnSave, noteOwnWrite } from "./configStoreRead";
+import { endedByLeaving } from "./pageLeaving";
 import { sendToast } from "./toastEvent";
 
 export const SAVING = "Saving";
@@ -251,9 +252,25 @@ export function settle(batch: Pick<Batch, "ops" | "sent">, changes: Map<string, 
  */
 const leftRuns = new Set<SaveContext>();
 
-/** Every edit the left pages' runs still hold, oldest page first. */
+/**
+ * The edits in the request on its way. They are kept, marked pending, from the moment it is sent, so
+ * a page reloaded while the store is still taking them shows them (a reload rejects the request's
+ * promise before any pagehide handler could mark them, D259).
+ */
+let inFlight: ConfigOp[] = [];
+
+/** Every edit a request carries or the left pages' runs still hold, oldest page first. */
 function heldOps(): ConfigOp[] {
-  return [...leftRuns].flatMap((context) => waitingOps(context.changes));
+  const ops = [...inFlight, ...[...leftRuns].flatMap((context) => waitingOps(context.changes))];
+  // A request on its way from a page being left is in both lists. A repeated edit keeps its last
+  // place, so an earlier value does not land after a newer one.
+  const latest = new Map<string, ConfigOp>();
+  for (const op of ops) {
+    const key = JSON.stringify(op);
+    latest.delete(key);
+    latest.set(key, op);
+  }
+  return [...latest.values()];
 }
 
 /**
@@ -458,6 +475,8 @@ interface Answer {
   timeRefused: boolean;
   /** The answer's body, for a failure's reference. */
   body?: unknown;
+  /** The page was leaving when the request ended: it may have gone through, so nothing is said. */
+  unknown?: boolean;
 }
 
 /** One request. `keepalive` lets it finish when the page is closed right after a change. */
@@ -478,7 +497,7 @@ async function post(ops: ConfigOp[]): Promise<Answer> {
       body,
     };
   } catch {
-    return { status: 0, wait: 0, timeRefused: false };
+    return { status: 0, wait: 0, timeRefused: false, unknown: await endedByLeaving() };
   }
 }
 
@@ -533,6 +552,8 @@ export async function flush(context: SaveContext): Promise<void> {
    * "Adding" and then "Added" itself, so the toast saying it too would be the same news twice.
    */
   let rowSays = true;
+  /** The page went while a request was out: its change stays kept for the next page (pageLeaving.ts). */
+  let cut = false;
   /**
    * Changes the engine refused for good in this run (a refusal that named its op): they stay for
    * Retry but are not sent again here, so one change that can never be accepted does not hold back
@@ -562,7 +583,14 @@ export async function flush(context: SaveContext): Promise<void> {
       sent = true;
       rowSays &&= batch.sent.every(([, pending]) => pending.el.matches(".source-note"));
       if (!rowSays) show(SAVING, "saving");
+      inFlight = batch.ops;
+      remember([]);
       const answer = await post(batch.ops);
+      if (answer.unknown) {
+        cut = true;
+        break;
+      }
+      inFlight = [];
       if (answer.status === 429 && waits < MAX_WAITS) {
         waits += 1;
         await new Promise((resolve) => setTimeout(resolve, answer.wait * 1000 + 250));
@@ -618,12 +646,16 @@ export async function flush(context: SaveContext): Promise<void> {
     busy = false;
     // A page left with edits marked pending: the page open now hears how they went and takes what
     // failed, before another page's queued changes go (with them, when that page took them).
-    endLeft(context, failure);
+    if (!cut) {
+      // Whatever failed is not on its way any more: the next page must not show it as saved.
+      remember([]);
+      endLeft(context, failure);
+    }
     const next = [...queued].filter((other) => other !== context);
     queued.clear();
     for (const other of next) void flush(other);
   }
-  if ((!sent || rowSays) && !failure) return;
+  if (cut || ((!sent || rowSays) && !failure)) return;
   if (failure) {
     show(failure, "error");
     // The interface sound for an outcome the screen already states (see scripts/uiSound.ts). A save

@@ -25,7 +25,6 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-10: a player fix for track contrast read right in the diff and failed in the browser (played and unplayed 1.46:1 apart); the worker had marked it unverified. Send a read-only verifier to measure every fix a worker marks unverified before calling an area done.
 - 2026-10-10: with a lone threshold of 1, Chromium's IntersectionObserver reports a target partly past the root edge as not intersecting, and never calls back when it then leaves. To tell a sticky element is stuck, observe thresholds `[0, 1]` and compare `boundingClientRect.top` with `rootBounds.top`.
 - 2026-10-09: a WebGL canvas failed the player suite on every page: headless Chromium draws in software (SwiftShader), logs "GPU stall due to ReadPixels" each frame, and the suite fails on any warning. Read the renderer's name (`WEBGL_debug_renderer_info`) and skip WebGL on a software one.
-- 2026-10-09: The site suite cannot run with `--headed` on this machine: Kaspersky injects requests that the page's CSP blocks, and the fixture fails on any console error. Check GPU-only behaviour with a standalone script that ignores those lines and nothing else.
 - 2026-10-09: a test run piped through `grep` or `tail` reports the filter's exit code (0). Record the runner's own `$?`.
 - 2026-10-09: The player suite can run its `site-*` projects in a worktree without a dev server: serve the fixture build and set `PLAYER_SITE_URL` to it.
 
@@ -55,7 +54,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-30: the judge flagged all 21 favorite-creator videos since 9 Oct: it read links and a sponsor line. The Judge step lacked `FIRECRAWL_API_KEY`, so 3 videos a run (Gemini cap) got a transcript; a stage reads only its own `env`.
 - 2026-10-19: a YouTube finalist reached the writer with only its description: `extractFullText` fetched a watch page with no speech. YouTube items go through `extract/youtubeText.ts` (cache, Firecrawl, then Gemini; `state/video-text.json`); failure falls back to the description.
 - 2026-10-07: `audio.yml` failed at the write guard ("changes outside the publish allowlist: .gitignore"): `vercel link` and `vercel env pull` edit `.gitignore` and write `.vercel`; run them in a scratch directory outside the checkout.
-- 2026-10-30: Hobby Blob allows 2,000 advanced ops (`put`, `copy`, `list`) a month. Over it the store is blocked 30 days (reads 403, pages 503). Ingest wrote a put per story (D251): count a job's puts per run. The CDN keys a function's answer by request path and obeys `vercel.json` header rules, not the query or `Vercel-CDN-Cache-Control`; a `has` capture missed (D263).
+- 2026-10-30: Hobby Blob allows 2,000 advanced ops a month (`put`, `copy`, `list`); over it the store is blocked 30 days. Ingest wrote a put per story (D251): count a job's puts per run. The CDN keys a function's answer by request path and obeys `vercel.json` header rules, not the query or `Vercel-CDN-Cache-Control`; a `has` capture missed (D263).
 - 2026-10-18: the 15-minute weekly aired 14 stories: the prefilter's fixed cap of 80 filled 27 of 52 slots and grounding dropped 11. `poolCapFor` now sizes it. Read a short episode's funnel from the stage lines first.
 - 2026-10-15: Claude Sonnet 5.5 answers 400 "temperature is deprecated" to any request with `temperature`, and the writer chain fell through silently to Nebius from 2026-10-14 while Settings said Sonnet. The Anthropic client sends no temperature; a pick that fails over should be visible, not only in logs.
 - 2026-10-15: a source with 0 fetched items and OK health is not always broken: One Useful Thing and AUX First post monthly (newest items 2026-10-01 and 2026-09-21). Read the feed's newest date before calling a source dead.
@@ -72,6 +71,8 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Site and service worker
 
+- 2026-10-31: a persisted island put back restarts its CSS animations: `persistedMotion.ts`.
+- 2026-10-30: a change reloaded mid-write came back undone: Chromium rejects a request still out at unload (`keepalive` keeps the request, not the promise) before pagehide runs. Ask `endedByLeaving()` before calling no answer a failure; test on a real server.
 - 2026-10-29: a `button.app-nav-item` made `navigationBoost` fetch `/undefined`; it takes `a.app-nav-item` only. A run's end toast needs the sheets island awake.
 - 2026-10-28: a layout element's `data-briefing="Briefing"` made every Regenerate send `replace: "Briefing"` (forms read `dataset.briefing` off the page). Words in a layout take a `data-word-` prefix.
 - 2026-10-28: a fixed wait for an answer that is nearly always slower is paid on every visit: measure it on the built site with a slow store stub. The browser suites need `node e2e/run.mjs --build-only`.
@@ -85,24 +86,25 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-22: after a deploy, saved pages kept the old layout (D145); a download lost its player offline (scripts in a versioned cache).
 - 2026-10-22: TBT is root `:has()` restyles (first-load-js.md).
 - 2026-10-16: an installed Android web app keeps the manifest's theme_color from install and paints the system navigation bar in it (Chromium's WebAppNavigationBarThemeColor); a runtime theme-color meta never repaints it, and Chrome 128 dropped dark manifest colours. Leave theme_color out to get bars that follow the system theme.
-- 2026-10-14: on mobile Chrome a fixed element held by its bottom edge moves with the address bar in the same frame; one held by both edges (`inset: 0`) resizes only after the gesture, so the bar, navigation and floating button drifted apart (#120). Hold each bottom-stack element by its bottom edge; size a full-height box with `100dvh`.
+- 2026-10-14: on mobile Chrome a fixed element held by its bottom edge moves with the address bar in the same frame; one held by both edges (`inset: 0`) resizes only after the gesture, so the bottom stack drifted apart (#120). Hold bottom-stack elements by the bottom edge; full-height boxes by `100dvh`.
 - 2026-10-11: Safari 27 has no `overlay`, so a closing dialog or popover leaves the top layer as its exit starts and the exit plays in the page: give top-layer elements their own `position` and a z-index (the top layer ignores it), and close at once under `@supports not (overlay: auto)` where an ancestor has a transform.
 - 2026-10-11: the voice sample button never worked in production: it played Speechify's own URL, which the page's `media-src` blocks, and its error handler hid the button, so it looked like a missing feature. A media URL from a third party needs the CSP checked, or a same-origin route (`/api/voice-sample`).
-- 2026-10-09: a move between destinations took 400 ms though the page was ready after 70: the mark that picks the animation (`data-astro-nav`) was lost in the swap, since Astro 7 keeps only its own root attributes. Carry the mark onto `event.newDocument` in `astro:before-swap`, and check what animates with `document.getAnimations()`.
+- 2026-10-09: a move took 400 ms though the page was ready after 70: the mark that picks the animation (`data-astro-nav`) was lost in the swap, as Astro 7 keeps only its own root attributes. Carry it onto `event.newDocument` in `astro:before-swap`; check with `document.getAnimations()`.
 - 2026-10-09: The first press after opening the app blocks for about 200 ms with the audio device idle, about 75 ms warm: `new AudioContext()` inside the press. `latencyHint` and `sampleRate` do not help; a first measurement said they did, because the first context created pays. Reverse the order as the control.
 
 ## Build and tooling
 
+- 2026-10-31: a new shared stylesheet import reorders equal-specificity rules (icon.css flipped the player's collapse chip ink). Diff built pages' computed styles after an import move.
 - 2026-10-30: designSystem.test reads quoted text: a retired class equal to a file name or a selector string counts as writing it.
 - 2026-10-28: cloud Node 22.22 fails `astro check`: `. /opt/nvm/nvm.sh && nvm install 24`. `pkill -f` kills its own shell.
 - 2026-10-25: an `<svg>` in a template string has no `data-icon`, so D187 skips it; use `iconHtml()`.
-- 2026-10-22: `npm install` ignores a new `overrides` entry while the lockfile holds the old version (deleting the entry alone drops it): delete it and `node_modules/.package-lock.json`, then `npm install`. A linked worktree's adapter build fails (`devalue` missing); check after `npm ci`.
-- 2026-10-14: `npm run lint` checks nothing in a worktree (Biome ignores `.claude/`): there run `npx biome check apps packages scripts tokens`. Touched-file checks passed while the root lint failed on CSS blank lines; run the root lint from the main checkout.
-- 2026-10-11: Biome rewrote `<T,>(x: T) => ...` to `<T>(x: T) => ...` in Astro frontmatter, which the compiler rejects. Use a `function` declaration for generics in `.astro` files.
+- 2026-10-22: `npm install` ignores a new `overrides` entry while the lockfile holds the old version: delete it and `node_modules/.package-lock.json`, then `npm install`. A linked worktree's adapter build fails (`devalue` missing); check after `npm ci`.
+- 2026-10-14: `npm run lint` checks nothing in a worktree (Biome ignores `.claude/`): run `npx biome check apps packages scripts tokens`, and the root lint from the main checkout.
+- 2026-10-11: Biome rewrote `<T,>(x: T) =>` to `<T>(x: T) =>` in Astro frontmatter, which the compiler rejects: use a `function` declaration.
 - 2026-10-08: branches that pass alone can fail together (tab order, focus ring, touch targets, bundle size): run the whole site suite on the stack.
 - 2026-10-30: every `main` deploy failed on Vercel, none locally: skew protection stamps `?dpl=<id>` on asset URLs and `bundleBudget.ts` looked files up with it. Strip `?query` before a path lookup.
-- 2026-10-30: the Experiments function crashed at load on Vercel only: a bare `@singularity/engine/...` import resolves to `.ts` source the bundle omits. Import workspace code by relative path.
-- 2026-10-31: a switch read back stale: the reader's worker answered `/admin` GETs from a copy up to 10 min old (#494). A write's answer does not prove the next read is fresh; settle a pending change only on a read.
+- 2026-10-30: the Experiments function crashed at load on Vercel only: a bare `@singularity/engine/...` import resolves to `.ts` source the bundle omits. Import workspace code by path.
+- 2026-10-31: a switch read back stale: the reader's worker answered `/admin` GETs from a copy up to 10 min old (#494). A write's answer does not prove the next read is fresh; settle only on a read.
 
 ## Windows and shells
 

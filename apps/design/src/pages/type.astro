@@ -1,5 +1,5 @@
 ---
-import Icon from "../../../web/src/components/Icon.astro";
+import Icon from "../../../web/src/design-system/Icon.astro";
 import PageHead from "../components/PageHead.astro";
 import Shell from "../layouts/Shell.astro";
 import { primitive, semantic } from "../lib/guide";
@@ -35,7 +35,7 @@ const NOTES: Record<string, string> = {
     </div>
 
     <section aria-labelledby="specimen">
-      <h2 class="section-head" id="specimen">Typeface</h2>
+      <h2 class="section-head text-heading" id="specimen">Typeface</h2>
       <p class="guide-note">Google Sans Flex, latin only, with a metric-matched fallback. Two weights, regular and medium; a test bans a third (D90).</p>
       <div class="guide-specimen">
         <span class="guide-specimen-aa" aria-hidden="true">Aa</span>
@@ -45,7 +45,7 @@ const NOTES: Record<string, string> = {
     </section>
 
     <section aria-labelledby="roles">
-      <h2 class="section-head" id="roles">Roles</h2>
+      <h2 class="section-head text-heading" id="roles">Roles</h2>
       <p class="guide-note">Each role is a family, size, weight, tracking and leading, read by components as one token. Type your own sample to try it.</p>
       <label class="search-field guide-sample-field">
         <span class="sr-only">Sample text</span>
@@ -73,7 +73,7 @@ const NOTES: Record<string, string> = {
     </section>
 
     <section aria-labelledby="sizes">
-      <h2 class="section-head" id="sizes">Size scale</h2>
+      <h2 class="section-head text-heading" id="sizes">Size scale</h2>
       <p class="guide-note">The sizes alone. A title, lead and display size are fluid: they grow between a phone and a laptop.</p>
       <div class="guide-table-wrap">
         <table class="guide-table">
@@ -94,7 +94,7 @@ const NOTES: Record<string, string> = {
     </section>
 
     <section aria-labelledby="leading">
-      <h2 class="section-head" id="leading">Leading</h2>
+      <h2 class="section-head text-heading" id="leading">Leading</h2>
       <div class="guide-table-wrap">
         <table class="guide-table">
           <thead><tr><th>Token</th><th>Value</th></tr></thead>

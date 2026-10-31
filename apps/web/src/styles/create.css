@@ -55,7 +55,7 @@
   line-height: var(--font-leading-body);
 }
 
-.create-error > .icon {
+.create-error > .icon-glyph {
   width: var(--size-icon-sm);
   height: var(--size-icon-sm);
   block-size: 1lh;

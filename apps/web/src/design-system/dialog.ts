@@ -21,7 +21,6 @@ export const DIALOG: Guidance = {
 /** Every class the Dialog draws, for the registry and its test. */
 export const DIALOG_CLASSES: string[] = [
   "dialog-panel",
-  "dialog-title",
   "dialog-body",
   "dialog-actions",
   "dialog-actions-stacked",
@@ -29,6 +28,7 @@ export const DIALOG_CLASSES: string[] = [
 
 /** Classes the Dialog replaced; none may be written again, in any app that draws the system. */
 export const DIALOG_RETIRED: string[] = [
+  "dialog-title",
   "confirm-dialog",
   "confirm-form",
   "confirm-actions",
@@ -45,7 +45,7 @@ export const dialogClass = (): string => "dialog-panel";
 export const dialogBodyClass = (): string => "dialog-body";
 
 /** The question, as the dialog's one heading. */
-export const dialogTitleClass = (): string => "dialog-title";
+export const dialogTitleClass = (): string => "text-heading";
 
 /** The row of answers; `stacked` makes it a column with the committing one first. */
 export const dialogActionsClass = (stacked = false): string =>

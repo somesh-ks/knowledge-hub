@@ -212,6 +212,105 @@
       ]
     },
     {
+      "id": "icon",
+      "name": "Icon",
+      "kind": "display",
+      "summary": "A filled Phosphor glyph in the colour of the text beside it.",
+      "classes": [
+        "icon-glyph",
+        "icon-glyph-lg"
+      ],
+      "files": [
+        "design-system/Icon.astro",
+        "design-system/icon.ts"
+      ],
+      "when": [
+        "A mark beside a label or alone in a button: a chevron, a plus, a check, Play"
+      ],
+      "not": [
+        {
+          "when": "The glyph must act when pressed",
+          "use": "icon-btn"
+        },
+        {
+          "when": "the glyph must act when pressed",
+          "use": "icon-btn"
+        }
+      ],
+      "keywords": [
+        "icon",
+        "glyph",
+        "phosphor",
+        "symbol",
+        "chevron",
+        "plus",
+        "check"
+      ],
+      "markup": "<Icon name=\"plus\" size=\"lg\" />",
+      "rules": [
+        "Draw it with <Icon>; a script builds one with iconHtml() and an island with <Icon> from player/ui, both through iconClass().",
+        "A control that holds a glyph places it with its own rule; it never sets the glyph's size twice."
+      ],
+      "styles": [
+        "icon.css"
+      ],
+      "usage": "Phosphor: every glyph is one filled path, so an icon is just its colour and its size.",
+      "tokens": [
+        "--size-icon",
+        "--size-icon-lg"
+      ]
+    },
+    {
+      "id": "badge",
+      "name": "Badge",
+      "kind": "display",
+      "summary": "A grey label holding one word or one number beside a name.",
+      "classes": [
+        "badge-label"
+      ],
+      "files": [
+        "design-system/Badge.astro",
+        "design-system/badge.ts"
+      ],
+      "when": [
+        "A short label names what the thing beside it is: Admin beside the wordmark",
+        "A count of what a section holds"
+      ],
+      "not": [
+        {
+          "when": "The state is good, worth a look or wrong",
+          "use": "banner"
+        },
+        {
+          "when": "The pill can be pressed or ticked",
+          "use": "filter-chip"
+        },
+        {
+          "when": "the pill can be pressed or ticked",
+          "use": "filter-chip"
+        }
+      ],
+      "keywords": [
+        "badge",
+        "tag",
+        "pill",
+        "count",
+        "label"
+      ],
+      "markup": "<Badge>Admin</Badge>",
+      "rules": [
+        "It holds one word or one number; the page places it with a class, never styles it."
+      ],
+      "styles": [
+        "badge.css"
+      ],
+      "usage": "The Badge (design-system/Badge.astro): a grey pill that holds one word or one number. One size, one fill. It is as wide as its words and no narrower than it is high, so a single digit stays round. Grey, so the blue stays with the controls (owner, 2026-10-30).",
+      "tokens": [
+        "--color-on-surface-muted",
+        "--color-surface-container"
+      ]
+    },
+    {
       "id": "switch",
       "name": "Switch",
       "kind": "selection",
@@ -402,14 +501,15 @@
       "id": "select",
       "name": "Select",
       "kind": "selection",
-      "summary": "A native select with its own chevron: a person picks one value from a list that is too long to show.",
+      "summary": "A native select with its own chevron: a person picks one value from a list that is too long to show. On a phone its list is the standard bottom sheet, with the field's label as the title.",
       "classes": [
         "select-outlined",
         "select-tonal"
       ],
       "files": [
         "design-system/Select.astro",
-        "design-system/select.ts"
+        "design-system/select.ts",
+        "design-system/selectSheet.ts"
       ],
       "when": [
         "A person picks one value from a list of five or more, or of names that are too long for a row of chips",
@@ -454,16 +554,11 @@
         "--color-on-accent-container",
         "--color-on-surface",
         "--color-on-surface-muted",
-        "--color-scrim",
         "--color-surface-container",
         "--color-surface-overlay",
         "--field-chevron-gap",
-        "--layout-column",
         "--row-radius",
         "--shadow-popover",
-        "--sheet-bg",
-        "--sheet-radius",
-        "--sheet-shadow",
         "--size-icon",
         "--size-icon-sm",
         "--size-touch"
@@ -520,6 +615,7 @@
       ],
       "usage": "A popover lives in the top layer, so it is placed against the viewport, not the row. Where anchor positioning exists it hangs under the button, right edges level; elsewhere heroMenu.ts writes --menu-top and --menu-right from the button's box when it opens.",
       "tokens": [
+        "--color-accent",
         "--color-danger",
         "--color-on-surface",
         "--color-on-surface-disabled",
@@ -531,6 +627,7 @@
         "--sheet-radius",
         "--sheet-shadow",
         "--size-icon",
+        "--size-option",
         "--size-touch"
       ]
     },
@@ -598,7 +695,6 @@
       "summary": "A small centred box with a heading and a row of buttons: one question, one tap.",
       "classes": [
         "dialog-panel",
-        "dialog-title",
         "dialog-body",
         "dialog-actions",
         "dialog-actions-stacked"
@@ -822,7 +918,7 @@
         "icon-btn-end"
       ],
       "files": [
-        "components/Icon.astro"
+        "design-system/Icon.astro"
       ],
       "when": [
         "close a sheet or dialog",
@@ -1556,42 +1652,6 @@
       "usage": "A link inside a line of small text (a settings hint): the words stay inline, the touch target is 44px tall through a hit layer centred on the line (D189 sweep, layout.spec.ts). Usage: class=\"text-link\".",
       "tokens": [
         "--size-touch"
-      ]
-    },
-    {
-      "id": "status-dot",
-      "name": "Status dot",
-      "kind": "feedback",
-      "summary": "A dot that judges a reading good, worth a look or wrong.",
-      "classes": [
-        "status-dot"
-      ],
-      "when": [
-        "a health reading",
-        "a status next to a label, always with a word"
-      ],
-      "not": [
-        {
-          "when": "a message the user must act on",
-          "use": "banner"
-        }
-      ],
-      "keywords": [
-        "health",
-        "indicator",
-        "traffic light"
-      ],
-      "rules": [
-        "Color is information: a word or a glyph always says it too."
-      ],
-      "styles": [
-        "primitives.css"
-      ],
-      "usage": "A status dot: a reading judged good, worth a look or wrong, in the success, warning and danger tones the banners use (banner.css). The words beside it always say the same, so colour is never the only signal; a reading with no judgement (`none`, or no tone) draws no dot and takes no room. 8px on the grid, round.",
-      "tokens": [
-        "--color-danger",
-        "--color-success",
-        "--color-warning"
       ]
     },
     {
@@ -3774,6 +3834,13 @@
       "tier": "semantic",
       "type": "dimension",
       "light": "3rem"
+    },
+    {
+      "name": "--size-option",
+      "tier": "semantic",
+      "type": "dimension",
+      "light": "3rem",
+      "role": "A row in a list that opens as a bottom sheet on a phone: a select's, a picker's, a menu's. One height, so they read as one sheet."
     },
     {
       "name": "--size-icon-sm",

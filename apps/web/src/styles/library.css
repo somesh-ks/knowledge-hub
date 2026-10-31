@@ -344,7 +344,7 @@
     padding-inline: var(--space-4);
   }
 
-  .library-filters > .filter-chip > .icon {
+  .library-filters > .filter-chip > .icon-glyph {
     inset-inline-start: var(--space-1);
   }
 }
@@ -557,7 +557,7 @@
     height: var(--size-icon-lg);
   }
 
-  [data-library][data-view="list"] .cover-play .icon {
+  [data-library][data-view="list"] .cover-play .icon-glyph {
     width: var(--size-icon);
     height: var(--size-icon);
   }
@@ -737,7 +737,7 @@ html[data-library-page="empty"] {
   color: var(--color-on-surface-muted);
 }
 
-.card-more .icon {
+.card-more .icon-glyph {
   width: 1.25rem;
   height: 1.25rem;
 }
@@ -822,7 +822,7 @@ html[data-library-page="empty"] {
   color: var(--color-accent);
 }
 
-.card-downloaded .icon {
+.card-downloaded .icon-glyph {
   width: 1rem;
   height: 1rem;
 }
