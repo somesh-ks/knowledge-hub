@@ -47,6 +47,15 @@
   margin-block-end: 0;
 }
 
+/* A title with an action at its end (SettingsHead's "end" slot, Downloads' ⋮): one line, the action
+   centred on the title. */
+.settings-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
 /* A quiet row: its label in the muted colour, the row where it is (D100: a control that cannot act
    stays on its row, dimmed and named). With Sounds off, Volume is one; a row says `data-quiet` for
    the rest (the Structure's frames, and a block whose topics are off, 2026-10-25).

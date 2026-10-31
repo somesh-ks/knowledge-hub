@@ -475,6 +475,13 @@ test("Settings > Downloads lists what was downloaded and removes it only after a
   await dialog.getByRole("button", { name: "Cancel" }).click();
   await expect(row(page, AUDIO_ID)).toBeVisible();
 
+  // Delete all, from the ⋮ at the title, asks first too.
+  await page.getByRole("button", { name: "More actions", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Delete all downloads" }).click();
+  const all = page.getByRole("dialog", { name: "Delete all downloads?" });
+  await all.getByRole("button", { name: "Cancel" }).click();
+  await expect(row(page, AUDIO_ID)).toBeVisible();
+
   await openRowMenu(page, row(page, AUDIO_ID));
   await row(page, AUDIO_ID).getByRole("menuitem", { name: "Remove download" }).click();
   await dialog.getByRole("button", { name: "Remove" }).click();

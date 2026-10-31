@@ -9,6 +9,8 @@ import Dialog from "../../design-system/Dialog.astro";
 import DialogActions from "../../design-system/DialogActions.astro";
 import DialogTitle from "../../design-system/DialogTitle.astro";
 import Icon from "../../design-system/Icon.astro";
+import Menu from "../../design-system/Menu.astro";
+import MenuItem from "../../design-system/MenuItem.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { libraryItems } from "../../lib/libraryCard";
 import { getSite } from "../../lib/site";
@@ -40,7 +42,26 @@ const items = libraryItems(entries, episodes);
          the Library's hover Play and its menu, cut to Add to queue, Share and Remove download; both
          Remove and Delete all ask first. */}
     <div class="manage downloads" data-downloads>
-      <SettingsHead title="Downloads" note="Saved on this device to listen offline." />
+      <SettingsHead title="Downloads" note="Saved on this device to listen offline.">
+        {/* At the title's end, once there is something to delete: Delete all, which asks first. */}
+        <div class="downloads-menu" slot="end" data-section hidden>
+          <button
+            class="icon-btn icon-btn-end press"
+            type="button"
+            aria-label="More actions"
+            aria-haspopup="menu"
+            popovertarget="downloads-menu"
+            data-hero-more
+          >
+            <Icon name="moreVert" />
+          </button>
+          <Menu id="downloads-menu" title="Downloads">
+            <MenuItem tone="danger" data-delete-all>
+              <Icon name="trash" />Delete all downloads
+            </MenuItem>
+          </Menu>
+        </div>
+      </SettingsHead>
       <noscript>
         <p class="manage-note">The list of downloads needs JavaScript, which is turned off in this browser.</p>
       </noscript>
@@ -82,18 +103,6 @@ const items = libraryItems(entries, episodes);
           </ul>
         </div>
         <p class="manage-quiet" role="status" data-nomatch hidden>No download matches.</p>
-      </section>
-
-      <section data-section hidden>
-        <div class="rows card-group">
-          <div class="settings-row">
-            <div class="settings-text">
-              <span class="settings-label">Delete all downloads</span>
-              <span class="settings-hint">Frees their space on this device</span>
-            </div>
-            <Button variant="text" tone="danger" data-delete-all>Delete all</Button>
-          </div>
-        </div>
       </section>
 
       <div class="blocked-empty empty" data-empty hidden>

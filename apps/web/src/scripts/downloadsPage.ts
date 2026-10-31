@@ -109,7 +109,8 @@ function mount(root: HTMLElement): void {
     },
     true,
   );
-  one("[data-delete-all]").addEventListener("click", () =>
+  one("[data-delete-all]").addEventListener("click", (event) => {
+    (event.currentTarget as HTMLElement).closest<HTMLElement>("[popover]")?.hidePopover();
     open({
       title: "Delete all downloads?",
       lede: "They are removed from this device only. You can download them again.",
@@ -118,8 +119,8 @@ function mount(root: HTMLElement): void {
         for (const item of await readDownloads()) await removeDownload(item.id);
       },
       done: "All downloads deleted",
-    }),
-  );
+    });
+  });
   confirm.querySelector("[data-dialog-close]")?.addEventListener("click", () => confirm.close());
   one("[data-confirm-go]").addEventListener("click", () => {
     const pending = ask;
@@ -140,10 +141,10 @@ function mount(root: HTMLElement): void {
   };
   whenIdle(loadMenus);
   root.addEventListener("pointerdown", (event) => {
-    if ((event.target as Element).closest("[data-library-menu]")) loadMenus();
+    if ((event.target as Element).closest("[data-library-menu], [data-hero-more]")) loadMenus();
   });
   root.addEventListener("focusin", (event) => {
-    if ((event.target as Element).closest("[data-library-menu]")) loadMenus();
+    if ((event.target as Element).closest("[data-library-menu], [data-hero-more]")) loadMenus();
   });
   new MutationObserver(draw).observe(grid, {
     attributes: true,
