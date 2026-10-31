@@ -1,0 +1,9 @@
+# Settings saves that survive a reload (2026-10-30)
+
+The owner: settings changes are slow and a reload shows the old state. The Experiments page had this (#487); this thread audited the rest.
+
+- Audit: every reader Settings control (Daily, Weekly, sources, categories, preferences, voice, structure, blocked outlets) already moves at once and keeps pending edits; Theme, Sounds and the Library view are device-only. The Experiments switch waited for the store (#487). Story votes and Stop hearing from send alone.
+- Found with a real slow server (3 s write): a reload while the request was out showed the old value, and a second reload after the write landed showed it again under "Settings changed on another device". Chromium rejects the promise of a request still out at unload, before pagehide handlers run; the save read it as a failure, took its change back and never marked it pending. `keepalive` kept the request, not the promise.
+- Fix (D259): `pageLeaving.ts` (`endedByLeaving`, a 50 ms wait for pagehide) tells a cut request from a failed one; `flush` marks its ops pending before it sends; the store read treats an answer as the device's own while a pending change exists; `changed()` loads the sender at once; Stop hearing from stays in its outbox when its request is cut (it was dropped with an error toast).
+- Test: `slowStore.spec.ts` runs a real server whose write waits on a gate (`staticServer.mjs` takes an `api` hook); red on `main` at the first reload, green here.
+- Experiments (#487) keeps its own tab copy (sessionStorage) and now asks the same `endedByLeaving` instead of its own pagehide flag (a flag registered after another pagehide listener is set too late, see above). `slowStore.spec.ts` covers both pages. Votes were left as they were: they resend, and a vote is idempotent.

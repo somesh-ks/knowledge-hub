@@ -35,6 +35,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Alexandria pilot (D200). closed when: a run logs `anthropic-blog` fetched via `alexandria:anthropic-com`.
 - Owner's eye: bar centring (over 1px), centred column and label gap (D229), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off.
 - Live content (plan 20): an open page elsewhere does not refresh within 60 s; `smokeLive.mjs --apply` never ran on production; offline copies of a removed episode are unaudited. closed when: checked.
+- Reload mid-write (D259). closed when: a phone flip, then reload, holds.
 - Settings paint the stored copy at once, the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change waits up to 2.5 s for the store. closed when: the owner signs off on a phone.
 - Sources design (D124) live: production asks Jev for a source's format only after `secrets:push`; no run used a mix or cap. closed when: a production source's format comes from Jev and a digest follows a mix change.
 - YouTube text: Firecrawl and Gemini transcripts answered live; no full run used either. closed when: a digest has a YouTube finalist with `extract_method` captions or transcription.
@@ -52,7 +53,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - A pending `config.yml` run can be cancelled by GitHub after a 202 (shared `singularity` group); production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 10-14. closed when: a config save from the site produces a commit.
 - A 15-minute episode falls short; the app does not say what a window holds. closed when: one airs within 10% of 15 minutes, or the form shows the window.
 - Costs (D137), Firecrawl's week (D166, D222): `config/prices.json` is unconfirmed. closed when: the owner confirms the prices, /analytics shows a real run and a week's runs are all in the ledger.
-- 35 older items parked: [five](history/2026-10-21-owner-backlog-in-parallel.md#parked), [twelve](history/2026-10-27-session-close.md#parked), [seven](history/2026-10-27-generation-health.md#parked), [eleven](history/2026-10-28-generations-list.md#parked). closed when: each closes.
+- 35 older items parked in history (`#parked` of the 10-21, 10-27 and 10-28 notes). closed when: each closes.
 
 ## Known risks
 

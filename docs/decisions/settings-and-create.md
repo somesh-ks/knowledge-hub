@@ -330,3 +330,12 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Rejected: switching silently; a per-device zone (the engine has one clock); every IANA zone (D100).
 - Amends: D100.
 
+
+## D259: a control moves first, its change is kept before the request, and a request cut by a reload is not a failure
+
+- Date: 2026-10-30 (the owner: settings saves are slow and a reload shows the old state, "a big problem in this app").
+- Decision: one rule for every control that writes to the store. (1) The control moves when pressed and never waits on the store. (2) The change is kept on the device, marked pending, before its request goes (`remember` in `managePageSave.ts`; the Experiments page keeps its own in the tab, `pendingFlags.ts`), and the page opened next lays it over what the store answers until the store holds it or 90 s pass. (3) The request carries `keepalive`. (4) A request that ends with no answer while the page is leaving (`scripts/pageLeaving.ts`) is unknown, not failed: the change stays kept, no toast, no Retry, a stopped outlet stays in the outbox. (5) A store answer that arrives while a pending change of this device exists is read as its own, so no "Settings changed on another device" toast follows an edit made here.
+- Why: against a real server that takes 3 s to write, a source switched off and the page reloaded showed it on again, and a second reload after the write landed showed it on again under a "changed on another device" toast. Chromium rejects the page's promise for a request still out when the document unloads (the request itself goes on), before the page's pagehide handlers run, so the save read the rejection as a failure and took the change back; and the page that sent it never heard the store take it, so the device's copy of the store stayed a write behind. The reload overtook the write, not a slow control: every Settings control already moved at once.
+- Rejected: waiting for the store before moving (the owner's complaint); Playwright routes as the test double (a route fails a request still out when the page reloads, which hides the rejection); a longer pending window (a write that never landed would stay on screen); a shared UI component (nothing here is drawn).
+- Revisit if: the store takes more than 90 s to write, or Safari and Firefox reject a request after their pagehide (the 50 ms wait in `endedByLeaving` would then be too short).
+- Amends: D79, D91, D115, D249.
