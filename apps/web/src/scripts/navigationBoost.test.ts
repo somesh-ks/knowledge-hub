@@ -137,7 +137,7 @@ describe("immediateTransition", () => {
       await Promise.resolve();
       expect(order).toEqual(["update", "done"]);
       // The marks that draw the page's own fade come off on `finished`, so it must outlast the fade.
-      await vi.advanceTimersByTimeAsync(150);
+      await vi.advanceTimersByTimeAsync(300);
       expect(order).toEqual(["update", "done"]);
       await vi.advanceTimersByTimeAsync(100);
       expect(order).toEqual(["update", "done", "finished"]);

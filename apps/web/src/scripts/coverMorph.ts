@@ -151,9 +151,6 @@ export function installCoverMorph(): void {
     if (!onScreen(last)) return;
 
     const { dx, dy, scale } = flight(flightOf.first, last);
-    const style = getComputedStyle(document.documentElement);
-    const duration = milliseconds(style.getPropertyValue("--duration-enter"));
-    const easing = style.getPropertyValue("--ease-out").trim() || "ease-out";
     const endRadius = cornerPx(target, last.width);
 
     const { clone } = flightOf;
@@ -163,6 +160,10 @@ export function installCoverMorph(): void {
     clone.style.width = `${last.width}px`;
     target.setAttribute("data-morphing", "");
     document.body.append(clone);
+    // The flight's time and curve are the clone's own (cover.css), so one rule sets them.
+    const timing = getComputedStyle(clone);
+    const duration = milliseconds(timing.transitionDuration);
+    const easing = timing.transitionTimingFunction || "ease-out";
 
     // The radius is a length on the box, which the scale carries with it: its start is the starting
     // card's radius seen through the scale, so the corner is the same size on screen.
