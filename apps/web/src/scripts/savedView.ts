@@ -549,14 +549,24 @@ function groupEmoji(root: HTMLElement, home: string, topic: Upsert): boolean {
       id: root.dataset.page ?? home,
       name: document.getElementById("page-title")?.textContent ?? "",
     });
-  if (pick.textContent === emoji) return shown;
-  pick.textContent = emoji;
+  // The next pick sends the home topic as it is stored now, not as the build had it.
   const base = JSON.parse(pick.dataset.topicBase ?? "{}");
   const { emoji: _, ...rest } = base.topic ?? {};
+  const { name, description, enabled, keywords, section_id } = topic;
   pick.dataset.topicBase = JSON.stringify({
     ...base,
-    topic: topic.emoji ? { ...rest, emoji: topic.emoji } : rest,
+    topic: {
+      ...rest,
+      name,
+      description,
+      enabled,
+      keywords,
+      section_id,
+      ...(topic.emoji ? { emoji: topic.emoji } : {}),
+    },
   });
+  if (pick.textContent === emoji) return shown;
+  pick.textContent = emoji;
   return true;
 }
 
