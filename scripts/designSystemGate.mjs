@@ -59,6 +59,7 @@ const MAY_CHANGE = [
   "apps/web/src/components/Icon.astro",
   "docs/learnings.md",
   "scripts/designSystemGate",
+  "scripts/buildTokens",
   ".github/workflows/design-system.yml",
   ".claude/skills/feature/",
   "AGENTS.md",

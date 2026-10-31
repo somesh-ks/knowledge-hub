@@ -3245,6 +3245,47 @@
       "light": "40"
     },
     {
+      "name": "haptic-pattern-none",
+      "tier": "primitive",
+      "type": "singularity-haptic",
+      "light": "android nothing ms; iphone 0 ticks"
+    },
+    {
+      "name": "haptic-pattern-tick-light",
+      "tier": "primitive",
+      "type": "singularity-haptic",
+      "light": "android 6 ms; iphone 1 tick",
+      "role": "The lightest tick: a detent, a toggle."
+    },
+    {
+      "name": "haptic-pattern-tick",
+      "tier": "primitive",
+      "type": "singularity-haptic",
+      "light": "android 10 ms; iphone 1 tick",
+      "role": "One firm tick: a sheet or menu opening."
+    },
+    {
+      "name": "haptic-pattern-double",
+      "tier": "primitive",
+      "type": "singularity-haptic",
+      "light": "android 10 60 10 ms; iphone 2 ticks, 90 ms apart",
+      "role": "Two beats: something worked."
+    },
+    {
+      "name": "haptic-pattern-triple",
+      "tier": "primitive",
+      "type": "singularity-haptic",
+      "light": "android 14 50 14 50 14 ms; iphone 3 ticks, 70 ms apart",
+      "role": "Three beats: something did not work."
+    },
+    {
+      "name": "haptic-pattern-celebrate",
+      "tier": "primitive",
+      "type": "singularity-haptic",
+      "light": "android 12 50 12 50 28 ms; iphone 3 ticks, 80 ms apart",
+      "role": "Three rising beats: a podcast is ready to play."
+    },
+    {
       "name": "--color-surface",
       "tier": "semantic",
       "type": "color",
@@ -3934,6 +3975,76 @@
       "tier": "semantic",
       "type": "typography",
       "light": "family: var(--font-ui); size: var(--font-size-caption); weight: var(--font-weight-regular); tracking: var(--font-tracking-caption); leading: var(--font-leading-caption)"
+    },
+    {
+      "name": "haptic-navigate",
+      "tier": "semantic",
+      "type": "singularity-haptic",
+      "light": "pattern none",
+      "role": "A move between pages: quiet, the page is the answer."
+    },
+    {
+      "name": "haptic-tap",
+      "tier": "semantic",
+      "type": "singularity-haptic",
+      "light": "pattern none",
+      "role": "A plain press: quiet, the press layer is the answer."
+    },
+    {
+      "name": "haptic-select",
+      "tier": "semantic",
+      "type": "singularity-haptic",
+      "light": "pattern tick-light",
+      "role": "A switch or a choice changing."
+    },
+    {
+      "name": "haptic-detent",
+      "tier": "semantic",
+      "type": "singularity-haptic",
+      "light": "pattern tick-light",
+      "role": "A step of a scrubber or a wheel."
+    },
+    {
+      "name": "haptic-open",
+      "tier": "semantic",
+      "type": "singularity-haptic",
+      "light": "pattern tick",
+      "role": "A sheet or menu opening, and a card held."
+    },
+    {
+      "name": "haptic-close",
+      "tier": "semantic",
+      "type": "singularity-haptic",
+      "light": "pattern none",
+      "role": "A sheet or menu closing: quiet, opening was the cue."
+    },
+    {
+      "name": "haptic-start",
+      "tier": "semantic",
+      "type": "singularity-haptic",
+      "light": "pattern tick",
+      "role": "A long run beginning: Generate, Catch up."
+    },
+    {
+      "name": "haptic-success",
+      "tier": "semantic",
+      "type": "singularity-haptic",
+      "light": "pattern double",
+      "role": "Saved, copied, done."
+    },
+    {
+      "name": "haptic-error",
+      "tier": "semantic",
+      "type": "singularity-haptic",
+      "light": "pattern triple",
+      "role": "A refusal or a failure."
+    },
+    {
+      "name": "haptic-ready",
+      "tier": "semantic",
+      "type": "singularity-haptic",
+      "light": "pattern celebrate",
+      "role": "A podcast is ready to play."
     },
     {
       "name": "--cover-radius-thumb",

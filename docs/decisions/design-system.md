@@ -438,3 +438,14 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Context changed: this step is the mechanism only. No style exists yet and `tokens.css` is unchanged; the Expressive tokens, the role tokens they need (the raw radius uses in component CSS move to roles first) and the Appearance control follow as design-system PRs.
 - Revisit if: a style needs to change a color ramp (the rule against primitives and the cover, ambient-light and `theme-color` observers need a design first), or two styles want one structural rule that tokens cannot express.
 - Amends: D125.
+
+## D273: haptics are tokens, fired through the sound cues, with their own On or Off
+
+- Date: 2026-10-31 (the owner: "a solid vibration token system as part of the design system, and part of the settings"; On or Off in a dropdown; a "tada" when a podcast is ready; Generate start ticks, close does not; build for Android and iPhone and he checks the iPhone).
+- Decision: `tokens/tokens.json` holds `primitive.haptic` (patterns: Android milliseconds, iPhone ticks and the gap between them) and `semantic.haptic` (intents: navigate, tap, select, detent, open, close, start, success, error, ready, each naming a pattern). `buildTokens` writes them to `design-system/hapticTokens.ts`, not to CSS, and fails the build for a pattern that is silent on one phone only, an intent that names no pattern, or a pattern over 250 ms. `design-system/haptics.ts` is the one place `navigator.vibrate` or the iPhone's tick (a script click on the label of a hidden `switch` checkbox, Safari 18) is called. A call site names an intent. The app fires them from the sound cues (a cue may carry an intent), and Settings, Sounds and haptics, holds an On or Off select that is hidden where neither mechanism exists.
+- Why: one vocabulary for touch, as for sound; Android gets real patterns, an iPhone one tick at best; a raw millisecond in a call site cannot be restyled or silenced.
+- Cost: the iPhone tick is undocumented WebKit behavior and may fire only inside a touch (a hold's buzz may come at the lift or not at all); it is unverified on a device until the owner tries it. If it fails in the installed app, the setting is hidden on an iPhone and the iPhone adapter goes.
+- Rejected: a separate haptics path per control; raw milliseconds in call sites; a "System" option (the web cannot read the phone's haptics setting); a switch or segmented control (Settings choices are the shared select).
+- Amends: D52 (which rejected "a haptic on press" because it was Android only), ledger item 5 (haptics gated by the Sounds setting).
+- Revisit if: the iPhone tick is seen not to fire, or Safari ships a haptics API (replace the adapter only).
+

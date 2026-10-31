@@ -159,7 +159,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D136 | One model orchestrator: every call through `config/models.json` (Jev, Claude, Gemini; never Opus), with fallback chains | active; replaces D46, D58, D113, D130 |
 | D137 | A cost ledger records every paid call (measured where the provider reports usage), split into shared and per-user costs, shown by `dispatch costs` and /analytics | active |
 | D138 | Alexandria enriches thin text, never replaces it | active |
-| D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, pushes retry a lost ref-lock, the site reports its errors | active |
+| D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, the site reports its errors | active |
 | D140 | Design system enforced in three layers (`design-check` hook, e2e, `design-audit` agent); icons only from Phosphor | active; amends D131 |
 | D141 | The first-load budget is 130 KB | active; replaces D112's 109 KB |
 | D142 | A new topic is a row at once and opens a page before the build; one save carries Jev's emoji; a removal leaves the page at once with Undo | active; amends D79 |
@@ -282,5 +282,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D267 | Card, Row | amends D243 |
 | D268 | Styles: token overrides | amends D125 |
 | D270 | Experiments: a change settles on a read, not its write's answer | amends D249, D259 |
+| D273 | Haptic tokens | amends D52 |
 
 ---
