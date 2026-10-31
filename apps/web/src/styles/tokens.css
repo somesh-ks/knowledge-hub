@@ -588,7 +588,7 @@
   --card-content-radius: 1rem;
   --chip-radius-selected: var(--radius-md);
   --cta-radius-pressed: var(--radius-lg);
-  --nav-indicator-radius-current: var(--radius-lg);
+  --nav-indicator-radius-current: var(--radius-md);
   --scrubber-track: 0.5rem;
   --row-radius: var(--radius-2xl);
 }

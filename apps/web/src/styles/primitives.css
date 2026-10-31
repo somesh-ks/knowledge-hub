@@ -804,7 +804,9 @@
   padding-inline: calc(var(--space-4) + var(--space-1));
   /* No outline: the transparent border keeps the size where forced colours draw one. */
   border: var(--stroke-hairline) solid transparent;
-  border-radius: var(--chip-radius);
+  /* A finite pill (half the height), so a change of shape interpolates from the pill instead of
+     holding 9999px until the end. */
+  border-radius: min(var(--chip-radius), calc(var(--chip-height) / 2));
   background: var(--color-surface-container);
   color: var(--color-on-surface);
   font-size: var(--font-size-label);
@@ -816,7 +818,7 @@
     transform var(--duration-press-out) var(--ease-out),
     background-color var(--duration-hover) var(--ease-hover),
     color var(--duration-hover) var(--ease-hover),
-    border-radius var(--duration-enter) var(--ease-out);
+    border-radius var(--duration-spring-spatial-default) var(--ease-spring-spatial-default);
 }
 
 /* A link inside a line of small text (a settings hint): the words stay inline, the touch target is
@@ -876,7 +878,7 @@
 
 .filter-chip:has(input:checked) {
   /* The ticked corners are a role token: the pill, unless a style makes a selection change shape. */
-  border-radius: var(--chip-radius-selected);
+  border-radius: min(var(--chip-radius-selected), calc(var(--chip-height) / 2));
   background: var(--color-accent-container);
   color: var(--color-on-accent-container);
 }
