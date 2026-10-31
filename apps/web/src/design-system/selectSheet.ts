@@ -14,6 +14,8 @@ import { pullToDismiss } from "../scripts/pullDismiss";
 import { menuBodyClass, menuItemClass, menuListClass } from "./menu";
 
 const PHONE = "(width < 40rem)";
+/** How far a finger may travel and still be a tap, in px. */
+const TAP_SLOP = 10;
 const KEYS = new Set(["Enter", " ", "F4"]);
 
 let installed = false;
@@ -45,6 +47,10 @@ const listOf = (wrapper: HTMLElement): HTMLElement | null => {
   return next instanceof HTMLElement && next.hasAttribute("data-select-sheet") ? next : null;
 };
 
+/** An option is off when it is, or the group it sits in is. */
+const isDisabled = (option: HTMLOptionElement): boolean =>
+  option.disabled || Boolean(option.closest("optgroup")?.disabled);
+
 function rowsOf(list: HTMLElement): HTMLElement[] {
   return Array.from(list.querySelectorAll<HTMLElement>('[role="option"]:not([aria-disabled])'));
 }
@@ -64,12 +70,14 @@ function fill(list: HTMLElement, select: HTMLSelectElement, id: string): void {
   const body = list.querySelector<HTMLElement>('[role="listbox"]');
   if (!body) return;
   body.setAttribute("aria-label", title);
+  // A row is its option's place in the list, not its value: two options may share a value.
   body.innerHTML = Array.from(select.options)
-    .filter((option) => !option.hidden)
+    .map((option, index) => ({ option, index }))
+    .filter(({ option }) => !option.hidden)
     .map(
-      (option) =>
-        `<button class="${menuItemClass()}" type="button" role="option" data-value="${escapeHtml(option.value)}"` +
-        `${option.selected ? ' aria-selected="true"' : ""}${option.disabled ? ' aria-disabled="true"' : ""}>${escapeHtml(option.text)}</button>`,
+      ({ option, index }) =>
+        `<button class="${menuItemClass()}" type="button" role="option" data-index="${index}"` +
+        `${option.selected ? ' aria-selected="true"' : ""}${isDisabled(option) ? ' aria-disabled="true"' : ""}>${escapeHtml(option.text)}</button>`,
     )
     .join("");
 }
@@ -95,8 +103,9 @@ function open(select: HTMLSelectElement, byKey: boolean): void {
       }
       const row = target.closest<HTMLElement>('[role="option"]');
       if (!row || row.hasAttribute("aria-disabled")) return;
-      const changed = select.value !== row.dataset.value;
-      select.value = row.dataset.value ?? "";
+      const index = Number(row.dataset.index);
+      const changed = select.selectedIndex !== index;
+      select.selectedIndex = index;
       sheet.hidePopover();
       if (changed) {
         select.dispatchEvent(new Event("input", { bubbles: true }));
@@ -127,7 +136,10 @@ function open(select: HTMLSelectElement, byKey: boolean): void {
     });
     wrapper.after(sheet);
   }
+  if (list.matches(":popover-open")) return;
   fill(list, select, list.id);
+  // The field holds focus first, so the popover returns it there when it closes.
+  select.focus({ preventScroll: true });
   list.showPopover();
   // Focus moves in for a keyboard and a screen reader; a finger's ring is not drawn (focusVisible).
   const row = list.querySelector<HTMLElement>('[aria-selected="true"]') ?? rowsOf(list)[0];
@@ -140,8 +152,33 @@ export function installSelectSheet(): void {
   if (installed) return;
   installed = true;
 
-  // The browser opens a select on the press (a pointer) or on the tap that follows it (a finger):
-  // both are stopped, and the sheet opens on the click.
+  // The browser opens a select on the press (a pointer) or on the tap that follows it (a finger).
+  // A pointer's press is stopped here. A finger's tap is stopped at the touch's end, which also
+  // withholds the click that would follow, so the sheet opens from it; a touch that moved is a scroll
+  // and is left alone. A click that comes from neither (an assistive tool) opens the sheet too.
+  let touchAt: { x: number; y: number } | null = null;
+  document.addEventListener(
+    "touchstart",
+    (event) => {
+      const touch = event.touches.length === 1 ? event.touches[0] : undefined;
+      touchAt = touch ? { x: touch.clientX, y: touch.clientY } : null;
+    },
+    { capture: true, passive: true },
+  );
+  document.addEventListener(
+    "touchend",
+    (event) => {
+      const start = touchAt;
+      touchAt = null;
+      const touch = event.changedTouches[0];
+      const select = sheetFor(event.target);
+      if (!start || !touch || !select || !event.cancelable) return;
+      if (Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > TAP_SLOP) return;
+      event.preventDefault();
+      open(select, false);
+    },
+    { capture: true, passive: false },
+  );
   document.addEventListener(
     "mousedown",
     (event) => {
