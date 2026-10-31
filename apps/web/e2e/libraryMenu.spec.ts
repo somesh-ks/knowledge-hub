@@ -374,19 +374,46 @@ test("a long press on a card opens its menu and leaves the card unopened", async
   // The click that ends a hold lands on the card's link: without a guard the page opens under the sheet.
   await page.goto("/library");
   await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  const menu = row(page, AUDIO_ID).locator(".menu-list");
+  const frames = () =>
+    page.evaluate(
+      () =>
+        new Promise<void>((done) => {
+          let count = 0;
+          const tick = () => (++count < 12 ? requestAnimationFrame(tick) : done());
+          requestAnimationFrame(tick);
+        }),
+    );
+  // Counts closes, because the sheet opens again after one near the lift (below) and would hide them.
+  await page.evaluate(() => {
+    const w = window as unknown as { closes: number };
+    w.closes = 0;
+    document.addEventListener(
+      "toggle",
+      (event) => {
+        if ((event as ToggleEvent).newState === "closed") w.closes += 1;
+      },
+      true,
+    );
+  });
   const release = await holdFinger(page, row(page, AUDIO_ID).locator(".card-title"));
-  await expect(row(page, AUDIO_ID).locator(".menu-list")).toBeVisible();
+  await expect(menu).toBeVisible();
   await release();
   // The lift is followed by mouse events within a few frames: the press would take focus from the
   // sheet, which closes it, and the click would open the card.
-  await page.evaluate(
-    () =>
-      new Promise<void>((done) => {
-        let frames = 0;
-        const tick = () => (++frames < 12 ? requestAnimationFrame(tick) : done());
-        requestAnimationFrame(tick);
-      }),
-  );
-  await expect(row(page, AUDIO_ID).locator(".menu-list")).toBeVisible();
+  await frames();
+  await expect(menu).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { closes: number }).closes)).toBe(0);
   expect(new URL(page.url()).pathname).toBe("/library");
+
+  // iPhone Safari closed the sheet at the lift (2026-10-31). A close just after a lift is the
+  // hold's own, so the sheet opens again; Chromium never closes it, so the close is made here.
+  await page.reload();
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  const again = await holdFinger(page, row(page, AUDIO_ID).locator(".card-title"));
+  await expect(menu).toBeVisible();
+  await again();
+  await menu.evaluate((list) => (list as HTMLElement).hidePopover());
+  await frames();
+  expect(await menu.evaluate((list) => list.matches(":popover-open"))).toBe(true);
 });

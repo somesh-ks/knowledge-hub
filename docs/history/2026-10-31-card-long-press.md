@@ -13,3 +13,7 @@ Seven tests opened the menu by clicking the ⋮, which a phone can no longer pre
 ## Left
 
 A real phone, iOS especially: the focus ring on the sheet's first row shows in the CDP harness after a hold.
+
+## After the merge: iPhone closed the sheet
+
+The owner's iPhone showed the sheet for a flash and closed it (19:27, 31 Oct). The pointer capture that keeps the lift from light-dismissing it works in Chromium; why Safari still closed it is unverified (the card's link callout was already off). `cardHold.ts` now opens the sheet again, at most twice, for any close while the finger is down or within 400 ms of the lift; a new touch ends that, so a pick or a tap outside is never undone. The long-press test counts closes (Chromium must have none) and closes the sheet itself near a lift to check the reopen. Left: the owner's phone decides whether the cause is gone; if the sheet still flickers, open it on the lift instead.

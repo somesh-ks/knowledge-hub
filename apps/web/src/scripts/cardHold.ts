@@ -12,6 +12,16 @@ const HOLD_MS = 450;
 /** How far a finger may drift and still be holding, in CSS px. */
 const SLOP = 10;
 
+/**
+ * How long after the lift a close is still the hold's own (ms). iPhone Safari closed the sheet at
+ * the lift (2026-10-31, the owner's phone: "a flash, then it goes away") where the pointer capture
+ * below holds it open in Chromium. The cause there is unverified, so the sheet is opened again once
+ * for any close inside this window: nobody can pick or dismiss in it.
+ */
+const LIFT_GRACE_MS = 400;
+/** A hold opens its sheet again this often, never in a loop. */
+const MAX_REOPENS = 2;
+
 let installed = false;
 
 export function installCardHold(): void {
@@ -22,10 +32,16 @@ export function installCardHold(): void {
   let start: { x: number; y: number; id: number } | null = null;
   /** True from a hold's firing until its finger lifts. */
   let held = false;
+  /** The sheet a hold opened, until its grace after the lift is over. */
+  let opened: HTMLElement | null = null;
+  let graceEnds = 0;
+  let reopens = 0;
 
   const cancel = (): void => {
     clearTimeout(timer);
     start = null;
+    // The finger is up (or the browser took the touch): the grace runs from here.
+    if (opened) graceEnds = performance.now() + LIFT_GRACE_MS;
   };
 
   document.addEventListener(
@@ -33,6 +49,7 @@ export function installCardHold(): void {
     (event) => {
       cancel();
       held = false;
+      opened = null;
       if (event.pointerType !== "touch" || !event.isPrimary || !matchMedia(TOUCH).matches) return;
       const link = (event.target as Element).closest<HTMLElement>(".card-link");
       const list = link
@@ -52,6 +69,9 @@ export function installCardHold(): void {
           ?.focus({ preventScroll: true });
         list.showPopover();
         held = true;
+        opened = list;
+        graceEnds = Number.POSITIVE_INFINITY;
+        reopens = 0;
         // The finger is still down on the card. Lifted over it, it would light-dismiss the sheet the
         // moment it opened (the press began outside any popover). Held by the sheet, the lift ends
         // in the sheet and it stays open.
@@ -84,6 +104,22 @@ export function installCardHold(): void {
     held = false;
     event.preventDefault();
   });
+
+  // A close while the finger is down, or just after it lifts, is not the person's: open it again.
+  document.addEventListener(
+    "toggle",
+    (event) => {
+      const list = opened;
+      if (!list || event.target !== list || (event as ToggleEvent).newState !== "closed") return;
+      if (performance.now() > graceEnds || reopens >= MAX_REOPENS) {
+        opened = null;
+        return;
+      }
+      reopens += 1;
+      if (!list.matches(":popover-open")) list.showPopover();
+    },
+    true,
+  );
 
   // Android reads a hold on a link as its link menu, and iOS and Android as a drag of it: the card
   // has its own menu now. A mouse's right click keeps the browser's (copy link).
