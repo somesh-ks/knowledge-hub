@@ -421,4 +421,18 @@ test("a long press on a card opens its menu and leaves the card unopened", async
   );
   await again();
   await expect.poll(() => menu.evaluate((list) => list.matches(":popover-open"))).toBe(true);
+
+  // A tap outside right after a lift is the person closing it: it closes, stays closed (opened
+  // again, it would jump back up as it left) and reaches nothing underneath.
+  await page.reload();
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  const third = await holdFinger(page, row(page, AUDIO_ID).locator(".card-title"));
+  await expect(menu).toBeVisible();
+  await third();
+  await page.touchscreen.tap(195, 40);
+  await frames();
+  await frames();
+  expect(await menu.evaluate((list) => list.matches(":popover-open"))).toBe(false);
+  // The tap lands on the app bar's Home link once the sheet is gone: it must not follow it.
+  expect(new URL(page.url()).pathname).toBe("/library");
 });
