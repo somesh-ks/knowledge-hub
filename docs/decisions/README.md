@@ -274,9 +274,10 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D256 | Covers drawn on request; failed-run stages in one Blob object | active; amends D173, D251 |
 | D257 | Report routes need sign-in | amends D201, D224 |
 | D258 | Cover version in its path | active; amends D256 |
-| D259 | Kept before sending; a reload-cut request is no failure | amends D79, D91, D115, D249 |
-| D262 | Sheet and Drawer split | active; amends D243 |
-| D263 | Cover version in URL | proposed; amends D258 |
-| D265 | A select's phone list is the standard sheet | active; amends D167 |
+| D259 | Saves kept before sending | amends D79, D91, D115, D249 |
+| D262 | Sheet and Drawer split | amends D243 |
+| D263 | Cover version in URL | amends D258 |
+| D265 | A select's phone list is the sheet | active; amends D167 |
+| D268 | Styles are token overrides (data-style) | active; amends D125 |
 
 ---
