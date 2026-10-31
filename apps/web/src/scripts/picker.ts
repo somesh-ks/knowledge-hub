@@ -84,12 +84,16 @@ const audition = {
   /** Counts the plays started, so a rejection of an earlier one (its source was replaced while it
    *  loaded) cannot clear the control of the sample that replaced it. */
   attempt: 0,
+  /** The voice playing, so a redrawn list can find its new control. */
+  sampleId: "",
+  /** Says a failure to the list that started the sample (its live region). */
+  tell: null as ((text: string) => void) | null,
   mark(control: HTMLElement | null): void {
     this.playing?.setAttribute("aria-pressed", "false");
     this.playing = control;
     control?.setAttribute("aria-pressed", "true");
   },
-  toggle(control: HTMLElement, id: string): void {
+  toggle(control: HTMLElement, id: string, tell: (text: string) => void): void {
     const url = `/api/voice-sample?voice=${encodeURIComponent(id)}`;
     if (!this.audio) {
       const audio = new Audio();
@@ -99,6 +103,7 @@ const audition = {
       audio.addEventListener("error", () => {
         if (this.playing) {
           this.playing.dataset.silent = "";
+          this.tell?.("The sample could not be played");
         }
         this.mark(null);
       });
@@ -117,10 +122,14 @@ const audition = {
       return;
     }
     const attempt = ++this.attempt;
+    this.sampleId = id;
+    this.tell = tell;
     this.audio.src = url;
     this.mark(control);
     void this.audio.play().catch(() => {
-      if (attempt === this.attempt) this.mark(null);
+      if (attempt !== this.attempt) return;
+      this.tell?.("The sample could not be played");
+      this.mark(null);
     });
   },
   stop(): void {
@@ -279,7 +288,9 @@ function mountPicker(select: HTMLSelectElement): void {
       return;
     }
     const was = play.getAttribute("aria-pressed") === "true";
-    audition.toggle(play, play.dataset.sample);
+    audition.toggle(play, play.dataset.sample, (text) => {
+      count.textContent = text;
+    });
     count.textContent = `${was ? "Stopped" : "Playing"} ${name ?? "the sample"}`;
   };
 
@@ -316,6 +327,15 @@ function mountPicker(select: HTMLSelectElement): void {
         return item;
       }),
     );
+    // A search redraws the rows: the playing voice keeps its pressed control if it is still listed,
+    // and stops if it is not, so no sample plays on with nothing to stop it.
+    if (audition.playing && !audition.playing.isConnected) {
+      const again = list.querySelector<HTMLElement>(
+        `.picker-play[data-sample="${CSS.escape(audition.sampleId)}"]`,
+      );
+      if (again) audition.mark(again);
+      else audition.stop();
+    }
     if (shown.length === 0) list.append(element("p", "picker-empty", pickerNoMatch(query, noun)));
     count.textContent = pickerCount(shown.length, noun);
     if (shown.some((choice) => choice.title !== "")) {
