@@ -81,6 +81,9 @@ const audition = {
   audio: undefined as HTMLAudioElement | undefined,
   /** The control whose sample is playing: it shows pause until the sample ends or stops. */
   playing: null as HTMLElement | null,
+  /** Counts the plays started, so a rejection of an earlier one (its source was replaced while it
+   *  loaded) cannot clear the control of the sample that replaced it. */
+  attempt: 0,
   mark(control: HTMLElement | null): void {
     this.playing?.setAttribute("aria-pressed", "false");
     this.playing = control;
@@ -110,9 +113,12 @@ const audition = {
       this.audio.pause();
       return;
     }
+    const attempt = ++this.attempt;
     this.audio.src = url;
     this.mark(control);
-    void this.audio.play().catch(() => this.mark(null));
+    void this.audio.play().catch(() => {
+      if (attempt === this.attempt) this.mark(null);
+    });
   },
   stop(): void {
     this.audio?.pause();
