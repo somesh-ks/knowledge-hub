@@ -1,6 +1,6 @@
 # Decisions
 
-Each entry records what was decided, why, and what was rejected. Add a new entry at the end of the file below that fits it, with the next number, and a row to the Index. Do not rewrite an old entry: if a decision changes, add a new entry that supersedes it and set the old status to "Superseded by Dn".
+Each entry records what was decided, why, and what was rejected. Add a new entry at the end of the file that fits it, with the next number, and a row to the Index. Do not rewrite an old entry: if a decision changes, add a new entry that supersedes it and set the old status to "Superseded by Dn".
 
 From D124 on, an entry that supersedes another adds `- Context changed:` (one sentence: what made the old decision wrong), and an entry whose reason can expire (a provider, a price, a budget, an unmeasured guess) adds `- Revisit if:` (the evidence that would reopen it). Current behaviour lives in [specs/](../specs/README.md).
 
@@ -26,7 +26,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D3 | Judge is TypeSafe Jev, writer is a cheap Nebius model chosen by a bake-off | active; the writer part superseded by D136 |
 | D4 | Astro with React islands, Base UI and hand-written token CSS | active |
 | D5 | One MP3 per digest with word marks, from Speechify | superseded by D33 for new narration |
-| D6 | Daily cron with a calendar-date gate, plus a Sunday weekly pass | active; Vercel Cron since D61; no weekly since D65 |
+| D6 | Daily cron with a calendar-date gate, plus a Sunday weekly pass | active; Vercel Cron since D61; no weekly D65 |
 | D7 | Podcast feed deferred | active |
 | D8 | "Thought of the Day" cut | active |
 | D9 | Repository `somesh-ks/knowledge-hub`, private | active |
@@ -51,7 +51,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D28 | The audio job runs the Vercel CLI outside the checkout, and its failure is not a failed run | active |
 | D29 | Narration is hosted: a spoken version per story and a code-built host frame | active |
 | D30 | The reader is called Singularity; identifiers keep `dispatch` | see D179 |
-| D31 | The visual language follows Google Podcasts and YouTube Music | active; the play chip is tonal since D72 |
+| D31 | Visual language follows Google Podcasts and YouTube Music | active; play chip tonal since D72 |
 | D32 | The player is one always-mounted surface, without Base UI Drawer | active |
 | D33 | Narration is made on Play, story by story | active |
 | D34 | Stories are told in four beats; the why line is no longer written | active |
@@ -142,13 +142,13 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D119 | A briefing sized by the owner's length writes 30% spares; validation airs the best survivors until measured narration fills the length, each topic's best kept | active |
 | D120 | Science takes a one-outlet story that is clearly on topic; the other general topics keep the two-outlet rule | active; amends D40, D43 |
 | D121 | Covers are drawn at medium chroma (OKLCH 0.12 or less); each monthly series has its own style set and prints on its own close tint of the month's paper | active; amends D110 |
-| D122 | Covers a step brighter in both themes; the header light takes the cover's colours as three drifting lights; a theme change waits for the covers | active; amends D48, D77, D121 |
-| D123 | One AI model select on Settings; no manifest colour, so Android's bars follow the system; a launch screen; the playing cover lights the player page | active; amends D51, D101 |
+| D122 | Covers a step brighter in both themes; the header light takes the cover's colours as three drifting lights; a theme change waits for covers | active; amends D48, D77, D121 |
+| D123 | One AI model select on Settings; no manifest colour, so Android's bars follow the system; a launch screen; the playing cover lights the player | active; amends D51, D101 |
 | D124 | Weights are five named stops and Off; sources have a Jev-classified format; a format mix per page; two stories per outlet | active; amends D57, D69, D83 |
-| D125 | Headings never bold; Settings H2s at the 22px role; an Intelligence section for the model; Topics and sources is a search and a floating Add | active; amends D73, D123, D124 |
+| D125 | Headings never bold; Settings H2s at the 22px role; an Intelligence section for the model; Topics and sources: a search and a floating Add | active; amends D73, D123, D124 |
 | D126 | A play queue, an Up next peek and sheet, a collapse chevron, Space to play | active; amends D102, D111 |
-| D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, at most 10 | active; amends D123 |
-| D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by content hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
+| D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, max 10 | active; amends D123 |
+| D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
 | D129 | Settings restructured: Sources or Preferences per topic, one voice pair, Theme select | partly superseded by D195; amends D51, D87, D124, D125 |
 | D130 | Kimi models are never offered; the Nebius five are ranked by EQ-Bench longform; a weekly scheduled check proposes a refresh by PR | superseded by D136 |
 | D131 | An 8pt spacing system (4px only for named fine cases), rows that carry their own rhythm, headings never bold, enforced by `npm run design-check` | active; amends D73 |
@@ -289,6 +289,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D273 | Haptic tokens | amends D52 |
 | D274 | Icon weight token | amends D268 |
 | D275 | Concentric picker | amends D167 |
+| D276 | Voice list | amends D101 |
 | D277 | Queue keeps played items; a tap plays in place | amends D126 |
 | D278 | Softer light covers | amends D121 |
 | D283 | Read-first is AGENTS.md and state.md (20 KB), the Index is grep-only, the ledger is split by surface; "replaces" retires the old row | active |
