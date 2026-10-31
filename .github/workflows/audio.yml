@@ -138,6 +138,6 @@ jobs:
           SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL || vars.DISPATCH_GIT_EMAIL }}
           PRUNE_NOW: ${{ inputs.prune_now }}
         run: |
-          args=(--prune 120)
-          [ "$PRUNE_NOW" = "true" ] && args+=(--prune-now)
-          npm run --silent singularity -- publish "${args[@]}"
+          prune_args=(--prune 120)
+          [ "$PRUNE_NOW" = "true" ] && prune_args+=(--prune-now)
+          npm run --silent singularity -- publish "${prune_args[@]}"
