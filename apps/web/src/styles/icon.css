@@ -11,6 +11,17 @@
   fill: currentColor;
 }
 
+/* Weight (D268). An icon with a bold twin draws both paths and the icon.bold token (0 regular, 1 bold)
+   picks which shows, so a style thickens every line icon at once. Opacity, not display or a CSS `d`
+   path swap: it works in Safari and needs no script. A fill or already-bold glyph has no twin. */
+.icon-glyph path[data-weight="regular"] {
+  opacity: calc(1 - var(--icon-bold));
+}
+
+.icon-glyph path[data-weight="bold"] {
+  opacity: var(--icon-bold);
+}
+
 .icon-glyph-lg {
   width: var(--size-icon-lg);
   height: var(--size-icon-lg);

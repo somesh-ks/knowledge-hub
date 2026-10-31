@@ -256,6 +256,7 @@
       ],
       "usage": "Phosphor: every glyph is one filled path, so an icon is just its colour and its size.",
       "tokens": [
+        "--icon-bold",
         "--size-icon",
         "--size-icon-lg"
       ]
@@ -1103,6 +1104,7 @@
       "tokens": [
         "--chip-height",
         "--chip-radius",
+        "--chip-radius-selected",
         "--color-accent-container",
         "--color-focus-ring",
         "--color-on-accent-container",
@@ -3823,6 +3825,13 @@
       "role": "Reading measure cap. In rem, not ch: 68ch resolved to about 702px in this face, wider than the 592px reading column, so it capped nothing and summary lines ran to 85 characters."
     },
     {
+      "name": "--icon-bold",
+      "tier": "semantic",
+      "type": "number",
+      "light": "0",
+      "role": "0 draws the regular weight, 1 the bold weight (Phosphor's own bold, not a stroke on the regular). Every Icon holds both; this picks one. A style that wants heavier line icons sets it to 1 (D268)."
+    },
+    {
       "name": "--size-touch",
       "tier": "semantic",
       "type": "dimension",
@@ -4126,6 +4135,13 @@
       "tier": "component",
       "type": "dimension",
       "light": "var(--radius-round)"
+    },
+    {
+      "name": "--cta-radius-pressed",
+      "tier": "component",
+      "type": "dimension",
+      "light": "var(--cta-radius)",
+      "role": "The corners of a filled call to action held down: the pill by default; a style may squeeze it into a softer rectangle."
     },
     {
       "name": "--cta-bg",
@@ -4737,6 +4753,13 @@
       "light": "var(--radius-round)"
     },
     {
+      "name": "--chip-radius-selected",
+      "tier": "component",
+      "type": "dimension",
+      "light": "var(--chip-radius)",
+      "role": "A ticked filter chip's corners. Equal to the chip's own radius by default; a style may make a selection change shape."
+    },
+    {
       "name": "--chip-bg",
       "tier": "component",
       "type": "color",
@@ -4796,6 +4819,13 @@
       "type": "dimension",
       "light": "4rem",
       "role": "The pill behind the current destination's icon in the bottom bar."
+    },
+    {
+      "name": "--nav-indicator-radius-current",
+      "tier": "component",
+      "type": "dimension",
+      "light": "var(--radius-round)",
+      "role": "The current destination's pill in the bottom bar and the side rail: fully round by default; a style may make it a rounded rectangle."
     },
     {
       "name": "--nav-indicator-height",
@@ -4890,6 +4920,27 @@
       "type": "dimension",
       "light": "10rem",
       "role": "The widest a slider grows in a row, so the name beside it keeps the room (owner, 2026-10-25)."
+    },
+    {
+      "name": "--picker-radius",
+      "tier": "component",
+      "type": "dimension",
+      "light": "var(--radius-sheet)",
+      "role": "Concentric: the inner radius plus the inset. The list's own outer radius."
+    },
+    {
+      "name": "--picker-inset",
+      "tier": "component",
+      "type": "dimension",
+      "light": "var(--card-inset)",
+      "role": "From the list's edge to the search field and to the options. The card's inset, 4px."
+    },
+    {
+      "name": "--picker-inner-radius",
+      "tier": "component",
+      "type": "dimension",
+      "light": "var(--radius-xl)",
+      "role": "The search field and each option, one inset in. 24px: a full pill on the 48px search field, the same on every row."
     },
     {
       "name": "--card-padding",

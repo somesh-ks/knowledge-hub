@@ -272,7 +272,9 @@ export function savedTopics(ops: readonly ConfigOp[]): SavedTopics {
   };
   for (const op of ops) {
     if (op.op === "topic.upsert") {
-      out.topics.set(op.topic.id, op.topic);
+      // An edit that leaves the emoji out keeps the earlier one, as the server does.
+      const kept = op.topic.emoji === undefined ? out.topics.get(op.topic.id)?.emoji : undefined;
+      out.topics.set(op.topic.id, kept ? { ...op.topic, emoji: kept } : op.topic);
       out.removedTopics.delete(op.topic.id);
     } else if (op.op === "topic.remove") {
       out.removedTopics.add(op.id);

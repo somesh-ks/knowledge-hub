@@ -38,6 +38,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Engine and workflows
 
+- 2026-10-31: `serializeTopics` lists fields, `upsertTopic` branches by origin: a new `Topic` field needs both.
 - 2026-10-28: a run record's and the ledger's `at` is publish time (96 min for 3); time a run as `generated_at` less `window.to` (D203).
 - 2026-10-27: a briefing shipped 3 stories (79 s): grounding dropped 5 of 8 and the refill found the reserve empty, because the structure's section caps capped the reserve too (#373 lifts them for the reserve and warns `under_length`).
 - 2026-10-27: the runner has no ffmpeg with libopus, so Opus and its test skipped silently; ffprobe counts MP3 padding (52 ms a turn). The workflows install it; turns are measured by decoding. The install hung 5 to 19 min behind `-qq`: bound apt, skip man-db, log, `continue-on-error` where an MP3 exists (#388).
@@ -88,14 +89,15 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-22: TBT is root `:has()` restyles (first-load-js.md).
 - 2026-10-16: an installed Android web app keeps the manifest's theme_color from install for the system navigation bar; a runtime theme-color meta never repaints it. Leave theme_color out so the bars follow the system theme.
 - 2026-10-14: on mobile Chrome a fixed element held by its bottom edge moves with the address bar in the same frame; one held by both edges (`inset: 0`) resizes only after the gesture, so the bottom stack drifted apart (#120). Hold bottom-stack elements by the bottom edge; full-height boxes by `100dvh`.
-- 2026-10-11: Safari 27 has no `overlay`, so a closing dialog or popover leaves the top layer as its exit starts and the exit plays in the page: give top-layer elements their own `position` and a z-index (the top layer ignores it), and close at once under `@supports not (overlay: auto)` where an ancestor has a transform.
+- 2026-10-11: Safari 27 has no `overlay`, so a closing dialog or popover leaves the top layer as its exit starts: give top-layer elements their own `position` and a z-index (the top layer ignores it), and close at once under `@supports not (overlay: auto)` where an ancestor has a transform.
 - 2026-10-11: the voice sample button never worked in production: it played Speechify's own URL, which the page's `media-src` blocks, and its error handler hid the button, so it looked like a missing feature. A media URL from a third party needs the CSP checked, or a same-origin route (`/api/voice-sample`).
 - 2026-10-09: a move took 400 ms though the page was ready after 70: the mark that picks the animation (`data-astro-nav`) was lost in the swap, as Astro 7 keeps only its own root attributes. Carry it onto `event.newDocument` in `astro:before-swap`; check with `document.getAnimations()`.
 - 2026-10-09: The first press after opening the app blocks for about 200 ms with the audio device idle, about 75 ms warm: `new AudioContext()` inside the press. `latencyHint` and `sampleRate` do not help; a first measurement said they did, because the first context created pays. Reverse the order as the control.
 
 ## Build and tooling
 
-- 2026-10-31: a new shared stylesheet import reorders equal-specificity rules (icon.css flipped the player's collapse chip ink). Diff built pages' computed styles after an import move.
+- 2026-10-31: a new token needs `npm run system` too, or CI `check` fails on a stale `system.json`.
+- 2026-10-31: a new stylesheet import reorders equal-specificity rules (icon.css flipped a chip's ink). Diff computed styles after one.
 - 2026-10-30: designSystem.test reads quoted text: a retired class equal to a file name or a selector string counts as writing it.
 - 2026-10-28: cloud Node 22.22 fails `astro check`: `. /opt/nvm/nvm.sh && nvm install 24`. `pkill -f` kills its own shell.
 - 2026-10-25: an `<svg>` in a template string has no `data-icon`, so D187 skips it; use `iconHtml()`.
@@ -134,8 +136,8 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-16: a worktree's `node_modules` symlink was committed (the ignore rule `node_modules/` matches directories only), and merging that branch replaced the real, ignored `apps/web/node_modules` with it: git overwrites ignored paths. The rule is now `node_modules`; after such a merge, run `npm ci`.
 - 2026-10-25: `scripts/worktreeLinks.mjs` found own packages by the literal scope `@dispatch`; #272 broke it. It reads `package.json` names now. Per package, never a scope (10-26).
 - 2026-10-14: squash-merged branches never pass `git branch -d`, and auto mode refuses `-D`. Match commit subjects against main's squash bodies, keep a bundle of the heads in `.git/`, and let the owner force delete.
-- 2026-10-12: cherry-pick a worker's non-merge commits (`git log --no-merges --reverse <lead>..<branch>`) and run `biome check` again afterwards: a formatting difference between two branches shows only on the combined tree.
-- 2026-10-21: workers hit the 90-call cap: brief one piece each, WIP commit after the first pass. A finished agent's worktree stays locked: `remove -f -f` once clean.
-- 2026-10-21: a worktree can start from an older base than briefed: check the last commit first, reset to the target before editing.
-- 2026-10-11: the review plugin stops at a PR it already reviewed: a re-labelled run posts nothing and new commits go unreviewed. Run `/code-review` on the range.
-- 2026-10-06: Auto-mode classifier blocks credential creation, store deletion and merging unreviewed PRs; the owner runs those.
+- 2026-10-12: cherry-pick a worker's non-merge commits (`git log --no-merges --reverse <lead>..<branch>`), then rerun `biome check`: formatting differences show on the combined tree.
+- 2026-10-21: workers hit the 90-call cap: one piece each, WIP commit after the first pass. A finished worker's worktree stays locked: `remove -f -f`.
+- 2026-10-21: a worktree can start from an older base: check its last commit first.
+- 2026-10-11: the review plugin skips a PR it already reviewed, so new commits go unreviewed: run `/code-review` on the range.
+- 2026-10-06: the auto-mode classifier blocks credential creation, store deletion and unreviewed merges; the owner runs those.

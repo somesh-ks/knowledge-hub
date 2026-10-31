@@ -454,3 +454,30 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Decision: the Play and New episode floating buttons stay one element for each page. Nothing carries one across a move.
 - Why: the dock holds Play on a phone; a persisted button would make the shell own a per-page action.
 - Revisit if: the Play to New episode swap still reads as a pop on a phone.
+
+## D274: icon weight is a token; every Icon holds both Phosphor weights
+
+- Date: 2026-10-31 (the owner: with Expressive the line icons must be thicker, "token-based from the design system, in a central way").
+- Decision: `semantic.icon.bold` (`--icon-bold`, 0 or 1) picks the weight of every line icon at once. Each regular glyph in `tokens/glyphs.json` carries `bold`, Phosphor's own bold path (`buildGlyphs --fetch` writes it; the glyph test checks it is the package's SVG). The Icon (Astro, `iconHtml`, the player's two components) draws both paths and `icon.css` gives each an opacity from the token, so Default shows regular and Expressive (1) shows bold. A fill glyph and a glyph already bold have no twin.
+- Why: one set and real geometry under `data-style` (D268), with no script and no per-style CSS. A stroke on the filled path blobs corners and fills counters at 16 to 20px.
+- Rejected: stroking the path; the CSS `d:` property (Safari has none); a second icon set swapped by script (a flash and a second source of truth).
+- Revisit if: the doubled path markup shows in page weight on a long list (then draw icons from a sprite), or a style wants a weight between regular and bold (the token is a number, the paths are two).
+- Amends: D268.
+
+## D275: a picker's contents are concentric with it
+
+- Date: 2026-10-31 (the owner: the select list with its search bar "the math doesn't work out"; he remembered the concentric rule).
+- Decision: `component.picker.radius` (28px) equals `picker.inner-radius` (24px) plus `picker.inset` (4px, the card inset), declared with the concentric rule `buildTokens.test.ts` checks. The search field and each option take the inner radius and sit one inset in from the list's edge; the popover and the phone sheet's top corners take the radius. A control inside a picker reads these tokens and sets no corner of its own. The change reaches Default: the list was a 12px popover with pill and 12px corners inside it.
+- Why: inner = outer minus padding is what makes nested corners read as one shape; 24px is a full pill on the 48px search field, so it keeps the Library's look.
+- Rejected: 12 and 4 (a square search field); 24 and 16 with an 8px inset (concentric but no longer a pill); 32 and 24 (a larger popover than the phone sheet's 28).
+- Revisit if: the Menu popover (`menu.css`, 12px with an 8px row corner) is given the same rule; it was not part of this change.
+- Amends: D167.
+
+## D278: light-theme covers lift their darkest inks to charcoal
+
+- Date: 2026-10-31 (the owner, over the Library grid: "the album arts are much darker, stick to the original guidelines of album arts to be calmer"; he chose the softer ink from a before and after).
+- Decision: `tokens/covers.json` `mode.light.lightness` is 0.2 to 1 (was 0 to 1), the floor the dark theme already holds. The darkest ink of a cover (near-black) settles at charcoal; chroma, the papers and every contrast floor are unchanged, and `mode.ts` still holds each floor. It applies to every style, since covers follow the theme.
+- Why: D121 left the light theme "as authored" and its inks are the palette's darkest (OKLCH lightness 0.08 to 0.15); at 40 px corners and a grid they read heavy against the pale stock. Dark already lifts them and reads calm.
+- Rejected: an Expressive-only lift (covers have no style layer; a per-style mode would be a new mechanism for one value); lifting the ground (the papers are D122's brightness).
+- Revisit if: a cover's figure loses its edge on its ground in the light theme (the family tests hold 4.5:1 for text only).
+- Amends: D121.
