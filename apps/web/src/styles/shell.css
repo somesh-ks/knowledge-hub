@@ -520,11 +520,11 @@ html[data-mini="visible"] main {
     --nav-side: max(0px, (100vw - var(--safe-left) - var(--safe-right) - var(--layout-column)) / 2);
   }
 
-  .app-nav-item:first-child::after {
+  li:first-child > .app-nav-item::after {
     inset-inline-start: calc((var(--safe-left) + var(--nav-side)) * -1);
   }
 
-  .app-nav-item:last-child::after {
+  li:last-child > .app-nav-item::after {
     inset-inline-end: calc((var(--safe-right) + var(--nav-side)) * -1);
   }
 }

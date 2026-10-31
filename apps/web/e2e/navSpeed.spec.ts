@@ -270,6 +270,12 @@ test.describe("the whole bottom bar is the tab", () => {
     await page.goto("/");
     const bar = await page.locator(".app-nav").boundingBox();
     if (!bar) throw new Error("the bar is not on screen");
+    // The edge reach is the outer two tabs' alone: the middle one still takes its own cell.
+    const middle = await page.locator('.app-nav-item[href="/library"]').boundingBox();
+    if (!middle) throw new Error("the Library tab is not on screen");
+    await page.touchscreen.tap(middle.x + middle.width / 2, bar.y + bar.height / 2);
+    await expect(heading(page)).toHaveText("Library");
+    await page.goto("/");
     await page.touchscreen.tap(bar.x + bar.width - 3, bar.y + bar.height / 2);
     await expect(heading(page)).toHaveText("Settings");
   });
