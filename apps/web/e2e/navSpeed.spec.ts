@@ -129,3 +129,73 @@ test.describe("moving between destinations", () => {
     expect(move?.atSwap?.longest).toBeLessThanOrEqual(150);
   });
 });
+
+test.describe("the chrome holds still on a move", () => {
+  // The player rides through a move as the same element, which starts every CSS animation on it
+  // again: the dock's caption and the story line faded in anew on each move (owner, 2026-10-31).
+  test("a move does not start the playing bar's animations again", async ({ page }) => {
+    await openWarm(page);
+    await page.locator(".hero [data-play-digest]").click();
+    await expect(page.locator(".player-dock .dock-caption")).toContainText("/");
+    await page.evaluate(() => {
+      const w = window as unknown as { __animations: { before: string[]; after: string[] } };
+      const running = (): string[] =>
+        (document.getAnimations() as CSSAnimation[])
+          .filter((animation) => {
+            const target = (animation.effect as KeyframeEffect | null)?.target;
+            return (
+              target?.closest("[data-astro-transition-persist]") &&
+              animation.playState === "running" &&
+              Number.isFinite(animation.effect?.getComputedTiming().endTime)
+            );
+          })
+          .map((animation) => animation.animationName);
+      w.__animations = { before: [], after: [] };
+      document.addEventListener("astro:before-swap", () => {
+        w.__animations.before = running();
+      });
+      document.addEventListener("astro:after-swap", () => {
+        w.__animations.after = running();
+      });
+    });
+    await item(page, "/library").click();
+    await expect(heading(page)).toHaveText("Library");
+    const { before, after } = await page.evaluate(
+      () =>
+        (window as unknown as { __animations: { before: string[]; after: string[] } }).__animations,
+    );
+    // One still fading in as the move began may carry on; none may begin that was not running.
+    for (const name of after) expect(before).toContain(name);
+    expect(after.length).toBeLessThanOrEqual(before.length);
+  });
+
+  // A cached page arrives a few tens of milliseconds after the press, while the pill is growing under
+  // the pressed tab. The new bar drew it whole: it jumped from a quarter grown to done.
+  test("the pill is no further along on the new bar than on the one it replaces", async ({
+    page,
+  }) => {
+    await openWarm(page);
+    await page.evaluate(() => {
+      const w = window as unknown as { __pill: { before: number; after: number } };
+      const opacity = () => {
+        const pill = document.querySelector(
+          '.app-nav-item[aria-current="page"] .app-nav-indicator',
+        );
+        return pill ? Number(getComputedStyle(pill, "::before").opacity) : Number.NaN;
+      };
+      w.__pill = { before: Number.NaN, after: Number.NaN };
+      document.addEventListener("astro:before-swap", () => {
+        w.__pill.before = opacity();
+      });
+      document.addEventListener("astro:after-swap", () => {
+        w.__pill.after = opacity();
+      });
+    });
+    await item(page, "/library").click();
+    await expect(heading(page)).toHaveText("Library");
+    const { before, after } = await page.evaluate(
+      () => (window as unknown as { __pill: { before: number; after: number } }).__pill,
+    );
+    expect(Math.abs(after - before)).toBeLessThan(0.3);
+  });
+});

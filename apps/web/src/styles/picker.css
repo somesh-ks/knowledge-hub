@@ -212,6 +212,11 @@
     }
   }
 
+  /* The rows of the sheet are as tall as the menu's and a select's (--size-option). */
+  .picker-pop[data-sheet] .picker-option {
+    min-block-size: var(--size-option);
+  }
+
   .picker-pop[data-sheet]::backdrop {
     background: var(--color-scrim);
   }

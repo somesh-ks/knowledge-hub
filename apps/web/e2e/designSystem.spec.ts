@@ -51,8 +51,8 @@ const EXEMPT = [
   ".icon-btn-end",
   // An optical pad sized by the font's metrics, so the emoji's ink sits in its cell's centre.
   ".emoji-cell",
-  // Centred on the title's first line by the label's leading (banner.css); seen on /design, where a
-  // banner is always shown.
+  // Centred on the title's first line by the label's leading (banner.css); kept for any page that
+  // shows a banner (the catalogue that always showed one is gone).
   ".banner-notice > .icon",
 ];
 

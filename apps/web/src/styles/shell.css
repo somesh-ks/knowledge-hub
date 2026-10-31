@@ -434,6 +434,8 @@ html[data-mini="visible"] main {
 @media (prefers-reduced-motion: no-preference) {
   html[data-nav-arrived] .app-nav-item[aria-current="page"] .app-nav-indicator::before {
     animation: nav-pill var(--duration-enter) var(--ease-out);
+    /* A move that arrived mid-growth carries on from where the old bar's pill was (navigation.ts). */
+    animation-delay: calc(var(--nav-pill-elapsed, 0ms) * -1);
   }
 }
 
@@ -448,6 +450,7 @@ html[data-mini="visible"] main {
 @media (prefers-reduced-motion: reduce) {
   html[data-nav-arrived] .app-nav-item[aria-current="page"] .app-nav-indicator::before {
     animation: nav-pill-fade var(--duration-enter) var(--ease-out);
+    animation-delay: calc(var(--nav-pill-elapsed, 0ms) * -1);
   }
 }
 

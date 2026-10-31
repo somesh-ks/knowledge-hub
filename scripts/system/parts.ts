@@ -288,17 +288,6 @@ export const PARTS: PartSource[] = [
     keywords: ["inline link", "hint link"],
   },
   {
-    id: "status-dot",
-    name: "Status dot",
-    kind: "feedback",
-    summary: "A dot that judges a reading good, worth a look or wrong.",
-    classes: ["status-dot"],
-    when: ["a health reading", "a status next to a label, always with a word"],
-    not: [{ when: "a message the user must act on", use: "banner" }],
-    keywords: ["health", "indicator", "traffic light"],
-    rules: ["Color is information: a word or a glyph always says it too."],
-  },
-  {
     id: "stat-tiles",
     name: "Stat tiles",
     kind: "container",

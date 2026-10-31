@@ -44,6 +44,7 @@ import {
   type VoteOp,
   type VoteState,
 } from "../lib/storyVotes";
+import { endedByLeaving } from "./pageLeaving";
 import { sendToast } from "./toastEvent";
 
 /** How long a block waits, with Undo in the toast, before it is sent (autosave.ts' UNDO_MS). */
@@ -127,6 +128,8 @@ interface Answer {
   cause: string;
   /** The answer's body, for a server failure's reference (lib/errorRef.ts). */
   body?: unknown;
+  /** The page was leaving when the request ended: it may have gone through (pageLeaving.ts). */
+  unknown?: boolean;
 }
 
 async function post(ops: ConfigOp[]): Promise<Answer> {
@@ -150,7 +153,7 @@ async function post(ops: ConfigOp[]): Promise<Answer> {
       body,
     };
   } catch (error) {
-    return { status: 0, wait: 0, cause: String(error) };
+    return { status: 0, wait: 0, cause: String(error), unknown: await endedByLeaving() };
   }
 }
 
@@ -226,6 +229,8 @@ async function send(withVotes: boolean): Promise<void> {
       for (const { domain } of stopped) posting.add(domain);
       const answer = await post(ops);
       for (const { domain } of stopped) posting.delete(domain);
+      // The page is going: a stopped outlet stays in the outbox, and the next visit sends it again.
+      if (answer.unknown) return;
       if (answer.status === 202) {
         lastSent = Date.now();
         waits = 0;

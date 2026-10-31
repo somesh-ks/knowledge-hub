@@ -13,12 +13,11 @@
   "weekly": {
     "enabled": true,
     "day": 0,
-    "hour": 7,
+    "hour": 8,
     "skip_topics": [
       "business",
       "sports"
     ],
-    "format": "readout",
     "length_minutes": 15,
     "voice_id": null,
     "voice_id_b": null
