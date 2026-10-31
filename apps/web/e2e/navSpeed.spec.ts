@@ -198,4 +198,41 @@ test.describe("the chrome holds still on a move", () => {
     );
     expect(Math.abs(after - before)).toBeLessThan(0.3);
   });
+
+  test("the pill slides from the tab it left and does not jump when the new bar arrives", async ({
+    page,
+  }) => {
+    await openWarm(page);
+    await page.evaluate(() => {
+      const w = window as unknown as { __x: { before: number; after: number } };
+      // Where the pill is drawn: its tab's box plus the slide it is still making.
+      const x = () => {
+        const tab = document.querySelector(
+          '.app-nav-item[aria-current="page"] .app-nav-indicator',
+        );
+        if (!tab) return Number.NaN;
+        const slide = parseFloat(getComputedStyle(tab, "::before").translate);
+        return tab.getBoundingClientRect().left + (Number.isNaN(slide) ? 0 : slide);
+      };
+      w.__x = { before: Number.NaN, after: Number.NaN };
+      document.addEventListener("astro:before-swap", () => {
+        w.__x.before = x();
+      });
+      document.addEventListener("astro:after-swap", () => {
+        w.__x.after = x();
+      });
+    });
+    const from = await item(page, "/").locator(".app-nav-indicator").boundingBox();
+    await item(page, "/library").click();
+    await expect(heading(page)).toHaveText("Library");
+    const { before, after } = await page.evaluate(
+      () => (window as unknown as { __x: { before: number; after: number } }).__x,
+    );
+    const to = await item(page, "/library").locator(".app-nav-indicator").boundingBox();
+    // It set out from under the old tab, not from under the new one (the press moved it at once)...
+    expect(before).toBeLessThan((to?.x ?? 0) - 1);
+    expect(before).toBeGreaterThanOrEqual((from?.x ?? 0) - 1);
+    // ...and the arriving bar picks it up where the old one left it.
+    expect(Math.abs(after - before)).toBeLessThan(16);
+  });
 });
