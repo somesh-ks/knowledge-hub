@@ -4,6 +4,7 @@ import "../styles/field.css";
 import ManageChrome from "../components/ManageChrome.astro";
 import Button from "../design-system/Button.astro";
 import Icon from "../design-system/Icon.astro";
+import Switch from "../design-system/Switch.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { buildDay } from "../lib/buildDay";
 import { loadManage } from "../lib/manage";
@@ -76,13 +77,6 @@ const SOUND: Row[] = [
     hint: "On",
     data: { "sounds-hint": "" },
   },
-  // On or off in this browser, like the row above (D284).
-  {
-    href: "/settings/notifications",
-    label: "Notifications",
-    hint: "Off",
-    data: { "notifications-hint": "" },
-  },
 ];
 
 const updated = buildDay();
@@ -152,6 +146,23 @@ const THEME_LABELS: Record<ThemePreference, string> = {
             ))
           }
         </div>
+      </section>
+
+      {/* Kept in this browser (its permission and push subscription), so the switch is set by
+           notificationsSettings.ts, not here. The line under it appears only when it cannot be turned
+           on (D284). */}
+      <section>
+        <h2 class="section-head text-heading">Notifications</h2>
+        <div class="rows card-group">
+          <div class="settings-row">
+            <div class="settings-text">
+              <label class="settings-label" for="settings-notifications">Podcast ready</label>
+              <span class="settings-hint">When a Catch up or new take you started finishes.</span>
+            </div>
+            <Switch id="settings-notifications" name="notifications" />
+          </div>
+        </div>
+        <p class="settings-note" data-notifications-note hidden></p>
       </section>
 
       <section>

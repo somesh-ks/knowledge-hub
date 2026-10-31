@@ -1,6 +1,7 @@
 import type { SqlClient } from "@singularity/engine/config-paths";
 import {
   addPushWatch,
+  ensurePushKeys,
   isPushEndpoint,
   removePushWatch,
   type WatchKind,
@@ -61,12 +62,15 @@ function recordOf(bodyText: string): Record<string, unknown> | null {
   }
 }
 
-/** GET: the key to subscribe with, or 503 while the deployment has none. */
-export function handlePushKey(env: ServerEnv): ApiResult<PushBody> {
-  const key = env.VAPID_PUBLIC_KEY?.trim();
-  return key && KEY.test(key)
-    ? { status: 200, body: { public_key: key } }
-    : { status: 503, body: { error: "unavailable" } };
+/**
+ * GET: the key to subscribe with. The first call makes the pair and keeps it in Neon, so there is
+ * nothing for the owner to set up; 503 while the store cannot answer.
+ */
+export async function handlePushKey(deps: PushDeps): Promise<ApiResult<PushBody>> {
+  const keys = await ask(deps, (sql) => ensurePushKeys(sql, deps.now()));
+  return keys === UNAVAILABLE
+    ? { status: 503, body: { error: "unavailable" } }
+    : { status: 200, body: { public_key: keys.publicKey } };
 }
 
 export async function handlePushWatch(

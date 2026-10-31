@@ -51,12 +51,9 @@ jobs:
 
       # D284: tell the browsers waiting on a Catch up or a regeneration that has just ended. After the
       # sync, so the episode is in the store when the tap lands. A message that fails is tried again
-      # at the next sync, and nothing here may fail the sync: with no keys set it does nothing.
+      # at the next sync, and nothing here may fail the sync. The signing keys are made by the site and kept in Neon.
       - name: Notify
         continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
-          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
-          VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT }}
         run: npm run --silent singularity -- push notify

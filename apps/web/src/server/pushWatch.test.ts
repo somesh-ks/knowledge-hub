@@ -1,5 +1,6 @@
 import { PGlite } from "@electric-sql/pglite";
 import type { SqlClient } from "@singularity/engine/config-paths";
+import { readPushKeys } from "@singularity/engine/push-store";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { REPO } from "../testing/fakeGitHub";
 import { cancelTokenFor } from "./cancelToken";
@@ -12,7 +13,6 @@ const TOKEN = "github_pat_secret_value_123456";
 const env = {
   GITHUB_SINGULARITY_TOKEN: TOKEN,
   GITHUB_REPOSITORY: REPO,
-  VAPID_PUBLIC_KEY: "B".repeat(87),
 };
 const ORIGIN = "https://news.example";
 const KEY = "k".repeat(22);
@@ -74,8 +74,16 @@ describe("watching a run for a push (D284)", () => {
     expect(other.status).toBe(400);
   });
 
-  it("answers the public key only while the deployment has one", () => {
-    expect(handlePushKey(env)).toEqual({ status: 200, body: { public_key: "B".repeat(87) } });
-    expect(handlePushKey({ ...env, VAPID_PUBLIC_KEY: undefined }).status).toBe(503);
+  // The bug it prevents: two browsers (or a browser and the workflow) holding different keys, so
+  // every message is refused by the push service.
+  it("makes the key pair once and answers the same public key every time", async () => {
+    const first = await handlePushKey(deps);
+    const again = await handlePushKey(deps);
+    expect(first.status).toBe(200);
+    expect(again).toEqual(first);
+    expect(await sql.query("select 1 from push_keys")).toHaveLength(1);
+    expect((await readPushKeys(sql))?.publicKey).toBe(
+      (first.body as { public_key: string }).public_key,
+    );
   });
 });

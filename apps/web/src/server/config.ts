@@ -26,8 +26,6 @@ export interface ServerEnv {
   ANTHROPIC_API_KEY?: string;
   /** Only /api/costs reads it, for Anthropic's cost report (anthropicBilling.ts). */
   ANTHROPIC_ADMIN_KEY?: string;
-  /** The Web Push public key the browser subscribes with (D284); unset, notifications are off. */
-  VAPID_PUBLIC_KEY?: string;
   /** What Vercel Cron sends as a bearer token to /api/cron/run. Unset, the route refuses every call. */
   CRON_SECRET?: string;
 }

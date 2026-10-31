@@ -1,3 +1,4 @@
+import { createECDH } from "node:crypto";
 import type { SqlClient } from "./configPaths.js";
 import { missingTable, withTable } from "./pgErrors.js";
 
@@ -23,7 +24,62 @@ export const PUSH_SCHEMA_SQL = [
   primary key (run_id, endpoint)
 )`,
   "create index if not exists push_watches_created on push_watches (created_at)",
+  `create table if not exists push_keys (
+  id integer primary key,
+  public_key text not null,
+  private_key text not null,
+  created_at timestamptz not null
+)`,
 ] as const;
+
+/** The key pair that signs every message (VAPID). Made by the site on first use and kept in Neon. */
+export interface PushKeys {
+  publicKey: string;
+  privateKey: string;
+}
+
+/** A P-256 pair in the URL-safe base64 form Web Push uses: 65 bytes public, 32 bytes private. */
+export function generateVapidKeys(): PushKeys {
+  const ecdh = createECDH("prime256v1");
+  ecdh.generateKeys();
+  return {
+    publicKey: ecdh.getPublicKey().toString("base64url"),
+    privateKey: ecdh.getPrivateKey().toString("base64url"),
+  };
+}
+
+/**
+ * The key pair, made and stored on the first call. Two first calls at once both try to insert and
+ * the row that lands wins: both read it back, so the browser and the workflow never disagree.
+ */
+export async function ensurePushKeys(sql: SqlClient, now: number): Promise<PushKeys> {
+  const read = async (): Promise<PushKeys | null> => {
+    const rows = await sql.query("select public_key, private_key from push_keys where id = 1");
+    const row = rows[0];
+    return row ? { publicKey: String(row.public_key), privateKey: String(row.private_key) } : null;
+  };
+  const existing = await withTable(sql, PUSH_SCHEMA_SQL, read);
+  if (existing) return existing;
+  const made = generateVapidKeys();
+  await sql.query(
+    `insert into push_keys (id, public_key, private_key, created_at) values (1, $1, $2, $3::timestamptz)
+on conflict (id) do nothing`,
+    [made.publicKey, made.privateKey, new Date(now).toISOString()],
+  );
+  return (await read()) ?? made;
+}
+
+/** The stored pair, or null before any browser has asked for the public key. Never creates one. */
+export async function readPushKeys(sql: SqlClient): Promise<PushKeys | null> {
+  try {
+    const rows = await sql.query("select public_key, private_key from push_keys where id = 1");
+    const row = rows[0];
+    return row ? { publicKey: String(row.public_key), privateKey: String(row.private_key) } : null;
+  } catch (error) {
+    if (missingTable(error)) return null;
+    throw error;
+  }
+}
 
 /** Most browsers that may wait for one run: a person has a phone and a laptop, not a crowd. */
 export const MAX_WATCHES_PER_RUN = 2;

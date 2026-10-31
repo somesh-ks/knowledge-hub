@@ -63,8 +63,8 @@ tables in DATABASE_URL, whatever its end. A log that cannot be written warns and
 
 content.yml's step after the sync: sends one message to each browser whose watched run has ended
 (published: ready; failed: did not finish), then deletes what was sent, what is gone and any
-watch over six hours old. Needs DATABASE_URL, VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY. Not set up, or
-a push service down, warns and exits 0: it never fails the workflow.`,
+watch over six hours old. Needs DATABASE_URL; the signing keys are the site's, kept in Neon. Not
+set up, or a push service down, warns and exits 0: it never fails the workflow.`,
     load: async () => (await import("./commands/push.js")).run,
   },
   {

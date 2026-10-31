@@ -8,6 +8,7 @@ import {
   endedPushWatches,
   isPushEndpoint,
   type PushTarget,
+  readPushKeys,
   sweepPushWatches,
 } from "../store/pushStore.js";
 
@@ -46,18 +47,18 @@ export interface PushDeps {
 /** One hour: a message that cannot be delivered in an hour is about an episode the person has long found. */
 const TTL_SECONDS = 3600;
 
-async function webPushSender(vapid: {
-  subject: string;
-  publicKey: string;
-  privateKey: string;
-}): Promise<PushSender> {
+/** Who the push services see as the sender: a contact for the site's operator. */
+const VAPID_SUBJECT = "https://news.someshks.work";
+
+async function webPushSender(keys: { publicKey: string; privateKey: string }): Promise<PushSender> {
   const webpush = (await import("web-push")).default;
+  const vapidDetails = { subject: VAPID_SUBJECT, ...keys };
   return async (target, message) => {
     try {
       await webpush.sendNotification(
         { endpoint: target.endpoint, keys: { p256dh: target.p256dh, auth: target.auth } },
         JSON.stringify(message),
-        { TTL: TTL_SECONDS, urgency: "normal", vapidDetails: vapid, timeout: 10_000 },
+        { TTL: TTL_SECONDS, urgency: "normal", vapidDetails, timeout: 10_000 },
       );
       return "sent";
     } catch (error) {
@@ -92,21 +93,27 @@ export function makePushCommand(deps: PushDeps = {}): CommandRun {
       ctx.log.error(USAGE);
       return 2;
     }
-    const { DATABASE_URL: databaseUrl, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = ctx.env;
-    if (!databaseUrl || (!deps.send && (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY))) {
-      ctx.log.warn("Push is not set up (DATABASE_URL and the VAPID keys): nothing was sent");
+    const databaseUrl = ctx.env.DATABASE_URL;
+    if (!databaseUrl) {
+      ctx.log.warn("DATABASE_URL is not set: nothing was sent");
       return 0;
     }
+    let privateKey = "";
     try {
       const sql = await (deps.connect ?? connectConfigStore)(databaseUrl);
       const ended = await endedPushWatches(sql);
-      const send =
-        deps.send ??
-        (await webPushSender({
-          subject: ctx.env.VAPID_SUBJECT ?? "https://news.someshks.work",
-          publicKey: VAPID_PUBLIC_KEY ?? "",
-          privateKey: VAPID_PRIVATE_KEY ?? "",
-        }));
+      let send = deps.send;
+      if (!send) {
+        // The site makes the pair when the first browser asks for the public key; none yet means
+        // no browser has switched notifications on, so there is nothing to send.
+        const keys = ended.length > 0 ? await readPushKeys(sql) : null;
+        if (!keys) {
+          await sweepPushWatches(sql, ctx.now().getTime());
+          return 0;
+        }
+        privateKey = keys.privateKey;
+        send = await webPushSender(keys);
+      }
       const done: EndedWatch[] = [];
       let sent = 0;
       let failed = 0;
@@ -127,7 +134,7 @@ export function makePushCommand(deps: PushDeps = {}): CommandRun {
       let reason = describeError(error, []);
       for (const secret of databaseSecrets(databaseUrl))
         reason = reason.split(secret).join("[redacted]");
-      if (VAPID_PRIVATE_KEY) reason = reason.split(VAPID_PRIVATE_KEY).join("[redacted]");
+      if (privateKey) reason = reason.split(privateKey).join("[redacted]");
       ctx.log.warn("Push was not sent", { reason });
     }
     return 0;

@@ -48,7 +48,7 @@ const answer =
       ),
     );
 
-export const GET: APIRoute = () => toResponse(handlePushKey(process.env as ServerEnv));
+export const GET: APIRoute = async () => toResponse(await handlePushKey(deps()));
 
 export const POST = recordingFaults("api/push", answer("POST"));
 

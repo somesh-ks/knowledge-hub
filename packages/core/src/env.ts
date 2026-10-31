@@ -22,10 +22,6 @@ export const Env = z.object({
   GEMINI_API_KEY: optionalString,
   /** Neon Postgres holding the owner's config (D149). Unset, the committed files are the config. */
   DATABASE_URL: optionalString,
-  /** Web Push (D284): the server's key pair and a contact. `singularity push notify` signs with the private one. */
-  VAPID_PUBLIC_KEY: optionalString,
-  VAPID_PRIVATE_KEY: optionalString,
-  VAPID_SUBJECT: optionalString,
   /** "postgres" switches the config store on (D149); the URL alone never does. */
   SINGULARITY_CONFIG_STORE: optionalString,
   DISPATCH_CONFIG_STORE: optionalString,
