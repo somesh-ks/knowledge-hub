@@ -203,6 +203,9 @@ const facts = topic && {
         <p class="manage-note">Changing categories and sources needs JavaScript, which is turned off in this browser.</p>
       </noscript>
 
+      {/* The way up, over the card instead of inside it (2026-10-31, owner); the card holds the name. */}
+      <SettingsHead />
+
       <fieldset class="manage-fields" data-fields>
         <legend class="sr-only">{name}</legend>
         <div class="topic" data-id={topic?.id ?? ""} data-topic>
@@ -212,10 +215,10 @@ const facts = topic && {
                popover menu (HeroMenu.astro, heroMenu.ts). */}
           <div class="topic-card">
             <div class="topic-card-lead">
-              <div class="topic-card-art" set:html={art} />
-              {/* The topic's emoji (2026-10-21): a button at the picture's corner that opens the
-                   emoji picker (emojiPicker.ts); the topic's own edit sends the pick. A group's
-                   (2026-10-31) is sent as its home topic's edit. */}
+              {!(topic || homeUpsert) && <div class="topic-card-art" set:html={art} />}
+              {/* The topic's emoji is the card's picture (2026-10-31): the button that opens the emoji
+                   picker (emojiPicker.ts); the topic's own edit sends the pick, a group's as its
+                   home topic's edit. */}
               {
                 (topic || homeUpsert) && (
                   <button
@@ -234,7 +237,7 @@ const facts = topic && {
             </div>
             {(topic || homeUpsert) && <EmojiPicker id="emoji-picker" />}
             <div class="topic-card-text">
-              <SettingsHead title={name} note={note} />
+              <SettingsHead title={name} note={note} crumb={false} />
             </div>
             {
               topic && (
