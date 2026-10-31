@@ -1,5 +1,5 @@
 ---
-import { PERSPECTIVE_STOPS, topicEmoji } from "@singularity/core";
+import { topicEmoji } from "@singularity/core";
 import { topicArt } from "@singularity/cover";
 import AddFab from "../../../components/AddFab.astro";
 import EmojiPicker from "../../../components/EmojiPicker.astro";
@@ -11,7 +11,6 @@ import SourceFilter from "../../../components/SourceFilter.astro";
 import SourceRow from "../../../components/SourceRow.astro";
 import SuggestedSources from "../../../components/SuggestedSources.astro";
 import TopicsPanel from "../../../components/TopicsPanel.astro";
-import WeightRow from "../../../components/WeightRow.astro";
 import Button from "../../../design-system/Button.astro";
 import Dialog from "../../../design-system/Dialog.astro";
 import DialogActions from "../../../design-system/DialogActions.astro";
@@ -164,16 +163,6 @@ const pickedEmoji = topic
 const addTo = group?.home ?? topic?.id ?? "";
 // A general news topic feeds General episodes by how many outlets carry a story.
 const general = topic?.origin === "general";
-// Left to right is a question for political coverage: world affairs and business, not sport, science
-// or culture (2026-10-20).
-const PERSPECTIVE_TOPICS = new Set(["world", "business"]);
-// A lean set before then stays visible where it applies, so it can be seen and set back to Even.
-const perspective =
-  topic !== null && general && (PERSPECTIVE_TOPICS.has(topic.id) || (topic.perspective ?? 0) !== 0);
-const perspectiveStops = PERSPECTIVE_STOPS.map((s) => ({ name: s.name, value: s.value }));
-// The type mix is one for every topic, on the Preferences page. A page with sliders splits into
-// Sources and Preferences (2026-10-20); one with none (Other, most general topics) is its sources.
-const hasPreferences = perspective;
 // A long list shows its first SHOWN sources and a button for the rest (D103).
 const SHOWN = 7;
 const hidden = Math.max(0, list.length - SHOWN);
@@ -303,121 +292,34 @@ const facts = topic && {
               )
             }
           </div>
-          {/* Sources or Preferences (2026-10-20): the segmented navigation, as tabs. The choice is in
-               the address (?view=preferences), so a reload or Back keeps it; topicsPage.ts reads it
-               and keeps the address in step. */}
-          {/* One card holds the switch and what it shows: the Android settings pattern (2026-10-21). */}
+          {/* One card holds the sources: the Android settings pattern (2026-10-21). Every topic page is
+               its card and its sources; the Sources/Preferences tabs and the Perspective slider are
+               gone (2026-10-31, owner). */}
           <div class="topic-panel">
-          {
-            hasPreferences && (
-              <div class="segmented-nav topic-view" role="tablist" aria-label="Show" data-topic-view data-param="view">
-                <button
-                  class="segmented-nav-tab"
-                  type="button"
-                  role="tab"
-                  id="topic-tab-sources"
-                  aria-selected="true"
-                  aria-controls="topic-pane-sources"
-                  data-value="sources"
-                >
-                  Sources
-                </button>
-                <button
-                  class="segmented-nav-tab"
-                  type="button"
-                  role="tab"
-                  id="topic-tab-preferences"
-                  aria-selected="false"
-                  aria-controls="topic-pane-preferences"
-                  tabindex="-1"
-                  data-value="preferences"
-                >
-                  Preferences
-                </button>
-              </div>
-            )
-          }
-          {
-            hasPreferences && (
-              <div
-                class="topic-view-pane topic-view-preferences"
-                role="tabpanel"
-                id="topic-pane-preferences"
-                aria-labelledby="topic-tab-preferences"
-              >
-                {
-                  perspective && topic && (
-                    <section class="topic-weights" aria-labelledby="perspective-head">
-                      <h2 class="section-head text-heading" id="perspective-head">Perspective</h2>
-                      <div class="rows topic-controls">
-                        <WeightRow
-                          id={`perspective-${topic.id}`}
-                          label="Perspective"
-                          name={`${topic.name} perspective`}
-                          weight={topic.perspective ?? 0}
-                          custom={{
-                            stops: perspectiveStops,
-                            op: { op: "topic.mix", id: topic.id, perspective: 0 },
-                            field: "perspective",
-                          }}
-                        />
-                      </div>
-                    </section>
-                  )
-                }
-              </div>
-            )
-          }
-
           <div
             class="topic-view-pane topic-view-sources"
             id="topic-pane-sources"
-            {...(hasPreferences ? { role: "tabpanel", "aria-labelledby": "topic-tab-sources" } : {})}
           >
-          {/* Under the Sources tab the tab names the list, so the heading is for screen readers only
-               (2026-10-21); Other, with no tabs, keeps it on screen. */}
-          <div class="topic-sources-head" data-quiet={hasPreferences ? "" : undefined}>
-            <h2 class:list={["section-head", "text-heading", { "sr-only": hasPreferences }]}>Sources</h2>
-            {/* From 64rem the button is at the heading's end (2026-10-31, owner). Under the Sources tab
-                 the heading is for screen readers only, so there it stays beside the search
-                 (SourceFilter's action). */}
-            {
-              (list.length === 0 || !hasPreferences) && (
-                <Button
-                  variant="tonal"
-                  class="topic-add-source"
-                  aria-label={`Add source to ${name}`}
-                  data-add-source={addTo}
-                  data-needs-js
-                >
-                  <Icon name="plus" />
-                  <span>Add source</span>
-                </Button>
-              )
-            }
+          {/* The Add source button is at the heading's end on every page (2026-10-31, owner). */}
+          <div class="topic-sources-head">
+            <h2 class="section-head text-heading">Sources</h2>
+            <Button
+              variant="tonal"
+              class="topic-add-source"
+              aria-label={`Add source to ${name}`}
+              data-add-source={addTo}
+              data-needs-js
+            >
+              <Icon name="plus" />
+              <span>Add source</span>
+            </Button>
           </div>
           {/* The sources and their search, in one block, so the search and tabs that stick on a
                phone let go where the list ends, before Suggested sources. */}
           <div class="topic-sources-block">
             {
               list.length > 0 && (
-                <SourceFilter sources={list} chips>
-                  {
-                    hasPreferences && (
-                      <Button
-                        variant="tonal"
-                        slot="action"
-                        class="topic-add-source"
-                        aria-label={`Add source to ${name}`}
-                        data-add-source={addTo}
-                        data-needs-js
-                      >
-                        <Icon name="plus" />
-                        <span>Add source</span>
-                      </Button>
-                    )
-                  }
-                </SourceFilter>
+                <SourceFilter sources={list} chips />
               )
             }
             {
