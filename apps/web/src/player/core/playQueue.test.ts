@@ -106,6 +106,13 @@ describe("the play queue", () => {
       current: "b",
       upcoming: [],
     });
+    // Listed behind and ahead (the two storage keys disagree): the first place wins, so replaying it
+    // puts what followed it back to come.
+    expect(startItem({ played: ["a", "b"], current: "c", upcoming: ["a", "d"] }, "a")).toEqual({
+      played: [],
+      current: "a",
+      upcoming: ["b", "c", "d"],
+    });
     // Something the list never held (a page's Play) becomes current beside it.
     expect(startItem(list, "z")).toEqual({
       played: ["a", "b"],

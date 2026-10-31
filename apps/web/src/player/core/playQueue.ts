@@ -133,19 +133,13 @@ export function parseHistory(raw: string | null): QueueHistory {
   }
 }
 
-/**
- * The list after `id` started (see PlayQueue.started): pure, so the rule is testable. `all` is
- * played, current, then to come; the pointer moves to `id` and nothing else changes order.
- */
-function startItemRaw(
+/** The pointer move, on a list that holds each item once. */
+function startItemOnce(
   state: { played: readonly string[]; current: string | null; upcoming: readonly string[] },
   id: string,
 ): { played: string[]; current: string; upcoming: string[] } {
   const { played, current, upcoming } = state;
-  // Already current, though it may have been queued again since (a reload forgets what played):
-  // it is playing, so it is not also to come.
-  if (id === current)
-    return { played: [...played], current: id, upcoming: upcoming.filter((entry) => entry !== id) };
+  if (id === current) return { played: [...played], current: id, upcoming: [...upcoming] };
   const at = upcoming.indexOf(id);
   if (at >= 0) {
     // Jumped ahead: what was skipped over has been passed.
@@ -172,17 +166,23 @@ function startItemRaw(
   };
 }
 
+/**
+ * The list after `id` started (see PlayQueue.started): pure, so the rule is testable. `all` is
+ * played, current, then to come; the pointer moves to `id` and nothing else changes order.
+ */
 export function startItem(
   state: { played: readonly string[]; current: string | null; upcoming: readonly string[] },
   id: string,
 ): { played: string[]; current: string; upcoming: string[] } {
-  const next = startItemRaw(state, id);
-  // One place for each item: a reload forgets what played, so the item that was current may have
-  // been queued again, and would otherwise be listed behind and ahead at once. The first place wins.
-  const seen = new Set<string>([next.current]);
+  // One place for each item, the first winning (played, then current, then to come). The two
+  // storage keys are read apart, and a reload forgets what played, so an item can come back listed
+  // behind and ahead at once: the one that was current, queued again.
+  const seen = new Set<string>(state.current ? [state.current] : []);
   const once = (ids: readonly string[]): string[] =>
     ids.filter((entry) => !seen.has(entry) && (seen.add(entry), true));
-  return { played: once(next.played), current: next.current, upcoming: once(next.upcoming) };
+  const played = once(state.played);
+  const upcoming = once(state.upcoming);
+  return startItemOnce({ played, current: state.current, upcoming }, id);
 }
 
 export function createPlayQueue(options: {
