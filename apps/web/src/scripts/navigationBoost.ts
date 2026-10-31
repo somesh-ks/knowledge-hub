@@ -10,7 +10,12 @@
  *   - a page that changed behind its saved copy is swapped in quietly, if it has not been touched.
  */
 
-import { ARRIVED_ATTRIBUTE, PILL_ELAPSED_PROPERTY } from "./navigation";
+import {
+  ARRIVED_ATTRIBUTE,
+  PILL_ELAPSED_PROPERTY,
+  PILL_FROM_PROPERTY,
+  SLIDE_VALUE,
+} from "./navigation";
 
 /** Links only: the side column also has a button (the queue's row), which has no page to go to. */
 const NAV_ITEM = "a.app-nav-item";
@@ -44,6 +49,19 @@ export function markCurrent(item: HTMLAnchorElement, root: ParentNode): void {
     if (other !== item) other.removeAttribute("aria-current");
   }
   item.setAttribute("aria-current", "page");
+}
+
+/**
+ * How far the pill has to travel to get from under the current tab to under `item`, in pixels, or
+ * null when there is nothing to slide: no current tab, or a side column, which draws a row and no pill.
+ */
+export function pillDistance(item: HTMLAnchorElement, root: ParentNode): number | null {
+  const current = root.querySelector<HTMLElement>(`${NAV_ITEM}[aria-current='page']`);
+  if (!current || current === item) return null;
+  const from = current.querySelector<HTMLElement>(".app-nav-indicator");
+  const to = item.querySelector<HTMLElement>(".app-nav-indicator");
+  if (!from || !to || getComputedStyle(from, "::before").content === "none") return null;
+  return Math.round(from.getBoundingClientRect().left - to.getBoundingClientRect().left);
 }
 
 /** The pages worth keeping saved: every destination except the one on screen. */
@@ -118,9 +136,14 @@ export function installNavigationBoost(): void {
     if (item) {
       // The pill grows under the item as it lights, here, and not again on the page that arrives.
       if (item.getAttribute("aria-current") !== "page") {
-        document.documentElement.setAttribute(ARRIVED_ATTRIBUTE, "");
+        const root = document.documentElement;
+        // Measured before the item is marked: afterwards there is no old tab to measure from.
+        const distance = pillDistance(item, document);
+        root.setAttribute(ARRIVED_ATTRIBUTE, distance === null ? "" : SLIDE_VALUE);
         // A press in the settle time of the last move starts its growth afresh.
-        document.documentElement.style.removeProperty(PILL_ELAPSED_PROPERTY);
+        root.style.removeProperty(PILL_ELAPSED_PROPERTY);
+        if (distance === null) root.style.removeProperty(PILL_FROM_PROPERTY);
+        else root.style.setProperty(PILL_FROM_PROPERTY, `${distance}px`);
       }
       markCurrent(item, document);
     }

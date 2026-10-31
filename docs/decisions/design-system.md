@@ -438,3 +438,20 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Context changed: this step is the mechanism only. No style exists yet and `tokens.css` is unchanged; the Expressive tokens, the role tokens they need (the raw radius uses in component CSS move to roles first) and the Appearance control follow as design-system PRs.
 - Revisit if: a style needs to change a color ramp (the rule against primitives and the cover, ambient-light and `theme-color` observers need a design first), or two styles want one structural rule that tokens cannot express.
 - Amends: D125.
+
+## D271: a thing that stays on screen and moves rides the default spatial spring
+
+- Date: 2026-10-31 (the owner, 16:39: "morph away, it looks good" for the cover; the rest called for him, who is away). Amends D230.
+- Decision: the nav pill slides from the tab it left to the new one (`nav-pill-slide`, shell.css; `navigationBoost.ts` measures the distance on the press and `navigation.ts` carries it across the swap with the elapsed time). A cover flies between its card and the page's hero on a drill in and out (`coverMorph.ts`: a copy of the leaving cover drawn over the page, the real one hidden until it lands; its radius travels with it). Both use `--duration-spring-spatial-default` and `--ease-spring-spatial-default` (420 ms, 1.5% overshoot): rule 2 of `docs/specs/motion.md`. A move between tabs keeps its quick fade; the pill is its motion. Reduced motion has no slide and no flight.
+- Why: the page move was a hard cut and a 100 ms fade, and the spring tokens of D230 had no user. A flight by copy keeps the swap free of the two snapshot frames a view transition costs (D47).
+- Calls made for the owner: no role token (`--duration-travel`): the primitive tier is literal (`buildTokens.test.ts`) and the spatial spring already names the job. The side column (64rem and up) draws the row itself, so it has no pill to slide and keeps its fade. The flight is skipped when the card is off screen.
+- Rejected: view-transition names on the cover (two snapshot frames on every move); a bounce past 1.5%; sliding the desktop rows.
+- Revisit if: a flight stutters on a slow phone, or the owner wants tab moves to travel as well.
+- Amends: D230.
+
+## D272: no persisted floating button
+
+- Date: 2026-10-31 16:39 (the owner: "nope, we have the dock on mobile for that").
+- Decision: the Play and New episode floating buttons stay one element for each page. Nothing carries one across a move.
+- Why: the dock holds Play on a phone; a persisted button would make the shell own a per-page action.
+- Revisit if: the Play to New episode swap still reads as a pop on a phone.
