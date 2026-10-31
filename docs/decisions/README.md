@@ -287,5 +287,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D272 | No persisted floating button | active |
 | D274 | Icon weight token | amends D268 |
 | D275 | Concentric picker | amends D167 |
+| D278 | Softer light covers | amends D121 |
 
 ---
