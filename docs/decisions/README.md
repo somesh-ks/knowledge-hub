@@ -284,7 +284,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D268 | Styles: token overrides | amends D125 |
 | D269 | Hour wheel | amends D265 |
 | D270 | Experiments settle on a read | amends D249, D259 |
-| D271 | Pill and cover travel in 250 ms | active |
+| D271 | Pill, cover travel | superseded by D280 |
 | D272 | No persisted floating button | active |
 | D273 | Haptic tokens | amends D52 |
 | D274 | Icon weight token | amends D268 |
@@ -292,6 +292,8 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D276 | Voice list | amends D101 |
 | D277 | Queue keeps played items; a tap plays in place | amends D126 |
 | D278 | Softer light covers | amends D121 |
+| D280 | Travel 300 ms | amends D271 |
 | D284 | Push pings | amends D11 |
+| D285 | Switch can be mixed | |
 
 ---

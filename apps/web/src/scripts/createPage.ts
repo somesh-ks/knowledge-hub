@@ -4,7 +4,6 @@ import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import { hasSaved, storeOn } from "../lib/savedKey";
 import type { Voice } from "../lib/voices";
 import { startRun } from "./runStatus";
-import { mountSamples } from "./voiceSamples";
 
 /**
  * The Create form: the button's length and the request. The form lives on /create and in the Create sheet; both call `installCreate`.
@@ -75,7 +74,6 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
         const fallback = voices.find((voice) => voice.id === id);
         if (fallback) defaultVoices[select.name] = fallback;
         lib.fillVoiceSelect(select, voices, select.value, fallback);
-        syncSample(select);
       }
       sync();
     } catch {
@@ -94,13 +92,6 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
   // host has hands this host's old voice over instead of leaving one voice for two named hosts.
   const lastVoice: Record<string, string | null> = {};
   const voiceSelects = [...form.querySelectorAll<HTMLSelectElement>("[data-voice] select")];
-  // The button beside each voice plays its sample; choosing a voice plays it too.
-  const syncSample = mountSamples(
-    form,
-    ".create-voice-field",
-    (select) => voiceOf(select) ?? undefined,
-  );
-
   function rememberVoices(): void {
     for (const select of voiceSelects) lastVoice[select.name] = voiceOf(select)?.id ?? null;
   }
@@ -117,7 +108,6 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     if (![...other.options].some((option) => option.value === before)) return;
     other.value = before;
     other.dispatchEvent(new Event("picker:sync"));
-    syncSample(other);
   }
 
   function sync(): void {
@@ -366,7 +356,6 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     if (!changed) return;
     for (const select of voiceSelects) {
       select.dispatchEvent(new Event("picker:sync"));
-      syncSample(select);
     }
     sync();
   }

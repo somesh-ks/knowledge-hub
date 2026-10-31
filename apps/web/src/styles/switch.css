@@ -65,15 +65,14 @@
 }
 
 /* Mixed (a master over a group of which only some are on): the script sets `indeterminate` and unchecks
-   it. A tonal track edged in the accent, so it reads as part way to on, with the thumb halfway along
-   it in the accent. After the checked rules, so it wins if both ever apply. */
+   it. No new colour: the track sits halfway between the off grey and the accent, and the idle thumb
+   halfway along it, so it reads as between the two states (owner, 2026-10-31: the first draw, a tonal
+   track with an accent ring and thumb, "looks weird in color"). After the checked rules. */
 .switch-input:indeterminate {
-  background: var(--color-accent-container);
-  box-shadow: inset 0 0 0 var(--stroke-rail) var(--color-accent);
+  background: color-mix(in oklch, var(--color-accent) 50%, var(--color-border-control));
 }
 
 .switch-input:indeterminate::before {
-  background: var(--color-accent);
   transform: translateX(
     calc((var(--switch-width) - var(--switch-thumb) - var(--switch-padding) * 2) / 2)
   );
@@ -139,9 +138,5 @@
 
   .switch-input:indeterminate {
     border-color: Highlight;
-  }
-
-  .switch-input:indeterminate::before {
-    background: Highlight;
   }
 }

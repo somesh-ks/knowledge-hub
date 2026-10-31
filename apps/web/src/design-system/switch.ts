@@ -10,7 +10,7 @@ export const SWITCH: Guidance = {
   useWhen: [
     "A setting is on or off and applies as soon as it is flipped: Sounds, Autoplay, a podcast's Enabled.",
     "It sits at the end of a settings row, with the row's label as its name.",
-    "One switch stands for a group of switches (a master): the script sets `indeterminate` on it, and unchecks it, while only some of the group are on. The track fills tonal and the thumb sits in the middle. Pressing it turns the whole group on, or off when all are on.",
+    "One switch stands for a group of switches (a master): the script sets `indeterminate` on it, and unchecks it, while only some of the group are on. The track sits halfway between the off grey and the accent and the thumb halfway along it. Pressing it turns the whole group on, or off when all are on.",
   ],
   dontUseWhen: [
     {
