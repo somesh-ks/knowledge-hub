@@ -22,7 +22,7 @@ Ask in this order and stop at the first yes.
 | Fade or recolour | `--duration-state` (200), `-enter`, `-exit`, or `--duration-spring-effects-*` | `--ease-out`, `--ease-spring-effects-{fast,default,slow}` |
 | Small move or reshape | `--duration-spring-spatial-fast` (350) | `--ease-spring-spatial-fast` |
 | Larger move | `--duration-spring-spatial-default` (420), `-slow` (570) | `--ease-spring-spatial-default`, `-slow` |
-| Travel: a thing that stays and moves from where it was to where it is (the nav pill between tabs, a cover between its card and the page's hero) | `--duration-travel` (300) | `--ease-out` |
+| Travel: a thing that stays and moves from where it was to where it is (the nav pill between tabs, a cover between its card and the page's hero) | `--duration-enter` (250) | `--ease-out` |
 | Sheet in, out | `--duration-sheet-in` (300), `-sheet-out` (220) | `--ease-drawer` |
 | Full-height drawer | `--duration-drawer-full` (500), the one exception to 300 | `--ease-drawer` |
 

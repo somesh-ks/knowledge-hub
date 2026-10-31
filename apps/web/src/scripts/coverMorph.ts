@@ -139,7 +139,7 @@ export function installCoverMorph(): void {
 
     const { dx, dy, scale } = flight(flightOf.first, last);
     const style = getComputedStyle(document.documentElement);
-    const duration = milliseconds(style.getPropertyValue("--duration-travel"));
+    const duration = milliseconds(style.getPropertyValue("--duration-enter"));
     const easing = style.getPropertyValue("--ease-out").trim() || "ease-out";
     const endRadius = Number.parseFloat(getComputedStyle(target).borderTopLeftRadius);
 
