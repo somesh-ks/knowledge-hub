@@ -8,6 +8,7 @@ import {
   expireContentManifest,
   isShowingSavedContent,
   loadStoreSite,
+  loadStoreSiteChecked,
   MANIFEST_TTL_MS,
   resetContentRepo,
 } from "./contentRepo";
@@ -105,7 +106,10 @@ it("keeps the last content and says so while the store cannot be reached", async
 
   down = true;
   now = MANIFEST_TTL_MS + 1;
-  expect((await loadStoreSite(deps))?.entries.length).toBe(before);
+  // The load itself says it is the saved site; a cover route cannot call a miss final on it (D258).
+  const checked = await loadStoreSiteChecked(deps);
+  expect(checked?.site.entries.length).toBe(before);
+  expect(checked?.saved).toBe(true);
   expect(isShowingSavedContent()).toBe(true);
   // The next request in the window does not wait on the dead store again.
   const attempts = failed;
@@ -114,7 +118,7 @@ it("keeps the last content and says so while the store cannot be reached", async
 
   down = false;
   now = 2 * MANIFEST_TTL_MS + 2;
-  await loadStoreSite(deps);
+  expect((await loadStoreSiteChecked(deps))?.saved).toBe(false);
   expect(isShowingSavedContent()).toBe(false);
 });
 

@@ -97,8 +97,9 @@ function currentTombstones(base: string, deps: ContentRepoDeps): Promise<Readonl
 /** The store's manifest, read fresh at most once per MANIFEST_TTL_MS. Null when there is none. */
 async function currentManifest(
   deps: ContentRepoDeps,
-): Promise<{ base: string; manifest: Manifest } | null> {
-  if (heldManifest && deps.now() - heldManifest.at < MANIFEST_TTL_MS) return heldManifest;
+): Promise<{ base: string; manifest: Manifest; saved: boolean } | null> {
+  if (heldManifest && deps.now() - heldManifest.at < MANIFEST_TTL_MS)
+    return { ...heldManifest, saved: savedContent };
   const base = readPublicBlobBase(deps.env);
   if (base === null) return null;
   try {
@@ -108,7 +109,7 @@ async function currentManifest(
     if (manifest === null) throw new Error("the content store has no manifest");
     heldManifest = { at: deps.now(), base, manifest };
     savedContent = false;
-    return heldManifest;
+    return { ...heldManifest, saved: false };
   } catch (error) {
     // Unreachable: the last manifest this instance read still answers, and pages say so (criterion
     // 9). An instance that never read one has nothing to show.
@@ -120,7 +121,7 @@ async function currentManifest(
     savedContent = true;
     // The next read waits a window, so an outage does not make every request wait on the dead store.
     heldManifest = { ...heldManifest, at: deps.now() };
-    return heldManifest;
+    return { ...heldManifest, saved: true };
   }
 }
 
@@ -142,11 +143,22 @@ export async function loadStoreFiles(deps: ContentRepoDeps): Promise<ContentFile
  * when the store is not configured or has no manifest, so the caller can answer "unavailable".
  */
 export async function loadStoreSite(deps: ContentRepoDeps): Promise<Site | null> {
+  return (await loadStoreSiteChecked(deps))?.site ?? null;
+}
+
+/**
+ * loadStoreSite with whether the site is the last one this instance read because the store could
+ * not be reached, taken from this load itself, not from state another request may change.
+ */
+export async function loadStoreSiteChecked(
+  deps: ContentRepoDeps,
+): Promise<{ site: Site; saved: boolean } | null> {
   const current = await currentManifest(deps);
   if (current === null) return null;
   const ids = await currentTombstones(current.base, deps);
+  const { saved } = current;
   if (heldSite?.updatedAt === current.manifest.updated_at)
-    return heldSite.site.then((site) => withoutTombstoned(site, ids));
+    return { site: await heldSite.site.then((site) => withoutTombstoned(site, ids)), saved };
   const site = loadSite({
     root: "",
     env: {},
@@ -158,7 +170,7 @@ export async function loadStoreSite(deps: ContentRepoDeps): Promise<Site | null>
   site.catch(() => {
     if (heldSite?.site === site) heldSite = null;
   });
-  return site.then((loaded) => withoutTombstoned(loaded, ids));
+  return { site: await site.then((loaded) => withoutTombstoned(loaded, ids)), saved };
 }
 
 /**

@@ -6,9 +6,10 @@ import type { APIRoute, GetStaticPaths } from "astro";
 import { coverPng, coverWebp } from "../../../lib/covers";
 import { findRepoRoot } from "../../../lib/repoRoot";
 import {
+  type ContentRepoDeps,
   expireContentManifest,
-  isShowingSavedContent,
   loadStoreSite,
+  loadStoreSiteChecked,
 } from "../../../server/contentRepo";
 import {
   type CoverResolution,
@@ -49,6 +50,21 @@ const CACHE = { cacheDir: join(tmpdir(), "singularity-covers"), fingerprint: "fu
 const MIN_REFRESH_MS = 5_000;
 let lastRefresh = Number.NEGATIVE_INFINITY;
 
+/** The manifest re-read in flight; requests that arrive while it runs wait for it, not for a 503. */
+let refreshing: ReturnType<typeof loadStoreSiteChecked> | null = null;
+
+/** Reads the manifest once more, or joins the read in flight; undefined inside the window after one. */
+function refresh(deps: ContentRepoDeps): typeof refreshing | undefined {
+  if (refreshing) return refreshing;
+  if (Date.now() - lastRefresh < MIN_REFRESH_MS) return undefined;
+  lastRefresh = Date.now();
+  expireContentManifest();
+  refreshing = loadStoreSiteChecked(deps).finally(() => {
+    refreshing = null;
+  });
+  return refreshing;
+}
+
 const BEHIND_HEADERS = { "Cache-Control": "no-store", "Retry-After": "5" } as const;
 
 export const GET: APIRoute = async ({ params }) => {
@@ -57,17 +73,16 @@ export const GET: APIRoute = async ({ params }) => {
   if (!split || !request) {
     return new Response("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
   }
-  const load = () =>
-    loadStoreSite({
-      env: process.env,
-      fetch,
-      now: Date.now,
-      log: (message) => console.error(`[api/cover] ${message}`),
-    });
+  const deps: ContentRepoDeps = {
+    env: process.env,
+    fetch,
+    now: Date.now,
+    log: (message) => console.error(`[api/cover] ${message}`),
+  };
   try {
-    let site = await load();
-    let resolution: CoverResolution = site
-      ? resolveCover(site, request.id, split.version)
+    const held = await loadStoreSite(deps);
+    let resolution: CoverResolution = held
+      ? resolveCover(held, request.id, split.version)
       : { kind: "missing" };
     // Whether the store's newest manifest, not a held one, backs a non-draw answer.
     let confirmed = false;
@@ -75,13 +90,13 @@ export const GET: APIRoute = async ({ params }) => {
       // A page is drawn from the store's newest manifest, and this instance may hold an older one
       // for up to its window. The CDN keeps whatever is answered here, so read the manifest once
       // more before saying a cover is missing or behind. The held site reloads only if it changed.
-      if (Date.now() - lastRefresh >= MIN_REFRESH_MS) {
-        lastRefresh = Date.now();
-        expireContentManifest();
-        site = await load();
-        resolution = site ? resolveCover(site, request.id, split.version) : { kind: "missing" };
-        // A failed read keeps the held manifest (isShowingSavedContent), which proves nothing.
-        confirmed = !isShowingSavedContent();
+      const refreshed = await refresh(deps);
+      if (refreshed !== undefined) {
+        resolution = refreshed
+          ? resolveCover(refreshed.site, request.id, split.version)
+          : { kind: "missing" };
+        // A failed read keeps the held manifest, which proves nothing.
+        confirmed = refreshed !== null && !refreshed.saved;
       }
     }
     if (resolution.kind === "missing") {
