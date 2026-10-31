@@ -36,7 +36,10 @@
 
 /* The title's ⋮ ends in line with the rows' (the Library's row menu sits inset from the gutter), and
    its menu hangs under it: the Menu's default anchor is the page header's More button. */
+.downloads-menu {
+  padding-inline-end: var(--space-2);
+}
+
 .downloads-menu > button {
   anchor-name: --hero-more;
-  margin-inline-end: var(--space-2);
 }
