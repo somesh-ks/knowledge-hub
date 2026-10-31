@@ -39,6 +39,15 @@
   line-height: var(--space-6);
 }
 
+/* Sign out sits at the end of the app bar on a phone; the side column has its own, in the nav foot. */
+.admin-signout {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  display: flex;
+  align-items: center;
+}
+
 /* ------------------------------------------------------------------ the overview */
 
 /* The Overview's two cards read at a glance: a status badge or a figure first, then marks, with

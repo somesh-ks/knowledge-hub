@@ -3,6 +3,7 @@ import BrandMark from "../../../web/src/components/BrandMark.astro";
 import Icon from "../../../web/src/components/Icon.astro";
 import themeInit from "../../../web/src/scripts/themeInit.js?raw";
 import AdminNav from "../components/AdminNav.astro";
+import SignOut from "../components/SignOut.astro";
 import { href, READER_HREF } from "../lib/sections";
 import "../../../web/src/styles/tokens.css";
 import "../../../web/src/styles/foundations.css";
@@ -58,6 +59,7 @@ const { title, current, bare = false } = Astro.props;
           <span>Singularity</span>
           <span class="admin-tag">Admin</span>
         </a>
+        {!bare && <SignOut class="admin-signout" />}
       </div>
     </header>
     {!bare && <AdminNav current={current} />}

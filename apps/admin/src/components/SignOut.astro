@@ -1,0 +1,16 @@
+---
+import Button from "../../../web/src/design-system/Button.astro";
+import { href } from "../lib/sections";
+
+interface Props {
+  /** For placing the control where it stands. */
+  class?: string;
+}
+
+const { class: placement } = Astro.props;
+---
+
+{/* The gate (src/gate/gate.ts) answers this post: it clears the session and goes to the sign-in page. */}
+<form method="post" action={href("/logout")} class={placement}>
+  <Button variant="text" type="submit">Sign out</Button>
+</form>

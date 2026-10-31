@@ -390,3 +390,12 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Revisit if: the Google login replaces the password (the cookie's meaning stays; only how it is issued changes), or another page needs these numbers without a session.
 - Amends: D201 (for these two routes), D224.
 
+## D261: Admin sign-in is Google, beside the password
+
+- Date: 2026-10-31 (the queue's "Google login with a Sign out control"; phase 0 of Stage A in `scaling/multi-user-plan.md`).
+- Decision: `/admin/login` offers Continue with Google beside the password. The gate runs the authorization code flow with PKCE, a state and a nonce (`apps/admin/src/gate/google.ts`), keeps them in a signed ten-minute cookie scoped to the two Google addresses, and lets in only a verified email on `ADMIN_GOOGLE_EMAILS`. What it issues is the D257 session, unchanged, so the reader's report routes need nothing. The password stays as the break-glass; the gate opens with either way in plus the secret and fails closed with neither. Sign out (a post to `/logout`, already in the gate) is a control in the app bar and the side column. Google stays off, and the page says so, until `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` and `ADMIN_GOOGLE_EMAILS` are set on `singularity-admin` ([runbook](../runbook.md)).
+- Why: one shared password has no per-person trail and no revocation short of rotating it; Google adds the owner's own MFA for a day and a half of work, and the cookie's meaning does not change.
+- Rejected: an auth library (the flow is 150 lines over Web Crypto, and the plan's reader accounts will choose one for both); verifying the id token's signature (it arrives from Google's token endpoint over TLS in answer to a code only this browser can redeem, OpenID Connect Core 3.1.3.7); removing the password now (the plan keeps it until two admin sign-ins are proven); reader accounts, which are the plan's phase 1.
+- Revisit if: the reader gets accounts (the admin check becomes role `admin` on one session, and the allowlist moves to the store, keyed on Google's `sub` rather than the email), or a second owner is added.
+- Amends: D224, D257.
+
