@@ -11,8 +11,17 @@ export const PREFERENCES_KEY = "singularity:preferences";
 export const THEME_PREFERENCES = ["system", "light", "dark"] as const;
 export type ThemePreference = (typeof THEME_PREFERENCES)[number];
 
+/**
+ * The look this device chose: "default" or the name of a style in tokens.json (D268). Any
+ * lowercase kebab-case word is kept, so a style added there needs no change here; a name no
+ * style carries matches no CSS and looks like the default.
+ */
+export type StylePreference = string;
+export const DEFAULT_STYLE: StylePreference = "default";
+
 export interface Preferences {
   theme: ThemePreference;
+  style: StylePreference;
   /** null until the listener chooses, so the reduced-motion default can apply. */
   sounds: boolean | null;
   /** 0 to 1, before the engine's quadratic taper. */
@@ -27,6 +36,7 @@ export const DEFAULT_VOLUME = 0.8;
 
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: "system",
+  style: DEFAULT_STYLE,
   sounds: null,
   volume: DEFAULT_VOLUME,
   rate: 1,
@@ -35,6 +45,10 @@ export const DEFAULT_PREFERENCES: Preferences = {
 
 function isTheme(value: unknown): value is ThemePreference {
   return typeof value === "string" && (THEME_PREFERENCES as readonly string[]).includes(value);
+}
+
+function isStyle(value: unknown): value is StylePreference {
+  return typeof value === "string" && /^[a-z][a-z-]{0,23}$/.test(value);
 }
 
 /** Tolerates anything: a stale shape, hand-edited JSON, a value from a future version. */
@@ -50,6 +64,7 @@ export function parsePreferences(raw: string | null): Preferences {
   const record = parsed as Record<string, unknown>;
   return {
     theme: isTheme(record.theme) ? record.theme : DEFAULT_PREFERENCES.theme,
+    style: isStyle(record.style) ? record.style : DEFAULT_STYLE,
     sounds: typeof record.sounds === "boolean" ? record.sounds : null,
     volume: isFiniteNumber(record.volume)
       ? Math.min(1, Math.max(0, record.volume))

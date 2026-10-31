@@ -11,6 +11,7 @@ import {
   hexFor,
   loadTokens,
   type Mode,
+  parseTokens,
   resolveLiteral,
   TOKENS_CSS_PATH,
   type Token,
@@ -610,5 +611,55 @@ describe("style sources", () => {
   it("keeps the prototype stylesheet on defined tokens", () => {
     checkSource("scripts/prototype/ui-prototype.css", { strictLiterals: false });
     checkSource("scripts/soundLab/sound-lab.css", { strictLiterals: false });
+  });
+});
+
+describe("styles", () => {
+  const raw = JSON.parse(readFileSync(resolve(ROOT, "tokens/tokens.json"), "utf8"));
+  const withStyle = (style: unknown): TokenDocument =>
+    parseTokens({ ...raw, styles: { bold: style } });
+  const surface = (value: string, dark?: string) => ({
+    $value: value,
+    ...(dark ? { $extensions: { singularity: { mode: { dark } } } } : {}),
+  });
+
+  it("writes a style after the base's dark blocks, so at equal weight the style wins", () => {
+    const css = buildCss(
+      withStyle({
+        semantic: { color: { surface: surface("oklch(99% 0 0)", "oklch(10% 0 0)") } },
+        component: { card: { radius: { $value: "2.5rem" } } },
+      }),
+    );
+    const at = (needle: string): number => css.indexOf(needle);
+    expect(at(':root[data-style="bold"] {')).toBeGreaterThan(at(':root[data-theme="dark"] {'));
+    expect(at(':root[data-style="bold"] {')).toBeLessThan(at("prefers-reduced-motion"));
+    expect(css).toContain(':root:not([data-theme="light"])[data-style="bold"] {');
+    expect(css).toContain(':root[data-theme="dark"][data-style="bold"] {');
+    expect(css).toContain("--card-radius: 2.5rem;");
+    const dark = css.slice(at(':root[data-theme="dark"][data-style="bold"] {'));
+    const darkBody = dark.slice(0, dark.indexOf("}"));
+    expect(darkBody).toContain("oklch(10% 0 0)");
+    expect(darkBody).not.toContain("oklch(99% 0 0)");
+  });
+
+  // Each of these would otherwise ship quietly: a light-only color lets the base's dark value show
+  // through in dark mode, and a primitive shifts every ramp (and the reduced-motion rule) at once.
+  it("refuses an override that would leak or outrank the base", () => {
+    expect(() =>
+      withStyle({ semantic: { color: { surface: surface("oklch(99% 0 0)") } } }),
+    ).toThrow(/needs one too/);
+    expect(() => withStyle({ component: { card: { radius: surface("1rem", "2rem") } } })).toThrow(
+      /may not give one/,
+    );
+    expect(() => withStyle({ primitive: { duration: { "sheet-in": { $value: "1ms" } } } })).toThrow(
+      /primitive/,
+    );
+    expect(() => withStyle({ component: { card: { nope: { $value: "1rem" } } } })).toThrow(
+      /no such token/,
+    );
+    expect(() => parseTokens({ ...raw, styles: { default: {} } })).toThrow(/not "default"/);
+    expect(() => withStyle({ semantic: { color: { surface: "oklch(99% 0 0)" } } })).toThrow(
+      /expected a token or a group/,
+    );
   });
 });
