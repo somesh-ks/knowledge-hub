@@ -78,6 +78,19 @@ export function checkDocs(root) {
       fails.push(`docs/decisions: "${phrase}" names a decision that does not exist`);
   }
 
+  // A row that "replaces Dn" retires Dn: agents grep the status column, so Dn must say it is superseded.
+  const rowText = new Map([...index.matchAll(/^\| (D\d+) \|(.*)$/gm)].map((m) => [m[1], m[2]]));
+  for (const [id, text] of rowText) {
+    const status = text.slice(text.lastIndexOf("|", text.length - 2) + 1);
+    for (const phrase of status.matchAll(/replaces ((?:D\d+(?:, | and )?)+)/gi)) {
+      for (const old of phrase[1].match(/D\d+/g) ?? []) {
+        if (rowText.has(old) && !/superseded by/i.test(rowText.get(old) ?? "")) {
+          fails.push(`docs/decisions/README.md: ${id} replaces ${old}, but ${old}'s row is not "superseded by ${id}"`);
+        }
+      }
+    }
+  }
+
   // An open item says what closes it, so a stale note can be told from a real question.
   if (existsSync(at("docs/state.md"))) {
     const state = read(at("docs/state.md"));

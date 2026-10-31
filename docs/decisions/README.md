@@ -23,7 +23,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | :--- | :--- | :--- |
 | D1 | Engine runs on GitHub Actions | active |
 | D2 | The repository lives in this folder | active |
-| D3 | Judge is TypeSafe Jev, writer is a cheap Nebius model chosen by a bake-off | active |
+| D3 | Judge is TypeSafe Jev, writer is a cheap Nebius model chosen by a bake-off | active; the writer part superseded by D136 |
 | D4 | Astro with React islands, Base UI and hand-written token CSS | active |
 | D5 | One MP3 per digest with word marks, from Speechify | superseded by D33 for new narration |
 | D6 | Daily cron with a calendar-date gate, plus a Sunday weekly pass | active; Vercel Cron since D61; no weekly since D65 |
@@ -44,7 +44,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D21 | Source health lives in state | active |
 | D22 | `deploy.yml` owns the deploy | superseded by D25 |
 | D23 | The engine tolerates audio failure | active |
-| D24 | The writer model is picked from the live Nebius list | active |
+| D24 | The writer model is picked from the live Nebius list | superseded by D136 |
 | D25 | The Vercel GitHub integration deploys the site | active |
 | D26 | Audio uploads use Vercel Blob OIDC credentials | active |
 | D27 | Owner and Dependabot pull requests merge automatically | active |
@@ -66,7 +66,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D43 | General episodes are built from general-news feeds, ranked by coverage | active; ids mix with briefings since D67, feeds judged since D66 |
 | D44 | An episode can be deleted, or regenerated with the listener's feedback | active |
 | D45 | The briefing's hour, cadence and topics are set in Settings | active; `RUN_CRON` is the fallback trigger since D61 |
-| D46 | The writer's provider and model are chosen in Settings | active |
+| D46 | The writer's provider and model are chosen in Settings | superseded by D136 |
 | D47 | A move between pages is answered from a saved copy and swapped at once | active |
 | D48 | One shader: a light in the cover's colours behind the header, on a GPU only | active |
 | D49 | One Podcast settings page: Daily, Weekly, Custom, writer, topics, sources | layout superseded by D51; the 0 to 5 score by D55 |
@@ -78,7 +78,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D55 | A source's score is out of 3: health, quality and trust; a weak part is not bought back | active; a word, not pips and a number, since D83 |
 | D56 | One panel adds a topic or a source and edits a source; no Custom page | active |
 | D57 | A topic's page edits its details and adds suiting sources; topics are listed by name | active; amended by D64 and D69 |
-| D58 | The Model page offers six top Nebius writers by name, live list or not | active |
+| D58 | The Model page offers six top Nebius writers by name, live list or not | superseded by D136 |
 | D59 | On a phone, Play takes the floating button's place on an episode or old briefing | active; Today floats Play too since D60 |
 | D60 | On a phone Create floats on the Library alone; every page with audio floats Play | active; Play floats once the hero's Play scrolls off since D77 |
 | D61 | Vercel Cron starts the scheduled briefing in its hour; GitHub's schedule is the fallback | active |
@@ -133,7 +133,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D110 | Covers dated 2026-10 or later take one colour scheme a month, set layouts for Daily and Weekly, a round plate for On demand, contrast enforced in code | active |
 | D111 | The open player has no drag handle and square top corners at every point of its travel | active; amends D32, D106 |
 | D112 | Every page modulepreloads what it loads at start; press code loads at idle; the player's motion after first paint; first-load budget 109 KB | active; amends D53, D103 |
-| D113 | Claude Sonnet 5.5 is the default writer for the page and the engine; the Model list has no Default row; Nebius starts on GLM-5.3 | active; amends D46, D106 |
+| D113 | Claude Sonnet 5.5 is the default writer for the page and the engine; the Model list has no Default row; Nebius starts on GLM-5.3 | superseded by D136 |
 | D114 | Every episode is for the owner; New episode form is short | active; amends D39, D67, D76, D101 |
 | D115 | Settings save quietly: no toast while a change saves or once it is saved; the toast is for a failure, an Undo or a partial save | active; amends D79, D91, D98 |
 | D116 | docs/ is grouped by purpose: the record at the top, plan/, engineering/, design/, reference/; audits fold into history notes | active; amends D14 |
@@ -150,7 +150,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, at most 10 | active; amends D123 |
 | D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by content hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
 | D129 | Settings restructured: Sources or Preferences per topic, one voice pair, Theme select | partly superseded by D195; amends D51, D87, D124, D125 |
-| D130 | Kimi models are never offered; the Nebius five are ranked by EQ-Bench longform; a weekly scheduled check proposes a refresh by PR | active; amends D123 |
+| D130 | Kimi models are never offered; the Nebius five are ranked by EQ-Bench longform; a weekly scheduled check proposes a refresh by PR | superseded by D136 |
 | D131 | An 8pt spacing system (4px only for named fine cases), rows that carry their own rhythm, headings never bold, enforced by `npm run design-check` | active; amends D73 |
 | D132 | Two segmented controls (a choice with a check; a navigation tablist with a sliding pill) and one sheet header with Close at the end | active; amends D106 |
 | D133 | The second owner round: Up next as a player tab, Settings cards, one search and chip style, Jev emoji, no Daily type | active; amends D126, D127, D129, D132 |
@@ -161,7 +161,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D138 | Alexandria enriches thin text, never replaces it | active |
 | D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, the site reports its errors | active |
 | D140 | Design system enforced in three layers (`design-check` hook, e2e, `design-audit` agent); icons only from Phosphor | active; amends D131 |
-| D141 | The first-load budget is 130 KB | active; replaces D112's 109 KB |
+| D141 | The first-load budget is 130 KB | active; amends D112's 109 KB budget |
 | D142 | A new topic is a row at once and opens a page before the build; one save carries Jev's emoji; a removal leaves the page at once with Undo | active; amends D79 |
 | D143 | Every PR gets a code review before it merges, by hand once blocking findings are fixed | active; partly superseded by D254 for `[skip-review]` PRs |
 | D144 | Phone sheets close by pull or tap outside and show no Close | active; amends D132 |
@@ -291,5 +291,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D275 | Concentric picker | amends D167 |
 | D277 | Queue keeps played items; a tap plays in place | amends D126 |
 | D278 | Softer light covers | amends D121 |
+| D283 | Read-first stays 40 KB; state.md parks its oldest open items; "replaces" retires the old row | amends D141 |
 
 ---

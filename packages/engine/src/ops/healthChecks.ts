@@ -465,6 +465,45 @@ export function checkRunsDied(
   }
 }
 
+/** The workflows besides run.yml whose failure leaves the site stale or a podcast missing, with no fault elsewhere. */
+export const SIDE_WORKFLOWS = ["content", "ingest", "podcast"] as const;
+export type SideWorkflow = (typeof SIDE_WORKFLOWS)[number];
+
+/**
+ * `content_failed`, `ingest_failed`, `podcast_failed`: the newest finished run of that workflow
+ * (content.yml syncs the store, ingest.yml feeds it, podcast.yml makes Catch up episodes) ended
+ * `failure`, `timed_out` or `startup_failure` in the last three days and nothing newer succeeded.
+ * Health read only run.yml, so a failing content sync left the site stale with no fault (OBS-01).
+ * A cancelled run says nothing: a newer commit cancels the one it replaces.
+ */
+export function checkSideRuns(
+  workflow: SideWorkflow,
+  runs: readonly WorkflowRun[],
+  now: Date,
+  sink: Sink,
+): void {
+  const finished = runs
+    .filter(
+      (run) =>
+        run.status === "completed" &&
+        run.conclusion !== "cancelled" &&
+        run.conclusion !== "skipped" &&
+        now.getTime() - Date.parse(run.createdAt) < RUN_DIED_WINDOW_MS,
+    )
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  const last = finished[0];
+  if (!last) return;
+  if (DIED.has(last.conclusion ?? "")) {
+    sink.fault(
+      `${workflow}_failed`,
+      "reliability",
+      `${workflow}.yml run ${last.databaseId} (${last.event ?? "run"}, ${last.createdAt}) ended ${last.conclusion} and nothing newer succeeded.`,
+    );
+  } else {
+    sink.passed.push(`the last ${workflow}.yml run succeeded`);
+  }
+}
+
 /** One page as scripts/perfProbe.ts measured it: the median of its cold loads. */
 export interface PerfPage {
   page: string;

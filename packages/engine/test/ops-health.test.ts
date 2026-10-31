@@ -10,6 +10,7 @@ import {
   checkFieldVitals,
   checkPerf,
   checkRunsDied,
+  checkSideRuns,
   checkStore,
   FIELD_MIN_SAMPLES,
   readDeploymentCount,
@@ -471,6 +472,34 @@ describe("singularity health", () => {
     expect(faults).toEqual(["run_died"]);
     checkRunsDied(records, [died, run(3, "queued", "2026-10-21T08:13:00Z")], NOW, sink);
     expect(faults).toEqual(["run_died"]);
+  });
+
+  // Bug: health read only run.yml, so a failing content.yml left the site stale with no fault (OBS-01).
+  it("faults a content, ingest or podcast workflow whose newest run failed, and clears on a success", () => {
+    const run = (databaseId: number, conclusion: string, createdAt: string) => ({
+      databaseId,
+      status: "completed",
+      conclusion,
+      createdAt,
+    });
+    const faults: string[] = [];
+    const sink = { fault: (code: string) => faults.push(code), warn: () => {}, passed: [] };
+    checkSideRuns("content", [run(1, "failure", "2026-10-21T07:00:00Z")], NOW, sink);
+    expect(faults).toEqual(["content_failed"]);
+    faults.length = 0;
+    checkSideRuns(
+      "ingest",
+      [
+        run(1, "failure", "2026-10-21T05:00:00Z"),
+        run(2, "success", "2026-10-21T06:00:00Z"),
+        run(3, "cancelled", "2026-10-21T07:00:00Z"),
+      ],
+      NOW,
+      sink,
+    );
+    expect(faults).toEqual([]);
+    checkSideRuns("podcast", [run(4, "failure", "2026-10-10T07:00:00Z")], NOW, sink);
+    expect(faults).toEqual([]);
   });
 
   // A slow or shifting page reached the owner's phone with nothing saying so; a probe that could

@@ -4,6 +4,7 @@ import {
   audioKey,
   audioVersion,
   DEFAULT_CACHE_MAX_AGE_SECONDS,
+  isPruneDay,
   pruneAudio,
   uploadAudio,
 } from "../src/publish/blob.js";
@@ -129,6 +130,24 @@ describe("pruneAudio", () => {
       "audio/notes.txt",
       "covers/2026-01-01.png",
     ]);
+  });
+
+  // Bug: word marks and an episode's Opus manifest were never pruned, so they stayed for good.
+  it("also prunes the .json files that travel with a narration", async () => {
+    const blob = makeFakeBlob();
+    blob.seed("audio/ep-20260101-0600/seg/t1.0123456789ab.marks.json", daysAgo(200));
+    blob.seed("audio/ep-20260101-0600/episode.0123456789ab.json", daysAgo(200));
+    blob.seed("audio/ep-20261005-0600/seg/t1.0123456789ab.marks.json", daysAgo(2));
+    const result = await pruneAudio(blob, { olderThanDays: 30, now: NOW });
+    expect(result.deleted).toHaveLength(2);
+    expect([...blob.store.keys()]).toEqual([
+      "audio/ep-20261005-0600/seg/t1.0123456789ab.marks.json",
+    ]);
+  });
+
+  it("sweeps on Sundays only, so the daily audio run does not list all of audio/", () => {
+    expect(isPruneDay(new Date("2026-11-01T06:00:00Z"))).toBe(true);
+    expect(isPruneDay(new Date("2026-10-31T06:00:00Z"))).toBe(false);
   });
 
   it("lists with the audio/ prefix", async () => {

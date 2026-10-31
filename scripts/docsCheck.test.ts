@@ -60,4 +60,16 @@ describe("docs check", () => {
       ]),
     );
   });
+
+  // Bug: D136 "replaces D46, D58, D113, D130" while their rows still said active, so agents grepping
+  // the Index status column built on dead decisions.
+  it("fails a row that replaces a decision whose own row still says active", () => {
+    const index = (old: string) =>
+      `## Index\n\n| D1 | One | ${old} |\n| D2 | Two | active; replaces D1 |\n`;
+    const entries = { "docs/decisions/area.md": "## D1: One\n\n## D2: Two\n" };
+    const bad = checkDocs(repo({ "docs/decisions/README.md": index("active"), ...entries }));
+    expect(bad.fails).toEqual([expect.stringContaining('D1\'s row is not "superseded by D2"')]);
+    const good = checkDocs(repo({ "docs/decisions/README.md": index("superseded by D2"), ...entries }));
+    expect(good.fails).toEqual([]);
+  });
 });

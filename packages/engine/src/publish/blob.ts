@@ -177,6 +177,12 @@ async function putNarration(
   return result.url;
 }
 
+/** Narrations and what travels with them: word marks (.marks.json) and an episode's Opus manifest (.json). */
+const PRUNABLE_SUFFIXES = [".mp3", ".m4a", ".json"];
+
+/** Pruning lists the whole audio/ prefix, one Blob operation per page, and 120-day-old files need no daily sweep. */
+export const isPruneDay = (now: Date): boolean => now.getUTCDay() === 0;
+
 export interface PruneResult {
   deleted: string[];
   kept: number;
@@ -188,7 +194,7 @@ export interface PruneAudioInput {
 }
 
 /**
- * Delete narrations uploaded more than `olderThanDays` ago. Only audio/*.mp3 and .m4a are considered. The
+ * Delete narrations uploaded more than `olderThanDays` ago. Only audio/* narrations (.mp3, .m4a) and their .json companions are considered. The
  * digests keep their audio fields, so a pruned digest plays as "audio unavailable" until rebuilt.
  */
 export async function pruneAudio(client: BlobClient, input: PruneAudioInput): Promise<PruneResult> {
@@ -204,7 +210,7 @@ export async function pruneAudio(client: BlobClient, input: PruneAudioInput): Pr
     for (const blob of page.blobs) {
       const isNarration =
         blob.pathname.startsWith(AUDIO_PREFIX) &&
-        (blob.pathname.endsWith(".mp3") || blob.pathname.endsWith(".m4a"));
+        PRUNABLE_SUFFIXES.some((suffix) => blob.pathname.endsWith(suffix));
       if (isNarration && blob.uploadedAt.getTime() < cutoff) stale.push(blob.pathname);
       else kept++;
     }

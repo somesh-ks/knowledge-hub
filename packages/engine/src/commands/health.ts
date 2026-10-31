@@ -2,11 +2,17 @@ import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import type { CommandRun } from "../context.js";
 import { collectHealth, formatHealth, type WorkflowRun } from "../ops/health.js";
-import { readDeploymentCount, readStore, readWatchedHead } from "../ops/healthChecks.js";
+import {
+  readDeploymentCount,
+  readStore,
+  readWatchedHead,
+  SIDE_WORKFLOWS,
+  type SideWorkflow,
+} from "../ops/healthChecks.js";
 import { configStoreUrl } from "../store/configPaths.js";
 
 const USAGE =
-  "Usage: singularity health [--offline] [--site <origin>] [--ceiling-usd <n>] [--runs <gh-run-list.json>] [--perf <perf.json>] [--json]";
+  "Usage: singularity health [--offline] [--site <origin>] [--ceiling-usd <n>] [--runs <gh-run-list.json>] [--side-runs <json>] [--perf <perf.json>] [--json]";
 const DEFAULT_SITE = "https://news.someshks.work";
 /** About three full runs a day: more in 24 hours is a loop or a runaway retry. */
 const DEFAULT_CEILING_USD = 5;
@@ -21,6 +27,7 @@ export const run: CommandRun = async (argv, ctx) => {
     site?: string;
     "ceiling-usd"?: string;
     runs?: string;
+    "side-runs"?: string;
     perf?: string;
   };
   try {
@@ -33,6 +40,7 @@ export const run: CommandRun = async (argv, ctx) => {
         site: { type: "string" },
         "ceiling-usd": { type: "string" },
         runs: { type: "string" },
+        "side-runs": { type: "string" },
         perf: { type: "string" },
       },
     }).values;
@@ -56,6 +64,26 @@ export const run: CommandRun = async (argv, ctx) => {
       runs = parsed as WorkflowRun[];
     } catch (error) {
       ctx.log.error(`--runs: ${error instanceof Error ? error.message : "unreadable"}. ${USAGE}`);
+      return 2;
+    }
+  }
+  // The same listing for content.yml, ingest.yml and podcast.yml, as {"content": [...], ...}.
+  let sideRuns: Partial<Record<SideWorkflow, WorkflowRun[]>> | undefined;
+  if (values["side-runs"] !== undefined) {
+    try {
+      const parsed: unknown = JSON.parse(await readFile(values["side-runs"], "utf8"));
+      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+        throw new Error("not an object of lists");
+      }
+      sideRuns = {};
+      for (const workflow of SIDE_WORKFLOWS) {
+        const list = (parsed as Record<string, unknown>)[workflow];
+        if (Array.isArray(list)) sideRuns[workflow] = list as WorkflowRun[];
+      }
+    } catch (error) {
+      ctx.log.error(
+        `--side-runs: ${error instanceof Error ? error.message : "unreadable"}. ${USAGE}`,
+      );
       return 2;
     }
   }
@@ -91,6 +119,7 @@ export const run: CommandRun = async (argv, ctx) => {
     ceilingUsd,
     site,
     ...(runs ? { runs } : {}),
+    ...(sideRuns ? { sideRuns } : {}),
     ...(perfPath ? { perf } : {}),
     ...(store ? { store } : {}),
     ...(main ? { main } : {}),

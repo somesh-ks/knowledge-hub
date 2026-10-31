@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CATEGORIES, hashOf, loadEnv } from "@singularity/core";
 import { describe, expect, it } from "vitest";
+import { breakJev } from "../src/judge/breaker.js";
 import { DEFAULT_JEV_MODEL, type JevClientLike, JevJudge } from "../src/judge/jev.js";
 import {
   normalizeCategoryProbs,
@@ -419,6 +420,45 @@ describe("JevJudge", () => {
     expect(judge.model).toBe(DEFAULT_JEV_MODEL);
     expect(judge.questionsHash).toBe(QUESTIONS_HASH);
     expect(judge.name).toBe("jev");
+  });
+});
+
+describe("breakJev", () => {
+  // Bug: a Jev outage cost about 107 s an item (4 retries over a 20 s timeout), so judging
+  // stalled for hours before the fallback judge ever started.
+  it("stops asking a dead Jev after a run of outage failures, so items reach the fallback at once", async () => {
+    const fake = fakeJev(() => {
+      throw httpError(503, "unavailable");
+    });
+    const items = Array.from({ length: 30 }, () => makeItem());
+    const failures: JudgeFailure[] = [];
+    const entries = await judgeWith(breakJev(fake, { threshold: 4 }), {
+      concurrency: 1,
+      onFailure: (f) => failures.push(f),
+      retry: { ...NO_WAIT, retries: 2 },
+    }).judge(items);
+    expect(entries).toEqual([]);
+    expect(fake.calls).toHaveLength(4);
+    expect(failures).toHaveLength(30);
+    expect(failures[29]?.reason).toContain("Jev is unavailable");
+  });
+
+  it("does not open on rate limits or a success between failures", async () => {
+    let n = 0;
+    const fake = fakeJev(() => {
+      n += 1;
+      if (n % 3 === 0) return recorded;
+      throw httpError(n % 2 === 0 ? 429 : 503, "slow down");
+    });
+    const client = breakJev(fake, { threshold: 3 });
+    for (let i = 0; i < 12; i++) {
+      try {
+        await client.systemOne({ state: {}, questions: {} });
+      } catch {
+        // each failure is expected; the count of calls that reached Jev is the assertion
+      }
+    }
+    expect(fake.calls).toHaveLength(12);
   });
 });
 
