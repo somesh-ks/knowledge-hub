@@ -219,8 +219,10 @@ export function rebuildGlyphs(doc: GlyphDocument): GlyphDocument {
   const glyphs: Record<string, Glyph> = {};
   for (const [name, glyph] of Object.entries(doc.glyphs)) {
     const twin = { phosphor: glyph.phosphor, weight: "bold" as const };
+    // A bold twin left from an earlier weight would be written as an invalid record.
+    const { bold: _stale, ...rest } = glyph;
     glyphs[name] = {
-      ...glyph,
+      ...rest,
       d: pathFromSvg(readFileSync(resolve(root, symbolFile(glyph)), "utf8")),
       // A regular glyph keeps a bold twin; fill is already solid and bold is already bold.
       ...(glyph.weight === "regular"

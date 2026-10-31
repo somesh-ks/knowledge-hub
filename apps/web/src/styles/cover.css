@@ -12,7 +12,9 @@
   aspect-ratio: 1;
   overflow: hidden;
   container-type: inline-size;
-  border-radius: var(--cover-radius, var(--cover-radius-hero));
+  /* A corner never passes a quarter of the cover (D268): Expressive's 40px corner on a 56px list
+     cover would be a circle, and its progress bar would leave the edge. Default's are all smaller. */
+  border-radius: min(var(--cover-radius, var(--cover-radius-hero)), 25%);
   background: var(--cover-bg);
   outline: var(--stroke-hairline) solid transparent;
   outline-offset: calc(var(--stroke-hairline) * -1);
@@ -126,7 +128,7 @@
   inset: 7cqi;
   display: none;
   border: 1.5px solid color-mix(in oklch, var(--frame) 55%, transparent);
-  border-radius: max(0%, calc(var(--cover-radius, var(--cover-radius-hero)) - 7cqi));
+  border-radius: max(0%, calc(min(var(--cover-radius, var(--cover-radius-hero)), 25cqi) - 7cqi));
   pointer-events: none;
 }
 
@@ -170,7 +172,7 @@
     inset-block-start: 0;
     inset-inline: 0;
     aspect-ratio: 1;
-    border-radius: var(--cover-radius-hero);
+    border-radius: min(var(--cover-radius-hero), 25%);
     overflow: hidden;
   }
 

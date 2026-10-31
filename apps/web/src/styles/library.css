@@ -478,10 +478,6 @@
 [data-library][data-view="list"] .card-link .cover {
   width: var(--list-cover);
   margin-block-end: 0;
-  /* A style's larger cover corner (Expressive, 40px) would round this 56px cover into a circle and
-     push the progress bar past its edge: the corner never passes a quarter of the cover. Default
-     keeps its own, which is smaller (2026-10-31, D268). */
-  --cover-radius: min(var(--cover-radius-hero), calc(var(--list-cover) / 4));
 }
 
 /* In a row, the bar lies along the bottom of the small cover. */
