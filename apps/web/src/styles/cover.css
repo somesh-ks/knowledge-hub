@@ -286,3 +286,17 @@
     outline-offset: var(--stroke-ring-gap);
   }
 }
+
+/* A cover in flight between a card and a page's hero (coverMorph.ts): a copy of the leaving cover,
+   drawn over the page, while the real one waits hidden in its place. Under the bars (z-header), so it
+   passes beneath them as the page's own content would. */
+.cover-morph {
+  position: fixed;
+  margin: 0;
+  z-index: var(--z-overlay);
+  pointer-events: none;
+}
+
+.cover[data-morphing] {
+  visibility: hidden;
+}
