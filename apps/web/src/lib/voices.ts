@@ -110,7 +110,8 @@ function accentWords(code: string): string {
     }
   }
   try {
-    return accentNames?.of(code) ?? "";
+    // Intl wants en-GB; the voice list may send en_GB, which the flag already reads.
+    return accentNames?.of(code.replace(/_/g, "-")) ?? "";
   } catch {
     // A locale code Intl cannot name: no words, the code alone is searched.
     return "";
