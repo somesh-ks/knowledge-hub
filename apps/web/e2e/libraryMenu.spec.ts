@@ -353,7 +353,7 @@ test("a phone's menu sheet has no visible Close, a short pull springs back to th
     );
   await settled();
   const rest = await sheet.boundingBox();
-  const head = (await sheet.locator(".create-sheet-head").boundingBox()) as { y: number };
+  const head = (await sheet.locator(".sheet-head").boundingBox()) as { y: number };
 
   await pull(head.y + 8, 40);
   await expect.poll(() => sheet.boundingBox()).toEqual(rest);

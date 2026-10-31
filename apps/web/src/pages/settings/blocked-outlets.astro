@@ -3,8 +3,8 @@ import EmptyArt from "../../components/EmptyArt.astro";
 import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
-import SheetHeader from "../../components/SheetHeader.astro";
 import Button from "../../design-system/Button.astro";
+import Sheet from "../../design-system/Sheet.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { blockedDomainOf, outletsSummary } from "../../lib/blockedOutlets";
 import { loadBlockedDomains } from "../../lib/blockedProfile";
@@ -118,13 +118,11 @@ const offers = (await loadSourceCatalog()).flatMap((offer) => {
       </fieldset>
 
       {/* The sheet, inert until blockedSheet.ts clones it: a full-screen sheet on a phone and a side
-           panel from 40rem, worn as the Topics panel is (create-sheet.css). Its rows are the Suggested
+           panel from 40rem, worn as the Topics panel is (sheet.css). Its rows are the Suggested
            sources' (SuggestedSources.astro): the source's tile, name and site, and a + in place of
            the score; a picked row shows the accent check in the +'s slot. */}
       <template data-sheet>
-        <dialog class="create-sheet regen-sheet blocked-sheet" aria-labelledby="blocked-sheet-title">
-          <SheetHeader title="Block sources" titleId="blocked-sheet-title" close="data-panel-close" />
-          <div class="create-sheet-body">
+        <Sheet class="blocked-sheet" title="Block sources" titleId="blocked-sheet-title" close="data-panel-close">
             <div class="manage-field blocked-sheet-field">
               <div class="search-wrap filter-field">
 <label class="search-field">
@@ -209,11 +207,10 @@ const offers = (await loadSourceCatalog()).flatMap((offer) => {
                 })
               }
             </ul>
-          </div>
-          <div class="source-sheet-foot">
+          <div class="source-sheet-foot" slot="after">
             <Button variant="filled" disabled data-sheet-go>Block</Button>
           </div>
-        </dialog>
+        </Sheet>
       </template>
 
       <ManageChrome />

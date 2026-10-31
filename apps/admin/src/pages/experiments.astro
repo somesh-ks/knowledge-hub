@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import Button from "../../../web/src/design-system/Button.astro";
 import Dialog from "../../../web/src/design-system/Dialog.astro";
 import DialogActions from "../../../web/src/design-system/DialogActions.astro";
+import DialogTitle from "../../../web/src/design-system/DialogTitle.astro";
 import Switch from "../../../web/src/design-system/Switch.astro";
 import Toaster from "../../../web/src/sheets/Toaster";
 import AdminHead from "../components/AdminHead.astro";
@@ -66,7 +67,7 @@ const WORDS = { on: "On", shadow: "Shadow", off: "Off" } as const;
 
   {/* What a switch or a promotion asks before it acts: the reader's confirm dialog, worn again. */}
   <Dialog aria-labelledby="experiment-confirm-title" aria-describedby="experiment-confirm-lede" data-confirm>
-    <h2 class="sheet-title" id="experiment-confirm-title" data-confirm-title></h2>
+    <DialogTitle id="experiment-confirm-title" data-confirm-title />
     <p class="create-hint confirm-lede" id="experiment-confirm-lede" data-confirm-lede></p>
     <DialogActions>
       <Button variant="text" data-confirm-cancel autofocus>Cancel</Button>

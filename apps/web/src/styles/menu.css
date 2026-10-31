@@ -140,7 +140,7 @@
 }
 
 /* From 40rem the header is the sheet's alone. */
-.menu-sheet > .create-sheet-head {
+.menu-sheet > .sheet-head {
   display: none;
 }
 
@@ -186,7 +186,7 @@
     background: var(--color-scrim);
   }
 
-  .menu-sheet > .create-sheet-head {
+  .menu-sheet > .sheet-head {
     display: flex;
     padding-block: var(--space-1);
     padding-inline: var(--space-2) var(--space-1);
