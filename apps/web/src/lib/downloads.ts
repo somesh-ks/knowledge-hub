@@ -10,8 +10,6 @@ export const AUDIO_CACHE = "singularity-audio-v1";
 export const OLD_AUDIO_CACHE = "dispatch-audio-v1";
 /** Where the list is kept inside that cache. Not a page: nothing requests it. */
 export const MANIFEST_KEY = "/__downloads.json";
-/** More than this and the oldest download is removed. */
-export const MAX_DOWNLOADS = 10;
 
 export interface Download {
   id: string;
@@ -24,14 +22,8 @@ export interface Download {
 }
 
 /** The list with `entry` newest. A second download of the same item moves it to the end. */
-export function addDownload(
-  list: readonly Download[],
-  entry: Download,
-  max = MAX_DOWNLOADS,
-): { list: Download[]; evicted: Download[] } {
-  const next = [...list.filter((item) => item.id !== entry.id), entry];
-  const cut = Math.max(0, next.length - max);
-  return { list: next.slice(cut), evicted: next.slice(0, cut) };
+export function addDownload(list: readonly Download[], entry: Download): Download[] {
+  return [...list.filter((item) => item.id !== entry.id), entry];
 }
 
 /** Every address a download put in the cache. */
@@ -118,4 +110,24 @@ export function confirmLookup(body: Record<string, unknown>): Record<string, unk
       audio: segment.audio ? { ...segment.audio, confirmed: true } : segment.audio,
     })),
   };
+}
+
+/** A downloaded page's name: its <title> without the site's name, or null when it has none. */
+export function titleOfPage(html: string): string | null {
+  const match = /<title>([^<]*)<\/title>/i.exec(html);
+  const title = match?.[1]
+    ?.replace(/&amp;/g, "&")
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/,\s*Singularity$/, "")
+    .trim();
+  return title ? title : null;
+}
+
+/** From this many downloads the page offers a search. */
+export const SEARCH_FROM = 8;
+
+/** The count line over the downloads list, "3 downloads". */
+export function downloadsSummary(count: number): string {
+  return count === 0 ? "No downloads" : count === 1 ? "1 download" : `${count} downloads`;
 }

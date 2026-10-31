@@ -1,0 +1,126 @@
+---
+import BriefingCard from "../../components/BriefingCard.astro";
+import EmptyArt from "../../components/EmptyArt.astro";
+import EpisodeCard from "../../components/EpisodeCard.astro";
+import ManageChrome from "../../components/ManageChrome.astro";
+import SettingsHead from "../../components/SettingsHead.astro";
+import Button from "../../design-system/Button.astro";
+import Dialog from "../../design-system/Dialog.astro";
+import DialogActions from "../../design-system/DialogActions.astro";
+import DialogTitle from "../../design-system/DialogTitle.astro";
+import Icon from "../../design-system/Icon.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { libraryItems } from "../../lib/libraryCard";
+import { getSite } from "../../lib/site";
+import { CONTENT_CDN_CACHE, readFromContentRepo } from "../../server/contentRepo";
+import "../../styles/settings.css";
+import "../../styles/manage.css";
+import "../../styles/blocked.css";
+import "../../styles/downloads.css";
+
+// Rendered on request from the content repository, like the Library whose rows it wears (D173); the
+// static test build prerenders it.
+export const prerender = false;
+
+if (!Astro.isPrerendered) {
+  const unavailable = await readFromContentRepo("library");
+  if (unavailable) return unavailable;
+  Astro.response.headers.set("Vercel-CDN-Cache-Control", CONTENT_CDN_CACHE);
+}
+
+const { entries, episodes } = await getSite();
+const items = libraryItems(entries, episodes);
+---
+
+<BaseLayout title="Downloads" view="settings" skipLabel="Skip to downloads">
+  <main id="main" tabindex="-1">
+    {/* What this browser holds for offline listening (the Library's Download, D127). Which items are
+         saved is only known here, in Cache Storage, so the page carries every Library row (the same
+         cards, in the List view) and downloadsPage.ts shows the saved ones, newest first. Each row has
+         the Library's hover Play and its menu, cut to Add to queue, Share and Remove download; both
+         Remove and Delete all ask first. */}
+    <div class="manage downloads" data-downloads>
+      <SettingsHead title="Downloads" note="Saved on this device to listen offline." />
+      <noscript>
+        <p class="manage-note">The list of downloads needs JavaScript, which is turned off in this browser.</p>
+      </noscript>
+
+      <section class="downloads-list" aria-labelledby="downloads-head" data-section hidden>
+        <h2 class="section-head text-heading" id="downloads-head" data-count>No downloads</h2>
+        {/* Shown by downloadsPage.ts once there are enough downloads to search. Words are matched as the
+             Library's search does, against the row's own text. */}
+        <form class="downloads-search" role="search" novalidate hidden data-search-form>
+          <div class="search-wrap">
+            <label class="search-field">
+              <Icon name="search" />
+              <span class="sr-only">Search downloads</span>
+              <input
+                type="search"
+                name="q"
+                placeholder="Search downloads"
+                autocomplete="off"
+                enterkeyhint="search"
+                data-search
+              />
+            </label>
+            <button class="search-clear press press-subtle" type="button" aria-label="Clear text" hidden data-clear>
+              <Icon name="close" />
+            </button>
+          </div>
+        </form>
+        <div data-library data-view="list">
+          <ul class="library-grid" role="list" aria-labelledby="downloads-head" data-library-grid>
+            {
+              items.map((item) =>
+                item.kind === "episode" ? (
+                  <EpisodeCard entry={item.entry} downloads />
+                ) : (
+                  <BriefingCard entry={item.entry} menu downloads />
+                ),
+              )
+            }
+          </ul>
+        </div>
+        <p class="manage-quiet" role="status" data-nomatch hidden>No download matches.</p>
+      </section>
+
+      <section data-section hidden>
+        <div class="rows card-group">
+          <div class="settings-row">
+            <div class="settings-text">
+              <span class="settings-label">Delete all downloads</span>
+              <span class="settings-hint">Frees their space on this device</span>
+            </div>
+            <Button variant="text" tone="danger" data-delete-all>Delete all</Button>
+          </div>
+        </div>
+      </section>
+
+      <div class="blocked-empty empty" data-empty hidden>
+        <EmptyArt art="library" size="compact" />
+        <p class="empty-title">No downloads</p>
+        <p class="empty-body">Choose Download in a podcast's menu to listen without a connection.</p>
+      </div>
+
+      {/* One dialog for both asks; downloadsPage.ts writes the words and the button's label. */}
+      <Dialog aria-labelledby="downloads-confirm-title" aria-describedby="downloads-confirm-lede" data-confirm>
+        <DialogTitle id="downloads-confirm-title" data-confirm-title>Delete all downloads?</DialogTitle>
+        <p class="create-hint confirm-lede" id="downloads-confirm-lede" data-confirm-lede>
+          They are removed from this device only. You can download them again.
+        </p>
+        <DialogActions>
+          <Button variant="text" data-dialog-close autofocus>Cancel</Button>
+          <Button variant="text" tone="danger" data-confirm-go>Delete all</Button>
+        </DialogActions>
+      </Dialog>
+
+      <ManageChrome />
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { installDownloadsPage } from "../../scripts/downloadsPage";
+
+  installDownloadsPage();
+</script>

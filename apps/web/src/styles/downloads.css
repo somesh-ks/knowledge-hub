@@ -1,0 +1,35 @@
+/* Settings > Downloads wears the Library's rows (List view, library.css) and shows only the saved
+   ones: downloadsPage.ts marks them data-downloaded, the same mark the Library's menu writes. */
+.downloads [data-card]:not([data-downloaded]) {
+  display: none;
+}
+
+/* Every row here is saved, so the Library's check-circle mark says nothing. */
+.downloads .card-downloaded {
+  display: none;
+}
+
+/* The list and the Delete all card are two groups: the gap between them is a group's, not a row's. */
+.downloads-list {
+  margin-block-end: var(--space-6);
+}
+
+/* A finger opens a Library row's menu by a long press and the ⋮ is not drawn (library.css, D264).
+   Here the ⋮ is there as well, for a phone too: this page manages what is saved, and Remove must
+   be findable without knowing the hold (owner, 2026-10-31). The row keeps room for it, as the
+   Library's does where the button shows. */
+@media (hover: none) and (pointer: coarse) {
+  .downloads .card-more {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .downloads [data-library][data-view="list"] .card:has(> .card-menu) :is(.card-title, .card-sub) {
+    padding-inline-end: calc(var(--size-touch) - var(--space-2));
+  }
+}
+
+/* The search shows once the list is long enough to need it; the room under it is the list's. */
+.downloads-search {
+  margin-block-end: var(--space-4);
+}

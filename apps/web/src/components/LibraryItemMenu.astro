@@ -20,9 +20,21 @@ interface Props {
   topics?: readonly string[];
   /** Times this podcast was regenerated, for the Regenerate item's counter (D212). */
   regenerations?: number | undefined;
+  /** On Settings > Downloads: only what applies to a saved copy (Add to queue, Share, Remove download). */
+  downloads?: boolean;
 }
 
-const { id, title, path, kind, audio, deletable = true, topics, regenerations } = Astro.props;
+const {
+  id,
+  title,
+  path,
+  kind,
+  audio,
+  deletable = true,
+  topics,
+  regenerations,
+  downloads = false,
+} = Astro.props;
 const regen = regenerationHint(regenerations);
 const menuId = `card-menu-${id}`;
 ---
@@ -62,7 +74,7 @@ const menuId = `card-menu-${id}`;
   </button>
   <Menu id={menuId} title={title} class="card-menu-list">
     {
-      audio && (
+      audio && !downloads && (
         <MenuItem data-menu="download">
           <Icon name="download" class="dl-add" /><Icon name="downloadRemove" class="dl-remove" /><span data-menu-label>Download</span>
         </MenuItem>
@@ -72,7 +84,7 @@ const menuId = `card-menu-${id}`;
       <Icon name="queueAdd" />Add to queue
     </MenuItem>
     {
-      kind === "episode" ? (
+      downloads ? null : kind === "episode" ? (
         <MenuItem
           data-episode-action="regenerate"
           title={regen.title}
@@ -101,7 +113,14 @@ const menuId = `card-menu-${id}`;
       </MenuItem>
     </template>
     {
-      deletable && (
+      audio && downloads && (
+        <MenuItem tone="danger" data-menu="download">
+          <Icon name="download" class="dl-add" /><Icon name="downloadRemove" class="dl-remove" /><span data-menu-label>Remove download</span>
+        </MenuItem>
+      )
+    }
+    {
+      deletable && !downloads && (
         <MenuItem tone="danger"
           data-episode-action="delete">
           <Icon name="trash" />Delete

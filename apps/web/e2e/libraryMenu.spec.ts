@@ -450,3 +450,38 @@ test("a long press on a card opens its menu and leaves the card unopened, and is
   // The tap lands on the app bar's Home link once the sheet is gone: it must not follow it.
   expect(new URL(page.url()).pathname).toBe("/library");
 });
+
+test("Settings > Downloads lists what was downloaded and removes it only after a confirm, for good", async ({
+  page,
+}) => {
+  await page.goto("/library");
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.reload();
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  await openMenu(page, AUDIO_ID);
+  await row(page, AUDIO_ID).getByRole("menuitem", { name: "Download" }).click();
+  await expect(row(page, AUDIO_ID)).toHaveAttribute("data-downloaded", "");
+
+  // The page shows the saved podcast and none of the rest of the Library.
+  await page.goto("/settings/downloads");
+  await expect(page.locator("[data-downloads]")).toHaveAttribute("data-ready", "");
+  await expect(page.locator("[data-card]:visible")).toHaveCount(1);
+  await expect(row(page, AUDIO_ID)).toBeVisible();
+
+  // Removing asks first: Cancel keeps it.
+  const dialog = page.getByRole("dialog", { name: "Remove download?" });
+  await openRowMenu(page, row(page, AUDIO_ID));
+  await row(page, AUDIO_ID).getByRole("menuitem", { name: "Remove download" }).click();
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(row(page, AUDIO_ID)).toBeVisible();
+
+  await openRowMenu(page, row(page, AUDIO_ID));
+  await row(page, AUDIO_ID).getByRole("menuitem", { name: "Remove download" }).click();
+  await dialog.getByRole("button", { name: "Remove" }).click();
+  await expect(page.getByText("No downloads", { exact: true }).last()).toBeVisible();
+
+  // Gone after a reload too: the list is Cache Storage, not the page.
+  await page.reload();
+  await expect(page.locator("[data-downloads]")).toHaveAttribute("data-ready", "");
+  await expect(page.locator("[data-card]:visible")).toHaveCount(0);
+});
