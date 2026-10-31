@@ -295,6 +295,9 @@
   margin: 0;
   z-index: var(--z-overlay);
   pointer-events: none;
+  /* The flight's time and curve, read by coverMorph.ts. */
+  transition-duration: var(--duration-sheet-in);
+  transition-timing-function: var(--ease-drawer);
 }
 
 .cover[data-morphing] {
