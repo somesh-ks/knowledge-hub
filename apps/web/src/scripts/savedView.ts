@@ -532,25 +532,26 @@ type Upsert = Extract<ConfigOp, { op: "topic.upsert" }>["topic"];
  */
 function groupEmoji(root: HTMLElement, home: string, topic: Upsert): boolean {
   let shown = false;
+  const pick = root.querySelector<HTMLElement>(`[data-change-emoji][data-home="${home}"]`);
+  const base = JSON.parse(pick?.dataset.topicBase ?? "{}");
+  // An edit that leaves the emoji out keeps the stored one (the server does).
+  const kept: string | undefined = topic.emoji ?? base.topic?.emoji;
   for (const row of root.querySelectorAll<HTMLElement>(`a.row-action[data-home="${home}"]`)) {
+    if (kept === undefined) break;
     const mark = row.querySelector(".topic-emoji");
-    const name = row.querySelector(".settings-label")?.textContent ?? "";
-    const emoji = topic.emoji ?? topicEmoji({ id: row.dataset.page ?? home, name });
-    if (mark && mark.textContent !== emoji) {
-      mark.textContent = emoji;
+    if (mark && mark.textContent !== kept) {
+      mark.textContent = kept;
       shown = true;
     }
   }
-  const pick = root.querySelector<HTMLElement>(`[data-change-emoji][data-home="${home}"]`);
   if (!pick) return shown;
   const emoji =
-    topic.emoji ??
+    kept ??
     topicEmoji({
       id: root.dataset.page ?? home,
       name: document.getElementById("page-title")?.textContent ?? "",
     });
   // The next pick sends the home topic as it is stored now, not as the build had it.
-  const base = JSON.parse(pick.dataset.topicBase ?? "{}");
   const { emoji: _, ...rest } = base.topic ?? {};
   const { name, description, enabled, keywords, section_id } = topic;
   pick.dataset.topicBase = JSON.stringify({
@@ -562,7 +563,7 @@ function groupEmoji(root: HTMLElement, home: string, topic: Upsert): boolean {
       enabled,
       keywords,
       section_id,
-      ...(topic.emoji ? { emoji: topic.emoji } : {}),
+      ...(kept ? { emoji: kept } : {}),
     },
   });
   if (pick.textContent === emoji) return shown;
