@@ -162,7 +162,7 @@ test.describe("the profile pages", () => {
 
   // The bug (owner, 2026-10-31): a select's list was a second kind of bottom sheet, drawn by the browser
   // with no title or Close. The sheet that replaced it must still set the select and be saved, as rows
-  // (a length) and as the wheel the hour asks for (data-wheel), which commits where it rests and stays open.
+  // (a length) and as the wheel the hour asks for (data-wheel), which changes nothing until Save.
   test("a select opens the standard sheet on a phone, and a pick is saved", async ({ page }) => {
     await page.clock.install();
     const sent = await mockConfig(page);
@@ -174,7 +174,14 @@ test.describe("the profile pages", () => {
     await expect(page.locator("#daily-length")).toHaveValue("15");
     await page.locator("#daily-hour").tap();
     await expect(sheet.getByRole("heading", { name: "Time" })).toBeVisible();
+    await sheet.getByRole("option", { name: "08:00" }).tap();
+    await page.keyboard.press("Escape");
+    await expect(sheet).toHaveCount(0);
+    await expect(page.locator("#daily-hour")).toHaveValue("7");
+    await page.locator("#daily-hour").tap();
     await sheet.getByRole("option", { name: "09:00" }).tap();
+    await sheet.getByRole("button", { name: "Save" }).tap();
+    await expect(sheet).toHaveCount(0);
     await expect(page.locator("#daily-hour")).toHaveValue("9");
     await page.clock.runFor(2000);
     await expect

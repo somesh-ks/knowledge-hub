@@ -6,8 +6,9 @@
  *
  * It is a scroll-snap list. Each row's distance from the band, in rows, is set on it as `--wheel-d`
  * as the list scrolls, and the stylesheet turns that distance into a tilt and a fade, so the rows
- * curve away from the band like a drum. Every pick fires `wheeldetent` on the list: the hook a
- * haptic tick listens to (no haptic is drawn here).
+ * curve away from the band like a drum. Each row that passes the band fires `wheeldetent` on the
+ * list: the hook a haptic or a sound listens to (none is drawn here; the cue pipeline maps it). The
+ * wheel holds no value of its own: whoever mounts it reads `at()` when the person confirms.
  */
 import type { Guidance } from "./guidance";
 
@@ -51,12 +52,10 @@ export interface WheelRow {
 export const WHEEL_DETENT = "wheeldetent";
 
 export interface Wheel {
-  /** The row under the band now, in place within the rows given. */
+  /** The row under the band, or the one the wheel is turning to. */
   at(): number;
   /** Turns to a row. `smooth` glides; otherwise the wheel is there at once. */
   to(place: number, smooth?: boolean): void;
-  /** Reports the row under the band if the wheel has not yet reported it. */
-  flush(): void;
 }
 
 /** The frame and list for a set of rows; the caller puts it in the sheet, then mounts it. */
@@ -65,6 +64,8 @@ export function wheelHtml(
   id: string,
   label: string,
   encode: (text: string) => string,
+  /** Markup for the end of the frame, under the list (the sheet's Save). */
+  after = "",
 ): string {
   const options = rows
     .map(
@@ -76,7 +77,7 @@ export function wheelHtml(
   return (
     `<div class="${wheelFrameClass()}">` +
     `<div class="${wheelListClass()}" role="listbox" tabindex="0" aria-label="${encode(label)}">${options}</div>` +
-    `</div>`
+    `${after}</div>`
   );
 }
 
@@ -84,22 +85,20 @@ const still = (): boolean => matchMedia("(prefers-reduced-motion: reduce)").matc
 
 /**
  * Brings a drawn wheel to life once it is on screen (its row height is read from the page). `first`
- * is the place to start on; `settle` hears the place the wheel comes to rest on, after every spin.
+ * is the place to start on.
  */
-export function mountWheel(
-  list: HTMLElement,
-  first: number,
-  settle: (place: number) => void,
-): Wheel {
+export function mountWheel(list: HTMLElement, first: number): Wheel {
   const options = Array.from(list.querySelectorAll<HTMLElement>(`.${wheelOptionClass()}`));
   const last = options.length - 1;
   const height = (): number => options[0]?.offsetHeight || 1;
   const clamp = (place: number): number => Math.min(last, Math.max(0, place));
   const placeNow = (): number => clamp(Math.round(list.scrollTop / height()));
+  // Where a tap or a key is turning the wheel to, until it gets there or a finger takes it over: a
+  // Save pressed mid-glide means the row that was tapped, not the one the glide has reached.
+  let heading: number | null = null;
 
   let frame = 0;
   let passing = -1;
-  let reported = -1;
 
   const paint = (): void => {
     frame = 0;
@@ -116,23 +115,22 @@ export function mountWheel(
   };
 
   const rest = (): void => {
+    heading = null;
     const now = placeNow();
     options.forEach((option, place) => {
       option.setAttribute("aria-selected", place === now ? "true" : "false");
     });
-    if (now === reported) return;
-    reported = now;
-    settle(now);
   };
 
   const to = (place: number, smooth = false): void => {
+    heading = clamp(place);
     list.scrollTo({
       top: clamp(place) * height(),
       behavior: smooth && !still() ? "smooth" : "auto",
     });
   };
 
-  // A wheel at rest reports where it stopped: `scrollend` where there is one, a pause in the scroll
+  // A wheel at rest marks the row it stopped on: `scrollend` where there is one, a pause in the scroll
   // where there is not (Safari before 26).
   let pause = 0;
   const reportsEnd = "onscrollend" in window;
@@ -184,7 +182,18 @@ export function mountWheel(
   options.forEach((option, place) => {
     option.setAttribute("aria-selected", place === clamp(first) ? "true" : "false");
   });
-  reported = clamp(first);
 
-  return { at: placeNow, to, flush: rest };
+  // A finger on the wheel is its own again.
+  list.addEventListener(
+    "touchstart",
+    () => {
+      heading = null;
+    },
+    { passive: true },
+  );
+  list.addEventListener("pointerdown", () => {
+    heading = null;
+  });
+
+  return { at: () => heading ?? placeNow(), to };
 }

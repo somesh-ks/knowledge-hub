@@ -11,6 +11,8 @@
  */
 import { escapeHtml, sheetHeadHtml } from "../lib/sheetHead";
 import { pullToDismiss } from "../scripts/pullDismiss";
+import { buttonClass } from "./button";
+import { dialogActionsClass } from "./dialog";
 import { menuBodyClass, menuItemClass, menuListClass } from "./menu";
 import { mountWheel, type Wheel, wheelFrameClass, wheelHtml, wheelListClass } from "./wheel";
 
@@ -21,7 +23,7 @@ const KEYS = new Set(["Enter", " ", "F4"]);
 
 let installed = false;
 let uid = 0;
-/** The wheel turning in each open sheet, so a close can report where it stopped. */
+/** The wheel turning in each open sheet, which Save reads. */
 const wheels = new WeakMap<HTMLElement, Wheel>();
 
 /** A select that asks for the wheel (data-wheel) shows its options as one, not as rows. */
@@ -79,7 +81,11 @@ function fill(list: HTMLElement, select: HTMLSelectElement, id: string): void {
       .map((option, index) => ({ option, index }))
       .filter(({ option }) => !option.hidden)
       .map(({ option, index }) => ({ index, text: option.text, disabled: isDisabled(option) }));
-    list.insertAdjacentHTML("beforeend", wheelHtml(rows, id, title, escapeHtml));
+    // The wheel changes nothing until Save: closing any other way leaves the select as it was.
+    const save =
+      `<div class="${dialogActionsClass()}">` +
+      `<button class="${buttonClass("filled")}" type="button" data-wheel-save>Save</button></div>`;
+    list.insertAdjacentHTML("beforeend", wheelHtml(rows, id, title, escapeHtml, save));
     return;
   }
   const body = list.querySelector<HTMLElement>('[role="listbox"]');
@@ -97,25 +103,30 @@ function fill(list: HTMLElement, select: HTMLSelectElement, id: string): void {
     .join("");
 }
 
-/** Turns the sheet's list into a wheel at the select's value; each place it rests on is committed to the select. */
+/** Turns the sheet's list into a wheel at the select's value; Save sets the select to the row under the band. */
 function openWheel(sheet: HTMLElement, select: HTMLSelectElement, byKey: boolean): void {
   const list = sheet.querySelector<HTMLElement>(`.${wheelListClass()}`);
   if (!list) return;
-  const places = Array.from(list.querySelectorAll<HTMLElement>("[data-index]"));
   const first = Math.max(
     0,
-    places.findIndex((place) => Number(place.dataset.index) === select.selectedIndex),
+    Array.from(list.querySelectorAll<HTMLElement>("[data-index]")).findIndex(
+      (place) => Number(place.dataset.index) === select.selectedIndex,
+    ),
   );
-  const wheel = mountWheel(list, first, (at) => {
-    const place = places[at];
-    const index = Number(place?.dataset.index);
-    if (!place || place.hasAttribute("aria-disabled") || select.selectedIndex === index) return;
-    select.selectedIndex = index;
-    select.dispatchEvent(new Event("input", { bubbles: true }));
-    select.dispatchEvent(new Event("change", { bubbles: true }));
-  });
-  wheels.set(sheet, wheel);
+  wheels.set(sheet, mountWheel(list, first));
   list.focus({ preventScroll: true, ...(byKey ? {} : { focusVisible: false }) } as FocusOptions);
+}
+
+/** Sets the select to the row under the wheel's band, as a pick does, and closes the sheet. */
+function saveWheel(sheet: HTMLElement, select: HTMLSelectElement): void {
+  const places = Array.from(sheet.querySelectorAll<HTMLElement>("[data-index]"));
+  const place = places[wheels.get(sheet)?.at() ?? -1];
+  const index = Number(place?.dataset.index);
+  sheet.hidePopover();
+  if (!place || place.hasAttribute("aria-disabled") || select.selectedIndex === index) return;
+  select.selectedIndex = index;
+  select.dispatchEvent(new Event("input", { bubbles: true }));
+  select.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
 function open(select: HTMLSelectElement, byKey: boolean): void {
@@ -138,7 +149,10 @@ function open(select: HTMLSelectElement, byKey: boolean): void {
         sheet.hidePopover();
         return;
       }
-      if (sheet.hasAttribute("data-wheel")) return;
+      if (sheet.hasAttribute("data-wheel")) {
+        if (target.closest("[data-wheel-save]")) saveWheel(sheet, select);
+        return;
+      }
       const row = target.closest<HTMLElement>('[role="option"]');
       if (!row || row.hasAttribute("aria-disabled")) return;
       const index = Number(row.dataset.index);
@@ -151,7 +165,14 @@ function open(select: HTMLSelectElement, byKey: boolean): void {
       }
     });
     sheet.addEventListener("keydown", (event) => {
-      if (sheet.hasAttribute("data-wheel")) return;
+      if (sheet.hasAttribute("data-wheel")) {
+        // Enter on the wheel is Save; the wheel's own keys turn it.
+        if (event.key === "Enter" && (event.target as Element).closest(`.${wheelListClass()}`)) {
+          event.preventDefault();
+          saveWheel(sheet, select);
+        }
+        return;
+      }
       const rows = rowsOf(sheet);
       const at = rows.indexOf(document.activeElement as HTMLElement);
       const to =
@@ -171,8 +192,6 @@ function open(select: HTMLSelectElement, byKey: boolean): void {
     // Closed by a pick, Escape or a press outside: focus goes back to the field.
     sheet.addEventListener("toggle", (event) => {
       if ((event as ToggleEvent).newState !== "closed") return;
-      // A close mid-spin keeps the row the wheel was nearest.
-      wheels.get(sheet)?.flush();
       if (sheet.contains(document.activeElement)) select.focus({ preventScroll: true });
     });
     wrapper.after(sheet);
