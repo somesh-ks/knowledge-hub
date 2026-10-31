@@ -212,6 +212,8 @@
      dark in both. The press has no container to show a state layer on, so the glyph itself dims; it
      still does not move under the finger. */
   .cover-play {
+    /* The glyph's box. The bars take their size from it, so a smaller cover (the list's) scales both. */
+    --cover-glyph: calc(var(--size-icon-lg) * 2);
     display: grid;
     place-items: center;
     width: var(--size-touch-comfortable);
@@ -230,8 +232,8 @@
   }
 
   .cover-play .icon-glyph {
-    width: calc(var(--size-icon-lg) * 2);
-    height: calc(var(--size-icon-lg) * 2);
+    width: var(--cover-glyph);
+    height: var(--cover-glyph);
   }
 
   /* The hover that brings the button in weighs no more than one class, so the press below wins. */
@@ -253,16 +255,16 @@
   .cover-bars {
     display: flex;
     align-items: center;
-    gap: calc(var(--size-icon-lg) / 4);
-    height: calc(var(--size-icon-lg) * 1.5);
+    gap: calc(var(--cover-glyph) / 8);
+    height: calc(var(--cover-glyph) * 0.75);
     opacity: 0;
     transition: opacity var(--duration-state) var(--ease-out);
   }
 
   /* From the middle, not the foot: the bars sit on the glyph's centre line, as thick and as tall as
-     the pause glyph's own bars (13 px of the 48 px box, measured 2026-10-31). */
+     the pause glyph's own bars (13 px wide and 36 px tall in the 48 px box, measured 2026-10-31). */
   .cover-bars > i {
-    width: calc(var(--size-icon-lg) * 0.54);
+    width: calc(var(--cover-glyph) * 0.27);
     transform-origin: center;
   }
 
@@ -299,6 +301,13 @@
 @media (forced-colors: active) {
   .cover-over {
     background: transparent;
+  }
+
+  /* A disc again, in the system pair, so the glyph shows on any cover; the glyph shrinks to fit it. */
+  .cover-play {
+    --cover-glyph: var(--size-icon-lg);
+    background: Highlight;
+    color: HighlightText;
   }
 
   .cover-play:focus-visible {

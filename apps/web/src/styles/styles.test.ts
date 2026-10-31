@@ -828,7 +828,6 @@ const PAGE_OVERRIDES: string[] = [
   "library.css: .menu-list.card-menu-list",
   "library.css: .menu-list.card-menu-list",
   "library.css: .shelf-head > .button-text",
-  'library.css: [data-library][data-view="list"] .cover-play .icon-glyph',
   "manage.css: .manage-error .icon-glyph",
   "manage.css: .manage-fields:disabled :is(.switch-input, .field-input, .search-field)",
   "manage.css: .manage-fields:disabled :is(.switch-input, .field-input, .search-field)",
