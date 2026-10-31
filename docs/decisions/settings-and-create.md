@@ -339,3 +339,12 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Rejected: waiting for the store before moving (the owner's complaint); Playwright routes as the test double (a route fails a request still out when the page reloads, which hides the rejection); a longer pending window (a write that never landed would stay on screen); a shared UI component (nothing here is drawn).
 - Revisit if: the store takes more than 90 s to write, or Safari and Firefox reject a request after their pagehide (the 50 ms wait in `endedByLeaving` would then be too short).
 - Amends: D79, D91, D115, D249.
+
+## D270: a pending change is settled by a read of the store that shows it, never by its own write's answer
+
+- Date: 2026-10-31 (the owner: on the Experiments page the first reload after a toggle still reset it, "after a second or third reload it is reflected").
+- Decision: a change kept as pending (D259) stays on screen and in storage until a later read of the store shows it, or its wait runs out (30 s on the Experiments page, `pendingFlags.ts`; 90 s on Settings). The answer to the change's own write only updates the page's picture of the store (`adopt` in `experiments.ts`); only a read settles (`take`). Every control that keeps a pending change follows this.
+- Why: the write's answer is the store's state at that moment, and it says nothing about what the next read will return. The reader's service worker (`sw.js`) answered `/admin/api/experiments` from a copy up to 10 minutes old (an extension-less path with no `/api/` prefix counted as a page); #487 dropped the pending change when the write answered, so a reload read the old copy and showed the old switch, and the second or third reload read the refreshed copy. The request log showed the cause: five page loads in two seconds and two reads at the server. #494 stopped the worker caching `/admin`; this rule keeps the page correct whatever sits between it and the store (a worker, a CDN, a replica).
+- Rejected: settling on the write's answer (the bug); a cache-busting query on the read (the worker saves a copy per query and pushes real pages out of its 60); a second `sw.js` change from this thread (#494 owns the worker); a version or ordering guard on the write (one editor, and the stale-write window is a second dialog inside a 1 to 3 s write; add one if the page gains editors).
+- Revisit if: the page gains more than one editor (version the write), or the worker or the CDN is made to cache `/admin` reads again.
+- Amends: D249, D259.
