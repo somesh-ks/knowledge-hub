@@ -122,6 +122,21 @@ async function slowStore(): Promise<SlowStore> {
   };
 }
 
+/**
+ * These tests own their browser context, so the suite's `problems` fixture does not watch their
+ * pages: the page errors and console errors (a reload's cut requests are not one) are gathered here.
+ */
+function watch(page: Page): string[] {
+  const problems: string[] = [];
+  page.on("pageerror", (error) => problems.push(`pageerror: ${error.message}`));
+  page.on("console", (message) => {
+    if (message.type() !== "error") return;
+    if (/Failed to load resource|net::ERR|Failed to fetch/.test(message.text())) return;
+    problems.push(`console: ${message.text()}`);
+  });
+  return problems;
+}
+
 const ready = (page: Page) => page.locator("[data-topics]").and(page.locator("[data-ready]"));
 const studioNotes = (page: Page) =>
   page
@@ -147,6 +162,7 @@ test("a source switched off while the store is slow stays off through two reload
       { name: "test-config-store", value: configHash(BUILT_FILES), url: `${store.baseURL}/` },
     ]);
     const page = await context.newPage();
+    const problems = watch(page);
     await page.route("**/api/site-icon**", (route) => route.fulfill({ status: 404 }));
     await page.goto("/settings/categories/design");
     await expect(ready(page)).toBeVisible();
@@ -172,6 +188,7 @@ test("a source switched off while the store is slow stays off through two reload
     );
     await expect(studioNotes(page)).not.toBeChecked();
     await expect(offered(page)).toHaveCount(0);
+    expect(problems).toEqual([]);
   } finally {
     await context.close();
     store.close();
@@ -189,6 +206,7 @@ test("an experiment switched on while the store is slow stays on through two rel
   });
   try {
     const page = await context.newPage();
+    const problems = watch(page);
     const trusted = page.getByRole("switch", { name: "Trusted publishers" });
     const settled = (): Promise<void> =>
       expect(page.locator("[data-experiments][data-ready]")).toBeVisible();
@@ -209,6 +227,7 @@ test("an experiment switched on while the store is slow stays on through two rel
     await page.reload();
     await settled();
     await expect(trusted).toBeChecked();
+    expect(problems).toEqual([]);
   } finally {
     await context.close();
     store.close();

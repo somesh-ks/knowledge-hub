@@ -262,8 +262,15 @@ let inFlight: ConfigOp[] = [];
 /** Every edit a request carries or the left pages' runs still hold, oldest page first. */
 function heldOps(): ConfigOp[] {
   const ops = [...inFlight, ...[...leftRuns].flatMap((context) => waitingOps(context.changes))];
-  // A request on its way from a page being left is in both lists.
-  return [...new Map(ops.map((op) => [JSON.stringify(op), op])).values()];
+  // A request on its way from a page being left is in both lists. A repeated edit keeps its last
+  // place, so an earlier value does not land after a newer one.
+  const latest = new Map<string, ConfigOp>();
+  for (const op of ops) {
+    const key = JSON.stringify(op);
+    latest.delete(key);
+    latest.set(key, op);
+  }
+  return [...latest.values()];
 }
 
 /**
