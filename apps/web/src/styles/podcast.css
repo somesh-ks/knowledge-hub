@@ -47,62 +47,30 @@
   padding-block-start: var(--space-2);
 }
 
-/* A voice: its select, and after it a round button that plays the voice's sample. The button keeps its
-   room when the voice has no sample yet, so nothing moves when the list arrives. */
+/* A voice: its select, the row's value as Theme's is, at the row's end (the label's next sibling takes
+   the auto margin, settings.css). A long name is cut by the button's own ellipsis (picker.css), and the
+   label keeps its words: a label that gave up width wrapped to two lines (2026-10-31). Playing a
+   voice's sample is in the list (picker.css, a voice's row), not on the page (D274). */
 .podcast-voice {
   display: flex;
   flex: 0 1 auto;
-  align-items: center;
-  gap: var(--space-4);
-  min-width: 0;
-  max-inline-size: 70%;
+  justify-content: flex-end;
+  min-inline-size: 0;
+}
+
+.settings-row[data-voice-row] > .settings-label {
+  flex: none;
 }
 
 .podcast-voice .value-select {
   max-inline-size: none;
-  margin-inline-end: 0;
 }
 
-/* On a phone a voice row is two lines, as the index's rows are: the label, then the voice under it,
-   starting where the label starts, and the play button
-   trailing, centred on both lines. */
+/* On a phone the value starts 8px nearer its label, so a Default's "Default (flag Leo)" fits whole
+   beside "Secondary voice" (2026-10-31). */
 @media (width < 40rem) {
-  .settings-row[data-voice-row] {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "label play"
-      "value play";
-    align-items: center;
-    row-gap: 0;
-    padding-block: var(--space-2);
-  }
-
-  .settings-row[data-voice-row] > .settings-label {
-    grid-area: label;
-  }
-
-  .settings-row[data-voice-row] > .podcast-voice {
-    display: contents;
-  }
-
-  .settings-row[data-voice-row] .value-select {
-    grid-area: value;
-    justify-self: start;
-    max-inline-size: 100%;
-    /* The box bleeds as far as the trailing values do (8px), so its press fill, ring and list
-       keep clear of the screen's edge; its own start padding puts the words under the label. */
-    margin-inline: calc(var(--space-2) * -1) 0;
-  }
-
-  .settings-row[data-voice-row] .value-select > :is(select.field-input, .picker-trigger) {
-    justify-content: flex-start;
+  .podcast-voice .value-select > .picker-trigger {
     padding-inline-start: var(--space-2);
-    text-align: start;
-  }
-
-  .settings-row[data-voice-row] .podcast-sample {
-    grid-area: play;
   }
 }
 

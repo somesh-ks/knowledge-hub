@@ -14,6 +14,8 @@
  * `picker:sync` to the select to bring the button's words up to date.
  */
 
+import { iconClass } from "../design-system/icon";
+import { ICON_PATHS, ICON_VIEW_BOX } from "../lib/icons";
 import { matchesQuery, pickerCount, pickerNoMatch } from "../lib/pickerFilter";
 import { FLOATING, roomFloor } from "../lib/roomFloor";
 import { flagNode } from "../lib/voices";
@@ -43,7 +45,80 @@ interface Choice {
   keywords: string;
   /** The region whose flag leads the words (a voice's accent), or "". */
   region: string;
+  /**
+   * A voice's drawn form (lib/voices.ts fillVoiceSelect): its name alone as the title, a line under
+   * it, the words around a Default's title, and the voice whose sample the list's play control plays.
+   * Absent on a list that is plain words (a time zone).
+   */
+  title: string;
+  sub: string;
+  lead: string;
+  tail: string;
+  sample: string;
 }
+
+/** A Phosphor glyph as an <svg>, for a control a script draws. */
+function glyph(name: "playOutline" | "pause"): SVGSVGElement {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("class", `${iconClass()} picker-${name === "pause" ? "pause" : "play-glyph"}`);
+  svg.setAttribute("data-icon", name);
+  svg.setAttribute("viewBox", ICON_VIEW_BOX);
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  const path = document.createElementNS(ns, "path");
+  path.setAttribute("d", ICON_PATHS[name]);
+  svg.append(path);
+  return svg;
+}
+
+/**
+ * The samples a voice list plays from its rows, one at a time across every list on the page. The
+ * audio is built on the first press, so a page loads none up front; samples come through the site
+ * (/api/voice-sample) because the page may play audio only from its own address and the Blob store.
+ */
+const audition = {
+  audio: undefined as HTMLAudioElement | undefined,
+  /** The control whose sample is playing: it shows pause until the sample ends or stops. */
+  playing: null as HTMLElement | null,
+  mark(control: HTMLElement | null): void {
+    this.playing?.setAttribute("aria-pressed", "false");
+    this.playing = control;
+    control?.setAttribute("aria-pressed", "true");
+  },
+  toggle(control: HTMLElement, id: string): void {
+    const url = `/api/voice-sample?voice=${encodeURIComponent(id)}`;
+    if (!this.audio) {
+      const audio = new Audio();
+      audio.addEventListener("pause", () => this.mark(null));
+      audio.addEventListener("ended", () => this.mark(null));
+      // A sample that cannot be played dims its control and says so, rather than failing in silence.
+      audio.addEventListener("error", () => {
+        if (this.playing) {
+          this.playing.setAttribute("aria-disabled", "true");
+          this.playing.dataset.failed = "";
+        }
+        this.mark(null);
+      });
+      this.audio = audio;
+      // A sample stops when the page is left, by a link in the app (the page swaps in place, so the
+      // audio would play on over the next one) or by closing or leaving the tab.
+      document.addEventListener("astro:before-swap", () => this.stop());
+      addEventListener("pagehide", () => this.stop());
+    }
+    if (this.playing === control && !this.audio.paused) {
+      this.audio.pause();
+      return;
+    }
+    this.audio.src = url;
+    this.mark(control);
+    void this.audio.play().catch(() => this.mark(null));
+  },
+  stop(): void {
+    this.audio?.pause();
+    this.mark(null);
+  },
+};
 
 function mountPicker(select: HTMLSelectElement): void {
   const holder = select.parentElement;
@@ -129,14 +204,35 @@ function mountPicker(select: HTMLSelectElement): void {
       label: option.textContent ?? "",
       keywords: option.dataset.keywords ?? "",
       region: option.dataset.region ?? "",
+      title: option.dataset.title ?? "",
+      sub: option.dataset.sub ?? "",
+      lead: option.dataset.lead ?? "",
+      tail: option.dataset.tail ?? "",
+      sample: option.dataset.sample ?? "",
     }));
+
+  /**
+   * A voice's title as the words of the button and of a row: a Default's "Default (" flag name ")",
+   * any other voice's flag and name. A list with no titles is its option's own words and flag.
+   */
+  const titleNodes = (choice: Choice): (Node | string)[] => {
+    if (choice.title === "") {
+      return [...(choice.region ? [flagNode(choice.region)] : []), choice.label];
+    }
+    if (choice.lead !== "") {
+      return [
+        choice.lead,
+        ...(choice.region ? [flagNode(choice.region)] : []),
+        `${choice.title}${choice.tail}`,
+      ];
+    }
+    return [...(choice.region ? [flagNode(choice.region)] : []), choice.title];
+  };
 
   const sync = (): void => {
     const chosen = select.selectedOptions[0];
-    value.replaceChildren(
-      ...(chosen?.dataset.region ? [flagNode(chosen.dataset.region)] : []),
-      chosen?.textContent ?? "",
-    );
+    const current = chosen ? readChoices()[chosen.index] : undefined;
+    value.replaceChildren(...(current ? titleNodes(current) : []));
     name();
   };
 
@@ -170,8 +266,26 @@ function mountPicker(select: HTMLSelectElement): void {
         item.setAttribute("role", "option");
         item.setAttribute("aria-selected", String(choice.value === select.value));
         item.dataset.index = String(index);
-        if (choice.region) item.append(flagNode(choice.region));
-        item.append(element("span", "picker-option-name", choice.label));
+        if (choice.title === "") {
+          if (choice.region) item.append(flagNode(choice.region));
+          item.append(element("span", "picker-option-name", choice.label));
+          return item;
+        }
+        // A voice: a play control at the start, then its title with the gender and accent under it.
+        // The check at the end is drawn by CSS on the chosen row.
+        item.classList.add("picker-option-voice");
+        const play = element("span", "picker-play");
+        play.setAttribute("aria-hidden", "true");
+        play.setAttribute("aria-pressed", "false");
+        if (choice.sample === "") play.setAttribute("aria-disabled", "true");
+        else play.dataset.sample = choice.sample;
+        play.append(glyph("playOutline"), glyph("pause"));
+        const words = element("span", "picker-option-name");
+        const title = element("span", "picker-option-title");
+        title.append(...titleNodes(choice));
+        words.append(title);
+        if (choice.sub !== "") words.append(element("span", "picker-option-sub", choice.sub));
+        item.append(play, words);
         return item;
       }),
     );
@@ -270,6 +384,8 @@ function mountPicker(select: HTMLSelectElement): void {
       else pop.focus({ preventScroll: true });
       return;
     }
+    // A sample heard from the list stops with it.
+    audition.stop();
     if (document.activeElement === document.body || pop.contains(document.activeElement))
       trigger.focus({ preventScroll: true });
   });
@@ -317,6 +433,13 @@ function mountPicker(select: HTMLSelectElement): void {
   // The pointer takes over from the keyboard: the hover tint shows the row, the ring goes.
   list.addEventListener("pointermove", () => list.removeAttribute("data-keyboard"));
   list.addEventListener("click", (event) => {
+    // A voice's play control hears its sample and leaves the list open and the choice as it was.
+    const play = (event.target as Element).closest<HTMLElement>(".picker-play");
+    if (play) {
+      if (play.dataset.sample && play.getAttribute("aria-disabled") !== "true")
+        audition.toggle(play, play.dataset.sample);
+      return;
+    }
     const item = (event.target as Element).closest<HTMLElement>("[role=option]");
     const choice = item ? shown[Number(item.dataset.index)] : undefined;
     if (choice) choose(choice);
