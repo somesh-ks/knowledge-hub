@@ -1662,13 +1662,20 @@ html:has(.source-filter[data-chips]) {
   padding: 0;
   border: 0;
   border-radius: var(--card-content-radius);
-  font-size: calc(var(--cover-size-hero) * 0.6);
+  font-size: calc(var(--cover-size-hero) * 0.45);
   line-height: 1;
+}
+
+/* On a phone the title runs under the emoji: a step more air between them (owner, 2026-10-31). */
+@media (width < 40rem) {
+  .topic-card-lead {
+    padding-block-end: var(--space-2);
+  }
 }
 
 @media (width >= 40rem) {
   .topic-card-lead .topic-emoji-pick {
-    font-size: calc(var(--cover-size-hero-wide) * 0.6);
+    font-size: calc(var(--cover-size-hero-wide) * 0.45);
   }
 }
 
