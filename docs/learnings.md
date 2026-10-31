@@ -136,8 +136,8 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-16: a worktree's `node_modules` symlink was committed (the ignore rule `node_modules/` matches directories only), and merging that branch replaced the real, ignored `apps/web/node_modules` with it: git overwrites ignored paths. The rule is now `node_modules`; after such a merge, run `npm ci`.
 - 2026-10-25: `scripts/worktreeLinks.mjs` found own packages by the literal scope `@dispatch`; #272 broke it. It reads `package.json` names now. Per package, never a scope (10-26).
 - 2026-10-14: squash-merged branches never pass `git branch -d`, and auto mode refuses `-D`. Match commit subjects against main's squash bodies, keep a bundle of the heads in `.git/`, and let the owner force delete.
-- 2026-10-12: cherry-pick a worker's non-merge commits (`git log --no-merges --reverse <lead>..<branch>`) and run `biome check` again afterwards: a formatting difference between two branches shows only on the combined tree.
-- 2026-10-21: workers hit the 90-call cap: brief one piece each, WIP commit after the first pass. A finished agent's worktree stays locked: `remove -f -f` once clean.
-- 2026-10-21: a worktree can start from an older base than briefed: check the last commit first, reset to the target before editing.
-- 2026-10-11: the review plugin stops at a PR it already reviewed: a re-labelled run posts nothing and new commits go unreviewed. Run `/code-review` on the range.
-- 2026-10-06: Auto-mode classifier blocks credential creation, store deletion and merging unreviewed PRs; the owner runs those.
+- 2026-10-12: cherry-pick a worker's non-merge commits (`git log --no-merges --reverse <lead>..<branch>`), then rerun `biome check`: formatting differences show on the combined tree.
+- 2026-10-21: workers hit the 90-call cap: one piece each, WIP commit after the first pass. A finished worker's worktree stays locked: `remove -f -f`.
+- 2026-10-21: a worktree can start from an older base: check its last commit first.
+- 2026-10-11: the review plugin skips a PR it already reviewed, so new commits go unreviewed: run `/code-review` on the range.
+- 2026-10-06: the auto-mode classifier blocks credential creation, store deletion and unreviewed merges; the owner runs those.
