@@ -6,6 +6,7 @@ import { parseStreamDoc, type StreamDoc } from "../lib/liveStream";
 import { getPlayerAudio, getPlayerStore } from "../player/core/playerRuntime";
 import { tabShared } from "../player/core/tabSlot";
 import { showToast } from "../sheets/toastStore";
+import type { PlayerDigestData } from "../types/contracts";
 import { liveDigestFrom } from "./liveEpisode";
 import { createNarrationController, type NarrationController } from "./narrationController";
 import { startPrewarm } from "./prewarmPage";
@@ -90,6 +91,14 @@ export function narrateLive(doc: StreamDoc, runId: number): void {
     delay: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
     now: Date.now,
   });
+}
+
+/**
+ * Plays a briefing that is not on this page (a queued item started in place), narrating what is
+ * missing. The player is the persistent one, so it works from any page.
+ */
+export function narrateDigest(digest: PlayerDigestData): void {
+  void getController().play(digest);
 }
 
 /** Plays the briefing on this page, narrating what is missing. */

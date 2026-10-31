@@ -12,6 +12,7 @@ import { narratedOrPage } from "../../narration/narrationRegistry";
 import { pageNeedsPrewarm, whenIdle } from "../../narration/prewarmPage";
 import { createSwitchableAudio, type SwitchableAudio } from "../../narration/switchableAudio";
 import { wakeIslands } from "../../scripts/islandWake";
+import type { PlayerDigestData } from "../../types/contracts";
 import { startSound } from "../sound/soundController";
 import { announcementForEvent } from "./announcements";
 import { announce } from "./announcerDom";
@@ -37,8 +38,11 @@ import {
   QUEUE_ADD_EVENT,
   QUEUE_CHANGED_EVENT,
   queueItemUrl,
+  takeNext,
 } from "./playQueue";
 import { getPreferences } from "./preferences";
+import { loadQueueDigest, queueDigestFor } from "./queueMeta";
+import { startQueuePrefetch } from "./queuePrefetch";
 import { createReaderSync, type ReaderSync } from "./readerSync";
 import { safeLocalStorage } from "./resume";
 import { reapplyRootState, setRootAttribute, setRootProperty } from "./rootAttributes";
@@ -151,7 +155,9 @@ export async function playUpNext(
   stillSuggesting: () => boolean = () => true,
 ): Promise<void> {
   const endedId = getPlayerStore().getState().track?.digest.id ?? null;
-  const next = getPlayQueue().shift(endedId);
+  // Looked at, not taken: the item leaves "to come" when it starts (playQueue.started), so one that
+  // cannot start is still there to try again.
+  const next = takeNext(getPlayQueue().getIds(), endedId).next;
   if (next) return playQueueItem(next);
   if (!suggest) return;
   const wasEnded = getPlayerStore().getState().status === "ended";
@@ -162,7 +168,7 @@ export async function playUpNext(
   if ((getPlayerStore().getState().track?.digest.id ?? null) !== endedId) return;
   // A replay of the same ended track keeps its id: leaving "ended" means the listener restarted it.
   if (wasEnded && getPlayerStore().getState().status !== "ended") return;
-  const queuedMeanwhile = getPlayQueue().shift(endedId);
+  const queuedMeanwhile = takeNext(getPlayQueue().getIds(), endedId).next;
   if (queuedMeanwhile) return playQueueItem(queuedMeanwhile);
   // Autoplay may have been switched off while the list loaded (the lock screen's Next ignores it).
   if (!stillSuggesting()) return;
@@ -170,14 +176,51 @@ export async function playUpNext(
 }
 
 /**
- * Plays a queued item (or any briefing or episode) now: off the queue, then the road Up next takes.
- * The item's page brings its data; the store plays it on arrival, on the audio element the browser
- * already trusts. The player goes down first, as before every navigation.
+ * Plays a queued item (or any briefing or episode) now, in place (D277): the player keeps its bar
+ * and its one audio element and loads the item into them, so the listener is not taken to another
+ * page and the bar never goes down between two items. The item's page is read once (queueMeta.ts),
+ * usually already from the row that shows it. One with no finished audio is narrated from here.
+ * Only a page that cannot be read (offline, gone) falls back to the road a cover press takes.
  */
 export function playQueueItem(id: string): void {
-  selections().count += 1;
+  const mine = ++selections().count;
+  const store = getPlayerStore();
+  const state = store.getState();
+  if (state.hasStarted && state.track?.digest.id === id) {
+    // The row of what plays now: pressing it plays or resumes it, and starts nothing again.
+    if (state.status !== "playing" && state.status !== "loading") store.play("user");
+    return;
+  }
+  const cached = queueDigestFor(id);
+  if (cached) {
+    startInPlace(cached);
+    return;
+  }
+  void loadQueueDigest(id).then((digest) => {
+    // The listener picked another item while this page was being read: theirs is the one that starts.
+    if (mine !== selections().count) return;
+    if (digest) startInPlace(digest);
+    else playQueueItemByPage(id);
+  });
+}
+
+function startInPlace(read: PlayerDigestData): void {
+  // A recording narrated earlier in this session comes back with its audio, as a page's Play gets it.
+  const digest = narratedOrPage(read);
+  if (!digest.audio) {
+    void import("../../narration/narrationRuntime").then((narration) =>
+      narration.narrateDigest(digest),
+    );
+    return;
+  }
+  const store = getPlayerStore();
+  store.load(digest);
+  store.play("user");
+}
+
+/** The road a page's cover takes: go to the item's page, which plays it on arrival. */
+function playQueueItemByPage(id: string): void {
   const current = getPlayerStore().getState().track?.digest.id ?? null;
-  getPlayQueue().remove(id);
   playBriefingOnArrival(id);
   void playerSheet
     .collapse()
@@ -301,6 +344,14 @@ export function startPlayerRuntime(): () => void {
     startedId = id;
     if (id) playQueue.started(id);
   });
+  // Queued items' first minutes are fetched at an idle moment, so a tap on any of the next three
+  // starts at once (queuePrefetch.ts).
+  let stopPrefetch: (() => void) | null = null;
+  let tornDown = false;
+  whenIdle(() => {
+    if (tornDown) return;
+    stopPrefetch = startQueuePrefetch(playQueue);
+  });
   const offPageHide = onPageHide(() => getSpeedDefault().flush());
   const offQueueEnd = playerStore.onEvent((event) => {
     if (event.type !== "ended") return;
@@ -401,6 +452,8 @@ export function startPlayerRuntime(): () => void {
   replayEarlyTap();
 
   return () => {
+    tornDown = true;
+    stopPrefetch?.();
     document.removeEventListener("astro:page-load", onPageLoad);
     document.removeEventListener("astro:before-preparation", onBeforeNavigation);
     document.removeEventListener("astro:after-swap", onAfterSwap);

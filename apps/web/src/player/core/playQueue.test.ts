@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   addToQueue,
   createPlayQueue,
+  HISTORY_KEY,
   moveInQueue,
   parseQueue,
   QUEUE_KEY,
+  startItem,
   takeNext,
 } from "./playQueue";
 import type { StorageLike } from "./resume";
@@ -74,5 +76,41 @@ describe("the play queue", () => {
     expect(reloaded.shift(null)).toBe("ep-20261007-1930");
     reloaded.shift(null);
     expect(storage.getItem(QUEUE_KEY)).toBeNull();
+  });
+
+  // D277: the queue used to drop each item as it started, so a tap on the third item emptied the list.
+  it("keeps what played, and a jump moves the pointer without losing an item", () => {
+    const list = { played: ["a"], current: "b", upcoming: ["c", "d", "e"] };
+    // Ahead to the third: the one playing and the ones skipped are behind it, in order.
+    expect(startItem(list, "e")).toEqual({
+      played: ["a", "b", "c", "d"],
+      current: "e",
+      upcoming: [],
+    });
+    // Back to a played item: what followed it is to come again, ahead of the rest.
+    const later = { played: ["a", "b", "c"], current: "d", upcoming: ["e"] };
+    expect(startItem(later, "b")).toEqual({
+      played: ["a"],
+      current: "b",
+      upcoming: ["c", "d", "e"],
+    });
+    // Something the list never held (a page's Play) becomes current beside it.
+    expect(startItem(list, "z")).toEqual({
+      played: ["a", "b"],
+      current: "z",
+      upcoming: ["c", "d", "e"],
+    });
+  });
+
+  it("keeps the played items across a reload, and the queue key holds only what is to come", () => {
+    const storage = memoryStorage();
+    const queue = createPlayQueue({ storage, getCurrentId: () => null });
+    for (const id of ["a", "b", "c"]) queue.add(id);
+    queue.started("a");
+    queue.started("c");
+    expect(storage.getItem(QUEUE_KEY)).toBeNull();
+    const reloaded = createPlayQueue({ storage, getCurrentId: () => null });
+    expect(reloaded.getView()).toEqual({ played: ["a", "b"], current: "c", upcoming: [] });
+    expect(storage.getItem(HISTORY_KEY)).not.toBeNull();
   });
 });

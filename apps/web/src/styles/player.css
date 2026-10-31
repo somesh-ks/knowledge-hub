@@ -2657,6 +2657,15 @@
   box-shadow: inset 0 calc(var(--stroke-ring) * -1) 0 var(--color-accent);
 }
 
+/* D277: the list keeps what played (muted) and marks what plays now (accent, the active color). */
+.player-queue-item[data-state="played"] .player-upnext-date {
+  color: var(--color-on-surface-muted);
+}
+
+.player-queue-item[data-state="current"] .player-upnext-date {
+  color: var(--color-accent);
+}
+
 .player-queue-more,
 .player-queue-add {
   flex: none;
