@@ -1,14 +1,15 @@
 ---
-import Icon from "./Icon.astro";
+import Icon from "../design-system/Icon.astro";
+import type { IconSize } from "../design-system/icon";
 
 interface Props {
-  class?: string;
+  size?: IconSize;
 }
 
-const { class: className = "" } = Astro.props;
+const { size = "md" } = Astro.props;
 ---
 
 <span class="swap">
-  <Icon name="play" class={`${className} swap-paused`.trim()} />
-  <Icon name="pause" class={`${className} swap-playing`.trim()} />
+  <Icon name="play" size={size} class="swap-paused" />
+  <Icon name="pause" size={size} class="swap-playing" />
 </span>

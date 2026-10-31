@@ -1,9 +1,9 @@
 ---
+import Icon from "../design-system/Icon.astro";
 import { faviconOf } from "../lib/manage";
 import { type CatalogSource, cadenceLabel, catalogHost } from "../lib/sourceCatalog";
 import { sourceInitial } from "../lib/sourceInitial";
 import type { SuggestedAdd } from "../lib/topicText";
-import Icon from "./Icon.astro";
 
 interface Props {
   /** The catalogue sources that fit the topic, best first (suggestSources). */
@@ -38,7 +38,7 @@ const adding = (offer: CatalogSource): string =>
 {
   offers.length > 0 && (
     <section class="topic-suggested" aria-labelledby="suggested-head">
-      <h2 class="section-head" id="suggested-head">Suggested sources</h2>
+      <h2 class="section-head text-heading" id="suggested-head">Suggested sources</h2>
       <ul class="topic-sources" role="list" data-suggested-sources aria-label={`Suggested sources for ${name}`}>
         {offers.map((offer, index) => {
           const icon = faviconOf(offer.url ?? offer.feed_url);

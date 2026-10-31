@@ -81,7 +81,7 @@ export default function SheetFrame({
             <div className={drawerHeadClass()}>
               <Drawer.Title className={sheetTitleClass()}>{title}</Drawer.Title>
               <Drawer.Close className="icon-btn press" aria-label={closeLabel}>
-                <Icon name="close" className="icon-lg" />
+                <Icon name="close" size="lg" />
               </Drawer.Close>
             </div>
             {children}

@@ -14,7 +14,7 @@
   display: grid;
 }
 
-.select-outlined > .icon {
+.select-outlined > .icon-glyph {
   position: absolute;
   inset-block: 0;
   inset-inline-end: var(--space-4);
@@ -24,7 +24,7 @@
 }
 
 @media (forced-colors: active) {
-  .select-outlined > .icon {
+  .select-outlined > .icon-glyph {
     color: ButtonText;
   }
 }
@@ -87,7 +87,7 @@
 }
 
 /* The chevron is a hint at the end of the label, a step smaller than a toolbar glyph. */
-.select-tonal > .icon {
+.select-tonal > .icon-glyph {
   position: absolute;
   inset-inline-end: var(--space-4);
   inline-size: var(--size-icon-sm);

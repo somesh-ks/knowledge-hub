@@ -1,6 +1,7 @@
 ---
 import Button from "../design-system/Button.astro";
 import Field from "../design-system/Field.astro";
+import Icon from "../design-system/Icon.astro";
 import Select from "../design-system/Select.astro";
 import {
   DEFAULTS,
@@ -16,7 +17,6 @@ import {
 } from "../lib/createForm";
 import { loadManage } from "../lib/manage";
 import { loadScheduleView } from "../lib/schedule";
-import Icon from "./Icon.astro";
 // The layout renders this form for the Create sheet on every page, so these styles are global. The
 // build links them before the layout's own stylesheets, so their rules never rely on coming last:
 // where one adjusts a shared rule, it does so with a more specific selector.
@@ -87,7 +87,7 @@ const COPY = {
     <input type="hidden" name="audience" value={DEFAULTS.audience} />
 
     <section class="create-group">
-      <h2 class="section-head">
+      <h2 class="section-head text-heading">
         <label for="create-title">Title <span class="create-optional">(optional)</span></label>
       </h2>
       <Field
@@ -105,7 +105,7 @@ const COPY = {
          to look follow; the rest has a default and waits under More options, whose line says what
          those defaults are. */}
     <section class="create-group create-group-primary" aria-labelledby="create-topics-label">
-      <h2 class="section-head" id="create-topics-label">Categories</h2>
+      <h2 class="section-head text-heading" id="create-topics-label">Categories</h2>
       <fieldset class="filter-chips" aria-labelledby="create-topics-label" data-built-topics={allTopics.map((topic) => topic.id).join(" ")}>
         {
           topics.map((topic) => (
@@ -129,7 +129,7 @@ const COPY = {
     </section>
 
     <section class="create-group" aria-labelledby="create-length-label">
-      <h2 class="section-head" id="create-length-label">Max length</h2>
+      <h2 class="section-head text-heading" id="create-length-label">Max length</h2>
       <fieldset class="segmented-choice create-choice" role="radiogroup" aria-labelledby="create-length-label">
         {
           LENGTHS.map((length) => (
@@ -143,7 +143,7 @@ const COPY = {
     </section>
 
     <section class="create-group" aria-labelledby="create-window-label">
-      <h2 class="section-head" id="create-window-label">Look back</h2>
+      <h2 class="section-head text-heading" id="create-window-label">Look back</h2>
       <fieldset class="segmented-choice create-choice" role="radiogroup" aria-labelledby="create-window-label">
         {
           WINDOWS.map((window) => (
@@ -168,7 +168,7 @@ const COPY = {
       </summary>
       <div class="create-more-body">
         <section class="create-group" aria-labelledby="create-format-label">
-          <h2 class="section-head" id="create-format-label">Format</h2>
+          <h2 class="section-head text-heading" id="create-format-label">Format</h2>
           <fieldset class="segmented-choice create-choice" role="radiogroup" aria-labelledby="create-format-label">
             {
               FORMATS.map((format) => (
@@ -185,7 +185,7 @@ const COPY = {
              /api/voices when the form is first used, so the markup carries only the default and the
              saved voice. Each voice can be heard before the episode is made. */}
         <section class="create-group" aria-labelledby="create-voice-label">
-          <h2 class="section-head" id="create-voice-label" data-voice-heading data-one="Voice" data-two="Voices">{startFormat === "discussion" ? "Voices" : "Voice"}</h2>
+          <h2 class="section-head text-heading" id="create-voice-label" data-voice-heading data-one="Voice" data-two="Voices">{startFormat === "discussion" ? "Voices" : "Voice"}</h2>
           <div class="create-voices">
             {
               VOICES.map((voice, index) => (
@@ -228,7 +228,7 @@ const COPY = {
         </section>
 
         <section class="create-group" aria-labelledby="create-tone-label">
-          <h2 class="section-head" id="create-tone-label">Tone</h2>
+          <h2 class="section-head text-heading" id="create-tone-label">Tone</h2>
           <fieldset class="segmented-choice create-choice" role="radiogroup" aria-labelledby="create-tone-label">
             {
               TONES.map((tone) => (

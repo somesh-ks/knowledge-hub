@@ -1,5 +1,5 @@
 ---
-import Icon from "../../../web/src/components/Icon.astro";
+import Icon from "../../../web/src/design-system/Icon.astro";
 import { href, type Section } from "../lib/sections";
 
 /**
@@ -17,7 +17,7 @@ const { page, art } = Astro.props;
 
 <a class="guide-tile" href={href(page.path)}>
   <span class={`guide-tile-art guide-art-${art}`} aria-hidden="true">
-    {art === "principles" && <span class="guide-art-disc"><Icon name="compass" class="icon-lg" /></span>}
+    {art === "principles" && <span class="guide-art-disc"><Icon name="compass" size="lg" /></span>}
     {
       art === "foundations" && (
         <>

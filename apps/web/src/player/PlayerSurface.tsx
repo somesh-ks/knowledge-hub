@@ -183,7 +183,7 @@ export default function PlayerSurface() {
                 aria-label="Close the player"
                 onClick={() => void playerSheet.collapse()}
               >
-                <Icon name="chevronDown" className="icon" />
+                <Icon name="chevronDown" />
               </button>
               <div className="player-cover-slot">
                 <div className="player-cover-box" data-player-cover>
@@ -198,7 +198,7 @@ export default function PlayerSurface() {
                 data-stories={(timeline?.items.length ?? 0) > 0 ? "" : undefined}
                 data-sourced={(timeline?.items.length ?? 0) > 0 ? "" : undefined}
               >
-                <h2 className="player-title" id={TITLE_ID} title={title}>
+                <h2 className="player-title text-title" id={TITLE_ID} title={title}>
                   {title}
                 </h2>
                 {/* The story being read, and where it came from. A recording without stories says

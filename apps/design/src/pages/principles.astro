@@ -1,5 +1,5 @@
 ---
-import Icon from "../../../web/src/components/Icon.astro";
+import Icon from "../../../web/src/design-system/Icon.astro";
 import type { IconName } from "../../../web/src/lib/icons";
 import PageHead from "../components/PageHead.astro";
 import Shell from "../layouts/Shell.astro";
@@ -111,12 +111,12 @@ const kept: { title: string; line: string; icon: IconName }[] = [
     <p class="guide-lead">A private briefing for one design engineer, read with one hand. Quick, plain, out of the way.</p>
 
     <section aria-labelledby="rules">
-      <h2 class="section-head" id="rules">What it follows</h2>
+      <h2 class="section-head text-heading" id="rules">What it follows</h2>
       <ol class="guide-cards" role="list">
         {
           principles.map((principle, index) => (
             <li class="guide-card" data-tone={principle.tone} style={`--n: ${index}`}>
-              <span class="guide-card-icon" aria-hidden="true"><Icon name={principle.icon} class="icon-lg" /></span>
+              <span class="guide-card-icon" aria-hidden="true"><Icon name={principle.icon} size="lg" /></span>
               <h3>{principle.title}</h3>
               <p>{principle.line}</p>
               {principle.ref && <span class="guide-card-ref">{principle.ref}</span>}
@@ -127,19 +127,19 @@ const kept: { title: string; line: string; icon: IconName }[] = [
     </section>
 
     <section aria-labelledby="bans">
-      <h2 class="section-head" id="bans">Not here</h2>
+      <h2 class="section-head text-heading" id="bans">Not here</h2>
       <ul class="guide-bans" role="list">
-        {bans.map((ban) => <li><Icon name="close" class="icon-lg" />{ban}</li>)}
+        {bans.map((ban) => <li><Icon name="close" size="lg" />{ban}</li>)}
       </ul>
     </section>
 
     <section aria-labelledby="kept">
-      <h2 class="section-head" id="kept">How it is kept</h2>
+      <h2 class="section-head text-heading" id="kept">How it is kept</h2>
       <ol class="guide-cards" role="list">
         {
           kept.map((step, index) => (
             <li class="guide-card" data-tone="accent" style={`--n: ${index}`}>
-              <span class="guide-card-icon" aria-hidden="true"><Icon name={step.icon} class="icon-lg" /></span>
+              <span class="guide-card-icon" aria-hidden="true"><Icon name={step.icon} size="lg" /></span>
               <h3>{step.title}</h3>
               <p>{step.line}</p>
             </li>

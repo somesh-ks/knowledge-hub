@@ -1,5 +1,5 @@
 ---
-import Icon from "../../../web/src/components/Icon.astro";
+import Icon from "../../../web/src/design-system/Icon.astro";
 import { ICON_PATHS, type IconName } from "../../../web/src/lib/icons";
 import PageHead from "../components/PageHead.astro";
 import Shell from "../layouts/Shell.astro";
@@ -50,7 +50,7 @@ const jumps = [
     </div>
 
     <section aria-labelledby="space">
-      <h2 class="section-head" id="space">Space</h2>
+      <h2 class="section-head text-heading" id="space">Space</h2>
       <p class="guide-note">The 8pt grid: 8, 16, 24, 32, 48, 64 and 96px. The 4px step only where the style rules name it (D131).</p>
       <div class="guide-table-wrap">
         <table class="guide-table">
@@ -70,7 +70,7 @@ const jumps = [
     </section>
 
     <section aria-labelledby="radius">
-      <h2 class="section-head" id="radius">Radius and stroke</h2>
+      <h2 class="section-head text-heading" id="radius">Radius and stroke</h2>
       <p class="guide-note">Concentric: an inner corner is the outer radius less the padding between them. Controls are pills; containers keep a step.</p>
       <div class="guide-table-wrap">
         <table class="guide-table">
@@ -99,7 +99,7 @@ const jumps = [
     </section>
 
     <section aria-labelledby="shadow">
-      <h2 class="section-head" id="shadow">Shadow</h2>
+      <h2 class="section-head text-heading" id="shadow">Shadow</h2>
       <p class="guide-note">Five elevations, each a stack of layers that changes with the theme. A box on the page carries none: shadows belong to what floats.</p>
       <div class="guide-table-wrap">
         <table class="guide-table">
@@ -119,7 +119,7 @@ const jumps = [
     </section>
 
     <section aria-labelledby="layers">
-      <h2 class="section-head" id="layers">Layers</h2>
+      <h2 class="section-head text-heading" id="layers">Layers</h2>
       <div class="guide-table-wrap">
         <table class="guide-table">
           <tbody>
@@ -130,7 +130,7 @@ const jumps = [
     </section>
 
     <section aria-labelledby="layout">
-      <h2 class="section-head" id="layout">Layout and size</h2>
+      <h2 class="section-head text-heading" id="layout">Layout and size</h2>
       <div class="guide-table-wrap">
         <table class="guide-table">
           <tbody>
@@ -141,7 +141,7 @@ const jumps = [
     </section>
 
     <section aria-labelledby="components">
-      <h2 class="section-head" id="components">Component tokens</h2>
+      <h2 class="section-head text-heading" id="components">Component tokens</h2>
       <p class="guide-note">The sizes and bindings each component reads, by component.</p>
       {
         groups.map(([group, tokens]) => (
@@ -160,10 +160,10 @@ const jumps = [
     </section>
 
     <section aria-labelledby="icons">
-      <h2 class="section-head" id="icons">Icons</h2>
+      <h2 class="section-head text-heading" id="icons">Icons</h2>
       <p class="guide-note">One set, Phosphor, drawn by the Icon component. Each glyph carries its name in <code>data-icon</code> for the ink margins (D187).</p>
       <ul class="guide-icons" role="list">
-        {icons.map((name) => <li class="guide-icon" data-filter-item data-name={name}><Icon name={name} class="icon-lg" /><span>{name}</span></li>)}
+        {icons.map((name) => <li class="guide-icon" data-filter-item data-name={name}><Icon name={name} size="lg" /><span>{name}</span></li>)}
       </ul>
     </section>
 

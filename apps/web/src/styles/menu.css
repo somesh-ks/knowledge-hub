@@ -149,7 +149,7 @@
   gap: var(--space-4);
 }
 
-.menu-sheet .menu-item .icon {
+.menu-sheet .menu-item .icon-glyph {
   flex: none;
   width: var(--size-icon);
   height: var(--size-icon);

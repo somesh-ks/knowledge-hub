@@ -4,12 +4,14 @@
  * words a lookup matches against and the one-line rules the registry does not hold. A family that
  * becomes a component adds its entry here and deletes its hand-written ones from parts.ts.
  */
+import { BADGE } from "../../apps/web/src/design-system/badge.js";
 import { BANNER } from "../../apps/web/src/design-system/banner.js";
 import { BUTTON } from "../../apps/web/src/design-system/button.js";
 import { DIALOG } from "../../apps/web/src/design-system/dialog.js";
 import { DRAWER } from "../../apps/web/src/design-system/drawer.js";
 import { FIELD } from "../../apps/web/src/design-system/field.js";
 import type { ComponentRef, Guidance } from "../../apps/web/src/design-system/guidance.js";
+import { ICON } from "../../apps/web/src/design-system/icon.js";
 import { MENU } from "../../apps/web/src/design-system/menu.js";
 import { SELECT } from "../../apps/web/src/design-system/select.js";
 import { SHEET } from "../../apps/web/src/design-system/sheet.js";
@@ -19,6 +21,7 @@ import type { PartSource } from "./types.js";
 
 /** The part a `dontUseWhen` points at. A family not yet a component keeps its hand-written id. */
 const PART_OF: Record<string, string> = {
+  Icon: "icon",
   "Icon button": "icon-btn",
   Chip: "filter-chip",
   FAB: "fab",
@@ -28,6 +31,7 @@ const PART_OF: Record<string, string> = {
   Field: "field",
   Select: "select",
   Menu: "menu",
+  Badge: "badge",
   Banner: "banner",
   Dialog: "dialog",
   Sheet: "sheet",
@@ -155,6 +159,25 @@ export const componentParts = (): PartSource[] => [
       markup: extra?.markup,
     };
   }),
+  control("icon", "Icon", ICON, {
+    kind: "display",
+    classes: ["icon-glyph", "icon-glyph-lg"],
+    not: [{ when: "the glyph must act when pressed", use: "icon-btn" }],
+    markup: '<Icon name="plus" size="lg" />',
+    keywords: ["icon", "glyph", "phosphor", "symbol", "chevron", "plus", "check"],
+    rules: [
+      "Draw it with <Icon>; a script builds one with iconHtml() and an island with <Icon> from player/ui, both through iconClass().",
+      "A control that holds a glyph places it with its own rule; it never sets the glyph's size twice.",
+    ],
+  }),
+  control("badge", "Badge", BADGE, {
+    kind: "display",
+    classes: ["badge-label"],
+    not: [{ when: "the pill can be pressed or ticked", use: "filter-chip" }],
+    markup: "<Badge>Admin</Badge>",
+    keywords: ["badge", "tag", "pill", "count", "label"],
+    rules: ["It holds one word or one number; the page places it with a class, never styles it."],
+  }),
   control("switch", "Switch", SWITCH, {
     keywords: ["switch", "toggle", "on off", "boolean", "enable"],
     markup:
@@ -238,13 +261,7 @@ export const componentParts = (): PartSource[] => [
   }),
   control("dialog", "Dialog", DIALOG, {
     kind: "container",
-    classes: [
-      "dialog-panel",
-      "dialog-title",
-      "dialog-body",
-      "dialog-actions",
-      "dialog-actions-stacked",
-    ],
+    classes: ["dialog-panel", "dialog-body", "dialog-actions", "dialog-actions-stacked"],
     not: [{ when: "a form that slides in, with fields", use: "sheet" }],
     files: [
       "design-system/Dialog.astro",
