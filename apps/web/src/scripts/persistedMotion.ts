@@ -23,7 +23,10 @@ function persistedAnimations(): Array<{
 }> {
   const found: Array<{ animation: CSSAnimation; target: Element; pseudo: string }> = [];
   for (const animation of document.getAnimations()) {
-    if (!("animationName" in animation)) continue;
+    // A scroll-driven animation has no clock to carry: its time is the scroll position.
+    if (!("animationName" in animation) || !(animation.timeline instanceof DocumentTimeline)) {
+      continue;
+    }
     const effect = animation.effect as KeyframeEffect | null;
     const target = effect?.target;
     if (target?.closest(PERSISTED)) {
