@@ -69,7 +69,7 @@ test.describe("the Settings index", () => {
       ["Sources", "", "/settings/categories"],
       ["Preferences", "", "/settings/preferences"],
       ["Podcast voice", "", "/settings/voice"],
-      ["Interface sounds", "On", "/settings/sounds"],
+      ["Sounds and haptics", "On", "/settings/sounds"],
     ] as const;
     for (const [name, hint, href] of rows) {
       const row = page.getByRole("link", { name: new RegExp(`^${name}`) });

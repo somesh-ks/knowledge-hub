@@ -22,7 +22,7 @@ import {
 } from "../player/core/preferences";
 import { safeLocalStorage } from "../player/core/resume";
 import { startThemeSync } from "../player/core/themeRuntime";
-import { playUiCue } from "../player/sound/soundController";
+import { getHaptics, playUiCue } from "../player/sound/soundController";
 import { type Cue, cueForSwitch, cueForVolumeRelease } from "../player/sound/soundMap";
 import { installPromptReady, onInstallPromptChange, requestInstall } from "./installPrompt";
 
@@ -110,6 +110,8 @@ function mountSettings(root: HTMLElement): () => void {
   const preferences = getPreferences();
   const theme = root.querySelector<HTMLSelectElement>('select[name="theme"]');
   const sounds = root.querySelector<HTMLInputElement>('input[name="sounds"]');
+  const haptics = root.querySelector<HTMLSelectElement>('select[name="haptics"]');
+  const hapticsSection = root.querySelector<HTMLElement>("[data-haptics-section]");
   const volume = root.querySelector<HTMLInputElement>('input[name="volume"]');
   const autoplay = root.querySelector<HTMLInputElement>('input[name="autoplay"]');
   // The index's Interface sounds row: its line says whether they are on in this browser.
@@ -128,6 +130,7 @@ function mountSettings(root: HTMLElement): () => void {
     const state = controlState(preferences.get(), preferences.getSoundsEnabled());
     if (theme) theme.value = state.theme;
     if (sounds) sounds.checked = state.sounds;
+    if (haptics) haptics.value = preferences.get().haptics ? "on" : "off";
     if (autoplay) autoplay.checked = preferences.get().autoplay;
     if (soundsHint) soundsHint.textContent = state.sounds ? "On" : "Off";
     if (volume) {
@@ -145,6 +148,14 @@ function mountSettings(root: HTMLElement): () => void {
       const chosen = toTheme(theme.value);
       // The theme runtime watches the preference and crossfades the change; no sound.
       if (chosen) preferences.set({ theme: chosen });
+      return;
+    }
+    if (input === haptics && haptics) {
+      const on = haptics.value === "on";
+      preferences.set({ haptics: on });
+      // Turning it on is felt once, so the choice can be judged; turning it off is silent.
+      if (on) getHaptics().fire("select");
+      else getHaptics().cancel();
       return;
     }
     if (!(input instanceof HTMLInputElement)) return;
@@ -201,6 +212,9 @@ function mountSettings(root: HTMLElement): () => void {
   void root.offsetWidth;
   // The Theme select has waited inert for the listener above (settings.astro).
   if (theme) theme.inert = false;
+  // Only a device that can answer is offered the choice (D273).
+  if (hapticsSection) hapticsSection.hidden = getHaptics().support === "none";
+  if (haptics) haptics.inert = false;
   root.dataset.ready = "true";
 
   return () => {
