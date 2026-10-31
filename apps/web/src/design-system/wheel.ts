@@ -103,6 +103,8 @@ export function mountWheel(list: HTMLElement, first: number): Wheel {
 
   let frame = 0;
   let passing = -1;
+  // The first paint places the wheel; it is not a row passing the band, so it fires no detent.
+  let placed = false;
 
   const paint = (): void => {
     frame = 0;
@@ -114,7 +116,11 @@ export function mountWheel(list: HTMLElement, first: number): Wheel {
     if (now !== passing) {
       passing = now;
       list.setAttribute("aria-activedescendant", options[now]?.id ?? "");
-      list.dispatchEvent(new CustomEvent(WHEEL_DETENT, { bubbles: true, detail: { place: now } }));
+      if (placed) {
+        list.dispatchEvent(
+          new CustomEvent(WHEEL_DETENT, { bubbles: true, detail: { place: now } }),
+        );
+      }
     }
   };
 
@@ -184,6 +190,7 @@ export function mountWheel(list: HTMLElement, first: number): Wheel {
 
   to(first);
   paint();
+  placed = true;
   options.forEach((option, place) => {
     option.setAttribute("aria-selected", place === clamp(first) ? "true" : "false");
   });
