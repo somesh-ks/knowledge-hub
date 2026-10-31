@@ -248,6 +248,17 @@ test.describe("a second press while the pill is still sliding", () => {
         const slide = Number.parseFloat(getComputedStyle(tab, "::before").translate);
         return tab.getBoundingClientRect().left + (Number.isNaN(slide) ? 0 : slide);
       };
+      // Every slide is slowed to a crawl, 30 ms in, the moment it starts, on the page that is leaving
+      // and on the one that arrives: the pill is far from under its tab however long the press takes.
+      document.addEventListener("animationstart", () => {
+        for (const animation of document.getAnimations()) {
+          if ((animation as CSSAnimation).animationName === "nav-pill-slide") {
+            animation.effect?.updateTiming({ delay: 0 });
+            animation.currentTime = 30;
+            animation.updatePlaybackRate(0.01);
+          }
+        }
+      });
       let presses = 0;
       document.addEventListener(
         "click",
@@ -263,16 +274,6 @@ test.describe("a second press while the pill is still sliding", () => {
     });
     const library = await item(page, "/library").locator(".app-nav-indicator").boundingBox();
     await item(page, "/library").click();
-    // Slowed to a crawl 30 ms in: the pill is far from under its tab when the second press comes.
-    await page.evaluate(() => {
-      for (const animation of document.getAnimations()) {
-        if ((animation as CSSAnimation).animationName === "nav-pill-slide") {
-          animation.effect?.updateTiming({ delay: 0 });
-          animation.currentTime = 30;
-          animation.updatePlaybackRate(0.01);
-        }
-      }
-    });
     await item(page, "/settings").click();
     await expect(heading(page)).toHaveText("Settings");
     const { before, after } = await page.evaluate(
