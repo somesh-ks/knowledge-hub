@@ -35,6 +35,7 @@ Detail of one: `npm run ds -- part <id>`. Search by need: `npm run ds -- find "<
 - `search-field` .search-field .search-clear: The Library's rounded search pill, on the container tone. Use: search or filter a list by text. Not: a text field in a form → field.
 - `source-link` .source-link: The one link out of a story: the publisher's name and an opens-elsewhere mark. Use: link out to a publisher from a story or highlight. Not: a link inside a line of small text → text-link.
 - `text-link` .text-link: A link inside a line of small text; the words stay inline, the target is 44px. Use: a link inside a hint or a sentence. Not: a standalone action → button-text.
+- `status-dot` .status-dot: A dot that judges a reading good, worth a look or wrong. Use: a health reading; a status next to a label, always with a word. Not: a message the user must act on → banner.
 - `stat-tiles` .stat-tiles: A tile per figure: the value large over its word in muted ink. Use: figures on a dashboard; costs and spend totals. Not: a list of rows → card-group.
 - `section-head` .section-head: A section header with more room above than below, so it belongs to what follows. Use: title a group of rows or cards on a page.
 - `meta` .meta: One quiet line of facts, separated by centered dots. Use: date, duration and source under a title.
