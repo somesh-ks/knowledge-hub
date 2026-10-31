@@ -472,3 +472,12 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Rejected: 12 and 4 (a square search field); 24 and 16 with an 8px inset (concentric but no longer a pill); 32 and 24 (a larger popover than the phone sheet's 28).
 - Revisit if: the Menu popover (`menu.css`, 12px with an 8px row corner) is given the same rule; it was not part of this change.
 - Amends: D167.
+
+## D278: light-theme covers lift their darkest inks to charcoal
+
+- Date: 2026-10-31 (the owner, over the Library grid: "the album arts are much darker, stick to the original guidelines of album arts to be calmer"; he chose the softer ink from a before and after).
+- Decision: `tokens/covers.json` `mode.light.lightness` is 0.2 to 1 (was 0 to 1), the floor the dark theme already holds. The darkest ink of a cover (near-black) settles at charcoal; chroma, the papers and every contrast floor are unchanged, and `mode.ts` still holds each floor. It applies to every style, since covers follow the theme.
+- Why: D121 left the light theme "as authored" and its inks are the palette's darkest (OKLCH lightness 0.08 to 0.15); at 40 px corners and a grid they read heavy against the pale stock. Dark already lifts them and reads calm.
+- Rejected: an Expressive-only lift (covers have no style layer; a per-style mode would be a new mechanism for one value); lifting the ground (the papers are D122's brightness).
+- Revisit if: a cover's figure loses its edge on its ground in the light theme (the family tests hold 4.5:1 for text only).
+- Amends: D121.

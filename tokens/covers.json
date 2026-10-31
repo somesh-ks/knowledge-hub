@@ -294,9 +294,9 @@
   "mode": {
     "$description": "How every cover adapts to the app's theme, applied after a cover is dressed so palettes and monthly schemes stay theme-free. Each colour's OKLCH lightness is mapped linearly into `lightness` (the band that sits well on that page) and its chroma scaled by `chroma`; contrast floors are then re-held by moving the foreground away from its ground. Covers outside the app (lock screen, social card) use the colours as authored.",
     "light": {
-      "$description": "On the light page: covers as authored, full depth and colour (the owner: bright ones in light mode).",
+      "$description": "On the light page: full colour, the darkest inks lifted to charcoal as on the dark page so a grid reads calm (the owner: \"the album arts are much darker\", 2026-10-31); the palest stay as authored (the owner: bright ones in light mode).",
       "lightness": {
-        "$value": [0, 1]
+        "$value": [0.2, 1]
       },
       "chroma": {
         "$value": 1
