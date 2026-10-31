@@ -5,7 +5,7 @@ import {
   parseDeleted,
   pruneDeleted,
 } from "../lib/deletedEpisodes";
-import { parseQueue, QUEUE_KEY } from "../player/core/playQueue";
+import { HISTORY_KEY, parseHistory, parseQueue, QUEUE_KEY } from "../player/core/playQueue";
 import { libraryAddress } from "./libraryAddress";
 
 /**
@@ -93,6 +93,15 @@ function dropFromDevice(accepted?: string): void {
     if (kept.length !== queued.length) {
       if (kept.length) localStorage.setItem(QUEUE_KEY, JSON.stringify(kept));
       else localStorage.removeItem(QUEUE_KEY);
+    }
+    // The items that played, and the one playing, are listed too (D277).
+    const history = parseHistory(localStorage.getItem(HISTORY_KEY));
+    const played = history.played.filter((id) => !gone.has(id));
+    const current = history.current && gone.has(history.current) ? null : history.current;
+    if (played.length !== history.played.length || current !== history.current) {
+      if (played.length || current)
+        localStorage.setItem(HISTORY_KEY, JSON.stringify({ played, current }));
+      else localStorage.removeItem(HISTORY_KEY);
     }
   } catch {
     // Storage can be blocked; the queue then stays as it was.

@@ -240,6 +240,15 @@ describe("createNarrationController", () => {
     expect(preparing).toEqual([page.id, null]);
   });
 
+  it("a play cancelled while it prepares never starts (the listener picked another queue item)", async () => {
+    const { controller, harness, preparing } = setup();
+    const outcome = controller.play(page);
+    controller.cancel();
+    await expect(outcome).resolves.toBe("cancelled");
+    expect(harness.store.getState().digestId).not.toBe(page.id);
+    expect(preparing.at(-1)).toBeNull();
+  });
+
   it("makes the next story while the first file plays", async () => {
     const { controller, server, element, settle } = setup();
     await controller.play(page);

@@ -289,6 +289,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D273 | Haptic tokens | amends D52 |
 | D274 | Icon weight token | amends D268 |
 | D275 | Concentric picker | amends D167 |
+| D277 | Queue keeps played items; a tap plays in place | amends D126 |
 | D278 | Softer light covers | amends D121 |
 
 ---
