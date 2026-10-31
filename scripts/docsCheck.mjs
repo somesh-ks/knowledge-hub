@@ -92,7 +92,10 @@ export function checkDocs(root) {
       for (const old of phrase[1].match(/D\d+/g) ?? []) {
         if (!rowText.has(old) && !entries.has(old)) {
           fails.push(`docs/decisions/README.md: ${id} replaces ${old}, which does not exist`);
-        } else if (rowText.has(old) && !/superseded by/i.test(statusOf(rowText.get(old) ?? ""))) {
+        } else if (
+          rowText.has(old) &&
+          !/^\s*superseded by\b/i.test(statusOf(rowText.get(old) ?? ""))
+        ) {
           fails.push(
             `docs/decisions/README.md: ${id} replaces ${old}, but ${old}'s row is not "superseded by ${id}"`,
           );

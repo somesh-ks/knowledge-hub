@@ -117,5 +117,11 @@ describe("docs check", () => {
         "| D1 | One | active |\n| D2 | Two | active |\n| D3 | Three | active |\n| D4 | Four | active; replaces D9 |",
       ),
     ).toEqual([expect.stringContaining("D9, which does not exist")]);
+    // A partial supersession ("the writer part") leaves the decision active, so it does not retire it.
+    expect(
+      check(
+        "| D1 | One | active; the writer part superseded by D2 |\n| D2 | Two | active; replaces D1 |\n| D3 | Three | active |\n| D4 | Four | active |",
+      ),
+    ).toEqual([expect.stringContaining("D1's row")]);
   });
 });
