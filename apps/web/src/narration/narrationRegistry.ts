@@ -8,9 +8,11 @@
  * and drop the marks. So the player runtime passes every page briefing through `narratedOrPage`
  * first, and gets the richer copy back whenever there is one.
  */
+import { tabShared } from "../player/core/tabSlot";
 import type { PlayerDigestData } from "../types/contracts";
 
-const narrated = new Map<string, PlayerDigestData>();
+/** One per tab, so a second copy of the bundle (after a deploy) sees what the first narrated. */
+const narrated = tabShared("narrated", () => new Map<string, PlayerDigestData>());
 
 export function rememberNarrated(digest: PlayerDigestData): void {
   narrated.set(digest.id, digest);
