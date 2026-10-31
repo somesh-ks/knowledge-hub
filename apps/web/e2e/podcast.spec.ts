@@ -164,9 +164,11 @@ test.describe("the profile pages", () => {
   // with no title or Close. The sheet that replaced it must still set the select and be saved, as rows
   // (a length) and as the wheel the hour asks for (data-wheel), which changes nothing until Save.
   test("a select opens the standard sheet on a phone, and a pick is saved", async ({ page }) => {
-    await page.clock.install();
+    await page.clock.install({ time: new Date("2026-10-31T10:00:00Z") });
     const sent = await mockConfig(page);
     await open(page, "daily");
+    // The clock stands still, so both picks fall in one save however slow the run is.
+    await page.clock.pauseAt(new Date("2026-10-31T10:01:00Z"));
     const sheet = page.locator("[data-select-sheet]:popover-open");
     await page.locator("#daily-length").tap();
     await sheet.getByRole("option", { name: "15 min" }).tap();
