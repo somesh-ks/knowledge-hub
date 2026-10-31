@@ -14,7 +14,11 @@
   /* The drum's radius: the one at which a row's height is the arc of one tilt. */
   --wheel-radius: calc(var(--size-option) * 180 / (pi * 24));
   position: relative;
-  flex: none;
+  /* In the sheet's column it shrinks and scrolls on a short screen, so Save stays reachable. */
+  flex: 0 1 auto;
+  min-block-size: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding-inline: var(--space-2);
 }
 

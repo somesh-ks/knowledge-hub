@@ -6,8 +6,9 @@
  *
  * It is a scroll-snap list. Each row's distance from the band, in rows, is set on it as `--wheel-d`
  * as the list scrolls, and the stylesheet turns that distance into a tilt and a fade, so the rows
- * curve away from the band like a drum. Each row that passes the band fires `wheeldetent` on the
- * list: the hook a haptic or a sound listens to (none is drawn here; the cue pipeline maps it). The
+ * curve away from the band like a drum. When the row under the band changes, `wheeldetent` fires on
+ * the list, at most once a frame: the hook a haptic or a sound listens to (none is drawn here; the
+ * cue pipeline maps it). The
  * wheel holds no value of its own: whoever mounts it reads `at()` when the person confirms.
  */
 import type { Guidance } from "./guidance";
@@ -48,7 +49,10 @@ export interface WheelRow {
   disabled: boolean;
 }
 
-/** The hook a haptic listens to: fired on the list whenever a new row passes under the band. */
+/**
+ * The hook a haptic listens to: fired on the list once per animation frame in which the row under
+ * the band changed. A fast fling can cross several rows in a frame; the cue pipeline rate-limits.
+ */
 export const WHEEL_DETENT = "wheeldetent";
 
 export interface Wheel {
@@ -157,7 +161,8 @@ export function mountWheel(list: HTMLElement, first: number): Wheel {
   // The keys move one row (or a page of them, or to an end).
   list.addEventListener("keydown", (event) => {
     const step = Math.max(1, Math.floor(list.clientHeight / height()) - 1);
-    const now = placeNow();
+    // From where the wheel is heading, so keys pressed in a run each add a row.
+    const now = heading ?? placeNow();
     const next =
       event.key === "ArrowDown"
         ? now + 1
@@ -194,6 +199,14 @@ export function mountWheel(list: HTMLElement, first: number): Wheel {
   list.addEventListener("pointerdown", () => {
     heading = null;
   });
+  // So is a mouse wheel or trackpad turn, which has no touch or press to say so.
+  list.addEventListener(
+    "wheel",
+    () => {
+      heading = null;
+    },
+    { passive: true },
+  );
 
   return { at: () => heading ?? placeNow(), to };
 }
