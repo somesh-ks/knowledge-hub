@@ -326,7 +326,7 @@
       "when": [
         "A setting is on or off and applies as soon as it is flipped: Sounds, Autoplay, a podcast's Enabled",
         "It sits at the end of a settings row, with the row's label as its name",
-        "One switch stands for a group of switches (a master): the script sets `indeterminate` on it, and unchecks it, while only some of the group are on. The track fills tonal and the thumb sits in the middle. Pressing it turns the whole group on, or off when all are on"
+        "One switch stands for a group of switches (a master): the script sets `indeterminate` on it, and unchecks it, while only some of the group are on. The track sits halfway between the off grey and the accent and the thumb halfway along it. Pressing it turns the whole group on, or off when all are on"
       ],
       "not": [
         {
@@ -356,7 +356,6 @@
       "usage": "One setting that is on or off, a checkbox with role=\"switch\" drawn as a track; its ::before is the thumb.",
       "tokens": [
         "--color-accent",
-        "--color-accent-container",
         "--color-accent-hover",
         "--color-accent-pressed",
         "--color-border-control",
