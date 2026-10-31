@@ -257,6 +257,23 @@ describe("topic.upsert", () => {
   });
 });
 
+describe("topic.upsert emoji on a shipped topic", () => {
+  // The emoji picker sends its pick as a topic.upsert; the op used to drop it for every topic but
+  // an added one, and the file writer dropped it for every topic, so a pick reverted at the next build.
+  it("keeps the picked emoji on a general, an app and a built-in topic", async () => {
+    const ids = ["world", "design", "frontier_model_releases"];
+    for (const id of ids) {
+      const { code } = await apply({
+        op: "topic.upsert",
+        topic: { id, name: id, description: "Kept as shipped.", keywords: [], emoji: "🧪" },
+      });
+      expect(code).toBe(0);
+    }
+    const { topics } = await repo.readJson<TopicsFile>("config/topics.json");
+    for (const id of ids) expect(topics.find((t) => t.id === id)?.emoji).toBe("🧪");
+  });
+});
+
 describe("topic.upsert on a general news topic", () => {
   it("rewords World, which stays general and always on, and cannot be removed", async () => {
     const { code, report } = await apply({

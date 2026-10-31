@@ -121,7 +121,7 @@
   padding: 0;
   overflow: hidden;
   border: var(--stroke-hairline) solid var(--color-border-hairline);
-  border-radius: var(--radius-md);
+  border-radius: var(--picker-radius);
   background: var(--color-surface-overlay);
   box-shadow: var(--shadow-popover);
   color: var(--color-on-surface);
@@ -189,7 +189,7 @@
     margin: 0 auto;
     padding-block-end: max(var(--space-2), var(--safe-bottom));
     border: 0;
-    border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+    border-radius: var(--picker-radius) var(--picker-radius) 0 0;
     background: var(--sheet-bg);
     box-shadow: var(--sheet-shadow);
     opacity: 1;
@@ -228,10 +228,10 @@
   flex: none;
   align-items: center;
   gap: var(--space-2);
-  margin: var(--space-2);
+  margin: var(--picker-inset);
   padding-inline: var(--space-4);
   block-size: var(--field-height);
-  border-radius: var(--radius-round);
+  border-radius: var(--picker-inner-radius);
   background: var(--color-surface-container);
   color: var(--color-on-surface-muted);
   cursor: text;
@@ -300,7 +300,7 @@
   align-content: start;
   gap: var(--space-2);
   min-block-size: 0;
-  padding: var(--space-2);
+  padding: var(--picker-inset);
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
@@ -314,7 +314,7 @@
   min-block-size: var(--size-touch);
   padding-block: var(--space-2);
   padding-inline: var(--space-4);
-  border-radius: var(--row-radius);
+  border-radius: var(--picker-inner-radius);
   cursor: pointer;
   user-select: none;
 }

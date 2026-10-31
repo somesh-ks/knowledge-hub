@@ -10,6 +10,19 @@
 
 import { navigationKind } from "./navigation";
 
+/**
+ * A cover's corner in pixels. The cover caps its corner at a quarter of its size (D268), so the
+ * computed value can be `min(40px, 25%)`, which `parseFloat` reads as NaN; resolve each term here.
+ */
+function cornerPx(element: HTMLElement, width: number): number {
+  const raw = getComputedStyle(element).borderTopLeftRadius;
+  const terms = [...raw.matchAll(/(-?[\d.]+)(px|%)/g)].map(([, n, unit]) =>
+    unit === "%" ? (Number(n) / 100) * width : Number(n),
+  );
+  if (terms.length === 0) return 0;
+  return raw.startsWith("min(") ? Math.min(...terms) : (terms[0] ?? 0);
+}
+
 const COVER = ".cover[data-cover-id]";
 const MORPH_CLASS = "cover-morph";
 
@@ -118,7 +131,7 @@ export function installCoverMorph(): void {
       kind,
       clone,
       first,
-      radius: Number.parseFloat(getComputedStyle(source).borderTopLeftRadius),
+      radius: cornerPx(source, first.width),
     };
   });
 
@@ -138,7 +151,7 @@ export function installCoverMorph(): void {
     if (!onScreen(last)) return;
 
     const { dx, dy, scale } = flight(flightOf.first, last);
-    const endRadius = Number.parseFloat(getComputedStyle(target).borderTopLeftRadius);
+    const endRadius = cornerPx(target, last.width);
 
     const { clone } = flightOf;
     // Drawn at the landing box and sent back to the starting one, so the final frame is exact.

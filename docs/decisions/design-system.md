@@ -455,6 +455,52 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Why: the dock holds Play on a phone; a persisted button would make the shell own a per-page action.
 - Revisit if: the Play to New episode swap still reads as a pop on a phone.
 
+## D274: icon weight is a token; every Icon holds both Phosphor weights
+
+- Date: 2026-10-31 (the owner: with Expressive the line icons must be thicker, "token-based from the design system, in a central way").
+- Decision: `semantic.icon.bold` (`--icon-bold`, 0 or 1) picks the weight of every line icon at once. Each regular glyph in `tokens/glyphs.json` carries `bold`, Phosphor's own bold path (`buildGlyphs --fetch` writes it; the glyph test checks it is the package's SVG). The Icon (Astro, `iconHtml`, the player's two components) draws both paths and `icon.css` gives each an opacity from the token, so Default shows regular and Expressive (1) shows bold. A fill glyph and a glyph already bold have no twin.
+- Why: one set and real geometry under `data-style` (D268), with no script and no per-style CSS. A stroke on the filled path blobs corners and fills counters at 16 to 20px.
+- Rejected: stroking the path; the CSS `d:` property (Safari has none); a second icon set swapped by script (a flash and a second source of truth).
+- Revisit if: the doubled path markup shows in page weight on a long list (then draw icons from a sprite), or a style wants a weight between regular and bold (the token is a number, the paths are two).
+- Amends: D268.
+
+## D275: a picker's contents are concentric with it
+
+- Date: 2026-10-31 (the owner: the select list with its search bar "the math doesn't work out"; he remembered the concentric rule).
+- Decision: `component.picker.radius` (28px) equals `picker.inner-radius` (24px) plus `picker.inset` (4px, the card inset), declared with the concentric rule `buildTokens.test.ts` checks. The search field and each option take the inner radius and sit one inset in from the list's edge; the popover and the phone sheet's top corners take the radius. A control inside a picker reads these tokens and sets no corner of its own. The change reaches Default: the list was a 12px popover with pill and 12px corners inside it.
+- Why: inner = outer minus padding is what makes nested corners read as one shape; 24px is a full pill on the 48px search field, so it keeps the Library's look.
+- Rejected: 12 and 4 (a square search field); 24 and 16 with an 8px inset (concentric but no longer a pill); 32 and 24 (a larger popover than the phone sheet's 28).
+- Revisit if: the Menu popover (`menu.css`, 12px with an 8px row corner) is given the same rule; it was not part of this change.
+- Amends: D167.
+
+## D278: light-theme covers lift their darkest inks to charcoal
+
+- Date: 2026-10-31 (the owner, over the Library grid: "the album arts are much darker, stick to the original guidelines of album arts to be calmer"; he chose the softer ink from a before and after).
+- Decision: `tokens/covers.json` `mode.light.lightness` is 0.2 to 1 (was 0 to 1), the floor the dark theme already holds. The darkest ink of a cover (near-black) settles at charcoal; chroma, the papers and every contrast floor are unchanged, and `mode.ts` still holds each floor. It applies to every style, since covers follow the theme.
+- Why: D121 left the light theme "as authored" and its inks are the palette's darkest (OKLCH lightness 0.08 to 0.15); at 40 px corners and a grid they read heavy against the pale stock. Dark already lifts them and reads calm.
+- Rejected: an Expressive-only lift (covers have no style layer; a per-style mode would be a new mechanism for one value); lifting the ground (the papers are D122's brightness).
+- Revisit if: a cover's figure loses its edge on its ground in the light theme (the family tests hold 4.5:1 for text only).
+- Amends: D121.
+
+## D269: the hour select opens as a wheel in the phone sheet
+
+- Date: 2026-10-31 (the owner, after D265: "keep the sheet for now and if possible we can have the 3d rotating cylinder selector as in iphone"). Amends D265.
+- Decision: a Select with `data-wheel` opens its phone sheet (D265) with a Wheel in place of the rows: a new design-system component (`design-system/wheel.ts`, `styles/wheel.css`, classes `wheel-frame`, `wheel-list`, `wheel-option`). The Daily and Weekly time are the only users. It is a scroll-snap list; `wheel.ts` sets each row's distance from the band as `--wheel-d` while it scrolls and the stylesheet turns it into a tilt, a pull toward the band and a fade, so the rows sit on a drum. The title and Close are the sheet's. The sheet ends in a filled Save button: Save (or Enter on the wheel) sets the select to the row under the band, so it is saved; closing any other way (Escape, a press outside, a pull down) leaves the select as it was. A tap on a row or an arrow key turns the wheel, and Save pressed mid-glide takes the tapped row. Each row that passes the band fires `wheeldetent` on the list, the hook for a haptic tick (none is built). Below 40rem only; from 40rem the select keeps its own list.
+- Why: an ordered run of 24 hours is spun to, not read, and the owner asked for the iPhone's look inside the one sheet D265 made, then for a Save button and haptics (the haptics thread's dispatcher listens for `wheeldetent`; the Wheel makes no sound or haptic call).
+- Calls made for the owner: five rows in view; a Save button because the owner asked for one (settings elsewhere save at once, this one is confirmed); the wheel is a component of its own, not a mode of the Menu.
+- Rejected: the browser's `type="time"` clock (an unstyled dialog outside the system, minutes the schedule does not store); a wheel for every select (names have no order to spin through).
+- Revisit if: a real iPhone's scroll feel or snapping reads wrong, or a second select asks for `data-wheel`.
+
+## D273: haptics are tokens, fired through the sound cues, with their own On or Off
+
+- Date: 2026-10-31 (the owner: "a solid vibration token system as part of the design system, and part of the settings"; On or Off in a dropdown; a "tada" when a podcast is ready; Generate start ticks, close does not; build for Android and iPhone and he checks the iPhone).
+- Decision: `tokens/tokens.json` holds `primitive.haptic` (patterns: Android milliseconds, iPhone ticks and the gap between them) and `semantic.haptic` (intents: navigate, tap, select, detent, open, close, start, success, error, ready, each naming a pattern). `buildTokens` writes them to `design-system/hapticTokens.ts`, not to CSS, and fails the build for a pattern that is silent on one phone only, an intent that names no pattern, or a pattern over 250 ms. `design-system/haptics.ts` is the one place `navigator.vibrate` or the iPhone's tick (a script click on the label of a hidden `switch` checkbox, Safari 18) is called. A call site names an intent. The app fires them from the sound cues (a cue may carry an intent), and Settings, Sounds and haptics, holds an On or Off select that is hidden where neither mechanism exists.
+- Why: one vocabulary for touch, as for sound; Android gets real patterns, an iPhone one tick at best; a raw millisecond in a call site cannot be restyled or silenced.
+- Cost: the iPhone tick is undocumented WebKit behavior and may fire only inside a touch (a hold's buzz may come at the lift or not at all); it is unverified on a device until the owner tries it. If it fails in the installed app, the setting is hidden on an iPhone and the iPhone adapter goes.
+- Rejected: a separate haptics path per control; raw milliseconds in call sites; a "System" option (the web cannot read the phone's haptics setting); a switch or segmented control (Settings choices are the shared select).
+- Amends: D52 (which rejected "a haptic on press" because it was Android only), ledger item 5 (haptics gated by the Sounds setting).
+- Revisit if: the iPhone tick is seen not to fire, or Safari ships a haptics API (replace the adapter only).
+
 ## D280: travel takes 300 ms on the hover curve, and the nav pill grows in place
 
 - Date: 2026-10-31 (the owner: the 250 ms flight was "too quick and jerky"; the pill's slide "doesn't feel natural", he wanted it to appear where it is, and picked "option 1 - grows from center"; on deleting the two slide tests: "you decide").

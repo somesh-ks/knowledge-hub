@@ -63,6 +63,7 @@ export function serializeTopics(file: TopicsFile): string {
       never_publish: t.never_publish,
       origin: t.origin,
       depth: t.depth,
+      ...(t.emoji ? { emoji: t.emoji } : {}),
       ...(t.perspective ? { perspective: t.perspective } : {}),
     })),
   };

@@ -318,3 +318,12 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Rejected: a quieter ⋮ (still the alignment); width, not input, as the switch (a narrow desktop window has no long press).
 - Revisit if: a second reader is added (multi-user), or anyone is seen not finding Delete or Regenerate.
 
+## D277: the queue is a list that stays; a tap plays in place
+
+- Date: 2026-10-31 (the owner: the queue "clears as soon as each item is done"; a tap on the third item reset the player and the bar disappeared and came back).
+- Decision: Up next keeps the whole list, as YouTube Music does: items that played stay above the one playing (dimmed), the one playing is marked, and what is to come follows. A tap on any row plays it where the player stands (`playQueueItem`): the item is loaded into the one store and audio element, so the page does not move, the sheet does not collapse and the bar (`data-mini`) never goes down. Jumping ahead passes what was skipped; jumping back to a played item puts the ones after it back to come (`startItem`, `core/playQueue.ts`). `singularity:queue` still holds only what is to come, so an older build reads it unchanged; `singularity:queue-played` holds the played ids (30 at most) and the current one. The next three queued items with finished audio have their first 512 KB fetched at idle (`queuePrefetch.ts`); an item with no audio is narrated when played, never when queued. Up next stays selected when the playing item changes.
+- Why: the queue dropped each item on start, so a jump emptied the list; the old road collapsed the sheet and loaded the item's page, and the bar went down in between.
+- Cost: the page no longer follows the playing item; "Previous" on the lock screen still steps stories, not items. The prefetch is plain reads of files the player fetches anyway (no Blob list, put or copy), skipped with Data Saver, on cellular or a slow link where the browser says so; iOS Safari does not say, so it prefetches there. Whether the browser serves the later play from that cache is not verified on the Blob host.
+- Rejected: Spotify's model (the played items leave the list); narrating queued items ahead (paid); a second audio element for gapless starts (an iPhone allows one unlocked element).
+- Amends: D126 (the queue drops an item as it starts).
+- Revisit if: a queued item is seen to wait on the network, or the prefetch shows in the Blob bill.

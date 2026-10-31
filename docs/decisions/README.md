@@ -159,7 +159,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D136 | One model orchestrator: every call through `config/models.json` (Jev, Claude, Gemini; never Opus), with fallback chains | active; replaces D46, D58, D113, D130 |
 | D137 | A cost ledger records every paid call (measured where the provider reports usage), split into shared and per-user costs, shown by `dispatch costs` and /analytics | active |
 | D138 | Alexandria enriches thin text, never replaces it | active |
-| D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, pushes retry a lost ref-lock, the site reports its errors | active |
+| D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, the site reports its errors | active |
 | D140 | Design system enforced in three layers (`design-check` hook, e2e, `design-audit` agent); icons only from Phosphor | active; amends D131 |
 | D141 | The first-load budget is 130 KB | active; replaces D112's 109 KB |
 | D142 | A new topic is a row at once and opens a page before the build; one save carries Jev's emoji; a removal leaves the page at once with Undo | active; amends D79 |
@@ -269,22 +269,28 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D251 | Ingest: one Blob object a run | amends D233 |
 | D252 | Warning is orange | active; amends D238 |
 | D253 | UI fixes start at the component | active; amends D237 |
-| D254 | One PR per task; one rolling DS PR | active; amends D237 |
-| D255 | Videos judged on transcripts | active; amends D248 |
-| D256 | Covers drawn on request; failed-run stages in one Blob object | active; amends D173, D251 |
+| D254 | One PR per task; one rolling DS PR | amends D237 |
+| D255 | Videos judged on transcripts | amends D248 |
+| D256 | Covers drawn on request; failed-run stages in one Blob object | amends D173, D251 |
 | D257 | Report routes need sign-in | amends D201, D224 |
-| D258 | Cover version in its path | active; amends D256 |
+| D258 | Cover version in its path | amends D256 |
 | D259 | Saves kept before sending | amends D79, D91, D115, D249 |
-| D262 | Sheet and Drawer split | active; amends D243 |
+| D262 | Sheet and Drawer split | amends D243 |
 | D263 | Cover version in URL | proposed; amends D258 |
 | D264 | Card long press | active |
-| D265 | A select's phone list is the sheet | active; amends D167 |
+| D265 | A select's phone list is the sheet | amends D167 |
 | D266 | Icon, Badge, type | amends D243 |
 | D267 | Card, Row | amends D243 |
 | D268 | Styles: token overrides | amends D125 |
-| D270 | Experiments: a change settles on a read, not its write's answer | amends D249, D259 |
-| D271 | Pill slide, cover flight | superseded by D280 |
+| D269 | Hour wheel | amends D265 |
+| D270 | Experiments settle on a read | amends D249, D259 |
+| D271 | Pill, cover travel | superseded by D280 |
 | D272 | No persisted floating button | active |
-| D280 | Travel 300 ms, hover curve | amends D271 |
+| D273 | Haptic tokens | amends D52 |
+| D274 | Icon weight token | amends D268 |
+| D275 | Concentric picker | amends D167 |
+| D277 | Queue keeps played items; a tap plays in place | amends D126 |
+| D278 | Softer light covers | amends D121 |
+| D280 | Travel 300 ms | amends D271 |
 
 ---

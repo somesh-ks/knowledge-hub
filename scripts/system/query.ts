@@ -41,6 +41,10 @@ const TOKEN_WORDS: Record<string, string[]> = {
   outline: ["border", "stroke"],
   divider: ["border-hairline"],
   size: ["size"],
+  vibration: ["haptic"],
+  vibrate: ["haptic"],
+  buzz: ["haptic"],
+  feedback: ["haptic"],
 };
 
 export function terms(text: string): string[] {
