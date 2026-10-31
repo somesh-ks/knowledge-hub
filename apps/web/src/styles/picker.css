@@ -1,7 +1,8 @@
 /*
  * A select with a search box (scripts/picker.ts): a button that wears the select's looks in its
  * place, and a list under a search field. The select stays in the page, hidden, and holds the value.
- * A voice's list item also holds its Play control (scripts/picker.ts). Imported by
+ * Also the round button that plays a voice's sample, which the voice rows of Settings and the Create
+ * form share, and a voice's list item with its own Play control. Imported by
  * components/PodcastProfile.astro and CreateForm.astro.
  */
 
@@ -447,7 +448,8 @@
 
 /* The play control is a plain glyph, not a disc: the target is 48px and the glyph sits on the row's
    start edge, so the list's left edge is the glyph's, as a row's tile is. It is pressed with a pointer;
-   it is not in the tab order, since the list is one combobox, and a voice's row still chooses it. */
+   from the keyboard Shift+Enter in the search field plays the highlighted voice (the list is one
+   combobox, so the control is not a tab stop), and a press on the row still chooses it. */
 .picker-play {
   grid-column: 1;
   grid-row: 1;
@@ -469,12 +471,12 @@
 }
 
 /* A voice with no sample keeps its control, quieter and not pressable, so the rows do not shift. */
-.picker-play[aria-disabled="true"] {
+.picker-play[data-silent] {
   opacity: var(--opacity-disabled);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .picker-play:not([aria-disabled="true"], [aria-pressed="true"]):hover {
+  .picker-play:not([data-silent], [aria-pressed="true"]):hover {
     color: var(--color-on-surface);
   }
 }
@@ -495,4 +497,66 @@
     forced-color-adjust: none;
     background: CanvasText;
   }
+}
+
+/* ------------------------------------------------------------------ a voice's sample */
+
+/* A round button that plays the voice's sample. It keeps its room when the voice has no sample yet,
+   so nothing moves when the list arrives. */
+.podcast-sample {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  /* The target stays 48px; the disc drawn in it is 40px (2026-10-21: the button was too big). */
+  inline-size: var(--size-touch-comfortable);
+  block-size: var(--size-touch-comfortable);
+  /* It ends a row: the disc, its ink, meets the row's end, and the target hangs out past it (D187). */
+  margin-inline-end: calc((var(--size-touch-comfortable) - var(--space-8) - var(--space-2)) / -2);
+  color: var(--color-on-accent-container);
+}
+
+.podcast-sample::before {
+  content: "";
+  position: absolute;
+  /* Centred in the 48px target: a 40px disc. */
+  inset: calc((var(--size-touch-comfortable) - var(--space-8) - var(--space-2)) / 2);
+  border-radius: var(--radius-round);
+  background: var(--color-accent-container);
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+.podcast-sample > .icon-glyph {
+  position: relative;
+}
+
+/* A voice with no sample, or a list not in yet: the button stays in its place and keeps its colours,
+   only quieter, not pressable. A grey glyph on a disc as dark as the card read as broken in the dark
+   theme (2026-10-21). It shows what a press does next: play, or pause while the sample plays. */
+.podcast-sample:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.podcast-sample[aria-pressed="true"] .sample-play,
+.podcast-sample:not([aria-pressed="true"]) .sample-pause {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .podcast-sample:not(:disabled):hover::before {
+    background: color-mix(
+      in oklch,
+      var(--color-accent-container),
+      var(--color-on-accent-container) var(--state-hover)
+    );
+  }
+}
+
+.podcast-sample:not(:disabled):active::before {
+  background: color-mix(
+    in oklch,
+    var(--color-accent-container),
+    var(--color-on-accent-container) var(--state-press)
+  );
 }

@@ -244,7 +244,7 @@ test.describe("the profile pages", () => {
     await expect(second).not.toContainText("Ada");
     await expect(
       pickerList(page).getByRole("option", { name: /^Nora/ }).locator(".picker-play"),
-    ).toHaveAttribute("aria-disabled", "true");
+    ).toHaveAttribute("data-silent", "");
     await pickerList(page).getByRole("option", { name: /^Ada/ }).click();
     await expect(second).toContainText("Ada");
   });

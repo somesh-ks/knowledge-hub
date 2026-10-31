@@ -81,12 +81,19 @@ const audition = {
   audio: undefined as HTMLAudioElement | undefined,
   /** The control whose sample is playing: it shows pause until the sample ends or stops. */
   playing: null as HTMLElement | null,
+  /** Counts the plays started, so a rejection of an earlier one (its source was replaced while it
+   *  loaded) cannot clear the control of the sample that replaced it. */
+  attempt: 0,
+  /** The voice playing, so a redrawn list can find its new control. */
+  sampleId: "",
+  /** Says a failure to the list that started the sample (its live region). */
+  tell: null as ((text: string) => void) | null,
   mark(control: HTMLElement | null): void {
     this.playing?.setAttribute("aria-pressed", "false");
     this.playing = control;
     control?.setAttribute("aria-pressed", "true");
   },
-  toggle(control: HTMLElement, id: string): void {
+  toggle(control: HTMLElement, id: string, tell: (text: string) => void): void {
     const url = `/api/voice-sample?voice=${encodeURIComponent(id)}`;
     if (!this.audio) {
       const audio = new Audio();
@@ -95,8 +102,8 @@ const audition = {
       // A sample that cannot be played dims its control and says so, rather than failing in silence.
       audio.addEventListener("error", () => {
         if (this.playing) {
-          this.playing.setAttribute("aria-disabled", "true");
-          this.playing.dataset.failed = "";
+          this.playing.dataset.silent = "";
+          this.tell?.("The sample could not be played");
         }
         this.mark(null);
       });
@@ -105,14 +112,25 @@ const audition = {
       // audio would play on over the next one) or by closing or leaving the tab.
       document.addEventListener("astro:before-swap", () => this.stop());
       addEventListener("pagehide", () => this.stop());
+      // A hidden tab (another tab, a locked phone) must not keep playing a sample nobody is choosing.
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") this.stop();
+      });
     }
     if (this.playing === control && !this.audio.paused) {
       this.audio.pause();
       return;
     }
+    const attempt = ++this.attempt;
+    this.sampleId = id;
+    this.tell = tell;
     this.audio.src = url;
     this.mark(control);
-    void this.audio.play().catch(() => this.mark(null));
+    void this.audio.play().catch(() => {
+      if (attempt !== this.attempt) return;
+      this.tell?.("The sample could not be played");
+      this.mark(null);
+    });
   },
   stop(): void {
     this.audio?.pause();
@@ -263,10 +281,16 @@ function mountPicker(select: HTMLSelectElement): void {
 
   /** Plays, or stops, the sample of a voice's Play control, and says so to a screen reader. */
   const hear = (play: HTMLElement): void => {
-    if (!play.dataset.sample || play.getAttribute("aria-disabled") === "true") return;
-    const was = play.getAttribute("aria-pressed") === "true";
-    audition.toggle(play, play.dataset.sample);
     const name = play.closest("[role=option]")?.querySelector(".picker-option-title")?.textContent;
+    // The control is aria-hidden (an option's children are presentational), so its state is said here.
+    if (!play.dataset.sample || play.hasAttribute("data-silent")) {
+      count.textContent = `No sample for ${name ?? "this voice"}`;
+      return;
+    }
+    const was = play.getAttribute("aria-pressed") === "true";
+    audition.toggle(play, play.dataset.sample, (text) => {
+      count.textContent = text;
+    });
     count.textContent = `${was ? "Stopped" : "Playing"} ${name ?? "the sample"}`;
   };
 
@@ -290,7 +314,8 @@ function mountPicker(select: HTMLSelectElement): void {
         const play = element("span", "picker-play");
         play.setAttribute("aria-hidden", "true");
         play.setAttribute("aria-pressed", "false");
-        if (choice.sample === "") play.setAttribute("aria-disabled", "true");
+        // Not aria-disabled: the page's disabledGuard would swallow the press before it said why.
+        if (choice.sample === "") play.dataset.silent = "";
         else play.dataset.sample = choice.sample;
         play.append(glyph("playOutline"), glyph("pause"));
         const words = element("span", "picker-option-name");
@@ -302,6 +327,15 @@ function mountPicker(select: HTMLSelectElement): void {
         return item;
       }),
     );
+    // A search redraws the rows: the playing voice keeps its pressed control if it is still listed,
+    // and stops if it is not, so no sample plays on with nothing to stop it.
+    if (audition.playing && !audition.playing.isConnected) {
+      const again = list.querySelector<HTMLElement>(
+        `.picker-play[data-sample="${CSS.escape(audition.sampleId)}"]`,
+      );
+      if (again) audition.mark(again);
+      else audition.stop();
+    }
     if (shown.length === 0) list.append(element("p", "picker-empty", pickerNoMatch(query, noun)));
     count.textContent = pickerCount(shown.length, noun);
     if (shown.some((choice) => choice.title !== "")) {
