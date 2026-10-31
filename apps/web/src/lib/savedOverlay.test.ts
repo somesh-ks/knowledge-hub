@@ -234,6 +234,15 @@ describe("savedTopics", () => {
     expect([...saved.feeds]).toEqual(["https://knit.example/feed"]);
   });
 
+  it("keeps an earlier emoji when a later edit of the topic leaves it out", () => {
+    // The server does: an upsert without an emoji does not clear it.
+    const saved = savedTopics([
+      { op: "topic.upsert", topic: { ...topic("ai", "AI").topic, emoji: "🧪" } },
+      topic("ai", "AI news"),
+    ]);
+    expect(saved.topics.get("ai")).toMatchObject({ name: "AI news", emoji: "🧪" });
+  });
+
   it("lets a later edit undo an earlier one", () => {
     const saved = savedTopics([
       topic("knit", "Knitting"),
