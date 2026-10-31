@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { fileURLToPath } from "node:url";
 import type { Page } from "@playwright/test";
+import { handleExperiments } from "../../admin/src/lib/experimentsApi";
 import { configHash } from "../src/lib/configHash";
 import { handleConfigRead } from "../src/server/configStore";
 import { BUILT_FILES } from "./configServer";
@@ -26,6 +27,8 @@ interface SlowStore {
   reached: { POST: number; GET: number };
   /** Reads answered. */
   answered: () => number;
+  /** The switches the Experiments page's store holds. */
+  switches: Map<string, boolean>;
   /** Lets the writes that wait land. */
   land: () => void;
   close: () => void;
@@ -36,6 +39,7 @@ async function slowStore(): Promise<SlowStore> {
   let stored: Record<string, string> = {};
   let answered = 0;
   const reached = { POST: 0, GET: 0 };
+  const switches = new Map<string, boolean>();
   let land: () => void = () => {};
   const gate = new Promise<void>((resolve) => {
     land = resolve;
@@ -66,11 +70,41 @@ async function slowStore(): Promise<SlowStore> {
     response.end(JSON.stringify(result.body));
     answered += 1;
   };
+  // The Experiments page's function (apps/admin), over a store whose writes wait on the same gate.
+  const experiments = async (request: IncomingMessage, response: ServerResponse) => {
+    let bodyText = "";
+    for await (const chunk of request) bodyText += chunk;
+    if (request.method === "POST") reached.POST += 1;
+    const answer = await handleExperiments(
+      {
+        method: request.method ?? "GET",
+        contentType: request.headers["content-type"] ?? null,
+        bodyText,
+      },
+      {
+        read: async () =>
+          [...switches].map(([id, enabled]) => ({ id, enabled, promoted_at: null })),
+        hits: async () => ({}),
+        setEnabled: async (id, enabled) => {
+          await gate;
+          switches.set(id, enabled);
+          return true;
+        },
+        setPromoted: async () => {},
+      },
+    );
+    response.writeHead(answer.status, { "Content-Type": "application/json" });
+    response.end(JSON.stringify(answer.body));
+  };
   const server = startServer({
     root: DIST,
     port: 0,
     mounts: { "/admin": ADMIN },
     api(request, response, pathname) {
+      if (pathname === "/admin/api/experiments") {
+        void experiments(request, response);
+        return true;
+      }
       if (pathname !== "/api/config") return false;
       void (request.method === "POST" ? write(request, response) : read(response));
       return true;
@@ -81,6 +115,7 @@ async function slowStore(): Promise<SlowStore> {
   return {
     baseURL: `http://127.0.0.1:${port}`,
     reached,
+    switches,
     answered: () => answered,
     land,
     close: () => server.close(),
@@ -137,6 +172,43 @@ test("a source switched off while the store is slow stays off through two reload
     );
     await expect(studioNotes(page)).not.toBeChecked();
     await expect(offered(page)).toHaveCount(0);
+  } finally {
+    await context.close();
+    store.close();
+  }
+});
+
+// The same cut on the admin Experiments page, which keeps its change in the tab (D259).
+test("an experiment switched on while the store is slow stays on through two reloads", async ({
+  browser,
+}) => {
+  const store = await slowStore();
+  const context = await browser.newContext({
+    baseURL: store.baseURL,
+    viewport: { width: 390, height: 844 },
+  });
+  try {
+    const page = await context.newPage();
+    const trusted = page.getByRole("switch", { name: "Trusted publishers" });
+    const settled = (): Promise<void> =>
+      expect(page.locator("[data-experiments][data-ready]")).toBeVisible();
+    await page.goto("/admin/experiments");
+    await settled();
+    await expect(trusted).not.toBeChecked();
+
+    await trusted.click();
+    await page.locator("[data-confirm-go]").click();
+    await expect(trusted).toBeChecked();
+    await expect.poll(() => store.reached.POST).toBe(1);
+    await page.reload();
+    await settled();
+    await expect(trusted).toBeChecked();
+
+    store.land();
+    await expect.poll(() => store.switches.get("trusted-publishers")).toBe(true);
+    await page.reload();
+    await settled();
+    await expect(trusted).toBeChecked();
   } finally {
     await context.close();
     store.close();

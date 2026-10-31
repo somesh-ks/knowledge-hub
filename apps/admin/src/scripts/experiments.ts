@@ -6,6 +6,7 @@
  * it is pressed; the change is kept across a reload until the store has it (lib/pendingFlags.ts).
  */
 
+import { endedByLeaving } from "../../../web/src/scripts/pageLeaving";
 import { sendToast } from "../../../web/src/scripts/toastEvent";
 import type { ExperimentAction, FlagRow, HitTotal } from "../lib/experimentsApi";
 import { fresh, intended, type PendingMap, parsePending, unsettled } from "../lib/pendingFlags";
@@ -120,15 +121,6 @@ async function ask(init?: { id: string; action: ExperimentAction }): Promise<Res
  * its write is under way runs after it.
  */
 let queue: Promise<unknown> = Promise.resolve();
-/** Set as the page goes: the browser fails a request in flight then, though keepalive lets it finish. */
-let leaving = false;
-addEventListener("pagehide", () => {
-  leaving = true;
-});
-// A page restored from the back/forward cache is live again.
-addEventListener("pageshow", () => {
-  leaving = false;
-});
 /** Counts presses, so an answer to a question asked before the latest one is not taken for the store's. */
 let generation = 0;
 function write(id: string, action: ExperimentAction): Promise<boolean> {
@@ -150,6 +142,8 @@ function write(id: string, action: ExperimentAction): Promise<boolean> {
 /** One write and its answer; never rejects. */
 async function send(id: string, action: ExperimentAction): Promise<boolean> {
   let saved = false;
+  /** The browser failed the request because the page is going, though keepalive lets it finish. */
+  let cut = false;
   try {
     const response = await ask({ id, action });
     const body = (await response.json()) as { flags?: FlagRow[]; error?: string };
@@ -163,13 +157,14 @@ async function send(id: string, action: ExperimentAction): Promise<boolean> {
       "error",
     );
   } catch {
-    if (!leaving) toast("Could not save. Try again.", "error");
+    cut = await endedByLeaving();
+    if (!cut) toast("Could not save. Try again.", "error");
   } finally {
     count(id, -1);
     // A refused or failed write puts the switch back, unless a later press for it is waiting. One
     // the store took stays until the store's own answer matches it (watch, take).
     // A page that is going keeps its change for the next one to show.
-    if (!leaving) {
+    if (!cut) {
       if (!saved && (pending.get(id) ?? 0) === 0) delete intents[id];
       saveIntents();
       renderAll();
