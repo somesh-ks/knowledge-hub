@@ -208,18 +208,16 @@ test.describe("a cover carries you in and out", () => {
     await page.evaluate(() => {
       const w = window as unknown as { __flight: Array<[number, number, number]> };
       w.__flight = [];
-      // Every frame of the flight is kept: the last one is where the cover handed over.
-      document.addEventListener("astro:before-preparation", () => {
-        const tick = () => {
-          const clone = document.querySelector(".cover-morph");
-          if (clone) {
-            const r = clone.getBoundingClientRect();
-            w.__flight.push([r.left, r.top, r.width]);
-          }
-          if (w.__flight.length < 400) requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
-      });
+      // Where the cover handed over: the clone's box at the moment it is removed, which is its drawn
+      // box with the flight over. A frame sampled on a timer can miss the last one on a loaded machine.
+      const remove = Element.prototype.remove;
+      Element.prototype.remove = function (this: Element) {
+        if (this.classList.contains("cover-morph")) {
+          const r = this.getBoundingClientRect();
+          w.__flight.push([r.left, r.top, r.width]);
+        }
+        remove.call(this);
+      };
     });
     const card = page.locator('a[href^="/d/"]').first();
     await card.click();
