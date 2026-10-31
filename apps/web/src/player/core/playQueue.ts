@@ -137,7 +137,7 @@ export function parseHistory(raw: string | null): QueueHistory {
  * The list after `id` started (see PlayQueue.started): pure, so the rule is testable. `all` is
  * played, current, then to come; the pointer moves to `id` and nothing else changes order.
  */
-export function startItem(
+function startItemRaw(
   state: { played: readonly string[]; current: string | null; upcoming: readonly string[] },
   id: string,
 ): { played: string[]; current: string; upcoming: string[] } {
@@ -170,6 +170,19 @@ export function startItem(
     current: id,
     upcoming: [...upcoming],
   };
+}
+
+export function startItem(
+  state: { played: readonly string[]; current: string | null; upcoming: readonly string[] },
+  id: string,
+): { played: string[]; current: string; upcoming: string[] } {
+  const next = startItemRaw(state, id);
+  // One place for each item: a reload forgets what played, so the item that was current may have
+  // been queued again, and would otherwise be listed behind and ahead at once. The first place wins.
+  const seen = new Set<string>([next.current]);
+  const once = (ids: readonly string[]): string[] =>
+    ids.filter((entry) => !seen.has(entry) && (seen.add(entry), true));
+  return { played: once(next.played), current: next.current, upcoming: once(next.upcoming) };
 }
 
 export function createPlayQueue(options: {

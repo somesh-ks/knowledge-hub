@@ -100,6 +100,12 @@ describe("the play queue", () => {
       current: "a",
       upcoming: ["b"],
     });
+    // The item that was current, queued again after a reload, then another item started: listed once.
+    expect(startItem({ played: [], current: "a", upcoming: ["a", "b"] }, "b")).toEqual({
+      played: ["a"],
+      current: "b",
+      upcoming: [],
+    });
     // Something the list never held (a page's Play) becomes current beside it.
     expect(startItem(list, "z")).toEqual({
       played: ["a", "b"],
