@@ -234,3 +234,40 @@ test.describe("the chrome holds still on a move", () => {
     expect(Math.abs(after - before)).toBeLessThan(16);
   });
 });
+
+test.describe("a cover carries you in and out", () => {
+  test("it lands on the box of the cover it becomes, so nothing jumps when it arrives", async ({
+    page,
+  }) => {
+    await page.goto("/library");
+    await page.evaluate(() => {
+      const w = window as unknown as { __flight: Array<[number, number, number]> };
+      w.__flight = [];
+      // Every frame of the flight is kept: the last one is where the cover handed over.
+      document.addEventListener("astro:before-preparation", () => {
+        const tick = () => {
+          const clone = document.querySelector(".cover-morph");
+          if (clone) {
+            const r = clone.getBoundingClientRect();
+            w.__flight.push([r.left, r.top, r.width]);
+          }
+          if (w.__flight.length < 400) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+    });
+    const card = page.locator('a[href^="/d/"]').first();
+    await card.click();
+    await expect(heading(page)).not.toHaveText("Library");
+    await expect(page.locator(".cover-morph")).toHaveCount(0);
+    const hero = await page.locator('.cover[data-size="hero"]').boundingBox();
+    const flight = await page.evaluate(
+      () => (window as unknown as { __flight: Array<[number, number, number]> }).__flight,
+    );
+    const landed = flight.at(-1);
+    expect(landed, "the cover flew").toBeTruthy();
+    expect(Math.abs((landed?.[0] ?? 0) - (hero?.x ?? 0))).toBeLessThan(1.5);
+    expect(Math.abs((landed?.[1] ?? 0) - (hero?.y ?? 0))).toBeLessThan(1.5);
+    expect(Math.abs((landed?.[2] ?? 0) - (hero?.width ?? 0))).toBeLessThan(1.5);
+  });
+});
