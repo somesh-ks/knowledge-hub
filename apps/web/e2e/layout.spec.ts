@@ -58,6 +58,11 @@ test.describe("layout", () => {
         if (!(await control.isVisible())) continue;
         // The skip link is a keyboard control and only shows on focus.
         if (await control.evaluate((node) => node.matches(".skip-link"))) continue;
+        // A control that takes no touch by design, as a card's dots on a phone (D264: a hold opens
+        // the menu), is for a screen reader and a keyboard, so it has no target to measure.
+        if (await control.evaluate((node) => getComputedStyle(node).pointerEvents === "none")) {
+          continue;
+        }
         // A choice drawn as its label (a chip, a segment, a switch) is pressed on the label.
         const label = control.locator("xpath=self::input/ancestor::label[1]");
         const size = await targetSize((await label.count()) > 0 ? label : control);
