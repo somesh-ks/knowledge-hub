@@ -79,12 +79,15 @@ export function checkDocs(root) {
   }
 
   // A row that "replaces Dn" retires Dn: agents grep the status column, so Dn must say it is superseded.
+  // The text before the status column is the description, which may say "superseded" about a part.
   const rowText = new Map([...index.matchAll(/^\| (D\d+) \|(.*)$/gm)].map((m) => [m[1], m[2]]));
+  const statusOf = (text) => text.slice(text.lastIndexOf("|", text.length - 2) + 1);
   for (const [id, text] of rowText) {
-    const status = text.slice(text.lastIndexOf("|", text.length - 2) + 1);
-    for (const phrase of status.matchAll(/replaces ((?:D\d+(?:, | and )?)+)/gi)) {
+    for (const phrase of statusOf(text).matchAll(/replaces ((?:D\d+(?:, and |, | and )?)+)/gi)) {
       for (const old of phrase[1].match(/D\d+/g) ?? []) {
-        if (rowText.has(old) && !/superseded by/i.test(rowText.get(old) ?? "")) {
+        if (!rowText.has(old) && !entries.has(old)) {
+          fails.push(`docs/decisions/README.md: ${id} replaces ${old}, which does not exist`);
+        } else if (rowText.has(old) && !/superseded by/i.test(statusOf(rowText.get(old) ?? ""))) {
           fails.push(
             `docs/decisions/README.md: ${id} replaces ${old}, but ${old}'s row is not "superseded by ${id}"`,
           );

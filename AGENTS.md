@@ -15,7 +15,7 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code 
 ## Commands
 
 - `npm run singularity -- <command>`: engine CLI (`doctor`, `status`, `models`, `run`, `publish`).
-- `npm run gate -- --build`: typecheck, `astro check`, lint, unit tests, the docs check and the static build, in parallel (80 s); all must pass. `npm test`, `typecheck` and `lint` run alone.
+- `npm run gate -- --build`: typecheck, `astro check`, lint, unit tests, the docs check and the static build, in parallel (80 s). `npm test`, `npm run typecheck` and `npm run lint` run alone.
 - Run commands through PowerShell, not Git Bash ([learnings](docs/learnings.md)). Never stop the listener on port 4321 (the owner's dev server); give browser suites a `PORT` above 4400.
 - A worktree gets its packages from `node scripts/worktreeLinks.mjs <path>` and loses them with `--remove` before `git worktree remove`.
 - `npm run e2e -w @singularity/web` and `npm run e2e:player -w @singularity/web` (about 6 min each): the browser suites. Run both before a PR that touches the site, `packages` or the tokens; push once. Red check: [delivery failures](docs/engineering/delivery-failures.md) (D148).

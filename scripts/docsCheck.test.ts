@@ -74,4 +74,29 @@ describe("docs check", () => {
     );
     expect(good.fails).toEqual([]);
   });
+
+  // Bug: the check read the whole old row, so "superseded by" in its description passed a row
+  // whose status was still active; "D1, D2, and D3" skipped D3; a target that did not exist passed.
+  it("reads the old row's status column, every id in an Oxford-comma list, and missing targets", () => {
+    const entries = {
+      "docs/decisions/area.md": "## D1: One\n\n## D2: Two\n\n## D3: Three\n\n## D4: Four\n",
+    };
+    const index = (rows: string) => `## Index\n\n${rows}\n`;
+    const check = (rows: string) =>
+      checkDocs(repo({ "docs/decisions/README.md": index(rows), ...entries })).fails;
+    expect(
+      check(
+        "| D1 | One | active |\n| D2 | Two | active |\n| D3 | Three, part superseded by D2 | active |\n| D4 | Four | active; replaces D1, D2, and D3 |",
+      ),
+    ).toEqual([
+      expect.stringContaining("D1's row"),
+      expect.stringContaining("D2's row"),
+      expect.stringContaining("D3's row"),
+    ]);
+    expect(
+      check(
+        "| D1 | One | active |\n| D2 | Two | active |\n| D3 | Three | active |\n| D4 | Four | active; replaces D9 |",
+      ),
+    ).toEqual([expect.stringContaining("D9, which does not exist")]);
+  });
 });

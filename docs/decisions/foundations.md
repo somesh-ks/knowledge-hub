@@ -248,7 +248,7 @@ D1 to D9 date from plan v2 (2026-10-05). D10 to D25 date from 2026-10-06. Reason
 
 ## D283: the read-first budget holds, state.md parks its oldest items, and a replaced decision says so
 
-- Date: 2026-10-31 (the improvements backlog, DOC-01 and DOC-02; the owner: go ahead with P0 and P1). Amends D141's budget rule for docs.
+- Date: 2026-10-31 (the improvements backlog, DOC-01 and DOC-02; the owner: go ahead with P0 and P1).
 - Context changed: read-first (AGENTS.md, state.md and the Index) sat at 39,992 of 40,000 bytes, so the next decision would fail the gate for every open PR. Separately, D136 "replaces D46, D58, D113, D130" while their Index rows still said active, and agents grep the status column.
 - Decision: the 40 KB budget and the Index's place in it stay. state.md makes room by moving its oldest, least active unverified items word for word to a history note (`docs/history/2026-10-31-state-trim.md`), each keeping its `closed when:`. A row that says "replaces Dn" is a failure in `scripts/docsCheck.mjs` unless Dn's row says "superseded by"; the stale rows were set. A decision that changes only part of another says "amends".
 - Why: the Index is what agents grep, so it is the one file whose size is worth paying for; the parked items are open but quiet. A check that reads the status column cannot be forgotten like the procedure in this file's header.

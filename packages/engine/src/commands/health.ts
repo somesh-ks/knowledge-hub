@@ -11,6 +11,18 @@ import {
 } from "../ops/healthChecks.js";
 import { configStoreUrl } from "../store/configPaths.js";
 
+/** What the checks read from a run: a malformed entry in a hand-made file fails the command, not a check. */
+const isRun = (value: unknown): value is WorkflowRun => {
+  if (typeof value !== "object" || value === null) return false;
+  const run = value as Record<string, unknown>;
+  return (
+    typeof run.databaseId === "number" &&
+    typeof run.status === "string" &&
+    typeof run.createdAt === "string" &&
+    (run.conclusion === null || typeof run.conclusion === "string")
+  );
+};
+
 const USAGE =
   "Usage: singularity health [--offline] [--site <origin>] [--ceiling-usd <n>] [--runs <gh-run-list.json>] [--side-runs <json>] [--perf <perf.json>] [--json]";
 const DEFAULT_SITE = "https://news.someshks.work";
@@ -61,7 +73,8 @@ export const run: CommandRun = async (argv, ctx) => {
     try {
       const parsed: unknown = JSON.parse(await readFile(values.runs, "utf8"));
       if (!Array.isArray(parsed)) throw new Error("not a list");
-      runs = parsed as WorkflowRun[];
+      if (!parsed.every(isRun)) throw new Error("an entry is not a workflow run");
+      runs = parsed;
     } catch (error) {
       ctx.log.error(`--runs: ${error instanceof Error ? error.message : "unreadable"}. ${USAGE}`);
       return 2;
@@ -78,7 +91,9 @@ export const run: CommandRun = async (argv, ctx) => {
       sideRuns = {};
       for (const workflow of SIDE_WORKFLOWS) {
         const list = (parsed as Record<string, unknown>)[workflow];
-        if (Array.isArray(list)) sideRuns[workflow] = list as WorkflowRun[];
+        if (!Array.isArray(list)) continue;
+        if (!list.every(isRun)) throw new Error(`an entry of ${workflow} is not a workflow run`);
+        sideRuns[workflow] = list;
       }
     } catch (error) {
       ctx.log.error(

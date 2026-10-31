@@ -404,6 +404,10 @@ export interface WorkflowRun {
   displayTitle?: string;
 }
 
+/** Newest first; runs created in the same second order by id, so the later one is never hidden. */
+const newestFirst = (a: WorkflowRun, b: WorkflowRun): number =>
+  Date.parse(b.createdAt) - Date.parse(a.createdAt) || b.databaseId - a.databaseId;
+
 /** A run older than this that died is left to `run_overdue`: the next run has had its chance. */
 export const RUN_DIED_WINDOW_MS = 3 * DAY_MS;
 const DIED = new Set(["failure", "timed_out", "startup_failure"]);
@@ -446,7 +450,7 @@ export function checkRunsDied(
           now.getTime() - Date.parse(run.createdAt) < RUN_DIED_WINDOW_MS &&
           Date.parse(run.createdAt) > recorded,
       )
-      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0];
+      .sort(newestFirst)[0];
     if (!last) return undefined;
     const after = Date.parse(last.createdAt);
     const underWay = runs.some(
@@ -474,7 +478,9 @@ export type SideWorkflow = (typeof SIDE_WORKFLOWS)[number];
  * (content.yml syncs the store, ingest.yml feeds it, podcast.yml makes Catch up episodes) ended
  * `failure`, `timed_out` or `startup_failure` in the last three days and nothing newer succeeded.
  * Health read only run.yml, so a failing content sync left the site stale with no fault (OBS-01).
- * A cancelled run says nothing: a newer commit cancels the one it replaces.
+ * A cancelled run says nothing: a newer commit cancels the one it replaces. A podcast run is one
+ * episode request, named by its run title, so a failed request is cleared only by a later run of
+ * the same title, never by another episode's success.
  */
 export function checkSideRuns(
   workflow: SideWorkflow,
@@ -490,18 +496,22 @@ export function checkSideRuns(
         run.conclusion !== "skipped" &&
         now.getTime() - Date.parse(run.createdAt) < RUN_DIED_WINDOW_MS,
     )
-    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-  const last = finished[0];
-  if (!last) return;
-  if (DIED.has(last.conclusion ?? "")) {
+    .sort(newestFirst);
+  if (finished.length === 0) return;
+  const heads = new Map<string, WorkflowRun>();
+  for (const run of finished) {
+    const key = workflow === "podcast" ? (run.displayTitle ?? "") : "";
+    if (!heads.has(key)) heads.set(key, run);
+  }
+  const failed = [...heads.values()].filter((run) => DIED.has(run.conclusion ?? ""));
+  for (const run of failed) {
     sink.fault(
       `${workflow}_failed`,
       "reliability",
-      `${workflow}.yml run ${last.databaseId} (${last.event ?? "run"}, ${last.createdAt}) ended ${last.conclusion} and nothing newer succeeded.`,
+      `${workflow}.yml run ${run.databaseId}${run.displayTitle ? ` (${run.displayTitle})` : ""} (${run.event ?? "run"}, ${run.createdAt}) ended ${run.conclusion} and nothing newer succeeded.`,
     );
-  } else {
-    sink.passed.push(`the last ${workflow}.yml run succeeded`);
   }
+  if (failed.length === 0) sink.passed.push(`the last ${workflow}.yml run succeeded`);
 }
 
 /** One page as scripts/perfProbe.ts measured it: the median of its cold loads. */

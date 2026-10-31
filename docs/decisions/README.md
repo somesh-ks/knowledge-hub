@@ -291,6 +291,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D275 | Concentric picker | amends D167 |
 | D277 | Queue keeps played items; a tap plays in place | amends D126 |
 | D278 | Softer light covers | amends D121 |
-| D283 | Read-first stays 40 KB; state.md parks its oldest open items; "replaces" retires the old row | amends D141 |
+| D283 | Read-first stays 40 KB; state.md parks its oldest open items; "replaces" retires the old row | active |
 
 ---
