@@ -633,14 +633,11 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Never serve or store: other origins (the audio host included), ranged reads, audio, the API, and
-  // the command center (/admin is another app behind its own sign-in: its pages and its functions
-  // answer live, never from a copy saved here, which is how a switch read back stale, 2026-10-31).
+  // Never serve or store: other origins (the audio host included), ranged reads, audio, the API.
   if (url.origin !== self.location.origin) return;
   if (request.headers.has("range")) return;
   if (request.destination === "audio" || request.destination === "video") return;
   if (AUDIO_PATH.test(url.pathname) || url.pathname.startsWith("/api/")) return;
-  if (url.pathname === "/admin" || url.pathname.startsWith("/admin/")) return;
   // A shared page (D153) is never kept, so a stopped link never opens offline.
   if (url.pathname.startsWith("/s/")) return;
 
