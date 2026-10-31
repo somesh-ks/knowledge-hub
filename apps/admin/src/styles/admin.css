@@ -631,8 +631,10 @@
 }
 
 .st-reach {
-  inline-size: max(var(--space-1), calc(var(--reach) * 100%));
-  background: color-mix(in oklab, var(--color-on-surface-muted) 35%, var(--color-surface-overlay));
+  /* One step wider than the median's floor, so a p90 past a tiny median still shows beyond it. */
+  inline-size: max(var(--space-2), calc(var(--reach) * 100%));
+  /* 65% ink on the track reads about 3:1 in both themes (35% read 1.8:1). */
+  background: color-mix(in oklab, var(--color-on-surface-muted) 65%, var(--color-surface-overlay));
 }
 
 .st-median {
