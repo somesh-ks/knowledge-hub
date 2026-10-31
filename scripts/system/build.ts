@@ -8,6 +8,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { usageComment } from "../../apps/web/src/lib/designCatalogue.js";
 import {
+  aliasTarget,
   cssName,
   declarationsFor,
   hexFor,
@@ -284,7 +285,30 @@ export function readBespoke(text: string = readFileSync(STYLES_TEST, "utf8")): B
   ].map(([, name = "", reason = ""]) => ({ class: name, reason }));
 }
 
+/** A haptic is read by script, so it is named `haptic-open`, never as a custom property that does not exist. */
+function hapticRecord(token: Token): SystemToken {
+  const intent = token.tier === "semantic";
+  const target = aliasTarget(token.value);
+  const value = token.value;
+  let light = target ? target.replace("primitive.haptic.", "pattern ") : "";
+  if (!target && typeof value === "object" && value !== null && !Array.isArray(value)) {
+    const ios = value.ios as { ticks: number; gap_ms: number };
+    light =
+      `android ${(value.android as number[]).join(" ") || "nothing"} ms; ` +
+      `iphone ${ios.ticks} tick${ios.ticks === 1 ? "" : "s"}${ios.gap_ms ? `, ${ios.gap_ms} ms apart` : ""}`;
+  }
+  const record: SystemToken = {
+    name: `haptic-${intent ? "" : "pattern-"}${token.path[token.path.length - 1]}`,
+    tier: token.tier,
+    type: token.type,
+    light,
+  };
+  if (token.description) record.role = token.description;
+  return record;
+}
+
 function tokenRecord(token: Token, doc: TokenDocument): SystemToken {
+  if (token.type === "singularity-haptic") return hapticRecord(token);
   const render = (value: Token["value"]): string => {
     const declarations = declarationsFor(token, value, doc);
     const [first] = declarations;
