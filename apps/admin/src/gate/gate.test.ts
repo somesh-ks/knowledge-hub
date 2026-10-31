@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { type GateEnv, guard } from "./gate";
 import { type Exchange, googleEnvFrom, type IdClaims } from "./google";
@@ -118,9 +119,12 @@ async function googleJourney(options: {
   const set = start?.headers.getSetCookie()[0] ?? "";
   const kept = set.split(";")[0]?.split("=").slice(1).join("=") ?? "";
   const cookie = options.cookie ? options.cookie(kept) : kept;
+  let verifier = "";
   const exchange: Exchange =
     options.exchange ??
-    (async () => ({
+    (async (_env, _code, sentVerifier) => {
+      verifier = sentVerifier;
+      return {
       iss: "https://accounts.google.com",
       aud: "client-id",
       exp: Math.floor(NOW / 1000) + 3600,
@@ -128,7 +132,8 @@ async function googleJourney(options: {
       email: "owner@example.com",
       email_verified: true,
       ...options.claims?.(nonce),
-    }));
+      };
+    });
   const callback = await guard(
     new Request(
       `https://news.someshks.work/admin/login/google/callback?code=abc&state=${options.state ? options.state(state) : state}`,
@@ -139,14 +144,20 @@ async function googleJourney(options: {
     instant,
     exchange,
   );
-  return { sent, set, callback };
+  return { sent, set, callback, verifier: () => verifier };
 }
 
 describe("the command center's Google sign-in", () => {
   it("sends the browser to Google with a state, a nonce and a PKCE challenge, and keeps them in a cookie only its own address sees", async () => {
-    const { sent, set } = await googleJourney({});
+    const { sent, set, verifier } = await googleJourney({});
     expect(sent.origin + sent.pathname).toBe("https://accounts.google.com/o/oauth2/v2/auth");
     expect(sent.searchParams.get("code_challenge_method")).toBe("S256");
+    // The challenge Google holds must be the hash of the verifier the callback hands back, or the
+    // token endpoint refuses the sign-in and nothing here would have failed.
+    expect(verifier()).not.toBe("");
+    expect(sent.searchParams.get("code_challenge")).toBe(
+      createHash("sha256").update(verifier()).digest("base64url"),
+    );
     expect(sent.searchParams.get("redirect_uri")).toBe(GOOGLE?.redirectUri);
     expect(sent.searchParams.get("scope")).toBe("openid email");
     expect(set).toContain("Path=/admin/login/google;");
