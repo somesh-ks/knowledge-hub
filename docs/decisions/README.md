@@ -283,7 +283,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D267 | Card, Row | amends D243 |
 | D268 | Styles: token overrides | amends D125 |
 | D270 | Experiments: a change settles on a read, not its write's answer | amends D249, D259 |
-| D271 | Pill slide, cover flight, 250 ms | by D280 |
+| D271 | Pill slide, cover flight | superseded by D280 |
 | D272 | No persisted floating button | active |
 | D280 | Travel 300 ms, hover curve | amends D271 |
 

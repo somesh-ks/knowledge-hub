@@ -17,8 +17,8 @@ const NAV_ITEM = "a.app-nav-item";
 const NAV_BRAND = ".app-nav-brand";
 /** Root attribute that says the page itself, not a view transition, draws this move. */
 export const SWAP_ATTRIBUTE = "data-nav-swap";
-/** Longer than the page's own fade, so the marks come off after it has ended. */
-const SWAP_SETTLE_MS = 200;
+/** Longer than the page's own entrance (300 ms, view-transitions.css), so the marks come off after it has ended. */
+const SWAP_SETTLE_MS = 350;
 /** The destinations are fetched again at most this often when the app comes back to the front. */
 export const WARM_EVERY_MS = 60_000;
 
