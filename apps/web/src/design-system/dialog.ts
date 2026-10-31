@@ -13,6 +13,7 @@ export const DIALOG: Guidance = {
   dontUseWhen: [
     {
       when: "The question needs fields to answer.",
+      instead: "Sheet",
     },
   ],
 };
@@ -20,6 +21,7 @@ export const DIALOG: Guidance = {
 /** Every class the Dialog draws, for the registry and its test. */
 export const DIALOG_CLASSES: string[] = [
   "dialog-panel",
+  "dialog-title",
   "dialog-body",
   "dialog-actions",
   "dialog-actions-stacked",
@@ -41,6 +43,9 @@ export const dialogClass = (): string => "dialog-panel";
 
 /** The class of the box inside it, a form when the dialog submits. */
 export const dialogBodyClass = (): string => "dialog-body";
+
+/** The question, as the dialog's one heading. */
+export const dialogTitleClass = (): string => "dialog-title";
 
 /** The row of answers; `stacked` makes it a column with the committing one first. */
 export const dialogActionsClass = (stacked = false): string =>

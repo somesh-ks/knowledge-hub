@@ -1,5 +1,10 @@
 import { buttonClass } from "../design-system/button";
-import { dialogActionsClass, dialogBodyClass, dialogClass } from "../design-system/dialog";
+import {
+  dialogActionsClass,
+  dialogBodyClass,
+  dialogClass,
+  dialogTitleClass,
+} from "../design-system/dialog";
 import { dismissOnScrim } from "./pullDismiss";
 
 /**
@@ -75,7 +80,7 @@ export function guardSheet(sheet: HTMLDialogElement, options: SheetGuardOptions)
     dialog.dataset.sheetGuard = "";
     // Fixed markup: nothing from the page goes into it.
     dialog.innerHTML = `<div class="${dialogBodyClass()}">
-      <h2 class="sheet-title">Save changes?</h2>
+      <h2 class="${dialogTitleClass()}">Save changes?</h2>
       <div class="${dialogActionsClass(true)}">
         <button class="${buttonClass("filled")}" type="button" data-guard-save autofocus>Save</button>
         <button class="${buttonClass("text")}" type="button" data-guard-discard>Discard</button>

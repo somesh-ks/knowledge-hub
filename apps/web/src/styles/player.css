@@ -1,6 +1,6 @@
 /*
  * The player: one surface that grows from a bar docked at the bottom into a full page, plus the
- * scrubber and the controls inside it, and the icon and segmented-control styles the sheets share.
+ * scrubber and the controls inside it, and the icon styles the sheets share.
  *
  * Reads semantic and component tokens only (tokens.css); scale families (space, radius, type,
  * motion) are consumed directly because the scale is already the semantic layer. Unlayered, so it
@@ -2353,144 +2353,6 @@
     forced-color-adjust: none;
   }
 }
-/* ------------------------------------------------------------------ segmented control */
-
-/* The same control as the Settings page's segmented choice (settings.css), which this stylesheet
-   cannot import: the same track, thumb, type, targets and timing. */
-.segmented {
-  --seg-n: 1;
-  --seg-i: 0;
-  position: relative;
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
-  padding: var(--segmented-padding);
-  border-radius: var(--button-radius);
-  background: var(--color-surface-container);
-}
-
-.segmented label {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-width: 0;
-  /* With the track's padding this makes the control 44px tall, and taller if the text grows. */
-  min-height: calc(var(--segmented-height) - var(--segmented-padding) * 2);
-  border-radius: var(--button-radius);
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--font-leading-label);
-  white-space: nowrap;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  transition: color var(--duration-hover) var(--ease-hover);
-}
-
-/* The radio is the target. It covers its segment and the track's padding above and below, which
-   makes the target the track's full 44px. It is invisible, so the segment draws every state. */
-.segmented input {
-  position: absolute;
-  inset-block: calc(var(--segmented-padding) * -1);
-  inset-inline: 0;
-  width: 100%;
-  height: calc(100% + var(--segmented-padding) * 2);
-  margin: 0;
-  appearance: none;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.segmented label:has(input:checked) {
-  color: var(--color-on-accent-container);
-}
-
-/*
- * One raised thumb, ringed so the choice never depends on colour alone, slides under the labels. The
- * segments are equal columns, so its width is one column and its place a multiple of that width:
- * --seg-n is how many segments there are and --seg-i the checked one, both read from the markup. It
- * slides only while the control is being used, so the view a page opens on never travels in.
- */
-.segmented:has(label:nth-of-type(2)) {
-  --seg-n: 2;
-}
-
-.segmented:has(label:nth-of-type(3)) {
-  --seg-n: 3;
-}
-
-.segmented:has(label:nth-of-type(4)) {
-  --seg-n: 4;
-}
-
-.segmented:has(label:nth-of-type(2) input:checked) {
-  --seg-i: 1;
-}
-
-.segmented:has(label:nth-of-type(3) input:checked) {
-  --seg-i: 2;
-}
-
-.segmented:has(label:nth-of-type(4) input:checked) {
-  --seg-i: 3;
-}
-
-.segmented::before {
-  content: "";
-  position: absolute;
-  inset-block: var(--segmented-padding);
-  inset-inline-start: var(--segmented-padding);
-  width: calc((100% - var(--segmented-padding) * 2) / var(--seg-n));
-  border-radius: var(--button-radius);
-  /* Tonal, not outlined: the chosen segment is the accent's container, as a chosen chip is. */
-  background: var(--color-accent-container);
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(calc(var(--seg-i) * 100%));
-}
-
-.segmented:has(input:checked)::before {
-  opacity: 1;
-}
-
-.segmented:is(:focus-within, :has(label:active))::before {
-  transition: transform var(--duration-state) var(--ease-out);
-}
-
-/* An arrow key moves the thumb at once: what a key starts is never animated (data-input, app.ts). */
-:root[data-input="keyboard"] .segmented::before {
-  transition: none;
-}
-
-/* The ring belongs on the segment: an invisible input cannot show one. A press shows on the thumb
-   and the colour, never on the size of the words (pressText.test.ts). */
-.segmented label:has(input:focus-visible) {
-  z-index: var(--z-raised);
-  outline: var(--stroke-ring) solid var(--color-focus-ring);
-  outline-offset: var(--stroke-ring-gap);
-}
-
-/* Hover and press are state layers on the segment: a fill, never a scale on the words. */
-.segmented label:active {
-  background-image: linear-gradient(
-    color-mix(in oklch, currentColor var(--state-press), transparent),
-    color-mix(in oklch, currentColor var(--state-press), transparent)
-  );
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .segmented label:not(:has(input:checked)):hover {
-    color: var(--color-on-surface);
-  }
-
-  .segmented label:hover:not(:active) {
-    background-image: linear-gradient(
-      color-mix(in oklch, currentColor var(--state-hover), transparent),
-      color-mix(in oklch, currentColor var(--state-hover), transparent)
-    );
-  }
-}
-
 /* ------------------------------------------------------------------ source, stories, notice, up next */
 
 .player-source-link {
@@ -3000,16 +2862,11 @@ html:is([data-player="open"], :has(dialog[open])) .player-dock {
     filter: none;
   }
 
-  /* The speed panel fades without growing; the segmented thumb jumps to its segment. */
+  /* The speed panel fades without growing. */
   .speed-panel {
     --panel-scale: 1;
     /* The exit fade takes the hover time here; the open rule has its own duration and keeps it. */
     transition-duration: var(--duration-hover);
-  }
-
-  .segmented::before,
-  .segmented:is(:focus-within, :has(label:active))::before {
-    transition: none;
   }
 }
 
@@ -3056,8 +2913,7 @@ html:is([data-player="open"], :has(dialog[open])) .player-dock {
   .speed-btn,
   .speed-preset,
   .story-row,
-  .script-back,
-  .segmented {
+  .script-back {
     border: var(--stroke-hairline) solid ButtonText;
   }
 
@@ -3065,7 +2921,6 @@ html:is([data-player="open"], :has(dialog[open])) .player-dock {
     border: var(--stroke-hairline) solid CanvasText;
   }
 
-  .segmented label:has(input:checked),
   .speed-preset[aria-pressed="true"] {
     border: var(--stroke-rail) solid Highlight;
   }
@@ -3075,11 +2930,6 @@ html:is([data-player="open"], :has(dialog[open])) .player-dock {
   .story-row[aria-current="true"] {
     outline: var(--stroke-rail) solid Highlight;
     outline-offset: calc(var(--stroke-rail) * -1);
-  }
-
-  /* The chosen segment carries its own border here, so the thumb is not drawn. */
-  .segmented::before {
-    display: none;
   }
 }
 
