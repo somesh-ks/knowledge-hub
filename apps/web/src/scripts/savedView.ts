@@ -525,6 +525,41 @@ function recount(root: HTMLElement, ops: readonly ConfigOp[]): boolean {
 
 type Upsert = Extract<ConfigOp, { op: "topic.upsert" }>["topic"];
 
+/**
+ * A group's emoji (Design, AI, Technology, Software Engineering) is kept on its home topic
+ * (2026-10-31): a saved pick shows on the group's row in the list and on its page's button, and the
+ * page's next pick sends the home topic with it.
+ */
+function groupEmoji(root: HTMLElement, home: string, topic: Upsert): boolean {
+  let shown = false;
+  for (const row of root.querySelectorAll<HTMLElement>(`a.row-action[data-home="${home}"]`)) {
+    const mark = row.querySelector(".topic-emoji");
+    const name = row.querySelector(".settings-label")?.textContent ?? "";
+    const emoji = topic.emoji ?? topicEmoji({ id: row.dataset.page ?? home, name });
+    if (mark && mark.textContent !== emoji) {
+      mark.textContent = emoji;
+      shown = true;
+    }
+  }
+  const pick = root.querySelector<HTMLElement>(`[data-change-emoji][data-home="${home}"]`);
+  if (!pick) return shown;
+  const emoji =
+    topic.emoji ??
+    topicEmoji({
+      id: root.dataset.page ?? home,
+      name: document.getElementById("page-title")?.textContent ?? "",
+    });
+  if (pick.textContent === emoji) return shown;
+  pick.textContent = emoji;
+  const base = JSON.parse(pick.dataset.topicBase ?? "{}");
+  const { emoji: _, ...rest } = base.topic ?? {};
+  pick.dataset.topicBase = JSON.stringify({
+    ...base,
+    topic: topic.emoji ? { ...rest, emoji: topic.emoji } : rest,
+  });
+  return true;
+}
+
 /** A topic's new name and what counts, on its page and on its row in the list. */
 function renameTopic(root: HTMLElement, id: string, topic: Upsert): boolean {
   let shown = false;
@@ -540,6 +575,7 @@ function renameTopic(root: HTMLElement, id: string, topic: Upsert): boolean {
     mark.textContent = emoji;
     shown = true;
   }
+  shown = groupEmoji(root, id, topic) || shown;
   const trigger = root.querySelector<HTMLElement>("[data-edit-topic]");
   if (!byId(root, "[data-topic]", id) || !trigger) return shown;
   // A saved emoji shows on the list's row and on the topic's page, and its next edit keeps it.

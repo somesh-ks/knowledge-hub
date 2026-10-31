@@ -38,6 +38,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Engine and workflows
 
+- 2026-10-31: a topic's emoji pick was lost on all three paths: `serializeTopics` writes a fixed field list (a new `Topic` field needs adding there), `upsertTopic` read `emoji` only for custom topics, and the group pages drew no button. Check a new field against the serializer and each origin's branch.
 - 2026-10-28: a run record's and the ledger's `at` is publish time (96 min for 3); time a run as `generated_at` less `window.to` (D203).
 - 2026-10-27: a briefing shipped 3 stories (79 s): grounding dropped 5 of 8 and the refill found the reserve empty, because the structure's section caps capped the reserve too (#373 lifts them for the reserve and warns `under_length`).
 - 2026-10-27: the runner has no ffmpeg with libopus, so Opus and its test skipped silently; ffprobe counts MP3 padding (52 ms a turn). The workflows install it; turns are measured by decoding. The install hung 5 to 19 min behind `-qq`: bound apt, skip man-db, log, `continue-on-error` where an MP3 exists (#388).

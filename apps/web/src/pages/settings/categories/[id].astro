@@ -100,7 +100,7 @@ const { group, topic, list, choices, taken, shell = false } = Astro.props;
 
 // The names a new topic may not take again (topicProblems): every topic a person sees.
 const names = choices.map((choice) => choice.name);
-const [{ sources }, catalog] = await Promise.all([loadManage(), loadSourceCatalog()]);
+const [{ sources, topics }, catalog] = await Promise.all([loadManage(), loadSourceCatalog()]);
 const name = group?.name ?? topic?.name ?? "Other";
 const note = group?.note ?? topic?.description ?? "Sources not filed under a category.";
 // A source on a group's page shows the group as its topic, so its edit panel moves it only when
@@ -138,6 +138,27 @@ const upsert =
       section_id: topic.section_id,
     },
   });
+// A group's emoji is kept on its home topic (2026-10-31), so the picker's pick is that topic's own
+// edit, sent whole: nothing but the emoji changes.
+const home = group ? topics.find((candidate) => candidate.id === group.home) : undefined;
+const homeUpsert =
+  home &&
+  JSON.stringify({
+    op: "topic.upsert",
+    topic: {
+      id: home.id,
+      name: home.name,
+      description: home.description,
+      enabled: home.enabled,
+      keywords: home.keywords,
+      section_id: home.section_id,
+    },
+  });
+const pickedEmoji = topic
+  ? topicEmoji(topic)
+  : group
+    ? topicEmoji({ ...group, emoji: home?.emoji })
+    : "";
 // Every page takes a new source, filed under the topic (a group's under its home topic).
 const addTo = group?.home ?? topic?.id ?? "";
 // A general news topic feeds General episodes by how many outlets carry a story.
@@ -193,9 +214,10 @@ const facts = topic && {
             <div class="topic-card-lead">
               <div class="topic-card-art" set:html={art} />
               {/* The topic's emoji (2026-10-21): a button at the picture's corner that opens the
-                   emoji picker (emojiPicker.ts); the topic's own edit sends the pick. */}
+                   emoji picker (emojiPicker.ts); the topic's own edit sends the pick. A group's
+                   (2026-10-31) is sent as its home topic's edit. */}
               {
-                topic && (
+                (topic || homeUpsert) && (
                   <button
                     class="icon-btn press topic-emoji-pick"
                     type="button"
@@ -203,12 +225,14 @@ const facts = topic && {
                     aria-haspopup="dialog"
                     aria-controls="emoji-picker"
                     data-change-emoji
+                    data-topic-base={group ? homeUpsert : undefined}
+                    data-home={group?.home}
                     data-needs-js
-                  >{topicEmoji(topic)}</button>
+                  >{pickedEmoji}</button>
                 )
               }
             </div>
-            {topic && <EmojiPicker id="emoji-picker" />}
+            {(topic || homeUpsert) && <EmojiPicker id="emoji-picker" />}
             <div class="topic-card-text">
               <SettingsHead title={name} note={note} />
             </div>
