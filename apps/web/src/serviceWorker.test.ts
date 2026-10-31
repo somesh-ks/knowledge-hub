@@ -168,6 +168,9 @@ describe("service worker: requests it passes straight through", () => {
     ["a GET to the API, even as a navigation", request("/api/generate", { mode: "navigate" })],
     ["the status API with a query", request("/api/status?run=1", { mode: "navigate" })],
     ["another origin", request("https://example.com/_astro/x.css")],
+    // Its pages and functions have no file extension, so the worker took them for pages and kept them.
+    ["a command center page", request("/admin/health", { mode: "navigate" })],
+    ["a command center function", request("/admin/api/stages")],
   ])("%s", async (_name, passing) => {
     const worker = load();
     expect((await worker.dispatchFetch(passing)).handled).toBe(false);
