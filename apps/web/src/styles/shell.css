@@ -516,16 +516,16 @@ html[data-mini="visible"] main {
   /* From 40rem the list is a centred column with bar showing either side (a phone on its side). The
      outer two tabs reach out to the bar's edges, so that bar is theirs too: the column's side margin
      plus the bar's own safe-area padding. */
+  .app-nav {
+    --nav-side: max(0px, (100vw - var(--safe-left) - var(--safe-right) - var(--layout-column)) / 2);
+  }
+
   .app-nav-item:first-child::after {
-    inset-inline-start: calc(
-      (var(--safe-left) + max(0px, (100vw - var(--safe-left) - var(--safe-right) - var(--layout-column)) / 2)) * -1
-    );
+    inset-inline-start: calc((var(--safe-left) + var(--nav-side)) * -1);
   }
 
   .app-nav-item:last-child::after {
-    inset-inline-end: calc(
-      (var(--safe-right) + max(0px, (100vw - var(--safe-left) - var(--safe-right) - var(--layout-column)) / 2)) * -1
-    );
+    inset-inline-end: calc((var(--safe-right) + var(--nav-side)) * -1);
   }
 }
 
