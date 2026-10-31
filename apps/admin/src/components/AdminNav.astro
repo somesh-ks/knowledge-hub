@@ -28,7 +28,7 @@ const { current } = Astro.props;
               <Icon name={section.icon} class="icon-lg app-nav-icon-rest" />
               <Icon name={section.iconCurrent} class="icon-lg app-nav-icon-current" />
             </span>
-            <span>{section.label}</span>
+            <span>{section.short ?? section.label}</span>
           </a>
         </li>
       ))

@@ -5,6 +5,8 @@ export interface Section {
   /** The path under the base: "" for the overview. */
   path: string;
   label: string;
+  /** A shorter word for the navigation, where the label is wider than a sixth of a phone (six items). */
+  short?: string;
   icon: IconName;
   /** The filled twin the nav shows for the current section, as the reader's does. */
   iconCurrent: IconName;
@@ -48,8 +50,17 @@ export const SECTIONS: readonly Section[] = [
     status: "",
   },
   {
+    path: "/analytics",
+    label: "Analytics",
+    icon: "chartBar",
+    iconCurrent: "chartBar",
+    question: "Visits, listens, shares.",
+    status: "",
+  },
+  {
     path: "/experiments",
     label: "Experiments",
+    short: "Flags",
     icon: "lightning",
     iconCurrent: "lightningFill",
     question: "On changes the daily. Shadow only logs what it would change.",

@@ -1,0 +1,68 @@
+---
+import AdminHead from "../components/AdminHead.astro";
+import Shell from "../layouts/Shell.astro";
+
+const title = "Analytics";
+
+// The tiles and the four loops of docs/specs/analytics.md, each drawn here with its name so nothing
+// moves when /api/analytics answers; scripts/analyticsPage.ts fills a value and a line by id.
+const TILES = [
+  { id: "visitors", label: "Visitors" },
+  { id: "pageviews", label: "Page views" },
+  { id: "listens", label: "Listens" },
+  { id: "shares", label: "Shares" },
+] as const;
+const LOOPS = [
+  { id: "shares_per_visitor", label: "Shares per visitor", hint: "Share loop" },
+  { id: "visits_per_share", label: "Visits per share", hint: "Share loop" },
+  { id: "listen_through", label: "Listen-through", hint: "Taste loop" },
+  { id: "completion", label: "Completion", hint: "Taste loop" },
+] as const;
+---
+
+<Shell title={title} current="/analytics">
+  <div class="settings-view health" data-settings data-analytics data-loading>
+    <AdminHead title={title} note="The last 7 days, from Simple Analytics." />
+
+    <section class="card-group health-card" aria-label="Summary">
+      <ul class="stat-tiles health-data" role="list" aria-label="Analytics figures">
+        {
+          TILES.map((tile) => (
+            <li class="stat-tile">
+              <strong class="stat-tile-value" data-an-tile={tile.id}>
+                &nbsp;
+              </strong>{" "}
+              <span class="stat-tile-label">{tile.label}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section>
+      <h2 class="section-head">Loops</h2>
+      <div class="rows card-group health-data">
+        {
+          LOOPS.map((loop) => (
+            <div class="settings-row health-row" data-an-row={loop.id}>
+              <span class="settings-text">
+                <span class="settings-label">{loop.label}</span>
+                <span class="settings-hint" data-detail>
+                  {loop.hint}
+                </span>
+              </span>
+              <span class="health-value" data-value>
+                &nbsp;
+              </span>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+    <p class="settings-note health-note" data-an-note></p>
+  </div>
+</Shell>
+
+<script>
+  import "../scripts/analyticsPage";
+</script>
