@@ -149,7 +149,6 @@
   --duration-state: 200ms;
   --duration-enter: 250ms;
   --duration-exit: 150ms;
-  --duration-travel: var(--duration-spring-spatial-default);
   --duration-sheet-in: 300ms;
   --duration-sheet-out: 220ms;
   --duration-drawer-full: 500ms;
@@ -167,7 +166,6 @@
   --duration-spring-effects-default: 220ms;
   --duration-spring-effects-slow: 310ms;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-travel: var(--ease-spring-spatial-default);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-hover: cubic-bezier(0.25, 0.1, 0.25, 1);

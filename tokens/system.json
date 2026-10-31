@@ -2896,13 +2896,6 @@
       "light": "150ms"
     },
     {
-      "name": "--duration-travel",
-      "tier": "primitive",
-      "type": "duration",
-      "light": "var(--duration-spring-spatial-default)",
-      "role": "A thing that stays on screen and moves from where it was to where it is: the nav pill between tabs, a cover between its card and the page's hero. The spatial spring (rule 2 of docs/specs/motion.md) under a role name, so every travel changes together."
-    },
-    {
       "name": "--duration-sheet-in",
       "tier": "primitive",
       "type": "duration",
@@ -3022,13 +3015,6 @@
       "tier": "primitive",
       "type": "cubicBezier",
       "light": "cubic-bezier(0.23, 1, 0.32, 1)"
-    },
-    {
-      "name": "--ease-travel",
-      "tier": "primitive",
-      "type": "cubicBezier",
-      "light": "var(--ease-spring-spatial-default)",
-      "role": "The curve of a travel (see duration.travel): the default spatial spring, which overshoots by 1.5% and settles."
     },
     {
       "name": "--ease-in-out",

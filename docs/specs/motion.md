@@ -20,9 +20,8 @@ Ask in this order and stop at the first yes.
 | :--- | :--- | :--- |
 | Press, hover | `--duration-press-in`, `-press-out`, `-hover` | `--ease-out`, `--ease-hover` |
 | Fade or recolour | `--duration-state` (200), `-enter`, `-exit`, or `--duration-spring-effects-*` | `--ease-out`, `--ease-spring-effects-{fast,default,slow}` |
-| Travel: a thing that stays and moves from where it was to where it is (the nav pill between tabs, a cover between its card and the page's hero) | `--duration-travel` (the default spatial spring, 420) | `--ease-travel` |
 | Small move or reshape | `--duration-spring-spatial-fast` (350) | `--ease-spring-spatial-fast` |
-| Larger move | `--duration-spring-spatial-default` (420), `-slow` (570) | `--ease-spring-spatial-default`, `-slow` |
+| Larger move, or a thing that stays and travels from where it was to where it is (the nav pill between tabs, a cover between its card and the page's hero) | `--duration-spring-spatial-default` (420), `-slow` (570) | `--ease-spring-spatial-default`, `-slow` |
 | Sheet in, out | `--duration-sheet-in` (300), `-sheet-out` (220) | `--ease-drawer` |
 | Full-height drawer | `--duration-drawer-full` (500), the one exception to 300 | `--ease-drawer` |
 
