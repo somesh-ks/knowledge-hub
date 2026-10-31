@@ -19,6 +19,7 @@ export const SYSTEM_PATHS = [
   "apps/web/src/styles/field.css",
   "apps/web/src/styles/select.css",
   "apps/web/src/styles/picker.css",
+  "apps/web/src/styles/wheel.css",
   "apps/web/src/styles/menu.css",
   "apps/web/src/styles/banner.css",
   "apps/web/src/styles/dialog.css",

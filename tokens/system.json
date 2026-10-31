@@ -510,7 +510,8 @@
       "files": [
         "design-system/Select.astro",
         "design-system/select.ts",
-        "design-system/selectSheet.ts"
+        "design-system/selectSheet.ts",
+        "design-system/wheel.ts"
       ],
       "when": [
         "A person picks one value from a list of five or more, or of names that are too long for a row of chips",
@@ -539,7 +540,8 @@
       "markup": "<Select variant=\"tonal\" label=\"Sort\" data-library-sort><option value=\"newest\">Newest first</option></Select>",
       "rules": [
         "Outlined (the default) is a value in a form; tonal is a sort or a filter and takes data-active on its wrapper (find it with closest(\"[data-select]\")) once its value is not the default.",
-        "A select inside a settings row takes class=\"value-select\" from settings.css, which draws it as the row's value."
+        "A select inside a settings row takes class=\"value-select\" from settings.css, which draws it as the row's value.",
+        "data-wheel on a short ordered run (the hours of a day) opens its phone sheet as a Wheel (design-system/wheel.ts), not as rows."
       ],
       "styles": [
         "select.css"
