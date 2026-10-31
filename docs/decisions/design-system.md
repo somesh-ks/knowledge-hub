@@ -500,3 +500,12 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Rejected: a separate haptics path per control; raw milliseconds in call sites; a "System" option (the web cannot read the phone's haptics setting); a switch or segmented control (Settings choices are the shared select).
 - Amends: D52 (which rejected "a haptic on press" because it was Android only), ledger item 5 (haptics gated by the Sounds setting).
 - Revisit if: the iPhone tick is seen not to fire, or Safari ships a haptics API (replace the adapter only).
+
+## D280: travel takes 300 ms on the hover curve, and the nav pill grows in place
+
+- Date: 2026-10-31 (the owner: the 250 ms flight was "too quick and jerky"; the pill's slide "doesn't feel natural", he wanted it to appear where it is, and picked "option 1 - grows from center"; on deleting the two slide tests: "you decide").
+- Decision: amends D271. The cover's flight, the page's slide and the pill's growth take `--duration-sheet-in` (300 ms) on `--ease-hover`; a drill move's fade takes the effects spring (`--duration-spring-effects-default`), a tab move's fade 150 ms. The pill no longer travels between tabs: `nav-pill-slide`, `--nav-pill-from`, `pillDistance` and the slide tests are gone, and it grows from its centre again, carried across the swap as before. A flight reads its time and curve from `.cover-morph` (cover.css), so one rule sets them. No new token.
+- Context changed: D271 chose the out curve for speed; on his phone it read as a cut and the sliding pill as unnatural, and its 250 ms was not his taste.
+- Why: the out curve is 93% done after 19% of its time, so half the travel falls in the first 33 ms and any length reads as a cut. The hover curve at 300 ms has the lowest peak step per frame of the curves without an overshoot (13% of the travel, against 22% for the drawer, 25% for in-out and 28% for out) and ends at 300 with no tail.
+- Rejected: the drawer and in-out curves and the 420 ms spring (recorded beside it; the spring's tail felt slower); a new `--duration-travel` token; fading the page across a move (two pages of text show through each other); a page slide on tab moves in the pill's direction (the pill no longer has one).
+- Revisit if: tab moves should outlast a press (`navSpeed.spec.ts` caps them at 150 ms), or the owner finds the hover curve too soft on a drill.

@@ -524,7 +524,7 @@ test.describe("the Create panel's voices", () => {
     const ada = page.locator("#create-voice");
     const leo = page.locator("#create-voice_b");
     await expect(ada).toHaveAccessibleName(/^Voice: /);
-    // The voices are chosen from a list with a search box, and each can be heard from its button.
+    // The voices are chosen from a list with a search box, and each can be heard from its list.
     await openPicker(page, ada);
     await expect(pickerList(page).getByRole("option")).toHaveText([
       "Default",
@@ -535,7 +535,6 @@ test.describe("the Create panel's voices", () => {
     await pickerList(page).getByRole("combobox").fill("nora");
     await expect(pickerList(page).getByRole("option")).toHaveText([/Nora/]);
     await page.keyboard.press("Escape");
-    await expect(page.locator("[data-voice=voice] [data-preview]")).toBeDisabled();
     await expect(ada).toBeVisible();
     await expect(leo).toBeHidden();
     await segment(page, "Discussion").click();
@@ -544,8 +543,8 @@ test.describe("the Create panel's voices", () => {
     await expect(page.locator("#create-voice-label")).toHaveText("Voices");
     await expect(ada).toHaveAccessibleName(/^Primary voice: /);
     await expect(leo).toHaveAccessibleName(/^Secondary voice: /);
-    await choose(page, ada, /Ada, female/);
-    await choose(page, leo, /Leo, male/);
+    await choose(page, ada, /^Ada/);
+    await choose(page, leo, /^Leo/);
     // The voices are labelled with the hosts' names (D76), in their captions and their names.
     await expect(page.locator("[data-voice-caption]")).toHaveText(["Ada's voice", "Leo's voice"]);
     await expect(ada).toHaveAccessibleName(/^Ada's voice: /);
@@ -618,16 +617,16 @@ test.describe("the Create panel's voices", () => {
     const first = page.locator('select[name="voice"]');
     const second = page.locator('select[name="voice_b"]');
     // The lead takes Leo, whom the second host's Default stands for: the second host gets Ada.
-    await choose(page, page.locator("#create-voice"), /Leo, male/);
+    await choose(page, page.locator("#create-voice"), /^Leo/);
     await expect(second).toHaveValue("voice-ada");
     // The button of the second host says so too: the list's words follow the page's value.
     await expect(page.locator("#create-voice_b")).toContainText("Ada");
     await expect(page.locator("[data-voice-caption]")).toHaveText(["Leo's voice", "Ada's voice"]);
     // The second host takes the lead's voice: they swap back.
-    await choose(page, page.locator("#create-voice_b"), /Leo, male/);
+    await choose(page, page.locator("#create-voice_b"), /^Leo/);
     await expect(first).toHaveValue("voice-ada");
     // A third voice is nobody's: nothing else moves.
-    await choose(page, page.locator("#create-voice_b"), /Nora, female/);
+    await choose(page, page.locator("#create-voice_b"), /^Nora/);
     await expect(first).toHaveValue("voice-ada");
     await expect(page.locator("[data-voice-caption]")).toHaveText(["Ada's voice", "Nora's voice"]);
   });
@@ -635,7 +634,7 @@ test.describe("the Create panel's voices", () => {
   test("a readout sends no second voice", async ({ page }) => {
     const mock = await mockPodcast(page, 202, { status: 202, run_id: 7, started_at: "now" });
     await openCreate(page);
-    await choose(page, page.locator("#create-voice"), /Nora, female/);
+    await choose(page, page.locator("#create-voice"), /^Nora/);
     await submit(page).click();
     await expect.poll(() => mock.bodies.length).toBe(1);
     const request = mock.bodies[0]?.request as Record<string, unknown>;

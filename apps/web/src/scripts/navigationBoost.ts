@@ -10,20 +10,15 @@
  *   - a page that changed behind its saved copy is swapped in quietly, if it has not been touched.
  */
 
-import {
-  ARRIVED_ATTRIBUTE,
-  PILL_ELAPSED_PROPERTY,
-  PILL_FROM_PROPERTY,
-  SLIDE_VALUE,
-} from "./navigation";
+import { ARRIVED_ATTRIBUTE, PILL_ELAPSED_PROPERTY } from "./navigation";
 
 /** Links only: the side column also has a button (the queue's row), which has no page to go to. */
 const NAV_ITEM = "a.app-nav-item";
 const NAV_BRAND = ".app-nav-brand";
 /** Root attribute that says the page itself, not a view transition, draws this move. */
 export const SWAP_ATTRIBUTE = "data-nav-swap";
-/** Longer than the page's own fade, so the marks come off after it has ended. */
-const SWAP_SETTLE_MS = 200;
+/** Longer than the page's own entrance (300 ms, view-transitions.css), so the marks come off after it has ended. */
+const SWAP_SETTLE_MS = 350;
 /** The destinations are fetched again at most this often when the app comes back to the front. */
 export const WARM_EVERY_MS = 60_000;
 
@@ -49,22 +44,6 @@ export function markCurrent(item: HTMLAnchorElement, root: ParentNode): void {
     if (other !== item) other.removeAttribute("aria-current");
   }
   item.setAttribute("aria-current", "page");
-}
-
-/**
- * How far the pill has to travel to get from where it is drawn to under `item`, in pixels, or
- * null when there is nothing to slide: no current tab, or a side column, which draws a row and no pill.
- */
-export function pillDistance(item: HTMLAnchorElement, root: ParentNode): number | null {
-  const current = root.querySelector<HTMLElement>(`${NAV_ITEM}[aria-current='page']`);
-  if (!current || current === item) return null;
-  const from = current.querySelector<HTMLElement>(".app-nav-indicator");
-  const to = item.querySelector<HTMLElement>(".app-nav-indicator");
-  if (!from || !to || getComputedStyle(from, "::before").content === "none") return null;
-  // A pill still sliding from the last move is drawn off its tab by what is left of that slide.
-  const sliding = Number.parseFloat(getComputedStyle(from, "::before").translate);
-  const drawn = from.getBoundingClientRect().left + (Number.isFinite(sliding) ? sliding : 0);
-  return Math.round(drawn - to.getBoundingClientRect().left);
 }
 
 /** The pages worth keeping saved: every destination except the one on screen. */
@@ -140,13 +119,9 @@ export function installNavigationBoost(): void {
       // The pill grows under the item as it lights, here, and not again on the page that arrives.
       if (item.getAttribute("aria-current") !== "page") {
         const root = document.documentElement;
-        // Measured before the item is marked: afterwards there is no old tab to measure from.
-        const distance = pillDistance(item, document);
-        root.setAttribute(ARRIVED_ATTRIBUTE, distance === null ? "" : SLIDE_VALUE);
+        root.setAttribute(ARRIVED_ATTRIBUTE, "");
         // A press in the settle time of the last move starts its growth afresh.
         root.style.removeProperty(PILL_ELAPSED_PROPERTY);
-        if (distance === null) root.style.removeProperty(PILL_FROM_PROPERTY);
-        else root.style.setProperty(PILL_FROM_PROPERTY, `${distance}px`);
       }
       markCurrent(item, document);
     }
