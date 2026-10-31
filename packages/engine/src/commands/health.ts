@@ -19,6 +19,7 @@ const isRun = (value: unknown): value is WorkflowRun => {
     typeof run.databaseId === "number" &&
     typeof run.status === "string" &&
     typeof run.createdAt === "string" &&
+    Number.isFinite(Date.parse(run.createdAt)) &&
     (run.conclusion === null || typeof run.conclusion === "string")
   );
 };
@@ -91,7 +92,8 @@ export const run: CommandRun = async (argv, ctx) => {
       sideRuns = {};
       for (const workflow of SIDE_WORKFLOWS) {
         const list = (parsed as Record<string, unknown>)[workflow];
-        if (!Array.isArray(list)) continue;
+        if (list === undefined) continue;
+        if (!Array.isArray(list)) throw new Error(`${workflow} is not a list`);
         if (!list.every(isRun)) throw new Error(`an entry of ${workflow} is not a workflow run`);
         sideRuns[workflow] = list;
       }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createTrackAudio, type Playlist, type TrackSegment } from "../../narration/trackAudio";
-import { MEDIA_ERR_NETWORK } from "./audioErrors";
+import { MEDIA_ERR_DECODE, MEDIA_ERR_NETWORK } from "./audioErrors";
 import type { PlayerEvent } from "./playerTypes";
 import { createHarness, FakeAudio, makeDigest } from "./testing";
 
@@ -89,7 +89,8 @@ describe("a refusal and a press on Play", () => {
   it("a story step out of a failure is announced as the story, not as a press on Play", () => {
     const harness = createHarness();
     startPlaying(harness);
-    harness.audio.error = { code: MEDIA_ERR_NETWORK };
+    // A decode failure, not a dropped connection: that one is retried by itself first (PWA-02).
+    harness.audio.error = { code: MEDIA_ERR_DECODE };
     harness.audio.emit("error");
     harness.events.length = 0;
     harness.store.next();

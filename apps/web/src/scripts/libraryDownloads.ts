@@ -18,7 +18,19 @@ import {
   OLD_AUDIO_CACHE,
   parseDownloads,
   segmentUrls,
+  unlistedPayloads,
 } from "../lib/downloads";
+
+/**
+ * A fetch gives up after this long, so a stalled connection ends in "Could not download" and not in
+ * a spinner that never stops (PWA-01). A turn's file is larger than a lookup or a page.
+ */
+const LOOKUP_MS = 20_000;
+const FILE_MS = 120_000;
+const timed = (milliseconds: number, init: RequestInit = {}): RequestInit => ({
+  ...init,
+  signal: AbortSignal.timeout(milliseconds),
+});
 
 /** How long the worker gets to save the page's scripts before the download counts as done. */
 const WARM_MS = 15_000;
@@ -115,24 +127,27 @@ async function mapLimit<T, R>(
 
 async function downloadEpisode(cache: Cache, request: DownloadRequest): Promise<void> {
   const address = lookupAddress(request.id);
-  const lookup = await fetch(address, { headers: { accept: "application/json" } });
+  const lookup = await fetch(
+    address,
+    timed(LOOKUP_MS, { headers: { accept: "application/json" } }),
+  );
   if (!lookup.ok) throw new Error(`lookup ${lookup.status}`);
   const body = (await lookup.json()) as Record<string, unknown>;
   const turns = segmentUrls(body);
   if (!turns) throw new NotReadyError();
-  const page = await fetch(request.page);
+  const page = await fetch(request.page, timed(LOOKUP_MS));
   if (!page.ok) throw new Error(`page ${page.status}`);
 
   // Four at a time: a 40-turn episode was 80 round trips one after another.
   const files = await mapLimit(turns, 4, async (turn) => {
-    const file = await fetch(turn.url);
+    const file = await fetch(turn.url, timed(FILE_MS));
     if (file.status === 404) throw new NotReadyError();
     if (!file.ok) throw new Error(`audio ${file.status}`);
     return file;
   });
   // Marks are optional (a turn narrated before they were kept has none): the page estimates.
   const marks = await mapLimit(turns, 4, (turn) =>
-    fetch(marksAddress(request.id, turn.key)).catch(() => null),
+    fetch(marksAddress(request.id, turn.key), timed(LOOKUP_MS)).catch(() => null),
   );
 
   const saved: string[] = [];
@@ -153,7 +168,7 @@ async function downloadEpisode(cache: Cache, request: DownloadRequest): Promise<
       if (mark?.ok) await keep(marksAddress(request.id, turn.key), mark);
     }
     for (const extra of coverAddresses(request.id)) {
-      const cover = await fetch(extra).catch(() => null);
+      const cover = await fetch(extra, timed(LOOKUP_MS)).catch(() => null);
       if (cover?.ok) await keep(extra, cover);
     }
     await keep(request.page, page);
@@ -199,8 +214,20 @@ function askToPersist(): void {
     .catch(() => false);
 }
 
-/** Saves one item. Throws when the file cannot be fetched or stored; nothing is kept then. */
+const DOWNLOAD_LOCK = "singularity-downloads";
+
+/**
+ * Saves one item. Throws when the file cannot be fetched or stored; nothing is kept then. One
+ * download at a time across tabs (a Web Lock), so the sweep below never meets one half made and two
+ * tabs never write the list over each other.
+ */
 export async function download(request: DownloadRequest): Promise<void> {
+  const locks = globalThis.navigator?.locks;
+  if (!locks) return saveDownload(request);
+  return locks.request(DOWNLOAD_LOCK, () => saveDownload(request));
+}
+
+async function saveDownload(request: DownloadRequest): Promise<void> {
   askToPersist();
   const cache = await openDownloads();
   if (request.kind === "episode") {
@@ -208,9 +235,9 @@ export async function download(request: DownloadRequest): Promise<void> {
     await warmPage(request.page);
     return;
   }
-  const audio = await fetch(request.audio);
+  const audio = await fetch(request.audio, timed(FILE_MS));
   if (!audio.ok) throw new Error(`audio ${audio.status}`);
-  const page = await fetch(request.page);
+  const page = await fetch(request.page, timed(LOOKUP_MS));
   if (!page.ok) throw new Error(`page ${page.status}`);
   const extras = coverAddresses(request.id);
   const saved: string[] = [request.audio, request.page];
@@ -223,7 +250,7 @@ export async function download(request: DownloadRequest): Promise<void> {
     );
     await cache.put(request.page, page);
     for (const extra of extras) {
-      const cover = await fetch(extra).catch(() => null);
+      const cover = await fetch(extra, timed(LOOKUP_MS)).catch(() => null);
       if (cover?.ok) {
         await cache.put(extra, cover);
         saved.push(extra);
@@ -243,6 +270,34 @@ export async function download(request: DownloadRequest): Promise<void> {
     throw error;
   }
   await warmPage(request.page);
+}
+
+/**
+ * Deletes what a download that never finished left in the cache (PWA-01). Not while one is under
+ * way: its files are cached before its entry is listed.
+ */
+export async function sweepUnlisted(): Promise<number> {
+  try {
+    if (!("caches" in globalThis) || !(await caches.has(AUDIO_CACHE))) return 0;
+    const locks = globalThis.navigator?.locks;
+    // Without locks the caller's check of its own page is all there is: skip rather than risk a
+    // download in another tab.
+    if (!locks) return 0;
+    const swept = await locks.request(DOWNLOAD_LOCK, { ifAvailable: true }, async (lock) => {
+      if (!lock) return 0;
+      const cache = await openDownloads();
+      const stray = unlistedPayloads(
+        (await cache.keys()).map((key) => key.url),
+        await readDownloads(),
+        location.href,
+      );
+      for (const key of stray) await cache.delete(key);
+      return stray.length;
+    });
+    return swept ?? 0;
+  } catch {
+    return 0;
+  }
 }
 
 export async function removeDownload(id: string): Promise<void> {

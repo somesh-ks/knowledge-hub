@@ -58,6 +58,8 @@ export const PREVIOUS_RESTART_SECONDS = 3;
  */
 const EXPECTED_PAUSE_WINDOW_MS = 1000;
 const HAVE_NOTHING = 0;
+/** The waits before a dropped connection is retried: twice, then the listener is told. */
+const NETWORK_RETRY_WAITS_MS = [1_000, 3_000];
 const HAVE_FUTURE_DATA = 3;
 
 export interface PlayerStoreOptions {
@@ -144,6 +146,11 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   let attachedUrl: string | null = null;
   /** Files of this track that errored or stalled, so the next source is tried (audioSource.ts). */
   const skippedUrls = new Set<string>();
+  // A network error mid-stream (Wi-Fi to cellular, a tunnel) is retried from where it stopped, twice
+  // with a growing wait, before the listener is told; one that plays 30 s on starts the count again.
+  let networkRetries = 0;
+  let networkFailedAt = Number.NEGATIVE_INFINITY;
+  let networkRetryTimer: ReturnType<typeof setTimeout> | null = null;
   let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
   /** Bumped when the watch stops, so a play() promise that settles later arms nothing. */
   let watchToken = 0;
@@ -260,7 +267,13 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     saveTimer = null;
   }
 
+  function stopNetworkRetry(): void {
+    if (networkRetryTimer !== null) clearTimeout(networkRetryTimer);
+    networkRetryTimer = null;
+  }
+
   function stopTimers(): void {
+    stopNetworkRetry();
     stopFrameLoop();
     stopSaveTimer();
     stopBufferTimer();
@@ -427,6 +440,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       if (narrated.summary) error.summary = narrated.summary;
       if (narrated.standing) error.kind = "refused";
     }
+    if (error.kind === "network" && !narrated && wantsPlay && retryNetworkError()) return;
     // The playhead is where the element failed, not where the last frame left it: a story whose
     // file could not be made fails at its start, while the last frame is still in the tail of the
     // story before. A retry from that tail would play it again before it was refused again.
@@ -435,6 +449,22 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       publishTime("auto", true);
     }
     fail(error);
+  }
+
+  /** Plays on from where a dropped connection stopped it. False once the retries are spent. */
+  function retryNetworkError(): boolean {
+    if (state.time - networkFailedAt >= 30) networkRetries = 0;
+    if (networkRetries >= NETWORK_RETRY_WAITS_MS.length) return false;
+    const wait = NETWORK_RETRY_WAITS_MS[networkRetries] ?? 0;
+    networkRetries += 1;
+    networkFailedAt = state.time;
+    stopNetworkRetry();
+    commit({ status: "loading", buffering: true });
+    networkRetryTimer = setTimeout(() => {
+      networkRetryTimer = null;
+      if (wantsPlay) retryAs("resume");
+    }, wait);
+    return true;
   }
 
   /** Playback stopped short: the listener is told why, once. A blocked start is only paused. */
@@ -604,6 +634,8 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     if (track) saveResume();
     stopTimers();
     skippedUrls.clear();
+    networkRetries = 0;
+    networkFailedAt = Number.NEGATIVE_INFINITY;
     wantsPlay = false;
     wasPlayingBeforeScrub = false;
 

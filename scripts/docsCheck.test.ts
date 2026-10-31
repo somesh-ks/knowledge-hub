@@ -61,6 +61,25 @@ describe("docs check", () => {
     );
   });
 
+  // Bug: the whole Index counted as read-first, so every decision pushed every session's first read
+  // toward the budget (D283). Now the Index is grep-only with a cap of its own.
+  it("counts AGENTS.md and state.md as read-first, and caps the Index apart", () => {
+    const rows = Array.from(
+      { length: 700 },
+      (_, i) => `| D${i + 10} | ${"x".repeat(50)} | active |`,
+    );
+    const entries = rows.map((row) => `## ${row.split(" | ")[0]?.slice(2)}: x\n`).join("\n");
+    const { fails, readFirst } = checkDocs(
+      repo({
+        "docs/decisions/README.md": `## Index\n\n${rows.join("\n")}\n`,
+        "docs/decisions/area.md": entries,
+        "docs/decisions/area-two.md": "# Area two\n",
+      }),
+    );
+    expect(readFirst).toBeLessThan(2_000);
+    expect(fails).toEqual([expect.stringMatching(/^decisions Index: \d+ bytes, budget 40000$/)]);
+  });
+
   // Bug: D136 "replaces D46, D58, D113, D130" while their rows still said active, so agents grepping
   // the Index status column built on dead decisions.
   it("fails a row that replaces a decision whose own row still says active", () => {
@@ -98,5 +117,11 @@ describe("docs check", () => {
         "| D1 | One | active |\n| D2 | Two | active |\n| D3 | Three | active |\n| D4 | Four | active; replaces D9 |",
       ),
     ).toEqual([expect.stringContaining("D9, which does not exist")]);
+    // A partial supersession ("the writer part") leaves the decision active, so it does not retire it.
+    expect(
+      check(
+        "| D1 | One | active; the writer part superseded by D2 |\n| D2 | Two | active; replaces D1 |\n| D3 | Three | active |\n| D4 | Four | active |",
+      ),
+    ).toEqual([expect.stringContaining("D1's row")]);
   });
 });

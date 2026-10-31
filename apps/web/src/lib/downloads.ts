@@ -39,6 +39,29 @@ export function addressesOf(download: Download): string[] {
   return [download.audio, download.page, ...download.extras];
 }
 
+/**
+ * The cached audio, word marks and lookups no saved download names: what a page killed mid-save
+ * left behind. The worker serves every key of the cache offline, and `removeDownload` deletes only
+ * what an entry lists, so these would sit in the storage quota for good. Pages, covers and the
+ * scripts kept for them are left alone.
+ */
+export function unlistedPayloads(
+  keys: readonly string[],
+  list: readonly Download[],
+  base: string,
+): string[] {
+  const named = new Set(list.flatMap(addressesOf).map((address) => new URL(address, base).href));
+  return keys.filter((key) => {
+    if (named.has(key)) return false;
+    const { pathname } = new URL(key);
+    return (
+      /\.(mp3|m4a|opus)$/.test(pathname) ||
+      pathname === "/api/narrate" ||
+      pathname === "/api/narrate-marks"
+    );
+  });
+}
+
 /** Reads the saved list, dropping anything that is not shaped like an entry. */
 export function parseDownloads(text: string): Download[] {
   try {
