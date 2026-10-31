@@ -1,7 +1,7 @@
 /*
  * The Blocked outlets page (pages/settings/blocked-outlets.astro): a search field that filters the
  * list of those blocked, a Block button that opens the sheet of known sources, and the list. The
- * field and the rows are manage.css and settings.css; the sheet wears the Topics panel (create-sheet.css)
+ * field and the rows are manage.css and settings.css; the sheet wears the Topics panel (sheet.css)
  * and its rows are topics.css (.source-row.is-suggested). The field is the Library's
  * (.search-field) and Block is the Sources page's Add button (topics.css, .topic-add-source). Tokens only.
  */

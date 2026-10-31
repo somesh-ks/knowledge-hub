@@ -5,8 +5,10 @@ import { beforeEach, expect, it } from "vitest";
 import { diskFiles } from "../lib/contentFiles";
 import { loadSite } from "../lib/site";
 import {
+  expireContentManifest,
   isShowingSavedContent,
   loadStoreSite,
+  loadStoreSiteChecked,
   MANIFEST_TTL_MS,
   resetContentRepo,
 } from "./contentRepo";
@@ -23,6 +25,7 @@ const FIXTURES = join(__dirname, "..", "fixtures");
 
 let store: Map<string, string>;
 let manifestReads: number;
+let fileReads: number;
 
 /** The fixture briefings, published to the fake store as `singularity content sync` would. */
 async function fillStore(updatedAt: string, leaveOut = ""): Promise<void> {
@@ -46,6 +49,7 @@ async function fillStore(updatedAt: string, leaveOut = ""): Promise<void> {
 const fakeFetch = async (url: string): Promise<Response> => {
   const { pathname } = new URL(url);
   if (pathname === "/content/manifest.json") manifestReads++;
+  else if (pathname.startsWith("/content/")) fileReads++;
   const text = store.get(pathname.slice(1));
   return text === undefined ? new Response(null, { status: 404 }) : new Response(text);
 };
@@ -54,6 +58,7 @@ beforeEach(() => {
   resetContentRepo();
   store = new Map();
   manifestReads = 0;
+  fileReads = 0;
 });
 
 it("lists the same briefings from the store as the build does from the checkout", async () => {
@@ -101,7 +106,10 @@ it("keeps the last content and says so while the store cannot be reached", async
 
   down = true;
   now = MANIFEST_TTL_MS + 1;
-  expect((await loadStoreSite(deps))?.entries.length).toBe(before);
+  // The load itself says it is the saved site; a cover route cannot call a miss final on it (D258).
+  const checked = await loadStoreSiteChecked(deps);
+  expect(checked?.site.entries.length).toBe(before);
+  expect(checked?.saved).toBe(true);
   expect(isShowingSavedContent()).toBe(true);
   // The next request in the window does not wait on the dead store again.
   const attempts = failed;
@@ -110,7 +118,7 @@ it("keeps the last content and says so while the store cannot be reached", async
 
   down = false;
   now = 2 * MANIFEST_TTL_MS + 2;
-  await loadStoreSite(deps);
+  expect((await loadStoreSiteChecked(deps))?.saved).toBe(false);
   expect(isShowingSavedContent()).toBe(false);
 });
 
@@ -130,6 +138,25 @@ it("reads the manifest once per window and reloads when it changes", async () =>
   const site = await loadStoreSite(deps);
   expect(manifestReads).toBe(2);
   expect(site?.entries.length).toBe(before - 1);
+});
+
+it("reads the manifest again on demand without reloading an unchanged site", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  const deps = { env: ENV, fetch: fakeFetch, now: () => 0 };
+  const first = await loadStoreSite(deps);
+  const readsBefore = fileReads;
+
+  // A cover asked for before this instance saw its record: one small read, not a full reload.
+  expireContentManifest();
+  const again = await loadStoreSite(deps);
+  expect(manifestReads).toBe(2);
+  expect(fileReads).toBe(readsBefore);
+  expect(again?.entries.length).toBe(first?.entries.length);
+
+  await fillStore("2026-10-24T13:00:00Z", "Digests/2026/10/2026-10-05.md");
+  expireContentManifest();
+  const changed = await loadStoreSite(deps);
+  expect(changed?.entries.length).toBe((first?.entries.length ?? 0) - 1);
 });
 
 it("skips an episode deleted a moment ago, before the sync drops it from the store", async () => {

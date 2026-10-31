@@ -11,7 +11,9 @@ export type ComponentName =
   | "Select"
   | "Menu"
   | "Banner"
-  | "Dialog";
+  | "Dialog"
+  | "Sheet"
+  | "Drawer";
 export type ComponentRef = ComponentName | `${ComponentName}.${string}`;
 
 export interface DontUse {

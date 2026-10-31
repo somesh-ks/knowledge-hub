@@ -598,18 +598,25 @@
       "summary": "A small centred box with a heading and a row of buttons: one question, one tap.",
       "classes": [
         "dialog-panel",
+        "dialog-title",
         "dialog-body",
         "dialog-actions",
         "dialog-actions-stacked"
       ],
       "files": [
         "design-system/Dialog.astro",
+        "design-system/DialogActions.astro",
+        "design-system/DialogTitle.astro",
         "design-system/dialog.ts"
       ],
       "when": [
         "A person confirms what cannot be undone: Delete, Discard, Switch profile"
       ],
       "not": [
+        {
+          "when": "The question needs fields to answer",
+          "use": "sheet"
+        },
         {
           "when": "a form that slides in, with fields",
           "use": "sheet"
@@ -622,7 +629,7 @@
         "are you sure",
         "delete confirm"
       ],
-      "markup": "<Dialog aria-labelledby=\"t\"><h2 class=\"sheet-title\" id=\"t\">Delete?</h2><DialogActions><Button variant=\"text\">Cancel</Button></DialogActions></Dialog>",
+      "markup": "<Dialog aria-labelledby=\"t\"><DialogTitle id=\"t\">Delete?</DialogTitle><DialogActions><Button variant=\"text\">Cancel</Button></DialogActions></Dialog>",
       "rules": [
         "A script finds one with DIALOG_SELECTOR; one it builds uses dialogClass(), dialogBodyClass() and dialogActionsClass().",
         "It renders closed: the script opens it with dialog.showModal() and closes it with dialog.close() from the Cancel button's click."
@@ -637,6 +644,134 @@
         "--color-scrim",
         "--sheet-bg",
         "--sheet-shadow"
+      ]
+    },
+    {
+      "id": "sheet",
+      "name": "Sheet",
+      "kind": "container",
+      "summary": "A panel that slides over the page for a form or a list: the whole screen on a phone, the right side from 40rem.",
+      "classes": [
+        "sheet-side",
+        "sheet-head",
+        "sheet-body",
+        "sheet-title"
+      ],
+      "files": [
+        "design-system/Sheet.astro",
+        "design-system/sheet.ts",
+        "components/SheetHeader.astro",
+        "lib/sheetHead.ts"
+      ],
+      "when": [
+        "A person fills in or edits something that needs room: New episode, a topic, a source",
+        "A list that opens over the page and is dismissed with a pull or a tap away"
+      ],
+      "not": [
+        {
+          "when": "One question and its answers",
+          "use": "dialog"
+        },
+        {
+          "when": "A short list of actions",
+          "use": "menu"
+        },
+        {
+          "when": "A form in a Base UI island",
+          "use": "drawer"
+        }
+      ],
+      "keywords": [
+        "bottom sheet",
+        "title and close control",
+        "panel",
+        "side panel",
+        "form sheet",
+        "full screen sheet",
+        "slide over",
+        "modal form"
+      ],
+      "markup": "<Sheet title=\"Regenerate\" titleId=\"regen-title\" close=\"data-dialog-close\"><form>...</form></Sheet>",
+      "rules": [
+        "A script finds one with SHEET_SELECTOR (design-system/sheet.ts); kind=\"create\" is the New episode sheet, every other is a \"panel\".",
+        "A header a script builds is sheetHeadHtml() (lib/sheetHead.ts); never write the row or its Close by hand.",
+        "`sheet-field*`, `sheet-form` and `sheet-actions` are form layout in sheets.css, not the shell."
+      ],
+      "styles": [
+        "sheet.css",
+        "topics.css"
+      ],
+      "usage": "",
+      "tokens": [
+        "--app-bar-height",
+        "--button-height",
+        "--color-border-hairline",
+        "--color-on-surface",
+        "--color-scrim",
+        "--color-surface",
+        "--color-surface-container",
+        "--sheet-bg",
+        "--sheet-radius",
+        "--sheet-shadow"
+      ]
+    },
+    {
+      "id": "drawer",
+      "name": "Drawer",
+      "kind": "container",
+      "summary": "The island modal: a bottom sheet on a phone, a centred dialog from 40rem, pulled down to dismiss.",
+      "classes": [
+        "drawer-scrim",
+        "drawer-viewport",
+        "drawer-popup",
+        "drawer-panel",
+        "drawer-head"
+      ],
+      "files": [
+        "sheets/SheetFrame.tsx",
+        "design-system/drawer.ts"
+      ],
+      "when": [
+        "A React island opens a form over the page, as Generate and Settings do"
+      ],
+      "not": [
+        {
+          "when": "The sheet is drawn by Astro or a script",
+          "use": "sheet"
+        },
+        {
+          "when": "One question and its answers",
+          "use": "dialog"
+        }
+      ],
+      "keywords": [
+        "island sheet",
+        "swipe to dismiss",
+        "Base UI drawer",
+        "react sheet"
+      ],
+      "markup": "<SheetFrame open={open} onOpenChange={setOpen} title=\"Create\" closeLabel=\"Close\">...</SheetFrame>",
+      "rules": [
+        "Mount SheetFrame; it draws the scrim, viewport, popup, panel and head from drawer.ts.",
+        "Motion uses --duration-sheet-in, --duration-sheet-out and --ease-drawer."
+      ],
+      "styles": [
+        "drawer.css",
+        "foundations.css"
+      ],
+      "usage": "The Drawer's surface: a scrim over the page that fades as the sheet is swiped away, a viewport, and the popup that rests on the screen's edge.",
+      "tokens": [
+        "--color-on-surface",
+        "--color-scrim",
+        "--color-surface-raised",
+        "--layout-column",
+        "--layout-dialog",
+        "--sheet-bg",
+        "--sheet-max-height",
+        "--sheet-padding",
+        "--sheet-radius",
+        "--sheet-shadow",
+        "--size-touch"
       ]
     },
     {
@@ -1274,58 +1409,6 @@
       "usage": "No briefings yet, an empty library, no results, offline, not found: a spot illustration, a title, one line on what happens next and one way on, centred in the content column. Material's rhythm: 24px from the art to the title, 8px to the line, 24px to the button.",
       "tokens": [
         "--color-on-surface"
-      ]
-    },
-    {
-      "id": "sheet",
-      "name": "Dialog sheet",
-      "kind": "container",
-      "summary": "A modal bottom sheet on a phone, a centered dialog from 40rem.",
-      "classes": [
-        "sheet-head",
-        "sheet-actions",
-        "sheet-field"
-      ],
-      "files": [
-        "sheets/SheetFrame.tsx"
-      ],
-      "when": [
-        "a new bottom sheet with a title and a close control",
-        "a form in a sheet",
-        "a dialog on a phone"
-      ],
-      "not": [
-        {
-          "when": "a menu of choices",
-          "use": "menu"
-        },
-        {
-          "when": "a small popover on a phone",
-          "use": "menu"
-        }
-      ],
-      "keywords": [
-        "modal",
-        "drawer",
-        "bottom sheet",
-        "dialog",
-        "form sheet"
-      ],
-      "markup": "<SheetFrame open={open} onOpenChange={setOpen} title=\"Create\" closeLabel=\"Close\">...</SheetFrame>",
-      "rules": [
-        "Never hand-write the header or a close button.",
-        "Motion uses --duration-sheet-in, --duration-sheet-out and --ease-drawer.",
-        "`.sheet-actions` is one column, so Cancel stacks under the primary; side by side is a DialogActions row."
-      ],
-      "styles": [
-        "sheets.css"
-      ],
-      "usage": "The title in the heading role and a round close control (.icon-btn) at the end.",
-      "tokens": [
-        "--cta-bg",
-        "--cta-fg",
-        "--field-label-gap",
-        "--size-touch"
       ]
     },
     {

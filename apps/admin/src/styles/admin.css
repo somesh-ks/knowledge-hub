@@ -631,7 +631,7 @@
 }
 
 .st-reach {
-  inline-size: calc(var(--reach) * 100%);
+  inline-size: max(var(--space-1), calc(var(--reach) * 100%));
   background: color-mix(in oklab, var(--color-on-surface-muted) 35%, var(--color-surface-overlay));
 }
 

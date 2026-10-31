@@ -1,7 +1,14 @@
 import { expect, it } from "vitest";
 import { coverSrc } from "../lib/covers";
 import { loadSite } from "../lib/site";
-import { coverCacheHeaders, findCoverRecord, parseCoverPath } from "./coverRoute";
+import {
+  coverCacheHeaders,
+  findCoverRecord,
+  parseCoverPath,
+  resolveCover,
+  splitVersion,
+  UNVERSIONED,
+} from "./coverRoute";
 
 /**
  * A page rendered from the content store names briefings and episodes newer than the last deploy
@@ -53,4 +60,32 @@ it("keeps a cover for a year only under the address of its record's current vers
   expect(coverCacheHeaders("", { ...record, version: "" })["Vercel-CDN-Cache-Control"]).toBe(
     "max-age=60",
   );
+});
+
+it("takes the version from the path the rewrite builds, so the CDN keys each version apart", () => {
+  expect(splitVersion("mvvcky6b/2026-10-07-512.webp")).toEqual({
+    version: "mvvcky6b",
+    rest: "2026-10-07-512.webp",
+  });
+  expect(splitVersion(`${UNVERSIONED}/dark/x-512.webp`)).toEqual({
+    version: UNVERSIONED,
+    rest: "dark/x-512.webp",
+  });
+  expect(splitVersion("x-512.webp")).toBeNull();
+});
+
+it("never draws the old cover under a newer version, and says missing only for an unknown id", async () => {
+  const full = await loadSite({ env: { SINGULARITY_FIXTURES: "1" }, warn: () => {} });
+  const site = { ...full, entries: full.entries.slice(0, 1), episodes: [] };
+  const id = (site.entries[0] as { id: string }).id;
+  const held = coverSrc(id, 512, site.entries[0]?.digest.generated_at).split("?v=")[1] as string;
+  const newer = (Number.parseInt(held, 36) + 1).toString(36);
+  const older = (Number.parseInt(held, 36) - 1).toString(36);
+
+  expect(resolveCover(site, id, held).kind).toBe("draw");
+  expect(resolveCover(site, id, UNVERSIONED).kind).toBe("draw");
+  expect(resolveCover(site, id, older).kind).toBe("draw");
+  // This instance has not read the regenerated record yet: the caller reads the store again.
+  expect(resolveCover(site, id, newer).kind).toBe("behind");
+  expect(resolveCover(site, "2000-01-01", held).kind).toBe("missing");
 });

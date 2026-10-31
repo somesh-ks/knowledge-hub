@@ -398,3 +398,13 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Rejected: p90 as a second printed figure per row (two numbers a row read as a table, and the lighter reach says it); a colour per stage (grey at rest, nothing here is picked).
 - Revisit if: the owner wants the p90 as a number, or stages are needed per run rather than per kind.
 - Amends: D203.
+
+## D262: Sheet and Drawer are two components; the dialog heading is the Dialog's
+
+- Date: 2026-10-30 (the coordinator, for the owner: finish D243 part D). Amends D243.
+- Decision: the panel that slides over the page (native `<dialog>`: the whole screen on a phone, a side panel from 40rem) is the Sheet (`sheet-side`, `sheet-head`, `sheet-body`, `sheet-title`; `styles/sheet.css`, `Sheet.astro`, `SHEET_SELECTOR`). The Base UI island modal (a bottom sheet on a phone, a centred dialog from 40rem; Generate and Settings) is the Drawer (`drawer-*`; `styles/drawer.css`, drawn by `SheetFrame.tsx`). The Dialog gets its own heading, `dialog-title`.
+- Why: the plan was one Sheet with two variants, but the registry holds one stylesheet per component and the drawer's rules load lazily with its island; folding them into one file would load them globally and earlier than the equal-specificity rules in `episode.css` and `topics.css`. The two also behave differently (slide from the right against rest on the bottom edge), so they are separate jobs. The `create-sheet*` names were a Create feature's, worn by the Topics panel, Regenerate, Block sources and the structure editor through a `regen-sheet` hook; `data-sheet="create"` and `"panel"` replace both.
+- Calls made for the owner: the drawer's chip tone rules moved from `primitives.css` into `drawer.css`; the head's two compact insets (menu sheet, share dialog) stay as `PAGE_OVERRIDES` entries until the head has a compact variant; the player's `.segmented` rules were dead (no markup since the tabs became `segmented-nav`) and are deleted, not folded.
+- Rejected: one Sheet with a `drawer` variant in one stylesheet (the ordering risk above); folding `sheet-field*`, `sheet-form` and `sheet-actions` into the Sheet (they are form layout, left in `sheets.css`).
+- Revisit if: the owner wants one component with two looks (then load order is proved with the browser suites first).
+
