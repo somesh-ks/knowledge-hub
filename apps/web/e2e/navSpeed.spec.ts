@@ -207,9 +207,7 @@ test.describe("the chrome holds still on a move", () => {
       const w = window as unknown as { __x: { before: number; after: number } };
       // Where the pill is drawn: its tab's box plus the slide it is still making.
       const x = () => {
-        const tab = document.querySelector(
-          '.app-nav-item[aria-current="page"] .app-nav-indicator',
-        );
+        const tab = document.querySelector('.app-nav-item[aria-current="page"] .app-nav-indicator');
         if (!tab) return Number.NaN;
         const slide = parseFloat(getComputedStyle(tab, "::before").translate);
         return tab.getBoundingClientRect().left + (Number.isNaN(slide) ? 0 : slide);
