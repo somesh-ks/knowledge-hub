@@ -430,10 +430,12 @@ html[data-mini="visible"] main {
   background: var(--nav-side-item-bg);
 }
 
-/* After a move to another page the pill grows from its centre; a cold load shows it at rest. */
+/* After a move to another page the pill grows in place from its centre, on the same 300 ms clock as the
+   page and the cover (view-transitions.css, cover.css); it never travels between tabs (owner,
+   2026-10-31, option 1 of three). A cold load shows it at rest. */
 @media (prefers-reduced-motion: no-preference) {
   html[data-nav-arrived] .app-nav-item[aria-current="page"] .app-nav-indicator::before {
-    animation: nav-pill var(--duration-enter) var(--ease-out);
+    animation: nav-pill var(--duration-sheet-in) var(--ease-hover);
     /* A move that arrived mid-growth carries on from where the old bar's pill was (navigation.ts). */
     animation-delay: calc(var(--nav-pill-elapsed, 0ms) * -1);
   }
@@ -443,26 +445,6 @@ html[data-mini="visible"] main {
   from {
     scale: 0.5 1;
     opacity: 0;
-  }
-}
-
-/* Between two tabs the pill does not grow anew: it leaves the tab it was under and settles under the
-   new one (navigation.ts measures the distance on the press). The tab it left lets go at once, so
-   there is one pill in motion, not two. */
-@media (prefers-reduced-motion: no-preference) {
-  html[data-nav-arrived="slide"] .app-nav-indicator::before {
-    transition: none;
-  }
-
-  html[data-nav-arrived="slide"] .app-nav-item[aria-current="page"] .app-nav-indicator::before {
-    animation: nav-pill-slide var(--duration-sheet-in) var(--ease-hover);
-    animation-delay: calc(var(--nav-pill-elapsed, 0ms) * -1);
-  }
-}
-
-@keyframes nav-pill-slide {
-  from {
-    translate: var(--nav-pill-from, 0px) 0;
   }
 }
 
