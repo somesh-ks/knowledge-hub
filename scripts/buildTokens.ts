@@ -155,8 +155,11 @@ function parseStyles(raw: unknown, byPath: Map<string, Token>): StyleDefinition[
   const styles: StyleDefinition[] = [];
   for (const [name, group] of Object.entries(raw)) {
     if (name.startsWith("$")) continue;
-    if (!/^[a-z][a-z-]*$/.test(name) || name === "default") {
-      throw new Error(`Style name "${name}" must be lowercase kebab-case and not "default"`);
+    // The same shape preferences.ts and themeInit.js accept, so a style a device can choose always loads.
+    if (!/^[a-z][a-z-]{0,23}$/.test(name) || name === "default") {
+      throw new Error(
+        `Style name "${name}" must be lowercase kebab-case, at most 24 characters, and not "default"`,
+      );
     }
     if (!isRecord(group)) throw new Error(`Style ${name} must be an object`);
     const overrides: StyleOverride[] = [];
