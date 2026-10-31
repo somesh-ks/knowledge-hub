@@ -1757,7 +1757,6 @@
       "usage": "Covers. The box carries the palette color, so there is no empty flash while the image decodes. Weekly digests have their framing rule drawn into the image; at thumb size (3rem and under) that hairline is too fine to see, so the small covers get an extra inset rule. Larger covers show the drawn one alone.",
       "tokens": [
         "--color-accent",
-        "--color-scrim",
         "--color-surface-sunken",
         "--cover-outline",
         "--cover-radius-hero",
