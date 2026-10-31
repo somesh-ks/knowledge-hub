@@ -13,7 +13,8 @@ export type ComponentName =
   | "Banner"
   | "Dialog"
   | "Sheet"
-  | "Drawer";
+  | "Drawer"
+  | "Wheel";
 export type ComponentRef = ComponentName | `${ComponentName}.${string}`;
 
 export interface DontUse {

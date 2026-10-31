@@ -15,6 +15,7 @@ import { SELECT, SELECT_CLASSES, SELECT_RETIRED } from "./select";
 import { SHEET, SHEET_CLASSES, SHEET_RETIRED } from "./sheet";
 import { SLIDER, SLIDER_CLASSES, SLIDER_RETIRED } from "./slider";
 import { SWITCH, SWITCH_CLASSES, SWITCH_RETIRED } from "./switch";
+import { WHEEL, WHEEL_CLASSES, WHEEL_RETIRED } from "./wheel";
 
 export interface DesignSystemComponent extends Guidance {
   name: string;
@@ -138,6 +139,17 @@ export const COMPONENTS: DesignSystemComponent[] = [
     summary: DRAWER.summary,
     useWhen: DRAWER.useWhen,
     dontUseWhen: DRAWER.dontUseWhen,
+    parts: {},
+  },
+  {
+    name: "Wheel",
+    sheet: "wheel.css",
+    prefix: "wheel-",
+    classes: WHEEL_CLASSES,
+    retired: WHEEL_RETIRED,
+    summary: WHEEL.summary,
+    useWhen: WHEEL.useWhen,
+    dontUseWhen: WHEEL.dontUseWhen,
     parts: {},
   },
 ];

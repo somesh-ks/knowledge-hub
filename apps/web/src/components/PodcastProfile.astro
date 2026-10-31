@@ -124,7 +124,7 @@ const inScope = (ids: readonly string[]): boolean =>
       }
       <div class="settings-row">
         <label class="settings-label" for={`${id}-hour`}>Time</label>
-        <Select class="value-select" id={`${id}-hour`} data-f={`${id}.hour`} autocomplete="off">
+        <Select class="value-select" id={`${id}-hour`} data-f={`${id}.hour`} data-wheel autocomplete="off">
           {hours.map((value) => (
             <option value={value} selected={value === values.hour}>{hourLabel(value)}</option>
           ))}
