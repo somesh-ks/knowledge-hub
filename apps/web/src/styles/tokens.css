@@ -570,6 +570,22 @@
   color-scheme: dark;
 }
 
+/* Style: expressive */
+:root[data-style="expressive"] {
+  --text-display-family: var(--font-ui);
+  --text-display-size: 2.5rem;
+  --text-display-weight: var(--font-weight-bold);
+  --text-display-tracking: -0.03em;
+  --text-display-leading: 1.05;
+  --cover-radius-hero: 2.5rem;
+  --cover-radius-large: 2.5rem;
+  --cover-radius-thumb: 1rem;
+  --card-radius: 2.5rem;
+  --card-inner-radius: 2.25rem;
+  --card-content-radius: 1rem;
+  --row-radius: var(--radius-2xl);
+}
+
 /* Reduced motion: movement durations collapse, fades and color changes keep their timing. */
 @media (prefers-reduced-motion: reduce) {
   :root {
