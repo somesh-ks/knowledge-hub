@@ -118,6 +118,8 @@ const audition = {
       });
     }
     if (this.playing === control && !this.audio.paused) {
+      // A stop settles a pending play() as a rejection; it is not a failure to announce.
+      this.attempt += 1;
       this.audio.pause();
       return;
     }
@@ -133,6 +135,7 @@ const audition = {
     });
   },
   stop(): void {
+    this.attempt += 1;
     this.audio?.pause();
     this.mark(null);
   },
