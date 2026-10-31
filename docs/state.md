@@ -19,7 +19,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 ## Not working or unverified
 
 - Blob on Pro trial since 10-30 (D251, D256). closed when: ops stay under 1,000 a month.
-- Page-move motion (#501, D271). closed when: no flicker, and the slide and flight hold, on his phone.
+- Page-move motion, taps (#501, D271). closed when: no flicker, slide, flight, tap fault, on his phone.
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily says "podcast".
 - More menu (D214); Catch up album, Share circle, cards (D219); card long press (D264). closed when: signed off.
 - Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused; a regenerate or delete uses none.

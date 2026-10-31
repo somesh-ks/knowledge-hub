@@ -508,6 +508,23 @@ html[data-mini="visible"] main {
   background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
+/* The whole bar is the tab (2026-10-31, owner): a finger lands anywhere under the icon, the label or
+   the strip the bar keeps above the home indicator, and it is that tab's press. The link is the cell,
+   and its pseudo-element reaches down through the bar's bottom padding, which the link's own box
+   stops short of. The pill stays a picture: it is only drawn, never the target. */
+@media (width < 64rem) {
+  .app-nav-item {
+    position: relative;
+  }
+
+  .app-nav-item::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    inset-block-end: calc(var(--safe-bottom) * -1);
+  }
+}
+
 /* An open dialog takes the scrollbar away and the window's edge moves out by its width
    (foundations.css). The bar runs to that edge, so it keeps the room and its items hold still. */
 @media (width < 64rem) {

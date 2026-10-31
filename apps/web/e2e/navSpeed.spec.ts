@@ -320,3 +320,32 @@ test.describe("a cover carries you in and out", () => {
     expect(Math.abs((landed?.[2] ?? 0) - (hero?.width ?? 0))).toBeLessThan(1.5);
   });
 });
+
+test.describe("the whole bottom bar is the tab", () => {
+  // Owner, 2026-10-31: the touch area was only the pill. A press anywhere in a tab's cell, and in the
+  // strip the bar keeps above the home indicator (set here as the phone sets it), is that tab's press.
+  test("a press under the label, at the cell's corner and in the home-indicator strip opens the tab", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.evaluate(() => document.documentElement.style.setProperty("--safe-bottom", "34px"));
+    const spots = [
+      { href: "/library", at: [0.5, 0.97], heading: "Library" },
+      { href: "/settings", at: [0.97, 0.03], heading: "Settings" },
+    ] as const;
+    for (const spot of spots) {
+      const cell = await page.locator(`.app-nav-item[href="${spot.href}"]`).boundingBox();
+      const bar = await page.locator(".app-nav").boundingBox();
+      if (!cell || !bar) throw new Error("the bar is not on screen");
+      // The strip is the bar's bottom padding: the link's box ends above it.
+      const x = cell.x + cell.width * spot.at[0];
+      const y = spot.at[1] > 0.9 ? bar.y + bar.height - 4 : cell.y + cell.height * spot.at[1];
+      await page.touchscreen.tap(x, y);
+      await expect(heading(page)).toHaveText(spot.heading);
+      await page.goto("/");
+      await page.evaluate(() =>
+        document.documentElement.style.setProperty("--safe-bottom", "34px"),
+      );
+    }
+  });
+});
