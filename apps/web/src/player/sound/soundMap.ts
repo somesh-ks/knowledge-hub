@@ -8,12 +8,15 @@
  * engine skips or ducks per recipe; this layer only chooses names).
  */
 import type { PlayOptions, SoundName } from "@singularity/sound";
+import type { HapticIntent } from "../../design-system/hapticTokens";
 import type { PlayerEvent } from "../core/playerTypes";
 import { detentGain } from "../core/scrubberMath";
 
 export interface Cue {
   name: SoundName;
   options?: PlayOptions;
+  /** What the same action feels like (D273). Absent: nothing, as transport and the volume sample. */
+  haptic?: HapticIntent;
 }
 
 /** The minimal engine surface the mapping needs, so tests inject a fake. */
@@ -51,15 +54,16 @@ export function cueForDetent(position: number, pointerSpeedPxPerMs: number): Cue
   return {
     name: "scrubDetent",
     options: { position, gain: detentGain(pointerSpeedPxPerMs) },
+    haptic: "detent",
   };
 }
 
 export function cueForSheet(opening: boolean): Cue {
-  return { name: opening ? "sheetOpen" : "sheetClose" };
+  return { name: opening ? "sheetOpen" : "sheetClose", haptic: opening ? "open" : "close" };
 }
 
 export function cueForSwitch(turningOn: boolean): Cue {
-  return { name: turningOn ? "toggleOn" : "toggleOff" };
+  return { name: turningOn ? "toggleOn" : "toggleOff", haptic: "select" };
 }
 
 /** Releasing the volume slider plays a sample so the level can be judged. */
@@ -72,11 +76,12 @@ export type GenerateCueKind = "started" | "finished" | "failed";
 export function cueForGenerate(kind: GenerateCueKind): Cue {
   switch (kind) {
     case "started":
-      return { name: "generateStart" };
+      return { name: "generateStart", haptic: "start" };
     case "finished":
-      return { name: "generateDone" };
+      // A podcast is ready to play.
+      return { name: "generateDone", haptic: "ready" };
     case "failed":
-      return { name: "error" };
+      return { name: "error", haptic: "error" };
   }
 }
 
