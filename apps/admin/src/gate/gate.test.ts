@@ -125,13 +125,13 @@ async function googleJourney(options: {
     (async (_env, _code, sentVerifier) => {
       verifier = sentVerifier;
       return {
-      iss: "https://accounts.google.com",
-      aud: "client-id",
-      exp: Math.floor(NOW / 1000) + 3600,
-      nonce,
-      email: "owner@example.com",
-      email_verified: true,
-      ...options.claims?.(nonce),
+        iss: "https://accounts.google.com",
+        aud: "client-id",
+        exp: Math.floor(NOW / 1000) + 3600,
+        nonce,
+        email: "owner@example.com",
+        email_verified: true,
+        ...options.claims?.(nonce),
       };
     });
   const callback = await guard(
