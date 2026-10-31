@@ -27,12 +27,15 @@ export async function handleAnalytics(method: string, ask: Ask | null): Promise<
   if (method !== "GET") return { status: 405, body: { error: "method_not_allowed" } };
   if (ask === null) return { status: 503, body: { error: "no_key" } };
   try {
-    // Two asks: the totals and referrers, then the events (a filter or a field list apart).
-    const [stats, events] = await Promise.all([
-      ask(query({ fields: "pageviews,visitors,referrers", limit: "100" })),
+    // Three asks: the totals, the visitors who came by a shared link, then the events. A link's
+    // `?ref=share` is stored as the utm_source (Simple Analytics treats ref, source and utm_source as
+    // one), so its visitors are a filtered ask, not a line in the referrers list.
+    const [stats, shareStats, events] = await Promise.all([
+      ask(query({ fields: "pageviews,visitors" })),
+      ask(query({ fields: "visitors", utm_source: "share" })),
       ask(query({ events: LOOP_EVENTS.join(",") })),
     ]);
-    return { status: 200, body: countsFrom(stats, events) };
+    return { status: 200, body: countsFrom(stats, shareStats, events) };
   } catch {
     return { status: 502, body: { error: "analytics_unavailable" } };
   }

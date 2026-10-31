@@ -63,7 +63,7 @@ export function loopFigures(counts: Counts): Record<string, Figure> {
 }
 
 /** Simple Analytics' answer, read for what the page needs; a field it left out counts as none. */
-export function countsFrom(stats: unknown, events: unknown): Counts {
+export function countsFrom(stats: unknown, shareStats: unknown, events: unknown): Counts {
   const field = (source: unknown, key: string): unknown =>
     source && typeof source === "object" ? (source as Record<string, unknown>)[key] : undefined;
   const number = (value: unknown): number => (Number.isFinite(Number(value)) ? Number(value) : 0);
@@ -74,16 +74,11 @@ export function countsFrom(stats: unknown, events: unknown): Counts {
     for (const entry of list)
       named.set(String(field(entry, "name")), number(field(entry, "total")));
   }
-  const referrers = field(stats, "referrers");
-  const shared = Array.isArray(referrers)
-    ? referrers.find((entry) => String(field(entry, "value")).toLowerCase() === "share")
-    : undefined;
-
   return {
     days: WINDOW.days,
     visitors: number(field(stats, "visitors")),
     pageviews: number(field(stats, "pageviews")),
-    share_visitors: number(field(shared, "visitors")),
+    share_visitors: number(field(shareStats, "visitors")),
     events: Object.fromEntries(LOOP_EVENTS.map((name) => [name, named.get(name) ?? 0])) as Record<
       LoopEvent,
       number

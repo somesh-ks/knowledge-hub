@@ -5,7 +5,7 @@
 ## Requirements
 
 - Four tiles for the last 7 days (today included, Stockholm's days): visitors, page views, listens (`listen_half`), shares (`share`).
-- Four rows, each a ratio with its counts on its line: shares per visitor, visits per share (visitors whose referrer is `share`, per share), listen-through (`listen_half` over `listen_start`) and completion (`listen_complete` over `listen_start`).
+- Four rows, each a ratio with its counts on its line: shares per visitor, visits per share (visitors whose utm_source is `share` (a link's `?ref=share`), per share), listen-through (`listen_half` over `listen_start`) and completion (`listen_complete` over `listen_start`).
 - A ratio with nothing to divide by reads "No data", never NaN or Infinity.
 - No key: the function answers 503 and the page says "Not connected". Any other failure: 502, "Unavailable". Neither draws a zero.
 - Rows are Health's shape; no colour.
