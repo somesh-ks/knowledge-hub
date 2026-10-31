@@ -68,6 +68,29 @@ export const NAV_ATTRIBUTE = "data-astro-nav";
  */
 export const ARRIVED_ATTRIBUTE = "data-nav-arrived";
 
+/**
+ * Set on the incoming document's root while the pill is still growing when its page arrives: how
+ * many milliseconds of the growth have already played, so the new bar picks it up where the old
+ * one was cut (shell.css). A cached page swaps in tens of milliseconds after the press; without
+ * this the pill stopped a quarter of the way and the new bar drew it whole.
+ */
+export const PILL_ELAPSED_PROPERTY = "--nav-pill-elapsed";
+
+/** Milliseconds of the pill's growth already played on the page that is leaving, or null if it is not growing. */
+export function pillElapsed(root: ParentNode): number | null {
+  const indicator = root.querySelector(".app-nav-item[aria-current='page'] .app-nav-indicator");
+  for (const animation of indicator?.getAnimations({ subtree: true }) ?? []) {
+    if (
+      "animationName" in animation &&
+      String(animation.animationName).startsWith("nav-pill") &&
+      animation.playState === "running"
+    ) {
+      return Math.round(Number(animation.currentTime ?? 0));
+    }
+  }
+  return null;
+}
+
 /** Puts the mark for this move on the incoming document, so it is still there when the move is drawn. */
 export function carryNavigationKind(from: HTMLElement, to: HTMLElement): void {
   const kind = from.getAttribute(NAV_ATTRIBUTE);
@@ -90,9 +113,18 @@ export function installNavigation(): void {
     const moved =
       root.getAttribute(NAV_ATTRIBUTE) !== "none" && !root.hasAttribute(ARRIVED_ATTRIBUTE);
     if (moved) event.newDocument.documentElement.setAttribute(ARRIVED_ATTRIBUTE, "");
+    else {
+      // The press lit the item on this page and its pill is still growing: the new bar takes over.
+      const elapsed = pillElapsed(document);
+      if (elapsed !== null) {
+        event.newDocument.documentElement.setAttribute(ARRIVED_ATTRIBUTE, "");
+        event.newDocument.documentElement.style.setProperty(PILL_ELAPSED_PROPERTY, `${elapsed}ms`);
+      }
+    }
     const clear = (): void => {
       document.documentElement.removeAttribute(NAV_ATTRIBUTE);
       document.documentElement.removeAttribute(ARRIVED_ATTRIBUTE);
+      document.documentElement.style.removeProperty(PILL_ELAPSED_PROPERTY);
     };
     void event.viewTransition.finished.then(clear, clear);
   });
