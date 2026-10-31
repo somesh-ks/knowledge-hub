@@ -86,9 +86,11 @@ export function getPlayerAudio(): SwitchableAudio {
 function narrateFromTap(itemId?: string): void {
   // Inside the tap, so a phone lets the audio start a few seconds later without another one.
   getPlayerAudio().prime("/silence.wav");
-  void import("../../narration/narrationRuntime").then((narration) =>
-    narration.narratePage(itemId),
-  );
+  const tapped = selections().count;
+  void import("../../narration/narrationRuntime").then((narration) => {
+    // The listener picked a queue item or a recording while the module loaded: that pick stands.
+    if (tapped === selections().count) narration.narratePage(itemId);
+  });
 }
 
 /**
