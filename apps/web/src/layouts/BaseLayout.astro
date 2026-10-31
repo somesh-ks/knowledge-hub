@@ -218,7 +218,7 @@ const back =
         bodyId="offline-reason"
       />
     </template>
-    <div class="banner-stack page" id="banners"><slot name="banners" /></div>
+    <div class="banner-stack page" id="banners"></div>
     {isShowingSavedContent() && <p class="meta page" role="status">Showing saved content</p>}
     <script is:inline set:html={bannersInit.trim()} />
     <div class="shell page"><slot /></div>
