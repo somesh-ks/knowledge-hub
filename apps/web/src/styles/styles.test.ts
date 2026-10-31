@@ -803,6 +803,7 @@ const PAGE_OVERRIDES: string[] = [
   "buttons.css: .dialog-actions > :is(.button-filled, .button-tonal)",
   "buttons.css: .icon-btn .icon-glyph",
   "buttons.css: .swap > .icon-glyph",
+  "cover.css: .cover-play .icon-glyph",
   "create-sheet.css: .app-nav-create .icon-glyph",
   "create-sheet.css: .play-fab-glyph > .icon-glyph",
   'create-sheet.css: .play-fab[data-state="preparing"] .play-fab-glyph > .icon-glyph',
