@@ -74,7 +74,7 @@ const tiles = [
       <div class="rows card-group">
         {
           kinds.map((kind) => (
-            <div class="settings-row health-row">
+            <div class="settings-row health-row cov-row">
               <span class="settings-text">
                 <span class="settings-label">{kind.label}</span>
                 <span class="settings-hint">{kind.names}</span>
@@ -91,7 +91,7 @@ const tiles = [
       <div class="rows card-group">
         {
           oneOffs.map((control) => (
-            <div class="settings-row health-row">
+            <div class="settings-row health-row cov-row">
               <span class="settings-text">
                 <span class="settings-label">.{control.class}</span>
                 <span class="settings-hint">{control.reason}</span>
@@ -108,7 +108,7 @@ const tiles = [
       <div class="rows card-group">
         {
           tiers.map((tier) => (
-            <div class="settings-row health-row">
+            <div class="settings-row health-row cov-row">
               <span class="settings-text">
                 <span class="settings-label">{tier.label}</span>
                 <span class="settings-hint">{tier.hint}</span>
