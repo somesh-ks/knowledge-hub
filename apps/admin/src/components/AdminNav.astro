@@ -2,6 +2,7 @@
 import BrandMark from "../../../web/src/components/BrandMark.astro";
 import Icon from "../../../web/src/components/Icon.astro";
 import { href, SECTIONS } from "../lib/sections";
+import SignOut from "./SignOut.astro";
 
 interface Props {
   /** The section's path under the base; "" for the overview. */
@@ -34,4 +35,8 @@ const { current } = Astro.props;
       ))
     }
   </ul>
+  {/* The foot of the side column (a phone has the same control in the app bar, Shell.astro). */}
+  <div class="app-nav-foot">
+    <SignOut />
+  </div>
 </nav>

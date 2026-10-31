@@ -274,6 +274,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D256 | Covers drawn on request; failed-run stages in one Blob object | active; amends D173, D251 |
 | D257 | Report routes need sign-in | amends D201, D224 |
 | D258 | Cover version in its path | active; amends D256 |
+| D261 | Admin sign-in: Google | amends D224, D257 |
 | D262 | Sheet and Drawer split | active; amends D243 |
 | D263 | Cover version in URL | proposed; amends D258 |
 

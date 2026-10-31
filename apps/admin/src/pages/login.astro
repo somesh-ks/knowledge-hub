@@ -10,7 +10,16 @@ import { href } from "../lib/sections";
   <div class="settings-view" data-settings>
     <AdminHead title="Sign in" />
     <section>
-      {/* The gate (src/gate/gate.ts) answers this form; a wrong password comes back as ?e=1. */}
+      {/* The gate (src/gate/gate.ts) answers both ways in. Google comes back as ?e=2 (not set up) or
+           ?e=3 (not let in); a wrong password as ?e=1. The page is static, so it cannot know whether
+           Google is set up: the button is always drawn and the answer says so. */}
+      <div class="card-group admin-card">
+        <Button variant="filled" href={href("/login/google")}>Continue with Google</Button>
+        <p class="settings-note" role="alert" data-google-error hidden></p>
+      </div>
+    </section>
+    <section>
+      <h2 class="section-head">Password</h2>
       <form class="card-group admin-card" method="post" action={href("/login")}>
         <div class="manage-field">
           <label class="field-label" for="password">Password</label>
@@ -30,8 +39,15 @@ import { href } from "../lib/sections";
 </Shell>
 
 <script>
-  if (new URLSearchParams(location.search).has("e")) {
+  const code = new URLSearchParams(location.search).get("e");
+  if (code === "1") {
     document.querySelector<HTMLElement>("[data-wrong]")?.removeAttribute("hidden");
     document.querySelector("#password")?.setAttribute("aria-invalid", "true");
+  }
+  const google = document.querySelector<HTMLElement>("[data-google-error]");
+  const said = { "2": "Google sign-in is not set up yet.", "3": "That Google account cannot sign in." }[code ?? ""];
+  if (google && said) {
+    google.textContent = said;
+    google.removeAttribute("hidden");
   }
 </script>

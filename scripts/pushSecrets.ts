@@ -55,11 +55,20 @@ const VERCEL_ENV = [
 ];
 
 /**
- * The command center's sign-in (D224). They go to the separate singularity-admin Vercel project, not
+ * The command center's sign-in (D224): the password, the cookie's secret and Google's four (the OAuth
+ * client, its exact redirect address and the owner's accounts; the last two are not secret, but
+ * they travel with the rest). They go to the separate singularity-admin Vercel project, not
  * the reader's, so they need `apps/admin` linked to it; without that link nothing is sent, because
  * the reader's own link would take them.
  */
-const VERCEL_ADMIN_ENV = ["ADMIN_PASSWORD", "ADMIN_SESSION_SECRET"];
+const VERCEL_ADMIN_ENV = [
+  "ADMIN_PASSWORD",
+  "ADMIN_SESSION_SECRET",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "GOOGLE_REDIRECT_URI",
+  "ADMIN_GOOGLE_EMAILS",
+];
 
 /** The admin gate's shortest session secret (MIN_SECRET in apps/admin/src/gate/gate.ts); shorter ones keep sign-in shut. */
 const ADMIN_SECRET_MIN = 32;
