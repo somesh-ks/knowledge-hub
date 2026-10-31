@@ -293,5 +293,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D277 | Queue keeps played items; a tap plays in place | amends D126 |
 | D278 | Softer light covers | amends D121 |
 | D280 | Travel 300 ms | amends D271 |
+| D285 | Switch can be mixed | |
 
 ---
