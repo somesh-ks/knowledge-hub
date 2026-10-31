@@ -1,0 +1,123 @@
+---
+import type { PartKind, System } from "../../../../scripts/system/types";
+import system from "../../../../tokens/system.json";
+import AdminHead from "../components/AdminHead.astro";
+import Shell from "../layouts/Shell.astro";
+
+const title = "Coverage";
+const { parts, bespoke, tokens } = system as unknown as System;
+
+// What the design system holds, read at build from tokens/system.json (npm run system; the gate fails
+// when it is stale), so the page costs nothing at run time and a deploy of this app carries the
+// numbers of its own commit. A control is a shared part or a one-off the build allows with a reason.
+const KINDS: Record<PartKind, string> = {
+  action: "Actions",
+  selection: "Selection",
+  navigation: "Navigation",
+  feedback: "Feedback",
+  container: "Containers",
+  field: "Fields",
+  layout: "Layout",
+};
+const kinds = (Object.keys(KINDS) as PartKind[])
+  .map((kind) => {
+    const held = parts.filter((part) => part.kind === kind);
+    return {
+      label: KINDS[kind],
+      count: held.length,
+      names: held.map((part) => part.name).join(", "),
+    };
+  })
+  .filter((kind) => kind.count > 0);
+
+// A bespoke class that a part lists is used through that part; the rest are built for one place.
+const oneOffs = bespoke.filter((control) => !control.part);
+
+const TIERS = [
+  { id: "primitive", label: "Primitive", hint: "The raw scales: colour, space, type." },
+  { id: "semantic", label: "Semantic", hint: "What a thing is for: surface, ink, accent." },
+  { id: "component", label: "Component", hint: "One part's own measures." },
+] as const;
+const tiers = TIERS.map((tier) => ({
+  ...tier,
+  count: tokens.filter((token) => token.tier === tier.id).length,
+}));
+
+const tiles = [
+  { label: "Shared parts", value: parts.length },
+  { label: "One-off controls", value: oneOffs.length },
+  { label: "Semantic tokens", value: tiers.find((tier) => tier.id === "semantic")?.count ?? 0 },
+  { label: "Tokens", value: tokens.length },
+];
+---
+
+<Shell title={title} current="/coverage">
+  <div class="settings-view" data-settings>
+    <AdminHead title={title} note="What the design system holds, and what is built outside it." />
+
+    {/* The rows are Health's shape: a name and a line at the start, the reading at the end. */}
+    <section class="card-group admin-card" aria-label="Summary">
+      <ul class="stat-tiles" role="list" aria-label="Design system figures">
+        {
+          tiles.map((tile) => (
+            <li class="stat-tile">
+              <strong class="stat-tile-value">{tile.value}</strong>{" "}
+              <span class="stat-tile-label">{tile.label}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section>
+      <h2 class="section-head">Parts</h2>
+      <div class="rows card-group">
+        {
+          kinds.map((kind) => (
+            <div class="settings-row health-row">
+              <span class="settings-text">
+                <span class="settings-label">{kind.label}</span>
+                <span class="settings-hint">{kind.names}</span>
+              </span>
+              <span class="health-value">{kind.count}</span>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-head">One-off controls</h2>
+      <div class="rows card-group">
+        {
+          oneOffs.map((control) => (
+            <div class="settings-row health-row">
+              <span class="settings-text">
+                <span class="settings-label">.{control.class}</span>
+                <span class="settings-hint">{control.reason}</span>
+              </span>
+            </div>
+          ))
+        }
+      </div>
+      <p class="settings-note">Each is allowed with the reason it is not a shared part.</p>
+    </section>
+
+    <section>
+      <h2 class="section-head">Tokens</h2>
+      <div class="rows card-group">
+        {
+          tiers.map((tier) => (
+            <div class="settings-row health-row">
+              <span class="settings-text">
+                <span class="settings-label">{tier.label}</span>
+                <span class="settings-hint">{tier.hint}</span>
+              </span>
+              <span class="health-value">{tier.count}</span>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+  </div>
+</Shell>
