@@ -1,4 +1,13 @@
+import type { Page } from "@playwright/test";
 import { expect, SITE, serveNarration, test } from "./helpers";
+
+/** The id of the item the queue lists as playing now (D277), whatever page the listener is on. */
+async function nowPlaying(page: Page): Promise<string | null> {
+  return page.evaluate(() => {
+    const raw = localStorage.getItem("singularity:queue-played");
+    return raw ? ((JSON.parse(raw) as { current?: string }).current ?? null) : null;
+  });
+}
 
 test.describe("the first press of Play on a page with no audio yet", () => {
   test("plays by itself once the first file is made, with no second press @smoke", async ({
@@ -34,7 +43,8 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await player.openPlayer();
     await player.scrubber.focus();
     await page.keyboard.press("End");
-    await expect(page).toHaveURL(/\/e\/ep-20261007-1930/);
+    // D277: the item plays where the player stands; the page does not follow it.
+    await expect.poll(() => nowPlaying(page), { timeout: 10_000 }).toBe("ep-20261007-1930");
     await expect(player.root).toHaveAttribute("data-player-state", "playing", { timeout: 10_000 });
     expect(await audio.count()).toBe(1);
   });
@@ -97,7 +107,7 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await player.openPlayer();
     await player.scrubber.focus();
     await page.keyboard.press("End");
-    await expect(page).toHaveURL(new RegExp(`/d/${SITE.earlier}`));
+    await expect.poll(() => nowPlaying(page), { timeout: 10_000 }).toBe(SITE.earlier);
     await expect(player.root).toHaveAttribute("data-player-state", "playing", { timeout: 10_000 });
     expect(await audio.count()).toBe(1);
     expect(await page.evaluate(() => localStorage.getItem("singularity:queue"))).toBe(
