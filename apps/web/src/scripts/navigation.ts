@@ -101,9 +101,12 @@ export function carryNavigationKind(from: HTMLElement, to: HTMLElement): void {
 
 export function installNavigation(): void {
   let isNavigating = false;
+  // Counts moves begun: a move's marks are cleared only by that move, not by an earlier one still settling.
+  let generation = 0;
 
   document.addEventListener("astro:before-preparation", (event) => {
     isNavigating = true;
+    generation += 1;
     const kind = navigationKind(event.from, event.to);
     document.documentElement.setAttribute(NAV_ATTRIBUTE, kind);
   });
@@ -123,7 +126,9 @@ export function installNavigation(): void {
         event.newDocument.documentElement.style.setProperty(PILL_ELAPSED_PROPERTY, `${elapsed}ms`);
       }
     }
+    const mine = generation;
     const clear = (): void => {
+      if (mine !== generation) return;
       document.documentElement.removeAttribute(NAV_ATTRIBUTE);
       document.documentElement.removeAttribute(ARRIVED_ATTRIBUTE);
       document.documentElement.style.removeProperty(PILL_ELAPSED_PROPERTY);
