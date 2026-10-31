@@ -128,6 +128,12 @@
   --chip-fg: var(--cta-fg);
   min-height: calc(var(--size-touch) - var(--space-1));
   padding-inline: var(--space-4) var(--space-6);
+  /* The press may change its corners (--cta-radius-pressed): the pill by default, so nothing moves. */
+  transition:
+    transform var(--duration-press-out) var(--ease-out),
+    background-color var(--duration-hover) var(--ease-hover),
+    color var(--duration-hover) var(--ease-hover),
+    border-radius var(--duration-press-out) var(--ease-out);
 }
 
 /* The layer over a filled control is its own ink: lighter on the accent, never a grey wash. */
@@ -150,6 +156,7 @@
     [data-state="unavailable"],
     [aria-disabled="true"]
   ):active {
+  border-radius: var(--cta-radius-pressed);
   background: color-mix(in oklch, var(--cta-bg), var(--cta-fg) var(--state-press));
   color: var(--cta-fg);
 }

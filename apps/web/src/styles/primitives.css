@@ -815,7 +815,8 @@
   transition:
     transform var(--duration-press-out) var(--ease-out),
     background-color var(--duration-hover) var(--ease-hover),
-    color var(--duration-hover) var(--ease-hover);
+    color var(--duration-hover) var(--ease-hover),
+    border-radius var(--duration-enter) var(--ease-out);
 }
 
 /* A link inside a line of small text (a settings hint): the words stay inline, the touch target is
@@ -874,6 +875,8 @@
 }
 
 .filter-chip:has(input:checked) {
+  /* The ticked corners are a role token: the pill, unless a style makes a selection change shape. */
+  border-radius: var(--chip-radius-selected);
   background: var(--color-accent-container);
   color: var(--color-on-accent-container);
 }

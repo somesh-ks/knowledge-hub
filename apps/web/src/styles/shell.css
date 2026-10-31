@@ -383,7 +383,9 @@ html[data-mini="visible"] main {
   /* The fill is a layer of its own under the icon, so it can grow without scaling the icon. */
   position: relative;
   isolation: isolate;
-  transition: color var(--duration-hover) var(--ease-hover);
+  transition:
+    color var(--duration-hover) var(--ease-hover),
+    border-radius var(--duration-enter) var(--ease-out);
 }
 
 .app-nav-indicator::before {
@@ -423,6 +425,8 @@ html[data-mini="visible"] main {
 }
 
 .app-nav-item[aria-current="page"] .app-nav-indicator {
+  /* The current pill's corners are a role token: round, unless a style squares it. */
+  border-radius: var(--nav-indicator-radius-current);
   color: var(--nav-side-item-fg);
 }
 

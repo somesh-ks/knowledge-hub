@@ -344,6 +344,7 @@
   --item-play-radius: var(--radius-sm);
   --cta-height: 3.5rem;
   --cta-radius: var(--radius-round);
+  --cta-radius-pressed: var(--cta-radius);
   --cta-bg: var(--color-accent);
   --cta-bg-hover: var(--color-accent-hover);
   --cta-bg-pressed: var(--color-accent-pressed);
@@ -430,6 +431,7 @@
   --chip-ring: 1.5px;
   --chip-icon: 1.125rem;
   --chip-radius: var(--radius-round);
+  --chip-radius-selected: var(--chip-radius);
   --chip-bg: var(--color-surface-container);
   --chip-fg: var(--color-accent);
   --chip-bg-current: var(--color-accent-container);
@@ -437,6 +439,7 @@
   --app-bar-height: 3.5rem;
   --nav-bar-height: 4rem;
   --nav-indicator-width: 4rem;
+  --nav-indicator-radius-current: var(--radius-round);
   --nav-indicator-height: 2rem;
   --nav-side-width: 13rem;
   --nav-item-icon: var(--size-icon-lg);
@@ -583,6 +586,10 @@
   --card-radius: 2.5rem;
   --card-inner-radius: 2.25rem;
   --card-content-radius: 1rem;
+  --chip-radius-selected: var(--radius-md);
+  --cta-radius-pressed: var(--radius-lg);
+  --nav-indicator-radius-current: var(--radius-lg);
+  --scrubber-track: 0.5rem;
   --row-radius: var(--radius-2xl);
 }
 
