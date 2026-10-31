@@ -1,0 +1,16 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { dialogTitleClass } from "./dialog";
+import "../styles/dialog.css";
+
+type Props = Omit<HTMLAttributes<"h2">, "class">;
+
+const rest = Object.fromEntries(
+  Object.entries(Astro.props).map(([name, value]) => [
+    name,
+    value === true && name.startsWith("data-") ? "" : value,
+  ]),
+);
+---
+
+<h2 class={dialogTitleClass()} {...rest}><slot /></h2>

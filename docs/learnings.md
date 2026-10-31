@@ -93,12 +93,13 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Build and tooling
 
+- 2026-10-30: designSystem.test reads quoted text: a retired class equal to a file name or a selector string counts as writing it.
 - 2026-10-28: cloud Node 22.22 fails `astro check`: `. /opt/nvm/nvm.sh && nvm install 24`. `pkill -f` kills its own shell.
 - 2026-10-25: an `<svg>` in a template string has no `data-icon`, so D187 skips it; use `iconHtml()`.
 - 2026-10-22: `npm install` ignores a new `overrides` entry while the lockfile holds the old version (deleting the entry alone drops it): delete it and `node_modules/.package-lock.json`, then `npm install`. A linked worktree's adapter build fails (`devalue` missing); check after `npm ci`.
 - 2026-10-14: `npm run lint` checks nothing in a worktree (Biome ignores `.claude/`): there run `npx biome check apps packages scripts tokens`. Checking only touched files passed while the root lint failed on CSS blank lines; run the root lint from the main checkout before pushing.
-- 2026-10-11: Biome rewrote a generic arrow function, `<T,>(x: T) => ...`, to `<T>(x: T) => ...` in an Astro frontmatter, which the Astro compiler rejects, so a lint-clean commit broke the build. Use a `function` declaration for generics in `.astro` files and build before pushing one.
-- 2026-10-08: branches that each pass alone can fail together (tab order, focus ring, touch targets, bundle size). Stack them and run the whole site suite before the PR, and measure the bundle on the stack.
+- 2026-10-11: Biome rewrote `<T,>(x: T) => ...` to `<T>(x: T) => ...` in Astro frontmatter, which the compiler rejects. Use a `function` declaration for generics in `.astro` files.
+- 2026-10-08: branches that pass alone can fail together (tab order, focus ring, touch targets, bundle size): run the whole site suite on the stack.
 - 2026-10-30: every `main` deploy failed on Vercel, none locally: skew protection stamps `?dpl=<id>` on asset URLs and `bundleBudget.ts` looked files up with it. Strip `?query` before a path lookup.
 - 2026-10-30: the Experiments function crashed at load on Vercel, not locally: a bare `@singularity/engine/...` import resolves to `.ts` source the bundle omits. Import workspace code by relative path.
 

@@ -1,6 +1,15 @@
 import { Drawer } from "@base-ui/react/drawer";
 import { type ComponentProps, type ReactNode, useEffect, useRef } from "react";
+import {
+  drawerHeadClass,
+  drawerPanelClass,
+  drawerPopupClass,
+  drawerScrimClass,
+  drawerViewportClass,
+} from "../design-system/drawer";
+import { sheetTitleClass } from "../design-system/sheet";
 import Icon from "../player/ui/LazyIcon";
+import "../styles/drawer.css";
 
 type InitialFocus = ComponentProps<typeof Drawer.Popup>["initialFocus"];
 
@@ -63,14 +72,14 @@ export default function SheetFrame({
   useBackCloses(open, () => onOpenChange(false));
   const portal = (
     <Drawer.Portal>
-      <Drawer.Backdrop className="sheet-scrim" />
-      <Drawer.Viewport className="sheet-viewport">
-        <Drawer.Popup className="sheet-popup" initialFocus={initialFocus}>
+      <Drawer.Backdrop className={drawerScrimClass()} />
+      <Drawer.Viewport className={drawerViewportClass()}>
+        <Drawer.Popup className={drawerPopupClass()} initialFocus={initialFocus}>
           {/* Content is what lets a mouse press land on a control inside: outside it, Base UI
               treats the press as the start of a swipe and captures the pointer. */}
-          <Drawer.Content className="sheet-panel">
-            <div className="sheet-head">
-              <Drawer.Title className="sheet-title">{title}</Drawer.Title>
+          <Drawer.Content className={drawerPanelClass()}>
+            <div className={drawerHeadClass()}>
+              <Drawer.Title className={sheetTitleClass()}>{title}</Drawer.Title>
               <Drawer.Close className="icon-btn press" aria-label={closeLabel}>
                 <Icon name="close" className="icon-lg" />
               </Drawer.Close>

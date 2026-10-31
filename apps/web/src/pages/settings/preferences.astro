@@ -11,13 +11,14 @@ import EmptyArt from "../../components/EmptyArt.astro";
 import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
-import SheetHeader from "../../components/SheetHeader.astro";
 import WeightRow from "../../components/WeightRow.astro";
 import Button from "../../design-system/Button.astro";
 import Dialog from "../../design-system/Dialog.astro";
 import DialogActions from "../../design-system/DialogActions.astro";
+import DialogTitle from "../../design-system/DialogTitle.astro";
 import Field from "../../design-system/Field.astro";
 import Select from "../../design-system/Select.astro";
+import Sheet from "../../design-system/Sheet.astro";
 import Switch from "../../design-system/Switch.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { loadManage } from "../../lib/manage";
@@ -236,7 +237,7 @@ const offers = addOffers(structure.blocks, structure.sections);
         aria-describedby="profile-confirm-lede"
         data-profile-confirm
       >
-        <h2 class="sheet-title" id="profile-confirm-title" data-profile-confirm-title>Switch profile?</h2>
+        <DialogTitle id="profile-confirm-title" data-profile-confirm-title>Switch profile?</DialogTitle>
         <p class="create-hint confirm-lede" id="profile-confirm-lede">
           Your custom structure is kept and you can switch back.
         </p>
@@ -251,14 +252,13 @@ const offers = addOffers(structure.blocks, structure.sections);
          sheet (full screen on a phone, a side panel from 40rem). Each part shows for the blocks that
          have it; the prompt is the block's own (D182). */}
     <template id="structure-sheet-template">
-      <dialog class="create-sheet regen-sheet topics-panel structure-sheet" aria-labelledby="structure-sheet-title">
-        <SheetHeader
-          title="Edit block"
-          titleId="structure-sheet-title"
-          close="data-panel-close"
-          titleData={{ "data-sheet-title": "" }}
-        />
-        <div class="create-sheet-body">
+      <Sheet
+        class="topics-panel structure-sheet"
+        title="Edit block"
+        titleId="structure-sheet-title"
+        close="data-panel-close"
+        titleData={{ "data-sheet-title": "" }}
+      >
           <form class="manage-form structure-form" novalidate>
             <div class="manage-field" data-part="title">
               <label for="structure-title">Title</label>
@@ -356,11 +356,10 @@ const offers = addOffers(structure.blocks, structure.sections);
             <p class="manage-quiet" data-part="spoken">Spoken by the app, not written by a model.</p>
             <p class="manage-quiet" data-part="own">What it says is what the model is told.</p>
           </form>
-        </div>
-        <div class="source-sheet-foot">
+        <div class="source-sheet-foot" slot="after">
           <Button variant="filled" data-sheet-done>Save</Button>
         </div>
-      </dialog>
+      </Sheet>
     </template>
   </main>
 </BaseLayout>

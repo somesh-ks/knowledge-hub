@@ -1,6 +1,6 @@
 /*
  * Regenerate and Delete on an episode page: the rewrite panel (it wears the Create sheet's
- * looks, create-sheet.css) and the small confirm that Delete asks. Tokens only. Imported by components/EpisodeActions.astro; the
+ * looks, sheet.css) and the small confirm that Delete asks. Tokens only. Imported by components/EpisodeActions.astro; the
  * dialogs are global because they are cloned into the body.
  */
 

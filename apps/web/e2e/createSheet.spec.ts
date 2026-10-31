@@ -9,7 +9,7 @@ import {
 } from "./fixtures";
 
 const trigger = (page: Page) => page.locator("[data-create-open]:visible").first();
-const sheet = (page: Page) => page.locator("dialog.create-sheet");
+const sheet = (page: Page) => page.locator('dialog[data-sheet="create"]');
 
 async function openSheet(page: Page, path = "/library"): Promise<void> {
   await page.goto(path);
@@ -71,7 +71,7 @@ test.describe("Create as the primary action", () => {
     { tag: "@both" },
     async ({ page }, info) => {
       await openSheet(page);
-      const head = await sheet(page).locator(".create-sheet-head").boundingBox();
+      const head = await sheet(page).locator(".sheet-head").boundingBox();
       const chip = sheet(page).locator(".filter-chip:visible").first();
       await chip.scrollIntoViewIfNeeded();
       const box = await chip.boundingBox();
