@@ -166,8 +166,13 @@ test.describe("interface cues by kind of action", () => {
     await expect.poll(() => heard(page)).toEqual(["sheetOpen"]);
     expect(await felt()).toEqual(["open"]);
     // The wheel's turn is felt through the same path, and has no sound.
-    await page.evaluate(() => document.dispatchEvent(new CustomEvent("wheeldetent")));
-    expect(await felt()).toEqual(["open", "detent"]);
+    // A detent right after the menu's open is inside the rate limit and is dropped: ask again.
+    await expect
+      .poll(async () => {
+        await page.evaluate(() => document.dispatchEvent(new CustomEvent("wheeldetent")));
+        return felt();
+      })
+      .toEqual(["open", "detent"]);
 
     await page.goto("/settings/sounds");
     await page.getByLabel("Haptics").selectOption("off");
