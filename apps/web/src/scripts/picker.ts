@@ -269,10 +269,14 @@ function mountPicker(select: HTMLSelectElement): void {
 
   /** Plays, or stops, the sample of a voice's Play control, and says so to a screen reader. */
   const hear = (play: HTMLElement): void => {
-    if (!play.dataset.sample || play.getAttribute("aria-disabled") === "true") return;
+    const name = play.closest("[role=option]")?.querySelector(".picker-option-title")?.textContent;
+    // The control is aria-hidden (an option's children are presentational), so its state is said here.
+    if (!play.dataset.sample || play.getAttribute("aria-disabled") === "true") {
+      count.textContent = `No sample for ${name ?? "this voice"}`;
+      return;
+    }
     const was = play.getAttribute("aria-pressed") === "true";
     audition.toggle(play, play.dataset.sample);
-    const name = play.closest("[role=option]")?.querySelector(".picker-option-title")?.textContent;
     count.textContent = `${was ? "Stopped" : "Playing"} ${name ?? "the sample"}`;
   };
 
