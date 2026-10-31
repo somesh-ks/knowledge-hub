@@ -52,10 +52,10 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-19: adding a YouTube channel said "The address could not be read": the preview caps a page at 1 MB, a channel page is 1.3 MB, and `resolveYoutubeChannel` swallowed the throw. The id comes from the path, then `navigation/resolve_url`, then the page; a social page with no feed is refused.
 - 2026-10-24: YouTube refuses datacenter addresses: the player API says 429 and yt-dlp hits "Sign in to confirm you're not a bot"; cookies lift it, PO tokens do not (yt-dlp #15865). Firecrawl's `youtube-com/videos/video_transcript` makes the call from its network, 5 credits.
 - 2026-10-24: no YouTube video had reached the judge (25 fetched since 9 Oct, `asked` 0 in `state/source-stats.json`): the prefilter keeps only keyword, author, high-signal or tagged items, and titles name no keyword. Channels are high-signal now. Check `asked` first.
-- 2026-10-30: the judge flagged all 21 favorite-creator videos since 9 Oct (`flagged` equals `judged` in `source-stats.json`): it read links and a sponsor line. The Judge step lacked `FIRECRAWL_API_KEY`, so only 3 videos a run (Gemini cap) got a transcript; a stage reads only its own `env`.
+- 2026-10-30: the judge flagged all 21 favorite-creator videos since 9 Oct: it read links and a sponsor line. The Judge step lacked `FIRECRAWL_API_KEY`, so 3 videos a run (Gemini cap) got a transcript; a stage reads only its own `env`.
 - 2026-10-19: a YouTube finalist reached the writer with only its description: `extractFullText` fetched a watch page with no speech. YouTube items go through `extract/youtubeText.ts` (cache, Firecrawl, then Gemini; `state/video-text.json`); failure falls back to the description.
 - 2026-10-07: `audio.yml` failed at the write guard ("changes outside the publish allowlist: .gitignore"): `vercel link` and `vercel env pull` edit `.gitignore` and write `.vercel`; run them in a scratch directory outside the checkout.
-- 2026-10-30: Hobby Blob allows 2,000 advanced operations a month (`put`, `copy`, `list`) and 10,000 simple ones (`head`, an uncached read). Over it, the store is blocked about 30 days, reads too (403), and pages 503. Ingest wrote one object per story (D251). Count a job's puts per run, batch them, never `list` per page view.
+- 2026-10-30: Hobby Blob allows 2,000 advanced operations a month (`put`, `copy`, `list`) and 10,000 simple. Over it the store is blocked about 30 days, reads too (403), and pages 503. Ingest wrote one object per story (D251). Count a job's puts per run. The CDN keys a function's answer by path and obeys `vercel.json` header rules, not the query or `Vercel-CDN-Cache-Control` (D258).
 - 2026-10-18: the 15-minute weekly aired 14 stories: the prefilter's fixed cap of 80 filled 27 of 52 slots and grounding dropped 11. `poolCapFor` now sizes it. Read a short episode's funnel from the stage lines first.
 - 2026-10-15: Claude Sonnet 5.5 answers 400 "temperature is deprecated" to any request with `temperature`, and the writer chain fell through silently to Nebius from 2026-10-14 while Settings said Sonnet. The Anthropic client sends no temperature; a pick that fails over should be visible, not only in logs.
 - 2026-10-15: a source with 0 fetched items and OK health is not always broken: One Useful Thing and AUX First post monthly (newest items 2026-10-01 and 2026-09-21). Read the feed's newest date before calling a source dead.
@@ -93,12 +93,13 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Build and tooling
 
+- 2026-10-30: designSystem.test reads quoted text: a retired class equal to a file name or a selector string counts as writing it.
 - 2026-10-28: cloud Node 22.22 fails `astro check`: `. /opt/nvm/nvm.sh && nvm install 24`. `pkill -f` kills its own shell.
 - 2026-10-25: an `<svg>` in a template string has no `data-icon`, so D187 skips it; use `iconHtml()`.
 - 2026-10-22: `npm install` ignores a new `overrides` entry while the lockfile holds the old version (deleting the entry alone drops it): delete it and `node_modules/.package-lock.json`, then `npm install`. A linked worktree's adapter build fails (`devalue` missing); check after `npm ci`.
 - 2026-10-14: `npm run lint` checks nothing in a worktree (Biome ignores `.claude/`): there run `npx biome check apps packages scripts tokens`. Checking only touched files passed while the root lint failed on CSS blank lines; run the root lint from the main checkout before pushing.
-- 2026-10-11: Biome rewrote a generic arrow function, `<T,>(x: T) => ...`, to `<T>(x: T) => ...` in an Astro frontmatter, which the Astro compiler rejects, so a lint-clean commit broke the build. Use a `function` declaration for generics in `.astro` files and build before pushing one.
-- 2026-10-08: branches that each pass alone can fail together (tab order, focus ring, touch targets, bundle size). Stack them and run the whole site suite before the PR, and measure the bundle on the stack.
+- 2026-10-11: Biome rewrote `<T,>(x: T) => ...` to `<T>(x: T) => ...` in Astro frontmatter, which the compiler rejects. Use a `function` declaration for generics in `.astro` files.
+- 2026-10-08: branches that pass alone can fail together (tab order, focus ring, touch targets, bundle size): run the whole site suite on the stack.
 - 2026-10-30: every `main` deploy failed on Vercel, none locally: skew protection stamps `?dpl=<id>` on asset URLs and `bundleBudget.ts` looked files up with it. Strip `?query` before a path lookup.
 - 2026-10-30: the Experiments function crashed at load on Vercel, not locally: a bare `@singularity/engine/...` import resolves to `.ts` source the bundle omits. Import workspace code by relative path.
 

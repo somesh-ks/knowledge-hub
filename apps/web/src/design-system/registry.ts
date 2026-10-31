@@ -7,10 +7,12 @@
 import { BANNER, BANNER_CLASSES, BANNER_RETIRED } from "./banner";
 import { BUTTON, BUTTON_CLASSES, BUTTON_RETIRED } from "./button";
 import { DIALOG, DIALOG_CLASSES, DIALOG_RETIRED } from "./dialog";
+import { DRAWER, DRAWER_CLASSES, DRAWER_RETIRED } from "./drawer";
 import { FIELD, FIELD_CLASSES, FIELD_RETIRED } from "./field";
 import type { Guidance } from "./guidance";
 import { MENU, MENU_CLASSES, MENU_RETIRED } from "./menu";
 import { SELECT, SELECT_CLASSES, SELECT_RETIRED } from "./select";
+import { SHEET, SHEET_CLASSES, SHEET_RETIRED } from "./sheet";
 import { SLIDER, SLIDER_CLASSES, SLIDER_RETIRED } from "./slider";
 import { SWITCH, SWITCH_CLASSES, SWITCH_RETIRED } from "./switch";
 
@@ -114,6 +116,28 @@ export const COMPONENTS: DesignSystemComponent[] = [
     summary: DIALOG.summary,
     useWhen: DIALOG.useWhen,
     dontUseWhen: DIALOG.dontUseWhen,
+    parts: {},
+  },
+  {
+    name: "Sheet",
+    sheet: "sheet.css",
+    prefix: "sheet-",
+    classes: SHEET_CLASSES,
+    retired: SHEET_RETIRED,
+    summary: SHEET.summary,
+    useWhen: SHEET.useWhen,
+    dontUseWhen: SHEET.dontUseWhen,
+    parts: {},
+  },
+  {
+    name: "Drawer",
+    sheet: "drawer.css",
+    prefix: "drawer-",
+    classes: DRAWER_CLASSES,
+    retired: DRAWER_RETIRED,
+    summary: DRAWER.summary,
+    useWhen: DRAWER.useWhen,
+    dontUseWhen: DRAWER.dontUseWhen,
     parts: {},
   },
 ];
