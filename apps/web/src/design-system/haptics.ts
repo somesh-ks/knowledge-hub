@@ -14,15 +14,18 @@ export type HapticSupport = "android" | "ios" | "none";
 const MIN_GAP_MS = 90;
 const MIN_GAP_DETENT_MS = 40;
 
-/** Which of the two mechanisms this browser has, if either. */
+/**
+ * Which of the two mechanisms this browser has, if either. Both need a touch screen: a desktop
+ * browser defines navigator.vibrate and has no motor behind it.
+ */
 export function detectHapticSupport(
   nav: { vibrate?: unknown } = navigator,
   coarse: () => boolean = () => matchMedia("(pointer: coarse)").matches,
   hasSwitch: () => boolean = () => "switch" in HTMLInputElement.prototype,
 ): HapticSupport {
+  if (!coarse()) return "none";
   if (typeof nav.vibrate === "function") return "android";
-  if (hasSwitch() && coarse()) return "ios";
-  return "none";
+  return hasSwitch() ? "ios" : "none";
 }
 
 /**
