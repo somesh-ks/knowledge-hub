@@ -98,6 +98,25 @@ export function voiceLabel(voice: Voice): string {
   return voice.gender ? `${voice.name}, ${voice.gender.toLowerCase()}` : voice.name;
 }
 
+let accentNames: Intl.DisplayNames | null | undefined;
+
+/** The accent in words for a locale code ("British English" for en-GB), or "" when Intl cannot name it. */
+function accentWords(code: string): string {
+  if (accentNames === undefined) {
+    try {
+      accentNames = new Intl.DisplayNames(["en"], { type: "language" });
+    } catch {
+      accentNames = null;
+    }
+  }
+  try {
+    return accentNames?.of(code) ?? "";
+  } catch {
+    // A locale code Intl cannot name: no words, the code alone is searched.
+    return "";
+  }
+}
+
 /**
  * What a voice's search also reads beyond its label: the accent in words and its locale, so
  * "british" and "en-GB" both find the British voices. Empty when the locale is unknown.
@@ -105,25 +124,14 @@ export function voiceLabel(voice: Voice): string {
 export function voiceKeywords(voice: Voice): string {
   const code = voice.language ?? "";
   if (code === "") return "";
-  let words = "";
-  try {
-    words = new Intl.DisplayNames(["en"], { type: "language" }).of(code) ?? "";
-  } catch {
-    // A locale code Intl cannot name: the code alone is searched.
-  }
-  return [words, code].filter((part) => part !== "").join(" ");
+  return [accentWords(code), code].filter((part) => part !== "").join(" ");
 }
 
 /** The accent in words ("British English" for en-GB), or "" when the locale has no name. */
 export function voiceAccent(voice: Voice): string {
   const code = voice.language ?? "";
   if (code === "") return "";
-  try {
-    return new Intl.DisplayNames(["en"], { type: "language" }).of(code) ?? "";
-  } catch {
-    // A locale code Intl cannot name: no accent is shown.
-    return "";
-  }
+  return accentWords(code);
 }
 
 /** The line under a voice's name in the list: its gender, then its accent, "Female, British English". */

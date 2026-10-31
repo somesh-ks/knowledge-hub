@@ -218,9 +218,9 @@ test.describe("the profile pages", () => {
       // are the line under it (2026-10-31).
       await expect(pickerList(page).getByRole("option")).toHaveText([
         "Default",
-        /^Ada/,
-        /^Leo/,
-        /^Nora/,
+        /^Ada.*Female/,
+        /^Leo.*Male/,
+        /^Nora.*Female, British English/,
       ]);
       // The search narrows the list by name, and by accent in words.
       await pickerList(page).getByRole("combobox").fill("british");
