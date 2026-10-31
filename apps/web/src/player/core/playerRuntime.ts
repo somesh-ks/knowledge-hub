@@ -111,6 +111,8 @@ const readerSlot = (): { current: ReaderSync | null } =>
  * with no finished audio is narrated once its page has loaded.
  */
 export function playBriefingOnArrival(digestId: string): void {
+  // The listener chose this recording: a queue item still being read must not start over it.
+  selections().count += 1;
   readerSlot().current?.expectPage(digestId);
   getPlayerStore().playWhenPageLoads(digestId);
 }
@@ -184,6 +186,8 @@ export async function playUpNext(
  */
 export function playQueueItem(id: string): void {
   const mine = ++selections().count;
+  // A podcast still being narrated for an earlier pick must not start over this one.
+  tabShared("narrationCancel", () => ({ cancel: null as (() => void) | null })).cancel?.();
   const store = getPlayerStore();
   const state = store.getState();
   if (state.hasStarted && state.track?.digest.id === id) {
@@ -193,24 +197,25 @@ export function playQueueItem(id: string): void {
   }
   const cached = queueDigestFor(id);
   if (cached) {
-    startInPlace(cached);
+    startInPlace(cached, mine);
     return;
   }
   void loadQueueDigest(id).then((digest) => {
     // The listener picked another item while this page was being read: theirs is the one that starts.
     if (mine !== selections().count) return;
-    if (digest) startInPlace(digest);
+    if (digest) startInPlace(digest, mine);
     else playQueueItemByPage(id);
   });
 }
 
-function startInPlace(read: PlayerDigestData): void {
+function startInPlace(read: PlayerDigestData, selection: number): void {
   // A recording narrated earlier in this session comes back with its audio, as a page's Play gets it.
   const digest = narratedOrPage(read);
   if (!digest.audio) {
-    void import("../../narration/narrationRuntime").then((narration) =>
-      narration.narrateDigest(digest),
-    );
+    void import("../../narration/narrationRuntime").then((narration) => {
+      // The listener picked another item while the narration module loaded.
+      if (selection === selections().count) narration.narrateDigest(digest);
+    });
     return;
   }
   const store = getPlayerStore();

@@ -130,6 +130,8 @@ test.describe("the first press of Play on a page with no audio yet", () => {
         document.dispatchEvent(new CustomEvent("singularity:queue-add", { detail: { id } }));
     });
     await player.play();
+    await page.evaluate(() => window.scrollTo({ top: 320, behavior: "instant" }));
+    const scrolled = await page.evaluate(() => Math.round(window.scrollY));
     await player.openPlayer();
     await player.dialog.getByRole("tab", { name: "Up next" }).click();
     const url = page.url();
@@ -148,6 +150,7 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     ).toBeVisible({ timeout: 10_000 });
     await expect(player.root).toHaveAttribute("data-player-state", "playing");
     expect(page.url()).toBe(url);
+    expect(await page.evaluate(() => Math.round(window.scrollY))).toBe(scrolled);
     expect(await audio.count()).toBe(1);
     expect(
       await page.evaluate(() => (window as unknown as { __mini: unknown[] }).__mini),
@@ -161,5 +164,10 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     );
     await expect(player.dialog.locator(`[data-state="current"]`)).toHaveCount(1);
     await expect(player.dialog.getByRole("button", { name: /^More for / })).toHaveCount(3);
+    expect(
+      await player.dialog
+        .locator("[data-queue-id]:not([data-state])")
+        .evaluateAll((rows) => rows.map((row) => row.getAttribute("data-queue-id"))),
+    ).toEqual(["ep-20261006-0900", "ep-20261007-1930", "2026-10-05"]);
   });
 });

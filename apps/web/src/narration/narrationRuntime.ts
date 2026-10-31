@@ -37,8 +37,8 @@ function setPreparing(digestId: string | null): void {
 
 /** One per tab (tabSlot.ts): two controllers would each narrate into the one audio. */
 function getController(): NarrationController {
-  return tabShared("narration", () =>
-    createNarrationController({
+  return tabShared("narration", () => {
+    const controller = createNarrationController({
       store: getPlayerStore(),
       audio: getPlayerAudio(),
       api: {
@@ -48,8 +48,15 @@ function getController(): NarrationController {
       },
       notify: (message) => showToast({ message }),
       setPreparing,
-    }),
-  );
+    });
+    // The player cancels a preparing play when the listener picks another queue item (playerRuntime).
+    narrationHook().cancel = () => controller.cancel();
+    return controller;
+  });
+}
+
+function narrationHook(): { cancel: (() => void) | null } {
+  return tabShared("narrationCancel", () => ({ cancel: null as (() => void) | null }));
 }
 
 /**
