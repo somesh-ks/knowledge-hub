@@ -8,7 +8,7 @@
 
 import { sendToast } from "../../../web/src/scripts/toastEvent";
 import type { ExperimentAction, FlagRow, HitTotal } from "../lib/experimentsApi";
-import { intended, type PendingMap, parsePending, unsettled } from "../lib/pendingFlags";
+import { fresh, intended, type PendingMap, parsePending, unsettled } from "../lib/pendingFlags";
 import { href } from "../lib/sections";
 
 const API = href("/api/experiments");
@@ -86,11 +86,12 @@ function renderAll(): void {
   for (const row of rows) render(row);
 }
 
-/** Lets go of changes the store has or that ran out of time, but not while a write of theirs is under way. */
+/** Lets go of changes the store has or that ran out of time, but not while a write of theirs is under way (and still fresh). */
 function reconcile(): void {
-  const kept = unsettled([...flags.values()], intents, Date.now());
+  const now = Date.now();
+  const kept = unsettled([...flags.values()], intents, now);
   for (const [id, held] of Object.entries(intents)) {
-    if ((pending.get(id) ?? 0) > 0) kept[id] = held;
+    if ((pending.get(id) ?? 0) > 0 && fresh(held, now)) kept[id] = held;
   }
   intents = kept;
   saveIntents();
@@ -123,6 +124,10 @@ let queue: Promise<unknown> = Promise.resolve();
 let leaving = false;
 addEventListener("pagehide", () => {
   leaving = true;
+});
+// A page restored from the back/forward cache is live again.
+addEventListener("pageshow", () => {
+  leaving = false;
 });
 /** Counts presses, so an answer to a question asked before the latest one is not taken for the store's. */
 let generation = 0;

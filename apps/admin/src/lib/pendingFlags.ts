@@ -30,7 +30,8 @@ export function intended(current: FlagRow, action: ExperimentAction, now: number
   }
 }
 
-const fresh = (pending: Pending, now: number): boolean => now - pending.at < PENDING_SECONDS * 1000;
+export const fresh = (pending: Pending, now: number): boolean =>
+  now - pending.at < PENDING_SECONDS * 1000;
 
 const matches = (stored: FlagRow | undefined, asked: FlagRow): boolean =>
   stored !== undefined &&
