@@ -4,7 +4,7 @@
     "palette": "plum-pearl",
     "template": "orbit"
   },
-  "last_fetch_at": "2026-10-30T22:13:23.447Z",
+  "last_fetch_at": "2026-10-31T04:01:04.381Z",
   "on_demand": {
     "at": "2026-10-30T22:17:19.999Z",
     "digest_id": "2026-10-30",
@@ -13,23 +13,21 @@
     "outcome": "published"
   },
   "regular": {
-    "at": "2026-10-29T05:57:00.316Z",
-    "digest_id": "2026-10-29",
-    "generated_at": "2026-10-29T04:23:23.394Z",
-    "items": 9,
-    "outcome": "published"
+    "at": "2026-10-31T05:57:00.309Z",
+    "generated_at": "2026-10-31T04:04:41.520Z",
+    "items": 0,
+    "outcome": "nothing"
   },
   "spend": {
-    "at": "2026-10-30T22:17:19.999Z",
+    "at": "2026-10-31T05:57:00.309Z",
     "firecrawl_rate_limited": 0,
     "firecrawl_skipped": [],
     "requests": {
-      "anthropic": 6,
+      "anthropic": 5,
       "exa": 14,
       "firecrawl_listing": 15,
-      "firecrawl_scrape": 2,
-      "gemini": 3,
-      "jev": 606
+      "firecrawl_scrape": 9,
+      "jev": 108
     }
   },
   "weekly": {

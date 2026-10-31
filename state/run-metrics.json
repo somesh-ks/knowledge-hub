@@ -99,6 +99,39 @@
       },
       "verified": true,
       "model_fallbacks": 0
+    },
+    {
+      "run_id": "2026-10-31T04:01:04.381Z",
+      "at": "2026-10-31T05:57:00.309Z",
+      "digest_id": "2026-10-31",
+      "kind": "regular",
+      "mode": "scheduled",
+      "replace": false,
+      "outcome": "nothing",
+      "stage_ms": {
+        "fetch": 130518,
+        "judge": 1622,
+        "write": 35750,
+        "validate": 44894
+      },
+      "total_ms": 217139,
+      "funnel": {
+        "pool": 94,
+        "written": 0,
+        "grounding_dropped": 0,
+        "grounding_pruned": 0,
+        "validate_dropped": 3,
+        "refill_written": 4,
+        "refill_kept": 1,
+        "aired": 0
+      },
+      "length": {
+        "asked_chars": 5330,
+        "aired_chars": 0,
+        "share": 0
+      },
+      "verified": false,
+      "model_fallbacks": 0
     }
   ]
 }
