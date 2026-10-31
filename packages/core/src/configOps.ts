@@ -4,7 +4,11 @@ import { ScheduleChange } from "./schedule.js";
 import { FetchViaValue, SOURCE_NAME_MAX, SourceFormat } from "./sources.js";
 import { BlockPrompt, BlockPromptKey, StructureBlocks, StructureProfile } from "./structure.js";
 import {
+  MAX_KEYWORD_CHARS,
   MAX_KEYWORDS,
+  MAX_SCOPE_IDS,
+  MAX_TOPIC_DESCRIPTION_CHARS,
+  MAX_TOPIC_NAME_CHARS,
   MixStop,
   mixStopOf,
   Perspective,
@@ -45,10 +49,10 @@ export const MAX_OPENS_PER_OP = 50;
  */
 export const TopicInput = z.object({
   id: IdString.optional(),
-  name: z.string().trim().min(1).max(60),
-  description: z.string().trim().min(1).max(400),
+  name: z.string().trim().min(1).max(MAX_TOPIC_NAME_CHARS),
+  description: z.string().trim().min(1).max(MAX_TOPIC_DESCRIPTION_CHARS),
   enabled: z.boolean().default(true),
-  keywords: z.array(z.string().trim().min(1).max(60)).max(MAX_KEYWORDS).default([]),
+  keywords: z.array(z.string().trim().min(1).max(MAX_KEYWORD_CHARS)).max(MAX_KEYWORDS).default([]),
   /** Defaults to the topic's own id. A section that does not exist yet is created. */
   section_id: SectionId.optional(),
   /** Title for a section this op creates. Defaults to the topic name. */
@@ -173,7 +177,7 @@ export const ConfigOp = z.discriminatedUnion("op", [
   z
     .object({
       op: z.literal("topic.scope"),
-      ids: z.array(IdString).min(1).max(50),
+      ids: z.array(IdString).min(1).max(MAX_SCOPE_IDS),
       daily: z.boolean().optional(),
       weekly: z.boolean().optional(),
       custom: z.boolean().optional(),

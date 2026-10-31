@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { type ParsedConfigOp, parseConfigOps } from "@singularity/core";
 import { combineOutcomes, readBundle, renderBundle } from "../commands/config.js";
-import { createHttpClient, type HttpClient, type RequestOptions } from "../http.js";
+import { createHttpClient, type FetchImpl, type HttpClient, type RequestOptions } from "../http.js";
 import { AddSourceError } from "../sources/addSource.js";
 import { type DiscoverDeps, networkErrorCode } from "../sources/discover.js";
 import {
@@ -55,6 +55,11 @@ export type ApplyToDocumentsResult =
 export const APPLY_DEADLINE_MS = 12_000;
 /** A lookup that names no timeout of its own; discovery names its own (12 s a page, 10 s a probe). */
 const LOOKUP_TIMEOUT_MS = 10_000;
+
+/** The client for a source lookup on a given fetch: the site passes one that refuses non-public addresses. */
+export function createLookupHttp(fetchImpl: FetchImpl): HttpClient {
+  return createHttpClient({ fetchImpl, retries: 0, timeoutMs: LOOKUP_TIMEOUT_MS });
+}
 /** Kept back from the deadline, so the last request's failure is still seen before it. */
 const DEADLINE_MARGIN_MS = 250;
 
