@@ -280,5 +280,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D265 | A select's phone list is the standard sheet | active; amends D167 |
 | D266 | Icon, Badge, type | amends D243 |
 | D267 | Card, Row | amends D243 |
+| D270 | Experiments: a change settles on a read, not its write's answer | amends D249, D259 |
 
 ---
