@@ -67,7 +67,7 @@ html:is(
   [data-astro-nav="in"],
   [data-astro-nav="out"]
 )::view-transition-new(root) {
-  animation: fade-in var(--duration-press-in) var(--ease-out) both;
+  animation: fade-in var(--duration-hover) var(--ease-out) both;
 }
 
 /* The group's own animation is the browser's quarter second. Nothing in it moves, and while it runs
@@ -80,29 +80,60 @@ html[data-astro-nav]::view-transition-group(root) {
    new page is simply there on the next frame, and it fades up by itself in the same short time. The
    rules above still draw a move made in the first moment after a page load. */
 html:is([data-nav-swap="peer"], [data-nav-swap="in"], [data-nav-swap="out"]) .shell {
-  animation: fade-in var(--duration-press-in) var(--ease-out) both;
+  animation: fade-in var(--duration-hover) var(--ease-out) both;
 }
 
-/* Into a briefing the page settles 8px from the end side; back out of one, from the start side. */
+/* The page settles over the time the travelling things take, so the cover lands as the page does.
+   Into a briefing it settles 8px from the end side; back out of one, from the start side; between
+   two tabs, from the side the pill came from, so the page and the pill move the same way (the side
+   column has no pill and no slide). Travel takes the sheet's 300 ms on the hover curve: the out
+   curve is done in a third of its time and reads as a cut, and this one has the least speed in its
+   fastest frame of any curve the system has without an overshoot. The fade is an effect (the effects
+   spring, no overshoot); a move between tabs keeps the time of a press. Reduced motion zeroes the
+   distance, which leaves the fade. */
 @media (prefers-reduced-motion: no-preference) {
+  html[data-nav-swap="peer"] .shell {
+    animation-name: fade-in, page-from-tab;
+  }
+
   html[data-nav-swap="in"] .shell {
     animation-name: fade-in, page-from-end;
-    animation-duration: var(--duration-hover);
   }
 
   html[data-nav-swap="out"] .shell {
     animation-name: fade-in, page-from-start;
-    animation-duration: var(--duration-hover);
+  }
+
+  html:is([data-nav-swap="in"], [data-nav-swap="out"]) .shell {
+    animation-duration: var(--duration-spring-effects-default), var(--duration-sheet-in);
+    animation-timing-function: var(--ease-spring-effects-default), var(--ease-hover);
+  }
+
+  html[data-nav-swap="peer"] .shell {
+    animation-duration: var(--duration-hover), var(--duration-hover);
+    animation-timing-function: var(--ease-hover), var(--ease-hover);
+  }
+
+  html[data-astro-nav="peer"]::view-transition-new(root) {
+    animation-name: fade-in, page-from-tab;
   }
 
   html[data-astro-nav="in"]::view-transition-new(root) {
     animation-name: fade-in, page-from-end;
-    animation-duration: var(--duration-hover);
   }
 
   html[data-astro-nav="out"]::view-transition-new(root) {
     animation-name: fade-in, page-from-start;
-    animation-duration: var(--duration-hover);
+  }
+
+  html:is([data-astro-nav="in"], [data-astro-nav="out"])::view-transition-new(root) {
+    animation-duration: var(--duration-spring-effects-default), var(--duration-sheet-in);
+    animation-timing-function: var(--ease-spring-effects-default), var(--ease-hover);
+  }
+
+  html[data-astro-nav="peer"]::view-transition-new(root) {
+    animation-duration: var(--duration-hover), var(--duration-hover);
+    animation-timing-function: var(--ease-hover), var(--ease-hover);
   }
 
   @keyframes page-from-end {
@@ -114,6 +145,20 @@ html:is([data-nav-swap="peer"], [data-nav-swap="in"], [data-nav-swap="out"]) .sh
   @keyframes page-from-start {
     from {
       transform: translateX(calc(var(--distance-base) * -1));
+    }
+  }
+
+  /* The pill's offset (navigation.ts) says which way the move went: it is negative when the new tab
+     is to the right, and the page comes from that side. Any size of offset clamps to the distance. */
+  @keyframes page-from-tab {
+    from {
+      transform: translateX(
+        clamp(
+          calc(var(--distance-base) * -1),
+          calc(var(--nav-pill-from, 0px) * -1000),
+          var(--distance-base)
+        )
+      );
     }
   }
 }

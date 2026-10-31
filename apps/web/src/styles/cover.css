@@ -295,9 +295,10 @@
   margin: 0;
   z-index: var(--z-overlay);
   pointer-events: none;
-  /* The flight's time and curve, read by coverMorph.ts. */
+  /* The flight's time and curve, read by coverMorph.ts: travel is the sheet's 300 ms on the hover
+     curve, the same as the page's slide (view-transitions.css). */
   transition-duration: var(--duration-sheet-in);
-  transition-timing-function: var(--ease-drawer);
+  transition-timing-function: var(--ease-hover);
 }
 
 .cover[data-morphing] {
