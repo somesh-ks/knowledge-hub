@@ -4,6 +4,7 @@
  * a script builds is the same menu a page builds (the design-system audit, 2026-10-25).
  */
 import { menuItemClass } from "../design-system/menu";
+import { sheetHeadClass, sheetTitleClass } from "../design-system/sheet";
 import { ICON_PATHS, ICON_VIEW_BOX, type IconName } from "./icons";
 
 export const escapeHtml = (text: string): string =>
@@ -27,7 +28,7 @@ export type SheetClose =
 /**
  * A sheet's one header row (2026-10-20): the title at the start, Close at the end, in every sheet at
  * every width, as SheetFrame.tsx lays out. pullDismiss.ts and keyboardFit.ts find the row by
- * .create-sheet-head. The title is escaped here; `titleData` holds data attributes for the title.
+ * SHEET_HEAD (design-system/sheet.ts). The title is escaped here; `titleData` holds data attributes for the title.
  */
 export function sheetHeadHtml(
   title: string,
@@ -42,7 +43,7 @@ export function sheetHeadHtml(
     )
     .join("");
   return (
-    `<div class="create-sheet-head"><h2 class="sheet-title" id="${titleId}"${data}>${escapeHtml(title)}</h2>` +
+    `<div class="${sheetHeadClass()}"><h2 class="${sheetTitleClass()}" id="${titleId}"${data}>${escapeHtml(title)}</h2>` +
     `<button class="icon-btn press" type="button" aria-label="Close" ${close}>${iconHtml("close", "icon-lg")}</button></div>`
   );
 }

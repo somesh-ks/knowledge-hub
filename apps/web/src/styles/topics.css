@@ -858,7 +858,7 @@
   display: flex;
   flex: none;
   gap: var(--space-2);
-  /* On a phone the full-screen sheet's 24px gutter (owner, 2026-10-24, create-sheet.css). */
+  /* On a phone the full-screen sheet's 24px gutter (owner, 2026-10-24, sheet.css). */
   padding-block: var(--space-4) max(var(--space-6), var(--safe-bottom));
   padding-inline: max(var(--space-6), var(--safe-left)) max(var(--space-6), var(--safe-right));
   border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
@@ -881,7 +881,7 @@
 /* On a phone the panel fills the screen above the keyboard and no further (keyboardFit.ts writes the
    two lengths), so its head stays at the top while a field is typed in (2026-10-20). */
 @media (width < 40rem) {
-  dialog.create-sheet.topics-panel {
+  dialog.sheet-side.topics-panel {
     inset-block: var(--keyboard-top, 0px) auto;
     height: calc(100dvh - var(--keyboard, 0px) - var(--keyboard-top, 0px));
   }

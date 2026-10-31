@@ -87,10 +87,13 @@ function renderAll(): void {
   for (const row of rows) render(row);
 }
 
-/** Lets go of changes the store has or that ran out of time, but not while a write of theirs is under way (and still fresh). */
-function reconcile(): void {
+/**
+ * Lets go of changes the store has or that ran out of time, but not while a write of theirs is under
+ * way (and still fresh). `stored` is what a read of the store answered; pass none to only expire.
+ */
+function reconcile(stored: FlagRow[]): void {
   const now = Date.now();
-  const kept = unsettled([...flags.values()], intents, now);
+  const kept = unsettled(stored, intents, now);
   for (const [id, held] of Object.entries(intents)) {
     if ((pending.get(id) ?? 0) > 0 && fresh(held, now)) kept[id] = held;
   }
@@ -98,10 +101,15 @@ function reconcile(): void {
   saveIntents();
 }
 
-function take(body: { flags?: FlagRow[] }): void {
+function adopt(body: { flags?: FlagRow[] }): void {
   flags.clear();
   for (const flag of body.flags ?? []) flags.set(flag.id, flag);
-  reconcile();
+}
+
+/** A read of the store: the only answer that settles a change, since the next read may be an older copy. */
+function take(body: { flags?: FlagRow[] }): void {
+  adopt(body);
+  reconcile([...flags.values()]);
 }
 
 async function ask(init?: { id: string; action: ExperimentAction }): Promise<Response> {
@@ -147,7 +155,9 @@ async function send(id: string, action: ExperimentAction): Promise<boolean> {
   try {
     const response = await ask({ id, action });
     const body = (await response.json()) as { flags?: FlagRow[]; error?: string };
-    if (body.flags) take(body);
+    // A write's answer does not settle the change: the next read may still be an old copy (the
+    // worker's, a cache's), so only a read that shows it does (take).
+    if (body.flags) adopt(body);
     if (response.ok) {
       saved = true;
       return true;
@@ -296,7 +306,7 @@ function watch(): void {
   if (watching || Object.keys(intents).length === 0) return;
   watching = true;
   const tick = (): void => {
-    reconcile();
+    reconcile([]);
     renderAll();
     if (Object.keys(intents).length === 0) {
       watching = false;
