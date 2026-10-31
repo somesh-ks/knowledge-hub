@@ -273,6 +273,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D255 | Videos judged on transcripts | active; amends D248 |
 | D256 | Covers drawn on request; failed-run stages in one Blob object | active; amends D173, D251 |
 | D257 | Report routes need sign-in | amends D201, D224 |
-| D259 | Health: state, stage times | amends D203 |
+| D260 | Health: state, stage times | amends D203 |
 
 ---
