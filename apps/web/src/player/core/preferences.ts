@@ -24,6 +24,8 @@ export interface Preferences {
   style: StylePreference;
   /** null until the listener chooses, so the reduced-motion default can apply. */
   sounds: boolean | null;
+  /** Touch feedback (D273). On unless turned off; a device with no motor never shows the choice. */
+  haptics: boolean;
   /** 0 to 1, before the engine's quadratic taper. */
   volume: number;
   /** The default speed: where every episode starts. A change in the player lasts one episode. */
@@ -38,6 +40,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   theme: "system",
   style: DEFAULT_STYLE,
   sounds: null,
+  haptics: true,
   volume: DEFAULT_VOLUME,
   rate: 1,
   autoplay: true,
@@ -66,6 +69,7 @@ export function parsePreferences(raw: string | null): Preferences {
     theme: isTheme(record.theme) ? record.theme : DEFAULT_PREFERENCES.theme,
     style: isStyle(record.style) ? record.style : DEFAULT_STYLE,
     sounds: typeof record.sounds === "boolean" ? record.sounds : null,
+    haptics: typeof record.haptics === "boolean" ? record.haptics : DEFAULT_PREFERENCES.haptics,
     volume: isFiniteNumber(record.volume)
       ? Math.min(1, Math.max(0, record.volume))
       : DEFAULT_PREFERENCES.volume,

@@ -44,7 +44,6 @@ export function installCardHold(): void {
       timer = window.setTimeout(() => {
         start = null;
         if (list.matches(":popover-open")) return;
-        navigator.vibrate?.(10);
         // As after a tap on the button: focus is on it first, so the sheet's first row, which the menu
         // focuses on open, takes no keyboard ring. Its own ring is the keyboard's (library.css).
         list.parentElement

@@ -277,12 +277,12 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D259 | Saves kept before sending | amends D79, D91, D115, D249 |
 | D262 | Sheet and Drawer split | active; amends D243 |
 | D263 | Cover version in URL | proposed; amends D258 |
-| D264 | Card long press | proposed |
+| D264 | Card long press | active |
 | D265 | A select's phone list is the sheet | active; amends D167 |
 | D266 | Icon, Badge, type | amends D243 |
 | D267 | Card, Row | amends D243 |
 | D268 | Styles: token overrides | amends D125 |
-| D270 | Experiments: a change settles on a read, not its write's answer | amends D249, D259 |
+| D270 | Experiments settle on a read, not a write's answer | amends D249, D259 |
 | D273 | Haptics | amends D52 |
 
 ---

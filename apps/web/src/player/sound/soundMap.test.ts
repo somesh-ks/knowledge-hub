@@ -65,7 +65,11 @@ describe("interface cues", () => {
   it("pitches a scrub detent by position and softens it at speed", () => {
     const slow = cueForDetent(0.4, 0.1);
     const fast = cueForDetent(0.4, 6);
-    expect(slow).toEqual({ name: "scrubDetent", options: { position: 0.4, gain: 1 } });
+    expect(slow).toEqual({
+      name: "scrubDetent",
+      options: { position: 0.4, gain: 1 },
+      haptic: "detent",
+    });
     expect(fast.options?.gain).toBeLessThan(slow.options?.gain ?? 0);
   });
 

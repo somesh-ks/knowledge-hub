@@ -70,7 +70,12 @@ const PODCAST: Row[] = [
 // Whether sounds are on is kept in this browser, so settingsPage.ts writes that row's line.
 const SOUND: Row[] = [
   { href: "/settings/voice", label: "Podcast voice", data: {} },
-  { href: "/settings/sounds", label: "Interface sounds", hint: "On", data: { "sounds-hint": "" } },
+  {
+    href: "/settings/sounds",
+    label: "Sounds and haptics",
+    hint: "On",
+    data: { "sounds-hint": "" },
+  },
 ];
 
 const updated = buildDay();
