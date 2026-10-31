@@ -1,0 +1,172 @@
+/**
+ * The Select's list on a phone: the standard bottom sheet, the one a ⋮ menu opens, with the field's
+ * label as its title, Close at the end and a row for each option (menu.css). A select keeps its
+ * native list from 40rem, where it opens under the field; on a phone the browser's own list is
+ * stopped and this opens instead (owner, 2026-10-31: one kind of bottom sheet everywhere). The
+ * select stays in the page and holds the value: a choice sets it and fires its `input` and `change`,
+ * so whatever listens for a select hears it as it always did. Loaded by Select.astro.
+ *
+ * The sheet is a popover placed beside the select, not under `body`, so it stays inside an open
+ * dialog (a modal dialog makes everything outside it inert).
+ */
+import { escapeHtml, sheetHeadHtml } from "../lib/sheetHead";
+import { pullToDismiss } from "../scripts/pullDismiss";
+import { menuBodyClass, menuItemClass, menuListClass } from "./menu";
+
+const PHONE = "(width < 40rem)";
+const KEYS = new Set(["Enter", " ", "F4"]);
+
+let installed = false;
+let uid = 0;
+
+/** A select this sheet stands in for: drawn by the Select, shown, enabled and single-valued. */
+function sheetFor(target: EventTarget | null): HTMLSelectElement | null {
+  const select = (target as Element | null)?.closest?.("select");
+  if (!select || select.disabled || select.multiple) return null;
+  if (!select.closest("[data-select]") || select.classList.contains("picker-native")) return null;
+  return matchMedia(PHONE).matches ? select : null;
+}
+
+/** What the field is called: its label, or the name a screen reader is given. */
+function titleOf(select: HTMLSelectElement): string {
+  const label = select.id ? document.querySelector(`label[for="${CSS.escape(select.id)}"]`) : null;
+  const named = select.getAttribute("aria-labelledby");
+  const text =
+    label?.textContent ||
+    select.getAttribute("aria-label") ||
+    (named ? document.getElementById(named)?.textContent : "") ||
+    select.closest("[data-select]")?.querySelector(".sr-only")?.textContent;
+  return text?.trim() || "Choose";
+}
+
+/** The sheet already placed beside a select's wrapper, if it has been opened before. */
+const listOf = (wrapper: HTMLElement): HTMLElement | null => {
+  const next = wrapper.nextElementSibling;
+  return next instanceof HTMLElement && next.hasAttribute("data-select-sheet") ? next : null;
+};
+
+function rowsOf(list: HTMLElement): HTMLElement[] {
+  return Array.from(list.querySelectorAll<HTMLElement>('[role="option"]:not([aria-disabled])'));
+}
+
+/** Draws the sheet's head once; the rows are redrawn on each open (see `fill`). */
+function build(list: HTMLElement, id: string): void {
+  list.innerHTML =
+    sheetHeadHtml("", `${id}-title`, "data-menu-close") +
+    `<div class="${menuBodyClass()}" role="listbox"></div>`;
+}
+
+/** Draws the title and the rows from the select as it is now, so a list filled after load is whole. */
+function fill(list: HTMLElement, select: HTMLSelectElement, id: string): void {
+  const title = titleOf(select);
+  const heading = list.querySelector(`#${id}-title`);
+  if (heading) heading.textContent = title;
+  const body = list.querySelector<HTMLElement>('[role="listbox"]');
+  if (!body) return;
+  body.setAttribute("aria-label", title);
+  body.innerHTML = Array.from(select.options)
+    .filter((option) => !option.hidden)
+    .map(
+      (option) =>
+        `<button class="${menuItemClass()}" type="button" role="option" data-value="${escapeHtml(option.value)}"` +
+        `${option.selected ? ' aria-selected="true"' : ""}${option.disabled ? ' aria-disabled="true"' : ""}>${escapeHtml(option.text)}</button>`,
+    )
+    .join("");
+}
+
+function open(select: HTMLSelectElement, byKey: boolean): void {
+  const wrapper = select.closest<HTMLElement>("[data-select]");
+  if (!wrapper) return;
+  let list = listOf(wrapper);
+  if (!list) {
+    list = document.createElement("div");
+    list.className = menuListClass();
+    list.id = `select-sheet-${++uid}`;
+    list.setAttribute("popover", "auto");
+    list.setAttribute("data-select-sheet", "");
+    const sheet = list;
+    build(sheet, sheet.id);
+    pullToDismiss(sheet, () => sheet.hidePopover());
+    sheet.addEventListener("click", (event) => {
+      const target = event.target as Element;
+      if (target.closest("[data-menu-close]")) {
+        sheet.hidePopover();
+        return;
+      }
+      const row = target.closest<HTMLElement>('[role="option"]');
+      if (!row || row.hasAttribute("aria-disabled")) return;
+      const changed = select.value !== row.dataset.value;
+      select.value = row.dataset.value ?? "";
+      sheet.hidePopover();
+      if (changed) {
+        select.dispatchEvent(new Event("input", { bubbles: true }));
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
+    sheet.addEventListener("keydown", (event) => {
+      const rows = rowsOf(sheet);
+      const at = rows.indexOf(document.activeElement as HTMLElement);
+      const to =
+        event.key === "ArrowDown"
+          ? at + 1
+          : event.key === "ArrowUp"
+            ? at - 1
+            : event.key === "Home"
+              ? 0
+              : event.key === "End"
+                ? rows.length - 1
+                : null;
+      if (to === null) return;
+      event.preventDefault();
+      rows[(to + rows.length) % rows.length]?.focus();
+    });
+    // Closed by a pick, Escape or a press outside: focus goes back to the field.
+    sheet.addEventListener("toggle", (event) => {
+      if ((event as ToggleEvent).newState === "closed" && sheet.contains(document.activeElement))
+        select.focus({ preventScroll: true });
+    });
+    wrapper.after(sheet);
+  }
+  fill(list, select, list.id);
+  list.showPopover();
+  // Focus moves in for a keyboard and a screen reader; a finger's ring is not drawn (focusVisible).
+  const row = list.querySelector<HTMLElement>('[aria-selected="true"]') ?? rowsOf(list)[0];
+  row?.focus({ preventScroll: true, ...(byKey ? {} : { focusVisible: false }) } as FocusOptions);
+  row?.scrollIntoView({ block: "center" });
+}
+
+/** Stops the browser's own list on a phone and opens the sheet in its place. */
+export function installSelectSheet(): void {
+  if (installed) return;
+  installed = true;
+
+  // The browser opens a select on the press (a pointer) or on the tap that follows it (a finger):
+  // both are stopped, and the sheet opens on the click.
+  document.addEventListener(
+    "mousedown",
+    (event) => {
+      if (sheetFor(event.target)) event.preventDefault();
+    },
+    true,
+  );
+  document.addEventListener(
+    "click",
+    (event) => {
+      const select = sheetFor(event.target);
+      if (!select) return;
+      event.preventDefault();
+      open(select, false);
+    },
+    true,
+  );
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      const select = sheetFor(event.target);
+      if (!select || !(KEYS.has(event.key) || (event.altKey && event.key === "ArrowDown"))) return;
+      event.preventDefault();
+      open(select, true);
+    },
+    true,
+  );
+}

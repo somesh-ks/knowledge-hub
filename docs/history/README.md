@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-10-31 | [Phone list sheets](2026-10-31-phone-list-sheets.md) | A select's list on a phone is the Menu's sheet, one 48px row (D265) |
 | 2026-10-30 | [Fewer PRs](2026-10-30-fewer-prs.md) | One PR per task, one rolling design-system PR, small fixes batched (D254) |
 | 2026-10-30 | [Experiments page](2026-10-30-experiments-page.md) | Switches, Promote and shadow counts on one admin page (D249) |
 | 2026-10-29 | [The style guide as its own app](2026-10-29-style-guide.md) | `apps/design` at `/design`: colour with live contrast, type, tokens; hand-written component specs built and cut for parity (D226) |

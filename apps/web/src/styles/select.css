@@ -218,50 +218,8 @@
     }
   }
 
-  /* On a phone the list is a bottom sheet (owner, 2026-10-23, D167), as the More menu is (hero.css,
-     .menu-sheet): held by the screen's bottom edge, not the field, with the sheet's corners and
-     surface, a scrim behind it, and a slide up and down in place of the fade. Later than the
-     Library's margin rule above, so it outweighs it at the same specificity. */
-  @media (width < 40rem) {
-    :is(.select-outlined, .select-tonal) > select::picker(select) {
-      position: fixed;
-      position-area: none;
-      position-try-fallbacks: none;
-      inset: auto 0 0 0;
-      inline-size: min(100%, var(--layout-column));
-      min-inline-size: 0;
-      max-inline-size: none;
-      max-block-size: min(var(--pick-list-height), 70dvh);
-      margin: 0 auto;
-      padding: var(--space-2) var(--space-2) max(var(--space-2), var(--safe-bottom));
-      border: 0;
-      border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
-      background: var(--sheet-bg);
-      /* The scrim is a spread of the sheet's own shadow: the list's ::backdrop cannot be styled
-         through the build (lightningcss rejects `::picker(select)::backdrop`), and a popover's
-         backdrop lets a tap through to the page either way. */
-      box-shadow:
-        var(--sheet-shadow),
-        0 0 0 100vmax var(--color-scrim);
-      opacity: 1;
-      translate: 0 105%;
-      transition:
-        translate var(--duration-sheet-out) var(--ease-drawer),
-        overlay var(--duration-sheet-out) allow-discrete,
-        display var(--duration-sheet-out) allow-discrete;
-    }
-
-    :is(.select-outlined, .select-tonal) > select:open::picker(select) {
-      translate: 0;
-      transition-duration: var(--duration-sheet-in);
-    }
-
-    @starting-style {
-      :is(.select-outlined, .select-tonal) > select:open::picker(select) {
-        translate: 0 105%;
-      }
-    }
-  }
+  /* On a phone the list is the standard bottom sheet, drawn by selectSheet.ts, which stops this
+     one (owner, 2026-10-31). Where that script has not loaded, the list stays this popover. */
 
   :is(.select-outlined, .select-tonal) > select option {
     display: flex;
@@ -273,7 +231,7 @@
     padding-inline: var(--space-4);
     border-radius: var(--row-radius);
     /* No fill of its own: the browser's option is a shade off the surface in dark, which drew every
-       row as a button (owner, 2026-10-31). Hover and focus draw the state layer below. */
+       row as a button. Hover and focus draw the state layer below. */
     background: transparent;
     font-size: var(--font-size-body);
     font-weight: var(--font-weight-medium);
@@ -283,13 +241,6 @@
 
   :is(.select-outlined, .select-tonal) > select option + option {
     margin-block-start: var(--space-2);
-  }
-
-  /* Where the list is a sheet its rows are as tall as the menu's and the picker's (--size-option). */
-  @media (width < 40rem) {
-    :is(.select-outlined, .select-tonal) > select option {
-      min-block-size: var(--size-option);
-    }
   }
 
   /* A group's heading starts where its options' words do, whatever side the field aligns its value
