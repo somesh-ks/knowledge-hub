@@ -7,7 +7,8 @@ export type PartKind =
   | "feedback"
   | "container"
   | "field"
-  | "layout";
+  | "layout"
+  | "display";
 
 /** What an author writes for a part: the judgment. The build derives the rest from the code. */
 export interface PartSource {

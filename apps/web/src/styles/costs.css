@@ -84,11 +84,6 @@
 /* The figure the page leads with: the same sans, proportional figures, the display step. */
 .costs-total {
   margin: 0;
-  font-family: var(--text-display-family);
-  font-size: var(--text-display-size);
-  font-weight: var(--text-display-weight);
-  letter-spacing: var(--text-display-tracking);
-  line-height: var(--text-display-leading);
 }
 
 /* Under the total: a tile per figure it is made of (the shared .stat-tiles, primitives.css), which

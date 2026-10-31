@@ -1,9 +1,9 @@
 ---
 import Select from "../design-system/Select.astro";
 import "../styles/field.css";
-import Icon from "../components/Icon.astro";
 import ManageChrome from "../components/ManageChrome.astro";
 import Button from "../design-system/Button.astro";
+import Icon from "../design-system/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { buildDay } from "../lib/buildDay";
 import { loadManage } from "../lib/manage";
@@ -89,13 +89,13 @@ const THEME_LABELS: Record<ThemePreference, string> = {
          the page ready. Until then each control keeps its place and shows no state, which is why a
          stored Dark never flashes System first. */}
     <div class="settings-view" data-settings>
-      <h1 id="page-title" tabindex="-1">Settings</h1>
+      <h1 class="text-display" id="page-title" tabindex="-1">Settings</h1>
       <noscript>
         <p class="settings-note">These settings need JavaScript, which is turned off in this browser.</p>
       </noscript>
 
       <section>
-        <h2 class="section-head">Podcast</h2>
+        <h2 class="section-head text-heading">Podcast</h2>
         <div class="rows card-group">
           {
             PODCAST.map((row) => (
@@ -122,7 +122,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
       </section>
 
       <section>
-        <h2 class="section-head">Sound</h2>
+        <h2 class="section-head text-heading">Sound</h2>
         <div class="rows card-group">
           {
             SOUND.map((row) => (
@@ -143,7 +143,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
       </section>
 
       <section>
-        <h2 class="section-head">Appearance</h2>
+        <h2 class="section-head text-heading">Appearance</h2>
         <div class="rows card-group">
           {/* A select drawn as the AI model's is (2026-10-21). No option is selected in the markup:
                settingsPage.ts sets the stored one, and until then the value is not drawn, so a stored
@@ -162,7 +162,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
       </section>
 
       <section>
-        <h2 class="section-head">Analytics</h2>
+        <h2 class="section-head text-heading">Analytics</h2>
         <div class="rows card-group">
           {/* Simple Analytics' own dashboard (D153 stage 1): no route, no key, no copy of the data. */}
           <a
@@ -180,7 +180,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
       </section>
 
       <section>
-        <h2 class="section-head">About</h2>
+        <h2 class="section-head text-heading">About</h2>
         <div class="rows card-group">
           <a class="row-action" href="/settings/about">
             <span class="settings-text">

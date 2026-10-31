@@ -396,11 +396,11 @@ html[data-mini="visible"] main {
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
-.app-nav-indicator > .icon {
+.app-nav-indicator > .icon-glyph {
   grid-area: 1 / 1;
 }
 
-.app-nav-item .icon {
+.app-nav-item .icon-glyph {
   width: var(--nav-item-icon);
   height: var(--nav-item-icon);
   transition: scale var(--duration-press-out) var(--ease-out);
@@ -411,7 +411,7 @@ html[data-mini="visible"] main {
   color: var(--color-on-surface);
 }
 
-.app-nav-item:active .icon {
+.app-nav-item:active .icon-glyph {
   scale: var(--scale-press);
   transition-duration: var(--duration-press-in);
 }

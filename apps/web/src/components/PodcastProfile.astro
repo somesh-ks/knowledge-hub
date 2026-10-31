@@ -2,10 +2,10 @@
 import Select from "../design-system/Select.astro";
 import "../styles/field.css";
 import { SUPPORTED_TIMEZONES, zoneLabel } from "@singularity/core";
+import Icon from "../design-system/Icon.astro";
 import Switch from "../design-system/Switch.astro";
 import { LENGTHS } from "../lib/createForm";
 import { CADENCES, hourLabel, WEEKDAYS } from "../lib/schedule";
-import Icon from "./Icon.astro";
 import "../styles/picker.css";
 
 interface Props {
@@ -72,7 +72,7 @@ const inScope = (ids: readonly string[]): boolean =>
 
   <fieldset class="manage-fields podcast-body" data-body disabled={!values.enabled}>
   <section class="podcast-section" aria-labelledby={`${id}-episode-head`}>
-    <h2 class="section-head" id={`${id}-episode-head`}>Episode</h2>
+    <h2 class="section-head text-heading" id={`${id}-episode-head`}>Episode</h2>
     <div class="rows card-group">
       <div class="settings-row">
         <label class="settings-label" for={`${id}-length`}>Max length</label>
@@ -88,7 +88,7 @@ const inScope = (ids: readonly string[]): boolean =>
   </section>
 
   <section class="podcast-section" aria-labelledby={`${id}-schedule-head`}>
-    <h2 class="section-head" id={`${id}-schedule-head`}>Schedule</h2>
+    <h2 class="section-head text-heading" id={`${id}-schedule-head`}>Schedule</h2>
     <div class="rows card-group">
       {/* One setting for both podcasts: the cron route, the gate and the next line count on its clock. */}
       <div class="settings-row">
@@ -153,7 +153,7 @@ const inScope = (ids: readonly string[]): boolean =>
   </section>
 
   <section class="podcast-section" aria-labelledby={`${id}-topics-head`}>
-    <h2 class="section-head" id={`${id}-topics-head`}>Categories</h2>
+    <h2 class="section-head text-heading" id={`${id}-topics-head`}>Categories</h2>
     {
       topics.length > 0 ? (
         <fieldset class="filter-chips podcast-topics card-group" aria-labelledby={`${id}-topics-head`} data-scope-chips data-built-topics={builtTopics.join(" ")}>
