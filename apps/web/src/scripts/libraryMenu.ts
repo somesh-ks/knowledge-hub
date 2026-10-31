@@ -2,12 +2,14 @@
  * The ⋮ menu at the end of each Library row (components/LibraryItemMenu.astro): Download, Add to
  * queue, Share, and Regenerate and Delete, which are the episode and briefing pages' own dialogs
  * (episodeActionsEntry.ts, episodeActions.ts, the Generate sheet) opened from here. The popover,
- * its keys and its placement are the header More menu's (heroMenu.ts). Which rows are downloaded is
+ * its keys and its placement are the header More menu's (heroMenu.ts); a finger opens it by a long
+ * press on the card (cardHold.ts, D264). Which rows are downloaded is
  * read from Cache Storage on load and after every change. The briefing and episode pages' More menu
  * (HeroMenu.astro, `data-page-menu`) offers the same Download and Add to queue and is wired here too.
  */
 import { track } from "../lib/analytics";
 import { NotReadyError } from "../lib/downloads";
+import { installCardHold } from "./cardHold";
 import { installEpisodeActions } from "./episodeActionsEntry";
 import { installHeroMenu } from "./heroMenu";
 import { shareItem, stopSharing, syncStopSharing } from "./shareLink";
@@ -136,6 +138,7 @@ export function installLibraryMenu(): void {
   installed = true;
   installHeroMenu();
   installEpisodeActions();
+  installCardHold();
 
   // The Generate sheet replaces the briefing named by the first [data-briefing] on the page, and a
   // Library holds many: only the row being regenerated carries it, and only while the sheet opens.

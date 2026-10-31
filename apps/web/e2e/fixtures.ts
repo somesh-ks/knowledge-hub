@@ -352,3 +352,34 @@ export async function expectNoViolationsInEitherScheme(page: Page): Promise<void
     expect(await violations(page), `${scheme} scheme`).toEqual([]);
   }
 }
+
+/** A finger, which a phone's long press needs: Playwright has no hold, so the touch goes by the protocol. */
+export async function holdFinger(page: Page, target: Locator): Promise<() => Promise<void>> {
+  await target.scrollIntoViewIfNeeded();
+  const box = await target.boundingBox();
+  if (!box) throw new Error("nothing to hold: the target has no box");
+  const at = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  const client = await page.context().newCDPSession(page);
+  await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [at] });
+  return async () => {
+    await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await client.detach();
+  };
+}
+
+/**
+ * Opens a Library row's menu the way the device does (D264): a hold on a touch screen, where the
+ * ⋮ is not pressable, and a press of the ⋮ with a mouse.
+ */
+export async function openRowMenu(page: Page, row: Locator): Promise<void> {
+  const touch = await page.evaluate(
+    () => matchMedia("(hover: none) and (pointer: coarse)").matches,
+  );
+  if (!touch) {
+    await row.locator("[data-hero-more]").click();
+    return;
+  }
+  const release = await holdFinger(page, row.locator(".card-title"));
+  await expect(row.locator(".menu-list")).toBeVisible();
+  await release();
+}
