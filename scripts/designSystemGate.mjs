@@ -53,6 +53,13 @@ const MAY_CHANGE = [
   "docs/design/command-center.md",
   "docs/specs/README.md",
   "apps/web/src/lib/icons.ts",
+  // The rest of what tokens/glyphs.json builds: the player's two registries, the generator and its
+  // test. glyphs.json is a system path, and a change to it (a bold twin per glyph, D274) must
+  // regenerate all three registries in the same pull request or `glyphs --check` fails.
+  "apps/web/src/player/ui/iconPaths.tsx",
+  "apps/web/src/player/ui/iconPathsLazy.tsx",
+  "scripts/buildGlyphs.ts",
+  "scripts/buildGlyphs.test.ts",
   "scripts/gate.mjs",
   "docs/state.md",
   // The Icon moved into the system (D266); its old path is deleted.
