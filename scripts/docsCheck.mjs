@@ -6,7 +6,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-// Bytes. Read-first is what every session reads: AGENTS.md, state.md and the decisions Index.
+// Bytes. Read-first is what every session reads: AGENTS.md and state.md.
 export const BUDGETS = {
   "AGENTS.md": 7_000,
   "docs/state.md": 12_000,
@@ -14,9 +14,12 @@ export const BUDGETS = {
   "docs/specs/README.md": 4_000,
 };
 export const SPEC_BUDGET = 8_000;
-export const READ_FIRST_BUDGET = 40_000;
+// What every session reads: AGENTS.md and state.md. The Index is searched, never read whole, so it has
+// a budget of its own (D283).
+export const READ_FIRST_BUDGET = 20_000;
+export const INDEX_BUDGET = 40_000;
 // Folders with an index of their own, left out of the docs README check.
-const OWN_INDEX = ["decisions/", "history/", "prototype/", "specs/"];
+const OWN_INDEX = ["decisions/", "history/", "ledger/", "prototype/", "specs/"];
 
 const read = (path) => readFileSync(path, "utf8").replace(/\r\n/g, "\n");
 
@@ -59,9 +62,11 @@ export function checkDocs(root) {
   const decisions = entryFiles.map(read).join("\n");
   const readFirst = ["AGENTS.md", "docs/state.md"]
     .filter((rel) => existsSync(at(rel)))
-    .reduce((sum, rel) => sum + size(rel), Buffer.byteLength(index));
+    .reduce((sum, rel) => sum + size(rel), 0);
   if (readFirst > READ_FIRST_BUDGET)
     fails.push(`read-first: ${readFirst} bytes, budget ${READ_FIRST_BUDGET}`);
+  if (Buffer.byteLength(index) > INDEX_BUDGET)
+    fails.push(`decisions Index: ${Buffer.byteLength(index)} bytes, budget ${INDEX_BUDGET}`);
 
   // Every Index row has an entry and every entry a row; a supersession names a decision that exists.
   const rows = new Set([...index.matchAll(/^\| (D\d+) \|/gm)].map((m) => m[1]));

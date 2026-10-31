@@ -6,11 +6,11 @@ Private design-engineering news briefing. A GitHub Actions engine writes a diges
 
 1. [docs/state.md](docs/state.md): what works, what is unverified (each with `closed when:`), what is next. Rewritten, never appended.
 2. [docs/learnings.md](docs/learnings.md): gotchas by area. Search it before debugging.
-3. [docs/decisions/](docs/decisions/README.md): grep the Index; open an area file only for an entry's reasoning.
+3. [docs/decisions/](docs/decisions/README.md): grep the Index, never read it whole; open an area file for a reason.
 
 On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code and tests win; fix a wrong spec), [docs/history/](docs/history/README.md) for the why of a past change, and [the test postmortem](docs/engineering/postmortem-test-suite.md) before you add, change or delete a test. `node scripts/docsCheck.mjs` holds the budgets.
 
-[docs/README.md](docs/README.md) maps every doc; [docs/runbook.md](docs/runbook.md) is owner setup. Before UI work, read [docs/design-engineering-ledger.md](docs/design-engineering-ledger.md): the owner's taste, the code's gaps, ideas not yet built.
+[docs/README.md](docs/README.md) maps every doc; [docs/runbook.md](docs/runbook.md) is owner setup. Before UI work, read the owner's taste in [the ledger core](docs/design-engineering-ledger.md), then your surface in [docs/ledger/](docs/ledger/README.md).
 
 ## Commands
 

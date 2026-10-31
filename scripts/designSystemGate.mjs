@@ -45,6 +45,7 @@ const MAY_CHANGE = [
   "docs/decisions/",
   "docs/history/",
   "docs/design-engineering-ledger.md",
+  "docs/ledger/",
   "docs/specs/look-and-sound.md",
   // A spec that names a class a family retired (the Costs chips were the shared `.sort-field`).
   "docs/specs/costs.md",
