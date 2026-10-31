@@ -189,7 +189,12 @@ function parseStyles(raw: unknown, byPath: Map<string, Token>): StyleDefinition[
         return;
       }
       for (const [key, child] of Object.entries(node)) {
-        if (key.startsWith("$") || !isRecord(child)) continue;
+        if (key.startsWith("$")) continue;
+        if (!isRecord(child)) {
+          throw new Error(
+            `style ${name}, ${[...path, key].join(".")}: expected a token or a group`,
+          );
+        }
         visit(child, [...path, key]);
       }
     };

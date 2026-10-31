@@ -636,6 +636,10 @@ describe("styles", () => {
     expect(css).toContain(':root:not([data-theme="light"])[data-style="bold"] {');
     expect(css).toContain(':root[data-theme="dark"][data-style="bold"] {');
     expect(css).toContain("--card-radius: 2.5rem;");
+    const dark = css.slice(at(':root[data-theme="dark"][data-style="bold"] {'));
+    const darkBody = dark.slice(0, dark.indexOf("}"));
+    expect(darkBody).toContain("oklch(10% 0 0)");
+    expect(darkBody).not.toContain("oklch(99% 0 0)");
   });
 
   // Each of these would otherwise ship quietly: a light-only color lets the base's dark value show
@@ -654,5 +658,8 @@ describe("styles", () => {
       /no such token/,
     );
     expect(() => parseTokens({ ...raw, styles: { default: {} } })).toThrow(/not "default"/);
+    expect(() => withStyle({ semantic: { color: { surface: "oklch(99% 0 0)" } } })).toThrow(
+      /expected a token or a group/,
+    );
   });
 });
