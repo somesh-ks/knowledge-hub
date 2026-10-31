@@ -94,6 +94,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Build and tooling
 
+- 2026-10-31: a new token fails CI `check` until `npm run system` rewrites `tokens/system.json` and `llms.txt`; `npm run tokens` alone is not enough.
 - 2026-10-31: a new shared stylesheet import reorders equal-specificity rules (icon.css flipped the player's collapse chip ink). Diff built pages' computed styles after an import move.
 - 2026-10-30: designSystem.test reads quoted text: a retired class equal to a file name or a selector string counts as writing it.
 - 2026-10-28: cloud Node 22.22 fails `astro check`: `. /opt/nvm/nvm.sh && nvm install 24`. `pkill -f` kills its own shell.
