@@ -3,6 +3,44 @@ import { expect, SITE, serveNarration, test } from "./helpers";
 /** The player's lazily loaded half, by any name the bundler gives it. */
 const LAZY_CHUNK = /PlayerPageContent|ExpandedPlayer/;
 
+// A deploy while a tab is open names new script files on the next page move, so the tab holds a
+// second copy of the page's code beside the first. Two copies made two stores and two audio
+// elements: Play on the page started one, the bar showed the other, and a press on the bar played
+// both (2026-10-31). The second copy here is the layout script again, with every module it reaches
+// served under a new address, as a deploy's files are.
+test("a second copy of the page's code in the tab leaves one audio, and the page and the bar agree", async ({
+  player,
+  audio,
+  page,
+}) => {
+  await page.route(/\/_astro\/[^?]*\.js\?second-copy$/, async (route) => {
+    const original = await route.fetch({ url: route.request().url().replace("?second-copy", "") });
+    const source = (await original.text()).replace(
+      /(\bfrom\s*|\bimport\(\s*)"(\.\/[^"?]+\.js)"/g,
+      '$1"$2?second-copy"',
+    );
+    await route.fulfill({ response: original, body: source });
+  });
+  await player.open();
+  await page.evaluate(async () => {
+    const entry = performance
+      .getEntriesByType("resource")
+      .map((resource) => resource.name)
+      .find((name) => /\/BaseLayout\.astro_astro_type_script[^/]*\.js$/.test(name));
+    if (!entry) throw new Error("the page loaded no layout script");
+    await import(`${entry}?second-copy`);
+  });
+  await player.play();
+  expect(await audio.count()).toBe(1);
+  await expect(player.cta).toHaveAccessibleName(/^Pause the podcast/);
+  await player.finger.press(player.dock.getByRole("button", { name: "Pause", exact: true }));
+  await expect(player.cta).toHaveAccessibleName(/^Resume the podcast/);
+  await player.finger.press(player.dock.getByRole("button", { name: "Play", exact: true }));
+  await expect(player.root).toHaveAttribute("data-player-state", "playing");
+  expect(await audio.count()).toBe(1);
+  expect((await audio.read())?.paused).toBe(false);
+});
+
 test("a listening journey across pages: A on Today, B from the Library, back to A where it stopped", async ({
   player,
   audio,

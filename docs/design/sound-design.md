@@ -85,7 +85,7 @@ At the default volume of 0.8 the master gain is 0.64 (-3.9 dB), so the signature
 
 ### Deliberately silent
 
-Scrolling, link taps, hover, theme changes, keyboard navigation (arrow-key seeking makes no scrub ticks), the 15-second skips, chapter list taps beyond the play cue they trigger, cancelled gestures, "Nothing cleared the bar." and any repeat inside a sound's retrigger window.
+Scrolling, link taps, hover, theme changes, keyboard navigation (arrow-key seeking makes no scrub ticks), the 15-second skips, chapter list taps beyond the play cue they trigger, cancelled gestures and any repeat inside a sound's retrigger window.
 
 ## Recipes
 

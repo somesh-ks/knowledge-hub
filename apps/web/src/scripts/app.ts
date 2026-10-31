@@ -1,5 +1,6 @@
 import { counted, installAnalytics } from "../lib/analytics";
 import { watchPlatformFaults } from "../lib/platformFaults";
+import { installCoverMorph } from "./coverMorph";
 import { installCreateEntry } from "./createEntry";
 import { installDeviceBanners } from "./deviceBanners";
 import { installDisabledGuard } from "./disabledGuard";
@@ -25,6 +26,7 @@ trackTyping();
 captureInstallPrompt();
 installNavigation();
 installPersistedMotion();
+installCoverMorph();
 installRootState();
 installCreateEntry();
 installQueueEntry();

@@ -500,11 +500,13 @@ export function mountEditor(root: HTMLElement): Editor {
    * yet carries the pick in that add too.
    */
   const setEmoji = (button: HTMLElement, emoji: string): void => {
-    const trigger = root.querySelector<HTMLElement>("[data-edit-topic]");
-    if (!trigger) return;
+    // A group's page (Design, AI, Technology, Software Engineering) has no Edit menu: its emoji
+    // button carries the home topic's edit itself, and the pick is kept on that topic.
+    const trigger = root.querySelector<HTMLElement>("[data-edit-topic]") ?? button;
+    if (!trigger.dataset.topicBase) return;
     type Upsert = Extract<ConfigOp, { op: "topic.upsert" }>;
     const built = JSON.parse(trigger.dataset.topicBase ?? "{}") as Upsert;
-    const topic = { ...built.topic, emoji, enabled: true };
+    const topic = { ...built.topic, emoji, enabled: built.topic.enabled ?? true };
     trigger.dataset.topicBase = JSON.stringify({ ...built, topic });
     for (const { op } of changes.values())
       if (op.op === "topic.upsert" && op.topic.id === topic.id) op.topic.emoji = emoji;

@@ -5,7 +5,7 @@ import { guardedDatabase } from "../src/server/database";
 import { handleNarrationLookup } from "../src/server/narrate";
 import { handleShare, handleSharePlay, type MakeDeps, openListenLink } from "../src/server/share";
 import type { NarrateLookupResponse } from "../src/types/contracts";
-import { AUDIO_DIGEST, expect, hydrated, test } from "./fixtures";
+import { AUDIO_DIGEST, expect, hydrated, openRowMenu, test } from "./fixtures";
 
 /**
  * The share journey (D153) on the site's own handlers: `/api/share`, `/api/share-play` and the
@@ -209,7 +209,7 @@ test("a shared link opens the app's page in a fresh browser, plays its stored au
   await page.goto("/library");
   await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
   const row = page.locator(`[data-card][data-id="${ID}"]`);
-  await row.locator("[data-hero-more]").click();
+  await openRowMenu(page, row);
   await row.getByRole("menuitem", { name: "Stop sharing" }).click();
   expect((await stopped).status()).toBe(200);
   const play = await listener.evaluate(

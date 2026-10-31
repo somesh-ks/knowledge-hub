@@ -198,4 +198,125 @@ test.describe("the chrome holds still on a move", () => {
     );
     expect(Math.abs(after - before)).toBeLessThan(0.3);
   });
+
+  test("the pill slides from the tab it left and does not jump when the new bar arrives", async ({
+    page,
+  }) => {
+    await openWarm(page);
+    await page.evaluate(() => {
+      const w = window as unknown as { __x: { before: number; after: number } };
+      // Where the pill is drawn: its tab's box plus the slide it is still making.
+      const x = () => {
+        const tab = document.querySelector('.app-nav-item[aria-current="page"] .app-nav-indicator');
+        if (!tab) return Number.NaN;
+        const slide = parseFloat(getComputedStyle(tab, "::before").translate);
+        return tab.getBoundingClientRect().left + (Number.isNaN(slide) ? 0 : slide);
+      };
+      w.__x = { before: Number.NaN, after: Number.NaN };
+      document.addEventListener("astro:before-swap", () => {
+        w.__x.before = x();
+      });
+      document.addEventListener("astro:after-swap", () => {
+        w.__x.after = x();
+      });
+    });
+    const from = await item(page, "/").locator(".app-nav-indicator").boundingBox();
+    await item(page, "/library").click();
+    await expect(heading(page)).toHaveText("Library");
+    const { before, after } = await page.evaluate(
+      () => (window as unknown as { __x: { before: number; after: number } }).__x,
+    );
+    const to = await item(page, "/library").locator(".app-nav-indicator").boundingBox();
+    // It set out from under the old tab, not from under the new one (the press moved it at once)...
+    expect(before).toBeLessThan((to?.x ?? 0) - 1);
+    expect(before).toBeGreaterThanOrEqual((from?.x ?? 0) - 1);
+    // ...and the arriving bar picks it up where the old one left it.
+    expect(Math.abs(after - before)).toBeLessThan(16);
+  });
+});
+
+test.describe("a second press while the pill is still sliding", () => {
+  test("starts the next slide from where the pill is drawn, not from its tab", async ({ page }) => {
+    await openWarm(page);
+    await page.evaluate(() => {
+      const w = window as unknown as { __press: { before: number; after: number } };
+      w.__press = { before: Number.NaN, after: Number.NaN };
+      // Where the pill is drawn: its tab's box plus the slide it is still making.
+      const x = () => {
+        const tab = document.querySelector('.app-nav-item[aria-current="page"] .app-nav-indicator');
+        if (!tab) return Number.NaN;
+        const slide = Number.parseFloat(getComputedStyle(tab, "::before").translate);
+        return tab.getBoundingClientRect().left + (Number.isNaN(slide) ? 0 : slide);
+      };
+      // Every slide is slowed to a crawl, 30 ms in, the moment it starts, on the page that is leaving
+      // and on the one that arrives: the pill is far from under its tab however long the press takes.
+      document.addEventListener("animationstart", () => {
+        for (const animation of document.getAnimations()) {
+          if ((animation as CSSAnimation).animationName === "nav-pill-slide") {
+            animation.effect?.updateTiming({ delay: 0 });
+            animation.currentTime = 30;
+            animation.updatePlaybackRate(0.01);
+          }
+        }
+      });
+      let presses = 0;
+      document.addEventListener(
+        "click",
+        () => {
+          presses += 1;
+          if (presses === 2) w.__press.before = x();
+        },
+        { capture: true },
+      );
+      document.addEventListener("astro:before-preparation", () => {
+        if (presses === 2) w.__press.after = x();
+      });
+    });
+    const library = await item(page, "/library").locator(".app-nav-indicator").boundingBox();
+    await item(page, "/library").click();
+    await item(page, "/settings").click();
+    await expect(heading(page)).toHaveText("Settings");
+    const { before, after } = await page.evaluate(
+      () => (window as unknown as { __press: { before: number; after: number } }).__press,
+    );
+    expect(Math.abs(before - (library?.x ?? 0)), "the pill was mid-slide").toBeGreaterThan(8);
+    expect(Math.abs(after - before)).toBeLessThan(16);
+  });
+});
+
+test.describe("a cover carries you in and out", () => {
+  test("it lands on the box of the cover it becomes, so nothing jumps when it arrives", async ({
+    page,
+  }) => {
+    await page.goto("/library");
+    await page.evaluate(() => {
+      const w = window as unknown as { __flight: Array<[number, number, number]> };
+      w.__flight = [];
+      // Every frame of the flight is kept: the last one is where the cover handed over.
+      document.addEventListener("astro:before-preparation", () => {
+        const tick = () => {
+          const clone = document.querySelector(".cover-morph");
+          if (clone) {
+            const r = clone.getBoundingClientRect();
+            w.__flight.push([r.left, r.top, r.width]);
+          }
+          if (w.__flight.length < 400) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+    });
+    const card = page.locator('a[href^="/d/"]').first();
+    await card.click();
+    await expect(heading(page)).not.toHaveText("Library");
+    await expect(page.locator(".cover-morph")).toHaveCount(0);
+    const hero = await page.locator('.cover[data-size="hero"]').boundingBox();
+    const flight = await page.evaluate(
+      () => (window as unknown as { __flight: Array<[number, number, number]> }).__flight,
+    );
+    const landed = flight.at(-1);
+    expect(landed, "the cover flew").toBeTruthy();
+    expect(Math.abs((landed?.[0] ?? 0) - (hero?.x ?? 0))).toBeLessThan(1.5);
+    expect(Math.abs((landed?.[1] ?? 0) - (hero?.y ?? 0))).toBeLessThan(1.5);
+    expect(Math.abs((landed?.[2] ?? 0) - (hero?.width ?? 0))).toBeLessThan(1.5);
+  });
 });
