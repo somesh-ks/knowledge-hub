@@ -85,7 +85,9 @@ export function checkDocs(root) {
     for (const phrase of status.matchAll(/replaces ((?:D\d+(?:, | and )?)+)/gi)) {
       for (const old of phrase[1].match(/D\d+/g) ?? []) {
         if (rowText.has(old) && !/superseded by/i.test(rowText.get(old) ?? "")) {
-          fails.push(`docs/decisions/README.md: ${id} replaces ${old}, but ${old}'s row is not "superseded by ${id}"`);
+          fails.push(
+            `docs/decisions/README.md: ${id} replaces ${old}, but ${old}'s row is not "superseded by ${id}"`,
+          );
         }
       }
     }

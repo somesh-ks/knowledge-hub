@@ -69,7 +69,9 @@ describe("docs check", () => {
     const entries = { "docs/decisions/area.md": "## D1: One\n\n## D2: Two\n" };
     const bad = checkDocs(repo({ "docs/decisions/README.md": index("active"), ...entries }));
     expect(bad.fails).toEqual([expect.stringContaining('D1\'s row is not "superseded by D2"')]);
-    const good = checkDocs(repo({ "docs/decisions/README.md": index("superseded by D2"), ...entries }));
+    const good = checkDocs(
+      repo({ "docs/decisions/README.md": index("superseded by D2"), ...entries }),
+    );
     expect(good.fails).toEqual([]);
   });
 });
