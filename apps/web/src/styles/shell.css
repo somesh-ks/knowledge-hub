@@ -379,11 +379,14 @@ html[data-mini="visible"] main {
   place-items: center;
   width: var(--nav-indicator-width);
   height: var(--nav-indicator-height);
-  border-radius: var(--radius-round);
+  /* Half the height, so a change of shape starts from the pill. */
+  border-radius: min(var(--radius-round), calc(var(--nav-indicator-height) / 2));
   /* The fill is a layer of its own under the icon, so it can grow without scaling the icon. */
   position: relative;
   isolation: isolate;
-  transition: color var(--duration-hover) var(--ease-hover);
+  transition:
+    color var(--duration-hover) var(--ease-hover),
+    border-radius var(--duration-spring-spatial-default) var(--ease-spring-spatial-default);
 }
 
 .app-nav-indicator::before {
@@ -423,6 +426,8 @@ html[data-mini="visible"] main {
 }
 
 .app-nav-item[aria-current="page"] .app-nav-indicator {
+  /* The current pill's corners are a role token: round, unless a style squares it. */
+  border-radius: min(var(--nav-indicator-radius-current), calc(var(--nav-indicator-height) / 2));
   color: var(--nav-side-item-fg);
 }
 
@@ -443,6 +448,26 @@ html[data-mini="visible"] main {
   from {
     scale: 0.5 1;
     opacity: 0;
+  }
+}
+
+/* Between two tabs the pill does not grow anew: it leaves the tab it was under and settles under the
+   new one (navigation.ts measures the distance on the press). The tab it left lets go at once, so
+   there is one pill in motion, not two. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-nav-arrived="slide"] .app-nav-indicator::before {
+    transition: none;
+  }
+
+  html[data-nav-arrived="slide"] .app-nav-item[aria-current="page"] .app-nav-indicator::before {
+    animation: nav-pill-slide var(--duration-enter) var(--ease-out);
+    animation-delay: calc(var(--nav-pill-elapsed, 0ms) * -1);
+  }
+}
+
+@keyframes nav-pill-slide {
+  from {
+    translate: var(--nav-pill-from, 0px) 0;
   }
 }
 
@@ -574,14 +599,15 @@ html[data-mini="visible"] main {
     gap: var(--space-4);
     height: var(--nav-side-item-height);
     padding-inline: var(--space-4);
-    border-radius: var(--button-radius);
+    border-radius: min(var(--button-radius), calc(var(--nav-side-item-height) / 2));
     color: var(--color-on-surface);
     font-size: var(--font-size-label);
     letter-spacing: 0;
     outline-offset: var(--stroke-ring-gap);
     transition:
       background-color var(--duration-hover) var(--ease-hover),
-      color var(--duration-hover) var(--ease-hover);
+      color var(--duration-hover) var(--ease-hover),
+      border-radius var(--duration-spring-spatial-default) var(--ease-spring-spatial-default);
   }
 
   /* The rows keep their 8px apart, and each row's hit area reaches half of it above and below, so a
@@ -604,9 +630,15 @@ html[data-mini="visible"] main {
     box-shadow: 0 0 0 var(--stroke-ring-gap) var(--color-focus-gap);
   }
 
+  /* The current row takes the current pill's corners, ring included (--nav-indicator-radius-current). */
   .app-nav-item[aria-current="page"] {
+    border-radius: min(var(--nav-indicator-radius-current), calc(var(--nav-side-item-height) / 2));
     background: var(--nav-side-item-bg);
     color: var(--nav-side-item-fg);
+  }
+
+  .app-nav-item[aria-current="page"]:focus-visible {
+    border-radius: min(var(--nav-indicator-radius-current), calc(var(--nav-side-item-height) / 2));
   }
 
   @media (hover: hover) and (pointer: fine) {

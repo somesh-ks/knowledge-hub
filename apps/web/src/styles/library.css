@@ -696,18 +696,22 @@ html[data-library-page="empty"] {
   position: relative;
 }
 
-[data-library][data-view="list"] .card:has(> .card-menu) .card-title,
-[data-library][data-view="list"] .card:has(> .card-menu) .card-sub,
-[data-library][data-view="list"] .card:has(> .card-menu) .card-match {
-  padding-inline-end: calc(var(--size-touch) - var(--space-2));
-}
+/* Only where a button shows: a finger opens the menu by a long press (scripts/cardHold.ts, D264), so
+   a touch screen reserves nothing and the title and the quiet line take the whole row. */
+@media not ((hover: none) and (pointer: coarse)) {
+  [data-library][data-view="list"] .card:has(> .card-menu) .card-title,
+  [data-library][data-view="list"] .card:has(> .card-menu) .card-sub,
+  [data-library][data-view="list"] .card:has(> .card-menu) .card-match {
+    padding-inline-end: calc(var(--size-touch) - var(--space-2));
+  }
 
-/* The menu's reserve takes 2.25rem from the quiet line, so a card that is not a little wider than
-   the narrow one (see the 10.5rem rule above) leaves out the story count too: "Daily · 1 min" on one
-   line, never two. */
-@container (max-width: 12rem) {
-  [data-library][data-view="list"] .card:has(> .card-menu) .card-count {
-    display: none;
+  /* The menu's reserve takes 2.25rem from the quiet line, so a card that is not a little wider than
+     the narrow one (see the 10.5rem rule above) leaves out the story count too: "Daily · 1 min" on
+     one line, never two. */
+  @container (max-width: 12rem) {
+    [data-library][data-view="list"] .card:has(> .card-menu) .card-count {
+      display: none;
+    }
   }
 }
 
@@ -722,8 +726,10 @@ html[data-library-page="empty"] {
   inset-inline-end: 0;
 }
 
-.card:has(> .card-menu) .card-title {
-  padding-inline-end: calc(var(--size-touch) - var(--space-4));
+@media not ((hover: none) and (pointer: coarse)) {
+  .card:has(> .card-menu) .card-title {
+    padding-inline-end: calc(var(--size-touch) - var(--space-4));
+  }
 }
 
 .card-more {
@@ -748,6 +754,28 @@ html[data-library-page="empty"] {
   .card:focus-within .card-more,
   .card-menu:has(:popover-open) .card-more {
     opacity: 1;
+  }
+}
+
+/* A finger opens the menu by a long press on the card (scripts/cardHold.ts, D264), so the button is
+   not drawn or pressable there. It stays in the page and the tab order: a screen reader finds it by
+   its label, and a key press shows it (data-input, app.ts). The hold is not a text selection or a
+   link drag, and the link's own callout is off (foundations.css). */
+@media (hover: none) and (pointer: coarse) {
+  .card-more {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  :root[data-input="keyboard"] .card-more:focus-visible {
+    opacity: 1;
+  }
+
+  .card-link,
+  .card-link * {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-user-drag: none;
   }
 }
 

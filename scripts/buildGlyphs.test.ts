@@ -98,6 +98,17 @@ describe("pathFromSvg", () => {
       )
       .map(([name]) => name);
     expect(drifted, "owner 2026-10-21: only real Phosphor paths").toEqual([]);
+    // The bold twin, which a style shows through icon.bold, is Phosphor's bold SVG too (D268).
+    const driftedBold = Object.entries(doc.glyphs)
+      .filter(([, glyph]) => glyph.weight === "regular")
+      .filter(
+        ([, glyph]) =>
+          pathFromSvg(
+            readFileSync(resolve(root, symbolFile({ ...glyph, weight: "bold" })), "utf8"),
+          ) !== glyph.bold,
+      )
+      .map(([name]) => name);
+    expect(driftedBold, "every regular glyph keeps its real bold twin").toEqual([]);
     expect(validateGlyphs(withGlyph("x", { phosphor: "" }))).not.toEqual([]);
   });
 
@@ -112,7 +123,9 @@ describe("generated registries", () => {
     const source = buildPageRegistry(doc);
     expect(buildPageRegistry(loadGlyphs())).toBe(source);
     expect(source).toContain(GENERATED_HEADER);
-    const names = [...source.matchAll(/^ {2}([a-zA-Z0-9]+):/gm)].map((match) => match[1]);
+    // The glyphs only: the bold twins that follow are a second, partial list (D268).
+    const glyphsOnly = source.slice(0, source.indexOf("ICON_BOLD_PATHS"));
+    const names = [...glyphsOnly.matchAll(/^ {2}([a-zA-Z0-9]+):/gm)].map((match) => match[1]);
     expect(names).toEqual([...names].sort());
     expect(names).toContain("openInNew");
     // A glyph that only the player uses stays out of the page bundle.

@@ -38,6 +38,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Engine and workflows
 
+- 2026-10-31: `serializeTopics` lists fields, `upsertTopic` branches by origin: a new `Topic` field needs both.
 - 2026-10-28: a run record's and the ledger's `at` is publish time (96 min for 3); time a run as `generated_at` less `window.to` (D203).
 - 2026-10-27: a briefing shipped 3 stories (79 s): grounding dropped 5 of 8 and the refill found the reserve empty, because the structure's section caps capped the reserve too (#373 lifts them for the reserve and warns `under_length`).
 - 2026-10-27: the runner has no ffmpeg with libopus, so Opus and its test skipped silently; ffprobe counts MP3 padding (52 ms a turn). The workflows install it; turns are measured by decoding. The install hung 5 to 19 min behind `-qq`: bound apt, skip man-db, log, `continue-on-error` where an MP3 exists (#388).
@@ -54,7 +55,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-30: the judge flagged all 21 favorite-creator videos since 9 Oct: it read links and a sponsor line. The Judge step lacked `FIRECRAWL_API_KEY`, so 3 videos a run (Gemini cap) got a transcript; a stage reads only its own `env`.
 - 2026-10-19: a YouTube finalist reached the writer with only its description: `extractFullText` fetched a watch page with no speech. YouTube items go through `extract/youtubeText.ts` (cache, Firecrawl, then Gemini; `state/video-text.json`); failure falls back to the description.
 - 2026-10-07: `audio.yml` failed at the write guard ("changes outside the publish allowlist: .gitignore"): `vercel link` and `vercel env pull` edit `.gitignore` and write `.vercel`; run them in a scratch directory outside the checkout.
-- 2026-10-30: Hobby Blob allows 2,000 advanced ops a month (`put`, `copy`, `list`); over it the store is blocked 30 days. Ingest wrote a put per story (D251): count a job's puts per run. The CDN keys a function's answer by request path and obeys `vercel.json` header rules, not the query or `Vercel-CDN-Cache-Control`; a `has` capture missed (D263).
+- 2026-10-30: Hobby Blob allows 2,000 advanced ops a month (`put`, `copy`, `list`); over it the store is blocked. Ingest wrote a put per story (D251): count a job's puts. The CDN keys a function's answer by request path and obeys `vercel.json` header rules, not the query or `Vercel-CDN-Cache-Control`; a `has` capture missed (D263).
 - 2026-10-18: the 15-minute weekly aired 14 stories: the prefilter's fixed cap of 80 filled 27 of 52 slots and grounding dropped 11. `poolCapFor` now sizes it. Read a short episode's funnel from the stage lines first.
 - 2026-10-15: Claude Sonnet 5.5 answers 400 "temperature is deprecated" to any request with `temperature`, and the writer chain fell through silently to Nebius from 2026-10-14 while Settings said Sonnet. The Anthropic client sends no temperature; a pick that fails over should be visible, not only in logs.
 - 2026-10-15: a source with 0 fetched items and OK health is not always broken: One Useful Thing and AUX First post monthly (newest items 2026-10-01 and 2026-09-21). Read the feed's newest date before calling a source dead.
@@ -71,7 +72,8 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Site and service worker
 
-- 2026-10-31: a persisted island put back restarts its CSS animations: `persistedMotion.ts`.
+- 2026-10-31: a deploy mid-session loads a second copy of the player (two audios): share via `tabShared`.
+- 2026-10-31: a persisted island put back restarts its CSS animations: `persistedMotion.ts`. A box measured at `astro:after-swap` is mid page slide (8px off): wind the entrance to its end first (`coverMorph.ts`). A token alias in `primitive` fails the literal test.
 - 2026-10-30: a change reloaded mid-write came back undone: Chromium rejects a request still out at unload (`keepalive` keeps the request, not the promise) before pagehide runs. Ask `endedByLeaving()` before calling no answer a failure; test on a real server.
 - 2026-10-29: a `button.app-nav-item` made `navigationBoost` fetch `/undefined`; it takes `a.app-nav-item` only. A run's end toast needs the sheets island awake.
 - 2026-10-28: a layout element's `data-briefing="Briefing"` made every Regenerate send `replace: "Briefing"` (forms read `dataset.briefing` off the page). Words in a layout take a `data-word-` prefix.
@@ -85,16 +87,17 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-24: with the store on, a refused add said only "The server turned that change down": the function refuses edits itself now (duplicate source, missing topic, dead page) and said why only in its log. The 400 carries the engine's sentence as `reason` for the toast.
 - 2026-10-22: after a deploy, saved pages kept the old layout (D145); a download lost its player offline (scripts in a versioned cache).
 - 2026-10-22: TBT is root `:has()` restyles (first-load-js.md).
-- 2026-10-16: an installed Android web app keeps the manifest's theme_color from install and paints the system navigation bar in it (Chromium's WebAppNavigationBarThemeColor); a runtime theme-color meta never repaints it, and Chrome 128 dropped dark manifest colours. Leave theme_color out to get bars that follow the system theme.
+- 2026-10-16: an installed Android web app keeps the manifest's theme_color from install for the system navigation bar; a runtime theme-color meta never repaints it. Leave theme_color out so the bars follow the system theme.
 - 2026-10-14: on mobile Chrome a fixed element held by its bottom edge moves with the address bar in the same frame; one held by both edges (`inset: 0`) resizes only after the gesture, so the bottom stack drifted apart (#120). Hold bottom-stack elements by the bottom edge; full-height boxes by `100dvh`.
-- 2026-10-11: Safari 27 has no `overlay`, so a closing dialog or popover leaves the top layer as its exit starts and the exit plays in the page: give top-layer elements their own `position` and a z-index (the top layer ignores it), and close at once under `@supports not (overlay: auto)` where an ancestor has a transform.
+- 2026-10-11: Safari 27 has no `overlay`, so a closing dialog or popover leaves the top layer as its exit starts: give top-layer elements their own `position` and a z-index (the top layer ignores it), and close at once under `@supports not (overlay: auto)` where an ancestor has a transform.
 - 2026-10-11: the voice sample button never worked in production: it played Speechify's own URL, which the page's `media-src` blocks, and its error handler hid the button, so it looked like a missing feature. A media URL from a third party needs the CSP checked, or a same-origin route (`/api/voice-sample`).
 - 2026-10-09: a move took 400 ms though the page was ready after 70: the mark that picks the animation (`data-astro-nav`) was lost in the swap, as Astro 7 keeps only its own root attributes. Carry it onto `event.newDocument` in `astro:before-swap`; check with `document.getAnimations()`.
 - 2026-10-09: The first press after opening the app blocks for about 200 ms with the audio device idle, about 75 ms warm: `new AudioContext()` inside the press. `latencyHint` and `sampleRate` do not help; a first measurement said they did, because the first context created pays. Reverse the order as the control.
 
 ## Build and tooling
 
-- 2026-10-31: a new shared stylesheet import reorders equal-specificity rules (icon.css flipped the player's collapse chip ink). Diff built pages' computed styles after an import move.
+- 2026-10-31: a new token needs `npm run system` too, or CI `check` fails on a stale `system.json`.
+- 2026-10-31: a new stylesheet import reorders equal-specificity rules (icon.css flipped a chip's ink). Diff computed styles after one.
 - 2026-10-30: designSystem.test reads quoted text: a retired class equal to a file name or a selector string counts as writing it.
 - 2026-10-28: cloud Node 22.22 fails `astro check`: `. /opt/nvm/nvm.sh && nvm install 24`. `pkill -f` kills its own shell.
 - 2026-10-25: an `<svg>` in a template string has no `data-icon`, so D187 skips it; use `iconHtml()`.
@@ -134,7 +137,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-25: `scripts/worktreeLinks.mjs` found own packages by the literal scope `@dispatch`; #272 broke it. It reads `package.json` names now. Per package, never a scope (10-26).
 - 2026-10-14: squash-merged branches never pass `git branch -d`, and auto mode refuses `-D`. Match commit subjects against main's squash bodies, keep a bundle of the heads in `.git/`, and let the owner force delete.
 - 2026-10-12: cherry-pick a worker's non-merge commits (`git log --no-merges --reverse <lead>..<branch>`) and run `biome check` again afterwards: a formatting difference between two branches shows only on the combined tree.
-- 2026-10-21: workers hit the 90-call cap again (sources design, docs): brief one piece each and a WIP commit after the first pass. A finished agent's worktree stays locked: `remove -f -f` once the worktree is clean.
-- 2026-10-21: a worktree can start from an older base than the brief names (it lacked 29 commits): check the last commit first and reset to the target before editing.
-- 2026-10-11: the review workflow's code-review plugin stops at a PR it already reviewed: a re-labelled run posts nothing, reports success, and new commits go unreviewed. Review them locally (`/code-review` on the range).
+- 2026-10-21: workers hit the 90-call cap: brief one piece each, WIP commit after the first pass. A finished agent's worktree stays locked: `remove -f -f` once clean.
+- 2026-10-21: a worktree can start from an older base than briefed: check the last commit first, reset to the target before editing.
+- 2026-10-11: the review plugin stops at a PR it already reviewed: a re-labelled run posts nothing and new commits go unreviewed. Run `/code-review` on the range.
 - 2026-10-06: Auto-mode classifier blocks credential creation, store deletion and merging unreviewed PRs; the owner runs those.
