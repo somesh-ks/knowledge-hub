@@ -42,6 +42,7 @@ describe("parsePreferences", () => {
       theme: "dark",
       style: "expressive",
       sounds: false,
+      haptics: true,
       volume: 1,
       rate: 1.5,
       autoplay: false,

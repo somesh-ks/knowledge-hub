@@ -23,7 +23,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Page-move motion (#501, D271). closed when: no flicker, and the slide and flight hold, on his phone.
 - Expressive style (#506; D268, D274, D275, D278), no picker yet. closed when: a style chosen in Appearance survives a reload.
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily says "podcast".
-- More menu (D214); Catch up album, Share circle, cards (D219); card long press (D264). closed when: signed off.
+- More menu (D214); Catch up album, Share circle, cards (D219); long press, haptics (D264, D273). closed when: signed off.
 - Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused; a regenerate or delete uses none.
 - Three regenerations per podcast, counted in its own file (D212). closed when: the page shows "2 of 3 regenerations left".
 - Short podcasts (D204, D216 to D225). closed when: two dailies in a row air within 10% of their length, and `singularity metrics` shows ten runs at `length_share` 0.9+ and `failure_rate` 0.1 or less.

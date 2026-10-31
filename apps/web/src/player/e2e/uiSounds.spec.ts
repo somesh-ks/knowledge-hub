@@ -144,4 +144,44 @@ test.describe("interface cues by kind of action", () => {
     expect(await heard(page)).toEqual([]);
     expect(await oscillators(page)).toBe(0);
   });
+
+  test("Haptics keep their own choice: Off lasts a reload and a menu still sounds, and On is felt once per menu", async ({
+    player,
+    page,
+  }) => {
+    // The phone profile has a touch screen and a vibrate that does nothing here: what is recorded is
+    // the intent asked for, never a pattern.
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "vibrate", { value: () => true, configurable: true });
+      const felt: string[] = [];
+      Object.assign(window, { felt });
+      document.addEventListener("singularity:haptic", (event) =>
+        felt.push((event as CustomEvent<string>).detail),
+      );
+    });
+    const felt = () => page.evaluate(() => (window as unknown as { felt: string[] }).felt);
+    await player.open("/library");
+    await prime(page);
+    await openRowMenu(page, page.locator("[data-card]").first());
+    await expect.poll(() => heard(page)).toEqual(["sheetOpen"]);
+    expect(await felt()).toEqual(["open"]);
+    // The wheel's turn is felt through the same path, and has no sound.
+    // A detent right after the menu's open is inside the rate limit and is dropped: ask again.
+    await expect
+      .poll(async () => {
+        await page.evaluate(() => document.dispatchEvent(new CustomEvent("wheeldetent")));
+        return felt();
+      })
+      .toEqual(["open", "detent"]);
+
+    await page.goto("/settings/sounds");
+    await page.getByLabel("Haptics").selectOption("off");
+    await page.reload();
+    await expect(page.getByLabel("Haptics")).toHaveValue("off");
+    await page.goto("/library");
+    await prime(page);
+    await openRowMenu(page, page.locator("[data-card]").first());
+    await expect.poll(() => heard(page)).toEqual(["sheetOpen"]);
+    expect(await felt()).toEqual([]);
+  });
 });
