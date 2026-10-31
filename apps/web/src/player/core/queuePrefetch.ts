@@ -32,13 +32,17 @@ export function mayPrefetch(connection: Connection | undefined, online: boolean)
   return connection.effectiveType === undefined || connection.effectiveType === "4g";
 }
 
+const connectionNow = (): Connection | undefined =>
+  (navigator as Navigator & { connection?: Connection }).connection;
+
 export function startQueuePrefetch(queue: PlayQueue, fetcher: typeof fetch = fetch): () => void {
   const warmed = new Set<string>();
   let stopped = false;
 
   async function warm(id: string): Promise<void> {
     const digest = await loadQueueDigest(id);
-    if (stopped || !digest?.audio) return;
+    // The link may have changed while the page was read: ask again before spending bytes.
+    if (stopped || !digest?.audio || !mayPrefetch(connectionNow(), navigator.onLine)) return;
     const url = audioCandidates(digest.audio, browserCanPlayType())[0] ?? digest.audio.url;
     if (warmed.has(url)) return;
     warmed.add(url);
@@ -51,6 +55,7 @@ export function startQueuePrefetch(queue: PlayQueue, fetcher: typeof fetch = fet
       // Read to the end so the cache keeps the part; a refusal is simply tried again on a later change.
       if (!response.ok) warmed.delete(url);
       // A host that ignores Range answers 200 with the whole file: drop it unread, the cap holds.
+      // The URL stays marked: asking a host that ignores Range again would only start the same transfer.
       else if (response.status !== 206) void response.body?.cancel();
       else await response.arrayBuffer();
     } catch {
@@ -59,8 +64,7 @@ export function startQueuePrefetch(queue: PlayQueue, fetcher: typeof fetch = fet
   }
 
   function run(): void {
-    const connection = (navigator as Navigator & { connection?: Connection }).connection;
-    if (!mayPrefetch(connection, navigator.onLine)) return;
+    if (!mayPrefetch(connectionNow(), navigator.onLine)) return;
     for (const id of queue.getIds().slice(0, PREFETCH_AHEAD)) void warm(id);
   }
 
