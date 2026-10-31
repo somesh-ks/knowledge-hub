@@ -77,6 +77,16 @@ export const ARRIVED_ATTRIBUTE = "data-nav-arrived";
  */
 export const PILL_ELAPSED_PROPERTY = "--nav-pill-elapsed";
 
+/** The value of ARRIVED_ATTRIBUTE for a bottom bar whose pill slides from the tab it left (shell.css). */
+export const SLIDE_VALUE = "slide";
+
+/**
+ * With the slide: how far left or right of the new tab the old tab's pill stood, in pixels. The
+ * pill starts there and settles under the new tab; both bars lay out alike, so one distance serves
+ * the page that is leaving and the one that arrives.
+ */
+export const PILL_FROM_PROPERTY = "--nav-pill-from";
+
 /** Milliseconds of the pill's growth already played on the page that is leaving, or null if it is not growing. */
 export function pillElapsed(root: ParentNode): number | null {
   const indicator = root.querySelector(".app-nav-item[aria-current='page'] .app-nav-indicator");
@@ -123,8 +133,11 @@ export function installNavigation(): void {
       // The press lit the item on this page and its pill is still growing: the new bar takes over.
       const elapsed = pillElapsed(document);
       if (elapsed !== null) {
-        event.newDocument.documentElement.setAttribute(ARRIVED_ATTRIBUTE, "");
-        event.newDocument.documentElement.style.setProperty(PILL_ELAPSED_PROPERTY, `${elapsed}ms`);
+        const incoming = event.newDocument.documentElement;
+        incoming.setAttribute(ARRIVED_ATTRIBUTE, root.getAttribute(ARRIVED_ATTRIBUTE) ?? "");
+        incoming.style.setProperty(PILL_ELAPSED_PROPERTY, `${elapsed}ms`);
+        const from = root.style.getPropertyValue(PILL_FROM_PROPERTY);
+        if (from) incoming.style.setProperty(PILL_FROM_PROPERTY, from);
       }
     }
     const mine = generation;
@@ -133,6 +146,7 @@ export function installNavigation(): void {
       document.documentElement.removeAttribute(NAV_ATTRIBUTE);
       document.documentElement.removeAttribute(ARRIVED_ATTRIBUTE);
       document.documentElement.style.removeProperty(PILL_ELAPSED_PROPERTY);
+      document.documentElement.style.removeProperty(PILL_FROM_PROPERTY);
     };
     // The marks go once the pill has finished, not when the move's own settle time is up: that is
     // shorter than the growth, and removing the mark ends the animation where it stands.
