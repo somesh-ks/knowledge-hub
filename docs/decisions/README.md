@@ -111,7 +111,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D88 | A reading page's section strip is opaque, a focused headline rings as one block, the playing hero Play is tonal, an old briefing offers Share | active; amends D77 |
 | D89 | The time zone selector is withdrawn until the engine counts in a chosen zone; summaries follow what is saved | active; amends D71 and D79; the selector returned in D100 |
 | D90 | The open player has one left edge, an even rhythm and two weights; its lists are one Tab stop each; Back goes back | active; amends D85 |
-| D91 | Daily and Weekly offer only what a briefing uses; an edit made in the server's gap survives leaving the page | active; amends D74, D79; D100 restored Format and the second voice |
+| D91 | Daily and Weekly offer only what a briefing uses; an edit made in the server's gap survives leaving the page | active; amends D74, D79 |
 | D92 | The rundown is no story, a listener's move never scrolls the page, the open page owns the transport, a glyph says what its button does | active; amends D85 and D90 |
 | D93 | A tab's jump puts the app bar away first, a kept-whole headline word stays atomic, offline switches off every control that starts a run | active; amends D88 |
 | D94 | Up next narrates a briefing without audio, a phone's page never scrolls itself, a failure is told once, the open page closes by mouse | active; amends D92 |
@@ -277,6 +277,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D259 | Saves kept before sending | amends D79, D91, D115, D249 |
 | D262 | Sheet and Drawer split | active; amends D243 |
 | D263 | Cover version in URL | proposed; amends D258 |
+| D264 | Card long press | active |
 | D265 | A select's phone list is the sheet | active; amends D167 |
 | D266 | Icon, Badge, type | amends D243 |
 | D267 | Card, Row | amends D243 |

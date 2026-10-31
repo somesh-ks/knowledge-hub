@@ -1,4 +1,4 @@
-import { expect, hydrated, test } from "./fixtures";
+import { expect, holdFinger, hydrated, openRowMenu, test } from "./fixtures";
 
 /** The podcast with an audio file: the only kind a row can download. */
 const AUDIO_ID = "2026-10-07";
@@ -6,7 +6,7 @@ const row = (page: import("@playwright/test").Page, id: string) =>
   page.locator(`[data-card][data-id="${id}"]`);
 
 async function openMenu(page: import("@playwright/test").Page, id: string) {
-  await row(page, id).locator("[data-hero-more]").click();
+  await openRowMenu(page, row(page, id));
   await expect(row(page, id).locator(".menu-list")).toBeVisible();
 }
 
@@ -85,9 +85,9 @@ test("a podcast page's More menu downloads and queues the podcast, as its row in
   await expect(menu.getByRole("menuitem", { name: "Remove download" })).toBeVisible();
 });
 
-test("pressing a row's three dots moves nothing: not the card, its title or the dots' own glyph, and they sit beside the title", async ({
-  page,
-}) => {
+test("pressing a row's three dots moves nothing: not the card, its title or the dots' own glyph, and they sit beside the title", {
+  tag: "@desktop",
+}, async ({ page }) => {
   await page.goto("/library");
   await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
   const card = row(page, AUDIO_ID);
@@ -368,4 +368,25 @@ test("a phone's menu sheet has no visible Close, a short pull springs back to th
   await openMenu(page, AUDIO_ID);
   await page.touchscreen.tap(195, 40);
   await expect(sheet).toBeHidden();
+});
+
+test("a long press on a card opens its menu and leaves the card unopened", async ({ page }) => {
+  // The click that ends a hold lands on the card's link: without a guard the page opens under the sheet.
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  const release = await holdFinger(page, row(page, AUDIO_ID).locator(".card-title"));
+  await expect(row(page, AUDIO_ID).locator(".menu-list")).toBeVisible();
+  await release();
+  // The lift is followed by mouse events within a few frames: the press would take focus from the
+  // sheet, which closes it, and the click would open the card.
+  await page.evaluate(
+    () =>
+      new Promise<void>((done) => {
+        let frames = 0;
+        const tick = () => (++frames < 12 ? requestAnimationFrame(tick) : done());
+        requestAnimationFrame(tick);
+      }),
+  );
+  await expect(row(page, AUDIO_ID).locator(".menu-list")).toBeVisible();
+  expect(new URL(page.url()).pathname).toBe("/library");
 });
