@@ -370,7 +370,18 @@ test("a phone's menu sheet has no visible Close, a short pull springs back to th
   await expect(sheet).toBeHidden();
 });
 
-test("a long press on a card opens its menu and leaves the card unopened", async ({ page }) => {
+test("a long press on a card opens its menu and leaves the card unopened, and is felt once", async ({
+  page,
+}) => {
+  // The hold's own buzz went into the haptic tokens (D273): one `open`, not the old call and a second.
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "vibrate", { value: () => true, configurable: true });
+    const felt: string[] = [];
+    Object.assign(window, { felt });
+    document.addEventListener("singularity:haptic", (event) =>
+      felt.push((event as CustomEvent<string>).detail),
+    );
+  });
   // The click that ends a hold lands on the card's link: without a guard the page opens under the sheet.
   await page.goto("/library");
   await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
@@ -405,6 +416,9 @@ test("a long press on a card opens its menu and leaves the card unopened", async
   await expect(menu).toBeVisible();
   expect(await page.evaluate(() => (window as unknown as { closes: number }).closes)).toBe(0);
   expect(new URL(page.url()).pathname).toBe("/library");
+  expect(await page.evaluate(() => (window as unknown as { felt: string[] }).felt)).toEqual([
+    "open",
+  ]);
 
   // iPhone Safari closed the sheet at the lift (2026-10-31). A close just after a lift is the
   // hold's own, so the sheet opens again; Chromium never closes it, so the close is made here.

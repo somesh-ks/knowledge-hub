@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { getPlayQueue } from "../core/playerRuntime";
+import type { QueueView } from "../core/playQueue";
 import { loadQueueMeta, type QueueMeta, queueMetaFor } from "../core/queueMeta";
 
 const EMPTY: readonly string[] = [];
@@ -10,6 +11,17 @@ export function useQueue(): readonly string[] {
     (onChange) => getPlayQueue().subscribe(onChange),
     () => getPlayQueue().getIds(),
     () => EMPTY,
+  );
+}
+
+const EMPTY_VIEW: QueueView = { played: EMPTY, current: null, upcoming: EMPTY };
+
+/** What played, what plays now and what is to come (D277): the whole list, as one value. */
+export function useQueueView(): QueueView {
+  return useSyncExternalStore(
+    (onChange) => getPlayQueue().subscribe(onChange),
+    () => getPlayQueue().getView(),
+    () => EMPTY_VIEW,
   );
 }
 

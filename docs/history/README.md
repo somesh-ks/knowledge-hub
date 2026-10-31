@@ -4,7 +4,8 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
-| 2026-10-31 | [Voice list](2026-10-31-voice-list.md) | A voice is heard from its list: Play, name and flag, gender and accent; the page row is a plain value row (D276) |
+| 2026-10-31 | [Voice list](2026-10-31-voice-list.md) | A voice is heard from its list; the page row is a plain value row (D276) |
+| 2026-10-31 | [The queue stays](2026-10-31-queue-stays.md) | Played items stay listed, a tap plays in place, next three prefetched (D277) |
 | 2026-10-31 | [Time wheel](2026-10-31-time-wheel.md) | The hour select opens as an iPhone-style wheel in the phone sheet (D269) |
 | 2026-10-31 | [Phone list sheets](2026-10-31-phone-list-sheets.md) | A select's list on a phone is the Menu's sheet, one 48px row (D265) |
 | 2026-10-30 | [Fewer PRs](2026-10-30-fewer-prs.md) | One PR per task, one rolling design-system PR, small fixes batched (D254) |

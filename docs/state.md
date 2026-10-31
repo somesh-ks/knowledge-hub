@@ -4,10 +4,10 @@ Updated 2026-10-31. Rewrite, never append.
 
 ## Working
 
-- Engine live end to end (fetch, judge, write, validate, commit): [engine](specs/engine.md). A run that loses stories or races a push degrades, not fails, and records health (D204): [resilience](engineering/generation-resilience.md), [metrics](engineering/metrics.md).
-- Reader (Latest, Library, Catch up, Settings): [library](specs/library.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
-- Player as one surface: transcript with word light, chapters in the bar, queue with Up next (D126): [player](specs/player.md).
-- Narration on Play, per story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes; Opus, MP3 fallback (D198): [narration](specs/narration.md), [create](specs/create.md).
+- Engine live end to end: [engine](specs/engine.md). A run that loses stories or races a push degrades, not fails, and records health (D204): [resilience](engineering/generation-resilience.md), [metrics](engineering/metrics.md).
+- Reader: [library](specs/library.md), [settings](specs/settings.md), [health](specs/health.md), [look and sound](specs/look-and-sound.md).
+- Player as one surface: transcript, chapters, a queue that keeps played items (D277): [player](specs/player.md).
+- Narration on Play, per story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes (D198): [narration](specs/narration.md), [create](specs/create.md).
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). Regenerate and Catch up show in the podcast queue with Cancel; ended runs stay for the day (D204, D231).
 - Saved copies, offline shell, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192, D143).
@@ -19,10 +19,11 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 ## Not working or unverified
 
 - Blob on Pro trial since 10-30 (D251, D256). closed when: ops stay under 1,000 a month.
+- Queue plays in place (D277). closed when: a third-item tap keeps the bar up on his phone.
 - Page-move motion (#501, D271). closed when: no flicker, and the slide and flight hold, on his phone.
 - Expressive style (#506; D268, D274, D275, D278), no picker yet. closed when: a style chosen in Appearance survives a reload.
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily says "podcast".
-- More menu (D214); Catch up album, Share circle, cards (D219); card long press (D264). closed when: signed off.
+- More menu (D214); Catch up album, Share circle, cards (D219); long press, haptics (D264, D273). closed when: signed off.
 - Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused; a regenerate or delete uses none.
 - Three regenerations per podcast, counted in its own file (D212). closed when: the page shows "2 of 3 regenerations left".
 - Short podcasts (D204, D216 to D225). closed when: two dailies in a row air within 10% of their length, and `singularity metrics` shows ten runs at `length_share` 0.9+ and `failure_rate` 0.1 or less.
@@ -59,15 +60,15 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 
 ## Known risks
 
-- Vercel storage near 10 GB (10-24), not narration. closed when: explained.
+- Vercel storage near 10 GB. closed when: explained.
 - No passphrase (D160): anyone with the URL can run, narrate, delete and edit config, within the caps.
-- Budget counters can read below real spend: workflow and site count separately against one Speechify allowance.
-- A save made while a briefing runs waits in the `singularity` queue; a later save replaces it; closing the tab in the 10 s gap loses it (D79, D91).
+- Budget counters can read below real spend: workflow and site count apart against one Speechify allowance.
+- A save made while a briefing runs waits in the `singularity` queue; a later save replaces it; closing the tab within 10 s loses it (D79, D91).
 
 ## Next
 
 1. Free the lane in the hold ([D209](decisions/engine.md)).
-2. Owner: regenerate the 3-story 10-27 briefing? Revoke the Vercel token pasted in chat; delete empty store `store_JmrDq8MB5Kwn3ejW`; open calls: [PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md).
+2. Owner: regenerate the 3-story 10-27 briefing? Revoke the Vercel token; delete empty store `store_JmrDq8MB5Kwn3ejW`; open calls: [PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md).
 3. Firecrawl: a per-source yield table for the owner to prune (21 sources gave 1 story per 4,460 credits a month); changelog providers once the pilot holds.
 4. Lighthouse: defer BaseLayout's 34 KiB CSS without breaking the bar; the 1.4 s chain.
 5. `topic` to `category` end to end (plan 14): an inventory, dual-name readers, a store-synced migration, the rename, then the old names go; only with no other PR open ([start](history/2026-10-25-owner-feedback-pass.md#left-out-for-a-later-session)).

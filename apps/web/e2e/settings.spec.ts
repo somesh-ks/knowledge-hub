@@ -181,8 +181,8 @@ test.describe("settings page", () => {
     await expect(settingsLink(page)).toHaveAttribute("aria-current", "page");
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     await expect(theme(page)).toHaveValue("dark");
-    await expect(page.getByRole("link", { name: /^Interface sounds/ })).toContainText("Off");
-    await page.getByRole("link", { name: /^Interface sounds/ }).click();
+    await expect(page.getByRole("link", { name: /^Sounds and haptics/ })).toContainText("Off");
+    await page.getByRole("link", { name: /^Sounds and haptics/ }).click();
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     await expect(sounds(page)).not.toBeChecked();
     await expect(volume(page)).toBeDisabled();

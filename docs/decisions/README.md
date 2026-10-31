@@ -1,6 +1,6 @@
 # Decisions
 
-Each entry records what was decided, why, and what was rejected. Add a new entry at the end of the file below that fits it, with the next number, and a row to the Index. Do not rewrite an old entry: if a decision changes, add a new entry that supersedes it and set the old status to "Superseded by Dn".
+Each entry records what was decided, why, and what was rejected. Add a new entry at the end of the file that fits it, with the next number, and a row to the Index. Do not rewrite an old entry: if a decision changes, add a new entry that supersedes it and set the old status to "Superseded by Dn".
 
 From D124 on, an entry that supersedes another adds `- Context changed:` (one sentence: what made the old decision wrong), and an entry whose reason can expire (a provider, a price, a budget, an unmeasured guess) adds `- Revisit if:` (the evidence that would reopen it). Current behaviour lives in [specs/](../specs/README.md).
 
@@ -26,7 +26,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D3 | Judge is TypeSafe Jev, writer is a cheap Nebius model chosen by a bake-off | active |
 | D4 | Astro with React islands, Base UI and hand-written token CSS | active |
 | D5 | One MP3 per digest with word marks, from Speechify | superseded by D33 for new narration |
-| D6 | Daily cron with a calendar-date gate, plus a Sunday weekly pass | active; Vercel Cron since D61; no weekly since D65 |
+| D6 | Daily cron with a calendar-date gate, plus a Sunday weekly pass | active; Vercel Cron since D61; no weekly D65 |
 | D7 | Podcast feed deferred | active |
 | D8 | "Thought of the Day" cut | active |
 | D9 | Repository `somesh-ks/knowledge-hub`, private | active |
@@ -51,7 +51,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D28 | The audio job runs the Vercel CLI outside the checkout, and its failure is not a failed run | active |
 | D29 | Narration is hosted: a spoken version per story and a code-built host frame | active |
 | D30 | The reader is called Singularity; identifiers keep `dispatch` | see D179 |
-| D31 | The visual language follows Google Podcasts and YouTube Music | active; the play chip is tonal since D72 |
+| D31 | Visual language follows Google Podcasts and YouTube Music | active; play chip tonal since D72 |
 | D32 | The player is one always-mounted surface, without Base UI Drawer | active |
 | D33 | Narration is made on Play, story by story | active |
 | D34 | Stories are told in four beats; the why line is no longer written | active |
@@ -290,6 +290,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D274 | Icon weight token | amends D268 |
 | D275 | Concentric picker | amends D167 |
 | D276 | Voice list | amends D101 |
+| D277 | Queue keeps played items; a tap plays in place | amends D126 |
 | D278 | Softer light covers | amends D121 |
 
 ---

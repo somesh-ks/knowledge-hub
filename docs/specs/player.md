@@ -33,7 +33,9 @@ What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D
 
 ### Queue and Up next (D126)
 - A play queue of ids (`singularity:queue` in localStorage, `core/playQueue.ts`) takes items from the Library menu's Add to queue (`singularity:queue-add`). When an item ends the first queued one starts. Rows (`QueueList`, `QueueRow`) reorder by drag handle or arrow keys and can be removed.
-- Up next is the second view of the player's list, on a phone and on a wide screen: the queue, or the previous briefing when the queue is empty. There is no peek strip and no pull-up queue sheet.
+- The list stays (D277): items that played stay above the one playing (`singularity:queue-played`, 30 at most), a tap on any row plays it in place with no page move and the bar stays up, and a tap on a played row plays it again and puts the later ones back to come. The next three queued items with finished audio have their first 512 KB fetched at idle.
+- Scenario: WHEN the listener taps the third queued item THEN it plays at once, the page does not move, the bar never hides, and the two skipped items and the one that played stay listed.
+- Up next is the second view of the player's list, on a phone and on a wide screen (it stays selected when the item changes): the queue, or the previous briefing when the queue is empty. There is no peek strip and no pull-up queue sheet.
 - Scenario: WHEN a recording has ended and there is something to offer THEN the view turns to Up next; the listener can go back to Stories. The previous briefing is offered and never started by itself.
 
 ### Failure and memory
