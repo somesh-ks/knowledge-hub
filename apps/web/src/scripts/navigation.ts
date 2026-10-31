@@ -85,7 +85,9 @@ export function pillElapsed(root: ParentNode): number | null {
       String(animation.animationName).startsWith("nav-pill") &&
       animation.playState === "running"
     ) {
-      return Math.round(Number(animation.currentTime ?? 0));
+      // A carried growth starts with a negative delay: the time played is the clock less the delay.
+      const delay = Number(animation.effect?.getComputedTiming().delay ?? 0);
+      return Math.max(0, Math.round(Number(animation.currentTime ?? 0) - delay));
     }
   }
   return null;
@@ -126,7 +128,20 @@ export function installNavigation(): void {
       document.documentElement.removeAttribute(ARRIVED_ATTRIBUTE);
       document.documentElement.style.removeProperty(PILL_ELAPSED_PROPERTY);
     };
-    void event.viewTransition.finished.then(clear, clear);
+    // The marks go once the pill has finished, not when the move's own settle time is up: that is
+    // shorter than the growth, and removing the mark ends the animation where it stands.
+    const settle = (): void => {
+      const growing = document
+        .querySelector(".app-nav-item[aria-current='page'] .app-nav-indicator")
+        ?.getAnimations({ subtree: true })
+        .filter((animation) => "animationName" in animation && animation.playState === "running");
+      if (growing?.length) {
+        void Promise.allSettled(growing.map((animation) => animation.finished)).then(clear);
+      } else {
+        clear();
+      }
+    };
+    void event.viewTransition.finished.then(settle, settle);
   });
 
   // On a route change focus moves to the new heading, without scrolling, as a page load would.

@@ -10,7 +10,7 @@
  *   - a page that changed behind its saved copy is swapped in quietly, if it has not been touched.
  */
 
-import { ARRIVED_ATTRIBUTE } from "./navigation";
+import { ARRIVED_ATTRIBUTE, PILL_ELAPSED_PROPERTY } from "./navigation";
 
 /** Links only: the side column also has a button (the queue's row), which has no page to go to. */
 const NAV_ITEM = "a.app-nav-item";
@@ -119,6 +119,8 @@ export function installNavigationBoost(): void {
       // The pill grows under the item as it lights, here, and not again on the page that arrives.
       if (item.getAttribute("aria-current") !== "page") {
         document.documentElement.setAttribute(ARRIVED_ATTRIBUTE, "");
+        // A press in the settle time of the last move starts its growth afresh.
+        document.documentElement.style.removeProperty(PILL_ELAPSED_PROPERTY);
       }
       markCurrent(item, document);
     }
