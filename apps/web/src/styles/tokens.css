@@ -260,6 +260,7 @@
   --layout-mini-max: 38.5rem;
   --layout-window-controls: 4rem;
   --layout-measure: 34rem;
+  --icon-bold: 0;
   --size-touch: 2.75rem;
   --size-touch-comfortable: 3rem;
   --size-option: 3rem;
@@ -453,6 +454,9 @@
   --row-radius: var(--radius-md);
   --row-tile-radius: var(--radius-round);
   --slider-max-width: 10rem;
+  --picker-radius: var(--radius-sheet);
+  --picker-inset: var(--card-inset);
+  --picker-inner-radius: var(--radius-xl);
   --card-padding: var(--space-6);
   --card-inset: var(--space-1);
   --card-radius: var(--radius-2xl);
@@ -575,6 +579,7 @@
 
 /* Style: expressive */
 :root[data-style="expressive"] {
+  --icon-bold: 1;
   --text-display-family: var(--font-ui);
   --text-display-size: 2.5rem;
   --text-display-weight: var(--font-weight-bold);
