@@ -106,13 +106,24 @@ export function playPageStory(digestId: string, itemId: string): void {
 const readerSlot = (): { current: ReaderSync | null } =>
   tabShared("reader", () => ({ current: null as ReaderSync | null }));
 
+/** Where the narration module leaves its `cancel` once it has loaded (narrationRuntime); one shape for both. */
+export const narrationCancelSlot = (): { cancel: (() => void) | null } =>
+  tabShared("narrationCancel", () => ({ cancel: null as (() => void) | null }));
+
+/** Drops a podcast still being narrated for an earlier pick, so it never starts over a later one. */
+function cancelPendingNarration(): void {
+  narrationCancelSlot().cancel?.();
+}
+
 /**
  * Plays a briefing the listener is being taken to (Up next): the same road as a cover press, so one
  * with no finished audio is narrated once its page has loaded.
  */
 export function playBriefingOnArrival(digestId: string): void {
-  // The listener chose this recording: a queue item still being read must not start over it.
+  // The listener chose this recording: a queue item still being read, or a podcast still being
+  // narrated for an earlier pick, must not start over it.
   selections().count += 1;
+  cancelPendingNarration();
   readerSlot().current?.expectPage(digestId);
   getPlayerStore().playWhenPageLoads(digestId);
 }
@@ -186,8 +197,7 @@ export async function playUpNext(
  */
 export function playQueueItem(id: string): void {
   const mine = ++selections().count;
-  // A podcast still being narrated for an earlier pick must not start over this one.
-  tabShared("narrationCancel", () => ({ cancel: null as (() => void) | null })).cancel?.();
+  cancelPendingNarration();
   const store = getPlayerStore();
   const state = store.getState();
   if (state.hasStarted && state.track?.digest.id === id) {

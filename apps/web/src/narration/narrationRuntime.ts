@@ -3,7 +3,7 @@
  * Play on a briefing that has no finished audio, so none of it weighs on an ordinary visit.
  */
 import { parseStreamDoc, type StreamDoc } from "../lib/liveStream";
-import { getPlayerAudio, getPlayerStore } from "../player/core/playerRuntime";
+import { getPlayerAudio, getPlayerStore, narrationCancelSlot } from "../player/core/playerRuntime";
 import { tabShared } from "../player/core/tabSlot";
 import { showToast } from "../sheets/toastStore";
 import type { PlayerDigestData } from "../types/contracts";
@@ -50,13 +50,9 @@ function getController(): NarrationController {
       setPreparing,
     });
     // The player cancels a preparing play when the listener picks another queue item (playerRuntime).
-    narrationHook().cancel = () => controller.cancel();
+    narrationCancelSlot().cancel = () => controller.cancel();
     return controller;
   });
-}
-
-function narrationHook(): { cancel: (() => void) | null } {
-  return tabShared("narrationCancel", () => ({ cancel: null as (() => void) | null }));
 }
 
 /**
