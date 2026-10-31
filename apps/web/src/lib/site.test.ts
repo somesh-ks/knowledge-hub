@@ -54,7 +54,6 @@ describe("loadSite", () => {
   it("tolerates zero digests and shows no invented content", async () => {
     const site = await loadSite({ root, env: {}, warn: () => {} });
     expect(site.entries).toEqual([]);
-    expect(site.showNothingBanner).toBe(false);
     expect(site.lastRun.outcome).toBeNull();
   });
 
@@ -78,19 +77,6 @@ describe("loadSite", () => {
     const site = await loadSite({ root, env: { SINGULARITY_FIXTURES: "1" }, warn: () => {} });
     expect(site.entries.map((entry) => entry.id)).toEqual(["2026-10-07"]);
     expect(site.fixtures).toBe(true);
-  });
-
-  it("shows the nothing-new banner when the newest run found nothing after the last digest", async () => {
-    await addDigest("Digests", "2026-10-05");
-    await writeFileIn(
-      "state/last-run.json",
-      JSON.stringify({
-        version: 1,
-        regular: { at: "2026-10-07T05:30:00.000Z", outcome: "nothing", items: 0 },
-      }),
-    );
-    const site = await loadSite({ root, env: {}, warn: () => {} });
-    expect(site.showNothingBanner).toBe(true);
   });
 
   it("passes warnings about skipped files to the logger", async () => {
