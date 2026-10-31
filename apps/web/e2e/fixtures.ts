@@ -40,6 +40,8 @@ export const test = base.extend<Options & { problems: Problems }>({
       );
       // The Health page draws from /api/health: a frozen answer with a reading of every tone.
       await page.route("**/api/health", (route) => route.fulfill({ json: healthReport() }));
+      // The Analytics page draws from the admin function: a frozen week of counts.
+      await page.route("**/api/analytics", (route) => route.fulfill({ json: analyticsCounts() }));
       // The sources' own icons (https://<host>/favicon.ico) are on invented hosts; a one-pixel image
       // answers them, so the page is not blamed for a network that is not there.
       await page.route("**/api/site-icon**", (route) =>
@@ -141,9 +143,27 @@ export const SITE_PAGES = [
   // Left out until 2026-10-23, so a change to the card tokens reached the Costs card unchecked.
   "/admin/costs",
   "/admin/health",
+  "/admin/analytics",
   // The design catalogue (D189): every shared component on one page, held to the same grid.
   "/design",
 ];
+
+/** A frozen /api/analytics answer: a week with some of every loop. */
+export function analyticsCounts() {
+  return {
+    days: 7,
+    visitors: 214,
+    pageviews: 538,
+    share_visitors: 19,
+    events: {
+      share: 31,
+      listen_start: 142,
+      listen_half: 97,
+      listen_complete: 58,
+      create_episode: 6,
+    },
+  };
+}
 
 /** A frozen /api/health answer: a row of each tone, and both devices' speed. */
 export function healthReport() {

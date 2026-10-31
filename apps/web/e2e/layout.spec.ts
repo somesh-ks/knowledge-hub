@@ -20,6 +20,7 @@ const PAGES = [
   // Left out until 2026-10-24, so its chart and table switch answered a touch across 36px unseen.
   "/admin/costs",
   "/admin/health",
+  "/admin/analytics",
 ];
 
 /** Eighty words: the longest summary the voice allows. */
