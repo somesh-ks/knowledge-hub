@@ -298,6 +298,9 @@
   display: grid;
   flex: 1 1 auto;
   align-content: start;
+  /* A row is as tall as its words. A row's min-block-size is a size set on purpose, so on a list that
+     overflows the tracks shrank to it and a two-line row spilled over its neighbour (2026-10-31). */
+  grid-auto-rows: max-content;
   gap: var(--space-2);
   min-block-size: 0;
   padding: var(--picker-inset);
@@ -401,6 +404,79 @@
   block-size: var(--size-icon);
   background: var(--color-accent);
   mask: var(--check-mask) center / contain no-repeat;
+}
+
+/* ------------------------------------------------------------------ a voice's row */
+
+/* A voice (scripts/picker.ts, from the option's data-title, data-sub and data-sample): a play control
+   at the start, then its title, the flag and the name alone, with "Gender, accent" under it, and the
+   check at the end. Long names and lines are cut with an ellipsis, so every row is as tall as its two
+   lines and the list stays one rhythm. */
+.picker-option-voice {
+  grid-template-columns: var(--size-icon) minmax(0, 1fr) var(--size-icon);
+  column-gap: var(--space-6);
+}
+
+.picker-option-voice > .picker-option-name {
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  overflow-wrap: normal;
+}
+
+.picker-option-voice[aria-selected="true"]::after {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.picker-option-title,
+.picker-option-sub {
+  display: block;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picker-option-sub {
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--font-leading-caption);
+}
+
+/* The play control is a plain glyph, not a disc: the target is 48px and the glyph sits on the row's
+   start edge, so the list's left edge is the glyph's, as a row's tile is. It is pressed with a pointer;
+   it is not in the tab order, since the list is one combobox, and a voice's row still chooses it. */
+.picker-play {
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  place-items: center;
+  inline-size: var(--size-touch-comfortable);
+  block-size: var(--size-touch-comfortable);
+  margin: calc((var(--size-icon) - var(--size-touch-comfortable)) / 2);
+  color: var(--color-on-surface-muted);
+}
+
+.picker-play[aria-pressed="true"] {
+  color: var(--color-accent);
+}
+
+.picker-play[aria-pressed="true"] .picker-play-glyph,
+.picker-play:not([aria-pressed="true"]) .picker-pause {
+  display: none;
+}
+
+/* A voice with no sample keeps its control, quieter and not pressable, so the rows do not shift. */
+.picker-play[aria-disabled="true"] {
+  opacity: var(--opacity-disabled);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .picker-play:not([aria-disabled="true"], [aria-pressed="true"]):hover {
+    color: var(--color-on-surface);
+  }
 }
 
 .picker-empty {
