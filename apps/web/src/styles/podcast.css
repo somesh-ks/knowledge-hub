@@ -108,6 +108,6 @@
 }
 
 /* [hidden] closes the stylesheet: the rules above set display on elements the script hides. */
-.daily-panel [hidden]:not(.podcast-sample) {
+.daily-panel [hidden] {
   display: none;
 }

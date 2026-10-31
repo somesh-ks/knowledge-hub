@@ -524,7 +524,7 @@ test.describe("the Create panel's voices", () => {
     const ada = page.locator("#create-voice");
     const leo = page.locator("#create-voice_b");
     await expect(ada).toHaveAccessibleName(/^Voice: /);
-    // The voices are chosen from a list with a search box, and each can be heard from its button.
+    // The voices are chosen from a list with a search box, and each can be heard from its list.
     await openPicker(page, ada);
     await expect(pickerList(page).getByRole("option")).toHaveText([
       "Default",
@@ -535,7 +535,6 @@ test.describe("the Create panel's voices", () => {
     await pickerList(page).getByRole("combobox").fill("nora");
     await expect(pickerList(page).getByRole("option")).toHaveText([/Nora/]);
     await page.keyboard.press("Escape");
-    await expect(page.locator("[data-voice=voice] [data-preview]")).toBeDisabled();
     await expect(ada).toBeVisible();
     await expect(leo).toBeHidden();
     await segment(page, "Discussion").click();

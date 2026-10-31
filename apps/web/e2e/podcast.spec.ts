@@ -249,6 +249,22 @@ test.describe("the profile pages", () => {
     await expect(second).toContainText("Ada");
   });
 
+  test("a voice is heard from the keyboard with Shift+Enter, and Enter still chooses it @desktop", async ({
+    page,
+  }) => {
+    await open(page, "voice");
+    const second = page.locator("#podcast-voice_b");
+    await openPicker(page, second);
+    await page.keyboard.press("ArrowDown");
+    const sample = page.waitForRequest("**/api/voice-sample?voice=voice-ada");
+    await page.keyboard.press("Shift+Enter");
+    await sample;
+    await expect(pickerList(page)).toBeVisible();
+    await expect(second).not.toContainText("Ada");
+    await page.keyboard.press("Enter");
+    await expect(second).toContainText("Ada");
+  });
+
   test("a playing sample stops when the page is left", async ({ page }) => {
     await page.addInitScript(() => {
       const w = window as unknown as { pauses: number };
@@ -262,9 +278,11 @@ test.describe("the profile pages", () => {
     await mockConfig(page);
     await open(page, "voice");
     const sample = page.waitForRequest("**/api/voice-sample?voice=voice-ada");
-    await choose(page, page.locator("#podcast-voice"), /^Ada/);
+    const first = page.locator("#podcast-voice");
+    await openPicker(page, first);
+    await pickerList(page).getByRole("option", { name: /^Ada/ }).locator(".picker-play").click();
     await sample;
-    await expect(spoken(page)).toHaveText(SAVED);
+    await page.keyboard.press("Escape");
     const before = await page.evaluate(() => (window as unknown as { pauses: number }).pauses);
     await page.locator(".app-bar-back").click();
     await expect(page).toHaveURL(/\/settings$/);

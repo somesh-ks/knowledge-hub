@@ -185,7 +185,11 @@ function mountPicker(select: HTMLSelectElement): void {
   list.setAttribute("role", "listbox");
   const count = element("p", "sr-only");
   count.setAttribute("aria-live", "polite");
-  pop.append(search, note, list, count);
+  // A voice list is heard from the keyboard too: Shift+Enter plays the highlighted voice (a pointer
+  // presses its Play control, which is not a tab stop; the search field keeps the focus).
+  const hint = element("p", "sr-only", "Press Shift and Enter to hear the highlighted voice.");
+  hint.id = `${id}-hint`;
+  pop.append(search, note, list, count, hint);
 
   holder.classList.add("picker");
   select.classList.add("picker-native");
@@ -257,6 +261,15 @@ function mountPicker(select: HTMLSelectElement): void {
     } else input.removeAttribute("aria-activedescendant");
   };
 
+  /** Plays, or stops, the sample of a voice's Play control, and says so to a screen reader. */
+  const hear = (play: HTMLElement): void => {
+    if (!play.dataset.sample || play.getAttribute("aria-disabled") === "true") return;
+    const was = play.getAttribute("aria-pressed") === "true";
+    audition.toggle(play, play.dataset.sample);
+    const name = play.closest("[role=option]")?.querySelector(".picker-option-title")?.textContent;
+    count.textContent = `${was ? "Stopped" : "Playing"} ${name ?? "the sample"}`;
+  };
+
   const draw = (query: string, from?: number): void => {
     shown = choices.filter((choice) => matchesQuery(`${choice.label} ${choice.keywords}`, query));
     list.replaceChildren(
@@ -291,6 +304,13 @@ function mountPicker(select: HTMLSelectElement): void {
     );
     if (shown.length === 0) list.append(element("p", "picker-empty", pickerNoMatch(query, noun)));
     count.textContent = pickerCount(shown.length, noun);
+    if (shown.some((choice) => choice.title !== "")) {
+      input.setAttribute("aria-describedby", hint.id);
+      input.setAttribute("aria-keyshortcuts", "Shift+Enter");
+    } else {
+      input.removeAttribute("aria-describedby");
+      input.removeAttribute("aria-keyshortcuts");
+    }
     const start =
       from ??
       (query.trim() === "" ? shown.findIndex((choice) => choice.value === select.value) : 0);
@@ -417,6 +437,10 @@ function mountPicker(select: HTMLSelectElement): void {
             ? shown.length - 1
             : active - 1;
       highlight(next);
+    } else if (key === "Enter" && event.shiftKey) {
+      event.preventDefault();
+      const play = document.querySelector<HTMLElement>(`#${id}-option-${active} .picker-play`);
+      if (play) hear(play);
     } else if (key === "Enter") {
       event.preventDefault();
       const choice = shown[active];
@@ -436,8 +460,7 @@ function mountPicker(select: HTMLSelectElement): void {
     // A voice's play control hears its sample and leaves the list open and the choice as it was.
     const play = (event.target as Element).closest<HTMLElement>(".picker-play");
     if (play) {
-      if (play.dataset.sample && play.getAttribute("aria-disabled") !== "true")
-        audition.toggle(play, play.dataset.sample);
+      hear(play);
       return;
     }
     const item = (event.target as Element).closest<HTMLElement>("[role=option]");
