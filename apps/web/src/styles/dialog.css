@@ -94,6 +94,15 @@ dialog.dialog-panel:focus-visible {
   }
 }
 
+/* The question, in the heading role. */
+.dialog-title {
+  font-family: var(--text-heading-family);
+  font-size: var(--text-heading-size);
+  font-weight: var(--text-heading-weight);
+  letter-spacing: var(--text-heading-tracking);
+  line-height: var(--text-heading-leading);
+}
+
 .dialog-body {
   display: grid;
   gap: var(--space-4);

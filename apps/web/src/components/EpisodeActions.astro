@@ -2,13 +2,14 @@
 import Button from "../design-system/Button.astro";
 import Dialog from "../design-system/Dialog.astro";
 import DialogActions from "../design-system/DialogActions.astro";
+import DialogTitle from "../design-system/DialogTitle.astro";
 import Field from "../design-system/Field.astro";
+import Sheet from "../design-system/Sheet.astro";
 import { briefingChips } from "../lib/briefingChips";
 import { topicOptions } from "../lib/createForm";
 import { loadManage } from "../lib/manage";
 import { isChipOn, type RegenChip } from "../lib/regenTopics";
 import Icon from "./Icon.astro";
-import SheetHeader from "./SheetHeader.astro";
 import "../styles/episode-actions.css";
 
 interface Props {
@@ -58,9 +59,7 @@ const COPY = {
     .map(([kind, templateId]) => (
     <template id={templateId}>
       {kind === "regenerate" ? (
-        <dialog class="create-sheet regen-sheet" aria-labelledby="regen-title">
-          <SheetHeader title="Regenerate this episode" titleId="regen-title" close="data-dialog-close" />
-          <div class="create-sheet-body">
+        <Sheet title="Regenerate this episode" titleId="regen-title" close="data-dialog-close">
             <form class="regen-form" data-regen-form novalidate>
               <p class="create-hint regen-lede">
                 This replaces the episode and keeps its length and format.
@@ -110,14 +109,13 @@ const COPY = {
                 </p>
               </div>
             </form>
-          </div>
-          <div hidden data-copy>
+          <div hidden data-copy slot="after">
             {Object.entries(COPY).map(([key, text]) => <p data-k={key}>{text}</p>)}
           </div>
-        </dialog>
+        </Sheet>
       ) : (
         <Dialog aria-labelledby="delete-title" aria-describedby="delete-lede" form={{ "data-delete-form": "", novalidate: true }}>
-            <h2 class="sheet-title" id="delete-title">Delete this {noun}?</h2>
+            <DialogTitle id="delete-title">Delete this {noun}?</DialogTitle>
             <p class="create-hint confirm-lede" id="delete-lede">
               It will be removed from the Library on every device. This cannot be undone.
             </p>

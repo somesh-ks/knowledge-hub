@@ -48,6 +48,20 @@
   align-items: center;
 }
 
+/* From 360px down the centred wordmark and Sign out cross (the wordmark is 193px, Back and Sign out
+   take 133px of a 320px bar): the wordmark moves up against Back and its tag steps aside, and the
+   bar's own name says where you are (2026-10-31, review on the Google sign-in PR). */
+@media (width < 24rem) {
+  .app-bar-inner {
+    justify-content: flex-start;
+    padding-inline-start: calc(var(--space-12) + var(--space-2));
+  }
+
+  .app-bar .admin-tag {
+    display: none;
+  }
+}
+
 /* ------------------------------------------------------------------ the overview */
 
 /* The Overview's two cards read at a glance: a status badge or a figure first, then marks, with

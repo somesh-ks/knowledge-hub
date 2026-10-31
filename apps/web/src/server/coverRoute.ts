@@ -3,7 +3,7 @@ import { type CoverSize, type CoverSource, coverVersion, episodeCover } from "..
 import type { Site } from "../lib/site";
 
 /**
- * A cover the build has not drawn is drawn when it is asked for (D251), by the same renderer, and
+ * A cover the build has not drawn is drawn when it is asked for (D256), by the same renderer, and
  * kept by Vercel's CDN. It used to be drawn after each content sync and stored in Blob: nine writes
  * for each new briefing or episode, against Hobby's 2,000 a month. This is the part with logic:
  * which cover an address names, and how long each answer may be kept.
@@ -57,15 +57,47 @@ export function findCoverRecord(
   return null;
 }
 
-const YEAR_SECONDS = 31_536_000;
-const SHORT_SECONDS = 60;
+/** The version `vercel.json` puts first in the path when an address has no `?v=`. */
+export const UNVERSIONED = "0";
 
 /**
- * How long a drawn cover may be kept. Only an address whose `?v=` is the record's current version
- * names one cover for good. An older version (the record was regenerated since) and an address with
- * no version are answered with the current cover for a minute only: kept for a year, they would
- * keep showing the old cover under the new record. The CDN keeps a function's answer only when told
- * so, in `Vercel-CDN-Cache-Control`; `Cache-Control` is for the browser.
+ * Splits `<version>/<cover path>` as the rewrite sends it. The CDN keys a cover by its path and
+ * ignores the query string (measured 2026-10-30: `?v=zzzzzz` was served another address's entry), so
+ * `vercel.json` moves the `?v=` into the path, where each version gets an entry of its own.
+ */
+export function splitVersion(path: string): { version: string; rest: string } | null {
+  const slash = path.indexOf("/");
+  const version = slash === -1 ? "" : path.slice(0, slash);
+  return /^[a-z0-9]{1,12}$/.test(version) ? { version, rest: path.slice(slash + 1) } : null;
+}
+
+/** What to answer for a cover of `id` asked for under `version`, given the site as this instance holds it. */
+export type CoverResolution =
+  | { kind: "draw"; record: CoverRecord }
+  /** No such briefing or episode: either a junk address or a record this instance has not read yet. */
+  | { kind: "missing" }
+  /** The address names a newer version than this instance holds. */
+  | { kind: "behind" };
+
+export function resolveCover(
+  site: Pick<Site, "entries" | "episodes">,
+  id: string,
+  version: string,
+): CoverResolution {
+  const record = findCoverRecord(site, id);
+  if (!record) return { kind: "missing" };
+  if (version === UNVERSIONED || record.version === "") return { kind: "draw", record };
+  const held = Number.parseInt(record.version.slice(3), 36);
+  const asked = Number.parseInt(version, 36);
+  // A newer version than the record held: drawing now would put the old cover under the new address.
+  return asked > held ? { kind: "behind" } : { kind: "draw", record };
+}
+
+/**
+ * The CDN's lifetime for a drawn cover comes from `vercel.json`'s `/covers/` header rules, not from
+ * these headers (the function's `Cache-Control` is replaced, and its `Vercel-CDN-Cache-Control` was
+ * not obeyed: a 404 sent `no-store` was kept). They are what the browser and a CDN that does obey
+ * them see: a year only under the record's current version, a minute under any other address.
  */
 export function coverCacheHeaders(
   requestedVersion: string,
@@ -80,6 +112,9 @@ export function coverCacheHeaders(
     "Vercel-CDN-Cache-Control": `max-age=${seconds}`,
   };
 }
+
+const YEAR_SECONDS = 31_536_000;
+const SHORT_SECONDS = 60;
 
 /** A missing cover is never kept: the record may only be a sync away, and a kept 404 would stay. */
 export const NOT_FOUND_HEADERS = {

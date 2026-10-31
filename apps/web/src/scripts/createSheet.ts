@@ -1,3 +1,4 @@
+import { CREATE_SHEET_SELECTOR, sheetBodyClass } from "../design-system/sheet";
 import { installCreate } from "./createPage";
 import { sheetGestures } from "./pullDismiss";
 
@@ -7,8 +8,8 @@ import { sheetGestures } from "./pullDismiss";
  * press of a Create button, never with the page. It does not outlive a navigation; the next press
  * builds it again. Escape closes it, and focus goes back to the button that opened it.
  */
-// The episode page's rewrite panel wears the same class for its looks; it is not this sheet.
-const SELECTOR = "dialog.create-sheet:not(.regen-sheet)";
+// The panels (the episode page's rewrite, Topics, Block sources) are Sheets too; they are not this one.
+const SELECTOR = CREATE_SHEET_SELECTOR;
 
 function build(): HTMLDialogElement | null {
   const template = document.getElementById("create-sheet-template");
@@ -27,8 +28,8 @@ function build(): HTMLDialogElement | null {
   }
   clone.querySelector("[data-create-close]")?.addEventListener("click", () => clone.close());
   // The header takes a tone once the form has scrolled under it, and the foot shows its edge while
-  // more of the form runs on below it (create-sheet.css). The form grows as More options opens.
-  const body = clone.querySelector<HTMLElement>(".create-sheet-body");
+  // more of the form runs on below it (sheet.css). The form grows as More options opens.
+  const body = clone.querySelector<HTMLElement>(`.${sheetBodyClass()}`);
   if (body) {
     const edges = () => {
       clone.toggleAttribute("data-scrolled", body.scrollTop > 0);

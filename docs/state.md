@@ -18,7 +18,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 
 ## Not working or unverified
 
-- Blob on the Pro trial since 10-30 (D251, D256). closed when: ops stay under 1,000 a month and a new cover loads from `/api/cover/` with its date.
+- Blob on the Pro trial since 10-30 (D251, D256). closed when: ops stay under 1,000 a month and a cover's `?v=zzzz` is a MISS (D258).
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily says "podcast".
 - More menu (D214); Catch up album, Share circle, cards (D219). closed when: signed off.
 - Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused; a regenerate or delete uses none.
@@ -30,21 +30,21 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - `podcast.yml` no longer installs ffmpeg; its first stage starts 9 s into the job (29 s before). closed when: 9 s is accepted or a target set.
 - A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): `run.yml` gained a `length_minutes` input; merge it with the site code or dispatch fails. closed when: a 10-minute Regenerate airs within 10% of 10.
 - Podcast queue (D231, D242): fakes only. closed when: a Catch up is cancelled and a failed run's Details read.
-- Discovery copies rank below an outlet's own entry in dedupe. closed when: a dedupe report keeps the outlet's entry.
-- Opus on runners (D198). closed when: an audio run logs `ffmpeg version`, its digest has `m4a_url` and /d/2026-10-24 plays on an iPhone.
-- Alexandria pilot (D200). closed when: a run log shows `anthropic-blog` fetched via `alexandria:anthropic-com`.
+- Discovery copies rank below an outlet's own entry in dedupe. closed when: dedupe keeps the outlet's entry.
+- Opus on runners (D198). closed when: an audio run logs `ffmpeg version`, its digest has `m4a_url` and /d/2026-10-24 plays on iPhone.
+- Alexandria pilot (D200). closed when: a run logs `anthropic-blog` fetched via `alexandria:anthropic-com`.
 - Owner's eye: bar centring (over 1px), centred column and label gap (D229), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off.
 - Live content (plan 20): an open page elsewhere does not refresh within 60 s; `smokeLive.mjs --apply` never ran on production; offline copies of a removed episode are unaudited. closed when: checked.
-- Settings paint the stored copy at once, the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change waits up to 2.5 s for the store. closed when: the owner signs off on a phone.
+- Settings paint the stored copy at once, the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change waits up to 2.5 s. closed when: the owner signs off on a phone.
 - Sources design (D124) live: production asks Jev for a source's format only after `secrets:push`; no run used a mix or cap. closed when: a production source's format comes from Jev and a digest follows a mix change.
 - YouTube text: Firecrawl and Gemini transcripts answered live; no full run used either. closed when: a digest has a YouTube finalist with `extract_method` captions or transcription.
 - YouTube feeds 404 on runners; #235 reads them via Firecrawl. closed when: a run's fetch lists the five in `relayed_sources`.
 - D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone app loads a deploy itself (D202), health shows `field` lines, a Monday opens or closes `health-warnings`.
 - Downloads (D127) on a phone: Blob CORS, Play in airplane mode. closed when: both play offline.
-- Episode quality (D119, D120), refill: no live spares, refill or one-outlet Science story. closed when: a digest that lost stories in grounding airs within 10% of its length.
-- Safari and WebKit: the iPhone `@smoke` set (`PLAYER_WEBKIT=1`) has not run. closed when: an iPhone and an Android phone pass it.
-- "Narration is not available right now" (10-12): not reproduced; a failure leaves a `server` fault. closed when: one names the step.
-- Time zone (D100, D239) only faked: no other zone or clock change; `sinceLabel`, `pendingAudio` and `podcast/select` still use Stockholm's today. closed when: a run across a clock change publishes on the right day.
+- Episode quality (D119, D120), refill: no live spares or one-outlet Science story. closed when: a digest that lost stories in grounding airs within 10% of its length, and one has such a story.
+- Safari and WebKit: the iPhone `@smoke` set (`PLAYER_WEBKIT=1`) never ran. closed when: an iPhone and an Android pass it.
+- "Narration is not available right now" (10-12): not reproduced. closed when: a failure's `server` fault names the step.
+- Time zone (D100, D239) only faked: no other zone or clock change; `sinceLabel`, `pendingAudio`, `podcast/select` use Stockholm's today. closed when: a run across a clock change publishes on the right day.
 - General topics (D66 to D69, D102): no digest has one. closed when: one does.
 - Config through `config.yml` never seen live: `topic.scope`, rename or move, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics, episode delete and regenerate. closed when: each lands as a `main` commit.
 - Admin env (D249, D257, D261): `singularity-admin` needs `DATABASE_URL`, `SINGULARITY_CONFIG_STORE=postgres` and the Google variables, the reader `ADMIN_SESSION_SECRET`. closed when: a toggle holds after reload, `/api/health` answers 401 signed out and Continue with Google signs in.
@@ -64,7 +64,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 ## Next
 
 1. Free the lane in the hold ([D209](decisions/engine.md)).
-2. Owner: regenerate the 3-story 10-27 briefing? Revoke the Vercel token pasted in chat; delete empty store `store_JmrDq8MB5Kwn3ejW`; [PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md).
+2. Owner: regenerate the 3-story 10-27 briefing? Revoke the pasted Vercel token; delete empty store `store_JmrDq8MB5Kwn3ejW`; [PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md).
 3. Firecrawl: a per-source yield table for the owner to prune (21 sources gave 1 story per 4,460 credits a month); changelog providers once the pilot holds.
 4. Lighthouse: defer BaseLayout's 34 KiB CSS without breaking the bar; the 1.4 s chain.
 5. `topic` to `category` end to end (plan 14): an inventory, dual-name readers, a store-synced migration, the rename, then the old names go; only with no other PR open ([start](history/2026-10-25-owner-feedback-pass.md#left-out-for-a-later-session)).

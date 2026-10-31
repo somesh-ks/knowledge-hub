@@ -171,7 +171,11 @@ describe("the command center's Google sign-in", () => {
     ["a nonce that is not ours", { claims: () => ({ nonce: "replayed" }) }],
     ["a state that is not ours", { state: () => "forged" }],
     ["no cookie (a callback begun in another browser)", { cookie: () => undefined }],
-    ["a tampered cookie", { cookie: (cookie: string) => cookie.replace(/^./, "A") }],
+    [
+      "a tampered cookie",
+      // The signature's last character, changed to one it is not, so the cookie always differs.
+      { cookie: (cookie: string) => cookie.slice(0, -1) + (cookie.endsWith("0") ? "1" : "0") },
+    ],
     ["a sign-in left open past ten minutes", { later: 11 * 60 * 1000 }],
     [
       "Google's token endpoint failing",
