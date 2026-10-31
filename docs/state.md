@@ -18,7 +18,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 
 ## Not working or unverified
 
-- Blob on the Pro trial since 10-30 (D251, D256). closed when: ops stay under 1,000 a month and a cover's `?v=zzzz` is a MISS (D258).
+- Blob on the Pro trial since 10-30 (D251, D256). closed when: ops stay under 1,000 a month. Known gap (D258 probe, 10-31): the CDN keys `/covers/*` by the request path, so a regenerated cover keeps its old image under a new `?v=` until the next deploy, and the `has` rewrite does not pass `?v=` to the route. Fix by putting the version in the public URL; decision pending.
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily says "podcast".
 - More menu (D214); Catch up album, Share circle, cards (D219). closed when: signed off.
 - Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused; a regenerate or delete uses none.
