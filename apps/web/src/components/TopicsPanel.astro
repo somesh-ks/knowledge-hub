@@ -1,15 +1,16 @@
 ---
 import Dialog from "../design-system/Dialog.astro";
 import DialogActions from "../design-system/DialogActions.astro";
+import DialogTitle from "../design-system/DialogTitle.astro";
 import Field from "../design-system/Field.astro";
 import Select from "../design-system/Select.astro";
 import { FORMAT_LABEL } from "../lib/sourceFilter";
 // The unsaved-changes dialog (sheetGuard.ts) is a Dialog: its styles come with BaseLayout.
 import "../styles/episode-actions.css";
 import Button from "../design-system/Button.astro";
+import Sheet from "../design-system/Sheet.astro";
 import Icon from "./Icon.astro";
 import MultiSelect from "./MultiSelect.astro";
-import SheetHeader from "./SheetHeader.astro";
 
 interface Props {
   /** The topics a source can be filed under, in the order the page lists them. */
@@ -21,18 +22,18 @@ const { topics } = Astro.props;
 
 {/* The Categories and sources panel, kept inert in a template until scripts/topicsPanel.ts clones it: Add
      opens it on Topic, a topic's Add source opens it on Source with that topic chosen, a topic's Edit
-     topic opens it on that topic's details, and a source's row opens it to edit that source. It wears the Create sheet's looks (create-sheet.css) and is not
-     that sheet: regen-sheet keeps createSheet.ts from taking it for the Create panel. A full-screen
+     topic opens it on that topic's details, and a source's row opens it to edit that source. It is a Sheet (sheet.css) but not the Create sheet: its kind is
+     "panel", so createSheet.ts does not take it for the Create panel. A full-screen
      sheet on a phone and a side panel from 40rem. */}
 <template id="topics-panel-template">
-  <dialog class="create-sheet regen-sheet topics-panel" aria-labelledby="topics-panel-title" data-mode="topic">
-    <SheetHeader
-      title="Add a category"
-      titleId="topics-panel-title"
-      close="data-panel-close"
-      titleData={{ "data-panel-title": "" }}
-    />
-    <div class="create-sheet-body">
+  <Sheet
+    class="topics-panel"
+    data-mode="topic"
+    title="Add a category"
+    titleId="topics-panel-title"
+    close="data-panel-close"
+    titleData={{ "data-panel-title": "" }}
+  >
       <div class="segmented-nav topics-panel-kind" role="tablist" aria-label="What to add" data-panel-kind>
         <button
           class="segmented-nav-tab"
@@ -254,18 +255,19 @@ const { topics } = Astro.props;
           </div>
         </section>
       </div>
-    </div>
-    <div class="source-sheet-foot topics-panel-foot">
-      <Button variant="text" data-panel-delete hidden>Delete source</Button>
-      <Button variant="filled" data-panel-go>Add category</Button>
-    </div>
-  </dialog>
+    <Fragment slot="after">
+      <div class="source-sheet-foot topics-panel-foot">
+        <Button variant="text" data-panel-delete hidden>Delete source</Button>
+        <Button variant="filled" data-panel-go>Add category</Button>
+      </div>
+    </Fragment>
+  </Sheet>
 </template>
 
 {/* What Delete source asks before it deletes (topicsEditor.ts, removeSource): the topic's confirm
      dialog, worn again. It opens over the panel; Cancel returns to it. */}
 <Dialog aria-labelledby="source-delete-title" data-source-confirm>
-  <h2 class="sheet-title" id="source-delete-title" data-source-confirm-title>Delete source?</h2>
+  <DialogTitle id="source-delete-title" data-source-confirm-title>Delete source?</DialogTitle>
   <DialogActions>
     <Button variant="text" data-source-cancel autofocus>Cancel</Button>
     <Button variant="text" tone="danger" data-source-delete>Delete</Button>

@@ -246,31 +246,6 @@ export const PARTS: PartSource[] = [
     rules: ["Never hand-write `.empty` markup."],
   },
   {
-    id: "sheet",
-    name: "Dialog sheet",
-    kind: "container",
-    summary: "A modal bottom sheet on a phone, a centered dialog from 40rem.",
-    classes: ["sheet-head", "sheet-actions", "sheet-field"],
-    files: ["sheets/SheetFrame.tsx"],
-    when: [
-      "a new bottom sheet with a title and a close control",
-      "a form in a sheet",
-      "a dialog on a phone",
-    ],
-    not: [
-      { when: "a menu of choices", use: "menu" },
-      { when: "a small popover on a phone", use: "menu" },
-    ],
-    keywords: ["modal", "drawer", "bottom sheet", "dialog", "form sheet"],
-    markup:
-      '<SheetFrame open={open} onOpenChange={setOpen} title="Create" closeLabel="Close">...</SheetFrame>',
-    rules: [
-      "Never hand-write the header or a close button.",
-      "Motion uses --duration-sheet-in, --duration-sheet-out and --ease-drawer.",
-      "`.sheet-actions` is one column, so Cancel stacks under the primary; side by side is a DialogActions row.",
-    ],
-  },
-  {
     id: "multiselect",
     name: "Multi-select",
     kind: "field",

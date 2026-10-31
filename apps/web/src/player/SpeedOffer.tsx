@@ -1,6 +1,11 @@
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import { buttonClass } from "../design-system/button";
-import { dialogActionsClass, dialogBodyClass, dialogClass } from "../design-system/dialog";
+import {
+  dialogActionsClass,
+  dialogBodyClass,
+  dialogClass,
+  dialogTitleClass,
+} from "../design-system/dialog";
 import { getSpeedDefault } from "./core/speedDefaultRuntime";
 import { rateLabel } from "./SpeedControl";
 
@@ -9,7 +14,7 @@ function subscribe(onChange: () => void): () => void {
 }
 
 /**
- * "Make 1.5x your default speed?": the shared confirm dialog (create-sheet.css), asked once per
+ * "Make 1.5x your default speed?": the shared confirm dialog (dialog.css), asked once per
  * speed (core/speedDefault.ts). Not now, Escape and a press outside all decline.
  */
 export default function SpeedOffer() {
@@ -37,7 +42,7 @@ export default function SpeedOffer() {
       onClose={() => getSpeedDefault().dismiss()}
     >
       <div className={dialogBodyClass()}>
-        <h2 className="sheet-title" id="speed-offer-title">
+        <h2 className={dialogTitleClass()} id="speed-offer-title">
           Make {label} your default speed?
         </h2>
         <div className={dialogActionsClass()}>

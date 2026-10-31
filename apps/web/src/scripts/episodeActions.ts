@@ -1,4 +1,5 @@
 import { DIALOG_SELECTOR } from "../design-system/dialog";
+import { PANEL_SHEET_SELECTOR } from "../design-system/sheet";
 import { rememberCancelToken } from "../lib/cancelTokens";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import { isChipOn } from "../lib/regenTopics";
@@ -74,7 +75,7 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
   });
   // The rewrite panel is a sheet: pulled down or tapped outside it closes. The confirm is a small
   // dialog and closes on a tap outside only.
-  if (dialog.classList.contains("regen-sheet")) sheetGestures(dialog);
+  if (dialog.matches(PANEL_SHEET_SELECTOR)) sheetGestures(dialog);
   else dismissOnScrim(dialog);
 
   dialog.addEventListener("change", () => say());
@@ -176,7 +177,7 @@ export function openEpisodeAction(trigger: HTMLElement): void {
   const kind = trigger.dataset.episodeAction as Kind;
   const root = trigger.closest<HTMLElement>("[data-episode-actions]");
   if (!root || (kind !== "regenerate" && kind !== "delete")) return;
-  const selector = kind === "delete" ? DIALOG_SELECTOR : "dialog.regen-sheet";
+  const selector = kind === "delete" ? DIALOG_SELECTOR : PANEL_SHEET_SELECTOR;
   const dialog = document.querySelector<HTMLDialogElement>(selector) ?? build(kind, root);
   if (!dialog || dialog.open) return;
   rootOf.set(dialog, root);
