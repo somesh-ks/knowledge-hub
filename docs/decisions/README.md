@@ -275,11 +275,12 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D257 | Report routes need sign-in | amends D201, D224 |
 | D258 | Cover version in its path | active; amends D256 |
 | D259 | Kept before sending; a reload-cut request is no failure | amends D79, D91, D115, D249 |
-| D262 | Sheet and Drawer split | active; amends D243 |
+| D262 | Sheet and Drawer split | amends D243 |
 | D263 | Cover version in URL | proposed; amends D258 |
-| D265 | A select's phone list is the standard sheet | active; amends D167 |
+| D265 | A select's phone list is the sheet | amends D167 |
 | D266 | Icon, Badge, type | amends D243 |
 | D267 | Card, Row | amends D243 |
+| D269 | Hour select as a wheel | amends D265 |
 | D270 | Experiments: a change settles on a read, not its write's answer | amends D249, D259 |
 
 ---

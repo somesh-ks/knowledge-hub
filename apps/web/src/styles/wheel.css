@@ -1,0 +1,94 @@
+/*
+ * The Wheel (design-system/wheel.ts): a column of values that turns under a fixed band, inside a
+ * bottom sheet. The list scrolls and snaps; wheel.ts sets each row's distance from the band in rows
+ * as --wheel-d while it scrolls, and the rules below turn that distance into a tilt and a fade, so
+ * the rows curve away from the band like a drum (owner, 2026-10-31: "the 3d rotating cylinder
+ * selector as in iphone"). Its classes are written in design-system/wheel.ts and nowhere else.
+ */
+
+.wheel-frame {
+  --wheel-rows: 5; /* rows in view; the band is the middle one, so an odd number */
+  --wheel-tilt: 24deg; /* turn of a row for each row it is from the band */
+  --wheel-span: 3; /* rows from the band past which a row stops turning (72deg), so none lies flat */
+  --wheel-fade: 0.28; /* what each row from the band takes off its opacity */
+  /* The drum's radius: the one at which a row's height is the arc of one tilt. */
+  --wheel-radius: calc(var(--size-option) * 180 / (pi * 24));
+  position: relative;
+  flex: none;
+  padding-inline: var(--space-2);
+}
+
+/* The band: a quiet row-sized fill that the middle row sits in. It takes no press. */
+.wheel-frame::before {
+  content: "";
+  position: absolute;
+  inset-inline: var(--space-2);
+  inset-block-start: calc(var(--size-option) * (var(--wheel-rows) - 1) / 2);
+  block-size: var(--size-option);
+  border-radius: var(--row-radius);
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  pointer-events: none;
+}
+
+.wheel-list {
+  box-sizing: content-box;
+  position: relative;
+  block-size: calc(var(--size-option) * var(--wheel-rows));
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  touch-action: pan-y;
+  /* The drum: rows are seen in perspective from the middle of the list. */
+  perspective: calc(var(--size-option) * var(--wheel-rows) * 1.2);
+  perspective-origin: 50% 50%;
+  outline: none;
+}
+
+.wheel-list::-webkit-scrollbar {
+  display: none;
+}
+
+/* Room above the first row and below the last, so each can reach the band. */
+.wheel-list::before,
+.wheel-list::after {
+  content: "";
+  display: block;
+  block-size: calc(var(--size-option) * (var(--wheel-rows) - 1) / 2);
+}
+
+:root[data-input="keyboard"] .wheel-list:focus-visible {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: calc(var(--stroke-ring) * -1);
+  border-radius: var(--row-radius);
+}
+
+.wheel-option {
+  --wheel-d: 0; /* set by wheel.ts: rows from the band, negative above it */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  block-size: var(--size-option);
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--font-leading-label);
+  color: var(--color-on-surface);
+  /* A row is on a drum: it turns away from the band by its distance and draws closer to it, as a
+     row on a cylinder does, so the ones at the edge are tilted back and packed tighter. */
+  --wheel-dc: clamp(calc(var(--wheel-span) * -1), var(--wheel-d), var(--wheel-span));
+  --wheel-turn: calc(var(--wheel-dc) * var(--wheel-tilt));
+  transform: translateY(
+      calc(sin(var(--wheel-turn)) * var(--wheel-radius) - var(--wheel-dc) * var(--size-option))
+    )
+    rotateX(calc(var(--wheel-turn) * -1));
+  opacity: calc(1 - min(abs(var(--wheel-d)), 3) * var(--wheel-fade));
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wheel-option[aria-disabled="true"] {
+  color: var(--color-on-surface-disabled);
+}

@@ -428,3 +428,11 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Rejected: a `Card.astro` wrapper (the tag varies); renaming `settings-row` to a Row class (80 references, no change in look).
 - Revisit if: a card needs a second look (outlined, raised), or a row drifts from the tokens.
 - Amends: D243.
+## D269: the hour select opens as a wheel in the phone sheet
+
+- Date: 2026-10-31 (the owner, after D265: "keep the sheet for now and if possible we can have the 3d rotating cylinder selector as in iphone"). Amends D265.
+- Decision: a Select with `data-wheel` opens its phone sheet (D265) with a Wheel in place of the rows: a new design-system component (`design-system/wheel.ts`, `styles/wheel.css`, classes `wheel-frame`, `wheel-list`, `wheel-option`). The Daily and Weekly time are the only users. It is a scroll-snap list; `wheel.ts` sets each row's distance from the band as `--wheel-d` while it scrolls and the stylesheet turns it into a tilt, a pull toward the band and a fade, so the rows sit on a drum. The title and Close are the sheet's. A pick is committed to the select (and so saved) where the wheel comes to rest, and again on close; a tap on a row or an arrow key turns it. Each row that passes the band fires `wheeldetent` on the list, the hook for a haptic tick (none is built). Below 40rem only; from 40rem the select keeps its own list.
+- Why: an ordered run of 24 hours is spun to, not read, and the owner asked for the iPhone's look inside the one sheet D265 made.
+- Calls made for the owner: five rows in view; no Done button (a settings change must feel instant, so it saves at rest); the wheel is a component of its own, not a mode of the Menu.
+- Rejected: the browser's `type="time"` clock (an unstyled dialog outside the system, minutes the schedule does not store); a wheel for every select (names have no order to spin through).
+- Revisit if: a real iPhone's scroll feel or snapping reads wrong, or a second select asks for `data-wheel`.

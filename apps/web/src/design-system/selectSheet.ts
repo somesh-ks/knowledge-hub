@@ -12,6 +12,7 @@
 import { escapeHtml, sheetHeadHtml } from "../lib/sheetHead";
 import { pullToDismiss } from "../scripts/pullDismiss";
 import { menuBodyClass, menuItemClass, menuListClass } from "./menu";
+import { mountWheel, type Wheel, wheelFrameClass, wheelHtml, wheelListClass } from "./wheel";
 
 const PHONE = "(width < 40rem)";
 /** How far a finger may travel and still be a tap, in px. */
@@ -20,6 +21,11 @@ const KEYS = new Set(["Enter", " ", "F4"]);
 
 let installed = false;
 let uid = 0;
+/** The wheel turning in each open sheet, so a close can report where it stopped. */
+const wheels = new WeakMap<HTMLElement, Wheel>();
+
+/** A select that asks for the wheel (data-wheel) shows its options as one, not as rows. */
+const wantsWheel = (select: HTMLSelectElement): boolean => select.hasAttribute("data-wheel");
 
 /** A select this sheet stands in for: drawn by the Select, shown, enabled and single-valued. */
 function sheetFor(target: EventTarget | null): HTMLSelectElement | null {
@@ -56,10 +62,10 @@ function rowsOf(list: HTMLElement): HTMLElement[] {
 }
 
 /** Draws the sheet's head once; the rows are redrawn on each open (see `fill`). */
-function build(list: HTMLElement, id: string): void {
+function build(list: HTMLElement, id: string, wheel: boolean): void {
   list.innerHTML =
     sheetHeadHtml("", `${id}-title`, "data-menu-close") +
-    `<div class="${menuBodyClass()}" role="listbox"></div>`;
+    (wheel ? "" : `<div class="${menuBodyClass()}" role="listbox"></div>`);
 }
 
 /** Draws the title and the rows from the select as it is now, so a list filled after load is whole. */
@@ -67,6 +73,15 @@ function fill(list: HTMLElement, select: HTMLSelectElement, id: string): void {
   const title = titleOf(select);
   const heading = list.querySelector(`#${id}-title`);
   if (heading) heading.textContent = title;
+  if (list.hasAttribute("data-wheel")) {
+    list.querySelector(`.${wheelFrameClass()}`)?.remove();
+    const rows = Array.from(select.options)
+      .map((option, index) => ({ option, index }))
+      .filter(({ option }) => !option.hidden)
+      .map(({ option, index }) => ({ index, text: option.text, disabled: isDisabled(option) }));
+    list.insertAdjacentHTML("beforeend", wheelHtml(rows, id, title, escapeHtml));
+    return;
+  }
   const body = list.querySelector<HTMLElement>('[role="listbox"]');
   if (!body) return;
   body.setAttribute("aria-label", title);
@@ -82,6 +97,27 @@ function fill(list: HTMLElement, select: HTMLSelectElement, id: string): void {
     .join("");
 }
 
+/** Turns the sheet's list into a wheel at the select's value; each place it rests on is committed to the select. */
+function openWheel(sheet: HTMLElement, select: HTMLSelectElement, byKey: boolean): void {
+  const list = sheet.querySelector<HTMLElement>(`.${wheelListClass()}`);
+  if (!list) return;
+  const places = Array.from(list.querySelectorAll<HTMLElement>("[data-index]"));
+  const first = Math.max(
+    0,
+    places.findIndex((place) => Number(place.dataset.index) === select.selectedIndex),
+  );
+  const wheel = mountWheel(list, first, (at) => {
+    const place = places[at];
+    const index = Number(place?.dataset.index);
+    if (!place || place.hasAttribute("aria-disabled") || select.selectedIndex === index) return;
+    select.selectedIndex = index;
+    select.dispatchEvent(new Event("input", { bubbles: true }));
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  wheels.set(sheet, wheel);
+  list.focus({ preventScroll: true, ...(byKey ? {} : { focusVisible: false }) } as FocusOptions);
+}
+
 function open(select: HTMLSelectElement, byKey: boolean): void {
   const wrapper = select.closest<HTMLElement>("[data-select]");
   if (!wrapper) return;
@@ -92,8 +128,9 @@ function open(select: HTMLSelectElement, byKey: boolean): void {
     list.id = `select-sheet-${++uid}`;
     list.setAttribute("popover", "auto");
     list.setAttribute("data-select-sheet", "");
+    if (wantsWheel(select)) list.setAttribute("data-wheel", "");
     const sheet = list;
-    build(sheet, sheet.id);
+    build(sheet, sheet.id, wantsWheel(select));
     pullToDismiss(sheet, () => sheet.hidePopover());
     sheet.addEventListener("click", (event) => {
       const target = event.target as Element;
@@ -101,6 +138,7 @@ function open(select: HTMLSelectElement, byKey: boolean): void {
         sheet.hidePopover();
         return;
       }
+      if (sheet.hasAttribute("data-wheel")) return;
       const row = target.closest<HTMLElement>('[role="option"]');
       if (!row || row.hasAttribute("aria-disabled")) return;
       const index = Number(row.dataset.index);
@@ -113,6 +151,7 @@ function open(select: HTMLSelectElement, byKey: boolean): void {
       }
     });
     sheet.addEventListener("keydown", (event) => {
+      if (sheet.hasAttribute("data-wheel")) return;
       const rows = rowsOf(sheet);
       const at = rows.indexOf(document.activeElement as HTMLElement);
       const to =
@@ -131,8 +170,10 @@ function open(select: HTMLSelectElement, byKey: boolean): void {
     });
     // Closed by a pick, Escape or a press outside: focus goes back to the field.
     sheet.addEventListener("toggle", (event) => {
-      if ((event as ToggleEvent).newState === "closed" && sheet.contains(document.activeElement))
-        select.focus({ preventScroll: true });
+      if ((event as ToggleEvent).newState !== "closed") return;
+      // A close mid-spin keeps the row the wheel was nearest.
+      wheels.get(sheet)?.flush();
+      if (sheet.contains(document.activeElement)) select.focus({ preventScroll: true });
     });
     wrapper.after(sheet);
   }
@@ -141,6 +182,10 @@ function open(select: HTMLSelectElement, byKey: boolean): void {
   // The field holds focus first, so the popover returns it there when it closes.
   select.focus({ preventScroll: true });
   list.showPopover();
+  if (wantsWheel(select)) {
+    openWheel(list, select, byKey);
+    return;
+  }
   // Focus moves in for a keyboard and a screen reader; a finger's ring is not drawn (focusVisible).
   const row = list.querySelector<HTMLElement>('[aria-selected="true"]') ?? rowsOf(list)[0];
   row?.focus({ preventScroll: true, ...(byKey ? {} : { focusVisible: false }) } as FocusOptions);
