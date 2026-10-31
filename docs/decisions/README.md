@@ -282,8 +282,10 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D266 | Icon, Badge, type | amends D243 |
 | D267 | Card, Row | amends D243 |
 | D268 | Styles: token overrides | amends D125 |
-| D270 | Experiments: a change settles on a read, not its write's answer | amends D249, D259 |
-| D271 | Pill slide and cover flight travel in 250 ms on the out curve | active |
+| D270 | Experiments settle on a read | amends D249, D259 |
+| D271 | Pill and cover travel in 250 ms | active |
 | D272 | No persisted floating button | active |
+| D274 | Icon weight token | amends D268 |
+| D275 | Concentric picker | amends D167 |
 
 ---

@@ -38,6 +38,11 @@ export interface Glyph {
   targets: GlyphTarget[];
   /** The single path of the icon, in the document's view box. */
   d: string;
+  /**
+   * The same icon in Phosphor's bold weight, on a regular glyph. The Icon draws both and a token
+   * (component.icon.bold) chooses which one shows, so a style can thicken every icon (D268).
+   */
+  bold?: string;
 }
 
 export interface GlyphDocument {
@@ -68,6 +73,12 @@ export function validateGlyphs(doc: GlyphDocument): string[] {
     // A path is move, line and curve commands only. Anything else is not a path from the set.
     if (!/^[Mm][\dA-Za-z .,-]+$/.test(glyph.d)) {
       problems.push(`${name}: path is missing or malformed`);
+    }
+    if (glyph.bold !== undefined) {
+      if (glyph.weight !== "regular")
+        problems.push(`${name}: only a regular glyph has a bold twin`);
+      else if (!/^[Mm][\dA-Za-z .,-]+$/.test(glyph.bold))
+        problems.push(`${name}: bold path is malformed`);
     }
   }
   return problems;
@@ -112,6 +123,18 @@ function header(what: string): string[] {
   ];
 }
 
+/** The bold twins of the listed glyphs, as the second registry every Icon reads beside the first. */
+function boldRegistry(doc: GlyphDocument, names: string[]): string[] {
+  const twins = names.filter((name) => doc.glyphs[name]?.bold !== undefined);
+  return [
+    "/** Phosphor's bold weight of a regular glyph. A token (component.icon.bold) picks which one shows. */",
+    "export const ICON_BOLD_PATHS: Partial<Record<keyof typeof ICON_PATHS, string>> = {",
+    ...twins.map((name) => property(name, JSON.stringify(doc.glyphs[name]?.bold ?? ""), "  ")),
+    "};",
+    "",
+  ];
+}
+
 export function buildPageRegistry(doc: GlyphDocument): string {
   const lines = [
     ...header("The icon registry for Astro pages."),
@@ -125,6 +148,7 @@ export function buildPageRegistry(doc: GlyphDocument): string {
     "",
     "export type IconName = keyof typeof ICON_PATHS;",
     "",
+    ...boldRegistry(doc, namesFor(doc, "page")),
   ];
   return lines.join("\n");
 }
@@ -145,6 +169,7 @@ export function buildPlayerRegistry(doc: GlyphDocument): string | null {
     "",
     "export type IconName = keyof typeof ICON_PATHS;",
     "",
+    ...boldRegistry(doc, names),
   ];
   return lines.join("\n");
 }
@@ -162,6 +187,7 @@ export function buildPlayerLazyRegistry(doc: GlyphDocument): string {
     "",
     "export type IconName = keyof typeof ICON_PATHS;",
     "",
+    ...boldRegistry(doc, names),
   ];
   return lines.join("\n");
 }
@@ -192,9 +218,16 @@ export function rebuildGlyphs(doc: GlyphDocument): GlyphDocument {
   ).version;
   const glyphs: Record<string, Glyph> = {};
   for (const [name, glyph] of Object.entries(doc.glyphs)) {
+    const twin = { phosphor: glyph.phosphor, weight: "bold" as const };
+    // A bold twin left from an earlier weight would be written as an invalid record.
+    const { bold: _stale, ...rest } = glyph;
     glyphs[name] = {
-      ...glyph,
+      ...rest,
       d: pathFromSvg(readFileSync(resolve(root, symbolFile(glyph)), "utf8")),
+      // A regular glyph keeps a bold twin; fill is already solid and bold is already bold.
+      ...(glyph.weight === "regular"
+        ? { bold: pathFromSvg(readFileSync(resolve(root, symbolFile(twin)), "utf8")) }
+        : {}),
     };
   }
   return { ...doc, sourceVersion: version, glyphs };

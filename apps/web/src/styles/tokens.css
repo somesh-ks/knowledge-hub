@@ -260,6 +260,7 @@
   --layout-mini-max: 38.5rem;
   --layout-window-controls: 4rem;
   --layout-measure: 34rem;
+  --icon-bold: 0;
   --size-touch: 2.75rem;
   --size-touch-comfortable: 3rem;
   --size-option: 3rem;
@@ -344,6 +345,7 @@
   --item-play-radius: var(--radius-sm);
   --cta-height: 3.5rem;
   --cta-radius: var(--radius-round);
+  --cta-radius-pressed: var(--cta-radius);
   --cta-bg: var(--color-accent);
   --cta-bg-hover: var(--color-accent-hover);
   --cta-bg-pressed: var(--color-accent-pressed);
@@ -430,6 +432,7 @@
   --chip-ring: 1.5px;
   --chip-icon: 1.125rem;
   --chip-radius: var(--radius-round);
+  --chip-radius-selected: var(--chip-radius);
   --chip-bg: var(--color-surface-container);
   --chip-fg: var(--color-accent);
   --chip-bg-current: var(--color-accent-container);
@@ -437,6 +440,7 @@
   --app-bar-height: 3.5rem;
   --nav-bar-height: 4rem;
   --nav-indicator-width: 4rem;
+  --nav-indicator-radius-current: var(--radius-round);
   --nav-indicator-height: 2rem;
   --nav-side-width: 13rem;
   --nav-item-icon: var(--size-icon-lg);
@@ -450,6 +454,9 @@
   --row-radius: var(--radius-md);
   --row-tile-radius: var(--radius-round);
   --slider-max-width: 10rem;
+  --picker-radius: var(--radius-sheet);
+  --picker-inset: var(--card-inset);
+  --picker-inner-radius: var(--radius-xl);
   --card-padding: var(--space-6);
   --card-inset: var(--space-1);
   --card-radius: var(--radius-2xl);
@@ -568,6 +575,27 @@
   --switch-thumb-bg: var(--color-on-surface);
   --card-chip-hover: var(--state-hover);
   color-scheme: dark;
+}
+
+/* Style: expressive */
+:root[data-style="expressive"] {
+  --icon-bold: 1;
+  --text-display-family: var(--font-ui);
+  --text-display-size: 2.5rem;
+  --text-display-weight: var(--font-weight-bold);
+  --text-display-tracking: -0.03em;
+  --text-display-leading: 1.05;
+  --cover-radius-hero: 2.5rem;
+  --cover-radius-large: 2.5rem;
+  --cover-radius-thumb: 1rem;
+  --card-radius: 2.5rem;
+  --card-inner-radius: 2.25rem;
+  --card-content-radius: 1rem;
+  --chip-radius-selected: var(--radius-md);
+  --cta-radius-pressed: var(--radius-lg);
+  --nav-indicator-radius-current: var(--radius-md);
+  --scrubber-track: 0.5rem;
+  --row-radius: var(--radius-2xl);
 }
 
 /* Reduced motion: movement durations collapse, fades and color changes keep their timing. */

@@ -89,14 +89,15 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-22: TBT is root `:has()` restyles (first-load-js.md).
 - 2026-10-16: an installed Android web app keeps the manifest's theme_color from install for the system navigation bar; a runtime theme-color meta never repaints it. Leave theme_color out so the bars follow the system theme.
 - 2026-10-14: on mobile Chrome a fixed element held by its bottom edge moves with the address bar in the same frame; one held by both edges (`inset: 0`) resizes only after the gesture, so the bottom stack drifted apart (#120). Hold bottom-stack elements by the bottom edge; full-height boxes by `100dvh`.
-- 2026-10-11: Safari 27 has no `overlay`, so a closing dialog or popover leaves the top layer as its exit starts and the exit plays in the page: give top-layer elements their own `position` and a z-index (the top layer ignores it), and close at once under `@supports not (overlay: auto)` where an ancestor has a transform.
+- 2026-10-11: Safari 27 has no `overlay`, so a closing dialog or popover leaves the top layer as its exit starts: give top-layer elements their own `position` and a z-index (the top layer ignores it), and close at once under `@supports not (overlay: auto)` where an ancestor has a transform.
 - 2026-10-11: the voice sample button never worked in production: it played Speechify's own URL, which the page's `media-src` blocks, and its error handler hid the button, so it looked like a missing feature. A media URL from a third party needs the CSP checked, or a same-origin route (`/api/voice-sample`).
 - 2026-10-09: a move took 400 ms though the page was ready after 70: the mark that picks the animation (`data-astro-nav`) was lost in the swap, as Astro 7 keeps only its own root attributes. Carry it onto `event.newDocument` in `astro:before-swap`; check with `document.getAnimations()`.
 - 2026-10-09: The first press after opening the app blocks for about 200 ms with the audio device idle, about 75 ms warm: `new AudioContext()` inside the press. `latencyHint` and `sampleRate` do not help; a first measurement said they did, because the first context created pays. Reverse the order as the control.
 
 ## Build and tooling
 
-- 2026-10-31: a new shared stylesheet import reorders equal-specificity rules (icon.css flipped the player's collapse chip ink). Diff built pages' computed styles after an import move.
+- 2026-10-31: a new token needs `npm run system` too, or CI `check` fails on a stale `system.json`.
+- 2026-10-31: a new stylesheet import reorders equal-specificity rules (icon.css flipped a chip's ink). Diff computed styles after one.
 - 2026-10-30: designSystem.test reads quoted text: a retired class equal to a file name or a selector string counts as writing it.
 - 2026-10-28: cloud Node 22.22 fails `astro check`: `. /opt/nvm/nvm.sh && nvm install 24`. `pkill -f` kills its own shell.
 - 2026-10-25: an `<svg>` in a template string has no `data-icon`, so D187 skips it; use `iconHtml()`.
