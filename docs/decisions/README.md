@@ -122,11 +122,11 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D99 | The test suite protects what fails silently, in one layer, once; the dev lab is retired; refused, lost and failed actions are told | active; amends D91, D97 and D98 |
 | D100 | The time zone selector returns and the schedule counts in the chosen zone; a second voice; voice rows keep Play | active; amends D71, D89 and D91; Format ended in D215 |
 | D101 | A long list is a searchable list; the bar keeps its controls on a wide screen; every recording has a transcript; every topic is shown | active; amends D76, D90, D92 and D100 |
-| D102 | General topics play in Daily and Weekly, a topic is always on and has a summary card, titles are bigger, and the gate runs in parallel | active; amends D69, D87, D89, D90, D101 |
-| D103 | Source scores out of 5 as stars; source lists fold at seven; topic delete asks first; Regenerate on Today takes feedback; first-load budget 150 KB | active; amends D55, D83, D53 |
+| D102 | General topics play in Daily and Weekly; a topic is always on and has a summary card; the gate runs in parallel | active; amends D69, D87, D89, D90, D101 |
+| D103 | Source scores as stars; source lists fold at seven; topic delete asks first; Regenerate takes feedback; first-load 150 KB | active; amends D55, D83, D53 |
 | D104 | Every briefing has Share, Regenerate and Delete; Regenerate replaces that digest over its window; Delete removes its file and timeline | active; amends D88, D103 |
 | D105 | A new episode plays from a live Blob copy while it is written; mobile sounds unlock on click; the spoken word lights at once | active; amends D82, D101 |
-| D106 | The wide bar leads with what is playing and hides its volume slider until hover; bottom sheets lose the grabber; a played chip offers Play again | active; amends D46, D58, D101 |
+| D106 | The wide bar leads with what is playing and hides its volume until hover; sheets lose the grabber; a played chip offers Play again | active; amends D46, D58, D101 |
 | D107 | The transcript's highlight pauses while the host speaks words the page does not show | active; amends D101, D105 |
 | D108 | A user profile holds blocked domains and story votes; a block cuts an outlet on every fetch path; votes nudge ranking, listings and the writer, and are never shown | active |
 | D109 | Regenerate chooses the topics again and takes comments, for an episode and a briefing, for that run only | active; amends D44, D103, D104 |
@@ -144,7 +144,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D121 | Covers are drawn at medium chroma (OKLCH 0.12 or less); each monthly series has its own style set and prints on its own close tint of the month's paper | active; amends D110 |
 | D122 | Covers a step brighter in both themes; the header light takes the cover's colours as three drifting lights; a theme change waits for the covers | active; amends D48, D77, D121 |
 | D123 | One AI model select on Settings; no manifest colour, so Android's bars follow the system; a launch screen; the playing cover lights the player page | active; amends D51, D101 |
-| D124 | Weights are five named stops and Off; every source has a Jev-classified format; a format mix per page, a Perspective slider, two stories per outlet | active; amends D57, D69, D83 |
+| D124 | Weights are five named stops and Off; sources have a Jev-classified format; a format mix per page; two stories per outlet | active; amends D57, D69, D83 |
 | D125 | Headings never bold; Settings H2s at the 22px role; an Intelligence section for the model; Topics and sources is a search and a floating Add | active; amends D73, D123, D124 |
 | D126 | A play queue, an Up next peek and sheet, a collapse chevron, Space to play | active; amends D102, D111 |
 | D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, at most 10 | active; amends D123 |
@@ -278,6 +278,8 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D262 | Sheet and Drawer split | active; amends D243 |
 | D263 | Cover version in URL | proposed; amends D258 |
 | D265 | A select's phone list is the standard sheet | active; amends D167 |
+| D266 | Icon, Badge, type | amends D243 |
+| D267 | Card, Row | amends D243 |
 | D270 | Experiments: a change settles on a read, not its write's answer | amends D249, D259 |
 
 ---

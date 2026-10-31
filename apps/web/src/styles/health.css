@@ -29,11 +29,6 @@
   align-items: center;
   gap: var(--space-4);
   margin: 0;
-  font-family: var(--text-display-family);
-  font-size: var(--text-display-size);
-  font-weight: var(--text-display-weight);
-  letter-spacing: var(--text-display-tracking);
-  line-height: var(--text-display-leading);
 }
 
 /* Name and line at the start, the reading at the end, one shape at every width: the reading never

@@ -81,7 +81,7 @@
   font-weight: var(--font-weight-medium);
 }
 
-.manage-error .icon {
+.manage-error .icon-glyph {
   flex: none;
   width: var(--size-icon-sm);
   height: var(--size-icon-sm);

@@ -29,7 +29,7 @@ export const PARTS: PartSource[] = [
     kind: "action",
     summary: "A glyph in a round 44px target, quiet until used.",
     classes: ["icon-btn", "press", "icon-btn-end"],
-    files: ["components/Icon.astro"],
+    files: ["design-system/Icon.astro"],
     when: [
       "close a sheet or dialog",
       "a row's more menu (the dots)",

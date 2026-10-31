@@ -3,8 +3,8 @@ import BriefingCard from "../components/BriefingCard.astro";
 import EmptyArt from "../components/EmptyArt.astro";
 import EpisodeActions from "../components/EpisodeActions.astro";
 import EpisodeCard from "../components/EpisodeCard.astro";
-import Icon from "../components/Icon.astro";
 import Button from "../design-system/Button.astro";
+import Icon from "../design-system/Icon.astro";
 import Select from "../design-system/Select.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { LIBRARY_FILTERS, LIBRARY_SORTS, resultSummary } from "../lib/library";
@@ -38,7 +38,7 @@ const items = libraryItems(entries, episodes);
     {
       items.length === 0 ? (
         <section class="library-none" aria-labelledby="page-title">
-          <h1 class="page-title library-title" id="page-title" tabindex="-1">
+          <h1 class="page-title text-display library-title" id="page-title" tabindex="-1">
             Library
           </h1>
           {/* The page keeps its title; under it, the scene, what is true and the one thing to do. */}
@@ -55,7 +55,7 @@ const items = libraryItems(entries, episodes);
         </section>
       ) : (
         <div data-library>
-          <h1 class="page-title library-title" id="page-title" tabindex="-1">
+          <h1 class="page-title text-display library-title" id="page-title" tabindex="-1">
             Library
           </h1>
           {/* Search, then what to show, then the order. Every briefing is already in the page, so
