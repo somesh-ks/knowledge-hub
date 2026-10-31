@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page, Route } from "@playwright/test";
-import { expect, test } from "./helpers";
+import { expect, serveNarration, test } from "./helpers";
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
@@ -53,6 +53,26 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
     await expect(player.root).toHaveAttribute("data-player-state", "ended");
     await expect(player.dialog.getByText("Suggested", { exact: true })).toBeVisible();
     await expectAccessible(page, "the ended player");
+  });
+
+  // D277: played rows, the one playing and the queued rows, with a row held mid-drag by key.
+  test("Up next with played, current and queued rows", async ({ player, page }) => {
+    await player.open();
+    await serveNarration(page, 300, "/d/2026-10-05");
+    await page.evaluate(() => {
+      for (const id of ["2026-10-05", "ep-20261007-1930"])
+        document.dispatchEvent(new CustomEvent("singularity:queue-add", { detail: { id } }));
+    });
+    await player.play();
+    await player.openPlayer();
+    await player.dialog.getByRole("tab", { name: "Up next" }).click();
+    await player.finger.press(
+      player.dialog.locator('[data-queue-id="2026-10-05"] .player-queue-row'),
+    );
+    await expect(player.dialog.locator('[data-state="played"]')).toHaveCount(1, {
+      timeout: 10_000,
+    });
+    await expectAccessible(page, "Up next with played rows");
   });
 
   test("the Generate sheet idle and refused, then the queue going and failed", async ({

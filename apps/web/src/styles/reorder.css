@@ -1,0 +1,50 @@
+/*
+ * The Reorderable list (design-system/reorder.ts): rows the listener moves by dragging. A mouse
+ * shows the 4-way move arrow over a row and pulls it; a finger holds, then moves it (the hold is
+ * the card menu's, D264). The rows a held row passes step aside by its height, which shows where it
+ * will land; the held row follows the pointer at once. Controls inside a row that press on their
+ * own (a menu's dots) set their own cursor.
+ */
+.reorder-list {
+  position: relative;
+}
+
+.reorder-item {
+  position: relative;
+  /* Sideways is the row's own swipe where it has one; up and down stays the page's scroll until the hold. */
+  touch-action: pan-y;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .reorder-item,
+  .reorder-item :is(button, a) {
+    cursor: move;
+  }
+
+  .reorder-item :is(.icon-btn, [role="menu"], [role="menuitem"]) {
+    cursor: pointer;
+  }
+}
+
+/* Only while a row is held do the others move, and they ease; on release they snap, the list having
+   already taken its new order. */
+.reorder-list[data-reordering] .reorder-item {
+  transition: translate var(--duration-press-out) var(--ease-out);
+}
+
+.reorder-list[data-reordering] .reorder-item[data-lifted] {
+  z-index: var(--z-raised);
+  transition: none;
+  background: var(--color-surface-container);
+  outline: var(--stroke-ring) solid var(--color-accent);
+  outline-offset: calc(var(--stroke-ring) * -1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reorder-list[data-reordering] .reorder-item {
+    transition: none;
+  }
+}

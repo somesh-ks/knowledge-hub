@@ -14,6 +14,7 @@ import type { ComponentRef, Guidance } from "../../apps/web/src/design-system/gu
 import { ICON } from "../../apps/web/src/design-system/icon.js";
 import { MENU } from "../../apps/web/src/design-system/menu.js";
 import { RIPPLE } from "../../apps/web/src/design-system/ripple.js";
+import { REORDER } from "../../apps/web/src/design-system/reorder.js";
 import { SELECT } from "../../apps/web/src/design-system/select.js";
 import { SHEET } from "../../apps/web/src/design-system/sheet.js";
 import { SLIDER } from "../../apps/web/src/design-system/slider.js";
@@ -37,6 +38,7 @@ const PART_OF: Record<string, string> = {
   Dialog: "dialog",
   Sheet: "sheet",
   Drawer: "drawer",
+  Reorder: "reorder",
 };
 
 const partOf = (ref: ComponentRef | undefined, fallback: string): string => {
@@ -337,6 +339,16 @@ export const componentParts = (): PartSource[] => [
       "The control is `position: relative` with its own stacking context (isolation: isolate); the layer sits beneath its icon and label.",
       "To reach past the control's box set --ripple-reach-start, --ripple-reach-end or --ripple-reach-bottom on the control; --ripple-display: none turns the layer off where the control has a pointer state.",
       "installRipple() (design-system/ripple.ts) is called once by the app script; the control sets nothing else.",
+    ],
+  }),
+  control("reorder", "Reorder", REORDER, {
+    kind: "container",
+    classes: ["reorder-list", "reorder-item"],
+    files: ["design-system/reorder.ts", "styles/reorder.css"],
+    keywords: ["drag", "reorder", "move rows", "long press"],
+    markup: '<ul class="reorder-list"><li class="reorder-item">Row</li></ul>',
+    rules: [
+      "Add the behaviour with attachReorder(list, { onMove, announce, label }); Alt+arrows move a row.",
     ],
   }),
 ];

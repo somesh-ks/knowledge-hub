@@ -1,5 +1,6 @@
-import type { DragEvent, KeyboardEvent, PointerEvent, ToggleEvent } from "react";
+import type { KeyboardEvent, PointerEvent, ToggleEvent } from "react";
 import { menuItemClass, menuListClass } from "../design-system/menu";
+import { reorderItemClass } from "../design-system/reorder";
 import { longDateFromDigestId } from "./core/formatTime";
 import { getPlayQueue, playQueueItem } from "./core/playerRuntime";
 import { useQueueMeta } from "./hooks/useQueue";
@@ -11,10 +12,6 @@ export interface QueueGestures {
   onPointerDown(event: PointerEvent<HTMLElement>, index: number): void;
   onPointerMove(event: PointerEvent<HTMLElement>): void;
   onPointerEnd(event: PointerEvent<HTMLElement>): void;
-  onDragStart(event: DragEvent<HTMLElement>, index: number): void;
-  onDragOver(event: DragEvent<HTMLElement>, index: number): void;
-  onDrop(event: DragEvent<HTMLElement>): void;
-  onDragEnd(): void;
   /** True just after a swipe, so the row's click does not play what the finger meant to move. */
   swiped(): boolean;
   onMove(index: number, to: number, title: string): void;
@@ -33,7 +30,7 @@ const ITEM = '[role="menuitem"]:not(:disabled)';
 
 /**
  * One queued item: its cover, its title and what it is. The row plays it now. A drag moves it (a
- * long press with a finger, a press and pull with a mouse: the browser's own drag and drop), a swipe
+ * long press with a finger, a press and pull with a mouse: the Reorderable list, D277), a swipe
  * to the left takes it off the queue, and the dots at its end open a menu that does both with a key
  * or a tap: Move up, Move down, Remove (D169). The menu is the header's More menu (hero.css): a
  * popover under the dots, a bottom sheet on a phone.
@@ -73,17 +70,13 @@ export default function QueueRow({ id, index, count, gestures }: QueueRowProps) 
   };
   return (
     <li
-      className="player-queue-item"
+      className={`player-queue-item ${reorderItemClass()}`}
       data-queue-id={id}
-      draggable
+      data-title={title}
       onPointerDown={(event) => gestures.onPointerDown(event, index)}
       onPointerMove={gestures.onPointerMove}
       onPointerUp={gestures.onPointerEnd}
       onPointerCancel={gestures.onPointerEnd}
-      onDragStart={(event) => gestures.onDragStart(event, index)}
-      onDragOver={(event) => gestures.onDragOver(event, index)}
-      onDrop={gestures.onDrop}
-      onDragEnd={gestures.onDragEnd}
     >
       <button
         className="player-queue-row"

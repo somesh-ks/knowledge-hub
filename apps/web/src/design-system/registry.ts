@@ -14,6 +14,7 @@ import type { Guidance } from "./guidance";
 import { ICON, ICON_CLASSES, ICON_RETIRED } from "./icon";
 import { MENU, MENU_CLASSES, MENU_RETIRED } from "./menu";
 import { RIPPLE, RIPPLE_CLASSES, RIPPLE_RETIRED } from "./ripple";
+import { REORDER, REORDER_CLASSES, REORDER_RETIRED } from "./reorder";
 import { SELECT, SELECT_CLASSES, SELECT_RETIRED } from "./select";
 import { SHEET, SHEET_CLASSES, SHEET_RETIRED } from "./sheet";
 import { SLIDER, SLIDER_CLASSES, SLIDER_RETIRED } from "./slider";
@@ -186,6 +187,17 @@ export const COMPONENTS: DesignSystemComponent[] = [
     summary: RIPPLE.summary,
     useWhen: RIPPLE.useWhen,
     dontUseWhen: RIPPLE.dontUseWhen,
+    parts: {},
+  },
+  {
+    name: "Reorder",
+    sheet: "reorder.css",
+    prefix: "reorder-",
+    classes: REORDER_CLASSES,
+    retired: REORDER_RETIRED,
+    summary: REORDER.summary,
+    useWhen: REORDER.useWhen,
+    dontUseWhen: REORDER.dontUseWhen,
     parts: {},
   },
 ];

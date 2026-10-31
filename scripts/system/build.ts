@@ -125,6 +125,9 @@ export function classTokens(text: string): Set<string> {
   // The Switch and the Slider are single-class components, drawn by the tag or by the class helper.
   if (/<Switch\b|\bswitchClass\(/.test(code)) found.add("switch-input");
   if (/<Slider\b|\bsliderClass\(/.test(code)) found.add("slider-input");
+  // The Reorderable list is drawn by its class helpers.
+  if (/\breorderListClass\(/.test(code)) found.add("reorder-list");
+  if (/\breorderItemClass\(/.test(code)) found.add("reorder-item");
   // The Field is drawn by the tag (not Base UI's Field.Root) or by the class helper, for a select.
   if (/<Field(?![\w.])|\bfieldClass\(/.test(code)) found.add("field-input");
   // The Select is drawn by the tag or by the class helper, in the variant it names (outlined by default).
@@ -210,6 +213,8 @@ export function sourceFiles(): { path: string; text: string; tokens: Set<string>
       tokens.delete("icon-glyph-lg");
       tokens.delete("switch-input");
       tokens.delete("slider-input");
+      tokens.delete("reorder-list");
+      tokens.delete("reorder-item");
       tokens.delete("field-input");
       tokens.delete("select-outlined");
       tokens.delete("select-tonal");

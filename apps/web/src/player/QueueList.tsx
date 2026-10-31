@@ -1,4 +1,5 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
+import { attachReorder, reorderListClass } from "../design-system/reorder";
 import { swipeLeaves } from "../lib/swipeAway";
 import { announce } from "./core/announcerDom";
 import { createVelocityTracker, TAP_SLOP_PX } from "./core/gestureMath";
@@ -22,9 +23,8 @@ interface Press {
 }
 
 /**
- * The queue in order (D169). A row moves by the browser's drag and drop: a long press lifts it under
- * a finger, a press and pull does with a mouse, and the list scrolls as it always did; the row it
- * is over shows an accent line on the edge it would join. A sideways swipe is ours: past the tap
+ * The queue in order (D169, D277). A row moves by the design system's Reorderable list: a long press
+ * lifts it under a finger, a press and pull does with a mouse, and the rows it passes step aside. A sideways swipe is ours: past the tap
  * slop it follows the finger, and on release the shared rule (lib/swipeAway.ts) says whether a
  * swipe to the left takes the row off or it springs back. The dots' menu does the same with a key
  * or a tap and says where the row went.
@@ -33,21 +33,7 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
   const listRef = useRef<HTMLUListElement>(null);
   const press = useRef<Press | null>(null);
   const swipedUntil = useRef(0);
-  const dragFrom = useRef<number | null>(null);
-  const dropAt = useRef<number | null>(null);
-  const marked = useRef<HTMLElement | null>(null);
   const tracker = useRef(createVelocityTracker());
-
-  const rows = (): HTMLElement[] => [
-    ...(listRef.current?.querySelectorAll<HTMLElement>(".player-queue-item") ?? []),
-  ];
-  const clearDrag = (): void => {
-    for (const row of rows()) row.removeAttribute("data-dragging");
-    marked.current?.removeAttribute("data-drop");
-    marked.current = null;
-    dragFrom.current = null;
-    dropAt.current = null;
-  };
 
   const gestures: QueueGestures = {
     onPointerDown(event, index) {
@@ -101,44 +87,6 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
       } else row.style.translate = "";
     },
     swiped: () => performance.now() < swipedUntil.current,
-    onDragStart(event, index) {
-      // A finger already moving sideways is swiping, not dragging; the dots and the menu have
-      // presses of their own, and a pull on them is not a reorder.
-      if (
-        press.current?.mode === "swipe" ||
-        (event.target as Element).closest(".player-queue-more, .player-queue-menu")
-      ) {
-        event.preventDefault();
-        return;
-      }
-      press.current = null;
-      dragFrom.current = index;
-      event.dataTransfer.effectAllowed = "move";
-      event.dataTransfer.setData("text/plain", ids[index] ?? "");
-      event.currentTarget.dataset.dragging = "";
-    },
-    onDragOver(event, index) {
-      if (dragFrom.current === null) return;
-      event.preventDefault();
-      event.dataTransfer.dropEffect = "move";
-      const box = event.currentTarget.getBoundingClientRect();
-      const after = event.clientY > box.top + box.height / 2;
-      if (marked.current !== event.currentTarget) marked.current?.removeAttribute("data-drop");
-      marked.current = event.currentTarget;
-      if (index !== dragFrom.current) event.currentTarget.dataset.drop = after ? "after" : "before";
-      else event.currentTarget.removeAttribute("data-drop");
-      dropAt.current = index + (after ? 1 : 0);
-    },
-    onDrop(event) {
-      event.preventDefault();
-      const from = dragFrom.current;
-      let to = dropAt.current;
-      clearDrag();
-      if (from === null || to === null) return;
-      if (from < to) to -= 1;
-      if (to !== from) getPlayQueue().move(from, to);
-    },
-    onDragEnd: clearDrag,
     onMove(index, to, title) {
       if (to < 0 || to >= ids.length) return;
       const id = ids[index];
@@ -153,8 +101,20 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
     },
   };
 
+  // The Reorderable list moves a row by a drag and by Alt+arrows; the queue only keeps the order (D277).
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    return attachReorder(list, {
+      ignore: ".player-queue-more, .player-queue-menu",
+      label: (item) => item.dataset.title ?? "Item",
+      announce,
+      onMove: (from, to) => getPlayQueue().move(from, to),
+    });
+  }, []);
+
   return (
-    <ul className="player-queue-list" ref={listRef}>
+    <ul className={`player-queue-list ${reorderListClass()}`} ref={listRef}>
       {ids.map((id, index) => (
         <QueueRow key={id} id={id} index={index} count={ids.length} gestures={gestures} />
       ))}

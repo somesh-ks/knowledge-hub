@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import "../styles/player.css";
+import "../styles/reorder.css";
 import { loadPlayerSheet } from "./core/playerSheet";
 import { usePlayerState } from "./hooks/usePlayer";
 import PlayerSurface from "./PlayerSurface";
