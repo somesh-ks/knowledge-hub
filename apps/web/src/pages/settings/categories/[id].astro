@@ -100,7 +100,7 @@ const { group, topic, list, choices, taken, shell = false } = Astro.props;
 
 // The names a new topic may not take again (topicProblems): every topic a person sees.
 const names = choices.map((choice) => choice.name);
-const [{ sources }, catalog] = await Promise.all([loadManage(), loadSourceCatalog()]);
+const [{ sources, topics }, catalog] = await Promise.all([loadManage(), loadSourceCatalog()]);
 const name = group?.name ?? topic?.name ?? "Other";
 const note = group?.note ?? topic?.description ?? "Sources not filed under a category.";
 // A source on a group's page shows the group as its topic, so its edit panel moves it only when
@@ -138,6 +138,28 @@ const upsert =
       section_id: topic.section_id,
     },
   });
+// A group's emoji is kept on its home topic (2026-10-31), so the picker's pick is that topic's own
+// edit, sent whole: nothing but the emoji changes.
+const home = group ? topics.find((candidate) => candidate.id === group.home) : undefined;
+const homeUpsert =
+  home &&
+  JSON.stringify({
+    op: "topic.upsert",
+    topic: {
+      id: home.id,
+      name: home.name,
+      description: home.description,
+      enabled: home.enabled,
+      keywords: home.keywords,
+      emoji: home.emoji,
+      section_id: home.section_id,
+    },
+  });
+const pickedEmoji = topic
+  ? topicEmoji(topic)
+  : group
+    ? topicEmoji({ ...group, emoji: home?.emoji })
+    : "";
 // Every page takes a new source, filed under the topic (a group's under its home topic).
 const addTo = group?.home ?? topic?.id ?? "";
 // A general news topic feeds General episodes by how many outlets carry a story.
@@ -182,6 +204,9 @@ const facts = topic && {
         <p class="manage-note">Changing categories and sources needs JavaScript, which is turned off in this browser.</p>
       </noscript>
 
+      {/* The way up, over the card instead of inside it (2026-10-31, owner); the card holds the name. */}
+      <SettingsHead />
+
       <fieldset class="manage-fields" data-fields>
         <legend class="sr-only">{name}</legend>
         <div class="topic" data-id={topic?.id ?? ""} data-topic>
@@ -191,11 +216,12 @@ const facts = topic && {
                popover menu (HeroMenu.astro, heroMenu.ts). */}
           <div class="topic-card">
             <div class="topic-card-lead">
-              <div class="topic-card-art" set:html={art} />
-              {/* The topic's emoji (2026-10-21): a button at the picture's corner that opens the
-                   emoji picker (emojiPicker.ts); the topic's own edit sends the pick. */}
+              {!(topic || homeUpsert) && <div class="topic-card-art" set:html={art} />}
+              {/* The topic's emoji is the card's picture (2026-10-31): the button that opens the emoji
+                   picker (emojiPicker.ts); the topic's own edit sends the pick, a group's as its
+                   home topic's edit. */}
               {
-                topic && (
+                (topic || homeUpsert) && (
                   <button
                     class="icon-btn press topic-emoji-pick"
                     type="button"
@@ -203,14 +229,16 @@ const facts = topic && {
                     aria-haspopup="dialog"
                     aria-controls="emoji-picker"
                     data-change-emoji
+                    data-topic-base={group ? homeUpsert : undefined}
+                    data-home={group?.home}
                     data-needs-js
-                  >{topicEmoji(topic)}</button>
+                  >{pickedEmoji}</button>
                 )
               }
             </div>
-            {topic && <EmojiPicker id="emoji-picker" />}
+            {(topic || homeUpsert) && <EmojiPicker id="emoji-picker" />}
             <div class="topic-card-text">
-              <SettingsHead title={name} note={note} />
+              <SettingsHead title={name} note={note} crumb={false} />
             </div>
             {
               topic && (
@@ -350,10 +378,11 @@ const facts = topic && {
                (2026-10-21); Other, with no tabs, keeps it on screen. */}
           <div class="topic-sources-head" data-quiet={hasPreferences ? "" : undefined}>
             <h2 class:list={["section-head", "text-heading", { "sr-only": hasPreferences }]}>Sources</h2>
-            {/* From 64rem the button sits beside the search (SourceFilter's action); a topic with no
-                 sources has no search, so it keeps the heading's end. */}
+            {/* From 64rem the button is at the heading's end (2026-10-31, owner). Under the Sources tab
+                 the heading is for screen readers only, so there it stays beside the search
+                 (SourceFilter's action). */}
             {
-              list.length === 0 && (
+              (list.length === 0 || !hasPreferences) && (
                 <Button
                   variant="tonal"
                   class="topic-add-source"
@@ -373,17 +402,21 @@ const facts = topic && {
             {
               list.length > 0 && (
                 <SourceFilter sources={list} chips>
-                  <Button
-                    variant="tonal"
-                    slot="action"
-                    class="topic-add-source"
-                    aria-label={`Add source to ${name}`}
-                    data-add-source={addTo}
-                    data-needs-js
-                  >
-                    <Icon name="plus" />
-                    <span>Add source</span>
-                  </Button>
+                  {
+                    hasPreferences && (
+                      <Button
+                        variant="tonal"
+                        slot="action"
+                        class="topic-add-source"
+                        aria-label={`Add source to ${name}`}
+                        data-add-source={addTo}
+                        data-needs-js
+                      >
+                        <Icon name="plus" />
+                        <span>Add source</span>
+                      </Button>
+                    )
+                  }
                 </SourceFilter>
               )
             }

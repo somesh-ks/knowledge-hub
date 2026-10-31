@@ -141,11 +141,16 @@ function upsertTopic(
     // A built-in topic keeps its description, section and flags, as fixed questions judge it; its
     // name, which the judge never reads, and its keywords are free to edit.
     const renamed = existing.name !== input.name;
+    const reemoji = input.emoji !== undefined && input.emoji !== existing.emoji;
     const summary = renamed
       ? `rename topic ${tidy(existing.name)} to ${tidy(input.name)}`
-      : `set keywords of ${tidy(existing.name)}`;
+      : reemoji && JSON.stringify(existing.keywords) === JSON.stringify(input.keywords)
+        ? `set emoji of ${tidy(existing.name)}`
+        : `set keywords of ${tidy(existing.name)}`;
     existing.name = input.name;
     existing.keywords = input.keywords;
+    // Its emoji is free to pick too: a group page keeps its emoji on its home topic (2026-10-31).
+    if (input.emoji !== undefined) existing.emoji = input.emoji;
     return { next, summary, topic_id: id, new_topic: false };
   }
   if (existing?.origin === "app" || existing?.origin === "general") {
@@ -162,6 +167,8 @@ function upsertTopic(
     existing.name = input.name;
     existing.description = input.description;
     existing.keywords = [...new Set(input.keywords)];
+    // The emoji beside its row and page: the picker's pick (2026-10-31). Left out keeps the stored one.
+    if (input.emoji !== undefined) existing.emoji = input.emoji;
     // A general topic is always on: the request's `enabled` is not read.
     existing.enabled = general ? true : input.enabled;
     return { next, summary, topic_id: id, new_topic: false };
