@@ -309,3 +309,12 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Why: the same podcast offered different actions in two places, and a page it could not be saved or queued from.
 - Rejected: Share in the page menu (it sits beside Play); one component for both menus (a row's menu hangs from its card's anchor, the page's from the header).
 
+## D264: a touch screen opens a Library card's menu by long press, and the button goes
+
+- Date: 2026-10-31 (the owner: the ⋮ on a phone card is "weird alignment and visual inconsistencies"; open the sheet on long press instead).
+- Decision: where `(hover: none) and (pointer: coarse)` holds, the card's ⋮ is not drawn or pressable and the title and quiet line reserve no room for it (`library.css`); a 450 ms hold on the card's link opens the same sheet (`scripts/cardHold.ts`). The button stays in the page and tab order for a screen reader and a key press. A mouse keeps the hover ⋮ at any width. The lift of a hold is not a tap (touchend is cancelled), and the sheet holds the pointer so the press that opened it cannot light-dismiss it.
+- Why: the button forced a reserved strip on every title, a hidden story count in narrow cards and two placements. Every action also lives in the episode page's More menu (D214), so a hold missed is not an action lost.
+- Cost: a long press cannot be found by looking. No hint is shown while the owner is the only reader. No haptic on iOS. The card does not shrink while held (owner, 2026-10-25: the art holds its size); the press layer is the feedback.
+- Rejected: a quieter ⋮ (still the alignment); width, not input, as the switch (a narrow desktop window has no long press).
+- Revisit if: a second reader is added (multi-user), or anyone is seen not finding Delete or Regenerate.
+
