@@ -275,5 +275,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D257 | Report routes need sign-in | amends D201, D224 |
 | D258 | Cover version in its path | active; amends D256 |
 | D262 | Sheet and Drawer split | active; amends D243 |
+| D263 | Cover version in URL | proposed; amends D258 |
 
 ---
