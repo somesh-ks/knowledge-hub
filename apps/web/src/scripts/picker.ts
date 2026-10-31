@@ -98,8 +98,7 @@ const audition = {
       // A sample that cannot be played dims its control and says so, rather than failing in silence.
       audio.addEventListener("error", () => {
         if (this.playing) {
-          this.playing.setAttribute("aria-disabled", "true");
-          this.playing.dataset.failed = "";
+          this.playing.dataset.silent = "";
         }
         this.mark(null);
       });
@@ -108,6 +107,10 @@ const audition = {
       // audio would play on over the next one) or by closing or leaving the tab.
       document.addEventListener("astro:before-swap", () => this.stop());
       addEventListener("pagehide", () => this.stop());
+      // A hidden tab (another tab, a locked phone) must not keep playing a sample nobody is choosing.
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") this.stop();
+      });
     }
     if (this.playing === control && !this.audio.paused) {
       this.audio.pause();
@@ -271,7 +274,7 @@ function mountPicker(select: HTMLSelectElement): void {
   const hear = (play: HTMLElement): void => {
     const name = play.closest("[role=option]")?.querySelector(".picker-option-title")?.textContent;
     // The control is aria-hidden (an option's children are presentational), so its state is said here.
-    if (!play.dataset.sample || play.getAttribute("aria-disabled") === "true") {
+    if (!play.dataset.sample || play.hasAttribute("data-silent")) {
       count.textContent = `No sample for ${name ?? "this voice"}`;
       return;
     }
@@ -300,7 +303,8 @@ function mountPicker(select: HTMLSelectElement): void {
         const play = element("span", "picker-play");
         play.setAttribute("aria-hidden", "true");
         play.setAttribute("aria-pressed", "false");
-        if (choice.sample === "") play.setAttribute("aria-disabled", "true");
+        // Not aria-disabled: the page's disabledGuard would swallow the press before it said why.
+        if (choice.sample === "") play.dataset.silent = "";
         else play.dataset.sample = choice.sample;
         play.append(glyph("playOutline"), glyph("pause"));
         const words = element("span", "picker-option-name");

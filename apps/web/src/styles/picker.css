@@ -471,12 +471,12 @@
 }
 
 /* A voice with no sample keeps its control, quieter and not pressable, so the rows do not shift. */
-.picker-play[aria-disabled="true"] {
+.picker-play[data-silent] {
   opacity: var(--opacity-disabled);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .picker-play:not([aria-disabled="true"], [aria-pressed="true"]):hover {
+  .picker-play:not([data-silent], [aria-pressed="true"]):hover {
     color: var(--color-on-surface);
   }
 }
