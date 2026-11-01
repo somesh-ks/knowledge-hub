@@ -4152,7 +4152,7 @@
       "name": "--cover-size-player",
       "tier": "component",
       "type": "dimension",
-      "light": "22rem"
+      "light": "19rem"
     },
     {
       "name": "--cover-outline",
