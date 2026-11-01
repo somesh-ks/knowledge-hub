@@ -737,7 +737,9 @@ test.describe("a refused save", () => {
 test.describe("a change made offline", () => {
   test.use({ allowNetworkErrors: true });
 
-  test("says it was not saved, and Retry sends it once the connection is back", async ({
+  // CFG-04: the change stays on the device, through a reload, and goes out by itself when the
+  // connection returns. No Retry to press.
+  test("is kept on the device through a reload and sent when the connection is back", async ({
     page,
     context,
   }) => {
@@ -766,13 +768,23 @@ test.describe("a change made offline", () => {
     await context.setOffline(true);
     online = false;
     await page.locator("#daily-hour").selectOption("9");
-    await expect(toastText(page)).toHaveText("Couldn't reach the site. Not saved yet.");
+    await expect(toastText(page)).toHaveText(
+      "Saved on this device. Sends when you're back online.",
+    );
+    await expect(toast(page).getByRole("button", { name: "Retry" })).toHaveCount(0);
     expect(sent).toHaveLength(0);
+    // The site is still down when the page is opened again: the change is shown all the same.
     await context.setOffline(false);
+    await page.reload();
+    await expect(page.locator("#daily-hour")).toHaveValue("9");
+    expect(sent).toHaveLength(0);
+    // The connection returns: it goes by itself.
     online = true;
-    await toast(page).getByRole("button", { name: "Retry" }).click();
-    await expect(spoken(page)).toHaveText(SAVED);
-    expect(opsOf(sent)).toContainEqual({ op: "schedule.set", hour: 9 });
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    await expect.poll(() => opsOf(sent)).toContainEqual({ op: "schedule.set", hour: 9 });
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem("singularity:outbox")))
+      .toBeNull();
   });
 });
 

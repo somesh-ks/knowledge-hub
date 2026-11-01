@@ -1,5 +1,6 @@
 import { counted, installAnalytics } from "../lib/analytics";
 import { watchPlatformFaults } from "../lib/platformFaults";
+import { hasOutbox } from "../lib/savedKey";
 import { loadOtherBuildsInFull } from "./buildGuard";
 import { installCoverMorph } from "./coverMorph";
 import { installCreateEntry } from "./createEntry";
@@ -202,6 +203,14 @@ addEventListener("online", zone);
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") zone();
 });
+// Settings edits kept on this device while the site could not be reached (CFG-04) go out as soon as it
+// can: on each page that loads online and when the connection returns. Nothing loads without a kept edit.
+const outbox = (): void => {
+  if (navigator.onLine && hasOutbox())
+    void import("./managePageSave").then((save) => save.drainOutbox()).catch(() => {});
+};
+document.addEventListener("astro:page-load", outbox);
+addEventListener("online", outbox);
 // Field Web Vitals (D156), with the analytics opt-outs (the production host, no Do Not Track or
 // Global Privacy Control): a lazy module measures this page load and sends it once when the page is
 // first hidden. It loads at idle, or at the first visibility change if that comes sooner (a reader

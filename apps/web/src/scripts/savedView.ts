@@ -12,6 +12,7 @@ import type { SourceFormat } from "@singularity/core";
 import { topicEmoji } from "@singularity/core/topicEmoji";
 import { outletsSummary, savedBlocked } from "../lib/blockedOutlets";
 import { chosenSummary } from "../lib/multiSelect";
+import { outboxOps } from "../lib/outbox";
 import { SAVED_KEY } from "../lib/savedKey";
 import {
   anyPending,
@@ -57,12 +58,14 @@ const OTHER_PAGE = "other";
  */
 export function readSaved(now = Date.now()): ConfigOp[] {
   const store = storeRead();
+  // Edits kept on this device for the connection (lib/outbox.ts) come last: they are the newest.
+  const kept = outboxOps(now);
   try {
     const entries = parseSaved(localStorage.getItem(SAVED_KEY), now);
     if (entries.length === 0) localStorage.removeItem(SAVED_KEY);
-    return withStore(entries, store, now);
+    return [...withStore(entries, store, now), ...kept];
   } catch {
-    return store?.ops ?? [];
+    return [...(store?.ops ?? []), ...kept];
   }
 }
 
