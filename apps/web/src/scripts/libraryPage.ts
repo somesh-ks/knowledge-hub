@@ -67,7 +67,9 @@ function allowed<T extends string>(
 }
 
 function install(): void {
-  const root = document.querySelector<HTMLElement>("#main [data-library]");
+  // Only the Library page: this listener outlives it (astro:page-load), and Settings > Downloads wears the
+  // same [data-library] rows. Wired there, it set the Library's stored view (the gallery) on it.
+  const root = document.querySelector<HTMLElement>("#main.library [data-library]");
   if (!root || root.dataset.ready !== undefined) return;
   root.dataset.ready = "";
 

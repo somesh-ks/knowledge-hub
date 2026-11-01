@@ -855,9 +855,10 @@ html[data-library-page="empty"] {
 
 /* Settings > Downloads (D281, owner 2026-10-31) draws the ⋮ on a phone too: that page manages what is
    saved, and Remove must be findable without knowing the hold, which still works. The row keeps room
-   for the button, as it does where a mouse shows it. */
+   for the button, as it does where a mouse shows it. Only in the list: a gallery card on a phone has
+   no ⋮ anywhere (owner, 2026-11-01), so a page that fell back to the gallery would not draw one. */
 @media (hover: none) and (pointer: coarse) {
-  .card-menu[data-manage-downloads] .card-more {
+  [data-library][data-view="list"] .card-menu[data-manage-downloads] .card-more {
     opacity: 1;
     pointer-events: auto;
   }
