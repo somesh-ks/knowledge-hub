@@ -277,7 +277,7 @@ describe("the batch on the wire", () => {
         ];
         // A truncated line must cost only its own entry, not the whole batch's results.
         return new Response(
-          [...lines.map((l) => JSON.stringify(l)), '{"custom_id":"w2","res'].join("\n"),
+          [...lines.map((l) => JSON.stringify(l)), "null", '{"custom_id":"w2","res'].join("\n"),
         );
       }
       return Response.json({ processing_status: "ended" });

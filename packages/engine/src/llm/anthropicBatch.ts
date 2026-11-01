@@ -96,7 +96,8 @@ export function createAnthropicBatchApi(options: {
           // One unreadable line loses only its own entry, which is then written live.
           continue;
         }
-        if (!entry.custom_id) continue;
+        // A line that decodes to null or a non-object is as unreadable as a cut one.
+        if (!entry?.custom_id) continue;
         const type = entry.result?.type;
         if (type === "succeeded" && entry.result?.message) {
           outcomes.set(entry.custom_id, {
