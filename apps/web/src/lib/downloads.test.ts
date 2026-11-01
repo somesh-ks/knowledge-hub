@@ -17,6 +17,14 @@ describe("downloads", () => {
     expect(again.map((entry) => entry.id)).toEqual(["b", "a"]);
   });
 
+  it("keeps every download, oldest first, however many there are", () => {
+    let list: Download[] = [];
+    for (let n = 1; n <= 12; n += 1) list = addDownload(list, item(`d${n}`));
+    expect(list.map((entry) => entry.id)).toEqual(
+      Array.from({ length: 12 }, (_, n) => `d${n + 1}`),
+    );
+  });
+
   it("reads a damaged list as empty instead of failing the Library", () => {
     expect(parseDownloads("not json")).toEqual([]);
     expect(parseDownloads(JSON.stringify([{ id: 1 }, item("ok")]))).toEqual([item("ok")]);

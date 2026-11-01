@@ -32,6 +32,7 @@ function mount(root: HTMLElement): void {
   const input = one<HTMLInputElement>("[data-search]");
   const clear = one<HTMLButtonElement>("[data-clear]");
   const nomatch = one("[data-nomatch]");
+  const menu = one("[data-menu-wrap]");
 
   /** Hides the saved rows that do not match the words typed; with none typed, shows them all. */
   const filter = (): void => {
@@ -68,6 +69,8 @@ function mount(root: HTMLElement): void {
       const card = cards.find((item) => item.dataset.id === id);
       if (card) grid.append(card);
     }
+    // Delete all stays while anything is saved, even a copy of a podcast the Library no longer lists.
+    menu.hidden = saved.length === 0;
     draw();
   };
 
@@ -128,8 +131,12 @@ function mount(root: HTMLElement): void {
     if (!pending) return;
     void pending
       .run()
-      .then(sync)
-      .then(() => sendToast({ message: pending.done }));
+      .then(
+        () => sendToast({ message: pending.done }),
+        () => sendToast({ message: "Could not remove. Try again.", kind: "error" }),
+      )
+      // Whatever happened, show what is left.
+      .then(sync);
   });
 
   // The Library's own menu code, which Add to queue and Share need, comes at idle or at the first touch of a row's menu.
@@ -160,7 +167,11 @@ function mount(root: HTMLElement): void {
 export function installDownloadsPage(): void {
   const run = (): void => {
     const root = document.querySelector<HTMLElement>("[data-downloads]");
-    if (root && root.dataset.ready === undefined) mount(root);
+    // Marked at once, not when the list is read, so a second call before then adds no second set of listeners.
+    if (root && root.dataset.mounted === undefined) {
+      root.dataset.mounted = "";
+      mount(root);
+    }
   };
   document.addEventListener("astro:page-load", run);
   run();

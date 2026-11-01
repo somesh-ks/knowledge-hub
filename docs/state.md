@@ -42,19 +42,19 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Reload mid-write (D259). closed when: a phone flip, then reload, holds.
 - Settings paint the stored copy at once, the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change waits 2.5 s. closed when: the owner signs off on a phone.
 - Sources design (D124) live: Jev gets a source's format only after `secrets:push`; no run used a mix or cap. closed when: a production source's format comes from Jev and a digest follows a mix change.
-- YouTube text: Firecrawl and Gemini transcripts answered live; no run used either. closed when: a digest has a YouTube finalist with `extract_method` captions or transcription.
+- YouTube text: Firecrawl and Gemini transcripts answered live; none used either. closed when: a digest has a YouTube finalist with `extract_method` captions or transcription.
 - YouTube feeds 404 on runners; #235 reads them via Firecrawl. closed when: a fetch lists the five in `relayed_sources`.
 - D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone app loads a deploy itself (D202), health shows `field` lines, a Monday opens or closes `health-warnings`.
 - Downloads (D127, D281) on a phone: Blob CORS. closed when: Play works in airplane mode.
 - Episode quality (D119, D120), refill: no live spares. closed when: a digest that lost stories in grounding airs within 10%.
-- Safari and WebKit: the iPhone `@smoke` set (`PLAYER_WEBKIT=1`) has not run. closed when: an iPhone passes.
+- Safari and WebKit: the iPhone `@smoke` set (`PLAYER_WEBKIT=1`) is unrun. closed when: an iPhone passes.
 - "Narration is not available right now" (10-12): not reproduced. closed when: a failure's `server` fault names the step.
 - Time zone (D100, D239) only faked; `sinceLabel`, `pendingAudio`, `podcast/select` still use Stockholm's today. closed when: a run across the 10-25 clock change publishes on the right day.
 - General topics (D66 to D69, D102): no digest has one. closed when: one does.
 - Config through `config.yml` never seen live: `topic.scope`, rename or move, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics, episode delete and regenerate. closed when: each lands as a `main` commit.
 - Admin env (D257): the reader needs `ADMIN_SESSION_SECRET`. closed when: `/api/health` answers 401 signed out.
 - Config store (D149, D185). closed when: a phone's edit shows on a laptop.
-- A pending `config.yml` run can be cancelled by GitHub after a 202 (shared `singularity` group); production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 10-14. closed when: a config save from the site produces a commit.
+- A pending `config.yml` run can be cancelled by GitHub after a 202 (`singularity` group); production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 10-14. closed when: a config save from the site produces a commit.
 - A 15-minute episode falls short. closed when: one airs within 10% of 15, or the form shows the window.
 - Costs (D137), Firecrawl's week (D166, D222): `config/prices.json` unconfirmed. closed when: the owner confirms the prices, /analytics shows a real run and a week's runs are all in the ledger.
 - 35 older items parked in history (`#parked`, 10-21 to 10-28). closed when: each closes.
