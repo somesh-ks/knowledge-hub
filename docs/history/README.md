@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-11-01 | [Review rules](2026-11-01-review-rules.md) | Review by tier; CodeRabbit asked for once when a PR is ready, never per push (D292) |
 | 2026-11-01 | [Episode centring](2026-11-01-episode-centring.md) | A page with a contents list is centred as the column and the list together (D287) |
 | 2026-10-31 | [Ledger split](2026-10-31-ledger-split.md) | The design ledger split into a core and one file per surface; the Index grep-only; read-first 20 KB (D283) |
 | 2026-10-31 | [State trim](2026-10-31-state-trim.md) | Ten parked unverified items moved out of state.md; read-first headroom (D283) |
