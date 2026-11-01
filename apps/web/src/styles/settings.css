@@ -340,7 +340,8 @@
    (--row-reach, set where it is pulled), so the two cannot drift apart again. */
 .card-group .settings-row .value-select {
   margin-inline-end: calc(
-    (var(--space-2) + var(--value-select-pull, 0px) + var(--space-2) - var(--row-reach, 0px)) * -1
+    (var(--space-2) + var(--value-select-pull, 0px) + var(--space-2) - var(--row-reach, 0px)) *
+    -1
   );
 }
 
