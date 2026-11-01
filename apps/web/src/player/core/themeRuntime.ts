@@ -29,7 +29,7 @@ export function startThemeSync(): () => void {
         if (next.hue !== before?.hue) applyHue(next.style, next.hue);
         return;
       }
-      changeTheme(next.theme, next.style, next.hue);
+      changeTheme(next.theme, next.style);
     });
   }
   return () => {
