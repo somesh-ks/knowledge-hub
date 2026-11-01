@@ -271,6 +271,18 @@ test.describe("service worker", () => {
     await page.locator('.app-nav a[href="/settings"]').click();
     await expect(page).toHaveURL(/\/settings/);
     expect(await page.evaluate(() => (window as unknown as { kept?: boolean }).kept)).toBe(true);
+    // A full load would stop the narration: while it plays, the move swaps in and the update waits.
+    await page.evaluate(async () => {
+      for (const name of await caches.keys()) await caches.delete(name);
+      document.documentElement.dataset.playerState = "playing";
+    });
+    await context.addCookies([
+      { name: "test-build", value: "later-deploy", url: new URL("/", page.url()).href },
+    ]);
+    await page.locator('.app-nav a[href="/library"]').click();
+    await expect(page).toHaveURL(/\/library/);
+    await expect.poll(() => build()).toBe("later-deploy");
+    expect(await page.evaluate(() => (window as unknown as { kept?: boolean }).kept)).toBe(true);
   });
 
   // A title typed and left before the page finished loading (the load event waits on a slow image
