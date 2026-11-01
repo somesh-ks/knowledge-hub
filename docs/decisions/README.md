@@ -300,5 +300,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D287 | Column and list centred together | amends D229 |
 | D288 | Library list: month labels, two columns | |
 | D289 | Every press is felt | amends D273 |
+| D295 | Playback audio session only while Sounds is on | amends D105 |
 
 ---

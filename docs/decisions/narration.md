@@ -91,3 +91,14 @@ Audio: voices, hosts, transcripts and word marks, pre-narration, Opus and the au
 - Decision: a briefing's narration and an episode's turns also publish one Opus-in-MP4 file (`m4a_url`, mono 32 kbps); the player picks it per browser and falls back to the MP3 on an error or a stall. WebM is not published. A failed transcode skips the Opus copy and the MP3 plays alone. The audio, podcast and ci workflows install ffmpeg (the runner image has no libopus). An episode's turn offsets are measured by decoding, not by ffprobe's duration, which counts MP3 padding on ffmpeg 6.
 - Why: about a third of the bytes for speech at the same quality.
 - Revisit if: an iPhone fails to play the Opus file; the backfilled MP3s stay until the owner plays one there.
+
+## D295: the playback audio session is held only while Sounds is on
+
+- Date: 2026-11-01 (half-built work audit M23: `sound-design.md` said the engine never touches `navigator.audioSession`; the code set it on every gesture)
+- Decision: the sound engine sets `navigator.audioSession.type = "playback"` (D105) only while Sounds is on. It checks on every `unlock()` and before every sound it plays, so switching Sounds on is heard on the switch's own cue. When Sounds has been turned off since, the next `unlock()` gives the type back as `"auto"`. `sound-design.md` rules 5 and 9 and its device plan say so.
+- Why: the playback type is what lets interface sounds through the iPhone's silent switch, and it can also stop another app's audio. Setting it for a listener who turned Sounds off took that for nothing.
+- Rejected: leaving the session set once taken (the switch does nothing for other apps); setting it only in narration (narration is an `<audio>` element and does not need it).
+- Amends: D105 (the Sounds line).
+- Revisit if: an iPhone is found to mute the switch's first cue; then set the type on the press that turns Sounds on.
+- Check: unit test in `packages/sound/src/engine.test.ts`. Unverified on a device: whether the playback type stops another app's audio at all.
+

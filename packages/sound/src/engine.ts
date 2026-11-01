@@ -4,8 +4,9 @@
  * Hard rules, each enforced in play() or unlock():
  * - The AudioContext is created lazily, inside a user gesture (unlock), never at import or load.
  * - Nothing plays while the document is hidden, the engine is disabled, or the volume is zero.
- * - The engine never touches the narration audio element or its audio session. It only asks the
- *   app whether narration is playing, then skips or ducks per recipe.
+ * - The engine never touches the narration audio element. It only asks the app whether narration
+ *   is playing, then skips or ducks per recipe. The one page-wide thing it sets is the audio session
+ *   type, "playback" only while Sounds is on (syncSession).
  * - A suspended or interrupted context is resumed and the call is dropped, but the latest one is
  *   kept for 300 ms and played once the resume lands. Scheduling into a suspended context would
  *   replay every sound late, as a burst, when it resumes.
@@ -42,6 +43,8 @@ export interface SoundEngineOptions {
   createContext?: () => AudioContext;
   /** Test seam for rate limiting. Defaults to performance.now(). */
   now?: () => number;
+  /** Test seam. Defaults to `navigator.audioSession`, which only Safari has. */
+  getAudioSession?: () => { type: string } | undefined;
 }
 
 export interface SoundEngine {
@@ -94,6 +97,10 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
     isHidden = () => typeof document !== "undefined" && document.hidden,
     createContext = () => new AudioContext(),
     now = () => performance.now(),
+    getAudioSession = () =>
+      typeof navigator === "undefined"
+        ? undefined
+        : (navigator as { audioSession?: { type: string } }).audioSession,
   } = options;
 
   let context: AudioContext | null = null;
@@ -102,6 +109,30 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
   let voices: Voice[] = [];
   let queued: { name: SoundName; options: PlayOptions; at: number } | null = null;
   const lastPlayedAt = new Map<SoundName, number>();
+  /** True once this engine has put the page's audio session on "playback". */
+  let tookSession = false;
+
+  /**
+   * iOS mutes Web Audio while the ring/silent switch is on, unless the page asks for playback (D105).
+   * That session can also stop other apps' audio, so it is held only while Sounds is on (D295): a
+   * listener who turned Sounds off keeps the phone's other audio, and the session goes back to the
+   * browser's default the next time the engine looks.
+   */
+  function syncSession(): void {
+    try {
+      const session = getAudioSession();
+      if (!session) return;
+      if (isEnabled()) {
+        if (session.type !== "playback") session.type = "playback";
+        tookSession = true;
+      } else if (tookSession) {
+        session.type = "auto";
+        tookSession = false;
+      }
+    } catch {
+      // Not fatal: older browsers have no audio session.
+    }
+  }
 
   function buildGraph(ctx: AudioContext): Graph {
     const input = ctx.createGain();
@@ -253,6 +284,8 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
 
   function play(name: SoundName, playOptions: PlayOptions = {}): boolean {
     if (disposed || !isEnabled() || isHidden()) return false;
+    // Sounds may have been switched on since the last gesture: the switch's own cue must be heard.
+    syncSession();
     const recipe = RECIPES[name];
     const volume = getVolume();
     if (!(volume > 0.001)) return false;
@@ -305,13 +338,7 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
 
   function unlock(): void {
     if (disposed) return;
-    // iOS mutes Web Audio while the ring/silent switch is on, unless the page asks for playback.
-    try {
-      const session = (navigator as { audioSession?: { type: string } }).audioSession;
-      if (session && session.type !== "playback") session.type = "playback";
-    } catch {
-      // Not fatal: older browsers have no audio session.
-    }
+    syncSession();
     if (!context) {
       try {
         context = createContext();

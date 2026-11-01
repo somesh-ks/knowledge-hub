@@ -144,6 +144,38 @@ function voiceGainValues(context: FakeContext): number[] {
     .map((gain) => gain.gain.value);
 }
 
+describe("audio session", () => {
+  function withSession() {
+    const session = { type: "auto" };
+    const state = { enabled: true };
+    const engine = createSoundEngine({
+      isEnabled: () => state.enabled,
+      getVolume: () => 1,
+      isNarrationPlaying: () => false,
+      isHidden: () => false,
+      createContext: () => new FakeContext() as unknown as AudioContext,
+      now: () => 1000,
+      getAudioSession: () => session,
+    });
+    return { engine, session, state };
+  }
+
+  it("takes the playback session only while Sounds is on, so a listener with Sounds off keeps other apps' audio", () => {
+    const { engine, session, state } = withSession();
+    state.enabled = false;
+    engine.unlock();
+    expect(session.type).toBe("auto");
+    // Switching Sounds on plays its confirmation cue: the session must be ready for it.
+    state.enabled = true;
+    expect(engine.play("toggleOn")).toBe(true);
+    expect(session.type).toBe("playback");
+    // Switching Sounds off gives the session back at the next gesture.
+    state.enabled = false;
+    engine.unlock();
+    expect(session.type).toBe("auto");
+  });
+});
+
 describe("lazy context", () => {
   it("creates no AudioContext until unlock, and exactly one after repeated unlocks", () => {
     const { engine, created } = harness();
