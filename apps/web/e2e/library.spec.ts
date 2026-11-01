@@ -673,6 +673,63 @@ test.describe("library episodes", () => {
     expect((await place()).sideBySide).toBe(false);
   });
 
+  test("a list with two months puts each label before its own rows, in either order, and through a filter and a search", {
+    tag: "@desktop",
+  }, async ({ page }) => {
+    // The fixture has one month; the page is served with its two oldest cards moved into September,
+    // and the label that month would have been built with.
+    await page.route("**/library", async (route) => {
+      const response = await route.fetch();
+      let html = await response.text();
+      for (const [from, to] of [
+        ["2026-10-05", "2026-09-05"],
+        ["2026-10-04", "2026-09-04"],
+      ] as const)
+        html = html.replace(`data-date="${from}"`, `data-date="${to}"`);
+      const at = html.lastIndexOf("<li", html.indexOf('data-date="2026-09-05"'));
+      const head =
+        '<li class="library-month" data-month-head data-month="2026-09"><h2 class="library-month-head">September 2026</h2></li>';
+      await route.fulfill({ response, body: html.slice(0, at) + head + html.slice(at) });
+    });
+    await page.goto("/library");
+    await ready(page);
+    await page.getByRole("button", { name: "List view" }).click();
+    // What the list shows, top to bottom: a label as "# month", a card as "card".
+    const layout = () =>
+      page
+        .locator("[data-library-grid] > li:visible")
+        .evaluateAll((items) =>
+          items.map((item) =>
+            item.matches("[data-month-head]") ? `# ${item.textContent?.trim()}` : "card",
+          ),
+        );
+    const sort = page.getByRole("combobox", { name: "Sort" });
+    const oct = "# October 2026";
+    const sep = "# September 2026";
+    expect(await layout()).toEqual([oct, "card", "card", "card", sep, "card", "card"]);
+    await sort.selectOption("oldest");
+    expect(await layout()).toEqual([sep, "card", "card", oct, "card", "card", "card"]);
+    await sort.selectOption("newest");
+    // A filter that keeps a card of each month keeps both labels.
+    await filter(page, "Daily");
+    expect(await layout()).toEqual([oct, "card", sep, "card"]);
+    await filter(page, "All");
+    // A search that hides every October card leaves September's label first, where the first label
+    // sits as far under the filters as it did before.
+    const under = () =>
+      page.evaluate(() => {
+        const chips = document.querySelector(".library-filters")?.getBoundingClientRect().bottom;
+        const head = [...document.querySelectorAll(".library-month-head")].find(
+          (node) => node.getClientRects().length,
+        );
+        return chips === undefined || !head ? NaN : head.getBoundingClientRect().top - chips;
+      });
+    const before = await under();
+    await page.getByRole("searchbox").fill("monday");
+    await expect.poll(layout).toEqual([sep, "card"]);
+    expect(await under()).toBeCloseTo(before, 0);
+  });
+
   test("in a list a match line adds no room above the title, and a bar stays on its cover", async ({
     page,
   }) => {

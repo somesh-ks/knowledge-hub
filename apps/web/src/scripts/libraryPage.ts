@@ -220,13 +220,19 @@ function install(): void {
     for (const card of ordered) grid?.append(card.element);
     // A heading before the first card of each month on show, in a date order only; one whose month
     // has nothing on show (a filter, a search, a delete) is out of the page, never an empty heading.
-    for (const head of heads.values()) head.remove();
+    for (const head of heads.values()) {
+      head.remove();
+      head.removeAttribute("data-first");
+    }
     if (groupsByMonth(sort)) {
       const onShow = ordered.filter((card) => !card.element.hidden);
-      for (const index of monthStarts(onShow.map((card) => card.data.date))) {
+      for (const [place, index] of monthStarts(onShow.map((card) => card.data.date)).entries()) {
         const card = onShow[index];
         const head = card && heads.get(monthOf(card.data.date));
-        if (card && head) grid?.insertBefore(head, card.element);
+        if (!card || !head) continue;
+        grid?.insertBefore(head, card.element);
+        // Cards a search hid may stand before it, so :first-child alone would miss the first on show.
+        if (place === 0) head.setAttribute("data-first", "");
       }
     }
     if (status) status.textContent = resultSummary(shown, live.length);

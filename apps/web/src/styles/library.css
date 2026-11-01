@@ -490,7 +490,7 @@ main.library [data-library][data-view="list"] .library-grid {
 }
 
 /* The first heading sits where the first row's cover would, under the filters. */
-[data-library][data-view="list"] .library-month:first-child {
+[data-library][data-view="list"] .library-month:is(:first-child, [data-first]) {
   margin-block-start: var(--list-row-inset);
 }
 
