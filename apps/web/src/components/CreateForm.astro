@@ -183,7 +183,7 @@ const COPY = {
 
         {/* A readout has one voice; a discussion has two hosts, each with a voice. The options come from
              /api/voices when the form is first used, so the markup carries only the default and the
-             saved voice. Each voice can be heard before the episode is made. */}
+             saved voice. Each voice can be heard from its list before the episode is made. */}
         <section class="create-group" aria-labelledby="create-voice-label">
           <h2 class="section-head text-heading" id="create-voice-label" data-voice-heading data-one="Voice" data-two="Voices">{startFormat === "discussion" ? "Voices" : "Voice"}</h2>
           <div class="create-voices">
@@ -207,19 +207,6 @@ const COPY = {
                       <option value="">Default</option>
                       {voice.saved && <option value={voice.saved} selected>Saved voice</option>}
                     </Select>
-                    {/* As on Daily and Weekly: dimmed while the voice has no sample, never absent. */}
-                    <button
-                      class="podcast-sample"
-                      type="button"
-                      data-preview
-                      data-sample-name={voice.index === "b" ? "second host's voice" : "voice"}
-                      disabled
-                      aria-pressed="false"
-                      aria-label={`Play a sample of the ${voice.index === "b" ? "second host's voice" : "voice"}`}
-                    >
-                      <Icon name="playOutline" class="sample-play" />
-                      <Icon name="pause" class="sample-pause" />
-                    </button>
                   </div>
                 </div>
               ))
