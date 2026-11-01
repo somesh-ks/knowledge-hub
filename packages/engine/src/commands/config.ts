@@ -33,7 +33,11 @@ import {
   type SqlClient,
   seedConfigDocuments,
 } from "../store/configDocs.js";
-import { copyMissingExamples, missingConfigFiles } from "../store/configExamples.js";
+import {
+  copyMissingExamples,
+  missingConfigFiles,
+  REQUIRED_CONFIG_DOCUMENTS,
+} from "../store/configExamples.js";
 import { RATE_LIMIT_SCHEMA_SQL } from "../store/rateCounter.js";
 import { loadStructureFile, serializeStructure } from "../structure/store.js";
 import { loadTopics, serializeTopics } from "../topics/store.js";
@@ -48,11 +52,14 @@ const USAGE = `Usage: singularity config <command>
   commit --message <text> [--no-push]
                                      Commit the files apply may change as chore(config): <text>
                                      and push. The write guard refuses anything else.
-  pull                               Fill config/ for a build or a fresh checkout (D296): with the
+  pull [--strict]                    Fill config/ for a build or a fresh checkout (D296): with the
                                      store on, each stored document is copied over its file and a
                                      document the store lacks takes config/examples; with it off,
                                      only the missing files take the examples. Stops when the store
-                                     is on but cannot be read and a file is missing.
+                                     is on but cannot be read and a file is missing. --strict
+                                     (the site build) also stops when the store lacks a usable
+                                     preferences, schedule or topics document, so a build never
+                                     ships public defaults in place of the owner's config.
   seed [--dry-run] [--replace [--force]]
                                      Create the config_documents table in DATABASE_URL and insert each
                                      config file that has no row yet (D149). Never replaces a row,
@@ -164,7 +171,7 @@ export function makeConfigCommand(deps: ConfigDeps = {}): CommandRun {
         case "seed":
           return await runSeed(rest, ctx, deps);
         case "pull":
-          return await runPull(ctx, deps);
+          return await runPull(rest, ctx, deps);
         case undefined:
           print(USAGE);
           return 2;
@@ -403,13 +410,22 @@ async function runSeed(argv: string[], ctx: CommandContext, deps: ConfigDeps): P
  * command unless every file is already there, so a build never ships pages made from defaults the
  * owner did not choose. What the store lacks, or every file with the store off, takes config/examples.
  */
-async function runPull(ctx: CommandContext, deps: ConfigDeps): Promise<number> {
+async function runPull(argv: string[], ctx: CommandContext, deps: ConfigDeps): Promise<number> {
+  const strict = argv.includes("--strict");
   const url = configStoreUrl(ctx.env);
   let pulled: string[] = [];
   if (url !== null) {
     try {
       const sql = await (deps.connectConfigStore ?? connectConfigStore)(url);
-      pulled = (await hydrateConfig(ctx.root, sql, ctx.log)).changed;
+      const hydrated = await hydrateConfig(ctx.root, sql, ctx.log);
+      pulled = hydrated.changed;
+      const lacking = REQUIRED_CONFIG_DOCUMENTS.filter((path) => !hydrated.usable.includes(path));
+      if (strict && lacking.length > 0) {
+        ctx.log.error(
+          `the config store has no usable ${lacking.join(", ")}; a build would ship the public examples. Set it up first (config pull, then config seed, then edit it in the app).`,
+        );
+        return 1;
+      }
     } catch (error) {
       const missing = await missingConfigFiles(ctx.root);
       if (missing.length > 0) {

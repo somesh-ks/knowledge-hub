@@ -24,10 +24,14 @@ const rows = (docs: Record<string, string>): SqlClient => ({
   query: async () => Object.entries(docs).map(([path, content]) => ({ path, content, version: 1 })),
 });
 
-async function pull(env: Record<string, string>, sql?: SqlClient): Promise<number> {
+async function pull(
+  env: Record<string, string>,
+  sql?: SqlClient,
+  flags: string[] = [],
+): Promise<number> {
   const { ctx } = makeContext(root, { env, json: false });
   const run = makeConfigCommand({ connectConfigStore: async () => sql as SqlClient });
-  return (await captureStdout(async () => run(["pull"], ctx))).result;
+  return (await captureStdout(async () => run(["pull", ...flags], ctx))).result;
 }
 
 describe("singularity config pull (D296)", () => {
@@ -48,6 +52,17 @@ describe("singularity config pull (D296)", () => {
       '{"version":1,"queries":[]}\n',
     );
     expect(await readFile(join(root, "config/preferences.json"), "utf8")).toContain("Your name");
+  });
+
+  // The bug it prevents: the site build pulls the config, and a store that answers without a
+  // required row (wiped, or never seeded) filled it from the examples, so the deploy replaced the
+  // owner's site with public defaults.
+  it("with --strict stops when the store lacks a required document; without it takes the example", async () => {
+    const onlySources = rows({
+      "config/sources.user.json": '{"version":1,"added":[],"overrides":{}}\n',
+    });
+    expect(await pull(STORE_ENV, onlySources, ["--strict"])).toBe(1);
+    expect(await pull(STORE_ENV, onlySources)).toBe(0);
   });
 
   it("stops when the store is down and files are missing", async () => {

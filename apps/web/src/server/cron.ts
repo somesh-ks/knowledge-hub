@@ -77,9 +77,12 @@ async function readSchedule(
       const stored = await Promise.race([readStoredSchedule(storeUrl, deps), late]).finally(() =>
         clearTimeout(timer),
       );
-      // No row, or one that is not JSON: the run this would start stops at its own config check, so
-      // nothing is dispatched.
-      if (stored === null || parseJson(stored, (value) => value) === null) {
+      // No row, or one that is not JSON or fails the schema: the run this would start stops at its
+      // own config check, so nothing is dispatched and the 503 shows in the cron log.
+      if (
+        stored === null ||
+        parseJson(stored, (v) => ScheduleFile.safeParse(v).data ?? null) === null
+      ) {
         throw new StoreUnreadable();
       }
       return stored;

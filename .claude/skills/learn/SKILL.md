@@ -32,7 +32,7 @@ Stop at the first row that applies, before reading anything else:
 
 ## 2. Read
 
-Read `config/preferences.json` (weights, keywords, authors, disliked patterns) so the patch skips no-ops. Run `D learn --schema` once and use only the ten category names and the list limits (about 90 lines; do not paste it).
+Run `D config pull` first: with the store on it brings the stored preferences into `config/preferences.json` (the helper reads the file, not the store), and on a fresh checkout it creates the file from the examples. Then read `config/preferences.json` (weights, keywords, authors, disliked patterns) so the patch skips no-ops. Run `D learn --schema` once and use only the ten category names and the list limits (about 90 lines; do not paste it).
 
 ## 3. Decide the smallest patch
 
@@ -61,7 +61,7 @@ When the helper capped or deferred anything, say it plainly: the limit is one st
 
 Ask once: apply or cancel. On a yes run `D learn --apply <path>`; it writes the stored preferences (the file too, on a machine that has one) and commits nothing.
 
-Exit 0 prints `Updated config/preferences.json.` (store off) or `Updated config/preferences.json and the config store.` (store on); either is success. On exit 1, relay the reason in one line and do not retry blindly: a store that cannot be read stops it (run it again later). The error `learn failed: [` means the patch broke the schema: rebuild it with `P` using category names from step 2.
+Exit 0 prints `Updated config/preferences.json.` (store off) or `Updated config/preferences.json and the config store.` (store on); either is success. Exit 0 with `No changes` means nothing was written, including no history entry. On exit 1, relay the first `error:` line in one line and do not retry blindly. `Cannot read the patch` or `Invalid patch at <field>` means the patch is wrong: rebuild it with `P` using category names from step 2. A message about the config store means the patch is fine: if the store could not be read, run it again later; if only the store write failed, the file is updated but the stored copy is not, so run `D learn --apply` again.
 
 ## 6. Report
 

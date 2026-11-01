@@ -244,7 +244,7 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
         const lacking = REQUIRED_CONFIG_DOCUMENTS.filter((path) => !usable.includes(path));
         if (lacking.length > 0 && spec.name !== "health") {
           err(
-            `singularity: the config store has no usable ${lacking.join(", ")}. Seed it (singularity config seed) or fix the row.\n`,
+            `singularity: the config store has no usable ${lacking.join(", ")}. Run config pull, then config seed, then edit it in the app (or fix the row).\n`,
           );
           return 1;
         }

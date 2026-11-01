@@ -255,7 +255,7 @@ export async function checkConfigStore(
     sink.warn(
       "config_store_missing",
       "integrity",
-      `The config store has no row for ${lacking.join(", ")}: a run stops until it is seeded (singularity config seed).`,
+      `The config store has no row for ${lacking.join(", ")}: a run stops until it has one: config pull, then config seed, then edit it in the app.`,
     );
   }
   let drifted = false;

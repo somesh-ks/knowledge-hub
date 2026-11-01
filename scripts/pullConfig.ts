@@ -20,10 +20,14 @@ if (fixtures) {
   env.DISPATCH_CONFIG_STORE = "";
 }
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const pulled = spawnSync("npm", ["run", "--silent", "singularity", "--", "config", "pull"], {
-  cwd: root,
-  env,
-  stdio: "inherit",
-  shell: process.platform === "win32",
-});
+const pulled = spawnSync(
+  "npm",
+  ["run", "--silent", "singularity", "--", "config", "pull", ...(fixtures ? [] : ["--strict"])],
+  {
+    cwd: root,
+    env,
+    stdio: "inherit",
+    shell: process.platform === "win32",
+  },
+);
 process.exit(pulled.status ?? 1);

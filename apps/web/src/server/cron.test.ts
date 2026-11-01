@@ -243,6 +243,17 @@ describe("GET /api/cron/run", () => {
     });
     expect(result.status).toBe(503);
     expect(dispatches(github)).toHaveLength(0);
+    // A row that is JSON but not a schedule hid behind a 200 "does not parse" until now.
+    const wrongShape = await handleCron(BEARER, {
+      env: { ...env, DATABASE_URL: "postgres://fake", SINGULARITY_CONFIG_STORE: "postgres" },
+      fetch: github.fetch,
+      now: () => new Date("2026-10-10T05:30:00Z"),
+      connectConfigStore: async () => ({
+        query: async () => [{ path: "config/schedule.json", content: "[]", version: 1 }],
+      }),
+    });
+    expect(wrongShape.status).toBe(503);
+    expect(dispatches(github)).toHaveLength(0);
   });
 
   // It gives up after the wait and answers 503, which Vercel's cron log shows.
