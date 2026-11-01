@@ -2420,11 +2420,29 @@
   font-weight: var(--font-weight-medium);
 }
 
-.player-speed-ends {
-  display: flex;
-  justify-content: space-between;
+/* The speeds the slider stops on, as numbers under the track. Each stands under its own stop: the
+   thumb's centre travels the track less one thumb, so a stop is that travel times its place, from half
+   a thumb in. Their gap is only that, so the row needs no breakpoint. */
+.player-speed-stops {
+  position: relative;
+  block-size: var(--font-leading-caption);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
+}
+
+.player-speed-stop {
+  position: absolute;
+  inset-inline-start: calc(
+    var(--scrubber-thumb) /
+    2 +
+    (100% - var(--scrubber-thumb)) *
+    var(--stop)
+  );
+  translate: -50% 0;
+}
+
+.player-speed-stop[data-on] {
+  color: var(--color-on-surface);
 }
 
 @media (hover: hover) and (pointer: fine) and (width < 64rem) {

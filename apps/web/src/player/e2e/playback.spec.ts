@@ -127,17 +127,20 @@ test.describe("playback on a podcast", () => {
     await expect(readout).toHaveText("1.05x");
     expect(await boxes()).toEqual(atOne);
     await slider.focus();
+    // The slider stops on whole quarters (the stepper goes between them): from 1.05 a key moves it to
+    // the next stop above where its thumb stands, 1.00, so 1.25.
     await page.keyboard.press("ArrowRight");
-    await expect(readout).toHaveText("1.10x");
+    await expect(readout).toHaveText("1.25x");
     // Escape closes the menu alone: the player behind it stays, and focus returns to the button.
     await page.keyboard.press("Escape");
     await expect(slider).toBeHidden();
     await expect(more).toBeFocused();
     await expect(page.locator("[data-player-surface]")).toHaveAttribute("aria-modal", "true");
-    // A finger: the menu, the row, the stepper up to 1.5x, Back to the actions with the speed said.
+    // A finger: the menu, the row, the stepper from the 1.25x the slider left to 1.5x, Back to the
+    // actions with the speed said.
     await player.finger.press(more);
     await player.finger.press(speedRow);
-    for (let press = 0; press < 8; press += 1) await player.finger.press(faster);
+    for (let press = 0; press < 5; press += 1) await player.finger.press(faster);
     await expect(readout).toHaveText("1.50x");
     await expect.poll(async () => (await audio.read())?.playbackRate).toBe(1.5);
     expect((await audio.read())?.preservesPitch).toBe(true);

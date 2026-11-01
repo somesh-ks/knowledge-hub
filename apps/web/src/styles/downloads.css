@@ -19,6 +19,24 @@
   margin-block-end: var(--space-6);
 }
 
+/* Two columns where the list has the width, as the Library's list does from 80rem (library.css): rows
+   run across and then down, so a hidden row moves the later ones up one place. */
+@media (width >= 80rem) {
+  /* The page takes the Library's width, so a row has the room the Library's list gives it. */
+  .shell > main:has(> .manage .downloads-list) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    inline-size: min(100%, var(--column-wide));
+  }
+
+  .downloads-list [data-library][data-view="list"] .library-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-8);
+    row-gap: 0;
+  }
+}
+
 /* The search shows once the list is long enough to need it; the room under it is the list's. */
 .downloads-search {
   margin-block-end: var(--space-4);

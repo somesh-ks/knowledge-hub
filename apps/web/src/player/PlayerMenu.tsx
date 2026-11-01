@@ -41,9 +41,35 @@ import Icon from "./ui/LazyIcon";
 
 /** How far under its button the menu opens where anchor positioning is missing (as QueueRow.tsx). */
 const MENU_GAP_PX = 4;
-const ITEM = `[role="menuitem"]:not(:disabled), ${MENU_TILE_SELECTOR}:not([aria-disabled="true"])`;
+const ITEM = `[role^="menuitem"]:not(:disabled):not([aria-disabled="true"]), ${MENU_TILE_SELECTOR}:not([aria-disabled="true"])`;
 
 type Screen = "menu" | "speed";
+
+/** The Menu is a popover list from 40rem and a bottom sheet under it (menu.css). */
+const WIDE = "(width >= 40rem)";
+
+/** True from 40rem. The tiles are the phone's sheet; a wide screen's popover is a plain list. */
+function useWide(): boolean {
+  // False until mounted, so the first client render is the server's.
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia(WIDE);
+    const update = (): void => setWide(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  return wide;
+}
+
+/** The speeds the slider stops on. Between them the stepper goes by PLAYBACK_RATE_STEP. */
+const SPEED_STOPS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] as const;
+const STOP_STEP = 0.25;
+const nearestStop = (rate: number): number =>
+  Math.min(
+    MAX_PLAYBACK_RATE,
+    Math.max(MIN_PLAYBACK_RATE, Math.round(rate / STOP_STEP) * STOP_STEP),
+  );
 
 function toast(message: string, kind?: "success" | "error"): void {
   sendToast({ message, ...(kind ? { kind } : {}) });
@@ -81,6 +107,7 @@ export default function PlayerMenu() {
   const [open, setOpen] = useState(false);
   const [screen, setScreen] = useState<Screen>("menu");
   const marks = useDeviceMarks(digest?.id, open);
+  const wide = useWide();
   const menuId = "player-menu";
   const id = digest?.id ?? "";
   const title = digest ? digest.title || longDateFromDigestId(digest.id) : "Podcast";
@@ -224,7 +251,9 @@ export default function PlayerMenu() {
     </div>
   );
 
-  const fill = (rate - MIN_PLAYBACK_RATE) / (MAX_PLAYBACK_RATE - MIN_PLAYBACK_RATE);
+  // The thumb stands on the stop nearest the speed; the readout and the stepper say the exact one.
+  const stop = nearestStop(rate);
+  const fill = (stop - MIN_PLAYBACK_RATE) / (MAX_PLAYBACK_RATE - MIN_PLAYBACK_RATE);
   const setRate = (next: number): void => getPlayerStore().setRate(toPlaybackRate(next));
 
   return (
@@ -249,31 +278,65 @@ export default function PlayerMenu() {
           <>
             {head(title, digest ? recordingCaption(digest) : null, false)}
             <div className={menuBodyClass()} role="menu" aria-label={title} onKeyDown={onKeyDown}>
-              <div className={menuTilesClass()}>
-                <button
-                  className={menuTileClass()}
-                  type="button"
-                  aria-pressed={marks.downloaded}
-                  aria-disabled={marks.downloaded || !digest?.audio || undefined}
-                  onClick={() => void download()}
-                >
-                  <Icon name="download" />
-                  {marks.downloaded ? "Downloaded" : "Download"}
-                </button>
-                <button className={menuTileClass()} type="button" onClick={() => void share()}>
-                  <Icon name="shareArrow" />
-                  Share
-                </button>
-                <button
-                  className={menuTileClass()}
-                  type="button"
-                  aria-pressed={marks.saved}
-                  onClick={save}
-                >
-                  <Icon name={marks.saved ? "star" : "starOutline"} />
-                  {marks.saved ? "Saved" : "Save"}
-                </button>
-              </div>
+              {wide ? (
+                <>
+                  <button
+                    className={menuItemClass()}
+                    type="button"
+                    role="menuitem"
+                    aria-disabled={marks.downloaded || !digest?.audio || undefined}
+                    onClick={() => void download()}
+                  >
+                    <Icon name="download" />
+                    {marks.downloaded ? "Downloaded" : "Download"}
+                  </button>
+                  <button
+                    className={menuItemClass()}
+                    type="button"
+                    role="menuitem"
+                    onClick={() => void share()}
+                  >
+                    <Icon name="shareArrow" />
+                    Share
+                  </button>
+                  <button
+                    className={menuItemClass()}
+                    type="button"
+                    role="menuitemcheckbox"
+                    aria-checked={marks.saved}
+                    onClick={save}
+                  >
+                    <Icon name={marks.saved ? "bookmark" : "bookmarkOutline"} />
+                    {marks.saved ? "Saved" : "Save"}
+                  </button>
+                </>
+              ) : (
+                <div className={menuTilesClass()}>
+                  <button
+                    className={menuTileClass()}
+                    type="button"
+                    aria-pressed={marks.downloaded}
+                    aria-disabled={marks.downloaded || !digest?.audio || undefined}
+                    onClick={() => void download()}
+                  >
+                    <Icon name="download" />
+                    {marks.downloaded ? "Downloaded" : "Download"}
+                  </button>
+                  <button className={menuTileClass()} type="button" onClick={() => void share()}>
+                    <Icon name="shareArrow" />
+                    Share
+                  </button>
+                  <button
+                    className={menuTileClass()}
+                    type="button"
+                    aria-pressed={marks.saved}
+                    onClick={save}
+                  >
+                    <Icon name={marks.saved ? "bookmark" : "bookmarkOutline"} />
+                    {marks.saved ? "Saved" : "Save"}
+                  </button>
+                </div>
+              )}
               <button
                 className={menuItemClass()}
                 type="button"
@@ -342,16 +405,29 @@ export default function PlayerMenu() {
                 type="range"
                 min={MIN_PLAYBACK_RATE}
                 max={MAX_PLAYBACK_RATE}
-                step={PLAYBACK_RATE_STEP}
-                value={rate}
+                step={STOP_STEP}
+                value={stop}
                 aria-label="Playback speed"
                 aria-valuetext={rateLabel(rate)}
                 style={{ "--range-fill": `${(fill * 100).toFixed(1)}%` } as CSSProperties}
                 onChange={(event) => setRate(event.currentTarget.valueAsNumber)}
               />
-              <div className="player-speed-ends" aria-hidden="true">
-                <span className="num">{rateLabel(MIN_PLAYBACK_RATE)}</span>
-                <span className="num">{rateLabel(MAX_PLAYBACK_RATE)}</span>
+              <div className="player-speed-stops" aria-hidden="true">
+                {SPEED_STOPS.map((value) => (
+                  <span
+                    key={value}
+                    className="player-speed-stop num"
+                    style={
+                      {
+                        "--stop":
+                          (value - MIN_PLAYBACK_RATE) / (MAX_PLAYBACK_RATE - MIN_PLAYBACK_RATE),
+                      } as CSSProperties
+                    }
+                    data-on={value === stop ? "" : undefined}
+                  >
+                    {Number(value.toFixed(2))}
+                  </span>
+                ))}
               </div>
             </div>
           </>
