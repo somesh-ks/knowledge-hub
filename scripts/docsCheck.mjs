@@ -134,11 +134,18 @@ export function checkDocs(root) {
   const named = ["AGENTS.md", "docs/state.md", "docs/learnings.md"]
     .map(at)
     .concat(markdownFiles(at("docs/specs")));
+  // The owner's config is in the config store, not in git (D296): its paths are named, never present.
+  const configPaths = (() => {
+    const source = at("packages/engine/src/store/configPaths.ts");
+    if (!existsSync(source)) return new Set();
+    const block = read(source).match(/CONFIG_DOCUMENT_PATHS = \[([\s\S]*?)\] as const/);
+    return new Set([...(block?.[1] ?? "").matchAll(/"([^"]+)"/g)].map((each) => each[1]));
+  })();
   for (const file of named.filter(existsSync)) {
     for (const m of read(file).matchAll(
       /`((?:apps|packages|scripts|docs|config|\.github|\.claude)\/[\w./-]+\.\w+)`/g,
     )) {
-      if (!existsSync(at(m[1])))
+      if (!existsSync(at(m[1])) && !configPaths.has(m[1]))
         fails.push(`${relative(root, file).replace(/\\/g, "/")}: names a missing file ${m[1]}`);
     }
   }
