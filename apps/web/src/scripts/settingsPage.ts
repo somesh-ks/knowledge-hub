@@ -109,6 +109,7 @@ function installHintApplies(): boolean {
 function mountSettings(root: HTMLElement): () => void {
   const preferences = getPreferences();
   const theme = root.querySelector<HTMLSelectElement>('select[name="theme"]');
+  const style = root.querySelector<HTMLSelectElement>('select[name="style"]');
   const sounds = root.querySelector<HTMLInputElement>('input[name="sounds"]');
   const haptics = root.querySelector<HTMLInputElement>('input[name="haptics"]');
   const hapticsSection = root.querySelector<HTMLElement>("[data-haptics-section]");
@@ -129,6 +130,13 @@ function mountSettings(root: HTMLElement): () => void {
   const render = (): void => {
     const state = controlState(preferences.get(), preferences.getSoundsEnabled());
     if (theme) theme.value = state.theme;
+    // A stored style tokens.json no longer holds looks like Default (the CSS has nothing for it).
+    if (style) {
+      const stored = preferences.get().style;
+      style.value = [...style.options].some((option) => option.value === stored)
+        ? stored
+        : "default";
+    }
     if (sounds) sounds.checked = state.sounds;
     if (haptics) haptics.checked = preferences.get().haptics;
     if (autoplay) autoplay.checked = preferences.get().autoplay;
@@ -147,6 +155,11 @@ function mountSettings(root: HTMLElement): () => void {
       const chosen = toTheme(theme.value);
       // The theme runtime watches the preference and crossfades the change; no sound.
       if (chosen) preferences.set({ theme: chosen });
+      return;
+    }
+    if (input === style && style) {
+      // The same crossfade as a theme change; no sound.
+      preferences.set({ style: style.value });
       return;
     }
     if (input === haptics && haptics) {
@@ -211,6 +224,7 @@ function mountSettings(root: HTMLElement): () => void {
   void root.offsetWidth;
   // The Theme select has waited inert for the listener above (settings.astro).
   if (theme) theme.inert = false;
+  if (style) style.inert = false;
   // Only a device that can answer is offered the choice (D273).
   if (hapticsSection) hapticsSection.hidden = getHaptics().support === "none";
   root.dataset.ready = "true";
