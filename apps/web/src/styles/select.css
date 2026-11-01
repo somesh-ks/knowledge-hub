@@ -181,7 +181,9 @@
     margin-block: var(--space-2);
     padding: var(--space-2);
     border: var(--stroke-hairline) solid var(--color-border-hairline);
-    border-radius: var(--radius-md);
+    /* One popover family with the Menu and the picker (owner, 2026-11-01): a 32px corner around rows
+       8px in, so a row's 24px corner shares its centre with the corner around it. */
+    border-radius: var(--radius-2xl);
     background: var(--color-surface-overlay);
     box-shadow: var(--shadow-popover);
     color: var(--color-on-surface);
@@ -229,7 +231,7 @@
     min-block-size: var(--size-touch);
     padding-block: var(--space-2);
     padding-inline: var(--space-4);
-    border-radius: var(--row-radius);
+    border-radius: var(--radius-xl);
     /* No fill of its own: the browser's option is a shade off the surface in dark, which drew every
        row as a button. Hover and focus draw the state layer below. */
     background: transparent;

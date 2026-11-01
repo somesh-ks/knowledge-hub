@@ -23,6 +23,7 @@ The craft that makes components hold still and answer clearly. Each was a report
     - The list opens below its field when it fits, and a phone in landscape still shows more than three rows.
   - The same gap between a value and its chevron (`--field-chevron-gap`), and equal padding in multi-line fields (D106).
   - The model field is as wide as its name, so the hover fill hugs the words (D103). A longer name ends in an ellipsis, not half a name (D91).
+  - No element shows the browser's tap flash, ever (owner, 2026-11-01: a long press on a list row flashed blue; "whichever UI element you build, this shouldn't be happening"). One `:where(*)` rule in `foundations.css` clears it, and `styles.test.ts` fails a stylesheet that sets another colour. A press is shown by the control's own layer.
   - A field grows on focus only with a fine pointer, so it never moves under a tap (2026-10-12).
   - An open list lifts its row above the next one (`.rows > :has([aria-expanded="true"])`, 2026-10-11).
   - A list that fails to load says so inside the open list (2026-10-12).

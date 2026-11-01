@@ -344,12 +344,17 @@
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
-/* On a Manage page a row stands the card's full padding in from its edge; on the index it is a tile one
-   inset in. The pull above is worked out for the tile, so there the fill ended 20px from the card's
-   side while it starts 12px under its top (owner, 2026-10-31: the open Podcast voice looked uneven).
-   The value reaches the extra 8px, so its fill, words and chevron end where Theme's do. */
-.manage .card-group .settings-row .value-select {
-  margin-inline-end: calc((var(--space-2) + var(--value-select-pull, 0px) + var(--space-2)) * -1);
+/* A select's fill ends the same distance from its card's right edge as it starts from the row's top
+   and bottom, on every page (owner, 2026-11-01; it was uneven on 10-25, 10-31 and again that day when
+   a Manage-page scope reached Preferences). The pull above is worked out for a row that already
+   reaches 8px into the card's padding, as the index's and Preferences' rows do; a row that does not
+   (the Manage pages') gives the select the missing 8px. The row says how far it reaches
+   (--row-reach, set where it is pulled), so the two cannot drift apart again. */
+.card-group .settings-row .value-select {
+  margin-inline-end: calc(
+    (var(--space-2) + var(--value-select-pull, 0px) + var(--space-2) - var(--row-reach, 0px)) *
+    -1
+  );
 }
 
 /* The chevron's ink, not its box, ends where the link rows' chevrons and the switch end (D187). */
@@ -532,7 +537,8 @@
    card's 24px pushed a select further in than the card's top and bottom (owner, 2026-10-25). The row
    reaches into the card's padding on its end side only, so the labels keep their edge. */
 .settings-view .card-group > .settings-row {
-  margin-inline-end: calc(var(--row-padding-block) - var(--card-padding));
+  --row-reach: calc(var(--card-padding) - var(--row-padding-block));
+  margin-inline-end: calc(var(--row-reach) * -1);
 }
 
 /* ------------------------------------------------------------------ held for the store */

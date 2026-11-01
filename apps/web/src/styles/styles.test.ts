@@ -200,7 +200,6 @@ const BESPOKE_CONTROLS: [name: string, reason: string][] = [
   ["source-edit", "a text action on a source row"],
   ["source-remove", "a text action on a source row"],
   ["cover-play", "the cover's play overlay"],
-  ["podcast-sample", "the podcast voice sample row control"],
   ["menu-item", "a row of the popover menu"],
   ["menu-item-danger", "the menu's destructive row"],
   ["topic-delete", "the topic page's destructive menu row"],
@@ -268,6 +267,25 @@ interface Rule {
 }
 
 const RULES: Rule[] = [
+  {
+    name: "no element can show the browser's tap flash (a long press on a list row flashed blue)",
+    offenders: () => {
+      const foundations = withoutComments(read("foundations.css"));
+      const global = /:where\(\*\)\s*\{[^}]*-webkit-tap-highlight-color:\s*transparent/.test(
+        foundations,
+      );
+      const colours = [["foundations.css", foundations] as const, ...ownCss()].flatMap(
+        ([file, css]) =>
+          [...css.matchAll(/-webkit-tap-highlight-color:\s*([^;}]+)/g)]
+            .filter((match) => match[1]?.trim() !== "transparent")
+            .map((match) => `${file}: -webkit-tap-highlight-color: ${match[1]?.trim()}`),
+      );
+      return [
+        ...(global ? [] : ["foundations.css has no :where(*) tap-highlight rule"]),
+        ...colours,
+      ];
+    },
+  },
   {
     name: "uses tokens for color, never a raw value",
     offenders: () =>
@@ -803,6 +821,7 @@ const PAGE_OVERRIDES: string[] = [
   "buttons.css: .dialog-actions > :is(.button-filled, .button-tonal)",
   "buttons.css: .icon-btn .icon-glyph",
   "buttons.css: .swap > .icon-glyph",
+  "cover.css: .cover-play .icon-glyph",
   "create-sheet.css: .app-nav-create .icon-glyph",
   "create-sheet.css: .play-fab-glyph > .icon-glyph",
   'create-sheet.css: .play-fab[data-state="preparing"] .play-fab-glyph > .icon-glyph',
@@ -827,7 +846,6 @@ const PAGE_OVERRIDES: string[] = [
   "library.css: .menu-list.card-menu-list",
   "library.css: .menu-list.card-menu-list",
   "library.css: .shelf-head > .button-text",
-  'library.css: [data-library][data-view="list"] .cover-play .icon-glyph',
   "manage.css: .manage-error .icon-glyph",
   "manage.css: .manage-fields:disabled :is(.switch-input, .field-input, .search-field)",
   "manage.css: .manage-fields:disabled :is(.switch-input, .field-input, .search-field)",
@@ -841,7 +859,6 @@ const PAGE_OVERRIDES: string[] = [
   "picker.css: .picker > .icon-glyph",
   "picker.css: .picker > .icon-glyph",
   'picker.css: .picker:has(> .picker-trigger[aria-expanded="true"]) > .icon-glyph',
-  "picker.css: .podcast-sample > .icon-glyph",
   "player.css: .dock-btn[data-primary] .icon-glyph",
   "player.css: .dock-expand .icon-glyph",
   "player.css: .dock-expand .icon-glyph",

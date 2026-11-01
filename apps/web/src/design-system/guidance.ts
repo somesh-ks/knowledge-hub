@@ -16,7 +16,8 @@ export type ComponentName =
   | "Dialog"
   | "Sheet"
   | "Drawer"
-  | "Wheel";
+  | "Wheel"
+  | "Ripple";
 export type ComponentRef = ComponentName | `${ComponentName}.${string}`;
 
 export interface DontUse {
