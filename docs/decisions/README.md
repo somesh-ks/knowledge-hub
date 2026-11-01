@@ -299,5 +299,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D285 | Switch can be mixed | |
 | D286 | Press ripple | |
 | D287 | Column and list centred together | amends D229 |
+| D289 | Every press is felt | amends D273 |
 
 ---

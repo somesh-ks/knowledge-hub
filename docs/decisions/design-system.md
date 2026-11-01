@@ -536,3 +536,12 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Rejected: centring the column on the window (it leaves the Library's edge behind and little room beside the side navigation at the narrowest desktop width); shifting the column by half the side navigation (a second value that matches nothing).
 - Revisit if: the owner minds that Latest's column sits further left than Settings' when switching tabs; the fix is a list on every page or none.
 
+## D289: every press is felt
+
+- Date: 2026-11-01 (the owner: "the haptics are added only to weird places now, only the three dots button and some obscure places, keep it in all places that makes sense")
+- Decision: the `navigate` and `tap` intents name `tick-light` (they named `none`), so a link, a tab, a button and a menu action are felt like a switch is. The player's own events carry an intent and fire it before the sound engine, so it is felt with Sounds off: play (`start`), pause (`tap`), next, previous and speed (`select`) and a player error (`error`). Only a press is felt: a resume, the next item starting by itself, the end of a digest, keyboard skips and scrubbing stay quiet. `close` stays `none`: opening was the cue. Scrolling, hover and typing never fire.
+- Why: D273 kept most presses quiet "because the press layer is the answer", and the result was a phone that buzzes at three odd places and not at the controls pressed most. A tick on every press is what other phone apps do.
+- Rejected: a new louder pattern for play (no new tokens unasked); firing `select` from links and buttons (it names a change of state); a haptic on a close.
+- Amends: D273 (the `navigate`, `tap` and player entries).
+- Revisit if: the owner finds it too busy on a list, then quiet the intent that is wrong, not the system.
+

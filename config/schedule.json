@@ -8,8 +8,8 @@
     "culture"
   ],
   "length_minutes": 5,
-  "voice_id": "geffen_32",
-  "voice_id_b": "alec",
+  "voice_id": null,
+  "voice_id_b": "john-rhys-davies",
   "weekly": {
     "enabled": true,
     "day": 0,
