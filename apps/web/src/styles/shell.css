@@ -692,24 +692,45 @@ html[data-mini="visible"] main {
 /* ------------------------------------------------------------------ banners and columns */
 
 .banner-stack {
-  display: grid;
-  gap: var(--space-2);
+  /* Over the page, never in it: a strip that took a line would push the page down, and a cover
+     moving between pages would land on a position that then moves. */
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline: 0;
+  z-index: var(--z-toast);
+  max-inline-size: none;
+  margin-inline: 0;
+  padding-inline: 0;
+  pointer-events: none;
 }
 
-.banner-stack:not(:empty) {
-  padding-block-start: var(--space-2);
+.banner-stack > .banner-notice {
+  align-items: center;
+  justify-content: center;
+  /* Below 64rem the strip stands where the app bar is, so it covers the brand and nothing else. */
+  box-sizing: border-box;
+  min-block-size: calc(var(--app-bar-height) + var(--safe-top));
+  padding-block: var(--safe-top) 0;
+  padding-inline: var(--page-gutter);
+  border-radius: 0;
+  animation: strip-in var(--duration-sheet-in, 200ms) var(--ease-out, ease-out) both;
 }
 
-/* From 64rem there is no app bar above the stack, so a banner would sit a step from the window top,
-   above the brand row. It takes the line every page's first block starts on, and the shell below it
-   starts a smaller step under it instead of doubling the gap. */
+/* From 64rem there is no app bar: a thin strip fills the space above the first block. */
 @media (width >= 64rem) {
-  .banner-stack:not(:empty) {
-    padding-block-start: var(--page-top);
+  .banner-stack > .banner-notice {
+    min-block-size: var(--space-6);
+    padding-block: 0;
   }
+}
 
-  .banner-stack:not(:empty) ~ .shell {
-    --page-top: var(--space-8);
+.banner-stack > .banner-notice > .icon-glyph {
+  margin-block-start: 0;
+}
+
+@keyframes strip-in {
+  from {
+    transform: translateY(-100%);
   }
 }
 
