@@ -160,5 +160,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D297 | A section may stand over its allowance only as far as the floor needs | amends D35 |
 | D299 | Offline settings edits stay on the device and send when back online | amends D79, D91, D259 |
 | D302 | Pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked | active |
+| D307 | Write routes need the admin session | amends D160, D201 |
 
 ---

@@ -1,8 +1,12 @@
 import type { APIContext } from "astro";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createSession } from "../../../admin/src/gate/session";
+import { POST as config } from "../pages/api/config";
 import { GET as costs } from "../pages/api/costs";
+import { POST as generate } from "../pages/api/generate";
 import { GET as health } from "../pages/api/health";
+import { POST as narrate } from "../pages/api/narrate";
+import { POST as podcast } from "../pages/api/podcast";
 import { adminOnly } from "./adminGuard";
 
 const SECRET = "x".repeat(40);
@@ -59,5 +63,28 @@ describe("the report routes", () => {
     const request = new Request(`https://news.someshks.work${path}`);
     const answer = await route({ request, url: new URL(request.url) } as APIContext);
     expect((answer as Response).status).toBe(401);
+  });
+});
+
+// The bug it prevents: the write routes open to anyone with the URL while the repo is public (D307).
+describe("the write routes", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it.each([
+    ["/api/generate", generate],
+    ["/api/podcast", podcast],
+    ["/api/config", config],
+    ["/api/narrate", narrate],
+  ])("%s refuses a POST without the session before it reads the body", async (path, route) => {
+    vi.stubEnv("DEV", false);
+    vi.stubEnv("ADMIN_SESSION_SECRET", SECRET);
+    const request = new Request(`https://news.someshks.work${path}`, {
+      method: "POST",
+      headers: { origin: "https://news.someshks.work" },
+      body: JSON.stringify({ action: "delete", id: "x" }),
+    });
+    const answer = (await route({ request, url: new URL(request.url) } as APIContext)) as Response;
+    expect(answer.status).toBe(401);
+    expect(request.bodyUsed).toBe(false);
   });
 });

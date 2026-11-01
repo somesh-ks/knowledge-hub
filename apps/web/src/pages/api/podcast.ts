@@ -1,5 +1,6 @@
 import { del, head, put } from "@vercel/blob";
 import type { APIRoute } from "astro";
+import { guardAdmin } from "../../server/adminGuard";
 import { createVercelBlobStore } from "../../server/blobStore";
 import { readBlobCredentials } from "../../server/config";
 import { contentEpisodeIds, contentEpisodeRegenerations } from "../../server/contentSources";
@@ -17,8 +18,11 @@ export const prerender = false;
 // calls a flood would spend, across instances. Above the ordinary pace (a delete every 10 s).
 const REQUESTS_PER_MINUTE = 10;
 
-export const POST: APIRoute = ({ request, url }) =>
-  answerWithRef("api/podcast", async (log) => {
+export const POST: APIRoute = async ({ request, url }) => {
+  // Owner only (D307): a new episode, a regeneration and a delete all spend or destroy.
+  const refused = await guardAdmin(request);
+  if (refused) return refused;
+  return answerWithRef("api/podcast", async (log) => {
     // Read at most a little more than the largest valid body, so a huge request cannot cost memory.
     const bodyText = (await request.text()).slice(0, MAX_BODY_CHARS + 1);
     return handlePodcast(
@@ -46,6 +50,7 @@ export const POST: APIRoute = ({ request, url }) =>
       },
     );
   });
+};
 
 export const ALL: APIRoute = () =>
   toResponse({ status: 405, body: { error: "method_not_allowed" }, headers: { Allow: "POST" } });

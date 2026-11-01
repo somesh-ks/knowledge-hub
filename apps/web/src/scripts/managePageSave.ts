@@ -32,6 +32,7 @@ export const ADDED_SOURCE = "Added. Read from the next update.";
 const REASONS: Record<number, string> = {
   0: "Couldn't reach the site.",
   400: "The server turned that change down.",
+  401: "Sign in to the command center on this device first.",
   429: "There were too many edits in a row.",
   409: "Another device changed this first. Reload to see it.",
   503: "The server ran into a problem.",

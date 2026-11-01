@@ -11,6 +11,7 @@ import seedSources from "../../../../../config/sources.json?raw";
 import builtSourcesUser from "../../../../../config/sources.user.json?raw";
 import builtTopics from "../../../../../config/topics.json?raw";
 import type { BuiltConfigFiles } from "../../lib/configHash";
+import { guardAdmin } from "../../server/adminGuard";
 import { handleConfig, MAX_CONFIG_BODY_CHARS } from "../../server/configEdit";
 import { answerWithRef, toResponse } from "../../server/http";
 import { burstCap } from "../../server/rateLimit";
@@ -32,8 +33,11 @@ export const prerender = false;
 // instances.
 const EDITS_PER_MINUTE = 12;
 
-export const POST: APIRoute = ({ request, url }) =>
-  answerWithRef("api/config", async (log) => {
+export const POST: APIRoute = async ({ request, url }) => {
+  // Owner only (D307): an edit rewrites the only copy of the owner's preferences.
+  const refused = await guardAdmin(request);
+  if (refused) return refused;
+  return answerWithRef("api/config", async (log) => {
     // Read at most a little more than the largest valid body, so a huge request cannot cost memory.
     const bodyText = (await request.text()).slice(0, MAX_CONFIG_BODY_CHARS + 1);
     return handleConfig(
@@ -49,6 +53,7 @@ export const POST: APIRoute = ({ request, url }) =>
       },
     );
   });
+};
 
 const notAllowed = () =>
   toResponse({ status: 405, body: { error: "method_not_allowed" }, headers: { Allow: "POST" } });
