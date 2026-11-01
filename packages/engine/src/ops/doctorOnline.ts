@@ -325,7 +325,10 @@ async function githubTokenCheck(
   const id = "online.github";
   const token = env.GITHUB_SINGULARITY_TOKEN ?? env.GITHUB_DISPATCH_TOKEN;
   if (token === undefined) return skipped(id, "GITHUB_SINGULARITY_TOKEN");
-  const repo = env.GITHUB_REPOSITORY ?? "somesh-ks/knowledge-hub";
+  // The site refuses to dispatch without GITHUB_REPOSITORY, so a guessed default here could pass a
+  // token for a repository the site is not set to use.
+  const repo = env.GITHUB_REPOSITORY;
+  if (repo === undefined) return skipped(id, "GITHUB_REPOSITORY");
   const headers = {
     authorization: `Bearer ${token}`,
     accept: "application/vnd.github+json",

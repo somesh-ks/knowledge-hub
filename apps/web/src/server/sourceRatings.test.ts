@@ -57,5 +57,13 @@ describe("source ratings", () => {
     });
     expect(broken.status).toBe(503);
     expect(broken.headers?.["Vercel-CDN-Cache-Control"]).toBeUndefined();
+    const wrongShape = await handleSourceRatings({
+      config,
+      state: state({
+        "state/source-stats.json": { text: '{"sources":[]}', stored: true },
+        "state/source-health.json": { text: null, stored: true },
+      }),
+    });
+    expect(wrongShape.status).toBe(503);
   });
 });

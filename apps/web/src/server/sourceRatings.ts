@@ -62,9 +62,13 @@ export async function handleSourceRatings(
   // A store without the stats file would rate every source as New and hold that at the edge.
   if (!stats.stored || stats.text === null || !health.stored)
     return { status: 503, body: { error: "unavailable" } };
-  // Malformed stats would rate every source as New just the same.
+  // Stats that do not parse, or hold no `sources` record, would rate every source as New just the same.
   const parsedStats = parse(stats.text);
-  if (parsedStats === null) return { status: 503, body: { error: "unavailable" } };
+  const shaped = (value: unknown): boolean => {
+    const sources = (value as { sources?: unknown } | null)?.sources;
+    return typeof sources === "object" && sources !== null && !Array.isArray(sources);
+  };
+  if (!shaped(parsedStats)) return { status: 503, body: { error: "unavailable" } };
   const { sources: rows } = buildManage({
     ...deps.config,
     preferences: null,
