@@ -767,12 +767,12 @@ export async function readTokenExpiry(
     });
     if (response.status === 401) return { rejected: true };
     if (response.status !== 200) return { error: `GitHub answered ${response.status}` };
-    const expires = Date.parse(
-      (response.headers.get("github-authentication-token-expiration") ?? "").replace(" UTC", "Z"),
-    );
-    return {
-      days: Number.isFinite(expires) ? Math.floor((expires - now.getTime()) / DAY_MS) : null,
-    };
+    // No header is a token that never expires; a header that does not parse is a read that failed.
+    const header = response.headers.get("github-authentication-token-expiration");
+    if (header === null) return { days: null };
+    const expires = Date.parse(header.replace(" UTC", "Z"));
+    if (!Number.isFinite(expires)) return { error: "GitHub's token expiry did not parse" };
+    return { days: Math.floor((expires - now.getTime()) / DAY_MS) };
   } catch (error) {
     return { error: redact(message(error), [token]) };
   }
@@ -786,7 +786,7 @@ export async function readTokenExpiry(
  */
 export function checkTokenExpiry(reading: TokenReading, sink: Sink): void {
   const renew =
-    "Create a new fine-grained token, put it in .env as GITHUB_SINGULARITY_TOKEN and run `npm run secrets:push`.";
+    "Create a new fine-grained token, put it in .env as GITHUB_SINGULARITY_TOKEN, run `npm run secrets:push` and redeploy the site on Vercel so it uses the new token.";
   if ("error" in reading) {
     sink.warn(
       "github_token_unread",

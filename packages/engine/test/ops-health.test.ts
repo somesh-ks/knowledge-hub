@@ -848,6 +848,10 @@ describe("singularity health", () => {
     );
     expect(found).toEqual({ days: 5 });
     expect(await readTokenExpiry("ghp-secret-1", "o/r", NOW, header(null))).toEqual({ days: null });
+    // A header that is there but unreadable is a failed read, not a token that never expires.
+    expect(await readTokenExpiry("ghp-secret-1", "o/r", NOW, header("soon"))).toEqual({
+      error: "GitHub's token expiry did not parse",
+    });
     expect(await readTokenExpiry(undefined, "o/r", NOW, header(null))).toBeUndefined();
     expect(await readTokenExpiry("ghp-secret-1", undefined, NOW, header(null))).toBeUndefined();
     const rejected = await readTokenExpiry("ghp-secret-1", "o/r", NOW, async () => ({
