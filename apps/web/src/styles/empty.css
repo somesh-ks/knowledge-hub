@@ -202,6 +202,146 @@ main > .empty {
   stroke-width: 8;
 }
 
+/* ------------------------------------------------------------------ the art moves (owner, 2026-11-01) */
+
+/* Each scene breathes: one slow loop on its one moving part, so an empty page feels attended to and
+   never plays (owner, 2026-11-01: "animated for all the styles"). The loops are off under reduced
+   motion. The timings and the sine curve are local properties so the duration rule reads them as tokens;
+   a style may retime them (Expressive swings wider and quicker). */
+@media (prefers-reduced-motion: no-preference) {
+  .empty-art {
+    --art-breath: 5.2s;
+    --art-bob: 3.6s;
+    --art-nudge: 2.8s;
+    --art-sweep: 5.6s;
+    --art-wave: 2.4s;
+    --art-pop-time: 3.2s;
+    --art-travel: 1;
+    --ease-in-out-sine: cubic-bezier(0.37, 0, 0.63, 1);
+  }
+
+  .empty-art:not([data-look]) :is(.d-breathe, .d-nudge, .d-plus, .d-sweep, .d-pop, .d-pin) {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation-timing-function: var(--ease-in-out-sine);
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+  }
+
+  .empty-art:not([data-look]) .d-breathe {
+    animation-name: art-breathe;
+    animation-duration: var(--art-breath);
+  }
+
+  .empty-art:not([data-look]) .d-nudge {
+    animation-name: art-nudge;
+    animation-duration: var(--art-nudge);
+  }
+
+  .empty-art:not([data-look]) .d-plus {
+    animation-name: art-plus;
+    animation-duration: var(--art-pop-time);
+  }
+
+  .empty-art:not([data-look]) .d-sweep {
+    animation-name: art-sweep;
+    animation-duration: var(--art-sweep);
+  }
+
+  .empty-art:not([data-look]) .d-pop {
+    animation-name: art-pop;
+    animation-duration: var(--art-pop-time);
+  }
+
+  .empty-art:not([data-look]) .d-pin {
+    animation-name: art-pin;
+    animation-duration: var(--art-bob);
+  }
+
+  /* The signal's three strokes light one after another, the dot first, the way a search for a network does. */
+  .empty-art:not([data-look]) .d-wave {
+    animation: art-wave var(--art-wave) var(--ease-in-out-sine) infinite alternate;
+  }
+
+  .empty-art:not([data-look]) .d-wave:nth-of-type(2) {
+    animation-delay: calc(var(--art-wave) * 0.22);
+  }
+
+  .empty-art:not([data-look]) .d-wave:nth-of-type(3) {
+    animation-delay: calc(var(--art-wave) * 0.44);
+  }
+
+  @keyframes art-breathe {
+    from {
+      transform: scale(1);
+    }
+
+    to {
+      transform: scale(calc(1 + 0.04 * var(--art-travel)));
+    }
+  }
+
+  @keyframes art-nudge {
+    from {
+      transform: translateX(0) scale(1);
+    }
+
+    to {
+      transform: translateX(calc(5px * var(--art-travel))) scale(1.06);
+    }
+  }
+
+  @keyframes art-plus {
+    from {
+      transform: rotate(0) scale(1);
+    }
+
+    to {
+      transform: rotate(calc(90deg * var(--art-travel))) scale(1.08);
+    }
+  }
+
+  @keyframes art-sweep {
+    from {
+      transform: translate(calc(-7px * var(--art-travel)), calc(4px * var(--art-travel))) rotate(-5deg);
+    }
+
+    to {
+      transform: translate(calc(7px * var(--art-travel)), calc(-5px * var(--art-travel))) rotate(5deg);
+    }
+  }
+
+  @keyframes art-pop {
+    from {
+      transform: scale(1);
+    }
+
+    to {
+      transform: scale(calc(1 + 0.12 * var(--art-travel)));
+    }
+  }
+
+  @keyframes art-pin {
+    from {
+      transform: translateY(0) rotate(-3deg);
+    }
+
+    to {
+      transform: translateY(calc(-9px * var(--art-travel))) rotate(3deg);
+    }
+  }
+
+  @keyframes art-wave {
+    from {
+      opacity: 0.3;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+}
+
 /* ------------------------------------------------------------------ a style's own scenes (D306) */
 
 /* A style may draw its own scene for each empty state (components/halloweenArt.ts). The Default svg and the
@@ -441,7 +581,6 @@ main > .empty {
     --scene-twinkle: 3.4s;
     --scene-rise: 3.8s;
     --scene-sway: 6s;
-    --ease-in-out-sine: cubic-bezier(0.37, 0, 0.63, 1);
   }
 
   :root[data-style="halloween"]
