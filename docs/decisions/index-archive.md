@@ -12,7 +12,7 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D6 | Daily cron with a calendar-date gate, plus a Sunday weekly pass | active; Vercel Cron since D61; no weekly D65 |
 | D7 | Podcast feed deferred | active |
 | D8 | "Thought of the Day" cut | active |
-| D9 | Repository `somesh-ks/knowledge-hub`, private | active |
+| D9 | Repository `somesh-ks/knowledge-hub`, private | superseded by D298 |
 | D10 | Hosting on Vercel | partly superseded by D25 |
 | D11 | Notification is the commit only | active |
 | D12 | Voice limits confirmed | superseded by D34 |
@@ -152,5 +152,5 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D146 | A deploy is offered in a toast; Vitals wait | amends D145 |
 | D147 | Lab probe, not field Vitals | amends D146 |
 | D148 | CI on pull requests only; browser suites by path, Dependabot or label | active |
-| D149 | Owner config in Postgres; a git snapshot | active; off until set |
+| D149 | Owner config in Postgres; a git snapshot | active; amended by D296 |
 | D150 | Paid-route caps shared in Neon | amends D149 |
