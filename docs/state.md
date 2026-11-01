@@ -12,6 +12,7 @@ Updated 2026-11-01. Rewrite, never append.
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). Regenerate and Catch up queue with Cancel; ended runs stay for the day (D204, D231).
 - Saved copies, offline, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192).
+- Halloween style (D306): tokens, Pirata One page title, six scenes and a cobweb, in two pull requests (tokens, then scenes). closed when: Somesh OKs the stills (390 and 1280, light and dark) and a phone keeps it across a reload. Covers follow as inline SVG with variables in their own PR.
 
 ## Tests
 
@@ -20,6 +21,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 ## Not working or unverified
 
 - Blob on Pro trial since 10-30, ending 11-13 (D251, D256). Plan call (Pro, or Hobby with Blob under about 1,000 ops a month and under 70 deploys a day) at 11-06 to 11-08, read from the Vercel Usage tab, which is the only Blob op count (none in code). closed when: the plan is chosen and ops stay under 1,000 a month.
+- Bottom bar press ripple (D286). closed when: a tap on the bar on his iPhone shows the wave from the thumb, the pill eases in, and the move carries the wave.
 - Config snapshot (D300 step 1): `snapshot.yml` writes the config store to a private Blob store each Sunday and `config restore` reads it back; untried against a real store, which needs the second Blob store and `BLOB_PRIVATE_READ_WRITE_TOKEN` (runbook 1.5a). closed when: the workflow has run once, the snapshot is in the store, and `config restore --file` on a copy of it rebuilds the rows.
 - Content store delta writes (D300 step 2a, ahead of 2b, which moves the jobs and takes `Digests/` and `Podcasts/` out of git): `content put|remove|pull` change single files, since `content sync` deletes what a checkout lacks; the manifest is written against its ETag, and the episode index is rebuilt from the store, not the checkout. One writer per path is assumed. No workflow uses them yet. closed when: 2b has run a daily end to end through them and the store matches the digests the run wrote.
 - Queue plays in place (D277). closed when: a third-item tap keeps the bar up.
@@ -31,7 +33,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Three regenerations per podcast, counted in its own file (D212). closed when: the page shows "2 of 3 regenerations left".
 - The 10-31 scheduled daily published nothing: a 6-hour window (an on-demand briefing had moved the shared start), 11 Tech stories over the Tech allowance, 2 of 4 stories lost in writing, and a refill whose 3 Tech picks the allowance trimmed again. Fixed: the regular window starts at its own last window; a Tech-heavy day may air Tech past its allowance only to reach the floor (D297); the refill writes nothing the allowance will trim. closed when: the next two scheduled dailies publish.
 - Short podcasts (D204, D216 to D225). closed when: two dailies in a row air within 10% of length, and `singularity metrics` shows ten runs at `length_share` 0.9+, `failure_rate` 0.1 or less.
-- Writer model choice (D294 cost pass, 2026-11-01): `eval/writerModels.ts`, started by `run.yml`'s `writer_experiment` input, writes one run's stories with Sonnet at three efforts, Haiku and Gemini Flash and rates them with Jev. The router is static (D209 chains), so no model is picked from feedback yet. closed when: a run's results are read, a writer arm is chosen on cost per passed story, and `models.json` carries it.
+- Haiku writes the first pass, Sonnet repairs (D308; `eval/writerModels.ts`, run 41348226002, 9 stories, one judge). The router is static (D209 chains), so no model is picked from feedback yet. closed when: two scheduled runs in a row show no more voice or grounding drops (`lost_reasons`) than the last Sonnet-only runs, and the writer's cost in the ledger is under a quarter of the Sonnet-only writer's.
 - Ingest in shadow (D233, D251). closed when: for 7 days the store holds 90% of each daily's stories and reads 90% of pages tried (`ingest --coverage`).
 - Trusted publishers (D234) and community lift (D240), shipped off. closed when: both on and a daily airs a lab story and a community-voted one, no source over 30%.
 - Run names (D217), Neon run log (D221). closed when: a scheduled daily is named `daily <date>`, is off the queue, and has its row.

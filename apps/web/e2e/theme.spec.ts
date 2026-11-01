@@ -127,4 +127,30 @@ test.describe("theme", () => {
     await page.getByRole("combobox", { name: "Style" }).selectOption("default");
     await expect(page.locator("html")).not.toHaveAttribute("data-style", /.*/);
   });
+
+  test("Halloween swaps in its own scene and a cobweb that takes no tap; Default shows only its own", async ({
+    page,
+  }) => {
+    await page.goto("/settings");
+    await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
+    await page.getByRole("combobox", { name: "Style" }).selectOption("halloween");
+    await page.goto("/no/such/page");
+    const root = page.locator("#main .empty");
+    await expect(root.locator('.empty-art[data-look="halloween"]')).toBeVisible();
+    await expect(root.locator('.empty-art[data-art="notfound"]')).toBeHidden();
+    await expect(page.locator(".cobweb")).toBeVisible();
+    // The cobweb hangs in the top-right corner; a tap there reaches what is under it.
+    const corner = await page.evaluate(
+      () => document.elementFromPoint(window.innerWidth - 12, 12)?.closest(".cobweb") ?? null,
+    );
+    expect(corner).toBeNull();
+    // Back to Default: its own scene returns and the ornament goes.
+    await page.goto("/settings");
+    await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
+    await page.getByRole("combobox", { name: "Style" }).selectOption("default");
+    await page.goto("/no/such/page");
+    await expect(root.locator('.empty-art[data-art="notfound"]')).toBeVisible();
+    await expect(root.locator('.empty-art[data-look="halloween"]')).toBeHidden();
+    await expect(page.locator(".cobweb")).toBeHidden();
+  });
 });

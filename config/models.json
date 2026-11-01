@@ -13,7 +13,7 @@
     "source_format": { "chain": [{ "family": "jev", "timeout_ms": 20000 }, { "family": "gemini-flash-lite", "timeout_ms": 60000 }] },
     "topic_emoji": { "chain": [{ "family": "jev", "timeout_ms": 2500 }, { "family": "gemini-flash-lite", "timeout_ms": 1500, "max_tokens": 64 }] },
     "grounding": { "chain": [{ "family": "jev", "timeout_ms": 20000 }, { "family": "gemini-flash", "timeout_ms": 60000 }] },
-    "story_writer": { "chain": [{ "family": "claude-sonnet", "timeout_ms": 120000 }, { "family": "gemini-flash", "timeout_ms": 120000 }] },
+    "story_writer": { "chain": [{ "family": "claude-haiku", "effort": "medium", "timeout_ms": 120000 }, { "family": "claude-sonnet", "effort": "medium", "timeout_ms": 120000 }, { "family": "gemini-flash", "timeout_ms": 120000 }] },
     "headline_shorten": { "chain": [{ "family": "claude-haiku", "timeout_ms": 60000 }, { "family": "gemini-flash-lite", "timeout_ms": 60000 }] },
     "story_rewrite": { "chain": [{ "family": "claude-sonnet", "effort": "medium", "timeout_ms": 120000 }, { "family": "gemini-flash", "timeout_ms": 120000 }] },
     "podcast_script": { "chain": [{ "family": "claude-sonnet", "effort": "high", "timeout_ms": 240000 }, { "family": "gemini-flash", "timeout_ms": 240000 }] },

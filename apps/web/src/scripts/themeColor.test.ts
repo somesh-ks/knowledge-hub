@@ -17,4 +17,10 @@ describe("themeColorsFor", () => {
   it("uses the dark surface in both schemes once Dark is chosen by hand", () => {
     expect(themeColorsFor("dark", system)).toEqual({ light: "#202124", dark: "#202124" });
   });
+
+  it("uses the style's own surface in both schemes, whatever the theme", () => {
+    const styled = "#0d0a14";
+    expect(themeColorsFor(undefined, system, styled)).toEqual({ light: styled, dark: styled });
+    expect(themeColorsFor("light", system, styled)).toEqual({ light: styled, dark: styled });
+  });
 });

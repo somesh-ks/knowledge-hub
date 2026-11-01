@@ -314,6 +314,94 @@ describe("color contrast", () => {
   });
 });
 
+interface Tree {
+  $value?: unknown;
+  $extensions?: unknown;
+  [key: string]: unknown;
+}
+
+/** The token document with one style's values laid over the base, as the page sees it under data-style. */
+function documentUnder(style: string): TokenDocument {
+  const base = JSON.parse(readFileSync(resolve(ROOT, "tokens/tokens.json"), "utf8"));
+  const overlay = (into: Tree, from: Tree): void => {
+    for (const [key, node] of Object.entries(from)) {
+      if (key.startsWith("$")) continue;
+      const child = node as Tree;
+      if ("$value" in child) {
+        into[key] = {
+          ...(into[key] as Tree),
+          $value: child.$value,
+          ...(child.$extensions ? { $extensions: child.$extensions } : {}),
+        };
+      } else overlay(into[key] as Tree, child);
+    }
+  };
+  overlay(base, base.styles[style]);
+  return parseTokens({ ...base, styles: {} });
+}
+
+// D268 says the contrast tests cover a style's colours; they ran on the base only until D306 added a style
+// whose palette is its own. Each style gets the base's text, action and graphic floors, in both modes.
+describe.each(doc.styles.map((style) => style.name))("a style's colour contrast: %s", (name) => {
+  const styled = documentUnder(name);
+  const color = (role: string, mode: Mode): Rgb => {
+    const literal = resolveLiteral(styled, `semantic.color.${role}`, mode);
+    if (typeof literal !== "string") throw new Error(`${role} is not a color`);
+    return oklchStringToRgb(literal);
+  };
+  const surfaces = [
+    "surface",
+    "surface-sunken",
+    "surface-container",
+    "surface-raised",
+    "surface-overlay",
+  ];
+
+  it.each(MODES)("holds the base's text, action and graphic floors (%s)", (mode) => {
+    const floors: [foreground: string, background: string, least: number][] = [
+      ...["on-surface", "on-surface-muted", "on-surface-subtle", "accent"].flatMap((fg) =>
+        surfaces.map((bg): [string, string, number] => [fg, bg, 4.5]),
+      ),
+      ...surfaces.map((bg): [string, string, number] => [
+        "on-surface-reading",
+        bg,
+        bg === "surface" ? 7 : 4.5,
+      ]),
+      ["on-surface", "accent-subtle", 4.5],
+      ["accent", "accent-subtle", 4.5],
+      ["on-accent-container", "accent-container", 4.5],
+      ["on-surface", "accent-container", 4.5],
+      ["on-surface-muted", "accent-container", 4.5],
+      ["on-accent-container-high", "accent-container-high", 4.5],
+      ["on-accent-action", "accent-action", 4.5],
+      ["accent-action", "surface", 3],
+      ["on-accent", "accent", 4.5],
+      ["on-accent", "accent-hover", 4.5],
+      ["on-accent", "accent-pressed", 4.5],
+      ["on-surface-inverse", "surface-inverse", 4.5],
+      ...["accent", "focus-ring"].flatMap((fg) =>
+        ["surface", "surface-raised", "surface-overlay"].map((bg): [string, string, number] => [
+          fg,
+          bg,
+          3,
+        ]),
+      ),
+      ...["surface", "surface-raised", "surface-sunken"].map((bg): [string, string, number] => [
+        "border-control",
+        bg,
+        3,
+      ]),
+    ];
+    const failures = floors.flatMap(([foreground, background, least]) => {
+      const ratio = contrastRatio(color(foreground, mode), color(background, mode));
+      return ratio >= least
+        ? []
+        : [`${foreground} on ${background}: ${ratio.toFixed(2)}, needs ${least}`];
+    });
+    expect(failures, `${name} (${mode})`).toEqual([]);
+  });
+});
+
 describe("scales", () => {
   // A step named out of order gets picked for the wrong job: blue-875 once sat darker than blue-900.
   it("darkens every colour ramp as its step number rises", () => {

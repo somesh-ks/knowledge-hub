@@ -2,10 +2,10 @@ import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
-import { loadEnv } from "@singularity/core";
+import { findPrice, loadEnv } from "@singularity/core";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeLogRunCommand } from "../src/commands/logRun.js";
-import { priceSpend } from "../src/cost/ledger.js";
+import { loadPrices, priceSpend } from "../src/cost/ledger.js";
 import { buildEpisodeRunRecord } from "../src/podcast/runLog.js";
 import { type Plan, writePlan } from "../src/run/plan.js";
 import { SpendTracker, spendDelta } from "../src/run/spend.js";
@@ -120,7 +120,10 @@ describe("the run log", () => {
       work_ms: 84_000,
       podcasts: ["2026-10-29"],
     });
-    // 1M Sonnet input tokens at $3: all of it came from the write stage.
+    // 1M Sonnet input tokens at the table's price: all of it came from the write stage.
+    const sonnetIn = findPrice(await loadPrices(root), "anthropic", "claude-sonnet-5-5")?.units
+      .input_tokens;
+    const expectedUsd = ((sonnetIn?.usd ?? Number.NaN) / (sonnetIn?.per ?? 1)) * 1_000_000;
     const stages = (
       await db.query<{ stage: string; ms: number; usd: number }>(
         "select stage, ms, usd from pipeline_stages order by stage",
@@ -130,7 +133,7 @@ describe("the run log", () => {
       ["judge", 7_000],
       ["write", 77_000],
     ]);
-    expect(stages[1]?.usd).toBeCloseTo(3, 4);
+    expect(stages[1]?.usd).toBeCloseTo(expectedUsd, 4);
     expect(stages[0]?.usd).toBe(0);
     expect(Number(runs[0]?.usd)).toBeCloseTo(stages[1]?.usd ?? 0, 4);
   });

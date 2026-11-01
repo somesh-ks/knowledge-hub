@@ -280,3 +280,86 @@ test.describe("the whole bottom bar is the tab", () => {
     await expect(heading(page)).toHaveText("Settings");
   });
 });
+
+test.describe("a touch on a tab shows at once and goes on across the move", () => {
+  // Owner, 2026-11-01 (D286): the touch feedback was one instant frame, and a quick tap never showed
+  // the pressed state at all (`:active` waits out the browser's press delay on a phone). The press
+  // marks its tab from the first touch with a wave, and the wave belongs to the gesture: the bar a
+  // move brings has it again, at the point it had reached, not restarted and not gone.
+  test("a quick tap marks its tab on touch, and the wave is still going on the new page", async ({
+    page,
+  }) => {
+    await openWarm(page);
+    const tab = item(page, "/library");
+    const box = await tab.boundingBox();
+    if (!box) throw new Error("the Library tab is not on screen");
+    const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    const cdp = await page.context().newCDPSession(page);
+
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [point] });
+    await expect(tab).toHaveAttribute("data-ripple-pressed", "");
+    await expect(tab.locator(".ripple-wave")).toHaveCount(1);
+    // A wave drawn again from zero must not pass for one carried on: wait until this one has played.
+    await expect
+      .poll(() =>
+        tab
+          .locator(".ripple-wave")
+          .evaluate((wave) => Number(wave.getAnimations()[0]?.currentTime ?? Number.NaN)),
+      )
+      .toBeGreaterThan(0);
+    await page.evaluate(() => {
+      const wave = (): HTMLElement | null =>
+        document.querySelector<HTMLElement>('.app-nav-item[href="/library"] .ripple-wave');
+      const played = (): number => Number(wave()?.getAnimations()[0]?.currentTime ?? Number.NaN);
+      const origin = (): string => `${wave()?.style.left},${wave()?.style.top}`;
+      const run = { before: played(), after: Number.NaN, from: origin(), to: "" };
+      Object.assign(window, { rippleRun: run });
+      document.addEventListener(
+        "astro:after-swap",
+        () => Object.assign(run, { after: played(), to: origin() }),
+        { once: true },
+      );
+    });
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await expect(heading(page)).toHaveText("Library");
+
+    const run = await page.evaluate(
+      () =>
+        (
+          window as unknown as {
+            rippleRun: { before: number; after: number; from: string; to: string };
+          }
+        ).rippleRun,
+    );
+    expect(run.after, "the new bar has no wave").not.toBeNaN();
+    expect(run.after, "the wave started again on the new page").toBeGreaterThanOrEqual(run.before);
+    expect(run.to, "the wave moved to another origin").toBe(run.from);
+  });
+
+  // A second finger elsewhere, lifting, must not end the press the first one is making.
+  test("another finger lifting does not end the press on the tab", async ({ page }) => {
+    await page.goto("/");
+    const tab = item(page, "/library");
+    const box = await tab.boundingBox();
+    if (!box) throw new Error("the Library tab is not on screen");
+    const held = { x: box.x + box.width / 2, y: box.y + box.height / 2, id: 1 };
+    const other = { x: 40, y: 300, id: 2 };
+    const cdp = await page.context().newCDPSession(page);
+    // The other finger's release must reach the page, or the check below proves nothing.
+    await page.evaluate(() => {
+      const ups: number[] = [];
+      Object.assign(window, { pointerUps: ups });
+      document.addEventListener("pointerup", (event) => ups.push(event.pointerId), true);
+    });
+
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [held] });
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [held, other] });
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [other] });
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { pointerUps: number[] }).pointerUps))
+      .toHaveLength(1);
+    await expect(tab).toHaveAttribute("data-ripple-pressed", "");
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [held] });
+    await expect(tab).not.toHaveAttribute("data-ripple-pressed", "");
+  });
+});
