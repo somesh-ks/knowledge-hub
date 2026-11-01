@@ -280,3 +280,44 @@ test.describe("the whole bottom bar is the tab", () => {
     await expect(heading(page)).toHaveText("Settings");
   });
 });
+
+test.describe("a touch on a tab shows at once and goes on across the move", () => {
+  // Owner, 2026-11-01 (D286): the touch feedback was one instant frame, and a quick tap never showed
+  // the pressed state at all (`:active` waits out the browser's press delay on a phone). The press
+  // marks its tab from the first touch with a wave, and the wave belongs to the gesture: the bar a
+  // move brings has it again, at the point it had reached, not restarted and not gone.
+  test("a quick tap marks its tab on touch, and the wave is still going on the new page", async ({
+    page,
+  }) => {
+    await openWarm(page);
+    const tab = item(page, "/library");
+    const box = await tab.boundingBox();
+    if (!box) throw new Error("the Library tab is not on screen");
+    const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    const cdp = await page.context().newCDPSession(page);
+
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [point] });
+    await expect(tab).toHaveAttribute("data-pressed", "");
+    await expect(tab.locator(".ripple-wave")).toHaveCount(1);
+    await page.evaluate(() => {
+      const played = (): number | null =>
+        Number(
+          document.querySelector('.app-nav-item[href="/library"] .ripple-wave')?.getAnimations()[0]
+            ?.currentTime ?? Number.NaN,
+        );
+      const run = { before: played(), after: Number.NaN };
+      Object.assign(window, { rippleRun: run });
+      document.addEventListener("astro:after-swap", () => Object.assign(run, { after: played() }), {
+        once: true,
+      });
+    });
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await expect(heading(page)).toHaveText("Library");
+
+    const run = await page.evaluate(
+      () => (window as unknown as { rippleRun: { before: number; after: number } }).rippleRun,
+    );
+    expect(run.after, "the new bar has no wave").not.toBeNaN();
+    expect(run.after, "the wave started again on the new page").toBeGreaterThanOrEqual(run.before);
+  });
+});
