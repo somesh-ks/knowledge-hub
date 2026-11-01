@@ -30,7 +30,7 @@ Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reason
 - Edit: every topic takes a new name; what counts edits except on a built-in category (D57, D64, D71). The add topic panel takes Name, Description and Scope, with suggested sources, each with a plus; a topic's page lists up to five catalogue feeds that fit (D75).
 - A new topic is a list row at once, by name, with `topicEmoji`'s guess until Jev's pick (D142); its one `topic.upsert` waits for Jev (4.5 s at most). Before the build it opens `/settings/topics/new?id=`, filled from the saved edits (`fillShell`). Suggested sources show only on a topic's page.
 - Add source (beside the search from 64rem) lists its topic's suggestions; an added one shimmers, moves into Sources and the next fills its place.
-- A source row: name, address, stories that reached a briefing, a star rating or "Not scored yet", a checkbox. Its side panel renames, moves, favorites (`high_signal`), opens or deletes: a confirm, the row goes at once, the removal waits 5 s with Undo (D142).
+- A source row: name, address, a star rating or "Not scored yet" (the last run's, from `/api/source-ratings`), a checkbox. Its side panel renames, moves, favorites (`high_signal`), opens or deletes: a delete confirms, leaves at once, Undo for 5 s (D142).
 - `GET /api/source-preview` is behind an SSRF guard.
 
 ### Model

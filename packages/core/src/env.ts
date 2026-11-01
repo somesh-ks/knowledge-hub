@@ -18,6 +18,12 @@ export const Env = z.object({
   BLOB_STORE_ID: optionalString,
   /** Account token the audio workflow uses to run `vercel link` and `vercel env pull`. */
   VERCEL_TOKEN: optionalString,
+  /** The token the site dispatches workflows and writes the RUN_CRON variable with (D259). */
+  GITHUB_SINGULARITY_TOKEN: optionalString,
+  /** The old name of that token, still honoured. */
+  GITHUB_DISPATCH_TOKEN: optionalString,
+  /** "owner/repo"; `doctor --online` checks the site's token against it. */
+  GITHUB_REPOSITORY: optionalString,
   /** Gemini API key: transcribes a YouTube finalist that has no subtitles. */
   GEMINI_API_KEY: optionalString,
   /** Neon Postgres holding the owner's config (D149). Unset, the committed files are the config. */

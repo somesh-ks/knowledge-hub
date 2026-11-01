@@ -35,6 +35,10 @@ export const test = base.extend<Options & { problems: Problems }>({
       );
       // The podcast queue asks which runs are going while this browser has one on record: none, unless a
       // test says otherwise (a later route answers first).
+      // The Sources pages ask for the current ratings; none changes a built row.
+      await page.route("**/api/source-ratings", (route) =>
+        route.fulfill({ json: { ratings: {} } }),
+      );
       await page.route("**/api/generations", (route) =>
         route.fulfill({ status: 200, json: { generations: [] } }),
       );
