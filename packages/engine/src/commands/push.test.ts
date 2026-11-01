@@ -49,6 +49,21 @@ values ($1, 'podcast', 'catch_up', 'api', false, $2, $3::text[], now(), now(), 1
   );
 }
 
+/** What `push notify` printed while `run` ran: one JSON line per call. */
+async function printed(run: () => Promise<unknown>): Promise<Record<string, number>[]> {
+  const lines: string[] = [];
+  const spy = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+    lines.push(String(chunk));
+    return true;
+  });
+  try {
+    await run();
+  } finally {
+    spy.mockRestore();
+  }
+  return lines.map((line) => JSON.parse(line));
+}
+
 function context(env: Record<string, string>): CommandContext {
   const lines: string[] = [];
   return {
@@ -89,8 +104,10 @@ describe("push notify (D284)", () => {
     };
     const command = makePushCommand({ connect: async () => sql, send });
     const env = { DATABASE_URL: "postgres://x" };
-    expect(await command(["notify"], context(env))).toBe(0);
+    const [summary] = await printed(() => command(["notify"], context(env)));
     expect(calls.sort()).toEqual([`${EP(1)} /e/ep-20261031-1200`, `${EP(2)} /e/ep-20261031-1200`]);
+    // Two watch rows ended, on one run: the log counts runs (M9), so it reads as one run, not two.
+    expect(summary).toMatchObject({ ended: 1, claimed: 0, addressed: 0 });
 
     // Nothing is left for run 100, 300 or 400; run 200 still waits.
     const left = await sql.query("select run_id from push_watches order by run_id");
@@ -104,8 +121,9 @@ describe("push notify (D284)", () => {
   });
 
   // The bug it prevents: the Daily announced twice (one ping per sync), sent to a device that asked
-  // only for the Weekly, or a regeneration announced as if it were the new Daily.
-  it("announces a published Daily once, to the devices that asked for Dailies", async () => {
+  // only for the Weekly, or a regeneration announced as if it were the new Daily; and a log that says
+  // two devices were addressed when one device took both runs (M9).
+  it("announces a published Daily and Weekly once, to the devices that asked, and counts each device once", async () => {
     const sql = store();
     const phone = { endpoint: EP(1), p256dh: "p", auth: "a" };
     expect(await setPushDevice(sql, { ...phone, daily: true, weekly: false }, NOW)).toBe(true);
@@ -121,24 +139,53 @@ values ($1, 'run', $2, 'api', $3, false, 'published', $4::text[], $5::timestampt
       );
     await row("daily-1", "daily", null);
     await row("daily-redo", "daily", "2026-10-29");
+    await row("weekly-1", "weekly", null);
 
     const calls: string[] = [];
     const send: PushSender = async (target, message) => {
       calls.push(`${target.endpoint} ${message.title} ${message.url}`);
-      return target.endpoint === EP(3) ? "gone" : "sent";
+      return target.endpoint === EP(1) ? "gone" : "sent";
     };
     const command = makePushCommand({ connect: async () => sql, send });
     const env = { DATABASE_URL: "postgres://x" };
-    await command(["notify"], context(env));
+    const [first] = await printed(() => command(["notify"], context(env)));
     expect(calls.sort()).toEqual([
       `${EP(1)} Your Daily is ready /d/2026-10-31`,
+      `${EP(2)} Your Weekly is ready /d/2026-10-31`,
       `${EP(3)} Your Daily is ready /d/2026-10-31`,
+      `${EP(3)} Your Weekly is ready /d/2026-10-31`,
     ]);
-    // The dead address is forgotten; a second sync says nothing more about the same run.
+    // Two runs, and three devices although the third took both: four sends, not four devices.
+    expect(first).toMatchObject({ claimed: 2, addressed: 3, sent: 3 });
+    // The dead address is forgotten; a second sync says nothing more about the same runs.
     expect((await sql.query("select endpoint from push_devices order by endpoint")).length).toBe(2);
     calls.length = 0;
-    await command(["notify"], context(env));
+    const [second] = await printed(() => command(["notify"], context(env)));
     expect(calls).toEqual([]);
+    expect(second).toMatchObject({ claimed: 0, addressed: 0 });
+  });
+
+  // The bug it prevents: a run claimed with devices subscribed but no key pair logs "0 devices", which
+  // reads like an empty audience when the real fault is the missing keys (M9).
+  it("counts the subscribed devices of a claimed run even when no push key pair exists", async () => {
+    const sql = store();
+    await setPushDevice(
+      sql,
+      { endpoint: EP(1), p256dh: "p", auth: "a", daily: true, weekly: false },
+      NOW,
+    );
+    for (const statement of RUNS_SCHEMA_SQL) await sql.query(statement);
+    await sql.query(
+      `insert into pipeline_runs (run_id, workflow, kind, mode, dry_run, outcome, podcasts, started_at,
+finished_at, work_ms, total_ms, usd)
+values ('daily-1', 'run', 'daily', 'api', false, 'published', $1::text[], $2::timestamptz, $2::timestamptz, 1, 1, 0)`,
+      [["2026-10-31"], new Date(NOW - 60_000).toISOString()],
+    );
+    const command = makePushCommand({ connect: async () => sql });
+    const [summary] = await printed(() =>
+      command(["notify"], context({ DATABASE_URL: "postgres://x" })),
+    );
+    expect(summary).toMatchObject({ claimed: 1, addressed: 1, sent: 0 });
   });
 
   it("does nothing, and does not fail the sync, when push is not set up", async () => {

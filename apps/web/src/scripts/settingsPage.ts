@@ -22,7 +22,7 @@ import {
 } from "../player/core/preferences";
 import { safeLocalStorage } from "../player/core/resume";
 import { startThemeSync } from "../player/core/themeRuntime";
-import { getHaptics, playUiCue } from "../player/sound/soundController";
+import { getHaptics, playUiCue, settleSoundSession } from "../player/sound/soundController";
 import { type Cue, cueForSwitch, cueForVolumeRelease } from "../player/sound/soundMap";
 import { installPromptReady, onInstallPromptChange, requestInstall } from "./installPrompt";
 
@@ -72,6 +72,8 @@ export function controlState(preferences: Preferences, soundsEnabled: boolean): 
 export interface SoundsSink {
   setSounds(enabled: boolean): void;
   play(cue: Cue): void;
+  /** Called after the preference changes, so the audio session follows it without waiting for a gesture. */
+  settle(): void;
 }
 
 /**
@@ -86,6 +88,7 @@ export function changeSounds(turningOn: boolean, sink: SoundsSink): void {
   } else {
     sink.play(cueForSwitch(false));
     sink.setSounds(false);
+    sink.settle();
   }
 }
 
@@ -177,6 +180,7 @@ function mountSettings(root: HTMLElement): () => void {
       changeSounds(input.checked, {
         setSounds: (enabled) => preferences.set({ sounds: enabled }),
         play: playUiCue,
+        settle: settleSoundSession,
       });
     } else if (input === volume) {
       // A range reports a change when it is let go: a sample, so the level can be judged.
