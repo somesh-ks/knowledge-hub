@@ -81,13 +81,36 @@ test.describe("routes and headers", () => {
     // Squeezed, not covered: the page starts below the strip.
     await expect.poll(top).toBeGreaterThan(resting);
     const squeezed = await top();
-    // Another page opened under the strip starts where this one did, and holds still.
+    // Another page opened under the strip starts where this one did and never moves: sampled every
+    // frame from the click, so a shift during the swap shows as much as one after it.
+    await page.evaluate(() => {
+      const seen: [string, number][] = [];
+      (window as unknown as { __tops: typeof seen }).__tops = seen;
+      const tick = () => {
+        const main = document.querySelector("#main");
+        if (main) seen.push([location.pathname, main.getBoundingClientRect().top]);
+        requestAnimationFrame(tick);
+      };
+      tick();
+    });
     await page.locator('.app-nav a[href="/library"]').click();
     await expect(page).toHaveURL(/\/library/);
     await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
-    const landed = await page.locator("#main").evaluate((el) => el.getBoundingClientRect().top);
-    await page.waitForTimeout(1500);
-    expect(await top()).toBe(landed);
+    // The page's own transition over, plus a few more frames: whatever moves after it is a bug.
+    await page.evaluate(async () => {
+      const finite = document
+        .getAnimations()
+        .filter((a) => Number.isFinite(a.effect?.getComputedTiming().endTime ?? 0));
+      await Promise.allSettled(finite.map((a) => a.finished));
+      for (let i = 0; i < 20; i++) await new Promise((r) => requestAnimationFrame(r));
+    });
+    const landed = await top();
+    const tops = await page.evaluate(() =>
+      (window as unknown as { __tops: [string, number][] }).__tops
+        .filter(([path]) => path === "/library")
+        .map(([, y]) => y),
+    );
+    expect(new Set(tops)).toEqual(new Set([landed]));
     expect(landed).toBeGreaterThanOrEqual(squeezed);
     await setOnline(true);
     await expect(page.locator('[data-banner="offline"]')).toHaveCount(0);
