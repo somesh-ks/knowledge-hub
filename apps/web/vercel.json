@@ -130,15 +130,6 @@
     {
       "source": "/design/:path*",
       "destination": "https://singularity-design.vercel.app/:path*"
-    },
-    {
-      "source": "/covers/:path*",
-      "has": [{ "type": "query", "key": "v", "value": "(?<v>[a-z0-9]{1,12})" }],
-      "destination": "/api/cover/:v/:path*"
-    },
-    {
-      "source": "/covers/:path*",
-      "destination": "/api/cover/0/:path*"
     }
   ],
   "headers": [
