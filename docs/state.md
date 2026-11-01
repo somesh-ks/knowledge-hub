@@ -53,7 +53,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Admin env (D257): the reader needs `ADMIN_SESSION_SECRET`. closed when: `/api/health` answers 401 signed out.
 - Owner config out of git (D296, built, unmerged until the owner's review). closed when: after the merge the next scheduled daily's gate log says `config store:` and it publishes, the Vercel build log says `store on; from the store:`, audio publishing keeps the owner's voice, and the cron answers 200.
 - Config store (D149, D296): Vercel has `SINGULARITY_CONFIG_STORE` and `DATABASE_URL` (checked 11-01); the Actions variable could not be read, so `health` faults `config_store_split` when the site and runs disagree. closed when: a phone's edit shows on a laptop and health passes the config-store line.
-- Production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 10-14 (`doctor --online` tests it and its expiry; write access it cannot test). closed when: `doctor --online` accepts it.
+- Production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 10-14 (`doctor --online` tests it and its expiry; daily health faults in its last 7 days once `GH_SINGULARITY_TOKEN` is pushed; write access it cannot test). closed when: a config save from the site produces a commit and the next health run passes `github token`.
 - 35 older items parked in history (`#parked`, 10-21 to 10-28) and 10 more ([2026-10-31 trim](history/2026-10-31-state-trim.md)). closed when: each closes.
 
 ## Known risks

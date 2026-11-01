@@ -37,6 +37,7 @@ import {
   checkRunsDied,
   checkSideRuns,
   checkStore,
+  checkTokenExpiry,
   type DeploymentReading,
   type FieldReading,
   type HealthAspect,
@@ -45,6 +46,7 @@ import {
   type SideWorkflow,
   type Sink,
   type StoreReading,
+  type TokenReading,
   type WatchedHead,
   type WorkflowRun,
 } from "./healthChecks.js";
@@ -62,6 +64,7 @@ export type {
   HealthAspect,
   HealthFetch,
   StoreReading,
+  TokenReading,
   WatchedHead,
   WorkflowRun,
 };
@@ -119,6 +122,8 @@ export interface HealthOptions {
   configStore?: boolean;
   /** Vercel's deployments in the last 24 hours (the command reads them with `VERCEL_TOKEN`); absent skips `deploy_rate`. */
   deployments?: DeploymentReading;
+  /** The site's GitHub token and its expiry (the command reads them with `GITHUB_SINGULARITY_TOKEN`); absent skips `github_token_*`. */
+  githubToken?: TokenReading;
   /** The voices episodes are narrated in, so their stored segments are found by address. */
   voices?: EpisodeVoiceEnv;
 }
@@ -421,6 +426,9 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
   if (options.perf !== undefined) checkPerf(options.perf, { fault, warn, passed });
   if (options.deployments !== undefined) {
     checkDeploymentRate(options.deployments, { fault, warn, passed });
+  }
+  if (options.githubToken !== undefined) {
+    checkTokenExpiry(options.githubToken, { fault, warn, passed });
   }
   if (options.store !== undefined) {
     checkStore(options.store, { fault, warn, passed });

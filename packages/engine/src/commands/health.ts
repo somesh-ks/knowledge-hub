@@ -5,6 +5,7 @@ import { collectHealth, formatHealth, type WorkflowRun } from "../ops/health.js"
 import {
   readDeploymentCount,
   readStore,
+  readTokenExpiry,
   readWatchedHead,
   SIDE_WORKFLOWS,
   type SideWorkflow,
@@ -137,6 +138,15 @@ export const run: CommandRun = async (argv, ctx) => {
   // Hobby's 100 deployments a day, read from Vercel when a token is set (D247).
   const deployments =
     site === null ? undefined : await readDeploymentCount(ctx.env.VERCEL_TOKEN, ctx.now());
+  // The site's GitHub token and its expiry (SEC-06); health.yml passes the token as a secret.
+  const githubToken =
+    site === null
+      ? undefined
+      : await readTokenExpiry(
+          ctx.env.GITHUB_SINGULARITY_TOKEN ?? ctx.env.GITHUB_DISPATCH_TOKEN,
+          ctx.env.GITHUB_REPOSITORY,
+          ctx.now(),
+        );
   const report = await collectHealth({
     root: ctx.root,
     now: ctx.now(),
@@ -149,6 +159,7 @@ export const run: CommandRun = async (argv, ctx) => {
     ...(store ? { store } : {}),
     ...(main ? { main } : {}),
     ...(deployments ? { deployments } : {}),
+    ...(githubToken ? { githubToken } : {}),
     ...(site === null ? {} : { configStore: configStoreUrl(ctx.env) !== null }),
     voices: {
       SPEECHIFY_VOICE_ID: ctx.env.SPEECHIFY_VOICE_ID,

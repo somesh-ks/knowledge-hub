@@ -715,6 +715,100 @@ export function checkDeploymentRate(reading: DeploymentReading, sink: Sink): voi
   }
 }
 
+/** A fine-grained token with this many days left or fewer is a fault; the site drops every save once it lapses. */
+export const TOKEN_FAULT_DAYS = 7;
+/** Two weeks out is a Monday warning, early enough to create the next token without a rush. */
+export const TOKEN_WARN_DAYS = 14;
+
+/**
+ * What GitHub says of the token the site dispatches workflows with: whole days left (`null` for a
+ * token that never expires), `rejected` when GitHub answered 401, or why it did not say.
+ */
+export type TokenReading = { days: number | null } | { rejected: true } | { error: string };
+
+type TokenFetch = (
+  url: string,
+  init: { headers: Record<string, string>; signal: AbortSignal },
+) => Promise<{ status: number; headers: { get: (name: string) => string | null } }>;
+
+/**
+ * Reads `GITHUB_SINGULARITY_TOKEN`'s expiry from the header GitHub sets on any authenticated call.
+ * Nothing watched it before: an expired token made every settings save from the site a silent no-op
+ * (SEC-06). Without a token or a repository nothing is read. Never throws; a failure is a reading
+ * that says why, with the token taken out of it.
+ */
+export async function readTokenExpiry(
+  token: string | undefined,
+  repository: string | undefined,
+  now: Date,
+  fetcher: TokenFetch = fetch,
+): Promise<TokenReading | undefined> {
+  if (!token || !repository) return undefined;
+  try {
+    const response = await fetcher(`https://api.github.com/repos/${repository}`, {
+      headers: {
+        authorization: `Bearer ${token}`,
+        accept: "application/vnd.github+json",
+        "x-github-api-version": "2022-11-28",
+        "user-agent": "singularity-health",
+      },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (response.status === 401) return { rejected: true };
+    if (response.status !== 200) return { error: `GitHub answered ${response.status}` };
+    // No header is a token that never expires; a header that does not parse is a read that failed.
+    const header = response.headers.get("github-authentication-token-expiration");
+    if (header === null) return { days: null };
+    const expires = Date.parse(header.replace(" UTC", "Z"));
+    if (!Number.isFinite(expires)) return { error: "GitHub's token expiry did not parse" };
+    return { days: Math.floor((expires - now.getTime()) / DAY_MS) };
+  } catch (error) {
+    return { error: redact(message(error), [token]) };
+  }
+}
+
+/**
+ * `github_token_expired` and `github_token_expiring` (SEC-06): a rejected or lapsed token, or one
+ * with TOKEN_FAULT_DAYS or fewer left, is a fault, because every settings save is then dropped and
+ * a warning reaches the owner only on Mondays. TOKEN_WARN_DAYS out it is a warning. A reading that
+ * failed is `github_token_unread`.
+ */
+export function checkTokenExpiry(reading: TokenReading, sink: Sink): void {
+  const renew =
+    "Create a new fine-grained token, put it in .env as GITHUB_SINGULARITY_TOKEN, run `npm run secrets:push` and redeploy the site on Vercel so it uses the new token.";
+  if ("error" in reading) {
+    sink.warn(
+      "github_token_unread",
+      "reliability",
+      `GitHub's answer about the site's token did not read: ${reading.error}. Its expiry goes unwatched.`,
+    );
+  } else if ("rejected" in reading || (reading.days !== null && reading.days < 0)) {
+    sink.fault(
+      "github_token_expired",
+      "reliability",
+      `GitHub rejected the site's token (GITHUB_SINGULARITY_TOKEN): every save from the site is dropped. ${renew}`,
+    );
+  } else if (reading.days !== null && reading.days <= TOKEN_FAULT_DAYS) {
+    sink.fault(
+      "github_token_expiring",
+      "reliability",
+      `The site's GitHub token expires in ${reading.days} days; after that every save from the site is dropped. ${renew}`,
+    );
+  } else if (reading.days !== null && reading.days <= TOKEN_WARN_DAYS) {
+    sink.warn(
+      "github_token_expiring",
+      "reliability",
+      `The site's GitHub token expires in ${reading.days} days. ${renew}`,
+    );
+  } else {
+    sink.passed.push(
+      reading.days === null
+        ? "the site's GitHub token has no expiry"
+        : `the site's GitHub token has ${reading.days} days left`,
+    );
+  }
+}
+
 /** Stored text as inline code in a GitHub issue, so an `@name` or a link in it does nothing. */
 const code = (text: string): string => `\`${text.replace(/`/g, "") || "none"}\``;
 
