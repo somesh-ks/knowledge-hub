@@ -700,6 +700,9 @@
   --card-radius: 2.5rem;
   --card-inner-radius: 2.25rem;
   --card-content-radius: 1rem;
+  --picker-radius: 2.25rem;
+  --picker-inner-radius: 1.75rem;
+  --sheet-radius: 2.25rem;
   --chip-radius-selected: var(--shape-md);
   --chip-height: 2.75rem;
   --cta-radius-pressed: var(--shape-lg);
