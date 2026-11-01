@@ -39,7 +39,7 @@ function coversReady(theme: ThemePreference): Promise<unknown> {
 }
 
 /**
- * The reader's turn of a style's hue (D312) is `--hue-shift` on the root: the style's colours, the
+ * The reader's turn of a style's hue (D315) is `--hue-shift` on the root: the style's colours, the
  * covers and the header light add it to their hue. Default has no hue to turn, so it carries none.
  */
 export function applyHue(style: StylePreference, hue: number): void {

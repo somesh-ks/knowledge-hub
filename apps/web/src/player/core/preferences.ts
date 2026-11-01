@@ -20,7 +20,7 @@ export type ThemePreference = (typeof THEME_PREFERENCES)[number];
 export type StylePreference = string;
 export const DEFAULT_STYLE: StylePreference = "default";
 
-/** The reader's turn of the style's hue, in degrees (D312): 0 is the look as designed. */
+/** The reader's turn of the style's hue, in degrees (D315): 0 is the look as designed. */
 export const HUE_STEP = 5;
 export const HUE_MAX = 355;
 
