@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { AUDIO_DIGEST, expect, hydrated, ROUTES, SITE_PAGES, test } from "./fixtures";
+import { AUDIO_DIGEST, expect, hydrated, openRowMenu, ROUTES, SITE_PAGES, test } from "./fixtures";
 
 /**
  * The 8pt system, as the browser draws it. styles.test.ts holds the stylesheets to the scale; this
@@ -44,16 +44,16 @@ const EXEMPT = [
   // An optical nudge sized by the glyph's own side bearing (--ink-end, D187), so its ink meets the
   // row's end: a row's chevron, a select's or a multi-select's in a row, Create's More options and
   // an icon button that ends a row.
-  ".row-action .icon",
+  ".row-action .icon-glyph",
   ".settings-row .value-select > select.field-input",
   ".settings-row .multiselect-trigger",
   ".create-more-chevron",
   ".icon-btn-end",
   // An optical pad sized by the font's metrics, so the emoji's ink sits in its cell's centre.
   ".emoji-cell",
-  // Centred on the title's first line by the label's leading (banner.css); seen on /design, where a
-  // banner is always shown.
-  ".banner-notice > .icon",
+  // Centred on the title's first line by the label's leading (banner.css); kept for any page that
+  // shows a banner (the catalogue that always showed one is gone).
+  ".banner-notice > .icon-glyph",
 ];
 
 const PAGES = [
@@ -155,10 +155,7 @@ test.describe("the 8pt spacing system", () => {
     // A Library row's More actions menu.
     await page.goto("/library");
     await hydrated(page);
-    await page
-      .getByRole("button", { name: /^More actions for / })
-      .first()
-      .click();
+    await openRowMenu(page, page.locator("[data-card]").first());
     await expect(page.getByRole("menu").first()).toBeVisible();
     expect.soft(await offGrid(page), "a Library row's menu").toEqual([]);
 
@@ -221,8 +218,10 @@ test.describe("one page gutter", () => {
   });
 
   // The shell once reserved the contents list's track on every page, so a column on a wide window sat
-  // left of the middle: 96px of room on its left and 384px on its right (owner, 2026-10-29).
-  test("a reading column has the same room on both sides of the pane", { tag: "@desktop" }, async ({
+  // left of the middle: 96px of room on its left and 384px on its right (owner, 2026-10-29). A page with
+  // a contents list is centred as the column and its list together: the column alone beside its list sat
+  // right of the middle (owner, 2026-11-01).
+  test("a page's content has the same room on both sides of the pane", { tag: "@desktop" }, async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -233,11 +232,13 @@ test.describe("one page gutter", () => {
       const room = await page.evaluate(() => {
         const main = document.querySelector("main")?.getBoundingClientRect();
         const nav = document.querySelector(".app-nav")?.getBoundingClientRect();
+        // The list's entries, where the page has one: the content reaches to their edge.
+        const list = document.querySelector(".aside-link")?.getBoundingClientRect();
         if (!main || !nav) throw new Error("no main or navigation");
         // The body's edge, not the window's: a reserved scrollbar gutter is no room of the page's.
         return [
           main.left - nav.right,
-          document.body.getBoundingClientRect().right - main.right,
+          document.body.getBoundingClientRect().right - (list?.right ?? main.right),
           main.width,
         ];
       });

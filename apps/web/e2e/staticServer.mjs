@@ -41,7 +41,15 @@ function loadHeaderRules() {
   }));
 }
 
-export function startServer({ root, port, mounts = {} }) {
+/**
+ * @param {{
+ *   root: string,
+ *   port: number,
+ *   mounts?: Record<string, string>,
+ *   api?: (request: import("node:http").IncomingMessage, response: import("node:http").ServerResponse, pathname: string) => boolean,
+ * }} options
+ */
+export function startServer({ root, port, mounts = {}, api }) {
   const rules = loadHeaderRules();
 
   function headersFor(pathname) {
@@ -98,6 +106,9 @@ export function startServer({ root, port, mounts = {} }) {
 
   const server = createServer((request, response) => {
     const { pathname } = new URL(request.url ?? "/", "http://localhost");
+    // A test that owns its server answers the routes it names (slowStore.spec.ts); `api` returns
+    // true when it did.
+    if (api?.(request, response, pathname)) return;
     if (pathname === "/api/voices" && request.method === "GET") {
       // A small fixed list in the route's contract, so the voice selects fill in tests without a
       // Speechify key. Only the first voice has a sample.

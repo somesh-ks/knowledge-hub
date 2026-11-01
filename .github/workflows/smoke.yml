@@ -1,7 +1,9 @@
 name: smoke
 
-# Asks the live site three read-only questions after every production deploy and once a day: does
-# the server load, does it have its settings, and does GitHub accept its token. On 2026-10-14 an
+# Asks the live site five read-only questions after every production deploy and every three hours:
+# does the server load, does it have its settings, does GitHub accept its token, and do the home page
+# and the library render. The pages came in after 2026-10-30, when Blob refused reads for an evening and
+# no question here touched a page (OBS-02). On 2026-10-14 an
 # adapter update made every API route answer 500 for a day while CI stayed green, because nothing
 # looked at the deployed site (docs/learnings.md). A run Vercel started belongs to vercel[bot], whose
 # failure email reaches no one, so a failed run opens or comments on one issue labelled `smoke` and
@@ -11,7 +13,7 @@ name: smoke
 on:
   deployment_status:
   schedule:
-    - cron: "17 6 * * *"
+    - cron: "17 */3 * * *"
   workflow_dispatch:
 
 permissions:
@@ -60,7 +62,9 @@ jobs:
           check() {
             expect 405 /api/podcast "the server does not load" &&
               expect 400 "/api/status?run=x" "the deployment is missing GITHUB_SINGULARITY_TOKEN or GITHUB_REPOSITORY" &&
-              { [ -z "$run_id" ] || expect 200 "/api/status?run=${run_id}" "GitHub refused the site's token (expired or revoked GITHUB_SINGULARITY_TOKEN)"; }
+              { [ -z "$run_id" ] || expect 200 "/api/status?run=${run_id}" "GitHub refused the site's token (expired or revoked GITHUB_SINGULARITY_TOKEN)"; } &&
+              expect 200 / "the home page does not render (the content store, or the deploy)" &&
+              expect 200 /library "the library does not render"
           }
 
           # The domain can take a few seconds to point at a deployment that just finished.

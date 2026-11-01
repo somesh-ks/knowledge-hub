@@ -87,7 +87,11 @@ export interface PlayerState {
   upNextId: string | null;
 }
 
-export type PlayReason = "user" | "resume" | "item" | "scrub";
+/**
+ * "deferred" is the listener's own press carried out after a page change (an Up next play, a cover
+ * play from another page): announced like "user", but its touch was the press, so it is not felt again.
+ */
+export type PlayReason = "user" | "resume" | "item" | "scrub" | "deferred";
 export type PauseReason = "user" | "system" | "scrub" | "load";
 export type ItemChangeCause =
   | "skip-next"

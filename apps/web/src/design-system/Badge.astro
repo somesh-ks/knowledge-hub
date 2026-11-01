@@ -1,0 +1,13 @@
+---
+import { badgeClass } from "./badge";
+import "../styles/badge.css";
+
+interface Props {
+  /** For placing the badge where it stands (a margin, a grid area). Never its look. */
+  class?: string;
+}
+
+const { class: className = "" } = Astro.props;
+---
+
+<span class={[badgeClass(), className].filter(Boolean).join(" ")}><slot /></span>

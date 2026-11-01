@@ -1,6 +1,7 @@
 ---
 import BrandMark from "../../../web/src/components/BrandMark.astro";
-import Icon from "../../../web/src/components/Icon.astro";
+import Badge from "../../../web/src/design-system/Badge.astro";
+import Icon from "../../../web/src/design-system/Icon.astro";
 import { href, SECTIONS } from "../lib/sections";
 import SignOut from "./SignOut.astro";
 
@@ -18,7 +19,7 @@ const { current } = Astro.props;
   <a class="app-nav-brand wordmark" href={href("")} aria-label="Singularity admin">
     <BrandMark />
     <span>Singularity</span>
-    <span class="admin-tag">Admin</span>
+    <Badge class="admin-tag">Admin</Badge>
   </a>
   <ul class="app-nav-list" role="list">
     {
@@ -26,8 +27,8 @@ const { current } = Astro.props;
         <li>
           <a class="app-nav-item" href={href(section.path)} aria-current={section.path === current ? "page" : undefined}>
             <span class="app-nav-indicator">
-              <Icon name={section.icon} class="icon-lg app-nav-icon-rest" />
-              <Icon name={section.iconCurrent} class="icon-lg app-nav-icon-current" />
+              <Icon name={section.icon} size="lg" class="app-nav-icon-rest" />
+              <Icon name={section.iconCurrent} size="lg" class="app-nav-icon-current" />
             </span>
             <span>{section.label}</span>
           </a>

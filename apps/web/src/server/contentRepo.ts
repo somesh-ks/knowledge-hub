@@ -1,6 +1,7 @@
 import type { ContentFiles } from "../lib/contentFiles";
 import { loadSite, readSiteFrom, type Site } from "../lib/site";
 import { type BlobFetch, readPublicText } from "./blobStore";
+import { bundledContentFiles } from "./bundledFiles";
 import { readPublicBlobBase, type ServerEnv } from "./config";
 import { readTombstones, withoutTombstoned } from "./tombstones";
 
@@ -24,6 +25,8 @@ export const MANIFEST_TTL_MS = 30_000;
  */
 export const CONTENT_CDN_CACHE = "max-age=60, stale-while-revalidate=600";
 const MANIFEST_PATH = "content/manifest.json";
+/** Files a page can do without: the reader that asks for one handles its absence. */
+const OPTIONAL_STATE: ReadonlySet<string> = new Set(["state/last-run.json"]);
 
 interface Manifest {
   version: 1;
@@ -75,6 +78,9 @@ export function resetContentRepo(): void {
   heldManifest = null;
   heldSite = null;
   heldTombstones = null;
+  heldBundled = null;
+  inFlightCheck = null;
+  storeFailedAt = Number.NEGATIVE_INFINITY;
   savedContent = false;
 }
 
@@ -159,41 +165,129 @@ export async function loadStoreSiteChecked(
   const { saved } = current;
   if (heldSite?.updatedAt === current.manifest.updated_at)
     return { site: await heldSite.site.then((site) => withoutTombstoned(site, ids)), saved };
+  const files = storeFiles(current.base, current.manifest, deps.fetch);
+  let failed: unknown = null;
   const site = loadSite({
     root: "",
     env: {},
-    files: storeFiles(current.base, current.manifest, deps.fetch),
+    // The readers skip a file they cannot read, so an unreadable object would leave a gap in the
+    // site, not an error. Count it here and fail the load, so the caller shows this build's copy.
+    files: {
+      list: (directory) => files.list(directory),
+      // After the first failure the store is treated as down: no further object requests, so a
+      // string of slow reads cannot outlast the function before the fallback starts.
+      read: (path) => {
+        if (failed !== null) return Promise.reject(failed);
+        return files.read(path).catch((error: unknown) => {
+          // Run state is optional: its reader answers "no run known" for a file it cannot read, so
+          // a failure there says nothing about the content.
+          if (!OPTIONAL_STATE.has(path)) failed ??= error;
+          throw error;
+        });
+      },
+    },
+    warn: (message) => deps.log?.(message),
+  }).then((loaded) => {
+    if (failed !== null)
+      throw new Error(
+        `content store read failed: ${failed instanceof Error ? failed.message : "unknown"}`,
+      );
+    return loaded;
+  });
+  const previous = heldSite;
+  heldSite = { updatedAt: current.manifest.updated_at, site };
+  // A failed load is not kept, so the next request tries again; the site held before it stays.
+  site.catch(() => {
+    if (heldSite?.site === site) heldSite = previous;
+  });
+  try {
+    return { site: await site.then((loaded) => withoutTombstoned(loaded, ids)), saved };
+  } catch (error) {
+    // The newer content could not be read: the last site this instance loaded is fresher than the
+    // build's copy, and says it is saved.
+    if (previous === null) throw error;
+    const held = await previous.site
+      .then((loaded) => withoutTombstoned(loaded, ids))
+      .catch(() => null);
+    if (held === null) throw error;
+    savedContent = true;
+    return { site: held, saved: true };
+  }
+}
+
+/** When the store last failed with nothing held, so an outage costs one slow read a window, not one per request. */
+let storeFailedAt = Number.NEGATIVE_INFINITY;
+let heldBundled: Promise<Site> | null = null;
+let inFlightCheck: Promise<{ site: Site; saved: boolean } | null> | null = null;
+
+/**
+ * The page's site: the store's when it answers; otherwise this build's own copy, flagged as saved so
+ * the page says so. A cold instance (no manifest ever read) used to answer 503 when the store was
+ * blocked, which is how the site went down on 2026-10-30; an instance that had read the manifest
+ * already kept its last one. Deleted episodes the instance has not seen tombstones for can reappear
+ * until the store answers (D282).
+ */
+export async function loadPageSite(
+  deps: ContentRepoDeps,
+  bundled: ContentFiles = bundledContentFiles,
+): Promise<{ site: Site; saved: boolean }> {
+  if (deps.now() - storeFailedAt >= MANIFEST_TTL_MS) {
+    // One attempt for every request that arrives while it runs, not one slow read each.
+    inFlightCheck ??= (async () => {
+      try {
+        const checked = await loadStoreSiteChecked(deps);
+        if (checked) return checked;
+      } catch (error) {
+        deps.log?.(
+          `content store unavailable: ${error instanceof Error ? error.message : "unknown"}`,
+        );
+      }
+      storeFailedAt = deps.now();
+      return null;
+    })().finally(() => {
+      inFlightCheck = null;
+    });
+    const checked = await inFlightCheck;
+    if (checked) return checked;
+  }
+  heldBundled ??= loadSite({
+    root: "",
+    env: {},
+    files: bundled,
     warn: (message) => deps.log?.(message),
   });
-  heldSite = { updatedAt: current.manifest.updated_at, site };
-  // A failed load is not kept, so the next request tries again.
-  site.catch(() => {
-    if (heldSite?.site === site) heldSite = null;
+  heldBundled.catch(() => {
+    heldBundled = null;
   });
-  return { site: await site.then((loaded) => withoutTombstoned(loaded, ids)), saved };
+  const ids = await heldTombstones?.ids.catch(() => new Set<string>());
+  const site = await heldBundled;
+  // With no store configured the build's copy is simply the content, not a saved copy of anything.
+  const saved = readPublicBlobBase(deps.env) !== null;
+  if (saved) savedContent = true;
+  return { site: ids ? withoutTombstoned(site, ids) : site, saved };
 }
 
 /**
- * The guard every page rendered on request starts with: point getSite() at the repository (so the
- * page and every component it draws read the same content), or answer 503 when the store does not.
- * A page then reads `await getSite()` as a built page does.
+ * The guard every page rendered on request starts with: point getSite() at the content (the
+ * store's, or this build's copy when the store cannot answer), so the page and every component it
+ * draws read the same content. A page then reads `await getSite()` as a built page does. Answers
+ * 503 only when neither the store nor the build has any content to show.
  */
 export async function readFromContentRepo(label: string): Promise<Response | null> {
   const load = async (): Promise<Site> => {
-    const site = await loadStoreSite({
+    const { site } = await loadPageSite({
       env: process.env,
       fetch,
       now: Date.now,
       log: (message) => console.error(`[${label}] ${message}`),
     });
-    if (site === null) throw new Error("the content store has no manifest");
     return site;
   };
   try {
     await load();
   } catch (error) {
     console.error(
-      `[${label}] content store unavailable: ${error instanceof Error ? error.message : "unknown"}`,
+      `[${label}] no content to show: ${error instanceof Error ? error.message : "unknown"}`,
     );
     return new Response("This page could not be loaded right now. Try again in a minute.", {
       status: 503,

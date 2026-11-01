@@ -1,5 +1,6 @@
 ---
-import Icon from "../../../web/src/components/Icon.astro";
+import Badge from "../../../web/src/design-system/Badge.astro";
+import Icon from "../../../web/src/design-system/Icon.astro";
 import Select from "../../../web/src/design-system/Select.astro";
 import PageHead from "../components/PageHead.astro";
 import Shell from "../layouts/Shell.astro";
@@ -32,8 +33,8 @@ const next = (): string => `--n: ${index++}`;
         <section aria-labelledby={group.id} data-tier={group.id}>
           <details class="guide-fold" data-fold>
             <summary>
-              <h2 class="section-head" id={group.id}>{group.label}</h2>
-              <span class="guide-fold-count">{group.values.length}</span>
+              <h2 class="section-head text-heading" id={group.id}>{group.label}</h2>
+              <Badge class="guide-fold-count">{group.values.length}</Badge>
               <Icon name="chevronDown" class="guide-fold-chevron" />
             </summary>
             {group.note && <p class="guide-note">{group.note}</p>}
@@ -41,7 +42,7 @@ const next = (): string => `--n: ${index++}`;
               {
                 group.values.map((item) => (
                   <li class="guide-card" style={next()} data-filter-item data-name={`${group.label} ${item.title}`}>
-                    <span class="guide-card-icon" aria-hidden="true"><Icon name={item.icon} class="icon-lg" /></span>
+                    <span class="guide-card-icon" aria-hidden="true"><Icon name={item.icon} size="lg" /></span>
                     <h3>{item.title}</h3>
                     <p>{item.rule}</p>
                     {item.refs && <span class="guide-card-ref">{item.refs}</span>}

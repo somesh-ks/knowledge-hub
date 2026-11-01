@@ -519,3 +519,13 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Revisit if: a cover shows blank or old after a regeneration, or the rewrite's `has` capture does not reach the route (the probe in state shows a 404 for every cover).
 - Amends: D256 (its cache rule: a year only under the current `?v=`, a minute otherwise, 404s never kept).
 
+## D263: A cover's version must be in its public URL
+
+- Date: 2026-10-31 (probe of D258 after #489 deployed, 00:46Z).
+- Decision: a cover that can be regenerated gets its version in the public path (`/covers/<version>/<id>-512.webp`), not in the query and not in a rewrite's destination. Not built: addresses keep `?v=`, and a regenerated cover for an id already cached stays stale until the next deploy. Awaiting the owner's call.
+- Why: the CDN keys `/covers/*` by the request path. `?v=zzzy`, `?v=zzzx` and the real `?v=` were one entry (HIT, one age), and `?v=zzzzzzzzzzzz` drew the current cover where the route answers 503 when called as `/api/cover/zzzzzzzzzzzz/...`, so the `has` capture (`:v`) does not reach the route.
+- Context changed: the probe of #489 on the live site showed the CDN keys `/covers/*` by the request path, which D258 had assumed a rewrite could change.
+- Rejected: the version in the query (the CDN ignores it) and in a rewrite's destination (the CDN keys the request path, and the `has` capture did not reach the route); both were D258.
+- Limit: D258's read-again before a 404 works and stays; its claim that each version has a cache entry of its own does not hold.
+- Revisit if: a cover shows old after a regeneration.
+- Amends: D258.

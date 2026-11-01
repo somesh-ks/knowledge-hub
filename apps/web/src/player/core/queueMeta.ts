@@ -22,7 +22,29 @@ function metaOf(data: PlayerDigestData): QueueMeta {
 }
 
 const known = new Map<string, QueueMeta | null>();
+const digests = new Map<string, PlayerDigestData>();
 const asked = new Map<string, Promise<QueueMeta | null>>();
+
+/**
+ * A queued item's full data once its page has been read: what the player plays it from, so an item
+ * is started in place, with no page move.
+ */
+export function queueDigestFor(id: string): PlayerDigestData | null {
+  return digests.get(id) ?? null;
+}
+
+/** Reads the item's page if it has not been read yet; null where it cannot be. */
+export async function loadQueueDigest(id: string): Promise<PlayerDigestData | null> {
+  await loadQueueMeta(id);
+  return queueDigestFor(id);
+}
+
+/** Forgets what was read, so the next ask reads the page again (a podcast that was just made). */
+export function forgetQueueItem(id: string): void {
+  known.delete(id);
+  digests.delete(id);
+  asked.delete(id);
+}
 
 /** What a queued item's row shows, once its page has said. Null until then, or if it never does. */
 export function queueMetaFor(id: string): QueueMeta | null {
@@ -42,6 +64,7 @@ export function loadQueueMeta(id: string): Promise<QueueMeta | null> {
       const data = html ? readDigestData(new DOMParser().parseFromString(html, "text/html")) : null;
       const meta = data ? metaOf(data) : null;
       known.set(id, meta);
+      if (data) digests.set(id, data);
       return meta;
     })
     .catch(() => {

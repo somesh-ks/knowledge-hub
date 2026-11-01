@@ -38,6 +38,20 @@ describe("player events to sounds", () => {
     expect(soundsFor({ type: "didPause", reason: "load" })).toBeNull();
   });
 
+  it("is felt for what the listener pressed, and never when playback starts or moves by itself", () => {
+    const felt = (event: PlayerEvent) => cueForPlayerEvent(event)?.haptic;
+    expect(felt({ type: "willPlay", reason: "user" })).toBeDefined();
+    expect(felt({ type: "didPause", reason: "user" })).toBeDefined();
+    expect(felt({ type: "itemChanged", index: 1, cause: "skip-next" })).toBeDefined();
+    expect(felt({ type: "rateChanged", rate: 1.5 })).toBeDefined();
+    expect(felt({ type: "willPlay", reason: "resume" })).toBeUndefined();
+    expect(felt({ type: "willPlay", reason: "item" })).toBeUndefined();
+    // A press carried out after a page change was felt at the press, not again when audio starts.
+    expect(felt({ type: "willPlay", reason: "deferred" })).toBeUndefined();
+    expect(soundsFor({ type: "willPlay", reason: "deferred" })).toBe("play");
+    expect(felt({ type: "ended" })).toBeUndefined();
+  });
+
   it("cues next and previous item, and nothing for keyboard, auto-advance, scrub or chapter taps", () => {
     expect(soundsFor({ type: "itemChanged", index: 1, cause: "skip-next" })).toBe("itemNext");
     expect(soundsFor({ type: "itemChanged", index: 0, cause: "skip-previous" })).toBe("itemPrev");
@@ -50,9 +64,13 @@ describe("player events to sounds", () => {
     expect(cueForPlayerEvent({ type: "rateChanged", rate: 1.5 })).toEqual({
       name: "speedChange",
       options: { rate: 1.5 },
+      haptic: "select",
     });
     expect(soundsFor({ type: "ended" })).toBe("digestEnd");
-    expect(soundsFor({ type: "error", error: { kind: "network", message: "x" } })).toBe("error");
+    expect(cueForPlayerEvent({ type: "error", error: { kind: "network", message: "x" } })).toEqual({
+      name: "error",
+      haptic: "error",
+    });
   });
 
   it("stays silent for interruptions and loading", () => {
@@ -65,7 +83,11 @@ describe("interface cues", () => {
   it("pitches a scrub detent by position and softens it at speed", () => {
     const slow = cueForDetent(0.4, 0.1);
     const fast = cueForDetent(0.4, 6);
-    expect(slow).toEqual({ name: "scrubDetent", options: { position: 0.4, gain: 1 } });
+    expect(slow).toEqual({
+      name: "scrubDetent",
+      options: { position: 0.4, gain: 1 },
+      haptic: "detent",
+    });
     expect(fast.options?.gain).toBeLessThan(slow.options?.gain ?? 0);
   });
 

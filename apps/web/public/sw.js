@@ -22,7 +22,11 @@
  *     the page: the request goes to the network and, when that answers and a cache read really does
  *     throw, the worker's own caches are dropped and the shell saved again, once per worker life
  *     (healed below). A network failure alone never deletes a saved page.
- *   - Bump VERSION when this file's logic changes; activation removes caches from older versions.
+ *   - Push (D284): a message from `singularity push notify` always shows a notification, because a
+ *     browser withdraws the permission of a worker that receives a push and shows nothing. A tap
+ *     opens the page the message names, on this site only. No cache is touched, so adding it needed
+ *     no VERSION bump.
+ *   - Bump VERSION when this file's caching logic changes; activation removes caches from older versions.
  */
 const VERSION = "v15";
 const SHELL_CACHE = `singularity-shell-${VERSION}`;
@@ -605,6 +609,54 @@ function healed(event, answer, probe = event.request) {
     return response;
   });
 }
+
+/* ------------------------------------------------------------------ push */
+
+/** A path on this site from a message, or the library when the message names anything else. */
+function pushTarget(path) {
+  if (typeof path !== "string") return "/library";
+  try {
+    // Resolved the way the browser will: "/\host" and "/<tab>/host" leave the site.
+    const url = new URL(path, self.location.origin);
+    return url.origin === self.location.origin ? url.pathname + url.search + url.hash : "/library";
+  } catch {
+    return "/library";
+  }
+}
+
+self.addEventListener("push", (event) => {
+  let message = null;
+  try {
+    message = event.data ? event.data.json() : null;
+  } catch {
+    // Not JSON: the generic line below still shows.
+  }
+  const text = (value, fallback) =>
+    typeof value === "string" && value.length > 0 ? value.slice(0, 200) : fallback;
+  const url = pushTarget(message?.url);
+  event.waitUntil(
+    self.registration.showNotification(text(message?.title, "Singularity"), {
+      body: text(message?.body, ""),
+      icon: "/icon-192.png",
+      tag: url,
+      data: { url },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(pushTarget(event.notification.data?.url), self.location.origin);
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (windows) => {
+      const open = windows.find((client) => new URL(client.url).origin === self.location.origin);
+      if (!open) return self.clients.openWindow(target.href);
+      const focused = await open.focus();
+      // navigate() is missing in some browsers; the open page then stays where it was.
+      return focused && "navigate" in focused ? focused.navigate(target.href) : focused;
+    }),
+  );
+});
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;

@@ -45,7 +45,7 @@
   white-space: nowrap;
 }
 
-.multiselect-trigger > .icon {
+.multiselect-trigger > .icon-glyph {
   position: absolute;
   inset-block: 0;
   inset-inline-end: var(--space-4);
@@ -55,7 +55,7 @@
   transition: rotate var(--duration-enter) var(--ease-out);
 }
 
-.multiselect-trigger[aria-expanded="true"] > .icon {
+.multiselect-trigger[aria-expanded="true"] > .icon-glyph {
   rotate: 180deg;
 }
 
@@ -112,7 +112,7 @@
 }
 
 /* The chevron's ink ends where the link rows' chevrons do (D187). */
-.settings-row .multiselect-trigger > .icon {
+.settings-row .multiselect-trigger > .icon-glyph {
   inset-inline-end: calc(var(--space-2) - var(--size-icon) * var(--ink-end, 0));
 }
 
@@ -186,7 +186,7 @@
 /* Reduced motion: the list fades where it stands and the chevron turns at once. The fade keeps its
    duration; the scale and the turn are movement, so they do not run. */
 @media (prefers-reduced-motion: reduce) {
-  .multiselect-trigger > .icon {
+  .multiselect-trigger > .icon-glyph {
     transition: none;
   }
 

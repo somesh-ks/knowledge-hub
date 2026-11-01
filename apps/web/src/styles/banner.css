@@ -34,7 +34,7 @@
 
 /* Only the icon takes the tone. The text stays at full ink on the tint, so its contrast never
    depends on the tone, and the two lines differ by weight, not by a grey. */
-.banner-notice > :is(.icon, .ui-icon) {
+.banner-notice > .icon-glyph {
   /* Centred on the title's first line. */
   margin-block-start: calc(
     (var(--text-label-size) * var(--text-label-leading) - var(--size-icon)) /

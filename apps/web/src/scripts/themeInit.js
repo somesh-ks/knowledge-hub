@@ -1,11 +1,12 @@
 (() => {
   try {
-    const raw = localStorage.getItem("singularity:preferences");
-    const theme = raw ? JSON.parse(raw).theme : null;
-    if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+    const { theme: t, style: s } =
+      JSON.parse(localStorage.getItem("singularity:preferences") || "0") || {};
+    const d = document.documentElement.dataset;
+    if (t === "light" || t === "dark") d.theme = t;
+    if (typeof s === "string" && s !== "default" && /^[a-z][a-z-]{0,23}$/.test(s)) d.style = s;
   } catch {}
 })();
-// Before the router's popstate, so the Create sheet can take Back (createSheet.ts).
 addEventListener("popstate", (e) => {
   if (!dispatchEvent(new Event("singularity:back", { cancelable: true })))
     e.stopImmediatePropagation();

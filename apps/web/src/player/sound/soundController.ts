@@ -4,6 +4,12 @@
  * cue is a quiet no-op, which is the right behavior: no sound is ever required.
  */
 import type { SoundEngine } from "@singularity/sound";
+import {
+  createHaptics,
+  detectHapticSupport,
+  type Haptics,
+  iosTick,
+} from "../../design-system/haptics";
 import type { PlayerStore } from "../core/playerTypes";
 import type { PreferencesStore } from "../core/preferences";
 import { type Cue, cueForPlayerEvent, playCue } from "./soundMap";
@@ -23,6 +29,23 @@ let wired: SoundWiring | null = null;
 let pending: { cue: Cue; at: number } | null = null;
 /** A cue that waited longer than this for the engine is stale: it would sound unrelated to its tap. */
 const PENDING_CUE_MS = 1_500;
+
+let haptics: Haptics | null = null;
+
+/** The device's touch feedback, made on first use. The Haptics choice is read at every fire. */
+export function getHaptics(): Haptics {
+  haptics ??= createHaptics({
+    support: detectHapticSupport(),
+    isEnabled: () => wired?.preferences.get().haptics ?? false,
+    vibrate: (pattern) => navigator.vibrate(pattern),
+    tick: iosTick(),
+    isVisible: () => document.visibilityState === "visible",
+    // What a test, and anything else that cares, sees: the intent, never a pattern.
+    onFire: (intent) =>
+      document.dispatchEvent(new CustomEvent("singularity:haptic", { detail: intent })),
+  });
+  return haptics;
+}
 
 export interface SoundWiring {
   store: PlayerStore;
@@ -62,6 +85,12 @@ export function startSound(wiring: SoundWiring): () => void {
     // Marked only when it sounded: a cue the engine refused (narration, Sounds off) must not
     // hold back the delegated tick of the same press.
     const cue = cueForPlayerEvent(event);
+    // Touch first and whether or not Sounds is on, as playUiCue does (D273, D289): play, pause,
+    // next, previous and speed are the most-pressed controls and must be felt with the sound off.
+    if (cue?.haptic && getHaptics().fire(cue.haptic)) {
+      lastCueAt = performance.now();
+      lastCueName = cue.name;
+    }
     if (playCue(engine, cue)) {
       lastCueAt = performance.now();
       lastCueName = cue?.name ?? "";
@@ -100,6 +129,7 @@ export function startSound(wiring: SoundWiring): () => void {
     }
     generation += 1;
     wired = null;
+    haptics?.cancel();
     pending = null;
     removeUnlock?.();
     removeUnlock = null;
@@ -112,6 +142,13 @@ export function startSound(wiring: SoundWiring): () => void {
 /** For the interface: sheets, switches, Generate, scrub detents. Silent until the engine is ready. */
 export function playUiCue(cue: Cue | null): boolean {
   if (!cue) return false;
+  // Touch first, and whether or not Sounds is on or the engine has loaded: a phone on silent still
+  // wants it. A haptic that went out counts as the cue's own for the echo guard (cuePlayedSince),
+  // so a sheet's open and the toggle that follows it are not felt twice with Sounds off.
+  if (cue.haptic && getHaptics().fire(cue.haptic)) {
+    lastCueAt = performance.now();
+    lastCueName = cue.name;
+  }
   if (!engine && wired) {
     // Not loaded yet (the first tap of a page): kept, and the load started if it has not been.
     pending = { cue, at: performance.now() };

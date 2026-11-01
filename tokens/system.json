@@ -212,6 +212,106 @@
       ]
     },
     {
+      "id": "icon",
+      "name": "Icon",
+      "kind": "display",
+      "summary": "A filled Phosphor glyph in the colour of the text beside it.",
+      "classes": [
+        "icon-glyph",
+        "icon-glyph-lg"
+      ],
+      "files": [
+        "design-system/Icon.astro",
+        "design-system/icon.ts"
+      ],
+      "when": [
+        "A mark beside a label or alone in a button: a chevron, a plus, a check, Play"
+      ],
+      "not": [
+        {
+          "when": "The glyph must act when pressed",
+          "use": "icon-btn"
+        },
+        {
+          "when": "the glyph must act when pressed",
+          "use": "icon-btn"
+        }
+      ],
+      "keywords": [
+        "icon",
+        "glyph",
+        "phosphor",
+        "symbol",
+        "chevron",
+        "plus",
+        "check"
+      ],
+      "markup": "<Icon name=\"plus\" size=\"lg\" />",
+      "rules": [
+        "Draw it with <Icon>; a script builds one with iconHtml() and an island with <Icon> from player/ui, both through iconClass().",
+        "A control that holds a glyph places it with its own rule; it never sets the glyph's size twice."
+      ],
+      "styles": [
+        "icon.css"
+      ],
+      "usage": "Phosphor: every glyph is one filled path, so an icon is just its colour and its size.",
+      "tokens": [
+        "--icon-bold",
+        "--size-icon",
+        "--size-icon-lg"
+      ]
+    },
+    {
+      "id": "badge",
+      "name": "Badge",
+      "kind": "display",
+      "summary": "A grey label holding one word or one number beside a name.",
+      "classes": [
+        "badge-label"
+      ],
+      "files": [
+        "design-system/Badge.astro",
+        "design-system/badge.ts"
+      ],
+      "when": [
+        "A short label names what the thing beside it is: Admin beside the wordmark",
+        "A count of what a section holds"
+      ],
+      "not": [
+        {
+          "when": "The state is good, worth a look or wrong",
+          "use": "banner"
+        },
+        {
+          "when": "The pill can be pressed or ticked",
+          "use": "filter-chip"
+        },
+        {
+          "when": "the pill can be pressed or ticked",
+          "use": "filter-chip"
+        }
+      ],
+      "keywords": [
+        "badge",
+        "tag",
+        "pill",
+        "count",
+        "label"
+      ],
+      "markup": "<Badge>Admin</Badge>",
+      "rules": [
+        "It holds one word or one number; the page places it with a class, never styles it."
+      ],
+      "styles": [
+        "badge.css"
+      ],
+      "usage": "The Badge (design-system/Badge.astro): a grey pill that holds one word or one number. One size, one fill. It is as wide as its words and no narrower than it is high, so a single digit stays round. Grey, so the blue stays with the controls (owner, 2026-10-30).",
+      "tokens": [
+        "--color-on-surface-muted",
+        "--color-surface-container"
+      ]
+    },
+    {
       "id": "switch",
       "name": "Switch",
       "kind": "selection",
@@ -225,7 +325,8 @@
       ],
       "when": [
         "A setting is on or off and applies as soon as it is flipped: Sounds, Autoplay, a podcast's Enabled",
-        "It sits at the end of a settings row, with the row's label as its name"
+        "It sits at the end of a settings row, with the row's label as its name",
+        "One switch stands for a group of switches (a master): the script sets `indeterminate` on it, and unchecks it, while only some of the group are on. The track sits halfway between the off grey and the accent and the thumb halfway along it. Pressing it turns the whole group on, or off when all are on"
       ],
       "not": [
         {
@@ -246,7 +347,10 @@
         "toggle",
         "on off",
         "boolean",
-        "enable"
+        "enable",
+        "mixed",
+        "indeterminate",
+        "master"
       ],
       "markup": "<div class=\"settings-row\"><label class=\"settings-label\" for=\"autoplay\">Autoplay</label><Switch id=\"autoplay\" name=\"autoplay\" /></div>",
       "styles": [
@@ -402,14 +506,16 @@
       "id": "select",
       "name": "Select",
       "kind": "selection",
-      "summary": "A native select with its own chevron: a person picks one value from a list that is too long to show.",
+      "summary": "A native select with its own chevron: a person picks one value from a list that is too long to show. On a phone its list is the standard bottom sheet, with the field's label as the title.",
       "classes": [
         "select-outlined",
         "select-tonal"
       ],
       "files": [
         "design-system/Select.astro",
-        "design-system/select.ts"
+        "design-system/select.ts",
+        "design-system/selectSheet.ts",
+        "design-system/wheel.ts"
       ],
       "when": [
         "A person picks one value from a list of five or more, or of names that are too long for a row of chips",
@@ -438,7 +544,8 @@
       "markup": "<Select variant=\"tonal\" label=\"Sort\" data-library-sort><option value=\"newest\">Newest first</option></Select>",
       "rules": [
         "Outlined (the default) is a value in a form; tonal is a sort or a filter and takes data-active on its wrapper (find it with closest(\"[data-select]\")) once its value is not the default.",
-        "A select inside a settings row takes class=\"value-select\" from settings.css, which draws it as the row's value."
+        "A select inside a settings row takes class=\"value-select\" from settings.css, which draws it as the row's value.",
+        "data-wheel on a short ordered run (the hours of a day) opens its phone sheet as a Wheel (design-system/wheel.ts), not as rows."
       ],
       "styles": [
         "select.css"
@@ -454,16 +561,11 @@
         "--color-on-accent-container",
         "--color-on-surface",
         "--color-on-surface-muted",
-        "--color-scrim",
         "--color-surface-container",
         "--color-surface-overlay",
         "--field-chevron-gap",
-        "--layout-column",
         "--row-radius",
         "--shadow-popover",
-        "--sheet-bg",
-        "--sheet-radius",
-        "--sheet-shadow",
         "--size-icon",
         "--size-icon-sm",
         "--size-touch"
@@ -520,6 +622,7 @@
       ],
       "usage": "A popover lives in the top layer, so it is placed against the viewport, not the row. Where anchor positioning exists it hangs under the button, right edges level; elsewhere heroMenu.ts writes --menu-top and --menu-right from the button's box when it opens.",
       "tokens": [
+        "--color-accent",
         "--color-danger",
         "--color-on-surface",
         "--color-on-surface-disabled",
@@ -531,6 +634,7 @@
         "--sheet-radius",
         "--sheet-shadow",
         "--size-icon",
+        "--size-option",
         "--size-touch"
       ]
     },
@@ -598,7 +702,6 @@
       "summary": "A small centred box with a heading and a row of buttons: one question, one tap.",
       "classes": [
         "dialog-panel",
-        "dialog-title",
         "dialog-body",
         "dialog-actions",
         "dialog-actions-stacked"
@@ -822,7 +925,7 @@
         "icon-btn-end"
       ],
       "files": [
-        "components/Icon.astro"
+        "design-system/Icon.astro"
       ],
       "when": [
         "close a sheet or dialog",
@@ -1007,6 +1110,7 @@
       "tokens": [
         "--chip-height",
         "--chip-radius",
+        "--chip-radius-selected",
         "--color-accent-container",
         "--color-focus-ring",
         "--color-on-accent-container",
@@ -1556,42 +1660,6 @@
       "usage": "A link inside a line of small text (a settings hint): the words stay inline, the touch target is 44px tall through a hit layer centred on the line (D189 sweep, layout.spec.ts). Usage: class=\"text-link\".",
       "tokens": [
         "--size-touch"
-      ]
-    },
-    {
-      "id": "status-dot",
-      "name": "Status dot",
-      "kind": "feedback",
-      "summary": "A dot that judges a reading good, worth a look or wrong.",
-      "classes": [
-        "status-dot"
-      ],
-      "when": [
-        "a health reading",
-        "a status next to a label, always with a word"
-      ],
-      "not": [
-        {
-          "when": "a message the user must act on",
-          "use": "banner"
-        }
-      ],
-      "keywords": [
-        "health",
-        "indicator",
-        "traffic light"
-      ],
-      "rules": [
-        "Color is information: a word or a glyph always says it too."
-      ],
-      "styles": [
-        "primitives.css"
-      ],
-      "usage": "A status dot: a reading judged good, worth a look or wrong, in the success, warning and danger tones the banners use (banner.css). The words beside it always say the same, so colour is never the only signal; a reading with no judgement (`none`, or no tone) draws no dot and takes no room. 8px on the grid, round.",
-      "tokens": [
-        "--color-danger",
-        "--color-success",
-        "--color-warning"
       ]
     },
     {
@@ -3185,6 +3253,47 @@
       "light": "40"
     },
     {
+      "name": "haptic-pattern-none",
+      "tier": "primitive",
+      "type": "singularity-haptic",
+      "light": "android nothing ms; iphone 0 ticks"
+    },
+    {
+      "name": "haptic-pattern-tick-light",
+      "tier": "primitive",
+      "type": "singularity-haptic",
+      "light": "android 6 ms; iphone 1 tick",
+      "role": "The lightest tick: a detent, a toggle."
+    },
+    {
+      "name": "haptic-pattern-tick",
+      "tier": "primitive",
+      "type": "singularity-haptic",
+      "light": "android 10 ms; iphone 1 tick",
+      "role": "One firm tick: a sheet or menu opening."
+    },
+    {
+      "name": "haptic-pattern-double",
+      "tier": "primitive",
+      "type": "singularity-haptic",
+      "light": "android 10 60 10 ms; iphone 2 ticks, 90 ms apart",
+      "role": "Two beats: something worked."
+    },
+    {
+      "name": "haptic-pattern-triple",
+      "tier": "primitive",
+      "type": "singularity-haptic",
+      "light": "android 14 50 14 50 14 ms; iphone 3 ticks, 70 ms apart",
+      "role": "Three beats: something did not work."
+    },
+    {
+      "name": "haptic-pattern-celebrate",
+      "tier": "primitive",
+      "type": "singularity-haptic",
+      "light": "android 12 50 12 50 28 ms; iphone 3 ticks, 80 ms apart",
+      "role": "Three rising beats: a podcast is ready to play."
+    },
+    {
       "name": "--color-surface",
       "tier": "semantic",
       "type": "color",
@@ -3763,6 +3872,13 @@
       "role": "Reading measure cap. In rem, not ch: 68ch resolved to about 702px in this face, wider than the 592px reading column, so it capped nothing and summary lines ran to 85 characters."
     },
     {
+      "name": "--icon-bold",
+      "tier": "semantic",
+      "type": "number",
+      "light": "0",
+      "role": "0 draws the regular weight, 1 the bold weight (Phosphor's own bold, not a stroke on the regular). Every Icon holds both; this picks one. A style that wants heavier line icons sets it to 1 (D268)."
+    },
+    {
       "name": "--size-touch",
       "tier": "semantic",
       "type": "dimension",
@@ -3774,6 +3890,13 @@
       "tier": "semantic",
       "type": "dimension",
       "light": "3rem"
+    },
+    {
+      "name": "--size-option",
+      "tier": "semantic",
+      "type": "dimension",
+      "light": "3rem",
+      "role": "A row in a list that opens as a bottom sheet on a phone: a select's, a picker's, a menu's. One height, so they read as one sheet."
     },
     {
       "name": "--size-icon-sm",
@@ -3867,6 +3990,76 @@
       "tier": "semantic",
       "type": "typography",
       "light": "family: var(--font-ui); size: var(--font-size-caption); weight: var(--font-weight-regular); tracking: var(--font-tracking-caption); leading: var(--font-leading-caption)"
+    },
+    {
+      "name": "haptic-navigate",
+      "tier": "semantic",
+      "type": "singularity-haptic",
+      "light": "pattern none",
+      "role": "A move between pages: quiet, the page is the answer."
+    },
+    {
+      "name": "haptic-tap",
+      "tier": "semantic",
+      "type": "singularity-haptic",
+      "light": "pattern none",
+      "role": "A plain press: quiet, the press layer is the answer."
+    },
+    {
+      "name": "haptic-select",
+      "tier": "semantic",
+      "type": "singularity-haptic",
+      "light": "pattern tick-light",
+      "role": "A switch or a choice changing."
+    },
+    {
+      "name": "haptic-detent",
+      "tier": "semantic",
+      "type": "singularity-haptic",
+      "light": "pattern tick-light",
+      "role": "A step of a scrubber or a wheel."
+    },
+    {
+      "name": "haptic-open",
+      "tier": "semantic",
+      "type": "singularity-haptic",
+      "light": "pattern tick",
+      "role": "A sheet or menu opening, and a card held."
+    },
+    {
+      "name": "haptic-close",
+      "tier": "semantic",
+      "type": "singularity-haptic",
+      "light": "pattern none",
+      "role": "A sheet or menu closing: quiet, opening was the cue."
+    },
+    {
+      "name": "haptic-start",
+      "tier": "semantic",
+      "type": "singularity-haptic",
+      "light": "pattern tick",
+      "role": "A long run beginning: Generate, Catch up."
+    },
+    {
+      "name": "haptic-success",
+      "tier": "semantic",
+      "type": "singularity-haptic",
+      "light": "pattern double",
+      "role": "Saved, copied, done."
+    },
+    {
+      "name": "haptic-error",
+      "tier": "semantic",
+      "type": "singularity-haptic",
+      "light": "pattern triple",
+      "role": "A refusal or a failure."
+    },
+    {
+      "name": "haptic-ready",
+      "tier": "semantic",
+      "type": "singularity-haptic",
+      "light": "pattern celebrate",
+      "role": "A podcast is ready to play."
     },
     {
       "name": "--cover-radius-thumb",
@@ -4059,6 +4252,13 @@
       "tier": "component",
       "type": "dimension",
       "light": "var(--radius-round)"
+    },
+    {
+      "name": "--cta-radius-pressed",
+      "tier": "component",
+      "type": "dimension",
+      "light": "var(--cta-radius)",
+      "role": "The corners of a filled call to action held down: the pill by default; a style may squeeze it into a softer rectangle."
     },
     {
       "name": "--cta-bg",
@@ -4670,6 +4870,13 @@
       "light": "var(--radius-round)"
     },
     {
+      "name": "--chip-radius-selected",
+      "tier": "component",
+      "type": "dimension",
+      "light": "var(--chip-radius)",
+      "role": "A ticked filter chip's corners. Equal to the chip's own radius by default; a style may make a selection change shape."
+    },
+    {
       "name": "--chip-bg",
       "tier": "component",
       "type": "color",
@@ -4729,6 +4936,13 @@
       "type": "dimension",
       "light": "4rem",
       "role": "The pill behind the current destination's icon in the bottom bar."
+    },
+    {
+      "name": "--nav-indicator-radius-current",
+      "tier": "component",
+      "type": "dimension",
+      "light": "var(--radius-round)",
+      "role": "The current destination's pill in the bottom bar and the side rail: fully round by default; a style may make it a rounded rectangle."
     },
     {
       "name": "--nav-indicator-height",
@@ -4823,6 +5037,27 @@
       "type": "dimension",
       "light": "10rem",
       "role": "The widest a slider grows in a row, so the name beside it keeps the room (owner, 2026-10-25)."
+    },
+    {
+      "name": "--picker-radius",
+      "tier": "component",
+      "type": "dimension",
+      "light": "var(--radius-sheet)",
+      "role": "Concentric: the inner radius plus the inset. The list's own outer radius."
+    },
+    {
+      "name": "--picker-inset",
+      "tier": "component",
+      "type": "dimension",
+      "light": "var(--card-inset)",
+      "role": "From the list's edge to the search field and to the options. The card's inset, 4px."
+    },
+    {
+      "name": "--picker-inner-radius",
+      "tier": "component",
+      "type": "dimension",
+      "light": "var(--radius-xl)",
+      "role": "The search field and each option, one inset in. 24px: a full pill on the 48px search field, the same on every row."
     },
     {
       "name": "--card-padding",

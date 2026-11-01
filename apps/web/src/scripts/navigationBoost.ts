@@ -10,15 +10,15 @@
  *   - a page that changed behind its saved copy is swapped in quietly, if it has not been touched.
  */
 
-import { ARRIVED_ATTRIBUTE } from "./navigation";
+import { ARRIVED_ATTRIBUTE, PILL_ELAPSED_PROPERTY } from "./navigation";
 
 /** Links only: the side column also has a button (the queue's row), which has no page to go to. */
 const NAV_ITEM = "a.app-nav-item";
 const NAV_BRAND = ".app-nav-brand";
 /** Root attribute that says the page itself, not a view transition, draws this move. */
 export const SWAP_ATTRIBUTE = "data-nav-swap";
-/** Longer than the page's own fade, so the marks come off after it has ended. */
-const SWAP_SETTLE_MS = 200;
+/** Longer than the page's own entrance (300 ms, view-transitions.css), so the marks come off after it has ended. */
+const SWAP_SETTLE_MS = 350;
 /** The destinations are fetched again at most this often when the app comes back to the front. */
 export const WARM_EVERY_MS = 60_000;
 
@@ -118,7 +118,10 @@ export function installNavigationBoost(): void {
     if (item) {
       // The pill grows under the item as it lights, here, and not again on the page that arrives.
       if (item.getAttribute("aria-current") !== "page") {
-        document.documentElement.setAttribute(ARRIVED_ATTRIBUTE, "");
+        const root = document.documentElement;
+        root.setAttribute(ARRIVED_ATTRIBUTE, "");
+        // A press in the settle time of the last move starts its growth afresh.
+        root.style.removeProperty(PILL_ELAPSED_PROPERTY);
       }
       markCurrent(item, document);
     }

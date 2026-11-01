@@ -13,6 +13,7 @@
     "./experiment-flags": "./src/store/experimentFlags.ts",
     "./experiment-hits": "./src/store/experimentHits.ts",
     "./rate-counter": "./src/store/rateCounter.ts",
+    "./push-store": "./src/store/pushStore.ts",
     "./gate": "./src/gate/decideRun.ts",
     "./health-limits": "./src/ops/healthLimits.ts",
     "./segments": "./src/audio/segmentStore.ts",
@@ -26,18 +27,20 @@
     "singularity": "./src/cli.ts"
   },
   "dependencies": {
-    "@singularity/core": "*",
-    "@singularity/cover": "*",
     "@mozilla/readability": "^0.6.0",
     "@neondatabase/serverless": "1.2.0",
+    "@singularity/core": "*",
+    "@singularity/cover": "*",
     "@typesafe-ai/sdk": "^0.7.0",
     "@vercel/blob": "^2.8.1",
     "fast-xml-parser": "^5.11.2",
     "linkedom": "^0.18.14",
+    "web-push": "3.6.7",
     "yaml": "^2.9.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "0.5.8"
+    "@electric-sql/pglite": "0.5.8",
+    "@types/web-push": "3.6.4"
   }
 }

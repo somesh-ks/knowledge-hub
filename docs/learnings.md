@@ -8,24 +8,23 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - Two browser suites at once share `apps/web/dist` and give false failures.
 - 2026-10-22: in the cloud container Chromium goes through the agent proxy, so `--host-resolver-rules` (a build served under the production host, to see a host-gated script) did nothing until launched with `--no-proxy-server`.
 - 2026-10-21: `context.route` misses the worker's requests: fake a deploy in `staticServer.mjs`.
-- 2026-10-19: a source added in script was a tinted stub (no address, rating or checkbox) whose `box-shadow` spread 8px over the next row; the specs checked text, never the row's parts. A row made in script mirrors its Astro component's markup and its spec asserts the parts; a `box-shadow` or outline state spreads past the box.
+- 2026-10-19: a source added in script was a tinted stub (no address, rating, checkbox) whose `box-shadow` spread 8px over the next row; the specs checked text, not parts. A script row mirrors its Astro component's markup, and its spec asserts the parts.
 - 2026-10-23: new card tokens let `.card-group`'s row padding beat the Costs card's (Costs is not in the grid spec). Screenshot every page using a primitive whose tokens change.
 - 2026-10-23: a story row passed its hold-still test while publishers kept 10px at 320. Measure what a layout's flexible part keeps at 320 and 360 first.
 - 2026-10-23: reduced motion in the tokens alone missed every raw travel on those durations (chip labels, nav pill, floating button). Sweep the CSS with the tokens; check with `document.getAnimations()` under emulated reduced motion.
 - 2026-10-08: `getByRole("button", { name: "All" })` matched "Gallery view". Use `exact: true` for short names.
 - 2026-10-12: a mocked route answers while the browser context is offline. A test of an offline save takes its mock offline with it (`route.abort`), and waits for the lazy chunk it needs before going offline.
 - 2026-10-12: `waitForLoadState("networkidle")` returns at once when the page has been idle before, so a test went offline while a lazy chunk was still on its way (one run in four). Wait for the response itself, then `finished()`.
-- 2026-10-17: easing the open player's Play disc press scale (a `transform` transition) made a press in the error state reset the scroll to the top one run in five (noticeInView.spec), with no script or focus behind it; the disc keeps an instant press. Bisect a flaky browser test with `--repeat-each 10` per variant.
+- 2026-10-17: easing the open player's Play disc press scale (a `transform` transition) made a press in the error state reset the scroll to the top one run in five (noticeInView.spec); the disc keeps an instant press.
 - 2026-10-14: headless Chromium has no mobile address bar, so the bottom-stack drift cannot be reproduced in the browser suites or in screenshots. Reason from the anchors, and ask for a recording on a phone.
-- 2026-10-13: the voice-picker specs failed only beside others: a scroll after the press closed the open list, as the trace's last frame showed; `openPicker` (`e2e/picker.ts`) presses until it stays open. When a spec fails only in company, read its trace's last frame before touching the product.
+- 2026-10-13: the voice-picker specs failed only beside others: a scroll after the press closed the open list (the trace's last frame); `openPicker` (`e2e/picker.ts`) presses until it stays open.
 - 2026-10-12: an axe scan after `emulateMedia` read colours mid-fade. Wait for the page's `CSSTransition`s to finish first, and cap that wait, because an infinite or paused animation never finishes.
 - 2026-10-12: Playwright can want a newer Chromium than is cached (1243 cached, 1248 wanted): an untracked `playwright.override.config.ts` beside each config sets `launchOptions.executablePath` to the cached headless shell; one PORT per worktree. Never commit a topics snapshot.
 - 2026-10-12: a leftover server or build makes a suite test the wrong build: Playwright reuses a listening server and skips the build (`taskkill`; Git Bash `kill $!` leaves a Windows `node`); a stale static server serves old stubs. Stop old servers, one worktree per session, a fresh PORT after a page edit.
 - 2026-10-11: Playwright `addStyleTag` and injected audit scripts (axe) are blocked by the fixture site's CSP (no 'unsafe-inline'); use `bypassCSP: true` on the context for a probe or audit. An audit builds into its own directory and port: a `dist` rebuilt mid-audit read as "page has no title".
 - 2026-10-10: a player fix for track contrast read right in the diff and failed in the browser (played and unplayed 1.46:1 apart); the worker had marked it unverified. Send a read-only verifier to measure every fix a worker marks unverified before calling an area done.
-- 2026-10-10: with a lone threshold of 1, Chromium's IntersectionObserver reports a target partly past the root edge as not intersecting, and never calls back when it then leaves. To tell a sticky element is stuck, observe with thresholds `[0, 1]` and compare `boundingClientRect.top` with `rootBounds.top`.
+- 2026-10-10: with a lone threshold of 1, Chromium's IntersectionObserver reports a target partly past the root edge as not intersecting, and never calls back when it then leaves. To tell a sticky element is stuck, observe thresholds `[0, 1]` and compare `boundingClientRect.top` with `rootBounds.top`.
 - 2026-10-09: a WebGL canvas failed the player suite on every page: headless Chromium draws in software (SwiftShader), logs "GPU stall due to ReadPixels" each frame, and the suite fails on any warning. Read the renderer's name (`WEBGL_debug_renderer_info`) and skip WebGL on a software one.
-- 2026-10-09: The site suite cannot run with `--headed` on this machine: Kaspersky injects requests that the page's CSP blocks, and the fixture fails on any console error. Check GPU-only behaviour with a standalone script that ignores those lines and nothing else.
 - 2026-10-09: a test run piped through `grep` or `tail` reports the filter's exit code (0). Record the runner's own `$?`.
 - 2026-10-09: The player suite can run its `site-*` projects in a worktree without a dev server: serve the fixture build and set `PLAYER_SITE_URL` to it.
 
@@ -33,15 +32,16 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 - 2026-10-24: on Node 24 (V8 13.6), a function whose hot loop gets Maglev OSR code can return object literals sharing number fields (the sound volume test; nodejs/node#66457; not on Node 22). Keep hot loops out of functions returning object literals.
 - 2026-10-14: Vitest, like Chromium, remembers a failed dynamic import for the module's URL, so a retry test of a lazy import passes or fails depending on test order. Retry with a `?retry=` query (pageContentLoader) and test the retry in the browser, not in Vitest.
-- 2026-10-11: the pipeline tests' fake RSS fetcher returns every item whatever the window, so a test about posts outside the window (the scoring sample's backfill) passed for the wrong reason until the test wrapped the fetcher to honour `window.from`. Check a fake honours what the test is about.
+- 2026-10-11: the pipeline tests' fake RSS fetcher returns every item whatever the window, so a test about posts outside the window (the scoring sample's backfill) passed for the wrong reason until it wrapped the fetcher to honour `window.from`. Check a fake honours what the test is about.
 - 2026-10-08: a limit nobody asked for is a bug waiting for its first user: two episodes a day stopped the owner on the first day. Tests that hard-code a policy number (a cooldown of 30 minutes) break when the policy moves; compute from the constant.
 - 2026-10-08: a test that misfiles a story into a retired section no longer fails validation, because published briefings must still validate; use a live section instead.
 
 ## Engine and workflows
 
+- 2026-10-31: `serializeTopics` lists fields, `upsertTopic` branches by origin: a new `Topic` field needs both.
 - 2026-10-28: a run record's and the ledger's `at` is publish time (96 min for 3); time a run as `generated_at` less `window.to` (D203).
 - 2026-10-27: a briefing shipped 3 stories (79 s): grounding dropped 5 of 8 and the refill found the reserve empty, because the structure's section caps capped the reserve too (#373 lifts them for the reserve and warns `under_length`).
-- 2026-10-27: the runner has no ffmpeg with libopus, so Opus and its test skipped silently; ffprobe counts MP3 padding (52 ms a turn). The workflows install it; turns are measured by decoding (#381). The install hung 5 to 19 min behind `-qq`: bound apt, skip man-db, log, `continue-on-error` where an MP3 exists (#388).
+- 2026-10-27: the runner has no ffmpeg with libopus, so Opus and its test skipped silently; ffprobe counts MP3 padding (52 ms a turn). The workflows install it and measure turns by decoding. The install hung 5 to 19 min behind `-qq`: bound apt, skip man-db, log, `continue-on-error` where an MP3 exists (#388).
 - 2026-10-25: the config store silently undid a PR's config edit (D185).
 - 2026-10-25: `urlKey` (sources/import.ts) dropped the query string, so every YouTube feed (`?channel_id=`) matched every other: a second channel failed "Already a source", and the store's replay of an added channel could not read it. A feed's key keeps `channel_id`.
 - 2026-10-25: a Speechify request without `language` is detected per segment; a foreign name came back in another prosody, heard as a pitch shift. Pin `language` and hash it.
@@ -55,7 +55,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-30: the judge flagged all 21 favorite-creator videos since 9 Oct: it read links and a sponsor line. The Judge step lacked `FIRECRAWL_API_KEY`, so 3 videos a run (Gemini cap) got a transcript; a stage reads only its own `env`.
 - 2026-10-19: a YouTube finalist reached the writer with only its description: `extractFullText` fetched a watch page with no speech. YouTube items go through `extract/youtubeText.ts` (cache, Firecrawl, then Gemini; `state/video-text.json`); failure falls back to the description.
 - 2026-10-07: `audio.yml` failed at the write guard ("changes outside the publish allowlist: .gitignore"): `vercel link` and `vercel env pull` edit `.gitignore` and write `.vercel`; run them in a scratch directory outside the checkout.
-- 2026-10-30: Hobby Blob allows 2,000 advanced operations a month (`put`, `copy`, `list`) and 10,000 simple. Over it the store is blocked about 30 days, reads too (403), and pages 503. Ingest wrote one object per story (D251). Count a job's puts per run. The CDN keys a function's answer by path and obeys `vercel.json` header rules, not the query or `Vercel-CDN-Cache-Control` (D258).
+- 2026-10-30: Hobby Blob allows 2,000 advanced ops a month (`put`, `copy`, `list`); over it the store is blocked. Ingest put once per story (D251): count a job's puts. The CDN keys an answer by path and obeys `vercel.json` header rules, not the query or `Vercel-CDN-Cache-Control` (D263).
 - 2026-10-18: the 15-minute weekly aired 14 stories: the prefilter's fixed cap of 80 filled 27 of 52 slots and grounding dropped 11. `poolCapFor` now sizes it. Read a short episode's funnel from the stage lines first.
 - 2026-10-15: Claude Sonnet 5.5 answers 400 "temperature is deprecated" to any request with `temperature`, and the writer chain fell through silently to Nebius from 2026-10-14 while Settings said Sonnet. The Anthropic client sends no temperature; a pick that fails over should be visible, not only in logs.
 - 2026-10-15: a source with 0 fetched items and OK health is not always broken: One Useful Thing and AUX First post monthly (newest items 2026-10-01 and 2026-09-21). Read the feed's newest date before calling a source dead.
@@ -63,15 +63,18 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-14: Firecrawl bills a cached scrape (its Faster Scraping page: "Cached results still cost 1 credit per page"), so `maxAge` cuts latency and not spend. Only a request that is not made saves a credit.
 - 2026-10-12: the workflows installed all 445 packages to run one CLI. `npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root` installs 118 and takes 4.3 s, not 10.4.
 - 2026-10-12: Vercel's hourly cron cannot land on a half-hour slot (India, UTC+05:30). The route accepts a call whose UTC hour overlaps the slot, so a run can start up to 30 minutes early, and the gate dedupes it.
-- 2026-10-12: episode length: told a length in characters, a writer delivers a third to two-thirds; in words, per story and in total, 83 to 90%. A script is held to what its stories carry, not the request (D43). Asking for 90% gave 79 to 87% and wrote most episodes twice: ask for 95%, accept a few percent under.
+- 2026-10-12: episode length: told a length in characters, a writer delivers a third to two-thirds; in words, per story and in total, 83 to 90%. A script is held to what its stories carry (D43). Asking for 90% gave 79 to 87% and wrote most episodes twice: ask for 95%, accept a few percent under.
 - 2026-10-11: a missing morning briefing was GitHub, not the gate: the 07:13 Stockholm entry ran 13:11 to 14:02 on 7 to 10 October (a platform-wide delay). Before debugging a missed run, list `run.yml`'s schedule runs ("skipped" means no runner) and read the Gate log. The trigger moved to Vercel Cron (D61).
-- 2026-10-11: `singularity sources import` keeps an existing source's `enabled` and `options`, so a seed change to either reaches only new sources; write it into `config/sources.json` after the import (`--fresh` would lose discovered feeds and counters). The import also writes JSON that Biome reformats: run `biome format` on it before linting.
+- 2026-10-11: `singularity sources import` keeps an existing source's `enabled` and `options`, so a seed change reaches only new sources: write it into `config/sources.json` after the import (`--fresh` loses discovered feeds and counters). Run `biome format` on the imported JSON before linting.
 - 2026-10-11: a judge built with a fallback (Jev, then Nebius) shares the fallback's token budget with the writer, so work done for scores alone must use the primary judge alone: an outage would otherwise spend the briefing's budget on it.
-- 2026-10-08: Create, Generate and saving topics all answered "not available right now" on production: the site's fine-grained GitHub token was valid but had no access to this repository, so GitHub answered 404 for the repo, its workflows and its runs. `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`; it should.
+- 2026-10-08: Create, Generate and saving topics answered "not available right now" on production: the site's fine-grained GitHub token had no access to this repository, so GitHub answered 404. `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`; it should.
 - 2026-10-07: Green tests did not catch the audio failure: nothing exercises the live Vercel, Speechify and Blob path. Run `singularity doctor --online` after any credential change.
 
 ## Site and service worker
 
+- 2026-10-31: a deploy mid-session loads a second copy of the player (two audios): share via `tabShared`.
+- 2026-10-31: a persisted island put back restarts its CSS animations: `persistedMotion.ts`. A box measured at `astro:after-swap` is mid page slide (8px off): wind the entrance to its end first (`coverMorph.ts`). A token alias in `primitive` fails the literal test.
+- 2026-10-30: a change reloaded mid-write came back undone: Chromium rejects a request still out at unload (`keepalive` keeps the request, not the promise) before pagehide runs. Ask `endedByLeaving()` before calling no answer a failure; test on a real server.
 - 2026-10-29: a `button.app-nav-item` made `navigationBoost` fetch `/undefined`; it takes `a.app-nav-item` only. A run's end toast needs the sheets island awake.
 - 2026-10-28: a layout element's `data-briefing="Briefing"` made every Regenerate send `replace: "Briefing"` (forms read `dataset.briefing` off the page). Words in a layout take a `data-word-` prefix.
 - 2026-10-28: a fixed wait for an answer that is nearly always slower is paid on every visit: measure it on the built site with a slow store stub. The browser suites need `node e2e/run.mjs --build-only`.
@@ -84,24 +87,29 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-24: with the store on, a refused add said only "The server turned that change down": the function refuses edits itself now (duplicate source, missing topic, dead page) and said why only in its log. The 400 carries the engine's sentence as `reason` for the toast.
 - 2026-10-22: after a deploy, saved pages kept the old layout (D145); a download lost its player offline (scripts in a versioned cache).
 - 2026-10-22: TBT is root `:has()` restyles (first-load-js.md).
-- 2026-10-16: an installed Android web app keeps the manifest's theme_color from install and paints the system navigation bar in it (Chromium's WebAppNavigationBarThemeColor); a runtime theme-color meta never repaints it, and Chrome 128 dropped dark manifest colours. Leave theme_color out to get bars that follow the system theme.
-- 2026-10-14: on mobile Chrome a fixed element held by its bottom edge moves with the address bar in the same frame; one held by both edges (`inset: 0`) resizes only after the gesture, so the bar, navigation and floating button drifted apart (#120). Hold every bottom-stack element by its bottom edge; size a full-height fixed box with `100dvh`.
-- 2026-10-11: Safari 27 has no `overlay`, so a closing dialog or popover leaves the top layer as its exit starts and the exit plays in the page: give top-layer elements their own `position` and a z-index (the top layer ignores it), and close at once under `@supports not (overlay: auto)` where an ancestor has a transform.
-- 2026-10-11: the voice sample button never worked in production: it played Speechify's own URL, which the page's `media-src` blocks, and its error handler hid the button, so it looked like a missing feature. A media URL from a third party needs the CSP checked, or a same-origin route (`/api/voice-sample`).
-- 2026-10-09: a move between destinations took 400 ms though the page was ready after 70: the mark that picks the animation (`data-astro-nav`) was lost in the swap, since Astro 7 keeps only its own root attributes. Carry the mark onto `event.newDocument` in `astro:before-swap`, and check what animates with `document.getAnimations()`.
-- 2026-10-09: The first press after opening the app blocks for about 200 ms when the audio device has been idle, about 75 ms when warm: `new AudioContext()` inside the press. `latencyHint` and `sampleRate` do not help; a first measurement said they did, because whichever context is created first pays. Run the control with the order reversed.
+- 2026-10-16: an installed Android web app keeps the manifest's theme_color from install for the system navigation bar; a runtime theme-color meta never repaints it. Leave theme_color out so the bars follow the system theme.
+- 2026-10-14: on mobile Chrome a fixed element held by its bottom edge moves with the address bar in the same frame; one held by both edges (`inset: 0`) resizes only after the gesture, so the bottom stack drifted apart (#120). Hold bottom-stack elements by the bottom edge; full-height boxes by `100dvh`.
+- 2026-10-11: Safari 27 has no `overlay`, so a closing dialog or popover leaves the top layer as its exit starts: give top-layer elements their own `position` and a z-index (the top layer ignores it), and close at once under `@supports not (overlay: auto)` where an ancestor has a transform.
+- 2026-10-11: the voice sample button never worked in production: it played Speechify's own URL, which the page's `media-src` blocks, and its error handler hid the button, so it looked missing. A third-party media URL needs the CSP checked, or a same-origin route (`/api/voice-sample`).
+- 2026-10-09: a move took 400 ms though the page was ready after 70: the mark that picks the animation (`data-astro-nav`) was lost in the swap, as Astro 7 keeps only its own root attributes. Carry it onto `event.newDocument` in `astro:before-swap`; check with `document.getAnimations()`.
+- 2026-10-09: The first press after opening blocks about 200 ms with the audio device idle, 75 ms warm: `new AudioContext()` inside the press. `latencyHint` and `sampleRate` do not help (a first measurement said they did: the first context created pays); reverse the order as the control.
+- 2026-10-31: a Play control marked `aria-disabled` never reacted: `disabledGuard.ts` swallows clicks on `[aria-disabled="true"]`, so a voice without a sample is marked `data-silent` instead.
+- 2026-11-01: Downloads showed as a gallery after a Library visit: `libraryPage.ts` kept its `astro:page-load` listener and matched Downloads' `[data-library]`. Name the page (`#main.library`); a test must reach it by click, not `goto`.
 
 ## Build and tooling
 
+- 2026-10-31: a new token needs `npm run system` too, or CI `check` fails on a stale `system.json`.
+- 2026-10-31: a new stylesheet import reorders equal-specificity rules (icon.css flipped a chip's ink). Diff computed styles after one.
 - 2026-10-30: designSystem.test reads quoted text: a retired class equal to a file name or a selector string counts as writing it.
 - 2026-10-28: cloud Node 22.22 fails `astro check`: `. /opt/nvm/nvm.sh && nvm install 24`. `pkill -f` kills its own shell.
 - 2026-10-25: an `<svg>` in a template string has no `data-icon`, so D187 skips it; use `iconHtml()`.
-- 2026-10-22: `npm install` ignores a new `overrides` entry while the lockfile holds the old version (deleting the entry alone drops it): delete it and `node_modules/.package-lock.json`, then `npm install`. A linked worktree's adapter build fails (`devalue` missing); check after `npm ci`.
-- 2026-10-14: `npm run lint` checks nothing in a worktree (Biome ignores `.claude/`): there run `npx biome check apps packages scripts tokens`. Checking only touched files passed while the root lint failed on CSS blank lines; run the root lint from the main checkout before pushing.
-- 2026-10-11: Biome rewrote `<T,>(x: T) => ...` to `<T>(x: T) => ...` in Astro frontmatter, which the compiler rejects. Use a `function` declaration for generics in `.astro` files.
+- 2026-10-22: `npm install` ignores a new `overrides` entry while the lockfile holds the old version: delete it and `node_modules/.package-lock.json`, then `npm install`. A linked worktree's adapter build fails (`devalue` missing); check after `npm ci`.
+- 2026-10-14: `npm run lint` checks nothing in a worktree (Biome ignores `.claude/`): run `npx biome check apps packages scripts tokens`, and the root lint from the main checkout.
+- 2026-10-11: Biome rewrote `<T,>(x: T) =>` to `<T>(x: T) =>` in Astro frontmatter, which the compiler rejects: use a `function`.
 - 2026-10-08: branches that pass alone can fail together (tab order, focus ring, touch targets, bundle size): run the whole site suite on the stack.
 - 2026-10-30: every `main` deploy failed on Vercel, none locally: skew protection stamps `?dpl=<id>` on asset URLs and `bundleBudget.ts` looked files up with it. Strip `?query` before a path lookup.
-- 2026-10-30: the Experiments function crashed at load on Vercel, not locally: a bare `@singularity/engine/...` import resolves to `.ts` source the bundle omits. Import workspace code by relative path.
+- 2026-10-30: the Experiments function crashed at load on Vercel only: a bare `@singularity/engine/...` import resolves to `.ts` source the bundle omits. Import workspace code by path.
+- 2026-10-31: a switch read back stale: the reader's worker answered `/admin` GETs from a copy up to 10 min old (#494). A write's answer does not prove the next read is fresh; settle only on a read.
 
 ## Windows and shells
 
@@ -130,8 +138,8 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-16: a worktree's `node_modules` symlink was committed (the ignore rule `node_modules/` matches directories only), and merging that branch replaced the real, ignored `apps/web/node_modules` with it: git overwrites ignored paths. The rule is now `node_modules`; after such a merge, run `npm ci`.
 - 2026-10-25: `scripts/worktreeLinks.mjs` found own packages by the literal scope `@dispatch`; #272 broke it. It reads `package.json` names now. Per package, never a scope (10-26).
 - 2026-10-14: squash-merged branches never pass `git branch -d`, and auto mode refuses `-D`. Match commit subjects against main's squash bodies, keep a bundle of the heads in `.git/`, and let the owner force delete.
-- 2026-10-12: cherry-pick a worker's non-merge commits (`git log --no-merges --reverse <lead>..<branch>`) and run `biome check` again afterwards: a formatting difference between two branches shows only on the combined tree.
-- 2026-10-21: workers hit the 90-call cap again (sources design, docs): brief one piece each and a WIP commit after the first pass. A finished agent's worktree stays locked: `remove -f -f` once the worktree is clean.
-- 2026-10-21: a worktree can start from an older base than the brief names (it lacked 29 commits): check the last commit first and reset to the target before editing.
-- 2026-10-11: the review workflow's code-review plugin stops at a PR it already reviewed: a re-labelled run posts nothing, reports success, and new commits go unreviewed. Review them locally (`/code-review` on the range).
-- 2026-10-06: Auto-mode classifier blocks credential creation, store deletion and merging unreviewed PRs; the owner runs those.
+- 2026-10-12: cherry-pick a worker's non-merge commits (`git log --no-merges --reverse <lead>..<branch>`), then rerun `biome check`: formatting differences show on the combined tree.
+- 2026-10-21: workers hit the 90-call cap: one piece each, WIP commit after the first pass. A finished worker's worktree stays locked: `remove -f -f`.
+- 2026-10-21: a worktree can start from an older base: check its last commit first.
+- 2026-10-11: the review plugin skips a PR it already reviewed, so new commits go unreviewed: run `/code-review` on the range.
+- 2026-10-06: the auto-mode classifier blocks credential creation, store deletion and unreviewed merges; the owner runs those.

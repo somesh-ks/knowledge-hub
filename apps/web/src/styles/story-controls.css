@@ -23,7 +23,7 @@
   place-items: center;
 }
 
-.story-vote .icon {
+.story-vote .icon-glyph {
   grid-area: 1 / 1;
   transition:
     opacity var(--duration-state) var(--ease-out),
@@ -31,21 +31,21 @@
     filter var(--duration-state) var(--ease-out);
 }
 
-.story-vote .icon:last-child,
-.story-vote[aria-pressed="true"] .icon:first-child {
+.story-vote .icon-glyph:last-child,
+.story-vote[aria-pressed="true"] .icon-glyph:first-child {
   opacity: 0;
   transform: scale(0.95);
   filter: blur(var(--blur-enter));
 }
 
-.story-vote[aria-pressed="true"] .icon:last-child {
+.story-vote[aria-pressed="true"] .icon-glyph:last-child {
   opacity: 1;
   transform: none;
   filter: none;
 }
 
 /* Turning a vote on pops the fill in. A vote restored on load never carries data-just-voted. */
-.story-vote[data-just-voted] .icon:last-child {
+.story-vote[data-just-voted] .icon-glyph:last-child {
   animation: vote-pop var(--duration-spring-pop) var(--ease-spring-pop);
 }
 
@@ -56,7 +56,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .story-vote[data-just-voted] .icon:last-child {
+  .story-vote[data-just-voted] .icon-glyph:last-child {
     animation: none;
   }
 }

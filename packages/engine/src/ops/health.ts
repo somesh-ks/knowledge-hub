@@ -35,11 +35,14 @@ import {
   checkPerf,
   checkRunMetrics,
   checkRunsDied,
+  checkSideRuns,
   checkStore,
   type DeploymentReading,
   type FieldReading,
   type HealthAspect,
   type HealthFetch,
+  SIDE_WORKFLOWS,
+  type SideWorkflow,
   type Sink,
   type StoreReading,
   type WatchedHead,
@@ -98,6 +101,8 @@ export interface HealthOptions {
   fetch?: HealthFetch;
   /** run.yml's recent runs from GitHub (health.yml passes them); absent skips `run_died`. */
   runs?: readonly WorkflowRun[];
+  /** Recent runs of content.yml, ingest.yml and podcast.yml; a workflow left out is not checked. */
+  sideRuns?: Partial<Record<SideWorkflow, readonly WorkflowRun[]>>;
   /** The lab probe's output (health.yml passes it; null when it wrote none); absent skips the perf check. */
   perf?: unknown;
   /**
@@ -220,6 +225,11 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
   if (options.runs) {
     const records = [status.last_run.regular, status.last_run.weekly, status.last_run.on_demand];
     checkRunsDied(records, options.runs, now, { fault, warn, passed });
+  }
+
+  for (const workflow of SIDE_WORKFLOWS) {
+    const sideRuns = options.sideRuns?.[workflow];
+    if (sideRuns) checkSideRuns(workflow, sideRuns, now, { fault, warn, passed });
   }
 
   // Integrity: every digest parses, and every state file reads against its schema.

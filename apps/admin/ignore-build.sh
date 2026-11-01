@@ -25,5 +25,6 @@ git diff --quiet "$VERCEL_GIT_PREVIOUS_SHA" HEAD -- \
   ../../packages/engine/src/store/experimentHits.ts \
   ../../packages/engine/src/store/neon.ts \
   ../../packages/engine/src/store/pgErrors.ts \
+  ../../packages/engine/src/store/runsStore.ts \
   ../../package.json \
   ../../package-lock.json

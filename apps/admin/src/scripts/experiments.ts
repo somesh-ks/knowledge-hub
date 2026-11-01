@@ -6,6 +6,7 @@
  * it is pressed; the change is kept across a reload until the store has it (lib/pendingFlags.ts).
  */
 
+import { endedByLeaving } from "../../../web/src/scripts/pageLeaving";
 import { sendToast } from "../../../web/src/scripts/toastEvent";
 import type { ExperimentAction, FlagRow, HitTotal } from "../lib/experimentsApi";
 import { fresh, intended, type PendingMap, parsePending, unsettled } from "../lib/pendingFlags";
@@ -86,10 +87,13 @@ function renderAll(): void {
   for (const row of rows) render(row);
 }
 
-/** Lets go of changes the store has or that ran out of time, but not while a write of theirs is under way (and still fresh). */
-function reconcile(): void {
+/**
+ * Lets go of changes the store has or that ran out of time, but not while a write of theirs is under
+ * way (and still fresh). `stored` is what a read of the store answered; pass none to only expire.
+ */
+function reconcile(stored: FlagRow[]): void {
   const now = Date.now();
-  const kept = unsettled([...flags.values()], intents, now);
+  const kept = unsettled(stored, intents, now);
   for (const [id, held] of Object.entries(intents)) {
     if ((pending.get(id) ?? 0) > 0 && fresh(held, now)) kept[id] = held;
   }
@@ -97,10 +101,15 @@ function reconcile(): void {
   saveIntents();
 }
 
-function take(body: { flags?: FlagRow[] }): void {
+function adopt(body: { flags?: FlagRow[] }): void {
   flags.clear();
   for (const flag of body.flags ?? []) flags.set(flag.id, flag);
-  reconcile();
+}
+
+/** A read of the store: the only answer that settles a change, since the next read may be an older copy. */
+function take(body: { flags?: FlagRow[] }): void {
+  adopt(body);
+  reconcile([...flags.values()]);
 }
 
 async function ask(init?: { id: string; action: ExperimentAction }): Promise<Response> {
@@ -120,15 +129,6 @@ async function ask(init?: { id: string; action: ExperimentAction }): Promise<Res
  * its write is under way runs after it.
  */
 let queue: Promise<unknown> = Promise.resolve();
-/** Set as the page goes: the browser fails a request in flight then, though keepalive lets it finish. */
-let leaving = false;
-addEventListener("pagehide", () => {
-  leaving = true;
-});
-// A page restored from the back/forward cache is live again.
-addEventListener("pageshow", () => {
-  leaving = false;
-});
 /** Counts presses, so an answer to a question asked before the latest one is not taken for the store's. */
 let generation = 0;
 function write(id: string, action: ExperimentAction): Promise<boolean> {
@@ -150,10 +150,14 @@ function write(id: string, action: ExperimentAction): Promise<boolean> {
 /** One write and its answer; never rejects. */
 async function send(id: string, action: ExperimentAction): Promise<boolean> {
   let saved = false;
+  /** The browser failed the request because the page is going, though keepalive lets it finish. */
+  let cut = false;
   try {
     const response = await ask({ id, action });
     const body = (await response.json()) as { flags?: FlagRow[]; error?: string };
-    if (body.flags) take(body);
+    // A write's answer does not settle the change: the next read may still be an old copy (the
+    // worker's, a cache's), so only a read that shows it does (take).
+    if (body.flags) adopt(body);
     if (response.ok) {
       saved = true;
       return true;
@@ -163,13 +167,14 @@ async function send(id: string, action: ExperimentAction): Promise<boolean> {
       "error",
     );
   } catch {
-    if (!leaving) toast("Could not save. Try again.", "error");
+    cut = await endedByLeaving();
+    if (!cut) toast("Could not save. Try again.", "error");
   } finally {
     count(id, -1);
     // A refused or failed write puts the switch back, unless a later press for it is waiting. One
     // the store took stays until the store's own answer matches it (watch, take).
     // A page that is going keeps its change for the next one to show.
-    if (!leaving) {
+    if (!cut) {
       if (!saved && (pending.get(id) ?? 0) === 0) delete intents[id];
       saveIntents();
       renderAll();
@@ -301,7 +306,7 @@ function watch(): void {
   if (watching || Object.keys(intents).length === 0) return;
   watching = true;
   const tick = (): void => {
-    reconcile();
+    reconcile([]);
     renderAll();
     if (Object.keys(intents).length === 0) {
       watching = false;
