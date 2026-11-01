@@ -36,7 +36,7 @@ export interface SavedEntry {
   stored?: number;
 }
 
-const isOp = (value: unknown): value is ConfigOp =>
+export const isOp = (value: unknown): value is ConfigOp =>
   typeof value === "object" && value !== null && typeof (value as { op?: unknown }).op === "string";
 
 /** Kept for SAVED_TTL_MS, and never from the future: a clock moved back drops it. */

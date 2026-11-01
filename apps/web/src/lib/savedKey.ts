@@ -4,10 +4,28 @@
  */
 export const SAVED_KEY = "singularity:saved-edits";
 
-/** Whether anything saved may still be waiting for the build: then the page loads savedView.ts. */
+/**
+ * Where the edits that could not be sent are kept until the connection is back (lib/outbox.ts). Unlike
+ * the saved edits above they do not expire after minutes: they are the only copy.
+ */
+export const OUTBOX_KEY = "singularity:outbox";
+
+/** Whether this device holds edits it has yet to send (CFG-04). */
+export function hasOutbox(): boolean {
+  try {
+    return localStorage.getItem(OUTBOX_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether anything saved may still be waiting for the build, or an edit for the connection: then the
+ * page loads savedView.ts.
+ */
 export function hasSaved(): boolean {
   try {
-    return localStorage.getItem(SAVED_KEY) !== null;
+    return localStorage.getItem(SAVED_KEY) !== null || hasOutbox();
   } catch {
     return false;
   }
