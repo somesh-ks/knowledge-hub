@@ -563,7 +563,6 @@
         "--color-surface-container",
         "--color-surface-overlay",
         "--field-chevron-gap",
-        "--row-radius",
         "--shadow-popover",
         "--size-icon",
         "--size-icon-sm",

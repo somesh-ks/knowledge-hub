@@ -100,29 +100,35 @@ test("a select's fill is as far from its card's right edge as from its top or bo
     await page.goto(path);
     await expect(page.locator("main h1").first()).toBeVisible();
     uneven.push(
-      ...(await page.$$eval(".settings-row .value-select", (selects, where) => {
-        const found: string[] = [];
-        for (const holder of selects) {
-          const fill = (
-            holder.querySelector("select.field-input, .picker-trigger") ?? holder
-          ).getBoundingClientRect();
-          const card = holder.closest(".card-group, .topic-panel");
-          if (fill.width === 0 || !card) continue;
-          const box = card.getBoundingClientRect();
-          const rows = [...card.querySelectorAll(".settings-row")].filter(
-            (row) => row.getBoundingClientRect().height > 0,
-          );
-          const row = holder.closest(".settings-row");
-          const right = box.right - fill.right;
-          const edges: number[] = [];
-          if (row === rows[0]) edges.push(fill.top - box.top);
-          if (row === rows[rows.length - 1]) edges.push(box.bottom - fill.bottom);
-          for (const edge of edges)
-            if (Math.abs(edge - right) > 0.5)
-              found.push(`${where} ${holder.id || holder.querySelector("[id]")?.id}: right ${right}, edge ${edge}`);
-        }
-        return found;
-      }, path)),
+      ...(await page.$$eval(
+        ".settings-row .value-select",
+        (selects, where) => {
+          const found: string[] = [];
+          for (const holder of selects) {
+            const fill = (
+              holder.querySelector("select.field-input, .picker-trigger") ?? holder
+            ).getBoundingClientRect();
+            const card = holder.closest(".card-group, .topic-panel");
+            if (fill.width === 0 || !card) continue;
+            const box = card.getBoundingClientRect();
+            const rows = [...card.querySelectorAll(".settings-row")].filter(
+              (row) => row.getBoundingClientRect().height > 0,
+            );
+            const row = holder.closest(".settings-row");
+            const right = box.right - fill.right;
+            const edges: number[] = [];
+            if (row === rows[0]) edges.push(fill.top - box.top);
+            if (row === rows[rows.length - 1]) edges.push(box.bottom - fill.bottom);
+            for (const edge of edges)
+              if (Math.abs(edge - right) > 0.5)
+                found.push(
+                  `${where} ${holder.id || holder.querySelector("[id]")?.id}: right ${right}, edge ${edge}`,
+                );
+          }
+          return found;
+        },
+        path,
+      )),
     );
   }
   expect(uneven).toEqual([]);
