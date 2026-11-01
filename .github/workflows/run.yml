@@ -218,6 +218,10 @@ jobs:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # With the config store on, the shadow counts the Experiments page shows are saved (D249).
+          # Either one unset leaves them in the log only.
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE || vars.DISPATCH_CONFIG_STORE }}
           # Typed text from the site: passed as data in the environment, never spliced into the script.
           FEEDBACK: ${{ inputs.feedback }}
           TOPICS: ${{ inputs.topics }}

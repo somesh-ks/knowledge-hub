@@ -98,6 +98,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Build and tooling
 
+- 2026-11-01: production's `/api/health` answered 503 `admin_not_set_up` for two days: `secrets:push` checked `ADMIN_SESSION_SECRET`'s length only for the admin project, so a short value reached the reader while the admin project kept its older one. The check now runs before any target, dry run included.
 - 2026-10-31: a new token needs `npm run system` too, or CI `check` fails on a stale `system.json`.
 - 2026-10-31: a new stylesheet import reorders equal-specificity rules (icon.css flipped a chip's ink). Diff computed styles after one.
 - 2026-10-30: designSystem.test reads quoted text: a retired class equal to a file name or a selector string counts as writing it.

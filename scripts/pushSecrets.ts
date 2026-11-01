@@ -223,6 +223,16 @@ function main(): void {
       if (!skipped.includes(target.name)) skipped.push(target.name);
       continue;
     }
+    // Both projects refuse a shorter secret and answer 503, so it is refused for both before anything
+    // is sent: a short one once reached the reader while the admin project kept an older value.
+    if (target.name === "ADMIN_SESSION_SECRET" && value.length < ADMIN_SECRET_MIN) {
+      failed.push(target.name);
+      reasons.set(
+        `${target.name} -> ${target.where}`,
+        `needs ${ADMIN_SECRET_MIN} or more characters, and the same value in both projects`,
+      );
+      continue;
+    }
     if (dryRun) {
       sent.push(`${target.name} -> ${target.where}`);
       continue;
@@ -247,9 +257,6 @@ function main(): void {
         case "vercel-admin":
           if (!adminDir || !adminLinkOk) {
             throw new Error("apps/admin is not linked to singularity-admin: run vercel link there");
-          }
-          if (target.name === "ADMIN_SESSION_SECRET" && value.length < ADMIN_SECRET_MIN) {
-            throw new Error(`ADMIN_SESSION_SECRET needs ${ADMIN_SECRET_MIN} or more characters`);
           }
           run(
             "npx",
