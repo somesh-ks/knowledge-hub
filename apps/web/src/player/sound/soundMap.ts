@@ -28,21 +28,23 @@ export function cueForPlayerEvent(event: PlayerEvent): Cue | null {
   switch (event.type) {
     case "willPlay":
       // A scrub's own resume is the same narration continuing, not a new start.
-      return event.reason === "scrub" ? null : { name: "play" };
+      if (event.reason === "scrub") return null;
+      // Felt only for the press: a resume or the next item starting by itself is not a touch.
+      return event.reason === "user" ? { name: "play", haptic: "start" } : { name: "play" };
     case "didPause":
       // The system and scrubbing pause narration without the listener pressing pause.
-      return event.reason === "user" ? { name: "pause" } : null;
+      return event.reason === "user" ? { name: "pause", haptic: "tap" } : null;
     case "itemChanged":
-      if (event.cause === "skip-next") return { name: "itemNext" };
-      if (event.cause === "skip-previous") return { name: "itemPrev" };
+      if (event.cause === "skip-next") return { name: "itemNext", haptic: "select" };
+      if (event.cause === "skip-previous") return { name: "itemPrev", haptic: "select" };
       // Keyboard navigation, automatic advance, scrubbing and chapter taps stay silent.
       return null;
     case "rateChanged":
-      return { name: "speedChange", options: { rate: event.rate } };
+      return { name: "speedChange", options: { rate: event.rate }, haptic: "select" };
     case "ended":
       return { name: "digestEnd" };
     case "error":
-      return { name: "error" };
+      return { name: "error", haptic: "error" };
     case "interrupted":
     case "loaded":
       return null;
