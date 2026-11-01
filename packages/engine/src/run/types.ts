@@ -117,6 +117,12 @@ export interface RunDeps {
   spend?: SpendTracker;
   /** Saves what the experiments in shadow would have added; absent with the store off. */
   recordExperimentHits?: (hits: ExperimentHit[]) => Promise<void>;
+  /**
+   * Sends the run's digest to the content store (D300), called right before the git commit of a
+   * published run so a failed save stops the commit and the run is repeated. A no-op for a
+   * checkout that never pulled; absent in most tests.
+   */
+  publishContent?: () => Promise<void>;
 }
 
 /** One pass of a run, as the stages report it. */

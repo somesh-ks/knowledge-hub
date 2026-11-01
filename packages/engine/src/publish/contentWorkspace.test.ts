@@ -114,6 +114,40 @@ describe("pushWorkspace", () => {
   });
 });
 
+describe("state files in the push", () => {
+  // The bug: a slow audio job checked out older state, changed nothing, and its push copied every
+  // state file it held over the newer ones a digest job saved meanwhile, so the site read old state.
+  it("leaves a state file the store has moved on from if this job did not change it", async () => {
+    const store = fakeBlob();
+    await seed(store, { [DIGEST("01")]: "one", "state/last-run.json": '{"v":1}' });
+    const slow = await checkout({ "state/last-run.json": '{"v":1}' });
+    await pullWorkspace(input(store, slow));
+    const fast = await checkout({ "state/last-run.json": '{"v":1}' });
+    await pullWorkspace(input(store, fast));
+    await write(fast, "state/last-run.json", '{"v":2}');
+    await pushWorkspace(input(store, fast));
+    await pushWorkspace(input(store, slow));
+    expect(store.objects.get(`${CONTENT_PREFIX}state/last-run.json`)?.text).toBe('{"v":2}');
+  });
+});
+
+describe("pullWorkspace", () => {
+  // The bug: a second pull in one checkout (a retried load step) replaced the baseline with the
+  // store's current list. A digest another job had removed since stayed on disk as an unlisted file,
+  // and the next push uploaded it again as if this job had made it.
+  it("drops a file an earlier pull brought that the store has since lost", async () => {
+    const store = fakeBlob();
+    await seed(store, { [DIGEST("01")]: "one", [DIGEST("02")]: "two" });
+    const root = await job(store);
+    const other = await job(store);
+    await rm(join(other, DIGEST("02")));
+    await pushWorkspace(input(store, other));
+    await pullWorkspace(input(store, root));
+    await pushWorkspace(input(store, root));
+    expect(stored(store)).toEqual([DIGEST("01")]);
+  });
+});
+
 describe("syncContent", () => {
   // The bug: content.yml is gone, but a person can still run `content sync` from a checkout with no
   // Digests/ (git no longer holds them), and the mirror would delete every digest in the store.
@@ -125,5 +159,18 @@ describe("syncContent", () => {
       syncContent({ client: store.client, root, now: NOW, fetchText: store.fetchText }),
     ).rejects.toThrow(/no digests/);
     expect(stored(store)).toEqual([DIGEST("01")]);
+  });
+
+  // The bug: the refusal came after the upload loop, so a checkout with old state files overwrote the
+  // live ones and then threw, leaving stored bytes that no longer matched the manifest's hashes.
+  it("changes nothing in the store when it refuses", async () => {
+    const store = fakeBlob();
+    await seed(store, { [DIGEST("01")]: "one", "state/last-run.json": '{"v":2}' });
+    const before = JSON.stringify([...store.objects.entries()]);
+    const root = await checkout({ "state/last-run.json": '{"v":1}' });
+    await expect(
+      syncContent({ client: store.client, root, now: NOW, fetchText: store.fetchText }),
+    ).rejects.toThrow(/no digests/);
+    expect(JSON.stringify([...store.objects.entries()])).toBe(before);
   });
 });

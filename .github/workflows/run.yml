@@ -328,8 +328,9 @@ jobs:
           [ "$DRY" = "true" ] && args+=(--dry-run)
           npm run --silent singularity -- run --record-failed "${args[@]}"
 
-      # After the commit: the store never gets a digest whose run git did not record. A failed upload
-      # is tried three times; if it still fails the job is red and the next run, or a rerun, repeats it.
+      # The digest itself is saved by the commit stage, before its git commit. This step sends the rest
+      # (the state files the site reads, a deleted digest) once the commit is in. A failed upload is
+      # tried three times; if it still fails the job is red and a rerun repeats it.
       - name: Save content
         if: ${{ !cancelled() && steps.content.outcome == 'success' && steps.commit.outcome != 'failure' }}
         shell: bash

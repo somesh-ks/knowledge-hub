@@ -11,7 +11,7 @@ Somesh answered "Yes, prepare it now" to moving digests out of git, after step 2
 
 ## Why this shape
 
-The store is written after git, not before. A store-first write would leave a digest in the store whose run git never recorded, and the next run would write it again. After git, the failure left is a red job whose rerun repeats the same push. Audio saves whatever happened, because a timeline that never reaches the store is narrated and paid for twice.
+The daily digest reaches the store before its git commit (the commit stage calls `publishContent`). Git records the run as published and moves the fetch window, so a digest that git has and the store lacks would be skipped by the next gate and lost; a digest the store has and git lacks is at worst written twice, and a failed save stops the commit. Everything else saves after the commit, in the workflow's Save content step: an episode or a state file lost to a failed save is made again by a retry. Audio saves whatever happened, because a timeline that never reaches the store is narrated and paid for twice. A state file is pushed only if the job changed it since the pull, so a slow job never puts older state over newer.
 
 ## Left out on purpose
 
