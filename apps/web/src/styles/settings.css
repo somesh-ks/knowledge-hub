@@ -341,8 +341,10 @@
 /* On a Manage page a row stands the card's full padding in from its edge; on the index it is a tile one
    inset in. The pull above is worked out for the tile, so there the fill ended 20px from the card's
    side while it starts 12px under its top (owner, 2026-10-31: the open Podcast voice looked uneven).
-   The value reaches the extra 8px, so its fill, words and chevron end where Theme's do. */
-.manage .card-group .settings-row .value-select {
+   The value reaches the extra 8px, so its fill, words and chevron end where Theme's do. Not where the
+   rows are already pulled one inset in (.settings-view, which Preferences is inside): there the extra
+   left the fill 4px from the card's right edge and 12px from its bottom (owner, 2026-11-01). */
+.manage .card-group:not(.settings-view *) .settings-row .value-select {
   margin-inline-end: calc((var(--space-2) + var(--value-select-pull, 0px) + var(--space-2)) * -1);
 }
 
