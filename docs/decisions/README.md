@@ -165,6 +165,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D298 | Repository public, owner data moved out of git, history rewritten last | supersedes D9 |
 | D299 | Offline settings edits stay on the device and send when back online | amends D79, D91, D259 |
 | D302 | Pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked | active |
-| D309 | Player ⋮ menu: actions, speed screen, Save; Settings > Saved | amends D105, D127 |
+| D309 | Player ⋮ menu: actions, speed screen, Save; Settings > Saved | amends D105, D127; supersedes D50's speed control |
 
 ---
