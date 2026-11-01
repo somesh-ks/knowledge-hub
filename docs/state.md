@@ -21,7 +21,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 
 - Blob on Pro trial since 10-30 (D251, D256). closed when: ops stay under 1,000 a month.
 - Queue plays in place (D277). closed when: a third-item tap keeps the bar up.
-- Expressive style (#506; D268, D274, D275, D278), no picker yet. closed when: a style chosen in Appearance survives a reload.
+- Expressive style (#506; D268, D274, D275, D278) with a Style select in Appearance. closed when: a style chosen on a real phone survives a reload and an app restart.
 - Voice list (D276): closed when: a voice is heard from its list on his iPhone.
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily says "podcast".
 - More menu (D214); Catch up album, Share circle, cards (D219); long press, haptics (D264, D273); push ping (D284). closed when: signed off.

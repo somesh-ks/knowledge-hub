@@ -5,11 +5,11 @@ Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reason
 ## Requirements
 
 ### Structure
-- Settings is two levels (D51): an index, one page per job. Sections, 18 to 20px regular H2s (D125): Podcast (Daily, Weekly, Sources, Preferences), Sound (Podcast voice, Interface sounds: `/settings/voice`, `/settings/sounds`), Appearance (Theme), Analytics (Costs, [Health](health.md), User engagement: Simple Analytics, D153), About (D129).
+- Settings is two levels (D51): an index, one page per job. Sections, 18 to 20px regular H2s (D125): Podcast (Daily, Weekly, Sources, Preferences), Sound (Podcast voice, Interface sounds: `/settings/voice`, `/settings/sounds`), Appearance (Theme, Style), Analytics (Costs, [Health](health.md), User engagement: Simple Analytics, D153), About (D129).
 - Link rows end in their value, in quiet ink; rows are 64px.
 - Each group of rows is a card: `.card-group` (primitives.css) on `.rows`, no shadow or line; contents concentric (`component.card`). Heads share the rows' edge. The install offer is accent-toned. About: About, Privacy, Change log (`/settings/changelog`, newest first) and, on a phone, Last updated, at the side column's foot from 64rem (`AppNav`).
 - A subpage has a small "Settings /" line above its title, linking up (amends D129). `/settings/custom` goes to `/create`; `custom` in `config/schedule.json` is what the Create panel starts from.
-- Form fields have a 3:1 outline. Every select opens one drawn list (`appearance: base-select`). Time zone and voices use searchable pickers (D101). A voice item: Play, name with flag, "Gender, accent"; Play auditions. Theme is a select that draws no value until the stored one is set.
+- Form fields have a 3:1 outline. Every select opens one drawn list (`appearance: base-select`). Time zone and voices use searchable pickers (D101). A voice item: Play, name with flag, "Gender, accent"; Play auditions. Theme and Style draw no value until the stored one is set.
 
 ### Schedule
 - Daily and Weekly show Episode, Schedule, Categories: Max length (no Format and no Look back: a podcast covers everything since its last episode, D215), Profile (off, D191), then time zone (one for both), time, repeat (Daily) or day (Weekly). A top-level `format` is ignored, not written. No voice rows; Weekly has no switch (the engine reads `weekly.enabled`) (D129).
