@@ -151,9 +151,12 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D283 | Read-first is AGENTS.md and state.md (20 KB), the Index is grep-only, the ledger is split by surface; "replaces" retires the old row | active |
 | D284 | Push pings | amends D11 |
 | D285 | Switch can be mixed | active |
+| D286 | Press ripple | |
 | D287 | Column and list centred together | amends D229 |
 | D288 | Library list: month labels, two columns | active |
 | D289 | Every press is felt | amends D273 |
+| D290 | Haptics are subtle and follow the sounds | amends D273, D289 |
+| D291 | Phone Menu sheet: media-style head, visible Close, fill focus | amends D144, D275 |
 | D293 | On-demand covers are served at /covers | supersedes D263; amends D256, D258 |
 | D294 | Scheduled writer uses Message Batches | amends D209 (step 3 built, step 2 open); D135 ended |
 | D295 | Playback audio session only while Sounds is on | amends D105 |
@@ -161,6 +164,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D297 | A section may stand over its allowance only as far as the floor needs | amends D35 |
 | D298 | Repository public, owner data moved out of git, history rewritten last | supersedes D9 |
 | D299 | Offline settings edits stay on the device and send when back online | amends D79, D91, D259 |
+| D300 | Digests and audio in Blob, state in Postgres, weekly private snapshot of the config store | active; step 1 (the snapshot) built |
 | D302 | Pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked | active |
 | D307 | Write routes need the admin session | amends D160, D201 |
 

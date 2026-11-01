@@ -627,13 +627,9 @@ main.library [data-library][data-view="list"] .library-grid {
   }
 
   [data-library][data-view="list"] .cover-play {
+    --cover-glyph: var(--size-icon);
     width: var(--size-icon-lg);
     height: var(--size-icon-lg);
-  }
-
-  [data-library][data-view="list"] .cover-play .icon-glyph {
-    width: var(--size-icon);
-    height: var(--size-icon);
   }
 }
 

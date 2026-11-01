@@ -275,3 +275,14 @@ Where data lives (Postgres, Blob, git), config, health, analytics, deploys, acce
 - Context changed: D9 chose private for one reader and the Free plan's minutes; the owner now wants it open source.
 - Revisit if: the rewrite slips past the last open PR, or D209 step 2 lands (private becomes cheap).
 - Supersedes: D9.
+
+## D300: Digests and audio in Blob, state in Postgres, a weekly private snapshot of the config store
+
+- Date: 2026-11-01 (the owner, on decision cards: "Vercel Blob for digests and audio", then "Blob for digests, Postgres for state")
+- Decision: the engine stops committing `Digests/` and `state/` to git. Digests and the audio's metadata live in Vercel Blob, in the content store D173 already mirrors them into (one object per digest, written once, read by the site as now). `state/` lives in Postgres, one document per file like the config store, with the merge rules `git/stateMerge.ts` applies today, so two workflows that append to one file still union. A weekly snapshot of the config store goes to a second, private Blob store, since the config is in no git history any more (D296). Three steps, one PR each, in this order: the snapshot (safety net first), Digests and audio, state.
+- Why: the repository is public (D298), and `Digests/` and `state/` are the owner's reading, votes and costs. Blob suits large immutable files and charges per operation, so a digest written once per run costs a handful of operations; Postgres suits small files that several jobs rewrite, and gives the row lock git gave through rebases. Neon's restore window is short, and a snapshot is the only copy that survives the database.
+- Cost: Blob operations stay far below the Hobby limit (one write per digest, no `list()` on a hot path; the snapshot lists once a week). The snapshot needs a private Blob store and its token (`BLOB_PRIVATE_READ_WRITE_TOKEN`), made by the owner: a store is public or private as a whole, so the content store cannot hold it. `audio.yml` has Blob credentials and no `DATABASE_URL` by design (SEC-03) yet writes the Speechify counter in `state/usage.json`; step three has to move that counter (to Blob, or to the job that has the database) before `state/` leaves git.
+- Rejected: one PR for all three (a rewrite of the commit stage and seven workflows cannot be reviewed whole); state in Blob (no row lock, so concurrent appends lose records); a snapshot commit in git (the owner's config would be public again).
+- Context changed: D296 took the config out of git; D298 made the repo public and left `Digests/`, `state/` and the audio as the open question, now answered.
+- Revisit if: Blob operations near the plan limit, or a state file outgrows a Postgres row.
+- Supersedes: nothing. Amends D173 (Blob becomes the home, not a mirror) when step two ships.

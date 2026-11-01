@@ -10,7 +10,6 @@ export const SLIDER: Guidance = {
   summary: "A track with a thumb: a value between two ends, set by dragging or by the arrow keys.",
   useWhen: [
     "The value is on a scale where nearby values are alike: Volume, Playback speed, a topic's weight.",
-    "A person may want to set it without a number in front of them.",
   ],
   dontUseWhen: [
     {
