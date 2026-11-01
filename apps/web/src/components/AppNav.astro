@@ -1,5 +1,6 @@
 ---
 import Icon from "../design-system/Icon.astro";
+import Ripple from "../design-system/Ripple.astro";
 import { buildDay } from "../lib/buildDay";
 import type { IconName } from "../lib/icons";
 import { getSite } from "../lib/site";
@@ -70,7 +71,9 @@ const destinations: Array<{
               href={destination.href}
               aria-current={isCurrent ? "page" : undefined}
               data-astro-prefetch="hover"
+              data-ripple
             >
+              <Ripple />
               {/* Both drawings are in the page, so the item can light up on the press, before its page arrives.
                    The indicator is the pill behind the icon in the bottom bar; the side column draws the row itself. */}
               <span class="app-nav-indicator">

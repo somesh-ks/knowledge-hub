@@ -204,23 +204,29 @@ const back =
   <body>
     <LaunchScreen />
     <a class="skip-link" href="#main">{skipLabel}</a>
-    <SiteHeader back={back} />
-    <AppNav current={destination} />
-    {fab === "create" && <CreateFab />}
-    <Queue />
-    {/* The offline banner is cloned from this, so its markup has one home: by the script after the
-         stack before first paint, and by deviceBanners.ts from then on. */}
+    {/* The device strips are cloned from these, so their markup has one home: by the script after the
+         stack before first paint, and by deviceBanners.ts from then on. The stack is the first thing in
+         the app, above the bar and the side column, and squeezes them down while a strip shows. */}
     <template id="banner-offline">
       <Banner
+        variant="strip"
         tone="warning"
         icon="wifiOff"
+        iconFrom="wifi"
         title="You are offline"
         bodyId="offline-reason"
       />
     </template>
-    <div class="banner-stack page" id="banners"></div>
-    {isShowingSavedContent() && <p class="meta page" role="status">Showing saved content</p>}
+    <template id="banner-online">
+      <Banner variant="strip" tone="success" icon="wifi" title="Back online" />
+    </template>
+    <div class="banner-stack" id="banners"></div>
     <script is:inline set:html={bannersInit.trim()} />
+    <SiteHeader back={back} />
+    <AppNav current={destination} />
+    {fab === "create" && <CreateFab />}
+    <Queue />
+    {isShowingSavedContent() && <p class="meta page" role="status">Showing saved content</p>}
     <div class="shell page"><slot /></div>
     {/* After the shell, so the hero's Play it waits for (create-sheet.css) is already in the page
          when the button is first styled: before it, the button showed for a frame on load. */}
