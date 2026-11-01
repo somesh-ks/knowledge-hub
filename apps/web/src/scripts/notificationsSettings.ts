@@ -1,6 +1,6 @@
 import {
   afterPress,
-  applyChoices,
+  applyPress,
   type Choices,
   globalState,
   KINDS,
@@ -77,7 +77,7 @@ export function mountNotifications(root: HTMLElement): () => void {
     show(next);
     latest += 1;
     const mine = latest;
-    const result = await applyChoices(next);
+    const result = await applyPress(pressed, target.checked);
     // A later press has its own answer coming; showing this one first would flicker.
     if (mine === latest) show(result);
   };

@@ -168,19 +168,27 @@ async function syncDevice(choices: Choices): Promise<boolean> {
 }
 
 let queue: Promise<unknown> = Promise.resolve();
+let waiting = 0;
 
 /**
  * Sets which kinds this browser hears about and makes the browser and the server agree: the first
  * kind turned on asks permission and subscribes, the last one turned off drops the subscription.
  * Returns the choices now in force: what was asked for, or what it was before when the browser said no.
  */
-export function applyChoices(next: Choices): Promise<Choices> {
+export function applyPress(pressed: Kind | "all", checked: boolean): Promise<Choices> {
   // One change at a time, in the order pressed: a slow request that fails must not undo a later press.
-  const run = queue.then(() => applyOne(next));
+  // The choices are worked out when the change's turn comes, from what the earlier ones settled on.
+  const start = (): Promise<Choices> => applyOne(afterPress(readChoices(), pressed, checked));
+  // With nothing pending it starts inside the press itself: iOS only shows the permission prompt then.
+  const run = waiting === 0 ? start() : queue.then(start);
+  waiting += 1;
   queue = run.then(
     () => undefined,
     () => undefined,
   );
+  void queue.then(() => {
+    waiting -= 1;
+  });
   return run;
 }
 
