@@ -88,7 +88,7 @@ A Blob store is public or private as a whole, so the content store in 1.5 cannot
 1. In Vercel, Storage, create a second Blob store and set its access to private. Do not connect it to the reader project.
 2. Copy its read-write token into `.env` as `BLOB_PRIVATE_READ_WRITE_TOKEN`, then run `npm run secrets:push`.
 3. Run the `snapshot` workflow once by hand and check that `config-snapshots/<date>.json` appears in the store. It then runs every Sunday and keeps eight.
-4. To restore: `npm run singularity -- config restore --latest --force` (or `--file <snapshot.json>` for one you downloaded; `config snapshot --out <file>` makes one by hand). It overwrites newer edits, so run it only when the store has lost its rows.
+4. To restore, `.env` needs `DATABASE_URL` and `SINGULARITY_CONFIG_STORE=postgres` (and `BLOB_PRIVATE_READ_WRITE_TOKEN` for `--latest`). Then run `npm run singularity -- config restore --latest --force` (or `--file <snapshot.json>` for one you downloaded; `config snapshot --out <file>` makes one by hand). It overwrites newer edits, so run it only when the store has lost its rows.
 
 ### 1.6 Add the domain and the DNS record
 

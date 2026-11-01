@@ -62,6 +62,7 @@ export function parseSnapshot(text: string): ConfigSnapshot {
     throw new Error("the snapshot is not a version 1 config snapshot");
   }
   const known: ReadonlySet<string> = new Set(CONFIG_DOCUMENT_PATHS);
+  const seen = new Set<string>();
   for (const document of file.documents) {
     const row = document as Partial<ConfigSnapshot["documents"][number]> | null;
     if (typeof row?.path !== "string" || typeof row.content !== "string") {
@@ -69,6 +70,9 @@ export function parseSnapshot(text: string): ConfigSnapshot {
     }
     if (!known.has(row.path))
       throw new Error(`the snapshot names a path that is not config: ${row.path}`);
+    // One statement cannot update a row twice, and a copy that holds a path twice is damaged.
+    if (seen.has(row.path)) throw new Error(`the snapshot holds ${row.path} twice`);
+    seen.add(row.path);
   }
   return {
     version: SNAPSHOT_VERSION,

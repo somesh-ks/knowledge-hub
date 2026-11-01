@@ -1,7 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { PGlite } from "@electric-sql/pglite";
+import { afterAll, describe, expect, it, vi } from "vitest";
+import { CONFIG_SCHEMA_SQL } from "./configDocs.js";
 import type { SqlClient } from "./configPaths.js";
 import {
   parseSnapshot,
+  restoreDocuments,
   SNAPSHOTS_KEEP,
   type SnapshotStore,
   snapshotKey,
@@ -9,17 +12,25 @@ import {
   takeSnapshot,
 } from "./configSnapshot.js";
 
-function fakeSql(rows: { path: string; content: string }[]): SqlClient & { writes: string[] } {
-  const writes: string[] = [];
+function fakeSql(rows: { path: string; content: string }[]): SqlClient {
+  return { query: async () => rows.map((row) => ({ ...row, version: 3 })) };
+}
+
+// An in-process Postgres takes a while to start when several store files start theirs at once.
+vi.setConfig({ testTimeout: 30_000 });
+const open: PGlite[] = [];
+afterAll(async () => {
+  await Promise.all(open.map((db) => db.close()));
+});
+
+/** The restore statement runs on a real Postgres: a fake cannot check `on conflict`. */
+async function realStore(): Promise<SqlClient> {
+  const db = new PGlite();
+  open.push(db);
+  await db.query(CONFIG_SCHEMA_SQL);
   return {
-    writes,
-    async query(text, params) {
-      if (text.startsWith("insert into config_documents")) {
-        writes.push(String(params?.[0]));
-        return [{ path: params?.[0] }];
-      }
-      return rows.map((row) => ({ ...row, version: 3 }));
-    },
+    query: async (text, params) =>
+      (await db.query<Record<string, unknown>>(text, params ?? [])).rows,
   };
 }
 
@@ -94,6 +105,38 @@ describe("snapshotKeysNewestFirst", () => {
   });
 });
 
+describe("restoreDocuments", () => {
+  // The bug it prevents: a restore that bumps every row, or skips a changed one, makes the app think
+  // nothing changed (or everything did), and a stale page then overwrites the restored config.
+  it("inserts missing rows, updates changed ones with a new version, and leaves equal ones alone", async () => {
+    const sql = await realStore();
+    await sql.query("insert into config_documents (path, content) values ($1, $2), ($3, $4)", [
+      "config/topics.json",
+      '{"a":1}',
+      "config/schedule.json",
+      '{"hour":7}',
+    ]);
+    const written = await restoreDocuments(sql, {
+      version: 1,
+      taken_at: "2026-11-01T04:00:00.000Z",
+      documents: [
+        { path: "config/topics.json", content: '{"a":2}', version: 1 },
+        { path: "config/schedule.json", content: '{"hour":7}', version: 1 },
+        { path: "config/queries.json", content: "{}", version: 1 },
+      ],
+    });
+    expect(written.sort()).toEqual(["config/queries.json", "config/topics.json"]);
+    const rows = await sql.query(
+      "select path, content, version from config_documents order by path",
+    );
+    expect(rows).toEqual([
+      { path: "config/queries.json", content: "{}", version: 1 },
+      { path: "config/schedule.json", content: '{"hour":7}', version: 1 },
+      { path: "config/topics.json", content: '{"a":2}', version: 2 },
+    ]);
+  });
+});
+
 describe("parseSnapshot", () => {
   // The bug: a snapshot file is plain text anyone can edit; a row named `.env` or `Digests/..` must
   // never reach the table, so the whole file is refused.
@@ -107,5 +150,14 @@ describe("parseSnapshot", () => {
       ],
     });
     expect(() => parseSnapshot(text)).toThrow(/not config/);
+  });
+
+  // The bug: one INSERT ... ON CONFLICT cannot touch a row twice, so a path listed twice would fail
+  // the whole restore at the database; refusing the file says why.
+  it("refuses a snapshot that lists a path twice", () => {
+    const doc = { path: "config/topics.json", content: "{}", version: 1 };
+    expect(() => parseSnapshot(JSON.stringify({ version: 1, documents: [doc, doc] }))).toThrow(
+      /twice/,
+    );
   });
 });
