@@ -112,10 +112,10 @@ async function publishIndexFromStore(
       if (local !== null && sha256(new Uint8Array(local)) === stored.files[path]) {
         texts.push([path, local.toString("utf8")]);
       } else {
-        texts.push([
-          path,
-          await fetchText(`${stored.base}/${CONTENT_PREFIX}${path}?t=${Date.now()}`),
-        ]);
+        const text = await fetchText(`${stored.base}/${CONTENT_PREFIX}${path}?t=${Date.now()}`);
+        // The manifest lists it, so the blob should exist; a shorter index would hide it silently.
+        if (text === null) throw new Error(`the store lists ${path} but has no such file`);
+        texts.push([path, text]);
       }
     }
     await uploadEpisodeIndex(client, indexFromTexts(texts, now));

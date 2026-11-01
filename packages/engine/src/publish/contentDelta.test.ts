@@ -229,6 +229,24 @@ describe("applyContentDelta", () => {
     expect(indexIds(store)).toEqual(["ep-20261023-1800", "ep-20261020-0900"]);
   });
 
+  // The bug: an episode the manifest lists but the store lacks was left out of the index, which was
+  // then published as if whole; the Library lost the episode with no error.
+  it("stops instead of publishing an index that leaves out a listed episode", async () => {
+    const store = fakeBlob();
+    const [oldPath, oldText] = episodeFile("ep-20261020-0900", "2026-10-20T09:00:00Z");
+    const [newPath, newText] = episodeFile("ep-20261023-1800", "2026-10-23T18:00:00Z");
+    const base = { client: store.client, now: NOW, fetchText: store.fetchText, remove: [] };
+    await applyContentDelta({
+      ...base,
+      root: await checkout({ [oldPath]: oldText }),
+      put: [oldPath],
+    });
+    store.objects.delete(`content/${oldPath}`);
+    await expect(
+      applyContentDelta({ ...base, root: await checkout({ [newPath]: newText }), put: [newPath] }),
+    ).rejects.toThrow(/has no such file/);
+  });
+
   // The bug: a remove deleted its blob after the manifest write without looking again; a job that
   // had put the same path back in between kept a manifest entry whose blob was gone.
   it("keeps the blob of a path another job put back since the manifest was written", async () => {
