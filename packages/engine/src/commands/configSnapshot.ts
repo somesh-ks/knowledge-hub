@@ -13,9 +13,9 @@ import {
   buildSnapshot,
   parseSnapshot,
   restoreDocuments,
-  SNAPSHOT_PREFIX,
   type SnapshotStore,
   serializeSnapshot,
+  snapshotKeysNewestFirst,
   takeSnapshot,
 } from "../store/configSnapshot.js";
 
@@ -136,10 +136,7 @@ export async function runRestore(
       );
       return 1;
     }
-    const newest = (await store.keys())
-      .filter((key) => key.startsWith(SNAPSHOT_PREFIX))
-      .sort()
-      .at(-1);
+    const newest = snapshotKeysNewestFirst(await store.keys())[0];
     const body = newest === undefined ? null : await store.read(newest);
     if (body === null) {
       ctx.log.error("The private store holds no snapshot.");

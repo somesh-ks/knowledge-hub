@@ -27,6 +27,14 @@ export function snapshotKey(now: Date): string {
 
 const KEY_PATTERN = /^config-snapshots\/\d{4}-\d{2}-\d{2}\.json$/;
 
+/** The snapshot keys among `names`, newest first; anything else in the store is not ours. */
+export function snapshotKeysNewestFirst(names: readonly string[]): string[] {
+  return names
+    .filter((name) => KEY_PATTERN.test(name))
+    .sort()
+    .reverse();
+}
+
 export function buildSnapshot(documents: readonly ConfigDocument[], now: Date): ConfigSnapshot {
   return {
     version: SNAPSHOT_VERSION,
@@ -102,33 +110,28 @@ export async function takeSnapshot(input: {
   const key = snapshotKey(input.now);
   await input.store.put(key, serializeSnapshot(buildSnapshot(documents, input.now)));
   const keep = input.keep ?? SNAPSHOTS_KEEP;
-  const old = (await input.store.keys())
-    .filter((name) => KEY_PATTERN.test(name))
-    .sort()
-    .reverse()
-    .slice(keep);
+  const old = snapshotKeysNewestFirst(await input.store.keys()).slice(keep);
   if (old.length > 0) await input.store.del(old);
   return { key, documents: documents.length, pruned: old };
 }
 
 /**
  * Put a snapshot's rows back, each as a new version so a page that holds an older one is told to
- * reload. Returns the paths written. A row already equal to the snapshot is left alone.
+ * reload. It is one statement, so one transaction: every row lands or none does, and a reader never
+ * sees half a restore. Returns the paths written; a row already equal to the snapshot is left alone.
  */
 export async function restoreDocuments(
   sql: SqlClient,
   snapshot: ConfigSnapshot,
 ): Promise<string[]> {
-  const written: string[] = [];
-  for (const document of snapshot.documents) {
-    const rows = await sql.query(
-      `insert into config_documents (path, content) values ($1, $2)
-       on conflict (path) do update set content = excluded.content,
-         version = config_documents.version + 1, updated_at = now()
-       where config_documents.content is distinct from excluded.content returning path`,
-      [document.path, document.content],
-    );
-    if (rows.length > 0) written.push(document.path);
-  }
-  return written;
+  if (snapshot.documents.length === 0) return [];
+  const rows = await sql.query(
+    `insert into config_documents (path, content)
+     select * from unnest($1::text[], $2::text[])
+     on conflict (path) do update set content = excluded.content,
+       version = config_documents.version + 1, updated_at = now()
+     where config_documents.content is distinct from excluded.content returning path`,
+    [snapshot.documents.map((d) => d.path), snapshot.documents.map((d) => d.content)],
+  );
+  return rows.map((row) => String(row.path));
 }

@@ -5,6 +5,7 @@ import {
   SNAPSHOTS_KEEP,
   type SnapshotStore,
   snapshotKey,
+  snapshotKeysNewestFirst,
   takeSnapshot,
 } from "./configSnapshot.js";
 
@@ -76,6 +77,20 @@ describe("takeSnapshot", () => {
     expect(store.dropped.sort()).toEqual(old.slice(0, 3));
     expect(store.objects.has("config-snapshots/notes.txt")).toBe(true);
     expect(store.objects.has(result.key)).toBe(true);
+  });
+});
+
+describe("snapshotKeysNewestFirst", () => {
+  // The bug: `restore --latest` took the last key by name, and "notes.txt" sorts after every date, so
+  // a stray object in the store was chosen over every good snapshot.
+  it("puts the newest dated snapshot first and ignores other objects", () => {
+    expect(
+      snapshotKeysNewestFirst([
+        "config-snapshots/2026-10-25.json",
+        "config-snapshots/notes.txt",
+        "config-snapshots/2026-11-01.json",
+      ]),
+    ).toEqual(["config-snapshots/2026-11-01.json", "config-snapshots/2026-10-25.json"]);
   });
 });
 
