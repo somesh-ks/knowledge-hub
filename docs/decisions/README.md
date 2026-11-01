@@ -77,7 +77,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D205 | Settings paint the kept copy at once | amends D172 |
 | D206 | Stay on npm; pnpm spiked | active |
 | D207 | A Regenerate asks for its own length | amends D204 |
-| D208 | A list of generations, with Cancel | amends D204; list superseded by D231 |
+| D208 | A list of generations, with Cancel | partly superseded by D231 (the list); amends D204 |
 | D209 | Lane free in the hold | supersedes D135; amends D197; step 1 built (#399), steps 2 to 5 not built |
 | D210 | Typed HTML builders | active |
 | D211 | Copy says podcast, not briefing; code names keep briefing | active |

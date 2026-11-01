@@ -100,16 +100,20 @@ export function checkDocs(root) {
   const rowText = new Map([...allRows.matchAll(/^\| (D\d+) \|(.*)$/gm)].map((m) => [m[1], m[2]]));
   const statusOf = (text) => text.slice(text.lastIndexOf("|", text.length - 2) + 1);
   for (const [id, text] of rowText) {
-    for (const phrase of statusOf(text).matchAll(/replaces ((?:D\d+(?:, and |, | and )?)+)/gi)) {
+    for (const phrase of statusOf(text).matchAll(
+      /(?:replaces|supersedes) ((?:D\d+(?:, and |, | and )?)+)/gi,
+    )) {
       for (const old of phrase[1].match(/D\d+/g) ?? []) {
         if (!rowText.has(old) && !entries.has(old)) {
-          fails.push(`docs/decisions/README.md: ${id} replaces ${old}, which does not exist`);
+          fails.push(
+            `docs/decisions/README.md: ${id} ${phrase[0].split(" ")[0]} ${old}, which does not exist`,
+          );
         } else if (
           rowText.has(old) &&
-          !/^\s*superseded by\b/i.test(statusOf(rowText.get(old) ?? ""))
+          !/^\s*(?:partly )?superseded by\b/i.test(statusOf(rowText.get(old) ?? ""))
         ) {
           fails.push(
-            `docs/decisions/README.md: ${id} replaces ${old}, but ${old}'s row is not "superseded by ${id}"`,
+            `docs/decisions/README.md: ${id} ${phrase[0].split(" ")[0]} ${old}, but ${old}'s row is not "superseded by ${id}"`,
           );
         }
       }

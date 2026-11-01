@@ -141,6 +141,13 @@ describe("docs check", () => {
         "| D1 | One | active |\n| D2 | Two | active |\n| D3 | Three | active |\n| D4 | Four | active; replaces D9 |",
       ),
     ).toEqual([expect.stringContaining("D9, which does not exist")]);
+    // "supersedes" retires its target the same way "replaces" does, and a partial supersession of the
+    // target ("partly superseded by") is enough.
+    expect(
+      check(
+        "| D1 | One | partly superseded by D4 |\n| D2 | Two | active |\n| D3 | Three | active |\n| D4 | Four | supersedes D1, D2 |",
+      ),
+    ).toEqual([expect.stringContaining("D2's row")]);
     // A partial supersession ("the writer part") leaves the decision active, so it does not retire it.
     expect(
       check(
