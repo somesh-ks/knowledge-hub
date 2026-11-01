@@ -38,10 +38,11 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Engine and workflows
 
+- 2026-11-01: a shared `last_fetch_at` let an on-demand briefing cut the daily's window to 6 h (each kind keeps `fetched_through`); the refill wrote Tech stories validation trimmed: offer a section only the room its allowance has left.
 - 2026-10-31: `serializeTopics` lists fields, `upsertTopic` branches by origin: a new `Topic` field needs both.
-- 2026-10-28: a run record's and the ledger's `at` is publish time (96 min for 3); time a run as `generated_at` less `window.to` (D203).
-- 2026-10-27: a briefing shipped 3 stories (79 s): grounding dropped 5 of 8 and the refill found the reserve empty, because the structure's section caps capped the reserve too (#373 lifts them for the reserve and warns `under_length`).
-- 2026-10-27: the runner has no ffmpeg with libopus, so Opus and its test skipped silently; ffprobe counts MP3 padding (52 ms a turn). The workflows install it and measure turns by decoding. The install hung 5 to 19 min behind `-qq`: bound apt, skip man-db, log (#388).
+- 2026-10-28: a run record's `at` is publish time (96 min for 3); time a run as `generated_at` less `window.to` (D203).
+- 2026-10-27: a briefing shipped 3 stories (79 s): grounding dropped 5 of 8 and the reserve was empty, since the structure's section caps capped it too (#373).
+- 2026-10-27: the runner has no ffmpeg with libopus, so Opus and its test skipped silently; ffprobe counts MP3 padding (52 ms a turn). Workflows install it and measure turns by decoding. The install hung 5 to 19 min behind `-qq`: bound apt, log, `continue-on-error` (#388).
 - 2026-10-25: the config store silently undid a PR's config edit (D185).
 - 2026-10-25: `urlKey` (sources/import.ts) dropped the query string, so every YouTube feed (`?channel_id=`) matched every other: a second channel failed "Already a source", and the store's replay of an added channel could not read it. A feed's key keeps `channel_id`.
 - 2026-10-25: a Speechify request without `language` is detected per segment; a foreign name came back in another prosody, heard as a pitch shift. Pin `language` and hash it.
@@ -49,13 +50,13 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-24: a 5-minute daily aired 3.0: 14 written, validation cut 7, nothing refilled. Validation refills once from `reserve.json`. Grounding never saw the title the writer read.
 - 2026-10-22: three review rounds of new `health` checks each found false faults (a waking Neon, an edit during a run, Dependabot merges Hobby never deploys, a regenerate read as late). A fault must be actionable and hold a day; make the rest warnings.
 - 2026-10-20: a group page saved its mix on a fallback home while the engine read the fixed one, and the outlet cap keyed by `source_id` let BBC's five feeds through; one helper (`groupHomeId`) and the story's host fix both. Review found both, no test did.
-- 2026-10-19: adding a YouTube channel said "The address could not be read": the preview caps a page at 1 MB, a channel page is 1.3 MB, and `resolveYoutubeChannel` swallowed the throw. The id comes from the path, then `navigation/resolve_url`, then the page; a social page with no feed is refused.
+- 2026-10-19: adding a YouTube channel said "The address could not be read": the preview caps a page at 1 MB, a channel page is 1.3 MB, and the resolver swallowed the throw. The id comes from the path, `navigation/resolve_url`, then the page.
 - 2026-10-24: YouTube refuses datacenter addresses: the player API says 429 and yt-dlp hits "Sign in to confirm you're not a bot"; cookies lift it, PO tokens do not (yt-dlp #15865). Firecrawl's `youtube-com/videos/video_transcript` makes the call from its network, 5 credits.
 - 2026-10-24: no YouTube video had reached the judge (25 fetched since 9 Oct, `asked` 0 in `state/source-stats.json`): the prefilter keeps only keyword, author, high-signal or tagged items, and titles name no keyword. Channels are high-signal now. Check `asked` first.
 - 2026-10-30: the judge flagged all 21 favorite-creator videos since 9 Oct: it read links and a sponsor line. The Judge step lacked `FIRECRAWL_API_KEY`, so 3 videos a run (Gemini cap) got a transcript; a stage reads only its own `env`.
 - 2026-10-19: a YouTube finalist reached the writer with only its description: `extractFullText` fetched a watch page with no speech. YouTube items go through `extract/youtubeText.ts` (cache, Firecrawl, then Gemini; `state/video-text.json`); failure falls back to the description.
 - 2026-10-07: `audio.yml` failed at the write guard ("changes outside the publish allowlist: .gitignore"): `vercel link` and `vercel env pull` edit `.gitignore` and write `.vercel`; run them in a scratch directory outside the checkout.
-- 2026-10-30: Hobby Blob allows 2,000 advanced ops a month (`put`, `copy`, `list`); over it the store is blocked. Ingest wrote a put per story (D251): count a job's puts. The CDN keys a function's answer by path and obeys `vercel.json` header rules, not the query (D263).
+- 2026-10-30: Hobby Blob allows 2,000 advanced ops a month (`put`, `copy`, `list`); over it the store is blocked. Ingest put once per story (D251): count a job's puts. The CDN keys an answer by path and obeys `vercel.json` header rules, not the query or `Vercel-CDN-Cache-Control` (D263).
 - 2026-10-18: the 15-minute weekly aired 14 stories: the prefilter's fixed cap of 80 filled 27 of 52 slots and grounding dropped 11. `poolCapFor` now sizes it. Read a short episode's funnel from the stage lines first.
 - 2026-10-15: Claude Sonnet 5.5 answers 400 "temperature is deprecated" to any request with `temperature`, and the writer chain fell through silently to Nebius from 2026-10-14 while Settings said Sonnet. The Anthropic client sends no temperature; a pick that fails over should be visible, not only in logs.
 - 2026-10-15: a source with 0 fetched items and OK health is not always broken: One Useful Thing and AUX First post monthly (newest items 2026-10-01 and 2026-09-21). Read the feed's newest date before calling a source dead.
@@ -64,10 +65,10 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-12: the workflows installed all 445 packages to run one CLI. `npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root` installs 118 and takes 4.3 s, not 10.4.
 - 2026-10-12: Vercel's hourly cron cannot land on a half-hour slot (India, UTC+05:30). The route accepts a call whose UTC hour overlaps the slot, so a run can start up to 30 minutes early, and the gate dedupes it.
 - 2026-10-12: episode length: told a length in characters, a writer delivers a third to two-thirds; in words, per story and in total, 83 to 90%. A script is held to what its stories carry (D43). Asking for 90% gave 79 to 87% and wrote most episodes twice: ask for 95%, accept a few percent under.
-- 2026-10-11: a missing morning briefing was GitHub, not the gate: the 07:13 Stockholm entry ran 13:11 to 14:02 on 7 to 10 October (a platform-wide delay). Before debugging a missed run, list `run.yml`'s schedule runs ("skipped" means no runner) and read the Gate log. The trigger moved to Vercel Cron (D61).
+- 2026-10-11: a missing briefing was GitHub, not the gate: the 07:13 entry ran 13:11 to 14:02 on 7 to 10 October. Before debugging a missed run, list `run.yml`'s schedule runs ("skipped" means no runner) and read the Gate log. Trigger now Vercel Cron (D61).
 - 2026-10-11: `singularity sources import` keeps an existing source's `enabled` and `options`, so a seed change reaches only new sources: write it into `config/sources.json` after the import (`--fresh` loses discovered feeds and counters). Run `biome format` on the imported JSON before linting.
 - 2026-10-11: a judge built with a fallback (Jev, then Nebius) shares the fallback's token budget with the writer, so work done for scores alone must use the primary judge alone: an outage would otherwise spend the briefing's budget on it.
-- 2026-10-08: Create, Generate and saving topics all answered "not available right now" on production: the site's fine-grained GitHub token was valid but had no access to this repository, so GitHub answered 404 for repo, workflows and runs. `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`; it should.
+- 2026-10-08: Create, Generate and saving topics answered "not available right now" on production: the site's fine-grained GitHub token had no access to this repository, so GitHub answered 404. `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`; it should.
 - 2026-10-07: Green tests did not catch the audio failure: nothing exercises the live Vercel, Speechify and Blob path. Run `singularity doctor --online` after any credential change.
 
 ## Site and service worker
@@ -94,6 +95,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-09: a move took 400 ms though the page was ready after 70: the mark that picks the animation (`data-astro-nav`) was lost in the swap, as Astro 7 keeps only its own root attributes. Carry it onto `event.newDocument` in `astro:before-swap`; check with `document.getAnimations()`.
 - 2026-10-09: The first press after opening blocks about 200 ms with the audio device idle, 75 ms warm: `new AudioContext()` inside the press. `latencyHint` and `sampleRate` do not help (a first measurement said they did: the first context created pays); reverse the order as the control.
 - 2026-10-31: a Play control marked `aria-disabled` never reacted: `disabledGuard.ts` swallows clicks on `[aria-disabled="true"]`, so a voice without a sample is marked `data-silent` instead.
+- 2026-11-01: Downloads showed as a gallery after a Library visit: `libraryPage.ts` kept its `astro:page-load` listener and matched Downloads' `[data-library]`. Name the page (`#main.library`); a test must reach it by click, not `goto`.
 - 2026-11-01: a `.manage` rule for the voice page also reached Preferences (rows already pulled in): the select's fill sat 4px from the card's right edge, 12px from its bottom. A row now declares its `--row-reach`; `settingsPages.spec` compares the gaps.
 ## Build and tooling
 

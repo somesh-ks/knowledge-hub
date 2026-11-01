@@ -42,13 +42,13 @@ Never paste a key into chat. The agent cannot read `.env`; keep it that way.
 | `SPEECHIFY_VOICE_ID` | Plain configuration, no secret |
 | `BLOB_READ_WRITE_TOKEN` | Section 1.5 |
 | `SINGULARITY_GIT_NAME`, `SINGULARITY_GIT_EMAIL` | Plain configuration, no secret. `Somesh Kesarla Suresh` and `26426782+somesh-ks@users.noreply.github.com` (section 1.4) |
-| `GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY` | Section 1.7 |
+| `GITHUB_SINGULARITY_TOKEN`, `GITHUB_REPOSITORY` | Section 1.7 |
 | `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET` | You choose them; the command center's sign-in (section 1.4a). Sent to the admin project; the secret also goes to the reader (its `/api/costs` and `/api/health` verify the session, D257) |
 | Models | Not env vars: `config/models.json` routes each step (Section 1.3) |
 
 ### 1.3 Pick the writer model
 
-Models are not chosen in `.env` or Settings. `config/models.json` lists, per step, an ordered chain of model families (jev, claude-sonnet, claude-haiku, gemini-flash, gemini-flash-lite; never Opus, Gemini Pro or Nebius). At run start the engine lists each provider's models and uses the newest of each family; `fallback_id` is used when listing fails and `pin` forces an id. With `ANTHROPIC_API_KEY` and `GEMINI_API_KEY` in `.env`:
+Models are not chosen in `.env` or Settings. `config/models.json` lists, per step, an ordered chain of model families (jev, claude-sonnet, claude-haiku, gemini-flash, gemini-flash-lite; never Opus, Gemini Pro or Nebius). At run start the engine lists each provider's models and uses the newest of each family; `fallback_id` is used when listing fails and `pin` forces an id. Jev is the exception: its id is fixed in code (`DEFAULT_JEV_MODEL`, `judge/jev.ts`), so that cached judgements stay valid, and the `jev` entry only names it in the run log. With `ANTHROPIC_API_KEY` and `GEMINI_API_KEY` in `.env`:
 
 
 
@@ -64,7 +64,7 @@ Vercel deploys through its GitHub integration (D25). No Vercel token is needed i
 
 1. In the Vercel dashboard, choose Add New, Project, and import the GitHub repo `knowledge-hub`. Name the project `knowledge-hub`; the production branch is `main`.
 2. Set Root Directory to `apps/web`. Leave "Include source files outside the Root Directory" on (the default). `apps/web/vercel.json` already sets the install, build and ignore commands.
-3. Add the two Vercel environment variables (`GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY`) in section 1.9, or by hand in the dashboard.
+3. Add the two Vercel environment variables (`GITHUB_SINGULARITY_TOKEN`, `GITHUB_REPOSITORY`) in section 1.9, or by hand in the dashboard.
 4. Hobby deploys only commits authored by the Hobby team owner. The GitHub login connected to Vercel must be the account that owns the team, and it must match the committer. The engine commits as that owner through the GitHub Actions variables `SINGULARITY_GIT_NAME` and `SINGULARITY_GIT_EMAIL`, which section 1.9 sends. If both are unset the engine commits as `singularity-bot`, and Hobby blocks those deploys.
 
 ### 1.4a Create the admin project (D224)
@@ -89,12 +89,12 @@ The design guide is a third project, `singularity-design`, with Root Directory `
 
 Do not add `www.news.someshks.work`. Do not turn the Cloudflare proxy on.
 
-### 1.7 Create the GitHub dispatch token
+### 1.7 Create the GitHub token
 
 1. In GitHub, open Settings, Developer settings, Fine-grained personal access tokens.
-2. Create a token with resource owner `somesh-ks`, access to the `dispatch` repository only, and these repository permissions: Actions read and write, Contents read. Nothing else.
+2. Create a token with resource owner `somesh-ks`, access to the `knowledge-hub` repository only, and these repository permissions: Actions read and write, Variables read and write, Contents read. Nothing else.
 3. Set an expiry and record it in section 6.
-4. Put the token in `.env` as `GITHUB_DISPATCH_TOKEN`. Set `GITHUB_REPOSITORY=somesh-ks/knowledge-hub`.
+4. Put the token in `.env` as `GITHUB_SINGULARITY_TOKEN`. Set `GITHUB_REPOSITORY=somesh-ks/knowledge-hub`.
 
 ### 1.8 No passphrase
 
@@ -118,7 +118,7 @@ For the Vercel side, open the project's Settings, Environment Variables in the d
 
 ### 1.10 Check the setup
 
-Run `npm run singularity -- doctor --online`. It checks Node, git, config, state and key names, then makes authenticated requests: the Anthropic and Gemini model lists must answer, Jev answers a trivial question, Exa answers one search (about 0.007 USD), Firecrawl reports credits, Speechify lists the voice id and Vercel Blob accepts a list call. Fix every `fail` and read every `warn` before going on.
+Run `npm run singularity -- doctor --online`. It checks Node, git, config, state and key names, then makes authenticated requests: the Anthropic and Gemini model lists must answer, Jev answers a trivial question, Exa answers one search (about 0.007 USD), Firecrawl reports credits, Speechify lists the voice id, Vercel Blob accepts a list call and the site's GitHub token opens the repository and reads Actions variables (with its expiry; write access cannot be tested). Fix every `fail` and read every `warn` before going on.
 
 ### 1.11 Push `main` and deploy
 
@@ -179,6 +179,16 @@ Monthly:
 | `ingest.yml` | Three times a day, or on demand | Runs `singularity ingest` (D233): reads the free sources and saves each new story's text to Blob and Neon. Reads the config store; commits nothing; spends no paid call |
 | `ci.yml` | A pull request | Runs typecheck, lint, tests and the build when code changed, always gitleaks and the audit, and both browser suites for some paths (D148). It does not deploy |
 | `branches.yml` | A pull request closing, daily, or on demand | Deletes the head branch of a closed pull request, and daily every branch whose pull requests are all closed (one with an open pull request, or none, stays). With the `NEON_API_KEY` secret and `NEON_PROJECT_ID` variable it also deletes Neon `preview/*` branches whose git branch is gone and keeps the newest two |
+| `podcast.yml` | The app's Catch up, Regenerate and Delete, or on demand | Writes, regenerates or deletes one episode and commits it under `Podcasts/`; the commit does not deploy (D199), `content.yml` mirrors it. Has its own queue (`singularity-podcast`), so an episode and a digest can run at the same time |
+| `config.yml` | The app's settings, one change per run, or on demand with the required `op` JSON string | Applies one config change (a topic, a source or a weight) as one commit through the write guard (D149). Shares `run.yml`'s queue |
+| `content.yml` | After a workflow that commits content, a push of `Digests/` or `Podcasts/` to `main`, or on demand | Mirrors the content into the Blob store the pages read (`singularity content sync`). Safe to rerun; run it by hand to fill an empty store (D173) |
+| `health.yml` | Daily, or on demand (drill) | Runs `singularity health`; a fault opens one `health` issue and heals a missed run once, warnings go to one `health-warnings` issue on Mondays ([hardening](engineering/hardening.md)). A drill proves the healing path without a real fault |
+| `smoke.yml` | After each production deploy and every three hours | Asks the live site five read-only questions (server, settings, GitHub token, home page, Library); a failure opens or comments on one `smoke` issue and the next pass closes it (D159) |
+| `browser.yml` | A push to `main` that changes the site, nightly, or called by `ci.yml` | Runs the two browser suites, the only checks that see CSS and layout (D148). Red check: [delivery failures](engineering/delivery-failures.md) |
+| `design-system.yml` | A pull request that touches the design system | Checks the `design-system` label and that a labelled PR holds only the system, the code that calls it, the guide and docs (D254). Reads the diff only |
+| `episode-eval.yml` | The `eval` label on a pull request, or on demand | Scores the episode fixtures with Jev and Sonnet, before and after a writer prompt change (D180). Paid calls, so only on request |
+| `automerge.yml` | After `ci.yml` passes | Squash-merges a Dependabot pull request; anything else waits for you. Its token cannot merge a pull request that edits `.github/workflows`: merge those by hand |
+| `seed.yml` | By hand only | Seeds the config store from the committed config with the `DATABASE_URL` secret; dry run by default (section 11) |
 
 Vercel itself builds every push to `main`, except pushes that touch nothing the site reads (`state`, `config`, docs and `.github`). A published digest therefore deploys twice: the text first, then the audio.
 
@@ -246,7 +256,7 @@ Rotate on a schedule, after any suspected leak, and before expiry. If a key appe
 1. Create the new key at the service. Delete the old one after the new one works.
 2. Edit the value in `.env`.
 3. Run `npm run secrets:push`.
-4. If the value feeds Vercel (`GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY`), redeploy from the Vercel dashboard (Deployments, Redeploy on the latest production deployment). Vercel applies new environment values only to new deployments.
+4. If the value feeds Vercel (`GITHUB_SINGULARITY_TOKEN`, `GITHUB_REPOSITORY`), redeploy from the Vercel dashboard (Deployments, Redeploy on the latest production deployment). Vercel applies new environment values only to new deployments.
 
 | Key | Rotate at | Used by |
 | --- | --- | --- |
@@ -257,15 +267,16 @@ Rotate on a schedule, after any suspected leak, and before expiry. If a key appe
 | `GEMINI_API_KEY` | Google AI Studio | YouTube transcription fallback, topic emoji backup (also sent to Vercel) |
 | `SPEECHIFY_API_KEY` | Speechify API console | Audio |
 | `BLOB_READ_WRITE_TOKEN` | The Blob store's settings in Vercel | Audio upload and prune |
-| `GITHUB_DISPATCH_TOKEN` | GitHub, Fine-grained personal access tokens | Generate button |
+| `GITHUB_SINGULARITY_TOKEN` | GitHub, Fine-grained personal access tokens | Generate button, workflow dispatch, reads and cancels, Actions variable writes, the scheduled dispatch (`/api/cron/run`) |
 
 Track expiry here. Fill the dates when you create each token and set a calendar reminder two weeks before.
 
 | Token | Created | Expires | Renew by |
 | --- | --- | --- | --- |
-| `GITHUB_DISPATCH_TOKEN` | | | |
+| `GITHUB_SINGULARITY_TOKEN` | | | |
+| `VERCEL_TOKEN` (optional, the audio workflow's CLI fallback) | | | |
 
-When `GITHUB_DISPATCH_TOKEN` expires, the Generate button stops working ("The server ran into a problem, so no briefing was started. Error ref ..."). Scheduled runs are unaffected, because `run.yml` uses the built-in workflow token. No Vercel token exists, so no Vercel token can expire.
+When `GITHUB_SINGULARITY_TOKEN` expires, the Generate button stops working ("The server ran into a problem, so no briefing was started. Error ref ...") and `/api/cron/run` can no longer start the on-time scheduled run; GitHub's own schedule remains a fallback, so a briefing may come late. `run.yml` itself uses the built-in workflow token. `VERCEL_TOKEN` is optional: the audio workflow's Vercel CLI fallback uses it when `BLOB_READ_WRITE_TOKEN` is absent, so track its expiry here when you set one.
 
 ---
 
@@ -323,7 +334,7 @@ Models are resolved at run start from the providers' lists. Symptoms: the run lo
 | Message | Cause | Fix |
 | --- | --- | --- |
 | "Generate is on cooldown. Try again in ..." or "Generate has reached its limit for today. Try again in ..." | One run in 6 hours, or three in 24 hours | Wait. Runs started by `gh` or the skills count too |
-| "The server ran into a problem, so ... Error ref 3f9a1c." (Create, Generate, Regenerate, Delete, saving settings) | The function answered but could not do the job: a Vercel variable is missing or malformed, or GitHub refused the dispatch (expired or under-privileged token) | Search the Vercel function logs for `ref 3f9a1c`: the lines name the missing variable or GitHub's answer. Then fix the variable, or rotate `GITHUB_DISPATCH_TOKEN` (section 6) |
+| "The server ran into a problem, so ... Error ref 3f9a1c." (Create, Generate, Regenerate, Delete, saving settings) | The function answered but could not do the job: a Vercel variable is missing or malformed, or GitHub refused the dispatch (expired or under-privileged token) | Search the Vercel function logs for `ref 3f9a1c`: the lines name the missing variable or GitHub's answer. Then fix the variable, or rotate `GITHUB_SINGULARITY_TOKEN` (section 6) |
 | "The server crashed before it could answer ..." | The function failed before it ran (a broken deploy, a missing native binary) or threw | Open the deployment's function logs in Vercel; redeploy or roll back. A thrown error is logged as `[api/...] [ref ...] crashed:` |
 
 ---

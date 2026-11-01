@@ -22,7 +22,7 @@ import {
 } from "../player/core/preferences";
 import { safeLocalStorage } from "../player/core/resume";
 import { startThemeSync } from "../player/core/themeRuntime";
-import { getHaptics, playUiCue } from "../player/sound/soundController";
+import { getHaptics, playUiCue, settleSoundSession } from "../player/sound/soundController";
 import { type Cue, cueForSwitch, cueForVolumeRelease } from "../player/sound/soundMap";
 import { installPromptReady, onInstallPromptChange, requestInstall } from "./installPrompt";
 
@@ -72,6 +72,8 @@ export function controlState(preferences: Preferences, soundsEnabled: boolean): 
 export interface SoundsSink {
   setSounds(enabled: boolean): void;
   play(cue: Cue): void;
+  /** Called after the preference changes, so the audio session follows it without waiting for a gesture. */
+  settle(): void;
 }
 
 /**
@@ -86,6 +88,7 @@ export function changeSounds(turningOn: boolean, sink: SoundsSink): void {
   } else {
     sink.play(cueForSwitch(false));
     sink.setSounds(false);
+    sink.settle();
   }
 }
 
@@ -109,6 +112,7 @@ function installHintApplies(): boolean {
 function mountSettings(root: HTMLElement): () => void {
   const preferences = getPreferences();
   const theme = root.querySelector<HTMLSelectElement>('select[name="theme"]');
+  const style = root.querySelector<HTMLSelectElement>('select[name="style"]');
   const sounds = root.querySelector<HTMLInputElement>('input[name="sounds"]');
   const haptics = root.querySelector<HTMLInputElement>('input[name="haptics"]');
   const hapticsSection = root.querySelector<HTMLElement>("[data-haptics-section]");
@@ -129,6 +133,13 @@ function mountSettings(root: HTMLElement): () => void {
   const render = (): void => {
     const state = controlState(preferences.get(), preferences.getSoundsEnabled());
     if (theme) theme.value = state.theme;
+    // A stored style tokens.json no longer holds looks like Default (the CSS has nothing for it).
+    if (style) {
+      const stored = preferences.get().style;
+      style.value = [...style.options].some((option) => option.value === stored)
+        ? stored
+        : "default";
+    }
     if (sounds) sounds.checked = state.sounds;
     if (haptics) haptics.checked = preferences.get().haptics;
     if (autoplay) autoplay.checked = preferences.get().autoplay;
@@ -149,6 +160,11 @@ function mountSettings(root: HTMLElement): () => void {
       if (chosen) preferences.set({ theme: chosen });
       return;
     }
+    if (input === style && style) {
+      // The same crossfade as a theme change; no sound.
+      preferences.set({ style: style.value });
+      return;
+    }
     if (input === haptics && haptics) {
       const on = haptics.checked;
       preferences.set({ haptics: on });
@@ -164,6 +180,7 @@ function mountSettings(root: HTMLElement): () => void {
       changeSounds(input.checked, {
         setSounds: (enabled) => preferences.set({ sounds: enabled }),
         play: playUiCue,
+        settle: settleSoundSession,
       });
     } else if (input === volume) {
       // A range reports a change when it is let go: a sample, so the level can be judged.
@@ -211,6 +228,7 @@ function mountSettings(root: HTMLElement): () => void {
   void root.offsetWidth;
   // The Theme select has waited inert for the listener above (settings.astro).
   if (theme) theme.inert = false;
+  if (style) style.inert = false;
   // Only a device that can answer is offered the choice (D273).
   if (hapticsSection) hapticsSection.hidden = getHaptics().support === "none";
   root.dataset.ready = "true";

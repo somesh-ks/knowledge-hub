@@ -149,6 +149,7 @@ export const run: CommandRun = async (argv, ctx) => {
     ...(store ? { store } : {}),
     ...(main ? { main } : {}),
     ...(deployments ? { deployments } : {}),
+    ...(site === null ? {} : { configStore: configStoreUrl(ctx.env) !== null }),
     voices: {
       SPEECHIFY_VOICE_ID: ctx.env.SPEECHIFY_VOICE_ID,
       SPEECHIFY_VOICE_ID_B: ctx.env.SPEECHIFY_VOICE_ID_B,

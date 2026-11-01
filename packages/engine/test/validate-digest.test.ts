@@ -1,8 +1,15 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { type Digest, parseDigestFile, type Source, seedTopicsFile } from "@singularity/core";
+import {
+  type Digest,
+  parseDigestFile,
+  type Source,
+  StructureBlocks,
+  seedTopicsFile,
+} from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { buildDigest } from "../src/render/buildDigest.js";
+import { sectionPlanFor } from "../src/score/sectionPlan.js";
 import { validateDigest } from "../src/validate/validateDigest.js";
 import { makeSource } from "./fetch-helpers.js";
 import {
@@ -128,6 +135,35 @@ describe("validateDigest", () => {
     const issue = validateDigest(digest, { linter }).issues.find((i) => i.code === "item_count");
     expect(issue?.overAllowance).toMatchObject({ section: "tech", excess: 1 });
     expect(issue?.overAllowance?.itemIds).toHaveLength(6);
+  });
+
+  // D297: the 2026-10-31 daily had 11 good Tech stories over its allowance and published nothing.
+  // A section may stand over its allowance only as far as the floor of 3 needs.
+  describe("a section over its allowance when the floor needs it", () => {
+    const plan = sectionPlanFor(
+      StructureBlocks.parse([
+        { type: "hello" },
+        { type: "section", id: "ui-craft", max_stories: 3 },
+        { type: "section", id: "tech", max_stories: 1 },
+        { type: "sign_off" },
+      ]),
+    );
+    const excessOf = (main: number, tech: number): number | undefined => {
+      const { digest } = buildFixtureDigest(main, {}, "regular", tech);
+      const issue = validateDigest(digest, { linter, plan }).issues.find(
+        (i) => i.code === "item_count",
+      );
+      return issue?.overAllowance?.excess;
+    };
+
+    it("lets Tech reach the floor of three", () => {
+      expect(excessOf(0, 3)).toBeUndefined();
+      expect(excessOf(1, 3)).toBe(1);
+    });
+
+    it("trims back to the allowance once the floor is met without it", () => {
+      expect(excessOf(3, 3)).toBe(2);
+    });
   });
 
   it("does not let the tech allowance raise the cap for everything else", () => {

@@ -144,6 +144,74 @@ function voiceGainValues(context: FakeContext): number[] {
     .map((gain) => gain.gain.value);
 }
 
+describe("audio session", () => {
+  function withSession() {
+    const session = { type: "auto" };
+    const state = { enabled: true };
+    const engine = createSoundEngine({
+      isEnabled: () => state.enabled,
+      getVolume: () => 1,
+      isNarrationPlaying: () => false,
+      isHidden: () => false,
+      createContext: () => new FakeContext() as unknown as AudioContext,
+      now: () => 1000,
+      getAudioSession: () => session,
+    });
+    return { engine, session, state };
+  }
+
+  it("takes the playback session only while Sounds is on, so a listener with Sounds off keeps other apps' audio", () => {
+    const { engine, session, state } = withSession();
+    state.enabled = false;
+    engine.unlock();
+    expect(session.type).toBe("auto");
+    // Switching Sounds on plays its confirmation cue: the session must be ready for it.
+    state.enabled = true;
+    expect(engine.play("toggleOn")).toBe(true);
+    expect(session.type).toBe("playback");
+    // Switching Sounds off gives the session back with no gesture after it, once its own cue is over:
+    // dropping "playback" under a sound that is still playing would cut it short on an iPhone.
+    vi.useFakeTimers();
+    try {
+      expect(engine.play("toggleOff")).toBe(true);
+      state.enabled = false;
+      engine.refreshSession();
+      expect(session.type).toBe("playback");
+      // A tap while the cue is still sounding must not drop the session under it either.
+      engine.unlock();
+      expect(session.type).toBe("playback");
+      vi.advanceTimersByTime(5_000);
+      expect(session.type).toBe("auto");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the session when Sounds is turned back on before the old cue has ended", () => {
+    const { engine, session, state } = withSession();
+    vi.useFakeTimers();
+    try {
+      engine.unlock();
+      expect(engine.play("toggleOff")).toBe(true);
+      state.enabled = false;
+      engine.refreshSession();
+      state.enabled = true;
+      vi.advanceTimersByTime(5_000);
+      expect(session.type).toBe("playback");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("gives the session back when the engine is disposed, so a replacement that starts with Sounds off finds it released", () => {
+    const { engine, session } = withSession();
+    engine.unlock();
+    expect(session.type).toBe("playback");
+    engine.dispose();
+    expect(session.type).toBe("auto");
+  });
+});
+
 describe("lazy context", () => {
   it("creates no AudioContext until unlock, and exactly one after repeated unlocks", () => {
     const { engine, created } = harness();

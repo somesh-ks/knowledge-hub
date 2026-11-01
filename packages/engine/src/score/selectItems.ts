@@ -527,6 +527,11 @@ export function selectItems(input: SelectInput): SelectResult {
 
   const ownTaken = takeOwnSections(own, total - chosen.size, plan);
   const chosenTech = ownTaken.chosen;
+  // A briefing the allowances leave under the floor takes the best stories they cut, as many as
+  // the floor needs (D297): validation lets a section stand over its allowance that far.
+  const lacking = input.floor - chosen.size - chosenTech.length;
+  const toppedUp = lacking > 0 ? ownTaken.over.slice(0, lacking) : [];
+  chosenTech.push(...toppedUp);
   for (const candidate of main) {
     if (!chosen.has(candidate)) {
       const reason =
@@ -535,6 +540,7 @@ export function selectItems(input: SelectInput): SelectResult {
     }
   }
   for (const candidate of ownTaken.over) {
+    if (toppedUp.includes(candidate)) continue;
     dropped.push({
       id: candidate.item.id,
       reason: isTech(candidate) ? "over_tech_cap" : "over_section_cap",

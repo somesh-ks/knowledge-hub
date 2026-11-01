@@ -80,6 +80,30 @@ describe("docs check", () => {
     expect(fails).toEqual([expect.stringMatching(/^decisions Index: \d+ bytes, budget 40000$/)]);
   });
 
+  // Bug: the Index neared its 40,000-byte cap with 280 rows. Old rows now move to index-archive.md, and
+  // the row, entry and supersession checks must still see them or the move would hide a broken record.
+  it("reads rows moved to the Index archive, and fails a row held in both or without an entry", () => {
+    const entries = { "docs/decisions/area.md": "## D1: One\n\n## D2: Two\n" };
+    const live = "## Index\n\n| D2 | Two | active; replaces D1 |\n";
+    const archive = (row: string) => `# Index archive\n\n| ID | Decision | Status |\n${row}\n`;
+    const check = (rows: string) =>
+      checkDocs(
+        repo({
+          "docs/decisions/README.md": live,
+          "docs/decisions/index-archive.md": archive(rows),
+          ...entries,
+        }),
+      ).fails;
+    expect(check("| D1 | One | superseded by D2 |")).toEqual([]);
+    expect(check("| D1 | One | active |")).toEqual([expect.stringContaining("D1's row")]);
+    expect(check("| D1 | One | superseded by D2 |\n| D2 | Two | active |")).toEqual([
+      expect.stringContaining("D2 appears twice"),
+    ]);
+    expect(check("| D1 | One | superseded by D2 |\n| D7 | Seven | active |")).toEqual([
+      expect.stringContaining("Index row D7 has no entry"),
+    ]);
+  });
+
   // Bug: D136 "replaces D46, D58, D113, D130" while their rows still said active, so agents grepping
   // the Index status column built on dead decisions.
   it("fails a row that replaces a decision whose own row still says active", () => {
@@ -117,11 +141,59 @@ describe("docs check", () => {
         "| D1 | One | active |\n| D2 | Two | active |\n| D3 | Three | active |\n| D4 | Four | active; replaces D9 |",
       ),
     ).toEqual([expect.stringContaining("D9, which does not exist")]);
+    // "supersedes" retires its target the same way "replaces" does, and a partial supersession of the
+    // target ("partly superseded by") is enough.
+    expect(
+      check(
+        "| D1 | One | partly superseded by D4 |\n| D2 | Two | active |\n| D3 | Three | active |\n| D4 | Four | supersedes D1, D2 |",
+      ),
+    ).toEqual([expect.stringContaining("D2's row")]);
     // A partial supersession ("the writer part") leaves the decision active, so it does not retire it.
     expect(
       check(
         "| D1 | One | active; the writer part superseded by D2 |\n| D2 | Two | active; replaces D1 |\n| D3 | Three | active |\n| D4 | Four | active |",
       ),
     ).toEqual([expect.stringContaining("D1's row")]);
+  });
+
+  // Bug (review of #553): "replaces" passed against a "partly superseded" row, and a row superseded by
+  // some other decision passed, so a search for the old decision never reached the new one.
+  it("holds replaces to full retirement and the old row to naming the decision that retires it", () => {
+    const entries = {
+      "docs/decisions/area.md": "## D1: One\n\n## D2: Two\n\n## D3: Three\n\n## D4: Four\n",
+    };
+    const check = (rows: string) =>
+      checkDocs(repo({ "docs/decisions/README.md": `## Index\n\n${rows}\n`, ...entries })).fails;
+    expect(
+      check(
+        "| D1 | One | partly superseded by D2 |\n| D2 | Two | active; replaces D1 |\n| D3 | Three | active |\n| D4 | Four | active |",
+      ),
+    ).toEqual([expect.stringContaining("D1's row is not")]);
+    expect(
+      check(
+        "| D1 | One | superseded by D3 |\n| D2 | Two | active |\n| D3 | Three | active |\n| D4 | Four | supersedes D1 |",
+      ),
+    ).toEqual([expect.stringContaining("D1's row is not")]);
+    expect(
+      check(
+        "| D1 | One | superseded by D3, D4 |\n| D2 | Two | active |\n| D3 | Three | active |\n| D4 | Four | supersedes D1 |",
+      ),
+    ).toEqual([]);
+    // Every id of the list must exist, not only the first.
+    expect(
+      check(
+        "| D1 | One | superseded by D4, D9 |\n| D2 | Two | active |\n| D3 | Three | active |\n| D4 | Four | supersedes D1 |",
+      ),
+    ).toEqual([expect.stringContaining('"superseded by D9" names a decision that does not exist')]);
+    // An entry's own "Superseded by: D3, D9" line is read the same way.
+    expect(
+      checkDocs(
+        repo({
+          "docs/decisions/README.md":
+            "## Index\n\n| D1 | One | active |\n| D2 | Two | active |\n| D3 | Three | active |\n",
+          "docs/decisions/area.md": "## D1: One\n\nSuperseded by: D3, D9\n\n## D3: Three\n",
+        }),
+      ).fails,
+    ).toEqual([expect.stringContaining('"superseded by D9" names a decision that does not exist')]);
   });
 });
