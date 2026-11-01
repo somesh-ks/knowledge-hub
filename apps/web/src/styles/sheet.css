@@ -138,6 +138,8 @@ dialog.sheet-side[data-scrolled] .sheet-head {
 .sheet-head[data-has-back] {
   padding-block: var(--space-4) var(--space-2);
   padding-inline: var(--space-2);
+  /* In a menu's popover the head sits on the popover's own surface, not the sheet's. */
+  background: transparent;
 }
 
 /* On a phone a sheet has no visible Close (owner, 2026-10-21, D144): it is pulled down or tapped away.
