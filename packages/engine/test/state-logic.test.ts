@@ -19,7 +19,7 @@ import {
   pruneSeen,
   SEEN_RETENTION_DAYS,
 } from "../src/state/prune.js";
-import { recordRun } from "../src/state/runRecord.js";
+import { recordFailure, recordRun } from "../src/state/runRecord.js";
 import { applySourceResults, failingSources } from "../src/state/sourceHealth.js";
 import { CATEGORY_PROBS, makeSource } from "./fetch-helpers.js";
 
@@ -97,6 +97,62 @@ describe("markSeen", () => {
   });
 });
 
+// A job that died before the commit stage marks the slot failed; the retry's window must still
+// start where the regular digest's last window ended, not at an on-demand run's later fetch.
+describe("recordFailure", () => {
+  it("keeps where the slot's last window ended", () => {
+    const base: LastRunFile = {
+      version: 1,
+      regular: {
+        at: "2026-10-05T06:00:00.000Z",
+        outcome: "published",
+        items: 8,
+        fetched_through: "2026-10-05T05:13:00.000Z",
+      },
+      last_fetch_at: "2026-10-06T22:13:00.000Z",
+    };
+    const next = recordFailure(base, ["regular"], "2026-10-07T05:20:00.000Z");
+    expect(next.regular).toEqual({
+      at: "2026-10-07T05:20:00.000Z",
+      outcome: "failed",
+      items: 0,
+      fetched_through: "2026-10-05T05:13:00.000Z",
+    });
+  });
+});
+
+describe("recordFailure from a record without fetched_through", () => {
+  it("keeps the time the earlier run finished, so a retry does not start at a later fetch", () => {
+    const base: LastRunFile = {
+      version: 1,
+      regular: { at: "2026-10-05T07:00:00.000Z", outcome: "published", items: 8 },
+      last_fetch_at: "2026-10-06T22:13:00.000Z",
+    };
+    const next = recordFailure(base, ["regular"], "2026-10-07T05:20:00.000Z");
+    expect(next.regular?.fetched_through).toBe("2026-10-05T07:00:00.000Z");
+    // The run finished after its window closed, so its time is never taken past the last fetch.
+    const capped = recordFailure(
+      { ...base, last_fetch_at: "2026-10-05T05:13:00.000Z" },
+      ["regular"],
+      "2026-10-07T05:20:00.000Z",
+    );
+    expect(capped.regular?.fetched_through).toBe("2026-10-05T05:13:00.000Z");
+    // With no last fetch on record nothing is known, so nothing is invented.
+    const unknown = recordFailure(
+      { version: 1, regular: base.regular },
+      ["regular"],
+      "2026-10-07T05:20:00.000Z",
+    );
+    expect(unknown.regular?.fetched_through).toBeUndefined();
+    // A failed record with nothing to keep gains nothing.
+    expect(recordFailure(next, ["weekly"], "2026-10-07T05:21:00.000Z").weekly).toEqual({
+      at: "2026-10-07T05:21:00.000Z",
+      outcome: "failed",
+      items: 0,
+    });
+  });
+});
+
 describe("recordRun", () => {
   const published: RunRecord = {
     at: "2026-10-07T05:13:00.000Z",
@@ -111,8 +167,21 @@ describe("recordRun", () => {
       { version: 1 },
       { kind: "regular", record: published, fetchedThrough: through },
     );
-    expect(next.regular).toEqual(published);
+    expect(next.regular).toEqual({ ...published, fetched_through: "2026-10-07T05:13:00.000Z" });
     expect(next.last_fetch_at).toBe("2026-10-07T05:13:00.000Z");
+  });
+
+  it("keeps a slot's window end moving forward when an older pass commits later", () => {
+    const newer = recordRun(
+      { version: 1 },
+      { kind: "regular", record: published, fetchedThrough: new Date("2026-10-07T05:13:00Z") },
+    );
+    const after = recordRun(newer, {
+      kind: "regular",
+      record: published,
+      fetchedThrough: new Date("2026-10-05T05:13:00Z"),
+    });
+    expect(after.regular?.fetched_through).toBe("2026-10-07T05:13:00.000Z");
   });
 
   it("keeps one slot per kind, so on-demand never shifts the regular cadence", () => {

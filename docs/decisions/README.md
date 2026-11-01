@@ -157,5 +157,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D293 | On-demand covers are served at /covers | supersedes D263; amends D256, D258 |
 | D294 | Scheduled writer uses Message Batches | amends D209 (step 3 built, step 2 open); D135 ended |
 | D295 | Playback audio session only while Sounds is on | amends D105 |
+| D297 | A section may stand over its allowance only as far as the floor needs | amends D35 |
 
 ---

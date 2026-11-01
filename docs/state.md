@@ -27,7 +27,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - More menu (D214); Catch up album, Share circle, cards (D219); long press, haptics (D264, D273); push ping (D284). closed when: signed off.
 - Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused; a regenerate or delete uses none.
 - Three regenerations per podcast, counted in its own file (D212). closed when: the page shows "2 of 3 regenerations left".
-- The 10-31 scheduled daily published nothing (pool 94 against 492 to 647; the 10-30 on-demand briefing probably took the unseen items). closed when: two scheduled dailies in a row publish.
+- The 10-31 scheduled daily published nothing: a 6-hour window (an on-demand briefing had moved the shared start), 11 Tech stories over the Tech allowance, 2 of 4 stories lost in writing, and a refill whose 3 Tech picks the allowance trimmed again. Fixed: the regular window starts at its own last window; a Tech-heavy day may air Tech past its allowance only to reach the floor (D297); the refill writes nothing the allowance will trim. closed when: the next two scheduled dailies publish.
 - Short podcasts (D204, D216 to D225). closed when: two dailies in a row air within 10% of length, and `singularity metrics` shows ten runs at `length_share` 0.9+, `failure_rate` 0.1 or less.
 - Ingest in shadow (D233, D251). closed when: for 7 days the store holds 90% of each daily's stories and reads 90% of pages tried (`ingest --coverage`).
 - Trusted publishers (D234) and community lift (D240), shipped off. closed when: both on and a daily airs a lab story and a community-voted one, no source over 30%.
@@ -54,7 +54,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 
 ## Known risks
 
-- Vercel storage near 10 GB. closed when: explained.
+- Storage measured 2026-11-01: the Blob store is 133 MB (about 5.6 MB a day since it was created 10-06, so Hobby's 1 GB at about 5 months) and Neon is 11 MB (`ingest_items` 1.5 MB, 2,946 rows). The "near 10 GB" Vercel figure is neither, source unknown. closed when: the 10 GB is named in the Usage tab, and the sizes are read again at the plan call (11-06 to 11-08).
 - `main` has no ruleset: `.github/rulesets/main.json` was never imported (runbook, branch protection). closed when: the rulesets API lists it.
 - No passphrase (D160): anyone with the URL can run, narrate, delete and edit config, within the caps.
 - Budget counters can read below real spend: workflow and site count apart against one Speechify allowance.
