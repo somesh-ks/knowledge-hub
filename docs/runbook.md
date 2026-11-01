@@ -264,6 +264,7 @@ Track expiry here. Fill the dates when you create each token and set a calendar 
 | Token | Created | Expires | Renew by |
 | --- | --- | --- | --- |
 | `GITHUB_SINGULARITY_TOKEN` | | | |
+| `VERCEL_TOKEN` (optional, the audio workflow's CLI fallback) | | | |
 
 When `GITHUB_SINGULARITY_TOKEN` expires, the Generate button stops working ("The server ran into a problem, so no briefing was started. Error ref ...") and `/api/cron/run` can no longer start the on-time scheduled run; GitHub's own schedule remains a fallback, so a briefing may come late. `run.yml` itself uses the built-in workflow token. `VERCEL_TOKEN` is optional: the audio workflow's Vercel CLI fallback uses it when `BLOB_READ_WRITE_TOKEN` is absent, so track its expiry here when you set one.
 
