@@ -48,7 +48,7 @@ Never paste a key into chat. The agent cannot read `.env`; keep it that way.
 
 ### 1.3 Pick the writer model
 
-Models are not chosen in `.env` or Settings. `config/models.json` lists, per step, an ordered chain of model families (jev, claude-sonnet, claude-haiku, gemini-flash, gemini-flash-lite; never Opus, Gemini Pro or Nebius). At run start the engine lists each provider's models and uses the newest of each family; `fallback_id` is used when listing fails and `pin` forces an id. With `ANTHROPIC_API_KEY` and `GEMINI_API_KEY` in `.env`:
+Models are not chosen in `.env` or Settings. `config/models.json` lists, per step, an ordered chain of model families (jev, claude-sonnet, claude-haiku, gemini-flash, gemini-flash-lite; never Opus, Gemini Pro or Nebius). At run start the engine lists each provider's models and uses the newest of each family; `fallback_id` is used when listing fails and `pin` forces an id. Jev is the exception: its id is fixed in code (`DEFAULT_JEV_MODEL`, `judge/jev.ts`), so that cached judgements stay valid, and the `jev` entry only names it in the run log. With `ANTHROPIC_API_KEY` and `GEMINI_API_KEY` in `.env`:
 
 
 
