@@ -40,7 +40,8 @@ const KNOWN: Record<string, NarrationFailure> = {
   unavailable: "unavailable",
   // The write routes answer only the owner's session (D307); no retry helps until they sign in.
   unauthorized: "sign_in",
-  admin_not_set_up: "sign_in",
+  // The secret is missing server side: signing in cannot help, so it reads as a server problem.
+  admin_not_set_up: "unavailable",
 };
 
 type Json = Record<string, unknown>;
