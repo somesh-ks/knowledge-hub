@@ -297,5 +297,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D281 | Downloads page, no cap | amends D127, D264 |
 | D284 | Push pings | amends D11 |
 | D285 | Switch can be mixed | |
+| D287 | Column and list centred together | amends D229 |
 
 ---

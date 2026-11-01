@@ -1,11 +1,12 @@
 # State
 
-Updated 2026-10-31. Rewrite, never append.
+Updated 2026-11-01. Rewrite, never append.
 
 ## Working
 
 - Engine live end to end: [engine](specs/engine.md). A run that loses stories or races a push degrades, not fails, and records health (D204): [resilience](engineering/generation-resilience.md), [metrics](engineering/metrics.md).
 - Reader: [library](specs/library.md), [settings](specs/settings.md), [health](specs/health.md), [look](specs/look-and-sound.md).
+- Desktop layout: the column is centred in the pane, and a page with a contents list centres the column and the list together, the Library's width (D287).
 - Player as one surface: transcript, chapters, a queue that keeps played items (D277): [player](specs/player.md).
 - Narration on Play, per story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes (D198): [narration](specs/narration.md), [create](specs/create.md).
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). Regenerate and Catch up queue with Cancel; ended runs stay for the day (D204, D231).

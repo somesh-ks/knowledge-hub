@@ -741,7 +741,7 @@ html[data-mini="visible"] main {
 
   /* A page with a contents list is as wide as --column-wide, centred: the column, a step and the list,
      so the whole group, not the column alone, sits on the middle of the pane (owner, 2026-11-01: the
-     column beside its list read as right of centre, with a 28px step). The Library's gallery has the
+     column beside its list read as right of centre, with a narrow step, D287). The Library's gallery has the
      same width, so its left edge is the column's. The outer tracks stay equal. */
   .shell:has(> .aside) {
     grid-template-columns:
