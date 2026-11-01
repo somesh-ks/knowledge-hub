@@ -117,7 +117,11 @@ export async function judgeStage(deps: RunDeps, plan: Plan): Promise<StageReport
       const rest = pool.items.filter((item) => !topicOnly.has(item.id) && !comboIds.has(item.id));
       // What is already paid for goes into the caches before the general judge runs, so a throw in it
       // (or in finishing the topics) does not lose it.
-      cache = mergeJudgments(cache, combined.entries);
+      // A combined answer carries its transcript basis into the cache, or the next attempt drops it as stale.
+      cache = mergeJudgments(
+        cache,
+        combined.entries.map((entry) => withBasis(entry, spoken.basis)),
+      );
       const topics =
         topicPlan !== null
           ? finishTopicJudging(topicPlan, [...combined.topicEntries, ...freshTopic], topicCache)

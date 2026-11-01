@@ -119,9 +119,13 @@ export function createPreferencesStore(options: PreferencesStoreOptions): Prefer
       // The patch goes onto what the device holds now, not this tab's copy from when it loaded: a
       // change another tab made to a key this patch leaves alone survives (CFG-05).
       let base = current;
+      let stored = false;
       try {
         const raw = storage?.getItem(PREFERENCES_KEY) ?? null;
-        if (raw !== null) base = parsePreferences(raw);
+        if (raw !== null) {
+          base = parsePreferences(raw);
+          stored = true;
+        }
       } catch {
         // Unreadable storage: the tab's own copy is the best there is.
       }
@@ -137,6 +141,13 @@ export function createPreferencesStore(options: PreferencesStoreOptions): Prefer
       } catch {
         // Storage is best effort. The change still applies for this session.
         unsaved = { ...unsaved, ...patch };
+        // A field changed back to what the device holds is not pending: keeping it would later
+        // overwrite a newer value another tab stored.
+        if (stored) {
+          for (const key of Object.keys(unsaved) as (keyof Preferences)[]) {
+            if (unsaved[key] === base[key]) delete unsaved[key];
+          }
+        }
       }
       for (const listener of listeners) listener();
     },

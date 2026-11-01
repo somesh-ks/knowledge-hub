@@ -98,6 +98,23 @@ describe("preferences store", () => {
     expect(store.get()).toMatchObject({ theme: "light", rate: 1.5 });
   });
 
+  it("does not keep a change that went back to what the device holds over a newer one from another tab", () => {
+    const storage = new MemoryStorage();
+    const store = createPreferencesStore({ storage, defaultSounds: () => true });
+    const other = createPreferencesStore({ storage, defaultSounds: () => true });
+    store.set({ theme: "dark" });
+    const write = storage.setItem.bind(storage);
+    storage.setItem = () => {
+      throw new Error("QuotaExceededError");
+    };
+    store.set({ theme: "light" });
+    store.set({ theme: "dark" });
+    storage.setItem = write;
+    other.set({ theme: "light" });
+    store.set({ rate: 1.5 });
+    expect(store.get()).toMatchObject({ theme: "light", rate: 1.5 });
+  });
+
   it("keeps the snapshot identity until something changes, and notifies once per change", () => {
     const store = createPreferencesStore({
       storage: new MemoryStorage(),
