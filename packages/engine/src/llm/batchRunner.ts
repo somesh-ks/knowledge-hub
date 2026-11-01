@@ -14,6 +14,10 @@ export interface BatchRunOptions {
   cancelWaitMs?: number;
   /** Consecutive failed status reads that end the wait. */
   maxPollFailures?: number;
+  /** Called once the batch is accepted: the run now owes a look at what it billed. */
+  onOpen?: (batchId: string) => void | Promise<void>;
+  /** Called once the results are read. A batch the wait gave up on never gets here. */
+  onClosed?: (batchId: string) => void | Promise<void>;
 }
 
 const POLL_MS = 30_000;
@@ -28,6 +32,8 @@ const MAX_POLL_FAILURES = 6;
  *
  * At the cutoff the batch is cancelled and its status polled until it ends, because results read
  * before it ends would miss entries that were still finishing; those results are the ones billed.
+ * A batch the wait gives up on (status unreadable, cancel not ended, results unreadable) stays
+ * open: `settleOpenBatches` reads what it billed once the run's stages are done.
  */
 export async function runBatch(
   api: BatchApi,
@@ -52,6 +58,7 @@ export async function runBatch(
     return new Map();
   }
   log?.info("Writer batch submitted", { batch: batchId, requests: entries.length });
+  await options.onOpen?.(batchId);
 
   let cancelled = false;
   let cancelDeadline = Number.POSITIVE_INFINITY;
@@ -89,7 +96,9 @@ export async function runBatch(
     await sleep(pollMs);
   }
   try {
-    return await api.results(batchId);
+    const outcomes = await api.results(batchId);
+    await options.onClosed?.(batchId);
+    return outcomes;
   } catch (error) {
     log?.warn("The batch results could not be read", {
       reason: error instanceof Error ? error.message : "unknown",
