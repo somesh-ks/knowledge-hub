@@ -694,6 +694,7 @@
         "--color-info-subtle",
         "--color-success",
         "--color-success-subtle",
+        "--color-surface",
         "--color-warning",
         "--color-warning-subtle",
         "--size-icon"

@@ -41,14 +41,16 @@
     calc((var(--text-label-size) * var(--text-label-leading) - var(--size-icon)) / 2)
   );
   color: var(--tone);
+  animation: var(--banner-icon-animation, none);
 }
 
 .banner-text {
-  flex: 1;
+  flex: var(--banner-text-grow, 1);
   min-width: 0;
   font-size: var(--text-label-size);
   letter-spacing: var(--text-label-tracking);
   line-height: var(--text-label-leading);
+  animation: var(--banner-text-animation, none);
 }
 
 .banner-title {
@@ -60,9 +62,13 @@
   line-height: var(--font-leading-body);
 }
 
-/* The strip: a flat band across the width, for a state of the device (offline, back online). It is
-   drawn over the page, never in it, so it takes no line and moves nothing; the place that draws it
-   sets where it sits and --strip-height, --strip-inset-top (the safe area it also covers). */
+/* The strip: a band across the width, for a state of the device (offline, back online). It is drawn
+   over the page, never in it, so it takes no line and moves nothing; the place that draws it sets
+   where it sits and --strip-height, --strip-inset-top (the safe area it also covers). Its ground is
+   the tone mixed into the surface, firmer than a block's: a band that is nearly white reads as a
+   mistake. Its contents are centred. It opens outward from the middle, the icon pops in a beat later,
+   and the offline glyph flickers once like a lost signal. The spring durations collapse with
+   reduced motion, so none of it plays then. */
 .banner-notice[data-variant="strip"] {
   align-items: center;
   justify-content: center;
@@ -71,14 +77,77 @@
   padding-block: var(--strip-inset-top, 0) 0;
   padding-inline: var(--page-gutter);
   border-radius: 0;
-  /* One line, centred: the icon needs no nudge onto a title's first line. */
+  background: color-mix(in oklch, var(--tone) 22%, var(--color-surface));
+  /* One line, centred: the icon needs no nudge onto a title's first line, and the text takes only
+     its own width. */
   --banner-icon-offset: 0;
-  animation: banner-strip-in var(--duration-state) var(--ease-out) both;
+  --banner-text-grow: 0;
+  --banner-icon-animation: banner-strip-icon var(--duration-spring-spatial-fast)
+    var(--ease-spring-spatial-fast) var(--duration-stagger) both;
+  --banner-text-animation: banner-strip-text var(--duration-spring-effects-slow) var(--ease-out)
+    calc(var(--duration-stagger) * 2) both;
+  animation: banner-strip-in var(--duration-spring-spatial-default) var(--ease-spring-settle) both;
+}
+
+.banner-notice[data-variant="strip"][data-tone="warning"] {
+  --banner-icon-animation:
+    banner-strip-icon var(--duration-spring-spatial-fast) var(--ease-spring-spatial-fast)
+    var(--duration-stagger) both,
+    banner-strip-flicker var(--duration-spring-settle) var(--ease-out)
+    calc(var(--duration-spring-spatial-default) + var(--duration-stagger));
+}
+
+.banner-notice[data-variant="strip"][data-leaving] {
+  animation: banner-strip-out var(--duration-sheet-out) var(--ease-in-out) both;
 }
 
 @keyframes banner-strip-in {
   from {
     transform: translateY(-100%);
+    clip-path: inset(0 40% 0 40%);
+  }
+
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes banner-strip-out {
+  to {
+    transform: translateY(-100%);
+    clip-path: inset(0 40% 0 40%);
+  }
+}
+
+@keyframes banner-strip-icon {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+}
+
+@keyframes banner-strip-text {
+  from {
+    transform: translateY(var(--space-1));
+    opacity: 0;
+  }
+}
+
+@keyframes banner-strip-flicker {
+  20% {
+    transform: rotate(-14deg);
+  }
+
+  40% {
+    transform: rotate(10deg);
+  }
+
+  60% {
+    transform: rotate(-6deg);
+  }
+
+  80% {
+    transform: rotate(2deg);
   }
 }
 
