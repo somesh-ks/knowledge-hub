@@ -189,9 +189,11 @@ async function applyOne(next: Choices): Promise<Choices> {
   if (KINDS.some((kind) => next[kind])) {
     if (!(await ensureSubscribed())) return before;
     saveChoices(next);
-    // A Daily or Weekly the server did not register would never be sent: those two go back to what
+    // The server only hears about Daily and Weekly. If it did not take a change to them (a Daily it
+    // never registered would not be sent, a Weekly it kept would still be), those two go back to what
     // they were. Podcast ready is its own choice and stays.
-    if (!(await syncDevice(next)) && (next.daily || next.weekly)) {
+    const scheduledChanged = next.daily !== before.daily || next.weekly !== before.weekly;
+    if (scheduledChanged && !(await syncDevice(next))) {
       const kept = { ...next, daily: before.daily, weekly: before.weekly };
       saveChoices(kept);
       return kept;
