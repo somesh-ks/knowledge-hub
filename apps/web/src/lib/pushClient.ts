@@ -52,6 +52,16 @@ export function globalState(chosen: Choices): "on" | "off" | "mixed" {
   return on === 0 ? "off" : on === KINDS.length ? "on" : "mixed";
 }
 
+/**
+ * The choices after a press. The global switch sets every kind to the state it now shows: pressing it
+ * while mixed (the browser flips an unchecked, indeterminate checkbox to checked) turns everything on,
+ * and pressing it while all are on turns everything off. A kind's own switch changes only that kind.
+ */
+export function afterPress(before: Choices, pressed: Kind | "all", checked: boolean): Choices {
+  if (pressed === "all") return { daily: checked, weekly: checked, ready: checked };
+  return { ...before, [pressed]: checked };
+}
+
 /** The VAPID public key as the bytes `pushManager.subscribe` wants. */
 export function keyBytes(key: string): Uint8Array<ArrayBuffer> {
   const padded = `${key}${"=".repeat((4 - (key.length % 4)) % 4)}`

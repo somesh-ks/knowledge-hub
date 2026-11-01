@@ -1,4 +1,5 @@
 import {
+  afterPress,
   applyChoices,
   type Choices,
   globalState,
@@ -65,13 +66,9 @@ export function mountNotifications(root: HTMLElement): () => void {
   const onChange = async (event: Event): Promise<void> => {
     const target = event.target;
     if (!(target instanceof HTMLInputElement)) return;
-    const kind = KINDS.find((candidate) => switches.get(candidate) === target);
-    if (target !== all && !kind) return;
-    const next: Choices = { ...readChoices() };
-    for (const each of KINDS) {
-      if (target === all) next[each] = target.checked;
-      else if (each === kind) next[each] = target.checked;
-    }
+    const pressed = target === all ? "all" : KINDS.find((kind) => switches.get(kind) === target);
+    if (!pressed) return;
+    const next = afterPress(readChoices(), pressed, target.checked);
     // The switches move at once; a refusal from the browser puts them back.
     show(next);
     show(await applyChoices(next));
