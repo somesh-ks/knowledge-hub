@@ -126,7 +126,8 @@ const RAMP_DESCRIPTIONS: Record<RampName, string> = {
   green: "Success.",
   orange: "Warning. Clear orange, not brown: hue 47 keeps step 500 at 4.5:1 as text.",
   red: "Danger.",
-  violet: "The Expressive style's accent: an electric violet at the highest chroma the curve allows, so a selected state, a fill and a tint read as colour, not as grey with a hint.",
+  violet:
+    "The Expressive style's accent: an electric violet at the highest chroma the curve allows, so a selected state, a fill and a tint read as colour, not as grey with a hint.",
 };
 
 type JsonObject = Record<string, unknown>;
