@@ -87,12 +87,14 @@ export function readChoices(): Choices {
   }
 }
 
-function saveChoices(choices: Choices): void {
+/** False when storage refused: the choice cannot be kept, so it would read Off next time. */
+function saveChoices(choices: Choices): boolean {
   try {
     if (KINDS.some((kind) => choices[kind])) localStorage.setItem(KEY, JSON.stringify(choices));
     else localStorage.removeItem(KEY);
+    return true;
   } catch {
-    // Storage is off: the choice cannot be kept, so it reads Off next time.
+    return false;
   }
 }
 
@@ -196,7 +198,9 @@ async function applyOne(next: Choices): Promise<Choices> {
   const before = readChoices();
   if (KINDS.some((kind) => next[kind])) {
     if (!(await ensureSubscribed())) return before;
-    saveChoices(next);
+    // Nothing is told to the server that this browser could not remember: it would send Daily or
+    // Weekly pings that the switches then show as Off.
+    if (!saveChoices(next)) return before;
     // The server only hears about Daily and Weekly. If it did not take a change to them (a Daily it
     // never registered would not be sent, a Weekly it kept would still be), those two go back to what
     // they were. Podcast ready is its own choice and stays.
