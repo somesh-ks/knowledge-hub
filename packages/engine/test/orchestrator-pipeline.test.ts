@@ -127,6 +127,7 @@ describe("published run", () => {
         outcome: "published",
         digest_id: "2026-10-07",
         generated_at: WED.toISOString(),
+        fetched_through: WED.toISOString(),
         items: 6,
       });
       expect(lastRun.last_fetch_at).toBe(WED.toISOString());
@@ -354,6 +355,7 @@ describe("nothing outcome", () => {
       outcome: "nothing",
       items: 0,
       generated_at: WED.toISOString(),
+      fetched_through: WED.toISOString(),
     });
     expect(lastRun.last_fetch_at).toBe(WED.toISOString());
     expect(lastRun.last_cover).toBeUndefined();
