@@ -22,6 +22,7 @@ import {
   composite,
   contrastRatio,
   oklchStringToRgb,
+  oklchToRgb,
   parseOklch,
   type Rgb,
   relativeLuminance,
@@ -32,6 +33,32 @@ import { type SpringParams, springCurve } from "./springCurve.js";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const doc: TokenDocument = loadTokens();
 const MODES: Mode[] = ["light", "dark"];
+
+/** CSS `color-mix(in oklab, base, over share)`: the share of `over` laid over `base`. */
+function mixOklab(base: Rgb, over: Rgb, share: number): Rgb {
+  const toOklab = (rgb: Rgb) => {
+    const lin = [rgb.r, rgb.g, rgb.b].map((v) =>
+      v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4,
+    );
+    const [r, g, b] = lin as [number, number, number];
+    const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+    const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+    const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+    return [
+      0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+      1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+      0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+    ] as const;
+  };
+  const a = toOklab(base);
+  const b = toOklab(over);
+  const [L, A, B] = [0, 1, 2].map((i) => a[i]! * (1 - share) + b[i]! * share) as [
+    number,
+    number,
+    number,
+  ];
+  return oklchToRgb({ l: L, c: Math.hypot(A, B), h: (Math.atan2(B, A) * 180) / Math.PI, alpha: 1 });
+}
 
 function colorOf(path: string, mode: Mode): Rgb {
   const literal = resolveLiteral(doc, path, mode);
@@ -227,6 +254,19 @@ describe("color contrast", () => {
         colorOf(`semantic.color.${fill}`, mode),
       );
       expect(ratio, `on-accent on ${fill} (${mode})`).toBeGreaterThanOrEqual(4.5);
+    }
+    // The Filled button, hero chip and fallback button lay the state layer of their label over the fill
+    // (color-mix in oklab); the label keeps its contrast on the mixed fill, not only on the accent tokens.
+    for (const layer of ["hover", "press"]) {
+      const share =
+        Number.parseFloat(String(resolveLiteral(doc, `primitive.state.${layer}`, mode))) / 100;
+      const fill = mixOklab(
+        colorOf("semantic.color.accent", mode),
+        colorOf("semantic.color.on-accent", mode),
+        share,
+      );
+      const ratio = contrastRatio(colorOf("semantic.color.on-accent", mode), fill);
+      expect(ratio, `on-accent on the ${layer} state layer (${mode})`).toBeGreaterThanOrEqual(4.5);
     }
     const toast = contrastRatio(
       colorOf("semantic.color.on-surface-inverse", mode),
