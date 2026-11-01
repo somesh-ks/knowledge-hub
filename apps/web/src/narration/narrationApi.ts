@@ -38,6 +38,10 @@ const KNOWN: Record<string, NarrationFailure> = {
   digest_not_found: "digest_not_found",
   segment_not_found: "segment_not_found",
   unavailable: "unavailable",
+  // The write routes answer only the owner's session (D307); no retry helps until they sign in.
+  unauthorized: "sign_in",
+  // The secret is missing server side: signing in cannot help, so it reads as a server problem.
+  admin_not_set_up: "unavailable",
 };
 
 type Json = Record<string, unknown>;
@@ -221,6 +225,8 @@ export function failureCopy(reason: NarrationFailure, noun: NarrationNoun): stri
       return "This page is out of date. Reload it, then try again.";
     case "unavailable":
       return "Narration ran into a problem on the server. Try again.";
+    case "sign_in":
+      return "Sign in to the command center on this device, then try again.";
     case "offline":
       return "You are offline. Reconnect, then try again.";
     case "failed":
@@ -262,6 +268,8 @@ function failureSummary(reason: NarrationFailure): string | undefined {
       return "Not ready for narration";
     case "unavailable":
       return "Narration failed on the server";
+    case "sign_in":
+      return "Sign in needed";
     case "offline":
       return "You are offline";
     case "failed":

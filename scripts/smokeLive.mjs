@@ -73,7 +73,15 @@ const check = (name, ok, detail = "") => {
 async function post(body) {
   const response = await fetch(`${SITE}/api/podcast`, {
     method: "POST",
-    headers: { "content-type": "application/json", origin: SITE },
+    headers: {
+      "content-type": "application/json",
+      origin: SITE,
+      // The route answers only the owner's session (D307): the value of the browser's
+      // `singularity_admin` cookie, from DevTools after signing in at /admin.
+      ...(process.env.SINGULARITY_ADMIN_COOKIE
+        ? { cookie: `singularity_admin=${process.env.SINGULARITY_ADMIN_COOKIE}` }
+        : {}),
+    },
     body: JSON.stringify(body),
   });
   return { status: response.status, json: await response.json().catch(() => ({})) };
