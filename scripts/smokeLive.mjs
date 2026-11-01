@@ -36,7 +36,7 @@ const bodyFile = value("--create-body", "");
 
 const PLAN = [
   "1. GET /build.json and keep it.",
-  "2. POST /api/podcast with --create-body; wait until /latest.json or the Library names the new episode.",
+  "2. POST /api/podcast with --create-body (its title replaced by a unique smoke title); wait until the Library lists a new episode whose page carries that title.",
   "3. Check /e/<id> opens, the Library lists it, and its cover and audio URLs carry a version.",
   "4. POST /api/podcast {action: regenerate, id}; wait until its audio URL changes; check the id is unchanged.",
   "5. POST /api/podcast {action: delete, id}; within 60 s check /e/<id> says it was removed (404) and the Library no longer lists it.",
@@ -53,7 +53,15 @@ if (!bodyFile) {
   process.exit(1);
 }
 
-const createBody = JSON.parse(readFileSync(bodyFile, "utf8"));
+const parsedBody = JSON.parse(readFileSync(bodyFile, "utf8"));
+if (typeof parsedBody?.request !== "object" || parsedBody.request === null) {
+  console.error('smokeLive: --create-body must hold {"request": {...}}');
+  process.exit(1);
+}
+// The episode is found by this title, which the create request carries and nothing else on the
+// site does. "The first new episode" could be someone else's, and the cleanup would delete it.
+const MARKER = `smoke-${Date.now().toString(36)}`;
+const createBody = { ...parsedBody, request: { ...parsedBody.request, title: MARKER } };
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const results = [];
 const check = (name, ok, detail = "") => {
@@ -99,12 +107,24 @@ try {
   const accepted = created.status === 200 || created.status === 202;
   check("create accepted", accepted, `status ${created.status}`);
   if (!accepted) throw new Error("the create request was rejected, so nothing is polled");
+  console.log(`INFO  episode title ${MARKER}, run ${created.json.run_id ?? "unknown"}`);
+  // A new Library link is ours only when its page carries the title the create request set.
+  const others = new Set();
   const fresh = await until("new episode reaches the Library", async () => {
-    const found = ((await text("/library")).body.match(/\/e\/ep-[\w-]+/g) ?? []).find(
-      (href) => !before.has(href),
-    );
-    return found ?? null;
+    const hrefs = (await text("/library")).body.match(/\/e\/ep-[\w-]+/g) ?? [];
+    for (const href of new Set(hrefs)) {
+      if (before.has(href) || others.has(href)) continue;
+      const page = await text(href);
+      if (page.status === 200 && page.body.includes(MARKER)) return href;
+      others.add(href);
+    }
+    return null;
   });
+  if (!fresh) {
+    console.error(
+      `smokeLive: nothing was deleted. If an episode titled ${MARKER} exists, remove it by hand.`,
+    );
+  }
   if (fresh) {
     id = fresh.replace("/e/", "");
     const page = await text(`/e/${id}`);
