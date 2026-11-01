@@ -305,6 +305,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D294 | Scheduled writer uses Message Batches | amends D209 (step 3 built, step 2 open); D135 ended |
 | D295 | Playback audio session only while Sounds is on | amends D105 |
 | D296 | Config store is the only home of owner config; examples in the repo | amends D149; supersedes D185 |
+| D297 | A section may stand over its allowance only as far as the floor needs | amends D35 |
 | D298 | Repository public, owner data moved out of git, history rewritten last | supersedes D9 |
 
 ---

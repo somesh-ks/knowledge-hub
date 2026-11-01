@@ -1,6 +1,7 @@
 import { type Category, type Item, SECTIONS, VOICE_LIMITS } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { scoreItem } from "../src/score/scoreItem.js";
+import { DEFAULT_SECTION_PLAN } from "../src/score/sectionPlan.js";
 import {
   assignSections,
   capFor,
@@ -557,6 +558,24 @@ describe("the tech allowance", () => {
       ids(pool.slice(5)),
     );
     expect(result.dropped.some((d) => d.reason === "over_cap")).toBe(false);
+  });
+
+  // D297: the 2026-10-31 daily had only Tech stories left over its allowance and published nothing.
+  it("takes the best stories the Tech allowance cut, only as far as the floor needs", () => {
+    const plan = { ...DEFAULT_SECTION_PLAN, limit: (s: string) => (s === "tech" ? 1 : null) };
+    const pool = [...craft(1), ...tech(5)];
+    const thin = selectItems({ scored: pool, kind: "regular", floor: 3, cap: 99, plan });
+    expect(thin.outcome).toBe("selected");
+    expect(count(thin, "tech")).toBe(2);
+    expect(thin.dropped.filter((d) => d.reason === "over_tech_cap")).toHaveLength(3);
+    const full = selectItems({
+      scored: [...craft(3), ...tech(5)],
+      kind: "regular",
+      floor: 3,
+      cap: 99,
+      plan,
+    });
+    expect(count(full, "tech")).toBe(1);
   });
 
   it("never lends tech slots to other sections or borrows from them", () => {
