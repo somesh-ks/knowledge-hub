@@ -54,7 +54,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D182 | Block prompts | active |
 | D183 | Costs read the bill | active |
 | D184 | Podcast lookback | superseded by D215 |
-| D185 | Repo config to store | amends D149 |
+| D185 | Repo config to store | superseded by D296 |
 | D186 | Every control is a pill | amends D167 |
 | D187 | Glyphs align by ink | active |
 | D188 | Script-drawn markup | active |
@@ -157,7 +157,9 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D293 | On-demand covers are served at /covers | supersedes D263; amends D256, D258 |
 | D294 | Scheduled writer uses Message Batches | amends D209 (step 3 built, step 2 open); D135 ended |
 | D295 | Playback audio session only while Sounds is on | amends D105 |
+| D296 | Config store is the only home of owner config; examples in the repo | amends D149; supersedes D185 |
 | D297 | A section may stand over its allowance only as far as the floor needs | amends D35 |
+| D298 | Repository public, owner data moved out of git, history rewritten last | supersedes D9 |
 | D299 | Offline settings edits stay on the device and send when back online | amends D79, D91, D259 |
 | D302 | Pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked | active |
 | D307 | Write routes need the admin session | amends D160, D201 |

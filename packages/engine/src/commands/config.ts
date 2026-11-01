@@ -29,10 +29,15 @@ import { readSourceCandidates } from "../state/store.js";
 import {
   configStoreUrl,
   connectConfigStore,
-  copiedFromStore,
+  hydrateConfig,
   type SqlClient,
   seedConfigDocuments,
 } from "../store/configDocs.js";
+import {
+  copyMissingExamples,
+  missingConfigFiles,
+  REQUIRED_CONFIG_DOCUMENTS,
+} from "../store/configExamples.js";
 import { RATE_LIMIT_SCHEMA_SQL } from "../store/rateCounter.js";
 import { loadStructureFile, serializeStructure } from "../structure/store.js";
 import { loadTopics, serializeTopics } from "../topics/store.js";
@@ -47,13 +52,20 @@ const USAGE = `Usage: singularity config <command>
   commit --message <text> [--no-push]
                                      Commit the files apply may change as chore(config): <text>
                                      and push. The write guard refuses anything else.
+  pull [--strict]                    Fill config/ for a build or a fresh checkout (D296): with the
+                                     store on, each stored document is copied over its file and a
+                                     document the store lacks takes config/examples; with it off,
+                                     only the missing files take the examples. Stops when the store
+                                     is on but cannot be read and a file is missing. --strict
+                                     (the site build) also stops when the store lacks a usable
+                                     preferences, schedule or topics document, so a build never
+                                     ships public defaults in place of the owner's config.
   seed [--dry-run] [--replace [--force]]
                                      Create the config_documents table in DATABASE_URL and insert each
                                      config file that has no row yet (D149). Never replaces a row,
-                                     unless --replace: then a row that differs from the committed file
-                                     is rewritten from it (--dry-run lists those). Refused while the
-                                     store is on here (the switch, or a run's note that it copied),
-                                     as it would undo edits made in the app; --force overrides.
+                                     unless --replace: then a row that differs
+                                     from the file here is rewritten from it (--dry-run lists those).
+                                     Needs --force, as it can undo edits made in the app.
 
 Ops (see ConfigOp in @singularity/core):
   {"op":"topic.upsert","topic":{"name":"...","description":"...","keywords":["..."]}}
@@ -157,6 +169,8 @@ export function makeConfigCommand(deps: ConfigDeps = {}): CommandRun {
           return await runCommit(rest, ctx);
         case "seed":
           return await runSeed(rest, ctx, deps);
+        case "pull":
+          return await runPull(rest, ctx, deps);
         case undefined:
           print(USAGE);
           return 2;
@@ -361,16 +375,11 @@ async function runSeed(argv: string[], ctx: CommandContext, deps: ConfigDeps): P
   }
   const dryRun = values["dry-run"] === true;
   const replace = values.replace === true;
-  // Replacing is for a store seeded before switch-on, which only the files have written to. Once
-  // the store is on, the app's edits live there alone, and the files are a run old.
-  if (
-    replace &&
-    !dryRun &&
-    values.force !== true &&
-    (configStoreUrl(ctx.env) !== null || (await copiedFromStore(ctx.root)))
-  ) {
+  // The store is the owner's only copy (D296) and the files here are a pull or an edit old, so a
+  // replacement can undo edits made in the app, whatever this machine's switch says.
+  if (replace && !dryRun && values.force !== true) {
     ctx.log.error(
-      "The config store is on here (SINGULARITY_CONFIG_STORE, or a run noted it copied the store), so --replace would undo edits made in the app. Switch it off first, or pass --force if you are sure.",
+      "--replace rewrites every stored row that differs from the files here and can undo edits made in the app. Pass --force if you are sure.",
     );
     return 1;
   }
@@ -389,6 +398,52 @@ async function runSeed(argv: string[], ctx: CommandContext, deps: ConfigDeps): P
           dry_run: dryRun,
         })
       : `${dryRun ? "would write" : "written"}${replace ? " (new or differing)" : " (new)"}: ${inserted.length === 0 ? "nothing" : inserted.join(", ")}\nrate-limit table: ${dryRun ? "would create if missing" : "ready"}`,
+  );
+  return 0;
+}
+
+/**
+ * `singularity config pull`: the owner's config is in the store and not in git (D296), so a build
+ * or a fresh checkout asks for it here. With the store on, a stored document replaces its file
+ * (a local edit is lost; the store is the owner's copy). A store that cannot be read stops the
+ * command unless every file is already there, so a build never ships pages made from defaults the
+ * owner did not choose. What the store lacks, or every file with the store off, takes config/examples.
+ */
+async function runPull(argv: string[], ctx: CommandContext, deps: ConfigDeps): Promise<number> {
+  const strict = argv.includes("--strict");
+  const url = configStoreUrl(ctx.env);
+  let pulled: string[] = [];
+  if (url !== null) {
+    try {
+      const sql = await (deps.connectConfigStore ?? connectConfigStore)(url);
+      const hydrated = await hydrateConfig(ctx.root, sql, ctx.log);
+      pulled = hydrated.changed;
+      const lacking = REQUIRED_CONFIG_DOCUMENTS.filter((path) => !hydrated.usable.includes(path));
+      if (strict && lacking.length > 0) {
+        ctx.log.error(
+          `the config store has no usable ${lacking.join(", ")}; a build would ship the public examples. Set it up first: a missing row, config pull, then config seed, then edit it in the app; a row that is not valid JSON or fails its schema, repair that row in the store (config seed --replace --force rewrites every row from the files here and can undo newer edits).`,
+        );
+        return 1;
+      }
+    } catch (error) {
+      const missing = await missingConfigFiles(ctx.root);
+      // The build is strict: files left on a cached checkout may be older than the store, and a
+      // deploy from them would replace the owner's site with stale pages.
+      if (strict || missing.length > 0) {
+        const message = error instanceof Error ? error.message : String(error);
+        ctx.log.error(
+          `the config store cannot be read${missing.length > 0 ? ` and ${missing.length} config files are missing` : ""}: ${redact(message, secretsFromEnv(ctx.env))}`,
+        );
+        return 1;
+      }
+      ctx.log.warn("the config store cannot be read; the files already here are used");
+    }
+  }
+  const examples = await copyMissingExamples(ctx.root);
+  print(
+    ctx.json
+      ? JSON.stringify({ ok: true, store: url !== null, pulled, examples })
+      : `store ${url !== null ? "on" : "off"}; from the store: ${pulled.length === 0 ? "nothing" : pulled.join(", ")}; from config/examples: ${examples.length === 0 ? "nothing" : examples.join(", ")}`,
   );
   return 0;
 }

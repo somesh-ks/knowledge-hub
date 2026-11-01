@@ -356,7 +356,13 @@ async function processDigest(
   if (!decision.ok)
     return { outcome: { status: "refused", digestId, refusal: decision }, changed: [] };
 
-  const voice = (await scheduledVoice(root, digest.kind, log)) ?? deps.voiceId ?? DEFAULT_VOICE_ID;
+  // The voice written into the digest by the run (D296) comes first: this job has no store access.
+  // An older digest has none, so the schedule file on this machine, then the run's voice, then the default.
+  const voice =
+    digest.voice_id ??
+    (await scheduledVoice(root, digest.kind, log)) ??
+    deps.voiceId ??
+    DEFAULT_VOICE_ID;
   const model = deps.model ?? DEFAULT_MODEL;
   log.info(`Synthesizing ${digestId}`, { characters: spoken.text.length });
   const ledger = { runId: digestId, kind: costKindOf(digest.kind), product: model };
