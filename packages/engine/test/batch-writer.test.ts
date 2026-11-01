@@ -224,8 +224,19 @@ describe("the open batch list", () => {
       };
       const spend = new SpendTracker();
       await spend.resume(dir, "run-1");
+      // The batch stays recoverable until its tokens are on disk: a stop between the two would
+      // otherwise lose them for good.
+      const save = spend.save.bind(spend);
+      let listedAtSave: boolean | undefined;
+      spend.save = async (root: string) => {
+        listedAtSave = await readFile(openBatchesPath(root), "utf8").then(
+          () => true,
+          () => false,
+        );
+        await save(root);
+      };
       await settleOpenBatches({ root: dir, run: "run-1", api, spend, now, sleep });
-      await spend.save(dir);
+      expect(listedAtSave).toBe(true);
       expect(calls).toEqual(["cancel", "results"]);
       expect(spend.unitTotals()).toEqual({
         [`anthropic|${model}|batch_input_tokens`]: 10,

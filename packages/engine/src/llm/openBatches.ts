@@ -1,9 +1,9 @@
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
+import { writeJsonAtomic } from "../audio/atomicFile.js";
 import type { Logger } from "../context.js";
 import { readJsonIfExists } from "../curate/inputs.js";
-import { writeJson } from "../curate/output.js";
 import { runCacheDir } from "../run/plan.js";
 import type { SpendTracker } from "../run/spend.js";
 import type { BatchApi } from "./anthropicBatch.js";
@@ -29,7 +29,7 @@ async function readOpen(root: string, run: string): Promise<OpenBatch[]> {
 
 async function writeOpen(root: string, run: string, batches: OpenBatch[]): Promise<void> {
   if (batches.length === 0) await rm(openBatchesPath(root), { force: true });
-  else await writeJson(openBatchesPath(root), { version: 1, run, batches });
+  else await writeJsonAtomic(openBatchesPath(root), { version: 1, run, batches });
 }
 
 /**
@@ -69,7 +69,7 @@ const SETTLE_POLL_MS = 10_000;
  * stage gave up on, or that a cancelled job left running. Each is cancelled (it may still be
  * running, and would be billed and written again live), waited for until it ends, and its
  * succeeded entries' tokens added to the run's units at the batch price. A batch that does not end
- * in time stays on the list. The caller saves the tracker.
+ * in time stays on the list. Each batch's tokens are saved before it leaves the list.
  */
 export async function settleOpenBatches(args: {
   root: string;
@@ -107,6 +107,8 @@ export async function settleOpenBatches(args: {
         spend.meter.addUnits("anthropic", model, "batch_input_tokens", outcome.reply.inputTokens);
         spend.meter.addUnits("anthropic", model, "batch_output_tokens", outcome.reply.outputTokens);
       }
+      // The tokens go to disk before the batch leaves the list, so a stop in between loses nothing.
+      await spend.save(root);
       await track.remove(id);
       log?.info("Settled a batch the run had left open", { batch: id, entries: outcomes.size });
     } catch (error) {
