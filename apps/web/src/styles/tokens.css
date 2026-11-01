@@ -408,7 +408,7 @@
   --switch-radius: var(--radius-round);
   --switch-thumb-radius: var(--radius-round);
   --switch-thumb-bg: var(--color-surface-raised);
-  --sheet-radius: var(--radius-sheet);
+  --sheet-radius: var(--radius-2xl);
   --sheet-padding: var(--space-4);
   --sheet-bg: var(--color-surface-raised);
   --sheet-shadow: var(--shadow-sheet);
@@ -454,8 +454,8 @@
   --row-radius: var(--radius-md);
   --row-tile-radius: var(--radius-round);
   --slider-max-width: 10rem;
-  --picker-radius: var(--radius-sheet);
-  --picker-inset: var(--card-inset);
+  --picker-radius: var(--radius-2xl);
+  --picker-inset: var(--space-2);
   --picker-inner-radius: var(--radius-xl);
   --card-padding: var(--space-6);
   --card-inset: var(--space-1);

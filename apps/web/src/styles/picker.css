@@ -145,17 +145,6 @@
     display var(--duration-exit) allow-discrete;
 }
 
-/* On a wide screen the popover is rounder and its pill and rows stand one space-2 in, so the pill's
-   radius is the popover's less that inset (32 - 8 = 24, the pill's own half height): each corner shares
-   one centre with the one inside it (owner, 2026-11-01: 28 around a full pill looked wrong). The phone
-   sheet keeps the sheet radius and the card inset. */
-@media (width >= 40rem) {
-  .picker-pop {
-    --picker-radius: var(--radius-2xl);
-    --picker-inset: var(--space-2);
-  }
-}
-
 .picker-pop:not(:popover-open) {
   display: none;
 }
