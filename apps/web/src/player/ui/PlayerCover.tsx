@@ -46,7 +46,9 @@ function LiveCover({ src, onState }: { src: string; onState?: (state: Drawn) => 
   const slot = useRef<HTMLSpanElement>(null);
   // The callback is read when the fetch settles, so a new one each render does not restart it.
   const report = useRef(onState);
-  report.current = onState;
+  useEffect(() => {
+    report.current = onState;
+  });
   useEffect(() => {
     const target = slot.current;
     if (!target || !src) return;

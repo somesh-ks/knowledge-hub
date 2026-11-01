@@ -150,10 +150,10 @@ test.describe("theme", () => {
     const inDefault = await fill();
     expect(inDefault).not.toBeNull();
     // The covers are on the page when the style changes; the same elements take new colours.
+    const before = covers.length;
     await page.evaluate(() => {
       document.documentElement.dataset.style = "expressive";
     });
-    const before = covers.length;
     await expect.poll(fill).not.toBe(inDefault);
     expect(covers.length).toBe(before);
     // The reader's hue turns them too.

@@ -12,14 +12,25 @@ describe("tokens.css holds each style's cover numbers", () => {
     new URL("../../../apps/web/src/styles/tokens.css", import.meta.url),
     "utf8",
   );
-  const read = (style: string, property: string): number => {
-    const block = new RegExp(`:root\\[data-style="${style}"\\] \\{([^}]*)\\}`, "g");
+  const readIn = (block: RegExp, style: string, property: string): number => {
     for (const match of css.matchAll(block)) {
       const found = new RegExp(`--cover-${property}: ([-\\d.]+);`).exec(match[1] ?? "");
       if (found) return Number(found[1]);
     }
     throw new Error(`tokens.css has no --cover-${property} for ${style}`);
   };
+  const read = (style: string, property: string): number =>
+    readIn(new RegExp(`:root\\[data-style="${style}"\\] \\{([^}]*)\\}`, "g"), style, property);
+  // A style's dark bounds are written twice: for the system theme and for a reader's chosen dark.
+  const readDark = (style: string, property: string, chosen: boolean): number =>
+    readIn(
+      new RegExp(
+        `${chosen ? ':root\\[data-theme="dark"\\]' : ':root:not\\(\\[data-theme="light"\\]\\)'}\\[data-style="${style}"\\] \\{([^}]*)\\}`,
+        "g",
+      ),
+      style,
+      property,
+    );
 
   for (const [style, rule] of STYLE_RULES) {
     it(`${style}`, () => {
@@ -36,6 +47,14 @@ describe("tokens.css holds each style's cover numbers", () => {
       expect(read(style, "lo")).toBe(rule.flip?.light[0] ?? 0);
       expect(read(style, "hi")).toBe(rule.flip?.light[1] ?? 1);
       expect(read(style, "night-below")).toBe(rule.night?.below ?? 0);
+      expect(read(style, "night-hue")).toBe(rule.night?.hue ?? 0);
+      expect(read(style, "night-c")).toBe(rule.night?.chroma ?? 0);
+      if (rule.flip) {
+        for (const chosen of [false, true]) {
+          expect(readDark(style, "lo", chosen)).toBe(rule.flip.dark[0]);
+          expect(readDark(style, "hi", chosen)).toBe(rule.flip.dark[1]);
+        }
+      }
     });
   }
 });

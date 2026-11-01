@@ -24,15 +24,19 @@ function apply(host: HTMLElement): void {
   });
 }
 
-let watching: MutationObserver | undefined;
+let watching: { host: HTMLElement; observer: MutationObserver } | undefined;
 
 /** Recolours the light now and whenever the style or the hue changes. */
 export function watchAmbientStyle(host: HTMLElement): void {
-  watching?.disconnect();
   apply(host);
-  watching = new MutationObserver(() => apply(host));
-  watching.observe(document.documentElement, {
+  // The same light keeps its watcher: a new one made after the renderer's own observer would run after
+  // it, and the canvas would read the old palette on a change.
+  if (watching?.host === host) return;
+  watching?.observer.disconnect();
+  const observer = new MutationObserver(() => apply(host));
+  observer.observe(document.documentElement, {
     attributes: true,
     attributeFilter: ["data-style", "style"],
   });
+  watching = { host, observer };
 }
