@@ -118,6 +118,14 @@ const VIEW: Record<ArtName, string> = {
         target.toggleAttribute("data-offscreen", !isIntersecting);
       }
     });
-    for (const art of document.querySelectorAll(".empty-art")) seen.observe(art);
+    // A page the router swaps in has new illustrations; each is watched once.
+    const watch = () => {
+      for (const art of document.querySelectorAll(".empty-art:not([data-watched])")) {
+        art.setAttribute("data-watched", "");
+        seen.observe(art);
+      }
+    };
+    watch();
+    document.addEventListener("astro:page-load", watch);
   }
 </script>
