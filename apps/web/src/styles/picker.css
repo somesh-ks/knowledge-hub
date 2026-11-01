@@ -230,6 +230,17 @@
   .picker-pop[data-sheet]::backdrop {
     background: var(--color-scrim);
   }
+
+  /* The sheet's surface is the container tone in dark, so the search pill's own fill (the container)
+     vanished into it, and in light it was 1.05:1 (owner, 2026-11-01). On the sheet the pill is the
+     sheet's surface moved one state layer toward the ink: darker in light, lighter in dark. */
+  .picker-pop[data-sheet] .picker-search {
+    background: color-mix(in oklch, var(--sheet-bg), var(--color-on-surface) var(--state-hover));
+  }
+
+  .picker-pop[data-sheet] .picker-search:focus-within {
+    background: color-mix(in oklch, var(--sheet-bg), var(--color-on-surface) var(--state-press));
+  }
 }
 
 /* The search is a pill with its glyph inside, as the Library's is, on the list's own surface. */
