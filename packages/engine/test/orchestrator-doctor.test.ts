@@ -272,12 +272,14 @@ describe("doctor: --online", () => {
   // SEC-06: the site's GitHub token went unchecked from 14 Oct, and a refusal is only logged, so an
   // expired one made every settings save a silent no-op. Doctor named the other tokens, not this one.
   it("checks the site's GitHub token: rejected fails, near expiry warns, a good one passes", async () => {
-    const run = async (repo: () => Response, variables: () => Response = () => reply(404, {})) => {
+    const run = async (
+      repo: () => Response,
+      variables: () => Response = () => reply(200, { total_count: 0, variables: [] }),
+    ) => {
       const net = fakeFetch({
         ...GOOD_ROUTES,
         "https://api.github.com/repos/somesh-ks/knowledge-hub": repo,
-        "https://api.github.com/repos/somesh-ks/knowledge-hub/actions/variables/RUN_CRON":
-          variables,
+        "https://api.github.com/repos/somesh-ks/knowledge-hub/actions/variables": variables,
       });
       const { report, stdout } = await doctor(["--online"], {
         env: { ...env, GITHUB_SINGULARITY_TOKEN: "gh-secret-888888888888" },
@@ -288,6 +290,21 @@ describe("doctor: --online", () => {
     };
     expect((await run(() => reply(401, { message: "Bad credentials" }))).status).toBe("fail");
     expect((await run(() => reply(404, { message: "Not Found" }))).status).toBe("fail");
+    // A spent rate limit is no verdict on the token.
+    const limited = await run(() =>
+      Response.json({}, { status: 403, headers: { "x-ratelimit-remaining": "0" } }),
+    );
+    expect(limited.status).toBe("warn");
+    expect(limited.summary).toContain("rate limited");
+    // No Variables permission: GitHub may answer 404 for the list, which must not pass.
+    expect(
+      (
+        await run(
+          () => reply(200, {}),
+          () => reply(404, {}),
+        )
+      ).status,
+    ).toBe("warn");
     const soon = new Date(Date.now() + 5 * 86_400_000)
       .toISOString()
       .replace("T", " ")

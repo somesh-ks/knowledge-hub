@@ -47,5 +47,15 @@ describe("source ratings", () => {
     });
     expect(missing.status).toBe(503);
     expect(missing.headers?.["Vercel-CDN-Cache-Control"]).toBeUndefined();
+    // Stats that do not parse would rate every source New: refused too.
+    const broken = await handleSourceRatings({
+      config,
+      state: state({
+        "state/source-stats.json": { text: "{not json", stored: true },
+        "state/source-health.json": { text: null, stored: true },
+      }),
+    });
+    expect(broken.status).toBe(503);
+    expect(broken.headers?.["Vercel-CDN-Cache-Control"]).toBeUndefined();
   });
 });

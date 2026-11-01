@@ -343,6 +343,18 @@ async function githubTokenCheck(
         "Create a fine-grained token for the repository with Actions and Variables write, put it in .env as GITHUB_SINGULARITY_TOKEN and run `npm run secrets:push`.",
       );
     }
+    // A spent rate limit also answers 403: the token is fine, the check just cannot say so.
+    if (
+      repository.status === 403 &&
+      (repository.headers.get("x-ratelimit-remaining") === "0" ||
+        repository.headers.has("retry-after"))
+    ) {
+      return warn(
+        id,
+        `GitHub rate limited the check for ${repo} (HTTP 403); the token was not tested`,
+        "Wait for the rate limit to reset, then run doctor again.",
+      );
+    }
     if (repository.status === 403 || repository.status === 404) {
       return fail(
         id,
@@ -355,11 +367,12 @@ async function githubTokenCheck(
     const variables = await probe(
       deps,
       secrets,
-      `https://api.github.com/repos/${repo}/actions/variables/RUN_CRON`,
+      `https://api.github.com/repos/${repo}/actions/variables`,
       { headers },
     );
-    // 404 is a variable not set yet: the read itself was allowed.
-    if (variables.status !== 200 && variables.status !== 404) {
+    // The list, not RUN_CRON by name: GitHub answers 404 to a token without the permission, which a
+    // missing variable would also look like. An empty list is still a read that was allowed.
+    if (variables.status !== 200) {
       return warn(
         id,
         `the token opens ${repo} but cannot read Actions variables (HTTP ${variables.status})`,
