@@ -89,7 +89,7 @@ export function checkDocs(root) {
     if (!rows.has(id)) fails.push(`docs/decisions/README.md: ${id} has no Index row`);
   // Every id of a "superseded by D3, D4" list must name a decision that exists.
   const superseded = [
-    ...`${allRows}\n${decisions}`.matchAll(/superseded by ((?:D\d+(?:, and |, | and )?)+)/gi),
+    ...`${allRows}\n${decisions}`.matchAll(/superseded by:? ((?:D\d+(?:, and |, | and )?)+)/gi),
   ].flatMap((m) => (m[1].match(/D\d+/g) ?? []).map((id) => [`superseded by ${id}`, id]));
   for (const [phrase, id] of new Map(superseded)) {
     if (!entries.has(id))

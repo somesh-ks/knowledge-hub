@@ -185,5 +185,15 @@ describe("docs check", () => {
         "| D1 | One | superseded by D4, D9 |\n| D2 | Two | active |\n| D3 | Three | active |\n| D4 | Four | supersedes D1 |",
       ),
     ).toEqual([expect.stringContaining('"superseded by D9" names a decision that does not exist')]);
+    // An entry's own "Superseded by: D3, D9" line is read the same way.
+    expect(
+      checkDocs(
+        repo({
+          "docs/decisions/README.md":
+            "## Index\n\n| D1 | One | active |\n| D2 | Two | active |\n| D3 | Three | active |\n",
+          "docs/decisions/area.md": "## D1: One\n\nSuperseded by: D3, D9\n\n## D3: Three\n",
+        }),
+      ).fails,
+    ).toEqual([expect.stringContaining('"superseded by D9" names a decision that does not exist')]);
   });
 });
