@@ -539,3 +539,13 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Revisit if: a cover is not drawn for a record newer than the deploy, or a cover shows old after a regeneration.
 - Amends: D256, D258, D263.
 
+## D294: the scheduled writer's first pass is a Message Batch
+
+- Date: 2026-11-01 (Somesh, after the 1 Nov weekly ran at full price: "I specifically asked you to make sure batch api is used for scheduled ones like daily, weekly"). D209 chose this on 2026-10-28 and step 3 was never built.
+- Decision: a scheduled run that is generating ahead of its publish time (`plan.publish_at` at least 25 minutes away, not a dry run) sends the first pass of its stories to Anthropic's Message Batches API from inside the write stage, and polls it every 30 seconds until `publish_at` less 15 minutes (`BATCH_CUTOFF_MS`, `batchDeadline`). At the cutoff it cancels the batch and waits for its status to reach `ended` before reading results. A request that came back late, cut off, refused or unreadable is written the usual way (splits and retries included), so each story is written once. A batch that is refused or whose status cannot be read leaves everything to the live path. Catch up, Regenerate, on-demand runs, dry runs and late scheduled runs write live. Batch tokens are the ledger units `batch_input_tokens` and `batch_output_tokens`, priced at half (`config/prices.json`).
+- Why: the run already waits about two hours for its time, so the batch costs no latency, and it halves the price of what the writer sends. The 1 Nov weekly spent 1.62 USD on the writer of a 1.86 USD run, 68 percent of it output tokens.
+- Not built: the job split of D209 step 2 (a hold job that frees the `singularity` lane); this decision does not need it, and the lane stays held for the wait as before. The voice rewrites, grounding refills and the refill pass stay live: they depend on each other's replies and run seconds apart.
+- Limit: only the first pass is discounted; how much of the writer's spend that is has not been measured. The first scheduled runs show it in the ledger (`batch_*` against `*_tokens` units). The ledger prices a cache read as a full input token, so both overstate a little. Whether the Batches API accepts `output_config.format` on every entry is unverified until a scheduled run uses it; a refused batch falls back and logs "The batch was not accepted".
+- Revisit if: a batch misses the cutoff on more than one run in ten, the batch units are under a quarter of the writer's tokens after a week, or the Batches API refuses the schema format.
+- Amends: D209 (step 3 shipped without step 2). Ends: D135.
+

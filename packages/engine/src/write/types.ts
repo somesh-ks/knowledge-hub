@@ -56,6 +56,15 @@ export interface RewriteRequest {
   shorten?: boolean;
 }
 
+export interface WriteOptions {
+  /**
+   * Epoch ms. When set, the first pass of the stories goes to the Message Batches API (half the
+   * price) and is waited for until then; whatever has not come back is written the usual way
+   * (D294). Unset for every run that has a reader waiting.
+   */
+  batchUntil?: number;
+}
+
 /**
  * Writes headlines and four-beat summaries in the house voice from source text only. The model
  * has no tools; a batch that fails reports its items instead of throwing, except for the spend
@@ -72,6 +81,7 @@ export interface Writer {
     feedback?: string,
     taste?: Taste,
     airing?: readonly string[],
+    options?: WriteOptions,
   ): Promise<WriteResult>;
   /** Rewrite one field to fix the listed problems. Null when the model could not. */
   rewrite(request: RewriteRequest): Promise<string | null>;

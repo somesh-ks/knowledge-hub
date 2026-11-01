@@ -300,5 +300,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D287 | Column and list centred together | amends D229 |
 | D289 | Every press is felt | amends D273 |
 | D293 | On-demand covers are served at /covers | amends D256, D258, D263 |
+| D294 | Scheduled writer uses Message Batches | amends D209 (step 3 built, step 2 open); D135 ended |
 
 ---
