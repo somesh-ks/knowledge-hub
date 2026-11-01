@@ -75,7 +75,7 @@
   box-sizing: border-box;
   min-block-size: var(--strip-height, var(--space-6));
   padding-block: var(--strip-inset-top, 0) 0;
-  padding-inline: var(--page-gutter);
+  padding-inline: var(--page-gutter-start) var(--page-gutter-end);
   border-radius: 0;
   background: color-mix(in oklab, var(--tone) 22%, var(--color-surface));
   /* One line, centred: the icon needs no nudge onto a title's first line, and the text takes only
