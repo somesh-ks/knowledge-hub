@@ -25,6 +25,8 @@ export const MANIFEST_TTL_MS = 30_000;
  */
 export const CONTENT_CDN_CACHE = "max-age=60, stale-while-revalidate=600";
 const MANIFEST_PATH = "content/manifest.json";
+/** Files a page can do without: the reader that asks for one handles its absence. */
+const OPTIONAL_STATE: ReadonlySet<string> = new Set(["state/last-run.json"]);
 
 interface Manifest {
   version: 1;
@@ -177,7 +179,9 @@ export async function loadStoreSiteChecked(
       read: (path) => {
         if (failed !== null) return Promise.reject(failed);
         return files.read(path).catch((error: unknown) => {
-          failed ??= error;
+          // Run state is optional: its reader answers "no run known" for a file it cannot read, so
+          // a failure there says nothing about the content.
+          if (!OPTIONAL_STATE.has(path)) failed ??= error;
           throw error;
         });
       },

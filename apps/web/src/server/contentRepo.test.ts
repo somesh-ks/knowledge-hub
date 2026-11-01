@@ -187,6 +187,25 @@ it("draws the build's copy when the manifest loads but its files cannot be read"
   expect(objectReads).toBe(1);
 });
 
+// Bug (review): the optional run-state file counted as content, so one unreadable state file sent
+// every page to the build's older copy.
+it("keeps the store's content when only the optional run state cannot be read", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  const manifest = JSON.parse(store.get("content/manifest.json") ?? "{}");
+  manifest.files["state/last-run.json"] = "0".repeat(64);
+  store.set("content/manifest.json", JSON.stringify(manifest));
+  const stateBroken = async (url: string): Promise<Response> =>
+    new URL(url).pathname.includes("state/last-run.json")
+      ? new Response(null, { status: 500 })
+      : fakeFetch(url);
+  const page = await loadPageSite(
+    { env: ENV, fetch: stateBroken, now: () => 0 },
+    { list: async () => [], read: async () => null },
+  );
+  expect(page.saved).toBe(false);
+  expect(page.site.entries.length).toBeGreaterThan(0);
+});
+
 // Bug (review): a newer manifest whose objects could not be read discarded the last good site, so
 // the page fell back to a copy as old as the last deploy.
 it("keeps showing the last site it loaded when a newer one cannot be read, and says so", async () => {
