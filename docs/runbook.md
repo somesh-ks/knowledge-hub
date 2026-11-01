@@ -183,13 +183,13 @@ Monthly:
 | Workflow | Starts when | Does |
 | --- | --- | --- |
 | `run.yml` | Dispatched by `/api/cron/run` in the schedule's hour, its own hourly schedule as a late fallback, or on demand | Runs the engine stage by stage (Gate, Fetch, Judge, Write, Validate), commits the digest and state (Commit) as the owner identity, then calls `audio.yml` when a digest was published or a digest from the last 7 days still lacks audio |
-| `audio.yml` | Called by `run.yml`, or on demand | Checks out `main`, runs `singularity publish --prune 120` (Audio: narrates digests that lack audio, uploads to Blob, prunes, then commits and pushes the timeline metadata as the owner). That push triggers a second Vercel deploy |
+| `audio.yml` | Called by `run.yml`, or on demand | Checks out `main`, runs `singularity publish --prune 120` (Audio: narrates digests that lack audio, uploads to Blob, prunes, then commits the usage counter as the owner, and saves the timelines to the content store). It loads the store first and saves after (D300) |
 | `ingest.yml` | Three times a day, or on demand | Runs `singularity ingest` (D233): reads the free sources and saves each new story's text to Blob and Neon. Reads the config store; commits nothing; spends no paid call |
 | `ci.yml` | A pull request | Runs typecheck, lint, tests and the build when code changed, always gitleaks and the audit, and both browser suites for some paths (D148). It does not deploy |
 | `branches.yml` | A pull request closing, daily, or on demand | Deletes the head branch of a closed pull request, and daily every branch whose pull requests are all closed (one with an open pull request, or none, stays). With the `NEON_API_KEY` secret and `NEON_PROJECT_ID` variable it also deletes Neon `preview/*` branches whose git branch is gone and keeps the newest two |
-| `podcast.yml` | The app's Catch up, Regenerate and Delete, or on demand | Writes, regenerates or deletes one episode and commits it under `Podcasts/`; the commit does not deploy (D199), `content.yml` mirrors it. Has its own queue (`singularity-podcast`), so an episode and a digest can run at the same time |
+| `podcast.yml` | The app's Catch up, Regenerate and Delete, or on demand | Writes, regenerates or deletes one episode and saves it to the content store (it loads the store first and saves after the commit, D300); the commit does not deploy (D199). Has its own queue (`singularity-podcast`), so an episode and a digest can run at the same time |
 | `config.yml` | The app's settings, one change per run, or on demand with the required `op` JSON string | Applies one config change (a topic, a source or a weight) as one commit through the write guard (D149). Shares `run.yml`'s queue |
-| `content.yml` | After a workflow that commits content, a push of `Digests/` or `Podcasts/` to `main`, or on demand | Mirrors the content into the Blob store the pages read (`singularity content sync`). Safe to rerun; run it by hand to fill an empty store (D173) |
+| `content.yml` | After `run`, `podcast`, `audio` or `config`, or on demand | Tells the browsers waiting on a run that it ended (`singularity push notify`, D284). It copies nothing: each job saves its own digests and episodes to the content store (D300) |
 | `health.yml` | Daily, or on demand (drill) | Runs `singularity health`; a fault opens one `health` issue and heals a missed run once, warnings go to one `health-warnings` issue on Mondays ([hardening](engineering/hardening.md)). A drill proves the healing path without a real fault |
 | `smoke.yml` | After each production deploy and every three hours | Asks the live site five read-only questions (server, settings, GitHub token, home page, Library); a failure opens or comments on one `smoke` issue and the next pass closes it (D159) |
 | `browser.yml` | A push to `main` that changes the site, nightly, or called by `ci.yml` | Runs the two browser suites, the only checks that see CSS and layout (D148). Red check: [delivery failures](engineering/delivery-failures.md) |
@@ -370,16 +370,27 @@ Do not edit the preferences by hand. To undo, apply the opposite patch.
 
 ## 10. Restore from git
 
-Git holds the code, config, digests, state and docs. It does not hold secrets (`.env`, GitHub secrets, Vercel variables) or audio (Vercel Blob).
+Git holds the code, state and docs. It does not hold secrets (`.env`, GitHub secrets, Vercel variables), the owner's config (the config store, section 11), or digests, episodes and audio (the content store in Vercel Blob, D300).
 
 | Situation | Steps |
 | --- | --- |
-| A bad digest | Run `git revert <sha>` on its `chore(digest)` commit and push. The revert also restores `state/`, so the next run covers the same window again |
+| A bad digest | Delete it in the app (or run `delete` on `run.yml`) and run again. It is no longer in git, so a revert does not bring back an older one |
 | A bad edit to one file | `git checkout <sha> -- <path>`, commit, push |
 | Laptop lost | Clone `https://github.com/somesh-ks/knowledge-hub.git`, run `npm ci`, recreate `.env` from the services (reissue keys if needed), run `npm run secrets:push` only if the stores lost their values |
 | GitHub repository lost | Any clone is a full copy. Create a new private repository, push, then repeat section 1.9 and update `GITHUB_REPOSITORY` |
 | Audio lost | Remove the digest's `.audio.json`, set `audio: null`, commit, run `audio.yml`. It regenerates at a cost in Speechify characters |
 | Vercel project lost | Repeat sections 1.4 to 1.6 and 1.9, then push to `main` or redeploy from the dashboard |
+
+### 10.1 Moving digests out of git (D300 step 2b, once)
+
+Do this once, around the merge of the pull request that stops git holding `Digests/` and `Podcasts/`.
+
+1. Before the merge, on a checkout of `main` with `BLOB_READ_WRITE_TOKEN` in `.env`: `npm run singularity -- content sync`. It prints how many files it uploaded; run it again and it should say 0 uploaded. This makes the store match git one last time.
+2. Merge the pull request. It edits `run.yml`, `podcast.yml`, `audio.yml`, `health.yml` and `content.yml`, which only you can merge.
+3. Run `run.yml` once with `dry_run` and check its log: `Load content` ends with `N pulled`, and `Save content` ends with `0 uploaded` or the files the run changed.
+4. After the next real daily, check that the digest page shows it and that the Vercel build log has a `content pull` line with `already here` or `pulled`.
+
+If a job fails at `Load content`, nothing was changed: the store was not reachable or has no manifest. Rerun it after fixing the token. If `Save content` fails after a successful commit, rerun the job: it repeats the same push.
 
 ---
 

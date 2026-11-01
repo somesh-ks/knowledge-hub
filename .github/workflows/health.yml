@@ -82,6 +82,13 @@ jobs:
           npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
           ${{ steps.probe.outputs.run == 'true' && '--workspace=apps/web' || '' }}
 
+      # Digests and episodes are in the content store, not in git (D300); the checks read them.
+      - name: Load content
+        shell: bash
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+        run: npm run --silent singularity -- content pull
+
       # The lab probe (D147, scripts/perfProbe.ts). One that fails (the site down, a timeout) writes
       # no perf.json and never fails the job: health reads the missing file as `perf_unmeasured`.
       - name: Probe performance

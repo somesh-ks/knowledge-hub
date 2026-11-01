@@ -154,6 +154,22 @@ jobs:
         id: install
         run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
 
+      # Digests and episodes are in the content store, not in git (D300). Copy them in first: the job
+      # reads them (the ids already taken, the audio still owed, the stories an episode draws on).
+      # --track records what the store held, so Save content below sends back only what this job
+      # changed. A job that cannot read the store stops here rather than run on an empty Digests/.
+      - name: Load content
+        id: content
+        shell: bash
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+        run: |
+          for attempt in 1 2 3; do
+            npm run --silent singularity -- content pull --track || { sleep $((attempt * 10)); continue; }
+            exit 0
+          done
+          exit 1
+
       # Delete runs alone: no stage after it has a plan to follow, so every later step is skipped.
       - name: Delete
         if: inputs.delete != ''
@@ -312,6 +328,20 @@ jobs:
           [ "$DRY" = "true" ] && args+=(--dry-run)
           npm run --silent singularity -- run --record-failed "${args[@]}"
 
+      # After the commit: the store never gets a digest whose run git did not record. A failed upload
+      # is tried three times; if it still fails the job is red and the next run, or a rerun, repeats it.
+      - name: Save content
+        if: ${{ !cancelled() && steps.content.outcome == 'success' && steps.commit.outcome != 'failure' }}
+        shell: bash
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+        run: |
+          for attempt in 1 2 3; do
+            npm run --silent singularity -- content push || { sleep $((attempt * 10)); continue; }
+            exit 0
+          done
+          exit 1
+
       # Writes this run to Neon with the time and cost of each stage, whatever its end (D221): a dry
       # run, a regeneration, a failure and a cancel too, which the committed metrics and the ledger
       # only hold for runs that published. A measurement never fails the run it measures.
@@ -345,9 +375,9 @@ jobs:
           npx tsx packages/engine/eval/writerModels.ts --materials "$RUNNER_TEMP/materials.json" --limit 12 \
             --out "$RUNNER_TEMP/writer-models" | tee -a "$GITHUB_STEP_SUMMARY"
 
-  # The Commit push does not deploy: vercel.json's ignoreCommand skips it (D199) and content.yml
-  # mirrors the digest into the store the pages read. This job adds narration afterwards, which
-  # reaches the site through the same sync.
+  # The Commit push does not deploy: vercel.json's ignoreCommand skips it (D199), and the digest
+  # reaches the store the pages read in the job's Save content step. This job adds narration
+  # afterwards, which reaches the store the same way.
   audio:
     needs: run
     # After a published digest, or when any digest still lacks audio (the retry path). The output

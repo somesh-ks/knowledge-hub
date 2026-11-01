@@ -1,25 +1,17 @@
 name: content
 
-# Mirrors the site's content (Digests/, Podcasts/, the run state) into the content store in Vercel
-# Blob after every workflow that commits it (D173). The pages read the store; git stays the backup.
-# `singularity content sync` sends only what changed and is safe to run again, so a failed or skipped
-# sync is finished by the next one. Run it by hand to fill the store. Covers are not stored: the site
-# draws a cover the build lacks when it is asked for (D256).
-#
-# workflow_run for the engine: it pushes with the Actions token, and GitHub starts no workflow for a
-# push made with it. push for everything else that changes content on main, such as a merged PR
-# (2026-10-27: an Opus backfill merged by PR never reached the store until a manual sync).
+# Tells the browsers waiting on a Catch up or a regeneration that its run has ended (D284), after
+# each workflow that makes content. It no longer copies anything: digests and episodes go to the
+# content store from the job that made them (the Save content step, D300), and git does not hold them.
+# The name stays: health.yml reads this workflow's runs as the notifier's history.
 
 on:
   workflow_run:
     workflows: [run, podcast, audio, config]
     types: [completed]
-  push:
-    branches: [main]
-    paths: ["Digests/**", "Podcasts/**"]
   workflow_dispatch:
 
-# One sync at a time; a queued one reads the newest main, so it covers every sync it waited behind.
+# One at a time; a queued one covers every run it waited behind.
 concurrency:
   group: content
   cancel-in-progress: false
@@ -28,7 +20,7 @@ permissions:
   contents: read
 
 jobs:
-  sync:
+  notify:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -44,14 +36,9 @@ jobs:
       - name: Install
         run: npm ci --ignore-scripts --workspace=packages/engine --workspace=apps/web --include-workspace-root
 
-      - name: Sync
-        env:
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
-        run: npm run --silent singularity -- content sync
-
-      # D284: tell the browsers waiting on a Catch up or a regeneration that has just ended. After the
-      # sync, so the episode is in the store when the tap lands. A message that fails is tried again
-      # at the next sync, and nothing here may fail the sync. The signing keys are made by the site and kept in Neon.
+      # D284: tell the browsers waiting on a Catch up or a regeneration that has just ended. The job
+      # that made the episode has saved it to the store before this runs. A message that fails is
+      # tried again at the next run. The signing keys are made by the site and kept in Neon.
       - name: Notify
         continue-on-error: true
         env:

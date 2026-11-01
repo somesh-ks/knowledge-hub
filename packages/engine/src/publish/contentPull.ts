@@ -24,6 +24,8 @@ export interface PullInput {
 export interface PullResult {
   written: string[];
   unchanged: number;
+  /** Every wanted path the manifest lists, with its hash: what this checkout now holds of the store. */
+  listed: Record<string, string>;
 }
 
 const wanted = (path: string, only: readonly string[]): boolean =>
@@ -33,9 +35,11 @@ export async function pullContent(input: PullInput): Promise<PullResult> {
   const stored = await readManifest(input.client, input.fetchText);
   if (stored.base === null) throw new Error("the content store has no manifest to pull");
   const written: string[] = [];
+  const listed: Record<string, string> = {};
   let unchanged = 0;
   for (const [path, hash] of Object.entries(stored.files).sort()) {
     if (!isContentPath(path) || !wanted(path, input.only)) continue;
+    listed[path] = hash;
     const local = await readFile(join(input.root, path)).catch(() => null);
     if (local !== null && sha256(new Uint8Array(local)) === hash) {
       unchanged += 1;
@@ -50,5 +54,5 @@ export async function pullContent(input: PullInput): Promise<PullResult> {
     await writeFileAtomic(join(input.root, path), body);
     written.push(path);
   }
-  return { written, unchanged };
+  return { written, unchanged, listed };
 }

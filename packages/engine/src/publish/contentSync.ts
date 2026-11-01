@@ -134,6 +134,15 @@ export async function syncContent(input: SyncContentInput): Promise<ContentSyncR
     uploaded.push(path);
   }
   const deleted = Object.keys(stored).filter((path) => !files.has(path));
+  // Digests are in the store, not in git (D300): a checkout that lacks all of them is one that never
+  // pulled, and mirroring it would empty the store.
+  const holdsDigests = (paths: Iterable<string>): boolean =>
+    [...paths].some((path) => path.startsWith("Digests/"));
+  if (holdsDigests(Object.keys(stored)) && !holdsDigests(files.keys())) {
+    throw new Error(
+      "this checkout holds no digests but the store does; a sync would delete them all. Use content put and remove, or pull first",
+    );
+  }
   for (let index = 0; index < deleted.length; index += DELETE_BATCH) {
     await client.del(
       deleted.slice(index, index + DELETE_BATCH).map((p) => `${CONTENT_PREFIX}${p}`),

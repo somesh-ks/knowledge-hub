@@ -21,3 +21,9 @@ node_modules
 /config/writer.json
 /config/profiles/
 /state/source-candidates.json
+
+# Digests and episodes live in the content store, not in git (D300 step 2b). Jobs fill them with
+# `singularity content pull --track` and send their changes back with `content push`; the site build
+# pulls them first (scripts/pullContent.ts).
+/Digests/
+/Podcasts/
