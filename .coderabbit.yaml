@@ -10,8 +10,8 @@ reviews:
   collapse_walkthrough: false
   auto_review:
     enabled: true
-    # D292: a push spends no review. CodeRabbit reviews a PR when it opens or leaves draft, then only on
-    # `@coderabbitai review`, posted by the thread that owns the PR once per batch (docs/engineering/code-review.md).
+    # D292: a push spends no review. CodeRabbit reviews a PR when it opens (not a draft marked ready), then only
+    # on `@coderabbitai review`, posted by the thread that owns the PR once per batch (docs/engineering/code-review.md).
     auto_incremental_review: false
     drafts: false
     ignore_title_keywords:

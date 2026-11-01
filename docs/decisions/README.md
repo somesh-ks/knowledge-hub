@@ -163,7 +163,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D140 | Design system enforced in three layers (`design-check` hook, e2e, `design-audit` agent); icons only from Phosphor | active; amends D131 |
 | D141 | The first-load budget is 130 KB | active; amends D112's 109 KB budget |
 | D142 | A new topic is a row at once and opens a page before the build; one save carries Jev's emoji; a removal leaves the page at once with Undo | active; amends D79 |
-| D143 | Every PR gets a code review before it merges, by hand once blocking findings are fixed | active; partly superseded by D254 for `[skip-review]` PRs |
+| D143 | Every PR gets a code review before it merges, by hand once blocking findings are fixed | active; partly superseded by D254 for `[skip-review]` PRs; amended by D292 |
 | D144 | Phone sheets close by pull or tap outside and show no Close | active; amends D132 |
 | D145 | Network-first page loads; a build check on return | amends D47 |
 | D146 | A deploy is offered in a toast; Vitals wait | amends D145 |
@@ -208,7 +208,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D189 | Catalogue route | superseded by D224 |
 | D190 | Votes tune weights | partly superseded by D194 for topics |
 | D191 | Structure by profile | amends D170, D176 |
-| D192 | CodeRabbit review agent | amends D143 |
+| D192 | CodeRabbit review agent | amends D143; amended by D292 |
 | D193 | Dock chevron; one-episode speed | amends D102 |
 | D195 | Breadcrumb | amends D129 |
 | D194 | Topic weight removed | supersedes D190 |
@@ -269,7 +269,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D251 | Ingest: one Blob object a run | amends D233 |
 | D252 | Warning is orange | active; amends D238 |
 | D253 | UI fixes start at the component | active; amends D237 |
-| D254 | One PR per task; one rolling DS PR | amends D237 |
+| D254 | One PR per task; one rolling DS PR | amends D237; amended by D292 |
 | D255 | Videos judged on transcripts | amends D248 |
 | D256 | Covers drawn on request; failed-run stages in one Blob object | amends D173, D251 |
 | D257 | Report routes need sign-in | amends D201, D224 |

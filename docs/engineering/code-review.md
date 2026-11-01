@@ -4,7 +4,7 @@ How a pull request is reviewed, by whom, and when (D143, D192, D254, D292). The 
 
 ## The tier decides the review
 
-The highest tier of any changed file is the PR's tier. `git diff --stat origin/main` lists the files.
+The highest tier of any changed file is the PR's tier. `git diff --stat origin/main...HEAD` lists the files (the three dots: against the merge base, so commits that landed on `main` since the branch left it do not raise the tier).
 
 | Tier | Files | Review |
 | :--- | :--- | :--- |
@@ -30,9 +30,9 @@ cr review --base main --committed --agent --gate major   # exit 2 when a major o
 
 ## A review is asked for, never fired by a push
 
-`.coderabbit.yaml` sets `auto_incremental_review: false`: CodeRabbit reviews a PR when it opens (or leaves draft), and after that only on `@coderabbitai review`. A push spends nothing, so a branch can take a day of commits from several threads and be reviewed once.
+`.coderabbit.yaml` sets `auto_incremental_review: false`: CodeRabbit reviews a PR when it opens, and after that only on `@coderabbitai review`. A draft gets no review, and marking it ready starts none (CodeRabbit skips that event). A push spends nothing, so a branch can take a day of commits from several threads and be reviewed once. A PR whose files `path_filters` all exclude (a lockfile bump) gets no review from either end: Dependabot's merges on green CI (`automerge.yml`), anyone else's is Tier 0 by construction.
 
-- Open as a draft while work continues; mark it ready when the checks are green, the diff lists only the task's files, the stills are OK'd for a taste change, and the PR body's Review section is filled. Ready is the request for the first review.
+- Open as a draft while work continues; mark it ready when the checks are green, the diff lists only the task's files, the stills are OK'd for a taste change, and the PR body's Review section is filled. Then post `@coderabbitai review`: that is the first review.
 - The rolling `design-system` PR: the thread that owns it asks, once per batch, after the joining threads' commits land. A joining thread never asks.
 - Before asking, read CodeRabbit's last summary comment: "N remain after this review". The hour (10 reviews) is shared by every thread in the project. At 2 or fewer, wait for the hour or run `/code-review` on the range and say so in the PR body.
 - Paused or skipped: when the summary says "Reviews paused" or rate-limited and the head is unreviewed, ask with `@coderabbitai review`; while the PR pool is out, a `cr review` pass on the range stands in, and the PR body says so. Never `@coderabbitai resume`: it brings back a review per push.

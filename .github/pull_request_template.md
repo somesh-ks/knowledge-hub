@@ -20,4 +20,4 @@ Any shared stylesheet or component in `git diff --stat origin/main`, and why. Ot
 
 ## Review
 
-The tier (0, 1 or 2) and the file that sets it; the local `/code-review` run, if any; CodeRabbit's last reviewed commit, or why none ([code review](../docs/engineering/code-review.md)).
+The tier (0, 1 or 2) and the file that sets it; the local `/code-review` run, if any; CodeRabbit's last reviewed commit, or why none (`docs/engineering/code-review.md`).
