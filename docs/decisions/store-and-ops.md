@@ -286,3 +286,14 @@ Where data lives (Postgres, Blob, git), config, health, analytics, deploys, acce
 - Context changed: D296 took the config out of git; D298 made the repo public and left `Digests/`, `state/` and the audio as the open question, now answered.
 - Revisit if: Blob operations near the plan limit, or a state file outgrows a Postgres row.
 - Supersedes: nothing. Amends D173 (Blob becomes the home, not a mirror) when step two ships.
+
+## D311: D300 amended, the config snapshot lives in the Neon database
+
+- Date: 2026-11-01 (the owner, on a decision card: "In your existing database")
+- Decision: the weekly config snapshot is a row of `config_snapshots(key, body, taken_at)` in the same Neon database as the config, not an object in a second, private Blob store. `config snapshot` and `config restore --latest` use the table; `BLOB_PRIVATE_READ_WRITE_TOKEN` and the private-store code are removed. `config snapshot --out <file>` still makes a copy on the owner's machine.
+- Why: the owner asked why a second store and wanted no extra setup. The table needs no new store, key or cost, and Neon keeps its own restore window beside it.
+- Rejected: the private Blob store (a second store and key to make); an encrypted file in the public store (a leaked key would expose the config).
+- Context changed: D300 named a private Blob store for the snapshot.
+- Revisit if: the database itself is lost once and the table went with it; then keep the `--out` copy on a schedule elsewhere.
+- Supersedes: the snapshot clause of D300 only. The rest of D300 stands.
+
