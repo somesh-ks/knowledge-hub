@@ -4,7 +4,7 @@
  * a script builds is the same menu a page builds (the design-system audit, 2026-10-25).
  */
 import { type IconSize, iconClass } from "../design-system/icon";
-import { menuItemClass } from "../design-system/menu";
+import { MENU_BACK, menuItemClass } from "../design-system/menu";
 import {
   sheetHeadClass,
   sheetHeadingClass,
@@ -47,6 +47,7 @@ export function sheetHeadHtml(
   close: SheetClose,
   titleData: Record<`data-${string}`, string | boolean> = {},
   subtitle?: string,
+  back = false,
 ): string {
   const data = Object.entries(titleData)
     .filter(([, value]) => value !== false)
@@ -56,7 +57,10 @@ export function sheetHeadHtml(
     .join("");
   const heading = `<h2 class="${sheetTitleClass()}" id="${titleId}"${data}>${escapeHtml(title)}</h2>`;
   return (
-    `<div class="${sheetHeadClass()}">` +
+    `<div class="${sheetHeadClass()}"${back ? " data-has-back" : ""}>` +
+    (back
+      ? `<button class="icon-btn press" type="button" aria-label="Back" ${MENU_BACK}>${iconHtml("chevronLeft", "lg")}</button>`
+      : "") +
     (!subtitle
       ? heading
       : `<div class="${sheetHeadingClass()}">${heading}<p class="${sheetSubtitleClass()}">${escapeHtml(subtitle)}</p></div>`) +

@@ -129,6 +129,17 @@ dialog.sheet-side[data-scrolled] .sheet-head {
   margin-inline-start: auto;
 }
 
+/* A second screen's head (Playback speed in the player's menu): Back at the start, the title after it,
+   Close at the end. Back sits on the same 8px edge as Close, so the two 44px targets mirror. */
+.sheet-head > .icon-btn[data-menu-back] {
+  margin-inline-start: 0;
+}
+
+.sheet-head[data-has-back] {
+  padding-block: var(--space-4) var(--space-2);
+  padding-inline: var(--space-2);
+}
+
 /* On a phone a sheet has no visible Close (owner, 2026-10-21, D144): it is pulled down or tapped away.
    The button stays for a keyboard and a screen reader, as the .sr-only utility. Doubled class so
    it outranks the shared .icon-btn sizing wherever that loads. A full-screen sheet (dialog.sheet-side:

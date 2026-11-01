@@ -146,6 +146,62 @@
   mask: var(--check-mask) center / contain no-repeat;
 }
 
+/* The quick actions at the top of a menu (the player's: Download, Share, Save): a few tiles on the
+   rows' own edge, each a glyph over a word on the container tone. The gap between tiles is the
+   rows' 8px, so the tiles and the pills under them read as one list. */
+.menu-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  grid-auto-flow: column;
+  gap: var(--space-2);
+  padding-block-end: var(--space-2);
+}
+
+.menu-tile {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-4) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+/* A tile that is on (Saved, Downloaded) takes the accent container, as a chosen segment does. */
+.menu-tile[aria-pressed="true"] {
+  background: var(--color-accent-container);
+  color: var(--color-on-accent-container);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .menu-tile:hover {
+    background: color-mix(
+      in oklch,
+      var(--color-surface-container),
+      var(--color-on-surface) var(--state-hover)
+    );
+  }
+}
+
+.menu-tile:active {
+  background: color-mix(
+    in oklch,
+    var(--color-surface-container),
+    var(--color-on-surface) var(--state-press)
+  );
+}
+
+.menu-tile:is(:disabled, [aria-disabled="true"]) {
+  color: var(--color-on-surface-disabled);
+  cursor: default;
+}
+
 /* Red marks the one that destroys; the confirm still asks before anything is removed. */
 .menu-item-danger {
   color: var(--color-danger);
@@ -168,8 +224,9 @@
   height: var(--size-icon);
 }
 
-/* From 40rem the header is the sheet's alone. */
-.menu-sheet > .sheet-head {
+/* From 40rem the header is the sheet's alone. A second screen's head (Playback speed, with Back) stays
+   at every width: Back and the screen's name are what say where this is (sheet.css). */
+.menu-sheet > .sheet-head:not([data-has-back]) {
   display: none;
 }
 
@@ -224,7 +281,7 @@
     background: var(--color-scrim);
   }
 
-  .menu-sheet > .sheet-head {
+  .menu-sheet > .sheet-head:not([data-has-back]) {
     display: flex;
     flex: none;
     /* The sheet's corner is 32px, so the title stands well in from it: 24px below the top and 8 + 16 =
