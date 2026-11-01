@@ -116,7 +116,7 @@ function mount(root: HTMLElement): void {
     (event.currentTarget as HTMLElement).closest<HTMLElement>("[popover]")?.hidePopover();
     open({
       title: "Delete all downloads?",
-      lede: "They are removed from this device only. You can download them again.",
+      lede: "They are removed from this device only. You can download them again, unless the podcast was deleted.",
       go: "Delete all",
       run: async () => {
         for (const item of await readDownloads()) await removeDownload(item.id);
