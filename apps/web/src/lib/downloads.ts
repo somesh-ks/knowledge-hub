@@ -112,18 +112,6 @@ export function confirmLookup(body: Record<string, unknown>): Record<string, unk
   };
 }
 
-/** A downloaded page's name: its <title> without the site's name, or null when it has none. */
-export function titleOfPage(html: string): string | null {
-  const match = /<title>([^<]*)<\/title>/i.exec(html);
-  const title = match?.[1]
-    ?.replace(/&amp;/g, "&")
-    .replace(/&#39;|&apos;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/,\s*Singularity$/, "")
-    .trim();
-  return title ? title : null;
-}
-
 /** From this many downloads the page offers a search. */
 export const SEARCH_FROM = 8;
 
