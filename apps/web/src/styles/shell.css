@@ -539,11 +539,11 @@ html[data-mini="visible"] main {
     background: transparent;
   }
 
-  .app-nav-item[data-pressed]:not([aria-current="page"]) .app-nav-indicator::before {
+  .app-nav-item[data-ripple-pressed]:not([aria-current="page"]) .app-nav-indicator::before {
     background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
   }
 
-  .app-nav-item[data-pressed]:not([aria-current="page"]) {
+  .app-nav-item[data-ripple-pressed]:not([aria-current="page"]) {
     color: var(--color-on-surface);
   }
 
@@ -552,7 +552,7 @@ html[data-mini="visible"] main {
     --nav-icon-ease: var(--ease-hover);
   }
 
-  .app-nav-item[data-pressed] {
+  .app-nav-item[data-ripple-pressed] {
     --nav-icon-scale: var(--scale-press);
   }
 }
