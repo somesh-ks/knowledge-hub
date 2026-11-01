@@ -904,19 +904,11 @@
 
 @media (hover: hover) and (pointer: fine) {
   .filter-chip:not(:has(input:checked, input:disabled)):hover {
-    background: color-mix(
-      in oklch,
-      var(--color-surface-container),
-      var(--color-on-surface) var(--state-hover)
-    );
+    background: var(--color-surface-container-hover);
   }
 
   .filter-chip:has(input:checked):not(:has(input:disabled)):hover {
-    background: color-mix(
-      in oklch,
-      var(--color-accent-container),
-      var(--color-on-accent-container) var(--state-hover)
-    );
+    background: var(--color-accent-container-hover);
   }
 }
 
@@ -1109,11 +1101,7 @@
    white chip past the card's own tone and it melted in (owner, 2026-10-24). */
 @media (hover: hover) and (pointer: fine) {
   .card-group .filter-chip:not(:has(input:checked, input:disabled)):hover {
-    background: color-mix(
-      in oklch,
-      var(--color-surface-overlay),
-      var(--color-on-surface) var(--card-chip-hover)
-    );
+    background: var(--card-chip-hover);
   }
 }
 

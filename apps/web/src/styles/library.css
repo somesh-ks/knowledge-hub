@@ -362,11 +362,7 @@
 /* Every control in the bar fills the same way under the pointer: the search field as the chip. */
 @media (hover: hover) and (pointer: fine) {
   .search-field:hover:not(:focus-within) {
-    background: color-mix(
-      in oklch,
-      var(--color-surface-container),
-      var(--color-on-surface) var(--state-hover)
-    );
+    background: var(--color-surface-container-hover);
   }
 
   .search-clear:hover {

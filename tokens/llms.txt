@@ -64,8 +64,6 @@ Components read only these (never a hex, never a primitive color).
 - --color-track: Rail and scrubber track.
 - --color-track-strong: Unplayed item ticks and upcoming nodes.
 - --color-accent: Lingonberry.
-- --color-accent-hover
-- --color-accent-pressed
 - --color-accent-subtle: Tint behind the current row.
 - --color-accent-container: The selected state of a control: a chosen chip or segment, the current destination, a ton…
 - --color-on-accent-container: Text and icons on accent-container.
@@ -73,7 +71,6 @@ Components read only these (never a hex, never a primitive color).
 - --color-on-accent-container-high: Text and icons on accent-container-high.
 - --color-accent-action: The tone of the one creating action in the side column (Catch up).
 - --color-on-accent-action: Text and icons on accent-action, at 4.5:1 in rest, hover and press.
-- --color-accent-action-state: The ink accent-action's hover and press layers mix in.
 - --color-on-accent
 - --color-cover-accent: Defaults to the accent.
 - --color-on-cover-accent
@@ -102,7 +99,7 @@ Read directly by components.
 - --ease-{out, in-out, drawer, hover, linear linear, spring-settle, spring-release, spring-pop, spring-spatial-fast, spring-spatial-default, spring-spatial-slow, spring-effects-fast, spring-effects-default, spring-effects-slow}
 
 ## Component tokens
-Sizes and bindings per part: cover (10), rail (12), item (4), cta (7), action (4), button (4), mini (8), player (5), control (6), scrubber (10), segmented (5), field (9), switch (7), sheet (6), toast (6), banner (2), archive (2), chip (13), app (1), nav (9), tabs (3), row (3), slider (1), picker (3), scene (16), card (6). List one with `npm run ds -- token <group>`.
+Sizes and bindings per part: cover (10), rail (12), item (4), cta (7), action (5), button (4), mini (8), player (5), control (6), scrubber (10), segmented (5), field (9), switch (7), sheet (8), toast (6), banner (2), archive (2), chip (17), app (1), nav (10), tabs (3), row (3), slider (1), picker (3), scene (16), card (6). List one with `npm run ds -- token <group>`.
 
 ## Bespoke controls
 20 controls are built for one place (the player transport and dock, speed controls, source rows). They are not for reuse. 9 more belong to a part above and are used through it. `npm run ds -- part bespoke` lists all with the reason.
