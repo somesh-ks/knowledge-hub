@@ -112,7 +112,16 @@ export function createPreferencesStore(options: PreferencesStoreOptions): Prefer
     get: () => current,
     getSoundsEnabled: () => current.sounds ?? defaultSounds(),
     set(patch) {
-      const next: Preferences = { ...current, ...patch };
+      // The patch goes onto what the device holds now, not this tab's copy from when it loaded: a
+      // change another tab made to a key this patch leaves alone survives (CFG-05).
+      let base = current;
+      try {
+        const raw = storage?.getItem(PREFERENCES_KEY) ?? null;
+        if (raw !== null) base = parsePreferences(raw);
+      } catch {
+        // Unreadable storage: the tab's own copy is the best there is.
+      }
+      const next: Preferences = { ...base, ...patch };
       const changed = (Object.keys(next) as (keyof Preferences)[]).some(
         (key) => next[key] !== current[key],
       );

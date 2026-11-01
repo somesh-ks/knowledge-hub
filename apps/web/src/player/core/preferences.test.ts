@@ -72,6 +72,20 @@ describe("preferences store", () => {
     expect(second.get()).toMatchObject({ theme: "light", rate: 1.25, volume: 0.4 });
   });
 
+  it("keeps another tab's change when this tab, which read the old copy, changes something else", () => {
+    const storage = new MemoryStorage();
+    const tabA = createPreferencesStore({ storage, defaultSounds: () => true });
+    const tabB = createPreferencesStore({ storage, defaultSounds: () => true });
+    tabA.set({ autoplay: false, theme: "dark" });
+    tabB.set({ rate: 1.5 });
+    expect(JSON.parse(storage.getItem(PREFERENCES_KEY) ?? "{}")).toMatchObject({
+      autoplay: false,
+      theme: "dark",
+      rate: 1.5,
+    });
+    expect(tabB.get()).toMatchObject({ autoplay: false, theme: "dark", rate: 1.5 });
+  });
+
   it("keeps the snapshot identity until something changes, and notifies once per change", () => {
     const store = createPreferencesStore({
       storage: new MemoryStorage(),
