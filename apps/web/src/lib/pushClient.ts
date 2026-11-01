@@ -90,7 +90,12 @@ export function readChoices(): Choices {
 /** False when storage refused: the choice cannot be kept, so it would read Off next time. */
 function saveChoices(choices: Choices): boolean {
   try {
-    if (KINDS.some((kind) => choices[kind])) localStorage.setItem(KEY, JSON.stringify(choices));
+    // Only the kinds that are on are written: a full store can still take a shorter value, so turning
+    // one off is kept (and told to the server) where writing the longer `false` would be refused.
+    const on = Object.fromEntries(
+      KINDS.filter((kind) => choices[kind]).map((kind) => [kind, true]),
+    );
+    if (Object.keys(on).length > 0) localStorage.setItem(KEY, JSON.stringify(on));
     else localStorage.removeItem(KEY);
     return true;
   } catch {
