@@ -4,6 +4,11 @@
   display: none;
 }
 
+/* Settings > Saved wears the same rows and shows the ones savedPage.ts marks data-saved. */
+.saved [data-card]:not([data-saved]) {
+  display: none;
+}
+
 /* Every row here is saved, so the Library's check-circle mark says nothing. */
 .downloads .card-downloaded {
   display: none;

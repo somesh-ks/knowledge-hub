@@ -1,0 +1,74 @@
+---
+import BriefingCard from "../../components/BriefingCard.astro";
+import EmptyArt from "../../components/EmptyArt.astro";
+import EpisodeCard from "../../components/EpisodeCard.astro";
+import ManageChrome from "../../components/ManageChrome.astro";
+import SettingsHead from "../../components/SettingsHead.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { libraryItems } from "../../lib/libraryCard";
+import { getSite } from "../../lib/site";
+import { CONTENT_CDN_CACHE, readFromContentRepo } from "../../server/contentRepo";
+import "../../styles/settings.css";
+import "../../styles/manage.css";
+import "../../styles/blocked.css";
+import "../../styles/downloads.css";
+
+// Rendered on request from the content repository, like the Library whose rows it wears (D173); the
+// static test build prerenders it.
+export const prerender = false;
+
+if (!Astro.isPrerendered) {
+  const unavailable = await readFromContentRepo("library");
+  if (unavailable) return unavailable;
+  Astro.response.headers.set("Vercel-CDN-Cache-Control", CONTENT_CDN_CACHE);
+}
+
+const { entries, episodes } = await getSite();
+const items = libraryItems(entries, episodes);
+---
+
+<BaseLayout title="Saved" view="settings" skipLabel="Skip to saved">
+  <main id="main" tabindex="-1">
+    {/* What this device saved from a player's menu. Which items are saved is only known here, in
+         localStorage, so the page carries every Library row (the same cards, in the List view) and
+         savedPage.ts shows the saved ones, newest first. Each row has the Library's hover Play and
+         its menu, cut to Add to queue, Share and Remove from Saved. */}
+    <div class="manage saved" data-saved-page>
+      <SettingsHead title="Saved" note="Kept on this device to come back to." />
+      <noscript>
+        <p class="manage-note">The list of saved podcasts needs JavaScript, which is turned off in this browser.</p>
+      </noscript>
+
+      <section class="downloads-list" aria-labelledby="saved-head" data-section hidden>
+        <h2 class="section-head text-heading" id="saved-head" data-count>Nothing saved</h2>
+        <div data-library data-view="list">
+          <ul class="library-grid" role="list" aria-labelledby="saved-head" data-library-grid>
+            {
+              items.map((item) =>
+                item.kind === "episode" ? (
+                  <EpisodeCard entry={item.entry} saved />
+                ) : (
+                  <BriefingCard entry={item.entry} menu saved />
+                ),
+              )
+            }
+          </ul>
+        </div>
+      </section>
+
+      <div class="blocked-empty empty" data-empty hidden>
+        <EmptyArt art="library" size="compact" />
+        <p class="empty-title">Nothing saved</p>
+        <p class="empty-body">Choose Save in a podcast's player menu to keep it here.</p>
+      </div>
+
+      <ManageChrome />
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { installSavedPage } from "../../scripts/savedPage";
+
+  installSavedPage();
+</script>

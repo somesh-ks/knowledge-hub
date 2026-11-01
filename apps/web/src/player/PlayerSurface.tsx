@@ -9,6 +9,7 @@ import type { GestureZone, PointerInput } from "./core/sheetController";
 import { usePlayerState } from "./hooks/usePlayer";
 import { useQueue } from "./hooks/useQueue";
 import PlayerBar, { PLAYER_PAGE_ID } from "./PlayerBar";
+import PlayerMenu from "./PlayerMenu";
 import {
   getPageContent,
   getServerPageContent,
@@ -190,6 +191,7 @@ export default function PlayerSurface() {
               >
                 <Icon name="chevronDown" />
               </button>
+              <PlayerMenu />
               <div className="player-cover-slot">
                 <div className="player-cover-box" data-player-cover>
                   {digest ? <PlayerCoverGlow cover={digest.cover} /> : null}
