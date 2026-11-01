@@ -14,8 +14,8 @@
 import type { Guidance } from "./guidance";
 
 export const REORDER: Guidance = {
-  summary: "Rows the listener moves by dragging.",
-  useWhen: ["The order is theirs to set, as a queue's."],
+  summary: "Rows moved by dragging.",
+  useWhen: ["The listener sets the order: a queue."],
   dontUseWhen: [{ when: "The app computes the order." }],
 };
 
@@ -38,8 +38,9 @@ export const SLOP_PX = 10;
 const EDGE_PX = 48;
 /** The most the list scrolls in one frame, in CSS px. */
 const SCROLL_STEP_PX = 14;
-/** The selector of reorderHandleClass(). */
-const HANDLE = ".reorder-handle";
+/** The selector of reorderHandleClass(): a page that must leave a handle's own press alone finds it by this. */
+export const REORDER_HANDLE_SELECTOR = ".reorder-handle";
+const HANDLE = REORDER_HANDLE_SELECTOR;
 /** How long after a drag the row's own click is not a press, in ms. */
 const CLICK_QUIET_MS = 400;
 

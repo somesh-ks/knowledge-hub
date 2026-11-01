@@ -573,7 +573,7 @@
       "id": "menu",
       "name": "Menu",
       "kind": "selection",
-      "summary": "A short list of actions that opens from an icon button: a row each, with its glyph at the start.",
+      "summary": "A short list of actions that opens from an icon button: a row each, its glyph first.",
       "classes": [
         "menu-list",
         "menu-sheet",
@@ -585,8 +585,8 @@
         "design-system/menu.ts"
       ],
       "when": [
-        "A card, a header or a row has more actions than it has room for: Download, Add to queue, Share, Delete",
-        "Each action is one tap and needs no choice of its own"
+        "A card, header or row has more actions than room: Download, Add to queue, Share, Delete",
+        "Each action is one tap, with no choice of its own"
       ],
       "not": [
         {
@@ -594,7 +594,7 @@
           "use": "select"
         },
         {
-          "when": "The only action is the one the button already names",
+          "when": "The only action is the one the button names",
           "use": "button-text"
         }
       ],
@@ -757,7 +757,7 @@
       "id": "sheet",
       "name": "Sheet",
       "kind": "container",
-      "summary": "A panel that slides over the page for a form or a list: the whole screen on a phone, the right side from 40rem.",
+      "summary": "A panel over the page for a form or a list: full screen on a phone, at the right from 40rem.",
       "classes": [
         "sheet-side",
         "sheet-head",
@@ -771,8 +771,8 @@
         "lib/sheetHead.ts"
       ],
       "when": [
-        "A person fills in or edits something that needs room: New episode, a topic, a source",
-        "A list that opens over the page and is dismissed with a pull or a tap away"
+        "Something to fill in or edit that needs room: New episode, a topic, a source",
+        "A list over the page, dismissed by a pull or tap"
       ],
       "not": [
         {
@@ -929,7 +929,7 @@
       "id": "reorder",
       "name": "Reorder",
       "kind": "container",
-      "summary": "Rows the listener moves by dragging.",
+      "summary": "Rows moved by dragging.",
       "classes": [
         "reorder-list",
         "reorder-item"
@@ -939,7 +939,7 @@
         "styles/reorder.css"
       ],
       "when": [
-        "The order is theirs to set, as a queue's"
+        "The listener sets the order: a queue"
       ],
       "not": [],
       "keywords": [
