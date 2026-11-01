@@ -169,10 +169,35 @@ describe("audio session", () => {
     state.enabled = true;
     expect(engine.play("toggleOn")).toBe(true);
     expect(session.type).toBe("playback");
-    // Switching Sounds off gives the session back at once, and with no gesture after it.
-    state.enabled = false;
-    engine.refreshSession();
-    expect(session.type).toBe("auto");
+    // Switching Sounds off gives the session back with no gesture after it, once its own cue is over:
+    // dropping "playback" under a sound that is still playing would cut it short on an iPhone.
+    vi.useFakeTimers();
+    try {
+      expect(engine.play("toggleOff")).toBe(true);
+      state.enabled = false;
+      engine.refreshSession();
+      expect(session.type).toBe("playback");
+      vi.advanceTimersByTime(5_000);
+      expect(session.type).toBe("auto");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the session when Sounds is turned back on before the old cue has ended", () => {
+    const { engine, session, state } = withSession();
+    vi.useFakeTimers();
+    try {
+      engine.unlock();
+      expect(engine.play("toggleOff")).toBe(true);
+      state.enabled = false;
+      engine.refreshSession();
+      state.enabled = true;
+      vi.advanceTimersByTime(5_000);
+      expect(session.type).toBe("playback");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("gives the session back when the engine is disposed, so a replacement that starts with Sounds off finds it released", () => {

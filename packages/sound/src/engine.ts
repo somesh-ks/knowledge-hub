@@ -113,6 +113,8 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
   const lastPlayedAt = new Map<SoundName, number>();
   /** True once this engine has put the page's audio session on "playback". */
   let tookSession = false;
+  /** A pending hand-back of the session, waiting for the last voice to finish. */
+  let releaseTimer: ReturnType<typeof setTimeout> | null = null;
 
   /**
    * iOS mutes Web Audio while the ring/silent switch is on, unless the page asks for playback (D105).
@@ -157,6 +159,31 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
     const noise = ctx.createBuffer(1, samples.length, ctx.sampleRate);
     noise.getChannelData(0).set(samples);
     return { input, noise };
+  }
+
+  /**
+   * Turning Sounds off plays its confirmation first (D295), so the session is given back after the
+   * last voice has finished, not under it: on an iPhone with the ringer off, dropping "playback"
+   * mid-sound would cut the cue short. A later syncSession() reads the setting again, so turning Sounds
+   * back on in the meantime keeps the session.
+   */
+  function refreshSession(): void {
+    if (disposed) return;
+    if (releaseTimer) clearTimeout(releaseTimer);
+    releaseTimer = null;
+    const ctx = context;
+    const endsAt = ctx ? Math.max(0, ...voices.map((voice) => voice.endsAt - ctx.currentTime)) : 0;
+    if (isEnabled() || endsAt <= 0) {
+      syncSession();
+      return;
+    }
+    releaseTimer = setTimeout(
+      () => {
+        releaseTimer = null;
+        if (!disposed) syncSession();
+      },
+      endsAt * 1000 + 30,
+    );
   }
 
   function retire(voice: Voice): void {
@@ -366,6 +393,8 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
 
   function dispose(): void {
     disposed = true;
+    if (releaseTimer) clearTimeout(releaseTimer);
+    releaseTimer = null;
     // A replacement engine starts with no memory of the session this one took.
     if (tookSession) {
       try {
@@ -400,7 +429,7 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
   return {
     play,
     unlock,
-    refreshSession: () => (disposed ? undefined : syncSession()),
+    refreshSession,
     dispose,
     activeVoices,
   };

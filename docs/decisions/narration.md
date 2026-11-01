@@ -95,7 +95,7 @@ Audio: voices, hosts, transcripts and word marks, pre-narration, Opus and the au
 ## D295: the playback audio session is held only while Sounds is on
 
 - Date: 2026-11-01 (half-built work audit M23: `sound-design.md` said the engine never touches `navigator.audioSession`; the code set it on every gesture)
-- Decision: the sound engine sets `navigator.audioSession.type = "playback"` (D105) only while Sounds is on. It checks on every `unlock()` and before every sound it plays, so switching Sounds on is heard on the switch's own cue. Turning Sounds off, and tearing the engine down, give the type back as `"auto"` at once; any later `unlock()` does too. `sound-design.md` rules 5 and 9 and its device plan say so.
+- Decision: the sound engine sets `navigator.audioSession.type = "playback"` (D105) only while Sounds is on. It checks on every `unlock()` and before every sound it plays, so switching Sounds on is heard on the switch's own cue. Turning Sounds off gives the type back as `"auto"` once the switch's own cue has ended (a cue in flight is not cut short); tearing the engine down does at once; any later `unlock()` does too. `sound-design.md` rules 5 and 9 and its device plan say so.
 - Why: the playback type is what lets interface sounds through the iPhone's silent switch, and it can also stop another app's audio. Setting it for a listener who turned Sounds off took that for nothing.
 - Rejected: leaving the session set once taken (the switch does nothing for other apps); setting it only in narration (narration is an `<audio>` element and does not need it).
 - Amends: D105 (the Sounds line).
