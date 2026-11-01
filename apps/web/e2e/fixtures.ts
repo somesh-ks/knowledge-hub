@@ -44,6 +44,10 @@ export const test = base.extend<Options & { problems: Problems }>({
       );
       // The Health page draws from /api/health: a frozen answer with a reading of every tone.
       await page.route("**/api/health", (route) => route.fulfill({ json: healthReport() }));
+      // The Analytics page draws from the admin function: a frozen week of counts.
+      await page.route("**/api/analytics", (route) => route.fulfill({ json: analyticsCounts() }));
+      // Its Stage times card draws from the admin function: a frozen answer of two kinds of run.
+      await page.route("**/api/stages", (route) => route.fulfill({ json: stageTimings() }));
       // The sources' own icons (https://<host>/favicon.ico) are on invented hosts; a one-pixel image
       // answers them, so the page is not blamed for a network that is not there.
       await page.route("**/api/site-icon**", (route) =>
@@ -145,7 +149,45 @@ export const SITE_PAGES = [
   // Left out until 2026-10-23, so a change to the card tokens reached the Costs card unchecked.
   "/admin/costs",
   "/admin/health",
+  "/admin/analytics",
 ];
+
+/** A frozen /api/analytics answer: a week with some of every loop. */
+export function analyticsCounts() {
+  return {
+    days: 7,
+    visitors: 214,
+    pageviews: 538,
+    share_visitors: 19,
+    events: {
+      share: 31,
+      listen_start: 142,
+      listen_half: 97,
+      listen_complete: 58,
+      create_episode: 6,
+    },
+  };
+}
+
+/** A frozen /api/stages answer: a daily run's stages out of pipeline order and a Catch up's. */
+export function stageTimings() {
+  const row = (workflow: string, kind: string, stage: string, p50_ms: number, p90_ms: number) => ({
+    workflow,
+    kind,
+    stage,
+    runs: 6,
+    p50_ms,
+    p90_ms,
+  });
+  return {
+    days: 14,
+    timings: [
+      row("run", "daily", "write", 96_000, 141_000),
+      row("run", "daily", "fetch", 41_000, 66_000),
+      row("podcast", "catch_up", "script", 74_000, 98_000),
+    ],
+  };
+}
 
 /** A frozen /api/health answer: a row of each tone, and both devices' speed. */
 export function healthReport() {

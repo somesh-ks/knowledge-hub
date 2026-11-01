@@ -57,11 +57,12 @@ const VERCEL_ENV = [
 ];
 
 /**
- * The command center's sign-in (D224). They go to the separate singularity-admin Vercel project, not
- * the reader's, so they need `apps/admin` linked to it; without that link nothing is sent, because
- * the reader's own link would take them.
+ * The command center's sign-in (D224) and the key its Analytics page reads Simple Analytics with.
+ * They go to the separate singularity-admin Vercel project, not the reader's, so they need
+ * `apps/admin` linked to it; without that link nothing is sent, because the reader's own link would
+ * take them.
  */
-const VERCEL_ADMIN_ENV = ["ADMIN_PASSWORD", "ADMIN_SESSION_SECRET"];
+const VERCEL_ADMIN_ENV = ["ADMIN_PASSWORD", "ADMIN_SESSION_SECRET", "SIMPLE_ANALYTICS_API_KEY"];
 
 /** The admin gate's shortest session secret (MIN_SECRET in apps/admin/src/gate/gate.ts); shorter ones keep sign-in shut. */
 const ADMIN_SECRET_MIN = 32;

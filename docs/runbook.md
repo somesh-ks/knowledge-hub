@@ -44,6 +44,7 @@ Never paste a key into chat. The agent cannot read `.env`; keep it that way.
 | `BLOB_PRIVATE_READ_WRITE_TOKEN` | Section 1.5a (the weekly config snapshot, D300) |
 | `SINGULARITY_GIT_NAME`, `SINGULARITY_GIT_EMAIL` | Plain configuration, no secret. `Somesh Kesarla Suresh` and `26426782+somesh-ks@users.noreply.github.com` (section 1.4) |
 | `GITHUB_SINGULARITY_TOKEN`, `GITHUB_REPOSITORY` | Section 1.7 |
+| `SIMPLE_ANALYTICS_API_KEY` | Your Simple Analytics API key (account settings, starts `sa_api_key_`). Sent to the admin project; its Analytics page reads the site's counts with it |
 | `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET` | You choose them; the command center's sign-in (section 1.4a). Sent to the admin project; the secret also goes to the reader (its `/api/costs` and `/api/health` verify the session, D257) |
 | Models | Not env vars: `config/models.json` routes each step (Section 1.3) |
 
