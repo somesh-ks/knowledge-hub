@@ -1,6 +1,6 @@
 # Code review
 
-How a pull request is reviewed, by whom, and when (D143, D192, D254, D292). The decision holds the why; this page is the procedure. The reviewer is CodeRabbit at both ends: its CLI on the branch before a push, its app on the PR when the PR is ready. `/code-review` is retired (the owner, 2026-11-01: useless and a waste of tokens).
+How a pull request is reviewed, by whom, and when (D143, D192, D254, D292). The decision holds the why; this page is the procedure. The reviewer is CodeRabbit: its app on the PR when the PR is ready, and its CLI on the branch before a push only where a miss is expensive, so no change is reviewed twice for nothing (the owner, 2026-11-01: "we use local coderabbit review only when needed; github does a coderabbit review anyways; make sure there's no duplicates, let's focus on building error prone code"). `/code-review` is the on-demand last option.
 
 ## The tier decides the review
 
@@ -9,12 +9,12 @@ The highest tier of any changed file is the PR's tier. `git diff --stat origin/m
 | Tier | Files | Review |
 | :--- | :--- | :--- |
 | 0, none | Every file under `docs/` but not `decisions/`, `engineering/`, `design/` or the design ledger; test data or fixtures; a typo or copy fix of a few lines in code outside the Tier 2 set | `[skip-review]` in the title; merge on green CI (D254) |
-| 1, one review | Everything not in Tier 0 or 2: pages, scripts, styles, tests, `scripts/`, docs that hold rules (`docs/decisions/`, `docs/engineering/`, `docs/design/`, the ledger) | `cr review` before each push; CodeRabbit on the PR once, when it is ready. Fix or answer each finding. Fix commits merge on green; new logic after the review is asked for again |
-| 2, full review | The pipeline (`packages/engine`), the store (Blob, Neon, the config store), auth, billing, `.github/workflows`, the design system's shared files (`tokens/`, `apps/web/src/design-system/`, `primitives.css`, `buttons.css`, `player.css`), `AGENTS.md`, `.coderabbit.yaml`, the gates under `scripts/` | `cr review --deep` before each push; CodeRabbit on the PR when ready; `@coderabbitai review` after the fixes; merge only when CodeRabbit's "Last reviewed commit" is the head |
+| 1, one review | Everything not in Tier 0 or 2: pages, scripts, styles, tests, `scripts/`, docs that hold rules (`docs/decisions/`, `docs/engineering/`, `docs/design/`, the ledger) | CodeRabbit on the PR once, when it is ready. Fix or answer each finding. Fix commits merge on green; new logic after the review is asked for again. No CLI pass, unless the thread expects a second round (logic across files, a diff over about 400 lines) |
+| 2, full review | The pipeline (`packages/engine`), the store (Blob, Neon, the config store), auth, billing, `.github/workflows`, the design system's shared files (`tokens/`, `apps/web/src/design-system/`, `primitives.css`, `buttons.css`, `player.css`), `AGENTS.md`, `.coderabbit.yaml`, the gates under `scripts/` | `cr review --deep` before the push of each batch; CodeRabbit on the PR when ready; `@coderabbitai review` after the fixes; merge only when CodeRabbit's "Last reviewed commit" is the head |
 
-## The CLI before the push
+## The CLI before the push, where a miss is expensive
 
-The CodeRabbit CLI reviews the branch where it is, with the repository's `.coderabbit.yaml` and the organization's learnings, and draws on its own allowance: on the Advanced plan 10 CLI reviews an hour per developer, separate from the 10 PR reviews an hour. A pass before the push costs the PR pool nothing, so the PR review mostly confirms and needs one round.
+The CodeRabbit CLI reviews the branch where it is, with the repository's `.coderabbit.yaml` and the organization's learnings, and draws on its own allowance: on the Advanced plan 10 CLI reviews an hour per developer, separate from the 10 PR reviews an hour. The PR review happens anyway, so a CLI pass is worth its run only where a second PR round is likely or costly: Tier 2 (the error-prone code), and a Tier 1 diff the thread expects to come back. A docs or style PR goes straight to the PR review.
 
 ```
 cr review --base main --committed            # Tier 1: the branch's commits against main
@@ -22,11 +22,12 @@ cr review --base main --committed --deep     # Tier 2: the PR review's full capa
 cr review --base main --committed --agent --gate major   # exit 2 when a major or worse finding remains
 ```
 
-- Once per batch, after the checks are green and before the push. Fix or answer each finding; a finding answered with a rule goes in the PR body's Review section. Push when `--gate major` exits 0 or every remaining major finding is answered there.
+- Once per batch, after the checks are green and before the push. Fix or answer each finding; a finding answered with a rule goes in the PR body's Review section, so the PR review does not relitigate it. Push when `--gate major` exits 0 or every remaining major finding is answered there.
 - Every thread shares the owner's seat, so the CLI pool is shared too (`cr review --usage` shows it). At 2 or fewer left, push without the pass and say so in the PR body; the PR review still runs.
 - The CLI refuses a comparison of 300 or more files: split the batch or narrow with `--base-commit`.
 - Setup: an Agentic API key from the owner's seat (CodeRabbit app, Settings, API Keys) in `CODERABBIT_API_KEY`; `coderabbit auth login --api-key "$CODERABBIT_API_KEY"` once per machine, or `--api-key` on the review. The cloud environment installs the binary in its setup script (`curl -fsSL https://cli.coderabbit.ai/install.sh | CI=1 sh`) and holds the key as a secret; the owner's machine installs with `irm https://cli.coderabbit.ai/install.ps1 | iex` and signs in with `coderabbit auth login`. Usage-based billing stays off, or capped: an over-limit review costs $0.25 a file.
 - No CLI (no key, binary refused): push, and the PR review is the only pass. Say so in the PR body.
+- `/code-review` (a model review in the session) is the last option, on demand: when both CodeRabbit pools are out and the merge cannot wait, or when the owner asks for it. It costs tokens the owner judges poorly spent otherwise.
 
 ## A review is asked for, never fired by a push
 
@@ -42,7 +43,8 @@ cr review --base main --committed --agent --gate major   # exit 2 when a major o
 ## What each reviewer is for
 
 - CodeRabbit on the PR: logic, security, regressions, and the record's rules (decision format, snake_case, no em dashes), with the PR's description and threads as context, and a record on the PR the owner reads before the merge. It reads `AGENTS.md` as code guidelines, so a house rule written there reaches it; `.coderabbit.yaml` carries the rules a reviewer needs spelled out (tests, motion, tokens, decisions).
-- The CodeRabbit CLI on the branch: the same reviewer before the push, from its own allowance. Also the fallback whenever the PR review is paused or out of reviews (learning 2026-10-22: review locally when the bot is silent).
+- The CodeRabbit CLI on the branch: the same reviewer before the push, from its own allowance, on Tier 2 and risky Tier 1 diffs only. Also the fallback whenever the PR review is paused or out of reviews (learning 2026-10-22: review locally when the bot is silent).
+- `/code-review`: on demand, last.
 - `design-audit` agent: taste and design-system compliance before any UI PR. CodeRabbit does not judge taste.
 - The owner: stills at 390 and 1280, light and dark, and the merge. Never asked to review code lines.
 - CodeRabbit's finishing touches (docstrings, generated unit tests, autofix, fix CI, resolve conflicts) are off: they commit to a thread's branch (D254 gives the branch to the thread) and the test generator fights the test rules. The docstring pre-merge check is off; the title and description checks stay as warnings.
