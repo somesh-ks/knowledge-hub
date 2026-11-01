@@ -169,5 +169,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D306 | A seasonal style may change more than tokens | amends D268 |
 | D308 | Haiku writes the first pass of each story, Sonnet repairs and backs it up | amends D181 |
 | D316 | Vercel skew protection stays off in the web build | active |
+| D318 | Pages stay at the edge until their content changes, purged by tag | active |
 
 ---

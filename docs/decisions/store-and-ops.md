@@ -295,3 +295,12 @@ Where data lives (Postgres, Blob, git), config, health, analytics, deploys, acce
 - Cost: an open tab that lazily imports a chunk after a deploy no longer gets the old deployment's file from Vercel. The service worker already answers `/_astro/` from its cache, precached six imports deep, and `buildGuard.ts` turns a move into another build's page into a full load.
 - Rejected: keeping skew protection and teaching every reader the query (the preload links would name other module addresses than the imports, so each file would download twice, and Vite's lazy preload lists stay gone).
 - Revisit if: a deploy breaks an open tab's lazy import with a 404 that the service worker did not answer.
+
+## D318: pages stay at the edge until their content changes
+
+- Date: 2026-11-01 (the owner, on a decision card: "Both, cache first", after the performance audit)
+- Decision: every page drawn from the content (home, Library, a briefing, an episode, Downloads, the search index) carries `Vercel-Cache-Tag: content` and `Vercel-CDN-Cache-Control: max-age=300, stale-while-revalidate=2592000`. `content.yml` deletes the tag after a sync that sent anything, 35 s after it (past each instance's 30 s manifest window) and before Notify; `/api/podcast` deletes it when a delete writes a tombstone, and again after the window. Delete, not invalidate, so the next visit never sees the old copy. The function's region moves to Europe later, after Neon (D304).
+- Why: with a ten-minute window, 43% of the owner's page loads in the week to 1 Nov missed the Stockholm edge and waited on the function in Washington, often from a cold start. A page only changes when the content does, so the edge can keep it until told.
+- Cost: a purge that fails or never runs shows the old page once, on the first visit after five minutes. A content write that bypasses `content.yml` and the tombstone path needs its own purge. The visit after a purge waits on the function. The Vercel token reaches one more workflow step (kept in that step alone, SEC-03).
+- Rejected: answering app opens from the service worker's saved page (the 2026-10-21 old-layout problem, and a "podcast ready" tap would open on the old home); a skeleton that streams the content in (two paints and a layout shift for the same bytes).
+- Revisit if: request logs still show most of the owner's page loads as MISS after a week, or a page shows content older than the store.

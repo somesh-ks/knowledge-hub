@@ -45,9 +45,35 @@ jobs:
         run: npm ci --ignore-scripts --workspace=packages/engine --workspace=apps/web --include-workspace-root
 
       - name: Sync
+        id: sync
+        shell: bash
         env:
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
-        run: npm run --silent singularity -- content sync
+        run: |
+          npm run --silent singularity -- content sync | tee "$RUNNER_TEMP/sync.txt"
+          # A sync that sent nothing leaves the edge alone: a purge makes the next visit wait.
+          if grep -q "^Content store: 0 uploaded, 0 deleted" "$RUNNER_TEMP/sync.txt"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # D318: the pages keep their edge copy until the content changes, so a sync empties it. After
+      # the function instances' 30 s manifest window (MANIFEST_TTL_MS in apps/web), so no instance
+      # puts the old page back, and before Notify, so a tap on the message opens the new page. A
+      # failed purge never fails the sync: the pages then refresh on the first visit after 5 minutes.
+      # The Vercel token stays in this step, out of reach of the packages the engine loads (SEC-03).
+      - name: Purge the edge
+        if: steps.sync.outputs.changed == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          sleep 35
+          mkdir -p "$RUNNER_TEMP/vercel"
+          cd "$RUNNER_TEMP/vercel"
+          npx --yes vercel@65.8.0 cache dangerously-delete --tag content \
+            --project knowledge-hub --scope somesh-ks-projects --yes --token "$VERCEL_TOKEN" \
+            || echo "::warning::edge purge failed; pages refresh on the first visit after 5 minutes"
 
       # D284: tell the browsers waiting on a Catch up or a regeneration that has just ended. After the
       # sync, so the episode is in the store when the tap lands. A message that fails is tried again
