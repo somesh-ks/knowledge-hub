@@ -303,11 +303,13 @@ main > .empty {
 
   @keyframes art-sweep {
     from {
-      transform: translate(calc(-7px * var(--art-travel)), calc(4px * var(--art-travel))) rotate(-5deg);
+      transform: translate(calc(-7px * var(--art-travel)), calc(4px * var(--art-travel)))
+        rotate(-5deg);
     }
 
     to {
-      transform: translate(calc(7px * var(--art-travel)), calc(-5px * var(--art-travel))) rotate(5deg);
+      transform: translate(calc(7px * var(--art-travel)), calc(-5px * var(--art-travel)))
+        rotate(5deg);
     }
   }
 
