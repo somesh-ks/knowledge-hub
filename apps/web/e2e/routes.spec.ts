@@ -58,7 +58,13 @@ test.describe("routes and headers", () => {
     await expect(page.getByRole("link", { name: "Back", exact: true })).toHaveCount(0);
   });
 
-  test("the offline banner shows once and clears when the connection returns", async ({ page }) => {
+  // Bug (owner, 2026-11-01): the offline notice sat in the page, so opening a podcast from the Library
+  // while offline pushed the destination down after it landed and the album art jumped. The strip is
+  // above the app now: it squeezes everything down once, as it opens, and a page opened under it
+  // lands where it stays.
+  test("the offline strip squeezes the page once, says when the connection is back, then lifts", async ({
+    page,
+  }) => {
     await page.goto("/");
     // The browser's own signal, set by hand: no request fails, so nothing else is blamed.
     const setOnline = (online: boolean) =>
@@ -66,13 +72,29 @@ test.describe("routes and headers", () => {
         Object.defineProperty(navigator, "onLine", { value, configurable: true });
         window.dispatchEvent(new Event(value ? "online" : "offline"));
       }, online);
+    const top = () => page.locator("#main").evaluate((el) => el.getBoundingClientRect().top);
+    const resting = await top();
     await setOnline(false);
     await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
     await setOnline(false);
     await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
+    // Squeezed, not covered: the page starts below the strip.
+    await expect.poll(top).toBeGreaterThan(resting);
+    const squeezed = await top();
+    // Another page opened under the strip starts where this one did, and holds still.
+    await page.locator('.app-nav a[href="/library"]').click();
+    await expect(page).toHaveURL(/\/library/);
+    await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
+    const landed = await page.locator("#main").evaluate((el) => el.getBoundingClientRect().top);
+    await page.waitForTimeout(1500);
+    expect(await top()).toBe(landed);
+    expect(landed).toBeGreaterThanOrEqual(squeezed);
     await setOnline(true);
     await expect(page.locator('[data-banner="offline"]')).toHaveCount(0);
     await expect(page.locator("html")).not.toHaveAttribute("data-offline", "");
+    await expect(page.locator('[data-banner="online"]')).toHaveCount(1);
+    await expect(page.locator('[data-banner="online"]')).toHaveCount(0);
+    await expect.poll(top).toBeLessThan(landed);
   });
 
   test("the app bar goes inert while slid away and returns on a scroll up", async ({ page }) => {
