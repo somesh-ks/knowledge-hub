@@ -424,17 +424,10 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
       fault(
         "config_store_unread",
         "integrity",
-        `The config store is on but its documents did not read (not seeded, or no permission?): ${documents.error}. Runs then keep the committed files, so the owner's edits do not reach them.`,
+        `The config store is on but its documents did not read (not seeded, or no permission?): ${documents.error}. Runs then stop, as the owner's config is not in git.`,
       );
     } else if (documents) {
-      const lastRunAt =
-        [status.last_run.regular, status.last_run.weekly, status.last_run.on_demand]
-          // A failure record (recordFailure) committed nothing the store could have reached.
-          .map((each) => (each?.outcome === "failed" ? undefined : each?.at))
-          .filter((at): at is string => typeof at === "string")
-          .sort()
-          .at(-1) ?? null;
-      await checkConfigStore(root, documents, lastRunAt, { fault, warn, passed });
+      await checkConfigStore(documents, { fault, warn, passed });
     }
   }
 

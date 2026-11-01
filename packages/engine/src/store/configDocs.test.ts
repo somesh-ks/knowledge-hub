@@ -74,6 +74,14 @@ describe("readsConfigAtStart", () => {
   });
 });
 
+describe("readsConfigAtStart for health", () => {
+  // The bug it prevents: the owner's config is not in git (D296), so health would fault every
+  // config file as missing.
+  it("copies the store before health reads the config", () => {
+    expect(readsConfigAtStart("health", [])).toBe(true);
+  });
+});
+
 describe("readsConfigAtStart for ingest", () => {
   // The bug it prevents: ingest reading the committed sources, which lack every source the owner
   // added from the app since the last run.

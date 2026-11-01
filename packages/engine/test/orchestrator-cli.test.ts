@@ -1,10 +1,12 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { runCli, splitArgs, topLevelHelp } from "../src/cli.js";
 import { COMMANDS, type CommandSpec } from "../src/commandRegistry.js";
 import type { CommandContext, CommandRun } from "../src/context.js";
+import { CONFIG_DOCUMENT_PATHS } from "../src/store/configPaths.js";
 import { captureStdout } from "./curate-helpers.js";
 import { REPO_ROOT } from "./score-factories.js";
 
@@ -334,5 +336,51 @@ describe("runCli: the real registry", () => {
     expect(out.result).toBe(0);
     const report = JSON.parse(out.stdout);
     expect(report).toMatchObject({ version: 1, today: "2026-10-07", due_now: true });
+  });
+});
+
+describe("the owner's config is not in git (D296)", () => {
+  const STORE_ENV = { DATABASE_URL: "postgres://fake", SINGULARITY_CONFIG_STORE: "postgres" };
+  const down = async (): Promise<never> => {
+    throw new Error("connect ECONNREFUSED");
+  };
+  beforeEach(() => {
+    execFileSync("git", ["init", "-q"], { cwd: dir });
+  });
+  const downIo = (code: { value: number }, err: string[], ran: string[]) => ({
+    cwd: dir,
+    env: STORE_ENV,
+    now: () => NOW,
+    stdout: () => {},
+    stderr: (text: string) => err.push(text),
+    connectConfigStore: down,
+    commands: [
+      stub(async () => {
+        ran.push("ran");
+        return 0;
+      }, "run"),
+    ],
+  });
+
+  // The bug it prevents: with the files out of git a checkout has none, and the old fallback ("use
+  // the files") would have built a briefing from the defaults, with no sources, and published it.
+  it("stops a run when the store is down and the checkout holds no config", async () => {
+    const err: string[] = [];
+    const ran: string[] = [];
+    const code = await runCli(["run", "--stage", "gate"], downIo({ value: 0 }, err, ran));
+    expect(code).toBe(1);
+    expect(ran).toEqual([]);
+    expect(err.join("")).toContain("config/preferences.json");
+  });
+
+  it("lets a machine that holds its own config files go on when the store is down", async () => {
+    for (const path of CONFIG_DOCUMENT_PATHS) {
+      await mkdir(dirname(join(dir, path)), { recursive: true });
+      await writeFile(join(dir, path), "{}\n");
+    }
+    const ran: string[] = [];
+    const code = await runCli(["run", "--stage", "gate"], downIo({ value: 0 }, [], ran));
+    expect(code).toBe(0);
+    expect(ran).toEqual(["ran"]);
   });
 });

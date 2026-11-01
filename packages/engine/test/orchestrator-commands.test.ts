@@ -521,55 +521,50 @@ describe("singularity learn --commit", () => {
     expect(await prefs()).toBe(before);
   });
 
-  // The bug (D149, review round 2): learn wrote the store before its commit, so a push that failed
-  // and a rerun moved each weight two stops; and with the store down it wrote the file alone, which
-  // the next run then undid. The store now follows the commit, and a store it cannot read stops it.
-  it("with the config store on, writes the store only after the push lands", LONG, async () => {
-    const stored = { content: await prefs(), version: 1 };
-    let reachable = true;
-    const sql = {
-      async query(text: string, params: unknown[] = []) {
-        if (!reachable) throw new Error("connect ECONNREFUSED");
-        if (text.startsWith("select path, content, version"))
-          return [{ path: "config/preferences.json", ...stored }];
-        const [, contents, versions] = params as [string[], string[], number[]];
-        if (versions[0] !== stored.version) return [{ written: 0 }];
-        Object.assign(stored, { content: contents[0], version: stored.version + 1 });
-        return [{ written: 1 }];
-      },
-    };
-    const env = { DATABASE_URL: "postgres://fake", SINGULARITY_CONFIG_STORE: "postgres" };
-    const withStore = async (extra: string[]) => {
-      const { ctx } = makeContext(repo.root, { env, json: false });
-      const run = makeLearn({ connectConfigStore: async () => sql });
-      return (await captureStdout(async () => run(["--apply", await patchFile(), ...extra], ctx)))
-        .result;
-    };
-    const weight = () =>
-      (JSON.parse(stored.content) as { preferred_keywords: string[] }).preferred_keywords.includes(
-        "shaders",
-      );
+  // The bug (D296): the preferences are not in git when the store is on, so a learn that committed
+  // would push an ignored file's absence as a change, and one with the store down wrote the file
+  // alone, which the next run then undid. The store is the only record; a store it cannot read stops it.
+  it(
+    "with the config store on, writes the store, commits nothing and stops when it is down",
+    LONG,
+    async () => {
+      const stored = { content: await prefs(), version: 1 };
+      let reachable = true;
+      const sql = {
+        async query(text: string, params: unknown[] = []) {
+          if (!reachable) throw new Error("connect ECONNREFUSED");
+          if (text.startsWith("select path, content, version"))
+            return [{ path: "config/preferences.json", ...stored }];
+          const [, contents, versions] = params as [string[], string[], number[]];
+          if (versions[0] !== stored.version) return [{ written: 0 }];
+          Object.assign(stored, { content: contents[0], version: stored.version + 1 });
+          return [{ written: 1 }];
+        },
+      };
+      const env = { DATABASE_URL: "postgres://fake", SINGULARITY_CONFIG_STORE: "postgres" };
+      const withStore = async (extra: string[]) => {
+        const { ctx } = makeContext(repo.root, { env, json: false });
+        const run = makeLearn({ connectConfigStore: async () => sql });
+        return (await captureStdout(async () => run(["--apply", await patchFile(), ...extra], ctx)))
+          .result;
+      };
+      const weight = () =>
+        (
+          JSON.parse(stored.content) as { preferred_keywords: string[] }
+        ).preferred_keywords.includes("shaders");
 
-    reachable = false;
-    expect(await withStore([])).toBe(1);
-    expect(git(repo.root, "status", "--porcelain")).toBe("");
-    reachable = true;
+      reachable = false;
+      expect(await withStore([])).toBe(1);
+      expect(git(repo.root, "status", "--porcelain")).toBe("");
+      reachable = true;
 
-    const before = weight();
-    await writeFile(join(repo.remote, "hooks", "pre-receive"), "#!/bin/sh\nexit 1\n", {
-      mode: 0o755,
-    });
-    expect(await withStore(["--commit"])).toBe(1);
-    expect(weight()).toBe(before);
-    await rm(join(repo.remote, "hooks", "pre-receive"));
-    // A rerun says the earlier commit is still unpushed rather than report success without it.
-    expect(await withStore(["--commit"])).toBe(1);
-    expect(weight()).toBe(before);
-    git(repo.root, "push", "-q", "origin", "main");
-    expect(await withStore(["--commit"])).toBe(0);
-    expect(weight()).toBe(true);
-    expect(stored.version).toBe(2);
-  });
+      const head = git(repo.root, "rev-parse", "HEAD");
+      expect(await withStore(["--commit"])).toBe(0);
+      expect(weight()).toBe(true);
+      expect(stored.version).toBe(2);
+      expect(git(repo.root, "rev-parse", "HEAD")).toBe(head);
+    },
+  );
 
   it("rejects --commit with --dry-run and --no-push without --commit", LONG, async () => {
     expect((await apply(["--commit", "--dry-run"])).code).toBe(2);

@@ -13,17 +13,14 @@ import {
   secretsFromEnv,
 } from "./context.js";
 import { cacheExperimentFlags, writeExperimentFlagCache } from "./experiments/overrides.js";
-import { configBase } from "./git/configBase.js";
-import { createGitRunner } from "./git/runGit.js";
 import {
-  ConfigConflict,
   configStoreUrl,
   connectConfigStore,
   hydrateConfig,
-  markCopiedFromStore,
   readsConfigAtStart,
   type SqlClient,
 } from "./store/configDocs.js";
+import { missingConfigFiles } from "./store/configExamples.js";
 
 /** Where the CLI prints and what it reads, so tests drive it without touching the process. */
 export interface CliIo {
@@ -216,35 +213,15 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
     now: io.now ?? (() => new Date()),
   };
 
-  // The owner's edits live in Postgres once the store is switched on (D149): they replace the
-  // committed config files before the command reads them. The switch is separate from the URL,
-  // which `vercel env pull` also writes to a local .env. A database that cannot be reached costs
-  // freshness, not the briefing: the files from the last run's commit are used.
-  // Whether it did is noted for the commit, which a later stage of the same run makes.
+  // The owner's config lives in Postgres, not in git (D296): it is copied over the config files
+  // before the command reads them. The switch is separate from the URL, which `vercel env pull`
+  // also writes to a local .env. A database that cannot be reached stops the command when a config
+  // file is missing (a checkout has none), so no briefing is made from defaults the owner did not
+  // choose; a machine that still holds its own copy of the files uses them and says so.
   if (readsConfigAtStart(spec.name, parsed.rest)) {
     const storeUrl = configStoreUrl(env);
-    // Noted before copying, so a copy that stops halfway still lets its commit carry the files it
-    // wrote; a dry run commits nothing, so it notes nothing a later commit could misread.
-    // A note that cannot be written leaves the files as committed: copied without it, they would
-    // make the guard refuse the run's whole commit.
-    const noted = await markCopiedFromStore(
-      root,
-      storeUrl !== null && !parsed.rest.includes("--dry-run"),
-    ).then(
-      () => true,
-      (error: unknown) => {
-        log.warn(`the config-store note cannot be written: ${firstLine(String(error))}`);
-        return false;
-      },
-    );
-    // With the store off, a note left by an earlier run that cannot be removed would let this run's
-    // commit carry config files: stop rather than trust it.
-    if (storeUrl === null && !noted && !parsed.rest.includes("--dry-run")) {
-      err("singularity: .cache/config-store.json cannot be removed; remove it, then run again.\n");
-      return 1;
-    }
     // Switches saved by an earlier run on this machine must not outlive its read: a store that then
-    // fails would leave them in charge. A cache that cannot be removed stops the run, as the note does.
+    // fails would leave them in charge. A cache that cannot be removed stops the run.
     const cleared = await writeExperimentFlagCache(root, null).then(
       () => true,
       () => false,
@@ -255,23 +232,22 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
       );
       return 1;
     }
-    if (storeUrl !== null && noted) {
+    if (storeUrl !== null) {
       try {
         const sql = await (io.connectConfigStore ?? connectConfigStore)(storeUrl);
-        const base = await configBase(createGitRunner(root)).catch(() => null);
-        const changed = await hydrateConfig(root, sql, log, base ?? undefined);
+        const changed = await hydrateConfig(root, sql, log);
         log.info(`config store: ${changed.length === 0 ? "files current" : changed.join(", ")}`);
-        await markCopiedFromStore(root, true, true);
         await cacheExperimentFlags(root, sql, log);
       } catch (error) {
-        // Either copy would lose an edit, so the run stops here, before it spends anything, and its
-        // failure record must not carry the unsynced files as a snapshot.
-        if (error instanceof ConfigConflict) {
-          await markCopiedFromStore(root, false).catch(() => {});
-          err(`singularity: ${error.message}\n`);
+        const reason = redact(firstLine(String(error)), secrets);
+        const missing = await missingConfigFiles(root);
+        if (missing.length > 0) {
+          err(
+            `singularity: the config store cannot be read (${reason}) and the owner's config is not in git. Missing: ${missing.join(", ")}.\n`,
+          );
           return 1;
         }
-        log.warn(`config store unreachable, using the files: ${firstLine(String(error))}`);
+        log.warn(`config store unreachable, using the files here: ${reason}`);
       }
     }
   }

@@ -169,7 +169,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D146 | A deploy is offered in a toast; Vitals wait | amends D145 |
 | D147 | Lab probe, not field Vitals | amends D146 |
 | D148 | CI on pull requests only; browser suites by path, Dependabot or label | active |
-| D149 | Owner config in Postgres; a git snapshot | active; off until set |
+| D149 | Owner config in Postgres; a git snapshot | active; amended by D296 |
 | D150 | Paid-route caps shared in Neon | active; amends D149 |
 | D151 | CI fails on a high advisory | active |
 | D152 | Full-screen phone sheets show Close | amends D144 |
@@ -201,7 +201,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D184 | Podcast lookback | superseded by D215 |
 | D179 | Every name says Singularity; saved state moves once | active |
 | D182 | Block prompts | active |
-| D185 | Repo config to store | amends D149 |
+| D185 | Repo config to store | amends D149; superseded by D296 |
 | D186 | Every control is a pill | amends D167 |
 | D187 | Glyphs align by ink | active |
 | D188 | Script-drawn markup | active |
@@ -301,5 +301,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D287 | Column and list centred together | amends D229 |
 | D288 | Library list: month labels, two columns | |
 | D289 | Every press is felt | amends D273 |
+| D296 | Config store is the only home of owner config; examples in the repo | amends D149, D185 |
 
 ---

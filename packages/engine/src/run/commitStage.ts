@@ -19,9 +19,9 @@ import {
   sourceNameMap,
 } from "../curate/inputs.js";
 import { Selection } from "../curate/selectionFile.js";
-import { type CommitOutcome, commandAllowlist, commitAndPush } from "../git/commit.js";
+import { type CommitOutcome, commitAndPush } from "../git/commit.js";
 import { fastForwardToRemote } from "../git/fastForward.js";
-import { findViolations, readChangedPaths } from "../git/guard.js";
+import { ALLOWLISTS, findViolations, readChangedPaths } from "../git/guard.js";
 import { pruneTopicJudgments } from "../judge/topicJudge.js";
 import { recordRunMetrics } from "../metrics/runMetrics.js";
 import { createIdAllocator, listTakenIds } from "../render/digestId.js";
@@ -41,8 +41,6 @@ import {
   writeSourceStats,
   writeTopicJudgments,
 } from "../state/store.js";
-import { markCopiedFromStore, syncedWithStore } from "../store/configDocs.js";
-import { CONFIG_DOCUMENT_PATHS } from "../store/configPaths.js";
 import { loadTopicsFile } from "../topics/store.js";
 import { validateDigest } from "../validate/validateDigest.js";
 import { createLinter } from "../voice/lint.js";
@@ -68,8 +66,6 @@ import { markAdoptedCommitted, resolveCommitPlan } from "./resolveCommitPlan.js"
 import { readSourceCounts } from "./sourceCounts.js";
 import { recordSpend } from "./spend.js";
 import type { CommitReport, DigestReport, RunDeps, RunOptions } from "./types.js";
-
-const CONFIG_PATHS: ReadonlySet<string> = new Set(CONFIG_DOCUMENT_PATHS);
 
 /** What the commit stage reads for one pass. */
 interface PassData {
@@ -187,15 +183,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   // State and Digests are read after it, from the remote's branch and not the checkout from job
   // start (D209).
   if (held && !options.noPush) {
-    const forwarded = await fastForwardToRemote(deps.git, deps.log);
-    // A config edit that came in from the repo means the files are no longer the store's, so the
-    // commit must not claim to be a snapshot of it: the next gate would read the store's older copy
-    // as the newer one and revert the edit (D209).
-    const configMayHaveChanged =
-      forwarded.changed === null || forwarded.changed.some((path) => CONFIG_PATHS.has(path));
-    if (configMayHaveChanged && (await syncedWithStore(root))) {
-      await markCopiedFromStore(root, true, false);
-    }
+    await fastForwardToRemote(deps.git, deps.log);
   }
   const now = deps.now();
 
@@ -360,8 +348,7 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   }
 
   // Refuse before writing anything when the tree already holds changes the guard would block.
-  const { allowlist } = await commandAllowlist(root, "run");
-  const blocked = findViolations(await readChangedPaths(deps.git), allowlist);
+  const blocked = findViolations(await readChangedPaths(deps.git), ALLOWLISTS.run);
   if (blocked.length > 0) {
     throw new StageFailure(
       `The working tree has changes outside the write allowlist, so nothing was written: ${blocked.join(", ")}`,

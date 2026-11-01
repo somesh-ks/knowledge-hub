@@ -206,7 +206,7 @@ describe("GET /api/cron/run", () => {
 
   // The bug (D149, review round 2): with the config store on, an hour changed in the app is in the
   // database at once and on main only after the next run, so the cron kept starting the old hour.
-  it("with the config store on, starts at the stored hour, and at main's when the store is down", async () => {
+  it("with the config store on, starts at the stored hour, and starts nothing when the store is down", async () => {
     const { github } = setup({ lastRun: lastRun("2026-10-08T11:58:00.000Z") });
     const stored = JSON.stringify({ ...DEFAULT_SCHEDULE, hour: 9 });
     const call = (at: string, up: boolean) =>
@@ -224,12 +224,15 @@ describe("GET /api/cron/run", () => {
     // Saturday 05:30 and 09:30 in Stockholm: the stored hour 9 opens at 07:00, main's hour 7 at 05:00.
     expect((await call("2026-10-10T03:30:00Z", true)).body).toMatchObject({ dispatched: false });
     expect((await call("2026-10-10T07:30:00Z", true)).body).toMatchObject({ dispatched: true });
-    expect((await call("2026-10-10T03:30:00Z", false)).body).toMatchObject({ dispatched: true });
+    // The owner's schedule is not on main (D296): a run started now could not read the config either.
+    const down = await call("2026-10-10T03:30:00Z", false);
+    expect(down.status).toBe(503);
+    expect(dispatches(github)).toHaveLength(1);
   });
 
-  // The bug: a store that never answers held the call until Vercel killed it, so the hour's run was
-  // never started, where main's schedule would have started it.
-  it("with the config store hanging, starts at main's hour once it has waited long enough", async () => {
+  // The bug: a store that never answers held the call until Vercel killed it, with nothing logged.
+  // It gives up after the wait and answers 503, which Vercel's cron log shows.
+  it("with the config store hanging, answers 503 once it has waited long enough", async () => {
     // The store module loads first and is not on the clock; load it so the timer is armed at once.
     await import("./configStore");
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
@@ -242,7 +245,7 @@ describe("GET /api/cron/run", () => {
         connectConfigStore: async () => ({ query: () => new Promise(() => {}) }),
       });
       await vi.advanceTimersByTimeAsync(STORE_READ_TIMEOUT_MS);
-      expect((await result).body).toMatchObject({ dispatched: true });
+      expect((await result).status).toBe(503);
     } finally {
       vi.useRealTimers();
     }

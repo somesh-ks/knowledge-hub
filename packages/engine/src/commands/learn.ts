@@ -86,9 +86,10 @@ const USAGE = `Usage:
   singularity learn --schema                 Print the JSON Schema of a preferences patch
   singularity learn --apply <patch.json>     Apply a patch (keywords, authors, disliked patterns)
     [--dry-run]                           Show the diff without writing
-    [--commit] [--no-push]                Commit config/preferences.json as chore(prefs): <summary>
-                                          and push (--no-push keeps it local). Refuses on a dirty
-                                          tree or when behind the remote.`;
+    [--commit] [--no-push]                With the config store off, commit config/preferences.json as
+                                          chore(prefs): <summary> and push (--no-push keeps it local);
+                                          refuses on a dirty tree or when behind the remote. With the
+                                          store on the preferences are not in git and nothing is committed.`;
 
 function value(argv: string[], flag: string): string | undefined {
   const i = argv.indexOf(flag);
@@ -117,11 +118,7 @@ export function prefsCommitMessage(input: string, changes: readonly string[]): s
 }
 
 /** Why a commit must not start, or null when it may. */
-async function commitRefusal(
-  root: string,
-  push: boolean,
-  storeOn: boolean,
-): Promise<string | null> {
+async function commitRefusal(root: string, push: boolean): Promise<string | null> {
   if (!(await isTreeClean(root))) {
     return "The working tree has uncommitted changes. Commit or stash them first: --commit stages config/preferences.json only.";
   }
@@ -135,8 +132,7 @@ async function commitRefusal(
     return `Cannot reach the remote to check whether the branch is behind (${detail}). Fix the connection, or use --no-push.`;
   }
   // A learn whose push failed left its commit here: a rerun would find nothing to commit and say so
-  // as if all were well, while the commit never reached the remote (nor, with the store on, the
-  // store). Push, and only with the store on run learn again: the file already holds the change.
+  // as if all were well, while the commit never reached the remote.
   const ahead = await isAheadOfRemote(root).then(
     (value) => (value ? "yes" : "no"),
     () => "unknown",
@@ -144,9 +140,7 @@ async function commitRefusal(
   if (ahead === "unknown")
     return "Cannot tell whether the branch has unpushed commits. Check git status first.";
   if (ahead === "yes") {
-    return storeOn
-      ? "The branch has commits its remote does not have. Push them (git push), then run learn again so the config store gets the change."
-      : "The branch has commits its remote does not have. Push them (git push); a learn commit among them is already made, so do not run it again.";
+    return "The branch has commits its remote does not have. Push them (git push); a learn commit among them is already made, so do not run it again.";
   }
   return null;
 }
@@ -246,16 +240,22 @@ async function learn(argv: string[], ctx: CommandContext, connect: Connect): Pro
   for (const line of changes) console.log(`+ ${line}`);
 
   if (argv.includes("--dry-run")) return 0;
-  if (commit) {
+  // With the store on the preferences are not in git (D296): the store is the only record, so a
+  // commit has nothing to hold and none is made.
+  const gitCommit = commit && store === null;
+  if (commit && !gitCommit) {
+    ctx.log.info("The preferences live in the config store, not in git: nothing is committed.");
+  }
+  if (gitCommit) {
     // Checked before anything is written, so a refusal leaves the tree exactly as it was.
-    const refusal = await commitRefusal(ctx.root, !noPush, store !== null);
+    const refusal = await commitRefusal(ctx.root, !noPush);
     if (refusal) {
       ctx.log.error(refusal);
       return 1;
     }
   }
   writeJson(prefsPath, next);
-  if (commit) {
+  if (gitCommit) {
     const identity = await committerIdentity(ctx.root);
     const outcome = await commitAndPush({
       root: ctx.root,
@@ -266,8 +266,6 @@ async function learn(argv: string[], ctx: CommandContext, connect: Connect): Pro
     });
     const { ok, line } = describeCommit(outcome);
     if (!ok) {
-      // The store is written only once the commit is in: a rerun after a failed push then starts
-      // from the same stored preferences and applies the patch once, not twice.
       ctx.log.error(line);
       return 1;
     }
@@ -285,7 +283,9 @@ async function learn(argv: string[], ctx: CommandContext, connect: Connect): Pro
   }
   if (!commit) {
     ctx.log.info(
-      `Updated ${CONFIG_FILES.preferences}. Review the diff, then commit as "chore(prefs): ...".`,
+      store === null
+        ? `Updated ${CONFIG_FILES.preferences}.`
+        : `Updated ${CONFIG_FILES.preferences} and the config store.`,
     );
   }
   return 0;

@@ -238,18 +238,14 @@ const DOCUMENT_SCHEMAS = new Map<string, (json: unknown) => unknown>([
 
 /**
  * `config_store_drift` (D149's store on): a stored document the next run would skip (not JSON) or
- * fail on (its schema) is a fault. One that differs from its committed file though a committed run
- * was recorded after it was written is a warning only: no record holds when a run copied the store
- * (`at` is the commit, after the copy), so an edit made during a run reads the same. Only
- * CONFIG_DOCUMENT_PATHS are checked, as hydrateConfig copies only those. Nothing heals it.
+ * fail on (its schema) is a fault. Only CONFIG_DOCUMENT_PATHS are checked, as hydrateConfig copies
+ * only those. The owner's config is in the store alone (D296), so there is no git copy to compare.
+ * Nothing heals it.
  */
 export async function checkConfigStore(
-  root: string,
   documents: readonly ConfigDocument[],
-  lastRunAt: string | null,
   sink: Sink,
 ): Promise<void> {
-  const ranAt = lastRunAt === null ? Number.NaN : Date.parse(lastRunAt);
   const paths: readonly string[] = CONFIG_DOCUMENT_PATHS;
   const known = documents.filter((document) => paths.includes(document.path));
   let drifted = false;
@@ -262,7 +258,7 @@ export async function checkConfigStore(
     try {
       json = JSON.parse(document.content);
     } catch {
-      fault(`The stored ${document.path} is not JSON: a run keeps the committed file.`);
+      fault(`The stored ${document.path} is not JSON: a run keeps the file it has.`);
       continue;
     }
     const parse = DOCUMENT_SCHEMAS.get(document.path);
@@ -271,28 +267,10 @@ export async function checkConfigStore(
         parse(json);
       } catch (error) {
         fault(`The stored ${document.path} fails its schema: ${firstIssue(error)}`);
-        continue;
       }
     }
-    const committed = await readFileIfPresent(join(root, document.path)).catch(() => null);
-    if (
-      committed !== document.content &&
-      document.updatedAt !== undefined &&
-      document.updatedAt < ranAt
-    ) {
-      drifted = true;
-      sink.warn(
-        "config_store_drift",
-        "integrity",
-        `The stored ${document.path} (written ${new Date(document.updatedAt).toISOString()}) differs from the committed file, and a run committed at ${lastRunAt} after it: it was edited during that run, or the run did not copy it.`,
-      );
-    }
   }
-  if (!drifted) {
-    sink.passed.push(
-      `the ${known.length} stored config documents parse, and none written before the last committed run differs from git`,
-    );
-  }
+  if (!drifted) sink.passed.push(`the ${known.length} stored config documents parse`);
 }
 
 /**

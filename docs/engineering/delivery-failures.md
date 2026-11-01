@@ -11,7 +11,7 @@ Why pull requests, CI, builds and deployments failed from 2026-10-15 to 2026-10-
 5. **Never remove a worktree or branch another session made.** A worktree with no commits looks merged and is someone's work in progress (class 8).
 6. **Verify branch HEAD after pushing.** After `git push`, compare `git ls-remote origin <branch>` with `git rev-parse HEAD`. A push on a detached HEAD reports "Everything up-to-date" while remote remains stale (class 11).
 7. **Workers never allocate decision IDs.** Decision numbers are assigned strictly by the lead on `main` right before merge to avoid parallel branch collisions (class 12).
-8. **Config store synchronization before config edits.** When editing `config/` in Git, sync with the live config store so deployed snapshots do not overwrite runtime state (class 13).
+8. **The owner's config is not in git (D296).** Edit it in the app or the store, never in a pull request: the files under `config/` named in `CONFIG_DOCUMENT_PATHS` are ignored, and `config/examples/` holds only public defaults (class 13).
 9. **A PR that GitHub shows as conflicting is also an unchecked one.** Fetch `main` and merge it as soon as `mergeable_state` reads `dirty`, then read the first `ci` run on the merged head before calling the branch green (class 14).
 
 ## Failure classes
