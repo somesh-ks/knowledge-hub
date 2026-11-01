@@ -45,7 +45,7 @@
 }
 
 .banner-text {
-  flex: var(--banner-text-grow, 1);
+  flex: var(--banner-text-flex, 1);
   min-width: 0;
   font-size: var(--text-label-size);
   letter-spacing: var(--text-label-tracking);
@@ -77,11 +77,11 @@
   padding-block: var(--strip-inset-top, 0) 0;
   padding-inline: var(--page-gutter);
   border-radius: 0;
-  background: color-mix(in oklch, var(--tone) 22%, var(--color-surface));
+  background: color-mix(in oklab, var(--tone) 22%, var(--color-surface));
   /* One line, centred: the icon needs no nudge onto a title's first line, and the text takes only
      its own width. */
   --banner-icon-offset: 0;
-  --banner-text-grow: 0;
+  --banner-text-flex: 0 1 auto;
   --banner-icon-animation: banner-strip-icon var(--duration-spring-spatial-fast)
     var(--ease-spring-spatial-fast) var(--duration-stagger) both;
   --banner-text-animation: banner-strip-text var(--duration-spring-effects-slow) var(--ease-out)
