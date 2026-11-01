@@ -47,6 +47,15 @@ cr review --base main --committed --agent --gate major   # exit 2 when a major o
 - The owner: stills at 390 and 1280, light and dark, and the merge. Never asked to review code lines.
 - CodeRabbit's finishing touches (docstrings, generated unit tests, autofix, fix CI, resolve conflicts) are off: they commit to a thread's branch (D254 gives the branch to the thread) and the test generator fights the test rules. The docstring pre-merge check is off; the title and description checks stay as warnings.
 
+## A second opinion, on demand
+
+A second reviewer pays only where the two fail differently. CodeRabbit is strongest on the diff and the rules it is given; Greptile indexes the whole repository, so its edge is the change that breaks a consumer elsewhere. Greptile stays off automatically (`autoReview` empty in its config, so the `[skip-review]` keyword never matters to it) and is asked by comment:
+
+- When: a Tier 2 PR, after CodeRabbit's pass and the fixes; or any PR whose CodeRabbit summary rates merge risk moderate or higher, or whose `npm run blast-radius` lists three or more consumer surfaces. Never the rolling `design-system` PR (taste is `design-audit`'s), never Tier 0 or a plain Tier 1.
+- How: the thread that owns the PR posts `@greptileai` once (`@greptileai review this at plus` for a Tier 2 diff over about 400 lines). Its findings get the same fix-or-reply as CodeRabbit's; where the two disagree, the thread decides and says so in the Review section. A 👎 on a finding that fights a house rule trains it.
+- Budget: the Starter plan is free for one developer with 50 credits a month (Base 1, Plus 3, Apex 10). Every thread spends the owner's credits; at 10 or fewer left, Tier 2 only.
+- Reassess after five uses: keep it only if at least one found a real defect CodeRabbit missed.
+
 ## Findings
 
 Every finding gets a fix or one reply naming the rule it conflicts with (`AGENTS.md`, a D-number, a ledger line, as in #525's test reply), then its thread is resolved (the ruleset merges only with threads resolved). Do not argue twice. A finding that fights a rule on two PRs goes in the PR body's Review section; the coordinator batches those into one `.coderabbit.yaml` change.
