@@ -80,6 +80,17 @@ test.describe("routes and headers", () => {
     await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
     // Squeezed, not covered: the page starts below the strip.
     await expect.poll(top).toBeGreaterThan(resting);
+    // The strip's own opening is over before sampling starts: it squeezes the page by design.
+    const settle = () =>
+      page.evaluate(async () => {
+        // The page's own transition over, plus a few more frames: whatever moves after it is a bug.
+        const finite = document
+          .getAnimations()
+          .filter((a) => Number.isFinite(a.effect?.getComputedTiming().endTime ?? 0));
+        await Promise.allSettled(finite.map((a) => a.finished));
+        for (let i = 0; i < 20; i++) await new Promise((r) => requestAnimationFrame(r));
+      });
+    await settle();
     const squeezed = await top();
     // Pages opened under the strip land where they stay. The page and, on a podcast, its cover are
     // sampled every frame from the click, so a shift during the swap shows as much as one after it.
@@ -95,15 +106,6 @@ test.describe("routes and headers", () => {
       };
       tick();
     });
-    const settle = () =>
-      page.evaluate(async () => {
-        // The page's own transition over, plus a few more frames: whatever moves after it is a bug.
-        const finite = document
-          .getAnimations()
-          .filter((a) => Number.isFinite(a.effect?.getComputedTiming().endTime ?? 0));
-        await Promise.allSettled(finite.map((a) => a.finished));
-        for (let i = 0; i < 20; i++) await new Promise((r) => requestAnimationFrame(r));
-      });
     const samples = (path: RegExp) =>
       page.evaluate(
         (source) =>
