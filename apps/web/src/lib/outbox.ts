@@ -10,6 +10,7 @@
  */
 import type { ConfigOp } from "../types/contracts";
 import { OUTBOX_KEY } from "./savedKey";
+import { isOp } from "./savedOverlay";
 
 /** An edit older than this is dropped: it was made against a settings page that has long changed. */
 export const OUTBOX_TTL_MS = 14 * 24 * 60 * 60 * 1000;
@@ -29,9 +30,11 @@ export function parseOutbox(raw: string | null, now: number): OutboxEntry[] {
     const kept: OutboxEntry[] = [];
     for (const entry of parsed) {
       const { at, ops } = (entry ?? {}) as { at?: unknown; ops?: unknown };
-      if (typeof at !== "number" || !Array.isArray(ops) || ops.length === 0) continue;
+      if (typeof at !== "number" || !Array.isArray(ops)) continue;
       if (at > now || now - at >= OUTBOX_TTL_MS) continue;
-      kept.push({ at, ops: ops as ConfigOp[] });
+      // Storage can hold anything: an entry keeps only the edits that are edits.
+      const valid = ops.filter(isOp);
+      if (valid.length > 0) kept.push({ at, ops: valid });
     }
     return kept;
   } catch {
@@ -76,4 +79,25 @@ export function appendOutbox(ops: readonly ConfigOp[], now = Date.now()): boolea
 /** Takes the oldest `count` entries out, once they were sent or refused for good. */
 export function dropOldest(count = 1, now = Date.now()): void {
   writeOutbox(readOutbox(now).slice(count));
+}
+
+/**
+ * Takes one refused edit out of the entry that held it (`offset` is its place in that entry), or the
+ * whole entry when `offset` is null or it was the last edit. Reads the outbox again first: another tab
+ * may have kept more edits while the request was away, and those stay.
+ */
+export function removeOp(entry: OutboxEntry, offset: number | null, now = Date.now()): void {
+  const signature = JSON.stringify(entry.ops);
+  const entries = readOutbox(now);
+  const index = entries.findIndex(
+    (candidate) => candidate.at === entry.at && JSON.stringify(candidate.ops) === signature,
+  );
+  if (index < 0) return;
+  const target = entries[index] as OutboxEntry;
+  const ops = offset === null ? [] : target.ops.filter((_, at) => at !== offset);
+  writeOutbox(
+    ops.length > 0
+      ? entries.map((candidate, at) => (at === index ? { at: target.at, ops } : candidate))
+      : entries.filter((_, at) => at !== index),
+  );
 }

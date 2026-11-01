@@ -20,6 +20,7 @@ import {
   pack,
   remember,
   type SaveContext,
+  TIME_REFUSED,
 } from "./managePageSave";
 import { endedByLeaving } from "./pageLeaving";
 
@@ -630,6 +631,8 @@ describe("edits kept on the device while the site cannot be reached (CFG-04)", (
   let toasts: { message?: string }[];
   /** What the site answers: a status, or the connection failing. */
   let answer: number | "offline";
+  /** Answers given first, in order, before `answer` applies: a status and its body. */
+  let replies: [number, object][];
   let round = 5000;
 
   const context = (changes: Map<string, Pending>): SaveContext => ({
@@ -645,6 +648,7 @@ describe("edits kept on the device while the site cannot be reached (CFG-04)", (
     said = [];
     toasts = [];
     answer = "offline";
+    replies = [];
     vi.stubGlobal("localStorage", memoryStorage());
     const doc = Object.assign(new EventTarget(), { querySelector: () => null });
     doc.addEventListener(
@@ -658,6 +662,8 @@ describe("edits kept on the device while the site cannot be reached (CFG-04)", (
         if (answer === "offline") throw new TypeError("Failed to fetch");
         const { op } = JSON.parse(String(init.body)) as { op: ConfigOp | ConfigOp[] };
         posted.push([op].flat());
+        const first = replies.shift();
+        if (first) return new Response(JSON.stringify(first[1]), { status: first[0] });
         return new Response(JSON.stringify({ status: answer }), { status: answer });
       }),
     );
@@ -741,6 +747,49 @@ describe("edits kept on the device while the site cannot be reached (CFG-04)", (
     const before = posted.length;
     await drainOutbox();
     expect(posted).toHaveLength(before);
+  });
+
+  // Bug (review of #550): a refusal that named one edit dropped every edit of its request, and a
+  // malformed stored edit threw on the settings page that read it.
+  it("takes out only the edit a refusal names and sends the rest of its request again", async () => {
+    const off = (id: string) => change({ op: "source.set", id, enabled: false });
+    await flush(
+      context(
+        new Map([
+          ["a", off("a")],
+          ["b", off("b")],
+        ]),
+      ),
+    );
+    expect(readOutbox()).toHaveLength(1);
+    expect(readOutbox()[0]?.ops).toHaveLength(2);
+    replies = [[409, { op_index: 0 }]];
+    answer = 202;
+    await drainOutbox();
+    expect(posted.at(-2)).toHaveLength(2);
+    expect(posted.at(-1)).toEqual([{ op: "source.set", id: "b", enabled: false }]);
+    expect(readOutbox()).toEqual([]);
+    expect(toasts).toHaveLength(1);
+  });
+
+  it("says when a kept schedule change was saved but its time could not be changed", async () => {
+    await flush(context(new Map([["hour", change({ op: "schedule.set", hour: 9 })]])));
+    answer = 202;
+    replies = [[202, { time_changed: false }]];
+    await drainOutbox();
+    expect(readOutbox()).toEqual([]);
+    expect(toasts).toEqual([expect.objectContaining({ message: TIME_REFUSED })]);
+  });
+
+  it("ignores stored edits that are not edits, and still shows the good ones", () => {
+    localStorage.setItem(
+      OUTBOX_KEY,
+      JSON.stringify([
+        { at: Date.now(), ops: [null, { op: "schedule.set", hour: 9 }, 7] },
+        { at: Date.now(), ops: [null] },
+      ]),
+    );
+    expect(outboxOps()).toEqual([{ op: "schedule.set", hour: 9 }]);
   });
 
   it("holds what could not be asked about, and sends it at the next try", async () => {

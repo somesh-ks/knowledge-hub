@@ -5,7 +5,7 @@
  * Nothing here is needed to read or edit a page, so it stays out of the first-load budget.
  */
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
-import { appendOutbox, dropOldest, readOutbox, writeOutbox } from "../lib/outbox";
+import { appendOutbox, dropOldest, readOutbox, removeOp } from "../lib/outbox";
 import { SAVED_KEY, storeOn } from "../lib/savedKey";
 import { addSaved, parseSaved, withPending } from "../lib/savedOverlay";
 import type { ConfigOp, ConfigResponse } from "../types/contracts";
@@ -579,6 +579,7 @@ async function sendOutbox(): Promise<void> {
         heldOps(),
         (answer.body as { written_at?: unknown })?.written_at as number | undefined,
       );
+      if (answer.timeRefused) sendToast({ message: TIME_REFUSED, kind: "error" });
       try {
         if (storeOn()) afterOwnSave();
       } catch {
@@ -589,20 +590,26 @@ async function sendOutbox(): Promise<void> {
     // Refused for good: the site read the edit and said no. Anything else (no connection, a server
     // fault) leaves it kept, and the next page load, the connection coming back or the next change tries again.
     if (answer.status !== 400 && answer.status !== 409) return;
-    // A refusal that names its op spares the other entries; one that does not is chased down by
-    // sending the oldest entry alone.
+    // A refusal that names its op takes out that edit alone: the server wrote none of the request, so
+    // the others go out again next time. One that does not is chased down by sending the oldest entry alone.
     const named = (answer.body as { op_index?: unknown } | undefined)?.op_index;
     let at = 0;
+    let offset: number | null = null;
     if (typeof named === "number") {
-      for (let total = 0; at < count; at += 1) {
-        total += entries[at]?.ops.length ?? 0;
-        if (named < total) break;
+      let before = 0;
+      for (; at < count - 1; at += 1) {
+        const next = before + (entries[at]?.ops.length ?? 0);
+        if (named < next) break;
+        before = next;
       }
+      offset = named - before;
+      if (offset < 0 || offset >= (entries[at]?.ops.length ?? 0)) offset = null;
     } else if (count > 1) {
       solo = true;
       continue;
     }
-    writeOutbox(entries.filter((_, index) => index !== at));
+    const refused = entries[at];
+    if (refused) removeOp(refused, offset);
     solo = false;
     const reason = failureText(answer.status, answer.body).replace(/ Not saved yet\.$/, "");
     sendToast({ message: `A change made offline was not saved. ${reason}`, kind: "error" });
