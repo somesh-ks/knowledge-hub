@@ -29,7 +29,7 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code 
 - No em dashes. Persisted data is snake_case; docs and config files are lowercase kebab-case.
 - Do not edit `Digests/` or `state/` by hand.
 - Changes to `.github/workflows` need a manual merge (the auto-merge token cannot merge them).
-- Code review before every merge, by tier (D292): [code-review.md](docs/engineering/code-review.md). `[skip-review]` and green CI only for docs outside `decisions/`, `engineering/`, `design/` and the ledger, test data, or a few-line copy fix outside the pipeline, store, auth, billing, workflows and design system (D254); those get `/code-review` first. CodeRabbit reviews on open, then only on `@coderabbitai review` from the PR's owning thread (10 an hour, shared).
+- Code review before every merge, by tier (D292): [code-review.md](docs/engineering/code-review.md). `[skip-review]` and green CI only for docs outside `decisions/`, `engineering/`, `design/` and the ledger, test data, or a few-line copy fix outside the pipeline, store, auth, billing, workflows and design system (D254). `cr review` before each push (its own 10 an hour). CodeRabbit reviews on open, then only on `@coderabbitai review` from the PR's owning thread (10 an hour, shared).
 - TypeScript stays on 6.x.
 - UI keeps the 8pt grid (4px for named cases only) and the design system, in three layers: `npm run design-check` (a hook on each UI edit), e2e/designSystem.spec.ts (CI), the `design-audit` agent before the PR.
 - The design system is a product (D237, D253). A control is a component in `apps/web/src/design-system/` named for what it is (Button); a page draws it, never types its class. A UI fix starts at the component; every UI change is designed from the design system. If it cannot express the request, stop, propose a small deviation and wait for the owner's OK; never deviate silently. A page patch needs a PR reason and a `PAGE_OVERRIDES` entry. Changes join the one open `design-system` PR the owner merges (D254).
@@ -55,6 +55,6 @@ Few, one layer each, aimed at what fails silently ([evidence](docs/engineering/p
 
 Project agents (`singularity-verify`, `singularity-worker`) are in `.claude/agents/`; `/close-session` runs the steps below.
 
-After a large piece of work: clean up scratch files, servers, stashes and local branches; review the merged diff (CodeRabbit or code-review), fix findings, verify the Vercel production deploy.
+After a large piece of work: clean up scratch files, servers, stashes and local branches; review the merged diff (CodeRabbit), fix findings, verify the Vercel production deploy.
 
 At the end of a session: update `docs/state.md`, add a decision (next D-number, and a row in the Index) for anything that changes direction, add one line to `docs/learnings.md` per failure, and add a note under `docs/history/`.
