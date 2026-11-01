@@ -44,6 +44,7 @@ export const RAMPS = {
   green: { hue: 155, peak: 0.15 },
   orange: { hue: 47, peak: 0.17 },
   red: { hue: 28, peak: 0.19 },
+  violet: { hue: 292, peak: 0.24 },
 } as const satisfies Record<string, RampSpec>;
 export type RampName = keyof typeof RAMPS;
 
@@ -125,6 +126,7 @@ const RAMP_DESCRIPTIONS: Record<RampName, string> = {
   green: "Success.",
   orange: "Warning. Clear orange, not brown: hue 47 keeps step 500 at 4.5:1 as text.",
   red: "Danger.",
+  violet: "The Expressive style's accent: an electric violet at the highest chroma the curve allows, so a selected state, a fill and a tint read as colour, not as grey with a hint.",
 };
 
 type JsonObject = Record<string, unknown>;

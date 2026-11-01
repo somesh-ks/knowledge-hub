@@ -168,5 +168,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D302 | Pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked | active |
 | D306 | A seasonal style may change more than tokens | amends D268 |
 | D308 | Haiku writes the first pass of each story, Sonnet repairs and backs it up | amends D181 |
+| D310 | Expressive is loud: a violet world, larger controls | amends D268 |
 
 ---

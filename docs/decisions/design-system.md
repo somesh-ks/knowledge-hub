@@ -574,3 +574,14 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Cost: every page carries the cobweb (about 3 KB, hidden) and each empty state carries both svgs; the 9 KB Pirata One file is precached with the stylesheet though only its style fetches it.
 - Revisit if: a second style wants scenes (then they move to one file per style), the hidden markup shows in page weight, or a style needs to change a primitive ramp.
 - Amends: D268.
+
+
+## D310: Expressive is loud: a violet world, larger controls
+
+- Date: 2026-11-01 (the owner: "button sizes in expressive style is not changed", "I don't see much of a change", "touch targets to be bigger", "the style to be very visibly evident", "the color scheme should be very dominant", "not very conservative").
+- Decision: Expressive overrides the whole palette (a new `violet` ramp at hue 292 and the highest chroma the curve allows; the page, every surface and every text tone lean violet; the selected state is a saturated violet fill), the touch sizes (`size.touch` 52px, `size.touch-comfortable` and `size.option` 56px), and the part sizes that were literals (switch, scrubber thumb, play chip, bottom bar and its indicator, app bar, player controls, chip, cta, toast, row padding, button padding). Headings stay regular (D268).
+- Why: the first Expressive changed a weight and some corners, so it read as Default; an owner who picks a style expects to see it from across the room. Sizes and colour reach every part only through tokens, so each is a token a style overrides.
+- Rejected: a hue shift of the blue ramp (primitives are never replaced by a style); tinting only the accent (the grey surfaces carry the page, so the page stayed grey); one bigger button (a control that grows alone looks like a bug).
+- Cost: one primitive ramp (10 values); about 60 style tokens; the bottom bar, app bar and controls take more room on a phone, so a long label wraps sooner.
+- Revisit if: a part still ignores the switch (it reads a primitive or a literal, a component token is missing), or the owner finds the violet too far from the app's mark.
+- Amends: D268.

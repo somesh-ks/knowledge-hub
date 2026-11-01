@@ -2501,6 +2501,106 @@
       }
     },
     {
+      "name": "--color-violet-50",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(98.00% 0.0100 292)",
+      "hex": {
+        "light": "#f8f7ff",
+        "dark": "#f8f7ff"
+      }
+    },
+    {
+      "name": "--color-violet-100",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(91.85% 0.0415 292)",
+      "hex": {
+        "light": "#e4e0fe",
+        "dark": "#e4e0fe"
+      }
+    },
+    {
+      "name": "--color-violet-200",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(84.23% 0.0828 292)",
+      "hex": {
+        "light": "#ccc2fe",
+        "dark": "#ccc2fe"
+      }
+    },
+    {
+      "name": "--color-violet-300",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(75.56% 0.1330 292)",
+      "hex": {
+        "light": "#b29ffd",
+        "dark": "#b29ffd"
+      }
+    },
+    {
+      "name": "--color-violet-400",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(66.26% 0.1908 292)",
+      "hex": {
+        "light": "#9877fc",
+        "dark": "#9877fc"
+      }
+    },
+    {
+      "name": "--color-violet-500",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(56.74% 0.2378 292)",
+      "hex": {
+        "light": "#8049f3",
+        "dark": "#8049f3"
+      }
+    },
+    {
+      "name": "--color-violet-600",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(47.44% 0.2088 292)",
+      "hex": {
+        "light": "#6533c4",
+        "dark": "#6533c4"
+      }
+    },
+    {
+      "name": "--color-violet-700",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(38.77% 0.1568 292)",
+      "hex": {
+        "light": "#4a2a8f",
+        "dark": "#4a2a8f"
+      }
+    },
+    {
+      "name": "--color-violet-800",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(31.15% 0.0998 292)",
+      "hex": {
+        "light": "#33235e",
+        "dark": "#33235e"
+      }
+    },
+    {
+      "name": "--color-violet-900",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(25.00% 0.0534 292)",
+      "hex": {
+        "light": "#221c39",
+        "dark": "#221c39"
+      }
+    },
+    {
       "name": "--color-elevation-light-sunken",
       "tier": "primitive",
       "type": "color",
