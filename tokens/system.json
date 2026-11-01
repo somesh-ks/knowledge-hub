@@ -4319,6 +4319,26 @@
       }
     },
     {
+      "name": "--cta-bg-hover",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-hover)",
+      "hex": {
+        "light": "#164087",
+        "dark": "#afcdfe"
+      }
+    },
+    {
+      "name": "--cta-bg-pressed",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-pressed)",
+      "hex": {
+        "light": "#162f59",
+        "dark": "#4f90fc"
+      }
+    },
+    {
       "name": "--cta-fg",
       "tier": "component",
       "type": "color",

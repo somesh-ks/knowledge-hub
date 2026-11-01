@@ -25,7 +25,7 @@
 }
 
 .costs[data-loading] .costs-data {
-  opacity: var(--opacity-dim);
+  opacity: 0.6;
 }
 
 /* ------------------------------------------------------------------ the head */

@@ -348,6 +348,8 @@
   --cta-radius: var(--radius-round);
   --cta-radius-pressed: var(--cta-radius);
   --cta-bg: var(--color-accent);
+  --cta-bg-hover: var(--color-accent-hover);
+  --cta-bg-pressed: var(--color-accent-pressed);
   --cta-fg: var(--color-on-accent);
   --action-tonal-radius: var(--radius-lg);
   --action-tonal-bg: var(--color-accent-action);

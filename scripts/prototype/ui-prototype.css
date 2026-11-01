@@ -175,12 +175,12 @@ html[data-mini="visible"] main {
 
 @media (hover: hover) and (pointer: fine) {
   .btn-primary:hover {
-    background: color-mix(in oklab, var(--cta-bg), var(--cta-fg) var(--state-hover));
+    background: var(--cta-bg-hover);
   }
 }
 
 .btn-primary:active {
-  background: color-mix(in oklab, var(--cta-bg), var(--cta-fg) var(--state-press));
+  background: var(--cta-bg-pressed);
 }
 
 .btn-primary[aria-disabled="true"] {
@@ -435,12 +435,12 @@ html[data-mini="visible"] main {
 
 @media (hover: hover) and (pointer: fine) {
   .cta:hover {
-    background: color-mix(in oklab, var(--cta-bg), var(--cta-fg) var(--state-hover));
+    background: var(--cta-bg-hover);
   }
 }
 
 .cta:active {
-  background: color-mix(in oklab, var(--cta-bg), var(--cta-fg) var(--state-press));
+  background: var(--cta-bg-pressed);
 }
 
 .cta[aria-disabled="true"] {
