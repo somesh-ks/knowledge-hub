@@ -310,6 +310,12 @@ test.describe("the profile pages", () => {
       "aria-pressed",
       "true",
     );
+    // With Ada's row filtered out, her sample stops: Default, which shares it, is not pressed in her place.
+    await pickerList(page).getByRole("combobox").fill("default");
+    await expect(rows.filter({ hasText: /^Default/ }).locator(".picker-play")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
   });
 
   test("a voice is heard from the keyboard with Shift+Enter, and Enter still chooses it @desktop", async ({

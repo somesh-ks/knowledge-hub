@@ -338,13 +338,11 @@ function mountPicker(select: HTMLSelectElement): void {
     // A search redraws the rows: the playing voice keeps its pressed control if it is still listed,
     // and stops if it is not, so no sample plays on with nothing to stop it.
     if (audition.playing && !audition.playing.isConnected) {
-      const again =
-        list.querySelector<HTMLElement>(
-          `.picker-play[data-row="${CSS.escape(audition.rowValue)}"][data-sample="${CSS.escape(audition.sampleId)}"]`,
-        ) ??
-        list.querySelector<HTMLElement>(
-          `.picker-play[data-sample="${CSS.escape(audition.sampleId)}"]`,
-        );
+      // The row's own control only: a voice shares its sample with the Default row, so matching on the
+      // sample alone would press the Default row when the playing row is filtered out.
+      const again = list.querySelector<HTMLElement>(
+        `.picker-play[data-row="${CSS.escape(audition.rowValue)}"][data-sample="${CSS.escape(audition.sampleId)}"]`,
+      );
       if (again) audition.mark(again);
       else audition.stop();
     }
