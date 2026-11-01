@@ -11,9 +11,11 @@ interface Props {
   entry: EpisodeEntry;
   /** The first row of a grid loads its covers at once; the rest wait until they are near. */
   priority?: boolean;
+  /** Settings > Downloads: the menu offers only what applies to a saved copy. */
+  downloads?: boolean;
 }
 
-const { entry, priority = false } = Astro.props;
+const { entry, priority = false, downloads = false } = Astro.props;
 const { episode } = entry;
 const facts = episodeFacts(entry);
 // Kind, length: the length is its own span, so "Played" can take its place and the kind stays.
@@ -58,5 +60,6 @@ const [format, length] = facts.line.split(FACT_SEPARATOR);
     audio={`/api/narrate?digest=${encodeURIComponent(entry.id)}`}
     topics={episode.request.topic_ids}
     regenerations={episode.regenerations}
+    downloads={downloads}
   />
 </li>
