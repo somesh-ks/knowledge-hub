@@ -166,16 +166,25 @@ describe("gate: the Sunday weekly pass", () => {
 });
 
 describe("gate: fetch windows", () => {
-  it("starts at the last fetch of any kind", async () => {
+  it("starts a record without fetched_through where its run finished, not at a later fetch of another kind", async () => {
     await lastRun({
       regular: record("2026-10-03T05:13:00Z"),
       last_fetch_at: "2026-10-06T06:00:00Z",
     });
     const report = await gate(WED);
     expect(report.passes[0]?.window).toEqual({
-      from: "2026-10-06T06:00:00.000Z",
+      from: "2026-10-03T05:13:00.000Z",
       to: WED.toISOString(),
     });
+  });
+
+  it("starts at the last fetch when the regular run finished after it", async () => {
+    await lastRun({
+      regular: record("2026-10-03T07:00:00Z"),
+      last_fetch_at: "2026-10-03T05:13:00Z",
+    });
+    const report = await gate(WED);
+    expect(report.passes[0]?.window.from).toBe("2026-10-03T05:13:00.000Z");
   });
 
   // The 2026-10-31 daily fetched six hours because the evening's on-demand briefing had moved

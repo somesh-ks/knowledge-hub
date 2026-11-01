@@ -58,9 +58,17 @@ export async function gateStage(deps: RunDeps, options: RunOptions): Promise<Gat
   const lastFetchAt = lastRun.last_fetch_at ? new Date(lastRun.last_fetch_at) : undefined;
   // The regular digest's window starts where its own last window ended, not at the last fetch of
   // any kind: the 2026-10-31 daily got six hours because an on-demand briefing had moved the start.
-  const regularFrom = lastRun.regular?.fetched_through
-    ? new Date(lastRun.regular.fetched_through)
-    : undefined;
+  // A record written before `fetched_through` existed gives the time its run finished instead, a
+  // little late; seen.json absorbs the overlap, and the window then never skips a stretch.
+  const regular = lastRun.regular;
+  const regularEnd =
+    regular?.fetched_through ??
+    (regular?.outcome === "failed" ? undefined : (regular?.generated_at ?? regular?.at));
+  const regularFrom = regularEnd ? new Date(regularEnd) : undefined;
+  const regularStart =
+    regularFrom && lastFetchAt && regularFrom > lastFetchAt
+      ? lastFetchAt
+      : (regularFrom ?? lastFetchAt);
 
   // Ids are allocated against what is on disk and against each other, so two passes never collide
   // and a second run on the same day takes the next free suffix.
@@ -69,7 +77,7 @@ export async function gateStage(deps: RunDeps, options: RunOptions): Promise<Gat
     const id = allocateDigestId(decision.date, kind, taken);
     taken.add(id);
     const window = fetchWindow({
-      lastFetchAt: kind === "regular" ? (regularFrom ?? lastFetchAt) : lastFetchAt,
+      lastFetchAt: kind === "regular" ? regularStart : lastFetchAt,
       now,
       kind,
     });
