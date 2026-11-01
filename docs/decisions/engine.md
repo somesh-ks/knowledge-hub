@@ -569,7 +569,7 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Limit: nothing is removed. `docs/state.md` keeps them under Next as parked, so the plan and the pilot stay findable.
 - Revisit if: the owner restarts or drops one.
 
-## D307: Haiku writes the first pass of each story; Sonnet repairs and backs it up
+## D308: Haiku writes the first pass of each story; Sonnet repairs and backs it up
 
 - Date: 2026-11-01 (the owner chose "Haiku medium, Sonnet repairs" on a card, after "I want the cost to be really low, I'm very strict on this one")
 - Decision: in `config/models.json` the story writer chain is Haiku at medium effort, then Sonnet at medium, then Gemini Flash. Voice and grounding rewrites stay on Sonnet at medium (`story_rewrite`). `config/prices.json` now prices Sonnet 5.5 at 2 and 10 USD per million tokens and Haiku 5.5 at 0.10 and 0.50 (batches half), still unconfirmed. Amends D181.
