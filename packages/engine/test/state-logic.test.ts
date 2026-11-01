@@ -171,6 +171,19 @@ describe("recordRun", () => {
     expect(next.last_fetch_at).toBe("2026-10-07T05:13:00.000Z");
   });
 
+  it("keeps a slot's window end moving forward when an older pass commits later", () => {
+    const newer = recordRun(
+      { version: 1 },
+      { kind: "regular", record: published, fetchedThrough: new Date("2026-10-07T05:13:00Z") },
+    );
+    const after = recordRun(newer, {
+      kind: "regular",
+      record: published,
+      fetchedThrough: new Date("2026-10-05T05:13:00Z"),
+    });
+    expect(after.regular?.fetched_through).toBe("2026-10-07T05:13:00.000Z");
+  });
+
   it("keeps one slot per kind, so on-demand never shifts the regular cadence", () => {
     const base: LastRunFile = { version: 1, regular: published };
     const onDemand: RunRecord = {

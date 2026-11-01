@@ -25,11 +25,15 @@ export function recordRun(lastRun: LastRunFile, input: RecordRunInput): LastRunF
   const { record, kind, fetchedThrough } = input;
   if (record.outcome === "failed" || record.outcome === "gated") return lastRun;
 
+  // The slot's window end only moves forward, as last_fetch_at does, even if runs finish out of order.
+  const earlier = lastRun[SLOT_BY_KIND[kind]]?.fetched_through;
+  const through =
+    fetchedThrough && earlier && Date.parse(earlier) > fetchedThrough.getTime()
+      ? earlier
+      : fetchedThrough?.toISOString();
   const next: LastRunFile = {
     ...lastRun,
-    [SLOT_BY_KIND[kind]]: fetchedThrough
-      ? { ...record, fetched_through: fetchedThrough.toISOString() }
-      : record,
+    [SLOT_BY_KIND[kind]]: through ? { ...record, fetched_through: through } : record,
   };
   if (fetchedThrough) {
     const previous = lastRun.last_fetch_at
