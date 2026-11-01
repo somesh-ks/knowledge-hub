@@ -9,7 +9,7 @@ import type { CoverKind, CoverMeta, CoverSpec } from "./types.js";
 
 /**
  * A style recolours a cover in the page's CSS, so nothing is drawn per style and the one thing that
- * can fail silently is a month whose type stops reading under a style (D311). These cover every month
+ * can fail silently is a month whose type stops reading under a style (D314). These cover every month
  * the schemes have, every kind and both themes, through the formula `cover.css` writes in CSS.
  */
 

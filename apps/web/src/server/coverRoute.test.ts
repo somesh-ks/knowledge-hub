@@ -33,7 +33,7 @@ it("answers every address the pages and the lock screen use for a new briefing a
       // The lock screen and the link card ask for the PNG beside each WebP (mediaSession.ts, linkCard.ts).
       `${id}-512.png`,
       `${id}-1024.png`,
-      // The page and the player draw the live vector (D311).
+      // The page and the player draw the live vector (D314).
       `${id}.svg`,
     ];
     for (const path of paths) expect(parseCoverPath(path)?.id, path).toBe(id);

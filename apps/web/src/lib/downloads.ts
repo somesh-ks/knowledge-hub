@@ -79,7 +79,7 @@ export class NotReadyError extends Error {
 }
 
 /**
- * An item's covers: the live vector the page and the player draw (D311), and the images the lock
+ * An item's covers: the live vector the page and the player draw (D314), and the images the lock
  * screen and share cards use. A theme or style switch offline finds its cover, since the vector holds
  * every colour. The sheet of outlines it is lettered from is shared by all covers, so it is kept by
  * the covers' own cache (public/sw.js) and not listed here, where removing one item would drop it.

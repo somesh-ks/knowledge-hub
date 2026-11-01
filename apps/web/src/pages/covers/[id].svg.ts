@@ -6,7 +6,7 @@ interface Props {
   digest: CoverSource;
 }
 
-/** The live cover (D311) of every briefing and episode: the one drawing the page and the player recolour. */
+/** The live cover (D314) of every briefing and episode: the one drawing the page and the player recolour. */
 export const getStaticPaths = (async () => {
   const { entries, episodes } = await getSite();
   const covers: CoverSource[] = [

@@ -8,7 +8,7 @@ import { hueCentre } from "./style.js";
 import type { CoverMeta, CoverSpec } from "./types.js";
 
 /**
- * A cover for the page, not for a file (D311). The same drawing as the raster cover, as one small
+ * A cover for the page, not for a file (D314). The same drawing as the raster cover, as one small
  * SVG whose colours are not painted but named: each distinct colour is a slot (`k0`, `k1`, ...) that
  * carries its numbers for both themes, and `cover.css` turns the slot into a colour: the month's own
  * in Default, the style's math over it in any other. Nothing is drawn per style, so a new style or a
@@ -20,7 +20,7 @@ export const COVER_SLOTS = 8;
 
 const PAINT = /(fill|stroke)="(#[0-9a-fA-F]{6})"/g;
 
-/** The month's hue centre: its scheme's, or the palette's own before the monthly style (D311). */
+/** The month's hue centre: its scheme's, or the palette's own before the monthly style (D314). */
 export function coverCentre(spec: CoverSpec, meta: CoverMeta): number {
   if (isMonthly(meta.date)) {
     const { year, month } = parseDate(meta.date);

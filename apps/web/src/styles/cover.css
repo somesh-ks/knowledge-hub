@@ -307,7 +307,7 @@
 }
 
 /*
- * Live covers (D311). A cover is an inline vector (`renderLiveCoverSvg`) whose colours are slots, `k0`
+ * Live covers (D314). A cover is an inline vector (`renderLiveCoverSvg`) whose colours are slots, `k0`
  * to `k7` for fills and `s0` to `s7` for strokes, each carrying its numbers for both themes as custom
  * properties on the svg (`--k0` the hex, `--l0 --x0 --h0` its lightness, chroma and hue; the `d`
  * variants are the dark theme's; `--ctr` is the month's hue centre, `--gl` the ground's lightness).

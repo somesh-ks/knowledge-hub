@@ -1,7 +1,7 @@
 import { restyleHex } from "@singularity/cover/style";
 
 /**
- * The ambient light follows the style and a reader's hue (D311). The page carries the month's own
+ * The ambient light follows the style and a reader's hue (D314). The page carries the month's own
  * tints for both themes (`data-ambient`: light a, b, c, then dark a, b, c) and the month's hue
  * centre; this moves their hue and chroma by the style's rule, the same formula the covers use, and
  * leaves their lightness, which the page tuned to each theme. Default leaves them as they are.

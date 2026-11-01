@@ -1,4 +1,4 @@
-# Live covers: one vector, recoloured by the page (D311)
+# Live covers: one vector, recoloured by the page (D314)
 
 Somesh asked for covers that follow the style without drawing one set per style ("programmatically change tokens"). The first build (raster per style) was dropped before merge.
 

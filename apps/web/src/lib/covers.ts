@@ -36,7 +36,7 @@ export function coverEdge(source: CoverSource, mode: CoverMode): string {
 }
 
 /**
- * The cover as the page draws it (D311): one small vector whose colours the page's own CSS sets, so
+ * The cover as the page draws it (D314): one small vector whose colours the page's own CSS sets, so
  * a theme, a style or a hue changes it with no request. Drawn once for each record per process.
  */
 const liveCovers = new Map<string, string>();

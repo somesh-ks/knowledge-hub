@@ -5,7 +5,7 @@ import type { PlayerDigestData } from "../../types/contracts";
 const COVER_FILE = /^\/covers\/([\w-]+)-(?:512|1024)\.(?:webp|png)(\?v=\w+)?$/;
 
 /**
- * The live vector of a cover (D311), at `/covers/<id>.svg`: `/covers/x-512.webp?v=1` names `x`. The
+ * The live vector of a cover (D314), at `/covers/<id>.svg`: `/covers/x-512.webp?v=1` names `x`. The
  * page colours it (cover.css) for its theme and style, so a switch needs no request. An empty string
  * is not a drawn cover.
  */

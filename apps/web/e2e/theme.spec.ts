@@ -160,6 +160,8 @@ test.describe("theme", () => {
       delete document.documentElement.dataset.style;
     });
     await expect.poll(fill).toBe(inDefault);
+  });
+
   test("the Hue slider turns a style's colours, is there before first paint after a reload, and waits for a style", async ({
     page,
   }) => {

@@ -3,7 +3,7 @@ import { hexToOklch, type Oklch, oklchToHex } from "./color.js";
 import type { CoverMode } from "./mode.js";
 
 /**
- * How a style (Settings, Style) redraws a cover (D311). The page does it in CSS: `cover.css` holds
+ * How a style (Settings, Style) redraws a cover (D314). The page does it in CSS: `cover.css` holds
  * the formula, `tokens.css` the numbers (`--cover-*`, written from `tokens/covers.json` by
  * `buildTokens`). This file holds the same formula in code so the contrast of every month under every
  * style is tested, and so `tokens.css` can be checked against the rule; it draws nothing.

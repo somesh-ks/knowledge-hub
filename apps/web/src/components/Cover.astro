@@ -41,7 +41,7 @@ function isPale(hex: string): boolean {
   data-pale={isPale(edgeLight) ? "" : undefined}
   style={`--cover-bg-light:${edgeLight};--cover-bg-dark:${edgeDark}`}
 >
-  {/* One vector for every theme and style (D311): cover.css turns its colour slots into the colours
+  {/* One vector for every theme and style (D314): cover.css turns its colour slots into the colours
       the page is showing, so a switch recolours it at once and no image is fetched or decoded. */}
   <Fragment set:html={svg} />
   {weekly && <span class="cover-frame" aria-hidden="true"></span>}

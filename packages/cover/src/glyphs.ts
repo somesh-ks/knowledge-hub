@@ -4,7 +4,7 @@ import { RESVG_FONT_OPTIONS } from "./fonts.js";
 import { n } from "./svg.js";
 
 /**
- * Cover lettering as outlines. A cover in the page is vector (D311), and a page that waits for a font
+ * Cover lettering as outlines. A cover in the page is vector (D314), and a page that waits for a font
  * to draw the date on every cover would flash; so each `<text>` of a cover is replaced by a run of
  * references to one shared sheet of glyph outlines (`GLYPH_SHEET_PATH`), cut from the same Schibsted
  * Grotesk files the raster covers use. The sheet is one cached file; a cover carries only the
