@@ -56,6 +56,7 @@ test.describe("opening by gesture", () => {
 test("a flick down on the header, a pull down on the cover or on the controls below the seek strip dismisses the page", async ({
   player,
   finger,
+  page,
 }) => {
   const header = await opened(player);
   await finger.drag(line(header, { x: header.x, y: header.y + 230 }, 3), 8);
@@ -73,8 +74,13 @@ test("a flick down on the header, a pull down on the cover or on the controls be
   await player.openPlayer();
   const play = player.dialog.getByRole("button", { name: /^Play|^Pause/ }).first();
   const transport = center(await player.boxOf(play));
+  const state = page.locator("html");
+  const before = await state.getAttribute("data-player-state");
   await finger.drag(line(transport, { x: transport.x, y: transport.y + 240 }, 3), 8);
   await player.collapsed();
+  // The pull began on a transport button: it dismissed, and pressed nothing.
+  await page.waitForTimeout(600);
+  expect(await state.getAttribute("data-player-state")).toBe(before);
 });
 
 test("inside the page a pull scrolls before it drags: the list, and the top of a scrolled page", async ({
