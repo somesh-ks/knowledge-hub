@@ -1,5 +1,6 @@
 import { counted, installAnalytics } from "../lib/analytics";
 import { watchPlatformFaults } from "../lib/platformFaults";
+import { loadOtherBuildsInFull } from "./buildGuard";
 import { installCoverMorph } from "./coverMorph";
 import { installCreateEntry } from "./createEntry";
 import { installDeviceBanners } from "./deviceBanners";
@@ -72,6 +73,7 @@ if (matchMedia("(display-mode: standalone)").matches) {
 // The build this bundle loaded with, read once: in-app moves swap the head's meta for the new
 // page's while this bundle keeps running (the fault reports and the update check both need the old name).
 const build = document.querySelector<HTMLMetaElement>('meta[name="singularity-build"]')?.content;
+loadOtherBuildsInFull(build);
 // The service worker registers once the page has loaded, so its code can arrive then too.
 const registerWorker = (): void =>
   void import("./serviceWorker").then((worker) => worker.registerServiceWorker(build));

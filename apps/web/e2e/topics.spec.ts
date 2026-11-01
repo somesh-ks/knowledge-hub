@@ -452,6 +452,38 @@ test.describe("a topic's page", () => {
   // Design gathers the fixture's Design engineering craft and Product design (D69).
   const CRAFT = "/settings/categories/design";
 
+  // The page is built with the ratings of its build, and a run commits new stats without a deploy, so a
+  // source's rating stayed what the last code change left until the next one.
+  test("a source's rating is the one the last run left, not the one the page was built with", async ({
+    page,
+  }) => {
+    await page.goto(CRAFT);
+    const row = page.locator("li.source-row").first();
+    const id = await row.getAttribute("data-id");
+    await page.route("**/api/source-ratings", (route) =>
+      route.fulfill({
+        json: {
+          ratings: {
+            [id ?? ""]: {
+              score: 4.7,
+              label: "Excellent",
+              parts: { health: 1, quality: 0.9, trust: null },
+              why: [],
+              struggling: false,
+            },
+          },
+        },
+      }),
+    );
+    await page.reload();
+    const score = page.locator(`li.source-row[data-id="${id}"] .score`);
+    await expect(score).toHaveAttribute("data-label", "Excellent");
+    await expect(score).toContainText("4.7");
+    // Opened to edit, the source shows the same rating.
+    await page.locator(`li.source-row[data-id="${id}"] .source-edit`).click();
+    await expect(page.getByRole("dialog", { name: "Edit source" })).toContainText("4.7");
+  });
+
   test("a type set on Preferences goes as one mix.set for every topic and holds after a reload", async ({
     page,
   }) => {

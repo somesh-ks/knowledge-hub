@@ -165,6 +165,11 @@ export function playUiCue(cue: Cue | null): boolean {
   return played;
 }
 
+/** Matches the audio session to the Sounds setting now, for a change made after the gesture's own unlock. */
+export function settleSoundSession(): void {
+  engine?.refreshSession();
+}
+
 /**
  * True when some other path chose a cue at or after `since` (a `performance.now()` stamp). A cue
  * named `except` does not count: a menu that closes right after it opened is a new cue, not an echo.
