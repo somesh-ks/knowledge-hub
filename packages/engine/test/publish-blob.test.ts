@@ -138,10 +138,13 @@ describe("pruneAudio", () => {
     blob.seed("audio/ep-20260101-0600/seg/t1.0123456789ab.marks.json", daysAgo(200));
     blob.seed("audio/ep-20260101-0600/episode.0123456789ab.json", daysAgo(200));
     blob.seed("audio/ep-20261005-0600/seg/t1.0123456789ab.marks.json", daysAgo(2));
+    // Any other JSON under audio/ is not a narration's companion and is never pruned by age.
+    blob.seed("audio/index.json", daysAgo(200));
     const result = await pruneAudio(blob, { olderThanDays: 30, now: NOW });
     expect(result.deleted).toHaveLength(2);
-    expect([...blob.store.keys()]).toEqual([
+    expect([...blob.store.keys()].sort()).toEqual([
       "audio/ep-20261005-0600/seg/t1.0123456789ab.marks.json",
+      "audio/index.json",
     ]);
   });
 

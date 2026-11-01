@@ -190,12 +190,25 @@ export async function loadStoreSiteChecked(
       );
     return loaded;
   });
+  const previous = heldSite;
   heldSite = { updatedAt: current.manifest.updated_at, site };
-  // A failed load is not kept, so the next request tries again.
+  // A failed load is not kept, so the next request tries again; the site held before it stays.
   site.catch(() => {
-    if (heldSite?.site === site) heldSite = null;
+    if (heldSite?.site === site) heldSite = previous;
   });
-  return { site: await site.then((loaded) => withoutTombstoned(loaded, ids)), saved };
+  try {
+    return { site: await site.then((loaded) => withoutTombstoned(loaded, ids)), saved };
+  } catch (error) {
+    // The newer content could not be read: the last site this instance loaded is fresher than the
+    // build's copy, and says it is saved.
+    if (previous === null) throw error;
+    const held = await previous.site
+      .then((loaded) => withoutTombstoned(loaded, ids))
+      .catch(() => null);
+    if (held === null) throw error;
+    savedContent = true;
+    return { site: held, saved: true };
+  }
 }
 
 /** When the store last failed with nothing held, so an outage costs one slow read a window, not one per request. */
@@ -244,8 +257,10 @@ export async function loadPageSite(
   });
   const ids = await heldTombstones?.ids.catch(() => new Set<string>());
   const site = await heldBundled;
-  savedContent = true;
-  return { site: ids ? withoutTombstoned(site, ids) : site, saved: true };
+  // With no store configured the build's copy is simply the content, not a saved copy of anything.
+  const saved = readPublicBlobBase(deps.env) !== null;
+  if (saved) savedContent = true;
+  return { site: ids ? withoutTombstoned(site, ids) : site, saved };
 }
 
 /**
