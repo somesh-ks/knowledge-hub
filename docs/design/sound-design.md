@@ -132,11 +132,11 @@ Decision rule: a sound that brackets narration is silent while narration plays, 
 2. **One context.** The engine reuses a single context and a single master chain: input gain, a 3.6 kHz Butterworth low-pass, and a safety compressor whose threshold sits above every recipe's peak.
 3. **No late bursts.** If the context is suspended or interrupted, the call is dropped and `resume()` is requested. Scheduling into a suspended context would replay as a burst on resume.
 4. **Hidden means silent.** Nothing plays while `document.hidden`.
-5. **Narration.** The engine only calls `isNarrationPlaying()`. It never touches the narration element or `navigator.audioSession`.
+5. **Narration.** The engine only calls `isNarrationPlaying()`. It never touches the narration element. The one thing it does to the page's audio is `unlock()` setting `navigator.audioSession.type = "playback"` where the browser has it (D105, `engine.ts`), so iOS does not mute interface sounds with the silent switch.
 6. **Four voices.** The oldest voice fades out in 12 ms to make room for a fifth.
 7. **Retrigger windows.** Each sound has a minimum interval, from 55 ms for the scrub tick to 1 second for the end of digest, so a fast tap cannot stack mush.
 8. **Clean nodes.** Every layer disconnects when its source ends, and envelopes never target zero (they target -80 dBFS), so nothing clicks.
-9. **iOS.** Web Audio on iOS follows the silent switch and is ambient. A silent phone plays no UI sound. That is correct and intended; narration through the `<audio>` element is unaffected.
+9. **iOS.** Web Audio on iOS follows the silent switch unless the page asks for playback, and `unlock()` asks (D105, rule 5). So interface sounds play with the ringer off, as narration does; the Sounds setting is the way to silence them. `unlock()` runs on the first gesture whether or not Sounds is on, so the session type is also set for a listener who has turned Sounds off. Whether a playback session stops another app's audio is not verified on a device.
 
 ### Settings and defaults
 
@@ -172,9 +172,9 @@ Offline rendering proves level, length, pitch and spectrum. It cannot prove that
 
 | Check | Device | Pass when |
 | --- | --- | --- |
-| Silent switch | iPhone, ringer off | No UI sound, narration still plays |
+| Silent switch | iPhone, ringer off | Sounds on: UI sounds play and narration plays (D105). Sounds off: nothing plays |
 | Ringer on, lock screen | iPhone | Narration plays with the screen locked; UI sounds stop when the page is hidden |
-| Narration is not disturbed | iPhone and iPad, installed to the Home Screen | A UI sound never pauses, ducks or restarts the narration, and never pauses another app's audio |
+| Narration is not disturbed | iPhone and iPad, installed to the Home Screen | A UI sound never pauses, ducks or restarts the narration, and never pauses another app's audio (not yet checked: the playback session type may do so) |
 | Interruption | iPhone | After a call or alarm, the next tap resumes sounds without a burst |
 | Speaker level | iPhone speaker, Android speaker | Taps are audible at 50 percent system volume in a quiet room and never startling; the signature is clearly the loudest |
 | Headphones | AirPods or wired | No harshness, no click at the start or end of any sound |
