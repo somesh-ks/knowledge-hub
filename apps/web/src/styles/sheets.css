@@ -85,8 +85,8 @@ fieldset.sheet-field {
   --toast-lift: 0px;
   /* Above the bars while Safari plays the exit outside the top layer (the sheets and dialogs). */
   z-index: var(--z-toast);
-  /* The page accent is tuned for the page, so on the inverse surface the other theme's accent is used. */
-  --toast-accent: var(--color-blue-300);
+  /* The page accent is tuned for the page; on the inverse surface the role takes the other theme's step. */
+  --toast-accent: var(--color-accent-on-inverse);
   inset-block: auto calc(var(--toast-nav) + var(--toast-dock) + var(--toast-lift) + var(--space-4));
   /* Centred on the page, not on the screen: from 64rem the navigation is a column at the side. */
   inset-inline: var(--side-nav-width, 0px) 0;
@@ -102,7 +102,7 @@ fieldset.sheet-field {
   margin-inline: auto;
   padding: var(--space-1) var(--space-2) var(--space-1) var(--space-4);
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: var(--shape-md);
   background: var(--toast-bg);
   color: var(--toast-fg);
   font-size: var(--font-size-label);
@@ -167,16 +167,6 @@ html[data-player="open"] .toast {
   inset-inline-start: 0;
 }
 
-/* One step darker than the light page's accent: 5.4:1 on the light inverse surface. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .toast {
-    --toast-accent: var(--color-blue-800);
-  }
-}
-
-:root[data-theme="dark"] .toast {
-  --toast-accent: var(--color-blue-800);
-}
 
 html[data-mini="visible"] .toast {
   --toast-dock: var(--player-dock-height, var(--nav-bar-height));
