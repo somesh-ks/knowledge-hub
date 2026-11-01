@@ -147,7 +147,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D124 | Weights are five named stops and Off; sources have a Jev-classified format; a format mix per page; two stories per outlet | active; amends D57, D69, D83 |
 | D125 | Headings never bold; Settings H2s at the 22px role; an Intelligence section for the model; Topics and sources: a search and a floating Add | active; amends D73, D123, D124 |
 | D126 | A play queue, an Up next peek and sheet, a collapse chevron, Space to play | active; amends D102, D111 |
-| D127 | Each Library row has a three-dots menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, max 10 | active; amends D123 |
+| D127 | Each Library row has a ⋮ menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, max 10 | partly superseded by D281; amends D123 |
 | D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by hash), and `podcast.yml` calls `audio.yml` after an episode commit | active; amends D82 |
 | D129 | Settings restructured: Sources or Preferences per topic, one voice pair, Theme select | partly superseded by D195; amends D51, D87, D124, D125 |
 | D130 | Kimi models are never offered; the Nebius five are ranked by EQ-Bench longform; a weekly scheduled check proposes a refresh by PR | superseded by D136 |
@@ -294,6 +294,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D278 | Softer light covers | amends D121 |
 | D280 | Travel 300 ms | amends D271 |
 | D283 | Read-first is AGENTS.md and state.md (20 KB), the Index is grep-only, the ledger is split by surface; "replaces" retires the old row | active |
+| D281 | Downloads page, no cap | amends D127, D264 |
 | D284 | Push pings | amends D11 |
 | D285 | Switch can be mixed | |
 

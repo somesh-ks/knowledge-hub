@@ -1,8 +1,8 @@
 /**
  * Download for offline listening, from the Library menu. The audio file, the item's page (which
  * carries its data) and its covers go into one Cache Storage cache; public/sw.js answers requests
- * for them from it, Range included. At most MAX_DOWNLOADS are kept, the oldest going first
- * (lib/downloads.ts). Loaded on the first pick of Download, and at idle to mark the rows.
+ * for them from it, Range included. There is no cap (D281); the Settings > Downloads page removes
+ * them (downloadsPage.ts). Loaded on the first pick of Download, and at idle to mark the rows.
  */
 import {
   AUDIO_CACHE,
@@ -225,15 +225,12 @@ async function downloadEpisode(cache: Cache, request: DownloadRequest): Promise<
       }),
     );
     // The entry's `audio` is the lookup and its extras every other address, so remove drops them all.
-    const { list, evicted } = addDownload(await savedListOrThrow(cache), {
+    const list = addDownload(await savedListOrThrow(cache), {
       id: request.id,
       audio: address,
       page: request.page,
       extras: saved.filter((key) => key !== request.page && key !== address),
     });
-    for (const old of evicted) {
-      for (const key of addressesOf(old)) await cache.delete(key);
-    }
     await writeDownloads(cache, list);
   } catch (error) {
     for (const key of saved) await cache.delete(key).catch(() => false);
@@ -303,13 +300,10 @@ async function saveDownload(request: DownloadRequest): Promise<void> {
         saved.push(extra);
       }
     }
-    const { list, evicted } = addDownload(await savedListOrThrow(cache), {
+    const list = addDownload(await savedListOrThrow(cache), {
       ...request,
       extras: saved.slice(2),
     });
-    for (const old of evicted) {
-      for (const address of addressesOf(old)) await cache.delete(address);
-    }
     await writeDownloads(cache, list);
   } catch (error) {
     // A full disk: leave no half-saved item behind.
@@ -366,4 +360,10 @@ export async function removeDownload(id: string): Promise<void> {
     }
   }
   await writeDownloads(cache, left);
+}
+
+/** Removes every download, orphans included. An unreadable list ends it before anything is removed. */
+export async function removeAllDownloads(): Promise<void> {
+  const cache = await openDownloads();
+  for (const item of await savedListOrThrow(cache)) await removeDownload(item.id);
 }
