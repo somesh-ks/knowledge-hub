@@ -311,5 +311,94 @@
         "$value": 1
       }
     }
+  },
+  "style": {
+    "$description": "How a style (Settings, Style) redraws a cover, applied after the month's dress and the theme's tones so every month and every palette follows the same rule (D311). Each colour keeps its place in the month: its hue is pulled toward the style's `hue` (the month's own centre keeps `keep` of its distance, each colour keeps `spread` of its distance from the month's centre, at most `cap` degrees), its chroma is scaled and lifted, and `flip` mirrors lightness inside a band per theme. Contrast floors are re-held after. A style with no rule here (Default) leaves covers as the month dressed them. `hue` is the one number a reader-set hue would move.",
+    "expressive": {
+      "$description": "Loud: the month's colours pulled toward electric violet, chroma lifted; lightness as the theme set it. Owner: \"LOVE THE COVERS\" (2026-11-01).",
+      "hue": {
+        "$value": 292
+      },
+      "keep": {
+        "$value": 0.3
+      },
+      "spread": {
+        "$value": 0.5
+      },
+      "cap": {
+        "$value": 40
+      },
+      "chroma": {
+        "$description": "Chroma becomes scale x chroma + add, at most max; a colour below floor-below becomes floor.",
+        "scale": {
+          "$value": 1.6
+        },
+        "add": {
+          "$value": 0.05
+        },
+        "max": {
+          "$value": 0.3
+        },
+        "floor-below": {
+          "$value": 0.02
+        },
+        "floor": {
+          "$value": 0.035
+        }
+      }
+    },
+    "halloween": {
+      "$description": "Night: lightness mirrored so paper turns violet-black and ink turns pumpkin; the darkest colours take the night hue.",
+      "hue": {
+        "$value": 52
+      },
+      "keep": {
+        "$value": 0.2
+      },
+      "spread": {
+        "$value": 0.25
+      },
+      "cap": {
+        "$value": 180
+      },
+      "chroma": {
+        "scale": {
+          "$value": 1.1
+        },
+        "add": {
+          "$value": 0.03
+        },
+        "max": {
+          "$value": 0.19
+        },
+        "floor-below": {
+          "$value": 0.03
+        },
+        "floor": {
+          "$value": 0.03
+        }
+      },
+      "flip": {
+        "$description": "Lightness l becomes low + (1 - l) x (high - low), per theme.",
+        "light": {
+          "$value": [0.13, 0.91]
+        },
+        "dark": {
+          "$value": [0.09, 0.87]
+        }
+      },
+      "night": {
+        "$description": "A colour mirrored below `below` lightness is the ground: it takes this hue and chroma.",
+        "below": {
+          "$value": 0.37
+        },
+        "hue": {
+          "$value": 305
+        },
+        "chroma": {
+          "$value": 0.045
+        }
+      }
+    }
   }
 }

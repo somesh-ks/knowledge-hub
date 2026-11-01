@@ -585,3 +585,13 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Cost: one primitive ramp (10 values); about 60 style tokens; the bottom bar, app bar and controls take more room on a phone, so a long label wraps sooner.
 - Revisit if: a part still ignores the switch (it reads a primitive or a literal, a component token is missing), or the owner finds the violet too far from the app's mark.
 - Amends: D268.
+
+## D311: album art follows the style, derived from the month's colours
+
+- Date: 2026-11-01 (the owner: "LOVE THE COVERS", "each month has a different color theme for the covers... this logic should also be reflected there", "take the base value from the default theme of a new month's cover theme and have some math to arrive at a different visual look for a expressive style or a Halloween style or any other style we have in the future").
+- Decision: a style redraws a cover from the month's dress, never from a second palette. `tokens/covers.json` `style.<id>` holds one rule per style (anchor `hue`, `keep`, `spread`, `cap`, `chroma`, optional `flip` and `night`); `packages/cover/src/style.ts` maps every colour of the dressed cover through it in OKLCH, then re-holds the contrast floors. A month's centre hue (the chroma-weighted mean of its scheme; a pre-October palette uses its own colours) keeps `keep` of its distance from the anchor and each colour keeps `spread` of its distance from the centre, so November's moss and December's orchid still differ inside one style while every month reads as that style. A style with no rule (Default) draws as the month dressed it. A future style is one more block of numbers; a reader-set hue would move `hue` only.
+- Why: a per-style palette per month would be a table to keep in step with every new scheme; a rule over the month's colours follows each new month for free.
+- Rejected: a CSS `hue-rotate` filter (cannot flip lightness, shifts contrast unpredictably); a palette table per style and month; one fixed Expressive hue for every month (loses the month, which the owner asked to keep).
+- Cost: every cover is drawn three times (once per style) in each theme: lossless flat-colour WebP of 1 to 3 KB, so bytes barely move, but the build draws three times as many covers; a page holds three images per cover and shows one.
+- Revisit if: the build time of the covers becomes noticeable, or a month's scheme lands where a style's contrast re-hold visibly changes the look.
+- Amends: D110, D121.
