@@ -1,11 +1,11 @@
 # Look and sound
 
-Visual language, covers and the header light, empty states, interface sounds, style rules. What it does now. Reasons: D31, D48, D54, D72, D73, D86, D96, D101, D110, D122, D125, D129; history: docs/history/.
+Visual language, covers and the header light, empty states, interface sounds, style rules. What it does now. Reasons: D306, D31, D48, D54, D72, D73, D86, D96, D101, D110, D122, D125, D129; history: docs/history/.
 
 ## Requirements
 
 ### Visual language
-- The reader follows Google Podcasts and Material 3 (D31, D72). Controls are tonal: container fill, accent container for chosen/current item, 8% and 12% state layers, pill buttons (Catch up: `.btn-action-tonal`, flat, 16px; `design-system/` holds Button (filled, tonal, text; D237), Switch, Slider and Field (D243)), chips, selects, text fields (multi-line 24px, D186; a label 12px above its field, fields 24px apart, D229), 12px rows, no outline except on text fields.
+- The reader follows Google Podcasts and Material 3 (D31, D72). Controls are tonal: container fill, accent container for chosen/current item, 8% and 12% state layers, pill buttons (Catch up: `.btn-action-tonal`; `design-system/` holds Button, Switch, Slider and Field, D237, D243), chips, selects, text fields (multi-line 24px, D186; label above, D229), 12px rows, no outline except on text fields.
 - Story and summary text is 16px, headlines 18 to 20px, meta 14px, section headings (Settings H2s) 18 to 20px regular, never bold (D73, D125).
 - A press never scales words: label controls and worded buttons show a press on their fill. Settings rows and menu options press as a tile off hairlines (`.row-action`), round on the page, concentric in a card (one-row card radius 24px, a third of height). Segmented controls have a sliding thumb that moves immediately with keys.
 - Sideways scrollers (section tabs, Earlier shelf, Costs table) fade hidden edges with `.scroll-fade-inline`; concentric radii for cover frame and search clear; layer stacking: `--z-beneath`, `--z-base`, `--z-raised`, `--z-overlay`.
@@ -26,6 +26,7 @@ Visual language, covers and the header light, empty states, interface sounds, st
 ### Empty states
 - Screens without content show one flat illustration, title, muted line, and one filled action (D96): Latest without briefing, empty Library, search/filter without result, offline/online transitions, 404, empty topic or Structure list.
 - Art is inline SVG in `EmptyArt.astro`, styled via `empty.css` roles, `aria-hidden`, hidden in forced colors.
+- A style may draw its own scenes (D306): `EmptyArtHalloween.astro` sits beside the Default svg; `empty.css` shows the one the style names. Its scenes loop slowly unless motion is reduced; the cobweb takes no tap.
 
 ### Interface sounds
 - Sounds categorize by action (navigate, select, tap, open, close, success, failure) via one delegated listener loading on first gesture and following Sounds setting (D101).
@@ -41,7 +42,7 @@ Three layers catch regressions (owner, 2026-10-21):
 - Hook: `.claude/hooks/design-check.mjs`, PostToolUse hook on Edit/Write for `apps/web/src/**` and `tokens/**`.
 - Audit: `design-audit` agent (`.claude/agents/design-audit.md`) screenshots pages at mobile and desktop viewports in light and dark before PRs.
 CI runs rules in unit tests and `designSystem.spec.ts` in browser suite. Components change in shared class, component, or token with ledger records in one PR (owner, 2026-10-24).
-Key variants: `.segmented-nav-compact` (chip height, 44px columns); `.stat-tile` (metric over label, 2-4 columns); `.scroll-fade-inline` (overflow edge mask with `--scroll-fade-inset`); `.tabs-in-card`; `data-quiet` (muted disabled rows); `sheetHead.ts` header/menus (D188); `.confirm-actions.is-stacked` (unsaved-changes modal from `sheetGuard.ts`); `.queue-dock`, `.queue-row`, `.queue-ring` (`-head`, 24px, for the dock and the side column; `-row`, 24px), `.queue-play`, `.queue-stage-icon` (the head's icon), `.queue-word` (the text-only shimmer), `.queue-snippet` (the Details dialog's facts), `.queue-pop` (the podcast queue, D231, `queue.css`).
+Key variants: `.segmented-nav-compact` (chip height, 44px columns); `.stat-tile` (metric over label, 2-4 columns); `.scroll-fade-inline` (overflow edge mask); `.tabs-in-card`; `data-quiet` (muted disabled rows); `sheetHead.ts` header/menus (D188); `.confirm-actions.is-stacked` (unsaved-changes modal from `sheetGuard.ts`); `.queue-dock`, `.queue-row`, `.queue-ring` (`-head`, `-row`), `.queue-play`, `.queue-stage-icon` (the head's icon), `.queue-word` (the text-only shimmer), `.queue-snippet`, `.queue-pop` (D231, `queue.css`).
 
 ### Agentic design conventions
 Coding agents building or modifying UI follow these contracts (adapted from Astryx best practices):

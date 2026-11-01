@@ -44,3 +44,8 @@ Ledger section 3, one surface. Read [the core](../design-engineering-ledger.md) 
   - The ask was "beautiful empty state illustration with title and an action button", then "keep the illustrations simple" (D96, D98).
   - Each is one flat object of two to four shapes in theme tones, then a 22px title, one line and one filled action.
   - Inline SVG, no script.
+- **Halloween style** (D306): "make halloween to make ui, empty states, components, spooky", then "the spiderwebs can be designed well", "the empty states need better effort, the pumpkin looks shitty", "the radial gradients are to be softer", "the eye of the ghost needs to be aligned", "you can animate the zero states", "looks beautiful" (2026-11-01).
+  - Tokens recolour the whole app (violet-black and parchment, orange accent). Pirata One names the page title only; the player title stays regular.
+  - Six scenes (pumpkin, ghost with a magnifier, cauldron, roosting bat, flying bat, tombstone with a candle) replace the Default pictures under the style, plus one corner cobweb that takes no tap. Every colour is a scene token, so they switch off with the style.
+  - Glows fade in five eased steps, never a disc. Scenes loop slowly (candle, bob, sway, bubbles) and stand still under reduced motion.
+  - Album art keeps each day's own colours for now; a Halloween cover look is its own change.

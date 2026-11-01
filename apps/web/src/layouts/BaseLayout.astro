@@ -2,6 +2,7 @@
 import { ClientRouter } from "astro:transitions";
 import appFont from "../assets/fonts/google-sans-flex-latin-wght-normal.woff2?url";
 import AppNav, { type Destination } from "../components/AppNav.astro";
+import Cobweb from "../components/Cobweb.astro";
 import CreateFab from "../components/CreateFab.astro";
 import CreateSheet from "../components/CreateSheet.astro";
 import LaunchScreen from "../components/LaunchScreen.astro";
@@ -203,6 +204,7 @@ const back =
   </head>
   <body>
     <LaunchScreen />
+    <Cobweb />
     <a class="skip-link" href="#main">{skipLabel}</a>
     {/* The device strips are cloned from these, so their markup has one home: by the script after the
          stack before first paint, and by deviceBanners.ts from then on. The stack is the first thing in
