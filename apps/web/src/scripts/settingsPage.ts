@@ -114,8 +114,6 @@ function mountSettings(root: HTMLElement): () => void {
   const hapticsSection = root.querySelector<HTMLElement>("[data-haptics-section]");
   const volume = root.querySelector<HTMLInputElement>('input[name="volume"]');
   const autoplay = root.querySelector<HTMLInputElement>('input[name="autoplay"]');
-  // The index's Interface sounds row: its line says whether they are on in this browser.
-  const soundsHint = root.querySelector<HTMLElement>("[data-sounds-hint] [data-hint]");
   const hint = root.querySelector<HTMLElement>("[data-install-hint]");
   const hasNotifications =
     root.hasAttribute("data-notifications-page") || root.querySelector("[data-notifications-hint]");
@@ -134,7 +132,6 @@ function mountSettings(root: HTMLElement): () => void {
     if (sounds) sounds.checked = state.sounds;
     if (haptics) haptics.checked = preferences.get().haptics;
     if (autoplay) autoplay.checked = preferences.get().autoplay;
-    if (soundsHint) soundsHint.textContent = state.sounds ? "On" : "Off";
     if (volume) {
       volume.value = state.volume;
       volume.disabled = state.volumeDisabled;
