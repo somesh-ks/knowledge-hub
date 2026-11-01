@@ -535,10 +535,6 @@ html[data-mini="visible"] main {
     transition-timing-function: var(--ease-hover);
   }
 
-  .app-nav-item:not([aria-current="page"]):active .app-nav-indicator::before {
-    background: transparent;
-  }
-
   .app-nav-item[data-ripple-pressed]:not([aria-current="page"]) .app-nav-indicator::before {
     background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
   }
