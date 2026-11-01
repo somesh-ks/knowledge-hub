@@ -22,7 +22,18 @@ if (fixtures) {
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const pulled = spawnSync(
   "npm",
-  ["run", "--silent", "singularity", "--", "config", "pull", ...(fixtures ? [] : ["--strict"])],
+  [
+    "run",
+    "--silent",
+    "singularity",
+    "--",
+    "config",
+    "pull",
+    // The root is known here; a build from a source archive has no .git for the CLI to find.
+    "--root",
+    root,
+    ...(fixtures ? [] : ["--strict"]),
+  ],
   {
     cwd: root,
     env,

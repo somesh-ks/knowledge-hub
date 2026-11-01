@@ -451,7 +451,7 @@ describe("singularity learn", () => {
       const { code } = await apply([]);
       expect(code).toBe(0);
       expect(head(repo.root)).toBe(before);
-      expect(git(repo.root, "status", "--porcelain")).toContain("config/preferences.json");
+      expect(await prefs()).toContain("shaders");
     },
   );
 
