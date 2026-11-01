@@ -296,5 +296,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D283 | Read-first is AGENTS.md and state.md (20 KB), the Index is grep-only, the ledger is split by surface; "replaces" retires the old row | active |
 | D281 | Downloads page, no cap | amends D127, D264 |
 | D285 | Switch can be mixed | |
+| D286 | Press ripple | |
 
 ---

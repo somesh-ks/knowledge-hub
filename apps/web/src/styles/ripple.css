@@ -1,0 +1,25 @@
+/* The press ripple (ripple.ts). A control that carries data-ripple holds a .ripple layer: the touch
+   area, which clips the wave. The wave grows from the point of the press on the one travel clock
+   (300 ms, the hover curve) and, once the finger is up, fades on the state clock. It is the same
+   12% of the surface ink as the press layer of every other control. */
+.ripple {
+  --ripple-grow: var(--duration-sheet-in);
+  --ripple-fade: var(--duration-sheet-in);
+  --ripple-ease: var(--ease-hover);
+  /* Share of the growth a quick tap lets play before the fade begins. */
+  --ripple-hold: 0.5;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: auto;
+  /* Beneath the control's icon and label, above its own fill. */
+  z-index: var(--z-beneath);
+}
+
+.ripple-wave {
+  position: absolute;
+  border-radius: var(--radius-round);
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  pointer-events: none;
+  transform-origin: center;
+}

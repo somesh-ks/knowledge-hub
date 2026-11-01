@@ -6,7 +6,7 @@
 import type { Guidance } from "./guidance";
 
 export const SWITCH: Guidance = {
-  summary: "A track and a thumb for one setting that is on or off, with its label beside it.",
+  summary: "A track and a thumb for one setting that is on or off.",
   useWhen: [
     "A setting is on or off and applies as soon as it is flipped: Sounds, Autoplay, a podcast's Enabled.",
     "It sits at the end of a settings row, with the row's label as its name.",

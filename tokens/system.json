@@ -315,7 +315,7 @@
       "id": "switch",
       "name": "Switch",
       "kind": "selection",
-      "summary": "A track and a thumb for one setting that is on or off, with its label beside it.",
+      "summary": "A track and a thumb for one setting that is on or off.",
       "classes": [
         "switch-input"
       ],
@@ -387,8 +387,7 @@
         "design-system/slider.ts"
       ],
       "when": [
-        "The value is on a scale where nearby values are alike: Volume, Playback speed, a topic's weight",
-        "A person may want to set it without a number in front of them"
+        "The value is on a scale where nearby values are alike: Volume, Playback speed, a topic's weight"
       ],
       "not": [
         {
@@ -445,7 +444,7 @@
       ],
       "when": [
         "A person types a short value or a few lines: a title, a feed address, a prompt",
-        "It sits under its own label in a form or a settings row, and a refused value shows as an invalid field"
+        "It sits under its own label in a form or a settings row"
       ],
       "not": [
         {
@@ -506,7 +505,7 @@
       "id": "select",
       "name": "Select",
       "kind": "selection",
-      "summary": "A native select with its own chevron: a person picks one value from a list that is too long to show. On a phone its list is the standard bottom sheet, with the field's label as the title.",
+      "summary": "A native select with its own chevron: a person picks one value from a list that is too long to show.",
       "classes": [
         "select-outlined",
         "select-tonal"
@@ -879,6 +878,50 @@
         "--sheet-radius",
         "--sheet-shadow",
         "--size-touch"
+      ]
+    },
+    {
+      "id": "ripple",
+      "name": "Ripple",
+      "kind": "feedback",
+      "summary": "A wave from the touch point that fills a control's touch area, then fades.",
+      "classes": [
+        "ripple",
+        "ripple-wave"
+      ],
+      "files": [
+        "design-system/Ripple.astro",
+        "design-system/ripple.ts"
+      ],
+      "when": [
+        "A large touch target on a phone must show where it was pressed: a bottom bar tab"
+      ],
+      "not": [
+        {
+          "when": "A small control needs a press state",
+          "use": "icon-btn"
+        }
+      ],
+      "keywords": [
+        "ripple",
+        "touch feedback",
+        "press wave",
+        "touch area",
+        "tab press",
+        "bottom bar"
+      ],
+      "markup": "<a href=\"/library\" data-ripple><Ripple />Library</a>",
+      "rules": [
+        "The control is `position: relative` with its own stacking context (isolation: isolate); the layer sits beneath its icon and label.",
+        "A phone only: hide the layer where the control has a pointer state (display: none).",
+        "installRipple() (design-system/ripple.ts) is called once by the app script; the control sets nothing else."
+      ],
+      "styles": [
+        "ripple.css"
+      ],
+      "usage": "The press ripple (ripple.ts). A control that carries data-ripple holds a .ripple layer: the touch area, which clips the wave. The wave grows from the point of the press on the one travel clock (300 ms, the hover curve) and, once the finger is up, fades on the state clock. It is the same 12% of the surface ink as the press layer of every other control.",
+      "tokens": [
+        "--color-on-surface"
       ]
     },
     {

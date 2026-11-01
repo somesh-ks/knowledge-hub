@@ -32,3 +32,7 @@ Ledger section 3, one surface. Read [the core](../design-engineering-ledger.md) 
   - The app bar hides on scroll down and becomes `inert` while hidden.
   - A tab jump puts the bar away first and holds it until `scrollend` (D93).
   - Pressing the current tab scrolls to the top (D52).
+- **Press ripple (D286).**
+  - A large touch target shows its touch area as a wave from the finger: 300 ms on the hover curve, fading after the lift (a quick tap lets it play half its growth first).
+  - The press state starts on the first touch (`data-pressed`), not on `:active`.
+  - The wave carries across a page move on the animation clock.
