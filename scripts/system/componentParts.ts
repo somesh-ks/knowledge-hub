@@ -179,7 +179,16 @@ export const componentParts = (): PartSource[] => [
     rules: ["It holds one word or one number; the page places it with a class, never styles it."],
   }),
   control("switch", "Switch", SWITCH, {
-    keywords: ["switch", "toggle", "on off", "boolean", "enable"],
+    keywords: [
+      "switch",
+      "toggle",
+      "on off",
+      "boolean",
+      "enable",
+      "mixed",
+      "indeterminate",
+      "master",
+    ],
     markup:
       '<div class="settings-row"><label class="settings-label" for="autoplay">Autoplay</label><Switch id="autoplay" name="autoplay" /></div>',
   }),
