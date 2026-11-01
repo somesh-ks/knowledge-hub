@@ -4,6 +4,7 @@ import {
   type Digest,
   digestRelPath,
   type Outcome,
+  podcastVoices,
   type Source,
   serializeDigestFile,
   stockholmDate,
@@ -26,6 +27,7 @@ import { pruneTopicJudgments } from "../judge/topicJudge.js";
 import { recordRunMetrics } from "../metrics/runMetrics.js";
 import { createIdAllocator, listTakenIds } from "../render/digestId.js";
 import { writeDigestFile } from "../render/writeDigestFile.js";
+import { loadSchedule } from "../schedule/store.js";
 import { loadSectionPlan } from "../score/sectionPlan.js";
 import { markSeen, pruneJudgments, pruneSeen } from "../state/prune.js";
 import { recordRun } from "../state/runRecord.js";
@@ -259,6 +261,8 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
       verified: selection.mode === "agent" ? false : selection.verified,
       topics,
       plan: sectionPlan,
+      voiceId: podcastVoices(await loadSchedule(root), pass.kind === "weekly" ? "weekly" : "daily")
+        .voice_id,
       ...(replaces === undefined ? {} : { regenerations: await nextRegenerations(root, replaces) }),
     });
     const report = validateDigest(digest, {

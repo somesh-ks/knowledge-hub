@@ -40,6 +40,25 @@ const PATH = `Digests/2026/10/${ID}.md`;
 const TIMELINE = `Digests/2026/10/${ID}.audio.json`;
 const LONG = { timeout: 90_000 };
 
+describe("the narration voice", () => {
+  // The bug it prevents: the audio job holds no config store and no schedule file (SEC-03, D296), so
+  // the voice a user sets in Settings never reached stored audio. The run, which has it, writes it
+  // into the digest.
+  it("is copied from the schedule into the digest the run writes", LONG, async () => {
+    await seed(repo.root, {
+      "config/schedule.json": json({
+        version: 1,
+        hour: 7,
+        cadence_days: 2,
+        skip_topics: [],
+        voice_id: "sched_v",
+      }),
+    });
+    await runStaged(makeWorld(repo.root, { now: WED }));
+    expect((await readDigest(repo.root, PATH)).voice_id).toBe("sched_v");
+  });
+});
+
 describe("replace a briefing", () => {
   it(
     "makes the same digest again over its own window, supersedes it in one commit and leaves the cadence alone",
