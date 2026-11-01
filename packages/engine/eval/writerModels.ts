@@ -189,6 +189,20 @@ export function shuffled<T>(items: readonly T[], seed: number): T[] {
   return out;
 }
 
+/** Persisted data is snake_case; the in-memory types stay camelCase. */
+export function snakeKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(snakeKeys);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, inner]) => [
+        key.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`),
+        snakeKeys(inner),
+      ]),
+    );
+  }
+  return value;
+}
+
 const quiet: Logger = {
   debug() {},
   info() {},
@@ -280,21 +294,27 @@ async function runArm(
   const byId = new Map(stories.map((s) => [s.id, s]));
   const items = new Map(result.written.map((w) => [w.id, w]));
   const scores = await mapConcurrent(result.written, 4, async (item): Promise<StoryScore> => {
-    const source = byId.get(item.id)?.text ?? "";
+    const story = byId.get(item.id);
+    const source = story?.text ?? "";
     const spoken = item.spoken ?? "";
     const violations =
       linter.lint("headline", item.headline).length +
       linter.lint("summary", item.summary).length +
       (spoken ? linter.lint("spoken", spoken).length : 0);
+    // The title and outlet go with the excerpt as in production (groundingRepair.ts): the body
+    // often leaves out a name the writer correctly takes from them.
+    const heading = story ? `${story.title} (${story.source})` : undefined;
     const [summaryVerdict, spokenVerdict] = await Promise.all([
-      grounder.ground({ id: item.id, summary: item.summary, why: "", sourceText: source }),
+      grounder.ground({ id: item.id, summary: item.summary, why: "", sourceText: source, heading }),
       spoken
-        ? grounder.ground({ id: item.id, summary: spoken, why: "", sourceText: source })
+        ? grounder.ground({ id: item.id, summary: spoken, why: "", sourceText: source, heading })
         : Promise.resolve({ id: item.id, sentences: [] }),
     ]);
-    const sentenceScores = [...summaryVerdict.sentences, ...spokenVerdict.sentences]
-      .map((s) => s.score)
-      .filter((s): s is number => s !== null);
+    const answered = [...summaryVerdict.sentences, ...spokenVerdict.sentences].map((s) => s.score);
+    // A sentence Jev did not answer leaves the story unchecked, not passed.
+    const sentenceScores = answered.every((score): score is number => score !== null)
+      ? answered
+      : [];
     const quality = await rateQuality(ctx.client, item, ctx.secrets);
     return {
       id: item.id,
@@ -503,8 +523,8 @@ export async function main(argv: string[]): Promise<number> {
     JSON.stringify(
       {
         stories: stories.map((s) => ({ id: s.id, title: s.title })),
-        reports,
-        scores: runs.flatMap((r) => r.scores),
+        reports: snakeKeys(reports),
+        scores: snakeKeys(runs.flatMap((r) => r.scores)),
         written: Object.fromEntries(runs.map((r) => [r.report.arm.id, [...r.items.values()]])),
         blind_key: blind.key,
         skipped,
