@@ -556,6 +556,8 @@ main > .empty {
     }
   }
 
+  /* The motion amplitudes below are SVG user units inside a 240-wide drawing, not layout: the 8pt grid
+     governs spacing, and a 4px step here would be a lurch of the whole figure. */
   @keyframes scene-bob {
     from {
       transform: translateY(1.5px);
