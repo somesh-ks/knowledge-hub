@@ -299,6 +299,14 @@ test.describe("a touch on a tab shows at once and goes on across the move", () =
     await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [point] });
     await expect(tab).toHaveAttribute("data-ripple-pressed", "");
     await expect(tab.locator(".ripple-wave")).toHaveCount(1);
+    // A wave drawn again from zero must not pass for one carried on: wait until this one has played.
+    await expect
+      .poll(() =>
+        tab
+          .locator(".ripple-wave")
+          .evaluate((wave) => Number(wave.getAnimations()[0]?.currentTime ?? Number.NaN)),
+      )
+      .toBeGreaterThan(0);
     await page.evaluate(() => {
       const played = (): number | null =>
         Number(

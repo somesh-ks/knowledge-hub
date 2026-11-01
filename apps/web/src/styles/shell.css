@@ -559,6 +559,14 @@ html[data-mini="visible"] main {
   }
 }
 
+/* With reduced motion the icon takes its dip at once: scale is movement, which the spring tokens
+   collapse the same way (foundations.css). */
+@media (prefers-reduced-motion: reduce) {
+  .app-nav-item {
+    --nav-icon-duration: 0.01ms;
+  }
+}
+
 /* An open dialog takes the scrollbar away and the window's edge moves out by its width
    (foundations.css). The bar runs to that edge, so it keeps the room and its items hold still. */
 @media (width < 64rem) {
