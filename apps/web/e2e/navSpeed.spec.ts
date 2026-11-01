@@ -308,25 +308,32 @@ test.describe("a touch on a tab shows at once and goes on across the move", () =
       )
       .toBeGreaterThan(0);
     await page.evaluate(() => {
-      const played = (): number | null =>
-        Number(
-          document.querySelector('.app-nav-item[href="/library"] .ripple-wave')?.getAnimations()[0]
-            ?.currentTime ?? Number.NaN,
-        );
-      const run = { before: played(), after: Number.NaN };
+      const wave = (): HTMLElement | null =>
+        document.querySelector<HTMLElement>('.app-nav-item[href="/library"] .ripple-wave');
+      const played = (): number => Number(wave()?.getAnimations()[0]?.currentTime ?? Number.NaN);
+      const origin = (): string => `${wave()?.style.left},${wave()?.style.top}`;
+      const run = { before: played(), after: Number.NaN, from: origin(), to: "" };
       Object.assign(window, { rippleRun: run });
-      document.addEventListener("astro:after-swap", () => Object.assign(run, { after: played() }), {
-        once: true,
-      });
+      document.addEventListener(
+        "astro:after-swap",
+        () => Object.assign(run, { after: played(), to: origin() }),
+        { once: true },
+      );
     });
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await expect(heading(page)).toHaveText("Library");
 
     const run = await page.evaluate(
-      () => (window as unknown as { rippleRun: { before: number; after: number } }).rippleRun,
+      () =>
+        (
+          window as unknown as {
+            rippleRun: { before: number; after: number; from: string; to: string };
+          }
+        ).rippleRun,
     );
     expect(run.after, "the new bar has no wave").not.toBeNaN();
     expect(run.after, "the wave started again on the new page").toBeGreaterThanOrEqual(run.before);
+    expect(run.to, "the wave moved to another origin").toBe(run.from);
   });
 
   // A second finger elsewhere, lifting, must not end the press the first one is making.
@@ -338,10 +345,19 @@ test.describe("a touch on a tab shows at once and goes on across the move", () =
     const held = { x: box.x + box.width / 2, y: box.y + box.height / 2, id: 1 };
     const other = { x: 40, y: 300, id: 2 };
     const cdp = await page.context().newCDPSession(page);
+    // The other finger's release must reach the page, or the check below proves nothing.
+    await page.evaluate(() => {
+      const ups: number[] = [];
+      Object.assign(window, { pointerUps: ups });
+      document.addEventListener("pointerup", (event) => ups.push(event.pointerId), true);
+    });
 
     await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [held] });
     await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [held, other] });
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [other] });
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { pointerUps: number[] }).pointerUps))
+      .toHaveLength(1);
     await expect(tab).toHaveAttribute("data-ripple-pressed", "");
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [held] });
     await expect(tab).not.toHaveAttribute("data-ripple-pressed", "");
