@@ -175,9 +175,9 @@ test.describe("interface cues by kind of action", () => {
       .toEqual(["open", "detent"]);
 
     await page.goto("/settings/sounds");
-    await page.getByLabel("Haptics").selectOption("off");
+    await page.getByRole("switch", { name: "Haptics", exact: true }).uncheck();
     await page.reload();
-    await expect(page.getByLabel("Haptics")).toHaveValue("off");
+    await expect(page.getByRole("switch", { name: "Haptics", exact: true })).not.toBeChecked();
     await page.goto("/library");
     await prime(page);
     await openRowMenu(page, page.locator("[data-card]").first());

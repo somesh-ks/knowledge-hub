@@ -1,6 +1,5 @@
 ---
 import SettingsHead from "../../components/SettingsHead.astro";
-import Select from "../../design-system/Select.astro";
 import Slider from "../../design-system/Slider.astro";
 import Switch from "../../design-system/Switch.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
@@ -30,17 +29,14 @@ const title = "Sounds and haptics";
           </div>
         </div>
       </section>
-      {/* Touch feedback (D273). Hidden where this device has no motor to ask (a desktop browser, an
-           iPhone before iOS 18): settingsPage.ts shows it. The select waits inert for its listener,
-           as Theme's does, so a stored Off never shows On first. */}
+      {/* Touch feedback (D273), a card of its own. A plain On/Off, so a Switch like Interface sounds.
+           Hidden where this device has no motor to ask (a desktop browser, an iPhone before iOS 18):
+           settingsPage.ts shows it. */}
       <section data-haptics-section hidden>
         <div class="rows card-group">
           <div class="settings-row">
             <label class="settings-label" for="settings-haptics">Haptics</label>
-            <Select class="value-select" id="settings-haptics" name="haptics" autocomplete="off" inert>
-              <option value="on">On</option>
-              <option value="off">Off</option>
-            </Select>
+            <Switch id="settings-haptics" name="haptics" />
           </div>
         </div>
       </section>

@@ -222,6 +222,12 @@
   margin-block-start: 0;
 }
 
+/* A card with no head of its own (Haptics, under Interface sounds) has no head's air above it, so it
+   would sit against the card before. It takes the head's 32px above instead. */
+.settings-view > section + section:not(:has(> .section-head)) {
+  margin-block-start: var(--space-8);
+}
+
 /* ------------------------------------------------------------------ switch and slider */
 
 /* A slider in a row takes the control column's width; a row's own rules (topics.css, manage.css) widen it. */
