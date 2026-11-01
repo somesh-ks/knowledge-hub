@@ -664,7 +664,8 @@ describe("edits kept on the device while the site cannot be reached (CFG-04)", (
         posted.push([op].flat());
         const first = replies.shift();
         if (first) return new Response(JSON.stringify(first[1]), { status: first[0] });
-        return new Response(JSON.stringify({ status: answer }), { status: answer });
+        const error = answer >= 400 ? "refused" : undefined;
+        return new Response(JSON.stringify({ status: answer, error }), { status: answer });
       }),
     );
   });
@@ -763,7 +764,7 @@ describe("edits kept on the device while the site cannot be reached (CFG-04)", (
     );
     expect(readOutbox()).toHaveLength(1);
     expect(readOutbox()[0]?.ops).toHaveLength(2);
-    replies = [[409, { op_index: 0 }]];
+    replies = [[409, { op_index: 0, error: "duplicate" }]];
     answer = 202;
     await drainOutbox();
     expect(posted.at(-2)).toHaveLength(2);
@@ -784,6 +785,17 @@ describe("edits kept on the device while the site cannot be reached (CFG-04)", (
     await vi.advanceTimersByTimeAsync(GAP_MS);
     await drainOutbox();
     expect(readOutbox()).toEqual([]);
+  });
+
+  // Bug (CodeRabbit on #550): any 400 or 409 was taken as the site refusing the edit, so one from a proxy
+  // or firewall took out the only copy of it.
+  it("keeps the edits when a 400 does not come from the site", async () => {
+    await flush(context(new Map([["hour", change({ op: "schedule.set", hour: 9 })]])));
+    replies = [[400, {}]];
+    answer = 202;
+    await drainOutbox();
+    expect(outboxOps()).toEqual([{ op: "schedule.set", hour: 9 }]);
+    expect(toasts).toEqual([]);
   });
 
   it("says when a kept schedule change was saved but its time could not be changed", async () => {
@@ -807,7 +819,7 @@ describe("edits kept on the device while the site cannot be reached (CFG-04)", (
       ]),
     );
     answer = 202;
-    replies = [[400, { op_index: 99 }]];
+    replies = [[400, { op_index: 99, error: "bad" }]];
     const done = drainOutbox();
     await vi.advanceTimersByTimeAsync(GAP_MS * 3);
     await done;

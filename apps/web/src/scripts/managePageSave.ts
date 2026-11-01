@@ -591,6 +591,8 @@ async function sendOutbox(): Promise<void> {
     // Refused for good: the site read the edit and said no. Anything else (no connection, a server
     // fault) leaves it kept, and the next page load, the connection coming back or the next change tries again.
     if (answer.status !== 400 && answer.status !== 409) return;
+    // A 400 or 409 from a proxy or firewall carries none of the site's own fields: it read nothing.
+    if (!isSiteAnswer(answer.body)) return;
     // The store's "conflict" (409) means a write landed between its read and its write: it read none of
     // the edits, so they are kept and go out at the next try.
     if (
