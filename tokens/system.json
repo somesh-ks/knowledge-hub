@@ -61,8 +61,6 @@
         "--color-surface",
         "--color-surface-container",
         "--cta-bg",
-        "--cta-bg-hover",
-        "--cta-bg-pressed",
         "--cta-fg"
       ]
     },
@@ -2746,6 +2744,13 @@
       "role": "Same family as the interface. Kept as its own token so story text can change voice without touching components."
     },
     {
+      "name": "--font-blackletter",
+      "tier": "primitive",
+      "type": "fontFamily",
+      "light": "\"Pirata One\", \"Google Sans Flex Variable\", \"Google Sans Flex Fallback\", system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif",
+      "role": "The Halloween style's page title face: blackletter, latin only, one 9 KB file. Only the display role takes it (D306); no component reads this token."
+    },
+    {
       "name": "--font-weight-regular",
       "tier": "primitive",
       "type": "fontWeight",
@@ -3232,6 +3237,13 @@
       "tier": "primitive",
       "type": "number",
       "light": "0.32"
+    },
+    {
+      "name": "--opacity-dim",
+      "tier": "primitive",
+      "type": "number",
+      "light": "0.6",
+      "role": "A thing that is busy or being moved stays where it is, quieter: a page that is loading, a row being cancelled or dragged."
     },
     {
       "name": "--opacity-ambient-light",
@@ -5102,6 +5114,179 @@
       "type": "dimension",
       "light": "var(--radius-xl)",
       "role": "The search field and each option, one inset in. 24px: a full pill on the 48px search field, the same on every row."
+    },
+    {
+      "name": "--scene-pumpkin",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent)",
+      "dark": "var(--color-accent)",
+      "hex": {
+        "light": "#1755b9",
+        "dark": "#82b0fd"
+      }
+    },
+    {
+      "name": "--scene-pumpkin-shade",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-hover)",
+      "dark": "var(--color-accent-hover)",
+      "hex": {
+        "light": "#164087",
+        "dark": "#afcdfe"
+      }
+    },
+    {
+      "name": "--scene-pumpkin-lit",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-container-high)",
+      "dark": "var(--color-accent-container-high)",
+      "hex": {
+        "light": "#afcdfe",
+        "dark": "#164087"
+      }
+    },
+    {
+      "name": "--scene-stem",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-on-surface-muted)",
+      "dark": "var(--color-on-surface-muted)",
+      "hex": {
+        "light": "#595c62",
+        "dark": "#acb0b5"
+      }
+    },
+    {
+      "name": "--scene-glow",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-surface-raised)",
+      "dark": "var(--color-surface-raised)",
+      "hex": {
+        "light": "#ffffff",
+        "dark": "#2d2e2f"
+      }
+    },
+    {
+      "name": "--scene-bone",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-surface-raised)",
+      "dark": "var(--color-surface-raised)",
+      "hex": {
+        "light": "#ffffff",
+        "dark": "#2d2e2f"
+      }
+    },
+    {
+      "name": "--scene-bone-shade",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-surface-container)",
+      "dark": "var(--color-surface-container)",
+      "hex": {
+        "light": "#eeeeef",
+        "dark": "#2d2e2f"
+      }
+    },
+    {
+      "name": "--scene-iron",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-on-surface-muted)",
+      "dark": "var(--color-on-surface-muted)",
+      "hex": {
+        "light": "#595c62",
+        "dark": "#acb0b5"
+      }
+    },
+    {
+      "name": "--scene-iron-shade",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-on-surface)",
+      "dark": "var(--color-on-surface)",
+      "hex": {
+        "light": "#212223",
+        "dark": "#e3e4e6"
+      }
+    },
+    {
+      "name": "--scene-iron-lit",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-track-strong)",
+      "dark": "var(--color-track-strong)",
+      "hex": {
+        "light": "#acb0b5",
+        "dark": "#73777d"
+      }
+    },
+    {
+      "name": "--scene-stone",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-track-strong)",
+      "dark": "var(--color-track-strong)",
+      "hex": {
+        "light": "#acb0b5",
+        "dark": "#73777d"
+      }
+    },
+    {
+      "name": "--scene-stone-shade",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-border-control)",
+      "dark": "var(--color-border-control)",
+      "hex": {
+        "light": "#73777d",
+        "dark": "#8f939a"
+      }
+    },
+    {
+      "name": "--scene-stone-lit",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-track)",
+      "dark": "var(--color-track)",
+      "hex": {
+        "light": "#c9cbcf",
+        "dark": "#424548"
+      }
+    },
+    {
+      "name": "--scene-moon",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-container)",
+      "dark": "var(--color-accent-container)",
+      "hex": {
+        "light": "#d6e5fe",
+        "dark": "#162f59"
+      }
+    },
+    {
+      "name": "--scene-moon-shade",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-container-high)",
+      "dark": "var(--color-accent-container-high)",
+      "hex": {
+        "light": "#afcdfe",
+        "dark": "#164087"
+      }
+    },
+    {
+      "name": "--scene-halo",
+      "tier": "component",
+      "type": "number",
+      "light": "0",
+      "role": "How strongly a scene's light glows round it, 0 to 1. Zero draws none.",
+      "dark": "0"
     },
     {
       "name": "--card-padding",
