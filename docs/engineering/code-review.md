@@ -34,8 +34,8 @@ cr review --base main --committed --agent --gate major   # exit 2 when a major o
 
 - Open as a draft while work continues; mark it ready when the checks are green, the diff lists only the task's files, the stills are OK'd for a taste change, and the PR body's Review section is filled. Then post `@coderabbitai review`: that is the first review.
 - The rolling `design-system` PR: the thread that owns it asks, once per batch, after the joining threads' commits land. A joining thread never asks.
-- Before asking, read CodeRabbit's last summary comment: "N remain after this review". The hour (10 reviews) is shared by every thread in the project. At 2 or fewer, wait for the hour or run `/code-review` on the range and say so in the PR body.
-- Paused or skipped: when the summary says "Reviews paused" or rate-limited and the head is unreviewed, ask with `@coderabbitai review`; while the PR pool is out, a `cr review` pass on the range stands in, and the PR body says so. Never `@coderabbitai resume`: it brings back a review per push.
+- Before asking, read CodeRabbit's last summary comment: "N remain after this review". The hour (10 reviews) is shared by every thread in the project. At 2 or fewer, wait for the hour and say so in the PR body.
+- Paused or skipped: when the summary says "Reviews paused" or rate-limited and the head is unreviewed, ask with `@coderabbitai review`. While the PR pool is out, a Tier 1 PR may merge on a `cr review` pass of the range, with the PR body saying so; a Tier 2 PR waits for the hour, since its merge rule below needs the PR review on the head. Never `@coderabbitai resume`: it brings back a review per push.
 - `@coderabbitai full review` only after a rebase or a squash rewrote the branch.
 - Before a merge, compare `git rev-parse HEAD` with the "Last reviewed commit" in the summary. Tier 2 must match. Tier 1 may differ by fix commits for the findings only.
 

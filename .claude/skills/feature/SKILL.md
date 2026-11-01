@@ -78,7 +78,7 @@ Run commands through PowerShell on the owner's machine ([AGENTS.md](../../../AGE
 4. **Visual Inspection**:
    Screenshot every touched page and every open state (sheet, menu, popover, focused field) at 390x844 and 1526x782, in light and dark, and look at each one. Then run the `design-audit` agent on the diff before the PR.
 5. **Code Review**:
-   Pick the tier ([code review](../../../docs/engineering/code-review.md), D292). `cr review --base main --committed` before each push (`--deep` for Tier 2); fix or answer its findings. CodeRabbit reviews the PR once when it is ready; Tier 2 asks again with `@coderabbitai review` after the fixes. Fix or answer every finding, then merge by hand (D143, D192).
+   Pick the tier ([code review](../../../docs/engineering/code-review.md), D292). `cr review --base main --committed` before each push (`--deep` for Tier 2); fix or answer its findings. When the PR is ready, post `@coderabbitai review` for its one PR review (a draft marked ready starts none); Tier 2 asks again after the fixes. Fix or answer every finding, then merge by hand (D143, D192).
 6. **Scope & Record**:
    `git diff --stat origin/main` must list only files the task needs; name every shared stylesheet or component in the PR body, and why. A component change lands in its shared class, with its record in the same PR: the usage comment over the class, a line in the touched surface's file under [docs/ledger/](../../../docs/ledger/README.md), a new variant in [look-and-sound](../../../docs/specs/look-and-sound.md). Update [docs/state.md](../../../docs/state.md) and, for a change of direction, [docs/decisions/](../../../docs/decisions/README.md) (next free D-number: check open PRs first).
 7. **Two-minute test**:
