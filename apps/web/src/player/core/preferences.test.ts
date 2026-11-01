@@ -72,6 +72,49 @@ describe("preferences store", () => {
     expect(second.get()).toMatchObject({ theme: "light", rate: 1.25, volume: 0.4 });
   });
 
+  it("keeps another tab's change when this tab, which read the old copy, changes something else", () => {
+    const storage = new MemoryStorage();
+    const tabA = createPreferencesStore({ storage, defaultSounds: () => true });
+    const tabB = createPreferencesStore({ storage, defaultSounds: () => true });
+    tabA.set({ autoplay: false, theme: "dark" });
+    tabB.set({ rate: 1.5 });
+    expect(JSON.parse(storage.getItem(PREFERENCES_KEY) ?? "{}")).toMatchObject({
+      autoplay: false,
+      theme: "dark",
+      rate: 1.5,
+    });
+    expect(tabB.get()).toMatchObject({ autoplay: false, theme: "dark", rate: 1.5 });
+  });
+
+  it("keeps a change the device would not take when a later change is made", () => {
+    const storage = new MemoryStorage();
+    const store = createPreferencesStore({ storage, defaultSounds: () => true });
+    store.set({ theme: "dark" });
+    storage.setItem = () => {
+      throw new Error("QuotaExceededError");
+    };
+    store.set({ rate: 1.5 });
+    store.set({ theme: "light" });
+    expect(store.get()).toMatchObject({ theme: "light", rate: 1.5 });
+  });
+
+  it("does not keep a change that went back to what the device holds over a newer one from another tab", () => {
+    const storage = new MemoryStorage();
+    const store = createPreferencesStore({ storage, defaultSounds: () => true });
+    const other = createPreferencesStore({ storage, defaultSounds: () => true });
+    store.set({ theme: "dark" });
+    const write = storage.setItem.bind(storage);
+    storage.setItem = () => {
+      throw new Error("QuotaExceededError");
+    };
+    store.set({ theme: "light" });
+    store.set({ theme: "dark" });
+    storage.setItem = write;
+    other.set({ theme: "light" });
+    store.set({ rate: 1.5 });
+    expect(store.get()).toMatchObject({ theme: "light", rate: 1.5 });
+  });
+
   it("keeps the snapshot identity until something changes, and notifies once per change", () => {
     const store = createPreferencesStore({
       storage: new MemoryStorage(),
