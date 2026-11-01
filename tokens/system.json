@@ -658,6 +658,10 @@
       ],
       "not": [
         {
+          "when": "A banner in the page would push it down while it moves (a cover between pages)",
+          "use": "banner"
+        },
+        {
           "when": "a message that clears itself",
           "use": "toast"
         },

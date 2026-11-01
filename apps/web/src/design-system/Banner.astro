@@ -1,12 +1,14 @@
 ---
 import type { IconName } from "../lib/icons";
 import Button from "./Button.astro";
-import { type BannerTone, bannerClass, bannerText } from "./banner";
+import { type BannerTone, type BannerVariant, bannerClass, bannerText } from "./banner";
 import Icon from "./Icon.astro";
 import "../styles/banner.css";
 
 interface Props {
   tone: BannerTone;
+  /** "strip" is a band across the width for a state of the device; the place that draws it overlays it. */
+  variant?: BannerVariant;
   icon: IconName;
   title: string;
   body?: string;
@@ -16,10 +18,10 @@ interface Props {
   action?: { label: string; href: string };
 }
 
-const { tone, icon, title, body, bodyId, action } = Astro.props;
+const { tone, variant, icon, title, body, bodyId, action } = Astro.props;
 ---
 
-<div class={bannerClass()} data-tone={tone} role={tone === "danger" ? "alert" : "status"}>
+<div class={bannerClass()} data-tone={tone} data-variant={variant === "strip" ? "strip" : undefined} role={tone === "danger" ? "alert" : "status"}>
   <Icon name={icon} />
   <div class={bannerText.column}>
     <p class={bannerText.title} id={body ? undefined : bodyId}>{title}</p>
