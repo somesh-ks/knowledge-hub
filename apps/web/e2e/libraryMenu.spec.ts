@@ -322,7 +322,7 @@ test.describe("an episode download", () => {
   });
 });
 
-test("a phone's menu sheet has no visible Close, a short pull springs back to the same box, a long pull or a tap outside closes it and focus returns to the dots", async ({
+test("a phone's menu sheet shows a Close that closes it, a short pull springs back to the same box, a long pull or a tap outside closes it and focus returns to the dots", async ({
   page,
 }) => {
   await page.goto("/library");
@@ -342,9 +342,9 @@ test("a phone's menu sheet has no visible Close, a short pull springs back to th
   const dots = row(page, AUDIO_ID).locator("[data-hero-more]");
 
   await openMenu(page, AUDIO_ID);
-  // Keyboard and screen readers keep a Close; it takes no room a finger could see.
+  // The head carries a Close a finger can hit (D291): swipe, tap outside and the X all close the sheet.
   const close = sheet.locator("[data-menu-close]");
-  expect(((await close.boundingBox()) ?? { width: 99 }).width).toBeLessThan(2);
+  expect(((await close.boundingBox()) ?? { width: 0 }).width).toBeGreaterThanOrEqual(40);
   // The sheet slides up when it opens: its rest box and its head are read, and the finger lands on
   // the head, only once the slide is over (a slow runner was still mid-slide).
   const settled = () =>
@@ -368,6 +368,11 @@ test("a phone's menu sheet has no visible Close, a short pull springs back to th
   await openMenu(page, AUDIO_ID);
   await page.touchscreen.tap(195, 40);
   await expect(sheet).toBeHidden();
+
+  await openMenu(page, AUDIO_ID);
+  await close.click();
+  await expect(sheet).toBeHidden();
+  await expect(dots).toBeFocused();
 });
 
 test("a long press on a card opens its menu and leaves the card unopened, and is felt once", async ({

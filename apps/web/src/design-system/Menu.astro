@@ -7,11 +7,13 @@ interface Props {
   id: string;
   /** The sheet's header on a phone, and the menu's name for a screen reader. */
   title: string;
+  /** A quiet line under the title on a phone's sheet, such as a card's facts. */
+  subtitle?: string;
   /** For placing the popover under its own button (the anchor of a row or a story). Never its look. */
   class?: string;
 }
 
-const { id, title, class: placement } = Astro.props;
+const { id, title, subtitle, class: placement } = Astro.props;
 ---
 
 {/* Every ⋮ menu (2026-10-21): the header More menu's popover, which a phone shows as a bottom sheet
@@ -19,7 +21,7 @@ const { id, title, class: placement } = Astro.props;
      items are <MenuItem> buttons, each with its icon at the start; the keys, focus and Close are
      scripts/heroMenu.ts. */}
 <div class:list={[menuListClass(), placement]} id={id} popover>
-  <SheetHeader title={title} titleId={`${id}-title`} close="data-menu-close" />
+  <SheetHeader title={title} titleId={`${id}-title`} close="data-menu-close" subtitle={subtitle} />
   <div class={menuBodyClass()} role="menu" aria-label={title}>
     <slot />
   </div>

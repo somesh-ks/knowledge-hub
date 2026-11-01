@@ -301,5 +301,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D287 | Column and list centred together | amends D229 |
 | D289 | Every press is felt | amends D273 |
 | D290 | Haptics are subtle and follow the sounds | amends D273, D289 |
+| D291 | Phone Menu sheet: media-style head, visible Close, fill focus | amends D144, D275 |
 
 ---

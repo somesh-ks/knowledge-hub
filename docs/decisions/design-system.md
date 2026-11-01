@@ -554,3 +554,13 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Amends: D273, D289 (the pattern values; the intents are unchanged).
 - Revisit if: another phone is reported too weak or too strong, then change `primitive.haptic` only.
 
+## D291: the phone Menu sheet has a media-style head, a visible Close and a fill for focus
+
+- Date: 2026-11-01 (the owner: "a nice top section with an X on the right ... swipe down, tap outside and the X close it", on a screenshot of a media app's sheet; "the focus state of a list item inside the bottom sheet shouldn't be an outline, rather a background color change"; the title "too close" to the corner)
+- Decision: every phone sheet has a 32px top corner (`sheet.radius`, `picker.radius`) and the picker's pill and rows stand 8px in. The Menu's sheet head (Library card menu, page More menu, select sheets) is a title, an optional quiet line under it (`subtitle`; a Library card passes its facts line), a visible Close at the end and a hairline under it. The title stands 24px from the top and the edge, the column the rows' icons use. Rows are full pills (`radius-xl`). Keyboard or script focus on a row inside the sheet is the 12% press fill, not a ring.
+- Why: the 4px inset and 28px corner read cramped around a full pill; the bare title sat against the corner; a hold that opens a sheet with no way to see how to close it left a finger guessing, and a ring on a pill row crowded it.
+- Cost: the Close takes a corner of the head on every Menu sheet, which D144 hid. Focus inside the sheet is a tint, so a keyboard user sees a quieter marker than on the desktop Menu, which keeps its ring.
+- Rejected: a Close only on the Library card's sheet (two heads for one component); a ring in the accent on the pill.
+- Amends: D144 (partial sheets hid Close: the Menu's now shows it), D275 (picker radius and inset).
+- Revisit if: a keyboard user cannot find the focused row on a phone, then give the fill a stronger layer, not the ring back.
+
