@@ -629,10 +629,6 @@ async function sendOutbox(): Promise<void> {
     // Storage refusing the removal would send the refused entry again, and toast again: stop here.
     if (refused && !removeOp(refused, offset)) return;
     solo = false;
-    // An add the site says it already has is the state the edit wanted (its first send may have landed
-    // with the answer lost), so there is nothing to tell.
-    const said = (answer.body as { reason?: unknown } | undefined)?.reason;
-    if (typeof said === "string" && said.startsWith("Already a source:")) continue;
     const reason = failureText(answer.status, answer.body).replace(/ Not saved yet\.$/, "");
     sendToast({ message: `A change made offline was not saved. ${reason}`, kind: "error" });
   }

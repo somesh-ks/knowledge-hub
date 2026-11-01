@@ -775,24 +775,6 @@ describe("edits kept on the device while the site cannot be reached (CFG-04)", (
 
   // Bug (CodeRabbit on #550): the store's 409 "conflict" names no edit, so it was read as a refusal and
   // took out the only copy of edits the site had not written.
-  // Bug (known limit of #550): a source added offline whose first send reached the site but lost its
-  // answer was sent again, refused as "Already a source", and said "not saved" about a source that is there.
-  it("drops a kept source add the site says is already there, without a toast", async () => {
-    const add = change({
-      op: "source.add",
-      url: "https://example.com/feed",
-      topic_ids: [],
-    } as ConfigOp);
-    await flush(context(new Map([["add", add]])));
-    answer = 202;
-    replies = [
-      [400, { error: "invalid_request", reason: "Already a source: Example.", op_index: 0 }],
-    ];
-    await drainOutbox();
-    expect(readOutbox()).toEqual([]);
-    expect(toasts).toEqual([]);
-  });
-
   it("keeps the edits when the store answers conflict, and sends them at the next try", async () => {
     await flush(context(new Map([["hour", change({ op: "schedule.set", hour: 9 })]])));
     replies = [[409, { status: 409, error: "conflict" }]];
