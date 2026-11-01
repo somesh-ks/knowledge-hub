@@ -1,5 +1,9 @@
 import { useEffect, useRef } from "react";
-import { attachReorder, reorderListClass } from "../design-system/reorder";
+import {
+  attachReorder,
+  REORDER_HANDLE_SELECTOR,
+  reorderListClass,
+} from "../design-system/reorder";
 import { swipeLeaves } from "../lib/swipeAway";
 import { announce } from "./core/announcerDom";
 import { createVelocityTracker, TAP_SLOP_PX } from "./core/gestureMath";
@@ -40,7 +44,9 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
       if (!event.isPrimary || event.button !== 0) return;
       // The dots, the menu and the handle have presses of their own.
       if (
-        (event.target as Element).closest(".player-queue-more, .player-queue-menu, .reorder-handle")
+        (event.target as Element).closest(
+          `.player-queue-more, .player-queue-menu, ${REORDER_HANDLE_SELECTOR}`,
+        )
       )
         return;
       press.current = {
