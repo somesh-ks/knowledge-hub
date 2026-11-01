@@ -3304,36 +3304,36 @@
       "name": "haptic-pattern-tick-light",
       "tier": "primitive",
       "type": "singularity-haptic",
-      "light": "android 20 ms; iphone 1 tick",
-      "role": "The lightest tick: a detent, a toggle."
+      "light": "android 12 ms; iphone 1 tick",
+      "role": "The lightest tick, 12 ms: a press, a toggle, a detent, a skip."
     },
     {
       "name": "haptic-pattern-tick",
       "tier": "primitive",
       "type": "singularity-haptic",
-      "light": "android 30 ms; iphone 1 tick",
-      "role": "One firm tick: a sheet or menu opening."
+      "light": "android 16 ms; iphone 1 tick",
+      "role": "One soft knock, 16 ms: a sheet or menu opening, play."
     },
     {
       "name": "haptic-pattern-double",
       "tier": "primitive",
       "type": "singularity-haptic",
-      "light": "android 30 60 30 ms; iphone 2 ticks, 90 ms apart",
+      "light": "android 12 70 12 ms; iphone 2 ticks, 90 ms apart",
       "role": "Two beats: something worked."
     },
     {
-      "name": "haptic-pattern-triple",
+      "name": "haptic-pattern-thud",
       "tier": "primitive",
       "type": "singularity-haptic",
-      "light": "android 35 50 35 50 35 ms; iphone 3 ticks, 70 ms apart",
-      "role": "Three beats: something did not work."
+      "light": "android 16 60 16 ms; iphone 2 ticks, 60 ms apart",
+      "role": "Two soft beats, a little closer: something did not work. The error sound is one low thud."
     },
     {
       "name": "haptic-pattern-celebrate",
       "tier": "primitive",
       "type": "singularity-haptic",
-      "light": "android 30 50 30 50 70 ms; iphone 3 ticks, 80 ms apart",
-      "role": "Three rising beats: a podcast is ready to play."
+      "light": "android 12 108 20 ms; iphone 2 ticks, 120 ms apart",
+      "role": "Two rising beats, one for each note of the ta-da: a podcast is ready to play."
     },
     {
       "name": "--color-surface",
@@ -4093,7 +4093,7 @@
       "name": "haptic-error",
       "tier": "semantic",
       "type": "singularity-haptic",
-      "light": "pattern triple",
+      "light": "pattern thud",
       "role": "A refusal or a failure."
     },
     {
