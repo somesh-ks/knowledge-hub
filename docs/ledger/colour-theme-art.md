@@ -34,6 +34,7 @@ Ledger section 3, one surface. Read [the core](../design-engineering-ledger.md) 
   - The social card is composed at 1200x630, never cropped from the square.
   - Monthly schemes from 2026-10 (D110).
   - Medium chroma, 0.12 or less, after "too saturated ... too much on the eye when multiple albums are viewed at the same time"; three monthly series with their own style sets, all printed on the month's paper in its inks, on three close tints (weekly palest, then on-demand, then daily) after "the albums should be in a harmony"; crisp in the light theme and faded in the dark; the year after the month; the weekly range reads "2 – 8 November" (2026-10-15, D121).
+  - Current cap (D171, 2026-10-23: "very dull"): chroma 0.16, a deeper, tinted light stock, richer inks. It replaces the 0.12 cap above, which lasted eight days.
   - A step brighter in both themes after "too dull in both dark and light theme" (2026-10-16, D122): paper 0.80 to 0.92 light and 0.73 to 0.85 dark, full chroma on the dark page, and a card's progress scrim on the bottom quarter only. Then "slightly saturated as the colors are too dull": paper chroma 0.045 and spot and tint 25% richer, under the 0.12 cap.
   - Contrast held by `TYPE_CONTRAST` and `FORM_CONTRAST`; date text sits at 11 to 16:1; topic-art letters use the inverse text at 4.5:1 (`cover/src/palettes.ts:137`).
   - The Strata, Orbits and Facets redesign was rejected as busy: an outlined numeral, strokes crossing the digits, and titles unreadable at 48px (2026-10-13).

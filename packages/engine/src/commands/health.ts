@@ -89,12 +89,20 @@ export const run: CommandRun = async (argv, ctx) => {
       if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
         throw new Error("not an object of lists");
       }
+      // A key the check does not know (a typo for `content`) would silently turn that check off.
+      const unknown = Object.keys(parsed).filter(
+        (key) => !(SIDE_WORKFLOWS as readonly string[]).includes(key),
+      );
+      if (unknown.length > 0) throw new Error(`unknown workflow ${unknown.join(", ")}`);
       sideRuns = {};
       for (const workflow of SIDE_WORKFLOWS) {
         const list = (parsed as Record<string, unknown>)[workflow];
         if (list === undefined) continue;
         if (!Array.isArray(list)) throw new Error(`${workflow} is not a list`);
         if (!list.every(isRun)) throw new Error(`an entry of ${workflow} is not a workflow run`);
+        // A podcast request is told apart by its title: without one, a newer success would clear any failure.
+        if (workflow === "podcast" && !list.every((run) => run.displayTitle))
+          throw new Error("an entry of podcast has no displayTitle");
         sideRuns[workflow] = list;
       }
     } catch (error) {

@@ -77,6 +77,7 @@ export function resetContentRepo(): void {
   heldSite = null;
   heldTombstones = null;
   heldBundled = null;
+  inFlightCheck = null;
   storeFailedAt = Number.NEGATIVE_INFINITY;
   savedContent = false;
 }
@@ -162,11 +163,28 @@ export async function loadStoreSiteChecked(
   const { saved } = current;
   if (heldSite?.updatedAt === current.manifest.updated_at)
     return { site: await heldSite.site.then((site) => withoutTombstoned(site, ids)), saved };
+  const files = storeFiles(current.base, current.manifest, deps.fetch);
+  let failed: unknown = null;
   const site = loadSite({
     root: "",
     env: {},
-    files: storeFiles(current.base, current.manifest, deps.fetch),
+    // The readers skip a file they cannot read, so an unreadable object would leave a gap in the
+    // site, not an error. Count it here and fail the load, so the caller shows this build's copy.
+    files: {
+      list: (directory) => files.list(directory),
+      read: (path) =>
+        files.read(path).catch((error: unknown) => {
+          failed ??= error;
+          throw error;
+        }),
+    },
     warn: (message) => deps.log?.(message),
+  }).then((loaded) => {
+    if (failed !== null)
+      throw new Error(
+        `content store read failed: ${failed instanceof Error ? failed.message : "unknown"}`,
+      );
+    return loaded;
   });
   heldSite = { updatedAt: current.manifest.updated_at, site };
   // A failed load is not kept, so the next request tries again.
@@ -179,6 +197,7 @@ export async function loadStoreSiteChecked(
 /** When the store last failed with nothing held, so an outage costs one slow read a window, not one per request. */
 let storeFailedAt = Number.NEGATIVE_INFINITY;
 let heldBundled: Promise<Site> | null = null;
+let inFlightCheck: Promise<{ site: Site; saved: boolean } | null> | null = null;
 
 /**
  * The page's site: the store's when it answers; otherwise this build's own copy, flagged as saved so
@@ -192,15 +211,23 @@ export async function loadPageSite(
   bundled: ContentFiles = bundledContentFiles,
 ): Promise<{ site: Site; saved: boolean }> {
   if (deps.now() - storeFailedAt >= MANIFEST_TTL_MS) {
-    try {
-      const checked = await loadStoreSiteChecked(deps);
-      if (checked) return checked;
-    } catch (error) {
-      deps.log?.(
-        `content store unavailable: ${error instanceof Error ? error.message : "unknown"}`,
-      );
-    }
-    storeFailedAt = deps.now();
+    // One attempt for every request that arrives while it runs, not one slow read each.
+    inFlightCheck ??= (async () => {
+      try {
+        const checked = await loadStoreSiteChecked(deps);
+        if (checked) return checked;
+      } catch (error) {
+        deps.log?.(
+          `content store unavailable: ${error instanceof Error ? error.message : "unknown"}`,
+        );
+      }
+      storeFailedAt = deps.now();
+      return null;
+    })().finally(() => {
+      inFlightCheck = null;
+    });
+    const checked = await inFlightCheck;
+    if (checked) return checked;
   }
   heldBundled ??= loadSite({
     root: "",

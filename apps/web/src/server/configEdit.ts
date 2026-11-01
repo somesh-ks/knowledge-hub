@@ -524,12 +524,15 @@ export function parseConfigRequest(bodyText: string): { op: ConfigOp | ConfigOp[
  * the request is not shaped like a list of changes at all.
  */
 export function firstUnreadableOp(bodyText: string): number | null {
+  // A body or a list over the limits is refused as a whole: no parsing, no scan.
+  if (bodyText.length === 0 || bodyText.length > MAX_CONFIG_BODY_CHARS) return null;
   try {
     const parsed: unknown = JSON.parse(bodyText);
     if (!isRecord(parsed)) return null;
     const ops = Array.isArray(parsed.op) ? parsed.op : [parsed.op];
+    if (ops.length > MAX_OPS) return null;
     const index = ops.findIndex((op) => parseConfigOp(op) === null);
-    return index < 0 || ops.length > MAX_OPS ? null : index;
+    return index < 0 ? null : index;
   } catch {
     return null;
   }

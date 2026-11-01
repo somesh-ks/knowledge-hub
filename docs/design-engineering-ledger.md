@@ -174,9 +174,9 @@ Read before any UI that a phone shows (the default: every browser test runs on t
 ## Keeping this file
 
 When an ask changes the look or feel:
-- Add a row to section 3 with its decision number, or the chat date if there is no decision.
-- Move an item out of section 8 once it is done.
-- Strike a dream once it is built or rejected.
-- Add a lesson that would help any project to section 10, and strike it there once the skill carries it.
+- Add a row to the surface's file in [ledger/](ledger/README.md) (section 3's rows live there) with its decision number, or the chat date if there is no decision.
+- Move an item out of the open asks (section 8) in `ledger/code.md` once it is done.
+- Strike a dream (section 9, `ledger/ideas.md`) once it is built or rejected.
+- Add a lesson that would help any project to section 10 (`ledger/ideas.md`), and strike it there once the skill carries it.
 
 Do not restate a decision's reasoning here; link it.

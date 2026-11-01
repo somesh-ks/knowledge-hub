@@ -150,6 +150,8 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   // with a growing wait, before the listener is told; one that plays 30 s on starts the count again.
   let networkRetries = 0;
   let networkFailedAt = Number.NEGATIVE_INFINITY;
+  /** A reload the retry wait owes the failed source: kept across a pause or a scrub, done on the next play. */
+  let networkReloadPending = false;
   let networkRetryTimer: ReturnType<typeof setTimeout> | null = null;
   let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
   /** Bumped when the watch stops, so a play() promise that settles later arms nothing. */
@@ -453,16 +455,19 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
   /** Plays on from where a dropped connection stopped it. False once the retries are spent. */
   function retryNetworkError(): boolean {
-    if (state.time - networkFailedAt >= 30) networkRetries = 0;
+    // The live playhead: state.time moves only on coarse changes and can lag a long item.
+    if (time - networkFailedAt >= 30) networkRetries = 0;
     if (networkRetries >= NETWORK_RETRY_WAITS_MS.length) return false;
     const wait = NETWORK_RETRY_WAITS_MS[networkRetries] ?? 0;
     networkRetries += 1;
-    networkFailedAt = state.time;
+    networkFailedAt = time;
+    networkReloadPending = true;
     stopNetworkRetry();
     commit({ status: "loading", buffering: true });
     networkRetryTimer = setTimeout(() => {
       networkRetryTimer = null;
-      if (wantsPlay) retryAs("resume");
+      // A drag in progress keeps the reload: endScrub does it, so no audio starts under the thumb.
+      if (wantsPlay && !state.scrubbing) retryAs("resume");
     }, wait);
     return true;
   }
@@ -470,6 +475,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   /** Playback stopped short: the listener is told why, once. A blocked start is only paused. */
   function fail(error: PlayerError): void {
     stopTimers();
+    networkReloadPending = false;
     wantsPlay = false;
     commit({ status: error.kind === "blocked" ? "paused" : "error", buffering: false, error });
     emit({ type: "error", error });
@@ -636,6 +642,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     skippedUrls.clear();
     networkRetries = 0;
     networkFailedAt = Number.NEGATIVE_INFINITY;
+    networkReloadPending = false;
     wantsPlay = false;
     wasPlayingBeforeScrub = false;
 
@@ -744,6 +751,11 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       retryAs(reason);
       return;
     }
+    // A pause during the retry wait kept the failed source: load it again before playing.
+    if (networkReloadPending) {
+      retryAs(reason);
+      return;
+    }
     startPlayback(reason);
   }
 
@@ -772,6 +784,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   /** A retry is announced as what asked for it: a step or a row says its story, not "Playing.". */
   function retryAs(reason: PlayReason): void {
     if (!track?.digest.audio) return;
+    networkReloadPending = false;
     const url = sourceOf(track.digest.audio);
     // A failed element keeps its error until the source is set again.
     attachedUrl = null;
@@ -927,6 +940,10 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       // The status never left "playing", so the controls did not flicker. The element's own
       // playing event restarts the frame loop; a seek that needs data raises waiting.
       wantsPlay = true;
+      if (networkReloadPending) {
+        retryAs("resume");
+        return;
+      }
       const started = Promise.resolve(audio.play());
       watchPlayStart(audio, started);
       started.catch((rejection: unknown) => {

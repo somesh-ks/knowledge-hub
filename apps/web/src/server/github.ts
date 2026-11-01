@@ -162,7 +162,7 @@ export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): 
 
   async function listRuns(file: string, memoize = false): Promise<WorkflowRun[]> {
     const path = `${workflowPath(file)}/runs?event=workflow_dispatch&branch=main&per_page=30`;
-    const memo = memoize ? memos.get(path) : undefined;
+    const memo = memoize ? memos.get(`${base}${path}`) : undefined;
     if (memo && Date.now() - memo.at < RUN_LIST_MEMO_MS) return memo.runs;
     const response = await request(
       path,
@@ -176,7 +176,8 @@ export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): 
     const body: unknown = await response.json();
     const list = isRecord(body) && Array.isArray(body.workflow_runs) ? body.workflow_runs : [];
     const runs = list.map(parseRun).filter((run): run is WorkflowRun => run !== null);
-    if (memoize) memos.set(path, { at: Date.now(), etag: response.headers.get("etag"), runs });
+    if (memoize)
+      memos.set(`${base}${path}`, { at: Date.now(), etag: response.headers.get("etag"), runs });
     return runs;
   }
 

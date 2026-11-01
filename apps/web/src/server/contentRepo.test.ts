@@ -161,6 +161,51 @@ it("draws a cold instance from the build's copy when the store cannot be reached
   expect(isShowingSavedContent()).toBe(false);
 });
 
+// Bug: a manifest that loaded while its objects answered 500 gave an empty site, which the page then
+// drew as "nothing yet" instead of falling back to this build's copy.
+it("draws the build's copy when the manifest loads but its files cannot be read", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  const built = [...store.keys()].filter((key) => key.startsWith("content/"));
+  const bundled = {
+    list: async (dir: string) =>
+      built.map((k) => k.slice(8)).filter((p) => p.startsWith(`${dir}/`)),
+    read: async (path: string) => store.get(`content/${path}`) ?? null,
+  };
+  const expected = (await loadStoreSite({ env: ENV, fetch: fakeFetch, now: () => 0 }))?.entries
+    .length;
+  resetContentRepo();
+  const fetchWithBrokenFiles = async (url: string): Promise<Response> =>
+    new URL(url).pathname === "/content/manifest.json"
+      ? fakeFetch(url)
+      : new Response(null, { status: 500 });
+  const page = await loadPageSite({ env: ENV, fetch: fetchWithBrokenFiles, now: () => 0 }, bundled);
+  expect(page.saved).toBe(true);
+  expect(page.site.entries.length).toBe(expected);
+});
+
+// Bug: requests that reached a cold instance together each waited out the dead store's timeout.
+it("makes one store attempt for requests that arrive together during an outage", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  const built = [...store.keys()].filter((key) => key.startsWith("content/"));
+  const bundled = {
+    list: async (dir: string) =>
+      built.map((k) => k.slice(8)).filter((p) => p.startsWith(`${dir}/`)),
+    read: async (path: string) => store.get(`content/${path}`) ?? null,
+  };
+  resetContentRepo();
+  let attempts = 0;
+  const deps = {
+    env: ENV,
+    fetch: async () => {
+      attempts += 1;
+      throw new Error("store blocked");
+    },
+    now: () => 0,
+  };
+  await Promise.all([1, 2, 3, 4].map(() => loadPageSite(deps, bundled)));
+  expect(attempts).toBe(1);
+});
+
 it("reads the manifest once per window and reloads when it changes", async () => {
   await fillStore("2026-10-24T12:00:00Z");
   let now = 0;
