@@ -761,3 +761,37 @@ html[data-mini="visible"] main {
     margin-inline-start: calc(var(--space-12) - var(--space-1));
   }
 }
+
+/* A style's corner ornament (D306): the Halloween cobweb hangs in the top-right corner behind the page. A page
+   surface covers it, and it never takes a tap. Mirrored from a drawing made for the top-left. */
+.cobweb {
+  display: none;
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  z-index: var(--z-beneath);
+  inline-size: 10rem;
+  block-size: 10rem;
+  overflow: visible;
+  color: var(--color-on-surface-subtle);
+  opacity: 0.4;
+  pointer-events: none;
+  transform: scaleX(-1);
+}
+
+:root[data-style="halloween"] .cobweb {
+  display: block;
+}
+
+@media (width >= 64rem) {
+  .cobweb {
+    inline-size: 11rem;
+    block-size: 11rem;
+  }
+}
+
+@media (forced-colors: active), print {
+  :root[data-style="halloween"] .cobweb {
+    display: none;
+  }
+}

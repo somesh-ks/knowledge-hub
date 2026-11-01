@@ -12,6 +12,7 @@ Updated 2026-11-01. Rewrite, never append.
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). Regenerate and Catch up queue with Cancel; ended runs stay for the day (D204, D231).
 - Saved copies, offline, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192).
+- Halloween style (D306): tokens, Pirata One page title, six scenes and a cobweb, in two pull requests (tokens, then scenes). closed when: Somesh OKs the stills (390 and 1280, light and dark) and a phone keeps it across a reload. Covers follow as inline SVG with variables in their own PR.
 
 ## Tests
 

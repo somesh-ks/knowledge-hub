@@ -151,6 +151,14 @@ const RAW_SVG_ALLOWED: [file: string, reason: string][] = [
   ["components/BrandMark.astro", "the wordmark's own mark, not a glyph"],
   ["components/EmptyArt.astro", "empty-state illustrations, coloured by classes (own rule above)"],
   [
+    "components/EmptyArtHalloween.astro",
+    "a style's own empty-state scenes (D306), coloured by classes (own rule above)",
+  ],
+  [
+    "components/Cobweb.astro",
+    "a style's corner ornament (D306), coloured by classes (own rule above)",
+  ],
+  [
     "components/QueueRing.astro",
     "the progress ring of the podcast queue: a drawn arc, coloured by classes, not a glyph",
   ],
@@ -304,11 +312,20 @@ const RULES: Rule[] = [
   },
   {
     name: "the empty-state art holds no raw colour: every fill and stroke comes from a class",
-    offenders: () => {
-      const art = readFileSync(join(SRC, "components", "EmptyArt.astro"), "utf8");
-      const match = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(|style=|\bfill="|\bstroke="/.exec(art);
-      return match ? [`EmptyArt.astro: ${match[0]}`] : [];
-    },
+    offenders: () =>
+      [
+        "EmptyArt.astro",
+        "EmptyArtHalloween.astro",
+        "Cobweb.astro",
+        "halloweenArt.ts",
+        "cobweb.ts",
+      ].flatMap((file) => {
+        const art = readFileSync(join(SRC, "components", file), "utf8");
+        const match = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(|style=|\bfill="|\bstroke="/.exec(
+          art,
+        );
+        return match ? [`${file}: ${match[0]}`] : [];
+      }),
   },
   {
     name: "takes spacing, type and radius from tokens, never a raw length",

@@ -1,9 +1,14 @@
 ---
+import EmptyArtHalloween from "./EmptyArtHalloween.astro";
+
 /**
  * The spot art of the app's empty states: one focal object per scene, from two to four flat shapes
  * on one scale (240 units across). The hero is the accent container, its detail one supporting tone and
  * the one pop the accent. Colours come from classes that empty.css maps to tokens, never from
  * attributes, so both themes follow. Decorative: the title and the button carry the meaning.
+ *
+ * A style may draw its own scene (D306): EmptyArtHalloween follows this svg, and empty.css shows the one
+ * the chosen style names.
  */
 export type ArtName = "today" | "library" | "results" | "offline" | "online" | "notfound";
 
@@ -97,3 +102,4 @@ const VIEW: Record<ArtName, string> = {
     )
   }
 </svg>
+<EmptyArtHalloween art={art} size={size} />
