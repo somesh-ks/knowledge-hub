@@ -659,7 +659,7 @@
   --color-surface-inverse: var(--color-violet-900);
   --color-on-surface: oklch(20% 0.055 292);
   --color-on-surface-reading: oklch(24% 0.05 292);
-  --color-on-surface-muted: oklch(40% 0.06 292);
+  --color-on-surface-muted: oklch(34% 0.07 292);
   --color-on-surface-subtle: oklch(46% 0.07 292);
   --color-on-surface-inverse: var(--color-violet-50);
   --color-border-hairline: oklch(85% 0.05 292);
@@ -670,9 +670,9 @@
   --color-accent-hover: var(--color-violet-700);
   --color-accent-pressed: var(--color-violet-800);
   --color-accent-subtle: var(--color-violet-100);
-  --color-accent-container: var(--color-violet-200);
+  --color-accent-container: var(--color-violet-300);
   --color-on-accent-container: var(--color-violet-900);
-  --color-accent-container-high: var(--color-violet-300);
+  --color-accent-container-high: var(--color-violet-400);
   --color-on-accent-container-high: var(--color-violet-900);
   --color-accent-action: var(--color-violet-500);
   --color-accent-action-state: var(--color-violet-900);
@@ -711,8 +711,7 @@
   --switch-thumb: 2.125rem;
   --item-play-size: 3rem;
   --app-bar-height: 4rem;
-  --control-size-md: 4rem;
-  --control-size-lg: 5.5rem;
+  --control-size-lg: 5rem;
   --toast-min-height: 4rem;
 }
 
