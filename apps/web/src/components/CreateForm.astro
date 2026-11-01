@@ -69,6 +69,8 @@ const COPY = {
   daily_cap: "That's today's limit. Try again in",
   // Shown on the button while the request is out, in place of its words.
   starting: "Starting…",
+  // 401, or 503 while the sign-in is not set up: only the owner's session may do this (D307).
+  sign_in: "Sign in to the command center on this device, then try again.",
   // A 5xx: the server logged why, and the reference it sent is added to this (lib/errorRef.ts).
   "503": "The server ran into a problem, so no episode was started.",
   // A 5xx that is not the site's own answer: the function crashed (lib/errorRef.ts).

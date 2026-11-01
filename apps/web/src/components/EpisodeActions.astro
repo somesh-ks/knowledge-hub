@@ -39,6 +39,8 @@ const COPY = {
   regeneration_limit: "This podcast has been regenerated 3 times, the most it takes.",
   cooldown: "You can do that again in",
   daily_cap: "That's today's limit. Try again in",
+  // 401, or 503 while the sign-in is not set up: only the owner's session may do this (D307).
+  sign_in: "Sign in to the command center on this device, then try again.",
   // A 5xx: the server logged why, and the reference it sent is added to this (lib/errorRef.ts).
   "503": "The server ran into a problem, so nothing changed.",
   // A 5xx that is not the site's own answer: the function crashed (lib/errorRef.ts).

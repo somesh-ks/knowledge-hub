@@ -234,9 +234,11 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
               ? copy("network")
               : res.status === 400
                 ? copy("400")
-                : isSiteAnswer(body)
-                  ? withErrorRef(copy("503"), body)
-                  : copy("crashed"),
+                : res.status === 401 || body.error === "admin_not_set_up"
+                  ? copy("sign_in")
+                  : isSiteAnswer(body)
+                    ? withErrorRef(copy("503"), body)
+                    : copy("crashed"),
         );
         return;
       }
