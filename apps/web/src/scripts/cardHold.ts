@@ -94,7 +94,9 @@ export function installCardHold(): void {
         try {
           list.setPointerCapture(pointerId);
         } catch {
-          // The touch already ended: nothing to hold.
+          // The touch already ended: nothing to hold, so the lift grace starts now. Left open-ended, it
+          // would reopen the sheet on any later close and keep its cues silent.
+          cancel();
         }
       }, HOLD_MS);
     },
