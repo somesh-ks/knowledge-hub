@@ -118,7 +118,7 @@ For the Vercel side, open the project's Settings, Environment Variables in the d
 
 ### 1.10 Check the setup
 
-Run `npm run singularity -- doctor --online`. It checks Node, git, config, state and key names, then makes authenticated requests: the Anthropic and Gemini model lists must answer, Jev answers a trivial question, Exa answers one search (about 0.007 USD), Firecrawl reports credits, Speechify lists the voice id and Vercel Blob accepts a list call. Fix every `fail` and read every `warn` before going on.
+Run `npm run singularity -- doctor --online`. It checks Node, git, config, state and key names, then makes authenticated requests: the Anthropic and Gemini model lists must answer, Jev answers a trivial question, Exa answers one search (about 0.007 USD), Firecrawl reports credits, Speechify lists the voice id, Vercel Blob accepts a list call and the site's GitHub token opens the repository and reads Actions variables (with its expiry; write access cannot be tested). Fix every `fail` and read every `warn` before going on.
 
 ### 1.11 Push `main` and deploy
 

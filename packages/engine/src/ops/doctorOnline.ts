@@ -9,6 +9,7 @@ import { type Check, type DoctorDeps, fail, ok, warn } from "./doctorTypes.js";
 interface Probe {
   status: number;
   body: unknown;
+  headers: Headers;
 }
 
 /** One request with a timeout. A network failure throws an Error with a redacted one-line message. */
@@ -30,7 +31,7 @@ async function probe(
     } catch {
       // Not JSON: the status line is what matters.
     }
-    return { status: response.status, body };
+    return { status: response.status, body, headers: response.headers };
   } catch (error) {
     const name = error instanceof Error ? error.name : "Error";
     const reason =
@@ -306,21 +307,105 @@ async function vercelTokenCheck(
   }
 }
 
+const DAY_MS = 86_400_000;
+const TOKEN_EXPIRY_WARNING_DAYS = 14;
+
+/**
+ * The token the site dispatches workflows and writes RUN_CRON with. A rejected or expired one made a
+ * settings save a silent no-op (SEC-06, 2026-10-14 unchecked): the site only logs a refusal. This
+ * proves the token still opens the repository and reads Actions variables, and reads its expiry from
+ * GitHub's header. It cannot test "Variables: write" without writing, so a missing write permission
+ * still shows only when a save changes the schedule.
+ */
+async function githubTokenCheck(
+  env: Env,
+  deps: DoctorDeps,
+  secrets: readonly string[],
+): Promise<Check> {
+  const id = "online.github";
+  const token = env.GITHUB_SINGULARITY_TOKEN ?? env.GITHUB_DISPATCH_TOKEN;
+  if (token === undefined) return skipped(id, "GITHUB_SINGULARITY_TOKEN");
+  const repo = env.GITHUB_REPOSITORY ?? "somesh-ks/knowledge-hub";
+  const headers = {
+    authorization: `Bearer ${token}`,
+    accept: "application/vnd.github+json",
+    "x-github-api-version": "2022-11-28",
+    "user-agent": "singularity-doctor",
+  };
+  try {
+    const repository = await probe(deps, secrets, `https://api.github.com/repos/${repo}`, {
+      headers,
+    });
+    if (repository.status === 401) {
+      return fail(
+        id,
+        "GitHub rejected the token (expired or revoked)",
+        "Create a fine-grained token for the repository with Actions and Variables write, put it in .env as GITHUB_SINGULARITY_TOKEN and run `npm run secrets:push`.",
+      );
+    }
+    if (repository.status === 403 || repository.status === 404) {
+      return fail(
+        id,
+        `GitHub cannot show ${repo} to the token (HTTP ${repository.status})`,
+        "The token does not cover this repository. Create one that does and run `npm run secrets:push`.",
+      );
+    }
+    if (repository.status !== 200)
+      return httpProblem(id, "GitHub", repository.status, "GITHUB_SINGULARITY_TOKEN");
+    const variables = await probe(
+      deps,
+      secrets,
+      `https://api.github.com/repos/${repo}/actions/variables/RUN_CRON`,
+      { headers },
+    );
+    // 404 is a variable not set yet: the read itself was allowed.
+    if (variables.status !== 200 && variables.status !== 404) {
+      return warn(
+        id,
+        `the token opens ${repo} but cannot read Actions variables (HTTP ${variables.status})`,
+        "Give it the Variables permission (write), or a schedule change saves but the fallback cron goes stale.",
+      );
+    }
+    const expires = Date.parse(
+      (repository.headers.get("github-authentication-token-expiration") ?? "").replace(" UTC", "Z"),
+    );
+    if (Number.isFinite(expires)) {
+      const days = Math.floor((expires - Date.now()) / DAY_MS);
+      if (days < TOKEN_EXPIRY_WARNING_DAYS) {
+        return warn(
+          id,
+          days < 0 ? "the token has expired" : `the token expires in ${days} days`,
+          "Create a new fine-grained token and run `npm run secrets:push`; after it expires every save from the site is dropped.",
+        );
+      }
+      return ok(
+        id,
+        `token accepted, expires in ${days} days; Variables read works, write untested`,
+      );
+    }
+    return ok(id, "token accepted, no expiry; Variables read works, write untested");
+  } catch (error) {
+    return unreachable(id, "GitHub", error);
+  }
+}
+
 /** Lightweight authenticated checks. Each one is skipped, with a warning, when its key is unset. */
 export async function onlineChecks(
   env: Env,
   deps: DoctorDeps,
   secrets: readonly string[],
 ): Promise<Check[]> {
-  const [anthropic, gemini, jev, exa, firecrawl, speechify, blob, vercel] = await Promise.all([
-    listCheck("online.anthropic", "Anthropic", "ANTHROPIC_API_KEY", deps, env, secrets),
-    listCheck("online.gemini", "Gemini", "GEMINI_API_KEY", deps, env, secrets),
-    jevCheck(env, deps, secrets),
-    exaCheck(env, deps, secrets),
-    firecrawlCheck(env, deps, secrets),
-    speechifyCheck(env, deps, secrets),
-    blobCheck(env, deps, secrets),
-    vercelTokenCheck(env, deps, secrets),
-  ]);
-  return [anthropic, gemini, jev, exa, firecrawl, speechify, blob, vercel];
+  const [anthropic, gemini, jev, exa, firecrawl, speechify, blob, vercel, github] =
+    await Promise.all([
+      listCheck("online.anthropic", "Anthropic", "ANTHROPIC_API_KEY", deps, env, secrets),
+      listCheck("online.gemini", "Gemini", "GEMINI_API_KEY", deps, env, secrets),
+      jevCheck(env, deps, secrets),
+      exaCheck(env, deps, secrets),
+      firecrawlCheck(env, deps, secrets),
+      speechifyCheck(env, deps, secrets),
+      blobCheck(env, deps, secrets),
+      vercelTokenCheck(env, deps, secrets),
+      githubTokenCheck(env, deps, secrets),
+    ]);
+  return [anthropic, gemini, jev, exa, firecrawl, speechify, blob, vercel, github];
 }

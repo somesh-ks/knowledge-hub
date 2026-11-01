@@ -112,6 +112,11 @@ export interface HealthOptions {
   store?: StoreReading;
   /** The newest commit the site would deploy (the command reads git when online); absent skips `site_behind`. */
   main?: WatchedHead;
+  /**
+   * Whether the config store is on for the engine (DATABASE_URL and SINGULARITY_CONFIG_STORE, as the
+   * workflows have them); absent skips `config_store_split`.
+   */
+  configStore?: boolean;
   /** Vercel's deployments in the last 24 hours (the command reads them with `VERCEL_TOKEN`); absent skips `deploy_rate`. */
   deployments?: DeploymentReading;
   /** The voices episodes are narrated in, so their stored segments are found by address. */
@@ -439,11 +444,15 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
   }
 
   if (options.site !== null) {
-    await checkSite(options.site, get, latest?.digest ?? null, options.main, now, {
-      fault,
-      warn,
-      passed,
-    });
+    await checkSite(
+      options.site,
+      get,
+      latest?.digest ?? null,
+      options.main,
+      now,
+      { fault, warn, passed },
+      options.configStore,
+    );
   }
 
   return {
@@ -462,6 +471,7 @@ async function checkSite(
   main: WatchedHead | undefined,
   now: Date,
   sink: Sink,
+  engineStore?: boolean,
 ): Promise<void> {
   const ask = async (path: string, method = "GET") => {
     try {
@@ -501,13 +511,33 @@ async function checkSite(
   const worker = await ask("/sw.js");
   const build = await ask("/build.json");
   let buildName: unknown;
+  let siteStore: unknown;
   try {
-    buildName =
+    const named =
       build?.status === 200
-        ? (JSON.parse(await build.text()) as { build?: unknown }).build
+        ? (JSON.parse(await build.text()) as { build?: unknown; config_store?: unknown })
         : undefined;
+    buildName = named?.build;
+    siteStore = named?.config_store;
   } catch {
     buildName = undefined;
+  }
+  // The config store has two switches, one on Vercel and one on the Actions side. With only one on,
+  // the site saves a setting to Neon while runs read the committed files (or the reverse), and every
+  // save does nothing. /build.json names the site's switch; a build from before it did says nothing.
+  if (engineStore !== undefined && (siteStore === "postgres" || siteStore === "files")) {
+    const siteOn = siteStore === "postgres";
+    if (siteOn === engineStore) {
+      sink.passed.push(`the config store is ${siteOn ? "on" : "off"} for the site and for runs`);
+    } else {
+      sink.fault(
+        "config_store_split",
+        "reliability",
+        siteOn
+          ? "The site saves settings to the config store, but runs have it off (the Actions variable SINGULARITY_CONFIG_STORE or DATABASE_URL is missing), so runs ignore every setting saved in the app."
+          : "Runs read the config store, but the site has it off (SINGULARITY_CONFIG_STORE or DATABASE_URL is missing on Vercel, or the build ran before they were set), so settings saved in the app go to files that runs then override.",
+      );
+    }
   }
   // The build carries the newest commit the site would deploy: a push whose last commit touches no
   // watched path skips the deploy (vercel.json diffs HEAD^ only), and this says so.
