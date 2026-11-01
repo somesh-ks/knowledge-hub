@@ -746,13 +746,19 @@ function sourceKind(row: HTMLElement, format?: SourceFormat, topic?: string): bo
 }
 
 /**
- * A source's saved edits on its row: a new name, format or lean, and the topic it moves to. A move
+ * A source's saved edits on its row: a new name, format, lean or favorite, and the topic it moves to. A move
  * the config store already holds (`stored`) is where the source is now, not one still to come.
  */
 function editSource(
   root: HTMLElement,
   id: string,
-  edit: { name?: string; topic_ids?: string[]; format?: SourceFormat; lean?: number | null },
+  edit: {
+    name?: string;
+    topic_ids?: string[];
+    format?: SourceFormat;
+    lean?: number | null;
+    high_signal?: boolean;
+  },
   stored: ReadonlyMap<string, StoreSource> = new Map(),
 ): boolean {
   const row = byId(root, "li.source-row", id);
@@ -764,6 +770,7 @@ function editSource(
     topic_name?: string;
     format?: SourceFormat;
     lean?: string;
+    high_signal?: boolean;
   };
   let shown = false;
   if (edit.name !== undefined && edit.name !== facts.name) {
@@ -785,6 +792,11 @@ function editSource(
   const lean = edit.lean === null ? "" : edit.lean === undefined ? undefined : String(edit.lean);
   if (lean !== undefined && lean !== facts.lean) {
     facts.lean = lean;
+    shown = true;
+  }
+  // A favorite saved here or in the store: the panel opens with it, so unticking it sends the undo.
+  if (edit.high_signal !== undefined && edit.high_signal !== facts.high_signal) {
+    facts.high_signal = edit.high_signal;
     shown = true;
   }
   const topicId = edit.topic_ids ? (edit.topic_ids[0] ?? "") : undefined;
