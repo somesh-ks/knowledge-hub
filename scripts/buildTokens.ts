@@ -412,7 +412,7 @@ function lowerIndent(lines: string[]): string[] {
 const OKLCH_LITERAL = /oklch\(([\d.]+%?) ([\d.]+) (-?[\d.]+)( \/ [\d.]+%?)?\)/g;
 
 /**
- * A reader's hue (`--hue-shift`, degrees, set on the root; D312) turns a style's whole palette: every
+ * A reader's hue (`--hue-shift`, degrees, set on the root; D315) turns a style's whole palette: every
  * coloured oklch literal a style writes gets the shift added to its hue. A grey (chroma 0) stays.
  * With no shift the sum is the hue as written, so a style looks as designed until the reader moves it.
  */
@@ -495,7 +495,7 @@ const coverValue = (node: unknown, where: string): unknown => {
 };
 
 /**
- * How each style redraws an album cover (D311), as custom properties under the style's attribute.
+ * How each style redraws an album cover (D314), as custom properties under the style's attribute.
  * A cover is a vector whose colours are CSS math over the month's base colours (cover.css), so a
  * style is only these numbers: a new style in `tokens/covers.json` needs no cover files, and a reader's
  * hue (`--hue-shift`) moves the one anchor, `--cover-hue`. The numbers are the rule's, read here so
@@ -506,7 +506,7 @@ export function coverStyleBlocks(
 ): string[] {
   const rules = (raw as { style?: Record<string, unknown> }).style ?? {};
   const out: string[] = [
-    "/* Album art per style (D311, tokens/covers.json): numbers for the cover math in cover.css. */",
+    "/* Album art per style (D314, tokens/covers.json): numbers for the cover math in cover.css. */",
   ];
   for (const [id, body] of Object.entries(rules)) {
     if (id.startsWith("$")) continue;

@@ -959,7 +959,7 @@
   --scene-halo: 0.5;
 }
 
-/* Album art per style (D311, tokens/covers.json): numbers for the cover math in cover.css. */
+/* Album art per style (D314, tokens/covers.json): numbers for the cover math in cover.css. */
 :root[data-style="expressive"] {
   --cover-hue: 292;
   --cover-keep: 0.15;

@@ -357,7 +357,7 @@ describe.each(doc.styles.map((style) => style.name))("a style's colour contrast:
     "surface-overlay",
   ];
 
-  // The reader's hue (D312) turns every coloured value of a style, so the floors must hold at each hue
+  // The reader's hue (D315) turns every coloured value of a style, so the floors must hold at each hue
   // the slider can reach, not only the one the style was designed at.
   const SHIFTS = Array.from({ length: 72 }, (_, i) => i * 5);
   const turn = (literal: string, shift: number): string =>
@@ -748,7 +748,7 @@ describe("styles", () => {
     expect(darkBody).not.toContain("oklch(99% 0 0)");
   });
 
-  // The reader's hue slider (D312) moves a style by `--hue-shift`; a colour written without it would
+  // The reader's hue slider (D315) moves a style by `--hue-shift`; a colour written without it would
   // stay put while the rest of the palette turned, and nothing else would notice.
   it("turns every coloured value of a style with the reader's hue, and leaves greys", () => {
     const css = buildCss(
