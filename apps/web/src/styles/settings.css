@@ -47,6 +47,15 @@
   margin-block-end: 0;
 }
 
+/* A title with an action at its end (SettingsHead's "end" slot, Downloads' ⋮): one line, the action
+   centred on the title. */
+.settings-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
 /* A quiet row: its label in the muted colour, the row where it is (D100: a control that cannot act
    stays on its row, dimmed and named). With Sounds off, Volume is one; a row says `data-quiet` for
    the rest (the Structure's frames, and a block whose topics are off, 2026-10-25).
@@ -321,6 +330,14 @@
   font-weight: var(--font-weight-medium);
   text-align: end;
   transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+/* On a Manage page a row stands the card's full padding in from its edge; on the index it is a tile one
+   inset in. The pull above is worked out for the tile, so there the fill ended 20px from the card's
+   side while it starts 12px under its top (owner, 2026-10-31: the open Podcast voice looked uneven).
+   The value reaches the extra 8px, so its fill, words and chevron end where Theme's do. */
+.manage .card-group .settings-row .value-select {
+  margin-inline-end: calc((var(--space-2) + var(--value-select-pull, 0px) + var(--space-2)) * -1);
 }
 
 /* The chevron's ink, not its box, ends where the link rows' chevrons and the switch end (D187). */

@@ -26,6 +26,16 @@ const { title, note, crumb = Astro.url.pathname.startsWith("/settings/") } = Ast
       </nav>
     )
   }
-  {title && <h1 class="page-title text-display" id="page-title" tabindex="-1">{title}</h1>}
+  {
+    title &&
+      (Astro.slots.has("end") ? (
+        <div class="settings-head-row">
+          <h1 class="page-title text-display" id="page-title" tabindex="-1">{title}</h1>
+          <slot name="end" />
+        </div>
+      ) : (
+        <h1 class="page-title text-display" id="page-title" tabindex="-1">{title}</h1>
+      ))
+  }
   {note && <p class="settings-note">{note}</p>}
 </header>

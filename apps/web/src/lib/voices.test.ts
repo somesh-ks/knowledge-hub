@@ -57,6 +57,8 @@ describe("voiceKeywords", () => {
     const voice = { id: "a", name: "Archie", gender: "male", language: "en-GB", preview_url: null };
     expect(voiceKeywords(voice)).toBe("British English en-GB");
     expect(voiceKeywords({ ...voice, language: null })).toBe("");
+    // The flag reads en_GB, so the words must too.
+    expect(voiceKeywords({ ...voice, language: "en_GB" })).toBe("British English en_GB");
   });
 });
 

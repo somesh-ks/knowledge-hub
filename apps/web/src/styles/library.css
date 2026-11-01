@@ -775,6 +775,22 @@ html[data-library-page="empty"] {
   }
 }
 
+/* Settings > Downloads (D281, owner 2026-10-31) draws the ⋮ on a phone too: that page manages what is
+   saved, and Remove must be findable without knowing the hold, which still works. The row keeps room
+   for the button, as it does where a mouse shows it. */
+@media (hover: none) and (pointer: coarse) {
+  .card-menu[data-manage-downloads] .card-more {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  [data-library][data-view="list"]
+    .card:has(> .card-menu[data-manage-downloads])
+    :is(.card-title, .card-sub, .card-match) {
+    padding-inline-end: calc(var(--size-touch) - var(--space-2));
+  }
+}
+
 /* Focus returns here when the menu sheet closes. After a tap that is no cause for a ring: it is the
    keyboard's only (data-input, app.ts), as the search and sort fields' are (2026-10-21). */
 :root:not([data-input="keyboard"]) .card-more:focus-visible {

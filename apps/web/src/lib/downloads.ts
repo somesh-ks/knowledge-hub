@@ -10,8 +10,6 @@ export const AUDIO_CACHE = "singularity-audio-v1";
 export const OLD_AUDIO_CACHE = "dispatch-audio-v1";
 /** Where the list is kept inside that cache. Not a page: nothing requests it. */
 export const MANIFEST_KEY = "/__downloads.json";
-/** More than this and the oldest download is removed. */
-export const MAX_DOWNLOADS = 10;
 
 export interface Download {
   id: string;
@@ -24,19 +22,36 @@ export interface Download {
 }
 
 /** The list with `entry` newest. A second download of the same item moves it to the end. */
-export function addDownload(
-  list: readonly Download[],
-  entry: Download,
-  max = MAX_DOWNLOADS,
-): { list: Download[]; evicted: Download[] } {
-  const next = [...list.filter((item) => item.id !== entry.id), entry];
-  const cut = Math.max(0, next.length - max);
-  return { list: next.slice(cut), evicted: next.slice(0, cut) };
+export function addDownload(list: readonly Download[], entry: Download): Download[] {
+  return [...list.filter((item) => item.id !== entry.id), entry];
 }
 
 /** Every address a download put in the cache. */
 export function addressesOf(download: Download): string[] {
   return [download.audio, download.page, ...download.extras];
+}
+
+/**
+ * The cached audio, word marks and lookups no saved download names: what a page killed mid-save
+ * left behind. The worker serves every key of the cache offline, and `removeDownload` deletes only
+ * what an entry lists, so these would sit in the storage quota for good. Pages, covers and the
+ * scripts kept for them are left alone.
+ */
+export function unlistedPayloads(
+  keys: readonly string[],
+  list: readonly Download[],
+  base: string,
+): string[] {
+  const named = new Set(list.flatMap(addressesOf).map((address) => new URL(address, base).href));
+  return keys.filter((key) => {
+    if (named.has(key)) return false;
+    const { pathname } = new URL(key);
+    return (
+      /\.(mp3|m4a|opus)$/.test(pathname) ||
+      pathname === "/api/narrate" ||
+      pathname === "/api/narrate-marks"
+    );
+  });
 }
 
 /** Reads the saved list, dropping anything that is not shaped like an entry. */
@@ -118,4 +133,12 @@ export function confirmLookup(body: Record<string, unknown>): Record<string, unk
       audio: segment.audio ? { ...segment.audio, confirmed: true } : segment.audio,
     })),
   };
+}
+
+/** From this many downloads the page offers a search. */
+export const SEARCH_FROM = 8;
+
+/** The count line over the downloads list, "3 downloads". */
+export function downloadsSummary(count: number): string {
+  return count === 0 ? "No downloads" : count === 1 ? "1 download" : `${count} downloads`;
 }

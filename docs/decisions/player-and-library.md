@@ -327,3 +327,13 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Rejected: Spotify's model (the played items leave the list); narrating queued items ahead (paid); a second audio element for gapless starts (an iPhone allows one unlocked element).
 - Amends: D126 (the queue drops an item as it starts).
 - Revisit if: a queued item is seen to wait on the network, or the prefetch shows in the Blob bill.
+
+## D281: Settings > Downloads, uncapped, as the Library's rows
+
+- Date: 2026-10-31 (the owner: a dedicated Downloads section to manage, delete one or all and search; reuse the Library's List-view rows; "don't keep any cap"; delete confirms). Amends D127, D264; supersedes D127's "Rejected: a Settings page for downloads".
+- Decision: `/settings/downloads` lists what this device saved, newest first, in the Library's cards in List view (`EpisodeCard`, `BriefingCard`; hover Play on a mouse, tap opens the page). It is rendered on request like the Library and carries every Library card; `downloadsPage.ts` marks the saved ones `data-downloaded`, which `downloads.css` shows. The row menu is cut to Add to queue, Share and Remove download (`LibraryItemMenu` `downloads`); Remove and Delete all both ask first. Downloads have no cap and nothing is evicted. A search shows from `SEARCH_FROM` (8) downloads, with the Library's word matching. The ⋮ is drawn on a phone here (`downloads.css`), where the Library hides it (D264); a hold still opens the menu.
+- Why: with no cap the list can be long, and the Library's menu removes a download with one tap, so a page of its own is where Remove and Delete all can ask. The owner asked for the three dots in place of an X, with no exception for a phone, and Remove must be found without knowing the hold.
+- Cost: the page ships every Library card to show a few, and an orphan (a download whose podcast was deleted) is not listed. Downloads use the device's storage without limit; the browser may still clear it. The Library's own Remove download stays one tap.
+- Rejected: a separate row component (the Library's cards are the owner's ask); filtering on the server (saved items are known only in this browser); a size or date line (a download does not store them).
+- Revisit if: the Library grows so large that the page's weight shows, or an orphan download is ever reported.
+

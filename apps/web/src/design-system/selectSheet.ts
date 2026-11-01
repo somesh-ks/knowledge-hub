@@ -11,6 +11,7 @@
  */
 import { escapeHtml, sheetHeadHtml } from "../lib/sheetHead";
 import { pullToDismiss } from "../scripts/pullDismiss";
+import { installSheetTapGuard } from "../scripts/sheetTap";
 import { buttonClass } from "./button";
 import { dialogActionsClass } from "./dialog";
 import { menuBodyClass, menuItemClass, menuListClass } from "./menu";
@@ -215,6 +216,8 @@ function open(select: HTMLSelectElement, byKey: boolean): void {
 export function installSelectSheet(): void {
   if (installed) return;
   installed = true;
+  // A tap beside the sheet closes it and reaches nothing under the finger (as for a menu's sheet).
+  installSheetTapGuard();
 
   // The browser opens a select on the press (a pointer) or on the tap that follows it (a finger).
   // A pointer's press is stopped here. A finger's tap is stopped at the touch's end, which also

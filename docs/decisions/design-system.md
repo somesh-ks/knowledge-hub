@@ -500,3 +500,21 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Rejected: a separate haptics path per control; raw milliseconds in call sites; a "System" option (the web cannot read the phone's haptics setting); a switch or segmented control (Settings choices are the shared select).
 - Amends: D52 (which rejected "a haptic on press" because it was Android only), ledger item 5 (haptics gated by the Sounds setting).
 - Revisit if: the iPhone tick is seen not to fire, or Safari ships a haptics API (replace the adapter only).
+
+## D280: travel takes 300 ms on the hover curve, and the nav pill grows in place
+
+- Date: 2026-10-31 (the owner: the 250 ms flight was "too quick and jerky"; the pill's slide "doesn't feel natural", he wanted it to appear where it is, and picked "option 1 - grows from center"; on deleting the two slide tests: "you decide").
+- Decision: amends D271. The cover's flight, the page's slide and the pill's growth take `--duration-sheet-in` (300 ms) on `--ease-hover`; a drill move's fade takes the effects spring (`--duration-spring-effects-default`), a tab move's fade 150 ms. The pill no longer travels between tabs: `nav-pill-slide`, `--nav-pill-from`, `pillDistance` and the slide tests are gone, and it grows from its centre again, carried across the swap as before. A flight reads its time and curve from `.cover-morph` (cover.css), so one rule sets them. No new token.
+- Context changed: D271 chose the out curve for speed; on his phone it read as a cut and the sliding pill as unnatural, and its 250 ms was not his taste.
+- Why: the out curve is 93% done after 19% of its time, so half the travel falls in the first 33 ms and any length reads as a cut. The hover curve at 300 ms has the lowest peak step per frame of the curves without an overshoot (13% of the travel, against 22% for the drawer, 25% for in-out and 28% for out) and ends at 300 with no tail.
+- Rejected: the drawer and in-out curves and the 420 ms spring (recorded beside it; the spring's tail felt slower); a new `--duration-travel` token; fading the page across a move (two pages of text show through each other); a page slide on tab moves in the pill's direction (the pill no longer has one).
+- Revisit if: tab moves should outlast a press (`navSpeed.spec.ts` caps them at 150 ms), or the owner finds the hover curve too soft on a drill.
+
+## D285: a Switch has a mixed state, for a master over a group
+
+- Date: 2026-10-31 (the owner, on Notifications: "a global switch too, when parts of the sub items are turned off, the global switch comes to a mid state").
+- Decision: the Switch draws `:indeterminate`: a track halfway between the off grey and the accent, with the idle thumb halfway along. The first draw (a tonal track, an accent ring and an accent thumb) "looks so weird in color" (owner); no mature system has a mixed switch (Material, Apple and Fluent have none, and the advice is a checkbox), so it uses the two colours the control already has and no new one. A script sets `indeterminate` (and unchecks the input) on a switch that stands for a group while only some of the group are on; pressing it turns the group on, and all on turns it off. There is no new class or attribute: the state is the native one, so a script reads it back. Whether a screen reader says "mixed" for a role=switch is unverified (the role has no mixed value).
+- Why: the owner wants one control that says "some" without a label to read. A third look for a boolean control has to be the system's, not a page's.
+- Rejected: a page-drawn mixed look (the system would not know it); a dash on the track (it hides the thumb, the one thing that shows the state); a third colour or a ring (the first draw: it read as a different control).
+- Revisit if: a screen reader reads a role=switch with `indeterminate` as plain on or off (it may: the switch role has no mixed value), then the master becomes a checkbox drawn as a switch.
+

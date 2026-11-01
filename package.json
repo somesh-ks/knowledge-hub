@@ -34,7 +34,11 @@
     "covers:sheet": "tsx packages/cover/scripts/contactSheet.ts",
     "secrets:push": "tsx scripts/pushSecrets.ts",
     "backfill:opus": "tsx scripts/backfillOpus.ts",
-    "dev:design": "npm run dev -w @singularity/design"
+    "dev:design": "npm run dev -w @singularity/design",
+    "vercel:list": "vercel list",
+    "vercel:inspect": "vercel inspect",
+    "vercel:logs": "vercel logs",
+    "vercel:env-list": "vercel env list"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

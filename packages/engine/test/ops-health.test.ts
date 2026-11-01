@@ -10,6 +10,7 @@ import {
   checkFieldVitals,
   checkPerf,
   checkRunsDied,
+  checkSideRuns,
   checkStore,
   FIELD_MIN_SAMPLES,
   readDeploymentCount,
@@ -471,6 +472,80 @@ describe("singularity health", () => {
     expect(faults).toEqual(["run_died"]);
     checkRunsDied(records, [died, run(3, "queued", "2026-10-21T08:13:00Z")], NOW, sink);
     expect(faults).toEqual(["run_died"]);
+  });
+
+  // Bug: health read only run.yml, so a failing content.yml left the site stale with no fault (OBS-01).
+  it("faults a content, ingest or podcast workflow whose newest run failed, and clears on a success", () => {
+    const run = (databaseId: number, conclusion: string, createdAt: string) => ({
+      databaseId,
+      status: "completed",
+      conclusion,
+      createdAt,
+    });
+    const faults: string[] = [];
+    const sink = { fault: (code: string) => faults.push(code), warn: () => {}, passed: [] };
+    checkSideRuns("content", [run(1, "failure", "2026-10-21T07:00:00Z")], NOW, sink);
+    expect(faults).toEqual(["content_failed"]);
+    faults.length = 0;
+    checkSideRuns(
+      "ingest",
+      [
+        run(1, "failure", "2026-10-21T05:00:00Z"),
+        run(2, "success", "2026-10-21T06:00:00Z"),
+        run(3, "cancelled", "2026-10-21T07:00:00Z"),
+      ],
+      NOW,
+      sink,
+    );
+    expect(faults).toEqual([]);
+    checkSideRuns("podcast", [run(4, "failure", "2026-10-10T07:00:00Z")], NOW, sink);
+    expect(faults).toEqual([]);
+  });
+
+  // Bug: a failed podcast request was cleared by another episode's success, and two runs created in
+  // the same second sorted either way, so a success could hide the failure beside it.
+  it("clears a failed podcast request only with the same request, and orders ties by id", () => {
+    const run = (
+      databaseId: number,
+      conclusion: string,
+      createdAt: string,
+      displayTitle: string,
+    ) => ({
+      databaseId,
+      status: "completed",
+      conclusion,
+      createdAt,
+      displayTitle,
+    });
+    const faults: string[] = [];
+    const sink = { fault: (code: string) => faults.push(code), warn: () => {}, passed: [] };
+    const at = "2026-10-21T07:00:00Z";
+    checkSideRuns(
+      "podcast",
+      [
+        run(2, "success", at, "create ep-b"),
+        run(1, "failure", "2026-10-21T06:00:00Z", "create ep-a"),
+      ],
+      NOW,
+      sink,
+    );
+    expect(faults).toEqual(["podcast_failed"]);
+    faults.length = 0;
+    checkSideRuns(
+      "podcast",
+      [
+        run(3, "success", "2026-10-21T08:00:00Z", "create ep-a"),
+        run(1, "failure", "2026-10-21T06:00:00Z", "create ep-a"),
+      ],
+      NOW,
+      sink,
+    );
+    expect(faults).toEqual([]);
+    checkSideRuns("content", [run(5, "success", at, ""), run(6, "failure", at, "")], NOW, sink);
+    expect(faults).toEqual(["content_failed"]);
+    faults.length = 0;
+    checkSideRuns("content", [run(6, "failure", at, ""), run(5, "success", at, "")], NOW, sink);
+    expect(faults).toEqual(["content_failed"]);
   });
 
   // A slow or shifting page reached the owner's phone with nothing saying so; a probe that could
