@@ -165,6 +165,29 @@ values ($1, 'run', $2, 'api', $3, false, 'published', $4::text[], $5::timestampt
     expect(second).toMatchObject({ claimed: 0, addressed: 0 });
   });
 
+  // The bug it prevents: a run claimed with devices subscribed but no key pair logs "0 devices", which
+  // reads like an empty audience when the real fault is the missing keys (M9).
+  it("counts the subscribed devices of a claimed run even when no push key pair exists", async () => {
+    const sql = store();
+    await setPushDevice(
+      sql,
+      { endpoint: EP(1), p256dh: "p", auth: "a", daily: true, weekly: false },
+      NOW,
+    );
+    for (const statement of RUNS_SCHEMA_SQL) await sql.query(statement);
+    await sql.query(
+      `insert into pipeline_runs (run_id, workflow, kind, mode, dry_run, outcome, podcasts, started_at,
+finished_at, work_ms, total_ms, usd)
+values ('daily-1', 'run', 'daily', 'api', false, 'published', $1::text[], $2::timestamptz, $2::timestamptz, 1, 1, 0)`,
+      [["2026-10-31"], new Date(NOW - 60_000).toISOString()],
+    );
+    const command = makePushCommand({ connect: async () => sql });
+    const [summary] = await printed(() =>
+      command(["notify"], context({ DATABASE_URL: "postgres://x" })),
+    );
+    expect(summary).toMatchObject({ claimed: 1, addressed: 1, sent: 0 });
+  });
+
   it("does nothing, and does not fail the sync, when push is not set up", async () => {
     const send = vi.fn();
     const command = makePushCommand({ send });

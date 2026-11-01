@@ -141,17 +141,20 @@ export function makePushCommand(deps: PushDeps = {}): CommandRun {
           else done.push(watch);
           if (result === "sent") sent += 1;
         }
-        // A scheduled run is announced once (it was claimed above): a device that is down misses it.
-        for (const run of scheduled) {
-          for (const device of await devicesFor(sql, run.kind)) {
-            addressed.add(device.endpoint);
-            const result = isPushEndpoint(device.endpoint)
-              ? await send(device, scheduledMessage(run))
-              : "gone";
-            if (result === "sent") sent += 1;
-            else if (result === "gone") await removePushDevice(sql, device.endpoint);
-            else failed += 1;
-          }
+      }
+      // A scheduled run is announced once (it was claimed above): a device that is down misses it.
+      // The devices are counted even when no sender exists (no key pair yet), so the log tells
+      // "devices were subscribed and nothing could be sent" from "nobody was subscribed" (M9).
+      for (const run of scheduled) {
+        for (const device of await devicesFor(sql, run.kind)) {
+          addressed.add(device.endpoint);
+          if (!send) continue;
+          const result = isPushEndpoint(device.endpoint)
+            ? await send(device, scheduledMessage(run))
+            : "gone";
+          if (result === "sent") sent += 1;
+          else if (result === "gone") await removePushDevice(sql, device.endpoint);
+          else failed += 1;
         }
       }
       await deletePushWatches(sql, done);
