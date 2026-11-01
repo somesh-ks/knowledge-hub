@@ -61,7 +61,8 @@ if (typeof parsedBody?.request !== "object" || parsedBody.request === null) {
 // The episode is found by this title, which the create request carries and nothing else on the
 // site does. "The first new episode" could be someone else's, and the cleanup would delete it.
 const MARKER = `smoke-${Date.now().toString(36)}`;
-const createBody = { ...parsedBody, request: { ...parsedBody.request, title: MARKER } };
+// Only the request is sent: a body file with an `action` (delete) beside it must not turn this into one.
+const createBody = { request: { ...parsedBody.request, title: MARKER } };
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const results = [];
 const check = (name, ok, detail = "") => {
@@ -115,7 +116,9 @@ try {
     for (const href of new Set(hrefs)) {
       if (before.has(href) || others.has(href)) continue;
       const page = await text(href);
-      if (page.status === 200 && page.body.includes(MARKER)) return href;
+      // A page not there yet (a stale manifest on this instance) is looked at again next poll.
+      if (page.status !== 200) continue;
+      if (page.body.includes(MARKER)) return href;
       others.add(href);
     }
     return null;

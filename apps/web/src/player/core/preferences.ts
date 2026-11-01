@@ -108,6 +108,10 @@ export function createPreferencesStore(options: PreferencesStoreOptions): Prefer
     current = DEFAULT_PREFERENCES;
   }
 
+  // Changes the device would not take (storage full): they stay on top of what it holds, so a later
+  // change does not bring the older stored value back over them.
+  let unsaved: Partial<Preferences> = {};
+
   return {
     get: () => current,
     getSoundsEnabled: () => current.sounds ?? defaultSounds(),
@@ -121,7 +125,7 @@ export function createPreferencesStore(options: PreferencesStoreOptions): Prefer
       } catch {
         // Unreadable storage: the tab's own copy is the best there is.
       }
-      const next: Preferences = { ...base, ...patch };
+      const next: Preferences = { ...base, ...unsaved, ...patch };
       const changed = (Object.keys(next) as (keyof Preferences)[]).some(
         (key) => next[key] !== current[key],
       );
@@ -129,8 +133,10 @@ export function createPreferencesStore(options: PreferencesStoreOptions): Prefer
       current = next;
       try {
         storage?.setItem(PREFERENCES_KEY, serializePreferences(next));
+        unsaved = {};
       } catch {
         // Storage is best effort. The change still applies for this session.
+        unsaved = { ...unsaved, ...patch };
       }
       for (const listener of listeners) listener();
     },

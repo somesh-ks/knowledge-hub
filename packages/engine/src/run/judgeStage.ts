@@ -115,14 +115,16 @@ export async function judgeStage(deps: RunDeps, plan: Plan): Promise<StageReport
           : [];
 
       const rest = pool.items.filter((item) => !topicOnly.has(item.id) && !comboIds.has(item.id));
-      const judged = await judgeWithCache(runtime.judge, rest, cache);
-      cache = mergeJudgments(judged.cache, combined.entries);
-
+      // What is already paid for goes into the caches before the general judge runs, so a throw in it
+      // (or in finishing the topics) does not lose it.
+      cache = mergeJudgments(cache, combined.entries);
       const topics =
         topicPlan !== null
           ? finishTopicJudging(topicPlan, [...combined.topicEntries, ...freshTopic], topicCache)
           : null;
       if (topics !== null) topicCache = topics.cache;
+      const judged = await judgeWithCache(runtime.judge, rest, cache);
+      cache = judged.cache;
 
       const byId = new Map<string, JudgmentEntry>();
       const marked: JudgmentEntry[] = [];
@@ -267,8 +269,19 @@ export async function judgeStage(deps: RunDeps, plan: Plan): Promise<StageReport
       });
     }
   } finally {
-    await writeJson(cachePath, cache);
-    if (customTopics.length > 0) await writeJson(topicCachePath, topicCache);
+    // Each save on its own, and a failed one is logged, not thrown: it must not replace the error
+    // that ended the pass, nor keep the other cache from being saved.
+    const saves: [string, unknown][] = [[cachePath, cache]];
+    if (customTopics.length > 0) saves.push([topicCachePath, topicCache]);
+    for (const [path, value] of saves) {
+      try {
+        await writeJson(path, value);
+      } catch (error) {
+        deps.log.warn("A judgment cache could not be saved; the next run asks again", {
+          reason: error instanceof Error ? error.message.split("\n")[0] : "unknown",
+        });
+      }
+    }
   }
   if (outage !== undefined) throw new StageFailure(outage);
   return { stage: "judge", ok: true, dry_run: plan.dry_run, passes };

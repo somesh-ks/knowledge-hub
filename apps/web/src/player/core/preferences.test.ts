@@ -86,6 +86,18 @@ describe("preferences store", () => {
     expect(tabB.get()).toMatchObject({ autoplay: false, theme: "dark", rate: 1.5 });
   });
 
+  it("keeps a change the device would not take when a later change is made", () => {
+    const storage = new MemoryStorage();
+    const store = createPreferencesStore({ storage, defaultSounds: () => true });
+    store.set({ theme: "dark" });
+    storage.setItem = () => {
+      throw new Error("QuotaExceededError");
+    };
+    store.set({ rate: 1.5 });
+    store.set({ theme: "light" });
+    expect(store.get()).toMatchObject({ theme: "light", rate: 1.5 });
+  });
+
   it("keeps the snapshot identity until something changes, and notifies once per change", () => {
     const store = createPreferencesStore({
       storage: new MemoryStorage(),
