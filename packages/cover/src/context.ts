@@ -5,7 +5,6 @@ import { getPalette, invertPalette } from "./palettes.js";
 import { hash32, mulberry32 } from "./prng.js";
 import { type Dress, isMonthly, schemeFor } from "./season.js";
 import { paper, paperPalette, stock, stockPalette } from "./series/paper.js";
-import { hueCentre, styleDress } from "./style.js";
 import { pad } from "./svg.js";
 import type { CoverKind, CoverMeta, CoverSpec, Ctx, Palette, Rect, Variant } from "./types.js";
 
@@ -41,40 +40,6 @@ export function variantOf(kind: CoverKind, monthly = false): Variant {
 
 /** The palette a cover is drawn in, and on a monthly cover its season's dress (type, matte). */
 function coverDress(
-  spec: CoverSpec,
-  meta: CoverMeta,
-  monthly: boolean,
-): { pal: Palette; variant: Variant; season: Dress | undefined } {
-  const dressed = monthDress(spec, meta, monthly);
-  if (meta.style === undefined || meta.style === "default") return dressed;
-  // A style redraws the dressed cover from the month's colours (D311): its centre hue is the scheme's,
-  // or the palette's own before the monthly style.
-  const { year, month } = parseDate(meta.date);
-  const centre = hueCentre(
-    monthly ? schemeFor(year, month).colors : paletteColors(getPalette(spec.palette)),
-  );
-  const { pal, season, variant } = dressed;
-  const styled = styleDress(
-    { pal, ink: season?.type ?? pal.text, matte: season?.matte },
-    meta.style,
-    centre,
-    meta.mode ?? "light",
-  );
-  if (!season) return { pal: styled.pal, variant, season };
-  return {
-    pal: styled.pal,
-    variant,
-    season: {
-      palette: styled.pal,
-      type: styled.ink,
-      ...(styled.matte ? { matte: styled.matte } : {}),
-    },
-  };
-}
-
-const paletteColors = (p: Palette): string[] => [p.ground, p.accent, p.text];
-
-function monthDress(
   spec: CoverSpec,
   meta: CoverMeta,
   monthly: boolean,
@@ -150,7 +115,7 @@ export function buildContext(
       ? [pad(lockup.mark, 24 * u), pad(lockup.month, 24 * u)]
       : [pad(lockup.date, 30 * u), pad(lockup.mark, 24 * u)];
 
-  const uid = `c${hash32(`${spec.template}|${spec.palette}|${spec.seed}|${meta.date}|${meta.kind}|${size}|${monthly}|${meta.mode ?? ""}|${meta.style ?? ""}`).toString(36)}`;
+  const uid = `c${hash32(`${spec.template}|${spec.palette}|${spec.seed}|${meta.date}|${meta.kind}|${size}|${monthly}|${meta.mode ?? ""}`).toString(36)}`;
   const ctx: Ctx = {
     w: size,
     h: size,

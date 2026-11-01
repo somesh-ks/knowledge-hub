@@ -89,10 +89,6 @@ async function savedListOrThrow(cache: Cache): Promise<Download[]> {
   return read.list;
 }
 
-/** The style the page is showing (Default sets none), so its covers are kept with the download. */
-const shownStyle = (): string | undefined =>
-  typeof document === "undefined" ? undefined : document.documentElement.dataset.style || undefined;
-
 export async function readDownloads(): Promise<Download[]> {
   try {
     if (!("caches" in globalThis)) return [];
@@ -217,7 +213,7 @@ async function downloadEpisode(cache: Cache, request: DownloadRequest): Promise<
       const mark = marks[index];
       if (mark?.ok) await keep(marksAddress(request.id, turn.key), mark);
     }
-    for (const extra of coverAddresses(request.id, shownStyle())) {
+    for (const extra of coverAddresses(request.id)) {
       const cover = await fetch(extra, timed(LOOKUP_MS)).catch(() => null);
       if (cover?.ok) await keep(extra, cover);
     }
@@ -287,7 +283,7 @@ async function saveDownload(request: DownloadRequest): Promise<void> {
   const pageReply = await fetch(request.page, timed(LOOKUP_MS));
   if (!pageReply.ok) throw new Error(`page ${pageReply.status}`);
   const page = await detach(pageReply);
-  const extras = coverAddresses(request.id, shownStyle());
+  const extras = coverAddresses(request.id);
   const saved: string[] = [request.audio, request.page];
   try {
     await cache.put(

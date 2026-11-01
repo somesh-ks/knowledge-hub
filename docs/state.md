@@ -14,7 +14,7 @@ Updated 2026-11-01. Rewrite, never append.
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192).
 - Halloween style (D306, merged): tokens, Pirata One title, six scenes, a cobweb; closed when: a phone keeps the style across a reload.
 - Expressive made loud (D310): a violet palette, larger touch sizes, a corner scale (`--shape-*`) with a test against primitive reads, Default's empty-state scenes looping. closed when: Somesh OKs the stills (390 and 1280, light and dark) and sees every page change under Expressive on his phone.
-- Album art per style (D311): a rule per style in `tokens/covers.json` redraws each cover from its month's colours; served at `/covers/<theme>-<style>/`. closed when: Somesh OKs the stills (390 and 1280, light and dark) and a style change on his phone swaps every cover and the header light with no flash.
+- Album art per style (D311): one live vector per cover, recoloured by `cover.css` from `tokens/covers.json`; nothing fetched on a switch. closed when: Somesh OKs the stills (390 and 1280, light and dark) and a style change on his phone recolours every cover and the header light with no flash.
 
 ## Tests
 

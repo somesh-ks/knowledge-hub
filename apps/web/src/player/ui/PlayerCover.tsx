@@ -1,33 +1,70 @@
-import { type CSSProperties, useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 import type { PlayerDigestData } from "../../types/contracts";
 
-const MODES = ["light", "dark"] as const;
-
 /** A cover the site drew: its path comes from page JSON, so anything else is not shown. */
-const COVER_FILE = /^\/covers\/([\w-]+\.(?:webp|png))(\?v=\w+)?$/;
+const COVER_FILE = /^\/covers\/([\w-]+)-(?:512|1024)\.(?:webp|png)(\?v=\w+)?$/;
 
 /**
- * The cover drawn for one theme and style: `/covers/x-512.webp` becomes `/covers/dark/x-512.webp`, or
- * `/covers/dark-halloween/x-512.webp` under a style (D311; the same address `coverLook` names).
+ * The live vector of a cover (D311), at `/covers/<id>.svg`: `/covers/x-512.webp?v=1` names `x`. The
+ * page colours it (cover.css) for its theme and style, so a switch needs no request. An empty string
+ * is not a drawn cover.
  */
-function themedSrc(src: string, mode: (typeof MODES)[number], style?: string): string {
+function liveSrc(src: string): string {
   const match = COVER_FILE.exec(src);
-  const file = match?.[1];
-  const look = style ? `${mode}-${style}` : mode;
+  const id = match?.[1];
   // encodeURIComponent changes nothing the pattern lets through; it marks the path safe for CodeQL.
-  return file ? `/covers/${look}/${encodeURIComponent(file)}${match?.[2] ?? ""}` : "";
+  return id ? `/covers/${encodeURIComponent(id)}.svg${match?.[2] ?? ""}` : "";
 }
 
-/** The style the page is showing; Default sets no attribute. */
-function shownStyle(): string | undefined {
-  return document.documentElement.dataset.style || undefined;
+/** One fetch for every place the player draws the same cover (the bar, the page, the flight, the glow). */
+const loading = new Map<string, Promise<SVGSVGElement>>();
+
+function loadCover(src: string): Promise<SVGSVGElement> {
+  let held = loading.get(src);
+  if (!held) {
+    held = fetch(src)
+      .then((response) => {
+        if (!response.ok) throw new Error(`cover ${response.status}`);
+        return response.text();
+      })
+      .then((text) => {
+        const root = new DOMParser().parseFromString(text, "image/svg+xml").documentElement;
+        if (!(root instanceof SVGSVGElement)) throw new Error("not a cover");
+        return root;
+      });
+    // A failure is not kept: the next mount tries again.
+    held.catch(() => loading.delete(src));
+    loading.set(src, held);
+  }
+  return held;
 }
 
-/** The theme the page is showing: an explicit data-theme wins, else the system's. */
-function shownMode(): (typeof MODES)[number] {
-  const theme = document.documentElement.dataset.theme;
-  if (theme === "light" || theme === "dark") return theme;
-  return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+type Drawn = "pending" | "drawn" | "failed";
+
+/** The vector placed in the frame; the key-coloured box shows until it is there. */
+function LiveCover({ src, onState }: { src: string; onState?: (state: Drawn) => void }) {
+  const slot = useRef<HTMLSpanElement>(null);
+  // The callback is read when the fetch settles, so a new one each render does not restart it.
+  const report = useRef(onState);
+  report.current = onState;
+  useEffect(() => {
+    const target = slot.current;
+    if (!target || !src) return;
+    let current = true;
+    report.current?.("pending");
+    loadCover(src).then(
+      (root) => {
+        if (!current) return;
+        target.replaceChildren(document.importNode(root, true));
+        report.current?.("drawn");
+      },
+      () => current && report.current?.("failed"),
+    );
+    return () => {
+      current = false;
+    };
+  }, [src]);
+  return <span ref={slot} className="player-cover-art" />;
 }
 
 interface PlayerCoverProps {
@@ -39,43 +76,18 @@ interface PlayerCoverProps {
 }
 
 /**
- * The cover as the player shows it: a decorative image (the title sits beside it) on a box in the
- * palette's key color, so there is no empty flash while the PNG decodes. The player draws it three
- * times (on the bar, on the page, in flight). Below 64rem, where motion is allowed, its stylesheet
- * shows exactly one of them at a time; elsewhere the bar and the page each keep their own.
+ * The cover as the player shows it: a decorative vector (the title sits beside it) on a box in the
+ * palette's key color, so there is no empty flash while it loads. The player draws it three times
+ * (on the bar, on the page, in flight). Below 64rem, where motion is allowed, its stylesheet shows
+ * exactly one of them at a time; elsewhere the bar and the page each keep their own.
  */
 export default function PlayerCover({ cover, weekly, size }: PlayerCoverProps) {
   const style = { "--cover-key": cover.key } as CSSProperties;
+  const src = liveSrc(cover.src512);
   // Pending (no drawn path), missing or failed to load: the branded fallback (cover.css), never a
-  // broken or empty box. A new cover path gets a new try. A failure counts for its own theme only:
-  // the other theme's image may be fine, and the page can switch to it.
-  const [failed, setFailed] = useState<{ src: string; modes: readonly string[] }>({
-    src: "",
-    modes: [],
-  });
-  const [shown, setShown] = useState<(typeof MODES)[number]>("light");
-  const [styled, setStyled] = useState<string | undefined>(undefined);
-  useEffect(() => {
-    const sync = () => {
-      setShown(shownMode());
-      setStyled(shownStyle());
-    };
-    sync();
-    const query = matchMedia("(prefers-color-scheme: dark)");
-    const observer = new MutationObserver(sync);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme", "data-style"],
-    });
-    query.addEventListener("change", sync);
-    return () => {
-      observer.disconnect();
-      query.removeEventListener("change", sync);
-    };
-  }, []);
-  const fallback =
-    !themedSrc(cover.src512, "light") ||
-    (failed.src === cover.src512 && failed.modes.includes(`${shown}|${styled ?? ""}`));
+  // broken or empty box. A new cover path gets a new try.
+  const [state, setState] = useState<{ src: string; drawn: Drawn }>({ src: "", drawn: "pending" });
+  const fallback = !src || (state.src === src && state.drawn === "failed");
   return (
     <span
       className="player-cover-frame"
@@ -84,83 +96,21 @@ export default function PlayerCover({ cover, weekly, size }: PlayerCoverProps) {
       data-fallback={fallback ? "" : undefined}
       style={style}
     >
-      {MODES.map((mode) => {
-        const src = themedSrc(cover.src512, mode, styled);
-        // A path that is not a drawn cover leaves the key-colored box, never an empty src.
-        if (!src) return null;
-        return (
-          <img
-            key={`${mode}|${styled ?? ""}`}
-            className="player-cover-image"
-            data-mode={mode}
-            src={src}
-            srcSet={
-              size === "player"
-                ? `${src} 512w, ${themedSrc(cover.src1024, mode, styled)} 1024w`
-                : undefined
-            }
-            sizes={size === "player" ? "(min-width: 40rem) 22rem, calc(100vw - 3rem)" : undefined}
-            alt=""
-            width={size === "thumb" ? 44 : 352}
-            height={size === "thumb" ? 44 : 352}
-            decoding="async"
-            // The other theme's image is display: none, so a lazy one is never fetched.
-            loading="lazy"
-            draggable={false}
-            onError={() =>
-              setFailed((prev) => ({
-                src: cover.src512,
-                modes: [
-                  ...(prev.src === cover.src512 ? prev.modes : []),
-                  `${mode}|${styled ?? ""}`,
-                ],
-              }))
-            }
-          />
-        );
-      })}
+      {src && <LiveCover src={src} onState={(drawn) => setState({ src, drawn })} />}
     </span>
   );
 }
 
 /**
  * The light the cover gives while it plays: the cover itself, blurred, behind the page's cover. It is
- * the cover's own colours by construction. player.css fades it in while playing and lets it breathe.
+ * the cover's own colours by construction, in whatever style is shown. player.css fades it in while
+ * playing and lets it breathe.
  */
 export function PlayerCoverGlow({ cover }: { cover: PlayerDigestData["cover"] }) {
-  const [styled, setStyled] = useState<string | undefined>(undefined);
-  useEffect(() => {
-    const sync = () => setStyled(shownStyle());
-    sync();
-    const observer = new MutationObserver(sync);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-style"],
-    });
-    return () => observer.disconnect();
-  }, []);
+  const src = liveSrc(cover.src512);
   return (
     <span className="player-cover-glow" aria-hidden="true">
-      <span className="player-cover-glow-light">
-        {MODES.map((mode) => {
-          const src = themedSrc(cover.src512, mode, styled);
-          if (!src) return null;
-          return (
-            <img
-              key={`${mode}|${styled ?? ""}`}
-              className="player-cover-image"
-              data-mode={mode}
-              src={src}
-              alt=""
-              width={352}
-              height={352}
-              decoding="async"
-              loading="lazy"
-              draggable={false}
-            />
-          );
-        })}
-      </span>
+      <span className="player-cover-glow-light">{src && <LiveCover src={src} />}</span>
     </span>
   );
 }

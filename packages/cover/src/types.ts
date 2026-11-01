@@ -20,8 +20,6 @@ export interface CoverMeta {
   id: string;
   /** The app theme the cover is drawn for. Left out, the colours are drawn as authored. */
   mode?: CoverMode;
-  /** The app style the cover is drawn for (D311). Left out, or Default, the month's own colours. */
-  style?: string;
 }
 
 export interface PickInput extends CoverMeta {

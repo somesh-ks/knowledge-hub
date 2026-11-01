@@ -5,16 +5,19 @@
 
 export { coverColors } from "./context.js";
 export { FONT_FILE_BASENAMES, setFontDirectory } from "./fonts.js";
+export { GLYPH_SHEET_PATH, glyphSheet } from "./glyphs.js";
+export { COVER_SLOTS, coverCentre, renderLiveCoverSvg } from "./live.js";
 export { COVER_MODES, type CoverMode } from "./mode.js";
 export { getPalette, PALETTE_IDS, paletteAccent } from "./palettes.js";
 export { pickCover } from "./pick.js";
 export { renderCoverPng, renderCoverSvg, renderSocialPng, renderSocialSvg } from "./render.js";
 export {
-  COVER_STYLES,
-  type CoverStyle,
-  coverLook,
-  isCoverStyle,
-  parseCoverLook,
+  hueCentre,
+  restyleHex,
+  STYLE_RULES,
+  type StyleRule,
+  styleColour,
+  styleHex,
 } from "./style.js";
 export { coverSwatches, type Swatch } from "./swatches.js";
 export { TEMPLATES } from "./templates/index.js";

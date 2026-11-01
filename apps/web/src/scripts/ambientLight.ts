@@ -142,29 +142,16 @@ export function mountAmbient(host: HTMLElement) {
   });
   if (!gl) return;
 
-  // The colours of each style's cover (D311): Default's in data-ambient, a style's under its name.
-  const byStyle: Record<string, string> = (() => {
-    try {
-      return JSON.parse(host.dataset.ambientStyles ?? "{}");
-    } catch {
-      return {};
-    }
-  })();
-  const palettes = new Map<string, { light: Float32Array; dark: Float32Array }>();
-  const paletteFor = (style: string) => {
-    let held = palettes.get(style);
-    if (!held) {
-      const sets = (byStyle[style] ?? host.dataset.ambient ?? "").split(",");
-      held = { light: paletteUniforms(sets.slice(0, 3)), dark: paletteUniforms(sets.slice(3)) };
-      palettes.set(style, held);
-    }
-    return held;
-  };
   const darkQuery = matchMedia("(prefers-color-scheme: dark)");
-  const isDark = () => {
-    const theme = document.documentElement.dataset.theme;
-    return theme ? theme === "dark" : darkQuery.matches;
+  // The three lights as the page shows them now: the theme picks the set (ambient.css) and the style
+  // and a reader's hue recolour it (ambientStyle.ts). Read when one of them changes, not each frame.
+  const readPalette = () => {
+    const shown = getComputedStyle(host);
+    return paletteUniforms(
+      ["a", "b", "c"].map((light) => shown.getPropertyValue(`--ambient-${light}`).trim()),
+    );
   };
+  let palette = readPalette();
   const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
   const dataQuery = matchMedia("(prefers-reduced-data: reduce)");
   const gate: FrameGate = { visible: !document.hidden, onScreen: true, motionAllowed: true };
@@ -191,8 +178,7 @@ export function mountAmbient(host: HTMLElement) {
     const turn = (((now - t0) / 1000 + 9) % DRIFT_SECONDS) / DRIFT_SECONDS;
     gl.uniform1f(program.t, turn * Math.PI * 2);
     gl.uniform3fv(program.o, cover);
-    const colours = paletteFor(document.documentElement.dataset.style ?? "");
-    gl.uniform3fv(program.c, isDark() ? colours.dark : colours.light);
+    gl.uniform3fv(program.c, palette);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     host.dataset.live = "";
   };
@@ -218,7 +204,10 @@ export function mountAmbient(host: HTMLElement) {
   };
 
   /** One frame now: at the present moment where the light may move, at the still frame's otherwise. */
-  const redraw = () => draw(gate.motionAllowed ? performance.now() : t0);
+  const redraw = () => {
+    palette = readPalette();
+    draw(gate.motionAllowed ? performance.now() : t0);
+  };
 
   const size = () => {
     const [w, h] = backingSize(host.clientWidth, host.clientHeight);
@@ -273,7 +262,7 @@ export function mountAmbient(host: HTMLElement) {
   darkQuery.addEventListener("change", redraw);
   themed.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ["data-theme", "data-style"],
+    attributeFilter: ["data-theme", "data-style", "style"],
   });
   seen.observe(host);
   sized.observe(host);

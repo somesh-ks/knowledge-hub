@@ -1,87 +1,41 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { contrastRatio } from "./color.js";
-import { buildContext } from "./context.js";
-import { COVER_MODES } from "./mode.js";
-import { pickCover } from "./pick.js";
-import { renderCoverSvg } from "./render.js";
-import { isMonthly } from "./season.js";
-import { COVER_STYLES, hueCentre } from "./style.js";
-import type { CoverKind } from "./types.js";
+import { STYLE_RULES } from "./style.js";
 
-const KINDS: CoverKind[] = ["regular", "weekly", "on-demand", "episode"];
-// Two months of every scheme (they cycle by month) and one before the monthly style.
-const MONTHS = ["2026-09", "2026-10", "2026-11", "2026-12", "2027-01"];
-
-function sweep(
-  visit: (date: string, kind: CoverKind, mode: "light" | "dark", style: string) => void,
-) {
-  for (const month of MONTHS) {
-    for (const day of [2, 5, 8, 11, 14, 17, 20, 23]) {
-      const date = `${month}-${String(day).padStart(2, "0")}`;
-      for (const kind of KINDS) {
-        for (const mode of COVER_MODES) {
-          for (const style of COVER_STYLES) visit(date, kind, mode, style);
-        }
-      }
+/**
+ * The page recolours covers from `--cover-*` in tokens.css; the contrast tests (live.test.ts) run
+ * the rule in code. They are one rule only if the CSS holds the rule's numbers: a style edited in
+ * covers.json and not rebuilt would otherwise draw one look and be proved on another.
+ */
+describe("tokens.css holds each style's cover numbers", () => {
+  const css = readFileSync(
+    new URL("../../../apps/web/src/styles/tokens.css", import.meta.url),
+    "utf8",
+  );
+  const read = (style: string, property: string): number => {
+    const block = new RegExp(`:root\\[data-style="${style}"\\] \\{([^}]*)\\}`, "g");
+    for (const match of css.matchAll(block)) {
+      const found = new RegExp(`--cover-${property}: ([-\\d.]+);`).exec(match[1] ?? "");
+      if (found) return Number(found[1]);
     }
-  }
-}
+    throw new Error(`tokens.css has no --cover-${property} for ${style}`);
+  };
 
-describe("a cover in a style (D311)", () => {
-  it("draws Default exactly as the month dressed it", () => {
-    const date = "2026-11-08";
-    const meta = { id: date, date, kind: "regular" as const, mode: "dark" as const };
-    const spec = pickCover(meta);
-    expect(renderCoverSvg(spec, { ...meta, style: "default" })).toBe(renderCoverSvg(spec, meta));
-  });
-
-  it("draws every other style differently, from the same month", () => {
-    const date = "2026-11-08";
-    const meta = { id: date, date, kind: "regular" as const, mode: "light" as const };
-    const spec = pickCover(meta);
-    const svgs = COVER_STYLES.map((style) => renderCoverSvg(spec, { ...meta, style }));
-    expect(new Set(svgs).size).toBe(COVER_STYLES.length);
-  });
-
-  // The bug this holds: a style that maps hue, chroma or a lightness flip can drop the type or the
-  // figure under the contrast floor the month and the theme had kept, and only a cover in that exact
-  // month, series and theme shows it.
-  it("keeps the figure at 3:1 and the type at 4.5:1 wherever the month held them", () => {
-    const failures: string[] = [];
-    sweep((date, kind, mode, style) => {
-      const monthly = isMonthly(date);
-      const meta = { id: date, date, kind, mode };
-      const spec = pickCover(meta);
-      const base = buildContext(spec, meta, 256, "standard", monthly).ctx;
-      const ctx = buildContext(spec, { ...meta, style }, 256, "standard", monthly).ctx;
-      const check = (name: string, a: string, b: string, was: [string, string], floor: number) => {
-        if (contrastRatio(...was) >= floor && contrastRatio(a, b) < floor) {
-          failures.push(
-            `${date} ${kind} ${mode} ${style} ${name} ${contrastRatio(a, b).toFixed(2)}`,
-          );
-        }
-      };
-      check("figure", ctx.pal.accent, ctx.pal.ground, [base.pal.accent, base.pal.ground], 3);
-      check(
-        "type",
-        ctx.ink,
-        ctx.matte ?? ctx.pal.ground,
-        [base.ink, base.matte ?? base.pal.ground],
-        4.5,
-      );
+  for (const [style, rule] of STYLE_RULES) {
+    it(`${style}`, () => {
+      expect(read(style, "hue")).toBe(rule.hue);
+      expect(read(style, "keep")).toBe(rule.keep);
+      expect(read(style, "spread")).toBe(rule.spread);
+      expect(read(style, "cap")).toBe(rule.cap);
+      expect(read(style, "c-scale")).toBe(rule.chroma.scale);
+      expect(read(style, "c-add")).toBe(rule.chroma.add);
+      expect(read(style, "c-max")).toBe(rule.chroma.max);
+      expect(read(style, "c-floor-below")).toBe(rule.chroma.floorBelow);
+      expect(read(style, "c-floor")).toBe(rule.chroma.floor);
+      expect(read(style, "flip")).toBe(rule.flip ? 1 : 0);
+      expect(read(style, "lo")).toBe(rule.flip?.light[0] ?? 0);
+      expect(read(style, "hi")).toBe(rule.flip?.light[1] ?? 1);
+      expect(read(style, "night-below")).toBe(rule.night?.below ?? 0);
     });
-    expect(failures).toEqual([]);
-  });
-});
-
-describe("hueCentre", () => {
-  it("is the chroma-weighted mean hue, so a grey does not pull it", () => {
-    expect(hueCentre(["#808080", "#ff0000"])).toBeCloseTo(hueCentre(["#ff0000"]), 0);
-  });
-
-  it("wraps around the hue circle", () => {
-    // Two reds on either side of 0 degrees centre on red, not on cyan.
-    const centre = hueCentre(["#ff0040", "#ff4000"]);
-    expect(centre < 60 || centre > 340).toBe(true);
-  });
+  }
 });

@@ -8,6 +8,7 @@ One note per session, newest first. Read a note only to learn why something was 
 | 2026-11-01 | [Half-built audit](2026-11-01-half-built-audit.md) | 41 decided or planned items found not built, unwired or unverified; docs and dead code fixed, the rest routed by owner |
 | 2026-11-01 | [Episode centring](2026-11-01-episode-centring.md) | A page with a contents list is centred as the column and the list together (D287) |
 | 2026-11-01 | [Library list by month](2026-11-01-library-list-months.md) | The list groups by month under a sticky label, two columns from 80rem (D288) |
+| 2026-11-01 | [Live covers](2026-11-01-live-covers.md) | One vector per cover, recoloured by the page for each style; no per-style images (D311) |
 | 2026-10-31 | [Ledger split](2026-10-31-ledger-split.md) | The design ledger split into a core and one file per surface; the Index grep-only; read-first 20 KB (D283) |
 | 2026-10-31 | [State trim](2026-10-31-state-trim.md) | Ten parked unverified items moved out of state.md; read-first headroom (D283) |
 | 2026-10-31 | [Downloads page](2026-10-31-downloads-page.md) | Settings > Downloads wears the Library's List rows, no cap, confirm on every remove (D281) |

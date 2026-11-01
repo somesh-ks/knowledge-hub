@@ -79,14 +79,13 @@ export class NotReadyError extends Error {
 }
 
 /**
- * An item's covers: the page's, drawn for each theme (lib/covers.ts themedCoverSrc) and, under a style,
- * for the style the reader has on (D311), and the player's and lock screen's, as authored. A theme
- * switch offline still finds its cover; a style switched to offline shows the branded fallback until
- * the item is online again.
+ * An item's covers: the live vector the page and the player draw (D311), and the images the lock
+ * screen and share cards use. A theme or style switch offline finds its cover, since the vector holds
+ * every colour. The sheet of outlines it is lettered from is shared by all covers, so it is kept by
+ * the covers' own cache (public/sw.js) and not listed here, where removing one item would drop it.
  */
-export function coverAddresses(id: string, style?: string): string[] {
-  const looks = ["", "/light", "/dark", ...(style ? [`/light-${style}`, `/dark-${style}`] : [])];
-  return looks.flatMap((look) => [512, 1024].map((size) => `/covers${look}/${id}-${size}.webp`));
+export function coverAddresses(id: string): string[] {
+  return [`/covers/${id}.svg`, ...[512, 1024].map((size) => `/covers/${id}-${size}.webp`)];
 }
 
 /** The lookup the player asks for, which a downloaded episode's page gets answered from the cache. */

@@ -2,18 +2,20 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Digest } from "@singularity/core";
-import { type CoverMode, coverColors, coverLook, renderCoverPng } from "@singularity/cover";
+import {
+  type CoverMode,
+  coverColors,
+  renderCoverPng,
+  renderLiveCoverSvg,
+} from "@singularity/cover";
 import sharp from "sharp";
+import { loadCoverFonts } from "./coverFonts";
 
 /**
  * What a cover is drawn from. A briefing and a podcast episode both have these. `mode` draws it for
  * the app's light or dark theme; left out, it is drawn as authored (the lock screen and social card).
  */
-export type CoverSource = Pick<Digest, "id" | "date" | "kind" | "cover"> & {
-  mode?: CoverMode;
-  /** The app style it is drawn for (D311); left out, the month's own colours. */
-  style?: string;
-};
+export type CoverSource = Pick<Digest, "id" | "date" | "kind" | "cover"> & { mode?: CoverMode };
 
 /** An episode is drawn as an on-demand briefing, dated by when it was written. */
 export function episodeCover(entry: {
@@ -28,24 +30,31 @@ export function episodeCover(entry: {
  * The colour at the cover's edge as drawn: a monthly cover's season or a weekly's matte, not its
  * palette id. The box shows it before the image decodes, and a pale one gets a rim on the light page.
  */
-export function coverEdge(source: CoverSource, mode: CoverMode, style?: string): string {
-  return coverColors(source.cover, {
-    id: source.id,
-    date: source.date,
-    kind: source.kind,
-    mode,
-    ...(style ? { style } : {}),
-  }).ground;
+export function coverEdge(source: CoverSource, mode: CoverMode): string {
+  return coverColors(source.cover, { id: source.id, date: source.date, kind: source.kind, mode })
+    .ground;
 }
 
-/** Where the cover for one theme and style is served: `/covers/dark/<id>-512.webp`, `/covers/dark-halloween/...`. */
-export function themedCoverSrc(
-  id: string,
-  mode: CoverMode,
-  size: CoverSize,
-  style?: string,
-): string {
-  return `/covers/${coverLook(mode, style)}/${id}-${size}.webp`;
+/**
+ * The cover as the page draws it (D311): one small vector whose colours the page's own CSS sets, so
+ * a theme, a style or a hue changes it with no request. Drawn once for each record per process.
+ */
+const liveCovers = new Map<string, string>();
+
+export function coverLiveSvg(source: CoverSource): string {
+  loadCoverFonts();
+  const key = `${source.id}|${source.date}|${source.kind}|${JSON.stringify(source.cover)}`;
+  let svg = liveCovers.get(key);
+  if (svg === undefined) {
+    svg = renderLiveCoverSvg(source.cover, { id: source.id, date: source.date, kind: source.kind });
+    liveCovers.set(key, svg);
+  }
+  return svg;
+}
+
+/** Where a record's live cover is served: `/covers/<id>.svg`, versioned like the images. */
+export function coverLiveSrc(id: string, generatedAt?: string): string {
+  return `/covers/${id}.svg${coverVersion(generatedAt)}`;
 }
 
 /**
@@ -108,13 +117,7 @@ export function coverCacheKey(digest: CoverSource, size: CoverSize, fingerprint:
     fingerprint,
     size,
     spec: digest.cover,
-    meta: {
-      id: digest.id,
-      date: digest.date,
-      kind: digest.kind,
-      mode: digest.mode,
-      style: digest.style,
-    },
+    meta: { id: digest.id, date: digest.date, kind: digest.kind, mode: digest.mode },
   });
   return createHash("sha256").update(input).digest("hex");
 }
@@ -147,7 +150,6 @@ export async function coverPng(
         date: digest.date,
         kind: digest.kind,
         ...(digest.mode ? { mode: digest.mode } : {}),
-        ...(digest.style ? { style: digest.style } : {}),
       },
       size,
     ),

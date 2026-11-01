@@ -127,9 +127,9 @@ const dateOf = (item: LibraryItem): string =>
                     </li>
                   )}
                   {item.kind === "episode" ? (
-                    <EpisodeCard entry={item.entry} priority={index < 6} />
+                    <EpisodeCard entry={item.entry} />
                   ) : (
-                    <BriefingCard entry={item.entry} priority={index < 6} menu />
+                    <BriefingCard entry={item.entry} menu />
                   )}
                 </>
               );
