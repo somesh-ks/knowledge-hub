@@ -6,7 +6,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 - 2026-10-28: `topics.spec.ts` "Add source" fails on a machine's first local run: it writes its untracked screenshot baseline (never commit it). `CI=1` skips it.
 - Two browser suites at once share `apps/web/dist` and give false failures.
-- 2026-10-22: in the cloud container Chromium goes through the agent proxy, so `--host-resolver-rules` (a build served under the production host, to see a host-gated script) did nothing until launched with `--no-proxy-server`.
+- 2026-10-22: in the cloud container Chromium goes through the agent proxy, so `--host-resolver-rules` (to serve a build under the production host) did nothing until launched with `--no-proxy-server`.
 - 2026-10-21: `context.route` misses the worker's requests: fake a deploy in `staticServer.mjs`.
 - 2026-10-19: a source added in script was a tinted stub (no address, rating, checkbox) whose `box-shadow` spread 8px over the next row; the specs checked text, not parts. A script row mirrors its Astro component's markup, and its spec asserts the parts.
 - 2026-10-23: new card tokens let `.card-group`'s row padding beat the Costs card's (Costs is not in the grid spec). Screenshot every page using a primitive whose tokens change.
@@ -124,7 +124,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Agents and worktrees
 
-- 2026-11-01: 40 of #525's 44 commits sat unreviewed: CodeRabbit pauses itself after five reviewed commits and says so only in its summary comment ("Last reviewed commit"). Before a merge, compare the head with that commit (D292).
+- 2026-11-01: 40 of #525's 44 commits were unreviewed: CodeRabbit pauses after five reviewed commits, noted only in its summary ("Last reviewed commit"). Before a merge, that commit must be the head (D292).
 - 2026-10-27: a squash merge leaves a branch's commits off main, so `git branch --merged` and commit searches miss them: find a branch's fate through PR search.
 - 2026-10-27: Windows junctions from `worktreeLinks.mjs` deleted the main checkout's `node_modules` twice: use `--remove` before `git worktree remove`.
 - 2026-10-23: a design-audit agent in a worktree-isolated session took no screenshot: the guard refused every heredoc, absolute path or glob in its Bash. Brief it to write scripts with the Write tool into the scratchpad and run `node <path>`.
@@ -133,7 +133,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-24: a layout test's invented $97.70 in a screenshot read to the owner as real spend. Use plainly fake figures, or say "fixture", in shots shown to the owner.
 
 - 2026-10-22: a worker lifted a rule a code comment tied to two dated owner asks (the release cap, #209) and logged it as a judgment call, and its bot review posted nothing. Before changing a rule whose comment cites the owner, ask.
-- 2026-10-22: another session's cleanup removed this worktree (no commits looks merged): commit a WIP early; remove only your own.
+- 2026-10-22: another session's cleanup removed this worktree (no commits looks merged): commit a WIP early; remove only yours.
 - 2026-10-22: one `astro dev` per install, so a second worktree's is refused; never `--force` it (that kills the other): `PORT=47xx node e2e/run.mjs --serve-only`.
 - 2026-10-22: #160 merged without its review fixes: the commit carrying them was made on a detached HEAD, so `git push` said "Everything up-to-date" and another session merged the PR's older head. After a push, compare `git ls-remote origin <branch>` with `git rev-parse HEAD`.
 - 2026-10-16: a worktree's `node_modules` symlink was committed (the ignore rule `node_modules/` matches directories only), and merging that branch replaced the real, ignored `apps/web/node_modules` with it: git overwrites ignored paths. The rule is now `node_modules`; after such a merge, run `npm ci`.
