@@ -1,0 +1,30 @@
+/* Settings > Downloads wears the Library's rows (List view, library.css) and shows only the saved
+   ones: downloadsPage.ts marks them data-downloaded, the same mark the Library's menu writes. */
+.downloads [data-card]:not([data-downloaded]) {
+  display: none;
+}
+
+/* Every row here is saved, so the Library's check-circle mark says nothing. */
+.downloads .card-downloaded {
+  display: none;
+}
+
+/* The list and the Delete all card are two groups: the gap between them is a group's, not a row's. */
+.downloads-list {
+  margin-block-end: var(--space-6);
+}
+
+/* The search shows once the list is long enough to need it; the room under it is the list's. */
+.downloads-search {
+  margin-block-end: var(--space-4);
+}
+
+/* The title's ⋮ ends in line with the rows' (the Library's row menu sits inset from the gutter), and
+   its menu hangs under it: the Menu's default anchor is the page header's More button. */
+.downloads-menu {
+  padding-inline-end: var(--space-2);
+}
+
+.downloads-menu > button {
+  anchor-name: --hero-more;
+}
