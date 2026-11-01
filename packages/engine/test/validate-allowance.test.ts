@@ -49,6 +49,7 @@ describe("withinAllowances", () => {
       airing,
       ownerOf,
       DEFAULT_SECTION_PLAN,
+      3,
     );
     expect(kept.map((e) => e.id)).toEqual(["m1", "m2"]);
   });
@@ -60,7 +61,35 @@ describe("withinAllowances", () => {
       airing,
       ownerOf,
       DEFAULT_SECTION_PLAN,
+      3,
     );
     expect(kept.map((e) => e.id)).toEqual(["t1", "t2", "m1"]);
+  });
+
+  // D297: a briefing the allowances would leave under the floor takes the capped stories it needs.
+  describe("under the floor", () => {
+    const techOne = { ...DEFAULT_SECTION_PLAN, limit: (s: string) => (s === "tech" ? 1 : null) };
+
+    it("follows with capped Tech stories, as many as the floor needs and one spare", () => {
+      const kept = withinAllowances(
+        reserved("t1", "t2", "t3"),
+        ["tech", "ui-craft"],
+        ownerOf,
+        techOne,
+        3,
+      );
+      expect(kept.map((e) => e.id)).toEqual(["t1", "t2"]);
+    });
+
+    it("prefers stories that fit, and offers capped ones only for what is still missing", () => {
+      const withMain = withinAllowances(
+        reserved("t1", "m1"),
+        ["tech", "ui-craft"],
+        ownerOf,
+        techOne,
+        3,
+      );
+      expect(withMain.map((e) => e.id)).toEqual(["m1"]);
+    });
   });
 });

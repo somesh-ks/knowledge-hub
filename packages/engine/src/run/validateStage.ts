@@ -62,29 +62,43 @@ export function trimOverAllowance<T extends { item: { id: string } }>(
  * its own (Tech releases, a custom section) has left once the stories already airing are counted:
  * validation trims a story past it whatever its score, so writing more is wasted (2026-10-31:
  * three Tech stories written, three trimmed). A section with room left gets one spare, because a
- * story can still be lost in writing; a full one gets none. `ownerOf` names the section a story
- * counts against, as validation does, or undefined when it has no allowance of its own.
+ * story can still be lost in writing; a full one gets none. Only when the stories that fit leave
+ * the briefing under the floor do the stories past an allowance follow, as many as the floor
+ * needs and one spare (D297): validation lets a section stand over its allowance that far.
+ * `ownerOf` names the section a story counts against, as validation does, or undefined when it
+ * has no allowance of its own.
  */
 export function withinAllowances<T>(
   candidates: readonly T[],
   airing: readonly (string | undefined)[],
   ownerOf: (candidate: T) => string | undefined,
   plan: SectionPlan,
+  floor: number,
 ): T[] {
   const counts = new Map<string, number>();
   for (const section of airing) {
     if (section !== undefined) counts.set(section, (counts.get(section) ?? 0) + 1);
   }
   const offered = new Map<string, number>();
-  return candidates.filter((candidate) => {
+  const fitting: T[] = [];
+  const past: T[] = [];
+  for (const candidate of candidates) {
     const section = ownerOf(candidate);
-    if (section === undefined || !hasOwnAllowance(section)) return true;
+    if (section === undefined || !hasOwnAllowance(section)) {
+      fitting.push(candidate);
+      continue;
+    }
     const room = allowanceFor(section, plan) - (counts.get(section) ?? 0);
     const taken = offered.get(section) ?? 0;
-    if (room <= 0 || taken >= room + 1) return false;
-    offered.set(section, taken + 1);
-    return true;
-  });
+    if (room > 0 && taken < room + 1) {
+      offered.set(section, taken + 1);
+      fitting.push(candidate);
+    } else {
+      past.push(candidate);
+    }
+  }
+  const shortfall = floor - airing.length - fitting.length;
+  return shortfall > 0 ? [...fitting, ...past.slice(0, shortfall + 1)] : fitting;
 }
 
 /** A briefing narrating under this share of the owner's length after the refill is flagged. */
@@ -373,6 +387,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
         ),
         (entry) => ownerOf(entry.category, poolById.get(entry.id)?.source_type),
         sectionPlan,
+        VOICE_LIMITS.items.floor,
       ).slice(0, Math.min(withSpares(missing), room));
       if (candidates.length > 0) {
         // A refit that fails part way leaves its drops and warnings behind; the catch puts back
