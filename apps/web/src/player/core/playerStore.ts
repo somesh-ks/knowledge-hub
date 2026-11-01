@@ -784,6 +784,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   /** A retry is announced as what asked for it: a step or a row says its story, not "Playing.". */
   function retryAs(reason: PlayReason): void {
     if (!track?.digest.audio) return;
+    stopNetworkRetry();
     networkReloadPending = false;
     const url = sourceOf(track.digest.audio);
     // A failed element keeps its error until the source is set again.

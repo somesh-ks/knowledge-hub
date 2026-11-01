@@ -54,21 +54,38 @@ async function openDownloads(): Promise<Cache> {
   return cache;
 }
 
-/** The saved list, or null when it could not be read: a list that is empty and a list that is lost differ. */
-async function readListFrom(cache: Cache): Promise<Download[] | null> {
+/**
+ * The saved list for a change that replaces or prunes it: null when it cannot be trusted (unreadable,
+ * not a list, or an entry that is not shaped like one). An empty list and a lost one differ: acting on
+ * a lost one would delete every download or write a list of one.
+ */
+async function readSavedList(cache: Cache): Promise<Download[] | null> {
   try {
     const saved = await cache.match(MANIFEST_KEY);
-    return saved ? parseDownloads(await saved.text()) : [];
+    if (!saved) return [];
+    const text = await saved.text();
+    const list = parseDownloads(text);
+    const raw: unknown = JSON.parse(text);
+    return Array.isArray(raw) && raw.length === list.length ? list : null;
   } catch {
     return null;
   }
+}
+
+/** The list a change starts from; a list that cannot be trusted ends the change before it writes. */
+async function savedListOrThrow(cache: Cache): Promise<Download[]> {
+  const list = await readSavedList(cache);
+  if (list === null) throw new Error("the saved downloads could not be read");
+  return list;
 }
 
 export async function readDownloads(): Promise<Download[]> {
   try {
     if (!("caches" in globalThis)) return [];
     if (!(await caches.has(AUDIO_CACHE)) && !(await caches.has(OLD_AUDIO_CACHE))) return [];
-    return (await readListFrom(await openDownloads())) ?? [];
+    const cache = await openDownloads();
+    const saved = await cache.match(MANIFEST_KEY);
+    return saved ? parseDownloads(await saved.text()) : [];
   } catch {
     return [];
   }
@@ -187,7 +204,7 @@ async function downloadEpisode(cache: Cache, request: DownloadRequest): Promise<
       }),
     );
     // The entry's `audio` is the lookup and its extras every other address, so remove drops them all.
-    const { list, evicted } = addDownload(await readDownloads(), {
+    const { list, evicted } = addDownload(await savedListOrThrow(cache), {
       id: request.id,
       audio: address,
       page: request.page,
@@ -264,7 +281,7 @@ async function saveDownload(request: DownloadRequest): Promise<void> {
         saved.push(extra);
       }
     }
-    const { list, evicted } = addDownload(await readDownloads(), {
+    const { list, evicted } = addDownload(await savedListOrThrow(cache), {
       ...request,
       extras: saved.slice(2),
     });
@@ -294,7 +311,7 @@ export async function sweepUnlisted(): Promise<number> {
     const swept = await locks.request(DOWNLOAD_LOCK, { ifAvailable: true }, async (lock) => {
       if (!lock) return 0;
       const cache = await openDownloads();
-      const listed = await readListFrom(cache);
+      const listed = await readSavedList(cache);
       // A list that could not be read is not an empty one: sweeping on it would delete every download.
       if (listed === null) return 0;
       const stray = unlistedPayloads(
@@ -313,7 +330,7 @@ export async function sweepUnlisted(): Promise<number> {
 
 export async function removeDownload(id: string): Promise<void> {
   const cache = await openDownloads();
-  const list = await readDownloads();
+  const list = await savedListOrThrow(cache);
   for (const old of list.filter((item) => item.id === id)) {
     for (const address of addressesOf(old)) await cache.delete(address);
   }

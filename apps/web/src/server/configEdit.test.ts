@@ -106,7 +106,18 @@ describe("parseConfigOp", () => {
   });
 
   it("rejects ids outside lowercase letters, digits, hyphen and underscore, 2 to 64 long", () => {
-    for (const bad of ["a", "A-b", "has space", "dot.id", "x".repeat(65), "", 7, null]) {
+    for (const bad of [
+      "a",
+      "-ab",
+      "_ab",
+      "A-b",
+      "has space",
+      "dot.id",
+      "x".repeat(65),
+      "",
+      7,
+      null,
+    ]) {
       expect(parseConfigOp({ op: "topic.remove", id: bad })).toBeNull();
     }
     expect(parseConfigOp({ op: "topic.remove", id: "x".repeat(64) })).not.toBeNull();

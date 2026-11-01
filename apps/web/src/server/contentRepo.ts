@@ -172,11 +172,15 @@ export async function loadStoreSiteChecked(
     // site, not an error. Count it here and fail the load, so the caller shows this build's copy.
     files: {
       list: (directory) => files.list(directory),
-      read: (path) =>
-        files.read(path).catch((error: unknown) => {
+      // After the first failure the store is treated as down: no further object requests, so a
+      // string of slow reads cannot outlast the function before the fallback starts.
+      read: (path) => {
+        if (failed !== null) return Promise.reject(failed);
+        return files.read(path).catch((error: unknown) => {
           failed ??= error;
           throw error;
-        }),
+        });
+      },
     },
     warn: (message) => deps.log?.(message),
   }).then((loaded) => {

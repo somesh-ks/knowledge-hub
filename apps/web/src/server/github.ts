@@ -126,11 +126,19 @@ interface RunListMemo {
   runs: WorkflowRun[];
 }
 const runListMemos = new WeakMap<FetchLike, Map<string, RunListMemo>>();
+/** Counts the times a memo was cleared, so a list asked for before a clear is not stored after it. */
+const runListEpochs = new WeakMap<FetchLike, { n: number }>();
 
 export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): GitHubClient {
   const base = `${API}/repos/${config.owner}/${config.repo}`;
   const memos = runListMemos.get(fetchImpl) ?? new Map<string, RunListMemo>();
   runListMemos.set(fetchImpl, memos);
+  const epoch = runListEpochs.get(fetchImpl) ?? { n: 0 };
+  runListEpochs.set(fetchImpl, epoch);
+  const invalidate = (): void => {
+    epoch.n += 1;
+    memos.clear();
+  };
 
   async function request(path: string, init: RequestInit = {}, accept?: string): Promise<Response> {
     return fetchImpl(`${base}${path}`, {
@@ -162,6 +170,7 @@ export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): 
 
   async function listRuns(file: string, memoize = false): Promise<WorkflowRun[]> {
     const path = `${workflowPath(file)}/runs?event=workflow_dispatch&branch=main&per_page=30`;
+    const asked = epoch.n;
     const memo = memoize ? memos.get(`${base}${path}`) : undefined;
     if (memo && Date.now() - memo.at < RUN_LIST_MEMO_MS) return memo.runs;
     const response = await request(
@@ -176,7 +185,7 @@ export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): 
     const body: unknown = await response.json();
     const list = isRecord(body) && Array.isArray(body.workflow_runs) ? body.workflow_runs : [];
     const runs = list.map(parseRun).filter((run): run is WorkflowRun => run !== null);
-    if (memoize)
+    if (memoize && asked === epoch.n)
       memos.set(`${base}${path}`, { at: Date.now(), etag: response.headers.get("etag"), runs });
     return runs;
   }
@@ -192,7 +201,7 @@ export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): 
     });
     if (!response.ok) throw new GitHubError(response.status);
     // The next list must show the run this dispatch made, not a copy from before it.
-    memos.clear();
+    invalidate();
     if (response.status === 204) return null;
     const body: unknown = await response.json().catch(() => null);
     return isRecord(body) && typeof body.workflow_run_id === "number" ? body.workflow_run_id : null;
@@ -214,7 +223,7 @@ export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): 
       // 409: the run is not in a state that can be cancelled, which is to say it has ended.
       if (response.status === 409) return "finished";
       if (!response.ok) throw new GitHubError(response.status);
-      memos.clear();
+      invalidate();
       return "cancelled";
     },
 

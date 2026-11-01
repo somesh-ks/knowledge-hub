@@ -174,13 +174,17 @@ it("draws the build's copy when the manifest loads but its files cannot be read"
   const expected = (await loadStoreSite({ env: ENV, fetch: fakeFetch, now: () => 0 }))?.entries
     .length;
   resetContentRepo();
-  const fetchWithBrokenFiles = async (url: string): Promise<Response> =>
-    new URL(url).pathname === "/content/manifest.json"
-      ? fakeFetch(url)
-      : new Response(null, { status: 500 });
+  let objectReads = 0;
+  const fetchWithBrokenFiles = async (url: string): Promise<Response> => {
+    if (new URL(url).pathname === "/content/manifest.json") return fakeFetch(url);
+    if (/\/(Digests|Podcasts)\//.test(url)) objectReads += 1;
+    return new Response(null, { status: 500 });
+  };
   const page = await loadPageSite({ env: ENV, fetch: fetchWithBrokenFiles, now: () => 0 }, bundled);
   expect(page.saved).toBe(true);
   expect(page.site.entries.length).toBe(expected);
+  // The store counts as down after its first failed object: slow reads do not pile up.
+  expect(objectReads).toBe(1);
 });
 
 // Bug: requests that reached a cold instance together each waited out the dead store's timeout.
