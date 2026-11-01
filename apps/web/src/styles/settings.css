@@ -87,6 +87,12 @@
   padding-block-start: var(--space-6);
 }
 
+/* A group with no head (Downloads, first on the page until a profile page takes it, 2026-11-01) sits
+   as far under the title as a first group's head would (above). */
+.settings-view > .settings-lead {
+  padding-block-start: var(--space-6);
+}
+
 /* ------------------------------------------------------------------ rows */
 
 /* Label and description at the start, the control at the end. The row grammar adds the padding and

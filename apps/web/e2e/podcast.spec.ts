@@ -69,11 +69,13 @@ test.describe("the Settings index", () => {
       ["Sources", "", "/settings/categories"],
       ["Preferences", "", "/settings/preferences"],
       ["Podcast voice", "", "/settings/voice"],
-      ["Sounds and haptics", "On", "/settings/sounds"],
+      ["Sounds and haptics", null, "/settings/sounds"],
     ] as const;
     for (const [name, hint, href] of rows) {
       const row = page.getByRole("link", { name: new RegExp(`^${name}`) });
-      await expect(row).toContainText(hint);
+      // Sounds and haptics holds two switches, so its row carries no On or Off line.
+      if (hint === null) await expect(row.locator("[data-hint]")).toHaveCount(0);
+      else await expect(row).toContainText(hint);
       await expect(row).toHaveAttribute("href", href);
     }
     // An episode on request is set up in the Create panel, so it has no page here.
