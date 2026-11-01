@@ -304,6 +304,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D293 | On-demand covers are served at /covers | supersedes D263; amends D256, D258 |
 | D294 | Scheduled writer uses Message Batches | amends D209 (step 3 built, step 2 open); D135 ended |
 | D295 | Playback audio session only while Sounds is on | amends D105 |
-| D297 | Offline settings edits stay on the device and send when back online | amends D79, D91, D259 |
+| D299 | Offline settings edits stay on the device and send when back online | amends D79, D91, D259 |
 
 ---

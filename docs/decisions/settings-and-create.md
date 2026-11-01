@@ -360,7 +360,7 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Amends: D101, D129.
 
 
-## D297: a settings edit made without a connection stays on the device and is sent when it returns
+## D299: a settings edit made without a connection stays on the device and is sent when it returns
 
 - Date: 2026-11-01 (the owner: "keep the unsent edits in settings on device and send them when they're back online", or whichever is the best practice; this is the offline-first outbox).
 - Decision: when a settings request ends with no answer and the page stays (the site cannot be reached), the edit is written to `singularity:outbox` (`lib/outbox.ts`), the control keeps its value as saved, and the toast says "Saved on this device. Sends when you're back online." Every page load online, the browser's `online` event and the next change send the outbox oldest first through the same gap and 429 rules as a save, quietly; later changes wait behind it so their order holds. The next page shows kept edits as applied (`readSaved`), however long it was closed, for up to two weeks. An edit the site refuses for good is dropped with one toast naming the reason; one it could not be asked about (a server fault) stays. Storage that refuses the write leaves the old behavior: not saved, with Retry.
