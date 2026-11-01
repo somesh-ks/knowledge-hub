@@ -73,6 +73,15 @@ export const APP_TOPIC_IDS: readonly string[] = [DESIGN_TOPIC_ID, TRENDING_TOPIC
 /** Judging a custom topic costs a model call per candidate, so the number of them is bounded. */
 export const MAX_CUSTOM_TOPICS = 12;
 export const MAX_KEYWORDS = 30;
+/**
+ * The text limits of a topic, kept here once: the site's parser (apps/web configEdit.ts) read its
+ * own smaller copies, so a topic made with the CLI could not be renamed from the page (CFG-01).
+ */
+export const MAX_KEYWORD_CHARS = 60;
+export const MAX_TOPIC_NAME_CHARS = 60;
+export const MAX_TOPIC_DESCRIPTION_CHARS = 400;
+/** Topics one topic.scope op names. */
+export const MAX_SCOPE_IDS = 50;
 
 export const TopicSection = z.object({
   id: SectionId,
@@ -157,9 +166,9 @@ export const Topic = z.preprocess(
   z.object({
     /** Built-in topics use the category enum strings, so scoring and old digests keep their ids. */
     id: IdString,
-    name: z.string().trim().min(1).max(60),
+    name: z.string().trim().min(1).max(MAX_TOPIC_NAME_CHARS),
     /** What belongs in the topic. Read by the judge for a custom topic, so it should be concrete. */
-    description: z.string().trim().min(1).max(400),
+    description: z.string().trim().min(1).max(MAX_TOPIC_DESCRIPTION_CHARS),
     /**
      * What counts and what does not, in the owner's words (D234). Added to the fit question of a
      * topic Jev judges by fit (custom, Design, general); the twelve built-in categories are judged
@@ -168,7 +177,7 @@ export const Topic = z.preprocess(
     rubric: z.string().trim().min(1).max(600).optional(),
     enabled: z.boolean(),
     /** A candidate must contain one of these (or come from a tagged source) to be judged for a custom topic. */
-    keywords: z.array(z.string().trim().min(1).max(60)).max(MAX_KEYWORDS),
+    keywords: z.array(z.string().trim().min(1).max(MAX_KEYWORD_CHARS)).max(MAX_KEYWORDS),
     section_id: SectionId,
     never_publish: z.boolean(),
     origin: TopicOrigin,

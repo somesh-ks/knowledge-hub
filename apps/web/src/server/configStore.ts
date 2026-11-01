@@ -1,6 +1,7 @@
 import {
   APPLY_DEADLINE_MS,
   applyOpsToDocuments,
+  createLookupHttp,
   lastConfigWrite,
   readConfigDocuments,
   writeConfigDocumentsAt,
@@ -10,6 +11,7 @@ import type { ConfigOp, ConfigReadBody, ConfigResponse } from "../types/contract
 import { type ServerConfig, type ServerEnv, secretsOf } from "./config";
 import { type ConfigDeps, configCooldownSeconds, scheduledTime, updateRunTime } from "./configEdit";
 import { builtHash, type ConfigFiles, storeChanges } from "./configView";
+import { guardedFetch, resolveAll } from "./sourcePreview";
 
 export type { ConfigReadBody };
 
@@ -78,6 +80,11 @@ export async function saveToStore(
     // are applied once more on top of it before the page is told 409, which it cannot resolve.
     // Both attempts share one deadline, sized to the function's time limit.
     const started = Date.now();
+    // Adding a source fetches its page and probes feeds: on the same guard as Source preview, so a
+    // redirect or a name cannot lead the function to an internal address (SEC-01).
+    const discover = {
+      http: createLookupHttp(guardedFetch(deps.lookupFetch ?? fetch, deps.resolve ?? resolveAll)),
+    };
     let result: Awaited<ReturnType<typeof applyOpsToDocuments>> | undefined;
     let written = false;
     let writtenAt: number | null = null;
@@ -89,6 +96,7 @@ export async function saveToStore(
           ops: request.op,
           documents: await readConfigDocuments(sql),
           baseFiles: deps.baseFiles ?? {},
+          discover,
         },
         left,
       );

@@ -2,11 +2,30 @@ import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import type { CommandRun } from "../context.js";
 import { collectHealth, formatHealth, type WorkflowRun } from "../ops/health.js";
-import { readDeploymentCount, readStore, readWatchedHead } from "../ops/healthChecks.js";
+import {
+  readDeploymentCount,
+  readStore,
+  readWatchedHead,
+  SIDE_WORKFLOWS,
+  type SideWorkflow,
+} from "../ops/healthChecks.js";
 import { configStoreUrl } from "../store/configPaths.js";
 
+/** What the checks read from a run: a malformed entry in a hand-made file fails the command, not a check. */
+const isRun = (value: unknown): value is WorkflowRun => {
+  if (typeof value !== "object" || value === null) return false;
+  const run = value as Record<string, unknown>;
+  return (
+    typeof run.databaseId === "number" &&
+    typeof run.status === "string" &&
+    typeof run.createdAt === "string" &&
+    Number.isFinite(Date.parse(run.createdAt)) &&
+    (run.conclusion === null || typeof run.conclusion === "string")
+  );
+};
+
 const USAGE =
-  "Usage: singularity health [--offline] [--site <origin>] [--ceiling-usd <n>] [--runs <gh-run-list.json>] [--perf <perf.json>] [--json]";
+  "Usage: singularity health [--offline] [--site <origin>] [--ceiling-usd <n>] [--runs <gh-run-list.json>] [--side-runs <json>] [--perf <perf.json>] [--json]";
 const DEFAULT_SITE = "https://news.someshks.work";
 /** About three full runs a day: more in 24 hours is a loop or a runaway retry. */
 const DEFAULT_CEILING_USD = 5;
@@ -21,6 +40,7 @@ export const run: CommandRun = async (argv, ctx) => {
     site?: string;
     "ceiling-usd"?: string;
     runs?: string;
+    "side-runs"?: string;
     perf?: string;
   };
   try {
@@ -33,6 +53,7 @@ export const run: CommandRun = async (argv, ctx) => {
         site: { type: "string" },
         "ceiling-usd": { type: "string" },
         runs: { type: "string" },
+        "side-runs": { type: "string" },
         perf: { type: "string" },
       },
     }).values;
@@ -53,9 +74,41 @@ export const run: CommandRun = async (argv, ctx) => {
     try {
       const parsed: unknown = JSON.parse(await readFile(values.runs, "utf8"));
       if (!Array.isArray(parsed)) throw new Error("not a list");
-      runs = parsed as WorkflowRun[];
+      if (!parsed.every(isRun)) throw new Error("an entry is not a workflow run");
+      runs = parsed;
     } catch (error) {
       ctx.log.error(`--runs: ${error instanceof Error ? error.message : "unreadable"}. ${USAGE}`);
+      return 2;
+    }
+  }
+  // The same listing for content.yml, ingest.yml and podcast.yml, as {"content": [...], ...}.
+  let sideRuns: Partial<Record<SideWorkflow, WorkflowRun[]>> | undefined;
+  if (values["side-runs"] !== undefined) {
+    try {
+      const parsed: unknown = JSON.parse(await readFile(values["side-runs"], "utf8"));
+      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+        throw new Error("not an object of lists");
+      }
+      // A key the check does not know (a typo for `content`) would silently turn that check off.
+      const unknown = Object.keys(parsed).filter(
+        (key) => !(SIDE_WORKFLOWS as readonly string[]).includes(key),
+      );
+      if (unknown.length > 0) throw new Error(`unknown workflow ${unknown.join(", ")}`);
+      sideRuns = {};
+      for (const workflow of SIDE_WORKFLOWS) {
+        const list = (parsed as Record<string, unknown>)[workflow];
+        if (list === undefined) continue;
+        if (!Array.isArray(list)) throw new Error(`${workflow} is not a list`);
+        if (!list.every(isRun)) throw new Error(`an entry of ${workflow} is not a workflow run`);
+        // A podcast request is told apart by its title: without one, a newer success would clear any failure.
+        if (workflow === "podcast" && !list.every((run) => run.displayTitle))
+          throw new Error("an entry of podcast has no displayTitle");
+        sideRuns[workflow] = list;
+      }
+    } catch (error) {
+      ctx.log.error(
+        `--side-runs: ${error instanceof Error ? error.message : "unreadable"}. ${USAGE}`,
+      );
       return 2;
     }
   }
@@ -91,6 +144,7 @@ export const run: CommandRun = async (argv, ctx) => {
     ceilingUsd,
     site,
     ...(runs ? { runs } : {}),
+    ...(sideRuns ? { sideRuns } : {}),
     ...(perfPath ? { perf } : {}),
     ...(store ? { store } : {}),
     ...(main ? { main } : {}),

@@ -7,6 +7,7 @@ import { loadSite } from "../lib/site";
 import {
   expireContentManifest,
   isShowingSavedContent,
+  loadPageSite,
   loadStoreSite,
   loadStoreSiteChecked,
   MANIFEST_TTL_MS,
@@ -120,6 +121,144 @@ it("keeps the last content and says so while the store cannot be reached", async
   now = 2 * MANIFEST_TTL_MS + 2;
   expect((await loadStoreSiteChecked(deps))?.saved).toBe(false);
   expect(isShowingSavedContent()).toBe(false);
+});
+
+// Bug: a cold function instance whose Blob store was blocked answered every page 503, so the whole
+// site went down on 2026-10-30 although the build held every briefing.
+it("draws a cold instance from the build's copy when the store cannot be reached, and says so", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  const built = [...store.keys()].filter((key) => key.startsWith("content/"));
+  const bundled = {
+    list: async (dir: string) =>
+      built.map((k) => k.slice(8)).filter((p) => p.startsWith(`${dir}/`)),
+    read: async (path: string) => store.get(`content/${path}`) ?? null,
+  };
+  const expected = (await loadStoreSite({ env: ENV, fetch: fakeFetch, now: () => 0 }))?.entries
+    .length;
+  resetContentRepo();
+  let now = 0;
+  let attempts = 0;
+  const deps = {
+    env: ENV,
+    fetch: async () => {
+      attempts += 1;
+      throw new Error("store blocked");
+    },
+    now: () => now,
+  };
+  const page = await loadPageSite(deps, bundled);
+  expect(page.saved).toBe(true);
+  expect(page.site.entries.length).toBe(expected);
+  expect(isShowingSavedContent()).toBe(true);
+  // Requests in the same window do not each wait on the dead store.
+  const tried = attempts;
+  await loadPageSite(deps, bundled);
+  expect(attempts).toBe(tried);
+
+  now = MANIFEST_TTL_MS + 1;
+  const recovered = await loadPageSite({ ...deps, fetch: fakeFetch }, bundled);
+  expect(recovered.saved).toBe(false);
+  expect(isShowingSavedContent()).toBe(false);
+});
+
+// Bug: a manifest that loaded while its objects answered 500 gave an empty site, which the page then
+// drew as "nothing yet" instead of falling back to this build's copy.
+it("draws the build's copy when the manifest loads but its files cannot be read", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  const built = [...store.keys()].filter((key) => key.startsWith("content/"));
+  const bundled = {
+    list: async (dir: string) =>
+      built.map((k) => k.slice(8)).filter((p) => p.startsWith(`${dir}/`)),
+    read: async (path: string) => store.get(`content/${path}`) ?? null,
+  };
+  const expected = (await loadStoreSite({ env: ENV, fetch: fakeFetch, now: () => 0 }))?.entries
+    .length;
+  resetContentRepo();
+  let objectReads = 0;
+  const fetchWithBrokenFiles = async (url: string): Promise<Response> => {
+    if (new URL(url).pathname === "/content/manifest.json") return fakeFetch(url);
+    if (/\/(Digests|Podcasts)\//.test(url)) objectReads += 1;
+    return new Response(null, { status: 500 });
+  };
+  const page = await loadPageSite({ env: ENV, fetch: fetchWithBrokenFiles, now: () => 0 }, bundled);
+  expect(page.saved).toBe(true);
+  expect(page.site.entries.length).toBe(expected);
+  // The store counts as down after its first failed object: slow reads do not pile up.
+  expect(objectReads).toBe(1);
+});
+
+// Bug (review): the optional run-state file counted as content, so one unreadable state file sent
+// every page to the build's older copy.
+it("keeps the store's content when only the optional run state cannot be read", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  const manifest = JSON.parse(store.get("content/manifest.json") ?? "{}");
+  manifest.files["state/last-run.json"] = "0".repeat(64);
+  store.set("content/manifest.json", JSON.stringify(manifest));
+  const stateBroken = async (url: string): Promise<Response> =>
+    new URL(url).pathname.includes("state/last-run.json")
+      ? new Response(null, { status: 500 })
+      : fakeFetch(url);
+  const page = await loadPageSite(
+    { env: ENV, fetch: stateBroken, now: () => 0 },
+    { list: async () => [], read: async () => null },
+  );
+  expect(page.saved).toBe(false);
+  expect(page.site.entries.length).toBeGreaterThan(0);
+});
+
+// Bug (review): a newer manifest whose objects could not be read discarded the last good site, so
+// the page fell back to a copy as old as the last deploy.
+it("keeps showing the last site it loaded when a newer one cannot be read, and says so", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  let now = 0;
+  const deps = { env: ENV, fetch: fakeFetch, now: () => now };
+  const first = await loadPageSite(deps, { list: async () => [], read: async () => null });
+  expect(first.saved).toBe(false);
+  await fillStore("2026-10-24T13:00:00Z");
+  now = 2 * MANIFEST_TTL_MS;
+  const broken = async (url: string): Promise<Response> =>
+    new URL(url).pathname === "/content/manifest.json" || /tombstones/.test(url)
+      ? fakeFetch(url)
+      : new Response(null, { status: 500 });
+  const page = await loadPageSite(
+    { ...deps, fetch: broken },
+    { list: async () => [], read: async () => null },
+  );
+  expect(page.saved).toBe(true);
+  expect(page.site.entries.length).toBe(first.site.entries.length);
+  expect(page.site.entries.length).toBeGreaterThan(0);
+});
+
+// Bug (review): a deploy with no store configured read as a degraded outage, with the saved-copy
+// notice on every page.
+it("serves the build's copy without calling it saved when no store is configured", async () => {
+  const bundled = { list: async () => [], read: async () => null };
+  const page = await loadPageSite({ env: {}, fetch: fakeFetch, now: () => 0 }, bundled);
+  expect(page.saved).toBe(false);
+  expect(isShowingSavedContent()).toBe(false);
+});
+
+// Bug: requests that reached a cold instance together each waited out the dead store's timeout.
+it("makes one store attempt for requests that arrive together during an outage", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  const built = [...store.keys()].filter((key) => key.startsWith("content/"));
+  const bundled = {
+    list: async (dir: string) =>
+      built.map((k) => k.slice(8)).filter((p) => p.startsWith(`${dir}/`)),
+    read: async (path: string) => store.get(`content/${path}`) ?? null,
+  };
+  resetContentRepo();
+  let attempts = 0;
+  const deps = {
+    env: ENV,
+    fetch: async () => {
+      attempts += 1;
+      throw new Error("store blocked");
+    },
+    now: () => 0,
+  };
+  await Promise.all([1, 2, 3, 4].map(() => loadPageSite(deps, bundled)));
+  expect(attempts).toBe(1);
 });
 
 it("reads the manifest once per window and reloads when it changes", async () => {

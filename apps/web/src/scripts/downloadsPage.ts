@@ -7,7 +7,7 @@
 import { downloadsSummary, SEARCH_FROM } from "../lib/downloads";
 import { normalize, textHasWords } from "../lib/library";
 import { whenIdle } from "./idle";
-import { readDownloads, removeDownload } from "./libraryDownloads";
+import { readDownloads, removeAllDownloads, removeDownload } from "./libraryDownloads";
 import { sendToast } from "./toastEvent";
 
 interface Ask {
@@ -118,10 +118,7 @@ function mount(root: HTMLElement): void {
       title: "Delete all downloads?",
       lede: "They are removed from this device only. You can download them again, unless the podcast was deleted.",
       go: "Delete all",
-      run: async () => {
-        for (const item of await readDownloads({ throwOnError: true }))
-          await removeDownload(item.id);
-      },
+      run: removeAllDownloads,
       done: "All downloads deleted",
     });
   });

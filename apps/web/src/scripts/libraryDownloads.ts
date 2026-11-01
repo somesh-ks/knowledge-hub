@@ -1,7 +1,8 @@
 /**
  * Download for offline listening, from the Library menu. The audio file, the item's page (which
  * carries its data) and its covers go into one Cache Storage cache; public/sw.js answers requests
- * for them from it, Range included. Nothing is removed unasked (lib/downloads.ts). Loaded on the first pick of Download, and at idle to mark the rows.
+ * for them from it, Range included. There is no cap (D281); the Settings > Downloads page removes
+ * them (downloadsPage.ts). Loaded on the first pick of Download, and at idle to mark the rows.
  */
 import {
   AUDIO_CACHE,
@@ -17,7 +18,19 @@ import {
   OLD_AUDIO_CACHE,
   parseDownloads,
   segmentUrls,
+  unlistedPayloads,
 } from "../lib/downloads";
+
+/**
+ * A fetch gives up after this long, so a stalled connection ends in "Could not download" and not in
+ * a spinner that never stops (PWA-01). A turn's file is larger than a lookup or a page.
+ */
+const LOOKUP_MS = 20_000;
+const FILE_MS = 120_000;
+const timed = (milliseconds: number, init: RequestInit = {}): RequestInit => ({
+  ...init,
+  signal: AbortSignal.timeout(milliseconds),
+});
 
 /** How long the worker gets to save the page's scripts before the download counts as done. */
 const WARM_MS = 15_000;
@@ -42,19 +55,48 @@ async function openDownloads(): Promise<Cache> {
 }
 
 /**
- * What this device holds. A read that fails answers an empty list, which is right for showing the
- * list; a caller that deletes passes `throwOnError`, so a failed read is never taken for "nothing
- * saved" and written back over the manifest.
+ * The saved list. `sound` is false when the list is not a clean one: not a list, or an entry that is
+ * not shaped like one. Null when the cache could not be read at all. A lost list and an empty one
+ * differ: pruning on a list that is not sound would delete downloads it cannot see.
  */
-export async function readDownloads(options?: { throwOnError?: boolean }): Promise<Download[]> {
+async function readSavedList(cache: Cache): Promise<{ list: Download[]; sound: boolean } | null> {
+  let saved: Response | undefined;
+  try {
+    saved = await cache.match(MANIFEST_KEY);
+    if (!saved) return { list: [], sound: true };
+    const text = await saved.text();
+    const list = parseDownloads(text);
+    let raw: unknown = null;
+    try {
+      raw = JSON.parse(text);
+    } catch {
+      // Corrupt text: the list is empty and not sound.
+    }
+    return { list, sound: Array.isArray(raw) && raw.length === list.length };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The list a save or a removal starts from. An unreadable cache ends the change before it writes;
+ * a list with entries it cannot read starts the change from the entries it can, so a corrupt list
+ * is repaired by the next save and never locks the page out.
+ */
+async function savedListOrThrow(cache: Cache): Promise<Download[]> {
+  const read = await readSavedList(cache);
+  if (read === null) throw new Error("the saved downloads could not be read");
+  return read.list;
+}
+
+export async function readDownloads(): Promise<Download[]> {
   try {
     if (!("caches" in globalThis)) return [];
     if (!(await caches.has(AUDIO_CACHE)) && !(await caches.has(OLD_AUDIO_CACHE))) return [];
     const cache = await openDownloads();
     const saved = await cache.match(MANIFEST_KEY);
     return saved ? parseDownloads(await saved.text()) : [];
-  } catch (error) {
-    if (options?.throwOnError) throw error;
+  } catch {
     return [];
   }
 }
@@ -86,6 +128,14 @@ async function warmPage(path: string): Promise<void> {
   } catch {
     // The page still opens offline if the worker already has its scripts.
   }
+}
+
+/**
+ * The response with its body already read. A fetch's timeout covers the body too, so a body read
+ * after other slow requests would meet an expired signal and fail the whole save.
+ */
+async function detach(response: Response): Promise<Response> {
+  return new Response(await response.blob(), { headers: response.headers });
 }
 
 export interface DownloadRequest {
@@ -120,24 +170,30 @@ async function mapLimit<T, R>(
 
 async function downloadEpisode(cache: Cache, request: DownloadRequest): Promise<void> {
   const address = lookupAddress(request.id);
-  const lookup = await fetch(address, { headers: { accept: "application/json" } });
+  const lookup = await fetch(
+    address,
+    timed(LOOKUP_MS, { headers: { accept: "application/json" } }),
+  );
   if (!lookup.ok) throw new Error(`lookup ${lookup.status}`);
   const body = (await lookup.json()) as Record<string, unknown>;
   const turns = segmentUrls(body);
   if (!turns) throw new NotReadyError();
-  const page = await fetch(request.page);
-  if (!page.ok) throw new Error(`page ${page.status}`);
+  const pageReply = await fetch(request.page, timed(LOOKUP_MS));
+  if (!pageReply.ok) throw new Error(`page ${pageReply.status}`);
+  const page = await detach(pageReply);
 
   // Four at a time: a 40-turn episode was 80 round trips one after another.
   const files = await mapLimit(turns, 4, async (turn) => {
-    const file = await fetch(turn.url);
+    const file = await fetch(turn.url, timed(FILE_MS));
     if (file.status === 404) throw new NotReadyError();
     if (!file.ok) throw new Error(`audio ${file.status}`);
-    return file;
+    return detach(file);
   });
   // Marks are optional (a turn narrated before they were kept has none): the page estimates.
   const marks = await mapLimit(turns, 4, (turn) =>
-    fetch(marksAddress(request.id, turn.key)).catch(() => null),
+    fetch(marksAddress(request.id, turn.key), timed(LOOKUP_MS))
+      .then((mark) => (mark.ok ? detach(mark) : null))
+      .catch(() => null),
   );
 
   const saved: string[] = [];
@@ -158,7 +214,7 @@ async function downloadEpisode(cache: Cache, request: DownloadRequest): Promise<
       if (mark?.ok) await keep(marksAddress(request.id, turn.key), mark);
     }
     for (const extra of coverAddresses(request.id)) {
-      const cover = await fetch(extra).catch(() => null);
+      const cover = await fetch(extra, timed(LOOKUP_MS)).catch(() => null);
       if (cover?.ok) await keep(extra, cover);
     }
     await keep(request.page, page);
@@ -169,7 +225,7 @@ async function downloadEpisode(cache: Cache, request: DownloadRequest): Promise<
       }),
     );
     // The entry's `audio` is the lookup and its extras every other address, so remove drops them all.
-    const list = addDownload(await readDownloads(), {
+    const list = addDownload(await savedListOrThrow(cache), {
       id: request.id,
       audio: address,
       page: request.page,
@@ -201,8 +257,20 @@ function askToPersist(): void {
     .catch(() => false);
 }
 
-/** Saves one item. Throws when the file cannot be fetched or stored; nothing is kept then. */
+const DOWNLOAD_LOCK = "singularity-downloads";
+
+/**
+ * Saves one item. Throws when the file cannot be fetched or stored; nothing is kept then. One
+ * download at a time across tabs (a Web Lock), so the sweep below never meets one half made and two
+ * tabs never write the list over each other.
+ */
 export async function download(request: DownloadRequest): Promise<void> {
+  const locks = globalThis.navigator?.locks;
+  if (!locks) return saveDownload(request);
+  return locks.request(DOWNLOAD_LOCK, () => saveDownload(request));
+}
+
+async function saveDownload(request: DownloadRequest): Promise<void> {
   askToPersist();
   const cache = await openDownloads();
   if (request.kind === "episode") {
@@ -210,10 +278,11 @@ export async function download(request: DownloadRequest): Promise<void> {
     await warmPage(request.page);
     return;
   }
-  const audio = await fetch(request.audio);
+  const audio = await fetch(request.audio, timed(FILE_MS));
   if (!audio.ok) throw new Error(`audio ${audio.status}`);
-  const page = await fetch(request.page);
-  if (!page.ok) throw new Error(`page ${page.status}`);
+  const pageReply = await fetch(request.page, timed(LOOKUP_MS));
+  if (!pageReply.ok) throw new Error(`page ${pageReply.status}`);
+  const page = await detach(pageReply);
   const extras = coverAddresses(request.id);
   const saved: string[] = [request.audio, request.page];
   try {
@@ -225,13 +294,13 @@ export async function download(request: DownloadRequest): Promise<void> {
     );
     await cache.put(request.page, page);
     for (const extra of extras) {
-      const cover = await fetch(extra).catch(() => null);
+      const cover = await fetch(extra, timed(LOOKUP_MS)).catch(() => null);
       if (cover?.ok) {
         await cache.put(extra, cover);
         saved.push(extra);
       }
     }
-    const list = addDownload(await readDownloads(), {
+    const list = addDownload(await savedListOrThrow(cache), {
       ...request,
       extras: saved.slice(2),
     });
@@ -244,9 +313,42 @@ export async function download(request: DownloadRequest): Promise<void> {
   await warmPage(request.page);
 }
 
+/**
+ * Deletes what a download that never finished left in the cache (PWA-01). Not while one is under
+ * way: its files are cached before its entry is listed.
+ */
+export async function sweepUnlisted(): Promise<number> {
+  try {
+    if (!("caches" in globalThis) || !(await caches.has(AUDIO_CACHE))) return 0;
+    const locks = globalThis.navigator?.locks;
+    // Without locks the caller's check of its own page is all there is: skip rather than risk a
+    // download in another tab.
+    if (!locks) return 0;
+    const swept = await locks.request(DOWNLOAD_LOCK, { ifAvailable: true }, async (lock) => {
+      if (!lock) return 0;
+      const cache = await openDownloads();
+      const read = await readSavedList(cache);
+      // A list that could not be read, or has an entry that cannot be, is not the whole list:
+      // sweeping on it would delete downloads it cannot see.
+      if (read === null || !read.sound) return 0;
+      const listed = read.list;
+      const stray = unlistedPayloads(
+        (await cache.keys()).map((key) => key.url),
+        listed,
+        location.href,
+      );
+      for (const key of stray) await cache.delete(key);
+      return stray.length;
+    });
+    return swept ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 export async function removeDownload(id: string): Promise<void> {
   const cache = await openDownloads();
-  const list = await readDownloads({ throwOnError: true });
+  const list = await savedListOrThrow(cache);
   for (const old of list.filter((item) => item.id === id)) {
     for (const address of addressesOf(old)) await cache.delete(address);
   }
@@ -258,4 +360,10 @@ export async function removeDownload(id: string): Promise<void> {
     }
   }
   await writeDownloads(cache, left);
+}
+
+/** Removes every download, orphans included. An unreadable list ends it before anything is removed. */
+export async function removeAllDownloads(): Promise<void> {
+  const cache = await openDownloads();
+  for (const item of await savedListOrThrow(cache)) await removeDownload(item.id);
 }

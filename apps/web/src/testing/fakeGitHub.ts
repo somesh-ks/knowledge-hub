@@ -16,6 +16,7 @@ export interface FakeReply {
   status?: number;
   json?: unknown;
   text?: string;
+  headers?: Record<string, string>;
 }
 
 export interface FakeGitHub {
@@ -44,11 +45,11 @@ export function createFakeGitHub(): FakeGitHub {
     const reply = typeof route === "function" ? route() : route;
     if (!reply) return new Response("not registered", { status: 404 });
     const status = reply.status ?? 200;
-    if (status === 204) return new Response(null, { status });
+    if (status === 204 || status === 304) return new Response(null, { status });
     if (reply.text !== undefined) return new Response(reply.text, { status });
     return new Response(JSON.stringify(reply.json ?? {}), {
       status,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...reply.headers },
     });
   };
 

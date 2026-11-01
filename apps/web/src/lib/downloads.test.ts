@@ -5,6 +5,7 @@ import {
   type Download,
   parseDownloads,
   segmentUrls,
+  unlistedPayloads,
 } from "./downloads";
 
 const item = (id: string): Download => ({ id, audio: `/${id}.mp3`, page: `/d/${id}`, extras: [] });
@@ -44,5 +45,33 @@ describe("downloads", () => {
     const saved = confirmLookup(lookup) as typeof lookup;
     expect(saved.segments.every((segment) => segment.audio.confirmed === true)).toBe(true);
     expect(segmentUrls({ segments: [{ key: "t0", audio: null }] })).toBeNull();
+  });
+
+  // Bug: a page killed mid-save left cached audio no entry named; the worker served it offline and
+  // removeDownload (listed entries only) never deleted it, so it held the quota for good (PWA-01).
+  it("finds the audio, marks and lookups no download names, and leaves pages and named files", () => {
+    const origin = "https://news.example.com";
+    const named: Download = {
+      id: "ep-1",
+      audio: "/api/narrate?digest=ep-1",
+      page: "/e/ep-1",
+      extras: ["https://blob.example.com/audio/ep-1/seg/t0.0123456789ab.mp3"],
+    };
+    const keys = [
+      `${origin}/e/ep-1`,
+      `${origin}/api/narrate?digest=ep-1`,
+      "https://blob.example.com/audio/ep-1/seg/t0.0123456789ab.mp3",
+      "https://blob.example.com/audio/ep-2/seg/t0.aaaaaaaaaaaa.mp3",
+      `${origin}/api/narrate-marks?digest=ep-2&segment=t0`,
+      `${origin}/api/narrate?digest=ep-2`,
+      `${origin}/d/2026-10-30`,
+      `${origin}/_astro/app.js`,
+      `${origin}/covers/ep-2-512.webp`,
+    ];
+    expect(unlistedPayloads(keys, [named], origin)).toEqual([
+      "https://blob.example.com/audio/ep-2/seg/t0.aaaaaaaaaaaa.mp3",
+      `${origin}/api/narrate-marks?digest=ep-2&segment=t0`,
+      `${origin}/api/narrate?digest=ep-2`,
+    ]);
   });
 });

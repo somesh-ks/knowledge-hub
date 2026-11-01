@@ -12,7 +12,6 @@ import {
   planEpisodeNarration,
   SEGMENT_CACHE_SECONDS,
   segmentMarksPath,
-  segmentPrefix,
 } from "../audio/segmentStore.js";
 import type { SpeechMark, SynthesisRequest } from "../audio/speechify.js";
 import { DEFAULT_MODEL, DEFAULT_OUTPUT_FORMAT, isMarksUnavailable } from "../audio/speechify.js";
@@ -80,18 +79,26 @@ export async function listEpisodeCandidates(
   return (await listEpisodeIds(root)).filter((id) => episodeDay(id) >= today - EPISODE_WINDOW_DAYS);
 }
 
-/** The planned segments the store does not hold yet. One listing of the episode's folder. */
-export async function missingSegments(
+/** Every blob under the episode's folder (pathname to URL), listed once per run so it is one operation, not two. */
+export async function listEpisodeBlobs(
   blob: BlobClient,
-  plan: EpisodePlan,
-): Promise<PlannedSegment[]> {
-  const stored = new Set<string>();
+  episodeId: string,
+): Promise<Map<string, string>> {
+  const stored = new Map<string, string>();
   let cursor: string | undefined;
   do {
-    const page = await blob.list({ prefix: segmentPrefix(plan.id), ...(cursor ? { cursor } : {}) });
-    for (const item of page.blobs) stored.add(item.pathname);
+    const page = await blob.list({ prefix: `audio/${episodeId}/`, ...(cursor ? { cursor } : {}) });
+    for (const item of page.blobs) stored.set(item.pathname, item.url);
     cursor = page.hasMore ? page.cursor : undefined;
   } while (cursor !== undefined);
+  return stored;
+}
+
+/** The planned segments the store does not hold yet, from the episode's one listing. */
+export function missingSegments(
+  stored: ReadonlyMap<string, string>,
+  plan: EpisodePlan,
+): PlannedSegment[] {
   return plan.segments.filter((segment) => !stored.has(segment.path));
 }
 
@@ -154,6 +161,7 @@ export async function publishEpisodeOpus(
   deps: PublishAudioDeps,
   plan: EpisodePlan,
   made: ReadonlyMap<string, Uint8Array>,
+  stored?: ReadonlyMap<string, string>,
 ): Promise<"published" | "present" | "skipped"> {
   const { transcodeEpisodeOpus, fetchAudio } = deps;
   if (!transcodeEpisodeOpus || !fetchAudio) return "skipped";
@@ -162,16 +170,7 @@ export async function publishEpisodeOpus(
       plan.id,
       plan.segments.map((segment) => segment.path),
     );
-    const urls = new Map<string, string>();
-    let cursor: string | undefined;
-    do {
-      const page = await deps.blob.list({
-        prefix: `audio/${plan.id}/`,
-        ...(cursor ? { cursor } : {}),
-      });
-      for (const item of page.blobs) urls.set(item.pathname, item.url);
-      cursor = page.hasMore ? page.cursor : undefined;
-    } while (cursor !== undefined);
+    const urls = stored ?? (await listEpisodeBlobs(deps.blob, plan.id));
     if (urls.has(address.manifestPath)) return "present";
 
     const mp3s: Uint8Array[] = [];
@@ -217,16 +216,18 @@ async function processEpisode(
 ): Promise<Outcome> {
   let missing: PlannedSegment[];
   let plan: EpisodePlan;
+  let stored: Map<string, string>;
   try {
     plan = planEpisodeNarration(await readFile(join(deps.root, episodeRelPath(id)), "utf8"), env);
     if (plan.id !== id) throw new Error(`${episodeRelPath(id)} holds episode ${plan.id}`);
-    missing = await missingSegments(deps.blob, plan);
+    stored = await listEpisodeBlobs(deps.blob, id);
+    missing = missingSegments(stored, plan);
   } catch (error) {
     return failed(id, "read")(error);
   }
   if (missing.length === 0) {
     // Complete before this run: an episode made before Opus gets its file now.
-    await publishEpisodeOpus(deps, plan, new Map());
+    await publishEpisodeOpus(deps, plan, new Map(), stored);
     return { status: "skipped", digestId: id, reason: "complete" };
   }
 
@@ -288,7 +289,7 @@ async function processEpisode(
       }
     }
   }
-  await publishEpisodeOpus(deps, plan, made);
+  await publishEpisodeOpus(deps, plan, made, stored);
   return {
     status: "published",
     digestId: id,
