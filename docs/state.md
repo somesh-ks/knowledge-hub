@@ -19,7 +19,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 
 ## Not working or unverified
 
-- Blob on Pro trial since 10-30 (D251, D256). closed when: ops stay under 1,000 a month.
+- Blob on Pro trial since 10-30, ending 11-13 (D251, D256). Plan call (Pro, or Hobby with Blob under about 1,000 ops a month and under 70 deploys a day) at 11-06 to 11-08, read from the Vercel Usage tab, which is the only Blob op count (none in code). closed when: the plan is chosen and ops stay under 1,000 a month.
 - Queue plays in place (D277). closed when: a third-item tap keeps the bar up.
 - Expressive style (#506; D268, D274, D275, D278) with a Style select in Appearance. closed when: a style chosen on a real phone survives a reload and an app restart.
 - Voice list (D276): closed when: a voice is heard from its list on his iPhone.
@@ -49,12 +49,14 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Config saves go through the config store (D149, D296); `config.yml` has nothing left to commit. Never seen live: `topic.scope`, rename or move, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics, episode delete and regenerate. closed when: each shows in the store row and on a second device.
 - Admin env (D257): the reader needs `ADMIN_SESSION_SECRET`. closed when: `/api/health` answers 401 signed out.
 - Owner config out of git (D296, built, unmerged until the owner's review). closed when: after the merge the next scheduled daily's gate log says `config store:` and it publishes, the Vercel build log says `store on; from the store:`, audio publishing keeps the owner's voice, and the cron answers 200.
-- Production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 10-14. closed when: `doctor --online` accepts it.
+- Config store (D149, D296): Vercel has `SINGULARITY_CONFIG_STORE` and `DATABASE_URL` (checked 11-01); the Actions variable could not be read, so `health` faults `config_store_split` when the site and runs disagree. closed when: a phone's edit shows on a laptop and health passes the config-store line.
+- Production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 10-14 (`doctor --online` tests it and its expiry; write access it cannot test). closed when: `doctor --online` accepts it.
 - 35 older items parked in history (`#parked`, 10-21 to 10-28) and 10 more ([2026-10-31 trim](history/2026-10-31-state-trim.md)). closed when: each closes.
 
 ## Known risks
 
 - Vercel storage near 10 GB. closed when: explained.
+- `main` has no ruleset: `.github/rulesets/main.json` was never imported (runbook, branch protection). closed when: the rulesets API lists it.
 - No passphrase (D160): anyone with the URL can run, narrate, delete and edit config, within the caps.
 - Budget counters can read below real spend: workflow and site count apart against one Speechify allowance.
 - A Catch up that fails after its episode is committed (the audio job, or a late Cancel) frees its slot in the two-a-day cap (D213); the 12-a-day policy still bounds it.
