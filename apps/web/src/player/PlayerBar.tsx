@@ -9,6 +9,7 @@ import {
   recordingKind,
   toggleLabel,
 } from "./core/playerCopy";
+import { heldTap } from "./core/heldTap";
 import { getPlayerStore } from "./core/playerRuntime";
 import { playerSheet } from "./core/playerSheet";
 import { dockSeekKeyValue, fractionOfTime, scrubberValueText } from "./core/scrubberMath";
@@ -326,7 +327,7 @@ export default function PlayerBar() {
           type="button"
           aria-label="Previous story"
           aria-disabled={itemCount === 0 || (state.itemIndex < 0 && atStart) || undefined}
-          onClick={() => store.previous()}
+          {...heldTap(() => store.previous())}
         >
           <Icon name="skipBack" />
         </button>
@@ -338,7 +339,7 @@ export default function PlayerBar() {
           data-loading={String(state.buffering)}
           aria-label={toggleLabel(state)}
           aria-busy={state.buffering || undefined}
-          onClick={() => store.toggle()}
+          {...heldTap(() => store.toggle())}
         >
           <PlayPauseGlyph status={state.status} error={state.error} />
           <span className="spinner" aria-hidden="true" />
@@ -348,7 +349,7 @@ export default function PlayerBar() {
           type="button"
           aria-label="Next story"
           aria-disabled={isLastItem || undefined}
-          onClick={() => isLastItem || store.next()}
+          {...heldTap(() => isLastItem || store.next())}
         >
           <Icon name="skipForward" />
         </button>

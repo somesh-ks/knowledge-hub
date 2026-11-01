@@ -53,7 +53,7 @@ test.describe("opening by gesture", () => {
   });
 });
 
-test("a flick down on the header or a pull down on the cover dismisses the page", async ({
+test("a flick down on the header, a pull down on the cover or on the controls below the seek strip dismisses the page", async ({
   player,
   finger,
 }) => {
@@ -67,6 +67,13 @@ test("a flick down on the header or a pull down on the cover dismisses the page"
   await player.openPlayer();
   const cover = await coverSpot(player);
   await finger.drag(line(cover, { x: cover.x, y: cover.y + 260 }, 3), 8);
+  await player.collapsed();
+  // The thumb's zone too (owner, 2026-11-01): a pull down from the transport, below the seek strip.
+  await player.dockSettled();
+  await player.openPlayer();
+  const play = player.dialog.getByRole("button", { name: /^Play|^Pause/ }).first();
+  const transport = center(await player.boxOf(play));
+  await finger.drag(line(transport, { x: transport.x, y: transport.y + 240 }, 3), 8);
   await player.collapsed();
 });
 
