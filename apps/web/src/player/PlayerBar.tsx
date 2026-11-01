@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { chapterMask } from "./core/chapterMask";
 import { formatClock } from "./core/formatTime";
+import { heldTap } from "./core/heldTap";
 import {
   errorSummary,
   INTERRUPTED_LINE,
@@ -9,7 +10,6 @@ import {
   recordingKind,
   toggleLabel,
 } from "./core/playerCopy";
-import { heldTap } from "./core/heldTap";
 import { getPlayerStore } from "./core/playerRuntime";
 import { playerSheet } from "./core/playerSheet";
 import { dockSeekKeyValue, fractionOfTime, scrubberValueText } from "./core/scrubberMath";
