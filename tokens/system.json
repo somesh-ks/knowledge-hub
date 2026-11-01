@@ -4080,7 +4080,7 @@
       "tier": "semantic",
       "type": "singularity-haptic",
       "light": "pattern tick",
-      "role": "A long run beginning: Generate, Catch up."
+      "role": "A run beginning: Generate, Catch up, play."
     },
     {
       "name": "haptic-success",

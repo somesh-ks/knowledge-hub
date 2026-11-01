@@ -300,5 +300,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D286 | Press ripple | |
 | D287 | Column and list centred together | amends D229 |
 | D289 | Every press is felt | amends D273 |
+| D290 | Haptics are subtle and follow the sounds | amends D273, D289 |
 
 ---
