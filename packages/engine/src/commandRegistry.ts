@@ -48,6 +48,18 @@ reviewed lean.json into config/sources.json and config/sources.user.json. Uses T
     load: async () => (await import("./commands/sources.js")).run,
   },
   {
+    name: "batch-settle",
+    summary: "Read what a run's open Message Batches billed into its spend",
+    help: `Usage: singularity batch-settle
+
+run.yml's step before Commit (D294, audit C6), which also runs when the job is cancelled. Each batch
+the write stage sent and did not read (it gave up waiting, or the job was cancelled) is cancelled,
+waited for, and its tokens added to .cache/run/spend.json at the batch price, so the ledger and the
+run log count them. Without a list of open batches it does nothing. Never fails the run. Uses
+ANTHROPIC_API_KEY.`,
+    load: async () => (await import("./commands/batchSettle.js")).run,
+  },
+  {
     name: "log-run",
     summary: "Write the run that just ended, with each stage's time and cost, to Neon",
     help: `Usage: singularity log-run --result <success|failure|cancelled> [--outcome <published|nothing>]
