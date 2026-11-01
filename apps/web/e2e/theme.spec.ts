@@ -156,7 +156,12 @@ test.describe("theme", () => {
     const before = covers.length;
     await expect.poll(fill).not.toBe(inDefault);
     expect(covers.length).toBe(before);
+    // The reader's hue turns them too.
+    const styled = await fill();
+    await page.evaluate(() => document.documentElement.style.setProperty("--hue-shift", "120"));
+    await expect.poll(fill).not.toBe(styled);
     await page.evaluate(() => {
+      document.documentElement.style.removeProperty("--hue-shift");
       delete document.documentElement.dataset.style;
     });
     await expect.poll(fill).toBe(inDefault);
