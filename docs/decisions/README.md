@@ -158,5 +158,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D294 | Scheduled writer uses Message Batches | amends D209 (step 3 built, step 2 open); D135 ended |
 | D295 | Playback audio session only while Sounds is on | amends D105 |
 | D297 | A section may stand over its allowance only as far as the floor needs | amends D35 |
+| D302 | Pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked | active |
 
 ---
