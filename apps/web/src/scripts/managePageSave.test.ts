@@ -781,6 +781,33 @@ describe("edits kept on the device while the site cannot be reached (CFG-04)", (
     expect(toasts).toEqual([expect.objectContaining({ message: TIME_REFUSED })]);
   });
 
+  // Bug (CodeRabbit on #550): an op_index outside the request mapped to the last entry and dropped it, and
+  // an edit kept just ahead of a clock stepped back was discarded on the next read.
+  it("chases down the entry at fault when the refusal names no op of the request", async () => {
+    const at = Date.now();
+    localStorage.setItem(
+      OUTBOX_KEY,
+      JSON.stringify([
+        { at, ops: [{ op: "source.set", id: "a", enabled: false }] },
+        { at: at + 1, ops: [{ op: "source.set", id: "b", enabled: false }] },
+      ]),
+    );
+    answer = 202;
+    replies = [[400, { op_index: 99 }]];
+    const done = drainOutbox();
+    await vi.advanceTimersByTimeAsync(GAP_MS * 3);
+    await done;
+    expect(posted.map((ops) => ops.length)).toEqual([2, 1, 1]);
+    expect(readOutbox()).toEqual([]);
+    expect(toasts).toEqual([]);
+  });
+
+  it("keeps an edit made just ahead of a clock that was stepped back", () => {
+    const edit = { op: "schedule.set", hour: 9 };
+    localStorage.setItem(OUTBOX_KEY, JSON.stringify([{ at: Date.now() + 60_000, ops: [edit] }]));
+    expect(outboxOps()).toEqual([edit]);
+  });
+
   it("ignores stored edits that are not edits, and still shows the good ones", () => {
     localStorage.setItem(
       OUTBOX_KEY,

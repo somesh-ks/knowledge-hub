@@ -571,7 +571,8 @@ async function sendOutbox(): Promise<void> {
     }
     if (answer.status === 202) {
       lastSent = Date.now();
-      dropOldest(count);
+      // Storage refusing the removal would send the same entries again: leave them for a later try.
+      if (!dropOldest(count)) return;
       solo = false;
       remember(
         batch.ops,
@@ -592,10 +593,18 @@ async function sendOutbox(): Promise<void> {
     if (answer.status !== 400 && answer.status !== 409) return;
     // A refusal that names its op takes out that edit alone: the server wrote none of the request, so
     // the others go out again next time. One that does not is chased down by sending the oldest entry alone.
-    const named = (answer.body as { op_index?: unknown } | undefined)?.op_index;
+    const body = answer.body as { op_index?: unknown } | undefined;
+    const sent = entries.slice(0, count).reduce((sum, entry) => sum + entry.ops.length, 0);
+    const named =
+      typeof body?.op_index === "number" &&
+      Number.isInteger(body.op_index) &&
+      body.op_index >= 0 &&
+      body.op_index < sent
+        ? body.op_index
+        : null;
     let at = 0;
     let offset: number | null = null;
-    if (typeof named === "number") {
+    if (named !== null) {
       let before = 0;
       for (; at < count - 1; at += 1) {
         const next = before + (entries[at]?.ops.length ?? 0);
@@ -603,13 +612,13 @@ async function sendOutbox(): Promise<void> {
         before = next;
       }
       offset = named - before;
-      if (offset < 0 || offset >= (entries[at]?.ops.length ?? 0)) offset = null;
     } else if (count > 1) {
       solo = true;
       continue;
     }
     const refused = entries[at];
-    if (refused) removeOp(refused, offset);
+    // Storage refusing the removal would send the refused entry again, and toast again: stop here.
+    if (refused && !removeOp(refused, offset)) return;
     solo = false;
     const reason = failureText(answer.status, answer.body).replace(/ Not saved yet\.$/, "");
     sendToast({ message: `A change made offline was not saved. ${reason}`, kind: "error" });

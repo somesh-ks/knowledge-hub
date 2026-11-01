@@ -31,7 +31,8 @@ export function parseOutbox(raw: string | null, now: number): OutboxEntry[] {
     for (const entry of parsed) {
       const { at, ops } = (entry ?? {}) as { at?: unknown; ops?: unknown };
       if (typeof at !== "number" || !Array.isArray(ops)) continue;
-      if (at > now || now - at >= OUTBOX_TTL_MS) continue;
+      // A clock stepped back leaves a just-kept edit slightly ahead of now: it stays. Only an absurd date goes.
+      if (Math.abs(now - at) >= OUTBOX_TTL_MS) continue;
       // Storage can hold anything: an entry keeps only the edits that are edits.
       const valid = ops.filter(isOp);
       if (valid.length > 0) kept.push({ at, ops: valid });
@@ -76,26 +77,26 @@ export function appendOutbox(ops: readonly ConfigOp[], now = Date.now()): boolea
   return writeOutbox([...readOutbox(now), { at: now, ops: [...ops] }]);
 }
 
-/** Takes the oldest `count` entries out, once they were sent or refused for good. */
-export function dropOldest(count = 1, now = Date.now()): void {
-  writeOutbox(readOutbox(now).slice(count));
+/** Takes the oldest `count` entries out, once they were sent or refused for good. False when storage refuses. */
+export function dropOldest(count = 1, now = Date.now()): boolean {
+  return writeOutbox(readOutbox(now).slice(count));
 }
 
 /**
  * Takes one refused edit out of the entry that held it (`offset` is its place in that entry), or the
- * whole entry when `offset` is null or it was the last edit. Reads the outbox again first: another tab
+ * whole entry when `offset` is null or it was the last edit. False when storage refuses. Reads the outbox again first: another tab
  * may have kept more edits while the request was away, and those stay.
  */
-export function removeOp(entry: OutboxEntry, offset: number | null, now = Date.now()): void {
+export function removeOp(entry: OutboxEntry, offset: number | null, now = Date.now()): boolean {
   const signature = JSON.stringify(entry.ops);
   const entries = readOutbox(now);
   const index = entries.findIndex(
     (candidate) => candidate.at === entry.at && JSON.stringify(candidate.ops) === signature,
   );
-  if (index < 0) return;
+  if (index < 0) return true;
   const target = entries[index] as OutboxEntry;
   const ops = offset === null ? [] : target.ops.filter((_, at) => at !== offset);
-  writeOutbox(
+  return writeOutbox(
     ops.length > 0
       ? entries.map((candidate, at) => (at === index ? { at: target.at, ops } : candidate))
       : entries.filter((_, at) => at !== index),
