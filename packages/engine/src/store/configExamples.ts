@@ -1,5 +1,6 @@
-import { copyFile, mkdir, stat } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
+import { readFile, stat } from "node:fs/promises";
+import { basename, join } from "node:path";
+import { writeFileAtomic } from "../state/atomicWrite.js";
 import { CONFIG_DOCUMENT_PATHS } from "./configPaths.js";
 
 /**
@@ -48,8 +49,8 @@ export async function missingConfigFiles(root: string): Promise<string[]> {
 export async function copyMissingExamples(root: string): Promise<string[]> {
   const filled: string[] = [];
   for (const path of await missingConfigFiles(root)) {
-    await mkdir(dirname(join(root, path)), { recursive: true });
-    await copyFile(join(root, examplePath(path)), join(root, path));
+    // Atomic: a half-written file would count as present and never be repaired.
+    await writeFileAtomic(join(root, path), await readFile(join(root, examplePath(path)), "utf8"));
     filled.push(path);
   }
   return filled;

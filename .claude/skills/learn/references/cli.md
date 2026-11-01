@@ -8,7 +8,7 @@
 | :--- | :--- | :--- |
 | `D learn --schema` | 0 | JSON Schema of the patch, about 90 lines. All eight fields are listed as required, so always write all of them. `weight_deltas` keys are the ten categories; each delta is a number from -1 to 1. Lists hold at most 10 entries; keywords and authors at most 60 characters, disliked patterns at most 80; `input` is 1 to 500 characters. |
 | `D learn --apply <patch.json> --dry-run` | 0 | Writes nothing. stdout: one `+ <change>` line per change. stderr: `warn: Clamped: ...` lines when the CLI had to clamp. When nothing would change: `info: No changes: the patch matched the current preferences.` and no diff. |
-| `D learn --apply <patch.json>` | 0, 1 | Writes `config/preferences.json` only (2-space JSON, trailing newline) and appends one `feedback_history` entry. Prints the same diff, then `info: Updated config/preferences.json. Review the diff, then commit as "chore(prefs): ...".` Exit 1 and `singularity: learn failed: <first line>` when the patch is unreadable or breaks the schema; the first line of a schema error is often just `[`. |
+| `D learn --apply <patch.json>` | 0, 1 | Writes the stored preferences (the config store when it is on, and `config/preferences.json` as 2-space JSON with a trailing newline) and appends one `feedback_history` entry. Prints the same diff, then `info: Updated config/preferences.json.` (store off) or `info: Updated config/preferences.json and the config store.` (store on). Commits nothing. Exit 1 and `singularity: learn failed: <first line>` when the patch is unreadable or breaks the schema; the first line of a schema error is often just `[`. |
 
 `--commit` and `--no-push` are accepted and do nothing: the preferences are not in git (D296).
 

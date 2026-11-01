@@ -32,6 +32,7 @@ import { formatReading, summarize } from "../metrics/summary.js";
 import { readTimings } from "../podcast/timings.js";
 import { listEpisodeIds } from "../publish/publishEpisodes.js";
 import { readConfigDocuments } from "../store/configDocs.js";
+import { REQUIRED_CONFIG_DOCUMENTS } from "../store/configExamples.js";
 import {
   CONFIG_DOCUMENT_PATHS,
   type ConfigDocument,
@@ -248,6 +249,15 @@ export async function checkConfigStore(
 ): Promise<void> {
   const paths: readonly string[] = CONFIG_DOCUMENT_PATHS;
   const known = documents.filter((document) => paths.includes(document.path));
+  const present = new Set(known.map((document) => document.path));
+  const lacking = REQUIRED_CONFIG_DOCUMENTS.filter((path) => !present.has(path));
+  if (lacking.length > 0) {
+    sink.warn(
+      "config_store_missing",
+      "integrity",
+      `The config store has no row for ${lacking.join(", ")}: a run stops until it is seeded (singularity config seed).`,
+    );
+  }
   let drifted = false;
   const fault = (text: string): void => {
     drifted = true;
@@ -270,7 +280,8 @@ export async function checkConfigStore(
       }
     }
   }
-  if (!drifted) sink.passed.push(`the ${known.length} stored config documents parse`);
+  if (!drifted && lacking.length === 0)
+    sink.passed.push(`the ${known.length} stored config documents parse`);
 }
 
 /**

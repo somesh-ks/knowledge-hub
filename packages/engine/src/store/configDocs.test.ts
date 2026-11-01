@@ -33,7 +33,7 @@ describe("hydrateConfig", () => {
     await writeFile(join(root, "config/schedule.json"), '{"hour":7}\n');
     await writeFile(join(root, "config/preferences.json"), '{"weights":{}}\n');
 
-    const changed = await hydrateConfig(
+    const { changed, usable } = await hydrateConfig(
       root,
       fakeStore([
         { path: "config/topics.json", content: '{"topics":[]}\n' },
@@ -46,6 +46,8 @@ describe("hydrateConfig", () => {
     );
 
     expect(changed).toEqual(["config/topics.json"]);
+    // Only a usable row counts as the store holding the document: the file kept for a bad row does not.
+    expect(usable).toEqual(["config/topics.json"]);
     expect(await readFile(join(root, "config/topics.json"), "utf8")).toBe('{"topics":[]}\n');
     expect(await readFile(join(root, "config/schedule.json"), "utf8")).toBe('{"hour":7}\n');
     expect(await readFile(join(root, "config/preferences.json"), "utf8")).toBe('{"weights":{}}\n');

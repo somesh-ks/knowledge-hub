@@ -66,10 +66,15 @@ function isJson(text: string): boolean {
  * never written (a stray path must not reach `.env`, `Digests/` or outside the checkout), and a row
  * that is not JSON is skipped so the loaders keep the file there. A file with no row is kept. The
  * store is the owner's only copy (D296): a file that differs is replaced, and the files are not in
- * git, so nothing in the checkout can hold an edit the store lacks. Returns the paths whose file changed.
+ * git, so nothing in the checkout can hold an edit the store lacks. Returns the paths whose file changed, and the paths the store holds a usable row for.
  */
-export async function hydrateConfig(root: string, sql: SqlClient, log: Logger): Promise<string[]> {
+export async function hydrateConfig(
+  root: string,
+  sql: SqlClient,
+  log: Logger,
+): Promise<{ changed: string[]; usable: string[] }> {
   const changed: string[] = [];
+  const usable: string[] = [];
   for (const document of await readConfigDocuments(sql)) {
     if (!KNOWN.has(document.path)) {
       log.warn(`config store: ignored a row for ${JSON.stringify(document.path)}`);
@@ -79,12 +84,13 @@ export async function hydrateConfig(root: string, sql: SqlClient, log: Logger): 
       log.warn(`config store: ${document.path} is not JSON; kept the file`);
       continue;
     }
+    usable.push(document.path);
     const file = join(root, document.path);
     if ((await readText(file)) === document.content) continue;
     await writeFileAtomic(file, document.content);
     changed.push(document.path);
   }
-  return changed;
+  return { changed, usable };
 }
 
 async function readText(path: string): Promise<string | null> {

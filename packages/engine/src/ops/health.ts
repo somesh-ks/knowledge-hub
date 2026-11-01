@@ -424,7 +424,7 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
       fault(
         "config_store_unread",
         "integrity",
-        `The config store is on but its documents did not read (not seeded, or no permission?): ${documents.error}. Runs then stop, as the owner's config is not in git.`,
+        `The config store is on but its documents did not read (not seeded, or no permission?): ${documents.error}. A machine without its own config files then stops, as the owner's config is not in git.`,
       );
     } else if (documents) {
       await checkConfigStore(documents, { fault, warn, passed });

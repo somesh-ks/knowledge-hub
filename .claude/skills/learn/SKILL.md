@@ -61,7 +61,7 @@ When the helper capped or deferred anything, say it plainly: the limit is one st
 
 Ask once: apply or cancel. On a yes run `D learn --apply <path>`; it writes the stored preferences (the file too, on a machine that has one) and commits nothing.
 
-Exit 0 prints `Updated config/preferences.json and the config store.` On exit 1, relay the reason in one line and do not retry blindly: a store that cannot be read stops it (run it again later). The error `learn failed: [` means the patch broke the schema: rebuild it with `P` using category names from step 2.
+Exit 0 prints `Updated config/preferences.json.` (store off) or `Updated config/preferences.json and the config store.` (store on); either is success. On exit 1, relay the reason in one line and do not retry blindly: a store that cannot be read stops it (run it again later). The error `learn failed: [` means the patch broke the schema: rebuild it with `P` using category names from step 2.
 
 ## 6. Report
 

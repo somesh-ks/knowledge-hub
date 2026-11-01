@@ -231,6 +231,20 @@ describe("GET /api/cron/run", () => {
   });
 
   // The bug: a store that never answers held the call until Vercel killed it, with nothing logged.
+  // The bug it prevents: a store with no schedule row (wiped, or never seeded) fell to the default
+  // schedule and dispatched a run that then stopped at its own config check: a failed run each hour.
+  it("with the config store on but holding no schedule row, starts nothing and answers 503", async () => {
+    const { github } = setup({ lastRun: lastRun("2026-10-08T11:58:00.000Z") });
+    const result = await handleCron(BEARER, {
+      env: { ...env, DATABASE_URL: "postgres://fake", SINGULARITY_CONFIG_STORE: "postgres" },
+      fetch: github.fetch,
+      now: () => new Date("2026-10-10T05:30:00Z"),
+      connectConfigStore: async () => ({ query: async () => [] }),
+    });
+    expect(result.status).toBe(503);
+    expect(dispatches(github)).toHaveLength(0);
+  });
+
   // It gives up after the wait and answers 503, which Vercel's cron log shows.
   it("with the config store hanging, answers 503 once it has waited long enough", async () => {
     // The store module loads first and is not on the clock; load it so the timer is armed at once.

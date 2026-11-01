@@ -15,8 +15,9 @@ const fixtures = process.env.SINGULARITY_FIXTURES === "1" || process.env.DISPATC
 // them, and the store is never asked.
 const env = { ...process.env };
 if (fixtures) {
-  delete env.SINGULARITY_CONFIG_STORE;
-  delete env.DISPATCH_CONFIG_STORE;
+  // Empty, not deleted: a deleted variable would come back from a local .env.
+  env.SINGULARITY_CONFIG_STORE = "";
+  env.DISPATCH_CONFIG_STORE = "";
 }
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const pulled = spawnSync("npm", ["run", "--silent", "singularity", "--", "config", "pull"], {

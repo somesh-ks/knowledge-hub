@@ -77,8 +77,12 @@ async function readSchedule(
       const stored = await Promise.race([readStoredSchedule(storeUrl, deps), late]).finally(() =>
         clearTimeout(timer),
       );
-      // A row that is not JSON is skipped, as the run's own copy skips it: the defaults stand.
-      return stored !== null && parseJson(stored, (value) => value) !== null ? stored : null;
+      // No row, or one that is not JSON: the run this would start stops at its own config check, so
+      // nothing is dispatched.
+      if (stored === null || parseJson(stored, (value) => value) === null) {
+        throw new StoreUnreadable();
+      }
+      return stored;
     } catch (error) {
       deps.log?.(`config store unreachable: ${describeError(error, [storeUrl])}`);
       throw new StoreUnreadable();

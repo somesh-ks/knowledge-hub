@@ -387,6 +387,34 @@ describe("the owner's config is not in git (D296)", () => {
     expect(err.join("")).toContain("config/schedule.json");
   });
 
+  // The bug it prevents: hydration keeps a file the store has no row for, so a stale schedule left
+  // on a machine would pass a file-exists check while the store holds nothing for it.
+  it("stops a run on a stale file when the store has no row for it", async () => {
+    for (const path of CONFIG_DOCUMENT_PATHS) {
+      await mkdir(dirname(join(dir, path)), { recursive: true });
+      await writeFile(join(dir, path), "{}\n");
+    }
+    const err: string[] = [];
+    const ran: string[] = [];
+    const io = {
+      ...downIo({ value: 0 }, err, ran),
+      connectConfigStore: async () => ({ query: async () => [] }),
+    };
+    expect(await runCli(["run", "--stage", "gate"], io)).toBe(1);
+    expect(ran).toEqual([]);
+  });
+
+  // The bug it prevents: a production run whose store switch went missing would read no config and
+  // build the briefing from the loaders' defaults.
+  it("stops a run with the store off when the checkout holds no config", async () => {
+    const err: string[] = [];
+    const ran: string[] = [];
+    const io = { ...downIo({ value: 0 }, err, ran), env: {} };
+    expect(await runCli(["run", "--stage", "gate"], io)).toBe(1);
+    expect(ran).toEqual([]);
+    expect(err.join("")).toContain("config pull");
+  });
+
   it("lets a machine that holds its own config files go on when the store is down", async () => {
     for (const path of CONFIG_DOCUMENT_PATHS) {
       await mkdir(dirname(join(dir, path)), { recursive: true });

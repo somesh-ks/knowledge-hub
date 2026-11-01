@@ -384,7 +384,7 @@ The owner's config (sources, topics, queries, preferences, schedule, structure, 
 
 The files are not in git, so a fresh checkout has none. `npm run singularity -- config pull` fills `config/`: with `DATABASE_URL` and `SINGULARITY_CONFIG_STORE=postgres` in `.env` it copies the stored documents, and without them it copies `config/examples/`. The site's build runs it first (`apps/web` `prebuild`). To start a store of your own, pull the examples, edit them, then `npm run singularity -- config seed`.
 
-If the database is down while the store is on, pages show the build's copy and an edit answers "unavailable" and stays pending on the page. A run, a podcast, an ingest, a publish or a build stops when it holds no config files; the cron answers 503. Nothing is made from defaults.
+If the database is down while the store is on, pages show the build's copy and an edit answers "unavailable" and stays pending on the page. A run, a podcast, an ingest or a build stops when it holds no config files; the cron answers 503. Nothing is made from defaults.
 
 ## 12. Branch rules on `main` (D175)
 

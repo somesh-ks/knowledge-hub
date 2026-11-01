@@ -235,14 +235,13 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
     if (storeUrl !== null) {
       try {
         const sql = await (io.connectConfigStore ?? connectConfigStore)(storeUrl);
-        const changed = await hydrateConfig(root, sql, log);
+        const { changed, usable } = await hydrateConfig(root, sql, log);
         log.info(`config store: ${changed.length === 0 ? "files current" : changed.join(", ")}`);
         await cacheExperimentFlags(root, sql, log);
         // A store that answers but lacks (or holds unusable) a required document would leave the
-        // loaders on defaults the owner never chose: stop, as for a store that is down.
-        const lacking = (await missingConfigFiles(root)).filter((path) =>
-          REQUIRED_CONFIG_DOCUMENTS.includes(path),
-        );
+        // loaders on defaults, or on a stale file, the owner never chose: stop, as for a store that
+        // is down. The file on disk does not count; only the row does.
+        const lacking = REQUIRED_CONFIG_DOCUMENTS.filter((path) => !usable.includes(path));
         if (lacking.length > 0 && spec.name !== "health") {
           err(
             `singularity: the config store has no usable ${lacking.join(", ")}. Seed it (singularity config seed) or fix the row.\n`,
@@ -259,6 +258,16 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
           return 1;
         }
         log.warn(`config store unreachable, using the files here: ${reason}`);
+      }
+    } else {
+      // Store off (a fork, or a production run whose switch went missing): a checkout holds no
+      // owner config, and a run on the loaders' defaults is not the owner's briefing.
+      const missing = await missingConfigFiles(root);
+      if (missing.length > 0 && spec.name !== "health") {
+        err(
+          `singularity: config/ is missing ${missing.join(", ")} and the config store is off. Run: npm run singularity -- config pull\n`,
+        );
+        return 1;
       }
     }
   }

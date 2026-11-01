@@ -409,7 +409,7 @@ async function runPull(ctx: CommandContext, deps: ConfigDeps): Promise<number> {
   if (url !== null) {
     try {
       const sql = await (deps.connectConfigStore ?? connectConfigStore)(url);
-      pulled = await hydrateConfig(ctx.root, sql, ctx.log);
+      pulled = (await hydrateConfig(ctx.root, sql, ctx.log)).changed;
     } catch (error) {
       const missing = await missingConfigFiles(ctx.root);
       if (missing.length > 0) {

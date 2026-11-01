@@ -720,6 +720,10 @@ describe("singularity health", () => {
         .filter((each) => each.code === "config_store_drift" && each.severity === severity)
         .map((each) => each.message.match(/config\/[a-z./-]+\.json/)?.[0]);
     expect(drift("fault")).toEqual(["config/queries.json", "config/topics.json"]);
+    // No preferences row: reported, since a run stops on it and "all documents parse" would mislead.
+    expect(report.findings.find((each) => each.code === "config_store_missing")?.message).toContain(
+      "config/preferences.json",
+    );
   });
 
   // health does not hydrate config: a briefing switched off only in the store read as overdue.
