@@ -17,14 +17,6 @@
   padding-block: var(--page-top) var(--space-8);
 }
 
-.settings-view h1 {
-  font-family: var(--text-display-family);
-  font-size: var(--text-display-size);
-  font-weight: var(--text-display-weight);
-  letter-spacing: var(--text-display-tracking);
-  line-height: var(--text-display-leading);
-}
-
 /* The heading takes focus after a navigation, as a place to read from, not as a control. */
 .settings-view h1:focus {
   outline: none;
@@ -55,12 +47,13 @@
   margin-block-end: 0;
 }
 
-.settings-head > h1 {
-  font-family: var(--text-display-family);
-  font-size: var(--text-display-size);
-  font-weight: var(--text-display-weight);
-  letter-spacing: var(--text-display-tracking);
-  line-height: var(--text-display-leading);
+/* A title with an action at its end (SettingsHead's "end" slot, Downloads' ⋮): one line, the action
+   centred on the title. */
+.settings-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
 }
 
 /* A quiet row: its label in the muted colour, the row where it is (D100: a control that cannot act
@@ -91,6 +84,12 @@
 
 /* The first group sits closer to the page title than the groups sit to each other. */
 .settings-view > section:first-of-type .section-head {
+  padding-block-start: var(--space-6);
+}
+
+/* A group with no head (Downloads, first on the page until a profile page takes it, 2026-11-01) sits
+   as far under the title as a first group's head would (above). */
+.settings-view > .settings-lead {
   padding-block-start: var(--space-6);
 }
 
@@ -205,7 +204,7 @@
   contain: inline-size;
 }
 
-:is(.settings-view, .manage) .row-action .icon {
+:is(.settings-view, .manage) .row-action .icon-glyph {
   /* The glyph sits inside its box; this pulls its ink out to the switch's and the segments' edge. */
   margin-inline-end: calc(var(--size-icon) * var(--ink-end, 0) * -1);
   color: var(--color-on-surface-subtle);
@@ -227,6 +226,12 @@
 /* Groups are spaced by their heads' own air alone, the same 32px as on every settings page. */
 .settings-view > section + section {
   margin-block-start: 0;
+}
+
+/* A card with no head of its own (Haptics, under Interface sounds) has no head's air above it, so it
+   would sit against the card before. It takes the head's 32px above instead. */
+.settings-view > section + section:not(:has(> .section-head)) {
+  margin-block-start: var(--space-8);
 }
 
 /* ------------------------------------------------------------------ switch and slider */
@@ -339,8 +344,16 @@
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
+/* On a Manage page a row stands the card's full padding in from its edge; on the index it is a tile one
+   inset in. The pull above is worked out for the tile, so there the fill ended 20px from the card's
+   side while it starts 12px under its top (owner, 2026-10-31: the open Podcast voice looked uneven).
+   The value reaches the extra 8px, so its fill, words and chevron end where Theme's do. */
+.manage .card-group .settings-row .value-select {
+  margin-inline-end: calc((var(--space-2) + var(--value-select-pull, 0px) + var(--space-2)) * -1);
+}
+
 /* The chevron's ink, not its box, ends where the link rows' chevrons and the switch end (D187). */
-.settings-row .value-select > .icon {
+.settings-row .value-select > .icon-glyph {
   inset-inline-end: calc(
     var(--space-2) +
     var(--value-select-pull, 0px) +
@@ -388,17 +401,17 @@
   background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
 }
 
-.settings-row .value-select > .icon {
+.settings-row .value-select > .icon-glyph {
   transition: rotate var(--duration-enter) var(--ease-out);
 }
 
-.settings-row .value-select:has(> select:open) > .icon {
+.settings-row .value-select:has(> select:open) > .icon-glyph {
   rotate: 180deg;
 }
 
 /* Reduced motion: the chevron turns at once. */
 @media (prefers-reduced-motion: reduce) {
-  .settings-row .value-select > .icon {
+  .settings-row .value-select > .icon-glyph {
     transition: none;
   }
 }

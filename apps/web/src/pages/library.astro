@@ -3,12 +3,12 @@ import BriefingCard from "../components/BriefingCard.astro";
 import EmptyArt from "../components/EmptyArt.astro";
 import EpisodeActions from "../components/EpisodeActions.astro";
 import EpisodeCard from "../components/EpisodeCard.astro";
-import Icon from "../components/Icon.astro";
 import Button from "../design-system/Button.astro";
+import Icon from "../design-system/Icon.astro";
 import Select from "../design-system/Select.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { LIBRARY_FILTERS, LIBRARY_SORTS, resultSummary } from "../lib/library";
-import { libraryItems } from "../lib/libraryCard";
+import { LIBRARY_FILTERS, LIBRARY_SORTS, monthLabel, monthOf, resultSummary } from "../lib/library";
+import { type LibraryItem, libraryItems } from "../lib/libraryCard";
 import { getSite } from "../lib/site";
 // Inline, so a saved List view is on the page before its first frame, not after the page's script.
 // astro.config.mjs hashes this same file into the Content-Security-Policy.
@@ -26,6 +26,8 @@ if (!Astro.isPrerendered) {
 
 const { entries, episodes } = await getSite();
 const items = libraryItems(entries, episodes);
+const dateOf = (item: LibraryItem): string =>
+  item.kind === "episode" ? item.entry.episode.date : item.entry.digest.date;
 ---
 
 <BaseLayout
@@ -38,7 +40,7 @@ const items = libraryItems(entries, episodes);
     {
       items.length === 0 ? (
         <section class="library-none" aria-labelledby="page-title">
-          <h1 class="page-title library-title" id="page-title" tabindex="-1">
+          <h1 class="page-title text-display library-title" id="page-title" tabindex="-1">
             Library
           </h1>
           {/* The page keeps its title; under it, the scene, what is true and the one thing to do. */}
@@ -55,7 +57,7 @@ const items = libraryItems(entries, episodes);
         </section>
       ) : (
         <div data-library>
-          <h1 class="page-title library-title" id="page-title" tabindex="-1">
+          <h1 class="page-title text-display library-title" id="page-title" tabindex="-1">
             Library
           </h1>
           {/* Search, then what to show, then the order. Every briefing is already in the page, so
@@ -112,13 +114,26 @@ const items = libraryItems(entries, episodes);
             {resultSummary(items.length, items.length)}
           </p>
           <ul class="library-grid" role="list" data-library-grid>
-            {items.map((item, index) =>
-              item.kind === "episode" ? (
-                <EpisodeCard entry={item.entry} priority={index < 6} />
-              ) : (
-                <BriefingCard entry={item.entry} priority={index < 6} menu />
-              ),
-            )}
+            {/* A month's heading before its first card, newest first as the cards come. Only the list
+                 shows them (library.css); libraryPage.ts moves them with the cards. */}
+            {items.map((item, index) => {
+              const month = monthOf(dateOf(item));
+              const previous = items[index - 1];
+              return (
+                <>
+                  {(previous === undefined || monthOf(dateOf(previous)) !== month) && (
+                    <li class="library-month" data-month-head data-month={month}>
+                      <h2 class="library-month-head">{monthLabel(month)}</h2>
+                    </li>
+                  )}
+                  {item.kind === "episode" ? (
+                    <EpisodeCard entry={item.entry} priority={index < 6} />
+                  ) : (
+                    <BriefingCard entry={item.entry} priority={index < 6} menu />
+                  )}
+                </>
+              );
+            })}
           </ul>
           {/* The script shows this and writes its title and button from emptyCopy(); the line under
                the title follows the search box in CSS, so it needs no script of its own. */}

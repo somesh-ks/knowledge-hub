@@ -12,6 +12,8 @@ import { REPO_ROOT } from "./score-factories.js";
 // missing command or an unknown flag produces. Shell variables get a plausible value each.
 const RUNS_FILE = join(tmpdir(), `singularity-contract-runs-${process.pid}.json`);
 writeFileSync(RUNS_FILE, "[]");
+const SIDE_RUNS_FILE = join(tmpdir(), `singularity-contract-side-runs-${process.pid}.json`);
+writeFileSync(SIDE_RUNS_FILE, "{}");
 const PLACEHOLDERS: Record<string, string[]> = {
   '"${args[@]}"': [
     "--mode",
@@ -36,6 +38,10 @@ const PLACEHOLDERS: Record<string, string[]> = {
   '"$OUTCOME"': ["published"],
   // health.yml's `gh run list` output: an empty list.
   '"$runs"': [RUNS_FILE],
+  // health.yml's lists for content, ingest and podcast runs: none.
+  '"$side"': [SIDE_RUNS_FILE],
+  // audio.yml's publish call: the prune flags it can pass.
+  '"${prune_args[@]}"': ["--prune", "120", "--prune-now"],
   // health.yml's probe output (empty on a day without the probe); a failed probe wrote none,
   // which must not be a usage error.
   '"$PERF"': [join(tmpdir(), `singularity-contract-perf-${process.pid}-missing.json`)],

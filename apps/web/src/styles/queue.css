@@ -322,7 +322,7 @@ html[data-player="open"] .queue-dock {
   color: var(--color-danger);
 }
 
-.queue-ring[data-ended] .queue-stage-icon .icon {
+.queue-ring[data-ended] .queue-stage-icon .icon-glyph {
   width: var(--size-icon-lg);
   height: var(--size-icon-lg);
 }
@@ -345,7 +345,7 @@ html[data-player="open"] .queue-dock {
   color: var(--color-on-surface-muted);
 }
 
-.queue-end-icon .icon {
+.queue-end-icon .icon-glyph {
   width: var(--size-icon-lg);
   height: var(--size-icon-lg);
 }
@@ -368,12 +368,12 @@ html[data-player="open"] .queue-dock {
   place-items: center;
 }
 
-.queue-stage-icon > .icon {
+.queue-stage-icon > .icon-glyph {
   grid-area: 1 / 1;
   animation: queue-icon-in var(--duration-enter) var(--ease-out) both;
 }
 
-.queue-stage-icon > .icon[data-leaving] {
+.queue-stage-icon > .icon-glyph[data-leaving] {
   animation: queue-icon-out var(--duration-exit) var(--ease-out) both;
 }
 
@@ -545,8 +545,8 @@ html[data-player="open"] .app-nav-queue {
     transition: none;
   }
 
-  .queue-stage-icon > .icon,
-  .queue-stage-icon > .icon[data-leaving] {
+  .queue-stage-icon > .icon-glyph,
+  .queue-stage-icon > .icon-glyph[data-leaving] {
     animation: none;
   }
 

@@ -1,0 +1,19 @@
+---
+import { ICON_BOLD_PATHS, ICON_PATHS, ICON_VIEW_BOX, type IconName } from "../lib/icons";
+import { type IconSize, iconClass } from "./icon";
+import "../styles/icon.css";
+
+interface Props {
+  name: IconName;
+  /** The glyph's box: medium beside words, large when it is the whole button. */
+  size?: IconSize;
+  /** A hook for the control that holds it (a rule that places the glyph, or swaps it). */
+  class?: string;
+}
+
+const { name, size = "md", class: className = "" } = Astro.props;
+const bold = ICON_BOLD_PATHS[name];
+const classes = [iconClass(size), className].filter(Boolean).join(" ");
+---
+
+<svg class={classes} data-icon={name} viewBox={ICON_VIEW_BOX} aria-hidden="true" focusable="false"><path d={ICON_PATHS[name]} data-weight={bold ? "regular" : undefined}></path>{bold && <path d={bold} data-weight="bold"></path>}</svg>

@@ -13,9 +13,11 @@ interface Props {
   priority?: boolean;
   /** The Library's card carries the menu; the shelf on a briefing page does not. */
   menu?: boolean;
+  /** Settings > Downloads: the menu offers only what applies to a saved copy. */
+  downloads?: boolean;
 }
 
-const { entry, priority = false, menu = false } = Astro.props;
+const { entry, priority = false, menu = false, downloads = false } = Astro.props;
 const { digest } = entry;
 const facts = cardFacts(entry);
 // Kind, story count, length: the count is its own span, so the narrow shelf on Today can leave it out,
@@ -68,6 +70,7 @@ const hasCount = segments.length > 2;
         audio={entry.audioMode === "ready" ? entry.player.audio?.url : undefined}
         deletable={digest.kind === "on-demand"}
         regenerations={digest.regenerations}
+        downloads={downloads}
       />
     )
   }

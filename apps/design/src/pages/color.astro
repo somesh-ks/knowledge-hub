@@ -21,7 +21,7 @@ const id = (title: string): string => `g-${title.toLowerCase().replaceAll(" ", "
     {
       COLOR_GROUPS.map((group) => (
         <section aria-labelledby={id(group.title)} data-tier="semantic">
-          <h2 class="section-head" id={id(group.title)}>{group.title}</h2>
+          <h2 class="section-head text-heading" id={id(group.title)}>{group.title}</h2>
           <ul class="guide-swatches" role="list">
             {group.names.map((name) => {
               const spec = swatchSpec(name);
@@ -42,7 +42,7 @@ const id = (title: string): string => `g-${title.toLowerCase().replaceAll(" ", "
     }
 
     <section aria-labelledby="pairs" data-tier="semantic">
-      <h2 class="section-head" id="pairs">Contrast</h2>
+      <h2 class="section-head text-heading" id="pairs">Contrast</h2>
       <ul class="guide-pairs" role="list">
         {
           COLOR_PAIRS.map((pair) => (
@@ -60,7 +60,7 @@ const id = (title: string): string => `g-${title.toLowerCase().replaceAll(" ", "
     </section>
 
     <section aria-labelledby="primitive" data-tier="primitive">
-      <h2 class="section-head" id="primitive">Primitive</h2>
+      <h2 class="section-head text-heading" id="primitive">Primitive</h2>
       {
         ramps.map((ramp) => (
           <div>
@@ -74,7 +74,7 @@ const id = (title: string): string => `g-${title.toLowerCase().replaceAll(" ", "
     </section>
 
     <section aria-labelledby="component" data-tier="component">
-      <h2 class="section-head" id="component">Component</h2>
+      <h2 class="section-head text-heading" id="component">Component</h2>
       <ul class="guide-swatches" role="list">
         {components.map(({ token, role }) => <ColorSwatch name={token.name.slice(2)} variable={token.name} points={role} />)}
       </ul>

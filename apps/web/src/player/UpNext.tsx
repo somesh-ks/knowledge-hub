@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { longDateFromDigestId } from "./core/formatTime";
 import { getPlayQueue, loadSuggested, playQueueItem } from "./core/playerRuntime";
 import { usePlayerState } from "./hooks/usePlayer";
-import { useQueue, useQueueMeta } from "./hooks/useQueue";
+import { useQueueMeta, useQueueView } from "./hooks/useQueue";
 import QueueList from "./QueueList";
 import Icon from "./ui/LazyIcon";
 import PlayerCover from "./ui/PlayerCover";
@@ -48,7 +48,40 @@ function SuggestedRow({ id }: { id: string }) {
         aria-label={`Add ${title} to the queue`}
         onClick={() => getPlayQueue().add(id)}
       >
-        <Icon name="plus" className="icon" />
+        <Icon name="plus" />
+      </button>
+    </li>
+  );
+}
+
+/**
+ * An item that already played, or the one playing now (D277): the list keeps them, as a music app's
+ * queue does, and a press plays one again. They are not moved or removed from here.
+ */
+function PassedRow({ id, state }: { id: string; state: "played" | "current" }) {
+  const meta = useQueueMeta(id);
+  const title = meta?.title ?? longDateFromDigestId(id);
+  const ref = useRef<HTMLLIElement>(null);
+  // The list opens at the item playing, so the played ones above it do not push what is next out of view.
+  useEffect(() => {
+    if (state === "current") ref.current?.scrollIntoView({ block: "start" });
+  }, [state]);
+  return (
+    <li
+      className="player-queue-item"
+      data-queue-id={id}
+      data-state={state}
+      aria-current={state === "current" ? "true" : undefined}
+      ref={ref}
+    >
+      <button className="player-queue-row" type="button" onClick={() => playQueueItem(id)}>
+        <span className="player-queue-thumb">
+          {meta ? <PlayerCover cover={meta.cover} weekly={meta.weekly} size="thumb" /> : null}
+        </span>
+        <span className="player-upnext-text">
+          <span className="player-upnext-date">{title}</span>
+          <span className="player-upnext-hint">{meta?.caption ?? " "}</span>
+        </span>
       </button>
     </li>
   );
@@ -63,38 +96,65 @@ function SuggestedRow({ id }: { id: string }) {
  */
 export default function UpNext() {
   const { upNextId: previous } = usePlayerState();
-  const queued = useQueue();
+  const { played, current, upcoming: queued } = useQueueView();
   const suggested = useSuggested(queued);
-  if (queued.length > 0) return <QueueList ids={queued} />;
+  const playingId = usePlayerState().track?.digest.id ?? null;
+  // What played stays listed behind the item playing now. Shown only once the listener has queued
+  // or played through something, so a single play with nothing queued still reads "Nothing is queued".
+  const passed =
+    played.length > 0 || queued.length > 0 ? (
+      <ul className="player-queue-list" aria-label="Played">
+        {played.map((id) => (
+          <PassedRow key={id} id={id} state="played" />
+        ))}
+        {current && current === playingId ? (
+          <PassedRow key={current} id={current} state="current" />
+        ) : null}
+      </ul>
+    ) : null;
+  if (queued.length > 0)
+    return (
+      <>
+        {passed}
+        <QueueList ids={queued} />
+      </>
+    );
   if (suggested && suggested.length > 0) {
     return (
-      <section aria-labelledby="player-suggested-head">
-        <p className="player-upnext-hint player-suggested-head" id="player-suggested-head">
-          Suggested
-        </p>
-        <ul className="player-queue-list">
-          {suggested.map((id) => (
-            <SuggestedRow key={id} id={id} />
-          ))}
-        </ul>
-      </section>
+      <>
+        {passed}
+        <section aria-labelledby="player-suggested-head">
+          <p className="player-upnext-hint player-suggested-head" id="player-suggested-head">
+            Suggested
+          </p>
+          <ul className="player-queue-list">
+            {suggested.map((id) => (
+              <SuggestedRow key={id} id={id} />
+            ))}
+          </ul>
+        </section>
+      </>
     );
   }
   // A list that loaded but holds nothing eligible is empty; the previous briefing stands in only
   // where the list could not be read.
+  // What played stays listed in every case (D277); the empty line only stands where nothing is.
   if (suggested || !previous) {
-    return <p className="player-empty">Nothing is queued.</p>;
+    return passed ?? <p className="player-empty">Nothing is queued.</p>;
   }
   // The new page's data arrives after the navigation; the store plays it then, on the same audio
   // element, which the browser already trusts to play. A briefing with no finished audio is
   // narrated there, as a cover press does.
   return (
-    <button className="player-upnext-row" type="button" onClick={() => playQueueItem(previous)}>
-      <span className="player-upnext-text">
-        <span className="player-upnext-date">{longDateFromDigestId(previous)}</span>
-        <span className="player-upnext-hint">The previous podcast</span>
-      </span>
-      <Icon name="chevronRight" />
-    </button>
+    <>
+      {passed}
+      <button className="player-upnext-row" type="button" onClick={() => playQueueItem(previous)}>
+        <span className="player-upnext-text">
+          <span className="player-upnext-date">{longDateFromDigestId(previous)}</span>
+          <span className="player-upnext-hint">The previous podcast</span>
+        </span>
+        <Icon name="chevronRight" />
+      </button>
+    </>
   );
 }

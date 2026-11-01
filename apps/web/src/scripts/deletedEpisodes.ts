@@ -5,7 +5,7 @@ import {
   parseDeleted,
   pruneDeleted,
 } from "../lib/deletedEpisodes";
-import { parseQueue, QUEUE_KEY } from "../player/core/playQueue";
+import { HISTORY_KEY, parseHistory, parseQueue, QUEUE_KEY } from "../player/core/playQueue";
 import { libraryAddress } from "./libraryAddress";
 
 /**
@@ -57,6 +57,13 @@ function hideIn(doc: Document): void {
     card.remove();
     removed += 1;
   }
+  // A month whose cards are all gone loses its heading too, before the page is drawn.
+  if (removed > 0) {
+    for (const head of doc.querySelectorAll("[data-library-grid] [data-month-head]")) {
+      const next = head.nextElementSibling;
+      if (!next || next.hasAttribute("data-month-head")) head.remove();
+    }
+  }
   // The Library's script may have counted its cards before this module loaded: it counts again.
   if (doc === document && removed > 0)
     document.dispatchEvent(new Event("singularity:library-pruned"));
@@ -93,6 +100,15 @@ function dropFromDevice(accepted?: string): void {
     if (kept.length !== queued.length) {
       if (kept.length) localStorage.setItem(QUEUE_KEY, JSON.stringify(kept));
       else localStorage.removeItem(QUEUE_KEY);
+    }
+    // The items that played, and the one playing, are listed too (D277).
+    const history = parseHistory(localStorage.getItem(HISTORY_KEY));
+    const played = history.played.filter((id) => !gone.has(id));
+    const current = history.current && gone.has(history.current) ? null : history.current;
+    if (played.length !== history.played.length || current !== history.current) {
+      if (played.length || current)
+        localStorage.setItem(HISTORY_KEY, JSON.stringify({ played, current }));
+      else localStorage.removeItem(HISTORY_KEY);
     }
   } catch {
     // Storage can be blocked; the queue then stays as it was.

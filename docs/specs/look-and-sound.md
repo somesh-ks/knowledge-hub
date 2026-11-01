@@ -41,7 +41,7 @@ Three layers catch regressions (owner, 2026-10-21):
 - Hook: `.claude/hooks/design-check.mjs`, PostToolUse hook on Edit/Write for `apps/web/src/**` and `tokens/**`.
 - Audit: `design-audit` agent (`.claude/agents/design-audit.md`) screenshots pages at mobile and desktop viewports in light and dark before PRs.
 CI runs rules in unit tests and `designSystem.spec.ts` in browser suite. Components change in shared class, component, or token with ledger records in one PR (owner, 2026-10-24).
-Key variants: `.segmented-nav-compact` (chip height, 44px columns); `.stat-tile` (metric over label, 2-4 columns); `.status-dot` (8px, status tones); `.scroll-fade-inline` (overflow edge mask with `--scroll-fade-inset`); `.tabs-in-card`; `data-quiet` (muted disabled rows); `sheetHead.ts` header/menus (D188); `.confirm-actions.is-stacked` (unsaved-changes modal from `sheetGuard.ts`); `.queue-dock`, `.queue-row`, `.queue-ring` (`-head`, 24px, for the dock and the side column; `-row`, 24px), `.queue-play`, `.queue-stage-icon` (the head's icon), `.queue-word` (the text-only shimmer), `.queue-snippet` (the Details dialog's facts), `.queue-pop` (the podcast queue, D231, `queue.css`).
+Key variants: `.segmented-nav-compact` (chip height, 44px columns); `.stat-tile` (metric over label, 2-4 columns); `.scroll-fade-inline` (overflow edge mask with `--scroll-fade-inset`); `.tabs-in-card`; `data-quiet` (muted disabled rows); `sheetHead.ts` header/menus (D188); `.confirm-actions.is-stacked` (unsaved-changes modal from `sheetGuard.ts`); `.queue-dock`, `.queue-row`, `.queue-ring` (`-head`, 24px, for the dock and the side column; `-row`, 24px), `.queue-play`, `.queue-stage-icon` (the head's icon), `.queue-word` (the text-only shimmer), `.queue-snippet` (the Details dialog's facts), `.queue-pop` (the podcast queue, D231, `queue.css`).
 
 ### Agentic design conventions
 Coding agents building or modifying UI follow these contracts (adapted from Astryx best practices):
@@ -51,7 +51,7 @@ Coding agents building or modifying UI follow these contracts (adapted from Astr
 - **Verification**: Run `npm run design-check` after modifying any CSS or markup to ensure instant adherence to house rules.
 
 ## Code
-- `apps/web/src/pages/design/[...slug].astro` and `apps/web/src/lib/designCatalogue.ts`: the reader's catalogue (D189), replaced by the [style guide](style-guide.md) (D226)
+- `apps/web/src/lib/designCatalogue.ts`: the tokens and usage comments the [style guide](style-guide.md) reads (D226); the reader's own `/design` catalogue page (D189) is gone
 - `apps/web/src/styles/tokens.css`
 - `apps/web/src/styles/primitives.css`
 - `apps/web/src/styles/empty.css`

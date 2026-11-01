@@ -14,7 +14,7 @@ const headingId = `c-${section.slug}`;
      the header sets it apart from the section before; there is no rule as well (briefing.css). The
      stories sit in a card under the header, as a Settings group does (.card-group, D219). */}
 <section class="chapter" data-chapter={section.slug} aria-labelledby={headingId}>
-  <h2 class="section-head" id={headingId}>{section.title}</h2>
+  <h2 class="section-head text-heading" id={headingId}>{section.title}</h2>
   <div class="rows card-group">
     <slot />
   </div>

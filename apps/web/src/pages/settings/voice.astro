@@ -1,7 +1,6 @@
 ---
 import Select from "../../design-system/Select.astro";
 import "../../styles/field.css";
-import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
@@ -30,7 +29,7 @@ const VOICES = [
   <main id="main" tabindex="-1">
     {/* Static HTML with the saved voices written in. scripts/podcastPage.ts records a change and
          autosave.ts sends it a moment later; the voice list loads into the rows, which are as tall
-         as the real ones. */}
+         as the real ones. A voice is heard from the list it is chosen in (scripts/picker.ts). */}
     <div class="manage" data-manage="podcast">
       <SettingsHead
         title={title}
@@ -59,22 +58,6 @@ const VOICES = [
                         <option value="">Default</option>
                         {voice.saved && <option value={voice.saved} selected>Saved voice</option>}
                       </Select>
-                      {/* A round play button on every voice row, as every play control in the app is
-                           drawn. Choosing a voice plays its sample too. While the voice has no sample
-                           (or the list has not arrived) the button stays, dimmed and not pressable,
-                           so the select never moves. */}
-                      <button
-                        class="podcast-sample"
-                        type="button"
-                        data-preview
-                        data-sample-name={voice.name.toLowerCase()}
-                        disabled
-                        aria-pressed="false"
-                        aria-label={`Play a sample of the ${voice.name.toLowerCase()}`}
-                      >
-                        <Icon name="playOutline" class="sample-play" />
-                        <Icon name="pause" class="sample-pause" />
-                      </button>
                     </div>
                   </div>
                 ))

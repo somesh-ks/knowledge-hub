@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createFakeGitHub, REPO, runJson, stepJson } from "../testing/fakeGitHub";
 import { readServerConfig } from "./config";
 import { createGitHubClient, GitHubError } from "./github";
@@ -37,6 +37,36 @@ describe("createGitHubClient", () => {
     );
     const runs = await client.listRecentRuns("podcast.yml", "2026-10-21");
     expect(runs.map((run) => run.id)).toEqual([7]);
+  });
+
+  // Bug: two open queues asked GitHub for the run lists every 4 s each, spending the token the
+  // hourly cron dispatches with (COST-02).
+  it("answers a repeated list from memory, then asks again with the ETag and keeps a 304's copy", async () => {
+    const { github, client } = setup();
+    const answers: Array<{ status?: number; json?: unknown; headers?: Record<string, string> }> = [
+      { json: { workflow_runs: [runJson({ id: 1 })] }, headers: { etag: 'W/"a"' } },
+      { status: 304 },
+    ];
+    github.on(
+      "GET /actions/workflows/run.yml/runs",
+      () => answers.shift() ?? { json: { workflow_runs: [runJson({ id: 1 })] } },
+    );
+    github.on("GET /actions/workflows/podcast.yml/runs", { json: { workflow_runs: [] } });
+    const ids = async () => (await client.listActiveRuns()).map((r) => r.id);
+    expect(await ids()).toEqual([1]);
+    await ids();
+    expect(github.requests.filter((r) => r.path.includes("run.yml"))).toHaveLength(1);
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + 5_000);
+    expect(await ids()).toEqual([1]);
+    vi.useRealTimers();
+    const asked = github.requests.filter((r) => r.path.includes("run.yml"));
+    expect(asked).toHaveLength(2);
+    expect(asked[1]?.headers["if-none-match"]).toBe('W/"a"');
+    // The caps read exact lists, never the memory.
+    await client.listDispatchRuns();
+    await client.listDispatchRuns();
+    expect(github.requests.filter((r) => r.path.includes("run.yml"))).toHaveLength(4);
   });
 
   it("lists only workflow_dispatch runs of run.yml on main", async () => {

@@ -330,3 +330,32 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Rejected: switching silently; a per-device zone (the engine has one clock); every IANA zone (D100).
 - Amends: D100.
 
+
+## D259: a control moves first, its change is kept before the request, and a request cut by a reload is not a failure
+
+- Date: 2026-10-30 (the owner: settings saves are slow and a reload shows the old state, "a big problem in this app").
+- Decision: one rule for every control that writes to the store. (1) The control moves when pressed and never waits on the store. (2) The change is kept on the device, marked pending, before its request goes (`remember` in `managePageSave.ts`; the Experiments page keeps its own in the tab, `pendingFlags.ts`), and the page opened next lays it over what the store answers until the store holds it or 90 s pass. (3) The request carries `keepalive`. (4) A request that ends with no answer while the page is leaving (`scripts/pageLeaving.ts`) is unknown, not failed: the change stays kept, no toast, no Retry, a stopped outlet stays in the outbox. (5) A store answer that arrives while a pending change of this device exists is read as its own, so no "Settings changed on another device" toast follows an edit made here.
+- Why: against a real server that takes 3 s to write, a source switched off and the page reloaded showed it on again, and a second reload after the write landed showed it on again under a "changed on another device" toast. Chromium rejects the page's promise for a request still out when the document unloads (the request itself goes on), before the page's pagehide handlers run, so the save read the rejection as a failure and took the change back; and the page that sent it never heard the store take it, so the device's copy of the store stayed a write behind. The reload overtook the write, not a slow control: every Settings control already moved at once.
+- Rejected: waiting for the store before moving (the owner's complaint); Playwright routes as the test double (a route fails a request still out when the page reloads, which hides the rejection); a longer pending window (a write that never landed would stay on screen); a shared UI component (nothing here is drawn).
+- Revisit if: the store takes more than 90 s to write, or Safari and Firefox reject a request after their pagehide (the 50 ms wait in `endedByLeaving` would then be too short).
+- Amends: D79, D91, D115, D249.
+
+## D270: on Experiments, a pending change is settled by a read of the store that shows it, never by its own write's answer
+
+- Date: 2026-10-31 (the owner: on the Experiments page the first reload after a toggle still reset it, "after a second or third reload it is reflected").
+- Decision: on the Experiments page, a change kept as pending (D259) stays on screen and in storage until a later read of the store shows it, or its wait runs out (30 s, `pendingFlags.ts`). The answer to the change's own write only updates the page's picture of the store (`adopt` in `experiments.ts`); only a read settles (`take`). The Settings save path (`managePageSave.ts`, 90 s) is not changed by this: it settles matching changes after a successful write, and has not been checked against an old copy of a read; do that before copying either rule.
+- Why: the write's answer is the store's state at that moment, and it says nothing about what the next read will return. The reader's service worker (`sw.js`) answered `/admin/api/experiments` from a copy up to 10 minutes old (an extensionless path with no `/api/` prefix counted as a page); #487 dropped the pending change when the write answered, so a reload read the old copy and showed the old switch, and the second or third reload read the refreshed copy. The request log showed the cause: five page loads in two seconds and two reads at the server. #494 stopped the worker caching `/admin`; this rule keeps the page correct whatever sits between it and the store (a worker, a CDN, a replica).
+- Rejected: settling on the write's answer (the bug); a cache-busting query on the read (the worker saves a copy per query and pushes real pages out of its 60); a second `sw.js` change from this thread (#494 owns the worker); a version or ordering guard on the write (one editor, and the stale-write window is a second dialog inside a 1 to 3 s write; add one if the page gains editors).
+- Revisit if: the page gains more than one editor (version the write), or the worker or the CDN is made to cache `/admin` reads again.
+- Amends: D249, D259.
+
+## D276: a voice is heard from its list; the page row is a plain value row
+
+- Date: 2026-10-31 (the owner: the Podcast voice item "feels very out of sync from the rest of the design language"; he chose B5 from mocks, 7 rounds).
+- Decision: a voice list item is a Play control at the start, the flag and the voice's name as the title (cut with an ellipsis), and "Gender, accent" under it; the Default item is one line, "Default (flag name)". Play auditions without choosing, by pointer, or by Shift+Enter in the search field on the highlighted voice (the field stays the one focus stop; `aria-keyshortcuts` and a hidden hint say so). The Podcast voice row is label left, value right, as Theme is, with no Play on the page. The Create form drops its separate Play chip and hears voices from the same list; choosing a voice no longer plays it. The list's data comes from the option's `data-title`, `-sub`, `-lead`, `-tail` and `-sample` (`fillVoiceSelect`); the option's own text is unchanged for forms and search.
+- Why: the tonal disc was the one filled control on a quiet card, and the value sat under its label unlike every other select. Preview is how a voice is chosen, so it moves into the list, where a person compares voices; Play on the left keeps the end of the item for the check. A name as the title and the gender and accent below let a long name use the width.
+- Rejected: Play on the right of the item (B, A: the check and Play compete at the end); the flag in its own column (B3: more width, a second place to look); a Play control that is a tab stop (the list is one combobox; a stop per voice makes Tab a long walk); a pointer-only Play (not accessible).
+- Revisit if: Speechify adds a third descriptor (it follows the accent after a comma), or a list needs auditioning at more than one speed.
+- Decided on the owner's behalf while he was away (coordinator, 2026-10-31): dropping the Create chip and the keyboard Play; the screenshots went to him for a veto.
+- Amends: D101, D129.
+

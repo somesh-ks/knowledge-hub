@@ -21,7 +21,8 @@ import bannersInit from "../scripts/bannersInit.js?raw";
 // Moves keys saved as dispatch:* before D179, so it runs before anything reads them.
 import storageRename from "../scripts/storageRename.js?raw";
 // The theme script runs inline in the head so a stored light or dark choice never flashes the other
-// theme before first paint. astro.config.mjs hashes this same file into the Content-Security-Policy.
+// theme or style before first paint. astro.config.mjs hashes this same file into the Content-Security-Policy.
+// It also bridges popstate to singularity:back before the router's own listener, so the Create sheet can take Back (createSheet.ts).
 import themeInit from "../scripts/themeInit.js?raw";
 import { isShowingSavedContent } from "../server/contentRepo";
 import SheetsRoot from "../sheets/SheetsRoot";
@@ -30,6 +31,7 @@ import "../styles/foundations.css";
 import "../styles/fonts.css";
 import "../styles/shell.css";
 import "../styles/buttons.css";
+import "../styles/icon.css";
 import "../styles/primitives.css";
 import "../styles/cover.css";
 import "../styles/reader.css";
@@ -216,7 +218,7 @@ const back =
         bodyId="offline-reason"
       />
     </template>
-    <div class="banner-stack page" id="banners"><slot name="banners" /></div>
+    <div class="banner-stack page" id="banners"></div>
     {isShowingSavedContent() && <p class="meta page" role="status">Showing saved content</p>}
     <script is:inline set:html={bannersInit.trim()} />
     <div class="shell page"><slot /></div>

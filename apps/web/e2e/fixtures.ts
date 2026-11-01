@@ -40,6 +40,8 @@ export const test = base.extend<Options & { problems: Problems }>({
       );
       // The Health page draws from /api/health: a frozen answer with a reading of every tone.
       await page.route("**/api/health", (route) => route.fulfill({ json: healthReport() }));
+      // Its Stage times card draws from the admin function: a frozen answer of two kinds of run.
+      await page.route("**/api/stages", (route) => route.fulfill({ json: stageTimings() }));
       // The sources' own icons (https://<host>/favicon.ico) are on invented hosts; a one-pixel image
       // answers them, so the page is not blamed for a network that is not there.
       await page.route("**/api/site-icon**", (route) =>
@@ -142,9 +144,27 @@ export const SITE_PAGES = [
   "/admin/costs",
   "/admin/health",
   "/admin/coverage",
-  // The design catalogue (D189): every shared component on one page, held to the same grid.
-  "/design",
 ];
+
+/** A frozen /api/stages answer: a daily run's stages out of pipeline order and a Catch up's. */
+export function stageTimings() {
+  const row = (workflow: string, kind: string, stage: string, p50_ms: number, p90_ms: number) => ({
+    workflow,
+    kind,
+    stage,
+    runs: 6,
+    p50_ms,
+    p90_ms,
+  });
+  return {
+    days: 14,
+    timings: [
+      row("run", "daily", "write", 96_000, 141_000),
+      row("run", "daily", "fetch", 41_000, 66_000),
+      row("podcast", "catch_up", "script", 74_000, 98_000),
+    ],
+  };
+}
 
 /** A frozen /api/health answer: a row of each tone, and both devices' speed. */
 export function healthReport() {
@@ -354,4 +374,35 @@ export async function expectNoViolationsInEitherScheme(page: Page): Promise<void
     });
     expect(await violations(page), `${scheme} scheme`).toEqual([]);
   }
+}
+
+/** A finger, which a phone's long press needs: Playwright has no hold, so the touch goes by the protocol. */
+export async function holdFinger(page: Page, target: Locator): Promise<() => Promise<void>> {
+  await target.scrollIntoViewIfNeeded();
+  const box = await target.boundingBox();
+  if (!box) throw new Error("nothing to hold: the target has no box");
+  const at = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  const client = await page.context().newCDPSession(page);
+  await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [at] });
+  return async () => {
+    await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await client.detach();
+  };
+}
+
+/**
+ * Opens a Library row's menu the way the device does (D264): a hold on a touch screen, where the
+ * ⋮ is not pressable, and a press of the ⋮ with a mouse.
+ */
+export async function openRowMenu(page: Page, row: Locator): Promise<void> {
+  const touch = await page.evaluate(
+    () => matchMedia("(hover: none) and (pointer: coarse)").matches,
+  );
+  if (!touch) {
+    await row.locator("[data-hero-more]").click();
+    return;
+  }
+  const release = await holdFinger(page, row.locator(".card-title"));
+  await expect(row.locator(".menu-list")).toBeVisible();
+  await release();
 }

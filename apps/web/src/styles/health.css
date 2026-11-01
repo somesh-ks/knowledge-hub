@@ -1,9 +1,8 @@
 /*
  * The Health page (/settings/health): a summary card, then the settings rows grouped as the index's
- * are, each reading at its row's end as a link row's value sits (settings.css), with the shared status
- * dot before it (primitives.css). The summary card is the Costs card's shape: its padding on all four
- * sides, the answer at the display step, the shared stat tiles under it (costs.css). Imported by
- * pages/settings/health.astro after settings.css.
+ * are, each reading at its row's end as a link row's value sits (settings.css). The summary card is
+ * the Costs card's shape: its padding on all four sides, the shared stat tiles under it (costs.css).
+ * Imported by the command center's Shell, which draws the state and the glyphs (admin.css).
  */
 
 /* A content card, not rows: the card's padding on all four sides, as the Costs card's (costs.css). */
@@ -23,19 +22,6 @@
   opacity: 0.6;
 }
 
-/* The answer the page leads with, at the Costs total's step, its dot on the words' middle. */
-.health-answer {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  margin: 0;
-  font-family: var(--text-display-family);
-  font-size: var(--text-display-size);
-  font-weight: var(--text-display-weight);
-  letter-spacing: var(--text-display-tracking);
-  line-height: var(--text-display-leading);
-}
-
 /* Name and line at the start, the reading at the end, one shape at every width: the reading never
    wraps under the name, and a long line is cut rather than widen the row. */
 .health-row {
@@ -49,7 +35,7 @@
 }
 
 /* The reading: the quiet ink at the body size, as a link row's value and a select's are, with its
-   dot 8px before it. */
+   glyph before it when the row needs a look. */
 .health-value {
   display: inline-flex;
   flex: none;

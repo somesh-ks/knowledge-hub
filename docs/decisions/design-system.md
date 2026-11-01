@@ -390,6 +390,15 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Revisit if: the Google login replaces the password (the cookie's meaning stays; only how it is issued changes), or another page needs these numbers without a session.
 - Amends: D201 (for these two routes), D224.
 
+## D260: Health reads as a state with glyphs on what needs a look, and shows stage times
+
+- Date: 2026-10-30 (the owner: the admin pages should match the Overview; the previous thread's handoff names the stage times). Amends D203.
+- Decision: the page leads with a state title (Healthy, Degraded, Failing) and its glyph, never a count of what to do. A row that needs a look carries its tone's glyph before its reading; a fine row draws nothing, so the page is quiet when it is well. The status dot leaves the design system in its own PR (#493), which lands first. A Stage times card per kind of run shows each stage's median and slowest tenth over 14 days as bars, from `readStageTimings` through `api/stages.ts`, a function on the admin project behind the gate.
+- Why: a green dot on every row was noise the Overview had already dropped, and the runs table held stage times nothing displayed.
+- Rejected: p90 as a second printed figure per row (two numbers a row read as a table, and the lighter reach says it); a colour per stage (grey at rest, nothing here is picked).
+- Revisit if: the owner wants the p90 as a number, or stages are needed per run rather than per kind.
+- Amends: D203.
+
 ## D262: Sheet and Drawer are two components; the dialog heading is the Dialog's
 
 - Date: 2026-10-30 (the coordinator, for the owner: finish D243 part D). Amends D243.
@@ -398,4 +407,141 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Calls made for the owner: the drawer's chip tone rules moved from `primitives.css` into `drawer.css`; the head's two compact insets (menu sheet, share dialog) stay as `PAGE_OVERRIDES` entries until the head has a compact variant; the player's `.segmented` rules were dead (no markup since the tabs became `segmented-nav`) and are deleted, not folded.
 - Rejected: one Sheet with a `drawer` variant in one stylesheet (the ordering risk above); folding `sheet-field*`, `sheet-form` and `sheet-actions` into the Sheet (they are form layout, left in `sheets.css`).
 - Revisit if: the owner wants one component with two looks (then load order is proved with the browser suites first).
+
+## D265: a select's list on a phone is the standard bottom sheet
+
+- Date: 2026-10-31 (the owner: the time picker's sheet in Daily and Weekly "shouldn't exist": "a very weird bottom sheet with the highlights", rows too close; "consolidate and use just one type of bottom sheet everywhere as much as possible", at design-system level). Amends D167.
+- Decision: below 40rem a Select does not open the browser's own list. `design-system/selectSheet.ts` (loaded by `Select.astro`) stops it and opens the Menu's sheet (`menu-list menu-sheet`): the field's label as the title, Close at the end, one row for each option with the chosen one in the accent and a check, a pull down to close. A choice sets the select and fires `input` and `change`, so every listener hears it as before. The rows are `--size-option` (48px, was 44px with 8px between them) in the select, picker and menu sheets; a select's options draw no fill of their own (the browser's was a shade off the surface in dark). A menu sheet stops at 70% of the screen and its rows scroll under the head. From 40rem the select keeps its own list under the field.
+- Why: D167 drew the browser's list as a sheet by CSS, but a list the browser draws cannot hold a header or a Close, so it was a second kind of bottom sheet; a script-drawn one is the first kind.
+- Calls made for the owner: 48px rows, not 52 or 56; the 8px gap stays; the searchable picker (time zone, voice) keeps its search box and its own sheet for now, and the multi-select stays an anchored popover; the CSS sheet for `::picker(select)` was removed, so a phone where the script has not loaded shows the anchored list.
+- Rejected: restyling the native list only (no header); giving every select the picker's search sheet (a search box over 24 hours).
+- Revisit if: a phone browser opens its own list despite the stop (the press and the click are both stopped, as browsers differ), or the picker's sheet and this one should be one component.
+
+
+## D266: type roles, Icon and Badge are system parts
+
+- Date: 2026-10-31 (the coordinator, for the owner: finish D243 parts E and F). Amends D243.
+- Decision: a rule that restated a type role's five properties (`page-title`, `costs-total`, `health-answer`, `story-title`, `episode-highlight-title`, `player-title`, `section-head`, the settings `h1`s, `dialog-title`) is deleted, and the markup takes `text-display`, `text-title` or `text-heading` instead. `dialog-title` is retired: `dialogTitleClass()` is `text-heading`, and a sheet's title is `sheet-title text-heading` (the class stays as the hook for `min-width: 0`). The Icon is one component: `icon-glyph` and `icon-glyph-lg` (`size="lg"`) replace the Astro `.icon`, the React `.ui-icon` and both `.icon-lg`; `Icon.astro` moves into `design-system/`, `styles/icon.css` holds the rules. The Badge is one grey label (`badge-label`, `Badge.astro`) for the Admin tag and the guide's fold count; both used a different fill and weight.
+- Why: the roles were defined and unused, so each page copied them and could drift; the two icon classes carried the same rule in two sheets.
+- Calls made for the owner: the Admin tag changes from the white overlay fill to the grey container fill (light theme only), and the fold count goes from regular to medium. The player's hidden collapse chip now reads in its inverse ink (a stylesheet-order accident had given it the muted icon-button ink). `flag-badge` (a flag's stand-in) and `card-downloaded` (a check glyph) are not badges and stay; `status-dot` goes with #493. The class is `badge-label` because the pill rule in `styles.test.ts` bans any new `*-pill`.
+- Debt: containers that size or place a glyph (`.dock-btn .icon-glyph`, `.row-action .icon-glyph`, about 60 rules) join `PAGE_OVERRIDES`. Next: a size scale (`sm`, `md`, `lg`) so a control sets `size` instead of a rule.
+- Rejected: leaving the bare class `icon` (a plain word fails the by-hand test); a `size` for every pixel value now.
+- Revisit if: the owner wants a size scale first, or Admin's white tag back.
+- Amends: D243.
+
+## D267: Card and Row are tokens, not components
+
+- Date: 2026-10-31 (call made for the owner, who is away).
+- Decision: Card is the `--card-radius`, `--card-padding` and container fill that `card-group`, `topic-card`, `topic-panel` and `changelog-entry` already share; the source card and the score card now take `--card-radius` (32px, was 16px, D243). Row stays seven layouts (`row-action`, `settings-row`, `source-row`, `story-row`, `player-upnext-row`, `player-queue-row`, `queue-row`) whose shared values are already tokens (`--row-padding-block`, `--row-tile-radius`, `--size-touch-comfortable`, `--source-row`).
+- Why: `card-group` is a list layout worn by 40 elements of five kinds (`div`, `ul`, `form`, `fieldset`, `details`); a component would rewrite them and 80 references to `settings-row`, in tests too, to rename classes that already read the same tokens.
+- Rejected: a `Card.astro` wrapper (the tag varies); renaming `settings-row` to a Row class (80 references, no change in look).
+- Revisit if: a card needs a second look (outlined, raised), or a row drifts from the tokens.
+- Amends: D243.
+
+## D268: a style is a set of token overrides under `data-style`; an opt-in style may bold the page title
+
+- Date: 2026-10-31 (the owner: "style" choices in Appearance beside the theme, Default as today, Expressive, later seasonal ones; and, on a decision card, Expressive may bold the page title only). Amends D125.
+- Decision: `tokens/tokens.json` may hold a top-level `styles` group, one group per style name, each mirroring the token tree. `buildTokens` writes a style after the base's dark blocks as `:root[data-style="<name>"]` plus its two dark forms, so at equal weight it wins. A style replaces existing tokens only, never a primitive, and gives a dark value exactly where the base has one (a light-only color would let the base's dark value show through; the build fails). The device's choice is `style` in the preferences object (`"default"` or a style name), applied as `data-style` (absent for the default), written before first paint by `themeInit.js`, carried across a client navigation like `data-theme`, and changed through the same crossfade as the theme. No component carries a per-style rule: a structural difference becomes a component token whose Default value is today's. D125 stands for Default and for every heading but one: a style may set the display role's weight, which only the page title uses.
+- Why: a style is then a few lines of data the guide can show, the contrast test can loop over, and Default cannot drift from. The bigger model's check of the first overlay (170 lines of class selectors, 14 `!important`) found a second, hidden design system tied to markup the consolidation was changing. Nine overrides of existing tokens reproduced the title and corner changes of the Expressive mock.
+- Rejected: a stylesheet for each style (a flash, an extra request, offline caching, CSP); per-style structural CSS (D237 and D253 forbid page patches); auto-applying a seasonal style by date (a surprise in a calm tool, depends on the clock and breaks offline copies); a bold heading anywhere but the page title.
+- Context changed: this step is the mechanism only. No style exists yet and `tokens.css` is unchanged; the Expressive tokens, the role tokens they need (the raw radius uses in component CSS move to roles first) and the Appearance control follow as design-system PRs.
+- Revisit if: a style needs to change a color ramp (the rule against primitives and the cover, ambient-light and `theme-color` observers need a design first), or two styles want one structural rule that tokens cannot express.
+- Amends: D125.
+
+## D271: a thing that stays on screen and moves travels in 250 ms on the out curve
+
+- Date: 2026-10-31 (the owner, 16:39: "morph away, it looks good" for the cover; the rest called for him, who is away).
+- Decision: the nav pill slides from the tab it left to the new one (`nav-pill-slide`, shell.css; `navigationBoost.ts` measures the distance on the press and `navigation.ts` carries it across the swap with the elapsed time). A cover flies between its card and the page's hero on a drill in and out (`coverMorph.ts`: a copy of the leaving cover drawn over the page, the real one hidden until it lands; its radius travels with it). Both use `--duration-enter` (250 ms) on `--ease-out`: they land once and stop. They first rode the default spatial spring (420 ms, 1.5% overshoot); the owner, 17:29: "feels tiny bit slower", asked whether 300 would work. A move between tabs keeps its quick fade; the pill is its motion. Reduced motion has no slide and no flight.
+- Why: the page move was a hard cut and a 100 ms fade, and the spring tokens of D230 had no user. A flight by copy keeps the swap free of the two snapshot frames a view transition costs (D47).
+- Calls made for the owner: 250 ms, not 300: a 300 ms `--duration-travel` token would be a system change and need a design-system pull request of its own (the CI gate keeps app and system files apart); `--duration-enter` already exists, is faster than asked and is the pill's own growth time. No role alias: the primitive tier is literal (`buildTokens.test.ts`). No spring: none has a 300 ms form (the fastest is 350 ms with a 9% bounce). The side column (64rem and up) draws the row itself, so it has no pill to slide and keeps its fade. The flight is skipped when the card is off screen.
+- Rejected: view-transition names on the cover (two snapshot frames on every move); the 350 ms fast spring (9% bounce); sliding the desktop rows.
+- Revisit if: a flight stutters on a slow phone, the owner wants exactly 300 (then a `--duration-travel` token, in its own system PR) or the small settle back, or tab moves should travel as well.
+
+## D272: no persisted floating button
+
+- Date: 2026-10-31 16:39 (the owner: "nope, we have the dock on mobile for that").
+- Decision: the Play and New episode floating buttons stay one element for each page. Nothing carries one across a move.
+- Why: the dock holds Play on a phone; a persisted button would make the shell own a per-page action.
+- Revisit if: the Play to New episode swap still reads as a pop on a phone.
+
+## D274: icon weight is a token; every Icon holds both Phosphor weights
+
+- Date: 2026-10-31 (the owner: with Expressive the line icons must be thicker, "token-based from the design system, in a central way").
+- Decision: `semantic.icon.bold` (`--icon-bold`, 0 or 1) picks the weight of every line icon at once. Each regular glyph in `tokens/glyphs.json` carries `bold`, Phosphor's own bold path (`buildGlyphs --fetch` writes it; the glyph test checks it is the package's SVG). The Icon (Astro, `iconHtml`, the player's two components) draws both paths and `icon.css` gives each an opacity from the token, so Default shows regular and Expressive (1) shows bold. A fill glyph and a glyph already bold have no twin.
+- Why: one set and real geometry under `data-style` (D268), with no script and no per-style CSS. A stroke on the filled path blobs corners and fills counters at 16 to 20px.
+- Rejected: stroking the path; the CSS `d:` property (Safari has none); a second icon set swapped by script (a flash and a second source of truth).
+- Revisit if: the doubled path markup shows in page weight on a long list (then draw icons from a sprite), or a style wants a weight between regular and bold (the token is a number, the paths are two).
+- Amends: D268.
+
+## D275: a picker's contents are concentric with it
+
+- Date: 2026-10-31 (the owner: the select list with its search bar "the math doesn't work out"; he remembered the concentric rule).
+- Decision: `component.picker.radius` (28px) equals `picker.inner-radius` (24px) plus `picker.inset` (4px, the card inset), declared with the concentric rule `buildTokens.test.ts` checks. The search field and each option take the inner radius and sit one inset in from the list's edge; the popover and the phone sheet's top corners take the radius. A control inside a picker reads these tokens and sets no corner of its own. The change reaches Default: the list was a 12px popover with pill and 12px corners inside it.
+- Why: inner = outer minus padding is what makes nested corners read as one shape; 24px is a full pill on the 48px search field, so it keeps the Library's look.
+- Rejected: 12 and 4 (a square search field); 24 and 16 with an 8px inset (concentric but no longer a pill); 32 and 24 (a larger popover than the phone sheet's 28).
+- Revisit if: the Menu popover (`menu.css`, 12px with an 8px row corner) is given the same rule; it was not part of this change.
+- Amends: D167.
+
+## D278: light-theme covers lift their darkest inks to charcoal
+
+- Date: 2026-10-31 (the owner, over the Library grid: "the album arts are much darker, stick to the original guidelines of album arts to be calmer"; he chose the softer ink from a before and after).
+- Decision: `tokens/covers.json` `mode.light.lightness` is 0.2 to 1 (was 0 to 1), the floor the dark theme already holds. The darkest ink of a cover (near-black) settles at charcoal; chroma, the papers and every contrast floor are unchanged, and `mode.ts` still holds each floor. It applies to every style, since covers follow the theme.
+- Why: D121 left the light theme "as authored" and its inks are the palette's darkest (OKLCH lightness 0.08 to 0.15); at 40 px corners and a grid they read heavy against the pale stock. Dark already lifts them and reads calm.
+- Rejected: an Expressive-only lift (covers have no style layer; a per-style mode would be a new mechanism for one value); lifting the ground (the papers are D122's brightness).
+- Revisit if: a cover's figure loses its edge on its ground in the light theme (the family tests hold 4.5:1 for text only).
+- Amends: D121.
+
+## D269: the hour select opens as a wheel in the phone sheet
+
+- Date: 2026-10-31 (the owner, after D265: "keep the sheet for now and if possible we can have the 3d rotating cylinder selector as in iphone"). Amends D265.
+- Decision: a Select with `data-wheel` opens its phone sheet (D265) with a Wheel in place of the rows: a new design-system component (`design-system/wheel.ts`, `styles/wheel.css`, classes `wheel-frame`, `wheel-list`, `wheel-option`). The Daily and Weekly time are the only users. It is a scroll-snap list; `wheel.ts` sets each row's distance from the band as `--wheel-d` while it scrolls and the stylesheet turns it into a tilt, a pull toward the band and a fade, so the rows sit on a drum. The title and Close are the sheet's. The sheet ends in a filled Save button: Save (or Enter on the wheel) sets the select to the row under the band, so it is saved; closing any other way (Escape, a press outside, a pull down) leaves the select as it was. A tap on a row or an arrow key turns the wheel, and Save pressed mid-glide takes the tapped row. Each row that passes the band fires `wheeldetent` on the list, the hook for a haptic tick (none is built). Below 40rem only; from 40rem the select keeps its own list.
+- Why: an ordered run of 24 hours is spun to, not read, and the owner asked for the iPhone's look inside the one sheet D265 made, then for a Save button and haptics (the haptics thread's dispatcher listens for `wheeldetent`; the Wheel makes no sound or haptic call).
+- Calls made for the owner: five rows in view; a Save button because the owner asked for one (settings elsewhere save at once, this one is confirmed); the wheel is a component of its own, not a mode of the Menu.
+- Rejected: the browser's `type="time"` clock (an unstyled dialog outside the system, minutes the schedule does not store); a wheel for every select (names have no order to spin through).
+- Revisit if: a real iPhone's scroll feel or snapping reads wrong, or a second select asks for `data-wheel`.
+
+## D273: haptics are tokens, fired through the sound cues, with their own On or Off
+
+- Date: 2026-10-31 (the owner: "a solid vibration token system as part of the design system, and part of the settings"; On or Off in a dropdown; a "tada" when a podcast is ready; Generate start ticks, close does not; build for Android and iPhone and he checks the iPhone).
+- Decision: `tokens/tokens.json` holds `primitive.haptic` (patterns: Android milliseconds, iPhone ticks and the gap between them) and `semantic.haptic` (intents: navigate, tap, select, detent, open, close, start, success, error, ready, each naming a pattern). `buildTokens` writes them to `design-system/hapticTokens.ts`, not to CSS, and fails the build for a pattern that is silent on one phone only, an intent that names no pattern, or a pattern over 250 ms. `design-system/haptics.ts` is the one place `navigator.vibrate` or the iPhone's tick (a script click on the label of a hidden `switch` checkbox, Safari 18) is called. A call site names an intent. The app fires them from the sound cues (a cue may carry an intent), and Settings, Sounds and haptics, holds an On or Off select that is hidden where neither mechanism exists.
+- Why: one vocabulary for touch, as for sound; Android gets real patterns, an iPhone one tick at best; a raw millisecond in a call site cannot be restyled or silenced.
+- Cost: the iPhone tick is undocumented WebKit behavior and may fire only inside a touch (a hold's buzz may come at the lift or not at all); it is unverified on a device until the owner tries it. If it fails in the installed app, the setting is hidden on an iPhone and the iPhone adapter goes.
+- Rejected: a separate haptics path per control; raw milliseconds in call sites; a "System" option (the web cannot read the phone's haptics setting); a switch or segmented control (Settings choices are the shared select).
+- Amends: D52 (which rejected "a haptic on press" because it was Android only), ledger item 5 (haptics gated by the Sounds setting).
+- Revisit if: the iPhone tick is seen not to fire, or Safari ships a haptics API (replace the adapter only).
+
+## D280: travel takes 300 ms on the hover curve, and the nav pill grows in place
+
+- Date: 2026-10-31 (the owner: the 250 ms flight was "too quick and jerky"; the pill's slide "doesn't feel natural", he wanted it to appear where it is, and picked "option 1 - grows from center"; on deleting the two slide tests: "you decide").
+- Decision: amends D271. The cover's flight, the page's slide and the pill's growth take `--duration-sheet-in` (300 ms) on `--ease-hover`; a drill move's fade takes the effects spring (`--duration-spring-effects-default`), a tab move's fade 150 ms. The pill no longer travels between tabs: `nav-pill-slide`, `--nav-pill-from`, `pillDistance` and the slide tests are gone, and it grows from its centre again, carried across the swap as before. A flight reads its time and curve from `.cover-morph` (cover.css), so one rule sets them. No new token.
+- Context changed: D271 chose the out curve for speed; on his phone it read as a cut and the sliding pill as unnatural, and its 250 ms was not his taste.
+- Why: the out curve is 93% done after 19% of its time, so half the travel falls in the first 33 ms and any length reads as a cut. The hover curve at 300 ms has the lowest peak step per frame of the curves without an overshoot (13% of the travel, against 22% for the drawer, 25% for in-out and 28% for out) and ends at 300 with no tail.
+- Rejected: the drawer and in-out curves and the 420 ms spring (recorded beside it; the spring's tail felt slower); a new `--duration-travel` token; fading the page across a move (two pages of text show through each other); a page slide on tab moves in the pill's direction (the pill no longer has one).
+- Revisit if: tab moves should outlast a press (`navSpeed.spec.ts` caps them at 150 ms), or the owner finds the hover curve too soft on a drill.
+
+## D285: a Switch has a mixed state, for a master over a group
+
+- Date: 2026-10-31 (the owner, on Notifications: "a global switch too, when parts of the sub items are turned off, the global switch comes to a mid state").
+- Decision: the Switch draws `:indeterminate`: a track halfway between the off grey and the accent, with the idle thumb halfway along. The first draw (a tonal track, an accent ring and an accent thumb) "looks so weird in color" (owner); no mature system has a mixed switch (Material, Apple and Fluent have none, and the advice is a checkbox), so it uses the two colours the control already has and no new one. A script sets `indeterminate` (and unchecks the input) on a switch that stands for a group while only some of the group are on; pressing it turns the group on, and all on turns it off. There is no new class or attribute: the state is the native one, so a script reads it back. Whether a screen reader says "mixed" for a role=switch is unverified (the role has no mixed value).
+- Why: the owner wants one control that says "some" without a label to read. A third look for a boolean control has to be the system's, not a page's.
+- Rejected: a page-drawn mixed look (the system would not know it); a dash on the track (it hides the thumb, the one thing that shows the state); a third colour or a ring (the first draw: it read as a different control).
+- Revisit if: a screen reader reads a role=switch with `indeterminate` as plain on or off (it may: the switch role has no mixed value), then the master becomes a checkbox drawn as a switch.
+
+## D287: a page with a contents list is centred as the column and the list together
+
+- Date: 2026-11-01 (the owner, on the episode page: "get the content to be at the visual center and with some gap on the side have the contents. right now it looks not optically centered")
+- Decision: amends D229 for pages that have a contents list (Latest, an episode). From 80rem the shell has four tracks, `1fr`, the column, the step plus the list, `1fr`, so the three together sit on the pane's middle. They are exactly the width `--column-wide` gives the Library, so both pages share a left edge. The step is `--space-12`. Pages without a list keep D229's three tracks. No new token; `shell.css` only, no design-system change.
+- Context changed: D229 centred the column alone and hung the list in the right margin. With the list present the pair read as right of the middle, however exact the maths.
+- Why: what the eye weighs is the column and its list, not the column's box. Using the Library's own width keeps one left edge between the two pages and one system value.
+- Rejected: centring the column on the window (it leaves the Library's edge behind and little room beside the side navigation at the narrowest desktop width); shifting the column by half the side navigation (a second value that matches nothing).
+- Revisit if: the owner minds that Latest's column sits further left than Settings' when switching tabs; the fix is a list on every page or none.
+
+## D289: every press is felt
+
+- Date: 2026-11-01 (the owner: "the haptics are added only to weird places now, only the three dots button and some obscure places, keep it in all places that makes sense")
+- Decision: the `navigate` and `tap` intents name `tick-light` (they named `none`), so a link, a tab, a button and a menu action are felt like a switch is. The player's own events carry an intent and fire it before the sound engine, so it is felt with Sounds off: play (`start`), pause (`tap`), next, previous and speed (`select`) and a player error (`error`). Only a press is felt: a resume, the next item starting by itself, the end of a digest, keyboard skips and scrubbing stay quiet. `close` stays `none`: opening was the cue. Scrolling, hover and typing never fire.
+- Why: D273 kept most presses quiet "because the press layer is the answer", and the result was a phone that buzzes at three odd places and not at the controls pressed most. A tick on every press is what other phone apps do.
+- Rejected: a new louder pattern for play (no new tokens unasked); firing `select` from links and buttons (it names a change of state); a haptic on a close.
+- Amends: D273 (the `navigate`, `tap` and player entries).
+- Revisit if: the owner finds it too busy on a list, then quiet the intent that is wrong, not the system.
 

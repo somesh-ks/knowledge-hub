@@ -2,13 +2,11 @@
 import DigestView from "../components/DigestView.astro";
 import EmptyState from "../components/EmptyState.astro";
 import EpisodeView from "../components/EpisodeView.astro";
-import Banner from "../design-system/Banner.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { catchUpAlbum } from "../lib/catchUps";
 import { hasSectionTabs, listenLength } from "../lib/digestView";
 import { episodeSections } from "../lib/episodeHighlights";
 import { episodeLength, storyLookups } from "../lib/episodes";
-import { longDate } from "../lib/format";
 import { newestItem } from "../lib/latest";
 import { briefingCard, episodeCard } from "../lib/linkCard";
 import { getSite } from "../lib/site";
@@ -76,18 +74,6 @@ const earlier = site.entries.slice(1, 4);
     expired: latest.audioMode === "expired",
   }}
 >
-  <Fragment slot="banners">
-    {
-      latest && site.showNothingBanner && (
-        <Banner
-          tone="info"
-          icon="info"
-          title="Nothing cleared the bar."
-          body={`No new stories since ${longDate(latest.digest.date)}. The next podcast is due within two days.`}
-        />
-      )
-    }
-  </Fragment>
   {
     latest ? (
       <DigestView entry={latest} earlier={earlier} isLatest />

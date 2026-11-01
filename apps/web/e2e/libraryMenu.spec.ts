@@ -1,4 +1,4 @@
-import { expect, hydrated, test } from "./fixtures";
+import { expect, holdFinger, hydrated, openRowMenu, test } from "./fixtures";
 
 /** The podcast with an audio file: the only kind a row can download. */
 const AUDIO_ID = "2026-10-07";
@@ -6,7 +6,7 @@ const row = (page: import("@playwright/test").Page, id: string) =>
   page.locator(`[data-card][data-id="${id}"]`);
 
 async function openMenu(page: import("@playwright/test").Page, id: string) {
-  await row(page, id).locator("[data-hero-more]").click();
+  await openRowMenu(page, row(page, id));
   await expect(row(page, id).locator(".menu-list")).toBeVisible();
 }
 
@@ -85,9 +85,9 @@ test("a podcast page's More menu downloads and queues the podcast, as its row in
   await expect(menu.getByRole("menuitem", { name: "Remove download" })).toBeVisible();
 });
 
-test("pressing a row's three dots moves nothing: not the card, its title or the dots' own glyph, and they sit beside the title", async ({
-  page,
-}) => {
+test("pressing a row's three dots moves nothing: not the card, its title or the dots' own glyph, and they sit beside the title", {
+  tag: "@desktop",
+}, async ({ page }) => {
   await page.goto("/library");
   await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
   const card = row(page, AUDIO_ID);
@@ -368,4 +368,137 @@ test("a phone's menu sheet has no visible Close, a short pull springs back to th
   await openMenu(page, AUDIO_ID);
   await page.touchscreen.tap(195, 40);
   await expect(sheet).toBeHidden();
+});
+
+test("a long press on a card opens its menu and leaves the card unopened, and is felt once", async ({
+  page,
+}) => {
+  // The hold's own buzz went into the haptic tokens (D273): one `open`, not the old call and a second.
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "vibrate", { value: () => true, configurable: true });
+    const felt: string[] = [];
+    Object.assign(window, { felt });
+    document.addEventListener("singularity:haptic", (event) =>
+      felt.push((event as CustomEvent<string>).detail),
+    );
+  });
+  // The click that ends a hold lands on the card's link: without a guard the page opens under the sheet.
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  const menu = row(page, AUDIO_ID).locator(".menu-list");
+  const frames = () =>
+    page.evaluate(
+      () =>
+        new Promise<void>((done) => {
+          let count = 0;
+          const tick = () => (++count < 12 ? requestAnimationFrame(tick) : done());
+          requestAnimationFrame(tick);
+        }),
+    );
+  // Counts closes, because the sheet opens again after one near the lift (below) and would hide them.
+  await page.evaluate(() => {
+    const w = window as unknown as { closes: number };
+    w.closes = 0;
+    document.addEventListener(
+      "toggle",
+      (event) => {
+        if ((event as ToggleEvent).newState === "closed") w.closes += 1;
+      },
+      true,
+    );
+  });
+  const release = await holdFinger(page, row(page, AUDIO_ID).locator(".card-title"));
+  await expect(menu).toBeVisible();
+  await release();
+  // The lift is followed by mouse events within a few frames: the press would take focus from the
+  // sheet, which closes it, and the click would open the card.
+  await frames();
+  await expect(menu).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { closes: number }).closes)).toBe(0);
+  expect(new URL(page.url()).pathname).toBe("/library");
+  expect(await page.evaluate(() => (window as unknown as { felt: string[] }).felt)).toEqual([
+    "open",
+  ]);
+
+  // iPhone Safari closed the sheet at the lift (2026-10-31). A close just after a lift is the
+  // hold's own, so the sheet opens again; Chromium never closes it, so the close is made here.
+  await page.reload();
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  const again = await holdFinger(page, row(page, AUDIO_ID).locator(".card-title"));
+  await expect(menu).toBeVisible();
+  // The close is made by the page at the lift itself, as Safari's would be, so a slow runner cannot
+  // push it past the grace.
+  await menu.evaluate((list) =>
+    document.addEventListener("pointerup", () => (list as HTMLElement).hidePopover(), {
+      once: true,
+    }),
+  );
+  await again();
+  await expect.poll(() => menu.evaluate((list) => list.matches(":popover-open"))).toBe(true);
+
+  // A tap outside right after a lift is the person closing it: it closes, stays closed (opened
+  // again, it would jump back up as it left) and reaches nothing underneath.
+  await page.reload();
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  const third = await holdFinger(page, row(page, AUDIO_ID).locator(".card-title"));
+  await expect(menu).toBeVisible();
+  await third();
+  await page.touchscreen.tap(195, 40);
+  await frames();
+  await frames();
+  expect(await menu.evaluate((list) => list.matches(":popover-open"))).toBe(false);
+  // The tap lands on the app bar's Home link once the sheet is gone: it must not follow it.
+  expect(new URL(page.url()).pathname).toBe("/library");
+});
+
+test("Settings > Downloads stays a list with a working ⋮ when reached from the Library, lists what was downloaded and removes it only after a confirm, for good", async ({
+  page,
+}) => {
+  await page.goto("/library");
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.reload();
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  await openMenu(page, AUDIO_ID);
+  await row(page, AUDIO_ID).getByRole("menuitem", { name: "Download" }).click();
+  await expect(row(page, AUDIO_ID)).toHaveAttribute("data-downloaded", "");
+
+  // The page shows the saved podcast and none of the rest of the Library. It is reached from the
+  // Library without a reload: the Library's script lives on and once set its stored view, the
+  // gallery, on this page, which showed Downloads as cards with a ⋮ (owner, 2026-11-01).
+  await page.getByRole("link", { name: "Settings", exact: true }).first().click();
+  await page.getByRole("link", { name: "Downloads" }).click();
+  await expect(page.locator("[data-downloads]")).toHaveAttribute("data-ready", "");
+  await expect(page.locator("[data-card]:visible")).toHaveCount(1);
+  await expect(row(page, AUDIO_ID)).toBeVisible();
+  const cover = await row(page, AUDIO_ID).locator(".cover").boundingBox();
+  const title = await row(page, AUDIO_ID).locator(".card-title").boundingBox();
+  expect(title?.x).toBeGreaterThan((cover?.x ?? 0) + (cover?.width ?? 0));
+  // Drawn and pressable, not only laid out: a phone hides the Library's ⋮ with opacity and pointer-events.
+  const more = row(page, AUDIO_ID).locator(".card-more");
+  await expect(more).toHaveCSS("opacity", "1");
+  await expect(more).toHaveCSS("pointer-events", "auto");
+
+  // Removing asks first: Cancel keeps it.
+  const dialog = page.getByRole("dialog", { name: "Remove download?" });
+  await openRowMenu(page, row(page, AUDIO_ID));
+  await row(page, AUDIO_ID).getByRole("menuitem", { name: "Remove download" }).click();
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(row(page, AUDIO_ID)).toBeVisible();
+
+  // Delete all, from the ⋮ at the title, asks first too.
+  await page.getByRole("button", { name: "More actions", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Delete all downloads" }).click();
+  const all = page.getByRole("dialog", { name: "Delete all downloads?" });
+  await all.getByRole("button", { name: "Cancel" }).click();
+  await expect(row(page, AUDIO_ID)).toBeVisible();
+
+  await openRowMenu(page, row(page, AUDIO_ID));
+  await row(page, AUDIO_ID).getByRole("menuitem", { name: "Remove download" }).click();
+  await dialog.getByRole("button", { name: "Remove" }).click();
+  await expect(page.getByText("No downloads", { exact: true }).last()).toBeVisible();
+
+  // Gone after a reload too: the list is Cache Storage, not the page.
+  await page.reload();
+  await expect(page.locator("[data-downloads]")).toHaveAttribute("data-ready", "");
+  await expect(page.locator("[data-card]:visible")).toHaveCount(0);
 });

@@ -11,7 +11,8 @@
  * setting, reduced motion and the autoplay rules is the engine's job, so a blocked or disabled
  * engine makes this a silent no-op.
  */
-import { cuePlayedSince, playUiCue } from "./soundController";
+import { WHEEL_DETENT } from "../../design-system/wheel";
+import { cuePlayedSince, getHaptics, playUiCue } from "./soundController";
 import type { Cue } from "./soundMap";
 import {
   type ControlInfo,
@@ -137,6 +138,9 @@ if (typeof document !== "undefined") {
     },
     { capture: true, passive: true },
   );
+  // The wheel (the hour picker) turning past a row is felt and has no sound (D273, D269): the
+  // wheel fires at most once a frame and the dispatcher's own gap keeps a fling to a tick.
+  document.addEventListener(WHEEL_DETENT, () => getHaptics().fire("detent"), { passive: true });
   // A native dialog opens and closes by an attribute, whoever did it: a button, Escape, the scrim.
   new MutationObserver((records) => {
     for (const { target, oldValue } of records) {

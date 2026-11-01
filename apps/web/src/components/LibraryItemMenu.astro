@@ -1,8 +1,8 @@
 ---
+import Icon from "../design-system/Icon.astro";
 import Menu from "../design-system/Menu.astro";
 import MenuItem from "../design-system/MenuItem.astro";
 import { regenerationHint } from "../lib/regenerations";
-import Icon from "./Icon.astro";
 
 interface Props {
   /** The digest id ("2026-10-07") or episode id ("ep-20261007-1930"). */
@@ -20,9 +20,21 @@ interface Props {
   topics?: readonly string[];
   /** Times this podcast was regenerated, for the Regenerate item's counter (D212). */
   regenerations?: number | undefined;
+  /** On Settings > Downloads: only what applies to a saved copy (Add to queue, Share, Remove download). */
+  downloads?: boolean;
 }
 
-const { id, title, path, kind, audio, deletable = true, topics, regenerations } = Astro.props;
+const {
+  id,
+  title,
+  path,
+  kind,
+  audio,
+  deletable = true,
+  topics,
+  regenerations,
+  downloads = false,
+} = Astro.props;
 const regen = regenerationHint(regenerations);
 const menuId = `card-menu-${id}`;
 ---
@@ -41,6 +53,7 @@ const menuId = `card-menu-${id}`;
   class="card-menu"
   style={`--card-anchor: --cm-${id}`}
   data-library-menu
+  data-manage-downloads={downloads ? "" : undefined}
   data-id={id}
   data-path={path}
   data-title={title}
@@ -62,7 +75,7 @@ const menuId = `card-menu-${id}`;
   </button>
   <Menu id={menuId} title={title} class="card-menu-list">
     {
-      audio && (
+      audio && !downloads && (
         <MenuItem data-menu="download">
           <Icon name="download" class="dl-add" /><Icon name="downloadRemove" class="dl-remove" /><span data-menu-label>Download</span>
         </MenuItem>
@@ -72,7 +85,7 @@ const menuId = `card-menu-${id}`;
       <Icon name="queueAdd" />Add to queue
     </MenuItem>
     {
-      kind === "episode" ? (
+      downloads ? null : kind === "episode" ? (
         <MenuItem
           data-episode-action="regenerate"
           title={regen.title}
@@ -93,15 +106,27 @@ const menuId = `card-menu-${id}`;
       <Icon name="shareArrow" />Share
     </MenuItem>
     {/* Put in by scripts/shareLink.ts once this device made the row's listen link (D153). */}
-    <template data-share-stop-template>
-      <MenuItem
-        data-menu="unshare"
-        data-share-stop={id}>
-        <Icon name="blocked" />Stop sharing
-      </MenuItem>
-    </template>
+    {/* Not on the Downloads page, whose row menu is Add to queue, Share and Remove download (D281). */}
     {
-      deletable && (
+      !downloads && (
+        <template data-share-stop-template>
+          <MenuItem
+            data-menu="unshare"
+            data-share-stop={id}>
+            <Icon name="blocked" />Stop sharing
+          </MenuItem>
+        </template>
+      )
+    }
+    {
+      downloads && (
+        <MenuItem tone="danger" data-menu="download">
+          <Icon name="download" class="dl-add" /><Icon name="downloadRemove" class="dl-remove" /><span data-menu-label>Remove download</span>
+        </MenuItem>
+      )
+    }
+    {
+      deletable && !downloads && (
         <MenuItem tone="danger"
           data-episode-action="delete">
           <Icon name="trash" />Delete

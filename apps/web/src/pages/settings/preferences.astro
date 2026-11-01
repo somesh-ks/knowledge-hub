@@ -8,7 +8,6 @@ import {
 } from "@singularity/core";
 import { topicArt } from "@singularity/cover";
 import EmptyArt from "../../components/EmptyArt.astro";
-import Icon from "../../components/Icon.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
 import WeightRow from "../../components/WeightRow.astro";
@@ -17,6 +16,7 @@ import Dialog from "../../design-system/Dialog.astro";
 import DialogActions from "../../design-system/DialogActions.astro";
 import DialogTitle from "../../design-system/DialogTitle.astro";
 import Field from "../../design-system/Field.astro";
+import Icon from "../../design-system/Icon.astro";
 import Select from "../../design-system/Select.astro";
 import Sheet from "../../design-system/Sheet.astro";
 import Switch from "../../design-system/Switch.astro";
@@ -127,7 +127,7 @@ const offers = addOffers(structure.blocks, structure.sections);
               id="pref-pane-types"
               aria-labelledby="pref-tab-types"
             >
-              <h2 class="section-head sr-only" id="types-head">Source types</h2>
+              <h2 class="section-head text-heading sr-only" id="types-head">Source types</h2>
               <div class="rows topic-controls">
                 {rows.map((row) => <WeightRow {...row} />)}
               </div>
@@ -177,7 +177,7 @@ const offers = addOffers(structure.blocks, structure.sections);
                    drag never moves a block (owner, 2026-10-24); below 64rem the floating button at the
                    page's foot is Reorder instead. */}
               <div class="topic-sources-head structure-list-head">
-                <h2 class="section-head" data-block-count>{blockCount(structure.blocks.length - 2)}</h2>
+                <h2 class="section-head text-heading" data-block-count>{blockCount(structure.blocks.length - 2)}</h2>
                 <div class="structure-list-actions">
                   <Button variant="tonal" class="structure-reorder" data-reorder data-needs-js>
                     <span data-reorder-label>Reorder</span>
@@ -225,8 +225,8 @@ const offers = addOffers(structure.blocks, structure.sections);
         data-reorder
         data-needs-js
       >
-        <span class="structure-reorder-icon" data-reorder-icon="grip"><Icon name="grip" class="icon-lg" /></span>
-        <span class="structure-reorder-icon" data-reorder-icon="check"><Icon name="check" class="icon-lg" /></span>
+        <span class="structure-reorder-icon" data-reorder-icon="grip"><Icon name="grip" size="lg" /></span>
+        <span class="structure-reorder-icon" data-reorder-icon="check"><Icon name="check" size="lg" /></span>
         <span class="create-fab-label" aria-hidden="true" data-reorder-label>Reorder</span>
       </button>
 

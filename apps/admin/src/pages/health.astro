@@ -8,6 +8,7 @@ import {
   HEALTH_TILES,
 } from "../../../web/src/lib/healthRows";
 import AdminHead from "../components/AdminHead.astro";
+import StatusGlyphs from "../components/StatusGlyphs.astro";
 import Shell from "../layouts/Shell.astro";
 
 const title = "Health";
@@ -21,16 +22,19 @@ type Row = { id: string; label: string };
 
 <Shell title={title} current="/health">
   {/* Static shell: every row and tile is drawn here with its label, so nothing moves when
-       /api/health answers; scripts/healthPage.ts fills each value, line and dot by id. A row's words
-       say what its dot says, so colour is never the only signal. */}
+       /api/health answers; scripts/healthPage.ts fills each value, line and glyph by id. Only a row
+       that needs a look carries a glyph, and its words say the same, so colour is never the only
+       signal. */}
+  <StatusGlyphs />
   <div class="settings-view health" data-settings data-health data-loading>
     <AdminHead title={title} note="How the podcasts, the pages and the services behind them are running." />
 
     <section class="card-group health-card" aria-label="Summary">
-      <p class="health-answer health-data" aria-live="polite">
-        <span class="status-dot" data-health-attention-dot data-tone="none"></span>
-        <span data-health-attention>Checking</span>
-      </p>
+      <div class="ov-answer health-data" aria-live="polite">
+        <span class="ov-badge" data-tone="none" data-health-state-mark></span>
+        <p class="ov-figure" data-health-state>Checking</p>
+        <p class="ov-sub" data-health-sub></p>
+      </div>
       <ul class="stat-tiles health-data" role="list" aria-label="Health figures">
         {
           HEALTH_TILES.map((tile) => (
@@ -48,7 +52,7 @@ type Row = { id: string; label: string };
     {
       leading.map((group) => (
         <section>
-          <h2 class="section-head">{group.title}</h2>
+          <h2 class="section-head text-heading">{group.title}</h2>
           <div class="rows card-group health-data">
             {(group.rows as readonly Row[]).map((row) => (
               <div class="settings-row health-row" data-health-row={row.id}>
@@ -59,7 +63,7 @@ type Row = { id: string; label: string };
                   </span>
                 </span>
                 <span class="health-value">
-                  <span class="status-dot" data-tone="none" />
+                  <span class="ov-flag-icon" data-tone="none" data-mark></span>
                   <span data-value />
                 </span>
               </div>
@@ -71,7 +75,7 @@ type Row = { id: string; label: string };
 
     {/* One device at a time, picked by a select drawn as Theme's is (settings.astro). */}
     <section>
-      <h2 class="section-head">Speed</h2>
+      <h2 class="section-head text-heading">Speed</h2>
       <div class="rows card-group health-data">
         <div class="settings-row">
           <label class="settings-label" for="health-device">Device</label>
@@ -89,7 +93,7 @@ type Row = { id: string; label: string };
                 </span>
               </span>
               <span class="health-value">
-                <span class="status-dot" data-tone="none" />
+                <span class="ov-flag-icon" data-tone="none" data-mark></span>
                 <span data-value />
               </span>
             </div>
@@ -102,7 +106,7 @@ type Row = { id: string; label: string };
     {
       rest.map((group) => (
         <section>
-          <h2 class="section-head">{group.title}</h2>
+          <h2 class="section-head text-heading">{group.title}</h2>
           <div class="rows card-group health-data">
             {(group.rows as readonly Row[]).map((row) => (
               <div class="settings-row health-row" data-health-row={row.id}>
@@ -113,7 +117,7 @@ type Row = { id: string; label: string };
                   </span>
                 </span>
                 <span class="health-value">
-                  <span class="status-dot" data-tone="none" />
+                  <span class="ov-flag-icon" data-tone="none" data-mark></span>
                   <span data-value />
                 </span>
               </div>
@@ -123,10 +127,42 @@ type Row = { id: string; label: string };
         </section>
       ))
     }
+
+    {/* Each kind of run, each stage a bar: the median solid, the slowest tenth the lighter reach
+         beyond it. The script copies the templates; a card or a row is never drawn in it. */}
+    <section data-stages>
+      <h2 class="section-head">Stage times</h2>
+      <div class="st-groups" data-stage-groups aria-live="polite">
+        <div class="card-group st-card">
+          <p class="ov-sub" data-stage-status>Checking</p>
+        </div>
+      </div>
+      <p class="settings-note">The last 14 days of finished runs: the median, and the slowest tenth in the lighter bar.</p>
+    </section>
+    <template data-stage-card>
+      <div class="card-group st-card">
+        <div class="st-head">
+          <h3 class="st-title" data-st-title></h3>
+          <span class="ov-sub" data-st-runs></span>
+        </div>
+        <ul class="st-list" role="list" data-st-list></ul>
+      </div>
+    </template>
+    <template data-stage-row>
+      <li class="st-row">
+        <span class="st-name" data-st-name></span>
+        <span class="st-bar" role="img" data-st-bar>
+          <span class="st-reach"></span>
+          <span class="st-median"></span>
+        </span>
+        <span class="st-figure" data-st-figure></span>
+      </li>
+    </template>
     <p class="settings-note health-note" data-health-note></p>
   </div>
 </Shell>
 
 <script>
   import "../scripts/healthPage";
+  import "../scripts/stageTimes";
 </script>

@@ -8,8 +8,8 @@ import { FORMAT_LABEL } from "../lib/sourceFilter";
 // The unsaved-changes dialog (sheetGuard.ts) is a Dialog: its styles come with BaseLayout.
 import "../styles/episode-actions.css";
 import Button from "../design-system/Button.astro";
+import Icon from "../design-system/Icon.astro";
 import Sheet from "../design-system/Sheet.astro";
-import Icon from "./Icon.astro";
 import MultiSelect from "./MultiSelect.astro";
 
 interface Props {
@@ -279,7 +279,7 @@ const { topics } = Astro.props;
      a built page has it and fills one row per feed, drawn as SuggestedSources.astro draws them. */}
 <template id="suggested-template">
   <section class="topic-suggested" aria-labelledby="suggested-head">
-    <h2 class="section-head" id="suggested-head">Suggested sources</h2>
+    <h2 class="section-head text-heading" id="suggested-head">Suggested sources</h2>
     <ul class="topic-sources" role="list" data-suggested-sources></ul>
   </section>
   <li class="source-row is-suggested">

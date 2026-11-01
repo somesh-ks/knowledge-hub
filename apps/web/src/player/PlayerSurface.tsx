@@ -27,6 +27,11 @@ const TITLE_ID = "singularity-player-title";
 function zoneOf(target: EventTarget): GestureZone | null {
   if (!(target instanceof Element)) return null;
   if (target.closest("[data-player-open]")) return "dock";
+  // The seek strip keeps its own drag: a scrub is sideways and must never start a dismissal.
+  if (target.closest(".scrubber")) return null;
+  // The speed dialog sits inside the controls and has its own slider and presets: a pull there must
+  // not scroll the page or close the player under it.
+  if (target.closest(".speed-panel")) return null;
   if (target.closest("[data-player-drag]")) return "drag";
   return target.closest("[data-player-page]") ? "page" : null;
 }
@@ -183,7 +188,7 @@ export default function PlayerSurface() {
                 aria-label="Close the player"
                 onClick={() => void playerSheet.collapse()}
               >
-                <Icon name="chevronDown" className="icon" />
+                <Icon name="chevronDown" />
               </button>
               <div className="player-cover-slot">
                 <div className="player-cover-box" data-player-cover>
@@ -198,7 +203,7 @@ export default function PlayerSurface() {
                 data-stories={(timeline?.items.length ?? 0) > 0 ? "" : undefined}
                 data-sourced={(timeline?.items.length ?? 0) > 0 ? "" : undefined}
               >
-                <h2 className="player-title" id={TITLE_ID} title={title}>
+                <h2 className="player-title text-title" id={TITLE_ID} title={title}>
                   {title}
                 </h2>
                 {/* The story being read, and where it came from. A recording without stories says

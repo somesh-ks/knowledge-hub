@@ -79,6 +79,8 @@ export interface NarrationController {
    * ends it quietly. A press of Play while it runs joins its request.
    */
   prewarm(digest: PlayerDigestData): Promise<void>;
+  /** Drops a play that is still preparing, so it never starts: the listener chose something else. */
+  cancel(): void;
 }
 
 /** One briefing narrated in this session: its queue, and the copy of it the player loads. */
@@ -373,5 +375,10 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
     }
   }
 
-  return { play, prewarm };
+  function cancel(): void {
+    attempt += 1;
+    deps.setPreparing(null);
+  }
+
+  return { play, prewarm, cancel };
 }

@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, type PlayerPage, test } from "./helpers";
+import { center, expect, type PlayerPage, test } from "./helpers";
 
 /**
  * A story is marked played only when it was heard (D92): playing goes on out of it into the next.
@@ -17,7 +17,12 @@ const time = async (page: Page): Promise<number> =>
   page.evaluate(() => window.__audios[0]?.currentTime ?? 0);
 
 test.describe("playback on a podcast", () => {
-  test("pauses and resumes from the bar @smoke", async ({ player, audio, page }) => {
+  test("pauses and resumes from the bar, also from a held press that drifts @smoke", async ({
+    player,
+    audio,
+    page,
+    browserName,
+  }) => {
     await player.open();
     await player.play();
     await player.finger.press(player.dock.getByRole("button", { name: "Pause" }));
@@ -31,6 +36,19 @@ test.describe("playback on a podcast", () => {
     await player.finger.press(player.dock.getByRole("button", { name: "Play", exact: true }));
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
     await expect(player.cta).toHaveAccessibleName(/^Pause the podcast, \d+ min left$/);
+    // The held drag is a CDP touch sequence, Chromium only (the opt-in WebKit run keeps the taps above).
+    if (browserName !== "chromium") return;
+    // Owner, 2026-11-01: held for a second the bar's Pause did nothing. A thumb drifts over a hold, and a
+    // drift past the tap slop made the browser pan instead of click; the press acts when it lets go.
+    await player.dockSettled();
+    const spot = center(await player.boxOf(player.dock.getByRole("button", { name: "Pause" })));
+    const held = await player.finger.drag([spot, { x: spot.x + 4, y: spot.y - 4 }], 8, {
+      hold: true,
+    });
+    await page.waitForTimeout(1000);
+    await held.move([{ x: spot.x + 12, y: spot.y - 12 }]);
+    await held.release();
+    await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
   });
 
   test("a story chip keeps one width through idle, playing, paused and played, so the controls beside it never move", async ({

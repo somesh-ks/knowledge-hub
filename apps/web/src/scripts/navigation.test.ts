@@ -80,9 +80,10 @@ describe("isSamePage", () => {
 });
 
 describe("carryRootAttributes", () => {
-  it("copies the theme and the player's state onto the incoming page", () => {
+  it("copies the theme, the style and the player's state onto the incoming page", () => {
     const live = fakeRoot({
       "data-theme": "dark",
+      "data-style": "expressive",
       "data-mini": "visible",
       "data-player": "closed",
       "data-player-state": "playing",
@@ -90,6 +91,7 @@ describe("carryRootAttributes", () => {
     const incoming = fakeRoot({ "data-mini": "hidden", "data-player-state": "idle" });
     carryRootAttributes(live, incoming);
     expect(incoming.getAttribute("data-theme")).toBe("dark");
+    expect(incoming.getAttribute("data-style")).toBe("expressive");
     expect(incoming.getAttribute("data-mini")).toBe("visible");
     expect(incoming.getAttribute("data-player")).toBe("closed");
     expect(incoming.getAttribute("data-player-state")).toBe("playing");
