@@ -122,10 +122,10 @@ jobs:
           gh run list --workflow run.yml --created ">=$since" --limit 200 --json databaseId,status,conclusion,createdAt,event,displayTitle > "$runs" || echo '[]' > "$runs"
           # The other workflows whose failure leaves the site stale or a podcast missing (OBS-01).
           for wf in content ingest podcast; do
-            gh run list --workflow "$wf.yml" --created ">=$since" --limit 50 --json databaseId,status,conclusion,createdAt,event,displayTitle > "$RUNNER_TEMP/side-$wf.json" || echo '[]' > "$RUNNER_TEMP/side-$wf.json"
+            gh run list --workflow "$wf.yml" --created ">=$since" --limit 50 --json databaseId,status,conclusion,createdAt,event,displayTitle > "$RUNNER_TEMP/side-$wf.json" || { echo "::warning title=side_runs_unread::could not list $wf.yml runs; its checks saw no history today"; echo '[]' > "$RUNNER_TEMP/side-$wf.json"; }
           done
           side="$RUNNER_TEMP/side-runs.json"
-          jq -n --slurpfile c "$RUNNER_TEMP/side-content.json" --slurpfile i "$RUNNER_TEMP/side-ingest.json" --slurpfile p "$RUNNER_TEMP/side-podcast.json" '{content: $c[0], ingest: $i[0], podcast: $p[0]}' > "$side" || echo '{}' > "$side"
+          jq -n --slurpfile c "$RUNNER_TEMP/side-content.json" --slurpfile i "$RUNNER_TEMP/side-ingest.json" --slurpfile p "$RUNNER_TEMP/side-podcast.json" '{content: $c[0], ingest: $i[0], podcast: $p[0]}' > "$side" || { echo "::warning title=side_runs_unread::could not assemble the side-run history"; echo '{}' > "$side"; }
           npm run --silent singularity -- health --json --ceiling-usd "$CEILING" --runs "$runs" --side-runs "$side" --perf "$PERF" | tee "$RUNNER_TEMP/health.json" >/dev/null
           echo "exit=${PIPESTATUS[0]}"
           jq -r '.findings[] | "\(.severity) [\(.aspect)] \(.code): \(.message)"' "$RUNNER_TEMP/health.json" || true
