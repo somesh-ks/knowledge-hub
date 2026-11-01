@@ -373,6 +373,20 @@ describe("the owner's config is not in git (D296)", () => {
     expect(err.join("")).toContain("config/preferences.json");
   });
 
+  // The bug it prevents: a store that answers but holds no schedule row (wiped, or never seeded)
+  // would leave the loaders on DEFAULT_SCHEDULE, and the gate would start work at its hour and cadence.
+  it("stops a run when the store answers but lacks a required document", async () => {
+    const err: string[] = [];
+    const ran: string[] = [];
+    const io = {
+      ...downIo({ value: 0 }, err, ran),
+      connectConfigStore: async () => ({ query: async () => [] }),
+    };
+    expect(await runCli(["run", "--stage", "gate"], io)).toBe(1);
+    expect(ran).toEqual([]);
+    expect(err.join("")).toContain("config/schedule.json");
+  });
+
   it("lets a machine that holds its own config files go on when the store is down", async () => {
     for (const path of CONFIG_DOCUMENT_PATHS) {
       await mkdir(dirname(join(dir, path)), { recursive: true });

@@ -9,6 +9,17 @@ import { CONFIG_DOCUMENT_PATHS } from "./configPaths.js";
  */
 export const EXAMPLES_DIR = "config/examples";
 
+/**
+ * The documents a run cannot do without: with the store on, one missing after the copy stops the
+ * command rather than leave the loaders on defaults the owner never chose (D296). The others have a
+ * sound empty value (no added sources, no structure yet, the default writer, no suggestions).
+ */
+export const REQUIRED_CONFIG_DOCUMENTS: readonly string[] = [
+  "config/preferences.json",
+  "config/schedule.json",
+  "config/topics.json",
+];
+
 /** Where the example for a store document is kept. */
 export function examplePath(path: string): string {
   return join(EXAMPLES_DIR, basename(path));

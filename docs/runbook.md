@@ -342,10 +342,10 @@ Models are resolved at run start from the providers' lists. Symptoms: the run lo
 
 1. In the repository, run `/learn` with one sentence, for example "more shaders, less VC funding". From any other folder, ask `sk-dispatch` to learn.
 2. Read the diff. The change is bounded: at most 0.05 per weight and 0.15 in total per call.
-3. Accept it. The skill applies it through `singularity learn --apply`, commits as `chore(prefs): ...` and pushes.
+3. Accept it. The skill applies it through `singularity learn --apply`, which writes the config store (D296); nothing is committed.
 4. The next run uses the new weights. Cached judgments are re-scored with no new calls.
 
-Do not edit `config/preferences.json` by hand. To undo, revert the `chore(prefs)` commit.
+Do not edit the preferences by hand. To undo, apply the opposite patch.
 
 ---
 

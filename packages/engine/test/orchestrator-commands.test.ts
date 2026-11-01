@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { makeEvalCommand } from "../src/commands/eval.js";
 import { extractIds, makeExtractCommand } from "../src/commands/extract.js";
-import { run as learn, makeLearn, prefsCommitMessage } from "../src/commands/learn.js";
+import { run as learn, makeLearn } from "../src/commands/learn.js";
 import { makeRunCommand } from "../src/commands/run.js";
 import { run as status } from "../src/commands/status.js";
 import type { ExtractedText } from "../src/extract/extractText.js";
@@ -402,9 +402,9 @@ describe("singularity run: arguments and output", () => {
   });
 });
 
-// --- learn --commit ----------------------------------------------------------------------------
+// --- learn ----------------------------------------------------------------------------------
 
-describe("singularity learn --commit", () => {
+describe("singularity learn", () => {
   let template: string;
   let repo: TestRepo;
   beforeAll(async () => {
@@ -443,83 +443,17 @@ describe("singularity learn --commit", () => {
   const prefs = async (): Promise<string> =>
     readFile(join(repo.root, "config/preferences.json"), "utf8");
 
-  it("applies without committing when --commit is absent", LONG, async () => {
-    const before = head(repo.root);
-    const { code } = await apply([]);
-    expect(code).toBe(0);
-    expect(head(repo.root)).toBe(before);
-    expect(git(repo.root, "status", "--porcelain")).toContain("config/preferences.json");
-  });
-
-  it("commits only the preferences file as chore(prefs) and pushes", LONG, async () => {
-    git(repo.root, "config", "--local", "user.name", "Somesh");
-    git(repo.root, "config", "--local", "user.email", "somesh@example.com");
-    const { code } = await apply(["--commit"]);
-    expect(code).toBe(0);
-    expect(git(repo.root, "log", "-1", "--format=%s")).toBe(
-      'chore(prefs): keyword: added "shaders"',
-    );
-    expect(git(repo.root, "log", "-1", "--format=%b")).toContain("Input: more motion techniques");
-    expect(git(repo.root, "show", "--name-only", "--format=", "HEAD")).toBe(
-      "config/preferences.json",
-    );
-    expect(git(repo.root, "log", "-1", "--format=%an")).toBe("Somesh");
-    expect(git(repo.remote, "rev-parse", "main")).toBe(head(repo.root));
-    expect(git(repo.root, "status", "--porcelain")).toBe("");
-  });
-
-  it("commits as the bot when no git identity is configured", LONG, async () => {
-    const empty = join(scratch, "empty-gitconfig");
-    await writeFile(empty, "", "utf8");
-    const saved = {
-      global: process.env.GIT_CONFIG_GLOBAL,
-      system: process.env.GIT_CONFIG_NOSYSTEM,
-    };
-    process.env.GIT_CONFIG_GLOBAL = empty;
-    process.env.GIT_CONFIG_NOSYSTEM = "1";
-    try {
-      const { code } = await apply(["--commit", "--no-push"]);
+  it(
+    "writes the preferences file and commits nothing, with or without --commit",
+    LONG,
+    async () => {
+      const before = head(repo.root);
+      const { code } = await apply([]);
       expect(code).toBe(0);
-      expect(git(repo.root, "log", "-1", "--format=%an")).toBe("singularity-bot");
-    } finally {
-      for (const [key, value] of [
-        ["GIT_CONFIG_GLOBAL", saved.global],
-        ["GIT_CONFIG_NOSYSTEM", saved.system],
-      ] as const) {
-        if (value === undefined) Reflect.deleteProperty(process.env, key);
-        else process.env[key] = value;
-      }
-    }
-  });
-
-  it("keeps the commit local with --no-push", LONG, async () => {
-    const remoteBefore = git(repo.remote, "rev-parse", "main");
-    const { code } = await apply(["--commit", "--no-push"]);
-    expect(code).toBe(0);
-    expect(git(repo.remote, "rev-parse", "main")).toBe(remoteBefore);
-    expect(git(repo.root, "log", "-1", "--format=%s")).toContain("chore(prefs):");
-  });
-
-  it("refuses on a dirty tree and leaves the preferences alone", LONG, async () => {
-    await writeFile(join(repo.root, "notes.txt"), "stray\n", "utf8");
-    const before = await prefs();
-    const { code, logs } = await apply(["--commit"]);
-    expect(code).toBe(1);
-    expect(logs.find((l) => l.level === "error")?.message).toContain("uncommitted changes");
-    expect(await prefs()).toBe(before);
-  });
-
-  it("refuses when behind the remote and leaves the preferences alone", LONG, async () => {
-    await writeFile(join(repo.other, "notes.txt"), "from elsewhere\n", "utf8");
-    git(repo.other, "add", "-A");
-    git(repo.other, "commit", "-q", "-m", "docs: add notes");
-    git(repo.other, "push", "-q", "origin", "main");
-    const before = await prefs();
-    const { code, logs } = await apply(["--commit"]);
-    expect(code).toBe(1);
-    expect(logs.find((l) => l.level === "error")?.message).toContain("behind");
-    expect(await prefs()).toBe(before);
-  });
+      expect(head(repo.root)).toBe(before);
+      expect(git(repo.root, "status", "--porcelain")).toContain("config/preferences.json");
+    },
+  );
 
   // The bug (D296): the preferences are not in git when the store is on, so a learn that committed
   // would push an ignored file's absence as a change, and one with the store down wrote the file
@@ -565,23 +499,6 @@ describe("singularity learn --commit", () => {
       expect(git(repo.root, "rev-parse", "HEAD")).toBe(head);
     },
   );
-
-  it("rejects --commit with --dry-run and --no-push without --commit", LONG, async () => {
-    expect((await apply(["--commit", "--dry-run"])).code).toBe(2);
-    expect((await apply(["--no-push"])).code).toBe(2);
-  });
-
-  it("builds a Conventional Commit subject within 72 characters", () => {
-    expect(prefsCommitMessage("x", ["weight a: 0.1 to 0.15"]).split("\n")[0]).toBe(
-      "chore(prefs): weight a: 0.1 to 0.15",
-    );
-    const many = prefsCommitMessage("more", ["weight a: 0.1 to 0.15", 'keyword: added "shaders"']);
-    expect(many.split("\n")[0]).toBe("chore(prefs): 2 changes, weight a: 0.1 to 0.15");
-    const long = prefsCommitMessage("more", [`weight ${"x".repeat(120)}: 0.1 to 0.15`]);
-    expect((long.split("\n")[0] ?? "").length).toBeLessThanOrEqual(72);
-    expect(long.split("\n")[0]).toMatch(/\.\.\.$/);
-    expect(long).toContain("Input: more");
-  });
 });
 
 // --- job summary -------------------------------------------------------------------------------

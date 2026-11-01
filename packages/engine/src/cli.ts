@@ -20,7 +20,7 @@ import {
   readsConfigAtStart,
   type SqlClient,
 } from "./store/configDocs.js";
-import { missingConfigFiles } from "./store/configExamples.js";
+import { missingConfigFiles, REQUIRED_CONFIG_DOCUMENTS } from "./store/configExamples.js";
 
 /** Where the CLI prints and what it reads, so tests drive it without touching the process. */
 export interface CliIo {
@@ -238,10 +238,21 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
         const changed = await hydrateConfig(root, sql, log);
         log.info(`config store: ${changed.length === 0 ? "files current" : changed.join(", ")}`);
         await cacheExperimentFlags(root, sql, log);
+        // A store that answers but lacks (or holds unusable) a required document would leave the
+        // loaders on defaults the owner never chose: stop, as for a store that is down.
+        const lacking = (await missingConfigFiles(root)).filter((path) =>
+          REQUIRED_CONFIG_DOCUMENTS.includes(path),
+        );
+        if (lacking.length > 0 && spec.name !== "health") {
+          err(
+            `singularity: the config store has no usable ${lacking.join(", ")}. Seed it (singularity config seed) or fix the row.\n`,
+          );
+          return 1;
+        }
       } catch (error) {
         const reason = redact(firstLine(String(error)), secrets);
         const missing = await missingConfigFiles(root);
-        if (missing.length > 0) {
+        if (missing.length > 0 && spec.name !== "health") {
           err(
             `singularity: the config store cannot be read (${reason}) and the owner's config is not in git. Missing: ${missing.join(", ")}.\n`,
           );

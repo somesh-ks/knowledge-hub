@@ -9,18 +9,8 @@
 | `D learn --schema` | 0 | JSON Schema of the patch, about 90 lines. All eight fields are listed as required, so always write all of them. `weight_deltas` keys are the ten categories; each delta is a number from -1 to 1. Lists hold at most 10 entries; keywords and authors at most 60 characters, disliked patterns at most 80; `input` is 1 to 500 characters. |
 | `D learn --apply <patch.json> --dry-run` | 0 | Writes nothing. stdout: one `+ <change>` line per change. stderr: `warn: Clamped: ...` lines when the CLI had to clamp. When nothing would change: `info: No changes: the patch matched the current preferences.` and no diff. |
 | `D learn --apply <patch.json>` | 0, 1 | Writes `config/preferences.json` only (2-space JSON, trailing newline) and appends one `feedback_history` entry. Prints the same diff, then `info: Updated config/preferences.json. Review the diff, then commit as "chore(prefs): ...".` Exit 1 and `singularity: learn failed: <first line>` when the patch is unreadable or breaks the schema; the first line of a schema error is often just `[`. |
-| `D learn --apply <patch.json> --commit [--no-push]` | 0, 1, 2 | After writing, commits `config/preferences.json` only as `chore(prefs): <summary>` with the input and every change in the body, then pushes unless `--no-push`. Success: `info: Committed and pushed <sha7>.` or `info: Committed <sha7> (not pushed).` |
 
-`--commit` refusals (exit 1, nothing written, the diff has already been printed):
-
-| Message | Meaning | Fix |
-| :--- | :--- | :--- |
-| `The working tree has uncommitted changes. Commit or stash them first: ...` | Dirty tree | Commit or stash, rerun. Check `git status --porcelain` first so the user is not asked to confirm in vain. |
-| `The branch is behind its remote. Run git pull --ff-only first.` | Remote moved | `git pull --ff-only`, rerun. |
-| `Cannot reach the remote to check whether the branch is behind (...)` | No network or no remote | Fix the connection, or use `--no-push`. |
-| `Committed <sha7> but the push failed (...)` | Commit exists locally | Push later; do not rerun the apply. |
-
-`--no-push` without `--commit`, or `--commit` with `--dry-run`, exits 2 and prints the usage text.
+`--commit` and `--no-push` are accepted and do nothing: the preferences are not in git (D296).
 
 ## Change-line grammar
 
