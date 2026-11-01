@@ -20,7 +20,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-13: the voice-picker specs failed only beside others: a scroll after the press closed the open list (the trace's last frame); `openPicker` (`e2e/picker.ts`) presses until it stays open.
 - 2026-10-12: an axe scan after `emulateMedia` read colours mid-fade. Wait for the page's `CSSTransition`s to finish first, and cap that wait, because an infinite or paused animation never finishes.
 - 2026-10-12: Playwright can want a newer Chromium than is cached (1243 cached, 1248 wanted): an untracked `playwright.override.config.ts` beside each config sets `launchOptions.executablePath` to the cached headless shell; one PORT per worktree. Never commit a topics snapshot.
-- 2026-10-12: a leftover server or build makes a suite test the wrong build: Playwright reuses a listening server and skips the build; a stale static server serves old stubs. Stop old servers, one worktree per session, a fresh PORT after a page edit.
+- 2026-10-12: a leftover server or build makes a suite test the wrong build: Playwright reuses a listening server and skips the build (`taskkill`; Git Bash `kill $!` leaves a `node`). Stop old servers; use a fresh PORT after a page edit.
 - 2026-10-11: Playwright `addStyleTag` and injected audit scripts (axe) are blocked by the fixture site's CSP (no 'unsafe-inline'); use `bypassCSP: true` on the context for a probe or audit. An audit builds into its own directory and port: a `dist` rebuilt mid-audit read as "page has no title".
 - 2026-10-10: a player fix for track contrast read right in the diff and failed in the browser (played and unplayed 1.46:1 apart); the worker had marked it unverified. Send a read-only verifier to measure every fix a worker marks unverified before calling an area done.
 - 2026-10-10: with a lone threshold of 1, Chromium's IntersectionObserver reports a target partly past the root edge as not intersecting, and never calls back when it then leaves. To tell a sticky element is stuck, observe `[0, 1]` and compare `boundingClientRect.top` with `rootBounds.top`.
@@ -38,12 +38,12 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Engine and workflows
 
+- 2026-11-01: no owner config in a checkout (D296): `config pull`.
 - 2026-11-01: a shared `last_fetch_at` let an on-demand briefing cut the daily's window to 6 h (each kind keeps `fetched_through`); the refill wrote Tech stories validation trimmed: offer a section only the room its allowance has left.
 - 2026-10-31: `serializeTopics` lists fields, `upsertTopic` branches by origin: a new `Topic` field needs both.
 - 2026-10-28: a run record's `at` is publish time (96 min for 3); time a run as `generated_at` less `window.to` (D203).
 - 2026-10-27: a briefing shipped 3 stories (79 s): grounding dropped 5 of 8 and the reserve was empty, since the structure's section caps capped it too (#373).
 - 2026-10-27: the runner has no ffmpeg with libopus, so Opus and its test skipped silently; ffprobe counts MP3 padding (52 ms a turn). Workflows install it and measure turns by decoding. The install hung 5 to 19 min behind `-qq`: bound apt, log, `continue-on-error` (#388).
-- 2026-10-25: the config store silently undid a PR's config edit (D185).
 - 2026-10-25: `urlKey` (sources/import.ts) dropped the query string, so every YouTube feed (`?channel_id=`) matched every other: a second channel failed "Already a source", and the store's replay of an added channel could not read it. A feed's key keeps `channel_id`.
 - 2026-10-25: a Speechify request without `language` is detected per segment; a foreign name came back in another prosody, heard as a pitch shift. Pin `language` and hash it.
 - 2026-10-23: Vercel's Neon integration names its variables `NEON_*`, which nothing reads; seed before the GitHub variable goes on. lightningcss rejects `::picker(select)::backdrop`: scrim with a `0 0 0 100vmax` shadow. A long-press drag on a scrolling list needs `draggable`.
@@ -89,13 +89,14 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-22: after a deploy, saved pages kept the old layout (D145); a download lost its player offline (scripts in a versioned cache).
 - 2026-10-22: TBT is root `:has()` restyles (first-load-js.md).
 - 2026-10-16: an installed Android web app keeps the manifest's theme_color from install for the system navigation bar; a runtime theme-color meta never repaints it. Leave theme_color out so the bars follow the system theme.
-- 2026-10-14: on mobile Chrome a fixed element held by its bottom edge moves with the address bar in the same frame; one held by both edges (`inset: 0`) resizes only after the gesture, so the stack drifted apart (#120). Hold bottom-stack elements by the bottom edge, full-height boxes by `100dvh`.
+- 2026-10-14: on mobile Chrome a fixed element held by its bottom edge moves with the address bar in the same frame; one held by both edges (`inset: 0`) resizes only after the gesture (#120). Hold bottom-stack elements by the bottom edge; full-height boxes by `100dvh`.
 - 2026-10-11: Safari 27 has no `overlay`, so a closing dialog or popover leaves the top layer as its exit starts: give top-layer elements their own `position` and a z-index (the top layer ignores it), and close at once under `@supports not (overlay: auto)` where an ancestor has a transform.
 - 2026-10-11: the voice sample button never worked in production: it played Speechify's own URL, which the page's `media-src` blocks, and its error handler hid the button, so it looked missing. A third-party media URL needs the CSP checked, or a same-origin route (`/api/voice-sample`).
 - 2026-10-09: a move took 400 ms though the page was ready after 70: the mark that picks the animation (`data-astro-nav`) was lost in the swap, as Astro 7 keeps only its own root attributes. Carry it onto `event.newDocument` in `astro:before-swap`; check with `document.getAnimations()`.
 - 2026-10-09: The first press after opening blocks about 200 ms with the audio device idle, 75 ms warm: `new AudioContext()` inside the press. `latencyHint` and `sampleRate` do not help (a first measurement said they did: the first context created pays); reverse the order as the control.
 - 2026-10-31: a Play control marked `aria-disabled` never reacted: `disabledGuard.ts` swallows clicks on `[aria-disabled="true"]`, so a voice without a sample is marked `data-silent` instead.
 - 2026-11-01: Downloads showed as a gallery after a Library visit: `libraryPage.ts` kept its `astro:page-load` listener and matched Downloads' `[data-library]`. Name the page (`#main.library`); a test must reach it by click, not `goto`.
+- 2026-11-01: a `.manage` rule for the voice page also reached Preferences: a row declares its `--row-reach`.
 
 ## Build and tooling
 
@@ -144,4 +145,4 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-21: a worktree can start from an older base: check its last commit first.
 - 2026-10-11: the review plugin skips a PR it already reviewed, so new commits go unreviewed: run `/code-review` on the range.
 - 2026-10-06: the auto-mode classifier blocks credential creation, store deletion and unreviewed merges; the owner runs those.
-- 2026-11-01: a reusable workflow's jobs report as `browser / site suite` only when run; skipped, a bare `browser` reports. Requiring either holds skipped PRs: require the always-run `browser gate`.
+- 2026-11-01: a skipped reusable-workflow job reports a bare `browser`, not `browser / site suite`: require the always-run `browser gate`.

@@ -711,9 +711,9 @@ describe("singularity health", () => {
     });
   });
 
-  // With the config store on, a stored edit a run skipped (not JSON), would fail on (its schema) or
-  // never committed reached no one: the owner's edit silently did nothing.
-  it("faults stored config a run cannot use, warns on what git lacks and ignores stray rows", async () => {
+  // With the config store on, a stored edit a run skipped (not JSON) or would fail on (its schema)
+  // reached no one: the owner's edit silently did nothing.
+  it("faults stored config a run cannot use and ignores stray rows", async () => {
     const schedule = JSON.stringify({
       version: 1,
       hour: 7,
@@ -760,8 +760,10 @@ describe("singularity health", () => {
         .filter((each) => each.code === "config_store_drift" && each.severity === severity)
         .map((each) => each.message.match(/config\/[a-z./-]+\.json/)?.[0]);
     expect(drift("fault")).toEqual(["config/queries.json", "config/topics.json"]);
-    // No record says when a run copied the store, so a stored edit git lacks only warns.
-    expect(drift("warning")).toEqual(["config/schedule.json"]);
+    // No preferences row: reported, since a run stops on it and "all documents parse" would mislead.
+    expect(report.findings.find((each) => each.code === "config_store_missing")?.message).toContain(
+      "config/preferences.json",
+    );
   });
 
   // health does not hydrate config: a briefing switched off only in the store read as overdue.

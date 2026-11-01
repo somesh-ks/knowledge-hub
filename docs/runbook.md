@@ -41,6 +41,7 @@ Never paste a key into chat. The agent cannot read `.env`; keep it that way.
 | `SPEECHIFY_API_KEY` | Speechify API console |
 | `SPEECHIFY_VOICE_ID` | Plain configuration, no secret |
 | `BLOB_READ_WRITE_TOKEN` | Section 1.5 |
+| `BLOB_PRIVATE_READ_WRITE_TOKEN` | Section 1.5a (the weekly config snapshot, D300) |
 | `SINGULARITY_GIT_NAME`, `SINGULARITY_GIT_EMAIL` | Plain configuration, no secret. `Somesh Kesarla Suresh` and `26426782+somesh-ks@users.noreply.github.com` (section 1.4) |
 | `GITHUB_SINGULARITY_TOKEN`, `GITHUB_REPOSITORY` | Section 1.7 |
 | `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET` | You choose them; the command center's sign-in (section 1.4a). Sent to the admin project; the secret also goes to the reader (its `/api/costs` and `/api/health` verify the session, D257) |
@@ -79,6 +80,15 @@ The design guide is a third project, `singularity-design`, with Root Directory `
 2. Set the access to public.
 3. Connect the store to the project. This also injects the token into Vercel.
 4. Copy the `BLOB_READ_WRITE_TOKEN` value Vercel shows for the store into `.env`.
+
+### 1.5a Create the private Blob store for the config snapshot
+
+A Blob store is public or private as a whole, so the content store in 1.5 cannot hold the snapshot.
+
+1. In Vercel, Storage, create a second Blob store and set its access to private. Do not connect it to the reader project.
+2. Copy its read-write token into `.env` as `BLOB_PRIVATE_READ_WRITE_TOKEN`, then run `npm run secrets:push`.
+3. Run the `snapshot` workflow once by hand and check that `config-snapshots/<date>.json` appears in the store. It then runs every Sunday and keeps eight.
+4. To restore, `.env` needs `DATABASE_URL` and `SINGULARITY_CONFIG_STORE=postgres` (and `BLOB_PRIVATE_READ_WRITE_TOKEN` for `--latest`). Then run `npm run singularity -- config restore --latest --force` (or `--file <snapshot.json>` for one you downloaded; `config snapshot --out <file>` makes one by hand). It overwrites newer edits, so run it only when the store has lost its rows.
 
 ### 1.6 Add the domain and the DNS record
 
@@ -353,10 +363,10 @@ Models are resolved at run start from the providers' lists. Symptoms: the run lo
 
 1. In the repository, run `/learn` with one sentence, for example "more shaders, less VC funding". From any other folder, ask `sk-dispatch` to learn.
 2. Read the diff. The change is bounded: at most 0.05 per weight and 0.15 in total per call.
-3. Accept it. The skill applies it through `singularity learn --apply`, commits as `chore(prefs): ...` and pushes.
+3. Accept it. The skill applies it through `singularity learn --apply`, which writes the config store (D296); nothing is committed.
 4. The next run uses the new weights. Cached judgments are re-scored with no new calls.
 
-Do not edit `config/preferences.json` by hand. To undo, revert the `chore(prefs)` commit.
+Do not edit the preferences by hand. To undo, apply the opposite patch.
 
 ---
 
@@ -377,28 +387,25 @@ Git holds the code, config, digests, state and docs. It does not hold secrets (`
 
 ## 11. The config store (D149)
 
-Off by default. With it on, a settings edit is saved to Neon Postgres and shows on every device within about a second, with no workflow and no rebuild; each briefing's commit keeps a copy in git. It is on only where `SINGULARITY_CONFIG_STORE=postgres` is set beside `DATABASE_URL`: `DATABASE_URL` alone never turns it on.
+The owner's config (sources, topics, queries, preferences, schedule, structure, writer, profile, source suggestions) lives in Neon Postgres and not in git (D296); `config/examples/` holds public defaults. A settings edit is saved to the store and shows on every device within about a second, with no workflow and no rebuild. The store is on only where `SINGULARITY_CONFIG_STORE=postgres` is set beside `DATABASE_URL`: `DATABASE_URL` alone never turns it on.
 
 ### 11.1 Switch on
 
-1. The workflows already pass the store to the engine: `run.yml`'s Gate step and `podcast.yml`'s Podcast step read `DATABASE_URL` (secret) and `SINGULARITY_CONFIG_STORE` (variable); either one unset keeps them on the committed files.
+1. The workflows already pass the store to the engine: `run.yml`'s Gate step and `podcast.yml`'s Podcast step read `DATABASE_URL` (secret) and `SINGULARITY_CONFIG_STORE` (variable); either one unset leaves the run with no config, and with no files it stops (D296).
 2. GitHub secret `DATABASE_URL`: the Neon connection string (Vercel → Storage → the Neon database → Connect; `vercel env pull` writes `[SENSITIVE]` for a hidden value, which is not the string). Settings → Secrets and variables → Actions → New repository secret, or `npm run secrets:push -- --only github` from `.env`.
-3. Seed from GitHub: Actions → seed → Run workflow on `main`. The default is a dry run that lists what it would write; run it again with dry run unticked. It never replaces a row, and it creates the shared rate-limit table (D150). From a laptop instead: `DATABASE_URL` in `.env`, then `npm run singularity -- config seed --dry-run` and `npm run singularity -- config seed`.
-4. Refresh the rows if the database was seeded earlier (it was, on 2026-10-22): a config change committed since then is in git but not in the rows. With `SINGULARITY_CONFIG_STORE` still unset everywhere, run seed with replace ticked (dry run first: it lists the rows that differ). It refuses once the store is on, since the app's edits then live only in the database; the workflow cannot force it (`--force` exists on a laptop only; do not use it after switch-on).
-5. Make sure no edit is waiting: no `config.yml` run is queued between the refresh and step 6.
+3. Seed from a laptop: `DATABASE_URL` in `.env`, then `npm run singularity -- config pull` (the examples), edit them, `npm run singularity -- config seed --dry-run` and `npm run singularity -- config seed`. It never replaces a row. The `seed` workflow reads `main`, which no longer holds the files (D296), so it writes no document; it still creates the shared rate-limit table (D150).
+4. Production's store is already seeded and holds the live copy, so there is nothing to refresh. A new store starts from step 3.
+5. Make sure no edit is waiting: no `config.yml` run is queued before step 6.
 6. GitHub variable: Settings → Secrets and variables → Actions → Variables → `SINGULARITY_CONFIG_STORE` = `postgres`.
 7. Vercel: Project → Settings → Environment Variables → `SINGULARITY_CONFIG_STORE` = `postgres` for Production. Check that `DATABASE_URL` is set for Production too. On 2026-10-23 it was not: the Neon integration was connected with the `NEON_` prefix (`NEON_DATABASE_URL` and friends), which nothing reads, so the store and the shared rate counter (D150) have never run in production. Either set the integration's prefix to none (Storage → the Neon database → Settings) or add `DATABASE_URL` by hand with the pooled connection string.
 8. Redeploy (Deployments → the latest → Redeploy): the pages read the switch when they are built.
 9. Check: `https://news.someshks.work/api/config` answers 200 with `"ops":[]`; change a weight on the phone and reload the same page on the laptop: it shows the new weight. The next run's log says `config store: files current` or names the files it copied.
 
-### 11.2 Switch off
+### 11.2 Fork or local checkout
 
-1. Keep what was edited since the last run: `git pull`, then with `DATABASE_URL` and `SINGULARITY_CONFIG_STORE=postgres` in `.env`, `npm run singularity -- run --stage gate --dry-run` copies the stored files over `config/`, and `npm run singularity -- config commit --message "snapshot from the store"` commits and pushes them.
-2. Vercel: delete `SINGULARITY_CONFIG_STORE`, then redeploy. The pages stop asking, `GET /api/config` answers 405 and an edit goes through `config.yml` again.
-3. GitHub: delete the `SINGULARITY_CONFIG_STORE` variable. Runs read the committed files again. The secret and the table can stay; nothing reads them while the switch is off.
-4. Remove `SINGULARITY_CONFIG_STORE` from `.env`.
+The files are not in git, so a fresh checkout has none. `npm run singularity -- config pull` fills `config/`: with `DATABASE_URL` and `SINGULARITY_CONFIG_STORE=postgres` in `.env` it copies the stored documents, and without them it copies `config/examples/`. The site's build runs it first (`apps/web` `prebuild`). To start a store of your own, pull the examples, edit them, then `npm run singularity -- config seed`.
 
-If the database is down while the store is on, nothing breaks: pages show the build's copy, runs use the last commit's files, and an edit answers "unavailable" and stays pending on the page.
+If the database is down while the store is on, pages show the build's copy and an edit answers "unavailable" and stays pending on the page. A run, a podcast, an ingest or a build stops when it holds no config files; the cron answers 503. Nothing is made from defaults.
 
 ## 12. Branch rules on `main` (D175)
 

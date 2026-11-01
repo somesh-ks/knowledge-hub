@@ -10,7 +10,7 @@ export const FIELD: Guidance = {
   summary: "An outlined box for text a person types: one line, or several lines (multiline).",
   useWhen: [
     "A person types a short value or a few lines: a title, a feed address, a prompt.",
-    "It sits under its own label in a form or a settings row, and a refused value shows as an invalid field.",
+    "It sits under its own label in a form or a settings row.",
   ],
   dontUseWhen: [
     {

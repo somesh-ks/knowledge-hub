@@ -20,6 +20,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 ## Not working or unverified
 
 - Blob on Pro trial since 10-30, ending 11-13 (D251, D256). Plan call (Pro, or Hobby with Blob under about 1,000 ops a month and under 70 deploys a day) at 11-06 to 11-08, read from the Vercel Usage tab, which is the only Blob op count (none in code). closed when: the plan is chosen and ops stay under 1,000 a month.
+- Config snapshot (D300 step 1): `snapshot.yml` writes the config store to a private Blob store each Sunday and `config restore` reads it back; untried against a real store, which needs the second Blob store and `BLOB_PRIVATE_READ_WRITE_TOKEN` (runbook 1.5a). closed when: the workflow has run once, the snapshot is in the store, and `config restore --file` on a copy of it rebuilds the rows.
 - Queue plays in place (D277). closed when: a third-item tap keeps the bar up.
 - Expressive style (#506; D268, D274, D275, D278) with a Style select in Appearance. closed when: a style chosen on a real phone survives a reload and an app restart.
 - Voice list (D276): closed when: a voice is heard from its list on his iPhone.
@@ -29,6 +30,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Three regenerations per podcast, counted in its own file (D212). closed when: the page shows "2 of 3 regenerations left".
 - The 10-31 scheduled daily published nothing: a 6-hour window (an on-demand briefing had moved the shared start), 11 Tech stories over the Tech allowance, 2 of 4 stories lost in writing, and a refill whose 3 Tech picks the allowance trimmed again. Fixed: the regular window starts at its own last window; a Tech-heavy day may air Tech past its allowance only to reach the floor (D297); the refill writes nothing the allowance will trim. closed when: the next two scheduled dailies publish.
 - Short podcasts (D204, D216 to D225). closed when: two dailies in a row air within 10% of length, and `singularity metrics` shows ten runs at `length_share` 0.9+, `failure_rate` 0.1 or less.
+- Writer model choice (D294 cost pass, 2026-11-01): `eval/writerModels.ts`, started by `run.yml`'s `writer_experiment` input, writes one run's stories with Sonnet at three efforts, Haiku and Gemini Flash and rates them with Jev. The router is static (D209 chains), so no model is picked from feedback yet. closed when: a run's results are read, a writer arm is chosen on cost per passed story, and `models.json` carries it.
 - Ingest in shadow (D233, D251). closed when: for 7 days the store holds 90% of each daily's stories and reads 90% of pages tried (`ingest --coverage`).
 - Trusted publishers (D234) and community lift (D240), shipped off. closed when: both on and a daily airs a lab story and a community-voted one, no source over 30%.
 - Run names (D217), Neon run log (D221). closed when: a scheduled daily is named `daily <date>`, is off the queue, and has its row.
@@ -47,10 +49,11 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Library list month label (D288) sticks and follows the app bar on a real phone. closed when: the owner scrolls the list on his phone and sees no gap or jump under the bar.
 - Safari and WebKit: the iPhone `@smoke` set (`PLAYER_WEBKIT=1`) has not run. closed when: an iPhone passes it.
 - Time zone (D100, D239) only faked; `sinceLabel`, `pendingAudio` and `podcast/select` still use Stockholm's today. closed when: a run across the 10-25 clock change publishes on the right day.
-- Config saves go through the config store (D149, D185); `config.yml` last ran 10-25. Never seen live: `topic.scope`, rename or move, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics, episode delete and regenerate. closed when: each lands as a `main` commit.
+- Config saves go through the config store (D149, D296); `config.yml` has nothing left to commit. Never seen live: `topic.scope`, rename or move, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics, episode delete and regenerate. closed when: each shows in the store row and on a second device.
 - Admin env (D257): the reader needs `ADMIN_SESSION_SECRET`. closed when: `/api/health` answers 401 signed out.
-- Config store (D149, D185): Vercel has `SINGULARITY_CONFIG_STORE` and `DATABASE_URL` (checked 11-01); the Actions variable could not be read, so `health` faults `config_store_split` when the site and runs disagree. closed when: a phone's edit shows on a laptop and health passes the config-store line.
-- A pending `config.yml` run can be cancelled by GitHub after a 202 (shared `singularity` group); production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 10-14 (`doctor --online` tests it; daily health faults in its last 7 days once `GH_SINGULARITY_TOKEN` is pushed; write access it cannot test). closed when: a config save from the site produces a commit and the next health run passes `github token`.
+- Owner config out of git (D296, built, unmerged until the owner's review). closed when: after the merge the next scheduled daily's gate log says `config store:` and it publishes, the Vercel build log says `store on; from the store:`, audio publishing keeps the owner's voice, and the cron answers 200.
+- Config store (D149, D296): Vercel has `SINGULARITY_CONFIG_STORE` and `DATABASE_URL` (checked 11-01); the Actions variable could not be read, so `health` faults `config_store_split` when the site and runs disagree. closed when: a phone's edit shows on a laptop and health passes the config-store line.
+- Production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 10-14 (`doctor --online` tests it and its expiry; daily health faults in its last 7 days once `GH_SINGULARITY_TOKEN` is pushed; write access it cannot test). closed when: a config save from the site produces a commit and the next health run passes `github token`.
 - 35 older items parked in history (`#parked`, 10-21 to 10-28) and 10 more ([2026-10-31 trim](history/2026-10-31-state-trim.md)). closed when: each closes.
 
 ## Known risks
