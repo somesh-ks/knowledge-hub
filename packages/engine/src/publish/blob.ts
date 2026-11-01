@@ -178,7 +178,7 @@ async function putNarration(
 }
 
 /** Narrations and what travels with them: word marks (.marks.json) and an episode's Opus manifest (.json). */
-const PRUNABLE_SUFFIXES = [".mp3", ".m4a", ".json"];
+const PRUNABLE = /(\.mp3|\.m4a|\.marks\.json|\/episode\.[^/]+\.json)$/;
 
 /** Pruning lists the whole audio/ prefix, one Blob operation per page, and 120-day-old files need no daily sweep. */
 export const isPruneDay = (now: Date): boolean => now.getUTCDay() === 0;
@@ -208,9 +208,7 @@ export async function pruneAudio(client: BlobClient, input: PruneAudioInput): Pr
   do {
     const page = await client.list({ prefix: AUDIO_PREFIX, ...(cursor ? { cursor } : {}) });
     for (const blob of page.blobs) {
-      const isNarration =
-        blob.pathname.startsWith(AUDIO_PREFIX) &&
-        PRUNABLE_SUFFIXES.some((suffix) => blob.pathname.endsWith(suffix));
+      const isNarration = blob.pathname.startsWith(AUDIO_PREFIX) && PRUNABLE.test(blob.pathname);
       if (isNarration && blob.uploadedAt.getTime() < cutoff) stale.push(blob.pathname);
       else kept++;
     }

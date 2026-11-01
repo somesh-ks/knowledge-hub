@@ -187,6 +187,38 @@ it("draws the build's copy when the manifest loads but its files cannot be read"
   expect(objectReads).toBe(1);
 });
 
+// Bug (review): a newer manifest whose objects could not be read discarded the last good site, so
+// the page fell back to a copy as old as the last deploy.
+it("keeps showing the last site it loaded when a newer one cannot be read, and says so", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  let now = 0;
+  const deps = { env: ENV, fetch: fakeFetch, now: () => now };
+  const first = await loadPageSite(deps, { list: async () => [], read: async () => null });
+  expect(first.saved).toBe(false);
+  await fillStore("2026-10-24T13:00:00Z");
+  now = 2 * MANIFEST_TTL_MS;
+  const broken = async (url: string): Promise<Response> =>
+    new URL(url).pathname === "/content/manifest.json" || /tombstones/.test(url)
+      ? fakeFetch(url)
+      : new Response(null, { status: 500 });
+  const page = await loadPageSite(
+    { ...deps, fetch: broken },
+    { list: async () => [], read: async () => null },
+  );
+  expect(page.saved).toBe(true);
+  expect(page.site.entries.length).toBe(first.site.entries.length);
+  expect(page.site.entries.length).toBeGreaterThan(0);
+});
+
+// Bug (review): a deploy with no store configured read as a degraded outage, with the saved-copy
+// notice on every page.
+it("serves the build's copy without calling it saved when no store is configured", async () => {
+  const bundled = { list: async () => [], read: async () => null };
+  const page = await loadPageSite({ env: {}, fetch: fakeFetch, now: () => 0 }, bundled);
+  expect(page.saved).toBe(false);
+  expect(isShowingSavedContent()).toBe(false);
+});
+
 // Bug: requests that reached a cold instance together each waited out the dead store's timeout.
 it("makes one store attempt for requests that arrive together during an outage", async () => {
   await fillStore("2026-10-24T12:00:00Z");

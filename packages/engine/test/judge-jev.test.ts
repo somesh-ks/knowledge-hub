@@ -443,6 +443,33 @@ describe("breakJev", () => {
     expect(failures[29]?.reason).toContain("Jev is unavailable");
   });
 
+  // Bug: the breaker stayed open for the rest of the run, so a Jev outage of seconds sent every
+  // later call, judging and grounding included, to the coarser fallback.
+  it("lets one call through after the cooldown and closes again when Jev answers", async () => {
+    let down = true;
+    const fake = fakeJev(() => {
+      if (down) throw httpError(503, "unavailable");
+      return recorded;
+    });
+    let clock = 0;
+    const client = breakJev(fake, { threshold: 2, cooldownMs: 1_000, now: () => clock });
+    const ask = () =>
+      client.systemOne({ state: {}, questions: {} }).then(
+        () => "ok",
+        () => "fail",
+      );
+    await ask();
+    await ask();
+    expect(fake.calls).toHaveLength(2);
+    await ask();
+    expect(fake.calls).toHaveLength(2);
+    clock = 1_001;
+    down = false;
+    expect(await ask()).toBe("ok");
+    expect(await ask()).toBe("ok");
+    expect(fake.calls).toHaveLength(4);
+  });
+
   it("does not open on rate limits or a success between failures", async () => {
     let n = 0;
     const fake = fakeJev(() => {

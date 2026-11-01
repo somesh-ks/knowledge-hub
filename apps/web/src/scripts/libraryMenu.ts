@@ -60,11 +60,12 @@ function setDownloaded(root: HTMLElement, on: boolean): void {
 export async function syncDownloads(): Promise<void> {
   if (!document.querySelector(ITEM_ROOT)) return;
   const { readDownloads, sweepUnlisted } = await import("./libraryDownloads");
-  if (!document.querySelector("[data-downloading]")) await sweepUnlisted();
   const ids = new Set((await readDownloads()).map((entry) => entry.id));
   for (const root of document.querySelectorAll<HTMLElement>(ITEM_ROOT)) {
     setDownloaded(root, ids.has(root.dataset.id ?? ""));
   }
+  // After the rows are marked: the scan of the whole cache never holds them up.
+  if (!document.querySelector("[data-downloading]")) await sweepUnlisted();
 }
 
 async function toggleDownload(root: HTMLElement): Promise<void> {

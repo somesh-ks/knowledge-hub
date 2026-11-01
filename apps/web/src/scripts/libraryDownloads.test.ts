@@ -26,8 +26,11 @@ function stubBrowser(manifest: "fails" | "empty" | string) {
     open: async () => cache,
   });
   vi.stubGlobal("navigator", {
+    storage: undefined,
+    serviceWorker: undefined,
     locks: {
-      request: async (_name: string, _o: unknown, run: (lock: object) => unknown) => run({}),
+      request: async (_name: string, a: unknown, b?: unknown) =>
+        (typeof a === "function" ? a : (b as (lock: object) => unknown))({}),
     },
   });
   vi.stubGlobal("location", { href: "https://news.example/library" });
@@ -75,5 +78,44 @@ describe("removeDownload", () => {
     await expect(removeDownload("a")).rejects.toThrow();
     expect(written).toEqual([]);
     expect(deleted).toEqual([]);
+  });
+});
+
+describe("a list the page cannot read cleanly", () => {
+  // Bug (review): a corrupt saved list made every save and removal fail for good, with no way to
+  // repair it short of wiping the site's data.
+  it("lets a removal rewrite a corrupt list", async () => {
+    const { written } = stubBrowser("{not json");
+    const { removeDownload } = await import("./libraryDownloads");
+    await removeDownload("a");
+    expect(written).toEqual(["/__downloads.json"]);
+  });
+});
+
+describe("download", () => {
+  // Bug (review): a fetch's timeout covers its body, so a page fetched before a long audio read met
+  // an expired signal when it was finally cached, and the whole save failed on a slow link.
+  it("reads the page's body before it waits on the audio's", async () => {
+    stubBrowser("empty");
+    const order: string[] = [];
+    const reply = (name: string): Response => {
+      const response = new Response(name);
+      const blob = response.blob.bind(response);
+      response.blob = async () => {
+        order.push(name);
+        return blob();
+      };
+      return response;
+    };
+    vi.stubGlobal("fetch", async (url: string) =>
+      url.endsWith(".mp3")
+        ? reply("audio")
+        : url.includes("/covers")
+          ? new Response(null, { status: 404 })
+          : reply("page"),
+    );
+    const { download } = await import("./libraryDownloads");
+    await download({ id: "a", audio: PAYLOAD, page: "https://news.example/d/a" });
+    expect(order).toEqual(["page", "audio"]);
   });
 });
