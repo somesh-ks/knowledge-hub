@@ -17,6 +17,8 @@ export function swipeClickGuard() {
   let swipedAt = Number.NEGATIVE_INFINITY;
   return {
     onPointerDownCapture: (event: PointerEvent<HTMLElement>) => {
+      // A new press is no echo of the last swipe: its own click must act.
+      swipedAt = Number.NEGATIVE_INFINITY;
       swiped = false;
       start =
         event.pointerType === "mouse"
@@ -25,7 +27,9 @@ export function swipeClickGuard() {
     },
     onPointerMoveCapture: (event: PointerEvent<HTMLElement>) => {
       if (!start || start.id !== event.pointerId) return;
-      if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > SWIPE_PX) swiped = true;
+      // The controller's own reading of a tap: each axis against the slop (gestureMath TAP_SLOP_PX).
+      if (Math.max(Math.abs(event.clientX - start.x), Math.abs(event.clientY - start.y)) > SWIPE_PX)
+        swiped = true;
     },
     onPointerUpCapture: (event: PointerEvent<HTMLElement>) => {
       if (start?.id === event.pointerId && swiped) swipedAt = event.timeStamp;

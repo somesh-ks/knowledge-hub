@@ -21,6 +21,7 @@ test.describe("playback on a podcast", () => {
     player,
     audio,
     page,
+    browserName,
   }) => {
     await player.open();
     await player.play();
@@ -35,6 +36,8 @@ test.describe("playback on a podcast", () => {
     await player.finger.press(player.dock.getByRole("button", { name: "Play", exact: true }));
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
     await expect(player.cta).toHaveAccessibleName(/^Pause the podcast, \d+ min left$/);
+    // The held drag is a CDP touch sequence, Chromium only (the opt-in WebKit run keeps the taps above).
+    if (browserName !== "chromium") return;
     // Owner, 2026-11-01: held for a second the bar's Pause did nothing. A thumb drifts over a hold, and a
     // drift past the tap slop made the browser pan instead of click; the press acts when it lets go.
     await player.dockSettled();
