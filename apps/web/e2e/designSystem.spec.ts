@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { AUDIO_DIGEST, expect, hydrated, openRowMenu, ROUTES, SITE_PAGES, test } from "./fixtures";
+import { openPicker, pickerList } from "./picker";
 
 /**
  * The 8pt system, as the browser draws it. styles.test.ts holds the stylesheets to the scale; this
@@ -248,6 +249,62 @@ test.describe("one page gutter", () => {
     expect(widths["/library"]).toBeGreaterThan((widths["/settings"] ?? 0) + 100);
     expect(widths["/create"]).toBeGreaterThan((widths["/settings"] ?? 0) + 100);
   });
+});
+
+// Concentric corners (owner, 2026-11-01: a 28px popover around a 48px pill looked wrong, after the same
+// complaint on 10-23 and 10-31). A rounded fill inside a rounded surface shares its corner's centre:
+// the outer radius is the inner radius plus the gap between them (padding or margin, plus a border).
+// Each surface is compared with its own fill, never with pinned radii, so a token that moves one
+// without the other fails here.
+const concentric = (outer: number, inner: number, gap: number) =>
+  Math.abs(outer - (inner + gap)) <= 1.5;
+
+test("a picker's pill is concentric with the list around it @both", async ({ page }) => {
+  await page.goto("/settings/daily");
+  await openPicker(page, page.locator("#daily-timezone"));
+  const m = await pickerList(page).evaluate((pop) => {
+    const pill = pop.querySelector(".picker-search") as HTMLElement;
+    const popStyle = getComputedStyle(pop);
+    const pillStyle = getComputedStyle(pill);
+    return {
+      outer: Number.parseFloat(popStyle.borderTopLeftRadius),
+      inner: Number.parseFloat(pillStyle.borderTopLeftRadius),
+      gap: Number.parseFloat(pillStyle.marginLeft) + Number.parseFloat(popStyle.borderLeftWidth),
+    };
+  });
+  expect(concentric(m.outer, m.inner, m.gap), JSON.stringify(m)).toBe(true);
+});
+
+test("a Menu's rows are concentric with the Menu @desktop", async ({ page }) => {
+  await page.goto("/library");
+  const row = page.locator(`[data-card][data-id="${AUDIO_DIGEST.split("/").pop()}"]`);
+  await openRowMenu(page, row);
+  const m = await row.locator(".menu-list").evaluate((menu) => {
+    const item = menu.querySelector(".menu-item") as HTMLElement;
+    const menuStyle = getComputedStyle(menu);
+    return {
+      outer: Number.parseFloat(menuStyle.borderTopLeftRadius),
+      inner: Number.parseFloat(getComputedStyle(item).borderTopLeftRadius),
+      gap: Number.parseFloat(menuStyle.paddingLeft) + Number.parseFloat(menuStyle.borderLeftWidth),
+    };
+  });
+  expect(concentric(m.outer, m.inner, m.gap), JSON.stringify(m)).toBe(true);
+});
+
+test("a select's list rows are concentric with the list @desktop", async ({ page }) => {
+  await page.goto("/settings/preferences");
+  const select = page.locator("#default-speed");
+  await select.click();
+  const m = await select.evaluate((element) => {
+    const list = getComputedStyle(element, "::picker(select)");
+    const option = element.querySelector("option") as HTMLElement;
+    return {
+      outer: Number.parseFloat(list.borderTopLeftRadius),
+      inner: Number.parseFloat(getComputedStyle(option).borderTopLeftRadius),
+      gap: Number.parseFloat(list.paddingLeft) + Number.parseFloat(list.borderLeftWidth),
+    };
+  });
+  expect(concentric(m.outer, m.inner, m.gap), JSON.stringify(m)).toBe(true);
 });
 
 // A one-row card took the 32px card radius and read as a pill (owner, 2026-10-27). Each card is
