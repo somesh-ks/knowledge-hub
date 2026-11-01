@@ -4751,7 +4751,8 @@
       "name": "--sheet-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-sheet)"
+      "light": "var(--radius-2xl)",
+      "role": "A bottom sheet's top corners: 32px, the picker's, so every phone sheet shares one corner (owner, 2026-11-01)."
     },
     {
       "name": "--sheet-padding",
@@ -5084,15 +5085,15 @@
       "name": "--picker-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-sheet)",
-      "role": "Concentric: the inner radius plus the inset. The list's own outer radius."
+      "light": "var(--radius-2xl)",
+      "role": "Concentric: the inner radius plus the inset (24 + 8 = 32). The list's own outer radius, a popover's and a phone sheet's alike."
     },
     {
       "name": "--picker-inset",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--card-inset)",
-      "role": "From the list's edge to the search field and to the options. The card's inset, 4px."
+      "light": "var(--space-2)",
+      "role": "From the list's edge to the search field and to the options: 8px on a popover and a phone sheet alike (owner, 2026-11-01)."
     },
     {
       "name": "--picker-inner-radius",
