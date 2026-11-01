@@ -55,7 +55,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-30: the judge flagged all 21 favorite-creator videos since 9 Oct: it read links and a sponsor line. The Judge step lacked `FIRECRAWL_API_KEY`, so 3 videos a run (Gemini cap) got a transcript; a stage reads only its own `env`.
 - 2026-10-19: a YouTube finalist reached the writer with only its description: `extractFullText` fetched a watch page with no speech. YouTube items go through `extract/youtubeText.ts` (cache, Firecrawl, then Gemini; `state/video-text.json`); failure falls back to the description.
 - 2026-10-07: `audio.yml` failed at the write guard ("changes outside the publish allowlist: .gitignore"): `vercel link` and `vercel env pull` edit `.gitignore` and write `.vercel`; run them in a scratch directory outside the checkout.
-- 2026-10-30: Hobby Blob allows 2,000 advanced ops a month (`put`, `copy`, `list`); over it the store is blocked. Ingest wrote a put per story (D251): count a job's puts. The CDN keys a function's answer by path and obeys `vercel.json` header rules, not the query or `Vercel-CDN-Cache-Control`; a `has` capture missed (D263).
+- 2026-10-30: Hobby Blob allows 2,000 advanced ops a month (`put`, `copy`, `list`); over it the store is blocked. Ingest put once per story (D251): count a job's puts. The CDN keys an answer by path and obeys `vercel.json` header rules, not the query or `Vercel-CDN-Cache-Control` (D263).
 - 2026-10-18: the 15-minute weekly aired 14 stories: the prefilter's fixed cap of 80 filled 27 of 52 slots and grounding dropped 11. `poolCapFor` now sizes it. Read a short episode's funnel from the stage lines first.
 - 2026-10-15: Claude Sonnet 5.5 answers 400 "temperature is deprecated" to any request with `temperature`, and the writer chain fell through silently to Nebius from 2026-10-14 while Settings said Sonnet. The Anthropic client sends no temperature; a pick that fails over should be visible, not only in logs.
 - 2026-10-15: a source with 0 fetched items and OK health is not always broken: One Useful Thing and AUX First post monthly (newest items 2026-10-01 and 2026-09-21). Read the feed's newest date before calling a source dead.
@@ -67,7 +67,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-11: a missing morning briefing was GitHub, not the gate: the 07:13 Stockholm entry ran 13:11 to 14:02 on 7 to 10 October (a platform-wide delay). Before debugging a missed run, list `run.yml`'s schedule runs ("skipped" means no runner) and read the Gate log. The trigger moved to Vercel Cron (D61).
 - 2026-10-11: `singularity sources import` keeps an existing source's `enabled` and `options`, so a seed change reaches only new sources: write it into `config/sources.json` after the import (`--fresh` loses discovered feeds and counters). Run `biome format` on the imported JSON before linting.
 - 2026-10-11: a judge built with a fallback (Jev, then Nebius) shares the fallback's token budget with the writer, so work done for scores alone must use the primary judge alone: an outage would otherwise spend the briefing's budget on it.
-- 2026-10-08: Create, Generate and saving topics all answered "not available right now" on production: the site's fine-grained GitHub token was valid but had no access to this repository, so GitHub answered 404 for repo, workflows and runs. `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`; it should.
+- 2026-10-08: Create, Generate and saving topics answered "not available right now" on production: the site's fine-grained GitHub token had no access to this repository, so GitHub answered 404. `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`; it should.
 - 2026-10-07: Green tests did not catch the audio failure: nothing exercises the live Vercel, Speechify and Blob path. Run `singularity doctor --online` after any credential change.
 
 ## Site and service worker
@@ -94,6 +94,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-09: a move took 400 ms though the page was ready after 70: the mark that picks the animation (`data-astro-nav`) was lost in the swap, as Astro 7 keeps only its own root attributes. Carry it onto `event.newDocument` in `astro:before-swap`; check with `document.getAnimations()`.
 - 2026-10-09: The first press after opening blocks about 200 ms with the audio device idle, 75 ms warm: `new AudioContext()` inside the press. `latencyHint` and `sampleRate` do not help (a first measurement said they did: the first context created pays); reverse the order as the control.
 - 2026-10-31: a Play control marked `aria-disabled` never reacted: `disabledGuard.ts` swallows clicks on `[aria-disabled="true"]`, so a voice without a sample is marked `data-silent` instead.
+- 2026-11-01: Downloads showed as a gallery after a Library visit: `libraryPage.ts` kept its `astro:page-load` listener and matched Downloads' `[data-library]`. Name the page (`#main.library`); a test must reach it by click, not `goto`.
 
 ## Build and tooling
 
