@@ -100,12 +100,14 @@ describe("readDigestFiles against a store that answers each file separately", ()
     const waiting: Array<() => void> = [];
     let out = 0;
     let most = 0;
+    const asked: string[] = [];
     const text = (id: string, read_minutes = 2) =>
       serializeDigestFile(makeDigest({ id, read_minutes }));
     const files = [...ids.map((id) => `Digests/${id}.md`), "Digests/copy.md"];
     const reader = {
       list: async () => files,
       read: (path: string) => {
+        asked.push(path);
         if (!path.endsWith(".md")) return Promise.resolve(null);
         out += 1;
         most = Math.max(most, out);
@@ -130,6 +132,8 @@ describe("readDigestFiles against a store that answers each file separately", ()
     expect(most).toBeLessThanOrEqual(READ_CONCURRENCY);
     expect(sources.map((source) => source.digest.id)).toEqual(ids);
     expect(sources[0]?.digest.read_minutes).toBe(2);
+    // Bug (CodeRabbit): a skipped copy's timeline was read, and a failed read of it marked the store down.
+    expect(asked).not.toContain("Digests/copy.audio.json");
     expect(warnings).toEqual(["Digests/copy.md: duplicate digest id 2026-09-01, skipped"]);
   });
 });
