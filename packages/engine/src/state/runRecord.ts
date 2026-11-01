@@ -42,6 +42,17 @@ export function recordRun(lastRun: LastRunFile, input: RecordRunInput): LastRunF
 }
 
 /**
+ * Where a slot's last window ended. A record from before `fetched_through` gives the time its run
+ * finished instead (a little late; seen.json absorbs the overlap). A failed record without it
+ * says nothing.
+ */
+export function windowEndOf(record: RunRecord | undefined): string | undefined {
+  if (record === undefined) return undefined;
+  if (record.fetched_through) return record.fetched_through;
+  return record.outcome === "failed" ? undefined : (record.generated_at ?? record.at);
+}
+
+/**
  * The next last-run.json after a run whose job died before the commit stage (an install that
  * failed, a crash): each due kind's slot reads `failed` at `at`, so `health` reports `run_failed`
  * and the gate retries it. The fetch window and the cover stay as they were.
@@ -55,7 +66,7 @@ export function recordFailure(
   for (const kind of kinds) {
     const slot = SLOT_BY_KIND[kind];
     // The failed slot keeps where the last window ended: the retry must not start later.
-    const through = lastRun[slot]?.fetched_through;
+    const through = windowEndOf(lastRun[slot]);
     next[slot] = {
       at,
       outcome: "failed",

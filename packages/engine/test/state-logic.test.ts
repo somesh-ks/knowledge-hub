@@ -121,6 +121,24 @@ describe("recordFailure", () => {
   });
 });
 
+describe("recordFailure from a record without fetched_through", () => {
+  it("keeps the time the earlier run finished, so a retry does not start at a later fetch", () => {
+    const base: LastRunFile = {
+      version: 1,
+      regular: { at: "2026-10-05T07:00:00.000Z", outcome: "published", items: 8 },
+      last_fetch_at: "2026-10-06T22:13:00.000Z",
+    };
+    const next = recordFailure(base, ["regular"], "2026-10-07T05:20:00.000Z");
+    expect(next.regular?.fetched_through).toBe("2026-10-05T07:00:00.000Z");
+    // A failed record with nothing to keep gains nothing.
+    expect(recordFailure(next, ["weekly"], "2026-10-07T05:21:00.000Z").weekly).toEqual({
+      at: "2026-10-07T05:21:00.000Z",
+      outcome: "failed",
+      items: 0,
+    });
+  });
+});
+
 describe("recordRun", () => {
   const published: RunRecord = {
     at: "2026-10-07T05:13:00.000Z",

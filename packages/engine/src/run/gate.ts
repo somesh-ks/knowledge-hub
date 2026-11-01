@@ -4,6 +4,7 @@ import { decideRun, type RunDecision } from "../gate/decideRun.js";
 import { fetchWindow } from "../gate/fetchWindow.js";
 import { loadSchedule } from "../schedule/store.js";
 import { listDigestIds } from "../state/digestIds.js";
+import { windowEndOf } from "../state/runRecord.js";
 import { readLastRun } from "../state/store.js";
 import { UsageError } from "./errors.js";
 import { newPassState, type Plan, type PlanPass, writePassState, writePlan } from "./plan.js";
@@ -60,10 +61,7 @@ export async function gateStage(deps: RunDeps, options: RunOptions): Promise<Gat
   // any kind: the 2026-10-31 daily got six hours because an on-demand briefing had moved the start.
   // A record written before `fetched_through` existed gives the time its run finished instead, a
   // little late; seen.json absorbs the overlap, and the window then never skips a stretch.
-  const regular = lastRun.regular;
-  const regularEnd =
-    regular?.fetched_through ??
-    (regular?.outcome === "failed" ? undefined : (regular?.generated_at ?? regular?.at));
+  const regularEnd = windowEndOf(lastRun.regular);
   const regularFrom = regularEnd ? new Date(regularEnd) : undefined;
   const regularStart =
     regularFrom && lastFetchAt && regularFrom > lastFetchAt

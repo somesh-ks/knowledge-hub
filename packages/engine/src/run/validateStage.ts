@@ -58,25 +58,31 @@ export function trimOverAllowance<T extends { item: { id: string } }>(
 }
 
 /**
- * The reserve stories that still fit the allowance of their own section (Tech releases, a custom
- * section) once the stories already airing are counted: validation trims a story past it whatever
- * its score, so writing one is wasted (2026-10-31: three Tech stories written, three trimmed).
+ * The reserve stories to write for the refill, given the room each section with an allowance of
+ * its own (Tech releases, a custom section) has left once the stories already airing are counted:
+ * validation trims a story past it whatever its score, so writing more is wasted (2026-10-31:
+ * three Tech stories written, three trimmed). A section with room left gets one spare, because a
+ * story can still be lost in writing; a full one gets none. `ownerOf` names the section a story
+ * counts against, as validation does, or undefined when it has no allowance of its own.
  */
-export function withinAllowances<T extends { section?: string | undefined; category: string }>(
+export function withinAllowances<T>(
   candidates: readonly T[],
   airing: readonly (string | undefined)[],
+  ownerOf: (candidate: T) => string | undefined,
   plan: SectionPlan,
 ): T[] {
   const counts = new Map<string, number>();
   for (const section of airing) {
     if (section !== undefined) counts.set(section, (counts.get(section) ?? 0) + 1);
   }
-  return candidates.filter((entry) => {
-    const section = entry.section ?? entry.category;
-    if (!hasOwnAllowance(section)) return true;
-    const used = counts.get(section) ?? 0;
-    if (used >= allowanceFor(section, plan)) return false;
-    counts.set(section, used + 1);
+  const offered = new Map<string, number>();
+  return candidates.filter((candidate) => {
+    const section = ownerOf(candidate);
+    if (section === undefined || !hasOwnAllowance(section)) return true;
+    const room = allowanceFor(section, plan) - (counts.get(section) ?? 0);
+    const taken = offered.get(section) ?? 0;
+    if (room <= 0 || taken >= room + 1) return false;
+    offered.set(section, taken + 1);
     return true;
   });
 }
@@ -351,16 +357,21 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
     if (lengthChars !== undefined && fitted.chars < lengthChars && room > 0 && !reserve.refilled) {
       const poolById = new Map(pool.items.map((item) => [item.id, item]));
       const missing = Math.ceil((lengthChars - fitted.chars) / STORY_CHARS);
+      // The section a story counts against: its category's home, as validation resolves it.
+      const ownerOf = (category: string, source: string | undefined): string | undefined => {
+        if (source === undefined) return undefined;
+        return (
+          (isBuiltinCategory(category)
+            ? homeSection(category, source)
+            : homeSectionFor(topics, category, source)) ?? undefined
+        );
+      };
       const candidates = withinAllowances(
         reserve.items.filter((entry) => !takenElsewhere.has(entry.id) && poolById.has(entry.id)),
-        fitted.survivors.map((g) => {
-          const source = poolById.get(g.item.id)?.source_type;
-          const category = entryOf.get(g.item.id)?.category;
-          if (category === undefined || source === undefined) return undefined;
-          return isBuiltinCategory(category)
-            ? (homeSection(category, source) ?? undefined)
-            : (homeSectionFor(topics, category, source) ?? undefined);
-        }),
+        fitted.survivors.map((g) =>
+          ownerOf(entryOf.get(g.item.id)?.category ?? "", poolById.get(g.item.id)?.source_type),
+        ),
+        (entry) => ownerOf(entry.category, poolById.get(entry.id)?.source_type),
         sectionPlan,
       ).slice(0, Math.min(withSpares(missing), room));
       if (candidates.length > 0) {

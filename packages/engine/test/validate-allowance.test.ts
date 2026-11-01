@@ -36,20 +36,31 @@ describe("trimOverAllowance", () => {
 });
 
 // 2026-10-31: the refill wrote three Tech stories for a Tech allowance already full, and
-// validation trimmed all three. It offers a section only the room its allowance has left.
+// validation trimmed all three. It offers a section only the room its allowance has left, plus one
+// spare while any room is left, since a story can still be lost in writing.
 describe("withinAllowances", () => {
-  const reserved = (...ids: string[]) =>
-    ids.map((id) => ({ id, category: "x", section: id.startsWith("t") ? "tech" : "ui-craft" }));
+  const reserved = (...ids: string[]) => ids.map((id) => ({ id }));
+  const ownerOf = (entry: { id: string }) => (entry.id.startsWith("t") ? "tech" : "ui-craft");
 
   it("skips Tech stories once Tech's allowance is used, and keeps the main sections' stories", () => {
     const airing = Array.from({ length: 5 }, () => "tech");
-    const kept = withinAllowances(reserved("t1", "t2", "m1", "m2"), airing, DEFAULT_SECTION_PLAN);
+    const kept = withinAllowances(
+      reserved("t1", "t2", "m1", "m2"),
+      airing,
+      ownerOf,
+      DEFAULT_SECTION_PLAN,
+    );
     expect(kept.map((e) => e.id)).toEqual(["m1", "m2"]);
   });
 
-  it("offers a Tech story to replace one that was lost, up to the room left", () => {
+  it("offers a Tech story and one spare when one slot is left, so a lost story can be replaced", () => {
     const airing = ["tech", "tech", "tech", "tech", "ui-craft"];
-    const kept = withinAllowances(reserved("t1", "t2", "m1"), airing, DEFAULT_SECTION_PLAN);
-    expect(kept.map((e) => e.id)).toEqual(["t1", "m1"]);
+    const kept = withinAllowances(
+      reserved("t1", "t2", "t3", "m1"),
+      airing,
+      ownerOf,
+      DEFAULT_SECTION_PLAN,
+    );
+    expect(kept.map((e) => e.id)).toEqual(["t1", "t2", "m1"]);
   });
 });
