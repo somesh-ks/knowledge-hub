@@ -17,6 +17,7 @@ Service worker, saved copies, PWA, launch screen, offline. What it does now. Rea
 
 ### Offline
 - The worker keeps every file a page fetches (cache v10, six levels deep), so a settings page opened offline in a later session still has its editor (D97). The offline shell is pruned and includes /library.
+- Offline and, for 2.5 s after the connection returns, back online are one Banner strip above the app bar and the side column (`#banners`, `shell.css`). It is in the layout: it squeezes the page down as it opens and the page rises as it closes, so a page opened under it lands where it stays. Offline becomes back online in the same band. After a navigation it is drawn again as it was, with no motion.
 - Offline is the one device banner. Offline and back online are one empty-state section; `data-state` shows the true scene.
 - Scenario: WHEN offline and Play is pressed THEN the reason repeats and nothing loads (D98, D99).
 - Offline listening is by Download in the Library (D127): the worker answers Range requests (206, 416) and the `/api/narrate` lookup from `singularity-audio-v1`, which holds at most 10 items and survives version bumps. Audio never downloaded is not available offline.
