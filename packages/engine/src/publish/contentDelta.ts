@@ -13,7 +13,7 @@ import {
   contentType,
   sha256,
 } from "./contentSync.js";
-import { publishEpisodeIndex } from "./episodeIndex.js";
+import { indexFromTexts, isEpisodePath, uploadEpisodeIndex } from "./episodeIndex.js";
 
 /**
  * Changing the content store one file at a time (D300). `syncContent` mirrors a whole checkout and
@@ -22,6 +22,11 @@ import { publishEpisodeIndex } from "./episodeIndex.js";
  * other path stays as it is. Two jobs may do this at once, so the manifest is written with the ETag
  * it was read at (Blob refuses the write if another job changed it first) and the change is made
  * again on top of what that job wrote.
+ *
+ * Bound: one writer per path. A blob's key is its path, so two jobs that put different bytes to the
+ * same path at once can leave the blob of one under the hash of the other. The pipeline has one
+ * writer for each path (a digest, an episode, a state file), so this guards the manifest, which they
+ * share, and not a path they do not.
  */
 
 /** Attempts at the manifest before giving up: each failure means another job wrote it meanwhile. */
@@ -80,6 +85,33 @@ export interface DeltaResult {
   attempts: number;
 }
 
+const PODCASTS = "Podcasts/";
+
+/**
+ * Rebuild the episode index from the episodes the manifest lists, not from this checkout: a job that
+ * holds one new episode must not publish an index of one. An episode this checkout has, with the
+ * manifest's hash, is read from disk; the others are fetched from the store.
+ */
+async function publishIndexFromStore(
+  client: ConditionalBlobClient,
+  root: string,
+  now: Date,
+  base: string,
+  files: Readonly<Record<string, string>>,
+  fetchText: (url: string) => Promise<string | null>,
+): Promise<void> {
+  const texts: Array<[string, string | null]> = [];
+  for (const path of Object.keys(files).filter(isEpisodePath).sort()) {
+    const local = await readFile(join(root, path)).catch(() => null);
+    if (local !== null && sha256(new Uint8Array(local)) === files[path]) {
+      texts.push([path, local.toString("utf8")]);
+    } else {
+      texts.push([path, await fetchText(`${base}/${CONTENT_PREFIX}${path}?t=${Date.now()}`)]);
+    }
+  }
+  await uploadEpisodeIndex(client, indexFromTexts(texts, now));
+}
+
 export async function applyContentDelta(input: DeltaInput): Promise<DeltaResult> {
   const { client, root, now } = input;
   for (const path of [...input.put, ...input.remove]) {
@@ -94,6 +126,7 @@ export async function applyContentDelta(input: DeltaInput): Promise<DeltaResult>
     bodies.set(path, { body, hash: sha256(body) });
   }
 
+  const touchesPodcasts = [...input.put, ...input.remove].some((path) => path.startsWith(PODCASTS));
   const limit = input.attempts ?? DELTA_ATTEMPTS;
   for (let attempt = 1; attempt <= limit; attempt += 1) {
     const stored = await readManifest(client, input.fetchText);
@@ -116,6 +149,11 @@ export async function applyContentDelta(input: DeltaInput): Promise<DeltaResult>
     for (const path of removed) delete files[path];
 
     if (uploaded.length === 0 && removed.length === 0) {
+      // A run that died after the manifest but before the index is repeated with nothing changed:
+      // the index is rebuilt anyway, so that run's missing write is made good here.
+      if (touchesPodcasts && stored.base !== null) {
+        await publishIndexFromStore(client, root, now, stored.base, files, input.fetchText);
+      }
       return { uploaded, removed, unchanged, attempts: attempt };
     }
     const manifest: ContentManifest = {
@@ -123,20 +161,32 @@ export async function applyContentDelta(input: DeltaInput): Promise<DeltaResult>
       updated_at: now.toISOString(),
       files,
     };
+    let written: { url: string };
     try {
-      await client.put(CONTENT_MANIFEST_KEY, new TextEncoder().encode(JSON.stringify(manifest)), {
-        contentType: "application/json",
-        cacheControlMaxAge: CONTENT_CACHE_SECONDS,
-        ...(stored.etag !== null ? { ifMatch: stored.etag } : {}),
-      });
+      written = await client.put(
+        CONTENT_MANIFEST_KEY,
+        new TextEncoder().encode(JSON.stringify(manifest)),
+        {
+          contentType: "application/json",
+          cacheControlMaxAge: CONTENT_CACHE_SECONDS,
+          ...(stored.etag !== null ? { ifMatch: stored.etag } : {}),
+        },
+      );
     } catch (error) {
       if (isPreconditionFailed(error) && attempt < limit) continue;
       throw error;
     }
-    // After the manifest: a reader stops listing a path before its blob goes.
-    if (removed.length > 0) await client.del(removed.map((path) => `${CONTENT_PREFIX}${path}`));
-    if ([...uploaded, ...removed].some((path) => path.startsWith("Podcasts/"))) {
-      await publishEpisodeIndex(client, root, now);
+    const base = written.url.slice(0, written.url.length - CONTENT_MANIFEST_KEY.length - 1);
+    let current: Readonly<Record<string, string>> = files;
+    if (removed.length > 0) {
+      // After the manifest: a reader stops listing a path before its blob goes. A job that put the
+      // path back since keeps its blob, so only paths the manifest still lacks are deleted.
+      current = (await readManifest(client, input.fetchText)).files;
+      const gone = removed.filter((path) => !(path in current));
+      if (gone.length > 0) await client.del(gone.map((path) => `${CONTENT_PREFIX}${path}`));
+    }
+    if (touchesPodcasts) {
+      await publishIndexFromStore(client, root, now, base, current, input.fetchText);
     }
     return { uploaded, removed, unchanged, attempts: attempt };
   }

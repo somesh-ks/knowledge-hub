@@ -1,6 +1,12 @@
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import {
+  EPISODE_INDEX_KEY,
+  type Episode,
+  episodeRelPath,
+  serializeEpisodeFile,
+} from "@singularity/core";
 import { BlobPreconditionFailedError } from "@vercel/blob";
 import { describe, expect, it } from "vitest";
 import type { ConditionalBlobClient } from "./blob.js";
@@ -43,6 +49,35 @@ function fakeBlob(beforeManifestWrite?: () => void) {
     JSON.parse(objects.get(CONTENT_MANIFEST_KEY)?.text ?? '{"files":{}}').files;
   return { client, objects, fetchText, manifest };
 }
+
+function episodeFile(id: string, generatedAt: string): [string, string] {
+  const episode: Episode = {
+    id,
+    title: `Episode ${id}`,
+    request: {
+      topic_ids: ["ai"],
+      length_minutes: 5,
+      format: "readout",
+      window_days: 7,
+      tone: "neutral",
+    },
+    generated_at: generatedAt,
+    listen_minutes: 5,
+    format: "readout",
+    sources: [
+      { item_id: "0123456789ab", url: "https://example.com/a", headline: "H", source: "S" },
+    ],
+    turns: [{ idx: 0, speaker: "a", text: "Hello." }],
+    char_count: 6,
+    cover: { template: "spring", palette: "dusk", seed: 1 },
+  };
+  return [episodeRelPath(id), serializeEpisodeFile(episode)];
+}
+
+const indexIds = (store: ReturnType<typeof fakeBlob>): string[] =>
+  JSON.parse(store.objects.get(EPISODE_INDEX_KEY)?.text ?? '{"episodes":[]}').episodes.map(
+    (entry: { id: string }) => entry.id,
+  );
 
 async function checkout(files: Record<string, string>): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "content-delta-"));
@@ -121,6 +156,82 @@ describe("applyContentDelta", () => {
       "Digests/2026/11/other.md",
       "Digests/2026/11/seed.md",
     ]);
+  });
+
+  // The bug: the index was rebuilt from the job's own checkout. A job that holds only the new episode
+  // would publish an index of one and the Library would lose every other episode.
+  it("lists every episode the store holds when the job's checkout holds only the new one", async () => {
+    const store = fakeBlob();
+    const [oldPath, oldText] = episodeFile("ep-20261020-0900", "2026-10-20T09:00:00Z");
+    const [newPath, newText] = episodeFile("ep-20261023-1800", "2026-10-23T18:00:00Z");
+    const first = await checkout({ [oldPath]: oldText });
+    const base = { client: store.client, now: NOW, fetchText: store.fetchText, remove: [] };
+    await applyContentDelta({ ...base, root: first, put: [oldPath] });
+    const second = await checkout({ [newPath]: newText });
+    await applyContentDelta({ ...base, root: second, put: [newPath] });
+    expect(indexIds(store)).toEqual(["ep-20261023-1800", "ep-20261020-0900"]);
+  });
+
+  // The bug: the manifest was written and the index upload failed; the rerun found every hash
+  // unchanged, returned early, and the index stayed behind for good.
+  it("rebuilds the episode index on a rerun that changes nothing", async () => {
+    const store = fakeBlob();
+    const [path, text] = episodeFile("ep-20261023-1800", "2026-10-23T18:00:00Z");
+    const root = await checkout({ [path]: text });
+    const input = {
+      client: store.client,
+      root,
+      now: NOW,
+      fetchText: store.fetchText,
+      put: [path],
+      remove: [],
+    };
+    await applyContentDelta(input);
+    store.objects.delete(EPISODE_INDEX_KEY);
+    const rerun = await applyContentDelta(input);
+    expect(rerun.uploaded).toEqual([]);
+    expect(indexIds(store)).toEqual(["ep-20261023-1800"]);
+  });
+
+  // The bug: a remove deleted its blob after the manifest write without looking again; a job that
+  // had put the same path back in between kept a manifest entry whose blob was gone.
+  it("keeps the blob of a path another job put back since the manifest was written", async () => {
+    const store = fakeBlob();
+    const root = await checkout({ "Digests/2026/11/a.md": "A" });
+    const seeded = { client: store.client, now: NOW, fetchText: store.fetchText, remove: [] };
+    await applyContentDelta({ ...seeded, root, put: ["Digests/2026/11/a.md"] });
+    const hash = sha256(new TextEncoder().encode("A"));
+    let restore = false;
+    const racing: ConditionalBlobClient = {
+      ...store.client,
+      put: async (pathname, body, options) => {
+        const result = await store.client.put(pathname, body, options);
+        if (pathname === CONTENT_MANIFEST_KEY) restore = true;
+        return result;
+      },
+      head: async (pathname) => {
+        if (restore && pathname === CONTENT_MANIFEST_KEY) {
+          restore = false;
+          store.objects.set(CONTENT_MANIFEST_KEY, {
+            text: JSON.stringify({
+              version: 1,
+              updated_at: NOW.toISOString(),
+              files: { "Digests/2026/11/a.md": hash },
+            }),
+            etag: 950,
+          });
+        }
+        return store.client.head(pathname);
+      },
+    };
+    await applyContentDelta({
+      ...seeded,
+      client: racing,
+      root,
+      put: [],
+      remove: ["Digests/2026/11/a.md"],
+    });
+    expect(store.objects.has("content/Digests/2026/11/a.md")).toBe(true);
   });
 
   it("refuses a path outside the content folders before it writes anything", async () => {
