@@ -1294,7 +1294,7 @@
   }
 
   .dock-btn[data-primary]:active {
-    background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
+    background: var(--color-accent-pressed);
   }
 }
 
@@ -1319,11 +1319,11 @@
 
 @media (hover: hover) and (pointer: fine) and (width >= 64rem) {
   .dock-btn[data-primary]:not([aria-disabled="true"]):hover {
-    background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-hover));
+    background: var(--color-accent-hover);
   }
 
   .dock-btn[data-primary]:not([aria-disabled="true"]):hover:active {
-    background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
+    background: var(--color-accent-pressed);
   }
 
   /* A mouse press on the bar is a quiet tonal layer, as light as a hover and eased in and out:
@@ -1727,7 +1727,7 @@
   }
 
   .transport-btn[data-primary]:hover {
-    background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-hover));
+    background: var(--color-accent-hover);
   }
 }
 
@@ -1737,7 +1737,7 @@
 }
 
 .transport-btn[data-primary]:active {
-  background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
+  background: var(--color-accent-pressed);
 }
 
 /* ------------------------------------------------------------------ speed */
@@ -1776,20 +1776,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .speed-btn:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-surface-container),
-      var(--color-on-surface) var(--state-hover)
-    );
+    background: var(--color-surface-container-hover);
   }
 }
 
 .speed-btn:active {
-  background: color-mix(
-    in oklch,
-    var(--color-surface-container),
-    var(--color-on-surface) var(--state-press)
-  );
+  background: var(--color-surface-container-pressed);
 }
 
 /*
@@ -1929,11 +1921,7 @@
 }
 
 .speed-preset[aria-pressed="true"]:active {
-  background: color-mix(
-    in oklch,
-    var(--color-accent-container),
-    var(--color-on-accent-container) var(--state-press)
-  );
+  background: var(--color-accent-container-pressed);
 }
 
 /* ------------------------------------------------------------------ the script */
@@ -2065,11 +2053,7 @@
   }
 
   .script-turn[aria-current="true"]:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-accent-container),
-      var(--color-on-accent-container) var(--state-hover)
-    );
+    background: var(--color-accent-container-hover);
   }
 
   .script-turn:not([aria-disabled="true"]) .script-word:not([data-spoken]):hover {
@@ -2086,11 +2070,7 @@
 }
 
 .script-turn[aria-current="true"]:active {
-  background: color-mix(
-    in oklch,
-    var(--color-accent-container),
-    var(--color-on-accent-container) var(--state-press)
-  );
+  background: var(--color-accent-container-pressed);
 }
 
 /* Said where a view has nothing to show, so a tab is never an empty page. */
@@ -2195,20 +2175,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .script-back:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-surface-inverse),
-      var(--color-on-surface-inverse) var(--state-hover)
-    );
+    background: var(--color-surface-inverse-hover);
   }
 }
 
 .script-back:active {
-  background: color-mix(
-    in oklch,
-    var(--color-surface-inverse),
-    var(--color-on-surface-inverse) var(--state-press)
-  );
+  background: var(--color-surface-inverse-pressed);
 }
 
 /* ------------------------------------------------------------------ a list that scrolls on its own */
@@ -2466,11 +2438,7 @@
   }
 
   .player-upnext-row:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-surface-container),
-      var(--color-on-surface) var(--state-hover)
-    );
+    background: var(--color-surface-container-hover);
   }
 
   .player-source-link:hover {
@@ -2493,11 +2461,7 @@
 }
 
 .player-upnext-row:active {
-  background: color-mix(
-    in oklch,
-    var(--color-surface-container),
-    var(--color-on-surface) var(--state-press)
-  );
+  background: var(--color-surface-container-pressed);
 }
 
 .player-upnext-row {
@@ -2669,20 +2633,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .player-queue-row:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-surface-container),
-      var(--color-on-surface) var(--state-hover)
-    );
+    background: var(--color-surface-container-hover);
   }
 }
 
 .player-queue-row:active {
-  background: color-mix(
-    in oklch,
-    var(--color-surface-container),
-    var(--color-on-surface) var(--state-press)
-  );
+  background: var(--color-surface-container-pressed);
 }
 
 /* ------------------------------------------------------------------ wide, with a mouse: nothing said twice */

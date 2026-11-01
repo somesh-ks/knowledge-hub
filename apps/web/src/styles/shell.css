@@ -518,11 +518,7 @@ html[data-mini="visible"] main {
   }
 
   .app-nav-item[aria-current="page"]:hover .app-nav-indicator::before {
-    background: color-mix(
-      in oklch,
-      var(--nav-side-item-bg),
-      var(--nav-side-item-fg) var(--state-hover)
-    );
+    background: var(--nav-side-item-bg-hover);
   }
 }
 
@@ -732,11 +728,7 @@ html[data-mini="visible"] main {
     }
 
     .app-nav-item[aria-current="page"]:hover {
-      background: color-mix(
-        in oklch,
-        var(--nav-side-item-bg),
-        var(--nav-side-item-fg) var(--state-hover)
-      );
+      background: var(--nav-side-item-bg-hover);
     }
   }
 

@@ -79,20 +79,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .icon-btn-tonal:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-surface-container),
-      var(--color-on-surface) var(--state-hover)
-    );
+    background: var(--color-surface-container-hover);
   }
 }
 
 .icon-btn-tonal:active {
-  background: color-mix(
-    in oklch,
-    var(--color-surface-container),
-    var(--color-on-surface) var(--state-press)
-  );
+  background: var(--color-surface-container-pressed);
 }
 
 /* A press on an icon button shows its state layer and nothing else: the glyph never scales or
@@ -157,11 +149,7 @@
   }
 
   .button-tonal:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-accent-container),
-      var(--color-on-accent-container) var(--state-hover)
-    );
+    background: var(--color-accent-container-hover);
   }
 }
 
@@ -176,11 +164,7 @@
 }
 
 .button-tonal:active {
-  background: color-mix(
-    in oklch,
-    var(--color-accent-container),
-    var(--color-on-accent-container) var(--state-press)
-  );
+  background: var(--color-accent-container-pressed);
 }
 
 /* Tonal action: the one creating action in the side column (Catch up, AppNav.astro). Usage: add it
@@ -205,20 +189,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .btn-action-tonal:hover {
-    background: color-mix(
-      in oklch,
-      var(--action-tonal-bg),
-      var(--action-tonal-state) var(--state-hover)
-    );
+    background: var(--action-tonal-bg-hover);
   }
 }
 
 .btn-action-tonal:active {
-  background: color-mix(
-    in oklch,
-    var(--action-tonal-bg),
-    var(--action-tonal-state) var(--state-press)
-  );
+  background: var(--action-tonal-bg-pressed);
 }
 
 /* Fills are dropped in forced colours, so the filled and the tonal button keep an edge of their own. */
@@ -378,14 +354,14 @@
 
 @media (hover: hover) and (pointer: fine) {
   .chip:hover {
-    background: color-mix(in oklch, var(--chip-bg), var(--color-on-surface) var(--state-hover));
+    background: var(--chip-bg-hover);
   }
 }
 
 /* A press is not a hover: the layer deepens and the label takes the pressed accent. The words never
    scale (pressText.test.ts). */
 .chip:active {
-  background: color-mix(in oklch, var(--chip-bg), var(--color-on-surface) var(--state-press));
+  background: var(--chip-bg-pressed);
   color: var(--color-accent-pressed);
 }
 
@@ -427,20 +403,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .chip[data-state="current"]:hover {
-    background: color-mix(
-      in oklch,
-      var(--chip-bg-current),
-      var(--chip-fg-current) var(--state-hover)
-    );
+    background: var(--chip-bg-current-hover);
   }
 }
 
 .chip[data-state="current"]:active {
-  background: color-mix(
-    in oklch,
-    var(--chip-bg-current),
-    var(--chip-fg-current) var(--state-press)
-  );
+  background: var(--chip-bg-current-pressed);
   color: var(--chip-fg-current);
 }
 

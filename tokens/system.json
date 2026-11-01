@@ -114,6 +114,8 @@
         "--button-padding",
         "--button-radius",
         "--color-accent-container",
+        "--color-accent-container-hover",
+        "--color-accent-container-pressed",
         "--color-on-accent-container",
         "--color-on-surface-disabled",
         "--color-surface-container"
@@ -555,12 +557,15 @@
         "--chip-height",
         "--color-accent",
         "--color-accent-container",
+        "--color-accent-container-hover",
         "--color-border-hairline",
         "--color-focus-ring",
         "--color-on-accent-container",
         "--color-on-surface",
         "--color-on-surface-muted",
         "--color-surface-container",
+        "--color-surface-container-hover",
+        "--color-surface-container-pressed",
         "--color-surface-overlay",
         "--field-chevron-gap",
         "--shadow-popover",
@@ -825,6 +830,8 @@
         "--color-scrim",
         "--color-surface",
         "--color-surface-container",
+        "--color-surface-hover",
+        "--color-surface-pressed",
         "--sheet-bg",
         "--sheet-radius",
         "--sheet-shadow"
@@ -882,6 +889,8 @@
         "--layout-column",
         "--layout-dialog",
         "--sheet-bg",
+        "--sheet-bg-hover",
+        "--sheet-bg-pressed",
         "--sheet-max-height",
         "--sheet-padding",
         "--sheet-radius",
@@ -964,9 +973,10 @@
       "usage": "Tonal action: the one creating action in the side column (Catch up, AppNav.astro). Usage: add it to the action's own element, which keeps its size and layout. The owner found the neutral fill with accent words faded in both themes (2026-10-27), and the current row's accent-container must keep meaning \"you are here\", so this is a third tone, richer than the current row: a saturated blue in both themes (white words in light, the darkest blue's in dark), as the greyed blues before it looked muddy in light and desaturated in dark (owner, 2026-10-27). Its fill reaches 3:1 on the page, so it reads as a shape with no outline, and its words 4.5:1 at rest (buildTokens.test.ts). - A 16px rounded rectangle: the one recorded exception to the pill rule (D186), so its shape alone tells it from the pill-shaped current row beside it (--action-tonal-radius). - Flat: no elevation and no shadow (owner, 2026-10-27). - Hover and press layer --action-tonal-state, which moves the fill away from its words (toward the darkest blue in light, the palest in dark), so the label gains contrast in every state.",
       "tokens": [
         "--action-tonal-bg",
+        "--action-tonal-bg-hover",
+        "--action-tonal-bg-pressed",
         "--action-tonal-fg",
         "--action-tonal-radius",
-        "--action-tonal-state",
         "--color-surface"
       ]
     },
@@ -1056,7 +1066,9 @@
       "usage": "The secondary icon button (2026-10-29, owner: \"a circle as a secondary button\"): an .icon-btn on the fill of the select chip (--color-surface-container), so it sits beside Play and a dropdown as one row in both themes. Usage: add it with .icon-btn for the companion of a primary action (Share beside Play); a lone toolbar glyph stays a plain .icon-btn. Its ink is full strength, not muted, because the fill already marks it as a control.",
       "tokens": [
         "--color-on-surface",
-        "--color-surface-container"
+        "--color-surface-container",
+        "--color-surface-container-hover",
+        "--color-surface-container-pressed"
       ]
     },
     {
@@ -1103,6 +1115,10 @@
       "tokens": [
         "--chip-bg",
         "--chip-bg-current",
+        "--chip-bg-current-hover",
+        "--chip-bg-current-pressed",
+        "--chip-bg-hover",
+        "--chip-bg-pressed",
         "--chip-fg",
         "--chip-fg-current",
         "--chip-gap",
@@ -1112,7 +1128,6 @@
         "--chip-padding-start",
         "--chip-radius",
         "--color-accent-pressed",
-        "--color-on-surface",
         "--color-on-surface-disabled",
         "--color-on-surface-muted",
         "--color-success",
@@ -1168,10 +1183,12 @@
         "--chip-radius",
         "--chip-radius-selected",
         "--color-accent-container",
+        "--color-accent-container-hover",
         "--color-focus-ring",
         "--color-on-accent-container",
         "--color-on-surface",
         "--color-surface-container",
+        "--color-surface-container-hover",
         "--size-icon-sm",
         "--size-touch"
       ]
@@ -1651,6 +1668,7 @@
         "--color-on-surface",
         "--color-on-surface-muted",
         "--color-surface-container",
+        "--color-surface-container-hover",
         "--color-surface-overlay",
         "--field-height",
         "--size-touch"
@@ -1865,6 +1883,8 @@
       "usage": "",
       "tokens": [
         "--color-accent-container-high",
+        "--color-accent-container-high-hover",
+        "--color-accent-container-high-pressed",
         "--color-border-hairline",
         "--color-on-accent-container-high",
         "--color-on-surface-disabled",
@@ -3347,6 +3367,27 @@
       "light": "12%"
     },
     {
+      "name": "--state-step-hover",
+      "tier": "primitive",
+      "type": "number",
+      "light": "0.05",
+      "role": "How far a hover moves a fill's lightness in OKLCH (L runs 0 to 1): the fill keeps its hue and chroma and only deepens or lifts. Replaces the 8% layer (D317)."
+    },
+    {
+      "name": "--state-step-hover-quiet",
+      "tier": "primitive",
+      "type": "number",
+      "light": "0.025",
+      "role": "Half a hover step, for a white chip on a card in light, where a whole step would take it past the card's own tone."
+    },
+    {
+      "name": "--state-step-press",
+      "tier": "primitive",
+      "type": "number",
+      "light": "0.1",
+      "role": "How far a press moves a fill's lightness: twice the hover, so the two steps read as two."
+    },
+    {
       "name": "--opacity-disabled",
       "tier": "primitive",
       "type": "number",
@@ -3454,6 +3495,14 @@
       "type": "singularity-haptic",
       "light": "android 12 108 20 ms; iphone 2 ticks, 120 ms apart",
       "role": "Two rising beats, one for each note of the ta-da: a podcast is ready to play."
+    },
+    {
+      "name": "--state-direction",
+      "tier": "semantic",
+      "type": "number",
+      "light": "-1",
+      "role": "Which way a neutral fill moves on hover and press: toward its text, so down in light (-1) and up in dark (1). Accent fills always deepen, and read this only when a state asks for the text direction.",
+      "dark": "1"
     },
     {
       "name": "--color-surface",
@@ -3660,24 +3709,131 @@
     {
       "name": "--color-accent-hover",
       "tier": "semantic",
-      "type": "color",
-      "light": "var(--color-blue-700)",
-      "dark": "var(--color-blue-200)",
-      "hex": {
-        "light": "#164087",
-        "dark": "#afcdfe"
-      }
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent) calc(l - var(--state-step-hover)) c h)",
+      "role": "A hover on the accent fill: the accent with its lightness stepped down by state.step-hover, same hue and chroma, so the fill stays the same blue and only deepens. Never an alpha or a mix (D317)."
     },
     {
       "name": "--color-accent-pressed",
       "tier": "semantic",
-      "type": "color",
-      "light": "var(--color-blue-800)",
-      "dark": "var(--color-blue-400)",
-      "hex": {
-        "light": "#162f59",
-        "dark": "#4f90fc"
-      }
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent) calc(l - var(--state-step-press)) c h)",
+      "role": "A press on the accent fill: the accent stepped down by state.step-press."
+    },
+    {
+      "name": "--color-accent-container-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent-container) calc(l + var(--state-direction) * var(--state-step-hover)) c h)",
+      "role": "A hover on the accent container: its lightness moves toward its text by state.step-hover."
+    },
+    {
+      "name": "--color-accent-container-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent-container) calc(l + var(--state-direction) * var(--state-step-press)) c h)"
+    },
+    {
+      "name": "--color-accent-container-high-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent-container-high) calc(l + var(--state-direction) * var(--state-step-hover)) c h)",
+      "dark": "oklch(from var(--color-accent-container-high) calc(l + var(--state-direction) * var(--state-step-hover)) c h)"
+    },
+    {
+      "name": "--color-accent-container-high-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent-container-high) calc(l + var(--state-direction) * var(--state-step-press)) c h)",
+      "dark": "oklch(from var(--color-accent-container-high) calc(l + var(--state-direction) * var(--state-step-press)) c h)"
+    },
+    {
+      "name": "--color-accent-action-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent-action) calc(l - var(--state-step-hover)) c h)",
+      "dark": "oklch(from var(--color-accent-action) calc(l + var(--state-step-hover)) c h)"
+    },
+    {
+      "name": "--color-accent-action-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent-action) calc(l - var(--state-step-press)) c h)",
+      "dark": "oklch(from var(--color-accent-action) calc(l + var(--state-step-press)) c h)"
+    },
+    {
+      "name": "--color-surface-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface) calc(l + var(--state-direction) * var(--state-step-hover)) c h)",
+      "role": "A hover on a control that sits on the page: the page surface stepped toward its text. The surface roles below do the same for what sits on them."
+    },
+    {
+      "name": "--color-surface-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface) calc(l + var(--state-direction) * var(--state-step-press)) c h)"
+    },
+    {
+      "name": "--color-surface-sunken-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-sunken) calc(l + var(--state-direction) * var(--state-step-hover)) c h)"
+    },
+    {
+      "name": "--color-surface-sunken-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-sunken) calc(l + var(--state-direction) * var(--state-step-press)) c h)"
+    },
+    {
+      "name": "--color-surface-container-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-container) calc(l + var(--state-direction) * var(--state-step-hover)) c h)"
+    },
+    {
+      "name": "--color-surface-container-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-container) calc(l + var(--state-direction) * var(--state-step-press)) c h)"
+    },
+    {
+      "name": "--color-surface-raised-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-raised) calc(l + var(--state-direction) * var(--state-step-hover)) c h)"
+    },
+    {
+      "name": "--color-surface-raised-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-raised) calc(l + var(--state-direction) * var(--state-step-press)) c h)"
+    },
+    {
+      "name": "--color-surface-overlay-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-overlay) calc(l + var(--state-direction) * var(--state-step-hover)) c h)"
+    },
+    {
+      "name": "--color-surface-overlay-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-overlay) calc(l + var(--state-direction) * var(--state-step-press)) c h)"
+    },
+    {
+      "name": "--color-surface-inverse-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h)",
+      "role": "The inverse surface (toasts) is light where the page is dark, so its step runs the other way."
+    },
+    {
+      "name": "--color-surface-inverse-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h)"
     },
     {
       "name": "--color-accent-subtle",
@@ -3761,18 +3917,6 @@
       "hex": {
         "light": "#ffffff",
         "dark": "#152236"
-      }
-    },
-    {
-      "name": "--color-accent-action-state",
-      "tier": "semantic",
-      "type": "color",
-      "light": "var(--color-blue-900)",
-      "role": "The ink accent-action's hover and press layers mix in. It moves the fill away from the words, so they gain contrast in every state: in light the words are white and the fill deepens toward the darkest blue; in dark the words are the darkest blue and the fill lightens toward blue-50, a white that keeps the blue's hue (pure white has none, and the oklch mix drifted toward violet).",
-      "dark": "var(--color-blue-50)",
-      "hex": {
-        "light": "#152236",
-        "dark": "#f5f9ff"
       }
     },
     {
@@ -4504,8 +4648,8 @@
       "type": "color",
       "light": "var(--color-accent-hover)",
       "hex": {
-        "light": "#164087",
-        "dark": "#afcdfe"
+        "light": "#0346a9",
+        "dark": "#73a0ec"
       }
     },
     {
@@ -4514,8 +4658,8 @@
       "type": "color",
       "light": "var(--color-accent-pressed)",
       "hex": {
-        "light": "#162f59",
-        "dark": "#4f90fc"
+        "light": "#003698",
+        "dark": "#6491db"
       }
     },
     {
@@ -4556,13 +4700,23 @@
       }
     },
     {
-      "name": "--action-tonal-state",
+      "name": "--action-tonal-bg-hover",
       "tier": "component",
       "type": "color",
-      "light": "var(--color-accent-action-state)",
+      "light": "var(--color-accent-action-hover)",
       "hex": {
-        "light": "#152236",
-        "dark": "#f5f9ff"
+        "light": "#1560d4",
+        "dark": "#5ea0ff"
+      }
+    },
+    {
+      "name": "--action-tonal-bg-pressed",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-action-pressed)",
+      "hex": {
+        "light": "#0050c3",
+        "dark": "#6db0ff"
       }
     },
     {
@@ -4957,6 +5111,26 @@
       }
     },
     {
+      "name": "--sheet-bg-hover",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-surface-raised-hover)",
+      "hex": {
+        "light": "#eeeeee",
+        "dark": "#3a3a3c"
+      }
+    },
+    {
+      "name": "--sheet-bg-pressed",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-surface-raised-pressed)",
+      "hex": {
+        "light": "#dedede",
+        "dark": "#474849"
+      }
+    },
+    {
       "name": "--sheet-shadow",
       "tier": "component",
       "type": "shadow",
@@ -5116,6 +5290,26 @@
       }
     },
     {
+      "name": "--chip-bg-hover",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-surface-container-hover)",
+      "hex": {
+        "light": "#dddedf",
+        "dark": "#3a3a3c"
+      }
+    },
+    {
+      "name": "--chip-bg-pressed",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-surface-container-pressed)",
+      "hex": {
+        "light": "#cdcecf",
+        "dark": "#474849"
+      }
+    },
+    {
       "name": "--chip-fg",
       "tier": "component",
       "type": "color",
@@ -5133,6 +5327,26 @@
       "hex": {
         "light": "#d6e5fe",
         "dark": "#162f59"
+      }
+    },
+    {
+      "name": "--chip-bg-current-hover",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-container-hover)",
+      "hex": {
+        "light": "#c5d5ee",
+        "dark": "#233d68"
+      }
+    },
+    {
+      "name": "--chip-bg-current-pressed",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-container-pressed)",
+      "hex": {
+        "light": "#b6c5dd",
+        "dark": "#304a77"
       }
     },
     {
@@ -5208,6 +5422,16 @@
       "hex": {
         "light": "#d6e5fe",
         "dark": "#162f59"
+      }
+    },
+    {
+      "name": "--nav-side-item-bg-hover",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-container-hover)",
+      "hex": {
+        "light": "#c5d5ee",
+        "dark": "#233d68"
       }
     },
     {
@@ -5306,8 +5530,8 @@
       "light": "var(--color-accent-hover)",
       "dark": "var(--color-accent-hover)",
       "hex": {
-        "light": "#164087",
-        "dark": "#afcdfe"
+        "light": "#0346a9",
+        "dark": "#73a0ec"
       }
     },
     {
@@ -5499,10 +5723,10 @@
     {
       "name": "--card-chip-hover",
       "tier": "component",
-      "type": "dimension",
-      "light": "4%",
-      "role": "The hover layer of a chip on a card: half the state layer in light, where the chip is white and the full 8% would take it past the card's own tone (L 94 on L 95) so it melted in; the full layer in dark, where hover lifts the chip away from the card (owner, 2026-10-24).",
-      "dark": "var(--state-hover)"
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-overlay) calc(l + var(--state-direction) * var(--state-step-hover-quiet)) c h)",
+      "role": "A chip on a card under the pointer: the overlay tone stepped toward its text by half a step in light, where the chip is white and a whole step would take it past the card's own tone (L 94 on L 95) so it melted in; a whole step in dark, where hover lifts the chip away from the card (owner, 2026-10-24).",
+      "dark": "oklch(from var(--color-surface-overlay) calc(l + var(--state-direction) * var(--state-step-hover)) c h)"
     }
   ]
 }

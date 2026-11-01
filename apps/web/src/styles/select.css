@@ -40,6 +40,8 @@
  */
 .select-tonal {
   --select-bg: var(--color-surface-container);
+  --select-bg-hover: var(--color-surface-container-hover);
+  --select-bg-pressed: var(--color-surface-container-pressed);
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -97,15 +99,11 @@
 
 @media (hover: hover) and (pointer: fine) {
   .select-tonal:hover {
-    background: color-mix(in oklch, var(--select-bg), var(--color-on-surface) var(--state-hover));
+    background: var(--select-bg-hover);
   }
 
   .select-tonal[data-active]:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-accent-container),
-      var(--color-on-accent-container) var(--state-hover)
-    );
+    background: var(--color-accent-container-hover);
   }
 }
 
@@ -120,11 +118,7 @@
    white chip under the pointer stays above the card's tone. */
 @media (hover: hover) and (pointer: fine) {
   .card-group .select-tonal:not([data-active]):hover {
-    background: color-mix(
-      in oklch,
-      var(--select-bg),
-      var(--color-on-surface) var(--card-chip-hover)
-    );
+    background: var(--card-chip-hover);
   }
 }
 
@@ -307,7 +301,7 @@
   :root:not([data-input="keyboard"]) .select-tonal:has(> select:open) {
     border-color: transparent;
     outline: none; /* a pointer's open list only: a keyboard's keeps its ring (data-input) */
-    background: color-mix(in oklch, var(--select-bg), var(--color-on-surface) var(--state-press));
+    background: var(--select-bg-pressed);
   }
 
   @media (forced-colors: active) {

@@ -924,11 +924,7 @@
       [aria-invalid]:not([aria-invalid="false"])
     ):hover {
     border-color: transparent;
-    background: color-mix(
-      in oklch,
-      var(--color-surface-container),
-      var(--color-on-surface) var(--state-hover)
-    );
+    background: var(--color-surface-container-hover);
   }
 }
 
@@ -953,22 +949,14 @@
       [readonly],
       [aria-invalid]:not([aria-invalid="false"])
     ):hover {
-    background: color-mix(
-      in oklch,
-      var(--color-surface),
-      var(--color-on-surface) var(--state-hover)
-    );
+    background: var(--color-surface-hover);
   }
 }
 
 .topics-panel select.field-input:active,
 .topics-panel .multiselect-trigger:is(:active, [aria-expanded="true"]) {
   border-color: transparent;
-  background: color-mix(
-    in oklch,
-    var(--color-surface-container),
-    var(--color-on-surface) var(--state-press)
-  );
+  background: var(--color-surface-container-pressed);
 }
 
 .topics-panel select.field-input:focus-visible,
@@ -1552,11 +1540,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .filter-row > .topic-add-source:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-surface-container),
-      var(--color-on-surface) var(--state-hover)
-    );
+    background: var(--color-surface-container-hover);
   }
 }
 
