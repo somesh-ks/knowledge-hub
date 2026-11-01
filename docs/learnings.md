@@ -38,7 +38,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Engine and workflows
 
-- 2026-11-01: a shared `last_fetch_at` let an on-demand briefing cut the daily's window to 6 h (each kind keeps `fetched_through`); a reserve with every count removed offered Tech stories validation trimmed: keep the Tech allowance.
+- 2026-11-01: a shared `last_fetch_at` let an on-demand briefing cut the daily's window to 6 h (each kind keeps `fetched_through`); the refill wrote Tech stories validation trimmed: offer a section only the room its allowance has left.
 - 2026-10-31: `serializeTopics` lists fields, `upsertTopic` branches by origin: a new `Topic` field needs both.
 - 2026-10-28: a run record's `at` is publish time (96 min for 3); time a run as `generated_at` less `window.to` (D203).
 - 2026-10-27: a briefing shipped 3 stories (79 s): grounding dropped 5 of 8 and the reserve was empty, since the structure's section caps capped it too (#373).

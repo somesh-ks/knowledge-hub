@@ -19,7 +19,7 @@ import {
   pruneSeen,
   SEEN_RETENTION_DAYS,
 } from "../src/state/prune.js";
-import { recordRun } from "../src/state/runRecord.js";
+import { recordFailure, recordRun } from "../src/state/runRecord.js";
 import { applySourceResults, failingSources } from "../src/state/sourceHealth.js";
 import { CATEGORY_PROBS, makeSource } from "./fetch-helpers.js";
 
@@ -94,6 +94,30 @@ describe("markSeen", () => {
     const next = markSeen(seen, ["a", "b"], "2026-10-06");
     expect(next.items).toEqual({ a: "2026-10-01", b: "2026-10-06" });
     expect(seen.items).toEqual({ a: "2026-10-01" });
+  });
+});
+
+// A job that died before the commit stage marks the slot failed; the retry's window must still
+// start where the regular digest's last window ended, not at an on-demand run's later fetch.
+describe("recordFailure", () => {
+  it("keeps where the slot's last window ended", () => {
+    const base: LastRunFile = {
+      version: 1,
+      regular: {
+        at: "2026-10-05T06:00:00.000Z",
+        outcome: "published",
+        items: 8,
+        fetched_through: "2026-10-05T05:13:00.000Z",
+      },
+      last_fetch_at: "2026-10-06T22:13:00.000Z",
+    };
+    const next = recordFailure(base, ["regular"], "2026-10-07T05:20:00.000Z");
+    expect(next.regular).toEqual({
+      at: "2026-10-07T05:20:00.000Z",
+      outcome: "failed",
+      items: 0,
+      fetched_through: "2026-10-05T05:13:00.000Z",
+    });
   });
 });
 

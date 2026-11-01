@@ -1,10 +1,19 @@
-import { type Digest, type Item, VOICE_LIMITS } from "@singularity/core";
+import {
+  type Digest,
+  hasOwnAllowance,
+  homeSection,
+  homeSectionFor,
+  type Item,
+  isBuiltinCategory,
+  VOICE_LIMITS,
+} from "@singularity/core";
 import { buildSpokenText, SpokenTextTooLongError } from "../audio/spokenText.js";
 import { linkSourceIds, loadSources, readJsonIfExists, sourceNameMap } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import { Selection, WrittenFile } from "../curate/selectionFile.js";
 import { describeError } from "../llm/errors.js";
-import { loadSectionPlan } from "../score/sectionPlan.js";
+import { loadSectionPlan, type SectionPlan } from "../score/sectionPlan.js";
+import { allowanceFor } from "../score/selectItems.js";
 import { readLastRun } from "../state/store.js";
 import { loadTopics } from "../topics/store.js";
 import { type GroundedItem, groundAndRepair } from "../validate/groundingRepair.js";
@@ -46,6 +55,30 @@ export function trimOverAllowance<T extends { item: { id: string } }>(
     }
   }
   return trimmed;
+}
+
+/**
+ * The reserve stories that still fit the allowance of their own section (Tech releases, a custom
+ * section) once the stories already airing are counted: validation trims a story past it whatever
+ * its score, so writing one is wasted (2026-10-31: three Tech stories written, three trimmed).
+ */
+export function withinAllowances<T extends { section?: string | undefined; category: string }>(
+  candidates: readonly T[],
+  airing: readonly (string | undefined)[],
+  plan: SectionPlan,
+): T[] {
+  const counts = new Map<string, number>();
+  for (const section of airing) {
+    if (section !== undefined) counts.set(section, (counts.get(section) ?? 0) + 1);
+  }
+  return candidates.filter((entry) => {
+    const section = entry.section ?? entry.category;
+    if (!hasOwnAllowance(section)) return true;
+    const used = counts.get(section) ?? 0;
+    if (used >= allowanceFor(section, plan)) return false;
+    counts.set(section, used + 1);
+    return true;
+  });
 }
 
 /** A briefing narrating under this share of the owner's length after the refill is flagged. */
@@ -318,9 +351,18 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
     if (lengthChars !== undefined && fitted.chars < lengthChars && room > 0 && !reserve.refilled) {
       const poolById = new Map(pool.items.map((item) => [item.id, item]));
       const missing = Math.ceil((lengthChars - fitted.chars) / STORY_CHARS);
-      const candidates = reserve.items
-        .filter((entry) => !takenElsewhere.has(entry.id) && poolById.has(entry.id))
-        .slice(0, Math.min(withSpares(missing), room));
+      const candidates = withinAllowances(
+        reserve.items.filter((entry) => !takenElsewhere.has(entry.id) && poolById.has(entry.id)),
+        fitted.survivors.map((g) => {
+          const source = poolById.get(g.item.id)?.source_type;
+          const category = entryOf.get(g.item.id)?.category;
+          if (category === undefined || source === undefined) return undefined;
+          return isBuiltinCategory(category)
+            ? (homeSection(category, source) ?? undefined)
+            : (homeSectionFor(topics, category, source) ?? undefined);
+        }),
+        sectionPlan,
+      ).slice(0, Math.min(withSpares(missing), room));
       if (candidates.length > 0) {
         // A refit that fails part way leaves its drops and warnings behind; the catch puts back
         // those of the briefing that stands.

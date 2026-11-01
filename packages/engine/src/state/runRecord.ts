@@ -52,6 +52,16 @@ export function recordFailure(
   at: string,
 ): LastRunFile {
   const next: LastRunFile = { ...lastRun };
-  for (const kind of kinds) next[SLOT_BY_KIND[kind]] = { at, outcome: "failed", items: 0 };
+  for (const kind of kinds) {
+    const slot = SLOT_BY_KIND[kind];
+    // The failed slot keeps where the last window ended: the retry must not start later.
+    const through = lastRun[slot]?.fetched_through;
+    next[slot] = {
+      at,
+      outcome: "failed",
+      items: 0,
+      ...(through ? { fetched_through: through } : {}),
+    };
+  }
   return next;
 }

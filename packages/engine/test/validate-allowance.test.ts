@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { trimOverAllowance } from "../src/run/validateStage.js";
+import { trimOverAllowance, withinAllowances } from "../src/run/validateStage.js";
+import { DEFAULT_SECTION_PLAN } from "../src/score/sectionPlan.js";
 import type { ValidationIssue } from "../src/validate/validateDigest.js";
 
 const story = (id: string) => ({ item: { id } });
@@ -31,5 +32,24 @@ describe("trimOverAllowance", () => {
   it("cuts nothing when no section is over", () => {
     const issue: ValidationIssue = { severity: "error", code: "voice", message: "x", itemId: "a" };
     expect(trimOverAllowance([issue], ["a", "b"].map(story), scoreOf).size).toBe(0);
+  });
+});
+
+// 2026-10-31: the refill wrote three Tech stories for a Tech allowance already full, and
+// validation trimmed all three. It offers a section only the room its allowance has left.
+describe("withinAllowances", () => {
+  const reserved = (...ids: string[]) =>
+    ids.map((id) => ({ id, category: "x", section: id.startsWith("t") ? "tech" : "ui-craft" }));
+
+  it("skips Tech stories once Tech's allowance is used, and keeps the main sections' stories", () => {
+    const airing = Array.from({ length: 5 }, () => "tech");
+    const kept = withinAllowances(reserved("t1", "t2", "m1", "m2"), airing, DEFAULT_SECTION_PLAN);
+    expect(kept.map((e) => e.id)).toEqual(["m1", "m2"]);
+  });
+
+  it("offers a Tech story to replace one that was lost, up to the room left", () => {
+    const airing = ["tech", "tech", "tech", "tech", "ui-craft"];
+    const kept = withinAllowances(reserved("t1", "t2", "m1"), airing, DEFAULT_SECTION_PLAN);
+    expect(kept.map((e) => e.id)).toEqual(["t1", "m1"]);
   });
 });
