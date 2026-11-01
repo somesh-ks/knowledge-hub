@@ -2387,7 +2387,7 @@
 
 @media (width < 64rem) {
   .player .player-more {
-    inset-block-start: calc((var(--player-head) + var(--space-2) - var(--size-touch)) / 2);
+    inset-block-start: calc((var(--space-8) + var(--space-2) - var(--size-touch)) / 2);
     inset-inline-end: calc((var(--size-icon-lg) - var(--size-touch)) / 2);
   }
 }
