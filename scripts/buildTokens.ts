@@ -13,7 +13,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { oklchStringToRgb, toHex } from "./colorMath.js";
+import { oklchStringToRgb, parseOklch, toHex } from "./colorMath.js";
 
 export type Tier = "primitive" | "semantic" | "component";
 export type Mode = "light" | "dark";
@@ -279,6 +279,72 @@ function renderShadowLayer(layer: TokenValue, doc: TokenDocument): string {
   return `${inset}${field("offsetX")} ${field("offsetY")} ${field("blur")} ${field("spread")} ${color}`;
 }
 
+const STATE_COLOR = "singularity-state-color";
+const STATE_DIRECTIONS = ["darker", "lighter", "text", "inverse-text"] as const;
+type StateDirection = (typeof STATE_DIRECTIONS)[number];
+
+interface StateColor {
+  from: string;
+  step: "hover" | "hover-quiet" | "press";
+  direction: StateDirection;
+}
+
+function stateColorOf(path: string, value: TokenValue): StateColor {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new Error(`${path}: a state color needs {from, step, direction}`);
+  }
+  const { from, step, direction } = value;
+  if (aliasTarget(from) === null) throw new Error(`${path}: "from" must be a {reference}`);
+  if (step !== "hover" && step !== "hover-quiet" && step !== "press") {
+    throw new Error(`${path}: step is hover, hover-quiet or press`);
+  }
+  if (typeof direction !== "string" || !STATE_DIRECTIONS.includes(direction as StateDirection)) {
+    throw new Error(`${path}: direction is one of ${STATE_DIRECTIONS.join(", ")}`);
+  }
+  return { from: String(from), step, direction: direction as StateDirection };
+}
+
+/**
+ * A state color is a fill moved in lightness only (D317): `oklch(from <fill> calc(l - step) c h)`,
+ * so hue and chroma stay and no alpha or mix is involved. `darker` always lowers L and `lighter` always
+ * raises it (for a mid-tone fill whose dark label would lose contrast if it deepened); `text` moves
+ * toward the control's text (down in light, up in dark, by semantic.state.direction);
+ * `inverse-text` is the same for a fill whose text is the other way round (the toast).
+ */
+function renderStateColor(path: string, value: TokenValue, doc: TokenDocument): string {
+  const { from, step, direction } = stateColorOf(path, value);
+  const source = renderValue("color", from, doc);
+  const amount = `var(--state-step-${step})`;
+  if (direction === "darker") return `oklch(from ${source} calc(l - ${amount}) c h)`;
+  if (direction === "lighter") return `oklch(from ${source} calc(l + ${amount}) c h)`;
+  const sign = direction === "text" ? "+" : "-";
+  return `oklch(from ${source} calc(l ${sign} var(--state-direction) * ${amount}) c h)`;
+}
+
+/** The same move as a literal, for contrast tests and the system file: resolves the fill in `mode`. */
+function resolveStateColor(
+  doc: TokenDocument,
+  path: string,
+  value: TokenValue,
+  mode: Mode,
+): string {
+  const { from, step, direction } = stateColorOf(path, value);
+  const base = parseOklch(String(resolveLiteral(doc, aliasTarget(from) as string, mode)));
+  const amount = Number(resolveLiteral(doc, `primitive.state.step-${step}`, mode));
+  const way = Number(resolveLiteral(doc, "semantic.state.direction", mode));
+  const delta =
+    direction === "darker"
+      ? -amount
+      : direction === "lighter"
+        ? amount
+        : direction === "text"
+          ? way * amount
+          : -way * amount;
+  const l = Math.min(1, Math.max(0, base.l + delta));
+  const alpha = base.alpha < 1 ? ` / ${trimNumber(base.alpha)}` : "";
+  return `oklch(${trimNumber(l * 100)}% ${trimNumber(base.c)} ${trimNumber(base.h)}${alpha})`;
+}
+
 /** Renders one token value as CSS. Aliases become var() so the tier chain survives in the output. */
 export function renderValue(type: string, value: TokenValue, doc: TokenDocument): string {
   const target = aliasTarget(value);
@@ -288,6 +354,8 @@ export function renderValue(type: string, value: TokenValue, doc: TokenDocument)
     return `var(${cssName(token.path)})`;
   }
   switch (type) {
+    case STATE_COLOR:
+      return renderStateColor("state color", value, doc);
     case "color":
     case "dimension":
     case "duration":
@@ -372,6 +440,9 @@ export function resolveLiteral(doc: TokenDocument, dotPath: string, mode: Mode):
     if (!token) throw new Error(`Unknown reference {${current}}`);
     const value = mode === "dark" && token.dark !== undefined ? token.dark : token.value;
     const target = aliasTarget(value);
+    if (!target && token.type === STATE_COLOR) {
+      return resolveStateColor(doc, token.dotPath, value, mode);
+    }
     if (!target) return value;
     current = target;
   }

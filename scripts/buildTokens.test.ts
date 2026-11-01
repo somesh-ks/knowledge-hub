@@ -104,7 +104,10 @@ describe("token structure", () => {
     for (const token of doc.tokens) {
       if (token.dark === undefined) continue;
       const target = aliasTarget(token.dark);
-      if (target) expect(doc.byPath.get(target)?.type, token.dotPath).toBe(token.type);
+      // A derived state color is a color to whoever reads it.
+      const kind = (type: string | undefined) =>
+        type === "singularity-state-color" ? "color" : type;
+      if (target) expect(kind(doc.byPath.get(target)?.type), token.dotPath).toBe(kind(token.type));
     }
   });
 
@@ -388,6 +391,16 @@ describe.each(doc.styles.map((style) => style.name))("a style's colour contrast:
       ["on-accent", "accent", 4.5],
       ["on-accent", "accent-hover", 4.5],
       ["on-accent", "accent-pressed", 4.5],
+      ...["hover", "pressed"].flatMap((state): [string, string, number][] => [
+        ["on-accent-container", `accent-container-${state}`, 4.5],
+        ["on-accent-container-high", `accent-container-high-${state}`, 4.5],
+        ["on-accent-action", `accent-action-${state}`, 4.5],
+        ["on-surface", `surface-${state}`, 4.5],
+        ["on-surface", `surface-container-${state}`, 4.5],
+        ["on-surface", `surface-raised-${state}`, 4.5],
+        ["on-surface", `surface-overlay-${state}`, 4.5],
+        ["on-surface-inverse", `surface-inverse-${state}`, 4.5],
+      ]),
       ["on-surface-inverse", "surface-inverse", 4.5],
       ...["accent", "focus-ring"].flatMap((fg) =>
         ["surface", "surface-raised", "surface-overlay"].map((bg): [string, string, number] => [

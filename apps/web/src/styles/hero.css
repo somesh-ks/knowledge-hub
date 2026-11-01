@@ -125,6 +125,8 @@
  */
 .hero-actions > .chip {
   --chip-bg: var(--cta-bg);
+  --chip-bg-hover: var(--cta-bg-hover);
+  --chip-bg-pressed: var(--cta-bg-pressed);
   --chip-fg: var(--cta-fg);
   min-height: calc(var(--size-touch) - var(--space-1));
   padding-inline: var(--space-4) var(--space-6);
@@ -148,7 +150,7 @@
       [data-state="unavailable"],
       [aria-disabled="true"]
     ):hover {
-    background: color-mix(in oklch, var(--cta-bg), var(--cta-fg) var(--state-hover));
+    background: var(--cta-bg-hover);
   }
 }
 
@@ -160,7 +162,7 @@
     [aria-disabled="true"]
   ):active {
   border-radius: min(var(--cta-radius-pressed), calc((var(--size-touch) - var(--space-1)) / 2));
-  background: color-mix(in oklch, var(--cta-bg), var(--cta-fg) var(--state-press));
+  background: var(--cta-bg-pressed);
   color: var(--cta-fg);
 }
 
