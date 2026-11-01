@@ -150,3 +150,23 @@ jobs:
     needs: check
     if: needs.check.outputs.web == 'true'
     uses: ./.github/workflows/browser.yml
+
+  # The one check the ruleset requires for the suites (.github/rulesets/main.json). The suites report
+  # as `browser / site suite` and `browser / player suite` only when they run; a change that skips
+  # them reports a bare `browser` as skipped. Requiring either name would hold every docs-only or
+  # admin-only PR forever, so this job always runs and fails only when a suite failed or was cancelled.
+  browser-gate:
+    name: browser gate
+    needs: browser
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Suites passed or were skipped
+        env:
+          RESULT: ${{ needs.browser.result }}
+        run: |
+          case "$RESULT" in
+            success|skipped) echo "browser suites: $RESULT" ;;
+            *) echo "::error::browser suites: $RESULT"; exit 1 ;;
+          esac

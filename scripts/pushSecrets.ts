@@ -6,6 +6,8 @@ import { join, resolve } from "node:path";
 
 interface Target {
   name: string;
+  /** The .env key the value is read from, when it differs from `name` (GitHub secrets cannot start with GITHUB_). */
+  from?: string;
   where: "github-secret" | "github-variable" | "vercel" | "vercel-admin";
 }
 
@@ -72,6 +74,8 @@ const SENSITIVE_PLACEHOLDER = "[SENSITIVE]";
 
 const TARGETS: Target[] = [
   ...GITHUB_SECRETS.map((name): Target => ({ name, where: "github-secret" })),
+  // health.yml reads the site token's expiry (SEC-06); GitHub secrets cannot start with GITHUB_.
+  { name: "GH_SINGULARITY_TOKEN", from: "GITHUB_SINGULARITY_TOKEN", where: "github-secret" },
   ...GITHUB_VARIABLES.map((name): Target => ({ name, where: "github-variable" })),
   ...VERCEL_ENV.map((name): Target => ({ name, where: "vercel" })),
   ...VERCEL_ADMIN_ENV.map((name): Target => ({ name, where: "vercel-admin" })),
@@ -215,7 +219,7 @@ function main(): void {
   const reasons = new Map<string, string>();
 
   for (const target of TARGETS) {
-    const value = values[target.name];
+    const value = values[target.from ?? target.name];
     const scope = target.where.startsWith("vercel") ? "vercel" : "github";
     if (only && only !== scope) continue;
     if (!value || value === SENSITIVE_PLACEHOLDER) {

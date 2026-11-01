@@ -12,11 +12,14 @@ import {
   checkRunsDied,
   checkSideRuns,
   checkStore,
+  checkTokenExpiry,
   FIELD_MIN_SAMPLES,
   readDeploymentCount,
   readStore,
+  readTokenExpiry,
   readWatchedHead,
   type StoreReading,
+  type TokenReading,
 } from "../src/ops/healthChecks.js";
 import { collectStatus } from "../src/ops/statusReport.js";
 import { makeDigest } from "./audio-fixtures.js";
@@ -826,5 +829,53 @@ describe("singularity health", () => {
     const unread: string[] = [];
     checkDeploymentRate(broken as { error: string }, sink(unread));
     expect(unread).toEqual(["deploy_rate_unread"]);
+  });
+
+  // SEC-06: an expired GITHUB_SINGULARITY_TOKEN made every save from the site a silent no-op, and
+  // nothing watched its expiry; a warning reaches the owner only on Mondays, so the last week is a fault.
+  it("faults on a rejected, lapsed or last-week site token, warns two weeks out, and reads the expiry from GitHub's header", async () => {
+    const header = (value: string | null) => async () => ({
+      status: 200,
+      headers: {
+        get: (name: string) => (name === "github-authentication-token-expiration" ? value : null),
+      },
+    });
+    const found = await readTokenExpiry(
+      "ghp-secret-1",
+      "o/r",
+      NOW,
+      header("2026-10-26 12:00:00 UTC"),
+    );
+    expect(found).toEqual({ days: 5 });
+    expect(await readTokenExpiry("ghp-secret-1", "o/r", NOW, header(null))).toEqual({ days: null });
+    expect(await readTokenExpiry(undefined, "o/r", NOW, header(null))).toBeUndefined();
+    expect(await readTokenExpiry("ghp-secret-1", undefined, NOW, header(null))).toBeUndefined();
+    const rejected = await readTokenExpiry("ghp-secret-1", "o/r", NOW, async () => ({
+      status: 401,
+      headers: { get: () => null },
+    }));
+    expect(rejected).toEqual({ rejected: true });
+    const broken = await readTokenExpiry("ghp-secret-1", "o/r", NOW, async () => {
+      throw new Error("bad Bearer ghp-secret-1");
+    });
+    expect(JSON.stringify(broken)).not.toContain("ghp-secret-1");
+
+    const judge = (reading: TokenReading) => {
+      const out: string[] = [];
+      checkTokenExpiry(reading, {
+        fault: (code) => void out.push(`fault ${code}`),
+        warn: (code) => void out.push(`warn ${code}`),
+        passed: [],
+      });
+      return out;
+    };
+    expect(judge({ rejected: true })).toEqual(["fault github_token_expired"]);
+    expect(judge({ days: -1 })).toEqual(["fault github_token_expired"]);
+    expect(judge({ days: 7 })).toEqual(["fault github_token_expiring"]);
+    expect(judge({ days: 8 })).toEqual(["warn github_token_expiring"]);
+    expect(judge({ days: 14 })).toEqual(["warn github_token_expiring"]);
+    expect(judge({ days: 15 })).toEqual([]);
+    expect(judge({ days: null })).toEqual([]);
+    expect(judge({ error: "GitHub answered 502" })).toEqual(["warn github_token_unread"]);
   });
 });

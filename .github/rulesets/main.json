@@ -47,7 +47,7 @@
             "integration_id": 15368
           },
           {
-            "context": "browser",
+            "context": "browser gate",
             "integration_id": 15368
           }
         ]

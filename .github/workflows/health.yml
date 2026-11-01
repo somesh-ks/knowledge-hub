@@ -106,6 +106,10 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           # Vercel's deployment count against Hobby's 100 a day (D247). Unset, the check is skipped.
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          # The site's GitHub token (SEC-06): health reads its expiry from GitHub and faults in its last
+          # week. GitHub secrets cannot start with GITHUB_, so it is stored as GH_SINGULARITY_TOKEN.
+          # Unset, the check is skipped.
+          GITHUB_SINGULARITY_TOKEN: ${{ secrets.GH_SINGULARITY_TOKEN }}
           # The config store switch (D149): on, health compares the stored documents with git.
           SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE || vars.DISPATCH_CONFIG_STORE }}
           # Empty on a day without the probe, which health reads as nothing to judge.
