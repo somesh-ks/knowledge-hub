@@ -129,7 +129,8 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
       if (isEnabled()) {
         if (session.type !== "playback") session.type = "playback";
         tookSession = true;
-      } else if (tookSession) {
+      } else if (tookSession && !releaseTimer) {
+        // (With the hand-back pending, the off cue is still sounding: refreshSession() will do it.)
         session.type = "auto";
         tookSession = false;
       }

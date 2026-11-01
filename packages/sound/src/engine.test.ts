@@ -177,6 +177,9 @@ describe("audio session", () => {
       state.enabled = false;
       engine.refreshSession();
       expect(session.type).toBe("playback");
+      // A tap while the cue is still sounding must not drop the session under it either.
+      engine.unlock();
+      expect(session.type).toBe("playback");
       vi.advanceTimersByTime(5_000);
       expect(session.type).toBe("auto");
     } finally {
