@@ -87,29 +87,41 @@ export interface DeltaResult {
 
 const PODCASTS = "Podcasts/";
 
+/** Passes at the index: each one means the manifest changed while the index was being written. */
+const INDEX_PASSES = 4;
+
 /**
  * Rebuild the episode index from the episodes the manifest lists, not from this checkout: a job that
  * holds one new episode must not publish an index of one. An episode this checkout has, with the
- * manifest's hash, is read from disk; the others are fetched from the store.
+ * manifest's hash, is read from disk; the others are fetched from the store. The manifest is read
+ * again after the upload and the index redone if it moved, so a job holding an older manifest that
+ * uploads last still ends with an index of the newest one (the job that moved it checks too).
  */
 async function publishIndexFromStore(
   client: ConditionalBlobClient,
   root: string,
   now: Date,
-  base: string,
-  files: Readonly<Record<string, string>>,
   fetchText: (url: string) => Promise<string | null>,
 ): Promise<void> {
-  const texts: Array<[string, string | null]> = [];
-  for (const path of Object.keys(files).filter(isEpisodePath).sort()) {
-    const local = await readFile(join(root, path)).catch(() => null);
-    if (local !== null && sha256(new Uint8Array(local)) === files[path]) {
-      texts.push([path, local.toString("utf8")]);
-    } else {
-      texts.push([path, await fetchText(`${base}/${CONTENT_PREFIX}${path}?t=${Date.now()}`)]);
+  for (let pass = 1; pass <= INDEX_PASSES; pass += 1) {
+    const stored = await readManifest(client, fetchText);
+    if (stored.base === null) return;
+    const texts: Array<[string, string | null]> = [];
+    for (const path of Object.keys(stored.files).filter(isEpisodePath).sort()) {
+      const local = await readFile(join(root, path)).catch(() => null);
+      if (local !== null && sha256(new Uint8Array(local)) === stored.files[path]) {
+        texts.push([path, local.toString("utf8")]);
+      } else {
+        texts.push([
+          path,
+          await fetchText(`${stored.base}/${CONTENT_PREFIX}${path}?t=${Date.now()}`),
+        ]);
+      }
     }
+    await uploadEpisodeIndex(client, indexFromTexts(texts, now));
+    const after = await client.head(CONTENT_MANIFEST_KEY);
+    if (after?.etag === stored.etag) return;
   }
-  await uploadEpisodeIndex(client, indexFromTexts(texts, now));
 }
 
 export async function applyContentDelta(input: DeltaInput): Promise<DeltaResult> {
@@ -152,7 +164,7 @@ export async function applyContentDelta(input: DeltaInput): Promise<DeltaResult>
       // A run that died after the manifest but before the index is repeated with nothing changed:
       // the index is rebuilt anyway, so that run's missing write is made good here.
       if (touchesPodcasts && stored.base !== null) {
-        await publishIndexFromStore(client, root, now, stored.base, files, input.fetchText);
+        await publishIndexFromStore(client, root, now, input.fetchText);
       }
       return { uploaded, removed, unchanged, attempts: attempt };
     }
@@ -161,32 +173,25 @@ export async function applyContentDelta(input: DeltaInput): Promise<DeltaResult>
       updated_at: now.toISOString(),
       files,
     };
-    let written: { url: string };
     try {
-      written = await client.put(
-        CONTENT_MANIFEST_KEY,
-        new TextEncoder().encode(JSON.stringify(manifest)),
-        {
-          contentType: "application/json",
-          cacheControlMaxAge: CONTENT_CACHE_SECONDS,
-          ...(stored.etag !== null ? { ifMatch: stored.etag } : {}),
-        },
-      );
+      await client.put(CONTENT_MANIFEST_KEY, new TextEncoder().encode(JSON.stringify(manifest)), {
+        contentType: "application/json",
+        cacheControlMaxAge: CONTENT_CACHE_SECONDS,
+        ...(stored.etag !== null ? { ifMatch: stored.etag } : {}),
+      });
     } catch (error) {
       if (isPreconditionFailed(error) && attempt < limit) continue;
       throw error;
     }
-    const base = written.url.slice(0, written.url.length - CONTENT_MANIFEST_KEY.length - 1);
-    let current: Readonly<Record<string, string>> = files;
     if (removed.length > 0) {
       // After the manifest: a reader stops listing a path before its blob goes. A job that put the
       // path back since keeps its blob, so only paths the manifest still lacks are deleted.
-      current = (await readManifest(client, input.fetchText)).files;
+      const current = (await readManifest(client, input.fetchText)).files;
       const gone = removed.filter((path) => !(path in current));
       if (gone.length > 0) await client.del(gone.map((path) => `${CONTENT_PREFIX}${path}`));
     }
     if (touchesPodcasts) {
-      await publishIndexFromStore(client, root, now, base, current, input.fetchText);
+      await publishIndexFromStore(client, root, now, input.fetchText);
     }
     return { uploaded, removed, unchanged, attempts: attempt };
   }
