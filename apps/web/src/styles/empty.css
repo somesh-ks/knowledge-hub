@@ -746,7 +746,8 @@ main > .empty {
    the viewport, and every part of it holds still until it returns. The doubled [class] is a specificity
    bump (2026-11-01): the scene rules above set the shorthand, which resets play-state. */
 @media (prefers-reduced-motion: no-preference) {
-  .empty-art[data-offscreen] [class][class] {
+  .empty-art[data-offscreen] [class][class],
+  .empty-art[data-offscreen] .a-rise > * {
     animation-play-state: paused;
   }
 }
