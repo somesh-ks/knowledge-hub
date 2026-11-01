@@ -26,11 +26,29 @@ export function isSaved(storage: StorageLike | null, digestId: string): boolean 
   }
 }
 
+/** When the item was saved (ms since the epoch), so the Saved page lists the newest first; null if not saved. */
+export function savedAt(storage: StorageLike | null, digestId: string): number | null {
+  try {
+    const value = storage?.getItem(savedKey(digestId));
+    if (value == null) return null;
+    const at = Number(value);
+    // An older mark that carries no time sorts last.
+    return Number.isFinite(at) ? at : 0;
+  } catch {
+    return null;
+  }
+}
+
 /** Saves or forgets an item. Returns whether it is saved now, which is false when storage refused. */
-export function setSaved(storage: StorageLike | null, digestId: string, on: boolean): boolean {
+export function setSaved(
+  storage: StorageLike | null,
+  digestId: string,
+  on: boolean,
+  now: number = Date.now(),
+): boolean {
   try {
     if (!storage) return false;
-    if (on) storage.setItem(savedKey(digestId), "1");
+    if (on) storage.setItem(savedKey(digestId), String(now));
     else storage.removeItem(savedKey(digestId));
   } catch {
     return false;

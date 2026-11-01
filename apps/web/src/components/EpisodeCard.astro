@@ -13,9 +13,11 @@ interface Props {
   priority?: boolean;
   /** Settings > Downloads: the menu offers only what applies to a saved copy. */
   downloads?: boolean;
+  /** On Settings > Saved: the row's menu is cut to what applies to a saved item. */
+  saved?: boolean;
 }
 
-const { entry, priority = false, downloads = false } = Astro.props;
+const { entry, priority = false, downloads = false, saved = false } = Astro.props;
 const { episode } = entry;
 const facts = episodeFacts(entry);
 // Kind, length: the length is its own span, so "Played" can take its place and the kind stays.
@@ -62,5 +64,6 @@ const [format, length] = facts.line.split(FACT_SEPARATOR);
     topics={episode.request.topic_ids}
     regenerations={episode.regenerations}
     downloads={downloads}
+    saved={saved}
   />
 </li>

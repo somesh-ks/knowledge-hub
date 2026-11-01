@@ -1,9 +1,5 @@
 import { useEffect, useRef } from "react";
-import {
-  attachReorder,
-  REORDER_HANDLE_SELECTOR,
-  reorderListClass,
-} from "../design-system/reorder";
+import { attachReorder, REORDER_HANDLE_SELECTOR, reorderListClass } from "../design-system/reorder";
 import { swipeLeaves } from "../lib/swipeAway";
 import { announce } from "./core/announcerDom";
 import { createVelocityTracker, TAP_SLOP_PX } from "./core/gestureMath";

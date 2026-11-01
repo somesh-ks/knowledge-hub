@@ -24,6 +24,8 @@ interface Props {
   regenerations?: number | undefined;
   /** On Settings > Downloads: only what applies to a saved copy (Add to queue, Share, Remove download). */
   downloads?: boolean;
+  /** On Settings > Saved: Add to queue, Share and Remove from Saved. */
+  saved?: boolean;
 }
 
 const {
@@ -37,8 +39,10 @@ const {
   topics,
   regenerations,
   downloads = false,
+  saved = false,
 } = Astro.props;
 const regen = regenerationHint(regenerations);
+const only = downloads || saved;
 const menuId = `card-menu-${id}`;
 ---
 
@@ -56,7 +60,7 @@ const menuId = `card-menu-${id}`;
   class="card-menu"
   style={`--card-anchor: --cm-${id}`}
   data-library-menu
-  data-manage-downloads={downloads ? "" : undefined}
+  data-manage-downloads={only ? "" : undefined}
   data-id={id}
   data-path={path}
   data-title={title}
@@ -78,7 +82,7 @@ const menuId = `card-menu-${id}`;
   </button>
   <Menu id={menuId} title={title} subtitle={subtitle} class="card-menu-list">
     {
-      audio && !downloads && (
+      audio && !only && (
         <MenuItem data-menu="download">
           <Icon name="download" class="dl-add" /><Icon name="downloadRemove" class="dl-remove" /><span data-menu-label>Download</span>
         </MenuItem>
@@ -88,7 +92,7 @@ const menuId = `card-menu-${id}`;
       <Icon name="queueAdd" />Add to queue
     </MenuItem>
     {
-      downloads ? null : kind === "episode" ? (
+      only ? null : kind === "episode" ? (
         <MenuItem
           data-episode-action="regenerate"
           title={regen.title}
@@ -111,7 +115,7 @@ const menuId = `card-menu-${id}`;
     {/* Put in by scripts/shareLink.ts once this device made the row's listen link (D153). */}
     {/* Not on the Downloads page, whose row menu is Add to queue, Share and Remove download (D281). */}
     {
-      !downloads && (
+      !only && (
         <template data-share-stop-template>
           <MenuItem
             data-menu="unshare"
@@ -129,7 +133,14 @@ const menuId = `card-menu-${id}`;
       )
     }
     {
-      deletable && !downloads && (
+      saved && (
+        <MenuItem data-menu="unsave">
+          <Icon name="starOutline" />Remove from Saved
+        </MenuItem>
+      )
+    }
+    {
+      deletable && !only && (
         <MenuItem tone="danger"
           data-episode-action="delete">
           <Icon name="trash" />Delete

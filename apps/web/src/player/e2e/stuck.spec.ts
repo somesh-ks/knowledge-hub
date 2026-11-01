@@ -172,7 +172,7 @@ test.describe("when the player's lazy half cannot load", () => {
     failing = false;
     await finger.press(retry);
     // The lazy half is back: its controls are there (its scrubber is hidden on a wide screen).
-    await expect(player.dialog.getByRole("button", { name: /^Playback speed/ })).toBeVisible();
+    await expect(player.dialog.getByRole("button", { name: /^Back \d+ seconds$/ })).toBeVisible();
     await expect(retry).toHaveCount(0);
   });
 });

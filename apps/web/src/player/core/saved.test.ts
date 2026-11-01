@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { StorageLike } from "./resume";
-import { isSaved, savedKey, setSaved } from "./saved";
+import { isSaved, savedAt, savedKey, setSaved } from "./saved";
 
 function memory(): StorageLike {
   const map = new Map<string, string>();
@@ -27,6 +27,15 @@ describe("saved podcasts", () => {
     expect(isSaved(storage, "b")).toBe(false);
     expect(setSaved(storage, "a", false)).toBe(false);
     expect(isSaved(storage, "a")).toBe(false);
+  });
+
+  it("remembers when each item was saved, so the page can list the newest first", () => {
+    const storage = memory();
+    setSaved(storage, "a", true, 1000);
+    setSaved(storage, "b", true, 2000);
+    expect(savedAt(storage, "a")).toBe(1000);
+    expect(savedAt(storage, "b")).toBe(2000);
+    expect(savedAt(storage, "c")).toBeNull();
   });
 
   it("says it did not save when storage refuses, as in a private window", () => {
