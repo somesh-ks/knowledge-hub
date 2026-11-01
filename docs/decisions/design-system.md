@@ -509,3 +509,12 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Why: the out curve is 93% done after 19% of its time, so half the travel falls in the first 33 ms and any length reads as a cut. The hover curve at 300 ms has the lowest peak step per frame of the curves without an overshoot (13% of the travel, against 22% for the drawer, 25% for in-out and 28% for out) and ends at 300 with no tail.
 - Rejected: the drawer and in-out curves and the 420 ms spring (recorded beside it; the spring's tail felt slower); a new `--duration-travel` token; fading the page across a move (two pages of text show through each other); a page slide on tab moves in the pill's direction (the pill no longer has one).
 - Revisit if: tab moves should outlast a press (`navSpeed.spec.ts` caps them at 150 ms), or the owner finds the hover curve too soft on a drill.
+
+## D285: a Switch has a mixed state, for a master over a group
+
+- Date: 2026-10-31 (the owner, on Notifications: "a global switch too, when parts of the sub items are turned off, the global switch comes to a mid state").
+- Decision: the Switch draws `:indeterminate`: a track halfway between the off grey and the accent, with the idle thumb halfway along. The first draw (a tonal track, an accent ring and an accent thumb) "looks so weird in color" (owner); no mature system has a mixed switch (Material, Apple and Fluent have none, and the advice is a checkbox), so it uses the two colours the control already has and no new one. A script sets `indeterminate` (and unchecks the input) on a switch that stands for a group while only some of the group are on; pressing it turns the group on, and all on turns it off. There is no new class or attribute: the state is the native one, so a script reads it back. Whether a screen reader says "mixed" for a role=switch is unverified (the role has no mixed value).
+- Why: the owner wants one control that says "some" without a label to read. A third look for a boolean control has to be the system's, not a page's.
+- Rejected: a page-drawn mixed look (the system would not know it); a dash on the track (it hides the thumb, the one thing that shows the state); a third colour or a ring (the first draw: it read as a different control).
+- Revisit if: a screen reader reads a role=switch with `indeterminate` as plain on or off (it may: the switch role has no mixed value), then the master becomes a checkbox drawn as a switch.
+

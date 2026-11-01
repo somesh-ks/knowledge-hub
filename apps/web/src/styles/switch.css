@@ -64,6 +64,21 @@
   transform-origin: 100% 50%;
 }
 
+/* Mixed (a master over a group of which only some are on): the script sets `indeterminate` and unchecks
+   it. No new colour: the track sits halfway between the off grey and the accent, and the idle thumb
+   halfway along it, so it reads as between the two states (owner, 2026-10-31: the first draw, a tonal
+   track with an accent ring and thumb, "looks weird in color"). After the checked rules. */
+.switch-input:indeterminate {
+  background: color-mix(in oklch, var(--color-accent) 50%, var(--color-border-control));
+}
+
+.switch-input:indeterminate::before {
+  transform: translateX(
+    calc((var(--switch-width) - var(--switch-thumb) - var(--switch-padding) * 2) / 2)
+  );
+  transform-origin: 50% 50%;
+}
+
 /* The thumb stretches toward the other side while pressed, so the control answers before the finger
    lifts. */
 .switch-input:enabled:active::before {
@@ -119,5 +134,9 @@
 
   .switch-input:checked::before {
     background: Highlight;
+  }
+
+  .switch-input:indeterminate {
+    border-color: Highlight;
   }
 }
