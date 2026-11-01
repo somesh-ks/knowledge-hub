@@ -58,7 +58,13 @@ test.describe("routes and headers", () => {
     await expect(page.getByRole("link", { name: "Back", exact: true })).toHaveCount(0);
   });
 
-  test("the offline banner shows once and clears when the connection returns", async ({ page }) => {
+  // Bug (owner, 2026-11-01): the offline notice sat in the page, so opening a podcast from the Library
+  // while offline pushed the destination down after it landed and the album art jumped. The strip is
+  // above the app now: it squeezes everything down once, as it opens, and a page opened under it
+  // lands where it stays.
+  test("the offline strip squeezes the page once, says when the connection is back, then lifts", {
+    tag: "@both",
+  }, async ({ page }) => {
     await page.goto("/");
     // The browser's own signal, set by hand: no request fails, so nothing else is blamed.
     const setOnline = (online: boolean) =>
@@ -66,13 +72,71 @@ test.describe("routes and headers", () => {
         Object.defineProperty(navigator, "onLine", { value, configurable: true });
         window.dispatchEvent(new Event(value ? "online" : "offline"));
       }, online);
+    const top = () => page.locator("#main").evaluate((el) => el.getBoundingClientRect().top);
+    const resting = await top();
     await setOnline(false);
     await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
     await setOnline(false);
     await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
+    // Squeezed, not covered: the page starts below the strip.
+    await expect.poll(top).toBeGreaterThan(resting);
+    // The strip's own opening is over before sampling starts: it squeezes the page by design.
+    const settle = () =>
+      page.evaluate(async () => {
+        // The page's own transition over, plus a few more frames: whatever moves after it is a bug.
+        const finite = document
+          .getAnimations()
+          .filter((a) => Number.isFinite(a.effect?.getComputedTiming().endTime ?? 0));
+        await Promise.allSettled(finite.map((a) => a.finished));
+        for (let i = 0; i < 20; i++) await new Promise((r) => requestAnimationFrame(r));
+      });
+    await settle();
+    const squeezed = await top();
+    // Pages opened under the strip land where they stay. The page and, on a podcast, its cover are
+    // sampled every frame from the click, so a shift during the swap shows as much as one after it.
+    await page.evaluate(() => {
+      const seen: [string, string][] = [];
+      (window as unknown as { __seen: typeof seen }).__seen = seen;
+      const tick = () => {
+        const main = document.querySelector("#main")?.getBoundingClientRect().top;
+        const cover = document.querySelector(".hero .cover")?.getBoundingClientRect();
+        const box = cover ? [cover.top, cover.width, cover.height].join(",") : "";
+        if (main !== undefined) seen.push([location.pathname, `${main}|${box}`]);
+        requestAnimationFrame(tick);
+      };
+      tick();
+    });
+    const samples = (path: RegExp) =>
+      page.evaluate(
+        (source) =>
+          (window as unknown as { __seen: [string, string][] }).__seen
+            .filter(([p]) => new RegExp(source).test(p))
+            .map(([, v]) => v),
+        path.source,
+      );
+    await page.locator('.app-nav a[href="/library"]').click();
+    await expect(page).toHaveURL(/\/library/);
+    await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
+    await settle();
+    const landed = await top();
+    const libraryTops = (await samples(/^\/library$/)).map((v) => v.split("|")[0]);
+    expect(new Set(libraryTops)).toEqual(new Set([String(landed)]));
+    expect(landed).toBeGreaterThanOrEqual(squeezed);
+    // The reported case: a podcast opened from the Library. Its cover keeps its top and size from the
+    // first frame it exists, compared to itself (the page's own slide in moves it sideways, not down).
+    await page.locator('a[href="/d/2026-10-05"]').first().click();
+    await expect(page).toHaveURL(/\/d\/2026-10-05$/);
+    await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
+    await settle();
+    const podcast = (await samples(/^\/d\//)).map((v) => v.split("|")[1]).filter(Boolean);
+    expect(podcast.length).toBeGreaterThan(0);
+    expect(new Set(podcast).size).toBe(1);
     await setOnline(true);
     await expect(page.locator('[data-banner="offline"]')).toHaveCount(0);
     await expect(page.locator("html")).not.toHaveAttribute("data-offline", "");
+    await expect(page.locator('[data-banner="online"]')).toHaveCount(1);
+    await expect(page.locator('[data-banner="online"]')).toHaveCount(0);
+    await expect.poll(top).toBeLessThan(landed);
   });
 
   test("the app bar goes inert while slid away and returns on a scroll up", async ({ page }) => {

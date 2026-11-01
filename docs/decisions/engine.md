@@ -568,3 +568,11 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Rejected: build the pilot first (spends effort before the daily loop is proven in production); drop both outright (loses a plan the owner may want back).
 - Limit: nothing is removed. `docs/state.md` keeps them under Next as parked, so the plan and the pilot stay findable.
 - Revisit if: the owner restarts or drops one.
+
+## D308: Haiku writes the first pass of each story; Sonnet repairs and backs it up
+
+- Date: 2026-11-01 (the owner chose "Haiku medium, Sonnet repairs" on a card, after "I want the cost to be really low, I'm very strict on this one")
+- Decision: in `config/models.json` the story writer chain is Haiku at medium effort, then Sonnet at medium, then Gemini Flash. Voice and grounding rewrites stay on Sonnet at medium (`story_rewrite`). `config/prices.json` now prices Sonnet 5.5 at 2 and 10 USD per million tokens and Haiku 5.5 at 0.10 and 0.50 (batches half), still unconfirmed. Amends D181.
+- Why: `eval/writerModels.ts` (run 41348226002, 9 stories, Jev as judge) put Haiku medium at the best voice score (8 of 9 clean), the best grounding (0.45) and a quality within 0.07 of Sonnet high, at $0.012 against $0.199. Sonnet medium cost 2.4 times less than high for a small loss; Sonnet low used the same tokens as medium. Gemini Flash read well but scored 0.24 on grounding and passed no story, so it stays last.
+- Revisit if: voice or grounding drops per run rise above the Sonnet-only runs, or a blind read of Haiku's stories finds them worse by ear. The experiment is 9 stories and one judge; the first scheduled runs are the real test.
+
