@@ -141,6 +141,7 @@ const RAW_COLOR_ALLOWED: [file: string, reason: string][] = [
 /** Easings defined outside tokens.css, as "file name". */
 const LOCAL_EASES: [file: string, reason: string][] = [
   ["player.css --ease-in-out-sine", "the cover glow's breathing sine curve; no token is a sine"],
+  ["empty.css --ease-in-out-sine", "the same sine curve for the Halloween scenes' breathing loops"],
 ];
 
 /** Files that may hold an inline <svg>: the Icon components, the mark, the art and named one-offs. */

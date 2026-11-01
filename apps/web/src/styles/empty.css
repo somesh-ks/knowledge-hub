@@ -441,7 +441,7 @@ main > .empty {
     --scene-twinkle: 3.4s;
     --scene-rise: 3.8s;
     --scene-sway: 6s;
-    --scene-ease: cubic-bezier(0.37, 0, 0.63, 1);
+    --ease-in-out-sine: cubic-bezier(0.37, 0, 0.63, 1);
   }
 
   :root[data-style="halloween"]
@@ -449,7 +449,7 @@ main > .empty {
     :is(.a-breathe, .a-flicker, .a-twinkle, .a-bob, .a-float, .a-sway, .a-rise > *, .a-flame) {
     transform-box: fill-box;
     transform-origin: center;
-    animation-timing-function: var(--scene-ease);
+    animation-timing-function: var(--ease-in-out-sine);
     animation-iteration-count: infinite;
     animation-direction: alternate;
   }
