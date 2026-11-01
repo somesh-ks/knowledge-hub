@@ -166,5 +166,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D299 | Offline settings edits stay on the device and send when back online | amends D79, D91, D259 |
 | D300 | Digests and audio in Blob, state in Postgres, weekly private snapshot of the config store | active; step 1 (the snapshot) built |
 | D302 | Pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked | active |
+| D307 | Haiku writes the first pass of each story, Sonnet repairs and backs it up | amends D181 |
 
 ---
