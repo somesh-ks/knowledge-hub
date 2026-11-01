@@ -45,8 +45,7 @@ export async function pullContent(input: PullInput): Promise<PullResult> {
     if (body === null) throw new Error(`the store lists ${path} but has no such file`);
     if (sha256(body) !== hash)
       throw new Error(`${path} in the store does not match its manifest hash`);
-    // Content files are UTF-8 text (markdown and JSON); the hash above proves the bytes are intact.
-    await writeFileAtomic(join(input.root, path), Buffer.from(body).toString("utf8"));
+    await writeFileAtomic(join(input.root, path), body);
     written.push(path);
   }
   return { written, unchanged };
