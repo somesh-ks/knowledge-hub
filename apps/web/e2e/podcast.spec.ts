@@ -214,41 +214,55 @@ test.describe("the profile pages", () => {
     for (const field of voices) {
       await expect(field).toBeVisible();
       await openPicker(page, field);
+      // Each voice's accent flag is an SVG beside its name (2026-10-25), and its gender and accent
+      // are the line under it (2026-10-31).
       await expect(pickerList(page).getByRole("option")).toHaveText([
         "Default",
-        // Each voice's accent flag is an SVG beside the text (2026-10-25), not part of it.
-        "Ada, female",
-        "Leo, male",
-        "Nora, female",
+        /^Ada.*Female/,
+        /^Leo.*Male/,
+        /^Nora.*Female, British English/,
       ]);
       // The search narrows the list by name, and by accent in words.
       await pickerList(page).getByRole("combobox").fill("british");
-      await expect(pickerList(page).getByRole("option")).toHaveText([/Nora, female/]);
+      await expect(pickerList(page).getByRole("option")).toHaveText([/^Nora/]);
       await page.keyboard.press("Escape");
     }
     await expect(page.locator(".podcast-voice select")).toHaveCount(2);
   });
 
-  test("each voice row has its own play button, which plays the chosen voice's sample", async ({
+  test("a voice is heard from the list it is chosen in, without choosing it", async ({ page }) => {
+    await open(page, "voice");
+    const second = page.locator("#podcast-voice_b");
+    await openPicker(page, second);
+    // The page plays audio only from its own address, so the sample comes through /api.
+    const sample = page.waitForRequest("**/api/voice-sample?voice=voice-ada");
+    await pickerList(page).getByRole("option", { name: /^Ada/ }).locator(".picker-play").click();
+    await sample;
+    // Hearing a voice leaves the list open and the choice as it was; a voice with no sample has a
+    // dimmed control that does nothing.
+    await expect(pickerList(page)).toBeVisible();
+    await expect(second).not.toContainText("Ada");
+    await expect(
+      pickerList(page).getByRole("option", { name: /^Nora/ }).locator(".picker-play"),
+    ).toHaveAttribute("data-silent", "");
+    await pickerList(page).getByRole("option", { name: /^Ada/ }).click();
+    await expect(second).toContainText("Ada");
+  });
+
+  test("a voice is heard from the keyboard with Shift+Enter, and Enter still chooses it @desktop", async ({
     page,
   }) => {
     await open(page, "voice");
-    const first = page.locator("[data-voice-row=voice] [data-preview]");
-    const second = page.locator("[data-voice-row=voice_b] [data-preview]");
-    // Both buttons are on the page; a voice with no sample leaves its own dimmed and not pressable.
-    await expect(first).toBeDisabled();
-    await expect(second).toBeDisabled();
-    // The page plays audio only from its own address, so the sample comes through /api.
+    const second = page.locator("#podcast-voice_b");
+    await openPicker(page, second);
+    await page.keyboard.press("ArrowDown");
     const sample = page.waitForRequest("**/api/voice-sample?voice=voice-ada");
-    await choose(page, page.locator("#podcast-voice_b"), /Ada, female/);
+    await page.keyboard.press("Shift+Enter");
     await sample;
-    await expect(second).toBeEnabled();
-    await expect(second).toHaveAccessibleName("Play a sample of the secondary voice");
-    await expect(first).toBeDisabled();
-    await choose(page, page.locator("#podcast-voice"), /Leo, male/);
-    await expect(first).toBeDisabled();
-    await expect(first).toHaveAccessibleName("No sample for the primary voice");
-    await expect(second).toBeEnabled();
+    await expect(pickerList(page)).toBeVisible();
+    await expect(second).not.toContainText("Ada");
+    await page.keyboard.press("Enter");
+    await expect(second).toContainText("Ada");
   });
 
   test("a playing sample stops when the page is left", async ({ page }) => {
@@ -264,9 +278,11 @@ test.describe("the profile pages", () => {
     await mockConfig(page);
     await open(page, "voice");
     const sample = page.waitForRequest("**/api/voice-sample?voice=voice-ada");
-    await choose(page, page.locator("#podcast-voice"), /Ada, female/);
+    const first = page.locator("#podcast-voice");
+    await openPicker(page, first);
+    await pickerList(page).getByRole("option", { name: /^Ada/ }).locator(".picker-play").click();
     await sample;
-    await expect(spoken(page)).toHaveText(SAVED);
+    await page.keyboard.press("Escape");
     const before = await page.evaluate(() => (window as unknown as { pauses: number }).pauses);
     await page.locator(".app-bar-back").click();
     await expect(page).toHaveURL(/\/settings$/);
@@ -494,7 +510,7 @@ test.describe("saving on its own", () => {
   }) => {
     const sent = await mockConfig(page);
     await open(page, "voice");
-    await choose(page, page.locator("#podcast-voice"), /Leo, male/);
+    await choose(page, page.locator("#podcast-voice"), /^Leo/);
     await expect
       .poll(() => scheduleSent(sent))
       .toEqual({ op: "schedule.set", voice_id: "voice-leo" });
