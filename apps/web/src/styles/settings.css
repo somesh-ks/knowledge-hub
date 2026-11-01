@@ -332,6 +332,14 @@
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
+/* On a Manage page a row stands the card's full padding in from its edge; on the index it is a tile one
+   inset in. The pull above is worked out for the tile, so there the fill ended 20px from the card's
+   side while it starts 12px under its top (owner, 2026-10-31: the open Podcast voice looked uneven).
+   The value reaches the extra 8px, so its fill, words and chevron end where Theme's do. */
+.manage .card-group .settings-row .value-select {
+  margin-inline-end: calc((var(--space-2) + var(--value-select-pull, 0px) + var(--space-2)) * -1);
+}
+
 /* The chevron's ink, not its box, ends where the link rows' chevrons and the switch end (D187). */
 .settings-row .value-select > .icon-glyph {
   inset-inline-end: calc(
