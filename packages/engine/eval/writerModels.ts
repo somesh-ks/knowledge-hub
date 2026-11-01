@@ -152,7 +152,8 @@ export interface ArmReport {
   meanWorth: number | null;
   inputTokens: number;
   outputTokens: number;
-  usd: number;
+  /** Null when the price table has no price for the arm's model. */
+  usd: number | null;
   usdPerPassed: number | null;
   seconds: number;
   priceConfirmed: boolean;
@@ -300,7 +301,7 @@ async function runArm(
     const violations =
       linter.lint("headline", item.headline).length +
       linter.lint("summary", item.summary).length +
-      (spoken ? linter.lint("spoken", spoken).length : 0);
+      linter.lint("spoken", spoken).length;
     // The title and outlet go with the excerpt as in production (groundingRepair.ts): the body
     // often leaves out a name the writer correctly takes from them.
     const heading = story ? `${story.title} (${story.source})` : undefined;
@@ -336,7 +337,9 @@ async function runArm(
     arm.family === "gemini-flash"
       ? ctx.gemini
       : { ...(CLAUDE_PRICES[arm.family] ?? { input: 0, output: 0 }), confirmed: true };
-  const usd = price ? (inputTokens / 1e6) * price.input + (outputTokens / 1e6) * price.output : 0;
+  const usd = price
+    ? (inputTokens / 1e6) * price.input + (outputTokens / 1e6) * price.output
+    : null;
   return {
     items,
     scores,
@@ -355,7 +358,7 @@ async function runArm(
       inputTokens,
       outputTokens,
       usd,
-      usdPerPassed: passed > 0 ? usd / passed : null,
+      usdPerPassed: usd !== null && passed > 0 ? usd / passed : null,
       seconds,
       priceConfirmed: price?.confirmed ?? false,
     },
@@ -410,7 +413,10 @@ export function blindMarkdown(
       return item ? [{ armId: run.report.arm.id, item }] : [];
     });
     if (told.length === 0) continue;
-    const order = shuffled(told, seed + story.id.length);
+    // Seed from the whole id: ids of one length would otherwise share an order for every story.
+    let hash = seed >>> 0;
+    for (const ch of story.id) hash = Math.imul(hash ^ ch.charCodeAt(0), 0x01000193) >>> 0;
+    const order = shuffled(told, hash);
     key[story.id] = {};
     out.push(`## ${story.title}`, `_${story.source}_`, "");
     order.forEach((entry, index) => {
@@ -460,7 +466,18 @@ export async function main(argv: string[]): Promise<number> {
     (values.arms ?? ARMS.map((a) => a.id).join(",")).split(",").map((s) => s.trim()),
   );
   const arms = ARMS.filter((a) => wanted.has(a.id));
+  const unknown = [...wanted].filter((id) => !ARMS.some((a) => a.id === id));
+  if (unknown.length > 0 || arms.length === 0) {
+    console.error(
+      `Unknown arm(s): ${unknown.join(", ")}. Known: ${ARMS.map((a) => a.id).join(", ")}`,
+    );
+    return 1;
+  }
   const limit = Number(values.limit ?? 12);
+  if (!Number.isInteger(limit) || limit < 1) {
+    console.error(`--limit must be a positive integer, got "${values.limit}".`);
+    return 1;
+  }
   const file = MaterialsFile.parse(JSON.parse(await readFile(resolve(values.materials), "utf8")));
   const stories: SourceMaterial[] = sample(file.items, limit).map((item) => ({
     id: item.id,
