@@ -154,11 +154,19 @@ export class LlmWriter implements Writer {
         back: sent.size,
       });
     }
-    const results = await mapConcurrent(batches, WRITER_CONCURRENCY, (batch) => {
+    const results = await mapConcurrent(batches, WRITER_CONCURRENCY, async (batch) => {
       const back = sent.get(batch);
-      return back
-        ? Promise.resolve(back)
-        : this.writeBatch(batch, feedback, taste, othersOf(batch));
+      if (!back) return this.writeBatch(batch, feedback, taste, othersOf(batch));
+      // A valid reply that skipped a story is written live for that story alone, as a batch that
+      // never came back is: the run must not publish short because the batch left one out.
+      const missing = batch.filter((m) => back.failed.some((f) => f.id === m.id));
+      if (missing.length === 0) return back;
+      const again = await this.writeBatch(missing, feedback, taste, othersOf(batch));
+      const byId = new Map([...back.written, ...again.written].map((w) => [w.id, w]));
+      return {
+        written: batch.flatMap((m) => byId.get(m.id) ?? []),
+        failed: again.failed,
+      };
     });
     return {
       written: results.flatMap((r) => r.written),

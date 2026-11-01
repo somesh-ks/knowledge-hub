@@ -227,6 +227,29 @@ describe("the writer's first pass by batch", () => {
     expect(result.written.map((w) => w.id).sort()).toEqual(items.map((m) => m.id).sort());
   });
 
+  // A valid reply that skips one story used to count as the whole batch done, so the run
+  // published a story short.
+  it("writes live a story that a valid batch reply left out", async () => {
+    const live = new FakeLlm((request) => ({ items: idsOf(request).map(good) }));
+    const batch: BatchLlm = {
+      completeJsonBatch: async (sent) => {
+        const done = new Map();
+        for (const entry of sent) {
+          const ids = idsOf(entry.request);
+          done.set(entry.id, {
+            value: entry.request.schema.parse({ items: ids.slice(1).map(good) }),
+            usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+          });
+        }
+        return done;
+      },
+    };
+    const writer = new LlmWriter({ llm: live, batch, voice: testVoice(), log: captureLog().log });
+    const result = await writer.write(items, undefined, undefined, [], { batchUntil: 1 });
+    expect(result.failed).toEqual([]);
+    expect(result.written.map((w) => w.id).sort()).toEqual(items.map((m) => m.id).sort());
+  });
+
   it("sends nothing to a batch when the run has a reader waiting", async () => {
     const live = new FakeLlm((request) => ({ items: idsOf(request).map(good) }));
     const batch: BatchLlm = {
