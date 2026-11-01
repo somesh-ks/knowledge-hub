@@ -3,6 +3,7 @@ import {
   type DigestKind,
   effectiveSkipTopics,
   GENERAL_TOPICS,
+  hasOwnAllowance,
   isBuiltinSection,
   RELEASE_NEWS_SECTION,
   SECTIONS,
@@ -58,6 +59,16 @@ export const DEFAULT_SECTION_PLAN: SectionPlan = {
   prompt: () => undefined,
   rules: () => ({}),
 };
+
+/**
+ * The plan a sized briefing's reserve is chosen under: the structure's story counts of the main
+ * sections no longer apply (they must not empty the reserve), but a section with an allowance of
+ * its own (Tech releases, custom sections) keeps it, because validation trims a story past it
+ * whatever its score (2026-10-31: three Tech stories written for the refill, all trimmed).
+ */
+export function reservePlan(plan: SectionPlan): SectionPlan {
+  return { ...plan, limit: (section) => (hasOwnAllowance(section) ? plan.limit(section) : null) };
+}
 
 /** The key a section's block prompt is kept under (blockPromptKey in core). */
 export function sectionPromptKey(section: string): string {

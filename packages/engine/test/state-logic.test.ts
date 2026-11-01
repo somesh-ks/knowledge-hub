@@ -111,7 +111,7 @@ describe("recordRun", () => {
       { version: 1 },
       { kind: "regular", record: published, fetchedThrough: through },
     );
-    expect(next.regular).toEqual(published);
+    expect(next.regular).toEqual({ ...published, fetched_through: "2026-10-07T05:13:00.000Z" });
     expect(next.last_fetch_at).toBe("2026-10-07T05:13:00.000Z");
   });
 

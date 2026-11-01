@@ -178,6 +178,18 @@ describe("gate: fetch windows", () => {
     });
   });
 
+  // The 2026-10-31 daily fetched six hours because the evening's on-demand briefing had moved
+  // the shared window start, and the thin pool published nothing.
+  it("starts the regular digest where its own last window ended, whatever ran since", async () => {
+    await lastRun({
+      regular: { ...record("2026-10-05T06:00:00Z"), fetched_through: "2026-10-05T05:13:00Z" },
+      on_demand: record("2026-10-06T22:13:00Z"),
+      last_fetch_at: "2026-10-06T22:13:00Z",
+    });
+    const report = await gate(WED);
+    expect(report.passes[0]?.window.from).toBe("2026-10-05T05:13:00.000Z");
+  });
+
   it("starts every pass at --since when given", async () => {
     await lastRun({ regular: record("2026-10-09T05:13:00Z") });
     const report = await gate(SUN, { since: "2026-10-01", force: true });

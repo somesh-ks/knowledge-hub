@@ -53,7 +53,7 @@ import {
   sourceFactsMap,
   type TopicLayer,
 } from "../score/scoreTopics.js";
-import { loadSectionPlan } from "../score/sectionPlan.js";
+import { loadSectionPlan, reservePlan } from "../score/sectionPlan.js";
 import {
   assignSections,
   capFor,
@@ -623,7 +623,8 @@ async function writePass(
             // The structure's story counts shape what the first selection airs; they must not
             // empty the reserve. The 2026-10-27 daily's counts held selection to 8 stories, the
             // same counts held the reserve to none, and a briefing grounding cut to 3 stayed 79 s.
-            plan: { ...sectionPlan, limit: () => null },
+            // A section with an allowance of its own keeps it: validation trims past it.
+            plan: reservePlan(sectionPlan),
             cap: withSpares(wanted) * 2,
             total: withSpares(wanted) * 2,
           }).selected,

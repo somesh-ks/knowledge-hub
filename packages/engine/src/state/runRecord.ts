@@ -25,7 +25,12 @@ export function recordRun(lastRun: LastRunFile, input: RecordRunInput): LastRunF
   const { record, kind, fetchedThrough } = input;
   if (record.outcome === "failed" || record.outcome === "gated") return lastRun;
 
-  const next: LastRunFile = { ...lastRun, [SLOT_BY_KIND[kind]]: record };
+  const next: LastRunFile = {
+    ...lastRun,
+    [SLOT_BY_KIND[kind]]: fetchedThrough
+      ? { ...record, fetched_through: fetchedThrough.toISOString() }
+      : record,
+  };
   if (fetchedThrough) {
     const previous = lastRun.last_fetch_at
       ? Date.parse(lastRun.last_fetch_at)

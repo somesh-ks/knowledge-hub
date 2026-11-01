@@ -19,7 +19,7 @@ import { scriptSystemPrompt, scriptUserMessage } from "../src/podcast/prompt.js"
 import { fitStories, shapeStories } from "../src/podcast/structure.js";
 import type { PodcastStory } from "../src/podcast/types.js";
 import { RELEASE_CATEGORY } from "../src/score/releaseNotes.js";
-import { loadSectionPlan, sectionPlanFor } from "../src/score/sectionPlan.js";
+import { loadSectionPlan, reservePlan, sectionPlanFor } from "../src/score/sectionPlan.js";
 import { GENERAL_ALLOWANCE, selectItems } from "../src/score/selectItems.js";
 import type { ScoredItem } from "../src/score/types.js";
 import { REQUEST } from "./podcast-fixtures.js";
@@ -385,7 +385,7 @@ describe("a Catch up fills its slots after the structure's caps", () => {
     const thin = blocks([
       { type: "hello" },
       { type: "top_picks", stories: 2, depth: "deep" },
-      { type: "section", id: "ui-craft", max_stories: 2 },
+      { type: "section", id: "design", max_stories: 2 },
       { type: "release_news", stories: 1 },
       { type: "sign_off" },
     ]);
@@ -609,4 +609,41 @@ it("a block's own count per source decides what it carries, whatever the model w
   ]);
   const reasons = new Map(result.dropped.map((d) => [d.id, d.reason]));
   expect(reasons.get(second.item.id)).toBe("over_outlet");
+});
+
+// 2026-10-31: the structure held Tech releases to 2; the reserve was chosen with every count
+// removed, so it offered three more Tech stories, the refill wrote them, and validation trimmed
+// all three again. The reserve drops the main sections' counts and keeps the Tech allowance.
+it("a reserve ignores the main sections' counts but keeps a section's own allowance", () => {
+  let seq = 0;
+  const scored = (category: Category, score: number): ScoredItem => {
+    seq += 1;
+    const item = makeItem({ id: seq.toString(16).padStart(12, "0"), title: "A story" });
+    const entry = makeEntry(item, { category });
+    const breakdown = { taste: score, craftFactor: 1, penaltyFactor: 1, bonus: 0 };
+    return { item, entry, score, topCategory: category, breakdown };
+  };
+  const plan = sectionPlanFor(
+    blocks([
+      { type: "hello" },
+      { type: "section", id: "ui-craft", max_stories: 2 },
+      { type: "section", id: "tech", max_stories: 2 },
+      { type: "sign_off" },
+    ]),
+  );
+  const pool = [
+    ...Array.from({ length: 6 }, (_, i) => scored("design_engineering_craft", 0.9 - i * 0.01)),
+    ...Array.from({ length: 6 }, (_, i) => scored("consumer_tech_releases", 0.8 - i * 0.01)),
+  ];
+  const picked = selectItems({
+    scored: pool,
+    kind: "regular",
+    floor: 3,
+    cap: 24,
+    total: 24,
+    plan: reservePlan(plan),
+  });
+  const in_ = (section: string) => picked.selected.filter((s) => s.section === section).length;
+  expect(in_("tech")).toBe(2);
+  expect(in_("ui-craft")).toBeGreaterThan(2);
 });
