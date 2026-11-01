@@ -9,6 +9,7 @@ What each capability does now, one file each. A spec states requirements in the 
 | Create | [create.md](create.md) | `apps/web/src/sheets` |
 | Settings | [settings.md](settings.md) | `apps/web/src/pages/settings` |
 | Health page | [health.md](health.md) | `apps/web/src/server/health.ts` |
+| Admin sign-in | [admin-sign-in.md](admin-sign-in.md) | `apps/admin/src/gate` |
 | Admin overview | [admin-overview.md](admin-overview.md) | `apps/admin/src/pages/index.astro` |
 | Experiments page | [experiments.md](experiments.md) | `apps/admin/src/scripts/experiments.ts` |
 | Engine | [engine.md](engine.md) | `packages/engine/src` |

@@ -390,6 +390,24 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Revisit if: the Google login replaces the password (the cookie's meaning stays; only how it is issued changes), or another page needs these numbers without a session.
 - Amends: D201 (for these two routes), D224.
 
+## D260: Health reads as a state with glyphs on what needs a look, and shows stage times
+
+- Date: 2026-10-30 (the owner: the admin pages should match the Overview; the previous thread's handoff names the stage times). Amends D203.
+- Decision: the page leads with a state title (Healthy, Degraded, Failing) and its glyph, never a count of what to do. A row that needs a look carries its tone's glyph before its reading; a fine row draws nothing, so the page is quiet when it is well. The status dot leaves the design system in its own PR (#493), which lands first. A Stage times card per kind of run shows each stage's median and slowest tenth over 14 days as bars, from `readStageTimings` through `api/stages.ts`, a function on the admin project behind the gate.
+- Why: a green dot on every row was noise the Overview had already dropped, and the runs table held stage times nothing displayed.
+- Rejected: p90 as a second printed figure per row (two numbers a row read as a table, and the lighter reach says it); a colour per stage (grey at rest, nothing here is picked).
+- Revisit if: the owner wants the p90 as a number, or stages are needed per run rather than per kind.
+- Amends: D203.
+
+## D261: Admin sign-in is Google, beside the password
+
+- Date: 2026-10-31 (the queue's "Google login with a Sign out control"; phase 0 of Stage A in `scaling/multi-user-plan.md`).
+- Decision: `/admin/login` offers Continue with Google beside the password. The gate runs the authorization code flow with PKCE, a state and a nonce (`apps/admin/src/gate/google.ts`), keeps them in a signed ten-minute cookie scoped to the two Google addresses, and lets in only a verified email on `ADMIN_GOOGLE_EMAILS`. What it issues is the D257 session, unchanged, so the reader's report routes need nothing. The password stays as the break-glass; the gate opens with either way in plus the secret and fails closed with neither. Sign out (a post to `/logout`, already in the gate) is a control in the app bar and the side column. Google stays off, and the page says so, until `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` and `ADMIN_GOOGLE_EMAILS` are set on `singularity-admin` ([runbook](../runbook.md)).
+- Why: one shared password has no per-person trail and no revocation short of rotating it; Google adds the owner's own MFA for a day and a half of work, and the cookie's meaning does not change.
+- Rejected: an auth library (the flow is 150 lines over Web Crypto, and the plan's reader accounts will choose one for both); verifying the id token's signature (it arrives from Google's token endpoint over TLS in answer to a code only this browser can redeem, OpenID Connect Core 3.1.3.7); removing the password now (the plan keeps it until two admin sign-ins are proven); reader accounts, which are the plan's phase 1.
+- Revisit if: the reader gets accounts (the admin check becomes role `admin` on one session, and the allowlist moves to the store, keyed on Google's `sub` rather than the email), or a second owner is added.
+- Amends: D224, D257.
+
 ## D262: Sheet and Drawer are two components; the dialog heading is the Dialog's
 
 - Date: 2026-10-30 (the coordinator, for the owner: finish D243 part D). Amends D243.
