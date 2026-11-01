@@ -106,13 +106,18 @@ const menuId = `card-menu-${id}`;
       <Icon name="shareArrow" />Share
     </MenuItem>
     {/* Put in by scripts/shareLink.ts once this device made the row's listen link (D153). */}
-    <template data-share-stop-template>
-      <MenuItem
-        data-menu="unshare"
-        data-share-stop={id}>
-        <Icon name="blocked" />Stop sharing
-      </MenuItem>
-    </template>
+    {/* Not on the Downloads page, whose row menu is Add to queue, Share and Remove download (D281). */}
+    {
+      !downloads && (
+        <template data-share-stop-template>
+          <MenuItem
+            data-menu="unshare"
+            data-share-stop={id}>
+            <Icon name="blocked" />Stop sharing
+          </MenuItem>
+        </template>
+      )
+    }
     {
       downloads && (
         <MenuItem tone="danger" data-menu="download">
