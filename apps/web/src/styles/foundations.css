@@ -117,6 +117,15 @@
     color: var(--color-on-surface);
   }
 
+  /* No element flashes the browser's own tap colour (2026-11-01, the owner: a long press on a list item
+     showed "this browser-based blue flash"; "whichever UI element you build, this shouldn't be
+     happening"). The UA paints it on links and anything with a click handler, so one rule on every
+     element, not a list of the ones remembered. A control shows its press with its own layer
+     (styles.test.ts: no stylesheet sets another colour). Zero specificity, so nothing needs a bump. */
+  :where(*) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   /* Controls: no gray tap flash because every one has a pressed state, no double-tap zoom,
      no text selection while scrubbing. Links that act as controls, with a pressed state of their
      own, count too. */
