@@ -29,7 +29,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D6 | Daily cron with a calendar-date gate, plus a Sunday weekly pass | active; Vercel Cron since D61; no weekly D65 |
 | D7 | Podcast feed deferred | active |
 | D8 | "Thought of the Day" cut | active |
-| D9 | Repository `somesh-ks/knowledge-hub`, private | active |
+| D9 | Repository `somesh-ks/knowledge-hub`, private | superseded by D298 |
 | D10 | Hosting on Vercel | partly superseded by D25 |
 | D11 | Notification is the commit only | active |
 | D12 | Voice limits confirmed | superseded by D34 |
@@ -305,5 +305,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D294 | Scheduled writer uses Message Batches | amends D209 (step 3 built, step 2 open); D135 ended |
 | D295 | Playback audio session only while Sounds is on | amends D105 |
 | D296 | Config store is the only home of owner config; examples in the repo | amends D149; supersedes D185 |
+| D298 | Repository public, owner data moved out of git, history rewritten last | supersedes D9 |
 
 ---
