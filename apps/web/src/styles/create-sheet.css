@@ -114,20 +114,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .create-fab:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-accent-container-high),
-      var(--color-on-accent-container-high) var(--state-hover)
-    );
+    background: var(--color-accent-container-high-hover);
   }
 }
 
 .create-fab:active {
-  background: color-mix(
-    in oklch,
-    var(--color-accent-container-high),
-    var(--color-on-accent-container-high) var(--state-press)
-  );
+  background: var(--color-accent-container-high-pressed);
   transition-duration:
     var(--duration-state), var(--duration-press-in), var(--duration-hover), 0s,
     var(--duration-enter);
