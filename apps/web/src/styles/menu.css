@@ -236,9 +236,11 @@
     padding-block-end: max(var(--space-4), var(--safe-bottom));
   }
 
-  /* The rows of the sheet are as tall as a select's and a picker's (--size-option). */
+  /* The rows of the sheet are as tall as a select's and a picker's (--size-option) and as round: half
+     that height, so a press or a focus ring is a full pill like the picker's rows (owner, 2026-11-01). */
   .menu-sheet .menu-item {
     min-height: var(--size-option);
+    border-radius: var(--radius-xl);
   }
 
   @media (prefers-reduced-motion: reduce) {
