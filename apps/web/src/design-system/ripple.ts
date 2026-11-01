@@ -1,7 +1,7 @@
 /**
  * The press ripple (owner, 2026-11-01: touch feedback that shows the touch area "as a ripple ...
  * aligned to Material design", and "should have some easing to keep it naturally calm"). A control
- * that carries `data-ripple` and holds a `.ripple` layer draws a wave from the point a finger lands
+ * that carries `data-ripple` and holds a `.ripple-area` layer draws a wave from the point a finger lands
  * and fills the layer; on the lift the wave stays until it has grown a little, then fades. The
  * layer is the touch area and clips the wave. Time and curve are the stylesheet's (ripple.css), so
  * the clock is the one the rest of the travel uses.
@@ -27,7 +27,7 @@ export const RIPPLE: Guidance = {
 };
 
 /** Every class the Ripple draws, for the registry and its test. */
-export const RIPPLE_CLASSES: string[] = ["ripple", "ripple-wave"];
+export const RIPPLE_CLASSES: string[] = ["ripple-area", "ripple-wave"];
 
 /** Classes the Ripple replaced; none, as it is new. */
 export const RIPPLE_RETIRED: string[] = [];
@@ -144,7 +144,7 @@ export function installRipple(): void {
     (event) => {
       if (event.button !== 0) return;
       const control = (event.target as Element | null)?.closest<HTMLElement>("[data-ripple]");
-      const layer = control?.querySelector<HTMLElement>(":scope > .ripple");
+      const layer = control?.querySelector<HTMLElement>(":scope > .ripple-area");
       if (!control || !layer || getComputedStyle(layer).display === "none") return;
       const box = layer.getBoundingClientRect();
       press = {
@@ -180,7 +180,7 @@ export function installRipple(): void {
     const twin = [...document.querySelectorAll<HTMLElement>("[data-ripple]")].find(
       (control) => keyOf(control) === press?.key,
     );
-    const layer = twin?.querySelector<HTMLElement>(":scope > .ripple");
+    const layer = twin?.querySelector<HTMLElement>(":scope > .ripple-area");
     if (layer) {
       if (press.lift === null) setPressed(twin, true);
       draw(layer, press, now);

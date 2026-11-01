@@ -886,7 +886,7 @@
       "kind": "feedback",
       "summary": "A wave from the touch point that fills a control's touch area, then fades.",
       "classes": [
-        "ripple",
+        "ripple-area",
         "ripple-wave"
       ],
       "files": [
@@ -913,13 +913,13 @@
       "markup": "<a href=\"/library\" data-ripple><Ripple />Library</a>",
       "rules": [
         "The control is `position: relative` with its own stacking context (isolation: isolate); the layer sits beneath its icon and label.",
-        "A phone only: hide the layer where the control has a pointer state (display: none).",
+        "To reach past the control's box set --ripple-reach-start, --ripple-reach-end or --ripple-reach-bottom on the control; --ripple-display: none turns the layer off where the control has a pointer state.",
         "installRipple() (design-system/ripple.ts) is called once by the app script; the control sets nothing else."
       ],
       "styles": [
         "ripple.css"
       ],
-      "usage": "The press ripple (ripple.ts). A control that carries data-ripple holds a .ripple layer: the touch area, which clips the wave. The wave grows from the point of the press on the one travel clock (300 ms, the hover curve) and, once the finger is up, fades on the state clock. It is the same 12% of the surface ink as the press layer of every other control.",
+      "usage": "",
       "tokens": [
         "--color-on-surface"
       ]
