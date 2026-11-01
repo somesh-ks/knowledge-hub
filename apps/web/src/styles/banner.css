@@ -62,18 +62,20 @@
   line-height: var(--font-leading-body);
 }
 
-/* The strip: a band across the width, for a state of the device (offline, back online). It is drawn
-   over the page, never in it, so it takes no line and moves nothing; the place that draws it sets
-   where it sits and --strip-height, --strip-inset-top (the safe area it also covers). Its ground is
-   the tone mixed into the surface, firmer than a block's: a band that is nearly white reads as a
-   mistake. Its contents are centred. It opens outward from the middle, the icon pops in a beat later,
-   and the offline glyph flickers once like a lost signal. The spring durations collapse with
-   reduced motion, so none of it plays then. */
+/* The strip: a band across the width, for a state of the device (offline, back online). It is not
+   drawn over the page: the place that holds it makes room (the shell squeezes the page down as the
+   strip opens and lets it back up as it closes), so the band keeps one height, --strip-height, and its
+   contents sit in the lower part of it, under --strip-inset-top (the safe area it also covers). Its
+   ground is the tone mixed into the surface, firmer than a block's: a band that is nearly white reads
+   as a mistake. Its contents are centred. The icon is a signal: it spreads from the dot outward, arc by
+   arc, and offline the Wi-Fi it drew is struck through (the Offline glyph wipes over it). Both play
+   once, and the spring durations collapse with reduced motion. */
 .banner-notice[data-variant="strip"] {
   align-items: center;
   justify-content: center;
+  flex: none;
   box-sizing: border-box;
-  min-block-size: var(--strip-height, var(--space-6));
+  block-size: var(--strip-height, var(--space-8));
   padding-block: var(--strip-inset-top, 0) 0;
   padding-inline: var(--page-gutter-start) var(--page-gutter-end);
   border-radius: 0;
@@ -82,47 +84,85 @@
      its own width. */
   --banner-icon-offset: 0;
   --banner-text-flex: 0 1 auto;
-  --banner-icon-animation: banner-strip-icon var(--duration-spring-spatial-fast)
-    var(--ease-spring-spatial-fast) var(--duration-stagger) both;
+  --banner-icon-animation: banner-signal-in var(--duration-spring-settle) var(--ease-out)
+    var(--duration-stagger) both;
   --banner-text-animation: banner-strip-text var(--duration-spring-effects-slow) var(--ease-out)
     calc(var(--duration-stagger) * 2) both;
-  animation: banner-strip-in var(--duration-spring-spatial-default) var(--ease-spring-settle) both;
+  --banner-signal-from-animation: banner-signal-fade var(--duration-spring-effects-slow)
+    var(--ease-out) calc(var(--duration-spring-settle) + var(--duration-stagger)) both;
+  --banner-signal-to-animation: banner-signal-strike var(--duration-spring-effects-slow)
+    var(--ease-out) calc(var(--duration-spring-settle) + var(--duration-stagger)) both;
 }
 
-.banner-notice[data-variant="strip"][data-tone="warning"] {
-  --banner-icon-animation:
-    banner-strip-icon var(--duration-spring-spatial-fast) var(--ease-spring-spatial-fast)
-    var(--duration-stagger) both,
-    banner-strip-flicker var(--duration-spring-settle) var(--ease-out)
-    calc(var(--duration-spring-spatial-default) + var(--duration-stagger));
+/* A strip that is already open, drawn again after a navigation, stays as it was. */
+.banner-notice[data-variant="strip"][data-still] {
+  --banner-icon-animation: none;
+  --banner-text-animation: none;
+  --banner-signal-from-animation: none;
+  --banner-signal-to-animation: none;
 }
 
-.banner-notice[data-variant="strip"][data-leaving] {
-  animation: banner-strip-out var(--duration-sheet-out) var(--ease-in-out) both;
+.banner-signal {
+  display: grid;
+  flex: none;
+  color: var(--tone);
+  animation: var(--banner-icon-animation, none);
 }
 
-@keyframes banner-strip-in {
+.banner-signal-layer {
+  grid-area: 1 / 1;
+}
+
+/* With a glyph to strike through, the first (Wi-Fi) fades as the second (Offline) is drawn over it,
+   corner to corner, once the first has spread. */
+.banner-signal-from {
+  animation: var(--banner-signal-from-animation, none);
+}
+
+.banner-signal-from + .banner-signal-to {
+  animation: var(--banner-signal-to-animation, none);
+}
+
+/* The glyph's dot sits low and centred (a Wi-Fi glyph's box): the reveal grows from it, and each
+   arc is cleared a beat after the one inside it. */
+@keyframes banner-signal-in {
   from {
-    transform: translateY(-100%);
-    clip-path: inset(0 40% 0 40%);
+    clip-path: circle(0 at 50% 80%);
+  }
+
+  25% {
+    clip-path: circle(12% at 50% 80%);
+    animation-timing-function: var(--ease-out);
+  }
+
+  50% {
+    clip-path: circle(28% at 50% 80%);
+    animation-timing-function: var(--ease-out);
+  }
+
+  75% {
+    clip-path: circle(46% at 50% 80%);
+    animation-timing-function: var(--ease-out);
   }
 
   to {
-    clip-path: inset(0);
+    clip-path: circle(80% at 50% 80%);
   }
 }
 
-@keyframes banner-strip-out {
+@keyframes banner-signal-fade {
   to {
-    transform: translateY(-100%);
-    clip-path: inset(0 40% 0 40%);
-  }
-}
-
-@keyframes banner-strip-icon {
-  from {
-    transform: scale(0.4);
     opacity: 0;
+  }
+}
+
+@keyframes banner-signal-strike {
+  from {
+    clip-path: polygon(0 0, 0 0, 0 0);
+  }
+
+  to {
+    clip-path: polygon(0 0, 200% 0, 0 200%);
   }
 }
 
@@ -130,24 +170,6 @@
   from {
     transform: translateY(var(--space-1));
     opacity: 0;
-  }
-}
-
-@keyframes banner-strip-flicker {
-  20% {
-    transform: rotate(-14deg);
-  }
-
-  40% {
-    transform: rotate(10deg);
-  }
-
-  60% {
-    transform: rotate(-6deg);
-  }
-
-  80% {
-    transform: rotate(2deg);
   }
 }
 

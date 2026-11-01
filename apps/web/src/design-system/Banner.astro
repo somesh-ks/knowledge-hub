@@ -7,9 +7,11 @@ import "../styles/banner.css";
 
 interface Props {
   tone: BannerTone;
-  /** "strip" is a band across the width for a state of the device; the place that draws it overlays it. */
+  /** "strip" is a band across the width for a state of the device; the place that holds it makes room for it. */
   variant?: BannerVariant;
   icon: IconName;
+  /** A strip only: the glyph the icon is drawn over and strikes through (Wi-Fi, then Offline). */
+  iconFrom?: IconName;
   title: string;
   body?: string;
   /** An id for the body line (the title when there is none), so a control the banner explains can point at it (aria-describedby). */
@@ -18,11 +20,20 @@ interface Props {
   action?: { label: string; href: string };
 }
 
-const { tone, variant, icon, title, body, bodyId, action } = Astro.props;
+const { tone, variant, icon, iconFrom, title, body, bodyId, action } = Astro.props;
 ---
 
 <div class={bannerClass()} data-tone={tone} data-variant={variant === "strip" ? "strip" : undefined} role={tone === "danger" ? "alert" : "status"}>
-  <Icon name={icon} />
+  {
+    variant === "strip" ? (
+      <span class="banner-signal">
+        {iconFrom && <Icon name={iconFrom} class="banner-signal-layer banner-signal-from" />}
+        <Icon name={icon} class={iconFrom ? "banner-signal-layer banner-signal-to" : undefined} />
+      </span>
+    ) : (
+      <Icon name={icon} />
+    )
+  }
   <div class={bannerText.column}>
     <p class={bannerText.title} id={body ? undefined : bodyId}>{title}</p>
     {body && <p class={bannerText.body} id={bodyId}>{body}</p>}
