@@ -642,6 +642,29 @@ describe("errors", () => {
     expect(harness.audio.src).toBe(url);
   });
 
+  // Bug: a scrub that ended before the retry wait did its own reload, and the timer then reloaded
+  // again under the resumed audio.
+  it("reloads once when a scrub ends before the retry wait does", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    let loads = 0;
+    let current = harness.audio.src;
+    Object.defineProperty(harness.audio, "src", {
+      get: () => current,
+      set: (value: string) => {
+        current = value;
+        loads += 1;
+      },
+    });
+    harness.audio.error = { code: MEDIA_ERR_NETWORK };
+    harness.audio.emit("error");
+    harness.store.beginScrub();
+    vi.advanceTimersByTime(500);
+    harness.store.endScrub(12);
+    vi.advanceTimersByTime(10_000);
+    expect(loads).toBe(1);
+  });
+
   it("explains a network failure in plain language", () => {
     const harness = createHarness();
     startPlaying(harness);

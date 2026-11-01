@@ -81,7 +81,7 @@ const invalid: ConfigResult = { status: 400, body: { status: 400, error: "invali
 // ---------------------------------------------------------------------------------------- validation
 
 // Core's limits, not smaller copies: ids 64, a topic's name, description and keywords as core has them.
-const ID = new RegExp(`^[a-z0-9_-]{2,${ID_MAX_LENGTH}}$`);
+const ID = new RegExp(`^[a-z0-9][a-z0-9_-]{1,${ID_MAX_LENGTH - 1}}$`);
 const MAX_NAME = MAX_TOPIC_NAME_CHARS;
 const MAX_SOURCE_NAME = 80;
 const MAX_DESCRIPTION = MAX_TOPIC_DESCRIPTION_CHARS;
