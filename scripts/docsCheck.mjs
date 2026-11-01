@@ -57,8 +57,15 @@ export function checkDocs(root) {
   // The Index lives in docs/decisions/README.md; the entries are spread over the area files beside it.
   const decisionsDir = at("docs/decisions");
   const readmePath = join(decisionsDir, "README.md");
+  const archivePath = join(decisionsDir, "index-archive.md");
   const index = existsSync(readmePath) ? decisionsIndex(read(readmePath)) : "";
-  const entryFiles = markdownFiles(decisionsDir).filter((file) => file !== readmePath);
+  // The oldest rows move to index-archive.md so the live Index stays under its cap; the checks below
+  // read both, the cap counts only the live Index.
+  const archive = existsSync(archivePath) ? read(archivePath) : "";
+  const allRows = `${index}\n${archive}`;
+  const entryFiles = markdownFiles(decisionsDir).filter(
+    (file) => file !== readmePath && file !== archivePath,
+  );
   const decisions = entryFiles.map(read).join("\n");
   const readFirst = ["AGENTS.md", "docs/state.md"]
     .filter((rel) => existsSync(at(rel)))
@@ -69,14 +76,19 @@ export function checkDocs(root) {
     fails.push(`decisions Index: ${Buffer.byteLength(index)} bytes, budget ${INDEX_BUDGET}`);
 
   // Every Index row has an entry and every entry a row; a supersession names a decision that exists.
-  const rows = new Set([...index.matchAll(/^\| (D\d+) \|/gm)].map((m) => m[1]));
+  const rowIds = [...allRows.matchAll(/^\| (D\d+) \|/gm)].map((m) => m[1]);
+  const rows = new Set(rowIds);
+  if (rows.size < rowIds.length)
+    fails.push(
+      `docs/decisions: Index row ${rowIds.find((id, at) => rowIds.indexOf(id) !== at)} appears twice (Index and index-archive.md)`,
+    );
   const entries = new Set([...decisions.matchAll(/^## (D\d+):/gm)].map((m) => m[1]));
   for (const id of rows)
     if (!entries.has(id)) fails.push(`docs/decisions/README.md: Index row ${id} has no entry`);
   for (const id of entries)
     if (!rows.has(id)) fails.push(`docs/decisions/README.md: ${id} has no Index row`);
   const superseded = new Map(
-    [...`${index}\n${decisions}`.matchAll(/superseded by (D\d+)/gi)].map((m) => [m[0], m[1]]),
+    [...`${allRows}\n${decisions}`.matchAll(/superseded by (D\d+)/gi)].map((m) => [m[0], m[1]]),
   );
   for (const [phrase, id] of superseded) {
     if (!entries.has(id))
@@ -85,7 +97,7 @@ export function checkDocs(root) {
 
   // A row that "replaces Dn" retires Dn: agents grep the status column, so Dn must say it is superseded.
   // The text before the status column is the description, which may say "superseded" about a part.
-  const rowText = new Map([...index.matchAll(/^\| (D\d+) \|(.*)$/gm)].map((m) => [m[1], m[2]]));
+  const rowText = new Map([...allRows.matchAll(/^\| (D\d+) \|(.*)$/gm)].map((m) => [m[1], m[2]]));
   const statusOf = (text) => text.slice(text.lastIndexOf("|", text.length - 2) + 1);
   for (const [id, text] of rowText) {
     for (const phrase of statusOf(text).matchAll(/replaces ((?:D\d+(?:, and |, | and )?)+)/gi)) {

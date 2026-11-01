@@ -179,6 +179,16 @@ Monthly:
 | `ingest.yml` | Three times a day, or on demand | Runs `singularity ingest` (D233): reads the free sources and saves each new story's text to Blob and Neon. Reads the config store; commits nothing; spends no paid call |
 | `ci.yml` | A pull request | Runs typecheck, lint, tests and the build when code changed, always gitleaks and the audit, and both browser suites for some paths (D148). It does not deploy |
 | `branches.yml` | A pull request closing, daily, or on demand | Deletes the head branch of a closed pull request, and daily every branch whose pull requests are all closed (one with an open pull request, or none, stays). With the `NEON_API_KEY` secret and `NEON_PROJECT_ID` variable it also deletes Neon `preview/*` branches whose git branch is gone and keeps the newest two |
+| `podcast.yml` | The app's Catch up, Regenerate and Delete, or on demand | Writes, regenerates or deletes one episode and commits it under `Podcasts/`; the commit does not deploy (D199), `content.yml` mirrors it. Shares `run.yml`'s queue, so an episode waits for a running digest |
+| `config.yml` | The app's settings, one change per run | Applies one config change (a topic, a source or a weight) as one commit through the write guard (D149). Shares `run.yml`'s queue |
+| `content.yml` | After a workflow that commits content, a push of `Digests/` or `Podcasts/` to `main`, or on demand | Mirrors the content into the Blob store the pages read (`singularity content sync`). Safe to rerun; run it by hand to fill an empty store (D173) |
+| `health.yml` | Daily, or on demand (drill) | Runs `singularity health`; a fault opens one `health` issue and heals a missed run once, warnings go to one `health-warnings` issue on Mondays ([hardening](engineering/hardening.md)). A drill proves the healing path without a real fault |
+| `smoke.yml` | After each production deploy and every three hours | Asks the live site five read-only questions (server, settings, GitHub token, home page, Library); a failure opens or comments on one `smoke` issue and the next pass closes it (D159) |
+| `browser.yml` | A push to `main` that changes the site, nightly, or called by `ci.yml` | Runs the two browser suites, the only checks that see CSS and layout (D148). Red check: [delivery failures](engineering/delivery-failures.md) |
+| `design-system.yml` | A pull request that touches the design system | Checks the `design-system` label and that a labelled PR holds only the system, the code that calls it, the guide and docs (D254). Reads the diff only |
+| `episode-eval.yml` | The `eval` label on a pull request, or on demand | Scores the episode fixtures with Jev and Sonnet, before and after a writer prompt change (D180). Paid calls, so only on request |
+| `automerge.yml` | After `ci.yml` passes | Squash-merges a Dependabot pull request; anything else waits for you. Its token cannot merge a pull request that edits `.github/workflows`: merge those by hand |
+| `seed.yml` | By hand only | Seeds the config store from the committed config with the `DATABASE_URL` secret; dry run by default (section 11) |
 
 Vercel itself builds every push to `main`, except pushes that touch nothing the site reads (`state`, `config`, docs and `.github`). A published digest therefore deploys twice: the text first, then the audio.
 

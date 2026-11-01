@@ -80,6 +80,30 @@ describe("docs check", () => {
     expect(fails).toEqual([expect.stringMatching(/^decisions Index: \d+ bytes, budget 40000$/)]);
   });
 
+  // Bug: the Index neared its 40,000-byte cap with 280 rows. Old rows now move to index-archive.md, and
+  // the row, entry and supersession checks must still see them or the move would hide a broken record.
+  it("reads rows moved to the Index archive, and fails a row held in both or without an entry", () => {
+    const entries = { "docs/decisions/area.md": "## D1: One\n\n## D2: Two\n" };
+    const live = "## Index\n\n| D2 | Two | active; replaces D1 |\n";
+    const archive = (row: string) => `# Index archive\n\n| ID | Decision | Status |\n${row}\n`;
+    const check = (rows: string) =>
+      checkDocs(
+        repo({
+          "docs/decisions/README.md": live,
+          "docs/decisions/index-archive.md": archive(rows),
+          ...entries,
+        }),
+      ).fails;
+    expect(check("| D1 | One | superseded by D2 |")).toEqual([]);
+    expect(check("| D1 | One | active |")).toEqual([expect.stringContaining("D1's row")]);
+    expect(check("| D1 | One | superseded by D2 |\n| D2 | Two | active |")).toEqual([
+      expect.stringContaining("D2 appears twice"),
+    ]);
+    expect(check("| D1 | One | superseded by D2 |\n| D7 | Seven | active |")).toEqual([
+      expect.stringContaining("Index row D7 has no entry"),
+    ]);
+  });
+
   // Bug: D136 "replaces D46, D58, D113, D130" while their rows still said active, so agents grepping
   // the Index status column built on dead decisions.
   it("fails a row that replaces a decision whose own row still says active", () => {
