@@ -19,13 +19,13 @@ The CodeRabbit CLI reviews the branch where it is, with the repository's `.coder
 ```
 cr review --base main --committed            # Tier 1: the branch's commits against main
 cr review --base main --committed --deep     # Tier 2: the PR review's full capability policy
-cr review --base main --committed --agent --gate major   # exit 2 when a major or worse finding remains
+cr review --base main --committed --deep --agent --gate major   # exit 2 when a major or worse finding remains (Tier 1 drops --deep)
 ```
 
 - Once per batch, after the checks are green and before the push. Fix or answer each finding; a finding answered with a rule goes in the PR body's Review section, so the PR review does not relitigate it. Push when `--gate major` exits 0 or every remaining major finding is answered there.
 - Every thread shares the owner's seat, so the CLI pool is shared too (`cr review --usage` shows it). At 2 or fewer left, push without the pass and say so in the PR body; the PR review still runs.
 - The CLI refuses a comparison of 300 or more files: split the batch or narrow with `--base-commit`.
-- Setup: an Agentic API key from the owner's seat (CodeRabbit app, Settings, API Keys) in `CODERABBIT_API_KEY`; `coderabbit auth login --api-key "$CODERABBIT_API_KEY"` once per machine, or `--api-key` on the review. The cloud environment installs the binary in its setup script (`curl -fsSL https://cli.coderabbit.ai/install.sh | CI=1 sh`) and holds the key as a secret; the owner's machine installs with `irm https://cli.coderabbit.ai/install.ps1 | iex` and signs in with `coderabbit auth login`. Usage-based billing stays off, or capped: an over-limit review costs $0.25 a file.
+- Setup: CLI 0.8.0 or later (`--deep` arrived there); an Agentic API key from the owner's seat (CodeRabbit app, Settings, API Keys) in `CODERABBIT_API_KEY`; `coderabbit auth login --api-key "$CODERABBIT_API_KEY"` once per machine, or `--api-key` on the review. The cloud environment installs the binary in its setup script (`curl -fsSL https://cli.coderabbit.ai/install.sh | CI=1 sh`) and holds the key as a secret; the owner's machine installs with `irm https://cli.coderabbit.ai/install.ps1 | iex` and signs in with `coderabbit auth login`. Usage-based billing stays off, or capped: an over-limit review costs $0.25 a file.
 - No CLI (no key, binary refused): push, and the PR review is the only pass. Say so in the PR body.
 - `/code-review` (a model review in the session) is the last option, on demand: when both CodeRabbit pools are out and the merge cannot wait, or when the owner asks for it. It costs tokens the owner judges poorly spent otherwise.
 
@@ -43,7 +43,7 @@ cr review --base main --committed --agent --gate major   # exit 2 when a major o
 ## What each reviewer is for
 
 - CodeRabbit on the PR: logic, security, regressions, and the record's rules (decision format, snake_case, no em dashes), with the PR's description and threads as context, and a record on the PR the owner reads before the merge. It reads `AGENTS.md` as code guidelines, so a house rule written there reaches it; `.coderabbit.yaml` carries the rules a reviewer needs spelled out (tests, motion, tokens, decisions).
-- The CodeRabbit CLI on the branch: the same reviewer before the push, from its own allowance, on Tier 2 and risky Tier 1 diffs only. Also the fallback whenever the PR review is paused or out of reviews (learning 2026-10-22: review locally when the bot is silent).
+- The CodeRabbit CLI on the branch: the same reviewer before the push, from its own allowance, on Tier 2 and risky Tier 1 diffs only. Also the fallback for a Tier 1 PR whenever the PR review is paused or out of reviews (learning 2026-10-22: review locally when the bot is silent); Tier 2 waits for the PR review on its head.
 - `/code-review`: on demand, last.
 - `design-audit` agent: taste and design-system compliance before any UI PR. CodeRabbit does not judge taste.
 - The owner: stills at 390 and 1280, light and dark, and the merge. Never asked to review code lines.
