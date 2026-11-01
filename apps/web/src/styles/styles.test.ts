@@ -268,6 +268,25 @@ interface Rule {
 
 const RULES: Rule[] = [
   {
+    name: "no element can show the browser's tap flash (a long press on a list row flashed blue)",
+    offenders: () => {
+      const foundations = withoutComments(read("foundations.css"));
+      const global = /:where\(\*\)\s*\{[^}]*-webkit-tap-highlight-color:\s*transparent/.test(
+        foundations,
+      );
+      const colours = [["foundations.css", foundations] as const, ...ownCss()].flatMap(
+        ([file, css]) =>
+          [...css.matchAll(/-webkit-tap-highlight-color:\s*([^;}]+)/g)]
+            .filter((match) => match[1]?.trim() !== "transparent")
+            .map((match) => `${file}: -webkit-tap-highlight-color: ${match[1]?.trim()}`),
+      );
+      return [
+        ...(global ? [] : ["foundations.css has no :where(*) tap-highlight rule"]),
+        ...colours,
+      ];
+    },
+  },
+  {
     name: "uses tokens for color, never a raw value",
     offenders: () =>
       ownCss().flatMap(([file, css]) => {
