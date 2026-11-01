@@ -294,5 +294,6 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D278 | Softer light covers | amends D121 |
 | D280 | Travel 300 ms | amends D271 |
 | D281 | Downloads page, no cap | amends D127, D264 |
+| D285 | Switch can be mixed | |
 
 ---

@@ -29,7 +29,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Three regenerations per podcast, counted in its own file (D212). closed when: the page shows "2 of 3 regenerations left".
 - Short podcasts (D204, D216 to D225). closed when: two dailies in a row air within 10% of length, and `singularity metrics` shows ten runs at `length_share` 0.9+, `failure_rate` 0.1 or less.
 - Ingest in shadow (D233, D251). closed when: for 7 days the store holds 90% of each daily's stories and reads 90% of pages tried (`ingest --coverage`).
-- Trusted publishers (D234) and community lift (D240), shipped off. closed when: both on, and a daily airs a lab story and a community-voted one, no source over 30%.
+- Trusted publishers (D234) and community lift (D240), shipped off. closed when: both on and a daily airs a lab story and a community-voted one, no source over 30%.
 - Run names (D217), Neon run log (D221). closed when: a scheduled daily is named `daily <date>`, is off the queue, and has its row.
 - `podcast.yml` no longer installs ffmpeg; its first stage starts 9 s into the job (29 s before). closed when: 9 s is accepted or a target set.
 - A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): `run.yml` has a `length_minutes` input; merge it with the site code or dispatch fails. closed when: a 10-minute Regenerate airs within 10% of 10.
@@ -37,26 +37,26 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Discovery copies rank below an outlet's own entry in dedupe. closed when: dedupe keeps the outlet's entry.
 - Opus on runners (D198). closed when: an audio run logs `ffmpeg version`, its digest has `m4a_url`, and /d/2026-10-24 plays on iPhone.
 - Alexandria pilot (D200). closed when: a run logs `anthropic-blog` fetched via `alexandria:anthropic-com`.
-- Owner's eye: bar centring, centred column and label gap (D229), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off.
-- Live content (plan 20): an open page elsewhere does not refresh in 60 s; `smokeLive.mjs --apply` never ran on production. closed when: checked.
+- Owner's eye: bar centring, column and label gap (D229), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off.
+- Live content (plan 20): an open page elsewhere does not refresh in 60 s; `smokeLive.mjs --apply` never ran live. closed when: checked.
 - Reload mid-write (D259). closed when: a phone flip, then reload, holds.
-- Settings paint the stored copy at once, the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change waits 2.5 s. closed when: the owner signs off on a phone.
-- Sources design (D124) live: Jev gets a source's format only after `secrets:push`; no run used a mix or cap. closed when: a production source's format comes from Jev and a digest follows a mix change.
-- YouTube text: Firecrawl and Gemini transcripts answered live; none used either. closed when: a digest has a YouTube finalist with `extract_method` captions or transcription.
-- YouTube feeds 404 on runners; #235 reads them via Firecrawl. closed when: a fetch lists the five in `relayed_sources`.
-- D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone app loads a deploy itself (D202), health shows `field` lines, a Monday opens or closes `health-warnings`.
+- Settings paint the stored copy at once, the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change waits up to 2.5 s. closed when: the owner signs off on a phone.
+- Sources design (D124): production asks Jev for a source's format only after `secrets:push`; no run used a mix or cap. closed when: a production format comes from Jev and a digest follows a mix change.
+- YouTube text: Firecrawl and Gemini transcripts answered live; no full run used either. closed when: a digest has a YouTube finalist with `extract_method` captions or transcription.
+- YouTube feeds 404 on runners; #235 reads them via Firecrawl. closed when: a run's fetch lists the five in `relayed_sources`.
+- D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone app loads a deploy itself (D202), health shows `field` lines, a Monday sets `health-warnings`.
 - Downloads (D127, D281) on a phone: Blob CORS. closed when: Play works in airplane mode.
-- Episode quality (D119, D120), refill: no live spares. closed when: a digest that lost stories in grounding airs within 10%.
-- Safari and WebKit: the iPhone `@smoke` set (`PLAYER_WEBKIT=1`) is unrun. closed when: an iPhone passes.
+- Episode quality (D119, D120), refill: no live spares. closed when: a digest that lost stories in grounding airs within 10% of length.
+- Safari and WebKit: the iPhone `@smoke` set (`PLAYER_WEBKIT=1`) never ran. closed when: an iPhone passes it.
 - "Narration is not available right now" (10-12): not reproduced. closed when: a failure's `server` fault names the step.
-- Time zone (D100, D239) only faked; `sinceLabel`, `pendingAudio`, `podcast/select` still use Stockholm's today. closed when: a run across the 10-25 clock change publishes on the right day.
+- Time zone (D100, D239) only faked; `sinceLabel`, `pendingAudio`, `podcast/select` still use Stockholm's today. closed when: a run across the 10-25 clock change lands on the right day.
 - General topics (D66 to D69, D102): no digest has one. closed when: one does.
-- Config through `config.yml` never seen live: `topic.scope`, rename or move, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics, episode delete and regenerate. closed when: each lands as a `main` commit.
+- Config through `config.yml` never seen live: `topic.scope`, rename or move, a topic batch, a blocked domain, votes, Regenerate with topics, episode delete and regenerate. closed when: each lands as a `main` commit.
 - Admin env (D257): the reader needs `ADMIN_SESSION_SECRET`. closed when: `/api/health` answers 401 signed out.
 - Config store (D149, D185). closed when: a phone's edit shows on a laptop.
 - A pending `config.yml` run can be cancelled by GitHub after a 202 (`singularity` group); production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 10-14. closed when: a config save from the site produces a commit.
 - A 15-minute episode falls short. closed when: one airs within 10% of 15, or the form shows the window.
-- Costs (D137), Firecrawl's week (D166, D222): `config/prices.json` unconfirmed. closed when: the owner confirms the prices, /analytics shows a real run and a week's runs are all in the ledger.
+- Costs (D137), Firecrawl's week (D166, D222): `config/prices.json` unconfirmed. closed when: the owner confirms it and /analytics shows a real run and a week's runs.
 - 35 older items parked in history (`#parked`, 10-21 to 10-28). closed when: each closes.
 
 ## Known risks
