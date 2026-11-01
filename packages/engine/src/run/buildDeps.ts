@@ -3,10 +3,12 @@ import { type CommandContext, secretsFromEnv } from "../context.js";
 import { type ApiRuntime, createApiRuntime } from "../curate/apiRuntime.js";
 import { createGitRunner } from "../git/runGit.js";
 import { createHttpClient } from "../http.js";
+import { trackOpenBatches } from "../llm/openBatches.js";
 import { meterExa } from "../llm/requestMeter.js";
 import { configStoreUrl, connectConfigStore } from "../store/configPaths.js";
 import { recordExperimentHits } from "../store/experimentHits.js";
 import { loadVoice } from "../voice/voice.js";
+import { readPlan } from "./plan.js";
 import { SpendTracker } from "./spend.js";
 import type { RunDeps } from "./types.js";
 
@@ -51,7 +53,16 @@ export function buildDeps(ctx: CommandContext): RunDeps {
     },
     spend,
     runtime: () => {
-      runtime ??= loadVoice(ctx.root).then((voice) => createApiRuntime(ctx, voice, spend));
+      // The run's plan names its open-batch list, so a batch the write stage gives up on is settled later.
+      runtime ??= Promise.all([loadVoice(ctx.root), readPlan(ctx.root).catch(() => null)]).then(
+        ([voice, plan]) =>
+          createApiRuntime(
+            ctx,
+            voice,
+            spend,
+            plan ? trackOpenBatches(ctx.root, plan.created_at) : undefined,
+          ),
+      );
       return runtime;
     },
     pickCover,

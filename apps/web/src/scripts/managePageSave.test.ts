@@ -1,22 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SAVED_KEY } from "../lib/savedKey";
+import { outboxOps, readOutbox } from "../lib/outbox";
+import { OUTBOX_KEY, SAVED_KEY } from "../lib/savedKey";
 import { anyPending, parseSaved, savedOps } from "../lib/savedOverlay";
 import type { ConfigOp } from "../types/contracts";
 import {
   adopt,
   buildQueue,
+  drainOutbox,
   dropUnclaimed,
   flush,
   GAP_MS,
   gapLeft,
   HELD_EVENT,
   type Held,
+  KEPT,
   keepWaiting,
   MAX_BODY_CHARS,
   type Pending,
   pack,
   remember,
   type SaveContext,
+  TIME_REFUSED,
 } from "./managePageSave";
 import { endedByLeaving } from "./pageLeaving";
 
@@ -466,18 +470,18 @@ describe("a left page's held run", () => {
     expect(own.size).toBe(0);
   });
 
-  it("offers a change lost with the connection again, for Retry once it is back", async () => {
+  it("keeps a change a held run loses with the connection on the device, with nothing to retry", async () => {
     const { run } = await leaveInGap();
     answers.push(0);
     await vi.advanceTimersByTimeAsync(GAP_MS + 100);
     await run;
-    expect(heard[0]?.failure).toBe("Couldn't reach the site. Not saved yet.");
+    // Not a failure: nothing is lost, so no page is handed a change to retry.
+    expect(heard[0]?.ok).toBe(true);
+    expect(heard[0]?.lost).toEqual([]);
+    expect(outboxOps()).toEqual([{ op: "schedule.set", length_minutes: 3 }]);
     const { context: open, said } = page(new Map(), true);
     adopt(open);
-    expect(said).toEqual([["Couldn't reach the site. Not saved yet.", "error"]]);
-    const before = posted.length;
-    await flush(open);
-    expect(posted.slice(before)).toEqual([[{ op: "schedule.set", length_minutes: 3 }]]);
+    expect(said).toEqual([]);
   });
 
   it("keeps a page that is itself being left, or one opened after, from taking it", async () => {
@@ -618,5 +622,238 @@ describe("a held change lost while no settings page is open", () => {
   it("leaves it to a settings page, which takes it with its own toast", async () => {
     await loseHeld(true);
     expect(toasts).toEqual([]);
+  });
+});
+
+describe("edits kept on the device while the site cannot be reached (CFG-04)", () => {
+  let posted: ConfigOp[][];
+  let said: [string, string][];
+  let toasts: { message?: string }[];
+  /** What the site answers: a status, or the connection failing. */
+  let answer: number | "offline";
+  /** Answers given first, in order, before `answer` applies: a status and its body. */
+  let replies: [number, object][];
+  let round = 5000;
+
+  const context = (changes: Map<string, Pending>): SaveContext => ({
+    changes,
+    show: (message, state) => void said.push([message, state]),
+  });
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    round += 10;
+    vi.setSystemTime(Date.now() + round * 3_600_000);
+    posted = [];
+    said = [];
+    toasts = [];
+    answer = "offline";
+    replies = [];
+    vi.stubGlobal("localStorage", memoryStorage());
+    const doc = Object.assign(new EventTarget(), { querySelector: () => null });
+    doc.addEventListener(
+      "singularity:toast",
+      (event) => void toasts.push((event as CustomEvent).detail),
+    );
+    vi.stubGlobal("document", doc);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init: RequestInit) => {
+        if (answer === "offline") throw new TypeError("Failed to fetch");
+        const { op } = JSON.parse(String(init.body)) as { op: ConfigOp | ConfigOp[] };
+        posted.push([op].flat());
+        const first = replies.shift();
+        if (first) return new Response(JSON.stringify(first[1]), { status: first[0] });
+        const error = answer >= 400 ? "refused" : undefined;
+        return new Response(JSON.stringify({ status: answer, error }), { status: answer });
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("keeps a change made offline, shows it saved, and sends it once the connection is back", async () => {
+    const changes = new Map([["hour", change({ op: "schedule.set", hour: 9 })]]);
+    await flush(context(changes));
+    // Settled on the page, kept on the device, said once: not a failure with a Retry.
+    expect(changes.size).toBe(0);
+    expect(said.at(-1)).toEqual([KEPT, "done"]);
+    expect(posted).toEqual([]);
+    expect(outboxOps()).toEqual([{ op: "schedule.set", hour: 9 }]);
+
+    answer = 202;
+    await drainOutbox();
+    expect(posted).toEqual([[{ op: "schedule.set", hour: 9 }]]);
+    expect(readOutbox()).toEqual([]);
+    expect(localStorage.getItem(OUTBOX_KEY)).toBeNull();
+    // What went out is remembered as any save is, for a page opened before the build.
+    expect(savedOps(parseSaved(localStorage.getItem(SAVED_KEY), Date.now()), Date.now())).toEqual([
+      { op: "schedule.set", hour: 9 },
+    ]);
+    expect(toasts).toEqual([]);
+  });
+
+  it("sends a change made later after the kept ones, whatever the order of the answers", async () => {
+    await flush(context(new Map([["hour", change({ op: "schedule.set", hour: 8 })]])));
+    // Back online, but the server is down: the kept edit stays, and a newer one waits behind it.
+    answer = 503;
+    await flush(context(new Map([["hour", change({ op: "schedule.set", hour: 9 })]])));
+    expect(outboxOps()).toEqual([
+      { op: "schedule.set", hour: 8 },
+      { op: "schedule.set", hour: 9 },
+    ]);
+    posted.length = 0;
+    answer = 202;
+    await vi.advanceTimersByTimeAsync(GAP_MS);
+    await drainOutbox();
+    // One request, oldest first, so the newer edit wins.
+    expect(posted).toEqual([
+      [
+        { op: "schedule.set", hour: 8 },
+        { op: "schedule.set", hour: 9 },
+      ],
+    ]);
+    expect(readOutbox()).toEqual([]);
+  });
+
+  it("fails as before, for Retry, when the device refuses to keep it", async () => {
+    vi.stubGlobal("localStorage", {
+      ...memoryStorage(),
+      getItem: () => null,
+      setItem: () => {
+        throw new Error("QuotaExceededError");
+      },
+    });
+    const changes = new Map([["hour", change({ op: "schedule.set", hour: 9 })]]);
+    await flush(context(changes));
+    expect(said.at(-1)).toEqual(["Couldn't reach the site. Not saved yet.", "error"]);
+    expect([...changes.values()].map((each) => each.failed)).toEqual([true]);
+  });
+
+  it("drops a kept change the site refuses for good, and says so once", async () => {
+    await flush(context(new Map([["hour", change({ op: "schedule.set", hour: 9 })]])));
+    answer = 400;
+    await drainOutbox();
+    expect(readOutbox()).toEqual([]);
+    expect(toasts).toEqual([
+      expect.objectContaining({
+        message: "A change made offline was not saved. The server turned that change down.",
+        kind: "error",
+      }),
+    ]);
+    // Nothing left to send: another drain asks nothing.
+    const before = posted.length;
+    await drainOutbox();
+    expect(posted).toHaveLength(before);
+  });
+
+  // Bug (review of #550): a refusal that named one edit dropped every edit of its request, and a
+  // malformed stored edit threw on the settings page that read it.
+  it("takes out only the edit a refusal names and sends the rest of its request again", async () => {
+    const off = (id: string) => change({ op: "source.set", id, enabled: false });
+    await flush(
+      context(
+        new Map([
+          ["a", off("a")],
+          ["b", off("b")],
+        ]),
+      ),
+    );
+    expect(readOutbox()).toHaveLength(1);
+    expect(readOutbox()[0]?.ops).toHaveLength(2);
+    replies = [[409, { op_index: 0, error: "duplicate" }]];
+    answer = 202;
+    await drainOutbox();
+    expect(posted.at(-2)).toHaveLength(2);
+    expect(posted.at(-1)).toEqual([{ op: "source.set", id: "b", enabled: false }]);
+    expect(readOutbox()).toEqual([]);
+    expect(toasts).toHaveLength(1);
+  });
+
+  // Bug (CodeRabbit on #550): the store's 409 "conflict" names no edit, so it was read as a refusal and
+  // took out the only copy of edits the site had not written.
+  it("keeps the edits when the store answers conflict, and sends them at the next try", async () => {
+    await flush(context(new Map([["hour", change({ op: "schedule.set", hour: 9 })]])));
+    replies = [[409, { status: 409, error: "conflict" }]];
+    answer = 202;
+    await drainOutbox();
+    expect(outboxOps()).toEqual([{ op: "schedule.set", hour: 9 }]);
+    expect(toasts).toEqual([]);
+    await vi.advanceTimersByTimeAsync(GAP_MS);
+    await drainOutbox();
+    expect(readOutbox()).toEqual([]);
+  });
+
+  // Bug (CodeRabbit on #550): any 400 or 409 was taken as the site refusing the edit, so one from a proxy
+  // or firewall took out the only copy of it.
+  it("keeps the edits when a 400 does not come from the site", async () => {
+    await flush(context(new Map([["hour", change({ op: "schedule.set", hour: 9 })]])));
+    replies = [[400, {}]];
+    answer = 202;
+    await drainOutbox();
+    expect(outboxOps()).toEqual([{ op: "schedule.set", hour: 9 }]);
+    expect(toasts).toEqual([]);
+  });
+
+  it("says when a kept schedule change was saved but its time could not be changed", async () => {
+    await flush(context(new Map([["hour", change({ op: "schedule.set", hour: 9 })]])));
+    answer = 202;
+    replies = [[202, { time_changed: false }]];
+    await drainOutbox();
+    expect(readOutbox()).toEqual([]);
+    expect(toasts).toEqual([expect.objectContaining({ message: TIME_REFUSED })]);
+  });
+
+  // Bug (CodeRabbit on #550): an op_index outside the request mapped to the last entry and dropped it, and
+  // an edit kept just ahead of a clock stepped back was discarded on the next read.
+  it("chases down the entry at fault when the refusal names no op of the request", async () => {
+    const at = Date.now();
+    localStorage.setItem(
+      OUTBOX_KEY,
+      JSON.stringify([
+        { at, ops: [{ op: "source.set", id: "a", enabled: false }] },
+        { at: at + 1, ops: [{ op: "source.set", id: "b", enabled: false }] },
+      ]),
+    );
+    answer = 202;
+    replies = [[400, { op_index: 99, error: "bad" }]];
+    const done = drainOutbox();
+    await vi.advanceTimersByTimeAsync(GAP_MS * 3);
+    await done;
+    expect(posted.map((ops) => ops.length)).toEqual([2, 1, 1]);
+    expect(readOutbox()).toEqual([]);
+    expect(toasts).toEqual([]);
+  });
+
+  it("keeps an edit made just ahead of a clock that was stepped back", () => {
+    const edit = { op: "schedule.set", hour: 9 };
+    localStorage.setItem(OUTBOX_KEY, JSON.stringify([{ at: Date.now() + 60_000, ops: [edit] }]));
+    expect(outboxOps()).toEqual([edit]);
+  });
+
+  it("ignores stored edits that are not edits, and still shows the good ones", () => {
+    localStorage.setItem(
+      OUTBOX_KEY,
+      JSON.stringify([
+        { at: Date.now(), ops: [null, { op: "schedule.set", hour: 9 }, 7] },
+        { at: Date.now(), ops: [null] },
+      ]),
+    );
+    expect(outboxOps()).toEqual([{ op: "schedule.set", hour: 9 }]);
+  });
+
+  it("holds what could not be asked about, and sends it at the next try", async () => {
+    await flush(context(new Map([["hour", change({ op: "schedule.set", hour: 9 })]])));
+    answer = 503;
+    await drainOutbox();
+    expect(outboxOps()).toEqual([{ op: "schedule.set", hour: 9 }]);
+    expect(toasts).toEqual([]);
+    answer = 202;
+    await vi.advanceTimersByTimeAsync(GAP_MS);
+    await drainOutbox();
+    expect(readOutbox()).toEqual([]);
   });
 });

@@ -12,6 +12,7 @@ import type { SourceFormat } from "@singularity/core";
 import { topicEmoji } from "@singularity/core/topicEmoji";
 import { outletsSummary, savedBlocked } from "../lib/blockedOutlets";
 import { chosenSummary } from "../lib/multiSelect";
+import { outboxOps } from "../lib/outbox";
 import { SAVED_KEY } from "../lib/savedKey";
 import {
   anyPending,
@@ -57,12 +58,14 @@ const OTHER_PAGE = "other";
  */
 export function readSaved(now = Date.now()): ConfigOp[] {
   const store = storeRead();
+  // Edits kept on this device for the connection (lib/outbox.ts) come last: they are the newest.
+  const kept = outboxOps(now);
   try {
     const entries = parseSaved(localStorage.getItem(SAVED_KEY), now);
     if (entries.length === 0) localStorage.removeItem(SAVED_KEY);
-    return withStore(entries, store, now);
+    return [...withStore(entries, store, now), ...kept];
   } catch {
-    return store?.ops ?? [];
+    return [...(store?.ops ?? []), ...kept];
   }
 }
 
@@ -746,13 +749,19 @@ function sourceKind(row: HTMLElement, format?: SourceFormat, topic?: string): bo
 }
 
 /**
- * A source's saved edits on its row: a new name, format or lean, and the topic it moves to. A move
+ * A source's saved edits on its row: a new name, format, lean or favorite, and the topic it moves to. A move
  * the config store already holds (`stored`) is where the source is now, not one still to come.
  */
 function editSource(
   root: HTMLElement,
   id: string,
-  edit: { name?: string; topic_ids?: string[]; format?: SourceFormat; lean?: number | null },
+  edit: {
+    name?: string;
+    topic_ids?: string[];
+    format?: SourceFormat;
+    lean?: number | null;
+    high_signal?: boolean;
+  },
   stored: ReadonlyMap<string, StoreSource> = new Map(),
 ): boolean {
   const row = byId(root, "li.source-row", id);
@@ -764,6 +773,7 @@ function editSource(
     topic_name?: string;
     format?: SourceFormat;
     lean?: string;
+    high_signal?: boolean;
   };
   let shown = false;
   if (edit.name !== undefined && edit.name !== facts.name) {
@@ -785,6 +795,11 @@ function editSource(
   const lean = edit.lean === null ? "" : edit.lean === undefined ? undefined : String(edit.lean);
   if (lean !== undefined && lean !== facts.lean) {
     facts.lean = lean;
+    shown = true;
+  }
+  // A favorite saved here or in the store: the panel opens with it, so unticking it sends the undo.
+  if (edit.high_signal !== undefined && edit.high_signal !== facts.high_signal) {
+    facts.high_signal = edit.high_signal;
     shown = true;
   }
   const topicId = edit.topic_ids ? (edit.topic_ids[0] ?? "") : undefined;

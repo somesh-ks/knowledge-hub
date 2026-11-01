@@ -33,6 +33,11 @@ function mount(root: HTMLElement): void {
           })
           .catch(() => {})
       : Promise.resolve();
+  // The ratings the last run left, over the ones the page was built with.
+  void saved
+    .then(() => import("./sourceRatings"))
+    .then((module) => module.layRatings(root))
+    .catch(() => {});
   /** Loads the editor once. */
   const load = (): Promise<Editor> =>
     (editor ??= saved

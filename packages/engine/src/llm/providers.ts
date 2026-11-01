@@ -38,7 +38,7 @@ export class ProviderHttpError extends Error {
   }
 }
 
-async function failure(provider: string, response: Response): Promise<ProviderHttpError> {
+export async function failure(provider: string, response: Response): Promise<ProviderHttpError> {
   let detail = "";
   try {
     const json = (await response.json()) as { error?: { type?: string; message?: string } };
@@ -50,7 +50,7 @@ async function failure(provider: string, response: Response): Promise<ProviderHt
 }
 
 /** A fetch that ends as a retryable timeout or connection error, named as withRetry expects. */
-async function send(
+export async function send(
   provider: string,
   doFetch: typeof fetch,
   url: string,
@@ -79,7 +79,7 @@ const ANTHROPIC_VERSION = "2023-06-01";
  */
 export const THINKING_HEADROOM = 8_000;
 
-interface AnthropicBody {
+export interface AnthropicBody {
   stop_reason?: string;
   content?: Array<{ type?: string; text?: string }>;
   usage?: {
@@ -103,6 +103,56 @@ function promptTokens(usage: AnthropicBody["usage"]): number {
   );
 }
 
+/** The Messages API body for a request; the Batches API takes the same body as each entry's `params`. */
+export function anthropicBody(request: ApiRequest): Record<string, unknown> {
+  const outputConfig: Record<string, unknown> = {};
+  if (request.effort) outputConfig.effort = request.effort;
+  if (request.schema) outputConfig.format = { type: "json_schema", schema: request.schema };
+  return {
+    model: request.model,
+    max_tokens: request.maxTokens + THINKING_HEADROOM,
+    messages: request.messages,
+    // The breakpoint ends the system prompt, which is the same on every request of a kind (the
+    // boundary token lives in the user message), so the requests after the first read it from
+    // cache.
+    ...(request.system
+      ? {
+          system: [{ type: "text", text: request.system, cache_control: { type: "ephemeral" } }],
+        }
+      : {}),
+    ...(Object.keys(outputConfig).length > 0 ? { output_config: outputConfig } : {}),
+  };
+}
+
+/** A Messages API answer, or the `message` of a succeeded batch entry, as an ApiReply. */
+export function readAnthropicReply(json: AnthropicBody): ApiReply {
+  // The stop reason comes first: a refusal carries no usable content.
+  const stopReason =
+    json.stop_reason === "refusal"
+      ? "refusal"
+      : json.stop_reason === "max_tokens"
+        ? "max_tokens"
+        : json.stop_reason === "end_turn" || json.stop_reason === "stop_sequence"
+          ? "end"
+          : "other";
+  const text = (json.content ?? [])
+    .filter((block) => block.type === "text" && typeof block.text === "string")
+    .map((block) => block.text)
+    .join("");
+  return {
+    text,
+    stopReason,
+    inputTokens: promptTokens(json.usage),
+    outputTokens: json.usage?.output_tokens ?? 0,
+  };
+}
+
+export const ANTHROPIC_HEADERS = (apiKey: string): Record<string, string> => ({
+  "x-api-key": apiKey,
+  "anthropic-version": ANTHROPIC_VERSION,
+  "content-type": "application/json",
+});
+
 /**
  * The Anthropic Messages API (official REST; the repo carries no SDK). Sends no temperature, top_p
  * or budget_tokens (Sonnet 5.5 and Haiku 5.5 answer 400), no prefill, and no forced tool choice;
@@ -119,25 +169,6 @@ export function createAnthropicApi(options: {
   return {
     provider: "anthropic",
     async call(request) {
-      const outputConfig: Record<string, unknown> = {};
-      if (request.effort) outputConfig.effort = request.effort;
-      if (request.schema) outputConfig.format = { type: "json_schema", schema: request.schema };
-      const payload: Record<string, unknown> = {
-        model: request.model,
-        max_tokens: request.maxTokens + THINKING_HEADROOM,
-        messages: request.messages,
-        // The breakpoint ends the system prompt, which is the same on every request of a kind (the
-        // boundary token lives in the user message), so the requests after the first read it from
-        // cache.
-        ...(request.system
-          ? {
-              system: [
-                { type: "text", text: request.system, cache_control: { type: "ephemeral" } },
-              ],
-            }
-          : {}),
-        ...(Object.keys(outputConfig).length > 0 ? { output_config: outputConfig } : {}),
-      };
       options.onRequest?.();
       const response = await send(
         "Anthropic",
@@ -145,36 +176,13 @@ export function createAnthropicApi(options: {
         `${ANTHROPIC_BASE}/messages`,
         {
           method: "POST",
-          headers: {
-            "x-api-key": options.apiKey,
-            "anthropic-version": ANTHROPIC_VERSION,
-            "content-type": "application/json",
-          },
-          body: JSON.stringify(payload),
+          headers: ANTHROPIC_HEADERS(options.apiKey),
+          body: JSON.stringify(anthropicBody(request)),
         },
         request.timeoutMs,
       );
       if (!response.ok) throw await failure("Anthropic", response);
-      const json = (await response.json()) as AnthropicBody;
-      // The stop reason comes first: a refusal carries no usable content.
-      const stopReason =
-        json.stop_reason === "refusal"
-          ? "refusal"
-          : json.stop_reason === "max_tokens"
-            ? "max_tokens"
-            : json.stop_reason === "end_turn" || json.stop_reason === "stop_sequence"
-              ? "end"
-              : "other";
-      const text = (json.content ?? [])
-        .filter((block) => block.type === "text" && typeof block.text === "string")
-        .map((block) => block.text)
-        .join("");
-      return {
-        text,
-        stopReason,
-        inputTokens: promptTokens(json.usage),
-        outputTokens: json.usage?.output_tokens ?? 0,
-      };
+      return readAnthropicReply((await response.json()) as AnthropicBody);
     },
   };
 }

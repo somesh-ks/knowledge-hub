@@ -6,7 +6,7 @@ Private design-engineering news briefing. A GitHub Actions engine writes a diges
 
 1. [docs/state.md](docs/state.md): what works, what is unverified (each with `closed when:`), what is next. Rewritten, never appended.
 2. [docs/learnings.md](docs/learnings.md): gotchas by area. Search it before debugging.
-3. [docs/decisions/](docs/decisions/README.md): grep the Index, never read it whole; open an area file as needed.
+3. [docs/decisions/](docs/decisions/README.md): grep, never read the Index whole (old rows: `index-archive.md`).
 
 On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code and tests win; fix a wrong spec), [docs/history/](docs/history/README.md) for the why of a past change, and [the test postmortem](docs/engineering/postmortem-test-suite.md) before you add, change or delete a test. `node scripts/docsCheck.mjs` holds the budgets.
 

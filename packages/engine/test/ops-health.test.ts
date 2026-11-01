@@ -251,6 +251,43 @@ describe("singularity health", () => {
     expect(codes(dayOn.findings, "warning")).not.toContain("site_behind");
   });
 
+  // #490's saves reach Neon only if Vercel has the config store on, and runs read it only if the Actions
+  // variable is on too. One switch alone made every save do nothing, and no check compared them.
+  it("faults a config store that is on for the site and off for runs, or the reverse, and stays quiet when they agree", async () => {
+    const withBuild =
+      (config_store: string | undefined): HealthFetch =>
+      async (url) => ({
+        status: url.endsWith("/build.json") || url.endsWith("/latest.json") ? 200 : 404,
+        headers: { get: () => null },
+        text: async () =>
+          url.endsWith("/build.json")
+            ? JSON.stringify({ build: "0123456789ab", config_store })
+            : '{"id":"2026-10-20"}',
+      });
+    const run = (config_store: string | undefined, configStore: boolean | undefined) =>
+      collectHealth({
+        root,
+        now: NOW,
+        monthlyChars: 500_000,
+        ceilingUsd: 50,
+        site: "https://news.example",
+        fetch: withBuild(config_store),
+        ...(configStore === undefined ? {} : { configStore }),
+      });
+    expect(codes((await run("postgres", false)).findings, "fault")).toContain("config_store_split");
+    expect(codes((await run("files", true)).findings, "fault")).toContain("config_store_split");
+    const agree = await run("postgres", true);
+    expect(codes(agree.findings, "fault")).not.toContain("config_store_split");
+    expect(agree.passed.some((line) => line.includes("config store"))).toBe(true);
+    // A build from before the site named its switch, or a check that was not told the engine's: no verdict.
+    expect(codes((await run(undefined, false)).findings, "fault")).not.toContain(
+      "config_store_split",
+    );
+    expect(codes((await run("postgres", undefined)).findings, "fault")).not.toContain(
+      "config_store_split",
+    );
+  });
+
   // Regenerating an older briefing keeps its date and id but writes a new generated_at; the site
   // still serves the newest by date, and health took the regenerated one for the newest and faulted.
   it("never calls the site stale for serving the newest podcast after an older one is regenerated", async () => {

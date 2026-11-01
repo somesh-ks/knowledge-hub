@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join, relative, sep } from "node:path";
 import { beforeEach, expect, it } from "vitest";
-import { diskFiles } from "../lib/contentFiles";
+import { diskFiles, READ_CONCURRENCY } from "../lib/contentFiles";
 import { loadSite } from "../lib/site";
 import {
   expireContentManifest,
@@ -183,8 +183,9 @@ it("draws the build's copy when the manifest loads but its files cannot be read"
   const page = await loadPageSite({ env: ENV, fetch: fetchWithBrokenFiles, now: () => 0 }, bundled);
   expect(page.saved).toBe(true);
   expect(page.site.entries.length).toBe(expected);
-  // The store counts as down after its first failed object: slow reads do not pile up.
-  expect(objectReads).toBe(1);
+  // The store counts as down after its first failed object: slow reads do not pile up beyond the
+  // few already out together.
+  expect(objectReads).toBeLessThanOrEqual(READ_CONCURRENCY);
 });
 
 // Bug (review): the optional run-state file counted as content, so one unreadable state file sent
