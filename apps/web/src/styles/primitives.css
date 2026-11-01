@@ -976,7 +976,7 @@
   inline-size: 1.125rem;
   block-size: 1.125rem;
   border: var(--stroke-rail) solid var(--color-border-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--shape-xs);
   transition:
     background-color var(--duration-press-in) var(--ease-out),
     border-color var(--duration-press-in) var(--ease-out);
@@ -1074,8 +1074,8 @@
    same day). It steps down to 24px, a third of its height, and its tiles stay concentric, 16px.
    Taller cards keep the card radius. */
 .card-group:not(:has(> * + *)) {
-  --card-radius: var(--radius-xl);
-  --card-inner-radius: var(--radius-lg);
+  --card-radius: var(--shape-xl);
+  --card-inner-radius: var(--shape-lg);
 }
 
 .card-group > .row-action {

@@ -403,10 +403,23 @@ export function renderLlms(system: System): string {
   lines.push("", "## Scales", "Read directly by components.");
   const scales = ["space", "radius", "stroke", "duration", "ease"];
   for (const scale of scales) {
+    // Corners are read through the semantic `--shape-*` scale, which a style redraws; only the
+    // round pill is read as a primitive.
+    const prefix = `--${scale}-`;
     const items = system.tokens
-      .filter((token) => token.tier === "primitive" && token.name.startsWith(`--${scale}-`))
-      .map((token) => (token.light.length > 24 ? token.name : `${token.name} ${token.light}`));
-    if (items.length > 0) lines.push(`- ${items.join(", ")}`);
+      .filter(
+        (token) =>
+          token.tier === "primitive" &&
+          token.name.startsWith(prefix) &&
+          (scale !== "radius" || token.name === "--radius-round"),
+      )
+      .map((token) => {
+        const name = token.name.slice(prefix.length);
+        return token.light.length > 24 ? name : `${name} ${token.light}`;
+      });
+    if (items.length > 0) lines.push(`- ${prefix}{${items.join(", ")}}`);
+    if (scale === "radius")
+      lines.push("- --shape-{xs, sm, md, lg, xl, sheet, 2xl}: corners, a style redraws them");
   }
   const groups = new Map<string, number>();
   for (const token of system.tokens)

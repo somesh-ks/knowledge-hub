@@ -80,6 +80,8 @@ Components read only these (never a hex, never a primitive color).
 - --color-focus-ring
 - --color-focus-gap: Inner ring color.
 - --color-scrim
+- --color-on-scrim: Words on the scrim over a cover.
+- --color-accent-on-inverse: The accent on the inverse surface (a toast), the other theme's step: 5.4:1.
 - --color-image-outline: 1px outline on covers for perceived edge, per DESIGN.md.
 - --color-success
 - --color-success-subtle
@@ -92,11 +94,12 @@ Components read only these (never a hex, never a primitive color).
 
 ## Scales
 Read directly by components.
-- --space-1 0.25rem, --space-2 0.5rem, --space-4 1rem, --space-6 1.5rem, --space-8 2rem, --space-12 3rem, --space-16 4rem, --space-24 6rem
-- --radius-xs 0.25rem, --radius-sm 0.5rem, --radius-md 0.75rem, --radius-lg 1rem, --radius-xl 1.5rem, --radius-sheet 1.75rem, --radius-2xl 2rem, --radius-round 9999px
-- --stroke-hairline 1px, --stroke-rail 2px, --stroke-ring 2px, --stroke-ring-gap 2px
-- --duration-press-in 100ms, --duration-press-out 160ms, --duration-hover 150ms, --duration-state 200ms, --duration-enter 250ms, --duration-exit 150ms, --duration-sheet-in 300ms, --duration-sheet-out 220ms, --duration-drawer-full 500ms, --duration-progress 250ms, --duration-stagger 40ms, --duration-theme 200ms, --duration-spin 800ms, --duration-spring-settle 650ms, --duration-spring-release 750ms, --duration-spring-pop 450ms, --duration-spring-spatial-fast 350ms, --duration-spring-spatial-default 420ms, --duration-spring-spatial-slow 570ms, --duration-spring-effects-fast 140ms, --duration-spring-effects-default 220ms, --duration-spring-effects-slow 310ms
-- --ease-out, --ease-in-out, --ease-drawer, --ease-hover, --ease-linear linear, --ease-spring-settle, --ease-spring-release, --ease-spring-pop, --ease-spring-spatial-fast, --ease-spring-spatial-default, --ease-spring-spatial-slow, --ease-spring-effects-fast, --ease-spring-effects-default, --ease-spring-effects-slow
+- --space-{1 0.25rem, 2 0.5rem, 4 1rem, 6 1.5rem, 8 2rem, 12 3rem, 16 4rem, 24 6rem}
+- --radius-{round 9999px}
+- --shape-{xs, sm, md, lg, xl, sheet, 2xl}: corners, a style redraws them
+- --stroke-{hairline 1px, rail 2px, ring 2px, ring-gap 2px}
+- --duration-{press-in 100ms, press-out 160ms, hover 150ms, state 200ms, enter 250ms, exit 150ms, sheet-in 300ms, sheet-out 220ms, drawer-full 500ms, progress 250ms, stagger 40ms, theme 200ms, spin 800ms, spring-settle 650ms, spring-release 750ms, spring-pop 450ms, spring-spatial-fast 350ms, spring-spatial-default 420ms, spring-spatial-slow 570ms, spring-effects-fast 140ms, spring-effects-default 220ms, spring-effects-slow 310ms}
+- --ease-{out, in-out, drawer, hover, linear linear, spring-settle, spring-release, spring-pop, spring-spatial-fast, spring-spatial-default, spring-spatial-slow, spring-effects-fast, spring-effects-default, spring-effects-slow}
 
 ## Component tokens
 Sizes and bindings per part: cover (10), rail (12), item (4), cta (7), action (4), button (4), mini (8), player (5), control (6), scrubber (10), segmented (5), field (9), switch (7), sheet (6), toast (6), banner (2), archive (2), chip (13), app (1), nav (9), tabs (3), row (3), slider (1), picker (3), scene (16), card (6). List one with `npm run ds -- token <group>`.

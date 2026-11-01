@@ -353,7 +353,7 @@
   inline-size: var(--space-4);
   block-size: calc(var(--space-4) * 0.75);
   margin-inline-end: var(--space-2);
-  border-radius: var(--radius-xs);
+  border-radius: var(--shape-xs);
   vertical-align: middle;
 }
 

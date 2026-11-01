@@ -248,6 +248,8 @@
   --color-focus-ring: var(--color-accent);
   --color-focus-gap: var(--color-surface);
   --color-scrim: oklch(20% 0.005 260 / 0.42);
+  --color-on-scrim: var(--color-white);
+  --color-accent-on-inverse: var(--color-blue-300);
   --color-image-outline: oklch(0% 0 0 / 0.1);
   --color-success: var(--color-green-600);
   --color-success-subtle: var(--color-green-50);
@@ -272,6 +274,13 @@
   --layout-window-controls: 4rem;
   --layout-measure: 34rem;
   --icon-bold: 0;
+  --shape-xs: var(--radius-xs);
+  --shape-sm: var(--radius-sm);
+  --shape-md: var(--radius-md);
+  --shape-lg: var(--radius-lg);
+  --shape-xl: var(--radius-xl);
+  --shape-sheet: var(--radius-sheet);
+  --shape-2xl: var(--radius-2xl);
   --size-touch: 2.75rem;
   --size-touch-comfortable: 3rem;
   --size-option: 3rem;
@@ -328,9 +337,9 @@
   --text-caption-leading: var(--font-leading-caption);
 
   /* Component tokens */
-  --cover-radius-thumb: var(--radius-xs);
-  --cover-radius-hero: var(--radius-sm);
-  --cover-radius-large: var(--radius-sm);
+  --cover-radius-thumb: var(--shape-xs);
+  --cover-radius-hero: var(--shape-sm);
+  --cover-radius-large: var(--shape-sm);
   --cover-size-thumb: 2.75rem;
   --cover-size-row: 2.5rem;
   --cover-size-hero: clamp(8rem, 36vw, 10rem);
@@ -353,7 +362,7 @@
   --item-gap: var(--space-12);
   --item-section-gap: var(--space-16);
   --item-play-size: 2.25rem;
-  --item-play-radius: var(--radius-sm);
+  --item-play-radius: var(--shape-sm);
   --cta-height: 3.5rem;
   --cta-radius: var(--radius-round);
   --cta-radius-pressed: var(--cta-radius);
@@ -361,7 +370,7 @@
   --cta-bg-hover: var(--color-accent-hover);
   --cta-bg-pressed: var(--color-accent-pressed);
   --cta-fg: var(--color-on-accent);
-  --action-tonal-radius: var(--radius-lg);
+  --action-tonal-radius: var(--shape-lg);
   --action-tonal-bg: var(--color-accent-action);
   --action-tonal-fg: var(--color-on-accent-action);
   --action-tonal-state: var(--color-accent-action-state);
@@ -370,8 +379,8 @@
   --button-radius: var(--radius-round);
   --button-padding: var(--space-4);
   --mini-player-inset: var(--space-2);
-  --mini-player-radius: var(--radius-lg);
-  --mini-player-control-radius: var(--radius-sm);
+  --mini-player-radius: var(--shape-lg);
+  --mini-player-control-radius: var(--shape-sm);
   --mini-player-control-size: var(--size-touch);
   --mini-player-cover-size: var(--cover-size-thumb);
   --mini-player-progress-height: 2px;
@@ -383,11 +392,11 @@
   --player-dismiss-distance: 0.35;
   --player-dismiss-velocity: 0.5;
   --control-size-lg: 4.5rem;
-  --control-radius-lg: var(--radius-xl);
+  --control-radius-lg: var(--shape-xl);
   --control-size-md: 3.5rem;
-  --control-radius-md: var(--radius-lg);
+  --control-radius-md: var(--shape-lg);
   --control-size-sm: var(--size-touch);
-  --control-radius-sm: var(--radius-md);
+  --control-radius-sm: var(--shape-md);
   --scrubber-hit: var(--size-touch);
   --scrubber-track: 0.25rem;
   --scrubber-track-active: 2;
@@ -396,16 +405,16 @@
   --scrubber-thumb-ring: 2px;
   --scrubber-chapter-gap: 0.125rem;
   --scrubber-tick-dot: 0.3125rem;
-  --scrubber-bubble-radius: var(--radius-sm);
+  --scrubber-bubble-radius: var(--shape-sm);
   --scrubber-detent-hysteresis: 0.02;
   --segmented-height: var(--size-touch-comfortable);
   --segmented-padding: var(--space-1);
-  --segmented-radius: var(--radius-md);
-  --segmented-segment-radius: var(--radius-sm);
+  --segmented-radius: var(--shape-md);
+  --segmented-segment-radius: var(--shape-sm);
   --segmented-selected-bg: var(--color-surface-raised);
   --field-height: var(--size-touch-comfortable);
   --field-radius: var(--radius-round);
-  --field-radius-multiline: var(--radius-xl);
+  --field-radius-multiline: var(--shape-xl);
   --field-max-height-multiline: 20rem;
   --field-label-gap: 0.75rem;
   --field-padding: var(--space-4);
@@ -419,22 +428,22 @@
   --switch-radius: var(--radius-round);
   --switch-thumb-radius: var(--radius-round);
   --switch-thumb-bg: var(--color-surface-raised);
-  --sheet-radius: var(--radius-2xl);
+  --sheet-radius: var(--shape-2xl);
   --sheet-padding: var(--space-4);
   --sheet-bg: var(--color-surface-raised);
   --sheet-shadow: var(--shadow-sheet);
   --sheet-max-height: 92dvh;
-  --sheet-row-radius: var(--radius-md);
-  --toast-radius: var(--radius-lg);
+  --sheet-row-radius: var(--shape-md);
+  --toast-radius: var(--shape-lg);
   --toast-padding: var(--space-2);
   --toast-min-height: 3.5rem;
   --toast-bg: var(--color-surface-inverse);
   --toast-fg: var(--color-on-surface-inverse);
   --toast-shadow: var(--shadow-popover);
-  --banner-radius: var(--radius-sm);
+  --banner-radius: var(--shape-lg);
   --banner-padding: var(--space-4);
   --archive-row-padding: var(--space-2);
-  --archive-row-radius: var(--radius-lg);
+  --archive-row-radius: var(--shape-lg);
   --chip-height: 2.25rem;
   --chip-padding-start: var(--space-2);
   --chip-padding-end: var(--space-4);
@@ -462,12 +471,12 @@
   --tabs-indicator-height: 3px;
   --tabs-indicator-radius: 3px;
   --row-padding-block: var(--space-4);
-  --row-radius: var(--radius-md);
+  --row-radius: var(--shape-md);
   --row-tile-radius: var(--radius-round);
   --slider-max-width: 10rem;
-  --picker-radius: var(--radius-2xl);
+  --picker-radius: var(--shape-2xl);
   --picker-inset: var(--space-2);
-  --picker-inner-radius: var(--radius-xl);
+  --picker-inner-radius: var(--shape-xl);
   --scene-pumpkin: var(--color-accent);
   --scene-pumpkin-shade: var(--color-accent-hover);
   --scene-pumpkin-lit: var(--color-accent-container-high);
@@ -486,9 +495,9 @@
   --scene-halo: 0;
   --card-padding: var(--space-6);
   --card-inset: var(--space-1);
-  --card-radius: var(--radius-2xl);
-  --card-inner-radius: var(--radius-sheet);
-  --card-content-radius: var(--radius-sm);
+  --card-radius: var(--shape-2xl);
+  --card-inner-radius: var(--shape-sheet);
+  --card-content-radius: var(--shape-sm);
   --card-chip-hover: 4%;
 
   color-scheme: light;
@@ -529,6 +538,8 @@
     --color-focus-ring: var(--color-accent);
     --color-focus-gap: var(--color-surface);
     --color-scrim: oklch(8% 0.005 260 / 0.6);
+    --color-on-scrim: var(--color-white);
+    --color-accent-on-inverse: var(--color-blue-800);
     --color-image-outline: oklch(100% 0 0 / 0.1);
     --color-success: var(--color-green-300);
     --color-success-subtle: var(--color-green-900);
@@ -600,6 +611,8 @@
   --color-focus-ring: var(--color-accent);
   --color-focus-gap: var(--color-surface);
   --color-scrim: oklch(8% 0.005 260 / 0.6);
+  --color-on-scrim: var(--color-white);
+  --color-accent-on-inverse: var(--color-blue-800);
   --color-image-outline: oklch(100% 0 0 / 0.1);
   --color-success: var(--color-green-300);
   --color-success-subtle: var(--color-green-900);
@@ -664,6 +677,7 @@
   --color-accent-action: var(--color-violet-500);
   --color-accent-action-state: var(--color-violet-900);
   --color-on-accent-action: var(--color-white);
+  --color-accent-on-inverse: var(--color-violet-300);
   --icon-bold: 1;
   --size-touch: 3.25rem;
   --size-touch-comfortable: 3.5rem;
@@ -679,17 +693,17 @@
   --card-radius: 2.5rem;
   --card-inner-radius: 2.25rem;
   --card-content-radius: 1rem;
-  --chip-radius-selected: var(--radius-md);
+  --chip-radius-selected: var(--shape-md);
   --chip-height: 2.75rem;
-  --cta-radius-pressed: var(--radius-lg);
+  --cta-radius-pressed: var(--shape-lg);
   --cta-height: 4rem;
-  --nav-indicator-radius-current: var(--radius-md);
+  --nav-indicator-radius-current: var(--shape-md);
   --nav-bar-height: 5rem;
   --nav-indicator-width: 5rem;
   --nav-indicator-height: 2.5rem;
   --scrubber-track: 0.5rem;
   --scrubber-thumb: 1.5rem;
-  --row-radius: var(--radius-2xl);
+  --row-radius: var(--shape-2xl);
   --row-padding-block: var(--space-6);
   --button-padding: var(--space-6);
   --switch-width: 4rem;
@@ -730,6 +744,7 @@
     --color-accent-action: var(--color-violet-400);
     --color-accent-action-state: var(--color-violet-50);
     --color-on-accent-action: var(--color-violet-900);
+    --color-accent-on-inverse: var(--color-violet-800);
   }
 }
 
@@ -760,6 +775,7 @@
   --color-accent-action: var(--color-violet-400);
   --color-accent-action-state: var(--color-violet-50);
   --color-on-accent-action: var(--color-violet-900);
+  --color-accent-on-inverse: var(--color-violet-800);
 }
 
 /* Style: halloween */
@@ -790,6 +806,7 @@
   --color-accent-action: var(--color-orange-600);
   --color-accent-action-state: var(--color-orange-700);
   --color-on-accent-action: var(--color-white);
+  --color-accent-on-inverse: var(--color-orange-300);
   --shadow-cover: var(--shadow-cover-light);
   --shadow-raised: var(--shadow-raised-light);
   --text-display-family: var(--font-blackletter);
@@ -843,6 +860,7 @@
     --color-accent-action: var(--color-orange-400);
     --color-accent-action-state: var(--color-orange-300);
     --color-on-accent-action: oklch(15% 0.03 305);
+    --color-accent-on-inverse: var(--color-orange-800);
     --shadow-cover: 0px 0px 0px 1px oklch(40% 0.1 47 / 0.3),
     0px 10px 36px 0px oklch(60% 0.17 47 / 0.18);
     --shadow-raised: 0px 0px 0px 1px oklch(40% 0.1 47 / 0.25),
@@ -893,6 +911,7 @@
   --color-accent-action: var(--color-orange-400);
   --color-accent-action-state: var(--color-orange-300);
   --color-on-accent-action: oklch(15% 0.03 305);
+  --color-accent-on-inverse: var(--color-orange-800);
   --shadow-cover: 0px 0px 0px 1px oklch(40% 0.1 47 / 0.3),
     0px 10px 36px 0px oklch(60% 0.17 47 / 0.18);
   --shadow-raised: 0px 0px 0px 1px oklch(40% 0.1 47 / 0.25),

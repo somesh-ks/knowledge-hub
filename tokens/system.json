@@ -564,6 +564,8 @@
         "--color-surface-overlay",
         "--field-chevron-gap",
         "--shadow-popover",
+        "--shape-2xl",
+        "--shape-xl",
         "--size-icon",
         "--size-icon-sm",
         "--size-touch"
@@ -629,6 +631,10 @@
         "--color-surface-overlay",
         "--layout-column",
         "--shadow-popover",
+        "--shape-2xl",
+        "--shape-md",
+        "--shape-sm",
+        "--shape-xl",
         "--sheet-bg",
         "--sheet-radius",
         "--sheet-shadow",
@@ -687,6 +693,7 @@
       "usage": "Banners, and the pages with nothing to list. A banner is flat: a tinted ground, an icon in the tone's colour, a title, a line of text and at most one text button. The tone sets the tint.",
       "tokens": [
         "--banner-padding",
+        "--banner-radius",
         "--color-danger",
         "--color-danger-subtle",
         "--color-info",
@@ -749,6 +756,7 @@
       "tokens": [
         "--color-on-surface",
         "--color-scrim",
+        "--shape-lg",
         "--sheet-bg",
         "--sheet-shadow"
       ]
@@ -1416,7 +1424,9 @@
         "--color-on-surface",
         "--color-surface-container",
         "--color-surface-overlay",
-        "--row-padding-block"
+        "--row-padding-block",
+        "--shape-lg",
+        "--shape-xl"
       ]
     },
     {
@@ -3828,6 +3838,30 @@
       "dark": "oklch(8% 0.005 260 / 0.6)"
     },
     {
+      "name": "--color-on-scrim",
+      "tier": "semantic",
+      "type": "color",
+      "light": "var(--color-white)",
+      "role": "Words on the scrim over a cover. White in both themes.",
+      "dark": "var(--color-white)",
+      "hex": {
+        "light": "#ffffff",
+        "dark": "#ffffff"
+      }
+    },
+    {
+      "name": "--color-accent-on-inverse",
+      "tier": "semantic",
+      "type": "color",
+      "light": "var(--color-blue-300)",
+      "role": "The accent on the inverse surface (a toast), the other theme's step: 5.4:1.",
+      "dark": "var(--color-blue-800)",
+      "hex": {
+        "light": "#82b0fd",
+        "dark": "#162f59"
+      }
+    },
+    {
       "name": "--color-image-outline",
       "tier": "semantic",
       "type": "color",
@@ -4029,6 +4063,48 @@
       "role": "0 draws the regular weight, 1 the bold weight (Phosphor's own bold, not a stroke on the regular). Every Icon holds both; this picks one. A style that wants heavier line icons sets it to 1 (D268)."
     },
     {
+      "name": "--shape-xs",
+      "tier": "semantic",
+      "type": "dimension",
+      "light": "var(--radius-xs)"
+    },
+    {
+      "name": "--shape-sm",
+      "tier": "semantic",
+      "type": "dimension",
+      "light": "var(--radius-sm)"
+    },
+    {
+      "name": "--shape-md",
+      "tier": "semantic",
+      "type": "dimension",
+      "light": "var(--radius-md)"
+    },
+    {
+      "name": "--shape-lg",
+      "tier": "semantic",
+      "type": "dimension",
+      "light": "var(--radius-lg)"
+    },
+    {
+      "name": "--shape-xl",
+      "tier": "semantic",
+      "type": "dimension",
+      "light": "var(--radius-xl)"
+    },
+    {
+      "name": "--shape-sheet",
+      "tier": "semantic",
+      "type": "dimension",
+      "light": "var(--radius-sheet)"
+    },
+    {
+      "name": "--shape-2xl",
+      "tier": "semantic",
+      "type": "dimension",
+      "light": "var(--radius-2xl)"
+    },
+    {
       "name": "--size-touch",
       "tier": "semantic",
       "type": "dimension",
@@ -4215,19 +4291,19 @@
       "name": "--cover-radius-thumb",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-xs)"
+      "light": "var(--shape-xs)"
     },
     {
       "name": "--cover-radius-hero",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-sm)"
+      "light": "var(--shape-sm)"
     },
     {
       "name": "--cover-radius-large",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-sm)"
+      "light": "var(--shape-sm)"
     },
     {
       "name": "--cover-size-thumb",
@@ -4389,7 +4465,7 @@
       "name": "--item-play-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-sm)"
+      "light": "var(--shape-sm)"
     },
     {
       "name": "--cta-height",
@@ -4454,7 +4530,7 @@
       "name": "--action-tonal-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-lg)",
+      "light": "var(--shape-lg)",
       "role": "A 16px rounded rectangle, the one recorded exception to the pill rule (D186): the side column's Catch up, so its shape alone tells it from the pill-shaped current row beside it (owner, 2026-10-27)."
     },
     {
@@ -4523,14 +4599,14 @@
       "name": "--mini-player-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-lg)",
+      "light": "var(--shape-lg)",
       "role": "Concentric: control radius (sm) plus inset padding."
     },
     {
       "name": "--mini-player-control-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-sm)"
+      "light": "var(--shape-sm)"
     },
     {
       "name": "--mini-player-control-size",
@@ -4613,7 +4689,7 @@
       "name": "--control-radius-lg",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-xl)"
+      "light": "var(--shape-xl)"
     },
     {
       "name": "--control-size-md",
@@ -4625,7 +4701,7 @@
       "name": "--control-radius-md",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-lg)"
+      "light": "var(--shape-lg)"
     },
     {
       "name": "--control-size-sm",
@@ -4637,7 +4713,7 @@
       "name": "--control-radius-sm",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-md)"
+      "light": "var(--shape-md)"
     },
     {
       "name": "--scrubber-hit",
@@ -4694,7 +4770,7 @@
       "name": "--scrubber-bubble-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-sm)"
+      "light": "var(--shape-sm)"
     },
     {
       "name": "--scrubber-detent-hysteresis",
@@ -4720,14 +4796,14 @@
       "name": "--segmented-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-md)",
+      "light": "var(--shape-md)",
       "role": "Concentric: segment radius (sm) plus track padding."
     },
     {
       "name": "--segmented-segment-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-sm)"
+      "light": "var(--shape-sm)"
     },
     {
       "name": "--segmented-selected-bg",
@@ -4757,7 +4833,7 @@
       "name": "--field-radius-multiline",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-xl)",
+      "light": "var(--shape-xl)",
       "role": "A multi-line field cannot be a pill, so it takes half the field's height: its corners draw the same arc as a one-line field's."
     },
     {
@@ -4859,7 +4935,7 @@
       "name": "--sheet-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-2xl)",
+      "light": "var(--shape-2xl)",
       "role": "A bottom sheet's top corners: 32px, the picker's, so every phone sheet shares one corner (owner, 2026-11-01)."
     },
     {
@@ -4894,14 +4970,14 @@
       "name": "--sheet-row-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-md)",
+      "light": "var(--shape-md)",
       "role": "Rows inside a sheet panel."
     },
     {
       "name": "--toast-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-lg)",
+      "light": "var(--shape-lg)",
       "role": "Concentric: action radius (sm) plus padding."
     },
     {
@@ -4946,7 +5022,7 @@
       "name": "--banner-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-sm)"
+      "light": "var(--shape-lg)"
     },
     {
       "name": "--banner-padding",
@@ -4964,7 +5040,7 @@
       "name": "--archive-row-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-lg)",
+      "light": "var(--shape-lg)",
       "role": "Concentric: cover thumb radius (sm) plus row padding."
     },
     {
@@ -5172,7 +5248,7 @@
       "name": "--row-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-md)",
+      "light": "var(--shape-md)",
       "role": "A tappable row, a list option and the state layer over them."
     },
     {
@@ -5193,7 +5269,7 @@
       "name": "--picker-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-2xl)",
+      "light": "var(--shape-2xl)",
       "role": "Concentric: the inner radius plus the inset (24 + 8 = 32). The list's own outer radius, a popover's and a phone sheet's alike."
     },
     {
@@ -5207,7 +5283,7 @@
       "name": "--picker-inner-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-xl)",
+      "light": "var(--shape-xl)",
       "role": "The search field and each option, one inset in. 24px: a full pill on the 48px search field, the same on every row."
     },
     {
@@ -5401,21 +5477,21 @@
       "name": "--card-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-2xl)",
+      "light": "var(--shape-2xl)",
       "role": "Concentric: a surface's inner radius plus its inset."
     },
     {
       "name": "--card-inner-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-sheet)",
+      "light": "var(--shape-sheet)",
       "role": "A row's hover tile, one inset in from the card's edge: the card's radius less the inset."
     },
     {
       "name": "--card-content-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-sm)",
+      "light": "var(--shape-sm)",
       "role": "Content one padding in from the card's edge (a chip, a button, a field, a picture): the card's radius less its padding."
     },
     {

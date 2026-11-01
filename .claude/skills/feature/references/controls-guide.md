@@ -81,7 +81,7 @@ A phone shows a dialog or a menu as a bottom sheet; from 40rem it is a centered 
 </Menu>
 ```
 
-* **Rules**: Under 40rem, selects and menus open as bottom sheets, never popovers a tap can fall through. Top corners rounded only (`--radius-sheet`). Motion uses `--duration-sheet-in` (300 ms), `--duration-sheet-out` (220 ms) and `--ease-drawer`; a dialog's height cap is `--sheet-max-height` (a `Menu` has none, so keep its item list short); the bottom padding clears `--safe-bottom`. All of it is in `sheets.css`, `menu.css` and `select.css`; never restyle it per page.
+* **Rules**: Under 40rem, selects and menus open as bottom sheets, never popovers a tap can fall through. Top corners rounded only (`--shape-sheet`). Motion uses `--duration-sheet-in` (300 ms), `--duration-sheet-out` (220 ms) and `--ease-drawer`; a dialog's height cap is `--sheet-max-height` (a `Menu` has none, so keep its item list short); the bottom padding clears `--safe-bottom`. All of it is in `sheets.css`, `menu.css` and `select.css`; never restyle it per page.
 
 ---
 
