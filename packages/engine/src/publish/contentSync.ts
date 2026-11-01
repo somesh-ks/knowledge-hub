@@ -29,7 +29,7 @@ export const CONTENT_FILES = [
 ] as const;
 
 /** The engine's cost ledger, one file a month, which the cost report reads. */
-const COST_LEDGER = /^state\/costs-\d{4}-\d{2}\.json$/;
+export const COST_LEDGER = /^state\/costs-\d{4}-\d{2}\.json$/;
 
 /** Short, as for the episode index: readers add a fresh query string to see a rewrite at once. */
 export const CONTENT_CACHE_SECONDS = 60;
@@ -79,9 +79,9 @@ export async function readContentFiles(root: string): Promise<Map<string, Uint8A
   return files;
 }
 
-const sha256 = (body: Uint8Array): string => createHash("sha256").update(body).digest("hex");
+export const sha256 = (body: Uint8Array): string => createHash("sha256").update(body).digest("hex");
 
-function contentType(path: string): string {
+export function contentType(path: string): string {
   if (path.endsWith(".json")) return "application/json";
   if (path.endsWith(".md")) return "text/markdown; charset=utf-8";
   return "application/octet-stream";
