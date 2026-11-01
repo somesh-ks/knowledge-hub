@@ -167,7 +167,6 @@ html[data-player="open"] .toast {
   inset-inline-start: 0;
 }
 
-
 html[data-mini="visible"] .toast {
   --toast-dock: var(--player-dock-height, var(--nav-bar-height));
 }
