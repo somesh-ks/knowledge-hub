@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { Preferences, ScheduleFile, TopicsFile } from "@singularity/core";
 import type { Logger } from "../context.js";
 import { writeFileAtomic } from "../state/atomicWrite.js";
 import {
@@ -52,19 +53,31 @@ export async function readConfigDocuments(
   }));
 }
 
-function isJson(text: string): boolean {
+/** The documents a run cannot go on without, each with the schema its loader applies. */
+const REQUIRED_SCHEMAS: Readonly<
+  Record<string, { safeParse(value: unknown): { success: boolean } }>
+> = {
+  "config/preferences.json": Preferences,
+  "config/schedule.json": ScheduleFile,
+  "config/topics.json": TopicsFile,
+};
+
+/** Why a row cannot be used, or null: not JSON, or (for a required document) not its schema. */
+function rowProblem(path: string, text: string): string | null {
+  let json: unknown;
   try {
-    JSON.parse(text);
-    return true;
+    json = JSON.parse(text);
   } catch {
-    return false;
+    return "is not JSON";
   }
+  const schema = REQUIRED_SCHEMAS[path];
+  return schema && !schema.safeParse(json).success ? "does not match its schema" : null;
 }
 
 /**
  * Copy each stored document over its file. A row whose path is not one of CONFIG_DOCUMENT_PATHS is
  * never written (a stray path must not reach `.env`, `Digests/` or outside the checkout), and a row
- * that is not JSON is skipped so the loaders keep the file there. A file with no row is kept. The
+ * that is not JSON, or a required document (preferences, schedule, topics) that fails its schema, is skipped so the loaders keep the file there. A file with no row is kept. The
  * store is the owner's only copy (D296): a file that differs is replaced, and the files are not in
  * git, so nothing in the checkout can hold an edit the store lacks. Returns the paths whose file changed, and the paths the store holds a usable row for.
  */
@@ -80,8 +93,9 @@ export async function hydrateConfig(
       log.warn(`config store: ignored a row for ${JSON.stringify(document.path)}`);
       continue;
     }
-    if (!isJson(document.content)) {
-      log.warn(`config store: ${document.path} is not JSON; kept the file`);
+    const problem = rowProblem(document.path, document.content);
+    if (problem) {
+      log.warn(`config store: ${document.path} ${problem}; kept the file`);
       continue;
     }
     usable.push(document.path);
