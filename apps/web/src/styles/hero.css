@@ -148,7 +148,7 @@
       [data-state="unavailable"],
       [aria-disabled="true"]
     ):hover {
-    background: color-mix(in oklch, var(--cta-bg), var(--cta-fg) var(--state-hover));
+    background: color-mix(in oklab, var(--cta-bg), var(--cta-fg) var(--state-hover));
   }
 }
 
@@ -160,7 +160,7 @@
     [aria-disabled="true"]
   ):active {
   border-radius: min(var(--cta-radius-pressed), calc((var(--size-touch) - var(--space-1)) / 2));
-  background: color-mix(in oklch, var(--cta-bg), var(--cta-fg) var(--state-press));
+  background: color-mix(in oklab, var(--cta-bg), var(--cta-fg) var(--state-press));
   color: var(--cta-fg);
 }
 

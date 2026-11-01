@@ -193,6 +193,7 @@
   --state-hover: 8%;
   --state-press: 12%;
   --opacity-disabled: 0.32;
+  --opacity-dim: 0.6;
   --opacity-ambient-light: 0.6;
   --opacity-ambient-dark: 0.32;
   --z-beneath: -1;
