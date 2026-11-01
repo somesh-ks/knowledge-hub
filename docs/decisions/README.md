@@ -16,7 +16,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 - [player-and-library.md](player-and-library.md): The player, queue, transcript, Library, reading pages, gestures, offline pages.
 - [settings-and-create.md](settings-and-create.md): Settings (topics, sources, models, schedule, saving) and the Create form.
 - [store-and-ops.md](store-and-ops.md): Where data lives (Postgres, Blob, git), config, health, analytics, deploys, access and privacy.
-- [index-archive.md](index-archive.md): The Index rows for D1 to D150. When the Index below passes 30,000 bytes, move its lowest-numbered rows there (the cap is 40,000; `node scripts/docsCheck.mjs` counts both files).
+- [index-archive.md](index-archive.md): The Index rows for D1 to D150. When the Index below passes 30,000 bytes, move its lowest-numbered rows there (the cap is 40,000; `node scripts/docsCheck.mjs` counts only the live Index toward it and reads both files for the consistency checks).
 
 ## Index
 
