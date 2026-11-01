@@ -140,9 +140,18 @@ export function installCardHold(): void {
   // A key, or a click (the hold's own is cancelled above), is the person closing or picking: that
   // close is theirs, whatever the clock says (Escape, a keyboard or screen reader activation). A
   // click from script is not: the iPhone's haptic tick is one (design-system/haptics.ts), made as the
-  // sheet opens, and would end the hold before the lift it exists for.
+  // sheet opens, and would end the hold before the lift it exists for. Older WebKit forwards that
+  // click to the switch inside as a trusted one, so the tick's own label (silent, hidden) is skipped.
   document.addEventListener("keydown", release, true);
-  document.addEventListener("click", (event) => event.isTrusted && release(), true);
+  document.addEventListener(
+    "click",
+    (event) => {
+      if (!event.isTrusted) return;
+      if ((event.target as Element).closest?.('label.sr-only[data-sound="none"]')) return;
+      release();
+    },
+    true,
+  );
 
   // Android reads a hold on a link as its link menu, and iOS and Android as a drag of it: the card
   // has its own menu now. A mouse's right click keeps the browser's (copy link).
