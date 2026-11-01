@@ -43,13 +43,19 @@ export function recordRun(lastRun: LastRunFile, input: RecordRunInput): LastRunF
 
 /**
  * Where a slot's last window ended. A record from before `fetched_through` gives the time its run
- * finished instead (a little late; seen.json absorbs the overlap). A failed record without it
- * says nothing.
+ * finished instead, but never later than the last fetch of any kind: the run finished after its
+ * window closed, so that time can only be late. With neither, or a failed record without it,
+ * nothing is known and the caller keeps its own lookback.
  */
-export function windowEndOf(record: RunRecord | undefined): string | undefined {
+export function windowEndOf(
+  record: RunRecord | undefined,
+  lastFetchAt: string | undefined,
+): string | undefined {
   if (record === undefined) return undefined;
   if (record.fetched_through) return record.fetched_through;
-  return record.outcome === "failed" ? undefined : (record.generated_at ?? record.at);
+  if (record.outcome === "failed" || lastFetchAt === undefined) return undefined;
+  const finished = record.generated_at ?? record.at;
+  return Date.parse(finished) < Date.parse(lastFetchAt) ? finished : lastFetchAt;
 }
 
 /**
@@ -66,7 +72,7 @@ export function recordFailure(
   for (const kind of kinds) {
     const slot = SLOT_BY_KIND[kind];
     // The failed slot keeps where the last window ended: the retry must not start later.
-    const through = windowEndOf(lastRun[slot]);
+    const through = windowEndOf(lastRun[slot], lastRun.last_fetch_at);
     next[slot] = {
       at,
       outcome: "failed",

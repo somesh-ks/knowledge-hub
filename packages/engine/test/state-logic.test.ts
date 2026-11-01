@@ -130,6 +130,20 @@ describe("recordFailure from a record without fetched_through", () => {
     };
     const next = recordFailure(base, ["regular"], "2026-10-07T05:20:00.000Z");
     expect(next.regular?.fetched_through).toBe("2026-10-05T07:00:00.000Z");
+    // The run finished after its window closed, so its time is never taken past the last fetch.
+    const capped = recordFailure(
+      { ...base, last_fetch_at: "2026-10-05T05:13:00.000Z" },
+      ["regular"],
+      "2026-10-07T05:20:00.000Z",
+    );
+    expect(capped.regular?.fetched_through).toBe("2026-10-05T05:13:00.000Z");
+    // With no last fetch on record nothing is known, so nothing is invented.
+    const unknown = recordFailure(
+      { version: 1, regular: base.regular },
+      ["regular"],
+      "2026-10-07T05:20:00.000Z",
+    );
+    expect(unknown.regular?.fetched_through).toBeUndefined();
     // A failed record with nothing to keep gains nothing.
     expect(recordFailure(next, ["weekly"], "2026-10-07T05:21:00.000Z").weekly).toEqual({
       at: "2026-10-07T05:21:00.000Z",
