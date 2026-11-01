@@ -86,6 +86,9 @@ const audition = {
   attempt: 0,
   /** The voice playing, so a redrawn list can find its new control. */
   sampleId: "",
+  /** The row it was pressed on (its option's value, "" for Default): Default and its voice share a
+   *  sample, so the voice alone cannot tell the two controls apart. */
+  rowValue: "",
   /** Says a failure to the list that started the sample (its live region). */
   tell: null as ((text: string) => void) | null,
   mark(control: HTMLElement | null): void {
@@ -125,6 +128,7 @@ const audition = {
     }
     const attempt = ++this.attempt;
     this.sampleId = id;
+    this.rowValue = control.dataset.row ?? "";
     this.tell = tell;
     this.audio.src = url;
     this.mark(control);
@@ -320,6 +324,7 @@ function mountPicker(select: HTMLSelectElement): void {
         // Not aria-disabled: the page's disabledGuard would swallow the press before it said why.
         if (choice.sample === "") play.dataset.silent = "";
         else play.dataset.sample = choice.sample;
+        play.dataset.row = choice.value;
         play.append(glyph("playOutline"), glyph("pause"));
         const words = element("span", "picker-option-name");
         const title = element("span", "picker-option-title");
@@ -333,9 +338,13 @@ function mountPicker(select: HTMLSelectElement): void {
     // A search redraws the rows: the playing voice keeps its pressed control if it is still listed,
     // and stops if it is not, so no sample plays on with nothing to stop it.
     if (audition.playing && !audition.playing.isConnected) {
-      const again = list.querySelector<HTMLElement>(
-        `.picker-play[data-sample="${CSS.escape(audition.sampleId)}"]`,
-      );
+      const again =
+        list.querySelector<HTMLElement>(
+          `.picker-play[data-row="${CSS.escape(audition.rowValue)}"][data-sample="${CSS.escape(audition.sampleId)}"]`,
+        ) ??
+        list.querySelector<HTMLElement>(
+          `.picker-play[data-sample="${CSS.escape(audition.sampleId)}"]`,
+        );
       if (again) audition.mark(again);
       else audition.stop();
     }

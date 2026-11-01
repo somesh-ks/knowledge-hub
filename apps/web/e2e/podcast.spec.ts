@@ -255,6 +255,61 @@ test.describe("the profile pages", () => {
     await expect(second).toContainText("Ada");
   });
 
+  test("a search redraw keeps the sample's own row pressed, not the Default row that shares its voice", async ({
+    page,
+  }) => {
+    // Default stands for Ada here, so its row and Ada's both play voice-ada. The bug: after a search
+    // redraw the first row with that voice, Default, took the pressed state from Ada's row.
+    const voice = (id: string, name: string, gender: string) => ({
+      id,
+      name,
+      gender,
+      language: "en-US",
+      preview_url: `https://example.test/${id}.mp3`,
+    });
+    await page.route("**/api/voices", (route) =>
+      route.fulfill({
+        json: {
+          voices: [voice("voice-ada", "Ada", "female"), voice("voice-leo", "Leo", "male")],
+          defaults: { voice: "voice-ada", voice_b: "voice-ada" },
+        },
+      }),
+    );
+    // Thirty seconds of silence, so the sample is still playing when the list is redrawn.
+    const rate = 8000;
+    const wav = Buffer.alloc(44 + rate * 30, 0x80);
+    wav.write("RIFF", 0);
+    wav.writeUInt32LE(wav.length - 8, 4);
+    wav.write("WAVEfmt ", 8);
+    wav.writeUInt32LE(16, 16);
+    wav.writeUInt16LE(1, 20);
+    wav.writeUInt16LE(1, 22);
+    wav.writeUInt32LE(rate, 24);
+    wav.writeUInt32LE(rate, 28);
+    wav.writeUInt16LE(1, 32);
+    wav.writeUInt16LE(8, 34);
+    wav.write("data", 36);
+    wav.writeUInt32LE(rate * 30, 40);
+    await page.route("**/api/voice-sample**", (route) =>
+      route.fulfill({ body: wav, contentType: "audio/wav" }),
+    );
+    await open(page, "voice");
+    await openPicker(page, page.locator("#podcast-voice_b"));
+    const ada = pickerList(page).getByRole("option", { name: /^Ada/ }).locator(".picker-play");
+    await ada.click();
+    await expect(ada).toHaveAttribute("aria-pressed", "true");
+    await pickerList(page).getByRole("combobox").fill("a");
+    const rows = pickerList(page).getByRole("option");
+    await expect(rows.filter({ hasText: /^Default/ }).locator(".picker-play")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    await expect(rows.filter({ hasText: /^Ada/ }).locator(".picker-play")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
   test("a voice is heard from the keyboard with Shift+Enter, and Enter still chooses it @desktop", async ({
     page,
   }) => {
