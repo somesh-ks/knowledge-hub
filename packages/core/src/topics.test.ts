@@ -55,9 +55,9 @@ function customTopics(): TopicsFile {
   });
 }
 
-describe("config/topics.json", () => {
+describe("config/examples/topics.json", () => {
   const file = TopicsFile.parse(
-    JSON.parse(readFileSync(join(REPO_ROOT, "config", "topics.json"), "utf8")),
+    JSON.parse(readFileSync(join(REPO_ROOT, "config", "examples", "topics.json"), "utf8")),
   );
 
   it("resolves to every shipped topic, whatever the owner has renamed or added in the app", () => {

@@ -536,6 +536,15 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Rejected: a page-drawn mixed look (the system would not know it); a dash on the track (it hides the thumb, the one thing that shows the state); a third colour or a ring (the first draw: it read as a different control).
 - Revisit if: a screen reader reads a role=switch with `indeterminate` as plain on or off (it may: the switch role has no mixed value), then the master becomes a checkbox drawn as a switch.
 
+
+## D286: a press ripple for large touch targets, one clock with the page move
+
+- Date: 2026-11-01 (the owner, on the bottom bar: "show the touch area as a ripple ... aligned to Material design", "the touch feedback is instant - it should have some easing to keep it naturally calm"; picked option C of three recordings).
+- Decision: a Ripple component (`design-system/Ripple.astro`, `ripple.ts`, `styles/ripple.css`). A control with `data-ripple` holds a `.ripple-area` layer (`<Ripple />`), which is its touch area and clips the wave; a control that must reach past its box sets `--ripple-reach-start`, `--ripple-reach-end` and `--ripple-reach-bottom`, and one with a pointer state of its own sets `--ripple-display: none`, so no page restyles the layer. A wave grows from the point the finger lands to the farthest corner over `--duration-sheet-in` (300 ms, the travel clock) on `--ease-hover`, at the 12% press ink every other control uses. The lift starts a fade of the same length once the wave has played half its growth, so a quick tap still reads. The control gets `data-ripple-pressed` on the first touch (`:active` waits for the browser's press delay on a phone and never matched under a held touch), which the app styles for its other layers; the attribute is the Ripple's own and only the press that set it clears it, so no page's own `data-pressed` is touched. The wave and the press state carry across a page move: the control is swapped for its twin and the wave redrawn at the point it had reached, on `document.timeline`, so a stall in the swap does not count.
+- Why: the bar's press was one frame, so it read as a flash; a wave that eases says where the thumb landed, and a long hold stays visible. One clock means the press and the page move are one gesture.
+- Rejected: Material's 225 ms linear spread with a fast fade (calmer here with the hover curve); the wave on the pill only (it is smaller than the tab, so the touch area was not shown); `:active` for the press state (late and unreliable on a phone).
+- Revisit if: another large target (a card, a row) wants it, then the layer's inset and shape become variants; or a reduced-motion setting is added (the wave is skipped under `prefers-reduced-motion` and the press state still shows).
+
 ## D287: a page with a contents list is centred as the column and the list together
 
 - Date: 2026-11-01 (the owner, on the episode page: "get the content to be at the visual center and with some gap on the side have the contents. right now it looks not optically centered")
@@ -553,4 +562,23 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Rejected: a new louder pattern for play (no new tokens unasked); firing `select` from links and buttons (it names a change of state); a haptic on a close.
 - Amends: D273 (the `navigate`, `tap` and player entries).
 - Revisit if: the owner finds it too busy on a list, then quiet the intent that is wrong, not the system.
+
+## D290: haptics are subtle and follow the sounds
+
+- Date: 2026-11-01 (the owner: "too strong on Android ... subtle, in a symphony with the interface sounds ... a nice vibration for the ta-da"; he picked the proposed level on a lab page)
+- Decision: a haptic is the attack of its sound, not its tail. The web sets a buzz's length and never its strength, so strength is how short the pulse is: Android pulses are 12 ms (`tick-light`: a press, a switch, a detent, a skip, pause), 16 ms (`tick`: a sheet or menu opening, play, a run starting) and 20 ms at most. Success is two soft beats (`double`, 12/70/12). The ta-da (`ready`, `celebrate`) is two rising beats that follow its two notes, 12 then 20 ms, 108 ms apart. A failure (`error`, `thud`) is two soft beats, 16/60/16. The three-beat `triple` is gone. An iPhone has one fixed tick, so it gets fewer of them: two for success, ready and error (gaps 90, 120 and 60 ms).
+- Why: 20 to 30 ms pulses were too strong across a phone, and a buzz on every press made it worse; 6 to 10 ms was not felt at all. The sounds are one pentatonic family with short attacks; the touch should be as quiet and as brief.
+- Rejected: a pulse train to fake a lower strength (motors blur it); one pattern for every intent (a ta-da and a tap would feel alike); dropping haptics for taps.
+- Amends: D273, D289 (the pattern values; the intents are unchanged).
+- Revisit if: another phone is reported too weak or too strong, then change `primitive.haptic` only.
+
+## D291: the phone Menu sheet has a media-style head, a visible Close and a fill for focus
+
+- Date: 2026-11-01 (the owner: "a nice top section with an X on the right ... swipe down, tap outside and the X close it", on a screenshot of a media app's sheet; "the focus state of a list item inside the bottom sheet shouldn't be an outline, rather a background color change"; the title "too close" to the corner)
+- Decision: every phone sheet has a 32px top corner (`sheet.radius`, `picker.radius`) and the picker's pill and rows stand 8px in. The Menu's sheet head (Library card menu, page More menu, select and wheel sheets, the emoji picker: every popover that wears the Menu's frame, and no other popover has a head) is a title, an optional quiet line under it (`subtitle`; a Library card passes its facts line), a visible Close at the end and a hairline under it. The title stands 24px from the top and the edge, the column the rows' icons use. Rows are full pills (`radius-xl`). Keyboard or script focus on a row inside the sheet is the 12% press fill, not a ring.
+- Why: the 4px inset and 28px corner read cramped around a full pill; the bare title sat against the corner; a hold that opens a sheet with no way to see how to close it left a finger guessing, and a ring on a pill row crowded it.
+- Cost: the Close takes a corner of the head on every Menu sheet, which D144 hid. Focus inside the sheet is a tint, so a keyboard user sees a quieter marker than on the desktop Menu, which keeps its ring.
+- Rejected: a Close only on the Library card's sheet (two heads for one component); a ring in the accent on the pill.
+- Amends: D144 (partial sheets hid Close: the Menu's now shows it), D275 (picker radius and inset).
+- Revisit if: a keyboard user cannot find the focused row on a phone, then give the fill a stronger layer, not the ring back.
 

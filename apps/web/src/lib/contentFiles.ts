@@ -35,3 +35,26 @@ export const diskFiles: ContentFiles = {
     }
   },
 };
+
+/** How many content files a reader asks for at once: enough to hide the round trip, few enough to be polite. */
+export const READ_CONCURRENCY = 8;
+
+/**
+ * `task` for every item, at most `limit` at a time, the results in the items' order. The content
+ * store answers each file with a request of its own, and a year of digests read one after another
+ * would outlast the function's 20 seconds.
+ */
+export async function mapLimit<T, R>(
+  items: readonly T[],
+  limit: number,
+  task: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const worker = async (): Promise<void> => {
+    for (let index = next++; index < items.length; index = next++)
+      results[index] = await task(items[index] as T);
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}

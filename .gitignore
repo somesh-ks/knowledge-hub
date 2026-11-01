@@ -9,3 +9,15 @@ node_modules
 .claude/worktrees/
 .DS_Store
 .claude/settings.local.json
+
+# The owner's own config lives in the config store, not in git (D296). `singularity config pull`
+# fills these from the store, or from config/examples when the store is off.
+/config/sources.user.json
+/config/topics.json
+/config/queries.json
+/config/preferences.json
+/config/schedule.json
+/config/structure.json
+/config/writer.json
+/config/profiles/
+/state/source-candidates.json

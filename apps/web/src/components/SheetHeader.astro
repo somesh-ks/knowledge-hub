@@ -9,11 +9,13 @@ interface Props {
   close: SheetClose;
   /** Any data attribute the title carries for its script, such as data-panel-title. */
   titleData?: Record<`data-${string}`, string | boolean>;
+  /** A quiet line under the title: what the sheet is about, as a menu's item facts. */
+  subtitle?: string;
 }
 
-const { title, titleId, close, titleData = {} } = Astro.props;
+const { title, titleId, close, titleData = {}, subtitle } = Astro.props;
 ---
 
 {/* The row's markup is sheetHead.ts, shared with the lists a script redraws (structureView.ts), so
      every sheet header is one markup: the title at the start, Close at the end (2026-10-20). */}
-<Fragment set:html={sheetHeadHtml(title, titleId, close, titleData)} />
+<Fragment set:html={sheetHeadHtml(title, titleId, close, titleData, subtitle)} />

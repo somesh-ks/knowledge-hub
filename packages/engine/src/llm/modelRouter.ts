@@ -1,12 +1,20 @@
 import type { ChainEntry, Env, ModelFamily, ModelRouting, ModelStep } from "@singularity/core";
 import type { Logger } from "../context.js";
+import { type BatchApi, createAnthropicBatchApi } from "./anthropicBatch.js";
+import { runBatch } from "./batchRunner.js";
 import { BudgetExceededError, DeadlineExceededError, errorStatus } from "./errors.js";
-import { createJsonLlm } from "./jsonLlm.js";
+import { createJsonLlm, jsonPrompt, jsonSchemaOf } from "./jsonLlm.js";
 import type { ResolvedFamilies } from "./modelResolver.js";
-import { createAnthropicApi, createGeminiApi, type ModelApi } from "./providers.js";
+import { parseModelJson } from "./parseModelJson.js";
+import {
+  createAnthropicApi,
+  createGeminiApi,
+  type ModelApi,
+  THINKING_HEADROOM,
+} from "./providers.js";
 import type { RetryOptions } from "./retry.js";
-import type { TokenBudget } from "./tokenBudget.js";
-import type { JsonRequest, JsonResult, LlmClient } from "./types.js";
+import { estimateTokens, estimateTokensForChars, type TokenBudget } from "./tokenBudget.js";
+import type { BatchLlm, JsonRequest, JsonResult, LlmClient } from "./types.js";
 
 /** Why a model failed, safe to log: status, error class and a short kind. Never the provider's message. */
 export function failureReason(error: unknown): {
@@ -54,7 +62,18 @@ export interface ModelRouterOptions {
     inputTokens: number;
     outputTokens: number;
     step: ModelStep;
+    /** True for tokens billed at the Message Batches price. */
+    batch?: boolean;
   }) => void;
+  /** Replaces the Message Batches client, for tests. */
+  batchApi?: BatchApi;
+  /** The run's list of batches sent and not yet read (llm/openBatches.ts). */
+  openBatches?: {
+    add(id: string, model: string): Promise<void>;
+    remove(id: string): Promise<void>;
+  };
+  /** Pause and clock of the batch wait, for tests. */
+  batchTiming?: { now?: () => number; sleep?: (ms: number) => Promise<void>; pollMs?: number };
   /** Called once for every move to the next model, for the run's fallback count. */
   onFallback?: (info: { step: ModelStep; from: string; to: string; kind: string }) => void;
 }
@@ -67,6 +86,11 @@ export interface ModelRouter {
   ): Promise<JsonResult<T> & { served: Served }>;
   /** An LlmClient for a step; a request's own `step` overrides it. */
   llmFor(step: ModelStep): LlmClient;
+  /**
+   * A BatchLlm for a step: its requests go to the Message Batches API when the step's first model is
+   * Claude, and come back empty (so the caller writes them the usual way) when it is not.
+   */
+  batchFor(step: ModelStep): BatchLlm;
   /** The resolved ids of the step's non-Jev models, in chain order (for a step with its own caller, such as transcription). */
   modelsFor(step: ModelStep): Promise<string[]>;
   /** True when the step's chain starts with Jev, which its caller runs itself (Jev has its own SDK). */
@@ -206,8 +230,132 @@ export function createModelRouter(options: ModelRouterOptions): ModelRouter {
     throw error;
   }
 
+  function batchFor(step: ModelStep): BatchLlm {
+    return {
+      async completeJsonBatch<T>(
+        entries: ReadonlyArray<{ id: string; request: JsonRequest<T> }>,
+        batchOptions: { until: number },
+      ): Promise<Map<string, JsonResult<T>>> {
+        const done = new Map<string, JsonResult<T>>();
+        await ensureReady();
+        const entry = (routing.steps[step]?.chain ?? []).find((e) => e.family !== "jev");
+        const model = entry ? resolved[entry.family]?.id : undefined;
+        const key = env.ANTHROPIC_API_KEY;
+        if (!entry || !model || providerOf(entry.family) !== "anthropic" || !key) return done;
+        const api =
+          options.batchApi ??
+          createAnthropicBatchApi({
+            apiKey: key,
+            fetch: options.fetch,
+            onRequest: () => options.onRequest?.("anthropic"),
+          });
+        const prepared = entries.map(({ id, request }, index) => {
+          const { system, messages } = jsonPrompt(request);
+          const asked = request.maxTokens ?? 1_500;
+          const maxTokens = entry.max_tokens ? Math.min(asked, entry.max_tokens) : asked;
+          return {
+            id,
+            request,
+            customId: `w${index}`,
+            maxTokens,
+            system,
+            messages,
+          };
+        });
+        // The guard counts what the batch could spend before it is submitted: one request's reply
+        // allowance and prompt, summed. When the whole does not fit the budget, nothing is
+        // submitted and the writer writes live, where each request is checked on its own.
+        const estimate = prepared.reduce(
+          (sum, item) =>
+            sum +
+            estimateTokensForChars(
+              item.system.length + item.messages.reduce((n, m) => n + m.content.length, 0),
+            ) +
+            item.maxTokens +
+            THINKING_HEADROOM,
+          0,
+        );
+        if (options.budget.remaining < estimate) {
+          log.warn("The batch does not fit the token budget; writing the stories one by one", {
+            estimate,
+            remaining: options.budget.remaining,
+          });
+          return done;
+        }
+        const outcomes = await runBatch(
+          api,
+          prepared.map((item) => ({
+            customId: item.customId,
+            request: {
+              model,
+              system: item.system,
+              messages: item.messages.filter(
+                (m): m is { role: "user" | "assistant"; content: string } => m.role !== "system",
+              ),
+              maxTokens: item.maxTokens,
+              effort: entry.effort,
+              schema: jsonSchemaOf(item.request.schema),
+              timeoutMs: entry.timeout_ms,
+            },
+          })),
+          {
+            until: batchOptions.until,
+            log,
+            ...options.batchTiming,
+            ...(options.openBatches
+              ? {
+                  onOpen: (id: string) => options.openBatches?.add(id, model),
+                  onClosed: (id: string) => options.openBatches?.remove(id),
+                }
+              : {}),
+          },
+        );
+        for (const item of prepared) {
+          const outcome = outcomes.get(item.customId);
+          if (outcome?.type !== "succeeded") continue;
+          const { reply } = outcome;
+          // Billed whether or not the reply is used.
+          options.budget.record(
+            reply.inputTokens + reply.outputTokens || estimateTokens(reply.text),
+          );
+          options.onUsage?.({
+            provider: "anthropic",
+            model,
+            inputTokens: reply.inputTokens,
+            outputTokens: reply.outputTokens,
+            step,
+            batch: true,
+          });
+          if (reply.stopReason !== "end") continue;
+          try {
+            const parsed = item.request.schema.safeParse(parseModelJson(reply.text));
+            if (parsed.success) {
+              done.set(item.id, {
+                value: parsed.data,
+                usage: {
+                  promptTokens: reply.inputTokens,
+                  completionTokens: reply.outputTokens,
+                  totalTokens: reply.inputTokens + reply.outputTokens,
+                },
+              });
+            }
+          } catch {
+            // An unreadable reply is written again the usual way.
+          }
+        }
+        log.info("Writer batch finished", {
+          step,
+          requests: prepared.length,
+          used: done.size,
+        });
+        return done;
+      },
+    };
+  }
+
   return {
     callModel,
+    batchFor,
     llmFor(step) {
       return {
         get model() {

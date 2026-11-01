@@ -41,15 +41,16 @@ Never paste a key into chat. The agent cannot read `.env`; keep it that way.
 | `SPEECHIFY_API_KEY` | Speechify API console |
 | `SPEECHIFY_VOICE_ID` | Plain configuration, no secret |
 | `BLOB_READ_WRITE_TOKEN` | Section 1.5 |
+| `BLOB_PRIVATE_READ_WRITE_TOKEN` | Section 1.5a (the weekly config snapshot, D300) |
 | `SINGULARITY_GIT_NAME`, `SINGULARITY_GIT_EMAIL` | Plain configuration, no secret. `Somesh Kesarla Suresh` and `26426782+somesh-ks@users.noreply.github.com` (section 1.4) |
-| `GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY` | Section 1.7 |
+| `GITHUB_SINGULARITY_TOKEN`, `GITHUB_REPOSITORY` | Section 1.7 |
 | `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET` | You choose them; the command center's sign-in (section 1.4a). Sent to the admin project; the secret also goes to the reader (its `/api/costs` and `/api/health` verify the session, D257) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `ADMIN_GOOGLE_EMAILS` | Google sign-in for the command center (section 1.4a): an OAuth client you create, its exact callback address, and the Google accounts that may sign in (comma separated). Sent to the admin project; while any is missing the sign-in page says Google is not set up |
 | Models | Not env vars: `config/models.json` routes each step (Section 1.3) |
 
 ### 1.3 Pick the writer model
 
-Models are not chosen in `.env` or Settings. `config/models.json` lists, per step, an ordered chain of model families (jev, claude-sonnet, claude-haiku, gemini-flash, gemini-flash-lite; never Opus, Gemini Pro or Nebius). At run start the engine lists each provider's models and uses the newest of each family; `fallback_id` is used when listing fails and `pin` forces an id. With `ANTHROPIC_API_KEY` and `GEMINI_API_KEY` in `.env`:
+Models are not chosen in `.env` or Settings. `config/models.json` lists, per step, an ordered chain of model families (jev, claude-sonnet, claude-haiku, gemini-flash, gemini-flash-lite; never Opus, Gemini Pro or Nebius). At run start the engine lists each provider's models and uses the newest of each family; `fallback_id` is used when listing fails and `pin` forces an id. Jev is the exception: its id is fixed in code (`DEFAULT_JEV_MODEL`, `judge/jev.ts`), so that cached judgements stay valid, and the `jev` entry only names it in the run log. With `ANTHROPIC_API_KEY` and `GEMINI_API_KEY` in `.env`:
 
 
 
@@ -65,7 +66,7 @@ Vercel deploys through its GitHub integration (D25). No Vercel token is needed i
 
 1. In the Vercel dashboard, choose Add New, Project, and import the GitHub repo `knowledge-hub`. Name the project `knowledge-hub`; the production branch is `main`.
 2. Set Root Directory to `apps/web`. Leave "Include source files outside the Root Directory" on (the default). `apps/web/vercel.json` already sets the install, build and ignore commands.
-3. Add the two Vercel environment variables (`GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY`) in section 1.9, or by hand in the dashboard.
+3. Add the two Vercel environment variables (`GITHUB_SINGULARITY_TOKEN`, `GITHUB_REPOSITORY`) in section 1.9, or by hand in the dashboard.
 4. Hobby deploys only commits authored by the Hobby team owner. The GitHub login connected to Vercel must be the account that owns the team, and it must match the committer. The engine commits as that owner through the GitHub Actions variables `SINGULARITY_GIT_NAME` and `SINGULARITY_GIT_EMAIL`, which section 1.9 sends. If both are unset the engine commits as `singularity-bot`, and Hobby blocks those deploys.
 
 ### 1.4a Create the admin project (D224)
@@ -81,6 +82,15 @@ The design guide is a third project, `singularity-design`, with Root Directory `
 3. Connect the store to the project. This also injects the token into Vercel.
 4. Copy the `BLOB_READ_WRITE_TOKEN` value Vercel shows for the store into `.env`.
 
+### 1.5a Create the private Blob store for the config snapshot
+
+A Blob store is public or private as a whole, so the content store in 1.5 cannot hold the snapshot.
+
+1. In Vercel, Storage, create a second Blob store and set its access to private. Do not connect it to the reader project.
+2. Copy its read-write token into `.env` as `BLOB_PRIVATE_READ_WRITE_TOKEN`, then run `npm run secrets:push`.
+3. Run the `snapshot` workflow once by hand and check that `config-snapshots/<date>.json` appears in the store. It then runs every Sunday and keeps eight.
+4. To restore, `.env` needs `DATABASE_URL` and `SINGULARITY_CONFIG_STORE=postgres` (and `BLOB_PRIVATE_READ_WRITE_TOKEN` for `--latest`). Then run `npm run singularity -- config restore --latest --force` (or `--file <snapshot.json>` for one you downloaded; `config snapshot --out <file>` makes one by hand). It overwrites newer edits, so run it only when the store has lost its rows.
+
 ### 1.6 Add the domain and the DNS record
 
 1. In the project's Domains settings, add `news.someshks.work`.
@@ -90,12 +100,12 @@ The design guide is a third project, `singularity-design`, with Root Directory `
 
 Do not add `www.news.someshks.work`. Do not turn the Cloudflare proxy on.
 
-### 1.7 Create the GitHub dispatch token
+### 1.7 Create the GitHub token
 
 1. In GitHub, open Settings, Developer settings, Fine-grained personal access tokens.
-2. Create a token with resource owner `somesh-ks`, access to the `dispatch` repository only, and these repository permissions: Actions read and write, Contents read. Nothing else.
+2. Create a token with resource owner `somesh-ks`, access to the `knowledge-hub` repository only, and these repository permissions: Actions read and write, Variables read and write, Contents read. Nothing else.
 3. Set an expiry and record it in section 6.
-4. Put the token in `.env` as `GITHUB_DISPATCH_TOKEN`. Set `GITHUB_REPOSITORY=somesh-ks/knowledge-hub`.
+4. Put the token in `.env` as `GITHUB_SINGULARITY_TOKEN`. Set `GITHUB_REPOSITORY=somesh-ks/knowledge-hub`.
 
 ### 1.8 No passphrase
 
@@ -119,7 +129,7 @@ For the Vercel side, open the project's Settings, Environment Variables in the d
 
 ### 1.10 Check the setup
 
-Run `npm run singularity -- doctor --online`. It checks Node, git, config, state and key names, then makes authenticated requests: the Anthropic and Gemini model lists must answer, Jev answers a trivial question, Exa answers one search (about 0.007 USD), Firecrawl reports credits, Speechify lists the voice id and Vercel Blob accepts a list call. Fix every `fail` and read every `warn` before going on.
+Run `npm run singularity -- doctor --online`. It checks Node, git, config, state and key names, then makes authenticated requests: the Anthropic and Gemini model lists must answer, Jev answers a trivial question, Exa answers one search (about 0.007 USD), Firecrawl reports credits, Speechify lists the voice id, Vercel Blob accepts a list call and the site's GitHub token opens the repository and reads Actions variables (with its expiry; write access cannot be tested). Fix every `fail` and read every `warn` before going on.
 
 ### 1.11 Push `main` and deploy
 
@@ -180,6 +190,16 @@ Monthly:
 | `ingest.yml` | Three times a day, or on demand | Runs `singularity ingest` (D233): reads the free sources and saves each new story's text to Blob and Neon. Reads the config store; commits nothing; spends no paid call |
 | `ci.yml` | A pull request | Runs typecheck, lint, tests and the build when code changed, always gitleaks and the audit, and both browser suites for some paths (D148). It does not deploy |
 | `branches.yml` | A pull request closing, daily, or on demand | Deletes the head branch of a closed pull request, and daily every branch whose pull requests are all closed (one with an open pull request, or none, stays). With the `NEON_API_KEY` secret and `NEON_PROJECT_ID` variable it also deletes Neon `preview/*` branches whose git branch is gone and keeps the newest two |
+| `podcast.yml` | The app's Catch up, Regenerate and Delete, or on demand | Writes, regenerates or deletes one episode and commits it under `Podcasts/`; the commit does not deploy (D199), `content.yml` mirrors it. Has its own queue (`singularity-podcast`), so an episode and a digest can run at the same time |
+| `config.yml` | The app's settings, one change per run, or on demand with the required `op` JSON string | Applies one config change (a topic, a source or a weight) as one commit through the write guard (D149). Shares `run.yml`'s queue |
+| `content.yml` | After a workflow that commits content, a push of `Digests/` or `Podcasts/` to `main`, or on demand | Mirrors the content into the Blob store the pages read (`singularity content sync`). Safe to rerun; run it by hand to fill an empty store (D173) |
+| `health.yml` | Daily, or on demand (drill) | Runs `singularity health`; a fault opens one `health` issue and heals a missed run once, warnings go to one `health-warnings` issue on Mondays ([hardening](engineering/hardening.md)). A drill proves the healing path without a real fault |
+| `smoke.yml` | After each production deploy and every three hours | Asks the live site five read-only questions (server, settings, GitHub token, home page, Library); a failure opens or comments on one `smoke` issue and the next pass closes it (D159) |
+| `browser.yml` | A push to `main` that changes the site, nightly, or called by `ci.yml` | Runs the two browser suites, the only checks that see CSS and layout (D148). Red check: [delivery failures](engineering/delivery-failures.md) |
+| `design-system.yml` | A pull request that touches the design system | Checks the `design-system` label and that a labelled PR holds only the system, the code that calls it, the guide and docs (D254). Reads the diff only |
+| `episode-eval.yml` | The `eval` label on a pull request, or on demand | Scores the episode fixtures with Jev and Sonnet, before and after a writer prompt change (D180). Paid calls, so only on request |
+| `automerge.yml` | After `ci.yml` passes | Squash-merges a Dependabot pull request; anything else waits for you. Its token cannot merge a pull request that edits `.github/workflows`: merge those by hand |
+| `seed.yml` | By hand only | Seeds the config store from the committed config with the `DATABASE_URL` secret; dry run by default (section 11) |
 
 Vercel itself builds every push to `main`, except pushes that touch nothing the site reads (`state`, `config`, docs and `.github`). A published digest therefore deploys twice: the text first, then the audio.
 
@@ -247,7 +267,7 @@ Rotate on a schedule, after any suspected leak, and before expiry. If a key appe
 1. Create the new key at the service. Delete the old one after the new one works.
 2. Edit the value in `.env`.
 3. Run `npm run secrets:push`.
-4. If the value feeds Vercel (`GITHUB_DISPATCH_TOKEN`, `GITHUB_REPOSITORY`), redeploy from the Vercel dashboard (Deployments, Redeploy on the latest production deployment). Vercel applies new environment values only to new deployments.
+4. If the value feeds Vercel (`GITHUB_SINGULARITY_TOKEN`, `GITHUB_REPOSITORY`), redeploy from the Vercel dashboard (Deployments, Redeploy on the latest production deployment). Vercel applies new environment values only to new deployments.
 
 | Key | Rotate at | Used by |
 | --- | --- | --- |
@@ -258,15 +278,16 @@ Rotate on a schedule, after any suspected leak, and before expiry. If a key appe
 | `GEMINI_API_KEY` | Google AI Studio | YouTube transcription fallback, topic emoji backup (also sent to Vercel) |
 | `SPEECHIFY_API_KEY` | Speechify API console | Audio |
 | `BLOB_READ_WRITE_TOKEN` | The Blob store's settings in Vercel | Audio upload and prune |
-| `GITHUB_DISPATCH_TOKEN` | GitHub, Fine-grained personal access tokens | Generate button |
+| `GITHUB_SINGULARITY_TOKEN` | GitHub, Fine-grained personal access tokens | Generate button, workflow dispatch, reads and cancels, Actions variable writes, the scheduled dispatch (`/api/cron/run`) |
 
 Track expiry here. Fill the dates when you create each token and set a calendar reminder two weeks before.
 
 | Token | Created | Expires | Renew by |
 | --- | --- | --- | --- |
-| `GITHUB_DISPATCH_TOKEN` | | | |
+| `GITHUB_SINGULARITY_TOKEN` | | | |
+| `VERCEL_TOKEN` (optional, the audio workflow's CLI fallback) | | | |
 
-When `GITHUB_DISPATCH_TOKEN` expires, the Generate button stops working ("The server ran into a problem, so no briefing was started. Error ref ..."). Scheduled runs are unaffected, because `run.yml` uses the built-in workflow token. No Vercel token exists, so no Vercel token can expire.
+When `GITHUB_SINGULARITY_TOKEN` expires, the Generate button stops working ("The server ran into a problem, so no briefing was started. Error ref ...") and `/api/cron/run` can no longer start the on-time scheduled run; GitHub's own schedule remains a fallback, so a briefing may come late. `run.yml` itself uses the built-in workflow token. `VERCEL_TOKEN` is optional: the audio workflow's Vercel CLI fallback uses it when `BLOB_READ_WRITE_TOKEN` is absent, so track its expiry here when you set one.
 
 ---
 
@@ -324,7 +345,7 @@ Models are resolved at run start from the providers' lists. Symptoms: the run lo
 | Message | Cause | Fix |
 | --- | --- | --- |
 | "Generate is on cooldown. Try again in ..." or "Generate has reached its limit for today. Try again in ..." | One run in 6 hours, or three in 24 hours | Wait. Runs started by `gh` or the skills count too |
-| "The server ran into a problem, so ... Error ref 3f9a1c." (Create, Generate, Regenerate, Delete, saving settings) | The function answered but could not do the job: a Vercel variable is missing or malformed, or GitHub refused the dispatch (expired or under-privileged token) | Search the Vercel function logs for `ref 3f9a1c`: the lines name the missing variable or GitHub's answer. Then fix the variable, or rotate `GITHUB_DISPATCH_TOKEN` (section 6) |
+| "The server ran into a problem, so ... Error ref 3f9a1c." (Create, Generate, Regenerate, Delete, saving settings) | The function answered but could not do the job: a Vercel variable is missing or malformed, or GitHub refused the dispatch (expired or under-privileged token) | Search the Vercel function logs for `ref 3f9a1c`: the lines name the missing variable or GitHub's answer. Then fix the variable, or rotate `GITHUB_SINGULARITY_TOKEN` (section 6) |
 | "The server crashed before it could answer ..." | The function failed before it ran (a broken deploy, a missing native binary) or threw | Open the deployment's function logs in Vercel; redeploy or roll back. A thrown error is logged as `[api/...] [ref ...] crashed:` |
 
 ---
@@ -343,10 +364,10 @@ Models are resolved at run start from the providers' lists. Symptoms: the run lo
 
 1. In the repository, run `/learn` with one sentence, for example "more shaders, less VC funding". From any other folder, ask `sk-dispatch` to learn.
 2. Read the diff. The change is bounded: at most 0.05 per weight and 0.15 in total per call.
-3. Accept it. The skill applies it through `singularity learn --apply`, commits as `chore(prefs): ...` and pushes.
+3. Accept it. The skill applies it through `singularity learn --apply`, which writes the config store (D296); nothing is committed.
 4. The next run uses the new weights. Cached judgments are re-scored with no new calls.
 
-Do not edit `config/preferences.json` by hand. To undo, revert the `chore(prefs)` commit.
+Do not edit the preferences by hand. To undo, apply the opposite patch.
 
 ---
 
@@ -367,28 +388,25 @@ Git holds the code, config, digests, state and docs. It does not hold secrets (`
 
 ## 11. The config store (D149)
 
-Off by default. With it on, a settings edit is saved to Neon Postgres and shows on every device within about a second, with no workflow and no rebuild; each briefing's commit keeps a copy in git. It is on only where `SINGULARITY_CONFIG_STORE=postgres` is set beside `DATABASE_URL`: `DATABASE_URL` alone never turns it on.
+The owner's config (sources, topics, queries, preferences, schedule, structure, writer, profile, source suggestions) lives in Neon Postgres and not in git (D296); `config/examples/` holds public defaults. A settings edit is saved to the store and shows on every device within about a second, with no workflow and no rebuild. The store is on only where `SINGULARITY_CONFIG_STORE=postgres` is set beside `DATABASE_URL`: `DATABASE_URL` alone never turns it on.
 
 ### 11.1 Switch on
 
-1. The workflows already pass the store to the engine: `run.yml`'s Gate step and `podcast.yml`'s Podcast step read `DATABASE_URL` (secret) and `SINGULARITY_CONFIG_STORE` (variable); either one unset keeps them on the committed files.
+1. The workflows already pass the store to the engine: `run.yml`'s Gate step and `podcast.yml`'s Podcast step read `DATABASE_URL` (secret) and `SINGULARITY_CONFIG_STORE` (variable); either one unset leaves the run with no config, and with no files it stops (D296).
 2. GitHub secret `DATABASE_URL`: the Neon connection string (Vercel → Storage → the Neon database → Connect; `vercel env pull` writes `[SENSITIVE]` for a hidden value, which is not the string). Settings → Secrets and variables → Actions → New repository secret, or `npm run secrets:push -- --only github` from `.env`.
-3. Seed from GitHub: Actions → seed → Run workflow on `main`. The default is a dry run that lists what it would write; run it again with dry run unticked. It never replaces a row, and it creates the shared rate-limit table (D150). From a laptop instead: `DATABASE_URL` in `.env`, then `npm run singularity -- config seed --dry-run` and `npm run singularity -- config seed`.
-4. Refresh the rows if the database was seeded earlier (it was, on 2026-10-22): a config change committed since then is in git but not in the rows. With `SINGULARITY_CONFIG_STORE` still unset everywhere, run seed with replace ticked (dry run first: it lists the rows that differ). It refuses once the store is on, since the app's edits then live only in the database; the workflow cannot force it (`--force` exists on a laptop only; do not use it after switch-on).
-5. Make sure no edit is waiting: no `config.yml` run is queued between the refresh and step 6.
+3. Seed from a laptop: `DATABASE_URL` in `.env`, then `npm run singularity -- config pull` (the examples), edit them, `npm run singularity -- config seed --dry-run` and `npm run singularity -- config seed`. It never replaces a row. The `seed` workflow reads `main`, which no longer holds the files (D296), so it writes no document; it still creates the shared rate-limit table (D150).
+4. Production's store is already seeded and holds the live copy, so there is nothing to refresh. A new store starts from step 3.
+5. Make sure no edit is waiting: no `config.yml` run is queued before step 6.
 6. GitHub variable: Settings → Secrets and variables → Actions → Variables → `SINGULARITY_CONFIG_STORE` = `postgres`.
 7. Vercel: Project → Settings → Environment Variables → `SINGULARITY_CONFIG_STORE` = `postgres` for Production. Check that `DATABASE_URL` is set for Production too. On 2026-10-23 it was not: the Neon integration was connected with the `NEON_` prefix (`NEON_DATABASE_URL` and friends), which nothing reads, so the store and the shared rate counter (D150) have never run in production. Either set the integration's prefix to none (Storage → the Neon database → Settings) or add `DATABASE_URL` by hand with the pooled connection string.
 8. Redeploy (Deployments → the latest → Redeploy): the pages read the switch when they are built.
 9. Check: `https://news.someshks.work/api/config` answers 200 with `"ops":[]`; change a weight on the phone and reload the same page on the laptop: it shows the new weight. The next run's log says `config store: files current` or names the files it copied.
 
-### 11.2 Switch off
+### 11.2 Fork or local checkout
 
-1. Keep what was edited since the last run: `git pull`, then with `DATABASE_URL` and `SINGULARITY_CONFIG_STORE=postgres` in `.env`, `npm run singularity -- run --stage gate --dry-run` copies the stored files over `config/`, and `npm run singularity -- config commit --message "snapshot from the store"` commits and pushes them.
-2. Vercel: delete `SINGULARITY_CONFIG_STORE`, then redeploy. The pages stop asking, `GET /api/config` answers 405 and an edit goes through `config.yml` again.
-3. GitHub: delete the `SINGULARITY_CONFIG_STORE` variable. Runs read the committed files again. The secret and the table can stay; nothing reads them while the switch is off.
-4. Remove `SINGULARITY_CONFIG_STORE` from `.env`.
+The files are not in git, so a fresh checkout has none. `npm run singularity -- config pull` fills `config/`: with `DATABASE_URL` and `SINGULARITY_CONFIG_STORE=postgres` in `.env` it copies the stored documents, and without them it copies `config/examples/`. The site's build runs it first (`apps/web` `prebuild`). To start a store of your own, pull the examples, edit them, then `npm run singularity -- config seed`.
 
-If the database is down while the store is on, nothing breaks: pages show the build's copy, runs use the last commit's files, and an edit answers "unavailable" and stays pending on the page.
+If the database is down while the store is on, pages show the build's copy and an edit answers "unavailable" and stays pending on the page. A run, a podcast, an ingest or a build stops when it holds no config files; the cron answers 503. Nothing is made from defaults.
 
 ## 12. Branch rules on `main` (D175)
 

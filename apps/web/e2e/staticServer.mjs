@@ -168,7 +168,7 @@ export function startServer({ root, port, mounts = {}, api }) {
     if (file && deploy && /\.(html|json)$/.test(file) && request.method === "GET") {
       const body = readFileSync(file, "utf8")
         .replace(/(<meta name="singularity-build" content=")[^"]*"/, `$1${deploy}"`)
-        .replace(/^\{"build":"[^"]*"\}/, `{"build":"${deploy}"}`);
+        .replace(/^\{"build":"[^"]*"/, `{"build":"${deploy}"`);
       response.writeHead(200, {
         "Content-Type": TYPES[extname(file)] ?? "application/octet-stream",
         ...headersFor(pathname),

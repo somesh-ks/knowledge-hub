@@ -6,8 +6,8 @@ import {
   findCoverRecord,
   parseCoverPath,
   resolveCover,
-  splitVersion,
   UNVERSIONED,
+  versionOf,
 } from "./coverRoute";
 
 /**
@@ -62,16 +62,11 @@ it("keeps a cover for a year only under the address of its record's current vers
   );
 });
 
-it("takes the version from the path the rewrite builds, so the CDN keys each version apart", () => {
-  expect(splitVersion("mvvcky6b/2026-10-07-512.webp")).toEqual({
-    version: "mvvcky6b",
-    rest: "2026-10-07-512.webp",
-  });
-  expect(splitVersion(`${UNVERSIONED}/dark/x-512.webp`)).toEqual({
-    version: UNVERSIONED,
-    rest: "dark/x-512.webp",
-  });
-  expect(splitVersion("x-512.webp")).toBeNull();
+it("reads the version from the address's query, and treats junk as no version", () => {
+  expect(versionOf("mvvcky6b")).toBe("mvvcky6b");
+  expect(versionOf(null)).toBe(UNVERSIONED);
+  expect(versionOf("../x")).toBe(UNVERSIONED);
+  expect(versionOf("A".repeat(13))).toBe(UNVERSIONED);
 });
 
 it("never draws the old cover under a newer version, and says missing only for an unknown id", async () => {
