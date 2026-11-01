@@ -41,14 +41,20 @@ async function openDownloads(): Promise<Cache> {
   return cache;
 }
 
-export async function readDownloads(): Promise<Download[]> {
+/**
+ * What this device holds. A read that fails answers an empty list, which is right for showing the
+ * list; a caller that deletes passes `throwOnError`, so a failed read is never taken for "nothing
+ * saved" and written back over the manifest.
+ */
+export async function readDownloads(options?: { throwOnError?: boolean }): Promise<Download[]> {
   try {
     if (!("caches" in globalThis)) return [];
     if (!(await caches.has(AUDIO_CACHE)) && !(await caches.has(OLD_AUDIO_CACHE))) return [];
     const cache = await openDownloads();
     const saved = await cache.match(MANIFEST_KEY);
     return saved ? parseDownloads(await saved.text()) : [];
-  } catch {
+  } catch (error) {
+    if (options?.throwOnError) throw error;
     return [];
   }
 }
@@ -240,7 +246,7 @@ export async function download(request: DownloadRequest): Promise<void> {
 
 export async function removeDownload(id: string): Promise<void> {
   const cache = await openDownloads();
-  const list = await readDownloads();
+  const list = await readDownloads({ throwOnError: true });
   for (const old of list.filter((item) => item.id === id)) {
     for (const address of addressesOf(old)) await cache.delete(address);
   }

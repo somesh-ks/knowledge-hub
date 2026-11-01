@@ -119,7 +119,8 @@ function mount(root: HTMLElement): void {
       lede: "They are removed from this device only. You can download them again, unless the podcast was deleted.",
       go: "Delete all",
       run: async () => {
-        for (const item of await readDownloads()) await removeDownload(item.id);
+        for (const item of await readDownloads({ throwOnError: true }))
+          await removeDownload(item.id);
       },
       done: "All downloads deleted",
     });
