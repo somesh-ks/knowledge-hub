@@ -79,6 +79,8 @@ function keyOf(control: Element): string {
 
 /** Draws the wave for `p` on `layer`, as far along as `now` puts it. */
 function draw(layer: HTMLElement, p: Press, now: number): void {
+  // With reduced motion there is no wave: the control's pressed state (data-pressed) says it alone.
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const t = timing(layer);
   const box = layer.getBoundingClientRect();
   if (box.width === 0 || box.height === 0) return;
@@ -90,16 +92,12 @@ function draw(layer: HTMLElement, p: Press, now: number): void {
   wave.style.top = `${p.y - radius}px`;
   layer.append(wave);
 
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const elapsed = now - p.start;
-  if (!reduced) {
-    const grow = wave.animate([{ transform: "scale(0)" }, { transform: "scale(1)" }], {
-      duration: t.grow,
-      easing: t.ease,
-      fill: "forwards",
-    });
-    grow.currentTime = elapsed;
-  }
+  const grow = wave.animate([{ transform: "scale(0)" }, { transform: "scale(1)" }], {
+    duration: t.grow,
+    easing: t.ease,
+    fill: "forwards",
+  });
+  grow.currentTime = now - p.start;
   schedule(wave, p, t, now);
 }
 
@@ -142,7 +140,8 @@ export function installRipple(): void {
   document.addEventListener(
     "pointerdown",
     (event) => {
-      if (event.button !== 0) return;
+      // A finger, or a pen: a pointer has the control's hover and press layers already.
+      if (event.button !== 0 || event.pointerType === "mouse") return;
       const control = (event.target as Element | null)?.closest<HTMLElement>("[data-ripple]");
       const layer = control?.querySelector<HTMLElement>(":scope > .ripple-area");
       if (!control || !layer || getComputedStyle(layer).display === "none") return;
