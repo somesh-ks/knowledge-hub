@@ -143,13 +143,16 @@ async function ensureSubscribed(): Promise<boolean> {
   }
 }
 
-/** Tells the server which scheduled podcasts this browser wants (or that it wants none). */
-async function syncDevice(choices: Choices): Promise<void> {
+/**
+ * Tells the server which scheduled podcasts this browser wants (or that it wants none). True when the
+ * server took it; false when it refused (too many devices, a cooldown, the store waking) or was out of reach.
+ */
+async function syncDevice(choices: Choices): Promise<boolean> {
   try {
     const current = await subscription();
-    if (!current) return;
+    if (!current) return false;
     const wants = choices.daily || choices.weekly;
-    await fetch("/api/push-device", {
+    const response = await fetch("/api/push-device", {
       method: wants ? "PUT" : "DELETE",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(
@@ -158,8 +161,9 @@ async function syncDevice(choices: Choices): Promise<void> {
           : { endpoint: current.endpoint },
       ),
     });
+    return response.ok;
   } catch {
-    // Offline: the next change sends it again.
+    return false;
   }
 }
 
@@ -173,7 +177,11 @@ export async function applyChoices(next: Choices): Promise<Choices> {
   if (KINDS.some((kind) => next[kind])) {
     if (!(await ensureSubscribed())) return before;
     saveChoices(next);
-    await syncDevice(next);
+    // A Daily or Weekly the server did not register would never be sent: the switch goes back to what it was.
+    if (!(await syncDevice(next)) && (next.daily || next.weekly)) {
+      saveChoices(before);
+      return before;
+    }
     return next;
   }
   saveChoices(next);

@@ -165,7 +165,9 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
     }
     // The request goes with the run, so a failure can send it again (Try again).
     rememberCancelToken(reply.run_id, reply.cancel_token);
-    void import("../lib/pushClient").then((push) => push.watchRun(reply.run_id, "regenerate"));
+    void import("../lib/pushClient")
+      .then((push) => push.watchRun(reply.run_id, "regenerate"))
+      .catch(() => {});
     startRun(reply.run_id, { kind, episode: id }, { body });
     form.reset();
     if (count) count.hidden = true;

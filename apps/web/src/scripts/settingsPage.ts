@@ -223,10 +223,12 @@ function mountSettings(root: HTMLElement): () => void {
   let stopNotifications: (() => void) | null = null;
   let gone = false;
   if (hasNotifications) {
-    void import("./notificationsSettings").then((page) => {
-      if (gone) return;
-      stopNotifications = page.mountNotifications(root);
-    });
+    void import("./notificationsSettings")
+      .then((page) => {
+        if (gone) return;
+        stopNotifications = page.mountNotifications(root);
+      })
+      .catch(() => {});
   }
 
   return () => {

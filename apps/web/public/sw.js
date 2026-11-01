@@ -614,7 +614,14 @@ function healed(event, answer, probe = event.request) {
 
 /** A path on this site from a message, or the library when the message names anything else. */
 function pushTarget(path) {
-  return typeof path === "string" && /^\/(?!\/)/.test(path) ? path : "/library";
+  if (typeof path !== "string") return "/library";
+  try {
+    // Resolved the way the browser will: "/\host" and "/<tab>/host" leave the site.
+    const url = new URL(path, self.location.origin);
+    return url.origin === self.location.origin ? url.pathname + url.search + url.hash : "/library";
+  } catch {
+    return "/library";
+  }
 }
 
 self.addEventListener("push", (event) => {

@@ -157,11 +157,11 @@ export function makePushCommand(deps: PushDeps = {}): CommandRun {
       const line = `Push: ${sent} sent, ${failed} to retry, ${Math.max(0, done.length - sent)} dropped, ${swept} swept.`;
       process.stdout.write(`${ctx.json ? JSON.stringify({ sent, retry: failed, swept }) : line}\n`);
     } catch (error) {
-      let reason = describeError(error, []);
-      for (const secret of databaseSecrets(databaseUrl))
-        reason = reason.split(secret).join("[redacted]");
-      if (privateKey) reason = reason.split(privateKey).join("[redacted]");
-      ctx.log.warn("Push was not sent", { reason });
+      // Redacted before describeError cuts the text, so a cut cannot leave half a secret readable.
+      const secrets = [...databaseSecrets(databaseUrl), privateKey].filter(
+        (secret) => secret.length > 0,
+      );
+      ctx.log.warn("Push was not sent", { reason: describeError(error, secrets) });
     }
     return 0;
   };
