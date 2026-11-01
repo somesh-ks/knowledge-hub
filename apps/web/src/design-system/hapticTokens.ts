@@ -7,11 +7,11 @@
 
 export const HAPTIC_PATTERNS = {
   "none": { android: [], ios: { ticks: 0, gap_ms: 0 } },
-  "tick-light": { android: [20], ios: { ticks: 1, gap_ms: 0 } },
-  "tick": { android: [30], ios: { ticks: 1, gap_ms: 0 } },
-  "double": { android: [30, 60, 30], ios: { ticks: 2, gap_ms: 90 } },
-  "triple": { android: [35, 50, 35, 50, 35], ios: { ticks: 3, gap_ms: 70 } },
-  "celebrate": { android: [30, 50, 30, 50, 70], ios: { ticks: 3, gap_ms: 80 } },
+  "tick-light": { android: [12], ios: { ticks: 1, gap_ms: 0 } },
+  "tick": { android: [16], ios: { ticks: 1, gap_ms: 0 } },
+  "double": { android: [12, 70, 12], ios: { ticks: 2, gap_ms: 90 } },
+  "thud": { android: [16, 60, 16], ios: { ticks: 2, gap_ms: 60 } },
+  "celebrate": { android: [12, 108, 20], ios: { ticks: 2, gap_ms: 120 } },
 } as const;
 
 export type HapticPattern = keyof typeof HAPTIC_PATTERNS;
@@ -26,7 +26,7 @@ export const HAPTIC_INTENTS = {
   "close": "none",
   "start": "tick",
   "success": "double",
-  "error": "triple",
+  "error": "thud",
   "ready": "celebrate",
 } as const satisfies Record<string, HapticPattern>;
 

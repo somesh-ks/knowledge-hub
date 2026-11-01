@@ -545,3 +545,12 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Amends: D273 (the `navigate`, `tap` and player entries).
 - Revisit if: the owner finds it too busy on a list, then quiet the intent that is wrong, not the system.
 
+## D290: haptics are subtle and follow the sounds
+
+- Date: 2026-11-01 (the owner: "too strong on Android ... subtle, in a symphony with the interface sounds ... a nice vibration for the ta-da"; he picked the proposed level on a lab page)
+- Decision: a haptic is the attack of its sound, not its tail. The web sets a buzz's length and never its strength, so strength is how short the pulse is: Android pulses are 12 ms (`tick-light`: a press, a switch, a detent, a skip, pause), 16 ms (`tick`: a sheet or menu opening, play, a run starting) and 20 ms at most. Success is two soft beats (`double`, 12/70/12). The ta-da (`ready`, `celebrate`) is two rising beats that follow its two notes, 12 then 20 ms, 108 ms apart. A failure (`error`, `thud`) is two soft beats, 16/60/16. The three-beat `triple` is gone. An iPhone has one fixed tick, so it gets fewer of them: two for success, ready and error (gaps 90, 120 and 60 ms).
+- Why: 20 to 30 ms pulses were too strong across a phone, and a buzz on every press made it worse; 6 to 10 ms was not felt at all. The sounds are one pentatonic family with short attacks; the touch should be as quiet and as brief.
+- Rejected: a pulse train to fake a lower strength (motors blur it); one pattern for every intent (a ta-da and a tap would feel alike); dropping haptics for taps.
+- Amends: D273, D289 (the pattern values; the intents are unchanged).
+- Revisit if: another phone is reported too weak or too strong, then change `primitive.haptic` only.
+
