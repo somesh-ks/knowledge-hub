@@ -218,8 +218,10 @@ test.describe("one page gutter", () => {
   });
 
   // The shell once reserved the contents list's track on every page, so a column on a wide window sat
-  // left of the middle: 96px of room on its left and 384px on its right (owner, 2026-10-29).
-  test("a reading column has the same room on both sides of the pane", { tag: "@desktop" }, async ({
+  // left of the middle: 96px of room on its left and 384px on its right (owner, 2026-10-29). A page with
+  // a contents list is centred as the column and its list together: the column alone beside its list sat
+  // right of the middle (owner, 2026-11-01).
+  test("a page's content has the same room on both sides of the pane", { tag: "@desktop" }, async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -230,11 +232,13 @@ test.describe("one page gutter", () => {
       const room = await page.evaluate(() => {
         const main = document.querySelector("main")?.getBoundingClientRect();
         const nav = document.querySelector(".app-nav")?.getBoundingClientRect();
+        // The list's entries, where the page has one: the content reaches to their edge.
+        const list = document.querySelector(".aside-link")?.getBoundingClientRect();
         if (!main || !nav) throw new Error("no main or navigation");
         // The body's edge, not the window's: a reserved scrollbar gutter is no room of the page's.
         return [
           main.left - nav.right,
-          document.body.getBoundingClientRect().right - main.right,
+          document.body.getBoundingClientRect().right - (list?.right ?? main.right),
           main.width,
         ];
       });
