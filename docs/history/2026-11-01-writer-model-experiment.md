@@ -7,3 +7,6 @@ The owner asked for the lowest run cost he can get and for a test of Sonnet 5.5 
 `run.yml` starts it after Validate when a dispatch sets `writer_experiment`, on the run's own `materials.json`. The repository is public (D298), so the stories, their source text and the owner's block prompts never leave the runner: no artifact, and only the score table goes to the step summary. The blind read stays on the runner until D300/D301 give a private place to put it.
 
 The first pass only is compared; the voice rewrite loop is left out so the model alone is measured. Jev is one judge and favours its own habits, so a small gap needs the blind read. The router stays static: it takes the step's chain and falls back only on failure. A feedback-aware route (Regenerate and Catch up choosing a model) waits for these results.
+
+Result (run 41348226002, 9 stories): Haiku medium had the best voice score and grounding at $0.012 against $0.199 for Sonnet high; Gemini Flash did not stay grounded. The owner chose Haiku for the first pass with Sonnet repairs (D308), and `models.json` and `prices.json` changed with it.
+
