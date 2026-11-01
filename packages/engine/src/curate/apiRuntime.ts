@@ -112,8 +112,20 @@ export function createApiRuntime(
     onRequest: spend ? (provider) => spend.meter.add(provider) : undefined,
     onUsage: spend
       ? (usage) => {
-          spend.meter.addUnits(usage.provider, usage.model, "input_tokens", usage.inputTokens);
-          spend.meter.addUnits(usage.provider, usage.model, "output_tokens", usage.outputTokens);
+          // Batch tokens are priced at the Message Batches rate (half), so they are their own unit.
+          const prefix = usage.batch ? "batch_" : "";
+          spend.meter.addUnits(
+            usage.provider,
+            usage.model,
+            `${prefix}input_tokens`,
+            usage.inputTokens,
+          );
+          spend.meter.addUnits(
+            usage.provider,
+            usage.model,
+            `${prefix}output_tokens`,
+            usage.outputTokens,
+          );
         }
       : undefined,
     onFallback: spend ? () => spend.meter.add("model_fallback") : undefined,
@@ -187,7 +199,13 @@ export function createApiRuntime(
   return {
     judge,
     enrich,
-    writer: new LlmWriter({ llm: router.llmFor("story_writer"), voice, log, secrets }),
+    writer: new LlmWriter({
+      llm: router.llmFor("story_writer"),
+      batch: router.batchFor("story_writer"),
+      voice,
+      log,
+      secrets,
+    }),
     grounder,
     topicJudge,
     combinedJudge,

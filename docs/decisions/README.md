@@ -137,13 +137,13 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D114 | Every episode is for the owner; New episode form is short | active; amends D39, D67, D76, D101 |
 | D115 | Settings save quietly: no toast while a change saves or once it is saved; the toast is for a failure, an Undo or a partial save | active; amends D79, D91, D98 |
 | D116 | docs/ is grouped by purpose: the record at the top, plan/, engineering/, design/, reference/; audits fold into history notes | active; amends D14 |
-| D117 | Model picker: Anthropic, Nebius lists live (5 min cache); a Claude beyond the built-in two saves only if Anthropic lists it | active; amends D46, D58 |
+| D117 | Model picker: Anthropic, Nebius lists live (5 min cache); a Claude beyond the built-in two saves only if Anthropic lists it | superseded by D136 (the picker and `/api/models` are gone); amends D46, D58 |
 | D118 | Jev 1.14.0 is pinned; Jev checks the strongest candidates against the owner's taste (votes, opens), replacing the vote nudge, within 15% | active; amends D3, D108 |
 | D119 | A briefing sized by the owner's length writes 30% spares; validation airs the best survivors until measured narration fills the length, each topic's best kept | active |
 | D120 | Science takes a one-outlet story that is clearly on topic; the other general topics keep the two-outlet rule | active; amends D40, D43 |
 | D121 | Covers are drawn at medium chroma (OKLCH 0.12 or less); each monthly series has its own style set and prints on its own close tint of the month's paper | active; amends D110 |
 | D122 | Covers a step brighter in both themes; the header light takes the cover's colours as three drifting lights; a theme change waits for covers | active; amends D48, D77, D121 |
-| D123 | One AI model select on Settings; no manifest colour, so Android's bars follow the system; a launch screen; the playing cover lights the player | active; amends D51, D101 |
+| D123 | One AI model select on Settings; no manifest colour, so Android's bars follow the system; a launch screen; the playing cover lights the player | active, except the model select, which D136 removed; amends D51, D101 |
 | D124 | Weights are five named stops and Off; sources have a Jev-classified format; a format mix per page; two stories per outlet | active; amends D57, D69, D83 |
 | D125 | Headings never bold; Settings H2s at the 22px role; an Intelligence section for the model; Topics and sources: a search and a floating Add | active; amends D73, D123, D124 |
 | D126 | A play queue, an Up next peek and sheet, a collapse chevron, Space to play | active; amends D102, D111 |
@@ -187,7 +187,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D167 | One shape per control | amends D72 |
 | D168 | Catch up, bolt, swipe toasts | amends D52 |
 | D169 | Queue gestures | amends D126 |
-| D170 | Podcast structure | accepted |
+| D170 | Podcast structure | built (D176, D182, D191); phase 3 closed by D241 |
 | D171 | Richer covers | amends D121 |
 | D172 | Store reads keep a copy | amends D149 |
 | D173 | Content is data in one repository; builds ship code only | accepted |
@@ -225,7 +225,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D206 | Stay on npm; pnpm spiked | active |
 | D207 | A Regenerate asks for its own length | amends D204 |
 | D208 | A list of generations, with Cancel | amends D204; list superseded by D231 |
-| D209 | Lane free in the hold | supersedes D135; amends D197 |
+| D209 | Lane free in the hold | supersedes D135; amends D197; step 1 built (#399), steps 2 to 5 not built |
 | D210 | Typed HTML builders | active |
 | D211 | Copy says podcast, not briefing; code names keep briefing | active |
 | D212 | Three regenerations per podcast, no daily limit | active |
@@ -276,7 +276,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D258 | Cover version in its path | amends D256 |
 | D259 | Saves kept before sending | amends D79, D91, D115, D249 |
 | D262 | Sheet and Drawer split | amends D243 |
-| D263 | Cover version in URL | proposed; amends D258 |
+| D263 | Cover version in URL | superseded by D293 |
 | D264 | Card long press | active |
 | D265 | A select's phone list is the sheet | amends D167 |
 | D266 | Icon, Badge, type | amends D243 |
@@ -293,6 +293,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D277 | Queue keeps played items; a tap plays in place | amends D126 |
 | D278 | Softer light covers | amends D121 |
 | D280 | Travel 300 ms | amends D271 |
+| D282 | A page falls back to the content its build holds when the store cannot answer | amends D173, D251 |
 | D283 | Read-first is AGENTS.md and state.md (20 KB), the Index is grep-only, the ledger is split by surface; "replaces" retires the old row | active |
 | D281 | Downloads page, no cap | amends D127, D264 |
 | D284 | Push pings | amends D11 |
@@ -300,6 +301,8 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D287 | Column and list centred together | amends D229 |
 | D288 | Library list: month labels, two columns | |
 | D289 | Every press is felt | amends D273 |
+| D293 | On-demand covers are served at /covers | supersedes D263; amends D256, D258 |
+| D294 | Scheduled writer uses Message Batches | amends D209 (step 3 built, step 2 open); D135 ended |
 | D295 | Playback audio session only while Sounds is on | amends D105 |
 
 ---

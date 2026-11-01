@@ -23,7 +23,7 @@ import { describeError } from "./redact";
 import { resolveHostNames } from "./voices";
 
 /**
- * POST /api/podcast: check the request and the passphrase, check the episode limits against
+ * POST /api/podcast: check the request, check the episode limits against
  * GitHub, singularity podcast.yml with the request as its one input. Built like /api/generate and with
  * the same guards, and tested the same way: every side effect is a parameter. A new discussion also
  * names its hosts after its voices here, because the workflow has no Speechify key to do it.
@@ -38,13 +38,8 @@ export type PodcastDeps = GenerateDeps & {
 export type PodcastInput = GenerateInput;
 type PodcastResult = ApiResult<PodcastCreateResponse>;
 
-/**
- * podcast.yml names a run "episode" for a new Catch up and "regenerate <id>" or "delete <id>" for the
- * rest (its run-name). "podcast" is the name before that, kept for a day after the change so a run
- * of the old name is still counted.
- */
-const isNewEpisodeRun = (run: WorkflowRun): boolean =>
-  run.title === "episode" || run.title === "podcast";
+/** podcast.yml names a run "episode" for a new Catch up and "regenerate <id>" or "delete <id>" for the rest (its run-name). */
+const isNewEpisodeRun = (run: WorkflowRun): boolean => run.title === "episode";
 
 /** A run that came out, or is still being made: one that failed or was cancelled used no Catch up. */
 const countsAsCatchUp = (run: WorkflowRun): boolean =>

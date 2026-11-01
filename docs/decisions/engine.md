@@ -529,3 +529,24 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Limit: D258's read-again before a 404 works and stays; its claim that each version has a cache entry of its own does not hold.
 - Revisit if: a cover shows old after a regeneration.
 - Amends: D258.
+
+## D293: on-demand covers are served at `/covers` itself
+
+- Date: 2026-11-01 (the 1 Nov weekly had no album art).
+- Decision: the handler that draws a cover the build lacks lives at `src/pages/covers/[...path].ts`, and `vercel.json` has no cover rewrites. It reads `?v=` from the query (`versionOf`). A cover the build drew is a file, and Vercel serves a file before any function.
+- Why: D256 and D258 sent `/covers/*` to `/api/cover/*` by rewrite. The rewrite reached the one Astro function, but Astro routes on the URL the reader asked for, so no route matched and every unbuilt cover answered an empty 404. Reproduced with the production build (`/covers/probe-512.webp` gave an empty 404, `/api/cover/0/probe-512.webp` the handler's answer), and live (`/api/cover/<v>/2026-11-01-weekly-512.webp` gave a 200 WebP, `/covers/...` a 404). On-demand covers therefore never worked at the public address; they appeared when a later deploy built them.
+- Limit: D258's and D263's claims about the CDN keying `/covers/*` by path alone came from probes that could not tell this 404 from the function's own, so they are unproven; re-probe once this is deployed. The `?v=` header rule in `vercel.json` is gone: it gave a 404 or 503 a year and `immutable` over the handler's `no-store`, which a phone could keep. The handler sets its own headers on a drawn cover (a year only for the current version); a cover the build drew keeps the hour-long `/covers/` rule.
+- Revisit if: a cover is not drawn for a record newer than the deploy, or a cover shows old after a regeneration.
+- Context changed: D263's path-based versioning could not route an unbuilt cover to the handler at its public address, so the version moves back to the query.
+- Supersedes: D263. Amends: D256, D258.
+
+## D294: the scheduled writer's first pass is a Message Batch
+
+- Date: 2026-11-01 (Somesh, after the 1 Nov weekly ran at full price: "I specifically asked you to make sure batch api is used for scheduled ones like daily, weekly"). D209 chose this on 2026-10-28 and step 3 was never built.
+- Decision: a scheduled run that is generating ahead of its publish time (`plan.publish_at` at least 25 minutes away, not a dry run) sends the first pass of its stories to Anthropic's Message Batches API from inside the write stage, and polls it every 30 seconds until `publish_at` less 15 minutes (`BATCH_CUTOFF_MS`, `batchDeadline`). At the cutoff it cancels the batch and waits for its status to reach `ended` before reading results. A request that came back late, cut off, refused or unreadable is written the usual way (splits and retries included), so each story is written once. A batch that is refused or whose status cannot be read leaves everything to the live path. Catch up, Regenerate, on-demand runs, dry runs and late scheduled runs write live. Batch tokens are the ledger units `batch_input_tokens` and `batch_output_tokens`, priced at half (`config/prices.json`).
+- Why: the run already waits about two hours for its time, so the batch costs no latency, and it halves the price of what the writer sends. The 1 Nov weekly spent 1.62 USD on the writer of a 1.86 USD run, 68 percent of it output tokens.
+- Not built: the job split of D209 step 2 (a hold job that frees the `singularity` lane); this decision does not need it, and the lane stays held for the wait as before. The voice rewrites, grounding refills and the refill pass stay live: they depend on each other's replies and run seconds apart.
+- Limit: only the first pass is discounted; how much of the writer's spend that is has not been measured. The first scheduled runs show it in the ledger (`batch_*` against `*_tokens` units). The ledger prices a cache read as a full input token, so both overstate a little. Whether the Batches API accepts `output_config.format` on every entry is unverified until a scheduled run uses it; a refused batch falls back and logs "The batch was not accepted".
+- Revisit if: a batch misses the cutoff on more than one run in ten, the batch units are under a quarter of the writer's tokens after a week, or the Batches API refuses the schema format.
+- Amends: D209 (step 3 shipped without step 2). Ends: D135.
+

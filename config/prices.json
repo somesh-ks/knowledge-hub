@@ -13,6 +13,14 @@
         "output_tokens": {
           "usd": 15,
           "per": 1000000
+        },
+        "batch_input_tokens": {
+          "usd": 1.5,
+          "per": 1000000
+        },
+        "batch_output_tokens": {
+          "usd": 7.5,
+          "per": 1000000
         }
       },
       "as_of": "2026-10-21",
@@ -29,6 +37,14 @@
         },
         "output_tokens": {
           "usd": 15,
+          "per": 1000000
+        },
+        "batch_input_tokens": {
+          "usd": 1.5,
+          "per": 1000000
+        },
+        "batch_output_tokens": {
+          "usd": 7.5,
           "per": 1000000
         }
       },
