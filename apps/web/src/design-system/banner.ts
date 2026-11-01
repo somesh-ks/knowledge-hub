@@ -8,7 +8,11 @@ import type { Guidance } from "./guidance";
 
 export type BannerTone = "info" | "warning" | "danger" | "success";
 
+/** A block sits in the page; a strip is a band over it (banner.css), for a state of the device. */
+export type BannerVariant = "block" | "strip";
+
 export const BANNER: Guidance & {
+  variants: Record<BannerVariant, Guidance & { label: string }>;
   tones: Record<BannerTone, Guidance & { label: string }>;
 } = {
   summary: "A tinted block with an icon, a title, an optional line and at most one text button.",
@@ -20,9 +24,32 @@ export const BANNER: Guidance & {
       when: "The message confirms an action and may clear itself.",
     },
     {
+      when: "A banner in the page would push it down while it moves (a cover between pages).",
+      instead: "Banner.strip",
+    },
+    {
       when: "A person must decide before going on.",
     },
   ],
+  variants: {
+    block: {
+      label: "Block",
+      summary: "A tinted block in the page, above the content it belongs to.",
+      useWhen: ["The banner belongs to one page and may take its own line."],
+      dontUseWhen: [
+        { when: "It tells the state of the device, on every page.", instead: "Banner.strip" },
+      ],
+    },
+    strip: {
+      label: "Strip",
+      summary:
+        "A band across the width, drawn over the page so nothing moves: offline, back online.",
+      useWhen: ["The state is the device's, not the page's, and shows on every page."],
+      dontUseWhen: [
+        { when: "It carries a title, a line and an action.", instead: "Banner.warning" },
+      ],
+    },
+  },
   tones: {
     info: {
       label: "Info",

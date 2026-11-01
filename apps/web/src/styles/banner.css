@@ -36,9 +36,9 @@
    depends on the tone, and the two lines differ by weight, not by a grey. */
 .banner-notice > .icon-glyph {
   /* Centred on the title's first line. */
-  margin-block-start: calc(
-    (var(--text-label-size) * var(--text-label-leading) - var(--size-icon)) /
-    2
+  margin-block-start: var(
+    --banner-icon-offset,
+    calc((var(--text-label-size) * var(--text-label-leading) - var(--size-icon)) / 2)
   );
   color: var(--tone);
 }
@@ -58,6 +58,28 @@
 .banner-body {
   margin-block-start: var(--space-1);
   line-height: var(--font-leading-body);
+}
+
+/* The strip: a flat band across the width, for a state of the device (offline, back online). It is
+   drawn over the page, never in it, so it takes no line and moves nothing; the place that draws it
+   sets where it sits and --strip-height, --strip-inset-top (the safe area it also covers). */
+.banner-notice[data-variant="strip"] {
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-block-size: var(--strip-height, var(--space-6));
+  padding-block: var(--strip-inset-top, 0) 0;
+  padding-inline: var(--page-gutter);
+  border-radius: 0;
+  /* One line, centred: the icon needs no nudge onto a title's first line. */
+  --banner-icon-offset: 0;
+  animation: banner-strip-in var(--duration-state) var(--ease-out) both;
+}
+
+@keyframes banner-strip-in {
+  from {
+    transform: translateY(-100%);
+  }
 }
 
 /* The button's target is 44px; negative margins keep it from making a one-line banner taller. */

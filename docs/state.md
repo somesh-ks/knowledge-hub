@@ -19,7 +19,6 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 ## Not working or unverified
 
 - Blob on Pro trial since 10-30 (D251, D256). closed when: ops stay under 1,000 a month.
-- Page motion, taps (D280). closed when: no flicker, flight, pill, tap fault.
 - Queue plays in place (D277). closed when: a third-item tap keeps the bar up.
 - Expressive style (#506; D268, D274, D275, D278), no picker yet. closed when: a style chosen in Appearance survives a reload.
 - Voice list (D276): closed when: a voice is heard from its list on his iPhone.

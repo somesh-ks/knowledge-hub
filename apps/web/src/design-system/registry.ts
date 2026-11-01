@@ -130,7 +130,7 @@ export const COMPONENTS: DesignSystemComponent[] = [
     summary: BANNER.summary,
     useWhen: BANNER.useWhen,
     dontUseWhen: BANNER.dontUseWhen,
-    parts: BANNER.tones,
+    parts: { ...BANNER.variants, ...BANNER.tones },
   },
   {
     name: "Dialog",
