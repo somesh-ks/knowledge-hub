@@ -98,7 +98,7 @@ Do not add `www.news.someshks.work`. Do not turn the Cloudflare proxy on.
 
 ### 1.8 No passphrase
 
-The site has no passphrase (D160): anyone who opens it can start runs and narration inside the caps. If `GENERATE_PASSPHRASE_HASH` is still set in Vercel or `.env`, delete it; nothing reads it.
+The site has no passphrase (D160): anyone who opens it can read, but starting runs, Delete, settings saves and new narration need the command center's sign-in (D307, section 1.4a), inside the caps. If `GENERATE_PASSPHRASE_HASH` is still set in Vercel or `.env`, delete it; nothing reads it.
 
 ### 1.9 Send the secrets
 
