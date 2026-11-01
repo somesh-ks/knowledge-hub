@@ -282,8 +282,13 @@ async function coversSettled(page: Page): Promise<void> {
     const large = data
       ? (JSON.parse(data) as { cover?: { src1024?: string } }).cover?.src1024
       : null;
+    // A bar brought back after a reload shows what played last, so its large cover is that item's.
+    const bar = document.documentElement.dataset.mini === "visible";
     return (
-      !large || performance.getEntriesByType("resource").some((entry) => entry.name.endsWith(large))
+      !large ||
+      performance
+        .getEntriesByType("resource")
+        .some((entry) => (bar ? /-1024\.webp/.test(entry.name) : entry.name.endsWith(large)))
     );
   });
 }
