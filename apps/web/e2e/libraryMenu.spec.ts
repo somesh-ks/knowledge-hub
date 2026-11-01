@@ -388,6 +388,13 @@ test("a long press on a card opens its menu and leaves the card unopened, and is
     );
     const heard: string[] = [];
     Object.assign(window, { heard });
+    const Original = window.AudioContext;
+    window.AudioContext = class extends Original {
+      constructor(options?: AudioContextOptions) {
+        super(options);
+        Object.assign(window, { context: this });
+      }
+    } as typeof AudioContext;
     document.addEventListener("singularity:cue", (event) =>
       heard.push((event as CustomEvent<string>).detail),
     );
@@ -405,6 +412,23 @@ test("a long press on a card opens its menu and leaves the card unopened, and is
           requestAnimationFrame(tick);
         }),
     );
+  // A cue made before the sound engine has loaded is queued and never announced: a first gesture
+  // starts it, and the cues are counted from there.
+  const prime = async () => {
+    await expect(async () => {
+      await page.mouse.click(2, 2);
+      await expect
+        .poll(() =>
+          page.evaluate(() => (window as unknown as { context?: AudioContext }).context?.state),
+        )
+        .toBe("running");
+    }).toPass({ timeout: 10_000 });
+    await page.evaluate(() => {
+      const w = window as unknown as { heard: string[]; felt: string[] };
+      w.heard.length = 0;
+      w.felt.length = 0;
+    });
+  };
   // Counts closes, because the sheet opens again after one near the lift (below) and would hide them.
   await page.evaluate(() => {
     const w = window as unknown as { closes: number };
@@ -434,6 +458,7 @@ test("a long press on a card opens its menu and leaves the card unopened, and is
   // hold's own, so the sheet opens again; Chromium never closes it, so the close is made here.
   await page.reload();
   await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  await prime();
   const again = await holdFinger(page, row(page, AUDIO_ID).locator(".card-title"));
   await expect(menu).toBeVisible();
   // The close is made by the page at the lift itself, as Safari's would be, so a slow runner cannot
@@ -443,6 +468,8 @@ test("a long press on a card opens its menu and leaves the card unopened, and is
       once: true,
     }),
   );
+  // The iPhone's haptic tick is a click from script, made as the sheet opens: it must not end the hold.
+  await page.evaluate(() => document.body.click());
   await again();
   await expect.poll(() => menu.evaluate((list) => list.matches(":popover-open"))).toBe(true);
   // The close and the reopen are one sheet staying open: heard and felt as one open, not a triple
