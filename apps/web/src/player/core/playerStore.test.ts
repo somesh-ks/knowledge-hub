@@ -571,11 +571,108 @@ describe("buffering", () => {
   });
 });
 
+/** A dropped connection that never comes back: the error, then the two retries that fail too. */
+function failNetworkForGood(harness: ReturnType<typeof createHarness>): void {
+  harness.audio.error = { code: MEDIA_ERR_NETWORK };
+  harness.audio.emit("error");
+  vi.advanceTimersByTime(1_000);
+  harness.audio.emit("error");
+  vi.advanceTimersByTime(3_000);
+  harness.audio.emit("error");
+}
+
 describe("errors", () => {
+  // Bug: a connection that dropped mid-stream (Wi-Fi to cellular, a tunnel) ended playback with an
+  // error to tap away, though the next second would have played (PWA-02).
+  it("retries a dropped connection twice from the same position before telling the listener", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.error = { code: MEDIA_ERR_NETWORK };
+    harness.audio.emit("error");
+    expect(harness.store.getState().status).toBe("loading");
+    expect(harness.store.getState().error).toBeNull();
+    vi.advanceTimersByTime(1_000);
+    harness.audio.emit("error");
+    expect(harness.store.getState().status).toBe("loading");
+    vi.advanceTimersByTime(3_000);
+    harness.audio.emit("error");
+    expect(harness.store.getState().status).toBe("error");
+    expect(harness.store.getState().error?.kind).toBe("network");
+  });
+
+  it("stops retrying when the listener pauses", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.error = { code: MEDIA_ERR_NETWORK };
+    harness.audio.emit("error");
+    harness.store.pause();
+    vi.advanceTimersByTime(10_000);
+    expect(harness.store.getState().status).toBe("paused");
+  });
+
+  // Bug: a pause during the retry wait kept the failed element, so the next Play reused a source that
+  // would never load and playback stayed stuck.
+  it("loads the source again on the Play that follows a pause during the retry wait", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    const url = harness.audio.src;
+    harness.audio.error = { code: MEDIA_ERR_NETWORK };
+    harness.audio.emit("error");
+    harness.audio.src = "";
+    harness.store.pause();
+    vi.advanceTimersByTime(10_000);
+    expect(harness.audio.src).toBe("");
+    harness.store.play();
+    expect(harness.audio.src).toBe(url);
+    expect(harness.store.getState().status).toBe("loading");
+  });
+
+  // Bug: the retry timer fired under a dragged thumb and started audio before the drag ended.
+  it("waits for the end of a scrub before it loads the source again", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    const url = harness.audio.src;
+    harness.audio.error = { code: MEDIA_ERR_NETWORK };
+    harness.audio.emit("error");
+    harness.audio.src = "";
+    harness.store.beginScrub();
+    vi.advanceTimersByTime(10_000);
+    expect(harness.audio.src).toBe("");
+    harness.store.endScrub(12);
+    expect(harness.audio.src).toBe(url);
+  });
+
+  // Bug: a scrub that ended before the retry wait did its own reload, and the timer then reloaded
+  // again under the resumed audio.
+  it("reloads once when a scrub ends before the retry wait does", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    let loads = 0;
+    let current = harness.audio.src;
+    Object.defineProperty(harness.audio, "src", {
+      get: () => current,
+      set: (value: string) => {
+        current = value;
+        loads += 1;
+      },
+    });
+    harness.audio.error = { code: MEDIA_ERR_NETWORK };
+    harness.audio.emit("error");
+    harness.store.beginScrub();
+    vi.advanceTimersByTime(500);
+    harness.store.endScrub(12);
+    vi.advanceTimersByTime(10_000);
+    expect(loads).toBe(1);
+  });
+
   it("explains a network failure in plain language", () => {
     const harness = createHarness();
     startPlaying(harness);
     harness.audio.error = { code: MEDIA_ERR_NETWORK };
+    harness.audio.emit("error");
+    vi.advanceTimersByTime(1_000);
+    harness.audio.emit("error");
+    vi.advanceTimersByTime(3_000);
     harness.audio.emit("error");
     const state = harness.store.getState();
     expect(state.status).toBe("error");
@@ -633,8 +730,7 @@ describe("errors", () => {
   it("a story step out of a failure plays the story it lands on, as a row tap does", () => {
     const harness = createHarness();
     startPlaying(harness);
-    harness.audio.error = { code: MEDIA_ERR_NETWORK };
-    harness.audio.emit("error");
+    failNetworkForGood(harness);
     const calls = harness.audio.playCalls;
     expect(harness.store.next()).toBe(true);
     expect(harness.store.getState().error).toBeNull();
@@ -787,11 +883,11 @@ describe("errors", () => {
     startPlaying(harness);
     harness.audio.currentTime = 44;
     harness.flushFrames();
-    harness.audio.error = { code: MEDIA_ERR_NETWORK };
-    harness.audio.emit("error");
+    failNetworkForGood(harness);
+    const calls = harness.audio.playCalls;
     harness.store.play();
     expect(harness.store.getState().error).toBeNull();
-    expect(harness.audio.playCalls).toBe(2);
+    expect(harness.audio.playCalls).toBe(calls + 1);
     harness.audio.loadMetadata(120);
     expect(harness.audio.currentTime).toBe(44);
   });
@@ -898,6 +994,7 @@ describe("one digest at a time", () => {
   it("plays the page's digest once its data arrives when asked from Up next", () => {
     const harness = createHarness();
     startPlaying(harness);
+    harness.events.length = 0;
     harness.store.playWhenPageLoads("2026-10-05");
     expect(harness.audio.playCalls).toBe(1);
     harness.store.setPageDigest(
@@ -906,6 +1003,18 @@ describe("one digest at a time", () => {
     expect(harness.audio.src).toBe("/audio/old.mp3");
     expect(harness.audio.playCalls).toBe(2);
     expect(harness.store.getState().status).toBe("loading");
+    // The press was felt when it was made: starting the audio after the page loads is not a second one.
+    expect(harness.events).toContainEqual({ type: "willPlay", reason: "deferred" });
+    expect(harness.events).not.toContainEqual({ type: "willPlay", reason: "user" });
+  });
+
+  it("starts a page that is already loaded with the deferred reason too", () => {
+    const harness = createHarness();
+    const digest = makeDigest();
+    harness.store.setPageDigest(digest);
+    harness.events.length = 0;
+    harness.store.playWhenPageLoads(digest.id);
+    expect(harness.events).toContainEqual({ type: "willPlay", reason: "deferred" });
   });
 });
 

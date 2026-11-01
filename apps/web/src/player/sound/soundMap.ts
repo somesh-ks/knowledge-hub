@@ -8,12 +8,15 @@
  * engine skips or ducks per recipe; this layer only chooses names).
  */
 import type { PlayOptions, SoundName } from "@singularity/sound";
+import type { HapticIntent } from "../../design-system/hapticTokens";
 import type { PlayerEvent } from "../core/playerTypes";
 import { detentGain } from "../core/scrubberMath";
 
 export interface Cue {
   name: SoundName;
   options?: PlayOptions;
+  /** What the same action feels like (D273). Absent: nothing, as transport and the volume sample. */
+  haptic?: HapticIntent;
 }
 
 /** The minimal engine surface the mapping needs, so tests inject a fake. */
@@ -25,21 +28,23 @@ export function cueForPlayerEvent(event: PlayerEvent): Cue | null {
   switch (event.type) {
     case "willPlay":
       // A scrub's own resume is the same narration continuing, not a new start.
-      return event.reason === "scrub" ? null : { name: "play" };
+      if (event.reason === "scrub") return null;
+      // Felt only for the press: a resume or the next item starting by itself is not a touch.
+      return event.reason === "user" ? { name: "play", haptic: "start" } : { name: "play" };
     case "didPause":
       // The system and scrubbing pause narration without the listener pressing pause.
-      return event.reason === "user" ? { name: "pause" } : null;
+      return event.reason === "user" ? { name: "pause", haptic: "tap" } : null;
     case "itemChanged":
-      if (event.cause === "skip-next") return { name: "itemNext" };
-      if (event.cause === "skip-previous") return { name: "itemPrev" };
+      if (event.cause === "skip-next") return { name: "itemNext", haptic: "select" };
+      if (event.cause === "skip-previous") return { name: "itemPrev", haptic: "select" };
       // Keyboard navigation, automatic advance, scrubbing and chapter taps stay silent.
       return null;
     case "rateChanged":
-      return { name: "speedChange", options: { rate: event.rate } };
+      return { name: "speedChange", options: { rate: event.rate }, haptic: "select" };
     case "ended":
       return { name: "digestEnd" };
     case "error":
-      return { name: "error" };
+      return { name: "error", haptic: "error" };
     case "interrupted":
     case "loaded":
       return null;
@@ -51,15 +56,16 @@ export function cueForDetent(position: number, pointerSpeedPxPerMs: number): Cue
   return {
     name: "scrubDetent",
     options: { position, gain: detentGain(pointerSpeedPxPerMs) },
+    haptic: "detent",
   };
 }
 
 export function cueForSheet(opening: boolean): Cue {
-  return { name: opening ? "sheetOpen" : "sheetClose" };
+  return { name: opening ? "sheetOpen" : "sheetClose", haptic: opening ? "open" : "close" };
 }
 
 export function cueForSwitch(turningOn: boolean): Cue {
-  return { name: turningOn ? "toggleOn" : "toggleOff" };
+  return { name: turningOn ? "toggleOn" : "toggleOff", haptic: "select" };
 }
 
 /** Releasing the volume slider plays a sample so the level can be judged. */
@@ -72,11 +78,12 @@ export type GenerateCueKind = "started" | "finished" | "failed";
 export function cueForGenerate(kind: GenerateCueKind): Cue {
   switch (kind) {
     case "started":
-      return { name: "generateStart" };
+      return { name: "generateStart", haptic: "start" };
     case "finished":
-      return { name: "generateDone" };
+      // A podcast is ready to play.
+      return { name: "generateDone", haptic: "ready" };
     case "failed":
-      return { name: "error" };
+      return { name: "error", haptic: "error" };
   }
 }
 

@@ -1,6 +1,7 @@
 import { isFiniteNumber } from "./mathUtils";
 import { isPlaybackRate, type PlaybackRate } from "./playerTypes";
 import { type StorageLike, safeLocalStorage } from "./resume";
+import { tabShared } from "./tabSlot";
 
 /**
  * One JSON object under one key. The layout's inline theme script reads the same key before first
@@ -11,10 +12,21 @@ export const PREFERENCES_KEY = "singularity:preferences";
 export const THEME_PREFERENCES = ["system", "light", "dark"] as const;
 export type ThemePreference = (typeof THEME_PREFERENCES)[number];
 
+/**
+ * The look this device chose: "default" or the name of a style in tokens.json (D268). Any
+ * lowercase kebab-case word is kept, so a style added there needs no change here; a name no
+ * style carries matches no CSS and looks like the default.
+ */
+export type StylePreference = string;
+export const DEFAULT_STYLE: StylePreference = "default";
+
 export interface Preferences {
   theme: ThemePreference;
+  style: StylePreference;
   /** null until the listener chooses, so the reduced-motion default can apply. */
   sounds: boolean | null;
+  /** Touch feedback (D273). On unless turned off; a device with no motor never shows the choice. */
+  haptics: boolean;
   /** 0 to 1, before the engine's quadratic taper. */
   volume: number;
   /** The default speed: where every episode starts. A change in the player lasts one episode. */
@@ -27,7 +39,9 @@ export const DEFAULT_VOLUME = 0.8;
 
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: "system",
+  style: DEFAULT_STYLE,
   sounds: null,
+  haptics: true,
   volume: DEFAULT_VOLUME,
   rate: 1,
   autoplay: true,
@@ -35,6 +49,10 @@ export const DEFAULT_PREFERENCES: Preferences = {
 
 function isTheme(value: unknown): value is ThemePreference {
   return typeof value === "string" && (THEME_PREFERENCES as readonly string[]).includes(value);
+}
+
+function isStyle(value: unknown): value is StylePreference {
+  return typeof value === "string" && /^[a-z][a-z-]{0,23}$/.test(value);
 }
 
 /** Tolerates anything: a stale shape, hand-edited JSON, a value from a future version. */
@@ -50,7 +68,9 @@ export function parsePreferences(raw: string | null): Preferences {
   const record = parsed as Record<string, unknown>;
   return {
     theme: isTheme(record.theme) ? record.theme : DEFAULT_PREFERENCES.theme,
+    style: isStyle(record.style) ? record.style : DEFAULT_STYLE,
     sounds: typeof record.sounds === "boolean" ? record.sounds : null,
+    haptics: typeof record.haptics === "boolean" ? record.haptics : DEFAULT_PREFERENCES.haptics,
     volume: isFiniteNumber(record.volume)
       ? Math.min(1, Math.max(0, record.volume))
       : DEFAULT_PREFERENCES.volume,
@@ -120,13 +140,15 @@ export function prefersReducedMotion(): boolean {
   );
 }
 
-let shared: PreferencesStore | null = null;
-
-/** The app-wide store. Created on first use so importing this module costs nothing. */
+/**
+ * The app-wide store. Created on first use so importing this module costs nothing. One per tab
+ * (tabSlot.ts): the runtime a first copy started reads it, and a newer copy's Settings writes it.
+ */
 export function getPreferences(): PreferencesStore {
-  shared ??= createPreferencesStore({
-    storage: safeLocalStorage(),
-    defaultSounds: () => !prefersReducedMotion(),
-  });
-  return shared;
+  return tabShared("preferences", () =>
+    createPreferencesStore({
+      storage: safeLocalStorage(),
+      defaultSounds: () => !prefersReducedMotion(),
+    }),
+  );
 }

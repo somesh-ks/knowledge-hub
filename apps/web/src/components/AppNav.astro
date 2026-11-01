@@ -1,9 +1,9 @@
 ---
+import Icon from "../design-system/Icon.astro";
 import { buildDay } from "../lib/buildDay";
 import type { IconName } from "../lib/icons";
 import { getSite } from "../lib/site";
 import BrandMark from "./BrandMark.astro";
-import Icon from "./Icon.astro";
 import QueueRing from "./QueueRing.astro";
 
 export type Destination = "today" | "library" | "settings";
@@ -56,7 +56,7 @@ const destinations: Array<{
     <span>Singularity</span>
   </a>
   <a class="app-nav-create btn-action-tonal" href="/create" data-create-open data-sound="open" aria-current={onCreate ? "page" : undefined}>
-    <Icon name="plus" class="icon-lg" />
+    <Icon name="plus" size="lg" />
     <span>Catch up</span>
   </a>
   <ul class="app-nav-list" role="list">
@@ -74,8 +74,8 @@ const destinations: Array<{
               {/* Both drawings are in the page, so the item can light up on the press, before its page arrives.
                    The indicator is the pill behind the icon in the bottom bar; the side column draws the row itself. */}
               <span class="app-nav-indicator">
-                <Icon name={destination.icon} class="icon-lg app-nav-icon-rest" />
-                <Icon name={destination.iconCurrent} class="icon-lg app-nav-icon-current" />
+                <Icon name={destination.icon} size="lg" class="app-nav-icon-rest" />
+                <Icon name={destination.iconCurrent} size="lg" class="app-nav-icon-current" />
               </span>
               <span>{destination.label}</span>
             </a>

@@ -26,11 +26,12 @@ What it does now. Reasons: D44, D59, D60, D77, D78, D88, D97, D104, D109, D127; 
 - Search finds a date in any form and searches inside episode scripts. Search, filter and order stay in the address.
 - A recording heard to its end says Played (D78).
 - The Library has a List view and a play button on covers. Sort is a drawn select, absent on a phone (below 40rem), where the chips and the view switch share one line (chips scroll at 360px).
+- In the List view each month has a small muted label ("October 2026", D288) that sticks under the top chrome; labels show for Newest and Oldest first, not Longest, and a month with nothing on show has none. From 80rem the rows run two across; below it, and on a phone, one column.
 - Cards off screen use `content-visibility`.
 
 ### Row menu and downloads (D127)
-- Each row has a three-dots menu (`LibraryItemMenu.astro`, `libraryMenu.ts`): Download or Remove download, Add to queue, Regenerate, Share (`navigator.share`, else the link is copied and "Link copied" shows), and Delete where the page allows it.
-- Download stores the audio (a briefing's file; an episode's every pre-narrated turn, its marks and its `/api/narrate` lookup), the page, covers and scripts in Cache Storage `singularity-audio-v1`, at most 10, oldest evicted (`lib/downloads.ts`, `libraryDownloads.ts`). An episode with a turn not stored says "Not ready offline yet".
+- Each row has a three-dots menu (`LibraryItemMenu.astro`, `libraryMenu.ts`; on a touch screen the dots are hidden and a 450 ms hold on the card opens it, D264, `cardHold.ts`): Download or Remove download, Add to queue, Regenerate, Share (`navigator.share`, else the link is copied and "Link copied" shows), and Delete where the page allows it.
+- Download stores the audio (a briefing's file; an episode's every pre-narrated turn, its marks and its `/api/narrate` lookup), the page, covers and scripts in Cache Storage `singularity-audio-v1`, no cap, nothing evicted (`lib/downloads.ts`, `libraryDownloads.ts`); Settings > Downloads lists, searches (from 8) and removes them (D281, `downloadsPage.ts`). An episode with a turn not stored says "Not ready offline yet".
 - The three dots sit at the card's top right (a surface disc over the art) and do not move on press; no icon button scales or moves its glyph on press. On a phone the menu is a bottom sheet (SheetHeader and a scrim); from 40rem it is the popover. Every item has an outline icon (Share is the arrow).
 - A downloaded briefing's Play chip works offline: it is shut offline only when its audio is not saved (`readerSync.ts` reads `singularity-audio-v1`).
 - A downloaded row shows a filled check-circle, with "Downloaded" hidden at the start of its subtitle.

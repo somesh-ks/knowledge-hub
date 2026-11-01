@@ -149,7 +149,7 @@
   gap: var(--space-4);
 }
 
-.menu-sheet .menu-item .icon {
+.menu-sheet .menu-item .icon-glyph {
   flex: none;
   width: var(--size-icon);
   height: var(--size-icon);
@@ -216,6 +216,11 @@
     flex: none;
     padding-block: var(--space-1);
     padding-inline: var(--space-2) var(--space-1);
+  }
+
+  /* A select that opens as a wheel (wheel.css) has no rows to end the sheet; it ends a step lower. */
+  .menu-sheet[data-wheel] {
+    padding-block-end: max(var(--space-4), var(--safe-bottom));
   }
 
   /* The rows of the sheet are as tall as a select's and a picker's (--size-option). */

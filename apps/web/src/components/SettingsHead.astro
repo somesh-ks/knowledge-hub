@@ -1,7 +1,7 @@
 ---
 interface Props {
-  /** The page's own name, which is its heading. */
-  title: string;
+  /** The page's own name, which is its heading. Left out, the head is the crumb alone (a category's page, whose card holds the name). */
+  title?: string;
   /** One quiet line under the title: what the page is for. */
   note?: string;
   /** Show the "Settings /" crumb on a page reached from Settings outside /settings/. */
@@ -26,6 +26,16 @@ const { title, note, crumb = Astro.url.pathname.startsWith("/settings/") } = Ast
       </nav>
     )
   }
-  <h1 class="page-title" id="page-title" tabindex="-1">{title}</h1>
+  {
+    title &&
+      (Astro.slots.has("end") ? (
+        <div class="settings-head-row">
+          <h1 class="page-title text-display" id="page-title" tabindex="-1">{title}</h1>
+          <slot name="end" />
+        </div>
+      ) : (
+        <h1 class="page-title text-display" id="page-title" tabindex="-1">{title}</h1>
+      ))
+  }
   {note && <p class="settings-note">{note}</p>}
 </header>

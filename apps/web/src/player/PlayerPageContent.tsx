@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from "react";
 import { getPlayerStore } from "./core/playerRuntime";
 import { storyTurns } from "./core/storyTurns";
+import { swipeClickGuard } from "./core/swipeClickGuard";
 import { usePlayerState } from "./hooks/usePlayer";
 import { useQueue } from "./hooks/useQueue";
 import PlayerNotice from "./PlayerNotice";
@@ -28,11 +29,13 @@ const UP_NEXT_ONLY = LIST_VIEWS.filter((tab) => tab.value === "upnext");
 export default function PlayerPageContent() {
   const { track, status, upNextId } = usePlayerState();
   const queued = useQueue();
+  const controlsGuard = useMemo(swipeClickGuard, []);
   const digest = track?.digest;
   const turns = useMemo(() => digest?.turns ?? storyTurns(digest?.items ?? []), [digest]);
   const idBase = useId();
   const id = digest?.id;
-  // A choice belongs to the recording it was made on, so the next one opens on Stories.
+  // A choice of Stories belongs to the recording it was made on, so the next one opens on Stories.
+  // Up next stays across items (D277): the listener working the queue taps one, and the list stays under their finger.
   const [choice, setChoice] = useState<{ id: string | undefined; view: ListView } | null>(null);
   const offered = queued.length > 0 || Boolean(upNextId);
   // When a recording ends with something to offer, only Up next shows, as YouTube Music's player
@@ -40,10 +43,14 @@ export default function PlayerPageContent() {
   // stays, holding one tab, so nothing below it moves and a focused Up next tab keeps its focus.
   // Playing again brings Stories back, on the view the listener last chose.
   const ended = status === "ended" && offered;
-  const view = ended ? "upnext" : choice && choice.id === id ? choice.view : "stories";
+  const view = ended
+    ? "upnext"
+    : choice && (choice.id === id || choice.view === "upnext")
+      ? choice.view
+      : "stories";
   return (
     <>
-      <div className="player-controls">
+      <div className="player-controls" data-player-drag {...controlsGuard}>
         <Scrubber />
         <TransportControls />
         {/* Drawn under the title, in the story line's room (see PlayerNotice), so a notice

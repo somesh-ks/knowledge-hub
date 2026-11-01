@@ -1,5 +1,5 @@
 ---
-import Icon from "./Icon.astro";
+import Icon from "../design-system/Icon.astro";
 
 interface Props {
   /** What a press adds, for a screen reader ("Add a category or a source"). */
@@ -24,6 +24,6 @@ const { label, source } = Astro.props;
   data-sound="open"
   data-needs-js
 >
-  <Icon name="plus" class="icon-lg" />
+  <Icon name="plus" size="lg" />
   <span class="create-fab-label" aria-hidden="true">Add</span>
 </button>

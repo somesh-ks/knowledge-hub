@@ -43,7 +43,7 @@
     transition: background-color var(--duration-hover) var(--ease-hover);
   }
 
-  .app-nav-create .icon {
+  .app-nav-create .icon-glyph {
     width: var(--size-icon-lg);
     height: var(--size-icon-lg);
   }
@@ -235,7 +235,7 @@ html[data-dialog-open] .create-fab {
 }
 
 /* Optical center: a play triangle's mass sits left of its box. */
-.play-fab-glyph > .icon {
+.play-fab-glyph > .icon-glyph {
   translate: 0.0625rem 0;
 }
 
@@ -247,7 +247,7 @@ html[data-dialog-open] .create-fab {
   cursor: progress;
 }
 
-.play-fab[data-state="preparing"] .play-fab-glyph > .icon {
+.play-fab[data-state="preparing"] .play-fab-glyph > .icon-glyph {
   visibility: hidden;
 }
 

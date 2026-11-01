@@ -119,12 +119,6 @@ concurrency:
   group: ${{ (github.event_name == 'schedule' && github.event.schedule != (vars.RUN_CRON || '13 7 * * *') && github.event.schedule != vars.RUN_CRON_WEEKLY) && format('singularity-skipped-{0}', github.run_id) || 'singularity' }}
   cancel-in-progress: false
 
-# Every step that calls a model can reach Claude and Gemini (config/models.json): a secret is only
-# visible to a step that is given it, so it is given once here.
-env:
-  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-  GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-
 permissions:
   contents: write
 
@@ -195,6 +189,10 @@ jobs:
       - name: Fetch
         if: steps.gate.outputs.due == 'true'
         env:
+          # Model keys go to the four stages that call a model (the engine's pass stages), not to the
+          # install, the gate, the commit or the logging (SEC-03).
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
         run: npm run --silent singularity -- run --stage fetch --json
@@ -202,6 +200,9 @@ jobs:
       - name: Judge
         if: steps.gate.outputs.due == 'true'
         env:
+          # Model keys, as in Fetch.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
           # A favorite creator's video is judged on its transcript (D255): Firecrawl captions first, so
           # Gemini's three transcriptions a run are kept for videos with none.
@@ -211,6 +212,8 @@ jobs:
       - name: Write
         if: steps.gate.outputs.due == 'true'
         env:
+          # Model keys, as in Fetch.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           # The write stage checks each summary against its source with Jev and rewrites once.
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
@@ -223,6 +226,9 @@ jobs:
       - name: Validate
         if: steps.gate.outputs.due == 'true'
         env:
+          # Model keys, as in Fetch.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
           # A briefing that validation cut short is refilled once, and the refill reads its
           # stories' pages the way the write stage does.
@@ -309,4 +315,8 @@ jobs:
     # keeps its name, `deploy`, but now means "audio follow-up needed".
     if: needs.run.outputs.deploy == 'true'
     uses: ./.github/workflows/audio.yml
-    secrets: inherit
+    # Named, so the audio job never sees the model keys or the database URL (SEC-03).
+    secrets:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+      SPEECHIFY_API_KEY: ${{ secrets.SPEECHIFY_API_KEY }}

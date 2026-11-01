@@ -190,7 +190,7 @@ Every `run.yml` run ends in one outcome:
 | --- | --- | --- |
 | `published` | A digest was written and committed | Nothing |
 | `gated` | A regular digest is not due yet | Nothing. Use an on-demand run if you want one now |
-| `nothing` | Fewer than three items cleared the bar | Nothing. The site says "Nothing cleared the bar." |
+| `nothing` | Fewer than three items cleared the bar | Nothing. The site shows no notice; the home page keeps the latest podcast. |
 | `failed` | A stage failed | Read the run (section 5). The window and seen list are untouched, so a rerun loses nothing |
 
 ---
@@ -273,8 +273,8 @@ When `GITHUB_DISPATCH_TOKEN` expires, the Generate button stops working ("The se
 
 Vercel Hobby holds 1 GB of Blob storage. A four-minute digest is about 4 MB at the engine's 128 kbps default, so audio uploaded more than 120 days ago is deleted.
 
-- Pruning runs on every audio run: `audio.yml` calls `singularity publish --prune 120`.
-- To prune now, run `gh workflow run audio.yml -R somesh-ks/knowledge-hub`.
+- `audio.yml` calls `singularity publish --prune 120`, and the prune itself runs on Sundays (UTC), because listing `audio/` costs Blob operations. A scheduled run at 03:17 UTC on Sundays makes sure it happens even in a week with no publish.
+- To prune now, run `gh workflow run audio.yml -R somesh-ks/knowledge-hub -f prune_now=true`.
 - A pruned digest keeps its text, its timeline and its `audio` field. Its player reports that the audio is not available.
 - Check usage in the Vercel dashboard under Storage. If usage nears 1 GB, shorten the retention in `audio.yml`.
 

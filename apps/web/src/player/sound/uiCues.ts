@@ -83,10 +83,18 @@ export function kindFor(info: ControlInfo): SoundKind {
 }
 
 /** The one tick for moving somewhere: the scrub tick at a fixed, mid-ladder pitch, a touch softer. */
-const NAVIGATE_CUE: Cue = { name: "scrubDetent", options: { position: 0.4, gain: 0.8 } };
+const NAVIGATE_CUE: Cue = {
+  name: "scrubDetent",
+  options: { position: 0.4, gain: 0.8 },
+  haptic: "navigate",
+};
 
 /** An action button: the same tick again, higher and softer, so it never reads as a destination. */
-const TAP_CUE: Cue = { name: "scrubDetent", options: { position: 0.7, gain: 0.55 } };
+const TAP_CUE: Cue = {
+  name: "scrubDetent",
+  options: { position: 0.7, gain: 0.55 },
+  haptic: "tap",
+};
 
 export function cueForKind(kind: SoundKind, on: boolean | null = true): Cue | null {
   switch (kind) {
@@ -95,11 +103,14 @@ export function cueForKind(kind: SoundKind, on: boolean | null = true): Cue | nu
     case "tap":
       return TAP_CUE;
     case "select":
-      return { name: (on === false ? "toggleOff" : "toggleOn") satisfies SoundName };
+      return {
+        name: (on === false ? "toggleOff" : "toggleOn") satisfies SoundName,
+        haptic: "select",
+      };
     case "open":
-      return { name: "sheetOpen" };
+      return { name: "sheetOpen", haptic: "open" };
     case "close":
-      return { name: "sheetClose" };
+      return { name: "sheetClose", haptic: "close" };
     case "none":
       return null;
   }
@@ -107,7 +118,9 @@ export function cueForKind(kind: SoundKind, on: boolean | null = true): Cue | nu
 
 /** Saved or copied sounds like a finished Generate run; a refusal like a failed one. */
 export function cueForOutcome(kind: "success" | "failure"): Cue {
-  return { name: kind === "success" ? "generateDone" : "error" };
+  return kind === "success"
+    ? { name: "generateDone", haptic: "success" }
+    : { name: "error", haptic: "error" };
 }
 
 /** Keeps a burst of taps from stacking: a cue inside the gap after the last one is dropped. */

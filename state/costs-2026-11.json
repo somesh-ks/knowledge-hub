@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "records": [
+    {
+      "id": "2026-11-01T05:01:01.016Z|weekly|write|anthropic|claude-sonnet-5-5|owner",
+      "at": "2026-11-01T06:57:00.347Z",
+      "run_id": "2026-11-01T05:01:01.016Z",
+      "kind": "weekly",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "write",
+      "provider": "anthropic",
+      "product": "claude-sonnet-5-5",
+      "units": {
+        "input_tokens": 171156,
+        "output_tokens": 73730
+      },
+      "usd": 1.619418
+    },
+    {
+      "id": "2026-11-01T05:01:01.016Z|weekly|write|anthropic|claude-haiku-5-5|owner",
+      "at": "2026-11-01T06:57:00.347Z",
+      "run_id": "2026-11-01T05:01:01.016Z",
+      "kind": "weekly",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "write",
+      "provider": "anthropic",
+      "product": "claude-haiku-5-5",
+      "units": {
+        "input_tokens": 1376,
+        "output_tokens": 395
+      },
+      "usd": 0.010053
+    },
+    {
+      "id": "2026-11-01T05:01:01.016Z|weekly|judge|typesafe|jev|owner",
+      "at": "2026-11-01T06:57:00.347Z",
+      "run_id": "2026-11-01T05:01:01.016Z",
+      "kind": "weekly",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "judge",
+      "provider": "typesafe",
+      "product": "jev",
+      "units": {
+        "requests": 610
+      },
+      "usd": 0
+    },
+    {
+      "id": "2026-11-01T05:01:01.016Z|weekly|fetch|exa|search|owner",
+      "at": "2026-11-01T06:57:00.347Z",
+      "run_id": "2026-11-01T05:01:01.016Z",
+      "kind": "weekly",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "fetch",
+      "provider": "exa",
+      "product": "search",
+      "units": {
+        "requests": 14
+      },
+      "usd": 0.07,
+      "estimated": true
+    },
+    {
+      "id": "2026-11-01T05:01:01.016Z|weekly|fetch|firecrawl|scrape|owner",
+      "at": "2026-11-01T06:57:00.347Z",
+      "run_id": "2026-11-01T05:01:01.016Z",
+      "kind": "weekly",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "fetch",
+      "provider": "firecrawl",
+      "product": "scrape",
+      "units": {
+        "credits": 28
+      },
+      "usd": 0.02324,
+      "estimated": true
+    },
+    {
+      "id": "2026-11-01-weekly|weekly|narration|speechify|simba-3.2|owner|fc4039ec-6254-4985-bc94-3443e1b47578",
+      "at": "2026-11-01T06:58:12.986Z",
+      "run_id": "2026-11-01-weekly",
+      "kind": "weekly",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "shared",
+      "stage": "narration",
+      "provider": "speechify",
+      "product": "simba-3.2",
+      "units": {
+        "characters": 14023
+      },
+      "usd": 0.14023
+    }
+  ]
+}

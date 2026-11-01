@@ -1,6 +1,7 @@
 /** A component's name; `Name.part` points at one of its variants or tones, e.g. `Button.text`. */
 export type ComponentName =
   | "Button"
+  | "Icon"
   | "Icon button"
   | "FAB"
   | "Chip"
@@ -10,10 +11,12 @@ export type ComponentName =
   | "Field"
   | "Select"
   | "Menu"
+  | "Badge"
   | "Banner"
   | "Dialog"
   | "Sheet"
-  | "Drawer";
+  | "Drawer"
+  | "Wheel";
 export type ComponentRef = ComponentName | `${ComponentName}.${string}`;
 
 export interface DontUse {

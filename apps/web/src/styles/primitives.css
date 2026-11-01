@@ -81,11 +81,6 @@
 /* More room above a header than below it: the header belongs to what follows. */
 .section-head {
   padding-block: var(--space-8) var(--space-2);
-  font-family: var(--text-heading-family);
-  font-size: var(--text-heading-size);
-  font-weight: var(--text-heading-weight);
-  letter-spacing: var(--text-heading-tracking);
-  line-height: var(--text-heading-leading);
 }
 
 /* One quiet line of facts, its parts separated by a centred dot. */
@@ -594,9 +589,9 @@
 }
 
 /* A tab that holds a glyph centres it (and its words, if any, beside it): a glyph is a block
-   (.icon), which the tab's text-align does not centre, so Costs' chart and table glyphs sat at their
+   (.icon-glyph), which the tab's text-align does not centre, so Costs' chart and table glyphs sat at their
    tabs' start, off the pill that marks them (owner, 2026-10-24). */
-.segmented-nav-tab:has(> .icon) {
+.segmented-nav-tab:has(> .icon-glyph) {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -733,7 +728,7 @@
   transition: background-size var(--duration-hover) var(--ease-hover);
 }
 
-.source-link .icon {
+.source-link .icon-glyph {
   width: var(--size-icon-sm);
   height: var(--size-icon-sm);
 }
@@ -809,7 +804,9 @@
   padding-inline: calc(var(--space-4) + var(--space-1));
   /* No outline: the transparent border keeps the size where forced colours draw one. */
   border: var(--stroke-hairline) solid transparent;
-  border-radius: var(--chip-radius);
+  /* A finite pill (half the height), so a change of shape interpolates from the pill instead of
+     holding 9999px until the end. */
+  border-radius: min(var(--chip-radius), calc(var(--chip-height) / 2));
   background: var(--color-surface-container);
   color: var(--color-on-surface);
   font-size: var(--font-size-label);
@@ -820,7 +817,8 @@
   transition:
     transform var(--duration-press-out) var(--ease-out),
     background-color var(--duration-hover) var(--ease-hover),
-    color var(--duration-hover) var(--ease-hover);
+    color var(--duration-hover) var(--ease-hover),
+    border-radius var(--duration-spring-spatial-default) var(--ease-spring-spatial-default);
 }
 
 /* A link inside a line of small text (a settings hint): the words stay inline, the touch target is
@@ -859,7 +857,7 @@
   cursor: inherit;
 }
 
-.filter-chip > .icon {
+.filter-chip > .icon-glyph {
   position: absolute;
   inset-block: 0;
   inset-inline-start: var(--space-2);
@@ -879,11 +877,13 @@
 }
 
 .filter-chip:has(input:checked) {
+  /* The ticked corners are a role token: the pill, unless a style makes a selection change shape. */
+  border-radius: min(var(--chip-radius-selected), calc(var(--chip-height) / 2));
   background: var(--color-accent-container);
   color: var(--color-on-accent-container);
 }
 
-.filter-chip:has(input:checked) > .icon {
+.filter-chip:has(input:checked) > .icon-glyph {
   opacity: 1;
   transform: none;
 }
@@ -928,7 +928,7 @@
     transition: none;
   }
 
-  .filter-chip > .icon {
+  .filter-chip > .icon-glyph {
     transform: none;
     transition: opacity var(--duration-state) var(--ease-out);
   }
@@ -983,7 +983,7 @@
 }
 
 /* An older markup drew the check as an icon inside; the mask below draws it now. */
-.suggest-box > .icon {
+.suggest-box > .icon-glyph {
   display: none;
 }
 

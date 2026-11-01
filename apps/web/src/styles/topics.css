@@ -67,7 +67,7 @@
   inset-inline: 0;
 }
 
-.topics .row-action .icon {
+.topics .row-action .icon-glyph {
   color: var(--color-on-surface-subtle);
 }
 
@@ -263,8 +263,8 @@
   color: var(--color-danger);
 }
 
-/* Outweighs the row's quiet, pulled-out chevron rule (.topics .row-action .icon). */
-.topics .row-action .topic-blocked-mark > .icon {
+/* Outweighs the row's quiet, pulled-out chevron rule (.topics .row-action .icon-glyph). */
+.topics .row-action .topic-blocked-mark > .icon-glyph {
   width: var(--size-icon-lg);
   height: var(--size-icon-lg);
   margin: 0;
@@ -1021,7 +1021,7 @@
   overflow-wrap: anywhere;
 }
 
-/* Two classes, so it outranks the base .icon size wherever the build puts this file. */
+/* Two classes, so it outranks the base .icon-glyph size wherever the build puts this file. */
 .edit-address-link > .edit-address-icon {
   flex: none;
   width: var(--size-icon-sm);
@@ -1068,7 +1068,7 @@
   gap: var(--space-4);
   /* 24px: the owner asked for more room inside the card (2026-10-24). */
   padding: var(--space-6);
-  border-radius: var(--radius-lg);
+  border-radius: var(--card-radius);
   background: var(--color-surface-container);
 }
 
@@ -1196,7 +1196,8 @@
   gap: var(--space-4);
   min-height: 14rem;
   padding: var(--space-4);
-  border-radius: var(--radius-lg);
+  /* The card radius, as every tonal card has (D243, 2026-10-31): it was 16px. */
+  border-radius: var(--card-radius);
   background: var(--color-surface-container);
 }
 
@@ -1641,8 +1642,10 @@ html:has(.source-filter[data-chips]) {
   font-weight: var(--font-weight-regular);
 }
 
-/* The topic's emoji at the picture's corner (2026-10-21): a 44px button over the picture that opens
-   the emoji picker. The picture keeps its size; the lead only gives the button a corner to sit in. */
+/* The topic's emoji is the card's picture (2026-10-31, owner: "get rid of the square SVG art, keep the
+   emoji as the dominant item"; it was a 44px badge at the generated picture's corner, 2026-10-21). It
+   takes the slot the picture had, the same size at each width, and is the button that opens the emoji
+   picker. Other, which has no emoji, keeps its picture. */
 .topic-card-lead {
   position: relative;
   grid-area: art;
@@ -1650,20 +1653,30 @@ html:has(.source-filter[data-chips]) {
 }
 
 .topic-card-lead .topic-emoji-pick {
-  position: absolute;
-  inset-block-end: var(--space-2);
-  inset-inline-end: var(--space-2);
   anchor-name: --emoji-pick;
   display: grid;
   place-items: center;
-  width: var(--size-touch);
-  height: var(--size-touch);
+  /* Its own size (the glyph's), so the glyph starts at the card's text edge. */
+  width: auto;
+  height: auto;
+  padding: 0;
   border: 0;
-  border-radius: var(--radius-round);
-  background: var(--color-surface-raised);
-  box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-control);
-  font-size: var(--font-size-title);
+  border-radius: var(--card-content-radius);
+  font-size: calc(var(--cover-size-hero) * 0.45);
   line-height: 1;
+}
+
+/* On a phone the title runs under the emoji: a step more air between them (owner, 2026-10-31). */
+@media (width < 40rem) {
+  .topic-card-lead {
+    padding-block-end: var(--space-2);
+  }
+}
+
+@media (width >= 40rem) {
+  .topic-card-lead .topic-emoji-pick {
+    font-size: calc(var(--cover-size-hero-wide) * 0.45);
+  }
 }
 
 /* The emoji picker: the More menu's popover (menu.css, .menu-sheet) holding a search field and the
@@ -1909,7 +1922,7 @@ html:has(.source-filter[data-chips]) {
   }
 }
 
-.structure-grip .icon {
+.structure-grip .icon-glyph {
   width: var(--size-icon);
   height: var(--size-icon);
 }

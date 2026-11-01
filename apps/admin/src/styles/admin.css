@@ -30,13 +30,6 @@
 
 .admin-tag {
   margin-inline-start: calc(var(--space-1) * -1);
-  padding-inline: var(--space-2);
-  border-radius: var(--radius-round);
-  background: var(--color-surface-overlay);
-  color: var(--color-on-surface-muted);
-  font-size: var(--text-meta-size);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--space-6);
 }
 
 /* ------------------------------------------------------------------ the overview */
@@ -100,7 +93,7 @@
 }
 
 /* The verdict is a glyph in its tone, on the card's own surface: no disc, no tinted card. */
-.ov-badge .icon {
+.ov-badge .icon-glyph {
   inline-size: var(--space-8);
   block-size: var(--space-8);
 }
@@ -143,7 +136,7 @@
   text-decoration: none;
 }
 
-.ov-flag-icon .icon {
+.ov-flag-icon .icon-glyph {
   inline-size: var(--size-icon);
   block-size: var(--size-icon);
 }
@@ -317,7 +310,7 @@
 }
 
 /* Only the glyph takes the tone; the words stay in ink, so their contrast never rests on orange. */
-.ov-quad-sub .icon {
+.ov-quad-sub .icon-glyph {
   flex: none;
   color: var(--ov-tone, var(--color-on-surface-muted));
   inline-size: var(--size-icon-sm);
@@ -325,7 +318,7 @@
 }
 
 .ov-quad:has(input:checked) .ov-quad-sub,
-.ov-quad:has(input:checked) .ov-quad-sub .icon {
+.ov-quad:has(input:checked) .ov-quad-sub .icon-glyph {
   color: inherit;
 }
 
@@ -346,13 +339,13 @@
   display: none;
 }
 
-.ov-fine-chevron .icon {
+.ov-fine-chevron .icon-glyph {
   inline-size: var(--size-icon);
   block-size: var(--size-icon);
   transition: rotate var(--duration-state) var(--ease-out);
 }
 
-.ov-fine[open] .ov-fine-chevron .icon {
+.ov-fine[open] .ov-fine-chevron .icon-glyph {
   rotate: 180deg;
 }
 

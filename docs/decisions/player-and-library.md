@@ -309,3 +309,40 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Why: the same podcast offered different actions in two places, and a page it could not be saved or queued from.
 - Rejected: Share in the page menu (it sits beside Play); one component for both menus (a row's menu hangs from its card's anchor, the page's from the header).
 
+## D264: a touch screen opens a Library card's menu by long press, and the button goes
+
+- Date: 2026-10-31 (the owner: the ⋮ on a phone card is "weird alignment and visual inconsistencies"; open the sheet on long press instead).
+- Decision: where `(hover: none) and (pointer: coarse)` holds, the card's ⋮ is not drawn or pressable and the title and quiet line reserve no room for it (`library.css`); a 450 ms hold on the card's link opens the same sheet (`scripts/cardHold.ts`). The button stays in the page and tab order for a screen reader and a key press. A mouse keeps the hover ⋮ at any width. The lift of a hold is not a tap (touchend is cancelled), and the sheet holds the pointer so the press that opened it cannot light-dismiss it.
+- Why: the button forced a reserved strip on every title, a hidden story count in narrow cards and two placements. Every action also lives in the episode page's More menu (D214), so a hold missed is not an action lost.
+- Cost: a long press cannot be found by looking. No hint is shown while the owner is the only reader. No haptic on iOS. The card does not shrink while held (owner, 2026-10-25: the art holds its size); the press layer is the feedback.
+- Rejected: a quieter ⋮ (still the alignment); width, not input, as the switch (a narrow desktop window has no long press).
+- Revisit if: a second reader is added (multi-user), or anyone is seen not finding Delete or Regenerate.
+
+## D277: the queue is a list that stays; a tap plays in place
+
+- Date: 2026-10-31 (the owner: the queue "clears as soon as each item is done"; a tap on the third item reset the player and the bar disappeared and came back).
+- Decision: Up next keeps the whole list, as YouTube Music does: items that played stay above the one playing (dimmed), the one playing is marked, and what is to come follows. A tap on any row plays it where the player stands (`playQueueItem`): the item is loaded into the one store and audio element, so the page does not move, the sheet does not collapse and the bar (`data-mini`) never goes down. Jumping ahead passes what was skipped; jumping back to a played item puts the ones after it back to come (`startItem`, `core/playQueue.ts`). `singularity:queue` still holds only what is to come, so an older build reads it unchanged; `singularity:queue-played` holds the played ids (30 at most) and the current one. The next three queued items with finished audio have their first 512 KB fetched at idle (`queuePrefetch.ts`); an item with no audio is narrated when played, never when queued. Up next stays selected when the playing item changes.
+- Why: the queue dropped each item on start, so a jump emptied the list; the old road collapsed the sheet and loaded the item's page, and the bar went down in between.
+- Cost: the page no longer follows the playing item; "Previous" on the lock screen still steps stories, not items. The prefetch is plain reads of files the player fetches anyway (no Blob list, put or copy), skipped with Data Saver, on cellular or a slow link where the browser says so; iOS Safari does not say, so it prefetches there. Whether the browser serves the later play from that cache is not verified on the Blob host.
+- Rejected: Spotify's model (the played items leave the list); narrating queued items ahead (paid); a second audio element for gapless starts (an iPhone allows one unlocked element).
+- Amends: D126 (the queue drops an item as it starts).
+- Revisit if: a queued item is seen to wait on the network, or the prefetch shows in the Blob bill.
+
+## D281: Settings > Downloads, uncapped, as the Library's rows
+
+- Date: 2026-10-31 (the owner: a dedicated Downloads section to manage, delete one or all and search; reuse the Library's List-view rows; "don't keep any cap"; delete confirms). Amends D127, D264; supersedes D127's "Rejected: a Settings page for downloads".
+- Decision: `/settings/downloads` lists what this device saved, newest first, in the Library's cards in List view (`EpisodeCard`, `BriefingCard`; hover Play on a mouse, tap opens the page). It is rendered on request like the Library and carries every Library card; `downloadsPage.ts` marks the saved ones `data-downloaded`, which `downloads.css` shows. The row menu is cut to Add to queue, Share and Remove download (`LibraryItemMenu` `downloads`); Remove and Delete all both ask first. Downloads have no cap and nothing is evicted. A search shows from `SEARCH_FROM` (8) downloads, with the Library's word matching. The ⋮ is drawn on a phone here (`downloads.css`), where the Library hides it (D264); a hold still opens the menu.
+- Why: with no cap the list can be long, and the Library's menu removes a download with one tap, so a page of its own is where Remove and Delete all can ask. The owner asked for the three dots in place of an X, with no exception for a phone, and Remove must be found without knowing the hold.
+- Cost: the page ships every Library card to show a few, and an orphan (a download whose podcast was deleted) is not listed. Downloads use the device's storage without limit; the browser may still clear it. The Library's own Remove download stays one tap.
+- Rejected: a separate row component (the Library's cards are the owner's ask); filtering on the server (saved items are known only in this browser); a size or date line (a download does not store them).
+- Revisit if: the Library grows so large that the page's weight shows, or an orphan download is ever reported.
+
+
+## D288: the Library's list groups by month under a sticky label, in two columns from 80rem
+
+- Date: 2026-11-01 (the owner: the list sat further under the filters than the gallery; "two columns in list view, header sections based on month"; then "option B, and it must be sticky at least on mobile to have some reference").
+- Decision: in the List view, a small muted month label ("October 2026") heads each month's rows. It sticks under the top chrome (`--sticky-top`) on an opaque band across the gutters, on a phone and a desktop, and follows the app bar as it slides away with the bar's own duration and curve. Labels show for Newest and Oldest first only; by length the list is flat, and a month with nothing on show has no label. The page carries every label (`library.astro`, `data-month-head`); `libraryPage.ts` moves them with the cards, `deletedEpisodes.ts` drops an emptied month's. From 80rem, where the Library's column is 864px, rows run two across (across, then down); below it one column, as a phone is. The list starts a row inset (`--list-row-inset`, the row's own padding) higher, so the first label sits as far under the filters as the first gallery cover (32px; it was 48px).
+- Why: months give a long list places to stop and a reference while scrolling; two columns use the desktop width the gallery already uses. Variant A (a heading as large as Settings' group heads) and C (a month rail beside the rows) were shown; B keeps the covers leading.
+- Cost: the label is a list item in a list, so a screen reader counts it. A month of one row leaves an empty cell. Titles still repeat the month ("Friday 30 October").
+- Rejected: months in the gallery (the grid is for browsing); a rail (needs a wrapper per month that the sort script would rebuild, and takes 8rem of the column); a hairline under the label (the ledger marks sections by air alone).
+- Revisit if: titles drop their month, or two columns are wanted below 80rem.

@@ -4,9 +4,17 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-11-01 | [Episode centring](2026-11-01-episode-centring.md) | A page with a contents list is centred as the column and the list together (D287) |
+| 2026-11-01 | [Library list by month](2026-11-01-library-list-months.md) | The list groups by month under a sticky label, two columns from 80rem (D288) |
+| 2026-10-31 | [Ledger split](2026-10-31-ledger-split.md) | The design ledger split into a core and one file per surface; the Index grep-only; read-first 20 KB (D283) |
+| 2026-10-31 | [State trim](2026-10-31-state-trim.md) | Ten parked unverified items moved out of state.md; read-first headroom (D283) |
+| 2026-10-31 | [Downloads page](2026-10-31-downloads-page.md) | Settings > Downloads wears the Library's List rows, no cap, confirm on every remove (D281) |
+| 2026-10-31 | [Voice list](2026-10-31-voice-list.md) | A voice is heard from its list; the page row is a plain value row (D276) |
+| 2026-10-31 | [The queue stays](2026-10-31-queue-stays.md) | Played items stay listed, a tap plays in place, next three prefetched (D277) |
+| 2026-10-31 | [Time wheel](2026-10-31-time-wheel.md) | The hour select opens as an iPhone-style wheel in the phone sheet (D269) |
 | 2026-10-31 | [Phone list sheets](2026-10-31-phone-list-sheets.md) | A select's list on a phone is the Menu's sheet, one 48px row (D265) |
 | 2026-10-30 | [Fewer PRs](2026-10-30-fewer-prs.md) | One PR per task, one rolling design-system PR, small fixes batched (D254) |
-| 2026-10-30 | [Experiments page](2026-10-30-experiments-page.md) | Switches, Promote and shadow counts on one admin page (D249) |
+| 2026-10-30 | [Experiments page](2026-10-30-experiments-page.md) | Switches, Promote and shadow counts on one admin page (D249); why a toggled switch read back old, and how to find a stale read (D270) |
 | 2026-10-29 | [The style guide as its own app](2026-10-29-style-guide.md) | `apps/design` at `/design`: colour with live contrast, type, tokens; hand-written component specs built and cut for parity (D226) |
 | 2026-10-30 | [Trusted publishers list renamed](2026-10-30-trusted-publishers-rename.md) | "authority" became "trusted publishers" in file, code and command; the six Reddit seeds dropped from the registry (D250) |
 | 2026-10-29 | [The Cancel route gets a key](2026-10-29-cancel-token.md) | Open `/api/cancel` stopped any run; a per-run HMAC token held by the starter (D242) |

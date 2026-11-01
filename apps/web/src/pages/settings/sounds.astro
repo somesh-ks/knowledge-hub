@@ -5,15 +5,15 @@ import Switch from "../../design-system/Switch.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import "../../styles/settings.css";
 
-const title = "Interface sounds";
+const title = "Sounds and haptics";
 ---
 
-<BaseLayout title={title} view="settings" skipLabel="Skip to the sound settings">
+<BaseLayout title={title} view="settings" skipLabel="Skip to the sound and haptics settings">
   <main id="main" tabindex="-1">
     {/* The switch and the slider are kept in this browser, so nothing is set here: settingsPage.ts
          fills them in and marks the page ready, as on the Settings index. */}
     <div class="settings-view" data-settings>
-      <SettingsHead title={title} note="The small sounds the app makes as you use it." />
+      <SettingsHead title={title} note="The small sounds and touch feedback the app makes as you use it." />
       <noscript>
         <p class="settings-note">These settings need JavaScript, which is turned off in this browser.</p>
       </noscript>
@@ -26,6 +26,17 @@ const title = "Interface sounds";
           <div class="settings-row">
             <label class="settings-label" for="settings-volume">Volume</label>
             <Slider id="settings-volume" name="volume" min="0" max="1" step="0.05" />
+          </div>
+        </div>
+      </section>
+      {/* Touch feedback (D273), a card of its own. A plain On/Off, so a Switch like Interface sounds.
+           Hidden where this device has no motor to ask (a desktop browser, an iPhone before iOS 18):
+           settingsPage.ts shows it. */}
+      <section data-haptics-section hidden>
+        <div class="rows card-group">
+          <div class="settings-row">
+            <label class="settings-label" for="settings-haptics">Haptics</label>
+            <Switch id="settings-haptics" name="haptics" />
           </div>
         </div>
       </section>

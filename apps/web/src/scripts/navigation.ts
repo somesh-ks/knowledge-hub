@@ -4,9 +4,10 @@
  * another destination, into one briefing, or back out of it.
  */
 
-/** Root attributes owned by the theme, the player and the connection check. A swap would replace them with the new page's. */
+/** Root attributes owned by the theme and style, the player and the connection check. A swap would replace them with the new page's. */
 export const CARRIED_ATTRIBUTES = [
   "data-theme",
+  "data-style",
   "data-offline",
   "data-mini",
   "data-player",
@@ -122,8 +123,9 @@ export function installNavigation(): void {
       // The press lit the item on this page and its pill is still growing: the new bar takes over.
       const elapsed = pillElapsed(document);
       if (elapsed !== null) {
-        event.newDocument.documentElement.setAttribute(ARRIVED_ATTRIBUTE, "");
-        event.newDocument.documentElement.style.setProperty(PILL_ELAPSED_PROPERTY, `${elapsed}ms`);
+        const incoming = event.newDocument.documentElement;
+        incoming.setAttribute(ARRIVED_ATTRIBUTE, root.getAttribute(ARRIVED_ATTRIBUTE) ?? "");
+        incoming.style.setProperty(PILL_ELAPSED_PROPERTY, `${elapsed}ms`);
       }
     }
     const mine = generation;

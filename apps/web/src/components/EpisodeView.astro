@@ -61,7 +61,7 @@ const fallbackTopic = episode.request.topic_ids[0] ?? "general";
       priority
     />
     <div class="hero-text">
-      <h1 class="page-title" id="page-title" tabindex="-1">{episode.title}</h1>
+      <h1 class="page-title text-display" id="page-title" tabindex="-1">{episode.title}</h1>
       {/* As a briefing's facts ("Weekly · 12 stories"): the date is on the cover. */}
       <p class="meta hero-facts">
         <span>{CATCH_UP_LABEL}</span><span>{storyCount(episode.sources.length)}</span><HeroDownloaded />
@@ -120,7 +120,7 @@ const fallbackTopic = episode.request.topic_ids[0] ?? "general";
                     <span>{highlight.publisher}</span>
                   </a>
                 )}
-                <h3 class="episode-highlight-title">
+                <h3 class="episode-highlight-title text-title">
                   {highlight.host ? (
                     <a class="story-link" href={highlight.url} target="_blank" rel="noopener noreferrer">
                       {headlineParts(highlight.headline).map((part) =>

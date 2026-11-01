@@ -344,7 +344,7 @@
     padding-inline: var(--space-4);
   }
 
-  .library-filters > .filter-chip > .icon {
+  .library-filters > .filter-chip > .icon-glyph {
     inset-inline-start: var(--space-1);
   }
 }
@@ -456,6 +456,80 @@
   display: block;
 }
 
+/* A row keeps this much above and below its cover. The Library's list starts that much higher than
+   its bar's own room (below), so the first row sits as far under the filters as the first gallery
+   card does: it was one row inset, 16px, further (owner, 2026-11-01). One token for both, so the
+   row's padding and the pull-up cannot drift apart. */
+[data-library] {
+  --list-row-inset: var(--space-4);
+}
+
+main.library [data-library][data-view="list"] .library-grid {
+  margin-block-start: calc(var(--list-row-inset) * -1);
+}
+
+/* Month headings, the list's alone (2026-11-01, D288): the page carries them for every month, the
+   gallery hides them. A quiet label, so the covers lead. It sticks under the top chrome as a section's
+   tabs do (--sticky-top), on an opaque band across the gutters so rows slide under it; its own air
+   above is margin, outside the band, so every heading is the same height and one stuck over another
+   covers it whole. */
+.library-month {
+  display: none;
+  list-style: none;
+}
+
+[data-library][data-view="list"] .library-month {
+  display: block;
+  position: sticky;
+  inset-block-start: var(--sticky-top);
+  z-index: calc(var(--z-header) - 1);
+  margin-block-start: var(--space-6);
+  margin-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
+  padding-inline: var(--page-gutter-start) var(--page-gutter-end);
+  background: var(--color-surface);
+}
+
+/* The first heading sits where the first row's cover would, under the filters. */
+[data-library][data-view="list"] .library-month:is(:first-child, [data-first]) {
+  margin-block-start: var(--list-row-inset);
+}
+
+.library-month-head {
+  margin: 0;
+  padding-block: var(--space-2);
+  color: var(--color-on-surface-muted);
+  font-size: var(--text-label-size);
+  font-weight: var(--font-weight-regular);
+  letter-spacing: var(--text-label-tracking);
+  line-height: var(--text-label-leading);
+}
+
+/* The app bar slides away as the page is read and takes --sticky-top with it. A stuck heading
+   follows with the bar's own duration and curve, so its top edge is the bar's bottom edge on every
+   frame and it neither lags nor jumps. With reduced motion the bar never moves, nor does this. */
+@media (width < 64rem) and (prefers-reduced-motion: no-preference) {
+  [data-library][data-view="list"] .library-month {
+    transition: inset-block-start var(--duration-state) var(--ease-out);
+  }
+}
+
+/* Two columns where the list has the width: the Library's column from 80rem (864px). Below it the
+   column is 592px and a row would have 280px for its title, so it stays one column, as a phone does.
+   Rows run across and then down, so a hidden row moves the later ones up one place, as in the
+   gallery. A heading spans both. */
+@media (width >= 80rem) {
+  main.library [data-library][data-view="list"] .library-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-8);
+    row-gap: 0;
+  }
+
+  [data-library][data-view="list"] .library-month {
+    grid-column: 1 / -1;
+  }
+}
+
 /* A row is its own stacking context, so its press fill can sit behind its content. Its hover and
    press tile runs past the row into the gutters, so a row is never clipped (content-visibility). */
 [data-library][data-view="list"] .card {
@@ -472,7 +546,7 @@
   grid-template-rows: 1fr auto auto auto 1fr;
   gap: 0 var(--space-4);
   align-items: center;
-  padding-block: var(--space-4);
+  padding-block: var(--list-row-inset);
 }
 
 [data-library][data-view="list"] .card-link .cover {
@@ -557,7 +631,7 @@
     height: var(--size-icon-lg);
   }
 
-  [data-library][data-view="list"] .cover-play .icon {
+  [data-library][data-view="list"] .cover-play .icon-glyph {
     width: var(--size-icon);
     height: var(--size-icon);
   }
@@ -696,18 +770,22 @@ html[data-library-page="empty"] {
   position: relative;
 }
 
-[data-library][data-view="list"] .card:has(> .card-menu) .card-title,
-[data-library][data-view="list"] .card:has(> .card-menu) .card-sub,
-[data-library][data-view="list"] .card:has(> .card-menu) .card-match {
-  padding-inline-end: calc(var(--size-touch) - var(--space-2));
-}
+/* Only where a button shows: a finger opens the menu by a long press (scripts/cardHold.ts, D264), so
+   a touch screen reserves nothing and the title and the quiet line take the whole row. */
+@media not ((hover: none) and (pointer: coarse)) {
+  [data-library][data-view="list"] .card:has(> .card-menu) .card-title,
+  [data-library][data-view="list"] .card:has(> .card-menu) .card-sub,
+  [data-library][data-view="list"] .card:has(> .card-menu) .card-match {
+    padding-inline-end: calc(var(--size-touch) - var(--space-2));
+  }
 
-/* The menu's reserve takes 2.25rem from the quiet line, so a card that is not a little wider than
-   the narrow one (see the 10.5rem rule above) leaves out the story count too: "Daily · 1 min" on one
-   line, never two. */
-@container (max-width: 12rem) {
-  [data-library][data-view="list"] .card:has(> .card-menu) .card-count {
-    display: none;
+  /* The menu's reserve takes 2.25rem from the quiet line, so a card that is not a little wider than
+     the narrow one (see the 10.5rem rule above) leaves out the story count too: "Daily · 1 min" on
+     one line, never two. */
+  @container (max-width: 12rem) {
+    [data-library][data-view="list"] .card:has(> .card-menu) .card-count {
+      display: none;
+    }
   }
 }
 
@@ -722,8 +800,10 @@ html[data-library-page="empty"] {
   inset-inline-end: 0;
 }
 
-.card:has(> .card-menu) .card-title {
-  padding-inline-end: calc(var(--size-touch) - var(--space-4));
+@media not ((hover: none) and (pointer: coarse)) {
+  .card:has(> .card-menu) .card-title {
+    padding-inline-end: calc(var(--size-touch) - var(--space-4));
+  }
 }
 
 .card-more {
@@ -731,7 +811,7 @@ html[data-library-page="empty"] {
   color: var(--color-on-surface-muted);
 }
 
-.card-more .icon {
+.card-more .icon-glyph {
   width: 1.25rem;
   height: 1.25rem;
 }
@@ -748,6 +828,45 @@ html[data-library-page="empty"] {
   .card:focus-within .card-more,
   .card-menu:has(:popover-open) .card-more {
     opacity: 1;
+  }
+}
+
+/* A finger opens the menu by a long press on the card (scripts/cardHold.ts, D264), so the button is
+   not drawn or pressable there. It stays in the page and the tab order: a screen reader finds it by
+   its label, and a key press shows it (data-input, app.ts). The hold is not a text selection or a
+   link drag, and the link's own callout is off (foundations.css). */
+@media (hover: none) and (pointer: coarse) {
+  .card-more {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  :root[data-input="keyboard"] .card-more:focus-visible {
+    opacity: 1;
+  }
+
+  .card-link,
+  .card-link * {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+}
+
+/* Settings > Downloads (D281, owner 2026-10-31) draws the ⋮ on a phone too: that page manages what is
+   saved, and Remove must be findable without knowing the hold, which still works. The row keeps room
+   for the button, as it does where a mouse shows it. Only in the list: a gallery card on a phone has
+   no ⋮ anywhere (owner, 2026-11-01), so a page that fell back to the gallery would not draw one. */
+@media (hover: none) and (pointer: coarse) {
+  [data-library][data-view="list"] .card-menu[data-manage-downloads] .card-more {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  [data-library][data-view="list"]
+    .card:has(> .card-menu[data-manage-downloads])
+    :is(.card-title, .card-sub, .card-match) {
+    padding-inline-end: calc(var(--size-touch) - var(--space-2));
   }
 }
 
@@ -794,7 +913,7 @@ html[data-library-page="empty"] {
   color: var(--color-accent);
 }
 
-.card-downloaded .icon {
+.card-downloaded .icon-glyph {
   width: 1rem;
   height: 1rem;
 }
