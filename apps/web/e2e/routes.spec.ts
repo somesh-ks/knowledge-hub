@@ -62,9 +62,9 @@ test.describe("routes and headers", () => {
   // while offline pushed the destination down after it landed and the album art jumped. The strip is
   // above the app now: it squeezes everything down once, as it opens, and a page opened under it
   // lands where it stays.
-  test("the offline strip squeezes the page once, says when the connection is back, then lifts", async ({
-    page,
-  }) => {
+  test("the offline strip squeezes the page once, says when the connection is back, then lifts", {
+    tag: "@both",
+  }, async ({ page }) => {
     await page.goto("/");
     // The browser's own signal, set by hand: no request fails, so nothing else is blamed.
     const setOnline = (online: boolean) =>
@@ -81,37 +81,54 @@ test.describe("routes and headers", () => {
     // Squeezed, not covered: the page starts below the strip.
     await expect.poll(top).toBeGreaterThan(resting);
     const squeezed = await top();
-    // Another page opened under the strip starts where this one did and never moves: sampled every
-    // frame from the click, so a shift during the swap shows as much as one after it.
+    // Pages opened under the strip land where they stay. The page and, on a podcast, its cover are
+    // sampled every frame from the click, so a shift during the swap shows as much as one after it.
     await page.evaluate(() => {
-      const seen: [string, number][] = [];
-      (window as unknown as { __tops: typeof seen }).__tops = seen;
+      const seen: [string, string][] = [];
+      (window as unknown as { __seen: typeof seen }).__seen = seen;
       const tick = () => {
-        const main = document.querySelector("#main");
-        if (main) seen.push([location.pathname, main.getBoundingClientRect().top]);
+        const main = document.querySelector("#main")?.getBoundingClientRect().top;
+        const cover = document.querySelector(".hero .cover")?.getBoundingClientRect();
+        const box = cover ? [cover.top, cover.width, cover.height].join(",") : "";
+        if (main !== undefined) seen.push([location.pathname, `${main}|${box}`]);
         requestAnimationFrame(tick);
       };
       tick();
     });
+    const settle = () =>
+      page.evaluate(async () => {
+        // The page's own transition over, plus a few more frames: whatever moves after it is a bug.
+        const finite = document
+          .getAnimations()
+          .filter((a) => Number.isFinite(a.effect?.getComputedTiming().endTime ?? 0));
+        await Promise.allSettled(finite.map((a) => a.finished));
+        for (let i = 0; i < 20; i++) await new Promise((r) => requestAnimationFrame(r));
+      });
+    const samples = (path: RegExp) =>
+      page.evaluate(
+        (source) =>
+          (window as unknown as { __seen: [string, string][] }).__seen
+            .filter(([p]) => new RegExp(source).test(p))
+            .map(([, v]) => v),
+        path.source,
+      );
     await page.locator('.app-nav a[href="/library"]').click();
     await expect(page).toHaveURL(/\/library/);
     await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
-    // The page's own transition over, plus a few more frames: whatever moves after it is a bug.
-    await page.evaluate(async () => {
-      const finite = document
-        .getAnimations()
-        .filter((a) => Number.isFinite(a.effect?.getComputedTiming().endTime ?? 0));
-      await Promise.allSettled(finite.map((a) => a.finished));
-      for (let i = 0; i < 20; i++) await new Promise((r) => requestAnimationFrame(r));
-    });
+    await settle();
     const landed = await top();
-    const tops = await page.evaluate(() =>
-      (window as unknown as { __tops: [string, number][] }).__tops
-        .filter(([path]) => path === "/library")
-        .map(([, y]) => y),
-    );
-    expect(new Set(tops)).toEqual(new Set([landed]));
+    const libraryTops = (await samples(/^\/library$/)).map((v) => v.split("|")[0]);
+    expect(new Set(libraryTops)).toEqual(new Set([String(landed)]));
     expect(landed).toBeGreaterThanOrEqual(squeezed);
+    // The reported case: a podcast opened from the Library. Its cover keeps its top and size from the
+    // first frame it exists, compared to itself (the page's own slide in moves it sideways, not down).
+    await page.locator('a[href="/d/2026-10-05"]').first().click();
+    await expect(page).toHaveURL(/\/d\/2026-10-05$/);
+    await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
+    await settle();
+    const podcast = (await samples(/^\/d\//)).map((v) => v.split("|")[1]).filter(Boolean);
+    expect(podcast.length).toBeGreaterThan(0);
+    expect(new Set(podcast).size).toBe(1);
     await setOnline(true);
     await expect(page.locator('[data-banner="offline"]')).toHaveCount(0);
     await expect(page.locator("html")).not.toHaveAttribute("data-offline", "");
