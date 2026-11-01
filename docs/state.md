@@ -1,11 +1,12 @@
 # State
 
-Updated 2026-10-31. Rewrite, never append.
+Updated 2026-11-01. Rewrite, never append.
 
 ## Working
 
 - Engine live end to end: [engine](specs/engine.md). A run that loses stories or races a push degrades, not fails, and records health (D204): [resilience](engineering/generation-resilience.md), [metrics](engineering/metrics.md).
 - Reader: [library](specs/library.md), [settings](specs/settings.md), [health](specs/health.md), [look](specs/look-and-sound.md).
+- Desktop layout: the column is centred in the pane, and a page with a contents list centres the column and the list together, the Library's width (D287).
 - Player as one surface: transcript, chapters, a queue that keeps played items (D277): [player](specs/player.md).
 - Narration on Play, per story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes (D198): [narration](specs/narration.md), [create](specs/create.md).
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). Regenerate and Catch up queue with Cancel; ended runs stay for the day (D204, D231).
@@ -23,7 +24,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Expressive style (#506; D268, D274, D275, D278), no picker yet. closed when: a style chosen in Appearance survives a reload.
 - Voice list (D276): closed when: a voice is heard from its list on his iPhone.
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily says "podcast".
-- More menu (D214); Catch up album, Share circle, cards (D219); long press, haptics (D264, D273). closed when: signed off.
+- More menu (D214); Catch up album, Share circle, cards (D219); long press, haptics (D264, D273); push ping (D284). closed when: signed off.
 - Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused; a regenerate or delete uses none.
 - Three regenerations per podcast, counted in its own file (D212). closed when: the page shows "2 of 3 regenerations left".
 - Short podcasts (D204, D216 to D225). closed when: two dailies in a row air within 10% of length, and `singularity metrics` shows ten runs at `length_share` 0.9+, `failure_rate` 0.1 or less.

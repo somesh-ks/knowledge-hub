@@ -87,6 +87,12 @@
   padding-block-start: var(--space-6);
 }
 
+/* A group with no head (Downloads, first on the page until a profile page takes it, 2026-11-01) sits
+   as far under the title as a first group's head would (above). */
+.settings-view > .settings-lead {
+  padding-block-start: var(--space-6);
+}
+
 /* ------------------------------------------------------------------ rows */
 
 /* Label and description at the start, the control at the end. The row grammar adds the padding and
@@ -220,6 +226,12 @@
 /* Groups are spaced by their heads' own air alone, the same 32px as on every settings page. */
 .settings-view > section + section {
   margin-block-start: 0;
+}
+
+/* A card with no head of its own (Haptics, under Interface sounds) has no head's air above it, so it
+   would sit against the card before. It takes the head's 32px above instead. */
+.settings-view > section + section:not(:has(> .section-head)) {
+  margin-block-start: var(--space-8);
 }
 
 /* ------------------------------------------------------------------ switch and slider */

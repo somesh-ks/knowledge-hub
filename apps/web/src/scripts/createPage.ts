@@ -242,6 +242,9 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
       }
       // The request goes with the run, so a failure can send it again (Try again).
       rememberCancelToken(body.run_id, body.cancel_token);
+      void import("../lib/pushClient")
+        .then((push) => push.watchRun(body.run_id, "catch_up"))
+        .catch(() => {});
       startRun(body.run_id, undefined, { body: { request: sent } });
       onStart?.();
     } finally {

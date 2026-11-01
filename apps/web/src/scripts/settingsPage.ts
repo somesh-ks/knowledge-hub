@@ -110,13 +110,13 @@ function mountSettings(root: HTMLElement): () => void {
   const preferences = getPreferences();
   const theme = root.querySelector<HTMLSelectElement>('select[name="theme"]');
   const sounds = root.querySelector<HTMLInputElement>('input[name="sounds"]');
-  const haptics = root.querySelector<HTMLSelectElement>('select[name="haptics"]');
+  const haptics = root.querySelector<HTMLInputElement>('input[name="haptics"]');
   const hapticsSection = root.querySelector<HTMLElement>("[data-haptics-section]");
   const volume = root.querySelector<HTMLInputElement>('input[name="volume"]');
   const autoplay = root.querySelector<HTMLInputElement>('input[name="autoplay"]');
-  // The index's Interface sounds row: its line says whether they are on in this browser.
-  const soundsHint = root.querySelector<HTMLElement>("[data-sounds-hint] [data-hint]");
   const hint = root.querySelector<HTMLElement>("[data-install-hint]");
+  const hasNotifications =
+    root.hasAttribute("data-notifications-page") || root.querySelector("[data-notifications-hint]");
   const installApp = root.querySelector<HTMLElement>("[data-install-app]");
 
   // An edit saved in the last few minutes is not in this page until the next build: the rows' lines
@@ -130,9 +130,8 @@ function mountSettings(root: HTMLElement): () => void {
     const state = controlState(preferences.get(), preferences.getSoundsEnabled());
     if (theme) theme.value = state.theme;
     if (sounds) sounds.checked = state.sounds;
-    if (haptics) haptics.value = preferences.get().haptics ? "on" : "off";
+    if (haptics) haptics.checked = preferences.get().haptics;
     if (autoplay) autoplay.checked = preferences.get().autoplay;
-    if (soundsHint) soundsHint.textContent = state.sounds ? "On" : "Off";
     if (volume) {
       volume.value = state.volume;
       volume.disabled = state.volumeDisabled;
@@ -151,7 +150,7 @@ function mountSettings(root: HTMLElement): () => void {
       return;
     }
     if (input === haptics && haptics) {
-      const on = haptics.value === "on";
+      const on = haptics.checked;
       preferences.set({ haptics: on });
       // Turning it on is felt once, so the choice can be judged; turning it off is silent.
       if (on) getHaptics().fire("select");
@@ -214,10 +213,23 @@ function mountSettings(root: HTMLElement): () => void {
   if (theme) theme.inert = false;
   // Only a device that can answer is offered the choice (D273).
   if (hapticsSection) hapticsSection.hidden = getHaptics().support === "none";
-  if (haptics) haptics.inert = false;
   root.dataset.ready = "true";
 
+  // The Notifications row's state is the browser's (D284); its code loads only where the row is.
+  let stopNotifications: (() => void) | null = null;
+  let gone = false;
+  if (hasNotifications) {
+    void import("./notificationsSettings")
+      .then((page) => {
+        if (gone) return;
+        stopNotifications = page.mountNotifications(root);
+      })
+      .catch(() => {});
+  }
+
   return () => {
+    gone = true;
+    stopNotifications?.();
     root.removeEventListener("change", onChange);
     root.removeEventListener("input", onInput);
     root.removeEventListener("click", onClick);

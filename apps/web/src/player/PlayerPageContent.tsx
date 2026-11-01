@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from "react";
 import { getPlayerStore } from "./core/playerRuntime";
 import { storyTurns } from "./core/storyTurns";
+import { swipeClickGuard } from "./core/swipeClickGuard";
 import { usePlayerState } from "./hooks/usePlayer";
 import { useQueue } from "./hooks/useQueue";
 import PlayerNotice from "./PlayerNotice";
@@ -28,6 +29,7 @@ const UP_NEXT_ONLY = LIST_VIEWS.filter((tab) => tab.value === "upnext");
 export default function PlayerPageContent() {
   const { track, status, upNextId } = usePlayerState();
   const queued = useQueue();
+  const controlsGuard = useMemo(swipeClickGuard, []);
   const digest = track?.digest;
   const turns = useMemo(() => digest?.turns ?? storyTurns(digest?.items ?? []), [digest]);
   const idBase = useId();
@@ -48,7 +50,7 @@ export default function PlayerPageContent() {
       : "stories";
   return (
     <>
-      <div className="player-controls">
+      <div className="player-controls" data-player-drag {...controlsGuard}>
         <Scrubber />
         <TransportControls />
         {/* Drawn under the title, in the story line's room (see PlayerNotice), so a notice

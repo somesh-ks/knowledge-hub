@@ -526,3 +526,13 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Why: the bar's press was one frame, so it read as a flash; a wave that eases says where the thumb landed, and a long hold stays visible. One clock means the press and the page move are one gesture.
 - Rejected: Material's 225 ms linear spread with a fast fade (calmer here with the hover curve); the wave on the pill only (it is smaller than the tab, so the touch area was not shown); `:active` for the press state (late and unreliable on a phone).
 - Revisit if: another large target (a card, a row) wants it, then the layer's inset and shape become variants; or a reduced-motion setting is added (the wave is skipped under `prefers-reduced-motion` and the press state still shows).
+
+## D287: a page with a contents list is centred as the column and the list together
+
+- Date: 2026-11-01 (the owner, on the episode page: "get the content to be at the visual center and with some gap on the side have the contents. right now it looks not optically centered")
+- Decision: amends D229 for pages that have a contents list (Latest, an episode). From 80rem the shell has four tracks, `1fr`, the column, the step plus the list, `1fr`, so the three together sit on the pane's middle. They are exactly the width `--column-wide` gives the Library, so both pages share a left edge. The step is `--space-12`. Pages without a list keep D229's three tracks. No new token; `shell.css` only, no design-system change.
+- Context changed: D229 centred the column alone and hung the list in the right margin. With the list present the pair read as right of the middle, however exact the maths.
+- Why: what the eye weighs is the column and its list, not the column's box. Using the Library's own width keeps one left edge between the two pages and one system value.
+- Rejected: centring the column on the window (it leaves the Library's edge behind and little room beside the side navigation at the narrowest desktop width); shifting the column by half the side navigation (a second value that matches nothing).
+- Revisit if: the owner minds that Latest's column sits further left than Settings' when switching tabs; the fix is a list on every page or none.
+
