@@ -179,5 +179,11 @@ describe("docs check", () => {
         "| D1 | One | superseded by D3, D4 |\n| D2 | Two | active |\n| D3 | Three | active |\n| D4 | Four | supersedes D1 |",
       ),
     ).toEqual([]);
+    // Every id of the list must exist, not only the first.
+    expect(
+      check(
+        "| D1 | One | superseded by D4, D9 |\n| D2 | Two | active |\n| D3 | Three | active |\n| D4 | Four | supersedes D1 |",
+      ),
+    ).toEqual([expect.stringContaining('"superseded by D9" names a decision that does not exist')]);
   });
 });
