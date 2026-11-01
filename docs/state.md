@@ -29,7 +29,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Three regenerations per podcast, counted in its own file (D212). closed when: the page shows "2 of 3 regenerations left".
 - Short podcasts (D204, D216 to D225). closed when: two dailies in a row air within 10% of length, and `singularity metrics` shows ten runs at `length_share` 0.9+, `failure_rate` 0.1 or less.
 - Ingest in shadow (D233, D251). closed when: for 7 days the store holds 90% of each daily's stories and reads 90% of pages tried (`ingest --coverage`).
-- Trusted publishers (D234) and community lift (D240), shipped off. closed when: both on, and a daily airs a lab story and a community-voted one, no source over 30%.
+- Trusted publishers (D234) and community lift (D240), shipped off. closed when: both on and a daily airs a lab story and a community-voted one, no source over 30%.
 - Run names (D217), Neon run log (D221). closed when: a scheduled daily is named `daily <date>`, is off the queue, and has its row.
 - `podcast.yml` no longer installs ffmpeg; its first stage starts 9 s into the job (29 s before). closed when: 9 s is accepted or a target set.
 - A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): `run.yml` has a `length_minutes` input; merge it with the site code or dispatch fails. closed when: a 10-minute Regenerate airs within 10% of 10.
@@ -37,8 +37,8 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Owner's eye: bar centring (over 1px), centred column and label gap (D229), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off.
 - Live content (plan 20): an open page elsewhere does not refresh in 60 s; `smokeLive.mjs --apply` never ran on production. closed when: checked.
 - Reload mid-write (D259). closed when: a phone flip, then reload, holds.
-- Settings paint the stored copy at once, the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change waits up to 2.5 s for the store. closed when: the owner signs off on a phone.
-- Sources design (D124) live: production asks Jev for a source's format only after `secrets:push`; no run used a mix or cap. closed when: a production source's format comes from Jev and a digest follows a mix change.
+- Settings paint the stored copy at once, the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change waits up to 2.5 s. closed when: the owner signs off on a phone.
+- Sources design (D124): production asks Jev for a source's format only after `secrets:push`; no run used a mix or cap. closed when: a production format comes from Jev and a digest follows a mix change.
 - YouTube text: Firecrawl and Gemini transcripts answered live; no full run used either. closed when: a digest has a YouTube finalist with `extract_method` captions or transcription.
 - D145 to D147, D156 to D159 ([hardening](engineering/hardening.md)): tests only. closed when: a phone app loads a deploy itself (D202), health shows `field` lines, a Monday opens or closes `health-warnings`.
 - Safari and WebKit: the iPhone `@smoke` set (`PLAYER_WEBKIT=1`) has not run. closed when: an iPhone passes it.

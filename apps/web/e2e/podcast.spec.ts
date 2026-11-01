@@ -185,6 +185,12 @@ test.describe("the profile pages", () => {
     await sheet.getByRole("button", { name: "Save" }).tap();
     await expect(sheet).toHaveCount(0);
     await expect(page.locator("#daily-hour")).toHaveValue("9");
+    // A tap beside the sheet closes it and reaches nothing under the finger (here the app bar's Home).
+    await page.locator("#daily-length").tap();
+    await expect(sheet).toBeVisible();
+    await page.touchscreen.tap(195, 40);
+    await expect(sheet).toHaveCount(0);
+    expect(new URL(page.url()).pathname).toBe("/settings/daily");
     await page.clock.runFor(2000);
     await expect
       .poll(() => scheduleSent(sent))
