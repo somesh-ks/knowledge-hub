@@ -27,8 +27,6 @@ const TITLE_ID = "singularity-player-title";
 function zoneOf(target: EventTarget): GestureZone | null {
   if (!(target instanceof Element)) return null;
   if (target.closest("[data-player-open]")) return "dock";
-  // The seek strip keeps its own drag: a scrub is sideways and must never start a dismissal.
-  if (target.closest(".scrubber")) return null;
   if (target.closest("[data-player-drag]")) return "drag";
   return target.closest("[data-player-page]") ? "page" : null;
 }

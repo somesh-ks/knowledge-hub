@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { chapterMask } from "./core/chapterMask";
 import { formatClock } from "./core/formatTime";
-import { heldTap } from "./core/heldTap";
 import {
   errorSummary,
   INTERRUPTED_LINE,
@@ -327,7 +326,7 @@ export default function PlayerBar() {
           type="button"
           aria-label="Previous story"
           aria-disabled={itemCount === 0 || (state.itemIndex < 0 && atStart) || undefined}
-          {...heldTap(() => store.previous())}
+          onClick={() => store.previous()}
         >
           <Icon name="skipBack" />
         </button>
@@ -339,7 +338,7 @@ export default function PlayerBar() {
           data-loading={String(state.buffering)}
           aria-label={toggleLabel(state)}
           aria-busy={state.buffering || undefined}
-          {...heldTap(() => store.toggle())}
+          onClick={() => store.toggle()}
         >
           <PlayPauseGlyph status={state.status} error={state.error} />
           <span className="spinner" aria-hidden="true" />
@@ -349,7 +348,7 @@ export default function PlayerBar() {
           type="button"
           aria-label="Next story"
           aria-disabled={isLastItem || undefined}
-          {...heldTap(() => isLastItem || store.next())}
+          onClick={() => isLastItem || store.next()}
         >
           <Icon name="skipForward" />
         </button>

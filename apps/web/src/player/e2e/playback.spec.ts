@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { center, expect, type PlayerPage, test } from "./helpers";
+import { expect, type PlayerPage, test } from "./helpers";
 
 /**
  * A story is marked played only when it was heard (D92): playing goes on out of it into the next.
@@ -31,25 +31,6 @@ test.describe("playback on a podcast", () => {
     await player.finger.press(player.dock.getByRole("button", { name: "Play", exact: true }));
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
     await expect(player.cta).toHaveAccessibleName(/^Pause the podcast, \d+ min left$/);
-  });
-
-  test("a held press on the bar's Pause acts when it lets go, though the thumb drifted", async ({
-    player,
-    page,
-    finger,
-  }) => {
-    await player.open();
-    await player.play();
-    await player.dockSettled();
-    const pause = player.dock.getByRole("button", { name: "Pause" });
-    const spot = center(await player.boxOf(pause));
-    // Owner, 2026-11-01: held for a second the bar's Play did nothing. A thumb drifts over a hold, and
-    // a drift past the tap slop made the browser pan instead of click.
-    const held = await finger.drag([spot, { x: spot.x + 4, y: spot.y - 4 }], 8, { hold: true });
-    await page.waitForTimeout(1000);
-    await held.move([{ x: spot.x + 12, y: spot.y - 12 }]);
-    await held.release();
-    await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
   });
 
   test("a story chip keeps one width through idle, playing, paused and played, so the controls beside it never move", async ({
