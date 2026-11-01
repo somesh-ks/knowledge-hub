@@ -108,13 +108,18 @@ export function checkDocs(root) {
           fails.push(
             `docs/decisions/README.md: ${id} ${phrase[0].split(" ")[0]} ${old}, which does not exist`,
           );
-        } else if (
-          rowText.has(old) &&
-          !/^\s*(?:partly )?superseded by\b/i.test(statusOf(rowText.get(old) ?? ""))
-        ) {
-          fails.push(
-            `docs/decisions/README.md: ${id} ${phrase[0].split(" ")[0]} ${old}, but ${old}'s row is not "superseded by ${id}"`,
-          );
+        } else if (rowText.has(old)) {
+          // "replaces" retires the old decision whole; "supersedes" may retire only a part of it. Either
+          // way the old row names this one, so an Index search for the old decision finds the new.
+          const verb = phrase[0].split(" ")[0].toLowerCase();
+          const status = statusOf(rowText.get(old) ?? "");
+          const pattern =
+            verb === "replaces" ? /^\s*superseded by\b/i : /^\s*(?:partly )?superseded by\b/i;
+          if (!pattern.test(status) || !new RegExp(`\\b${id}\\b`).test(status)) {
+            fails.push(
+              `docs/decisions/README.md: ${id} ${verb} ${old}, but ${old}'s row is not "${verb === "replaces" ? "" : "(partly) "}superseded by ${id}"`,
+            );
+          }
         }
       }
     }

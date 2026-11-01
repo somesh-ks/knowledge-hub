@@ -155,4 +155,29 @@ describe("docs check", () => {
       ),
     ).toEqual([expect.stringContaining("D1's row")]);
   });
+
+  // Bug (review of #553): "replaces" passed against a "partly superseded" row, and a row superseded by
+  // some other decision passed, so a search for the old decision never reached the new one.
+  it("holds replaces to full retirement and the old row to naming the decision that retires it", () => {
+    const entries = {
+      "docs/decisions/area.md": "## D1: One\n\n## D2: Two\n\n## D3: Three\n\n## D4: Four\n",
+    };
+    const check = (rows: string) =>
+      checkDocs(repo({ "docs/decisions/README.md": `## Index\n\n${rows}\n`, ...entries })).fails;
+    expect(
+      check(
+        "| D1 | One | partly superseded by D2 |\n| D2 | Two | active; replaces D1 |\n| D3 | Three | active |\n| D4 | Four | active |",
+      ),
+    ).toEqual([expect.stringContaining("D1's row is not")]);
+    expect(
+      check(
+        "| D1 | One | superseded by D3 |\n| D2 | Two | active |\n| D3 | Three | active |\n| D4 | Four | supersedes D1 |",
+      ),
+    ).toEqual([expect.stringContaining("D1's row is not")]);
+    expect(
+      check(
+        "| D1 | One | superseded by D3, D4 |\n| D2 | Two | active |\n| D3 | Three | active |\n| D4 | Four | supersedes D1 |",
+      ),
+    ).toEqual([]);
+  });
 });
