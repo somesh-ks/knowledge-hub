@@ -100,7 +100,8 @@ describe("readDigestFiles against a store that answers each file separately", ()
     const waiting: Array<() => void> = [];
     let out = 0;
     let most = 0;
-    const text = (id: string) => serializeDigestFile(makeDigest({ id }));
+    const text = (id: string, read_minutes = 2) =>
+      serializeDigestFile(makeDigest({ id, read_minutes }));
     const files = [...ids.map((id) => `Digests/${id}.md`), "Digests/copy.md"];
     const reader = {
       list: async () => files,
@@ -111,8 +112,8 @@ describe("readDigestFiles against a store that answers each file separately", ()
         return new Promise<string>((resolve) =>
           waiting.push(() => {
             out -= 1;
-            // The copy repeats the first id, so it is the one to skip.
-            resolve(text(path === "Digests/copy.md" ? (ids[0] ?? "") : path.slice(8, 18)));
+            // The copy repeats the first id with other content, so it is the one to skip.
+            resolve(path === "Digests/copy.md" ? text(ids[0] ?? "", 99) : text(path.slice(8, 18)));
           }),
         );
       },
@@ -128,6 +129,7 @@ describe("readDigestFiles against a store that answers each file separately", ()
     expect(most).toBeGreaterThan(1);
     expect(most).toBeLessThanOrEqual(READ_CONCURRENCY);
     expect(sources.map((source) => source.digest.id)).toEqual(ids);
+    expect(sources[0]?.digest.read_minutes).toBe(2);
     expect(warnings).toEqual(["Digests/copy.md: duplicate digest id 2026-09-01, skipped"]);
   });
 });
