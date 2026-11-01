@@ -231,6 +231,15 @@ Where data lives (Postgres, Blob, git), config, health, analytics, deploys, acce
 - Revisit if: an experiment needs a switch the reader shows (a screen, not a pipeline step); the reader would then need a flags endpoint.
 
 
+## D282: a page rendered on request falls back to the content its build holds when the store cannot answer
+
+- Date: 2026-11-01 (backlog REL-01, shipped in #523; the number was cited in the code but the entry was not written until this audit).
+- Decision: `loadPageSite` (`server/contentRepo.ts`) reads the content store. When the store cannot answer and the instance never read it, the page is drawn from `bundledContentFiles` (`server/bundledFiles.ts`): every file under `Digests/` and `Podcasts/`, compiled into the server build one chunk per file and loaded only when read. The page is flagged as saved content so it says so. An instance that already read the manifest keeps its last one. One attempt serves every request that arrives while it runs.
+- Why: on 2026-10-30 the Blob store passed its Hobby operations limit, a cold instance had no manifest and answered 503, and the site was down (D251 cut the operations). The API routes already fell back to the bundled copy; the pages did not.
+- Cost: a deleted episode whose tombstone this instance has not seen can reappear until the store answers; the server bundle grows with the content.
+- Revisit if: the bundle's size or build time becomes a cost, or the store moves again (D173).
+- Amends: D173, D251.
+
 ## D284: a device can be pinged when its podcast is ready: the Daily, the Weekly, and a Catch up or regeneration it started; web push, no accounts
 
 - Date: 2026-10-31 (the owner: "yes to push notifications", then "its own menu ... Daily, Weekly, Podcast generation completion, and other things" and a global switch).
