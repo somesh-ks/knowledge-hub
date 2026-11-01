@@ -227,8 +227,12 @@
   .menu-sheet > .sheet-head {
     display: flex;
     flex: none;
-    padding-block: var(--space-1);
-    padding-inline: var(--space-2) var(--space-1);
+    /* The sheet's corner is 32px, so the title stands well in from it: 24px below the top and 8 + 16 =
+       24px from the edge, the column the rows' icons and words start on (owner, 2026-11-01: "the top
+       left corner is too close"). The padding sets the height here, not the app bar's minimum. */
+    min-block-size: 0;
+    padding-block: var(--space-6) var(--space-2);
+    padding-inline: var(--space-4);
   }
 
   /* A select that opens as a wheel (wheel.css) has no rows to end the sheet; it ends a step lower. */
