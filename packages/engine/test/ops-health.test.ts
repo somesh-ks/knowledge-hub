@@ -251,6 +251,43 @@ describe("singularity health", () => {
     expect(codes(dayOn.findings, "warning")).not.toContain("site_behind");
   });
 
+  // #490's saves reach Neon only if Vercel has the config store on, and runs read it only if the Actions
+  // variable is on too. One switch alone made every save do nothing, and no check compared them.
+  it("faults a config store that is on for the site and off for runs, or the reverse, and stays quiet when they agree", async () => {
+    const withBuild =
+      (config_store: string | undefined): HealthFetch =>
+      async (url) => ({
+        status: url.endsWith("/build.json") || url.endsWith("/latest.json") ? 200 : 404,
+        headers: { get: () => null },
+        text: async () =>
+          url.endsWith("/build.json")
+            ? JSON.stringify({ build: "0123456789ab", config_store })
+            : '{"id":"2026-10-20"}',
+      });
+    const run = (config_store: string | undefined, configStore: boolean | undefined) =>
+      collectHealth({
+        root,
+        now: NOW,
+        monthlyChars: 500_000,
+        ceilingUsd: 50,
+        site: "https://news.example",
+        fetch: withBuild(config_store),
+        ...(configStore === undefined ? {} : { configStore }),
+      });
+    expect(codes((await run("postgres", false)).findings, "fault")).toContain("config_store_split");
+    expect(codes((await run("files", true)).findings, "fault")).toContain("config_store_split");
+    const agree = await run("postgres", true);
+    expect(codes(agree.findings, "fault")).not.toContain("config_store_split");
+    expect(agree.passed.some((line) => line.includes("config store"))).toBe(true);
+    // A build from before the site named its switch, or a check that was not told the engine's: no verdict.
+    expect(codes((await run(undefined, false)).findings, "fault")).not.toContain(
+      "config_store_split",
+    );
+    expect(codes((await run("postgres", undefined)).findings, "fault")).not.toContain(
+      "config_store_split",
+    );
+  });
+
   // Regenerating an older briefing keeps its date and id but writes a new generated_at; the site
   // still serves the newest by date, and health took the regenerated one for the newest and faulted.
   it("never calls the site stale for serving the newest podcast after an older one is regenerated", async () => {
@@ -671,9 +708,9 @@ describe("singularity health", () => {
     });
   });
 
-  // With the config store on, a stored edit a run skipped (not JSON), would fail on (its schema) or
-  // never committed reached no one: the owner's edit silently did nothing.
-  it("faults stored config a run cannot use, warns on what git lacks and ignores stray rows", async () => {
+  // With the config store on, a stored edit a run skipped (not JSON) or would fail on (its schema)
+  // reached no one: the owner's edit silently did nothing.
+  it("faults stored config a run cannot use and ignores stray rows", async () => {
     const schedule = JSON.stringify({
       version: 1,
       hour: 7,
@@ -720,8 +757,10 @@ describe("singularity health", () => {
         .filter((each) => each.code === "config_store_drift" && each.severity === severity)
         .map((each) => each.message.match(/config\/[a-z./-]+\.json/)?.[0]);
     expect(drift("fault")).toEqual(["config/queries.json", "config/topics.json"]);
-    // No record says when a run copied the store, so a stored edit git lacks only warns.
-    expect(drift("warning")).toEqual(["config/schedule.json"]);
+    // No preferences row: reported, since a run stops on it and "all documents parse" would mislead.
+    expect(report.findings.find((each) => each.code === "config_store_missing")?.message).toContain(
+      "config/preferences.json",
+    );
   });
 
   // health does not hydrate config: a briefing switched off only in the store read as overdue.

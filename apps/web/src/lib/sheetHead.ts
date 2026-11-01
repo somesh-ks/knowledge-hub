@@ -57,7 +57,7 @@ export function sheetHeadHtml(
   const heading = `<h2 class="${sheetTitleClass()}" id="${titleId}"${data}>${escapeHtml(title)}</h2>`;
   return (
     `<div class="${sheetHeadClass()}">` +
-    (subtitle === undefined
+    (!subtitle
       ? heading
       : `<div class="${sheetHeadingClass()}">${heading}<p class="${sheetSubtitleClass()}">${escapeHtml(subtitle)}</p></div>`) +
     `<button class="icon-btn press" type="button" aria-label="Close" ${close}>${iconHtml("close", "lg")}</button></div>`

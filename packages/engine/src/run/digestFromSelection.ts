@@ -28,6 +28,8 @@ export interface DigestFromSelectionInput {
   plan?: SectionPlan;
   /** The regenerations this digest carries when it replaces another (D212). */
   regenerations?: number;
+  /** The schedule's narration voice for this kind, for the audio job that cannot read it (D296). */
+  voiceId?: string | null | undefined;
 }
 
 /**
@@ -63,5 +65,6 @@ export function digestFromSelection(input: DigestFromSelectionInput): Digest {
     ...(input.topics ? { sectionTitles: topicSectionTitles(input.topics) } : {}),
     ...(input.plan ? { plan: input.plan } : {}),
     ...(input.regenerations ? { regenerations: input.regenerations } : {}),
+    ...(input.voiceId ? { voiceId: input.voiceId } : {}),
   });
 }

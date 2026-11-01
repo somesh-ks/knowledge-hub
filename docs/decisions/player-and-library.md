@@ -337,3 +337,12 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Rejected: a separate row component (the Library's cards are the owner's ask); filtering on the server (saved items are known only in this browser); a size or date line (a download does not store them).
 - Revisit if: the Library grows so large that the page's weight shows, or an orphan download is ever reported.
 
+
+## D288: the Library's list groups by month under a sticky label, in two columns from 80rem
+
+- Date: 2026-11-01 (the owner: the list sat further under the filters than the gallery; "two columns in list view, header sections based on month"; then "option B, and it must be sticky at least on mobile to have some reference").
+- Decision: in the List view, a small muted month label ("October 2026") heads each month's rows. It sticks under the top chrome (`--sticky-top`) on an opaque band across the gutters, on a phone and a desktop, and follows the app bar as it slides away with the bar's own duration and curve. Labels show for Newest and Oldest first only; by length the list is flat, and a month with nothing on show has no label. The page carries every label (`library.astro`, `data-month-head`); `libraryPage.ts` moves them with the cards, `deletedEpisodes.ts` drops an emptied month's. From 80rem, where the Library's column is 864px, rows run two across (across, then down); below it one column, as a phone is. The list starts a row inset (`--list-row-inset`, the row's own padding) higher, so the first label sits as far under the filters as the first gallery cover (32px; it was 48px).
+- Why: months give a long list places to stop and a reference while scrolling; two columns use the desktop width the gallery already uses. Variant A (a heading as large as Settings' group heads) and C (a month rail beside the rows) were shown; B keeps the covers leading.
+- Cost: the label is a list item in a list, so a screen reader counts it. A month of one row leaves an empty cell. Titles still repeat the month ("Friday 30 October").
+- Rejected: months in the gallery (the grid is for browsing); a rail (needs a wrapper per month that the sort script would rebuild, and takes 8rem of the column); a hairline under the label (the ledger marks sections by air alone).
+- Revisit if: titles drop their month, or two columns are wanted below 80rem.

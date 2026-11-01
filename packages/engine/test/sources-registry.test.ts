@@ -255,7 +255,7 @@ describe("the committed registry", () => {
   });
 
   it("keeps discovery queries unique and free of years that go stale", () => {
-    const queriesPath = new URL("../../../config/queries.json", import.meta.url);
+    const queriesPath = new URL("../../../config/examples/queries.json", import.meta.url);
     const { queries } = parseQueries(JSON.parse(readFileSync(queriesPath, "utf8")));
     expect(new Set(queries.map((q) => q.id)).size).toBe(queries.length);
     for (const { query } of queries) expect(query).not.toMatch(/\b20\d{2}\b/);

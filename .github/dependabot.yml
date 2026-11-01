@@ -9,6 +9,11 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+    # One pull request a week for all minor and patch bumps: each pull request costs a review, both
+    # browser runs and a deploy in three projects (2026-11-01 audit).
+    groups:
+      npm-minor-patch:
+        update-types: ["minor", "patch"]
     commit-message:
       prefix: "chore(deps)"
   - package-ecosystem: github-actions
@@ -18,5 +23,8 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+    groups:
+      actions-minor-patch:
+        update-types: ["minor", "patch"]
     commit-message:
       prefix: "chore(ci)"

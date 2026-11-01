@@ -23,6 +23,18 @@ if (!flags.has("--serve-only")) {
     "bin",
     "astro.mjs",
   );
+  // The owner's config is not in git (D296), and the config route bundles those files: fill what a
+  // clean checkout lacks from config/examples. The fixture env keeps it off the config store.
+  const tsx = createRequire(import.meta.url).resolve("tsx/cli");
+  const pulled = spawnSync(
+    process.execPath,
+    [tsx, join(appRoot, "..", "..", "scripts", "pullConfig.ts")],
+    {
+      stdio: "inherit",
+      env: { ...process.env, SINGULARITY_FIXTURES: "1" },
+    },
+  );
+  if (pulled.status !== 0) process.exit(pulled.status ?? 1);
   // The reader, then the admin app, which the reader's rewrite serves at /admin.
   for (const cwd of [appRoot, adminRoot]) {
     const build = spawnSync(process.execPath, [astroBin, "build"], {

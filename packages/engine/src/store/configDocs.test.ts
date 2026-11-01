@@ -23,6 +23,13 @@ async function exists(path: string): Promise<boolean> {
   );
 }
 
+const examples = {
+  topics: await readFile(
+    join(import.meta.dirname, "../../../../config/examples/topics.json"),
+    "utf8",
+  ),
+};
+
 describe("hydrateConfig", () => {
   // The bug: the engine writes whatever a row names. A stray or hostile row could overwrite `.env`,
   // a digest, or a file outside the checkout, and a row that is not JSON would break every loader
@@ -33,10 +40,10 @@ describe("hydrateConfig", () => {
     await writeFile(join(root, "config/schedule.json"), '{"hour":7}\n');
     await writeFile(join(root, "config/preferences.json"), '{"weights":{}}\n');
 
-    const changed = await hydrateConfig(
+    const { changed, usable } = await hydrateConfig(
       root,
       fakeStore([
-        { path: "config/topics.json", content: '{"topics":[]}\n' },
+        { path: "config/topics.json", content: examples.topics },
         { path: "config/schedule.json", content: "{not json" },
         { path: ".env", content: '{"stolen":true}' },
         { path: `../${basename(root)}-outside.json`, content: "{}" },
@@ -46,12 +53,40 @@ describe("hydrateConfig", () => {
     );
 
     expect(changed).toEqual(["config/topics.json"]);
-    expect(await readFile(join(root, "config/topics.json"), "utf8")).toBe('{"topics":[]}\n');
+    // Only a usable row counts as the store holding the document: the file kept for a bad row does not.
+    expect(usable).toEqual(["config/topics.json"]);
+    expect(await readFile(join(root, "config/topics.json"), "utf8")).toBe(examples.topics);
     expect(await readFile(join(root, "config/schedule.json"), "utf8")).toBe('{"hour":7}\n');
     expect(await readFile(join(root, "config/preferences.json"), "utf8")).toBe('{"weights":{}}\n');
     expect(await exists(join(root, ".env"))).toBe(false);
     expect(await exists(join(root, `../${basename(root)}-outside.json`))).toBe(false);
     expect(await exists(join(root, "Digests/2026/x.json"))).toBe(false);
+  });
+});
+
+describe("hydrateConfig, required documents", () => {
+  // The bug: `[]` or `null` in the schedule row is valid JSON, so the pull counted it as the store
+  // holding a schedule, the site built with the default schedule and a run used the default hour.
+  it("does not count a required row that fails its schema, and keeps the file", async () => {
+    const root = await mkdtemp(join(tmpdir(), "config-store-"));
+    await mkdir(join(root, "config"), { recursive: true });
+    const kept = '{"version":1}\n';
+    await writeFile(join(root, "config/schedule.json"), kept);
+
+    const { changed, usable } = await hydrateConfig(
+      root,
+      fakeStore([
+        { path: "config/schedule.json", content: "[]" },
+        { path: "config/preferences.json", content: "null" },
+        { path: "config/topics.json", content: examples.topics },
+      ]),
+      quiet,
+    );
+
+    expect(usable).toEqual(["config/topics.json"]);
+    expect(changed).toEqual(["config/topics.json"]);
+    expect(await readFile(join(root, "config/schedule.json"), "utf8")).toBe(kept);
+    expect(await exists(join(root, "config/preferences.json"))).toBe(false);
   });
 });
 
@@ -71,6 +106,14 @@ describe("readsConfigAtStart", () => {
     [[], true],
   ])("run %j -> %s", (argv, expected) => {
     expect(readsConfigAtStart("run", argv)).toBe(expected);
+  });
+});
+
+describe("readsConfigAtStart for health", () => {
+  // The bug it prevents: the owner's config is not in git (D296), so health would fault every
+  // config file as missing.
+  it("copies the store before health reads the config", () => {
+    expect(readsConfigAtStart("health", [])).toBe(true);
   });
 });
 

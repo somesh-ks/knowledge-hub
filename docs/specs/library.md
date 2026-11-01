@@ -7,7 +7,6 @@ What it does now. Reasons: D44, D59, D60, D77, D78, D88, D97, D104, D109, D127; 
 ### Latest and briefing pages
 - The first destination is called Latest; its id stays `today`. Destinations: Latest, Library, Catch up, Settings.
 - No banner says how old a briefing is; offline is the one device banner.
-- The latest briefing's three-dots menu offers Share and New briefing; an older briefing has a Share button.
 - Every briefing has Share, Regenerate and Delete in its More menu (D104); a podcast page's More menu also offers Download and Add to queue (D214). Share is a secondary icon button (a circle on the select's fill) after Play (D219). Regenerate replaces that digest over its own window (`singularity run --replace`); Delete removes the digest and its timeline (`singularity run --delete`). Both go through `run.yml` and `/api/generate`. Today's Regenerate takes feedback for the writer and makes a new digest, not a replacement (D103).
 - Regenerate chooses the topics again and takes comments, for an episode and a briefing (D109). A briefing's also takes a Length (Usual, 3, 5, 10 or 15 min). Usual sends no override and keeps the run's own sizing (the schedule's, or none for an on-demand run); the others size the run to that length (D207).
 - Each story has like, dislike and "Stop hearing from" controls.
@@ -26,6 +25,7 @@ What it does now. Reasons: D44, D59, D60, D77, D78, D88, D97, D104, D109, D127; 
 - Search finds a date in any form and searches inside episode scripts. Search, filter and order stay in the address.
 - A recording heard to its end says Played (D78).
 - The Library has a List view and a play button on covers. Sort is a drawn select, absent on a phone (below 40rem), where the chips and the view switch share one line (chips scroll at 360px).
+- In the List view each month has a small muted label ("October 2026", D288) that sticks under the top chrome; labels show for Newest and Oldest first, not Longest, and a month with nothing on show has none. From 80rem the rows run two across; below it, and on a phone, one column.
 - Cards off screen use `content-visibility`.
 
 ### Row menu and downloads (D127)

@@ -59,6 +59,8 @@ export interface BuildDigestInput {
   plan?: SectionPlan;
   /** Set when the digest replaces an earlier one: the owner's regenerations so far (D212). */
   regenerations?: number;
+  /** The schedule's narration voice for this kind, copied into the digest for the audio job (D296). */
+  voiceId?: string | null | undefined;
 }
 
 /**
@@ -135,6 +137,7 @@ export function buildDigest(input: BuildDigestInput): Digest {
     cover: input.coverPicker({ digestId: id, date, kind: input.kind, items }),
     ...(sectionTitles ? { section_titles: sectionTitles } : {}),
     ...(input.plan?.rundown ? { rundown: input.plan.rundown } : {}),
+    ...(input.voiceId ? { voice_id: input.voiceId } : {}),
     ...(input.regenerations ? { regenerations: input.regenerations } : {}),
     items,
   });
