@@ -3305,35 +3305,35 @@
       "name": "haptic-pattern-tick-light",
       "tier": "primitive",
       "type": "singularity-haptic",
-      "light": "android 6 ms; iphone 1 tick",
+      "light": "android 20 ms; iphone 1 tick",
       "role": "The lightest tick: a detent, a toggle."
     },
     {
       "name": "haptic-pattern-tick",
       "tier": "primitive",
       "type": "singularity-haptic",
-      "light": "android 10 ms; iphone 1 tick",
+      "light": "android 30 ms; iphone 1 tick",
       "role": "One firm tick: a sheet or menu opening."
     },
     {
       "name": "haptic-pattern-double",
       "tier": "primitive",
       "type": "singularity-haptic",
-      "light": "android 10 60 10 ms; iphone 2 ticks, 90 ms apart",
+      "light": "android 30 60 30 ms; iphone 2 ticks, 90 ms apart",
       "role": "Two beats: something worked."
     },
     {
       "name": "haptic-pattern-triple",
       "tier": "primitive",
       "type": "singularity-haptic",
-      "light": "android 14 50 14 50 14 ms; iphone 3 ticks, 70 ms apart",
+      "light": "android 35 50 35 50 35 ms; iphone 3 ticks, 70 ms apart",
       "role": "Three beats: something did not work."
     },
     {
       "name": "haptic-pattern-celebrate",
       "tier": "primitive",
       "type": "singularity-haptic",
-      "light": "android 12 50 12 50 28 ms; iphone 3 ticks, 80 ms apart",
+      "light": "android 30 50 30 50 70 ms; iphone 3 ticks, 80 ms apart",
       "role": "Three rising beats: a podcast is ready to play."
     },
     {

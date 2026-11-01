@@ -7,11 +7,11 @@
 
 export const HAPTIC_PATTERNS = {
   "none": { android: [], ios: { ticks: 0, gap_ms: 0 } },
-  "tick-light": { android: [6], ios: { ticks: 1, gap_ms: 0 } },
-  "tick": { android: [10], ios: { ticks: 1, gap_ms: 0 } },
-  "double": { android: [10, 60, 10], ios: { ticks: 2, gap_ms: 90 } },
-  "triple": { android: [14, 50, 14, 50, 14], ios: { ticks: 3, gap_ms: 70 } },
-  "celebrate": { android: [12, 50, 12, 50, 28], ios: { ticks: 3, gap_ms: 80 } },
+  "tick-light": { android: [20], ios: { ticks: 1, gap_ms: 0 } },
+  "tick": { android: [30], ios: { ticks: 1, gap_ms: 0 } },
+  "double": { android: [30, 60, 30], ios: { ticks: 2, gap_ms: 90 } },
+  "triple": { android: [35, 50, 35, 50, 35], ios: { ticks: 3, gap_ms: 70 } },
+  "celebrate": { android: [30, 50, 30, 50, 70], ios: { ticks: 3, gap_ms: 80 } },
 } as const;
 
 export type HapticPattern = keyof typeof HAPTIC_PATTERNS;

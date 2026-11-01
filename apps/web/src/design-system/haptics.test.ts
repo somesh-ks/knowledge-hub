@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createHaptics } from "./haptics";
+import { HAPTIC_INTENTS, HAPTIC_PATTERNS } from "./hapticTokens";
 
 describe("haptics", () => {
   beforeEach(() => vi.useFakeTimers());
@@ -46,6 +47,7 @@ describe("haptics", () => {
     expect(haptics.fire("tap")).toBe(false);
     expect(vibrate).not.toHaveBeenCalled();
     expect(haptics.fire("success")).toBe(true);
-    expect(vibrate).toHaveBeenCalledWith([10, 60, 10]);
+    // The token's own pulses, whatever their lengths: a retune of the milliseconds is not this test's.
+    expect(vibrate).toHaveBeenCalledWith([...HAPTIC_PATTERNS[HAPTIC_INTENTS.success].android]);
   });
 });
