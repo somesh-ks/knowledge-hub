@@ -130,7 +130,7 @@ export function makePushCommand(deps: PushDeps = {}): CommandRun {
       const done: EndedWatch[] = [];
       let sent = 0;
       let failed = 0;
-      let addressed = 0;
+      const addressed = new Set<string>();
       if (send) {
         for (const watch of ended) {
           // A row the site would not have stored: drop it unsent.
@@ -144,7 +144,7 @@ export function makePushCommand(deps: PushDeps = {}): CommandRun {
         // A scheduled run is announced once (it was claimed above): a device that is down misses it.
         for (const run of scheduled) {
           for (const device of await devicesFor(sql, run.kind)) {
-            addressed += 1;
+            addressed.add(device.endpoint);
             const result = isPushEndpoint(device.endpoint)
               ? await send(device, scheduledMessage(run))
               : "gone";
@@ -158,10 +158,11 @@ export function makePushCommand(deps: PushDeps = {}): CommandRun {
       const swept = await sweepPushWatches(sql, now);
       // What the sync's log can prove: a run that announced to no device (nobody subscribed) reads
       // differently from a run that was never claimed (the published row is missing), M9 of the audit.
-      const seen = `${scheduled.length} scheduled run(s) claimed for ${addressed} device(s), ${ended.length} watched run(s) ended`;
+      const endedRuns = new Set(ended.map((watch) => watch.run_id)).size;
+      const seen = `${scheduled.length} scheduled run(s) claimed for ${addressed.size} device(s), ${endedRuns} watched run(s) ended`;
       const line = `Push: ${sent} sent, ${failed} to retry, ${Math.max(0, done.length - sent)} dropped, ${swept} swept; ${seen}.`;
       process.stdout.write(
-        `${ctx.json ? JSON.stringify({ sent, retry: failed, swept, claimed: scheduled.length, addressed, ended: ended.length }) : line}\n`,
+        `${ctx.json ? JSON.stringify({ sent, retry: failed, swept, claimed: scheduled.length, addressed: addressed.size, ended: endedRuns }) : line}\n`,
       );
     } catch (error) {
       // Redacted before describeError cuts the text, so a cut cannot leave half a secret readable.

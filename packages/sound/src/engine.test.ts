@@ -169,9 +169,17 @@ describe("audio session", () => {
     state.enabled = true;
     expect(engine.play("toggleOn")).toBe(true);
     expect(session.type).toBe("playback");
-    // Switching Sounds off gives the session back at the next gesture.
+    // Switching Sounds off gives the session back at once, and with no gesture after it.
     state.enabled = false;
+    engine.refreshSession();
+    expect(session.type).toBe("auto");
+  });
+
+  it("gives the session back when the engine is disposed, so a replacement that starts with Sounds off finds it released", () => {
+    const { engine, session } = withSession();
     engine.unlock();
+    expect(session.type).toBe("playback");
+    engine.dispose();
     expect(session.type).toBe("auto");
   });
 });

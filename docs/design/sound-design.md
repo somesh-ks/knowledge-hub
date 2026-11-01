@@ -136,7 +136,7 @@ Decision rule: a sound that brackets narration is silent while narration plays, 
 6. **Four voices.** The oldest voice fades out in 12 ms to make room for a fifth.
 7. **Retrigger windows.** Each sound has a minimum interval, from 55 ms for the scrub tick to 1 second for the end of digest, so a fast tap cannot stack mush.
 8. **Clean nodes.** Every layer disconnects when its source ends, and envelopes never target zero (they target -80 dBFS), so nothing clicks.
-9. **iOS.** Web Audio on iOS follows the silent switch unless the page asks for playback, and the engine asks while Sounds is on (rule 5). So interface sounds play with the ringer off, as narration does; the Sounds setting is the way to silence them, and with Sounds off the page takes no audio session at all (`"auto"` again at the next gesture). Whether a playback session stops another app's audio is not verified on a device.
+9. **iOS.** Web Audio on iOS follows the silent switch unless the page asks for playback, and the engine asks while Sounds is on (rule 5). So interface sounds play with the ringer off, as narration does; the Sounds setting is the way to silence them, and with Sounds off the page takes no audio session at all (`"auto"` again as the switch is turned off, and when the engine is torn down). Whether a playback session stops another app's audio is not verified on a device.
 
 ### Settings and defaults
 
@@ -172,7 +172,7 @@ Offline rendering proves level, length, pitch and spectrum. It cannot prove that
 
 | Check | Device | Pass when |
 | --- | --- | --- |
-| Silent switch | iPhone, ringer off | Sounds on: UI sounds play and narration plays (D105). Sounds off: nothing plays |
+| Silent switch | iPhone, ringer off | Sounds on: UI sounds play and narration plays (D105). Sounds off: UI sounds are silent and narration still plays |
 | Ringer on, lock screen | iPhone | Narration plays with the screen locked; UI sounds stop when the page is hidden |
 | Narration is not disturbed | iPhone and iPad, installed to the Home Screen | A UI sound never pauses, ducks or restarts the narration, and never pauses another app's audio (not yet checked: the playback session type may do so) |
 | Interruption | iPhone | After a call or alarm, the next tap resumes sounds without a burst |

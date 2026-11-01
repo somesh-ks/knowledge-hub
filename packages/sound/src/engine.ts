@@ -52,6 +52,8 @@ export interface SoundEngine {
   play: (name: SoundName, options?: PlayOptions) => boolean;
   /** Creates and resumes the AudioContext. Call from inside a user gesture. Safe to call often. */
   unlock: () => void;
+  /** Gives the audio session back, or takes it, to match the Sounds setting. For when it changes outside a gesture the engine sees. */
+  refreshSession: () => void;
   /** Stops everything and closes the context. */
   dispose: () => void;
   /** Voices currently sounding, at most four. For the lab's polyphony meter and tests. */
@@ -364,6 +366,16 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
 
   function dispose(): void {
     disposed = true;
+    // A replacement engine starts with no memory of the session this one took.
+    if (tookSession) {
+      try {
+        const session = getAudioSession();
+        if (session) session.type = "auto";
+      } catch {
+        // Not fatal.
+      }
+      tookSession = false;
+    }
     for (const voice of [...voices]) {
       for (const source of voice.sources) {
         try {
@@ -385,7 +397,13 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
     return voices.filter((voice) => voice.endsAt > t).length;
   }
 
-  return { play, unlock, dispose, activeVoices };
+  return {
+    play,
+    unlock,
+    refreshSession: () => (disposed ? undefined : syncSession()),
+    dispose,
+    activeVoices,
+  };
 }
 
 /**
