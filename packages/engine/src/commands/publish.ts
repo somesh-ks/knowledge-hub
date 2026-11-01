@@ -14,7 +14,7 @@ import {
   readChangedPaths,
 } from "../git/guard.js";
 import { createGitRunner } from "../git/runGit.js";
-import type { BlobClient } from "../publish/blob.js";
+import { type BlobClient, isPruneDay } from "../publish/blob.js";
 import type { DigestAudioOutcome, PublishAudioResult } from "../publish/publishAudio.js";
 import { listPendingDigests, publishAudio } from "../publish/publishAudio.js";
 import { listEpisodeCandidates, publishEpisodeAudio } from "../publish/publishEpisodes.js";
@@ -22,7 +22,7 @@ import type { AudioCommandDeps } from "./audio.js";
 import { defaultAudioDeps } from "./audio.js";
 
 const USAGE =
-  "usage: singularity publish [--digest <id> | --episode <ep-id>] [--prune <days>] [--no-push]";
+  "usage: singularity publish [--digest <id> | --episode <ep-id>] [--prune <days> [--prune-now]] [--no-push]";
 
 const fileExists = (path: string): Promise<boolean> =>
   access(path).then(
@@ -109,7 +109,13 @@ export function createPublishCommand(overrides: Partial<AudioCommandDeps> = {}):
   const deps: AudioCommandDeps = { ...defaultAudioDeps, ...overrides };
 
   return async (argv, ctx) => {
-    let values: { digest?: string; episode?: string; prune?: string; "no-push"?: boolean };
+    let values: {
+      digest?: string;
+      episode?: string;
+      prune?: string;
+      "prune-now"?: boolean;
+      "no-push"?: boolean;
+    };
     try {
       ({ values } = parseArgs({
         args: argv,
@@ -117,6 +123,7 @@ export function createPublishCommand(overrides: Partial<AudioCommandDeps> = {}):
           digest: { type: "string" },
           episode: { type: "string" },
           prune: { type: "string" },
+          "prune-now": { type: "boolean" },
           "no-push": { type: "boolean" },
         },
         strict: true,
@@ -160,6 +167,11 @@ export function createPublishCommand(overrides: Partial<AudioCommandDeps> = {}):
       if (!Number.isInteger(pruneDays) || pruneDays < 1) {
         ctx.log.error(`--prune needs a whole number of days, at least 1. ${USAGE}`);
         return 2;
+      }
+      // Listing all of audio/ costs Blob operations; a weekly sweep prunes the same files.
+      if (!values["prune-now"] && !isPruneDay(ctx.now())) {
+        ctx.log.info("Prune runs on Sundays (or with --prune-now); skipping it today");
+        pruneDays = undefined;
       }
     }
 
