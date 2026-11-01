@@ -18,8 +18,8 @@ export type HapticPattern = keyof typeof HAPTIC_PATTERNS;
 
 /** What a control asks for. A call site names one of these and never a pattern. */
 export const HAPTIC_INTENTS = {
-  "navigate": "none",
-  "tap": "none",
+  "navigate": "tick-light",
+  "tap": "tick-light",
   "select": "tick-light",
   "detent": "tick-light",
   "open": "tick",

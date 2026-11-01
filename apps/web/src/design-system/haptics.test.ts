@@ -44,7 +44,7 @@ describe("haptics", () => {
       vibrate,
       now: () => 0,
     });
-    expect(haptics.fire("tap")).toBe(false);
+    expect(haptics.fire("close")).toBe(false);
     expect(vibrate).not.toHaveBeenCalled();
     expect(haptics.fire("success")).toBe(true);
     // The token's own pulses, whatever their lengths: a retune of the milliseconds is not this test's.

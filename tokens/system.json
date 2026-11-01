@@ -4037,15 +4037,15 @@
       "name": "haptic-navigate",
       "tier": "semantic",
       "type": "singularity-haptic",
-      "light": "pattern none",
-      "role": "A move between pages: quiet, the page is the answer."
+      "light": "pattern tick-light",
+      "role": "A move between pages: the lightest tick, so every press answers."
     },
     {
       "name": "haptic-tap",
       "tier": "semantic",
       "type": "singularity-haptic",
-      "light": "pattern none",
-      "role": "A plain press: quiet, the press layer is the answer."
+      "light": "pattern tick-light",
+      "role": "A plain press: the lightest tick, so every press answers."
     },
     {
       "name": "haptic-select",
