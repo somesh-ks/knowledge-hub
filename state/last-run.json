@@ -1,10 +1,10 @@
 {
   "version": 1,
   "last_cover": {
-    "palette": "plum-pearl",
-    "template": "orbit"
+    "palette": "kelp",
+    "template": "numeral"
   },
-  "last_fetch_at": "2026-10-31T04:01:04.381Z",
+  "last_fetch_at": "2026-11-01T05:01:01.016Z",
   "on_demand": {
     "at": "2026-10-30T22:17:19.999Z",
     "digest_id": "2026-10-30",
@@ -19,21 +19,22 @@
     "outcome": "nothing"
   },
   "spend": {
-    "at": "2026-10-31T05:57:00.309Z",
+    "at": "2026-11-01T06:57:00.347Z",
     "firecrawl_rate_limited": 0,
     "firecrawl_skipped": [],
     "requests": {
-      "anthropic": 5,
+      "anthropic": 23,
       "exa": 14,
       "firecrawl_listing": 15,
-      "firecrawl_scrape": 9,
-      "jev": 108
+      "firecrawl_scrape": 13,
+      "jev": 610
     }
   },
   "weekly": {
-    "at": "2026-10-25T08:52:38.590Z",
-    "digest_id": "2026-10-25-weekly",
-    "items": 20,
+    "at": "2026-11-01T06:57:00.347Z",
+    "digest_id": "2026-11-01-weekly",
+    "generated_at": "2026-11-01T05:07:08.893Z",
+    "items": 33,
     "outcome": "published"
   }
 }
