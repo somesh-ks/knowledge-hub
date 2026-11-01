@@ -1,5 +1,5 @@
 ---
-import { coverSwatches } from "@singularity/cover";
+import { COVER_STYLES, coverSwatches } from "@singularity/cover";
 import type { CoverSource } from "../lib/covers";
 import { tintColors } from "../scripts/ambientTint";
 import "../styles/ambient.css";
@@ -13,14 +13,37 @@ const { cover } = Astro.props;
 // The colours each theme's cover image shows, read from the image itself, at the lightness each
 // theme can carry; ambient.css picks the set.
 const meta = { id: cover.id, date: cover.date, kind: cover.kind };
-const light = tintColors(coverSwatches(cover.cover, { ...meta, mode: "light" }), "light");
-const dark = tintColors(coverSwatches(cover.cover, { ...meta, mode: "dark" }), "dark");
-const vars = `--ambient-a-l:${light[0]};--ambient-b-l:${light[1]};--ambient-c-l:${light[2]};--ambient-a-d:${dark[0]};--ambient-b-d:${dark[1]};--ambient-c-d:${dark[2]}`;
+const tints = (style: string) => {
+  const drawn = style === "default" ? meta : { ...meta, style };
+  return {
+    light: tintColors(coverSwatches(cover.cover, { ...drawn, mode: "light" }), "light"),
+    dark: tintColors(coverSwatches(cover.cover, { ...drawn, mode: "dark" }), "dark"),
+  };
+};
+const { light, dark } = tints("default");
+// The same light from each style's cover (D311): variables the style's rules in ambient.css pick, and
+// the colours the shader reads.
+const styles = COVER_STYLES.filter((style) => style !== "default").map((style) => ({
+  style,
+  ...tints(style),
+}));
+const styleVars = styles
+  .map(
+    ({ style, light, dark }) =>
+      `--ambient-a-l-${style}:${light[0]};--ambient-b-l-${style}:${light[1]};--ambient-c-l-${style}:${light[2]};--ambient-a-d-${style}:${dark[0]};--ambient-b-d-${style}:${dark[1]};--ambient-c-d-${style}:${dark[2]}`,
+  )
+  .join(";");
+const vars = `--ambient-a-l:${light[0]};--ambient-b-l:${light[1]};--ambient-c-l:${light[2]};--ambient-a-d:${dark[0]};--ambient-b-d:${dark[1]};--ambient-c-d:${dark[2]};${styleVars}`;
+const byStyle = JSON.stringify(
+  Object.fromEntries(
+    styles.map(({ style, light, dark }) => [style, [...light, ...dark].join(",")]),
+  ),
+);
 ---
 
 {/* Light from the cover spilling onto the page behind the header. A CSS layer shows the same colors
      before any script runs and wherever WebGL is missing; the canvas fades in over it. */}
-<div class="ambient" aria-hidden="true" data-ambient={`${light.join(",")},${dark.join(",")}`} style={vars}>
+<div class="ambient" aria-hidden="true" data-ambient={`${light.join(",")},${dark.join(",")}`} data-ambient-styles={byStyle} style={vars}>
   <div class="ambient-still"></div>
   <canvas class="ambient-canvas"></canvas>
 </div>

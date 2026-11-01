@@ -77,6 +77,25 @@
   display: block;
 }
 
+/* And in each style (D311): a cover is drawn once for every style, and the page shows its own. Each
+   rule only hides, so it never undoes the theme's choice above; the extra `.cover` keeps it ahead of
+   those rules. A style's cover has no edge colour of its own to show while it decodes, so the box
+   takes the style's sunken surface. Every style the covers know is named here (styles.test.ts). */
+:root[data-style] .cover .cover-image:not([data-cover-skin]),
+:root:not([data-style]) .cover .cover-image[data-cover-skin],
+:root[data-style="expressive"]
+  .cover
+  .cover-image[data-cover-skin]:not([data-cover-skin="expressive"]),
+:root[data-style="halloween"]
+  .cover
+  .cover-image[data-cover-skin]:not([data-cover-skin="halloween"]) {
+  display: none;
+}
+
+:root[data-style] .cover {
+  --cover-bg: var(--color-surface-sunken);
+}
+
 /* The branded fallback (2026-10-25, plan 1.5): the ring and dot of the Singularity mark on a quiet
    ground, in light and dark (public/brand/cover-*.svg). Shown by `data-fallback`, set when a cover is
    pending without a path, missing, or fails to load: PlayerCover.tsx sets it on its frame, and the

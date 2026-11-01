@@ -1,5 +1,5 @@
 ---
-import { COVER_MODES, type CoverMode } from "@singularity/cover";
+import { COVER_MODES, COVER_STYLES, type CoverMode } from "@singularity/cover";
 import { type CoverSize, type CoverSource, coverEdge, themedCoverSrc } from "../lib/covers";
 import CoverPlay from "./CoverPlay.astro";
 
@@ -18,7 +18,8 @@ const { digestId, size, source, weekly, priority = false } = Astro.props;
 // The colour at the cover's edge in each theme, shown before the image decodes (cover.css picks one).
 const edgeLight = coverEdge(source, "light");
 const edgeDark = coverEdge(source, "dark");
-const modes = COVER_MODES;
+// One image for each theme in each style (D311); the page shows the one that matches both (cover.css).
+const looks = COVER_STYLES.flatMap((style) => COVER_MODES.map((mode) => ({ mode, style })));
 
 /**
  * A pale ground needs a hairline to hold its edge on the light page; a deep one has its own edge, and
@@ -39,8 +40,8 @@ function isPale(hex: string): boolean {
 // a row or a hero the signature is a few pixels of noise: only the player's cover offers it. The rest
 // offer the 512, which never carries it, so a cover looks the same at every density and on every visit.
 const widths: CoverSize[] = size === "player" ? [512, 1024] : [512];
-const srcset = (mode: CoverMode) =>
-  widths.map((width) => `${themedCoverSrc(digestId, mode, width)} ${width}w`).join(", ");
+const srcset = (mode: CoverMode, style: string) =>
+  widths.map((width) => `${themedCoverSrc(digestId, mode, width, style)} ${width}w`).join(", ");
 
 // Display width of each size, so the browser picks the 512 or the 1024 image for the screen's density.
 const SIZES: Record<Props["size"], string> = {
@@ -61,21 +62,23 @@ const SIZES: Record<Props["size"], string> = {
   data-pale={isPale(edgeLight) ? "" : undefined}
   style={`--cover-bg-light:${edgeLight};--cover-bg-dark:${edgeDark}`}
 >
-  {/* One image per theme. The other theme's image is display: none, so a lazy one is never fetched. */}
-  {modes.map((mode) => (
+  {/* One image per theme and style. The others are display: none, so a lazy one is never fetched; only
+      Default's priority image loads eagerly, a style's loads as soon as it is shown. */}
+  {looks.map(({ mode, style }) => (
     <img
       class="cover-image"
       data-mode={mode}
-      src={themedCoverSrc(digestId, mode, 512)}
-      srcset={srcset(mode)}
+      data-cover-skin={style === "default" ? undefined : style}
+      src={themedCoverSrc(digestId, mode, 512, style)}
+      srcset={srcset(mode, style)}
       sizes={SIZES[size]}
       width="512"
       height="512"
       alt=""
       draggable="false"
       decoding="async"
-      loading={priority ? "eager" : "lazy"}
-      fetchpriority={priority ? "high" : undefined}
+      loading={priority && style === "default" ? "eager" : "lazy"}
+      fetchpriority={priority && style === "default" ? "high" : undefined}
     />
   ))}
   {weekly && <span class="cover-frame" aria-hidden="true"></span>}
@@ -89,14 +92,20 @@ const SIZES: Record<Props["size"], string> = {
   // its size, now and once the document is parsed. Only an image with a source that finished empty
   // counts: a lazy or hidden one has no source yet, so it is never mistaken for a failure. A failure
   // counts for the theme it belongs to: a priority cover loads both, and the one the page is not
-  // showing may fail while the other is fine, so the fallback follows the shown theme.
+  // showing may fail while the other is fine, so the fallback follows the shown theme, and the shown
+  // style (D311).
   const shownMode = () => {
     const theme = document.documentElement.dataset.theme;
     if (theme === "light" || theme === "dark") return theme;
     return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   };
+  const shownStyle = () => document.documentElement.dataset.style;
   const sync = (cover: Element) => {
-    const failedHere = cover.querySelector(`.cover-image[data-mode="${shownMode()}"][data-failed]`);
+    const style = shownStyle();
+    const mode = shownMode();
+    const failedHere = cover.querySelector(
+      `.cover-image[data-mode="${mode}"]${style ? `[data-cover-skin="${style}"]` : ":not([data-cover-skin])"}[data-failed]`,
+    );
     cover.toggleAttribute("data-fallback", failedHere !== null);
   };
   const syncAll = () => {
@@ -125,7 +134,7 @@ const SIZES: Record<Props["size"], string> = {
   document.addEventListener("DOMContentLoaded", scan);
   new MutationObserver(syncAll).observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ["data-theme"],
+    attributeFilter: ["data-theme", "data-style"],
   });
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", syncAll);
 </script>

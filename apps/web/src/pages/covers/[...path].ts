@@ -117,7 +117,9 @@ export const GET: APIRoute = async ({ params, url }) => {
     }
     const { record } = resolution;
     loadShippedFonts();
-    const source = request.mode ? { ...record.source, mode: request.mode } : record.source;
+    const source = request.mode
+      ? { ...record.source, mode: request.mode, ...(request.style ? { style: request.style } : {}) }
+      : record.source;
     const draw = request.format === "png" ? coverPng : coverWebp;
     const body = await draw(source, request.size, CACHE);
     return new Response(body, {

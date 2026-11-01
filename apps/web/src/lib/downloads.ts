@@ -79,13 +79,14 @@ export class NotReadyError extends Error {
 }
 
 /**
- * An item's covers: the page's, drawn for each theme (lib/covers.ts themedCoverSrc), and the
- * player's and lock screen's, as authored. A theme switch offline still finds its cover.
+ * An item's covers: the page's, drawn for each theme (lib/covers.ts themedCoverSrc) and, under a style,
+ * for the style the reader has on (D311), and the player's and lock screen's, as authored. A theme
+ * switch offline still finds its cover; a style switched to offline shows the branded fallback until
+ * the item is online again.
  */
-export function coverAddresses(id: string): string[] {
-  return ["", "/light", "/dark"].flatMap((mode) =>
-    [512, 1024].map((size) => `/covers${mode}/${id}-${size}.webp`),
-  );
+export function coverAddresses(id: string, style?: string): string[] {
+  const looks = ["", "/light", "/dark", ...(style ? [`/light-${style}`, `/dark-${style}`] : [])];
+  return looks.flatMap((look) => [512, 1024].map((size) => `/covers${look}/${id}-${size}.webp`));
 }
 
 /** The lookup the player asks for, which a downloaded episode's page gets answered from the cache. */

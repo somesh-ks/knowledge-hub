@@ -6,12 +6,21 @@ const MODES = ["light", "dark"] as const;
 /** A cover the site drew: its path comes from page JSON, so anything else is not shown. */
 const COVER_FILE = /^\/covers\/([\w-]+\.(?:webp|png))(\?v=\w+)?$/;
 
-/** The cover drawn for one theme: `/covers/x-512.webp` becomes `/covers/dark/x-512.webp`. */
-function themedSrc(src: string, mode: (typeof MODES)[number]): string {
+/**
+ * The cover drawn for one theme and style: `/covers/x-512.webp` becomes `/covers/dark/x-512.webp`, or
+ * `/covers/dark-halloween/x-512.webp` under a style (D311; the same address `coverLook` names).
+ */
+function themedSrc(src: string, mode: (typeof MODES)[number], style?: string): string {
   const match = COVER_FILE.exec(src);
   const file = match?.[1];
+  const look = style ? `${mode}-${style}` : mode;
   // encodeURIComponent changes nothing the pattern lets through; it marks the path safe for CodeQL.
-  return file ? `/covers/${mode}/${encodeURIComponent(file)}${match?.[2] ?? ""}` : "";
+  return file ? `/covers/${look}/${encodeURIComponent(file)}${match?.[2] ?? ""}` : "";
+}
+
+/** The style the page is showing; Default sets no attribute. */
+function shownStyle(): string | undefined {
+  return document.documentElement.dataset.style || undefined;
 }
 
 /** The theme the page is showing: an explicit data-theme wins, else the system's. */
@@ -45,14 +54,18 @@ export default function PlayerCover({ cover, weekly, size }: PlayerCoverProps) {
     modes: [],
   });
   const [shown, setShown] = useState<(typeof MODES)[number]>("light");
+  const [styled, setStyled] = useState<string | undefined>(undefined);
   useEffect(() => {
-    const sync = () => setShown(shownMode());
+    const sync = () => {
+      setShown(shownMode());
+      setStyled(shownStyle());
+    };
     sync();
     const query = matchMedia("(prefers-color-scheme: dark)");
     const observer = new MutationObserver(sync);
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ["data-theme"],
+      attributeFilter: ["data-theme", "data-style"],
     });
     query.addEventListener("change", sync);
     return () => {
@@ -62,7 +75,7 @@ export default function PlayerCover({ cover, weekly, size }: PlayerCoverProps) {
   }, []);
   const fallback =
     !themedSrc(cover.src512, "light") ||
-    (failed.src === cover.src512 && failed.modes.includes(shown));
+    (failed.src === cover.src512 && failed.modes.includes(`${shown}|${styled ?? ""}`));
   return (
     <span
       className="player-cover-frame"
@@ -72,17 +85,19 @@ export default function PlayerCover({ cover, weekly, size }: PlayerCoverProps) {
       style={style}
     >
       {MODES.map((mode) => {
-        const src = themedSrc(cover.src512, mode);
+        const src = themedSrc(cover.src512, mode, styled);
         // A path that is not a drawn cover leaves the key-colored box, never an empty src.
         if (!src) return null;
         return (
           <img
-            key={mode}
+            key={`${mode}|${styled ?? ""}`}
             className="player-cover-image"
             data-mode={mode}
             src={src}
             srcSet={
-              size === "player" ? `${src} 512w, ${themedSrc(cover.src1024, mode)} 1024w` : undefined
+              size === "player"
+                ? `${src} 512w, ${themedSrc(cover.src1024, mode, styled)} 1024w`
+                : undefined
             }
             sizes={size === "player" ? "(min-width: 40rem) 22rem, calc(100vw - 3rem)" : undefined}
             alt=""
@@ -95,7 +110,10 @@ export default function PlayerCover({ cover, weekly, size }: PlayerCoverProps) {
             onError={() =>
               setFailed((prev) => ({
                 src: cover.src512,
-                modes: [...(prev.src === cover.src512 ? prev.modes : []), mode],
+                modes: [
+                  ...(prev.src === cover.src512 ? prev.modes : []),
+                  `${mode}|${styled ?? ""}`,
+                ],
               }))
             }
           />
@@ -110,15 +128,26 @@ export default function PlayerCover({ cover, weekly, size }: PlayerCoverProps) {
  * the cover's own colours by construction. player.css fades it in while playing and lets it breathe.
  */
 export function PlayerCoverGlow({ cover }: { cover: PlayerDigestData["cover"] }) {
+  const [styled, setStyled] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const sync = () => setStyled(shownStyle());
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-style"],
+    });
+    return () => observer.disconnect();
+  }, []);
   return (
     <span className="player-cover-glow" aria-hidden="true">
       <span className="player-cover-glow-light">
         {MODES.map((mode) => {
-          const src = themedSrc(cover.src512, mode);
+          const src = themedSrc(cover.src512, mode, styled);
           if (!src) return null;
           return (
             <img
-              key={mode}
+              key={`${mode}|${styled ?? ""}`}
               className="player-cover-image"
               data-mode={mode}
               src={src}

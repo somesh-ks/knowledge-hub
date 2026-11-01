@@ -20,11 +20,15 @@ const COVER_WAIT_MS = 400;
  * the crossfade. The new theme's images on screen are fetched and decoded first, for at most
  * COVER_WAIT_MS; the ones off screen load lazily as before.
  */
-function coversReady(theme: ThemePreference): Promise<unknown> {
+function coversReady(theme: ThemePreference, style: StylePreference): Promise<unknown> {
   const dark =
     theme === "system" ? matchMedia("(prefers-color-scheme: dark)").matches : theme === "dark";
   const decoding: Promise<unknown>[] = [];
-  const selector = `:is(.cover-image, .player-cover-image)[data-mode="${dark ? "dark" : "light"}"]`;
+  // A cover is drawn for every style too (D311): the new style's image is the one to have ready. The
+  // player's carries no style attribute (it draws only the shown style), so it is matched by theme.
+  const own = style === DEFAULT_STYLE ? ":not([data-cover-skin])" : `[data-cover-skin="${style}"]`;
+  const mode = dark ? "dark" : "light";
+  const selector = `.cover-image[data-mode="${mode}"]${own}, .player-cover-image[data-mode="${mode}"]`;
   for (const image of document.querySelectorAll<HTMLImageElement>(selector)) {
     const box = image.parentElement?.getBoundingClientRect();
     if (!box || box.width === 0 || box.bottom < 0 || box.top > innerHeight) continue;
@@ -50,7 +54,7 @@ let changes = 0;
 export function changeTheme(theme: ThemePreference, style: StylePreference): void {
   changes += 1;
   const change = changes;
-  void coversReady(theme).then(() => {
+  void coversReady(theme, style).then(() => {
     if (change !== changes) return;
     const apply = (): void => {
       applyTheme(theme);

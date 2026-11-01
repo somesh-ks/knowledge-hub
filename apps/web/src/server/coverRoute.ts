@@ -1,4 +1,4 @@
-import { COVER_MODES, type CoverMode } from "@singularity/cover";
+import { type CoverMode, parseCoverLook } from "@singularity/cover";
 import { type CoverSize, type CoverSource, coverVersion, episodeCover } from "../lib/covers";
 import type { Site } from "../lib/site";
 
@@ -15,23 +15,27 @@ export interface CoverRequest {
   format: "webp" | "png";
   /** Set for the theme variants (`dark/<id>-512.webp`); unset for the cover as authored. */
   mode?: CoverMode;
+  /** Set for a style's variant (`dark-halloween/<id>-512.webp`, D311); unset for Default. */
+  style?: string;
 }
 
-const ADDRESS = /^(?:(light|dark)\/)?([A-Za-z0-9][A-Za-z0-9-]*)-(512|1024)\.(webp|png)$/;
+const ADDRESS = /^(?:([a-z]+(?:-[a-z]+)*)\/)?([A-Za-z0-9][A-Za-z0-9-]*)-(512|1024)\.(webp|png)$/;
 
 /** What `/covers/<path>` asks for, or null for anything the build never served at that address. */
 export function parseCoverPath(path: string): CoverRequest | null {
   const match = ADDRESS.exec(path);
   if (!match) return null;
-  const [, mode, id, size, format] = match;
+  const [, look, id, size, format] = match;
   // The theme variants are WebP only, as in the build.
-  if (mode !== undefined && format !== "webp") return null;
-  if (mode !== undefined && !COVER_MODES.includes(mode as CoverMode)) return null;
+  if (look !== undefined && format !== "webp") return null;
+  const named = look === undefined ? undefined : parseCoverLook(look);
+  if (look !== undefined && !named) return null;
   return {
     id: id as string,
     size: Number(size) as CoverSize,
     format: format as "webp" | "png",
-    ...(mode ? { mode: mode as CoverMode } : {}),
+    ...(named ? { mode: named.mode } : {}),
+    ...(named && named.style !== "default" ? { style: named.style } : {}),
   };
 }
 

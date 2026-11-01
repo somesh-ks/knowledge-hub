@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { COVER_MODES, type CoverMode } from "@singularity/cover";
+import { COVER_MODES, COVER_STYLES, coverLook } from "@singularity/cover";
 import type { APIRoute, GetStaticPaths } from "astro";
 import {
   COVER_SIZES,
@@ -17,7 +17,7 @@ interface Props {
   size: CoverSize;
 }
 
-/** The covers the pages show, once for the light theme and once for the dark. */
+/** The covers the pages show: once for each theme, in each style (D311). */
 export const getStaticPaths = (async () => {
   const { entries, episodes } = await getSite();
   const covers: CoverSource[] = [
@@ -25,11 +25,16 @@ export const getStaticPaths = (async () => {
     ...episodes.map(episodeCover),
   ];
   return covers.flatMap((digest) =>
-    COVER_MODES.flatMap((mode: CoverMode) =>
-      COVER_SIZES.map((size) => ({
-        params: { mode, id: digest.id, size: String(size) },
-        props: { digest: { ...digest, mode }, size } satisfies Props,
-      })),
+    COVER_STYLES.flatMap((style) =>
+      COVER_MODES.flatMap((mode) =>
+        COVER_SIZES.map((size) => ({
+          params: { mode: coverLook(mode, style), id: digest.id, size: String(size) },
+          props: {
+            digest: { ...digest, mode, ...(style === "default" ? {} : { style }) },
+            size,
+          } satisfies Props,
+        })),
+      ),
     ),
   );
 }) satisfies GetStaticPaths;

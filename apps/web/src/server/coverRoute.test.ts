@@ -48,6 +48,20 @@ it("never draws a theme variant as PNG or an address the build never served", ()
   expect(parseCoverPath("../x-512.webp")).toBeNull();
 });
 
+// The bug this prevents: a style's cover (D311) asked for by a page in that style answered 404 by the
+// on-demand route, a blank square on every briefing newer than the last deploy, only in that style.
+it("answers a style's cover address with its theme and style", () => {
+  expect(parseCoverPath("dark-halloween/x-512.webp")).toMatchObject({
+    id: "x",
+    mode: "dark",
+    style: "halloween",
+  });
+  expect(parseCoverPath("light/x-512.webp")).not.toHaveProperty("style");
+  expect(parseCoverPath("dark-nonesuch/x-512.webp")).toBeNull();
+  expect(parseCoverPath("dark-default/x-512.webp")).toBeNull();
+  expect(parseCoverPath("dark-halloween/x-512.png")).toBeNull();
+});
+
 it("keeps a cover for a year only under the address of its record's current version", () => {
   const version = coverSrc("x", 512, "2026-10-30T10:00:00Z").split("?v=")[1] as string;
   const record = { source: {} as never, version: `?v=${version}` };

@@ -112,3 +112,44 @@
     display: none;
   }
 }
+
+/* The light follows the style's cover (D311): AmbientLight.astro sets each style's colours as
+   `--ambient-*-l-<style>` and `-d-<style>`, and the style's rules choose them. Every style the covers
+   know is named here (styles.test.ts). */
+:root[data-style="expressive"] .ambient {
+  --ambient-a: var(--ambient-a-l-expressive, var(--ambient-a-l));
+  --ambient-b: var(--ambient-b-l-expressive, var(--ambient-b-l));
+  --ambient-c: var(--ambient-c-l-expressive, var(--ambient-c-l));
+}
+
+:root[data-style="halloween"] .ambient {
+  --ambient-a: var(--ambient-a-l-halloween, var(--ambient-a-l));
+  --ambient-b: var(--ambient-b-l-halloween, var(--ambient-b-l));
+  --ambient-c: var(--ambient-c-l-halloween, var(--ambient-c-l));
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-style="expressive"]:not([data-theme="light"]) .ambient {
+    --ambient-a: var(--ambient-a-d-expressive, var(--ambient-a-d));
+    --ambient-b: var(--ambient-b-d-expressive, var(--ambient-b-d));
+    --ambient-c: var(--ambient-c-d-expressive, var(--ambient-c-d));
+  }
+
+  :root[data-style="halloween"]:not([data-theme="light"]) .ambient {
+    --ambient-a: var(--ambient-a-d-halloween, var(--ambient-a-d));
+    --ambient-b: var(--ambient-b-d-halloween, var(--ambient-b-d));
+    --ambient-c: var(--ambient-c-d-halloween, var(--ambient-c-d));
+  }
+}
+
+:root[data-style="expressive"][data-theme="dark"] .ambient {
+  --ambient-a: var(--ambient-a-d-expressive, var(--ambient-a-d));
+  --ambient-b: var(--ambient-b-d-expressive, var(--ambient-b-d));
+  --ambient-c: var(--ambient-c-d-expressive, var(--ambient-c-d));
+}
+
+:root[data-style="halloween"][data-theme="dark"] .ambient {
+  --ambient-a: var(--ambient-a-d-halloween, var(--ambient-a-d));
+  --ambient-b: var(--ambient-b-d-halloween, var(--ambient-b-d));
+  --ambient-c: var(--ambient-c-d-halloween, var(--ambient-c-d));
+}

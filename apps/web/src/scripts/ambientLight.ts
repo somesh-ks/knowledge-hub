@@ -142,9 +142,24 @@ export function mountAmbient(host: HTMLElement) {
   });
   if (!gl) return;
 
-  const sets = (host.dataset.ambient ?? "").split(",");
-  const light = paletteUniforms(sets.slice(0, 3));
-  const dark = paletteUniforms(sets.slice(3));
+  // The colours of each style's cover (D311): Default's in data-ambient, a style's under its name.
+  const byStyle: Record<string, string> = (() => {
+    try {
+      return JSON.parse(host.dataset.ambientStyles ?? "{}");
+    } catch {
+      return {};
+    }
+  })();
+  const palettes = new Map<string, { light: Float32Array; dark: Float32Array }>();
+  const paletteFor = (style: string) => {
+    let held = palettes.get(style);
+    if (!held) {
+      const sets = (byStyle[style] ?? host.dataset.ambient ?? "").split(",");
+      held = { light: paletteUniforms(sets.slice(0, 3)), dark: paletteUniforms(sets.slice(3)) };
+      palettes.set(style, held);
+    }
+    return held;
+  };
   const darkQuery = matchMedia("(prefers-color-scheme: dark)");
   const isDark = () => {
     const theme = document.documentElement.dataset.theme;
@@ -176,7 +191,8 @@ export function mountAmbient(host: HTMLElement) {
     const turn = (((now - t0) / 1000 + 9) % DRIFT_SECONDS) / DRIFT_SECONDS;
     gl.uniform1f(program.t, turn * Math.PI * 2);
     gl.uniform3fv(program.o, cover);
-    gl.uniform3fv(program.c, isDark() ? dark : light);
+    const colours = paletteFor(document.documentElement.dataset.style ?? "");
+    gl.uniform3fv(program.c, isDark() ? colours.dark : colours.light);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     host.dataset.live = "";
   };
@@ -255,7 +271,10 @@ export function mountAmbient(host: HTMLElement) {
   motionQuery.addEventListener("change", sync);
   dataQuery.addEventListener("change", sync);
   darkQuery.addEventListener("change", redraw);
-  themed.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  themed.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-theme", "data-style"],
+  });
   seen.observe(host);
   sized.observe(host);
 
