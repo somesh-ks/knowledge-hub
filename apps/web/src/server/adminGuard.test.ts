@@ -9,6 +9,9 @@ import { POST as narrate } from "../pages/api/narrate";
 import { POST as podcast } from "../pages/api/podcast";
 import { adminOnly } from "./adminGuard";
 
+// The config route's built config is read as files CI does not have (D296): stand-ins let it load.
+vi.mock("./builtConfig", () => ({ builtFiles: {}, seedSources: "{}" }));
+
 const SECRET = "x".repeat(40);
 const NOW = Date.UTC(2026, 9, 30, 12);
 const ask = (cookie?: string) =>
