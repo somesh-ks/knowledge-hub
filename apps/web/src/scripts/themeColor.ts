@@ -33,14 +33,11 @@ function meta(scheme: "light" | "dark"): HTMLMetaElement | null {
 /** The page surface as the sRGB hex a theme-color meta takes, or null when the browser cannot convert it. */
 function surfaceHex(): string | null {
   const raw = getComputedStyle(document.documentElement).getPropertyValue("--color-surface").trim();
-  if (!raw) return null;
+  // A colour the browser cannot parse would leave the canvas black, so it is not drawn at all.
+  if (!raw || !CSS.supports("color", raw)) return null;
   const ctx = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
   if (!ctx) return null;
-  const unset = "#010203";
-  ctx.fillStyle = unset;
   ctx.fillStyle = raw;
-  // A colour the canvas cannot parse leaves the fill as it was.
-  if (ctx.fillStyle === unset) return null;
   ctx.fillRect(0, 0, 1, 1);
   const [r = 0, g = 0, b = 0] = ctx.getImageData(0, 0, 1, 1).data;
   return `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`;

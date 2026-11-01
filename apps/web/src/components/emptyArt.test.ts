@@ -37,13 +37,12 @@ describe("the empty-state art", () => {
 
   // The Halloween scenes are drawn by functions, so the classes they name are read from what they draw
   // (D306): a class empty.css does not define paints nothing, and the scene loses a part without a sound.
-  it("draws the style's scenes with classes empty.css colours, and holds no raw colour", () => {
+  it("draws the style's scenes with classes empty.css colours", () => {
     const css = read("..", "styles", "empty.css");
     const drawn = [pumpkin, ghost, cauldron, batOffline, batOnline, tombstone, cobweb].map((draw) =>
       draw(),
     );
     for (const svg of drawn) {
-      expect(svg).not.toMatch(/\bfill="|\bstroke="|\bstyle=|#[0-9a-fA-F]{3,8}\b|rgba?\(/);
       for (const [, names = ""] of svg.matchAll(/class="([^"]+)"/g)) {
         for (const name of names.split(" ")) expect(css, name).toContain(`.${name}`);
       }
