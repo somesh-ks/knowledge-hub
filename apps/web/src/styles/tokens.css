@@ -192,6 +192,7 @@
   --state-hover: 8%;
   --state-press: 12%;
   --opacity-disabled: 0.32;
+  --opacity-dim: 0.6;
   --opacity-ambient-light: 0.6;
   --opacity-ambient-dark: 0.32;
   --z-beneath: -1;
@@ -347,8 +348,6 @@
   --cta-radius: var(--radius-round);
   --cta-radius-pressed: var(--cta-radius);
   --cta-bg: var(--color-accent);
-  --cta-bg-hover: var(--color-accent-hover);
-  --cta-bg-pressed: var(--color-accent-pressed);
   --cta-fg: var(--color-on-accent);
   --action-tonal-radius: var(--radius-lg);
   --action-tonal-bg: var(--color-accent-action);

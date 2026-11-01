@@ -865,7 +865,7 @@
   height: var(--size-icon-sm);
   margin-block: auto;
   opacity: 0;
-  transform: scale(0.95);
+  transform: scale(var(--scale-enter));
   pointer-events: none;
   transition:
     opacity var(--duration-state) var(--ease-out),
@@ -1075,7 +1075,7 @@
    Taller cards keep the card radius. */
 .card-group:not(:has(> * + *)) {
   --card-radius: var(--radius-xl);
-  --card-inner-radius: var(--radius-lg);
+  --card-inner-radius: calc(var(--card-radius) - var(--card-inset));
 }
 
 .card-group > .row-action {

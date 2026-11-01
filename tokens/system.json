@@ -61,8 +61,6 @@
         "--color-surface",
         "--color-surface-container",
         "--cta-bg",
-        "--cta-bg-hover",
-        "--cta-bg-pressed",
         "--cta-fg"
       ]
     },
@@ -3234,6 +3232,13 @@
       "light": "0.32"
     },
     {
+      "name": "--opacity-dim",
+      "tier": "primitive",
+      "type": "number",
+      "light": "0.6",
+      "role": "A thing that is busy or being moved stays where it is, quieter: a page that is loading, a row being cancelled or dragged."
+    },
+    {
       "name": "--opacity-ambient-light",
       "tier": "primitive",
       "type": "number",
@@ -4311,26 +4316,6 @@
       "hex": {
         "light": "#1755b9",
         "dark": "#82b0fd"
-      }
-    },
-    {
-      "name": "--cta-bg-hover",
-      "tier": "component",
-      "type": "color",
-      "light": "var(--color-accent-hover)",
-      "hex": {
-        "light": "#164087",
-        "dark": "#afcdfe"
-      }
-    },
-    {
-      "name": "--cta-bg-pressed",
-      "tier": "component",
-      "type": "color",
-      "light": "var(--color-accent-pressed)",
-      "hex": {
-        "light": "#162f59",
-        "dark": "#4f90fc"
       }
     },
     {

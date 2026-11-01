@@ -136,7 +136,9 @@
   width: auto;
 }
 
-/* Button, filled variant: the accent fill under its own words. At most one per surface. */
+/* Button, filled variant: the accent fill under its own words. At most one per surface. Hover and press lay the
+   state layer of its words over the fill, as Material does; mixed in oklab, since white has no hue and an oklch
+   mix would swing the blue toward purple (owner, 2026-11-01). */
 .button-filled {
   background: var(--cta-bg);
   color: var(--cta-fg);
@@ -153,7 +155,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .button-filled:hover {
-    background: var(--cta-bg-hover);
+    background: color-mix(in oklab, var(--cta-bg), var(--cta-fg) var(--state-hover));
   }
 
   .button-tonal:hover {
@@ -166,7 +168,7 @@
 }
 
 .button-filled:active {
-  background: var(--cta-bg-pressed);
+  background: color-mix(in oklab, var(--cta-bg), var(--cta-fg) var(--state-press));
 }
 
 /* A press on a worded button shows on its fill, one step past the hover's, so it reads as a press
@@ -297,7 +299,7 @@
 [data-playing="false"] .swap-playing,
 [data-playing="true"] .swap-paused {
   opacity: 0;
-  transform: scale(0.95);
+  transform: scale(var(--scale-enter));
   filter: blur(var(--blur-enter));
 }
 

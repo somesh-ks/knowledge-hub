@@ -99,7 +99,7 @@ Read directly by components.
 - --ease-out, --ease-in-out, --ease-drawer, --ease-hover, --ease-linear linear, --ease-spring-settle, --ease-spring-release, --ease-spring-pop, --ease-spring-spatial-fast, --ease-spring-spatial-default, --ease-spring-spatial-slow, --ease-spring-effects-fast, --ease-spring-effects-default, --ease-spring-effects-slow
 
 ## Component tokens
-Sizes and bindings per part: cover (10), rail (12), item (4), cta (7), action (4), button (4), mini (8), player (5), control (6), scrubber (10), segmented (5), field (9), switch (7), sheet (6), toast (6), banner (2), archive (2), chip (13), app (1), nav (9), tabs (3), row (3), slider (1), picker (3), card (6). List one with `npm run ds -- token <group>`.
+Sizes and bindings per part: cover (10), rail (12), item (4), cta (5), action (4), button (4), mini (8), player (5), control (6), scrubber (10), segmented (5), field (9), switch (7), sheet (6), toast (6), banner (2), archive (2), chip (13), app (1), nav (9), tabs (3), row (3), slider (1), picker (3), card (6). List one with `npm run ds -- token <group>`.
 
 ## Bespoke controls
 20 controls are built for one place (the player transport and dock, speed controls, source rows). They are not for reuse. 9 more belong to a part above and are used through it. `npm run ds -- part bespoke` lists all with the reason.
