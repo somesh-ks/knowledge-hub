@@ -57,6 +57,13 @@ function hideIn(doc: Document): void {
     card.remove();
     removed += 1;
   }
+  // A month whose cards are all gone loses its heading too, before the page is drawn.
+  if (removed > 0) {
+    for (const head of doc.querySelectorAll("[data-library-grid] [data-month-head]")) {
+      const next = head.nextElementSibling;
+      if (!next || next.hasAttribute("data-month-head")) head.remove();
+    }
+  }
   // The Library's script may have counted its cards before this module loaded: it counts again.
   if (doc === document && removed > 0)
     document.dispatchEvent(new Event("singularity:library-pruned"));

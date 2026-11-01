@@ -26,6 +26,7 @@ What it does now. Reasons: D44, D59, D60, D77, D78, D88, D97, D104, D109, D127; 
 - Search finds a date in any form and searches inside episode scripts. Search, filter and order stay in the address.
 - A recording heard to its end says Played (D78).
 - The Library has a List view and a play button on covers. Sort is a drawn select, absent on a phone (below 40rem), where the chips and the view switch share one line (chips scroll at 360px).
+- In the List view each month has a small muted label ("October 2026", D288) that sticks under the top chrome; labels show for Newest and Oldest first, not Longest, and a month with nothing on show has none. From 80rem the rows run two across; below it, and on a phone, one column.
 - Cards off screen use `content-visibility`.
 
 ### Row menu and downloads (D127)

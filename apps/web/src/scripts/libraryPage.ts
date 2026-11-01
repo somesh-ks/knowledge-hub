@@ -1,6 +1,7 @@
 /**
  * The Library's search, sort and filter. The page is complete without this script: every briefing
- * is in the HTML, newest first. The script only hides, reorders and counts.
+ * is in the HTML, newest first. The script only hides, reorders and counts, and keeps each month's
+ * heading before the first card of its month on show.
  */
 import {
   type CardData,
@@ -8,6 +9,7 @@ import {
   compareCards,
   EPISODE_KIND,
   emptyCopy,
+  groupsByMonth,
   LIBRARY_FILTERS,
   LIBRARY_SORTS,
   type LibraryFilter,
@@ -15,6 +17,8 @@ import {
   matchDetail,
   matchExcerpt,
   matchesFilter,
+  monthOf,
+  monthStarts,
   moreMatches,
   normalize,
   resultSummary,
@@ -63,7 +67,9 @@ function allowed<T extends string>(
 }
 
 function install(): void {
-  const root = document.querySelector<HTMLElement>("#main [data-library]");
+  // Only the Library page: this listener outlives it (astro:page-load), and Settings > Downloads wears the
+  // same [data-library] rows. Wired there, it set the Library's stored view (the gallery) on it.
+  const root = document.querySelector<HTMLElement>("#main.library [data-library]");
   if (!root || root.dataset.ready !== undefined) return;
   root.dataset.ready = "";
 
@@ -84,6 +90,13 @@ function install(): void {
   const sortShown = (): boolean =>
     sortField !== null && getComputedStyle(sortField).display !== "none";
   const cards = [...grid.querySelectorAll<HTMLElement>("[data-card]")].map(readCard);
+  /** The month headings the page was built with, by month: the list shows them (library.css), the gallery does not. */
+  const heads = new Map(
+    [...grid.querySelectorAll<HTMLElement>("[data-month-head]")].map((head) => [
+      head.dataset.month ?? "",
+      head,
+    ]),
+  );
 
   /** The full text of every card, once fetched. Until then, and if it never comes, only the card's own lines are searched. */
   let fullText: Map<string, string> | null = null;
@@ -207,6 +220,23 @@ function install(): void {
     }
     const ordered = [...live].sort((a, b) => compareCards(a.data, b.data, sort));
     for (const card of ordered) grid?.append(card.element);
+    // A heading before the first card of each month on show, in a date order only; one whose month
+    // has nothing on show (a filter, a search, a delete) is out of the page, never an empty heading.
+    for (const head of heads.values()) {
+      head.remove();
+      head.removeAttribute("data-first");
+    }
+    if (groupsByMonth(sort)) {
+      const onShow = ordered.filter((card) => !card.element.hidden);
+      for (const [place, index] of monthStarts(onShow.map((card) => card.data.date)).entries()) {
+        const card = onShow[index];
+        const head = card && heads.get(monthOf(card.data.date));
+        if (!card || !head) continue;
+        grid?.insertBefore(head, card.element);
+        // Cards a search hid may stand before it, so :first-child alone would miss the first on show.
+        if (place === 0) head.setAttribute("data-first", "");
+      }
+    }
     if (status) status.textContent = resultSummary(shown, live.length);
     if (empty) {
       empty.hidden = shown > 0;

@@ -451,7 +451,7 @@ test("a long press on a card opens its menu and leaves the card unopened, and is
   expect(new URL(page.url()).pathname).toBe("/library");
 });
 
-test("Settings > Downloads lists what was downloaded and removes it only after a confirm, for good", async ({
+test("Settings > Downloads stays a list with a working ⋮ when reached from the Library, lists what was downloaded and removes it only after a confirm, for good", async ({
   page,
 }) => {
   await page.goto("/library");
@@ -462,11 +462,21 @@ test("Settings > Downloads lists what was downloaded and removes it only after a
   await row(page, AUDIO_ID).getByRole("menuitem", { name: "Download" }).click();
   await expect(row(page, AUDIO_ID)).toHaveAttribute("data-downloaded", "");
 
-  // The page shows the saved podcast and none of the rest of the Library.
-  await page.goto("/settings/downloads");
+  // The page shows the saved podcast and none of the rest of the Library. It is reached from the
+  // Library without a reload: the Library's script lives on and once set its stored view, the
+  // gallery, on this page, which showed Downloads as cards with a ⋮ (owner, 2026-11-01).
+  await page.getByRole("link", { name: "Settings", exact: true }).first().click();
+  await page.getByRole("link", { name: "Downloads" }).click();
   await expect(page.locator("[data-downloads]")).toHaveAttribute("data-ready", "");
   await expect(page.locator("[data-card]:visible")).toHaveCount(1);
   await expect(row(page, AUDIO_ID)).toBeVisible();
+  const cover = await row(page, AUDIO_ID).locator(".cover").boundingBox();
+  const title = await row(page, AUDIO_ID).locator(".card-title").boundingBox();
+  expect(title?.x).toBeGreaterThan((cover?.x ?? 0) + (cover?.width ?? 0));
+  // Drawn and pressable, not only laid out: a phone hides the Library's ⋮ with opacity and pointer-events.
+  const more = row(page, AUDIO_ID).locator(".card-more");
+  await expect(more).toHaveCSS("opacity", "1");
+  await expect(more).toHaveCSS("pointer-events", "auto");
 
   // Removing asks first: Cancel keeps it.
   const dialog = page.getByRole("dialog", { name: "Remove download?" });
