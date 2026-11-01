@@ -679,6 +679,13 @@
   --color-on-accent-action: var(--color-white);
   --color-accent-on-inverse: var(--color-violet-300);
   --icon-bold: 1;
+  --shape-xs: 0.5rem;
+  --shape-sm: 0.75rem;
+  --shape-md: 1.25rem;
+  --shape-lg: 1.75rem;
+  --shape-xl: 2.25rem;
+  --shape-sheet: 2.5rem;
+  --shape-2xl: 2.5rem;
   --size-touch: 3.25rem;
   --size-touch-comfortable: 3.5rem;
   --size-option: 3.5rem;
@@ -931,6 +938,55 @@
   --scene-moon: oklch(93% 0.03 85);
   --scene-moon-shade: oklch(78% 0.04 300);
   --scene-halo: 0.5;
+}
+
+/* Album art per style (D311, tokens/covers.json): numbers for the cover math in cover.css. */
+:root[data-style="expressive"] {
+  --cover-hue: 292;
+  --cover-keep: 0.15;
+  --cover-spread: 0.5;
+  --cover-cap: 40;
+  --cover-c-scale: 1.6;
+  --cover-c-add: 0.05;
+  --cover-c-max: 0.3;
+  --cover-c-floor-below: 0.02;
+  --cover-c-floor: 0.035;
+  --cover-flip: 0;
+  --cover-night-below: 0;
+  --cover-night-hue: 0;
+  --cover-night-c: 0;
+  --cover-lo: 0;
+  --cover-hi: 1;
+}
+
+:root[data-style="halloween"] {
+  --cover-hue: 52;
+  --cover-keep: 0.2;
+  --cover-spread: 0.25;
+  --cover-cap: 180;
+  --cover-c-scale: 1.1;
+  --cover-c-add: 0.03;
+  --cover-c-max: 0.19;
+  --cover-c-floor-below: 0.03;
+  --cover-c-floor: 0.03;
+  --cover-flip: 1;
+  --cover-night-below: 0.37;
+  --cover-night-hue: 305;
+  --cover-night-c: 0.045;
+  --cover-lo: 0.13;
+  --cover-hi: 0.91;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"])[data-style="halloween"] {
+    --cover-lo: 0.09;
+    --cover-hi: 0.87;
+  }
+}
+
+:root[data-theme="dark"][data-style="halloween"] {
+  --cover-lo: 0.09;
+  --cover-hi: 0.87;
 }
 
 /* Reduced motion: movement durations collapse, fades and color changes keep their timing. */

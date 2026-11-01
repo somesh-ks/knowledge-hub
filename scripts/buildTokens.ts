@@ -67,6 +67,7 @@ const GENERIC_FAMILIES = new Set([
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const TOKENS_JSON_PATH = resolve(ROOT, "tokens/tokens.json");
 export const TOKENS_CSS_PATH = resolve(ROOT, "apps/web/src/styles/tokens.css");
+export const COVERS_JSON_PATH = resolve(ROOT, "tokens/covers.json");
 export const HAPTICS_TS_PATH = resolve(ROOT, "apps/web/src/design-system/hapticTokens.ts");
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -444,6 +445,88 @@ function styleBlocks(style: StyleDefinition, doc: TokenDocument): string[] {
   return out;
 }
 
+type CoverNode = { $value: unknown };
+type CoverRuleJson = Record<string, CoverNode | Record<string, CoverNode>>;
+
+const coverValue = (node: unknown, where: string): unknown => {
+  if (typeof node !== "object" || node === null || !("$value" in node)) {
+    throw new Error(`tokens/covers.json: style.${where} needs a $value`);
+  }
+  return (node as CoverNode).$value;
+};
+
+/**
+ * How each style redraws an album cover (D311), as custom properties under the style's attribute.
+ * A cover is a vector whose colours are CSS math over the month's base colours (cover.css), so a
+ * style is only these numbers: a new style in `tokens/covers.json` needs no cover files, and a reader's
+ * hue (`--hue-shift`) moves the one anchor, `--cover-hue`. The numbers are the rule's, read here so
+ * the page and `packages/cover` (which holds the same formula for contrast tests) never part.
+ */
+export function coverStyleBlocks(
+  raw: unknown = JSON.parse(readFileSync(COVERS_JSON_PATH, "utf8")),
+): string[] {
+  const rules = (raw as { style?: Record<string, unknown> }).style ?? {};
+  const out: string[] = [
+    "/* Album art per style (D311, tokens/covers.json): numbers for the cover math in cover.css. */",
+  ];
+  for (const [id, body] of Object.entries(rules)) {
+    if (id.startsWith("$")) continue;
+    const rule = body as CoverRuleJson;
+    const num = (node: unknown, where: string): number => {
+      const value = coverValue(node, `${id}.${where}`);
+      if (typeof value !== "number")
+        throw new Error(`tokens/covers.json: style.${id}.${where} must be a number`);
+      return value;
+    };
+    const chroma = rule.chroma as Record<string, CoverNode>;
+    const flip = rule.flip as Record<string, CoverNode> | undefined;
+    const night = rule.night as Record<string, CoverNode> | undefined;
+    const band = (mode: "light" | "dark"): [number, number] => {
+      const value = flip ? coverValue(flip[mode], `${id}.flip.${mode}`) : [0, 1];
+      if (!Array.isArray(value) || value.length !== 2) {
+        throw new Error(`tokens/covers.json: style.${id}.flip.${mode} must be [low, high]`);
+      }
+      return [Number(value[0]), Number(value[1])];
+    };
+    const [lowLight, highLight] = band("light");
+    const [lowDark, highDark] = band("dark");
+    const lines = [
+      `--cover-hue: ${num(rule.hue, "hue")};`,
+      `--cover-keep: ${num(rule.keep, "keep")};`,
+      `--cover-spread: ${num(rule.spread, "spread")};`,
+      `--cover-cap: ${num(rule.cap, "cap")};`,
+      `--cover-c-scale: ${num(chroma.scale, "chroma.scale")};`,
+      `--cover-c-add: ${num(chroma.add, "chroma.add")};`,
+      `--cover-c-max: ${num(chroma.max, "chroma.max")};`,
+      `--cover-c-floor-below: ${num(chroma["floor-below"], "chroma.floor-below")};`,
+      `--cover-c-floor: ${num(chroma.floor, "chroma.floor")};`,
+      `--cover-flip: ${flip ? 1 : 0};`,
+      `--cover-night-below: ${night ? num(night.below, "night.below") : 0};`,
+      `--cover-night-hue: ${night ? num(night.hue, "night.hue") : 0};`,
+      `--cover-night-c: ${night ? num(night.chroma, "night.chroma") : 0};`,
+    ];
+    const attr = `[data-style="${id}"]`;
+    out.push(
+      `:root${attr} {`,
+      ...lowerIndent(lines),
+      `  --cover-lo: ${lowLight};`,
+      `  --cover-hi: ${highLight};`,
+      "}",
+      "",
+    );
+    if (flip) {
+      const dark = [`--cover-lo: ${lowDark};`, `--cover-hi: ${highDark};`];
+      out.push(
+        "@media (prefers-color-scheme: dark) {",
+        `  :root:not([data-theme="light"])${attr} {`,
+      );
+      out.push(...dark.map((line) => `    ${line}`), "  }", "}", "");
+      out.push(`:root[data-theme="dark"]${attr} {`, ...lowerIndent(dark), "}", "");
+    }
+  }
+  return out;
+}
+
 export function buildCss(doc: TokenDocument): string {
   const out: string[] = [HEADER];
   const sections: Array<[Tier, string]> = [
@@ -479,6 +562,7 @@ export function buildCss(doc: TokenDocument): string {
   out.push("");
 
   for (const style of doc.styles) out.push(...styleBlocks(style, doc));
+  out.push(...coverStyleBlocks());
 
   const reduced = doc.tokens.filter((token) => token.reducedMotion !== undefined);
   out.push(

@@ -313,14 +313,14 @@
     }
   },
   "style": {
-    "$description": "How a style (Settings, Style) redraws a cover, applied after the month's dress and the theme's tones so every month and every palette follows the same rule (D311). Each colour keeps its place in the month: its hue is pulled toward the style's `hue` (the month's own centre keeps `keep` of its distance, each colour keeps `spread` of its distance from the month's centre, at most `cap` degrees), its chroma is scaled and lifted, and `flip` mirrors lightness inside a band per theme. Contrast floors are re-held after. A style with no rule here (Default) leaves covers as the month dressed them. `hue` is the one number a reader-set hue would move.",
+    "$description": "How a style (Settings, Style) redraws a cover, drawn live by cover.css from the month's dress, so every month and every palette follows the same rule (D311). Each colour keeps its place in the month: its hue is pulled toward the style's `hue` (the month's own centre keeps `keep` of its distance, each colour keeps `spread` of its distance from the month's centre, at most `cap` degrees), its chroma is scaled and lifted, and `flip` mirrors lightness inside a band per theme. Contrast floors are re-held after. A style with no rule here (Default) leaves covers as the month dressed them. `hue` is the one number a reader-set hue would move.",
     "expressive": {
       "$description": "Loud: the month's colours pulled toward electric violet, chroma lifted; lightness as the theme set it. Owner: \"LOVE THE COVERS\" (2026-11-01).",
       "hue": {
         "$value": 292
       },
       "keep": {
-        "$value": 0.3
+        "$value": 0.15
       },
       "spread": {
         "$value": 0.5
