@@ -175,7 +175,8 @@
   padding: var(--space-4) var(--space-2);
   border: 0;
   border-radius: var(--radius-xl);
-  background: var(--color-surface-container);
+  --tile-fill: var(--color-surface-container);
+  background: var(--tile-fill);
   color: var(--color-on-surface);
   font: inherit;
   text-align: center;
@@ -184,26 +185,19 @@
 
 /* A tile that is on (Saved, Downloaded) takes the accent container, as a chosen segment does. */
 .menu-tile[aria-pressed="true"] {
-  background: var(--color-accent-container);
+  --tile-fill: var(--color-accent-container);
+  background: var(--tile-fill);
   color: var(--color-on-accent-container);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .menu-tile:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-surface-container),
-      var(--color-on-surface) var(--state-hover)
-    );
+    background: color-mix(in oklch, var(--tile-fill), var(--color-on-surface) var(--state-hover));
   }
 }
 
 .menu-tile:active {
-  background: color-mix(
-    in oklch,
-    var(--color-surface-container),
-    var(--color-on-surface) var(--state-press)
-  );
+  background: color-mix(in oklch, var(--tile-fill), var(--color-on-surface) var(--state-press));
 }
 
 .menu-tile:is(:disabled, [aria-disabled="true"]) {
