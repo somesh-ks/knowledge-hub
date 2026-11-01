@@ -111,6 +111,10 @@ on:
         description: "Run every stage but write nothing and push nothing"
         type: boolean
         default: false
+      writer_experiment:
+        description: "After Validate, write this run's stories with each writer model arm and rate them with Jev (about $1, packages/engine/eval/writerModels.ts)"
+        type: boolean
+        default: false
 
 # One run at a time. GitHub keeps a single pending run, so duplicate presses collapse. An hourly
 # trigger that is not the chosen hour gets a group of its own: it does nothing, and it must not take
@@ -234,6 +238,22 @@ jobs:
           # stories' pages the way the write stage does.
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
         run: npm run --silent singularity -- run --stage validate --json
+
+      # The writer model experiment. It reads the run's own source text on this runner and only
+      # prints the score table to the step summary: the stories, their source text and the owner's
+      # block prompts are never uploaded or logged, because the repository and its artifacts are
+      # public (D298). Results stay in $RUNNER_TEMP and die with the runner.
+      - name: Writer model experiment
+        if: always() && inputs.writer_experiment && steps.gate.outputs.due == 'true'
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: |
+          materials=$(ls .cache/run/*/materials.json | head -1)
+          npx tsx packages/engine/eval/writerModels.ts --materials "$materials" --limit 12 \
+            --out "$RUNNER_TEMP/writer-models" | tee -a "$GITHUB_STEP_SUMMARY"
 
       # Every story each pass considered (pool, judgments, selection), kept 30 days, so loop/replay.ts
       # can rebuild a briefing exactly, and why each written story did or did not air (written.json,
