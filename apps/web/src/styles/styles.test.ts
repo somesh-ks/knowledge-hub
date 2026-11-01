@@ -338,7 +338,7 @@ const RULES: Rule[] = [
       ownCss().flatMap(([file, css]) =>
         [
           ...css.matchAll(
-            /var\(--(?:radius-(?:xs|sm|md|lg|xl|2xl|sheet)|color-(?:white|(?:grey|blue|green|orange|red|violet)-\d+))\)/g,
+            /var\(\s*--(?:radius-(?:xs|sm|md|lg|xl|2xl|sheet)|color-(?:white|(?:grey|blue|green|orange|red|violet)-\d+))\s*[,)]/g,
           ),
         ].map(([read]) => `${file}: ${read}`),
       ),

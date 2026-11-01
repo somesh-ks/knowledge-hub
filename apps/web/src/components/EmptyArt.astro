@@ -108,3 +108,16 @@ const VIEW: Record<ArtName, string> = {
   }
 </svg>
 <EmptyArtHalloween art={art} size={size} />
+
+<script>
+  // A loop does not run off screen (docs/specs/motion.md): an illustration out of view is marked, and
+  // empty.css pauses it. Without the observer the loops simply keep running, as before.
+  if (typeof IntersectionObserver === "function") {
+    const seen = new IntersectionObserver((entries) => {
+      for (const { target, isIntersecting } of entries) {
+        target.toggleAttribute("data-offscreen", !isIntersecting);
+      }
+    });
+    for (const art of document.querySelectorAll(".empty-art")) seen.observe(art);
+  }
+</script>
