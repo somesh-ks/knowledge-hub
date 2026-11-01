@@ -6,10 +6,14 @@ import {
   dateSearchLine,
   emptyCopy,
   factsLine,
+  groupsByMonth,
   matchCount,
   matchDetail,
   matchExcerpt,
   matchesFilter,
+  monthLabel,
+  monthOf,
+  monthStarts,
   moreMatches,
   normalize,
   resultSummary,
@@ -351,5 +355,27 @@ describe("quotedQuery", async () => {
   it("leaves a short query whole, and never splits a character", () => {
     expect(quotedQuery("  springs  ")).toBe("springs");
     expect(quotedQuery("🎧".repeat(40))).toBe(`${"🎧".repeat(23)}…`);
+  });
+});
+
+describe("the list's month headings", () => {
+  it("starts a month at the first card and wherever the month changes, in either date order", () => {
+    const newest = ["2026-11-01", "2026-10-30", "2026-10-02", "2026-09-30", "2026-09-01"];
+    expect(monthStarts(newest)).toEqual([0, 1, 3]);
+    expect(monthStarts([...newest].reverse())).toEqual([0, 2, 4]);
+    expect(monthStarts([])).toEqual([]);
+  });
+
+  it("names a month by its own calendar, whatever the reader's zone", () => {
+    expect(monthOf("2026-10-30")).toBe("2026-10");
+    // The 1st at midnight UTC is still the previous month in a zone behind UTC.
+    expect(monthLabel("2026-11")).toBe("November 2026");
+    expect(monthLabel("2027-01")).toBe("January 2027");
+  });
+
+  it("groups by month in a date order only, not when the list is by length", () => {
+    expect(groupsByMonth("newest")).toBe(true);
+    expect(groupsByMonth("oldest")).toBe(true);
+    expect(groupsByMonth("longest")).toBe(false);
   });
 });

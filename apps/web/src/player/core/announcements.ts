@@ -23,7 +23,7 @@ export function announcementForEvent(
 ): string | null {
   switch (event.type) {
     case "willPlay":
-      return event.reason === "user" ? "Playing." : null;
+      return event.reason === "user" || event.reason === "deferred" ? "Playing." : null;
     case "didPause":
       return event.reason === "user" ? "Paused." : null;
     case "itemChanged": {

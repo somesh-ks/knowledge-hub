@@ -39,13 +39,6 @@ export async function loadQueueDigest(id: string): Promise<PlayerDigestData | nu
   return queueDigestFor(id);
 }
 
-/** Forgets what was read, so the next ask reads the page again (a podcast that was just made). */
-export function forgetQueueItem(id: string): void {
-  known.delete(id);
-  digests.delete(id);
-  asked.delete(id);
-}
-
 /** What a queued item's row shows, once its page has said. Null until then, or if it never does. */
 export function queueMetaFor(id: string): QueueMeta | null {
   return known.get(id) ?? null;

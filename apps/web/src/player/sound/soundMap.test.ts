@@ -46,6 +46,9 @@ describe("player events to sounds", () => {
     expect(felt({ type: "rateChanged", rate: 1.5 })).toBeDefined();
     expect(felt({ type: "willPlay", reason: "resume" })).toBeUndefined();
     expect(felt({ type: "willPlay", reason: "item" })).toBeUndefined();
+    // A press carried out after a page change was felt at the press, not again when audio starts.
+    expect(felt({ type: "willPlay", reason: "deferred" })).toBeUndefined();
+    expect(soundsFor({ type: "willPlay", reason: "deferred" })).toBe("play");
     expect(felt({ type: "ended" })).toBeUndefined();
   });
 
@@ -64,7 +67,10 @@ describe("player events to sounds", () => {
       haptic: "select",
     });
     expect(soundsFor({ type: "ended" })).toBe("digestEnd");
-    expect(soundsFor({ type: "error", error: { kind: "network", message: "x" } })).toBe("error");
+    expect(cueForPlayerEvent({ type: "error", error: { kind: "network", message: "x" } })).toEqual({
+      name: "error",
+      haptic: "error",
+    });
   });
 
   it("stays silent for interruptions and loading", () => {
