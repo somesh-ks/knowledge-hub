@@ -63,10 +63,9 @@ const USAGE = `Usage: singularity config <command>
   seed [--dry-run] [--replace [--force]]
                                      Create the config_documents table in DATABASE_URL and insert each
                                      config file that has no row yet (D149). Never replaces a row,
-                                     unless --replace: then a row that differs from the committed file
-                                     is rewritten from it (--dry-run lists those). Refused while the
-                                     store is on here (the switch),
-                                     as it would undo edits made in the app; --force overrides.
+                                     unless --replace: then a row that differs
+                                     from the file here is rewritten from it (--dry-run lists those).
+                                     Needs --force, as it can undo edits made in the app.
 
 Ops (see ConfigOp in @singularity/core):
   {"op":"topic.upsert","topic":{"name":"...","description":"...","keywords":["..."]}}
@@ -376,11 +375,11 @@ async function runSeed(argv: string[], ctx: CommandContext, deps: ConfigDeps): P
   }
   const dryRun = values["dry-run"] === true;
   const replace = values.replace === true;
-  // Replacing is for a store seeded before switch-on, which only the files have written to. Once
-  // the store is on, the app's edits live there alone, and the files are a run old.
-  if (replace && !dryRun && values.force !== true && configStoreUrl(ctx.env) !== null) {
+  // The store is the owner's only copy (D296) and the files here are a pull or an edit old, so a
+  // replacement can undo edits made in the app, whatever this machine's switch says.
+  if (replace && !dryRun && values.force !== true) {
     ctx.log.error(
-      "The config store is on here (SINGULARITY_CONFIG_STORE), so --replace would undo edits made in the app. Switch it off first, or pass --force if you are sure.",
+      "--replace rewrites every stored row that differs from the files here and can undo edits made in the app. Pass --force if you are sure.",
     );
     return 1;
   }
@@ -422,7 +421,7 @@ async function runPull(argv: string[], ctx: CommandContext, deps: ConfigDeps): P
       const lacking = REQUIRED_CONFIG_DOCUMENTS.filter((path) => !hydrated.usable.includes(path));
       if (strict && lacking.length > 0) {
         ctx.log.error(
-          `the config store has no usable ${lacking.join(", ")}; a build would ship the public examples. Set it up first (config pull, then config seed, then edit it in the app).`,
+          `the config store has no usable ${lacking.join(", ")}; a build would ship the public examples. Set it up first: a missing row, config pull, then config seed, then edit it in the app; a row that is not valid JSON or fails its schema, repair that row in the store (config seed --replace --force rewrites every row from the files here and can undo newer edits).`,
         );
         return 1;
       }
