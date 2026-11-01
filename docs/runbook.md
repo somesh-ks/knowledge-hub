@@ -257,7 +257,7 @@ Rotate on a schedule, after any suspected leak, and before expiry. If a key appe
 | `GEMINI_API_KEY` | Google AI Studio | YouTube transcription fallback, topic emoji backup (also sent to Vercel) |
 | `SPEECHIFY_API_KEY` | Speechify API console | Audio |
 | `BLOB_READ_WRITE_TOKEN` | The Blob store's settings in Vercel | Audio upload and prune |
-| `GITHUB_SINGULARITY_TOKEN` | GitHub, Fine-grained personal access tokens | Generate button |
+| `GITHUB_SINGULARITY_TOKEN` | GitHub, Fine-grained personal access tokens | Generate button, workflow dispatch, reads and cancels, Actions variable writes, the scheduled dispatch (`/api/cron/run`) |
 
 Track expiry here. Fill the dates when you create each token and set a calendar reminder two weeks before.
 
@@ -265,7 +265,7 @@ Track expiry here. Fill the dates when you create each token and set a calendar 
 | --- | --- | --- | --- |
 | `GITHUB_SINGULARITY_TOKEN` | | | |
 
-When `GITHUB_SINGULARITY_TOKEN` expires, the Generate button stops working ("The server ran into a problem, so no briefing was started. Error ref ..."). Scheduled runs are unaffected, because `run.yml` uses the built-in workflow token. No Vercel token exists, so no Vercel token can expire.
+When `GITHUB_SINGULARITY_TOKEN` expires, the Generate button stops working ("The server ran into a problem, so no briefing was started. Error ref ...") and `/api/cron/run` can no longer start the on-time scheduled run; GitHub's own schedule remains a fallback, so a briefing may come late. `run.yml` itself uses the built-in workflow token. `VERCEL_TOKEN` is optional: the audio workflow's Vercel CLI fallback uses it when `BLOB_READ_WRITE_TOKEN` is absent, so track its expiry here when you set one.
 
 ---
 

@@ -37,5 +37,15 @@ describe("source ratings", () => {
     });
     expect(answer.status).toBe(503);
     expect(answer.headers?.["Vercel-CDN-Cache-Control"]).toBeUndefined();
+    // A store whose manifest lacks the file reads as stored with no text: that is no history either.
+    const missing = await handleSourceRatings({
+      config,
+      state: state({
+        "state/source-stats.json": { text: null, stored: true },
+        "state/source-health.json": { text: null, stored: true },
+      }),
+    });
+    expect(missing.status).toBe(503);
+    expect(missing.headers?.["Vercel-CDN-Cache-Control"]).toBeUndefined();
   });
 });

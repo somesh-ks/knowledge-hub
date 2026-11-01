@@ -59,7 +59,9 @@ export async function handleSourceRatings(
   ]);
   // The build's copy of a state file is what the page already shows: nothing to lay over it, and
   // nothing worth holding at the edge.
-  if (!stats.stored || !health.stored) return { status: 503, body: { error: "unavailable" } };
+  // A store without the stats file would rate every source as New and hold that at the edge.
+  if (!stats.stored || stats.text === null || !health.stored)
+    return { status: 503, body: { error: "unavailable" } };
   const { sources: rows } = buildManage({
     ...deps.config,
     preferences: null,

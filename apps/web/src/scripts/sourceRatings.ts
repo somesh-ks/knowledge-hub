@@ -55,7 +55,7 @@ function lay(row: HTMLElement, rating: Rating): void {
 
 export async function layRatings(root: ParentNode): Promise<void> {
   if (!navigator.onLine) return;
-  const rows = [...root.querySelectorAll<HTMLElement>("li.source-row[data-id]:not([data-stored])")];
+  const rows = [...root.querySelectorAll<HTMLElement>("li.source-row[data-id]")];
   if (rows.length === 0) return;
   try {
     const answer = await fetch("/api/source-ratings");
