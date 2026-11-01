@@ -128,6 +128,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D257 | Report routes need sign-in | amends D201, D224 |
 | D258 | Cover version in its path | amends D256 |
 | D259 | Saves kept before sending | amends D79, D91, D115, D249 |
+| D260 | Health: state, stage times | amends D203 |
 | D262 | Sheet and Drawer split | amends D243 |
 | D263 | Cover version in URL | superseded by D293 |
 | D264 | Card long press | active |

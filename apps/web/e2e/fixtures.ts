@@ -44,6 +44,8 @@ export const test = base.extend<Options & { problems: Problems }>({
       );
       // The Health page draws from /api/health: a frozen answer with a reading of every tone.
       await page.route("**/api/health", (route) => route.fulfill({ json: healthReport() }));
+      // Its Stage times card draws from the admin function: a frozen answer of two kinds of run.
+      await page.route("**/api/stages", (route) => route.fulfill({ json: stageTimings() }));
       // The sources' own icons (https://<host>/favicon.ico) are on invented hosts; a one-pixel image
       // answers them, so the page is not blamed for a network that is not there.
       await page.route("**/api/site-icon**", (route) =>
@@ -146,6 +148,26 @@ export const SITE_PAGES = [
   "/admin/costs",
   "/admin/health",
 ];
+
+/** A frozen /api/stages answer: a daily run's stages out of pipeline order and a Catch up's. */
+export function stageTimings() {
+  const row = (workflow: string, kind: string, stage: string, p50_ms: number, p90_ms: number) => ({
+    workflow,
+    kind,
+    stage,
+    runs: 6,
+    p50_ms,
+    p90_ms,
+  });
+  return {
+    days: 14,
+    timings: [
+      row("run", "daily", "write", 96_000, 141_000),
+      row("run", "daily", "fetch", 41_000, 66_000),
+      row("podcast", "catch_up", "script", 74_000, 98_000),
+    ],
+  };
+}
 
 /** A frozen /api/health answer: a row of each tone, and both devices' speed. */
 export function healthReport() {
