@@ -14,7 +14,6 @@ export const Env = z.object({
   SPEECHIFY_VOICE_ID_B: optionalString,
   BLOB_READ_WRITE_TOKEN: optionalString,
   // The private store that holds the config snapshots (D300); the content store is public.
-  BLOB_PRIVATE_READ_WRITE_TOKEN: optionalString,
   /** Short-lived Blob credentials from `vercel env pull`; used when no long-lived token is set. */
   VERCEL_OIDC_TOKEN: optionalString,
   BLOB_STORE_ID: optionalString,

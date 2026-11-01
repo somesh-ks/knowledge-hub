@@ -1,11 +1,9 @@
 name: snapshot
 
-# A weekly copy of the config store into a private Blob store (D300). The owner's config is in no git
-# history any more (D296), so this is the copy that outlives Neon's own restore window and the
-# database itself. `config snapshot` keeps the newest eight and refuses an empty store, so a broken
+# A weekly copy of the config store into the config_snapshots table of the same database (D300). The
+# owner's config is in no git history any more (D296), so this is the copy that outlives Neon's own
+# restore window. `config snapshot` keeps the newest eight and refuses an empty store, so a broken
 # connection never replaces a good copy. Restore with `config restore --latest --force`.
-# BLOB_PRIVATE_READ_WRITE_TOKEN is the read-write token of a second, PRIVATE Blob store: the content
-# store is public, and a store is public or private as a whole.
 
 on:
   schedule:
@@ -41,5 +39,4 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SINGULARITY_CONFIG_STORE: postgres
-          BLOB_PRIVATE_READ_WRITE_TOKEN: ${{ secrets.BLOB_PRIVATE_READ_WRITE_TOKEN }}
         run: npm run --silent singularity -- config snapshot

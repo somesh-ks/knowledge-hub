@@ -41,7 +41,6 @@ Never paste a key into chat. The agent cannot read `.env`; keep it that way.
 | `SPEECHIFY_API_KEY` | Speechify API console |
 | `SPEECHIFY_VOICE_ID` | Plain configuration, no secret |
 | `BLOB_READ_WRITE_TOKEN` | Section 1.5 |
-| `BLOB_PRIVATE_READ_WRITE_TOKEN` | Section 1.5a (the weekly config snapshot, D300) |
 | `SINGULARITY_GIT_NAME`, `SINGULARITY_GIT_EMAIL` | Plain configuration, no secret. `Somesh Kesarla Suresh` and `26426782+somesh-ks@users.noreply.github.com` (section 1.4) |
 | `GITHUB_SINGULARITY_TOKEN`, `GITHUB_REPOSITORY` | Section 1.7 |
 | `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET` | You choose them; the command center's sign-in (section 1.4a). Sent to the admin project; the secret also goes to the reader (its `/api/costs` and `/api/health` verify the session, D257) |
@@ -81,14 +80,13 @@ The design guide is a third project, `singularity-design`, with Root Directory `
 3. Connect the store to the project. This also injects the token into Vercel.
 4. Copy the `BLOB_READ_WRITE_TOKEN` value Vercel shows for the store into `.env`.
 
-### 1.5a Create the private Blob store for the config snapshot
+### 1.5a The weekly config snapshot
 
-A Blob store is public or private as a whole, so the content store in 1.5 cannot hold the snapshot.
+Nothing to create. The `snapshot` workflow copies the config store into the `config_snapshots` table of the same Neon database every Sunday and keeps eight (D300). It uses the `DATABASE_URL` secret the other jobs already have.
 
-1. In Vercel, Storage, create a second Blob store and set its access to private. Do not connect it to the reader project.
-2. Copy its read-write token into `.env` as `BLOB_PRIVATE_READ_WRITE_TOKEN`, then run `npm run secrets:push`.
-3. Run the `snapshot` workflow once by hand and check that `config-snapshots/<date>.json` appears in the store. It then runs every Sunday and keeps eight.
-4. To restore, `.env` needs `DATABASE_URL` and `SINGULARITY_CONFIG_STORE=postgres` (and `BLOB_PRIVATE_READ_WRITE_TOKEN` for `--latest`). Then run `npm run singularity -- config restore --latest --force` (or `--file <snapshot.json>` for one you downloaded; `config snapshot --out <file>` makes one by hand). It overwrites newer edits, so run it only when the store has lost its rows.
+1. Run the `snapshot` workflow once by hand and check that its log says `snapshot config-snapshots/<date>.json`.
+2. To restore, `.env` needs `DATABASE_URL` and `SINGULARITY_CONFIG_STORE=postgres`. Run `npm run singularity -- config restore --latest --force`. It overwrites newer edits, so run it only when the store has lost its rows.
+3. The table lives in the same database, so it does not help if the database itself is lost. For that, `npm run singularity -- config snapshot --out <file>` makes a copy on your machine; restore it with `--file <file>`.
 
 ### 1.6 Add the domain and the DNS record
 
