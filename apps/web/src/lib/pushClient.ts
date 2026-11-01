@@ -167,20 +167,34 @@ async function syncDevice(choices: Choices): Promise<boolean> {
   }
 }
 
+let queue: Promise<unknown> = Promise.resolve();
+
 /**
  * Sets which kinds this browser hears about and makes the browser and the server agree: the first
  * kind turned on asks permission and subscribes, the last one turned off drops the subscription.
  * Returns the choices now in force: what was asked for, or what it was before when the browser said no.
  */
-export async function applyChoices(next: Choices): Promise<Choices> {
+export function applyChoices(next: Choices): Promise<Choices> {
+  // One change at a time, in the order pressed: a slow request that fails must not undo a later press.
+  const run = queue.then(() => applyOne(next));
+  queue = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
+
+async function applyOne(next: Choices): Promise<Choices> {
   const before = readChoices();
   if (KINDS.some((kind) => next[kind])) {
     if (!(await ensureSubscribed())) return before;
     saveChoices(next);
-    // A Daily or Weekly the server did not register would never be sent: the switch goes back to what it was.
+    // A Daily or Weekly the server did not register would never be sent: those two go back to what
+    // they were. Podcast ready is its own choice and stays.
     if (!(await syncDevice(next)) && (next.daily || next.weekly)) {
-      saveChoices(before);
-      return before;
+      const kept = { ...next, daily: before.daily, weekly: before.weekly };
+      saveChoices(kept);
+      return kept;
     }
     return next;
   }

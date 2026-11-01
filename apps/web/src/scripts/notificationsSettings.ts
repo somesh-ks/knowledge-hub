@@ -35,9 +35,13 @@ export function mountNotifications(root: HTMLElement): () => void {
   const note = root.querySelector<HTMLElement>("[data-notifications-note]");
   const indexHint = root.querySelector<HTMLElement>("[data-notifications-hint] [data-hint]");
   let alive = true;
+  // What the switches show now, so a press builds on the latest state even while an earlier change is pending.
+  let shown = readChoices();
+  let latest = 0;
 
   const show = (choices: Choices): void => {
     if (!alive) return;
+    shown = choices;
     const state = notificationState(readCapabilities());
     const locked = state === "unsupported" || state === "needs_install" || state === "blocked";
     const group = globalState(choices);
@@ -68,10 +72,14 @@ export function mountNotifications(root: HTMLElement): () => void {
     if (!(target instanceof HTMLInputElement)) return;
     const pressed = target === all ? "all" : KINDS.find((kind) => switches.get(kind) === target);
     if (!pressed) return;
-    const next = afterPress(readChoices(), pressed, target.checked);
+    const next = afterPress(shown, pressed, target.checked);
     // The switches move at once; a refusal from the browser puts them back.
     show(next);
-    show(await applyChoices(next));
+    latest += 1;
+    const mine = latest;
+    const result = await applyChoices(next);
+    // A later press has its own answer coming; showing this one first would flicker.
+    if (mine === latest) show(result);
   };
   const listener = (event: Event): void => void onChange(event);
   root.addEventListener("change", listener);
