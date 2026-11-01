@@ -2,8 +2,9 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { serializeDigestFile } from "@singularity/core";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeDigest, makeTimeline } from "../testing/digestFactory";
+import { READ_CONCURRENCY } from "./contentFiles";
 import { readDigestFiles } from "./digestFiles";
 
 let root = "";
@@ -84,5 +85,49 @@ describe("readDigestFiles", () => {
     const { sources } = await readDigestFiles(root);
     expect(sources).toHaveLength(1);
     expect(sources[0]?.timeline).toBeNull();
+  });
+});
+
+// Bug (review, 2026-11-01): the readers asked the content store for one file at a time. Each file is
+// a request of its own, so a year of digests would have outlasted the function's 20 seconds.
+describe("readDigestFiles against a store that answers each file separately", () => {
+  const ids = Array.from(
+    { length: 20 },
+    (_, index) => `2026-09-${String(index + 1).padStart(2, "0")}`,
+  );
+
+  it("asks for several files at once, and still keeps their order and the first of a duplicate", async () => {
+    const waiting: Array<() => void> = [];
+    let out = 0;
+    let most = 0;
+    const text = (id: string) => serializeDigestFile(makeDigest({ id }));
+    const files = [...ids.map((id) => `Digests/${id}.md`), "Digests/copy.md"];
+    const reader = {
+      list: async () => files,
+      read: (path: string) => {
+        if (!path.endsWith(".md")) return Promise.resolve(null);
+        out += 1;
+        most = Math.max(most, out);
+        return new Promise<string>((resolve) =>
+          waiting.push(() => {
+            out -= 1;
+            // The copy repeats the first id, so it is the one to skip.
+            resolve(text(path === "Digests/copy.md" ? (ids[0] ?? "") : path.slice(8, 18)));
+          }),
+        );
+      },
+    };
+    const done = readDigestFiles("Digests", reader);
+    await vi.waitFor(() => expect(waiting.length).toBeGreaterThan(1));
+    // Answered last first, so the order cannot come from the order of the answers.
+    while (waiting.length > 0 || out > 0) {
+      await vi.waitFor(() => expect(waiting.length).toBeGreaterThan(0));
+      waiting.pop()?.();
+    }
+    const { sources, warnings } = await done;
+    expect(most).toBeGreaterThan(1);
+    expect(most).toBeLessThanOrEqual(READ_CONCURRENCY);
+    expect(sources.map((source) => source.digest.id)).toEqual(ids);
+    expect(warnings).toEqual(["Digests/copy.md: duplicate digest id 2026-09-01, skipped"]);
   });
 });
