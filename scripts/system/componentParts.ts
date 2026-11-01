@@ -330,12 +330,12 @@ export const componentParts = (): PartSource[] => [
   }),
   control("ripple", "Ripple", RIPPLE, {
     kind: "feedback",
-    classes: ["ripple", "ripple-wave"],
+    classes: ["ripple-area", "ripple-wave"],
     keywords: ["ripple", "touch feedback", "press wave", "touch area", "tab press", "bottom bar"],
     markup: '<a href="/library" data-ripple><Ripple />Library</a>',
     rules: [
       "The control is `position: relative` with its own stacking context (isolation: isolate); the layer sits beneath its icon and label.",
-      "A phone only: hide the layer where the control has a pointer state (display: none).",
+      "To reach past the control's box set --ripple-reach-start, --ripple-reach-end or --ripple-reach-bottom on the control; --ripple-display: none turns the layer off where the control has a pointer state.",
       "installRipple() (design-system/ripple.ts) is called once by the app script; the control sets nothing else.",
     ],
   }),
