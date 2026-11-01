@@ -238,12 +238,16 @@ html[data-mini="visible"] main {
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   min-height: var(--app-bar-height);
 }
 
-/* Back, at the leading edge. It is out of the flow, so the wordmark stays centred and a page without
-   it does not shift. */
+/* The wordmark leads. A page with Back keeps it right of the button, so the button never covers it. */
+.app-bar-inner:has(> .app-bar-back) > .wordmark {
+  margin-inline-start: calc(var(--size-touch) - var(--page-gutter) + var(--space-2));
+}
+
+/* Back, at the leading edge. It is out of the flow. */
 .app-bar-back {
   position: absolute;
   inset-block: 0;
