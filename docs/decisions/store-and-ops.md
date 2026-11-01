@@ -286,3 +286,12 @@ Where data lives (Postgres, Blob, git), config, health, analytics, deploys, acce
 - Context changed: D296 took the config out of git; D298 made the repo public and left `Digests/`, `state/` and the audio as the open question, now answered.
 - Revisit if: Blob operations near the plan limit, or a state file outgrows a Postgres row.
 - Supersedes: nothing. Amends D173 (Blob becomes the home, not a mirror) when step two ships.
+
+## D316: Vercel skew protection stays off in the web build
+
+- Date: 2026-11-01 (the performance audit; autonomous mode)
+- Decision: the web app's Vercel adapter runs with `skewProtection: false`, whatever the project setting says, and `checkBundle` fails a page whose `/_astro/` addresses carry `?dpl=`.
+- Why: with skew protection on (it reads `VERCEL_SKEW_PROTECTION_ENABLED`), every asset address and import gains `?dpl=<deployment>`, Vite drops the preload list from each lazy import, and `bundleBudget.ts` read no imports at all. Production then had no modulepreload links and linked player.css twice while the budget check passed at 11 KB of a 75 KB first load. The tested build never had the query, so production was not the build the lab measured.
+- Cost: an open tab that lazily imports a chunk after a deploy no longer gets the old deployment's file from Vercel. The service worker already answers `/_astro/` from its cache, precached six imports deep, and `buildGuard.ts` turns a move into another build's page into a full load.
+- Rejected: keeping skew protection and teaching every reader the query (the preload links would name other module addresses than the imports, so each file would download twice, and Vite's lazy preload lists stay gone).
+- Revisit if: a deploy breaks an open tab's lazy import with a 404 that the service worker did not answer.

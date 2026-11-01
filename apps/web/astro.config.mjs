@@ -174,9 +174,19 @@ export default defineConfig({
   site: "https://news.someshks.work",
   // Static output. Only the routes that export `prerender = false` run on demand.
   output: "static",
+  // Skew protection stays off whatever the Vercel project says. It writes `?dpl=<deployment>` into
+  // every asset address and import, and Vite then drops the preload list from each lazy import, so
+  // production stopped matching the tested build: no modulepreload links, player.css linked twice,
+  // and the budget check reading 11 KB of a 75 KB first load (found 2026-11-01 by the performance
+  // audit). The service worker already keeps an open tab's files across a deploy, and buildGuard.ts
+  // turns a move into a page of another build into a full load.
   adapter: staticOnly
     ? undefined
-    : vercel({ maxDuration: FUNCTION_MAX_DURATION_S, includeFiles: FILES_PAGES_READ }),
+    : vercel({
+        maxDuration: FUNCTION_MAX_DURATION_S,
+        includeFiles: FILES_PAGES_READ,
+        skewProtection: false,
+      }),
   integrations: [
     react(),
     wakeDirective(),
