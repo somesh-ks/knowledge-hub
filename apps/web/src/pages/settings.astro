@@ -153,6 +153,21 @@ const THEME_LABELS: Record<ThemePreference, string> = {
         </div>
       </section>
 
+      {/* Its own section, not under Sound (owner, 2026-10-31). Whether they are on is this browser's, so
+           notificationsSettings.ts writes the row's line. */}
+      <section>
+        <h2 class="section-head text-heading">Notifications</h2>
+        <div class="rows card-group">
+          <a class="row-action" href="/settings/notifications" data-notifications-hint>
+            <span class="settings-text">
+              <span class="settings-label">Notifications</span>
+              <span class="settings-hint" data-hint>Off</span>
+            </span>
+            <Icon name="chevronRight" />
+          </a>
+        </div>
+      </section>
+
       <section>
         <h2 class="section-head text-heading">Appearance</h2>
         <div class="rows card-group">
