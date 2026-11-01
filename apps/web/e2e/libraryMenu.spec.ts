@@ -386,6 +386,11 @@ test("a long press on a card opens its menu and leaves the card unopened, and is
     document.addEventListener("singularity:haptic", (event) =>
       felt.push((event as CustomEvent<string>).detail),
     );
+    const heard: string[] = [];
+    Object.assign(window, { heard });
+    document.addEventListener("singularity:cue", (event) =>
+      heard.push((event as CustomEvent<string>).detail),
+    );
   });
   // The click that ends a hold lands on the card's link: without a guard the page opens under the sheet.
   await page.goto("/library");
@@ -440,6 +445,14 @@ test("a long press on a card opens its menu and leaves the card unopened, and is
   );
   await again();
   await expect.poll(() => menu.evaluate((list) => list.matches(":popover-open"))).toBe(true);
+  // The close and the reopen are one sheet staying open: heard and felt as one open, not a triple
+  // (open, close, open) on the owner's phone (2026-11-01).
+  await frames();
+  const echoes = await page.evaluate(() => {
+    const w = window as unknown as { heard: string[]; felt: string[] };
+    return { heard: w.heard, felt: w.felt };
+  });
+  expect(echoes).toEqual({ heard: ["sheetOpen"], felt: ["open"] });
 
   // A tap outside right after a lift is the person closing it: it closes, stays closed (opened
   // again, it would jump back up as it left) and reaches nothing underneath.

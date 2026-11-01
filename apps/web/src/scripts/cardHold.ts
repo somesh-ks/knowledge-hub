@@ -22,6 +22,13 @@ const LIFT_GRACE_MS = 400;
 /** A hold opens its sheet again this often, never in a loop. */
 const MAX_REOPENS = 2;
 
+/**
+ * Set on a hold's sheet while the hold may still reopen it: the time (performance.now) the grace ends,
+ * Infinity while the finger is down. The interface sound reads it so a close and a reopen the hold
+ * makes itself are not heard as a sheet closing and opening again (uiClicks.ts).
+ */
+export const HOLD_UNTIL = "data-hold-until";
+
 let installed = false;
 
 export function installCardHold(): void {
@@ -37,11 +44,20 @@ export function installCardHold(): void {
   let graceEnds = 0;
   let reopens = 0;
 
+  /** The sheet is the person's again: its closes and opens are theirs to hear. */
+  const release = (): void => {
+    opened?.removeAttribute(HOLD_UNTIL);
+    opened = null;
+  };
+
   const cancel = (): void => {
     clearTimeout(timer);
     start = null;
     // The finger is up (or the browser took the touch): the grace runs from here.
-    if (opened) graceEnds = performance.now() + LIFT_GRACE_MS;
+    if (opened) {
+      graceEnds = performance.now() + LIFT_GRACE_MS;
+      opened.setAttribute(HOLD_UNTIL, String(graceEnds));
+    }
   };
 
   document.addEventListener(
@@ -49,7 +65,7 @@ export function installCardHold(): void {
     (event) => {
       cancel();
       held = false;
-      opened = null;
+      release();
       if (event.pointerType !== "touch" || !event.isPrimary || !matchMedia(TOUCH).matches) return;
       const link = (event.target as Element).closest<HTMLElement>(".card-link");
       const list = link
@@ -70,6 +86,7 @@ export function installCardHold(): void {
         held = true;
         opened = list;
         graceEnds = Number.POSITIVE_INFINITY;
+        list.setAttribute(HOLD_UNTIL, String(graceEnds));
         reopens = 0;
         // The finger is still down on the card. Lifted over it, it would light-dismiss the sheet the
         // moment it opened (the press began outside any popover). Held by the sheet, the lift ends
@@ -111,7 +128,7 @@ export function installCardHold(): void {
       const list = opened;
       if (!list || event.target !== list || (event as ToggleEvent).newState !== "closed") return;
       if (performance.now() > graceEnds || reopens >= MAX_REOPENS) {
-        opened = null;
+        release();
         return;
       }
       reopens += 1;
@@ -123,13 +140,7 @@ export function installCardHold(): void {
   // A key, or a click (the hold's own is cancelled above), is the person closing or picking: that
   // close is theirs, whatever the clock says (Escape, a keyboard or screen reader activation).
   for (const type of ["keydown", "click"]) {
-    document.addEventListener(
-      type,
-      () => {
-        opened = null;
-      },
-      true,
-    );
+    document.addEventListener(type, release, true);
   }
 
   // Android reads a hold on a link as its link menu, and iOS and Android as a drag of it: the card
