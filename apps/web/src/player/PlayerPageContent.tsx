@@ -48,7 +48,7 @@ export default function PlayerPageContent() {
       : "stories";
   return (
     <>
-      <div className="player-controls">
+      <div className="player-controls" data-player-drag>
         <Scrubber />
         <TransportControls />
         {/* Drawn under the title, in the story line's room (see PlayerNotice), so a notice
