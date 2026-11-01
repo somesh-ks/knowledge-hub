@@ -378,7 +378,7 @@ Git holds the code, state and docs. It does not hold secrets (`.env`, GitHub sec
 | A bad edit to one file | `git checkout <sha> -- <path>`, commit, push |
 | Laptop lost | Clone `https://github.com/somesh-ks/knowledge-hub.git`, run `npm ci`, recreate `.env` from the services (reissue keys if needed), run `npm run secrets:push` only if the stores lost their values |
 | GitHub repository lost | Any clone is a full copy. Create a new private repository, push, then repeat section 1.9 and update `GITHUB_REPOSITORY` |
-| Audio lost | Digests are in the content store, not git. Run `content pull`, delete the digest's `.audio.json` locally, set `audio: null` in its `.md`, then `content remove <path of the .audio.json>` and `content put <path of the .md>`, and run `audio.yml`. It regenerates at a cost in Speechify characters |
+| Audio lost | Digests are in the content store, not git. Run `content pull`, delete the digest's `.audio.json` locally, set `audio: null` in its `.md`, then `content put <path of the .md>` and `content remove <path of the .audio.json>` (in that order, so a failure between them never leaves a digest pointing at a missing file), and run `audio.yml`. It regenerates at a cost in Speechify characters |
 | Vercel project lost | Repeat sections 1.4 to 1.6 and 1.9, then push to `main` or redeploy from the dashboard |
 
 ### 10.1 Moving digests out of git (D300 step 2b, once)
@@ -390,7 +390,7 @@ Do this once, around the merge of the pull request that stops git holding `Diges
 3. Run `run.yml` once with `dry_run` and check its log: `Load content` ends with `N pulled`, and `Save content` ends with `0 uploaded` or the files the run changed.
 4. After the next real daily, check that the digest page shows it and that the Vercel build log has a `content pull` line with `already here` or `pulled`.
 
-If a job fails at `Load content`, nothing was changed: the store was not reachable or has no manifest. Rerun it after fixing the token. The daily digest is saved before its git commit, so a failed save fails the `Commit` step with nothing committed, and a rerun makes the digest again. If `Save content` fails after a successful commit, the runner is discarded and a rerun does not repeat that push: the site shows the older state files until the next run, and an episode or a deletion must be asked for again in the app. The pending files are not kept as a workflow artifact, because artifacts of this public repository are public (D298).
+If a job fails at `Load content`, nothing was changed: the store was not reachable or has no manifest. For a bad token or a network error, fix it and rerun. A store with no manifest has never been synced: run `content sync` once from a checkout of `main` that still holds the digests (10.1). The daily digest is saved before its git commit, so a failed save fails the `Commit` step with nothing committed, and a rerun makes the digest again. If `Save content` fails after a successful commit, the runner is discarded and a rerun does not repeat that push: the site shows the older state files until the next run, and an episode or a deletion must be asked for again in the app. The pending files are not kept as a workflow artifact, because artifacts of this public repository are public (D298).
 
 ---
 

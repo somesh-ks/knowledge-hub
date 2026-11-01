@@ -86,6 +86,18 @@ describe("pushWorkspace", () => {
     expect(stored(store)).toEqual([DIGEST("01")]);
   });
 
+  // The bug: the folder guard also refused a push that deleted the last digest, so the only episode
+  // or digest could never be removed from the store.
+  it("removes the last file when its folder is still there", async () => {
+    const store = fakeBlob();
+    await seed(store, { [DIGEST("01")]: "one" });
+    const root = await job(store);
+    await rm(join(root, DIGEST("01")));
+    const result = await pushWorkspace(input(store, root));
+    expect(result?.removed).toEqual([DIGEST("01")]);
+    expect(stored(store)).toEqual([]);
+  });
+
   // The bug: a job that never pulled (a laptop, a workflow without the step) holds no digests, so
   // treating its empty Digests/ as "everything was deleted" would empty the store.
   it("does nothing for a checkout that never pulled", async () => {

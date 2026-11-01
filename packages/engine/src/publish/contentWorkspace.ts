@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm } from "node:fs/promises";
+import { mkdir, readFile, rm, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { writeFileAtomic } from "../state/atomicWrite.js";
 import { type ConditionalBlobClient, createVercelBlobClient } from "./blob.js";
@@ -116,13 +116,24 @@ export async function pushWorkspace(input: WorkspaceInput): Promise<DeltaResult 
   const remove = Object.keys(baseline.files).filter(
     (path) => inWorkspace(path) && !(path in hashes),
   );
-  // A checkout that pulled content and now holds none lost its folders (a clean, a wrong directory):
-  // sending that as "delete everything" would empty the store.
+  // A checkout that pulled content and now holds none either lost its folders (a clean, a wrong
+  // directory), which sent as "delete everything" would empty the store, or deleted the last file
+  // there was, which is a normal request and leaves the folder behind.
   const held = (paths: string[]): boolean => paths.some(inWorkspace);
   if (held(Object.keys(baseline.files)) && !held(Object.keys(hashes))) {
-    throw new Error(
-      "this checkout pulled content but holds none now; a push would delete it all from the store",
+    const folders = await Promise.all(
+      CONTENT_DIRS.map((dir) =>
+        stat(join(input.root, dir)).then(
+          (info) => info.isDirectory(),
+          () => false,
+        ),
+      ),
     );
+    if (!folders.some(Boolean)) {
+      throw new Error(
+        "this checkout pulled content but holds none now; a push would delete it all from the store",
+      );
+    }
   }
   const result = await applyContentDelta({
     client: input.client,
