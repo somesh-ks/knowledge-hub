@@ -1,10 +1,10 @@
 import { join } from "node:path";
 import type { RunSpend } from "@singularity/core";
 import { z } from "zod";
+import { writeJsonAtomic } from "../audio/atomicFile.js";
 import type { Logger } from "../context.js";
 import { firecrawlUsedSince, recordRunCosts } from "../cost/ledger.js";
 import { readJsonIfExists } from "../curate/inputs.js";
-import { writeJson } from "../curate/output.js";
 import {
   EMPTY_FIRECRAWL_STATE,
   FIRECRAWL_WEEKLY_BUDGET,
@@ -170,7 +170,7 @@ export class SpendTracker {
       this.baseUnits[key] = (this.baseUnits[key] ?? 0) + n;
     }
     try {
-      await writeJson(spendPath(root), {
+      await writeJsonAtomic(spendPath(root), {
         version: 1,
         run: this.run,
         requests: this.base,

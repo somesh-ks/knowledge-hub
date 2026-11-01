@@ -44,7 +44,7 @@ function summarizeIssues(error: z.ZodError): string {
     .join("; ");
 }
 
-function jsonSchemaOf(schema: z.ZodType): Record<string, unknown> {
+export function jsonSchemaOf(schema: z.ZodType): Record<string, unknown> {
   const { $schema: _ignored, ...rest } = z.toJSONSchema(schema) as Record<string, unknown>;
   return rest;
 }
@@ -59,6 +59,29 @@ const totalChars = (messages: readonly ChatMessage[]): number =>
  * spend guard checks before each request and records reported usage after it. No temperature,
  * top_p or top_k is ever sent.
  */
+/**
+ * What a JSON request sends: the system prompt, and the messages with the schema stated in words
+ * after them (the strict response format is also sent, and the words are what a model that rejects
+ * it falls back to).
+ */
+export function jsonPrompt<T>(request: JsonRequest<T>): {
+  system: string;
+  messages: ChatMessage[];
+} {
+  const hint = `Reply with one JSON object that matches this JSON Schema, and nothing else: ${JSON.stringify(jsonSchemaOf(request.schema))}`;
+  const system = request.messages
+    .filter((message) => message.role === "system")
+    .map((message) => message.content)
+    .join("\n\n");
+  return {
+    system,
+    messages: [
+      ...request.messages.filter((message) => message.role !== "system"),
+      { role: "user", content: hint },
+    ],
+  };
+}
+
 export function createJsonLlm(options: JsonLlmOptions): LlmClient {
   // Starts strict; a model that rejects the schema gets it in the prompt alone for the rest of the run.
   let structured = options.api.provider === "anthropic";
@@ -150,15 +173,7 @@ export function createJsonLlm(options: JsonLlmOptions): LlmClient {
   return {
     model: options.model,
     async completeJson<T>(request: JsonRequest<T>): Promise<JsonResult<T>> {
-      const hint = `Reply with one JSON object that matches this JSON Schema, and nothing else: ${JSON.stringify(jsonSchemaOf(request.schema))}`;
-      const system = request.messages
-        .filter((message) => message.role === "system")
-        .map((message) => message.content)
-        .join("\n\n");
-      const messages: ChatMessage[] = [
-        ...request.messages.filter((message) => message.role !== "system"),
-        { role: "user", content: hint },
-      ];
+      const { system, messages } = jsonPrompt(request);
       const usage: LlmUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
       let lastProblem = "";
       for (let attempt = 0; attempt <= VALIDATION_RETRIES; attempt++) {

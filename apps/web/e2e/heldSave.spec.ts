@@ -61,46 +61,67 @@ async function openDaily(page: Page): Promise<void> {
 test.describe("a change held in the server's gap when its page is left", () => {
   // The held request is refused or cut on purpose, which the browser logs.
   test.use({ allowNetworkErrors: true });
+  test("Daily says it was not saved when the held request is refused, and Retry sends it once", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    const sent = await mockConfig(page, [202, 500]);
+    await holdDailyLength(page);
+    await openDaily(page);
+    await expect(page.locator("#daily-length")).toHaveValue("3");
+    await expect(note(page)).toBeHidden();
+    // The held request fails: the page says so at once, in the toast and to a screen reader.
+    await page.clock.runFor(GAP_MS);
+    await expect.poll(() => sent.length).toBe(2);
+    await expect(note(page)).toBeVisible();
+    await expect(note(page)).toHaveText(NOT_SAVED_NOTE);
+    const failure = "The server crashed before it could answer. Not saved yet.";
+    await expect(toastText(page)).toHaveText(failure);
+    await expect(page.locator("[data-alert]")).toHaveText(failure);
+    expect(await pendingStored(page)).toBe(false);
+    // Retry sends the held change, once, and the page says it is saved.
+    await page.locator("[data-bar] [data-act=retry]").click();
+    await page.clock.runFor(GAP_MS);
+    await expect.poll(() => sent.length).toBe(3);
+    expect(ops(sent).at(-1)).toEqual({ op: "schedule.set", length_minutes: 3 });
+    await expect(spoken(page)).toHaveText(SAVED);
+    await expect(note(page)).toBeHidden();
+    await expect(toastText(page)).toBeHidden();
+    await page.clock.runFor(GAP_MS);
+    expect(sent).toHaveLength(3);
+    // A reload agrees: both changes are saved.
+    await page.reload();
+    await expect(page.locator("[data-manage]")).toHaveAttribute("data-voices", "");
+    await expect(page.locator("#daily-hour")).toHaveValue("9");
+    await expect(page.locator("#daily-length")).toHaveValue("3");
+  });
 
-  for (const lost of [500, "abort"] as const) {
-    test(`Daily says it was not saved when the held request ${lost === 500 ? "is refused" : "loses the connection"}, and Retry sends it once`, async ({
-      page,
-    }) => {
-      await page.clock.install();
-      const sent = await mockConfig(page, [202, lost]);
-      await holdDailyLength(page);
-      await openDaily(page);
-      await expect(page.locator("#daily-length")).toHaveValue("3");
-      await expect(note(page)).toBeHidden();
-      // The held request fails: the page says so at once, in the toast and to a screen reader.
-      await page.clock.runFor(GAP_MS);
-      await expect.poll(() => sent.length).toBe(2);
-      await expect(note(page)).toBeVisible();
-      await expect(note(page)).toHaveText(NOT_SAVED_NOTE);
-      const failure =
-        lost === 500
-          ? "The server crashed before it could answer. Not saved yet."
-          : "Couldn't reach the site. Not saved yet.";
-      await expect(toastText(page)).toHaveText(failure);
-      await expect(page.locator("[data-alert]")).toHaveText(failure);
-      expect(await pendingStored(page)).toBe(false);
-      // Retry sends the held change, once, and the page says it is saved.
-      await page.locator("[data-bar] [data-act=retry]").click();
-      await page.clock.runFor(GAP_MS);
-      await expect.poll(() => sent.length).toBe(3);
-      expect(ops(sent).at(-1)).toEqual({ op: "schedule.set", length_minutes: 3 });
-      await expect(spoken(page)).toHaveText(SAVED);
-      await expect(note(page)).toBeHidden();
-      await expect(toastText(page)).toBeHidden();
-      await page.clock.runFor(GAP_MS);
-      expect(sent).toHaveLength(3);
-      // A reload agrees: both changes are saved.
-      await page.reload();
-      await expect(page.locator("[data-manage]")).toHaveAttribute("data-voices", "");
-      await expect(page.locator("#daily-hour")).toHaveValue("9");
-      await expect(page.locator("#daily-length")).toHaveValue("3");
-    });
-  }
+  // CFG-04: a held request that loses the connection is not lost with it. It stays on the device,
+  // through a reload, and goes out the next time the page is online.
+  test("a held change that loses the connection stays on the device and is sent when it can be", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    const sent = await mockConfig(page, [202, "abort"]);
+    await holdDailyLength(page);
+    await openDaily(page);
+    await page.clock.runFor(GAP_MS);
+    await expect.poll(() => sent.length).toBe(2);
+    // Nothing is said to have failed, and nothing is left for Retry.
+    await expect(note(page)).toBeHidden();
+    await expect(toastText(page)).toBeHidden();
+    await expect(page.locator("[data-alert]")).toHaveText("");
+    expect(await pendingStored(page)).toBe(false);
+    // A reload still shows the change, and sends it: this time the site answers.
+    await page.reload();
+    await expect(page.locator("[data-manage]")).toHaveAttribute("data-voices", "");
+    await expect(page.locator("#daily-length")).toHaveValue("3");
+    await expect.poll(() => sent.length).toBe(3);
+    expect(ops(sent).at(-1)).toEqual({ op: "schedule.set", length_minutes: 3 });
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem("singularity:outbox")))
+      .toBeNull();
+  });
 
   test("a refused held change is not shown as saved after a reload", async ({ page }) => {
     await page.clock.install();

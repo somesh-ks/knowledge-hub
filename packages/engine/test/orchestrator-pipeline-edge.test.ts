@@ -20,7 +20,6 @@ import { collectHealth } from "../src/ops/health.js";
 import { readPlan, writePlan } from "../src/run/plan.js";
 import { SpendTracker } from "../src/run/spend.js";
 import { groundingDropRecords } from "../src/run/validateStage.js";
-import { markCopiedFromStore, SNAPSHOT_TRAILER } from "../src/store/configDocs.js";
 import { captureStdout, fakeWriter, makeContext, okWritten } from "./curate-helpers.js";
 import { git } from "./git-testRepo.js";
 import {
@@ -125,23 +124,6 @@ describe("concurrent writers and push handling", () => {
     expect(await exists(repo.root, DIGEST_PATH)).toBe(false);
     expect(await exists(repo.root, "state/last-run.json")).toBe(false);
     expect(head(repo.root)).toBe(before);
-  });
-
-  // The bug (2026-10-25 weekly): the gate copied the store's config over the files, and the commit
-  // stage's early check, unlike the guard, never allowed them, so the run failed after its spend.
-  it("commits the config the gate copied from the store, marked as a snapshot", LONG, async () => {
-    const world = makeWorld(repo.root, { now: WED });
-    await throughValidate(world);
-    await markCopiedFromStore(repo.root, true, true);
-    await writeFile(join(repo.root, "config/queries.json"), '{"queries":[]}\n', "utf8");
-    const commit = await runStage(world, { stage: "commit" });
-    expect(commit.code).toBe(0);
-    expect(git(repo.root, "show", "--name-only", "--format=%B", "HEAD")).toContain(
-      SNAPSHOT_TRAILER,
-    );
-    expect(git(repo.root, "show", "--name-only", "--format=", "HEAD")).toContain(
-      "config/queries.json",
-    );
   });
 
   it("takes the next free id when the planned one appeared meanwhile", LONG, async () => {
@@ -254,8 +236,6 @@ describe("a run that holds for its publish time", () => {
       );
       world.setNow(new Date(WED.getTime() + 30 * 60_000));
     };
-    // The gate copied the store's config, so this commit would claim to be a snapshot of it.
-    await markCopiedFromStore(repo.root, true, true);
     const commit = await runStage(world, { stage: "commit" });
     expect(commit.report).toMatchObject({ outcome: "published", commit: { status: "pushed" } });
     const seen = JSON.parse(git(repo.remote, "show", "main:state/seen.json")) as SeenFile;
@@ -267,8 +247,6 @@ describe("a run that holds for its publish time", () => {
     };
     expect(kept.topics.length).toBeGreaterThan(0);
     expect(kept.topics.every((topic) => topic.never_publish === true)).toBe(true);
-    // A config edit came in from the repo, so the files are no longer the store's: no snapshot claim.
-    expect(git(repo.remote, "log", "-1", "--format=%B", "main")).not.toContain(SNAPSHOT_TRAILER);
   });
 });
 

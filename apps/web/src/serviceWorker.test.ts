@@ -341,6 +341,24 @@ describe("service worker: caching strategies", () => {
     expect(await result.response?.text()).toBe("offline page");
   });
 
+  // A full disk made cache.put reject, and the rejection took the network answer with it: the page
+  // fell back to a stale copy or /offline though the network had answered (REL-06).
+  it("still answers from the network when saving the answer fails", async () => {
+    const worker = load(() => new Response("fresh page"));
+    const open = worker.caches.open.bind(worker.caches);
+    worker.caches.open = async (name: string) => {
+      const cache = await open(name);
+      cache.put = async () => {
+        throw new DOMException("quota", "QuotaExceededError");
+      };
+      return cache;
+    };
+    const page = await worker.dispatchFetch(request("/d/2026-10-09", { mode: "navigate" }));
+    expect(await page.response?.text()).toBe("fresh page");
+    const asset = await worker.dispatchFetch(request("/covers/x-512.webp?v=1"));
+    expect(await asset.response?.text()).toBe("fresh page");
+  });
+
   it("does not store failed responses", async () => {
     const worker = load(() => new Response("gone", { status: 404 }));
     await worker.dispatchFetch(request("/d/2026-10-09"));

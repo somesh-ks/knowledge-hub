@@ -127,6 +127,7 @@ describe("published run", () => {
         outcome: "published",
         digest_id: "2026-10-07",
         generated_at: WED.toISOString(),
+        fetched_through: WED.toISOString(),
         items: 6,
       });
       expect(lastRun.last_fetch_at).toBe(WED.toISOString());
@@ -354,6 +355,7 @@ describe("nothing outcome", () => {
       outcome: "nothing",
       items: 0,
       generated_at: WED.toISOString(),
+      fetched_through: WED.toISOString(),
     });
     expect(lastRun.last_fetch_at).toBe(WED.toISOString());
     expect(lastRun.last_cover).toBeUndefined();
@@ -827,6 +829,43 @@ describe("judgments cache", () => {
     expect(world.judge.asked).toHaveLength(1);
     await runStage(world, { stage: "judge" });
     expect(world.judge.asked).toHaveLength(1);
+  });
+
+  // The cache was written once, after the last pass: a throw in a later pass lost the answers an
+  // earlier pass had already paid for, and the next attempt asked for them again (REL-03).
+  it("keeps the answers of earlier passes when a later pass throws", LONG, async () => {
+    await seed(repo.root, {
+      "state/last-run.json": lastRunFile({
+        regular: {
+          at: "2026-10-09T05:13:00Z",
+          outcome: "published",
+          digest_id: "2026-10-09",
+          items: 8,
+        },
+        last_fetch_at: "2026-10-09T05:13:00Z",
+      }),
+    });
+    const world = makeWorld(repo.root, {
+      now: SUN,
+      feeds: {
+        "blog-a": sourceItems("blog-a", 8, "a"),
+        "blog-b": sourceItems("blog-b", 8, "b"),
+        "journal-w": sourceItems("journal-w", 4, "j"),
+      },
+    });
+    await runStage(world, { stage: "gate", force: true });
+    await runStage(world, { stage: "fetch", force: true });
+    const answer = world.judge.judge.bind(world.judge);
+    let calls = 0;
+    world.judge.judge = async (items) => {
+      calls += 1;
+      if (calls > 1) throw new Error("budget exceeded");
+      return answer(items);
+    };
+    const result = await runStage(world, { stage: "judge", force: true });
+    expect(result.code).not.toBe(0);
+    const saved = await readJson<JudgmentsFile>(repo.root, ".cache/run/judgments.json");
+    expect(Object.keys(saved.entries).length).toBeGreaterThan(0);
   });
 
   it("prunes judgments older than 30 days when it persists them", LONG, async () => {

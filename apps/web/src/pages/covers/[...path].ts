@@ -3,28 +3,29 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FONT_FILE_BASENAMES, setFontDirectory } from "@singularity/cover";
 import type { APIRoute, GetStaticPaths } from "astro";
-import { coverPng, coverWebp } from "../../../lib/covers";
-import { findRepoRoot } from "../../../lib/repoRoot";
+import { coverPng, coverWebp } from "../../lib/covers";
+import { findRepoRoot } from "../../lib/repoRoot";
 import {
   type ContentRepoDeps,
   expireContentManifest,
   loadStoreSite,
   loadStoreSiteChecked,
-} from "../../../server/contentRepo";
+} from "../../server/contentRepo";
 import {
   type CoverResolution,
   coverCacheHeaders,
   NOT_FOUND_HEADERS,
   parseCoverPath,
   resolveCover,
-  splitVersion,
-} from "../../../server/coverRoute";
+  versionOf,
+} from "../../server/coverRoute";
 
 /**
- * A cover the build did not draw, drawn when it is asked for (D256). vercel.json sends `/covers/*`
- * here when no built file answers: a briefing or episode newer than the last deploy (D173). The
- * build's own routes draw the rest. The path is `<version>/<cover path>`: vercel.json moves the
- * address's `?v=` there, because the CDN keys a cover by its path alone.
+ * A cover the build did not draw, drawn when it is asked for (D256): a briefing or episode newer
+ * than the last deploy (D173). Vercel serves a built file before any function, so this route only
+ * sees the addresses no file answers; the build's own routes draw the rest. It sits at the public
+ * address itself: a rewrite to another path reached this function with the reader's original URL,
+ * which no route matched, so it answered an empty 404 (2026-11-01).
  */
 export const prerender = false;
 // The static test build prerenders every route; no cover is drawn on demand there.
@@ -67,22 +68,24 @@ function refresh(deps: ContentRepoDeps): typeof refreshing | undefined {
 
 const BEHIND_HEADERS = { "Cache-Control": "no-store", "Retry-After": "5" } as const;
 
-export const GET: APIRoute = async ({ params }) => {
-  const split = splitVersion(params.path ?? "");
-  const request = split && parseCoverPath(split.rest);
-  if (!split || !request) {
+export const GET: APIRoute = async ({ params, url }) => {
+  // The function sees the address the reader asked for (Astro matches routes on it, not on a rewrite's
+  // destination), so the version is read from the query here.
+  const version = versionOf(url.searchParams.get("v"));
+  const request = parseCoverPath(params.path ?? "");
+  if (!request) {
     return new Response("Not found", { status: 404, headers: NOT_FOUND_HEADERS });
   }
   const deps: ContentRepoDeps = {
     env: process.env,
     fetch,
     now: Date.now,
-    log: (message) => console.error(`[api/cover] ${message}`),
+    log: (message) => console.error(`[covers] ${message}`),
   };
   try {
     const held = await loadStoreSite(deps);
     let resolution: CoverResolution = held
-      ? resolveCover(held, request.id, split.version)
+      ? resolveCover(held, request.id, version)
       : { kind: "missing" };
     // Whether the store's newest manifest, not a held one, backs a non-draw answer.
     let confirmed = false;
@@ -93,7 +96,7 @@ export const GET: APIRoute = async ({ params }) => {
       const refreshed = await refresh(deps);
       if (refreshed !== undefined) {
         resolution = refreshed
-          ? resolveCover(refreshed.site, request.id, split.version)
+          ? resolveCover(refreshed.site, request.id, version)
           : { kind: "missing" };
         // A failed read keeps the held manifest, which proves nothing.
         confirmed = refreshed !== null && !refreshed.saved;
@@ -120,13 +123,11 @@ export const GET: APIRoute = async ({ params }) => {
     return new Response(body, {
       headers: {
         "Content-Type": request.format === "png" ? "image/png" : "image/webp",
-        ...coverCacheHeaders(split.version, record),
+        ...coverCacheHeaders(version, record),
       },
     });
   } catch (error) {
-    console.error(
-      `[api/cover] ${request.id}: ${error instanceof Error ? error.message : "unknown"}`,
-    );
+    console.error(`[covers] ${request.id}: ${error instanceof Error ? error.message : "unknown"}`);
     return new Response("This cover could not be drawn right now.", {
       status: 503,
       headers: { ...NOT_FOUND_HEADERS, "Retry-After": "60" },

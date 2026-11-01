@@ -17,6 +17,8 @@ const GITHUB_SECRETS = [
   "FIRECRAWL_API_KEY",
   "SPEECHIFY_API_KEY",
   "BLOB_READ_WRITE_TOKEN",
+  // The private store the weekly config snapshot goes to (D300).
+  "BLOB_PRIVATE_READ_WRITE_TOKEN",
   "VERCEL_TOKEN",
   "GEMINI_API_KEY",
   "DATABASE_URL",
