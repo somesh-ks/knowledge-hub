@@ -38,7 +38,9 @@ export async function runBatch(
   const sleep = options.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const pollMs = options.pollMs ?? POLL_MS;
   const log = options.log;
-  if (entries.length === 0) return new Map();
+  // Past the cutoff there is nothing to wait for (a later pass of the same run): submitting would
+  // only pay for a batch cancelled at once.
+  if (entries.length === 0 || now() >= options.until) return new Map();
 
   let batchId: string;
   try {
@@ -77,7 +79,11 @@ export async function runBatch(
         reason: error instanceof Error ? error.message : "unknown",
         failures,
       });
-      if (failures >= (options.maxPollFailures ?? MAX_POLL_FAILURES)) return new Map();
+      if (failures >= (options.maxPollFailures ?? MAX_POLL_FAILURES)) {
+        // Giving up must not leave the batch running: it would be billed and then written again live.
+        if (!cancelled) await api.cancel(batchId).catch(() => undefined);
+        return new Map();
+      }
     }
     if (cancelled && now() >= cancelDeadline) return new Map();
     await sleep(pollMs);

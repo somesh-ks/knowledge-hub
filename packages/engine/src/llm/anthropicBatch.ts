@@ -89,10 +89,13 @@ export function createAnthropicBatchApi(options: {
       const outcomes = new Map<string, BatchOutcome>();
       for (const line of (await response.text()).split("\n")) {
         if (line.trim() === "") continue;
-        const entry = JSON.parse(line) as {
-          custom_id?: string;
-          result?: { type?: string; message?: AnthropicBody };
-        };
+        let entry: { custom_id?: string; result?: { type?: string; message?: AnthropicBody } };
+        try {
+          entry = JSON.parse(line);
+        } catch {
+          // One unreadable line loses only its own entry, which is then written live.
+          continue;
+        }
         if (!entry.custom_id) continue;
         const type = entry.result?.type;
         if (type === "succeeded" && entry.result?.message) {

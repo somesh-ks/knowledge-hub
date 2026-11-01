@@ -117,6 +117,42 @@ describe("the batch wait", () => {
     const out = await runBatch(unreadable, entries, { until: now() + 3_600_000, now, sleep });
     expect(out.size).toBe(0);
   });
+
+  // A batch left running after the wait gave up is billed and then written again live.
+  it("cancels the batch when it gives up on reading its status", async () => {
+    const { now, sleep } = clock();
+    let cancels = 0;
+    const api: BatchApi = {
+      submit: async () => "b1",
+      status: async () => {
+        throw new Error("503");
+      },
+      results: async () => new Map(),
+      cancel: async () => {
+        cancels += 1;
+      },
+    };
+    await runBatch(api, entries, { until: now() + 3_600_000, now, sleep });
+    expect(cancels).toBe(1);
+  });
+
+  // A later pass of one run starts after the first pass waited to the cutoff: nothing to submit.
+  it("does not submit a batch once the cutoff has passed", async () => {
+    const { now, sleep } = clock();
+    let submits = 0;
+    const api: BatchApi = {
+      submit: async () => {
+        submits += 1;
+        return "b1";
+      },
+      status: async () => ({ status: "ended" }),
+      results: async () => new Map(),
+      cancel: async () => {},
+    };
+    const out = await runBatch(api, entries, { until: now() - 1, now, sleep });
+    expect(out.size).toBe(0);
+    expect(submits).toBe(0);
+  });
 });
 
 describe("when a run waits for a batch", () => {
@@ -239,7 +275,10 @@ describe("the batch on the wire", () => {
           { custom_id: "w0", result: { type: "succeeded", message: message('{"ok":true}') } },
           { custom_id: "w1", result: { type: "succeeded", message: message("not json") } },
         ];
-        return new Response(lines.map((l) => JSON.stringify(l)).join("\n"));
+        // A truncated line must cost only its own entry, not the whole batch's results.
+        return new Response(
+          [...lines.map((l) => JSON.stringify(l)), '{"custom_id":"w2","res'].join("\n"),
+        );
       }
       return Response.json({ processing_status: "ended" });
     };

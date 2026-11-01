@@ -276,7 +276,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D258 | Cover version in its path | amends D256 |
 | D259 | Saves kept before sending | amends D79, D91, D115, D249 |
 | D262 | Sheet and Drawer split | amends D243 |
-| D263 | Cover version in URL | proposed; amends D258 |
+| D263 | Cover version in URL | superseded by D293 |
 | D264 | Card long press | active |
 | D265 | A select's phone list is the sheet | amends D167 |
 | D266 | Icon, Badge, type | amends D243 |
@@ -299,7 +299,7 @@ Entries live in one file per area, in number order. Find one with `grep -l "^## 
 | D285 | Switch can be mixed | |
 | D287 | Column and list centred together | amends D229 |
 | D289 | Every press is felt | amends D273 |
-| D293 | On-demand covers are served at /covers | amends D256, D258, D263 |
+| D293 | On-demand covers are served at /covers | supersedes D263; amends D256, D258 |
 | D294 | Scheduled writer uses Message Batches | amends D209 (step 3 built, step 2 open); D135 ended |
 
 ---

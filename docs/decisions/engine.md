@@ -537,7 +537,8 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Why: D256 and D258 sent `/covers/*` to `/api/cover/*` by rewrite. The rewrite reached the one Astro function, but Astro routes on the URL the reader asked for, so no route matched and every unbuilt cover answered an empty 404. Reproduced with the production build (`/covers/probe-512.webp` gave an empty 404, `/api/cover/0/probe-512.webp` the handler's answer), and live (`/api/cover/<v>/2026-11-01-weekly-512.webp` gave a 200 WebP, `/covers/...` a 404). On-demand covers therefore never worked at the public address; they appeared when a later deploy built them.
 - Limit: D258's and D263's claims about the CDN keying `/covers/*` by path alone came from probes that could not tell this 404 from the function's own, so they are unproven; re-probe once this is deployed. The `/covers/` header rules still give any answer under a `?v=` a year and `immutable`, a 404 or 503 included, which a phone could keep; follow-up.
 - Revisit if: a cover is not drawn for a record newer than the deploy, or a cover shows old after a regeneration.
-- Amends: D256, D258, D263.
+- Context changed: D263's path-based versioning could not route an unbuilt cover to the handler at its public address, so the version moves back to the query.
+- Supersedes: D263. Amends: D256, D258.
 
 ## D294: the scheduled writer's first pass is a Message Batch
 
