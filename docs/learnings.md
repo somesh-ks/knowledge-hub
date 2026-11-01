@@ -32,8 +32,8 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 - 2026-10-24: on Node 24 (V8 13.6), a function whose hot loop gets Maglev OSR code can return object literals sharing number fields (the sound volume test; nodejs/node#66457; not on Node 22). Keep hot loops out of functions returning object literals.
 - 2026-10-14: Vitest, like Chromium, remembers a failed dynamic import for the module's URL, so a retry test of a lazy import passes or fails depending on test order. Retry with a `?retry=` query (pageContentLoader) and test the retry in the browser, not in Vitest.
-- 2026-10-11: the pipeline tests' fake RSS fetcher ignored the window, so a test about posts outside it passed for the wrong reason. Check a fake honours what the test is about.
-- 2026-10-08: a limit nobody asked for is a bug waiting for its first user (two episodes a day stopped the owner). Tests compute a policy number from its constant, never hard-code it.
+- 2026-10-11: the pipeline tests' fake RSS fetcher returns every item whatever the window, so a test about posts outside the window (the scoring sample's backfill) passed for the wrong reason until it wrapped the fetcher to honour `window.from`. Check a fake honours what the test is about.
+- 2026-10-08: a limit nobody asked for is a bug waiting for its first user: two episodes a day stopped the owner on the first day. Tests that hard-code a policy number (a cooldown of 30 minutes) break when the policy moves; compute from the constant.
 - 2026-10-08: a test that misfiles a story into a retired section no longer fails validation, because published briefings must still validate; use a live section instead.
 
 ## Engine and workflows
@@ -58,7 +58,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-07: `audio.yml` failed at the write guard ("changes outside the publish allowlist: .gitignore"): `vercel link` and `vercel env pull` edit `.gitignore` and write `.vercel`; run them in a scratch directory outside the checkout.
 - 2026-10-30: Hobby Blob allows 2,000 advanced ops a month (`put`, `copy`, `list`); over it the store is blocked. Ingest put once per story (D251): count a job's puts. The CDN keys an answer by path and obeys `vercel.json` header rules, not the query or `Vercel-CDN-Cache-Control` (D263).
 - 2026-10-18: the 15-minute weekly aired 14 stories: the prefilter's fixed cap of 80 filled 27 of 52 slots and grounding dropped 11. `poolCapFor` now sizes it. Read a short episode's funnel from the stage lines first.
-- 2026-10-15: Claude Sonnet 5.5 answers 400 "temperature is deprecated" to any request with `temperature`, and the writer chain fell through silently to Nebius from 2026-10-14 while Settings said Sonnet. The client sends none; a failover should be visible, not only in logs.
+- 2026-10-15: Claude Sonnet 5.5 answers 400 "temperature is deprecated" to any request with `temperature`, and the writer chain fell through silently to Nebius from 2026-10-14 while Settings said Sonnet. The Anthropic client sends no temperature; a pick that fails over should be visible, not only in logs.
 - 2026-10-15: a source with 0 fetched items and OK health is not always broken: One Useful Thing and AUX First post monthly (newest items 2026-10-01 and 2026-09-21). Read the feed's newest date before calling a source dead.
 - 2026-10-15: the eval's quality score moves ±0.25 between runs on the same episode; read the judge's reasons (`loop/inspect.ts` in the eval job log) before acting on a score change.
 - 2026-10-14: Firecrawl bills a cached scrape (its Faster Scraping page: "Cached results still cost 1 credit per page"), so `maxAge` cuts latency and not spend. Only a request that is not made saves a credit.
