@@ -591,6 +591,13 @@ async function sendOutbox(): Promise<void> {
     // Refused for good: the site read the edit and said no. Anything else (no connection, a server
     // fault) leaves it kept, and the next page load, the connection coming back or the next change tries again.
     if (answer.status !== 400 && answer.status !== 409) return;
+    // The store's "conflict" (409) means a write landed between its read and its write: it read none of
+    // the edits, so they are kept and go out at the next try.
+    if (
+      answer.status === 409 &&
+      (answer.body as { error?: unknown } | undefined)?.error === "conflict"
+    )
+      return;
     // A refusal that names its op takes out that edit alone: the server wrote none of the request, so
     // the others go out again next time. One that does not is chased down by sending the oldest entry alone.
     const body = answer.body as { op_index?: unknown } | undefined;

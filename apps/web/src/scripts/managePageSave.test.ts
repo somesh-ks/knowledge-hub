@@ -772,6 +772,20 @@ describe("edits kept on the device while the site cannot be reached (CFG-04)", (
     expect(toasts).toHaveLength(1);
   });
 
+  // Bug (CodeRabbit on #550): the store's 409 "conflict" names no edit, so it was read as a refusal and
+  // took out the only copy of edits the site had not written.
+  it("keeps the edits when the store answers conflict, and sends them at the next try", async () => {
+    await flush(context(new Map([["hour", change({ op: "schedule.set", hour: 9 })]])));
+    replies = [[409, { status: 409, error: "conflict" }]];
+    answer = 202;
+    await drainOutbox();
+    expect(outboxOps()).toEqual([{ op: "schedule.set", hour: 9 }]);
+    expect(toasts).toEqual([]);
+    await vi.advanceTimersByTimeAsync(GAP_MS);
+    await drainOutbox();
+    expect(readOutbox()).toEqual([]);
+  });
+
   it("says when a kept schedule change was saved but its time could not be changed", async () => {
     await flush(context(new Map([["hour", change({ op: "schedule.set", hour: 9 })]])));
     answer = 202;
