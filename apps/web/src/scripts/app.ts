@@ -1,3 +1,4 @@
+import { installRipple } from "../design-system/ripple";
 import { counted, installAnalytics } from "../lib/analytics";
 import { watchPlatformFaults } from "../lib/platformFaults";
 import { hasOutbox } from "../lib/savedKey";
@@ -29,6 +30,7 @@ captureInstallPrompt();
 installNavigation();
 installPersistedMotion();
 installCoverMorph();
+installRipple();
 installRootState();
 installCreateEntry();
 installQueueEntry();
