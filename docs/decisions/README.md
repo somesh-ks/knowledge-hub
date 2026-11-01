@@ -169,6 +169,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D306 | A seasonal style may change more than tokens | amends D268 |
 | D308 | Haiku writes the first pass of each story, Sonnet repairs and backs it up | amends D181 |
 | D310 | Expressive is loud: a violet world, larger controls | amends D268 |
-| D311 | Album art follows the style, derived from the month's colours | amends D110, D121 |
+| D311 | Album art follows the style, drawn live from the month's colours | amends D110, D121; fulfils D306 |
 
 ---
