@@ -101,6 +101,19 @@
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
+/* On a wide screen the Menu is one popover family with the picker and the select list (owner,
+   2026-11-01): a 32px corner around rows 8px in, so a row's 24px corner shares its centre with the
+   corner around it. The phone's sheet (below 40rem) keeps its own rows. */
+@media (width >= 40rem) {
+  .menu-list {
+    border-radius: var(--radius-2xl);
+  }
+
+  .menu-list .menu-item {
+    border-radius: var(--radius-xl);
+  }
+}
+
 @media (hover: hover) and (pointer: fine) {
   .menu-item:hover {
     background: color-mix(in oklab, currentColor 8%, transparent);
