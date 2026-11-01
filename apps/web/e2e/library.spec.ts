@@ -67,7 +67,7 @@ const shown = (page: Page) =>
     );
 
 test.describe("the library", () => {
-  test("shows every podcast and episode as a cover card, newest first, with no month headings", async ({
+  test("shows every podcast and episode as a cover card, newest first, with no month headings in the gallery", async ({
     page,
   }) => {
     await page.goto("/library");
@@ -82,7 +82,8 @@ test.describe("the library", () => {
       1,
     );
     await expect(page.locator(".cover[data-weekly]")).toHaveCount(1);
-    // A grid of covers, not a grouped list: no month headings, nothing to open or close.
+    // A grid of covers, not a grouped list: the month headings are the list's alone (below), and
+    // there is nothing to open or close.
     await expect(page.getByRole("heading", { level: 2 })).toHaveCount(0);
     await expect(page.locator("details, summary")).toHaveCount(0);
     await expect(page.locator("[data-library-status]")).toHaveText("5 results");
@@ -599,6 +600,77 @@ test.describe("library episodes", () => {
     await expect(page.locator("[data-library]")).toHaveAttribute("data-view", "list");
     await page.getByRole("button", { name: "Gallery view" }).click();
     await expect(grid).toHaveCSS("display", "grid");
+  });
+
+  test("a list's month label sits as far under the filters as a gallery cover, and holds under the app bar as the list scrolls", async ({
+    page,
+  }) => {
+    await page.goto("/library");
+    await ready(page);
+    // How far the thing sits under the filter chips.
+    const under = (selector: string) =>
+      page.evaluate((target) => {
+        const chips = document.querySelector(".library-filters")?.getBoundingClientRect().bottom;
+        const node = [...document.querySelectorAll(target)].find(
+          (item) => item.getClientRects().length,
+        );
+        return chips === undefined || !node ? NaN : node.getBoundingClientRect().top - chips;
+      }, selector);
+    const gallery = await under("[data-card] .cover");
+    await page.getByRole("button", { name: "List view" }).click();
+    // The list began a row's inset further down than the gallery did.
+    expect(await under(".library-month-head")).toBeCloseTo(gallery, 0);
+
+    // A short screen, so the list scrolls: the label stays right under the app bar, which slides
+    // away as the page is read and comes back, and the label follows it either way.
+    await page.setViewportSize({ width: 390, height: 420 });
+    const gap = () =>
+      page.evaluate(() => {
+        const head = document.querySelector(".library-month-head")?.getBoundingClientRect();
+        const bar = document.querySelector(".app-bar")?.getBoundingClientRect();
+        return head && bar ? head.top - bar.bottom : NaN;
+      });
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect.poll(gap).toBeCloseTo(0, 0);
+    await page.evaluate(() => window.scrollBy(0, -120));
+    await expect.poll(gap).toBeCloseTo(0, 0);
+  });
+
+  test("in a list the months head a date order, and the rows run two across only where there is room", {
+    tag: "@desktop",
+  }, async ({ page }) => {
+    await page.goto("/library");
+    await ready(page);
+    await page.getByRole("button", { name: "List view" }).click();
+    // The empty state has an h2 of its own, so the months are told apart by their class.
+    const months = page.locator(".library-month-head:visible");
+    const month = months.filter({ hasText: "October 2026" });
+    await expect(month).toHaveCount(1);
+    const sort = page.getByRole("combobox", { name: "Sort" });
+    await sort.selectOption("oldest");
+    await expect(month).toHaveCount(1);
+    // By length the same month would come back again and again.
+    await sort.selectOption("longest");
+    await expect(months).toHaveCount(0);
+    await sort.selectOption("newest");
+    // A search with no match leaves no month standing over nothing.
+    await page.getByRole("searchbox").fill("zzzzqqqq");
+    await expect(months).toHaveCount(0);
+    await page.getByRole("searchbox").fill("");
+
+    const covers = page.locator("[data-card] .cover");
+    const place = async () => {
+      const [first, second] = await Promise.all([
+        covers.nth(0).boundingBox(),
+        covers.nth(1).boundingBox(),
+      ]);
+      return { sideBySide: Math.abs((first?.y ?? 0) - (second?.y ?? 0)) < 2 };
+    };
+    await page.setViewportSize({ width: 1280, height: 900 });
+    expect((await place()).sideBySide).toBe(true);
+    // Under 80rem the column is 592px, too narrow for two: one column.
+    await page.setViewportSize({ width: 1100, height: 900 });
+    expect((await place()).sideBySide).toBe(false);
   });
 
   test("in a list a match line adds no room above the title, and a bar stays on its cover", async ({
