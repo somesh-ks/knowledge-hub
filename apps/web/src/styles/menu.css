@@ -146,6 +146,15 @@
   mask: var(--check-mask) center / contain no-repeat;
 }
 
+/* A row that opens a second screen says its state at the end: quiet, with the chevron after it. */
+.menu-item-value {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-inline-start: auto;
+  color: var(--color-on-surface-muted);
+}
+
 /* The quick actions at the top of a menu (the player's: Download, Share, Save): a few tiles on the
    rows' own edge, each a glyph over a word on the container tone. The gap between tiles is the
    rows' 8px, so the tiles and the pills under them read as one list. */
