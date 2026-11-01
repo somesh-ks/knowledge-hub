@@ -3,7 +3,8 @@ name: podcast
 # Writes one episode of Singularity on request and commits it under Podcasts/. This commit does not
 # deploy the site: vercel.json's ignoreCommand skips a push that touches no app code (D199), and
 # content.yml mirrors the episode into the content store the pages read. The commit still uses the
-# owner's identity from DISPATCH_GIT_NAME and DISPATCH_GIT_EMAIL, exactly as run.yml does.
+# owner's identity from SINGULARITY_GIT_NAME and SINGULARITY_GIT_EMAIL (the old DISPATCH_ names
+# still work), exactly as run.yml does.
 
 on:
   workflow_dispatch:
@@ -17,11 +18,9 @@ on:
 # delete (D213): the request carries `action` and `id` for the last two and neither for a new episode.
 run-name: ${{ fromJSON(inputs.request).action && format('{0} {1}', fromJSON(inputs.request).action, fromJSON(inputs.request).id) || 'episode' }}
 
-# The same group as run.yml, so an episode and a digest never push at the same moment. GitHub keeps
-# one pending run per group, so a request made while a digest is running waits for it to finish.
+# Its own group, not run.yml's: sharing it would let an episode request replace a queued briefing.
+# An episode and a digest can therefore run at the same time; the push rebases and retries.
 concurrency:
-  # Its own group: sharing the run's group would let an episode request replace a queued briefing.
-  # The push rebases and retries, so the two can overlap.
   group: singularity-podcast
   cancel-in-progress: false
 
