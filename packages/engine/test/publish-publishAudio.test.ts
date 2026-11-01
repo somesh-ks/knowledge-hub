@@ -200,6 +200,15 @@ describe("publishAudio: one digest", () => {
     expect(voices.wk).toBe("shared_v");
   });
 
+  // The bug it prevents: the audio job has no config store and, since the schedule left git (D296),
+  // no schedule file either, so a voice set in Settings was dropped for stored audio. The run writes
+  // the voice into the digest, and the job reads it from there.
+  it("narrates in the voice the digest carries, with no schedule file on this machine", async () => {
+    await writeDigest(harness.temp.root, makeDigest({ voice_id: "digest_v" }));
+    await publishAudio({ ...harness.deps, voiceId: "env_v" });
+    expect(must(harness.speech.calls.marks[0]).voiceId).toBe("digest_v");
+  });
+
   it("falls back to the run's voice when the schedule sets none or is invalid", async () => {
     await writeDigest(harness.temp.root, makeDigest());
     await publishAudio({ ...harness.deps, voiceId: "env_v" });

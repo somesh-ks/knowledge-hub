@@ -55,6 +55,7 @@ const [format, length] = facts.line.split(FACT_SEPARATOR);
   <LibraryItemMenu
     id={entry.id}
     title={episode.title}
+    subtitle={facts.line}
     path={`/e/${entry.id}`}
     kind="episode"
     audio={`/api/narrate?digest=${encodeURIComponent(entry.id)}`}

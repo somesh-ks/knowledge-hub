@@ -96,6 +96,15 @@ export const Digest = z.object({
    */
   rundown: z.number().int().min(1).max(6).optional(),
   /**
+   * The narration voice the schedule gave this kind when the digest was rendered (D296). The audio
+   * job holds no config store access (SEC-03), so the run that has it writes the voice here. Absent
+   * means the run's own voice, as every digest before.
+   */
+  voice_id: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{1,64}$/)
+    .optional(),
+  /**
    * How many times the owner has regenerated this podcast (D212). Written by the replacement run,
    * the old count plus one; absent means never. A podcast takes `MAX_REGENERATIONS`.
    */

@@ -57,8 +57,15 @@ export function checkDocs(root) {
   // The Index lives in docs/decisions/README.md; the entries are spread over the area files beside it.
   const decisionsDir = at("docs/decisions");
   const readmePath = join(decisionsDir, "README.md");
+  const archivePath = join(decisionsDir, "index-archive.md");
   const index = existsSync(readmePath) ? decisionsIndex(read(readmePath)) : "";
-  const entryFiles = markdownFiles(decisionsDir).filter((file) => file !== readmePath);
+  // The oldest rows move to index-archive.md so the live Index stays under its cap; the checks below
+  // read both, the cap counts only the live Index.
+  const archive = existsSync(archivePath) ? read(archivePath) : "";
+  const allRows = `${index}\n${archive}`;
+  const entryFiles = markdownFiles(decisionsDir).filter(
+    (file) => file !== readmePath && file !== archivePath,
+  );
   const decisions = entryFiles.map(read).join("\n");
   const readFirst = ["AGENTS.md", "docs/state.md"]
     .filter((rel) => existsSync(at(rel)))
@@ -69,36 +76,51 @@ export function checkDocs(root) {
     fails.push(`decisions Index: ${Buffer.byteLength(index)} bytes, budget ${INDEX_BUDGET}`);
 
   // Every Index row has an entry and every entry a row; a supersession names a decision that exists.
-  const rows = new Set([...index.matchAll(/^\| (D\d+) \|/gm)].map((m) => m[1]));
+  const rowIds = [...allRows.matchAll(/^\| (D\d+) \|/gm)].map((m) => m[1]);
+  const rows = new Set(rowIds);
+  if (rows.size < rowIds.length)
+    fails.push(
+      `docs/decisions: Index row ${rowIds.find((id, at) => rowIds.indexOf(id) !== at)} appears twice (Index and index-archive.md)`,
+    );
   const entries = new Set([...decisions.matchAll(/^## (D\d+):/gm)].map((m) => m[1]));
   for (const id of rows)
     if (!entries.has(id)) fails.push(`docs/decisions/README.md: Index row ${id} has no entry`);
   for (const id of entries)
     if (!rows.has(id)) fails.push(`docs/decisions/README.md: ${id} has no Index row`);
-  const superseded = new Map(
-    [...`${index}\n${decisions}`.matchAll(/superseded by (D\d+)/gi)].map((m) => [m[0], m[1]]),
-  );
-  for (const [phrase, id] of superseded) {
+  // Every id of a "superseded by D3, D4" list must name a decision that exists.
+  const superseded = [
+    ...`${allRows}\n${decisions}`.matchAll(/superseded by:? ((?:D\d+(?:, and |, | and )?)+)/gi),
+  ].flatMap((m) => (m[1].match(/D\d+/g) ?? []).map((id) => [`superseded by ${id}`, id]));
+  for (const [phrase, id] of new Map(superseded)) {
     if (!entries.has(id))
       fails.push(`docs/decisions: "${phrase}" names a decision that does not exist`);
   }
 
   // A row that "replaces Dn" retires Dn: agents grep the status column, so Dn must say it is superseded.
   // The text before the status column is the description, which may say "superseded" about a part.
-  const rowText = new Map([...index.matchAll(/^\| (D\d+) \|(.*)$/gm)].map((m) => [m[1], m[2]]));
+  const rowText = new Map([...allRows.matchAll(/^\| (D\d+) \|(.*)$/gm)].map((m) => [m[1], m[2]]));
   const statusOf = (text) => text.slice(text.lastIndexOf("|", text.length - 2) + 1);
   for (const [id, text] of rowText) {
-    for (const phrase of statusOf(text).matchAll(/replaces ((?:D\d+(?:, and |, | and )?)+)/gi)) {
+    for (const phrase of statusOf(text).matchAll(
+      /(?:replaces|supersedes) ((?:D\d+(?:, and |, | and )?)+)/gi,
+    )) {
       for (const old of phrase[1].match(/D\d+/g) ?? []) {
         if (!rowText.has(old) && !entries.has(old)) {
-          fails.push(`docs/decisions/README.md: ${id} replaces ${old}, which does not exist`);
-        } else if (
-          rowText.has(old) &&
-          !/^\s*superseded by\b/i.test(statusOf(rowText.get(old) ?? ""))
-        ) {
           fails.push(
-            `docs/decisions/README.md: ${id} replaces ${old}, but ${old}'s row is not "superseded by ${id}"`,
+            `docs/decisions/README.md: ${id} ${phrase[0].split(" ")[0]} ${old}, which does not exist`,
           );
+        } else if (rowText.has(old)) {
+          // "replaces" retires the old decision whole; "supersedes" may retire only a part of it. Either
+          // way the old row names this one, so an Index search for the old decision finds the new.
+          const verb = phrase[0].split(" ")[0].toLowerCase();
+          const status = statusOf(rowText.get(old) ?? "");
+          const pattern =
+            verb === "replaces" ? /^\s*superseded by\b/i : /^\s*(?:partly )?superseded by\b/i;
+          if (!pattern.test(status) || !new RegExp(`\\b${id}\\b`).test(status)) {
+            fails.push(
+              `docs/decisions/README.md: ${id} ${verb} ${old}, but ${old}'s row is not "${verb === "replaces" ? "" : "(partly) "}superseded by ${id}"`,
+            );
+          }
         }
       }
     }
@@ -134,11 +156,18 @@ export function checkDocs(root) {
   const named = ["AGENTS.md", "docs/state.md", "docs/learnings.md"]
     .map(at)
     .concat(markdownFiles(at("docs/specs")));
+  // The owner's config is in the config store, not in git (D296): its paths are named, never present.
+  const configPaths = (() => {
+    const source = at("packages/engine/src/store/configPaths.ts");
+    if (!existsSync(source)) return new Set();
+    const block = read(source).match(/CONFIG_DOCUMENT_PATHS = \[([\s\S]*?)\] as const/);
+    return new Set([...(block?.[1] ?? "").matchAll(/"([^"]+)"/g)].map((each) => each[1]));
+  })();
   for (const file of named.filter(existsSync)) {
     for (const m of read(file).matchAll(
       /`((?:apps|packages|scripts|docs|config|\.github|\.claude)\/[\w./-]+\.\w+)`/g,
     )) {
-      if (!existsSync(at(m[1])))
+      if (!existsSync(at(m[1])) && !configPaths.has(m[1]))
         fails.push(`${relative(root, file).replace(/\\/g, "/")}: names a missing file ${m[1]}`);
     }
   }

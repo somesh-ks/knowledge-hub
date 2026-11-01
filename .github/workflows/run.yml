@@ -111,6 +111,10 @@ on:
         description: "Run every stage but write nothing and push nothing"
         type: boolean
         default: false
+      writer_experiment:
+        description: "After Validate, write this run's stories with each writer model arm and rate them with Jev (about $1, packages/engine/eval/writerModels.ts)"
+        type: boolean
+        default: false
 
 # One run at a time. GitHub keeps a single pending run, so duplicate presses collapse. An hourly
 # trigger that is not the chosen hour gets a group of its own: it does nothing, and it must not take
@@ -255,6 +259,21 @@ jobs:
           retention-days: 30
           if-no-files-found: ignore
 
+      # A Message Batch the write stage gave up waiting for, or that a cancelled job left running, is
+      # still billed for what it finished (D294, audit C6). This cancels it, waits for it to end and
+      # adds its tokens to the run's spend before Commit writes the ledger. `always()` makes it run
+      # after a cancel too, when Commit does not (Log run then prices it). Without a list of open
+      # batches it exits before starting Node.
+      - name: Settle batches
+        if: always() && inputs.delete == '' && steps.gate.outputs.due == 'true'
+        continue-on-error: true
+        shell: bash
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          [ -f .cache/run/open-batches.json ] || exit 0
+          npm run --silent singularity -- batch-settle
+
       # Commit records the outcome (published, nothing, gated, failed) in state/last-run.json
       # before the run concludes. Published, nothing and gated all end as a successful run.
       - name: Commit
@@ -305,6 +324,26 @@ jobs:
           RESULT: ${{ job.status }}
           OUTCOME: ${{ steps.commit.outputs.outcome }}
         run: npm run --silent singularity -- log-run --result "$RESULT" --outcome "$OUTCOME"
+
+      # The writer model experiment. It runs last, so it cannot delay or block publication, and
+      # not after a cancel. It reads the run's own source text on this runner and prints only the
+      # score table to the step summary: the stories, their source text and the owner's block
+      # prompts are never uploaded or logged, because the repository and its artifacts are public
+      # (D298). Results stay in $RUNNER_TEMP and die with the runner.
+      - name: Writer model experiment
+        if: ${{ !cancelled() && inputs.writer_experiment && steps.gate.outputs.due == 'true' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        shell: bash
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: |
+          # A run can hold a regular and a weekly pass, each with its own file.
+          jq -s '{version: 1, items: [.[].items[]]}' .cache/run/*/materials.json > "$RUNNER_TEMP/materials.json"
+          npx tsx packages/engine/eval/writerModels.ts --materials "$RUNNER_TEMP/materials.json" --limit 12 \
+            --out "$RUNNER_TEMP/writer-models" | tee -a "$GITHUB_STEP_SUMMARY"
 
   # The Commit push does not deploy: vercel.json's ignoreCommand skips it (D199) and content.yml
   # mirrors the digest into the store the pages read. This job adds narration afterwards, which

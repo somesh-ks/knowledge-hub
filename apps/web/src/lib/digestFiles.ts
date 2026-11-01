@@ -1,5 +1,5 @@
 import { AudioTimeline, type Digest, parseDigestFile } from "@singularity/core";
-import { type ContentFiles, diskFiles } from "./contentFiles";
+import { type ContentFiles, diskFiles, mapLimit, READ_CONCURRENCY } from "./contentFiles";
 
 export interface DigestSource {
   digest: Digest;
@@ -35,23 +35,44 @@ export async function readDigestFiles(
   const warnings: string[] = [];
   const seen = new Set<string>();
 
-  for (const file of files.filter((name) => name.endsWith(".md"))) {
-    try {
-      const text = await reader.read(file);
-      if (text === null) continue;
-      const digest = parseDigestFile(text);
-      if (seen.has(digest.id)) {
-        warnings.push(`${file}: duplicate digest id ${digest.id}, skipped`);
-        continue;
+  // Read side by side (the store answers each file separately), judged in file order.
+  const read = await mapLimit(
+    files.filter((name) => name.endsWith(".md")),
+    READ_CONCURRENCY,
+    async (file) => {
+      try {
+        const text = await reader.read(file);
+        if (text === null) return { file, found: false as const };
+        const digest = parseDigestFile(text);
+        return { file, found: true as const, digest };
+      } catch (error) {
+        const reason = error instanceof Error ? error.message.split("\n")[0] : "unreadable";
+        return { file, found: false as const, reason };
       }
-      seen.add(digest.id);
-      const timeline = await readTimeline(reader, file.replace(/\.md$/, ".audio.json"));
-      // A timeline for a different digest would put the wrong chapters on this page.
-      sources.push({ digest, timeline: timeline?.digest === digest.id ? timeline : null });
-    } catch (error) {
-      const reason = error instanceof Error ? error.message.split("\n")[0] : "unreadable";
-      warnings.push(`${file}: ${reason}, skipped`);
+    },
+  );
+  const accepted: { file: string; digest: Digest }[] = [];
+  for (const result of read) {
+    if (!result.found) {
+      if ("reason" in result) warnings.push(`${result.file}: ${result.reason}, skipped`);
+      continue;
     }
+    const { file, digest } = result;
+    if (seen.has(digest.id)) {
+      warnings.push(`${file}: duplicate digest id ${digest.id}, skipped`);
+      continue;
+    }
+    seen.add(digest.id);
+    accepted.push({ file, digest });
   }
+  // Timelines only for the digests kept: a skipped copy's read must not count as a failed read of the store.
+  const timelines = await mapLimit(accepted, READ_CONCURRENCY, ({ file }) =>
+    readTimeline(reader, file.replace(/\.md$/, ".audio.json")),
+  );
+  accepted.forEach(({ digest }, index) => {
+    const timeline = timelines[index] ?? null;
+    // A timeline for a different digest would put the wrong chapters on this page.
+    sources.push({ digest, timeline: timeline?.digest === digest.id ? timeline : null });
+  });
   return { sources, warnings };
 }

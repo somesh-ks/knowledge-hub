@@ -153,9 +153,10 @@
 /* ------------------------------------------------------------------ play over a cover */
 
 /*
- * A round play button centred on a cover, over a light scrim, where a mouse can hover. On touch
+ * A bare play glyph centred on a cover, over a light scrim, where a mouse can hover. On touch
  * nothing is added and the card behaves as it always did. The button stays in the tab order while
- * hidden and shows itself on focus. While its item plays it stays, quietly, as pause.
+ * hidden and shows itself on focus. While its item plays it shows three moving bars, and pause
+ * when the cover is pointed at or reached.
  */
 .cover-over {
   display: none;
@@ -196,20 +197,9 @@
     opacity: 1;
   }
 
-  /* Playing: the pause button stays, quiet, with no scrim until the cover is pointed at. */
+  /* Playing: the scrim stays, so the bars read on any cover (owner, 2026-10-31). */
   .cover-over[data-playing="true"] {
     opacity: 1;
-    background: transparent;
-  }
-
-  .cover-over[data-playing="true"] .cover-play {
-    opacity: 0.72;
-  }
-
-  .card:hover > .cover-over[data-playing="true"],
-  .cover:hover > .cover-over[data-playing="true"],
-  .cover-over[data-playing="true"]:has(:focus-visible) {
-    background: var(--color-scrim);
   }
 
   /* On the hero the Play beside the cover already says it is playing: the cover's pause comes back
@@ -218,13 +208,12 @@
     opacity: 0;
   }
 
-  .card:hover > .cover-over[data-playing="true"] .cover-play,
-  .cover:hover > .cover-over[data-playing="true"] .cover-play,
-  .cover-over[data-playing="true"]:has(:focus-visible) .cover-play {
-    opacity: 1;
-  }
-
+  /* A bare white glyph on the scrim, no disc (owner, 2026-10-31). White in both themes: the scrim is
+     dark in both. The press has no container to show a state layer on, so the glyph itself dims; it
+     still does not move under the finger. */
   .cover-play {
+    /* The glyph's box. The bars take their size from it, so a smaller cover (the list's) scales both. */
+    --cover-glyph: calc(var(--size-icon-lg) * 2);
     display: grid;
     place-items: center;
     width: var(--size-touch-comfortable);
@@ -232,15 +221,19 @@
     padding: 0;
     border: 0;
     border-radius: var(--radius-round);
-    background: var(--color-accent);
-    color: var(--color-on-accent);
+    background: transparent;
+    color: var(--color-white);
     cursor: pointer;
     pointer-events: auto;
     scale: var(--scale-enter);
     transition:
       scale var(--duration-hover) var(--ease-hover),
-      opacity var(--duration-hover) var(--ease-hover),
-      background-color var(--duration-hover) var(--ease-hover);
+      opacity var(--duration-hover) var(--ease-hover);
+  }
+
+  .cover-play .icon-glyph {
+    width: var(--cover-glyph);
+    height: var(--cover-glyph);
   }
 
   /* The hover that brings the button in weighs no more than one class, so the press below wins. */
@@ -249,27 +242,59 @@
     scale: 1;
   }
 
-  .cover-play:hover {
-    background: var(--color-accent-hover);
+  .cover-play:active {
+    opacity: 0.72;
   }
 
-  /* The state layer alone: the glyph does not move under the finger (owner, 2026-10-21). */
-  .cover-play:active {
-    background: color-mix(
-      in oklch,
-      var(--color-accent-hover),
-      var(--color-on-accent) var(--state-press)
-    );
+  /* Now playing, not pointed at: the glyph gives way to three moving bars (the play chip's own mark),
+     and the pause comes back when the cover is pointed at or reached. */
+  .cover-play > * {
+    grid-area: 1 / 1;
+  }
+
+  .cover-bars {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--cover-glyph) / 8);
+    height: calc(var(--cover-glyph) * 0.75);
+    opacity: 0;
+    transition: opacity var(--duration-state) var(--ease-out);
+  }
+
+  /* From the middle, not the foot: the bars sit on the glyph's centre line, as thick and as tall as
+     the pause glyph's own bars (13 px wide and 36 px tall in the 48 px box, measured 2026-10-31). */
+  .cover-bars > i {
+    width: calc(var(--cover-glyph) * 0.27);
+    transform-origin: center;
+  }
+
+  .cover-over[data-playing="true"] .cover-bars {
+    opacity: 1;
+  }
+
+  .cover-over[data-playing="true"] .swap {
+    opacity: 0;
+    transition: opacity var(--duration-state) var(--ease-out);
+  }
+
+  .card:hover > .cover-over[data-playing="true"] .cover-bars,
+  .cover:hover > .cover-over[data-playing="true"] .cover-bars,
+  .cover-over[data-playing="true"]:has(:focus-visible) .cover-bars {
+    opacity: 0;
+  }
+
+  .card:hover > .cover-over[data-playing="true"] .swap,
+  .cover:hover > .cover-over[data-playing="true"] .swap,
+  .cover-over[data-playing="true"]:has(:focus-visible) .swap {
+    opacity: 1;
   }
 }
 
-/* No growing in: the button is at full size and fades with the scrim, and its fill still changes. */
+/* No growing in: the button is at full size and fades with the scrim, and its press still dims. */
 @media (prefers-reduced-motion: reduce) {
   .cover-play {
     scale: 1;
-    transition:
-      opacity var(--duration-hover) var(--ease-hover),
-      background-color var(--duration-hover) var(--ease-hover);
+    transition: opacity var(--duration-hover) var(--ease-hover);
   }
 }
 
@@ -278,9 +303,11 @@
     background: transparent;
   }
 
+  /* A disc again, in the system pair, so the glyph shows on any cover; the glyph shrinks to fit it. */
   .cover-play {
-    /* The system paints the disc; the border keeps its edge on any cover. */
-    border: var(--stroke-hairline) solid ButtonText;
+    --cover-glyph: var(--size-icon-lg);
+    background: Highlight;
+    color: HighlightText;
   }
 
   .cover-play:focus-visible {

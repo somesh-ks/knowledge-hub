@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { Logger } from "../context.js";
 import { mapConcurrent } from "../llm/concurrency.js";
 import { BudgetExceededError, describeError, LlmOutputError } from "../llm/errors.js";
-import type { LlmClient } from "../llm/types.js";
+import type { BatchLlm, JsonRequest, LlmClient } from "../llm/types.js";
 import { newBoundary } from "../llm/untrusted.js";
 import type { Taste } from "../profile/tasteNote.js";
 import type { VoiceField } from "../voice/lint.js";
@@ -20,6 +20,7 @@ import type {
   RewriteRequest,
   SourceMaterial,
   WriteFailure,
+  WriteOptions,
   WriteResult,
   Writer,
   WrittenItem,
@@ -97,6 +98,8 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
 
 export interface LlmWriterOptions {
   llm: LlmClient;
+  /** Sends the first pass of a scheduled run as a Message Batch; without it every call is live. */
+  batch?: BatchLlm;
   voice: VoiceConfig;
   log?: Logger;
   secrets?: readonly string[];
@@ -119,24 +122,105 @@ export class LlmWriter implements Writer {
     feedback?: string,
     taste?: Taste,
     airing: readonly string[] = [],
+    options: WriteOptions = {},
   ): Promise<WriteResult> {
     // A batch shares one system prompt, so stories under an owner's block prompt (D182) are
     // batched with the others of that prompt only.
     const groups = new Map<string | undefined, SourceMaterial[]>();
     for (const item of items) groups.set(item.prompt, [...(groups.get(item.prompt) ?? []), item]);
-    const results = await mapConcurrent(
-      [...groups.values()].flatMap((group) => chunk(group, WRITER_BATCH_SIZE)),
-      WRITER_CONCURRENCY,
-      (batch) =>
-        this.writeBatch(batch, feedback, taste, [
-          ...airing,
-          ...items.filter((item) => !batch.includes(item)).map((item) => item.title),
-        ]),
-    );
+    const batches = [...groups.values()].flatMap((group) => chunk(group, WRITER_BATCH_SIZE));
+    const othersOf = (batch: readonly SourceMaterial[]): string[] => [
+      ...airing,
+      ...items.filter((item) => !batch.includes(item)).map((item) => item.title),
+    ];
+    // The first pass of a scheduled run goes to the Message Batches API and is waited for in the
+    // run's idle time before publish (D294). A batch that comes back invalid, late or not at all is
+    // written below the usual way, with its splits and retries.
+    const sent = new Map<readonly SourceMaterial[], WriteResult>();
+    if (this.options.batch && options.batchUntil !== undefined && batches.length > 0) {
+      const done = await this.options.batch.completeJsonBatch(
+        batches.map((batch, index) => ({
+          id: String(index),
+          request: this.requestFor(batch, feedback, taste, othersOf(batch), 0),
+        })),
+        { until: options.batchUntil },
+      );
+      batches.forEach((batch, index) => {
+        const reply = done.get(String(index));
+        if (reply) sent.set(batch, this.resultFor(batch, reply.value));
+      });
+      this.options.log?.info("Writer first pass by batch", {
+        batches: batches.length,
+        back: sent.size,
+      });
+    }
+    const results = await mapConcurrent(batches, WRITER_CONCURRENCY, async (batch) => {
+      const back = sent.get(batch);
+      if (!back) return this.writeBatch(batch, feedback, taste, othersOf(batch));
+      // A valid reply that skipped a story is written live for that story alone, as a batch that
+      // never came back is: the run must not publish short because the batch left one out.
+      const missing = batch.filter((m) => back.failed.some((f) => f.id === m.id));
+      if (missing.length === 0) return back;
+      const again = await this.writeBatch(missing, feedback, taste, othersOf(missing));
+      const byId = new Map([...back.written, ...again.written].map((w) => [w.id, w]));
+      return {
+        written: batch.flatMap((m) => byId.get(m.id) ?? []),
+        failed: again.failed,
+      };
+    });
     return {
       written: results.flatMap((r) => r.written),
       failed: results.flatMap((r) => r.failed),
     };
+  }
+
+  /** The request that writes `batch`; `split` is the retry depth, which widens the reply allowance. */
+  private requestFor(
+    batch: readonly SourceMaterial[],
+    feedback: string | undefined,
+    taste: Taste | undefined,
+    others: readonly string[],
+    split: number,
+  ): JsonRequest<z.infer<typeof WriterOutput>> {
+    const boundary = newBoundary();
+    return {
+      schema: WriterOutput,
+      schemaName: "singularity_items",
+      messages: [
+        { role: "system", content: writerSystemPrompt(this.options.voice, batch[0]?.prompt) },
+        { role: "user", content: writerUserMessage(batch, boundary, feedback, taste, others) },
+      ],
+      step: "story_writer",
+      maxTokens: Math.round(
+        (WRITE_TOKENS_PER_ITEM * batch.length + WRITE_TOKENS_OVERHEAD) * RETRY_TOKEN_BOOST ** split,
+      ),
+      label: "writer",
+    };
+  }
+
+  /** The written stories of a valid reply, in batch order, and a failure for each one it omitted. */
+  private resultFor(
+    batch: readonly SourceMaterial[],
+    value: z.infer<typeof WriterOutput>,
+  ): WriteResult {
+    const wanted = new Set(batch.map((m) => m.id));
+    const seen = new Map<string, WrittenItem>();
+    for (const row of value.items) {
+      if (!wanted.has(row.id) || seen.has(row.id)) continue;
+      const spoken = row.spoken ? cleanField("spoken", row.spoken) : "";
+      const chapter = row.chapter ? chapterLabel(row.chapter, row.headline) : null;
+      seen.set(row.id, {
+        id: row.id,
+        headline: cleanField("headline", row.headline),
+        ...(chapter ? { chapter } : {}),
+        summary: cleanField("summary", row.summary),
+        ...(spoken.length > 0 ? { spoken } : {}),
+      });
+    }
+    const failed: WriteFailure[] = batch
+      .filter((m) => !seen.has(m.id))
+      .map((m) => ({ id: m.id, reason: "The model returned no entry for this item." }));
+    return { written: batch.flatMap((m) => seen.get(m.id) ?? []), failed };
   }
 
   /**
@@ -153,40 +237,11 @@ export class LlmWriter implements Writer {
     others: readonly string[] = [],
     split = 0,
   ): Promise<WriteResult> {
-    const boundary = newBoundary();
     try {
-      const { value } = await this.options.llm.completeJson({
-        schema: WriterOutput,
-        schemaName: "singularity_items",
-        messages: [
-          { role: "system", content: writerSystemPrompt(this.options.voice, batch[0]?.prompt) },
-          { role: "user", content: writerUserMessage(batch, boundary, feedback, taste, others) },
-        ],
-        step: "story_writer",
-        maxTokens: Math.round(
-          (WRITE_TOKENS_PER_ITEM * batch.length + WRITE_TOKENS_OVERHEAD) *
-            RETRY_TOKEN_BOOST ** split,
-        ),
-        label: "writer",
-      });
-      const wanted = new Set(batch.map((m) => m.id));
-      const seen = new Map<string, WrittenItem>();
-      for (const row of value.items) {
-        if (!wanted.has(row.id) || seen.has(row.id)) continue;
-        const spoken = row.spoken ? cleanField("spoken", row.spoken) : "";
-        const chapter = row.chapter ? chapterLabel(row.chapter, row.headline) : null;
-        seen.set(row.id, {
-          id: row.id,
-          headline: cleanField("headline", row.headline),
-          ...(chapter ? { chapter } : {}),
-          summary: cleanField("summary", row.summary),
-          ...(spoken.length > 0 ? { spoken } : {}),
-        });
-      }
-      const failed: WriteFailure[] = batch
-        .filter((m) => !seen.has(m.id))
-        .map((m) => ({ id: m.id, reason: "The model returned no entry for this item." }));
-      return { written: batch.flatMap((m) => seen.get(m.id) ?? []), failed };
+      const { value } = await this.options.llm.completeJson(
+        this.requestFor(batch, feedback, taste, others, split),
+      );
+      return this.resultFor(batch, value);
     } catch (error) {
       if (error instanceof BudgetExceededError) throw error;
       const reason = describeError(error, this.options.secrets);

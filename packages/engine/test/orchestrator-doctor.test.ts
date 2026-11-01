@@ -269,6 +269,78 @@ describe("doctor: --online", () => {
     expect(failed.hint).toContain("secrets:push");
   });
 
+  // SEC-06: the site's GitHub token went unchecked from 14 Oct, and a refusal is only logged, so an
+  // expired one made every settings save a silent no-op. Doctor named the other tokens, not this one.
+  it("checks the site's GitHub token: rejected fails, near expiry warns, a good one passes", async () => {
+    const run = async (
+      repo: () => Response,
+      variables: () => Response = () => reply(200, { total_count: 0, variables: [] }),
+    ) => {
+      const net = fakeFetch({
+        ...GOOD_ROUTES,
+        "https://api.github.com/repos/somesh-ks/knowledge-hub": repo,
+        "https://api.github.com/repos/somesh-ks/knowledge-hub/actions/variables": variables,
+      });
+      const { report, stdout } = await doctor(["--online"], {
+        env: {
+          ...env,
+          GITHUB_SINGULARITY_TOKEN: "gh-secret-888888888888",
+          GITHUB_REPOSITORY: "somesh-ks/knowledge-hub",
+        },
+        deps: { fetchImpl: net.fetchImpl },
+      });
+      expect(stdout).not.toContain("gh-secret-888888888888");
+      return check(report, "online.github");
+    };
+    expect((await run(() => reply(401, { message: "Bad credentials" }))).status).toBe("fail");
+    expect((await run(() => reply(404, { message: "Not Found" }))).status).toBe("fail");
+    // A spent rate limit is no verdict on the token.
+    const limited = await run(() =>
+      Response.json({}, { status: 403, headers: { "x-ratelimit-remaining": "0" } }),
+    );
+    expect(limited.status).toBe("warn");
+    expect(limited.summary).toContain("rate limited");
+    // No Variables permission: GitHub may answer 404 for the list, which must not pass.
+    expect(
+      (
+        await run(
+          () => reply(200, {}),
+          () => reply(404, {}),
+        )
+      ).status,
+    ).toBe("warn");
+    const soon = new Date(Date.now() + 5 * 86_400_000)
+      .toISOString()
+      .replace("T", " ")
+      .replace(/\.\d+Z$/, " UTC");
+    const expiring = await run(() =>
+      Response.json({}, { headers: { "github-authentication-token-expiration": soon } }),
+    );
+    expect(expiring.status).toBe("warn");
+    expect(expiring.summary).toContain("expires in");
+    expect(
+      (
+        await run(
+          () => reply(200, {}),
+          () => reply(403, {}),
+        )
+      ).status,
+    ).toBe("warn");
+    expect((await run(() => reply(200, {}))).status).toBe("ok");
+    // A token with no repository named is skipped: the site would refuse it too, and a guess could pass.
+    const unnamed = await doctor(["--online"], {
+      env: { ...env, GITHUB_SINGULARITY_TOKEN: "gh-secret-888888888888" },
+      deps: { fetchImpl: fakeFetch().fetchImpl },
+    });
+    expect(check(unnamed.report, "online.github").summary).toContain("GITHUB_REPOSITORY");
+    // Without the token it is skipped, not failed.
+    const bare = await doctor(["--online"], {
+      env,
+      deps: { fetchImpl: fakeFetch().fetchImpl },
+    });
+    expect(check(bare.report, "online.github").status).toBe("warn");
+  });
+
   it("follows the voice cursor so a voice past the first page still counts", async () => {
     const pages = [
       reply(200, { voices: [{ id: "aadi" }], has_more: true, next_cursor: "c1" }),

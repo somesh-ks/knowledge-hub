@@ -1,0 +1,41 @@
+/* The press ripple (ripple.ts). A control that carries data-ripple holds a .ripple-area layer: the touch
+   area, which clips the wave. The wave grows from the point of the press on the one travel clock
+   (300 ms, the hover curve) and, once the finger is up, fades on the state clock. It is the same
+   12% of the surface ink as the press layer of every other control. */
+
+/* How far the touch area reaches past the control's own box, set by the control that needs it (a
+   tab of the bottom bar reaches through the bar's padding to the screen's edge). Declared low so any
+   rule of the control wins; the layer itself is never restyled by a page. */
+:where([data-ripple]) {
+  --ripple-reach-start: 0px;
+  --ripple-reach-end: 0px;
+  --ripple-reach-bottom: 0px;
+  /* none where the control has a pointer state of its own instead (the side column of the bar). */
+  --ripple-display: block;
+}
+
+.ripple-area {
+  display: var(--ripple-display);
+  --ripple-grow: var(--duration-sheet-in);
+  --ripple-fade: var(--duration-sheet-in);
+  --ripple-ease: var(--ease-hover);
+  /* Share of the growth a quick tap lets play before the fade begins. */
+  --ripple-hold: 0.5;
+  position: absolute;
+  inset: 0;
+  inset-block-end: calc(var(--ripple-reach-bottom) * -1);
+  inset-inline-start: calc(var(--ripple-reach-start) * -1);
+  inset-inline-end: calc(var(--ripple-reach-end) * -1);
+  overflow: hidden;
+  pointer-events: auto;
+  /* Beneath the control's icon and label, above its own fill. */
+  z-index: var(--z-beneath);
+}
+
+.ripple-wave {
+  position: absolute;
+  border-radius: var(--radius-round);
+  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  pointer-events: none;
+  transform-origin: center;
+}

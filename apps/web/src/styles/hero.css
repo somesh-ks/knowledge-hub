@@ -193,6 +193,16 @@
   width: var(--size-icon-sm);
   height: var(--size-icon-sm);
   color: var(--color-accent);
+  /* Its ink starts a fraction of its box in (getBBox in the 256 grid: 24 of 256), so the dot sits as
+     far from the circle as from the words before it (owner, 2026-11-01). */
+  margin-inline-start: calc(var(--size-icon-sm) * -0.094);
+}
+
+/* The facts line's dot (primitives.css) is the first thing in this span, so the span's gap would
+   follow it and push the dot off the middle between "13 stories" and the check (owner, 2026-11-01).
+   The gap belongs between the check and the word only. */
+.hero-downloaded::before {
+  margin-inline-end: calc(var(--space-2) * -1);
 }
 
 /* Why the chip above cannot play. One or two short sentences, never a paragraph. */

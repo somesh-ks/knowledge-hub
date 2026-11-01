@@ -13,6 +13,7 @@ import { FIELD } from "../../apps/web/src/design-system/field.js";
 import type { ComponentRef, Guidance } from "../../apps/web/src/design-system/guidance.js";
 import { ICON } from "../../apps/web/src/design-system/icon.js";
 import { MENU } from "../../apps/web/src/design-system/menu.js";
+import { RIPPLE } from "../../apps/web/src/design-system/ripple.js";
 import { SELECT } from "../../apps/web/src/design-system/select.js";
 import { SHEET } from "../../apps/web/src/design-system/sheet.js";
 import { SLIDER } from "../../apps/web/src/design-system/slider.js";
@@ -325,6 +326,17 @@ export const componentParts = (): PartSource[] => [
     rules: [
       "Mount SheetFrame; it draws the scrim, viewport, popup, panel and head from drawer.ts.",
       "Motion uses --duration-sheet-in, --duration-sheet-out and --ease-drawer.",
+    ],
+  }),
+  control("ripple", "Ripple", RIPPLE, {
+    kind: "feedback",
+    classes: ["ripple-area", "ripple-wave"],
+    keywords: ["ripple", "touch feedback", "press wave", "touch area", "tab press", "bottom bar"],
+    markup: '<a href="/library" data-ripple><Ripple />Library</a>',
+    rules: [
+      "The control is `position: relative` with its own stacking context (isolation: isolate); the layer sits beneath its icon and label.",
+      "To reach past the control's box set --ripple-reach-start, --ripple-reach-end or --ripple-reach-bottom on the control; --ripple-display: none turns the layer off where the control has a pointer state.",
+      "installRipple() (design-system/ripple.ts) is called once by the app script; the control sets nothing else.",
     ],
   }),
 ];

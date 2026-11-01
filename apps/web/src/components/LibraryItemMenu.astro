@@ -9,6 +9,8 @@ interface Props {
   id: string;
   /** The row's name, for the button's label and the share sheet. */
   title: string;
+  /** The row's quiet line (its facts), shown under the title on a phone's sheet. */
+  subtitle?: string;
   /** The page the row opens, which Share points at and a download keeps. */
   path: string;
   kind: "briefing" | "episode";
@@ -27,6 +29,7 @@ interface Props {
 const {
   id,
   title,
+  subtitle,
   path,
   kind,
   audio,
@@ -73,7 +76,7 @@ const menuId = `card-menu-${id}`;
   >
     <Icon name="moreVert" />
   </button>
-  <Menu id={menuId} title={title} class="card-menu-list">
+  <Menu id={menuId} title={title} subtitle={subtitle} class="card-menu-list">
     {
       audio && !downloads && (
         <MenuItem data-menu="download">
