@@ -1,5 +1,5 @@
 import { DEFAULT_STYLE, type StylePreference, type ThemePreference } from "./preferences";
-import { setRootAttribute } from "./rootAttributes";
+import { setRootAttribute, setRootProperty } from "./rootAttributes";
 
 /** `data-theme` is absent for "system", so the media query decides. */
 export function applyTheme(theme: ThemePreference): void {
@@ -11,6 +11,14 @@ export function applyStyle(style: StylePreference): void {
   setRootAttribute("data-style", style === DEFAULT_STYLE ? null : style);
 }
 
+/**
+ * The reader's turn of a style's hue (D315) is `--hue-shift` on the root: the style's colours, the
+ * covers and the header light add it to their hue. Default has no hue to turn, so it carries none.
+ */
+export function applyHue(style: StylePreference, hue: number): void {
+  setRootProperty("--hue-shift", style === DEFAULT_STYLE || hue === 0 ? null : String(hue));
+}
+
 /** Counts theme changes, so only the last one clears the crossfade's mark. */
 let changes = 0;
 
@@ -20,12 +28,13 @@ let changes = 0;
  * crossfade `data-theme-change` is on the root, and the whole window fades as one picture
  * (view-transitions.css). Covers are vectors the page colours (D311), so nothing waits for them.
  */
-export function changeTheme(theme: ThemePreference, style: StylePreference): void {
+export function changeTheme(theme: ThemePreference, style: StylePreference, hue: number): void {
   changes += 1;
   const change = changes;
   const apply = (): void => {
     applyTheme(theme);
     applyStyle(style);
+    applyHue(style, hue);
   };
   if (typeof document.startViewTransition !== "function") {
     apply();

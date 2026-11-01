@@ -409,6 +409,44 @@ function lowerIndent(lines: string[]): string[] {
   return lines.map((line) => `  ${line}`);
 }
 
+const OKLCH_LITERAL = /oklch\(([\d.]+%?) ([\d.]+) (-?[\d.]+)( \/ [\d.]+%?)?\)/g;
+
+/**
+ * A reader's hue (`--hue-shift`, degrees, set on the root; D315) turns a style's whole palette: every
+ * coloured oklch literal a style writes gets the shift added to its hue. A grey (chroma 0) stays.
+ * With no shift the sum is the hue as written, so a style looks as designed until the reader moves it.
+ */
+function turnHue(value: string): string {
+  return value.replace(OKLCH_LITERAL, (whole, l: string, c: string, h: string, alpha = "") =>
+    Number(c) === 0 ? whole : `oklch(${l} ${c} calc(${h} + var(--hue-shift, 0))${alpha})`,
+  );
+}
+
+/**
+ * A style that points at a coloured step of a primitive ramp (`var(--color-violet-600)`) keeps the
+ * reference; the step itself is written again under the style with the shift on its hue, so every
+ * use of the ramp in that style turns with the reader's hue. A ramp step has one value in both themes.
+ */
+function turnedRamps(lines: string[], doc: TokenDocument): string[] {
+  const used = new Set<string>();
+  for (const line of lines) {
+    for (const match of line.matchAll(/var\((--color-[a-z]+-\d+)\)/g)) used.add(match[1] as string);
+  }
+  const out: string[] = [];
+  for (const name of [...used].sort((a, b) => a.localeCompare(b, "en", { numeric: true }))) {
+    const token = doc.tokens.find((t) => t.tier === "primitive" && cssName(t.path) === name);
+    if (!token) continue;
+    const [declaration] = declarationsFor(token, token.value, doc);
+    const turned = declaration ? turnHue(declaration.value) : "";
+    if (!declaration || turned === declaration.value) continue;
+    if (token.dark !== undefined) {
+      throw new Error(`${token.dotPath}: a primitive with a dark value cannot turn with a hue`);
+    }
+    out.push(formatDeclaration({ name, value: turned }));
+  }
+  return out;
+}
+
 /**
  * A style's blocks follow the base's, so at equal weight the style wins. The light block is one
  * attribute heavier than the base's light block; the two dark blocks are heavier than the base's
@@ -421,7 +459,7 @@ function styleBlocks(style: StyleDefinition, doc: TokenDocument): string[] {
       const value = pick(override);
       if (value === undefined) continue;
       for (const declaration of declarationsFor(override.token, value, doc)) {
-        out.push(formatDeclaration(declaration));
+        out.push(formatDeclaration({ ...declaration, value: turnHue(declaration.value) }));
       }
     }
     return out;
@@ -429,7 +467,8 @@ function styleBlocks(style: StyleDefinition, doc: TokenDocument): string[] {
   const light = lines((override) => override.value);
   const dark = lines((override) => override.dark);
   const attr = `[data-style="${style.name}"]`;
-  const out = [`/* Style: ${style.name} */`, `:root${attr} {`, ...light, "}", ""];
+  const ramps = turnedRamps([...light, ...dark], doc);
+  const out = [`/* Style: ${style.name} */`, `:root${attr} {`, ...light, ...ramps, "}", ""];
   if (dark.length > 0) {
     out.push("@media (prefers-color-scheme: dark) {");
     out.push(`  :root:not([data-theme="light"])${attr} {`);
@@ -456,7 +495,7 @@ const coverValue = (node: unknown, where: string): unknown => {
 };
 
 /**
- * How each style redraws an album cover (D311), as custom properties under the style's attribute.
+ * How each style redraws an album cover (D314), as custom properties under the style's attribute.
  * A cover is a vector whose colours are CSS math over the month's base colours (cover.css), so a
  * style is only these numbers: a new style in `tokens/covers.json` needs no cover files, and a reader's
  * hue (`--hue-shift`) moves the one anchor, `--cover-hue`. The numbers are the rule's, read here so
@@ -467,7 +506,7 @@ export function coverStyleBlocks(
 ): string[] {
   const rules = (raw as { style?: Record<string, unknown> }).style ?? {};
   const out: string[] = [
-    "/* Album art per style (D311, tokens/covers.json): numbers for the cover math in cover.css. */",
+    "/* Album art per style (D314, tokens/covers.json): numbers for the cover math in cover.css. */",
   ];
   for (const [id, body] of Object.entries(rules)) {
     if (id.startsWith("$")) continue;

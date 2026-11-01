@@ -357,6 +357,16 @@ describe.each(doc.styles.map((style) => style.name))("a style's colour contrast:
     "surface-overlay",
   ];
 
+  // The reader's hue (D315) turns every coloured value of a style, so the floors must hold at each hue
+  // the slider can reach, not only the one the style was designed at.
+  const SHIFTS = Array.from({ length: 72 }, (_, i) => i * 5);
+  const turn = (literal: string, shift: number): string =>
+    literal.replace(
+      /^oklch\(([\d.]+%?) ([\d.]+) (-?[\d.]+)(.*)\)$/,
+      (_whole, l: string, c: string, h: string, rest: string) =>
+        `oklch(${l} ${c} ${(Number(h) + (Number(c) === 0 ? 0 : shift)) % 360}${rest})`,
+    );
+
   it.each(MODES)("holds the base's text, action and graphic floors (%s)", (mode) => {
     const floors: [foreground: string, background: string, least: number][] = [
       ...["on-surface", "on-surface-muted", "on-surface-subtle", "accent"].flatMap((fg) =>
@@ -392,12 +402,19 @@ describe.each(doc.styles.map((style) => style.name))("a style's colour contrast:
         3,
       ]),
     ];
-    const failures = floors.flatMap(([foreground, background, least]) => {
-      const ratio = contrastRatio(color(foreground, mode), color(background, mode));
-      return ratio >= least
-        ? []
-        : [`${foreground} on ${background}: ${ratio.toFixed(2)}, needs ${least}`];
-    });
+    const turned = (role: string, shift: number): Rgb => {
+      const literal = resolveLiteral(styled, `semantic.color.${role}`, mode);
+      if (typeof literal !== "string") throw new Error(`${role} is not a color`);
+      return oklchStringToRgb(turn(literal, shift));
+    };
+    const failures = SHIFTS.flatMap((shift) =>
+      floors.flatMap(([foreground, background, least]) => {
+        const ratio = contrastRatio(turned(foreground, shift), turned(background, shift));
+        return ratio >= least
+          ? []
+          : [`hue +${shift}, ${foreground} on ${background}: ${ratio.toFixed(2)}, needs ${least}`];
+      }),
+    );
     expect(failures, `${name} (${mode})`).toEqual([]);
   });
 });
@@ -729,6 +746,29 @@ describe("styles", () => {
     const darkBody = dark.slice(0, dark.indexOf("}"));
     expect(darkBody).toContain("oklch(10% 0 0)");
     expect(darkBody).not.toContain("oklch(99% 0 0)");
+  });
+
+  // The reader's hue slider (D315) moves a style by `--hue-shift`; a colour written without it would
+  // stay put while the rest of the palette turned, and nothing else would notice.
+  it("turns every coloured value of a style with the reader's hue, and leaves greys", () => {
+    const css = buildCss(
+      withStyle({
+        semantic: {
+          color: {
+            surface: surface("oklch(96% 0.02 292)", "oklch(19% 0.05 292)"),
+            "on-surface": surface("oklch(20% 0 0)", "oklch(95% 0 0)"),
+            accent: surface("{primitive.color.violet.600}", "{primitive.color.violet.300}"),
+          },
+        },
+      }),
+    );
+    const block = css.slice(css.indexOf(':root[data-style="bold"] {'));
+    const body = block.slice(0, block.indexOf("}"));
+    expect(body).toContain("--color-surface: oklch(96% 0.02 calc(292 + var(--hue-shift, 0)));");
+    expect(body).toContain("--color-on-surface: oklch(20% 0 0);");
+    expect(body).toMatch(/--color-violet-600: oklch\([\d.]+% [\d.]+ calc\(292 \+ var\(--hue-shift/);
+    expect(body).toMatch(/--color-violet-300: oklch\([\d.]+% [\d.]+ calc\(292 \+ var\(--hue-shift/);
+    expect(body).not.toContain("--color-violet-500");
   });
 
   // Each of these would otherwise ship quietly: a light-only color lets the base's dark value show

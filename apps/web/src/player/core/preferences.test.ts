@@ -32,6 +32,7 @@ describe("parsePreferences", () => {
       JSON.stringify({
         theme: "dark",
         style: "expressive",
+        hue: 47,
         sounds: false,
         volume: 4,
         rate: 1.5,
@@ -41,6 +42,8 @@ describe("parsePreferences", () => {
     expect(parsed).toEqual({
       theme: "dark",
       style: "expressive",
+      // A turn is kept to the slider's steps of 5.
+      hue: 45,
       sounds: false,
       haptics: true,
       volume: 1,
@@ -51,6 +54,18 @@ describe("parsePreferences", () => {
       JSON.stringify({ theme: "neon", style: "Halloween<script>", rate: 3, volume: "loud" }),
     );
     expect(partial).toEqual(DEFAULT_PREFERENCES);
+  });
+
+  it("keeps a hand-edited hue inside the slider's range, so the CSS never gets another number", () => {
+    for (const [stored, kept] of [
+      [-40, 0],
+      [900, 355],
+      ["red", 0],
+      [null, 0],
+      [Number.NaN, 0],
+    ]) {
+      expect(parsePreferences(JSON.stringify({ hue: stored })).hue).toBe(kept);
+    }
   });
 
   it("clamps the volume to the slider's range", () => {
