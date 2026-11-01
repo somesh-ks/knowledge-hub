@@ -4,6 +4,7 @@ import { decideRun, type RunDecision } from "../gate/decideRun.js";
 import { fetchWindow } from "../gate/fetchWindow.js";
 import { loadSchedule } from "../schedule/store.js";
 import { listDigestIds } from "../state/digestIds.js";
+import { windowEndOf } from "../state/runRecord.js";
 import { readLastRun } from "../state/store.js";
 import { UsageError } from "./errors.js";
 import { newPassState, type Plan, type PlanPass, writePassState, writePlan } from "./plan.js";
@@ -56,6 +57,12 @@ export async function gateStage(deps: RunDeps, options: RunOptions): Promise<Gat
   const { lastRun, decision, kinds } = await decideKinds(deps, options, now);
   const since = options.since === undefined ? undefined : parseSince(options.since, now);
   const lastFetchAt = lastRun.last_fetch_at ? new Date(lastRun.last_fetch_at) : undefined;
+  // The regular digest's window starts where its own last window ended, not at the last fetch of
+  // any kind: the 2026-10-31 daily got six hours because an on-demand briefing had moved the start.
+  // A record written before `fetched_through` existed gives the time its run finished instead
+  // (never after the last fetch); seen.json absorbs the overlap, and the window never skips a stretch.
+  const regularEnd = windowEndOf(lastRun.regular, lastRun.last_fetch_at);
+  const regularStart = regularEnd ? new Date(regularEnd) : lastFetchAt;
 
   // Ids are allocated against what is on disk and against each other, so two passes never collide
   // and a second run on the same day takes the next free suffix.
@@ -63,7 +70,11 @@ export async function gateStage(deps: RunDeps, options: RunOptions): Promise<Gat
   const passes: PlanPass[] = kinds.map((kind) => {
     const id = allocateDigestId(decision.date, kind, taken);
     taken.add(id);
-    const window = fetchWindow({ lastFetchAt, now, kind });
+    const window = fetchWindow({
+      lastFetchAt: kind === "regular" ? regularStart : lastFetchAt,
+      now,
+      kind,
+    });
     return {
       id,
       kind,

@@ -550,3 +550,12 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Revisit if: a batch misses the cutoff on more than one run in ten, the batch units are under a quarter of the writer's tokens after a week, or the Batches API refuses the schema format.
 - Amends: D209 (step 3 shipped without step 2). Ends: D135.
 
+
+## D297: a section may stand over its allowance only as far as the floor needs
+
+- Date: 2026-11-01 (the 31 Oct daily published nothing; Somesh chose "Top up from capped stories + window" on the decision card).
+- Decision: a briefing the section allowances (Tech releases, custom sections) would leave under the floor of 3 keeps the best of the stories they cut, as many as the floor needs and no more. Selection tops up from the capped stories when it would otherwise choose fewer than the floor; the refill offers stories past an allowance only when the stories that fit leave the briefing under the floor; `validateDigest` treats the excess that the floor needs as within the allowance. Over the floor the allowance holds as before. The regular digest's fetch window starts at its own last window (`fetched_through` on the run record), not at the last fetch of any kind.
+- Why: the 31 Oct run had 11 Tech stories over the allowance, lost two of four in writing, and published nothing after holding the lane 1 h 53 min. A short, Tech-heavy day is a better product than no day, and the allowance exists to stop Tech crowding other sections, not to empty a thin day.
+- Limit: a thin day can air more Tech than the allowance (at most the floor's worth). The floor itself, and a rewrite pass for a 29 against 28 word sentence, are unchanged.
+- Revisit if: a day airs Tech past its allowance with enough other stories left over, or the owner prefers a missing day to a Tech-heavy one.
+- Amends: D35.
