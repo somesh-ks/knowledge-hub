@@ -176,9 +176,10 @@ describe("GET /api/cron/run", () => {
     const { github, run } = setup();
     const result = await run(new Date("2026-10-11T09:30:00Z"));
     expect(result.body).toEqual({ dispatched: false, reason: "not the schedule's hour" });
-    // No schedule file means 07:00, so the run record is never read.
+    // No schedule on main or in the examples means 07:00, so the run record is never read.
     expect(github.requests.map((request) => request.path)).toEqual([
       "/contents/config/schedule.json?ref=main",
+      "/contents/config/examples/schedule.json?ref=main",
     ]);
   });
 
@@ -206,7 +207,7 @@ describe("GET /api/cron/run", () => {
 
   // The bug (D149, review round 2): with the config store on, an hour changed in the app is in the
   // database at once and on main only after the next run, so the cron kept starting the old hour.
-  it("with the config store on, starts at the stored hour, and at main's when the store is down", async () => {
+  it("with the config store on, starts at the stored hour, and starts nothing when the store is down", async () => {
     const { github } = setup({ lastRun: lastRun("2026-10-08T11:58:00.000Z") });
     const stored = JSON.stringify({ ...DEFAULT_SCHEDULE, hour: 9 });
     const call = (at: string, up: boolean) =>
@@ -224,12 +225,52 @@ describe("GET /api/cron/run", () => {
     // Saturday 05:30 and 09:30 in Stockholm: the stored hour 9 opens at 07:00, main's hour 7 at 05:00.
     expect((await call("2026-10-10T03:30:00Z", true)).body).toMatchObject({ dispatched: false });
     expect((await call("2026-10-10T07:30:00Z", true)).body).toMatchObject({ dispatched: true });
-    expect((await call("2026-10-10T03:30:00Z", false)).body).toMatchObject({ dispatched: true });
+    // The owner's schedule is not on main (D296): a run started now could not read the config either.
+    const down = await call("2026-10-10T03:30:00Z", false);
+    expect(down.status).toBe(503);
+    expect(dispatches(github)).toHaveLength(1);
   });
 
-  // The bug: a store that never answers held the call until Vercel killed it, so the hour's run was
-  // never started, where main's schedule would have started it.
-  it("with the config store hanging, starts at main's hour once it has waited long enough", async () => {
+  // The bug: a store that never answers held the call until Vercel killed it, with nothing logged.
+  // The bug it prevents: with the store off and no schedule on main (D296), the cron used the
+  // built-in default while a run on the same checkout got the examples' schedule, so they disagreed.
+  it("with the store off, reads the examples' schedule when main has none", async () => {
+    const { github, run } = setup({ lastRun: lastRun("2026-10-08T11:58:00.000Z") });
+    github.on("GET /contents/config/examples/schedule.json", {
+      text: JSON.stringify({ ...DEFAULT_SCHEDULE, hour: 9 }),
+    });
+    // Saturday 05:30 Stockholm: the example's hour 9 is not open yet, the default 7 would be.
+    expect((await run(new Date("2026-10-10T03:30:00Z"))).body).toMatchObject({ dispatched: false });
+    expect((await run(new Date("2026-10-10T07:30:00Z"))).body).toMatchObject({ dispatched: true });
+  });
+
+  // The bug it prevents: a store with no schedule row (wiped, or never seeded) fell to the default
+  // schedule and dispatched a run that then stopped at its own config check: a failed run each hour.
+  it("with the config store on but holding no schedule row, starts nothing and answers 503", async () => {
+    const { github } = setup({ lastRun: lastRun("2026-10-08T11:58:00.000Z") });
+    const result = await handleCron(BEARER, {
+      env: { ...env, DATABASE_URL: "postgres://fake", SINGULARITY_CONFIG_STORE: "postgres" },
+      fetch: github.fetch,
+      now: () => new Date("2026-10-10T05:30:00Z"),
+      connectConfigStore: async () => ({ query: async () => [] }),
+    });
+    expect(result.status).toBe(503);
+    expect(dispatches(github)).toHaveLength(0);
+    // A row that is JSON but not a schedule hid behind a 200 "does not parse" until now.
+    const wrongShape = await handleCron(BEARER, {
+      env: { ...env, DATABASE_URL: "postgres://fake", SINGULARITY_CONFIG_STORE: "postgres" },
+      fetch: github.fetch,
+      now: () => new Date("2026-10-10T05:30:00Z"),
+      connectConfigStore: async () => ({
+        query: async () => [{ path: "config/schedule.json", content: "[]", version: 1 }],
+      }),
+    });
+    expect(wrongShape.status).toBe(503);
+    expect(dispatches(github)).toHaveLength(0);
+  });
+
+  // It gives up after the wait and answers 503, which Vercel's cron log shows.
+  it("with the config store hanging, answers 503 once it has waited long enough", async () => {
     // The store module loads first and is not on the clock; load it so the timer is armed at once.
     await import("./configStore");
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
@@ -242,7 +283,7 @@ describe("GET /api/cron/run", () => {
         connectConfigStore: async () => ({ query: () => new Promise(() => {}) }),
       });
       await vi.advanceTimersByTimeAsync(STORE_READ_TIMEOUT_MS);
-      expect((await result).body).toMatchObject({ dispatched: true });
+      expect((await result).status).toBe(503);
     } finally {
       vi.useRealTimers();
     }

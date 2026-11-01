@@ -4,8 +4,9 @@
  * Hard rules, each enforced in play() or unlock():
  * - The AudioContext is created lazily, inside a user gesture (unlock), never at import or load.
  * - Nothing plays while the document is hidden, the engine is disabled, or the volume is zero.
- * - The engine never touches the narration audio element or its audio session. It only asks the
- *   app whether narration is playing, then skips or ducks per recipe.
+ * - The engine never touches the narration audio element. It only asks the app whether narration
+ *   is playing, then skips or ducks per recipe. The one page-wide thing it sets is the audio session
+ *   type, "playback" only while Sounds is on (syncSession).
  * - A suspended or interrupted context is resumed and the call is dropped, but the latest one is
  *   kept for 300 ms and played once the resume lands. Scheduling into a suspended context would
  *   replay every sound late, as a burst, when it resumes.
@@ -42,6 +43,8 @@ export interface SoundEngineOptions {
   createContext?: () => AudioContext;
   /** Test seam for rate limiting. Defaults to performance.now(). */
   now?: () => number;
+  /** Test seam. Defaults to `navigator.audioSession`, which only Safari has. */
+  getAudioSession?: () => { type: string } | undefined;
 }
 
 export interface SoundEngine {
@@ -49,6 +52,8 @@ export interface SoundEngine {
   play: (name: SoundName, options?: PlayOptions) => boolean;
   /** Creates and resumes the AudioContext. Call from inside a user gesture. Safe to call often. */
   unlock: () => void;
+  /** Gives the audio session back, or takes it, to match the Sounds setting. For when it changes outside a gesture the engine sees. */
+  refreshSession: () => void;
   /** Stops everything and closes the context. */
   dispose: () => void;
   /** Voices currently sounding, at most four. For the lab's polyphony meter and tests. */
@@ -94,6 +99,10 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
     isHidden = () => typeof document !== "undefined" && document.hidden,
     createContext = () => new AudioContext(),
     now = () => performance.now(),
+    getAudioSession = () =>
+      typeof navigator === "undefined"
+        ? undefined
+        : (navigator as { audioSession?: { type: string } }).audioSession,
   } = options;
 
   let context: AudioContext | null = null;
@@ -102,6 +111,33 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
   let voices: Voice[] = [];
   let queued: { name: SoundName; options: PlayOptions; at: number } | null = null;
   const lastPlayedAt = new Map<SoundName, number>();
+  /** True once this engine has put the page's audio session on "playback". */
+  let tookSession = false;
+  /** A pending hand-back of the session, waiting for the last voice to finish. */
+  let releaseTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /**
+   * iOS mutes Web Audio while the ring/silent switch is on, unless the page asks for playback (D105).
+   * That session can also stop other apps' audio, so it is held only while Sounds is on (D295): a
+   * listener who turned Sounds off keeps the phone's other audio, and the session goes back to the
+   * browser's default the next time the engine looks.
+   */
+  function syncSession(): void {
+    try {
+      const session = getAudioSession();
+      if (!session) return;
+      if (isEnabled()) {
+        if (session.type !== "playback") session.type = "playback";
+        tookSession = true;
+      } else if (tookSession && !releaseTimer) {
+        // (With the hand-back pending, the off cue is still sounding: refreshSession() will do it.)
+        session.type = "auto";
+        tookSession = false;
+      }
+    } catch {
+      // Not fatal: older browsers have no audio session.
+    }
+  }
 
   function buildGraph(ctx: AudioContext): Graph {
     const input = ctx.createGain();
@@ -124,6 +160,31 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
     const noise = ctx.createBuffer(1, samples.length, ctx.sampleRate);
     noise.getChannelData(0).set(samples);
     return { input, noise };
+  }
+
+  /**
+   * Turning Sounds off plays its confirmation first (D295), so the session is given back after the
+   * last voice has finished, not under it: on an iPhone with the ringer off, dropping "playback"
+   * mid-sound would cut the cue short. A later syncSession() reads the setting again, so turning Sounds
+   * back on in the meantime keeps the session.
+   */
+  function refreshSession(): void {
+    if (disposed) return;
+    if (releaseTimer) clearTimeout(releaseTimer);
+    releaseTimer = null;
+    const ctx = context;
+    const endsAt = ctx ? Math.max(0, ...voices.map((voice) => voice.endsAt - ctx.currentTime)) : 0;
+    if (isEnabled() || endsAt <= 0) {
+      syncSession();
+      return;
+    }
+    releaseTimer = setTimeout(
+      () => {
+        releaseTimer = null;
+        if (!disposed) syncSession();
+      },
+      endsAt * 1000 + 30,
+    );
   }
 
   function retire(voice: Voice): void {
@@ -253,6 +314,8 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
 
   function play(name: SoundName, playOptions: PlayOptions = {}): boolean {
     if (disposed || !isEnabled() || isHidden()) return false;
+    // Sounds may have been switched on since the last gesture: the switch's own cue must be heard.
+    syncSession();
     const recipe = RECIPES[name];
     const volume = getVolume();
     if (!(volume > 0.001)) return false;
@@ -305,13 +368,7 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
 
   function unlock(): void {
     if (disposed) return;
-    // iOS mutes Web Audio while the ring/silent switch is on, unless the page asks for playback.
-    try {
-      const session = (navigator as { audioSession?: { type: string } }).audioSession;
-      if (session && session.type !== "playback") session.type = "playback";
-    } catch {
-      // Not fatal: older browsers have no audio session.
-    }
+    syncSession();
     if (!context) {
       try {
         context = createContext();
@@ -337,6 +394,18 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
 
   function dispose(): void {
     disposed = true;
+    if (releaseTimer) clearTimeout(releaseTimer);
+    releaseTimer = null;
+    // A replacement engine starts with no memory of the session this one took.
+    if (tookSession) {
+      try {
+        const session = getAudioSession();
+        if (session) session.type = "auto";
+      } catch {
+        // Not fatal.
+      }
+      tookSession = false;
+    }
     for (const voice of [...voices]) {
       for (const source of voice.sources) {
         try {
@@ -358,7 +427,13 @@ export function createSoundEngine(options: SoundEngineOptions): SoundEngine {
     return voices.filter((voice) => voice.endsAt > t).length;
   }
 
-  return { play, unlock, dispose, activeVoices };
+  return {
+    play,
+    unlock,
+    refreshSession,
+    dispose,
+    activeVoices,
+  };
 }
 
 /**

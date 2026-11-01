@@ -42,3 +42,15 @@ export interface LlmClient {
   readonly model: string;
   completeJson<T>(request: JsonRequest<T>): Promise<JsonResult<T>>;
 }
+
+/**
+ * Many requests of one step sent as a single Message Batch (half the price, answered within the
+ * time the caller allows). An id missing from the result is a request the caller writes the usual
+ * way: it was not accepted, did not finish by `until`, was cut off, or its reply failed validation.
+ */
+export interface BatchLlm {
+  completeJsonBatch<T>(
+    entries: ReadonlyArray<{ id: string; request: JsonRequest<T> }>,
+    options: { until: number },
+  ): Promise<Map<string, JsonResult<T>>>;
+}

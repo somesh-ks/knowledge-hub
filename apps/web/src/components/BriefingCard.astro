@@ -65,6 +65,7 @@ const hasCount = segments.length > 2;
       <LibraryItemMenu
         id={entry.id}
         title={longDateTitle(digest.date)}
+        subtitle={facts.line}
         path={`/d/${entry.id}`}
         kind="briefing"
         audio={entry.audioMode === "ready" ? entry.player.audio?.url : undefined}

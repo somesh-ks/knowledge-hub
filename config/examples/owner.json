@@ -1,0 +1,10 @@
+{
+  "user_id": "owner",
+  "blocked_domains": [],
+  "votes": [],
+  "opens": [],
+  "auto_adjust": {
+    "topics": {},
+    "sources": {}
+  }
+}

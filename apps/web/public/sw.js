@@ -289,11 +289,16 @@ async function store(cacheName, request, response, limit) {
   // the cache opens, and a body in use cannot be cloned: nothing fetched at run time was ever saved,
   // so a lazy chunk the page had not been warmed for was missing offline.
   const kept = response.clone();
-  const cache = await caches.open(cacheName);
-  // Pages carry the time they were saved, so a move inside the app can tell a recent copy from an old one.
-  const copy = cacheName === PAGES_CACHE ? await stamped(kept, Date.now()) : kept;
-  await cache.put(request, copy);
-  if (limit) await trim(cacheName, limit);
+  try {
+    const cache = await caches.open(cacheName);
+    // Pages carry the time they were saved, so a move inside the app can tell a recent copy from an old one.
+    const copy = cacheName === PAGES_CACHE ? await stamped(kept, Date.now()) : kept;
+    await cache.put(request, copy);
+    if (limit) await trim(cacheName, limit);
+  } catch {
+    // A full disk (QuotaExceededError) or a broken cache: the network answered, so the page gets the
+    // answer and only the saved copy is lost (REL-06).
+  }
 }
 
 /**

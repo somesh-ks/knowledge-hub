@@ -23,7 +23,7 @@ import { TopicJudge } from "../judge/topicJudge.js";
 import type { Judge, JudgeFailure } from "../judge/types.js";
 import { withModelFallback } from "../llm/jevFallback.js";
 import { resolveFamilies } from "../llm/modelResolver.js";
-import { createModelRouter } from "../llm/modelRouter.js";
+import { createModelRouter, type ModelRouterOptions } from "../llm/modelRouter.js";
 import { meterJev, type RequestMeter } from "../llm/requestMeter.js";
 import { TokenBudget } from "../llm/tokenBudget.js";
 import { TasteFitter } from "../profile/tasteFit.js";
@@ -88,6 +88,7 @@ export function createApiRuntime(
   ctx: CommandContext,
   voice: VoiceConfig,
   spend?: { meter: RequestMeter; guard: FirecrawlGuard },
+  openBatches?: ModelRouterOptions["openBatches"],
 ): ApiRuntime {
   const { env, log } = ctx;
   const secrets = secretsFromEnv(env);
@@ -112,11 +113,24 @@ export function createApiRuntime(
     onRequest: spend ? (provider) => spend.meter.add(provider) : undefined,
     onUsage: spend
       ? (usage) => {
-          spend.meter.addUnits(usage.provider, usage.model, "input_tokens", usage.inputTokens);
-          spend.meter.addUnits(usage.provider, usage.model, "output_tokens", usage.outputTokens);
+          // Batch tokens are priced at the Message Batches rate (half), so they are their own unit.
+          const prefix = usage.batch ? "batch_" : "";
+          spend.meter.addUnits(
+            usage.provider,
+            usage.model,
+            `${prefix}input_tokens`,
+            usage.inputTokens,
+          );
+          spend.meter.addUnits(
+            usage.provider,
+            usage.model,
+            `${prefix}output_tokens`,
+            usage.outputTokens,
+          );
         }
       : undefined,
     onFallback: spend ? () => spend.meter.add("model_fallback") : undefined,
+    ...(openBatches ? { openBatches } : {}),
   });
 
   const llmJudge = new LlmJudge({ llm: router.llmFor("judge"), log, onFailure, secrets });
@@ -187,7 +201,13 @@ export function createApiRuntime(
   return {
     judge,
     enrich,
-    writer: new LlmWriter({ llm: router.llmFor("story_writer"), voice, log, secrets }),
+    writer: new LlmWriter({
+      llm: router.llmFor("story_writer"),
+      batch: router.batchFor("story_writer"),
+      voice,
+      log,
+      secrets,
+    }),
     grounder,
     topicJudge,
     combinedJudge,

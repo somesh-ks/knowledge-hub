@@ -13,6 +13,7 @@ import { FIELD, FIELD_CLASSES, FIELD_RETIRED } from "./field";
 import type { Guidance } from "./guidance";
 import { ICON, ICON_CLASSES, ICON_RETIRED } from "./icon";
 import { MENU, MENU_CLASSES, MENU_RETIRED } from "./menu";
+import { RIPPLE, RIPPLE_CLASSES, RIPPLE_RETIRED } from "./ripple";
 import { SELECT, SELECT_CLASSES, SELECT_RETIRED } from "./select";
 import { SHEET, SHEET_CLASSES, SHEET_RETIRED } from "./sheet";
 import { SLIDER, SLIDER_CLASSES, SLIDER_RETIRED } from "./slider";
@@ -130,7 +131,7 @@ export const COMPONENTS: DesignSystemComponent[] = [
     summary: BANNER.summary,
     useWhen: BANNER.useWhen,
     dontUseWhen: BANNER.dontUseWhen,
-    parts: BANNER.tones,
+    parts: { ...BANNER.variants, ...BANNER.tones },
   },
   {
     name: "Dialog",
@@ -174,6 +175,17 @@ export const COMPONENTS: DesignSystemComponent[] = [
     summary: WHEEL.summary,
     useWhen: WHEEL.useWhen,
     dontUseWhen: WHEEL.dontUseWhen,
+    parts: {},
+  },
+  {
+    name: "Ripple",
+    sheet: "ripple.css",
+    prefix: "ripple",
+    classes: RIPPLE_CLASSES,
+    retired: RIPPLE_RETIRED,
+    summary: RIPPLE.summary,
+    useWhen: RIPPLE.useWhen,
+    dontUseWhen: RIPPLE.dontUseWhen,
     parts: {},
   },
 ];

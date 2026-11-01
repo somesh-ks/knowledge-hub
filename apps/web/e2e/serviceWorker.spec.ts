@@ -232,6 +232,59 @@ test.describe("service worker", () => {
     expect(await kept()).toBeUndefined();
   });
 
+  // REL-12: a move inside the app swapped in a page of the new deploy under the old bundle, so new
+  // markup met old scripts and in-memory state until the next update check. That move must load in full.
+  test("a move to a page of a newer deploy loads in full instead of swapping in", async ({
+    page,
+    context,
+  }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    const build = () =>
+      page.evaluate(
+        () =>
+          document.querySelector('meta[name="singularity-build"]')?.getAttribute("content") ?? "",
+      );
+    const before = await build();
+    await page.evaluate(() => {
+      (window as unknown as { kept: boolean }).kept = true;
+    });
+    // The worker answers a recent saved page at once; a page it has no copy of comes from the network,
+    // which is the deploy.
+    await page.evaluate(async () => {
+      for (const name of await caches.keys()) await caches.delete(name);
+    });
+    await context.addCookies([
+      { name: "test-build", value: "next-deploy", url: new URL("/", page.url()).href },
+    ]);
+    await page.locator('.app-nav a[href="/library"]').click();
+    await expect(page).toHaveURL(/\/library/);
+    await expect.poll(() => build().catch(() => before)).toBe("next-deploy");
+    // A full load drops what the old bundle held in memory.
+    expect(
+      await page.evaluate(() => (window as unknown as { kept?: boolean }).kept),
+    ).toBeUndefined();
+    // A move between pages of one build stays in the app.
+    await page.evaluate(() => {
+      (window as unknown as { kept: boolean }).kept = true;
+    });
+    await page.locator('.app-nav a[href="/settings"]').click();
+    await expect(page).toHaveURL(/\/settings/);
+    expect(await page.evaluate(() => (window as unknown as { kept?: boolean }).kept)).toBe(true);
+    // A full load would stop the narration: while it plays, the move swaps in and the update waits.
+    await page.evaluate(async () => {
+      for (const name of await caches.keys()) await caches.delete(name);
+      document.documentElement.dataset.playerState = "playing";
+    });
+    await context.addCookies([
+      { name: "test-build", value: "later-deploy", url: new URL("/", page.url()).href },
+    ]);
+    await page.locator('.app-nav a[href="/library"]').click();
+    await expect(page).toHaveURL(/\/library/);
+    await expect.poll(() => build()).toBe("later-deploy");
+    expect(await page.evaluate(() => (window as unknown as { kept?: boolean }).kept)).toBe(true);
+  });
+
   // A title typed and left before the page finished loading (the load event waits on a slow image
   // here) must survive the deploy that is waiting: the update check starts only after load, and
   // used to know nothing of text typed before it.
