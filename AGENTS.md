@@ -6,7 +6,7 @@ Private design-engineering news briefing. A GitHub Actions engine writes a diges
 
 1. [docs/state.md](docs/state.md): what works, what is unverified (each with `closed when:`), what is next. Rewritten, never appended.
 2. [docs/learnings.md](docs/learnings.md): gotchas by area. Search it before debugging.
-3. [docs/decisions/](docs/decisions/README.md): grep the Index, never read it whole; open an area file for a reason.
+3. [docs/decisions/](docs/decisions/README.md): grep the Index, never read it whole; open an area file as needed.
 
 On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code and tests win; fix a wrong spec), [docs/history/](docs/history/README.md) for the why of a past change, and [the test postmortem](docs/engineering/postmortem-test-suite.md) before you add, change or delete a test. `node scripts/docsCheck.mjs` holds the budgets.
 
@@ -15,9 +15,9 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code 
 ## Commands
 
 - `npm run singularity -- <command>`: engine CLI (`doctor`, `status`, `models`, `run`, `publish`).
-- `npm run gate -- --build`: typecheck, `astro check`, lint, unit tests, the docs check and the static build, in parallel (80 s). `npm test`, `npm run typecheck` and `npm run lint` run alone.
-- Run commands through PowerShell, not Git Bash ([learnings](docs/learnings.md)). Never stop the listener on port 4321 (the owner's dev server); give browser suites a `PORT` above 4400.
-- A worktree gets its packages from `node scripts/worktreeLinks.mjs <path>` and loses them with `--remove` before `git worktree remove`.
+- `npm run gate -- --build`: typecheck, `astro check`, lint, unit tests, the docs check and the static build, in parallel (80 s). `npm test`, `npm run typecheck`, `npm run lint` run alone.
+- Run commands through PowerShell, not Git Bash ([learnings](docs/learnings.md)). Never stop the listener on port 4321 (owner's dev server); give browser suites a `PORT` above 4400.
+- A worktree gets packages from `node scripts/worktreeLinks.mjs <path>` and loses them with `--remove` before `git worktree remove`.
 - `npm run e2e -w @singularity/web` and `npm run e2e:player -w @singularity/web` (about 6 min each): the browser suites. Run both before a PR that touches the site, `packages` or the tokens; push once. Red check: [delivery failures](docs/engineering/delivery-failures.md) (D148).
 - `SINGULARITY_STATIC_ONLY=1 npm run build`: local site build (the Vercel adapter fails on Windows symlinks).
 - `npm run dev`: the site with the Agentation toolbar; `checkBundle` fails a build that contains it. Stop it when done (`npx astro dev stop` in `apps/web`).
@@ -38,7 +38,7 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code 
 - UI parts: before you write a class, token or value, run `npm run ds -- find "<need>"`. Features: `.claude/skills/feature/`.
 - State authority: the config store owns runtime preferences. Never edit `config/` in Git during active workflow runs or from parallel branches without store synchronization (D149, D185).
 - Pipeline discipline: verify the core daily loop runs green in production before adding new intake types or audience matrices.
-- Vercel: the CLI is pinned; read it with `npm run vercel:list`, `:inspect`, `:logs`, `:env-list`. A session never deploys or edits env.
+- Vercel: the CLI is pinned. Read with `npm run vercel:list`, `vercel:inspect`, `vercel:logs`, `vercel:env-list`; a session never deploys or edits env.
 
 ## Tests
 

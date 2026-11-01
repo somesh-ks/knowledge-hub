@@ -610,6 +610,38 @@ describe("errors", () => {
     expect(harness.store.getState().status).toBe("paused");
   });
 
+  // Bug: a pause during the retry wait kept the failed element, so the next Play reused a source that
+  // would never load and playback stayed stuck.
+  it("loads the source again on the Play that follows a pause during the retry wait", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    const url = harness.audio.src;
+    harness.audio.error = { code: MEDIA_ERR_NETWORK };
+    harness.audio.emit("error");
+    harness.audio.src = "";
+    harness.store.pause();
+    vi.advanceTimersByTime(10_000);
+    expect(harness.audio.src).toBe("");
+    harness.store.play();
+    expect(harness.audio.src).toBe(url);
+    expect(harness.store.getState().status).toBe("loading");
+  });
+
+  // Bug: the retry timer fired under a dragged thumb and started audio before the drag ended.
+  it("waits for the end of a scrub before it loads the source again", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    const url = harness.audio.src;
+    harness.audio.error = { code: MEDIA_ERR_NETWORK };
+    harness.audio.emit("error");
+    harness.audio.src = "";
+    harness.store.beginScrub();
+    vi.advanceTimersByTime(10_000);
+    expect(harness.audio.src).toBe("");
+    harness.store.endScrub(12);
+    expect(harness.audio.src).toBe(url);
+  });
+
   it("explains a network failure in plain language", () => {
     const harness = createHarness();
     startPlaying(harness);

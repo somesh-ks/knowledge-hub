@@ -54,13 +54,21 @@ async function openDownloads(): Promise<Cache> {
   return cache;
 }
 
+/** The saved list, or null when it could not be read: a list that is empty and a list that is lost differ. */
+async function readListFrom(cache: Cache): Promise<Download[] | null> {
+  try {
+    const saved = await cache.match(MANIFEST_KEY);
+    return saved ? parseDownloads(await saved.text()) : [];
+  } catch {
+    return null;
+  }
+}
+
 export async function readDownloads(): Promise<Download[]> {
   try {
     if (!("caches" in globalThis)) return [];
     if (!(await caches.has(AUDIO_CACHE)) && !(await caches.has(OLD_AUDIO_CACHE))) return [];
-    const cache = await openDownloads();
-    const saved = await cache.match(MANIFEST_KEY);
-    return saved ? parseDownloads(await saved.text()) : [];
+    return (await readListFrom(await openDownloads())) ?? [];
   } catch {
     return [];
   }
@@ -286,9 +294,12 @@ export async function sweepUnlisted(): Promise<number> {
     const swept = await locks.request(DOWNLOAD_LOCK, { ifAvailable: true }, async (lock) => {
       if (!lock) return 0;
       const cache = await openDownloads();
+      const listed = await readListFrom(cache);
+      // A list that could not be read is not an empty one: sweeping on it would delete every download.
+      if (listed === null) return 0;
       const stray = unlistedPayloads(
         (await cache.keys()).map((key) => key.url),
-        await readDownloads(),
+        listed,
         location.href,
       );
       for (const key of stray) await cache.delete(key);
