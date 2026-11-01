@@ -32,6 +32,14 @@
   margin-inline-start: calc(var(--space-1) * -1);
 }
 
+/* Coverage's rows name parts and the reasons a control is bespoke, which run long: the hint wraps where
+   Health's single line clips it (2026-10-31, review on the Coverage PR). */
+.health-row.cov-row .settings-hint {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
 /* ------------------------------------------------------------------ the overview */
 
 /* The Overview's two cards read at a glance: a status badge or a figure first, then marks, with
@@ -529,6 +537,110 @@
 /* A failed ask leaves its figure and its note, nothing to plot. */
 [data-failed] :is(.ov-plot, .ov-share, .ov-legend) {
   display: none;
+}
+
+/* ------------------------------------------------------------------ the health page */
+
+/* A row that needs a look carries its tone's glyph before its reading; a fine row draws none and the
+   reading stays at the row's end. */
+.health-value .ov-flag-icon:empty {
+  display: none;
+}
+
+/* The state at the card's head: its glyph, its word and the one quiet line, as the Overview's total
+   and its note sit. */
+.health-card .ov-answer {
+  align-items: baseline;
+}
+
+.health-card .ov-badge {
+  align-self: center;
+}
+
+.health-card .ov-badge:empty {
+  display: none;
+}
+
+/* Stage times: a card a kind of run, a bar a stage. The bar is as long as the stage's slowest tenth
+   against the longest in its card; the median is the solid part of it. Grey at rest: nothing here
+   is picked or flagged. The place is the page's last, so a card that arrives moves nothing below. */
+.st-groups {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.card-group.st-card {
+  display: grid;
+  gap: var(--space-2);
+  margin-block-start: 0;
+  padding: var(--card-padding);
+}
+
+.st-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.st-title {
+  margin: 0;
+  font-family: var(--text-title-family);
+  font-size: var(--text-title-size);
+  font-weight: var(--text-title-weight);
+  letter-spacing: var(--text-title-tracking);
+  line-height: var(--text-title-leading);
+}
+
+.st-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.st-row {
+  display: grid;
+  grid-template-columns: calc(var(--space-6) * 3) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  min-block-size: var(--size-touch);
+}
+
+.st-figure {
+  min-inline-size: calc(var(--space-8) * 2);
+  color: var(--color-on-surface-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  white-space: nowrap;
+}
+
+.st-bar {
+  position: relative;
+  block-size: var(--space-2);
+  border-radius: var(--radius-round);
+  background: var(--color-surface-overlay);
+}
+
+/* Each part is its own pill, so a median of a few pixels is a dot, not a clipped edge. */
+.st-reach,
+.st-median {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  border-radius: var(--radius-round);
+}
+
+.st-reach {
+  /* One step wider than the median's floor, so a p90 past a tiny median still shows beyond it. */
+  inline-size: max(var(--space-2), calc(var(--reach) * 100%));
+  /* 65% ink on the track reads about 3:1 in both themes (35% read 1.8:1). */
+  background: color-mix(in oklab, var(--color-on-surface-muted) 65%, var(--color-surface-overlay));
+}
+
+.st-median {
+  inline-size: max(var(--space-1), calc(var(--median) * 100%));
+  background: var(--color-on-surface-muted);
 }
 
 /* Promote keeps its place in a row that cannot use it, so turning a switch never resizes the row. */
