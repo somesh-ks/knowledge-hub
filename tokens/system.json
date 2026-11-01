@@ -1521,8 +1521,10 @@
       ],
       "usage": "One quiet message at a time: a flat, inverse surface with a hairline radius, an optional leading icon (a check or an alert, so the outcome is not told by colour alone), the message at the label size, at most one text action in the accent and, only while it stays until used, a close button. A top-layer popover above whatever is docked at the bottom: the navigation bar, and the player once it is showing. The fallbacks cover a page without the shell and a player that has not published its height yet.",
       "tokens": [
+        "--color-accent-on-inverse",
         "--color-surface-inverse",
         "--layout-dialog",
+        "--shape-md",
         "--size-touch",
         "--toast-bg",
         "--toast-fg"
