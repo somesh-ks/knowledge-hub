@@ -91,7 +91,12 @@ async function readSchedule(
       throw new StoreUnreadable();
     }
   }
-  return github.readFile("config/schedule.json", "main");
+  // Store off: the schedule a run on this checkout gets is the examples' (`config pull`), so the
+  // cron reads the same, unless the checkout commits a schedule of its own.
+  return (
+    (await github.readFile("config/schedule.json", "main")) ??
+    (await github.readFile("config/examples/schedule.json", "main"))
+  );
 }
 
 /** Vercel asks for at least 16 characters; anything shorter is treated as not configured. */

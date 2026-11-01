@@ -428,10 +428,12 @@ async function runPull(argv: string[], ctx: CommandContext, deps: ConfigDeps): P
       }
     } catch (error) {
       const missing = await missingConfigFiles(ctx.root);
-      if (missing.length > 0) {
+      // The build is strict: files left on a cached checkout may be older than the store, and a
+      // deploy from them would replace the owner's site with stale pages.
+      if (strict || missing.length > 0) {
         const message = error instanceof Error ? error.message : String(error);
         ctx.log.error(
-          `the config store cannot be read and ${missing.length} config files are missing: ${redact(message, secretsFromEnv(ctx.env))}`,
+          `the config store cannot be read${missing.length > 0 ? ` and ${missing.length} config files are missing` : ""}: ${redact(message, secretsFromEnv(ctx.env))}`,
         );
         return 1;
       }

@@ -176,9 +176,10 @@ describe("GET /api/cron/run", () => {
     const { github, run } = setup();
     const result = await run(new Date("2026-10-11T09:30:00Z"));
     expect(result.body).toEqual({ dispatched: false, reason: "not the schedule's hour" });
-    // No schedule file means 07:00, so the run record is never read.
+    // No schedule on main or in the examples means 07:00, so the run record is never read.
     expect(github.requests.map((request) => request.path)).toEqual([
       "/contents/config/schedule.json?ref=main",
+      "/contents/config/examples/schedule.json?ref=main",
     ]);
   });
 
@@ -231,6 +232,18 @@ describe("GET /api/cron/run", () => {
   });
 
   // The bug: a store that never answers held the call until Vercel killed it, with nothing logged.
+  // The bug it prevents: with the store off and no schedule on main (D296), the cron used the
+  // built-in default while a run on the same checkout got the examples' schedule, so they disagreed.
+  it("with the store off, reads the examples' schedule when main has none", async () => {
+    const { github, run } = setup({ lastRun: lastRun("2026-10-08T11:58:00.000Z") });
+    github.on("GET /contents/config/examples/schedule.json", {
+      text: JSON.stringify({ ...DEFAULT_SCHEDULE, hour: 9 }),
+    });
+    // Saturday 05:30 Stockholm: the example's hour 9 is not open yet, the default 7 would be.
+    expect((await run(new Date("2026-10-10T03:30:00Z"))).body).toMatchObject({ dispatched: false });
+    expect((await run(new Date("2026-10-10T07:30:00Z"))).body).toMatchObject({ dispatched: true });
+  });
+
   // The bug it prevents: a store with no schedule row (wiped, or never seeded) fell to the default
   // schedule and dispatched a run that then stopped at its own config check: a failed run each hour.
   it("with the config store on but holding no schedule row, starts nothing and answers 503", async () => {

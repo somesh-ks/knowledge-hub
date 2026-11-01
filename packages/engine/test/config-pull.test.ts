@@ -65,6 +65,19 @@ describe("singularity config pull (D296)", () => {
     expect(await pull(STORE_ENV, onlySources)).toBe(0);
   });
 
+  // The bug it prevents: a cached checkout still holds every file, so a store outage let the strict
+  // build go on with files older than the store.
+  it("with --strict stops when the store is down even if every file is there", async () => {
+    await pull({});
+    const down: SqlClient = {
+      query: async () => {
+        throw new Error("connect ECONNREFUSED");
+      },
+    };
+    expect(await pull(STORE_ENV, down)).toBe(0);
+    expect(await pull(STORE_ENV, down, ["--strict"])).toBe(1);
+  });
+
   it("stops when the store is down and files are missing", async () => {
     const down: SqlClient = {
       query: async () => {
