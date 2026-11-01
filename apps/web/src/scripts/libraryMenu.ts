@@ -59,11 +59,13 @@ function setDownloaded(root: HTMLElement, on: boolean): void {
 /** Marks the rows whose files are saved on this device. */
 export async function syncDownloads(): Promise<void> {
   if (!document.querySelector(ITEM_ROOT)) return;
-  const { readDownloads } = await import("./libraryDownloads");
+  const { readDownloads, sweepUnlisted } = await import("./libraryDownloads");
   const ids = new Set((await readDownloads()).map((entry) => entry.id));
   for (const root of document.querySelectorAll<HTMLElement>(ITEM_ROOT)) {
     setDownloaded(root, ids.has(root.dataset.id ?? ""));
   }
+  // After the rows are marked: the scan of the whole cache never holds them up.
+  if (!document.querySelector("[data-downloading]")) await sweepUnlisted();
 }
 
 async function toggleDownload(root: HTMLElement): Promise<void> {

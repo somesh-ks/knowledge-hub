@@ -3,7 +3,13 @@ import {
   DEFAULT_SCHEDULE,
   FETCH_VIA,
   type FetchVia,
+  ID_MAX_LENGTH,
   isSupportedTimeZone,
+  MAX_KEYWORD_CHARS,
+  MAX_KEYWORDS,
+  MAX_SCOPE_IDS,
+  MAX_TOPIC_DESCRIPTION_CHARS,
+  MAX_TOPIC_NAME_CHARS,
   SCHEDULE_LENGTHS,
   ScheduleFile,
   SOURCE_FORMATS,
@@ -18,6 +24,7 @@ import type { ConfigOp, ConfigResponse, PodcastRequest } from "../types/contract
 import { missingSettings, readServerConfig, type ServerConfig, secretsOf } from "./config";
 import { fallbackCronHour } from "./cron";
 import { type GenerateDeps, isSameOrigin } from "./generate";
+import type { FetchLike } from "./github";
 import {
   CONFIG_WORKFLOW_FILE,
   createGitHubClient,
@@ -28,6 +35,7 @@ import {
 import type { ApiResult } from "./http";
 import { cooldownRefusal } from "./rateLimit";
 import { describeError } from "./redact";
+import type { Resolver } from "./sourcePreview";
 
 /**
  * POST /api/config: check the edit, check the cooldown against GitHub, singularity config.yml with
@@ -51,6 +59,10 @@ export interface ConfigDeps extends GenerateDeps {
   connectConfigStore?: (databaseUrl: string) => Promise<SqlClient>;
   /** Read-only files the edit is applied against besides the stored documents (the seed sources). */
   baseFiles?: Readonly<Record<string, string>>;
+  /** The fetch a source lookup (adding a source) goes out on, before the guard. Tests pass a spy. */
+  lookupFetch?: FetchLike;
+  /** Resolves a host for the guard that keeps lookups off private addresses. */
+  resolve?: Resolver;
 }
 
 export interface ConfigInput {
@@ -68,14 +80,14 @@ const invalid: ConfigResult = { status: 400, body: { status: 400, error: "invali
 
 // ---------------------------------------------------------------------------------------- validation
 
-const ID = /^[a-z0-9_-]{2,40}$/;
-const MAX_NAME = 60;
+// Core's limits, not smaller copies: ids 64, a topic's name, description and keywords as core has them.
+const ID = new RegExp(`^[a-z0-9][a-z0-9_-]{1,${ID_MAX_LENGTH - 1}}$`);
+const MAX_NAME = MAX_TOPIC_NAME_CHARS;
 const MAX_SOURCE_NAME = 80;
-const MAX_DESCRIPTION = 400;
-const MAX_KEYWORDS = 12;
-const MAX_KEYWORD = 40;
+const MAX_DESCRIPTION = MAX_TOPIC_DESCRIPTION_CHARS;
+const MAX_KEYWORD = MAX_KEYWORD_CHARS;
 const MAX_URL = 2048;
-const MAX_TOPIC_IDS = 12;
+const MAX_TOPIC_IDS = MAX_KEYWORDS;
 const MAX_SKIPPED_TOPICS = 200;
 const CADENCES = [1, 2, 3, 7] as const;
 type PodcastLength = PodcastRequest["length_minutes"];
@@ -86,20 +98,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** Control characters have no place in a name or an address, and a line break could forge a log line. */
-function hasControl(text: string): boolean {
+/**
+ * Control characters have no place in a name or an address, and a line break could forge a log line.
+ * A description is the one field written in a box where Enter makes a new line, so it may keep them.
+ */
+function hasControl(text: string, allowLineBreak = false): boolean {
   for (let index = 0; index < text.length; index += 1) {
     const code = text.charCodeAt(index);
+    if (allowLineBreak && code === 10) continue;
     if (code < 32 || code === 127) return true;
   }
   return false;
 }
 
 /** A trimmed string of 1 to `max` characters with no control characters, or null. */
-function text(value: unknown, max: number): string | null {
+function text(value: unknown, max: number, multiline = false): string | null {
   if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  if (trimmed.length === 0 || trimmed.length > max || hasControl(trimmed)) return null;
+  const trimmed = (multiline ? value.replace(/\r\n?/g, "\n") : value).trim();
+  if (trimmed.length === 0 || trimmed.length > max || hasControl(trimmed, multiline)) return null;
   return trimmed;
 }
 
@@ -183,9 +199,9 @@ function podcastParts(value: Record<string, unknown>, into: WeeklyOp | CustomOp)
 }
 
 /** Topic ids an episode leaves out, undefined when the field is absent, false when it is invalid. */
-function skipOf(value: unknown): string[] | undefined | false {
+function skipOf(value: unknown, max = MAX_SKIPPED_TOPICS): string[] | undefined | false {
   if (value === undefined) return undefined;
-  if (!Array.isArray(value) || value.length > MAX_SKIPPED_TOPICS) return false;
+  if (!Array.isArray(value) || value.length > max) return false;
   const topics: string[] = [];
   for (const entry of value) {
     const topic = id(entry);
@@ -280,7 +296,7 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
       if (!topic) return null;
       const topicId = id(topic.id);
       const name = text(topic.name, MAX_NAME);
-      const description = text(topic.description, MAX_DESCRIPTION);
+      const description = text(topic.description, MAX_DESCRIPTION, true);
       const enabled = typeof topic.enabled === "boolean" ? topic.enabled : null;
       const words = keywords(topic.keywords);
       const sectionId = id(topic.section_id);
@@ -405,7 +421,7 @@ export function parseConfigOp(value: unknown): ConfigOp | null {
     case "schedule.set":
       return parseScheduleSet(value);
     case "topic.scope": {
-      const ids = skipOf(value.ids);
+      const ids = skipOf(value.ids, MAX_SCOPE_IDS);
       if (ids === false || ids === undefined || ids.length === 0) return null;
       const scope: { daily?: boolean; weekly?: boolean; custom?: boolean } = {};
       for (const key of ["daily", "weekly", "custom"] as const) {
@@ -502,6 +518,26 @@ export function parseConfigRequest(bodyText: string): { op: ConfigOp | ConfigOp[
   return op === null ? null : { op };
 }
 
+/**
+ * Which change of a request the server could not read, so a refusal can name it: the page drops that
+ * one and sends the rest, instead of "turned that change down" for the whole batch (CFG-02). Null when
+ * the request is not shaped like a list of changes at all.
+ */
+export function firstUnreadableOp(bodyText: string): number | null {
+  // A body or a list over the limits is refused as a whole: no parsing, no scan.
+  if (bodyText.length === 0 || bodyText.length > MAX_CONFIG_BODY_CHARS) return null;
+  try {
+    const parsed: unknown = JSON.parse(bodyText);
+    if (!isRecord(parsed)) return null;
+    const ops = Array.isArray(parsed.op) ? parsed.op : [parsed.op];
+    if (ops.length > MAX_OPS) return null;
+    const index = ops.findIndex((op) => parseConfigOp(op) === null);
+    return index < 0 ? null : index;
+  } catch {
+    return null;
+  }
+}
+
 // ------------------------------------------------------------------------------------------ cooldown
 
 /**
@@ -561,7 +597,20 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
 
   if (!isSameOrigin(input.origin, input.expectedOrigin)) return invalid;
   const request = parseConfigRequest(input.bodyText);
-  if (request === null) return invalid;
+  if (request === null) {
+    const unreadable = firstUnreadableOp(input.bodyText);
+    if (unreadable === null) return invalid;
+    return {
+      status: 400,
+      body: {
+        status: 400,
+        error: "invalid_request",
+        reason:
+          "A value in that change is empty, too long or has a character the server cannot accept.",
+        op_index: unreadable,
+      },
+    };
+  }
 
   // The shared burst cap (D150), taken only by a request that passed the checks above.
   const burstWait = (await deps.burst?.()) ?? 0;

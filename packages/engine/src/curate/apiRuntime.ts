@@ -12,6 +12,7 @@ import { extractFullText } from "../extract/extractText.js";
 import { createFirecrawlScrape } from "../extract/firecrawlScrape.js";
 import { createVideoText, withVideoText } from "../extract/youtubeText.js";
 import type { FirecrawlGuard } from "../fetch/firecrawlBudget.js";
+import { breakJev } from "../judge/breaker.js";
 import { CombinedJudge } from "../judge/combinedJudge.js";
 import { FallbackJudge } from "../judge/fallbackJudge.js";
 import { GeneralJudge } from "../judge/generalJudge.js";
@@ -128,7 +129,8 @@ export function createApiRuntime(
   let tasteFitter: TasteFitter | null = null;
   if (env.TYPESAFE_API_KEY) {
     const rawJev = createJevClient(env);
-    const jevClient = spend ? meterJev(rawJev, spend.meter) : rawJev;
+    const meteredJev = spend ? meterJev(rawJev, spend.meter) : rawJev;
+    const jevClient = breakJev(meteredJev, { log });
     combinedJudge = new CombinedJudge({
       client: jevClient,
       log,
