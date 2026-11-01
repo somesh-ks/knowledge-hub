@@ -359,3 +359,12 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Decided on the owner's behalf while he was away (coordinator, 2026-10-31): dropping the Create chip and the keyboard Play; the screenshots went to him for a veto.
 - Amends: D101, D129.
 
+
+## D297: a settings edit made without a connection stays on the device and is sent when it returns
+
+- Date: 2026-11-01 (the owner: "keep the unsent edits in settings on device and send them when they're back online", or whichever is the best practice; this is the offline-first outbox).
+- Decision: when a settings request ends with no answer and the page stays (the site cannot be reached), the edit is written to `singularity:outbox` (`lib/outbox.ts`), the control keeps its value as saved, and the toast says "Saved on this device. Sends when you're back online." Every page load online, the browser's `online` event and the next change send the outbox oldest first through the same gap and 429 rules as a save, quietly; later changes wait behind it so their order holds. The next page shows kept edits as applied (`readSaved`), however long it was closed, for up to two weeks. An edit the site refuses for good is dropped with one toast naming the reason; one it could not be asked about (a server fault) stays. Storage that refuses the write leaves the old behavior: not saved, with Retry.
+- Why: the old behavior kept an unsent edit only in the open page, so a reload or a closed tab on a train lost it, and the person had to press Retry at the right moment. A native setting never asks for that. The edit is the only copy, so it must outlive the page; the control already shows it, so the person is told once where it is and not made to supervise it.
+- Rejected: a warning when closing the page (cannot be shown on a phone's tab close, and loses the edit anyway); Retry as the only way out (the state it needs is gone after a reload); a background sync registration (iOS does not run it, and the page-load and `online` triggers cover the same ground); queuing while online with the site up (a refusal must reach the person at once).
+- Revisit if: two devices edit the same setting offline (the later send wins, with no conflict notice), or a 409 from another device's write is seen on drain.
+- Amends: D79, D91, D259.
