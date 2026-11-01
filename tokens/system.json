@@ -347,7 +347,10 @@
         "toggle",
         "on off",
         "boolean",
-        "enable"
+        "enable",
+        "mixed",
+        "indeterminate",
+        "master"
       ],
       "markup": "<div class=\"settings-row\"><label class=\"settings-label\" for=\"autoplay\">Autoplay</label><Switch id=\"autoplay\" name=\"autoplay\" /></div>",
       "styles": [
