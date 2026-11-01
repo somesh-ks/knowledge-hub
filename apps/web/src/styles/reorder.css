@@ -29,6 +29,17 @@
   }
 }
 
+/* A handle (the two bars at a row's end) lifts its row at once. The finger's pull on it is the row's
+   move, never the page's scroll. */
+.reorder-handle {
+  touch-action: none;
+  cursor: grab;
+}
+
+.reorder-list[data-reordering] .reorder-handle {
+  cursor: grabbing;
+}
+
 /* Only while a row is held do the others move, and they ease; on release they snap, the list having
    already taken its new order. */
 .reorder-list[data-reordering] .reorder-item {

@@ -2422,6 +2422,13 @@
   -webkit-line-clamp: 2;
 }
 
+/* Stories behind the playhead (owner, 2026-11-01: "show the past stories as faded text to have better
+   focus ... still accessible"): the muted ink, the token that keeps the contrast the text needs,
+   never a lowered opacity. The row still takes every press. */
+.story-row[data-past] .story-row-title {
+  color: var(--color-on-surface-muted);
+}
+
 .story-row-time {
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-meta);
@@ -2660,8 +2667,24 @@
 }
 
 .player-queue-more,
+.player-queue-handle,
 .player-queue-add {
   flex: none;
+}
+
+/* One end control per input (owner, 2026-11-01): a finger gets the two bars to move a row at once
+   (a swipe to the left takes it off); a mouse gets the dots, whose menu removes it, and moves a row
+   by pulling it anywhere (the move cursor, reorder.css). */
+@media (hover: hover) and (pointer: fine) {
+  .player-queue-handle {
+    display: none;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .player-queue-more {
+    display: none;
+  }
 }
 
 /* Suggested (2026-10-26): with nothing queued, Up next lists what Autoplay would play, in the

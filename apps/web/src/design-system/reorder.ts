@@ -6,7 +6,9 @@
  * One gesture on every input. A mouse presses on a row and pulls (the cursor is the 4-way move
  * arrow while it hovers a row). A finger holds for HOLD_MS (the card menu's hold, D264) and then
  * moves; before the hold a scroll is still a scroll, and the hold is dropped if the finger drifts.
- * A drag is never the only way: Alt and the arrow keys move a focused row, the caller's own menu
+ * A handle (reorderHandleClass(), the two bars at a row's end) lifts its row at once for any
+ * pointer: it is for a finger that should not have to wait. A drag is never the only way: Alt and
+ * the arrow keys move a focused row (the arrows alone on a focused handle), the caller's own menu
  * can too, and every move is announced.
  */
 import type { Guidance } from "./guidance";
@@ -18,13 +20,15 @@ export const REORDER: Guidance = {
 };
 
 /** Every class the Reorderable list draws, for the registry and its test. */
-export const REORDER_CLASSES: string[] = ["reorder-list", "reorder-item"];
+export const REORDER_CLASSES: string[] = ["reorder-list", "reorder-item", "reorder-handle"];
 
 /** Classes the Reorderable list replaced; none may be written again, in any app that draws the system. */
 export const REORDER_RETIRED: string[] = [];
 
 export const reorderListClass = (): string => "reorder-list";
 export const reorderItemClass = (): string => "reorder-item";
+/** A control inside a row that lifts it at once; draw the two bars (grip) in it, label it for the row. */
+export const reorderHandleClass = (): string => "reorder-handle";
 
 /** How long a finger holds before the row lifts: the Library card menu's hold (D264). */
 export const HOLD_MS = 450;
@@ -34,6 +38,8 @@ export const SLOP_PX = 10;
 const EDGE_PX = 48;
 /** The most the list scrolls in one frame, in CSS px. */
 const SCROLL_STEP_PX = 14;
+/** The selector of reorderHandleClass(). */
+const HANDLE = ".reorder-handle";
 /** How long after a drag the row's own click is not a press, in ms. */
 const CLICK_QUIET_MS = 400;
 
@@ -56,7 +62,7 @@ export interface ReorderOptions {
   announce?(message: string): void;
   /** What a row is called, for those words. */
   label?(item: HTMLElement): string;
-  /** A selector for controls inside a row that have presses of their own (a menu's dots). */
+  /** A selector for controls inside a row that have presses of their own (a menu's dots). A handle needs no entry. */
   ignore?: string;
   /** Where focus goes after a keyboard move; the row's first button when absent. */
   focusAfterMove?(item: HTMLElement): void;
@@ -196,6 +202,7 @@ export function attachReorder(list: HTMLElement, options: ReorderOptions): () =>
     if (!event.isPrimary || event.button !== 0) return;
     const target = event.target as Element;
     if (options.ignore && target.closest(options.ignore)) return;
+    const onHandle = target.closest(HANDLE) !== null;
     const item = target.closest<HTMLElement>(".reorder-item");
     if (!item || item.parentElement !== list) return;
     finish(false);
@@ -210,8 +217,9 @@ export function attachReorder(list: HTMLElement, options: ReorderOptions): () =>
       lifted: false,
     };
     lastClientY = event.clientY;
-    // A finger lifts a row by holding it; a mouse by pulling it (below).
-    if (event.pointerType !== "mouse") press.timer = window.setTimeout(lift, holdMs);
+    // A handle lifts at once; otherwise a finger lifts a row by holding it and a mouse by pulling it (below).
+    if (onHandle) lift();
+    else if (event.pointerType !== "mouse") press.timer = window.setTimeout(lift, holdMs);
   };
 
   const onPointerMove = (event: PointerEvent): void => {
@@ -259,8 +267,11 @@ export function attachReorder(list: HTMLElement, options: ReorderOptions): () =>
   };
 
   const onKeyDown = (event: KeyboardEvent): void => {
-    if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
-    const item = (event.target as Element).closest<HTMLElement>(".reorder-item");
+    const origin = event.target as HTMLElement;
+    // On a handle the arrows alone move; elsewhere they are the page's, and Alt asks for the move.
+    if (!(event.altKey || origin.closest(HANDLE))) return;
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    const item = origin.closest<HTMLElement>(".reorder-item");
     if (!item || item.parentElement !== list) return;
     const all = itemsOf(list);
     const from = all.indexOf(item);
@@ -272,7 +283,10 @@ export function attachReorder(list: HTMLElement, options: ReorderOptions): () =>
     // The moved row keeps its element, but a moved node can lose focus: give it back.
     requestAnimationFrame(() => {
       if (options.focusAfterMove) options.focusAfterMove(item);
-      else item.querySelector<HTMLElement>("button")?.focus({ preventScroll: true });
+      else
+        (item.contains(origin) ? origin : item.querySelector<HTMLElement>("button"))?.focus({
+          preventScroll: true,
+        });
     });
   };
 

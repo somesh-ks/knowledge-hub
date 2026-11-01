@@ -92,13 +92,13 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await expect(stories.nth(1)).toHaveAttribute("aria-current", "true");
     const transcript = player.dialog.getByRole("region", { name: "Transcript" });
     await expect(transcript.locator("[data-turn]")).toHaveCount(1);
-    // Up next is the other view: moved up from its row's menu, the briefing now comes first.
+    // Up next is the other view: moved up by its row's handle, the briefing now comes first.
     await player.dialog.getByRole("tab", { name: "Up next" }).click();
     await page
-      .getByRole("button", { name: /^More for / })
+      .getByRole("button", { name: /^Move / })
       .nth(1)
-      .click();
-    await page.getByRole("menuitem", { name: "Move up" }).click();
+      .focus();
+    await page.keyboard.press("ArrowUp");
     // Back on Stories the open story is still the one being read.
     await player.dialog.getByRole("tab", { name: "Stories" }).click();
     await expect(transcript.locator("[data-turn]")).toHaveCount(1);
@@ -163,7 +163,7 @@ test.describe("the first press of Play on a page with no audio yet", () => {
       player.dialog.locator(`[data-state="played"] .player-queue-row`).first(),
     );
     await expect(player.dialog.locator(`[data-state="current"]`)).toHaveCount(1);
-    await expect(player.dialog.getByRole("button", { name: /^More for / })).toHaveCount(3);
+    await expect(player.dialog.getByRole("button", { name: /^Move / })).toHaveCount(3);
     expect(
       await player.dialog
         .locator("[data-queue-id]:not([data-state])")

@@ -1,6 +1,6 @@
 import type { KeyboardEvent, PointerEvent, ToggleEvent } from "react";
 import { menuItemClass, menuListClass } from "../design-system/menu";
-import { reorderItemClass } from "../design-system/reorder";
+import { reorderHandleClass, reorderItemClass } from "../design-system/reorder";
 import { longDateFromDigestId } from "./core/formatTime";
 import { getPlayQueue, playQueueItem } from "./core/playerRuntime";
 import { useQueueMeta } from "./hooks/useQueue";
@@ -29,11 +29,12 @@ const MENU_GAP_PX = 4;
 const ITEM = '[role="menuitem"]:not(:disabled)';
 
 /**
- * One queued item: its cover, its title and what it is. The row plays it now. A drag moves it (a
- * long press with a finger, a press and pull with a mouse: the Reorderable list, D277), a swipe
- * to the left takes it off the queue, and the dots at its end open a menu that does both with a key
- * or a tap: Move up, Move down, Remove (D169). The menu is the header's More menu (hero.css): a
- * popover under the dots, a bottom sheet on a phone.
+ * One queued item: its cover, its title and what it is. The row plays it now. A finger moves it by
+ * the two bars at its end (a pull at once; the arrow keys on them) and takes it off the queue with a
+ * swipe to the left; a mouse moves it by a press and pull anywhere on the row (the Reorderable list,
+ * D277) and takes it off from the dots at its end (D169), whose menu also has Move up and Move down.
+ * Each input sees one of the two controls (player.css). The menu is the header's More menu
+ * (hero.css): a popover under the dots.
  */
 export default function QueueRow({ id, index, count, gestures }: QueueRowProps) {
   const meta = useQueueMeta(id);
@@ -92,6 +93,14 @@ export default function QueueRow({ id, index, count, gestures }: QueueRowProps) 
           <span className="player-upnext-date">{title}</span>
           <span className="player-upnext-hint">{meta?.caption ?? " "}</span>
         </span>
+      </button>
+      <button
+        className={`icon-btn ${reorderHandleClass()} player-queue-handle`}
+        type="button"
+        aria-label={`Move ${title}`}
+        aria-describedby="player-queue-handle-hint"
+      >
+        <Icon name="grip" />
       </button>
       <button
         className="icon-btn player-queue-more"

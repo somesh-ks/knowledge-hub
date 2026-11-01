@@ -65,6 +65,23 @@ test.describe("moving a queued row", () => {
     await drag.move(line(start, { x: start.x, y: to.y + to.height - 4 }, 12));
     await drag.release();
     expect(await order(page)).toEqual(["ep-20261007-1930", "2026-10-05", "ep-20261006-0900"]);
+    // The two bars at a row's end lift it at once: no hold, and no swipe or tap on the row. The
+    // rows have settled into their new places before they are measured.
+    await page.evaluate(() =>
+      Promise.all(
+        document
+          .getAnimations()
+          .filter((a) => a instanceof CSSTransition)
+          .map((a) => a.finished),
+      ),
+    );
+    const grip = player.dialog.locator(".reorder-handle").nth(1);
+    const handle = await grip.boundingBox();
+    const last = await rows.nth(2).boundingBox();
+    if (!handle || !last) throw new Error("no handle");
+    const grabbed = { x: handle.x + handle.width / 2, y: handle.y + handle.height / 2 };
+    await player.finger.drag(line(grabbed, { x: grabbed.x, y: last.y + last.height - 4 }, 8), 20);
+    expect(await order(page)).toEqual(["ep-20261007-1930", "ep-20261006-0900", "2026-10-05"]);
   });
 
   test("Alt and the arrow keys move a focused row, and focus stays on it @desktop", async ({

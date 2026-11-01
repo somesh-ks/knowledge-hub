@@ -66,6 +66,8 @@ export default function StoryList({ turns }: { turns: readonly PlayerTurn[] }) {
               <ul className="story-rows" role="list">
                 {sectionItems.map((item) => {
                   const current = item === reading;
+                  // Behind the playhead: set back in the muted ink, so the eye stays on what plays.
+                  const past = timed && live && item.index < state.itemIndex;
                   const time =
                     item.durationSec !== null ? (
                       <span className="story-row-time">
@@ -89,6 +91,7 @@ export default function StoryList({ turns }: { turns: readonly PlayerTurn[] }) {
                         className="story-row"
                         type="button"
                         aria-current={current ? "true" : undefined}
+                        data-past={past ? "" : undefined}
                         onClick={() => {
                           if (timed) store.playItemAt(item.index);
                           else if (digest) playPageStory(digest.id, item.id);

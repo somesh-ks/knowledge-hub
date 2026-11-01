@@ -38,8 +38,11 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
   const gestures: QueueGestures = {
     onPointerDown(event, index) {
       if (!event.isPrimary || event.button !== 0) return;
-      // The dots and the menu have presses of their own.
-      if ((event.target as Element).closest(".player-queue-more, .player-queue-menu")) return;
+      // The dots, the menu and the handle have presses of their own.
+      if (
+        (event.target as Element).closest(".player-queue-more, .player-queue-menu, .reorder-handle")
+      )
+        return;
       press.current = {
         pointerId: event.pointerId,
         row: event.currentTarget,
@@ -114,10 +117,15 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
   }, []);
 
   return (
-    <ul className={`player-queue-list ${reorderListClass()}`} ref={listRef}>
-      {ids.map((id, index) => (
-        <QueueRow key={id} id={id} index={index} count={ids.length} gestures={gestures} />
-      ))}
-    </ul>
+    <>
+      <p className="sr-only" id="player-queue-handle-hint">
+        Drag to move, or press the up and down arrow keys.
+      </p>
+      <ul className={`player-queue-list ${reorderListClass()}`} ref={listRef}>
+        {ids.map((id, index) => (
+          <QueueRow key={id} id={id} index={index} count={ids.length} gestures={gestures} />
+        ))}
+      </ul>
+    </>
   );
 }
