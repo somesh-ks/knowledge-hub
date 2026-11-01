@@ -551,7 +551,12 @@
       min(var(--cover-c-max), var(--pc) * var(--cover-c-scale) + var(--cover-c-add))
     );
     --cn: calc(var(--night) * var(--cover-night-c) + (1 - var(--night)) * var(--cf));
-    --hn: calc(var(--night) * var(--cover-night-hue) + (1 - var(--night)) * var(--hf));
+    --hn: calc(
+      var(--night) *
+      (var(--cover-night-hue) + var(--hue-shift, 0)) +
+      (1 - var(--night)) *
+      var(--hf)
+    );
     --out: oklch(from var(--px) var(--lout, var(--lf)) var(--cn) var(--hn));
   }
 

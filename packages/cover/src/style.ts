@@ -159,7 +159,7 @@ export function styleColour(rule: StyleRule, input: StyleInput): Oklch {
   return {
     l,
     c: n ? night * n.chroma + (1 - night) * chroma : chroma,
-    h: n ? night * n.hue + (1 - night) * hue : hue,
+    h: n ? night * (n.hue + shift) + (1 - night) * hue : hue,
   };
 }
 
