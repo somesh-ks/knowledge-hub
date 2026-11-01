@@ -1875,10 +1875,6 @@
       "reason": "the cover's play overlay"
     },
     {
-      "class": "podcast-sample",
-      "reason": "the podcast voice sample row control"
-    },
-    {
       "class": "menu-item",
       "reason": "a row of the popover menu",
       "part": "menu"
