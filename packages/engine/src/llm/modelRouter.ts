@@ -67,6 +67,11 @@ export interface ModelRouterOptions {
   }) => void;
   /** Replaces the Message Batches client, for tests. */
   batchApi?: BatchApi;
+  /** The run's list of batches sent and not yet read (llm/openBatches.ts). */
+  openBatches?: {
+    add(id: string, model: string): Promise<void>;
+    remove(id: string): Promise<void>;
+  };
   /** Pause and clock of the batch wait, for tests. */
   batchTiming?: { now?: () => number; sleep?: (ms: number) => Promise<void>; pollMs?: number };
   /** Called once for every move to the next model, for the run's fallback count. */
@@ -293,7 +298,17 @@ export function createModelRouter(options: ModelRouterOptions): ModelRouter {
               timeoutMs: entry.timeout_ms,
             },
           })),
-          { until: batchOptions.until, log, ...options.batchTiming },
+          {
+            until: batchOptions.until,
+            log,
+            ...options.batchTiming,
+            ...(options.openBatches
+              ? {
+                  onOpen: (id: string) => options.openBatches?.add(id, model),
+                  onClosed: (id: string) => options.openBatches?.remove(id),
+                }
+              : {}),
+          },
         );
         for (const item of prepared) {
           const outcome = outcomes.get(item.customId);

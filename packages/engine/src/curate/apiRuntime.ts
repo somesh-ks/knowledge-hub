@@ -23,7 +23,7 @@ import { TopicJudge } from "../judge/topicJudge.js";
 import type { Judge, JudgeFailure } from "../judge/types.js";
 import { withModelFallback } from "../llm/jevFallback.js";
 import { resolveFamilies } from "../llm/modelResolver.js";
-import { createModelRouter } from "../llm/modelRouter.js";
+import { createModelRouter, type ModelRouterOptions } from "../llm/modelRouter.js";
 import { meterJev, type RequestMeter } from "../llm/requestMeter.js";
 import { TokenBudget } from "../llm/tokenBudget.js";
 import { TasteFitter } from "../profile/tasteFit.js";
@@ -88,6 +88,7 @@ export function createApiRuntime(
   ctx: CommandContext,
   voice: VoiceConfig,
   spend?: { meter: RequestMeter; guard: FirecrawlGuard },
+  openBatches?: ModelRouterOptions["openBatches"],
 ): ApiRuntime {
   const { env, log } = ctx;
   const secrets = secretsFromEnv(env);
@@ -129,6 +130,7 @@ export function createApiRuntime(
         }
       : undefined,
     onFallback: spend ? () => spend.meter.add("model_fallback") : undefined,
+    ...(openBatches ? { openBatches } : {}),
   });
 
   const llmJudge = new LlmJudge({ llm: router.llmFor("judge"), log, onFailure, secrets });
