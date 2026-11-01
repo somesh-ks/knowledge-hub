@@ -90,6 +90,10 @@ jobs:
           # The advisories themselves, not every package the severity flows up to.
           jq -r '[.vulnerabilities[].via[] | objects | select(.severity == "high" or .severity == "critical") | "\(.severity): \(.name): \(.title) \(.url)"] | unique[]' <<<"$out"
           exit 1
+      # The record's budgets, links and Index. Always on, because a docs-only change sets code=false and
+      # skips everything below, yet two green docs PRs can together break main (D175). Plain node, no install.
+      - name: Docs check
+        run: node scripts/docsCheck.mjs
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: steps.diff.outputs.code == 'true'
         with:
