@@ -718,9 +718,8 @@ html[data-mini="visible"] main {
 }
 
 /* The reading column sits on the middle of the pane on every page, so the room left and right of it is
-   equal, and it does not jump sideways between destinations. A page with a contents list puts it in the
-   room to the column's right, which is all it takes from the margin: a page without one leaves the margin
-   as air on both sides (2026-10-29: the column used to share the pane with a reserved track, which left
+   equal, and it does not jump sideways between destinations. A page with a contents list centres the column
+   and the list together (below): a page without one leaves the margin as air on both sides (2026-10-29: the column used to share the pane with a reserved track, which left
    it left of the middle and the right margin four times the left). A page that wants more width (the
    Library, Create) takes --column-wide, centred. */
 @media (width >= 80rem) {
@@ -740,12 +739,25 @@ html[data-mini="visible"] main {
     grid-column: 1 / -1;
   }
 
-  /* From a step past the column's edge to the pane's own gutter, at most --layout-aside wide. */
+  /* A page with a contents list is as wide as --column-wide, centred: the column, a step and the list,
+     so the whole group, not the column alone, sits on the middle of the pane (owner, 2026-11-01: the
+     column beside its list read as right of centre, with a 28px step). The Library's gallery has the
+     same width, so its left edge is the column's. The outer tracks stay equal. */
+  .shell:has(> .aside) {
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, var(--column-inner))
+      minmax(0, calc(var(--space-12) + var(--layout-aside)))
+      minmax(0, 1fr);
+  }
+
+  /* The list's entries start a step past the column's edge and are --layout-aside wide; the rail's own
+     padding (the focus ring's room, aside.css) hangs out either side of them. */
   .shell > .aside {
     grid-column: 3;
     grid-row: 1;
     justify-self: start;
-    inline-size: min(var(--layout-aside), calc(100% - var(--space-8)));
-    margin-inline-start: calc(var(--space-8) - var(--space-1));
+    inline-size: calc(var(--layout-aside) + var(--space-1) * 2);
+    margin-inline-start: calc(var(--space-12) - var(--space-1));
   }
 }
