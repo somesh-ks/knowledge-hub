@@ -52,11 +52,8 @@ function mixOklab(base: Rgb, over: Rgb, share: number): Rgb {
   };
   const a = toOklab(base);
   const b = toOklab(over);
-  const [L, A, B] = [0, 1, 2].map((i) => a[i]! * (1 - share) + b[i]! * share) as [
-    number,
-    number,
-    number,
-  ];
+  const lay = (from: number, to: number) => from * (1 - share) + to * share;
+  const [L, A, B] = [lay(a[0], b[0]), lay(a[1], b[1]), lay(a[2], b[2])];
   return oklchToRgb({ l: L, c: Math.hypot(A, B), h: (Math.atan2(B, A) * 180) / Math.PI, alpha: 1 });
 }
 
