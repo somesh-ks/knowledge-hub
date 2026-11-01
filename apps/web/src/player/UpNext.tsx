@@ -64,7 +64,12 @@ function PassedRow({ id, state }: { id: string; state: "played" | "current" }) {
   const ref = useRef<HTMLLIElement>(null);
   // The list opens at the item playing, so the played ones above it do not push what is next out of view.
   useEffect(() => {
-    if (state === "current") ref.current?.scrollIntoView({ block: "start" });
+    const row = ref.current;
+    if (state !== "current" || !row) return;
+    // The switch sticks above the list on a phone: stop the scroll below it, with the list's own room (player.css).
+    const bar = row.closest(".player-list")?.querySelector<HTMLElement>(".player-tabs-bar");
+    row.style.setProperty("--tabs-bar-height", `${bar?.offsetHeight ?? 0}px`);
+    row.scrollIntoView({ block: "start" });
   }, [state]);
   return (
     <li
@@ -83,6 +88,16 @@ function PassedRow({ id, state }: { id: string; state: "played" | "current" }) {
           <span className="player-upnext-hint">{meta?.caption ?? " "}</span>
         </span>
       </button>
+      {state === "current" ? (
+        <button
+          className="icon-btn player-queue-handle"
+          type="button"
+          aria-disabled="true"
+          aria-label={`${title} is playing now and stays where it is`}
+        >
+          <Icon name="grip" />
+        </button>
+      ) : null}
     </li>
   );
 }

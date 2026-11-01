@@ -2734,6 +2734,18 @@
   color: var(--color-accent);
 }
 
+/* Scrolled to the top of the list, the playing row stops under the sticky switch with the list's own
+   room (--space-4, as .player-panel), not behind it (owner, 2026-11-01). UpNext.tsx sets the height. */
+.player-queue-item[data-state="current"] {
+  scroll-margin-block-start: calc(var(--safe-top) + var(--tabs-bar-height, 0px) + var(--space-4));
+}
+
+/* The playing row keeps the end bars so its text lines up with the rows below, but it stays put (D277). */
+.player-queue-item[data-state="current"] .player-queue-handle {
+  color: var(--color-on-surface-muted);
+  cursor: default;
+}
+
 .player-queue-more,
 .player-queue-handle,
 .player-queue-add {

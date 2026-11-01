@@ -54,7 +54,18 @@ test.describe("moving a queued row", () => {
     // A press that moves before the hold is a scroll or a swipe, never a lift.
     await player.finger.drag(line(at, { x: at.x, y: at.y - 30 }, 4), 20);
     expect(await order(page)).toEqual(QUEUE);
-    // Measured again: that move may have scrolled the list.
+    // Measured again: that move may have scrolled the list, and a fling keeps scrolling after the finger
+    // lifts, so wait until the page stops.
+    await page.waitForFunction(
+      () =>
+        new Promise<boolean>((resolve) => {
+          const page = document.querySelector("[data-player-page]");
+          const at = page?.scrollTop ?? 0;
+          setTimeout(() => resolve(page?.scrollTop === at), 300);
+        }),
+      undefined,
+      { polling: 100 },
+    );
     const from = await rows.nth(0).boundingBox();
     const to = await rows.nth(2).boundingBox();
     if (!from || !to) throw new Error("no rows");
