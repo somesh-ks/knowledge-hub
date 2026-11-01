@@ -329,6 +329,21 @@ const RULES: Rule[] = [
       }),
   },
   {
+    // Prevents a part a style cannot reach: a style redraws the semantic tiers (the `--shape-*` corners
+    // and the `--color-*` roles), so a component that reads a primitive radius or a colour ramp step
+    // stays as Default draws it when Expressive or Halloween is on (the first Expressive missed the cards,
+    // the menus, the sheets and the toast this way). Only the fully round pill is a primitive read.
+    name: "reads the shape scale and the colour roles, never a primitive radius or a ramp colour",
+    offenders: () =>
+      ownCss().flatMap(([file, css]) =>
+        [
+          ...css.matchAll(
+            /var\(--(?:radius-(?:xs|sm|md|lg|xl|2xl|sheet)|color-(?:white|(?:grey|blue|green|orange|red|violet)-\d+))\)/g,
+          ),
+        ].map(([read]) => `${file}: ${read}`),
+      ),
+  },
+  {
     name: "takes spacing, type and radius from tokens, never a raw length",
     offenders: () => {
       // Space, type size, leading, tracking and corner radius each have a scale in tokens.css. A

@@ -102,7 +102,7 @@
 
 /* Open, the grey is a card around the questions; the summary inside it stays a pill. */
 .create-more[open] {
-  border-radius: var(--radius-lg);
+  border-radius: var(--shape-lg);
 }
 
 .create-more-body {
@@ -215,7 +215,7 @@
   width: 100%;
   border: 0;
   border-block-end: var(--stroke-hairline) solid var(--color-border-control);
-  border-radius: var(--row-radius) var(--row-radius) var(--radius-xs) var(--radius-xs);
+  border-radius: var(--row-radius) var(--row-radius) var(--shape-xs) var(--shape-xs);
   background: var(--color-surface-container);
   transition:
     background-color var(--duration-hover) var(--ease-hover),

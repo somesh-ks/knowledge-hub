@@ -480,7 +480,7 @@ html[data-player="open"] .queue-dock {
   padding: var(--space-4);
   max-height: 40dvh;
   overflow: auto;
-  border-radius: var(--radius-sm);
+  border-radius: var(--shape-sm);
   background: var(--color-surface-container);
   color: var(--color-on-surface);
   font-size: var(--font-size-label);

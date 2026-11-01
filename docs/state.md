@@ -13,6 +13,7 @@ Updated 2026-11-01. Rewrite, never append.
 - Saved copies, offline, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192).
 - Halloween style (D306): tokens, Pirata One page title, six scenes and a cobweb, in two pull requests (tokens, then scenes). closed when: Somesh OKs the stills (390 and 1280, light and dark) and a phone keeps it across a reload. Covers follow as inline SVG with variables in their own PR.
+- Expressive made loud (D310): a violet ramp and palette, larger touch sizes, a semantic corner scale (`--shape-*`) every component reads, a test that fails on a primitive radius or ramp colour read in component CSS, and Default's empty-state scenes looping. closed when: Somesh OKs the stills (390 and 1280, light and dark) and sees every page change under Expressive on his phone. Album art does not follow a style yet (own PR).
 
 ## Tests
 

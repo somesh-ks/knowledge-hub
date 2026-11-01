@@ -189,7 +189,7 @@
   width: 100%;
   aspect-ratio: 1;
   overflow: hidden;
-  border-radius: var(--radius-sm);
+  border-radius: var(--shape-sm);
   background: var(--cover-fill);
   outline: var(--stroke-hairline) solid var(--cover-outline);
   outline-offset: calc(var(--stroke-hairline) * -1);
@@ -552,7 +552,7 @@
 .player-cover-glow-light {
   position: absolute;
   inset: 0;
-  border-radius: var(--radius-lg);
+  border-radius: var(--shape-lg);
   overflow: hidden;
   filter: blur(var(--blur-glow)) saturate(1.3);
   transform: scale(1.04);
@@ -652,7 +652,7 @@
      falls and the corners read the same on the bar, in flight and on the page. A clip and not a
      border radius, so only the clip changes from frame to frame. */
   .player-art .player-cover-frame {
-    clip-path: inset(0 round calc(var(--radius-sm) / var(--art-scale-now)));
+    clip-path: inset(0 round calc(var(--shape-sm) / var(--art-scale-now)));
   }
 
   /* The shadow the page's cover casts, fading in as the cover lifts off the bar, which casts none.
@@ -662,7 +662,7 @@
     content: "";
     position: absolute;
     inset: 0;
-    border-radius: var(--radius-sm);
+    border-radius: var(--shape-sm);
     box-shadow: var(--cover-shadow);
     opacity: var(--art-p);
   }
@@ -867,7 +867,7 @@
   height: var(--space-4);
   margin: 0;
   padding: 0;
-  border-radius: var(--radius-xs);
+  border-radius: var(--shape-xs);
   background: none;
   appearance: none;
   cursor: pointer;
@@ -1527,7 +1527,7 @@
 .scrubber-track {
   height: var(--scrubber-track);
   margin-block-start: calc(var(--scrubber-track) / -2);
-  border-radius: var(--radius-xs);
+  border-radius: var(--shape-xs);
   background: var(--color-border-control);
   overflow: hidden;
   transition: transform var(--duration-press-out) var(--ease-out);
@@ -1846,7 +1846,7 @@
   padding: 0;
   overflow: visible;
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: var(--shape-md);
   background: var(--color-surface-overlay);
   color: var(--color-on-surface);
   box-shadow: var(--shadow-popover);
@@ -2064,7 +2064,7 @@
 /* The fill and the hair of ring around it move together, so the highlight never shows as an empty
    outline as it passes from word to word. */
 .script-word {
-  border-radius: var(--radius-xs);
+  border-radius: var(--shape-xs);
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
   transition:
@@ -2616,7 +2616,7 @@
   width: var(--size-touch);
   height: var(--size-touch);
   overflow: hidden;
-  border-radius: var(--radius-sm);
+  border-radius: var(--shape-sm);
   background: var(--color-surface-sunken);
 }
 
