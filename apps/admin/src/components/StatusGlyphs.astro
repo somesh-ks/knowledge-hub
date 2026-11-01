@@ -1,0 +1,12 @@
+---
+import Icon from "../../../web/src/design-system/Icon.astro";
+---
+
+{/* The status glyphs, waiting as a template: a script copies the one a tone needs (scripts/overview.ts,
+     healthPage.ts), so it draws no markup of its own. */}
+<template data-glyphs>
+  <span data-glyph="good"><Icon name="checkCircle" /></span>
+  <span data-glyph="warn"><Icon name="alert" /></span>
+  <span data-glyph="bad"><Icon name="blocked" /></span>
+  <span data-glyph="more"><Icon name="chevronDown" /></span>
+</template>

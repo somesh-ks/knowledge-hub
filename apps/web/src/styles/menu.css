@@ -117,6 +117,22 @@
   box-shadow: none;
 }
 
+/* A choice among options (a select's sheet, selectSheet.ts): the chosen row is in the accent with a
+   check at its end, as a select's own list draws it. */
+.menu-item[aria-selected="true"] {
+  justify-content: space-between;
+  color: var(--color-accent);
+}
+
+.menu-item[aria-selected="true"]::after {
+  content: "";
+  flex: none;
+  inline-size: var(--size-icon);
+  block-size: var(--size-icon);
+  background: var(--color-accent);
+  mask: var(--check-mask) center / contain no-repeat;
+}
+
 /* Red marks the one that destroys; the confirm still asks before anything is removed. */
 .menu-item-danger {
   color: var(--color-danger);
@@ -133,7 +149,7 @@
   gap: var(--space-4);
 }
 
-.menu-sheet .menu-item .icon {
+.menu-sheet .menu-item .icon-glyph {
   flex: none;
   width: var(--size-icon);
   height: var(--size-icon);
@@ -170,10 +186,19 @@
       display var(--duration-sheet-out) allow-discrete;
   }
 
+  /* A long list (a select's options) stops at 70% of the screen: the head stays, the rows scroll. */
   .menu-list.menu-sheet:popover-open {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    max-block-size: 70dvh;
     transform: none;
     transition-duration: var(--duration-sheet-in);
+  }
+
+  .menu-sheet-items {
+    min-block-size: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   @starting-style {
@@ -188,8 +213,19 @@
 
   .menu-sheet > .sheet-head {
     display: flex;
+    flex: none;
     padding-block: var(--space-1);
     padding-inline: var(--space-2) var(--space-1);
+  }
+
+  /* A select that opens as a wheel (wheel.css) has no rows to end the sheet; it ends a step lower. */
+  .menu-sheet[data-wheel] {
+    padding-block-end: max(var(--space-4), var(--safe-bottom));
+  }
+
+  /* The rows of the sheet are as tall as a select's and a picker's (--size-option). */
+  .menu-sheet .menu-item {
+    min-height: var(--size-option);
   }
 
   @media (prefers-reduced-motion: reduce) {

@@ -9,7 +9,8 @@ Where each kind of fact lives. Each fact is kept in one place; the others link t
 | [decisions/](decisions/README.md) | Every decision, D1 onward: the Index, and one file per area | For the reason behind a choice |
 | [learnings.md](learnings.md) | Gotchas by area, one line each | Before debugging |
 | [specs/README.md](specs/README.md) | What each capability does now, one spec each | Before changing a capability you do not know |
-| [design-engineering-ledger.md](design-engineering-ledger.md) | The owner's taste, every design ask and fix by surface, gaps, open asks | Before UI work |
+| [design-engineering-ledger.md](design-engineering-ledger.md) | The owner's taste and how to work with them: the core of the ledger | Before UI work |
+| [ledger/](ledger/README.md) | The ledger by surface (one file each), the code's gaps and open asks, ideas not built | After the core, for the surface you touch |
 | [design/sound-design.md](design/sound-design.md) | The sound system: recipes, levels and rules | Before changing a sound |
 | [design/podcast-structure.md](design/podcast-structure.md) | The modular script structure for every episode kind, with the owner's answers (D170, accepted, not built) | Before building the Preferences structure view |
 | [runbook.md](runbook.md) | Owner setup and operation | Setup, secrets, a broken deploy |

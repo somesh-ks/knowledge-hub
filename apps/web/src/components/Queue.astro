@@ -1,9 +1,9 @@
 ---
 import Button from "../design-system/Button.astro";
+import Icon from "../design-system/Icon.astro";
 import { menuListClass } from "../design-system/menu";
 import type { IconName } from "../lib/icons";
 import { UPDATING_LABEL } from "../lib/runStages";
-import Icon from "./Icon.astro";
 import QueueRing from "./QueueRing.astro";
 
 // Every line the queue shows. scripts/runStatus.ts and scripts/queue.ts read them from the element's
@@ -119,7 +119,7 @@ const icons: Record<string, IconName> = {
       </QueueRing>
       <span class="queue-fold-text queue-word" data-queue-title></span>
       <span class="queue-fold-percent" data-queue-percent></span>
-      <Icon name="chevronDown" class="queue-chevron icon-lg" />
+      <Icon name="chevronDown" size="lg" class="queue-chevron" />
     </button>
     <div class="queue-body" data-queue-body>
       <ul class="queue-list" role="list" data-queue-list></ul>
@@ -166,7 +166,7 @@ const icons: Record<string, IconName> = {
           <span class="queue-time" data-queue-time></span>
         </div>
         <a class="icon-btn press queue-play" href="#" data-queue-play hidden>
-          <Icon name="play" class="icon-lg" />
+          <Icon name="play" size="lg" />
         </a>
         <span class="queue-end-icon" data-queue-end-icon hidden></span>
       </div>
@@ -177,7 +177,7 @@ const icons: Record<string, IconName> = {
       </div>
       {/* Cancel is the X at the row's end, while the run goes. */}
       <button class="icon-btn icon-btn-end press queue-cancel" type="button" data-queue-cancel hidden>
-        <Icon name="close" class="icon-lg" />
+        <Icon name="close" size="lg" />
       </button>
       {/* What can be done to a run that ended or is lost, under the text. */}
       <div class="queue-actions">

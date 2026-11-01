@@ -3,9 +3,10 @@
  * (SheetHeader.astro, Icon.astro) and for the lists a script redraws (structureView.ts), so a menu
  * a script builds is the same menu a page builds (the design-system audit, 2026-10-25).
  */
+import { type IconSize, iconClass } from "../design-system/icon";
 import { menuItemClass } from "../design-system/menu";
 import { sheetHeadClass, sheetTitleClass } from "../design-system/sheet";
-import { ICON_PATHS, ICON_VIEW_BOX, type IconName } from "./icons";
+import { ICON_BOLD_PATHS, ICON_PATHS, ICON_VIEW_BOX, type IconName } from "./icons";
 
 export const escapeHtml = (text: string): string =>
   text
@@ -16,8 +17,13 @@ export const escapeHtml = (text: string): string =>
     .replace(/'/g, "&#39;");
 
 /** One glyph, as Icon.astro draws it: `data-icon` names it for buttons.css's ink margins (D187). */
-export const iconHtml = (name: IconName, className = ""): string =>
-  `<svg class="${["icon", className].filter(Boolean).join(" ")}" data-icon="${name}" viewBox="${ICON_VIEW_BOX}" aria-hidden="true" focusable="false"><path d="${ICON_PATHS[name]}"></path></svg>`;
+export const iconHtml = (name: IconName, size: IconSize = "md"): string => {
+  const bold = ICON_BOLD_PATHS[name];
+  const paths = bold
+    ? `<path d="${ICON_PATHS[name]}" data-weight="regular"></path><path d="${bold}" data-weight="bold"></path>`
+    : `<path d="${ICON_PATHS[name]}"></path>`;
+  return `<svg class="${iconClass(size)}" data-icon="${name}" viewBox="${ICON_VIEW_BOX}" aria-hidden="true" focusable="false">${paths}</svg>`;
+};
 
 export type SheetClose =
   | "data-create-close"
@@ -44,7 +50,7 @@ export function sheetHeadHtml(
     .join("");
   return (
     `<div class="${sheetHeadClass()}"><h2 class="${sheetTitleClass()}" id="${titleId}"${data}>${escapeHtml(title)}</h2>` +
-    `<button class="icon-btn press" type="button" aria-label="Close" ${close}>${iconHtml("close", "icon-lg")}</button></div>`
+    `<button class="icon-btn press" type="button" aria-label="Close" ${close}>${iconHtml("close", "lg")}</button></div>`
   );
 }
 

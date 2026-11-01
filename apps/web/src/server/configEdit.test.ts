@@ -1,6 +1,6 @@
 import { CATEGORIES } from "@singularity/core";
 import type { SqlClient } from "@singularity/engine/config-store";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createFakeGitHub, REPO, runJson } from "../testing/fakeGitHub";
 import type { ConfigOp } from "../types/contracts";
 import {
@@ -105,11 +105,22 @@ describe("parseConfigOp", () => {
     expect(parsed).toMatchObject({ topic: { name: "Motion craft", description: "Springs." } });
   });
 
-  it("rejects ids outside lowercase letters, digits, hyphen and underscore, 2 to 40 long", () => {
-    for (const bad of ["a", "A-b", "has space", "dot.id", "x".repeat(41), "", 7, null]) {
+  it("rejects ids outside lowercase letters, digits, hyphen and underscore, 2 to 64 long", () => {
+    for (const bad of [
+      "a",
+      "-ab",
+      "_ab",
+      "A-b",
+      "has space",
+      "dot.id",
+      "x".repeat(65),
+      "",
+      7,
+      null,
+    ]) {
       expect(parseConfigOp({ op: "topic.remove", id: bad })).toBeNull();
     }
-    expect(parseConfigOp({ op: "topic.remove", id: "x".repeat(40) })).not.toBeNull();
+    expect(parseConfigOp({ op: "topic.remove", id: "x".repeat(64) })).not.toBeNull();
     expect(parseConfigOp({ op: "topic.remove", id: "ab" })).not.toBeNull();
   });
 
@@ -122,9 +133,10 @@ describe("parseConfigOp", () => {
     expect(bad({ description: "" })).toBeNull();
     expect(bad({ description: "d".repeat(401) })).toBeNull();
     expect(bad({ description: "d".repeat(400) })).not.toBeNull();
-    expect(bad({ keywords: Array.from({ length: 13 }, (_, i) => `k${i}`) })).toBeNull();
-    expect(bad({ keywords: Array.from({ length: 12 }, (_, i) => `k${i}`) })).not.toBeNull();
-    expect(bad({ keywords: ["k".repeat(41)] })).toBeNull();
+    expect(bad({ keywords: Array.from({ length: 31 }, (_, i) => `k${i}`) })).toBeNull();
+    expect(bad({ keywords: Array.from({ length: 30 }, (_, i) => `k${i}`) })).not.toBeNull();
+    expect(bad({ keywords: ["k".repeat(61)] })).toBeNull();
+    expect(bad({ keywords: ["k".repeat(60)] })).not.toBeNull();
     expect(bad({ keywords: [""] })).toBeNull();
     expect(bad({ keywords: "spring" })).toBeNull();
     expect(bad({ enabled: "yes" })).toBeNull();
@@ -164,7 +176,7 @@ describe("parseConfigOp", () => {
     expect(withTopics(["a-b"])).not.toBeNull();
     expect(withTopics(["A"])).toBeNull();
     expect(withTopics("motion-craft")).toBeNull();
-    expect(withTopics(Array.from({ length: 13 }, (_, i) => `topic-${i}`))).toBeNull();
+    expect(withTopics(Array.from({ length: 31 }, (_, i) => `topic-${i}`))).toBeNull();
   });
 
   it("needs source.set to change something, and only with booleans", () => {
@@ -212,9 +224,9 @@ describe("parseConfigOp", () => {
     expect(update({ topic_ids: "motion-craft" })).toBeNull();
     expect(update({ topic_ids: null })).toBeNull();
     expect(
-      update({ topic_ids: Array.from({ length: 12 }, (_, i) => `topic-${i}`) }),
+      update({ topic_ids: Array.from({ length: 30 }, (_, i) => `topic-${i}`) }),
     ).not.toBeNull();
-    expect(update({ topic_ids: Array.from({ length: 13 }, (_, i) => `topic-${i}`) })).toBeNull();
+    expect(update({ topic_ids: Array.from({ length: 31 }, (_, i) => `topic-${i}`) })).toBeNull();
     // A bad name refuses the edit even when the topics are fine.
     expect(update({ name: "", topic_ids: ["motion-craft"] })).toBeNull();
     for (const id of ["A", "has space", "", 7, null, undefined]) {
@@ -862,6 +874,27 @@ describe("handleConfig with the config store on (D149)", () => {
       reason: "There is no topic no_such_topic.",
       op_index: 1,
     });
+  });
+
+  // Bug: adding a source fetched its page on an unguarded client, so a host that resolves to an
+  // internal address (or redirects there) was fetched from the function and its answer returned.
+  it("never connects to a private address when a source is added", async () => {
+    const store = fakeStore([
+      { path: "config/preferences.json", content: PREFERENCES, version: 1 },
+    ]);
+    const lookups: string[] = [];
+    vi.stubGlobal("fetch", async (url: string) => {
+      lookups.push(String(url));
+      return new Response("<html></html>");
+    });
+    const { deps } = setup({ ...storeDeps(store), resolve: async () => ["10.0.0.5"] });
+    await handleConfig(
+      input(body({ op: "source.add", url: "https://intranet.example.com/" })),
+      deps,
+    );
+    // The guard refuses before connecting; the page is then kept as a page to scrape, with nothing read.
+    vi.unstubAllGlobals();
+    expect(lookups).toEqual([]);
   });
 
   // The bug (D149, review round 2): an edit from another device landing between this edit's read

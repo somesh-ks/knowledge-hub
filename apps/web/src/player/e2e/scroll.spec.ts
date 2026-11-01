@@ -29,7 +29,8 @@ test.describe("the page behind the open player stays where it was", () => {
     const transport = player.dialog.locator(".transport");
     await transport.scrollIntoViewIfNeeded();
     const row = center(await player.boxOf(transport));
-    await pan(row, 200);
+    // Up, not down: a pull down from the controls dismisses the page (owner, 2026-11-01), below.
+    await pan(row, -200);
     await pan(row, -200);
     expect(await scrollY(page)).toBe(before);
     await player.expanded();
@@ -41,13 +42,14 @@ test.describe("the page behind the open player stays where it was", () => {
     await pan(center(await player.boxOf(lastRow)), -260);
     expect(await scrollY(page)).toBe(before);
 
-    // And the near end: back at the top, a pull down on the controls goes nowhere either.
+    // And the near end: a pull down on the controls first scrolls the player's page back to its top,
+    // then dismisses it (owner, 2026-11-01); the page behind is where it was throughout.
     await transport.scrollIntoViewIfNeeded();
     await pan(center(await player.boxOf(transport)), 260);
     expect(await scrollY(page)).toBe(before);
     await player.expanded();
-
-    await page.keyboard.press("Escape");
+    await expect.poll(() => player.sheet.evaluate((element) => element.scrollTop)).toBeLessThan(40);
+    await pan(center(await player.boxOf(transport)), 260);
     await player.collapsed();
     expect(await scrollY(page)).toBe(before);
   });

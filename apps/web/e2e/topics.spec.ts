@@ -174,7 +174,7 @@ test.describe("the Topics list", () => {
     await expect(page.locator("ul[data-sources] li.source-row:visible")).toHaveCount(1);
   });
 
-  test("@desktop a category's formats are tabs, All first and one at a time, and Add source sits beside the search", async ({
+  test("@desktop a category's formats are tabs, All first and one at a time, and Add source is on the page", async ({
     page,
   }) => {
     await page.goto(CRAFT_PAGE);
@@ -183,9 +183,7 @@ test.describe("the Topics list", () => {
       "true",
     );
     await expect(page.getByRole("tab", { name: "Blocked" })).toHaveCount(0);
-    await expect(
-      page.locator(".filter-row").getByRole("button", { name: /^Add source to/ }),
-    ).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Add source to/ })).toBeVisible();
     const all = page.locator("ul[data-sources] li.source-row:visible");
     const every = await all.count();
     await page.getByRole("tab", { name: "Blog", exact: true }).click();

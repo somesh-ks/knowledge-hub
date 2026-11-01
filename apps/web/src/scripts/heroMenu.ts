@@ -5,6 +5,7 @@
  */
 import { MENU_SELECTORS } from "../design-system/menu";
 import { pullToDismiss } from "./pullDismiss";
+import { installSheetTapGuard } from "./sheetTap";
 
 // The emoji picker (data-picker) is the same popover but its own: its keys, focus and Close are emojiPicker.ts.
 const LIST = `${MENU_SELECTORS.list}:not([data-picker])`;
@@ -21,6 +22,7 @@ let installed = false;
 export function installHeroMenu(): void {
   if (installed) return;
   installed = true;
+  installSheetTapGuard();
 
   // A light dismiss: the press that closed the menu landed outside it and its button.
   let pressedOutside = false;

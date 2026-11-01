@@ -690,7 +690,7 @@ describe("singularity publish", () => {
       r.blob.seed("audio/2025-01-01.mp3", new Date("2025-01-01T00:00:00Z"));
       r.out.length = 0;
 
-      expect(await createPublishCommand(r.deps)(["--prune", "30"], ctx)).toBe(0);
+      expect(await createPublishCommand(r.deps)(["--prune", "30", "--prune-now"], ctx)).toBe(0);
       expect(r.blob.store.has("audio/2025-01-01.mp3")).toBe(false);
       expect(
         [...r.blob.store.keys()].some((key) => /^audio\/2026-10-07\.[0-9a-f]{12}\.mp3$/.test(key)),
@@ -699,11 +699,21 @@ describe("singularity publish", () => {
       expect(remoteHead()).toBe(head);
     });
 
+    // Bug: the daily audio run listed all of audio/ every day, one Blob operation per page.
+    it("skips the sweep on a weekday unless asked", async () => {
+      await seed("2026-10-07");
+      const r = rig();
+      r.blob.seed("audio/2025-01-01.mp3", new Date("2025-01-01T00:00:00Z"));
+      // rig() fixes the clock on a Wednesday
+      expect(await createPublishCommand(r.deps)(["--prune", "30"], ctx)).toBe(0);
+      expect(r.blob.store.has("audio/2025-01-01.mp3")).toBe(true);
+    });
+
     it("prunes alongside publishing", async () => {
       await seed("2026-10-07");
       const r = rig();
       r.blob.seed("audio/2025-01-01.mp3", new Date("2025-01-01T00:00:00Z"));
-      expect(await createPublishCommand(r.deps)(["--prune", "30"], ctx)).toBe(0);
+      expect(await createPublishCommand(r.deps)(["--prune", "30", "--prune-now"], ctx)).toBe(0);
       expect(r.blob.store.has("audio/2025-01-01.mp3")).toBe(false);
       expect(audioOf("2026-10-07")).not.toBeNull();
     });

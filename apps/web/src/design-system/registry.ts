@@ -4,17 +4,20 @@
  * designSystem.test.ts holds the app to them. A new component is added here in the PR that adds it;
  * a class not listed here is not part of the system.
  */
+import { BADGE, BADGE_CLASSES, BADGE_RETIRED } from "./badge";
 import { BANNER, BANNER_CLASSES, BANNER_RETIRED } from "./banner";
 import { BUTTON, BUTTON_CLASSES, BUTTON_RETIRED } from "./button";
 import { DIALOG, DIALOG_CLASSES, DIALOG_RETIRED } from "./dialog";
 import { DRAWER, DRAWER_CLASSES, DRAWER_RETIRED } from "./drawer";
 import { FIELD, FIELD_CLASSES, FIELD_RETIRED } from "./field";
 import type { Guidance } from "./guidance";
+import { ICON, ICON_CLASSES, ICON_RETIRED } from "./icon";
 import { MENU, MENU_CLASSES, MENU_RETIRED } from "./menu";
 import { SELECT, SELECT_CLASSES, SELECT_RETIRED } from "./select";
 import { SHEET, SHEET_CLASSES, SHEET_RETIRED } from "./sheet";
 import { SLIDER, SLIDER_CLASSES, SLIDER_RETIRED } from "./slider";
 import { SWITCH, SWITCH_CLASSES, SWITCH_RETIRED } from "./switch";
+import { WHEEL, WHEEL_CLASSES, WHEEL_RETIRED } from "./wheel";
 
 export interface DesignSystemComponent extends Guidance {
   name: string;
@@ -40,6 +43,28 @@ export const COMPONENTS: DesignSystemComponent[] = [
     useWhen: BUTTON.useWhen,
     dontUseWhen: BUTTON.dontUseWhen,
     parts: { ...BUTTON.variants, ...BUTTON.tones },
+  },
+  {
+    name: "Icon",
+    sheet: "icon.css",
+    prefix: "icon-glyph",
+    classes: ICON_CLASSES,
+    retired: ICON_RETIRED,
+    summary: ICON.summary,
+    useWhen: ICON.useWhen,
+    dontUseWhen: ICON.dontUseWhen,
+    parts: ICON.sizes,
+  },
+  {
+    name: "Badge",
+    sheet: "badge.css",
+    prefix: "badge-",
+    classes: BADGE_CLASSES,
+    retired: BADGE_RETIRED,
+    summary: BADGE.summary,
+    useWhen: BADGE.useWhen,
+    dontUseWhen: BADGE.dontUseWhen,
+    parts: {},
   },
   {
     name: "Switch",
@@ -138,6 +163,17 @@ export const COMPONENTS: DesignSystemComponent[] = [
     summary: DRAWER.summary,
     useWhen: DRAWER.useWhen,
     dontUseWhen: DRAWER.dontUseWhen,
+    parts: {},
+  },
+  {
+    name: "Wheel",
+    sheet: "wheel.css",
+    prefix: "wheel-",
+    classes: WHEEL_CLASSES,
+    retired: WHEEL_RETIRED,
+    summary: WHEEL.summary,
+    useWhen: WHEEL.useWhen,
+    dontUseWhen: WHEEL.dontUseWhen,
     parts: {},
   },
 ];

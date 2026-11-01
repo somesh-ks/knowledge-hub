@@ -321,6 +321,39 @@ export function compareCards(a: CardData, b: CardData, sort: LibrarySort): numbe
   return newest;
 }
 
+/** The calendar month of a card's date ("2026-10-30" is "2026-10"): the Library's list groups by it. */
+export function monthOf(date: string): string {
+  return date.slice(0, 7);
+}
+
+/** A month's heading in the list: "October 2026". The month's own calendar, never the reader's zone. */
+export function monthLabel(month: string): string {
+  const [year = 0, number = 1] = month.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, number - 1, 1)));
+}
+
+/** Only a date order has months to group by: by length the same month would come back again and again. */
+export function groupsByMonth(sort: LibrarySort): boolean {
+  return sort !== "longest";
+}
+
+/**
+ * Where a month heading goes in a list already in order: the index of each card that starts a month
+ * (the first card, and every card whose month differs from the one before). Cards of one month that
+ * a sort has split would get a heading each time, so the caller only asks for a date order.
+ */
+export function monthStarts(dates: readonly string[]): number[] {
+  const starts: number[] = [];
+  for (const [index, date] of dates.entries()) {
+    if (index === 0 || monthOf(date) !== monthOf(dates[index - 1] ?? "")) starts.push(index);
+  }
+  return starts;
+}
+
 /** "3 results", "1 result", "1 of 5 results", or "No results". Announced after every change. */
 export function resultSummary(shown: number, total: number): string {
   if (shown === 0) return "No results";

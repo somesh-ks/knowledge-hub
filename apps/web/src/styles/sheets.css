@@ -39,7 +39,7 @@ fieldset.sheet-field {
   font-weight: var(--font-weight-medium);
 }
 
-.sheet-field-error .ui-icon {
+.sheet-field-error .icon-glyph {
   width: var(--size-icon-sm);
   height: var(--size-icon-sm);
   block-size: 1lh;

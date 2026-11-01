@@ -1,54 +1,10 @@
 /*
- * Controls: icons, the Button (filled, tonal and text), the icon button, the play chip and the play
+ * Controls: the Button (filled, tonal and text), the icon button, the play chip and the play
  * and pause glyph swap. The Button is drawn by design-system/Button.astro and nowhere else (a script
  * or an island takes its class from design-system/button.ts). One accent carries every control. Hover and press are state layers
  * (primitives.css): the control's text colour laid over its own fill. Hover only inside
  * (hover: hover) and (pointer: fine); a press on an icon comes from the .press utility in foundations.
  */
-
-/* ------------------------------------------------------------------ icons */
-
-/* Phosphor: every glyph is one filled path, so an icon is just its colour and its size. */
-.icon {
-  width: var(--size-icon);
-  height: var(--size-icon);
-  flex: none;
-  fill: currentColor;
-}
-
-.icon-lg {
-  width: var(--size-icon-lg);
-  height: var(--size-icon-lg);
-}
-
-/* Glyph ink. A Phosphor glyph's ink stops short of its box by its own margin, a fraction of the box:
-   a chevron right 0.28 at its end, a chevron down 0.16, a close 0.19, the More dots 0.44 (each path's
-   getBBox in the 256 grid, 2026-10-25). A glyph that ends a row lands its ink on the row's end, where
-   the words end, not its box (owner, 2026-10-25: "not aligned optically on both sides", D187). Set on
-   the glyph and on what holds it, so a button can pull itself out by its glyph's margin. */
-:is(.icon[data-icon="chevronRight"], :has(> .icon[data-icon="chevronRight"])) {
-  --ink-end: 0.281;
-}
-
-:is(.icon[data-icon="chevronDown"], :has(> .icon[data-icon="chevronDown"])) {
-  --ink-end: 0.156;
-}
-
-:is(.icon[data-icon="openInNew"], :has(> .icon[data-icon="openInNew"])) {
-  --ink-end: 0.125;
-}
-
-:is(.icon[data-icon="close"], :has(> .icon[data-icon="close"])) {
-  --ink-end: 0.187;
-}
-
-:is(.icon[data-icon="moreVert"], :has(> .icon[data-icon="moreVert"])) {
-  --ink-end: 0.438;
-}
-
-:is(.icon[data-icon="pencilSimple"], :has(> .icon[data-icon="pencilSimple"])) {
-  --ink-end: 0.094;
-}
 
 /* ------------------------------------------------------------------ text and icon buttons */
 
@@ -80,7 +36,7 @@
   color: var(--color-on-surface-muted);
 }
 
-.icon-btn .icon {
+.icon-btn .icon-glyph {
   width: var(--size-icon-lg);
   height: var(--size-icon-lg);
 }
@@ -325,7 +281,7 @@
   place-items: center;
 }
 
-.swap > .icon {
+.swap > .icon-glyph {
   grid-area: 1 / 1;
   transition:
     opacity var(--duration-state) var(--ease-out),
@@ -410,7 +366,7 @@
   grid-area: 1 / 1;
 }
 
-.chip-glyph .icon {
+.chip-glyph .icon-glyph {
   width: var(--chip-icon);
   height: var(--chip-icon);
 }

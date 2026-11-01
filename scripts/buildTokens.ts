@@ -32,10 +32,24 @@ export interface Token {
   extensions: Record<string, unknown>;
 }
 
+/** One token a style replaces: the base token (for its type and path) and the style's values. */
+export interface StyleOverride {
+  token: Token;
+  value: TokenValue;
+  dark?: TokenValue;
+}
+
+/** A named look, a set of token overrides applied under `data-style="<name>"` (D268). */
+export interface StyleDefinition {
+  name: string;
+  overrides: StyleOverride[];
+}
+
 export interface TokenDocument {
   tokens: Token[];
   byPath: Map<string, Token>;
   fluid: { minViewport: string; maxViewport: string };
+  styles: StyleDefinition[];
 }
 
 const TIERS: readonly Tier[] = ["primitive", "semantic", "component"];
@@ -53,6 +67,7 @@ const GENERIC_FAMILIES = new Set([
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const TOKENS_JSON_PATH = resolve(ROOT, "tokens/tokens.json");
 export const TOKENS_CSS_PATH = resolve(ROOT, "apps/web/src/styles/tokens.css");
+export const HAPTICS_TS_PATH = resolve(ROOT, "apps/web/src/design-system/hapticTokens.ts");
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -107,21 +122,87 @@ export function parseTokens(raw: unknown): TokenDocument {
     }
     for (const [key, child] of Object.entries(node)) {
       if (key.startsWith("$") || !isRecord(child)) continue;
+      if (path.length === 0 && key === "styles") continue;
       visit(child, [...path, key], groupType);
     }
   };
 
   visit(raw, [], "");
+  const byPath = new Map(tokens.map((token) => [token.dotPath, token]));
   const root = isRecord(raw.$extensions) ? singularityExtension(raw.$extensions) : {};
   const fluid = isRecord(root.fluid) ? root.fluid : {};
   return {
     tokens,
-    byPath: new Map(tokens.map((token) => [token.dotPath, token])),
+    byPath,
+    styles: parseStyles(raw.styles, byPath),
     fluid: {
       minViewport: typeof fluid.minViewport === "string" ? fluid.minViewport : "20rem",
       maxViewport: typeof fluid.maxViewport === "string" ? fluid.maxViewport : "80rem",
     },
   };
+}
+
+/**
+ * `styles` holds one group per style, each mirroring the token tree (`semantic.color.accent`, ...)
+ * with a `$value` and, where the base token has a dark value, a `$extensions.singularity.mode.dark`.
+ * The rules keep a style from leaking: it replaces existing tokens only, never a primitive (a ramp
+ * would shift every color at once, and the reduced-motion rule sets primitives, which a heavier
+ * style block would outrank), and it gives both modes wherever the base does, so the
+ * base's dark value never shows through a light-only override.
+ */
+function parseStyles(raw: unknown, byPath: Map<string, Token>): StyleDefinition[] {
+  if (raw === undefined) return [];
+  if (!isRecord(raw)) throw new Error("styles must be an object");
+  const styles: StyleDefinition[] = [];
+  for (const [name, group] of Object.entries(raw)) {
+    if (name.startsWith("$")) continue;
+    // The same shape preferences.ts and themeInit.js accept, so a style a device can choose always loads.
+    if (!/^[a-z][a-z-]{0,23}$/.test(name) || name === "default") {
+      throw new Error(
+        `Style name "${name}" must be lowercase kebab-case, at most 24 characters, and not "default"`,
+      );
+    }
+    if (!isRecord(group)) throw new Error(`Style ${name} must be an object`);
+    const overrides: StyleOverride[] = [];
+    const visit = (node: Record<string, unknown>, path: string[]): void => {
+      if ("$value" in node) {
+        const dotPath = path.join(".");
+        const where = `style ${name}, ${dotPath}`;
+        const token = byPath.get(dotPath);
+        if (!token) throw new Error(`${where}: no such token`);
+        if (token.tier === "primitive")
+          throw new Error(`${where}: a style may not replace a primitive`);
+        const value = node.$value;
+        if (!isTokenValue(value)) throw new Error(`${where}: invalid $value`);
+        const extensions = isRecord(node.$extensions) ? node.$extensions : {};
+        const mode = singularityExtension(extensions).mode;
+        const dark = isRecord(mode) ? mode.dark : undefined;
+        if (dark !== undefined && !isTokenValue(dark))
+          throw new Error(`${where}: invalid dark value`);
+        if ((token.dark !== undefined) !== (dark !== undefined)) {
+          throw new Error(
+            token.dark !== undefined
+              ? `${where}: the base has a dark value, so the style needs one too`
+              : `${where}: the base has no dark value, so the style may not give one`,
+          );
+        }
+        overrides.push({ token, value, ...(dark !== undefined ? { dark } : {}) });
+        return;
+      }
+      for (const [key, child] of Object.entries(node)) {
+        if (key.startsWith("$")) continue;
+        if (!isRecord(child)) {
+          throw new Error(
+            `style ${name}, ${[...path, key].join(".")}: expected a token or a group`,
+          );
+        }
+        visit(child, [...path, key]);
+      }
+    };
+    visit(group, []);
+    styles.push({ name, overrides });
+  }
+  return styles;
 }
 
 export function loadTokens(path: string = TOKENS_JSON_PATH): TokenDocument {
@@ -263,6 +344,8 @@ export function declarationsFor(
   doc: TokenDocument,
 ): Declaration[] {
   const base = cssName(token.path);
+  // A haptic is read by script, never by a stylesheet (hapticModule writes it out).
+  if (token.type === HAPTIC_TYPE) return [];
   if (token.type === "typography") {
     if (typeof value !== "object" || value === null || Array.isArray(value)) {
       throw new Error(`Typography ${token.dotPath} needs an object`);
@@ -325,6 +408,42 @@ function lowerIndent(lines: string[]): string[] {
   return lines.map((line) => `  ${line}`);
 }
 
+/**
+ * A style's blocks follow the base's, so at equal weight the style wins. The light block is one
+ * attribute heavier than the base's light block; the two dark blocks are heavier than the base's
+ * dark blocks, and a style gives dark values only for tokens that have them in the base.
+ */
+function styleBlocks(style: StyleDefinition, doc: TokenDocument): string[] {
+  const lines = (pick: (override: StyleOverride) => TokenValue | undefined): string[] => {
+    const out: string[] = [];
+    for (const override of style.overrides) {
+      const value = pick(override);
+      if (value === undefined) continue;
+      for (const declaration of declarationsFor(override.token, value, doc)) {
+        out.push(formatDeclaration(declaration));
+      }
+    }
+    return out;
+  };
+  const light = lines((override) => override.value);
+  const dark = lines((override) => override.dark);
+  const attr = `[data-style="${style.name}"]`;
+  const out = [`/* Style: ${style.name} */`, `:root${attr} {`, ...light, "}", ""];
+  if (dark.length > 0) {
+    out.push("@media (prefers-color-scheme: dark) {");
+    out.push(`  :root:not([data-theme="light"])${attr} {`);
+    out.push(...lowerIndent(dark));
+    out.push("  }");
+    out.push("}");
+    out.push("");
+    out.push(`:root[data-theme="dark"]${attr} {`);
+    out.push(...dark);
+    out.push("}");
+    out.push("");
+  }
+  return out;
+}
+
 export function buildCss(doc: TokenDocument): string {
   const out: string[] = [HEADER];
   const sections: Array<[Tier, string]> = [
@@ -358,6 +477,8 @@ export function buildCss(doc: TokenDocument): string {
   out.push("  color-scheme: dark;");
   out.push("}");
   out.push("");
+
+  for (const style of doc.styles) out.push(...styleBlocks(style, doc));
 
   const reduced = doc.tokens.filter((token) => token.reducedMotion !== undefined);
   out.push(
@@ -398,24 +519,117 @@ export function hexFor(doc: TokenDocument, dotPath: string, mode: Mode): string 
   return toHex(oklchStringToRgb(literal));
 }
 
+const HAPTIC_TYPE = "singularity-haptic";
+/** What a phone's motor can be asked for in one pattern, in ms: a longer one is a notification, not a touch. */
+const HAPTIC_MAX_MS = 250;
+
+/**
+ * The haptic tokens as a TypeScript module: the patterns, and the intents that point at them. A
+ * pattern must give both phones something or neither, so a token never does nothing on one of them
+ * without saying so (`none` is the one pattern with no beats), and an intent must name a pattern.
+ */
+export function hapticModule(doc: TokenDocument): string {
+  const patterns: string[] = [];
+  const beats = new Map<string, number>();
+  for (const token of doc.tokens) {
+    if (token.type !== HAPTIC_TYPE || token.tier !== "primitive") continue;
+    const name = token.path[token.path.length - 1] as string;
+    const value = token.value;
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      throw new Error(`Haptic ${token.dotPath} needs {android, ios}`);
+    }
+    const android = value.android;
+    const ios = value.ios;
+    if (!Array.isArray(android) || !android.every((n) => typeof n === "number" && n >= 0)) {
+      throw new Error(`Haptic ${token.dotPath} needs an android array of milliseconds`);
+    }
+    if (typeof ios !== "object" || ios === null || Array.isArray(ios)) {
+      throw new Error(`Haptic ${token.dotPath} needs an ios {ticks, gap_ms}`);
+    }
+    const ticks = ios.ticks;
+    const gap = ios.gap_ms;
+    if (!Number.isInteger(ticks) || typeof ticks !== "number" || ticks < 0) {
+      throw new Error(`Haptic ${token.dotPath} needs ios.ticks, a whole number`);
+    }
+    if (typeof gap !== "number" || gap < 0 || (ticks > 1 && gap === 0)) {
+      throw new Error(`Haptic ${token.dotPath} needs ios.gap_ms above 0 for more than one tick`);
+    }
+    if ((android.length === 0) !== (ticks === 0)) {
+      throw new Error(`Haptic ${token.dotPath} is silent on one phone and not the other`);
+    }
+    let total = 0;
+    for (const n of android) total += n as number;
+    if (total > HAPTIC_MAX_MS) {
+      throw new Error(`Haptic ${token.dotPath} runs past ${HAPTIC_MAX_MS} ms`);
+    }
+    beats.set(name, ticks);
+    patterns.push(
+      `  ${JSON.stringify(name)}: { android: [${android.join(", ")}], ios: { ticks: ${ticks}, gap_ms: ${gap} } },`,
+    );
+  }
+  const intents: string[] = [];
+  for (const token of doc.tokens) {
+    if (token.type !== HAPTIC_TYPE || token.tier !== "semantic") continue;
+    const target = aliasTarget(token.value);
+    const pattern = target?.startsWith("primitive.haptic.") ? target.slice(17) : undefined;
+    if (!pattern || !beats.has(pattern)) {
+      throw new Error(`Haptic intent ${token.dotPath} must name a primitive.haptic pattern`);
+    }
+    intents.push(
+      `  ${JSON.stringify(token.path[token.path.length - 1])}: ${JSON.stringify(pattern)},`,
+    );
+  }
+  return [
+    "/* biome-ignore-all format: generated file, formatted by scripts/buildTokens.ts */",
+    "/*",
+    " * GENERATED FILE. Do not edit.",
+    " * Source: tokens/tokens.json (primitive.haptic, semantic.haptic). Build: npx tsx scripts/buildTokens.ts",
+    " * Android plays `android` through navigator.vibrate; iPhone plays `ios.ticks` ticks, `ios.gap_ms` apart.",
+    " */",
+    "",
+    "export const HAPTIC_PATTERNS = {",
+    ...patterns,
+    "} as const;",
+    "",
+    "export type HapticPattern = keyof typeof HAPTIC_PATTERNS;",
+    "",
+    "/** What a control asks for. A call site names one of these and never a pattern. */",
+    "export const HAPTIC_INTENTS = {",
+    ...intents,
+    "} as const satisfies Record<string, HapticPattern>;",
+    "",
+    "export type HapticIntent = keyof typeof HAPTIC_INTENTS;",
+    "",
+  ].join("\n");
+}
+
 export function buildTokensCss(): string {
   return buildCss(loadTokens());
 }
 
 function main(): void {
   const css = buildTokensCss();
+  const haptics = hapticModule(loadTokens());
+  const outputs: ReadonlyArray<[string, string]> = [
+    [TOKENS_CSS_PATH, css],
+    [HAPTICS_TS_PATH, haptics],
+  ];
   if (process.argv.includes("--check")) {
-    const current = existsSync(TOKENS_CSS_PATH) ? readFileSync(TOKENS_CSS_PATH, "utf8") : "";
-    if (current !== css) {
-      console.error("apps/web/src/styles/tokens.css is stale. Run: npx tsx scripts/buildTokens.ts");
-      process.exit(1);
+    for (const [path, text] of outputs) {
+      const current = existsSync(path) ? readFileSync(path, "utf8") : "";
+      if (current !== text) {
+        console.error(`${path} is stale. Run: npx tsx scripts/buildTokens.ts`);
+        process.exit(1);
+      }
     }
-    console.log("tokens.css is up to date");
+    console.log("tokens.css and hapticTokens.ts are up to date");
     return;
   }
-  mkdirSync(dirname(TOKENS_CSS_PATH), { recursive: true });
-  writeFileSync(TOKENS_CSS_PATH, css, "utf8");
-  console.log(`Wrote ${TOKENS_CSS_PATH}`);
+  for (const [path, text] of outputs) {
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, text, "utf8");
+    console.log(`Wrote ${path}`);
+  }
 }
 
 const isMain =

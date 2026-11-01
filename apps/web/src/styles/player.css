@@ -118,20 +118,7 @@
   initial-value: 0px;
 }
 
-/* ------------------------------------------------------------------ icons and the glyph swap */
-
-.ui-icon {
-  width: var(--size-icon);
-  height: var(--size-icon);
-  flex: none;
-  /* Phosphor: every glyph is one filled path. */
-  fill: currentColor;
-}
-
-.icon-lg {
-  width: var(--size-icon-lg);
-  height: var(--size-icon-lg);
-}
+/* ------------------------------------------------------------------ the glyph swap */
 
 /* Play and pause share one slot. The outgoing glyph shrinks, fades and blurs as the incoming one
    arrives: small, fast, and keyed on the nearest ancestor's data-playing. */
@@ -143,7 +130,7 @@
   transition: opacity var(--duration-hover) var(--ease-out);
 }
 
-.glyph-swap > .ui-icon {
+.glyph-swap > .icon-glyph {
   grid-area: 1 / 1;
   transition:
     opacity var(--duration-state) var(--ease-out),
@@ -486,15 +473,14 @@
   text-wrap: pretty;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  font-family: var(--text-title-family);
-  font-size: var(--text-title-size);
-  font-weight: var(--text-title-weight);
-  letter-spacing: var(--text-title-tracking);
-  line-height: var(--text-title-leading);
 }
 
+/* The thumb's zone: a pull down on the seek strip's neighbours (the transport, the notice) dismisses
+   like the top of the page (owner, 2026-11-01). It takes no native pan, as .player-drag; the
+   controller scrolls the page under a finger that is not dismissing, and the seek strip has its own. */
 .player-controls {
   padding-block-start: 0;
+  touch-action: none;
 }
 
 /* Lean page (2026-10-25): nothing to read and nothing queued, so there is no list to show. The
@@ -1090,6 +1076,8 @@
   width: var(--mini-player-control-size);
   height: var(--mini-player-control-size);
   border-radius: var(--radius-round);
+  /* A held thumb that drifts must not turn into a pan that cancels the press (heldTap.ts). */
+  touch-action: none;
 }
 
 /* Previous belongs to the wide bar. Said again here, because the rule above gives every bar button
@@ -1098,7 +1086,7 @@
   display: none;
 }
 
-.dock-btn[data-primary] .ui-icon {
+.dock-btn[data-primary] .icon-glyph {
   width: var(--size-icon-lg);
   height: var(--size-icon-lg);
 }
@@ -1695,7 +1683,7 @@
   color: var(--color-on-surface);
 }
 
-.transport-btn .ui-icon {
+.transport-btn .icon-glyph {
   width: var(--transport-glyph);
   height: var(--transport-glyph);
 }
@@ -2381,7 +2369,7 @@
   white-space: nowrap;
 }
 
-.player-source-link .ui-icon {
+.player-source-link .icon-glyph {
   width: var(--space-4);
   height: var(--space-4);
 }
@@ -2675,6 +2663,15 @@
   box-shadow: inset 0 calc(var(--stroke-ring) * -1) 0 var(--color-accent);
 }
 
+/* D277: the list keeps what played (muted) and marks what plays now (accent, the active color). */
+.player-queue-item[data-state="played"] .player-upnext-date {
+  color: var(--color-on-surface-muted);
+}
+
+.player-queue-item[data-state="current"] .player-upnext-date {
+  color: var(--color-accent);
+}
+
 .player-queue-more,
 .player-queue-add {
   flex: none;
@@ -2852,7 +2849,7 @@ html:is([data-player="open"], :has(dialog[open])) .player-dock {
       visibility 0s var(--ease-linear) var(--duration-state);
   }
 
-  .glyph-swap > .ui-icon {
+  .glyph-swap > .icon-glyph {
     transition: opacity var(--duration-state) var(--ease-out);
   }
 
@@ -2943,18 +2940,18 @@ html:is([data-player="open"], :has(dialog[open])) .player-dock {
  * is the chevron down; collapsed it is turned to point up, open it points down. The turn takes the
  * state duration and is skipped for reduced motion. Uses the shared .icon-btn; only the turn is its own.
  */
-.dock-expand .ui-icon {
+.dock-expand .icon-glyph {
   width: var(--size-icon-lg);
   height: var(--size-icon-lg);
   rotate: 180deg;
 }
 
-.dock-expand[aria-expanded="true"] .ui-icon {
+.dock-expand[aria-expanded="true"] .icon-glyph {
   rotate: 0deg;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .dock-expand .ui-icon {
+  .dock-expand .icon-glyph {
     transition: rotate var(--duration-state) var(--ease-out);
   }
 }

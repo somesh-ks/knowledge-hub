@@ -12,10 +12,14 @@ export const LABEL = "design-system";
 export const SYSTEM_PATHS = [
   "apps/web/src/design-system/",
   "apps/web/src/styles/buttons.css",
+  "apps/web/src/styles/icon.css",
+  "apps/web/src/styles/badge.css",
   "apps/web/src/styles/switch.css",
   "apps/web/src/styles/slider.css",
   "apps/web/src/styles/field.css",
   "apps/web/src/styles/select.css",
+  "apps/web/src/styles/picker.css",
+  "apps/web/src/styles/wheel.css",
   "apps/web/src/styles/menu.css",
   "apps/web/src/styles/banner.css",
   "apps/web/src/styles/dialog.css",
@@ -41,6 +45,7 @@ const MAY_CHANGE = [
   "docs/decisions/",
   "docs/history/",
   "docs/design-engineering-ledger.md",
+  "docs/ledger/",
   "docs/specs/look-and-sound.md",
   // A spec that names a class a family retired (the Costs chips were the shared `.sort-field`).
   "docs/specs/costs.md",
@@ -50,10 +55,23 @@ const MAY_CHANGE = [
   "docs/design/command-center.md",
   "docs/specs/README.md",
   "apps/web/src/lib/icons.ts",
+  // The rest of what tokens/glyphs.json builds: the player's two registries, the generator and its
+  // test. glyphs.json is a system path, and a change to it (a bold twin per glyph, D274) must
+  // regenerate all three registries in the same pull request or `glyphs --check` fails.
+  "apps/web/src/player/ui/iconPaths.tsx",
+  "apps/web/src/player/ui/iconPathsLazy.tsx",
+  "scripts/buildGlyphs.ts",
+  "scripts/buildGlyphs.test.ts",
+  // The cover is a shared component outside design-system/; its corner rule (D268) follows the
+  // cover-radius tokens, so a token change that needs a cap changes this stylesheet with it.
+  "apps/web/src/styles/cover.css",
   "scripts/gate.mjs",
   "docs/state.md",
+  // The Icon moved into the system (D266); its old path is deleted.
+  "apps/web/src/components/Icon.astro",
   "docs/learnings.md",
   "scripts/designSystemGate",
+  "scripts/buildTokens",
   ".github/workflows/design-system.yml",
   ".claude/skills/feature/",
   "AGENTS.md",
@@ -69,7 +87,7 @@ const CALL_SITES = ["apps/web/src/", "apps/web/e2e/", "apps/admin/src/"];
  * replaced. A family's pull request adds the names it retires here, so its own call sites count.
  */
 export const SYSTEM_NAMES =
-  /\bButton\b|buttonClass|button-(?:filled|tonal|text|danger)|\bbtn\b|btn-primary|btn-secondary|confirm-delete|\bSwitch\b|\bSlider\b|switchClass|sliderClass|\.(?:switch|slider)-input\b|settings-switch|settings-range|speed-slider|<Field(?![\w.])|fieldClass|field-input|manage-input|sheet-input|<Select(?![\w.])|selectClass|select-(?:outlined|tonal)|manage-select|sort-field|create-select|styles\/(?:menu|select|sheet|drawer)\.css|data-sheet=|MENU_SELECTORS|<Menu(?:Item)?(?![\w.])|menuItemClass|menuListClass|menu-(?:list|item)|hero-menu-(?:list|item|delete)|<Banner(?![\w.])|bannerClass|bannerText|player-notice|<Dialog(?:Actions)?(?![\w.])|dialogClass|dialogActionsClass|dialogBodyClass|DIALOG_SELECTOR|confirm-(?:dialog|form|actions)|<DialogTitle|dialogTitleClass|<Sheet(?![\w.])|sheet(?:Body|Head|Title)?Class|(?:CREATE_|PANEL_)?SHEET_SELECTOR|create-sheet(?:-head|-body)?\b|drawer(?:Scrim|Viewport|Popup|Panel|Head)Class|sheet-(?:scrim|viewport|popup|panel)/;
+  /\bButton\b|buttonClass|<(?:Lazy)?Icon(?![\w.])|<Badge(?![\w.])|PlayPauseIcons|badgeClass|badge-label|iconClass|iconHtml|icon-glyph|text-(?:display|title|heading)\b|button-(?:filled|tonal|text|danger)|\bbtn\b|btn-primary|btn-secondary|confirm-delete|\bSwitch\b|\bSlider\b|switchClass|sliderClass|\.(?:switch|slider)-input\b|settings-switch|settings-range|speed-slider|<Field(?![\w.])|fieldClass|field-input|manage-input|sheet-input|<Select(?![\w.])|selectClass|selectSheet|data-select-sheet|select-(?:outlined|tonal)|manage-select|sort-field|create-select|styles\/(?:menu|select|sheet|drawer)\.css|data-sheet=|MENU_SELECTORS|<Menu(?:Item)?(?![\w.])|menuItemClass|menuListClass|menu-(?:list|item)|hero-menu-(?:list|item|delete)|<Banner(?![\w.])|bannerClass|bannerText|player-notice|<Dialog(?:Actions)?(?![\w.])|dialogClass|dialogActionsClass|dialogBodyClass|DIALOG_SELECTOR|confirm-(?:dialog|form|actions)|<DialogTitle|dialogTitleClass|<Sheet(?![\w.])|sheet(?:Body|Head|Title)?Class|(?:CREATE_|PANEL_)?SHEET_SELECTOR|create-sheet(?:-head|-body)?\b|drawer(?:Scrim|Viewport|Popup|Panel|Head)Class|sheet-(?:scrim|viewport|popup|panel)/;
 
 const startsWithAny = (file, prefixes) => prefixes.some((prefix) => file.startsWith(prefix));
 
