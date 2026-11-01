@@ -1,5 +1,6 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { writeFileAtomic } from "../state/atomicWrite.js";
 import { type ConditionalBlobClient, createVercelBlobClient } from "./blob.js";
 import { applyContentDelta, type DeltaResult } from "./contentDelta.js";
 import { fetchBytes, fetchText } from "./contentFetch.js";
@@ -49,7 +50,10 @@ async function readBaseline(root: string): Promise<Baseline | null> {
 async function writeBaseline(root: string, files: Record<string, string>): Promise<void> {
   const path = join(root, BASELINE_PATH);
   await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, JSON.stringify({ version: BASELINE_VERSION, files }), "utf8");
+  await writeFileAtomic(
+    path,
+    new TextEncoder().encode(JSON.stringify({ version: BASELINE_VERSION, files })),
+  );
 }
 
 export interface WorkspaceInput {
@@ -112,6 +116,14 @@ export async function pushWorkspace(input: WorkspaceInput): Promise<DeltaResult 
   const remove = Object.keys(baseline.files).filter(
     (path) => inWorkspace(path) && !(path in hashes),
   );
+  // A checkout that pulled content and now holds none lost its folders (a clean, a wrong directory):
+  // sending that as "delete everything" would empty the store.
+  const held = (paths: string[]): boolean => paths.some(inWorkspace);
+  if (held(Object.keys(baseline.files)) && !held(Object.keys(hashes))) {
+    throw new Error(
+      "this checkout pulled content but holds none now; a push would delete it all from the store",
+    );
+  }
   const result = await applyContentDelta({
     client: input.client,
     root: input.root,

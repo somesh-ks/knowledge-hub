@@ -164,10 +164,10 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D297 | A section may stand over its allowance only as far as the floor needs | amends D35 |
 | D298 | Repository public, owner data moved out of git, history rewritten last | supersedes D9 |
 | D299 | Offline settings edits stay on the device and send when back online | amends D79, D91, D259 |
-| D300 | Digests and audio in Blob, state in Postgres, weekly private snapshot of the config store | active; step 1 (the snapshot) built |
+| D300 | Digests and audio in Blob, state in Postgres, weekly private snapshot of the config store | partly superseded by D311; steps 1 and 2a built, 2b in review |
 | D302 | Pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked | active |
 | D306 | A seasonal style may change more than tokens | amends D268 |
 | D308 | Haiku writes the first pass of each story, Sonnet repairs and backs it up | amends D181 |
-| D311 | D300 amended: the config snapshot lives in a Neon table, not a private Blob store | active |
+| D311 | D300 amended: the config snapshot lives in a Neon table, not a private Blob store | supersedes D300 (snapshot clause) |
 
 ---

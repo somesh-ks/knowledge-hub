@@ -141,7 +141,10 @@ jobs:
           jq -r '.findings[] | select(.aspect == "performance") | "::warning title=\(.code)::\(.message)"' "$RUNNER_TEMP/health.json" || true
           jq -r '"## Performance", "", (.findings[] | select(.aspect == "performance") | "- \(.code): \(.message)"), (.passed[] | select(test("lab budget|^field ")) | "- \(.)")' "$RUNNER_TEMP/health.json" >> "$GITHUB_STEP_SUMMARY" || true
 
+      # Always: a Load content that failed leaves no report, and the fallback below records that as a
+      # health_crashed fault, so a store outage is reported rather than skipped.
       - name: Report and heal
+        if: ${{ always() }}
         shell: bash
         env:
           DRILL: ${{ inputs.drill == true }}

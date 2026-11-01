@@ -6,17 +6,26 @@
  * token (a fork, a laptop), keep whatever Digests/ holds.
  */
 import { spawnSync } from "node:child_process";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const fixtures = process.env.SINGULARITY_FIXTURES === "1" || process.env.DISPATCH_FIXTURES === "1";
-if (fixtures || !process.env.BLOB_READ_WRITE_TOKEN) {
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+try {
+  // The engine reads .env itself, but this check runs first. A variable already set wins over the file.
+  process.loadEnvFile(join(root, ".env"));
+} catch {
+  // No .env, or one that cannot be read: the environment alone supplies the keys.
+}
+const env = process.env;
+const fixtures = env.SINGULARITY_FIXTURES === "1" || env.DISPATCH_FIXTURES === "1";
+const hasStore =
+  Boolean(env.BLOB_READ_WRITE_TOKEN) || Boolean(env.VERCEL_OIDC_TOKEN && env.BLOB_STORE_ID);
+if (fixtures || !hasStore) {
   process.stdout.write(
-    `content: not pulled (${fixtures ? "fixture build" : "BLOB_READ_WRITE_TOKEN is not set"})\n`,
+    `content: not pulled (${fixtures ? "fixture build" : "no Blob credentials"})\n`,
   );
   process.exit(0);
 }
-const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const pulled = spawnSync(
   "npm",
   ["run", "--silent", "singularity", "--", "content", "pull", "--root", root],

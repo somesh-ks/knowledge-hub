@@ -75,6 +75,17 @@ describe("pushWorkspace", () => {
     expect(store.objects.has(`${CONTENT_PREFIX}${DIGEST("01")}`)).toBe(false);
   });
 
+  // The bug: a checkout that pulled and then lost its Digests/ and Podcasts/ (a clean step, a wrong
+  // directory) looked like a job that deleted every digest, and the push removed them all.
+  it("refuses to push when the pulled folders are gone", async () => {
+    const store = fakeBlob();
+    await seed(store, { [DIGEST("01")]: "one" });
+    const root = await job(store);
+    await rm(join(root, "Digests"), { recursive: true });
+    await expect(pushWorkspace(input(store, root))).rejects.toThrow(/holds none now/);
+    expect(stored(store)).toEqual([DIGEST("01")]);
+  });
+
   // The bug: a job that never pulled (a laptop, a workflow without the step) holds no digests, so
   // treating its empty Digests/ as "everything was deleted" would empty the store.
   it("does nothing for a checkout that never pulled", async () => {
@@ -157,7 +168,7 @@ describe("syncContent", () => {
     const root = await checkout({});
     await expect(
       syncContent({ client: store.client, root, now: NOW, fetchText: store.fetchText }),
-    ).rejects.toThrow(/no digests/);
+    ).rejects.toThrow(/nothing under Digests/);
     expect(stored(store)).toEqual([DIGEST("01")]);
   });
 
@@ -170,7 +181,7 @@ describe("syncContent", () => {
     const root = await checkout({ "state/last-run.json": '{"v":1}' });
     await expect(
       syncContent({ client: store.client, root, now: NOW, fetchText: store.fetchText }),
-    ).rejects.toThrow(/no digests/);
+    ).rejects.toThrow(/nothing under Digests/);
     expect(JSON.stringify([...store.objects.entries()])).toBe(before);
   });
 });

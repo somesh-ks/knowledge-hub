@@ -172,6 +172,7 @@ jobs:
 
       # Delete runs alone: no stage after it has a plan to follow, so every later step is skipped.
       - name: Delete
+        id: delete
         if: inputs.delete != ''
         shell: bash
         env:
@@ -332,7 +333,7 @@ jobs:
       # (the state files the site reads, a deleted digest) once the commit is in. A failed upload is
       # tried three times; if it still fails the job is red and a rerun repeats it.
       - name: Save content
-        if: ${{ !cancelled() && steps.content.outcome == 'success' && steps.commit.outcome != 'failure' }}
+        if: ${{ !cancelled() && steps.content.outcome == 'success' && steps.commit.outcome != 'failure' && (inputs.delete == '' || steps.delete.outcome == 'success') }}
         shell: bash
         env:
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}

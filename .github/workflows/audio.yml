@@ -64,22 +64,6 @@ jobs:
       - name: Install
         run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
 
-      # Digests and episodes are in the content store, not in git (D300). Copy them in first: the job
-      # reads them (the ids already taken, the audio still owed, the stories an episode draws on).
-      # --track records what the store held, so Save content below sends back only what this job
-      # changed. A job that cannot read the store stops here rather than run on an empty Digests/.
-      - name: Load content
-        id: content
-        shell: bash
-        env:
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
-        run: |
-          for attempt in 1 2 3; do
-            npm run --silent singularity -- content pull --track || { sleep $((attempt * 10)); continue; }
-            exit 0
-          done
-          exit 1
-
       # The Opus transcode (packages/engine/src/audio/transcode.ts) needs ffmpeg with libopus, which
       # the runner image does not carry: without it the Opus copy is skipped and the MP3 plays alone.
       - name: ffmpeg
@@ -136,6 +120,23 @@ jobs:
           rm -f "$RUNNER_TEMP/audio.env"
           # Later steps read them; the engine step is the only one.
           { echo "VERCEL_OIDC_TOKEN=$VERCEL_OIDC_TOKEN"; echo "BLOB_STORE_ID=$BLOB_STORE_ID"; } >> "$GITHUB_ENV"
+
+      # Digests and episodes are in the content store, not in git (D300). Copy them in first: the job
+      # reads them (the ids already taken, the audio still owed, the stories an episode draws on).
+      # After the Blob credentials, which may be the short-lived pair the engine also reads here.
+      # --track records what the store held, so Save content below sends back only what this job
+      # changed. A job that cannot read the store stops here rather than run on an empty Digests/.
+      - name: Load content
+        id: content
+        shell: bash
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+        run: |
+          for attempt in 1 2 3; do
+            npm run --silent singularity -- content pull --track || { sleep $((attempt * 10)); continue; }
+            exit 0
+          done
+          exit 1
 
       # Audio failures leave audio null and never block the text digest.
       - name: ${{ inputs.step_name || 'Audio' }}

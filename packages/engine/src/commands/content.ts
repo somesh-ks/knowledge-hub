@@ -14,10 +14,10 @@ export const CONTENT_USAGE = `Usage: singularity content <command>
                              checkout lacks. Safe only while git holds all of the content.
   put <path>...              Add or replace these files, leaving every other path as it is (D300).
   remove <path>...           Remove these paths from the store, leaving every other path as it is.
-  pull [--track] [<path>...] Copy the store's files into this checkout, Digests and Podcasts unless
-                             paths are named. Adds and replaces; never deletes. --track also
-                             records what the store held, so this job's commit commands send their
-                             changes back (workflows use it; a build does not).
+  pull [<path>...]           Copy the store's files into this checkout, Digests and Podcasts unless
+                             paths are named. Adds and replaces; never deletes.
+  pull --track               The same for Digests and Podcasts, and records what the store held, so
+                             push sends back only this job's changes (workflows use it).
   push                       Send what this checkout changed since a tracked pull: new and rewritten
                              digests and episodes are put, deleted ones removed, nothing else touched.`;
 
@@ -49,10 +49,20 @@ export function makeContentCommand(deps: ContentDeps = {}): CommandRun {
       ctx.log.error(CONTENT_USAGE);
       return 2;
     }
+    // The long-lived token, or the short-lived pair `vercel env pull` issues (audio.yml's fallback).
     const token = ctx.env.BLOB_READ_WRITE_TOKEN;
-    const client = deps.blob ?? (token ? createVercelBlobClient(token) : null);
+    const { VERCEL_OIDC_TOKEN: oidcToken, BLOB_STORE_ID: storeId } = ctx.env;
+    const client =
+      deps.blob ??
+      (token
+        ? createVercelBlobClient(token)
+        : oidcToken && storeId
+          ? createVercelBlobClient({ oidcToken, storeId })
+          : null);
     if (!client) {
-      ctx.log.error("BLOB_READ_WRITE_TOKEN is not set, so there is no content store to sync to.");
+      ctx.log.error(
+        "BLOB_READ_WRITE_TOKEN is not set (nor VERCEL_OIDC_TOKEN with BLOB_STORE_ID), so there is no content store.",
+      );
       return 1;
     }
     try {
