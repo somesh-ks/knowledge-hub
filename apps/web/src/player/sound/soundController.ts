@@ -85,6 +85,12 @@ export function startSound(wiring: SoundWiring): () => void {
     // Marked only when it sounded: a cue the engine refused (narration, Sounds off) must not
     // hold back the delegated tick of the same press.
     const cue = cueForPlayerEvent(event);
+    // Touch first and whether or not Sounds is on, as playUiCue does (D273, D289): play, pause,
+    // next, previous and speed are the most-pressed controls and must be felt with the sound off.
+    if (cue?.haptic && getHaptics().fire(cue.haptic)) {
+      lastCueAt = performance.now();
+      lastCueName = cue.name;
+    }
     if (playCue(engine, cue)) {
       lastCueAt = performance.now();
       lastCueName = cue?.name ?? "";
