@@ -1,4 +1,9 @@
-import { DEFAULT_STYLE, type StylePreference, type ThemePreference } from "./preferences";
+import {
+  DEFAULT_STYLE,
+  getPreferences,
+  type StylePreference,
+  type ThemePreference,
+} from "./preferences";
 import { setRootAttribute, setRootProperty } from "./rootAttributes";
 
 /** `data-theme` is absent for "system", so the media query decides. */
@@ -28,13 +33,14 @@ let changes = 0;
  * crossfade `data-theme-change` is on the root, and the whole window fades as one picture
  * (view-transitions.css). Covers are vectors the page colours (D314), so nothing waits for them.
  */
-export function changeTheme(theme: ThemePreference, style: StylePreference, hue: number): void {
+export function changeTheme(theme: ThemePreference, style: StylePreference): void {
   changes += 1;
   const change = changes;
   const apply = (): void => {
     applyTheme(theme);
     applyStyle(style);
-    applyHue(style, hue);
+    // The hue is read as the change lands, so a turn made meanwhile is not put back.
+    applyHue(style, getPreferences().get().hue);
   };
   if (typeof document.startViewTransition !== "function") {
     apply();

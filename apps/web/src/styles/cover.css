@@ -321,6 +321,7 @@
   display: block;
   width: 100%;
   height: 100%;
+  -webkit-touch-callout: none;
   --pg: var(--gl, 0.5);
 }
 
