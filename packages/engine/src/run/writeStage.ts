@@ -107,6 +107,25 @@ import type { PassReport, RunDeps, StageReport } from "./types.js";
 
 const EXTRACT_CONCURRENCY = 4;
 
+/** The writer batch is given up this long before the publish time, to leave the rest of the run its room. */
+export const BATCH_CUTOFF_MS = 15 * 60_000;
+/** A scheduled run with less than this to wait for its batch writes live: a batch can take longer. */
+export const BATCH_MIN_WAIT_MS = 10 * 60_000;
+
+/**
+ * When the scheduled writer stops waiting for its Message Batch (D294): BATCH_CUTOFF_MS before the
+ * publish time. Undefined for a run with a reader waiting (any mode but scheduled), a dry run, a run
+ * with no publish time (a late one publishes at once), and one too close to its time to wait.
+ */
+export function batchDeadline(
+  plan: { mode: RunMode; dry_run: boolean; publish_at?: string | undefined },
+  now: Date,
+): number | undefined {
+  if (plan.mode !== "scheduled" || plan.dry_run || plan.publish_at === undefined) return undefined;
+  const until = Date.parse(plan.publish_at) - BATCH_CUTOFF_MS;
+  return until - now.getTime() >= BATCH_MIN_WAIT_MS ? until : undefined;
+}
+
 interface PassContext {
   deps: RunDeps;
   runtime: ApiRuntime;
@@ -155,6 +174,11 @@ interface PassContext {
   asked: number | undefined;
   /** What the owner asked to improve, for the writer prompt. */
   feedback: string | undefined;
+  /**
+   * Epoch ms until which the writer's first pass waits for a Message Batch (D294); undefined sends
+   * every request live. Set only for a scheduled run that is generating ahead of its publish time.
+   */
+  batchUntil: number | undefined;
 }
 
 /**
@@ -211,6 +235,7 @@ export async function writeStage(
     mode: plan.mode,
     asked: plan.length_minutes,
     feedback,
+    batchUntil: batchDeadline(plan, deps.now()),
   };
 
   const claimed = new Set<string>();
@@ -572,6 +597,7 @@ async function writePass(
     sourceNames,
     feedback: context.feedback,
     taste: context.taste,
+    ...(context.batchUntil === undefined ? {} : { batchUntil: context.batchUntil }),
     drop,
   });
   for (const sel of chosen.selected) {
@@ -713,6 +739,8 @@ export async function writeFinalists(args: {
   taste: Taste;
   /** Headlines the episode already airs, which the writer sees beside the finalists'. */
   airing?: readonly string[];
+  /** The writer's first pass is a Message Batch, waited for until this epoch ms (D294). */
+  batchUntil?: number;
   drop: (id: string, stage: DropStage, reason: string) => void;
 }): Promise<{
   materials: Map<string, SourceMaterial>;
@@ -750,6 +778,7 @@ export async function writeFinalists(args: {
     args.feedback,
     args.taste,
     args.airing ?? [],
+    args.batchUntil === undefined ? {} : { batchUntil: args.batchUntil },
   );
   for (const failure of writeResult.failed) drop(failure.id, "write", failure.reason);
   const voice = await enforceVoice({

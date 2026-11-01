@@ -8,7 +8,7 @@ import type { Guidance } from "./guidance";
 
 export type BannerTone = "info" | "warning" | "danger" | "success";
 
-/** A block sits in the page; a strip is a band over it (banner.css), for a state of the device. */
+/** A block sits in the page; a strip is a band above the app that squeezes the page down (banner.css), for a state of the device. */
 export type BannerVariant = "block" | "strip";
 
 export const BANNER: Guidance & {
@@ -24,7 +24,7 @@ export const BANNER: Guidance & {
       when: "The message confirms an action and may clear itself.",
     },
     {
-      when: "A banner in the page would push it down while it moves (a cover between pages).",
+      when: "A banner in the page would be moved around by a page change (a cover between pages).",
       instead: "Banner.strip",
     },
     {
@@ -43,7 +43,7 @@ export const BANNER: Guidance & {
     strip: {
       label: "Strip",
       summary:
-        "A band across the width, drawn over the page so nothing moves: offline, back online.",
+        "A band across the top of the app that squeezes the page down while it shows: offline, back online.",
       useWhen: ["The state is the device's, not the page's, and shows on every page."],
       dontUseWhen: [
         { when: "It carries a title, a line and an action.", instead: "Banner.warning" },
@@ -86,6 +86,11 @@ export const BANNER_CLASSES: string[] = [
   "banner-text",
   "banner-title",
   "banner-body",
+  // A strip's icon is drawn as a signal: one layer, or two when the second strikes through the first.
+  "banner-signal",
+  "banner-signal-layer",
+  "banner-signal-from",
+  "banner-signal-to",
 ];
 
 /** Classes the Banner replaced; none may be written again, in any app that draws the system. */

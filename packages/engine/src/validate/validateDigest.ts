@@ -177,9 +177,27 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
     );
   }
   const titles = new Map(digestSections(digest).map((section) => [section.id, section.title]));
+  // A section may stand over its allowance only as far as the floor needs (D297): a briefing the
+  // allowances would cut below the floor keeps the best of the excess instead of publishing nothing.
+  const excessBySection = new Map<string, number>();
   for (const [section, count] of allowanceBySection) {
-    const allowance = allowanceFor(section, context.plan);
-    if (count <= allowance) continue;
+    const excess = count - allowanceFor(section, context.plan);
+    if (excess > 0) excessBySection.set(section, excess);
+  }
+  let relief = Math.max(
+    0,
+    VOICE_LIMITS.items.floor -
+      (digest.items.length - [...excessBySection.values()].reduce((sum, n) => sum + n, 0)),
+  );
+  for (const [section, excess] of excessBySection) {
+    const used = Math.min(relief, excess);
+    relief -= used;
+    excessBySection.set(section, excess - used);
+  }
+  for (const [section, excess] of excessBySection) {
+    if (excess <= 0) continue;
+    const count = allowanceBySection.get(section) ?? 0;
+    const allowance = count - excess;
     issues.push({
       severity: "error",
       code: "item_count",
@@ -190,7 +208,7 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
       overAllowance: {
         section,
         itemIds: idsBySection.get(section) ?? [],
-        excess: count - allowance,
+        excess,
       },
     });
   }

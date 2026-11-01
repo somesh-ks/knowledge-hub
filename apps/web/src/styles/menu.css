@@ -232,7 +232,14 @@
        left corner is too close"). The padding sets the height here, not the app bar's minimum. */
     min-block-size: 0;
     padding-block: var(--space-6) var(--space-2);
-    padding-inline: var(--space-4);
+    padding-inline: var(--space-4) var(--space-2);
+    border-block-end: var(--stroke-hairline) solid var(--color-border-hairline);
+  }
+
+  /* The line under the head parts the title from the rows (owner, 2026-11-01); the Close is the head's
+     end, centred on it, as the shared header lays it out. */
+  .menu-sheet-items {
+    padding-block-start: var(--space-2);
   }
 
   /* A select that opens as a wheel (wheel.css) has no rows to end the sheet; it ends a step lower. */
@@ -245,6 +252,13 @@
   .menu-sheet .menu-item {
     min-height: var(--size-option);
     border-radius: var(--radius-xl);
+  }
+
+  /* Keys and a screen reader's focus show as the press fill, not a ring, inside the sheet (owner,
+     2026-11-01): the row is a full pill on the sheet surface, so a tint reads and a ring crowds it. */
+  .menu-sheet .menu-item:focus-visible {
+    outline: none;
+    background: color-mix(in oklab, currentColor 12%, transparent);
   }
 
   @media (prefers-reduced-motion: reduce) {

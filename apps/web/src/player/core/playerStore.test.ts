@@ -1015,6 +1015,7 @@ describe("one digest at a time", () => {
   it("plays the page's digest once its data arrives when asked from Up next", () => {
     const harness = createHarness();
     startPlaying(harness);
+    harness.events.length = 0;
     harness.store.playWhenPageLoads("2026-10-05");
     expect(harness.audio.playCalls).toBe(1);
     harness.store.setPageDigest(
@@ -1023,6 +1024,18 @@ describe("one digest at a time", () => {
     expect(harness.audio.src).toBe("/audio/old.mp3");
     expect(harness.audio.playCalls).toBe(2);
     expect(harness.store.getState().status).toBe("loading");
+    // The press was felt when it was made: starting the audio after the page loads is not a second one.
+    expect(harness.events).toContainEqual({ type: "willPlay", reason: "deferred" });
+    expect(harness.events).not.toContainEqual({ type: "willPlay", reason: "user" });
+  });
+
+  it("starts a page that is already loaded with the deferred reason too", () => {
+    const harness = createHarness();
+    const digest = makeDigest();
+    harness.store.setPageDigest(digest);
+    harness.events.length = 0;
+    harness.store.playWhenPageLoads(digest.id);
+    expect(harness.events).toContainEqual({ type: "willPlay", reason: "deferred" });
   });
 });
 

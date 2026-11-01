@@ -702,7 +702,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     if (pendingAutoplayId === digest.id) {
       pendingAutoplayId = null;
       if (track?.digest.id !== digest.id) load(digest);
-      play("user");
+      play("deferred");
     }
   }
 
@@ -1027,7 +1027,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     playWhenPageLoads(digestId) {
       if (pageDigest?.id === digestId) {
         if (track?.digest.id !== digestId) load(pageDigest);
-        play("user");
+        play("deferred");
         return;
       }
       pendingAutoplayId = digestId;

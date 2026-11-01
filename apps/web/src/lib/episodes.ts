@@ -1,7 +1,7 @@
 import { type CoverSpec, digestSections } from "@singularity/core";
 import { PALETTE_IDS, paletteAccent, pickCover, TEMPLATES } from "@singularity/cover";
 import type { PlayerDigestData } from "../types/contracts";
-import { type ContentFiles, diskFiles } from "./contentFiles";
+import { type ContentFiles, diskFiles, mapLimit, READ_CONCURRENCY } from "./contentFiles";
 import { coverSrc } from "./covers";
 import type { DigestEntry } from "./digests";
 import { type Episode, parseEpisodeFile } from "./episodeFile";
@@ -42,21 +42,32 @@ export async function readEpisodeFiles(
   const episodes: Episode[] = [];
   const warnings: string[] = [];
   const seen = new Set<string>();
-  for (const file of (await reader.list(directory)).filter((path) => path.endsWith(".md"))) {
-    try {
-      const text = await reader.read(file);
-      if (text === null) continue;
-      const episode = parseEpisodeFile(text);
-      if (seen.has(episode.id)) {
-        warnings.push(`${file}: duplicate episode id ${episode.id}, skipped`);
-        continue;
+  // Read side by side (the store answers each file separately), judged in file order.
+  const read = await mapLimit(
+    (await reader.list(directory)).filter((path) => path.endsWith(".md")),
+    READ_CONCURRENCY,
+    async (file) => {
+      try {
+        const text = await reader.read(file);
+        if (text === null) return { file, episode: null };
+        return { file, episode: parseEpisodeFile(text) };
+      } catch (error) {
+        const reason = error instanceof Error ? error.message.split("\n")[0] : "unreadable";
+        return { file, episode: null, reason };
       }
-      seen.add(episode.id);
-      episodes.push(episode);
-    } catch (error) {
-      const reason = error instanceof Error ? error.message.split("\n")[0] : "unreadable";
-      warnings.push(`${file}: ${reason}, skipped`);
+    },
+  );
+  for (const { file, episode, reason } of read) {
+    if (episode === null) {
+      if (reason !== undefined) warnings.push(`${file}: ${reason}, skipped`);
+      continue;
     }
+    if (seen.has(episode.id)) {
+      warnings.push(`${file}: duplicate episode id ${episode.id}, skipped`);
+      continue;
+    }
+    seen.add(episode.id);
+    episodes.push(episode);
   }
   return { episodes, warnings };
 }

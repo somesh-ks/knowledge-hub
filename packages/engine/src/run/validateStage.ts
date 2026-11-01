@@ -1,10 +1,19 @@
-import { type Digest, type Item, VOICE_LIMITS } from "@singularity/core";
+import {
+  type Digest,
+  hasOwnAllowance,
+  homeSection,
+  homeSectionFor,
+  type Item,
+  isBuiltinCategory,
+  VOICE_LIMITS,
+} from "@singularity/core";
 import { buildSpokenText, SpokenTextTooLongError } from "../audio/spokenText.js";
 import { linkSourceIds, loadSources, readJsonIfExists, sourceNameMap } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import { Selection, WrittenFile } from "../curate/selectionFile.js";
 import { describeError } from "../llm/errors.js";
-import { loadSectionPlan } from "../score/sectionPlan.js";
+import { loadSectionPlan, type SectionPlan } from "../score/sectionPlan.js";
+import { allowanceFor } from "../score/selectItems.js";
 import { readLastRun } from "../state/store.js";
 import { loadTopics } from "../topics/store.js";
 import { type GroundedItem, groundAndRepair } from "../validate/groundingRepair.js";
@@ -46,6 +55,50 @@ export function trimOverAllowance<T extends { item: { id: string } }>(
     }
   }
   return trimmed;
+}
+
+/**
+ * The reserve stories to write for the refill, given the room each section with an allowance of
+ * its own (Tech releases, a custom section) has left once the stories already airing are counted:
+ * validation trims a story past it whatever its score, so writing more is wasted (2026-10-31:
+ * three Tech stories written, three trimmed). A section with room left gets one spare, because a
+ * story can still be lost in writing; a full one gets none. Only when the stories that fit leave
+ * the briefing under the floor do the stories past an allowance follow, as many as the floor
+ * needs and one spare (D297): validation lets a section stand over its allowance that far.
+ * `ownerOf` names the section a story counts against, as validation does, or undefined when it
+ * has no allowance of its own.
+ */
+export function withinAllowances<T>(
+  candidates: readonly T[],
+  airing: readonly (string | undefined)[],
+  ownerOf: (candidate: T) => string | undefined,
+  plan: SectionPlan,
+  floor: number,
+): T[] {
+  const counts = new Map<string, number>();
+  for (const section of airing) {
+    if (section !== undefined) counts.set(section, (counts.get(section) ?? 0) + 1);
+  }
+  const offered = new Map<string, number>();
+  const fitting: T[] = [];
+  const past: T[] = [];
+  for (const candidate of candidates) {
+    const section = ownerOf(candidate);
+    if (section === undefined || !hasOwnAllowance(section)) {
+      fitting.push(candidate);
+      continue;
+    }
+    const room = allowanceFor(section, plan) - (counts.get(section) ?? 0);
+    const taken = offered.get(section) ?? 0;
+    if (room > 0 && taken < room + 1) {
+      offered.set(section, taken + 1);
+      fitting.push(candidate);
+    } else {
+      past.push(candidate);
+    }
+  }
+  const shortfall = floor - airing.length - fitting.length;
+  return shortfall > 0 ? [...fitting, ...past.slice(0, shortfall + 1)] : fitting;
 }
 
 /** A briefing narrating under this share of the owner's length after the refill is flagged. */
@@ -318,9 +371,24 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
     if (lengthChars !== undefined && fitted.chars < lengthChars && room > 0 && !reserve.refilled) {
       const poolById = new Map(pool.items.map((item) => [item.id, item]));
       const missing = Math.ceil((lengthChars - fitted.chars) / STORY_CHARS);
-      const candidates = reserve.items
-        .filter((entry) => !takenElsewhere.has(entry.id) && poolById.has(entry.id))
-        .slice(0, Math.min(withSpares(missing), room));
+      // The section a story counts against: its category's home, as validation resolves it.
+      const ownerOf = (category: string, source: string | undefined): string | undefined => {
+        if (source === undefined) return undefined;
+        return (
+          (isBuiltinCategory(category)
+            ? homeSection(category, source)
+            : homeSectionFor(topics, category, source)) ?? undefined
+        );
+      };
+      const candidates = withinAllowances(
+        reserve.items.filter((entry) => !takenElsewhere.has(entry.id) && poolById.has(entry.id)),
+        fitted.survivors.map((g) =>
+          ownerOf(entryOf.get(g.item.id)?.category ?? "", poolById.get(g.item.id)?.source_type),
+        ),
+        (entry) => ownerOf(entry.category, poolById.get(entry.id)?.source_type),
+        sectionPlan,
+        VOICE_LIMITS.items.floor,
+      ).slice(0, Math.min(withSpares(missing), room));
       if (candidates.length > 0) {
         // A refit that fails part way leaves its drops and warnings behind; the catch puts back
         // those of the briefing that stands.

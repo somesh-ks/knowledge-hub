@@ -322,7 +322,7 @@ test.describe("an episode download", () => {
   });
 });
 
-test("a phone's menu sheet has no visible Close, a short pull springs back to the same box, a long pull or a tap outside closes it and focus returns to the dots", async ({
+test("a phone's menu sheet shows a Close that closes it, a short pull springs back to the same box, a long pull or a tap outside closes it and focus returns to the dots", async ({
   page,
 }) => {
   await page.goto("/library");
@@ -342,9 +342,9 @@ test("a phone's menu sheet has no visible Close, a short pull springs back to th
   const dots = row(page, AUDIO_ID).locator("[data-hero-more]");
 
   await openMenu(page, AUDIO_ID);
-  // Keyboard and screen readers keep a Close; it takes no room a finger could see.
+  // The head carries a Close a finger can hit (D291): swipe, tap outside and the X all close the sheet.
   const close = sheet.locator("[data-menu-close]");
-  expect(((await close.boundingBox()) ?? { width: 99 }).width).toBeLessThan(2);
+  expect(((await close.boundingBox()) ?? { width: 0 }).width).toBeGreaterThanOrEqual(40);
   // The sheet slides up when it opens: its rest box and its head are read, and the finger lands on
   // the head, only once the slide is over (a slow runner was still mid-slide).
   const settled = () =>
@@ -368,6 +368,11 @@ test("a phone's menu sheet has no visible Close, a short pull springs back to th
   await openMenu(page, AUDIO_ID);
   await page.touchscreen.tap(195, 40);
   await expect(sheet).toBeHidden();
+
+  await openMenu(page, AUDIO_ID);
+  await close.click();
+  await expect(sheet).toBeHidden();
+  await expect(dots).toBeFocused();
 });
 
 test("a long press on a card opens its menu and leaves the card unopened, and is felt once", async ({
@@ -451,7 +456,7 @@ test("a long press on a card opens its menu and leaves the card unopened, and is
   expect(new URL(page.url()).pathname).toBe("/library");
 });
 
-test("Settings > Downloads lists what was downloaded and removes it only after a confirm, for good", async ({
+test("Settings > Downloads stays a list with a working ⋮ when reached from the Library, lists what was downloaded and removes it only after a confirm, for good", async ({
   page,
 }) => {
   await page.goto("/library");
@@ -462,11 +467,21 @@ test("Settings > Downloads lists what was downloaded and removes it only after a
   await row(page, AUDIO_ID).getByRole("menuitem", { name: "Download" }).click();
   await expect(row(page, AUDIO_ID)).toHaveAttribute("data-downloaded", "");
 
-  // The page shows the saved podcast and none of the rest of the Library.
-  await page.goto("/settings/downloads");
+  // The page shows the saved podcast and none of the rest of the Library. It is reached from the
+  // Library without a reload: the Library's script lives on and once set its stored view, the
+  // gallery, on this page, which showed Downloads as cards with a ⋮ (owner, 2026-11-01).
+  await page.getByRole("link", { name: "Settings", exact: true }).first().click();
+  await page.getByRole("link", { name: "Downloads" }).click();
   await expect(page.locator("[data-downloads]")).toHaveAttribute("data-ready", "");
   await expect(page.locator("[data-card]:visible")).toHaveCount(1);
   await expect(row(page, AUDIO_ID)).toBeVisible();
+  const cover = await row(page, AUDIO_ID).locator(".cover").boundingBox();
+  const title = await row(page, AUDIO_ID).locator(".card-title").boundingBox();
+  expect(title?.x).toBeGreaterThan((cover?.x ?? 0) + (cover?.width ?? 0));
+  // Drawn and pressable, not only laid out: a phone hides the Library's ⋮ with opacity and pointer-events.
+  const more = row(page, AUDIO_ID).locator(".card-more");
+  await expect(more).toHaveCSS("opacity", "1");
+  await expect(more).toHaveCSS("pointer-events", "auto");
 
   // Removing asks first: Cancel keeps it.
   const dialog = page.getByRole("dialog", { name: "Remove download?" });

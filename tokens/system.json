@@ -621,6 +621,7 @@
       "usage": "A popover lives in the top layer, so it is placed against the viewport, not the row. Where anchor positioning exists it hangs under the button, right edges level; elsewhere heroMenu.ts writes --menu-top and --menu-right from the button's box when it opens.",
       "tokens": [
         "--color-accent",
+        "--color-border-hairline",
         "--color-danger",
         "--color-on-surface",
         "--color-on-surface-disabled",
@@ -656,7 +657,7 @@
       ],
       "not": [
         {
-          "when": "A banner in the page would push it down while it moves (a cover between pages)",
+          "when": "A banner in the page would be moved around by a page change (a cover between pages)",
           "use": "banner"
         },
         {
@@ -4187,7 +4188,7 @@
       "name": "--cover-size-player",
       "tier": "component",
       "type": "dimension",
-      "light": "22rem"
+      "light": "19rem"
     },
     {
       "name": "--cover-outline",

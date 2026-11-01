@@ -5,7 +5,12 @@
  */
 import { type IconSize, iconClass } from "../design-system/icon";
 import { menuItemClass } from "../design-system/menu";
-import { sheetHeadClass, sheetTitleClass } from "../design-system/sheet";
+import {
+  sheetHeadClass,
+  sheetHeadingClass,
+  sheetSubtitleClass,
+  sheetTitleClass,
+} from "../design-system/sheet";
 import { ICON_BOLD_PATHS, ICON_PATHS, ICON_VIEW_BOX, type IconName } from "./icons";
 
 export const escapeHtml = (text: string): string =>
@@ -41,6 +46,7 @@ export function sheetHeadHtml(
   titleId: string,
   close: SheetClose,
   titleData: Record<`data-${string}`, string | boolean> = {},
+  subtitle?: string,
 ): string {
   const data = Object.entries(titleData)
     .filter(([, value]) => value !== false)
@@ -48,8 +54,12 @@ export function sheetHeadHtml(
       value === true || value === "" ? ` ${name}` : ` ${name}="${escapeHtml(String(value))}"`,
     )
     .join("");
+  const heading = `<h2 class="${sheetTitleClass()}" id="${titleId}"${data}>${escapeHtml(title)}</h2>`;
   return (
-    `<div class="${sheetHeadClass()}"><h2 class="${sheetTitleClass()}" id="${titleId}"${data}>${escapeHtml(title)}</h2>` +
+    `<div class="${sheetHeadClass()}">` +
+    (!subtitle
+      ? heading
+      : `<div class="${sheetHeadingClass()}">${heading}<p class="${sheetSubtitleClass()}">${escapeHtml(subtitle)}</p></div>`) +
     `<button class="icon-btn press" type="button" aria-label="Close" ${close}>${iconHtml("close", "lg")}</button></div>`
   );
 }

@@ -130,6 +130,7 @@ export function makePushCommand(deps: PushDeps = {}): CommandRun {
       const done: EndedWatch[] = [];
       let sent = 0;
       let failed = 0;
+      const addressed = new Set<string>();
       if (send) {
         for (const watch of ended) {
           // A row the site would not have stored: drop it unsent.
@@ -140,22 +141,32 @@ export function makePushCommand(deps: PushDeps = {}): CommandRun {
           else done.push(watch);
           if (result === "sent") sent += 1;
         }
-        // A scheduled run is announced once (it was claimed above): a device that is down misses it.
-        for (const run of scheduled) {
-          for (const device of await devicesFor(sql, run.kind)) {
-            const result = isPushEndpoint(device.endpoint)
-              ? await send(device, scheduledMessage(run))
-              : "gone";
-            if (result === "sent") sent += 1;
-            else if (result === "gone") await removePushDevice(sql, device.endpoint);
-            else failed += 1;
-          }
+      }
+      // A scheduled run is announced once (it was claimed above): a device that is down misses it.
+      // The devices are counted even when no sender exists (no key pair yet), so the log tells
+      // "devices were subscribed and nothing could be sent" from "nobody was subscribed" (M9).
+      for (const run of scheduled) {
+        for (const device of await devicesFor(sql, run.kind)) {
+          addressed.add(device.endpoint);
+          if (!send) continue;
+          const result = isPushEndpoint(device.endpoint)
+            ? await send(device, scheduledMessage(run))
+            : "gone";
+          if (result === "sent") sent += 1;
+          else if (result === "gone") await removePushDevice(sql, device.endpoint);
+          else failed += 1;
         }
       }
       await deletePushWatches(sql, done);
       const swept = await sweepPushWatches(sql, now);
-      const line = `Push: ${sent} sent, ${failed} to retry, ${Math.max(0, done.length - sent)} dropped, ${swept} swept.`;
-      process.stdout.write(`${ctx.json ? JSON.stringify({ sent, retry: failed, swept }) : line}\n`);
+      // What the sync's log can prove: a run that announced to no device (nobody subscribed) reads
+      // differently from a run that was never claimed (the published row is missing), M9 of the audit.
+      const endedRuns = new Set(ended.map((watch) => watch.run_id)).size;
+      const seen = `${scheduled.length} scheduled run(s) claimed for ${addressed.size} device(s), ${endedRuns} watched run(s) ended`;
+      const line = `Push: ${sent} sent, ${failed} to retry, ${Math.max(0, done.length - sent)} dropped, ${swept} swept; ${seen}.`;
+      process.stdout.write(
+        `${ctx.json ? JSON.stringify({ sent, retry: failed, swept, claimed: scheduled.length, addressed: addressed.size, ended: endedRuns }) : line}\n`,
+      );
     } catch (error) {
       // Redacted before describeError cuts the text, so a cut cannot leave half a secret readable.
       const secrets = [...databaseSecrets(databaseUrl), privateKey].filter(

@@ -57,18 +57,12 @@ export function findCoverRecord(
   return null;
 }
 
-/** The version `vercel.json` puts first in the path when an address has no `?v=`. */
+/** The version of an address with no usable `?v=`: it draws whatever the record holds. */
 export const UNVERSIONED = "0";
 
-/**
- * Splits `<version>/<cover path>` as the rewrite sends it. The CDN keys a cover by its path and
- * ignores the query string (measured 2026-10-30: `?v=zzzzzz` was served another address's entry), so
- * `vercel.json` moves the `?v=` into the path, where each version gets an entry of its own.
- */
-export function splitVersion(path: string): { version: string; rest: string } | null {
-  const slash = path.indexOf("/");
-  const version = slash === -1 ? "" : path.slice(0, slash);
-  return /^[a-z0-9]{1,12}$/.test(version) ? { version, rest: path.slice(slash + 1) } : null;
+/** The `?v=` of a cover address, or UNVERSIONED when it is absent or not a version. */
+export function versionOf(query: string | null): string {
+  return query !== null && /^[a-z0-9]{1,12}$/.test(query) ? query : UNVERSIONED;
 }
 
 /** What to answer for a cover of `id` asked for under `version`, given the site as this instance holds it. */
