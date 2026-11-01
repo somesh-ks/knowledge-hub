@@ -75,6 +75,11 @@ export const RunRecord = z.object({
    * started ahead waits for the scheduled time (D193).
    */
   generated_at: isoDateTime.optional(),
+  /**
+   * End of the fetch window this run covered. The next run of the same kind starts its window
+   * here, so a run of another kind (an on-demand briefing) cannot shorten it (2026-10-31).
+   */
+  fetched_through: isoDateTime.optional(),
 });
 export type RunRecord = z.infer<typeof RunRecord>;
 

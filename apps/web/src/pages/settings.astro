@@ -1,6 +1,7 @@
 ---
 import Select from "../design-system/Select.astro";
 import "../styles/field.css";
+import tokens from "../../../../tokens/tokens.json";
 import ManageChrome from "../components/ManageChrome.astro";
 import Button from "../design-system/Button.astro";
 import Icon from "../design-system/Icon.astro";
@@ -87,6 +88,17 @@ const THEME_LABELS: Record<ThemePreference, string> = {
   light: "Light",
   dark: "Dark",
 };
+
+// Default, then every style tokens.json holds (D268): a style added there appears here with no change.
+const STYLES = [
+  { value: "default", label: "Default" },
+  ...Object.keys(tokens.styles ?? {})
+    .filter((name) => !name.startsWith("$"))
+    .map((name) => ({
+      value: name,
+      label: name.charAt(0).toUpperCase() + name.slice(1).replace(/-/g, " "),
+    })),
+];
 ---
 
 <BaseLayout title="Settings" view="settings" skipLabel="Skip to the settings">
@@ -189,6 +201,15 @@ const THEME_LABELS: Record<ThemePreference, string> = {
               {THEME_PREFERENCES.map((theme) => <option value={theme}>{THEME_LABELS[theme]}</option>)}
             </Select>
           </div>
+          {/* Hidden while no style exists but Default; inert for the same reason as the Theme select. */}
+          {STYLES.length > 1 && (
+            <div class="settings-row">
+              <label class="settings-label" for="settings-style">Style</label>
+              <Select class="value-select style-select" id="settings-style" name="style" autocomplete="off" inert>
+                {STYLES.map((style) => <option value={style.value}>{style.label}</option>)}
+              </Select>
+            </div>
+          )}
         </div>
         {/* Runs before the row is first drawn and puts this device's theme in the select. */}
         <script is:inline data-astro-rerun set:html={settingsInit.trim()} />

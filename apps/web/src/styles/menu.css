@@ -101,6 +101,19 @@
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
+/* On a wide screen the Menu is one popover family with the picker and the select list (owner,
+   2026-11-01): a 32px corner around rows 8px in, so a row's 24px corner shares its centre with the
+   corner around it. The phone's sheet (below 40rem) keeps its own rows. */
+@media (width >= 40rem) {
+  .menu-list {
+    border-radius: var(--radius-2xl);
+  }
+
+  .menu-list .menu-item {
+    border-radius: var(--radius-xl);
+  }
+}
+
 @media (hover: hover) and (pointer: fine) {
   .menu-item:hover {
     background: color-mix(in oklab, currentColor 8%, transparent);
@@ -214,8 +227,19 @@
   .menu-sheet > .sheet-head {
     display: flex;
     flex: none;
-    padding-block: var(--space-1);
-    padding-inline: var(--space-2) var(--space-1);
+    /* The sheet's corner is 32px, so the title stands well in from it: 24px below the top and 8 + 16 =
+       24px from the edge, the column the rows' icons and words start on (owner, 2026-11-01: "the top
+       left corner is too close"). The padding sets the height here, not the app bar's minimum. */
+    min-block-size: 0;
+    padding-block: var(--space-6) var(--space-2);
+    padding-inline: var(--space-4) var(--space-2);
+    border-block-end: var(--stroke-hairline) solid var(--color-border-hairline);
+  }
+
+  /* The line under the head parts the title from the rows (owner, 2026-11-01); the Close is the head's
+     end, centred on it, as the shared header lays it out. */
+  .menu-sheet-items {
+    padding-block-start: var(--space-2);
   }
 
   /* A select that opens as a wheel (wheel.css) has no rows to end the sheet; it ends a step lower. */
@@ -223,9 +247,18 @@
     padding-block-end: max(var(--space-4), var(--safe-bottom));
   }
 
-  /* The rows of the sheet are as tall as a select's and a picker's (--size-option). */
+  /* The rows of the sheet are as tall as a select's and a picker's (--size-option) and as round: half
+     that height, so a press or a focus ring is a full pill like the picker's rows (owner, 2026-11-01). */
   .menu-sheet .menu-item {
     min-height: var(--size-option);
+    border-radius: var(--radius-xl);
+  }
+
+  /* Keys and a screen reader's focus show as the press fill, not a ring, inside the sheet (owner,
+     2026-11-01): the row is a full pill on the sheet surface, so a tint reads and a ring crowds it. */
+  .menu-sheet .menu-item:focus-visible {
+    outline: none;
+    background: color-mix(in oklab, currentColor 12%, transparent);
   }
 
   @media (prefers-reduced-motion: reduce) {

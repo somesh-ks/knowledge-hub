@@ -5,6 +5,7 @@
  * Nothing here is needed to read or edit a page, so it stays out of the first-load budget.
  */
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
+import { appendOutbox, dropOldest, readOutbox, removeOp } from "../lib/outbox";
 import { SAVED_KEY, storeOn } from "../lib/savedKey";
 import { addSaved, parseSaved, withPending } from "../lib/savedOverlay";
 import type { ConfigOp, ConfigResponse } from "../types/contracts";
@@ -15,6 +16,12 @@ import { sendToast } from "./toastEvent";
 export const SAVING = "Saving";
 /** Spoken, never shown: a save that went through needs no toast, the control already shows it. */
 export const SAVED = "Settings saved";
+
+/**
+ * Shown when the site could not be reached and the edit was kept on this device instead (lib/outbox.ts).
+ * The control already shows the change; this says it is not on the server yet and what happens next.
+ */
+export const KEPT = "Saved on this device. Sends when you're back online.";
 
 /** Shown when the edit went through but the site could not change the briefing time. */
 export const TIME_REFUSED = "Saved, except the time, which could not be changed.";
@@ -467,6 +474,19 @@ let lastSent = 0;
 let busy = false;
 /** Another page's changes that came while a run was busy: sent once it is done. */
 const queued = new Set<SaveContext>();
+/** The outbox was asked to go while a run was busy: it goes once that run is done. */
+let drainQueued = false;
+
+/** After a run: what waited for it goes next. */
+function afterRun(): void {
+  const next = [...queued];
+  queued.clear();
+  for (const other of next) void flush(other);
+  if (drainQueued) {
+    drainQueued = false;
+    void drainOutbox();
+  }
+}
 
 interface Answer {
   status: number;
@@ -517,6 +537,131 @@ function refusedKeys(answer: Answer, batch: Batch): string[] | null {
 const MAX_WAITS = 6;
 
 /**
+ * Sends the edits kept on this device, oldest first, as few requests as the server allows. An entry
+ * the site cannot take for good is dropped and said so; one it could not be asked about (offline, a
+ * server fault) stays for the next time. Runs inside the busy flag and, across tabs, one lock.
+ */
+async function sendOutbox(): Promise<void> {
+  let waits = 0;
+  /** After a refusal that named no op: the oldest entry alone, to find the one at fault. */
+  let solo = false;
+  for (;;) {
+    if (readOutbox().length === 0) return;
+    const hold = gapLeft(lastSent, Date.now());
+    if (hold > 0) await new Promise((resolve) => setTimeout(resolve, hold));
+    const entries = readOutbox();
+    if (entries.length === 0) return;
+    const steps = (solo ? entries.slice(0, 1) : entries).map((entry) => ({
+      op: entry.ops[0] as ConfigOp,
+      ops: entry.ops,
+      keys: [],
+    }));
+    const [batch] = pack(steps, new Map());
+    if (!batch) return;
+    // pack never splits an entry, so the batch holds the oldest entries whole.
+    let count = 0;
+    for (let total = 0; count < entries.length && total < batch.ops.length; count += 1)
+      total += entries[count]?.ops.length ?? 0;
+    const answer = await post(batch.ops);
+    if (answer.unknown) return;
+    if (answer.status === 429 && waits < MAX_WAITS) {
+      waits += 1;
+      await new Promise((resolve) => setTimeout(resolve, answer.wait * 1000 + 250));
+      continue;
+    }
+    if (answer.status === 202) {
+      lastSent = Date.now();
+      // Storage refusing the removal would send the same entries again: leave them for a later try.
+      if (!dropOldest(count)) return;
+      solo = false;
+      remember(
+        batch.ops,
+        lastSent,
+        heldOps(),
+        (answer.body as { written_at?: unknown })?.written_at as number | undefined,
+      );
+      if (answer.timeRefused) sendToast({ message: TIME_REFUSED, kind: "error" });
+      try {
+        if (storeOn()) afterOwnSave();
+      } catch {
+        // No document or storage: nothing keeps a copy.
+      }
+      continue;
+    }
+    // Refused for good: the site read the edit and said no. Anything else (no connection, a server
+    // fault) leaves it kept, and the next page load, the connection coming back or the next change tries again.
+    if (answer.status !== 400 && answer.status !== 409) return;
+    // A 400 or 409 from a proxy or firewall carries none of the site's own fields: it read nothing.
+    if (!isSiteAnswer(answer.body)) return;
+    // The store's "conflict" (409) means a write landed between its read and its write: it read none of
+    // the edits, so they are kept and go out at the next try.
+    if (
+      answer.status === 409 &&
+      (answer.body as { error?: unknown } | undefined)?.error === "conflict"
+    )
+      return;
+    // A refusal that names its op takes out that edit alone: the server wrote none of the request, so
+    // the others go out again next time. One that does not is chased down by sending the oldest entry alone.
+    const body = answer.body as { op_index?: unknown } | undefined;
+    const sent = entries.slice(0, count).reduce((sum, entry) => sum + entry.ops.length, 0);
+    const named =
+      typeof body?.op_index === "number" &&
+      Number.isInteger(body.op_index) &&
+      body.op_index >= 0 &&
+      body.op_index < sent
+        ? body.op_index
+        : null;
+    let at = 0;
+    let offset: number | null = null;
+    if (named !== null) {
+      let before = 0;
+      for (; at < count - 1; at += 1) {
+        const next = before + (entries[at]?.ops.length ?? 0);
+        if (named < next) break;
+        before = next;
+      }
+      offset = named - before;
+    } else if (count > 1) {
+      solo = true;
+      continue;
+    }
+    const refused = entries[at];
+    // Storage refusing the removal would send the refused entry again, and toast again: stop here.
+    if (refused && !removeOp(refused, offset)) return;
+    solo = false;
+    const reason = failureText(answer.status, answer.body).replace(/ Not saved yet\.$/, "");
+    sendToast({ message: `A change made offline was not saved. ${reason}`, kind: "error" });
+  }
+}
+
+/** Runs `task` once across tabs, so two of them never send the same entries. */
+async function oneAtATime(task: () => Promise<void>): Promise<void> {
+  const locks = globalThis.navigator?.locks;
+  if (locks) await locks.request("singularity:outbox", task);
+  else await task();
+}
+
+/**
+ * Sends what this device kept while the site could not be reached (CFG-04). Called when a page loads
+ * online, when the connection returns and before a page's own changes go. Quiet, as a save is: a
+ * refusal alone is said.
+ */
+export async function drainOutbox(): Promise<void> {
+  if (busy) {
+    drainQueued = true;
+    return;
+  }
+  if (readOutbox().length === 0 || globalThis.navigator?.onLine === false) return;
+  busy = true;
+  try {
+    await oneAtATime(sendOutbox);
+  } finally {
+    busy = false;
+    afterRun();
+  }
+}
+
+/**
  * Sends what is pending until nothing is, then says how it went. The server allows an edit every
  * ten seconds: a request inside that gap is held until it ends (gapLeft), without Saving, and a 429
  * all the same waits as long as it asks; either way the changes made during the wait ride along.
@@ -554,6 +699,8 @@ export async function flush(context: SaveContext): Promise<void> {
   let rowSays = true;
   /** The page went while a request was out: its change stays kept for the next page (pageLeaving.ts). */
   let cut = false;
+  /** Some change could not be sent and was kept on this device instead (lib/outbox.ts). */
+  let kept = false;
   /**
    * Changes the engine refused for good in this run (a refusal that named its op): they stay for
    * Retry but are not sent again here, so one change that can never be accepted does not hold back
@@ -564,7 +711,26 @@ export async function flush(context: SaveContext): Promise<void> {
     new Map([...changes].filter(([key]) => !refused.has(key)));
   // Everything waiting goes now, a refused change included: it is on its way again.
   for (const pending of changes.values()) pending.failed = false;
+  /**
+   * Keeps a batch on this device for the connection to return, and settles it: the controls already
+   * show the change. False when storage is refused, and the batch is then a failure to retry.
+   */
+  const keep = (batch: Batch): boolean => {
+    if (!appendOutbox(batch.ops)) return false;
+    kept = true;
+    last = JSON.stringify(batch.ops);
+    settle(batch, changes);
+    try {
+      context.settled?.();
+    } catch {
+      // The page is gone: nothing left to read again.
+    }
+    return true;
+  };
   try {
+    // Edits kept from before go first, so a later change never lands before an earlier one.
+    if (readOutbox().length > 0 && globalThis.navigator?.onLine !== false)
+      await oneAtATime(sendOutbox);
     while (going().size > 0) {
       // Inside the server's gap after the last request, wait it out first, quietly: nothing is on
       // its way yet, and whatever changes meanwhile goes in the one request sent after it.
@@ -582,6 +748,9 @@ export async function flush(context: SaveContext): Promise<void> {
       if (!batch || JSON.stringify(batch.ops) === last) break;
       sent = true;
       rowSays &&= batch.sent.every(([, pending]) => pending.el.matches(".source-note"));
+      // Something kept is still ahead of this batch (it could not be sent, or the site was down):
+      // this one waits behind it, in order.
+      if (readOutbox().length > 0 && keep(batch)) continue;
       if (!rowSays) show(SAVING, "saving");
       inFlight = batch.ops;
       remember([]);
@@ -596,6 +765,9 @@ export async function flush(context: SaveContext): Promise<void> {
         await new Promise((resolve) => setTimeout(resolve, answer.wait * 1000 + 250));
         continue;
       }
+      // No answer and the page stays: the site cannot be reached. The change is kept on this device
+      // and goes when it can (CFG-04); only storage that refuses it makes this a failure.
+      if (answer.status === 0 && keep(batch)) continue;
       if (answer.status !== 202) {
         failure = failureText(answer.status, answer.body);
         // A refusal that names its op drops that change alone; the rest goes in the next request.
@@ -651,11 +823,10 @@ export async function flush(context: SaveContext): Promise<void> {
       remember([]);
       endLeft(context, failure);
     }
-    const next = [...queued].filter((other) => other !== context);
-    queued.clear();
-    for (const other of next) void flush(other);
+    queued.delete(context);
+    afterRun();
   }
-  if (cut || ((!sent || rowSays) && !failure)) return;
+  if (cut || (!kept && (!sent || rowSays) && !failure)) return;
   if (failure) {
     show(failure, "error");
     // The interface sound for an outcome the screen already states (see scripts/uiSound.ts). A save
@@ -663,5 +834,6 @@ export async function flush(context: SaveContext): Promise<void> {
     // already made its tick.
     globalThis.document?.dispatchEvent(new CustomEvent("singularity:sound", { detail: "failure" }));
   } else if (timeRefused) show(TIME_REFUSED, "done");
+  else if (kept) show(KEPT, "done");
   else show(SAVED, "saved");
 }

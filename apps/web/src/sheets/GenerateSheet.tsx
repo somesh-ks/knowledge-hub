@@ -2,7 +2,6 @@ import { Field } from "@base-ui/react/field";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { buttonClass } from "../design-system/button";
 import { fieldClass } from "../design-system/field";
-import { ICON_PATHS, ICON_VIEW_BOX } from "../lib/icons";
 import { idsOfChips, isChipOn, type RegenChip } from "../lib/regenTopics";
 import { playUiCue } from "../player/sound/soundController";
 import { cueForGenerate } from "../player/sound/soundMap";
@@ -166,14 +165,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
                     checked={ticked.has(chip.value)}
                     onChange={() => toggle(chip.value)}
                   />
-                  <svg
-                    className="icon filter-chip-check"
-                    viewBox={ICON_VIEW_BOX}
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    <path d={ICON_PATHS.check} />
-                  </svg>
+                  <Icon name="check" className="filter-chip-check" />
                   <span>{chip.label}</span>
                 </label>
               ))}

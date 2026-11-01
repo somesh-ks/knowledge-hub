@@ -21,7 +21,7 @@ import { describeError } from "./redact";
  * GET /api/cron/run: what starts the scheduled briefing on time (D61). Since late August 2026
  * GitHub has started this repository's scheduled runs hours late (the 07:13 entry ran between 13:11
  * and 14:02), so Vercel Cron calls this route once in every UTC hour (vercel.json; on the Hobby plan
- * a call lands anywhere in its hour). Each call reads config/schedule.json on main. In the
+ * a call lands anywhere in its hour). Each call reads the schedule from the config store (D296), or config/schedule.json on main with the store off. In the
  * schedule's own hour, in its time zone, which is the daily hour or the weekly slot's hour on its day,
  * it asks the engine's gate, with state/last-run.json, whether anything is due, and only then
  * dispatches run.yml as a scheduled run. The workflow's gate decides again, so a second call in the
@@ -32,7 +32,7 @@ import { describeError } from "./redact";
 export type CronBody =
   | { dispatched: true; run_id: number | null; reason: string }
   | { dispatched: false; reason: string }
-  | { error: "unauthorized" | "unavailable" | "github_failed" };
+  | { error: "unauthorized" | "unavailable" | "github_failed" | "config_store_unavailable" };
 
 export interface CronDeps {
   env: ServerEnv;
@@ -49,10 +49,13 @@ export interface CronDeps {
  */
 export const STORE_READ_TIMEOUT_MS = 5000;
 
+/** The config store is on and did not answer; main no longer holds the schedule (D296). */
+class StoreUnreadable extends Error {}
+
 /**
- * The schedule's text: from the config store when it is on (D149), where an edit to the hour lands
- * at once, while main has it only after the next run; from main when the store is off or cannot
- * be read, so a database outage costs at most an edit's freshness, never the briefing.
+ * The schedule's text: from the config store when it is on (D149, D296), the only copy of the
+ * owner's schedule; from main when the store is off. A store that is on and does not answer stops
+ * the call: the run it would start cannot read the owner's config either.
  */
 async function readSchedule(
   deps: CronDeps,
@@ -74,13 +77,26 @@ async function readSchedule(
       const stored = await Promise.race([readStoredSchedule(storeUrl, deps), late]).finally(() =>
         clearTimeout(timer),
       );
-      // A row that is not JSON is skipped, as the run's own copy skips it: main's file stands.
-      if (stored !== null && parseJson(stored, (value) => value) !== null) return stored;
+      // No row, or one that is not JSON or fails the schema: the run this would start stops at its
+      // own config check, so nothing is dispatched and the 503 shows in the cron log.
+      if (
+        stored === null ||
+        parseJson(stored, (v) => ScheduleFile.safeParse(v).data ?? null) === null
+      ) {
+        throw new StoreUnreadable();
+      }
+      return stored;
     } catch (error) {
-      deps.log?.(`config store unreachable, reading main: ${describeError(error, [storeUrl])}`);
+      deps.log?.(`config store unreachable: ${describeError(error, [storeUrl])}`);
+      throw new StoreUnreadable();
     }
   }
-  return github.readFile("config/schedule.json", "main");
+  // Store off: the schedule a run on this checkout gets is the examples' (`config pull`), so the
+  // cron reads the same, unless the checkout commits a schedule of its own.
+  return (
+    (await github.readFile("config/schedule.json", "main")) ??
+    (await github.readFile("config/examples/schedule.json", "main"))
+  );
 }
 
 /** Vercel asks for at least 16 characters; anything shorter is treated as not configured. */
@@ -224,6 +240,9 @@ export async function handleCron(
     deps.log?.(`dispatched run.yml at the ${slot} hour: ${decision.reason}`);
     return { status: 200, body: { dispatched: true, run_id: runId, reason: decision.reason } };
   } catch (error) {
+    if (error instanceof StoreUnreadable) {
+      return { status: 503, body: { error: "config_store_unavailable" } };
+    }
     deps.log?.(`GitHub failed: ${describeError(error, [...secretsOf(config), secret])}`);
     return { status: 502, body: { error: "github_failed" } };
   }

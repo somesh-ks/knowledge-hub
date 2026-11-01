@@ -91,4 +91,40 @@ test.describe("theme", () => {
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   });
+  test("a style chosen in Settings survives navigation and a reload, set before first paint", async ({
+    page,
+  }) => {
+    await page.goto("/settings");
+    await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
+    await page.getByRole("combobox", { name: "Style" }).selectOption("expressive");
+    await expect(page.locator("html")).toHaveAttribute("data-style", "expressive");
+    await page
+      .getByRole("navigation", { name: "Primary" })
+      .getByRole("link", { name: "Library", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/library$/);
+    await expect(page.locator("html")).toHaveAttribute("data-style", "expressive");
+    // A reload: the attribute is on the document by the time the body exists, so nothing is painted
+    // in Default first.
+    await page.addInitScript(() => {
+      const observer = new MutationObserver(() => {
+        if (!document.body) return;
+        (window as unknown as { __styleAtBody: string | null }).__styleAtBody =
+          document.documentElement.getAttribute("data-style");
+        observer.disconnect();
+      });
+      observer.observe(document, { childList: true, subtree: true });
+    });
+    await page.reload();
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { __styleAtBody: string | null }).__styleAtBody,
+      ),
+    ).toBe("expressive");
+    // Back to Default removes the attribute rather than leaving a stale one.
+    await page.goto("/settings");
+    await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
+    await page.getByRole("combobox", { name: "Style" }).selectOption("default");
+    await expect(page.locator("html")).not.toHaveAttribute("data-style", /.*/);
+  });
 });

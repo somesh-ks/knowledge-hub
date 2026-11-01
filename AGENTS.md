@@ -6,7 +6,7 @@ Private design-engineering news briefing. A GitHub Actions engine writes a diges
 
 1. [docs/state.md](docs/state.md): what works, what is unverified (each with `closed when:`), what is next. Rewritten, never appended.
 2. [docs/learnings.md](docs/learnings.md): gotchas by area. Search it before debugging.
-3. [docs/decisions/](docs/decisions/README.md): grep the Index, never read it whole; open an area file as needed.
+3. [docs/decisions/](docs/decisions/README.md): grep, never read the Index whole (old rows: `index-archive.md`).
 
 On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code and tests win; fix a wrong spec), [docs/history/](docs/history/README.md) for the why of a past change, and [the test postmortem](docs/engineering/postmortem-test-suite.md) before you add, change or delete a test. `node scripts/docsCheck.mjs` holds the budgets.
 
@@ -36,7 +36,7 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code 
 - Design fixes are load-bearing. Markup or rules with a rationale comment (date, D-number, sizer, specificity bump) are never removed or rewritten to make another task work: extend or ask. Check history (`git log -L '/<selector>/,+20:<file>'`) and the ledger before changing shared CSS (`player.css`, `primitives.css`, `buttons.css`, tokens). CSS is checked by browser suites only.
 - Scope: one PR per task; review fixes and follow-ups go on its branch, never a new PR; batch small fixes (D254). Before a PR, `git diff --stat origin/main` must list only the task's files; name any shared stylesheet or component in it, and why, in the PR body.
 - UI parts: before you write a class, token or value, run `npm run ds -- find "<need>"`. Features: `.claude/skills/feature/`.
-- State authority: the config store owns runtime preferences. Never edit `config/` in Git during active workflow runs or from parallel branches without store synchronization (D149, D185).
+- State authority: the config store owns the owner's config; its files are not in git (D296). Edit in the app, never a PR; `config pull` fills `config/` locally.
 - Pipeline discipline: verify the core daily loop runs green in production before adding new intake types or audience matrices.
 - Vercel: the CLI is pinned. Read with `npm run vercel:list`, `vercel:inspect`, `vercel:logs`, `vercel:env-list`; a session never deploys or edits env.
 

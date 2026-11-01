@@ -22,7 +22,14 @@ export const SHEET: Guidance = {
 };
 
 /** Every class the Sheet draws, for the registry and its test. */
-export const SHEET_CLASSES: string[] = ["sheet-side", "sheet-head", "sheet-body", "sheet-title"];
+export const SHEET_CLASSES: string[] = [
+  "sheet-side",
+  "sheet-head",
+  "sheet-heading",
+  "sheet-body",
+  "sheet-title",
+  "sheet-subtitle",
+];
 
 /** Classes the Sheet replaced; none may be written again, in any app that draws the system. */
 /** `create-sheet` itself is not listed: create-sheet.css, the file name, would read as the class. */
@@ -43,6 +50,12 @@ export const sheetBodyClass = (): string => "sheet-body";
 
 /** The header row: the title at the start, Close at the end. */
 export const sheetHeadClass = (): string => "sheet-head";
+
+/** The title and the line under it, when a sheet has one (a Library card's menu: its facts). */
+export const sheetHeadingClass = (): string => "sheet-heading";
+
+/** The quiet line under the title. */
+export const sheetSubtitleClass = (): string => "sheet-subtitle text-caption";
 
 /** The heading in that row, and in a Drawer's. */
 export const sheetTitleClass = (): string => "sheet-title text-heading";

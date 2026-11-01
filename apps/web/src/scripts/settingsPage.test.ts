@@ -76,6 +76,7 @@ describe("changeSounds", () => {
       sink: {
         setSounds: (enabled: boolean) => calls.push(`set ${enabled}`),
         play: (cue: { name: string }) => calls.push(`play ${cue.name}`),
+        settle: () => calls.push("settle"),
       },
     };
   }
@@ -86,9 +87,9 @@ describe("changeSounds", () => {
     expect(calls).toEqual(["set true", "play toggleOn"]);
   });
 
-  it("plays the cue before turning sounds off, as a last confirmation", () => {
+  it("plays the cue before turning sounds off, as a last confirmation, then lets the audio session go", () => {
     const { calls, sink } = record();
     changeSounds(false, sink);
-    expect(calls).toEqual(["play toggleOff", "set false"]);
+    expect(calls).toEqual(["play toggleOff", "set false", "settle"]);
   });
 });

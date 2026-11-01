@@ -4,7 +4,10 @@
  * call (the config store, D149, and the site's rate-limit counter whenever DATABASE_URL is set, D150).
  */
 
-/** The files the database may hold, and the only paths a row may ever be written to. */
+/**
+ * The files the database may hold, and the only paths a row may ever be written to. They are the
+ * owner's own config and are not in git (D296); `config/examples` holds the public defaults.
+ */
 export const CONFIG_DOCUMENT_PATHS = [
   "config/topics.json",
   "config/sources.user.json",
@@ -17,12 +20,6 @@ export const CONFIG_DOCUMENT_PATHS = [
   // Suggested sources: topic.remove drops a removed topic's, so they live beside the topics.
   "state/source-candidates.json",
 ] as const;
-
-/**
- * The git trailer on a commit that carries a config snapshot: its config files are the store's as
- * the run copied them. The newest one is the base that tells a repo edit from an app edit.
- */
-export const SNAPSHOT_TRAILER = "Config-Store: snapshot";
 
 export type ConfigDocumentPath = (typeof CONFIG_DOCUMENT_PATHS)[number];
 
@@ -76,10 +73,12 @@ export async function connectConfigStore(databaseUrl: string): Promise<SqlClient
 /**
  * Whether a command reads the owner's config at its start: a whole run or the gate stage that opens
  * one (the later stages of the same run, and its failure record, keep what the gate copied), the
- * weekly podcast, and ingest, which reads the sources the owner has now (D233).
+ * weekly podcast, ingest, which reads the sources the owner has now (D233), and `health`, which
+ * checks the config. Not `publish` (audio.yml): that job has no database access by design (SEC-03).
  */
 export function readsConfigAtStart(command: string, argv: readonly string[]): boolean {
   if (command === "podcast" || command === "ingest") return true;
+  if (command === "health") return true;
   if (command !== "run") return false;
   // A run's failure record commits after the gate copied the store; it must leave the gate's note.
   if (argv.includes("--record-failed")) return false;
