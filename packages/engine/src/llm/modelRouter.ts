@@ -258,19 +258,25 @@ export function createModelRouter(options: ModelRouterOptions): ModelRouter {
           };
         });
         // The guard counts what the batch could spend before it is submitted: one request's reply
-        // allowance and prompt, summed.
-        options.budget.check(
-          prepared.reduce(
-            (sum, item) =>
-              sum +
-              estimateTokensForChars(
-                item.system.length + item.messages.reduce((n, m) => n + m.content.length, 0),
-              ) +
-              item.maxTokens +
-              THINKING_HEADROOM,
-            0,
-          ),
+        // allowance and prompt, summed. When the whole does not fit the budget, nothing is
+        // submitted and the writer writes live, where each request is checked on its own.
+        const estimate = prepared.reduce(
+          (sum, item) =>
+            sum +
+            estimateTokensForChars(
+              item.system.length + item.messages.reduce((n, m) => n + m.content.length, 0),
+            ) +
+            item.maxTokens +
+            THINKING_HEADROOM,
+          0,
         );
+        if (options.budget.remaining < estimate) {
+          log.warn("The batch does not fit the token budget; writing the stories one by one", {
+            estimate,
+            remaining: options.budget.remaining,
+          });
+          return done;
+        }
         const outcomes = await runBatch(
           api,
           prepared.map((item) => ({

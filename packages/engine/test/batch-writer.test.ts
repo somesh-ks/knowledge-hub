@@ -337,4 +337,34 @@ describe("the batch on the wire", () => {
     expect(usage).toHaveLength(2);
     expect(usage.every((u) => u.batch === true)).toBe(true);
   });
+
+  // The summed ceilings of every batch can pass a budget that each live request fits on its own;
+  // throwing there would abort a run the live path completes.
+  it("submits nothing, and does not throw, when the whole batch does not fit the token budget", async () => {
+    let posts = 0;
+    const router = createModelRouter({
+      routing,
+      resolve: async () => ({
+        "claude-sonnet": { family: "claude-sonnet", id: "claude-sonnet-5-5", source: "fallback" },
+      }),
+      env: loadEnv({ ANTHROPIC_API_KEY: "a" }),
+      budget: new TokenBudget(12_000),
+      log: captureLog().log,
+      fetch: async () => {
+        posts += 1;
+        return Response.json({ id: "msgbatch_1" });
+      },
+      retry: NO_WAIT,
+      batchTiming: { now: () => 0, sleep: async () => {} },
+    });
+    const done = await router.batchFor("story_writer").completeJsonBatch(
+      [
+        { id: "a", request: request("a") },
+        { id: "b", request: request("b") },
+      ],
+      { until: 1_000_000 },
+    );
+    expect(done.size).toBe(0);
+    expect(posts).toBe(0);
+  });
 });

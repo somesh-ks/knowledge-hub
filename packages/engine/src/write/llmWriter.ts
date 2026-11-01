@@ -161,7 +161,7 @@ export class LlmWriter implements Writer {
       // never came back is: the run must not publish short because the batch left one out.
       const missing = batch.filter((m) => back.failed.some((f) => f.id === m.id));
       if (missing.length === 0) return back;
-      const again = await this.writeBatch(missing, feedback, taste, othersOf(batch));
+      const again = await this.writeBatch(missing, feedback, taste, othersOf(missing));
       const byId = new Map([...back.written, ...again.written].map((w) => [w.id, w]));
       return {
         written: batch.flatMap((m) => byId.get(m.id) ?? []),
