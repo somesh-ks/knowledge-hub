@@ -683,6 +683,13 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     publishTime("load", true);
   }
 
+  function restore(digest: PlayerDigestData): void {
+    if (disposed || state.hasStarted || !digest.audio) return;
+    load(digest);
+    // Idle, at its saved place: the bar is up and its play button starts it from there.
+    commit({ hasStarted: true });
+  }
+
   function setPageDigest(digest: PlayerDigestData | null): void {
     if (disposed) return;
     pageDigest = digest;
@@ -690,7 +697,8 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     const isCurrent = track?.digest.id === digest.id;
     // Follow the page until the listener has played something. After that, the playing track stays
     // until the listener picks another digest.
-    if (!track || isCurrent || state.status === "idle") load(digest);
+    // A restored bar (hasStarted, idle) is the listener's too: a page does not replace it.
+    if (!track || isCurrent || (state.status === "idle" && !state.hasStarted)) load(digest);
     if (pendingAutoplayId === digest.id) {
       pendingAutoplayId = null;
       if (track?.digest.id !== digest.id) load(digest);
@@ -1000,6 +1008,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     getPageDigest: () => pageDigest,
     setPageDigest,
     load,
+    restore,
     play,
     pause,
     toggle,

@@ -44,7 +44,7 @@ import { getPreferences } from "./preferences";
 import { loadQueueDigest, queueDigestFor } from "./queueMeta";
 import { startQueuePrefetch } from "./queuePrefetch";
 import { createReaderSync, type ReaderSync } from "./readerSync";
-import { safeLocalStorage } from "./resume";
+import { readResumePosition, safeLocalStorage } from "./resume";
 import { reapplyRootState, setRootAttribute, setRootProperty } from "./rootAttributes";
 import { getSpeedDefault } from "./speedDefaultRuntime";
 import { loadTimeline, skipper, suggestNext } from "./suggested";
@@ -272,6 +272,20 @@ function readPage(playerStore: PlayerStore): void {
   playerStore.setPageDigest(narratedOrPage(readDigestData()));
 }
 
+/**
+ * After a reload the bar is gone until something plays. The queue remembers what played last
+ * (D277) and the device remembers where: put that item back in the bar, paused at its place. An
+ * item heard to the end, or barely begun, has no place to come back to and brings nothing back.
+ */
+function restoreBar(playerStore: PlayerStore): void {
+  const id = getPlayQueue().getCurrent();
+  if (!id || playerStore.getState().hasStarted) return;
+  if (readResumePosition(safeLocalStorage(), id, 0) <= 0) return;
+  void loadQueueDigest(id).then((read) => {
+    if (read) playerStore.restore(narratedOrPage(read));
+  });
+}
+
 /** A dialog or popover other than the player is open. The toast is a popover, but not a modal one. */
 function otherOverlayOpen(): boolean {
   try {
@@ -386,6 +400,7 @@ export function startPlayerRuntime(): () => void {
     else if (message) announce(message);
   });
 
+  restoreBar(playerStore);
   const onPageLoad = (): void => {
     readPage(playerStore);
     reader.refresh();

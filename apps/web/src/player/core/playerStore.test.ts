@@ -973,6 +973,27 @@ describe("one digest at a time", () => {
     expect(harness.audio.src).toBe("/audio/old.mp3");
   });
 
+  it("brings the bar back after a reload at the saved place, and no page replaces it", () => {
+    const older = makeDigest({
+      id: "2026-10-05",
+      audio: { url: "/audio/old.mp3", duration_ms: 90_000 },
+    });
+    const harness = createHarness();
+    harness.storage.setItem(resumeKey("2026-10-05"), "42");
+    // The page that opened is another one: its digest loads first, as at every start.
+    harness.store.setPageDigest(makeDigest());
+    harness.store.restore(older);
+    expect(harness.store.getState()).toMatchObject({
+      digestId: "2026-10-05",
+      status: "idle",
+      hasStarted: true,
+    });
+    expect(harness.store.getTime()).toBe(42);
+    harness.store.setPageDigest(makeDigest());
+    expect(harness.store.getState().digestId).toBe("2026-10-05");
+    expect(harness.store.getPageDigest()?.id).toBe("2026-10-07");
+  });
+
   it("switches the source and stops the old narration when the listener picks another digest", () => {
     const harness = createHarness();
     startPlaying(harness);
