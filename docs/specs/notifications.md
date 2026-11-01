@@ -14,6 +14,11 @@ A device can be pinged when the Daily or the Weekly is published, and when a Cat
 
 There is nothing to set up. The signing key pair (VAPID) is made by the site the first time a browser asks for the public key and is kept in Neon (`push_keys`); the workflow reads it from there. Losing the row makes a new pair and ends the subscriptions made with the old one.
 
+## Known limits
+
+- At most 20 devices can keep Daily or Weekly (the site has no accounts, so no per-person cap).
+- A slow device write (Neon waking, over the 4 s guard) answers 503 and the switch goes back, though the write may still commit. Pressing the switch again settles it. A reconcile read would need a device-identity check.
+
 ## Code
 
 `packages/engine/src/store/pushStore.ts`, `packages/engine/src/commands/push.ts`, `apps/web/src/server/pushWatch.ts`, `apps/web/src/server/pushDevice.ts`, `apps/web/src/pages/api/push.ts`, `apps/web/src/lib/pushClient.ts`, `apps/web/src/scripts/notificationsSettings.ts`, `apps/web/src/pages/settings.astro`.
