@@ -41,7 +41,9 @@ export async function pullContent(input: PullInput): Promise<PullResult> {
       unchanged += 1;
       continue;
     }
-    const body = await input.fetchBytes(`${stored.base}/${CONTENT_PREFIX}${path}?v=${hash}`);
+    const body = await input.fetchBytes(
+      `${stored.base}/${CONTENT_PREFIX}${path.split("/").map(encodeURIComponent).join("/")}?v=${hash}`,
+    );
     if (body === null) throw new Error(`the store lists ${path} but has no such file`);
     if (sha256(body) !== hash)
       throw new Error(`${path} in the store does not match its manifest hash`);

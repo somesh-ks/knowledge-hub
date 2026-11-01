@@ -132,6 +132,8 @@ async function publishIndexFromStore(
     const after = await client.head(CONTENT_MANIFEST_KEY);
     if (after?.etag === stored.etag) return;
   }
+  // The manifest moved on every pass: say so, so the caller repeats the command.
+  throw new Error("the content manifest kept changing while the episode index was written");
 }
 
 export async function applyContentDelta(input: DeltaInput): Promise<DeltaResult> {
