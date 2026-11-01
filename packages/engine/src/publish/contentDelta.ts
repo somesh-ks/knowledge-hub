@@ -107,17 +107,27 @@ async function publishIndexFromStore(
     const stored = await readManifest(client, fetchText);
     if (stored.base === null) return;
     const texts: Array<[string, string | null]> = [];
+    let moved = false;
     for (const path of Object.keys(stored.files).filter(isEpisodePath).sort()) {
       const local = await readFile(join(root, path)).catch(() => null);
       if (local !== null && sha256(new Uint8Array(local)) === stored.files[path]) {
         texts.push([path, local.toString("utf8")]);
       } else {
         const text = await fetchText(`${stored.base}/${CONTENT_PREFIX}${path}?t=${Date.now()}`);
-        // The manifest lists it, so the blob should exist; a shorter index would hide it silently.
-        if (text === null) throw new Error(`the store lists ${path} but has no such file`);
+        if (text === null) {
+          // Another job may have removed it since this manifest was read: read again before blaming
+          // the store. A manifest that has not moved and still lists it is damaged, and a shorter
+          // index would hide that.
+          if ((await client.head(CONTENT_MANIFEST_KEY))?.etag !== stored.etag) {
+            moved = true;
+            break;
+          }
+          throw new Error(`the store lists ${path} but has no such file`);
+        }
         texts.push([path, text]);
       }
     }
+    if (moved) continue;
     await uploadEpisodeIndex(client, indexFromTexts(texts, now));
     const after = await client.head(CONTENT_MANIFEST_KEY);
     if (after?.etag === stored.etag) return;

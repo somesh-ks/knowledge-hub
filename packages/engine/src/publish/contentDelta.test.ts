@@ -247,6 +247,136 @@ describe("applyContentDelta", () => {
     ).rejects.toThrow(/has no such file/);
   });
 
+  // The bug: another job removed an episode between this job's manifest read and its fetch; the
+  // missing file was taken for a damaged store and the run failed on a change that was legitimate.
+  it("rebuilds the index from the newer manifest when a listed episode was just removed", async () => {
+    const store = fakeBlob();
+    const [oldPath, oldText] = episodeFile("ep-20261020-0900", "2026-10-20T09:00:00Z");
+    const [newPath, newText] = episodeFile("ep-20261023-1800", "2026-10-23T18:00:00Z");
+    const base = { client: store.client, now: NOW, fetchText: store.fetchText, remove: [] };
+    await applyContentDelta({
+      ...base,
+      root: await checkout({ [oldPath]: oldText }),
+      put: [oldPath],
+    });
+    let removed = false;
+    const fetchText = async (url: string): Promise<string | null> => {
+      if (!removed && url.includes(`content/${oldPath}`)) {
+        // The other job drops the old episode (manifest first, blob after) as this job fetches it.
+        removed = true;
+        const files = JSON.parse(store.objects.get(CONTENT_MANIFEST_KEY)?.text ?? "{}").files;
+        delete files[oldPath];
+        store.objects.set(CONTENT_MANIFEST_KEY, {
+          text: JSON.stringify({ version: 1, updated_at: NOW.toISOString(), files }),
+          etag: 970,
+        });
+        store.objects.delete(`content/${oldPath}`);
+      }
+      return store.fetchText(url);
+    };
+    await applyContentDelta({
+      ...base,
+      fetchText,
+      root: await checkout({ [newPath]: newText }),
+      put: [newPath],
+    });
+    expect(removed).toBe(true);
+    expect(indexIds(store)).toEqual(["ep-20261023-1800"]);
+  });
+
+  // The bug: job A committed its manifest, job B committed a newer one and published its index, then
+  // A published an index built from its older manifest and B's episode vanished from the Library.
+  it("redoes the episode index when the manifest moved while it was being written", async () => {
+    const store = fakeBlob();
+    const [aPath, aText] = episodeFile("ep-20261020-0900", "2026-10-20T09:00:00Z");
+    const [bPath, bText] = episodeFile("ep-20261023-1800", "2026-10-23T18:00:00Z");
+    let interfered = false;
+    const racing: ConditionalBlobClient = {
+      ...store.client,
+      put: async (pathname, body, options) => {
+        const result = await store.client.put(pathname, body, options);
+        if (pathname === EPISODE_INDEX_KEY && !interfered) {
+          interfered = true;
+          // Job B lands its episode and manifest while A's first index is being uploaded.
+          store.objects.set(`content/${bPath}`, { text: bText, etag: 960 });
+          const files = JSON.parse(store.objects.get(CONTENT_MANIFEST_KEY)?.text ?? "{}").files;
+          files[bPath] = sha256(new TextEncoder().encode(bText));
+          store.objects.set(CONTENT_MANIFEST_KEY, {
+            text: JSON.stringify({ version: 1, updated_at: NOW.toISOString(), files }),
+            etag: 961,
+          });
+        }
+        return result;
+      },
+    };
+    await applyContentDelta({
+      client: racing,
+      root: await checkout({ [aPath]: aText }),
+      now: NOW,
+      fetchText: store.fetchText,
+      put: [aPath],
+      remove: [],
+    });
+    expect(indexIds(store)).toEqual(["ep-20261023-1800", "ep-20261020-0900"]);
+  });
+
+  // The bug: an episode the manifest lists but the store lacks was left out of the index, which was
+  // then published as if whole; the Library lost the episode with no error.
+  it("stops instead of publishing an index that leaves out a listed episode", async () => {
+    const store = fakeBlob();
+    const [oldPath, oldText] = episodeFile("ep-20261020-0900", "2026-10-20T09:00:00Z");
+    const [newPath, newText] = episodeFile("ep-20261023-1800", "2026-10-23T18:00:00Z");
+    const base = { client: store.client, now: NOW, fetchText: store.fetchText, remove: [] };
+    await applyContentDelta({
+      ...base,
+      root: await checkout({ [oldPath]: oldText }),
+      put: [oldPath],
+    });
+    store.objects.delete(`content/${oldPath}`);
+    await expect(
+      applyContentDelta({ ...base, root: await checkout({ [newPath]: newText }), put: [newPath] }),
+    ).rejects.toThrow(/has no such file/);
+  });
+
+  // The bug: another job removed an episode between this job's manifest read and its fetch; the
+  // missing file was taken for a damaged store and the run failed on a change that was legitimate.
+  it("rebuilds the index from the newer manifest when a listed episode was just removed", async () => {
+    const store = fakeBlob();
+    const [oldPath, oldText] = episodeFile("ep-20261020-0900", "2026-10-20T09:00:00Z");
+    const [newPath, newText] = episodeFile("ep-20261023-1800", "2026-10-23T18:00:00Z");
+    const base = { client: store.client, now: NOW, fetchText: store.fetchText, remove: [] };
+    await applyContentDelta({
+      ...base,
+      root: await checkout({ [oldPath]: oldText }),
+      put: [oldPath],
+    });
+    const racing: ConditionalBlobClient = {
+      ...store.client,
+      put: async (pathname, body, options) => {
+        const result = await store.client.put(pathname, body, options);
+        if (pathname === CONTENT_MANIFEST_KEY && !store.objects.has("done")) {
+          // The other job drops the old episode (manifest first, blob after) right after this write.
+          store.objects.set("done", { text: "", etag: 0 });
+          const files = JSON.parse(store.objects.get(CONTENT_MANIFEST_KEY)?.text ?? "{}").files;
+          delete files[oldPath];
+          store.objects.set(CONTENT_MANIFEST_KEY, {
+            text: JSON.stringify({ version: 1, updated_at: NOW.toISOString(), files }),
+            etag: 970,
+          });
+          store.objects.delete(`content/${oldPath}`);
+        }
+        return result;
+      },
+    };
+    await applyContentDelta({
+      ...base,
+      client: racing,
+      root: await checkout({ [newPath]: newText }),
+      put: [newPath],
+    });
+    expect(indexIds(store)).toEqual(["ep-20261023-1800"]);
+  });
+
   // The bug: a remove deleted its blob after the manifest write without looking again; a job that
   // had put the same path back in between kept a manifest entry whose blob was gone.
   it("keeps the blob of a path another job put back since the manifest was written", async () => {
