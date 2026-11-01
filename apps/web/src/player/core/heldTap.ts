@@ -20,6 +20,8 @@ const handledAt = new WeakMap<Element, number>();
 export function heldTap(action: () => void) {
   return {
     onPointerDown: (event: PointerEvent<HTMLElement>) => {
+      // A mouse press is no echo of an earlier touch lift: its own click must act.
+      if (event.pointerType === "mouse") handledAt.delete(event.currentTarget);
       pressed.set(event.currentTarget, event.pointerType === "mouse" ? -1 : event.pointerId);
     },
     onPointerUp: (event: PointerEvent<HTMLElement>) => {
@@ -31,8 +33,10 @@ export function heldTap(action: () => void) {
         event.clientX <= box.right + EDGE_SLOP_PX &&
         event.clientY >= box.top - EDGE_SLOP_PX &&
         event.clientY <= box.bottom + EDGE_SLOP_PX;
-      if (!near) return;
+      // A lift off the button acts on nothing, and its click (touch keeps the capture, so it can
+      // still reach this button) is dropped all the same.
       handledAt.set(event.currentTarget, event.timeStamp);
+      if (!near) return;
       action();
     },
     onPointerCancel: (event: PointerEvent<HTMLElement>) => {

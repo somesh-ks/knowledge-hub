@@ -20,10 +20,11 @@ export function swipeClickGuard() {
       // A new press is no echo of the last swipe: its own click must act.
       swipedAt = Number.NEGATIVE_INFINITY;
       swiped = false;
-      start =
-        event.pointerType === "mouse"
-          ? null
-          : { id: event.pointerId, x: event.clientX, y: event.clientY };
+      // The speed dialog is no drag zone (zoneOf), so its slider drags are not swipes to guard.
+      const ignored =
+        event.pointerType === "mouse" ||
+        (event.target instanceof Element && event.target.closest(".speed-panel") !== null);
+      start = ignored ? null : { id: event.pointerId, x: event.clientX, y: event.clientY };
     },
     onPointerMoveCapture: (event: PointerEvent<HTMLElement>) => {
       if (!start || start.id !== event.pointerId) return;
