@@ -769,6 +769,66 @@
   touch-action: none;
 }
 
+/* The sideways swipe on the bar (PlayerBar.tsx, core/dockSwipe.ts): the bar's own cover and title
+   follow the finger a short way and fade, the neighbour's come in from the other side. The script
+   writes --swipe-x (the bar's own offset), --swipe-p (0 at rest to 1 when whole) and --swipe-in
+   (where the neighbour stands); under the finger nothing eases, on release the spring does the
+   rest, and a switch is only done when the item it asked for is the one the bar shows. */
+.dock-open > .player-thumb {
+  grid-area: 1 / 1;
+}
+
+.dock-open > .dock-text {
+  grid-area: 1 / 2;
+}
+
+.dock-open[data-swipe] > :is(.player-thumb, .dock-text) {
+  translate: var(--swipe-x, 0) 0;
+  /* The old words leave before the new ones arrive, so the two never read over each other. */
+  opacity: max(0, calc(1 - var(--swipe-p, 0) * 1.7));
+}
+
+.dock-open[data-swipe] > .player-thumb {
+  scale: calc(1 - var(--swipe-p, 0) * 0.08);
+}
+
+.dock-open[data-swipe="settle"] > :is(.player-thumb, .dock-text) {
+  transition:
+    translate var(--duration-spring-spatial-default) var(--ease-spring-spatial-default),
+    scale var(--duration-spring-spatial-default) var(--ease-spring-spatial-default),
+    opacity var(--duration-spring-effects-default) var(--ease-spring-effects-default);
+}
+
+.dock-neighbour {
+  /* Over the bar's own cover and title, in the same two columns, and never a target of its own. */
+  grid-area: 1 / 1 / 2 / 3;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  pointer-events: none;
+  translate: var(--swipe-in, 0) 0;
+  opacity: max(0, calc(var(--swipe-p, 0) * 1.7 - 0.7));
+}
+
+.dock-neighbour > .player-thumb {
+  scale: calc(0.92 + var(--swipe-p, 0) * 0.08);
+}
+
+.dock-open[data-swipe="settle"] > .dock-neighbour {
+  transition:
+    translate var(--duration-spring-spatial-default) var(--ease-spring-spatial-default),
+    opacity var(--duration-spring-effects-default) var(--ease-spring-effects-default);
+}
+
+.dock-open[data-swipe="settle"] > .dock-neighbour > .player-thumb {
+  transition: scale var(--duration-spring-spatial-default) var(--ease-spring-spatial-default);
+}
+
+/* The press layer is the finger's tap; a swipe is not one. */
+.dock-open[data-swipe]:active::after {
+  background: none;
+}
+
 /* The whole bar opens the player: the open button's target is stretched over it. The bar's other
    controls sit above that, and the gaps between them fall through to it. */
 .dock-open::after {
@@ -2567,8 +2627,16 @@
    art that the handle once took (D111), so the art does not move. The rule above still hides it
    from 64rem until the keyboard reaches it. */
 @media (width < 64rem) {
+  /* The room above the art, which the chevron centres in (owner, 2026-11-01: it sat tight between
+     the top edge and the art; 16px more air above and below its glyph, so it reads as centred). */
+  .player-drag {
+    --player-head: calc(var(--space-8) + var(--space-4));
+
+    padding-block-start: var(--player-head);
+  }
+
   .player .player-collapse {
-    inset-block-start: calc((var(--space-8) + var(--space-2) - var(--size-touch)) / 2);
+    inset-block-start: calc((var(--player-head) + var(--space-2) - var(--size-touch)) / 2);
     inset-inline-start: calc((var(--size-icon-lg) - var(--size-touch)) / 2);
     padding: 0;
     background: transparent;

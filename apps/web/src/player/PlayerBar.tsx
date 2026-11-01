@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { chapterMask } from "./core/chapterMask";
-import { formatClock } from "./core/formatTime";
+import { SWIPE_ENTER_PX, swipeFrame, swipeSwitches } from "./core/dockSwipe";
+import { formatClock, longDateFromDigestId } from "./core/formatTime";
+import { createVelocityTracker, TAP_SLOP_PX } from "./core/gestureMath";
 import { heldTap } from "./core/heldTap";
 import {
   errorSummary,
@@ -10,12 +12,13 @@ import {
   recordingKind,
   toggleLabel,
 } from "./core/playerCopy";
-import { getPlayerStore } from "./core/playerRuntime";
+import { getPlayerStore, playQueueItem } from "./core/playerRuntime";
 import { playerSheet } from "./core/playerSheet";
 import { dockSeekKeyValue, fractionOfTime, scrubberValueText } from "./core/scrubberMath";
 import { itemIndexAt, storySectionName } from "./core/timeline";
 import { applyVolume, getVolume, setVolume } from "./core/volume";
 import { usePlayerFrame, usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
+import { useQueueMeta, useQueueView } from "./hooks/useQueue";
 import Clock from "./ui/Clock";
 import Icon from "./ui/Icon";
 import PlayerCover from "./ui/PlayerCover";
@@ -128,6 +131,29 @@ function DockSeek({ duration }: { duration: number }) {
   );
 }
 
+/** How long a switch waits for the new item to load before the bar lets go of the neighbour, in ms. */
+const SWITCH_WAIT_MS = 4000;
+/** How long the bar's own cover and title fade out before the item is asked for, in ms. */
+const SWITCH_LEAD_MS = 140;
+/** How long after a swipe the bar's own click is not a tap that opens the player, in ms. */
+const SWIPE_CLICK_MS = 400;
+
+/** The item a swipe goes to, drawn as the bar draws what plays: its cover, its title, what it is. */
+function DockNeighbour({ id }: { id: string }) {
+  const meta = useQueueMeta(id);
+  return (
+    <span className="dock-neighbour" aria-hidden="true">
+      <span className="player-thumb">
+        {meta ? <PlayerCover cover={meta.cover} weekly={meta.weekly} size="thumb" /> : null}
+      </span>
+      <span className="dock-text">
+        <span className="dock-title">{meta?.title ?? longDateFromDigestId(id)}</span>
+        <span className="dock-caption">{meta?.caption ?? " "}</span>
+      </span>
+    </span>
+  );
+}
+
 /** Expands the player, or lowers it when open. Desktop only, because it lives in dock-tools. */
 function DockExpand() {
   const open = useSyncExternalStore(
@@ -213,6 +239,22 @@ export default function PlayerBar() {
   const lineRef = useRef<HTMLDivElement>(null);
   /** What last pressed the open button: a finger, a pen or a mouse. */
   const pressedBy = useRef("");
+  const openRef = useRef<HTMLButtonElement>(null);
+  const view = useQueueView();
+  const nextId = view.upcoming[0] ?? null;
+  const previousId = view.played.at(-1) ?? null;
+  /** The item a swipe is going to, drawn beside the bar's own, and the swipe's press. */
+  const [target, setTarget] = useState<string | null>(null);
+  const swipe = useRef({
+    pointerId: -1,
+    x0: 0,
+    y0: 0,
+    dx: 0,
+    mode: "idle" as "idle" | "swipe" | "other",
+    until: 0,
+    waiting: null as string | null,
+  });
+  const tracker = useRef(createVelocityTracker());
 
   // The playhead goes straight to the line, whose fill and notch read it: React never renders at
   // frame rate, and the line holds only those two.
@@ -255,6 +297,100 @@ export default function PlayerBar() {
   );
   const isLastItem = itemCount === 0 || state.itemIndex >= itemCount - 1;
 
+  // The bar follows the finger by two custom properties (player.css), written here at pointer rate:
+  // React renders the neighbour once, when the swipe takes hold, and not again until it ends.
+  const draw = (offset: number, share: number, dir: number, phase: "drag" | "settle"): void => {
+    const button = openRef.current;
+    if (!button) return;
+    button.dataset.swipe = phase;
+    button.style.setProperty("--swipe-x", `${offset}px`);
+    button.style.setProperty("--swipe-p", share.toFixed(3));
+    button.style.setProperty("--swipe-in", `${(-dir * (1 - share) * SWIPE_ENTER_PX).toFixed(1)}px`);
+  };
+  const rest = useCallback((): void => {
+    const button = openRef.current;
+    if (!button) return;
+    delete button.dataset.swipe;
+    for (const name of ["--swipe-x", "--swipe-p", "--swipe-in"]) button.style.removeProperty(name);
+    swipe.current.waiting = null;
+    setTarget(null);
+  }, []);
+  // A switch is whole when the item it asked for is the one the bar shows: the neighbour's layer
+  // gives way to the bar's own, which now holds the same cover and title. A failed or slow load
+  // lets go too, so the bar is never left showing what is not playing.
+  const shownId = digest?.id ?? null;
+  useEffect(() => {
+    const waiting = swipe.current.waiting;
+    if (waiting && shownId === waiting) rest();
+  }, [shownId, rest]);
+  useEffect(() => {
+    if (!target) return;
+    const timer = window.setTimeout(rest, SWITCH_WAIT_MS);
+    return () => window.clearTimeout(timer);
+  }, [target, rest]);
+
+  const swipeTo = (dx: number): string | null => (dx < 0 ? nextId : dx > 0 ? previousId : null);
+  const onSwipeDown = (event: React.PointerEvent<HTMLButtonElement>): void => {
+    pressedBy.current = event.pointerType;
+    const press = swipe.current;
+    // A swipe is for a finger; a mouse has the transport and the queue.
+    if (!event.isPrimary || event.pointerType === "mouse" || press.waiting) return;
+    Object.assign(press, {
+      pointerId: event.pointerId,
+      x0: event.clientX,
+      y0: event.clientY,
+      dx: 0,
+      mode: "idle",
+    });
+    tracker.current.reset({ value: event.clientX, t: event.timeStamp });
+  };
+  const onSwipeMove = (event: React.PointerEvent<HTMLButtonElement>): void => {
+    const press = swipe.current;
+    if (press.pointerId !== event.pointerId || press.mode === "other") return;
+    const dx = event.clientX - press.x0;
+    const dy = event.clientY - press.y0;
+    tracker.current.push(event.clientX, event.timeStamp);
+    if (press.mode === "idle") {
+      if (Math.abs(dx) >= TAP_SLOP_PX && Math.abs(dx) > Math.abs(dy)) {
+        press.mode = "swipe";
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } else if (Math.abs(dy) >= TAP_SLOP_PX) press.mode = "other";
+      if (press.mode !== "swipe") return;
+    }
+    // Ours, not the player's own pull up.
+    event.stopPropagation();
+    press.dx = dx;
+    const to = swipeTo(dx);
+    setTarget((current) => (current === to ? current : to));
+    const { offset, share } = swipeFrame(dx, to !== null);
+    draw(offset, share, Math.sign(dx), "drag");
+  };
+  const onSwipeEnd = (event: React.PointerEvent<HTMLButtonElement>): void => {
+    const press = swipe.current;
+    if (press.pointerId !== event.pointerId) return;
+    press.pointerId = -1;
+    if (press.mode !== "swipe") return;
+    event.stopPropagation();
+    press.until = event.timeStamp + SWIPE_CLICK_MS;
+    const to = swipeTo(press.dx);
+    const dir = Math.sign(press.dx);
+    const velocity = tracker.current.velocity();
+    if (to && event.type === "pointerup" && swipeSwitches(press.dx, velocity, true)) {
+      // Whole: the bar's cover and title finish leaving, the neighbour's finish arriving, and the
+      // item is asked for as the old ones have faded.
+      press.waiting = to;
+      draw(dir * SWIPE_ENTER_PX, 1, dir, "settle");
+      window.setTimeout(() => {
+        if (press.waiting === to) playQueueItem(to);
+      }, SWITCH_LEAD_MS);
+    } else {
+      draw(0, 0, dir, "settle");
+      window.setTimeout(() => {
+        if (!press.waiting && press.pointerId === -1) rest();
+      }, 460);
+    }
+  };
+
   return (
     <section className="player-dock" aria-label="Audio player" data-player-dock>
       <div
@@ -275,6 +411,7 @@ export default function PlayerBar() {
       </div>
       <DockSeek duration={state.duration} />
       <button
+        ref={openRef}
         className="dock-open"
         type="button"
         data-player-open
@@ -283,12 +420,15 @@ export default function PlayerBar() {
         aria-expanded="false"
         aria-controls={PLAYER_PAGE_ID}
         aria-label={`Player: ${headline}`}
-        onClick={(event) =>
-          playerSheet.click({ t: event.timeStamp, fromPointer: event.detail > 0 })
-        }
-        onPointerDown={(event) => {
-          pressedBy.current = event.pointerType;
+        onClick={(event) => {
+          // The click that follows a swipe is not a tap on the bar.
+          if (event.timeStamp < swipe.current.until) return;
+          playerSheet.click({ t: event.timeStamp, fromPointer: event.detail > 0 });
         }}
+        onPointerDown={onSwipeDown}
+        onPointerMove={onSwipeMove}
+        onPointerUp={onSwipeEnd}
+        onPointerCancel={onSwipeEnd}
         // A tap opens the page on the finger's lift, and focus moves into it. The mouse press a
         // browser sends after a tap would then take focus back to this button, which a wide window
         // keeps in reach under the open page, and the next Tab would start from nothing.
@@ -319,6 +459,7 @@ export default function PlayerBar() {
               ))}
           </span>
         </span>
+        {target ? <DockNeighbour id={target} /> : null}
       </button>
       <div className="dock-transport">
         {/* As on the page: on the first story, previous goes back to its start. */}
