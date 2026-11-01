@@ -925,6 +925,42 @@
       ]
     },
     {
+      "id": "reorder",
+      "name": "Reorder",
+      "kind": "container",
+      "summary": "Rows the listener moves by dragging.",
+      "classes": [
+        "reorder-list",
+        "reorder-item"
+      ],
+      "files": [
+        "design-system/reorder.ts",
+        "styles/reorder.css"
+      ],
+      "when": [
+        "The order is theirs to set, as a queue's"
+      ],
+      "not": [],
+      "keywords": [
+        "drag",
+        "reorder",
+        "move rows",
+        "long press"
+      ],
+      "markup": "<ul class=\"reorder-list\"><li class=\"reorder-item\">Row</li></ul>",
+      "rules": [
+        "Add the behaviour with attachReorder(list, { onMove, announce, label }); Alt+arrows move a row."
+      ],
+      "styles": [
+        "reorder.css"
+      ],
+      "usage": "The Reorderable list (design-system/reorder.ts): rows the listener moves by dragging. A mouse shows the 4-way move arrow over a row and pulls it; a finger holds, then moves it (the hold is the card menu's, D264). The rows a held row passes step aside by its height, which shows where it will land; the held row follows the pointer at once. Controls inside a row that press on their own (a menu's dots) set their own cursor.",
+      "tokens": [
+        "--color-accent",
+        "--color-surface-container"
+      ]
+    },
+    {
       "id": "btn-action-tonal",
       "name": "Tonal action",
       "kind": "action",
