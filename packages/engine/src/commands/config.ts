@@ -41,6 +41,7 @@ import {
 import { RATE_LIMIT_SCHEMA_SQL } from "../store/rateCounter.js";
 import { loadStructureFile, serializeStructure } from "../structure/store.js";
 import { loadTopics, serializeTopics } from "../topics/store.js";
+import { runRestore, runSnapshot, type SnapshotDeps } from "./configSnapshot.js";
 
 const USAGE = `Usage: singularity config <command>
 
@@ -66,6 +67,13 @@ const USAGE = `Usage: singularity config <command>
                                      unless --replace: then a row that differs
                                      from the file here is rewritten from it (--dry-run lists those).
                                      Needs --force, as it can undo edits made in the app.
+  snapshot [--out <file>] [--keep <n>]
+                                     Copy every stored document into one JSON file (D300): in the
+                                     private Blob store (BLOB_PRIVATE_READ_WRITE_TOKEN), keeping the
+                                     newest 8, or with --out on this machine. snapshot.yml runs it weekly.
+  restore (--file <path> | --latest) --force
+                                     Write a snapshot's documents back into the store as new versions,
+                                     creating the table if it is gone. Overwrites newer edits.
 
 Ops (see ConfigOp in @singularity/core):
   {"op":"topic.upsert","topic":{"name":"...","description":"...","keywords":["..."]}}
@@ -81,7 +89,7 @@ Ops (see ConfigOp in @singularity/core):
   {"op":"profile.block","domain":"example.com"}
   {"op":"profile.unblock","domain":"example.com"}`;
 
-export interface ConfigDeps {
+export interface ConfigDeps extends SnapshotDeps {
   /** Network client for source.add. Tests pass a fake. */
   http?: HttpClient;
   /** Opens the config store for `seed`. Tests pass a fake. */
@@ -171,6 +179,10 @@ export function makeConfigCommand(deps: ConfigDeps = {}): CommandRun {
           return await runSeed(rest, ctx, deps);
         case "pull":
           return await runPull(rest, ctx, deps);
+        case "snapshot":
+          return await runSnapshot(rest, ctx, deps);
+        case "restore":
+          return await runRestore(rest, ctx, deps);
         case undefined:
           print(USAGE);
           return 2;
