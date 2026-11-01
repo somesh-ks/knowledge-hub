@@ -1,11 +1,16 @@
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { loadEnv, ModelRouting } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { BatchApi, BatchOutcome } from "../src/llm/anthropicBatch.js";
 import { runBatch } from "../src/llm/batchRunner.js";
 import { createModelRouter } from "../src/llm/modelRouter.js";
+import { openBatchesPath, settleOpenBatches, trackOpenBatches } from "../src/llm/openBatches.js";
 import { TokenBudget } from "../src/llm/tokenBudget.js";
 import type { BatchLlm } from "../src/llm/types.js";
+import { SpendTracker } from "../src/run/spend.js";
 import { batchDeadline } from "../src/run/writeStage.js";
 import { LlmWriter, WRITER_BATCH_SIZE } from "../src/write/llmWriter.js";
 import type { SourceMaterial, WrittenItem } from "../src/write/types.js";
@@ -152,6 +157,134 @@ describe("the batch wait", () => {
     const out = await runBatch(api, entries, { until: now() - 1, now, sleep });
     expect(out.size).toBe(0);
     expect(submits).toBe(0);
+  });
+});
+
+// A batch the wait gave up on, or that a cancelled job left running, is billed for what it finished
+// while the ledger never saw it. It stays on the run's open list until it has been read.
+describe("the open batch list", () => {
+  const model = "claude-test";
+  const withDir = async (body: (dir: string) => Promise<void>) => {
+    const dir = await mkdtemp(join(tmpdir(), "singularity-open-batches-"));
+    try {
+      await body(dir);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  };
+
+  it("keeps a batch the run gave up on and drops one it read", async () => {
+    await withDir(async (dir) => {
+      const { now, sleep } = clock();
+      const track = trackOpenBatches(dir, "run-1");
+      const readable: BatchApi = {
+        submit: async () => "read",
+        status: async () => ({ status: "ended" }),
+        results: async () => new Map([["w0", ok("{}")]]),
+        cancel: async () => {},
+      };
+      const unreadable: BatchApi = {
+        ...readable,
+        submit: async () => "lost",
+        status: async () => {
+          throw new Error("503");
+        },
+      };
+      const hooks = { onOpen: (id: string) => track.add(id, model), onClosed: track.remove };
+      await runBatch(readable, entries, { until: now() + 3_600_000, now, sleep, ...hooks });
+      await runBatch(unreadable, entries, { until: now() + 3_600_000, now, sleep, ...hooks });
+      const open = JSON.parse(await readFile(openBatchesPath(dir), "utf8"));
+      expect(open.batches.map((b: { id: string }) => b.id)).toEqual(["lost"]);
+    });
+  });
+
+  it("settles what is left: cancels it, waits for the end and adds its tokens to the run's spend", async () => {
+    await withDir(async (dir) => {
+      const { now, sleep } = clock();
+      const track = trackOpenBatches(dir, "run-1");
+      await track.add("lost", model);
+      const calls: string[] = [];
+      let polls = 0;
+      const api: BatchApi = {
+        submit: async () => "unused",
+        cancel: async () => {
+          calls.push("cancel");
+        },
+        status: async () => {
+          polls += 1;
+          return { status: polls < 3 ? "canceling" : "ended" };
+        },
+        results: async () => {
+          calls.push("results");
+          return new Map([
+            ["w0", ok("{}")],
+            ["w1", { type: "canceled" }],
+          ]);
+        },
+      };
+      const spend = new SpendTracker();
+      await spend.resume(dir, "run-1");
+      // The batch stays recoverable until its tokens are on disk: a stop between the two would
+      // otherwise lose them for good.
+      const save = spend.save.bind(spend);
+      let listedAtSave: boolean | undefined;
+      spend.save = async (root: string) => {
+        listedAtSave = await readFile(openBatchesPath(root), "utf8").then(
+          () => true,
+          () => false,
+        );
+        await save(root);
+      };
+      await settleOpenBatches({ root: dir, run: "run-1", api, spend, now, sleep });
+      expect(listedAtSave).toBe(true);
+      expect(calls).toEqual(["cancel", "results"]);
+      expect(spend.unitTotals()).toEqual({
+        [`anthropic|${model}|batch_input_tokens`]: 10,
+        [`anthropic|${model}|batch_output_tokens`]: 5,
+      });
+      await expect(readFile(openBatchesPath(dir), "utf8")).rejects.toThrow();
+      // A second settle finds nothing, so it cannot count the batch twice.
+      await settleOpenBatches({ root: dir, run: "run-1", api, spend, now, sleep });
+      expect(Object.keys(spend.unitTotals())).toHaveLength(2);
+    });
+  });
+
+  it("leaves a batch that never ends on the list for the next look", async () => {
+    await withDir(async (dir) => {
+      const { now, sleep } = clock();
+      await trackOpenBatches(dir, "run-1").add("stuck", model);
+      const api: BatchApi = {
+        submit: async () => "unused",
+        cancel: async () => {},
+        status: async () => ({ status: "canceling" }),
+        results: async () => new Map(),
+      };
+      const spend = new SpendTracker();
+      await spend.resume(dir, "run-1");
+      await settleOpenBatches({ root: dir, run: "run-1", api, spend, now, sleep, waitMs: 60_000 });
+      expect(JSON.parse(await readFile(openBatchesPath(dir), "utf8")).batches).toHaveLength(1);
+      expect(spend.unitTotals()).toEqual({});
+    });
+  });
+
+  it("ignores a list from another run", async () => {
+    await withDir(async (dir) => {
+      const { now, sleep } = clock();
+      await trackOpenBatches(dir, "run-0").add("old", model);
+      let touched = false;
+      const api: BatchApi = {
+        submit: async () => "unused",
+        cancel: async () => {
+          touched = true;
+        },
+        status: async () => ({ status: "ended" }),
+        results: async () => new Map(),
+      };
+      const spend = new SpendTracker();
+      await spend.resume(dir, "run-1");
+      await settleOpenBatches({ root: dir, run: "run-1", api, spend, now, sleep });
+      expect(touched).toBe(false);
+    });
   });
 });
 

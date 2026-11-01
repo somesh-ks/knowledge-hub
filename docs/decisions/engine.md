@@ -559,3 +559,12 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Limit: a thin day can air more Tech than the allowance (at most the floor's worth). The floor itself, and a rewrite pass for a 29 against 28 word sentence, are unchanged.
 - Revisit if: a day airs Tech past its allowance with enough other stories left over, or the owner prefers a missing day to a Tech-heavy one.
 - Amends: D35.
+
+## D302: pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked
+
+- Date: 2026-11-01 (the owner's call, relayed by the coordinator).
+- Decision: pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked. No code is written for them until the owner restarts one. The relay named the pilot "D235"; the record holds no decision or plan under that id, so the pilot has no document to link.
+- Why: the owner chose to park them, and the repo's pipeline discipline already puts a green daily loop in production before new intake types.
+- Rejected: build the pilot first (spends effort before the daily loop is proven in production); drop both outright (loses a plan the owner may want back).
+- Limit: nothing is removed. `docs/state.md` keeps them under Next as parked, so the plan and the pilot stay findable.
+- Revisit if: the owner restarts or drops one.
