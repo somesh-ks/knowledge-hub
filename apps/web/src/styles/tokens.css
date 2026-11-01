@@ -116,6 +116,7 @@
   --stroke-ring-gap: 2px;
   --font-ui: "Google Sans Flex Variable", "Google Sans Flex Fallback", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-read: "Google Sans Flex Variable", "Google Sans Flex Fallback", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-blackletter: "Pirata One", "Google Sans Flex Variable", "Google Sans Flex Fallback", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
@@ -457,6 +458,22 @@
   --picker-radius: var(--radius-2xl);
   --picker-inset: var(--space-2);
   --picker-inner-radius: var(--radius-xl);
+  --scene-pumpkin: var(--color-accent);
+  --scene-pumpkin-shade: var(--color-accent-hover);
+  --scene-pumpkin-lit: var(--color-accent-container-high);
+  --scene-stem: var(--color-on-surface-muted);
+  --scene-glow: var(--color-surface-raised);
+  --scene-bone: var(--color-surface-raised);
+  --scene-bone-shade: var(--color-surface-container);
+  --scene-iron: var(--color-on-surface-muted);
+  --scene-iron-shade: var(--color-on-surface);
+  --scene-iron-lit: var(--color-track-strong);
+  --scene-stone: var(--color-track-strong);
+  --scene-stone-shade: var(--color-border-control);
+  --scene-stone-lit: var(--color-track);
+  --scene-moon: var(--color-accent-container);
+  --scene-moon-shade: var(--color-accent-container-high);
+  --scene-halo: 0;
   --card-padding: var(--space-6);
   --card-inset: var(--space-1);
   --card-radius: var(--radius-2xl);
@@ -518,6 +535,22 @@
     --shadow-raised: var(--shadow-raised-dark);
     --segmented-selected-bg: var(--color-surface-overlay);
     --switch-thumb-bg: var(--color-on-surface);
+    --scene-pumpkin: var(--color-accent);
+    --scene-pumpkin-shade: var(--color-accent-hover);
+    --scene-pumpkin-lit: var(--color-accent-container-high);
+    --scene-stem: var(--color-on-surface-muted);
+    --scene-glow: var(--color-surface-raised);
+    --scene-bone: var(--color-surface-raised);
+    --scene-bone-shade: var(--color-surface-container);
+    --scene-iron: var(--color-on-surface-muted);
+    --scene-iron-shade: var(--color-on-surface);
+    --scene-iron-lit: var(--color-track-strong);
+    --scene-stone: var(--color-track-strong);
+    --scene-stone-shade: var(--color-border-control);
+    --scene-stone-lit: var(--color-track);
+    --scene-moon: var(--color-accent-container);
+    --scene-moon-shade: var(--color-accent-container-high);
+    --scene-halo: 0;
     --card-chip-hover: var(--state-hover);
     color-scheme: dark;
   }
@@ -573,6 +606,22 @@
   --shadow-raised: var(--shadow-raised-dark);
   --segmented-selected-bg: var(--color-surface-overlay);
   --switch-thumb-bg: var(--color-on-surface);
+  --scene-pumpkin: var(--color-accent);
+  --scene-pumpkin-shade: var(--color-accent-hover);
+  --scene-pumpkin-lit: var(--color-accent-container-high);
+  --scene-stem: var(--color-on-surface-muted);
+  --scene-glow: var(--color-surface-raised);
+  --scene-bone: var(--color-surface-raised);
+  --scene-bone-shade: var(--color-surface-container);
+  --scene-iron: var(--color-on-surface-muted);
+  --scene-iron-shade: var(--color-on-surface);
+  --scene-iron-lit: var(--color-track-strong);
+  --scene-stone: var(--color-track-strong);
+  --scene-stone-shade: var(--color-border-control);
+  --scene-stone-lit: var(--color-track);
+  --scene-moon: var(--color-accent-container);
+  --scene-moon-shade: var(--color-accent-container-high);
+  --scene-halo: 0;
   --card-chip-hover: var(--state-hover);
   color-scheme: dark;
 }
@@ -596,6 +645,159 @@
   --nav-indicator-radius-current: var(--radius-md);
   --scrubber-track: 0.5rem;
   --row-radius: var(--radius-2xl);
+}
+
+/* Style: halloween */
+:root[data-style="halloween"] {
+  --color-surface: oklch(95.5% 0.025 85);
+  --color-surface-sunken: oklch(92% 0.03 80);
+  --color-surface-container: oklch(91% 0.035 75);
+  --color-surface-raised: oklch(98% 0.015 85);
+  --color-surface-overlay: var(--color-white);
+  --color-surface-inverse: oklch(24% 0.05 305);
+  --color-on-surface: oklch(20% 0.05 300);
+  --color-on-surface-reading: oklch(20% 0.05 300);
+  --color-on-surface-muted: oklch(40% 0.045 300);
+  --color-on-surface-subtle: oklch(48% 0.04 300);
+  --color-on-surface-inverse: oklch(94% 0.025 85);
+  --color-border-hairline: oklch(86% 0.03 80);
+  --color-border-control: oklch(55% 0.05 300);
+  --color-track: oklch(86% 0.03 80);
+  --color-track-strong: oklch(70% 0.04 80);
+  --color-accent: var(--color-orange-600);
+  --color-accent-hover: var(--color-orange-700);
+  --color-accent-pressed: var(--color-orange-800);
+  --color-accent-subtle: var(--color-orange-50);
+  --color-accent-container: var(--color-orange-100);
+  --color-on-accent-container: var(--color-orange-800);
+  --color-accent-container-high: var(--color-orange-200);
+  --color-on-accent-container-high: var(--color-orange-900);
+  --color-accent-action: var(--color-orange-600);
+  --color-accent-action-state: var(--color-orange-700);
+  --color-on-accent-action: var(--color-white);
+  --shadow-cover: var(--shadow-cover-light);
+  --shadow-raised: var(--shadow-raised-light);
+  --text-display-family: var(--font-blackletter);
+  --text-display-size: 3rem;
+  --text-display-weight: var(--font-weight-regular);
+  --text-display-tracking: 0em;
+  --text-display-leading: 1;
+  --scene-pumpkin: var(--color-orange-400);
+  --scene-pumpkin-shade: var(--color-orange-500);
+  --scene-pumpkin-lit: var(--color-orange-300);
+  --scene-stem: var(--color-orange-800);
+  --scene-glow: oklch(96% 0.05 85);
+  --scene-bone: oklch(99% 0.012 85);
+  --scene-bone-shade: oklch(90% 0.03 80);
+  --scene-iron: oklch(30% 0.05 305);
+  --scene-iron-shade: oklch(24% 0.05 305);
+  --scene-iron-lit: oklch(40% 0.06 305);
+  --scene-stone: oklch(80% 0.025 300);
+  --scene-stone-shade: oklch(70% 0.03 300);
+  --scene-stone-lit: oklch(86% 0.02 300);
+  --scene-moon: var(--color-orange-200);
+  --scene-moon-shade: var(--color-orange-300);
+  --scene-halo: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"])[data-style="halloween"] {
+    --color-surface: oklch(15% 0.03 305);
+    --color-surface-sunken: oklch(12% 0.03 305);
+    --color-surface-container: oklch(22% 0.05 305);
+    --color-surface-raised: oklch(26% 0.055 305);
+    --color-surface-overlay: oklch(30% 0.06 305);
+    --color-surface-inverse: oklch(93% 0.03 85);
+    --color-on-surface: oklch(94% 0.025 85);
+    --color-on-surface-reading: oklch(92% 0.025 85);
+    --color-on-surface-muted: oklch(76% 0.04 300);
+    --color-on-surface-subtle: oklch(69% 0.04 300);
+    --color-on-surface-inverse: oklch(20% 0.05 300);
+    --color-border-hairline: oklch(28% 0.05 305);
+    --color-border-control: oklch(62% 0.06 300);
+    --color-track: oklch(30% 0.05 305);
+    --color-track-strong: oklch(42% 0.06 305);
+    --color-accent: var(--color-orange-300);
+    --color-accent-hover: var(--color-orange-200);
+    --color-accent-pressed: var(--color-orange-100);
+    --color-accent-subtle: oklch(24% 0.06 47);
+    --color-accent-container: oklch(30% 0.08 47);
+    --color-on-accent-container: var(--color-orange-100);
+    --color-accent-container-high: oklch(38% 0.1 47);
+    --color-on-accent-container-high: var(--color-orange-50);
+    --color-accent-action: var(--color-orange-400);
+    --color-accent-action-state: var(--color-orange-300);
+    --color-on-accent-action: oklch(15% 0.03 305);
+    --shadow-cover: 0px 0px 0px 1px oklch(40% 0.1 47 / 0.3),
+    0px 10px 36px 0px oklch(60% 0.17 47 / 0.18);
+    --shadow-raised: 0px 0px 0px 1px oklch(40% 0.1 47 / 0.25),
+    0px 6px 22px 0px oklch(60% 0.17 47 / 0.14);
+    --scene-pumpkin: var(--color-orange-400);
+    --scene-pumpkin-shade: var(--color-orange-500);
+    --scene-pumpkin-lit: var(--color-orange-300);
+    --scene-stem: var(--color-orange-700);
+    --scene-glow: oklch(95% 0.07 85);
+    --scene-bone: oklch(93% 0.03 85);
+    --scene-bone-shade: oklch(78% 0.04 300);
+    --scene-iron: oklch(36% 0.06 305);
+    --scene-iron-shade: oklch(28% 0.055 305);
+    --scene-iron-lit: oklch(46% 0.07 305);
+    --scene-stone: oklch(46% 0.05 305);
+    --scene-stone-shade: oklch(36% 0.05 305);
+    --scene-stone-lit: oklch(54% 0.05 305);
+    --scene-moon: oklch(93% 0.03 85);
+    --scene-moon-shade: oklch(78% 0.04 300);
+    --scene-halo: 0.5;
+  }
+}
+
+:root[data-theme="dark"][data-style="halloween"] {
+  --color-surface: oklch(15% 0.03 305);
+  --color-surface-sunken: oklch(12% 0.03 305);
+  --color-surface-container: oklch(22% 0.05 305);
+  --color-surface-raised: oklch(26% 0.055 305);
+  --color-surface-overlay: oklch(30% 0.06 305);
+  --color-surface-inverse: oklch(93% 0.03 85);
+  --color-on-surface: oklch(94% 0.025 85);
+  --color-on-surface-reading: oklch(92% 0.025 85);
+  --color-on-surface-muted: oklch(76% 0.04 300);
+  --color-on-surface-subtle: oklch(69% 0.04 300);
+  --color-on-surface-inverse: oklch(20% 0.05 300);
+  --color-border-hairline: oklch(28% 0.05 305);
+  --color-border-control: oklch(62% 0.06 300);
+  --color-track: oklch(30% 0.05 305);
+  --color-track-strong: oklch(42% 0.06 305);
+  --color-accent: var(--color-orange-300);
+  --color-accent-hover: var(--color-orange-200);
+  --color-accent-pressed: var(--color-orange-100);
+  --color-accent-subtle: oklch(24% 0.06 47);
+  --color-accent-container: oklch(30% 0.08 47);
+  --color-on-accent-container: var(--color-orange-100);
+  --color-accent-container-high: oklch(38% 0.1 47);
+  --color-on-accent-container-high: var(--color-orange-50);
+  --color-accent-action: var(--color-orange-400);
+  --color-accent-action-state: var(--color-orange-300);
+  --color-on-accent-action: oklch(15% 0.03 305);
+  --shadow-cover: 0px 0px 0px 1px oklch(40% 0.1 47 / 0.3),
+    0px 10px 36px 0px oklch(60% 0.17 47 / 0.18);
+  --shadow-raised: 0px 0px 0px 1px oklch(40% 0.1 47 / 0.25),
+    0px 6px 22px 0px oklch(60% 0.17 47 / 0.14);
+  --scene-pumpkin: var(--color-orange-400);
+  --scene-pumpkin-shade: var(--color-orange-500);
+  --scene-pumpkin-lit: var(--color-orange-300);
+  --scene-stem: var(--color-orange-700);
+  --scene-glow: oklch(95% 0.07 85);
+  --scene-bone: oklch(93% 0.03 85);
+  --scene-bone-shade: oklch(78% 0.04 300);
+  --scene-iron: oklch(36% 0.06 305);
+  --scene-iron-shade: oklch(28% 0.055 305);
+  --scene-iron-lit: oklch(46% 0.07 305);
+  --scene-stone: oklch(46% 0.05 305);
+  --scene-stone-shade: oklch(36% 0.05 305);
+  --scene-stone-lit: oklch(54% 0.05 305);
+  --scene-moon: oklch(93% 0.03 85);
+  --scene-moon-shade: oklch(78% 0.04 300);
+  --scene-halo: 0.5;
 }
 
 /* Reduced motion: movement durations collapse, fades and color changes keep their timing. */

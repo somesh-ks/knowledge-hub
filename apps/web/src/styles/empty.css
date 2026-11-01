@@ -202,6 +202,403 @@ main > .empty {
   stroke-width: 8;
 }
 
+/* ------------------------------------------------------------------ a style's own scenes (D306) */
+
+/* A style may draw its own scene for each empty state (components/halloweenArt.ts). The Default svg and the
+   style's svg are both in the page; the chosen style shows its own, and a style with none shows the Default.
+   The style's colours are the `scene` tokens, named by role: sf- is a fill, ss- a stroke, sc- a gradient stop. */
+.empty-art[data-look] {
+  display: none;
+  overflow: visible;
+}
+
+@media (forced-colors: none) {
+  :root[data-style="halloween"] .empty-art[data-look="halloween"] {
+    display: block;
+  }
+
+  :root[data-style="halloween"] .empty-art:not([data-look]) {
+    display: none;
+  }
+}
+
+/* The offline page holds two scenes and shows the one its state names, in the style's drawings too. */
+.empty[data-state="offline"] > .empty-art[data-scene="online"],
+.empty[data-state="online"] > .empty-art[data-scene="offline"] {
+  display: none;
+}
+
+.sf-pumpkin {
+  fill: var(--scene-pumpkin);
+}
+
+.sf-pumpkin-shade {
+  fill: var(--scene-pumpkin-shade);
+}
+
+.sf-pumpkin-lit {
+  fill: var(--scene-pumpkin-lit);
+}
+
+.sf-stem {
+  fill: var(--scene-stem);
+}
+
+.sf-glow {
+  fill: var(--scene-glow);
+}
+
+.sf-bone {
+  fill: var(--scene-bone);
+}
+
+.sf-bone-shade {
+  fill: var(--scene-bone-shade);
+}
+
+.sf-iron {
+  fill: var(--scene-iron);
+}
+
+.sf-iron-shade {
+  fill: var(--scene-iron-shade);
+}
+
+.sf-iron-lit {
+  fill: var(--scene-iron-lit);
+}
+
+.sf-stone {
+  fill: var(--scene-stone);
+}
+
+.sf-stone-shade {
+  fill: var(--scene-stone-shade);
+}
+
+.sf-stone-lit {
+  fill: var(--scene-stone-lit);
+}
+
+.sf-moon {
+  fill: var(--scene-moon);
+}
+
+.sf-moon-shade {
+  fill: var(--scene-moon-shade);
+}
+
+.ss-pumpkin {
+  stroke: var(--scene-pumpkin);
+}
+
+.ss-pumpkin-shade {
+  stroke: var(--scene-pumpkin-shade);
+}
+
+.ss-pumpkin-lit {
+  stroke: var(--scene-pumpkin-lit);
+}
+
+.ss-stem {
+  stroke: var(--scene-stem);
+}
+
+.ss-glow {
+  stroke: var(--scene-glow);
+}
+
+.ss-bone {
+  stroke: var(--scene-bone);
+}
+
+.ss-bone-shade {
+  stroke: var(--scene-bone-shade);
+}
+
+.ss-iron {
+  stroke: var(--scene-iron);
+}
+
+.ss-iron-shade {
+  stroke: var(--scene-iron-shade);
+}
+
+.ss-iron-lit {
+  stroke: var(--scene-iron-lit);
+}
+
+.ss-stone {
+  stroke: var(--scene-stone);
+}
+
+.ss-stone-shade {
+  stroke: var(--scene-stone-shade);
+}
+
+.ss-stone-lit {
+  stroke: var(--scene-stone-lit);
+}
+
+.ss-moon {
+  stroke: var(--scene-moon);
+}
+
+.ss-moon-shade {
+  stroke: var(--scene-moon-shade);
+}
+
+.sf-ground {
+  fill: var(--color-surface-sunken);
+}
+
+.sf-knock {
+  fill: var(--color-surface);
+}
+
+.sf-line {
+  fill: var(--color-border-control);
+}
+
+.ss-line {
+  stroke: var(--color-border-control);
+}
+
+.sf-current {
+  fill: currentcolor;
+}
+
+.ss-current {
+  stroke: currentcolor;
+}
+
+.sn {
+  fill: none;
+}
+
+.ssn {
+  stroke: none;
+}
+
+.sc-moon {
+  stop-color: var(--scene-moon);
+}
+
+.sc-pumpkin-lit {
+  stop-color: var(--scene-pumpkin-lit);
+}
+
+/* The glow round a lit scene: a radial gradient in the scene, strong where the theme is dark. */
+.sg {
+  stop-opacity: var(--scene-halo);
+}
+
+/* The eased steps of the same glow, so its edge dissolves instead of ending (see halo() in halloweenArt.ts). */
+.sg-2 {
+  stop-opacity: calc(var(--scene-halo) * 0.55);
+}
+
+.sg-3 {
+  stop-opacity: calc(var(--scene-halo) * 0.22);
+}
+
+.sg-4 {
+  stop-opacity: calc(var(--scene-halo) * 0.06);
+}
+
+.sg-0 {
+  stop-opacity: 0;
+}
+
+.sh-today {
+  fill: url("#sg-today");
+}
+
+.sh-library {
+  fill: url("#sg-library");
+}
+
+.sh-offline {
+  fill: url("#sg-offline");
+}
+
+.sh-online {
+  fill: url("#sg-online");
+}
+
+.sh-notfound {
+  fill: url("#sg-notfound");
+}
+
+/* The scenes move a little, when the reader has not asked for less (D306: "you can animate the zero
+   states", the owner, 2026-11-01). Each loop is slow and small: it breathes, it does not play. The
+   timings are local properties so the duration rule reads them as tokens. */
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-style="halloween"] .empty-art[data-look="halloween"] {
+    --scene-breath: 4.6s;
+    --scene-bob: 5.2s;
+    --scene-flicker: 2.3s;
+    --scene-twinkle: 3.4s;
+    --scene-rise: 3.8s;
+    --scene-sway: 6s;
+    --scene-ease: cubic-bezier(0.37, 0, 0.63, 1);
+  }
+
+  :root[data-style="halloween"]
+    .empty-art[data-look="halloween"]
+    :is(.a-breathe, .a-flicker, .a-twinkle, .a-bob, .a-float, .a-sway, .a-rise > *, .a-flame) {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation-timing-function: var(--scene-ease);
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+  }
+
+  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-breathe {
+    animation-name: scene-breathe;
+    animation-duration: var(--scene-breath);
+  }
+
+  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-flicker {
+    animation-name: scene-flicker;
+    animation-duration: var(--scene-flicker);
+  }
+
+  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-flame {
+    animation-name: scene-flame;
+    animation-duration: var(--scene-flicker);
+    transform-origin: 50% 100%;
+  }
+
+  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-twinkle {
+    animation-name: scene-twinkle;
+    animation-duration: var(--scene-twinkle);
+  }
+
+  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-bob {
+    animation-name: scene-bob;
+    animation-duration: var(--scene-bob);
+  }
+
+  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-float {
+    animation-name: scene-float;
+    animation-duration: var(--scene-bob);
+  }
+
+  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-sway {
+    animation-name: scene-sway;
+    animation-duration: var(--scene-sway);
+    transform-origin: 50% 0;
+  }
+
+  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-rise > * {
+    animation-name: scene-rise;
+    animation-duration: var(--scene-rise);
+  }
+
+  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-rise > :nth-child(2) {
+    animation-delay: -1.1s;
+  }
+
+  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-rise > :nth-child(3) {
+    animation-delay: -2.2s;
+  }
+
+  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-rise > :nth-child(4) {
+    animation-delay: -0.6s;
+  }
+
+  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-rise > :nth-child(5) {
+    animation-delay: -1.7s;
+  }
+
+  @keyframes scene-breathe {
+    from {
+      opacity: 0.72;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes scene-flicker {
+    from {
+      opacity: 0.82;
+    }
+
+    40% {
+      opacity: 1;
+    }
+
+    to {
+      opacity: 0.9;
+    }
+  }
+
+  @keyframes scene-flame {
+    from {
+      transform: scale(0.94, 0.9);
+    }
+
+    to {
+      transform: scale(1.04, 1.08) skewX(-3deg);
+    }
+  }
+
+  @keyframes scene-twinkle {
+    from {
+      opacity: 0.55;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes scene-bob {
+    from {
+      transform: translateY(1.5px);
+    }
+
+    to {
+      transform: translateY(-3px);
+    }
+  }
+
+  @keyframes scene-float {
+    from {
+      transform: translate(-2px, 2px) rotate(-1.2deg);
+    }
+
+    to {
+      transform: translate(2px, -3px) rotate(1.2deg);
+    }
+  }
+
+  @keyframes scene-sway {
+    from {
+      transform: rotate(-2.4deg);
+    }
+
+    to {
+      transform: rotate(2.4deg);
+    }
+  }
+
+  @keyframes scene-rise {
+    from {
+      transform: translateY(2px);
+      opacity: 0.55;
+    }
+
+    to {
+      transform: translateY(-5px);
+      opacity: 1;
+    }
+  }
+}
+
 /* Decorative, and system colours would turn the planes into one blob: forced colours drops it. */
 @media (forced-colors: active) {
   .empty-art {
