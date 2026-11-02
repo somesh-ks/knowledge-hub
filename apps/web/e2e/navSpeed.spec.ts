@@ -484,3 +484,72 @@ test.describe("a Library card's page is asked for before the tap", () => {
     expect(new Set(paths).size).toBe(paths.length);
   });
 });
+
+// Owner, 2026-11-02: the page arrives from the side of the tab you came from, and a card you tapped
+// holds its press until its page is there (a press that faded before the page came read as two ripples).
+test.describe("a move says which way it went", () => {
+  test("a tab further along the bar marks next, a tab before it prev, a key neither", async ({
+    page,
+  }) => {
+    await openWarm(page);
+    await page.evaluate(() => {
+      const w = window as unknown as { __dirs: (string | null)[] };
+      w.__dirs = [];
+      // Registered after the app's own listeners: the mark is on the page that is arriving.
+      document.addEventListener("astro:after-swap", () => {
+        w.__dirs.push(document.documentElement.getAttribute("data-nav-dir"));
+      });
+    });
+    const dirs = () => page.evaluate(() => (window as unknown as { __dirs: unknown[] }).__dirs);
+    await item(page, "/library").click();
+    await expect(heading(page)).toHaveText("Library");
+    await item(page, "/").click();
+    await expect.poll(async () => (await dirs()).length).toBe(2);
+    expect(await dirs()).toEqual(["next", "prev"]);
+
+    // A key starts the move: nothing slides.
+    await item(page, "/library").focus();
+    await page.keyboard.press("Enter");
+    await expect.poll(async () => (await dirs()).length).toBe(3);
+    expect((await dirs())[2]).toBeNull();
+  });
+
+  test("a tapped Library card holds its press until its page has arrived", async ({ page }) => {
+    await openWarm(page);
+    await item(page, "/library").click();
+    await expect(heading(page)).toHaveText("Library");
+    await page.evaluate(() => {
+      const w = window as unknown as { __held: boolean[] };
+      w.__held = [];
+      document.addEventListener("astro:before-preparation", (event) => {
+        const card = (event as unknown as { sourceElement?: Element }).sourceElement?.closest(
+          "a.card-link",
+        );
+        // The page is held back until the test lets it go, so the press is read while it is on the way.
+        const load = event.loader;
+        const hold = new Promise<void>((resolve) => {
+          (w as unknown as { __release: () => void }).__release = resolve;
+        });
+        event.loader = async () => {
+          await hold;
+          w.__held.push(card?.hasAttribute("data-pending") ?? false);
+          await load();
+        };
+      });
+    });
+    const tap = page.locator("a.card-link[href^='/e/'], a.card-link[href^='/d/']").first().click();
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => (window as unknown as { __release?: () => void }).__release !== undefined,
+        ),
+      )
+      .toBe(true);
+    await page.evaluate(() => (window as unknown as { __release: () => void }).__release());
+    await tap;
+    await expect(page.locator("a[data-back]")).toBeVisible();
+    expect(await page.evaluate(() => (window as unknown as { __held: boolean[] }).__held)).toEqual([
+      true,
+    ]);
+  });
+});

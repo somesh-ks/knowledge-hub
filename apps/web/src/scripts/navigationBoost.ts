@@ -66,6 +66,27 @@ export function shouldRefresh(
   return type === "PAGE_CHANGED" && path === page.path && !page.touched && !page.hidden;
 }
 
+/** The longest a pressed card holds its press while its page is on the way. */
+export const PENDING_MAX_MS = 6_000;
+
+/** The timer that will end each card's held press, so a second press on the card restarts the wait. */
+const pendingTimers = new WeakMap<object, ReturnType<typeof setTimeout>>();
+
+/** A card opened from a list stays pressed (library.css) until its page arrives; the swap removes it. */
+export function holdPress(card: Element): void {
+  const earlier = pendingTimers.get(card);
+  if (earlier !== undefined) clearTimeout(earlier);
+  card.setAttribute("data-pending", "");
+  // A move that never completes (the page could not be fetched) leaves the card as it was.
+  pendingTimers.set(
+    card,
+    setTimeout(() => {
+      card.removeAttribute("data-pending");
+      pendingTimers.delete(card);
+    }, PENDING_MAX_MS),
+  );
+}
+
 /** The most pages the Library fetches ahead in one visit to the app: the cards a person is looking at. */
 export const LOOKAHEAD_LIMIT = 8;
 
@@ -132,6 +153,8 @@ export function installNavigationBoost(): void {
   };
 
   document.addEventListener("astro:before-preparation", (event) => {
+    const opened = event.sourceElement?.closest<HTMLElement>("a.card-link");
+    if (opened) holdPress(opened);
     const item = pressedDestination(event.sourceElement, document);
     if (item) {
       // The pill grows under the item as it lights, here, and not again on the page that arrives.
