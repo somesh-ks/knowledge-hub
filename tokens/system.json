@@ -1401,8 +1401,7 @@
       "styles": [
         "foundations.css",
         "primitives.css",
-        "settings.css",
-        "utilities.css"
+        "settings.css"
       ],
       "usage": "A row that is one link or button: the whole row responds. Its fill is a rounded tile clear of the hairlines and reaching a little past the words, as a menu's options are, so a hovered row reads as one thing to press rather than a band across the page.",
       "tokens": [
@@ -1498,8 +1497,7 @@
         "picker.css",
         "podcast.css",
         "primitives.css",
-        "settings.css",
-        "utilities.css"
+        "settings.css"
       ],
       "usage": "Label and description at the start, the control at the end. The row grammar adds the padding and the hairline; with that padding this minimum is the 48px floor, and most rows are taller.",
       "tokens": [
