@@ -142,7 +142,10 @@ test.describe("the 8pt spacing system", () => {
     await hydrated(page);
     await page.locator(".hero [data-play-digest]").click();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-    await page.getByRole("button", { name: /^Player: / }).click();
+    // A Play opens the player over the page on a phone; from 1024px only the bar changes.
+    if ((page.viewportSize()?.width ?? 0) >= 1024) {
+      await page.getByRole("button", { name: /^Player: / }).click();
+    }
     await expect(page.locator("html")).toHaveAttribute("data-player", "open");
     expect.soft(await offGrid(page), "the open player").toEqual([]);
 

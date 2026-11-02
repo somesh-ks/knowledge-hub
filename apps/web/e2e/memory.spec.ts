@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, hydrated, SILENT_DIGEST, seedStorage, test } from "./fixtures";
+import { closePlayer, expect, hydrated, SILENT_DIGEST, seedStorage, test } from "./fixtures";
 
 /**
  * What the device remembers of a recording reads the same everywhere: the stories heard, the
@@ -61,6 +61,7 @@ test("the stories heard keep their Played marks after another recording and a re
   await hydrated(page);
   const chip = page.locator(".hero [data-play-digest]");
   await chip.click();
+  await closePlayer(page);
   // 3 s a story: playing goes on out of the first four into the fifth.
   await expect(story(page, 4)).toHaveAttribute("data-state", "current", { timeout: 20_000 });
   await chip.click();

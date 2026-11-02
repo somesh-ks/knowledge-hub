@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "./fixtures";
+import { closePlayer, expect, test } from "./fixtures";
 
 /**
  * A move between destinations must not wait: for the network when a saved copy is recent, for an
@@ -137,6 +137,7 @@ test.describe("the chrome holds still on a move", () => {
     await openWarm(page);
     await page.locator(".hero [data-play-digest]").click();
     await expect(page.locator(".player-dock .dock-caption")).toContainText("/");
+    await closePlayer(page);
     await page.evaluate(() => {
       const w = window as unknown as { __animations: { before: string[]; after: string[] } };
       const running = (): string[] =>
