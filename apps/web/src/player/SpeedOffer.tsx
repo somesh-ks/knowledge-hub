@@ -7,7 +7,7 @@ import {
   dialogTitleClass,
 } from "../design-system/dialog";
 import { getSpeedDefault } from "./core/speedDefaultRuntime";
-import { rateLabel } from "./SpeedControl";
+import { rateLabel } from "./rateLabels";
 
 function subscribe(onChange: () => void): () => void {
   return getSpeedDefault().subscribe(onChange);

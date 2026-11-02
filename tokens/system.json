@@ -585,7 +585,10 @@
         "menu-list",
         "menu-sheet",
         "menu-item",
-        "menu-item-danger"
+        "menu-item-danger",
+        "menu-tiles",
+        "menu-tile",
+        "menu-item-value"
       ],
       "files": [
         "design-system/Menu.astro",
@@ -628,11 +631,19 @@
       "usage": "A popover lives in the top layer, so it is placed against the viewport, not the row. Where anchor positioning exists it hangs under the button, right edges level; elsewhere heroMenu.ts writes --menu-top and --menu-right from the button's box when it opens.",
       "tokens": [
         "--color-accent",
+        "--color-accent-container",
+        "--color-accent-container-hover",
+        "--color-accent-container-pressed",
         "--color-border-hairline",
         "--color-danger",
+        "--color-on-accent-container",
         "--color-on-surface",
         "--color-on-surface-disabled",
+        "--color-on-surface-muted",
         "--color-scrim",
+        "--color-surface-container",
+        "--color-surface-container-hover",
+        "--color-surface-container-pressed",
         "--color-surface-overlay",
         "--layout-column",
         "--shadow-popover",

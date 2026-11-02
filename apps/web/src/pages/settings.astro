@@ -36,6 +36,13 @@ const DOWNLOADS: Row = {
   data: {},
 };
 
+// Saved sits under Downloads: the podcasts this device kept from a player's menu (2026-11-01).
+const SAVED: Row = {
+  href: "/settings/saved",
+  label: "Saved",
+  data: {},
+};
+
 // Each row leads to the one page that sets it, and says its current state in a few words. What the
 // words are worked out from rides along as data, so an edit saved since the build can be shown in
 // them (scripts/settingsSaved.ts, loaded only when one is kept). A row with nothing to say has no
@@ -114,11 +121,17 @@ const STYLES = [
         <p class="settings-note">These settings need JavaScript, which is turned off in this browser.</p>
       </noscript>
 
-      <section class="settings-lead" aria-label="Downloads">
+      <section class="settings-lead" aria-label="Downloads and saved">
         <div class="rows card-group">
           <a class="row-action" href={DOWNLOADS.href}>
             <span class="settings-text">
               <span class="settings-label">{DOWNLOADS.label}</span>
+            </span>
+            <Icon name="chevronRight" />
+          </a>
+          <a class="row-action" href={SAVED.href}>
+            <span class="settings-text">
+              <span class="settings-label">{SAVED.label}</span>
             </span>
             <Icon name="chevronRight" />
           </a>
