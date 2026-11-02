@@ -2,6 +2,7 @@ import { Field } from "@base-ui/react/field";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { buttonClass } from "../design-system/button";
 import { fieldClass } from "../design-system/field";
+import { DEFAULT_REGEN_LENGTH, nearestRegenLength, REGEN_LENGTHS } from "../lib/regenLength";
 import { idsOfChips, isChipOn, type RegenChip } from "../lib/regenTopics";
 import { playUiCue } from "../player/sound/soundController";
 import { cueForGenerate } from "../player/sound/soundMap";
@@ -13,19 +14,25 @@ import "../styles/field.css";
 /** The same cap as an episode's Regenerate feedback (server/podcast.ts). */
 const FEEDBACK_MAX = 500;
 
-/** The lengths the schedule offers; "Usual" asks for none, so the run keeps the schedule's own. */
-const LENGTHS = [
-  { value: "", label: "Usual" },
-  { value: "3", label: "3 min" },
-  { value: "5", label: "5 min" },
-  { value: "10", label: "10 min" },
-  { value: "15", label: "15 min" },
-] as const;
+const LENGTHS = REGEN_LENGTHS.map((minutes) => ({
+  value: String(minutes),
+  label: `${minutes} min`,
+}));
 
 /** The topics the briefing page offers (EpisodeActions.astro): its chips and the ids it was made with. */
 interface PageTopics {
   chips: RegenChip[];
   selected: string[];
+}
+
+/**
+ * The length the sheet starts on: the one the podcast aired at. The page's own podcast (a briefing's
+ * hero menu) or the Library row being regenerated carries it as `data-minutes`, on the element that
+ * names the briefing.
+ */
+function startLength(): string {
+  const minutes = document.querySelector<HTMLElement>("[data-briefing]")?.dataset.minutes;
+  return String(nearestRegenLength(minutes));
 }
 
 function readPageTopics(): PageTopics | null {
@@ -47,18 +54,18 @@ interface GenerateSheetProps {
 const BUSY = "A podcast or an episode is still being made. You can start another when it's ready.";
 
 /**
- * Regenerate a briefing: its topics (this run only, ticked from the original), optional length in
- * minutes (Usual keeps the schedule's), and optional comments for the writer. Pressing Regenerate
- * starts the run and closes the sheet; the run is followed by the run indicator (scripts/runStatus.ts),
- * the same line and bar a Catch up has, above the
- * navigation on a phone and at the foot of the side column from 64rem, so it goes on across pages.
+ * Regenerate a briefing: its topics (this run only, ticked from the original), the length in
+ * minutes (starting on the one it was made at) and optional comments for the writer. Pressing
+ * Regenerate starts the run and closes the sheet; the run is followed by the podcast queue
+ * (scripts/queue.ts), above the navigation on a phone and at the foot of the side column from 64rem,
+ * so it goes on across pages.
  */
 export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps) {
   const feedbackRef = useRef<HTMLTextAreaElement>(null);
   const [page, setPage] = useState<PageTopics | null>(null);
   const [ticked, setTicked] = useState<ReadonlySet<string>>(new Set());
   const [topicError, setTopicError] = useState(false);
-  const [length, setLength] = useState("");
+  const [length, setLength] = useState(String(DEFAULT_REGEN_LENGTH));
   const [busy, setBusy] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
 
@@ -73,7 +80,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
     );
     setTopicError(false);
     setFieldError(null);
-    setLength("");
+    setLength(startLength());
   }, [open]);
 
   function toggle(value: string): void {
@@ -115,7 +122,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
         { fetch: (input, init) => fetch(input, init), isOnline: () => navigator.onLine },
         feedbackRef.current?.value ?? "",
         topics,
-        length === "" ? undefined : Number(length),
+        Number(length),
       );
     } catch {
       // The indicator's chunk failed to load (offline, a stale deploy): say so, never stay busy.
