@@ -279,36 +279,34 @@ test("a picker's pill is concentric with the list around it @both", async ({ pag
   expect(concentric(m.outer, m.inner, m.gap), JSON.stringify(m)).toBe(true);
 });
 
-test("a Menu's rows are concentric with the Menu @desktop", async ({ page }) => {
+// Rows run edge to edge (owner, 2026-11-02): the list pads above and below only, so a row spans the
+// list's full inner width and the list's own corner clips the first and last row. Each list is
+// compared with its own rows, never with pinned numbers.
+test("a Menu's and a select's rows span the list, with no gap at the sides @desktop", async ({
+  page,
+}) => {
   await page.goto("/library");
   const row = page.locator(`[data-card][data-id="${AUDIO_DIGEST.split("/").pop()}"]`);
   await openRowMenu(page, row);
-  const m = await row.locator(".menu-list").evaluate((menu) => {
-    const item = menu.querySelector(".menu-item") as HTMLElement;
-    const menuStyle = getComputedStyle(menu);
-    return {
-      outer: Number.parseFloat(menuStyle.borderTopLeftRadius),
-      inner: Number.parseFloat(getComputedStyle(item).borderTopLeftRadius),
-      gap: Number.parseFloat(menuStyle.paddingLeft) + Number.parseFloat(menuStyle.borderLeftWidth),
-    };
+  const menu = await row.locator(".menu-list").evaluate((list) => {
+    const item = list.querySelector(".menu-item") as HTMLElement;
+    const box = list.getBoundingClientRect();
+    const rect = item.getBoundingClientRect();
+    return { left: rect.left - box.left, right: box.right - rect.right };
   });
-  expect(concentric(m.outer, m.inner, m.gap), JSON.stringify(m)).toBe(true);
-});
+  expect(Math.abs(menu.left) + Math.abs(menu.right), JSON.stringify(menu)).toBeLessThanOrEqual(2);
 
-test("a select's list rows are concentric with the list @desktop", async ({ page }) => {
   await page.goto("/settings/preferences");
   const select = page.locator("#default-speed");
   await select.click();
-  const m = await select.evaluate((element) => {
-    const list = getComputedStyle(element, "::picker(select)");
-    const option = element.querySelector("option") as HTMLElement;
+  const list = await select.evaluate((element) => {
+    const style = getComputedStyle(element, "::picker(select)");
     return {
-      outer: Number.parseFloat(list.borderTopLeftRadius),
-      inner: Number.parseFloat(getComputedStyle(option).borderTopLeftRadius),
-      gap: Number.parseFloat(list.paddingLeft) + Number.parseFloat(list.borderLeftWidth),
+      left: Number.parseFloat(style.paddingLeft),
+      right: Number.parseFloat(style.paddingRight),
     };
   });
-  expect(concentric(m.outer, m.inner, m.gap), JSON.stringify(m)).toBe(true);
+  expect(list.left + list.right, JSON.stringify(list)).toBe(0);
 });
 
 // A one-row card took the 32px card radius and read as a pill (owner, 2026-10-27). Each card is

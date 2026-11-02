@@ -208,7 +208,7 @@
     text-align: center;
   }
 
-  .menu-tiles[data-fold] > .menu-item:active {
+  .menu-tiles[data-fold] > .menu-item:where(:not(:disabled, [aria-disabled="true"])):active {
     background: var(--sheet-tile-bg-pressed);
   }
 
@@ -219,7 +219,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   @media (width < 40rem) {
-    .menu-tiles[data-fold] > .menu-item:hover {
+    /* Not while pressed or keyed: those fills are stronger and must show under a pointer (D317). */
+    .menu-tiles[data-fold]
+      > .menu-item:where(:not(:disabled, [aria-disabled="true"])):hover:not(
+        :active,
+        :focus-visible
+      ) {
       background: var(--sheet-tile-bg-hover);
     }
   }

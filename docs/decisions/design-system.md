@@ -649,3 +649,12 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Amends: D291.
 - Revisit if: a card gets a fourth quick action (the row would need a second line).
 
+## D323: list rows run edge to edge in the Menu, the select list and the picker
+
+- Date: 2026-11-02 (the owner: "on the menu row or the drop down list, I don't like the padding around the list. It should be full bleed, and the padding for the entire list can be just in the top and the bottom").
+- Decision: a list that opens from a control (the ⋮ Menu popover and phone sheet, the select's drawn list, the searchable picker) pads above and below only. Its rows span the full width, are square and touch (no gap), and take a 24px inline padding so a row's words keep their column. The list's own corner clips the first and last row. The phone sheet's header rule runs the full width. Quick-action tiles and a picker's search field are controls, not rows, and keep their 8px inset. Hover and press fills reach both edges.
+- Why: rows inset 8px with pill corners, as D275 and D291 drew them, read as cards floating in a card; a list should read as one surface.
+- Rejected: keeping the 8px inset with square rows (a gutter with no reason); rows with a bleed but a rounded hover (the hover bar must reach the edge to read as full bleed).
+- Cost: the concentric math of D275 no longer applies to rows, only to the picker's search field; the e2e checks for row concentricity became one check that rows span the list. Multi-select options and the emoji picker are unchanged for now.
+- Revisit if: multi-select or the emoji picker should follow, or a list needs a row the owner wants rounded.
+- Amends: D275, D291.
