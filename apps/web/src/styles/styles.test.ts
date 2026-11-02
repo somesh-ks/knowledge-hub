@@ -1075,7 +1075,7 @@ describe("component stylesheets", () => {
       for (const block of css.matchAll(/\{([^{}]*)\}/g)) {
         const body = block[1] ?? "";
         if (
-          !/--color-focus-gap:\s*var\(--color-surface-(?:raised|overlay|inverse|container)\)/.test(
+          !/--color-focus-gap:\s*var\(--(?:color-surface-(?:raised|overlay|inverse|container)|mini-player-bg)\)/.test(
             body,
           )
         )

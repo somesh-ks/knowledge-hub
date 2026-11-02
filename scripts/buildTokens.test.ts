@@ -432,6 +432,11 @@ describe.each(doc.styles.map((style) => style.name))("a style's colour contrast:
         ["on-surface-inverse", `surface-inverse-${state}`, 4.5],
       ]),
       ["on-surface-inverse", "surface-inverse", 4.5],
+      ...["hover", "pressed"].map((state): [string, string, number] => [
+        "accent-on-inverse",
+        `surface-inverse-action-${state}`,
+        4.5,
+      ]),
       ...["accent", "focus-ring"].flatMap((fg) =>
         ["surface", "surface-raised", "surface-overlay"].map((bg): [string, string, number] => [
           fg,

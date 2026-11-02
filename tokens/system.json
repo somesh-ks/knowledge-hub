@@ -1554,6 +1554,8 @@
       "tokens": [
         "--color-accent-on-inverse",
         "--color-surface-inverse",
+        "--color-surface-inverse-action-hover",
+        "--color-surface-inverse-action-pressed",
         "--color-surface-inverse-hover",
         "--color-surface-inverse-pressed",
         "--layout-dialog",
@@ -3857,6 +3859,22 @@
       "light": "oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h)"
     },
     {
+      "name": "--color-surface-inverse-action-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-inverse) calc(l + var(--state-direction) * var(--state-step-hover)) c h)",
+      "role": "A hover on a text action over the inverse surface (the toast's Undo): the same step as surface-inverse-hover, settled against the accent label instead of the plain one. The accent on inverse (L 80 in light) keeps 4.5:1 only on a fill that steps away from it.",
+      "dark": "oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h)"
+    },
+    {
+      "name": "--color-surface-inverse-action-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-inverse) calc(l + var(--state-direction) * var(--state-step-press)) c h)",
+      "role": "A press on that action: one step deeper than its hover, away from the accent label when the label would lose 4.5:1 toward the text.",
+      "dark": "oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h)"
+    },
+    {
       "name": "--color-accent-subtle",
       "tier": "semantic",
       "type": "color",
@@ -3872,13 +3890,15 @@
       "name": "--color-accent-subtle-hover",
       "tier": "semantic",
       "type": "singularity-state-color",
-      "light": "oklch(from var(--color-accent-subtle) calc(l - var(--state-direction) * var(--state-step-hover)) c h)"
+      "light": "oklch(from var(--color-accent-subtle) calc(l + var(--state-direction) * var(--state-step-hover-quiet)) c h)",
+      "role": "A hover on a no-fill accent text control: the accent tint (L 98 in light) stepped by half a hover step toward its text. The tint sits so near white that a whole step clamps at white and hover would equal press, and the accent label (L 47) keeps 4.5:1 only for the small steps, so these two tokens take the quiet and the hover step and carry no label to settle."
     },
     {
       "name": "--color-accent-subtle-pressed",
       "tier": "semantic",
       "type": "singularity-state-color",
-      "light": "oklch(from var(--color-accent-subtle) calc(l - var(--state-direction) * var(--state-step-press)) c h)"
+      "light": "oklch(from var(--color-accent-subtle) calc(l + var(--state-direction) * var(--state-step-hover)) c h)",
+      "role": "A press on a no-fill accent text control: the accent tint stepped by a whole hover step toward its text, one step deeper than its hover."
     },
     {
       "name": "--color-accent-container",

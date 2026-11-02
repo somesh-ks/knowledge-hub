@@ -257,9 +257,11 @@
   --color-surface-overlay-pressed: oklch(from var(--color-surface-overlay) calc(l + var(--state-direction) * var(--state-step-press)) c h);
   --color-surface-inverse-hover: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
   --color-surface-inverse-pressed: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h);
+  --color-surface-inverse-action-hover: oklch(from var(--color-surface-inverse) calc(l + var(--state-direction) * var(--state-step-hover)) c h);
+  --color-surface-inverse-action-pressed: oklch(from var(--color-surface-inverse) calc(l + var(--state-direction) * var(--state-step-press)) c h);
   --color-accent-subtle: var(--color-blue-50);
-  --color-accent-subtle-hover: oklch(from var(--color-accent-subtle) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
-  --color-accent-subtle-pressed: oklch(from var(--color-accent-subtle) calc(l - var(--state-direction) * var(--state-step-press)) c h);
+  --color-accent-subtle-hover: oklch(from var(--color-accent-subtle) calc(l + var(--state-direction) * var(--state-step-hover-quiet)) c h);
+  --color-accent-subtle-pressed: oklch(from var(--color-accent-subtle) calc(l + var(--state-direction) * var(--state-step-hover)) c h);
   --color-accent-container: var(--color-blue-100);
   --color-on-accent-container: var(--color-blue-800);
   --color-accent-container-high: var(--color-blue-200);
@@ -557,6 +559,8 @@
     --color-accent: var(--color-blue-300);
     --color-accent-action-hover: oklch(from var(--color-accent-action) calc(l + var(--state-step-hover)) c h);
     --color-accent-action-pressed: oklch(from var(--color-accent-action) calc(l + var(--state-step-press)) c h);
+    --color-surface-inverse-action-hover: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
+    --color-surface-inverse-action-pressed: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h);
     --color-accent-subtle: var(--color-blue-800);
     --color-accent-container: var(--color-blue-800);
     --color-on-accent-container: var(--color-blue-100);
@@ -630,6 +634,8 @@
   --color-accent: var(--color-blue-300);
   --color-accent-action-hover: oklch(from var(--color-accent-action) calc(l + var(--state-step-hover)) c h);
   --color-accent-action-pressed: oklch(from var(--color-accent-action) calc(l + var(--state-step-press)) c h);
+  --color-surface-inverse-action-hover: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
+  --color-surface-inverse-action-pressed: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h);
   --color-accent-subtle: var(--color-blue-800);
   --color-accent-container: var(--color-blue-800);
   --color-on-accent-container: var(--color-blue-100);
@@ -754,8 +760,8 @@
   --color-track-strong: oklch(69% 0.0852 calc(292 + var(--hue-shift, 0)));
   --color-accent-container-high-hover: oklch(from var(--color-accent-container-high) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
   --color-accent-container-high-pressed: oklch(from var(--color-accent-container-high) calc(l - var(--state-direction) * var(--state-step-press)) c h);
-  --color-accent-subtle-hover: oklch(from var(--color-accent-subtle) calc(l + var(--state-direction) * var(--state-step-hover)) c h);
-  --color-accent-subtle-pressed: oklch(from var(--color-accent-subtle) calc(l + var(--state-direction) * var(--state-step-press)) c h);
+  --color-surface-inverse-action-hover: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
+  --color-surface-inverse-action-pressed: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h);
   --color-violet-50: oklch(98.00% 0.0100 calc(292 + var(--hue-shift, 0)));
   --color-violet-100: oklch(91.85% 0.0415 calc(292 + var(--hue-shift, 0)));
   --color-violet-300: oklch(75.56% 0.1330 calc(292 + var(--hue-shift, 0)));
@@ -794,8 +800,8 @@
     --color-track-strong: oklch(49% 0.0955 calc(292 + var(--hue-shift, 0)));
     --color-accent-container-high-hover: oklch(from var(--color-accent-container-high) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
     --color-accent-container-high-pressed: oklch(from var(--color-accent-container-high) calc(l - var(--state-direction) * var(--state-step-press)) c h);
-    --color-accent-subtle-hover: oklch(from var(--color-accent-subtle) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
-    --color-accent-subtle-pressed: oklch(from var(--color-accent-subtle) calc(l - var(--state-direction) * var(--state-step-press)) c h);
+    --color-surface-inverse-action-hover: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
+    --color-surface-inverse-action-pressed: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h);
   }
 }
 
@@ -826,8 +832,8 @@
   --color-track-strong: oklch(49% 0.0955 calc(292 + var(--hue-shift, 0)));
   --color-accent-container-high-hover: oklch(from var(--color-accent-container-high) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
   --color-accent-container-high-pressed: oklch(from var(--color-accent-container-high) calc(l - var(--state-direction) * var(--state-step-press)) c h);
-  --color-accent-subtle-hover: oklch(from var(--color-accent-subtle) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
-  --color-accent-subtle-pressed: oklch(from var(--color-accent-subtle) calc(l - var(--state-direction) * var(--state-step-press)) c h);
+  --color-surface-inverse-action-hover: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
+  --color-surface-inverse-action-pressed: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h);
 }
 
 /* Style: halloween */
@@ -879,8 +885,8 @@
   --scene-stone: oklch(80% 0.0421 calc(302 + var(--hue-shift, 0)));
   --scene-stone-shade: oklch(70% 0.0505 calc(302 + var(--hue-shift, 0)));
   --scene-stone-lit: oklch(86% 0.0355 calc(302 + var(--hue-shift, 0)));
-  --color-accent-subtle-hover: oklch(from var(--color-accent-subtle) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
-  --color-accent-subtle-pressed: oklch(from var(--color-accent-subtle) calc(l - var(--state-direction) * var(--state-step-press)) c h);
+  --color-surface-inverse-action-hover: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
+  --color-surface-inverse-action-pressed: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h);
   --color-orange-50: oklch(98.00% 0.0104 calc(47 + var(--hue-shift, 0)));
   --color-orange-100: oklch(91.85% 0.0443 calc(47 + var(--hue-shift, 0)));
   --color-orange-200: oklch(84.23% 0.0913 calc(47 + var(--hue-shift, 0)));
@@ -939,8 +945,8 @@
     --scene-stone: oklch(46% 0.0587 calc(302 + var(--hue-shift, 0)));
     --scene-stone-shade: oklch(36% 0.057 calc(302 + var(--hue-shift, 0)));
     --scene-stone-lit: oklch(54% 0.0579 calc(302 + var(--hue-shift, 0)));
-    --color-accent-subtle-hover: oklch(from var(--color-accent-subtle) calc(l + var(--state-direction) * var(--state-step-hover)) c h);
-    --color-accent-subtle-pressed: oklch(from var(--color-accent-subtle) calc(l + var(--state-direction) * var(--state-step-press)) c h);
+    --color-surface-inverse-action-hover: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
+    --color-surface-inverse-action-pressed: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h);
   }
 }
 
@@ -989,8 +995,8 @@
   --scene-stone: oklch(46% 0.0587 calc(302 + var(--hue-shift, 0)));
   --scene-stone-shade: oklch(36% 0.057 calc(302 + var(--hue-shift, 0)));
   --scene-stone-lit: oklch(54% 0.0579 calc(302 + var(--hue-shift, 0)));
-  --color-accent-subtle-hover: oklch(from var(--color-accent-subtle) calc(l + var(--state-direction) * var(--state-step-hover)) c h);
-  --color-accent-subtle-pressed: oklch(from var(--color-accent-subtle) calc(l + var(--state-direction) * var(--state-step-press)) c h);
+  --color-surface-inverse-action-hover: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
+  --color-surface-inverse-action-pressed: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h);
 }
 
 /* Album art per style (D314, tokens/covers.json): numbers for the cover math in cover.css. */

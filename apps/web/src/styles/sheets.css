@@ -257,8 +257,10 @@ html[data-mini="visible"] .toast {
 }
 
 @media (hover: hover) and (pointer: fine) {
+  /* The action's label is the accent, not the plain ink, so its fills are the inverse surface's
+     settled against that label (4.5:1 on a press in light, where the plain pressed step gave 4.0). */
   .toast-action:hover {
-    background: var(--ghost-hover);
+    background: var(--color-surface-inverse-action-hover);
   }
 
   .toast-dismiss:hover {
@@ -267,7 +269,10 @@ html[data-mini="visible"] .toast {
   }
 }
 
-.toast-action:active,
+.toast-action:active {
+  background: var(--color-surface-inverse-action-pressed);
+}
+
 .toast-dismiss:active {
   background: var(--ghost-pressed);
 }

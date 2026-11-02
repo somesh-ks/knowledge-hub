@@ -1112,6 +1112,12 @@
   .card-group .filter-chip:not(:has(input:checked, input:disabled)):hover {
     background: var(--card-chip-hover);
   }
+
+  /* The press above weighs as much as this hover and comes first, so a mouse held down on the chip
+     would stay on the hover tone; this one weighs a pseudo-class more. */
+  .card-group .filter-chip:not(:has(input:checked, input:disabled)):hover:active {
+    background: var(--color-surface-overlay-pressed);
+  }
 }
 
 /* Inside a card the dividers, where a page draws them, run the card's full width, edge to edge
