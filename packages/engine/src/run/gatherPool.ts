@@ -158,6 +158,8 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
       now: () => now,
       exa: { apiKey: setup.exaKey, queries: exaQueries },
       firecrawl: { apiKey: setup.firecrawlKey, guard },
+      // The weekly pass reads its whole window, so it scrapes every listing.
+      ...(setup.listings && input.kind !== "weekly" ? { listings: setup.listings } : {}),
     },
     {
       mode,
