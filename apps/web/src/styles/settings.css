@@ -565,3 +565,14 @@
     visibility: visible;
   }
 }
+
+/* Default playback speed: the value opens the player's speed screen in a Menu sheet, a popover hung
+   under the value from 40rem, as wide as the player's own (D323). */
+.speed-default {
+  anchor-name: --default-speed;
+}
+
+#default-speed-sheet {
+  position-anchor: --default-speed;
+  min-width: 20rem;
+}

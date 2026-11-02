@@ -296,8 +296,8 @@ test("a Menu's rows are concentric with the Menu @desktop", async ({ page }) => 
 });
 
 test("a select's list rows are concentric with the list @desktop", async ({ page }) => {
-  await page.goto("/settings/preferences");
-  const select = page.locator("#default-speed");
+  await page.goto("/settings");
+  const select = page.locator("#settings-theme");
   await select.click();
   const m = await select.evaluate((element) => {
     const list = getComputedStyle(element, "::picker(select)");
