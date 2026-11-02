@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import { type HttpClient, HttpError } from "../src/http.js";
 import { cacheForRun } from "../src/httpRunCache.js";
 
-function counting(): { http: HttpClient; calls: string[]; failNext: () => void } {
+function counting(post: unknown = { items: [1] }): {
+  http: HttpClient;
+  calls: string[];
+  failNext: () => void;
+} {
   const calls: string[] = [];
   let fail = false;
   const answer = <T>(label: string, value: T): T => {
@@ -22,7 +26,7 @@ function counting(): { http: HttpClient; calls: string[]; failNext: () => void }
       fetchText: async (url) =>
         answer(`GET ${url}`, { url, status: 200, contentType: "", text: "x" }),
       getJson: async (url) => answer(`GET ${url}`, { items: [1] }),
-      postJson: async (url, body) => answer(`POST ${url} ${JSON.stringify(body)}`, { items: [1] }),
+      postJson: async (url, body) => answer(`POST ${url} ${JSON.stringify(body)}`, post),
     },
   };
 }
@@ -67,5 +71,19 @@ describe("a run reads each address once", () => {
     await cached.fetchText("https://a.example/feed", { maxBytes: 10 });
     await cached.fetchText("https://a.example/feed", { signal: AbortSignal.abort() });
     expect(calls).toHaveLength(3);
+  });
+
+  it("tries a scrape again when Firecrawl answered 200 but said it failed", async () => {
+    for (const failed of [
+      { success: false, error: "timeout" },
+      { success: true, data: { metadata: { statusCode: 404 } } },
+      { success: true },
+    ]) {
+      const { http, calls } = counting(failed);
+      const cached = cacheForRun(http);
+      await cached.postJson("https://api.firecrawl.dev/v2/scrape", { url: "u" });
+      await cached.postJson("https://api.firecrawl.dev/v2/scrape", { url: "u" });
+      expect(calls).toHaveLength(2);
+    }
   });
 });

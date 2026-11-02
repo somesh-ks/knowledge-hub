@@ -20,6 +20,25 @@ function keyOf(
   return `${method}\n${url}\n${headers}\n${cap}\n${body === undefined ? "" : JSON.stringify(body)}`;
 }
 
+/**
+ * A 200 answer that says it failed (Firecrawl's `success: false`, an error text, a page status of
+ * 400 or more, or no data) is the caller's failure to retry, not an answer to share. Anything
+ * unsure is left out of the cache: that costs a repeat read, never a wrong answer.
+ */
+function failedPayload(payload: unknown): boolean {
+  if (typeof payload !== "object" || payload === null) return false;
+  const body = payload as {
+    success?: unknown;
+    error?: unknown;
+    data?: { metadata?: { statusCode?: unknown } } | null;
+  };
+  if (body.success === false) return true;
+  if (typeof body.error === "string" && body.error !== "") return true;
+  if ("success" in body && (body.data === undefined || body.data === null)) return true;
+  const status = body.data?.metadata?.statusCode;
+  return typeof status === "number" && status >= 400;
+}
+
 /** A caller whose deadline has passed goes to the client, which refuses it as it would any read. */
 function aborted(options: RequestOptions | undefined): boolean {
   return options?.signal?.aborted === true;
@@ -57,7 +76,7 @@ export function cacheForRun(http: HttpClient): HttpClient {
       if (!aborted(options) && jsons.has(key)) return structuredClone(jsons.get(key));
       const payload = await http.getJson(url, options);
       const size = JSON.stringify(payload)?.length ?? 0;
-      if (room(size)) {
+      if (room(size) && !failedPayload(payload)) {
         jsons.set(key, structuredClone(payload));
         kept += size;
       }
@@ -68,7 +87,7 @@ export function cacheForRun(http: HttpClient): HttpClient {
       if (!aborted(options) && jsons.has(key)) return structuredClone(jsons.get(key));
       const payload = await http.postJson(url, body, options);
       const size = JSON.stringify(payload)?.length ?? 0;
-      if (room(size)) {
+      if (room(size) && !failedPayload(payload)) {
         jsons.set(key, structuredClone(payload));
         kept += size;
       }
