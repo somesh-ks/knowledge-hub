@@ -80,10 +80,11 @@ function mount(root: HTMLElement): void {
     (pane?.contains(event.target as Node | null) ?? false) ||
     (event.target instanceof Element && event.target.closest("[data-reorder]") !== null);
 
-  // Sources or Preferences on a topic's page (2026-10-20), and Source types or Structure on the
-  // Preferences page, read from the address and kept in it, so a reload or Back finds the same view
+  // Sources or Preferences on a topic's page (2026-10-20), read from the address and kept in it, so a reload or Back finds the same view
   // (data-param, segmentedNav.ts). The first tab is the default.
   const tabs = root.querySelector<HTMLElement>("[data-topic-view]");
+  // The Structure page has no tabs now (D326): its one view shows, and the layout keeps the room for its Reorder.
+  if (!tabs) loadStructure();
   if (tabs) {
     const values = [...tabs.querySelectorAll<HTMLElement>("[data-value]")].map(
       (tab) => tab.dataset.value ?? "",

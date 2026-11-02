@@ -1,19 +1,13 @@
 ---
-import Select from "../design-system/Select.astro";
-import Slider from "../design-system/Slider.astro";
-import "../styles/field.css";
-import tokens from "../../../../tokens/tokens.json";
 import ManageChrome from "../components/ManageChrome.astro";
 import Button from "../design-system/Button.astro";
 import Icon from "../design-system/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { buildDay } from "../lib/buildDay";
+import { buildDayShort } from "../lib/buildDay";
 import { loadManage } from "../lib/manage";
 import { loadScheduleView } from "../lib/schedule";
 import { dailySummary, sourcesSummary, weeklySummary } from "../lib/settingsSummary";
 import { topicLayout } from "../lib/topicPages";
-import { THEME_PREFERENCES, type ThemePreference } from "../player/core/preferences";
-import settingsInit from "../scripts/settingsInit.js?raw";
 // The build links this file before the layout's stylesheet, so its rules never rely on coming last:
 // where one adjusts a shared rule, it does so with a more specific selector.
 import "../styles/settings.css";
@@ -28,20 +22,6 @@ const spots = Object.fromEntries(
   ),
 );
 type Row = { href: string; label: string; hint?: string; data: Record<string, string | number> };
-
-// Downloads stands apart, first on the page, until a profile page takes it (2026-11-01, D281).
-const DOWNLOADS: Row = {
-  href: "/settings/downloads",
-  label: "Downloads",
-  data: {},
-};
-
-// Saved sits under Downloads: the podcasts this device kept from a player's menu (2026-11-01).
-const SAVED: Row = {
-  href: "/settings/saved",
-  label: "Saved",
-  data: {},
-};
 
 // Each row leads to the one page that sets it, and says its current state in a few words. What the
 // words are worked out from rides along as data, so an edit saved since the build can be shown in
@@ -76,70 +56,37 @@ const PODCAST: Row[] = [
     hint: sourcesSummary({ total: manage.sources.length }),
     data: { summary: "sources", sources: JSON.stringify(spots) },
   },
+  // The route stays /settings/preferences: the page is the podcast's structure alone now (D326).
   {
     href: "/settings/preferences",
-    label: "Preferences",
+    label: "Structure",
     data: {},
   },
 ];
-// The voices every podcast is read in, and the interface's own sounds and haptics, each on a page
-// of its own. The sounds row carries no On/Off line: the page holds two switches (2026-11-01).
-const SOUND: Row[] = [
-  { href: "/settings/voice", label: "Podcast voice", data: {} },
-  { href: "/settings/sounds", label: "Sounds and haptics", data: {} },
+// The app's own settings (D326). Appearance and Sound and voice say nothing: their names are enough.
+// Haptics says On or Off, written by settingsPage.ts from this device's preferences, and is hidden on a
+// device with no motor to ask. Notifications' line is the browser's (notificationsSettings.ts).
+const APP: Row[] = [
+  { href: "/settings/appearance", label: "Appearance", data: {} },
+  { href: "/settings/sound", label: "Sound and voice", data: {} },
 ];
 
-const updated = buildDay();
-
-const THEME_LABELS: Record<ThemePreference, string> = {
-  system: "System",
-  light: "Light",
-  dark: "Dark",
-};
-
-// Default, then every style tokens.json holds (D268): a style added there appears here with no change.
-const STYLES = [
-  { value: "default", label: "Default" },
-  ...Object.keys(tokens.styles ?? {})
-    .filter((name) => !name.startsWith("$"))
-    .map((name) => ({
-      value: name,
-      label: name.charAt(0).toUpperCase() + name.slice(1).replace(/-/g, " "),
-    })),
-];
+const updated = buildDayShort();
 ---
 
 <BaseLayout title="Settings" view="settings" skipLabel="Skip to the settings">
   <main id="main" tabindex="-1">
-    {/* Static markup with native controls. No radio is checked and no value is set here: the stored
-         choice is only known in the browser, so settingsPage.ts fills the controls in and then marks
-         the page ready. Until then each control keeps its place and shows no state, which is why a
-         stored Dark never flashes System first. */}
+    {/* Static markup with native controls and links. The rows that show a state wait for the script
+         that knows it (this device's preferences, the browser's notifications), so no build-time word
+         ever paints first. */}
     <div class="settings-view" data-settings>
       <h1 class="text-display" id="page-title" tabindex="-1">Settings</h1>
       <noscript>
         <p class="settings-note">These settings need JavaScript, which is turned off in this browser.</p>
       </noscript>
 
-      <section class="settings-lead" aria-label="Downloads and saved">
-        <div class="rows card-group">
-          <a class="row-action" href={DOWNLOADS.href}>
-            <span class="settings-text">
-              <span class="settings-label">{DOWNLOADS.label}</span>
-            </span>
-            <Icon name="chevronRight" />
-          </a>
-          <a class="row-action" href={SAVED.href}>
-            <span class="settings-text">
-              <span class="settings-label">{SAVED.label}</span>
-            </span>
-            <Icon name="chevronRight" />
-          </a>
-        </div>
-      </section>
-
       <section>
-        <h2 class="section-head text-heading">Podcast</h2>
+        <h2 class="section-head text-heading">Podcast settings</h2>
         <div class="rows card-group">
           {
             PODCAST.map((row) => (
@@ -166,31 +113,25 @@ const STYLES = [
       </section>
 
       <section>
-        <h2 class="section-head text-heading">Sound</h2>
+        <h2 class="section-head text-heading">App settings</h2>
         <div class="rows card-group">
           {
-            SOUND.map((row) => (
-              <a
-                class="row-action"
-                href={row.href}
-                {...Object.fromEntries(Object.entries(row.data).map(([key, value]) => [`data-${key}`, value]))}
-              >
+            APP.map((row) => (
+              <a class="row-action" href={row.href}>
                 <span class="settings-text">
                   <span class="settings-label">{row.label}</span>
-                  {row.hint !== undefined && <span class="settings-hint" data-hint>{row.hint}</span>}
                 </span>
                 <Icon name="chevronRight" />
               </a>
             ))
           }
-        </div>
-      </section>
-
-      {/* Its own section, not under Sound (owner, 2026-10-31). Whether they are on is this browser's, so
-           notificationsSettings.ts writes the row's line. */}
-      <section>
-        <h2 class="section-head text-heading">Notifications</h2>
-        <div class="rows card-group">
+          <a class="row-action" href="/settings/haptics" data-haptics-row hidden>
+            <span class="settings-text">
+              <span class="settings-label">Haptics</span>
+              <span class="settings-hint" data-hint data-haptics-hint></span>
+            </span>
+            <Icon name="chevronRight" />
+          </a>
           <a class="row-action" href="/settings/notifications" data-notifications-hint>
             <span class="settings-text">
               <span class="settings-label">Notifications</span>
@@ -201,62 +142,9 @@ const STYLES = [
         </div>
       </section>
 
-      <section>
-        <h2 class="section-head text-heading">Appearance</h2>
-        <div class="rows card-group">
-          {/* A select drawn as the AI model's is (2026-10-21). No option is selected in the markup:
-               settingsPage.ts sets the stored one, and until then the value is not drawn, so a stored
-               Dark never shows System first. It is inert until settingsPage.ts has its change listener
-               in place: a choice made before would not be saved, and the first draw would put the stored
-               one back. */}
-          <div class="settings-row">
-            <label class="settings-label" for="settings-theme">Theme</label>
-            <Select class="value-select theme-select" id="settings-theme" name="theme" autocomplete="off" inert>
-              {THEME_PREFERENCES.map((theme) => <option value={theme}>{THEME_LABELS[theme]}</option>)}
-            </Select>
-          </div>
-          {/* Hidden while no style exists but Default; inert for the same reason as the Theme select. */}
-          {STYLES.length > 1 && (
-            <div class="settings-row">
-              <label class="settings-label" for="settings-style">Style</label>
-              <Select class="value-select style-select" id="settings-style" name="style" autocomplete="off" inert>
-                {STYLES.map((style) => <option value={style.value}>{style.label}</option>)}
-              </Select>
-            </div>
-          )}
-          {/* Turns the chosen style's colours, the covers and the header light together (D315). Default
-               has no hue to turn, so settingsPage.ts leaves it disabled there, as Volume is with sounds off. */}
-          {STYLES.length > 1 && (
-            <div class="settings-row">
-              <label class="settings-label" for="settings-hue">Hue</label>
-              <Slider id="settings-hue" name="hue" min="0" max="355" step="5" value="0" disabled />
-            </div>
-          )}
-        </div>
-        {/* Runs before the row is first drawn and puts this device's theme in the select. */}
-        <script is:inline data-astro-rerun set:html={settingsInit.trim()} />
-      </section>
-
-      <section>
-        <h2 class="section-head text-heading">Analytics</h2>
-        <div class="rows card-group">
-          {/* Simple Analytics' own dashboard (D153 stage 1): no route, no key, no copy of the data. */}
-          <a
-            class="row-action"
-            href="https://dashboard.simpleanalytics.com/news.someshks.work"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span class="settings-text">
-              <span class="settings-label">User engagement</span>
-            </span>
-            <Icon name="openInNew" />
-          </a>
-        </div>
-      </section>
-
-      <section>
-        <h2 class="section-head text-heading">About</h2>
+      {/* No heading: three rows say what they are. The date under them is the build's, small and
+           centred; from 64rem the side column carries it (settings.css). */}
+      <section aria-label="About">
         <div class="rows card-group">
           <a class="row-action" href="/settings/about">
             <span class="settings-text">
@@ -276,12 +164,8 @@ const STYLES = [
             </span>
             <Icon name="chevronRight" />
           </a>
-          {/* From 64rem the date sits at the foot of the side column (AppNav), so it shows here on a phone alone. */}
-          <div class="settings-row settings-updated">
-            <span class="settings-label">Last updated</span>
-            <span class="settings-hint">{updated}</span>
-          </div>
         </div>
+        <p class="settings-updated">Last updated on {updated}</p>
       </section>
 
       {/* Only Safari on iOS can do this, and only when the app is not already on the Home Screen, so

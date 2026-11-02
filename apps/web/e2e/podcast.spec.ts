@@ -36,7 +36,7 @@ const opsOf = (sent: Sent[]) =>
 const scheduleSent = (sent: Sent[]) =>
   Object.assign({}, ...opsOf(sent).filter((op) => op.op === "schedule.set"));
 
-type Leaf = "daily" | "weekly" | "voice";
+type Leaf = "daily" | "weekly" | "sound";
 
 async function open(page: Page, leaf: Leaf): Promise<void> {
   await page.goto(`/settings/${leaf}`);
@@ -67,13 +67,13 @@ test.describe("the Settings index", () => {
       ["Daily", "Every other day at 7", "/settings/daily"],
       ["Weekly", "Sundays at 7", "/settings/weekly"],
       ["Sources", "", "/settings/categories"],
-      ["Preferences", "", "/settings/preferences"],
-      ["Podcast voice", "", "/settings/voice"],
-      ["Sounds and haptics", null, "/settings/sounds"],
+      ["Structure", "", "/settings/preferences"],
+      ["Appearance", null, "/settings/appearance"],
+      ["Sound and voice", null, "/settings/sound"],
     ] as const;
     for (const [name, hint, href] of rows) {
       const row = page.getByRole("link", { name: new RegExp(`^${name}`) });
-      // Sounds and haptics holds two switches, so its row carries no On or Off line.
+      // Appearance and Sound and voice say nothing: their names are enough.
       if (hint === null) await expect(row.locator("[data-hint]")).toHaveCount(0);
       else await expect(row).toContainText(hint);
       await expect(row).toHaveAttribute("href", href);
@@ -96,8 +96,8 @@ test.describe("the Settings index", () => {
       "/settings",
       "/settings/daily",
       "/settings/weekly",
-      "/settings/voice",
-      "/settings/sounds",
+      "/settings/sound",
+      "/settings/appearance",
       "/settings/preferences",
       "/settings/categories",
       "/settings/categories/design",
@@ -149,7 +149,7 @@ test.describe("the profile pages", () => {
     await expect(page.locator("#daily-length")).toHaveValue("10");
     // Daily has no type and no Look back to set: it covers everything since its last episode.
     await expect(page.locator("#daily-format, #daily-lookback")).toHaveCount(0);
-    // The voices are one pair for every podcast, on the Podcast voice page.
+    // The voices are one pair for every podcast, on the Sound and voice page.
     await expect(page.getByLabel("Secondary voice", { exact: true })).toHaveCount(0);
   });
 
@@ -211,10 +211,10 @@ test.describe("the profile pages", () => {
     await expect(hint).toBeHidden();
   });
 
-  test("both voices are rows of the Podcast voice page, filled from the voice list", async ({
+  test("both voices are rows of the Sound and voice page, filled from the voice list", async ({
     page,
   }) => {
-    await open(page, "voice");
+    await open(page, "sound");
     const voices = [
       page.getByLabel("Primary voice", { exact: true }),
       page.getByLabel("Secondary voice", { exact: true }),
@@ -239,7 +239,7 @@ test.describe("the profile pages", () => {
   });
 
   test("a voice is heard from the list it is chosen in, without choosing it", async ({ page }) => {
-    await open(page, "voice");
+    await open(page, "sound");
     const second = page.locator("#podcast-voice_b");
     await openPicker(page, second);
     // The page plays audio only from its own address, so the sample comes through /api.
@@ -295,7 +295,7 @@ test.describe("the profile pages", () => {
     await page.route("**/api/voice-sample**", (route) =>
       route.fulfill({ body: wav, contentType: "audio/wav" }),
     );
-    await open(page, "voice");
+    await open(page, "sound");
     await openPicker(page, page.locator("#podcast-voice_b"));
     const ada = pickerList(page).getByRole("option", { name: /^Ada/ }).locator(".picker-play");
     await ada.click();
@@ -321,7 +321,7 @@ test.describe("the profile pages", () => {
   test("a voice is heard from the keyboard with Shift+Enter, and Enter still chooses it @desktop", async ({
     page,
   }) => {
-    await open(page, "voice");
+    await open(page, "sound");
     const second = page.locator("#podcast-voice_b");
     await openPicker(page, second);
     await page.keyboard.press("ArrowDown");
@@ -345,7 +345,7 @@ test.describe("the profile pages", () => {
       };
     });
     await mockConfig(page);
-    await open(page, "voice");
+    await open(page, "sound");
     const sample = page.waitForRequest("**/api/voice-sample?voice=voice-ada");
     const first = page.locator("#podcast-voice");
     await openPicker(page, first);
@@ -578,14 +578,14 @@ test.describe("saving on its own", () => {
     page,
   }) => {
     const sent = await mockConfig(page);
-    await open(page, "voice");
+    await open(page, "sound");
     await choose(page, page.locator("#podcast-voice"), /^Leo/);
     await expect
       .poll(() => scheduleSent(sent))
       .toEqual({ op: "schedule.set", voice_id: "voice-leo" });
     await expect(spoken(page)).toHaveText(SAVED);
     await page.reload();
-    await open(page, "voice");
+    await open(page, "sound");
     await expect(page.locator("#podcast-voice")).toContainText("Leo");
     expect(opsOf(sent)).toHaveLength(1);
   });

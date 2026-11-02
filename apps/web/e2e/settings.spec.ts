@@ -17,10 +17,12 @@ async function openSettings(page: Page, path = "/settings"): Promise<void> {
   await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
 }
 
-/** The Interface sounds page, where the switch and the volume live. */
-const SOUNDS = "/settings/sounds";
+/** The Sound and voice page, where the switch and the volume live. */
+const SOUNDS = "/settings/sound";
+/** The Appearance page, where the theme, the mood and the hue live. */
+const APPEARANCE = "/settings/appearance";
 const theme = (page: Page) => page.getByRole("combobox", { name: "Theme" });
-const sounds = (page: Page) => page.getByRole("switch", { name: "Interface sounds", exact: true });
+const sounds = (page: Page) => page.getByRole("switch", { name: "Sounds", exact: true });
 const volume = (page: Page) => page.getByRole("slider", { name: "Volume" });
 const settingsLink = (page: Page) =>
   page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Settings" });
@@ -41,15 +43,19 @@ test.describe("settings page", () => {
   test("ships with no choice made, so a stored one never flashes the default first", async ({
     page,
   }) => {
-    const html = await (await page.request.get("/settings")).text();
-    const main = html.slice(html.indexOf("<main"), html.indexOf("</main>"));
+    const mainOf = async (path: string) => {
+      const html = await (await page.request.get(path)).text();
+      return html.slice(html.indexOf("<main"), html.indexOf("</main>"));
+    };
+    const main = await mainOf("/settings");
     expect(main).toContain("data-settings");
     expect(main).not.toMatch(/\schecked\b/);
-    // The Theme select ships with no option chosen; the model select's saved value is known here.
-    const themeSelect = main.slice(main.indexOf('id="settings-theme"'));
-    expect(themeSelect.slice(0, themeSelect.indexOf("</select>"))).not.toMatch(/\sselected\b/);
     expect(main).not.toContain("data-ready");
     expect(main).toMatch(/<section[^>]*data-install-hint[^>]*hidden/);
+    // The Theme select ships with no option chosen.
+    const appearance = await mainOf(APPEARANCE);
+    const themeSelect = appearance.slice(appearance.indexOf('id="settings-theme"'));
+    expect(themeSelect.slice(0, themeSelect.indexOf("</select>"))).not.toMatch(/\sselected\b/);
   });
 
   // The owner's report (2026-10-27): the Settings page took about a second to show the chosen theme.
@@ -57,14 +63,14 @@ test.describe("settings page", () => {
   // first paint, with that script not even loaded.
   test("shows the stored theme before the page's script has run", async ({ page }) => {
     // Served empty, not refused, so the suite's console check stays quiet: the page never wires up.
-    await page.route(/\/_astro\/settings\.astro_astro_type_script[^/]*\.js$/, (route) =>
+    await page.route(/\/_astro\/appearance\.astro_astro_type_script[^/]*\.js$/, (route) =>
       route.fulfill({ contentType: "text/javascript", body: "" }),
     );
     await page.addInitScript(
       ([key]) => localStorage.setItem(key as string, JSON.stringify({ theme: "dark" })),
       [PREFERENCES_KEY],
     );
-    await page.goto("/settings");
+    await page.goto(APPEARANCE);
     await expect(page.locator("[data-settings]")).not.toHaveAttribute("data-ready", /.*/);
     await expect(theme(page)).toHaveValue("dark");
     await expect(theme(page)).not.toHaveCSS("color", "rgba(0, 0, 0, 0)");
@@ -80,7 +86,7 @@ test.describe("settings page", () => {
 
   test("each theme choice sets the theme on the root and survives a reload", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "light" });
-    await openSettings(page);
+    await openSettings(page, APPEARANCE);
     const root = page.locator("html");
     await expect(theme(page)).toHaveValue("system");
     await expect(root).not.toHaveAttribute("data-theme", /.*/);
@@ -180,8 +186,11 @@ test.describe("settings page", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Settings" })).toBeFocused();
     await expect(settingsLink(page)).toHaveAttribute("aria-current", "page");
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await page.getByRole("link", { name: /^Appearance/ }).click();
+    await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     await expect(theme(page)).toHaveValue("dark");
-    await page.getByRole("link", { name: /^Sounds and haptics/ }).click();
+    await settingsLink(page).click();
+    await page.getByRole("link", { name: /^Sound and voice/ }).click();
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     await expect(sounds(page)).not.toBeChecked();
     await expect(volume(page)).toBeDisabled();
@@ -189,7 +198,7 @@ test.describe("settings page", () => {
   });
 
   test("the controls still work on a second visit in the same session", async ({ page }) => {
-    await openSettings(page);
+    await openSettings(page, APPEARANCE);
     await theme(page).selectOption("dark");
     await expect.poll(async () => (await stored(page)).theme).toBe("dark");
 
@@ -201,6 +210,8 @@ test.describe("settings page", () => {
     // The page's script has already run once; this time only the router's event can start it.
     await settingsLink(page).click();
     await expect(page).toHaveURL(/\/settings$/);
+    await page.getByRole("link", { name: /^Appearance/ }).click();
+    await expect(page).toHaveURL(/\/settings\/appearance$/);
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     await expect(theme(page)).toHaveValue("dark");
 

@@ -1,16 +1,9 @@
 ---
-import {
-  MIX_STOPS,
-  PROFILE_LABEL,
-  PROFILE_NOTE,
-  SOURCE_FORMATS,
-  STRUCTURE_PROFILES,
-} from "@singularity/core";
+import { PROFILE_LABEL, PROFILE_NOTE, STRUCTURE_PROFILES } from "@singularity/core";
 import { topicArt } from "@singularity/cover";
 import EmptyArt from "../../components/EmptyArt.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
-import WeightRow from "../../components/WeightRow.astro";
 import Button from "../../design-system/Button.astro";
 import Dialog from "../../design-system/Dialog.astro";
 import DialogActions from "../../design-system/DialogActions.astro";
@@ -19,34 +12,17 @@ import Field from "../../design-system/Field.astro";
 import Icon from "../../design-system/Icon.astro";
 import Select from "../../design-system/Select.astro";
 import Sheet from "../../design-system/Sheet.astro";
-import Switch from "../../design-system/Switch.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { loadManage } from "../../lib/manage";
 import { loadScheduleView } from "../../lib/schedule";
-import { FORMAT_LABEL } from "../../lib/sourceFilter";
 import { loadStructureData } from "../../lib/structurePage";
 import { addOffers, blockCount, PER_SOURCE_MAX, rowsHtml } from "../../lib/structureView";
-import { PLAYBACK_RATES } from "../../player/core/playerTypes";
 import "../../styles/settings.css";
 import "../../styles/manage.css";
 import "../../styles/topics.css";
 import "../../styles/create.css";
 
-// The type mix (config/preferences.json): one for every topic, so one slider per source type here
-// rather than on each topic's page (2026-10-20). Normal is the default and is not in the file.
-// Listed alphabetically by label (2026-10-24), not in SOURCE_FORMATS order.
-const { typeMix, topics, sections } = await loadManage();
-const stops = MIX_STOPS.map((s) => ({ name: s.name, value: s.factor }));
-const formats = [...SOURCE_FORMATS].sort((a, b) =>
-  FORMAT_LABEL[a].localeCompare(FORMAT_LABEL[b], undefined, { sensitivity: "base" }),
-);
-const rows = formats.map((format) => ({
-  id: `type-${format}`,
-  label: FORMAT_LABEL[format],
-  name: `${FORMAT_LABEL[format]} sources`,
-  weight: MIX_STOPS.find((s) => s.name === typeMix[format])?.factor ?? 1,
-  custom: { stops, op: { op: "mix.set", format_mix: {} }, field: `format_mix.${format}` },
-}));
+const { topics, sections } = await loadManage();
 
 // The podcast structure (D170): the listener profile and the one list of blocks every podcast
 // follows, drawn here and again by the editor (structureEditor.ts) from the same markup once the
@@ -59,88 +35,28 @@ const profileArt = Object.fromEntries(
 const offers = addOffers(structure.blocks, structure.sections);
 ---
 
-<BaseLayout title="Preferences" view="settings" skipLabel="Skip to preferences">
+<BaseLayout title="Structure" view="settings" skipLabel="Skip to the structure">
   <main id="main" tabindex="-1">
-    {/* The sliders that count for every topic alike, and the podcasts' structure, in one card behind
-         the segmented switch a topic's page has (?view=structure, kept on reload). The topics editor
-         (topicsPage.ts) records a slider and autosave.ts sends every slider moved in one mix.set a
-         moment later; the structure has its own editor (structureEditor.ts), saving the same way. */}
-    <div class="manage topics preferences-page" data-topics>
-      <SettingsHead title="Preferences" />
+    {/* The podcasts' structure (D170): the listener profile and the one list of blocks every podcast
+         follows. The page held Source types too, as sliders for every topic, until the app stopped
+         offering them (D326), and the playback settings, which moved to Sound and voice. Its route
+         stays /settings/preferences. The editor (structureEditor.ts) saves through autosave.ts. */}
+    <div class="manage topics preferences-page" data-topics data-view="structure">
+      <SettingsHead title="Structure" />
       <noscript>
-        <p class="manage-note">Changing preferences needs JavaScript, which is turned off in this browser.</p>
+        <p class="manage-note">Changing the structure needs JavaScript, which is turned off in this browser.</p>
       </noscript>
 
-      {/* Autoplay is kept in this browser, like Interface sounds: settingsPage.ts fills the switch in. */}
-      <div class="settings-view" data-settings>
-        <div class="rows card-group">
-          <div class="settings-row">
-            <label class="settings-label" for="settings-autoplay">Podcast autoplay</label>
-            <Switch id="settings-autoplay" name="autoplay" />
-          </div>
-          {/* Where every episode starts (2026-10-25), in the playback card under Autoplay (owner,
-               2026-10-27). A speed chosen in the player lasts one episode. Saved on this device with
-               the player's other preferences, not through the config store. */}
-          <div class="settings-row">
-            <label class="settings-label" for="default-speed">Default playback speed</label>
-            <Select class="value-select" id="default-speed" autocomplete="off" data-needs-js data-default-speed>
-              {PLAYBACK_RATES.map((rate) => <option value={rate}>{rate}x</option>)}
-            </Select>
-          </div>
-        </div>
-      </div>
-
       <fieldset class="manage-fields" data-fields>
-        <legend class="sr-only">Preferences</legend>
+        <legend class="sr-only">Structure</legend>
         <div class="topic">
           <div class="topic-panel">
-            <div class="segmented-nav topic-view" role="tablist" aria-label="Show" data-topic-view data-param="view">
-              <button
-                class="segmented-nav-tab"
-                type="button"
-                role="tab"
-                id="pref-tab-types"
-                aria-selected="true"
-                aria-controls="pref-pane-types"
-                data-value="types"
-              >
-                Source types
-              </button>
-              <button
-                class="segmented-nav-tab"
-                type="button"
-                role="tab"
-                id="pref-tab-structure"
-                aria-selected="false"
-                aria-controls="pref-pane-structure"
-                tabindex="-1"
-                data-value="structure"
-              >
-                Podcast structure
-              </button>
-            </div>
-
-            <section
-              class="topic-view-pane topic-weights pref-view-types"
-              data-store-held
-              role="tabpanel"
-              id="pref-pane-types"
-              aria-labelledby="pref-tab-types"
-            >
-              <h2 class="section-head text-heading sr-only" id="types-head">Source types</h2>
-              <div class="rows topic-controls">
-                {rows.map((row) => <WeightRow {...row} />)}
-              </div>
-            </section>
-
-            {/* A tab for each kind and Reorder; its blocks in order; Add under them. The rows are
+            {/* The listener profile and Reorder; its blocks in order; Add under them. The rows are
                  lib/structureView.ts's markup, drawn again by the editor after each change. */}
             <section
               class="topic-view-pane pref-view-structure"
               data-store-held="editor"
-              role="tabpanel"
               id="pref-pane-structure"
-              aria-labelledby="pref-tab-structure"
               data-structure={JSON.stringify(structure)}
             >
               {/* The profile picks the list: a select, in the Daily and Weekly pages' row (owner,
@@ -365,33 +281,7 @@ const offers = addOffers(structure.blocks, structure.sections);
 </BaseLayout>
 
 <script>
-  import { installSettingsPage } from "../../scripts/settingsPage";
   import { installTopicsPage } from "../../scripts/topicsPage";
 
   installTopicsPage();
-  installSettingsPage();
-</script>
-
-<script>
-  import { isPlaybackRate } from "../../player/core/playerTypes";
-  import { getPreferences } from "../../player/core/preferences";
-
-  // Read on each page load, so the select shows what the player will start at.
-  function installDefaultSpeed(): void {
-    const select = document.querySelector<HTMLSelectElement>("[data-default-speed]");
-    if (!select) return;
-    const preferences = getPreferences();
-    const current = preferences.get().rate;
-    // A speed saved when the slider set the default is not a preset: it still shows, and stays chosen.
-    if (![...select.options].some((o) => Number(o.value) === current)) {
-      select.add(new Option(`${current}x`, String(current)), 0);
-    }
-    select.value = String(current);
-    select.addEventListener("change", () => {
-      const rate = Number(select.value);
-      if (isPlaybackRate(rate)) preferences.set({ rate });
-    });
-  }
-
-  document.addEventListener("astro:page-load", installDefaultSpeed);
 </script>

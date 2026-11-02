@@ -212,6 +212,9 @@ export default defineConfig({
     "/settings/podcast/topics": { status: 308, destination: "/settings/categories" },
     "/settings/sources": { status: 308, destination: "/settings/categories" },
     "/settings/schedule": { status: 308, destination: "/settings/daily" },
+    // Sound and voice became one page, and Haptics its own (D326): the old addresses keep working.
+    "/settings/sounds": { status: 308, destination: "/settings/sound" },
+    "/settings/voice": { status: 308, destination: "/settings/sound" },
     // An episode on request is set up in the Create panel, which /create shows as a page.
     "/settings/custom": { status: 308, destination: "/create" },
     // The judge's finer topics have no page of their own since D69: each goes to the one of the

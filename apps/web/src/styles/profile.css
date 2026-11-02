@@ -1,0 +1,44 @@
+/* The profile page (D326): the avatar large, and the shapes the mood offers as a row of choices. */
+
+.profile-face {
+  display: grid;
+  place-items: center;
+  margin-block: var(--space-6);
+}
+
+.profile-face:not([data-ready]) {
+  visibility: hidden;
+}
+
+.profile-shapes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+
+.profile-shape {
+  display: grid;
+  place-items: center;
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-round);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.profile-shape[aria-pressed="true"] {
+  outline: var(--stroke-ring) solid var(--color-accent);
+  outline-offset: calc(var(--stroke-ring) * -1);
+}
+
+.profile-shape {
+  transition: scale var(--duration-press-out) var(--ease-out);
+}
+
+.profile-shape:active {
+  scale: var(--scale-press);
+  transition-duration: var(--duration-press-in);
+}

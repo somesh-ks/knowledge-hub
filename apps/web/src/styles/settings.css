@@ -87,12 +87,6 @@
   padding-block-start: var(--space-6);
 }
 
-/* A group with no head (Downloads, first on the page until a profile page takes it, 2026-11-01) sits
-   as far under the title as a first group's head would (above). */
-.settings-view > .settings-lead {
-  padding-block-start: var(--space-6);
-}
-
 /* ------------------------------------------------------------------ rows */
 
 /* Label and description at the start, the control at the end. The row grammar adds the padding and
@@ -483,7 +477,16 @@
   padding-block-start: 0;
 }
 
-/* From 64rem "Last updated" lives at the foot of the side column (AppNav); a phone keeps it here. */
+/* The build's day under About (D326): one small line, centred, a card's gap clear of the rows. From 64rem
+   it lives at the foot of the side column (AppNav); a phone keeps it here. */
+.settings-updated {
+  margin: var(--space-6) 0 0;
+  text-align: center;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
+}
+
 @media (width >= 64rem) {
   .settings-updated {
     display: none;
@@ -564,4 +567,27 @@
   to {
     visibility: visible;
   }
+}
+
+/* ------------------------------------------------------------------ the hue row (D326, D328) */
+
+/* Mood's hue is a row of its own, the name above a rail as wide as the card: the rail is the spectrum
+   and the swatch floats over it, so it wants the room a value-beside-the-name row does not give.
+   The card names its surface for the thumb's ring. Default has no hue to turn, so the row is hidden
+   there (settingsPage.ts), not dimmed. */
+.settings-view .card-group > .settings-hue {
+  display: grid;
+  gap: var(--space-2);
+  margin-inline-end: 0;
+  --color-focus-gap: var(--color-surface-container);
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
+}
+
+.settings-view .card-group > .settings-hue[hidden] {
+  display: none;
+}
+
+.settings-view .settings-hue input[type="range"] {
+  max-inline-size: none;
 }

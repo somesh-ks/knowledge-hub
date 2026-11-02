@@ -1,0 +1,143 @@
+---
+import ManageChrome from "../../components/ManageChrome.astro";
+import SettingsHead from "../../components/SettingsHead.astro";
+import Select from "../../design-system/Select.astro";
+import Slider from "../../design-system/Slider.astro";
+import Switch from "../../design-system/Switch.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { loadScheduleView } from "../../lib/schedule";
+import { PLAYBACK_RATES } from "../../player/core/playerTypes";
+import "../../styles/field.css";
+import "../../styles/settings.css";
+import "../../styles/manage.css";
+import "../../styles/podcast.css";
+import "../../styles/picker.css";
+
+/**
+ * Sound and voice (D326): the app's own small sounds, the voices every podcast is read in, and how
+ * playback starts. The voices are the schedule's top-level pair (podcastVoices in @singularity/core),
+ * which the site and the engine both read, so a stored segment keeps its name.
+ */
+const schedule = await loadScheduleView();
+const title = "Sound and voice";
+// The pair is a top-level field of schedule.set, which scheduleOp and savedFields file under
+// "daily" (podcastProfiles.ts, lib/savedOverlay.ts): that is the controls' prefix, for every podcast.
+const VOICES = [
+  { key: "voice", saved: schedule.voiceId, name: "Primary voice" },
+  { key: "voice_b", saved: schedule.voiceIdB, name: "Secondary voice" },
+] as const;
+---
+
+<BaseLayout title={title} view="settings" skipLabel="Skip to the sound and voice settings">
+  <main id="main" tabindex="-1">
+    {/* Two keepers share the page, as Preferences' did: the sounds and playback are kept in this
+         browser (settingsPage.ts fills the switches in and marks the page ready), the voices are
+         the podcast's, recorded by podcastPage.ts and sent a moment later by autosave.ts. A voice is
+         heard from the list it is chosen in (scripts/picker.ts). */}
+    <div class="manage" data-manage="podcast">
+      <SettingsHead title={title} />
+      <noscript>
+        <p class="manage-note">Changing these settings needs JavaScript, which is turned off in this browser.</p>
+      </noscript>
+
+      <div class="settings-view" data-settings>
+        <section>
+          <h2 class="section-head text-heading">Interface sounds</h2>
+          <div class="rows card-group">
+            <div class="settings-row">
+              <label class="settings-label" for="settings-sounds">Sounds</label>
+              <Switch id="settings-sounds" name="sounds" />
+            </div>
+            <div class="settings-row">
+              <label class="settings-label" for="settings-volume">Volume</label>
+              <Slider id="settings-volume" name="volume" min="0" max="1" step="0.05" />
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="section-head text-heading">Podcast voices</h2>
+          <fieldset class="manage-fields" data-fields>
+            <legend class="sr-only">Podcast voices</legend>
+            <div class="daily-panel" data-panel>
+              <div class="podcast-profile" data-profile="voice">
+                <div class="rows card-group">
+                  {
+                    VOICES.map((voice) => (
+                      <div class="settings-row" data-voice-row={voice.key}>
+                        <label class="settings-label" for={`podcast-${voice.key}`}>{voice.name}</label>
+                        <div class="podcast-voice" data-store-held>
+                          <Select class="value-select"
+                              id={`podcast-${voice.key}`}
+                              data-f={`daily.${voice.key}`}
+                              data-saved={voice.saved ?? ""}
+                              data-picker="voice"
+                              autocomplete="off">
+                            <option value="">Default</option>
+                            {voice.saved && <option value={voice.saved} selected>Saved voice</option>}
+                          </Select>
+                        </div>
+                      </div>
+                    ))
+                  }
+                </div>
+              </div>
+            </div>
+          </fieldset>
+        </section>
+
+        <section>
+          <h2 class="section-head text-heading">Playback</h2>
+          <div class="rows card-group">
+            <div class="settings-row">
+              <label class="settings-label" for="settings-autoplay">Podcast autoplay</label>
+              <Switch id="settings-autoplay" name="autoplay" />
+            </div>
+            {/* Where every episode starts (2026-10-25). A speed chosen in the player lasts one episode.
+                 Saved on this device with the player's other preferences, not through the config store. */}
+            <div class="settings-row">
+              <label class="settings-label" for="default-speed">Default playback speed</label>
+              <Select class="value-select" id="default-speed" autocomplete="off" data-needs-js data-default-speed>
+                {PLAYBACK_RATES.map((rate) => <option value={rate}>{rate}x</option>)}
+              </Select>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <ManageChrome />
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { installPodcastPage } from "../../scripts/podcastEntry";
+  import { installSettingsPage } from "../../scripts/settingsPage";
+
+  installPodcastPage();
+  installSettingsPage();
+</script>
+
+<script>
+  import { isPlaybackRate } from "../../player/core/playerTypes";
+  import { getPreferences } from "../../player/core/preferences";
+
+  // Read on each page load, so the select shows what the player will start at.
+  function installDefaultSpeed(): void {
+    const select = document.querySelector<HTMLSelectElement>("[data-default-speed]");
+    if (!select) return;
+    const preferences = getPreferences();
+    const current = preferences.get().rate;
+    // A speed saved when the slider set the default is not a preset: it still shows, and stays chosen.
+    if (![...select.options].some((o) => Number(o.value) === current)) {
+      select.add(new Option(`${current}x`, String(current)), 0);
+    }
+    select.value = String(current);
+    select.addEventListener("change", () => {
+      const rate = Number(select.value);
+      if (isPlaybackRate(rate)) preferences.set({ rate });
+    });
+  }
+
+  document.addEventListener("astro:page-load", installDefaultSpeed);
+</script>

@@ -12,8 +12,9 @@ const SETTINGS_SUBPAGES = [
   "/settings/weekly",
   "/settings/preferences",
   "/settings/privacy",
-  "/settings/sounds",
-  "/settings/voice",
+  "/settings/sound",
+  "/settings/appearance",
+  "/settings/haptics",
 ];
 
 test("every settings subpage shows the Settings crumb and the same gap from its title to its first block @both", async ({
@@ -71,7 +72,7 @@ test("the listener profile select has the Theme select's height, radius and padd
         clipped: select.scrollWidth > select.clientWidth,
       };
     });
-  await page.goto("/settings");
+  await page.goto("/settings/appearance");
   const theme = await metrics("#settings-theme");
   await page.goto("/settings/preferences?view=structure");
   const profile = page.locator("#structure-profile");
@@ -96,7 +97,7 @@ test("a select's fill is as far from its card's right edge as from its top or bo
   page,
 }) => {
   const uneven: string[] = [];
-  for (const path of ["/settings", "/settings/preferences", "/settings/voice", "/settings/daily"]) {
+  for (const path of ["/settings", "/settings/preferences", "/settings/sound", "/settings/daily"]) {
     await page.goto(path);
     await expect(page.locator("main h1").first()).toBeVisible();
     uneven.push(
@@ -137,7 +138,7 @@ test("a select's fill is as far from its card's right edge as from its top or bo
 // A voice select shows its whole name beside its label: a shared rule's higher specificity once
 // outranked podcast.css's uncapping and cut "Geffen, female" to "Geffen, fe..." (2026-10-27).
 test("a voice select shows a long voice name whole @desktop", async ({ page }) => {
-  await page.goto("/settings/voice");
+  await page.goto("/settings/sound");
   const value = page.locator("[data-voice-row] .picker-value").first();
   await expect(value).toBeVisible();
   const clipped = await value.evaluate((element: HTMLElement) => {

@@ -1,6 +1,7 @@
 ---
 import { ClientRouter } from "astro:transitions";
 import appFont from "../assets/fonts/google-sans-flex-latin-wght-normal.woff2?url";
+import AccountSlot from "../components/AccountSlot.astro";
 import AppNav, { type Destination } from "../components/AppNav.astro";
 import Cobweb from "../components/Cobweb.astro";
 import CreateFab from "../components/CreateFab.astro";
@@ -135,16 +136,21 @@ const fab = fabFor({ path, playable: Boolean(audio && digestId) });
 // in the app bar: to where the person came from when that was in the app, else to its list.
 // The latest briefing at its dated address is Today, a top-level destination: no Back there, unless a
 // tab other than Today led to it (the Library's card for it): the page keeps its Back, hidden, and
-// navigation.ts shows it then.
+// navigation.ts shows it then. The profile leads back to Today, its Downloads and Favorites back to
+// the profile (D335).
 const briefing = /^\/(d|e)\//.test(path);
 const back =
   destination === "today" && !briefing
     ? undefined
     : briefing || path === "/create"
       ? { href: "/library", label: "Back", hidden: destination === "today" }
-      : /^\/settings\/./.test(path)
-        ? { href: path.replace(/\/[^/]+$/, ""), label: "Back", hidden: false }
-        : undefined;
+      : path === "/profile"
+        ? { href: "/", label: "Back", hidden: false }
+        : path === "/settings/downloads" || path === "/settings/saved"
+          ? { href: "/profile", label: "Back", hidden: false }
+          : /^\/settings\/./.test(path)
+            ? { href: path.replace(/\/[^/]+$/, ""), label: "Back", hidden: false }
+            : undefined;
 ---
 
 <!doctype html>
@@ -230,6 +236,7 @@ const back =
     <script is:inline set:html={bannersInit.trim()} />
     <SiteHeader back={back} />
     <AppNav current={destination} />
+    <AccountSlot place="desk" />
     {fab === "create" && <CreateFab />}
     <Queue />
     {isShowingSavedContent() && <p class="meta page" role="status">Showing saved content</p>}
