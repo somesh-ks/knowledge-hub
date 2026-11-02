@@ -901,7 +901,6 @@ const PAGE_OVERRIDES: string[] = [
   "player.css: .glyph-swap > .icon-glyph",
   "player.css: .player-meta-line > .banner-notice",
   "player.css: .player-source-link .icon-glyph",
-  "player.css: .speed-panel-body > .slider-input",
   "player.css: .transport-btn .icon-glyph",
   "podcast.css: .daily-panel .field-input[aria-invalid]:focus-visible",
   "podcast.css: .daily-panel input.field-input",

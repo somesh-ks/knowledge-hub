@@ -67,13 +67,14 @@ test.describe("an episode's script in the open player", () => {
     await expect(script.locator('[data-turn="0"]')).toHaveAttribute("aria-current", "true");
     // The word being said is lit, one at a time.
     await expect(script.locator("[data-spoken]")).toHaveCount(1);
-    // The speed sits between the skips and opens a slider; an arrow moves it one step.
-    await player.dialog.getByRole("button", { name: "Playback speed 1x" }).click();
+    // The speed is in the ⋮ menu's second screen; an arrow moves its slider one step.
+    await player.dialog.getByRole("button", { name: "More for this podcast" }).click();
+    await page.getByRole("menuitem", { name: /^Playback speed/ }).click();
     const slider = page.getByRole("slider", { name: "Playback speed" });
-    await expect(slider).toBeFocused();
+    await slider.focus();
     await page.keyboard.press("ArrowRight");
+    await expect(page.locator(".player-speed-readout")).toHaveText("1.25x");
     await page.keyboard.press("Escape");
-    await expect(player.dialog.getByRole("button", { name: "Playback speed 1.05x" })).toBeVisible();
     await expect(player.root).toHaveAttribute("data-player", "open");
     // A tap on a later turn plays from there.
     await finger.press(script.locator('[data-turn="2"]'));
@@ -163,19 +164,17 @@ test.describe("an episode's script in the open player", () => {
     await expect(script.locator('.script-turn[tabindex="0"]')).toHaveCount(1);
     await expect(script.locator('[data-turn="0"]')).toHaveAttribute("tabindex", "0");
     await expect(turns.nth(1)).toHaveAttribute("tabindex", "-1");
-    // Tab from Play reaches what the eye sees next: Forward ten, then (where shown) Next, then the
-    // speed, which is last in the transport whatever its place in the grid.
+    // Tab from Play reaches what the eye sees next: Forward ten, then (where shown) Next.
     const play = player.dialog.getByRole("button", { name: "Play", exact: true });
     await play.focus();
     const order: string[] = [];
-    for (let press = 0; press < 3; press += 1) {
+    for (let press = 0; press < 2; press += 1) {
       await page.keyboard.press("Tab");
       order.push(
         await page.evaluate(() => document.activeElement?.getAttribute("aria-label") ?? ""),
       );
     }
     expect(order[0]).toBe("Forward 10 seconds");
-    expect(order.indexOf("Playback speed 1x")).toBeGreaterThan(0);
     // The arrows, Home and End move inside the list; Tab leaves it in one press.
     await script.locator('[data-turn="0"]').focus();
     await page.keyboard.press("ArrowDown");
