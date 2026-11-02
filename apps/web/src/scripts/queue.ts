@@ -329,6 +329,8 @@ function paintRow(
   if (!li.hasAttribute("data-cancelling")) {
     setText(li.querySelector("[data-queue-status]"), statusOf(item, view, data));
   }
+  // The stage line shimmers while the run goes, on the same clock as the title's shimmer.
+  markLive(li.querySelector<HTMLElement>("[data-queue-status]"), li.dataset.state === "running");
   // Once it ended the line starts with when ("14:32 · Podcast ready").
   setText(li.querySelector("[data-queue-when]"), item.ended && item.at ? clockTime(item.at) : "");
 

@@ -13,7 +13,7 @@
  * tabular, the X keeps its cell when Cancel goes (the voices stage), and the status is one line.
  *
  * The title in the folded row and in the side column shimmers while a run goes (.queue-word): the
- * text, never a background. The head's icon crossfades between the ring, a check and an alert
+ * text, never a background. Opened, the title holds still and each running row's stage line shimmers. The head's icon crossfades between the ring, a check and an alert
  * (.queue-stage-icon). Both hold still under reduced motion.
  *
  * Contract with the shell (shell.css): the dock rests on --bottom-nav-height and --dock-room, and
@@ -433,6 +433,16 @@ html[data-player="open"] .queue-dock {
   background-clip: text;
   color: transparent;
   animation: queue-sheen var(--queue-sheen) var(--ease-linear) var(--queue-sheen-at, 0ms) infinite;
+}
+
+/* Opened, the rows carry the light and the head holds still: each running row's stage line shimmers
+   (owner, 2026-11-02), and the head's word (the dock's, and the side column's while its popover is
+   open) rests in plain colour. Folded, the head's word is the one that shimmers. */
+.queue-dock[data-expanded] .queue-fold .queue-word[data-live],
+html:has(.queue-pop:popover-open) .app-nav-queue-title.queue-word[data-live] {
+  background: none;
+  animation: none;
+  color: var(--color-on-surface);
 }
 
 @keyframes queue-sheen {
