@@ -123,7 +123,8 @@
 
   .create-more:not([data-pinned])::details-content {
     block-size: 0;
-    overflow: clip;
+    /* Down and up only: the Format and Tone controls draw their focus ring outside their edges. */
+    overflow-y: clip;
     transition:
       block-size var(--duration-state) var(--ease-out),
       content-visibility var(--duration-state) allow-discrete;
@@ -224,13 +225,19 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .create-more-chevron,
-  .create-more:not([data-pinned])::details-content {
+  .create-more-chevron {
     transition: none;
   }
 
   .create-more:not([data-pinned]) {
     transition-delay: 0s;
+  }
+}
+
+/* Its own rule: a browser without ::details-content drops a whole selector list that names it. */
+@media (prefers-reduced-motion: reduce) {
+  .create-more:not([data-pinned])::details-content {
+    transition: none;
   }
 }
 
