@@ -179,7 +179,8 @@
      alone tells it from the pill-shaped current row beside it (--action-tonal-radius).
    - Flat: no elevation and no shadow (owner, 2026-10-27).
    - Hover and press fills --action-tonal-bg-hover and --action-tonal-bg-pressed: the fill with its
-     lightness stepped toward its words (D317), so the state reads as depth, not as a new colour. */
+     lightness stepped away from its words (D317: darker in light, lighter in dark), so the state
+     reads as depth, not as a new colour. */
 .btn-action-tonal {
   --color-focus-gap: var(--color-surface);
   border-radius: var(--action-tonal-radius);
