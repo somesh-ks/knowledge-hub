@@ -328,8 +328,22 @@
     }
   }
 
+  /* The scrim fades out with the menu instead of vanishing (owner thread, 2026-11-02). A pick closes this
+     menu and opens the next sheet in the same frame (More > Regenerate). The menu's scrim was held at full
+     strength under the sheet's rising one, then dropped in one frame, a visible pop. Linear over the menu's
+     own exit, it ends with the popover (a longer fade would be cut mid-way) while the sheet's scrim eases
+     in, so the page never lacks a scrim and never stacks two. */
   .menu-sheet::backdrop {
     background: var(--color-scrim);
+    opacity: 0;
+    transition:
+      opacity var(--duration-sheet-out) var(--ease-linear),
+      overlay var(--duration-sheet-out) allow-discrete,
+      display var(--duration-sheet-out) allow-discrete;
+  }
+
+  .menu-sheet:popover-open::backdrop {
+    opacity: 1;
   }
 
   .menu-sheet > .sheet-head:not([data-has-back]) {
