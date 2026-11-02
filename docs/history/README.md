@@ -4,11 +4,13 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-11-01 | [Performance audit](2026-11-01-performance-audit.md) | No skeleton; preload links back (D316), pages kept at the Stockholm edge until content changes (D318), shorter cold start |
 | 2026-11-01 | [Review rules](2026-11-01-review-rules.md) | Review by tier; CodeRabbit asked for once when a PR is ready, never per push (D292) |
 | 2026-11-01 | [Bottom bar press ripple](2026-11-01-bar-press-ripple.md) | A Ripple in the design system; the bar's tabs show the touch as a wave with the pill easing in beneath (D286) |
 | 2026-11-01 | [Half-built audit](2026-11-01-half-built-audit.md) | 41 decided or planned items found not built, unwired or unverified; docs and dead code fixed, the rest routed by owner |
 | 2026-11-01 | [Episode centring](2026-11-01-episode-centring.md) | A page with a contents list is centred as the column and the list together (D287) |
 | 2026-11-01 | [Library list by month](2026-11-01-library-list-months.md) | The list groups by month under a sticky label, two columns from 80rem (D288) |
+| 2026-11-01 | [Live covers](2026-11-01-live-covers.md) | One vector per cover, recoloured by the page for each style; no per-style images (D314) |
 | 2026-10-31 | [Ledger split](2026-10-31-ledger-split.md) | The design ledger split into a core and one file per surface; the Index grep-only; read-first 20 KB (D283) |
 | 2026-10-31 | [State trim](2026-10-31-state-trim.md) | Ten parked unverified items moved out of state.md; read-first headroom (D283) |
 | 2026-10-31 | [Downloads page](2026-10-31-downloads-page.md) | Settings > Downloads wears the Library's List rows, no cap, confirm on every remove (D281) |

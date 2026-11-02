@@ -71,6 +71,7 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
   [".aside-rail", "the rail's track padding, around its own segments"],
   [".banner-notice > .button-text", "the action's hit area reaching into the banner's padding"],
   [".banner-body", "a banner's title onto its body, inside one banner"],
+  [".menu-tile", "a glyph onto its word inside one tile: the icon-to-label gap is 4px, items 8px"],
   [".structure-row", "the dots' and pencil's ink, 28px in from the card's corner, not 24"],
   [
     ".structure-profile .profile-select",
@@ -327,6 +328,21 @@ const RULES: Rule[] = [
         );
         return match ? [`${file}: ${match[0]}`] : [];
       }),
+  },
+  {
+    // Prevents a part a style cannot reach: a style redraws the semantic tiers (the `--shape-*` corners
+    // and the `--color-*` roles), so a component that reads a primitive radius or a colour ramp step
+    // stays as Default draws it when Expressive or Halloween is on (the first Expressive missed the cards,
+    // the menus, the sheets and the toast this way). Only the fully round pill is a primitive read.
+    name: "reads the shape scale and the colour roles, never a primitive radius or a ramp colour",
+    offenders: () =>
+      ownCss().flatMap(([file, css]) =>
+        [
+          ...css.matchAll(
+            /var\(\s*--(?:radius-(?:xs|sm|md|lg|xl|2xl|sheet)|color-(?:white|(?:grey|blue|green|orange|red|violet)-\d+))\s*[,)]/g,
+          ),
+        ].map(([read]) => `${file}: ${read}`),
+      ),
   },
   {
     name: "takes spacing, type and radius from tokens, never a raw length",
@@ -868,8 +884,8 @@ const PAGE_OVERRIDES: string[] = [
   "manage.css: .manage-fields:disabled :is(.switch-input, .field-input, .search-field)",
   "manage.css: .manage-fields:disabled :is(.switch-input, .field-input, .search-field)",
   "menu.css: .menu-sheet .menu-item .icon-glyph",
-  "menu.css: .menu-sheet > .sheet-head",
-  "menu.css: .menu-sheet > .sheet-head",
+  "menu.css: .menu-sheet > .sheet-head:not([data-has-back])",
+  "menu.css: .menu-sheet > .sheet-head:not([data-has-back])",
   "multiselect.css: .multiselect-trigger > .icon-glyph",
   "multiselect.css: .multiselect-trigger > .icon-glyph",
   'multiselect.css: .multiselect-trigger[aria-expanded="true"] > .icon-glyph',

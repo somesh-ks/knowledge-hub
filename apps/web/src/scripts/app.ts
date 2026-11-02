@@ -67,7 +67,7 @@ addEventListener("pointerdown", inputBy("pointer"), { capture: true, passive: tr
 // An installed app has no browser chrome to copy an address from, so a long press on its own
 // navigation opens no context menu. External story links are not listed and stay copyable.
 const IN_APP_NAV =
-  ".app-nav-item, .app-nav-create, .app-bar-back, .wordmark, .create-fab, .card-link, .cover-image";
+  ".app-nav-item, .app-nav-create, .app-bar-back, .wordmark, .create-fab, .card-link, .cover-art";
 if (matchMedia("(display-mode: standalone)").matches) {
   document.addEventListener("contextmenu", (event) => {
     if (event.target instanceof Element && event.target.closest(IN_APP_NAV)) event.preventDefault();
@@ -130,15 +130,18 @@ watchPlatformFaults(window, location.origin, report);
 addEventListener("unhandledrejection", (event) =>
   report({ kind: "rejection", message: String(event.reason?.message ?? event.reason) }),
 );
-document.addEventListener("securitypolicyviolation", (event) =>
+// Code that is not on the web (a headless browser's injected style, an extension) is not the
+// site's fault, and each report is a function run; the server drops it too (server/report.ts).
+document.addEventListener("securitypolicyviolation", (event) => {
+  if (event.sourceFile && !/^https?:\/\//i.test(event.sourceFile)) return;
   report({
     kind: "csp",
     directive: event.effectiveDirective,
     blocked: event.blockedURI,
     source: event.sourceFile,
     line: event.lineNumber,
-  }),
-);
+  });
+});
 // A tab left open across a deploy asks for script files the deploy removed, and the import fails
 // (the player's controls, narration). One reload with the saved pages dropped gets the current
 // site; the flag stops a second one.
@@ -158,25 +161,6 @@ addEventListener("vite:preloadError", () => {
     )
     .finally(() => location.reload());
 });
-// A cover that cannot be fetched (offline, one scrolled to for the first time) shows its palette, not the
-// browser's broken-image glyph. An image error does not bubble, so this listens on the way down, and
-// covers that failed before this script ran are swept up once.
-const hideBroken = (): void => {
-  for (const image of document.querySelectorAll<HTMLImageElement>(".cover-image")) {
-    if (image.complete && image.naturalWidth === 0) image.hidden = true;
-  }
-};
-document.addEventListener(
-  "error",
-  (event) => {
-    if ((event.target as Element).classList?.contains("cover-image")) {
-      (event.target as HTMLImageElement).hidden = true;
-    }
-  },
-  true,
-);
-document.addEventListener("astro:page-load", hideBroken);
-hideBroken();
 // The floating Create button is extended until the first scroll, so what folds it waits for one.
 addEventListener("scroll", () => void import("./fabScroll").then((fab) => fab.installFabScroll()), {
   once: true,

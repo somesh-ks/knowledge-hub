@@ -142,14 +142,16 @@ export function mountAmbient(host: HTMLElement) {
   });
   if (!gl) return;
 
-  const sets = (host.dataset.ambient ?? "").split(",");
-  const light = paletteUniforms(sets.slice(0, 3));
-  const dark = paletteUniforms(sets.slice(3));
   const darkQuery = matchMedia("(prefers-color-scheme: dark)");
-  const isDark = () => {
-    const theme = document.documentElement.dataset.theme;
-    return theme ? theme === "dark" : darkQuery.matches;
+  // The three lights as the page shows them now: the theme picks the set (ambient.css) and the style
+  // and a reader's hue recolour it (ambientStyle.ts). Read when one of them changes, not each frame.
+  const readPalette = () => {
+    const shown = getComputedStyle(host);
+    return paletteUniforms(
+      ["a", "b", "c"].map((light) => shown.getPropertyValue(`--ambient-${light}`).trim()),
+    );
   };
+  let palette = readPalette();
   const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
   const dataQuery = matchMedia("(prefers-reduced-data: reduce)");
   const gate: FrameGate = { visible: !document.hidden, onScreen: true, motionAllowed: true };
@@ -176,7 +178,7 @@ export function mountAmbient(host: HTMLElement) {
     const turn = (((now - t0) / 1000 + 9) % DRIFT_SECONDS) / DRIFT_SECONDS;
     gl.uniform1f(program.t, turn * Math.PI * 2);
     gl.uniform3fv(program.o, cover);
-    gl.uniform3fv(program.c, isDark() ? dark : light);
+    gl.uniform3fv(program.c, palette);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     host.dataset.live = "";
   };
@@ -202,7 +204,10 @@ export function mountAmbient(host: HTMLElement) {
   };
 
   /** One frame now: at the present moment where the light may move, at the still frame's otherwise. */
-  const redraw = () => draw(gate.motionAllowed ? performance.now() : t0);
+  const redraw = () => {
+    palette = readPalette();
+    draw(gate.motionAllowed ? performance.now() : t0);
+  };
 
   const size = () => {
     const [w, h] = backingSize(host.clientWidth, host.clientHeight);
@@ -255,7 +260,10 @@ export function mountAmbient(host: HTMLElement) {
   motionQuery.addEventListener("change", sync);
   dataQuery.addEventListener("change", sync);
   darkQuery.addEventListener("change", redraw);
-  themed.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  themed.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-theme", "data-style", "style"],
+  });
   seen.observe(host);
   sized.observe(host);
 

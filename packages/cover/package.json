@@ -4,10 +4,12 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./style": "./src/style.ts"
   },
   "dependencies": {
     "@singularity/core": "*",
-    "@resvg/resvg-js": "^2.6.2"
+    "@resvg/resvg-js": "^2.6.2",
+    "fontkitten": "^1.0.3"
   }
 }

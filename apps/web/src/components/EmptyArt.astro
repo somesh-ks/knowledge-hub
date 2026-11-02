@@ -42,16 +42,16 @@ const VIEW: Record<ArtName, string> = {
   {
     art === "today" && (
       <>
-        <rect class="art-hero" x="60" y="30" width="120" height="120" rx="24" />
-        <path class="art-ink-fill" d="M106 66l36 24-36 24z" />
+        <rect class="art-hero d-breathe" x="60" y="30" width="120" height="120" rx="24" />
+        <path class="art-ink-fill d-nudge" d="M106 66l36 24-36 24z" />
       </>
     )
   }
   {
     art === "library" && (
       <>
-        <rect class="art-slot" x="62" y="32" width="116" height="116" rx="24" />
-        <path class="art-ink-line" d="M120 72v36M102 90h36" />
+        <rect class="art-slot d-breathe" x="62" y="32" width="116" height="116" rx="24" />
+        <path class="art-ink-line d-plus" d="M120 72v36M102 90h36" />
       </>
     )
   }
@@ -59,9 +59,11 @@ const VIEW: Record<ArtName, string> = {
     art === "results" && (
       <>
         <rect class="art-hero" x="52" y="26" width="108" height="108" rx="24" />
-        <path class="art-handle" d="M178 136l20 20" />
-        <circle class="art-pop" cx="156" cy="114" r="34" />
-        <circle class="art-lens" cx="156" cy="114" r="23" />
+        <g class="d-sweep">
+          <path class="art-handle" d="M178 136l20 20" />
+          <circle class="art-pop" cx="156" cy="114" r="34" />
+          <circle class="art-lens" cx="156" cy="114" r="23" />
+        </g>
       </>
     )
   }
@@ -69,10 +71,9 @@ const VIEW: Record<ArtName, string> = {
     (art === "offline" || art === "online") && (
       <>
         <circle class="art-hero" cx="120" cy="90" r="66" />
-        <path
-          class={art === "offline" ? "art-glyph-off" : "art-glyph"}
-          d="M98 102a31 31 0 0 1 44 0M76 80a62 62 0 0 1 88 0M120 124h0"
-        />
+        {["M120 124h0", "M98 102a31 31 0 0 1 44 0", "M76 80a62 62 0 0 1 88 0"].map((d) => (
+          <path class={`${art === "offline" ? "art-glyph-off" : "art-glyph"} d-wave`} d={d} />
+        ))}
         {art === "offline" ? (
           <>
             <path class="art-slash-knock" d="M88 52l64 64" />
@@ -80,9 +81,11 @@ const VIEW: Record<ArtName, string> = {
           </>
         ) : (
           <>
-            <circle class="art-knock" cx="168" cy="134" r="25" />
-            <circle class="art-pop" cx="168" cy="134" r="20" />
-            <path class="art-on-pop-line" d="M159 134l6 6 12-12" />
+            <g class="d-pop">
+              <circle class="art-knock" cx="168" cy="134" r="25" />
+              <circle class="art-pop" cx="168" cy="134" r="20" />
+              <path class="art-on-pop-line" d="M159 134l6 6 12-12" />
+            </g>
           </>
         )}
       </>
@@ -96,10 +99,33 @@ const VIEW: Record<ArtName, string> = {
           d="M88 24h44l32 32v86a16 16 0 0 1-16 16H88a16 16 0 0 1-16-16V40a16 16 0 0 1 16-16z"
         />
         <path class="art-hero-ink" d="M132 24v20a12 12 0 0 0 12 12h20z" />
-        <path class="art-pop" d="M120 128c-14-16-20-26-20-36a20 20 0 0 1 40 0c0 10-6 20-20 36z" />
-        <circle class="art-hero" cx="120" cy="92" r="7" />
+        <g class="d-pin">
+          <path class="art-pop" d="M120 128c-14-16-20-26-20-36a20 20 0 0 1 40 0c0 10-6 20-20 36z" />
+          <circle class="art-hero" cx="120" cy="92" r="7" />
+        </g>
       </>
     )
   }
 </svg>
 <EmptyArtHalloween art={art} size={size} />
+
+<script>
+  // A loop does not run off screen (docs/specs/motion.md): an illustration out of view is marked, and
+  // empty.css pauses it. Without the observer the loops simply keep running, as before.
+  if (typeof IntersectionObserver === "function") {
+    const seen = new IntersectionObserver((entries) => {
+      for (const { target, isIntersecting } of entries) {
+        target.toggleAttribute("data-offscreen", !isIntersecting);
+      }
+    });
+    // A page the router swaps in has new illustrations; each is watched once.
+    const watch = () => {
+      for (const art of document.querySelectorAll(".empty-art:not([data-watched])")) {
+        art.setAttribute("data-watched", "");
+        seen.observe(art);
+      }
+    };
+    watch();
+    document.addEventListener("astro:page-load", watch);
+  }
+</script>
