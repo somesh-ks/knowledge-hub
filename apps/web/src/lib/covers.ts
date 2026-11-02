@@ -2,7 +2,13 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Digest } from "@singularity/core";
-import { type CoverMode, coverColors, renderCoverPng } from "@singularity/cover";
+import {
+  type CoverMode,
+  coverColors,
+  renderCoverPng,
+  renderLiveCoverSvg,
+} from "@singularity/cover";
+import { loadCoverFonts } from "./coverFonts";
 
 /**
  * What a cover is drawn from. A briefing and a podcast episode both have these. `mode` draws it for
@@ -28,9 +34,26 @@ export function coverEdge(source: CoverSource, mode: CoverMode): string {
     .ground;
 }
 
-/** Where the cover for one theme is served: `/covers/dark/<id>-512.webp`. */
-export function themedCoverSrc(id: string, mode: CoverMode, size: CoverSize): string {
-  return `/covers/${mode}/${id}-${size}.webp`;
+/**
+ * The cover as the page draws it (D314): one small vector whose colours the page's own CSS sets, so
+ * a theme, a style or a hue changes it with no request. Drawn once for each record per process.
+ */
+const liveCovers = new Map<string, string>();
+
+export function coverLiveSvg(source: CoverSource): string {
+  loadCoverFonts();
+  const key = `${source.id}|${source.date}|${source.kind}|${JSON.stringify(source.cover)}`;
+  let svg = liveCovers.get(key);
+  if (svg === undefined) {
+    svg = renderLiveCoverSvg(source.cover, { id: source.id, date: source.date, kind: source.kind });
+    liveCovers.set(key, svg);
+  }
+  return svg;
+}
+
+/** Where a record's live cover is served: `/covers/<id>.svg`, versioned like the images. */
+export function coverLiveSrc(id: string, generatedAt?: string): string {
+  return `/covers/${id}.svg${coverVersion(generatedAt)}`;
 }
 
 /**

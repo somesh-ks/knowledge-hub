@@ -39,42 +39,14 @@
   outline-color: transparent;
 }
 
-.cover-image {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* Each cover is drawn for both themes (D121); the page shows the one for its own. */
-.cover-image[data-mode="dark"] {
-  display: none;
-}
-
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .cover {
     --cover-bg: var(--cover-bg-dark, var(--color-surface-sunken));
-  }
-
-  :root:not([data-theme="light"]) .cover-image[data-mode="light"] {
-    display: none;
-  }
-
-  :root:not([data-theme="light"]) .cover-image[data-mode="dark"] {
-    display: block;
   }
 }
 
 :root[data-theme="dark"] .cover {
   --cover-bg: var(--cover-bg-dark, var(--color-surface-sunken));
-}
-
-:root[data-theme="dark"] .cover-image[data-mode="light"] {
-  display: none;
-}
-
-:root[data-theme="dark"] .cover-image[data-mode="dark"] {
-  display: block;
 }
 
 /* The branded fallback (2026-10-25, plan 1.5): the ring and dot of the Singularity mark on a quiet
@@ -109,7 +81,7 @@
   }
 }
 
-:is(.cover, .player-cover-frame)[data-fallback] :is(.cover-image, .player-cover-image) {
+:is(.cover, .player-cover-frame)[data-fallback] .player-cover-art {
   visibility: hidden;
 }
 
@@ -332,4 +304,287 @@
 
 .cover[data-morphing] {
   visibility: hidden;
+}
+
+/*
+ * Live covers (D314). A cover is an inline vector (`renderLiveCoverSvg`) whose colours are slots, `k0`
+ * to `k7` for fills and `s0` to `s7` for strokes, each carrying its numbers for both themes as custom
+ * properties on the svg (`--k0` the hex, `--l0 --x0 --h0` its lightness, chroma and hue; the `d`
+ * variants are the dark theme's; `--ctr` is the month's hue centre, `--gl` the ground's lightness).
+ * Default paints the hex. A style (`[data-style]`) recolours every slot by the formula below from its
+ * `--cover-*` numbers in tokens.css, so a new style, or a reader's `--hue-shift`, recolours every cover
+ * on the page at once with no file drawn. `packages/cover/src/style.ts` holds the same formula in code
+ * (for the rasters of the lock screen and the share card); its tests pin the numbers in tokens.css,
+ * not this CSS, so change the gap or the hue maths here and there together. A browser without mod()
+ * or oklch() keeps Default's colours.
+ * Every property read with a fallback is one the svg sets inline.
+ */
+.cover-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  -webkit-touch-callout: none;
+  --pg: var(--gl, 0.5);
+}
+
+.cover-art :is(.k0, .s0) {
+  --px: var(--k0, transparent);
+  --pl: var(--l0, 0.5);
+  --pc: var(--x0, 0);
+  --ph: var(--h0, 0);
+}
+
+.cover-art :is(.k1, .s1) {
+  --px: var(--k1, transparent);
+  --pl: var(--l1, 0.5);
+  --pc: var(--x1, 0);
+  --ph: var(--h1, 0);
+}
+
+.cover-art :is(.k2, .s2) {
+  --px: var(--k2, transparent);
+  --pl: var(--l2, 0.5);
+  --pc: var(--x2, 0);
+  --ph: var(--h2, 0);
+}
+
+.cover-art :is(.k3, .s3) {
+  --px: var(--k3, transparent);
+  --pl: var(--l3, 0.5);
+  --pc: var(--x3, 0);
+  --ph: var(--h3, 0);
+}
+
+.cover-art :is(.k4, .s4) {
+  --px: var(--k4, transparent);
+  --pl: var(--l4, 0.5);
+  --pc: var(--x4, 0);
+  --ph: var(--h4, 0);
+}
+
+.cover-art :is(.k5, .s5) {
+  --px: var(--k5, transparent);
+  --pl: var(--l5, 0.5);
+  --pc: var(--x5, 0);
+  --ph: var(--h5, 0);
+}
+
+.cover-art :is(.k6, .s6) {
+  --px: var(--k6, transparent);
+  --pl: var(--l6, 0.5);
+  --pc: var(--x6, 0);
+  --ph: var(--h6, 0);
+}
+
+.cover-art :is(.k7, .s7) {
+  --px: var(--k7, transparent);
+  --pl: var(--l7, 0.5);
+  --pc: var(--x7, 0);
+  --ph: var(--h7, 0);
+}
+
+:root[data-theme="dark"] .cover-art {
+  --pg: var(--gld, 0.5);
+}
+
+:root[data-theme="dark"] .cover-art :is(.k0, .s0) {
+  --px: var(--k0d, transparent);
+  --pl: var(--l0d, 0.5);
+  --pc: var(--x0d, 0);
+  --ph: var(--h0d, 0);
+}
+
+:root[data-theme="dark"] .cover-art :is(.k1, .s1) {
+  --px: var(--k1d, transparent);
+  --pl: var(--l1d, 0.5);
+  --pc: var(--x1d, 0);
+  --ph: var(--h1d, 0);
+}
+
+:root[data-theme="dark"] .cover-art :is(.k2, .s2) {
+  --px: var(--k2d, transparent);
+  --pl: var(--l2d, 0.5);
+  --pc: var(--x2d, 0);
+  --ph: var(--h2d, 0);
+}
+
+:root[data-theme="dark"] .cover-art :is(.k3, .s3) {
+  --px: var(--k3d, transparent);
+  --pl: var(--l3d, 0.5);
+  --pc: var(--x3d, 0);
+  --ph: var(--h3d, 0);
+}
+
+:root[data-theme="dark"] .cover-art :is(.k4, .s4) {
+  --px: var(--k4d, transparent);
+  --pl: var(--l4d, 0.5);
+  --pc: var(--x4d, 0);
+  --ph: var(--h4d, 0);
+}
+
+:root[data-theme="dark"] .cover-art :is(.k5, .s5) {
+  --px: var(--k5d, transparent);
+  --pl: var(--l5d, 0.5);
+  --pc: var(--x5d, 0);
+  --ph: var(--h5d, 0);
+}
+
+:root[data-theme="dark"] .cover-art :is(.k6, .s6) {
+  --px: var(--k6d, transparent);
+  --pl: var(--l6d, 0.5);
+  --pc: var(--x6d, 0);
+  --ph: var(--h6d, 0);
+}
+
+:root[data-theme="dark"] .cover-art :is(.k7, .s7) {
+  --px: var(--k7d, transparent);
+  --pl: var(--l7d, 0.5);
+  --pc: var(--x7d, 0);
+  --ph: var(--h7d, 0);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .cover-art {
+    --pg: var(--gld, 0.5);
+  }
+
+  :root:not([data-theme="light"]) .cover-art :is(.k0, .s0) {
+    --px: var(--k0d, transparent);
+    --pl: var(--l0d, 0.5);
+    --pc: var(--x0d, 0);
+    --ph: var(--h0d, 0);
+  }
+
+  :root:not([data-theme="light"]) .cover-art :is(.k1, .s1) {
+    --px: var(--k1d, transparent);
+    --pl: var(--l1d, 0.5);
+    --pc: var(--x1d, 0);
+    --ph: var(--h1d, 0);
+  }
+
+  :root:not([data-theme="light"]) .cover-art :is(.k2, .s2) {
+    --px: var(--k2d, transparent);
+    --pl: var(--l2d, 0.5);
+    --pc: var(--x2d, 0);
+    --ph: var(--h2d, 0);
+  }
+
+  :root:not([data-theme="light"]) .cover-art :is(.k3, .s3) {
+    --px: var(--k3d, transparent);
+    --pl: var(--l3d, 0.5);
+    --pc: var(--x3d, 0);
+    --ph: var(--h3d, 0);
+  }
+
+  :root:not([data-theme="light"]) .cover-art :is(.k4, .s4) {
+    --px: var(--k4d, transparent);
+    --pl: var(--l4d, 0.5);
+    --pc: var(--x4d, 0);
+    --ph: var(--h4d, 0);
+  }
+
+  :root:not([data-theme="light"]) .cover-art :is(.k5, .s5) {
+    --px: var(--k5d, transparent);
+    --pl: var(--l5d, 0.5);
+    --pc: var(--x5d, 0);
+    --ph: var(--h5d, 0);
+  }
+
+  :root:not([data-theme="light"]) .cover-art :is(.k6, .s6) {
+    --px: var(--k6d, transparent);
+    --pl: var(--l6d, 0.5);
+    --pc: var(--x6d, 0);
+    --ph: var(--h6d, 0);
+  }
+
+  :root:not([data-theme="light"]) .cover-art :is(.k7, .s7) {
+    --px: var(--k7d, transparent);
+    --pl: var(--l7d, 0.5);
+    --pc: var(--x7d, 0);
+    --ph: var(--h7d, 0);
+  }
+}
+
+/* The signature is the one lettering a small cover leaves out, as the raster's 512 did; the player's
+   cover, the largest, shows it. */
+.cover-art [data-mark] {
+  display: none;
+}
+
+:is(.cover, .player-cover-frame)[data-size="player"] .cover-art [data-mark] {
+  display: inline;
+}
+
+.cover-art .k {
+  fill: var(--out, var(--px));
+}
+
+.cover-art .s {
+  stroke: var(--out, var(--px));
+}
+
+@supports (width: mod(5px, 2px)) and (color: oklch(from red l c h)) {
+  :root[data-style] .cover-art :is(.k, .s) {
+    --anchor: calc(var(--cover-hue) + var(--hue-shift, 0));
+    --lf: calc(
+      var(--pl) *
+      (1 - var(--cover-flip)) +
+      var(--cover-flip) *
+      (var(--cover-lo) + (1 - var(--pl)) * (var(--cover-hi) - var(--cover-lo)))
+    );
+    --night: clamp(0, (var(--cover-night-below) - var(--lf)) * 1000, 1);
+    --floor: clamp(0, (var(--cover-c-floor-below) - var(--pc)) * 1000, 1);
+    --tilt: clamp(
+      -1 *
+      var(--cover-cap),
+      (mod(var(--ph) - var(--ctr, 0) + 180, 360) - 180) *
+      var(--cover-spread),
+      var(--cover-cap)
+    );
+    --hf: calc(
+      var(--anchor) +
+      var(--cover-keep) *
+      (mod(var(--ctr, 0) - var(--anchor) + 180, 360) - 180) +
+      var(--tilt)
+    );
+    --cf: calc(
+      var(--floor) *
+      var(--cover-c-floor) +
+      (1 - var(--floor)) *
+      min(var(--cover-c-max), var(--pc) * var(--cover-c-scale) + var(--cover-c-add))
+    );
+    --cn: calc(var(--night) * var(--cover-night-c) + (1 - var(--night)) * var(--cf));
+    --hn: calc(
+      var(--night) *
+      (var(--cover-night-hue) + var(--hue-shift, 0)) +
+      (1 - var(--night)) *
+      var(--hf)
+    );
+    --out: oklch(from var(--px) var(--lout, var(--lf)) var(--cn) var(--hn));
+  }
+
+  /* Type and figures keep the lightness gap they had to the ground, times the style's `hold` (a bit
+     over 1), so they read as before. */
+  :root[data-style] .cover-art .h {
+    --gf: calc(
+      var(--pg) *
+      (1 - var(--cover-flip)) +
+      var(--cover-flip) *
+      (var(--cover-lo) + (1 - var(--pg)) * (var(--cover-hi) - var(--cover-lo)))
+    );
+    --gap: calc(
+      max(
+        var(--lf) -
+        var(--gf),
+        var(--gf) -
+        var(--lf),
+        var(--pl) -
+        var(--pg),
+        var(--pg) -
+        var(--pl)
+      ) *
+      var(--cover-hold)
+    );
+    --lout: clamp(0, var(--gf) + clamp(-1, (var(--lf) - var(--gf)) * 1000, 1) * var(--gap), 1);
+  }
 }

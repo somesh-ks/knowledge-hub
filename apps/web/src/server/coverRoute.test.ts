@@ -33,17 +33,16 @@ it("answers every address the pages and the lock screen use for a new briefing a
       // The lock screen and the link card ask for the PNG beside each WebP (mediaSession.ts, linkCard.ts).
       `${id}-512.png`,
       `${id}-1024.png`,
-      `light/${id}-512.webp`,
-      `dark/${id}-1024.webp`,
+      // The page and the player draw the live vector (D314).
+      `${id}.svg`,
     ];
     for (const path of paths) expect(parseCoverPath(path)?.id, path).toBe(id);
   }
   expect(findCoverRecord(site, "2000-01-01")).toBeNull();
 });
 
-it("never draws a theme variant as PNG or an address the build never served", () => {
-  expect(parseCoverPath("dark/x-512.png")).toBeNull();
-  expect(parseCoverPath("sepia/x-512.webp")).toBeNull();
+it("never draws an address the build never served", () => {
+  expect(parseCoverPath("dark/x-512.webp")).toBeNull();
   expect(parseCoverPath("x-300.webp")).toBeNull();
   expect(parseCoverPath("../x-512.webp")).toBeNull();
 });

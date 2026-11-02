@@ -12,7 +12,7 @@ Updated 2026-11-01. Rewrite, never append.
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). Regenerate and Catch up queue with Cancel; ended runs stay for the day (D204, D231).
 - Saved copies, offline, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews a PR once when it is ready, by tier (D192, D292).
-- Styles (D306, D310, D315): Halloween and Expressive (violet ramp, larger touch sizes, a `--shape-*` corner scale a test enforces, looping empty states) and a Hue slider that turns a style. closed when: Somesh OKs the stills (390 and 1280, light and dark) and sees every page change under each style on his phone. Covers follow a style live (D314, own PR); album art per style is next.
+- Styles (D306, D310, D314, D315): Halloween and Expressive (violet ramp, larger touch sizes, a `--shape-*` corner scale a test enforces, looping empty states), a Hue slider, and covers as one live vector recoloured by `cover.css`. closed when: Somesh OKs the stills and a style change on his phone recolours every page, cover and header light, no flash.
 
 ## Tests
 
@@ -71,7 +71,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 
 ## Next
 
-1. Free the lane in the hold ([D209](decisions/engine.md)): step 1 is built (#399); steps 2, 4 and 5 are not. Step 3, the batch, shipped as D294 inside the existing job, without step 2's split. A batch the run gives up on or a cancel leaves running is listed in `.cache/run/open-batches.json` and settled by run.yml's "Settle batches" step (`batch-settle`) before Commit; unproven live. closed when: a scheduled run's write stage logs "Writer first pass by batch" with `back` above 0, and a run that gave up on a batch logs "Settled a batch the run had left open".
+1. Free the lane in the hold ([D209](decisions/engine.md)): step 1 is built (#399); steps 2, 4 and 5 are not. Step 3, the batch, shipped as D294 inside the existing job without step 2's split. Check the first run's ledger for `batch_*` units. A batch the wait gives up on, or a cancel leaves running, is listed in `.cache/run/open-batches.json` and settled by run.yml's "Settle batches" step (`batch-settle`) before Commit; the step needs a manual merge and is unproven live. closed when: a scheduled run's write stage logs "Writer first pass by batch" with `back` above 0, and a run that gave up on a batch logs "Settled a batch the run had left open".
 2. Owner: regenerate the 3-story 10-27 briefing? Revoke the Vercel token; delete empty store `store_JmrDq8MB5Kwn3ejW`; open calls: [PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md).
 3. Firecrawl: a per-source yield table for the owner to prune (21 sources gave 1 story per 4,460 credits a month); changelog providers once the pilot holds.
 4. Lighthouse: defer BaseLayout's 34 KiB CSS without breaking the bar; the 1.4 s chain.

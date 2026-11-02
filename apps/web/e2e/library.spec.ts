@@ -249,25 +249,6 @@ test.describe("library search", () => {
   });
 });
 
-test.describe("a cover that cannot be fetched", () => {
-  // The refusal is the point: the browser logs each cover it could not load.
-  test.use({ allowNetworkErrors: true });
-
-  test("shows its palette, not the browser's broken-image glyph", async ({ page }) => {
-    await page.route("**/covers/**", (route) => route.abort("internetdisconnected"));
-    await page.goto("/library");
-    await ready(page);
-    const covers = page.locator("[data-card] .cover-image");
-    await expect(covers.first()).toBeAttached();
-    // Every one that failed is hidden, so the cover's own colour shows.
-    await expect
-      .poll(async () =>
-        covers.evaluateAll((all) => all.filter((each) => !(each as HTMLElement).hidden).length),
-      )
-      .toBe(0);
-  });
-});
-
 test.describe("library fixes", () => {
   test("search, filters and the view still work after a run, which leaves its line on every page", async ({
     page,
