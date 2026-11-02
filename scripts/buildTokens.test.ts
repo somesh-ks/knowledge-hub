@@ -358,7 +358,11 @@ function documentUnder(style: string): TokenDocument {
     for (const key of token.path) node = node[key] as Tree;
     node.$value = value;
     if (dark !== undefined) {
-      node.$extensions = { singularity: { mode: { dark } } };
+      const extensions = (node.$extensions ?? {}) as { singularity?: Record<string, unknown> };
+      node.$extensions = {
+        ...extensions,
+        singularity: { ...extensions.singularity, mode: { dark } },
+      };
     }
   }
   return parseTokens({ ...base, styles: {} });

@@ -7,6 +7,7 @@ import {
   type NeutralRecipe,
   neutralTone,
   recipeColors,
+  SCENE_ROLES,
   targetChroma,
 } from "./styleRecipe.js";
 
@@ -46,9 +47,10 @@ describe.each(Object.keys(FITTED))("the neutral recipe of %s (D319)", (name) => 
   // raised past what the gamut allows, which the hand-typed colours could not be checked for.
   it.each(MODES)("keeps half of each tinted role's chroma at every turned hue (%s)", (mode) => {
     const lost: string[] = [];
-    for (const role of Object.keys(NEUTRAL_ROLES)) {
+    const roles = { ...NEUTRAL_ROLES, ...(recipe.scene ? SCENE_ROLES : {}) };
+    for (const role of Object.keys(roles)) {
       const tone = neutralTone(recipe, role, mode);
-      const wanted = targetChroma(recipe[NEUTRAL_ROLES[role]?.family[mode] ?? "paper"], tone.l);
+      const wanted = targetChroma(recipe[roles[role]?.family[mode] ?? "paper"], tone.l);
       if (wanted < 0.02) continue;
       for (const turn of TURNS) {
         const kept = Math.min(1, (gamutChroma(tone.l, tone.h + turn) * 0.97) / wanted);

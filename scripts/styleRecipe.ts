@@ -156,7 +156,7 @@ export function recipeColors(recipe: NeutralRecipe): Record<string, Record<Mode,
   return out;
 }
 
-/** True when `value` is a recipe a style can carry: finite numbers, two families, two depths. */
+/** True when `value` is a recipe a style can carry: two families and two depths, each number in a range the ladder keeps inside 0 to 100. */
 export function isRecipe(value: unknown): value is NeutralRecipe {
   const num = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
   const family = (v: unknown): boolean =>

@@ -627,4 +627,4 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Cost: today's two styles shift a little when converted, so the owner checks stills first (`/mnt/project-files/design-audit-2026-11-01/d319/`). A dark ink at a green hue keeps only about 60% of its chroma (the gamut), so the invariant floor is half.
 - Revisit if: converted stills look flatter than the typed ones, or a style needs a role the ladder lacks.
 - Amends: D268, D310, D317.
-- Status: the generator, its fit script and invariant tests land in `scripts/`; no token changes. The styles thread converts Expressive and Halloween after #570, then deletes their colour literals.
+- Status: built in PR 581 (2026-11-02): the generator, its invariant tests and the conversion of Expressive and Halloween (`$recipe` in `tokens/tokens.json`); the fit script was deleted once no typed colours were left. Hover and press direction was settled by D317. See `docs/history/2026-11-02-style-recipes.md`.
