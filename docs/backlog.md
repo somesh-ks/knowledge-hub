@@ -7,7 +7,7 @@ Long-term project memory, future explorations, parked tasks, and shipped milesto
 Immediate priority tasks synchronized with `docs/state.md` ## Next:
 
 1. **Owner calls**: Decide on regenerating 3-story 2026-10-27 briefing; revoke old Vercel token pasted in chat; delete empty store `store_JmrDq8MB5Kwn3ejW`; resolve PWA open calls.
-2. **Firecrawl yield table**: Generate per-source yield table (21 scraped sources produced about 1 published story per 4,460 credits/month) for owner pruning; onboard changelog providers (Claude, OpenAI) once stable.
+2. **Firecrawl yield table**: parked with the Firecrawl monitor pilot (D302). The owner restarts or drops it.
 3. **Lighthouse CSS optimization**: Defer `BaseLayout.astro` 34 KiB CSS without breaking the resumed player bar; cut the 19 KiB unused CSS on initial load; optimize 1.4 s interaction chain.
 4. **Topic to Category migration**: End-to-end migration (plan 14, about 6,500 occurrences) across readers, store sync, code, and workflow outputs.
 5. **Design system sweep**: Review `/settings/*`, category pages, player, create; audit light and dark modes at 390px and 1280px; one PR per component family.
@@ -24,8 +24,8 @@ Cold items offloaded from active state. Each item maintains an explicit testable
   - Closed when: a run log reports judge request count with general topics enabled.
 - **Model orchestrator (D136)**: Multi-model runtime resolution.
   - Closed when: an engine run log names the resolved models.
-- **`doctor --online` validation**: Does not check `GITHUB_SINGULARITY_TOKEN`, and no E2E test applies a real op array through `config apply`.
-  - Closed when: both checks exist and pass in CI.
+- **`config apply` end to end**: no E2E test applies a real op array through `config apply` (`doctor --online` checks `GITHUB_SINGULARITY_TOKEN` now).
+  - Closed when: such a test exists and passes in CI.
 - **Service worker preload race**: `serviceWorker.spec.ts:140` failed 1 of 373 local runs (icon stylesheet preload as page went offline).
   - Closed when: a trace identifies the cause or 500 consecutive test runs pass.
 - **Aggregator / redirect filtering**: Links to blocked outlets via aggregators or redirects are not caught.
@@ -36,24 +36,18 @@ Cold items offloaded from active state. Each item maintains an explicit testable
   - Closed when: owner decides on packages/sound initialization rule.
 - **Daily audio type application**: Daily Type setting saved but narration reads digest in a single voice.
   - Closed when: owner decides on podcast multi-voice step in `audio.yml` or drops the field.
-- **Player opening focus & 429 wait**: Refused narration (429) omits retry wait time; focus on player open unchecked.
-  - Closed when: 429 toast displays wait duration and keyboard test verifies focus moves inside opened player.
+- **Player opening focus**: focus on player open is unchecked.
+  - Closed when: a keyboard test verifies focus moves inside the opened player.
 - **Opus audio streaming backfill**: Complete Opus transcoding backfill for legacy archive episodes.
   - Closed when: all audio episodes in Blob store possess valid `.opus` alternates alongside `.mp3`.
 - **Phone gestures (D125)**: Pull to close, sticky tabs, keyboard fit on real devices.
   - Closed when: each gesture verified on a physical phone.
 
 ### UI Polish & Responsive Layout
-- **Story chip layout shift**: Mouse hover on story chip grows 11px from idle to played ("Play again").
-  - Closed when: chip maintains fixed width in browser test assertion.
-- **Phone sticky bar overlap**: On 360x740 viewport, sticky Generate bar obscures More options on `/create` at rest.
-  - Closed when: a 360x740 browser test confirms More options is visible and clickable at rest.
 - **PWA device theme hand-off (D123)**: Android system bar color after reinstall; splash to launch-screen transition.
   - Closed when: both transitions match theme cleanly on Android device.
 - **Settings switches color flash**: Settings switches display track color until script initializes; October 6-7 audio says "Dispatch".
   - Closed when: owner rules on each visual detail.
-- **Settings logic gaps (D102)**: Partial `skip_topics` without `general_scoped` un-skips general topics; `topic.enabled` never set to false.
-  - Closed when: each edge case fixed or removed with test coverage.
 - **Link preview cards (D153 stage 0)**: Social share previews for briefing links.
   - Closed when: briefing link pasted in WhatsApp, iMessage, and Slack displays full card preview.
 - **Critic rounds 5 to 9 polish**: Minor P3 visual polish items.
