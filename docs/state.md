@@ -39,7 +39,7 @@ Unit (CI): 352 files, 5,449 tests, about 2 min. Site e2e: 448, 10 min. Player: 8
 - Trusted publishers (D234) and community lift (D240), shipped off. closed when: both on and a daily airs a lab story and a community-voted one, no source over 30%.
 - Run names (D217), Neon run log (D221). closed when: a scheduled daily is named `daily <date>`, is off the queue, and has its row.
 - `podcast.yml` no longer installs ffmpeg; its first stage starts 9 s in (29 s before). closed when: 9 s is accepted.
-- Regenerate lengths (D207) and its full sheet with the smooth Catch up exit (D323): browser only. closed when: signed off on his phone and a 10-minute Regenerate airs within 10%.
+- Regenerate lengths (D207, D323): a 10-minute Regenerate airs within 10%. Its full sheet and smooth exit (D323) are with the design-system PR. closed when: signed off on his phone.
 - Catch up script at medium effort (D324). closed when: two Catch ups air within 10% of length, faster; else high again.
 - Podcast queue (D231, D242): fakes only. closed when: a Catch up is cancelled and a failed run's Details read.
 - Owner's eye: bar centring (over 1px), centred column and label gap (D229), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off.
