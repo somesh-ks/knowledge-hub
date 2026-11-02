@@ -25,9 +25,7 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     });
     await expect.poll(async () => (await audio.read())?.paused, { timeout: 4_000 }).toBe(false);
     await expect
-      .poll(async () => (await audio.read())?.currentTime ?? 0, {
-        timeout: 6_000,
-      })
+      .poll(async () => (await audio.read())?.currentTime ?? 0, { timeout: 6_000 })
       .toBeGreaterThan(0.5);
     await expect(page.locator(".dock-btn[data-primary]")).toHaveAttribute("data-loading", "false");
   });
@@ -47,9 +45,7 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await page.keyboard.press("End");
     // D277: the item plays where the player stands; the page does not follow it.
     await expect.poll(() => nowPlaying(page), { timeout: 10_000 }).toBe("ep-20261007-1930");
-    await expect(player.root).toHaveAttribute("data-player-state", "playing", {
-      timeout: 10_000,
-    });
+    await expect(player.root).toHaveAttribute("data-player-state", "playing", { timeout: 10_000 });
     expect(await audio.count()).toBe(1);
   });
 
@@ -94,9 +90,7 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     const stories = player.dialog.getByRole("tabpanel").locator("button.story-row");
     await stories.nth(1).click();
     await expect(stories.nth(1)).toHaveAttribute("aria-current", "true");
-    const transcript = player.dialog.getByRole("region", {
-      name: "Transcript",
-    });
+    const transcript = player.dialog.getByRole("region", { name: "Transcript" });
     await expect(transcript.locator("[data-turn]")).toHaveCount(1);
     // Up next is the other view: moved up from its row's menu, the briefing now comes first.
     await player.dialog.getByRole("tab", { name: "Up next" }).click();
@@ -114,9 +108,7 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await player.scrubber.focus();
     await page.keyboard.press("End");
     await expect.poll(() => nowPlaying(page), { timeout: 10_000 }).toBe(SITE.earlier);
-    await expect(player.root).toHaveAttribute("data-player-state", "playing", {
-      timeout: 10_000,
-    });
+    await expect(player.root).toHaveAttribute("data-player-state", "playing", { timeout: 10_000 });
     expect(await audio.count()).toBe(1);
     expect(await page.evaluate(() => localStorage.getItem("singularity:queue"))).toBe(
       '["ep-20261007-1930"]',
@@ -148,10 +140,7 @@ test.describe("the first press of Play on a page with no audio yet", () => {
       (window as unknown as { __mini: typeof seen }).__mini = seen;
       new MutationObserver(() =>
         seen.push(document.documentElement.getAttribute("data-mini")),
-      ).observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ["data-mini"],
-      });
+      ).observe(document.documentElement, { attributes: true, attributeFilter: ["data-mini"] });
     });
     await player.finger.press(
       player.dialog.locator('[data-queue-id="2026-10-05"] .player-queue-row'),
