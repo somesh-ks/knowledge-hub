@@ -567,7 +567,7 @@
 }
 
 /* Default playback speed: the value opens the player's speed screen in a Menu sheet, a popover hung
-   under the value from 40rem, as wide as the player's own (D335). */
+   under the value from 40rem, as wide as the player's own (D338). */
 .speed-default {
   anchor-name: --default-speed;
 }

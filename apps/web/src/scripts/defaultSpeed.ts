@@ -1,7 +1,7 @@
 /**
  * Settings > Default playback speed: the value is a button that opens the player's speed screen
  * (player/ui/SpeedPanel.tsx: a big readout, a stepper and a slider in 0.25x steps) in a Menu sheet,
- * a bottom sheet on a phone and a popover under the value from 40rem (D335). Each change is saved at
+ * a bottom sheet on a phone and a popover under the value from 40rem (D338). Each change is saved at
  * once, snapped by toPlaybackRate, with the player's other preferences on this device; the player reads it
  * when an episode starts. React and the panel load the first time the sheet opens, so the page's first
  * load stays light (checkBundle); the value on the button is drawn at once.
