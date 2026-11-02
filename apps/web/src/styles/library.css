@@ -374,6 +374,27 @@
     background: var(--ghost-hover);
     color: var(--color-on-surface);
   }
+
+  .view-btn[aria-pressed="true"]:hover {
+    background: var(--color-accent-container-hover);
+  }
+}
+
+/* A press goes one step deeper than the hover on the clear button and the view toggle (2026-11-02,
+   D317 step 2: the stills showed press equal to hover). Each rule weighs as much as its hover
+   rule above and comes after it, so it wins while a mouse is over the button. */
+.search-clear:active {
+  background: var(--ghost-pressed);
+  color: var(--color-on-surface);
+}
+
+.view-btn[aria-pressed="false"]:active {
+  background: var(--ghost-pressed);
+  color: var(--color-on-surface);
+}
+
+.view-btn[aria-pressed="true"]:active {
+  background: var(--color-accent-container-pressed);
 }
 
 .library-grid {
