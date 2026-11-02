@@ -206,7 +206,8 @@
   background: var(--tile-fill-press);
 }
 
-.menu-tile:is(:disabled, [aria-disabled="true"]) {
+/* An on tile keeps its own foreground when disabled (Downloaded is on and disabled at once). */
+.menu-tile:is(:disabled, [aria-disabled="true"]):not([aria-checked="true"], [data-on]) {
   color: var(--color-on-surface-disabled);
   cursor: default;
 }

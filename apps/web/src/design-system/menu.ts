@@ -80,7 +80,7 @@ export const menuBodyClass = (): string => "menu-sheet-items";
 /** The row of quick actions at the top of a menu: a few tiles, each a glyph over a word. */
 export const menuTilesClass = (): string => "menu-tiles";
 
-/** One tile of that row. It says a state with aria-pressed (Saved, Downloaded). */
+/** One tile of that row. Saved says it with aria-checked, Downloaded with data-on. */
 export const menuTileClass = (): string => "menu-tile";
 
 /** A row's state at its end, quiet: the speed a row opens ("1.00x"). */
