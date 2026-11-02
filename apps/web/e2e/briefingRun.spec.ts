@@ -85,8 +85,8 @@ test.describe("a Regenerate, followed in the podcast queue", () => {
     // Finished, it stays in the queue for the day: the folded row says Complete, and Start listening plays the new podcast without leaving the page.
     await expect(queueComplete(page)).toBeVisible({ timeout: 15_000 });
     await (await startListening(page)).click();
-    // It plays where the listener is; the page it was made on stays.
-    await expect(page).not.toHaveURL(new RegExp(`/d/${ID}$`));
+    // It plays where the listener is: the page it was made on stays.
+    await expect(page).toHaveURL(new RegExp(`/d/${ID}$`));
   });
 
   test("a failure names the step, keeps nothing changed, and Try again sends the same request", async ({

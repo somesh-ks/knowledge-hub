@@ -310,6 +310,14 @@ test.describe("the Create page", () => {
         body: JSON.stringify(body),
       });
     });
+    // The finished podcast's page is read as soon as the run ends (so Start listening finds it ready).
+    await page.route("**/e/ep-new", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: "<!doctype html><title>x</title>",
+      }),
+    );
     let live = false;
     await page.route(/latest.json/, (route) => {
       return route.fulfill({
