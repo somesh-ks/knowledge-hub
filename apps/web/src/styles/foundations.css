@@ -35,6 +35,14 @@
   /* iPadOS windowed apps draw window controls over the top-leading corner and env() does not
      report them. The inset is applied only where such a window is plausible. */
   --window-controls-inset: 0px;
+
+  /* A control with no fill shows its state as the surface behind it, stepped (D317): never an alpha
+     layer. These are the page's; a container that paints another surface sets its own pair beside
+     its --color-focus-gap, and the accent pair is for accent text on that surface. */
+  --ghost-hover: var(--color-surface-hover);
+  --ghost-pressed: var(--color-surface-pressed);
+  --ghost-accent-hover: var(--color-accent-subtle-hover);
+  --ghost-accent-pressed: var(--color-accent-subtle-pressed);
 }
 
 @media (width >= 40rem) {
@@ -417,11 +425,7 @@
      as an emoji picker cell (owner, 2026-10-24). Layered, so a control's own chosen fill wins. */
   @media (hover: hover) and (pointer: fine) {
     .hover-fill:hover {
-      background-color: color-mix(
-        in oklch,
-        var(--color-on-surface) var(--state-hover),
-        transparent
-      );
+      background-color: var(--ghost-hover);
     }
   }
 

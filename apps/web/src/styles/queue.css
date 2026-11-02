@@ -31,6 +31,8 @@
   /* The bottom bar's own tone, so the dock reads as part of the bar it sits on; a hairline between
      them says where one ends (D231, 2026-10-29). */
   background: var(--color-surface-container);
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
   border-block-end: var(--stroke-hairline) solid var(--color-border-hairline);
   font-size: var(--font-size-label);
   line-height: var(--font-leading-label);

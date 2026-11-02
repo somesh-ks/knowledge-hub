@@ -181,6 +181,8 @@
        8px in, so a row's 24px corner shares its centre with the corner around it. */
     border-radius: var(--shape-2xl);
     background: var(--color-surface-overlay);
+    --ghost-hover: var(--color-surface-overlay-hover);
+    --ghost-pressed: var(--color-surface-overlay-pressed);
     box-shadow: var(--shadow-popover);
     color: var(--color-on-surface);
     scrollbar-width: thin;
@@ -272,14 +274,14 @@
   }
 
   :is(.select-outlined, .select-tonal) > select option:focus-visible {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
     outline: var(--stroke-ring) solid var(--color-focus-ring);
     outline-offset: calc(var(--stroke-ring) * -1);
   }
 
   @media (hover: hover) and (pointer: fine) {
     :is(.select-outlined, .select-tonal) > select option:hover {
-      background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+      background: var(--ghost-hover);
     }
   }
 

@@ -628,3 +628,13 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Revisit if: converted stills look flatter than the typed ones, or a style needs a role the ladder lacks.
 - Amends: D268, D310, D317.
 - Status: built in PR 581 (2026-11-02): the generator, its invariant tests and the conversion of Expressive and Halloween (`$recipe` in `tokens/tokens.json`); the fit script was deleted once no typed colours were left. Hover and press direction was settled by D317. See `docs/history/2026-11-02-style-recipes.md`.
+
+## D321: the ripple and a cover's press stay alpha layers, over artwork
+
+- Date: 2026-11-02 (the owner: "if we eliminate or replace all the opacity-based color tokens, then we won't have any problem"; settled by the coordinator and the design-system thread while the owner was away).
+- Decision: every hover and press uses D317's explicit OKLCH steps: a fill's own `-hover` and `-pressed` token, or, for a control with no fill, the surface behind it (`--ghost-hover` and `--ghost-pressed`, set by the container that paints that surface; the page's by default). Two layers stay as the label colour at `state.hover` and `state.press` over transparent: the tap ripple (`ripple.css`) and a cover's press (`library.css`, `.card-link .cover::after`). They lie over artwork or a moving wave, where no known fill exists to step from, and a solid colour would hide the picture. The guard test lists those two files and fails a layer anywhere else. A container that records another surface behind its controls (`--color-focus-gap`) must set its own ghost pair.
+- Why: a ghost control showed its state as 8% or 12% of the label colour over whatever lay behind it, which dulled it and differed per surface. Stepping the surface behind it keeps the tone of the place and uses the same lightness steps as a fill.
+- Rejected: one ghost pair for every surface (a hover on a card or a bar stepped the page's tone, so the pill sat darker than the bar in dark); deleting `state.hover` and `state.press` (the two artwork layers still read them); a solid cover press (it hid the cover).
+- Cost: a container that paints its own surface carries two more lines; 62 rules moved off alpha layers.
+- Revisit if: a ghost control sits on a surface the container did not name (its hover then steps the page's tone), or the ripple moves onto a known fill.
+- Amends: D317.

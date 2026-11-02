@@ -106,6 +106,8 @@
   padding: var(--card-padding);
   border-radius: var(--card-radius);
   background: var(--color-surface-container);
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
 }
 
 /* One padding in from the card's corner, so its radius is the card's less that padding (2026-10-22). */
@@ -211,6 +213,8 @@
   padding: var(--card-padding);
   border-radius: var(--card-radius);
   background: var(--color-surface-container);
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
 }
 
 /* The switch, the field, the Add button and the chips in the card keep the pills they are on the
@@ -499,12 +503,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .topic-add-source:hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 }
 
 .topic-add-source:active {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 /* Delete, in the card's menu, for a topic of the owner's own: red marks the one that destroys (the
@@ -588,12 +592,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .source-edit:hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 }
 
 .source-edit:active {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 /* What the row shows sits over its button and lets a press through to it, all but the checkbox,
@@ -798,12 +802,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .source-check:hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 }
 
 .source-check:active {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 /* An unticked source is off: it keeps its place and its score, quieter, and still readable (4.5:1):
@@ -1058,6 +1062,8 @@
   padding: var(--space-6);
   border-radius: var(--card-radius);
   background: var(--color-surface-container);
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
 }
 
 .score-card-head {
@@ -1187,6 +1193,8 @@
   /* The card radius, as every tonal card has (D243, 2026-10-31): it was 16px. */
   border-radius: var(--card-radius);
   background: var(--color-surface-container);
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
 }
 
 .source-card-head {
@@ -1433,12 +1441,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .source-plus-btn:enabled:hover::before {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 }
 
 .source-plus-btn:enabled:active::before {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 /* ------------------------------------------------------------------ a long list of sources */
@@ -1462,14 +1470,9 @@
   border-radius: inherit;
   pointer-events: none;
   background:
-    linear-gradient(
-      100deg,
-      transparent 30%,
-      color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent) 50%,
-      transparent 70%
-    )
-    100% 0 / 250% 100% no-repeat,
-    color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    linear-gradient(100deg, transparent 30%, var(--ghost-pressed) 50%, transparent 70%) 100% 0 /
+    250% 100% no-repeat,
+    var(--ghost-hover);
   animation: source-shimmer calc(var(--duration-progress) * 5) var(--ease-linear) infinite;
 }
 
@@ -1484,7 +1487,7 @@
 @media (prefers-reduced-motion: reduce) {
   .source-row.is-suggested[data-adding]::after {
     animation: none;
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 }
 

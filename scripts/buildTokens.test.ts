@@ -407,6 +407,11 @@ describe.each(doc.styles.map((style) => style.name))("a style's colour contrast:
       ]),
       ["on-surface", "accent-subtle", 4.5],
       ["accent", "accent-subtle", 4.5],
+      ...["hover", "pressed"].map((state): [string, string, number] => [
+        "accent",
+        `accent-subtle-${state}`,
+        4.5,
+      ]),
       ["on-accent-container", "accent-container", 4.5],
       ["on-surface", "accent-container", 4.5],
       ["on-surface-muted", "accent-container", 4.5],
@@ -427,6 +432,11 @@ describe.each(doc.styles.map((style) => style.name))("a style's colour contrast:
         ["on-surface-inverse", `surface-inverse-${state}`, 4.5],
       ]),
       ["on-surface-inverse", "surface-inverse", 4.5],
+      ...["hover", "pressed"].map((state): [string, string, number] => [
+        "accent-on-inverse",
+        `surface-inverse-action-${state}`,
+        4.5,
+      ]),
       ...["accent", "focus-ring"].flatMap((fg) =>
         ["surface", "surface-raised", "surface-overlay"].map((bg): [string, string, number] => [
           fg,

@@ -26,6 +26,8 @@
   box-shadow: var(--shadow-popover);
   color: var(--color-on-surface);
   --color-focus-gap: var(--color-surface-overlay);
+  --ghost-hover: var(--color-surface-overlay-hover);
+  --ghost-pressed: var(--color-surface-overlay-pressed);
   /* Closed, a popover is display: none; the open state alone turns it on. */
   display: none;
   opacity: 0;

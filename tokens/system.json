@@ -567,6 +567,8 @@
         "--color-surface-container-hover",
         "--color-surface-container-pressed",
         "--color-surface-overlay",
+        "--color-surface-overlay-hover",
+        "--color-surface-overlay-pressed",
         "--field-chevron-gap",
         "--shadow-popover",
         "--shape-2xl",
@@ -634,6 +636,8 @@
         "--color-on-surface-disabled",
         "--color-scrim",
         "--color-surface-overlay",
+        "--color-surface-overlay-hover",
+        "--color-surface-overlay-pressed",
         "--layout-column",
         "--shadow-popover",
         "--shape-2xl",
@@ -833,6 +837,8 @@
         "--color-surface-hover",
         "--color-surface-pressed",
         "--sheet-bg",
+        "--sheet-bg-hover",
+        "--sheet-bg-pressed",
         "--sheet-radius",
         "--sheet-shadow"
       ]
@@ -886,6 +892,8 @@
         "--color-on-surface",
         "--color-scrim",
         "--color-surface-raised",
+        "--color-surface-raised-hover",
+        "--color-surface-raised-pressed",
         "--layout-column",
         "--layout-dialog",
         "--sheet-bg",
@@ -1184,11 +1192,13 @@
         "--chip-radius-selected",
         "--color-accent-container",
         "--color-accent-container-hover",
+        "--color-accent-container-pressed",
         "--color-focus-ring",
         "--color-on-accent-container",
         "--color-on-surface",
         "--color-surface-container",
         "--color-surface-container-hover",
+        "--color-surface-container-pressed",
         "--size-icon-sm",
         "--size-touch"
       ]
@@ -1231,6 +1241,8 @@
       "tokens": [
         "--chip-height",
         "--color-accent-container",
+        "--color-accent-container-hover",
+        "--color-accent-container-pressed",
         "--color-border-control",
         "--color-focus-ring",
         "--color-on-accent-container",
@@ -1388,7 +1400,6 @@
       "usage": "A row that is one link or button: the whole row responds. Its fill is a rounded tile clear of the hairlines and reaching a little past the words, as a menu's options are, so a hovered row reads as one thing to press rather than a band across the page.",
       "tokens": [
         "--color-focus-ring",
-        "--color-on-surface",
         "--color-on-surface-muted",
         "--row-tile-radius",
         "--size-touch-comfortable"
@@ -1440,6 +1451,8 @@
         "--color-border-hairline",
         "--color-on-surface",
         "--color-surface-container",
+        "--color-surface-container-hover",
+        "--color-surface-container-pressed",
         "--color-surface-overlay",
         "--color-surface-overlay-hover",
         "--color-surface-overlay-pressed",
@@ -1541,6 +1554,10 @@
       "tokens": [
         "--color-accent-on-inverse",
         "--color-surface-inverse",
+        "--color-surface-inverse-action-hover",
+        "--color-surface-inverse-action-pressed",
+        "--color-surface-inverse-hover",
+        "--color-surface-inverse-pressed",
         "--layout-dialog",
         "--shape-md",
         "--size-touch",
@@ -3842,6 +3859,22 @@
       "light": "oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h)"
     },
     {
+      "name": "--color-surface-inverse-action-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-inverse) calc(l + var(--state-direction) * var(--state-step-hover)) c h)",
+      "role": "A hover on a text action over the inverse surface (the toast's Undo): the same step as surface-inverse-hover, settled against the accent label instead of the plain one. The accent on inverse (L 80 in light) keeps 4.5:1 only on a fill that steps away from it.",
+      "dark": "oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h)"
+    },
+    {
+      "name": "--color-surface-inverse-action-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-inverse) calc(l + var(--state-direction) * var(--state-step-press)) c h)",
+      "role": "A press on that action: one step deeper than its hover, away from the accent label when the label would lose 4.5:1 toward the text.",
+      "dark": "oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h)"
+    },
+    {
       "name": "--color-accent-subtle",
       "tier": "semantic",
       "type": "color",
@@ -3852,6 +3885,20 @@
         "light": "#f5f9ff",
         "dark": "#162f59"
       }
+    },
+    {
+      "name": "--color-accent-subtle-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent-subtle) calc(l + var(--state-direction) * var(--state-step-hover-quiet)) c h)",
+      "role": "A hover on a no-fill accent text control: the accent tint (L 98 in light) stepped by half a hover step toward its text. The tint sits so near white that a whole step clamps at white and hover would equal press, and the accent label (L 47) keeps 4.5:1 only for the small steps, so these two tokens take the quiet and the hover step and carry no label to settle."
+    },
+    {
+      "name": "--color-accent-subtle-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent-subtle) calc(l + var(--state-direction) * var(--state-step-hover)) c h)",
+      "role": "A press on a no-fill accent text control: the accent tint stepped by a whole hover step toward its text, one step deeper than its hover."
     },
     {
       "name": "--color-accent-container",

@@ -55,12 +55,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .row-action:hover::after {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 }
 
 .row-action:active::after {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 /* The ring takes the fill's shape, clear of the text: drawn on the column's own box it would run
@@ -71,7 +71,7 @@
 }
 
 .row-action:focus-visible::after {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  background: var(--ghost-hover);
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: calc(var(--stroke-ring) * -1);
 }
@@ -410,22 +410,24 @@
   color: var(--color-on-accent-container);
 }
 
-/* A state layer of the words' colour, over the segment's own fill. No press scale on a label
-   (pressText.test.ts). */
+/* A state is the segment's own fill, stepped (D317): the surface behind it when unticked, the accent
+   container when ticked. No press scale on a label (pressText.test.ts). */
 @media (hover: hover) and (pointer: fine) {
   .segmented-choice-item:not(:has(input:disabled)):hover {
-    background-image: linear-gradient(
-      color-mix(in oklch, currentColor var(--state-hover), transparent),
-      color-mix(in oklch, currentColor var(--state-hover), transparent)
-    );
+    background-color: var(--ghost-hover);
+  }
+
+  .segmented-choice-item:has(input:checked):not(:has(input:disabled)):hover {
+    background-color: var(--color-accent-container-hover);
   }
 }
 
 .segmented-choice-item:not(:has(input:disabled)):active {
-  background-image: linear-gradient(
-    color-mix(in oklch, currentColor var(--state-press), transparent),
-    color-mix(in oklch, currentColor var(--state-press), transparent)
-  );
+  background-color: var(--ghost-pressed);
+}
+
+.segmented-choice-item:has(input:checked):not(:has(input:disabled)):active {
+  background-color: var(--color-accent-container-pressed);
 }
 
 .segmented-choice-item:has(input:disabled) {
@@ -649,7 +651,7 @@
 }
 
 .segmented-nav-tab:active::after {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 .segmented-nav-tab:focus-visible {
@@ -926,14 +928,19 @@
   }
 }
 
-/* Held down, the chip darkens at once: a layer over whatever it wears, the container or the checked
-   tint, so the words never change size. It comes after the hover rules and outweighs the checked one,
-   whose background shorthand would otherwise clear it. */
-.filter-chip:not(:has(input:disabled)):active {
-  background-image: linear-gradient(
-    color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent),
-    color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent)
-  );
+/* Held down, the chip takes its fill's pressed step at once (the container's, the card's overlay, or
+   the checked tint's), so the words never change size. It comes after the hover rules and outweighs the
+   checked one. */
+.filter-chip:not(:has(input:checked, input:disabled)):active {
+  background: var(--color-surface-container-pressed);
+}
+
+.card-group .filter-chip:not(:has(input:checked, input:disabled)):active {
+  background: var(--color-surface-overlay-pressed);
+}
+
+.filter-chip:has(input:checked):not(:has(input:disabled)):active {
+  background: var(--color-accent-container-pressed);
 }
 
 @media (forced-colors: active) {
@@ -1054,6 +1061,8 @@
   padding-inline: var(--card-padding);
   border-radius: var(--card-radius);
   background: var(--color-surface-container);
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
 }
 
 /* A row's tile in a card is concentric with its corners (2026-10-22): a tile one inset in from the
@@ -1102,6 +1111,12 @@
 @media (hover: hover) and (pointer: fine) {
   .card-group .filter-chip:not(:has(input:checked, input:disabled)):hover {
     background: var(--card-chip-hover);
+  }
+
+  /* The press above weighs as much as this hover and comes first, so a mouse held down on the chip
+     would stay on the hover tone; this one weighs a pseudo-class more. */
+  .card-group .filter-chip:not(:has(input:checked, input:disabled)):hover:active {
+    background: var(--color-surface-overlay-pressed);
   }
 }
 

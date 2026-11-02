@@ -57,6 +57,8 @@
 
 .drawer-popup {
   --color-focus-gap: var(--color-surface-raised);
+  --ghost-hover: var(--color-surface-raised-hover);
+  --ghost-pressed: var(--color-surface-raised-pressed);
   position: relative;
   width: min(100%, var(--layout-column));
   color: var(--color-on-surface);
