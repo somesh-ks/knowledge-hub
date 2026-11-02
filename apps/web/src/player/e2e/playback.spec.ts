@@ -159,7 +159,9 @@ test.describe("playback on a podcast", () => {
     page,
   }) => {
     await player.open();
-    await player.play();
+    // A phone's Play opens the player at once; closing it and opening it again would let the playhead
+    // pass story 2 before Pause, and Next would land on story 3.
+    await player.playAndStay();
     await player.openPlayer();
     const stories = await player.stories();
     const press = (name: string) =>
