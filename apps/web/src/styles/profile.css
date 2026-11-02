@@ -41,13 +41,10 @@
   visibility: hidden;
 }
 
-/* The sheet is the menu's popover (menu.css). */
-.menu-list.profile-picker {
-  position-anchor: --profile-edit;
-  width: min(22rem, calc(100vw - var(--space-8)));
-}
-
+/* The sheet is the menu's popover (menu.css), anchored through --menu-anchor (menu.css). From
+   40rem it hangs under the edit button, and this width is what it shrinks to fit. */
 .profile-shapes {
+  min-inline-size: min(22rem, calc(100vw - var(--space-8)));
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(5rem, 1fr));
   justify-items: center;

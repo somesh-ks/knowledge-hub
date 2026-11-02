@@ -42,7 +42,8 @@ import "../styles/profile.css";
              its rounded top and Close, a popover under the button from 40rem. profilePage.ts fills
              it; a pick closes it. */}
         <div
-          class:list={[menuListClass(), "profile-picker"]}
+          class={menuListClass()}
+          style="--menu-anchor: --profile-edit"
           id="profile-shapes"
           popover
           role="dialog"

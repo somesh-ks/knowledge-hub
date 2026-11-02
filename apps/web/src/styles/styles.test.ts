@@ -919,7 +919,6 @@ const PAGE_OVERRIDES: string[] = [
   "primitives.css: .segmented-nav-tab:has(> .icon-glyph)",
   "primitives.css: .source-link .icon-glyph",
   "primitives.css: .suggest-box > .icon-glyph",
-  "profile.css: .menu-list.profile-picker",
   "queue.css: .menu-list.queue-pop",
   "queue.css: .menu-list.queue-pop, .menu-list.queue-pop:popover-open",
   "queue.css: .menu-list.queue-pop:popover-open",
