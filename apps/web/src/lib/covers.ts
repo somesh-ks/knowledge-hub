@@ -3,7 +3,6 @@ import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Digest } from "@singularity/core";
 import { type CoverMode, coverColors, renderCoverPng } from "@singularity/cover";
-import sharp from "sharp";
 
 /**
  * What a cover is drawn from. A briefing and a podcast episode both have these. `mode` draws it for
@@ -154,6 +153,9 @@ export async function coverWebp(
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
   const png = await coverPng(digest, size, options);
+  // Loaded here, not at the top: every page imports this module for cover addresses, and sharp
+  // (libvips) added about 50 ms to the function's cold start on every page, which never encodes.
+  const { default: sharp } = await import("sharp");
   const webp = new Uint8Array(await sharp(png).webp({ lossless: true, effort: 6 }).toBuffer());
   await writeCacheFile(file, webp);
   return webp;
