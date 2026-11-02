@@ -133,7 +133,7 @@ addEventListener("unhandledrejection", (event) =>
 // Code that is not on the web (a headless browser's injected style, an extension) is not the
 // site's fault, and each report is a function run; the server drops it too (server/report.ts).
 document.addEventListener("securitypolicyviolation", (event) => {
-  if (event.sourceFile && !/^https?:/.test(event.sourceFile)) return;
+  if (event.sourceFile && !/^https?:\/\//i.test(event.sourceFile)) return;
   report({
     kind: "csp",
     directive: event.effectiveDirective,

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { MANIFEST_TTL_MS } from "./contentRepo";
 import {
   BLOB_CALL_TIMEOUT_MS,
   BLOB_UPLOAD_TIMEOUT_MS,
@@ -58,5 +59,16 @@ describe("function limits", () => {
     const config = readFileSync(join(import.meta.dirname, "..", "..", "astro.config.mjs"), "utf8");
     expect(config).toContain("maxDuration: FUNCTION_MAX_DURATION_S");
     expect(config).not.toMatch(/maxDuration:\s*\d/);
+  });
+
+  // A purge before a render that read the old manifest has finished lets that render put the old
+  // page back at the edge for five minutes (D318); raising the function limit must move the wait.
+  it("purges the edge after the last render that could have read the old content", () => {
+    const workflow = readFileSync(
+      join(import.meta.dirname, "..", "..", "..", "..", ".github", "workflows", "content.yml"),
+      "utf8",
+    );
+    const wait = Number(/name: Purge the edge[\s\S]*?sleep (\d+)/.exec(workflow)?.[1]);
+    expect(wait).toBeGreaterThan(MANIFEST_TTL_MS / 1000 + FUNCTION_MAX_DURATION_S);
   });
 });
