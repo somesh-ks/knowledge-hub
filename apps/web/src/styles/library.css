@@ -911,7 +911,9 @@ html[data-library-page="empty"] {
    (owner, 2026-11-02): the circle a quarter taller than the text, the arrow in it a little under
    its height, with clear space all round. */
 .card-downloaded {
-  --mark: 1.25em;
+  /* Whole pixels, so the arrow has the same space on every side on any screen: a fractional circle
+     and arrow (17.5 and 11.9 px) land on half pixels and look off centre (owner, 2026-11-02). */
+  --mark: round(1.25em, 1px);
   /* The bold twin of the arrow in every style: at this size the regular line is barely there. */
   --icon-bold: 1;
   display: none;
@@ -930,6 +932,6 @@ html[data-library-page="empty"] {
 }
 
 .card-downloaded .icon-glyph {
-  width: 0.85em;
-  height: 0.85em;
+  width: round(0.85em, 2px);
+  height: round(0.85em, 2px);
 }
