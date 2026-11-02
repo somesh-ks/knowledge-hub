@@ -12,11 +12,11 @@ Updated 2026-11-02. Rewrite, never append.
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). Regenerate and Catch up queue with Cancel; ended runs stay for the day (D204, D231).
 - Saved copies, offline, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews a PR once when it is ready, by tier (D192, D292).
-- Styles (D306, D310, D314, D315, D319): Halloween and Expressive (larger touch sizes, a `--shape-*` corner scale, looping empty states), a Hue slider, covers as one live vector recoloured by `cover.css`, and neutrals generated from a recipe per style (`styleRecipe.ts`). closed when: Somesh OKs the stills and a style change on his phone recolours every page, cover and header light, no flash.
+- Styles (D306, D310, D314, D315, D319): Halloween and Expressive (larger touch sizes, a `--shape-*` corner scale, looping empty states), a Hue slider, covers as one live vector recoloured by `cover.css`, and neutrals generated from a recipe per style (`styleRecipe.ts`). closed when: Somesh OKs the stills ([ghost states](https://claude.ai/artifact/MVNhZmVMk4kYNu2tJbHRPp)), a style change on his phone recolours every page, cover and header light with no flash and survives a restart, and a press on the Library view toggle and a toast action is deeper than the hover.
 
 ## Tests
 
-Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min.
+Unit (CI): 352 files, 5,449 tests, about 2 min. Site e2e: 448, 10 min. Player: 80, 7 min.
 
 ## Not working or unverified
 
@@ -27,7 +27,6 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - Content store delta writes (D300 step 2a): `content put|remove|pull` change single files with an ETag-guarded manifest; one writer per path is assumed. No workflow uses them yet. closed when: 2b has run a daily end to end through them and the store matches the digests the run wrote.
 - Queue plays in place (D277). closed when: a third-item tap keeps the bar up.
 - Player ⋮ menu and Saved (D309, #580): checked in Chromium only. closed when: held press, the speed screen and Settings > Saved work on his Android Chrome.
-- Expressive style (#506; D268, D274, D275, D278) with a Style select in Appearance. closed when: a style chosen on a real phone survives a reload and an app restart.
 - Voice list (D276): closed when: a voice is heard from its list on his iPhone.
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily says "podcast".
 - More menu (D214); Catch up album, Share circle, cards (D219); long press, haptics (D264, D273); push ping (D284). closed when: signed off.

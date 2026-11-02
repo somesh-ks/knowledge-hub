@@ -12,7 +12,6 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-23: new card tokens let `.card-group`'s row padding beat the Costs card's (Costs is not in the grid spec). Screenshot every page using a primitive whose tokens change.
 - 2026-10-23: a story row passed its hold-still test while publishers kept 10px at 320. Measure what a layout's flexible part keeps at 320 and 360 first.
 - 2026-10-23: reduced motion in the tokens alone missed every raw travel on those durations (chip labels, nav pill, floating button). Sweep the CSS with the tokens; check with `document.getAnimations()` under emulated reduced motion.
-- 2026-10-08: `getByRole("button", { name: "All" })` matched "Gallery view". Use `exact: true` for short names.
 - 2026-10-12: a mocked route answers while the browser context is offline. A test of an offline save takes its mock offline with it (`route.abort`), and waits for the lazy chunk it needs before going offline.
 - 2026-10-12: `waitForLoadState("networkidle")` returns at once when the page has been idle before, so a test went offline while a lazy chunk was still on its way (one run in four). Wait for the response itself, then `finished()`.
 - 2026-10-17: easing the open player's Play disc press scale (a `transform` transition) made a press in the error state reset the scroll to the top one run in five (noticeInView.spec); the disc keeps an instant press.
@@ -22,10 +21,8 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-12: Playwright can want a newer Chromium than is cached (1243 cached, 1248 wanted): an untracked `playwright.override.config.ts` beside each config sets `launchOptions.executablePath` to the cached headless shell; one PORT per worktree. Never commit a topics snapshot.
 - 2026-10-12: a leftover server or build makes a suite test the wrong build: Playwright reuses a listening server and skips the build (`taskkill`; Git Bash `kill $!` leaves a `node`). Stop old servers; use a fresh PORT after a page edit.
 - 2026-10-11: Playwright `addStyleTag` and injected audit scripts (axe) are blocked by the fixture site's CSP (no 'unsafe-inline'); use `bypassCSP: true` on the context for a probe or audit, built into its own directory and port (a `dist` rebuilt mid-audit read as "page has no title").
-- 2026-10-10: a player fix for track contrast read right in the diff and failed in the browser (played and unplayed 1.46:1 apart); the worker had marked it unverified. Send a read-only verifier to measure every fix a worker marks unverified before calling an area done.
 - 2026-10-10: a lone IntersectionObserver threshold of 1 reports a target partly past the root edge as not intersecting and never calls back. To tell a sticky element is stuck, observe `[0, 1]` and compare `boundingClientRect.top` with `rootBounds.top`.
 - 2026-10-09: a WebGL canvas failed the player suite on every page: headless Chromium draws in software (SwiftShader), logs "GPU stall" each frame, and the suite fails on any warning. Read `WEBGL_debug_renderer_info` and skip WebGL on a software renderer.
-- 2026-10-09: a test run piped through `grep` or `tail` reports the filter's exit code (0). Record the runner's own `$?`.
 - 2026-10-09: The player suite can run its `site-*` projects in a worktree without a dev server: serve the fixture build and set `PLAYER_SITE_URL` to it.
 
 ## Unit tests
@@ -33,7 +30,6 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-24: on Node 24 (V8 13.6), a function whose hot loop gets Maglev OSR code can return object literals sharing number fields (the sound volume test; nodejs/node#66457; not on Node 22). Keep hot loops out of functions returning object literals.
 - 2026-10-14: Vitest, like Chromium, remembers a failed dynamic import for the module's URL, so a retry test of a lazy import passes or fails depending on test order. Retry with a `?retry=` query (pageContentLoader) and test the retry in the browser, not in Vitest.
 - 2026-10-11: the pipeline tests' fake RSS fetcher ignored the window, so a test about posts outside it passed for the wrong reason. Check a fake honours what the test is about.
-- 2026-10-08: a limit nobody asked for is a bug waiting for its first user (two episodes a day stopped the owner). Tests compute a policy number from its constant, never hard-code it.
 - 2026-10-08: a test that misfiles a story into a retired section no longer fails validation, because published briefings must still validate; use a live section instead.
 
 ## Engine and workflows
@@ -69,10 +65,12 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-11: `singularity sources import` keeps an existing source's `enabled` and `options`, so a seed change reaches only new sources: write it into `config/sources.json` after (`--fresh` loses discovered feeds). Run `biome format` on it before linting.
 - 2026-10-11: a judge built with a fallback (Jev, then Nebius) shares the fallback's token budget with the writer, so work done for scores alone must use the primary judge alone: an outage would otherwise spend the briefing's budget on it.
 - 2026-10-08: Create, Generate and saving topics answered "not available right now" on production: the site's fine-grained GitHub token had no access to this repository, so GitHub answered 404. `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`; it should.
-- 2026-10-07: Green tests did not catch the audio failure: nothing exercises the live Vercel, Speechify and Blob path. Run `singularity doctor --online` after any credential change.
 
 ## Site and service worker
 
+- 2026-11-02: a press rule before a hover rule of the same weight loses while the mouse is down; a control with no `:active` rule shows no press (Library view toggle). Press after hover; shoot rest, hover, press.
+- 2026-11-02: an opaque press fill on a bar's `::after` covers its content, which the old alpha hid. Use `z-index: var(--z-beneath)`.
+- 2026-11-02: a step on a fill near white (accent tint, L 98) clamps, so hover equals press. Give it the smaller steps.
 - 2026-11-01: styles.test wants `oklch(from var(--x) ...)` on one line and biome rewraps long calls: use intermediate custom properties, with a `var()` fallback for one set only in inline `style`.
 - 2026-10-31: a deploy mid-session loads a second copy of the player (two audios): share via `tabShared`.
 - 2026-10-31: a persisted island put back restarts its CSS animations: `persistedMotion.ts`. A box measured at `astro:after-swap` is mid page slide (8px off): wind the entrance to its end first (`coverMorph.ts`). A token alias in `primitive` fails the literal test.
@@ -102,6 +100,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Build and tooling
 
+- 2026-11-02: a `design-system` PR fails its gate on an app file that names no system token. Add new token names to `SYSTEM_NAMES` in `scripts/designSystemGate.mjs`.
 - 2026-10-31: a new token needs `npm run system` too, or CI `check` fails on a stale `system.json`.
 - 2026-10-31: a new stylesheet import reorders equal-specificity rules (icon.css flipped a chip's ink). Diff computed styles after one.
 - 2026-10-30: designSystem.test reads quoted text: a retired class equal to a file name or a selector string counts as writing it.
@@ -128,6 +127,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Agents and worktrees
 
+- 2026-11-02: `git checkout <file>` threw away uncommitted token edits; the session transcript's edit scripts recovered them. Commit or stash first.
 - 2026-11-01: 40 of #525's 44 commits were unreviewed: CodeRabbit pauses after five reviewed commits, noted only in its summary ("Last reviewed commit"). Before a merge, that commit must be the head (D292).
 - 2026-10-27: a squash merge leaves a branch's commits off main, so `git branch --merged` and commit searches miss them: find a branch's fate through PR search.
 - 2026-10-27: Windows junctions from `worktreeLinks.mjs` deleted the main checkout's `node_modules` twice: use `--remove` before `git worktree remove`.
