@@ -51,9 +51,9 @@ test.describe("empty states", () => {
     test.use({ allowNetworkErrors: true });
 
     // Bug (owner, 2026-11-02): a page not saved on the device replaced the strip with its own
-    // "You are offline" page and lost the route. The strip is the one offline notice (D330); the
-    // stand-in says only that this page is not here, at the address that was asked for.
-    test("keeps the address, the strip and the tabs, and says the page is not saved", async ({
+    // "You are offline" page and lost the route (D330). The stand-in keeps the address, the strip and
+    // the tabs, and has one button.
+    test("keeps the address, the strip and the tabs, and has one way on", async ({
       page,
       context,
     }) => {
@@ -69,7 +69,9 @@ test.describe("empty states", () => {
       await expect(page).toHaveURL(/\/d\/2026-10-04-weekly$/);
       // One notice about the connection, and the app's own tabs still there with the right one marked.
       await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
-      await expect(page.locator("#main").getByText(/offline/i)).toHaveCount(0);
+      await expect(
+        page.locator("#main").getByRole("button").or(page.locator("#main a")),
+      ).toHaveCount(1);
       await expect(page.locator('.app-nav a[href="/library"]')).toHaveAttribute(
         "aria-current",
         "page",

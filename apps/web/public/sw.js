@@ -28,11 +28,12 @@
  *     no VERSION bump.
  *   - A page the person never opened is answered with /offline, at the address asked for (D330). The
  *     page keeps the route and brings the real page in itself once the site can be reached
- *     (scripts/standIn.ts). To make that rare, the page asks the worker to keep the app's own pages,
- *     the Saved list and each saved podcast ready (KEEP_READY): they open offline without a visit.
+ *     (scripts/standIn.ts). To make that rare, Saved is saved at install, and the page asks the
+ *     worker to keep the app's own pages and each saved podcast ready (KEEP_READY): they open
+ *     offline without a visit.
  *   - Bump VERSION when this file's caching logic changes; activation removes caches from older versions.
  */
-const VERSION = "v16";
+const VERSION = "v17";
 const SHELL_CACHE = `singularity-shell-${VERSION}`;
 const PAGES_CACHE = `singularity-pages-${VERSION}`;
 const MEDIA_CACHE = `singularity-media-${VERSION}`;
@@ -53,7 +54,8 @@ const KEPT_FRESH_MS = 60 * 60 * 1000;
 const MAX_KEPT_ASSETS = 400;
 
 const OFFLINE_URL = "/offline";
-const SHELL_PAGES = ["/", "/library", OFFLINE_URL];
+// Saved is here too: it must open offline from the first install, before KEEP_READY has run (D330).
+const SHELL_PAGES = ["/", "/library", "/settings/saved", OFFLINE_URL];
 const SHELL_FILES = ["/manifest.webmanifest", "/favicon.svg", "/icon-192.png"];
 const NETWORK_WAIT_MS = 3000;
 /** A saved page younger than this answers a move inside the app without waiting for the network. */

@@ -4,18 +4,18 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 ---
 
 {/* The stand-in (D330): the worker answers a page this device never opened with this one, at the
-     address that was asked for. It is short on purpose: the strip above the app says the connection
-     is gone, this says the page is not here and that it will open by itself. The way out is Saved,
-     which is always kept, never the tab the reader is already in (D330). And scripts/standIn.ts brings the real page in, in
-     place, the moment the site can be reached. */}
-<BaseLayout title="This page isn't saved yet" view="home" nav={null} skipLabel="Skip to the content">
+     address that was asked for. It says one thing, "You are offline", and offers one button, Try
+     again (owner, 2026-11-02). scripts/standIn.ts brings the real page in, in place, the moment the
+     site can be reached. The pages a reader expects offline (Saved, Library, Settings) never
+     reach it: they are kept ready (sw.js). */}
+<BaseLayout title="You are offline" view="home" nav={null} skipLabel="Skip to the content">
   <main id="main" tabindex="-1" data-stand-in>
     <EmptyState
       art="offline"
-      title="This page isn't saved yet"
-      body="It opens on its own when you're back online."
+      title="You are offline"
+      body=""
       primary={{ label: "Try again", href: "#", retry: true }}
-      secondary={{ label: "Open Saved", href: "/settings/saved" }}
+      secondary={null}
     />
   </main>
 </BaseLayout>

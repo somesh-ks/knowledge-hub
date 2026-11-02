@@ -780,7 +780,7 @@ describe("service worker: pages offline (D330)", () => {
       if (url.endsWith("/_astro/kept.css"))
         return new Response("body{}", { headers: { "content-type": "text/css" } });
       // Only the kept page names the file, so the shell's own copies cannot stand in for it.
-      return url.endsWith("/settings/saved")
+      return url.endsWith("/d/2026-10-05")
         ? html('<link rel="stylesheet" href="/_astro/kept.css">kept page')
         : html("other page");
     });
@@ -793,10 +793,26 @@ describe("service worker: pages offline (D330)", () => {
       });
       await Promise.all(waits);
     };
-    await ask(["/settings/saved"]);
-    await ask(["/settings/saved"]);
+    await ask(["/d/2026-10-05"]);
+    await ask(["/d/2026-10-05"]);
     expect(worker.caches.stored().filter((key) => key.endsWith("/_astro/kept.css"))).toHaveLength(
       1,
+    );
+  });
+
+  // Bug (owner, 2026-11-02): Saved must open offline even before the page has asked to keep it ready.
+  it("saves the Saved list at install, so it opens offline on a device that has not run KEEP_READY", async () => {
+    let online = true;
+    const worker = load((url) => {
+      if (!online) throw new TypeError("offline");
+      return url.endsWith("/offline")
+        ? html("offline page")
+        : html(`page ${new URL(url).pathname}`);
+    });
+    await worker.lifecycle("install");
+    online = false;
+    expect(await (await worker.dispatchFetch(navigate("/settings/saved"))).response?.text()).toBe(
+      "page /settings/saved",
     );
   });
 

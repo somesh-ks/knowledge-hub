@@ -59,7 +59,7 @@ const headingId = level === 1 ? "page-title" : "empty-title";
   >
     {title}
   </Heading>
-  <p class="empty-body">{body}</p>
+  {body && <p class="empty-body">{body}</p>}
   <div class="empty-actions">
     <Button variant="filled" href={primary.href} data-astro-reload={primary.reload ? "true" : undefined} data-retry={primary.retry ? "" : undefined}>
       {primary.label}
