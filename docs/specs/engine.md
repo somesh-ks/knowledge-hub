@@ -39,9 +39,9 @@ Fetch, judge, write, validate, sizing and spares, sources and scores, cost limit
 ### Cost limits
 - Firecrawl: 300 requests in any 7 days (cost ledger), 60 a run (D166, D222); listings up to 55%. A cached scrape is billed (`maxAge` saves time only).
 - A finalist still under 600 characters after the feed text, the page read and the Firecrawl scrape gets Alexandria facts (`alexandria/alexandria.ts`, `config/alexandria.json`): free discovery, then one text capability. Facts enrich read text only (none: dropped). Caps: 30 credits a run, 10 a story, 20 s a story; off without `FIRECRAWL_API_KEY`.
-- Caps, cooldowns and the narration budget are the only limits (no passphrase, D160).
+- Caps, cooldowns and the narration budget are the only limits (no passphrase, D160). A scheduled run waits when the ledger shows over $5 in 24 hours (D332).
 - The site's GitHub token reaches the repository for Create, Generate and config saves. `config.yml` runs share the `singularity` group.
-- Vercel Cron calls `/api/cron/run` every hour (D61); it dispatches `run.yml` in the schedule's hour when the date gate says something is due, and needs `CRON_SECRET` (503 without it, 401 for an unsigned call). `RUN_CRON` (`13 7 * * *`) only picks GitHub's fallback entry, hours late since 2026-08-26. A cron-started briefing counts toward Generate's limits.
+- Vercel Cron calls `/api/cron/run` every hour (D61); it dispatches `run.yml` in the schedule's hour when the date gate says something is due, and needs `CRON_SECRET` (503 without it, 401 for an unsigned call). `RUN_CRON` only picks GitHub's fallback entry, hours late.
 - `MAX_TEXT_CHARS` is 10,000 per story.
 - A script attempt stops after 8 minutes (D80).
 

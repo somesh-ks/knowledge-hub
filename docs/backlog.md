@@ -54,6 +54,8 @@ Cold items offloaded from active state. Each item maintains an explicit testable
   - Closed when: briefing link pasted in WhatsApp, iMessage, and Slack displays full card preview.
 - **Critic rounds 5 to 9 polish**: Minor P3 visual polish items.
   - Closed when: owner selects items to address.
+- **Row removal jumps**: removing a row closes the gap in one frame (`display: none` in `blocked.css` `data-removing`/`data-gone` and `topics.css` `li[data-gone]`, `.source-row[data-gone]`), with Undo in a toast. From the motion audit (`motion-audit/findings.md`); batch with other small UI fixes, not its own PR.
+  - Closed when: a removed row fades in 100 to 150 ms, then collapses by `clip-path` or grid rows (not margin), tokens only, gentler under reduced motion, and the owner OKs it.
 
 ## Future Ideas & Explorations
 

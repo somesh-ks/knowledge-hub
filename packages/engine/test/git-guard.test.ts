@@ -23,7 +23,7 @@ describe("ALLOWLISTS", () => {
         "state/usage.json",
         "state/costs-*.json",
       ],
-      costs: ["state/costs-*.json"],
+      costs: ["state/costs-*.json", "state/video-text.json"],
       learn: ["config/preferences.json"],
       podcast: ["Podcasts/", "state/costs-*.json", "state/podcast-timings.json"],
       config: [
@@ -44,6 +44,8 @@ describe("ALLOWLISTS", () => {
   // the tree (D228), which `publish` would have allowed.
   it("lets a dry run's ledger commit take the ledger and nothing else", () => {
     expect(isPathAllowed("state/costs-2026-10.json", ALLOWLISTS.costs)).toBe(true);
+    // The dry run's fetch fills this cache; without it in the list the costs commit was refused.
+    expect(isPathAllowed("state/video-text.json", ALLOWLISTS.costs)).toBe(true);
     expect(isPathAllowed("state/usage.json", ALLOWLISTS.costs)).toBe(false);
     expect(isPathAllowed("Digests/2026/10/2026-10-29.md", ALLOWLISTS.costs)).toBe(false);
   });

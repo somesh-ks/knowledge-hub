@@ -97,9 +97,13 @@ function rundownOf(blocks: readonly StructureBlock[]): number | null {
   return block?.type === "rundown" ? (block.stories ?? DEFAULT_RUNDOWN) : null;
 }
 
-/** The structure a digest kind follows. A briefing made on request has none of its own. */
+/**
+ * The structure a digest kind follows. A briefing made on request follows the daily's: D191 gave
+ * every podcast one structure, and the 2026-10-30 on-demand briefing had no order, rundown or block
+ * prompts because it fell to the built-in plan.
+ */
 export function structureKindOf(kind: DigestKind): StructureKind | null {
-  if (kind === "regular") return "daily";
+  if (kind === "regular" || kind === "on-demand") return "daily";
   if (kind === "weekly") return "weekly";
   return null;
 }

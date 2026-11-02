@@ -1,6 +1,6 @@
 ---
 import type { DigestEntry } from "../lib/digests";
-import type { HeroView } from "../lib/digestView";
+import { airedMinutes, type HeroView } from "../lib/digestView";
 import { sharedTarget } from "../lib/share";
 import AmbientLight from "./AmbientLight.astro";
 import Cover from "./Cover.astro";
@@ -39,6 +39,7 @@ const title = hero.title.replace(/(\d+) /, "$1 ");
     !shareToken && (
       <HeroMenu
         briefingId={entry.id}
+        minutes={airedMinutes(entry)}
         deletable={entry.digest.kind === "on-demand"}
         regenerations={entry.digest.regenerations}
         page={{
