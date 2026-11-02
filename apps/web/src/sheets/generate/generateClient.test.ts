@@ -52,7 +52,7 @@ describe("startGenerate", () => {
     const result = await startGenerate({ fetch, isOnline: () => false });
     expect(result).toMatchObject({
       reason: "offline",
-      message: "You are offline. Reconnect, then try again.",
+      message: "You're offline. Try again when you're back online.",
     });
     expect(calls).toHaveLength(0);
   });
@@ -63,7 +63,7 @@ describe("startGenerate", () => {
     );
     expect(await startGenerate({ fetch, isOnline: online })).toMatchObject({
       reason: "cooldown",
-      message: "Generate is on cooldown. Try again in 5 hours 12 minutes.",
+      message: "Give it a moment. Try again in 5 hours 12 minutes.",
       retryAfterSeconds: 18_720,
     });
   });
@@ -72,7 +72,7 @@ describe("startGenerate", () => {
     const { fetch } = scriptedFetch(json(429, { error: "daily_cap" }, { "retry-after": "7200" }));
     expect(await startGenerate({ fetch, isOnline: online })).toMatchObject({
       reason: "dailyCap",
-      message: "Generate has reached its limit for today. Try again in 2 hours.",
+      message: "That's today's limit. Try again in 2 hours.",
     });
   });
 

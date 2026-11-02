@@ -677,7 +677,7 @@ describe("errors", () => {
     const state = harness.store.getState();
     expect(state.status).toBe("error");
     expect(state.error?.kind).toBe("network");
-    expect(state.error?.message).toMatch(/connection/);
+    expect(state.error?.message).toMatch(/online/);
   });
 
   it("shows the reason a playlist gave for a file it could not make, as the one message", () => {
@@ -708,7 +708,7 @@ describe("errors", () => {
     harness.audio.emit("error");
     const error = harness.store.getState().error;
     expect(error?.kind).toBe("unavailable");
-    expect(error?.message).toBe("Audio is not available for this podcast.");
+    expect(error?.message).toBe("Audio isn't available for this podcast.");
   });
 
   it("in a standing refusal, a play tries the element again: a story whose file is made plays", () => {

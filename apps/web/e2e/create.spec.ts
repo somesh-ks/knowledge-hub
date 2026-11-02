@@ -678,14 +678,14 @@ test.describe("the Create page when the server says no", () => {
       [
         503,
         { status: 503, error: "unavailable" },
-        "The server ran into a problem, so no episode was started.",
+        "Something broke on our side, so no episode was started.",
       ],
       [
         400,
         { status: 400, error: "invalid_request" },
-        "The server turned that request down. Reload the page and try again.",
+        "That didn't go through. Reload the page and try again.",
       ],
-      ["abort", null, "Couldn't reach the site. Check your connection, then try again."],
+      ["abort", null, "No connection right now. Try again when you're back online."],
     ];
     await openCreate(page);
     for (const [status, body, words] of cases) {

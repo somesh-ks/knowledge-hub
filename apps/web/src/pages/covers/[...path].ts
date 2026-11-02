@@ -121,7 +121,7 @@ export const GET: APIRoute = async ({ params, url }) => {
     });
   } catch (error) {
     console.error(`[covers] ${request.id}: ${error instanceof Error ? error.message : "unknown"}`);
-    return new Response("This cover could not be drawn right now.", {
+    return new Response("Couldn't draw this cover right now.", {
       status: 503,
       headers: { ...NOT_FOUND_HEADERS, "Retry-After": "60" },
     });

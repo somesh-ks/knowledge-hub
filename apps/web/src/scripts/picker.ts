@@ -106,7 +106,7 @@ const audition = {
       audio.addEventListener("error", () => {
         if (this.playing) {
           this.playing.dataset.silent = "";
-          this.tell?.("The sample could not be played");
+          this.tell?.("Couldn't play the sample");
         }
         this.mark(null);
       });
@@ -134,7 +134,7 @@ const audition = {
     this.mark(control);
     void this.audio.play().catch(() => {
       if (attempt !== this.attempt) return;
-      this.tell?.("The sample could not be played");
+      this.tell?.("Couldn't play the sample");
       this.mark(null);
     });
   },

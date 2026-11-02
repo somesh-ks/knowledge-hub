@@ -26,9 +26,13 @@
  *     browser withdraws the permission of a worker that receives a push and shows nothing. A tap
  *     opens the page the message names, on this site only. No cache is touched, so adding it needed
  *     no VERSION bump.
+ *   - A page the person never opened is answered with /offline, at the address asked for (D330). The
+ *     page keeps the route and brings the real page in itself once the site can be reached
+ *     (scripts/standIn.ts). To make that rare, the page asks the worker to keep the app's own pages,
+ *     the Saved list and each saved podcast ready (KEEP_READY): they open offline without a visit.
  *   - Bump VERSION when this file's caching logic changes; activation removes caches from older versions.
  */
-const VERSION = "v15";
+const VERSION = "v16";
 const SHELL_CACHE = `singularity-shell-${VERSION}`;
 const PAGES_CACHE = `singularity-pages-${VERSION}`;
 const MEDIA_CACHE = `singularity-media-${VERSION}`;
@@ -36,7 +40,15 @@ const MEDIA_CACHE = `singularity-media-${VERSION}`;
 const AUDIO_CACHE = "singularity-audio-v1";
 /** Where downloads were kept before the rename (D179); activation moves them to AUDIO_CACHE. */
 const OLD_AUDIO_CACHE = "dispatch-audio-v1";
-const CURRENT_CACHES = [SHELL_CACHE, PAGES_CACHE, MEDIA_CACHE, AUDIO_CACHE];
+/**
+ * Pages the page asked to keep ready (KEEP_READY): the app's own pages, the Saved list and every
+ * podcast saved. Not versioned and never trimmed, so they are there offline whatever else was opened
+ * since or deployed (D330). The newest copy of a page is the one in PAGES_CACHE when there is one.
+ */
+const KEPT_CACHE = "singularity-kept-v1";
+const CURRENT_CACHES = [SHELL_CACHE, PAGES_CACHE, MEDIA_CACHE, AUDIO_CACHE, KEPT_CACHE];
+/** A kept page younger than this is not fetched again by KEEP_READY. */
+const KEPT_FRESH_MS = 60 * 60 * 1000;
 
 const OFFLINE_URL = "/offline";
 const SHELL_PAGES = ["/", "/library", OFFLINE_URL];
@@ -177,6 +189,12 @@ self.addEventListener("message", (event) => {
         .then((response) => (response.ok ? warmAssets(response, AUDIO_CACHE) : undefined))
         .catch(() => undefined)
         .then(() => port?.postMessage("done")),
+    );
+  }
+  // The page names the pages to keep ready (D330). `force` names pages to fetch even when a recent copy is kept.
+  if (data.type === "KEEP_READY" && Array.isArray(data.paths)) {
+    event.waitUntil(
+      keepReady(data.paths, Array.isArray(data.force) ? data.force : []).catch(() => undefined),
     );
   }
 });
@@ -414,7 +432,7 @@ function networkFirst(event, cacheName, limit, beforeStore, shared, key) {
   event.waitUntil(network.catch(() => undefined));
   return Promise.race([network.catch(() => undefined), timeout]).then(async (response) => {
     if (response) return response;
-    const cached = await caches.match(saveAs);
+    const cached = await savedPage(saveAs);
     // Slow network and nothing saved: keep waiting for the real answer, then fall back to /offline.
     return cached || network.catch(() => offline(request));
   });
@@ -458,6 +476,54 @@ async function evictRemoved(url) {
   return true;
 }
 
+/**
+ * Saves the pages named, one at a time and gently, in KEPT_CACHE with the files each needs, and
+ * forgets the kept pages no longer named (a podcast taken out of Saved). Only pages of this site.
+ */
+let keeping = false;
+/** An ask that came while one ran: the latest names win, and a forced one stays forced. */
+let askedAgain = null;
+async function keepReady(paths, force) {
+  if (keeping) {
+    askedAgain = { paths, force: [...force, ...(askedAgain?.force ?? [])] };
+    return;
+  }
+  keeping = true;
+  try {
+    const wanted = new Set();
+    for (const path of paths) {
+      if (typeof path !== "string" || !path.startsWith("/") || path.startsWith("//")) continue;
+      wanted.add(new URL(path, self.location.origin).pathname);
+    }
+    const forced = new Set(force.map((path) => new URL(path, self.location.origin).pathname));
+    const cache = await caches.open(KEPT_CACHE);
+    for (const key of await cache.keys()) {
+      if (!wanted.has(new URL(key.url).pathname)) await cache.delete(key);
+    }
+    for (const path of wanted) {
+      const kept = await cache.match(path);
+      const age = kept ? Date.now() - Number(kept.headers.get(STORED_AT) || 0) : Infinity;
+      if (!forced.has(path) && age < KEPT_FRESH_MS) continue;
+      try {
+        const response = await fetch(path);
+        if (!response.ok || !(response.headers.get("content-type") || "").includes("text/html"))
+          continue;
+        await cache.put(path, await stamped(response, Date.now()));
+        await warmAssets(response.clone(), KEPT_CACHE);
+      } catch {
+        // Offline or a failed read: what was kept stays, and the next ask tries again.
+      }
+    }
+  } finally {
+    keeping = false;
+    if (askedAgain) {
+      const next = askedAgain;
+      askedAgain = null;
+      await keepReady(next.paths, next.force);
+    }
+  }
+}
+
 /** Fetches a page that was answered from its saved copy, and tells open pages when it has changed. */
 async function recheck(request, saved) {
   try {
@@ -480,6 +546,20 @@ async function recheck(request, saved) {
   } catch {
     // Offline or a failed read: the saved copy already answered.
   }
+}
+
+/**
+ * A saved copy of a page when the network will not answer: the newest first (pages the person opened
+ * lately), then the ones kept ready, then any cache. The order matters: caches.match alone walks the
+ * caches by age, so the shell's copy from install answered a Latest that had changed since.
+ */
+async function savedPage(key) {
+  // A cache that cannot be read throws, on purpose: the caller's healing (healed) rebuilds the caches.
+  for (const name of [PAGES_CACHE, KEPT_CACHE]) {
+    const hit = await (await caches.open(name)).match(key, { ignoreVary: true });
+    if (hit) return hit;
+  }
+  return caches.match(key);
 }
 
 async function cacheFirst(event, cacheName) {

@@ -179,6 +179,8 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D318 | Pages stay at the edge until their content changes, purged by tag | active |
 | D319 | Colours are generated; a style is a recipe | amends D268, D310, D317 |
 | D321 | The ripple and a cover's press stay alpha layers, over artwork | amends D317 |
+| D330 | One app-wide state model: route, connectivity, saved pages | amends D97, D98, D145, D202 |
+| D331 | Error and helper copy speaks in the reader's words, and a test holds it | amends D299 |
 | D332 | A scheduled run waits at the gate when the last 24 hours cost over $5 | amends D139 |
 
 ---

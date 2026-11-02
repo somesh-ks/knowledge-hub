@@ -1328,7 +1328,7 @@ test.describe("a refused suggested add", () => {
     const row = suggestion(page, "Motion Weekly");
     await row.getByRole("button", { name: "Add Motion Weekly" }).click();
     // Refused: no check and no "Adding": the row says what happened, with the plus back.
-    await expect(row).toContainText("Not added. Try again.");
+    await expect(row).toContainText("Couldn't add that. Try again.");
     const again = row.getByRole("button", { name: "Add Motion Weekly" });
     await expect(again).toBeEnabled();
     await expect(again).not.toHaveClass(/is-added/);
@@ -1351,7 +1351,7 @@ test.describe("a refused suggested add", () => {
     await open(page, DESIGN);
     const row = suggestion(page, "Motion Weekly");
     await row.getByRole("button", { name: "Add Motion Weekly" }).click();
-    await expect(row).toContainText("Not added. Try again.");
+    await expect(row).toContainText("Couldn't add that. Try again.");
     await page.reload();
     await open(page, DESIGN);
     const again = suggestion(page, "Motion Weekly");
@@ -1387,7 +1387,7 @@ test.describe("a refused lookup", () => {
     await page.getByRole("tab", { name: "Source" }).click();
     const sheet = page.getByRole("dialog", { name: "Add a source" });
     await sheet.getByLabel("Site or feed address").fill("nothing.example");
-    await expect(sheet.locator("#panel-source-url-error")).toContainText("could not be read");
+    await expect(sheet.locator("#panel-source-url-error")).toContainText("Couldn't read that address");
     await expect(sheet.getByLabel("Site or feed address")).toHaveAttribute("aria-invalid", "");
     // No empty card stands in for the message.
     await expect(sheet.locator(".source-card")).toHaveCount(0);

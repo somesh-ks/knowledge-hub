@@ -6,12 +6,40 @@
  * what went wrong, with a Retry, and a removal, which waits longer with an Undo because it is the one
  * change that cannot be put back by changing it again. Hiding or leaving the page sends what is waiting.
  */
+import { appendOutbox } from "../lib/outbox";
+import { CANNOT_KEEP, KEPT } from "../lib/saveCopy";
 import type { Pending, SaveContext, SaveState } from "./managePageSave";
 
 type Saver = typeof import("./managePageSave");
 
-/** When the sending code itself cannot be fetched (the device went offline before the first change). */
-const CANNOT_SEND = "Couldn't reach the site. Not saved yet.";
+/**
+ * Controls whose change has more to it than a value (a removal, a row that says Added): only the
+ * sender, with its page code, can settle them, so with no sender they are not kept here.
+ */
+const NEEDS_SENDER =
+  "[data-remove], .source-note, .source-announce, a[data-new-topic], [data-suggest]";
+
+/**
+ * The sending code could not be fetched (the device went offline before it was loaded): the changes
+ * are put in the outbox from here, which needs no code of its own, so nothing the person changed is
+ * lost and it goes out when the connection is back (D330). False when a change cannot be kept this way.
+ */
+function keepWithoutSender(changes: Map<string, Pending>): boolean {
+  const waiting = [...changes.entries()];
+  if (waiting.length === 0 || waiting.some(([, pending]) => pending.el.matches(NEEDS_SENDER))) {
+    return false;
+  }
+  // One entry per change: the sender never splits one, and it carries the edits that must go with it.
+  for (const [, pending] of waiting) {
+    if (!appendOutbox([pending.op, ...(pending.with ?? [])])) return false;
+  }
+  for (const [key, pending] of waiting) {
+    pending.done?.();
+    pending.el.dataset.was = pending.now;
+    changes.delete(key);
+  }
+  return true;
+}
 
 /** How long the controls must be still before a save. */
 export const SETTLE_MS = 1200;
@@ -157,8 +185,11 @@ export function mountAutosave(
         return module.flush(context);
       })
       .catch(() => {
-        // The sender could not be fetched: say so, and let Retry try again.
-        show(CANNOT_SEND, "error");
+        // The sender could not be fetched: keep the changes for the connection, or say so and let Retry try again.
+        if (keepWithoutSender(changes)) {
+          settled();
+          show(KEPT, "done");
+        } else show(CANNOT_KEEP, "error");
       });
   };
 

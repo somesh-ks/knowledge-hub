@@ -7,10 +7,12 @@ interface Action {
   href: string;
   /** Loads the address from the network instead of swapping the page in place. */
   reload?: boolean;
+  /** Asks the site again and brings in the page this one stands in for (scripts/standIn.ts). */
+  retry?: boolean;
 }
 
 interface Props {
-  /** The scene. Several draw each one, and `state` picks the one that shows (the offline page). */
+  /** The scene. Several draw each one, and `state` picks the one that shows. */
   art?: ArtName | ArtName[];
   /** Which of several scenes shows: the section's data-state, which empty.css reads. */
   state?: string;
@@ -59,7 +61,7 @@ const headingId = level === 1 ? "page-title" : "empty-title";
   </Heading>
   <p class="empty-body">{body}</p>
   <div class="empty-actions">
-    <Button variant="filled" href={primary.href} data-astro-reload={primary.reload ? "true" : undefined}>
+    <Button variant="filled" href={primary.href} data-astro-reload={primary.reload ? "true" : undefined} data-retry={primary.retry ? "" : undefined}>
       {primary.label}
     </Button>
     {secondary && <Button variant="text" href={secondary.href}>{secondary.label}</Button>}

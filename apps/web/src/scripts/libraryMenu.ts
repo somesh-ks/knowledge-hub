@@ -93,7 +93,7 @@ async function toggleDownload(root: HTMLElement): Promise<void> {
   } catch (error) {
     // A turn without its file yet: a download never spends narration to make it.
     if (error instanceof NotReadyError) toast("Not ready offline yet");
-    else toast("Could not download. Check your connection and try again.", "error");
+    else toast("Couldn't download. Try again when you're back online.", "error");
   } finally {
     card.removeAttribute("data-downloading");
     await syncDownloads();
@@ -130,11 +130,11 @@ async function onPick(item: HTMLElement): Promise<void> {
     case "unsave":
       // Settings > Saved: the page hears the change (singularity:saved) and drops the row.
       if (setSaved(deviceStorage(), id, false)) toast("Removed from Saved");
-      else toast("Could not remove it from Saved on this device", "error");
+      else toast("Couldn't remove it from Saved", "error");
       return;
     case "unshare":
       if (await stopSharing(id)) toast("Stopped sharing", "success");
-      else toast("Could not stop sharing. Try again.", "error");
+      else toast("Couldn't stop sharing. Try again.", "error");
       return;
   }
 }

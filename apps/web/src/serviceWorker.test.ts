@@ -243,8 +243,9 @@ describe("service worker: caching strategies", () => {
     await worker.dispatchFetch(request("/latest.json?t=1"));
     const name = `singularity-pages-${CURRENT_VERSION}`;
     const broken = await worker.caches.open(name);
-    const match = worker.caches.match.bind(worker.caches);
-    worker.caches.match = async (key: string | FakeRequest) => {
+    // The saved entry itself cannot be read (the worker looks in its own caches before any other).
+    const match = broken.match.bind(broken);
+    broken.match = async (key: string | FakeRequest) => {
       if (key === "/latest.json") throw new Error("corrupt entry");
       return match(key);
     };
@@ -714,5 +715,74 @@ describe("service worker: audio the person downloaded", () => {
     expect(await worker.caches.keys()).not.toContain("dispatch-audio-v1");
     const { response } = await worker.dispatchFetch(ask());
     expect(await response?.text()).toBe(body);
+  });
+});
+
+describe("service worker: pages offline (D330)", () => {
+  const html = (body: string) =>
+    new Response(body, { headers: { "content-type": "text/html; charset=utf-8" } });
+  const navigate = (path: string) => request(path, { mode: "navigate" });
+
+  // Bug (owner, 2026-11-02): caches.match walks the caches by age, so the shell's copy saved at
+  // install answered Latest offline, days after the page had changed.
+  it("answers an offline page load with the newest saved copy, not the one from install", async () => {
+    let online = true;
+    let home = "home at install";
+    const worker = load((url) => {
+      if (!online) throw new TypeError("offline");
+      return url.endsWith("/offline") ? html("offline page") : html(home);
+    });
+    await worker.lifecycle("install");
+    home = "home today";
+    await worker.dispatchFetch(navigate("/"));
+    online = false;
+    expect(await (await worker.dispatchFetch(navigate("/"))).response?.text()).toBe("home today");
+  });
+
+  it("keeps the pages it is asked to keep ready, opens them offline, and forgets the ones no longer named", async () => {
+    let online = true;
+    const worker = load((url) => {
+      if (!online) throw new TypeError("offline");
+      return url.endsWith("/offline")
+        ? html("offline page")
+        : html(`page ${new URL(url).pathname}`);
+    });
+    await worker.lifecycle("install");
+    const ask = async (paths: string[]) => {
+      const waits: Promise<unknown>[] = [];
+      worker.handlers.get("message")?.({
+        data: { type: "KEEP_READY", paths, force: [] },
+        waitUntil: (promise: Promise<unknown>) => waits.push(promise),
+      });
+      await Promise.all(waits);
+    };
+    await ask(["/settings/saved", "/d/2026-10-05"]);
+    online = false;
+    expect(await (await worker.dispatchFetch(navigate("/settings/saved"))).response?.text()).toBe(
+      "page /settings/saved",
+    );
+    expect(await (await worker.dispatchFetch(navigate("/d/2026-10-05"))).response?.text()).toBe(
+      "page /d/2026-10-05",
+    );
+    // A podcast taken out of Saved is not kept any more: it stands in again.
+    online = true;
+    await ask(["/settings/saved"]);
+    online = false;
+    expect(await (await worker.dispatchFetch(navigate("/d/2026-10-05"))).response?.text()).toBe(
+      "offline page",
+    );
+  });
+
+  it("stands in with the offline page, at the address asked for, for a page it never saw", async () => {
+    let online = true;
+    const worker = load((url) => {
+      if (!online) throw new TypeError("offline");
+      return url.endsWith("/offline") ? html("offline page") : html("ok");
+    });
+    await worker.lifecycle("install");
+    online = false;
+    expect(
+      await (await worker.dispatchFetch(navigate("/d/2026-10-04-weekly"))).response?.text(),
+    ).toBe("offline page");
   });
 });
