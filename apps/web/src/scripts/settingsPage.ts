@@ -253,6 +253,8 @@ function mountSettings(root: HTMLElement): () => void {
   if (style) style.inert = false;
   // Only a device that can answer is offered the choice (D273).
   if (hapticsSection) hapticsSection.hidden = getHaptics().support === "none";
+  const hapticsNone = root.querySelector<HTMLElement>("[data-haptics-none]");
+  if (hapticsNone) hapticsNone.hidden = getHaptics().support !== "none";
   if (hapticsRow) hapticsRow.hidden = getHaptics().support === "none";
   root.dataset.ready = "true";
 

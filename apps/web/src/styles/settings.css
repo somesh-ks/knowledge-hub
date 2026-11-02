@@ -153,6 +153,11 @@
   padding-block-start: var(--space-2);
 }
 
+/* A note that is a page's whole body (Haptics on a device with no motor) starts on the title's gap. */
+.settings-view > .settings-note {
+  padding-block-start: 0;
+}
+
 /* A row that is one button: the ring follows the row's shape, and the glyph stays quiet. */
 .settings-view .row-action {
   border-radius: var(--row-radius);
@@ -567,6 +572,16 @@
   to {
     visibility: visible;
   }
+}
+
+/* A page that keeps its settings inside a Manage root (Sound and voice) gives up the page padding the
+   .settings-view has as a page, and its first group's head sits the title's usual 24px below it. */
+.manage > .settings-view {
+  padding-block: 0;
+}
+
+.manage > .settings-view > section:first-of-type > .section-head {
+  padding-block-start: 0;
 }
 
 /* ------------------------------------------------------------------ the hue row (D326, D328) */

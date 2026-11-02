@@ -484,19 +484,6 @@ test.describe("a topic's page", () => {
     await expect(page.getByRole("dialog", { name: "Edit source" })).toContainText("4.7");
   });
 
-  test("a type set on Preferences goes as one mix.set for every topic and holds after a reload", async ({
-    page,
-  }) => {
-    const { sent } = await setup(page);
-    await open(page, "/settings/preferences");
-    await expect(page.getByRole("slider")).toHaveCount(7);
-    await page.getByRole("slider", { name: "Video", exact: true }).fill("0");
-    await expect(spoken(page)).toHaveText(SAVED);
-    expect(ops(sent)).toEqual([{ op: "mix.set", format_mix: { video: 0 } }]);
-    await page.reload();
-    await expect(page.getByRole("slider", { name: "Video", exact: true })).toHaveValue("0");
-  });
-
   test("Listen in is a list to tick: unticking Daily leaves every topic Design gathers out of it", async ({
     page,
   }) => {
@@ -1639,10 +1626,6 @@ test.describe("the podcast structure", () => {
     await page.clock.install();
     const server = await routeConfigServer(page);
     await open(page, "/settings/preferences?view=structure");
-    await expect(page.getByRole("tab", { name: "Podcast structure" })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
     const list = page.getByRole("list", { name: "Structure blocks" });
     const names = () => list.locator(".structure-row .settings-label").allTextContents();
     const before = await names();

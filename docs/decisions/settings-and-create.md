@@ -368,3 +368,14 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Rejected: a warning when closing the page (cannot be shown on a phone's tab close, and loses the edit anyway); Retry as the only way out (the state it needs is gone after a reload); a background sync registration (iOS does not run it, and the page-load and `online` triggers cover the same ground); queuing while online with the site up (a refusal must reach the person at once).
 - Revisit if: two devices edit the same setting offline (the later send wins, with no conflict notice), or a 409 from another device's write is seen on drain.
 - Amends: D79, D91, D259.
+
+
+## D335: the avatar leads to a profile page, and Settings is Podcast settings, App settings and About
+
+- Date: 2026-11-02 (the owner: an avatar top right on phone and desktop, a page behind it with Downloads and Favorites, Settings regrouped, source-type sliders removed, user engagement to the admin app).
+- Decision: the avatar (D326) is the right end of the app bar below 64rem and the top right from 64rem, and links to `/profile`: the avatar, a picker of the shapes the mood offers, Downloads and Saved. Settings is Podcast settings (Daily, Weekly, Sources, Structure), App settings (Appearance, Sound and voice, Haptics, Notifications) and About as three rows with no head and the build's day under them. Appearance holds Theme, Mood and a Hue row shown for a mood only; Sound and voice holds the interface sounds, the podcast voices and Playback (autoplay, default speed); Haptics has a page. The source-type sliders and the User engagement link leave the app; a stored `format_mix` still applies. There is no sign-in until Google auth exists: the avatar is the whole control.
+- Why: Downloads and Saved belong to the person, not to a setting; one group of app settings reads better than five small sections; the sliders and the analytics link were a developer's controls in a reader's app.
+- Rejected: a Sign in button with no sign-in behind it (a dead control); keeping Autoplay and Default speed on Structure (a podcast's structure is not how playback starts); a tab for Hue (the row hides for Default).
+- Revisit if: Google sign-in lands (the account photo replaces the shape), or the Playback section on Sound and voice is not where the owner looks for it.
+- Amends: D129, D281, D299.
+

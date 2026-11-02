@@ -7,7 +7,6 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-28: `topics.spec.ts` "Add source" fails on a machine's first local run: it writes its untracked screenshot baseline (never commit it). `CI=1` skips it.
 - Two browser suites at once share `apps/web/dist` and give false failures.
 - 2026-10-22: in the cloud container Chromium goes through the agent proxy, so `--host-resolver-rules` (to serve a build under the production host) did nothing until launched with `--no-proxy-server`.
-- 2026-10-19: a source added in script was a tinted stub (no address, rating, checkbox) whose `box-shadow` spread 8px over the next row; the specs checked text, not parts. A script row mirrors its Astro component's markup, and its spec asserts the parts.
 - 2026-10-23: new card tokens let `.card-group`'s row padding beat the Costs card's (Costs is not in the grid spec). Screenshot every page using a primitive whose tokens change.
 - 2026-10-23: a story row passed its hold-still test while publishers kept 10px at 320. Measure what a layout's flexible part keeps at 320 and 360 first.
 - 2026-10-23: reduced motion in the tokens alone missed every raw travel on those durations (chip labels, nav pill, floating button). Sweep the CSS with the tokens; check with `document.getAnimations()` under emulated reduced motion.
@@ -150,3 +149,4 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-11-02: a hover or press rule on a disableable class painted on disabled controls (native or aria-disabled). Write the exclusion in the component rule (`:where(:not(:disabled, [aria-disabled="true"]))`);
 - 2026-11-02: an exit on `--ease-drawer` looks done in 120 ms; use `--ease-in-out` when a sheet must stay while something arrives.
 - 2026-11-02: `name: "5 min"` matches "15 min"; use `exact: true`.
+- 2026-11-02: the cloud image's Chromium is an older build than the repo's Playwright wants; point `PLAYWRIGHT_BROWSERS_PATH` at links named for the wanted build. A 2px negative margin fails the 8pt spec: size a target `max()` of both.

@@ -110,7 +110,8 @@ test("a select's fill is as far from its card's right edge as from its top or bo
               holder.querySelector("select.field-input, .picker-trigger") ?? holder
             ).getBoundingClientRect();
             const card = holder.closest(".card-group, .topic-panel");
-            if (fill.width === 0 || !card) continue;
+            // The Structure page's profile card is its own layout, not a settings card.
+            if (fill.width === 0 || !card || holder.closest(".topic-card")) continue;
             const box = card.getBoundingClientRect();
             const rows = [...card.querySelectorAll(".settings-row")].filter(
               (row) => row.getBoundingClientRect().height > 0,

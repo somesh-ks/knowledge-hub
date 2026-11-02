@@ -17,6 +17,8 @@ const title = "Haptics";
       <noscript>
         <p class="settings-note">These settings need JavaScript, which is turned off in this browser.</p>
       </noscript>
+      {/* Said on a device with no motor, so the page is never empty (settingsPage.ts). */}
+      <p class="settings-note" data-haptics-none hidden>This device cannot give touch feedback.</p>
       <section data-haptics-section hidden>
         <div class="rows card-group">
           <div class="settings-row">
