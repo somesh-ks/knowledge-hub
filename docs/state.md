@@ -11,7 +11,7 @@ Updated 2026-11-01. Rewrite, never append.
 - Narration on Play, per story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes (D198): [narration](specs/narration.md), [create](specs/create.md).
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). Regenerate and Catch up queue with Cancel; ended runs stay for the day (D204, D231).
 - Saved copies, offline, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
-- Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews PRs (D192).
+- Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews a PR once when it is ready, by tier (D192, D292).
 - Styles (D306, D310, D315): Halloween and Expressive (violet ramp, larger touch sizes, a `--shape-*` corner scale a test enforces, looping empty states) and a Hue slider that turns a style. closed when: Somesh OKs the stills (390 and 1280, light and dark) and sees every page change under each style on his phone. Covers follow a style live (D314, own PR); album art per style is next.
 
 ## Tests
