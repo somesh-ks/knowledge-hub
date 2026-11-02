@@ -12,12 +12,12 @@ import {
 import type { SpeechSynthesizer } from "../audio/speechify.js";
 import { createSpeechifyClient } from "../audio/speechify.js";
 import { buildSpokenText } from "../audio/spokenText.js";
-import { usageStoreFor } from "../audio/usageBlob.js";
 import {
   type EpisodeOpusFile,
   transcodeSegmentsToOpus,
   transcodeToOpus,
 } from "../audio/transcode.js";
+import { usageStoreFor } from "../audio/usageBlob.js";
 import type { CommandContext, CommandRun } from "../context.js";
 import type { BlobClient } from "../publish/blob.js";
 import { createVercelBlobClient } from "../publish/blob.js";
