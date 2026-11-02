@@ -275,4 +275,17 @@ describe("the spend record", () => {
     await tracker.begin(root, "2026-11-03T05:37:00.000Z");
     expect(tracker.exaRoom).toBe(0);
   });
+
+  // A week that cannot be counted must not read as a week with no spend: Exa would then run every
+  // query. Firecrawl keeps its own ceiling.
+  it("gives Exa no room when the ledger does not read", async () => {
+    const root = await mkdtemp(join(tmpdir(), "spend-"));
+    dirs.push(root);
+    await mkdir(join(root, "state"));
+    await writeFile(join(root, "state/costs-2026-11.json"), "{broken");
+    const tracker = new SpendTracker();
+    await tracker.begin(root, "2026-11-02T05:37:00.000Z");
+    expect(tracker.exaRoom).toBe(0);
+    expect(tracker.guard.scrapeRoom).toBe(FIRECRAWL_RUN_CEILING);
+  });
 });

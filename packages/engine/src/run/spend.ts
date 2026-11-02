@@ -128,7 +128,7 @@ export class SpendTracker {
     await this.resume(root, run);
     // The weekly budget: what other runs spent in the 7 days before this one (the ledger records a
     // run at its commit, or at its failure record, so the run in progress is never counted twice).
-    // A ledger that does not read leaves the run its own ceiling, and says so.
+    // Firecrawl runs on its own ceiling when the ledger does not read; Exa does not run (D339). Both say so.
     const started = Date.parse(run);
     if (!Number.isFinite(started)) {
       log?.warn(
@@ -137,21 +137,28 @@ export class SpendTracker {
       );
       return;
     }
+    const since = new Date(started - WEEK_MS);
+    const until = new Date(started);
     try {
-      const since = new Date(started - WEEK_MS);
-      const used = await firecrawlUsedSince(root, since, new Date(started), run);
-      this.guard.limitTo(FIRECRAWL_WEEKLY_BUDGET - used);
-      this.exaWeekLeft = Math.max(
-        0,
-        EXA_WEEKLY_BUDGET - (await exaUsedSince(root, since, new Date(started), run)),
+      this.guard.limitTo(
+        FIRECRAWL_WEEKLY_BUDGET - (await firecrawlUsedSince(root, since, until, run)),
       );
     } catch (error) {
-      log?.warn(
-        "The cost ledger did not read: the weekly budgets of Firecrawl and Exa are not applied",
-        {
-          reason: error instanceof Error ? error.message : String(error),
-        },
+      log?.warn("The cost ledger did not read: the weekly budget of Firecrawl is not applied", {
+        reason: error instanceof Error ? error.message : String(error),
+      });
+    }
+    try {
+      this.exaWeekLeft = Math.max(
+        0,
+        EXA_WEEKLY_BUDGET - (await exaUsedSince(root, since, until, run)),
       );
+    } catch (error) {
+      // Exa is one source of many, so a week that cannot be counted is a week without Exa.
+      this.exaWeekLeft = 0;
+      log?.warn("The cost ledger did not read: Exa is off for this run", {
+        reason: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
