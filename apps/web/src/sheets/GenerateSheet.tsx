@@ -2,6 +2,7 @@ import { Field } from "@base-ui/react/field";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { buttonClass } from "../design-system/button";
 import { fieldClass } from "../design-system/field";
+import { rememberCancelToken } from "../lib/cancelTokens";
 import { DEFAULT_REGEN_LENGTH, nearestRegenLength, REGEN_LENGTHS } from "../lib/regenLength";
 import { idsOfChips, isChipOn, type RegenChip } from "../lib/regenTopics";
 import { playUiCue } from "../player/sound/soundController";
@@ -139,6 +140,12 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
       return;
     }
     playUiCue(cueForGenerate("started"));
+    // As Catch up and the episode Regenerate do: the token lets the queue offer Cancel, and the
+    // message when the podcast is ready (if that is on here) needs it.
+    rememberCancelToken(result.runId, result.cancelToken);
+    void import("../lib/pushClient")
+      .then((push) => push.watchRun(result.runId, "regenerate"))
+      .catch(() => {});
     indicator.startRun(
       result.runId,
       { what: "briefing" },
