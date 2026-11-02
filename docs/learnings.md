@@ -66,9 +66,8 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Site and service worker
 
-- 2026-11-02: offline showed a "You are offline" page with no strip, lost Saved and Settings, and never came back: the worker stood in for any page never opened, the stand-in's own script does not run again when the router swaps it in, and its single reload fired on a premature `online` event. One connectivity state, a stand-in with recovery in the app script, pages kept ready (D330).
-- 2026-11-02: `caches.match` walks the caches by age, so the shell's copy from install answered Latest offline.
-- 2026-11-02: the router moved the address to a `#` link's own `#` before the stand-in's Try again ran: listen in the capture phase.
+- 2026-11-02: offline showed a "You are offline" page with no strip, lost Saved and Settings, and never came back: the worker stood in for any unopened page, the stand-in's script does not run again when the router swaps it in, and its one reload fired on a premature `online` event. One connectivity state, recovery in the app script, pages kept ready (D330).
+- 2026-11-02: `caches.match` walks the caches by age, so the install copy answered Latest offline. The router moved the address to a `#` link's own `#` before Try again ran: listen in capture.
 - 2026-11-02: a press rule before a hover rule of the same weight loses while the mouse is down; a control with no `:active` rule shows no press (Library view toggle). Press after hover; shoot rest, hover, press.
 - 2026-11-02: an opaque press fill on a bar's `::after` covers its content, which the old alpha hid. Use `z-index: var(--z-beneath)`.
 - 2026-11-02: a step on a fill near white (accent tint, L 98) clamps, so hover equals press. Give it the smaller steps.
