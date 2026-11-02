@@ -212,7 +212,12 @@ function currentItems(): Item[] {
   // (D217). A briefing row without a target is a run under the old name "run" or one made by hand, which
   // nobody here asked for: only this browser's own is drawn.
   const going: Item[] = rows
-    .filter((row) => !stopped.has(row.run_id) && !finished.some((o) => o.row.run_id === row.run_id))
+    .filter(
+      (row) =>
+        !stopped.has(row.run_id) &&
+        !gone.has(row.run_id) &&
+        !finished.some((o) => o.row.run_id === row.run_id),
+    )
     .filter((row) => row.what !== "briefing" || row.target !== null || row.run_id === run?.id)
     .map((row) => ({ row, ended: null, record: null, at: null }));
   const own = run && !isEnded(run.phase) ? recordRow(run) : null;
@@ -877,8 +882,6 @@ export function mountQueue(startedHere = false): void {
         // Inside the tap, while the element is idle: the podcast starts a moment later without a second tap.
         runtime?.getPlayerAudio().prime("/silence.wav");
         void playInPlace(id, start.href);
-        const run = Number(start.closest<HTMLElement>("[data-queue-row-item]")?.dataset.run);
-        if (Number.isFinite(run)) letGo([run]);
       }
     }
     if (target.closest("[data-create-open]")) popover()?.hidePopover?.();

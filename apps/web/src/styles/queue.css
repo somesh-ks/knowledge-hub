@@ -63,10 +63,15 @@ html[data-player="open"] .queue-dock {
   align-items: center;
 }
 
-/* The X that clears the queue stands after the chevron; the folded row gives up its end padding to it. */
+/* The X that clears the queue stands after the chevron; the folded row gives up its end padding to it
+   and the head takes the rows' own, so the X's ink lines up with a row's Cancel (the component's end
+   margin does the rest). */
 .queue-head .queue-clear {
   flex: none;
-  margin-inline-end: max(var(--space-2), var(--safe-right));
+}
+
+.queue-head:has(.queue-clear:not([hidden])) {
+  padding-inline-end: max(var(--space-4), var(--safe-right));
 }
 
 .queue-clear[hidden] {
@@ -478,10 +483,6 @@ html[data-player="open"] .queue-dock {
   align-items: center;
   justify-content: space-between;
   padding: var(--space-6) var(--space-6) var(--space-2);
-}
-
-.queue-pop-head .queue-clear {
-  margin-inline-end: calc(var(--space-2) * -1);
 }
 
 .queue-pop-title {

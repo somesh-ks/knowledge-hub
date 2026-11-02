@@ -267,7 +267,10 @@ test.describe("the podcast queue", () => {
     page,
   }) => {
     await mock(page, () => []);
-    const now = Date.now();
+    // Midday UTC is the same calendar day in every zone, so the seeded rows are today's whenever this runs.
+    const midday = new Date("2026-11-02T12:00:00Z");
+    await page.clock.setFixedTime(midday);
+    const now = midday.getTime();
     const done = (id: number, episode: string) => ({
       at: now - 60_000,
       run: {
