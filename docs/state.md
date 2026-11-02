@@ -22,7 +22,7 @@ Unit (CI): 352 files, 5,449 tests, about 2 min. Site e2e: 448, 10 min. Player: 8
 
 - D318 edge cache. closed when: a week of his loads is mostly HIT or STALE.
 - Blob on Pro trial since 10-30, ending 11-13 (D251, D256). Plan call 11-06 to 11-08 (Pro, or Hobby: 1.1K of 2,000 advanced Blob ops a month on 11-01, under 70 deploys a day), from the Usage tab, the only op count. closed when: the plan is chosen.
-- Bottom bar ripple (D286) and tab state. closed when: on his iPhone a tap shows the wave and one pill, and the latest podcast opened from the Library keeps the Library lit.
+- Bottom bar ripple (D286) and tab state. closed when: on his iPhone a tap shows the wave and one pill, and the latest podcast from the Library keeps it lit.
 - Config snapshot (D300 step 1): `snapshot.yml` writes the config store to a private Blob store each Sunday and `config restore` reads it back; untried against a real store, which needs the second Blob store and `BLOB_PRIVATE_READ_WRITE_TOKEN` (runbook 1.5a). closed when: the workflow has run once, the snapshot is in the store, and `config restore --file` on a copy of it rebuilds the rows.
 - Content store delta writes (D300 step 2a): `content put|remove|pull` change single files with an ETag-guarded manifest; one writer per path is assumed. No workflow uses them yet. closed when: 2b has run a daily end to end through them and the store matches the digests the run wrote.
 - Queue plays in place (D277). closed when: a third-item tap keeps the bar up.
