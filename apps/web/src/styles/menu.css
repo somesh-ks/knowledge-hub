@@ -19,7 +19,10 @@
   inset-inline-end: var(--menu-right, 0);
   min-width: 10rem;
   margin: 0;
-  padding: var(--space-2);
+  /* Rows run edge to edge: the list pads above and below only, and its corner clips the first and
+     last row (owner, 2026-11-02: "full bleed, padding just top and bottom"). */
+  padding: var(--space-2) 0;
+  overflow: hidden;
   border: 0;
   border-radius: var(--shape-md);
   background: var(--color-surface-overlay);
@@ -94,8 +97,8 @@
   align-items: center;
   width: 100%;
   min-height: var(--size-touch);
-  padding-inline: var(--space-4);
-  border-radius: var(--shape-sm);
+  padding-inline: var(--space-6);
+  border-radius: 0;
   color: var(--color-on-surface);
   font-size: var(--font-size-body);
   line-height: var(--font-leading-label);
@@ -104,15 +107,10 @@
 }
 
 /* On a wide screen the Menu is one popover family with the picker and the select list (owner,
-   2026-11-01): a 32px corner around rows 8px in, so a row's 24px corner shares its centre with the
-   corner around it. The phone's sheet (below 40rem) keeps its own rows. */
+   2026-11-01): a 32px corner. Its rows are full bleed (2026-11-02), so the corner clips them. */
 @media (width >= 40rem) {
   .menu-list {
     border-radius: var(--shape-2xl);
-  }
-
-  .menu-list .menu-item {
-    border-radius: var(--shape-xl);
   }
 }
 
@@ -157,15 +155,16 @@
   color: var(--color-on-surface-muted);
 }
 
-/* The quick actions at the top of a menu (the player's: Download, Share, Save): a few tiles on the
-   rows' own edge, each a glyph over a word on the container tone. The gap between tiles is the
-   rows' 8px, so the tiles and the pills under them read as one list. */
+/* The quick actions at the top of a menu (the player's: Download, Share, Save): a few tiles, each a
+   glyph over a word on the container tone. The tiles keep an 8px inset and an 8px gap while the
+   rows under them run edge to edge. */
 .menu-tiles {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   grid-auto-flow: column;
   gap: var(--space-2);
   padding-block-end: var(--space-2);
+  padding-inline: var(--space-2);
 }
 
 .menu-tile {
@@ -252,7 +251,7 @@
     max-width: none;
     min-width: 0;
     margin: 0 auto;
-    padding: 0 var(--space-2) max(var(--space-2), var(--safe-bottom));
+    padding: 0 0 max(var(--space-2), var(--safe-bottom));
     border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
     background: var(--sheet-bg);
     box-shadow: var(--sheet-shadow);
@@ -297,12 +296,12 @@
   .menu-sheet > .sheet-head:not([data-has-back]) {
     display: flex;
     flex: none;
-    /* The sheet's corner is 32px, so the title stands well in from it: 24px below the top and 8 + 16 =
-       24px from the edge, the column the rows' icons and words start on (owner, 2026-11-01: "the top
+    /* The sheet's corner is 32px, so the title stands well in from it: 24px below the top and 24px
+       from the edge, the column the rows' icons and words start on (owner, 2026-11-01: "the top
        left corner is too close"). The padding sets the height here, not the app bar's minimum. */
     min-block-size: 0;
     padding-block: var(--space-6) var(--space-2);
-    padding-inline: var(--space-4) var(--space-2);
+    padding-inline: var(--space-6) var(--space-4);
     border-block-end: var(--stroke-hairline) solid var(--color-border-hairline);
   }
 
@@ -317,15 +316,13 @@
     padding-block-end: max(var(--space-4), var(--safe-bottom));
   }
 
-  /* The rows of the sheet are as tall as a select's and a picker's (--size-option) and as round: half
-     that height, so a press or a focus ring is a full pill like the picker's rows (owner, 2026-11-01). */
+  /* The rows of the sheet are as tall as a select's and a picker's (--size-option), edge to edge. */
   .menu-sheet .menu-item {
     min-height: var(--size-option);
-    border-radius: var(--shape-xl);
   }
 
   /* Keys and a screen reader's focus show as the press fill, not a ring, inside the sheet (owner,
-     2026-11-01): the row is a full pill on the sheet surface, so a tint reads and a ring crowds it. */
+     2026-11-01): a tint reads on the sheet surface and a ring crowds the row. */
   .menu-sheet .menu-item:focus-visible {
     outline: none;
     background: var(--ghost-pressed);

@@ -320,9 +320,10 @@
   /* A row is as tall as its words. A row's min-block-size is a size set on purpose, so on a list that
      overflows the tracks shrank to it and a two-line row spilled over its neighbour (2026-10-31). */
   grid-auto-rows: max-content;
-  gap: var(--space-2);
+  gap: 0;
   min-block-size: 0;
-  padding: var(--picker-inset);
+  /* Rows run edge to edge; the list pads above and below only (owner, 2026-11-02). */
+  padding: var(--picker-inset) 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
@@ -335,8 +336,8 @@
   column-gap: var(--space-2);
   min-block-size: var(--size-touch);
   padding-block: var(--space-2);
-  padding-inline: var(--space-4);
-  border-radius: var(--picker-inner-radius);
+  padding-inline: var(--space-6);
+  border-radius: 0;
   cursor: pointer;
   user-select: none;
 }
