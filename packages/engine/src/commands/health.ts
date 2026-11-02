@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import type { CommandRun } from "../context.js";
+import { DAILY_CEILING_USD } from "../cost/ceiling.js";
 import { collectHealth, formatHealth, type WorkflowRun } from "../ops/health.js";
 import {
   readDeploymentCount,
@@ -28,7 +29,6 @@ const USAGE =
   "Usage: singularity health [--offline] [--site <origin>] [--ceiling-usd <n>] [--runs <gh-run-list.json>] [--side-runs <json>] [--perf <perf.json>] [--json]";
 const DEFAULT_SITE = "https://news.someshks.work";
 /** About three full runs a day: more in 24 hours is a loop or a runaway retry. */
-const DEFAULT_CEILING_USD = 5;
 
 /**
  * `singularity health`: faults in runs, narration, data, cost, the live site and its field Web Vitals;
@@ -61,7 +61,7 @@ export const run: CommandRun = async (argv, ctx) => {
     ctx.log.error(`${error instanceof Error ? error.message : "invalid arguments"}. ${USAGE}`);
     return 2;
   }
-  const ceilingUsd = Number(values["ceiling-usd"] ?? DEFAULT_CEILING_USD);
+  const ceilingUsd = Number(values["ceiling-usd"] ?? DAILY_CEILING_USD);
   const site = values.offline ? null : (values.site ?? DEFAULT_SITE).replace(/\/+$/, "");
   if (!(ceilingUsd > 0) || (site !== null && !/^https?:\/\/[^/]+$/.test(site))) {
     ctx.log.error(USAGE);
