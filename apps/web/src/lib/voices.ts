@@ -32,6 +32,47 @@ export function parseVoices(body: unknown): Voice[] | null {
   return rows;
 }
 
+/** Why a voice list could not be read: the device has no connection, or the voice service did not answer. */
+export type VoiceListFailure = "offline" | "unavailable";
+
+/** What an open voice list says when it is short (the default and the saved voice always stay). */
+export const VOICE_LIST_NOTES: Record<VoiceListFailure, string> = {
+  offline: "You're offline. Default and your saved voice stay.",
+  unavailable: "Couldn't load the voice list. Default and your saved voice stay.",
+};
+
+export const VOICE_LIST_TIMEOUT_MS = 10_000;
+export const VOICE_LIST_RETRY_MS = 1500;
+
+export interface VoiceListDeps {
+  fetch: (url: string, init: { signal: AbortSignal }) => Promise<Pick<Response, "ok" | "json">>;
+  online: () => boolean;
+  wait: (ms: number) => Promise<void>;
+}
+
+/**
+ * GET /api/voices, once more if the first try fails (2026-11-02: one weak moment emptied the picker
+ * with nothing to retry). A device with no connection is not retried: it says so at once. After
+ * two failures the answer is "offline" if the connection went while it tried, else "unavailable".
+ */
+export async function fetchVoiceList(
+  deps: VoiceListDeps,
+): Promise<{ body: unknown } | { failure: VoiceListFailure }> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (!deps.online()) return { failure: "offline" };
+    try {
+      const response = await deps.fetch("/api/voices", {
+        signal: AbortSignal.timeout(VOICE_LIST_TIMEOUT_MS),
+      });
+      if (response.ok) return { body: await response.json() };
+    } catch {
+      // Falls through to the retry.
+    }
+    if (attempt === 0) await deps.wait(VOICE_LIST_RETRY_MS);
+  }
+  return { failure: deps.online() ? "unavailable" : "offline" };
+}
+
 /** The voices Default stands for in each host's place: what the engine reads with when none is set. */
 export interface VoiceDefaults {
   voice: string;

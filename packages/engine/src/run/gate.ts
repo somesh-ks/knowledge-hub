@@ -104,6 +104,7 @@ export async function gateStage(deps: RunDeps, options: RunOptions): Promise<Gat
     reason: decision.reason,
     passes,
     source: "gate",
+    ...(since === undefined ? {} : { lookback: true }),
     ...lengthOf(options),
     ...(decision.publishAt && !options.dryRun
       ? { publish_at: decision.publishAt.toISOString() }

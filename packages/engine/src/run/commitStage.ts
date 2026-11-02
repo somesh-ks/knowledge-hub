@@ -3,6 +3,7 @@ import { dirname } from "node:path";
 import {
   type Digest,
   digestRelPath,
+  ListingFingerprintsFile,
   type Outcome,
   podcastVoices,
   type Source,
@@ -20,6 +21,7 @@ import {
   sourceNameMap,
 } from "../curate/inputs.js";
 import { Selection } from "../curate/selectionFile.js";
+import { mergeListings } from "../fetch/listingCheck.js";
 import { type CommitOutcome, commitAndPush } from "../git/commit.js";
 import { fastForwardToRemote } from "../git/fastForward.js";
 import { ALLOWLISTS, findViolations, readChangedPaths } from "../git/guard.js";
@@ -34,11 +36,13 @@ import { recordRun } from "../state/runRecord.js";
 import { recordSourceStats, type SourceCounts } from "../state/sourceStats.js";
 import {
   readLastRun,
+  readListingFingerprints,
   readSeen,
   readSourceStats,
   readTopicJudgments,
   writeJudgments,
   writeLastRun,
+  writeListingFingerprints,
   writeSeen,
   writeSourceStats,
   writeTopicJudgments,
@@ -418,6 +422,20 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
         `The digest could not be saved to the content store, so nothing was committed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
+  }
+  // The listings this run scraped, stored once the digest is in the content store: a run that fails
+  // before that is recorded failed with whatever state/ holds, and its listings were never delivered.
+  const scraped: ListingFingerprintsFile[] = [];
+  for (const pass of plan.passes) {
+    const raw = await readJsonIfExists(passFile(root, pass.id, "listings.json"), "listings.json");
+    const parsed = ListingFingerprintsFile.safeParse(raw);
+    if (parsed.success) scraped.push(parsed.data);
+  }
+  if (scraped.some((file) => Object.keys(file.sources).length > 0)) {
+    await writeListingFingerprints(
+      root,
+      mergeListings(await readListingFingerprints(root), scraped, now),
+    );
   }
   const committed = await commitAndPush({
     root,

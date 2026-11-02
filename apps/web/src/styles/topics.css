@@ -535,10 +535,6 @@
   display: none;
 }
 
-.topics li[data-gone] {
-  display: none;
-}
-
 /* The page for a topic not built yet (D142) shows none of its stand-ins before savedView.ts fills
    it, a moment after it opens. */
 [data-shell]:not([data-filled]) .manage-fields {
@@ -1491,8 +1487,8 @@
   }
 }
 
-.source-row[hidden],
-.source-row[data-gone] {
+/* A removed source leaves by the Row exit (row-exit.css). */
+.source-row[hidden] {
   display: none;
 }
 

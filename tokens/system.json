@@ -572,7 +572,6 @@
         "--field-chevron-gap",
         "--shadow-popover",
         "--shape-2xl",
-        "--shape-xl",
         "--size-icon",
         "--size-icon-sm",
         "--size-touch"
@@ -650,7 +649,6 @@
         "--shadow-popover",
         "--shape-2xl",
         "--shape-md",
-        "--shape-sm",
         "--shape-xl",
         "--sheet-bg",
         "--sheet-bg-hover",
@@ -860,20 +858,19 @@
       "id": "drawer",
       "name": "Drawer",
       "kind": "container",
-      "summary": "The island modal: a bottom sheet on a phone, a centred dialog from 40rem, pulled down to dismiss.",
+      "summary": "The island modal for a form: the whole screen on a phone, a panel at the right from 40rem, with Close in the header.",
       "classes": [
         "drawer-scrim",
         "drawer-viewport",
         "drawer-popup",
-        "drawer-panel",
-        "drawer-head"
+        "drawer-panel"
       ],
       "files": [
         "sheets/SheetFrame.tsx",
         "design-system/drawer.ts"
       ],
       "when": [
-        "A React island opens a form over the page, as Generate and Settings do"
+        "A React island opens a form over the page, as Regenerate does"
       ],
       "not": [
         {
@@ -893,7 +890,7 @@
       ],
       "markup": "<SheetFrame open={open} onOpenChange={setOpen} title=\"Create\" closeLabel=\"Close\">...</SheetFrame>",
       "rules": [
-        "Mount SheetFrame; it draws the scrim, viewport, popup, panel and head from drawer.ts.",
+        "Mount SheetFrame; it draws the scrim, viewport, popup and panel from drawer.ts, and the Sheet's head.",
         "Motion uses --duration-sheet-in, --duration-sheet-out and --ease-drawer."
       ],
       "styles": [
@@ -904,19 +901,14 @@
       "tokens": [
         "--color-on-surface",
         "--color-scrim",
-        "--color-surface-raised",
-        "--color-surface-raised-hover",
-        "--color-surface-raised-pressed",
-        "--layout-column",
-        "--layout-dialog",
+        "--color-surface",
+        "--color-surface-hover",
+        "--color-surface-pressed",
         "--sheet-bg",
         "--sheet-bg-hover",
         "--sheet-bg-pressed",
-        "--sheet-max-height",
-        "--sheet-padding",
         "--sheet-radius",
-        "--sheet-shadow",
-        "--size-touch"
+        "--sheet-shadow"
       ]
     },
     {
@@ -1310,6 +1302,7 @@
       "tokens": [
         "--chip-height",
         "--color-accent-container",
+        "--color-accent-container-pressed",
         "--color-focus-ring",
         "--color-on-accent-container",
         "--color-on-surface",
@@ -3117,6 +3110,62 @@
       "tier": "primitive",
       "type": "duration",
       "light": "150ms"
+    },
+    {
+      "name": "--duration-avatar-hop",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "900ms",
+      "role": "The avatar's hop on a good moment."
+    },
+    {
+      "name": "--duration-avatar-spark",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "1100ms",
+      "role": "The spark that flares on a hop."
+    },
+    {
+      "name": "--duration-avatar-wiggle",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "800ms",
+      "role": "The avatar's wiggle."
+    },
+    {
+      "name": "--duration-avatar-look",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "1500ms",
+      "role": "The avatar glancing aside once."
+    },
+    {
+      "name": "--duration-avatar-blink",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "260ms",
+      "role": "One blink; it blinks twice."
+    },
+    {
+      "name": "--duration-avatar-shake",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "500ms",
+      "role": "The avatar's head shake on a refusal."
+    },
+    {
+      "name": "--duration-avatar-bob",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "1500ms",
+      "role": "One bob of the avatar while audio plays."
+    },
+    {
+      "name": "--duration-avatar-work",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "2400ms",
+      "role": "One glance of the avatar while something is being made."
     },
     {
       "name": "--duration-sheet-in",
@@ -5002,6 +5051,48 @@
       "type": "number",
       "light": "0.02",
       "role": "Fraction of an item's length a scrub must move back before the same detent re-arms."
+    },
+    {
+      "name": "--hue-rail",
+      "tier": "component",
+      "type": "dimension",
+      "light": "1rem",
+      "role": "The hue slider's rail: the whole spectrum, one rem thick."
+    },
+    {
+      "name": "--hue-thumb",
+      "tier": "component",
+      "type": "dimension",
+      "light": "1.75rem",
+      "role": "The hue slider's thumb, in the colour it has picked."
+    },
+    {
+      "name": "--hue-swatch",
+      "tier": "component",
+      "type": "dimension",
+      "light": "4rem",
+      "role": "The round swatch that floats above the thumb while it is held."
+    },
+    {
+      "name": "--hue-swatch-lift",
+      "tier": "component",
+      "type": "dimension",
+      "light": "3.25rem",
+      "role": "How far the swatch's centre rides above the rail's centre."
+    },
+    {
+      "name": "--hue-lightness",
+      "tier": "component",
+      "type": "number",
+      "light": "0.72",
+      "role": "OKLCH lightness of the rail and the thumb: one value, so every hue reads as equally bright."
+    },
+    {
+      "name": "--hue-chroma",
+      "tier": "component",
+      "type": "number",
+      "light": "0.17",
+      "role": "OKLCH chroma of the rail and the thumb."
     },
     {
       "name": "--segmented-height",

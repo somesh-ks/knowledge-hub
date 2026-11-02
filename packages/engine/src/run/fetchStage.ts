@@ -2,6 +2,7 @@ import { rm } from "node:fs/promises";
 import { type SourceStatsFile, stockholmDate, VOICE_LIMITS } from "@singularity/core";
 import { loadJudgments } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
+import { ListingMemory } from "../fetch/listingCheck.js";
 import { poolRelPath, writePool } from "../fetch/pool.js";
 import type { SourceResult } from "../fetch/types.js";
 import { DEFAULT_CAP } from "../prefilter/prefilter.js";
@@ -14,7 +15,13 @@ import {
 import { loadSchedule } from "../schedule/store.js";
 import { loadSources } from "../sources/registry.js";
 import { applySourceResults, overlayHealth, toHealthFile } from "../state/sourceHealth.js";
-import { readSeen, readSourceHealth, readSourceStats, writeSourceHealth } from "../state/store.js";
+import {
+  readListingFingerprints,
+  readSeen,
+  readSourceHealth,
+  readSourceStats,
+  writeSourceHealth,
+} from "../state/store.js";
 import { withRunJudgments } from "./artifacts.js";
 import { StageFailure } from "./errors.js";
 import { type GatherResult, gatherPool } from "./gatherPool.js";
@@ -154,8 +161,22 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
       : plan.passes.find((pass) => pass.kind === "regular");
   const planned = samplePass ? await planSample(deps, deps.now()) : null;
   const schedule = await loadSchedule(deps.root);
+  // What the last scrape of each Firecrawl listing saw: a page whose links have not moved is not
+  // scraped again. Without a Firecrawl key nothing is scraped, so there is nothing to remember. A
+  // replacement, an on-demand run or a `--since` lookback asks for stories the last run already took
+  // from those pages, so it scrapes them all, as the weekly pass does.
+  const listings =
+    deps.fetch.firecrawlKey &&
+    plan.replaces === undefined &&
+    plan.mode === "scheduled" &&
+    plan.lookback !== true
+      ? new ListingMemory(await readListingFingerprints(deps.root))
+      : undefined;
+  const setup = listings ? { ...deps.fetch, listings } : deps.fetch;
   for (const pass of plan.passes) {
     const now = deps.now();
+    // A retry that reuses this pass leaves nothing of an earlier attempt's scrapes behind.
+    await rm(passFile(deps.root, pass.id, "listings.json"), { force: true });
     const sampling = pass === samplePass && planned !== null;
     // The sample's own feed reads need nothing from the pool, so they run beside the pass's fetch.
     // readFeeds never rejects: each read's failure is its result.
@@ -173,7 +194,7 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
       id: pass.id,
       kind: pass.kind,
       window: { from: new Date(pass.window.from), to: new Date(pass.window.to) },
-      setup: deps.fetch,
+      setup,
       ...(sampling && planned ? { probeGeneral: planned.readPlan.probeGeneral } : {}),
       ...poolCapOf(lengthMinutesFor(schedule, pass.kind, plan.mode, plan.length_minutes)),
     });
@@ -205,6 +226,12 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
           ),
         ),
       );
+    }
+
+    // Handed to the commit stage, which stores them: a run that fails before then has delivered
+    // none of these pages' articles, so it must not make the next run skip them.
+    if (!plan.dry_run && listings) {
+      await writeJson(passFile(deps.root, pass.id, "listings.json"), listings.scraped());
     }
 
     const failed = gathered.results.filter((result) => !result.ok);

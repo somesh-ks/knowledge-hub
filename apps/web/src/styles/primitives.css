@@ -604,11 +604,19 @@
   color: var(--color-on-accent-container);
 }
 
-/* The press layer is the pill's shape, inside the track's inset. No press scale on a label. */
+/* The press layer is the pill's shape, inside the track's inset. No press scale on a label. It lies
+   under the label (the tab is its own stacking context, so z-index -1 stays inside it) but over the
+   track's pill: a state fill is opaque since D317, and drawn over the label it hid the words on every
+   tap (owner, 2026-11-02). */
+.segmented-nav-tab {
+  isolation: isolate;
+}
+
 .segmented-nav-tab::after {
   content: "";
   position: absolute;
   inset: var(--segmented-padding);
+  z-index: var(--z-beneath);
   border-radius: var(--radius-round);
   pointer-events: none;
 }
@@ -652,6 +660,11 @@
 
 .segmented-nav-tab:active::after {
   background: var(--ghost-pressed);
+}
+
+/* The chosen tab's press steps the pill's own tone, not the track's. */
+.segmented-nav-tab[aria-selected="true"]:active::after {
+  background: var(--color-accent-container-pressed);
 }
 
 .segmented-nav-tab:focus-visible {
