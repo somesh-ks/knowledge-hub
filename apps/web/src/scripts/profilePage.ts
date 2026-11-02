@@ -1,12 +1,14 @@
 /**
- * The profile page's one script: the avatar picker, opened by the edit button on the avatar. It
- * offers the shapes the current mood has (--av-shapes, so a new mood needs no change here), marks
- * the one in use, and stores a pick in the preferences. The avatar in the bar and on this page redraw from the same store (accountAvatar.ts).
+ * The profile page's one script: the avatar picker, a bottom sheet opened by the edit button on the
+ * avatar. It offers the shapes the current mood has (--av-shapes, so a new mood needs no change
+ * here), marks the one in use, and stores a pick in the preferences. The avatar in the bar and on
+ * this page redraw from the same store (accountAvatar.ts).
  */
 import { AVATAR_SHAPES, avatarClass, avatarMarkup } from "../design-system/avatar";
 import { getPreferences } from "../player/core/preferences";
 import { currentShape, offeredShapes } from "./accountAvatar";
 
+// The sheet itself is the menu's (pull to dismiss, Close and focus back are heroMenu.ts).
 const PICKER = "[data-avatar-picker]";
 const EDIT = "[data-avatar-edit]";
 const PANEL = "[data-avatar-panel]";
@@ -50,23 +52,24 @@ function draw(picker: HTMLElement): void {
 
 function mount(picker: HTMLElement): () => void {
   draw(picker);
-  const onClick = (event: Event): void => {
-    const choice = (event.target as Element).closest<HTMLElement>("[data-shape]");
-    if (choice?.dataset.shape) getPreferences().set({ avatar: choice.dataset.shape });
-  };
-  picker.addEventListener("click", onClick);
-  // The shapes stay behind the edit button on the avatar's corner; the same button closes them.
   const edit = document.querySelector<HTMLElement>(EDIT);
   const panel = document.querySelector<HTMLElement>(PANEL);
-  const onEdit = (): void => {
-    if (!edit || !panel) return;
-    const open = edit.getAttribute("aria-expanded") !== "true";
-    edit.setAttribute("aria-expanded", String(open));
-    edit.setAttribute("aria-label", open ? "Done" : "Change picture");
-    panel.hidden = !open;
+  // A pick is a single choice, like a select's: it sets the avatar and the sheet closes.
+  const onClick = (event: Event): void => {
+    const choice = (event.target as Element).closest<HTMLElement>("[data-shape]");
+    if (!choice?.dataset.shape) return;
+    getPreferences().set({ avatar: choice.dataset.shape });
+    panel?.hidePopover();
   };
-  edit?.addEventListener("click", onEdit);
-  // A pick, or a new mood (it has its own shapes), draws the row again.
+  picker.addEventListener("click", onClick);
+  // The edit button says whether its sheet is open; an open sheet starts on the shape in use.
+  const onToggle = (event: Event): void => {
+    const open = (event as ToggleEvent).newState === "open";
+    edit?.setAttribute("aria-expanded", String(open));
+    if (open) picker.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus();
+  };
+  panel?.addEventListener("toggle", onToggle);
+  // A new mood has its own shapes: the row is drawn again.
   const stop = getPreferences().subscribe(() => draw(picker));
   const moodWatch = new MutationObserver(() => draw(picker));
   moodWatch.observe(document.documentElement, {
@@ -75,7 +78,7 @@ function mount(picker: HTMLElement): () => void {
   });
   return () => {
     picker.removeEventListener("click", onClick);
-    edit?.removeEventListener("click", onEdit);
+    panel?.removeEventListener("toggle", onToggle);
     stop();
     moodWatch.disconnect();
   };
@@ -91,6 +94,8 @@ let installed = false;
 export function installProfilePage(): void {
   if (installed) return;
   installed = true;
+  // The sheet is the menu's popover: its pull to dismiss, Close and focus back come from here.
+  void import("./heroMenu").then((module) => module.installHeroMenu());
   let mounted: { picker: HTMLElement; stop: () => void } | null = null;
 
   const unmount = (): void => {

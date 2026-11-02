@@ -625,6 +625,7 @@
       "styles": [
         "library.css",
         "menu.css",
+        "profile.css",
         "queue.css",
         "story-controls.css",
         "topics.css"

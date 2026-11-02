@@ -22,31 +22,29 @@
   place-items: center;
 }
 
-/* The edit button sits on the avatar's bottom right corner, half over it. */
+/* The edit button sits on the avatar's bottom right corner, half over it. From 40rem the shape sheet
+   hangs under it by its own anchor name: --hero-more is also the player bar's, so it is not shared. */
 .profile-edit {
+  anchor-name: --profile-edit;
   position: absolute;
   inset-inline-end: calc(var(--space-2) * -1);
   inset-block-end: calc(var(--space-2) * -1);
 }
 
-/* A pencil to start, a check to finish: the same button, the glyph follows its state. */
-.profile-edit[aria-expanded="false"] [data-icon="check"],
-.profile-edit[aria-expanded="true"] [data-icon="pencilSimple"] {
-  display: none;
-}
-
-/* The button fills its row (button.css), so the row is the width of the settings controls. */
-.profile-login {
-  max-inline-size: var(--settings-control-width);
+/* The button hugs its label (owner, 2026-11-02); button.css fills the row, so this is one class up. */
+.profile .profile-login {
+  width: auto;
   margin-block-end: var(--space-6);
-}
-
-[data-avatar-panel][hidden] {
-  display: none;
 }
 
 .profile-face:not([data-ready]) {
   visibility: hidden;
+}
+
+/* The sheet is the menu's popover (menu.css). */
+.menu-list.profile-picker {
+  position-anchor: --profile-edit;
+  width: min(22rem, calc(100vw - var(--space-8)));
 }
 
 .profile-shapes {
@@ -54,7 +52,7 @@
   grid-template-columns: repeat(auto-fill, minmax(5rem, 1fr));
   justify-items: center;
   gap: var(--space-2);
-  padding: var(--space-4) 0;
+  padding: var(--space-4);
 }
 
 .profile-shape {

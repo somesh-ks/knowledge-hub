@@ -275,3 +275,30 @@ test.describe("settings page, axe", () => {
     }
   });
 });
+
+test.describe("profile page", () => {
+  // The bug it prevents: a bundled page script runs once per session, so the picker worked on the first
+  // visit to /profile and was an empty, dead row on every visit after it, reached by a link.
+  test("the edit button's sheet changes the avatar, on a first visit and on a second", async ({
+    page,
+  }) => {
+    await page.goto("/settings");
+    const toProfile = async () => {
+      await page.getByRole("link", { name: "Your profile", exact: true }).click();
+      await page.getByRole("button", { name: "Change picture" }).click();
+      await expect(page.getByRole("dialog", { name: "Avatar" })).toBeVisible();
+    };
+    await toProfile();
+    const sheet = page.getByRole("dialog", { name: "Avatar" });
+    const second = sheet.locator("[data-shape]").nth(1);
+    const shape = await second.getAttribute("data-shape");
+    await second.click();
+    await expect(sheet).toBeHidden();
+    expect((await stored(page)).avatar).toBe(shape);
+
+    await settingsLink(page).click();
+    await toProfile();
+    await expect(sheet.locator("[data-shape]")).not.toHaveCount(0);
+    await expect(sheet.locator(`[data-shape="${shape}"]`)).toHaveAttribute("aria-pressed", "true");
+  });
+});
