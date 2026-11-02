@@ -10,34 +10,55 @@ export const FORCE_SCRAPE_DAYS = 7;
 const PROBE_TIMEOUT_MS = 10_000;
 const PROBE_MAX_BYTES = 2_000_000;
 const DAY_MS = 86_400_000;
-const HREF = /<a\s[^>]*?href\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
+const ANCHOR = /<a\b([^>]*)>/gi;
+/** The exact `href` attribute: never `data-href`, whatever order they come in. */
+const HREF_ATTR = /(?:^|\s)href\s*=\s*(?:"([^"]*)"|'([^']*)')/i;
 
-/**
- * A fingerprint of a page's article links: every link to another page, resolved against the page
- * and cut at its query and fragment, then sorted so a reshuffled listing is not a change. Null
- * when the page holds fewer than three, which means the list is drawn by script.
- */
-export function fingerprintLinks(html: string, pageUrl: string): string | null {
-  const links = new Set<string>();
-  for (const match of html.matchAll(HREF)) {
-    const href = (match[1] ?? match[2] ?? "").trim();
-    if (href === "" || href.startsWith("#") || /^(mailto|tel|javascript):/i.test(href)) continue;
-    let resolved: URL;
-    try {
-      resolved = new URL(href, pageUrl);
-    } catch {
-      continue;
-    }
-    if (resolved.protocol !== "https:" && resolved.protocol !== "http:") continue;
+/** A link as the fingerprint holds it: absolute, without query or fragment. Null for a non-page link. */
+export function cutLink(href: string, pageUrl: string): string | null {
+  const text = href.trim();
+  if (text === "" || text.startsWith("#") || /^(mailto|tel|javascript):/i.test(text)) return null;
+  try {
+    const resolved = new URL(text, pageUrl);
+    if (resolved.protocol !== "https:" && resolved.protocol !== "http:") return null;
     resolved.hash = "";
     resolved.search = "";
-    links.add(resolved.href);
+    return resolved.href;
+  } catch {
+    return null;
   }
-  if (links.size < MIN_LISTING_LINKS) return null;
-  return createHash("sha256")
-    .update([...links].sort().join("\n"))
-    .digest("hex")
-    .slice(0, 16);
+}
+
+/** Every distinct link of a page's anchors, cut and sorted, so a reshuffled listing is not a change. */
+export function pageLinks(html: string, pageUrl: string): string[] {
+  const links = new Set<string>();
+  for (const anchor of html.matchAll(ANCHOR)) {
+    const attr = HREF_ATTR.exec(anchor[1] ?? "");
+    const link = cutLink(attr?.[1] ?? attr?.[2] ?? "", pageUrl);
+    if (link !== null) links.add(link);
+  }
+  return [...links].sort();
+}
+
+/** A short hash of a page's links; null under three links, which means the list is drawn by script. */
+export function fingerprintLinks(html: string, pageUrl: string): string | null {
+  const links = pageLinks(html, pageUrl);
+  return links.length < MIN_LISTING_LINKS ? null : hashLinks(links);
+}
+
+const hashLinks = (links: readonly string[]): string =>
+  createHash("sha256").update(links.join("\n")).digest("hex").slice(0, 16);
+
+/**
+ * True when the page's links hold at least one of the articles the scrape found. Three stable
+ * navigation links pass the minimum above on a page that draws its articles in the browser; a
+ * fingerprint of those would never move, so it is kept only when it covers a real article.
+ */
+export function coversEntries(links: ReadonlySet<string>, entryUrls: readonly string[]): boolean {
+  return entryUrls.some((url) => {
+    const cut = cutLink(url, url);
+    return cut !== null && links.has(cut);
+  });
 }
 
 /**
@@ -75,9 +96,13 @@ export class ListingMemory {
 export interface ListingProbe {
   /** The page's fingerprint, or null when the direct read failed or the page told us nothing. */
   hash: string | null;
+  /** The links behind the fingerprint, for checking that it covers the scrape's articles. */
+  links: ReadonlySet<string> | null;
   /** True when the links match the last scrape, so the scrape can be skipped. */
   unchanged: boolean;
 }
+
+const NO_PROBE: ListingProbe = { hash: null, links: null, unchanged: false };
 
 /**
  * Read the page directly, which costs no credit, and compare its links with the last scrape's. Any
@@ -99,11 +124,12 @@ export async function probeListing(
       maxBytes: PROBE_MAX_BYTES,
       retries: 0,
     });
-    if (page.status >= 400) return { hash: null, unchanged: false };
-    const hash = fingerprintLinks(page.text, page.url || pageUrl);
-    if (hash === null) return { hash: null, unchanged: false };
-    return { hash, unchanged: memory.unchanged(source.id, hash, now) };
+    if (page.status >= 400) return NO_PROBE;
+    const links = pageLinks(page.text, page.url || pageUrl);
+    if (links.length < MIN_LISTING_LINKS) return NO_PROBE;
+    const hash = hashLinks(links);
+    return { hash, links: new Set(links), unchanged: memory.unchanged(source.id, hash, now) };
   } catch {
-    return { hash: null, unchanged: false };
+    return NO_PROBE;
   }
 }

@@ -5,7 +5,7 @@ import { type HttpClient, HttpError } from "../http.js";
 import { buildItems, type RawItem } from "../normalize/buildItem.js";
 import { fetchAlexandriaAnthropic, VIA_ALEXANDRIA_ANTHROPIC } from "./alexandriaSource.js";
 import { extractEntries } from "./firecrawlExtract.js";
-import { probeListing } from "./listingCheck.js";
+import { coversEntries, probeListing } from "./listingCheck.js";
 import { type SourceFetcher, SourceSkipped } from "./types.js";
 
 export const FIRECRAWL_BASE_URL = "https://api.firecrawl.dev";
@@ -140,22 +140,34 @@ export const fetchFirecrawl: SourceFetcher = async (source, window, deps): Promi
   const config = deps.firecrawl;
   if (!config?.apiKey) throw new SourceSkipped("FIRECRAWL_API_KEY is not set");
   const memory = deps.listings;
-  if (!memory) return readListing(source, window, deps);
+  // Alexandria reads typed posts, not the page: a page that has not moved says nothing about them.
+  if (!memory || source.options.via === VIA_ALEXANDRIA_ANTHROPIC) {
+    return (await readListing(source, window, deps)).items;
+  }
   // A free direct read first: the same links as the last scrape mean no new article to find, and
-  // the run spends no credit. Remembered only once the scrape below succeeded.
+  // the run spends no credit. Remembered only once the scrape below succeeded, and only when the
+  // links hold an article the scrape found (a page drawn in the browser shows navigation alone).
   const pageUrl = source.feed_url ?? source.url;
   const probe = await probeListing(memory, source, pageUrl, deps.http, deps.now(), deps.signal);
   if (probe.unchanged) return [];
-  const items = await readListing(source, window, deps);
-  if (probe.hash !== null) memory.remember(source.id, probe.hash, deps.now());
-  return items;
+  const read = await readListing(source, window, deps);
+  if (probe.hash !== null && probe.links && coversEntries(probe.links, read.entryUrls)) {
+    memory.remember(source.id, probe.hash, deps.now());
+  }
+  return read.items;
 };
+
+/** The items of a listing, and the addresses of every entry the scrape found on it (quiet or not). */
+interface ListingRead {
+  items: Item[];
+  entryUrls: string[];
+}
 
 async function readListing(
   source: Parameters<SourceFetcher>[0],
   window: Parameters<SourceFetcher>[1],
   deps: Parameters<SourceFetcher>[2],
-): Promise<Item[]> {
+): Promise<ListingRead> {
   const config = deps.firecrawl;
   if (!config?.apiKey) throw new SourceSkipped("FIRECRAWL_API_KEY is not set");
   const apiKey = config.apiKey;
@@ -164,7 +176,7 @@ async function readListing(
     // Opt-in per source (D-record in the PR): typed posts with real dates. Any failure falls
     // through to the page scrape below, so a provider outage costs one more listing, not the source.
     const typed = await viaAlexandria(source, window, deps, apiKey, config.baseUrl);
-    if (typed) return typed;
+    if (typed) return { items: typed, entryUrls: [] };
   }
   const load = (): Promise<ScrapedPage> =>
     scrapePage(pageUrl, { apiKey, baseUrl: config.baseUrl }, deps.http, deps.signal);
@@ -192,15 +204,21 @@ async function readListing(
     ...buildItems(headings, { source, window, fetchedAt, keepFragment: true }),
     ...buildItems(undated, { source, window, fetchedAt, undated: "keep" }),
   ];
-  if (items.length > 0) return items;
+  const entryUrls = [...dated, ...headings, ...undated].flatMap((entry) =>
+    entry.url ? [entry.url] : [],
+  );
+  if (items.length > 0) return { items, entryUrls };
   // Entries found but none in the window is a quiet source, not a broken one. Failing only when
   // the listing yields no candidates at all (empty, blocked or restructured) keeps health honest.
-  if (dated.length + headings.length + undated.length > 0) return items;
+  if (entryUrls.length > 0) return { items, entryUrls };
   if (page.markdown.trim() === "") throw new Error(FIRECRAWL_NO_ITEMS);
 
   const summary = cleanMarkdown(page.markdown);
   // A page of nothing but furniture cleans to nothing: a broken source, not an empty story.
   if (summary === "") throw new Error(FIRECRAWL_NO_ITEMS);
   const whole: RawItem = { url: pageUrl, title: page.title ?? source.name, summary };
-  return buildItems([whole], { source, window, fetchedAt, undated: "keep" });
+  return {
+    items: buildItems([whole], { source, window, fetchedAt, undated: "keep" }),
+    entryUrls: [],
+  };
 }

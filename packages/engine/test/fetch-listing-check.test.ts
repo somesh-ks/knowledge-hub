@@ -32,7 +32,12 @@ describe("a listing whose links have not moved is not scraped", () => {
     const read = () => fetchFirecrawl(source, WIDE, deps);
     return { read, scrapes: () => fake.calls.filter((url) => url === SCRAPE).length };
   }
-  const links = ["/blog/a", "/blog/b", "/blog/c"];
+  // The fixture's scrape finds these three posts, so a page that links them is one the check can trust.
+  const links = [
+    "/blog/command-palette-anchor-positioning",
+    "/blog/interruptible-transitions",
+    "/blog/design-token-pipeline",
+  ];
 
   it("scrapes the first time and when a link appears, and skips in between", async () => {
     const memory = new ListingMemory(EMPTY_LISTING_FINGERPRINTS);
@@ -40,7 +45,7 @@ describe("a listing whose links have not moved is not scraped", () => {
     expect((await first.read()).length).toBeGreaterThan(0);
     expect(first.scrapes()).toBe(1);
 
-    const same = run(html(...[...links].reverse(), "/blog/a?utm=x"), memory);
+    const same = run(html(...[...links].reverse(), `${links[0]}?utm=x`), memory);
     expect(await same.read()).toEqual([]);
     expect(same.scrapes()).toBe(0);
 
@@ -71,7 +76,24 @@ describe("a listing whose links have not moved is not scraped", () => {
     expect(week.scrapes()).toBe(1);
   });
 
-  it("gives no fingerprint to a page built in the browser", () => {
+  it("does not remember a page whose links hold none of the scrape's articles", async () => {
+    // Three navigation links pass the minimum, but the posts are drawn in the browser: a fingerprint
+    // of the navigation would never move and every new post would be missed.
+    const memory = new ListingMemory(EMPTY_LISTING_FINGERPRINTS);
+    const navOnly = run(html("/", "/pricing", "/about"), memory);
+    await navOnly.read();
+    expect(memory.toFile([source]).sources).toEqual({});
+    const again = run(html("/", "/pricing", "/about"), memory);
+    await again.read();
+    expect(again.scrapes()).toBe(1);
+  });
+
+  it("follows href, never a data-href that comes first, and gives none to a page drawn in the browser", () => {
+    const tricky = (target: string): string =>
+      `<a data-href="/old" href="${target}">a</a><a href="/b">b</a><a href="/c">c</a>`;
+    expect(fingerprintLinks(tricky("/new"), PAGE)).not.toBe(
+      fingerprintLinks(tricky("/other"), PAGE),
+    );
     expect(fingerprintLinks(html("/a", "/b"), PAGE)).toBeNull();
   });
 });
