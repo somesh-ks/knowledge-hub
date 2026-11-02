@@ -14,7 +14,7 @@ Updated 2026-11-02. Rewrite, never append.
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews a PR once when it is ready, by tier (D192, D292).
 - Styles (D306, D310, D314, D315, D319): Halloween and Expressive, a Hue slider, live covers and neutrals from a recipe per style (`styleRecipe.ts`). closed when: Somesh OKs the stills ([ghost states](https://claude.ai/artifact/MVNhZmVMk4kYNu2tJbHRPp)), a style change on his phone recolours every page, cover and header light with no flash and survives a restart, and a Library toggle or toast press is deeper than the hover. Disabled controls stay still ([stills](https://claude.ai/artifact/Kc7RaKbskg5UeGULwwKtU8)).
 
-- Avatar, profile, Settings regroup (D335). closed when: Somesh OKs the stills and Autoplay under Sound and voice. Open: Mood (D327).
+- Avatar, profile, Settings regroup (D335). closed when: Somesh OKs the stills (D342: Preferences holds Autoplay and speed). Open: Mood (D327).
 
 ## Tests
 

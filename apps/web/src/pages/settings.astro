@@ -56,10 +56,10 @@ const PODCAST: Row[] = [
     hint: sourcesSummary({ total: manage.sources.length }),
     data: { summary: "sources", sources: JSON.stringify(spots) },
   },
-  // The route stays /settings/preferences: the page is the podcast's structure alone now (D326).
+  // Autoplay and the default speed: kept on this device, as the player reads them.
   {
     href: "/settings/preferences",
-    label: "Structure",
+    label: "Preferences",
     data: {},
   },
 ];

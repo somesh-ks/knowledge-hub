@@ -40,7 +40,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D167 | One shape per control | amends D72 |
 | D168 | Catch up, bolt, swipe toasts | amends D52 |
 | D169 | Queue gestures | amends D126 |
-| D170 | Podcast structure | built (D176, D182, D191); phase 3 closed by D241 |
+| D170 | Podcast structure | partly superseded by D342; built (D176, D182, D191); phase 3 closed by D241 |
 | D171 | Richer covers | amends D121 |
 | D172 | Store reads keep a copy | amends D149 |
 | D173 | Content is data in one repository; builds ship code only | active |
@@ -51,7 +51,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D179 | Every name says Singularity; saved state moves once | active |
 | D180 | Eval on label only | amends D148 |
 | D181 | Claude writes only | active |
-| D182 | Block prompts | active |
+| D182 | Block prompts | partly superseded by D342; active |
 | D183 | Costs read the bill | active |
 | D184 | Podcast lookback | superseded by D215 |
 | D185 | Repo config to store | superseded by D296 |
@@ -60,7 +60,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D188 | Script-drawn markup | active |
 | D189 | Catalogue route | superseded by D224 |
 | D190 | Votes tune weights | partly superseded by D194 for topics |
-| D191 | Structure by profile | amends D170, D176 |
+| D191 | Structure by profile | partly superseded by D342; amends D170, D176 |
 | D192 | CodeRabbit review agent | amends D143; amended by D292 |
 | D193 | Dock chevron; one-episode speed | amends D102 |
 | D194 | Topic weight removed | supersedes D190 |
@@ -189,7 +189,8 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D332 | A scheduled run waits at the gate when the last 24 hours cost over $5 | amends D139 |
 | D333 | The short-text Claude steps run Haiku medium, then Haiku high, then Sonnet medium | amends D308, D324; amended by D334 |
 | D334 | Every Claude step starts at Haiku medium, the podcast script included | amends D333 |
-| D335 | The avatar leads to a profile page; Settings is Podcast settings, App settings and About | amends D129, D281, D299 |
+| D335 | The avatar leads to a profile page; Settings is Podcast settings, App settings and About | amends D129, D281, D299; amended by D342 |
 | D336 | A cover no longer flies between its card and the page's hero | partly supersedes D271, D280 |
+| D342 | The app no longer edits the podcast structure; Preferences holds autoplay and the default speed | partly supersedes D170, D182, D191; amends D335 |
 
 ---

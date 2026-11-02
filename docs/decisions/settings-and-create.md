@@ -379,3 +379,12 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Revisit if: Google sign-in lands (the account photo replaces the shape), or the Playback section on Sound and voice is not where the owner looks for it.
 - Amends: D129, D281, D299.
 
+## D342: the app no longer edits the podcast structure; Preferences holds autoplay and the default speed
+
+- Date: 2026-11-02 (the owner: "remove the podcast structure as a feature totally, and rename the structure list item on settings page to preferences, and then put both podcast autoplay and then default playback speed inside that").
+- Decision: the structure editor leaves the app: the Listener profile card, the block list, Reorder, Add section, the block sheet and its prompt, and the Daily and Weekly "Podcast structure" link. The Settings row Structure becomes Preferences, at the same address (`/settings/preferences`), and holds Podcast autoplay and Default playback speed, kept on the device as the player reads them. Sound and voice loses its Playback section. The engine and core are untouched: they keep reading the stored structure, now a fixed default, and `structure.set` and `structure.prompt` stay valid ops.
+- Why: a listener profile and a block list were a developer's controls in a reader's app; two playback settings need a home, and the row already exists.
+- Rejected: removing the structure from the engine as well (a pipeline change that alters every episode, wanted only on the owner's word); a new row for the two settings (the owner named the existing one).
+- Context changed: the owner no longer wants to shape episodes from the app.
+- Revisit if: he wants control over what an episode holds again; then the editor comes back from git history (`structureEditor.ts`, `structureView.ts`, `structurePage.ts` before this change).
+- Supersedes: D170, D182 and D191 on the app side. Amends: D335.

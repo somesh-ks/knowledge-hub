@@ -67,7 +67,7 @@ test.describe("the Settings index", () => {
       ["Daily", "Every other day at 7", "/settings/daily"],
       ["Weekly", "Sundays at 7", "/settings/weekly"],
       ["Sources", "", "/settings/categories"],
-      ["Structure", "", "/settings/preferences"],
+      ["Preferences", "", "/settings/preferences"],
       ["Appearance", null, "/settings/appearance"],
       ["Sound and voice", null, "/settings/sound"],
     ] as const;

@@ -5,8 +5,8 @@ Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reason
 ## Requirements
 
 ### Structure
-- Settings has two levels (D51): an index, a page per job. Sections are 18 to 20px regular H2s (D125): Podcast settings (Daily, Weekly, Sources, Structure at `/settings/preferences`), App settings (Appearance, Sound and voice, Haptics with On or Off, Notifications) and About: three rows, no head, and a small centred "Last updated on 2 Nov, 2026" on a phone (D335).
-- `/settings/appearance`: Theme, Mood and, for a mood only, a full-width Hue row (D328). `/settings/sound`: Interface sounds (switch, Volume), Podcast voices and Playback (autoplay, default speed); `/settings/sounds` and `/settings/voice` redirect. `/settings/haptics`: a switch.
+- Settings has two levels (D51): an index, a page per job. Sections are 18 to 20px regular H2s (D125): Podcast settings (Daily, Weekly, Sources, Preferences), App settings (Appearance, Sound and voice, Haptics with On or Off, Notifications) and About: three rows, no head, and a small centred "Last updated on 2 Nov, 2026" on a phone (D335).
+- `/settings/appearance`: Theme, Mood and, for a mood only, a full-width Hue row (D328). `/settings/sound`: Interface sounds (switch, Volume) and Podcast voices; `/settings/sounds` and `/settings/voice` redirect. `/settings/haptics`: a switch.
 - `/profile` (D335): no heading; the avatar with an edit button that opens the mood's shapes (`--av-shapes`) in a bottom sheet; a Log in button (a dummy until Google); Downloads and Saved. It reacts to offline, a run, playing, success, failure and a favourite (`accountAvatar.ts`; not under reduced motion).
 - Link rows end in their value, in quiet ink, 64px tall.
 - Each group of rows is a card: `.card-group` (primitives.css) on `.rows`; contents concentric (`component.card`). Heads share the rows' edge. The install offer is accent-toned. About: About, Privacy, Change log (`/settings/changelog`) and, on a phone, Last updated, at the side column's foot from 64rem (`AppNav`).
@@ -25,7 +25,7 @@ Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reason
 - A topic's page: a card (art, name, what counts, a More menu with Edit and, for the owner's topics, Delete; Listen in), no switch (D102) and no tabs; under it the search, type chips, sources and Suggested sources, each name opening its editor (D83); past seven they fold (D103).
 - A topic has no weight and no Perspective slider (D194, #514); a muted topic stays muted.
 - The type mix is global (D129): `format_mix` in `config/preferences.json`, op `mix.set`, applied by the engine to every story (`applyFormatMix`). The app no longer offers its sliders (D335); a stored mix still applies.
-- Structure (`/settings/preferences`): one block list for every type under a Profile select (presets; Custom on edit; D191), Reorder and Edit; emptied, an empty state, nothing saved; [design](../design/podcast-structure.md), D182.
+- `/settings/preferences`: Podcast autoplay and Default playback speed, kept on the device. The app has no structure editor (D342); the engine reads the stored structure as a default.
 - Blocked sources: the field filters; Block opens a sheet.
 - Search filters every source as a flat list, or a topic's. Type chips: any number, none means all. State is in the URL. A source's type is the rule's when added, then Jev within 3 s (D124).
 - Edit: every topic takes a new name; what counts edits except on a built-in category (D57, D64, D71). The add topic panel takes Name, Description and Scope, with suggested sources, each with a plus; a topic's page lists up to five catalogue feeds that fit (D75).
@@ -53,7 +53,7 @@ Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reason
 ## Code
 - `apps/web/src/pages/settings.astro`, `settings/about.astro`, `lib/changelog.ts`
 - `apps/web/src/pages/settings/categories.astro`, `categories/[id].astro`, `preferences.astro`, `voice.astro`
-- `apps/web/src/scripts/autosave.ts`, `pageLeaving.ts`, `structureEditor.ts`, `lib/outbox.ts`
+- `apps/web/src/scripts/autosave.ts`, `pageLeaving.ts`, `lib/outbox.ts`
 - `apps/web/src/scripts/settingsPage.ts`
 - `apps/web/src/pages/api/config.ts`, `server/configView.ts`
 - `packages/core/src/configOps.ts`

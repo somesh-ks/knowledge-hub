@@ -55,39 +55,6 @@ test("every settings subpage shows the Settings crumb and the same gap from its 
   expect(new Set(Object.values(gaps)).size, JSON.stringify(gaps)).toBe(1);
 });
 
-// The listener profile's select is the shared settings select, drawn as Theme's: a one-off rule once
-// gave it its own padding and a 70% cap of its own width, cutting "Designer" to "esigner"
-// (2026-10-27). Compared with Theme's box, never with numbers.
-test("the listener profile select has the Theme select's height, radius and padding, and shows its whole value @both", async ({
-  page,
-}) => {
-  const metrics = (selector: string) =>
-    page.locator(selector).evaluate((select: HTMLSelectElement) => {
-      const style = getComputedStyle(select);
-      return {
-        height: Math.round(select.getBoundingClientRect().height),
-        radius: style.borderTopLeftRadius,
-        start: style.paddingInlineStart,
-        end: style.paddingInlineEnd,
-        clipped: select.scrollWidth > select.clientWidth,
-      };
-    });
-  await page.goto("/settings/appearance");
-  const theme = await metrics("#settings-theme");
-  await page.goto("/settings/preferences?view=structure");
-  const profile = page.locator("#structure-profile");
-  await expect(profile).toBeVisible();
-  const values = await profile
-    .locator("option")
-    .evaluateAll((all) => all.map((o) => (o as HTMLOptionElement).value));
-  for (const value of values) {
-    await profile.evaluate((select: HTMLSelectElement, v) => {
-      select.value = v;
-    }, value);
-    expect(await metrics("#structure-profile"), value).toEqual({ ...theme, clipped: false });
-  }
-});
-
 // A select's fill (the box that shows under a pointer and while it is open) stood 4px from its card's
 // right edge and 12px from the bottom on Preferences, after a rule written for the Manage pages
 // reached a page that already pulled its rows in (owner, 2026-11-01; it had happened before, 2026-10-25
@@ -110,8 +77,7 @@ test("a select's fill is as far from its card's right edge as from its top or bo
               holder.querySelector("select.field-input, .picker-trigger") ?? holder
             ).getBoundingClientRect();
             const card = holder.closest(".card-group, .topic-panel");
-            // The Structure page's profile card is its own layout, not a settings card.
-            if (fill.width === 0 || !card || holder.closest(".topic-card")) continue;
+            if (fill.width === 0 || !card) continue;
             const box = card.getBoundingClientRect();
             const rows = [...card.querySelectorAll(".settings-row")].filter(
               (row) => row.getBoundingClientRect().height > 0,
