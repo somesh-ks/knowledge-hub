@@ -164,6 +164,31 @@ export async function firecrawlUsedSince(
     .reduce((sum, record) => sum + (record.units.credits ?? record.units.requests ?? 0), 0);
 }
 
+/**
+ * Exa searches the ledger records from `since` to `until`, other runs only: the same window as
+ * Firecrawl's, for Exa's weekly stop (exaBudget.ts).
+ */
+export async function exaUsedSince(
+  root: string,
+  since: Date,
+  until: Date,
+  excludeRun: string,
+): Promise<number> {
+  const from = since.toISOString();
+  const to = until.toISOString();
+  const months = monthsBetween(since, until);
+  const records = mergeRecords(...(await Promise.all(months.map((m) => readMonth(root, m)))));
+  return records
+    .filter(
+      (record) =>
+        record.provider === "exa" &&
+        record.run_id !== excludeRun &&
+        record.at >= from &&
+        record.at <= to,
+    )
+    .reduce((sum, record) => sum + (record.units.requests ?? 0), 0);
+}
+
 export interface RunSpendInput {
   /** Request counts by service, as the run's SpendTracker totals them. */
   requests: Readonly<Record<string, number>>;

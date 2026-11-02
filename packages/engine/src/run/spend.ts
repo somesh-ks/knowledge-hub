@@ -3,8 +3,9 @@ import type { RunSpend } from "@singularity/core";
 import { z } from "zod";
 import { writeJsonAtomic } from "../audio/atomicFile.js";
 import type { Logger } from "../context.js";
-import { firecrawlUsedSince, recordRunCosts } from "../cost/ledger.js";
+import { exaUsedSince, firecrawlUsedSince, recordRunCosts } from "../cost/ledger.js";
 import { readJsonIfExists } from "../curate/inputs.js";
+import { EXA_WEEKLY_BUDGET } from "../fetch/exaBudget.js";
 import {
   EMPTY_FIRECRAWL_STATE,
   FIRECRAWL_WEEKLY_BUDGET,
@@ -86,6 +87,17 @@ export type SpendTotals = Pick<
 export class SpendTracker {
   readonly meter = new RequestMeter();
   readonly guard = new FirecrawlGuard();
+  /** Exa searches the week's budget left before this run; unlimited until `begin` reads the ledger. */
+  private exaWeekLeft = Number.POSITIVE_INFINITY;
+
+  /**
+   * Exa searches the run may still make: the week's room less what this run has searched so far,
+   * its earlier stages (restored from the spend file) and passes (the meter) included.
+   */
+  get exaRoom(): number {
+    const searched = (this.base.exa ?? 0) + (this.meter.peek().exa ?? 0);
+    return Math.max(0, this.exaWeekLeft - searched);
+  }
   private run: string | null = null;
   private base: Record<string, number> = {};
   private baseUnits: Record<string, number> = {};
@@ -101,6 +113,7 @@ export class SpendTracker {
     this.baseUnits = {};
     this.guard.restore(EMPTY_FIRECRAWL_STATE);
     this.guard.limitTo(Number.POSITIVE_INFINITY);
+    this.exaWeekLeft = Number.POSITIVE_INFINITY;
     const raw = await readJsonIfExists(spendPath(root), "spend.json").catch(() => null);
     const parsed = raw === null ? null : SpendFile.safeParse(raw);
     if (parsed?.success && parsed.data.run === run) {
@@ -115,18 +128,35 @@ export class SpendTracker {
     await this.resume(root, run);
     // The weekly budget: what other runs spent in the 7 days before this one (the ledger records a
     // run at its commit, or at its failure record, so the run in progress is never counted twice).
-    // A ledger that does not read leaves the run its own ceiling, and says so.
+    // Firecrawl runs on its own ceiling when the ledger does not read; Exa does not run (D339). Both say so.
     const started = Date.parse(run);
     if (!Number.isFinite(started)) {
-      log?.warn("The run has no start time: Firecrawl's weekly budget is not applied", { run });
+      log?.warn(
+        "The run has no start time: the weekly budgets of Firecrawl and Exa are not applied",
+        { run },
+      );
       return;
     }
+    const since = new Date(started - WEEK_MS);
+    const until = new Date(started);
     try {
-      const since = new Date(started - WEEK_MS);
-      const used = await firecrawlUsedSince(root, since, new Date(started), run);
-      this.guard.limitTo(FIRECRAWL_WEEKLY_BUDGET - used);
+      this.guard.limitTo(
+        FIRECRAWL_WEEKLY_BUDGET - (await firecrawlUsedSince(root, since, until, run)),
+      );
     } catch (error) {
-      log?.warn("The cost ledger did not read: Firecrawl's weekly budget is not applied", {
+      log?.warn("The cost ledger did not read: the weekly budget of Firecrawl is not applied", {
+        reason: error instanceof Error ? error.message : String(error),
+      });
+    }
+    try {
+      this.exaWeekLeft = Math.max(
+        0,
+        EXA_WEEKLY_BUDGET - (await exaUsedSince(root, since, until, run)),
+      );
+    } catch (error) {
+      // Exa is one source of many, so a week that cannot be counted is a week without Exa.
+      this.exaWeekLeft = 0;
+      log?.warn("The cost ledger did not read: Exa is off for this run", {
         reason: error instanceof Error ? error.message : String(error),
       });
     }
