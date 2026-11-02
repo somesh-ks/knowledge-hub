@@ -4,7 +4,7 @@ Expressive typed 27 colours and Halloween 49 (plus shadows, which keep their lit
 
 What moved, and why:
 
-- The ladder is the mean of what the two styles typed, so roles shifted by up to 0.04 in OKLab. Expressive's light container lost chroma (0.055 to 0.038), the one place the loud look softens; the stills decide if it needs a higher tint.
+- The ladder is the mean of what the two styles typed, so roles shifted by up to 0.04 in OKLab. The first pass left Expressive's light container too pale (0.055 typed, 0.038 generated), and Opus and Fable both saw it at turned hues, so `surface-container` carries a light-mode chroma boost of 1.4 (0.046 for Expressive, 0.041 for Halloween; the dark container needed none).
 - Light muted text is 34 (Expressive's value, Halloween was 40): Expressive's violet container needs it for 4.5:1. Dark muted and subtle moved up two points for the overlay surface and the container.
 - Halloween's light page depth is 96 (fit said 95.5): its orange accent on the container missed 4.5:1 by 0.05 at some hues.
 - Accent outliers snapped to the ramp: Expressive's accent 44% is violet 700 (600 failed accent on accent-subtle at hues 220 to 295), accent-action 49% is violet 600. Halloween's dark accent containers are orange 900, 800, 700.

@@ -51,8 +51,8 @@ type Offset = { from: "page"; points: number } | { from: "zero"; points: number 
 interface RoleSpec {
   /** Which family colours the role in light and in dark. */
   family: Record<Mode, FamilyName>;
-  /** A scene role may carry more chroma than the page does (a glow); the gamut still caps it. */
-  boost?: number;
+  /** A role may carry more chroma than the curve gives (a glow, a colour block); the gamut still caps it. */
+  boost?: number | Partial<Record<Mode, number>>;
   /** Where its lightness sits: points from the page, or an absolute lightness. */
   light: Offset;
   dark: Offset;
@@ -72,7 +72,7 @@ const PAPER: Record<Mode, FamilyName> = { light: "paper", dark: "paper" };
 export const NEUTRAL_ROLES: Record<string, RoleSpec> = {
   surface: { family: GROUND, light: page(0), dark: page(0) },
   "surface-sunken": { family: GROUND, light: page(-3), dark: page(-4) },
-  "surface-container": { family: GROUND, light: page(-5), dark: page(8) },
+  "surface-container": { family: GROUND, boost: { light: 1.4 }, light: page(-5), dark: page(8) },
   "surface-raised": { family: GROUND, light: page(2), dark: page(13) },
   "surface-overlay": { family: GROUND, light: page(4), dark: page(16) },
   "surface-inverse": { family: TYPE, light: at(24), dark: at(93) },
@@ -110,6 +110,11 @@ export interface Tone {
   h: number;
 }
 
+function boostFor(spec: RoleSpec, mode: Mode): number {
+  const { boost } = spec;
+  return typeof boost === "number" ? boost : (boost?.[mode] ?? 1);
+}
+
 /** One role's colour in one mode: the ladder's lightness, the family's hue, the curve's chroma. */
 export function neutralTone(recipe: NeutralRecipe, role: string, mode: Mode): Tone {
   const spec = NEUTRAL_ROLES[role] ?? SCENE_ROLES[role];
@@ -118,7 +123,7 @@ export function neutralTone(recipe: NeutralRecipe, role: string, mode: Mode): To
   const l = (where.from === "page" ? recipe.depth[mode] + where.points : where.points) / 100;
   const family = recipe[spec.family[mode]];
   const c = Math.min(
-    targetChroma(family, l) * (spec.boost ?? 1),
+    targetChroma(family, l) * boostFor(spec, mode),
     gamutChroma(l, family.hue) * 0.97,
   );
   return { l, c, h: family.hue };

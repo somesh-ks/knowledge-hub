@@ -737,7 +737,7 @@
   --toast-min-height: 4rem;
   --color-surface: oklch(96% 0.0201 calc(292 + var(--hue-shift, 0)));
   --color-surface-sunken: oklch(93% 0.0327 calc(292 + var(--hue-shift, 0)));
-  --color-surface-container: oklch(91% 0.0383 calc(292 + var(--hue-shift, 0)));
+  --color-surface-container: oklch(91% 0.046 calc(292 + var(--hue-shift, 0)));
   --color-surface-raised: oklch(98% 0.01 calc(292 + var(--hue-shift, 0)));
   --color-surface-overlay: oklch(100% 0.0001 calc(292 + var(--hue-shift, 0)));
   --color-surface-inverse: oklch(24% 0.0672 calc(292 + var(--hue-shift, 0)));
@@ -849,7 +849,7 @@
   --scene-halo: 0;
   --color-surface: oklch(96% 0.0214 calc(82 + var(--hue-shift, 0)));
   --color-surface-sunken: oklch(93% 0.0261 calc(82 + var(--hue-shift, 0)));
-  --color-surface-container: oklch(91% 0.029 calc(82 + var(--hue-shift, 0)));
+  --color-surface-container: oklch(91% 0.0406 calc(82 + var(--hue-shift, 0)));
   --color-surface-raised: oklch(98% 0.0179 calc(82 + var(--hue-shift, 0)));
   --color-surface-overlay: oklch(100% 0.0002 calc(82 + var(--hue-shift, 0)));
   --color-surface-inverse: oklch(24% 0.0502 calc(302 + var(--hue-shift, 0)));
