@@ -1750,6 +1750,11 @@ html:has(.source-filter[data-chips]) {
 
 /* ------------------------------------------------------------------ the podcast structure (D170) */
 
+/* DEAD since D344 (2026-11-02): the app no longer edits the podcast structure, so nothing draws these
+   rules. They stay only so the rolling design-system PR can delete them with the generated system
+   file in one step; delete every selector from here to the weight-row note below. The removed page
+   set --row-anchor: --structure-add on its Add button, which is why the name appears here. */
+
 /* The Structure page's one pane shows once the page says so (data-view). */
 .preferences-page:not([data-view="structure"]) .pref-view-structure {
   display: none;
