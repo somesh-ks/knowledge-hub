@@ -71,16 +71,19 @@
 
   @media (hover: hover) and (pointer: fine) {
     .aside-link:not([aria-current="true"]):hover {
-      background: color-mix(in oklab, currentColor var(--state-hover), transparent);
+      background: var(--ghost-hover);
     }
   }
 
   /* A press goes one step deeper than a hover, on the section in view too. The first selector carries
      the hover's :not(), so it weighs as much as the hover rule and, coming after it, wins while a
      mouse is over the entry. */
-  .aside-link:not([aria-current="true"]):active,
+  .aside-link:not([aria-current="true"]):active {
+    background: var(--ghost-pressed);
+  }
+
   .aside-link[aria-current="true"]:active {
-    background: color-mix(in oklab, currentColor var(--state-press), transparent);
+    background: var(--color-accent-container-pressed);
   }
 }
 

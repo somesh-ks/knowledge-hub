@@ -1046,21 +1046,43 @@ describe("component stylesheets", () => {
     }
   });
 
-  it("takes every hover and press fill from a state token, never a hand-rolled mix (D317)", () => {
-    // A hover on a fill is the fill's own hover token (`--color-accent-hover`, `--chip-bg-hover`):
-    // the same hue and chroma, lightness stepped. A mix of the label color over the fill dulled it.
-    // A control with no fill still lays the label color over transparent; that goes when the ghost
-    // controls move to the surface tokens (the step after D317), and this test then drops the allowance.
+  it("takes every hover and press fill from a state token, never an alpha layer (D317)", () => {
+    // A hover on a fill is the fill's own hover token (`--color-accent-hover`); a hover on a control
+    // with no fill is the surface behind it, stepped (`--ghost-hover`, set by the container). A layer
+    // of the label colour over transparent dulled a fill and read as nothing on a tinted one. The two
+    // layers left are over artwork, where no solid colour can stand in: the ripple and a cover's press.
+    const OVER_ART = new Set(["ripple.css", "library.css"]);
     const mixes = /color-mix\((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\)/g;
     for (const [file, css] of ownCss()) {
       if (file === "tokens.css") continue;
       for (const [mix] of css.matchAll(mixes)) {
         if (!/--state-(hover|press)\b/.test(mix)) continue;
+        expect(OVER_ART.has(file), `${file}: an alpha layer outside artwork: ${mix}`).toBe(true);
         expect(mix, `${file}: a mix over a fill`).toMatch(/transparent\s*\)$/);
       }
       expect(css, `${file} steps lightness by hand`).not.toMatch(/--state-step-/);
       if (file !== "cover.css")
         expect(css, `${file} derives a color by hand`).not.toMatch(/oklch\(from /);
+    }
+  });
+
+  it("gives a container that paints its own surface the ghost pair for it (D317)", () => {
+    // A control with no fill steps the surface behind it. The pair defaults to the page's, so a rule
+    // that records another surface behind its controls (`--color-focus-gap`) must set its own, or a
+    // hover there would step the wrong tone.
+    for (const [file, css] of ownCss()) {
+      if (file === "tokens.css") continue;
+      for (const block of css.matchAll(/\{([^{}]*)\}/g)) {
+        const body = block[1] ?? "";
+        if (
+          !/--color-focus-gap:\s*var\(--color-surface-(?:raised|overlay|inverse|container)\)/.test(
+            body,
+          )
+        )
+          continue;
+        expect(body, `${file}: ${body.trim().slice(0, 60)}`).toMatch(/--ghost-hover:/);
+        expect(body, `${file}: ${body.trim().slice(0, 60)}`).toMatch(/--ghost-pressed:/);
+      }
     }
   });
 

@@ -54,17 +54,17 @@
 
 @media (hover: hover) and (pointer: fine) {
   .button-text:hover {
-    background: color-mix(in oklch, var(--color-accent) var(--state-hover), transparent);
+    background: var(--ghost-accent-hover);
   }
 
   .icon-btn:hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
     color: var(--color-on-surface);
   }
 }
 
 .icon-btn:active {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 /* The secondary icon button (2026-10-29, owner: "a circle as a secondary button"): an .icon-btn on the
@@ -160,7 +160,7 @@
 /* A press on a worded button shows on its fill, one step past the hover's, so it reads as a press
    with a mouse too; its words keep their size (pressText.test.ts), so none of these take .press. */
 .button-text:active {
-  background: color-mix(in oklch, var(--color-accent) var(--state-press), transparent);
+  background: var(--ghost-accent-pressed);
 }
 
 .button-tonal:active {

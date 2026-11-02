@@ -108,6 +108,8 @@ fieldset.sheet-field {
   font-size: var(--font-size-label);
   line-height: var(--font-leading-label);
   --color-focus-gap: var(--color-surface-inverse);
+  --ghost-hover: var(--color-surface-inverse-hover);
+  --ghost-pressed: var(--color-surface-inverse-pressed);
   --color-focus-ring: var(--toast-fg);
   /* A finger swipes it away sideways (Toaster.tsx); the page under it still scrolls up and down. */
   touch-action: pan-y;
@@ -256,18 +258,18 @@ html[data-mini="visible"] .toast {
 
 @media (hover: hover) and (pointer: fine) {
   .toast-action:hover {
-    background: color-mix(in oklch, var(--toast-fg) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 
   .toast-dismiss:hover {
-    background: color-mix(in oklch, var(--toast-fg) var(--state-hover), transparent);
+    background: var(--ghost-hover);
     opacity: 1;
   }
 }
 
 .toast-action:active,
 .toast-dismiss:active {
-  background: color-mix(in oklch, var(--toast-fg) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 .toast-dismiss:active {

@@ -407,6 +407,11 @@ describe.each(doc.styles.map((style) => style.name))("a style's colour contrast:
       ]),
       ["on-surface", "accent-subtle", 4.5],
       ["accent", "accent-subtle", 4.5],
+      ...["hover", "pressed"].map((state): [string, string, number] => [
+        "accent",
+        `accent-subtle-${state}`,
+        4.5,
+      ]),
       ["on-accent-container", "accent-container", 4.5],
       ["on-surface", "accent-container", 4.5],
       ["on-surface-muted", "accent-container", 4.5],

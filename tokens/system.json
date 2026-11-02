@@ -567,6 +567,8 @@
         "--color-surface-container-hover",
         "--color-surface-container-pressed",
         "--color-surface-overlay",
+        "--color-surface-overlay-hover",
+        "--color-surface-overlay-pressed",
         "--field-chevron-gap",
         "--shadow-popover",
         "--shape-2xl",
@@ -634,6 +636,8 @@
         "--color-on-surface-disabled",
         "--color-scrim",
         "--color-surface-overlay",
+        "--color-surface-overlay-hover",
+        "--color-surface-overlay-pressed",
         "--layout-column",
         "--shadow-popover",
         "--shape-2xl",
@@ -833,6 +837,8 @@
         "--color-surface-hover",
         "--color-surface-pressed",
         "--sheet-bg",
+        "--sheet-bg-hover",
+        "--sheet-bg-pressed",
         "--sheet-radius",
         "--sheet-shadow"
       ]
@@ -886,6 +892,8 @@
         "--color-on-surface",
         "--color-scrim",
         "--color-surface-raised",
+        "--color-surface-raised-hover",
+        "--color-surface-raised-pressed",
         "--layout-column",
         "--layout-dialog",
         "--sheet-bg",
@@ -1184,11 +1192,13 @@
         "--chip-radius-selected",
         "--color-accent-container",
         "--color-accent-container-hover",
+        "--color-accent-container-pressed",
         "--color-focus-ring",
         "--color-on-accent-container",
         "--color-on-surface",
         "--color-surface-container",
         "--color-surface-container-hover",
+        "--color-surface-container-pressed",
         "--size-icon-sm",
         "--size-touch"
       ]
@@ -1231,6 +1241,8 @@
       "tokens": [
         "--chip-height",
         "--color-accent-container",
+        "--color-accent-container-hover",
+        "--color-accent-container-pressed",
         "--color-border-control",
         "--color-focus-ring",
         "--color-on-accent-container",
@@ -1388,7 +1400,6 @@
       "usage": "A row that is one link or button: the whole row responds. Its fill is a rounded tile clear of the hairlines and reaching a little past the words, as a menu's options are, so a hovered row reads as one thing to press rather than a band across the page.",
       "tokens": [
         "--color-focus-ring",
-        "--color-on-surface",
         "--color-on-surface-muted",
         "--row-tile-radius",
         "--size-touch-comfortable"
@@ -1541,6 +1552,8 @@
       "tokens": [
         "--color-accent-on-inverse",
         "--color-surface-inverse",
+        "--color-surface-inverse-hover",
+        "--color-surface-inverse-pressed",
         "--layout-dialog",
         "--shape-md",
         "--size-touch",
@@ -3852,6 +3865,18 @@
         "light": "#f5f9ff",
         "dark": "#162f59"
       }
+    },
+    {
+      "name": "--color-accent-subtle-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent-subtle) calc(l - var(--state-direction) * var(--state-step-hover)) c h)"
+    },
+    {
+      "name": "--color-accent-subtle-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent-subtle) calc(l - var(--state-direction) * var(--state-step-press)) c h)"
     },
     {
       "name": "--color-accent-container",

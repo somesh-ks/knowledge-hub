@@ -57,13 +57,13 @@
 
 @media (hover: hover) and (pointer: fine) {
   .settings-row .value-select > .picker-trigger:hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 }
 
 .settings-row .value-select > .picker-trigger:active,
 .settings-row .value-select > .picker-trigger[aria-expanded="true"] {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 /* A value that must fit whole beside its label takes 8px less room at its start on a phone: a
@@ -123,6 +123,8 @@
    drawn lists' (primitives.css, the model list). */
 .picker-pop {
   --color-focus-gap: var(--color-surface-overlay);
+  --ghost-hover: var(--color-surface-overlay-hover);
+  --ghost-pressed: var(--color-surface-overlay-pressed);
   position: fixed;
   inset: auto;
   display: flex;
@@ -359,7 +361,7 @@
   box-sizing: border-box;
   inline-size: auto;
   min-inline-size: var(--space-4);
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  background: var(--ghost-hover);
   color: var(--color-on-surface-muted);
   font-size: var(--font-size-caption);
   font-weight: var(--font-weight-medium);
@@ -393,18 +395,18 @@
 
 @media (hover: hover) and (pointer: fine) {
   .picker-option:hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 }
 
 .picker-option:active {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 /* The keyboard's row: a tint and the focus ring, so it never rests on colour alone. A list opened
    with the pointer shows neither until a key is pressed, as a select's list does. */
 .picker-list[data-keyboard] .picker-option[data-active] {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  background: var(--ghost-hover);
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: calc(var(--stroke-ring) * -1);
 }

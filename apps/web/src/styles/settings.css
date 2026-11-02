@@ -390,7 +390,7 @@
 @media (hover: hover) and (pointer: fine) {
   .settings-row .value-select > select.field-input:hover {
     border-color: transparent;
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 }
 
@@ -403,7 +403,7 @@
   border-color: transparent;
   outline: none;
   box-shadow: none;
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 .settings-row .value-select > .icon-glyph {

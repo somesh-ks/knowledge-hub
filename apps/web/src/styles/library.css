@@ -366,12 +366,12 @@
   }
 
   .search-clear:hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
     color: var(--color-on-surface);
   }
 
   .view-btn[aria-pressed="false"]:hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
     color: var(--color-on-surface);
   }
 }
@@ -573,7 +573,7 @@ main.library [data-library][data-view="list"] .library-grid {
   inset-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
   z-index: var(--z-beneath);
   border-radius: var(--row-radius);
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  background: var(--ghost-hover);
   opacity: 0;
   transition: opacity var(--duration-hover) var(--ease-hover);
 }
@@ -585,7 +585,7 @@ main.library [data-library][data-view="list"] .library-grid {
 }
 
 [data-library][data-view="list"] .card-link:active::after {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
   opacity: 1;
 }
 

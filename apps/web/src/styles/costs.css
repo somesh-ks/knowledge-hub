@@ -184,7 +184,7 @@
 }
 
 .costs-wash {
-  fill: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  fill: var(--ghost-hover);
 }
 
 /* The tooltip is the drawn list's surface: the overlay tone, a hairline, the popover shadow. */

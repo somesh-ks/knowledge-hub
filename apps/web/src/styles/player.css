@@ -1128,7 +1128,7 @@
 }
 
 .dock-btn:not([aria-disabled="true"]):active {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 /* A press anywhere else on the bar opens the player, and shows on the whole bar as it does. */
@@ -1137,16 +1137,16 @@
 }
 
 .dock-open:active::after {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .dock-btn:not([aria-disabled="true"]):hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 
   .dock-btn:not([aria-disabled="true"]):hover:active {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+    background: var(--ghost-pressed);
   }
 
   .dock-seek:hover::-webkit-slider-thumb {
@@ -1333,7 +1333,7 @@
   }
 
   .dock-open:active::after {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 }
 
@@ -1722,7 +1722,7 @@
 /* State layers: a share of the control's own ink over its fill (none, for the quiet ones). */
 @media (hover: hover) and (pointer: fine) {
   .transport-btn:not([aria-disabled="true"], [data-primary]):hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
     color: var(--color-on-surface);
   }
 
@@ -1732,7 +1732,7 @@
 }
 
 .transport-btn:not([aria-disabled="true"], [data-primary]):active {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
   color: var(--color-on-surface);
 }
 
@@ -1805,6 +1805,8 @@
   );
   --panel-scale: var(--scale-enter);
   --color-focus-gap: var(--color-surface-overlay);
+  --ghost-hover: var(--color-surface-overlay-hover);
+  --ghost-pressed: var(--color-surface-overlay-pressed);
   position: fixed;
   inset: var(--panel-top) auto auto var(--panel-left);
   width: var(--panel-width);
@@ -1911,13 +1913,13 @@
 
 @media (hover: hover) and (pointer: fine) {
   .speed-preset:not([aria-pressed="true"]):hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
     color: var(--color-on-surface);
   }
 }
 
 .speed-preset:not([aria-pressed="true"]):active {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 .speed-preset[aria-pressed="true"]:active {
@@ -2049,7 +2051,7 @@
 /* State layers: the turn's ink over its fill. The spoken word keeps its own fill under the pointer. */
 @media (hover: hover) and (pointer: fine) {
   .script-turn:not([aria-disabled="true"], [aria-current="true"]):hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 
   .script-turn[aria-current="true"]:hover {
@@ -2057,7 +2059,7 @@
   }
 
   .script-turn:not([aria-disabled="true"]) .script-word:not([data-spoken]):hover {
-    background: color-mix(in oklch, currentColor var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 }
 
@@ -2066,7 +2068,7 @@
 }
 
 .script-turn:not([aria-disabled="true"], [aria-current="true"]):active {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 .script-turn[aria-current="true"]:active {
@@ -2308,7 +2310,7 @@
 }
 
 .player-source-link:active {
-  background: color-mix(in oklch, var(--color-accent) var(--state-press), transparent);
+  background: var(--ghost-accent-pressed);
 }
 
 .player-source-link span {
@@ -2425,16 +2427,12 @@
 /* State layers: the row's ink over its fill. */
 @media (hover: hover) and (pointer: fine) {
   .story-row:not([aria-current="true"], [data-static]):hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 
   .story-row[aria-current="true"]:hover,
   .story-rows > [data-open] .script-turn:not([aria-disabled="true"]):hover {
-    background: color-mix(
-      in oklch,
-      var(--color-on-accent-container) var(--state-hover),
-      transparent
-    );
+    background: var(--color-accent-container-hover);
   }
 
   .player-upnext-row:hover {
@@ -2442,22 +2440,22 @@
   }
 
   .player-source-link:hover {
-    background: color-mix(in oklch, var(--color-accent) var(--state-hover), transparent);
+    background: var(--ghost-accent-hover);
   }
 
   .player-source-link:hover:active {
-    background: color-mix(in oklch, var(--color-accent) var(--state-press), transparent);
+    background: var(--ghost-accent-pressed);
   }
 }
 
 /* After the hovers, so a press shows under a mouse too. */
 .story-row:not([aria-current="true"], [data-static]):active {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 .story-row[aria-current="true"]:active,
 .story-rows > [data-open] .script-turn:not([aria-disabled="true"]):active {
-  background: color-mix(in oklch, var(--color-on-accent-container) var(--state-press), transparent);
+  background: var(--color-accent-container-pressed);
 }
 
 .player-upnext-row:active {
@@ -2511,13 +2509,13 @@
   }
 
   .player .player-collapse:active {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+    background: var(--ghost-pressed);
   }
 }
 
 @media (hover: hover) and (pointer: fine) and (width < 64rem) {
   .player .player-collapse:hover:not(:active) {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
     color: var(--color-on-surface);
   }
 }
