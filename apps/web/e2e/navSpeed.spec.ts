@@ -169,26 +169,39 @@ test.describe("the chrome holds still on a move", () => {
     expect(after.length).toBeLessThanOrEqual(before.length);
   });
 
-  // A cached page arrives a few tens of milliseconds after the press, while the pill is growing under
-  // the pressed tab. The new bar drew it whole: it jumped from a quarter grown to done.
-  test("the pill is no further along on the new bar than on the one it replaces", async ({
-    page,
-  }) => {
+  // The swap takes tens of milliseconds (more on a phone). The new bar's pill began when the old one
+  // did, not when the swap ended: counted from the swap, it went back by that long and grew again.
+  test("a slow swap does not take the pill back", async ({ page }) => {
     await openWarm(page);
     await page.evaluate(() => {
       const w = window as unknown as { __pill: { before: number; after: number } };
-      const opacity = () => {
+      const started = (): number => {
         const pill = document.querySelector(
           '.app-nav-item[aria-current="page"] .app-nav-indicator',
         );
-        return pill ? Number(getComputedStyle(pill, "::before").opacity) : Number.NaN;
+        const growth = pill
+          ?.getAnimations({ subtree: true })
+          .find((a) => a.playState === "running");
+        // A pill not yet started is about to: from now.
+        return growth ? Number(growth.startTime ?? document.timeline.currentTime) : Number.NaN;
       };
       w.__pill = { before: Number.NaN, after: Number.NaN };
+      // The page takes a while to arrive, so the pill is drawn and growing when the swap begins.
+      document.addEventListener("astro:before-preparation", (event) => {
+        const load = event.loader;
+        event.loader = async () => {
+          await new Promise((resolve) => setTimeout(resolve, 120));
+          await load();
+        };
+      });
       document.addEventListener("astro:before-swap", () => {
-        w.__pill.before = opacity();
+        w.__pill.before = started();
+        // A phone is slower than this machine: the swap takes this long.
+        const until = performance.now() + 150;
+        while (performance.now() < until);
       });
       document.addEventListener("astro:after-swap", () => {
-        w.__pill.after = opacity();
+        w.__pill.after = started();
       });
     });
     await item(page, "/library").click();
@@ -196,42 +209,8 @@ test.describe("the chrome holds still on a move", () => {
     const { before, after } = await page.evaluate(
       () => (window as unknown as { __pill: { before: number; after: number } }).__pill,
     );
-    expect(Math.abs(after - before)).toBeLessThan(0.3);
-  });
-});
-
-test.describe("a cover carries you in and out", () => {
-  test("it lands on the box of the cover it becomes, so nothing jumps when it arrives", async ({
-    page,
-  }) => {
-    await page.goto("/library");
-    await page.evaluate(() => {
-      const w = window as unknown as { __flight: Array<[number, number, number]> };
-      w.__flight = [];
-      // Where the cover handed over: the clone's box at the moment it is removed, which is its drawn
-      // box with the flight over. A frame sampled on a timer can miss the last one on a loaded machine.
-      const remove = Element.prototype.remove;
-      Element.prototype.remove = function (this: Element) {
-        if (this.classList.contains("cover-morph")) {
-          const r = this.getBoundingClientRect();
-          w.__flight.push([r.left, r.top, r.width]);
-        }
-        remove.call(this);
-      };
-    });
-    const card = page.locator('a[href^="/d/"]').first();
-    await card.click();
-    await expect(heading(page)).not.toHaveText("Library");
-    await expect(page.locator(".cover-morph")).toHaveCount(0);
-    const hero = await page.locator('.cover[data-size="hero"]').boundingBox();
-    const flight = await page.evaluate(
-      () => (window as unknown as { __flight: Array<[number, number, number]> }).__flight,
-    );
-    const landed = flight.at(-1);
-    expect(landed, "the cover flew").toBeTruthy();
-    expect(Math.abs((landed?.[0] ?? 0) - (hero?.x ?? 0))).toBeLessThan(1.5);
-    expect(Math.abs((landed?.[1] ?? 0) - (hero?.y ?? 0))).toBeLessThan(1.5);
-    expect(Math.abs((landed?.[2] ?? 0) - (hero?.width ?? 0))).toBeLessThan(1.5);
+    expect(before, "the pill was growing as the swap began").not.toBeNaN();
+    expect(Math.abs(after - before)).toBeLessThan(2);
   });
 });
 
@@ -361,5 +340,216 @@ test.describe("a touch on a tab shows at once and goes on across the move", () =
     await expect(tab).toHaveAttribute("data-ripple-pressed", "");
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [held] });
     await expect(tab).not.toHaveAttribute("data-ripple-pressed", "");
+  });
+
+  // The press already draws the pill under the tab (grey, in place). The page then drew a second,
+  // smaller one that grew from nothing as the tab became current: two pills, one after the other.
+  test("the pill the touch drew is the one that stays: it never shrinks or goes out", async ({
+    page,
+  }) => {
+    await openWarm(page);
+    const tab = item(page, "/library");
+    const box = await tab.boundingBox();
+    if (!box) throw new Error("the Library tab is not on screen");
+    const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    const cdp = await page.context().newCDPSession(page);
+    await page.evaluate(() => {
+      const seen = { opacity: 1, scale: 1 };
+      Object.assign(window, { pillSeen: seen });
+      const watch = (): void => {
+        const pill = document.querySelector('.app-nav-item[href="/library"] .app-nav-indicator');
+        const drawn = pill ? getComputedStyle(pill, "::before") : null;
+        if (drawn) {
+          seen.opacity = Math.min(seen.opacity, Number(drawn.opacity));
+          seen.scale = Math.min(
+            seen.scale,
+            drawn.scale === "none" ? 1 : Number.parseFloat(drawn.scale),
+          );
+        }
+        requestAnimationFrame(watch);
+      };
+      watch();
+    });
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [point] });
+    await expect(tab).toHaveAttribute("data-ripple-pressed", "");
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await expect(heading(page)).toHaveText("Library");
+    await expect(tab).toHaveAttribute("aria-current", "page");
+    // The mark goes once the pill has finished (navigation.ts, settle): sample until then.
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.hasAttribute("data-nav-arrived")))
+      .toBe(false);
+    const seen = await page.evaluate(
+      () => (window as unknown as { pillSeen: { opacity: number; scale: number } }).pillSeen,
+    );
+    expect(seen.opacity, "the pill went out and came back").toBe(1);
+    expect(seen.scale, "the pill started again smaller").toBe(1);
+  });
+});
+
+test.describe("a podcast opened from a tab keeps that tab lit", () => {
+  // Owner, 2026-11-02: opening a podcast from the Library, "the nav bar goes from down to up again".
+  // The page settles in from the end side (8px, view-transitions.css); that travelling box stuck out
+  // past the viewport, a phone's browser took the page for wider than the screen and laid out a taller
+  // viewport for the length of the settle, so the fixed bar sat lower and came back up.
+  test("the bottom bar holds still while a podcast opens from the Library", async ({ page }) => {
+    await openWarm(page);
+    await item(page, "/library").click();
+    await expect(heading(page)).toHaveText("Library");
+    await expect(page.locator("html")).not.toHaveAttribute("data-nav-arrived");
+    await page.evaluate(() => {
+      const seen = { bottom: new Set<number>(), width: new Set<number>() };
+      Object.assign(window, { barSeen: seen });
+      const watch = (): void => {
+        const nav = document.querySelector(".app-nav");
+        if (nav) seen.bottom.add(Math.round(nav.getBoundingClientRect().bottom));
+        seen.width.add(innerWidth);
+        requestAnimationFrame(watch);
+      };
+      watch();
+    });
+    await page.locator("a[href^='/d/']").first().click();
+    await expect(page.locator("main[data-latest='true']")).toBeVisible();
+    // The page has finished settling.
+    await expect
+      .poll(() => page.locator(".shell").evaluate((shell) => shell.getAnimations().length))
+      .toBe(0);
+    const seen = await page.evaluate(() => {
+      const { bottom, width } = (
+        window as unknown as { barSeen: { bottom: Set<number>; width: Set<number> } }
+      ).barSeen;
+      return { bottom: [...bottom], width: [...width] };
+    });
+    expect(seen.bottom, "the bar's bottom edge moved").toHaveLength(1);
+    expect(seen.width, "the viewport was laid out wider than the screen").toHaveLength(1);
+  });
+
+  // Owner, 2026-11-02: the Library's card for the latest podcast lit Latest, and the bar's pill grew
+  // again under it. The tab says where you are in the app; the podcast is the same from any of them.
+  test("the latest podcast, opened from the Library, stays under the Library", async ({ page }) => {
+    await openWarm(page);
+    await item(page, "/library").click();
+    await expect(heading(page)).toHaveText("Library");
+    // Let the Library's own pill finish: one still growing would be carried into the podcast.
+    await expect(page.locator("html")).not.toHaveAttribute("data-nav-arrived");
+    await page.evaluate(() => {
+      const w = window as unknown as { __grew: number };
+      w.__grew = 0;
+      document.addEventListener("astro:after-swap", () => {
+        const pill = document.querySelector(
+          '.app-nav-item[aria-current="page"] .app-nav-indicator',
+        );
+        w.__grew = pill?.getAnimations({ subtree: true }).length ?? 0;
+      });
+    });
+    await page.locator("a[href^='/d/']").first().click();
+    await expect(page.locator("main[data-latest='true']")).toBeVisible();
+    await expect(item(page, "/library")).toHaveAttribute("aria-current", "page");
+    await expect(item(page, "/")).not.toHaveAttribute("aria-current", "page");
+    await expect(page.locator("a[data-back]")).toBeVisible();
+    expect(await page.evaluate(() => (window as unknown as { __grew: number }).__grew)).toBe(0);
+
+    // A reload is the same visit.
+    await page.reload();
+    await expect(item(page, "/library")).toHaveAttribute("aria-current", "page");
+
+    // Today's own tab still goes to Today, which is lit there.
+    await item(page, "/").click();
+    await expect(item(page, "/")).toHaveAttribute("aria-current", "page");
+    await expect(page.locator("a[data-back]")).toHaveCount(0);
+  });
+});
+
+// Owner, 2026-11-02: tapping a Library card waited on the server, because nothing had asked for the
+// card's page before the tap. The cards in view are fetched while the page is idle, a few at most.
+test.describe("a Library card's page is asked for before the tap", () => {
+  test("the cards in view are fetched ahead, each once", async ({ page }) => {
+    await openWarm(page);
+    await page.evaluate(() => {
+      const asked: string[] = [];
+      (window as unknown as { __asked: string[] }).__asked = asked;
+      const original = window.fetch;
+      window.fetch = (input, init) => {
+        const path = new URL(input instanceof Request ? input.url : String(input), location.href)
+          .pathname;
+        if (/^\/(e|d)\//.test(path)) asked.push(path);
+        return original.call(window, input, init);
+      };
+    });
+    await item(page, "/library").click();
+    await expect(heading(page)).toHaveText("Library");
+    const asked = () => page.evaluate(() => (window as unknown as { __asked: string[] }).__asked);
+    await expect.poll(async () => (await asked()).length).toBeGreaterThan(0);
+    const paths = await asked();
+    expect(new Set(paths).size).toBe(paths.length);
+  });
+});
+
+// Owner, 2026-11-02: the page arrives from the side of the tab you came from, and a card you tapped
+// holds its press until its page is there (a press that faded before the page came read as two ripples).
+test.describe("a move says which way it went", () => {
+  test("a tab further along the bar marks next, a tab before it prev, a key neither", async ({
+    page,
+  }) => {
+    await openWarm(page);
+    await page.evaluate(() => {
+      const w = window as unknown as { __dirs: (string | null)[] };
+      w.__dirs = [];
+      // Registered after the app's own listeners: the mark is on the page that is arriving.
+      document.addEventListener("astro:after-swap", () => {
+        w.__dirs.push(document.documentElement.getAttribute("data-nav-dir"));
+      });
+    });
+    const dirs = () => page.evaluate(() => (window as unknown as { __dirs: unknown[] }).__dirs);
+    await item(page, "/library").click();
+    await expect(heading(page)).toHaveText("Library");
+    await item(page, "/").click();
+    await expect.poll(async () => (await dirs()).length).toBe(2);
+    expect(await dirs()).toEqual(["next", "prev"]);
+
+    // A key starts the move: nothing slides.
+    await item(page, "/library").focus();
+    await page.keyboard.press("Enter");
+    await expect.poll(async () => (await dirs()).length).toBe(3);
+    expect((await dirs())[2]).toBeNull();
+  });
+
+  test("a tapped Library card holds its press until its page has arrived", async ({ page }) => {
+    await openWarm(page);
+    await item(page, "/library").click();
+    await expect(heading(page)).toHaveText("Library");
+    await page.evaluate(() => {
+      const w = window as unknown as { __held: boolean[] };
+      w.__held = [];
+      document.addEventListener("astro:before-preparation", (event) => {
+        const card = (event as unknown as { sourceElement?: Element }).sourceElement?.closest(
+          "a.card-link",
+        );
+        // The page is held back until the test lets it go, so the press is read while it is on the way.
+        const load = event.loader;
+        const hold = new Promise<void>((resolve) => {
+          (w as unknown as { __release: () => void }).__release = resolve;
+        });
+        event.loader = async () => {
+          await hold;
+          w.__held.push(card?.hasAttribute("data-pending") ?? false);
+          await load();
+        };
+      });
+    });
+    const tap = page.locator("a.card-link[href^='/e/'], a.card-link[href^='/d/']").first().click();
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => (window as unknown as { __release?: () => void }).__release !== undefined,
+        ),
+      )
+      .toBe(true);
+    await page.evaluate(() => (window as unknown as { __release: () => void }).__release());
+    await tap;
+    await expect(page.locator("a[data-back]")).toBeVisible();
+    expect(await page.evaluate(() => (window as unknown as { __held: boolean[] }).__held)).toEqual([
+      true,
+    ]);
   });
 });

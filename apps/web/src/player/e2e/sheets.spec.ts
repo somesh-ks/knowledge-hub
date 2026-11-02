@@ -42,8 +42,13 @@ test("Regenerate while a podcast plays: the queue's dock stands clear above the 
   const dialog = await player.openGenerate();
   await player.finger.press(dialog.getByRole("button", { name: "Regenerate" }));
   await expect(dialog).toBeHidden();
-  // Regenerate replaces the briefing on the page over its own window (D104).
-  expect(sent).toEqual({ replace: SITE.path.replace("/d/", "") });
+  // Regenerate replaces the briefing on the page over its own window (D104). Its length starts on the
+  // aired one, and this fixture airs seconds of audio, so only that a length goes is checked here
+  // (e2e/briefingRun.spec.ts holds the value).
+  expect(sent).toEqual({
+    length_minutes: expect.any(Number),
+    replace: SITE.path.replace("/d/", ""),
+  });
   const card = page.locator("[data-queue-dock]");
   await expect(card).toBeVisible();
   const bar = await player.dockSettled();

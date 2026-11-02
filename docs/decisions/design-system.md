@@ -638,3 +638,25 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Cost: a container that paints its own surface carries two more lines; 62 rules moved off alpha layers.
 - Revisit if: a ghost control sits on a surface the container did not name (its hover then steps the page's tone), or the ripple moves onto a known fill.
 - Amends: D317.
+
+## D336: a cover no longer flies between its card and the page's hero
+
+- Date: 2026-11-02 (the owner: "remove the morph animation as it doesnt make sense").
+- Decision: supersedes the cover's flight in D271 and D280 (the Library card, a shelf or Today's card to the page's hero and back; `scripts/coverMorph.ts`, `.cover-morph`, `[data-morphing]`). A drill move is the swap with the page fading up and settling 8px from the side (D280's page slide, fade and timing stand). The player's own mini to full cover morph (`player/core/coverMorph.ts`) stays.
+- Context changed: D271 and D280 shaped the flight so the cover would be the one thing the eye follows; on the owner's phone it reads as senseless, and it needed its own measuring, hiding and landing rules for every card, list and gallery.
+- Why: a copy of the cover crossed a page that was fading in under it; it moved the eye to something that was not the point of the move, and it needed its own measuring, hiding and landing rules for every card, list and gallery.
+- Rejected: keeping it for the gallery only; a shorter flight.
+- Cost: none in tokens; `coverMorph.ts`, its CSS and its test are gone.
+- Revisit if: a move needs an object to link two pages again; draw it then from one place, not per card.
+- Supersedes: D271 (cover travel), D280 (the flight).
+
+## D341: a page arrives from the side of the tab you came from
+
+- Date: 2026-11-02 (the owner: "the page transition animation should be something nice ... fluid transitions from side to indicate from which tab you came from - on mobile. find another way for desktop").
+- Decision: supersedes D280's 8px settle and its fade-only tab move. `navigation.ts` marks the incoming page with `data-nav-dir`: "next" for a tab further along the bar and for a way into a briefing or episode, "prev" for a tab before it and for the way out. On a phone the page arrives drawn at once, 36px (three of `--distance-medium`) to that side, and settles on `--ease-drawer`: 150 ms between tabs, 250 ms into a briefing and out. From 64rem a tab move rises 12px instead, from below for a row further down the side column and from above for one higher. A key press sets no mark: nothing moves. A Library card you tapped keeps its press (`data-pending`) until its page has arrived, so press, wait and page are one gesture. The old page is not kept: it is gone in the frame the new one arrives (D280). Slide and rise are transform only, and the distance token's existing zeroing leaves no travel where motion is turned down.
+- Context changed: D280 chose 8px and the hover curve so a settle would not read as a cut, and a tab move only faded. On the owner's phone neither said which way the move went, and a 24px slide on the strong ease-out was over in 60 ms. A fade from nothing under a slide left an empty frame or two between pages, which read as a flicker.
+- Why: a move along a bar has a direction, and showing it costs nothing the move does not already spend: no copy of the old page, no pictures, no wait. The drawer curve starts at speed, so the page answers the press, and still shows its travel.
+- Rejected: keeping the old page as a copy that pushes back (a clone of the whole page for a move made tens of times a day; a blank frame in the frame-by-frame check); a fade under the slide (the empty frames); the strong ease-out for the slide (the travel is spent in 60 ms); a new distance token (three steps of the existing one do); 250 ms between tabs (`navSpeed.spec.ts` holds a tab move to the time of a press).
+- Cost: none in tokens or bytes beyond a few lines of script; the page is drawn 36px off for its first frame.
+- Revisit if: the owner wants the old page to leave as well (a push); then draw it from a view transition, not a copy of the page.
+- Supersedes: D280 (the 8px settle and the fade-only tab move). Amends: D336.

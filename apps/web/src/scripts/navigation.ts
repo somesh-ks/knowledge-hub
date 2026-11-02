@@ -42,6 +42,66 @@ export function navigationKind(from: URL, to: URL): NavigationKind {
   return "peer";
 }
 
+/** Where the person came from: the tab lit on the page they left, kept per briefing or episode for the visit. */
+const ORIGIN_KEY = "singularity:tab-origin";
+const ORIGIN_LIMIT = 24;
+export type TabOrigins = Record<string, string>;
+
+const NAV_ITEM_SELECTOR = "a.app-nav-item";
+
+/** The address of the tab lit in the bar, or null when the page belongs to none. */
+export function currentTab(root: ParentNode): string | null {
+  return (
+    root.querySelector(`${NAV_ITEM_SELECTOR}[aria-current='page']`)?.getAttribute("href") ?? null
+  );
+}
+
+/**
+ * Remembers which tab led to a briefing or an episode, or forgets it when no tab did. A briefing
+ * opened from the Library stays under the Library, one opened from Settings under Settings: the
+ * tab says where you are in the app, and a podcast is the same podcast from every one of them.
+ */
+export function rememberTab(origins: TabOrigins, path: string, tab: string | null): TabOrigins {
+  const { [path]: _gone, ...rest } = origins;
+  if (tab === null) return rest;
+  // Newest last, so the oldest go when the visit has opened more than it can use again.
+  return Object.fromEntries(Object.entries({ ...rest, [path]: tab }).slice(-ORIGIN_LIMIT));
+}
+
+/**
+ * Lights `tab` in the bar of `doc` instead of the page's own, and gives the Back button, which a
+ * page that is itself a tab hides, the tab to go back to. A tab the bar does not have changes nothing.
+ */
+export function lightTab(doc: ParentNode, tab: string): void {
+  const items = [...doc.querySelectorAll<HTMLAnchorElement>(NAV_ITEM_SELECTOR)];
+  const item = items.find((candidate) => candidate.getAttribute("href") === tab);
+  if (!item || item.getAttribute("aria-current") === "page") return;
+  for (const other of items) other.removeAttribute("aria-current");
+  item.setAttribute("aria-current", "page");
+  const back = doc.querySelector<HTMLAnchorElement>("a[data-back][hidden]");
+  if (back) {
+    back.removeAttribute("hidden");
+    back.setAttribute("href", tab);
+  }
+}
+
+function readOrigins(): TabOrigins {
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(ORIGIN_KEY) ?? "{}") as unknown;
+    return typeof stored === "object" && stored !== null ? (stored as TabOrigins) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeOrigins(origins: TabOrigins): void {
+  try {
+    sessionStorage.setItem(ORIGIN_KEY, JSON.stringify(origins));
+  } catch {
+    // Storage is off: the page keeps the tab it was built with.
+  }
+}
+
 /**
  * Copies the carried attributes from the live root onto the incoming document, so a swap never
  * resets the theme or the player's state.
@@ -71,28 +131,48 @@ export const NAV_ATTRIBUTE = "data-astro-nav";
 export const ARRIVED_ATTRIBUTE = "data-nav-arrived";
 
 /**
- * Set on the incoming document's root while the pill is still growing when its page arrives: how
- * many milliseconds of the growth have already played, so the new bar picks it up where the old
- * one was cut (shell.css). A cached page swaps in tens of milliseconds after the press; without
- * this the pill stopped a quarter of the way and the new bar drew it whole.
+ * The animation clock's time at which the pill under the current tab began to grow, or null if it is
+ * not growing. The new bar carries on from the same instant (startTime, not a count of milliseconds
+ * played): a swap takes tens of milliseconds, and a count taken before it would take the pill back
+ * by that much, so it grew a second time on the new bar.
  */
-export const PILL_ELAPSED_PROPERTY = "--nav-pill-elapsed";
-
-/** Milliseconds of the pill's growth already played on the page that is leaving, or null if it is not growing. */
-export function pillElapsed(root: ParentNode): number | null {
+export function pillStartedAt(root: ParentNode): number | null {
   const indicator = root.querySelector(".app-nav-item[aria-current='page'] .app-nav-indicator");
   for (const animation of indicator?.getAnimations({ subtree: true }) ?? []) {
     if (
       "animationName" in animation &&
       String(animation.animationName).startsWith("nav-pill") &&
-      animation.playState === "running"
+      animation.playState === "running" &&
+      animation.startTime !== null
     ) {
-      // A carried growth starts with a negative delay: the time played is the clock less the delay.
-      const delay = Number(animation.effect?.getComputedTiming().delay ?? 0);
-      return Math.max(0, Math.round(Number(animation.currentTime ?? 0) - delay));
+      return Number(animation.startTime);
     }
   }
   return null;
+}
+
+/** Which way a move goes along the bar: "next" to a tab further along it, "prev" to one before it. */
+export type TabDirection = "next" | "prev";
+export const DIRECTION_ATTRIBUTE = "data-nav-dir";
+
+/**
+ * The way a move goes. A way into a briefing or an episode is "next", the way out "prev", and
+ * between destinations it follows the bar, so the page arrives from the side its tab sits on.
+ * Null when the bar does not say (a page that belongs to no tab, or the same tab).
+ */
+export function moveDirection(
+  kind: NavigationKind,
+  leavingTab: string | null,
+  arrivingTab: string | null,
+  barOrder: readonly (string | null)[],
+): TabDirection | null {
+  if (kind === "in") return "next";
+  if (kind === "out") return "prev";
+  if (kind !== "peer" || leavingTab === null || arrivingTab === null) return null;
+  const from = barOrder.indexOf(leavingTab);
+  const to = barOrder.indexOf(arrivingTab);
+  if (from < 0 || to < 0 || from === to) return null;
+  return to > from ? "next" : "prev";
 }
 
 /** Puts the mark for this move on the incoming document, so it is still there when the move is drawn. */
@@ -102,31 +182,84 @@ export function carryNavigationKind(from: HTMLElement, to: HTMLElement): void {
 }
 
 export function installNavigation(): void {
+  // A reload of a briefing keeps the tab it was opened under.
+  const here = normalize(location.pathname);
+  const opened = isBriefingPath(here) ? readOrigins()[here] : undefined;
+  if (opened) lightTab(document, opened);
+
   let isNavigating = false;
   // Counts moves begun: a move's marks are cleared only by that move, not by an earlier one still settling.
   let generation = 0;
+  // Where the leaving bar's pill was in its growth, until the new bar has taken it over.
+  let carriedPill: number | null = null;
+  // The tab of the page on screen. Set when a page arrives, never on a press: a press lights its
+  // destination on the page still showing, and a second press before the first lands would read that.
+  let leavingTab: string | null = currentTab(document);
 
   document.addEventListener("astro:before-preparation", (event) => {
     isNavigating = true;
     generation += 1;
     const kind = navigationKind(event.from, event.to);
     document.documentElement.setAttribute(NAV_ATTRIBUTE, kind);
+    const to = normalize(event.to.pathname);
+    // Going back to a briefing is not a way in: it keeps the tab it was opened under.
+    if (isBriefingPath(to) && event.navigationType !== "traverse") {
+      writeOrigins(rememberTab(readOrigins(), to, currentTab(document)));
+    }
+  });
+
+  // The new bar is in the page and not yet drawn: its pill takes up the growth at the instant the old one reached.
+  document.addEventListener("astro:after-swap", () => {
+    leavingTab = currentTab(document);
+    if (carriedPill === null) return;
+    const started = carriedPill;
+    carriedPill = null;
+    const indicator = document.querySelector(
+      ".app-nav-item[aria-current='page'] .app-nav-indicator",
+    );
+    for (const animation of indicator?.getAnimations({ subtree: true }) ?? []) {
+      if ("animationName" in animation && String(animation.animationName).startsWith("nav-pill")) {
+        animation.startTime = started;
+      }
+    }
   });
 
   document.addEventListener("astro:before-swap", (event) => {
     carryRootAttributes(document.documentElement, event.newDocument.documentElement);
     carryNavigationKind(document.documentElement, event.newDocument.documentElement);
+    const path = normalize(event.to.pathname);
+    const opened = isBriefingPath(path) ? readOrigins()[path] : undefined;
+    if (opened) lightTab(event.newDocument, opened);
     const root = document.documentElement;
+    // Which side the page arrives from. A key moves nothing: what a key starts is never animated.
+    if (root.dataset.input !== "keyboard") {
+      const bar = [...document.querySelectorAll<HTMLAnchorElement>(NAV_ITEM_SELECTOR)].map((item) =>
+        item.getAttribute("href"),
+      );
+      const direction = moveDirection(
+        navigationKind(event.from, event.to),
+        leavingTab,
+        currentTab(event.newDocument),
+        bar,
+      );
+      if (direction) event.newDocument.documentElement.setAttribute(DIRECTION_ATTRIBUTE, direction);
+    }
+    // The same tab stays lit through the move (the Library, into one of its episodes): its pill has nothing to grow.
+    const tab = currentTab(event.newDocument);
     const moved =
-      root.getAttribute(NAV_ATTRIBUTE) !== "none" && !root.hasAttribute(ARRIVED_ATTRIBUTE);
+      root.getAttribute(NAV_ATTRIBUTE) !== "none" &&
+      !root.hasAttribute(ARRIVED_ATTRIBUTE) &&
+      (tab === null || tab !== currentTab(document));
     if (moved) event.newDocument.documentElement.setAttribute(ARRIVED_ATTRIBUTE, "");
     else {
       // The press lit the item on this page and its pill is still growing: the new bar takes over.
-      const elapsed = pillElapsed(document);
-      if (elapsed !== null) {
-        const incoming = event.newDocument.documentElement;
-        incoming.setAttribute(ARRIVED_ATTRIBUTE, root.getAttribute(ARRIVED_ATTRIBUTE) ?? "");
-        incoming.style.setProperty(PILL_ELAPSED_PROPERTY, `${elapsed}ms`);
+      const started = pillStartedAt(document);
+      if (started !== null) {
+        event.newDocument.documentElement.setAttribute(
+          ARRIVED_ATTRIBUTE,
+          root.getAttribute(ARRIVED_ATTRIBUTE) ?? "",
+        );
+        carriedPill = started;
       }
     }
     const mine = generation;
@@ -134,7 +267,7 @@ export function installNavigation(): void {
       if (mine !== generation) return;
       document.documentElement.removeAttribute(NAV_ATTRIBUTE);
       document.documentElement.removeAttribute(ARRIVED_ATTRIBUTE);
-      document.documentElement.style.removeProperty(PILL_ELAPSED_PROPERTY);
+      document.documentElement.removeAttribute(DIRECTION_ATTRIBUTE);
     };
     // The marks go once the pill has finished, not when the move's own settle time is up: that is
     // shorter than the growth, and removing the mark ends the animation where it stands.

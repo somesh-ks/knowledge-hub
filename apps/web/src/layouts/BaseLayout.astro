@@ -129,14 +129,17 @@ const { timezone: scheduleTimezone } = await loadScheduleView();
 const fab = fabFor({ path, playable: Boolean(audio && digestId) });
 // A page one level down (a briefing or an episode, a Settings sub-page, the Create page) leads back
 // in the app bar: to where the person came from when that was in the app, else to its list.
-// The latest briefing at its dated address is Today, a top-level destination: no Back there.
+// The latest briefing at its dated address is Today, a top-level destination: no Back there, unless a
+// tab other than Today led to it (the Library's card for it): the page keeps its Back, hidden, and
+// navigation.ts shows it then.
+const briefing = /^\/(d|e)\//.test(path);
 const back =
-  destination === "today"
+  destination === "today" && !briefing
     ? undefined
-    : /^\/(d|e)\//.test(path) || path === "/create"
-      ? { href: "/library", label: "Back" }
+    : briefing || path === "/create"
+      ? { href: "/library", label: "Back", hidden: destination === "today" }
       : /^\/settings\/./.test(path)
-        ? { href: path.replace(/\/[^/]+$/, ""), label: "Back" }
+        ? { href: path.replace(/\/[^/]+$/, ""), label: "Back", hidden: false }
         : undefined;
 ---
 

@@ -3,9 +3,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * The move into a briefing settles from the side only if its rule beats the rule for every move.
- * Both set `animation`, so the one for a single kind must weigh at least as much and come later.
- * For a while it weighed less (the general rule carried a :not()), and the settle never showed.
+ * The move into a briefing takes its longer slide only if its rule beats the rule for every move.
+ * Both set the animation's time, so the one for a drill must weigh at least as much and come later.
+ * For a while the rule for one kind weighed less (the general rule carried a :not()), and its time never showed.
  */
 /** Spacing is the formatter's business: a long selector may be laid out over several lines. */
 const tight = (text: string) => text.replace(/\s+/g, "");
@@ -30,22 +30,18 @@ function ruleStart(selector: string): number {
   return index;
 }
 
-const KINDS = (attribute: string) =>
-  `html:is([${attribute}="peer"], [${attribute}="in"], [${attribute}="out"])`;
-
 describe("view transitions: which rule draws a move", () => {
   const pairs = [
     {
-      name: "the page's own fade",
-      general: `${KINDS("data-nav-swap")} .shell`,
-      one: ['html[data-nav-swap="in"] .shell', 'html[data-nav-swap="out"] .shell'],
+      name: "the page's own slide",
+      general: "html[data-nav-swap][data-nav-dir] .shell",
+      one: ['html:is([data-nav-swap="in"], [data-nav-swap="out"])[data-nav-dir] .shell'],
     },
     {
       name: "the view transition's picture of the new page",
-      general: `${KINDS("data-astro-nav")}::view-transition-new(root)`,
+      general: "html[data-astro-nav][data-nav-dir]::view-transition-new(root)",
       one: [
-        'html[data-astro-nav="in"]::view-transition-new(root)',
-        'html[data-astro-nav="out"]::view-transition-new(root)',
+        'html:is([data-astro-nav="in"], [data-astro-nav="out"])[data-nav-dir]::view-transition-new(root)',
       ],
     },
   ];

@@ -105,10 +105,16 @@ test.describe("routes and headers", () => {
           document.querySelector('#banners [data-banner="offline"]') !== null &&
             document.documentElement.hasAttribute("data-strip"),
         );
-        const main = document.querySelector("#main")?.getBoundingClientRect().top;
+        // Where the page sits in the layout: the desktop rise (D341) moves the shell on purpose, and is taken off.
+        const rise = new DOMMatrix(
+          getComputedStyle(document.querySelector(".shell") ?? document.body).transform,
+        ).m42;
+        const main =
+          (document.querySelector("#main")?.getBoundingClientRect().top ?? Number.NaN) - rise;
         const cover = document.querySelector(".hero .cover")?.getBoundingClientRect();
         const box = cover ? [cover.top, cover.width, cover.height].join(",") : "";
-        if (main !== undefined) seen.push([location.pathname, `${main}|${box}`]);
+        if (!Number.isNaN(main))
+          seen.push([location.pathname, `${Math.round(main * 100) / 100}|${box}`]);
         requestAnimationFrame(tick);
       };
       tick();
@@ -127,7 +133,7 @@ test.describe("routes and headers", () => {
     await settle();
     const landed = await top();
     const libraryTops = (await samples(/^\/library$/)).map((v) => v.split("|")[0]);
-    expect(new Set(libraryTops)).toEqual(new Set([String(landed)]));
+    expect(new Set(libraryTops)).toEqual(new Set([String(Math.round(landed * 100) / 100)]));
     expect(landed).toBeGreaterThanOrEqual(squeezed);
     // The reported case: a podcast opened from the Library. Its cover keeps its top and size from the
     // first frame it exists, compared to itself (the page's own slide in moves it sideways, not down).

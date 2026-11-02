@@ -11,7 +11,8 @@
  */
 
 import { isOnline } from "../lib/connectivity";
-import { ARRIVED_ATTRIBUTE, PILL_ELAPSED_PROPERTY } from "./navigation";
+import { whenIdle } from "./idle";
+import { ARRIVED_ATTRIBUTE } from "./navigation";
 
 /** Links only: the side column also has a button (the queue's row), which has no page to go to. */
 const NAV_ITEM = "a.app-nav-item";
@@ -66,6 +67,44 @@ export function shouldRefresh(
   return type === "PAGE_CHANGED" && path === page.path && !page.touched && !page.hidden;
 }
 
+/** The longest a pressed card holds its press while its page is on the way. */
+export const PENDING_MAX_MS = 6_000;
+
+/** The timer that will end each card's held press, so a second press on the card restarts the wait. */
+const pendingTimers = new WeakMap<object, ReturnType<typeof setTimeout>>();
+
+/** A card opened from a list stays pressed (library.css) until its page arrives; the swap removes it. */
+export function holdPress(card: Element): void {
+  const earlier = pendingTimers.get(card);
+  if (earlier !== undefined) clearTimeout(earlier);
+  card.setAttribute("data-pending", "");
+  // A move that never completes (the page could not be fetched) leaves the card as it was.
+  pendingTimers.set(
+    card,
+    setTimeout(() => {
+      card.removeAttribute("data-pending");
+      pendingTimers.delete(card);
+    }, PENDING_MAX_MS),
+  );
+}
+
+/** The most pages the Library fetches ahead in one visit to the app: the cards a person is looking at. */
+export const LOOKAHEAD_LIMIT = 8;
+
+/** How long after a finger leaves an item its click still counts as that press. */
+const PRESS_CLICK_MS = 800;
+/** The navigation item a finger or pen last pressed, and when it last touched it. */
+let fingerOn: { item: Element; at: number } | null = null;
+
+/**
+ * The value of the arrival mark for a press on `item`: "pressed" when a finger went down on it a
+ * moment ago, so its pill is already showing and eases from the press tone to the current one
+ * instead of growing a second time; empty otherwise.
+ */
+export function arrivalFor(item: Element, now: number): string {
+  return fingerOn?.item === item && now - fingerOn.at < PRESS_CLICK_MS ? "pressed" : "";
+}
+
 /** The transitions this module made, so a swap can tell whether the page or the browser draws it. */
 const immediate = new WeakSet<object>();
 
@@ -115,14 +154,14 @@ export function installNavigationBoost(): void {
   };
 
   document.addEventListener("astro:before-preparation", (event) => {
+    const opened = event.sourceElement?.closest<HTMLElement>("a.card-link");
+    if (opened) holdPress(opened);
     const item = pressedDestination(event.sourceElement, document);
     if (item) {
       // The pill grows under the item as it lights, here, and not again on the page that arrives.
       if (item.getAttribute("aria-current") !== "page") {
         const root = document.documentElement;
-        root.setAttribute(ARRIVED_ATTRIBUTE, "");
-        // A press in the settle time of the last move starts its growth afresh.
-        root.style.removeProperty(PILL_ELAPSED_PROPERTY);
+        root.setAttribute(ARRIVED_ATTRIBUTE, arrivalFor(item, performance.now()));
       }
       markCurrent(item, document);
     }
@@ -153,6 +192,20 @@ export function installNavigationBoost(): void {
     void event.viewTransition.finished.then(clear, clear);
   });
 
+  // Which item a finger is on, for the pill: see arrivalFor.
+  for (const type of ["pointerdown", "pointerup"] as const) {
+    document.addEventListener(
+      type,
+      (event) => {
+        if (event.pointerType === "mouse") return;
+        const target = event.target instanceof Element ? event.target : null;
+        const item = target?.closest(NAV_ITEM) ?? null;
+        fingerOn = item ? { item, at: performance.now() } : null;
+      },
+      { capture: true, passive: true },
+    );
+  }
+
   // Touch has no hover to prefetch on. The service worker shares this request with the router's.
   document.addEventListener(
     "pointerdown",
@@ -166,6 +219,42 @@ export function installNavigationBoost(): void {
     },
     { capture: true, passive: true },
   );
+
+  // The Library's cards in view are fetched at low priority while the page is idle: a card's page
+  // is drawn at the edge once per content change, and the first tap after that waited on the
+  // function in Washington (owner, 2026-11-02: "there's a delay to go to the page"). The fetch
+  // fills the edge nearest the owner and the worker's saved copy, so the tap finds the page ready.
+  // Few, and once each: a phone scrolling a long Library asks for at most LOOKAHEAD_LIMIT pages.
+  const lookedAhead = new Set<string>();
+  let cardWatcher: IntersectionObserver | null = null;
+  const watchCards = (): void => {
+    cardWatcher?.disconnect();
+    cardWatcher = null;
+    // The Library page alone: Settings' Saved and Downloads draw the same cards, and would spend the cap.
+    if (document.documentElement.getAttribute("data-library-page") !== "items") return;
+    if (!("IntersectionObserver" in window) || !navigator.onLine || savesData()) return;
+    const cards = document.querySelectorAll<HTMLAnchorElement>(
+      "[data-library] a.card-link[href^='/e/'], [data-library] a.card-link[href^='/d/']",
+    );
+    if (cards.length === 0) return;
+    const watcher = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const link = entry.target as HTMLAnchorElement;
+        watcher.unobserve(link);
+        // Idle, and the cap and the once-each rule are read when the work runs, not when it is queued.
+        whenIdle(() => {
+          if (lookedAhead.size >= LOOKAHEAD_LIMIT || lookedAhead.has(link.href)) return;
+          lookedAhead.add(link.href);
+          quietFetch(link.href, "low");
+        });
+      }
+    });
+    cardWatcher = watcher;
+    for (const card of cards) watcher.observe(card);
+  };
+  watchCards();
+  document.addEventListener("astro:page-load", watchCards);
 
   let warmedAt = 0;
   const warm = (): void => {

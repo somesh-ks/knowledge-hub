@@ -37,7 +37,11 @@
   transition: opacity var(--duration-press-out) var(--ease-out);
 }
 
-.card-link:active .cover::after {
+/* A press holds until the page it opened has arrived (data-pending, set in navigationBoost.ts): the
+   press, the wait and the page are one gesture, not a flash that fades out before the page comes
+   (owner, 2026-11-02: two ripples on opening a podcast, and a wait). */
+.card-link:active .cover::after,
+.card-link[data-pending] .cover::after {
   opacity: 1;
   transition-duration: var(--duration-press-in);
 }
@@ -605,7 +609,7 @@ main.library [data-library][data-view="list"] .library-grid {
   }
 }
 
-[data-library][data-view="list"] .card-link:active::after {
+[data-library][data-view="list"] .card-link:is(:active, [data-pending])::after {
   background: var(--ghost-pressed);
   opacity: 1;
 }

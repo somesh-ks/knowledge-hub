@@ -4,7 +4,11 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-11-02 | [Page slide from the tab](2026-11-02-page-slide-from-the-tab.md) | Pages arrive from the side of the tab you came from; a tapped card keeps its press until its page arrives (D341) |
+| 2026-11-02 | [Cover flight removed](2026-11-02-cover-flight-removed.md) | A cover no longer flies between its card and the page's hero; the fade and settle stay (D336) |
+| 2026-11-02 | [Catch up exit, full Regenerate](2026-11-02-catchup-regenerate.md) | A smooth sheet exit, Regenerate as a full sheet with no Usual, the script at medium effort (D323, D324) |
 | 2026-11-01 | [Content out of git](2026-11-01-content-out-of-git.md) | Digests and episodes load from the content store before a job and save after its commit; the snapshot moves to Neon (D300, D311) |
+| 2026-11-02 | [Catch-up speed](2026-11-02-catch-up-speed.md) | The edge purge waits 55 s from the run's last save, not from the notifier job's start (D318) |
 | 2026-11-02 | [Offline and app state](2026-11-02-offline-state.md) | One connectivity state, a stand-in that keeps the route and recovers in place, pages kept ready, plain error copy with a test (D330, D331) |
 | 2026-11-02 | [Ghost states](2026-11-02-ghost-states.md) | Controls with no fill show hover and press as the surface behind them; the ripple and a cover's press stay alpha (D317 step 2, D321) |
 | 2026-11-02 | [Player ⋮ menu](2026-11-02-player-menu.md) | A ⋮ menu replaces the speed button: tiles, a speed screen with stops, Save and Settings > Saved (D309) |

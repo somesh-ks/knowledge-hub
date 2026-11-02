@@ -245,7 +245,7 @@ export async function watchRun(
     if (!token || !capabilities.chosen.ready || notificationState(capabilities) !== "on") return;
     const current = await subscription();
     if (!current) return;
-    await send("/api/push", {
+    const res = await send("/api/push", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -255,6 +255,9 @@ export async function watchRun(
         subscription: current.toJSON(),
       }),
     });
+    // The run goes on, but a refused watch means no message: leave a trace in the console.
+    if (!res.ok)
+      console.warn(`[push] the site did not take the watch for run ${runId}: ${res.status}`);
   } catch {
     // The run is under way either way; only the message is lost.
   }

@@ -23,7 +23,14 @@ export type StartRejection =
   | "network";
 
 export type StartResult =
-  | { kind: "started"; runId: number; startedAt: string; request: GenerateRequest }
+  | {
+      kind: "started";
+      runId: number;
+      startedAt: string;
+      request: GenerateRequest;
+      /** The proof that this device started the run: Cancel and a push when it ends need it. */
+      cancelToken?: string;
+    }
   | { kind: "rejected"; reason: StartRejection; message: string; retryAfterSeconds?: number };
 
 export const MESSAGES = {
@@ -127,6 +134,7 @@ export async function startGenerate(
         runId,
         startedAt: typeof startedAt === "string" ? startedAt : new Date().toISOString(),
         request,
+        ...(typeof body?.cancel_token === "string" ? { cancelToken: body.cancel_token } : {}),
       };
     }
     case 400:
