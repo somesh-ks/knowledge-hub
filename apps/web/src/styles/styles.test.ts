@@ -78,6 +78,7 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
     "the chevron in the rows column: its ink 28px in, as the dots and pencil",
   ],
   [".story", "an optical nudge: the row's bottom half-gap less the chips' hit-area overhang"],
+  [".queue-going", "a ring onto its time or percent inside one lead: the icon-to-label gap is 4px"],
   [".create-fab-label", "the button's own inner gap at the label's end"],
   [".sheet-head", "the header's 44px buttons, offset to the edge as a hit area"],
   [".create-more-text", "title onto its subtitle inside one row"],
