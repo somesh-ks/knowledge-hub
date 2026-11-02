@@ -314,4 +314,9 @@ describe("gate: spend ceiling (H7)", () => {
     await ledger(2, "2026-10-06T20:00:00Z");
     expect((await gate(WED)).due).toBe(true);
   });
+
+  it("does not count a record dated after the gate's clock", async () => {
+    await ledger(6, "2026-10-08T04:00:00Z");
+    expect((await gate(WED)).due).toBe(true);
+  });
 });

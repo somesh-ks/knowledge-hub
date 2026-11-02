@@ -19,7 +19,10 @@ export async function spendCeilingStop(
   if (records === null) return null;
   const since = now.getTime() - DAY_MS;
   const spent = records
-    .filter((record) => Date.parse(record.at) > since)
+    .filter((record) => {
+      const at = Date.parse(record.at);
+      return at > since && at <= now.getTime();
+    })
     .reduce((sum, record) => sum + record.usd, 0);
   if (spent <= ceilingUsd) return null;
   return `$${spent.toFixed(2)} spent in the last 24 hours, past the $${ceilingUsd} ceiling: a scheduled run waits (a run started by hand, or forced, goes ahead)`;
