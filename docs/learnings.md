@@ -21,7 +21,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-12: an axe scan after `emulateMedia` read colours mid-fade. Wait for the page's `CSSTransition`s to finish first, and cap that wait, because an infinite or paused animation never finishes.
 - 2026-10-12: Playwright can want a newer Chromium than is cached (1243 cached, 1248 wanted): an untracked `playwright.override.config.ts` beside each config sets `launchOptions.executablePath` to the cached headless shell; one PORT per worktree. Never commit a topics snapshot.
 - 2026-10-12: a leftover server or build makes a suite test the wrong build: Playwright reuses a listening server and skips the build (`taskkill`; Git Bash `kill $!` leaves a `node`). Stop old servers; use a fresh PORT after a page edit.
-- 2026-10-11: Playwright `addStyleTag` and injected audit scripts (axe) are blocked by the fixture site's CSP (no 'unsafe-inline'); use `bypassCSP: true` on the context for a probe or audit. An audit builds into its own directory and port: a `dist` rebuilt mid-audit read as "page has no title".
+- 2026-10-11: Playwright `addStyleTag` and injected audit scripts (axe) are blocked by the fixture site's CSP (no 'unsafe-inline'); use `bypassCSP: true` on the context for a probe or audit, built into its own directory and port (a `dist` rebuilt mid-audit read as "page has no title").
 - 2026-10-10: a player fix for track contrast read right in the diff and failed in the browser (played and unplayed 1.46:1 apart); the worker had marked it unverified. Send a read-only verifier to measure every fix a worker marks unverified before calling an area done.
 - 2026-10-10: with a lone threshold of 1, Chromium's IntersectionObserver reports a target partly past the root edge as not intersecting, and never calls back when it then leaves. To tell a sticky element is stuck, observe thresholds `[0, 1]` and compare `boundingClientRect.top` with `rootBounds.top`.
 - 2026-10-09: a WebGL canvas failed the player suite on every page: headless Chromium draws in software (SwiftShader), logs "GPU stall due to ReadPixels" each frame, and the suite fails on any warning. Read the renderer's name (`WEBGL_debug_renderer_info`) and skip WebGL on a software one.
@@ -64,7 +64,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-14: Firecrawl bills a cached scrape (its Faster Scraping page: "Cached results still cost 1 credit per page"), so `maxAge` cuts latency and not spend. Only a request that is not made saves a credit.
 - 2026-10-12: the workflows installed all 445 packages to run one CLI. `npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root` installs 118 and takes 4.3 s, not 10.4.
 - 2026-10-12: Vercel's hourly cron cannot land on a half-hour slot (India, UTC+05:30). The route accepts a call whose UTC hour overlaps the slot, so a run can start up to 30 minutes early, and the gate dedupes it.
-- 2026-10-12: episode length: told a length in characters, a writer delivers a third to two-thirds; in words, per story and in total, 83 to 90%. A script is held to what its stories carry (D43). Asking for 90% gave 79 to 87% and wrote most episodes twice: ask for 95%, accept a few percent under.
+- 2026-10-12: episode length: told a length in characters, a writer delivers a third to two-thirds; in words, per story and in total, 83 to 90%. A script is held to what its stories carry (D43). Asking for 90% gave 79 to 87% and doubled the writing: ask for 95%.
 - 2026-10-11: a missing briefing was GitHub, not the gate: the 07:13 entry ran 13:11 to 14:02 on 7 to 10 October. Before debugging a missed run, list `run.yml`'s schedule runs ("skipped" means no runner) and read the Gate log. Trigger now Vercel Cron (D61).
 - 2026-10-11: `singularity sources import` keeps an existing source's `enabled` and `options`, so a seed change reaches only new sources: write it into `config/sources.json` after the import (`--fresh` loses discovered feeds and counters). Run `biome format` on the imported JSON before linting.
 - 2026-10-11: a judge built with a fallback (Jev, then Nebius) shares the fallback's token budget with the writer, so work done for scores alone must use the primary judge alone: an outage would otherwise spend the briefing's budget on it.
@@ -73,7 +73,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Site and service worker
 
-- 2026-11-01: styles.test wants `oklch(from var(--x) ...)` on one line and biome rewraps long calls: use intermediate custom properties. A property set only in inline `style` needs a `var()` fallback.
+- 2026-11-01: styles.test wants `oklch(from var(--x) ...)` on one line and biome rewraps long calls: use intermediate custom properties, with a `var()` fallback for one set only in inline `style`.
 - 2026-10-31: a deploy mid-session loads a second copy of the player (two audios): share via `tabShared`.
 - 2026-10-31: a persisted island put back restarts its CSS animations: `persistedMotion.ts`. A box measured at `astro:after-swap` is mid page slide (8px off): wind the entrance to its end first (`coverMorph.ts`). A token alias in `primitive` fails the literal test.
 - 2026-10-30: a change reloaded mid-write came back undone: Chromium rejects a request still out at unload (`keepalive` keeps the request, not the promise) before pagehide runs. Ask `endedByLeaving()` before calling no answer a failure; test on a real server.
@@ -117,7 +117,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Windows and shells
 
-- 2026-10-14: from the agent's Git Bash, `powershell -Command "..."` loses `$_`, `$env:` and `$LASTEXITCODE` to bash, and an argument that starts with `/` is rewritten to a Windows path. Put PowerShell with variables in a `.ps1` file and run it with `-File`; pass several paths as one string to split.
+- 2026-10-14: from the agent's Git Bash, `powershell -Command "..."` loses `$_`, `$env:` and `$LASTEXITCODE` to bash, and an argument that starts with `/` is rewritten to a Windows path. Put PowerShell with variables in a `.ps1` file and run it with `-File`.
 - 2026-10-14: `pkill -f serve.mjs` inside a Bash call killed that call's own shell, whose command line matched. Kill by PID from a filtered `ps`.
 - 2026-10-12: heredoc and `node -e` edits lose backslashes and backticks in the agent shell, and some worktrees refuse compound commands: write scripts with the Write tool, all-or-nothing.
 - 2026-10-11: the sandbox proxy refuses news hosts (403 to CONNECT), so `curl` cannot check a feed. Fetch it with Firecrawl's scrape (`rawHtml`, a week's `maxAge`), in a subagent so the bodies stay out of the session; Firecrawl allowed about ten requests a minute.
@@ -132,14 +132,14 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-27: Windows junctions from `worktreeLinks.mjs` deleted the main checkout's `node_modules` twice: use `--remove` before `git worktree remove`.
 - 2026-10-23: a design-audit agent in a worktree-isolated session took no screenshot: the guard refused every heredoc, absolute path or glob in its Bash. Brief it to write scripts with the Write tool into the scratchpad and run `node <path>`.
 - 2026-10-22: two sessions took D157 at once, and D159 and D176 collided later the same way. Workers add no decision; the lead numbers them and checks `main`'s Index again right before merging.
-- 2026-10-24: `gh api repos/<repo>/rules/branches/main` returns `[]`: the D175 ruleset is not enforced, so auto-merge would merge before CI, and #265 merged while its browser job ran. Merge by hand once checks pass; `gh pr checks` can list a finished job as pending (read the PR's `statusCheckRollup`).
+- 2026-10-24: `gh api repos/<repo>/rules/branches/main` returns `[]`: the D175 ruleset is not enforced, so auto-merge merges before CI (#265 did). Merge by hand once checks pass; read `statusCheckRollup`, as `gh pr checks` can list a finished job as pending.
 - 2026-10-24: a layout test's invented $97.70 in a screenshot read to the owner as real spend. Use plainly fake figures, or say "fixture", in shots shown to the owner.
 
 - 2026-10-22: a worker lifted a rule a code comment tied to two dated owner asks (the release cap, #209) and logged it as a judgment call, and its bot review posted nothing. Before changing a rule whose comment cites the owner, ask; review every PR locally when the bot is silent.
 - 2026-10-22: another session's cleanup removed this worktree (no commits looks merged): commit a WIP early; remove only your own.
 - 2026-10-22: one `astro dev` per install, so a second worktree's is refused; never `--force` it (that kills the other): `PORT=47xx node e2e/run.mjs --serve-only`.
 - 2026-10-22: #160 merged without its review fixes: the commit carrying them was made on a detached HEAD, so `git push` said "Everything up-to-date" and another session merged the PR's older head. After a push, compare `git ls-remote origin <branch>` with `git rev-parse HEAD`.
-- 2026-10-16: a worktree's `node_modules` symlink was committed (the ignore rule `node_modules/` matches directories only), and merging that branch replaced the real, ignored `apps/web/node_modules` with it: git overwrites ignored paths. The rule is now `node_modules`; after such a merge, run `npm ci`.
+- 2026-10-16: a worktree's `node_modules` symlink was committed (the rule `node_modules/` matches directories only); merging it replaced the real `apps/web/node_modules`, as git overwrites ignored paths. The rule is now `node_modules`; after such a merge, run `npm ci`.
 - 2026-10-25: `scripts/worktreeLinks.mjs` found own packages by the literal scope `@dispatch`; #272 broke it. It reads `package.json` names now. Per package, never a scope (10-26).
 - 2026-10-14: squash-merged branches never pass `git branch -d`, and auto mode refuses `-D`. Match commit subjects against main's squash bodies, keep a bundle of the heads in `.git/`, and let the owner force delete.
 - 2026-10-12: cherry-pick a worker's non-merge commits (`git log --no-merges --reverse <lead>..<branch>`), then rerun `biome check`: formatting differences show on the combined tree.
