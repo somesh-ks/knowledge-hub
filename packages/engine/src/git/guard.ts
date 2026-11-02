@@ -15,8 +15,9 @@ export type GitCommand = "run" | "publish" | "learn" | "podcast" | "config" | "c
 export const ALLOWLISTS: Record<GitCommand, readonly string[]> = {
   run: ["Digests/", "state/"],
   publish: ["Digests/**/*.audio.json", "Digests/**/*.md", "state/usage.json", "state/costs-*.json"],
-  // A dry run's spend, alone: the ledger and nothing a dry run could have written (D228).
-  costs: ["state/costs-*.json"],
+  // A dry run's spend: the ledger, and the transcript cache its fetch fills (D228). The cache was
+  // left out and every dry run that read a new video had its costs refused (2026-11-02).
+  costs: ["state/costs-*.json", "state/video-text.json"],
   learn: ["config/preferences.json"],
   podcast: ["Podcasts/", "state/costs-*.json", "state/podcast-timings.json"],
   // Exactly the files `singularity config apply` and `singularity sources suggest` write, and no others.
