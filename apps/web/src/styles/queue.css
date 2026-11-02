@@ -167,11 +167,11 @@ html[data-player="open"] .queue-dock {
   min-height: var(--size-touch);
 }
 
-/* A step between the name and its status, and the status at the body size the sheets' subtitles use
+/* A step (8px) between the name and its status, and the status at the body size the sheets' subtitles use
    (owner, 2026-11-02: too close, and too small). */
 .queue-main {
   display: grid;
-  row-gap: var(--space-1);
+  row-gap: var(--space-2);
   min-width: 0;
 }
 
