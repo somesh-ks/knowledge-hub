@@ -137,7 +137,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D268 | Styles: token overrides | amends D125 |
 | D269 | Hour wheel | amends D265 |
 | D270 | Experiments settle on a read | amends D249, D259 |
-| D271 | Pill, cover travel | superseded by D280 |
+| D271 | Pill, cover travel | superseded by D280; partly superseded by D336 |
 | D272 | No persisted floating button | active |
 | D273 | Haptic tokens | amends D52 |
 | D274 | Icon weight token | amends D268 |
@@ -145,7 +145,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D276 | Voice list | amends D101 |
 | D277 | Queue keeps played items; a tap plays in place | amends D126 |
 | D278 | Softer light covers | amends D121 |
-| D280 | Travel 300 ms | amends D271 |
+| D280 | Travel 300 ms | partly superseded by D336; amends D271 |
 | D281 | Downloads page, no cap | amends D127, D264 |
 | D282 | A page falls back to the content its build holds when the store cannot answer | amends D173, D251 |
 | D283 | Read-first is AGENTS.md and state.md (20 KB), the Index is grep-only, the ledger is split by surface; "replaces" retires the old row | active |
@@ -189,5 +189,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D332 | A scheduled run waits at the gate when the last 24 hours cost over $5 | amends D139 |
 | D333 | The short-text Claude steps run Haiku medium, then Haiku high, then Sonnet medium | amends D308, D324; amended by D334 |
 | D334 | Every Claude step starts at Haiku medium, the podcast script included | amends D333 |
+| D336 | A cover no longer flies between its card and the page's hero | partly supersedes D271, D280 |
 
 ---

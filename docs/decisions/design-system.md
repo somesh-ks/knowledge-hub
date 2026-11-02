@@ -689,3 +689,14 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Revisit if: a one-row sheet is opened by mistake more than it is wanted (a lone Close would then earn its place).
 - Amends: D291.
 
+## D336: a cover no longer flies between its card and the page's hero
+
+- Date: 2026-11-02 (the owner: "remove the morph animation as it doesnt make sense").
+- Decision: supersedes the cover's flight in D271 and D280 (the Library card, a shelf or Today's card to the page's hero and back; `scripts/coverMorph.ts`, `.cover-morph`, `[data-morphing]`). A drill move is the swap with the page fading up and settling 8px from the side (D280's page slide, fade and timing stand). The player's own mini to full cover morph (`player/core/coverMorph.ts`) stays.
+- Context changed: D271 and D280 shaped the flight so the cover would be the one thing the eye follows; on the owner's phone it reads as senseless, and it needed its own measuring, hiding and landing rules for every card, list and gallery.
+- Why: a copy of the cover crossed a page that was fading in under it; it moved the eye to something that was not the point of the move, and it needed its own measuring, hiding and landing rules for every card, list and gallery.
+- Rejected: keeping it for the gallery only; a shorter flight.
+- Cost: none in tokens; `coverMorph.ts`, its CSS and its test are gone.
+- Revisit if: a move needs an object to link two pages again; draw it then from one place, not per card.
+- Supersedes: D271 (cover travel), D280 (the flight).
+
