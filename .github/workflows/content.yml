@@ -19,6 +19,8 @@ concurrency:
 
 permissions:
   contents: read
+  # The Purge step reads the triggering run's jobs to find when its content was saved.
+  actions: read
 
 jobs:
   notify:
@@ -38,18 +40,42 @@ jobs:
         run: npm ci --ignore-scripts --workspace=packages/engine --workspace=apps/web --include-workspace-root
 
       # D318: the pages keep their edge copy until the content changes, so a run that saved content
-      # empties it. After the function instances' 30 s manifest window (MANIFEST_TTL_MS in apps/web)
-      # plus the longest a render may run (20 s, FUNCTION_MAX_DURATION_S), so no request puts the old
-      # page back, and before Notify, so a tap on the message opens the new page. The config workflow
-      # saves no pages. A run that saved nothing costs one slow visit. A failed purge never fails the
-      # job: the pages then refresh on the first visit after 5 minutes.
+      # empties it. The purge comes WAIT_SECONDS after the last Save content step of the run: the
+      # function instances' 30 s manifest window (MANIFEST_TTL_MS in apps/web) plus the longest a
+      # render may run (20 s, FUNCTION_MAX_DURATION_S), so no request puts the old page back. The
+      # wait counts from that save, not from this job's start: the job teardown, the queue and the
+      # install above already used most of it. With no save to find (the config workflow, a hand
+      # run) it counts from the end of the run, and a hand run waits all of it. Before Notify, so a
+      # tap on the message opens the new page. The config workflow saves no pages. A run that saved
+      # nothing costs one slow visit. A failed purge never fails the job: the pages then refresh on
+      # the first visit after 5 minutes.
       # The Vercel token stays in this step, out of reach of the packages the engine loads (SEC-03).
       - name: Purge the edge
         if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.name != 'config'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_ENDED: ${{ github.event.workflow_run.updated_at }}
+          WAIT_SECONDS: 55
         run: |
-          sleep 55
+          saved=""
+          if [ -n "$RUN_ID" ]; then
+            saved=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/jobs?per_page=100" \
+              --jq '[.jobs[].steps[]? | select(.name == "Save content") | .completed_at // empty] | max // empty' \
+              2>/dev/null) || saved=""
+            [ -n "$saved" ] || saved="$RUN_ENDED"
+          fi
+          wait="$WAIT_SECONDS"
+          if [ -n "$saved" ] && saved_at=$(date -u -d "$saved" +%s 2>/dev/null); then
+            age=$(( $(date -u +%s) - saved_at ))
+            if [ "$age" -lt 0 ]; then age=0; fi
+            wait=$(( WAIT_SECONDS - age ))
+          fi
+          if [ "$wait" -gt 0 ]; then
+            echo "Last save $saved; waiting $wait s"
+            sleep "$wait"
+          fi
           mkdir -p "$RUNNER_TEMP/vercel"
           cd "$RUNNER_TEMP/vercel"
           npx --yes vercel@65.8.0 cache dangerously-delete --tag content \
