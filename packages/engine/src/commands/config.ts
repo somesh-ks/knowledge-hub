@@ -68,9 +68,9 @@ const USAGE = `Usage: singularity config <command>
                                      from the file here is rewritten from it (--dry-run lists those).
                                      Needs --force, as it can undo edits made in the app.
   snapshot [--out <file>] [--keep <n>]
-                                     Copy every stored document into one JSON file (D300): in the
-                                     private Blob store (BLOB_PRIVATE_READ_WRITE_TOKEN), keeping the
-                                     newest 8, or with --out on this machine. snapshot.yml runs it weekly.
+                                     Copy every stored document into one JSON text (D300): a row of
+                                     config_snapshots, keeping the newest 8, or with --out a file on
+                                     this machine. snapshot.yml runs it weekly.
   restore (--file <path> | --latest) --force
                                      Write a snapshot's documents back into the store as new versions,
                                      creating the table if it is gone. Overwrites newer edits.
