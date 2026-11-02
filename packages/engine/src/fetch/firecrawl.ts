@@ -215,13 +215,20 @@ async function readListing(
     ...buildItems(headings, { source, window, fetchedAt, keepFragment: true }),
     ...buildItems(undated, { source, window, fetchedAt, undated: "keep" }),
   ];
-  const entryUrls = [...dated, ...headings, ...undated].flatMap((entry) =>
+  // An entry dated after the window is dropped for now and would be taken by a later run's window.
+  // A page that holds one is scraped again until then, so no fingerprint is kept for it.
+  const ahead = [...dated, ...headings].some((entry) => {
+    const published = entry.publishedAt === undefined ? NaN : new Date(entry.publishedAt).getTime();
+    return published > window.to.getTime();
+  });
+  const found = [...dated, ...headings, ...undated].flatMap((entry) =>
     entry.url ? [entry.url] : [],
   );
+  const entryUrls = ahead ? [] : found;
   if (items.length > 0) return { items, entryUrls };
   // Entries found but none in the window is a quiet source, not a broken one. Failing only when
   // the listing yields no candidates at all (empty, blocked or restructured) keeps health honest.
-  if (entryUrls.length > 0) return { items, entryUrls };
+  if (found.length > 0) return { items, entryUrls };
   if (page.markdown.trim() === "") throw new Error(FIRECRAWL_NO_ITEMS);
 
   const summary = cleanMarkdown(page.markdown);

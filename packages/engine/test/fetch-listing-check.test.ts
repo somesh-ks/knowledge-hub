@@ -125,6 +125,15 @@ describe("a listing whose links have not moved is not scraped", () => {
     expect(memory.scraped().sources).toEqual({});
   });
 
+  it("does not remember a page that holds an entry dated after the window", async () => {
+    // The window ends before the posts' dates, so they are dropped now and a later run must take them.
+    const early = { from: WIDE.from, to: new Date("2026-07-20T00:00:00Z") };
+    const memory = new ListingMemory(EMPTY_LISTING_FINGERPRINTS);
+    const fake = fakeFetch({ [PAGE]: html(...links), [SCRAPE]: scraped });
+    await fetchFirecrawl(source, early, makeDeps(fake, { firecrawl: KEY, listings: memory }));
+    expect(memory.scraped().sources).toEqual({});
+  });
+
   it("stores what a run scraped over the old, and lets a month-old fingerprint go", () => {
     const at = (days: number): string => new Date(NOW.getTime() - days * 86_400_000).toISOString();
     const entry = (hash: string, days: number) => ({ hash, scraped_at: at(days) });
