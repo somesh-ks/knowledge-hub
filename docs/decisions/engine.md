@@ -615,7 +615,6 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Revisit if: a Haiku script is heard and judged worse by ear, or `length_share` falls as above.
 - Amends: D333.
 
-
 ## D339: the engine and the site keep one Speechify count, in Blob; Exa gets a weekly stop
 
 - Date: 2026-11-02 (audit item H7; autonomous mode, the coordinator's call after the SEC-03 check).
@@ -625,3 +624,13 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Limit: the site writes without a version check, and creates a month's document without checking another writer did, so a site write landing between the engine's read and write can still lose one charge; the 10 percent below the cap absorbs it. The engine's characters from before this change stay in `state/usage.json` until the month turns; the engine's gate and health both add them to the Blob count, the site's own gate does not (only November, and the 10 percent below the cap absorbs it), and nothing writes the file any more. A ledger that does not read gives Exa no room for the run; Firecrawl keeps its own ceiling. The ledger records a run at its commit, so the run in progress is not in the week; the 700 is a guess at a safe margin, not a measured limit.
 - Revisit if: health shows the shared count over the 90 percent stop, or Speechify bills more than the document says.
 - Amends: D300 (the counter clause).
+
+## D342: a Firecrawl listing is read free first and scraped only when its links moved
+
+- Date: 2026-11-02 (the owner chose "free check first" over a Firecrawl monitor).
+- Decision: before a scrape, a run fetches the listing page directly and fingerprints its article links (sorted, query and fragment cut). The same fingerprint as the last scrape, from the last 7 days, skips the scrape. A refusal, a timeout, a page with fewer than three links or a failed scrape scrapes as before, and the fingerprint is stored only after a scrape succeeded and found an article the page links to (navigation alone never counts), and not while the page holds an entry dated after the window. An Alexandria source is always read. Fingerprints are in `state/listing-fingerprints.json`: the fetch stage hands them to the commit stage, which stores them, so a run that fails before the digest is in the content store leaves none behind. The weekly pass, a replacement, an on-demand run and a `--since` lookback scrape every listing (they want the stories the last run took), and a page to be remembered is scraped fresh, not from Firecrawl's hour-old copy.
+- Why: a monitor bills a scrape per check, and most listings are quiet on most runs. Git state needs no workflow change and no Blob token in the fetch stage (SEC-03).
+- Limit: the saving is small (the ledger holds about 228 credits a week for listings and pages, about $0.19). Codrops, xAI and Material Design Blog still scrape every run: a direct read is refused or draws its list in the browser. The listing plan still reserves budget for a source that is then skipped.
+- Revisit if: the logs show a new article missed after a skipped listing, or the direct reads draw a block.
+- Relates to: D222, D302.
+

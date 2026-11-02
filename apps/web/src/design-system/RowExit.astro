@@ -1,0 +1,14 @@
+---
+import { rowExitClass } from "./rowExit";
+import "../styles/row-exit.css";
+
+interface Props {
+  /** For placing the row (its own layout). Never how it leaves. */
+  class?: string;
+  [attribute: string]: unknown;
+}
+
+const { class: className = "", ...rest } = Astro.props;
+---
+
+<li class={[className, rowExitClass()].filter(Boolean).join(" ")} {...rest}><slot /></li>

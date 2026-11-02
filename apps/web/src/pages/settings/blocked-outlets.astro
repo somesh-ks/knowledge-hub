@@ -4,6 +4,7 @@ import ManageChrome from "../../components/ManageChrome.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
 import Button from "../../design-system/Button.astro";
 import Icon from "../../design-system/Icon.astro";
+import RowExit from "../../design-system/RowExit.astro";
 import Sheet from "../../design-system/Sheet.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { blockedDomainOf, outletsSummary } from "../../lib/blockedOutlets";
@@ -77,7 +78,7 @@ const offers = (await loadSourceCatalog()).flatMap((offer) => {
           <ul class="rows card-group" role="list" data-list aria-labelledby="blocked-head">
             {
               domains.map((domain) => (
-                <li class="blocked-row" data-domain={domain}>
+                <RowExit class="blocked-row" data-domain={domain}>
                   <div class="settings-row">
                     <span class="settings-label">{domain}</span>
                     <button
@@ -89,7 +90,7 @@ const offers = (await loadSourceCatalog()).flatMap((offer) => {
                       <Icon name="close" />
                     </button>
                   </div>
-                </li>
+                </RowExit>
               ))
             }
           </ul>
@@ -99,14 +100,14 @@ const offers = (await loadSourceCatalog()).flatMap((offer) => {
         </section>
 
         <template data-row>
-          <li class="blocked-row">
+          <RowExit class="blocked-row">
             <div class="settings-row">
               <span class="settings-label"></span>
               <button class="icon-btn icon-btn-end" type="button" data-remove>
                 <Icon name="close" />
               </button>
             </div>
-          </li>
+          </RowExit>
         </template>
 
         {/* Shown by blocked.css while the list has no row. */}

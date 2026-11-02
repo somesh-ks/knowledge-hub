@@ -175,7 +175,6 @@ export function classTokens(text: string): Set<string> {
     ["drawerViewportClass", "drawer-viewport"],
     ["drawerPopupClass", "drawer-popup"],
     ["drawerPanelClass", "drawer-panel"],
-    ["drawerHeadClass", "drawer-head"],
   ] as const) {
     if (code.includes(`${helper}(`)) found.add(name);
   }
@@ -240,7 +239,6 @@ export function sourceFiles(): { path: string; text: string; tokens: Set<string>
         "drawer-viewport",
         "drawer-popup",
         "drawer-panel",
-        "drawer-head",
       ]) {
         tokens.delete(name);
       }

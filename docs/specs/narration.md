@@ -17,7 +17,7 @@ Narration on Play, voices, audio.yml, prewarming, budgets. What it does now. Rea
 - Mobile interface sounds unlock on click and play through the iOS silent switch (D105).
 
 ### Voices
-- `GET /api/voices` lists voices (with the voices Default stands for, so it reads "Default (Name)"); each option leads with its accent's flag (Windows shows the two letters).
+- `GET /api/voices` lists voices (with the voices Default stands for, so it reads "Default (Name)"). A pick list that cannot read it tries once more, says "You're offline" when the device has no connection and "Couldn't load the voice list" otherwise, and keeps Default and the saved voice (`fetchVoiceList` in `lib/voices.ts`); each option leads with its accent's flag (Windows shows the two letters).
 - A sample plays through `GET /api/voice-sample`, which serves only samples in the voice list and answers byte ranges (D62).
 - Choosing a voice on `/settings/voice` or Catch up plays its sample; the Sample chip plays it again or stops it.
 - A discussion's second voice defaults to `dominic_32`.

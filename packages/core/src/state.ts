@@ -134,6 +134,26 @@ export type SourceHealthFile = z.infer<typeof SourceHealthFile>;
 export const EMPTY_SOURCE_HEALTH: SourceHealthFile = { version: 1, sources: {} };
 
 /**
+ * A fingerprint of each Firecrawl listing page's article links as the last scrape saw them. A run
+ * fetches the page directly first and scrapes only when the fingerprint moved, so a quiet blog
+ * costs no credit. Kept apart from source health: it is read-and-replaced, never counted.
+ */
+export const ListingFingerprintsFile = z.object({
+  version: z.literal(1),
+  sources: z.record(
+    z.string(),
+    z.object({
+      /** SHA-256 (first 16 hex characters) of the page's sorted article links. */
+      hash: z.string().regex(/^[0-9a-f]{16}$/),
+      /** When Firecrawl last read the page, so a stale fingerprint is never trusted for long. */
+      scraped_at: isoDateTime,
+    }),
+  ),
+});
+export type ListingFingerprintsFile = z.infer<typeof ListingFingerprintsFile>;
+export const EMPTY_LISTING_FINGERPRINTS: ListingFingerprintsFile = { version: 1, sources: {} };
+
+/**
  * One custom-topic fit answer. The cache key names the topic and a hash of its name and
  * description, so editing one topic asks the judge about that topic again and nothing else.
  */

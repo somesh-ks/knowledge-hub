@@ -14,8 +14,8 @@ Fetch, judge, write, validate, sizing and spares, sources and scores, cost limit
 - Release news: library, framework and changelog stories (a release note or a judged developer tool launch) take at most 6% of the selected stories (about a tenth of what airs), are never Top picks, and are filed in the Launches section, which reads last in briefings, weeklies and custom episodes.
 - A blocked outlet is cut on every fetch path; matching reads the item's URL (D108). Votes nudge ranking, the Firecrawl listing order and the writer.
 - Regenerate replaces a digest over its own window (`singularity run --replace`); `--delete` removes a digest and its timeline (D104). Regenerate may choose topics again (D109).
-- A run reads each address once: `cacheForRun` answers a second pass from memory (successes only).
-- Ingest (D233), three times a day beside the daily fetch: free sources only; a new story's text goes to Blob under a random key, a row to Neon. No briefing reads it yet.
+- A run reads each address once: `cacheForRun` answers a second pass from memory (successes only). A Firecrawl listing whose links match the last scrape is not scraped (D342).
+- Ingest (D233), three times a day: free sources only; a story's text goes to Blob, a row to Neon. No briefing reads it yet.
 - `episode-eval.yml` (`eval` label, D180) scores main's writer against the branch's on frozen replays.
 
 ### Sizing and spares

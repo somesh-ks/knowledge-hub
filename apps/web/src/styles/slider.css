@@ -99,8 +99,202 @@
   --range-fill-color: var(--color-accent-pressed);
 }
 
+/*
+ * The hue slider (Slider with `hue`; D328, amends D315): a Slider whose rail is the whole spectrum.
+ * A stop is the style's own accent turned to that hue, at one lightness and chroma, so the rail follows
+ * a style and a future style needs nothing. The thumb is the colour picked: the accent already carries
+ * the reader's turn (--hue-shift), so the same lightness and chroma on it is the colour under the thumb.
+ * Holding the thumb floats a swatch of that colour above it. The swatch is an overlay, so showing it
+ * moves nothing. The caller keeps --range-fill on the field, as it does on a Slider; the swatch's place
+ * reads it as a share of the rail's travel.
+ */
+.slider-hue-field {
+  --range-fill: 0%;
+  --hue-colour: oklch(from var(--color-accent-action) var(--hue-lightness) var(--hue-chroma) h);
+  /* The rail's left end: the style's accent before the reader's turn. */
+  --hue-zero: oklch(from var(--hue-colour) l c calc(h - var(--hue-shift, 0)));
+  /* The ring parts the thumb and the swatch from what they ride on: the surface behind the field, which
+     its container names (--color-focus-gap), as the controls' focus rings do. */
+  --slider-ring: var(--color-focus-gap);
+  position: relative;
+  display: block;
+}
+
+.slider-hue-field > .slider-input {
+  display: block;
+  width: 100%;
+  --slider-ring: inherit;
+  /* Thirteen stops, 30 degrees apart and the last at 355; the gradient mixes in oklch, so no stop turns grey between. */
+  --hue-spectrum: linear-gradient(
+    in oklch to right,
+    oklch(from var(--hue-zero) l c calc(h + 0)),
+    oklch(from var(--hue-zero) l c calc(h + 30)),
+    oklch(from var(--hue-zero) l c calc(h + 60)),
+    oklch(from var(--hue-zero) l c calc(h + 90)),
+    oklch(from var(--hue-zero) l c calc(h + 120)),
+    oklch(from var(--hue-zero) l c calc(h + 150)),
+    oklch(from var(--hue-zero) l c calc(h + 180)),
+    oklch(from var(--hue-zero) l c calc(h + 210)),
+    oklch(from var(--hue-zero) l c calc(h + 240)),
+    oklch(from var(--hue-zero) l c calc(h + 270)),
+    oklch(from var(--hue-zero) l c calc(h + 300)),
+    oklch(from var(--hue-zero) l c calc(h + 330)),
+    oklch(from var(--hue-zero) l c calc(h + 355))
+  );
+}
+
+.slider-hue-field > .slider-input::-webkit-slider-runnable-track {
+  height: var(--hue-rail);
+  background: var(--hue-spectrum);
+}
+
+.slider-hue-field > .slider-input::-moz-range-track {
+  height: var(--hue-rail);
+  background: var(--hue-spectrum);
+}
+
+/* Firefox paints a filled part from the range-progress; a hue has none. */
+.slider-hue-field > .slider-input::-moz-range-progress {
+  background: none;
+}
+
+.slider-hue-field > .slider-input::-webkit-slider-thumb {
+  width: var(--hue-thumb);
+  height: var(--hue-thumb);
+  margin-block-start: calc((var(--hue-rail) - var(--hue-thumb)) / 2);
+  background: var(--hue-colour);
+  box-shadow: 0 0 0 var(--scrubber-thumb-ring) var(--slider-ring);
+}
+
+.slider-hue-field > .slider-input::-moz-range-thumb {
+  width: var(--hue-thumb);
+  height: var(--hue-thumb);
+  background: var(--hue-colour);
+  box-shadow: 0 0 0 var(--scrubber-thumb-ring) var(--slider-ring);
+}
+
+/* The swatch rides the rail's travel: a box as wide as the thumb's centre can go, so a percentage is
+   a share of it. */
+.slider-hue-swatch {
+  position: absolute;
+  inset-block-start: calc(var(--size-touch) / 2);
+  inset-inline: calc(var(--hue-thumb) / 2);
+  height: 0;
+  pointer-events: none;
+}
+
+.slider-hue-swatch::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: var(--range-fill);
+  width: var(--hue-swatch);
+  height: var(--hue-swatch);
+  border-radius: var(--radius-round);
+  background: var(--hue-colour);
+  box-shadow:
+    0 0 0 calc(var(--scrubber-thumb-ring) * 2) var(--slider-ring),
+    var(--shadow-floating);
+  translate: -50% calc(-50% - var(--hue-swatch-lift));
+  scale: 0.4;
+  opacity: 0;
+  transition:
+    scale var(--duration-spring-pop) var(--ease-spring-pop),
+    opacity var(--duration-state) var(--ease-out);
+}
+
+.slider-hue-field:has(> .slider-input:enabled:active) .slider-hue-swatch::after {
+  scale: 1;
+  opacity: 1;
+}
+
+/* No spring under reduced motion: the swatch fades in at its size. */
+@media (prefers-reduced-motion: reduce) {
+  .slider-hue-swatch::after {
+    scale: 1;
+  }
+}
+
+/*
+ * The wavy Slider (Slider with `wavy`; owner, 2026-11-02): in Expressive the part of the track up to the
+ * thumb is a wave that drifts along, and the rest stays the plain straight track, as in Material 3
+ * Expressive. Other styles draw the plain Slider. The wave is a masked layer on the field, as wide as the
+ * fill (a mask on the input itself would cut the thumb too); the input's own track is clear up to the fill,
+ * so only the straight remainder shows. The caller keeps --range-fill on the field and on the input. Still
+ * under reduced motion.
+ */
+.slider-wave-field {
+  --range-fill: 0%;
+  position: relative;
+  display: grid;
+}
+
+:root[data-style="expressive"] .slider-wave-field {
+  --wave-length: 1.5rem;
+  --wave-height: 0.75rem;
+  /* How long the wave takes to drift one period. */
+  --wave-drift: 1600ms;
+  --wave-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 12'%3E%3Cpath d='M0 6C4 0 8 0 12 6S20 12 24 6' fill='none' stroke='black' stroke-width='3.5' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+:root[data-style="expressive"] .slider-wave-field::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inline-size: var(--range-fill);
+  inset-block-start: 50%;
+  block-size: var(--wave-height);
+  translate: 0 -50%;
+  background: var(--color-accent);
+  mask: var(--wave-mask) 0 center / var(--wave-length) var(--wave-height) repeat-x;
+  animation: slider-wave var(--wave-drift) var(--ease-linear) infinite;
+  pointer-events: none;
+}
+
+/* The input's own default (0%) would hide the field's fill; it follows the field. */
+:root[data-style="expressive"] .slider-wave-field > .slider-input {
+  --range-fill: inherit;
+}
+
+/* The straight track begins where the fill ends; the engines' two pseudo-elements cannot share a rule. */
+:root[data-style="expressive"] .slider-wave-field > .slider-input::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    to right,
+    transparent var(--range-fill),
+    var(--range-track-color) var(--range-fill)
+  );
+}
+
+:root[data-style="expressive"] .slider-wave-field > .slider-input::-moz-range-track {
+  background: linear-gradient(
+    to right,
+    transparent var(--range-fill),
+    var(--range-track-color) var(--range-fill)
+  );
+}
+
+:root[data-style="expressive"] .slider-wave-field > .slider-input::-moz-range-progress {
+  background: none;
+}
+
+@keyframes slider-wave {
+  to {
+    mask-position: calc(var(--wave-length) * -1) center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-style="expressive"] .slider-wave-field::before {
+    animation: none;
+  }
+}
+
 /* Forced colours drops fills and shadows, so the slider gets a highlight fill on a text-coloured track. */
 @media (forced-colors: active) {
+  /* A hue slider keeps its spectrum: that is the value it shows. */
+  .slider-hue-field > .slider-input {
+    forced-color-adjust: none;
+  }
+
   /* The filled track is a gradient, which forced colours removes along with every other background
        image. Opting the slider out keeps it, and the system colours here keep it legible. */
 
