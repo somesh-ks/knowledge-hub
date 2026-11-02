@@ -11,7 +11,7 @@ Immediate priority tasks synchronized with `docs/state.md` ## Next:
 3. **Lighthouse CSS optimization**: Defer `BaseLayout.astro` 34 KiB CSS without breaking the resumed player bar; cut the 19 KiB unused CSS on initial load; optimize 1.4 s interaction chain.
 4. **Topic to Category migration**: End-to-end migration (plan 14, about 6,500 occurrences) across readers, store sync, code, and workflow outputs.
 5. **Design system sweep**: Review `/settings/*`, category pages, player, create; audit light and dark modes at 390px and 1280px; one PR per component family.
-6. **Pipeline performance**: Unified fetch for briefing passes, selective story rewriting, split long first turns (D141, D178).
+6. **Pipeline performance**: split long first turns. A shared read of each source per run and a per-field rewrite are built.
 
 ## Parked & Unfinished Tasks
 
