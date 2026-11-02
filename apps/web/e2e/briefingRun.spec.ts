@@ -16,6 +16,13 @@ const dialog = (page: Page) => page.getByRole("dialog", { name: "Regenerate" });
 async function openRegenerate(page: Page): Promise<void> {
   await page.goto(`/d/${ID}`);
   await hydrated(page);
+  // The fixture's audio is seconds long; pin the aired length the sheet starts from (4 min is nearest to 5).
+  await page
+    .locator("[data-briefing]")
+    .first()
+    .evaluate((el: HTMLElement) => {
+      el.dataset.minutes = "4";
+    });
   await expect(async () => {
     await page.getByRole("button", { name: "More actions" }).click();
     await page.getByRole("menuitem", { name: "Regenerate" }).click({ timeout: 2000 });
@@ -77,7 +84,11 @@ test.describe("a Regenerate, followed in the podcast queue", () => {
     await dialog(page).getByRole("button", { name: "Regenerate" }).click();
 
     await expect.poll(() => bodies.length).toBe(1);
-    expect(bodies[0]).toEqual({ feedback: "More on design systems", replace: ID });
+    expect(bodies[0]).toEqual({
+      feedback: "More on design systems",
+      length_minutes: 5,
+      replace: ID,
+    });
     await expect(dialog(page)).toBeHidden();
     await expect(queueDock(page)).toBeVisible();
     await expect(text(page)).toHaveText(/Waiting to start|Gathering stories/);
@@ -146,8 +157,10 @@ test.describe("a Regenerate, followed in the podcast queue", () => {
       { run_id: 92, state: "running", step: "reading", stage: 1, stages: 7, label: "Gathering" },
     ]);
     await openRegenerate(page);
-    // Usual is chosen until the person says otherwise: it asks for no length at all.
-    await expect(dialog(page).getByRole("radio", { name: "Usual" })).toBeChecked();
+    // The sheet starts on the length the podcast aired at (4 min is nearest to 5), and offers no
+    // "Usual": every run names its length.
+    await expect(dialog(page).getByRole("radio", { name: "5 min", exact: true })).toBeChecked();
+    await expect(dialog(page).getByRole("radio", { name: "Usual" })).toHaveCount(0);
     await dialog(page).getByRole("radio", { name: "10 min" }).check({ force: true });
     await dialog(page).getByRole("button", { name: "Regenerate" }).click();
     await expect.poll(() => bodies.length).toBe(1);
