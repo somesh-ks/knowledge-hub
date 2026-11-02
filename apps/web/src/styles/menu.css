@@ -118,12 +118,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .menu-item:hover {
-    background: color-mix(in oklab, currentColor 8%, transparent);
+    background: var(--ghost-hover);
   }
 }
 
 .menu-item:active {
-  background: color-mix(in oklab, currentColor 12%, transparent);
+  background: var(--ghost-pressed);
 }
 
 /* The ring is drawn inside the row, so it never meets the panel's edge. */
@@ -187,8 +187,8 @@
   cursor: pointer;
 }
 
-/* A tile that is on (Saved, Downloaded) takes the accent container, as a chosen segment does. */
-.menu-tile[aria-pressed="true"] {
+/* A tile that is on (Saved: aria-checked; Downloaded: data-on) takes the accent container, as a chosen segment does. */
+.menu-tile:is([aria-checked="true"], [data-on]) {
   --tile-fill: var(--color-accent-container);
   --tile-fill-hover: var(--color-accent-container-hover);
   --tile-fill-press: var(--color-accent-container-pressed);
@@ -256,6 +256,9 @@
     background: var(--sheet-bg);
     box-shadow: var(--sheet-shadow);
     --color-focus-gap: var(--sheet-bg);
+    /* The rows' ghost states step the surface they lie on: the sheet's, not the popover's. */
+    --ghost-hover: var(--sheet-bg-hover);
+    --ghost-pressed: var(--sheet-bg-pressed);
     opacity: 1;
     transform: translateY(105%);
     transform-origin: bottom;
@@ -324,7 +327,7 @@
      2026-11-01): the row is a full pill on the sheet surface, so a tint reads and a ring crowds it. */
   .menu-sheet .menu-item:focus-visible {
     outline: none;
-    background: color-mix(in oklab, currentColor 12%, transparent);
+    background: var(--ghost-pressed);
   }
 
   @media (prefers-reduced-motion: reduce) {
