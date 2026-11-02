@@ -17,6 +17,7 @@ export const SYSTEM_PATHS = [
   "apps/web/src/styles/switch.css",
   "apps/web/src/styles/slider.css",
   "apps/web/src/styles/avatar.css",
+  "apps/web/src/styles/row-exit.css",
   "apps/web/src/styles/field.css",
   "apps/web/src/styles/select.css",
   "apps/web/src/styles/picker.css",

@@ -15,6 +15,7 @@ import type { Guidance } from "./guidance";
 import { ICON, ICON_CLASSES, ICON_RETIRED } from "./icon";
 import { MENU, MENU_CLASSES, MENU_RETIRED } from "./menu";
 import { RIPPLE, RIPPLE_CLASSES, RIPPLE_RETIRED } from "./ripple";
+import { ROW_EXIT, ROW_EXIT_CLASSES, ROW_EXIT_RETIRED } from "./rowExit";
 import { SELECT, SELECT_CLASSES, SELECT_RETIRED } from "./select";
 import { SHEET, SHEET_CLASSES, SHEET_RETIRED } from "./sheet";
 import { SLIDER, SLIDER_CLASSES, SLIDER_RETIRED, SLIDER_VARIANTS } from "./slider";
@@ -66,6 +67,17 @@ export const COMPONENTS: DesignSystemComponent[] = [
     summary: AVATAR.summary,
     useWhen: AVATAR.useWhen,
     dontUseWhen: AVATAR.dontUseWhen,
+    parts: {},
+  },
+  {
+    name: "Row exit",
+    sheet: "row-exit.css",
+    prefix: "row-exit",
+    classes: ROW_EXIT_CLASSES,
+    retired: ROW_EXIT_RETIRED,
+    summary: ROW_EXIT.summary,
+    useWhen: ROW_EXIT.useWhen,
+    dontUseWhen: ROW_EXIT.dontUseWhen,
     parts: {},
   },
   {
