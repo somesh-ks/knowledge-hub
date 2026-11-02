@@ -57,6 +57,8 @@ interface SheetFrameProps {
    */
   full?: boolean;
   initialFocus?: InitialFocus;
+  /** The open came from a Menu pick: the scrim takes over from the menu's at once (drawer.css). */
+  handoff?: boolean;
   children: ReactNode;
 }
 
@@ -74,12 +76,13 @@ export default function SheetFrame({
   keyboardAware = false,
   full = false,
   initialFocus,
+  handoff = false,
   children,
 }: SheetFrameProps) {
   useBackCloses(open, () => onOpenChange(false));
   const portal = (
     <Drawer.Portal>
-      <Drawer.Backdrop className={drawerScrimClass()} />
+      <Drawer.Backdrop className={drawerScrimClass()} data-handoff={handoff || undefined} />
       <Drawer.Viewport className={drawerViewportClass()} data-full={full ? "" : undefined}>
         <Drawer.Popup
           className={drawerPopupClass()}
