@@ -15,7 +15,14 @@ function keyOf(
     .map(([name, value]) => `${name.toLowerCase()}:${value}`)
     .sort()
     .join("\n");
-  return `${method}\n${url}\n${headers}\n${body === undefined ? "" : JSON.stringify(body)}`;
+  // The size cap is part of the request: a caller with a smaller cap must still be refused a large body.
+  const cap = options?.maxBytes ?? "";
+  return `${method}\n${url}\n${headers}\n${cap}\n${body === undefined ? "" : JSON.stringify(body)}`;
+}
+
+/** A caller whose deadline has passed goes to the client, which refuses it as it would any read. */
+function aborted(options: RequestOptions | undefined): boolean {
+  return options?.signal?.aborted === true;
 }
 
 /**
@@ -36,18 +43,18 @@ export function cacheForRun(http: HttpClient): HttpClient {
   return {
     async fetchText(url, options) {
       const key = keyOf("GET", url, options);
-      const hit = texts.get(key);
-      if (hit) return hit;
+      const hit = aborted(options) ? undefined : texts.get(key);
+      if (hit) return { ...hit };
       const response = await http.fetchText(url, options);
       if (room(response.text.length)) {
-        texts.set(key, response);
+        texts.set(key, { ...response });
         kept += response.text.length;
       }
       return response;
     },
     async getJson(url, options) {
       const key = keyOf("GET", url, options);
-      if (jsons.has(key)) return structuredClone(jsons.get(key));
+      if (!aborted(options) && jsons.has(key)) return structuredClone(jsons.get(key));
       const payload = await http.getJson(url, options);
       const size = JSON.stringify(payload)?.length ?? 0;
       if (room(size)) {
@@ -58,7 +65,7 @@ export function cacheForRun(http: HttpClient): HttpClient {
     },
     async postJson(url, body, options) {
       const key = keyOf("POST", url, options, body);
-      if (jsons.has(key)) return structuredClone(jsons.get(key));
+      if (!aborted(options) && jsons.has(key)) return structuredClone(jsons.get(key));
       const payload = await http.postJson(url, body, options);
       const size = JSON.stringify(payload)?.length ?? 0;
       if (room(size)) {

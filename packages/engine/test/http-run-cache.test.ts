@@ -59,4 +59,13 @@ describe("a run reads each address once", () => {
     expect(second.items).toEqual([1]);
     expect(calls).toHaveLength(2);
   });
+
+  it("refuses a caller with a smaller size cap, and a caller whose deadline has passed, as the client does", async () => {
+    const { http, calls } = counting();
+    const cached = cacheForRun(http);
+    await cached.fetchText("https://a.example/feed");
+    await cached.fetchText("https://a.example/feed", { maxBytes: 10 });
+    await cached.fetchText("https://a.example/feed", { signal: AbortSignal.abort() });
+    expect(calls).toHaveLength(3);
+  });
 });
