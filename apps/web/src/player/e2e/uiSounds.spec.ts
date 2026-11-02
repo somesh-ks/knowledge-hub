@@ -130,9 +130,21 @@ test.describe("interface cues by kind of action", () => {
     await prime(page);
     await page.getByRole("button", { name: "More actions" }).click();
     await expect.poll(() => heard(page)).toEqual(["sheetOpen"]);
+    await page.evaluate(() => {
+      window.__oscillators = 0;
+    });
     await page.getByRole("menuitem", { name: "Regenerate" }).click();
     await expect(page.getByRole("dialog", { name: "Regenerate" })).toBeVisible();
-    await page.waitForTimeout(700);
+    // The sheet sounds its own cue (not announced as a delegated one), so a sound was made...
+    await expect.poll(() => oscillators(page)).toBeGreaterThan(0);
+    // ...and the menu's close, which follows the pick by a task or two, was not announced.
+    await expect(page.locator("[popover]:popover-open")).toHaveCount(0);
+    await page.evaluate(
+      () =>
+        new Promise<void>((done) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => done())),
+        ),
+    );
     expect(await heard(page)).toEqual(["sheetOpen"]);
   });
 

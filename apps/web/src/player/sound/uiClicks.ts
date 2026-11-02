@@ -41,8 +41,12 @@ const SCRIPTED_CHOICE = "[data-multiselect]";
 /** A script's click right after a key (Enter in a field pressing its button) is that key's action. */
 const KEY_CLICK_MS = 150;
 
-/** The press that last picked an item in a menu, so the menu closing for it is not sounded too. */
-let menuPickAt = Number.NEGATIVE_INFINITY;
+/**
+ * The press that last picked an item in a menu, so the close it causes is not sounded too. It is kept
+ * only for a menu the pick closed (a pick that leaves the menu open, Playback speed, keeps nothing),
+ * and for the one close that follows.
+ */
+let menuPick: { popover: Element; at: number } | null = null;
 /** A popover's close follows its pick's click within the same turn of the page. */
 const MENU_CLOSE_MS = 400;
 
@@ -183,9 +187,15 @@ if (typeof document !== "undefined") {
   document.addEventListener(
     "click",
     (event) => {
-      if ((event.target as Element | null)?.closest?.("[popover] [role=menuitem]")) {
-        menuPickAt = event.timeStamp;
-      }
+      const popover = (event.target as Element | null)
+        ?.closest?.("[popover] [role=menuitem]")
+        ?.closest("[popover]");
+      if (!popover) return;
+      menuPick = { popover, at: event.timeStamp };
+      // By the next frame a menu the pick closed has told so; one still open was not closed by it.
+      requestAnimationFrame(() => {
+        if (menuPick?.popover === popover && popover.matches(":popover-open")) menuPick = null;
+      });
     },
     { capture: true, passive: true },
   );
@@ -197,7 +207,11 @@ if (typeof document !== "undefined") {
       if (!(popover instanceof HTMLElement) || !popover.matches("[popover]:not([popover=manual])"))
         return;
       const opening = (event as Event & { newState?: string }).newState === "open";
-      if (!opening && event.timeStamp - menuPickAt < MENU_CLOSE_MS) return;
+      if (!opening && menuPick?.popover === popover) {
+        const fresh = event.timeStamp - menuPick.at < MENU_CLOSE_MS;
+        menuPick = null;
+        if (fresh) return;
+      }
       if (isHoldEcho(popover, opening)) return;
       sayState(opening);
     },

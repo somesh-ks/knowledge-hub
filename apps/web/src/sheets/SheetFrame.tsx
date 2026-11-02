@@ -51,6 +51,8 @@ interface SheetFrameProps {
   /** Wraps the sheet in Base UI's virtual-keyboard handling, for sheets with a text field. */
   keyboardAware?: boolean;
   initialFocus?: InitialFocus;
+  /** The open came from a Menu pick: the scrim takes over from the menu's at once (drawer.css). */
+  handoff?: boolean;
   children: ReactNode;
 }
 
@@ -67,12 +69,13 @@ export default function SheetFrame({
   closeLabel,
   keyboardAware = false,
   initialFocus,
+  handoff = false,
   children,
 }: SheetFrameProps) {
   useBackCloses(open, () => onOpenChange(false));
   const portal = (
     <Drawer.Portal>
-      <Drawer.Backdrop className={drawerScrimClass()} />
+      <Drawer.Backdrop className={drawerScrimClass()} data-handoff={handoff || undefined} />
       <Drawer.Viewport className={drawerViewportClass()}>
         <Drawer.Popup className={drawerPopupClass()} initialFocus={initialFocus}>
           {/* Content is what lets a mouse press land on a control inside: outside it, Base UI

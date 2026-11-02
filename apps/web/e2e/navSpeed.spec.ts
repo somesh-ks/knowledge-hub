@@ -410,7 +410,10 @@ test.describe("a touch on a tab shows at once and goes on across the move", () =
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await expect(heading(page)).toHaveText("Library");
     await expect(tab).toHaveAttribute("aria-current", "page");
-    await page.waitForTimeout(600);
+    // The mark goes once the pill has finished (navigation.ts, settle): sample until then.
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.hasAttribute("data-nav-arrived")))
+      .toBe(false);
     const seen = await page.evaluate(
       () => (window as unknown as { pillSeen: { opacity: number; scale: number } }).pillSeen,
     );
@@ -426,6 +429,8 @@ test.describe("a podcast opened from a tab keeps that tab lit", () => {
     await openWarm(page);
     await item(page, "/library").click();
     await expect(heading(page)).toHaveText("Library");
+    // Let the Library's own pill finish: one still growing would be carried into the podcast.
+    await expect(page.locator("html")).not.toHaveAttribute("data-nav-arrived");
     await page.evaluate(() => {
       const w = window as unknown as { __grew: number };
       w.__grew = 0;
