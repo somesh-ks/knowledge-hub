@@ -137,7 +137,7 @@ export function createAudioCommand(overrides: Partial<AudioCommandDeps> = {}): C
         root: ctx.root,
         speech,
         blob,
-        ...usageDeps(blob),
+        ...usageDeps(blob, ctx.root),
         log: ctx.log,
         now: ctx.now,
         monthlyChars,
@@ -161,15 +161,15 @@ export function createAudioCommand(overrides: Partial<AudioCommandDeps> = {}): C
   };
 }
 
-export function usageDeps(blob: BlobClient): { usage?: UsageStore } {
-  const usage = usageStoreFor(blob);
+export function usageDeps(blob: BlobClient, root: string): { usage?: UsageStore } {
+  const usage = usageStoreFor(blob, root);
   return usage ? { usage } : {};
 }
 
 /** The shared count, or nothing on a machine with no Blob credentials: a dry run needs none. */
 function usageOf(ctx: CommandContext, deps: AudioCommandDeps): UsageStore | undefined {
   try {
-    return usageStoreFor(deps.createBlob(ctx));
+    return usageStoreFor(deps.createBlob(ctx), ctx.root);
   } catch {
     return undefined;
   }

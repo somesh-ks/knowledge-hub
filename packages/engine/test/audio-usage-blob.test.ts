@@ -1,6 +1,10 @@
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { BlobError, BlobPreconditionFailedError } from "@vercel/blob";
 import { describe, expect, it } from "vitest";
-import { blobUsageStore, usageBlobKey } from "../src/audio/usageBlob.js";
+import { fileUsageStore } from "../src/audio/budget.js";
+import { blobUsageStore, usageBlobKey, withFrozenFile } from "../src/audio/usageBlob.js";
 import type { BlobPutOptions, ConditionalBlobClient } from "../src/publish/blob.js";
 
 const NOW = new Date("2026-11-02T10:00:00Z");
@@ -108,6 +112,26 @@ describe("the shared Speechify count (D339)", () => {
     const usage = await blobUsageStore(racing, store.get).add(NOW, 250);
     expect(usage.speechify.characters).toBe(1250);
     expect(store.stored().digests["2026-11-01"].characters).toBe(1000);
+  });
+
+  // The engine counted in state/usage.json until D339. Mid-month that file still holds the month's
+  // earlier characters; a gate that read only Blob would approve narration the allowance lacks.
+  it("counts the characters the file already holds for the month, and writes only to Blob", async () => {
+    const root = await mkdtemp(join(tmpdir(), "usage-"));
+    try {
+      await mkdir(join(root, "state"));
+      await writeFile(
+        join(root, "state/usage.json"),
+        JSON.stringify({ version: 1, speechify: { month: "2026-11", characters: 300 } }),
+      );
+      const store = fakeStore(SITE_DOC);
+      const shared = withFrozenFile(blobUsageStore(store.client, store.get), fileUsageStore(root));
+      expect((await shared.load(NOW)).speechify.characters).toBe(1300);
+      expect((await shared.add(NOW, 100)).speechify.characters).toBe(1400);
+      expect(store.stored().speechify.characters).toBe(1100);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 
   // A document that exists but cannot be read must stop narration, not read as an empty month.

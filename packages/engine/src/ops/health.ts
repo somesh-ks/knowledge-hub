@@ -350,6 +350,13 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
   if (site && "error" in site) {
     warn("site_usage_unread", "cost", `The site's narration count did not read: ${site.error}.`);
   }
+  if (options.site !== null && blob === null) {
+    warn(
+      "site_usage_unread",
+      "cost",
+      "The shared narration count was not read: no digest has an audio address to take the store from.",
+    );
+  }
   const sharedCount = site && !("error" in site) ? site.month : 0;
   const since = now.getTime() - DAY_MS;
   const records = await loadAllCosts(root).catch((error: unknown) => {

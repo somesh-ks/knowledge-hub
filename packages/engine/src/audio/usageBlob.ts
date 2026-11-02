@@ -5,6 +5,7 @@ import {
   isAlreadyExists,
   isPreconditionFailed,
 } from "../publish/blob.js";
+import { fileUsageStore } from "./budget.js";
 import { emptyUsage, usageMonth } from "./budgetMath.js";
 import type { UsageStore } from "./usageStore.js";
 
@@ -94,7 +95,32 @@ export function blobUsageStore(
   };
 }
 
+/**
+ * The Blob count plus the characters `state/usage.json` holds for the month. The engine counted in
+ * that file before D339 and nothing writes it now, so it stays at what it was until the month turns
+ * and a gate that left it out would approve narration the allowance no longer has room for. Writes
+ * go to Blob only.
+ */
+export function withFrozenFile(shared: UsageStore, file: UsageStore): UsageStore {
+  const sum = async (now: Date, into: UsageFile): Promise<UsageFile> => {
+    const frozen = await file.load(now);
+    return {
+      ...into,
+      speechify: {
+        ...into.speechify,
+        characters: into.speechify.characters + frozen.speechify.characters,
+      },
+    };
+  };
+  return {
+    load: async (now) => sum(now, await shared.load(now)),
+    add: async (now, characters) => sum(now, await shared.add(now, characters)),
+  };
+}
+
 /** The shared count when the client can write conditionally (the real one can), else nothing: the file store applies. */
-export function usageStoreFor(blob: BlobClient): UsageStore | undefined {
-  return "head" in blob ? blobUsageStore(blob as ConditionalBlobClient) : undefined;
+export function usageStoreFor(blob: BlobClient, root: string): UsageStore | undefined {
+  return "head" in blob
+    ? withFrozenFile(blobUsageStore(blob as ConditionalBlobClient), fileUsageStore(root))
+    : undefined;
 }

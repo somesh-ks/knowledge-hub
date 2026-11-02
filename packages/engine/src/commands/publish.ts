@@ -235,7 +235,7 @@ export function createPublishCommand(overrides: Partial<AudioCommandDeps> = {}):
         root: ctx.root,
         speech: keys.speech,
         blob: keys.blob,
-        ...usageDeps(keys.blob),
+        ...usageDeps(keys.blob, ctx.root),
         log: ctx.log,
         now: ctx.now,
         monthlyChars: keys.monthlyChars,
