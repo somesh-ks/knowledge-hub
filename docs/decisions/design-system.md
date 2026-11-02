@@ -564,3 +564,13 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Amends: D144 (partial sheets hid Close: the Menu's now shows it), D275 (picker radius and inset).
 - Revisit if: a keyboard user cannot find the focused row on a phone, then give the fill a stronger layer, not the ring back.
 
+
+## D306: a seasonal style may change more than tokens
+
+- Date: 2026-11-01 (the owner, on decision cards: "Yes, full spooky" to Halloween changing more than colors; "Theme the covers too"; "Yes, Pirata One" for the title).
+- Decision: a style may carry, beyond token overrides (D268): its own empty-state scenes, one corner ornament, a title-only display face and its own cover art. Halloween is the first. Each part is scoped to the style and gone with it: the scenes sit beside the Default svg and `empty.css` shows the one the chosen style names (`data-look`), the cobweb is one element `shell.css` shows under `data-style="halloween"`, the face is a primitive `font.blackletter` that only the style's display role reads, and a style's scene colours are `component.scene.*` tokens (the Default gives them values from the semantic set and does not draw with them). Art markup holds no raw colour, as before (a class for each fill and stroke, a test that draws every scene). The contrast test now runs for every style, in both modes. Covers follow in their own change: drawn inline with colour variables, so a style recolours them without a request.
+- Why: the spooky look is the pictures and the title as much as the palette; colours alone left the Default's rounded squares in orange. Keeping each part scoped keeps Default as it is and keeps D268's rule that a style is data the guide can show.
+- Rejected: a per-style stylesheet (a flash, an extra request); auto-applying by date (D268); redrawing the Default scenes for every style; the cobweb as a page patch (D237, D253).
+- Cost: every page carries the cobweb (about 3 KB, hidden) and each empty state carries both svgs; the 9 KB Pirata One file is precached with the stylesheet though only its style fetches it.
+- Revisit if: a second style wants scenes (then they move to one file per style), the hidden markup shows in page weight, or a style needs to change a primitive ramp.
+- Amends: D268.

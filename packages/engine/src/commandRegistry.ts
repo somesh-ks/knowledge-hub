@@ -182,11 +182,14 @@ selection-schema.json, then validates the agent-selection.json a Claude Code ses
   {
     name: "content",
     summary: "Mirror the digests, episodes and run state into the content store (Blob)",
-    help: `Usage: singularity content sync
+    help: `Usage: singularity content sync | put <path>... | remove <path>... | pull [<path>...]
 
-Uploads every file under Digests/ and Podcasts/ and the run state the site reads to Vercel Blob
+sync uploads every file under Digests/ and Podcasts/ and the run state the site reads to Vercel Blob
 under content/<path>, deletes what is gone and rewrites content/manifest.json and the episode
-index. Only changed files are sent. Uses BLOB_READ_WRITE_TOKEN (D173).`,
+index. Only changed files are sent. put and remove change only the paths they name, with the
+manifest written against its ETag so two jobs cannot overwrite each other (D300). pull copies the
+store's Digests and Podcasts into this checkout, checked against the manifest's hashes, and deletes
+nothing. Uses BLOB_READ_WRITE_TOKEN (D173).`,
     load: async () => (await import("./commands/content.js")).run,
   },
   {

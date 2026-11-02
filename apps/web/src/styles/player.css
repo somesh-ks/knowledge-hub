@@ -146,7 +146,7 @@
 [data-playing="false"] .glyph-playing,
 [data-playing="true"] .glyph-paused {
   opacity: 0;
-  transform: scale(0.95);
+  transform: scale(var(--scale-enter));
   filter: blur(var(--blur-enter));
 }
 
@@ -516,13 +516,13 @@
 
 @media (hover: hover) and (pointer: fine) {
   .player-fallback-action:hover {
-    background: var(--color-accent-hover);
+    background: color-mix(in oklab, var(--color-accent), var(--color-on-accent) var(--state-hover));
   }
 }
 
-/* A press darkens the fill, as on the primary buttons; the words keep their size. */
+/* A press lays the state layer over the fill, as on the primary buttons; the words keep their size. */
 .player-fallback-action:active {
-  background: var(--color-accent-pressed);
+  background: color-mix(in oklab, var(--color-accent), var(--color-on-accent) var(--state-press));
 }
 
 .player-cover-box .player-cover-frame {
@@ -1318,7 +1318,7 @@
   }
 
   .dock-btn[data-primary]:active {
-    background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
+    background: color-mix(in oklab, var(--color-accent), var(--color-on-accent) var(--state-press));
   }
 }
 
@@ -1343,11 +1343,11 @@
 
 @media (hover: hover) and (pointer: fine) and (width >= 64rem) {
   .dock-btn[data-primary]:not([aria-disabled="true"]):hover {
-    background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-hover));
+    background: color-mix(in oklab, var(--color-accent), var(--color-on-accent) var(--state-hover));
   }
 
   .dock-btn[data-primary]:not([aria-disabled="true"]):hover:active {
-    background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
+    background: color-mix(in oklab, var(--color-accent), var(--color-on-accent) var(--state-press));
   }
 
   /* A mouse press on the bar is a quiet tonal layer, as light as a hover and eased in and out:
@@ -1751,7 +1751,7 @@
   }
 
   .transport-btn[data-primary]:hover {
-    background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-hover));
+    background: color-mix(in oklab, var(--color-accent), var(--color-on-accent) var(--state-hover));
   }
 }
 
@@ -1761,7 +1761,7 @@
 }
 
 .transport-btn[data-primary]:active {
-  background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
+  background: color-mix(in oklab, var(--color-accent), var(--color-on-accent) var(--state-press));
 }
 
 /* ------------------------------------------------------------------ speed */
@@ -2652,7 +2652,7 @@
 
 /* The row being dragged dims where it was; the row it is over shows the edge it would join. */
 .player-queue-item[data-dragging] {
-  opacity: 0.5;
+  opacity: var(--opacity-dim);
 }
 
 .player-queue-item[data-drop="before"] {
