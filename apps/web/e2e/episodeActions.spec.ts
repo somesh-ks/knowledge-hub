@@ -80,12 +80,11 @@ test.describe("regenerate and delete an episode", () => {
     const items = menu(page).getByRole("menuitem");
     await expect(items).toHaveText(["Download", "Add to queue", "Regenerate", "Delete"]);
     await expect(items.first()).toBeFocused();
-    // The menu hangs under the button, not at the edge of the page.
+    // On a phone the menu is a bottom sheet below the button, its rows edge to edge across the screen.
     const m = await menu(page).boundingBox();
     expect(m?.y).toBeGreaterThanOrEqual((a?.y ?? 0) + (a?.height ?? 0));
-    expect(Math.abs((m?.x ?? 0) + (m?.width ?? 0) - ((a?.x ?? 0) + (a?.width ?? 0)))).toBeLessThan(
-      2,
-    );
+    expect(m?.x).toBeGreaterThanOrEqual(0);
+    expect((m?.x ?? 0) + (m?.width ?? 0)).toBeLessThanOrEqual(page.viewportSize()?.width ?? 0);
     await page.keyboard.press("ArrowDown");
     await expect(items.nth(1)).toBeFocused();
     await page.keyboard.press("ArrowUp");

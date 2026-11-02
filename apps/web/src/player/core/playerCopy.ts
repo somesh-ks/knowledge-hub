@@ -37,12 +37,12 @@ export function errorSummary(error: Pick<PlayerError, "kind" | "summary">): stri
     case "network":
       return "Audio did not load";
     case "unavailable":
-      return "Audio is not available";
+      return "Audio isn't available";
     case "blocked":
       return "Playback was blocked";
     default:
       // Decode and unknown failures; a refusal always carries its reason as its summary.
-      return "Audio could not play";
+      return "Couldn't play the audio";
   }
 }
 

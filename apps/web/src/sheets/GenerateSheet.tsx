@@ -59,7 +59,8 @@ const BUSY = "A podcast or an episode is still being made. You can start another
 
 /**
  * Regenerate a briefing: its topics (this run only, ticked from the original), the length in
- * minutes (starting on the one it was made at) and the comment that says why (required, D340). Pressing
+ * minutes (starting on the one it was made at) and the comment that says why (required, D340). It is a
+ * full sheet like Catch up: the whole screen on a phone, a side panel from 40rem. Pressing
  * Regenerate starts the run and closes the sheet; the run is followed by the podcast queue
  * (scripts/queue.ts), above the navigation on a phone and at the foot of the side column from 64rem,
  * so it goes on across pages.

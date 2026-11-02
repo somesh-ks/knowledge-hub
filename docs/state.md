@@ -16,7 +16,7 @@ Updated 2026-11-02. Rewrite, never append.
 
 ## Tests
 
-Unit (CI): 352 files, 5,449 tests, about 2 min. Site e2e: 448, 10 min. Player: 80, 7 min.
+Unit (CI): 357 files, 5,491 tests, about 2 min. Site e2e: 449, 14 min. Player: 80, 7 min.
 
 ## Not working or unverified
 
@@ -46,7 +46,7 @@ Unit (CI): 352 files, 5,449 tests, about 2 min. Site e2e: 448, 10 min. Player: 8
 - Owner's eye: bar centring (over 1px), centred column and label gap (D229), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off.
 - Live content (plan 20): an open page elsewhere does not refresh in 60 s; `smokeLive.mjs --apply` never ran on production. closed when: checked.
 - Reload mid-write (D259). closed when: a phone flip, then reload, holds.
-- Offline settings outbox (D299): fakes only. closed when: on a phone in airplane mode a setting is changed, the app is closed, and it reaches the site once back online.
+- Offline (D299, D330, D331): fakes only. closed when: in airplane mode on his phone Saved and Settings open, a change syncs once online, nothing reloads.
 - Settings paint the stored copy at once (D205); another device's edit waits for a reload toast. closed when: the owner signs off on a phone.
 - Sources design (D124): production asks Jev for a source's format only after `secrets:push`; no run used a mix or cap. closed when: a production format comes from Jev and a digest follows a mix change.
 - YouTube text: Firecrawl and Gemini transcripts answered live; no full run used either. closed when: a digest has a YouTube finalist with `extract_method` captions or transcription.
@@ -75,9 +75,9 @@ Unit (CI): 352 files, 5,449 tests, about 2 min. Site e2e: 448, 10 min. Player: 8
 
 1. Free the lane in the hold ([D209](decisions/engine.md)): step 1 is built (#399); steps 2, 4 and 5 are not. Step 3, the batch, shipped as D294. A batch the wait gives up on, or a cancel leaves running, is listed in `.cache/run/open-batches.json` and settled by run.yml's "Settle batches" step (`batch-settle`) before Commit; the step needs a manual merge and is unproven live. closed when: a scheduled run's write stage logs "Writer first pass by batch" with `back` above 0, and a run that gave up on a batch logs "Settled a batch the run had left open".
 2. Owner: regenerate the 3-story 10-27 briefing? Revoke the Vercel token; delete empty store `store_JmrDq8MB5Kwn3ejW`; open calls: [PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md).
-3. Firecrawl: a per-source yield table for the owner to prune (21 sources gave 1 story per 4,460 credits a month); changelog providers once the pilot holds.
-4. Lighthouse: defer BaseLayout's 34 KiB CSS without breaking the bar; the 1.4 s chain.
+3. Firecrawl: owner prunes from the yield report. The free change check (D342) skips unchanged listings. closed when: a run skips one, then scrapes a changed one.
+4. Lighthouse CSS defer parked: inlined critical CSS paints a cold phone in 1.0 s, not 3.2 s, but the CSP blocks it.
 5. `topic` to `category` end to end (plan 14): an inventory, dual-name readers, a store-synced migration, the rename, then the old names go; only with no other PR open ([start](history/2026-10-25-owner-feedback-pass.md#left-out-for-a-later-session)).
 6. Controls (D237): Icon button, FAB, Chip, Link next. closed when: `NOT_YET_COMPONENTS` is empty. Icon size scale (D266).
-7. Performance: split a long first turn at its first sentence ([note](history/2026-10-12-polish-and-performance-pass.md)); each source is read once per run.
+7. First turn: `first_turn_chars` is recorded in `podcast-timings.json`; split it only if two runs show it long.
 8. Parked by the owner on 1 Nov ([D302](decisions/engine.md)), no code: pipeline plan Steps 3 to 7 (this list named 3, 5, 6, 7: versions table, regenerate from a stage, git as export, feedback classifier) and the Firecrawl monitor pilot. The owner restarts or drops them.

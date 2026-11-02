@@ -192,6 +192,8 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
     form.reset();
     if (count) count.hidden = true;
     if (topicsGroup) topicsGroup.hidden = true;
+    // It leaves the way Catch up does after a start (sheet.css), the queue rising as it goes.
+    dialog.dataset.started = "";
     dialog.close();
   });
 }
@@ -205,6 +207,8 @@ export function openEpisodeAction(trigger: HTMLElement): void {
   const dialog = document.querySelector<HTMLDialogElement>(selector) ?? build(kind, root);
   if (!dialog || dialog.open) return;
   rootOf.set(dialog, root);
+  // One dialog serves every row, so the exit of a started run is not kept for the next open.
+  delete dialog.dataset.started;
   // One dialog serves every row of the Library, so it is set for the row that opened it.
   if (kind === "delete") {
     const noun = root.dataset.libraryBriefing || root.dataset.briefing ? "podcast" : "episode";

@@ -68,26 +68,36 @@ const VIEW: Record<ArtName, string> = {
     )
   }
   {
-    (art === "offline" || art === "online") && (
+    art === "offline" && (
+      <>
+        {/* A page that is not here yet (the dashed slot) and the signal looking for the network that
+            will bring it. The waves sit in their own group so each counts from its own first (empty.css). */}
+        <path
+          class="art-slot d-breathe"
+          d="M56 32h36l24 24v76a14 14 0 0 1-14 14H56a14 14 0 0 1-14-14V46a14 14 0 0 1 14-14z"
+        />
+        <path class="art-ink-line" d="M62 92h34" />
+        <path class="art-ink-line" d="M62 114h22" />
+        <g>
+          {["M180 130h0", "M166 114a20 20 0 0 1 28 0", "M152 98a40 40 0 0 1 56 0"].map((d) => (
+            <path class="art-glyph d-wave" d={d} />
+          ))}
+        </g>
+      </>
+    )
+  }
+  {
+    art === "online" && (
       <>
         <circle class="art-hero" cx="120" cy="90" r="66" />
         {["M120 124h0", "M98 102a31 31 0 0 1 44 0", "M76 80a62 62 0 0 1 88 0"].map((d) => (
-          <path class={`${art === "offline" ? "art-glyph-off" : "art-glyph"} d-wave`} d={d} />
+          <path class="art-glyph d-wave" d={d} />
         ))}
-        {art === "offline" ? (
-          <>
-            <path class="art-slash-knock" d="M88 52l64 64" />
-            <path class="art-slash" d="M88 52l64 64" />
-          </>
-        ) : (
-          <>
-            <g class="d-pop">
-              <circle class="art-knock" cx="168" cy="134" r="25" />
-              <circle class="art-pop" cx="168" cy="134" r="20" />
-              <path class="art-on-pop-line" d="M159 134l6 6 12-12" />
-            </g>
-          </>
-        )}
+        <g class="d-pop">
+          <circle class="art-knock" cx="168" cy="134" r="25" />
+          <circle class="art-pop" cx="168" cy="134" r="20" />
+          <path class="art-on-pop-line" d="M159 134l6 6 12-12" />
+        </g>
       </>
     )
   }

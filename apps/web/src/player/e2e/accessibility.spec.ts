@@ -89,7 +89,7 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
     await expectAccessible(page, "the Generate sheet");
     const start = dialog.getByRole("button", { name: "Regenerate" });
     await player.finger.press(start);
-    await expect(dialog.getByRole("alert")).toContainText("ran into a problem");
+    await expect(dialog.getByRole("alert")).toContainText("Something broke on our side");
     await expectAccessible(page, "the Generate sheet refused");
     await player.finger.press(start);
     // The sheet is only the form: the run is followed in the line above the navigation.

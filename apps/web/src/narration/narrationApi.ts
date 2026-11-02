@@ -214,19 +214,19 @@ export function failureCopy(reason: NarrationFailure, noun: NarrationNoun): stri
     case "monthly_budget":
       return "This month's narration allowance is used up. It resets on the first.";
     case "not_narratable":
-      return `This ${noun} cannot be read aloud.`;
+      return `This ${noun} can't be read aloud.`;
     case "digest_not_found":
       return `This ${noun} is not ready for narration yet. Reload the page, then try again.`;
     case "segment_not_found":
       return "This page is out of date. Reload it, then try again.";
     case "unavailable":
-      return "Narration ran into a problem on the server. Try again.";
+      return "Narration hit a snag. Try again.";
     case "offline":
-      return "You are offline. Reconnect, then try again.";
+      return "You're offline. Try again when you're back online.";
     case "failed":
-      return "The audio could not be made. Try again.";
+      return "Couldn't make the audio. Try again.";
     case "link_limit":
-      return "This link has been played its limit.";
+      return "This link has reached its play limit.";
     case "month_limit":
       return "Shared listening is paused until next month.";
     case "link_gone":
@@ -256,17 +256,17 @@ function failureSummary(reason: NarrationFailure): string | undefined {
     case "monthly_budget":
       return "Monthly allowance used up";
     case "not_narratable":
-      return "Cannot be read aloud";
+      return "Can't be read aloud";
     case "digest_not_found":
     case "segment_not_found":
       return "Not ready for narration";
     case "unavailable":
-      return "Narration failed on the server";
+      return "Narration hit a snag";
     case "offline":
       return "You are offline";
     case "failed":
       // The notice's own words, shortened: one failure is not told two ways.
-      return "Audio could not be made";
+      return "Couldn't make the audio";
     case "link_limit":
       return "Link played its limit";
     case "month_limit":
@@ -286,9 +286,9 @@ export function describeNarrationFailure(
   // The notice has its own Try again where a retry helps, so the words are not repeated there.
   const message =
     reason === "failed"
-      ? "The audio could not be made."
+      ? "Couldn't make the audio."
       : reason === "unavailable"
-        ? "Narration ran into a problem on the server."
+        ? "Narration hit a snag."
         : failureCopy(reason, noun);
   return { message, summary: failureSummary(reason), standing: STANDING_REASONS.has(reason) };
 }

@@ -13,6 +13,7 @@
  * already saved.
  */
 import { sameClock, scheduleZone, suggestZone } from "@singularity/core/time";
+import { isOnline } from "../lib/connectivity";
 import { SAVED_KEY } from "../lib/savedKey";
 import { parseSaved, savedFields, withStore } from "../lib/savedOverlay";
 import { cachedStore } from "./configStoreRead";
@@ -136,7 +137,7 @@ const deviceZone = (): string | undefined => {
 
 /** Compares the device's zone with the schedule's and offers the switch when they differ. */
 export function checkZone(): void {
-  if (!navigator.onLine) return;
+  if (!isOnline()) return;
   if (location.pathname.startsWith("/settings")) {
     // The toast outlives a client-side navigation; Settings is where the zone is set by hand.
     if (offered) sendToast({ dismiss: offered });
