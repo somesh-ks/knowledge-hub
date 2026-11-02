@@ -49,6 +49,7 @@ async function requestScrape(
   http: HttpClient,
   signal: AbortSignal | undefined,
   retries?: number,
+  maxAgeMs: number = MAX_AGE_MS,
 ): Promise<ScrapeData> {
   const baseUrl = (config.baseUrl ?? FIRECRAWL_BASE_URL).replace(/\/+$/, "");
   const payload = await http.postJson(
@@ -57,7 +58,7 @@ async function requestScrape(
       url,
       formats: [format],
       ...(format === "markdown" ? { onlyMainContent: true } : {}),
-      maxAge: MAX_AGE_MS,
+      maxAge: maxAgeMs,
       timeout: SCRAPE_TIMEOUT_MS,
     },
     {
@@ -82,8 +83,9 @@ export async function scrapePage(
   config: { apiKey: string; baseUrl?: string | undefined },
   http: HttpClient,
   signal: AbortSignal | undefined,
+  maxAgeMs?: number,
 ): Promise<ScrapedPage> {
-  const data = await requestScrape(url, "markdown", config, http, signal);
+  const data = await requestScrape(url, "markdown", config, http, signal, undefined, maxAgeMs);
   const title = data.metadata?.title;
   return {
     markdown: data.markdown ?? "",
@@ -150,8 +152,10 @@ export const fetchFirecrawl: SourceFetcher = async (source, window, deps): Promi
   const pageUrl = source.feed_url ?? source.url;
   const probe = await probeListing(memory, source, pageUrl, deps.http, deps.now(), deps.signal);
   if (probe.unchanged) return [];
-  const read = await readListing(source, window, deps);
-  if (probe.hash !== null && probe.links && coversEntries(probe.links, read.entryUrls)) {
+  // A fingerprint is stored from a scrape made now: a copy up to an hour old could be the page
+  // from before the article the free read just saw.
+  const read = await readListing(source, window, deps, probe.hash !== null);
+  if (probe.hash !== null && probe.links && coversEntries(probe.links, read.entryUrls, pageUrl)) {
     memory.remember(source.id, probe.hash, deps.now());
   }
   return read.items;
@@ -167,6 +171,7 @@ async function readListing(
   source: Parameters<SourceFetcher>[0],
   window: Parameters<SourceFetcher>[1],
   deps: Parameters<SourceFetcher>[2],
+  fresh = false,
 ): Promise<ListingRead> {
   const config = deps.firecrawl;
   if (!config?.apiKey) throw new SourceSkipped("FIRECRAWL_API_KEY is not set");
@@ -179,7 +184,13 @@ async function readListing(
     if (typed) return { items: typed, entryUrls: [] };
   }
   const load = (): Promise<ScrapedPage> =>
-    scrapePage(pageUrl, { apiKey, baseUrl: config.baseUrl }, deps.http, deps.signal);
+    scrapePage(
+      pageUrl,
+      { apiKey, baseUrl: config.baseUrl },
+      deps.http,
+      deps.signal,
+      fresh ? 0 : undefined,
+    );
   const guard = config.guard;
   let page: ScrapedPage | null;
   if (guard) {

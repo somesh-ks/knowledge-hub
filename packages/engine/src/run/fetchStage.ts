@@ -20,7 +20,6 @@ import {
   readSeen,
   readSourceHealth,
   readSourceStats,
-  writeListingFingerprints,
   writeSourceHealth,
 } from "../state/store.js";
 import { withRunJudgments } from "./artifacts.js";
@@ -221,11 +220,10 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
       );
     }
 
+    // Handed to the commit stage, which stores them: a run that fails before then has delivered
+    // none of these pages' articles, so it must not make the next run skip them.
     if (!plan.dry_run && listings) {
-      const fingerprints = listings.toFile(gathered.sources.sources);
-      if (Object.keys(fingerprints.sources).length > 0) {
-        await writeListingFingerprints(deps.root, fingerprints);
-      }
+      await writeJson(passFile(deps.root, pass.id, "listings.json"), listings.scraped());
     }
 
     const failed = gathered.results.filter((result) => !result.ok);

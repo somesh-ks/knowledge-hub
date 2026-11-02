@@ -1,7 +1,7 @@
 import { EMPTY_LISTING_FINGERPRINTS } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { fetchFirecrawl } from "../src/fetch/firecrawl.js";
-import { fingerprintLinks, ListingMemory } from "../src/fetch/listingCheck.js";
+import { fingerprintLinks, ListingMemory, mergeListings } from "../src/fetch/listingCheck.js";
 import { fakeFetch, fixture, makeDeps, makeSource, NOW, WIDE } from "./fetch-helpers.js";
 
 const PAGE = "https://example.com/blog";
@@ -41,15 +41,17 @@ describe("a listing whose links have not moved is not scraped", () => {
 
   it("scrapes the first time and when a link appears, and skips in between", async () => {
     const memory = new ListingMemory(EMPTY_LISTING_FINGERPRINTS);
-    const first = run(html(...links), memory);
-    expect((await first.read()).length).toBeGreaterThan(0);
-    expect(first.scrapes()).toBe(1);
+    const firstRun = run(html(...links), memory);
+    expect((await firstRun.read()).length).toBeGreaterThan(0);
+    expect(firstRun.scrapes()).toBe(1);
 
-    const same = run(html(...[...links].reverse(), `${links[0]}?utm=x`), memory);
+    // The next run starts from what the commit stored.
+    const stored = mergeListings(EMPTY_LISTING_FINGERPRINTS, [memory.scraped()], NOW);
+    const same = run(html(...[...links].reverse(), `${links[0]}?utm=x`), new ListingMemory(stored));
     expect(await same.read()).toEqual([]);
     expect(same.scrapes()).toBe(0);
 
-    const moved = run(html(...links, "/blog/d"), memory);
+    const moved = run(html(...links, "/blog/d"), new ListingMemory(stored));
     expect((await moved.read()).length).toBeGreaterThan(0);
     expect(moved.scrapes()).toBe(1);
   });
@@ -59,11 +61,11 @@ describe("a listing whose links have not moved is not scraped", () => {
     const refused = run({ status: 403 }, memory);
     await refused.read();
     expect(refused.scrapes()).toBe(1);
-    expect(memory.toFile([source]).sources).toEqual({});
+    expect(memory.scraped().sources).toEqual({});
 
     const failing = run(html(...links), memory, JSON.stringify({ success: false, error: "x" }));
     await expect(failing.read()).rejects.toThrow();
-    expect(memory.toFile([source]).sources).toEqual({});
+    expect(memory.scraped().sources).toEqual({});
 
     const hash = fingerprintLinks(html(...links), PAGE) as string;
     const old = new Date(NOW.getTime() - 8 * 86_400_000).toISOString();
@@ -82,10 +84,57 @@ describe("a listing whose links have not moved is not scraped", () => {
     const memory = new ListingMemory(EMPTY_LISTING_FINGERPRINTS);
     const navOnly = run(html("/", "/pricing", "/about"), memory);
     await navOnly.read();
-    expect(memory.toFile([source]).sources).toEqual({});
+    expect(memory.scraped().sources).toEqual({});
     const again = run(html("/", "/pricing", "/about"), memory);
     await again.read();
     expect(again.scrapes()).toBe(1);
+  });
+
+  it("keeps this run's scrape from skipping the run's next pass, and from counting before the commit", async () => {
+    // The weekly and daily passes of one run read the same pages; the first must not make the second skip.
+    const memory = new ListingMemory(EMPTY_LISTING_FINGERPRINTS);
+    await run(html(...links), memory).read();
+    expect(Object.keys(memory.scraped().sources)).toEqual([source.id]);
+    const second = run(html(...links), memory);
+    expect((await second.read()).length).toBeGreaterThan(0);
+    expect(second.scrapes()).toBe(1);
+  });
+
+  it("asks for a page fresh when it means to remember it, and never counts a link to the page itself", async () => {
+    let maxAge: unknown;
+    const fake = fakeFetch({
+      [PAGE]: html("/", "/pricing", PAGE),
+      [SCRAPE]: (_url, init) => {
+        maxAge = (JSON.parse(String(init?.body)) as { maxAge: unknown }).maxAge;
+        return new Response(
+          JSON.stringify({
+            success: true,
+            data: {
+              markdown: fixture("fetch-firecrawl-changelog.md"),
+              metadata: { statusCode: 200 },
+            },
+          }),
+        );
+      },
+    });
+    const memory = new ListingMemory(EMPTY_LISTING_FINGERPRINTS);
+    const changelog = makeSource({ id: "changelog", type: "firecrawl", url: PAGE, feed_url: null });
+    await fetchFirecrawl(changelog, WIDE, makeDeps(fake, { firecrawl: KEY, listings: memory }));
+    expect(maxAge).toBe(0);
+    // Heading entries resolve to the page itself, which the page links: that proves no article.
+    expect(memory.scraped().sources).toEqual({});
+  });
+
+  it("stores what a run scraped over the old, and lets a month-old fingerprint go", () => {
+    const at = (days: number): string => new Date(NOW.getTime() - days * 86_400_000).toISOString();
+    const entry = (hash: string, days: number) => ({ hash, scraped_at: at(days) });
+    const merged = mergeListings(
+      { version: 1, sources: { a: entry("a".repeat(16), 3), gone: entry("b".repeat(16), 31) } },
+      [{ version: 1, sources: { a: entry("c".repeat(16), 0), b: entry("d".repeat(16), 0) } }],
+      NOW,
+    );
+    expect(Object.keys(merged.sources).sort()).toEqual(["a", "b"]);
+    expect(merged.sources.a?.hash).toBe("c".repeat(16));
   });
 
   it("follows href, never a data-href that comes first, and gives none to a page drawn in the browser", () => {

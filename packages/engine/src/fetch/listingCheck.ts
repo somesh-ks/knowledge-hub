@@ -7,7 +7,7 @@ export const MIN_LISTING_LINKS = 3;
 /** A fingerprint older than this is not trusted, so a page that changes without its links still gets read. */
 export const FORCE_SCRAPE_DAYS = 7;
 /** The direct read is a probe, not a scrape: a slow or large page is not worth waiting for. */
-const PROBE_TIMEOUT_MS = 10_000;
+const PROBE_TIMEOUT_MS = 5_000;
 const PROBE_MAX_BYTES = 2_000_000;
 const DAY_MS = 86_400_000;
 const ANCHOR = /<a\b([^>]*)>/gi;
@@ -54,43 +54,67 @@ const hashLinks = (links: readonly string[]): string =>
  * navigation links pass the minimum above on a page that draws its articles in the browser; a
  * fingerprint of those would never move, so it is kept only when it covers a real article.
  */
-export function coversEntries(links: ReadonlySet<string>, entryUrls: readonly string[]): boolean {
+export function coversEntries(
+  links: ReadonlySet<string>,
+  entryUrls: readonly string[],
+  pageUrl: string,
+): boolean {
+  // A heading entry resolves to the listing page itself, which a navigation link to itself would cover.
+  const self = cutLink(pageUrl, pageUrl);
   return entryUrls.some((url) => {
     const cut = cutLink(url, url);
-    return cut !== null && links.has(cut);
+    return cut !== null && cut !== self && links.has(cut);
   });
 }
 
 /**
- * What the last scrape of each listing page saw, and what this run's scrapes saw since. Held in
- * memory for the fetch stage, which writes the result to state/listing-fingerprints.json.
+ * What the last committed scrape of each listing page saw, and what this run's scrapes saw since.
+ * Only the committed fingerprints decide whether a page is skipped, so a second pass of the same
+ * run reads what the first did; this run's are kept apart and reach state/ with the commit, so a
+ * run that fails after its fetch leaves no fingerprint behind for a page it never delivered.
  */
 export class ListingMemory {
-  private readonly sources: ListingFingerprintsFile["sources"];
+  private readonly known: ListingFingerprintsFile["sources"];
+  private readonly fresh: ListingFingerprintsFile["sources"] = {};
 
   constructor(initial: ListingFingerprintsFile) {
-    this.sources = { ...initial.sources };
+    this.known = { ...initial.sources };
   }
 
-  /** True when the page's links match the last scrape and that scrape is recent enough to trust. */
+  /** True when the page's links match the last committed scrape and that scrape is recent enough to trust. */
   unchanged(sourceId: string, hash: string, now: Date): boolean {
-    const known = this.sources[sourceId];
+    const known = this.known[sourceId];
     if (!known || known.hash !== hash) return false;
     return now.getTime() - Date.parse(known.scraped_at) < FORCE_SCRAPE_DAYS * DAY_MS;
   }
 
   /** Called only after a scrape of the page succeeded, so a failed scrape is tried again next run. */
   remember(sourceId: string, hash: string, now: Date): void {
-    this.sources[sourceId] = { hash, scraped_at: now.toISOString() };
+    this.fresh[sourceId] = { hash, scraped_at: now.toISOString() };
   }
 
-  /** The file to store, keeping only sources that are still configured. */
-  toFile(configured: readonly Pick<Source, "id">[]): ListingFingerprintsFile {
-    const keep = new Set(configured.map((source) => source.id));
-    const sources: ListingFingerprintsFile["sources"] = {};
-    for (const [id, entry] of Object.entries(this.sources)) if (keep.has(id)) sources[id] = entry;
-    return { version: 1, sources };
+  /** What this run's scrapes saw: the file the commit stage merges into state/. */
+  scraped(): ListingFingerprintsFile {
+    return { version: 1, sources: { ...this.fresh } };
   }
+}
+
+/** A fingerprint nobody has refreshed in this long belongs to a source that is gone. */
+const KEEP_DAYS = 30;
+
+/** The stored fingerprints with a run's added over them, and the long-stale ones dropped. */
+export function mergeListings(
+  stored: ListingFingerprintsFile,
+  added: readonly ListingFingerprintsFile[],
+  now: Date,
+): ListingFingerprintsFile {
+  const merged = { ...stored.sources };
+  for (const file of added) Object.assign(merged, file.sources);
+  const sources: ListingFingerprintsFile["sources"] = {};
+  for (const [id, entry] of Object.entries(merged)) {
+    if (now.getTime() - Date.parse(entry.scraped_at) < KEEP_DAYS * DAY_MS) sources[id] = entry;
+  }
+  return { version: 1, sources };
 }
 
 export interface ListingProbe {
