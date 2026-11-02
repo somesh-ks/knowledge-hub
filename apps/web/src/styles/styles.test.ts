@@ -72,6 +72,10 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
   [".banner-notice > .button-text", "the action's hit area reaching into the banner's padding"],
   [".banner-body", "a banner's title onto its body, inside one banner"],
   [".menu-tile", "a glyph onto its word inside one tile: the icon-to-label gap is 4px, items 8px"],
+  [
+    ".menu-tiles[data-fold] > .menu-item",
+    "the Library card's quick actions are the same tiles on a phone: glyph to word 4px",
+  ],
   [".structure-row", "the dots' and pencil's ink, 28px in from the card's corner, not 24"],
   [
     ".structure-profile .profile-select",
