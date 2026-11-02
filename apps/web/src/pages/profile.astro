@@ -1,5 +1,6 @@
 ---
 import Avatar from "../design-system/Avatar.astro";
+import Button from "../design-system/Button.astro";
 import Icon from "../design-system/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 // Linked before the layout's stylesheet, as the Settings pages do (settings.css).
@@ -9,18 +10,33 @@ import "../styles/profile.css";
 
 <BaseLayout title="Profile" view="settings" nav={null} skipLabel="Skip to your profile">
   <main id="main" tabindex="-1">
-    {/* Who the app is for: the avatar, the shapes this mood offers for it, and the two lists that are
-         the reader's own. Sign-in with Google comes later and will put the account photo in the
-         avatar's place; until then nothing here asks for one (D326). */}
+    {/* Who the app is for: the avatar with a small edit button on its corner, a Log in button and the
+         two lists that are the reader's own. The shapes the mood offers sit behind the edit button
+         (profilePage.ts). Log in is a dummy until Google sign-in is built; it will put the account
+         photo in the avatar's place (D335). */}
     <div class="settings-view profile" data-profile>
-      <h1 class="text-display" id="page-title" tabindex="-1">Profile</h1>
+      <h1 class="sr-only" id="page-title" tabindex="-1">Profile</h1>
 
-      <div class="profile-face" data-account>
-        <Avatar size="xl" />
+      <div class="profile-head">
+        <div class="profile-face" data-account>
+          <Avatar size="xl" />
+        </div>
+        <button
+          class="icon-btn icon-btn-tonal press profile-edit"
+          type="button"
+          aria-label="Change avatar"
+          aria-expanded="false"
+          aria-controls="profile-shapes"
+          data-avatar-edit
+        >
+          <Icon name="pencilSimple" />
+          <Icon name="check" />
+        </button>
       </div>
 
-      <section>
-        <h2 class="section-head text-heading">Avatar</h2>
+      <Button variant="filled" class="profile-login" data-login>Log in</Button>
+
+      <section id="profile-shapes" aria-label="Avatar shape" hidden data-avatar-panel>
         <div class="rows card-group">
           {/* profilePage.ts fills it with the shapes the current mood offers. */}
           <div class="profile-shapes" role="group" aria-label="Avatar shape" data-avatar-picker></div>

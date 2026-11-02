@@ -1,13 +1,15 @@
 /**
- * The profile page's one script: the avatar picker. It offers the shapes the current mood has
- * (--av-shapes, so a new mood needs no change here), marks the one in use, and stores a pick in the
- * preferences. The avatar in the bar and on this page redraw from the same store (accountAvatar.ts).
+ * The profile page's one script: the avatar picker, opened by the edit button on the avatar. It
+ * offers the shapes the current mood has (--av-shapes, so a new mood needs no change here), marks
+ * the one in use, and stores a pick in the preferences. The avatar in the bar and on this page redraw from the same store (accountAvatar.ts).
  */
 import { AVATAR_SHAPES, avatarClass, avatarMarkup } from "../design-system/avatar";
 import { getPreferences } from "../player/core/preferences";
 import { currentShape, offeredShapes } from "./accountAvatar";
 
 const PICKER = "[data-avatar-picker]";
+const EDIT = "[data-avatar-edit]";
+const PANEL = "[data-avatar-panel]";
 
 /** Draws the picker. The buttons are built once per set of offered shapes, so a pick (or a volume
  * write) only moves aria-pressed and keyboard focus stays on the button that was pressed. */
@@ -53,6 +55,17 @@ function mount(picker: HTMLElement): () => void {
     if (choice?.dataset.shape) getPreferences().set({ avatar: choice.dataset.shape });
   };
   picker.addEventListener("click", onClick);
+  // The shapes stay behind the edit button on the avatar's corner; the same button closes them.
+  const edit = document.querySelector<HTMLElement>(EDIT);
+  const panel = document.querySelector<HTMLElement>(PANEL);
+  const onEdit = (): void => {
+    if (!edit || !panel) return;
+    const open = edit.getAttribute("aria-expanded") !== "true";
+    edit.setAttribute("aria-expanded", String(open));
+    edit.setAttribute("aria-label", open ? "Done" : "Change avatar");
+    panel.hidden = !open;
+  };
+  edit?.addEventListener("click", onEdit);
   // A pick, or a new mood (it has its own shapes), draws the row again.
   const stop = getPreferences().subscribe(() => draw(picker));
   const moodWatch = new MutationObserver(() => draw(picker));
@@ -62,6 +75,7 @@ function mount(picker: HTMLElement): () => void {
   });
   return () => {
     picker.removeEventListener("click", onClick);
+    edit?.removeEventListener("click", onEdit);
     stop();
     moodWatch.disconnect();
   };

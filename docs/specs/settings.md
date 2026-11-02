@@ -5,12 +5,12 @@ Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reason
 ## Requirements
 
 ### Structure
-- Settings is two levels (D51): an index, one page per job. Sections are 18 to 20px regular H2s (D125): Podcast settings (Daily, Weekly, Sources, Structure at `/settings/preferences`), App settings (Appearance, Sound and voice, Haptics with On or Off, Notifications) and About: three rows, no head, and a small centred "Last updated on 2 Nov, 2026" on a phone (D335).
-- `/settings/appearance`: Theme, Mood and, for a mood only, a full-width Hue row (D328). `/settings/sound`: Interface sounds (switch, Volume), Podcast voices and Playback (autoplay, default speed); `/settings/sounds` and `/settings/voice` redirect. `/settings/haptics`: the switch.
-- `/profile` (D335): the avatar, a picker of the mood's shapes (`--av-shapes`), Downloads and Saved. No sign-in yet. The avatar reacts to offline, a run, playing, a success, a failure and a favourite (`apps/web/src/scripts/accountAvatar.ts`; none under reduced motion).
-- Link rows end in their value, in quiet ink; rows are 64px.
-- Each group of rows is a card: `.card-group` (primitives.css) on `.rows`; contents concentric (`component.card`). Heads share the rows' edge. The install offer is accent-toned. About: About, Privacy, Change log (`/settings/changelog`, newest first) and, on a phone, Last updated, at the side column's foot from 64rem (`AppNav`).
-- A subpage has a small "Settings /" line above its title ("Profile /" on Downloads and Saved), linking up (amends D129). `/settings/custom` goes to `/create`.
+- Settings has two levels (D51): an index, a page per job. Sections are 18 to 20px regular H2s (D125): Podcast settings (Daily, Weekly, Sources, Structure at `/settings/preferences`), App settings (Appearance, Sound and voice, Haptics with On or Off, Notifications) and About: three rows, no head, and a small centred "Last updated on 2 Nov, 2026" on a phone (D335).
+- `/settings/appearance`: Theme, Mood and, for a mood only, a full-width Hue row (D328). `/settings/sound`: Interface sounds (switch, Volume), Podcast voices and Playback (autoplay, default speed); `/settings/sounds` and `/settings/voice` redirect. `/settings/haptics`: a switch.
+- `/profile` (D335): no heading; the avatar with an edit button that opens the mood's shape picker (`--av-shapes`); a Log in button, dummy until Google sign-in; Downloads and Saved. It reacts to offline, a run, playing, success, failure and a favourite (`accountAvatar.ts`; not under reduced motion).
+- Link rows end in their value, in quiet ink, 64px tall.
+- Each group of rows is a card: `.card-group` (primitives.css) on `.rows`; contents concentric (`component.card`). Heads share the rows' edge. The install offer is accent-toned. About: About, Privacy, Change log (`/settings/changelog`) and, on a phone, Last updated, at the side column's foot from 64rem (`AppNav`).
+- A subpage has a "Settings /" line above its title ("Profile /" on Downloads and Saved), linking up (amends D129). `/settings/custom` goes to `/create`.
 - Form fields have a 3:1 outline. Every select opens one drawn list. Time zone and voices use searchable pickers (D101). Theme and Mood draw no value until the stored one is set.
 
 ### Schedule

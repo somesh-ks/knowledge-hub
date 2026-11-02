@@ -1,9 +1,48 @@
-/* The profile page (D326): the avatar large, and the shapes the mood offers as a row of choices. */
+/* The profile page (D335): the avatar large with its edit button on the corner, Log in under it, and
+   the shapes the mood offers as a row of choices behind the edit button. */
+
+/* The avatar and Log in stand in the middle; the two lists run the page's width. */
+.profile {
+  display: grid;
+  justify-items: center;
+}
+
+.profile > section {
+  justify-self: stretch;
+}
+
+.profile-head {
+  position: relative;
+  display: grid;
+  margin-block: var(--space-6) var(--space-4);
+}
 
 .profile-face {
   display: grid;
   place-items: center;
-  margin-block: var(--space-6);
+}
+
+/* The edit button sits on the avatar's bottom right corner, half over it. */
+.profile-edit {
+  position: absolute;
+  inset-inline-end: calc(var(--space-2) * -1);
+  inset-block-end: calc(var(--space-2) * -1);
+}
+
+/* A pencil to start, a check to finish: the same button, the glyph follows its state. */
+.profile-edit[aria-expanded="false"] [data-icon="check"],
+.profile-edit[aria-expanded="true"] [data-icon="pencilSimple"] {
+  display: none;
+}
+
+/* The button fills its row (button.css), so the row is the width of the settings controls. */
+.profile-login {
+  max-inline-size: var(--settings-control-width);
+  margin-block-end: var(--space-6);
+}
+
+[data-avatar-panel][hidden] {
+  display: none;
 }
 
 .profile-face:not([data-ready]) {
