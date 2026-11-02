@@ -14,7 +14,17 @@
 }
 
 @supports (interpolate-size: allow-keywords) and (transition-behavior: allow-discrete) {
-  .row-exit {
+  /* The motion belongs to the exit state alone: a row that a filter or a tab hides (the hidden
+     attribute) must go at once, or `display` would wait out the transition and a tab would show the
+     old rows for 300 ms. Undo, which leaves this state, is instant for the same reason. overflow is
+     not animated: the row clips from the first frame, so its words do not spill as it closes. */
+  .row-exit:is([data-removing], [data-gone]) {
+    overflow: clip;
+    block-size: 0;
+    min-block-size: 0;
+    padding-block: 0;
+    opacity: 0;
+    pointer-events: none;
     transition:
       opacity var(--duration-exit) var(--ease-out),
       block-size var(--duration-exit) var(--ease-out) var(--duration-exit),
@@ -23,21 +33,10 @@
       display calc(var(--duration-exit) * 2) allow-discrete;
   }
 
-  /* overflow is not animated: the row clips from the first frame, so its words do not spill as it
-     closes. */
-  .row-exit:is([data-removing], [data-gone]) {
-    overflow: clip;
-    block-size: 0;
-    min-block-size: 0;
-    padding-block: 0;
-    opacity: 0;
-    pointer-events: none;
-  }
-
   /* Reduced motion keeps the fade and drops the close: the row holds its place while it fades, then
      the gap goes in one step (a zero-length change that waits out the fade). */
   @media (prefers-reduced-motion: reduce) {
-    .row-exit {
+    .row-exit:is([data-removing], [data-gone]) {
       transition:
         opacity var(--duration-exit) var(--ease-out),
         block-size 0s var(--duration-exit),
