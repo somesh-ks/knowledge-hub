@@ -114,7 +114,13 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
     if (kind === "regenerate") {
       // The ticked chips are this regeneration's topics and nothing else: the saved schedule,
       // weights and Create defaults are not touched. They are sent only when they differ from the
-      // topics the original was made with. Comments are optional.
+      // topics the original was made with. The comment says why, so it is required (D340).
+      if (!feedback?.value.trim()) {
+        feedback?.setAttribute("aria-invalid", "true");
+        say(copy("note"));
+        feedback?.focus();
+        return;
+      }
       // A chip of a topic removed since the build is disabled (savedView.ts) and never sent.
       const chips = [
         ...dialog.querySelectorAll<HTMLInputElement>('input[name="topic"]:not(:disabled)'),
@@ -133,7 +139,7 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       body = {
         action: "regenerate",
         id,
-        ...(text ? { feedback: text } : {}),
+        feedback: text,
         ...(changed ? (briefing ? { topics } : { topic_ids: topics }) : {}),
       };
     } else {

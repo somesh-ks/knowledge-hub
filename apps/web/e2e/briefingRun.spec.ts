@@ -101,6 +101,16 @@ test.describe("a Regenerate, followed in the podcast queue", () => {
 
   // Owner, 2026-11-02: the Android keyboard came up the moment the sheet opened. A pick in the More
   // menu opens the sheet from a script, which says nothing of a touch, so the note took the focus.
+  // Owner, 2026-11-02 (D340): the comment says why, so a run does not start without one.
+  test("Regenerate without a comment is refused, says so and sends nothing", async ({ page }) => {
+    const bodies = await mock(page, []);
+    await openRegenerate(page);
+    await dialog(page).getByRole("button", { name: "Regenerate" }).click();
+    await expect(dialog(page).getByRole("alert")).toHaveText("Say what to change.");
+    await expect(dialog(page).getByRole("textbox")).toBeFocused();
+    expect(bodies).toHaveLength(0);
+  });
+
   test("on a phone the sheet opens without the keyboard: the note is not focused", async ({
     page,
   }) => {
@@ -129,6 +139,7 @@ test.describe("a Regenerate, followed in the podcast queue", () => {
       },
     ]);
     await openRegenerate(page);
+    await dialog(page).getByRole("textbox").fill("shorter");
     await dialog(page).getByRole("button", { name: "Regenerate" }).click();
 
     await expect(text(page)).toHaveText("The podcast couldn't be written. Nothing was changed.", {
@@ -206,11 +217,13 @@ test.describe("a Regenerate, followed in the podcast queue", () => {
       },
     ]);
     await openRegenerate(page);
+    await dialog(page).getByRole("textbox").fill("shorter");
     await dialog(page).getByRole("button", { name: "Regenerate" }).click();
     await expect(dialog(page)).toBeHidden();
     await expect(queueDock(page)).toBeVisible();
 
     await openRegenerate(page);
+    await dialog(page).getByRole("textbox").fill("shorter");
     await dialog(page).getByRole("button", { name: "Regenerate" }).click();
     await expect(dialog(page).getByRole("alert")).toContainText("still being made");
     expect(bodies).toHaveLength(1);

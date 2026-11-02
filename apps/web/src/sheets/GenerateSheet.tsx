@@ -59,7 +59,7 @@ const BUSY = "A podcast or an episode is still being made. You can start another
 
 /**
  * Regenerate a briefing: its topics (this run only, ticked from the original), the length in
- * minutes (starting on the one it was made at) and optional comments for the writer. Pressing
+ * minutes (starting on the one it was made at) and the comment that says why (required, D340). Pressing
  * Regenerate starts the run and closes the sheet; the run is followed by the podcast queue
  * (scripts/queue.ts), above the navigation on a phone and at the foot of the side column from 64rem,
  * so it goes on across pages.
@@ -69,6 +69,7 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
   const [page, setPage] = useState<PageTopics | null>(null);
   const [ticked, setTicked] = useState<ReadonlySet<string>>(new Set());
   const [topicError, setTopicError] = useState(false);
+  const [noteError, setNoteError] = useState(false);
   const [length, setLength] = useState(String(DEFAULT_REGEN_LENGTH));
   const [busy, setBusy] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -115,6 +116,12 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
   async function onSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (busy) return;
+    // The comment is how the writer learns why this is being redone (D340): no comment, no run.
+    if (!feedbackRef.current?.value.trim()) {
+      setNoteError(true);
+      feedbackRef.current?.focus();
+      return;
+    }
     // Topics go only when they differ from the original's, and never touch the saved schedule.
     let topics: string[] | undefined;
     if (page) {
@@ -192,17 +199,29 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
     >
       <form className="sheet-form" onSubmit={(event) => void onSubmit(event)} noValidate>
         <Field.Root disabled={busy} className="sheet-field">
-          <Field.Label className="sheet-field-label">Comments (optional)</Field.Label>
+          <Field.Label className="sheet-field-label">Comments</Field.Label>
           <textarea
             ref={feedbackRef}
             className={fieldClass()}
             name="feedback"
             rows={4}
             maxLength={FEEDBACK_MAX}
-            placeholder="For example: shorter summaries, more on design systems."
+            placeholder="What should change?"
+            required
+            aria-invalid={noteError || undefined}
+            aria-describedby={noteError ? "regen-note-error" : undefined}
             disabled={busy}
-            onChange={(event) => onNote(event.currentTarget.value)}
+            onChange={(event) => {
+              setNoteError(false);
+              onNote(event.currentTarget.value);
+            }}
           />
+          {noteError ? (
+            <p className="sheet-field-error" id="regen-note-error" role="alert">
+              <Icon name="alert" />
+              <span>Say what to change.</span>
+            </p>
+          ) : null}
         </Field.Root>
         {page && shown.topics ? (
           <fieldset className="sheet-field" disabled={busy} aria-labelledby="regen-topics-label">

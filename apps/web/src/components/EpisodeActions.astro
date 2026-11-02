@@ -34,6 +34,7 @@ const MAX_FEEDBACK_CHARS = 500;
 // Every sentence the script can show is here, in the markup, not in the script.
 const COPY = {
   topics: "Pick at least one category.",
+  note: "Say what to change.",
   left: "characters left",
   "400": "The server turned that request down. Reload the page and try again.",
   regeneration_limit: "This podcast has been regenerated 3 times, the most it takes.",
@@ -67,7 +68,7 @@ const COPY = {
               <section class="create-group">
                 {/* A form label, not a second title under the panel's own. */}
                 <label class="sheet-field-label regen-label" for="regen-feedback">
-                  Comments (optional)
+                  Comments
                 </label>
                 <Field
                   multiline
@@ -77,6 +78,8 @@ const COPY = {
                   rows="6"
                   maxlength={MAX_FEEDBACK_CHARS}
                   data-max={MAX_FEEDBACK_CHARS}
+                  placeholder="What should change?"
+                  required
                   aria-describedby="regen-count"
                 />
                 <p class="create-hint regen-count" id="regen-count" data-count aria-live="polite" hidden />
