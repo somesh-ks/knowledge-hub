@@ -76,6 +76,11 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
     ".menu-tiles[data-fold] > .menu-item",
     "the Library card's quick actions are the same tiles on a phone: glyph to word 4px",
   ],
+  [".structure-row", "the dots' and pencil's ink, 28px in from the card's corner, not 24"],
+  [
+    ".structure-profile .profile-select",
+    "the chevron in the rows column: its ink 28px in, as the dots and pencil",
+  ],
   [".story", "an optical nudge: the row's bottom half-gap less the chips' hit-area overhang"],
   [".create-fab-label", "the button's own inner gap at the label's end"],
   [".sheet-head", "the header's 44px buttons, offset to the edge as a hit area"],
@@ -843,7 +848,7 @@ describe("house rules", () => {
  * system component"). A page rule that overrides a Button is debt: moving it into the component
  * deletes a line here, and this list only shrinks. Naming the selector, not counting them, means a
  * rule swapped for another one on the same page fails too. It reads a component's own classes only:
- * a class a page passes to a Button and then restyles is a known gap,
+ * a class a page passes to a Button (`class="structure-reorder"`) and then restyles is a known gap,
  * not yet caught. Without this a new override passes every other test and the component quietly
  * forks, page by page.
  */
@@ -964,8 +969,12 @@ const PAGE_OVERRIDES: string[] = [
   "topics.css: .menu-list.emoji-picker",
   "topics.css: .menu-list.emoji-picker:popover-open",
   "topics.css: .menu-list.menu-sheet.emoji-picker, .menu-list.menu-sheet.emoji-picker:popover-open",
+  "topics.css: .menu-list.structure-menu-list",
   "topics.css: .slider-input[data-stops]",
   "topics.css: .source-sheet-foot > .button-filled",
+  "topics.css: .structure-add > .button-tonal",
+  "topics.css: .structure-grip .icon-glyph",
+  "topics.css: .structure-prompt-foot > .button-text",
   "topics.css: .topic-weight > .slider-input",
   "topics.css: .topic-weight > .slider-input",
   "topics.css: .topics .row-action .icon-glyph",
@@ -978,6 +987,7 @@ const PAGE_OVERRIDES: string[] = [
   'topics.css: .topics-panel select.field-input:where(:enabled):active, .topics-panel .multiselect-trigger:is(:active, [aria-expanded="true"])',
   'topics.css: .topics-panel select.field-input:where(:enabled):hover, .topics-panel .multiselect-trigger:hover, .topics-panel :is(input, textarea).field-input:not( :focus-visible, [readonly], [aria-invalid]:not([aria-invalid="false"]) ):where(:enabled):hover',
   "topics.css: dialog.sheet-side.topics-panel",
+  "topics.css: textarea.field-input.structure-prompt",
 ];
 
 describe("design-system components in page stylesheets", () => {
