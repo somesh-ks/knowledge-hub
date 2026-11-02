@@ -649,7 +649,7 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Amends: D291.
 - Revisit if: a card gets a fourth quick action (the row would need a second line).
 
-## D323: list rows run edge to edge in the Menu, the select list and the picker
+## D325: list rows run edge to edge in the Menu, the select list and the picker
 
 - Date: 2026-11-02 (the owner: "on the menu row or the drop down list, I don't like the padding around the list. It should be full bleed, and the padding for the entire list can be just in the top and the bottom").
 - Decision: a list that opens from a control (the ⋮ Menu popover and phone sheet, the select's drawn list, the searchable picker) pads above and below only. Its rows span the full width, are square and touch (no gap), and take a 24px inline padding so a row's words keep their column. The list's own corner clips the first and last row. The phone sheet's header rule runs the full width. Quick-action tiles and a picker's search field are controls, not rows, and keep their 8px inset. Hover and press fills reach both edges.

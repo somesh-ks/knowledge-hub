@@ -141,7 +141,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D272 | No persisted floating button | active |
 | D273 | Haptic tokens | amends D52 |
 | D274 | Icon weight token | amends D268 |
-| D275 | Concentric picker | amends D167; amended by D323 |
+| D275 | Concentric picker | amends D167; amended by D325 |
 | D276 | Voice list | amends D101 |
 | D277 | Queue keeps played items; a tap plays in place | amends D126 |
 | D278 | Softer light covers | amends D121 |
@@ -156,7 +156,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D288 | Library list: month labels, two columns | active |
 | D289 | Every press is felt | amends D273 |
 | D290 | Haptics are subtle and follow the sounds | amends D273, D289 |
-| D291 | Phone Menu sheet: media-style head, visible Close, fill focus | amends D144, D275; amended by D322, D323 |
+| D291 | Phone Menu sheet: media-style head, visible Close, fill focus | amends D144, D275; amended by D322, D325 |
 | D292 | Review by tier; a review is asked for, never fired by a push | amends D143, D192, D254 |
 | D293 | On-demand covers are served at /covers | supersedes D263; amends D256, D258 |
 | D294 | Scheduled writer uses Message Batches | amends D209 (step 3 built, step 2 open); D135 ended |
@@ -179,6 +179,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D319 | Colours are generated; a style is a recipe | amends D268, D310, D317 |
 | D321 | The ripple and a cover's press stay alpha layers, over artwork | amends D317 |
 | D322 | A Library card's phone sheet opens with quick-action tiles | amends D291 |
-| D323 | List rows run edge to edge in the Menu, the select list and the picker | amends D275, D291 |
+| D325 | List rows run edge to edge in the Menu, the select list and the picker | amends D275, D291 |
 
 ---
