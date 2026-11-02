@@ -5,6 +5,7 @@ One note per session, newest first. Read a note only to learn why something was 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
 | 2026-11-01 | [Content out of git](2026-11-01-content-out-of-git.md) | Digests and episodes load from the content store before a job and save after its commit; the snapshot moves to Neon (D300, D311) |
+| 2026-11-02 | [Catch-up speed](2026-11-02-catch-up-speed.md) | The edge purge waits 55 s from the run's last save, not from the notifier job's start (D318) |
 | 2026-11-02 | [Ghost states](2026-11-02-ghost-states.md) | Controls with no fill show hover and press as the surface behind them; the ripple and a cover's press stay alpha (D317 step 2, D321) |
 | 2026-11-02 | [Player ⋮ menu](2026-11-02-player-menu.md) | A ⋮ menu replaces the speed button: tiles, a speed screen with stops, Save and Settings > Saved (D309) |
 | 2026-11-01 | [Performance audit](2026-11-01-performance-audit.md) | No skeleton; preload links back (D316), pages kept at the Stockholm edge until content changes (D318), shorter cold start |
