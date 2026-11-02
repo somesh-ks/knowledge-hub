@@ -303,6 +303,12 @@
     /* The rows' ghost states step the surface they lie on: the sheet's, not the popover's. */
     --ghost-hover: var(--sheet-bg-hover);
     --ghost-pressed: var(--sheet-bg-pressed);
+    /* A long list (a select's options) stops at 70% of the screen: the head stays, the rows scroll.
+       The column lives here, not only on :popover-open: while the sheet slides out, its display stays
+       flex for the exit but the open-only rules are gone, and a missing column laid the head and the
+       rows side by side for the length of the slide (owner, 2026-11-02, "so broken"). */
+    flex-direction: column;
+    max-block-size: 70dvh;
     opacity: 1;
     transform: translateY(105%);
     transform-origin: bottom;
@@ -312,11 +318,8 @@
       display var(--duration-sheet-out) allow-discrete;
   }
 
-  /* A long list (a select's options) stops at 70% of the screen: the head stays, the rows scroll. */
   .menu-list.menu-sheet:popover-open {
     display: flex;
-    flex-direction: column;
-    max-block-size: 70dvh;
     transform: none;
     transition-duration: var(--duration-sheet-in);
   }

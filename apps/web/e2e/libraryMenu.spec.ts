@@ -378,6 +378,40 @@ test("a phone's menu sheet shows a Close that closes it, a short pull springs ba
   await expect(dots).toBeFocused();
 });
 
+test("a phone's menu sheet holds its head and rows still while it slides out", async ({ page }) => {
+  // Owner, 2026-11-02, "the bottom sheet is so broken": the open-only column rule dropped at the first
+  // frame of the exit and the head and rows lay side by side, shifted right.
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  await openMenu(page, AUDIO_ID);
+  const sheet = row(page, AUDIO_ID).locator(".menu-list");
+  const { rest, leaving } = await sheet.evaluate(async (el) => {
+    await Promise.allSettled(el.getAnimations().map((animation) => animation.finished));
+    const marks = () => {
+      const top = el.getBoundingClientRect().y;
+      const at = (selector: string) => {
+        const box = el.querySelector(selector)?.getBoundingClientRect();
+        return box ? [Math.round(box.x), Math.round(box.y - top)] : [];
+      };
+      return { head: at(".sheet-head"), row: at("[role=menuitem]") };
+    };
+    // A close inside the hold's lift grace reopens the sheet (cardHold.ts): wait it out.
+    while (performance.now() < Number(el.getAttribute("data-hold-until") ?? 0)) {
+      await new Promise((done) => requestAnimationFrame(done));
+    }
+    const before = marks();
+    (el as HTMLElement).hidePopover();
+    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+    for (const animation of document.getAnimations()) {
+      if (animation.timeline !== document.timeline) continue;
+      animation.pause();
+      animation.currentTime = 0;
+    }
+    return { rest: before, leaving: marks() };
+  });
+  expect(leaving).toEqual(rest);
+});
+
 test("a long press on a card opens its menu and leaves the card unopened, and is felt once", async ({
   page,
 }) => {
