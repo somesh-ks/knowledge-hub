@@ -173,14 +173,14 @@
 @starting-style {
   .multiselect-list:not([hidden]) {
     opacity: 0;
-    scale: 0.97;
+    scale: var(--scale-enter);
   }
 }
 
 .multiselect-list[hidden] {
   display: none;
   opacity: 0;
-  scale: 0.97;
+  scale: var(--scale-enter);
 }
 
 /* Reduced motion: the list fades where it stands and the chevron turns at once. The fade keeps its

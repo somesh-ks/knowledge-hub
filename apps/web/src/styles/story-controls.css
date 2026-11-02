@@ -34,7 +34,7 @@
 .story-vote .icon-glyph:last-child,
 .story-vote[aria-pressed="true"] .icon-glyph:first-child {
   opacity: 0;
-  transform: scale(0.95);
+  transform: scale(var(--scale-enter));
   filter: blur(var(--blur-enter));
 }
 
@@ -51,7 +51,7 @@
 
 @keyframes vote-pop {
   from {
-    transform: scale(0.95);
+    transform: scale(var(--scale-enter));
   }
 }
 
