@@ -146,8 +146,13 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
       closeLabel="Close"
       keyboardAware
       // A keyboard or a mouse lands in the note. A touch lands on the sheet, so the keyboard does
-      // not cover half of it before the listener has read it.
-      initialFocus={(openType) => (openType === "touch" ? true : (feedbackRef.current ?? true))}
+      // not cover half of it before the listener has read it. A pick in the More menu opens this
+      // sheet from a script, with no opener to say it was a touch: the device's pointer says it.
+      initialFocus={(openType) =>
+        openType === "touch" || matchMedia("(pointer: coarse)").matches
+          ? true
+          : (feedbackRef.current ?? true)
+      }
     >
       <form className="sheet-form" onSubmit={(event) => void onSubmit(event)} noValidate>
         {page ? (

@@ -41,6 +41,11 @@ const SCRIPTED_CHOICE = "[data-multiselect]";
 /** A script's click right after a key (Enter in a field pressing its button) is that key's action. */
 const KEY_CLICK_MS = 150;
 
+/** The press that last picked an item in a menu, so the menu closing for it is not sounded too. */
+let menuPickAt = Number.NEGATIVE_INFINITY;
+/** A popover's close follows its pick's click within the same turn of the page. */
+const MENU_CLOSE_MS = 400;
+
 /** A cue too soon after another is a double: a tap and its dialog, a toggle and its popover. */
 const ECHO_MS = 120;
 
@@ -173,6 +178,17 @@ if (typeof document !== "undefined") {
     attributeOldValue: true,
     subtree: true,
   });
+  // A pick in a menu closes it, and the pick has its own cue (or the sheet it opens does): the close
+  // after it is the same action, not a second sound (owner, 2026-11-02: a triple tap on a pick).
+  document.addEventListener(
+    "click",
+    (event) => {
+      if ((event.target as Element | null)?.closest?.("[popover] [role=menuitem]")) {
+        menuPickAt = event.timeStamp;
+      }
+    },
+    { capture: true, passive: true },
+  );
   // A popover closes by Escape or a press outside too. A manual one (the toast) is not a menu.
   document.addEventListener(
     "toggle",
@@ -181,6 +197,7 @@ if (typeof document !== "undefined") {
       if (!(popover instanceof HTMLElement) || !popover.matches("[popover]:not([popover=manual])"))
         return;
       const opening = (event as Event & { newState?: string }).newState === "open";
+      if (!opening && event.timeStamp - menuPickAt < MENU_CLOSE_MS) return;
       if (isHoldEcho(popover, opening)) return;
       sayState(opening);
     },

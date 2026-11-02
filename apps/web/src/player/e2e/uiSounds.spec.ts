@@ -119,6 +119,23 @@ test.describe("interface cues by kind of action", () => {
     expect((await heard(page))[1]).toBe("scrubDetent");
   });
 
+  // Owner, 2026-11-02: picking Regenerate in the podcast page's More menu was "a triple tap": the menu
+  // opening, its close, and the sheet. The pick opens the sheet, which sounds on its own; the menu
+  // closing for the pick is the same action, not a sound.
+  test("a pick that opens a sheet sounds as the sheet opening, and the menu's close is silent", async ({
+    player,
+    page,
+  }) => {
+    await player.open("/");
+    await prime(page);
+    await page.getByRole("button", { name: "More actions" }).click();
+    await expect.poll(() => heard(page)).toEqual(["sheetOpen"]);
+    await page.getByRole("menuitem", { name: "Regenerate" }).click();
+    await expect(page.getByRole("dialog", { name: "Regenerate" })).toBeVisible();
+    await page.waitForTimeout(700);
+    expect(await heard(page)).toEqual(["sheetOpen"]);
+  });
+
   test("the Settings switch plays its own cue, not doubled; once off nothing sounds", async ({
     player,
     page,

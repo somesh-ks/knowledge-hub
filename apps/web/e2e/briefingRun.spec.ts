@@ -88,6 +88,15 @@ test.describe("a Regenerate, followed in the podcast queue", () => {
     await expect(page).toHaveURL(new RegExp(`/d/${ID}$`));
   });
 
+  // Owner, 2026-11-02: the Android keyboard came up the moment the sheet opened. A pick in the More
+  // menu opens the sheet from a script, which says nothing of a touch, so the note took the focus.
+  test("on a phone the sheet opens without the keyboard: the note is not focused", async ({
+    page,
+  }) => {
+    await openRegenerate(page);
+    await expect(dialog(page).getByRole("textbox")).not.toBeFocused();
+  });
+
   test("a failure names the step, keeps nothing changed, and Try again sends the same request", async ({
     page,
   }) => {
