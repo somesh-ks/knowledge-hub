@@ -459,3 +459,28 @@ test.describe("a podcast opened from a tab keeps that tab lit", () => {
     await expect(page.locator("a[data-back]")).toHaveCount(0);
   });
 });
+
+// Owner, 2026-11-02: tapping a Library card waited on the server, because nothing had asked for the
+// card's page before the tap. The cards in view are fetched while the page is idle, a few at most.
+test.describe("a Library card's page is asked for before the tap", () => {
+  test("the cards in view are fetched ahead, each once", async ({ page }) => {
+    await openWarm(page);
+    await page.evaluate(() => {
+      const asked: string[] = [];
+      (window as unknown as { __asked: string[] }).__asked = asked;
+      const original = window.fetch;
+      window.fetch = (input, init) => {
+        const path = new URL(input instanceof Request ? input.url : String(input), location.href)
+          .pathname;
+        if (/^\/(e|d)\//.test(path)) asked.push(path);
+        return original.call(window, input, init);
+      };
+    });
+    await item(page, "/library").click();
+    await expect(heading(page)).toHaveText("Library");
+    const asked = () => page.evaluate(() => (window as unknown as { __asked: string[] }).__asked);
+    await expect.poll(async () => (await asked()).length).toBeGreaterThan(0);
+    const paths = await asked();
+    expect(new Set(paths).size).toBe(paths.length);
+  });
+});
