@@ -150,4 +150,3 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-11-02: a hover or press rule on a disableable class painted on disabled controls (native or aria-disabled). Write the exclusion in the component rule (`:where(:not(:disabled, [aria-disabled="true"]))`);
 - 2026-11-02: an exit on `--ease-drawer` looks done in 120 ms; use `--ease-in-out` when a sheet must stay while something arrives.
 - 2026-11-02: `name: "5 min"` matches "15 min"; use `exact: true`.
-- 2026-11-02: `content-visibility` gallery cards clamp a restored scroll: draw them two frames first (`libraryView.ts`).
