@@ -64,7 +64,25 @@ const COPY = {
               <p class="create-hint regen-lede">
                 This replaces the episode and keeps its length and format.
               </p>
-              <section class="create-group" aria-labelledby="regen-topics-label">
+              <section class="create-group">
+                {/* A form label, not a second title under the panel's own. */}
+                <label class="sheet-field-label regen-label" for="regen-feedback">
+                  Comments (optional)
+                </label>
+                <Field
+                  multiline
+                  class="regen-feedback"
+                  id="regen-feedback"
+                  name="feedback"
+                  rows="6"
+                  maxlength={MAX_FEEDBACK_CHARS}
+                  data-max={MAX_FEEDBACK_CHARS}
+                  aria-describedby="regen-count"
+                />
+                <p class="create-hint regen-count" id="regen-count" data-count aria-live="polite" hidden />
+              </section>
+              {/* Opens on the comment alone; shown as the typed words reach for a category (D337, scripts/episodeActions.ts). */}
+              <section class="create-group" aria-labelledby="regen-topics-label" data-hint-topics hidden>
                 {/* A field label, as Comments is: not a second title under the panel's own. */}
                 <div class="sheet-field-label regen-label" id="regen-topics-label">Categories</div>
                 <fieldset class="filter-chips" aria-labelledby="regen-topics-label" data-built-topics={manageTopics.map((topic) => topic.id).join(" ")}>
@@ -82,23 +100,6 @@ const COPY = {
                     </label>
                   ))}
                 </fieldset>
-              </section>
-              <section class="create-group">
-                {/* A form label, not a second title under the panel's own. */}
-                <label class="sheet-field-label regen-label" for="regen-feedback">
-                  Comments (optional)
-                </label>
-                <Field
-                  multiline
-                  class="regen-feedback"
-                  id="regen-feedback"
-                  name="feedback"
-                  rows="6"
-                  maxlength={MAX_FEEDBACK_CHARS}
-                  data-max={MAX_FEEDBACK_CHARS}
-                  aria-describedby="regen-count"
-                />
-                <p class="create-hint regen-count" id="regen-count" data-count aria-live="polite" hidden />
               </section>
               <div class="create-submit">
                 <Button variant="filled" type="submit" data-submit>

@@ -166,14 +166,21 @@ test.describe("a Regenerate, followed in the podcast queue", () => {
       { run_id: 92, state: "running", step: "reading", stage: 1, stages: 7, label: "Gathering" },
     ]);
     await openRegenerate(page);
-    // The sheet starts on the length the podcast aired at (4 min is nearest to 5), and offers no
-    // "Usual": every run names its length.
+    // The sheet opens on the comment alone; Length appears when the words reach for it (D337),
+    // starts on the length the podcast aired at (4 min is nearest to 5) and offers no "Usual":
+    // every run names its length.
+    await expect(dialog(page).getByRole("radio")).toHaveCount(0);
+    await dialog(page).getByRole("textbox").fill("make it a bit longer");
     await expect(dialog(page).getByRole("radio", { name: "5 min", exact: true })).toBeChecked();
     await expect(dialog(page).getByRole("radio", { name: "Usual" })).toHaveCount(0);
     await dialog(page).getByRole("radio", { name: "10 min" }).check({ force: true });
     await dialog(page).getByRole("button", { name: "Regenerate" }).click();
     await expect.poll(() => bodies.length).toBe(1);
-    expect(bodies[0]).toEqual({ length_minutes: 10, replace: ID });
+    expect(bodies[0]).toEqual({
+      feedback: "make it a bit longer",
+      length_minutes: 10,
+      replace: ID,
+    });
 
     await expect(text(page)).toHaveText("The podcast couldn't be written. Nothing was changed.", {
       timeout: 15_000,

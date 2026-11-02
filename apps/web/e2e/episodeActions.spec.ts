@@ -173,6 +173,10 @@ test.describe("regenerate and delete an episode", () => {
     const bodies = await mock(page, [{ run_id: 77, state: "queued", step: null }]);
     await open(page);
     await choose(page, "Regenerate");
+    // The panel opens on the comment alone; the categories appear when the words reach for one (D337).
+    await expect(panel(page).locator("label.filter-chip").first()).toBeHidden();
+    await panel(page).getByRole("textbox").fill("only a few topics");
+    await panel(page).getByRole("textbox").fill("");
     const on = panel(page).locator("label.filter-chip:has(input:checked)");
     const off = panel(page).locator("label.filter-chip:has(input:not(:checked))");
     await expect(on.first()).toBeVisible();

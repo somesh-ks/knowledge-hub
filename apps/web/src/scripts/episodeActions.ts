@@ -80,6 +80,19 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
 
   dialog.addEventListener("change", () => say());
 
+  // The categories wait until the comment reaches for one (D337); once shown they stay.
+  const topicsGroup = dialog.querySelector<HTMLElement>("[data-hint-topics]");
+  if (feedback && topicsGroup) {
+    feedback.addEventListener("input", () => {
+      if (!topicsGroup.hidden) return;
+      const labels = [...topicsGroup.querySelectorAll(".filter-chip span")].map(
+        (label) => label.textContent ?? "",
+      );
+      void import("../lib/regenHints").then(({ hintsFor }) => {
+        if (hintsFor(feedback.value, labels).topics) topicsGroup.hidden = false;
+      });
+    });
+  }
   if (feedback && count) {
     const max = Number(feedback.dataset.max);
     feedback.addEventListener("input", () => {
@@ -171,6 +184,7 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
     startRun(reply.run_id, { kind, episode: id }, { body });
     form.reset();
     if (count) count.hidden = true;
+    if (topicsGroup) topicsGroup.hidden = true;
     dialog.close();
   });
 }
