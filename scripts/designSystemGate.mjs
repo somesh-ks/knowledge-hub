@@ -33,6 +33,7 @@ export const SYSTEM_PATHS = [
   "apps/design/",
   "scripts/system/",
   "scripts/colorRamp.ts",
+  "scripts/styleRecipe",
   ".github/CODEOWNERS",
   ".claude/skills/feature/references/controls-guide.md",
 ];
