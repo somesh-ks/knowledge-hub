@@ -5,7 +5,7 @@ Visual language, covers and the header light, empty states, interface sounds, st
 ## Requirements
 
 ### Visual language
-- The reader follows Google Podcasts and Material 3 (D31, D72). Controls are tonal: container fill, accent container for chosen/current item, 8% and 12% state layers, pill buttons (Catch up: `.btn-action-tonal`; `design-system/` holds Button, Switch, Slider and Field, D237, D243), chips, selects, text fields (multi-line 24px, D186; label above, D229), 12px rows, no outline except on text fields.
+- The reader follows Google Podcasts and Material 3 (D31, D72). Controls are tonal: container fill, accent container for chosen/current item, OKLCH state steps (D317; no-fill controls step `--ghost-hover/-pressed`; ripple and cover press stay alpha, D321), pill buttons (Catch up: `.btn-action-tonal`; `design-system/` holds Button, Switch, Slider and Field, D237, D243), chips, selects, text fields (multi-line 24px, D186; label above, D229), 12px rows, no outline except on text fields.
 - Story and summary text is 16px, headlines 18 to 20px, meta 14px, section headings (Settings H2s) 18 to 20px regular, never bold (D73, D125).
 - A press never scales words: label controls and worded buttons show a press on their fill. Settings rows and menu options press as a tile off hairlines (`.row-action`), round on the page, concentric in a card (one-row card radius 24px, a third of height). Segmented controls have a sliding thumb that moves immediately with keys.
 - Sideways scrollers (section tabs, Earlier shelf, Costs table) fade hidden edges with `.scroll-fade-inline`; concentric radii for cover frame and search clear; layer stacking: `--z-beneath`, `--z-base`, `--z-raised`, `--z-overlay`.
@@ -34,7 +34,6 @@ Visual language, covers and the header light, empty states, interface sounds, st
 
 ### Style rules
 - Spacing is 8pt: 8, 16, 24, 32, 48, 64, 96px, with 4px only where `ALLOWED_4PX` names it (D131). `npm run design-check` enforces grid, regular headings, and token-only styles; `e2e/designSystem.spec.ts` verifies rendered grid across pages. Tests forbid raw lengths, undefined custom properties, and non-range media queries.
-- Design fixes with commented rationale are extended, never rewritten.
 
 ### Design system enforcement
 Three layers catch regressions (owner, 2026-10-21):
