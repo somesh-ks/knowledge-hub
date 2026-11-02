@@ -2,7 +2,9 @@ import { defineMiddleware } from "astro:middleware";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  copiesOfShared,
   readFromGraph,
+  SHARED_STYLES_KEY,
   WAKE_STYLES_KEY,
   withModulePreloads,
   withoutStylesheets,
@@ -39,10 +41,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const html = await response.text();
   let hinted = html;
   try {
-    hinted = withoutStylesheets(
-      withModulePreloads(html, readFromGraph(known)),
-      known[WAKE_STYLES_KEY] ?? [],
-    );
+    // The graph is recorded before the build writes player.*.css, so its copy is found by name.
+    const copies = [
+      ...(known[WAKE_STYLES_KEY] ?? []),
+      ...copiesOfShared(html, known[SHARED_STYLES_KEY] ?? []),
+    ];
+    hinted = withoutStylesheets(withModulePreloads(html, readFromGraph(known)), copies);
   } catch {
     // A script the graph does not know (a newer deploy's page, a public file): the page goes as built.
   }
