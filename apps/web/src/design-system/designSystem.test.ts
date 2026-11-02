@@ -39,12 +39,12 @@ const wholeClass = (name: string) => new RegExp(`(?<![\\w-])${name}(?![\\w-])`);
  */
 const quoted = (text: string) =>
   [
+    // One pass, left to right: a string is kept whole (so "image/*" is not a comment), a comment is dropped.
     ...text
-      .replace(/\/\*[\s\S]*?\*\//g, "")
-      .replace(/^\s*\/\/.*$/gm, "")
       .replace(/\b(?:from|import)\s*\(?\s*(["'])[^"'\n]*\1/g, "")
-      .matchAll(/(["'`])((?:\\.|(?!\1)[^\\])*)\1/g),
+      .matchAll(/(["'`])((?:\\.|(?!\1)[^\\])*)\1|\/\*[\s\S]*?\*\/|\/\/[^\n]*/g),
   ]
+    .filter((m) => m[1] !== undefined)
     .map((m) => m[2])
     .join("\n");
 
