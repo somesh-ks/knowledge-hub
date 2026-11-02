@@ -317,7 +317,7 @@ export async function readFromContentRepo(label: string): Promise<Response | nul
     console.error(
       `[${label}] no content to show: ${error instanceof Error ? error.message : "unknown"}`,
     );
-    return new Response("This page could not be loaded right now. Try again in a minute.", {
+    return new Response("Couldn't load this page right now. Try again in a minute.", {
       status: 503,
       headers: { "Content-Type": "text/plain; charset=utf-8", "Retry-After": "60" },
     });

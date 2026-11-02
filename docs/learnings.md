@@ -29,7 +29,6 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-24: on Node 24 (V8 13.6), a function whose hot loop gets Maglev OSR code can return object literals sharing number fields (the sound volume test; nodejs/node#66457; not on Node 22). Keep hot loops out of functions returning object literals.
 - 2026-10-14: Vitest, like Chromium, remembers a failed dynamic import for the module's URL, so a retry test of a lazy import passes or fails depending on test order. Retry with a `?retry=` query (pageContentLoader) and test the retry in the browser, not in Vitest.
 - 2026-10-11: the pipeline tests' fake RSS fetcher ignored the window, so a test about posts outside it passed for the wrong reason. Check a fake honours what the test is about.
-- 2026-10-08: a test that misfiles a story into a retired section no longer fails validation, because published briefings must still validate; use a live section instead.
 
 ## Engine and workflows
 
@@ -63,11 +62,12 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-11: a missing briefing was GitHub, not the gate: the 07:13 entry ran 13:11 to 14:02 on 7 to 10 October. Before debugging a missed run, list `run.yml`'s schedule runs ("skipped" means no runner) and read the Gate log. Trigger now Vercel Cron (D61).
 - 2026-10-11: `singularity sources import` keeps an existing source's `enabled` and `options`, so a seed change reaches only new sources: write it into `config/sources.json` after (`--fresh` loses discovered feeds). Run `biome format` on it before linting.
 - 2026-10-11: a judge built with a fallback (Jev, then Nebius) shares the fallback's token budget with the writer, so work done for scores alone must use the primary judge alone: an outage would otherwise spend the briefing's budget on it.
-- 2026-10-08: Create, Generate and saving topics answered "not available right now" on production: the site's fine-grained GitHub token had no access to this repository, so GitHub answered 404. `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`; it should.
 - 2026-11-01: `content sync` mirrors a checkout and deletes what it lacks: safe only while git holds the content. Out of git, a job saves with `content push`, a diff against what it pulled.
 
 ## Site and service worker
 
+- 2026-11-02: offline showed a "You are offline" page with no strip, lost Saved and Settings, and never came back: the worker stood in for any unopened page, the stand-in's script does not run again when the router swaps it in, and its one reload fired on a premature `online` event. One connectivity state, recovery in the app script, pages kept ready (D330).
+- 2026-11-02: `caches.match` walks the caches by age, so the install copy answered Latest offline. The router moved the address to a `#` link's own `#` before Try again ran: listen in capture.
 - 2026-11-02: a press rule before a hover rule of the same weight loses while the mouse is down; a control with no `:active` rule shows no press (Library view toggle). Press after hover; shoot rest, hover, press.
 - 2026-11-02: an opaque press fill on a bar's `::after` covers its content, which the old alpha hid. Use `z-index: var(--z-beneath)`.
 - 2026-11-02: a step on a fill near white (accent tint, L 98) clamps, so hover equals press. Give it the smaller steps.
@@ -145,7 +145,6 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-14: squash-merged branches never pass `git branch -d`, and auto mode refuses `-D`. Match commit subjects against main's squash bodies, keep a bundle of the heads in `.git/`, and let the owner force delete.
 - 2026-10-12: cherry-pick a worker's non-merge commits (`git log --no-merges --reverse <lead>..<branch>`), then rerun `biome check`: formatting differences show on the combined tree.
 - 2026-10-21: workers hit the 90-call cap: one piece each, WIP commit after the first pass. A finished worker's worktree stays locked: `remove -f -f`.
-- 2026-10-06: the auto-mode classifier blocks credential creation, store deletion and unreviewed merges; the owner runs those.
 - 2026-11-02: a new `More for this podcast` button matched the queue specs' `/^More for /` and shifted every row index. Name a control so no role query catches it, or tighten the query in the same PR.
 - 2026-11-02: a hover or press rule on a disableable class painted on disabled controls (native or aria-disabled). Write the exclusion in the component rule (`:where(:not(:disabled, [aria-disabled="true"]))`);
 - 2026-11-02: an exit on `--ease-drawer` looks done in 120 ms; use `--ease-in-out` when a sheet must stay while something arrives.

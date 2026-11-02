@@ -5,6 +5,8 @@
  * that needs the network). The disabled state is aria-disabled, so they stay focusable and the
  * reason can be read; the shell's disabled guard swallows their clicks.
  */
+
+import { connectivity, isOnline } from "../lib/connectivity";
 import { warmWhenIdle } from "./idle";
 import { readRun } from "./runStatus";
 
@@ -30,7 +32,7 @@ function syncRoot(root: HTMLElement): void {
   } catch {
     // Storage can be blocked; nothing is then known to be running.
   }
-  const offline = !navigator.onLine;
+  const offline = !isOnline();
   for (const button of root.querySelectorAll("[data-episode-action]")) {
     if (busy || offline) {
       button.setAttribute("aria-disabled", "true");
@@ -56,8 +58,7 @@ export function installEpisodeActions(): void {
   });
   document.addEventListener("singularity:run", sync);
   document.addEventListener("astro:page-load", sync);
-  window.addEventListener("online", sync);
-  window.addEventListener("offline", sync);
+  connectivity().subscribe(sync);
   sync();
   warmWhenIdle(() => import("./episodeActions"));
 }

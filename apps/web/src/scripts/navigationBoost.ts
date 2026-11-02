@@ -10,6 +10,7 @@
  *   - a page that changed behind its saved copy is swapped in quietly, if it has not been touched.
  */
 
+import { isOnline } from "../lib/connectivity";
 import { whenIdle } from "./idle";
 import { ARRIVED_ATTRIBUTE } from "./navigation";
 
@@ -209,7 +210,7 @@ export function installNavigationBoost(): void {
   document.addEventListener(
     "pointerdown",
     (event) => {
-      if (event.pointerType === "mouse" || !navigator.onLine || savesData()) return;
+      if (event.pointerType === "mouse" || !isOnline() || savesData()) return;
       const target = event.target instanceof Element ? event.target : null;
       const link = target?.closest<HTMLAnchorElement>("a[data-astro-prefetch]");
       if (link && link.origin === location.origin && link.pathname !== location.pathname) {
@@ -257,7 +258,7 @@ export function installNavigationBoost(): void {
 
   let warmedAt = 0;
   const warm = (): void => {
-    if (!navigator.onLine || savesData() || !navigator.serviceWorker?.controller) return;
+    if (!isOnline() || savesData() || !navigator.serviceWorker?.controller) return;
     if (Date.now() - warmedAt < WARM_EVERY_MS) return;
     warmedAt = Date.now();
     for (const href of destinationsToWarm(document)) quietFetch(href, "low");

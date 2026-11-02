@@ -127,14 +127,12 @@ export async function mount(root: HTMLElement): Promise<void> {
     if (noTopics) noTopics.hidden = scopeBoxes.some((box) => box.checked);
   };
 
-  /** The switch: off, the rest of the page is disabled and dimmed, and the quiet line says so. */
+  /** The switch: off, the rest of the page is disabled and dimmed. */
   const body = root.querySelector<HTMLFieldSetElement>("[data-body]");
-  const offNote = root.querySelector<HTMLElement>("[data-off-note]");
   const power = root.querySelector<HTMLInputElement>('[data-f$=".enabled"]');
   const showPower = (): void => {
     if (!power) return;
     if (body) body.disabled = !power.checked;
-    if (offNote) offNote.hidden = power.checked;
   };
 
   /** Records what the controls now differ by. `save` is false while a typed id is still being typed. */

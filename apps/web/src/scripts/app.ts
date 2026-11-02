@@ -1,5 +1,6 @@
 import { installRipple } from "../design-system/ripple";
 import { counted, installAnalytics } from "../lib/analytics";
+import { connectivity, isOnline } from "../lib/connectivity";
 import { watchPlatformFaults } from "../lib/platformFaults";
 import { hasOutbox } from "../lib/savedKey";
 import { loadOtherBuildsInFull } from "./buildGuard";
@@ -8,10 +9,12 @@ import { installDeviceBanners } from "./deviceBanners";
 import { installDisabledGuard } from "./disabledGuard";
 import { captureInstallPrompt } from "./installPrompt";
 import { installIslandWake } from "./islandWake";
+import { installKeepReady } from "./keepReady";
 import { installNavigation } from "./navigation";
 import { installPersistedMotion } from "./persistedMotion";
 import { installQueueEntry } from "./queueEntry";
 import { installRootState } from "./rootState";
+import { installStandIn } from "./standIn";
 import { installThemeColor } from "./themeColor";
 import { trackTyping } from "./typing";
 import { installUiSound } from "./uiSound";
@@ -33,6 +36,8 @@ installRootState();
 installCreateEntry();
 installQueueEntry();
 installDeviceBanners();
+installStandIn();
+installKeepReady();
 installThemeColor();
 installUiSound();
 installAnalytics();
@@ -145,7 +150,7 @@ document.addEventListener("securitypolicyviolation", (event) => {
 // site; the flag stops a second one.
 addEventListener("vite:preloadError", () => {
   // Offline, a failed import is the network's doing and a reload would lose the page.
-  if (!navigator.onLine) return;
+  if (!isOnline()) return;
   try {
     if (sessionStorage.getItem("singularity:reloaded")) return;
     sessionStorage.setItem("singularity:reloaded", "1");
@@ -174,7 +179,7 @@ idle(() => {
 // comes back to the front, which is when a trip shows. Offline the import is left alone (Chromium
 // remembers a failed one, as navigationBoost's note says).
 const zone = (): void => {
-  if (navigator.onLine) void import("./zonePrompt").then((prompt) => prompt.checkZone());
+  if (isOnline()) void import("./zonePrompt").then((prompt) => prompt.checkZone());
 };
 idle(zone);
 // The first astro:page-load is the load just checked; every later one is a page replaced or entered.
@@ -183,18 +188,24 @@ document.addEventListener("astro:page-load", () => {
   if (firstPage) firstPage = false;
   else idle(zone);
 });
-addEventListener("online", zone);
+connectivity().subscribe((link) => {
+  if (link === "online") zone();
+});
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") zone();
 });
 // Settings edits kept on this device while the site could not be reached (CFG-04) go out as soon as it
 // can: on each page that loads online and when the connection returns. Nothing loads without a kept edit.
 const outbox = (): void => {
-  if (navigator.onLine && hasOutbox())
+  if (isOnline() && hasOutbox())
     void import("./managePageSave").then((save) => save.drainOutbox()).catch(() => {});
 };
 document.addEventListener("astro:page-load", outbox);
-addEventListener("online", outbox);
+// The confirmed return (lib/connectivity.ts), not the browser's first word: an event that comes before
+// the network is usable would send nothing and never come again.
+connectivity().subscribe((link) => {
+  if (link === "online") outbox();
+});
 // Field Web Vitals (D156), with the analytics opt-outs (the production host, no Do Not Track or
 // Global Privacy Control): a lazy module measures this page load and sends it once when the page is
 // first hidden. It loads at idle, or at the first visibility change if that comes sooner (a reader
