@@ -576,3 +576,42 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Why: `eval/writerModels.ts` (run 41348226002, 9 stories, Jev as judge) put Haiku medium at the best voice score (8 of 9 clean), the best grounding (0.45) and a quality within 0.07 of Sonnet high, at $0.012 against $0.199. Sonnet medium cost 2.4 times less than high for a small loss; Sonnet low used the same tokens as medium. Gemini Flash read well but scored 0.24 on grounding and passed no story, so it stays last.
 - Revisit if: voice or grounding drops per run rise above the Sonnet-only runs, or a blind read of Haiku's stories finds them worse by ear. The experiment is 9 stories and one judge; the first scheduled runs are the real test.
 
+
+
+## D324: the Catch up script is written at medium effort
+
+- Date: 2026-11-02 (the owner: "Catch up takes far too long to generate ... It should be much faster"; cost stays as low as possible, so the Batch API stays for scheduled runs, D294).
+- Decision: in `config/models.json` the `podcast_script` chain is Sonnet at medium effort (was high), then Gemini Flash. Only Catch ups and episode Regenerates use this step; the scheduled Daily and Weekly do not.
+- Why: a run from tap to a listenable episode took about 3 minutes (the podcast job 64 s, the audio job 83 s, the content sync about 100 s that starts only after the run ends). Writing the script at high effort was the one stage a config change could shorten. The workflow cuts (ffmpeg in the background, narration inside the podcast job, an earlier content sync) are `.github/workflows` changes, handed to the storage thread.
+- Cost: not measured on real scripts. Effort medium may write a shorter script (`length_share`).
+- Revisit if: two Catch ups in a row air under 90% of their length (`length_share`), then put high back.
+- Amends: D181 (the model chains).
+
+## D332: a scheduled run waits at the gate when the last 24 hours cost over the ceiling
+
+- Date: 2026-11-02 (audit item H7; the owner: no cost target per run, "keep the cost low as much as possible all the time").
+- Decision: `gateStage` reads the cost ledger before it plans a scheduled run. If the last 24 hours of `state/costs-*.json` come to more than `DAILY_CEILING_USD` ($5, the number the health check already used), the gate plans no pass and says why in its reason; the run ends as gated and the next slot tries again. A run a person started (on-demand, `force`, a replacement) goes ahead. A ledger that does not read never stops a run. Amends D139, whose ceiling only raised a fault after the money was spent.
+- Why: nothing stopped spend before this; a loop or a bad day cost the same as a good one until the health check spoke. No per-run target was set, so the ceiling is a plain backstop at about four times a normal day ($1.3 weekly, $0.8 daily).
+- Rejected: a per-run dollar stop inside the stages (the owner declined a per-run target, and a stop midway wastes what the run already spent); stopping runs a person asked for (their call, and a Regenerate is the answer to a thin day).
+- Limit: the ledger records a run at its commit, so a run in progress is not counted; the experiment's spend is not in the ledger. One Speechify counter and a weekly cap on Exa are not part of this.
+- Revisit if: a normal week trips the ceiling, or the ledger gains the experiment and in-progress spend.
+- Amends: D139.
+
+## D333: the short-text Claude steps run Haiku medium, then Haiku high, then Sonnet medium
+
+- Date: 2026-11-02 (the owner: "Everything should run on Haiku medium. And then fall back as Haiku high, and then Sonnet medium"; the coordinator asked for the number).
+- Decision: in `config/models.json` the five steps that call Claude for short text (`story_writer`, `story_rewrite`, `headline_shorten`, `podcast_opening`, `podcast_rewrite`) have the chain Haiku medium, Haiku high, Sonnet medium, then Gemini. `podcast_script` stays on Sonnet (medium, by D324) until a script run on Haiku has been heard. The router now keys its clients by effort as well as model; before, two entries on one model shared the first one's effort, so Haiku high would have run at medium. Amends D308 (voice and grounding rewrites move from Sonnet to this chain) and D324 (the on-demand catch-up script follows this chain too).
+- Why: Haiku medium scored best on voice and grounding at a sixteenth of Sonnet high's cost (D308). A later entry costs money only when an earlier one fails, so the ladder adds no spend on a good day.
+- Limit: the chain advances on a failed call (refusal, server error, timeout, output that is not valid JSON), not on a weak story. Haiku high therefore helps after a refusal or output that is not valid JSON. After a timeout, a server error or a rate limit the router skips the later entries of the same model, since they fail the same way, and Sonnet or Gemini carries the run. Quality is judged after the write, by the voice and grounding checks, which call `story_rewrite`.
+- Revisit if: the ledger shows Haiku high or Sonnet serving more than a few percent of calls, or the first scheduled run's `lost_reasons` rise.
+- Amends: D308, D324.
+
+## D334: every Claude step starts at Haiku medium, the podcast script included
+
+- Date: 2026-11-02 (the owner: "haiku medium for all by default").
+- Decision: `podcast_script` joins the other five Claude steps in `config/models.json`: Haiku medium, Haiku high, Sonnet medium, then Gemini. The escalation to Haiku high and then Sonnet happens only on a failed call, as in D333. Amends D333, which kept the script on Sonnet.
+- Why: the owner wants the default model for all work to be the cheapest one he already trusts for stories, and a later entry costs money only when an earlier call fails.
+- Limit: Haiku may write shorter scripts, and the chain does not move on a weak script. Watch `length_share` on the first Catch ups: below 0.9 on two in a row, report the numbers to the owner and propose Sonnet medium for the script; the owner chose Haiku, so nothing switches back on its own. The Catch up thread tightens the length wording in the podcast prompts.
+- Revisit if: a Haiku script is heard and judged worse by ear, or `length_share` falls as above.
+- Amends: D333.
+

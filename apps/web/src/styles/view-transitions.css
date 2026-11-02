@@ -83,7 +83,7 @@ html:is([data-nav-swap="peer"], [data-nav-swap="in"], [data-nav-swap="out"]) .sh
   animation: fade-in var(--duration-hover) var(--ease-out) both;
 }
 
-/* The page settles over the time the travelling things take, so the cover lands as the page does.
+/* The page settles over the time the other moving things take, the pill's growth and the sheet's.
    Into a briefing it settles 8px from the end side; back out of one, from the start side. Travel
    takes the sheet's 300 ms on the hover curve: the out curve is done in a third of its time and
    reads as a cut, and this one has the least speed in its fastest frame of any curve the system has

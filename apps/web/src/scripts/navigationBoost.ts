@@ -10,7 +10,7 @@
  *   - a page that changed behind its saved copy is swapped in quietly, if it has not been touched.
  */
 
-import { ARRIVED_ATTRIBUTE, PILL_ELAPSED_PROPERTY } from "./navigation";
+import { ARRIVED_ATTRIBUTE } from "./navigation";
 
 /** Links only: the side column also has a button (the queue's row), which has no page to go to. */
 const NAV_ITEM = "a.app-nav-item";
@@ -63,6 +63,20 @@ export function shouldRefresh(
   if (typeof message !== "object" || message === null) return false;
   const { type, path } = message as { type?: unknown; path?: unknown };
   return type === "PAGE_CHANGED" && path === page.path && !page.touched && !page.hidden;
+}
+
+/** How long after a finger leaves an item its click still counts as that press. */
+const PRESS_CLICK_MS = 800;
+/** The navigation item a finger or pen last pressed, and when it last touched it. */
+let fingerOn: { item: Element; at: number } | null = null;
+
+/**
+ * The value of the arrival mark for a press on `item`: "pressed" when a finger went down on it a
+ * moment ago, so its pill is already showing and eases from the press tone to the current one
+ * instead of growing a second time; empty otherwise.
+ */
+export function arrivalFor(item: Element, now: number): string {
+  return fingerOn?.item === item && now - fingerOn.at < PRESS_CLICK_MS ? "pressed" : "";
 }
 
 /** The transitions this module made, so a swap can tell whether the page or the browser draws it. */
@@ -119,9 +133,7 @@ export function installNavigationBoost(): void {
       // The pill grows under the item as it lights, here, and not again on the page that arrives.
       if (item.getAttribute("aria-current") !== "page") {
         const root = document.documentElement;
-        root.setAttribute(ARRIVED_ATTRIBUTE, "");
-        // A press in the settle time of the last move starts its growth afresh.
-        root.style.removeProperty(PILL_ELAPSED_PROPERTY);
+        root.setAttribute(ARRIVED_ATTRIBUTE, arrivalFor(item, performance.now()));
       }
       markCurrent(item, document);
     }
@@ -151,6 +163,20 @@ export function installNavigationBoost(): void {
     const clear = (): void => document.documentElement.removeAttribute(SWAP_ATTRIBUTE);
     void event.viewTransition.finished.then(clear, clear);
   });
+
+  // Which item a finger is on, for the pill: see arrivalFor.
+  for (const type of ["pointerdown", "pointerup"] as const) {
+    document.addEventListener(
+      type,
+      (event) => {
+        if (event.pointerType === "mouse") return;
+        const target = event.target instanceof Element ? event.target : null;
+        const item = target?.closest(NAV_ITEM) ?? null;
+        fingerOn = item ? { item, at: performance.now() } : null;
+      },
+      { capture: true, passive: true },
+    );
+  }
 
   // Touch has no hover to prefetch on. The service worker shares this request with the router's.
   document.addEventListener(

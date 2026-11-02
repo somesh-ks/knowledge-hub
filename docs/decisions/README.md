@@ -76,7 +76,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D204 | Guards for a short or lost run, health metrics, one run card | active |
 | D205 | Settings paint the kept copy at once | amends D172 |
 | D206 | Stay on npm; pnpm spiked | active |
-| D207 | A Regenerate asks for its own length | amends D204 |
+| D207 | A Regenerate asks for its own length | amends D204; amended by D323 |
 | D208 | A list of generations, with Cancel | partly superseded by D231 (the list); amends D204 |
 | D209 | Lane free in the hold | supersedes D135; amends D197; step 1 built (#399), steps 2 to 5 not built |
 | D210 | Typed HTML builders | active |
@@ -137,7 +137,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D268 | Styles: token overrides | amends D125 |
 | D269 | Hour wheel | amends D265 |
 | D270 | Experiments settle on a read | amends D249, D259 |
-| D271 | Pill, cover travel | superseded by D280 |
+| D271 | Pill, cover travel | superseded by D280; partly superseded by D336 |
 | D272 | No persisted floating button | active |
 | D273 | Haptic tokens | amends D52 |
 | D274 | Icon weight token | amends D268 |
@@ -145,7 +145,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D276 | Voice list | amends D101 |
 | D277 | Queue keeps played items; a tap plays in place | amends D126 |
 | D278 | Softer light covers | amends D121 |
-| D280 | Travel 300 ms | amends D271 |
+| D280 | Travel 300 ms | partly superseded by D336; amends D271 |
 | D281 | Downloads page, no cap | amends D127, D264 |
 | D282 | A page falls back to the content its build holds when the store cannot answer | amends D173, D251 |
 | D283 | Read-first is AGENTS.md and state.md (20 KB), the Index is grep-only, the ledger is split by surface; "replaces" retires the old row | active |
@@ -168,7 +168,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D300 | Digests and audio in Blob, state in Postgres, weekly private snapshot of the config store | partly superseded by D311; steps 1 and 2a built, 2b in review |
 | D302 | Pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked | active |
 | D306 | A seasonal style may change more than tokens | amends D268 |
-| D308 | Haiku writes the first pass of each story, Sonnet repairs and backs it up | amends D181 |
+| D308 | Haiku writes the first pass of each story, Sonnet repairs and backs it up | amends D181; amended by D333 |
 | D309 | Player ⋮ menu: actions, speed screen, Save; Settings > Saved | amends D105, D127; supersedes D50's speed control |
 | D310 | Expressive is loud: a violet world, larger controls | amends D268 |
 | D311 | D300 amended: the config snapshot lives in a Neon table, not a private Blob store | supersedes D300 (snapshot clause) |
@@ -179,5 +179,11 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D318 | Pages stay at the edge until their content changes, purged by tag | active |
 | D319 | Colours are generated; a style is a recipe | amends D268, D310, D317 |
 | D321 | The ripple and a cover's press stay alpha layers, over artwork | amends D317 |
+| D323 | Regenerate is a full sheet like Catch up; Length has no Usual | amends D207 |
+| D324 | The Catch up script is written at medium effort | amends D181 |
+| D332 | A scheduled run waits at the gate when the last 24 hours cost over $5 | amends D139 |
+| D333 | The short-text Claude steps run Haiku medium, then Haiku high, then Sonnet medium | amends D308, D324; amended by D334 |
+| D334 | Every Claude step starts at Haiku medium, the podcast script included | amends D333 |
+| D336 | A cover no longer flies between its card and the page's hero | partly supersedes D271, D280 |
 
 ---

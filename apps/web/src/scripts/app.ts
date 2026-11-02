@@ -3,7 +3,6 @@ import { counted, installAnalytics } from "../lib/analytics";
 import { watchPlatformFaults } from "../lib/platformFaults";
 import { hasOutbox } from "../lib/savedKey";
 import { loadOtherBuildsInFull } from "./buildGuard";
-import { installCoverMorph } from "./coverMorph";
 import { installCreateEntry } from "./createEntry";
 import { installDeviceBanners } from "./deviceBanners";
 import { installDisabledGuard } from "./disabledGuard";
@@ -30,9 +29,8 @@ trackTyping();
 captureInstallPrompt();
 installNavigation();
 installPersistedMotion();
-// Before the morph: it measures the Library as the swap leaves it, and that must be the saved view.
+// The saved Library view (list or gallery), set at every swap into it.
 installLibraryViewSwap();
-installCoverMorph();
 installRipple();
 installRootState();
 installCreateEntry();

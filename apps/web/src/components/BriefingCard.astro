@@ -1,5 +1,6 @@
 ---
 import type { DigestEntry } from "../lib/digests";
+import { airedMinutes } from "../lib/digestView";
 import { longDate, longDateTitle } from "../lib/format";
 import { cardFacts } from "../lib/libraryCard";
 import CardMarks from "./CardMarks.astro";
@@ -64,6 +65,7 @@ const facts = cardFacts(entry);
         path={`/d/${entry.id}`}
         kind="briefing"
         audio={entry.audioMode === "ready" ? entry.player.audio?.url : undefined}
+        minutes={airedMinutes(entry)}
         deletable={digest.kind === "on-demand"}
         regenerations={digest.regenerations}
         downloads={downloads}

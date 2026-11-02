@@ -1,9 +1,8 @@
 /**
  * The Library's layout, list by default and the gallery when this device chose it (2026-11-02, the
- * owner). Applied at every swap into the Library, before the cover morph measures where a card
- * lands: the page's own script runs after that, and the morph would fly to a gallery card's box and
- * then watch the page turn into a list. Settings > Downloads and Saved hard-code their list and never
- * read this key.
+ * owner). Applied at every swap into the Library, before the page's own script runs, so a device
+ * never sees the other layout drawn first. Settings > Downloads and Saved hard-code their list and
+ * never read this key.
  */
 export const VIEW_KEY = "singularity:library-view";
 
@@ -35,7 +34,7 @@ export function libraryRoot(): HTMLElement | null {
  * Going back to a Library the gallery had scrolled, the browser puts the saved offset on a page whose
  * off-screen cards still count as their 240px estimate (library.css), so it is shorter than the page
  * that was left and the offset is cut. The cards are drawn for two frames so each remembers its real
- * height, and the offset is put back; the card the cover flies home to is then where the page keeps it.
+ * height, and the offset is put back; the card is then where the page keeps it.
  */
 function restoreOffset(root: HTMLElement): void {
   const saved = (history.state as { scrollX?: number; scrollY?: number } | null)?.scrollY ?? 0;

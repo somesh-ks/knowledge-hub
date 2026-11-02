@@ -114,6 +114,11 @@ html[data-run] {
 }
 
 html {
+  /* A page settling in from the side (view-transitions.css, 8px) sticks out past the screen for its
+     300 ms; body's clip does not reach the root's scrolling area, a phone's browser took the page for
+     wider than the screen, and laid the viewport out taller for the length of it: the fixed bottom
+     bar sat lower and came back up (owner, 2026-11-02). Clipped at the root, nothing is wider. */
+  overflow-x: clip;
   /* In a stylesheet, not script: iOS reads it before the first touchstart. No rubber band behind the
      opaque bars, and no pull-to-refresh that would restart a briefing mid-listen. */
   overscroll-behavior-y: none;
@@ -243,7 +248,7 @@ html[data-mini="visible"] main {
 }
 
 /* The wordmark leads. A page with Back keeps it right of the button, so the button never covers it. */
-.app-bar-inner:has(> .app-bar-back) > .wordmark {
+.app-bar-inner:has(> .app-bar-back:not([hidden])) > .wordmark {
   margin-inline-start: calc(var(--size-touch) - var(--page-gutter) + var(--space-2));
 }
 
@@ -474,10 +479,11 @@ html[data-mini="visible"] main {
    page and the cover (view-transitions.css, cover.css); it never travels between tabs (owner,
    2026-10-31, option 1 of three). A cold load shows it at rest. */
 @media (prefers-reduced-motion: no-preference) {
-  html[data-nav-arrived] .app-nav-item[aria-current="page"] .app-nav-indicator::before {
+  html[data-nav-arrived]:not([data-nav-arrived="pressed"])
+    .app-nav-item[aria-current="page"]
+    .app-nav-indicator::before {
     animation: nav-pill var(--duration-sheet-in) var(--ease-hover);
-    /* A move that arrived mid-growth carries on from where the old bar's pill was (navigation.ts). */
-    animation-delay: calc(var(--nav-pill-elapsed, 0ms) * -1);
+    /* A move that arrived mid-growth carries on at the instant the old bar's pill reached (navigation.ts). */
     /* The fill is the animation's, not the 150 ms hover fade: a press on this page marks its tab at once. */
     transition: none;
   }
@@ -492,15 +498,30 @@ html[data-mini="visible"] main {
 
 /* With reduced motion the pill fades in where it stands; it does not grow. */
 @media (prefers-reduced-motion: reduce) {
-  html[data-nav-arrived] .app-nav-item[aria-current="page"] .app-nav-indicator::before {
+  html[data-nav-arrived]:not([data-nav-arrived="pressed"])
+    .app-nav-item[aria-current="page"]
+    .app-nav-indicator::before {
     animation: nav-pill-fade var(--duration-enter) var(--ease-out);
-    animation-delay: calc(var(--nav-pill-elapsed, 0ms) * -1);
   }
 }
 
 @keyframes nav-pill-fade {
   from {
     opacity: 0;
+  }
+}
+
+/* A finger has already drawn the pill under the tab (the press layer, D286): it keeps its place and
+   eases to the current tone. Growing from half its size again would show a second pill. The ease is
+   a colour change, so reduced motion keeps it. */
+html[data-nav-arrived="pressed"] .app-nav-item[aria-current="page"] .app-nav-indicator::before {
+  animation: nav-pill-tint var(--duration-state) var(--ease-hover);
+  transition: none;
+}
+
+@keyframes nav-pill-tint {
+  from {
+    background: var(--ghost-pressed);
   }
 }
 
