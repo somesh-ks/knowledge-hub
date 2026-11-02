@@ -44,3 +44,20 @@
 .player-speed-stop[data-on] {
   color: var(--color-on-surface);
 }
+
+/* The steppers sit on a sheet, where the tonal fill (the container step) is the sheet's own colour in
+   the dark theme and the circles vanish (owner review of the Settings stills, 2026-11-02). They take the
+   tiles' fill, which steps up one level there (tokens: sheet.tile-bg). */
+.player-speed-stepper > .icon-btn-tonal {
+  background: var(--sheet-tile-bg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .player-speed-stepper > .icon-btn-tonal:where(:not(:disabled, [aria-disabled="true"])):hover {
+    background: var(--sheet-tile-bg-hover);
+  }
+}
+
+.player-speed-stepper > .icon-btn-tonal:where(:not(:disabled, [aria-disabled="true"])):active {
+  background: var(--sheet-tile-bg-pressed);
+}
