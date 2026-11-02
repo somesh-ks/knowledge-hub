@@ -25,7 +25,7 @@ Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reason
 - A topic's page: a card (art, name, what counts, a More menu with Edit and, for the owner's topics, Delete; Listen in), no switch (D102) and no tabs; under it the search, type chips, sources and Suggested sources, each name opening its editor (D83); past seven they fold (D103).
 - A topic has no weight and no Perspective slider (D194, #514); a muted topic stays muted.
 - The type mix is global (D129): `format_mix` in `config/preferences.json`, op `mix.set`, applied by the engine to every story (`applyFormatMix`). The app no longer offers its sliders (D335); a stored mix still applies.
-- `/settings/preferences`: Podcast autoplay and Default playback speed, kept on the device. The app has no structure editor (D342); the engine reads the stored structure as a default.
+- `/settings/preferences`: Podcast autoplay and Default playback speed, kept on the device. The app has no structure editor (D344); the engine reads the stored structure as a default.
 - Blocked sources: the field filters; Block opens a sheet.
 - Search filters every source as a flat list, or a topic's. Type chips: any number, none means all. State is in the URL. A source's type is the rule's when added, then Jev within 3 s (D124).
 - Edit: every topic takes a new name; what counts edits except on a built-in category (D57, D64, D71). The add topic panel takes Name, Description and Scope, with suggested sources, each with a plus; a topic's page lists up to five catalogue feeds that fit (D75).
