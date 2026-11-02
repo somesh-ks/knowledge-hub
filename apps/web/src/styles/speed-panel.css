@@ -1,5 +1,5 @@
 /* The menu's Playback speed screen: the stepper and the readout, then the slider under them (the
-   Slider, design-system/slider.ts), with the two ends named. The readout holds five characters in
+   Slider, design-system/slider.ts). The readout holds five characters in
    tabular figures, so it never moves as the speed does. */
 .player-speed {
   display: grid;
@@ -7,42 +7,113 @@
   padding: var(--space-4) var(--space-4) var(--space-6);
 }
 
+/* The two buttons stand either side of the readout as one centred cluster, close to it. The readout has
+   a fixed width, so the buttons keep their places as the speed changes (owner, 2026-11-02: tabular
+   figures, nothing shakes). Its digits are tabular (.num); "x" and the point are the same in every speed. */
 .player-speed-stepper {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  display: flex;
   align-items: center;
-  gap: var(--space-4);
+  justify-content: center;
+  gap: var(--space-2);
 }
 
 .player-speed-readout {
+  inline-size: 5.5ch;
   text-align: center;
   font-size: var(--font-size-display);
   font-weight: var(--font-weight-medium);
+  transition: color var(--duration-state) var(--ease-out);
 }
 
-/* The speeds the slider stops on, as numbers under the track. Each stands under its own stop: the
-   thumb's centre travels the track less one thumb, so a stop is that travel times its place, from half
-   a thumb in. Their gap is only that, so the row needs no breakpoint. */
-.player-speed-stops {
-  position: relative;
-  block-size: var(--font-leading-caption);
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
+/* Off 1x the number takes the accent, so the speed reads as a state, not only as a figure. */
+.player-speed-readout[data-off] {
+  color: var(--color-accent);
 }
 
-.player-speed-stop {
-  position: absolute;
-  inset-inline-start: calc(
-    var(--scrubber-thumb) /
-    2 +
-    (100% - var(--scrubber-thumb)) *
-    var(--stop)
+/* The slider stops on seven speeds: a dot for each, in the thumb-sized boxes the topic weights use, under
+   the thumb's centre at its stop. The track is a little thicker than the plain slider's. */
+.player-speed .slider-input {
+  --scrubber-track: calc(var(--space-1) * 1.5);
+  --stop-dot: radial-gradient(
+    circle at center,
+    var(--color-on-surface-subtle) 0 calc(var(--stroke-hairline) * 3),
+    transparent calc(var(--stroke-hairline) * 3 + 0.5px)
   );
-  translate: -50% 0;
+  background-image:
+    var(--stop-dot), var(--stop-dot), var(--stop-dot), var(--stop-dot), var(--stop-dot),
+    var(--stop-dot), var(--stop-dot);
+  background-repeat: no-repeat;
+  background-size: var(--scrubber-thumb) var(--scrubber-thumb);
+  background-position:
+    0% center,
+    16.667% center,
+    33.333% center,
+    50% center,
+    66.667% center,
+    83.333% center,
+    100% center;
 }
 
-.player-speed-stop[data-on] {
-  color: var(--color-on-surface);
+/* Expressive: the track is a wave that drifts along, and the dots go (the wave is the interest). The wave is
+   drawn under the slider (a masked layer on its wrapper: the mask would cut the thumb too if it sat on the
+   track itself), the slider's own track goes clear, and the fill follows the wave. Still under reduced motion. */
+.player-speed-slider {
+  position: relative;
+  display: grid;
+}
+
+:root[data-style="expressive"] .player-speed-slider {
+  --wave-length: 1.5rem;
+  --wave-height: 0.75rem;
+  /* How long the wave takes to drift one period. */
+  --wave-drift: 1600ms;
+  --wave-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 12'%3E%3Cpath d='M0 6C4 0 8 0 12 6S20 12 24 6' fill='none' stroke='black' stroke-width='3.5' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+:root[data-style="expressive"] .player-speed-slider::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 50%;
+  block-size: var(--wave-height);
+  translate: 0 -50%;
+  background: linear-gradient(
+    to right,
+    var(--color-accent) var(--range-fill),
+    var(--color-border-control) var(--range-fill)
+  );
+  mask: var(--wave-mask) 0 center / var(--wave-length) var(--wave-height) repeat-x;
+  animation: speed-wave var(--wave-drift) var(--ease-linear) infinite;
+  pointer-events: none;
+}
+
+:root[data-style="expressive"] .player-speed-slider .slider-input {
+  background-image: none;
+}
+
+:root[data-style="expressive"] .player-speed-slider .slider-input::-webkit-slider-runnable-track {
+  background: none;
+}
+
+:root[data-style="expressive"] .player-speed-slider .slider-input::-moz-range-track,
+:root[data-style="expressive"] .player-speed-slider .slider-input::-moz-range-progress {
+  background: none;
+}
+
+:root[data-style="expressive"] .player-speed-slider .slider-input::-webkit-slider-thumb {
+  margin-block-start: calc((var(--scrubber-track) - var(--scrubber-thumb)) / 2);
+}
+
+@keyframes speed-wave {
+  to {
+    mask-position: calc(var(--wave-length) * -1) center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-style="expressive"] .player-speed-slider::before {
+    animation: none;
+  }
 }
 
 /* On the phone's sheet the tonal fill (the container step) is the sheet's own colour in the dark

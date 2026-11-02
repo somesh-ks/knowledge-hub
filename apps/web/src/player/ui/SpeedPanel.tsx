@@ -6,8 +6,7 @@ import { MAX_PLAYBACK_RATE, MIN_PLAYBACK_RATE, PLAYBACK_RATE_STEP } from "../cor
 import { rateFace, rateLabel } from "../rateLabels";
 import Icon from "./LazyIcon";
 
-/** The speeds the slider stops on. Between them the stepper goes by PLAYBACK_RATE_STEP. */
-const SPEED_STOPS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] as const;
+/** The slider stops on every 0.25x, seven dots on its track. Between them the stepper goes by PLAYBACK_RATE_STEP. */
 const STOP_STEP = 0.25;
 const nearestStop = (rate: number): number =>
   Math.min(
@@ -17,7 +16,7 @@ const nearestStop = (rate: number): number =>
 
 /**
  * The speed screen: a stepper around a big readout (exact, by PLAYBACK_RATE_STEP), a slider under
- * it that stops on every 0.25x, and the stops named under the track. It owns no speed: the caller
+ * it that stops on every 0.25x (dots on the track, no labels; wavy in Expressive). It owns no speed: the caller
  * passes the current one and hears every change, so the player's ⋮ menu sets the playing speed and
  * Settings sets the default with the same control. Mount it in a sheet or a card; its rules are in
  * styles/speed-panel.css.
@@ -44,7 +43,11 @@ export default function SpeedPanel({
         >
           <Icon name="minus" />
         </button>
-        <output className="player-speed-readout num" aria-hidden="true">
+        <output
+          className="player-speed-readout num"
+          aria-hidden="true"
+          data-off={Math.abs(rate - 1) > 0.001 ? "" : undefined}
+        >
           {rateFace(rate)}
         </output>
         <button
@@ -57,33 +60,22 @@ export default function SpeedPanel({
           <Icon name="plus" />
         </button>
       </div>
-      <input
-        className={sliderClass()}
-        type="range"
-        min={MIN_PLAYBACK_RATE}
-        max={MAX_PLAYBACK_RATE}
-        step={STOP_STEP}
-        value={stop}
-        aria-label="Playback speed"
-        aria-valuetext={rateLabel(rate)}
+      <div
+        className="player-speed-slider"
         style={{ "--range-fill": `${(fill * 100).toFixed(1)}%` } as CSSProperties}
-        onChange={(event) => onRate(event.currentTarget.valueAsNumber)}
-      />
-      <div className="player-speed-stops" aria-hidden="true">
-        {SPEED_STOPS.map((value) => (
-          <span
-            key={value}
-            className="player-speed-stop num"
-            style={
-              {
-                "--stop": (value - MIN_PLAYBACK_RATE) / (MAX_PLAYBACK_RATE - MIN_PLAYBACK_RATE),
-              } as CSSProperties
-            }
-            data-on={value === stop ? "" : undefined}
-          >
-            {Number(value.toFixed(2))}
-          </span>
-        ))}
+      >
+        <input
+          className={sliderClass()}
+          type="range"
+          min={MIN_PLAYBACK_RATE}
+          max={MAX_PLAYBACK_RATE}
+          step={STOP_STEP}
+          value={stop}
+          aria-label="Playback speed"
+          aria-valuetext={rateLabel(rate)}
+          style={{ "--range-fill": `${(fill * 100).toFixed(1)}%` } as CSSProperties}
+          onChange={(event) => onRate(event.currentTarget.valueAsNumber)}
+        />
       </div>
     </div>
   );
