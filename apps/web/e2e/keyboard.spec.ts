@@ -40,6 +40,8 @@ test.describe("keyboard", { tag: "@desktop" }, () => {
       "a: Latest",
       "a: Library",
       "a: Settings",
+      // The avatar is the last stop of the side column, before the page itself (D335).
+      "a: Your profile",
       // The queue's row ends the side column only while something is being made.
       "button: More actions",
       "button: Play the podcast, 1 min",
@@ -53,7 +55,6 @@ test.describe("keyboard", { tag: "@desktop" }, () => {
       "button: Dislike: Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity",
       "button: Story options: Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity",
       "a: A dither shader that stays sharp at any pixel density (opens in a new tab)",
-      "button: Play from here, 0:03: A dither shader that stays sharp at any pixel density",
     ]);
   });
 
