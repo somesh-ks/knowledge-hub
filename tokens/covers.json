@@ -328,6 +328,10 @@
       "cap": {
         "$value": 40
       },
+      "hold": {
+        "$description": "Type and figures keep their lightness gap to the ground times this (OKLab lightness is not relative luminance, so a hue that moves a figure toward blue would leave a 3:1 pair just under).",
+        "$value": 1.1
+      },
       "chroma": {
         "$description": "Chroma becomes scale x chroma + add, at most max; a colour below floor-below becomes floor.",
         "scale": {
@@ -360,6 +364,10 @@
       },
       "cap": {
         "$value": 180
+      },
+      "hold": {
+        "$description": "Type and figures keep their lightness gap to the ground times this (OKLab lightness is not relative luminance, so a hue that moves a figure toward blue would leave a 3:1 pair just under).",
+        "$value": 1.1
       },
       "chroma": {
         "scale": {

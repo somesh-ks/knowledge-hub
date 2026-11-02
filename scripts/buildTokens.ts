@@ -605,6 +605,7 @@ export function coverStyleBlocks(
       `--cover-keep: ${num(rule.keep, "keep")};`,
       `--cover-spread: ${num(rule.spread, "spread")};`,
       `--cover-cap: ${num(rule.cap, "cap")};`,
+      `--cover-hold: ${num(rule.hold, "hold")};`,
       `--cover-c-scale: ${num(chroma.scale, "chroma.scale")};`,
       `--cover-c-add: ${num(chroma.add, "chroma.add")};`,
       `--cover-c-max: ${num(chroma.max, "chroma.max")};`,
