@@ -119,6 +119,8 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
     let topics: string[] | undefined;
     if (page) {
       if (ticked.size === 0) {
+        // The categories wait for a cue (D337); a refusal about them must show them.
+        setShown((current) => ({ ...current, topics: true }));
         setTopicError(true);
         return;
       }

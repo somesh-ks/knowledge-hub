@@ -2,6 +2,7 @@ import { DIALOG_SELECTOR } from "../design-system/dialog";
 import { PANEL_SHEET_SELECTOR } from "../design-system/sheet";
 import { rememberCancelToken } from "../lib/cancelTokens";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
+import { hintsFor } from "../lib/regenHints";
 import { isChipOn } from "../lib/regenTopics";
 import { hasSaved, storeOn } from "../lib/savedKey";
 import { navigateTo } from "../player/core/navigation";
@@ -88,9 +89,7 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       const labels = [...topicsGroup.querySelectorAll(".filter-chip span")].map(
         (label) => label.textContent ?? "",
       );
-      void import("../lib/regenHints").then(({ hintsFor }) => {
-        if (hintsFor(feedback.value, labels).topics) topicsGroup.hidden = false;
-      });
+      if (hintsFor(feedback.value, labels).topics) topicsGroup.hidden = false;
     });
   }
   if (feedback && count) {
@@ -122,6 +121,8 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       ];
       const ticked = chips.filter((chip) => chip.checked);
       if (chips.length > 0 && ticked.length === 0) {
+        // The categories wait for a cue (D337); a refusal about them must show them.
+        if (topicsGroup) topicsGroup.hidden = false;
         say(copy("topics"));
         chips[0]?.focus();
         return;
