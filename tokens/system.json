@@ -572,7 +572,6 @@
         "--field-chevron-gap",
         "--shadow-popover",
         "--shape-2xl",
-        "--shape-xl",
         "--size-icon",
         "--size-icon-sm",
         "--size-touch"
@@ -650,7 +649,6 @@
         "--shadow-popover",
         "--shape-2xl",
         "--shape-md",
-        "--shape-sm",
         "--shape-xl",
         "--sheet-bg",
         "--sheet-bg-hover",
