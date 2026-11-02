@@ -185,5 +185,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D333 | The short-text Claude steps run Haiku medium, then Haiku high, then Sonnet medium | amends D308, D324; amended by D334 |
 | D334 | Every Claude step starts at Haiku medium, the podcast script included | amends D333 |
 | D336 | A cover no longer flies between its card and the page's hero | partly supersedes D271, D280 |
+| D339 | The engine and the site keep one Speechify count, in Blob | resolves D300's counter clause |
 
 ---

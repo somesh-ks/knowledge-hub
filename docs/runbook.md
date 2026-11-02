@@ -173,7 +173,7 @@ Nothing to do on most days.
 Monthly:
 
 1. Run `npm run singularity -- status` and read the failing sources. Fix or drop any that fail five runs in a row.
-2. Check balances: Anthropic and Gemini balances, Exa, Speechify characters (`state/usage.json`), the TypeSafe console, Vercel Blob usage.
+2. Check balances: Anthropic and Gemini balances, Exa, Speechify characters (`state/usage-<month>.json` in the content store, D339), the TypeSafe console, Vercel Blob usage.
 3. Check the token expiry dates in section 6.
 
 ---
@@ -313,7 +313,7 @@ Vercel Hobby holds 1 GB of Blob storage. A four-minute digest is about 4 MB at t
 ### 8.2 Audio is missing
 
 1. The page says "Audio is still being prepared": the text digest published but speech failed (D23). Run `gh workflow run audio.yml -R somesh-ks/knowledge-hub`. `singularity publish` retries every digest whose `audio` is null.
-2. Still failing: check `state/usage.json`. The engine stops at 90 percent of the monthly Speechify allowance (`SPEECHIFY_MONTHLY_CHARS`, default 500,000). Wait for the next month or raise the plan.
+2. Still failing: check the month's count in `state/usage-<month>.json` (health reports it). The engine stops at 90 percent of the monthly Speechify allowance (`SPEECHIFY_MONTHLY_CHARS`, default 500,000). Wait for the next month or raise the plan.
 3. A recent digest points at a deleted Blob file: delete its `.audio.json`, set `audio: null` in the digest frontmatter, commit, then run `audio.yml`.
 4. An old digest has no working player: its audio was pruned. That is expected (section 7).
 5. Playback starts but seeking fails on iPhone only: this is the Blob Range risk (`git show 91bc533:docs/plan/build-plan.md` Section 14). Record the iOS version and report it.

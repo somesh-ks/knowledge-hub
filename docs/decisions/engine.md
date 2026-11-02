@@ -615,3 +615,13 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Revisit if: a Haiku script is heard and judged worse by ear, or `length_share` falls as above.
 - Amends: D333.
 
+
+## D339: the engine and the site keep one Speechify count, in Blob
+
+- Date: 2026-11-02 (audit item H7; autonomous mode, the coordinator's call after the SEC-03 check).
+- Decision: the month's Speechify characters live in one document, `state/usage-<YYYY-MM>.json` in the content store, which the site's narrate function already wrote. The engine's narration jobs (`publish`, `audio`) now read it for the 90 percent stop and add each recording to it, changing `speechify.characters` and leaving the site's per-digest charges as they were. A write carries the version it read, so a second writer in the same moment makes the first read again and retry. `state/usage.json` stays only where no Blob store exists (tests, a laptop). Health reads the shared count for the allowance.
+- Why: the engine stopped at 90 percent of its own count and the site at 90 percent of its own, so the two together could pass the plan's cap; health said so in its own message. The site's document is the one both can reach: the audio job has Blob credentials and, by design (SEC-03, D300), no database URL.
+- Rejected: Postgres for the counter (gives the audio job `DATABASE_URL`, the boundary D300 kept, and a workflow change for the owner to merge by hand); keeping two counters and summing them in health (the stops still do not see each other).
+- Limit: the site writes without a version check, so a site write landing between the engine's read and write can still lose one charge; the 10 percent below the cap absorbs it. The Exa weekly cap is a separate change.
+- Revisit if: health shows the shared count over the 90 percent stop, or Speechify bills more than the document says.
+- Resolves: the counter clause of D300.

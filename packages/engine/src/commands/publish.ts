@@ -19,7 +19,7 @@ import type { DigestAudioOutcome, PublishAudioResult } from "../publish/publishA
 import { listPendingDigests, publishAudio } from "../publish/publishAudio.js";
 import { listEpisodeCandidates, publishEpisodeAudio } from "../publish/publishEpisodes.js";
 import type { AudioCommandDeps } from "./audio.js";
-import { defaultAudioDeps } from "./audio.js";
+import { defaultAudioDeps, usageDeps } from "./audio.js";
 
 const USAGE =
   "usage: singularity publish [--digest <id> | --episode <ep-id>] [--prune <days> [--prune-now]] [--no-push]";
@@ -235,6 +235,7 @@ export function createPublishCommand(overrides: Partial<AudioCommandDeps> = {}):
         root: ctx.root,
         speech: keys.speech,
         blob: keys.blob,
+        ...usageDeps(keys.blob),
         log: ctx.log,
         now: ctx.now,
         monthlyChars: keys.monthlyChars,

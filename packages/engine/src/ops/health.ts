@@ -342,13 +342,13 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
   const blob = options.site !== null && blobBase !== null ? { base: blobBase, get } : null;
 
   // Cost: the ledger's last 24 hours against the ceiling, and the speech allowance. Online, the
-  // site's own month count (apps/web narrationState.ts) is added to the allowance:
-  // state/usage.json holds only the engine's.
+  // month's count is the Blob document the engine and the site both write (D339); state/usage.json
+  // is the count only where there is no Blob store.
   const site = blob ? await readSiteNarration(blob, now) : null;
   if (site && "error" in site) {
     warn("site_usage_unread", "cost", `The site's narration count did not read: ${site.error}.`);
   }
-  const siteCount = site && !("error" in site) ? site : { month: 0 };
+  const sharedCount = site && !("error" in site) ? site.month : null;
   const since = now.getTime() - DAY_MS;
   const records = await loadAllCosts(root).catch((error: unknown) => {
     fault("state_invalid", "integrity", `state/costs-*.json: ${message(error)}`);
@@ -393,19 +393,19 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
     passed.push(`Firecrawl used ${firecrawlWeek} requests in 7 days`);
   }
   const speech = status.budget.speechify;
-  const used = speech.used + siteCount.month;
+  const used = sharedCount ?? speech.used;
   const percent = Math.round((used / speech.monthly_chars) * 100);
   if (used >= speech.limit) {
     fault(
       "speech_budget",
       "cost",
-      `Speechify use this month is past the 90% stop (${speech.used} by the engine, ${siteCount.month} by the site, ${used} of ${speech.monthly_chars}). Each stop checks only its own counter, so neither sees the other and narration can go on past the plan's cap.`,
+      `Speechify use this month is past the 90% stop (${used} of ${speech.monthly_chars}). Narration stops until the month turns.`,
     );
   } else if (percent >= 75) {
     warn(
       "speech_budget",
       "cost",
-      `Speechify at ${percent}% this month (${siteCount.month} characters on the site).`,
+      `Speechify at ${percent}% this month (${used} of ${speech.monthly_chars} characters).`,
     );
   }
 

@@ -2,10 +2,17 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { DigestId, digestRelPath, parseDigestFile, requireKey } from "@singularity/core";
-import { checkBudget, describeRefusal, loadUsage, parseMonthlyChars } from "../audio/budget.js";
+import {
+  checkBudget,
+  describeRefusal,
+  fileUsageStore,
+  parseMonthlyChars,
+  type UsageStore,
+} from "../audio/budget.js";
 import type { SpeechSynthesizer } from "../audio/speechify.js";
 import { createSpeechifyClient } from "../audio/speechify.js";
 import { buildSpokenText } from "../audio/spokenText.js";
+import { usageStoreFor } from "../audio/usageBlob.js";
 import {
   type EpisodeOpusFile,
   transcodeSegmentsToOpus,
@@ -130,6 +137,7 @@ export function createAudioCommand(overrides: Partial<AudioCommandDeps> = {}): C
         root: ctx.root,
         speech,
         blob,
+        ...usageDeps(blob),
         log: ctx.log,
         now: ctx.now,
         monthlyChars,
@@ -153,6 +161,20 @@ export function createAudioCommand(overrides: Partial<AudioCommandDeps> = {}): C
   };
 }
 
+export function usageDeps(blob: BlobClient): { usage?: UsageStore } {
+  const usage = usageStoreFor(blob);
+  return usage ? { usage } : {};
+}
+
+/** The shared count, or nothing on a machine with no Blob credentials: a dry run needs none. */
+function usageOf(ctx: CommandContext, deps: AudioCommandDeps): UsageStore | undefined {
+  try {
+    return usageStoreFor(deps.createBlob(ctx));
+  } catch {
+    return undefined;
+  }
+}
+
 async function dryRun(
   digestId: string,
   ctx: CommandContext,
@@ -167,7 +189,7 @@ async function dryRun(
     spoken = buildSpokenText(digest);
     monthlyChars = deps.monthlyChars();
     decision = checkBudget({
-      usage: await loadUsage(ctx.root, now),
+      usage: await (usageOf(ctx, deps) ?? fileUsageStore(ctx.root)).load(now),
       now,
       requested: spoken.text.length,
       monthlyChars,
