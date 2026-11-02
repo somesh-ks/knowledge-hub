@@ -162,13 +162,18 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
   const planned = samplePass ? await planSample(deps, deps.now()) : null;
   const schedule = await loadSchedule(deps.root);
   // What the last scrape of each Firecrawl listing saw: a page whose links have not moved is not
-  // scraped again. Without a Firecrawl key nothing is scraped, so there is nothing to remember.
-  const listings = deps.fetch.firecrawlKey
-    ? new ListingMemory(await readListingFingerprints(deps.root))
-    : undefined;
+  // scraped again. Without a Firecrawl key nothing is scraped, so there is nothing to remember. A
+  // replacement or an on-demand run asks for stories the last run already took from those pages, so
+  // it scrapes them all, as the weekly pass does.
+  const listings =
+    deps.fetch.firecrawlKey && plan.replaces === undefined && plan.mode === "scheduled"
+      ? new ListingMemory(await readListingFingerprints(deps.root))
+      : undefined;
   const setup = listings ? { ...deps.fetch, listings } : deps.fetch;
   for (const pass of plan.passes) {
     const now = deps.now();
+    // A retry that reuses this pass leaves nothing of an earlier attempt's scrapes behind.
+    await rm(passFile(deps.root, pass.id, "listings.json"), { force: true });
     const sampling = pass === samplePass && planned !== null;
     // The sample's own feed reads need nothing from the pool, so they run beside the pass's fetch.
     // readFeeds never rejects: each read's failure is its result.

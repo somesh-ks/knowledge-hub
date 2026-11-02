@@ -317,6 +317,15 @@ describe("saving the digest to the content store (D300)", () => {
     expect(await exists(repo.root, "state/listing-fingerprints.json")).toBe(false);
   });
 
+  it("ignores listings an earlier attempt of the same pass left behind (D341)", LONG, async () => {
+    const world = makeWorld(repo.root, { now: WED });
+    // This attempt scrapes no listing (no Firecrawl key), so the file is the earlier attempt's.
+    await writeScrapedListing();
+    const result = await runStage(world);
+    expect(result.code).toBe(0);
+    expect(await exists(repo.root, "state/listing-fingerprints.json")).toBe(false);
+  });
+
   it("records the listings a run scraped once the store has the digest (D341)", LONG, async () => {
     const world = makeWorld(repo.root, { now: WED });
     const during: boolean[] = [];
