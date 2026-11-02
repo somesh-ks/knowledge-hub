@@ -150,6 +150,30 @@ export function pillStartedAt(root: ParentNode): number | null {
   return null;
 }
 
+/** Which way a move goes along the bar: "next" to a tab further along it, "prev" to one before it. */
+export type TabDirection = "next" | "prev";
+export const DIRECTION_ATTRIBUTE = "data-nav-dir";
+
+/**
+ * The way a move goes. A way into a briefing or an episode is "next", the way out "prev", and
+ * between destinations it follows the bar, so the page arrives from the side its tab sits on.
+ * Null when the bar does not say (a page that belongs to no tab, or the same tab).
+ */
+export function moveDirection(
+  kind: NavigationKind,
+  leavingTab: string | null,
+  arrivingTab: string | null,
+  barOrder: readonly (string | null)[],
+): TabDirection | null {
+  if (kind === "in") return "next";
+  if (kind === "out") return "prev";
+  if (kind !== "peer" || leavingTab === null || arrivingTab === null) return null;
+  const from = barOrder.indexOf(leavingTab);
+  const to = barOrder.indexOf(arrivingTab);
+  if (from < 0 || to < 0 || from === to) return null;
+  return to > from ? "next" : "prev";
+}
+
 /** Puts the mark for this move on the incoming document, so it is still there when the move is drawn. */
 export function carryNavigationKind(from: HTMLElement, to: HTMLElement): void {
   const kind = from.getAttribute(NAV_ATTRIBUTE);
@@ -167,10 +191,13 @@ export function installNavigation(): void {
   let generation = 0;
   // Where the leaving bar's pill was in its growth, until the new bar has taken it over.
   let carriedPill: number | null = null;
+  // The tab lit on the page being left, read before a press lights its destination on that page.
+  let leavingTab: string | null = null;
 
   document.addEventListener("astro:before-preparation", (event) => {
     isNavigating = true;
     generation += 1;
+    leavingTab = currentTab(document);
     const kind = navigationKind(event.from, event.to);
     document.documentElement.setAttribute(NAV_ATTRIBUTE, kind);
     const to = normalize(event.to.pathname);
@@ -202,6 +229,19 @@ export function installNavigation(): void {
     const opened = isBriefingPath(path) ? readOrigins()[path] : undefined;
     if (opened) lightTab(event.newDocument, opened);
     const root = document.documentElement;
+    // Which side the page arrives from. A key moves nothing: what a key starts is never animated.
+    if (root.dataset.input !== "keyboard") {
+      const bar = [...document.querySelectorAll<HTMLAnchorElement>(NAV_ITEM_SELECTOR)].map((item) =>
+        item.getAttribute("href"),
+      );
+      const direction = moveDirection(
+        navigationKind(event.from, event.to),
+        leavingTab,
+        currentTab(event.newDocument),
+        bar,
+      );
+      if (direction) event.newDocument.documentElement.setAttribute(DIRECTION_ATTRIBUTE, direction);
+    }
     // The same tab stays lit through the move (the Library, into one of its episodes): its pill has nothing to grow.
     const tab = currentTab(event.newDocument);
     const moved =
@@ -225,6 +265,7 @@ export function installNavigation(): void {
       if (mine !== generation) return;
       document.documentElement.removeAttribute(NAV_ATTRIBUTE);
       document.documentElement.removeAttribute(ARRIVED_ATTRIBUTE);
+      document.documentElement.removeAttribute(DIRECTION_ATTRIBUTE);
     };
     // The marks go once the pill has finished, not when the move's own settle time is up: that is
     // shorter than the growth, and removing the mark ends the animation where it stands.
