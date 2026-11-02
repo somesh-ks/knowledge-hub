@@ -610,3 +610,20 @@ it("a block's own count per source decides what it carries, whatever the model w
   const reasons = new Map(result.dropped.map((d) => [d.id, d.reason]));
   expect(reasons.get(second.item.id)).toBe("over_outlet");
 });
+
+describe("an on-demand briefing follows the one podcast structure (D191)", () => {
+  // The 2026-10-30 on-demand briefing fell to the built-in plan: no order, no rundown, no block prompts.
+  it("gives an on-demand briefing the daily's plan, not the built-in one", async () => {
+    const root = await mkdtemp(join(tmpdir(), "section-plan-"));
+    await mkdir(join(root, "config"), { recursive: true });
+    await writeFile(
+      join(root, "config/structure.json"),
+      JSON.stringify({ version: 1, profile: "designer" }),
+    );
+    const daily = await loadSectionPlan(root, "regular");
+    const onDemand = await loadSectionPlan(root, "on-demand");
+    expect(daily.order).not.toBeNull();
+    expect(onDemand.order).toEqual(daily.order);
+    expect(onDemand.rundown).toBe(daily.rundown);
+  });
+});

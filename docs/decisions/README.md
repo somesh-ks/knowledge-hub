@@ -168,7 +168,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D300 | Digests and audio in Blob, state in Postgres, weekly private snapshot of the config store | partly superseded by D311; steps 1 and 2a built, 2b in review |
 | D302 | Pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked | active |
 | D306 | A seasonal style may change more than tokens | amends D268 |
-| D308 | Haiku writes the first pass of each story, Sonnet repairs and backs it up | amends D181 |
+| D308 | Haiku writes the first pass of each story, Sonnet repairs and backs it up | amends D181; amended by D333 |
 | D309 | Player ⋮ menu: actions, speed screen, Save; Settings > Saved | amends D105, D127; supersedes D50's speed control |
 | D310 | Expressive is loud: a violet world, larger controls | amends D268 |
 | D311 | D300 amended: the config snapshot lives in a Neon table, not a private Blob store | supersedes D300 (snapshot clause) |
@@ -182,5 +182,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D323 | Regenerate is a full sheet like Catch up; Length has no Usual | amends D207 |
 | D324 | The Catch up script is written at medium effort | amends D181 |
 | D332 | A scheduled run waits at the gate when the last 24 hours cost over $5 | amends D139 |
+| D333 | The short-text Claude steps run Haiku medium, then Haiku high, then Sonnet medium | amends D308, D324; amended by D334 |
+| D334 | Every Claude step starts at Haiku medium, the podcast script included | amends D333 |
 
 ---
