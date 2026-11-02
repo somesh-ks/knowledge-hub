@@ -1,17 +1,37 @@
 import { Drawer } from "@base-ui/react/drawer";
-import { type ComponentProps, type ReactNode, useEffect, useRef } from "react";
 import {
-  drawerHeadClass,
+  type ComponentProps,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useSyncExternalStore,
+} from "react";
+import {
   drawerPanelClass,
   drawerPopupClass,
   drawerScrimClass,
   drawerViewportClass,
 } from "../design-system/drawer";
-import { sheetTitleClass } from "../design-system/sheet";
+import { sheetHeadClass, sheetTitleClass } from "../design-system/sheet";
 import Icon from "../player/ui/LazyIcon";
 import "../styles/drawer.css";
 
 type InitialFocus = ComponentProps<typeof Drawer.Popup>["initialFocus"];
+
+const WIDE = "(width >= 40rem)";
+
+/** True from 40rem, where the sheet is a panel at the right edge (drawer.css) and leaves sideways. */
+function useWide(): boolean {
+  return useSyncExternalStore(
+    (notify) => {
+      const query = matchMedia(WIDE);
+      query.addEventListener("change", notify);
+      return () => query.removeEventListener("change", notify);
+    },
+    () => matchMedia(WIDE).matches,
+    () => false,
+  );
+}
 
 /**
  * Browser Back closes an open sheet and stays on the page, as it does for the Create sheet
@@ -73,15 +93,17 @@ export default function SheetFrame({
   children,
 }: SheetFrameProps) {
   useBackCloses(open, () => onOpenChange(false));
+  const wide = useWide();
   const portal = (
     <Drawer.Portal>
       <Drawer.Backdrop className={drawerScrimClass()} data-handoff={handoff || undefined} />
       <Drawer.Viewport className={drawerViewportClass()}>
         <Drawer.Popup className={drawerPopupClass()} initialFocus={initialFocus}>
           {/* Content is what lets a mouse press land on a control inside: outside it, Base UI
-              treats the press as the start of a swipe and captures the pointer. */}
-          <Drawer.Content className={drawerPanelClass()}>
-            <div className={drawerHeadClass()}>
+              treats the press as the start of a swipe and captures the pointer. data-full: a
+              full-screen sheet keeps its Close on a phone (sheet.css, the D144 exception). */}
+          <Drawer.Content className={drawerPanelClass()} data-full="">
+            <div className={sheetHeadClass()}>
               <Drawer.Title className={sheetTitleClass()}>{title}</Drawer.Title>
               <Drawer.Close className="icon-btn press" aria-label={closeLabel}>
                 <Icon name="close" size="lg" />
@@ -94,7 +116,7 @@ export default function SheetFrame({
     </Drawer.Portal>
   );
   return (
-    <Drawer.Root open={open} onOpenChange={onOpenChange} swipeDirection="down">
+    <Drawer.Root open={open} onOpenChange={onOpenChange} swipeDirection={wide ? "right" : "down"}>
       {keyboardAware ? (
         <Drawer.VirtualKeyboardProvider>{portal}</Drawer.VirtualKeyboardProvider>
       ) : (

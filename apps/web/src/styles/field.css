@@ -35,8 +35,11 @@ textarea.field-input {
   }
 }
 
+/* The hint is a step smaller than what is typed (owner, 2026-11-02): the field keeps the 16px body
+   size, which is what stops iOS zooming in, and only the placeholder shrinks. */
 .field-input::placeholder {
   color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
   opacity: 1;
 }
 

@@ -639,6 +639,56 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Revisit if: a ghost control sits on a surface the container did not name (its hover then steps the page's tone), or the ripple moves onto a known fill.
 - Amends: D317.
 
+## D322: a Library card's menu opens its phone sheet with quick-action tiles
+
+- Date: 2026-11-02 (the owner, on a still of the card's sheet: it "used to have a quick action or shortcut section on the top", as the player's ⋮ sheet has)
+- Decision: the card menu's Download, Share and Add to queue sit in one `menu-tiles` row marked `data-fold`. On a phone's sheet they are the player's tiles, a glyph over a word on the container tone; from 40rem the row steps aside (`display: contents`) and they are three rows of one list, in that order. The rest (Regenerate, Stop sharing, Delete, and on Downloads Remove download) stay rows under the tiles. The rows are the same buttons with the same `data-menu` actions in both, so no script changes and no row is drawn twice.
+- Why: the sheet had a plain list while the player's own sheet led with tiles; the quick actions are what a finger comes for.
+- Cost: Share moves above Regenerate in the desktop popover. A tile word that wraps ("Remove download") makes the row taller for all three.
+- Rejected: two copies of the actions, one for the sheet and one for the popover (a script updating the first match would leave the other stale); rebuilding the player's React tiles in Astro.
+- Amends: D291.
+- Revisit if: a card gets a fourth quick action (the row would need a second line).
+
+## D325: list rows run edge to edge in the Menu, the select list and the picker
+
+- Date: 2026-11-02 (the owner: "on the menu row or the drop down list, I don't like the padding around the list. It should be full bleed, and the padding for the entire list can be just in the top and the bottom").
+- Decision: a list that opens from a control (the ⋮ Menu popover and phone sheet, the select's drawn list, the searchable picker) pads above and below only. Its rows span the full width, are square and touch (no gap), and take a 24px inline padding so a row's words keep their column. The list's own corner clips the first and last row. The phone sheet's header rule runs the full width. Quick-action tiles and a picker's search field are controls, not rows, and keep their 8px inset. Hover and press fills reach both edges.
+- Why: rows inset 8px with pill corners, as D275 and D291 drew them, read as cards floating in a card; a list should read as one surface.
+- Rejected: keeping the 8px inset with square rows (a gutter with no reason); rows with a bleed but a rounded hover (the hover bar must reach the edge to read as full bleed).
+- Cost: the concentric math of D275 no longer applies to rows, only to the picker's search field; the e2e checks for row concentricity became one check that rows span the list. Multi-select options and the emoji picker are unchanged for now.
+- Revisit if: multi-select or the emoji picker should follow, or a list needs a row the owner wants rounded.
+- Amends: D275, D291.
+
+## D326: the Avatar is a design-system part: one flat shape, a face, two tones
+
+- Date: 2026-11-02 (the owner rejected the gradient and letter avatar and approved the redrawn flat shapes, "great!"; the avatar and Settings thread asked for the part).
+- Decision: `Avatar` (`design-system/Avatar.astro`, `avatar.ts`, `styles/avatar.css`) draws one flat shape with a face and two tones: no letter, no gradient, no shadow, no blush. The shape registry (`AVATAR_SHAPES`) holds the outlines; the markup carries classes only and the stylesheet fills them from tokens, so the hue engine drives every shape in every mood. A mood supplies tokens and nothing else: `--av-body`, `--av-mark`, `--av-shapes` (the ids it offers), `--av-shape-default`, and `--av-d-dots`, `--av-d-spark`, `--av-d-speckle`, `--av-d-stitch` (inline or none). Default and Expressive offer cookie, flower, clover, sunny, burst, squircle, heart, pebble and star (cookie and flower first); Halloween offers pumpkin, ghost, bat, cat, skull and cauldron (pumpkin first). Expressive's body is the accent at lightness 0.72 and its face the accent at 0.24, both derived from the accent. Sizes: 2.5rem in the bar (3rem in Expressive), `lg` 4rem, `xl` 6rem. Reactions are CSS on `data-play` (hop, wiggle, look, blink, shake) and `data-state` (playing, working, offline) and none run under reduced motion; `data-face` changes the mouth. Signed in, the Google photo replaces the shape, round with an accent ring (`photo`).
+- Why: a letter and a gradient said "account", not "you"; a flat shape with a face is the app's character, scales to any mood by tokens, and costs no per-colour art file. One registry in code keeps the shapes in one place for the bar, the profile page and the Mood picker.
+- Rejected: one SVG file per colour and mood (the hue engine could not turn them); per-mood shape files (a new mood would need code); the reactions in script (CSS on two attributes is enough for the app to drive).
+- Cost: `avatar.css` derives Expressive's colours with `oklch(from ...)`, which the guard test now allows for the cover, the slider and the avatar. Eight duration tokens (`--duration-avatar-*`) outside the UI limit, which the token policy test exempts by name: they are a character playing, not an interface answering. The app side (the avatar in the bar, the event wiring, the photo, the profile page) is the avatar thread's app PR.
+- Revisit if: a mood needs a shape that cannot be drawn from the registry's parts, or the reactions need to loop.
+- Amends: none.
+
+## D328: the hue slider paints the spectrum and shows the picked colour
+
+- Date: 2026-11-02 (the owner chose option A from the hue slider options; the avatar and Settings thread asked for it in the design system).
+- Decision: `Slider` takes `hue`. The rail is 1rem thick and painted with the whole spectrum: 13 stops 30 degrees apart (the last at 355), each the style's own `--color-accent-action` at one lightness and chroma (`--hue-lightness`, `--hue-chroma`), turned to that hue. The thumb is 1.75rem, in the picked colour (the accent already carries the reader's `--hue-shift`, so the same lightness and chroma on it is the colour under the thumb), with the surface ring. Holding the thumb floats a 4rem round swatch of that colour above it, as an overlay that moves nothing, in the spring-pop scale and fade; reduced motion fades it at size. The input is wrapped in a field that carries `--range-fill` for the swatch's place. No script: the swatch shows on `:active`.
+- Why: a plain track gave no sign of what a turn would do. Building the rail from the style's accent keeps one place that knows a style's colour (D268, D319) and gives a new style or mood a working rail with no work; it also keeps the colour tokens' rule that nothing is typed.
+- Rejected: three options at the owner's side (a lens that replaces the thumb: hides the rail under the finger; a capsule with a droplet printing the turn: a number nobody needs); a swatch kept by script and a timer for keyboard use (the thumb's colour already changes under the key); a hue slider as its own component (it is a Slider with another rail).
+- Cost: `slider.css` derives colours with `oklch(from ...)`, which the guard test allowed for the cover only; it now allows the slider too. Six tokens (`--hue-rail`, `--hue-thumb`, `--hue-swatch`, `--hue-swatch-lift`, `--hue-lightness`, `--hue-chroma`). The container the slider sits in names its surface with `--color-focus-gap` so the ring parts the thumb from it.
+- Revisit if: a style's accent has too little chroma at one lightness for a rail to read (Default's blue does not turn, so the slider is off there), or keyboard use needs the swatch.
+- Amends: D315.
+
+## D329: a Menu sheet over one safe row has no title and no Close
+
+- Date: 2026-11-02 (the owner, leaning to skip the title and X when a bottom sheet holds one option; settled by the coordinator).
+- Decision: on a phone, a Menu sheet whose list holds exactly one visible row, and that row is not danger, shows that row alone: its header (title, subtitle, Close) is hidden by `menu.css`, a rule on the sheet, so no menu sets it. A row marked `hidden` does not count. The sheet keeps its title for a screen reader as the list's `aria-label`. A lone danger row keeps the header, so the sheet says what the row destroys; a sheet with tiles or two visible rows keeps it too. A swipe down or a tap on the scrim still closes it.
+- Why: the header (title, rule and Close) is taller than the one row it sits over, and a swipe or a tap outside already closes the sheet.
+- Rejected: dropping the header on every one-row sheet (a lone Delete would not say what it deletes); a prop on the Menu (every caller would need to know how many rows it will show, and rows toggle with `hidden`).
+- Cost: a sheet that gains a second row at run time grows a header, so the sheet's height steps once.
+- Revisit if: a one-row sheet is opened by mistake more than it is wanted (a lone Close would then earn its place).
+- Amends: D291.
+
 ## D336: a cover no longer flies between its card and the page's hero
 
 - Date: 2026-11-02 (the owner: "remove the morph animation as it doesnt make sense").
