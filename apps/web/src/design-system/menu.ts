@@ -12,11 +12,10 @@ export type MenuItemTone = "danger";
 export const MENU: Guidance & {
   tones: Record<MenuItemTone, Guidance & { label: string }>;
 } = {
-  summary:
-    "A short list of actions that opens from an icon button: a row each, with its glyph at the start.",
+  summary: "A short list of actions that opens from an icon button: a row each, its glyph first.",
   useWhen: [
-    "A card, a header or a row has more actions than it has room for: Download, Add to queue, Share, Delete.",
-    "Each action is one tap and needs no choice of its own.",
+    "A card, header or row has more actions than room: Download, Add to queue, Share, Delete.",
+    "Each action is one tap, with no choice of its own.",
   ],
   dontUseWhen: [
     {
@@ -24,7 +23,7 @@ export const MENU: Guidance & {
       instead: "Select",
     },
     {
-      when: "The only action is the one the button already names.",
+      when: "The only action is the one the button names.",
       instead: "Button",
     },
   ],
@@ -53,6 +52,9 @@ export const MENU_CLASSES: string[] = [
   "menu-sheet-items",
   "menu-item",
   "menu-item-danger",
+  "menu-tiles",
+  "menu-tile",
+  "menu-item-value",
 ];
 
 /** Classes the Menu replaced; none may be written again, in any app that draws the system. */
@@ -74,6 +76,21 @@ export const menuSheetClass = (): string => "menu-sheet";
 
 /** The class that marks a menu's body inside a sheet: it scrolls past 70% of the screen, and the sheet's pull to dismiss finds it. */
 export const menuBodyClass = (): string => "menu-sheet-items";
+
+/** The row of quick actions at the top of a menu: a few tiles, each a glyph over a word. */
+export const menuTilesClass = (): string => "menu-tiles";
+
+/** One tile of that row. It says a state with aria-pressed (Saved, Downloaded). */
+export const menuTileClass = (): string => "menu-tile";
+
+/** A row's state at its end, quiet: the speed a row opens ("1.00x"). */
+export const menuItemValueClass = (): string => "menu-item-value";
+
+/** Selects the tiles of a menu, for a host that moves focus between them and the rows. */
+export const MENU_TILE_SELECTOR = ".menu-tile";
+
+/** A menu with a second screen, such as Playback speed: its head carries Back (SHEET_BACK). */
+export const MENU_BACK = "data-menu-back";
 
 /** The class that draws a row of the menu. */
 export const menuItemClass = (tone?: MenuItemTone): string =>
