@@ -586,3 +586,12 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Revisit if: a normal week trips the ceiling, or the ledger gains the experiment and in-progress spend.
 - Amends: D139.
 
+## D333: the short-text Claude steps run Haiku medium, then Haiku high, then Sonnet medium
+
+- Date: 2026-11-02 (the owner: "Everything should run on Haiku medium. And then fall back as Haiku high, and then Sonnet medium"; the coordinator asked for the number).
+- Decision: in `config/models.json` the five steps that call Claude for short text (`story_writer`, `story_rewrite`, `headline_shorten`, `podcast_opening`, `podcast_rewrite`) have the chain Haiku medium, Haiku high, Sonnet medium, then Gemini. `podcast_script` stays on Sonnet high until a script run on Haiku has been heard. The router now keys its clients by effort as well as model; before, two entries on one model shared the first one's effort, so Haiku high would have run at medium. Amends D308 (voice and grounding rewrites move from Sonnet to this chain) and D324 (the on-demand catch-up script follows this chain too).
+- Why: Haiku medium scored best on voice and grounding at a sixteenth of Sonnet high's cost (D308). A later entry costs money only when an earlier one fails, so the ladder adds no spend on a good day.
+- Limit: the chain advances on a failed call (refusal, server error, timeout, output that is not valid JSON), not on a weak story. Haiku high therefore helps with a stalled or refused call; against an outage it fails the same way, and Sonnet or Gemini carries the run. Quality is judged after the write, by the voice and grounding checks, which call `story_rewrite`.
+- Revisit if: the ledger shows Haiku high or Sonnet serving more than a few percent of calls, or the first scheduled run's `lost_reasons` rise.
+- Amends: D308, D324.
+

@@ -145,7 +145,8 @@ export function createModelRouter(options: ModelRouterOptions): ModelRouter {
     const provider = providerOf(entry.family);
     const api = provider ? apiFor(provider) : null;
     if (!provider || !api) return null;
-    const key = `${step}|${entry.family}|${model}`;
+    // Effort is part of the key: Haiku at medium and Haiku at high are two entries of one chain.
+    const key = `${step}|${entry.family}|${model}|${entry.effort ?? ""}`;
     let client = clients.get(key);
     if (!client) {
       client = createJsonLlm({
