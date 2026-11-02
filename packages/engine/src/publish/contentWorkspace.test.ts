@@ -3,10 +3,11 @@ import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CONTENT_PREFIX, syncContent } from "./contentSync.js";
 import { checkout, fakeBlob } from "./contentTestKit.js";
-import { pullWorkspace, pushWorkspace } from "./contentWorkspace.js";
+import { BASELINE_PATH, pullWorkspace, pushWorkspace } from "./contentWorkspace.js";
 
 const NOW = new Date("2026-11-01T12:00:00Z");
 const DIGEST = (day: string) => `Digests/2026/11/2026-11-${day}-regular.md`;
+const EPISODE = (day: string) => `Podcasts/2026-11-${day}-episode.md`;
 
 type Store = ReturnType<typeof fakeBlob>;
 
@@ -82,7 +83,7 @@ describe("pushWorkspace", () => {
     await seed(store, { [DIGEST("01")]: "one" });
     const root = await job(store);
     await rm(join(root, "Digests"), { recursive: true });
-    await expect(pushWorkspace(input(store, root))).rejects.toThrow(/holds none now/);
+    await expect(pushWorkspace(input(store, root))).rejects.toThrow(/is gone now/);
     expect(stored(store)).toEqual([DIGEST("01")]);
   });
 
@@ -96,6 +97,28 @@ describe("pushWorkspace", () => {
     const result = await pushWorkspace(input(store, root));
     expect(result?.removed).toEqual([DIGEST("01")]);
     expect(stored(store)).toEqual([]);
+  });
+
+  // The bug: with one folder gone and the other still holding a file, the combined check saw
+  // content and let the push remove every digest.
+  it("refuses to push when one pulled folder is gone and the other is not", async () => {
+    const store = fakeBlob();
+    await seed(store, { [DIGEST("01")]: "one", [EPISODE("01")]: "ep" });
+    const root = await job(store);
+    await rm(join(root, "Digests"), { recursive: true });
+    await expect(pushWorkspace(input(store, root))).rejects.toThrow(/Digests\/ but it is gone/);
+    expect(Object.keys(store.manifest()).sort()).toEqual([DIGEST("01"), EPISODE("01")]);
+  });
+
+  // The bug: any failure to read the baseline looked like "never pulled", so the commit stage went on
+  // without saving the digest. Only a missing file may mean that.
+  it("fails, not skips, when the baseline cannot be read", async () => {
+    const store = fakeBlob();
+    await seed(store, { [DIGEST("01")]: "one" });
+    const root = await job(store);
+    await rm(join(root, BASELINE_PATH));
+    await mkdir(join(root, BASELINE_PATH), { recursive: true });
+    await expect(pushWorkspace(input(store, root))).rejects.toThrow();
   });
 
   // The bug: a job that never pulled (a laptop, a workflow without the step) holds no digests, so

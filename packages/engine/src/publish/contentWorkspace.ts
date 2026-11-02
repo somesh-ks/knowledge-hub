@@ -38,7 +38,14 @@ const inWorkspace = (path: string): boolean =>
   CONTENT_DIRS.some((dir) => path.startsWith(`${dir}/`));
 
 async function readBaseline(root: string): Promise<Baseline | null> {
-  const text = await readFile(join(root, BASELINE_PATH), "utf8").catch(() => null);
+  // Only a missing file means "never pulled"; any other failure must stop the caller, or a commit
+  // would go ahead without its digest being saved.
+  const text = await readFile(join(root, BASELINE_PATH), "utf8").catch(
+    (error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") return null;
+      throw error;
+    },
+  );
   if (text === null) return null;
   const parsed = JSON.parse(text) as Partial<Baseline>;
   if (parsed.version !== BASELINE_VERSION || parsed.files === undefined) {
@@ -116,22 +123,19 @@ export async function pushWorkspace(input: WorkspaceInput): Promise<DeltaResult 
   const remove = Object.keys(baseline.files).filter(
     (path) => inWorkspace(path) && !(path in hashes),
   );
-  // A checkout that pulled content and now holds none either lost its folders (a clean, a wrong
-  // directory), which sent as "delete everything" would empty the store, or deleted the last file
-  // there was, which is a normal request and leaves the folder behind.
-  const held = (paths: string[]): boolean => paths.some(inWorkspace);
-  if (held(Object.keys(baseline.files)) && !held(Object.keys(hashes))) {
-    const folders = await Promise.all(
-      CONTENT_DIRS.map((dir) =>
-        stat(join(input.root, dir)).then(
-          (info) => info.isDirectory(),
-          () => false,
-        ),
-      ),
+  // A folder that held pulled content and now holds none either vanished (a clean, a wrong
+  // directory), which sent as "delete everything in it" would empty the store of that folder, or
+  // lost its last file to a delete, which is a normal request and leaves the folder behind.
+  for (const dir of CONTENT_DIRS) {
+    const under = (paths: string[]): boolean => paths.some((path) => path.startsWith(`${dir}/`));
+    if (!under(Object.keys(baseline.files)) || under(Object.keys(hashes))) continue;
+    const there = await stat(join(input.root, dir)).then(
+      (info) => info.isDirectory(),
+      () => false,
     );
-    if (!folders.some(Boolean)) {
+    if (!there) {
       throw new Error(
-        "this checkout pulled content but holds none now; a push would delete it all from the store",
+        `this checkout pulled ${dir}/ but it is gone now; a push would delete it all from the store`,
       );
     }
   }
