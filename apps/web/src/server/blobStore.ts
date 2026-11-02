@@ -1,4 +1,3 @@
-import { BlobError, BlobNotFoundError, BlobPreconditionFailedError } from "@vercel/blob";
 import type { BlobCredentials } from "./config";
 import { BLOB_CALL_TIMEOUT_MS } from "./functionLimits.mjs";
 
@@ -137,10 +136,18 @@ function toEntry(blob: SdkBlob): BlobEntry {
 }
 
 /**
+ * The SDK's error classes, loaded on the first failed call. Every page reads the store through this
+ * module (readPublicText, a plain fetch) and never calls the SDK: importing it at the top added
+ * about 80 ms to each cold start of the function (2026-11-01).
+ */
+const sdkErrors = () => import("@vercel/blob");
+
+/**
  * A put that was told not to overwrite and found something there. The SDK has no error class for
  * it: the store answers with a plain error whose message says the blob already exists.
  */
-function isAlreadyThere(error: unknown): boolean {
+async function isAlreadyThere(error: unknown): Promise<boolean> {
+  const { BlobError } = await sdkErrors();
   return error instanceof BlobError && /already exists/i.test(error.message);
 }
 
@@ -260,7 +267,7 @@ export function createVercelBlobStore(
           ),
         );
       } catch (error) {
-        if (error instanceof BlobNotFoundError) return null;
+        if (error instanceof (await sdkErrors()).BlobNotFoundError) return null;
         throw error;
       }
     },
@@ -277,7 +284,7 @@ export function createVercelBlobStore(
         await write(pathname, body, options, false);
         return true;
       } catch (error) {
-        if (isAlreadyThere(error)) return false;
+        if (await isAlreadyThere(error)) return false;
         throw error;
       }
     },
@@ -303,6 +310,7 @@ export function createVercelBlobStore(
         );
         return true;
       } catch (error) {
+        const { BlobNotFoundError, BlobPreconditionFailedError } = await sdkErrors();
         if (error instanceof BlobPreconditionFailedError || error instanceof BlobNotFoundError) {
           return false;
         }

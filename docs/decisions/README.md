@@ -172,6 +172,8 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D310 | Expressive is loud: a violet world, larger controls | amends D268 |
 | D314 | Album art follows the style, drawn live from the month's colours | amends D110, D121; fulfils D306 |
 | D315 | The reader's hue turns a style's whole palette | amends D268, D310 |
+| D316 | Vercel skew protection stays off in the web build | active |
 | D317 | A state is an explicit OKLCH colour, never an alpha | amends D72, D238 |
+| D318 | Pages stay at the edge until their content changes, purged by tag | active |
 
 ---

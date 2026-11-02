@@ -113,6 +113,11 @@ describe("staticImports", () => {
       'import{a}from"./one.js";import"./two.js";export{b}from"./three.js";const lazy=()=>import("./lazy.js");';
     expect(staticImports(source).sort()).toEqual(["./one.js", "./three.js", "./two.js"]);
   });
+
+  it("reads imports that carry a deployment query, which once hid every import from the build", () => {
+    const source = 'import{a}from"./one.js?dpl=dpl_x";import"./two.js?dpl=dpl_x";';
+    expect(staticImports(source).sort()).toEqual(["./one.js", "./two.js"]);
+  });
 });
 
 describe("firstLoadReport", () => {
