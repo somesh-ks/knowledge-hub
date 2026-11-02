@@ -69,6 +69,9 @@ describe("function limits", () => {
       "utf8",
     );
     const wait = Number(/name: Purge the edge[\s\S]*?sleep (\d+)/.exec(workflow)?.[1]);
-    expect(wait).toBeGreaterThan(MANIFEST_TTL_MS / 1000 + FUNCTION_MAX_DURATION_S);
+    // The manifest is held from the end of its read, which may take BLOB_CALL_TIMEOUT_MS.
+    expect(wait).toBeGreaterThan(
+      MANIFEST_TTL_MS / 1000 + BLOB_CALL_TIMEOUT_MS / 1000 + FUNCTION_MAX_DURATION_S,
+    );
   });
 });
