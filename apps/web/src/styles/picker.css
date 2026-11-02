@@ -295,6 +295,8 @@
 
 .picker-input::placeholder {
   color: var(--color-on-surface-muted);
+  /* One hint size in every field (2026-11-02, field.css): a step under the typed text. */
+  font-size: var(--font-size-meta);
   opacity: 1;
 }
 
