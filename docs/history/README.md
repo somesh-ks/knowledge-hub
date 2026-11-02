@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-11-02 | [Player ⋮ menu](2026-11-02-player-menu.md) | A ⋮ menu replaces the speed button: tiles, a speed screen with stops, Save and Settings > Saved (D309) |
 | 2026-11-01 | [Performance audit](2026-11-01-performance-audit.md) | No skeleton; preload links back (D316), pages kept at the Stockholm edge until content changes (D318), shorter cold start |
 | 2026-11-01 | [Review rules](2026-11-01-review-rules.md) | Review by tier; CodeRabbit asked for once when a PR is ready, never per push (D292) |
 | 2026-11-01 | [Bottom bar press ripple](2026-11-01-bar-press-ripple.md) | A Ripple in the design system; the bar's tabs show the touch as a wave with the pill easing in beneath (D286) |
