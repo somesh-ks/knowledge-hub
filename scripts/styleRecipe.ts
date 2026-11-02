@@ -29,6 +29,8 @@ export interface NeutralRecipe {
   /** Surfaces and borders are `paper` in light and `ink` in dark; type is the other way round. */
   paper: Family;
   ink: Family;
+  /** The style draws its empty-state scenes (SCENE_ROLES) from the same two families. */
+  scene?: boolean;
 }
 
 const BELL_FLOOR = 0.15;
@@ -49,6 +51,8 @@ type Offset = { from: "page"; points: number } | { from: "zero"; points: number 
 interface RoleSpec {
   /** Which family colours the role in light and in dark. */
   family: Record<Mode, FamilyName>;
+  /** A scene role may carry more chroma than the page does (a glow); the gamut still caps it. */
+  boost?: number;
   /** Where its lightness sits: points from the page, or an absolute lightness. */
   light: Offset;
   dark: Offset;
@@ -59,6 +63,7 @@ const at = (points: number): Offset => ({ from: "zero", points });
 const GROUND: Record<Mode, FamilyName> = { light: "paper", dark: "ink" };
 const TYPE: Record<Mode, FamilyName> = { light: "ink", dark: "paper" };
 const MID: Record<Mode, FamilyName> = { light: "ink", dark: "ink" };
+const PAPER: Record<Mode, FamilyName> = { light: "paper", dark: "paper" };
 
 /**
  * The shared ladder. Numbers are the mean of what Expressive and Halloween wrote by hand: they sat
@@ -73,13 +78,30 @@ export const NEUTRAL_ROLES: Record<string, RoleSpec> = {
   "surface-inverse": { family: TYPE, light: at(24), dark: at(93) },
   "on-surface": { family: TYPE, light: at(20), dark: at(95) },
   "on-surface-reading": { family: TYPE, light: at(22), dark: at(92.5) },
-  "on-surface-muted": { family: MID, light: at(37), dark: at(79.5) },
-  "on-surface-subtle": { family: MID, light: at(47), dark: at(71.5) },
+  "on-surface-muted": { family: MID, light: at(34), dark: at(81.5) },
+  "on-surface-subtle": { family: MID, light: at(47), dark: at(73.5) },
   "on-surface-inverse": { family: GROUND, light: at(94), dark: at(20) },
   "border-hairline": { family: GROUND, light: page(-10.5), dark: page(13.5) },
   "border-control": { family: MID, light: at(53.5), dark: at(64) },
   track: { family: GROUND, light: page(-11), dark: page(16) },
   "track-strong": { family: GROUND, light: page(-27), dark: page(30) },
+};
+
+/**
+ * The places in a style's empty-state scenes that are not an accent colour (a bone, an iron gate, a
+ * stone, a glow). They sit on absolute lightness steps and borrow the style's two families, so a scene
+ * follows the page's hue and the reader's hue turn. Keys are token paths under `component.scene`.
+ */
+export const SCENE_ROLES: Record<string, RoleSpec> = {
+  glow: { family: PAPER, boost: 2.2, light: at(96), dark: at(95) },
+  bone: { family: PAPER, light: at(99), dark: at(93) },
+  "bone-shade": { family: GROUND, light: at(90), dark: at(78) },
+  iron: { family: MID, light: at(30), dark: at(36) },
+  "iron-shade": { family: MID, light: at(24), dark: at(28) },
+  "iron-lit": { family: MID, light: at(40), dark: at(46) },
+  stone: { family: MID, light: at(80), dark: at(46) },
+  "stone-shade": { family: MID, light: at(70), dark: at(36) },
+  "stone-lit": { family: MID, light: at(86), dark: at(54) },
 };
 
 export interface Tone {
@@ -90,12 +112,15 @@ export interface Tone {
 
 /** One role's colour in one mode: the ladder's lightness, the family's hue, the curve's chroma. */
 export function neutralTone(recipe: NeutralRecipe, role: string, mode: Mode): Tone {
-  const spec = NEUTRAL_ROLES[role];
+  const spec = NEUTRAL_ROLES[role] ?? SCENE_ROLES[role];
   if (!spec) throw new Error(`No neutral role ${role}`);
   const where = spec[mode];
   const l = (where.from === "page" ? recipe.depth[mode] + where.points : where.points) / 100;
   const family = recipe[spec.family[mode]];
-  const c = Math.min(targetChroma(family, l), gamutChroma(l, family.hue) * 0.97);
+  const c = Math.min(
+    targetChroma(family, l) * (spec.boost ?? 1),
+    gamutChroma(l, family.hue) * 0.97,
+  );
   return { l, c, h: family.hue };
 }
 
@@ -107,14 +132,33 @@ function trim(value: number): string {
   return String(Number(value.toFixed(4)));
 }
 
-/** Every neutral role of a style, light and dark, as the CSS colour a token holds. */
-export function neutralColors(recipe: NeutralRecipe): Record<string, Record<Mode, string>> {
+/**
+ * Every colour a recipe writes, light and dark, as the CSS colour a token holds. Keys are token paths:
+ * `semantic.color.<role>` for the neutral ladder, `component.scene.<role>` for the scene roles.
+ */
+export function recipeColors(recipe: NeutralRecipe): Record<string, Record<Mode, string>> {
   const out: Record<string, Record<Mode, string>> = {};
-  for (const role of Object.keys(NEUTRAL_ROLES)) {
-    out[role] = {
-      light: formatTone(neutralTone(recipe, role, "light")),
-      dark: formatTone(neutralTone(recipe, role, "dark")),
-    };
-  }
+  const add = (prefix: string, roles: Record<string, RoleSpec>): void => {
+    for (const role of Object.keys(roles)) {
+      out[`${prefix}.${role}`] = {
+        light: formatTone(neutralTone(recipe, role, "light")),
+        dark: formatTone(neutralTone(recipe, role, "dark")),
+      };
+    }
+  };
+  add("semantic.color", NEUTRAL_ROLES);
+  if (recipe.scene) add("component.scene", SCENE_ROLES);
   return out;
+}
+
+/** True when `value` is a recipe a style can carry: finite numbers, two families, two depths. */
+export function isRecipe(value: unknown): value is NeutralRecipe {
+  const num = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+  const family = (v: unknown): boolean =>
+    typeof v === "object" &&
+    v !== null &&
+    ["hue", "tint", "lift", "sharp"].every((k) => num((v as Record<string, unknown>)[k]));
+  const r = value as Record<string, unknown> | null;
+  const depth = r?.depth as Record<string, unknown> | undefined;
+  return !!r && !!depth && num(depth.light) && num(depth.dark) && family(r.paper) && family(r.ink);
 }

@@ -345,23 +345,22 @@ interface Tree {
   [key: string]: unknown;
 }
 
-/** The token document with one style's values laid over the base, as the page sees it under data-style. */
+/**
+ * The token document with one style's values laid over the base, as the page sees it under data-style.
+ * The overrides come from the parsed document, so the colours a recipe writes (D319) are in it too.
+ */
 function documentUnder(style: string): TokenDocument {
   const base = JSON.parse(readFileSync(resolve(ROOT, "tokens/tokens.json"), "utf8"));
-  const overlay = (into: Tree, from: Tree): void => {
-    for (const [key, node] of Object.entries(from)) {
-      if (key.startsWith("$")) continue;
-      const child = node as Tree;
-      if ("$value" in child) {
-        into[key] = {
-          ...(into[key] as Tree),
-          $value: child.$value,
-          ...(child.$extensions ? { $extensions: child.$extensions } : {}),
-        };
-      } else overlay(into[key] as Tree, child);
+  const found = doc.styles.find((candidate) => candidate.name === style);
+  if (!found) throw new Error(`No style ${style}`);
+  for (const { token, value, dark } of found.overrides) {
+    let node = base as Tree;
+    for (const key of token.path) node = node[key] as Tree;
+    node.$value = value;
+    if (dark !== undefined) {
+      node.$extensions = { singularity: { mode: { dark } } };
     }
-  };
-  overlay(base, base.styles[style]);
+  }
   return parseTokens({ ...base, styles: {} });
 }
 

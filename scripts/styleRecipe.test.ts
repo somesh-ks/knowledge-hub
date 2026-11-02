@@ -1,27 +1,22 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { gamutChroma } from "./colorRamp.js";
 import {
   NEUTRAL_ROLES,
   type NeutralRecipe,
-  neutralColors,
   neutralTone,
+  recipeColors,
   targetChroma,
 } from "./styleRecipe.js";
 
-// Fitted by scripts/fitStyleRecipe.ts against the colours Expressive and Halloween wrote by hand;
-// they move into tokens.json when a style is converted to a recipe (D319).
-const FITTED: Record<string, NeutralRecipe> = {
-  expressive: {
-    depth: { light: 96, dark: 19 },
-    paper: { hue: 292, tint: 0.07, lift: 0.06, sharp: 1 },
-    ink: { hue: 292, tint: 0.07, lift: 0.06, sharp: 1 },
-  },
-  halloween: {
-    depth: { light: 95.5, dark: 14 },
-    paper: { hue: 82, tint: 0.04, lift: 0.04, sharp: 0.6 },
-    ink: { hue: 302, tint: 0.04, lift: 0.04, sharp: 0.6 },
-  },
-};
+// The recipes a style carries in tokens.json (D319), read where the build reads them.
+const raw = JSON.parse(readFileSync(resolve(import.meta.dirname, "../tokens/tokens.json"), "utf8"));
+const FITTED: Record<string, NeutralRecipe> = Object.fromEntries(
+  Object.entries(raw.styles as Record<string, { $recipe?: NeutralRecipe }>)
+    .filter(([, style]) => style.$recipe)
+    .map(([name, style]) => [name, style.$recipe as NeutralRecipe]),
+);
 const MODES = ["light", "dark"] as const;
 // The reader's hue (D315) turns a style by any of these.
 const TURNS = Array.from({ length: 72 }, (_, i) => i * 5);
@@ -64,8 +59,28 @@ describe.each(Object.keys(FITTED))("the neutral recipe of %s (D319)", (name) => 
   });
 
   it("writes oklch literals a token can hold", () => {
-    for (const roles of Object.values(neutralColors(recipe))) {
+    for (const roles of Object.values(recipeColors(recipe))) {
       for (const mode of MODES) expect(roles[mode]).toMatch(/^oklch\([\d.]+% [\d.]+ [\d.]+\)$/);
     }
+  });
+});
+
+// A colour typed into a style is a guess the contrast sweep can only judge after the fact, and it
+// does not turn with the recipe. Styles hold recipes and ramp steps; shadows keep their literals.
+describe("styles hold no typed colours (D319)", () => {
+  it("writes every style colour as a recipe, a ramp step or an alias", () => {
+    const typed: string[] = [];
+    const walk = (node: unknown, path: string[]): void => {
+      if (typeof node === "string") {
+        if (/^oklch\(|^#|^rgb/.test(node) && !path.includes("shadow")) typed.push(path.join("."));
+        return;
+      }
+      if (typeof node !== "object" || node === null) return;
+      for (const [key, child] of Object.entries(node)) {
+        if (key !== "$recipe") walk(child, [...path, key]);
+      }
+    };
+    walk(raw.styles, []);
+    expect(typed).toEqual([]);
   });
 });
