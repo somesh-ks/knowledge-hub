@@ -1,7 +1,10 @@
 /*
- * The Drawer: the Base UI islands' modal (Generate, the Settings sheet). A bottom sheet on a phone,
- * resting on the screen's edge, and a centred dialog from 40rem. Drawn by sheets/SheetFrame.tsx from
- * design-system/drawer.ts. A panel that slides in from the right is a Sheet (sheet.css).
+ * The Drawer: the Base UI islands' modal (Regenerate). Catch up's shape for a React form: the whole
+ * screen on a phone, a panel at the right from 40rem, the Sheet's header row (.sheet-head) and the
+ * form's one button resting at the foot, on the page's own surface so the tonal controls read as
+ * they do in Catch up (sheet.css). There is no bottom-sheet or centred-dialog Drawer (2026-11-02):
+ * it had square corners and no visible Close on a phone, against D291 and D144, and nothing drew it.
+ * Drawn by sheets/SheetFrame.tsx from design-system/drawer.ts.
  *
  * Reads semantic and component tokens only. Base UI's Drawer supplies the states as attributes
  * (data-starting-style, data-ending-style, data-swiping) and the swipe values as custom
@@ -65,11 +68,15 @@
 }
 
 .drawer-popup {
-  --color-focus-gap: var(--color-surface-raised);
-  --ghost-hover: var(--color-surface-raised-hover);
-  --ghost-pressed: var(--color-surface-raised-pressed);
+  --sheet-bg: var(--color-surface);
+  --sheet-bg-hover: var(--color-surface-hover);
+  --sheet-bg-pressed: var(--color-surface-pressed);
+  --ghost-hover: var(--sheet-bg-hover);
+  --ghost-pressed: var(--sheet-bg-pressed);
+  --color-focus-gap: var(--sheet-bg);
   position: relative;
-  width: min(100%, var(--layout-column));
+  width: 100%;
+  height: 100dvh;
   color: var(--color-on-surface);
   outline: none;
   pointer-events: auto;
@@ -79,28 +86,18 @@
     opacity var(--duration-state) var(--ease-out);
 }
 
-/* A sheet can be pulled a little above its resting place. Its surface continues below the screen
-   edge, so that pull never opens a gap under it. */
-.drawer-popup::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  inset-block-start: 100%;
-  height: 100vh;
-  background: var(--sheet-bg);
-}
-
-/* A bottom sheet slides on transform alone and stays opaque (2026-11-02): fading it too let the page
-   show through it for the first 100ms. The scrim carries the fade; the centred dialog below and
-   reduced motion fade the surface. */
+/* It slides on transform alone and stays opaque (2026-11-02): a fade over the slide read as the sheet
+   vanishing, and let the page show through it for the first 100ms. The scrim carries the fade. */
 .drawer-popup[data-starting-style],
 .drawer-popup[data-ending-style] {
   transform: translateY(100%);
 }
 
+/* Out, it takes the same time and curve as a Catch up leaving after a start (sheet.css). */
 .drawer-popup[data-ending-style] {
   transition-duration:
-    calc(var(--duration-sheet-out) * var(--drawer-swipe-strength, 1)), var(--duration-state);
+    calc(var(--duration-sheet-in) * var(--drawer-swipe-strength, 1)), var(--duration-state);
+  transition-timing-function: var(--ease-in-out), var(--ease-out);
 }
 
 .drawer-popup[data-swiping] {
@@ -123,75 +120,34 @@
 }
 
 .drawer-panel {
-  max-height: calc(var(--sheet-max-height) - var(--space-4));
-  /* The last control stays clear of the home indicator. */
-  padding: var(--space-2) var(--sheet-padding) max(var(--sheet-padding), var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--sheet-bg);
+}
+
+/* The form scrolls under the header; its button stays at the foot of the sheet. */
+.drawer-panel > .sheet-form {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  padding-inline: max(var(--space-6), var(--safe-left)) max(var(--space-6), var(--safe-right));
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  border-radius: 0;
+}
+
+.drawer-panel > .sheet-form > .sheet-actions {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: var(--z-raised);
+  margin-block-start: auto;
+  padding-block: var(--space-4) max(var(--space-6), var(--safe-bottom));
   background: var(--sheet-bg);
-  box-shadow: var(--sheet-shadow);
-}
-
-/* From 40rem a sheet is a centered dialog. Modals stay centered and scale in. */
-@media (width >= 40rem) {
-  .drawer-viewport {
-    align-items: center;
-  }
-
-  .drawer-popup {
-    width: min(100%, var(--layout-dialog));
-    transform: scale(1);
-  }
-
-  .drawer-popup[data-starting-style],
-  .drawer-popup[data-ending-style] {
-    opacity: 0;
-    transform: scale(var(--scale-enter));
-  }
-
-  .drawer-panel {
-    max-height: var(--sheet-max-height);
-    padding: var(--sheet-padding);
-    /* A centred dialog is not a bottom sheet: it keeps its corners. */
-    border-radius: var(--sheet-radius);
-  }
-
-  .drawer-popup::after {
-    display: none;
-  }
-}
-
-/* ------------------------------------------------------------------ head */
-
-/* The title in the heading role and a round close control (.icon-btn) at the end. */
-.drawer-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  min-height: var(--size-touch);
-  margin-block-end: var(--space-2);
-  padding-inline-start: var(--space-2);
-}
-
-/* On a phone a sheet has no visible Close (owner, 2026-10-21, D144): it is pulled down or tapped away.
-   The button stays for a keyboard and a screen reader, as the .sr-only utility. Doubled class so
-   it outranks the shared .icon-btn sizing wherever that loads. */
-@media (width < 40rem) {
-  .drawer-head > .icon-btn.icon-btn {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    min-width: 0;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-    border: 0;
-  }
+  box-shadow: 0 0 0 100vmax var(--sheet-bg);
+  clip-path: inset(0 -100vmax);
 }
 
 /* ------------------------------------------------------------------ chips on the panel */
@@ -210,82 +166,14 @@
   }
 }
 
-/* ------------------------------------------------------------------ a full Drawer */
-
-/*
- * A Drawer drawn full (SheetFrame `full`; Regenerate) is Catch up's shape for a React form: the whole
- * screen on a phone, a panel at the right from 40rem, the Sheet's header row (.sheet-head) and the
- * form's one button resting at the foot, on the page's own surface so the tonal controls read as
- * they do in Catch up (sheet.css). It slides and does not fade: a fade over the slide read as the
- * sheet vanishing. Reads the same tokens as dialog.sheet-side.
- */
-.drawer-popup[data-full] {
-  --sheet-bg: var(--color-surface);
-  --sheet-bg-hover: var(--color-surface-hover);
-  --sheet-bg-pressed: var(--color-surface-pressed);
-  --ghost-hover: var(--sheet-bg-hover);
-  --ghost-pressed: var(--sheet-bg-pressed);
-  --color-focus-gap: var(--sheet-bg);
-  width: 100%;
-  height: 100dvh;
-}
-
-.drawer-popup[data-full]::after {
-  display: none;
-}
-
-.drawer-popup[data-full][data-starting-style],
-.drawer-popup[data-full][data-ending-style] {
-  opacity: 1;
-}
-
-/* Out, it takes the same time and curve as a Catch up leaving after a start (sheet.css). */
-.drawer-popup[data-full][data-ending-style] {
-  transition-duration:
-    calc(var(--duration-sheet-in) * var(--drawer-swipe-strength, 1)), var(--duration-state);
-  transition-timing-function: var(--ease-in-out), var(--ease-out);
-}
-
-.drawer-panel[data-full] {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  max-height: none;
-  padding: 0;
-  overflow: hidden;
-  box-shadow: none;
-}
-
-/* The form scrolls under the header; its button stays at the foot of the sheet. */
-.drawer-panel[data-full] > .sheet-form {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  min-height: 0;
-  padding-inline: max(var(--space-6), var(--safe-left)) max(var(--space-6), var(--safe-right));
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-}
-
-.drawer-panel[data-full] > .sheet-form > .sheet-actions {
-  position: sticky;
-  inset-block-end: 0;
-  z-index: var(--z-raised);
-  margin-block-start: auto;
-  padding-block: var(--space-4) max(var(--space-6), var(--safe-bottom));
-  background: var(--sheet-bg);
-  box-shadow: 0 0 0 100vmax var(--sheet-bg);
-  clip-path: inset(0 -100vmax);
-}
-
+/* From 40rem it is a panel at the right edge, full height, with round corners on its near side. */
 @media (width >= 40rem) {
-  .drawer-viewport[data-full] {
+  .drawer-viewport {
     justify-content: flex-end;
     align-items: stretch;
   }
 
-  .drawer-popup[data-full] {
+  .drawer-popup {
     width: min(32rem, calc(100% - var(--space-12)));
     border-start-start-radius: var(--sheet-radius);
     border-end-start-radius: var(--sheet-radius);
@@ -294,18 +182,12 @@
     transform: translateX(var(--drawer-swipe-movement-x, 0px));
   }
 
-  .drawer-popup[data-full][data-starting-style],
-  .drawer-popup[data-full][data-ending-style] {
+  .drawer-popup[data-starting-style],
+  .drawer-popup[data-ending-style] {
     transform: translateX(100%);
   }
 
-  .drawer-panel[data-full] {
-    max-height: none;
-    padding: 0;
-    border-radius: 0;
-  }
-
-  .drawer-panel[data-full] > .sheet-form {
+  .drawer-panel > .sheet-form {
     padding-inline: var(--space-8);
   }
 }
@@ -314,11 +196,6 @@
 @media (prefers-reduced-motion: reduce) {
   .drawer-popup[data-starting-style],
   .drawer-popup[data-ending-style] {
-    opacity: 0;
-  }
-
-  .drawer-popup[data-full][data-starting-style],
-  .drawer-popup[data-full][data-ending-style] {
     opacity: 0;
     transform: none;
   }

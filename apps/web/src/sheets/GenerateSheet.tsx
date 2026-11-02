@@ -162,7 +162,6 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
       handoff={handoff}
       title="Regenerate"
       closeLabel="Close"
-      full
       keyboardAware
       // A keyboard or a mouse lands in the note. A touch lands on the sheet, so the keyboard does
       // not cover half of it before the listener has read it. A pick in the More menu opens this

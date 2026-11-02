@@ -858,20 +858,19 @@
       "id": "drawer",
       "name": "Drawer",
       "kind": "container",
-      "summary": "The island modal: a bottom sheet on a phone, a centred dialog from 40rem, pulled down to dismiss.",
+      "summary": "The island modal for a form: the whole screen on a phone, a panel at the right from 40rem, with Close in the header.",
       "classes": [
         "drawer-scrim",
         "drawer-viewport",
         "drawer-popup",
-        "drawer-panel",
-        "drawer-head"
+        "drawer-panel"
       ],
       "files": [
         "sheets/SheetFrame.tsx",
         "design-system/drawer.ts"
       ],
       "when": [
-        "A React island opens a form over the page, as Generate and Settings do"
+        "A React island opens a form over the page, as Regenerate does"
       ],
       "not": [
         {
@@ -891,7 +890,7 @@
       ],
       "markup": "<SheetFrame open={open} onOpenChange={setOpen} title=\"Create\" closeLabel=\"Close\">...</SheetFrame>",
       "rules": [
-        "Mount SheetFrame; it draws the scrim, viewport, popup, panel and head from drawer.ts.",
+        "Mount SheetFrame; it draws the scrim, viewport, popup and panel from drawer.ts, and the Sheet's head.",
         "Motion uses --duration-sheet-in, --duration-sheet-out and --ease-drawer."
       ],
       "styles": [
@@ -905,19 +904,11 @@
         "--color-surface",
         "--color-surface-hover",
         "--color-surface-pressed",
-        "--color-surface-raised",
-        "--color-surface-raised-hover",
-        "--color-surface-raised-pressed",
-        "--layout-column",
-        "--layout-dialog",
         "--sheet-bg",
         "--sheet-bg-hover",
         "--sheet-bg-pressed",
-        "--sheet-max-height",
-        "--sheet-padding",
         "--sheet-radius",
-        "--sheet-shadow",
-        "--size-touch"
+        "--sheet-shadow"
       ]
     },
     {
