@@ -423,6 +423,42 @@ test.describe("a touch on a tab shows at once and goes on across the move", () =
 });
 
 test.describe("a podcast opened from a tab keeps that tab lit", () => {
+  // Owner, 2026-11-02: opening a podcast from the Library, "the nav bar goes from down to up again".
+  // The page settles in from the end side (8px, view-transitions.css); that travelling box stuck out
+  // past the viewport, a phone's browser took the page for wider than the screen and laid out a taller
+  // viewport for the length of the settle, so the fixed bar sat lower and came back up.
+  test("the bottom bar holds still while a podcast opens from the Library", async ({ page }) => {
+    await openWarm(page);
+    await item(page, "/library").click();
+    await expect(heading(page)).toHaveText("Library");
+    await expect(page.locator("html")).not.toHaveAttribute("data-nav-arrived");
+    await page.evaluate(() => {
+      const seen = { bottom: new Set<number>(), width: new Set<number>() };
+      Object.assign(window, { barSeen: seen });
+      const watch = (): void => {
+        const nav = document.querySelector(".app-nav");
+        if (nav) seen.bottom.add(Math.round(nav.getBoundingClientRect().bottom));
+        seen.width.add(innerWidth);
+        requestAnimationFrame(watch);
+      };
+      watch();
+    });
+    await page.locator("a[href^='/d/']").first().click();
+    await expect(page.locator("main[data-latest='true']")).toBeVisible();
+    // The page has finished settling.
+    await expect
+      .poll(() => page.locator(".shell").evaluate((shell) => shell.getAnimations().length))
+      .toBe(0);
+    const seen = await page.evaluate(() => {
+      const { bottom, width } = (
+        window as unknown as { barSeen: { bottom: Set<number>; width: Set<number> } }
+      ).barSeen;
+      return { bottom: [...bottom], width: [...width] };
+    });
+    expect(seen.bottom, "the bar's bottom edge moved").toHaveLength(1);
+    expect(seen.width, "the viewport was laid out wider than the screen").toHaveLength(1);
+  });
+
   // Owner, 2026-11-02: the Library's card for the latest podcast lit Latest, and the bar's pill grew
   // again under it. The tab says where you are in the app; the podcast is the same from any of them.
   test("the latest podcast, opened from the Library, stays under the Library", async ({ page }) => {
