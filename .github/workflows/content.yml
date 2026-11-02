@@ -59,16 +59,17 @@ jobs:
           fi
 
       # D318: the pages keep their edge copy until the content changes, so a sync empties it. After
-      # the function instances' 30 s manifest window (MANIFEST_TTL_MS in apps/web), so no instance
-      # puts the old page back, and before Notify, so a tap on the message opens the new page. A
-      # failed purge never fails the sync: the pages then refresh on the first visit after 5 minutes.
+      # the function instances' 30 s manifest window (MANIFEST_TTL_MS in apps/web) plus the longest a
+      # render may run (20 s, FUNCTION_MAX_DURATION_S), so no request puts the old page back, and
+      # before Notify, so a tap on the message opens the new page. A failed purge never fails the
+      # sync: the pages then refresh on the first visit after 5 minutes.
       # The Vercel token stays in this step, out of reach of the packages the engine loads (SEC-03).
       - name: Purge the edge
         if: steps.sync.outputs.changed == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          sleep 35
+          sleep 55
           mkdir -p "$RUNNER_TEMP/vercel"
           cd "$RUNNER_TEMP/vercel"
           npx --yes vercel@65.8.0 cache dangerously-delete --tag content \

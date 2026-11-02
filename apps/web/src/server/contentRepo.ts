@@ -1,4 +1,4 @@
-import { dangerouslyDeleteByTag, waitUntil } from "@vercel/functions";
+import { dangerouslyDeleteByTag } from "@vercel/functions";
 import type { ContentFiles } from "../lib/contentFiles";
 import { loadSite, readSiteFrom, type Site } from "../lib/site";
 import { type BlobFetch, readPublicText } from "./blobStore";
@@ -45,18 +45,12 @@ export function keepAtEdge(headers: Headers): void {
  * Deletes the edge's copies of every content page. Delete, not invalidate: an invalidated page is
  * answered once more from its old copy, which would show a deleted episode again. Every instance
  * holds the manifest and the tombstones for MANIFEST_TTL_MS, so a request inside that window can put
- * the old page back; a second delete after the window removes it. Outside Vercel both do nothing,
- * and neither ever fails the caller.
+ * the old page back. The second delete is not timed here (waitUntil ends with the function, after
+ * FUNCTION_MAX_DURATION_S): the delete starts the podcast run, whose content sync purges again past
+ * that window (content.yml). Outside Vercel it does nothing, and it never fails the caller.
  */
 export function purgeContentAtEdge(): Promise<void> {
-  const remove = () => dangerouslyDeleteByTag(CONTENT_CACHE_TAG).catch(() => undefined);
-  const again = new Promise((resolve) => setTimeout(resolve, MANIFEST_TTL_MS + 5_000)).then(remove);
-  try {
-    waitUntil(again);
-  } catch {
-    // Not on Vercel: the timer runs on its own.
-  }
-  return remove();
+  return dangerouslyDeleteByTag(CONTENT_CACHE_TAG).catch(() => undefined);
 }
 const MANIFEST_PATH = "content/manifest.json";
 /** Files a page can do without: the reader that asks for one handles its absence. */
