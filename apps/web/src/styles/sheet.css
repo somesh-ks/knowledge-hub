@@ -55,23 +55,6 @@ dialog.sheet-side:not([open]) {
   transform: translateY(100%);
 }
 
-/* A sheet that started a run (createSheet.ts sets data-started) leaves the way a card goes to the
-   queue under it: it slides the whole way on the sheet-in time, on a curve that is still moving at
-   the end of it, and fades only in the last of it. The shared exit fades in 200ms over a drawer
-   curve that is done in 120ms, which read as the sheet vanishing. */
-dialog.sheet-side[data-started]:not([open]) {
-  transition:
-    transform var(--duration-sheet-in) var(--ease-in-out),
-    opacity var(--duration-exit) var(--ease-out)
-    calc(var(--duration-sheet-in) - var(--duration-exit)),
-    overlay var(--duration-sheet-in) allow-discrete,
-    display var(--duration-sheet-in) allow-discrete;
-}
-
-dialog.sheet-side[data-started]:not([open])::backdrop {
-  transition-duration: var(--duration-sheet-in), var(--duration-sheet-in), var(--duration-sheet-in);
-}
-
 @starting-style {
   dialog.sheet-side[open] {
     opacity: 0;
@@ -168,11 +151,9 @@ dialog.sheet-side[data-scrolled] .sheet-head {
    it outranks the shared .icon-btn sizing wherever that loads. A full-screen sheet (dialog.sheet-side:
    New episode, the topic and source panel, Regenerate) is the exception and keeps its Close at the
    row's end, as on a desktop (owner, 2026-10-22): with no page left showing, there is nothing to tap
-   away to (D152), as is a Drawer drawn full (Regenerate), as is the small share dialog (2026-10-25), which has no sheet to pull. The sheets that are popovers (the Menu, its select sheets, the emoji picker) show their Close (D291). */
+   away to (D152), as is the small share dialog (2026-10-25), which has no sheet to pull. The sheets that are popovers (the Menu, its select sheets, the emoji picker) show their Close (D291). */
 @media (width < 40rem) {
-  :not(dialog.sheet-side, dialog.share-dialog, [popover], [data-full])
-    > .sheet-head
-    > .icon-btn.icon-btn {
+  :not(dialog.sheet-side, dialog.share-dialog, [popover]) > .sheet-head > .icon-btn.icon-btn {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -376,10 +357,6 @@ dialog.sheet-side .create-submit > .button-filled {
   dialog.sheet-side::backdrop,
   dialog.sheet-side[open]::backdrop {
     transition-duration: var(--duration-state);
-  }
-
-  dialog.sheet-side[data-started]:not([open]) {
-    transition-delay: 0s;
   }
 
   @starting-style {
