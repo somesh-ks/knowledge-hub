@@ -62,7 +62,7 @@ function mount(picker: HTMLElement): () => void {
     if (!edit || !panel) return;
     const open = edit.getAttribute("aria-expanded") !== "true";
     edit.setAttribute("aria-expanded", String(open));
-    edit.setAttribute("aria-label", open ? "Done" : "Change avatar");
+    edit.setAttribute("aria-label", open ? "Done" : "Change picture");
     panel.hidden = !open;
   };
   edit?.addEventListener("click", onEdit);
