@@ -7,7 +7,6 @@
 
 import { hasSaved, storeOn } from "../lib/savedKey";
 import { activeSummary } from "../lib/settingsSummary";
-import { drawStop } from "../lib/weightStops";
 import { warmWhenIdle } from "./idle";
 import { installMultiSelect } from "./multiSelect";
 
@@ -108,11 +107,6 @@ function mount(root: HTMLElement): void {
   }
 
   root.addEventListener("input", (event) => {
-    const target = event.target as HTMLInputElement;
-    if (target.matches("[data-weight], [data-mix]")) {
-      // The fill and the stop's name follow the thumb; recording the change waits for the editor.
-      drawStop(target);
-    }
     forward(event);
   });
 

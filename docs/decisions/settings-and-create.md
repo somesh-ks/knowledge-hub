@@ -387,4 +387,5 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Rejected: removing the structure from the engine as well (a pipeline change that alters every episode, wanted only on the owner's word); a new row for the two settings (the owner named the existing one).
 - Context changed: the owner no longer wants to shape episodes from the app.
 - Revisit if: he wants control over what an episode holds again; then the editor comes back from git history (`structureEditor.ts`, `structureView.ts`, `structurePage.ts` before this change).
+- Also: D335 rejected a Sign in button with no sign-in behind it; the owner later asked for a dummy Log in button under the avatar on the profile page, until Google auth exists, so the profile has one.
 - Supersedes: D170, D182 and D191 on the app side. Amends: D335.

@@ -52,7 +52,7 @@ Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reason
 
 ## Code
 - `apps/web/src/pages/settings.astro`, `settings/about.astro`, `lib/changelog.ts`
-- `apps/web/src/pages/settings/categories.astro`, `categories/[id].astro`, `preferences.astro`, `voice.astro`
+- `apps/web/src/pages/settings/categories.astro`, `categories/[id].astro`, `preferences.astro`, `appearance.astro`, `sound.astro`, `haptics.astro`; `pages/profile.astro`, `profilePage.ts`, `accountAvatar.ts`
 - `apps/web/src/scripts/autosave.ts`, `pageLeaving.ts`, `lib/outbox.ts`
 - `apps/web/src/scripts/settingsPage.ts`
 - `apps/web/src/pages/api/config.ts`, `server/configView.ts`

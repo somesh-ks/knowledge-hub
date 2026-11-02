@@ -145,7 +145,11 @@ export function installAccountAvatar(): void {
   // The router brings a fresh document with the server's cookie: drawn before it is first painted.
   document.addEventListener("astro:after-swap", sync);
   document.addEventListener("astro:page-load", sync);
-  new MutationObserver(sync).observe(document.documentElement, {
+  // A new mood changes the shapes; the other attributes change only what the avatar is doing.
+  new MutationObserver((changes) => {
+    if (changes.some((change) => change.attributeName === "data-style")) draw();
+    setState();
+  }).observe(document.documentElement, {
     attributes: true,
     attributeFilter: ["data-style", "data-offline", "data-run", "data-player-state"],
   });

@@ -61,7 +61,7 @@ const MOODS = [
           {/* Turns the chosen mood's colours, the covers, the avatar and the header light together (D315,
                D328). Default has no hue to turn, so settingsPage.ts hides the row there. */}
           {MOODS.length > 1 && (
-            <div class="settings-hue" data-hue-row hidden>
+            <div class="settings-hue" data-hue-row>
               <label class="settings-label" for="settings-hue">Hue</label>
               <Slider hue id="settings-hue" name="hue" min="0" max="355" step="5" value="0" />
             </div>

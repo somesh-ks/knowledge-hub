@@ -122,7 +122,6 @@ function mountSettings(root: HTMLElement): () => void {
   // The index's Haptics row: hidden where the device has no motor, and it says On or Off.
   const hapticsRow = root.querySelector<HTMLElement>("[data-haptics-row]");
   const hapticsHint = root.querySelector<HTMLElement>("[data-haptics-hint]");
-  const hueRow = root.querySelector<HTMLElement>("[data-hue-row]");
   const volume = root.querySelector<HTMLInputElement>('input[name="volume"]');
   const autoplay = root.querySelector<HTMLInputElement>('input[name="autoplay"]');
   const hint = root.querySelector<HTMLElement>("[data-install-hint]");
@@ -150,8 +149,8 @@ function mountSettings(root: HTMLElement): () => void {
     if (hue) {
       const turn = preferences.get().hue;
       hue.value = String(turn);
-      // A mood is what has a hue to turn: Default stays blue, so its row is not shown (D328).
-      if (hueRow) hueRow.hidden = !style || style.value === "default";
+      // A mood is what has a hue to turn: Default stays blue, so its row is not shown (D328; the
+      // stylesheet hides it from the root's data-style, which is absent for Default).
       hue.setAttribute("aria-valuetext", `${turn} degrees`);
       // The field around the slider draws the swatch from this; WebKit has no filled-part pseudo-element.
       (hue.parentElement ?? hue).style.setProperty("--range-fill", `${(turn / HUE_MAX) * 100}%`);

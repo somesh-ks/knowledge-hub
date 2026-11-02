@@ -10,7 +10,8 @@ export function buildDay(): string {
 
 /** The same day, short, for the foot of Settings: "2 Nov, 2026". */
 export function buildDayShort(): string {
-  const parts = new Intl.DateTimeFormat("en-GB", {
+  // en-US: its short months are three letters in every ICU ("Sep"), where en-GB's newer data says "Sept".
+  const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "Europe/Stockholm",
     day: "numeric",
     month: "short",
