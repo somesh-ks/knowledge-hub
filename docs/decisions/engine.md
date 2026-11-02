@@ -615,7 +615,7 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Revisit if: a Haiku script is heard and judged worse by ear, or `length_share` falls as above.
 - Amends: D333.
 
-## D341: a Firecrawl listing is read free first and scraped only when its links moved
+## D342: a Firecrawl listing is read free first and scraped only when its links moved
 
 - Date: 2026-11-02 (the owner chose "free check first" over a Firecrawl monitor).
 - Decision: before a scrape, a run fetches the listing page directly and fingerprints its article links (sorted, query and fragment cut). The same fingerprint as the last scrape, from the last 7 days, skips the scrape. A refusal, a timeout, a page with fewer than three links or a failed scrape scrapes as before, and the fingerprint is stored only after a scrape succeeded and found an article the page links to (navigation alone never counts). An Alexandria source is always read. Fingerprints are in `state/listing-fingerprints.json`: the fetch stage hands them to the commit stage, which stores them, so a run that fails before the digest is in the content store leaves none behind. The weekly pass, a replacement and an on-demand run scrape every listing (they want the stories the last run took), and a page to be remembered is scraped fresh, not from Firecrawl's hour-old copy.

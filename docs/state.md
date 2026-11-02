@@ -75,7 +75,7 @@ Unit (CI): 352 files, 5,449 tests, about 2 min. Site e2e: 448, 10 min. Player: 8
 
 1. Free the lane in the hold ([D209](decisions/engine.md)): step 1 is built (#399); steps 2, 4 and 5 are not. Step 3, the batch, shipped as D294. A batch the wait gives up on, or a cancel leaves running, is listed in `.cache/run/open-batches.json` and settled by run.yml's "Settle batches" step (`batch-settle`) before Commit; the step needs a manual merge and is unproven live. closed when: a scheduled run's write stage logs "Writer first pass by batch" with `back` above 0, and a run that gave up on a batch logs "Settled a batch the run had left open".
 2. Owner: regenerate the 3-story 10-27 briefing? Revoke the Vercel token; delete empty store `store_JmrDq8MB5Kwn3ejW`; open calls: [PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md).
-3. Firecrawl: owner prunes from the yield report. The free change check (D341) skips unchanged listings. closed when: a run skips one, then scrapes a changed one.
+3. Firecrawl: owner prunes from the yield report. The free change check (D342) skips unchanged listings. closed when: a run skips one, then scrapes a changed one.
 4. Lighthouse CSS defer parked: inlined critical CSS paints a cold phone in 1.0 s, not 3.2 s, but the CSP blocks it.
 5. `topic` to `category` end to end (plan 14): an inventory, dual-name readers, a store-synced migration, the rename, then the old names go; only with no other PR open ([start](history/2026-10-25-owner-feedback-pass.md#left-out-for-a-later-session)).
 6. Controls (D237): Icon button, FAB, Chip, Link next. closed when: `NOT_YET_COMPONENTS` is empty. Icon size scale (D266).

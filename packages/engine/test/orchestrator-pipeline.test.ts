@@ -313,11 +313,11 @@ describe("saving the digest to the content store (D300)", () => {
     expect(result.code).not.toBe(0);
     expect(git(repo.root, "rev-parse", "HEAD")).toBe(before);
     // The failed-run step commits whatever state/ holds: a listing whose articles never reached the
-    // store must not be recorded as read (D341).
+    // store must not be recorded as read (D342).
     expect(await exists(repo.root, "state/listing-fingerprints.json")).toBe(false);
   });
 
-  it("ignores listings an earlier attempt of the same pass left behind (D341)", LONG, async () => {
+  it("ignores listings an earlier attempt of the same pass left behind (D342)", LONG, async () => {
     const world = makeWorld(repo.root, { now: WED });
     // This attempt scrapes no listing (no Firecrawl key), so the file is the earlier attempt's.
     await writeScrapedListing();
@@ -326,7 +326,7 @@ describe("saving the digest to the content store (D300)", () => {
     expect(await exists(repo.root, "state/listing-fingerprints.json")).toBe(false);
   });
 
-  it("records the listings a run scraped once the store has the digest (D341)", LONG, async () => {
+  it("records the listings a run scraped once the store has the digest (D342)", LONG, async () => {
     const world = makeWorld(repo.root, { now: WED });
     const during: boolean[] = [];
     world.deps.publishContent = async () => {
