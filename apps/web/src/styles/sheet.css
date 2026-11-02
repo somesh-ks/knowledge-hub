@@ -103,6 +103,21 @@ dialog.sheet-side[open]::backdrop {
   }
 }
 
+/* A sheet that a Menu pick opens takes over the scrim at once (2026-11-02). The Menu's own scrim is
+   fading out under it (menu.css); a sheet's scrim that began from zero left the page lit for the frames
+   between them. The app sets data-handoff before it opens the sheet and clears it when the sheet closes,
+   so the sheet's own exit still fades. */
+dialog.sheet-side[data-handoff][open]::backdrop {
+  opacity: 1;
+  transition: none;
+}
+
+@starting-style {
+  dialog.sheet-side[data-handoff][open]::backdrop {
+    opacity: 1;
+  }
+}
+
 /* One header row, as a full-screen dialog has it: close at the start, the title beside it. No line at
    rest; once the form has scrolled under it, the header takes the container tone (createSheet.ts
    sets data-scrolled), so the edge shows only when there is something under it. */
