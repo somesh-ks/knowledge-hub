@@ -57,9 +57,11 @@
     100% center;
 }
 
-/* Expressive: the track is a wave that drifts along, and the dots go (the wave is the interest). The wave is
-   drawn under the slider (a masked layer on its wrapper: the mask would cut the thumb too if it sat on the
-   track itself), the slider's own track goes clear, and the fill follows the wave. Still under reduced motion. */
+/* Expressive: the part of the track up to the thumb is a wave that drifts along; the rest stays the
+   plain straight track, as in Material 3 Expressive (owner, 2026-11-02). The dots go (the wave is the
+   interest). The wave is drawn under the slider (a masked layer on its wrapper, as wide as the fill: the
+   mask would cut the thumb too if it sat on the track itself), and the slider's own track is clear up to
+   the fill, so only the straight remainder shows. Still under reduced motion. */
 .player-speed-slider {
   position: relative;
   display: grid;
@@ -76,15 +78,12 @@
 :root[data-style="expressive"] .player-speed-slider::before {
   content: "";
   position: absolute;
-  inset-inline: 0;
+  inset-inline-start: 0;
+  inline-size: var(--range-fill);
   inset-block-start: 50%;
   block-size: var(--wave-height);
   translate: 0 -50%;
-  background: linear-gradient(
-    to right,
-    var(--color-accent) var(--range-fill),
-    var(--color-border-control) var(--range-fill)
-  );
+  background: var(--color-accent);
   mask: var(--wave-mask) 0 center / var(--wave-length) var(--wave-height) repeat-x;
   animation: speed-wave var(--wave-drift) var(--ease-linear) infinite;
   pointer-events: none;
@@ -94,11 +93,23 @@
   background-image: none;
 }
 
+/* The straight track begins where the fill ends; the engines' two pseudo-elements cannot share a rule. */
 :root[data-style="expressive"] .player-speed-slider .slider-input::-webkit-slider-runnable-track {
-  background: none;
+  background: linear-gradient(
+    to right,
+    transparent var(--range-fill),
+    var(--range-track-color) var(--range-fill)
+  );
 }
 
-:root[data-style="expressive"] .player-speed-slider .slider-input::-moz-range-track,
+:root[data-style="expressive"] .player-speed-slider .slider-input::-moz-range-track {
+  background: linear-gradient(
+    to right,
+    transparent var(--range-fill),
+    var(--range-track-color) var(--range-fill)
+  );
+}
+
 :root[data-style="expressive"] .player-speed-slider .slider-input::-moz-range-progress {
   background: none;
 }
