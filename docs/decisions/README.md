@@ -176,5 +176,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D316 | Vercel skew protection stays off in the web build | active |
 | D317 | A state is an explicit OKLCH colour, never an alpha | amends D72, D238 |
 | D318 | Pages stay at the edge until their content changes, purged by tag | active |
+| D319 | Colours are generated; a style is a recipe | amends D268, D310, D317 |
 
 ---

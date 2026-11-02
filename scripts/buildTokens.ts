@@ -21,6 +21,7 @@ import {
   parseOklch,
   toHex,
 } from "./colorMath.js";
+import { isRecipe, recipeColors } from "./styleRecipe.js";
 
 export type Tier = "primitive" | "semantic" | "component";
 export type Mode = "light" | "dark";
@@ -213,6 +214,20 @@ function parseStyles(raw: unknown, byPath: Map<string, Token>): StyleDefinition[
       }
     };
     visit(group, []);
+    if ("$recipe" in group) {
+      // A recipe writes the style's neutral and scene colours (D319); a style that also types one of them is a mistake.
+      if (!isRecipe(group.$recipe))
+        throw new Error(`style ${name}: $recipe is not a neutral recipe`);
+      const typed = new Set(overrides.map((override) => override.token.dotPath));
+      for (const [dotPath, tones] of Object.entries(recipeColors(group.$recipe))) {
+        const token = byPath.get(dotPath);
+        if (!token) throw new Error(`style ${name}, ${dotPath}: no such token`);
+        if (typed.has(dotPath)) throw new Error(`style ${name}, ${dotPath}: written by the recipe`);
+        if (token.dark === undefined)
+          throw new Error(`style ${name}, ${dotPath}: needs a dark value`);
+        overrides.push({ token, value: tones.light, dark: tones.dark });
+      }
+    }
     styles.push({ name, overrides });
   }
   return styles;
