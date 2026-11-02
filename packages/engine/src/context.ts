@@ -42,7 +42,6 @@ export function secretsFromEnv(env: Env): string[] {
     env.FIRECRAWL_API_KEY,
     env.SPEECHIFY_API_KEY,
     env.BLOB_READ_WRITE_TOKEN,
-    env.BLOB_PRIVATE_READ_WRITE_TOKEN,
     env.VERCEL_OIDC_TOKEN,
     env.VERCEL_TOKEN,
     env.DATABASE_URL,
