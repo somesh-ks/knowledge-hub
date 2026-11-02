@@ -77,7 +77,7 @@ test("a swipe on the bar switches the podcast; a short one does not and opens no
   const spot = center(await player.boxOf(player.openButton.locator(".dock-text")));
   // Too short to be one: the podcast stays, and the page does not open on what is not a tap either.
   await finger.drag(line(spot, { x: spot.x - 20, y: spot.y }, 3), 8);
-  await page.waitForTimeout(400);
+  await expect(player.openButton).not.toHaveAttribute("data-swipe-out");
   expect(await playing()).toBe(first);
   await player.collapsed();
   // Left is the next queued podcast; right brings the one before back.

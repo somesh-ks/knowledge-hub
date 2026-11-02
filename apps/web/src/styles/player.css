@@ -887,7 +887,15 @@
   --swipe-dir: -1;
 }
 
-/* A finger swipes for the next story, so the phone's bar leaves the button out. */
+/* Reduced motion: the words fade without travelling. */
+@media (prefers-reduced-motion: reduce) {
+  .dock-open[data-swipe-out],
+  .dock-open[data-swipe-in] {
+    --swipe-dir: 0;
+  }
+}
+
+/* A finger swipes for the next podcast, so the phone's bar leaves the button out. */
 @media (width < 64rem) and (pointer: coarse) {
   .dock-btn.dock-next {
     display: none;

@@ -133,6 +133,10 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     const queue = () => page.evaluate(() => localStorage.getItem("singularity:queue"));
     const grip = (id: string) =>
       player.dialog.locator(`[data-queue-id="${id}"] .player-queue-grip`);
+    // The art stands lower, so the rows start near the bottom edge: the page is scrolled to bring them up.
+    await player.sheet.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
     const first = center(await player.boxOf(grip("ep-20261006-0900")));
     const last = center(await player.boxOf(grip("2026-10-05")));
     // Lifted from the first place and let go below the last row's middle: it goes to the end.
@@ -144,6 +148,9 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await player.openPlayer();
     await player.dialog.getByRole("tab", { name: "Up next" }).click();
     // A swipe to the right and one to the left each take their row off.
+    await player.sheet.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
     const row = (id: string) => player.dialog.locator(`[data-queue-id="${id}"] .player-queue-row`);
     const right = center(await player.boxOf(row("ep-20261007-1930")));
     await finger.drag(line(right, { x: right.x + 300, y: right.y }, 6), 12);

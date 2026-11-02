@@ -26,6 +26,11 @@ const UP_NEXT_ONLY = LIST_VIEWS.filter((tab) => tab.value === "upnext");
  * row that jumps to it. Up next is the play queue (D126), and the only view once a recording has
  * ended with something to offer.
  */
+/** What scrolls the list: its own column from 64rem (the stories), the whole list below it. */
+const scrollerOfList = (): HTMLElement | null =>
+  document.querySelector<HTMLElement>(".list-scroll") ??
+  document.querySelector<HTMLElement>(".player-list");
+
 export default function PlayerPageContent() {
   const { track, status, upNextId } = usePlayerState();
   const queued = useQueue();
@@ -55,7 +60,7 @@ export default function PlayerPageContent() {
     const was = kept.current;
     if (was && was.view !== view) {
       const page = document.querySelector<HTMLElement>("[data-player-page]");
-      const list = document.querySelector<HTMLElement>(".player-list");
+      const list = scrollerOfList();
       if (page) page.scrollTop = was.page;
       if (list) list.scrollTop = was.list;
     }
@@ -65,7 +70,7 @@ export default function PlayerPageContent() {
     kept.current = {
       view,
       page: document.querySelector<HTMLElement>("[data-player-page]")?.scrollTop ?? 0,
-      list: document.querySelector<HTMLElement>(".player-list")?.scrollTop ?? 0,
+      list: scrollerOfList()?.scrollTop ?? 0,
     };
     setChoice({ id, view: next });
   };
