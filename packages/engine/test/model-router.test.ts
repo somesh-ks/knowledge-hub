@@ -118,6 +118,14 @@ describe("the model chain", () => {
     expect(efforts).toEqual(["medium", "high"]);
   });
 
+  // A model that timed out or answered 5xx fails the same at a higher effort; retrying it waited out
+  // a second full timeout for every batch (CodeRabbit on #598).
+  it("skips a later entry of the same model after a model-wide failure", async () => {
+    const { router, calls } = setup(() => json({}, 529));
+    await expect(router.callModel("story_rewrite", request)).rejects.toThrow(/server_error/);
+    expect(calls).toHaveLength(1);
+  });
+
   // The Anthropic request sends max_tokens plus the thinking headroom, billed as output: a budget
   // that fits the bare allowance but not the request must stop the call before it is paid for.
   it("checks the token budget against the Claude request's real size", async () => {

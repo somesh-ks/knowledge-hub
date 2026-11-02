@@ -37,6 +37,19 @@ export function failureReason(error: unknown): {
   return { status, error_class: errorClass, kind };
 }
 
+/**
+ * Failures of the model itself or its provider: the same model at another effort fails the same
+ * way, so the chain skips its later entries (D333). A refusal or invalid output can differ by effort.
+ */
+const MODEL_WIDE_FAILURES = new Set([
+  "timeout",
+  "connection",
+  "server_error",
+  "rate_limited",
+  "authentication",
+  "model_not_found",
+]);
+
 export interface Served {
   family: ModelFamily;
   model: string;
@@ -180,6 +193,7 @@ export function createModelRouter(options: ModelRouterOptions): ModelRouter {
       const model = resolved[entry.family]?.id;
       const client = model ? clientFor(step, entry, model) : null;
       if (!model || !client) continue;
+      if (failed.some((f) => f.model === model && MODEL_WIDE_FAILURES.has(f.kind))) continue;
       try {
         const result = await client.completeJson(request);
         const record: Served = { family: entry.family, model, fellBackFrom: failed };
