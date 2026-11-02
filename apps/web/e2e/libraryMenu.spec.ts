@@ -549,3 +549,19 @@ test("Settings > Downloads stays a list with a working ⋮ when reached from the
   await expect(page.locator("[data-downloads]")).toHaveAttribute("data-ready", "");
   await expect(page.locator("[data-card]:visible")).toHaveCount(0);
 });
+
+// Bug it prevents: the ⋮ drawn on a phone's Library card (owner, three times by 2026-11-02): on touch the
+// menu opens by a long press only, so no card in the list or the gallery has a button to tap.
+test("a phone's Library cards have no ⋮ to tap, in the list or the gallery", async ({ page }) => {
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  for (const view of ["list", "gallery"]) {
+    await page.locator(`[data-library-view='${view}']`).click();
+    const dots = page.locator("[data-card]:visible .card-more");
+    await expect(dots).not.toHaveCount(0);
+    for (const dot of await dots.all()) {
+      await expect(dot).toHaveCSS("opacity", "0");
+      await expect(dot).toHaveCSS("pointer-events", "none");
+    }
+  }
+});

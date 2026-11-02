@@ -811,7 +811,7 @@ test.describe("earlier podcasts", () => {
     const weekly = page.locator(".earlier .card", { hasText: "Weekly" });
     await expect(weekly).toHaveCount(1);
     await expect(weekly.locator(".card-title")).toHaveText("Sunday 4 October");
-    await expect(weekly.locator(".card-facts")).toHaveText("Weekly · 14 stories · 8 min");
+    await expect(weekly.locator(".card-facts")).toHaveText("Weekly · 14 stories");
     await expect(page.locator(".earlier .cover[data-weekly]")).toHaveCount(1);
   });
 

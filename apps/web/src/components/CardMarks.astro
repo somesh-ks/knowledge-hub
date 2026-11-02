@@ -2,11 +2,7 @@
 import Icon from "../design-system/Icon.astro";
 ---
 
-{/* What this device holds of a card's item, after its facts: heard to the end, saved for offline.
-     Both are hidden until the card says so (library.css, on data-played and data-downloaded), so a
-     mark takes room only while it is shown. The facts never change; the marks come after them, as one
-     group, so a narrow card moves both to a line of their own and never splits them. */}
-<span class="card-marks">
-  <span class="card-mark card-played"><Icon name="checkCircle" /><span class="sr-only">Played</span></span>
-  <span class="card-mark card-downloaded"><Icon name="download" /><span class="sr-only">Downloaded</span></span>
-</span>
+{/* What this device holds of a card's item, after its facts: only that it is downloaded, as a blue
+     circle with the download arrow (owner, 2026-11-02). Hidden until the card says so (library.css,
+     on data-downloaded), so it takes room only while it is shown. */}
+<span class="card-downloaded"><Icon name="arrowLineDown" /><span class="sr-only">Downloaded</span></span>

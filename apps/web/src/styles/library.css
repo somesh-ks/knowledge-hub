@@ -71,19 +71,13 @@
   background: var(--color-accent);
 }
 
-.card-progress[hidden],
-/* A finished recording says Played (in its facts line, or by the mark after them in the Library); the
-   bar would repeat it. */
-.card-link:has([data-played]) .card-progress,
-.card[data-played] .card-progress {
+.card-progress[hidden] {
   display: none;
 }
 
 /* Under the bar the art darkens toward its foot, so the bar reads on a pale cover as on a dark one.
    Only a card that holds a bar gets it, and only the foot: deeper, it dulled the art and its date. */
-.card:not([data-played])
-  .card-link:has(> .card-progress:not([hidden])):not(:has([data-played]))
-  .cover::before {
+.card-link:has(> .card-progress:not([hidden])) .cover::before {
   content: "";
   position: absolute;
   inset: auto 0 0;
@@ -135,18 +129,8 @@
   font-weight: var(--font-weight-medium);
 }
 
-/* A card narrower than its whole line (Today's shelf) leaves out the story count, so "Weekly · 8 min"
-   fits on one line and never breaks after a separator. The Library's cards, in the list and the gallery,
-   always say the whole line (owner, 2026-11-02: minutes on some cards and not others, the list saying
-   more than the gallery). */
 .card {
   container-type: inline-size;
-}
-
-@container (max-width: 10.5rem) {
-  .shelf .card-count {
-    display: none;
-  }
 }
 
 .card-facts {
@@ -920,41 +904,29 @@ html[data-library-page="empty"] {
   align-items: center;
 }
 
-/* What this device holds of an item, after its facts: Played (a check circle, the success tone) and
-   Downloaded (the download arrow, the accent). Rendered hidden by CardMarks.astro and shown by the
-   card's own data-played (player/core/cardProgress.ts) and data-downloaded (scripts/libraryMenu.ts),
-   so a mark takes room only while it is shown and the facts before it never change. The quiet line's
-   gap sits between each. */
-.card-marks {
-  display: none;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.card[data-played] .card-marks,
-.card[data-downloaded] .card-marks {
-  display: inline-flex;
-}
-
-.card-mark {
+/* Downloaded, after the facts: a blue circle with the download arrow, the only state a card shows
+   (owner, 2026-11-02). Rendered hidden by CardMarks.astro and shown by the card's own data-downloaded
+   (scripts/libraryMenu.ts), so it takes room only while it is shown and the facts before it never
+   change. The circle is a little larger than the line's text so it reads as a dot, the arrow in it
+   a size smaller. */
+.card-downloaded {
+  --mark: calc(var(--size-icon-sm) + var(--space-1));
   display: none;
   flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--mark);
+  height: var(--mark);
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-on-accent-action);
 }
 
-.card[data-played] .card-played,
 .card[data-downloaded] .card-downloaded {
   display: inline-flex;
 }
 
-.card-played {
-  color: var(--color-success);
-}
-
-.card-downloaded {
-  color: var(--color-accent);
-}
-
-.card-mark .icon-glyph {
-  width: var(--size-icon-sm);
-  height: var(--size-icon-sm);
+.card-downloaded .icon-glyph {
+  width: calc(var(--size-icon-sm) - var(--space-1));
+  height: calc(var(--size-icon-sm) - var(--space-1));
 }

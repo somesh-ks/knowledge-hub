@@ -874,7 +874,7 @@ const PAGE_OVERRIDES: string[] = [
   "empty.css: .empty-actions > .button-filled, .empty-actions > .button-tonal",
   "episode-actions.css: .field-input.regen-feedback",
   "hero.css: .hero-downloaded .icon-glyph",
-  "library.css: .card-mark .icon-glyph",
+  "library.css: .card-downloaded .icon-glyph",
   "library.css: .card-more .icon-glyph",
   "library.css: .library-filters > .filter-chip > .icon-glyph",
   "library.css: .menu-list.card-menu-list",
