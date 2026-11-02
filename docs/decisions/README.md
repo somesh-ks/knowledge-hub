@@ -184,7 +184,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D332 | A scheduled run waits at the gate when the last 24 hours cost over $5 | amends D139 |
 | D333 | The short-text Claude steps run Haiku medium, then Haiku high, then Sonnet medium | amends D308, D324; amended by D334 |
 | D334 | Every Claude step starts at Haiku medium, the podcast script included | amends D333 |
-| D336 | A cover no longer flies between its card and the page's hero | partly supersedes D271, D280 |
+| D336 | A cover no longer flies between its card and the page's hero | partly supersedes D271, D280; amended by D341 |
 | D341 | A page arrives from the side of the tab you came from | partly supersedes D280; amends D336 |
 
 ---

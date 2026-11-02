@@ -191,13 +191,13 @@ export function installNavigation(): void {
   let generation = 0;
   // Where the leaving bar's pill was in its growth, until the new bar has taken it over.
   let carriedPill: number | null = null;
-  // The tab lit on the page being left, read before a press lights its destination on that page.
-  let leavingTab: string | null = null;
+  // The tab of the page on screen. Set when a page arrives, never on a press: a press lights its
+  // destination on the page still showing, and a second press before the first lands would read that.
+  let leavingTab: string | null = currentTab(document);
 
   document.addEventListener("astro:before-preparation", (event) => {
     isNavigating = true;
     generation += 1;
-    leavingTab = currentTab(document);
     const kind = navigationKind(event.from, event.to);
     document.documentElement.setAttribute(NAV_ATTRIBUTE, kind);
     const to = normalize(event.to.pathname);
@@ -209,6 +209,7 @@ export function installNavigation(): void {
 
   // The new bar is in the page and not yet drawn: its pill takes up the growth at the instant the old one reached.
   document.addEventListener("astro:after-swap", () => {
+    leavingTab = currentTab(document);
     if (carriedPill === null) return;
     const started = carriedPill;
     carriedPill = null;

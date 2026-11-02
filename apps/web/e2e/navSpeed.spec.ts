@@ -525,10 +525,28 @@ test.describe("a move says which way it went", () => {
         const card = (event as unknown as { sourceElement?: Element }).sourceElement?.closest(
           "a.card-link",
         );
-        w.__held.push(card?.hasAttribute("data-pending") ?? false);
+        // The page is held back until the test lets it go, so the press is read while it is on the way.
+        const load = event.loader;
+        const hold = new Promise<void>((resolve) => {
+          (w as unknown as { __release: () => void }).__release = resolve;
+        });
+        event.loader = async () => {
+          await hold;
+          w.__held.push(card?.hasAttribute("data-pending") ?? false);
+          await load();
+        };
       });
     });
-    await page.locator("a.card-link[href^='/e/'], a.card-link[href^='/d/']").first().click();
+    const tap = page.locator("a.card-link[href^='/e/'], a.card-link[href^='/d/']").first().click();
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => (window as unknown as { __release?: () => void }).__release !== undefined,
+        ),
+      )
+      .toBe(true);
+    await page.evaluate(() => (window as unknown as { __release: () => void }).__release());
+    await tap;
     await expect(page.locator("a[data-back]")).toBeVisible();
     expect(await page.evaluate(() => (window as unknown as { __held: boolean[] }).__held)).toEqual([
       true,
