@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, SITE, serveNarration, test } from "./helpers";
+import { center, expect, line, SITE, serveNarration, test } from "./helpers";
 
 /** The id of the item the queue lists as playing now (D277), whatever page the listener is on. */
 async function nowPlaying(page: Page): Promise<string | null> {
@@ -113,6 +113,68 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     expect(await page.evaluate(() => localStorage.getItem("singularity:queue"))).toBe(
       '["ep-20261007-1930"]',
     );
+  });
+
+  // The queue's own gestures (owner, 2026-11-02): the browser's long-press drag never started on his
+  // phone, so a grip at the row's end lifts it; a swipe to either side removes it.
+  test("the grip moves a queued row, a swipe to either side takes one off, and the order survives a reload", async ({
+    player,
+    finger,
+    page,
+  }) => {
+    await player.open();
+    await page.evaluate(() => {
+      for (const id of ["ep-20261006-0900", "ep-20261007-1930", "2026-10-05"])
+        document.dispatchEvent(new CustomEvent("singularity:queue-add", { detail: { id } }));
+    });
+    await player.play();
+    await player.openPlayer();
+    await player.dialog.getByRole("tab", { name: "Up next" }).click();
+    const queue = () => page.evaluate(() => localStorage.getItem("singularity:queue"));
+    const grip = (id: string) =>
+      player.dialog.locator(`[data-queue-id="${id}"] .player-queue-grip`);
+    const first = center(await player.boxOf(grip("ep-20261006-0900")));
+    const last = center(await player.boxOf(grip("2026-10-05")));
+    // Lifted from the first place and let go below the last row's middle: it goes to the end.
+    await finger.drag(line(first, { x: first.x, y: last.y + 20 }, 12), 24);
+    await expect.poll(queue).toBe('["ep-20261007-1930","2026-10-05","ep-20261006-0900"]');
+    await page.reload();
+    expect(await queue()).toBe('["ep-20261007-1930","2026-10-05","ep-20261006-0900"]');
+    await player.play();
+    await player.openPlayer();
+    await player.dialog.getByRole("tab", { name: "Up next" }).click();
+    // A swipe to the right and one to the left each take their row off.
+    const row = (id: string) => player.dialog.locator(`[data-queue-id="${id}"] .player-queue-row`);
+    const right = center(await player.boxOf(row("ep-20261007-1930")));
+    await finger.drag(line(right, { x: right.x + 300, y: right.y }, 6), 12);
+    await expect.poll(queue).toBe('["2026-10-05","ep-20261006-0900"]');
+    const left = center(await player.boxOf(row("2026-10-05")));
+    await finger.drag(line(left, { x: left.x - 300, y: left.y }, 6), 12);
+    await expect.poll(queue).toBe('["ep-20261006-0900"]');
+  });
+
+  test("switching between Stories and Up next keeps where the page was scrolled", async ({
+    player,
+    page,
+  }) => {
+    await player.open();
+    await page.evaluate(() => {
+      for (const id of ["ep-20261006-0900", "ep-20261007-1930", "2026-10-05"])
+        document.dispatchEvent(new CustomEvent("singularity:queue-add", { detail: { id } }));
+    });
+    await player.play();
+    await player.openPlayer();
+    await player.sheet.evaluate((element) => {
+      element.scrollTop = 140;
+    });
+    const at = () => player.sheet.evaluate((element) => Math.round(element.scrollTop));
+    const kept = await at();
+    expect(kept).toBeGreaterThan(60);
+    await player.dialog.getByRole("tab", { name: "Up next" }).click();
+    await expect(player.dialog.locator("[data-queue-id]").first()).toBeVisible();
+    expect(await at()).toBe(kept);
+    await player.dialog.getByRole("tab", { name: "Stories" }).click();
+    expect(await at()).toBe(kept);
   });
 
   // D277: a tap on a queued item, even the third, starts it where the player stands. The bar never

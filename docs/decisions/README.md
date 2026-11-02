@@ -39,7 +39,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D166 | Firecrawl 100 a week | amends D42; limits superseded by D222 |
 | D167 | One shape per control | amends D72 |
 | D168 | Catch up, bolt, swipe toasts | amends D52 |
-| D169 | Queue gestures | amends D126 |
+| D169 | Queue gestures | amends D126; amended by D343 |
 | D170 | Podcast structure | built (D176, D182, D191); phase 3 closed by D241 |
 | D171 | Richer covers | amends D121 |
 | D172 | Store reads keep a copy | amends D149 |
@@ -143,7 +143,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D274 | Icon weight token | amends D268 |
 | D275 | Concentric picker | amends D167 |
 | D276 | Voice list | amends D101 |
-| D277 | Queue keeps played items; a tap plays in place | amends D126 |
+| D277 | Queue keeps played items; a tap plays in place | amends D126; amended by D343 |
 | D278 | Softer light covers | amends D121 |
 | D280 | Travel 300 ms | amends D271 |
 | D281 | Downloads page, no cap | amends D127, D264 |
@@ -184,5 +184,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D332 | A scheduled run waits at the gate when the last 24 hours cost over $5 | amends D139 |
 | D333 | The short-text Claude steps run Haiku medium, then Haiku high, then Sonnet medium | amends D308, D324; amended by D334 |
 | D334 | Every Claude step starts at Haiku medium, the podcast script included | amends D333 |
+| D343 | Tab line, queue grip, swipe both ways, phone bar swipes | amends D169, D277 |
 
 ---

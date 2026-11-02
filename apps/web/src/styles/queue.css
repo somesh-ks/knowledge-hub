@@ -123,8 +123,40 @@ html[data-player="open"] .queue-dock {
   transform: none;
 }
 
+/* Opening and folding eases, as the app's sheets do (owner, 2026-11-02: it snapped). The body is a grid
+   whose one row runs between its content's height and nothing, so the list grows from the fold on the
+   drawer curve; folded it is hidden from the view, the tab order and assistive technology once the
+   fold has finished. The list's own padding goes with it, or it would keep a gap open. */
+.queue-dock .queue-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows var(--duration-sheet-in) var(--ease-drawer),
+    visibility 0s;
+}
+
 .queue-dock:not([data-expanded]) .queue-body {
-  display: none;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition:
+    grid-template-rows var(--duration-sheet-out) var(--ease-drawer),
+    visibility 0s var(--duration-sheet-out);
+}
+
+.queue-dock .queue-body > .queue-list {
+  min-height: 0;
+  transition:
+    padding-block var(--duration-sheet-in) var(--ease-drawer),
+    opacity var(--duration-state) var(--ease-out);
+}
+
+.queue-dock:not([data-expanded]) .queue-body > .queue-list {
+  padding-block: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    padding-block var(--duration-sheet-out) var(--ease-drawer),
+    opacity var(--duration-exit) var(--ease-out);
 }
 
 /* The rows scroll past about four of them, so a crowded queue never covers the page. */
@@ -590,6 +622,11 @@ html[data-player="open"] .app-nav-queue {
 
   .queue-dock[data-arriving]:not([hidden]) {
     animation: none;
+  }
+
+  .queue-dock .queue-body,
+  .queue-dock .queue-body > .queue-list {
+    transition: none;
   }
 
   .queue-word[data-live] {

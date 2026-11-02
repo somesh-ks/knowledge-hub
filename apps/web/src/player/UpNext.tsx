@@ -54,6 +54,9 @@ function SuggestedRow({ id }: { id: string }) {
   );
 }
 
+/** The item last shown as playing, kept across the view's mounts: a new one is what moves the list. */
+let lastCurrent: string | null = null;
+
 /**
  * An item that already played, or the one playing now (D277): the list keeps them, as a music app's
  * queue does, and a press plays one again. They are not moved or removed from here.
@@ -62,10 +65,14 @@ function PassedRow({ id, state }: { id: string; state: "played" | "current" }) {
   const meta = useQueueMeta(id);
   const title = meta?.title ?? longDateFromDigestId(id);
   const ref = useRef<HTMLLIElement>(null);
-  // The list opens at the item playing, so the played ones above it do not push what is next out of view.
+  // The list moves to the item that has just begun, so the played ones above it do not push what is
+  // next out of view. Not on opening the view: switching tabs keeps the page where it was (owner,
+  // 2026-11-02: Up next jumped to the top).
   useEffect(() => {
-    if (state === "current") ref.current?.scrollIntoView({ block: "start" });
-  }, [state]);
+    if (state !== "current") return;
+    if (lastCurrent !== id && lastCurrent !== null) ref.current?.scrollIntoView({ block: "start" });
+    lastCurrent = id;
+  }, [state, id]);
   return (
     <li
       className="player-queue-item"

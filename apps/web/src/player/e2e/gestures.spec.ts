@@ -53,6 +53,32 @@ test.describe("opening by gesture", () => {
   });
 });
 
+// The bar's title is a carousel (owner, 2026-11-02): a swipe steps the story the way the buttons do.
+test("a swipe on the bar's title steps the story; a short one does not and opens nothing", async ({
+  player,
+  page,
+  finger,
+}) => {
+  await player.open();
+  await player.play();
+  const stories = await player.stories();
+  const spot = center(await player.boxOf(player.openButton.locator(".dock-text")));
+  const at = () => page.evaluate(() => window.__audios[0]?.currentTime ?? 0);
+  const before = await at();
+  // Too short to be one: the story stays, and the page does not open on what is not a tap either.
+  await finger.drag(line(spot, { x: spot.x - 20, y: spot.y }, 3), 8);
+  await page.waitForTimeout(400);
+  expect(Math.abs((await at()) - before)).toBeLessThan(3);
+  await player.collapsed();
+  // Left is the next story; right brings the previous one back.
+  await finger.drag(line(spot, { x: spot.x - 160, y: spot.y }, 4), 8);
+  await expect.poll(at).toBeGreaterThanOrEqual((stories[1]?.start ?? 0) - 0.5);
+  await player.collapsed();
+  await finger.drag(line(spot, { x: spot.x + 160, y: spot.y }, 4), 8);
+  await expect.poll(at).toBeLessThan((stories[1]?.start ?? 0) - 0.5);
+  await player.collapsed();
+});
+
 test("a flick down on the header, a pull down on the cover or on the controls below the seek strip dismisses the page", async ({
   player,
   finger,

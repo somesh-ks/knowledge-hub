@@ -329,6 +329,18 @@
   }
 }
 
+/* The band at the top of the open page that holds the chevron and the ⋮: both 44px targets centred in
+   it, with the art starting under it (owner, 2026-11-02: the art sat too close to them). */
+.player {
+  --player-bar-room: calc(var(--space-12) + var(--space-2));
+}
+
+@media (width < 64rem) {
+  .player-drag {
+    padding-block-start: calc(var(--player-bar-room) - var(--space-2));
+  }
+}
+
 /* Starts a dismissal when the page is at the top. It takes no native pan; the controller scrolls
    the page under a finger that is not dismissing. */
 .player-drag {
@@ -823,6 +835,62 @@
 
 .dock-text {
   gap: var(--space-1);
+}
+
+/* A sideways swipe on the bar's title (PlayerBar.tsx, useDockSwipe): while the finger is down the cover
+   and the words follow it at once; let go short of a swipe they spring back on the press curve; past
+   it they slide out the way it went, the story changes, and the new one comes in from the other side. */
+.dock-open > :is(.player-thumb, .dock-text) {
+  translate: var(--dock-swipe, 0px) 0;
+  transition:
+    translate var(--duration-press-out) var(--ease-out),
+    opacity var(--duration-press-out) var(--ease-out);
+}
+
+.dock-open[data-swiping] > :is(.player-thumb, .dock-text) {
+  transition: none;
+}
+
+.dock-open[data-swipe-out] > :is(.player-thumb, .dock-text) {
+  opacity: 0;
+  translate: calc(var(--swipe-dir) * var(--space-12)) 0;
+  transition:
+    translate var(--duration-exit) var(--ease-out),
+    opacity var(--duration-exit) var(--ease-out);
+}
+
+.dock-open[data-swipe-out="next"] {
+  --swipe-dir: -1;
+}
+
+.dock-open[data-swipe-out="previous"] {
+  --swipe-dir: 1;
+}
+
+@keyframes dock-swipe-in {
+  from {
+    opacity: 0;
+    translate: calc(var(--swipe-dir) * var(--space-12)) 0;
+  }
+}
+
+.dock-open[data-swipe-in] > :is(.player-thumb, .dock-text) {
+  animation: dock-swipe-in var(--duration-enter) var(--ease-out);
+}
+
+.dock-open[data-swipe-in="next"] {
+  --swipe-dir: 1;
+}
+
+.dock-open[data-swipe-in="previous"] {
+  --swipe-dir: -1;
+}
+
+/* A finger swipes for the next story, so the phone's bar leaves the button out. */
+@media (width < 64rem) and (pointer: coarse) {
+  .dock-btn.dock-next {
+    display: none;
+  }
 }
 
 /* Play and next, a clear 8px apart: two targets a thumb can tell from each other. */
@@ -1920,6 +1988,40 @@
   margin-block-end: var(--space-4);
 }
 
+/* A tab line, not a pill (owner, 2026-11-02: the segmented control drew the eye the list should have;
+   amends D169): no track, the chosen label in the page's text colour, the others muted, and one bar
+   in the accent under the chosen tab that slides on the control's own transform, over a hairline.
+   The segmented control's markup, keys and press layer stay; only its track and pill are redrawn
+   here, so a page reads this as the same control in another dress. */
+.segmented-nav.player-tabs {
+  border-radius: 0;
+  background: none;
+  box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
+}
+
+.segmented-nav.player-tabs::before {
+  inset-block: auto 0;
+  inset-inline-start: 0;
+  width: calc(100% / var(--seg-n));
+  height: calc(var(--stroke-rail) + var(--stroke-hairline));
+  border-radius: var(--stroke-rail) var(--stroke-rail) 0 0;
+  background: var(--color-accent);
+  transform: translateX(calc(var(--seg-i) * 100%));
+}
+
+.segmented-nav.player-tabs > .segmented-nav-tab {
+  border-radius: 0;
+}
+
+.segmented-nav.player-tabs > .segmented-nav-tab[aria-selected="true"] {
+  color: var(--color-on-surface);
+}
+
+.segmented-nav.player-tabs > .segmented-nav-tab::after {
+  inset: 0;
+  border-radius: 0;
+}
+
 .player-panel {
   display: flex;
   flex: 1 1 auto;
@@ -1939,18 +2041,18 @@
     min-height: 100cqb;
   }
 
-  /* The switch stays under the status bar's room while the list scrolls, on the page's own colour
-     so the words passing under it do not show; the control inside keeps its segmented look (owner,
-     2026-10-23, D169: a navigational switch, not a tab line, which drew a bar under the chosen tab
-     from 2026-10-21 to then). */
+  /* The tab line stays under the status bar's room while the list scrolls, on the page's own colour
+     so the words passing under it do not show, and runs the page's full width (owner, 2026-11-02:
+     tabs again, as from 2026-10-21 to 2026-10-23; D169 had made it a pill). A step of room above it
+     parts it from the play controls. */
   .player-tabs-bar {
     position: sticky;
     inset-block-start: var(--safe-top);
     z-index: calc(var(--z-raised) + 1);
+    margin-block-start: var(--space-6);
     margin-inline: calc(max(var(--player-padding), var(--safe-left)) * -1)
       calc(max(var(--player-padding), var(--safe-right)) * -1);
-    padding: var(--space-2) max(var(--player-padding), var(--safe-right)) var(--space-2)
-      max(var(--player-padding), var(--safe-left));
+    padding: var(--space-2) var(--safe-right) 0 var(--safe-left);
     background: var(--color-surface);
   }
 
@@ -2323,7 +2425,7 @@
    from 64rem until the keyboard reaches it. */
 @media (width < 64rem) {
   .player .player-collapse {
-    inset-block-start: calc((var(--space-8) + var(--space-2) - var(--size-touch)) / 2);
+    inset-block-start: calc((var(--player-bar-room) - var(--size-touch)) / 2);
     inset-inline-start: calc((var(--size-icon-lg) - var(--size-touch)) / 2);
     padding: 0;
     background: transparent;
@@ -2356,7 +2458,7 @@
 
 @media (width < 64rem) {
   .player .player-more {
-    inset-block-start: calc((var(--space-8) + var(--space-2) - var(--size-touch)) / 2);
+    inset-block-start: calc((var(--player-bar-room) - var(--size-touch)) / 2);
     inset-inline-end: calc((var(--size-icon-lg) - var(--size-touch)) / 2);
   }
 }
@@ -2423,9 +2525,9 @@
 
 /* ------------------------------------------------------------------ the queue */
 
-/* The queue (the Up next view): a row is the item's thumbnail and title, with its menu's dots after
-   it (D169). The row moves by the browser's own drag and drop (a long press with a finger, a press
-   and pull with a mouse) and slides left under a finger to leave; a vertical pan still scrolls. */
+/* The queue (the Up next view): a row is the item's thumbnail and title, with its grip and its menu's
+   dots after it (D169, the grip 2026-11-02). The grip lifts the row to a new place; the row slides to
+   either side under a finger to leave; a vertical pan on it still scrolls. */
 .player-queue-row {
   display: flex;
   flex: 1;
@@ -2489,17 +2591,17 @@
   opacity: 0;
 }
 
-/* The row being dragged dims where it was; the row it is over shows the edge it would join. */
+/* A row lifted by its grip rides above the others, on a tonal fill so it reads as held; the rows it
+   passes shift aside by their translate (QueueList.tsx), on the row's own transition. */
 .player-queue-item[data-dragging] {
-  opacity: var(--opacity-dim);
+  z-index: var(--z-raised);
+  background: var(--color-surface-container);
+  transition: none;
 }
 
-.player-queue-item[data-drop="before"] {
-  box-shadow: inset 0 var(--stroke-ring) 0 var(--color-accent);
-}
-
-.player-queue-item[data-drop="after"] {
-  box-shadow: inset 0 calc(var(--stroke-ring) * -1) 0 var(--color-accent);
+/* A lift's end puts every row at its own place at once; the list draws the new order next. */
+.player-queue-list[data-settling] .player-queue-item {
+  transition: none;
 }
 
 /* D277: the list keeps what played (muted) and marks what plays now (accent, the active color). */
@@ -2511,9 +2613,24 @@
   color: var(--color-accent);
 }
 
+.player-queue-grip,
 .player-queue-more,
 .player-queue-add {
   flex: none;
+}
+
+/* The grip is the row's only handle for moving it: a press on it never scrolls the list, so a pull
+   lifts the row instead (the row itself keeps up-and-down for scrolling). */
+.player-queue-grip {
+  color: var(--color-on-surface-muted);
+  cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.player-queue-item[data-dragging] .player-queue-grip {
+  cursor: grabbing;
 }
 
 /* Suggested (2026-10-26): with nothing queued, Up next lists what Autoplay would play, in the

@@ -1,6 +1,15 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  type PointerEvent as ReactPointerEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { swipeLeaves } from "../lib/swipeAway";
 import { chapterMask } from "./core/chapterMask";
 import { formatClock } from "./core/formatTime";
+import { createVelocityTracker, TAP_SLOP_PX } from "./core/gestureMath";
 import { heldTap } from "./core/heldTap";
 import {
   errorSummary,
@@ -198,6 +207,102 @@ function DockVolume() {
   );
 }
 
+/** How long the text takes to slide out under a committed swipe, before the story changes. */
+const DOCK_SWIPE_OUT_MS = 120;
+
+/**
+ * A sideways swipe on the bar's title switches the story: left for the next, right for the previous,
+ * as a music app's mini player does (owner, 2026-11-02). The text follows the finger; past the swipe
+ * rule (lib/swipeAway.ts) it slides out, the story changes and the new one slides in from the other
+ * side; short of it, or at the last story, it springs back. A finger and a pen only: a mouse has the
+ * buttons on a wide bar. Returns the handlers for the open button and whether its click was a swipe's echo.
+ */
+function useDockSwipe(canNext: () => boolean) {
+  const store = getPlayerStore();
+  const tracker = useMemo(() => createVelocityTracker(), []);
+  const press = useRef<{
+    id: number;
+    x0: number;
+    y0: number;
+    dx: number;
+    mode: "idle" | "swipe" | "other";
+  } | null>(null);
+  const swipedUntil = useRef(0);
+  const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const follow = (button: HTMLElement, dx: number): void => {
+    // At the last story the next has nowhere to go: the text gives a little, then holds.
+    const blocked = dx < 0 && !canNext();
+    button.style.setProperty("--dock-swipe", `${blocked ? dx * 0.2 : dx}px`);
+  };
+
+  return {
+    swiped: () => performance.now() < swipedUntil.current,
+    onPointerDown(event: ReactPointerEvent<HTMLElement>): void {
+      if (event.pointerType === "mouse" || !event.isPrimary) return;
+      press.current = {
+        id: event.pointerId,
+        x0: event.clientX,
+        y0: event.clientY,
+        dx: 0,
+        mode: "idle",
+      };
+      tracker.reset({ value: event.clientX, t: event.timeStamp });
+    },
+    onPointerMove(event: ReactPointerEvent<HTMLElement>): void {
+      const current = press.current;
+      if (!current || current.id !== event.pointerId) return;
+      const dx = event.clientX - current.x0;
+      const dy = event.clientY - current.y0;
+      tracker.push(event.clientX, event.timeStamp);
+      if (current.mode === "idle") {
+        if (Math.abs(dx) >= TAP_SLOP_PX && Math.abs(dx) > Math.abs(dy)) {
+          current.mode = "swipe";
+          event.currentTarget.setPointerCapture(event.pointerId);
+          event.currentTarget.dataset.swiping = "";
+        } else if (Math.abs(dy) >= TAP_SLOP_PX) current.mode = "other";
+      }
+      if (current.mode !== "swipe") return;
+      current.dx = dx;
+      follow(event.currentTarget, dx);
+    },
+    onPointerEnd(event: ReactPointerEvent<HTMLElement>): void {
+      const current = press.current;
+      if (!current || current.id !== event.pointerId) return;
+      press.current = null;
+      if (current.mode !== "swipe") return;
+      const button = event.currentTarget;
+      delete button.dataset.swiping;
+      swipedUntil.current = event.timeStamp + 400;
+      const dx = current.dx;
+      const cancelled = event.type === "pointercancel";
+      const next = dx < 0;
+      const goes =
+        !cancelled &&
+        swipeLeaves(dx, button.offsetWidth, tracker.velocity()) &&
+        (!next || canNext());
+      if (!goes) {
+        button.style.removeProperty("--dock-swipe");
+        return;
+      }
+      const change = (): void => {
+        if (next) store.next();
+        else store.previous();
+        button.dataset.swipeIn = next ? "next" : "previous";
+        button.style.removeProperty("--dock-swipe");
+        delete button.dataset.swipeOut;
+        window.setTimeout(() => delete button.dataset.swipeIn, 300);
+      };
+      if (reduced()) {
+        change();
+        return;
+      }
+      button.dataset.swipeOut = next ? "next" : "previous";
+      window.setTimeout(change, DOCK_SWIPE_OUT_MS);
+    },
+  };
+}
+
 /**
  * The dock: the bar at the bottom of the screen, and the collapsed end of the player surface. A
  * tap or a pull up anywhere on it that is not another control grows it into the page (the open
@@ -254,6 +359,7 @@ export default function PlayerBar() {
     () => true,
   );
   const isLastItem = itemCount === 0 || state.itemIndex >= itemCount - 1;
+  const swipe = useDockSwipe(() => !isLastItem);
 
   return (
     <section className="player-dock" aria-label="Audio player" data-player-dock>
@@ -283,12 +389,18 @@ export default function PlayerBar() {
         aria-expanded="false"
         aria-controls={PLAYER_PAGE_ID}
         aria-label={`Player: ${headline}`}
-        onClick={(event) =>
-          playerSheet.click({ t: event.timeStamp, fromPointer: event.detail > 0 })
-        }
+        onClick={(event) => {
+          // The click some browsers still send after a swipe's lift is not a press.
+          if (swipe.swiped()) return;
+          playerSheet.click({ t: event.timeStamp, fromPointer: event.detail > 0 });
+        }}
         onPointerDown={(event) => {
           pressedBy.current = event.pointerType;
+          swipe.onPointerDown(event);
         }}
+        onPointerMove={swipe.onPointerMove}
+        onPointerUp={swipe.onPointerEnd}
+        onPointerCancel={swipe.onPointerEnd}
         // A tap opens the page on the finger's lift, and focus moves into it. The mouse press a
         // browser sends after a tap would then take focus back to this button, which a wide window
         // keeps in reach under the open page, and the next Tab would start from nothing.
@@ -344,8 +456,10 @@ export default function PlayerBar() {
           <PlayPauseGlyph status={state.status} error={state.error} />
           <span className="spinner" aria-hidden="true" />
         </button>
+        {/* A finger swipes the bar's title for the next story (useDockSwipe), so a phone's bar leaves
+            this out (player.css); a mouse, and a wide bar, keep it. */}
         <button
-          className="dock-btn press"
+          className="dock-btn dock-next press"
           type="button"
           aria-label="Next story"
           aria-disabled={isLastItem || undefined}

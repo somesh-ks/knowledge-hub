@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from "react";
+import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { getPlayerStore } from "./core/playerRuntime";
 import { storyTurns } from "./core/storyTurns";
 import { swipeClickGuard } from "./core/swipeClickGuard";
@@ -48,6 +48,27 @@ export default function PlayerPageContent() {
     : choice && (choice.id === id || choice.view === "upnext")
       ? choice.view
       : "stories";
+  // The page stays where it was when the other view takes its place: a list shorter than the one it
+  // replaces would otherwise clamp the scroll, and an effect of the new view could move it.
+  const kept = useRef<{ view: ListView; page: number; list: number } | null>(null);
+  useLayoutEffect(() => {
+    const was = kept.current;
+    if (was && was.view !== view) {
+      const page = document.querySelector<HTMLElement>("[data-player-page]");
+      const list = document.querySelector<HTMLElement>(".player-list");
+      if (page) page.scrollTop = was.page;
+      if (list) list.scrollTop = was.list;
+    }
+    kept.current = null;
+  }, [view]);
+  const choose = (next: ListView): void => {
+    kept.current = {
+      view,
+      page: document.querySelector<HTMLElement>("[data-player-page]")?.scrollTop ?? 0,
+      list: document.querySelector<HTMLElement>(".player-list")?.scrollTop ?? 0,
+    };
+    setChoice({ id, view: next });
+  };
   return (
     <>
       <div className="player-controls" data-player-drag {...controlsGuard}>
@@ -65,7 +86,7 @@ export default function PlayerPageContent() {
             idBase={idBase}
             tabs={ended ? UP_NEXT_ONLY : LIST_VIEWS}
             value={view}
-            onChange={(next) => setChoice({ id, view: next })}
+            onChange={choose}
           />
         </div>
         <div
