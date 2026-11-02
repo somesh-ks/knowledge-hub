@@ -616,7 +616,7 @@
   content: "";
   position: absolute;
   inset: var(--segmented-padding);
-  z-index: -1;
+  z-index: var(--z-beneath);
   border-radius: var(--radius-round);
   pointer-events: none;
 }

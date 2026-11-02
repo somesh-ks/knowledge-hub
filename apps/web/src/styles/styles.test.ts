@@ -890,6 +890,7 @@ const PAGE_OVERRIDES: string[] = [
   "menu.css: .menu-sheet .menu-item .icon-glyph",
   "menu.css: .menu-sheet > .sheet-head:not([data-has-back])",
   "menu.css: .menu-sheet > .sheet-head:not([data-has-back])",
+  "menu.css: .menu-sheet:has(> .menu-sheet-items > .menu-item:not([hidden], .menu-item-danger)):not( :has( > .menu-sheet-items > .menu-item:not([hidden]) ~ .menu-item:not([hidden]), > .menu-sheet-items > .menu-item-danger:not([hidden]), > .menu-sheet-items > .menu-tiles ) ) > .sheet-head:not([data-has-back])",
   "multiselect.css: .multiselect-trigger > .icon-glyph",
   "multiselect.css: .multiselect-trigger > .icon-glyph",
   'multiselect.css: .multiselect-trigger[aria-expanded="true"] > .icon-glyph',

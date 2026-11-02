@@ -1311,6 +1311,7 @@
       "tokens": [
         "--chip-height",
         "--color-accent-container",
+        "--color-accent-container-pressed",
         "--color-focus-ring",
         "--color-on-accent-container",
         "--color-on-surface",

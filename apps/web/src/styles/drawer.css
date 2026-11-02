@@ -90,9 +90,11 @@
   background: var(--sheet-bg);
 }
 
+/* A bottom sheet slides on transform alone and stays opaque (2026-11-02): fading it too let the page
+   show through it for the first 100ms. The scrim carries the fade; the centred dialog below and
+   reduced motion fade the surface. */
 .drawer-popup[data-starting-style],
 .drawer-popup[data-ending-style] {
-  opacity: 0;
   transform: translateY(100%);
 }
 
@@ -145,6 +147,7 @@
 
   .drawer-popup[data-starting-style],
   .drawer-popup[data-ending-style] {
+    opacity: 0;
     transform: scale(var(--scale-enter));
   }
 
@@ -304,5 +307,19 @@
 
   .drawer-panel[data-full] > .sheet-form {
     padding-inline: var(--space-8);
+  }
+}
+
+/* Reduced motion: the slide's duration is gone (tokens.css), so the surface fades where it stands. */
+@media (prefers-reduced-motion: reduce) {
+  .drawer-popup[data-starting-style],
+  .drawer-popup[data-ending-style] {
+    opacity: 0;
+  }
+
+  .drawer-popup[data-full][data-starting-style],
+  .drawer-popup[data-full][data-ending-style] {
+    opacity: 0;
+    transform: none;
   }
 }

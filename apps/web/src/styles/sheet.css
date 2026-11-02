@@ -50,8 +50,10 @@ dialog.sheet-side[open] {
     var(--duration-sheet-in);
 }
 
+/* The surface slides on transform alone and stays opaque (2026-11-02). Fading it as well left the
+   page showing through it for the first 100ms, on every sheet; the scrim carries the fade. Reduced
+   motion trades the slide for a fade (the block at the end). */
 dialog.sheet-side:not([open]) {
-  opacity: 0;
   transform: translateY(100%);
 }
 
@@ -60,6 +62,7 @@ dialog.sheet-side:not([open]) {
    the end of it, and fades only in the last of it. The shared exit fades in 200ms over a drawer
    curve that is done in 120ms, which read as the sheet vanishing. */
 dialog.sheet-side[data-started]:not([open]) {
+  opacity: 0;
   transition:
     transform var(--duration-sheet-in) var(--ease-in-out),
     opacity var(--duration-exit) var(--ease-out)
@@ -74,7 +77,6 @@ dialog.sheet-side[data-started]:not([open])::backdrop {
 
 @starting-style {
   dialog.sheet-side[open] {
-    opacity: 0;
     transform: translateY(100%);
   }
 }
@@ -383,6 +385,10 @@ dialog.sheet-side .create-submit > .button-filled {
     transform: none;
   }
 
+  dialog.sheet-side:not([open]) {
+    opacity: 0;
+  }
+
   /* The panel and its scrim fade where they stand, and the panel stays in the top layer until its
      fade is done. The sheet durations drop to nothing here, which snapped the scrim and cut the
      closing fade short; the state's duration keeps its time (tokens.css). */
@@ -399,6 +405,7 @@ dialog.sheet-side .create-submit > .button-filled {
 
   @starting-style {
     dialog.sheet-side[open] {
+      opacity: 0;
       transform: none;
     }
   }
