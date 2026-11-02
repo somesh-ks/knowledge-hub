@@ -126,6 +126,28 @@ describe("token structure", () => {
   });
 });
 
+describe("state direction (D319)", () => {
+  // A state steps toward or away from its label by what the label's contrast allows. A hand-set flag
+  // per style would need a new one for every new look; the build settles it from the style's own colours.
+  it("is settled by the build from the label, so no style writes a state by hand", () => {
+    const raw = JSON.parse(readFileSync(resolve(ROOT, "tokens/tokens.json"), "utf8"));
+    expect(JSON.stringify(raw.styles)).not.toContain('"step"');
+    const expressive = doc.styles.find((style) => style.name === "expressive");
+    const settled = expressive?.overrides.map((override) => override.token.dotPath) ?? [];
+    expect(settled).toContain("semantic.color.accent-container-high-pressed");
+  });
+
+  it("steps a mid-tone fill away from a dark label instead of into it", () => {
+    const lightness = (path: string, mode: Mode): number =>
+      parseOklch(String(resolveLiteral(doc, path, mode))).l;
+    const fill = lightness("semantic.color.accent-action", "dark");
+    expect(lightness("semantic.color.accent-action-pressed", "dark")).toBeGreaterThan(fill);
+    expect(lightness("semantic.color.accent-action-pressed", "light")).toBeLessThan(
+      lightness("semantic.color.accent-action", "light"),
+    );
+  });
+});
+
 describe("color contrast", () => {
   const surfaces = [
     "surface",

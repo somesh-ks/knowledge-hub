@@ -400,6 +400,14 @@ export function renderLlms(system: System): string {
       lines.push(
         token.role ? `- ${token.name}: ${firstSentence(token.role, 90)}` : `- ${token.name}`,
       );
+  // A fill's hover and press are derived colours (D317): one line names them, not 26.
+  const stated = new Set(
+    system.tokens
+      .filter((token) => token.tier === "semantic" && token.type === "singularity-state-color")
+      .map((token) => token.name.replace(/-(hover|pressed)$/, "")),
+  );
+  if (stated.size > 0)
+    lines.push(`- <fill>-hover and <fill>-pressed for ${[...stated].join(", ")}: its state fills`);
   lines.push("", "## Scales", "Read directly by components.");
   const scales = ["space", "radius", "stroke", "duration", "ease"];
   for (const scale of scales) {
