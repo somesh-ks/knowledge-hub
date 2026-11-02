@@ -112,6 +112,8 @@
    (owner, 2026-10-23, D167). */
 .card-group .select-tonal {
   --select-bg: var(--color-surface-overlay);
+  --select-bg-hover: var(--color-surface-overlay-hover);
+  --select-bg-pressed: var(--color-surface-overlay-pressed);
 }
 
 /* And it hovers as a card's chip does: the card's chip layer, half the state layer in light, so a
