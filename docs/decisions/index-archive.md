@@ -53,7 +53,7 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D47 | A move between pages is answered from a saved copy and swapped at once | active |
 | D48 | One shader: a light in the cover's colours behind the header, on a GPU only | active |
 | D49 | One Podcast settings page: Daily, Weekly, Custom, writer, topics, sources | layout superseded by D51; the 0 to 5 score by D55 |
-| D50 | The open player: a speed slider, Chapters or a Speechify-style transcript, word marks stored beside each segment | active |
+| D50 | The open player: a speed slider, Chapters or a Speechify-style transcript, word marks stored beside each segment | partly superseded by D309; the speed control only |
 | D51 | Settings is two levels and saves itself; every select opens one drawn list | active; the Custom page superseded by D56 |
 | D52 | On a phone Create floats only on Today and the Library, extended till you scroll | superseded by D60: Create floats on the Library alone |
 | D53 | First-load JavaScript budget 110 KB, kept as low as the code allows | active |

@@ -346,3 +346,13 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Cost: the label is a list item in a list, so a screen reader counts it. A month of one row leaves an empty cell. Titles still repeat the month ("Friday 30 October").
 - Rejected: months in the gallery (the grid is for browsing); a rail (needs a wrapper per month that the sort script would rebuild, and takes 8rem of the column); a hairline under the label (the ledger marks sections by air alone).
 - Revisit if: titles drop their month, or two columns are wanted below 80rem.
+
+## D309: every podcast player has a ⋮ menu that holds Download, Share, Save, Playback speed and Go to podcast
+
+- Date: 2026-11-01 (the owner: "every podcast player ui should have a 3 dots button ... playback speed, download, share, delete if applicable"; picks: sheet C, stepper and slider; then "on desktop the menu must be a simple list without quick actions", a bookmark for Save, "share fat is good for icon").
+- Context changed: D50 put the speed control in the transport, between the skips; it is set once per podcast and crowded the row that must stay still. D50's Chapters, transcript and word marks stand.
+- Decision: a ⋮ at the top right of the open player, level with the collapse chevron, opens the Menu. On a phone it is the bottom sheet: Download, Share and Save as three tiles, then rows for Playback speed (with its value), Go to podcast, and Delete download when the item is downloaded. From 40rem it is the popover as a plain list of the same actions, no tiles. Playback speed leaves the transport and opens a second screen in the same sheet, with Back: a stepper (0.05) with a large readout and a slider that stops on 0.5 to 2 in quarters, each stop labelled. Save keeps a bookmark on this device (`singularity:saved:<id>`, the time saved) and Settings > Saved, under Downloads, lists them newest first in the Library's rows. Saved and Downloads take the Library's page width and two columns from 80rem. The Share glyph is Share fat everywhere, Save is a bookmark.
+- Why: the transport held a control that is set once per podcast and crowded the row that must stay still; a menu groups what a listener does with the item, and a bookmark gives a way back that a download does not (no copy kept).
+- Cost: Save is per device, not synced. The slider shows the nearest stop while the readout says the exact speed.
+- Rejected: preset speed chips (the slider's stops carry them); tiles on a desktop popover (a list is shorter to scan); a star for Save (a bookmark reads as "come back to this").
+- Revisit if: Save needs an account, or listeners ask for speeds between the stops on the slider.
