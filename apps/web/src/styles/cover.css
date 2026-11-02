@@ -314,7 +314,9 @@
  * Default paints the hex. A style (`[data-style]`) recolours every slot by the formula below from its
  * `--cover-*` numbers in tokens.css, so a new style, or a reader's `--hue-shift`, recolours every cover
  * on the page at once with no file drawn. `packages/cover/src/style.ts` holds the same formula in code
- * and the tests hold the two together. A browser without mod() or oklch() keeps Default's colours.
+ * (for the rasters of the lock screen and the share card); its tests pin the numbers in tokens.css,
+ * not this CSS, so change the gap or the hue maths here and there together. A browser without mod()
+ * or oklch() keeps Default's colours.
  * Every property read with a fallback is one the svg sets inline.
  */
 .cover-art {
@@ -561,8 +563,8 @@
     --out: oklch(from var(--px) var(--lout, var(--lf)) var(--cn) var(--hn));
   }
 
-  /* Type and figures keep the lightness gap they had to the ground, and 10% more (HOLD_GAP in
-     packages/cover/src/style.ts), so they read as before. */
+  /* Type and figures keep the lightness gap they had to the ground, times the style's `hold` (a bit
+     over 1), so they read as before. */
   :root[data-style] .cover-art .h {
     --gf: calc(
       var(--pg) *
@@ -581,7 +583,7 @@
         var(--pg) -
         var(--pl)
       ) *
-      1.1
+      var(--cover-hold)
     );
     --lout: clamp(0, var(--gf) + clamp(-1, (var(--lf) - var(--gf)) * 1000, 1) * var(--gap), 1);
   }

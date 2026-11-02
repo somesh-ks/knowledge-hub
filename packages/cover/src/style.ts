@@ -16,6 +16,8 @@ export interface StyleRule {
   keep: number;
   spread: number;
   cap: number;
+  /** Type and figures keep their lightness gap to the ground times this. */
+  hold: number;
   chroma: { scale: number; add: number; max: number; floorBelow: number; floor: number };
   /** Lightness is mirrored inside this band per theme; absent, it is kept. */
   flip?: Record<CoverMode, Band>;
@@ -51,6 +53,7 @@ function readRule(id: string, raw: Record<string, Record<string, unknown>>): Sty
     keep: num(at("keep"), `${id}.keep`),
     spread: num(at("spread"), `${id}.spread`),
     cap: num(at("cap"), `${id}.cap`),
+    hold: num(at("hold"), `${id}.hold`),
     chroma: {
       scale: num(chroma.scale, `${id}.chroma.scale`),
       add: num(chroma.add, `${id}.chroma.add`),
@@ -111,13 +114,6 @@ function flipped(l: number, rule: StyleRule, mode: CoverMode): number {
   return low + (1 - l) * (high - low);
 }
 
-/**
- * Type and figures keep their lightness gap to the ground, and 10% more: OKLab lightness is not
- * relative luminance, so a hue that moves a figure toward blue would leave a 3:1 pair just under it.
- * The same number is in cover.css.
- */
-export const HOLD_GAP = 1.1;
-
 export interface StyleInput {
   /** The colour the month dressed, in the theme drawn. */
   base: Oklch;
@@ -152,7 +148,7 @@ export function styleColour(rule: StyleRule, input: StyleInput): Oklch {
   let l = lightness;
   if (ground !== undefined) {
     const to = flipped(ground, rule, mode);
-    const gap = Math.max(Math.abs(lightness - to), Math.abs(base.l - ground)) * HOLD_GAP;
+    const gap = Math.max(Math.abs(lightness - to), Math.abs(base.l - ground)) * rule.hold;
     l = clamp(to + clamp((lightness - to) * 1000, -1, 1) * gap, 0, 1);
   }
   const n = rule.night;

@@ -38,6 +38,7 @@ describe("tokens.css holds each style's cover numbers", () => {
       expect(read(style, "keep")).toBe(rule.keep);
       expect(read(style, "spread")).toBe(rule.spread);
       expect(read(style, "cap")).toBe(rule.cap);
+      expect(read(style, "hold")).toBe(rule.hold);
       expect(read(style, "c-scale")).toBe(rule.chroma.scale);
       expect(read(style, "c-add")).toBe(rule.chroma.add);
       expect(read(style, "c-max")).toBe(rule.chroma.max);
