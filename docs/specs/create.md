@@ -9,7 +9,7 @@ Catch up and custom episodes. What it does now. Reasons: D37, D43, D60, D66 to D
 - `/create` is the same form as a page under the Library, with Back to it.
 - Fields: Title ("Optional" beside it), Categories (alphabetical), Max length, Look back. More options holds Format (Readout or Discussion, a segmented choice, no hint line), Voice or Voices (Primary and Secondary voice, each with a play button for its sample, dimmed while a voice has none, chosen from a searchable list with SVG flags) and Tone (Neutral or Energetic). Its line reads "Readout · Neutral tone" (D76, D114). The button reads "Generate catch up" (2026-10-25).
 - Every episode is written for the owner; there is no General audience (D114).
-- Regenerate's Length is 3, 5, 10 or 15, starts nearest the aired length, no Usual; it opens on the comment, which is required (D340) because it says why; Length and Categories appear as words reach for them (D337), and it is to become a full sheet (D323).
+- Regenerate's Length is 3, 5, 10 or 15, starts nearest the aired length, no Usual; the comment is required (D340); Length and Categories appear as words reach for them (D337); a full sheet is due (D323).
 - No topic limit in the form (a guard of 50 in `PODCAST_MAX_TOPICS`). The button reads "Generate catch up".
 - Create shows one chip list: Design, AI, Technology, Software Engineering, World, Business, Science, Culture, Sports, then the owner's topics; the first four are ticked. Release news (Launches) matches no chip. An episode can mix briefing and general topics (D67, D114).
 - Scenario: WHEN Enter is pressed in Title THEN the keyboard goes away and no run starts.
