@@ -242,6 +242,25 @@ export function withModulePreloads(html: string, read: (url: string) => string |
 /** Where `importGraph`'s file also names the duplicate stylesheet links to drop. */
 export const WAKE_STYLES_KEY = "stylesheets:wake";
 
+/** Where `importGraph`'s file names the stylesheet both islands list (Icon.*.css). */
+export const SHARED_STYLES_KEY = "stylesheets:shared";
+
+/** The stylesheets both the player and sheets islands list in their dependencies. */
+export function sharedIslandStylesheets(
+  urls: readonly string[],
+  read: (url: string) => string | null,
+): string[] {
+  const listed = (island: string) => {
+    const script = urls.find((url) => url.startsWith(`/_astro/${island}.`) && url.endsWith(".js"));
+    const source = script ? read(script) : null;
+    return new Set(
+      source ? [...source.matchAll(/_astro\/([\w.-]+\.css)/g)].map((m) => `/_astro/${m[1]}`) : [],
+    );
+  };
+  const sheets = listed("SheetsRoot");
+  return [...listed("PlayerRoot")].filter((url) => sheets.has(url));
+}
+
 /**
  * The copies of the player and sheets islands' stylesheet that a page links under a second name.
  * Astro links player.css (54 KB) in every head twice (Icon.*.css, the file the islands list in their
@@ -253,21 +272,32 @@ export function wakeStylesheets(
   urls: readonly string[],
   read: (url: string) => string | null,
 ): string[] {
-  const listed = (island: string) => {
-    const script = urls.find((url) => url.startsWith(`/_astro/${island}.`) && url.endsWith(".js"));
-    const source = script ? read(script) : null;
-    return new Set(
-      source ? [...source.matchAll(/_astro\/([\w.-]+\.css)/g)].map((m) => `/_astro/${m[1]}`) : [],
-    );
-  };
-  const players = listed("PlayerRoot");
-  const sheets = listed("SheetsRoot");
-  const shared = [...players].filter((url) => sheets.has(url));
+  const shared = sharedIslandStylesheets(urls, read);
   const bodies = new Set(shared.map(read).filter((body) => body !== null));
   return urls.filter((url) => {
     if (!url.endsWith(".css")) return false;
     const body = read(url);
     return !shared.includes(url) && body !== null && bodies.has(body);
+  });
+}
+
+const contentHash = (url: string) => /\.([\w-]+)\.css$/.exec(url)?.[1];
+
+/**
+ * The page's links to a copy of a shared stylesheet, found by name: Vite names an asset by a hash
+ * of its bytes, so the same hash under another name is the same file. A page rendered on request
+ * needs this: the build writes player.*.css after `astro:build:generated` records the graph, so
+ * the graph cannot list it, and the live pages linked it beside Icon.*.css (2026-11-02).
+ */
+export function copiesOfShared(html: string, shared: readonly string[]): string[] {
+  const hashes = new Set(shared.map(contentHash).filter((hash) => hash !== undefined));
+  const linked = [...html.matchAll(/<link\b[^>]*\brel=["']stylesheet["'][^>]*>/g)]
+    .map((match) => /\bhref=["']([^"']+)["']/.exec(match[0])?.[1])
+    .filter((href): href is string => href !== undefined)
+    .map(bare);
+  return linked.filter((href) => {
+    const hash = contentHash(href);
+    return hash !== undefined && hashes.has(hash) && !shared.includes(href);
   });
 }
 
