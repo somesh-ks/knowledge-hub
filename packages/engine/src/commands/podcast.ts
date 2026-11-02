@@ -420,6 +420,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
             script_chars: episode.char_count,
             share: Math.round((episode.char_count / Math.max(1, budgetChars)) * 100) / 100,
             writer_calls: result.script.writer_calls,
+            first_turn_chars: episode.turns[0]?.text.length ?? 0,
           },
         });
       }

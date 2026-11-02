@@ -7,11 +7,11 @@ Long-term project memory, future explorations, parked tasks, and shipped milesto
 Immediate priority tasks synchronized with `docs/state.md` ## Next:
 
 1. **Owner calls**: Decide on regenerating 3-story 2026-10-27 briefing; revoke old Vercel token pasted in chat; delete empty store `store_JmrDq8MB5Kwn3ejW`; resolve PWA open calls.
-2. **Firecrawl yield table**: parked with the Firecrawl monitor pilot (D302). The owner restarts or drops it.
-3. **Lighthouse CSS optimization**: Defer `BaseLayout.astro` 34 KiB CSS without breaking the resumed player bar; cut the 19 KiB unused CSS on initial load; optimize 1.4 s interaction chain.
+2. **Firecrawl change check**: the yield report is delivered; the owner prunes. Next is a free change check before a scrape (a Firecrawl monitor costs the same as a scrape per check).
+3. **Lighthouse CSS**: parked. Critical CSS paints a cold phone in 1.0 s, not 3.2 s, but needs per-page CSP hashes and a flash check.
 4. **Topic to Category migration**: End-to-end migration (plan 14, about 6,500 occurrences) across readers, store sync, code, and workflow outputs.
 5. **Design system sweep**: Review `/settings/*`, category pages, player, create; audit light and dark modes at 390px and 1280px; one PR per component family.
-6. **Pipeline performance**: split long first turns. A shared read of each source per run and a per-field rewrite are built.
+6. **Pipeline performance**: `first_turn_chars` is recorded; split a long first turn only if two runs show it long. A shared read of each source per run and a per-field rewrite are built.
 
 ## Parked & Unfinished Tasks
 
