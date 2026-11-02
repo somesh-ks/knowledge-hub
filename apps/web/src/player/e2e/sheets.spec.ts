@@ -56,10 +56,9 @@ test("Regenerate while a podcast plays: the queue's dock stands clear above the 
   await player.finger.press(card.locator("[data-queue-toggle]"));
   const listen = card.getByRole("link", { name: /^Start listening/ });
   await expect(listen).toBeVisible();
-  const playing = (await player.dock.innerText()).split("\n")[0];
   await player.finger.press(listen);
-  // The new podcast plays in the bar, in place: the page the listener was on stays.
+  // The new podcast plays in the player, in place: the page the listener was on stays.
+  await player.expanded();
   await expect(player.root).toHaveAttribute("data-player-state", "playing");
   await expect(page).toHaveURL(new RegExp(`${SITE.path}$`));
-  await expect.poll(async () => (await player.dock.innerText()).split("\n")[0]).not.toBe(playing);
 });

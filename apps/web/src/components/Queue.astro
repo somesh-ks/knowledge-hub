@@ -79,6 +79,7 @@ const words = {
   "data-word-catch-up": "Catch up",
   "data-word-expand": "Show the podcast queue",
   "data-word-collapse": "Hide the podcast queue",
+  "data-word-clear": "Clear the queue",
   "data-word-progress-label": "{title}, {pct} percent",
   "data-word-cancel-label": "Cancel {title}",
   "data-word-listen-label": "Start listening to {title}",
@@ -113,14 +114,20 @@ const icons: Record<string, IconName> = {
   <span class="sr-only" role="status" data-run-announce></span>
 
   <section class="queue-dock" data-queue-dock aria-label="Podcast queue" hidden>
-    <button class="queue-fold" type="button" data-queue-toggle aria-expanded="false">
-      <QueueRing class="queue-ring-head" data-queue-fold-ring>
-        <span class="queue-stage-icon" data-queue-head-icon="fold"></span>
-      </QueueRing>
-      <span class="queue-fold-text queue-word" data-queue-title></span>
-      <span class="queue-fold-percent" data-queue-percent></span>
-      <Icon name="chevronDown" size="lg" class="queue-chevron" />
-    </button>
+    <div class="queue-head">
+      <button class="queue-fold" type="button" data-queue-toggle aria-expanded="false">
+        <QueueRing class="queue-ring-head" data-queue-fold-ring>
+          <span class="queue-stage-icon" data-queue-head-icon="fold"></span>
+        </QueueRing>
+        <span class="queue-fold-text queue-word" data-queue-title></span>
+        <span class="queue-fold-percent" data-queue-percent></span>
+        <Icon name="chevronDown" size="lg" class="queue-chevron" />
+      </button>
+      {/* A plain X: what was made or failed leaves the queue by hand, whatever is still going stays. */}
+      <button class="icon-btn icon-btn-end press queue-clear" type="button" data-queue-clear aria-label={words["data-word-clear"]} hidden>
+        <Icon name="close" size="lg" />
+      </button>
+    </div>
     <div class="queue-body" data-queue-body>
       <ul class="queue-list" role="list" data-queue-list></ul>
     </div>
@@ -139,6 +146,9 @@ const icons: Record<string, IconName> = {
   >
     <div class="queue-pop-head">
       <h2 class="queue-pop-title" id="queue-pop-title">{words["data-word-title"]}</h2>
+      <button class="icon-btn icon-btn-end press queue-clear" type="button" data-queue-clear aria-label={words["data-word-clear"]} hidden>
+        <Icon name="close" size="lg" />
+      </button>
     </div>
     <div class="queue-body">
       <ul class="queue-list" role="list" data-queue-list></ul>

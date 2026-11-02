@@ -261,6 +261,54 @@ test.describe("the podcast queue", () => {
     await expect(page.getByRole("button", { name: "Clear queue" })).toHaveCount(0);
   });
 
+  // The 2026-11-02 owner ask: a podcast that has played has done its job in the queue, and with no row
+  // left the dock is gone; a plain X clears what ended by hand. Both hold across a reload.
+  test("a played podcast leaves the queue, the X clears the rest, and both stay gone after a reload", async ({
+    page,
+  }) => {
+    await mock(page, () => []);
+    const now = Date.now();
+    const done = (id: number, episode: string) => ({
+      at: now - 60_000,
+      run: {
+        id,
+        phase: "done",
+        what: "briefing",
+        kind: "regenerate",
+        episode,
+        href: `/d/${episode}`,
+        t0: now - 120_000,
+        stageAt: now - 60_000,
+      },
+    });
+    await seedStorage(page, {
+      local: {
+        "singularity:queue-day": JSON.stringify([done(41, "2026-10-07"), done(42, "2026-10-05")]),
+      },
+    });
+    await page.goto("/library");
+    await hydrated(page);
+    await openQueue(page);
+    const rows = page.locator("[data-queue-dock] [data-queue-row-item]");
+    await expect(rows).toHaveCount(2);
+    // A podcast starting anywhere (the player says so on the page) lets its row go; the other stays.
+    await page.evaluate(() =>
+      document.dispatchEvent(
+        new CustomEvent("singularity:started", { detail: { id: "2026-10-07" } }),
+      ),
+    );
+    await expect(rows).toHaveCount(1);
+    // The X clears the rest, and with nothing left the dock is gone.
+    await page
+      .getByRole("button", { name: "Clear the queue" })
+      .and(page.locator(":visible"))
+      .click();
+    await expect(page.locator("[data-queue-dock]")).toBeHidden();
+    await page.reload();
+    await hydrated(page);
+    await expect(page.locator("[data-queue-dock]")).toBeHidden();
+  });
+
   // The 2026-10-29 owner ask: the row's line is one line, and Details holds the whole story with a
   // snippet to copy.
   test("a failed run's Details says what went wrong and copies the facts of the run", async ({

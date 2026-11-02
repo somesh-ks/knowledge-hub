@@ -21,7 +21,16 @@ import {
   type GenerationContext,
   type GenerationView,
 } from "../lib/generations";
-import { DAY_KEY, type DayEntry, isToday, readDay } from "../lib/queueDay";
+import {
+  DAY_KEY,
+  type DayEntry,
+  DISMISSED_KEY,
+  dismiss,
+  isToday,
+  readDay,
+  readDismissed,
+  STARTED_EVENT,
+} from "../lib/queueDay";
 import { clockTime, type QueueWords, queueNames } from "../lib/queueNames";
 import { GENERATION_STARTED_EVENT, RUN_EVENT, RUN_STORAGE_KEY } from "../lib/runRecord";
 import { BRIEFING_STAGES, EPISODE_STAGES } from "../lib/runStages";
@@ -127,6 +136,25 @@ function record(): Stored | null {
   }
 }
 
+function dismissed(): Set<number> {
+  try {
+    return readDismissed(localStorage);
+  } catch {
+    return new Set();
+  }
+}
+
+/** A podcast made leaves the queue once it has played, and anything ended leaves it by the X. */
+function letGo(ids: number[]): void {
+  if (!ids.length) return;
+  try {
+    dismiss(localStorage, ids);
+  } catch {
+    // Without storage the queue keeps what it had.
+  }
+  render();
+}
+
 function day(): DayEntry<Stored>[] {
   try {
     return readDay<Stored>(localStorage);
@@ -166,13 +194,14 @@ function currentItems(): Item[] {
   // The ones that ended: the record (the freshest word on its run) and the day's list. An ended run
   // is no longer in GitHub's list; what was kept of it is all there is.
   const kept = day();
+  const gone = dismissed();
   const keptAt = new Map(kept.map((entry) => [entry.run.id, entry.at]));
   const finished: Item[] = [];
   const add = (stored: Stored): void => {
     const row = recordRow(stored);
     const at = keptAt.get(stored.id) ?? stored.stageAt ?? stored.t0 ?? 0;
     // A record left from another day is not today's queue.
-    if (!row || !isEnded(stored.phase) || !isToday(at, now)) return;
+    if (!row || !isEnded(stored.phase) || !isToday(at, now) || gone.has(stored.id)) return;
     if (finished.some((item) => item.row.run_id === stored.id)) return;
     finished.push({ row, ended: stored.phase, record: stored, at });
   };
@@ -360,8 +389,12 @@ function idFromHref(href: string | null): string | null {
 /** Plays a made podcast now, in the persistent player; if that cannot start, opens its page. */
 async function playInPlace(id: string, fallbackHref: string): Promise<void> {
   try {
-    const { playQueueItem } = await import("../player/core/playerRuntime");
+    const [{ playQueueItem }, { openPlayerOnPhone }] = await Promise.all([
+      import("../player/core/playerRuntime"),
+      import("../player/core/openOnPhone"),
+    ]);
     playQueueItem(id);
+    openPlayerOnPhone();
   } catch {
     location.assign(fallbackHref);
   }
@@ -592,6 +625,10 @@ function render(): void {
 
   const panel = dock();
   if (panel) panel.hidden = entries.length === 0;
+  // The X appears once something has ended; what is still going has its own X (Cancel).
+  const clearable = entries.some(({ item }) => item.ended !== null);
+  for (const clear of root.querySelectorAll<HTMLElement>("[data-queue-clear]"))
+    clear.hidden = !clearable;
   applyHead();
 
   // The page keeps room for the dock (shell.css, --run-room), and the whole page knows a run is up.
@@ -798,6 +835,13 @@ export function mountQueue(startedHere = false): void {
         openQueueDetails(details, root?.dataset ?? {});
       }
     }
+    if (target.closest("[data-queue-clear]")) {
+      letGo(
+        currentItems()
+          .filter((item) => item.ended !== null)
+          .map((item) => item.row.run_id),
+      );
+    }
     if (target.closest("[data-queue-listen]")) {
       popover()?.hidePopover?.();
       void listenLive();
@@ -813,6 +857,8 @@ export function mountQueue(startedHere = false): void {
       if (id && plain && event.button === 0) {
         event.preventDefault();
         void playInPlace(id, start.href);
+        const run = Number(start.closest<HTMLElement>("[data-queue-row-item]")?.dataset.run);
+        if (Number.isFinite(run)) letGo([run]);
       }
     }
     if (target.closest("[data-create-open]")) popover()?.hidePopover?.();
@@ -828,11 +874,22 @@ export function mountQueue(startedHere = false): void {
     syncPolling();
   });
 
+  // A podcast started, from the queue, a cover, a page or the up next list: its row has done its job.
+  document.addEventListener(STARTED_EVENT, (event) => {
+    const id = (event as CustomEvent<{ id?: unknown }>).detail?.id;
+    if (typeof id !== "string") return;
+    letGo(
+      currentItems()
+        .filter((item) => item.ended === "done" && idFromHref(item.record?.href ?? null) === id)
+        .map((item) => item.row.run_id),
+    );
+  });
   // The run on record changed: the rows are drawn again.
   document.addEventListener(RUN_EVENT, render);
   // Another tab ended a run.
   window.addEventListener("storage", (event) => {
-    if (event.key === DAY_KEY || event.key === RUN_STORAGE_KEY) render();
+    if (event.key === DAY_KEY || event.key === RUN_STORAGE_KEY || event.key === DISMISSED_KEY)
+      render();
   });
   // The navigation is redrawn on every page: its row is put back before the page is painted.
   document.addEventListener("astro:after-swap", paintTrigger);

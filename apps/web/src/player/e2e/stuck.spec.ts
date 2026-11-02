@@ -104,11 +104,26 @@ test.describe("paths that used to leave the player stuck", () => {
     const dock = page.locator("[data-queue-dock]");
     await finger.press(dock.locator("[data-queue-toggle]"));
     await finger.press(dock.getByRole("link", { name: /^Start listening/ }));
+    // A phone shows the podcast in the player at once (owner, 2026-11-02); its queue row has gone.
+    await player.expanded();
     await expect(player.root).toHaveAttribute("data-player-state", /playing|loading/);
+    await expect(dock).toBeHidden();
+    await finger.press(player.closeButton);
     await player.collapsed();
     await player.dockSettled();
     await player.openPlayer();
     await expect(player.scrubber).toBeVisible();
+  });
+
+  test("Play opens the player over the page on a phone, and on a desktop only the bar changes @desktop", async ({
+    player,
+    page,
+  }) => {
+    await player.open();
+    await player.playAndStay();
+    const wide = (page.viewportSize()?.width ?? 0) >= 1024;
+    if (wide) await player.collapsed();
+    else await player.expanded();
   });
 
   test("a sloppy tap that drifts 10 to 12 px still opens the player", async ({

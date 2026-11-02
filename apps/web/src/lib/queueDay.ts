@@ -83,3 +83,45 @@ export function forget(store: Store, id: number, now = Date.now()): void {
     );
   }
 }
+
+/**
+ * The runs the listener has dealt with: a podcast they started (from the queue or anywhere else) or
+ * cleared by hand. They stay out of the queue for the rest of the day, though their record remains
+ * where the run indicator keeps it. One list for today; a new day starts it empty.
+ */
+/** Told on the document when a podcast starts playing, from anywhere: detail { id } (the digest or episode id). */
+export const STARTED_EVENT = "singularity:started";
+
+export const DISMISSED_KEY = "singularity:queue-dismissed";
+
+interface Dismissed {
+  day: string;
+  ids: number[];
+}
+
+/** The ids dismissed today. */
+export function readDismissed(store: Pick<Storage, "getItem">, now = Date.now()): Set<number> {
+  try {
+    const value = JSON.parse(store.getItem(DISMISSED_KEY) ?? "null") as Dismissed | null;
+    if (!value || value.day !== dayOf(now) || !Array.isArray(value.ids)) return new Set();
+    return new Set(value.ids.filter((id) => typeof id === "number"));
+  } catch {
+    return new Set();
+  }
+}
+
+/** Keeps these runs out of today's queue. */
+export function dismiss(
+  store: Pick<Storage, "getItem" | "setItem">,
+  ids: number[],
+  now = Date.now(),
+): void {
+  try {
+    const all = readDismissed(store, now);
+    for (const id of ids) all.add(id);
+    const value: Dismissed = { day: dayOf(now), ids: [...all].slice(-KEEP * 5) };
+    store.setItem(DISMISSED_KEY, JSON.stringify(value));
+  } catch {
+    // Storage can be blocked or full; the queue then keeps what it had.
+  }
+}

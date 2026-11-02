@@ -700,6 +700,21 @@
   view-transition-name: mini-player;
 }
 
+/* A hairline between the bar and the navigation under it: they share one fill, and a bar that runs into
+   the navigation read as one block (owner, 2026-11-02, amending the no-rule note above for the bottom
+   edge only; the queue's dock above has none). The navigation's own pixel under it stays. */
+@media (width < 64rem) {
+  .player-dock::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: 0;
+    block-size: var(--stroke-hairline);
+    background: var(--color-border-hairline);
+    pointer-events: none;
+  }
+}
+
 /* Before the first play: off the bottom, and out of the tab order. */
 .player[data-visible="false"] .player-dock {
   translate: 0 calc(100% + var(--space-2));

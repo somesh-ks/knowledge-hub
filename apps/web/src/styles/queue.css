@@ -58,11 +58,31 @@ html[data-player="open"] .queue-dock {
 
 /* The folded row (.queue-fold): the whole row is the button, 48px tall and full width, so a tap
    anywhere on it opens the dock. */
+.queue-head {
+  display: flex;
+  align-items: center;
+}
+
+/* The X that clears the queue stands after the chevron; the folded row gives up its end padding to it. */
+.queue-head .queue-clear {
+  flex: none;
+  margin-inline-end: max(var(--space-2), var(--safe-right));
+}
+
+.queue-clear[hidden] {
+  display: none;
+}
+
+.queue-head:has(.queue-clear:not([hidden])) .queue-fold {
+  padding-inline-end: 0;
+}
+
 .queue-fold {
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
   height: var(--run-height);
   padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-2), var(--safe-right));
   border: 0;
@@ -449,7 +469,14 @@ html[data-player="open"] .queue-dock {
 /* The title is 20px and regular: headings are never bold (D125), so the weight of the hierarchy is the
    size and the room around it (2026-10-29). 24px above it and 24px below the last row, in every state. */
 .queue-pop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: var(--space-6) var(--space-6) var(--space-2);
+}
+
+.queue-pop-head .queue-clear {
+  margin-inline-end: calc(var(--space-2) * -1);
 }
 
 .queue-pop-title {
