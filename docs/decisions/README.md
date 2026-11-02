@@ -181,5 +181,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D321 | The ripple and a cover's press stay alpha layers, over artwork | amends D317 |
 | D323 | Regenerate is a full sheet like Catch up; Length has no Usual | amends D207 |
 | D324 | The Catch up script is written at medium effort | amends D181 |
+| D332 | A scheduled run waits at the gate when the last 24 hours cost over $5 | amends D139 |
 
 ---

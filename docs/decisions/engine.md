@@ -586,3 +586,14 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Cost: not measured on real scripts. Effort medium may write a shorter script (`length_share`).
 - Revisit if: two Catch ups in a row air under 90% of their length (`length_share`), then put high back.
 - Amends: D181 (the model chains).
+
+## D332: a scheduled run waits at the gate when the last 24 hours cost over the ceiling
+
+- Date: 2026-11-02 (audit item H7; the owner: no cost target per run, "keep the cost low as much as possible all the time").
+- Decision: `gateStage` reads the cost ledger before it plans a scheduled run. If the last 24 hours of `state/costs-*.json` come to more than `DAILY_CEILING_USD` ($5, the number the health check already used), the gate plans no pass and says why in its reason; the run ends as gated and the next slot tries again. A run a person started (on-demand, `force`, a replacement) goes ahead. A ledger that does not read never stops a run. Amends D139, whose ceiling only raised a fault after the money was spent.
+- Why: nothing stopped spend before this; a loop or a bad day cost the same as a good one until the health check spoke. No per-run target was set, so the ceiling is a plain backstop at about four times a normal day ($1.3 weekly, $0.8 daily).
+- Rejected: a per-run dollar stop inside the stages (the owner declined a per-run target, and a stop midway wastes what the run already spent); stopping runs a person asked for (their call, and a Regenerate is the answer to a thin day).
+- Limit: the ledger records a run at its commit, so a run in progress is not counted; the experiment's spend is not in the ledger. One Speechify counter and a weekly cap on Exa are not part of this.
+- Revisit if: a normal week trips the ceiling, or the ledger gains the experiment and in-progress spend.
+- Amends: D139.
+
