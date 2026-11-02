@@ -99,8 +99,128 @@
   --range-fill-color: var(--color-accent-pressed);
 }
 
+/*
+ * The hue slider (Slider with `hue`; D328, amends D315): a Slider whose rail is the whole spectrum.
+ * A stop is the style's own accent turned to that hue, at one lightness and chroma, so the rail follows
+ * a style and a future style needs nothing. The thumb is the colour picked: the accent already carries
+ * the reader's turn (--hue-shift), so the same lightness and chroma on it is the colour under the thumb.
+ * Holding the thumb floats a swatch of that colour above it. The swatch is an overlay, so showing it
+ * moves nothing. The caller keeps --range-fill on the field, as it does on a Slider; the swatch's place
+ * reads it as a share of the rail's travel.
+ */
+.slider-hue-field {
+  --range-fill: 0%;
+  --hue-colour: oklch(from var(--color-accent-action) var(--hue-lightness) var(--hue-chroma) h);
+  /* The rail's left end: the style's accent before the reader's turn. */
+  --hue-zero: oklch(from var(--hue-colour) l c calc(h - var(--hue-shift, 0)));
+  /* The ring parts the thumb and the swatch from what they ride on: the surface behind the field, which
+     its container names (--color-focus-gap), as the controls' focus rings do. */
+  --slider-ring: var(--color-focus-gap);
+  position: relative;
+  display: block;
+}
+
+.slider-hue-field > .slider-input {
+  display: block;
+  width: 100%;
+  --slider-ring: inherit;
+  /* Thirteen stops, 30 degrees apart and the last at 355; the gradient mixes in oklch, so no stop turns grey between. */
+  --hue-spectrum: linear-gradient(
+    in oklch to right,
+    oklch(from var(--hue-zero) l c calc(h + 0)),
+    oklch(from var(--hue-zero) l c calc(h + 30)),
+    oklch(from var(--hue-zero) l c calc(h + 60)),
+    oklch(from var(--hue-zero) l c calc(h + 90)),
+    oklch(from var(--hue-zero) l c calc(h + 120)),
+    oklch(from var(--hue-zero) l c calc(h + 150)),
+    oklch(from var(--hue-zero) l c calc(h + 180)),
+    oklch(from var(--hue-zero) l c calc(h + 210)),
+    oklch(from var(--hue-zero) l c calc(h + 240)),
+    oklch(from var(--hue-zero) l c calc(h + 270)),
+    oklch(from var(--hue-zero) l c calc(h + 300)),
+    oklch(from var(--hue-zero) l c calc(h + 330)),
+    oklch(from var(--hue-zero) l c calc(h + 355))
+  );
+}
+
+.slider-hue-field > .slider-input::-webkit-slider-runnable-track {
+  height: var(--hue-rail);
+  background: var(--hue-spectrum);
+}
+
+.slider-hue-field > .slider-input::-moz-range-track {
+  height: var(--hue-rail);
+  background: var(--hue-spectrum);
+}
+
+/* Firefox paints a filled part from the range-progress; a hue has none. */
+.slider-hue-field > .slider-input::-moz-range-progress {
+  background: none;
+}
+
+.slider-hue-field > .slider-input::-webkit-slider-thumb {
+  width: var(--hue-thumb);
+  height: var(--hue-thumb);
+  margin-block-start: calc((var(--hue-rail) - var(--hue-thumb)) / 2);
+  background: var(--hue-colour);
+  box-shadow: 0 0 0 var(--scrubber-thumb-ring) var(--slider-ring);
+}
+
+.slider-hue-field > .slider-input::-moz-range-thumb {
+  width: var(--hue-thumb);
+  height: var(--hue-thumb);
+  background: var(--hue-colour);
+  box-shadow: 0 0 0 var(--scrubber-thumb-ring) var(--slider-ring);
+}
+
+/* The swatch rides the rail's travel: a box as wide as the thumb's centre can go, so a percentage is
+   a share of it. */
+.slider-hue-swatch {
+  position: absolute;
+  inset-block-start: calc(var(--size-touch) / 2);
+  inset-inline: calc(var(--hue-thumb) / 2);
+  height: 0;
+  pointer-events: none;
+}
+
+.slider-hue-swatch::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: var(--range-fill);
+  width: var(--hue-swatch);
+  height: var(--hue-swatch);
+  border-radius: var(--radius-round);
+  background: var(--hue-colour);
+  box-shadow:
+    0 0 0 calc(var(--scrubber-thumb-ring) * 2) var(--slider-ring),
+    var(--shadow-floating);
+  translate: -50% calc(-50% - var(--hue-swatch-lift));
+  scale: 0.4;
+  opacity: 0;
+  transition:
+    scale var(--duration-spring-pop) var(--ease-spring-pop),
+    opacity var(--duration-state) var(--ease-out);
+}
+
+.slider-hue-field:has(> .slider-input:enabled:active) .slider-hue-swatch::after {
+  scale: 1;
+  opacity: 1;
+}
+
+/* No spring under reduced motion: the swatch fades in at its size. */
+@media (prefers-reduced-motion: reduce) {
+  .slider-hue-swatch::after {
+    scale: 1;
+  }
+}
+
 /* Forced colours drops fills and shadows, so the slider gets a highlight fill on a text-coloured track. */
 @media (forced-colors: active) {
+  /* A hue slider keeps its spectrum: that is the value it shows. */
+  .slider-hue-field > .slider-input {
+    forced-color-adjust: none;
+  }
+
   /* The filled track is a gradient, which forced colours removes along with every other background
        image. Opting the slider out keeps it, and the system colours here keep it legible. */
 

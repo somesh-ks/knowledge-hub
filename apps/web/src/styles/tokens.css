@@ -434,6 +434,12 @@
   --scrubber-tick-dot: 0.3125rem;
   --scrubber-bubble-radius: var(--shape-sm);
   --scrubber-detent-hysteresis: 0.02;
+  --hue-rail: 1rem;
+  --hue-thumb: 1.75rem;
+  --hue-swatch: 4rem;
+  --hue-swatch-lift: 3.25rem;
+  --hue-lightness: 0.72;
+  --hue-chroma: 0.17;
   --segmented-height: var(--size-touch-comfortable);
   --segmented-padding: var(--space-1);
   --segmented-radius: var(--shape-md);

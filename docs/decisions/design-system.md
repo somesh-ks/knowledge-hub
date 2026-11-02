@@ -659,6 +659,16 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Revisit if: multi-select or the emoji picker should follow, or a list needs a row the owner wants rounded.
 - Amends: D275, D291.
 
+## D328: the hue slider paints the spectrum and shows the picked colour
+
+- Date: 2026-11-02 (the owner chose option A from the hue slider options; the avatar and Settings thread asked for it in the design system).
+- Decision: `Slider` takes `hue`. The rail is 1rem thick and painted with the whole spectrum: 13 stops 30 degrees apart (the last at 355), each the style's own `--color-accent-action` at one lightness and chroma (`--hue-lightness`, `--hue-chroma`), turned to that hue. The thumb is 1.75rem, in the picked colour (the accent already carries the reader's `--hue-shift`, so the same lightness and chroma on it is the colour under the thumb), with the surface ring. Holding the thumb floats a 4rem round swatch of that colour above it, as an overlay that moves nothing, in the spring-pop scale and fade; reduced motion fades it at size. The input is wrapped in a field that carries `--range-fill` for the swatch's place. No script: the swatch shows on `:active`.
+- Why: a plain track gave no sign of what a turn would do. Building the rail from the style's accent keeps one place that knows a style's colour (D268, D319) and gives a new style or mood a working rail with no work; it also keeps the colour tokens' rule that nothing is typed.
+- Rejected: three options at the owner's side (a lens that replaces the thumb: hides the rail under the finger; a capsule with a droplet printing the turn: a number nobody needs); a swatch kept by script and a timer for keyboard use (the thumb's colour already changes under the key); a hue slider as its own component (it is a Slider with another rail).
+- Cost: `slider.css` derives colours with `oklch(from ...)`, which the guard test allowed for the cover only; it now allows the slider too. Six tokens (`--hue-rail`, `--hue-thumb`, `--hue-swatch`, `--hue-swatch-lift`, `--hue-lightness`, `--hue-chroma`). The container the slider sits in names its surface with `--color-focus-gap` so the ring parts the thumb from it.
+- Revisit if: a style's accent has too little chroma at one lightness for a rail to read (Default's blue does not turn, so the slider is off there), or keyboard use needs the swatch.
+- Amends: D315.
+
 ## D329: a Menu sheet over one safe row has no title and no Close
 
 - Date: 2026-11-02 (the owner, leaning to skip the title and X when a bottom sheet holds one option; settled by the coordinator).

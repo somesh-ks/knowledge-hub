@@ -1065,7 +1065,9 @@ describe("component stylesheets", () => {
         expect(mix, `${file}: a mix over a fill`).toMatch(/transparent\s*\)$/);
       }
       expect(css, `${file} steps lightness by hand`).not.toMatch(/--state-step-/);
-      if (file !== "cover.css")
+      // The cover turns its own hue; the hue slider paints the style's accent at every turn (D328).
+      // Neither steps a state.
+      if (file !== "cover.css" && file !== "slider.css")
         expect(css, `${file} derives a color by hand`).not.toMatch(/oklch\(from /);
     }
   });

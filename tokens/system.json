@@ -5004,6 +5004,48 @@
       "role": "Fraction of an item's length a scrub must move back before the same detent re-arms."
     },
     {
+      "name": "--hue-rail",
+      "tier": "component",
+      "type": "dimension",
+      "light": "1rem",
+      "role": "The hue slider's rail: the whole spectrum, one rem thick."
+    },
+    {
+      "name": "--hue-thumb",
+      "tier": "component",
+      "type": "dimension",
+      "light": "1.75rem",
+      "role": "The hue slider's thumb, in the colour it has picked."
+    },
+    {
+      "name": "--hue-swatch",
+      "tier": "component",
+      "type": "dimension",
+      "light": "4rem",
+      "role": "The round swatch that floats above the thumb while it is held."
+    },
+    {
+      "name": "--hue-swatch-lift",
+      "tier": "component",
+      "type": "dimension",
+      "light": "3.25rem",
+      "role": "How far the swatch's centre rides above the rail's centre."
+    },
+    {
+      "name": "--hue-lightness",
+      "tier": "component",
+      "type": "number",
+      "light": "0.72",
+      "role": "OKLCH lightness of the rail and the thumb: one value, so every hue reads as equally bright."
+    },
+    {
+      "name": "--hue-chroma",
+      "tier": "component",
+      "type": "number",
+      "light": "0.17",
+      "role": "OKLCH chroma of the rail and the thumb."
+    },
+    {
       "name": "--segmented-height",
       "tier": "component",
       "type": "dimension",

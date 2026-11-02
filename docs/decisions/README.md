@@ -172,7 +172,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D309 | Player ⋮ menu: actions, speed screen, Save; Settings > Saved | amends D105, D127; supersedes D50's speed control |
 | D310 | Expressive is loud: a violet world, larger controls | amends D268 |
 | D314 | Album art follows the style, drawn live from the month's colours | amends D110, D121; fulfils D306 |
-| D315 | The reader's hue turns a style's whole palette | amends D268, D310 |
+| D315 | The reader's hue turns a style's whole palette | amends D268, D310; amended by D328 |
 | D316 | Vercel skew protection stays off in the web build | active |
 | D317 | A state is an explicit OKLCH colour, never an alpha | amends D72, D238; amended by D321 |
 | D318 | Pages stay at the edge until their content changes, purged by tag | active |
@@ -180,6 +180,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D321 | The ripple and a cover's press stay alpha layers, over artwork | amends D317 |
 | D322 | A Library card's phone sheet opens with quick-action tiles | amends D291 |
 | D325 | List rows run edge to edge in the Menu, the select list and the picker | amends D275, D291 |
+| D328 | The hue slider paints the spectrum and shows the picked colour | amends D315 |
 | D329 | A Menu sheet over one safe row has no title and no Close | amends D291 |
 
 ---

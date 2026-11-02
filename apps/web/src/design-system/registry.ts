@@ -16,7 +16,7 @@ import { MENU, MENU_CLASSES, MENU_RETIRED } from "./menu";
 import { RIPPLE, RIPPLE_CLASSES, RIPPLE_RETIRED } from "./ripple";
 import { SELECT, SELECT_CLASSES, SELECT_RETIRED } from "./select";
 import { SHEET, SHEET_CLASSES, SHEET_RETIRED } from "./sheet";
-import { SLIDER, SLIDER_CLASSES, SLIDER_RETIRED } from "./slider";
+import { SLIDER, SLIDER_CLASSES, SLIDER_RETIRED, SLIDER_VARIANTS } from "./slider";
 import { SWITCH, SWITCH_CLASSES, SWITCH_RETIRED } from "./switch";
 import { WHEEL, WHEEL_CLASSES, WHEEL_RETIRED } from "./wheel";
 
@@ -87,7 +87,7 @@ export const COMPONENTS: DesignSystemComponent[] = [
     summary: SLIDER.summary,
     useWhen: SLIDER.useWhen,
     dontUseWhen: SLIDER.dontUseWhen,
-    parts: {},
+    parts: SLIDER_VARIANTS,
   },
   {
     name: "Field",
