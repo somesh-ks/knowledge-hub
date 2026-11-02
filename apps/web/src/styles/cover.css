@@ -222,7 +222,7 @@
     border: 0;
     border-radius: var(--radius-round);
     background: transparent;
-    color: var(--color-white);
+    color: var(--color-on-scrim);
     cursor: pointer;
     pointer-events: auto;
     scale: var(--scale-enter);

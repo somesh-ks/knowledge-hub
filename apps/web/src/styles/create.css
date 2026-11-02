@@ -224,11 +224,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .create-view .field-input.create-title:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-surface-container),
-      var(--color-on-surface) var(--state-hover)
-    );
+    background: var(--color-surface-container-hover);
   }
 }
 

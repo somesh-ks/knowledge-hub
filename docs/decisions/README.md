@@ -169,5 +169,9 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D302 | Pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked | active |
 | D306 | A seasonal style may change more than tokens | amends D268 |
 | D308 | Haiku writes the first pass of each story, Sonnet repairs and backs it up | amends D181 |
+| D310 | Expressive is loud: a violet world, larger controls | amends D268 |
+| D314 | Album art follows the style, drawn live from the month's colours | amends D110, D121; fulfils D306 |
+| D315 | The reader's hue turns a style's whole palette | amends D268, D310 |
+| D317 | A state is an explicit OKLCH colour, never an alpha | amends D72, D238 |
 
 ---

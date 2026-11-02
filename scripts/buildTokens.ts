@@ -13,7 +13,14 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { oklchStringToRgb, toHex } from "./colorMath.js";
+import {
+  contrastRatio,
+  type Oklch,
+  oklchStringToRgb,
+  oklchToRgb,
+  parseOklch,
+  toHex,
+} from "./colorMath.js";
 
 export type Tier = "primitive" | "semantic" | "component";
 export type Mode = "light" | "dark";
@@ -30,6 +37,8 @@ export interface Token {
   reducedMotion?: string;
   description?: string;
   extensions: Record<string, unknown>;
+  /** A state color that names a `label` is written once and settled per mode and style; this is what was written. */
+  authored?: { value: TokenValue; dark?: TokenValue };
 }
 
 /** One token a style replaces: the base token (for its type and path) and the style's values. */
@@ -67,6 +76,7 @@ const GENERIC_FAMILIES = new Set([
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const TOKENS_JSON_PATH = resolve(ROOT, "tokens/tokens.json");
 export const TOKENS_CSS_PATH = resolve(ROOT, "apps/web/src/styles/tokens.css");
+export const COVERS_JSON_PATH = resolve(ROOT, "tokens/covers.json");
 export const HAPTICS_TS_PATH = resolve(ROOT, "apps/web/src/design-system/hapticTokens.ts");
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -131,7 +141,7 @@ export function parseTokens(raw: unknown): TokenDocument {
   const byPath = new Map(tokens.map((token) => [token.dotPath, token]));
   const root = isRecord(raw.$extensions) ? singularityExtension(raw.$extensions) : {};
   const fluid = isRecord(root.fluid) ? root.fluid : {};
-  return {
+  const parsed: TokenDocument = {
     tokens,
     byPath,
     styles: parseStyles(raw.styles, byPath),
@@ -140,6 +150,9 @@ export function parseTokens(raw: unknown): TokenDocument {
       maxViewport: typeof fluid.maxViewport === "string" ? fluid.maxViewport : "80rem",
     },
   };
+  settleStates(parsed);
+  for (const style of parsed.styles) settleStatesUnder(parsed, style);
+  return parsed;
 }
 
 /**
@@ -278,6 +291,183 @@ function renderShadowLayer(layer: TokenValue, doc: TokenDocument): string {
   return `${inset}${field("offsetX")} ${field("offsetY")} ${field("blur")} ${field("spread")} ${color}`;
 }
 
+const STATE_COLOR = "singularity-state-color";
+const STATE_DIRECTIONS = ["darker", "lighter", "text", "inverse-text"] as const;
+type StateDirection = (typeof STATE_DIRECTIONS)[number];
+
+interface StateColor {
+  from: string;
+  step: "hover" | "hover-quiet" | "press";
+  direction: StateDirection;
+  /** The text on the fill: when set, the direction is the preferred one and the build flips it if the label would drop under the floor. */
+  label?: string;
+}
+
+function stateColorOf(path: string, value: TokenValue): StateColor {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new Error(`${path}: a state color needs {from, step, direction}`);
+  }
+  const { from, step, direction } = value;
+  if (aliasTarget(from) === null) throw new Error(`${path}: "from" must be a {reference}`);
+  if (step !== "hover" && step !== "hover-quiet" && step !== "press") {
+    throw new Error(`${path}: step is hover, hover-quiet or press`);
+  }
+  if (typeof direction !== "string" || !STATE_DIRECTIONS.includes(direction as StateDirection)) {
+    throw new Error(`${path}: direction is one of ${STATE_DIRECTIONS.join(", ")}`);
+  }
+  const label = value.label;
+  if (label !== undefined && aliasTarget(label) === null) {
+    throw new Error(`${path}: "label" must be a {reference}`);
+  }
+  return {
+    from: String(from),
+    step,
+    direction: direction as StateDirection,
+    ...(label !== undefined ? { label: String(label) } : {}),
+  };
+}
+
+/**
+ * A state color is a fill moved in lightness only (D317): `oklch(from <fill> calc(l - step) c h)`,
+ * so hue and chroma stay and no alpha or mix is involved. `darker` always lowers L and `lighter` always
+ * raises it (for a mid-tone fill whose dark label would lose contrast if it deepened); `text` moves
+ * toward the control's text (down in light, up in dark, by semantic.state.direction);
+ * `inverse-text` is the same for a fill whose text is the other way round (the toast).
+ */
+function renderStateColor(path: string, value: TokenValue, doc: TokenDocument): string {
+  const { from, step, direction } = stateColorOf(path, value);
+  const source = renderValue("color", from, doc);
+  const amount = `var(--state-step-${step})`;
+  if (direction === "darker") return `oklch(from ${source} calc(l - ${amount}) c h)`;
+  if (direction === "lighter") return `oklch(from ${source} calc(l + ${amount}) c h)`;
+  const sign = direction === "text" ? "+" : "-";
+  return `oklch(from ${source} calc(l ${sign} var(--state-direction) * ${amount}) c h)`;
+}
+
+/** The lightness move of a state: `darker` and `lighter` are absolute; `text` follows the mode's way. */
+function lightnessDelta(direction: StateDirection, amount: number, way: number): number {
+  if (direction === "darker") return -amount;
+  if (direction === "lighter") return amount;
+  return direction === "text" ? way * amount : -way * amount;
+}
+
+function moved(base: Oklch, delta: number): Oklch {
+  return { ...base, l: Math.min(1, Math.max(0, base.l + delta)) };
+}
+
+/** The same move as a literal, for contrast tests and the system file: resolves the fill in `mode`. */
+function resolveStateColor(
+  doc: TokenDocument,
+  path: string,
+  value: TokenValue,
+  mode: Mode,
+): string {
+  const { from, step, direction } = stateColorOf(path, value);
+  const base = parseOklch(String(resolveLiteral(doc, aliasTarget(from) as string, mode)));
+  const amount = Number(resolveLiteral(doc, `primitive.state.step-${step}`, mode));
+  const way = Number(resolveLiteral(doc, "semantic.state.direction", mode));
+  const { l } = moved(base, lightnessDelta(direction, amount, way));
+  const alpha = base.alpha < 1 ? ` / ${trimNumber(base.alpha)}` : "";
+  return `oklch(${trimNumber(l * 100)}% ${trimNumber(base.c)} ${trimNumber(base.h)}${alpha})`;
+}
+
+/** The label floor a state must keep, and the hues a reader's slider (D315) can turn a style to. */
+const STATE_LABEL_FLOOR = 4.5;
+const STATE_HUE_TURNS = Array.from({ length: 72 }, (_, i) => i * 5);
+
+const FLIPPED: Record<StateDirection, StateDirection> = {
+  darker: "lighter",
+  lighter: "darker",
+  text: "inverse-text",
+  "inverse-text": "text",
+};
+
+/**
+ * Which way a state steps (D317: nothing about a style is set by hand). A fill that names its label
+ * steps the way it prefers unless its press, the largest step, would drop the label under 4.5:1 at
+ * any hue the slider can reach; then it steps the other way, which moves away from the label. So a
+ * new style or hue needs no flag: the build judges it from the style's own fill and label.
+ */
+function settledDirection(doc: TokenDocument, state: StateColor, mode: Mode): StateDirection {
+  if (state.label === undefined) return state.direction;
+  const fill = parseOklch(String(resolveLiteral(doc, aliasTarget(state.from) as string, mode)));
+  const label = parseOklch(String(resolveLiteral(doc, aliasTarget(state.label) as string, mode)));
+  const press = Number(resolveLiteral(doc, "primitive.state.step-press", mode));
+  const way = Number(resolveLiteral(doc, "semantic.state.direction", mode));
+  const turn = (color: Oklch, shift: number): Oklch => ({
+    ...color,
+    h: (color.h + (color.c === 0 ? 0 : shift)) % 360,
+  });
+  const holds = (direction: StateDirection): boolean => {
+    const pressed = moved(fill, lightnessDelta(direction, press, way));
+    return STATE_HUE_TURNS.every(
+      (shift) =>
+        contrastRatio(oklchToRgb(turn(label, shift)), oklchToRgb(turn(pressed, shift))) >=
+        STATE_LABEL_FLOOR,
+    );
+  };
+  return holds(state.direction) ? state.direction : FLIPPED[state.direction];
+}
+
+/** A state color with its direction settled for `mode` in `doc`; the label is a build input, not output. */
+function settleState(doc: TokenDocument, token: Token, value: TokenValue, mode: Mode): TokenValue {
+  const state = stateColorOf(token.dotPath, value);
+  return { from: state.from, step: state.step, direction: settledDirection(doc, state, mode) };
+}
+
+/**
+ * Settles every state color that names a label: the token keeps what was written in `authored`, and
+ * its `value` and `dark` become plain moves, one per mode (`dark` only where it differs).
+ * `doc` may be the base or a style laid over it; only the fills and labels it resolves differ.
+ */
+function settledPair(doc: TokenDocument, token: Token): { value: TokenValue; dark: TokenValue } {
+  const authored = token.authored as { value: TokenValue; dark?: TokenValue };
+  return {
+    value: settleState(doc, token, authored.value, "light"),
+    dark: settleState(doc, token, authored.dark ?? authored.value, "dark"),
+  };
+}
+
+function settleStates(doc: TokenDocument): void {
+  for (const token of doc.tokens) {
+    if (token.type !== STATE_COLOR) continue;
+    const written = [token.value, token.dark].filter((v) => v !== undefined) as TokenValue[];
+    const labelled = written.some((v) => stateColorOf(token.dotPath, v).label !== undefined);
+    if (!labelled) continue;
+    token.authored = {
+      value: token.value,
+      ...(token.dark !== undefined ? { dark: token.dark } : {}),
+    };
+    const settled = settledPair(doc, token);
+    token.value = settled.value;
+    if (JSON.stringify(settled.dark) === JSON.stringify(settled.value)) delete token.dark;
+    else token.dark = settled.dark;
+  }
+}
+
+/**
+ * Under a style, a labelled state may settle differently from the base (a mid-tone fill under its
+ * label): those become overrides of that style, so the style block carries what the build chose.
+ */
+function settleStatesUnder(doc: TokenDocument, style: StyleDefinition): void {
+  const under: TokenDocument = { ...doc, byPath: new Map(doc.byPath) };
+  for (const override of style.overrides) {
+    under.byPath.set(override.token.dotPath, {
+      ...override.token,
+      value: override.value,
+      ...(override.dark !== undefined ? { dark: override.dark } : {}),
+    });
+  }
+  const own = new Set(style.overrides.map((override) => override.token.dotPath));
+  for (const token of doc.tokens) {
+    if (token.authored === undefined || own.has(token.dotPath)) continue;
+    const settled = settledPair(under, token);
+    const same = (a: TokenValue, b: TokenValue): boolean => JSON.stringify(a) === JSON.stringify(b);
+    if (same(settled.value, token.value) && same(settled.dark, token.dark ?? token.value)) continue;
+    style.overrides.push({ token, value: settled.value, dark: settled.dark });
+  }
+}
+
 /** Renders one token value as CSS. Aliases become var() so the tier chain survives in the output. */
 export function renderValue(type: string, value: TokenValue, doc: TokenDocument): string {
   const target = aliasTarget(value);
@@ -287,6 +477,8 @@ export function renderValue(type: string, value: TokenValue, doc: TokenDocument)
     return `var(${cssName(token.path)})`;
   }
   switch (type) {
+    case STATE_COLOR:
+      return renderStateColor("state color", value, doc);
     case "color":
     case "dimension":
     case "duration":
@@ -371,6 +563,9 @@ export function resolveLiteral(doc: TokenDocument, dotPath: string, mode: Mode):
     if (!token) throw new Error(`Unknown reference {${current}}`);
     const value = mode === "dark" && token.dark !== undefined ? token.dark : token.value;
     const target = aliasTarget(value);
+    if (!target && token.type === STATE_COLOR) {
+      return resolveStateColor(doc, token.dotPath, value, mode);
+    }
     if (!target) return value;
     current = target;
   }
@@ -408,6 +603,44 @@ function lowerIndent(lines: string[]): string[] {
   return lines.map((line) => `  ${line}`);
 }
 
+const OKLCH_LITERAL = /oklch\(([\d.]+%?) ([\d.]+) (-?[\d.]+)( \/ [\d.]+%?)?\)/g;
+
+/**
+ * A reader's hue (`--hue-shift`, degrees, set on the root; D315) turns a style's whole palette: every
+ * coloured oklch literal a style writes gets the shift added to its hue. A grey (chroma 0) stays.
+ * With no shift the sum is the hue as written, so a style looks as designed until the reader moves it.
+ */
+function turnHue(value: string): string {
+  return value.replace(OKLCH_LITERAL, (whole, l: string, c: string, h: string, alpha = "") =>
+    Number(c) === 0 ? whole : `oklch(${l} ${c} calc(${h} + var(--hue-shift, 0))${alpha})`,
+  );
+}
+
+/**
+ * A style that points at a coloured step of a primitive ramp (`var(--color-violet-600)`) keeps the
+ * reference; the step itself is written again under the style with the shift on its hue, so every
+ * use of the ramp in that style turns with the reader's hue. A ramp step has one value in both themes.
+ */
+function turnedRamps(lines: string[], doc: TokenDocument): string[] {
+  const used = new Set<string>();
+  for (const line of lines) {
+    for (const match of line.matchAll(/var\((--color-[a-z]+-\d+)\)/g)) used.add(match[1] as string);
+  }
+  const out: string[] = [];
+  for (const name of [...used].sort((a, b) => a.localeCompare(b, "en", { numeric: true }))) {
+    const token = doc.tokens.find((t) => t.tier === "primitive" && cssName(t.path) === name);
+    if (!token) continue;
+    const [declaration] = declarationsFor(token, token.value, doc);
+    const turned = declaration ? turnHue(declaration.value) : "";
+    if (!declaration || turned === declaration.value) continue;
+    if (token.dark !== undefined) {
+      throw new Error(`${token.dotPath}: a primitive with a dark value cannot turn with a hue`);
+    }
+    out.push(formatDeclaration({ name, value: turned }));
+  }
+  return out;
+}
+
 /**
  * A style's blocks follow the base's, so at equal weight the style wins. The light block is one
  * attribute heavier than the base's light block; the two dark blocks are heavier than the base's
@@ -420,7 +653,7 @@ function styleBlocks(style: StyleDefinition, doc: TokenDocument): string[] {
       const value = pick(override);
       if (value === undefined) continue;
       for (const declaration of declarationsFor(override.token, value, doc)) {
-        out.push(formatDeclaration(declaration));
+        out.push(formatDeclaration({ ...declaration, value: turnHue(declaration.value) }));
       }
     }
     return out;
@@ -428,7 +661,8 @@ function styleBlocks(style: StyleDefinition, doc: TokenDocument): string[] {
   const light = lines((override) => override.value);
   const dark = lines((override) => override.dark);
   const attr = `[data-style="${style.name}"]`;
-  const out = [`/* Style: ${style.name} */`, `:root${attr} {`, ...light, "}", ""];
+  const ramps = turnedRamps([...light, ...dark], doc);
+  const out = [`/* Style: ${style.name} */`, `:root${attr} {`, ...light, ...ramps, "}", ""];
   if (dark.length > 0) {
     out.push("@media (prefers-color-scheme: dark) {");
     out.push(`  :root:not([data-theme="light"])${attr} {`);
@@ -440,6 +674,89 @@ function styleBlocks(style: StyleDefinition, doc: TokenDocument): string[] {
     out.push(...dark);
     out.push("}");
     out.push("");
+  }
+  return out;
+}
+
+type CoverNode = { $value: unknown };
+type CoverRuleJson = Record<string, CoverNode | Record<string, CoverNode>>;
+
+const coverValue = (node: unknown, where: string): unknown => {
+  if (typeof node !== "object" || node === null || !("$value" in node)) {
+    throw new Error(`tokens/covers.json: style.${where} needs a $value`);
+  }
+  return (node as CoverNode).$value;
+};
+
+/**
+ * How each style redraws an album cover (D314), as custom properties under the style's attribute.
+ * A cover is a vector whose colours are CSS math over the month's base colours (cover.css), so a
+ * style is only these numbers: a new style in `tokens/covers.json` needs no cover files, and a reader's
+ * hue (`--hue-shift`) moves the one anchor, `--cover-hue`. The numbers are the rule's, read here so
+ * the page and `packages/cover` (which holds the same formula for contrast tests) never part.
+ */
+export function coverStyleBlocks(
+  raw: unknown = JSON.parse(readFileSync(COVERS_JSON_PATH, "utf8")),
+): string[] {
+  const rules = (raw as { style?: Record<string, unknown> }).style ?? {};
+  const out: string[] = [
+    "/* Album art per style (D314, tokens/covers.json): numbers for the cover math in cover.css. */",
+  ];
+  for (const [id, body] of Object.entries(rules)) {
+    if (id.startsWith("$")) continue;
+    const rule = body as CoverRuleJson;
+    const num = (node: unknown, where: string): number => {
+      const value = coverValue(node, `${id}.${where}`);
+      if (typeof value !== "number")
+        throw new Error(`tokens/covers.json: style.${id}.${where} must be a number`);
+      return value;
+    };
+    const chroma = rule.chroma as Record<string, CoverNode>;
+    const flip = rule.flip as Record<string, CoverNode> | undefined;
+    const night = rule.night as Record<string, CoverNode> | undefined;
+    const band = (mode: "light" | "dark"): [number, number] => {
+      const value = flip ? coverValue(flip[mode], `${id}.flip.${mode}`) : [0, 1];
+      if (!Array.isArray(value) || value.length !== 2) {
+        throw new Error(`tokens/covers.json: style.${id}.flip.${mode} must be [low, high]`);
+      }
+      return [Number(value[0]), Number(value[1])];
+    };
+    const [lowLight, highLight] = band("light");
+    const [lowDark, highDark] = band("dark");
+    const lines = [
+      `--cover-hue: ${num(rule.hue, "hue")};`,
+      `--cover-keep: ${num(rule.keep, "keep")};`,
+      `--cover-spread: ${num(rule.spread, "spread")};`,
+      `--cover-cap: ${num(rule.cap, "cap")};`,
+      `--cover-hold: ${num(rule.hold, "hold")};`,
+      `--cover-c-scale: ${num(chroma.scale, "chroma.scale")};`,
+      `--cover-c-add: ${num(chroma.add, "chroma.add")};`,
+      `--cover-c-max: ${num(chroma.max, "chroma.max")};`,
+      `--cover-c-floor-below: ${num(chroma["floor-below"], "chroma.floor-below")};`,
+      `--cover-c-floor: ${num(chroma.floor, "chroma.floor")};`,
+      `--cover-flip: ${flip ? 1 : 0};`,
+      `--cover-night-below: ${night ? num(night.below, "night.below") : 0};`,
+      `--cover-night-hue: ${night ? num(night.hue, "night.hue") : 0};`,
+      `--cover-night-c: ${night ? num(night.chroma, "night.chroma") : 0};`,
+    ];
+    const attr = `[data-style="${id}"]`;
+    out.push(
+      `:root${attr} {`,
+      ...lowerIndent(lines),
+      `  --cover-lo: ${lowLight};`,
+      `  --cover-hi: ${highLight};`,
+      "}",
+      "",
+    );
+    if (flip) {
+      const dark = [`--cover-lo: ${lowDark};`, `--cover-hi: ${highDark};`];
+      out.push(
+        "@media (prefers-color-scheme: dark) {",
+        `  :root:not([data-theme="light"])${attr} {`,
+      );
+      out.push(...dark.map((line) => `    ${line}`), "  }", "}", "");
+      out.push(`:root[data-theme="dark"]${attr} {`, ...lowerIndent(dark), "}", "");
+    }
   }
   return out;
 }
@@ -479,6 +796,7 @@ export function buildCss(doc: TokenDocument): string {
   out.push("");
 
   for (const style of doc.styles) out.push(...styleBlocks(style, doc));
+  out.push(...coverStyleBlocks());
 
   const reduced = doc.tokens.filter((token) => token.reducedMotion !== undefined);
   out.push(
