@@ -8,6 +8,8 @@ import { defineConfig } from "astro/config";
 import { ANALYTICS_QUEUE_ORIGIN, ANALYTICS_SCRIPT_ORIGIN } from "./src/lib/analytics.ts";
 import {
   importGraph,
+  SHARED_STYLES_KEY,
+  sharedIslandStylesheets,
   WAKE_STYLES_KEY,
   wakeStylesheets,
   withModulePreloads,
@@ -92,6 +94,7 @@ function preloadPageModules() {
           JSON.stringify({
             ...importGraph(urls, read),
             [WAKE_STYLES_KEY]: wakeStylesheets(files, read),
+            [SHARED_STYLES_KEY]: sharedIslandStylesheets(urls, read),
           }),
         );
       },
