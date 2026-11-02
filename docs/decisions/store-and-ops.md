@@ -286,3 +286,21 @@ Where data lives (Postgres, Blob, git), config, health, analytics, deploys, acce
 - Context changed: D296 took the config out of git; D298 made the repo public and left `Digests/`, `state/` and the audio as the open question, now answered.
 - Revisit if: Blob operations near the plan limit, or a state file outgrows a Postgres row.
 - Supersedes: nothing. Amends D173 (Blob becomes the home, not a mirror) when step two ships.
+
+## D316: Vercel skew protection stays off in the web build
+
+- Date: 2026-11-01 (the performance audit; autonomous mode)
+- Decision: the web app's Vercel adapter runs with `skewProtection: false`, whatever the project setting says, and `checkBundle` fails a page whose `/_astro/` addresses carry `?dpl=`.
+- Why: with skew protection on (it reads `VERCEL_SKEW_PROTECTION_ENABLED`), every asset address and import gains `?dpl=<deployment>`, Vite drops the preload list from each lazy import, and `bundleBudget.ts` read no imports at all. Production then had no modulepreload links and linked player.css twice while the budget check passed at 11 KB of a 75 KB first load. The tested build never had the query, so production was not the build the lab measured.
+- Cost: an open tab that lazily imports a chunk after a deploy no longer gets the old deployment's file from Vercel. The service worker already answers `/_astro/` from its cache, precached six imports deep, and `buildGuard.ts` turns a move into another build's page into a full load.
+- Rejected: keeping skew protection and teaching every reader the query (the preload links would name other module addresses than the imports, so each file would download twice, and Vite's lazy preload lists stay gone).
+- Revisit if: a deploy breaks an open tab's lazy import with a 404 that the service worker did not answer.
+
+## D318: pages stay at the edge until their content changes
+
+- Date: 2026-11-01 (the owner, on a decision card: "Both, cache first", after the performance audit)
+- Decision: every page drawn from the content (home, Library, a briefing, an episode, Downloads, the search index) carries `Vercel-Cache-Tag: content` and `Vercel-CDN-Cache-Control: max-age=300, stale-while-revalidate=2592000`. `content.yml` deletes the tag after a sync that sent anything, 55 s after it (past each instance's 30 s manifest window plus the 20 s a render may run) and before Notify; `/api/podcast` deletes it when a delete writes a tombstone, and the delete's podcast run syncs and deletes it again past the window (`waitUntil` cannot wait that long: it ends with the function). If that run is cancelled or fails before its commit, a page another instance drew inside the window shows the deleted episode for 5 minutes, and once more to the first visit after them (stale-while-revalidate answers with the old copy while it draws the new one), however late that visit comes; accepted for one reader. Delete, not invalidate, so the next visit never sees the old copy. The function's region moves to Europe later, after Neon (D304).
+- Why: with a ten-minute window, 43% of the owner's page loads in the week to 1 Nov missed the Stockholm edge and waited on the function in Washington, often from a cold start. A page only changes when the content does, so the edge can keep it until told.
+- Cost: a purge that fails or never runs shows the old page once, on the first visit after five minutes. A content write that bypasses `content.yml` and the tombstone path needs its own purge. The visit after a purge waits on the function. The Vercel token reaches one more workflow step (kept in that step alone, SEC-03).
+- Rejected: answering app opens from the service worker's saved page (the 2026-10-21 old-layout problem, and a "podcast ready" tap would open on the old home); a skeleton that streams the content in (two paints and a layout shift for the same bytes).
+- Revisit if: request logs still show most of the owner's page loads as MISS after a week, or a page shows content older than the store.

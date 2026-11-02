@@ -125,7 +125,7 @@
 
 /* The ring stands a step off the plot, clear of the tick and date labels at its edges. */
 .costs-plot:focus-visible {
-  border-radius: var(--radius-sm);
+  border-radius: var(--shape-sm);
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: var(--space-2);
 }
@@ -198,7 +198,7 @@
   min-inline-size: 9rem;
   padding: var(--space-2) var(--space-4);
   border: var(--stroke-hairline) solid var(--color-border-hairline);
-  border-radius: var(--radius-md);
+  border-radius: var(--shape-md);
   background: var(--color-surface-overlay);
   box-shadow: var(--shadow-popover);
   pointer-events: none;

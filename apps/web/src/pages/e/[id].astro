@@ -9,7 +9,7 @@ import { type EpisodeEntry, episodeLength, storyLookups } from "../../lib/episod
 import { episodeCard } from "../../lib/linkCard";
 import type { SectionRef } from "../../lib/sectionLabel";
 import { getSite } from "../../lib/site";
-import { CONTENT_CDN_CACHE, readFromContentRepo } from "../../server/contentRepo";
+import { keepAtEdge, readFromContentRepo } from "../../server/contentRepo";
 
 // Rendered on request from the content repository (D173), so a new episode shows without a build.
 // The static test build prerenders it from getStaticPaths instead (astro.config.mjs).
@@ -43,11 +43,11 @@ if (!Astro.isPrerendered) {
     // A deleted episode's old address, or a share link to it: a page that says so, never a bare 404.
     removed = true;
     Astro.response.status = 404;
-    Astro.response.headers.set("Vercel-CDN-Cache-Control", CONTENT_CDN_CACHE);
   } else {
     props = { entry, ...storyLookups(site.entries), album: catchUpAlbum(site.episodes, entry.id) };
-    Astro.response.headers.set("Vercel-CDN-Cache-Control", CONTENT_CDN_CACHE);
   }
+  // The removed page is kept and purged like the rest: a new episode under that id empties it.
+  keepAtEdge(Astro.response.headers);
 }
 
 const { entry, summaries, topics, sections, album } = props;

@@ -1,5 +1,10 @@
-import { DEFAULT_STYLE, type StylePreference, type ThemePreference } from "./preferences";
-import { setRootAttribute } from "./rootAttributes";
+import {
+  DEFAULT_STYLE,
+  getPreferences,
+  type StylePreference,
+  type ThemePreference,
+} from "./preferences";
+import { setRootAttribute, setRootProperty } from "./rootAttributes";
 
 /** `data-theme` is absent for "system", so the media query decides. */
 export function applyTheme(theme: ThemePreference): void {
@@ -38,6 +43,14 @@ function coversReady(theme: ThemePreference): Promise<unknown> {
   ]);
 }
 
+/**
+ * The reader's turn of a style's hue (D315) is `--hue-shift` on the root: the style's colours, the
+ * covers and the header light add it to their hue. Default has no hue to turn, so it carries none.
+ */
+export function applyHue(style: StylePreference, hue: number): void {
+  setRootProperty("--hue-shift", style === DEFAULT_STYLE || hue === 0 ? null : String(hue));
+}
+
 /** Counts theme changes, so one that waited on its covers never lands after a later one. */
 let changes = 0;
 
@@ -55,6 +68,8 @@ export function changeTheme(theme: ThemePreference, style: StylePreference): voi
     const apply = (): void => {
       applyTheme(theme);
       applyStyle(style);
+      // The hue is read as the change lands, so a turn made while it waited is not put back.
+      applyHue(style, getPreferences().get().hue);
     };
     if (typeof document.startViewTransition !== "function") {
       apply();

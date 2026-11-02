@@ -12,7 +12,7 @@ Updated 2026-11-01. Rewrite, never append.
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). Regenerate and Catch up queue with Cancel; ended runs stay for the day (D204, D231).
 - Saved copies, offline, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews a PR once when it is ready, by tier (D192, D292).
-- Halloween style (D306): tokens, Pirata One page title, six scenes and a cobweb, in two pull requests (tokens, then scenes). closed when: Somesh OKs the stills (390 and 1280, light and dark) and a phone keeps it across a reload. Covers follow as inline SVG with variables in their own PR.
+- Styles (D306, D310, D315): Halloween and Expressive (violet ramp, larger touch sizes, a `--shape-*` corner scale a test enforces, looping empty states) and a Hue slider that turns a style. closed when: Somesh OKs the stills (390 and 1280, light and dark) and sees every page change under each style on his phone. Covers follow a style live (D314, own PR); album art per style is next.
 
 ## Tests
 
@@ -20,6 +20,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 
 ## Not working or unverified
 
+- D316 skew off, D318 edge cache. closed when: live home has preload links, no `?dpl=`, and a week of his loads is mostly HIT or STALE.
 - Blob on Pro trial since 10-30, ending 11-13 (D251, D256). Plan call (Pro, or Hobby with Blob under about 1,000 ops a month and under 70 deploys a day) at 11-06 to 11-08, read from the Vercel Usage tab, which is the only Blob op count (none in code). closed when: the plan is chosen and ops stay under 1,000 a month.
 - Bottom bar press ripple (D286). closed when: a tap on the bar on his iPhone shows the wave from the thumb, the pill eases in, and the move carries the wave.
 - Config snapshot (D300 step 1): `snapshot.yml` writes the config store to a private Blob store each Sunday and `config restore` reads it back; untried against a real store, which needs the second Blob store and `BLOB_PRIVATE_READ_WRITE_TOKEN` (runbook 1.5a). closed when: the workflow has run once, the snapshot is in the store, and `config restore --file` on a copy of it rebuilds the rows.

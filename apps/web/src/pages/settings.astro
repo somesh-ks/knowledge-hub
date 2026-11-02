@@ -1,5 +1,6 @@
 ---
 import Select from "../design-system/Select.astro";
+import Slider from "../design-system/Slider.astro";
 import "../styles/field.css";
 import tokens from "../../../../tokens/tokens.json";
 import ManageChrome from "../components/ManageChrome.astro";
@@ -208,6 +209,14 @@ const STYLES = [
               <Select class="value-select style-select" id="settings-style" name="style" autocomplete="off" inert>
                 {STYLES.map((style) => <option value={style.value}>{style.label}</option>)}
               </Select>
+            </div>
+          )}
+          {/* Turns the chosen style's colours, the covers and the header light together (D315). Default
+               has no hue to turn, so settingsPage.ts leaves it disabled there, as Volume is with sounds off. */}
+          {STYLES.length > 1 && (
+            <div class="settings-row">
+              <label class="settings-label" for="settings-hue">Hue</label>
+              <Slider id="settings-hue" name="hue" min="0" max="355" step="5" value="0" disabled />
             </div>
           )}
         </div>

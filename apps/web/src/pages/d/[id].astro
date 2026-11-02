@@ -6,7 +6,7 @@ import type { DigestEntry } from "../../lib/digests";
 import { hasSectionTabs, listenLength } from "../../lib/digestView";
 import { briefingCard } from "../../lib/linkCard";
 import { getSite } from "../../lib/site";
-import { CONTENT_CDN_CACHE, notFoundPage, readFromContentRepo } from "../../server/contentRepo";
+import { keepAtEdge, notFoundPage, readFromContentRepo } from "../../server/contentRepo";
 
 // Rendered on request from the content repository (D173), so a new briefing shows without a build.
 // The static test build prerenders it from getStaticPaths instead (astro.config.mjs).
@@ -37,7 +37,7 @@ if (!Astro.isPrerendered) {
     return notFoundPage(Astro.url);
   }
   props = { entry, earlier: site.entries.slice(index + 1, index + 4), isLatest: index === 0 };
-  Astro.response.headers.set("Vercel-CDN-Cache-Control", CONTENT_CDN_CACHE);
+  keepAtEdge(Astro.response.headers);
 }
 
 const { entry, earlier, isLatest } = props;
