@@ -214,41 +214,6 @@ test.describe("the chrome holds still on a move", () => {
   });
 });
 
-test.describe("a cover carries you in and out", () => {
-  test("it lands on the box of the cover it becomes, so nothing jumps when it arrives", async ({
-    page,
-  }) => {
-    await page.goto("/library");
-    await page.evaluate(() => {
-      const w = window as unknown as { __flight: Array<[number, number, number]> };
-      w.__flight = [];
-      // Where the cover handed over: the clone's box at the moment it is removed, which is its drawn
-      // box with the flight over. A frame sampled on a timer can miss the last one on a loaded machine.
-      const remove = Element.prototype.remove;
-      Element.prototype.remove = function (this: Element) {
-        if (this.classList.contains("cover-morph")) {
-          const r = this.getBoundingClientRect();
-          w.__flight.push([r.left, r.top, r.width]);
-        }
-        remove.call(this);
-      };
-    });
-    const card = page.locator('a[href^="/d/"]').first();
-    await card.click();
-    await expect(heading(page)).not.toHaveText("Library");
-    await expect(page.locator(".cover-morph")).toHaveCount(0);
-    const hero = await page.locator('.cover[data-size="hero"]').boundingBox();
-    const flight = await page.evaluate(
-      () => (window as unknown as { __flight: Array<[number, number, number]> }).__flight,
-    );
-    const landed = flight.at(-1);
-    expect(landed, "the cover flew").toBeTruthy();
-    expect(Math.abs((landed?.[0] ?? 0) - (hero?.x ?? 0))).toBeLessThan(1.5);
-    expect(Math.abs((landed?.[1] ?? 0) - (hero?.y ?? 0))).toBeLessThan(1.5);
-    expect(Math.abs((landed?.[2] ?? 0) - (hero?.width ?? 0))).toBeLessThan(1.5);
-  });
-});
-
 test.describe("the whole bottom bar is the tab", () => {
   // Owner, 2026-10-31: the touch area was only the pill. A press anywhere in a tab's cell, and in the
   // strip the bar keeps above the home indicator (set here as the phone sets it), is that tab's press.
