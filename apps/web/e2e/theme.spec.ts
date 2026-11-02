@@ -128,6 +128,86 @@ test.describe("theme", () => {
     await expect(page.locator("html")).not.toHaveAttribute("data-style", /.*/);
   });
 
+  test("a style recolours the covers already on the page, with no cover fetched, and Default returns them", async ({
+    page,
+  }) => {
+    const fill = () =>
+      page.evaluate(() => {
+        const slot = document.querySelector(".cover-art .k");
+        return slot ? getComputedStyle(slot).fill : null;
+      });
+    const covers: string[] = [];
+    page.on("request", (request) => {
+      if (request.url().includes("/covers/")) covers.push(request.url());
+    });
+    await page.goto("/settings");
+    await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
+    await page
+      .getByRole("navigation", { name: "Primary" })
+      .getByRole("link", { name: "Library", exact: true })
+      .click();
+    await expect(page.locator(".cover-art").first()).toBeVisible();
+    const inDefault = await fill();
+    expect(inDefault).not.toBeNull();
+    // The covers are on the page when the style changes; the same elements take new colours.
+    const before = covers.length;
+    await page.evaluate(() => {
+      document.documentElement.dataset.style = "expressive";
+    });
+    await expect.poll(fill).not.toBe(inDefault);
+    expect(covers.length).toBe(before);
+    // The reader's hue turns them too.
+    const styled = await fill();
+    await page.evaluate(() => document.documentElement.style.setProperty("--hue-shift", "120"));
+    await expect.poll(fill).not.toBe(styled);
+    await page.evaluate(() => {
+      document.documentElement.style.removeProperty("--hue-shift");
+      delete document.documentElement.dataset.style;
+    });
+    await expect.poll(fill).toBe(inDefault);
+  });
+
+  test("the Hue slider turns a style's colours, is there before first paint after a reload, and waits for a style", async ({
+    page,
+  }) => {
+    await page.goto("/settings");
+    await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
+    const hue = page.getByRole("slider", { name: "Hue" });
+    // Default is blue and has no hue to turn.
+    await expect(hue).toBeDisabled();
+    await page.getByRole("combobox", { name: "Style" }).selectOption("expressive");
+    await expect(hue).toBeEnabled();
+    const surface = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    const designed = await surface();
+    await hue.fill("180");
+    await expect.poll(surface).not.toBe(designed);
+    const turned = await surface();
+    // A reload: the turn is on the root by the time the body exists, so the page is not drawn at the
+    // designed hue first.
+    await page.addInitScript(() => {
+      const observer = new MutationObserver(() => {
+        if (!document.body) return;
+        (window as unknown as { __hueAtBody: string }).__hueAtBody =
+          document.documentElement.style.getPropertyValue("--hue-shift");
+        observer.disconnect();
+      });
+      observer.observe(document, { childList: true, subtree: true });
+    });
+    await page.reload();
+    expect(
+      await page.evaluate(() => (window as unknown as { __hueAtBody: string }).__hueAtBody),
+    ).toBe("180");
+    expect(await surface()).toBe(turned);
+    // Default carries no turn, and the slider waits again.
+    await page.goto("/settings");
+    await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
+    await page.getByRole("combobox", { name: "Style" }).selectOption("default");
+    await expect(hue).toBeDisabled();
+    expect(
+      await page.evaluate(() => document.documentElement.style.getPropertyValue("--hue-shift")),
+    ).toBe("");
+  });
+
   test("Halloween swaps in its own scene and a cobweb that takes no tap; Default shows only its own", async ({
     page,
   }) => {

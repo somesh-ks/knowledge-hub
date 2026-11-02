@@ -55,17 +55,17 @@ textarea.field-input {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .field-input:not(:focus-visible, [aria-invalid]):hover {
+  .field-input:not(:focus-visible, [aria-invalid], :disabled):hover {
     border-color: var(--color-on-surface);
   }
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .field-input:hover {
+  .field-input:where(:enabled):hover {
     border-color: var(--color-on-surface);
   }
 
-  .field-input:hover:focus-visible {
+  .field-input:where(:enabled):hover:focus-visible {
     border-color: var(--color-accent);
   }
 }
@@ -89,11 +89,11 @@ select.field-input:focus-visible {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  select.field-input:hover {
+  select.field-input:where(:enabled):hover {
     border-color: var(--color-on-surface);
   }
 
-  select.field-input:hover:focus-visible {
+  select.field-input:where(:enabled):hover:focus-visible {
     border-color: var(--color-accent);
   }
 }

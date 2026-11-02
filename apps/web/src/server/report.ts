@@ -90,6 +90,14 @@ export function pathOnly(value: unknown): string {
   }
 }
 
+/**
+ * A violation raised by code that is not on the web: a headless browser's injected style or script
+ * (`pptr`: one bot cost 156 function runs in three days, 2026-11-01) or an extension's. A page's
+ * own scripts, and those it loads, have http(s) URLs; a report with no source is kept.
+ */
+const notFromThePage = (source: unknown): boolean =>
+  typeof source === "string" && source !== "" && !/^https?:\/\//i.test(source);
+
 const text = (value: unknown): string =>
   typeof value === "string" ? value.replace(/\s+/g, " ").slice(0, FIELD_CHARS) : "";
 
@@ -118,6 +126,7 @@ export async function handleReport(
   }
   // A kind this build does not log is answered before it spends a slot.
   if (!KINDS.has(data.kind)) return { status: 204, body: null };
+  if (data.kind === "csp" && notFromThePage(data.source)) return { status: 204, body: null };
   if (!takeSlot(limiters.faults, REPORTS_PER_MINUTE, deps.now())) {
     return { status: 204, body: null };
   }

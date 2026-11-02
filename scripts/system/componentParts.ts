@@ -241,7 +241,15 @@ export const componentParts = (): PartSource[] => [
     ],
   }),
   control("menu", "Menu", MENU, {
-    classes: ["menu-list", "menu-sheet", "menu-item", "menu-item-danger"],
+    classes: [
+      "menu-list",
+      "menu-sheet",
+      "menu-item",
+      "menu-item-danger",
+      "menu-tiles",
+      "menu-tile",
+      "menu-item-value",
+    ],
     keywords: [
       "popover",
       "dots menu",

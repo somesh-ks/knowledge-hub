@@ -1,5 +1,6 @@
 ---
 import Select from "../design-system/Select.astro";
+import Slider from "../design-system/Slider.astro";
 import "../styles/field.css";
 import tokens from "../../../../tokens/tokens.json";
 import ManageChrome from "../components/ManageChrome.astro";
@@ -32,6 +33,13 @@ type Row = { href: string; label: string; hint?: string; data: Record<string, st
 const DOWNLOADS: Row = {
   href: "/settings/downloads",
   label: "Downloads",
+  data: {},
+};
+
+// Saved sits under Downloads: the podcasts this device kept from a player's menu (2026-11-01).
+const SAVED: Row = {
+  href: "/settings/saved",
+  label: "Saved",
   data: {},
 };
 
@@ -113,11 +121,17 @@ const STYLES = [
         <p class="settings-note">These settings need JavaScript, which is turned off in this browser.</p>
       </noscript>
 
-      <section class="settings-lead" aria-label="Downloads">
+      <section class="settings-lead" aria-label="Downloads and saved">
         <div class="rows card-group">
           <a class="row-action" href={DOWNLOADS.href}>
             <span class="settings-text">
               <span class="settings-label">{DOWNLOADS.label}</span>
+            </span>
+            <Icon name="chevronRight" />
+          </a>
+          <a class="row-action" href={SAVED.href}>
+            <span class="settings-text">
+              <span class="settings-label">{SAVED.label}</span>
             </span>
             <Icon name="chevronRight" />
           </a>
@@ -208,6 +222,14 @@ const STYLES = [
               <Select class="value-select style-select" id="settings-style" name="style" autocomplete="off" inert>
                 {STYLES.map((style) => <option value={style.value}>{style.label}</option>)}
               </Select>
+            </div>
+          )}
+          {/* Turns the chosen style's colours, the covers and the header light together (D315). Default
+               has no hue to turn, so settingsPage.ts leaves it disabled there, as Volume is with sounds off. */}
+          {STYLES.length > 1 && (
+            <div class="settings-row">
+              <label class="settings-label" for="settings-hue">Hue</label>
+              <Slider id="settings-hue" name="hue" min="0" max="355" step="5" value="0" disabled />
             </div>
           )}
         </div>

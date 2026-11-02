@@ -9,10 +9,10 @@ import type { Guidance } from "./guidance";
 
 export const SHEET: Guidance = {
   summary:
-    "A panel that slides over the page for a form or a list: the whole screen on a phone, the right side from 40rem.",
+    "A panel over the page for a form or a list: full screen on a phone, at the right from 40rem.",
   useWhen: [
-    "A person fills in or edits something that needs room: New episode, a topic, a source.",
-    "A list that opens over the page and is dismissed with a pull or a tap away.",
+    "Something to fill in or edit that needs room: New episode, a topic, a source.",
+    "A list over the page, dismissed by a pull or tap.",
   ],
   dontUseWhen: [
     { when: "One question and its answers.", instead: "Dialog" },

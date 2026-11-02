@@ -14,7 +14,7 @@ import MenuItem from "../../design-system/MenuItem.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { libraryItems } from "../../lib/libraryCard";
 import { getSite } from "../../lib/site";
-import { CONTENT_CDN_CACHE, readFromContentRepo } from "../../server/contentRepo";
+import { keepAtEdge, readFromContentRepo } from "../../server/contentRepo";
 import "../../styles/settings.css";
 import "../../styles/manage.css";
 import "../../styles/blocked.css";
@@ -27,7 +27,7 @@ export const prerender = false;
 if (!Astro.isPrerendered) {
   const unavailable = await readFromContentRepo("library");
   if (unavailable) return unavailable;
-  Astro.response.headers.set("Vercel-CDN-Cache-Control", CONTENT_CDN_CACHE);
+  keepAtEdge(Astro.response.headers);
 }
 
 const { entries, episodes } = await getSite();

@@ -16,9 +16,11 @@ import {
 } from "../player/core/installHint";
 import {
   getPreferences,
+  HUE_MAX,
   type Preferences,
   THEME_PREFERENCES,
   type ThemePreference,
+  toHue,
 } from "../player/core/preferences";
 import { safeLocalStorage } from "../player/core/resume";
 import { startThemeSync } from "../player/core/themeRuntime";
@@ -113,6 +115,7 @@ function mountSettings(root: HTMLElement): () => void {
   const preferences = getPreferences();
   const theme = root.querySelector<HTMLSelectElement>('select[name="theme"]');
   const style = root.querySelector<HTMLSelectElement>('select[name="style"]');
+  const hue = root.querySelector<HTMLInputElement>('input[name="hue"]');
   const sounds = root.querySelector<HTMLInputElement>('input[name="sounds"]');
   const haptics = root.querySelector<HTMLInputElement>('input[name="haptics"]');
   const hapticsSection = root.querySelector<HTMLElement>("[data-haptics-section]");
@@ -139,6 +142,14 @@ function mountSettings(root: HTMLElement): () => void {
       style.value = [...style.options].some((option) => option.value === stored)
         ? stored
         : "default";
+    }
+    if (hue) {
+      const turn = preferences.get().hue;
+      hue.value = String(turn);
+      // A style is what has a hue to turn: Default stays blue, so the slider waits for one.
+      hue.disabled = !style || style.value === "default";
+      hue.setAttribute("aria-valuetext", `${turn} degrees`);
+      hue.style.setProperty("--range-fill", `${(turn / HUE_MAX) * 100}%`);
     }
     if (sounds) sounds.checked = state.sounds;
     if (haptics) haptics.checked = preferences.get().haptics;
@@ -189,6 +200,11 @@ function mountSettings(root: HTMLElement): () => void {
   };
 
   const onInput = (event: Event): void => {
+    if (hue && event.target === hue) {
+      // Follows the thumb, so the page, the covers and the light turn as it is dragged.
+      preferences.set({ hue: toHue(Number(hue.value)) });
+      return;
+    }
     if (!volume || event.target !== volume) return;
     const next = toVolume(volume.value);
     if (next !== null) preferences.set({ volume: next });

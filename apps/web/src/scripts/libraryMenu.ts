@@ -9,6 +9,7 @@
  */
 import { track } from "../lib/analytics";
 import { NotReadyError } from "../lib/downloads";
+import { deviceStorage, setSaved } from "../player/core/saved";
 import { installCardHold } from "./cardHold";
 import { installEpisodeActions } from "./episodeActionsEntry";
 import { installHeroMenu } from "./heroMenu";
@@ -126,6 +127,11 @@ async function onPick(item: HTMLElement): Promise<void> {
       if (typeof outcome === "object") toast(outcome.refused);
       return;
     }
+    case "unsave":
+      // Settings > Saved: the page hears the change (singularity:saved) and drops the row.
+      if (setSaved(deviceStorage(), id, false)) toast("Removed from Saved");
+      else toast("Could not remove it from Saved on this device", "error");
+      return;
     case "unshare":
       if (await stopSharing(id)) toast("Stopped sharing", "success");
       else toast("Could not stop sharing. Try again.", "error");

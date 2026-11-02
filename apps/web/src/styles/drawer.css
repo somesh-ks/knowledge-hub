@@ -57,6 +57,8 @@
 
 .drawer-popup {
   --color-focus-gap: var(--color-surface-raised);
+  --ghost-hover: var(--color-surface-raised-hover);
+  --ghost-pressed: var(--color-surface-raised-pressed);
   position: relative;
   width: min(100%, var(--layout-column));
   color: var(--color-on-surface);
@@ -187,11 +189,11 @@
    the sheet's tone with a state layer of the ink mixed in, which separates in both (2026-10-27,
    owner screenshot of Regenerate). */
 .drawer-panel .filter-chip:not(:has(input:checked)) {
-  background: color-mix(in oklch, var(--sheet-bg), var(--color-on-surface) var(--state-hover));
+  background: var(--sheet-bg-hover);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .drawer-panel .filter-chip:not(:has(input:checked, input:disabled)):hover {
-    background: color-mix(in oklch, var(--sheet-bg), var(--color-on-surface) var(--state-press));
+    background: var(--sheet-bg-pressed);
   }
 }

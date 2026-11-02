@@ -20,9 +20,15 @@ export type ThemePreference = (typeof THEME_PREFERENCES)[number];
 export type StylePreference = string;
 export const DEFAULT_STYLE: StylePreference = "default";
 
+/** The reader's turn of the style's hue, in degrees (D315): 0 is the look as designed. */
+export const HUE_STEP = 5;
+export const HUE_MAX = 355;
+
 export interface Preferences {
   theme: ThemePreference;
   style: StylePreference;
+  /** Degrees the style's hue is turned, 0 to 355 in steps of 5. Only a style uses it; Default stays blue. */
+  hue: number;
   /** null until the listener chooses, so the reduced-motion default can apply. */
   sounds: boolean | null;
   /** Touch feedback (D273). On unless turned off; a device with no motor never shows the choice. */
@@ -40,6 +46,7 @@ export const DEFAULT_VOLUME = 0.8;
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: "system",
   style: DEFAULT_STYLE,
+  hue: 0,
   sounds: null,
   haptics: true,
   volume: DEFAULT_VOLUME,
@@ -49,6 +56,13 @@ export const DEFAULT_PREFERENCES: Preferences = {
 
 function isTheme(value: unknown): value is ThemePreference {
   return typeof value === "string" && (THEME_PREFERENCES as readonly string[]).includes(value);
+}
+
+/** A stored turn is kept to the slider's own steps, so a hand-edited value cannot reach the CSS as anything else. */
+export function toHue(value: unknown): number {
+  if (!isFiniteNumber(value)) return 0;
+  const stepped = Math.round(value / HUE_STEP) * HUE_STEP;
+  return Math.min(HUE_MAX, Math.max(0, stepped));
 }
 
 function isStyle(value: unknown): value is StylePreference {
@@ -69,6 +83,7 @@ export function parsePreferences(raw: string | null): Preferences {
   return {
     theme: isTheme(record.theme) ? record.theme : DEFAULT_PREFERENCES.theme,
     style: isStyle(record.style) ? record.style : DEFAULT_STYLE,
+    hue: toHue(record.hue),
     sounds: typeof record.sounds === "boolean" ? record.sounds : null,
     haptics: typeof record.haptics === "boolean" ? record.haptics : DEFAULT_PREFERENCES.haptics,
     volume: isFiniteNumber(record.volume)

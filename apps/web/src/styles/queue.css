@@ -31,6 +31,8 @@
   /* The bottom bar's own tone, so the dock reads as part of the bar it sits on; a hairline between
      them says where one ends (D231, 2026-10-29). */
   background: var(--color-surface-container);
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
   border-block-end: var(--stroke-hairline) solid var(--color-border-hairline);
   font-size: var(--font-size-label);
   line-height: var(--font-leading-label);
@@ -480,7 +482,7 @@ html[data-player="open"] .queue-dock {
   padding: var(--space-4);
   max-height: 40dvh;
   overflow: auto;
-  border-radius: var(--radius-sm);
+  border-radius: var(--shape-sm);
   background: var(--color-surface-container);
   color: var(--color-on-surface);
   font-size: var(--font-size-label);

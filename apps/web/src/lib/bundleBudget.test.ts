@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
   allowedScriptHashes,
+  copiesOfShared,
   entryScripts,
   FIRST_LOAD_BUDGET_BYTES,
   findRenderBlockingScripts,
@@ -12,6 +13,7 @@ import {
   overBudget,
   parseScripts,
   readFromGraph,
+  sharedIslandStylesheets,
   staticImports,
   unallowedInlineScripts,
   unhintedModules,
@@ -112,6 +114,11 @@ describe("staticImports", () => {
     const source =
       'import{a}from"./one.js";import"./two.js";export{b}from"./three.js";const lazy=()=>import("./lazy.js");';
     expect(staticImports(source).sort()).toEqual(["./one.js", "./three.js", "./two.js"]);
+  });
+
+  it("reads imports that carry a deployment query, which once hid every import from the build", () => {
+    const source = 'import{a}from"./one.js?dpl=dpl_x";import"./two.js?dpl=dpl_x";';
+    expect(staticImports(source).sort()).toEqual(["./one.js", "./two.js"]);
   });
 });
 
@@ -281,6 +288,18 @@ describe("wake stylesheets", () => {
     expect(withoutStylesheets(html, wakeStylesheets(Object.keys(files), read))).toBe(
       '<head><link rel="stylesheet" href="/_astro/Icon.h.css"><link rel="stylesheet" href="/_astro/linkCard.h.css"></head>',
     );
+  });
+
+  // The build writes player.*.css after it records the graph, so the pages drawn on request still
+  // linked both copies in production (2026-11-02).
+  it("finds the copy on a page drawn on request, which the recorded graph cannot list", () => {
+    const html =
+      '<head><link rel="stylesheet" href="/_astro/Icon.h.css"><link rel="stylesheet" href="/_astro/player.h.css?v=1"><link rel="stylesheet" href="/_astro/linkCard.k.css"></head>';
+    const shared = sharedIslandStylesheets(
+      ["/_astro/PlayerRoot.a.js", "/_astro/SheetsRoot.a.js"],
+      read,
+    );
+    expect(copiesOfShared(html, shared)).toEqual(["/_astro/player.h.css"]);
   });
 });
 

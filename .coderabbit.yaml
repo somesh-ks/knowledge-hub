@@ -10,6 +10,9 @@ reviews:
   collapse_walkthrough: false
   auto_review:
     enabled: true
+    # D292: a push spends no review. CodeRabbit reviews a PR when it opens (not a draft marked ready), then only
+    # on `@coderabbitai review`, posted by the thread that owns the PR once per batch (docs/engineering/code-review.md).
+    auto_incremental_review: false
     drafts: false
     ignore_title_keywords:
       - "[skip-review]"
@@ -29,6 +32,23 @@ reviews:
     - "!package-lock.json"
     - "!**/dist/**"
     - "!**/.astro/**"
+  # D292: the pre-merge docstring check and the finishing touches are off. Docstrings are not a house
+  # convention; generated tests fight the test rules (AGENTS.md, Tests); autofix, fix CI and conflict
+  # resolution commit to a branch that its thread owns (D254).
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+    autofix:
+      enabled: false
+    fix_ci:
+      enabled: false
+    resolve_merge_conflict:
+      enabled: false
   path_instructions:
     - path: "**/*"
       instructions: |
@@ -45,6 +65,18 @@ reviews:
         - Load-bearing design fixes: Any rule or markup with a rationale comment (date, D-number, sizer) must not be casually removed or rewritten to make another task work.
         - Astro and CSS: Use Vanilla CSS and Astro components.
         - Fix at the component: a UI fix changes the design-system component (its class, variant or token in apps/web/src/design-system/ and its stylesheet), never a page rule, inline style or one-off modifier that overrides it. Flag a page-level override of a component, and a PR body that does not say why the component could not hold the change.
+        - Reduced motion is handled once, in the motion tokens: travel distances collapse to 0, the enter scale to 1, sheet and spring durations to 0.01 ms; fades keep their time on purpose. Flag only a move written as a raw value with no reduced-motion rule of its own. Do not ask for a fade to be removed under reduced motion, and do not ask for an in-app reduced-motion setting (there is none by decision).
+        - No new tokens unasked: a change uses an existing token or asks the owner; flag a new token or a new control class, never suggest one.
+        - Reply convention: when the author answers a finding by naming a rule (AGENTS.md, a D-number, a ledger line), accept it and do not repeat the finding on the next review.
+    - path: "**/*.{test,spec}.ts"
+      instructions: |
+        - Few tests, one layer each, aimed at what fails silently (AGENTS.md, Tests). A test names the bug it prevents; do not ask for a test that has no such bug, for coverage, or for a test of a presentation detail.
+        - Never ask a test to pin copy, CSS values, class names, markup, geometry or constants: screenshots and critics judge those. A "holds still" test compares an element's box to itself, never to a pinned value.
+        - Fake the clock, crypto and network; frozen fixtures; never a sleep. Flag a sleep, a live config read or a route mock where a real handler could serve.
+        - A browser test runs once, on the phone, unless tagged `@desktop` or `@both`.
+    - path: "docs/decisions/**"
+      instructions: |
+        - A decision is appended to the file for its area with the next free number and a row in the Index; an old entry is never rewritten. From D124 on, an entry that changes another says "amends" or "supersedes", and the old row's status says so. An entry that supersedes adds "Context changed:" and one whose reason can expire adds "Revisit if:". Flag a missing Index row, an edited old entry, or a "replaces" without the matching status.
   tools:
     ast-grep:
       enabled: true

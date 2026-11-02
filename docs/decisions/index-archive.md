@@ -53,7 +53,7 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D47 | A move between pages is answered from a saved copy and swapped at once | active |
 | D48 | One shader: a light in the cover's colours behind the header, on a GPU only | active |
 | D49 | One Podcast settings page: Daily, Weekly, Custom, writer, topics, sources | layout superseded by D51; the 0 to 5 score by D55 |
-| D50 | The open player: a speed slider, Chapters or a Speechify-style transcript, word marks stored beside each segment | active |
+| D50 | The open player: a speed slider, Chapters or a Speechify-style transcript, word marks stored beside each segment | partly superseded by D309; the speed control only |
 | D51 | Settings is two levels and saves itself; every select opens one drawn list | active; the Custom page superseded by D56 |
 | D52 | On a phone Create floats only on Today and the Library, extended till you scroll | superseded by D60: Create floats on the Library alone |
 | D53 | First-load JavaScript budget 110 KB, kept as low as the code allows | active |
@@ -146,7 +146,7 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D140 | Design system enforced in three layers (`design-check` hook, e2e, `design-audit` agent); icons only from Phosphor | amends D131 |
 | D141 | The first-load budget is 130 KB | amends D112's 109 KB budget |
 | D142 | A new topic is a row at once and opens a page before the build; one save carries Jev's emoji; a removal leaves the page at once with Undo | amends D79 |
-| D143 | Every PR gets a code review before it merges, by hand once blocking findings are fixed | active; partly superseded by D254 for `[skip-review]` PRs |
+| D143 | Every PR gets a code review before it merges, by hand once blocking findings are fixed | active; partly superseded by D254 for `[skip-review]` PRs; amended by D292 |
 | D144 | Phone sheets close by pull or tap outside and show no Close | amends D132 |
 | D145 | Network-first page loads; a build check on return | amends D47 |
 | D146 | A deploy is offered in a toast; Vitals wait | amends D145 |

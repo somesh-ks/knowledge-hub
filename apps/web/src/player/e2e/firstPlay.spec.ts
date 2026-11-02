@@ -95,7 +95,7 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     // Up next is the other view: moved up from its row's menu, the briefing now comes first.
     await player.dialog.getByRole("tab", { name: "Up next" }).click();
     await page
-      .getByRole("button", { name: /^More for / })
+      .getByRole("button", { name: /^More for (?!this podcast)/ })
       .nth(1)
       .click();
     await page.getByRole("menuitem", { name: "Move up" }).click();
@@ -163,7 +163,9 @@ test.describe("the first press of Play on a page with no audio yet", () => {
       player.dialog.locator(`[data-state="played"] .player-queue-row`).first(),
     );
     await expect(player.dialog.locator(`[data-state="current"]`)).toHaveCount(1);
-    await expect(player.dialog.getByRole("button", { name: /^More for / })).toHaveCount(3);
+    await expect(
+      player.dialog.getByRole("button", { name: /^More for (?!this podcast)/ }),
+    ).toHaveCount(3);
     expect(
       await player.dialog
         .locator("[data-queue-id]:not([data-state])")

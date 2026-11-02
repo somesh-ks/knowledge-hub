@@ -6,26 +6,21 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 - 2026-10-28: `topics.spec.ts` "Add source" fails on a machine's first local run: it writes its untracked screenshot baseline (never commit it). `CI=1` skips it.
 - Two browser suites at once share `apps/web/dist` and give false failures.
-- 2026-10-22: in the cloud container Chromium goes through the agent proxy, so `--host-resolver-rules` (a build served under the production host, to see a host-gated script) did nothing until launched with `--no-proxy-server`.
-- 2026-10-21: `context.route` misses the worker's requests: fake a deploy in `staticServer.mjs`.
+- 2026-10-22: in the cloud container Chromium goes through the agent proxy, so `--host-resolver-rules` (to serve a build under the production host) did nothing until launched with `--no-proxy-server`.
 - 2026-10-19: a source added in script was a tinted stub (no address, rating, checkbox) whose `box-shadow` spread 8px over the next row; the specs checked text, not parts. A script row mirrors its Astro component's markup, and its spec asserts the parts.
 - 2026-10-23: new card tokens let `.card-group`'s row padding beat the Costs card's (Costs is not in the grid spec). Screenshot every page using a primitive whose tokens change.
 - 2026-10-23: a story row passed its hold-still test while publishers kept 10px at 320. Measure what a layout's flexible part keeps at 320 and 360 first.
 - 2026-10-23: reduced motion in the tokens alone missed every raw travel on those durations (chip labels, nav pill, floating button). Sweep the CSS with the tokens; check with `document.getAnimations()` under emulated reduced motion.
-- 2026-10-08: `getByRole("button", { name: "All" })` matched "Gallery view". Use `exact: true` for short names.
 - 2026-10-12: a mocked route answers while the browser context is offline. A test of an offline save takes its mock offline with it (`route.abort`), and waits for the lazy chunk it needs before going offline.
 - 2026-10-12: `waitForLoadState("networkidle")` returns at once when the page has been idle before, so a test went offline while a lazy chunk was still on its way (one run in four). Wait for the response itself, then `finished()`.
 - 2026-10-17: easing the open player's Play disc press scale (a `transform` transition) made a press in the error state reset the scroll to the top one run in five (noticeInView.spec); the disc keeps an instant press.
 - 2026-10-14: headless Chromium has no mobile address bar, so the bottom-stack drift cannot be reproduced in the browser suites or in screenshots. Reason from the anchors, and ask for a recording on a phone.
 - 2026-10-13: the voice-picker specs failed only beside others: a scroll after the press closed the open list (the trace's last frame); `openPicker` (`e2e/picker.ts`) presses until it stays open.
 - 2026-10-12: an axe scan after `emulateMedia` read colours mid-fade. Wait for the page's `CSSTransition`s to finish first, and cap that wait, because an infinite or paused animation never finishes.
-- 2026-10-12: Playwright can want a newer Chromium than is cached (1243 cached, 1248 wanted): an untracked `playwright.override.config.ts` beside each config sets `launchOptions.executablePath` to the cached headless shell; one PORT per worktree. Never commit a topics snapshot.
 - 2026-10-12: a leftover server or build makes a suite test the wrong build: Playwright reuses a listening server and skips the build (`taskkill`; Git Bash `kill $!` leaves a `node`). Stop old servers; use a fresh PORT after a page edit.
-- 2026-10-11: Playwright `addStyleTag` and injected audit scripts (axe) are blocked by the fixture site's CSP (no 'unsafe-inline'); use `bypassCSP: true` on the context for a probe or audit. An audit builds into its own directory and port: a `dist` rebuilt mid-audit read as "page has no title".
-- 2026-10-10: a player fix for track contrast read right in the diff and failed in the browser (played and unplayed 1.46:1 apart); the worker had marked it unverified. Send a read-only verifier to measure every fix a worker marks unverified before calling an area done.
-- 2026-10-10: with a lone threshold of 1, Chromium's IntersectionObserver reports a target partly past the root edge as not intersecting, and never calls back when it then leaves. To tell a sticky element is stuck, observe thresholds `[0, 1]` and compare `boundingClientRect.top` with `rootBounds.top`.
-- 2026-10-09: a WebGL canvas failed the player suite on every page: headless Chromium draws in software (SwiftShader), logs "GPU stall due to ReadPixels" each frame, and the suite fails on any warning. Read the renderer's name (`WEBGL_debug_renderer_info`) and skip WebGL on a software one.
-- 2026-10-09: a test run piped through `grep` or `tail` reports the filter's exit code (0). Record the runner's own `$?`.
+- 2026-10-11: Playwright `addStyleTag` and injected audit scripts (axe) are blocked by the fixture site's CSP (no 'unsafe-inline'); use `bypassCSP: true` on the context for a probe or audit, built into its own directory and port (a `dist` rebuilt mid-audit read as "page has no title").
+- 2026-10-10: a lone IntersectionObserver threshold of 1 reports a target partly past the root edge as not intersecting and never calls back. To tell a sticky element is stuck, observe `[0, 1]` and compare `boundingClientRect.top` with `rootBounds.top`.
+- 2026-10-09: a WebGL canvas failed the player suite on every page: headless Chromium draws in software (SwiftShader), logs "GPU stall" each frame, and the suite fails on any warning. Read `WEBGL_debug_renderer_info` and skip WebGL on a software renderer.
 - 2026-10-09: The player suite can run its `site-*` projects in a worktree without a dev server: serve the fixture build and set `PLAYER_SITE_URL` to it.
 
 ## Unit tests
@@ -33,7 +28,6 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-24: on Node 24 (V8 13.6), a function whose hot loop gets Maglev OSR code can return object literals sharing number fields (the sound volume test; nodejs/node#66457; not on Node 22). Keep hot loops out of functions returning object literals.
 - 2026-10-14: Vitest, like Chromium, remembers a failed dynamic import for the module's URL, so a retry test of a lazy import passes or fails depending on test order. Retry with a `?retry=` query (pageContentLoader) and test the retry in the browser, not in Vitest.
 - 2026-10-11: the pipeline tests' fake RSS fetcher ignored the window, so a test about posts outside it passed for the wrong reason. Check a fake honours what the test is about.
-- 2026-10-08: a limit nobody asked for is a bug waiting for its first user (two episodes a day stopped the owner). Tests compute a policy number from its constant, never hard-code it.
 - 2026-10-08: a test that misfiles a story into a retired section no longer fails validation, because published briefings must still validate; use a live section instead.
 
 ## Engine and workflows
@@ -64,15 +58,19 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-14: Firecrawl bills a cached scrape (its Faster Scraping page: "Cached results still cost 1 credit per page"), so `maxAge` cuts latency and not spend. Only a request that is not made saves a credit.
 - 2026-10-12: the workflows installed all 445 packages to run one CLI. `npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root` installs 118 and takes 4.3 s, not 10.4.
 - 2026-10-12: Vercel's hourly cron cannot land on a half-hour slot (India, UTC+05:30). The route accepts a call whose UTC hour overlaps the slot, so a run can start up to 30 minutes early, and the gate dedupes it.
-- 2026-10-12: episode length: told a length in characters, a writer delivers a third to two-thirds; in words, per story and in total, 83 to 90%. A script is held to what its stories carry (D43). Asking for 90% gave 79 to 87% and wrote most episodes twice: ask for 95%, accept a few percent under.
+- 2026-10-12: episode length: told a length in characters, a writer delivers a third to two-thirds; in words, per story and in total, 83 to 90%. A script is held to what its stories carry (D43). Asking for 90% gave 79 to 87% and doubled the writing: ask for 95%.
 - 2026-10-11: a missing briefing was GitHub, not the gate: the 07:13 entry ran 13:11 to 14:02 on 7 to 10 October. Before debugging a missed run, list `run.yml`'s schedule runs ("skipped" means no runner) and read the Gate log. Trigger now Vercel Cron (D61).
-- 2026-10-11: `singularity sources import` keeps an existing source's `enabled` and `options`, so a seed change reaches only new sources: write it into `config/sources.json` after the import (`--fresh` loses discovered feeds and counters). Run `biome format` on the imported JSON before linting.
+- 2026-10-11: `singularity sources import` keeps an existing source's `enabled` and `options`, so a seed change reaches only new sources: write it into `config/sources.json` after (`--fresh` loses discovered feeds). Run `biome format` on it before linting.
 - 2026-10-11: a judge built with a fallback (Jev, then Nebius) shares the fallback's token budget with the writer, so work done for scores alone must use the primary judge alone: an outage would otherwise spend the briefing's budget on it.
 - 2026-10-08: Create, Generate and saving topics answered "not available right now" on production: the site's fine-grained GitHub token had no access to this repository, so GitHub answered 404. `doctor --online` does not check `GITHUB_DISPATCH_TOKEN`; it should.
 - 2026-11-01: `content sync` mirrors a checkout and deletes what it lacks: safe only while git holds the content. Out of git, a job saves with `content push`, a diff against what it pulled.
 
 ## Site and service worker
 
+- 2026-11-02: a press rule before a hover rule of the same weight loses while the mouse is down; a control with no `:active` rule shows no press (Library view toggle). Press after hover; shoot rest, hover, press.
+- 2026-11-02: an opaque press fill on a bar's `::after` covers its content, which the old alpha hid. Use `z-index: var(--z-beneath)`.
+- 2026-11-02: a step on a fill near white (accent tint, L 98) clamps, so hover equals press. Give it the smaller steps.
+- 2026-11-01: styles.test wants `oklch(from var(--x) ...)` on one line and biome rewraps long calls: use intermediate custom properties, with a `var()` fallback for one set only in inline `style`.
 - 2026-10-31: a deploy mid-session loads a second copy of the player (two audios): share via `tabShared`.
 - 2026-10-31: a persisted island put back restarts its CSS animations: `persistedMotion.ts`. A box measured at `astro:after-swap` is mid page slide (8px off): wind the entrance to its end first (`coverMorph.ts`). A token alias in `primitive` fails the literal test.
 - 2026-10-30: a change reloaded mid-write came back undone: Chromium rejects a request still out at unload (`keepalive` keeps the request, not the promise) before pagehide runs. Ask `endedByLeaving()` before calling no answer a failure; test on a real server.
@@ -90,17 +88,18 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-22: TBT is root `:has()` restyles (first-load-js.md).
 - 2026-10-16: an installed Android web app keeps the manifest's theme_color from install for the system navigation bar; a runtime theme-color meta never repaints it. Leave theme_color out so the bars follow the system theme.
 - 2026-10-14: on mobile Chrome a fixed element held by its bottom edge moves with the address bar in the same frame; one held by both edges (`inset: 0`) resizes only after the gesture (#120). Hold bottom-stack elements by the bottom edge; full-height boxes by `100dvh`.
-- 2026-10-11: Safari 27 has no `overlay`, so a closing dialog or popover leaves the top layer as its exit starts: give top-layer elements their own `position` and a z-index (the top layer ignores it), and close at once under `@supports not (overlay: auto)` where an ancestor has a transform.
+- 2026-10-11: Safari 27 has no `overlay`, so a closing dialog or popover leaves the top layer as its exit starts: give them their own `position` and a z-index, and close at once under `@supports not (overlay: auto)` where an ancestor has a transform.
 - 2026-11-01: re-opening a popover the browser closed (cardHold) sounded as close then open, three cues per long press: mark the hold (`data-hold-until`), skip its echoes.
 - 2026-10-11: the voice sample button never worked in production: it played Speechify's own URL, which the page's `media-src` blocks, and its error handler hid the button, so it looked missing. A third-party media URL needs the CSP checked, or a same-origin route (`/api/voice-sample`).
 - 2026-10-09: a move took 400 ms though the page was ready after 70: the mark that picks the animation (`data-astro-nav`) was lost in the swap, as Astro 7 keeps only its own root attributes. Carry it onto `event.newDocument` in `astro:before-swap`; check with `document.getAnimations()`.
-- 2026-10-09: The first press after opening blocks about 200 ms with the audio device idle, 75 ms warm: `new AudioContext()` inside the press. `latencyHint` and `sampleRate` do not help (a first measurement said they did: the first context created pays); reverse the order as the control.
+- 2026-10-09: The first press after opening blocks about 200 ms with the audio device idle, 75 ms warm: `new AudioContext()` inside the press. `latencyHint` and `sampleRate` do not help (the first context created pays); reverse the order as the control.
 - 2026-10-31: a Play control marked `aria-disabled` never reacted: `disabledGuard.ts` swallows clicks on `[aria-disabled="true"]`, so a voice without a sample is marked `data-silent` instead.
 - 2026-11-01: Downloads showed as a gallery after a Library visit: `libraryPage.ts` kept its `astro:page-load` listener and matched Downloads' `[data-library]`. Name the page (`#main.library`); a test must reach it by click, not `goto`.
 - 2026-11-01: a `.manage` rule for the voice page also reached Preferences: a row declares its `--row-reach`.
 
 ## Build and tooling
 
+- 2026-11-02: a `design-system` PR fails its gate on an app file that names no system token. Add new token names to `SYSTEM_NAMES` in `scripts/designSystemGate.mjs`.
 - 2026-10-31: a new token needs `npm run system` too, or CI `check` fails on a stale `system.json`.
 - 2026-10-31: a new stylesheet import reorders equal-specificity rules (icon.css flipped a chip's ink). Diff computed styles after one.
 - 2026-10-30: designSystem.test reads quoted text: a retired class equal to a file name or a selector string counts as writing it.
@@ -116,7 +115,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Windows and shells
 
-- 2026-10-14: from the agent's Git Bash, `powershell -Command "..."` loses `$_`, `$env:` and `$LASTEXITCODE` to bash, and an argument that starts with `/` is rewritten to a Windows path. Put PowerShell with variables in a `.ps1` file and run it with `-File`; pass several paths as one string to split.
+- 2026-10-14: from the agent's Git Bash, `powershell -Command "..."` loses `$_`, `$env:` and `$LASTEXITCODE` to bash, and an argument that starts with `/` is rewritten to a Windows path. Put PowerShell with variables in a `.ps1` file and run it with `-File`.
 - 2026-10-14: `pkill -f serve.mjs` inside a Bash call killed that call's own shell, whose command line matched. Kill by PID from a filtered `ps`.
 - 2026-10-12: heredoc and `node -e` edits lose backslashes and backticks in the agent shell, and some worktrees refuse compound commands: write scripts with the Write tool, all-or-nothing.
 - 2026-10-11: the sandbox proxy refuses news hosts (403 to CONNECT), so `curl` cannot check a feed. Fetch it with Firecrawl's scrape (`rawHtml`, a week's `maxAge`), in a subagent so the bodies stay out of the session; Firecrawl allowed about ten requests a minute.
@@ -127,22 +126,24 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Agents and worktrees
 
+- 2026-11-02: `git checkout <file>` threw away uncommitted token edits; the session transcript's edit scripts recovered them. Commit or stash first.
+- 2026-11-01: 40 of #525's 44 commits were unreviewed: CodeRabbit pauses after five reviewed commits, noted only in its summary ("Last reviewed commit"). Before a merge, that commit must be the head (D292).
 - 2026-10-27: a squash merge leaves a branch's commits off main, so `git branch --merged` and commit searches miss them: find a branch's fate through PR search.
 - 2026-10-27: Windows junctions from `worktreeLinks.mjs` deleted the main checkout's `node_modules` twice: use `--remove` before `git worktree remove`.
 - 2026-10-23: a design-audit agent in a worktree-isolated session took no screenshot: the guard refused every heredoc, absolute path or glob in its Bash. Brief it to write scripts with the Write tool into the scratchpad and run `node <path>`.
 - 2026-10-22: two sessions took D157 at once, and D159 and D176 collided later the same way. Workers add no decision; the lead numbers them and checks `main`'s Index again right before merging.
-- 2026-10-24: `gh api repos/<repo>/rules/branches/main` returns `[]`: the D175 ruleset is not enforced, so auto-merge would merge before CI, and #265 merged while its browser job ran. Merge by hand once checks pass; `gh pr checks` can list a finished job as pending (read the PR's `statusCheckRollup`).
+- 2026-10-24: `gh api repos/<repo>/rules/branches/main` returns `[]`: the D175 ruleset is not enforced, so auto-merge merges before CI (#265 did). Merge by hand once checks pass; read `statusCheckRollup`, as `gh pr checks` can list a finished job as pending.
 - 2026-10-24: a layout test's invented $97.70 in a screenshot read to the owner as real spend. Use plainly fake figures, or say "fixture", in shots shown to the owner.
 
-- 2026-10-22: a worker lifted a rule a code comment tied to two dated owner asks (the release cap, #209) and logged it as a judgment call, and its bot review posted nothing. Before changing a rule whose comment cites the owner, ask; review every PR locally when the bot is silent.
-- 2026-10-22: another session's cleanup removed this worktree (no commits looks merged): commit a WIP early; remove only your own.
+- 2026-10-22: a worker lifted a rule a code comment tied to two dated owner asks (the release cap, #209) and logged it as a judgment call, and its bot review posted nothing. Before changing a rule whose comment cites the owner, ask.
+- 2026-10-22: another session's cleanup removed this worktree (no commits looks merged): commit a WIP early; remove only yours.
 - 2026-10-22: one `astro dev` per install, so a second worktree's is refused; never `--force` it (that kills the other): `PORT=47xx node e2e/run.mjs --serve-only`.
 - 2026-10-22: #160 merged without its review fixes: the commit carrying them was made on a detached HEAD, so `git push` said "Everything up-to-date" and another session merged the PR's older head. After a push, compare `git ls-remote origin <branch>` with `git rev-parse HEAD`.
-- 2026-10-16: a worktree's `node_modules` symlink was committed (the ignore rule `node_modules/` matches directories only), and merging that branch replaced the real, ignored `apps/web/node_modules` with it: git overwrites ignored paths. The rule is now `node_modules`; after such a merge, run `npm ci`.
+- 2026-10-16: a worktree's `node_modules` symlink was committed (the rule `node_modules/` matches directories only); merging it replaced the real `apps/web/node_modules`, as git overwrites ignored paths. The rule is now `node_modules`; after such a merge, run `npm ci`.
 - 2026-10-25: `scripts/worktreeLinks.mjs` found own packages by the literal scope `@dispatch`; #272 broke it. It reads `package.json` names now. Per package, never a scope (10-26).
 - 2026-10-14: squash-merged branches never pass `git branch -d`, and auto mode refuses `-D`. Match commit subjects against main's squash bodies, keep a bundle of the heads in `.git/`, and let the owner force delete.
 - 2026-10-12: cherry-pick a worker's non-merge commits (`git log --no-merges --reverse <lead>..<branch>`), then rerun `biome check`: formatting differences show on the combined tree.
 - 2026-10-21: workers hit the 90-call cap: one piece each, WIP commit after the first pass. A finished worker's worktree stays locked: `remove -f -f`.
-- 2026-10-21: a worktree can start from an older base: check its last commit first.
-- 2026-10-11: the review plugin skips a PR it already reviewed, so new commits go unreviewed: run `/code-review` on the range.
 - 2026-10-06: the auto-mode classifier blocks credential creation, store deletion and unreviewed merges; the owner runs those.
+- 2026-11-02: a new `More for this podcast` button matched the queue specs' `/^More for /` and shifted every row index. Name a control so no role query catches it, or tighten the query in the same PR.
+- 2026-11-02: a hover or press rule on a disableable class painted on disabled controls (native or aria-disabled). Write the exclusion in the component rule (`:where(:not(:disabled, [aria-disabled="true"]))`);

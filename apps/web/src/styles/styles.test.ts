@@ -71,6 +71,7 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
   [".aside-rail", "the rail's track padding, around its own segments"],
   [".banner-notice > .button-text", "the action's hit area reaching into the banner's padding"],
   [".banner-body", "a banner's title onto its body, inside one banner"],
+  [".menu-tile", "a glyph onto its word inside one tile: the icon-to-label gap is 4px, items 8px"],
   [".structure-row", "the dots' and pencil's ink, 28px in from the card's corner, not 24"],
   [
     ".structure-profile .profile-select",
@@ -327,6 +328,21 @@ const RULES: Rule[] = [
         );
         return match ? [`${file}: ${match[0]}`] : [];
       }),
+  },
+  {
+    // Prevents a part a style cannot reach: a style redraws the semantic tiers (the `--shape-*` corners
+    // and the `--color-*` roles), so a component that reads a primitive radius or a colour ramp step
+    // stays as Default draws it when Expressive or Halloween is on (the first Expressive missed the cards,
+    // the menus, the sheets and the toast this way). Only the fully round pill is a primitive read.
+    name: "reads the shape scale and the colour roles, never a primitive radius or a ramp colour",
+    offenders: () =>
+      ownCss().flatMap(([file, css]) =>
+        [
+          ...css.matchAll(
+            /var\(\s*--(?:radius-(?:xs|sm|md|lg|xl|2xl|sheet)|color-(?:white|(?:grey|blue|green|orange|red|violet)-\d+))\s*[,)]/g,
+          ),
+        ].map(([read]) => `${file}: ${read}`),
+      ),
   },
   {
     name: "takes spacing, type and radius from tokens, never a raw length",
@@ -854,7 +870,7 @@ const PAGE_OVERRIDES: string[] = [
   "create.css: .create-view .field-input.create-title",
   "create.css: .create-view .field-input.create-title:focus, .create-view .field-input.create-title:focus-visible",
   "create.css: .create-view .field-input.create-title:focus-visible",
-  "create.css: .create-view .field-input.create-title:hover",
+  "create.css: .create-view .field-input.create-title:where(:enabled):hover",
   "empty.css: .empty-actions > .button-filled, .empty-actions > .button-tonal",
   "episode-actions.css: .field-input.regen-feedback",
   "hero.css: .hero-downloaded .icon-glyph",
@@ -868,8 +884,8 @@ const PAGE_OVERRIDES: string[] = [
   "manage.css: .manage-fields:disabled :is(.switch-input, .field-input, .search-field)",
   "manage.css: .manage-fields:disabled :is(.switch-input, .field-input, .search-field)",
   "menu.css: .menu-sheet .menu-item .icon-glyph",
-  "menu.css: .menu-sheet > .sheet-head",
-  "menu.css: .menu-sheet > .sheet-head",
+  "menu.css: .menu-sheet > .sheet-head:not([data-has-back])",
+  "menu.css: .menu-sheet > .sheet-head:not([data-has-back])",
   "multiselect.css: .multiselect-trigger > .icon-glyph",
   "multiselect.css: .multiselect-trigger > .icon-glyph",
   'multiselect.css: .multiselect-trigger[aria-expanded="true"] > .icon-glyph',
@@ -885,7 +901,6 @@ const PAGE_OVERRIDES: string[] = [
   "player.css: .glyph-swap > .icon-glyph",
   "player.css: .player-meta-line > .banner-notice",
   "player.css: .player-source-link .icon-glyph",
-  "player.css: .speed-panel-body > .slider-input",
   "player.css: .transport-btn .icon-glyph",
   "podcast.css: .daily-panel .field-input[aria-invalid]:focus-visible",
   "podcast.css: .daily-panel input.field-input",
@@ -916,10 +931,10 @@ const PAGE_OVERRIDES: string[] = [
   "settings.css: .settings-row .value-select > .icon-glyph",
   "settings.css: .settings-row .value-select > .icon-glyph",
   "settings.css: .settings-row .value-select > select.field-input",
-  "settings.css: .settings-row .value-select > select.field-input:active",
   "settings.css: .settings-row .value-select > select.field-input:focus-visible",
-  "settings.css: .settings-row .value-select > select.field-input:hover",
   "settings.css: .settings-row .value-select > select.field-input:open",
+  "settings.css: .settings-row .value-select > select.field-input:where(:enabled):active",
+  "settings.css: .settings-row .value-select > select.field-input:where(:enabled):hover",
   "settings.css: .settings-row .value-select:has(> select:open) > .icon-glyph",
   "settings.css: .settings-row:is([data-quiet], :has(.slider-input:disabled)) .settings-label",
   "settings.css: .settings-row[data-models] .value-select > select.field-input",
@@ -960,12 +975,12 @@ const PAGE_OVERRIDES: string[] = [
   "topics.css: .topics .row-action .icon-glyph",
   "topics.css: .topics .row-action .topic-blocked-mark > .icon-glyph",
   'topics.css: .topics-panel .card-group :is(input, textarea).field-input:not( :focus-visible, [readonly], [aria-invalid]:not([aria-invalid="false"]) )',
-  'topics.css: .topics-panel .card-group :is(input, textarea).field-input:not( :focus-visible, [readonly], [aria-invalid]:not([aria-invalid="false"]) ):hover',
+  'topics.css: .topics-panel .card-group :is(input, textarea).field-input:not( :focus-visible, [readonly], [aria-invalid]:not([aria-invalid="false"]) ):where(:enabled):hover',
   "topics.css: .topics-panel .field-input[readonly]",
   'topics.css: .topics-panel select.field-input, .topics-panel .multiselect-trigger, .topics-panel :is(input, textarea).field-input:not( :focus-visible, [readonly], [aria-invalid]:not([aria-invalid="false"]) )',
-  'topics.css: .topics-panel select.field-input:active, .topics-panel .multiselect-trigger:is(:active, [aria-expanded="true"])',
   "topics.css: .topics-panel select.field-input:focus-visible, .topics-panel .multiselect-trigger:focus-visible",
-  'topics.css: .topics-panel select.field-input:hover, .topics-panel .multiselect-trigger:hover, .topics-panel :is(input, textarea).field-input:not( :focus-visible, [readonly], [aria-invalid]:not([aria-invalid="false"]) ):hover',
+  'topics.css: .topics-panel select.field-input:where(:enabled):active, .topics-panel .multiselect-trigger:is(:active, [aria-expanded="true"])',
+  'topics.css: .topics-panel select.field-input:where(:enabled):hover, .topics-panel .multiselect-trigger:hover, .topics-panel :is(input, textarea).field-input:not( :focus-visible, [readonly], [aria-invalid]:not([aria-invalid="false"]) ):where(:enabled):hover',
   "topics.css: dialog.sheet-side.topics-panel",
   "topics.css: textarea.field-input.structure-prompt",
 ];
@@ -1026,6 +1041,46 @@ describe("component stylesheets", () => {
         /var\(\s*(--[a-z0-9-]+)\s*\)/gi,
       )) {
         expect(defined.has(name), `${file} reads ${name}, which nothing defines`).toBe(true);
+      }
+    }
+  });
+
+  it("takes every hover and press fill from a state token, never an alpha layer (D317)", () => {
+    // A hover on a fill is the fill's own hover token (`--color-accent-hover`); a hover on a control
+    // with no fill is the surface behind it, stepped (`--ghost-hover`, set by the container). A layer
+    // of the label colour over transparent dulled a fill and read as nothing on a tinted one. The two
+    // layers left are over artwork, where no solid colour can stand in: the ripple and a cover's press.
+    const OVER_ART = new Set(["ripple.css", "library.css"]);
+    const mixes = /color-mix\((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\)/g;
+    for (const [file, css] of ownCss()) {
+      if (file === "tokens.css") continue;
+      for (const [mix] of css.matchAll(mixes)) {
+        if (!/--state-(hover|press)\b/.test(mix)) continue;
+        expect(OVER_ART.has(file), `${file}: an alpha layer outside artwork: ${mix}`).toBe(true);
+        expect(mix, `${file}: a mix over a fill`).toMatch(/transparent\s*\)$/);
+      }
+      expect(css, `${file} steps lightness by hand`).not.toMatch(/--state-step-/);
+      if (file !== "cover.css")
+        expect(css, `${file} derives a color by hand`).not.toMatch(/oklch\(from /);
+    }
+  });
+
+  it("gives a container that paints its own surface the ghost pair for it (D317)", () => {
+    // A control with no fill steps the surface behind it. The pair defaults to the page's, so a rule
+    // that records another surface behind its controls (`--color-focus-gap`) must set its own, or a
+    // hover there would step the wrong tone.
+    for (const [file, css] of ownCss()) {
+      if (file === "tokens.css") continue;
+      for (const block of css.matchAll(/\{([^{}]*)\}/g)) {
+        const body = block[1] ?? "";
+        if (
+          !/--color-focus-gap:\s*var\(--(?:color-surface-(?:raised|overlay|inverse|container)|mini-player-bg)\)/.test(
+            body,
+          )
+        )
+          continue;
+        expect(body, `${file}: ${body.trim().slice(0, 60)}`).toMatch(/--ghost-hover:/);
+        expect(body, `${file}: ${body.trim().slice(0, 60)}`).toMatch(/--ghost-pressed:/);
       }
     }
   });

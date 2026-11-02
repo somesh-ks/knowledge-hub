@@ -36,7 +36,7 @@
 .episode-highlight-title:has(> .story-link:focus-visible) {
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: var(--space-1);
-  border-radius: var(--radius-sm);
+  border-radius: var(--shape-sm);
 }
 
 /* The reading ink, as a story's summary has (briefing.css), so the highlight's headline leads. */

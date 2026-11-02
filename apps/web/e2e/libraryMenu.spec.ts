@@ -187,14 +187,17 @@ test.describe("a podcast download", () => {
       await context.route(`**${new URL(audio, "http://x").pathname}`, (route) => route.abort());
     await page.goto(`/d/${AUDIO_ID}`);
     await expect(page.locator("#main")).toHaveAttribute("data-digest-id", AUDIO_ID);
-    // The player wakes from the saved files too, and draws the 1024 cover the check below reads.
+    // The player wakes from the saved files too.
     await hydrated(page);
-    // Every cover the page may show for this item (each theme, the player's 1024 included) answers
-    // offline: a download once saved only the covers the page does not show.
+    // Every cover the page may show for this item answers offline: the vector the page and the player
+    // draw (D314), which holds every style's colours, and the 512 and 1024 images of the lock screen
+    // and share cards. A download once saved only the covers the page did not show.
     const covers = await page.evaluate(async (id) => {
-      const urls = new Set<string>();
-      for (const image of document.querySelectorAll<HTMLImageElement>(`img[srcset*="${id}"]`))
-        for (const part of image.srcset.split(",")) urls.add(part.trim().split(/\s+/)[0] ?? "");
+      const urls = new Set<string>([
+        `/covers/${id}.svg`,
+        `/covers/${id}-512.webp`,
+        `/covers/${id}-1024.webp`,
+      ]);
       const statuses = await Promise.all(
         [...urls].map((url) =>
           // Past the browser's HTTP cache, which a phone may have emptied: the worker must answer.

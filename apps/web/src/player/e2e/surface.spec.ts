@@ -32,15 +32,13 @@ test("one surface: the page waits collapsed and out of reach, then opens as one 
   );
   if (!mouseWide) return;
   // With a mouse on a wide screen the bar keeps its whole transport under the open page: Pause is on
-  // screen once, in the bar, and the page holds only what the bar has not, the skips with the speed
-  // between them. The keyboard's Close button is the one close control, and the bar's open button
+  // screen once, in the bar, and the page holds only what the bar has not, the skips. The keyboard's Close button is the one close control, and the bar's open button
   // closes the page it opened.
   await expect(dialog.getByRole("button", { name: "Close the player" })).toHaveCount(1);
   await expect(player.dock.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
   const page_ = dialog.locator("[data-player-page]");
   await expect(page_.getByRole("button", { name: "Pause", exact: true })).toBeHidden();
   await expect(page_.getByRole("button", { name: "Back 10 seconds" })).toBeVisible();
-  await expect(page_.getByRole("button", { name: /^Playback speed / })).toBeVisible();
   await finger.press(player.openButton);
   await player.collapsed();
   await expect(page.getByRole("dialog")).toHaveCount(0);

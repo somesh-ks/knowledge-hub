@@ -106,6 +106,8 @@
   padding: var(--card-padding);
   border-radius: var(--card-radius);
   background: var(--color-surface-container);
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
 }
 
 /* One padding in from the card's corner, so its radius is the card's less that padding (2026-10-22). */
@@ -211,6 +213,8 @@
   padding: var(--card-padding);
   border-radius: var(--card-radius);
   background: var(--color-surface-container);
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
 }
 
 /* The switch, the field, the Add button and the chips in the card keep the pills they are on the
@@ -499,12 +503,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .topic-add-source:hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 }
 
 .topic-add-source:active {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 /* Delete, in the card's menu, for a topic of the owner's own: red marks the one that destroys (the
@@ -557,7 +561,7 @@
   /* The icon and the check sit the search field's padding in, in line with its glyph and its clear
      button, as a topic's row is on the index (owner, 2026-10-23). */
   padding-inline: var(--space-4);
-  border-radius: var(--radius-md);
+  border-radius: var(--shape-md);
 }
 
 /* The row's own button, behind everything: a press anywhere but the checkbox opens the
@@ -588,12 +592,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .source-edit:hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 }
 
 .source-edit:active {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 /* What the row shows sits over its button and lets a press through to it, all but the checkbox,
@@ -628,7 +632,7 @@
   width: var(--space-6);
   height: var(--space-6);
   overflow: hidden;
-  border-radius: var(--radius-sm);
+  border-radius: var(--shape-sm);
 }
 
 /* A hairline keeps the tile's edge in sight on the page's own colour. Drawn over the tile, so the
@@ -798,12 +802,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .source-check:hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 }
 
 .source-check:active {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 /* An unticked source is off: it keeps its place and its score, quieter, and still readable (4.5:1):
@@ -915,20 +919,16 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .topics-panel select.field-input:hover,
+  .topics-panel select.field-input:where(:enabled):hover,
   .topics-panel .multiselect-trigger:hover,
   .topics-panel
     :is(input, textarea).field-input:not(
       :focus-visible,
       [readonly],
       [aria-invalid]:not([aria-invalid="false"])
-    ):hover {
+    ):where(:enabled):hover {
     border-color: transparent;
-    background: color-mix(
-      in oklch,
-      var(--color-surface-container),
-      var(--color-on-surface) var(--state-hover)
-    );
+    background: var(--color-surface-container-hover);
   }
 }
 
@@ -952,23 +952,15 @@
       :focus-visible,
       [readonly],
       [aria-invalid]:not([aria-invalid="false"])
-    ):hover {
-    background: color-mix(
-      in oklch,
-      var(--color-surface),
-      var(--color-on-surface) var(--state-hover)
-    );
+    ):where(:enabled):hover {
+    background: var(--color-surface-hover);
   }
 }
 
-.topics-panel select.field-input:active,
+.topics-panel select.field-input:where(:enabled):active,
 .topics-panel .multiselect-trigger:is(:active, [aria-expanded="true"]) {
   border-color: transparent;
-  background: color-mix(
-    in oklch,
-    var(--color-surface-container),
-    var(--color-on-surface) var(--state-press)
-  );
+  background: var(--color-surface-container-pressed);
 }
 
 .topics-panel select.field-input:focus-visible,
@@ -1070,6 +1062,8 @@
   padding: var(--space-6);
   border-radius: var(--card-radius);
   background: var(--color-surface-container);
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
 }
 
 .score-card-head {
@@ -1199,6 +1193,8 @@
   /* The card radius, as every tonal card has (D243, 2026-10-31): it was 16px. */
   border-radius: var(--card-radius);
   background: var(--color-surface-container);
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
 }
 
 .source-card-head {
@@ -1217,7 +1213,7 @@
   width: var(--space-12);
   height: var(--space-12);
   flex: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--shape-md);
 }
 
 /* The card's tile is larger, and so is its letter. */
@@ -1288,7 +1284,7 @@
 .skeleton-bar {
   display: block;
   height: var(--space-4);
-  border-radius: var(--radius-sm);
+  border-radius: var(--shape-sm);
   background: var(--color-surface-sunken);
   animation: skeleton-pulse var(--duration-progress) var(--ease-out) infinite alternate;
 }
@@ -1301,7 +1297,7 @@
   flex: none;
   width: var(--space-12);
   height: var(--space-12);
-  border-radius: var(--radius-md);
+  border-radius: var(--shape-md);
   background: var(--color-surface-sunken);
   animation: skeleton-pulse var(--duration-progress) var(--ease-out) infinite alternate;
 }
@@ -1444,13 +1440,13 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .source-plus-btn:enabled:hover::before {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  .source-plus-btn:where(:enabled):hover::before {
+    background: var(--ghost-hover);
   }
 }
 
-.source-plus-btn:enabled:active::before {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+.source-plus-btn:where(:enabled):active::before {
+  background: var(--ghost-pressed);
 }
 
 /* ------------------------------------------------------------------ a long list of sources */
@@ -1474,14 +1470,9 @@
   border-radius: inherit;
   pointer-events: none;
   background:
-    linear-gradient(
-      100deg,
-      transparent 30%,
-      color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent) 50%,
-      transparent 70%
-    )
-    100% 0 / 250% 100% no-repeat,
-    color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    linear-gradient(100deg, transparent 30%, var(--ghost-pressed) 50%, transparent 70%) 100% 0 /
+    250% 100% no-repeat,
+    var(--ghost-hover);
   animation: source-shimmer calc(var(--duration-progress) * 5) var(--ease-linear) infinite;
 }
 
@@ -1496,7 +1487,7 @@
 @media (prefers-reduced-motion: reduce) {
   .source-row.is-suggested[data-adding]::after {
     animation: none;
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 }
 
@@ -1552,11 +1543,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .filter-row > .topic-add-source:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-surface-container),
-      var(--color-on-surface) var(--state-hover)
-    );
+    background: var(--color-surface-container-hover);
   }
 }
 
@@ -1756,7 +1743,7 @@ html:has(.source-filter[data-chips]) {
      once held the picker for 1.3 s on a desktop and 6 s on a slow phone. */
   content-visibility: auto;
   contain-intrinsic-size: auto var(--size-touch);
-  border-radius: var(--radius-sm);
+  border-radius: var(--shape-sm);
   /* Optical centre (owner, 2026-10-24): the line sits on the UI font's baseline, so the emoji font's
      ink rode 0.05em high (1px at 20px, measured on Segoe UI Emoji across the grid). The pad is a
      font metric, the same for every emoji; centred, the ink lands within a device pixel. */
