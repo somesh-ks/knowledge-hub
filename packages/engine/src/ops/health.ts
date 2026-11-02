@@ -343,13 +343,14 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
   const blob = options.site !== null && blobBase !== null ? { base: blobBase, get } : null;
 
   // Cost: the ledger's last 24 hours against the ceiling, and the speech allowance. Online, the
-  // month's count is the Blob document the engine and the site both write (D339); state/usage.json
-  // is the count only where there is no Blob store.
+  // month's count is the Blob document the engine and the site both write (D339). state/usage.json
+  // adds the engine's characters from before that change (it is frozen, and starts over with the
+  // month) or, where there is no Blob store, all of them.
   const site = blob ? await readSiteNarration(blob, now) : null;
   if (site && "error" in site) {
     warn("site_usage_unread", "cost", `The site's narration count did not read: ${site.error}.`);
   }
-  const sharedCount = site && !("error" in site) ? site.month : null;
+  const sharedCount = site && !("error" in site) ? site.month : 0;
   const since = now.getTime() - DAY_MS;
   const records = await loadAllCosts(root).catch((error: unknown) => {
     fault("state_invalid", "integrity", `state/costs-*.json: ${message(error)}`);
@@ -412,7 +413,7 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
     passed.push(`Exa made ${exaWeek} searches in 7 days`);
   }
   const speech = status.budget.speechify;
-  const used = sharedCount ?? speech.used;
+  const used = speech.used + sharedCount;
   const percent = Math.round((used / speech.monthly_chars) * 100);
   if (used >= speech.limit) {
     fault(

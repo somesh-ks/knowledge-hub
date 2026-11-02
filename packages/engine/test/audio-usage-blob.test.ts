@@ -1,4 +1,4 @@
-import { BlobPreconditionFailedError } from "@vercel/blob";
+import { BlobError, BlobPreconditionFailedError } from "@vercel/blob";
 import { describe, expect, it } from "vitest";
 import { blobUsageStore, usageBlobKey } from "../src/audio/usageBlob.js";
 import type { BlobPutOptions, ConditionalBlobClient } from "../src/publish/blob.js";
@@ -18,6 +18,9 @@ function fakeStore(initial?: string) {
     },
     async put(pathname, body, options: BlobPutOptions) {
       calls.push({ ifMatch: options.ifMatch });
+      if (options.createOnly && text !== null) {
+        throw new BlobError("This blob already exists and allowOverwrite is false");
+      }
       if (options.ifMatch !== undefined && options.ifMatch !== `v${version}`) {
         throw new BlobPreconditionFailedError();
       }
@@ -89,6 +92,22 @@ describe("the shared Speechify count (D339)", () => {
     const usage = await blobUsageStore(racing, store.get).add(NOW, 250);
     expect(usage.speechify.characters).toBe(1850);
     expect(store.stored().speechify.characters).toBe(1850);
+  });
+
+  // Both writers read "nothing stored" and both write: the second must not overwrite the first's
+  // charge, so a first write only creates.
+  it("adds to the count another writer created first when both found the month empty", async () => {
+    const store = fakeStore();
+    const racing: ConditionalBlobClient = {
+      ...store.client,
+      async put(pathname, body, options) {
+        if (store.calls.length === 0) store.replace(SITE_DOC);
+        return store.client.put(pathname, body, options);
+      },
+    };
+    const usage = await blobUsageStore(racing, store.get).add(NOW, 250);
+    expect(usage.speechify.characters).toBe(1250);
+    expect(store.stored().digests["2026-11-01"].characters).toBe(1000);
   });
 
   // A document that exists but cannot be read must stop narration, not read as an empty month.

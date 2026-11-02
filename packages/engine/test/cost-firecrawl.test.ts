@@ -268,6 +268,9 @@ describe("the spend record", () => {
     expect(tracker.exaRoom).toBe(Number.POSITIVE_INFINITY);
     await tracker.begin(root, run);
     expect(tracker.exaRoom).toBe(EXA_WEEKLY_BUDGET - 650);
+    // A later pass of the same run gets what the earlier one left, not the whole week again.
+    for (let i = 0; i < 5; i++) tracker.meter.add("exa");
+    expect(tracker.exaRoom).toBe(EXA_WEEKLY_BUDGET - 650 - 5);
     // A week over the stop leaves none, never a negative room.
     await tracker.begin(root, "2026-11-03T05:37:00.000Z");
     expect(tracker.exaRoom).toBe(0);

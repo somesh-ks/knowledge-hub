@@ -2,6 +2,7 @@ import { UsageFile } from "@singularity/core";
 import {
   type BlobClient,
   type ConditionalBlobClient,
+  isAlreadyExists,
   isPreconditionFailed,
 } from "../publish/blob.js";
 import { emptyUsage, usageMonth } from "./budgetMath.js";
@@ -79,11 +80,14 @@ export function blobUsageStore(
           await client.put(usageBlobKey(month), new TextEncoder().encode(body), {
             contentType: "application/json",
             cacheControlMaxAge: JSON_CACHE_SECONDS,
-            ...(stored.etag !== null ? { ifMatch: stored.etag } : {}),
+            // A month nobody has charged yet is created, never overwritten: of two first writers
+            // the second is told, reads the first's count and adds to it.
+            ...(stored.etag !== null ? { ifMatch: stored.etag } : { createOnly: true }),
           });
           return usage;
         } catch (error) {
-          if (!isPreconditionFailed(error) || attempt >= ATTEMPTS) throw error;
+          const lostRace = isPreconditionFailed(error) || isAlreadyExists(error);
+          if (!lostRace || attempt >= ATTEMPTS) throw error;
         }
       }
     },
