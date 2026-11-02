@@ -557,7 +557,7 @@
   /* The icon and the check sit the search field's padding in, in line with its glyph and its clear
      button, as a topic's row is on the index (owner, 2026-10-23). */
   padding-inline: var(--space-4);
-  border-radius: var(--radius-md);
+  border-radius: var(--shape-md);
 }
 
 /* The row's own button, behind everything: a press anywhere but the checkbox opens the
@@ -628,7 +628,7 @@
   width: var(--space-6);
   height: var(--space-6);
   overflow: hidden;
-  border-radius: var(--radius-sm);
+  border-radius: var(--shape-sm);
 }
 
 /* A hairline keeps the tile's edge in sight on the page's own colour. Drawn over the tile, so the
@@ -1205,7 +1205,7 @@
   width: var(--space-12);
   height: var(--space-12);
   flex: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--shape-md);
 }
 
 /* The card's tile is larger, and so is its letter. */
@@ -1276,7 +1276,7 @@
 .skeleton-bar {
   display: block;
   height: var(--space-4);
-  border-radius: var(--radius-sm);
+  border-radius: var(--shape-sm);
   background: var(--color-surface-sunken);
   animation: skeleton-pulse var(--duration-progress) var(--ease-out) infinite alternate;
 }
@@ -1289,7 +1289,7 @@
   flex: none;
   width: var(--space-12);
   height: var(--space-12);
-  border-radius: var(--radius-md);
+  border-radius: var(--shape-md);
   background: var(--color-surface-sunken);
   animation: skeleton-pulse var(--duration-progress) var(--ease-out) infinite alternate;
 }
@@ -1740,7 +1740,7 @@ html:has(.source-filter[data-chips]) {
      once held the picker for 1.3 s on a desktop and 6 s on a slow phone. */
   content-visibility: auto;
   contain-intrinsic-size: auto var(--size-touch);
-  border-radius: var(--radius-sm);
+  border-radius: var(--shape-sm);
   /* Optical centre (owner, 2026-10-24): the line sits on the UI font's baseline, so the emoji font's
      ink rode 0.05em high (1px at 20px, measured on Segoe UI Emoji across the grid). The pad is a
      font metric, the same for every emoji; centred, the ink lands within a device pixel. */

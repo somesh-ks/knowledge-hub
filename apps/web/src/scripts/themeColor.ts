@@ -59,10 +59,10 @@ export function installThemeColor(): void {
   };
 
   apply();
-  // The theme and the style live in attributes on the root; the settings page and the player write them.
+  // The theme and the style live in attributes on the root, and the reader's hue in its style; the settings page and the player write them.
   new MutationObserver(apply).observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ["data-theme", "data-style"],
+    attributeFilter: ["data-theme", "data-style", "style"],
   });
   // A styled page in the system theme changes colour when the system does.
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", apply);

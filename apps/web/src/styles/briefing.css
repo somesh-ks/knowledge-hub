@@ -143,7 +143,7 @@ html[data-has-tabs] {
   text-decoration: none;
   text-decoration-thickness: var(--stroke-hairline);
   text-underline-offset: 0.18em;
-  border-radius: var(--radius-xs);
+  border-radius: var(--shape-xs);
 }
 
 /* The ring goes round the headline, not the link: on an inline link each line box draws its own,
@@ -156,7 +156,7 @@ html[data-has-tabs] {
 .story-title:has(> .story-link:focus-visible) {
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: var(--space-1);
-  border-radius: var(--radius-sm);
+  border-radius: var(--shape-sm);
 }
 
 @media (hover: hover) and (pointer: fine) {

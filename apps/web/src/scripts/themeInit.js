@@ -1,13 +1,2 @@
-(() => {
-  try {
-    const { theme: t, style: s } =
-      JSON.parse(localStorage.getItem("singularity:preferences") || "0") || {};
-    const d = document.documentElement.dataset;
-    if (t === "light" || t === "dark") d.theme = t;
-    if (typeof s === "string" && s !== "default" && /^[a-z][a-z-]{0,23}$/.test(s)) d.style = s;
-  } catch {}
-})();
-addEventListener("popstate", (e) => {
-  if (!dispatchEvent(new Event("singularity:back", { cancelable: true })))
-    e.stopImmediatePropagation();
-});
+// biome-ignore format: size
+(()=>{try{const p=JSON.parse(localStorage.getItem("singularity:preferences")||0)||{},d=document.documentElement,s=p.style,h=p.hue;if(p.theme==="light"||p.theme==="dark")d.dataset.theme=p.theme;if(typeof s==="string"&&s!=="default"&&/^[a-z][a-z-]{0,23}$/.test(s)){d.dataset.style=s;if(h>0&&h<360)d.style.setProperty("--hue-shift",+h)}}catch{}addEventListener("popstate",e=>{dispatchEvent(new Event("singularity:back",{cancelable:true}))||e.stopImmediatePropagation()})})();

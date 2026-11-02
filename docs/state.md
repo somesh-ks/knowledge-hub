@@ -12,7 +12,7 @@ Updated 2026-11-01. Rewrite, never append.
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). Regenerate and Catch up queue with Cancel; ended runs stay for the day (D204, D231).
 - Saved copies, offline, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews a PR once when it is ready, by tier (D192, D292).
-- Halloween style (D306): tokens, Pirata One page title, six scenes and a cobweb, in two pull requests (tokens, then scenes). closed when: Somesh OKs the stills (390 and 1280, light and dark) and a phone keeps it across a reload. Covers follow as inline SVG with variables in their own PR.
+- Styles (D306, D310, D315): Halloween and Expressive (violet ramp, larger touch sizes, a `--shape-*` corner scale a test enforces, looping empty states) and a Hue slider that turns a style. closed when: Somesh OKs the stills (390 and 1280, light and dark) and sees every page change under each style on his phone. Covers follow a style live (D314, own PR); album art per style is next.
 
 ## Tests
 
