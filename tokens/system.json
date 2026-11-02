@@ -1444,7 +1444,6 @@
         "--color-surface-overlay-hover",
         "--color-surface-overlay-pressed",
         "--row-padding-block",
-        "--shape-lg",
         "--shape-xl"
       ]
     },
@@ -3394,6 +3393,13 @@
       "tier": "primitive",
       "type": "number",
       "light": "0.32"
+    },
+    {
+      "name": "--opacity-dim",
+      "tier": "primitive",
+      "type": "number",
+      "light": "0.6",
+      "role": "A thing that is busy or being moved stays where it is, quieter: a page that is loading, a row being cancelled or dragged."
     },
     {
       "name": "--opacity-ambient-light",

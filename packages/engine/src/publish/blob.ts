@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { DigestId, EpisodeId } from "@singularity/core";
-import { del, list, put } from "@vercel/blob";
+import { BlobNotFoundError, BlobPreconditionFailedError, del, head, list, put } from "@vercel/blob";
 import { OPUS_CONTENT_TYPE } from "../audio/transcode.js";
 
 /** Prefix every narration lives under, so pruning can never touch other blobs in the store. */
@@ -19,6 +19,8 @@ const DELETE_BATCH = 50;
 export interface BlobPutOptions {
   contentType: string;
   cacheControlMaxAge: number;
+  /** Write only if the blob's ETag still is this one; a mismatch throws (see isPreconditionFailed). */
+  ifMatch?: string;
 }
 
 export interface BlobPutResult {
@@ -46,6 +48,16 @@ export interface BlobClient {
   list(options: { prefix: string; cursor?: string }): Promise<BlobListPage>;
 }
 
+/** What a conditional write needs on top of BlobClient: a blob's URL and ETag, or null when absent. */
+export interface ConditionalBlobClient extends BlobClient {
+  head(pathname: string): Promise<{ url: string; etag: string } | null>;
+}
+
+/** True when a write was refused because the blob changed since its ETag was read (D300). */
+export function isPreconditionFailed(error: unknown): boolean {
+  return error instanceof BlobPreconditionFailedError;
+}
+
 /** A long-lived read-write token, or the short-lived OIDC token and store id Vercel issues. */
 export type BlobAuth = string | { oidcToken: string; storeId: string };
 
@@ -53,7 +65,7 @@ export type BlobAuth = string | { oidcToken: string; storeId: string };
  * Wrap @vercel/blob with credentials passed explicitly, so it never depends on ambient process.env.
  * Public access with a fixed pathname and overwrite allowed: the URL stays stable across reruns.
  */
-export function createVercelBlobClient(auth: BlobAuth): BlobClient {
+export function createVercelBlobClient(auth: BlobAuth): ConditionalBlobClient {
   const credentials = typeof auth === "string" ? { token: auth } : auth;
   return {
     async put(pathname, body, options) {
@@ -66,10 +78,20 @@ export function createVercelBlobClient(auth: BlobAuth): BlobClient {
           allowOverwrite: true,
           contentType: options.contentType,
           cacheControlMaxAge: options.cacheControlMaxAge,
+          ...(options.ifMatch !== undefined ? { ifMatch: options.ifMatch } : {}),
           ...credentials,
         },
       );
       return { url: result.url, pathname: result.pathname };
+    },
+    async head(pathname) {
+      try {
+        const result = await head(pathname, { ...credentials });
+        return { url: result.url, etag: result.etag };
+      } catch (error) {
+        if (error instanceof BlobNotFoundError) return null;
+        throw error;
+      }
     },
     async del(pathnames) {
       await del([...pathnames], { ...credentials });

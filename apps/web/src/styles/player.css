@@ -146,7 +146,7 @@
 [data-playing="false"] .glyph-playing,
 [data-playing="true"] .glyph-paused {
   opacity: 0;
-  transform: scale(0.95);
+  transform: scale(var(--scale-enter));
   filter: blur(var(--blur-enter));
 }
 
@@ -496,7 +496,7 @@
   }
 }
 
-/* A press darkens the fill, as on the primary buttons; the words keep their size. */
+/* A press steps the fill, as on the primary buttons (D317); the words keep their size. */
 .player-fallback-action:active {
   background: var(--color-accent-pressed);
 }
@@ -2592,7 +2592,7 @@
 
 /* The row being dragged dims where it was; the row it is over shows the edge it would join. */
 .player-queue-item[data-dragging] {
-  opacity: 0.5;
+  opacity: var(--opacity-dim);
 }
 
 .player-queue-item[data-drop="before"] {
