@@ -4,6 +4,7 @@
  * designSystem.test.ts holds the app to them. A new component is added here in the PR that adds it;
  * a class not listed here is not part of the system.
  */
+import { AVATAR, AVATAR_CLASSES, AVATAR_RETIRED } from "./avatar";
 import { BADGE, BADGE_CLASSES, BADGE_RETIRED } from "./badge";
 import { BANNER, BANNER_CLASSES, BANNER_RETIRED } from "./banner";
 import { BUTTON, BUTTON_CLASSES, BUTTON_RETIRED } from "./button";
@@ -14,9 +15,10 @@ import type { Guidance } from "./guidance";
 import { ICON, ICON_CLASSES, ICON_RETIRED } from "./icon";
 import { MENU, MENU_CLASSES, MENU_RETIRED } from "./menu";
 import { RIPPLE, RIPPLE_CLASSES, RIPPLE_RETIRED } from "./ripple";
+import { ROW_EXIT, ROW_EXIT_CLASSES, ROW_EXIT_RETIRED } from "./rowExit";
 import { SELECT, SELECT_CLASSES, SELECT_RETIRED } from "./select";
 import { SHEET, SHEET_CLASSES, SHEET_RETIRED } from "./sheet";
-import { SLIDER, SLIDER_CLASSES, SLIDER_RETIRED } from "./slider";
+import { SLIDER, SLIDER_CLASSES, SLIDER_RETIRED, SLIDER_VARIANTS } from "./slider";
 import { SWITCH, SWITCH_CLASSES, SWITCH_RETIRED } from "./switch";
 import { WHEEL, WHEEL_CLASSES, WHEEL_RETIRED } from "./wheel";
 
@@ -57,6 +59,28 @@ export const COMPONENTS: DesignSystemComponent[] = [
     parts: ICON.sizes,
   },
   {
+    name: "Avatar",
+    sheet: "avatar.css",
+    prefix: "avatar",
+    classes: AVATAR_CLASSES,
+    retired: AVATAR_RETIRED,
+    summary: AVATAR.summary,
+    useWhen: AVATAR.useWhen,
+    dontUseWhen: AVATAR.dontUseWhen,
+    parts: {},
+  },
+  {
+    name: "Row exit",
+    sheet: "row-exit.css",
+    prefix: "row-exit",
+    classes: ROW_EXIT_CLASSES,
+    retired: ROW_EXIT_RETIRED,
+    summary: ROW_EXIT.summary,
+    useWhen: ROW_EXIT.useWhen,
+    dontUseWhen: ROW_EXIT.dontUseWhen,
+    parts: {},
+  },
+  {
     name: "Badge",
     sheet: "badge.css",
     prefix: "badge-",
@@ -87,7 +111,7 @@ export const COMPONENTS: DesignSystemComponent[] = [
     summary: SLIDER.summary,
     useWhen: SLIDER.useWhen,
     dontUseWhen: SLIDER.dontUseWhen,
-    parts: {},
+    parts: SLIDER_VARIANTS,
   },
   {
     name: "Field",

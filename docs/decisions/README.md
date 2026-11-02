@@ -141,7 +141,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D272 | No persisted floating button | active |
 | D273 | Haptic tokens | amends D52 |
 | D274 | Icon weight token | amends D268 |
-| D275 | Concentric picker | amends D167 |
+| D275 | Concentric picker | amends D167; amended by D325 |
 | D276 | Voice list | amends D101 |
 | D277 | Queue keeps played items; a tap plays in place | amends D126 |
 | D278 | Softer light covers | amends D121 |
@@ -156,7 +156,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D288 | Library list: month labels, two columns | active |
 | D289 | Every press is felt | amends D273 |
 | D290 | Haptics are subtle and follow the sounds | amends D273, D289 |
-| D291 | Phone Menu sheet: media-style head, visible Close, fill focus | amends D144, D275 |
+| D291 | Phone Menu sheet: media-style head, visible Close, fill focus | amends D144, D275; amended by D322, D325, D329 |
 | D292 | Review by tier; a review is asked for, never fired by a push | amends D143, D192, D254 |
 | D293 | On-demand covers are served at /covers | supersedes D263; amends D256, D258 |
 | D294 | Scheduled writer uses Message Batches | amends D209 (step 3 built, step 2 open); D135 ended |
@@ -165,7 +165,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D297 | A section may stand over its allowance only as far as the floor needs | amends D35 |
 | D298 | Repository public, owner data moved out of git, history rewritten last | supersedes D9 |
 | D299 | Offline settings edits stay on the device and send when back online | amends D79, D91, D259; amended by D331 |
-| D300 | Digests and audio in Blob, state in Postgres, weekly private snapshot of the config store | partly superseded by D311; steps 1 and 2a built, 2b in review |
+| D300 | Digests and audio in Blob, state in Postgres, weekly private snapshot of the config store | partly superseded by D311; steps 1 and 2a built, 2b in review; amended by D339 |
 | D302 | Pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked | active |
 | D306 | A seasonal style may change more than tokens | amends D268 |
 | D308 | Haiku writes the first pass of each story, Sonnet repairs and backs it up | amends D181; amended by D333 |
@@ -173,20 +173,27 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D310 | Expressive is loud: a violet world, larger controls | amends D268 |
 | D311 | D300 amended: the config snapshot lives in a Neon table, not a private Blob store | supersedes D300 (snapshot clause) |
 | D314 | Album art follows the style, drawn live from the month's colours | amends D110, D121; fulfils D306 |
-| D315 | The reader's hue turns a style's whole palette | amends D268, D310 |
+| D315 | The reader's hue turns a style's whole palette | amends D268, D310; amended by D328 |
 | D316 | Vercel skew protection stays off in the web build | active |
 | D317 | A state is an explicit OKLCH colour, never an alpha | amends D72, D238; amended by D321 |
 | D318 | Pages stay at the edge until their content changes, purged by tag | active |
 | D319 | Colours are generated; a style is a recipe | amends D268, D310, D317 |
 | D321 | The ripple and a cover's press stay alpha layers, over artwork | amends D317 |
+| D322 | A Library card's phone sheet opens with quick-action tiles | amends D291 |
 | D323 | Regenerate is a full sheet like Catch up; Length has no Usual | amends D207 |
 | D324 | The Catch up script is written at medium effort | amends D181 |
+| D325 | List rows run edge to edge in the Menu, the select list and the picker | amends D275, D291 |
+| D326 | The Avatar is a design-system part: one flat shape, a face, two tones | active |
+| D328 | The hue slider paints the spectrum and shows the picked colour | amends D315 |
+| D329 | A Menu sheet over one safe row has no title and no Close | amends D291 |
 | D330 | One app-wide state model: route, connectivity, saved pages | amends D97, D98, D145, D202 |
 | D331 | Error and helper copy speaks in the reader's words, and a test holds it | amends D299 |
 | D332 | A scheduled run waits at the gate when the last 24 hours cost over $5 | amends D139 |
 | D333 | The short-text Claude steps run Haiku medium, then Haiku high, then Sonnet medium | amends D308, D324; amended by D334 |
 | D334 | Every Claude step starts at Haiku medium, the podcast script included | amends D333 |
 | D336 | A cover no longer flies between its card and the page's hero | partly supersedes D271, D280; amended by D341 |
+| D339 | The engine and the site keep one Speechify count, in Blob; Exa gets a weekly stop | amends D300 |
 | D341 | A page arrives from the side of the tab you came from | partly supersedes D280; amends D336 |
+| D342 | A Firecrawl listing is read free first and scraped only when its links moved | relates to D222, D302 |
 
 ---

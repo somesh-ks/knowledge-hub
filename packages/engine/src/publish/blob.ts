@@ -1,4 +1,12 @@
-import { BlobNotFoundError, BlobPreconditionFailedError, del, head, list, put } from "@vercel/blob";
+import {
+  BlobError,
+  BlobNotFoundError,
+  BlobPreconditionFailedError,
+  del,
+  head,
+  list,
+  put,
+} from "@vercel/blob";
 import { OPUS_CONTENT_TYPE } from "../audio/transcode.js";
 import { AUDIO_PREFIX, audioKey, audioOpusKey, audioVersion } from "./audioKeys.js";
 
@@ -25,6 +33,8 @@ export interface BlobPutOptions {
   cacheControlMaxAge: number;
   /** Write only if the blob's ETag still is this one; a mismatch throws (see isPreconditionFailed). */
   ifMatch?: string;
+  /** Write only if nothing is stored at the path; a blob already there throws (see isAlreadyExists). */
+  createOnly?: boolean;
 }
 
 export interface BlobPutResult {
@@ -62,6 +72,11 @@ export function isPreconditionFailed(error: unknown): boolean {
   return error instanceof BlobPreconditionFailedError;
 }
 
+/** True when a create-only write found a blob already stored there. The store answers with a plain error naming it. */
+export function isAlreadyExists(error: unknown): boolean {
+  return error instanceof BlobError && /already exists/i.test(error.message);
+}
+
 /** A long-lived read-write token, or the short-lived OIDC token and store id Vercel issues. */
 export type BlobAuth = string | { oidcToken: string; storeId: string };
 
@@ -79,7 +94,7 @@ export function createVercelBlobClient(auth: BlobAuth): ConditionalBlobClient {
         {
           access: "public",
           addRandomSuffix: false,
-          allowOverwrite: true,
+          allowOverwrite: options.createOnly !== true,
           contentType: options.contentType,
           cacheControlMaxAge: options.cacheControlMaxAge,
           ...(options.ifMatch !== undefined ? { ifMatch: options.ifMatch } : {}),

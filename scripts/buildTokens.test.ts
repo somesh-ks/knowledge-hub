@@ -602,7 +602,9 @@ describe("motion tokens", () => {
         expect(durationMs(token), name).toBeLessThanOrEqual(500);
         continue;
       }
-      if (name === "spin") continue;
+      // The avatar's reactions are a character playing, not an interface answering (D326): they run past the
+      // UI limit, one at a time, and never under reduced motion.
+      if (name === "spin" || name.startsWith("avatar-")) continue;
       const limit = typeof token.extensions.perceptualMs === "number" ? 500 : 300;
       expect(durationMs(token), name).toBeLessThanOrEqual(limit);
     }

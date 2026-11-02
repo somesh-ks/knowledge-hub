@@ -175,10 +175,11 @@
        the roomier side and cover the controls above. */
     position-try-order: normal;
     margin-block: var(--space-2);
-    padding: var(--space-2);
+    /* Rows run edge to edge; the list pads above and below only (owner, 2026-11-02). */
+    padding: var(--space-2) 0;
     border: var(--stroke-hairline) solid var(--color-border-hairline);
-    /* One popover family with the Menu and the picker (owner, 2026-11-01): a 32px corner around rows
-       8px in, so a row's 24px corner shares its centre with the corner around it. */
+    /* One popover family with the Menu and the picker (owner, 2026-11-01): a 32px corner that clips
+       the first and last row. */
     border-radius: var(--shape-2xl);
     background: var(--color-surface-overlay);
     --ghost-hover: var(--color-surface-overlay-hover);
@@ -228,8 +229,8 @@
     gap: var(--space-2);
     min-block-size: var(--size-touch);
     padding-block: var(--space-2);
-    padding-inline: var(--space-4);
-    border-radius: var(--shape-xl);
+    padding-inline: var(--space-6);
+    border-radius: 0;
     /* No fill of its own: the browser's option is a shade off the surface in dark, which drew every
        row as a button. Hover and focus draw the state layer below. */
     background: transparent;
@@ -237,10 +238,6 @@
     font-weight: var(--font-weight-medium);
     line-height: var(--font-leading-label);
     cursor: pointer;
-  }
-
-  :is(.select-outlined, .select-tonal) > select option + option {
-    margin-block-start: var(--space-2);
   }
 
   /* A group's heading starts where its options' words do, whatever side the field aligns its value
@@ -251,7 +248,7 @@
 
   :is(.select-outlined, .select-tonal) > select optgroup > legend {
     padding-block: var(--space-4) var(--space-2);
-    padding-inline: var(--space-4);
+    padding-inline: var(--space-6);
     color: var(--color-on-surface-muted);
     font-size: var(--font-size-label);
     font-weight: var(--font-weight-regular);

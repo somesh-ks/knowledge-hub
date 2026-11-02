@@ -1,0 +1,414 @@
+/*
+ * The Avatar (D326, design-system/avatar.ts): one flat shape, a face and two tones, no letter, no
+ * gradient, no shadow, no blush. Every colour is a token, so the hue engine drives it in every mood.
+ *
+ * A mood supplies these tokens and nothing else (a new mood adds tokens only):
+ *   --av-body, --av-mark          the body and the face
+ *   --av-shapes, --av-shape-default   the shape ids it offers (read by the app) and its first
+ *   --av-d-dots, --av-d-spark, --av-d-speckle, --av-d-stitch   a decoration it switches on (inline) or not (none)
+ */
+
+:root {
+  --av-body: var(--color-accent-container-high);
+  --av-mark: var(--color-on-accent-container-high);
+  --av-shade: color-mix(in oklch, var(--av-body), var(--av-mark) 26%);
+  --av-ink: var(--color-on-surface);
+  --av-paper: var(--color-surface);
+  --av-shapes: "cookie flower clover sunny burst squircle heart pebble star";
+  --av-shape-default: cookie;
+  --av-d-dots: none;
+  --av-d-spark: none;
+  --av-d-speckle: none;
+  --av-d-stitch: none;
+  --av-size: 2.5rem;
+}
+
+/* Expressive: the accent at a strong lightness for the body and a deep one for the face, both derived
+   from the accent so a turn of the hue turns the avatar (no white eyes). */
+:root[data-style="expressive"] {
+  --av-body: oklch(from var(--color-accent-action) 0.72 calc(c * 1.1) h);
+  --av-mark: oklch(from var(--color-accent-action) 0.24 calc(c * 0.55) h);
+  --av-shapes: "flower clover sunny burst star cookie squircle heart pebble";
+  --av-shape-default: flower;
+  --av-d-dots: inline;
+  --av-d-spark: inline;
+  --av-size: 3rem;
+}
+
+:root[data-style="halloween"] {
+  --av-body: var(--scene-pumpkin);
+  --av-mark: var(--scene-glow);
+  --av-shade: var(--scene-pumpkin-shade);
+  --av-shapes: "pumpkin ghost bat cat skull cauldron";
+  --av-shape-default: pumpkin;
+  --av-d-speckle: inline;
+  --av-d-stitch: inline;
+}
+
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  inline-size: var(--av-size);
+  block-size: var(--av-size);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+}
+
+/* A button when it opens the profile; a span when it only shows a shape (the Mood picker's). */
+button.avatar {
+  cursor: pointer;
+}
+
+.avatar-lg {
+  --av-size: 4rem;
+}
+
+.avatar-xl {
+  --av-size: 6rem;
+}
+
+:root[data-style="expressive"] .avatar-lg {
+  --av-size: 4.5rem;
+}
+
+:root[data-style="expressive"] .avatar-xl {
+  --av-size: 7rem;
+}
+
+.avatar svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+  transition: scale var(--duration-press-out) var(--ease-out);
+}
+
+/* A shape that is not the mood's body wears its own two tones (a ghost is ink, a skull is stone). */
+.avatar[data-tone="ink"] svg {
+  --av-body: var(--av-ink);
+  --av-mark: var(--av-paper);
+  --av-shade: color-mix(in oklch, var(--av-ink), var(--av-paper) 22%);
+}
+
+.avatar[data-tone="stone"] svg {
+  --av-body: var(--scene-stone-lit);
+  --av-mark: var(--scene-iron-shade);
+  --av-shade: var(--scene-stone);
+}
+
+button.avatar:active svg {
+  scale: var(--scale-press);
+  transition-duration: var(--duration-press-in);
+}
+
+.avatar-body {
+  fill: var(--av-body);
+}
+
+.avatar-shade {
+  fill: var(--av-shade);
+}
+
+.avatar-stem {
+  fill: var(--scene-stem);
+}
+
+.avatar-brew {
+  fill: var(--scene-pumpkin);
+}
+
+.avatar-rib {
+  fill: none;
+  stroke: var(--av-shade);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
+.avatar-fang {
+  fill: var(--av-mark);
+}
+
+.avatar-whisk {
+  fill: none;
+  stroke: var(--av-mark);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.avatar-dots circle,
+.avatar-speck circle {
+  fill: var(--av-shade);
+}
+
+.avatar-dots {
+  display: var(--av-d-dots);
+}
+
+.avatar-speck {
+  display: var(--av-d-speckle);
+}
+
+.avatar-stitch {
+  display: var(--av-d-stitch);
+  fill: none;
+  stroke: var(--av-shade);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-dasharray: 0.1 6;
+}
+
+.avatar-spark {
+  display: var(--av-d-spark);
+  fill: var(--av-mark);
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.avatar-rig,
+.avatar-eye,
+.avatar-eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.avatar-rig {
+  transform-origin: 50% 90%;
+}
+
+.avatar-eye {
+  fill: var(--av-mark);
+}
+
+.avatar-eye.avatar-lit {
+  fill: var(--scene-pumpkin-lit);
+}
+
+.avatar-mouth {
+  display: none;
+  fill: none;
+  stroke: var(--av-mark);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.avatar-mouth.avatar-fill {
+  fill: var(--av-mark);
+  stroke-width: 2;
+}
+
+.avatar-mouth.avatar-smile {
+  display: inline;
+}
+
+/* The mouth by face. A smile is the default. */
+.avatar[data-face="open"] .avatar-smile,
+.avatar[data-face="frown"] .avatar-smile,
+.avatar[data-face="flat"] .avatar-smile,
+.avatar[data-face="sleep"] .avatar-smile {
+  display: none;
+}
+
+.avatar[data-face="open"] .avatar-open,
+.avatar[data-face="frown"] .avatar-frown,
+.avatar[data-face="flat"] .avatar-flat,
+.avatar[data-face="sleep"] .avatar-flat {
+  display: inline;
+}
+
+.avatar[data-face="sleep"] .avatar-eye {
+  scale: 1 0.16;
+}
+
+.avatar[data-face="sleep"] .avatar-rig {
+  rotate: 6deg;
+}
+
+/* The reader's own photo, round with an accent ring, where there is one. */
+.avatar-photo img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  border: var(--stroke-ring) solid var(--color-accent);
+  border-radius: var(--radius-round);
+  object-fit: cover;
+}
+
+.avatar[data-state="offline"] {
+  opacity: var(--opacity-dim);
+}
+
+.avatar-photo[data-state="offline"] img {
+  filter: grayscale(1);
+}
+
+/* Motion: a one-shot (data-play) or a state that is really going on (data-state). Nothing loops by itself,
+   and none of it moves under reduced motion. */
+@keyframes avatar-hop {
+  0% {
+    translate: 0 0;
+    scale: 1 1;
+  }
+  22% {
+    translate: 0 6%;
+    scale: 1.08 0.9;
+  }
+  50% {
+    translate: 0 -22%;
+    scale: 0.94 1.08;
+  }
+  72% {
+    translate: 0 0;
+    scale: 1.08 0.9;
+  }
+  88% {
+    translate: 0 -5%;
+    scale: 1 1;
+  }
+  100% {
+    translate: 0 0;
+    scale: 1 1;
+  }
+}
+
+@keyframes avatar-wiggle {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  20% {
+    rotate: -9deg;
+  }
+  45% {
+    rotate: 8deg;
+  }
+  70% {
+    rotate: -5deg;
+  }
+}
+
+@keyframes avatar-look {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  30% {
+    translate: -9% 0;
+  }
+  65% {
+    translate: 9% 0;
+  }
+}
+
+@keyframes avatar-blink {
+  0%,
+  100% {
+    scale: 1 1;
+  }
+  45% {
+    scale: 1 0.1;
+  }
+}
+
+@keyframes avatar-shake {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  15% {
+    translate: -6% 0;
+  }
+  35% {
+    translate: 5% 0;
+  }
+  55% {
+    translate: -4% 0;
+  }
+  75% {
+    translate: 2% 0;
+  }
+}
+
+@keyframes avatar-bob {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: -2deg;
+  }
+  50% {
+    translate: 0 -7%;
+    rotate: 2deg;
+  }
+}
+
+@keyframes avatar-spark {
+  0% {
+    opacity: 0;
+    scale: 0.2;
+    rotate: -30deg;
+  }
+  40% {
+    opacity: 1;
+    scale: 1.25;
+    rotate: 10deg;
+  }
+  100% {
+    opacity: 0;
+    scale: 0.9;
+    rotate: 40deg;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .avatar[data-play="hop"] .avatar-rig {
+    animation: avatar-hop var(--duration-avatar-hop) var(--ease-spring-pop) both;
+  }
+
+  .avatar[data-play="hop"] .avatar-spark {
+    animation: avatar-spark var(--duration-avatar-spark) var(--ease-out) both;
+  }
+
+  .avatar[data-play="wiggle"] .avatar-rig {
+    animation: avatar-wiggle var(--duration-avatar-wiggle) var(--ease-spring-pop) both;
+  }
+
+  .avatar[data-play="look"] .avatar-eyes {
+    animation: avatar-look var(--duration-avatar-look) var(--ease-in-out) both;
+  }
+
+  .avatar[data-play="blink"] .avatar-eye {
+    animation: avatar-blink var(--duration-avatar-blink) var(--ease-in-out) 2 both;
+  }
+
+  .avatar[data-play="shake"] .avatar-rig {
+    animation: avatar-shake var(--duration-avatar-shake) var(--ease-out) both;
+  }
+
+  .avatar[data-state="playing"] .avatar-rig {
+    animation: avatar-bob var(--duration-avatar-bob) var(--ease-in-out) infinite;
+  }
+
+  .avatar[data-state="working"] .avatar-eyes {
+    animation: avatar-look var(--duration-avatar-work) var(--ease-in-out) infinite;
+  }
+
+  .avatar-photo[data-play="hop"] img {
+    animation: avatar-hop var(--duration-avatar-hop) var(--ease-spring-pop) both;
+  }
+
+  .avatar-photo[data-play="wiggle"] img {
+    animation: avatar-wiggle var(--duration-avatar-wiggle) var(--ease-spring-pop) both;
+  }
+
+  .avatar-photo[data-play="shake"] img {
+    animation: avatar-shake var(--duration-avatar-shake) var(--ease-out) both;
+  }
+
+  .avatar-photo[data-state="playing"] img {
+    animation: avatar-bob var(--duration-avatar-bob) var(--ease-in-out) infinite;
+  }
+}

@@ -3,6 +3,7 @@
  * matches components/ScoreMeter.astro and SourceRow.astro, so topics.css styles both alike. Loaded
  * with the editor, never with the page.
  */
+import { rowExitClass } from "../design-system/rowExit";
 import { ICON_PATHS, ICON_VIEW_BOX } from "../lib/icons";
 import { readableUrl } from "../lib/readableUrl";
 import { searchText } from "../lib/sourceFilter";
@@ -142,7 +143,7 @@ export function storedSourceRow(
   source: StoreSource,
   topic: { id: string; name: string },
 ): HTMLLIElement {
-  const row = element("li", "source-row");
+  const row = element("li", `source-row ${rowExitClass()}`);
   row.dataset.id = source.id;
   row.dataset.stored = "";
   row.dataset.band = "new";

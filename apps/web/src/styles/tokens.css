@@ -160,6 +160,14 @@
   --duration-state: 200ms;
   --duration-enter: 250ms;
   --duration-exit: 150ms;
+  --duration-avatar-hop: 900ms;
+  --duration-avatar-spark: 1100ms;
+  --duration-avatar-wiggle: 800ms;
+  --duration-avatar-look: 1500ms;
+  --duration-avatar-blink: 260ms;
+  --duration-avatar-shake: 500ms;
+  --duration-avatar-bob: 1500ms;
+  --duration-avatar-work: 2400ms;
   --duration-sheet-in: 300ms;
   --duration-sheet-out: 220ms;
   --duration-drawer-full: 500ms;
@@ -434,6 +442,12 @@
   --scrubber-tick-dot: 0.3125rem;
   --scrubber-bubble-radius: var(--shape-sm);
   --scrubber-detent-hysteresis: 0.02;
+  --hue-rail: 1rem;
+  --hue-thumb: 1.75rem;
+  --hue-swatch: 4rem;
+  --hue-swatch-lift: 3.25rem;
+  --hue-lightness: 0.72;
+  --hue-chroma: 0.17;
   --segmented-height: var(--size-touch-comfortable);
   --segmented-padding: var(--space-1);
   --segmented-radius: var(--shape-md);

@@ -12,6 +12,7 @@
  */
 import type { SourceFormat } from "@singularity/core";
 import { topicEmoji } from "@singularity/core/topicEmoji";
+import { rowExitClass } from "../design-system/rowExit";
 import { pickEmoji } from "../lib/pickEmoji";
 import { readableUrl } from "../lib/readableUrl";
 import { sourcesSummary } from "../lib/settingsSummary";
@@ -217,7 +218,7 @@ export function mountEditor(root: HTMLElement): Editor {
   ): { row: HTMLElement; note: HTMLElement; key: string } => {
     added += 1;
     const key = `src${added}`;
-    const row = element("li", "source-row");
+    const row = element("li", `source-row ${rowExitClass()}`);
     row.dataset.key = key;
     row.dataset.band = bandOf(shown.score ?? null);
     row.dataset.score = String(shown.score ?? -1);
