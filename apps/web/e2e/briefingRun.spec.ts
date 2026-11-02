@@ -16,6 +16,13 @@ const dialog = (page: Page) => page.getByRole("dialog", { name: "Regenerate" });
 async function openRegenerate(page: Page): Promise<void> {
   await page.goto(`/d/${ID}`);
   await hydrated(page);
+  // The fixture's audio is seconds long; pin the aired length the sheet starts from (4 min is nearest to 5).
+  await page
+    .locator("[data-briefing]")
+    .first()
+    .evaluate((el: HTMLElement) => {
+      el.dataset.minutes = "4";
+    });
   await expect(async () => {
     await page.getByRole("button", { name: "More actions" }).click();
     await page.getByRole("menuitem", { name: "Regenerate" }).click({ timeout: 2000 });
