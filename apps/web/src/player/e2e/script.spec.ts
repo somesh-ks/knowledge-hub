@@ -73,7 +73,7 @@ test.describe("an episode's script in the open player", () => {
     const slider = page.getByRole("slider", { name: "Playback speed" });
     await slider.focus();
     await page.keyboard.press("ArrowRight");
-    await expect(page.locator(".player-speed-readout")).toHaveText("1.05x");
+    await expect(page.locator(".player-speed-readout")).toHaveText("1.25x");
     await page.keyboard.press("Escape");
     await expect(player.root).toHaveAttribute("data-player", "open");
     // A tap on a later turn plays from there.
