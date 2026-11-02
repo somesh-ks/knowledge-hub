@@ -13,7 +13,14 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { oklchStringToRgb, parseOklch, toHex } from "./colorMath.js";
+import {
+  contrastRatio,
+  type Oklch,
+  oklchStringToRgb,
+  oklchToRgb,
+  parseOklch,
+  toHex,
+} from "./colorMath.js";
 
 export type Tier = "primitive" | "semantic" | "component";
 export type Mode = "light" | "dark";
@@ -30,6 +37,8 @@ export interface Token {
   reducedMotion?: string;
   description?: string;
   extensions: Record<string, unknown>;
+  /** A state color that names a `label` is written once and settled per mode and style; this is what was written. */
+  authored?: { value: TokenValue; dark?: TokenValue };
 }
 
 /** One token a style replaces: the base token (for its type and path) and the style's values. */
@@ -132,7 +141,7 @@ export function parseTokens(raw: unknown): TokenDocument {
   const byPath = new Map(tokens.map((token) => [token.dotPath, token]));
   const root = isRecord(raw.$extensions) ? singularityExtension(raw.$extensions) : {};
   const fluid = isRecord(root.fluid) ? root.fluid : {};
-  return {
+  const parsed: TokenDocument = {
     tokens,
     byPath,
     styles: parseStyles(raw.styles, byPath),
@@ -141,6 +150,9 @@ export function parseTokens(raw: unknown): TokenDocument {
       maxViewport: typeof fluid.maxViewport === "string" ? fluid.maxViewport : "80rem",
     },
   };
+  settleStates(parsed);
+  for (const style of parsed.styles) settleStatesUnder(parsed, style);
+  return parsed;
 }
 
 /**
@@ -287,6 +299,8 @@ interface StateColor {
   from: string;
   step: "hover" | "hover-quiet" | "press";
   direction: StateDirection;
+  /** The text on the fill: when set, the direction is the preferred one and the build flips it if the label would drop under the floor. */
+  label?: string;
 }
 
 function stateColorOf(path: string, value: TokenValue): StateColor {
@@ -301,7 +315,16 @@ function stateColorOf(path: string, value: TokenValue): StateColor {
   if (typeof direction !== "string" || !STATE_DIRECTIONS.includes(direction as StateDirection)) {
     throw new Error(`${path}: direction is one of ${STATE_DIRECTIONS.join(", ")}`);
   }
-  return { from: String(from), step, direction: direction as StateDirection };
+  const label = value.label;
+  if (label !== undefined && aliasTarget(label) === null) {
+    throw new Error(`${path}: "label" must be a {reference}`);
+  }
+  return {
+    from: String(from),
+    step,
+    direction: direction as StateDirection,
+    ...(label !== undefined ? { label: String(label) } : {}),
+  };
 }
 
 /**
@@ -321,6 +344,17 @@ function renderStateColor(path: string, value: TokenValue, doc: TokenDocument): 
   return `oklch(from ${source} calc(l ${sign} var(--state-direction) * ${amount}) c h)`;
 }
 
+/** The lightness move of a state: `darker` and `lighter` are absolute; `text` follows the mode's way. */
+function lightnessDelta(direction: StateDirection, amount: number, way: number): number {
+  if (direction === "darker") return -amount;
+  if (direction === "lighter") return amount;
+  return direction === "text" ? way * amount : -way * amount;
+}
+
+function moved(base: Oklch, delta: number): Oklch {
+  return { ...base, l: Math.min(1, Math.max(0, base.l + delta)) };
+}
+
 /** The same move as a literal, for contrast tests and the system file: resolves the fill in `mode`. */
 function resolveStateColor(
   doc: TokenDocument,
@@ -332,17 +366,106 @@ function resolveStateColor(
   const base = parseOklch(String(resolveLiteral(doc, aliasTarget(from) as string, mode)));
   const amount = Number(resolveLiteral(doc, `primitive.state.step-${step}`, mode));
   const way = Number(resolveLiteral(doc, "semantic.state.direction", mode));
-  const delta =
-    direction === "darker"
-      ? -amount
-      : direction === "lighter"
-        ? amount
-        : direction === "text"
-          ? way * amount
-          : -way * amount;
-  const l = Math.min(1, Math.max(0, base.l + delta));
+  const { l } = moved(base, lightnessDelta(direction, amount, way));
   const alpha = base.alpha < 1 ? ` / ${trimNumber(base.alpha)}` : "";
   return `oklch(${trimNumber(l * 100)}% ${trimNumber(base.c)} ${trimNumber(base.h)}${alpha})`;
+}
+
+/** The label floor a state must keep, and the hues a reader's slider (D315) can turn a style to. */
+const STATE_LABEL_FLOOR = 4.5;
+const STATE_HUE_TURNS = Array.from({ length: 72 }, (_, i) => i * 5);
+
+const FLIPPED: Record<StateDirection, StateDirection> = {
+  darker: "lighter",
+  lighter: "darker",
+  text: "inverse-text",
+  "inverse-text": "text",
+};
+
+/**
+ * Which way a state steps (D319: nothing about a style is set by hand). A fill that names its label
+ * steps the way it prefers unless its press, the largest step, would drop the label under 4.5:1 at
+ * any hue the slider can reach; then it steps the other way, which moves away from the label. So a
+ * new style or hue needs no flag: the build judges it from the style's own fill and label.
+ */
+function settledDirection(doc: TokenDocument, state: StateColor, mode: Mode): StateDirection {
+  if (state.label === undefined) return state.direction;
+  const fill = parseOklch(String(resolveLiteral(doc, aliasTarget(state.from) as string, mode)));
+  const label = parseOklch(String(resolveLiteral(doc, aliasTarget(state.label) as string, mode)));
+  const press = Number(resolveLiteral(doc, "primitive.state.step-press", mode));
+  const way = Number(resolveLiteral(doc, "semantic.state.direction", mode));
+  const turn = (color: Oklch, shift: number): Oklch => ({
+    ...color,
+    h: (color.h + (color.c === 0 ? 0 : shift)) % 360,
+  });
+  const holds = (direction: StateDirection): boolean => {
+    const pressed = moved(fill, lightnessDelta(direction, press, way));
+    return STATE_HUE_TURNS.every(
+      (shift) =>
+        contrastRatio(oklchToRgb(turn(label, shift)), oklchToRgb(turn(pressed, shift))) >=
+        STATE_LABEL_FLOOR,
+    );
+  };
+  return holds(state.direction) ? state.direction : FLIPPED[state.direction];
+}
+
+/** A state color with its direction settled for `mode` in `doc`; the label is a build input, not output. */
+function settleState(doc: TokenDocument, token: Token, value: TokenValue, mode: Mode): TokenValue {
+  const state = stateColorOf(token.dotPath, value);
+  return { from: state.from, step: state.step, direction: settledDirection(doc, state, mode) };
+}
+
+/**
+ * Settles every state color that names a label: the token keeps what was written in `authored`, and
+ * its `value` and `dark` become plain moves, one per mode (`dark` only where it differs).
+ * `doc` may be the base or a style laid over it; only the fills and labels it resolves differ.
+ */
+function settledPair(doc: TokenDocument, token: Token): { value: TokenValue; dark: TokenValue } {
+  const authored = token.authored as { value: TokenValue; dark?: TokenValue };
+  return {
+    value: settleState(doc, token, authored.value, "light"),
+    dark: settleState(doc, token, authored.dark ?? authored.value, "dark"),
+  };
+}
+
+function settleStates(doc: TokenDocument): void {
+  for (const token of doc.tokens) {
+    if (token.type !== STATE_COLOR) continue;
+    const written = [token.value, token.dark].filter((v) => v !== undefined) as TokenValue[];
+    const labelled = written.some((v) => stateColorOf(token.dotPath, v).label !== undefined);
+    if (!labelled) continue;
+    token.authored = {
+      value: token.value,
+      ...(token.dark !== undefined ? { dark: token.dark } : {}),
+    };
+    const settled = settledPair(doc, token);
+    token.value = settled.value;
+    if (JSON.stringify(settled.dark) === JSON.stringify(settled.value)) delete token.dark;
+    else token.dark = settled.dark;
+  }
+}
+
+/**
+ * Under a style, a labelled state may settle differently from the base (a mid-tone fill under its
+ * label): those become overrides of that style, so the style block carries what the build chose.
+ */
+function settleStatesUnder(doc: TokenDocument, style: StyleDefinition): void {
+  const under: TokenDocument = { ...doc, byPath: new Map(doc.byPath) };
+  for (const override of style.overrides) {
+    under.byPath.set(override.token.dotPath, {
+      ...override.token,
+      value: override.value,
+      ...(override.dark !== undefined ? { dark: override.dark } : {}),
+    });
+  }
+  const own = new Set(style.overrides.map((override) => override.token.dotPath));
+  for (const token of doc.tokens) {
+    if (token.authored === undefined || own.has(token.dotPath)) continue;
+    const settled = settledPair(under, token);
+    const same = (a: TokenValue, b: TokenValue): boolean => JSON.stringify(a) === JSON.stringify(b);
+    if (same(settled.value, token.value) && same(settled.dark, token.dark ?? token.value)) continue;
+    style.overrides.push({ token, value: settled.value, dark: settled.dark });
+  }
 }
 
 /** Renders one token value as CSS. Aliases become var() so the tier chain survives in the output. */

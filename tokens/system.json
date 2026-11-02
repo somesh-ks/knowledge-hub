@@ -3737,15 +3737,13 @@
       "name": "--color-accent-container-high-hover",
       "tier": "semantic",
       "type": "singularity-state-color",
-      "light": "oklch(from var(--color-accent-container-high) calc(l + var(--state-direction) * var(--state-step-hover)) c h)",
-      "dark": "oklch(from var(--color-accent-container-high) calc(l + var(--state-direction) * var(--state-step-hover)) c h)"
+      "light": "oklch(from var(--color-accent-container-high) calc(l + var(--state-direction) * var(--state-step-hover)) c h)"
     },
     {
       "name": "--color-accent-container-high-pressed",
       "tier": "semantic",
       "type": "singularity-state-color",
-      "light": "oklch(from var(--color-accent-container-high) calc(l + var(--state-direction) * var(--state-step-press)) c h)",
-      "dark": "oklch(from var(--color-accent-container-high) calc(l + var(--state-direction) * var(--state-step-press)) c h)"
+      "light": "oklch(from var(--color-accent-container-high) calc(l + var(--state-direction) * var(--state-step-press)) c h)"
     },
     {
       "name": "--color-accent-action-hover",
