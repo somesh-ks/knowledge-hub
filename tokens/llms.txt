@@ -88,6 +88,7 @@ Components read only these (never a hex, never a primitive color).
 - --color-danger-subtle
 - --color-info
 - --color-info-subtle
+- <fill>-hover and <fill>-pressed for --color-accent, --color-accent-container, --color-accent-container-high, --color-accent-action, --color-surface, --color-surface-sunken, --color-surface-container, --color-surface-raised, --color-surface-overlay, --color-surface-inverse: its state fills
 
 ## Scales
 Read directly by components.
