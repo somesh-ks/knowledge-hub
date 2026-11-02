@@ -907,10 +907,12 @@ html[data-library-page="empty"] {
 /* Downloaded, after the facts: a blue circle with the download arrow, the only state a card shows
    (owner, 2026-11-02). Rendered hidden by CardMarks.astro and shown by the card's own data-downloaded
    (scripts/libraryMenu.ts), so it takes room only while it is shown and the facts before it never
-   change. The circle is a little larger than the line's text so it reads as a dot, the arrow in it
-   a size smaller. */
+   change. The circle is the small icon size, so it sits within the line's text height (2026-11-02,
+   owner: the first, larger one was too big), and the arrow nearly fills it so it stays readable. */
 .card-downloaded {
-  --mark: calc(var(--size-icon-sm) + var(--space-1));
+  --mark: var(--size-icon-sm);
+  /* The bold twin of the arrow in every style: at this size the regular line is barely there. */
+  --icon-bold: 1;
   display: none;
   flex: none;
   align-items: center;
@@ -927,6 +929,6 @@ html[data-library-page="empty"] {
 }
 
 .card-downloaded .icon-glyph {
-  width: calc(var(--size-icon-sm) - var(--space-1));
-  height: calc(var(--size-icon-sm) - var(--space-1));
+  width: calc(var(--size-icon-sm) - var(--space-1) / 2);
+  height: calc(var(--size-icon-sm) - var(--space-1) / 2);
 }
