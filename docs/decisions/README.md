@@ -76,7 +76,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D204 | Guards for a short or lost run, health metrics, one run card | active |
 | D205 | Settings paint the kept copy at once | amends D172 |
 | D206 | Stay on npm; pnpm spiked | active |
-| D207 | A Regenerate asks for its own length | amends D204 |
+| D207 | A Regenerate asks for its own length | amends D204; amended by D323 |
 | D208 | A list of generations, with Cancel | partly superseded by D231 (the list); amends D204 |
 | D209 | Lane free in the hold | supersedes D135; amends D197; step 1 built (#399), steps 2 to 5 not built |
 | D210 | Typed HTML builders | active |
@@ -180,6 +180,8 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D319 | Colours are generated; a style is a recipe | amends D268, D310, D317 |
 | D321 | The ripple and a cover's press stay alpha layers, over artwork | amends D317 |
 | D322 | A Library card's phone sheet opens with quick-action tiles | amends D291 |
+| D323 | Regenerate is a full sheet like Catch up; Length has no Usual | amends D207 |
+| D324 | The Catch up script is written at medium effort | amends D181 |
 | D325 | List rows run edge to edge in the Menu, the select list and the picker | amends D275, D291 |
 | D328 | The hue slider paints the spectrum and shows the picked colour | amends D315 |
 | D329 | A Menu sheet over one safe row has no title and no Close | amends D291 |

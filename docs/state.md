@@ -24,7 +24,8 @@ Unit (CI): 352 files, 5,449 tests, about 2 min. Site e2e: 448, 10 min. Player: 8
 - Blob on Pro trial since 10-30, ending 11-13 (D251, D256). Plan call 11-06 to 11-08 (Pro, or Hobby: 1.1K of 2,000 advanced Blob ops a month on 11-01, under 70 deploys a day), from the Usage tab, the only op count. closed when: the plan is chosen.
 - Bottom bar press ripple (D286). closed when: a tap on the bar on his iPhone shows the wave from the thumb, the pill eases in, and the move carries the wave.
 - Config snapshot (D300 step 1): `snapshot.yml` writes the config store to the `config_snapshots` table each Sunday and `config restore --latest` reads it back; untried against real Neon. closed when: the workflow has run once, the row exists, and `config restore --file` on a copy rebuilds the rows.
-- Content out of git (D300 step 2b, built, unmerged until the owner merges the workflows): jobs `content pull --track` first and `content push` after the commit; the site build pulls. closed when: the next scheduled daily's log shows `Load content` and `Save content`, its digest is on the site, and `Digests/` is absent from `main`.
+- Content out of git (D300 step 2b, #573): jobs `content pull --track` first and `content push` after the commit; `Digests/` and `Podcasts/` left `main`. closed when: the next scheduled daily's log shows `Load content` and `Save content` and its digest is on the site.
+- Edge purge waits from the run's last save (#590, D318). closed when: a Catch up's `content` log says `waiting N s` with N under 30 and its Library entry opens on the new page
 - Queue plays in place (D277). closed when: a third-item tap keeps the bar up.
 - Player ⋮ menu and Saved (D309, #580): checked in Chromium only. closed when: held press, the speed screen and Settings > Saved work on his Android Chrome.
 - Voice list (D276): closed when: a voice is heard from its list on his iPhone.
@@ -38,14 +39,15 @@ Unit (CI): 352 files, 5,449 tests, about 2 min. Site e2e: 448, 10 min. Player: 8
 - Ingest in shadow (D233, D251). closed when: for 7 days the store holds 90% of each daily's stories and reads 90% of pages tried (`ingest --coverage`).
 - Trusted publishers (D234) and community lift (D240), shipped off. closed when: both on and a daily airs a lab story and a community-voted one, no source over 30%.
 - Run names (D217), Neon run log (D221). closed when: a scheduled daily is named `daily <date>`, is off the queue, and has its row.
-- `podcast.yml` no longer installs ffmpeg; its first stage starts 9 s into the job (29 s before). closed when: 9 s is accepted or a target set.
-- A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): The input is on `main`. closed when: a 10-minute Regenerate airs within 10% of 10.
+- `podcast.yml` no longer installs ffmpeg; its first stage starts 9 s in (29 s before). closed when: 9 s is accepted.
+- Regenerate lengths (D207, D323): a 10-minute Regenerate airs within 10%. Its full sheet and smooth exit (D323) are with the design-system PR. closed when: signed off on his phone.
+- Catch up script at medium effort (D324). closed when: two Catch ups air within 10% of length, faster; else high again.
 - Podcast queue (D231, D242): fakes only. closed when: a Catch up is cancelled and a failed run's Details read.
 - Owner's eye: bar centring (over 1px), centred column and label gap (D229), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off.
 - Live content (plan 20): an open page elsewhere does not refresh in 60 s; `smokeLive.mjs --apply` never ran on production. closed when: checked.
 - Reload mid-write (D259). closed when: a phone flip, then reload, holds.
 - Offline settings outbox (D299): fakes only. closed when: on a phone in airplane mode a setting is changed, the app is closed, and it reaches the site once back online.
-- Settings paint the stored copy at once, the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change waits up to 2.5 s. closed when: the owner signs off on a phone.
+- Settings paint the stored copy at once (D205); another device's edit waits for a reload toast. closed when: the owner signs off on a phone.
 - Sources design (D124): production asks Jev for a source's format only after `secrets:push`; no run used a mix or cap. closed when: a production format comes from Jev and a digest follows a mix change.
 - YouTube text: Firecrawl and Gemini transcripts answered live; no full run used either. closed when: a digest has a YouTube finalist with `extract_method` captions or transcription.
 - D145, D202 ([hardening](engineering/hardening.md)): health runs daily and `health-warnings` opened on 10-26; only the phone is unseen. closed when: a phone app loads a deploy itself.
@@ -55,14 +57,14 @@ Unit (CI): 352 files, 5,449 tests, about 2 min. Site e2e: 448, 10 min. Player: 8
 - Time zone (D100, D239) only faked; `sinceLabel`, `pendingAudio` and `podcast/select` still use Stockholm's today. closed when: a run across the 10-25 clock change publishes on the right day.
 - Config saves go through the config store (D149, D296); `config.yml` has nothing left to commit. Never seen live: `topic.scope`, rename or move, a batch adding a topic with sources, a blocked domain, votes, Regenerate with topics, episode delete or regenerate. closed when: each shows in the store row and on a second device.
 - Admin env (D257): the reader needs `ADMIN_SESSION_SECRET`. closed when: `/api/health` answers 401 signed out.
-- Owner config out of git (D296, built, unmerged until the owner's review). closed when: after the merge the next daily's gate log says `config store:` and it publishes, the Vercel build log says `store on; from the store:`, audio publishing keeps the owner's voice, and the cron answers 200.
+- Owner config out of git (D296, merged). The 11-02 dry run's gate log said `config store:` and it published. closed when: the Vercel build log says `store on; from the store:`, audio publishing keeps the owner's voice, and the cron answers 200.
 - Config store (D149, D296): Vercel has `SINGULARITY_CONFIG_STORE` and `DATABASE_URL` (checked 11-01); the Actions variable is unreadable, so `health` faults `config_store_split` when the site and runs disagree. closed when: a phone's edit shows on a laptop and health passes the config-store line.
-- Production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 10-14 (`doctor --online` tests it and its expiry; write access it cannot test). closed when: `doctor --online` accepts it.
-- 35 older items parked in history (`#parked`, 10-21 to 10-28) and 10 more ([2026-10-31 trim](history/2026-10-31-state-trim.md)). closed when: each closes.
+- Production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 10-14 (`doctor --online` tests it and its expiry, not write access). closed when: `doctor --online` accepts it.
+- 45 older items are parked in history (`#parked`; [2026-10-31 trim](history/2026-10-31-state-trim.md)). closed when: each closes.
 
 ## Known risks
 
-- Storage measured 2026-11-01: the Blob store is 133 MB (about 5.6 MB a day since it was created 10-06, so Hobby's 1 GB at about 5 months) and Neon is 11 MB (`ingest_items` 1.5 MB, 2,946 rows). The "near 10 GB" Vercel figure is neither, source unknown. closed when: the 10 GB is named in the Usage tab, and the sizes are read again at the plan call (11-06 to 11-08).
+- Storage measured 2026-11-01: the Blob store is 133 MB (about 5.6 MB a day since it was created 10-06, so Hobby's 1 GB at about 5 months) and Neon is 11 MB (`ingest_items` 1.5 MB, 2,946 rows). The "near 10 GB" Vercel figure is neither. closed when: the Usage tab names it and the sizes are read again at the plan call (11-06 to 11-08).
 - `main` has no ruleset: `.github/rulesets/main.json` was never imported (runbook, branch protection). closed when: the rulesets API lists it.
 - No passphrase (D160): anyone with the URL can run, narrate, delete and edit config, within the caps.
 - Budget counters can read below real spend: workflow and site count apart against one Speechify allowance.

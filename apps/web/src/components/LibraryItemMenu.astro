@@ -21,6 +21,8 @@ interface Props {
   deletable?: boolean;
   /** An episode's topic ids, so Regenerate starts with the ones it was made with. */
   topics?: readonly string[];
+  /** A briefing's aired minutes: its Regenerate starts on the nearest length (lib/regenLength.ts). */
+  minutes?: number;
   /** Times this podcast was regenerated, for the Regenerate item's counter (D212). */
   regenerations?: number | undefined;
   /** On Settings > Downloads: only what applies to a saved copy (Add to queue, Share, Remove download). */
@@ -38,6 +40,7 @@ const {
   audio,
   deletable = true,
   topics,
+  minutes,
   regenerations,
   downloads = false,
   saved = false,
@@ -69,6 +72,7 @@ const menuId = `card-menu-${id}`;
   data-episode-actions=""
   data-episode={kind === "episode" ? id : undefined}
   data-library-briefing={kind === "briefing" ? id : undefined}
+  data-minutes={kind === "briefing" ? minutes : undefined}
   data-topics={topics?.join(" ")}
 >
   <button
