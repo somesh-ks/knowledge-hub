@@ -505,6 +505,8 @@
   padding: var(--card-padding);
   border-radius: var(--card-radius);
   background: var(--color-surface-container);
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
 }
 
 .changelog-head {

@@ -97,6 +97,8 @@
   /* The grey of the menu sections; the summary is a pill inside it (2026-10-25). */
   border-radius: var(--radius-round);
   background: var(--color-surface-container);
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
   padding-inline: var(--space-4);
 }
 

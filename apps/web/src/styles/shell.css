@@ -332,6 +332,8 @@ html[data-mini="visible"] main {
   padding-inline: var(--safe-left) var(--safe-right);
   /* A tonal bar: it reads against the page by its fill, so it needs no line. */
   background: var(--color-surface-container);
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
   /* The player pushes the bar down as it opens. One compositor property, written per frame. */
   transform: translateY(calc(var(--player-p, 0) * 100%));
   view-transition-name: app-nav;

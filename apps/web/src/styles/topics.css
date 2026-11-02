@@ -106,6 +106,8 @@
   padding: var(--card-padding);
   border-radius: var(--card-radius);
   background: var(--color-surface-container);
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
 }
 
 /* One padding in from the card's corner, so its radius is the card's less that padding (2026-10-22). */
@@ -211,6 +213,8 @@
   padding: var(--card-padding);
   border-radius: var(--card-radius);
   background: var(--color-surface-container);
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
 }
 
 /* The switch, the field, the Add button and the chips in the card keep the pills they are on the
@@ -1058,6 +1062,8 @@
   padding: var(--space-6);
   border-radius: var(--card-radius);
   background: var(--color-surface-container);
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
 }
 
 .score-card-head {
@@ -1187,6 +1193,8 @@
   /* The card radius, as every tonal card has (D243, 2026-10-31): it was 16px. */
   border-radius: var(--card-radius);
   background: var(--color-surface-container);
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
 }
 
 .source-card-head {

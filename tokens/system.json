@@ -1451,6 +1451,8 @@
         "--color-border-hairline",
         "--color-on-surface",
         "--color-surface-container",
+        "--color-surface-container-hover",
+        "--color-surface-container-pressed",
         "--color-surface-overlay",
         "--color-surface-overlay-hover",
         "--color-surface-overlay-pressed",
