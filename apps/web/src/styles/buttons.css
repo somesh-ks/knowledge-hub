@@ -53,17 +53,17 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .button-text:hover {
+  .button-text:where(:not(:disabled, [aria-disabled="true"])):hover {
     background: var(--ghost-accent-hover);
   }
 
-  .icon-btn:hover {
+  .icon-btn:where(:not(:disabled, [aria-disabled="true"])):hover {
     background: var(--ghost-hover);
     color: var(--color-on-surface);
   }
 }
 
-.icon-btn:active {
+.icon-btn:where(:not(:disabled, [aria-disabled="true"])):active {
   background: var(--ghost-pressed);
 }
 
@@ -78,12 +78,12 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .icon-btn-tonal:hover {
+  .icon-btn-tonal:where(:not(:disabled, [aria-disabled="true"])):hover {
     background: var(--color-surface-container-hover);
   }
 }
 
-.icon-btn-tonal:active {
+.icon-btn-tonal:where(:not(:disabled, [aria-disabled="true"])):active {
   background: var(--color-surface-container-pressed);
 }
 
@@ -144,26 +144,26 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .button-filled:hover {
+  .button-filled:where(:not(:disabled, [aria-disabled="true"])):hover {
     background: var(--cta-bg-hover);
   }
 
-  .button-tonal:hover {
+  .button-tonal:where(:not(:disabled, [aria-disabled="true"])):hover {
     background: var(--color-accent-container-hover);
   }
 }
 
-.button-filled:active {
+.button-filled:where(:not(:disabled, [aria-disabled="true"])):active {
   background: var(--cta-bg-pressed);
 }
 
 /* A press on a worded button shows on its fill, one step past the hover's, so it reads as a press
    with a mouse too; its words keep their size (pressText.test.ts), so none of these take .press. */
-.button-text:active {
+.button-text:where(:not(:disabled, [aria-disabled="true"])):active {
   background: var(--ghost-accent-pressed);
 }
 
-.button-tonal:active {
+.button-tonal:where(:not(:disabled, [aria-disabled="true"])):active {
   background: var(--color-accent-container-pressed);
 }
 
@@ -189,12 +189,12 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .btn-action-tonal:hover {
+  .btn-action-tonal:where(:not(:disabled, [aria-disabled="true"])):hover {
     background: var(--action-tonal-bg-hover);
   }
 }
 
-.btn-action-tonal:active {
+.btn-action-tonal:where(:not(:disabled, [aria-disabled="true"])):active {
   background: var(--action-tonal-bg-pressed);
 }
 
@@ -233,12 +233,12 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .button-danger:hover {
+  .button-danger:where(:not(:disabled, [aria-disabled="true"])):hover {
     background: var(--color-danger-subtle);
   }
 }
 
-.button-danger:active {
+.button-danger:where(:not(:disabled, [aria-disabled="true"])):active {
   background: var(--color-danger-subtle);
 }
 
@@ -354,14 +354,14 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .chip:hover {
+  .chip:where(:not(:disabled, [aria-disabled="true"], [data-state="unavailable"])):hover {
     background: var(--chip-bg-hover);
   }
 }
 
 /* A press is not a hover: the layer deepens and the label takes the pressed accent. The words never
    scale (pressText.test.ts). */
-.chip:active {
+.chip:where(:not(:disabled, [aria-disabled="true"], [data-state="unavailable"])):active {
   background: var(--chip-bg-pressed);
   color: var(--color-accent-pressed);
 }
@@ -403,12 +403,16 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .chip[data-state="current"]:hover {
+  .chip[data-state="current"]:where(
+    :not(:disabled, [aria-disabled="true"], [data-state="unavailable"])
+  ):hover {
     background: var(--chip-bg-current-hover);
   }
 }
 
-.chip[data-state="current"]:active {
+.chip[data-state="current"]:where(
+  :not(:disabled, [aria-disabled="true"], [data-state="unavailable"])
+):active {
   background: var(--chip-bg-current-pressed);
   color: var(--chip-fg-current);
 }

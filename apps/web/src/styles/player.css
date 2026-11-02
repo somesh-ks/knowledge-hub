@@ -1299,7 +1299,7 @@
     color: var(--color-on-accent);
   }
 
-  .dock-btn[data-primary]:active {
+  .dock-btn[data-primary]:where(:not(:disabled, [aria-disabled="true"])):active {
     background: var(--color-accent-pressed);
   }
 }
@@ -1721,7 +1721,7 @@
     color: var(--color-on-surface);
   }
 
-  .transport-btn[data-primary]:hover {
+  .transport-btn[data-primary]:where(:not(:disabled, [aria-disabled="true"])):hover {
     background: var(--color-accent-hover);
   }
 }
@@ -1731,7 +1731,7 @@
   color: var(--color-on-surface);
 }
 
-.transport-btn[data-primary]:active {
+.transport-btn[data-primary]:where(:not(:disabled, [aria-disabled="true"])):active {
   background: var(--color-accent-pressed);
 }
 
@@ -1863,7 +1863,7 @@
     background: var(--ghost-hover);
   }
 
-  .script-turn[aria-current="true"]:hover {
+  .script-turn[aria-current="true"]:where(:not(:disabled, [aria-disabled="true"])):hover {
     background: var(--color-accent-container-hover);
   }
 
@@ -1880,7 +1880,7 @@
   background: var(--ghost-pressed);
 }
 
-.script-turn[aria-current="true"]:active {
+.script-turn[aria-current="true"]:where(:not(:disabled, [aria-disabled="true"])):active {
   background: var(--color-accent-container-pressed);
 }
 
@@ -2516,12 +2516,12 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .player-queue-row:hover {
+  .player-queue-row:where(:not(:disabled, [aria-disabled="true"])):hover {
     background: var(--color-surface-container-hover);
   }
 }
 
-.player-queue-row:active {
+.player-queue-row:where(:not(:disabled, [aria-disabled="true"])):active {
   background: var(--color-surface-container-pressed);
 }
 

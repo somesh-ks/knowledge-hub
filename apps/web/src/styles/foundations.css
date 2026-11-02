@@ -403,7 +403,8 @@
 @layer foundations.motion {
   /*
    * .press: pressable surface. Pressing is fast (100ms) and releasing is softer (160ms), so the
-   * control meets the finger and then settles. Hover is gated to real pointers.
+   * control meets the finger and then settles. Hover is gated to real pointers. A disabled control
+   * (native or aria-disabled) takes no press and no hover: it is inert (2026-11-02).
    */
   .press {
     transition:
@@ -412,19 +413,19 @@
       color var(--duration-hover) var(--ease-hover);
   }
 
-  .press:active {
+  .press:where(:not(:disabled, [aria-disabled="true"])):active {
     transform: scale(var(--scale-press));
     transition-duration: var(--duration-press-in), var(--duration-hover), var(--duration-hover);
   }
 
-  .press-subtle:active {
+  .press-subtle:where(:not(:disabled, [aria-disabled="true"])):active {
     transform: scale(var(--scale-press-subtle));
   }
 
   /* .hover-fill: the standard hover state layer (D72) for a control with no fill of its own, such
      as an emoji picker cell (owner, 2026-10-24). Layered, so a control's own chosen fill wins. */
   @media (hover: hover) and (pointer: fine) {
-    .hover-fill:hover {
+    .hover-fill:where(:not(:disabled, [aria-disabled="true"])):hover {
       background-color: var(--ghost-hover);
     }
   }

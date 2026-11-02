@@ -49,7 +49,7 @@
   }
 
   @media (hover: hover) and (pointer: fine) {
-    .app-nav-create[aria-current="page"]:hover {
+    .app-nav-create[aria-current="page"]:where(:not([aria-disabled="true"])):hover {
       background: var(--nav-side-item-bg);
     }
   }
@@ -61,7 +61,7 @@
     cursor: default;
   }
 
-  .app-nav-create[aria-current="page"]:active {
+  .app-nav-create[aria-current="page"]:where(:not([aria-disabled="true"])):active {
     background: var(--nav-side-item-bg);
   }
 }
@@ -113,12 +113,12 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .create-fab:hover {
+  .create-fab:where(:not(:disabled, [aria-disabled="true"])):hover {
     background: var(--color-accent-container-high-hover);
   }
 }
 
-.create-fab:active {
+.create-fab:where(:not(:disabled, [aria-disabled="true"])):active {
   background: var(--color-accent-container-high-pressed);
   transition-duration:
     var(--duration-state), var(--duration-press-in), var(--duration-hover), 0s,
@@ -152,7 +152,7 @@ html[data-dialog-open] .create-fab {
       var(--duration-state), var(--duration-press-out), var(--duration-hover), 0s, 0s;
   }
 
-  .create-fab:active {
+  .create-fab:where(:not(:disabled, [aria-disabled="true"])):active {
     transition-duration:
       var(--duration-state), var(--duration-press-in), var(--duration-hover), 0s, 0s;
   }

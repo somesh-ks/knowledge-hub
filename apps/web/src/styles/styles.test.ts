@@ -868,9 +868,9 @@ const PAGE_OVERRIDES: string[] = [
   "create.css: .create-view .create-submit > .button-filled",
   "create.css: .create-view .field-input.create-title",
   "create.css: .create-view .field-input.create-title",
+  "create.css: .create-view .field-input.create-title:enabled:hover",
   "create.css: .create-view .field-input.create-title:focus, .create-view .field-input.create-title:focus-visible",
   "create.css: .create-view .field-input.create-title:focus-visible",
-  "create.css: .create-view .field-input.create-title:hover",
   "empty.css: .empty-actions > .button-filled, .empty-actions > .button-tonal",
   "episode-actions.css: .field-input.regen-feedback",
   "hero.css: .hero-downloaded .icon-glyph",
@@ -931,9 +931,9 @@ const PAGE_OVERRIDES: string[] = [
   "settings.css: .settings-row .value-select > .icon-glyph",
   "settings.css: .settings-row .value-select > .icon-glyph",
   "settings.css: .settings-row .value-select > select.field-input",
-  "settings.css: .settings-row .value-select > select.field-input:active",
+  "settings.css: .settings-row .value-select > select.field-input:enabled:active",
+  "settings.css: .settings-row .value-select > select.field-input:enabled:hover",
   "settings.css: .settings-row .value-select > select.field-input:focus-visible",
-  "settings.css: .settings-row .value-select > select.field-input:hover",
   "settings.css: .settings-row .value-select > select.field-input:open",
   "settings.css: .settings-row .value-select:has(> select:open) > .icon-glyph",
   "settings.css: .settings-row:is([data-quiet], :has(.slider-input:disabled)) .settings-label",
@@ -975,12 +975,12 @@ const PAGE_OVERRIDES: string[] = [
   "topics.css: .topics .row-action .icon-glyph",
   "topics.css: .topics .row-action .topic-blocked-mark > .icon-glyph",
   'topics.css: .topics-panel .card-group :is(input, textarea).field-input:not( :focus-visible, [readonly], [aria-invalid]:not([aria-invalid="false"]) )',
-  'topics.css: .topics-panel .card-group :is(input, textarea).field-input:not( :focus-visible, [readonly], [aria-invalid]:not([aria-invalid="false"]) ):hover',
+  'topics.css: .topics-panel .card-group :is(input, textarea).field-input:not( :focus-visible, [readonly], [aria-invalid]:not([aria-invalid="false"]) ):enabled:hover',
   "topics.css: .topics-panel .field-input[readonly]",
   'topics.css: .topics-panel select.field-input, .topics-panel .multiselect-trigger, .topics-panel :is(input, textarea).field-input:not( :focus-visible, [readonly], [aria-invalid]:not([aria-invalid="false"]) )',
-  'topics.css: .topics-panel select.field-input:active, .topics-panel .multiselect-trigger:is(:active, [aria-expanded="true"])',
+  'topics.css: .topics-panel select.field-input:enabled:active, .topics-panel .multiselect-trigger:is(:active, [aria-expanded="true"])',
+  'topics.css: .topics-panel select.field-input:enabled:hover, .topics-panel .multiselect-trigger:hover, .topics-panel :is(input, textarea).field-input:not( :focus-visible, [readonly], [aria-invalid]:not([aria-invalid="false"]) ):enabled:hover',
   "topics.css: .topics-panel select.field-input:focus-visible, .topics-panel .multiselect-trigger:focus-visible",
-  'topics.css: .topics-panel select.field-input:hover, .topics-panel .multiselect-trigger:hover, .topics-panel :is(input, textarea).field-input:not( :focus-visible, [readonly], [aria-invalid]:not([aria-invalid="false"]) ):hover',
   "topics.css: dialog.sheet-side.topics-panel",
   "topics.css: textarea.field-input.structure-prompt",
 ];
@@ -1083,6 +1083,70 @@ describe("component stylesheets", () => {
         expect(body, `${file}: ${body.trim().slice(0, 60)}`).toMatch(/--ghost-pressed:/);
       }
     }
+  });
+
+  it("keeps a disabled control still: no hover or press change on a control that can be disabled", () => {
+    // A control that does nothing must not answer a pointer: a hover or press fill on a disabled
+    // button, row or tile says "this works". Each rule that paints a hover or press on one of these
+    // classes names the disabled state in its selector (`:where(:not(:disabled, [aria-disabled]))`).
+    // Add a class here when it gains a disabled state.
+    const DISABLEABLE = [
+      "button-text",
+      "button-filled",
+      "button-tonal",
+      "button-danger",
+      "btn-action-tonal",
+      "icon-btn",
+      "icon-btn-tonal",
+      "chip",
+      "menu-item",
+      "menu-tile",
+      "create-fab",
+      "app-nav-create",
+      "dock-btn",
+      "transport-btn",
+      "script-turn",
+      "player-queue-row",
+      "field-input",
+      "press",
+      "press-subtle",
+      "hover-fill",
+    ];
+    const painted =
+      /(?:^|;)\s*(?:background(?:-color)?|color|border-color|box-shadow|transform)\s*:\s*(?!\s|none\b)/;
+    const topLevel = (text: string, separator: RegExp): string[] => {
+      const parts: string[] = [];
+      let depth = 0;
+      let current = "";
+      for (const char of text) {
+        if (char === "(" || char === "[") depth++;
+        if (char === ")" || char === "]") depth--;
+        if (depth === 0 && separator.test(char)) {
+          parts.push(current);
+          current = "";
+        } else current += char;
+      }
+      parts.push(current);
+      return parts.map((part) => part.trim()).filter(Boolean);
+    };
+    const sheets = [
+      ...ownCss(),
+      ["foundations.css", withoutComments(read("foundations.css"))] as const,
+    ];
+    const live: string[] = [];
+    for (const [file, css] of sheets) {
+      for (const [, selectorList, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+        if (!painted.test(body ?? "")) continue;
+        for (const selector of topLevel(selectorList ?? "", /,/)) {
+          const subject = topLevel(selector, /\s|>|\+|~/).at(-1) ?? "";
+          if (!/:(?:hover|active)\b/.test(subject)) continue;
+          if (!DISABLEABLE.some((name) => new RegExp(`\\.${name}(?![\\w-])`).test(subject)))
+            continue;
+          if (!/disabled|:enabled/.test(subject)) live.push(`${file}: ${selector}`);
+        }
+      }
+    }
+    expect(live, "state paints that a disabled control would still show").toEqual([]);
   });
 
   it("writes a scroll timeline with the animation longhands, never the shorthand", () => {
