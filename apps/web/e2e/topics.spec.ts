@@ -1387,7 +1387,9 @@ test.describe("a refused lookup", () => {
     await page.getByRole("tab", { name: "Source" }).click();
     const sheet = page.getByRole("dialog", { name: "Add a source" });
     await sheet.getByLabel("Site or feed address").fill("nothing.example");
-    await expect(sheet.locator("#panel-source-url-error")).toContainText("Couldn't read that address");
+    await expect(sheet.locator("#panel-source-url-error")).toContainText(
+      "Couldn't read that address",
+    );
     await expect(sheet.getByLabel("Site or feed address")).toHaveAttribute("aria-invalid", "");
     // No empty card stands in for the message.
     await expect(sheet.locator(".source-card")).toHaveCount(0);

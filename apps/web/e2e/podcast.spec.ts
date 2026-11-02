@@ -620,9 +620,7 @@ test.describe("saving on its own", () => {
       });
   });
 
-  test("says the time did not change when the token may not write variables", async ({
-    page,
-  }) => {
+  test("says the time did not change when the token may not write variables", async ({ page }) => {
     await mockConfig(page, [
       { status: 202, body: { status: 202, run_id: 1, time_changed: false } },
     ]);
