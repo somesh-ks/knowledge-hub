@@ -10,6 +10,7 @@
  *   - a page that changed behind its saved copy is swapped in quietly, if it has not been touched.
  */
 
+import { whenIdle } from "./idle";
 import { ARRIVED_ATTRIBUTE } from "./navigation";
 
 /** Links only: the side column also has a button (the queue's row), which has no page to go to. */
@@ -205,6 +206,8 @@ export function installNavigationBoost(): void {
   const watchCards = (): void => {
     cardWatcher?.disconnect();
     cardWatcher = null;
+    // The Library page alone: Settings' Saved and Downloads draw the same cards, and would spend the cap.
+    if (document.documentElement.getAttribute("data-library-page") !== "items") return;
     if (!("IntersectionObserver" in window) || !navigator.onLine || savesData()) return;
     const cards = document.querySelectorAll<HTMLAnchorElement>(
       "[data-library] a.card-link[href^='/e/'], [data-library] a.card-link[href^='/d/']",
@@ -215,9 +218,12 @@ export function installNavigationBoost(): void {
         if (!entry.isIntersecting) continue;
         const link = entry.target as HTMLAnchorElement;
         watcher.unobserve(link);
-        if (lookedAhead.size >= LOOKAHEAD_LIMIT || lookedAhead.has(link.href)) continue;
-        lookedAhead.add(link.href);
-        quietFetch(link.href, "low");
+        // Idle, and the cap and the once-each rule are read when the work runs, not when it is queued.
+        whenIdle(() => {
+          if (lookedAhead.size >= LOOKAHEAD_LIMIT || lookedAhead.has(link.href)) return;
+          lookedAhead.add(link.href);
+          quietFetch(link.href, "low");
+        });
       }
     });
     cardWatcher = watcher;
