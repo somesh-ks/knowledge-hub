@@ -157,13 +157,8 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
   const gestures: QueueGestures = {
     onPointerDown(event, index) {
       if (!event.isPrimary || event.button !== 0) return;
-      // The grip, the dots and the menu have presses of their own.
-      if (
-        (event.target as Element).closest(
-          ".player-queue-grip, .player-queue-more, .player-queue-menu",
-        )
-      )
-        return;
+      // The grip has presses of its own.
+      if ((event.target as Element).closest(".player-queue-grip")) return;
       press.current = {
         pointerId: event.pointerId,
         row: event.currentTarget,
@@ -257,6 +252,12 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
       endLift(event.type !== "pointercancel");
     },
     onGripKey(event, index) {
+      if (event.key === "Delete" || event.key === "Backspace") {
+        event.preventDefault();
+        const id = ids[index];
+        if (id) getPlayQueue().remove(id);
+        return;
+      }
       const to = { ArrowUp: index - 1, ArrowDown: index + 1 }[event.key];
       if (to === undefined) return;
       event.preventDefault();
@@ -271,7 +272,7 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
       // The row's elements are kept and moved, but a moved node can lose focus: give it back.
       requestAnimationFrame(() => {
         listRef.current
-          ?.querySelector<HTMLElement>(`[data-queue-id="${id}"] .player-queue-more`)
+          ?.querySelector<HTMLElement>(`[data-queue-id="${id}"] .player-queue-grip`)
           ?.focus({ preventScroll: true });
       });
     },

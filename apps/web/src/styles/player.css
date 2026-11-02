@@ -330,15 +330,9 @@
 }
 
 /* The band at the top of the open page that holds the chevron and the ⋮: both 44px targets centred in
-   it, with the art starting under it (owner, 2026-11-02: the art sat too close to them). */
+   it, with the art starting a step under it (owner, 2026-11-02, twice: the art sat too close to them). */
 .player {
   --player-bar-room: calc(var(--space-12) + var(--space-2));
-}
-
-@media (width < 64rem) {
-  .player-drag {
-    padding-block-start: calc(var(--player-bar-room) - var(--space-2));
-  }
 }
 
 /* Starts a dismissal when the page is at the top. It takes no native pan; the controller scrolls
@@ -353,6 +347,13 @@
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* After the rule above, so it wins at equal weight. */
+@media (width < 64rem) {
+  .player-drag {
+    padding-block-start: calc(var(--player-bar-room) + var(--space-4));
+  }
 }
 
 /* Out of sight until the keyboard reaches it, like a skip link. */
@@ -1977,49 +1978,15 @@
 }
 
 /*
- * The list's two views, Stories and Up next, are a tablist in .segmented-nav's markup
- * (PlayerTabs.tsx). From 64rem it is that control as it is, above the list's column. Below 64rem it is
- * a tab line as YouTube Music's player has: it runs the page's full width (past the gutters, under
- * the status bar's room as the page scrolls) it sits in a sticky bar on the page's colour. Same
- * buttons, same arrow keys, the same look at every width (D169).
+ * The list's two views, Stories and Up next, are the podcast page's section tabs (PlayerTabs.tsx,
+ * .tabs and .tab in primitives.css; owner, 2026-11-02: "tabs that look like in the podcast details
+ * page"). The strip sits in its own bar with the hairline the page's strip has, and under 64rem the bar
+ * sticks under the status bar (below).
  */
-.segmented-nav.player-tabs {
+.player-tabs-bar {
   flex: none;
   margin-block-end: var(--space-4);
-}
-
-/* A tab line, not a pill (owner, 2026-11-02: the segmented control drew the eye the list should have;
-   amends D169): no track, the chosen label in the page's text colour, the others muted, and one bar
-   in the accent under the chosen tab that slides on the control's own transform, over a hairline.
-   The segmented control's markup, keys and press layer stay; only its track and pill are redrawn
-   here, so a page reads this as the same control in another dress. */
-.segmented-nav.player-tabs {
-  border-radius: 0;
-  background: none;
   box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
-}
-
-.segmented-nav.player-tabs::before {
-  inset-block: auto 0;
-  inset-inline-start: 0;
-  width: calc(100% / var(--seg-n));
-  height: calc(var(--stroke-rail) + var(--stroke-hairline));
-  border-radius: var(--stroke-rail) var(--stroke-rail) 0 0;
-  background: var(--color-accent);
-  transform: translateX(calc(var(--seg-i) * 100%));
-}
-
-.segmented-nav.player-tabs > .segmented-nav-tab {
-  border-radius: 0;
-}
-
-.segmented-nav.player-tabs > .segmented-nav-tab[aria-selected="true"] {
-  color: var(--color-on-surface);
-}
-
-.segmented-nav.player-tabs > .segmented-nav-tab::after {
-  inset: 0;
-  border-radius: 0;
 }
 
 .player-panel {
@@ -2052,11 +2019,9 @@
     margin-block-start: var(--space-6);
     margin-inline: calc(max(var(--player-padding), var(--safe-left)) * -1)
       calc(max(var(--player-padding), var(--safe-right)) * -1);
-    padding: var(--space-2) var(--safe-right) 0 var(--safe-left);
+    padding: var(--space-2) max(var(--player-padding), var(--safe-right)) 0
+      max(var(--player-padding), var(--safe-left));
     background: var(--color-surface);
-  }
-
-  .segmented-nav.player-tabs {
     margin-block-end: 0;
   }
 
@@ -2614,7 +2579,6 @@
 }
 
 .player-queue-grip,
-.player-queue-more,
 .player-queue-add {
   flex: none;
 }
@@ -2638,13 +2602,6 @@
 .player-suggested-head {
   margin: 0 0 var(--space-2);
   padding-inline: var(--space-2);
-}
-
-/* The menu hangs under its own dots: the last --hero-more before it in the page (hero.css). */
-@supports (top: anchor(bottom)) {
-  .player-queue-more {
-    anchor-name: --hero-more;
-  }
 }
 
 @media (hover: hover) and (pointer: fine) {

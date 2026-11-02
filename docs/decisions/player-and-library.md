@@ -357,18 +357,18 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Rejected: preset speed chips (the slider's stops carry them); tiles on a desktop popover (a list is shorter to scan); a star for Save (a bookmark reads as "come back to this").
 - Revisit if: Save needs an account, or listeners ask for speeds between the stops on the slider.
 
-## D343: the player's views are tabs again, the queue has a grip and swipes both ways, the phone bar swipes between stories
+## D343: the player's views are tabs again, the queue has the two-bar handle and swipes both ways, the phone bar swipes between podcasts
 
 - Date: 2026-11-02 (the owner: the queue dock "snaps, no easing"; "swipe left and right on the playback dock to switch audio ... get rid of the next button"; "the album art is too close to the top"; "segmented selector is catching a lot of attention ... switch it to tabs"; more space under the play controls; Up next "scrolls to top"; "the reordering hamburger icon, I can't really reorder"; "swipe left and right in the queue to remove things")
 - Decision:
-  - The Stories and Up next switch is a tab line at every width: no track, the chosen label in the text colour, an accent bar sliding under it over a hairline. It is the segmented control's markup and keys with its track and pill redrawn in `player.css` (a page patch, in `PAGE_OVERRIDES`). Below 64rem it runs the page's full width and a step of room parts it from the play controls.
+  - The Stories and Up next switch is the podcast page's section tabs at every width (`.tabs` and `.tab`, `.tabs-in-card` for the first label's place): the chosen label in the accent with a bar under its words, a hairline under the strip. No page restyle. Below 64rem the strip sticks under the status bar and a step of room parts it from the play controls.
   - Switching views keeps the page's scroll position. The list scrolls to the item that has just begun, not each time Up next opens.
-  - Below 64rem the open page's top band is 56px: the chevron and the ⋮ are centred in it and the art starts under it.
-  - A queue row has a grip (six dots) at its end. A press on it lifts the row under a finger or a mouse, the rows it passes make room, the column scrolls when it is held at an edge, and Up and Down on the focused grip move it. The browser's drag and drop is gone. A swipe to either side removes a row (the row goes where the finger goes).
-  - On a phone (width under 64rem, coarse pointer) a sideways swipe on the bar's title steps the story, left for the next and right for the previous, as the buttons do; the bar's Next button is left out there. A mouse and a wide bar keep it.
+  - Below 64rem the open page's top band is 56px: the chevron and the ⋮ are centred in it and the art starts 16px under it (owner, twice).
+  - A queue row's only control is the two-bar handle at its end (`grip`, Phosphor equals; no dots, no menu). A press on it lifts the row under a finger or a mouse, the rows it passes make room, the column scrolls when it is held at an edge, Up and Down on the focused handle move it and Delete removes it. The browser's drag and drop is gone. A swipe to either side removes a row.
+  - On a phone (width under 64rem, coarse pointer) a sideways swipe on the bar switches the podcast: left for the next one queued, right for the one before. The words slide out, the podcast is asked for, and its words come in from the other side. The bar's Next button is left out there; a mouse and a wide bar keep it.
   - The mobile queue dock opens and folds on the drawer curve (a grid row from nothing to the list's height, 300 ms in, 220 ms out), the list fading with it; reduced motion jumps.
-- Why: the pill drew the eye the list should have had; a long press never lifted a row on his phone, and a grip says "movable" at a glance; a carousel swipe is what a mini player does; a fold that snaps reads as a bug in an app that eases everywhere else.
-- Cost: the grip is a control on every queue row, which D169 had avoided as form-like; the phone bar has no Next for a screen-reader or switch user (the open page has it); the tab line is a page restyle of a design-system control, to be moved into the system if another view wants it.
+- Why: the pill drew the eye the list should have had; a long press never lifted a row on his phone, and a grip says "movable" at a glance; a carousel swipe is what a mini player does, and the owner decided on 2026-11-01 that it moves between podcasts; a fold that snaps reads as a bug in an app that eases everywhere else.
+- Cost: the handle is a control on every queue row, which D169 had avoided as form-like, and a mouse has no visible remove (Delete on the handle, or a sideways drag of the row); the phone bar has no Next for a screen-reader or switch user (the open page has it).
 - Rejected: a long-press pointer drag (it blocks scrolling); keeping the browser's drag and drop under the grip (touch never started it); hiding Next on every width (a mouse on a narrow window cannot swipe).
-- Amends: D169 (the pill, no handle, swipe left only), D277 (the list opens at the playing item).
+- Amends: D169 (the pill, the row menu, swipe left only), D277 (the list opens at the playing item).
 

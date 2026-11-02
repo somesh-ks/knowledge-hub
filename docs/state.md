@@ -26,7 +26,7 @@ Unit (CI): 352 files, 5,449 tests, about 2 min. Site e2e: 448, 10 min. Player: 8
 - Config snapshot (D300 step 1): `snapshot.yml` writes the config store to the `config_snapshots` table each Sunday and `config restore --latest` reads it back; untried against real Neon. closed when: the workflow has run once, the row exists, and `config restore --file` on a copy rebuilds the rows.
 - Content out of git (D300 step 2b, #573): jobs `content pull --track` first and `content push` after the commit; `Digests/` and `Podcasts/` left `main`. closed when: the next scheduled daily's log shows `Load content` and `Save content` and its digest is on the site.
 - Edge purge waits from the run's last save (#590, D318). closed when: a Catch up's `content` log says `waiting N s` with N under 30 and its Library entry opens on the new page
-- Queue and bar (D277, D343, #615): a third-item tap keeps the bar up. closed when: on his Android Chrome the grip reorders, a swipe either way removes a row, and a swipe on the bar's title steps the story.
+- Queue and bar (D277, D343, #615): a third-item tap keeps the bar up. closed when: on his Android Chrome the two-bar handle reorders, a swipe either way removes a row, and a swipe on the bar switches the podcast.
 - Player ⋮ menu and Saved (D309, #580): checked in Chromium only. closed when: held press, the speed screen and Settings > Saved work on his Android Chrome.
 - Voice list (D276): closed when: a voice is heard from its list on his iPhone.
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily says "podcast".

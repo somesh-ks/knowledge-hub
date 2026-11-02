@@ -1,4 +1,4 @@
-import { center, expect, line, type PlayerPage, type Point, test } from "./helpers";
+import { center, expect, line, type PlayerPage, type Point, serveNarration, test } from "./helpers";
 
 /** A point on the page's header that is not a control: the title. */
 async function headerSpot(player: PlayerPage): Promise<Point> {
@@ -53,29 +53,39 @@ test.describe("opening by gesture", () => {
   });
 });
 
-// The bar's title is a carousel (owner, 2026-11-02): a swipe steps the story the way the buttons do.
-test("a swipe on the bar's title steps the story; a short one does not and opens nothing", async ({
+// The bar is a carousel of podcasts (owner, 2026-11-01 and 2026-11-02): a swipe goes to the next
+// queued one or back to the one before, and a short one does neither nor opens the page.
+test("a swipe on the bar switches the podcast; a short one does not and opens nothing", async ({
   player,
   page,
   finger,
 }) => {
   await player.open();
+  await serveNarration(page, 300, "/d/2026-10-05");
+  await page.evaluate(() => {
+    document.dispatchEvent(
+      new CustomEvent("singularity:queue-add", { detail: { id: "2026-10-05" } }),
+    );
+  });
   await player.play();
-  const stories = await player.stories();
+  const playing = () =>
+    page.evaluate(() => {
+      const raw = localStorage.getItem("singularity:queue-played");
+      return raw ? ((JSON.parse(raw) as { current?: string }).current ?? null) : null;
+    });
+  const first = await playing();
   const spot = center(await player.boxOf(player.openButton.locator(".dock-text")));
-  const at = () => page.evaluate(() => window.__audios[0]?.currentTime ?? 0);
-  const before = await at();
-  // Too short to be one: the story stays, and the page does not open on what is not a tap either.
+  // Too short to be one: the podcast stays, and the page does not open on what is not a tap either.
   await finger.drag(line(spot, { x: spot.x - 20, y: spot.y }, 3), 8);
   await page.waitForTimeout(400);
-  expect(Math.abs((await at()) - before)).toBeLessThan(3);
+  expect(await playing()).toBe(first);
   await player.collapsed();
-  // Left is the next story; right brings the previous one back.
+  // Left is the next queued podcast; right brings the one before back.
   await finger.drag(line(spot, { x: spot.x - 160, y: spot.y }, 4), 8);
-  await expect.poll(at).toBeGreaterThanOrEqual((stories[1]?.start ?? 0) - 0.5);
+  await expect.poll(playing, { timeout: 10_000 }).toBe("2026-10-05");
   await player.collapsed();
   await finger.drag(line(spot, { x: spot.x + 160, y: spot.y }, 4), 8);
-  await expect.poll(at).toBeLessThan((stories[1]?.start ?? 0) - 0.5);
+  await expect.poll(playing, { timeout: 10_000 }).toBe(first);
   await player.collapsed();
 });
 

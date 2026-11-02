@@ -184,6 +184,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D332 | A scheduled run waits at the gate when the last 24 hours cost over $5 | amends D139 |
 | D333 | The short-text Claude steps run Haiku medium, then Haiku high, then Sonnet medium | amends D308, D324; amended by D334 |
 | D334 | Every Claude step starts at Haiku medium, the podcast script included | amends D333 |
-| D343 | Tab line, queue grip, swipe both ways, phone bar swipes | amends D169, D277 |
+| D343 | Podcast-page tabs, two-bar queue handle, swipe both ways, phone bar swipes podcasts | amends D169, D277 |
 
 ---
