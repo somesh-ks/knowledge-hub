@@ -10,9 +10,6 @@ import { startRun } from "./runStatus";
  * Every sentence it shows is in the markup (`[data-k]`), not here. Once a run has started it hands
  * the run to the status indicator (runStatus.ts), which follows it, and calls `onStart`.
  */
-/** Said in a voice list that could not be filled: the voice service did not answer, or has no voices. */
-const VOICES_UNAVAILABLE = "Couldn't load the voice list. Default and your saved voice stay.";
-
 export function installCreate(root: HTMLElement, onStart?: () => void): void {
   if (root.dataset.ready !== undefined) return;
   root.dataset.ready = "";
@@ -58,14 +55,22 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
       const hosts = await import("@singularity/core/hosts").catch(() => null);
       hostNames = hosts?.hostNamesFor ?? null;
       const lib = await import("../lib/voices");
-      const response = await fetch("/api/voices", { signal: AbortSignal.timeout(10_000) });
-      const body: unknown = response.ok ? await response.json() : null;
-      const voices = lib.parseVoices(body);
-      if (!voices) {
-        noteVoices(VOICES_UNAVAILABLE);
+      const result = await lib.fetchVoiceList({
+        fetch,
+        online: () => navigator.onLine,
+        wait: (ms) => new Promise((done) => setTimeout(done, ms)),
+      });
+      if ("failure" in result) {
+        noteVoices(lib.VOICE_LIST_NOTES[result.failure]);
         return;
       }
-      noteVoices(voices.length === 0 ? VOICES_UNAVAILABLE : "");
+      const body = result.body;
+      const voices = lib.parseVoices(body);
+      if (!voices) {
+        noteVoices(lib.VOICE_LIST_NOTES.unavailable);
+        return;
+      }
+      noteVoices(voices.length === 0 ? lib.VOICE_LIST_NOTES.unavailable : "");
       const defaults = lib.parseVoiceDefaults(body);
       for (const voice of voices) known.set(voice.id, voice);
       for (const select of form.querySelectorAll<HTMLSelectElement>("[data-voice] select")) {
@@ -78,7 +83,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
       sync();
     } catch {
       // The default and the saved voice stay: an episode can always be made without the list.
-      noteVoices(VOICES_UNAVAILABLE);
+      noteVoices("Couldn't load the voice list. Default and your saved voice stay.");
     }
   }
 
