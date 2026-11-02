@@ -284,6 +284,38 @@ describe("published run", () => {
   });
 });
 
+describe("saving the digest to the content store (D300)", () => {
+  // The bug: git recorded a published digest the store never received. The next scheduled run's
+  // gate saw it published and skipped, so the paid-for digest was lost and its stories counted as
+  // shown. The save comes first, and a failed save leaves nothing committed.
+  it("commits nothing when the store save fails", LONG, async () => {
+    const before = git(repo.root, "rev-parse", "HEAD");
+    const world = makeWorld(repo.root, { now: WED });
+    world.deps.publishContent = async () => {
+      throw new Error("blob unreachable");
+    };
+    const result = await runStage(world);
+    expect(result.code).not.toBe(0);
+    expect(git(repo.root, "rev-parse", "HEAD")).toBe(before);
+  });
+
+  it("saves the digest while it is written and before it is committed", LONG, async () => {
+    const before = git(repo.root, "rev-parse", "HEAD");
+    const seen: { digest: boolean; head: string }[] = [];
+    const world = makeWorld(repo.root, { now: WED });
+    world.deps.publishContent = async () => {
+      seen.push({
+        digest: await exists(repo.root, DIGEST_PATH),
+        head: git(repo.root, "rev-parse", "HEAD"),
+      });
+    };
+    const result = await runStage(world);
+    expect(result.code).toBe(0);
+    expect(seen).toEqual([{ digest: true, head: before }]);
+    expect(git(repo.root, "rev-parse", "HEAD")).not.toBe(before);
+  });
+});
+
 describe("second run on the same day", () => {
   it(
     "allocates -2, keeps the first digest and the regular cadence, records on_demand",

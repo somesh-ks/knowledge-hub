@@ -121,3 +121,16 @@ describe("health.yml's heal", () => {
     ]);
   });
 });
+
+// The bug: the commit stage saves the digest to the content store (D300) and refuses without
+// BLOB_READ_WRITE_TOKEN, but the Commit step was not given it, so every published digest would have
+// failed at Commit in production while every unit test passed.
+describe("run.yml's Commit step", () => {
+  it("is given the content store token", () => {
+    const yml = readFileSync(join(dir, "run.yml"), "utf8").split("\n");
+    const start = yml.findIndex((line) => /^ {6}- name: Commit$/.test(line));
+    expect(start).toBeGreaterThan(-1);
+    const next = yml.findIndex((line, i) => i > start && /^ {6}- name: /.test(line));
+    expect(yml.slice(start, next).join("\n")).toContain("BLOB_READ_WRITE_TOKEN");
+  });
+});

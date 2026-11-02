@@ -1,54 +1,19 @@
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import {
   EPISODE_INDEX_KEY,
   type Episode,
   episodeRelPath,
   serializeEpisodeFile,
 } from "@singularity/core";
-import { BlobPreconditionFailedError } from "@vercel/blob";
 import { describe, expect, it } from "vitest";
 import type { ConditionalBlobClient } from "./blob.js";
 import { applyContentDelta } from "./contentDelta.js";
 import { pullContent } from "./contentPull.js";
 import { CONTENT_MANIFEST_KEY, sha256 } from "./contentSync.js";
+import { checkout, fakeBlob } from "./contentTestKit.js";
 
-const BASE = "https://store.public.blob.example";
 const NOW = new Date("2026-11-01T12:00:00Z");
-
-/** An in-memory Blob store with ETags, and a hook that runs before a manifest write. */
-function fakeBlob(beforeManifestWrite?: () => void) {
-  const objects = new Map<string, { text: string; etag: number }>();
-  let etag = 0;
-  const client: ConditionalBlobClient = {
-    async put(pathname, body, options) {
-      if (pathname === CONTENT_MANIFEST_KEY) beforeManifestWrite?.();
-      const current = objects.get(pathname);
-      if (options.ifMatch !== undefined && options.ifMatch !== String(current?.etag)) {
-        throw new BlobPreconditionFailedError();
-      }
-      etag += 1;
-      objects.set(pathname, { text: new TextDecoder().decode(body), etag });
-      return { url: `${BASE}/${pathname}`, pathname };
-    },
-    async head(pathname) {
-      const found = objects.get(pathname);
-      return found ? { url: `${BASE}/${pathname}`, etag: String(found.etag) } : null;
-    },
-    async del(pathnames) {
-      for (const name of pathnames) objects.delete(name);
-    },
-    async list() {
-      return { blobs: [], hasMore: false };
-    },
-  };
-  const fetchText = async (url: string): Promise<string | null> =>
-    objects.get(new URL(url).pathname.slice(1))?.text ?? null;
-  const manifest = (): Record<string, string> =>
-    JSON.parse(objects.get(CONTENT_MANIFEST_KEY)?.text ?? '{"files":{}}').files;
-  return { client, objects, fetchText, manifest };
-}
 
 function episodeFile(id: string, generatedAt: string): [string, string] {
   const episode: Episode = {
@@ -78,15 +43,6 @@ const indexIds = (store: ReturnType<typeof fakeBlob>): string[] =>
   JSON.parse(store.objects.get(EPISODE_INDEX_KEY)?.text ?? '{"episodes":[]}').episodes.map(
     (entry: { id: string }) => entry.id,
   );
-
-async function checkout(files: Record<string, string>): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "content-delta-"));
-  for (const [path, text] of Object.entries(files)) {
-    await mkdir(dirname(join(root, path)), { recursive: true });
-    await writeFile(join(root, path), text);
-  }
-  return root;
-}
 
 describe("applyContentDelta", () => {
   // The bug: `content sync` deletes every stored path the checkout lacks. A job that holds one new

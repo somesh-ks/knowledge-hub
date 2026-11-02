@@ -1,7 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import type { CommandContext } from "../context.js";
-import { createPrivateSnapshotStore } from "../publish/privateBlob.js";
 import {
   CONFIG_SCHEMA_SQL,
   configStoreUrl,
@@ -11,8 +10,10 @@ import {
 } from "../store/configDocs.js";
 import {
   buildSnapshot,
+  createSqlSnapshotStore,
   parseSnapshot,
   restoreDocuments,
+  SNAPSHOT_SCHEMA_SQL,
   type SnapshotStore,
   serializeSnapshot,
   snapshotKeysNewestFirst,
@@ -21,7 +22,7 @@ import {
 
 export interface SnapshotDeps {
   connectConfigStore?: (databaseUrl: string) => Promise<SqlClient>;
-  /** The private snapshot store; tests pass a fake. */
+  /** The snapshot store; tests pass a fake. Default: the config_snapshots table. */
   snapshotStore?: SnapshotStore;
 }
 
@@ -29,15 +30,13 @@ function print(line: string): void {
   process.stdout.write(`${line}\n`);
 }
 
-function storeFor(ctx: CommandContext, deps: SnapshotDeps): SnapshotStore | null {
-  if (deps.snapshotStore) return deps.snapshotStore;
-  const token = ctx.env.BLOB_PRIVATE_READ_WRITE_TOKEN;
-  return token ? createPrivateSnapshotStore(token) : null;
+function storeFor(sql: SqlClient, deps: SnapshotDeps): SnapshotStore {
+  return deps.snapshotStore ?? createSqlSnapshotStore(sql);
 }
 
 /**
  * `config snapshot [--out <file>] [--keep <n>]`: copy every stored document into one JSON file,
- * either in the private Blob store (the weekly job, snapshot.yml) or, with --out, on this machine.
+ * either in the config_snapshots table (the weekly job, snapshot.yml) or, with --out, on this machine.
  */
 export async function runSnapshot(
   argv: string[],
@@ -65,13 +64,7 @@ export async function runSnapshot(
     print(`wrote ${documents.length} documents to ${values.out}`);
     return 0;
   }
-  const store = storeFor(ctx, deps);
-  if (store === null) {
-    ctx.log.error(
-      "BLOB_PRIVATE_READ_WRITE_TOKEN is not set, so there is no private store to write to. Create a private Blob store in Vercel, or pass --out <file>.",
-    );
-    return 1;
-  }
+  const store = storeFor(sql, deps);
   const keep = values.keep === undefined ? undefined : Number(values.keep);
   if (keep !== undefined && (!Number.isInteger(keep) || keep < 1)) {
     ctx.log.error("--keep must be a whole number of 1 or more.");
@@ -125,28 +118,23 @@ export async function runRestore(
     ctx.log.error("The config store is off (DATABASE_URL and SINGULARITY_CONFIG_STORE=postgres).");
     return 1;
   }
+  const sql = await (deps.connectConfigStore ?? connectConfigStore)(url);
+  await sql.query(CONFIG_SCHEMA_SQL);
   let text: string;
   if (values.file !== undefined) {
     text = await readFile(values.file, "utf8");
   } else {
-    const store = storeFor(ctx, deps);
-    if (store === null) {
-      ctx.log.error(
-        "BLOB_PRIVATE_READ_WRITE_TOKEN is not set, so there is no private store to read.",
-      );
-      return 1;
-    }
+    await sql.query(SNAPSHOT_SCHEMA_SQL);
+    const store = storeFor(sql, deps);
     const newest = snapshotKeysNewestFirst(await store.keys())[0];
     const body = newest === undefined ? null : await store.read(newest);
     if (body === null) {
-      ctx.log.error("The private store holds no snapshot.");
+      ctx.log.error("The config_snapshots table holds no snapshot.");
       return 1;
     }
     text = body;
   }
   const snapshot = parseSnapshot(text);
-  const sql = await (deps.connectConfigStore ?? connectConfigStore)(url);
-  await sql.query(CONFIG_SCHEMA_SQL);
   const written = await restoreDocuments(sql, snapshot);
   print(
     ctx.json

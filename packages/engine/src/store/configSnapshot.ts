@@ -3,9 +3,11 @@ import { CONFIG_DOCUMENT_PATHS, type ConfigDocument, type SqlClient } from "./co
 
 /**
  * A copy of the config store for a bad day (D300). The owner's config is in no git history any more
- * (D296), so Neon's own point-in-time window is the only other copy; a weekly snapshot in a private
- * Blob store lasts longer than that and survives the database. One JSON file holds every row's exact
- * text, so a restore is a rewrite of rows and needs nothing else.
+ * (D296), so Neon's own point-in-time window is the only other copy; a weekly snapshot lasts longer
+ * than that. It sits in a table beside the config (config_snapshots), so it needs no second store and
+ * no key; the owner chose that over a private Blob store. It guards against a bad edit or a restore
+ * gone wrong, not against losing the database: `config snapshot --out <file>` takes a copy elsewhere.
+ * One JSON text holds every row's exact content, so a restore is a rewrite of rows and nothing else.
  */
 
 export const SNAPSHOT_PREFIX = "config-snapshots/";
@@ -85,7 +87,7 @@ export function parseSnapshot(text: string): ConfigSnapshot {
   };
 }
 
-/** What a snapshot needs from a private store: write and read an object, list and drop old ones. */
+/** What a snapshot needs from its store: write and read a text, list and drop old ones. */
 export interface SnapshotStore {
   put(key: string, text: string): Promise<void>;
   read(key: string): Promise<string | null>;
@@ -138,4 +140,37 @@ export async function restoreDocuments(
     [snapshot.documents.map((d) => d.path), snapshot.documents.map((d) => d.content)],
   );
   return rows.map((row) => String(row.path));
+}
+
+export const SNAPSHOT_SCHEMA_SQL = `create table if not exists config_snapshots (
+  key text primary key,
+  body text not null,
+  taken_at timestamptz not null default now()
+)`;
+
+/** The snapshots as rows of config_snapshots, in the database that holds the config. */
+export function createSqlSnapshotStore(sql: SqlClient): SnapshotStore {
+  return {
+    async put(key, text) {
+      await sql.query(SNAPSHOT_SCHEMA_SQL);
+      await sql.query(
+        `insert into config_snapshots (key, body) values ($1, $2)
+         on conflict (key) do update set body = excluded.body, taken_at = now()`,
+        [key, text],
+      );
+    },
+    async read(key) {
+      const rows = await sql.query("select body from config_snapshots where key = $1", [key]);
+      return rows[0] === undefined ? null : String(rows[0].body);
+    },
+    async keys() {
+      const rows = await sql.query("select key from config_snapshots");
+      return rows.map((row) => String(row.key));
+    },
+    async del(keys) {
+      if (keys.length > 0) {
+        await sql.query("delete from config_snapshots where key = any($1::text[])", [[...keys]]);
+      }
+    },
+  };
 }
