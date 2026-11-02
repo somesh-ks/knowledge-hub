@@ -7,11 +7,11 @@ Schedule, sources, preferences, voices, model, autosave, blocked outlets. Reason
 ### Structure
 - Settings has two levels (D51): an index, a page per job. Sections are 18 to 20px regular H2s (D125): Podcast settings (Daily, Weekly, Sources, Structure at `/settings/preferences`), App settings (Appearance, Sound and voice, Haptics with On or Off, Notifications) and About: three rows, no head, and a small centred "Last updated on 2 Nov, 2026" on a phone (D335).
 - `/settings/appearance`: Theme, Mood and, for a mood only, a full-width Hue row (D328). `/settings/sound`: Interface sounds (switch, Volume), Podcast voices and Playback (autoplay, default speed); `/settings/sounds` and `/settings/voice` redirect. `/settings/haptics`: a switch.
-- `/profile` (D335): no heading; the avatar with an edit button that opens the mood's shapes (`--av-shapes`) in a bottom sheet; a Log in button, dummy until Google sign-in; Downloads and Saved. It reacts to offline, a run, playing, success, failure and a favourite (`accountAvatar.ts`; not under reduced motion).
+- `/profile` (D335): no heading; the avatar with an edit button that opens the mood's shapes (`--av-shapes`) in a bottom sheet; a Log in button (a dummy until Google); Downloads and Saved. It reacts to offline, a run, playing, success, failure and a favourite (`accountAvatar.ts`; not under reduced motion).
 - Link rows end in their value, in quiet ink, 64px tall.
 - Each group of rows is a card: `.card-group` (primitives.css) on `.rows`; contents concentric (`component.card`). Heads share the rows' edge. The install offer is accent-toned. About: About, Privacy, Change log (`/settings/changelog`) and, on a phone, Last updated, at the side column's foot from 64rem (`AppNav`).
 - A subpage has a "Settings /" line above its title ("Profile /" on Downloads and Saved), linking up (amends D129). `/settings/custom` goes to `/create`.
-- Form fields have a 3:1 outline. Every select opens one drawn list. Time zone and voices use searchable pickers (D101). Theme and Mood draw no value until the stored one is set.
+- Form fields have a 3:1 outline. Every select opens one drawn list. Time zone and voices use searchable pickers (D101). Theme and Mood draw no value till the stored one is set.
 
 ### Schedule
 - Daily and Weekly show Episode, Schedule, Categories: Max length (no Format and no Look back: a podcast covers everything since its last episode, D215), Profile (off, D191), then time zone (one for both), time, repeat (Daily) or day (Weekly). No voice rows; each has an on/off switch (the engine reads the top-level `enabled` for Daily and `weekly.enabled` for Weekly).
