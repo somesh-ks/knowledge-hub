@@ -156,14 +156,42 @@ export function recipeColors(recipe: NeutralRecipe): Record<string, Record<Mode,
   return out;
 }
 
-/** True when `value` is a recipe a style can carry: two families and two depths, each number in a range the ladder keeps inside 0 to 100. */
+/**
+ * True when `value` is a recipe a style can carry: two families with numbers in a sane range, two
+ * depths whose every role stays between 0 and 100 lightness (checked on the ladder itself, so a new
+ * role cannot slip past), and `scene` a boolean when present.
+ */
 export function isRecipe(value: unknown): value is NeutralRecipe {
-  const num = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
-  const family = (v: unknown): boolean =>
-    typeof v === "object" &&
-    v !== null &&
-    ["hue", "tint", "lift", "sharp"].every((k) => num((v as Record<string, unknown>)[k]));
+  const within = (v: unknown, min: number, max: number): v is number =>
+    typeof v === "number" && Number.isFinite(v) && v >= min && v <= max;
+  const family = (v: unknown): boolean => {
+    const f = v as Record<string, unknown> | null;
+    return (
+      typeof f === "object" &&
+      f !== null &&
+      within(f.hue, 0, 360) &&
+      within(f.tint, 0, 0.3) &&
+      within(f.lift, 0, 0.3) &&
+      within(f.sharp, 0.1, 4)
+    );
+  };
+  const holds = (mode: Mode, depth: number): boolean =>
+    Object.values(NEUTRAL_ROLES).every((spec) => {
+      const where = spec[mode];
+      const l = where.from === "page" ? depth + where.points : where.points;
+      return l >= 0 && l <= 100;
+    });
   const r = value as Record<string, unknown> | null;
   const depth = r?.depth as Record<string, unknown> | undefined;
-  return !!r && !!depth && num(depth.light) && num(depth.dark) && family(r.paper) && family(r.ink);
+  return (
+    !!r &&
+    !!depth &&
+    within(depth.light, 0, 100) &&
+    within(depth.dark, 0, 100) &&
+    holds("light", depth.light) &&
+    holds("dark", depth.dark) &&
+    family(r.paper) &&
+    family(r.ink) &&
+    (r.scene === undefined || typeof r.scene === "boolean")
+  );
 }

@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { gamutChroma } from "./colorRamp.js";
 import {
+  isRecipe,
   NEUTRAL_ROLES,
   type NeutralRecipe,
   neutralTone,
@@ -84,5 +85,19 @@ describe("styles hold no typed colours (D319)", () => {
     };
     walk(raw.styles, []);
     expect(typed).toEqual([]);
+  });
+});
+
+// A recipe the build accepts must keep every role's lightness inside 0 to 100; before this check a
+// depth of 98 wrote surface-overlay at 102% and the build said nothing.
+describe("a recipe is checked before the build writes it (D319)", () => {
+  const ok = FITTED.expressive as NeutralRecipe;
+  it("accepts the shipped recipes", () => {
+    for (const recipe of Object.values(FITTED)) expect(isRecipe(recipe)).toBe(true);
+  });
+  it("rejects a depth that pushes a role past 0 or 100, and a non-boolean scene", () => {
+    expect(isRecipe({ ...ok, depth: { light: 98, dark: 19 } })).toBe(false);
+    expect(isRecipe({ ...ok, depth: { light: 96, dark: 3 } })).toBe(false);
+    expect(isRecipe({ ...ok, scene: "yes" })).toBe(false);
   });
 });
