@@ -4,7 +4,7 @@
  * It runs on demand with real keys, from run.yml's `writer_experiment` input, and never in CI or unit tests.
  *
  *   npx tsx packages/engine/eval/writerModels.ts --materials <materials.json> [--limit 12]
- *       [--arms sonnet-high,sonnet-medium,sonnet-low,haiku-medium,gemini-flash] [--out <dir>]
+ *       [--arms sonnet-high,sonnet-medium,sonnet-low,haiku-medium,haiku-high,gemini-flash] [--out <dir>]
  *
  * Needs ANTHROPIC_API_KEY, GEMINI_API_KEY and TYPESAFE_API_KEY. An arm whose key is missing is
  * skipped and named in the report.
@@ -58,7 +58,7 @@ interface Arm {
   effort?: ChainEntry["effort"];
 }
 
-/** The arms the owner asked for (Sonnet, Haiku and Gemini Flash at medium), plus Sonnet's two other levels as the cost lever. */
+/** The arms the owner asked for (Sonnet, Haiku and Gemini Flash at medium), plus Sonnet's two other levels as the cost lever and Haiku at high (does more thinking pay for itself on the cheap model). */
 export const ARMS: readonly Arm[] = [
   {
     id: "sonnet-high",
@@ -78,6 +78,12 @@ export const ARMS: readonly Arm[] = [
     label: "Haiku 5.5, effort medium",
     family: "claude-haiku",
     effort: "medium",
+  },
+  {
+    id: "haiku-high",
+    label: "Haiku 5.5, effort high",
+    family: "claude-haiku",
+    effort: "high",
   },
   {
     id: "gemini-flash",

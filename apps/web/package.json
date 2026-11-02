@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "prebuild": "tsx ../../scripts/buildTokens.ts && tsx ../../scripts/pullConfig.ts",
+    "prebuild": "tsx ../../scripts/buildTokens.ts && tsx ../../scripts/pullConfig.ts && tsx ../../scripts/pullContent.ts",
     "build": "astro build",
     "postbuild": "tsx scripts/checkBundle.ts && tsx scripts/checkFunction.ts",
     "preview": "node e2e/run.mjs",
