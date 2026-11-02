@@ -988,6 +988,7 @@
   --cover-keep: 0.15;
   --cover-spread: 0.5;
   --cover-cap: 40;
+  --cover-hold: 1.1;
   --cover-c-scale: 1.6;
   --cover-c-add: 0.05;
   --cover-c-max: 0.3;
@@ -1006,6 +1007,7 @@
   --cover-keep: 0.2;
   --cover-spread: 0.25;
   --cover-cap: 180;
+  --cover-hold: 1.1;
   --cover-c-scale: 1.1;
   --cover-c-add: 0.03;
   --cover-c-max: 0.19;
