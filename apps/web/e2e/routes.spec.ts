@@ -97,7 +97,14 @@ test.describe("routes and headers", () => {
     await page.evaluate(() => {
       const seen: [string, string][] = [];
       (window as unknown as { __seen: typeof seen }).__seen = seen;
+      // Every frame: the strip is in the page and the root says so (a blink is the page jumping up and down).
+      const strip: boolean[] = [];
+      (window as unknown as { __strip: boolean[] }).__strip = strip;
       const tick = () => {
+        strip.push(
+          document.querySelector('#banners [data-banner="offline"]') !== null &&
+            document.documentElement.hasAttribute("data-strip"),
+        );
         // Where the page sits in the layout: the desktop rise (D341) moves the shell on purpose, and is taken off.
         const rise = new DOMMatrix(
           getComputedStyle(document.querySelector(".shell") ?? document.body).transform,
@@ -137,6 +144,11 @@ test.describe("routes and headers", () => {
     const podcast = (await samples(/^\/d\//)).map((v) => v.split("|")[1]).filter(Boolean);
     expect(podcast.length).toBeGreaterThan(0);
     expect(new Set(podcast).size).toBe(1);
+    // Bug (owner, 2026-11-02): flicker between pages. The strip persists across moves (D330): no frame
+    // of any move showed the page without it.
+    const frames = await page.evaluate(() => (window as unknown as { __strip: boolean[] }).__strip);
+    expect(frames.length).toBeGreaterThan(10);
+    expect(frames.every(Boolean)).toBe(true);
     await setOnline(true);
     await expect(page.locator('[data-banner="offline"]')).toHaveCount(0);
     await expect(page.locator("html")).not.toHaveAttribute("data-offline", "");
@@ -157,21 +169,12 @@ test.describe("routes and headers", () => {
     await expect(bar).toHaveJSProperty("inert", false);
   });
 
-  test("the offline page says when the connection is back, and speaks once", async ({ page }) => {
+  // The stand-in is not a destination: opened by hand while online it has nothing to stand for, so it
+  // moves on to the first page (D330).
+  test("the stand-in page opened by hand while online moves on to Latest", async ({ page }) => {
     await page.goto("/offline");
-    // Online, the page never claims to be offline: it says the connection is back.
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("You are back online");
-    // The cut-signal scene goes with the offline state: the connected one with its check stands in.
-    await expect(page.locator("#main .empty")).toHaveAttribute("data-state", "online");
-    await expect(page.locator('#main .empty-art[data-art="online"]')).toBeVisible();
-    await expect(page.locator('#main .empty-art[data-art="offline"]')).toBeHidden();
-    await expect(page.getByRole("link", { name: "Reload" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Open Library" })).toHaveAttribute(
-      "href",
-      "/library",
-    );
-    // The page is the message: no banner repeats it.
-    await expect(page.locator('[data-banner="offline"]')).toHaveCount(0);
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.locator("[data-stand-in]")).toHaveCount(0);
   });
 
   test("latest.json lists only the whitelisted fields", async ({ request }) => {

@@ -173,33 +173,12 @@ main > .empty {
   stroke-width: 14;
 }
 
-/* The signal: two arcs and a dot, one stroke. Online in the accent; offline in the deeper tone of
-   the badge, cut by the slash. */
-.art-glyph,
-.art-glyph-off {
-  fill: none;
-  stroke-width: 12;
-}
-
+/* The signal: two arcs and a dot, one stroke in the accent. Online it is the whole scene; offline it is
+   looking for the network, beside the page that waits for it. */
 .art-glyph {
-  stroke: var(--art-pop);
-}
-
-.art-glyph-off {
-  stroke: var(--art-ink);
-}
-
-/* The slash cuts a small gap in the arcs under it, in the badge's own tone. */
-.art-slash-knock {
-  fill: none;
-  stroke: var(--art-hero);
-  stroke-width: 18;
-}
-
-.art-slash {
   fill: none;
   stroke: var(--art-pop);
-  stroke-width: 8;
+  stroke-width: 12;
 }
 
 /* ------------------------------------------------------------------ the art moves (owner, 2026-11-01) */

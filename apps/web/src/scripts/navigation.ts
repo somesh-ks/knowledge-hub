@@ -4,11 +4,12 @@
  * another destination, into one briefing, or back out of it.
  */
 
-/** Root attributes owned by the theme and style, the player and the connection check. A swap would replace them with the new page's. */
+/** Root attributes owned by the theme and style, the player and the connection check (the strip's own mark included, so a swap never lets the page up and down again). A swap would replace them with the new page's. */
 export const CARRIED_ATTRIBUTES = [
   "data-theme",
   "data-style",
   "data-offline",
+  "data-strip",
   "data-mini",
   "data-player",
   "data-player-state",

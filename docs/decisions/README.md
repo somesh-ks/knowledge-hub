@@ -71,7 +71,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D199 | Live content and tombstones | amends D173 |
 | D200 | `fetch_via` through the store | active |
 | D201 | No write-route auth until OAuth | amends D160 |
-| D202 | A deploy loads itself | amends D146 |
+| D202 | A deploy loads itself | amends D146; amended by D330 |
 | D203 | Live Health page | active |
 | D204 | Guards for a short or lost run, health metrics, one run card | active |
 | D205 | Settings paint the kept copy at once | amends D172 |
@@ -164,8 +164,8 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D296 | Config store is the only home of owner config; examples in the repo | amends D149; supersedes D185 |
 | D297 | A section may stand over its allowance only as far as the floor needs | amends D35 |
 | D298 | Repository public, owner data moved out of git, history rewritten last | supersedes D9 |
-| D299 | Offline settings edits stay on the device and send when back online | amends D79, D91, D259 |
-| D300 | Digests and audio in Blob, state in Postgres, weekly private snapshot of the config store | partly superseded by D311; steps 1 and 2a built, 2b in review |
+| D299 | Offline settings edits stay on the device and send when back online | amends D79, D91, D259; amended by D331 |
+| D300 | Digests and audio in Blob, state in Postgres, weekly private snapshot of the config store | partly superseded by D311; steps 1 and 2a built, 2b in review; amended by D339 |
 | D302 | Pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked | active |
 | D306 | A seasonal style may change more than tokens | amends D268 |
 | D308 | Haiku writes the first pass of each story, Sonnet repairs and backs it up | amends D181; amended by D333 |
@@ -186,10 +186,13 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D326 | The Avatar is a design-system part: one flat shape, a face, two tones | active |
 | D328 | The hue slider paints the spectrum and shows the picked colour | amends D315 |
 | D329 | A Menu sheet over one safe row has no title and no Close | amends D291 |
+| D330 | One app-wide state model: route, connectivity, saved pages | amends D97, D98, D145, D202 |
+| D331 | Error and helper copy speaks in the reader's words, and a test holds it | amends D299 |
 | D332 | A scheduled run waits at the gate when the last 24 hours cost over $5 | amends D139 |
 | D333 | The short-text Claude steps run Haiku medium, then Haiku high, then Sonnet medium | amends D308, D324; amended by D334 |
 | D334 | Every Claude step starts at Haiku medium, the podcast script included | amends D333 |
 | D336 | A cover no longer flies between its card and the page's hero | partly supersedes D271, D280; amended by D341 |
+| D339 | The engine and the site keep one Speechify count, in Blob; Exa gets a weekly stop | amends D300 |
 | D341 | A page arrives from the side of the tab you came from | partly supersedes D280; amends D336 |
 | D342 | A Firecrawl listing is read free first and scraped only when its links moved | relates to D222, D302 |
 

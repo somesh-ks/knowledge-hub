@@ -45,11 +45,10 @@ const lines = {
   "data-retry-429": "Too many requests just now. Try again in {wait}.",
   "data-retry-daily_cap": "That's today's limit. Try again in {wait}.",
   // A 5xx: the server logged why, and the reference it sent is added to this (lib/errorRef.ts).
-  "data-retry-503": "The server ran into a problem, so nothing was started.",
-  "data-retry-crashed":
-    "The server crashed before it could answer, so nothing changed. Its log on Vercel has the error.",
-  "data-retry-400": "The server turned that request down. Reload the page and try again.",
-  "data-retry-network": "Couldn't reach the site. Check your connection, then try again.",
+  "data-retry-503": "Something broke on our side, so nothing was started.",
+  "data-retry-crashed": "Something broke on our side, and nothing changed. Try again in a moment.",
+  "data-retry-400": "That didn't go through. Reload the page and try again.",
+  "data-retry-network": "No connection right now. Try again when you're back online.",
   // A briefing (Regenerate) rides the same queue: data-briefing-<state>, and its stage names come
   // from the status route like an episode's (lib/runStages.ts). A nothing or a gated run is a done
   // one with its own sentence; a failed one names its step (briefingFailureLine).

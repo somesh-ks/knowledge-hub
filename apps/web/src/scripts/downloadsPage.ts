@@ -131,7 +131,7 @@ function mount(root: HTMLElement): void {
       .run()
       .then(
         () => sendToast({ message: pending.done }),
-        () => sendToast({ message: "Could not remove. Try again.", kind: "error" }),
+        () => sendToast({ message: "Couldn't remove it. Try again.", kind: "error" }),
       )
       // Whatever happened, show what is left.
       .then(sync);
