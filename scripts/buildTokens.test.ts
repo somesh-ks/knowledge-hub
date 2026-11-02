@@ -126,7 +126,7 @@ describe("token structure", () => {
   });
 });
 
-describe("state direction (D319)", () => {
+describe("state direction (D317)", () => {
   // A state steps toward or away from its label by what the label's contrast allows. A hand-set flag
   // per style would need a new one for every new look; the build settles it from the style's own colours.
   it("is settled by the build from the label, so no style writes a state by hand", () => {
