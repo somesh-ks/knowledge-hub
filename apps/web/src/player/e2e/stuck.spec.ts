@@ -106,7 +106,7 @@ test.describe("paths that used to leave the player stuck", () => {
     await finger.press(dock.getByRole("link", { name: /^Start listening/ }));
     // A phone shows the podcast in the player at once (owner, 2026-11-02); its queue row has gone.
     await player.expanded();
-    await expect(player.root).toHaveAttribute("data-player-state", /playing|loading/);
+    await expect(player.root).toHaveAttribute("data-player-state", "playing");
     await expect(dock).toBeHidden();
     await finger.press(player.closeButton);
     await player.collapsed();

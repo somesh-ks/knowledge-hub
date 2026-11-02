@@ -771,6 +771,7 @@
         "It renders closed: the script opens it with dialog.showModal() and closes it with dialog.close() from the Cancel button's click."
       ],
       "styles": [
+        "buttons.css",
         "dialog.css"
       ],
       "usage": "",

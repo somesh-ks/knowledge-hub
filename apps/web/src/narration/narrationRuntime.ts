@@ -9,7 +9,7 @@ import { showToast } from "../sheets/toastStore";
 import type { PlayerDigestData } from "../types/contracts";
 import { liveDigestFrom } from "./liveEpisode";
 import { createNarrationController, type NarrationController } from "./narrationController";
-import { startPrewarm } from "./prewarmPage";
+import { prewarmWelcome, startPrewarm } from "./prewarmPage";
 
 const PREPARING_LABEL = "Preparing audio";
 
@@ -106,11 +106,16 @@ export function narrateDigest(digest: PlayerDigestData): void {
 
 /**
  * Asks for the first segments of a briefing that is not on this page (a podcast just made), in the
- * background. Silent whatever happens; once per briefing and tab, like a page's own prewarm.
+ * background. Silent whatever happens; once per briefing and tab, like a page's own prewarm. False
+ * when the browser's checks said not now (hidden, offline, data saver): the caller may ask again.
  */
-export function prewarmDigest(digest: PlayerDigestData): Promise<void> {
-  if (digest.audio || !startPrewarm(digest.id)) return Promise.resolve();
-  return getController().prewarm(digest);
+export async function prewarmDigest(digest: PlayerDigestData): Promise<boolean> {
+  if (digest.audio) return true;
+  if (!prewarmWelcome()) return false;
+  // Already tried in this tab: nothing to ask again.
+  if (!startPrewarm(digest.id)) return true;
+  await getController().prewarm(digest);
+  return true;
 }
 
 /** Plays the briefing on this page, narrating what is missing. */
