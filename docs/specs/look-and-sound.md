@@ -30,7 +30,6 @@ Visual language, covers and the header light, empty states, interface sounds, st
 
 ### Interface sounds
 - Sounds categorize by action (navigate, select, tap, open, close, success, failure) via one delegated listener loading on first gesture and following Sounds setting (D101).
-- A run that ends while its page is open plays success (a podcast ready to open) or failure once; a hidden page plays none (the push message covers it).
 - Enabled controls trigger cues: action buttons soft tap, dialogs/popovers open/close including Escape, toasts outcome. Silent after successful save.
 
 ### Style rules
