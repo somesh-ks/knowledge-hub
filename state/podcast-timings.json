@@ -42,6 +42,27 @@
         "share": 0.93,
         "writer_calls": 1
       }
+    },
+    {
+      "at": "2026-11-02T16:46:13.948Z",
+      "run_id": "41484563424",
+      "format": "discussion",
+      "length_minutes": 5,
+      "stages": {
+        "select": 31,
+        "cover": 1,
+        "script": 29787,
+        "publish": 13
+      },
+      "metrics": {
+        "stories": 7,
+        "matched": 12,
+        "empty_topics": 1,
+        "budget_chars": 4840,
+        "script_chars": 4381,
+        "share": 0.91,
+        "writer_calls": 1
+      }
     }
   ]
 }
