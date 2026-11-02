@@ -5,6 +5,7 @@ import { LastRunFile, type SourcesFile } from "@singularity/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { extractFullText, FEED_TEXT_ENOUGH_CHARS } from "../src/extract/extractText.js";
 import { createFirecrawlScrape } from "../src/extract/firecrawlScrape.js";
+import { EXA_WEEKLY_BUDGET } from "../src/fetch/exaBudget.js";
 import {
   FIRECRAWL_LISTING_CEILING,
   FIRECRAWL_LISTING_SHARE,
@@ -223,5 +224,52 @@ describe("the spend record", () => {
     // one to less.
     await tracker.begin(root, "2026-11-20T05:37:00.000Z");
     expect(tracker.guard.scrapeRoom).toBe(FIRECRAWL_RUN_CEILING);
+  });
+
+  // Exa had no stop at all (H7): a loop of runs could search without limit. Its week is read from
+  // the same ledger window as Firecrawl's.
+  it("gives a run what the 7 days before it left of Exa's weekly budget", async () => {
+    const root = await mkdtemp(join(tmpdir(), "spend-"));
+    dirs.push(root);
+    const run = "2026-11-02T05:37:00.000Z";
+    const searched = (run_id: string, requests: number) => ({
+      id: `${run_id}|daily|fetch|exa|search|owner`,
+      at: run_id,
+      run_id,
+      kind: "daily",
+      timezone: "Europe/Stockholm",
+      user: "owner",
+      scope: "shared",
+      stage: "fetch",
+      provider: "exa",
+      product: "search",
+      units: { requests },
+      usd: 0,
+    });
+    await mkdir(join(root, "state"));
+    await writeFile(
+      join(root, "state/costs-2026-10.json"),
+      JSON.stringify({
+        version: 1,
+        records: [
+          searched("2026-10-25T05:37:00.000Z", 400), // eight days back: outside the week
+          searched("2026-10-30T05:37:00.000Z", 500),
+        ],
+      }),
+    );
+    await writeFile(
+      join(root, "state/costs-2026-11.json"),
+      JSON.stringify({
+        version: 1,
+        records: [searched("2026-11-01T05:37:00.000Z", 150), searched(run, 60)],
+      }),
+    );
+    const tracker = new SpendTracker();
+    expect(tracker.exaRoom).toBe(Number.POSITIVE_INFINITY);
+    await tracker.begin(root, run);
+    expect(tracker.exaRoom).toBe(EXA_WEEKLY_BUDGET - 650);
+    // A week over the stop leaves none, never a negative room.
+    await tracker.begin(root, "2026-11-03T05:37:00.000Z");
+    expect(tracker.exaRoom).toBe(0);
   });
 });

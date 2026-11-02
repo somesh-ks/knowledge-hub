@@ -81,6 +81,8 @@ export interface FetchSetup {
   firecrawlKey?: string | undefined;
   /** Counts and limits Firecrawl requests for the run. Without it there is no ceiling (tests). */
   firecrawlGuard?: FirecrawlGuard | undefined;
+  /** Exa searches the week's budget leaves this run, read when the fetch stage starts. Without it there is no limit (tests). */
+  exaRoom?: (() => number) | undefined;
   /**
    * False when there is no Jev key to judge the scoring sample (D70): its feed reads would be
    * thrown away, so the sample is not planned. Tests leave it out and get a sample.

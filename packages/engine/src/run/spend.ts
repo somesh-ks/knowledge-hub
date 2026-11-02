@@ -3,8 +3,9 @@ import type { RunSpend } from "@singularity/core";
 import { z } from "zod";
 import { writeJsonAtomic } from "../audio/atomicFile.js";
 import type { Logger } from "../context.js";
-import { firecrawlUsedSince, recordRunCosts } from "../cost/ledger.js";
+import { exaUsedSince, firecrawlUsedSince, recordRunCosts } from "../cost/ledger.js";
 import { readJsonIfExists } from "../curate/inputs.js";
+import { EXA_WEEKLY_BUDGET } from "../fetch/exaBudget.js";
 import {
   EMPTY_FIRECRAWL_STATE,
   FIRECRAWL_WEEKLY_BUDGET,
@@ -86,6 +87,8 @@ export type SpendTotals = Pick<
 export class SpendTracker {
   readonly meter = new RequestMeter();
   readonly guard = new FirecrawlGuard();
+  /** Exa searches the week's budget has left for this run; unlimited until `begin` reads the ledger. */
+  exaRoom = Number.POSITIVE_INFINITY;
   private run: string | null = null;
   private base: Record<string, number> = {};
   private baseUnits: Record<string, number> = {};
@@ -101,6 +104,7 @@ export class SpendTracker {
     this.baseUnits = {};
     this.guard.restore(EMPTY_FIRECRAWL_STATE);
     this.guard.limitTo(Number.POSITIVE_INFINITY);
+    this.exaRoom = Number.POSITIVE_INFINITY;
     const raw = await readJsonIfExists(spendPath(root), "spend.json").catch(() => null);
     const parsed = raw === null ? null : SpendFile.safeParse(raw);
     if (parsed?.success && parsed.data.run === run) {
@@ -125,6 +129,10 @@ export class SpendTracker {
       const since = new Date(started - WEEK_MS);
       const used = await firecrawlUsedSince(root, since, new Date(started), run);
       this.guard.limitTo(FIRECRAWL_WEEKLY_BUDGET - used);
+      this.exaRoom = Math.max(
+        0,
+        EXA_WEEKLY_BUDGET - (await exaUsedSince(root, since, new Date(started), run)),
+      );
     } catch (error) {
       log?.warn("The cost ledger did not read: Firecrawl's weekly budget is not applied", {
         reason: error instanceof Error ? error.message : String(error),

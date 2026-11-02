@@ -156,7 +156,7 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
     {
       http: setup.http,
       now: () => now,
-      exa: { apiKey: setup.exaKey, queries: exaQueries },
+      exa: { apiKey: setup.exaKey, queries: exaQueries, room: setup.exaRoom?.() },
       firecrawl: { apiKey: setup.firecrawlKey, guard },
     },
     {

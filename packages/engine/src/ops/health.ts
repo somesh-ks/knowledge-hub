@@ -13,6 +13,7 @@ import {
 import { z } from "zod";
 import type { EpisodeVoiceEnv } from "../audio/segmentStore.js";
 import { loadAllCosts } from "../cost/ledger.js";
+import { EXA_WEEKLY_ALERT, EXA_WEEKLY_BUDGET } from "../fetch/exaBudget.js";
 import { FIRECRAWL_WEEKLY_ALERT, FIRECRAWL_WEEKLY_BUDGET } from "../fetch/firecrawlBudget.js";
 import { decideRun } from "../gate/decideRun.js";
 import { listDigestTargets } from "../publish/publishAudio.js";
@@ -391,6 +392,24 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
     );
   } else {
     passed.push(`Firecrawl used ${firecrawlWeek} requests in 7 days`);
+  }
+  const exaWeek = records
+    .filter((record) => record.provider === "exa" && Date.parse(record.at) > weekAgo)
+    .reduce((sum, record) => sum + (record.units.requests ?? 0), 0);
+  if (exaWeek >= EXA_WEEKLY_BUDGET) {
+    fault(
+      "exa_week_stopped",
+      "cost",
+      `Exa made ${exaWeek} searches in 7 days, past the ${EXA_WEEKLY_BUDGET} stop: runs have stopped searching through it.`,
+    );
+  } else if (exaWeek > EXA_WEEKLY_ALERT) {
+    warn(
+      "exa_week_high",
+      "cost",
+      `Exa made ${exaWeek} searches in 7 days (a normal week is about 240; runs stop at ${EXA_WEEKLY_BUDGET}).`,
+    );
+  } else {
+    passed.push(`Exa made ${exaWeek} searches in 7 days`);
   }
   const speech = status.budget.speechify;
   const used = sharedCount ?? speech.used;
