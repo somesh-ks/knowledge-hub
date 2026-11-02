@@ -59,13 +59,7 @@ export function whenIdle(work: () => void, scope: IdleScope = globalThis as Idle
 
 /** Checks the browser and marks the page tried. True when the prewarm may go ahead. */
 export function startPrewarm(id: string): boolean {
-  const connection = (navigator as Navigator & { connection?: Connection }).connection;
-  const allowed = prewarmAllowed({
-    hidden: document.hidden,
-    saveData: connection?.saveData === true,
-    online: navigator.onLine,
-  });
-  if (!allowed) return false;
+  if (!prewarmWelcome()) return false;
   let storage: Storage | null = null;
   try {
     storage = window.sessionStorage;
@@ -73,4 +67,14 @@ export function startPrewarm(id: string): boolean {
     storage = null;
   }
   return claimPrewarm(storage, id);
+}
+
+/** True when the browser is in a state that welcomes a background request right now. */
+export function prewarmWelcome(): boolean {
+  const connection = (navigator as Navigator & { connection?: Connection }).connection;
+  return prewarmAllowed({
+    hidden: document.hidden,
+    saveData: connection?.saveData === true,
+    online: navigator.onLine,
+  });
 }

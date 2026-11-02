@@ -104,7 +104,7 @@ test.describe("paths that used to leave the player stuck", () => {
     const dock = page.locator("[data-queue-dock]");
     await finger.press(dock.locator("[data-queue-toggle]"));
     await finger.press(dock.getByRole("link", { name: /^Start listening/ }));
-    await expect(player.root).toHaveAttribute("data-player-state", /playing|loading/);
+    await expect(player.root).toHaveAttribute("data-player-state", "playing");
     await player.collapsed();
     await player.dockSettled();
     await player.openPlayer();

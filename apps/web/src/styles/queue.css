@@ -250,6 +250,11 @@ html[data-player="open"] .queue-dock {
   display: none;
 }
 
+/* Listen now hugs its label instead of filling the row (owner, 2026-11-02: it read as a full-width primary). */
+.queue-actions > .queue-listen {
+  width: auto;
+}
+
 /* A text button's label lines up with the words above it; its padding stays as the touch target. */
 .queue-actions :is(.queue-retry, .queue-check, .queue-details) {
   margin-inline-start: calc(var(--space-4) * -1);

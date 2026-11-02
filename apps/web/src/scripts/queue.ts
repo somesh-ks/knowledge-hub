@@ -318,7 +318,10 @@ function paintRow(
   const href = item.ended === "done" ? (item.record?.href ?? "") : "";
   if (href && item.record) {
     const madeId = idFromHref(href);
-    if (madeId) warmFinished(madeId);
+    if (madeId) {
+      void loadRuntime().catch(() => {});
+      warmFinished(madeId);
+    }
   }
   const play = li.querySelector<HTMLAnchorElement>("[data-queue-play]");
   if (play) {
@@ -357,10 +360,24 @@ function idFromHref(href: string | null): string | null {
   return match?.[1] ?? null;
 }
 
+type PlayerRuntime = typeof import("../player/core/playerRuntime");
+
+/**
+ * The player's runtime, loaded ahead once a podcast is made so Start listening can unlock the audio
+ * element inside the tap itself (a phone refuses a first play started after an await).
+ */
+let runtime: PlayerRuntime | null = null;
+function loadRuntime(): Promise<PlayerRuntime> {
+  return import("../player/core/playerRuntime").then((loaded) => {
+    runtime = loaded;
+    return loaded;
+  });
+}
+
 /** Plays a made podcast now, in the persistent player; if that cannot start, opens its page. */
 async function playInPlace(id: string, fallbackHref: string): Promise<void> {
   try {
-    const { playQueueItem } = await import("../player/core/playerRuntime");
+    const { playQueueItem } = runtime ?? (await loadRuntime());
     playQueueItem(id);
   } catch {
     location.assign(fallbackHref);
@@ -369,23 +386,24 @@ async function playInPlace(id: string, fallbackHref: string): Promise<void> {
 
 /**
  * Asks for a made podcast's first spoken segments as soon as its run ends, so the press on Start
- * listening finds them ready and nothing says "Preparing audio" first. Only for a run this browser
- * started (a listener who made it is likely to press play), once per podcast, and never when the
- * page's own checks say a background request is unwelcome (prewarmPage.ts).
+ * listening finds them ready and nothing says "Preparing audio" first. Once per podcast and tab
+ * (prewarmPage.ts claims it), and never when the page's own checks say a background request is
+ * unwelcome: a refusal is tried again on the next redraw instead of being given up.
  */
-const warmed = new Set<string>();
+const warming = new Set<string>();
 function warmFinished(id: string): void {
-  if (warmed.has(id)) return;
-  warmed.add(id);
+  if (warming.has(id)) return;
+  warming.add(id);
   void (async () => {
     const [{ loadQueueDigest }, narration] = await Promise.all([
       import("../player/core/queueMeta"),
       import("../narration/narrationRuntime"),
     ]);
     const digest = await loadQueueDigest(id);
-    if (digest) await narration.prewarmDigest(digest);
+    if (!digest || !(await narration.prewarmDigest(digest))) warming.delete(id);
   })().catch(() => {
     // A prewarm is never worth an error.
+    warming.delete(id);
   });
 }
 
@@ -812,6 +830,8 @@ export function mountQueue(startedHere = false): void {
       const plain = !(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey);
       if (id && plain && event.button === 0) {
         event.preventDefault();
+        // Inside the tap, while the element is idle: the podcast starts a moment later without a second tap.
+        runtime?.getPlayerAudio().prime("/silence.wav");
         void playInPlace(id, start.href);
       }
     }
