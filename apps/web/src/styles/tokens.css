@@ -206,6 +206,7 @@
   --state-step-hover-quiet: 0.025;
   --state-step-press: 0.1;
   --opacity-disabled: 0.32;
+  --opacity-dim: 0.6;
   --opacity-ambient-light: 0.6;
   --opacity-ambient-dark: 0.32;
   --z-beneath: -1;

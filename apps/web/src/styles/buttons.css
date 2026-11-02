@@ -274,7 +274,7 @@
 [data-playing="false"] .swap-playing,
 [data-playing="true"] .swap-paused {
   opacity: 0;
-  transform: scale(0.95);
+  transform: scale(var(--scale-enter));
   filter: blur(var(--blur-enter));
 }
 

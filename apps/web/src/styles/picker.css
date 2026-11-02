@@ -136,7 +136,7 @@
   box-shadow: var(--shadow-popover);
   color: var(--color-on-surface);
   opacity: 0;
-  scale: 0.97;
+  scale: var(--scale-enter);
   transform-origin: top center;
   transition:
     opacity var(--duration-exit) var(--ease-out),
@@ -166,7 +166,7 @@
 @starting-style {
   .picker-pop:popover-open {
     opacity: 0;
-    scale: 0.97;
+    scale: var(--scale-enter);
   }
 }
 

@@ -356,7 +356,7 @@ html[data-player="open"] .queue-dock {
 
 /* A row being cancelled waits where it is, and says so. */
 .queue-row[data-cancelling] .queue-lead {
-  opacity: 0.6;
+  opacity: var(--opacity-dim);
 }
 
 /* ------------------------------------------------------------------ the icons that morph */
