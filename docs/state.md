@@ -12,7 +12,7 @@ Updated 2026-11-02. Rewrite, never append.
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). Regenerate and Catch up queue with Cancel; ended runs stay for the day (D204, D231).
 - Saved copies, offline, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews a PR once when it is ready, by tier (D192, D292).
-- Styles (D306, D310, D314, D315, D319): Halloween and Expressive (larger touch sizes, a `--shape-*` corner scale, looping empty states), a Hue slider, covers as one live vector recoloured by `cover.css`, and neutrals generated from a recipe per style (`styleRecipe.ts`). closed when: Somesh OKs the stills ([ghost states](https://claude.ai/artifact/MVNhZmVMk4kYNu2tJbHRPp)), a style change on his phone recolours every page, cover and header light with no flash and survives a restart, and a press on the Library view toggle and a toast action is deeper than the hover. Disabled controls stay still ([stills](https://claude.ai/artifact/Kc7RaKbskg5UeGULwwKtU8)).
+- Styles (D306, D310, D314, D315, D319): Halloween and Expressive (larger touch sizes, a `--shape-*` corner scale, looping empty states), a Hue slider, live-vector covers (`cover.css`), and neutrals from a recipe per style (`styleRecipe.ts`). closed when: Somesh OKs the stills ([ghost states](https://claude.ai/artifact/MVNhZmVMk4kYNu2tJbHRPp)), a style change on his phone recolours every page, cover and header light with no flash and survives a restart, and a press on the Library view toggle and a toast action is deeper than the hover. Disabled controls stay still ([stills](https://claude.ai/artifact/Kc7RaKbskg5UeGULwwKtU8)).
 
 ## Tests
 
@@ -21,13 +21,12 @@ Unit (CI): 352 files, 5,449 tests, about 2 min. Site e2e: 448, 10 min. Player: 8
 ## Not working or unverified
 
 - D318 edge cache. closed when: a week of his loads is mostly HIT or STALE.
-- Blob on Pro trial since 10-30, ending 11-13 (D251, D256). Plan call 11-06 to 11-08 (Pro, or Hobby: 1.1K of 2,000 advanced Blob ops a month on 11-01, under 70 deploys a day), from the Usage tab, the only op count. closed when: the plan is chosen.
+- Blob on Pro trial since 10-30, ending 11-13 (D251, D256). Plan call 11-06 to 11-08 (Pro, or Hobby: 1.1K of 2,000 advanced Blob ops a month on 11-01), from the Usage tab. closed when: the plan is chosen.
 - Bottom bar ripple (D286) and tab state. closed when: on his iPhone a tap shows the wave and one pill, and the latest podcast from the Library keeps it lit.
 - Config snapshot (D300 step 1): `snapshot.yml` writes the config store to the `config_snapshots` table each Sunday and `config restore --latest` reads it back; untried against real Neon. closed when: the workflow has run once, the row exists, and `config restore --file` on a copy rebuilds the rows.
 - Content out of git (D300 step 2b, #573): jobs `content pull --track` first and `content push` after the commit; `Digests/` and `Podcasts/` left `main`. closed when: the next scheduled daily's log shows `Load content` and `Save content` and its digest is on the site.
 - Edge purge waits from the run's last save (#590, D318). closed when: a Catch up's `content` log says `waiting N s` with N under 30 and its Library entry opens on the new page
-- Queue plays in place (D277). closed when: a third-item tap keeps the bar up.
-- Player round (D343, #615): tab line, queue grip and swipe-to-remove, phone bar swipe, eased queue dock. closed when: on his Android Chrome a grip drag reorders, a swipe either way removes a row, and a swipe on the bar's title steps the story without opening the player.
+- Queue and bar (D277, D343, #615): a third-item tap keeps the bar up. closed when: on his Android Chrome the grip reorders, a swipe either way removes a row, and a swipe on the bar's title steps the story.
 - Player ⋮ menu and Saved (D309, #580): checked in Chromium only. closed when: held press, the speed screen and Settings > Saved work on his Android Chrome.
 - Voice list (D276): closed when: a voice is heard from its list on his iPhone.
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily says "podcast".
