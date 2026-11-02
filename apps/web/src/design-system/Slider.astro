@@ -1,6 +1,6 @@
 ---
 import type { HTMLAttributes } from "astro/types";
-import { sliderClass } from "./slider";
+import { sliderClass, sliderWaveFieldClass } from "./slider";
 import "../styles/slider.css";
 
 interface SliderProps {
@@ -11,11 +11,16 @@ interface SliderProps {
    * while it is held (D328). The caller keeps --range-fill on the field the slider is wrapped in.
    */
   hue?: boolean;
+  /**
+   * In Expressive the track up to the thumb is a drifting wave and the rest stays straight; other styles
+   * draw the plain Slider. The caller keeps --range-fill on the field the input is wrapped in.
+   */
+  wavy?: boolean;
 }
 
 type Props = SliderProps & Omit<HTMLAttributes<"input">, keyof SliderProps | "type">;
 
-const { class: placement, hue = false, ...rest } = Astro.props;
+const { class: placement, hue = false, wavy = false, ...rest } = Astro.props;
 ---
 
 {
@@ -23,6 +28,10 @@ const { class: placement, hue = false, ...rest } = Astro.props;
     <span class:list={["slider-hue-field", placement]}>
       <input class={sliderClass()} type="range" {...rest} />
       <span class="slider-hue-swatch" aria-hidden="true" />
+    </span>
+  ) : wavy ? (
+    <span class:list={[sliderWaveFieldClass(), placement]}>
+      <input class={sliderClass()} type="range" {...rest} />
     </span>
   ) : (
     <input class:list={[sliderClass(), placement]} type="range" {...rest} />
