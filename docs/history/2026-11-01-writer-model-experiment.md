@@ -10,3 +10,4 @@ The first pass only is compared; the voice rewrite loop is left out so the model
 
 Result (run 41348226002, 9 stories): Haiku medium had the best voice score and grounding at $0.012 against $0.199 for Sonnet high; Gemini Flash did not stay grounded. The owner chose Haiku for the first pass with Sonnet repairs (D308), and `models.json` and `prices.json` changed with it.
 
+The owner asked (2 Nov) for Haiku at high effort as a further arm, to run with the next dispatch of `writer_experiment`: it answers whether more thinking on the cheap model beats the Sonnet repair step, which is the case for a Haiku-high fallback or repair stage.
