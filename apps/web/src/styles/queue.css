@@ -45,8 +45,9 @@
 }
 
 /* The dock arrives, it does not appear: a started Catch up or Regenerate sends its sheet down, and the
-   queue rises from the bar a beat later, so the run is seen to land where it can be followed. */
-.queue-dock:not([hidden]) {
+   queue rises from the bar a beat later, so the run is seen to land where it can be followed. Only a
+   run started here marks the dock `data-arriving` (queue.ts): a restored dock appears at once. */
+.queue-dock[data-arriving]:not([hidden]) {
   animation: queue-dock-in var(--duration-enter) var(--ease-out) var(--duration-exit) both;
 }
 
@@ -565,7 +566,7 @@ html[data-player="open"] .app-nav-queue {
     animation: none;
   }
 
-  .queue-dock:not([hidden]) {
+  .queue-dock[data-arriving]:not([hidden]) {
     animation: none;
   }
 

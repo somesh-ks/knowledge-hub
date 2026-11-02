@@ -1,5 +1,6 @@
 ---
 import type { DigestEntry } from "../lib/digests";
+import { airedMinutes } from "../lib/digestView";
 import { longDate, longDateTitle } from "../lib/format";
 import { FACT_SEPARATOR } from "../lib/library";
 import { cardFacts } from "../lib/libraryCard";
@@ -69,7 +70,7 @@ const hasCount = segments.length > 2;
         path={`/d/${entry.id}`}
         kind="briefing"
         audio={entry.audioMode === "ready" ? entry.player.audio?.url : undefined}
-        minutes={digest.listen_minutes}
+        minutes={airedMinutes(entry)}
         deletable={digest.kind === "on-demand"}
         regenerations={digest.regenerations}
         downloads={downloads}

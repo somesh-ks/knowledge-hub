@@ -40,6 +40,8 @@ import {
 /** How often the list asks again while the queue is open, and while it is folded. */
 const OPEN_POLL_MS = 4000;
 const FOLDED_POLL_MS = 12_000;
+/** How long a started run marks the dock as arriving; a dock that shows later is not animated. */
+const ARRIVE_MS = 3000;
 /** A run stopped from another device is hidden for this long, in case GitHub still lists it as running. */
 const CANCELLED_HIDE_MS = 45_000;
 /** The popover opens by itself for a run started here, after the sheet that started it has gone. */
@@ -695,6 +697,13 @@ export function mountQueue(startedHere = false): void {
   const found = document.querySelector<HTMLElement>("[data-queue]");
   if (!found) return;
   root = found;
+  // The dock rises in only for a run started here (queue.css), never when it is restored or re-shown.
+  const markArriving = (): void => {
+    const panel = dock();
+    if (!panel) return;
+    panel.setAttribute("data-arriving", "");
+    window.setTimeout(() => panel.removeAttribute("data-arriving"), ARRIVE_MS);
+  };
   const openForNewRun = (): void => {
     if (!matchMedia(WIDE).matches) return;
     window.setTimeout(() => {
@@ -711,6 +720,7 @@ export function mountQueue(startedHere = false): void {
   if (mounted) {
     render();
     // A run started here while the queue was mounting for an older record: the first mount did not open for it.
+    if (startedHere) markArriving();
     if (startedHere) openForNewRun();
     return;
   }
@@ -778,8 +788,12 @@ export function mountQueue(startedHere = false): void {
   });
   // A run was started here. On a wide screen the popover opens to show it, once the sheet that
   // started it has gone, as a browser shows a download it has begun.
-  document.addEventListener(GENERATION_STARTED_EVENT, openForNewRun);
+  document.addEventListener(GENERATION_STARTED_EVENT, () => {
+    markArriving();
+    openForNewRun();
+  });
   // The first run of a page's life began before this script was loaded to hear it.
+  if (startedHere) markArriving();
   if (startedHere) openForNewRun();
 
   render();
