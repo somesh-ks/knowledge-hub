@@ -135,7 +135,7 @@ export function followHeld(root: HTMLElement, note: HTMLElement): void {
 }
 
 /** What a row that waits for a refused add says (TOPIC_NOT_ADDED in topicsEditor.ts). */
-const TOPIC_NOT_ADDED = "Will be added with your next change.";
+const TOPIC_NOT_ADDED = "Not added yet. It is tried again with your next change.";
 
 /** The lines on this page that say an edit was added: a new topic's row, a suggested source's. */
 function addedLines(root: HTMLElement, op: ConfigOp): [Element, string][] {

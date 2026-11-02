@@ -6,6 +6,7 @@
  * what went wrong, with a Retry, and a removal, which waits longer with an Undo because it is the one
  * change that cannot be put back by changing it again. Hiding or leaving the page sends what is waiting.
  */
+import { connectivity } from "../lib/connectivity";
 import { appendOutbox } from "../lib/outbox";
 import { CANNOT_KEEP, KEPT } from "../lib/saveCopy";
 import type { Pending, SaveContext, SaveState } from "./managePageSave";
@@ -30,10 +31,10 @@ function keepWithoutSender(changes: Map<string, Pending>): boolean {
     return false;
   }
   // One entry per change: the sender never splits one, and it carries the edits that must go with it.
-  for (const [, pending] of waiting) {
-    if (!appendOutbox([pending.op, ...(pending.with ?? [])])) return false;
-  }
+  // Each one is settled as soon as it is kept, so a refusal part way leaves only the changes that
+  // are not kept still pending, and one kept change is never also sent from the page.
   for (const [key, pending] of waiting) {
+    if (!appendOutbox([pending.op, ...(pending.with ?? [])])) return false;
     pending.done?.();
     pending.el.dataset.was = pending.now;
     changes.delete(key);
@@ -186,6 +187,9 @@ export function mountAutosave(
       })
       .catch(() => {
         // The sender could not be fetched: keep the changes for the connection, or say so and let Retry try again.
+        // The code could not be fetched: the site cannot be reached, whatever the browser's flag says,
+        // so the return is asked about and the kept changes go out when it comes.
+        connectivity().reportUnreachable();
         if (keepWithoutSender(changes)) {
           settled();
           show(KEPT, "done");

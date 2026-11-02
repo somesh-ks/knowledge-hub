@@ -24,6 +24,7 @@ import {
 import { sliderClass } from "../design-system/slider";
 import { sendToast } from "../scripts/toastEvent";
 import "../styles/slider.css";
+import { downloadFailure } from "../lib/downloadCopy";
 import { longDateFromDigestId } from "./core/formatTime";
 import { recordingCaption } from "./core/playerCopy";
 import { getPlayerStore } from "./core/playerRuntime";
@@ -189,7 +190,7 @@ export default function PlayerMenu() {
       toast("Downloaded for offline listening", "success");
     } catch (error) {
       if (error instanceof NotReadyError) toast("Not ready offline yet");
-      else toast("Couldn't download. Try again when you're back online.", "error");
+      else toast(downloadFailure(error), "error");
     }
   };
 

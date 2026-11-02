@@ -71,7 +71,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D199 | Live content and tombstones | amends D173 |
 | D200 | `fetch_via` through the store | active |
 | D201 | No write-route auth until OAuth | amends D160 |
-| D202 | A deploy loads itself | amends D146 |
+| D202 | A deploy loads itself | amends D146; amended by D330 |
 | D203 | Live Health page | active |
 | D204 | Guards for a short or lost run, health metrics, one run card | active |
 | D205 | Settings paint the kept copy at once | amends D172 |
@@ -164,7 +164,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D296 | Config store is the only home of owner config; examples in the repo | amends D149; supersedes D185 |
 | D297 | A section may stand over its allowance only as far as the floor needs | amends D35 |
 | D298 | Repository public, owner data moved out of git, history rewritten last | supersedes D9 |
-| D299 | Offline settings edits stay on the device and send when back online | amends D79, D91, D259 |
+| D299 | Offline settings edits stay on the device and send when back online | amends D79, D91, D259; amended by D331 |
 | D300 | Digests and audio in Blob, state in Postgres, weekly private snapshot of the config store | partly superseded by D311; steps 1 and 2a built, 2b in review |
 | D302 | Pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked | active |
 | D306 | A seasonal style may change more than tokens | amends D268 |

@@ -32,7 +32,7 @@ export function describeMediaError(
     case MEDIA_ERR_NETWORK:
       return {
         kind: "network",
-        message: "The audio stopped loading. Try again when you're back online.",
+        message: "The audio stopped loading. Try again.",
       };
     case MEDIA_ERR_DECODE:
       return {

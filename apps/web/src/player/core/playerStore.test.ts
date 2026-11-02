@@ -677,7 +677,7 @@ describe("errors", () => {
     const state = harness.store.getState();
     expect(state.status).toBe("error");
     expect(state.error?.kind).toBe("network");
-    expect(state.error?.message).toMatch(/online/);
+    expect(state.error?.message).toMatch(/Try again/);
   });
 
   it("shows the reason a playlist gave for a file it could not make, as the one message", () => {

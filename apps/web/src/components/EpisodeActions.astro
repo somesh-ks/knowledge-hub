@@ -40,7 +40,7 @@ const COPY = {
   cooldown: "You can do that again in",
   daily_cap: "That's today's limit. Try again in",
   // A 5xx: the server logged why, and the reference it sent is added to this (lib/errorRef.ts).
-  "503": "Something broke on our side, so nothing changed.",
+  "503": "Something broke on our side. Check whether it went through before trying again.",
   // A 5xx that is not the site's own answer: the function crashed (lib/errorRef.ts).
   crashed: "Something broke on our side, and nothing changed. Try again in a moment.",
   network: "No connection right now. Try again when you're back online.",

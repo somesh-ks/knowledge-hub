@@ -29,7 +29,8 @@ export type StartResult =
 export const MESSAGES = {
   offline: "You're offline. Try again when you're back online.",
   // The server logged why; the reference it sent is added to this (lib/errorRef.ts).
-  unavailable: "Something broke on our side, so no podcast was started.",
+  unavailable:
+    "Something broke on our side. A podcast may have started, so check the queue before trying again.",
   crashed: "Something broke on our side, and nothing changed. Try again in a moment.",
   invalid: "That didn't go through. Reload the page and try again.",
   regenerationLimit: "This podcast has been regenerated 3 times, the most it takes.",

@@ -49,6 +49,8 @@ const KEPT_CACHE = "singularity-kept-v1";
 const CURRENT_CACHES = [SHELL_CACHE, PAGES_CACHE, MEDIA_CACHE, AUDIO_CACHE, KEPT_CACHE];
 /** A kept page younger than this is not fetched again by KEEP_READY. */
 const KEPT_FRESH_MS = 60 * 60 * 1000;
+/** More hashed files than this in KEPT_CACHE means old builds' files have piled up. */
+const MAX_KEPT_ASSETS = 400;
 
 const OFFLINE_URL = "/offline";
 const SHELL_PAGES = ["/", "/library", OFFLINE_URL];
@@ -497,13 +499,25 @@ async function keepReady(paths, force) {
     }
     const forced = new Set(force.map((path) => new URL(path, self.location.origin).pathname));
     const cache = await caches.open(KEPT_CACHE);
+    // The hashed files a kept page needs sit in the same cache and are not pages: only pages are
+    // forgotten here. Files of old builds pile up, so past a limit all are dropped and every kept
+    // page is read again, which brings back the ones that are still in use.
+    let assets = 0;
     for (const key of await cache.keys()) {
-      if (!wanted.has(new URL(key.url).pathname)) await cache.delete(key);
+      const file = new URL(key.url).pathname;
+      if (file.startsWith("/_astro/")) assets += 1;
+      else if (!wanted.has(file)) await cache.delete(key);
+    }
+    const refill = assets > MAX_KEPT_ASSETS;
+    if (refill) {
+      for (const key of await cache.keys()) {
+        if (new URL(key.url).pathname.startsWith("/_astro/")) await cache.delete(key);
+      }
     }
     for (const path of wanted) {
       const kept = await cache.match(path);
       const age = kept ? Date.now() - Number(kept.headers.get(STORED_AT) || 0) : Infinity;
-      if (!forced.has(path) && age < KEPT_FRESH_MS) continue;
+      if (!refill && !forced.has(path) && age < KEPT_FRESH_MS) continue;
       try {
         const response = await fetch(path);
         if (!response.ok || !(response.headers.get("content-type") || "").includes("text/html"))

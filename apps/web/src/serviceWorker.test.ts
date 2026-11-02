@@ -773,6 +773,31 @@ describe("service worker: pages offline (D330)", () => {
     );
   });
 
+  // Bug (review, 2026-11-02): the next ask dropped the hashed files it had just stored with a page, so
+  // a kept page that was not opened lost its styles and scripts offline.
+  it("keeps the files a kept page needs when it is asked again", async () => {
+    const worker = load((url) => {
+      if (url.endsWith("/_astro/kept.css"))
+        return new Response("body{}", { headers: { "content-type": "text/css" } });
+      // Only the kept page names the file, so the shell's own copies cannot stand in for it.
+      return url.endsWith("/settings/saved")
+        ? html('<link rel="stylesheet" href="/_astro/kept.css">kept page')
+        : html("other page");
+    });
+    await worker.lifecycle("install");
+    const ask = async (paths: string[]) => {
+      const waits: Promise<unknown>[] = [];
+      worker.handlers.get("message")?.({
+        data: { type: "KEEP_READY", paths, force: [] },
+        waitUntil: (promise: Promise<unknown>) => waits.push(promise),
+      });
+      await Promise.all(waits);
+    };
+    await ask(["/settings/saved"]);
+    await ask(["/settings/saved"]);
+    expect(worker.caches.stored().filter((key) => key.endsWith("/_astro/kept.css"))).toHaveLength(1);
+  });
+
   it("stands in with the offline page, at the address asked for, for a page it never saw", async () => {
     let online = true;
     const worker = load((url) => {

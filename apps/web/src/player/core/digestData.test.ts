@@ -40,7 +40,7 @@ describe("reading the digest data element", () => {
 
 describe("media errors", () => {
   it("says what happened and what to do for each failure", () => {
-    expect(describeMediaError(2, true)?.message).toMatch(/online/);
+    expect(describeMediaError(2, true)?.message).toMatch(/Try again/);
     expect(describeMediaError(3, true)?.kind).toBe("decode");
     expect(describeMediaError(4, true)?.kind).toBe("unavailable");
     expect(describeMediaError(undefined, true)?.kind).toBe("unknown");

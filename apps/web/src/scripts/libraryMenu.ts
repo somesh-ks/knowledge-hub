@@ -8,6 +8,7 @@
  * (HeroMenu.astro, `data-page-menu`) offers the same Download and Add to queue and is wired here too.
  */
 import { track } from "../lib/analytics";
+import { downloadFailure } from "../lib/downloadCopy";
 import { NotReadyError } from "../lib/downloads";
 import { deviceStorage, setSaved } from "../player/core/saved";
 import { installCardHold } from "./cardHold";
@@ -93,7 +94,7 @@ async function toggleDownload(root: HTMLElement): Promise<void> {
   } catch (error) {
     // A turn without its file yet: a download never spends narration to make it.
     if (error instanceof NotReadyError) toast("Not ready offline yet");
-    else toast("Couldn't download. Try again when you're back online.", "error");
+    else toast(downloadFailure(error), "error");
   } finally {
     card.removeAttribute("data-downloading");
     await syncDownloads();
