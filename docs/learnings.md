@@ -6,7 +6,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 - 2026-10-28: `topics.spec.ts` "Add source" fails on a machine's first local run: it writes its untracked screenshot baseline (never commit it). `CI=1` skips it.
 - Two browser suites at once share `apps/web/dist` and give false failures.
-- 2026-10-22: in the cloud container Chromium goes through the agent proxy, so `--host-resolver-rules` (a build served under the production host, to see a host-gated script) did nothing until launched with `--no-proxy-server`.
+- 2026-10-22: in the cloud container Chromium goes through the agent proxy, so `--host-resolver-rules` (to serve a build under the production host) did nothing until launched with `--no-proxy-server`.
 - 2026-10-21: `context.route` misses the worker's requests: fake a deploy in `staticServer.mjs`.
 - 2026-10-19: a source added in script was a tinted stub (no address, rating, checkbox) whose `box-shadow` spread 8px over the next row; the specs checked text, not parts. A script row mirrors its Astro component's markup, and its spec asserts the parts.
 - 2026-10-23: new card tokens let `.card-group`'s row padding beat the Costs card's (Costs is not in the grid spec). Screenshot every page using a primitive whose tokens change.
@@ -91,6 +91,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-16: an installed Android web app keeps the manifest's theme_color from install for the system navigation bar; a runtime theme-color meta never repaints it. Leave theme_color out so the bars follow the system theme.
 - 2026-10-14: on mobile Chrome a fixed element held by its bottom edge moves with the address bar in the same frame; one held by both edges (`inset: 0`) resizes only after the gesture (#120). Hold bottom-stack elements by the bottom edge; full-height boxes by `100dvh`.
 - 2026-10-11: Safari 27 has no `overlay`, so a closing dialog or popover leaves the top layer as its exit starts: give top-layer elements their own `position` and a z-index (the top layer ignores it), and close at once under `@supports not (overlay: auto)` where an ancestor has a transform.
+- 2026-11-01: re-opening a popover the browser closed (cardHold) sounded as close then open, three cues per long press: mark the hold (`data-hold-until`), skip its echoes.
 - 2026-10-11: the voice sample button never worked in production: it played Speechify's own URL, which the page's `media-src` blocks, and its error handler hid the button, so it looked missing. A third-party media URL needs the CSP checked, or a same-origin route (`/api/voice-sample`).
 - 2026-10-09: a move took 400 ms though the page was ready after 70: the mark that picks the animation (`data-astro-nav`) was lost in the swap, as Astro 7 keeps only its own root attributes. Carry it onto `event.newDocument` in `astro:before-swap`; check with `document.getAnimations()`.
 - 2026-10-09: The first press after opening blocks about 200 ms with the audio device idle, 75 ms warm: `new AudioContext()` inside the press. `latencyHint` and `sampleRate` do not help (a first measurement said they did: the first context created pays); reverse the order as the control.
@@ -126,6 +127,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Agents and worktrees
 
+- 2026-11-01: 40 of #525's 44 commits were unreviewed: CodeRabbit pauses after five reviewed commits, noted only in its summary ("Last reviewed commit"). Before a merge, that commit must be the head (D292).
 - 2026-10-27: a squash merge leaves a branch's commits off main, so `git branch --merged` and commit searches miss them: find a branch's fate through PR search.
 - 2026-10-27: Windows junctions from `worktreeLinks.mjs` deleted the main checkout's `node_modules` twice: use `--remove` before `git worktree remove`.
 - 2026-10-23: a design-audit agent in a worktree-isolated session took no screenshot: the guard refused every heredoc, absolute path or glob in its Bash. Brief it to write scripts with the Write tool into the scratchpad and run `node <path>`.
@@ -133,8 +135,8 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-24: `gh api repos/<repo>/rules/branches/main` returns `[]`: the D175 ruleset is not enforced, so auto-merge would merge before CI, and #265 merged while its browser job ran. Merge by hand once checks pass; `gh pr checks` can list a finished job as pending (read the PR's `statusCheckRollup`).
 - 2026-10-24: a layout test's invented $97.70 in a screenshot read to the owner as real spend. Use plainly fake figures, or say "fixture", in shots shown to the owner.
 
-- 2026-10-22: a worker lifted a rule a code comment tied to two dated owner asks (the release cap, #209) and logged it as a judgment call, and its bot review posted nothing. Before changing a rule whose comment cites the owner, ask; review every PR locally when the bot is silent.
-- 2026-10-22: another session's cleanup removed this worktree (no commits looks merged): commit a WIP early; remove only your own.
+- 2026-10-22: a worker lifted a rule a code comment tied to two dated owner asks (the release cap, #209) and logged it as a judgment call, and its bot review posted nothing. Before changing a rule whose comment cites the owner, ask.
+- 2026-10-22: another session's cleanup removed this worktree (no commits looks merged): commit a WIP early; remove only yours.
 - 2026-10-22: one `astro dev` per install, so a second worktree's is refused; never `--force` it (that kills the other): `PORT=47xx node e2e/run.mjs --serve-only`.
 - 2026-10-22: #160 merged without its review fixes: the commit carrying them was made on a detached HEAD, so `git push` said "Everything up-to-date" and another session merged the PR's older head. After a push, compare `git ls-remote origin <branch>` with `git rev-parse HEAD`.
 - 2026-10-16: a worktree's `node_modules` symlink was committed (the ignore rule `node_modules/` matches directories only), and merging that branch replaced the real, ignored `apps/web/node_modules` with it: git overwrites ignored paths. The rule is now `node_modules`; after such a merge, run `npm ci`.
@@ -143,5 +145,4 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-12: cherry-pick a worker's non-merge commits (`git log --no-merges --reverse <lead>..<branch>`), then rerun `biome check`: formatting differences show on the combined tree.
 - 2026-10-21: workers hit the 90-call cap: one piece each, WIP commit after the first pass. A finished worker's worktree stays locked: `remove -f -f`.
 - 2026-10-21: a worktree can start from an older base: check its last commit first.
-- 2026-10-11: the review plugin skips a PR it already reviewed, so new commits go unreviewed: run `/code-review` on the range.
 - 2026-10-06: the auto-mode classifier blocks credential creation, store deletion and unreviewed merges; the owner runs those.

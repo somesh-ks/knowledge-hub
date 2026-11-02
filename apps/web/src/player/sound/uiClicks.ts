@@ -12,6 +12,7 @@
  * engine makes this a silent no-op.
  */
 import { WHEEL_DETENT } from "../../design-system/wheel";
+import { HOLD_UNTIL } from "../../scripts/cardHold";
 import { cuePlayedSince, getHaptics, playUiCue } from "./soundController";
 import type { Cue } from "./soundMap";
 import {
@@ -123,6 +124,24 @@ function say(cue: Cue | null): void {
     document.dispatchEvent(new CustomEvent("singularity:cue", { detail: cue.name }));
 }
 
+/** Sheets a long press opened that have been heard once, until the hold lets go of them. */
+const heardHold = new WeakSet<Element>();
+
+/**
+ * A held card's sheet (cardHold.ts) is closed by some browsers at the lift and opened again by the
+ * hold: that close and reopen are one sheet staying open, so it is heard open once (2026-11-01, the
+ * owner: "a triple tap" on a long press).
+ */
+function isHoldEcho(popover: Element, opening: boolean): boolean {
+  if (!(Number(popover.getAttribute(HOLD_UNTIL)) > performance.now())) {
+    heardHold.delete(popover);
+    return false;
+  }
+  if (!opening || heardHold.has(popover)) return true;
+  heardHold.add(popover);
+  return false;
+}
+
 /** An open or close the press already sounded (or that follows one) is not sounded again. */
 function sayState(opening: boolean): void {
   // A close right after an open (or an open right after a close) is the person's, not an echo.
@@ -161,7 +180,9 @@ if (typeof document !== "undefined") {
       const popover = event.target;
       if (!(popover instanceof HTMLElement) || !popover.matches("[popover]:not([popover=manual])"))
         return;
-      sayState((event as Event & { newState?: string }).newState === "open");
+      const opening = (event as Event & { newState?: string }).newState === "open";
+      if (isHoldEcho(popover, opening)) return;
+      sayState(opening);
     },
     true,
   );

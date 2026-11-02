@@ -1031,6 +1031,24 @@ describe("component stylesheets", () => {
     }
   });
 
+  it("takes every hover and press fill from a state token, never a hand-rolled mix (D317)", () => {
+    // A hover on a fill is the fill's own hover token (`--color-accent-hover`, `--chip-bg-hover`):
+    // the same hue and chroma, lightness stepped. A mix of the label color over the fill dulled it.
+    // A control with no fill still lays the label color over transparent; that goes when the ghost
+    // controls move to the surface tokens (the step after D317), and this test then drops the allowance.
+    const mixes = /color-mix\((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\)/g;
+    for (const [file, css] of ownCss()) {
+      if (file === "tokens.css") continue;
+      for (const [mix] of css.matchAll(mixes)) {
+        if (!/--state-(hover|press)\b/.test(mix)) continue;
+        expect(mix, `${file}: a mix over a fill`).toMatch(/transparent\s*\)$/);
+      }
+      expect(css, `${file} steps lightness by hand`).not.toMatch(/--state-step-/);
+      if (file !== "cover.css")
+        expect(css, `${file} derives a color by hand`).not.toMatch(/oklch\(from /);
+    }
+  });
+
   it("writes a scroll timeline with the animation longhands, never the shorthand", () => {
     // The build's minifier folds `animation` and `animation-timeline` of one rule into a single
     // shorthand declaration, which Chrome rejects: the fade or the line then never runs.

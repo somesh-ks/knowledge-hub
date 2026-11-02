@@ -21,7 +21,7 @@
   margin: 0;
   padding: var(--space-2);
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: var(--shape-md);
   background: var(--color-surface-overlay);
   box-shadow: var(--shadow-popover);
   color: var(--color-on-surface);
@@ -93,7 +93,7 @@
   width: 100%;
   min-height: var(--size-touch);
   padding-inline: var(--space-4);
-  border-radius: var(--radius-sm);
+  border-radius: var(--shape-sm);
   color: var(--color-on-surface);
   font-size: var(--font-size-body);
   line-height: var(--font-leading-label);
@@ -106,11 +106,11 @@
    corner around it. The phone's sheet (below 40rem) keeps its own rows. */
 @media (width >= 40rem) {
   .menu-list {
-    border-radius: var(--radius-2xl);
+    border-radius: var(--shape-2xl);
   }
 
   .menu-list .menu-item {
-    border-radius: var(--radius-xl);
+    border-radius: var(--shape-xl);
   }
 }
 
@@ -311,7 +311,7 @@
      that height, so a press or a focus ring is a full pill like the picker's rows (owner, 2026-11-01). */
   .menu-sheet .menu-item {
     min-height: var(--size-option);
-    border-radius: var(--radius-xl);
+    border-radius: var(--shape-xl);
   }
 
   /* Keys and a screen reader's focus show as the press fill, not a ring, inside the sheet (owner,

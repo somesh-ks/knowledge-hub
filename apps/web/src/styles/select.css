@@ -40,6 +40,8 @@
  */
 .select-tonal {
   --select-bg: var(--color-surface-container);
+  --select-bg-hover: var(--color-surface-container-hover);
+  --select-bg-pressed: var(--color-surface-container-pressed);
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -97,15 +99,11 @@
 
 @media (hover: hover) and (pointer: fine) {
   .select-tonal:hover {
-    background: color-mix(in oklch, var(--select-bg), var(--color-on-surface) var(--state-hover));
+    background: var(--select-bg-hover);
   }
 
   .select-tonal[data-active]:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-accent-container),
-      var(--color-on-accent-container) var(--state-hover)
-    );
+    background: var(--color-accent-container-hover);
   }
 }
 
@@ -114,17 +112,15 @@
    (owner, 2026-10-23, D167). */
 .card-group .select-tonal {
   --select-bg: var(--color-surface-overlay);
+  --select-bg-hover: var(--color-surface-overlay-hover);
+  --select-bg-pressed: var(--color-surface-overlay-pressed);
 }
 
 /* And it hovers as a card's chip does: the card's chip layer, half the state layer in light, so a
    white chip under the pointer stays above the card's tone. */
 @media (hover: hover) and (pointer: fine) {
   .card-group .select-tonal:not([data-active]):hover {
-    background: color-mix(
-      in oklch,
-      var(--select-bg),
-      var(--color-on-surface) var(--card-chip-hover)
-    );
+    background: var(--card-chip-hover);
   }
 }
 
@@ -183,7 +179,7 @@
     border: var(--stroke-hairline) solid var(--color-border-hairline);
     /* One popover family with the Menu and the picker (owner, 2026-11-01): a 32px corner around rows
        8px in, so a row's 24px corner shares its centre with the corner around it. */
-    border-radius: var(--radius-2xl);
+    border-radius: var(--shape-2xl);
     background: var(--color-surface-overlay);
     box-shadow: var(--shadow-popover);
     color: var(--color-on-surface);
@@ -231,7 +227,7 @@
     min-block-size: var(--size-touch);
     padding-block: var(--space-2);
     padding-inline: var(--space-4);
-    border-radius: var(--radius-xl);
+    border-radius: var(--shape-xl);
     /* No fill of its own: the browser's option is a shade off the surface in dark, which drew every
        row as a button. Hover and focus draw the state layer below. */
     background: transparent;
@@ -307,7 +303,7 @@
   :root:not([data-input="keyboard"]) .select-tonal:has(> select:open) {
     border-color: transparent;
     outline: none; /* a pointer's open list only: a keyboard's keeps its ring (data-input) */
-    background: color-mix(in oklch, var(--select-bg), var(--color-on-surface) var(--state-press));
+    background: var(--select-bg-pressed);
   }
 
   @media (forced-colors: active) {

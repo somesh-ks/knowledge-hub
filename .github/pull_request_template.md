@@ -17,3 +17,7 @@ The open PR this could have joined, and why it did not (a design-system change j
 ## Shared files
 
 Any shared stylesheet or component in `git diff --stat origin/main`, and why. Otherwise "none".
+
+## Review
+
+The tier (0, 1 or 2) and the file that sets it; the `cr review` pass, or why it did not run; CodeRabbit's last reviewed commit, or why none (`docs/engineering/code-review.md`).

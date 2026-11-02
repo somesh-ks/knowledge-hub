@@ -12,6 +12,8 @@ dialog.sheet-side {
   /* The page's own surface, so the form's tonal controls read exactly as they do on /create: on the
      raised surface the dark theme's unselected chips and tracks had no fill to show. */
   --sheet-bg: var(--color-surface);
+  --sheet-bg-hover: var(--color-surface-hover);
+  --sheet-bg-pressed: var(--color-surface-pressed);
   --color-focus-gap: var(--sheet-bg);
   /* Set here, not under [open]: the exit keeps its display through the close, and a column set only
      while open would fall back to a row for the whole exit, laying the head beside the body. */

@@ -28,8 +28,14 @@ import {
  * which no route matched, so it answered an empty 404 (2026-11-01).
  */
 export const prerender = false;
-// The static test build prerenders every route; no cover is drawn on demand there.
-export const getStaticPaths = (() => []) satisfies GetStaticPaths;
+// The static test build prerenders every route and needs this; no cover is drawn on demand there.
+// On the function it must not exist: Astro throws PrerenderDynamicEndpointPathCollide, a 500, for
+// the bare /covers address of a rest endpoint that has one, before this handler can answer 404
+// (bots, 2026-11-01). A route of its own at /covers cannot fix it: the static build would write a
+// file where the covers directory goes.
+export const getStaticPaths = (__SINGULARITY_STATIC_ONLY__ ? () => [] : undefined) satisfies
+  | GetStaticPaths
+  | undefined;
 
 let fontsReady = false;
 

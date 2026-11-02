@@ -61,7 +61,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D189 | Catalogue route | superseded by D224 |
 | D190 | Votes tune weights | partly superseded by D194 for topics |
 | D191 | Structure by profile | amends D170, D176 |
-| D192 | CodeRabbit review agent | amends D143 |
+| D192 | CodeRabbit review agent | amends D143; amended by D292 |
 | D193 | Dock chevron; one-episode speed | amends D102 |
 | D194 | Topic weight removed | supersedes D190 |
 | D195 | Breadcrumb | amends D129 |
@@ -122,7 +122,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D251 | Ingest: one Blob object a run | amends D233 |
 | D252 | Warning is orange | amends D238 |
 | D253 | UI fixes start at the component | amends D237 |
-| D254 | One PR per task; one rolling DS PR | amends D237 |
+| D254 | One PR per task; one rolling DS PR | amends D237; amended by D292 |
 | D255 | Videos judged on transcripts | amends D248 |
 | D256 | Covers drawn on request; failed-run stages in one Blob object | amends D173, D251 |
 | D257 | Report routes need sign-in | amends D201, D224 |
@@ -157,6 +157,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D289 | Every press is felt | amends D273 |
 | D290 | Haptics are subtle and follow the sounds | amends D273, D289 |
 | D291 | Phone Menu sheet: media-style head, visible Close, fill focus | amends D144, D275 |
+| D292 | Review by tier; a review is asked for, never fired by a push | amends D143, D192, D254 |
 | D293 | On-demand covers are served at /covers | supersedes D263; amends D256, D258 |
 | D294 | Scheduled writer uses Message Batches | amends D209 (step 3 built, step 2 open); D135 ended |
 | D295 | Playback audio session only while Sounds is on | amends D105 |
@@ -169,5 +170,9 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D306 | A seasonal style may change more than tokens | amends D268 |
 | D308 | Haiku writes the first pass of each story, Sonnet repairs and backs it up | amends D181 |
 | D309 | Player ⋮ menu: actions, speed screen, Save; Settings > Saved | amends D105, D127; supersedes D50's speed control |
+| D310 | Expressive is loud: a violet world, larger controls | amends D268 |
+| D314 | Album art follows the style, drawn live from the month's colours | amends D110, D121; fulfils D306 |
+| D315 | The reader's hue turns a style's whole palette | amends D268, D310 |
+| D317 | A state is an explicit OKLCH colour, never an alpha | amends D72, D238 |
 
 ---
