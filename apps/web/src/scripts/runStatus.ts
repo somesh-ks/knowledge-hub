@@ -286,6 +286,24 @@ function set(run: Stored): void {
   write(run);
   show(run);
   if (FINISHED.includes(run.phase) && run.phase !== "cancelled") markTitle();
+  cue(run);
+}
+
+let cued = "";
+/**
+ * A run that ends while the page is open is heard once, as a toast is: the success cue when the new
+ * podcast is ready to open, the failure cue when the run failed. A hidden page cannot play it (the
+ * push message is that case), and a removed episode needs none.
+ */
+function cue(run: Stored): void {
+  if (run.phase !== "done" && run.phase !== "failed") return;
+  if (run.kind === "delete" || document.visibilityState === "hidden") return;
+  const key = `${run.id}:${run.phase}`;
+  if (key === cued) return;
+  cued = key;
+  document.dispatchEvent(
+    new CustomEvent("singularity:sound", { detail: run.phase === "done" ? "success" : "failure" }),
+  );
 }
 
 /** Check again: polling ran out, so ask once more where the run is, the way it was asked before. */

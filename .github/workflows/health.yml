@@ -101,6 +101,25 @@ jobs:
           npx playwright install --with-deps chromium
           npx tsx scripts/perfProbe.ts https://news.someshks.work --out "$RUNNER_TEMP/perf.json"
 
+      # The ingest shadow's reading (D233, D251): how many of the dailies' stories the store held and
+      # how many pages it read. It reads the dailies Load content pulled and Neon, and calls no model.
+      # It goes on the run's page on Mondays and on a manual run, never fails the job, and decides
+      # nothing: the cut-over is the owner's call once the shadow exit reads met.
+      - name: Ingest coverage
+        if: steps.probe.outputs.run == 'true'
+        shell: bash
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          {
+            echo "## Ingest coverage"
+            echo
+            echo '```'
+            npm run --silent singularity -- ingest --coverage
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Check
         shell: bash
         env:

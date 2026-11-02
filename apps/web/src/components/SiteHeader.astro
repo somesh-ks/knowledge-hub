@@ -5,7 +5,7 @@ import BrandMark from "./BrandMark.astro";
 
 interface Props {
   /** A page one level down leads back: to the page the person came from, else to this address. */
-  back?: { href: string; label: string };
+  back?: { href: string; label: string; hidden: boolean };
 }
 
 const { back } = Astro.props;
@@ -22,7 +22,7 @@ const homeLabel =
   <div class="app-bar-inner page">
     {
       back && (
-        <a class="icon-btn app-bar-back" href={back.href} aria-label={back.label} data-back>
+        <a class="icon-btn app-bar-back" href={back.href} aria-label={back.label} data-back hidden={back.hidden}>
           <Icon name="arrowBack" />
         </a>
       )

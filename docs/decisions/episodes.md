@@ -305,3 +305,14 @@ What an episode or briefing is: kinds and structure, length, regenerate, Catch u
 - Rejected: raising the preset counts (D218 rejected it too); a wider window for a thin topic (it changes what the owner asked for).
 - Revisit if: a Discussion needs telling apart from a Readout on the card (add the format as a second word), or one block crowds out a Catch up.
 - Amends: D218.
+
+
+## D323: Regenerate is a full sheet like Catch up, and the Length control has no Usual
+
+- Date: 2026-11-02 (the owner: "the regenerate modal ... rather a full screen modal like we have for catch up. So we have enough screen space to check everything and not be in a hurry", and "we never discussed to have usual as an option in the segmented selector").
+- Decision: the Regenerate sheet of a briefing (the Drawer in `GenerateSheet`) draws full: the screen on a phone, a right panel from 40rem, the same surface and a foot that holds the Regenerate button while the form scrolls. The episode Regenerate was a sheet already. Length offers 3, 5, 10 and 15 minutes only, starts on the one nearest the podcast's aired minutes (`nearestRegenLength`, a tie goes longer, an unknown length gives 5) and always sends `length_minutes`. After a started run the Catch up and episode Regenerate sheets slide away for the whole `--duration-sheet-in` and fade in the last `--duration-exit`; the queue bar rises after that delay.
+- Built in two parts: the Length and Usual change, the dock's arrival and the completion cue come first; the full variant (`SheetFrame`, `drawer.css`) and the sheet's exit (`sheet.css`, `data-started`) ride the design-system pull request, since only that one may change system stylesheets.
+- Why: a bottom sheet of this height crowds the form and the keyboard; Catch up already proved the full sheet. "Usual" sent nothing, so the sheet could not say what a run would be; every run now names its length.
+- Rejected: moving the briefing Regenerate onto the Astro Sheet (a rewrite of a working Drawer for no visible gain); keeping Usual as a default (the owner never agreed to it).
+- Revisit if: a phone shows the exit as a flash or the foot button hides behind the keyboard.
+- Amends: D207, which listed Usual.
