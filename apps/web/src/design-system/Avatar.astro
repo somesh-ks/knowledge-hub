@@ -15,7 +15,7 @@ interface Props {
 }
 
 const { shape = "cookie", size = "md", photo, label, class: placement } = Astro.props;
-const def = AVATAR_SHAPES[shape] ?? AVATAR_SHAPES.cookie;
+const def = Object.hasOwn(AVATAR_SHAPES, shape) ? AVATAR_SHAPES[shape] : AVATAR_SHAPES.cookie;
 const tone = photo ? undefined : def?.tone;
 const classes = [avatarClass(size, Boolean(photo)), placement];
 const Tag = label ? "button" : "span";

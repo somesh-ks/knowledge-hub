@@ -145,7 +145,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D276 | Voice list | amends D101 |
 | D277 | Queue keeps played items; a tap plays in place | amends D126 |
 | D278 | Softer light covers | amends D121 |
-| D280 | Travel 300 ms | partly superseded by D336; amends D271 |
+| D280 | Travel 300 ms | partly superseded by D336, D341; amends D271 |
 | D281 | Downloads page, no cap | amends D127, D264; amended by D335 |
 | D282 | A page falls back to the content its build holds when the store cannot answer | amends D173, D251 |
 | D283 | Read-first is AGENTS.md and state.md (20 KB), the Index is grep-only, the ledger is split by surface; "replaces" retires the old row | active |
@@ -190,7 +190,9 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D333 | The short-text Claude steps run Haiku medium, then Haiku high, then Sonnet medium | amends D308, D324; amended by D334 |
 | D334 | Every Claude step starts at Haiku medium, the podcast script included | amends D333 |
 | D335 | The avatar leads to a profile page; Settings is Podcast settings, App settings and About | amends D129, D281, D299; amended by D344 |
-| D336 | A cover no longer flies between its card and the page's hero | partly supersedes D271, D280 |
+| D336 | A cover no longer flies between its card and the page's hero | partly supersedes D271, D280; amended by D341 |
+| D341 | A page arrives from the side of the tab you came from | partly supersedes D280; amends D336 |
+| D342 | A Firecrawl listing is read free first and scraped only when its links moved | relates to D222, D302 |
 | D344 | The app no longer edits the podcast structure; Preferences holds autoplay and the default speed | partly supersedes D170, D182, D191; amends D335 |
 
 ---

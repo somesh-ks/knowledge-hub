@@ -250,6 +250,11 @@
   pointer-events: none;
 }
 
+/* The input's own default (0%) would hide the field's fill; it follows the field. */
+:root[data-style="expressive"] .slider-wave-field > .slider-input {
+  --range-fill: inherit;
+}
+
 /* The straight track begins where the fill ends; the engines' two pseudo-elements cannot share a rule. */
 :root[data-style="expressive"] .slider-wave-field > .slider-input::-webkit-slider-runnable-track {
   background: linear-gradient(

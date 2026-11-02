@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   FLAG_REGIONS,
+  fetchVoiceList,
   flagSymbolId,
   parseVoiceDefaults,
   parseVoices,
@@ -96,5 +97,65 @@ describe("parseVoiceDefaults", () => {
     });
     expect(parseVoiceDefaults({ voices: [] })).toBeNull();
     expect(parseVoiceDefaults(null)).toBeNull();
+  });
+});
+
+describe("fetchVoiceList", () => {
+  const answer = (ok: boolean, body: unknown = { voices: [] }) =>
+    Promise.resolve({ ok, json: () => Promise.resolve(body) });
+  const noWait = () => Promise.resolve();
+
+  it("tries again once when the first try fails, so one weak moment does not empty the picker", async () => {
+    const calls: string[] = [];
+    const fetcher = (url: string) => {
+      calls.push(url);
+      return calls.length === 1
+        ? Promise.reject(new Error("network"))
+        : answer(true, { voices: [1] });
+    };
+    const result = await fetchVoiceList({ fetch: fetcher, online: () => true, wait: noWait });
+    expect(result).toEqual({ body: { voices: [1] } });
+    expect(calls).toHaveLength(2);
+  });
+
+  it("retries a refused answer and then gives up as unavailable", async () => {
+    let tries = 0;
+    const result = await fetchVoiceList({
+      fetch: () => {
+        tries++;
+        return answer(false);
+      },
+      online: () => true,
+      wait: noWait,
+    });
+    expect(result).toEqual({ failure: "unavailable" });
+    expect(tries).toBe(2);
+  });
+
+  it("says offline at once, without trying, when the device has no connection", async () => {
+    let tries = 0;
+    const result = await fetchVoiceList({
+      fetch: () => {
+        tries++;
+        return answer(true);
+      },
+      online: () => false,
+      wait: noWait,
+    });
+    expect(result).toEqual({ failure: "offline" });
+    expect(tries).toBe(0);
+  });
+
+  it("says offline when the connection went while it tried", async () => {
+    let online = true;
+    const result = await fetchVoiceList({
+      fetch: () => {
+        online = false;
+        return Promise.reject(new Error("network"));
+      },
+      online: () => online,
+      wait: noWait,
+    });
+    expect(result).toEqual({ failure: "offline" });
   });
 });

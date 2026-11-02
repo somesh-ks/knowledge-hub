@@ -35,6 +35,8 @@ export interface EpisodeMetrics {
   share: number;
   /** Model calls the script took (a rewrite or an extension each count). */
   writer_calls: number;
+  /** Characters in the first turn, to tell whether a long opening ever delays Play. Absent before. */
+  first_turn_chars?: number;
 }
 
 export interface TimingsFile {

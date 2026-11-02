@@ -330,7 +330,7 @@ let clips = 0;
  * a page may draw any number of avatars.
  */
 export function avatarMarkup(id: string): string {
-  const shape = AVATAR_SHAPES[id] ?? AVATAR_SHAPES.cookie;
+  const shape = Object.hasOwn(AVATAR_SHAPES, id) ? AVATAR_SHAPES[id] : AVATAR_SHAPES.cookie;
   if (!shape) return "";
   const clip = `avatar-clip-${++clips}`;
   const bodies = shape.parts
@@ -351,5 +351,5 @@ export function moodShapes(token: string): string[] {
     .replace(/["']/g, "")
     .trim()
     .split(/\s+/)
-    .filter((id) => id in AVATAR_SHAPES);
+    .filter((id) => Object.hasOwn(AVATAR_SHAPES, id));
 }

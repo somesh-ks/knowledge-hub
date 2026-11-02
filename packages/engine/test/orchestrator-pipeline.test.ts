@@ -1,5 +1,5 @@
-import { readFile, rm } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import {
   COVER_TEMPLATES,
   type JudgmentEntry,
@@ -285,6 +285,20 @@ describe("published run", () => {
 });
 
 describe("saving the digest to the content store (D300)", () => {
+  // What the fetch stage leaves for the commit stage when it scraped a Firecrawl listing.
+  const writeScrapedListing = async (): Promise<void> => {
+    const file = join(repo.root, ".cache/run/2026-10-07/listings.json");
+    await mkdir(dirname(file), { recursive: true });
+    await writeFile(
+      file,
+      JSON.stringify({
+        version: 1,
+        sources: { "listing-source": { hash: "0123456789abcdef", scraped_at: WED.toISOString() } },
+      }),
+      "utf8",
+    );
+  };
+
   // The bug: git recorded a published digest the store never received. The next scheduled run's
   // gate saw it published and skipped, so the paid-for digest was lost and its stories counted as
   // shown. The save comes first, and a failed save leaves nothing committed.
@@ -292,11 +306,41 @@ describe("saving the digest to the content store (D300)", () => {
     const before = git(repo.root, "rev-parse", "HEAD");
     const world = makeWorld(repo.root, { now: WED });
     world.deps.publishContent = async () => {
+      await writeScrapedListing();
       throw new Error("blob unreachable");
     };
     const result = await runStage(world);
     expect(result.code).not.toBe(0);
     expect(git(repo.root, "rev-parse", "HEAD")).toBe(before);
+    // The failed-run step commits whatever state/ holds: a listing whose articles never reached the
+    // store must not be recorded as read (D342).
+    expect(await exists(repo.root, "state/listing-fingerprints.json")).toBe(false);
+  });
+
+  it("ignores listings an earlier attempt of the same pass left behind (D342)", LONG, async () => {
+    const world = makeWorld(repo.root, { now: WED });
+    // This attempt scrapes no listing (no Firecrawl key), so the file is the earlier attempt's.
+    await writeScrapedListing();
+    const result = await runStage(world);
+    expect(result.code).toBe(0);
+    expect(await exists(repo.root, "state/listing-fingerprints.json")).toBe(false);
+  });
+
+  it("records the listings a run scraped once the store has the digest (D342)", LONG, async () => {
+    const world = makeWorld(repo.root, { now: WED });
+    const during: boolean[] = [];
+    world.deps.publishContent = async () => {
+      await writeScrapedListing();
+      during.push(await exists(repo.root, "state/listing-fingerprints.json"));
+    };
+    const result = await runStage(world);
+    expect(result.code).toBe(0);
+    expect(during).toEqual([false]);
+    const stored = await readJson<{ sources: Record<string, unknown> }>(
+      repo.root,
+      "state/listing-fingerprints.json",
+    );
+    expect(Object.keys(stored.sources)).toEqual(["listing-source"]);
   });
 
   it("saves the digest while it is written and before it is committed", LONG, async () => {

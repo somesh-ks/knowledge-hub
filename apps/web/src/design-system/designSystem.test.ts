@@ -39,14 +39,28 @@ const wholeClass = (name: string) => new RegExp(`(?<![\\w-])${name}(?![\\w-])`);
  */
 const quoted = (text: string) =>
   [
+    // One pass, left to right: a string is kept whole (so "image/*" is not a comment), a comment is dropped.
     ...text
-      .replace(/\/\*[\s\S]*?\*\//g, "")
-      .replace(/^\s*\/\/.*$/gm, "")
       .replace(/\b(?:from|import)\s*\(?\s*(["'])[^"'\n]*\1/g, "")
-      .matchAll(/(["'`])((?:\\.|(?!\1)[^\\])*)\1/g),
+      .matchAll(/(["'`])((?:\\.|(?!\1)[^\\])*)\1|\/\*[\s\S]*?\*\/|(?<![:/\w])\/\/[^\n]*/g),
   ]
+    .filter((m) => m[1] !== undefined)
     .map((m) => m[2])
     .join("\n");
+
+describe("quoted (the class guard's reader)", () => {
+  it("keeps a class after raw URL text or a glob string, and drops real comments", () => {
+    const page = [
+      '<a href="x" accept="image/*">https://example.com <b class="button-filled">',
+      '/* class="hidden-in-comment" */',
+      '// class="also-hidden"',
+    ].join("\n");
+    const text = quoted(page);
+    expect(text).toContain("button-filled");
+    expect(text).not.toContain("hidden-in-comment");
+    expect(text).not.toContain("also-hidden");
+  });
+});
 
 describe("design-system components", () => {
   it.each(COMPONENTS)(
