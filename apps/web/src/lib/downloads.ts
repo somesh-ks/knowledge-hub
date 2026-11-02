@@ -79,10 +79,17 @@ export class NotReadyError extends Error {
 }
 
 /**
+ * The sheet of outlines every cover is lettered from. Kept once in the downloads cache beside the
+ * covers, not listed on any item, so removing one item never drops it and the sweep never counts it
+ * unlisted. It lives here, not in packages/cover, which reads files and cannot ship to the page.
+ */
+export const GLYPH_SHEET_ADDRESS = "/covers/glyphs.svg";
+
+/**
  * An item's covers: the live vector the page and the player draw (D314), and the images the lock
  * screen and share cards use. A theme or style switch offline finds its cover, since the vector holds
- * every colour. The sheet of outlines it is lettered from is shared by all covers, so it is kept by
- * the covers' own cache (public/sw.js) and not listed here, where removing one item would drop it.
+ * every colour. The sheet of outlines it is lettered from is shared by all covers, so it is saved
+ * apart (GLYPH_SHEET_ADDRESS) and not listed here, where removing one item would drop it.
  */
 export function coverAddresses(id: string): string[] {
   return [`/covers/${id}.svg`, ...[512, 1024].map((size) => `/covers/${id}-${size}.webp`)];
