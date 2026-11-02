@@ -65,6 +65,9 @@ export function shouldRefresh(
   return type === "PAGE_CHANGED" && path === page.path && !page.touched && !page.hidden;
 }
 
+/** The most pages the Library fetches ahead in one visit to the app: the cards a person is looking at. */
+export const LOOKAHEAD_LIMIT = 8;
+
 /** How long after a finger leaves an item its click still counts as that press. */
 const PRESS_CLICK_MS = 800;
 /** The navigation item a finger or pen last pressed, and when it last touched it. */
@@ -191,6 +194,37 @@ export function installNavigationBoost(): void {
     },
     { capture: true, passive: true },
   );
+
+  // The Library's cards in view are fetched at low priority while the page is idle: a card's page
+  // is drawn at the edge once per content change, and the first tap after that waited on the
+  // function in Washington (owner, 2026-11-02: "there's a delay to go to the page"). The fetch
+  // fills the edge nearest the owner and the worker's saved copy, so the tap finds the page ready.
+  // Few, and once each: a phone scrolling a long Library asks for at most LOOKAHEAD_LIMIT pages.
+  const lookedAhead = new Set<string>();
+  let cardWatcher: IntersectionObserver | null = null;
+  const watchCards = (): void => {
+    cardWatcher?.disconnect();
+    cardWatcher = null;
+    if (!("IntersectionObserver" in window) || !navigator.onLine || savesData()) return;
+    const cards = document.querySelectorAll<HTMLAnchorElement>(
+      "[data-library] a.card-link[href^='/e/'], [data-library] a.card-link[href^='/d/']",
+    );
+    if (cards.length === 0) return;
+    const watcher = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const link = entry.target as HTMLAnchorElement;
+        watcher.unobserve(link);
+        if (lookedAhead.size >= LOOKAHEAD_LIMIT || lookedAhead.has(link.href)) continue;
+        lookedAhead.add(link.href);
+        quietFetch(link.href, "low");
+      }
+    });
+    cardWatcher = watcher;
+    for (const card of cards) watcher.observe(card);
+  };
+  watchCards();
+  document.addEventListener("astro:page-load", watchCards);
 
   let warmedAt = 0;
   const warm = (): void => {
