@@ -460,6 +460,9 @@
   --sheet-bg: var(--color-surface-raised);
   --sheet-bg-hover: var(--color-surface-raised-hover);
   --sheet-bg-pressed: var(--color-surface-raised-pressed);
+  --sheet-tile-bg: var(--color-surface-container);
+  --sheet-tile-bg-hover: var(--color-surface-container-hover);
+  --sheet-tile-bg-pressed: var(--color-surface-container-pressed);
   --sheet-shadow: var(--shadow-sheet);
   --sheet-max-height: 92dvh;
   --sheet-row-radius: var(--shape-md);
@@ -592,6 +595,9 @@
     --shadow-raised: var(--shadow-raised-dark);
     --segmented-selected-bg: var(--color-surface-overlay);
     --switch-thumb-bg: var(--color-on-surface);
+    --sheet-tile-bg: var(--color-surface-overlay);
+    --sheet-tile-bg-hover: var(--color-surface-overlay-hover);
+    --sheet-tile-bg-pressed: var(--color-surface-overlay-pressed);
     --scene-pumpkin: var(--color-accent);
     --scene-pumpkin-shade: var(--color-accent-hover);
     --scene-pumpkin-lit: var(--color-accent-container-high);
@@ -667,6 +673,9 @@
   --shadow-raised: var(--shadow-raised-dark);
   --segmented-selected-bg: var(--color-surface-overlay);
   --switch-thumb-bg: var(--color-on-surface);
+  --sheet-tile-bg: var(--color-surface-overlay);
+  --sheet-tile-bg-hover: var(--color-surface-overlay-hover);
+  --sheet-tile-bg-pressed: var(--color-surface-overlay-pressed);
   --scene-pumpkin: var(--color-accent);
   --scene-pumpkin-shade: var(--color-accent-hover);
   --scene-pumpkin-lit: var(--color-accent-container-high);

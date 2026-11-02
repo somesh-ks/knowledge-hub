@@ -643,9 +643,6 @@
         "--color-on-surface-disabled",
         "--color-on-surface-muted",
         "--color-scrim",
-        "--color-surface-container",
-        "--color-surface-container-hover",
-        "--color-surface-container-pressed",
         "--color-surface-overlay",
         "--color-surface-overlay-hover",
         "--color-surface-overlay-pressed",
@@ -660,6 +657,9 @@
         "--sheet-bg-pressed",
         "--sheet-radius",
         "--sheet-shadow",
+        "--sheet-tile-bg",
+        "--sheet-tile-bg-hover",
+        "--sheet-tile-bg-pressed",
         "--size-icon",
         "--size-option",
         "--size-touch"
@@ -5194,6 +5194,40 @@
       "hex": {
         "light": "#dedede",
         "dark": "#474849"
+      }
+    },
+    {
+      "name": "--sheet-tile-bg",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-surface-container)",
+      "role": "A tile on a sheet (the Menu's Download, Share, Save): one step above the sheet. In dark the container equals the raised sheet, so the tile takes the overlay step.",
+      "dark": "var(--color-surface-overlay)",
+      "hex": {
+        "light": "#eeeeef",
+        "dark": "#353537"
+      }
+    },
+    {
+      "name": "--sheet-tile-bg-hover",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-surface-container-hover)",
+      "dark": "var(--color-surface-overlay-hover)",
+      "hex": {
+        "light": "#dddedf",
+        "dark": "#424244"
+      }
+    },
+    {
+      "name": "--sheet-tile-bg-pressed",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-surface-container-pressed)",
+      "dark": "var(--color-surface-overlay-pressed)",
+      "hex": {
+        "light": "#cdcecf",
+        "dark": "#4f5051"
       }
     },
     {

@@ -177,9 +177,9 @@
   padding: var(--space-4) var(--space-2);
   border: 0;
   border-radius: var(--shape-xl);
-  --tile-fill: var(--color-surface-container);
-  --tile-fill-hover: var(--color-surface-container-hover);
-  --tile-fill-press: var(--color-surface-container-pressed);
+  --tile-fill: var(--sheet-tile-bg);
+  --tile-fill-hover: var(--sheet-tile-bg-hover);
+  --tile-fill-press: var(--sheet-tile-bg-pressed);
   background: var(--tile-fill);
   color: var(--color-on-surface);
   font: inherit;
