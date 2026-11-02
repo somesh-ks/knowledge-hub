@@ -34,7 +34,7 @@ import {
   toPlaybackRate,
 } from "./core/playerTypes";
 import { queueItemUrl } from "./core/playQueue";
-import { isSaved, setSaved } from "./core/saved";
+import { deviceStorage, isSaved, setSaved } from "./core/saved";
 import { usePlayerState } from "./hooks/usePlayer";
 import { rateFace, rateLabel } from "./rateLabels";
 import Icon from "./ui/LazyIcon";
@@ -79,10 +79,15 @@ function toast(message: string, kind?: "success" | "error"): void {
 function useDeviceMarks(id: string | undefined, open: boolean) {
   const [downloaded, setDownloaded] = useState(false);
   const [saved, setSavedState] = useState(false);
+  // Another podcast starts: what the menu knew of the last one is gone, shut or not.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `id` is the trigger, not a read
+  useEffect(() => {
+    setDownloaded(false);
+  }, [id]);
   useEffect(() => {
     if (!id || !open) return;
     let live = true;
-    setSavedState(isSaved(window.localStorage, id));
+    setSavedState(isSaved(deviceStorage(), id));
     void import("../scripts/libraryDownloads").then(async (library) => {
       const ids = (await library.readDownloads()).map((entry) => entry.id);
       if (live) setDownloaded(ids.includes(id));
@@ -126,6 +131,16 @@ export default function PlayerMenu() {
     window.addEventListener("keydown", onEscape, true);
     return () => window.removeEventListener("keydown", onEscape, true);
   }, [open]);
+
+  // A new screen replaces the control that had focus: focus moves to the first control on it (Back,
+  // on the speed screen), so a keyboard or a screen reader stays in the menu.
+  useEffect(() => {
+    if (!open) return;
+    const menu = document.getElementById(menuId);
+    const first =
+      screen === "menu" ? menu?.querySelector(ITEM) : menu?.querySelector(`[${MENU_BACK}]`);
+    (first as HTMLElement | null | undefined)?.focus({ preventScroll: true });
+  }, [screen, open]);
 
   const onToggle = (event: ToggleEvent<HTMLDivElement>): void => {
     const menu = event.currentTarget;
@@ -192,10 +207,9 @@ export default function PlayerMenu() {
 
   const save = (): void => {
     const next = !marks.saved;
-    const kept = setSaved(window.localStorage, id, next);
-    marks.setSaved(kept);
     // The tile says Saved or Save; a toast would cover the sheet. Only a refusal speaks.
-    if (next && !kept) toast("Could not save on this device", "error");
+    if (setSaved(deviceStorage(), id, next)) marks.setSaved(next);
+    else toast(next ? "Could not save on this device" : "Could not remove it from Saved", "error");
   };
 
   const removeDownload = async (): Promise<void> => {

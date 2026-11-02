@@ -22,10 +22,10 @@ describe("saved podcasts", () => {
 
   it("saves and forgets an item without touching another", () => {
     const storage = memory();
-    expect(setSaved(storage, "a", true)).toBe(true);
+    expect(setSaved(storage, "a", true, 1000)).toBe(true);
     expect(isSaved(storage, "a")).toBe(true);
     expect(isSaved(storage, "b")).toBe(false);
-    expect(setSaved(storage, "a", false)).toBe(false);
+    expect(setSaved(storage, "a", false, 2000)).toBe(true);
     expect(isSaved(storage, "a")).toBe(false);
   });
 
@@ -50,8 +50,8 @@ describe("saved podcasts", () => {
         throw new Error("denied");
       },
     };
-    expect(setSaved(refusing, "a", true)).toBe(false);
+    expect(setSaved(refusing, "a", true, 1000)).toBe(false);
     expect(isSaved(refusing, "a")).toBe(false);
-    expect(setSaved(null, "a", true)).toBe(false);
+    expect(setSaved(null, "a", true, 1000)).toBe(false);
   });
 });

@@ -30,9 +30,9 @@ function zoneOf(target: EventTarget): GestureZone | null {
   if (target.closest("[data-player-open]")) return "dock";
   // The seek strip keeps its own drag: a scrub is sideways and must never start a dismissal.
   if (target.closest(".scrubber")) return null;
-  // The speed dialog sits inside the controls and has its own slider and presets: a pull there must
-  // not scroll the page or close the player under it.
-  if (target.closest(".speed-panel")) return null;
+  // The ⋮ menu sits inside the page and has its own slider and tiles: a pull there must not scroll
+  // the page or close the player under it.
+  if (target.closest(".player-menu, .player-more")) return null;
   if (target.closest("[data-player-drag]")) return "drag";
   return target.closest("[data-player-page]") ? "page" : null;
 }

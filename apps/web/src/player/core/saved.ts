@@ -39,7 +39,16 @@ export function savedAt(storage: StorageLike | null, digestId: string): number |
   }
 }
 
-/** Saves or forgets an item. Returns whether it is saved now, which is false when storage refused. */
+/** This device's storage, or null where reading it throws (blocked site data). */
+export function deviceStorage(): StorageLike | null {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+/** Saves (`on`) or forgets an item. Returns whether storage took the write; false means nothing changed. */
 export function setSaved(
   storage: StorageLike | null,
   digestId: string,
@@ -54,5 +63,5 @@ export function setSaved(
     return false;
   }
   announce(digestId);
-  return on;
+  return true;
 }

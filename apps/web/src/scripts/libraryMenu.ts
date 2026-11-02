@@ -9,7 +9,7 @@
  */
 import { track } from "../lib/analytics";
 import { NotReadyError } from "../lib/downloads";
-import { setSaved } from "../player/core/saved";
+import { deviceStorage, setSaved } from "../player/core/saved";
 import { installCardHold } from "./cardHold";
 import { installEpisodeActions } from "./episodeActionsEntry";
 import { installHeroMenu } from "./heroMenu";
@@ -129,8 +129,8 @@ async function onPick(item: HTMLElement): Promise<void> {
     }
     case "unsave":
       // Settings > Saved: the page hears the change (singularity:saved) and drops the row.
-      setSaved(window.localStorage, id, false);
-      toast("Removed from Saved");
+      if (setSaved(deviceStorage(), id, false)) toast("Removed from Saved");
+      else toast("Could not remove it from Saved on this device", "error");
       return;
     case "unshare":
       if (await stopSharing(id)) toast("Stopped sharing", "success");

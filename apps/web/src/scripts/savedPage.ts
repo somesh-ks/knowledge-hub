@@ -60,6 +60,15 @@ function mount(root: HTMLElement): void {
   window.addEventListener("singularity:saved", sync);
   // Another tab saved or removed one.
   window.addEventListener("storage", sync);
+  // The router replaces the page: the listeners must not outlive the rows they read.
+  document.addEventListener(
+    "astro:before-swap",
+    () => {
+      window.removeEventListener("singularity:saved", sync);
+      window.removeEventListener("storage", sync);
+    },
+    { once: true },
+  );
 
   sync();
   root.dataset.ready = "";
