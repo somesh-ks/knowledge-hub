@@ -374,19 +374,6 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
     await writeTopicJudgments(root, topicJudgments);
   }
   if (statsTouched) await writeSourceStats(root, sourceStats);
-  // The listings this run scraped, stored now that the run is committing: the next run may skip them.
-  const scraped: ListingFingerprintsFile[] = [];
-  for (const pass of plan.passes) {
-    const raw = await readJsonIfExists(passFile(root, pass.id, "listings.json"), "listings.json");
-    const parsed = ListingFingerprintsFile.safeParse(raw);
-    if (parsed.success) scraped.push(parsed.data);
-  }
-  if (scraped.some((file) => Object.keys(file.sources).length > 0)) {
-    await writeListingFingerprints(
-      root,
-      mergeListings(await readListingFingerprints(root), scraped, now),
-    );
-  }
   if (spend) lastRun = { ...lastRun, spend: { at: nowIso, ...spend } };
   if (spend && deps.spend) await recordSpend(root, deps.spend, plan, nowIso);
   await writeLastRun(root, lastRun);
@@ -435,6 +422,20 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
         `The digest could not be saved to the content store, so nothing was committed: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
+  }
+  // The listings this run scraped, stored once the digest is in the content store: a run that fails
+  // before that is recorded failed with whatever state/ holds, and its listings were never delivered.
+  const scraped: ListingFingerprintsFile[] = [];
+  for (const pass of plan.passes) {
+    const raw = await readJsonIfExists(passFile(root, pass.id, "listings.json"), "listings.json");
+    const parsed = ListingFingerprintsFile.safeParse(raw);
+    if (parsed.success) scraped.push(parsed.data);
+  }
+  if (scraped.some((file) => Object.keys(file.sources).length > 0)) {
+    await writeListingFingerprints(
+      root,
+      mergeListings(await readListingFingerprints(root), scraped, now),
+    );
   }
   const committed = await commitAndPush({
     root,
