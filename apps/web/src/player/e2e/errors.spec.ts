@@ -62,10 +62,10 @@ test.describe("a recording that fails", () => {
     await finger.press(player.cta);
     await expect(player.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
     await expect(player.cta.locator("[data-chip-label]")).toHaveText("Try again");
-    await expect(page.locator(".dock-caption")).toHaveText("Audio is not available");
+    await expect(page.locator(".dock-caption")).toHaveText("Audio isn't available");
     await player.openPlayer();
     const notice = player.dialog.getByRole("alert");
-    await expect(notice).toContainText("Audio is not available");
+    await expect(notice).toContainText("Audio isn't available");
     await expect(page.locator("body")).not.toContainText("MEDIA_ELEMENT_ERROR");
     const live = await page.locator("[aria-live]").allTextContents();
     expect(live.join(" ")).not.toContain("MEDIA_ELEMENT_ERROR");
