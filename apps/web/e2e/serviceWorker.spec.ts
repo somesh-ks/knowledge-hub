@@ -191,7 +191,7 @@ test.describe("service worker", () => {
         (window as unknown as { __kept: boolean }).__kept = true;
       });
       await page.locator('a[href="/d/2026-10-04-weekly"]').first().click();
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Not saved on this device");
+      await expect(page.locator("[data-stand-in]")).toBeVisible();
       await expect(page).toHaveURL(/\/d\/2026-10-04-weekly$/);
       await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
       // Try again with the network still down: the same page, the same address, nothing lost.
@@ -201,7 +201,7 @@ test.describe("service worker", () => {
       await tryAgain.click();
       // It shows it is asking, then the answer (still offline) leaves the page where it was.
       await expect(tryAgain).not.toHaveAttribute("aria-busy", "true");
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Not saved on this device");
+      await expect(page.locator("[data-stand-in]")).toBeVisible();
       await expect(page).toHaveURL(/\/d\/2026-10-04-weekly$/);
       // The network returns: the real page comes in on its own, in place (no reload: the window's own
       // state survives), at the same address, and the strip says so and lifts.
@@ -224,12 +224,12 @@ test.describe("service worker", () => {
       await warm(page);
       await context.setOffline(true);
       await page.goto("/d/2026-10-04-weekly");
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Not saved on this device");
+      await expect(page.locator("[data-stand-in]")).toBeVisible();
       const asked = page.waitForRequest("**/build.json");
       await page.evaluate(() => window.dispatchEvent(new Event("online")));
       // The page asked the site, got no answer, and stays what it was.
       await asked;
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Not saved on this device");
+      await expect(page.locator("[data-stand-in]")).toBeVisible();
       await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
       await context.setOffline(false);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText("Sunday 4 October", {

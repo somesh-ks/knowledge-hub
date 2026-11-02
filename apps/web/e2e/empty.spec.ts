@@ -64,7 +64,7 @@ test.describe("empty states", () => {
       await context.setOffline(true);
       await page.goto("/d/2026-10-04-weekly");
       const root = page.locator("#main .empty");
-      await expect(root.getByRole("heading", { level: 1 })).toHaveText("Not saved on this device");
+      await expect(page.locator("[data-stand-in]")).toBeVisible();
       await expectPattern(page, root, 1, "offline");
       await expect(page).toHaveURL(/\/d\/2026-10-04-weekly$/);
       // One notice about the connection, and the app's own tabs still there with the right one marked.

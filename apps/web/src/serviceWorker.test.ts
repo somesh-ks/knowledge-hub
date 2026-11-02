@@ -795,7 +795,9 @@ describe("service worker: pages offline (D330)", () => {
     };
     await ask(["/settings/saved"]);
     await ask(["/settings/saved"]);
-    expect(worker.caches.stored().filter((key) => key.endsWith("/_astro/kept.css"))).toHaveLength(1);
+    expect(worker.caches.stored().filter((key) => key.endsWith("/_astro/kept.css"))).toHaveLength(
+      1,
+    );
   });
 
   it("stands in with the offline page, at the address asked for, for a page it never saw", async () => {
