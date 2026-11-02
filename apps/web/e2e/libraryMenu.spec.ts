@@ -550,3 +550,45 @@ test("Settings > Downloads stays a list with a working ⋮ when reached from the
   await expect(page.locator("[data-downloads]")).toHaveAttribute("data-ready", "");
   await expect(page.locator("[data-card]:visible")).toHaveCount(0);
 });
+
+// One safe row needs no title and no Close (D329, owner, 2026-11-02): the header would be taller than
+// the action, and a swipe or a tap on the scrim closes the sheet. Two rows, a tile row or a lone danger
+// row keep it. The cases are made from one card's menu by hiding rows, as a script does.
+test("a phone's menu sheet drops its header over one safe row and keeps it otherwise", async ({
+  page,
+}) => {
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  await openMenu(page, AUDIO_ID);
+  const sheet = row(page, AUDIO_ID).locator(".menu-sheet");
+  const head = sheet.locator("> .sheet-head");
+  await expect(head).toBeVisible();
+
+  // Left with one row, a safe one: no header, and the row is still there.
+  await sheet.evaluate((list) => {
+    list.querySelector(".menu-tiles")?.remove();
+    const body = list.querySelector(".menu-sheet-items") as HTMLElement;
+    // Two more rows of the same kind, so there is always something to show and hide.
+    const first = body.querySelector(".menu-item") as HTMLElement;
+    body.append(first.cloneNode(true), first.cloneNode(true));
+    const rows = [...body.querySelectorAll<HTMLElement>(":scope > .menu-item")];
+    for (const [index, item] of rows.entries()) item.hidden = index > 0;
+  });
+  await expect(head).toBeHidden();
+  await expect(sheet.getByRole("menuitem")).toHaveCount(1);
+
+  // A second visible row brings it back.
+  await sheet.evaluate((list) => {
+    const rows = [...list.querySelectorAll<HTMLElement>(".menu-sheet-items > .menu-item")];
+    (rows[1] as HTMLElement).hidden = false;
+  });
+  await expect(head).toBeVisible();
+
+  // A lone danger row keeps it, so the sheet names what the row destroys.
+  await sheet.evaluate((list) => {
+    const rows = [...list.querySelectorAll<HTMLElement>(".menu-sheet-items > .menu-item")];
+    (rows[1] as HTMLElement).hidden = true;
+    (rows[0] as HTMLElement).classList.add("menu-item-danger");
+  });
+  await expect(head).toBeVisible();
+});

@@ -156,7 +156,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D288 | Library list: month labels, two columns | active |
 | D289 | Every press is felt | amends D273 |
 | D290 | Haptics are subtle and follow the sounds | amends D273, D289 |
-| D291 | Phone Menu sheet: media-style head, visible Close, fill focus | amends D144, D275; amended by D322, D325 |
+| D291 | Phone Menu sheet: media-style head, visible Close, fill focus | amends D144, D275; amended by D322, D325, D329 |
 | D292 | Review by tier; a review is asked for, never fired by a push | amends D143, D192, D254 |
 | D293 | On-demand covers are served at /covers | supersedes D263; amends D256, D258 |
 | D294 | Scheduled writer uses Message Batches | amends D209 (step 3 built, step 2 open); D135 ended |
@@ -180,5 +180,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D321 | The ripple and a cover's press stay alpha layers, over artwork | amends D317 |
 | D322 | A Library card's phone sheet opens with quick-action tiles | amends D291 |
 | D325 | List rows run edge to edge in the Menu, the select list and the picker | amends D275, D291 |
+| D329 | A Menu sheet over one safe row has no title and no Close | amends D291 |
 
 ---

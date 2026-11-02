@@ -658,3 +658,14 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Cost: the concentric math of D275 no longer applies to rows, only to the picker's search field; the e2e checks for row concentricity became one check that rows span the list. Multi-select options and the emoji picker are unchanged for now.
 - Revisit if: multi-select or the emoji picker should follow, or a list needs a row the owner wants rounded.
 - Amends: D275, D291.
+
+## D329: a Menu sheet over one safe row has no title and no Close
+
+- Date: 2026-11-02 (the owner, leaning to skip the title and X when a bottom sheet holds one option; settled by the coordinator).
+- Decision: on a phone, a Menu sheet whose list holds exactly one visible row, and that row is not danger, shows that row alone: its header (title, subtitle, Close) is hidden by `menu.css`, a rule on the sheet, so no menu sets it. A row marked `hidden` does not count. The sheet keeps its title for a screen reader as the list's `aria-label`. A lone danger row keeps the header, so the sheet says what the row destroys; a sheet with tiles or two visible rows keeps it too. A swipe down or a tap on the scrim still closes it.
+- Why: the header (title, rule and Close) is taller than the one row it sits over, and a swipe or a tap outside already closes the sheet.
+- Rejected: dropping the header on every one-row sheet (a lone Delete would not say what it deletes); a prop on the Menu (every caller would need to know how many rows it will show, and rows toggle with `hidden`).
+- Cost: a sheet that gains a second row at run time grows a header, so the sheet's height steps once.
+- Revisit if: a one-row sheet is opened by mistake more than it is wanted (a lone Close would then earn its place).
+- Amends: D291.
+

@@ -351,6 +351,21 @@
     opacity: 1;
   }
 
+  /* A sheet with one visible, safe row is that row alone (D329, owner, 2026-11-02): a title and a Close
+     over a single action are taller than the action, and a swipe or a tap on the scrim already
+     closes it. The row's name still reaches a screen reader, as the list's aria-label. A lone danger
+     row keeps its title, so the sheet says what the row destroys; so does a sheet with tiles or two
+     rows. A row marked hidden does not count. */
+  .menu-sheet:has(> .menu-sheet-items > .menu-item:not([hidden], .menu-item-danger)):not(
+    :has(
+      > .menu-sheet-items > .menu-item:not([hidden]) ~ .menu-item:not([hidden]),
+      > .menu-sheet-items > .menu-item-danger:not([hidden]),
+      > .menu-sheet-items > .menu-tiles
+    )
+  ) > .sheet-head:not([data-has-back]) {
+    display: none;
+  }
+
   .menu-sheet > .sheet-head:not([data-has-back]) {
     display: flex;
     flex: none;
