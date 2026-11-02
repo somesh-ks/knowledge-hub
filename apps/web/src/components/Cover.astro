@@ -1,24 +1,21 @@
 ---
-import { COVER_MODES, type CoverMode } from "@singularity/cover";
-import { type CoverSize, type CoverSource, coverEdge, themedCoverSrc } from "../lib/covers";
+import { type CoverSource, coverEdge, coverLiveSvg } from "../lib/covers";
 import CoverPlay from "./CoverPlay.astro";
 
 interface Props {
   digestId: string;
   size: "thumb" | "row" | "card" | "hero" | "aside" | "player";
-  /** What the cover is drawn from; it is drawn once for each theme and the page shows its own. */
+  /** What the cover is drawn from. It is one vector the page colours (cover.css) for every theme and style. */
   source: CoverSource;
   /** Weekly digests carry a framing rule so a deep dive reads as a different record. */
   weekly: boolean;
-  /** The one cover that is the page's largest paint loads eagerly and first. */
-  priority?: boolean;
 }
 
-const { digestId, size, source, weekly, priority = false } = Astro.props;
-// The colour at the cover's edge in each theme, shown before the image decodes (cover.css picks one).
+const { digestId, size, source, weekly } = Astro.props;
+// The colour at the cover's edge in each theme: what decides a pale ground's hairline on the light page.
 const edgeLight = coverEdge(source, "light");
 const edgeDark = coverEdge(source, "dark");
-const modes = COVER_MODES;
+const svg = coverLiveSvg(source);
 
 /**
  * A pale ground needs a hairline to hold its edge on the light page; a deep one has its own edge, and
@@ -34,23 +31,6 @@ function isPale(hex: string): boolean {
   };
   return 0.2126 * channel(16) + 0.7152 * channel(8) + 0.0722 * channel(0) > 0.6;
 }
-
-// The 1024 carries the Singularity signature (it is the player's own artwork), and at the size of a card,
-// a row or a hero the signature is a few pixels of noise: only the player's cover offers it. The rest
-// offer the 512, which never carries it, so a cover looks the same at every density and on every visit.
-const widths: CoverSize[] = size === "player" ? [512, 1024] : [512];
-const srcset = (mode: CoverMode) =>
-  widths.map((width) => `${themedCoverSrc(digestId, mode, width)} ${width}w`).join(", ");
-
-// Display width of each size, so the browser picks the 512 or the 1024 image for the screen's density.
-const SIZES: Record<Props["size"], string> = {
-  thumb: "2.75rem",
-  row: "2.5rem",
-  card: "(min-width: 40rem) 11rem, 45vw",
-  hero: "(min-width: 40rem) 11rem, 8.5rem",
-  aside: "14rem",
-  player: "22rem",
-};
 ---
 
 <span
@@ -61,71 +41,10 @@ const SIZES: Record<Props["size"], string> = {
   data-pale={isPale(edgeLight) ? "" : undefined}
   style={`--cover-bg-light:${edgeLight};--cover-bg-dark:${edgeDark}`}
 >
-  {/* One image per theme. The other theme's image is display: none, so a lazy one is never fetched. */}
-  {modes.map((mode) => (
-    <img
-      class="cover-image"
-      data-mode={mode}
-      src={themedCoverSrc(digestId, mode, 512)}
-      srcset={srcset(mode)}
-      sizes={SIZES[size]}
-      width="512"
-      height="512"
-      alt=""
-      draggable="false"
-      decoding="async"
-      loading={priority ? "eager" : "lazy"}
-      fetchpriority={priority ? "high" : undefined}
-    />
-  ))}
+  {/* One vector for every theme and style (D314): cover.css turns its colour slots into the colours
+      the page is showing, so a switch recolours it at once and no image is fetched or decoded. */}
+  <Fragment set:html={svg} />
   {weekly && <span class="cover-frame" aria-hidden="true"></span>}
   {/* The cover on an item's own page plays it in place. A list's card adds its own button beside the link. */}
   {size === "hero" && <CoverPlay digestId={digestId} pointerOnly />}
 </span>
-
-<script>
-  // A cover that is missing or fails to load shows the branded fallback (cover.css). The error does
-  // not bubble, so it is caught on the way down; an image that failed before this ran is found by
-  // its size, now and once the document is parsed. Only an image with a source that finished empty
-  // counts: a lazy or hidden one has no source yet, so it is never mistaken for a failure. A failure
-  // counts for the theme it belongs to: a priority cover loads both, and the one the page is not
-  // showing may fail while the other is fine, so the fallback follows the shown theme.
-  const shownMode = () => {
-    const theme = document.documentElement.dataset.theme;
-    if (theme === "light" || theme === "dark") return theme;
-    return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  };
-  const sync = (cover: Element) => {
-    const failedHere = cover.querySelector(`.cover-image[data-mode="${shownMode()}"][data-failed]`);
-    cover.toggleAttribute("data-fallback", failedHere !== null);
-  };
-  const syncAll = () => {
-    for (const cover of document.querySelectorAll(".cover")) sync(cover);
-  };
-  const failed = (image: Element) => {
-    image.setAttribute("data-failed", "");
-    const cover = image.closest(".cover");
-    if (cover) sync(cover);
-  };
-  const scan = () => {
-    for (const image of document.querySelectorAll<HTMLImageElement>(".cover-image")) {
-      if (image.complete && image.currentSrc && image.naturalWidth === 0) failed(image);
-    }
-  };
-  document.addEventListener(
-    "error",
-    (event) => {
-      if (event.target instanceof HTMLImageElement && event.target.matches(".cover-image")) {
-        failed(event.target);
-      }
-    },
-    true,
-  );
-  scan();
-  document.addEventListener("DOMContentLoaded", scan);
-  new MutationObserver(syncAll).observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ["data-theme"],
-  });
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", syncAll);
-</script>

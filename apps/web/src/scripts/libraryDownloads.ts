@@ -11,6 +11,7 @@ import {
   confirmLookup,
   coverAddresses,
   type Download,
+  GLYPH_SHEET_ADDRESS,
   lookupAddress,
   MANIFEST_KEY,
   marksAddress,
@@ -31,6 +32,16 @@ const timed = (milliseconds: number, init: RequestInit = {}): RequestInit => ({
   ...init,
   signal: AbortSignal.timeout(milliseconds),
 });
+
+/** Keeps the shared lettering sheet beside the covers so an offline cover keeps its date. Best effort. */
+async function saveGlyphSheet(cache: Cache): Promise<void> {
+  try {
+    const sheet = await fetch(GLYPH_SHEET_ADDRESS, timed(LOOKUP_MS));
+    if (sheet.ok) await cache.put(GLYPH_SHEET_ADDRESS, sheet);
+  } catch {
+    // Like the covers, the sheet is not worth failing a download for.
+  }
+}
 
 /** How long the worker gets to save the page's scripts before the download counts as done. */
 const WARM_MS = 15_000;
@@ -217,6 +228,7 @@ async function downloadEpisode(cache: Cache, request: DownloadRequest): Promise<
       const cover = await fetch(extra, timed(LOOKUP_MS)).catch(() => null);
       if (cover?.ok) await keep(extra, cover);
     }
+    await saveGlyphSheet(cache);
     await keep(request.page, page);
     await keep(
       address,
@@ -300,6 +312,7 @@ async function saveDownload(request: DownloadRequest): Promise<void> {
         saved.push(extra);
       }
     }
+    await saveGlyphSheet(cache);
     const list = addDownload(await savedListOrThrow(cache), {
       ...request,
       extras: saved.slice(2),
