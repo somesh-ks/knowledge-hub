@@ -103,8 +103,8 @@ jobs:
 
       # The ingest shadow's reading (D233, D251): how many of the dailies' stories the store held and
       # how many pages it read. It reads the dailies Load content pulled and Neon, and calls no model.
-      # It goes on the run's page on Mondays and on a manual run, never fails the job, and decides
-      # nothing: the cut-over is the owner's call once the shadow exit reads met.
+      # It goes on the run's page and in its log on Mondays and on a manual run, never fails the job,
+      # and decides nothing: the cut-over is the owner's call once the shadow exit reads met.
       - name: Ingest coverage
         if: steps.probe.outputs.run == 'true'
         shell: bash
@@ -124,7 +124,7 @@ jobs:
             echo "ingest --coverage exited with status $status"
             echo '```'
             exit "$status"
-          } >> "$GITHUB_STEP_SUMMARY"
+          } 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Check
         shell: bash
