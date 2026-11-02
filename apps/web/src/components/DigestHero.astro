@@ -39,6 +39,7 @@ const title = hero.title.replace(/(\d+) /, "$1 ");
     !shareToken && (
       <HeroMenu
         briefingId={entry.id}
+        minutes={entry.digest.listen_minutes}
         deletable={entry.digest.kind === "on-demand"}
         regenerations={entry.digest.regenerations}
         page={{

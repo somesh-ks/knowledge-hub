@@ -43,7 +43,7 @@ test("Regenerate while a podcast plays: the queue's dock stands clear above the 
   await player.finger.press(dialog.getByRole("button", { name: "Regenerate" }));
   await expect(dialog).toBeHidden();
   // Regenerate replaces the briefing on the page over its own window (D104).
-  expect(sent).toEqual({ replace: SITE.path.replace("/d/", "") });
+  expect(sent).toEqual({ length_minutes: 5, replace: SITE.path.replace("/d/", "") });
   const card = page.locator("[data-queue-dock]");
   await expect(card).toBeVisible();
   const bar = await player.dockSettled();

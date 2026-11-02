@@ -16,7 +16,7 @@
     "story_writer": { "chain": [{ "family": "claude-haiku", "effort": "medium", "timeout_ms": 120000 }, { "family": "claude-sonnet", "effort": "medium", "timeout_ms": 120000 }, { "family": "gemini-flash", "timeout_ms": 120000 }] },
     "headline_shorten": { "chain": [{ "family": "claude-haiku", "timeout_ms": 60000 }, { "family": "gemini-flash-lite", "timeout_ms": 60000 }] },
     "story_rewrite": { "chain": [{ "family": "claude-sonnet", "effort": "medium", "timeout_ms": 120000 }, { "family": "gemini-flash", "timeout_ms": 120000 }] },
-    "podcast_script": { "chain": [{ "family": "claude-sonnet", "effort": "high", "timeout_ms": 240000 }, { "family": "gemini-flash", "timeout_ms": 240000 }] },
+    "podcast_script": { "chain": [{ "family": "claude-sonnet", "effort": "medium", "timeout_ms": 240000 }, { "family": "gemini-flash", "timeout_ms": 240000 }] },
     "podcast_opening": { "chain": [{ "family": "claude-sonnet", "effort": "medium", "timeout_ms": 120000 }, { "family": "gemini-flash", "timeout_ms": 120000 }] },
     "podcast_rewrite": { "chain": [{ "family": "claude-sonnet", "effort": "low", "timeout_ms": 120000 }, { "family": "gemini-flash", "timeout_ms": 120000 }] },
     "transcription": { "chain": [{ "family": "gemini-flash-lite", "timeout_ms": 180000 }, { "family": "gemini-flash", "timeout_ms": 180000 }] },

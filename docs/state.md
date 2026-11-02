@@ -38,14 +38,15 @@ Unit (CI): 352 files, 5,449 tests, about 2 min. Site e2e: 448, 10 min. Player: 8
 - Ingest in shadow (D233, D251). closed when: for 7 days the store holds 90% of each daily's stories and reads 90% of pages tried (`ingest --coverage`).
 - Trusted publishers (D234) and community lift (D240), shipped off. closed when: both on and a daily airs a lab story and a community-voted one, no source over 30%.
 - Run names (D217), Neon run log (D221). closed when: a scheduled daily is named `daily <date>`, is off the queue, and has its row.
-- `podcast.yml` no longer installs ffmpeg; its first stage starts 9 s into the job (29 s before). closed when: 9 s is accepted or a target set.
-- A Regenerate can ask for 3, 5, 10 or 15 minutes (D207): The input is on `main`. closed when: a 10-minute Regenerate airs within 10% of 10.
+- `podcast.yml` no longer installs ffmpeg; its first stage starts 9 s in (29 s before). closed when: 9 s is accepted.
+- Regenerate lengths (D207) and its full sheet with the smooth Catch up exit (D323): browser only. closed when: signed off on his phone and a 10-minute Regenerate airs within 10%.
+- Catch up script at medium effort (D324). closed when: two Catch ups air within 10% of length, faster; else high again.
 - Podcast queue (D231, D242): fakes only. closed when: a Catch up is cancelled and a failed run's Details read.
 - Owner's eye: bar centring (over 1px), centred column and label gap (D229), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off.
 - Live content (plan 20): an open page elsewhere does not refresh in 60 s; `smokeLive.mjs --apply` never ran on production. closed when: checked.
 - Reload mid-write (D259). closed when: a phone flip, then reload, holds.
 - Offline settings outbox (D299): fakes only. closed when: on a phone in airplane mode a setting is changed, the app is closed, and it reaches the site once back online.
-- Settings paint the stored copy at once, the theme before first paint (D205); another device's edit waits for a reload toast; a first visit after a config change waits up to 2.5 s. closed when: the owner signs off on a phone.
+- Settings paint the stored copy at once (D205); another device's edit waits for a reload toast. closed when: the owner signs off on a phone.
 - Sources design (D124): production asks Jev for a source's format only after `secrets:push`; no run used a mix or cap. closed when: a production format comes from Jev and a digest follows a mix change.
 - YouTube text: Firecrawl and Gemini transcripts answered live; no full run used either. closed when: a digest has a YouTube finalist with `extract_method` captions or transcription.
 - D145, D202 ([hardening](engineering/hardening.md)): health runs daily and `health-warnings` opened on 10-26; only the phone is unseen. closed when: a phone app loads a deploy itself.

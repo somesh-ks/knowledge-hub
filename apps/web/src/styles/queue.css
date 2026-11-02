@@ -44,6 +44,19 @@
   }
 }
 
+/* The dock arrives, it does not appear: a started Catch up or Regenerate sends its sheet down, and the
+   queue rises from the bar a beat later, so the run is seen to land where it can be followed. */
+.queue-dock:not([hidden]) {
+  animation: queue-dock-in var(--duration-enter) var(--ease-out) var(--duration-exit) both;
+}
+
+@keyframes queue-dock-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-4));
+  }
+}
+
 html[data-player="open"] .queue-dock {
   visibility: hidden;
 }
@@ -549,6 +562,10 @@ html[data-player="open"] .app-nav-queue {
 
   .queue-stage-icon > .icon-glyph,
   .queue-stage-icon > .icon-glyph[data-leaving] {
+    animation: none;
+  }
+
+  .queue-dock:not([hidden]) {
     animation: none;
   }
 

@@ -904,6 +904,9 @@
       "tokens": [
         "--color-on-surface",
         "--color-scrim",
+        "--color-surface",
+        "--color-surface-hover",
+        "--color-surface-pressed",
         "--color-surface-raised",
         "--color-surface-raised-hover",
         "--color-surface-raised-pressed",

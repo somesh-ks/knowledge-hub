@@ -576,3 +576,13 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Why: `eval/writerModels.ts` (run 41348226002, 9 stories, Jev as judge) put Haiku medium at the best voice score (8 of 9 clean), the best grounding (0.45) and a quality within 0.07 of Sonnet high, at $0.012 against $0.199. Sonnet medium cost 2.4 times less than high for a small loss; Sonnet low used the same tokens as medium. Gemini Flash read well but scored 0.24 on grounding and passed no story, so it stays last.
 - Revisit if: voice or grounding drops per run rise above the Sonnet-only runs, or a blind read of Haiku's stories finds them worse by ear. The experiment is 9 stories and one judge; the first scheduled runs are the real test.
 
+
+
+## D324: the Catch up script is written at medium effort
+
+- Date: 2026-11-02 (the owner: "Catch up takes far too long to generate ... It should be much faster"; cost stays as low as possible, so the Batch API stays for scheduled runs, D294).
+- Decision: in `config/models.json` the `podcast_script` chain is Sonnet at medium effort (was high), then Gemini Flash. Only Catch ups and episode Regenerates use this step; the scheduled Daily and Weekly do not.
+- Why: a run from tap to a listenable episode took about 3 minutes (the podcast job 64 s, the audio job 83 s, the content sync about 100 s that starts only after the run ends). Writing the script at high effort was the one stage a config change could shorten. The workflow cuts (ffmpeg in the background, narration inside the podcast job, an earlier content sync) are `.github/workflows` changes, handed to the storage thread.
+- Cost: not measured on real scripts. Effort medium may write a shorter script (`length_share`).
+- Revisit if: two Catch ups in a row air under 90% of their length (`length_share`), then put high back.
+- Amends: D181 (the model chains).
