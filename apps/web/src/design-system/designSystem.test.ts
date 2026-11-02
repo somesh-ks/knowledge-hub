@@ -112,7 +112,6 @@ const NOT_YET_COMPONENTS = [
   "add-fab",
   "dock-btn",
   "transport-btn",
-  "speed-btn",
   "view-btn",
   "source-plus-btn",
   "text-link",

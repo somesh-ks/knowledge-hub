@@ -28,6 +28,8 @@ Cold items offloaded from active state. Each item maintains an explicit testable
   - Closed when: such a test exists and passes in CI.
 - **Service worker preload race**: `serviceWorker.spec.ts:140` failed 1 of 373 local runs (icon stylesheet preload as page went offline).
   - Closed when: a trace identifies the cause or 500 consecutive test runs pass.
+- **Service worker deploy-swap flake**: `serviceWorker.spec.ts:237` (a move to a page of a newer deploy loads in full instead of swapping in) failed once in the full site run on PR #582 (447 of 448) and passed alone. Cause not found; suspect timing between the old and new worker. Fix with a faked clock or a real signal, never a sleep or retry.
+  - Closed when: the wait is replaced by a signal and the full site run passes 20 times in a row.
 - **Aggregator / redirect filtering**: Links to blocked outlets via aggregators or redirects are not caught.
   - Closed when: domain matching resolves final destination URLs, or owner accepts current matching.
 

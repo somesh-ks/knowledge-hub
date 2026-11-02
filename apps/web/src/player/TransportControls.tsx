@@ -1,19 +1,16 @@
 import { isPlayingStatus, toggleLabel } from "./core/playerCopy";
 import { getPlayerStore } from "./core/playerRuntime";
 import { SKIP_BACK_SECONDS, SKIP_FORWARD_SECONDS } from "./core/playerTypes";
-import { useMouseWide } from "./hooks/useMouseWide";
 import { usePlayerState } from "./hooks/usePlayer";
 import { useStoryStep } from "./hooks/useStoryStep";
 import { awaitNoticeAnswer } from "./PlayerNotice";
-import SpeedControl from "./SpeedControl";
 import Icon from "./ui/LazyIcon";
 import PlayPauseGlyph from "./ui/PlayPauseGlyph";
 
 /**
  * The transport, one control dominant: the previous story, back ten seconds, play and pause,
- * forward ten seconds, the next story, with the speed under play on a phone. On a wide screen with
- * a mouse the bar has previous, play and next, so the page shows the two skips with the speed
- * between them. The skip glyphs are plain circular arrows; each button
+ * forward ten seconds, the next story. On a wide screen with a mouse the bar has previous, play and
+ * next, so the page shows the two skips. The speed is in the ⋮ menu (PlayerMenu.tsx). The skip glyphs are plain circular arrows; each button
  * draws its own numeral in the arrow's open center, and the name stays on the button.
  */
 export default function TransportControls() {
@@ -21,10 +18,6 @@ export default function TransportControls() {
   const store = getPlayerStore();
   const step = useStoryStep();
   const playing = isPlayingStatus(state.status);
-  // With a mouse on a wide screen the page shows only the skips, the speed between them, so Tab
-  // visits them in that order; elsewhere the speed is under play and comes last.
-  const mouseWide = useMouseWide();
-  const speed = <SpeedControl />;
 
   return (
     <div className="transport">
@@ -64,7 +57,6 @@ export default function TransportControls() {
         <PlayPauseGlyph status={state.status} error={state.error} />
         <span className="spinner" aria-hidden="true" />
       </button>
-      {mouseWide ? speed : null}
       <button
         className="transport-btn transport-skip press"
         type="button"
@@ -85,8 +77,6 @@ export default function TransportControls() {
       >
         <Icon name="skipForward" />
       </button>
-      {/* Last in the DOM so Tab reaches it after Next; the grid places it under Play. */}
-      {mouseWide ? null : speed}
     </div>
   );
 }

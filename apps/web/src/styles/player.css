@@ -44,7 +44,7 @@
   /* The cover never takes more than this share of the window's height. */
   --player-cover-share: 40cqb;
   /* From 64rem with a finger: what the left column holds besides the cover (the title, the story
-     line and its source or a notice, the scrubber, the transport, the speed, their gaps and the
+     line and its source or a notice, the scrubber, the transport, their gaps and the
      bar), measured at 1024x600. */
   --player-column-rest: 30rem;
   --player-skip-glyph: 2rem;
@@ -1305,8 +1305,7 @@
 }
 
 /* Under the open page the bar stays, and with a mouse on a wide screen it keeps its whole transport:
-   previous, play, next and the clock are where they were, and the page adds only the skips and the
-   speed (below). Elsewhere, where the bar stays under the open page, the page keeps its own transport,
+   previous, play, next and the clock are where they were, and the page adds only the skips (below). Elsewhere, where the bar stays under the open page, the page keeps its own transport,
    so the bar shows only what is playing: nothing said twice, and one filled play control. Hidden in
    place, so the middle group holds still. */
 @media (width >= 40rem) and (not ((width >= 64rem) and (hover: hover) and (pointer: fine))) {
@@ -1641,17 +1640,7 @@
   grid-template-columns: repeat(5, auto);
   align-items: center;
   justify-content: space-between;
-  /* The speed pill belongs to the transport above it: one control's inner step, 8px. At 16px the
-     two-column player overflowed a 1024x768 window by 4px (2026-10-21). */
-  row-gap: var(--space-2);
   padding-block: var(--space-4) var(--space-2);
-}
-
-/* On the phone the five keep one axis, play in the middle, and the speed sits under play as a
-   quiet pill, so it reads as a control and not as a caption. */
-.transport > .speed {
-  grid-row: 2;
-  grid-column: 3;
 }
 
 .transport-btn {
@@ -1744,192 +1733,6 @@
 
 .transport-btn[data-primary]:active {
   background: var(--color-accent-pressed);
-}
-
-/* ------------------------------------------------------------------ speed */
-
-/* The speed it is at: under play on a phone, between the two skips with a mouse. One tap opens
-   the slider. */
-.speed {
-  display: grid;
-  place-items: center;
-}
-
-/* A quiet pill, so it reads as a control and not as a caption. Its label is always five characters
-   ("1.00x", SpeedControl.tsx) in tabular figures, so neither the label nor the skips either side
-   move as the speed changes. A press shows on the fill; the words keep their size. */
-.speed-btn {
-  display: grid;
-  place-items: center;
-  min-width: calc(5ch + var(--space-2) * 2);
-  min-height: var(--size-touch);
-  padding-inline: var(--space-2);
-  border-radius: var(--button-radius);
-  background: var(--color-surface-container);
-  color: var(--color-on-surface);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
-  transition:
-    background-color var(--duration-press-in) var(--ease-out),
-    color var(--duration-hover) var(--ease-hover);
-}
-
-/* Open, it is the selected state: the accent's container, as a chosen chip's. */
-.speed-btn[aria-expanded="true"] {
-  background: var(--color-accent-container);
-  color: var(--color-on-accent-container);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .speed-btn:hover {
-    background: var(--color-surface-container-hover);
-  }
-}
-
-.speed-btn:active {
-  background: var(--color-surface-container-pressed);
-}
-
-/*
- * A modal dialog, so a press outside it lands on its backdrop, which closes it and reaches nothing
- * underneath. It sits in the top layer, centred on the button by script: below it with a finger and
- * above it with a mouse, on the other side when that one has no room, and inside the window. It
- * grows out of the button and shrinks back into it, quicker out than in.
- */
-.speed-panel {
-  --panel-top: 0px;
-  --panel-center: 50vw;
-  --panel-width: 16rem;
-  --panel-left: clamp(
-    var(--space-4),
-    var(--panel-center) -
-    var(--panel-width) /
-    2,
-    100vw -
-    var(--panel-width) -
-    var(--space-4)
-  );
-  --panel-scale: var(--scale-enter);
-  --color-focus-gap: var(--color-surface-overlay);
-  --ghost-hover: var(--color-surface-overlay-hover);
-  --ghost-pressed: var(--color-surface-overlay-pressed);
-  position: fixed;
-  inset: var(--panel-top) auto auto var(--panel-left);
-  width: var(--panel-width);
-  max-width: none;
-  max-height: none;
-  margin: 0;
-  padding: 0;
-  overflow: visible;
-  border: 0;
-  border-radius: var(--shape-md);
-  background: var(--color-surface-overlay);
-  color: var(--color-on-surface);
-  box-shadow: var(--shadow-popover);
-  opacity: 0;
-  pointer-events: none;
-  transform: scale(var(--panel-scale));
-  /* The button's centre, on the edge of the panel that faces it. */
-  transform-origin: calc(var(--panel-center) - var(--panel-left)) 100%;
-  transition:
-    opacity var(--duration-exit) var(--ease-out),
-    transform var(--duration-exit) var(--ease-out),
-    overlay var(--duration-exit) allow-discrete,
-    display var(--duration-exit) allow-discrete;
-}
-
-.speed-panel[data-side="below"] {
-  transform-origin: calc(var(--panel-center) - var(--panel-left)) 0;
-}
-
-.speed-panel[open] {
-  opacity: 1;
-  pointer-events: auto;
-  transform: none;
-  transition-duration: var(--duration-state);
-}
-
-@starting-style {
-  .speed-panel[open] {
-    opacity: 0;
-    transform: scale(var(--panel-scale));
-  }
-}
-
-/* Without overlay (Safari) a closing panel leaves the top layer at once, and the moving player page
-   becomes what it is placed against, so its fade would jump by the page's scroll. It closes at once
-   there instead. */
-@supports not (overlay: auto) {
-  .speed-panel:not([open]) {
-    transition: none;
-  }
-}
-
-/* No dim: the panel is small and sits by its button, and the player stays in view around it. */
-.speed-panel::backdrop {
-  background: transparent;
-}
-
-/* On its way out it is no longer modal, so a press goes straight through to what is under it. */
-.speed-panel:not([open])::backdrop {
-  pointer-events: none;
-}
-
-/* The panel's padding is here, so a press anywhere inside it lands on a child of the dialog and only
-   the backdrop is the dialog itself. */
-.speed-panel-body {
-  display: grid;
-  /* The slider's focus ring reaches past its box; the presets start below it. */
-  row-gap: var(--space-2);
-  /* The chosen speed's fill keeps the same distance from the bottom as from the sides. */
-  padding: var(--space-4);
-}
-
-/* The speed slider is the Slider (design-system/Slider.astro), as wide as the panel and on the panel's
-   own surface, so its thumb's ring takes that colour. */
-.speed-panel-body > .slider-input {
-  --slider-ring: var(--color-surface-overlay);
-  display: block;
-  width: 100%;
-}
-
-/* The common speeds under the slider, whose fine steps are hard to land on by finger: quiet pills,
-   the chosen one in the accent's container, as a chosen chip is. */
-.speed-presets {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-2);
-}
-
-.speed-preset {
-  min-height: var(--size-touch);
-  border-radius: var(--button-radius);
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
-  transition:
-    background-color var(--duration-press-in) var(--ease-out),
-    color var(--duration-hover) var(--ease-hover);
-}
-
-.speed-preset[aria-pressed="true"] {
-  background: var(--color-accent-container);
-  color: var(--color-on-accent-container);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .speed-preset:not([aria-pressed="true"]):hover {
-    background: var(--ghost-hover);
-    color: var(--color-on-surface);
-  }
-}
-
-.speed-preset:not([aria-pressed="true"]):active {
-  background: var(--ghost-pressed);
-}
-
-.speed-preset[aria-pressed="true"]:active {
-  background: var(--color-accent-container-pressed);
 }
 
 /* ------------------------------------------------------------------ the script */
@@ -2519,6 +2322,83 @@
   }
 }
 
+/* The ⋮ menu's button (PlayerMenu.tsx), at the top right of the open player: the chevron's mirror, on
+   the same line and with the same 44px target, its glyph on the page's right edge (owner,
+   2026-11-01: "a 3 dots button here"). From 64rem it sits in the left column's corner. */
+.player-more {
+  position: absolute;
+  inset-block-start: var(--space-2);
+  inset-inline-end: var(--space-2);
+  z-index: var(--z-raised);
+  color: var(--color-on-surface-muted);
+}
+
+@supports (top: anchor(bottom)) {
+  .player-more {
+    anchor-name: --hero-more;
+  }
+}
+
+@media (width < 64rem) {
+  .player .player-more {
+    inset-block-start: calc((var(--space-8) + var(--space-2) - var(--size-touch)) / 2);
+    inset-inline-end: calc((var(--size-icon-lg) - var(--size-touch)) / 2);
+  }
+}
+
+/* The menu's popover on a wide screen is as wide for both screens, so the tiles' words fit and it does
+   not change width between them. A phone's sheet is the screen's width (menu.css). */
+.player-menu {
+  min-width: 20rem;
+}
+
+/* The menu's Playback speed screen: the stepper and the readout, then the slider under them (the
+   Slider, design-system/slider.ts), with the two ends named. The readout holds five characters in
+   tabular figures, so it never moves as the speed does. */
+.player-speed {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-4) var(--space-6);
+}
+
+.player-speed-stepper {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.player-speed-readout {
+  text-align: center;
+  font-size: var(--font-size-display);
+  font-weight: var(--font-weight-medium);
+}
+
+/* The speeds the slider stops on, as numbers under the track. Each stands under its own stop: the
+   thumb's centre travels the track less one thumb, so a stop is that travel times its place, from half
+   a thumb in. Their gap is only that, so the row needs no breakpoint. */
+.player-speed-stops {
+  position: relative;
+  block-size: var(--font-leading-caption);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-meta);
+}
+
+.player-speed-stop {
+  position: absolute;
+  inset-inline-start: calc(
+    var(--scrubber-thumb) /
+    2 +
+    (100% - var(--scrubber-thumb)) *
+    var(--stop)
+  );
+  translate: -50% 0;
+}
+
+.player-speed-stop[data-on] {
+  color: var(--color-on-surface);
+}
+
 @media (hover: hover) and (pointer: fine) and (width < 64rem) {
   .player .player-collapse:hover:not(:active) {
     background: var(--ghost-hover);
@@ -2667,7 +2547,7 @@
 @media (width >= 64rem) and (hover: hover) and (pointer: fine) {
   /* The bar stays under the page here, with previous, play, next, the clock and the volume, as it
      does when the page is closed. The page does not say them twice: it keeps what the bar has not,
-     the two skips and the speed between them. */
+     the two skips. */
   .player-controls {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -2677,8 +2557,7 @@
     align-items: center;
   }
 
-  /* One timeline: the bar's. The page keeps the cover, the title, the source, the skips and the
-     speed between them. The story's headline is the bar's caption, so only its source stays here,
+  /* One timeline: the bar's. The page keeps the cover, the title, the source, the skips. The story's headline is the bar's caption, so only its source stays here,
      the one way to open it. */
   .scrubber-wrap,
   .player-story {
@@ -2697,9 +2576,7 @@
     min-height: 0;
   }
 
-  /* Back ten, the speed, forward ten: the speed is the middle of the three, as a dial between two
-     steps. TransportControls puts it between them in the document here, so Tab follows what the eye
-     sees. */
+  /* Back ten and forward ten, side by side. */
   .transport {
     display: flex;
     grid-row: 1;
@@ -2794,13 +2671,6 @@ html:is([data-player="open"], :has(dialog[open])) .player-dock {
     transform: none;
     filter: none;
   }
-
-  /* The speed panel fades without growing. */
-  .speed-panel {
-    --panel-scale: 1;
-    /* The exit fade takes the hover time here; the open rule has its own duration and keeps it. */
-    transition-duration: var(--duration-hover);
-  }
 }
 
 @media (forced-colors: active) {
@@ -2843,19 +2713,9 @@ html:is([data-player="open"], :has(dialog[open])) .player-dock {
   }
 
   /* Fills are dropped too, so each text control keeps an edge of its own. */
-  .speed-btn,
-  .speed-preset,
   .story-row,
   .script-back {
     border: var(--stroke-hairline) solid ButtonText;
-  }
-
-  .speed-panel {
-    border: var(--stroke-hairline) solid CanvasText;
-  }
-
-  .speed-preset[aria-pressed="true"] {
-    border: var(--stroke-rail) solid Highlight;
   }
 
   /* An outline, so the turn keeps its size as the voice moves from one to the next. */
