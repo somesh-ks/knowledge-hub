@@ -122,6 +122,19 @@ export async function syncContent(input: SyncContentInput): Promise<ContentSyncR
     updated_at: now.toISOString(),
     files: {},
   };
+  // Refused before anything is written, so a refused sync leaves the store as it was.
+  const deleted = Object.keys(stored).filter((path) => !files.has(path));
+  // Digests and episodes are in the store, not in git (D300): a checkout that lacks all of a folder
+  // the store holds is one that never pulled, and mirroring it would empty that folder.
+  const holds = (paths: Iterable<string>, dir: string): boolean =>
+    [...paths].some((path) => path.startsWith(`${dir}/`));
+  for (const dir of CONTENT_DIRS) {
+    if (holds(Object.keys(stored), dir) && !holds(files.keys(), dir)) {
+      throw new Error(
+        `this checkout holds nothing under ${dir}/ but the store does; a sync would delete it all. Use content put and remove, or pull first`,
+      );
+    }
+  }
   const uploaded: string[] = [];
   for (const [path, body] of files) {
     const hash = sha256(body);
@@ -133,7 +146,6 @@ export async function syncContent(input: SyncContentInput): Promise<ContentSyncR
     });
     uploaded.push(path);
   }
-  const deleted = Object.keys(stored).filter((path) => !files.has(path));
   for (let index = 0; index < deleted.length; index += DELETE_BATCH) {
     await client.del(
       deleted.slice(index, index + DELETE_BATCH).map((p) => `${CONTENT_PREFIX}${p}`),

@@ -6,6 +6,7 @@ import { createHttpClient } from "../http.js";
 import { cacheForRun } from "../httpRunCache.js";
 import { trackOpenBatches } from "../llm/openBatches.js";
 import { meterExa } from "../llm/requestMeter.js";
+import { makeContentPublisher } from "../publish/contentWorkspace.js";
 import { configStoreUrl, connectConfigStore } from "../store/configPaths.js";
 import { recordExperimentHits } from "../store/experimentHits.js";
 import { loadVoice } from "../voice/voice.js";
@@ -69,6 +70,7 @@ export function buildDeps(ctx: CommandContext): RunDeps {
     },
     pickCover,
     git: createGitRunner(ctx.root),
+    publishContent: makeContentPublisher(ctx.env, ctx.root, ctx.now),
     // With the config store on, the shadow counts go to Neon for the admin app; off, they stay in the log.
     recordExperimentHits: storeUrl
       ? async (hits) =>
