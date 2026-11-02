@@ -47,6 +47,14 @@ describe("startGenerate", () => {
     expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({});
   });
 
+  // The bug it prevents: the token the site sends with a run was dropped here, so a Regenerate from
+  // the sheet had no Cancel in the queue and could never ask for the message when it ended.
+  it("keeps the cancel token the site sends with the run", async () => {
+    const { fetch } = scriptedFetch(json(202, { run_id: 7, cancel_token: "tok" }));
+    const result = await startGenerate({ fetch, isOnline: online });
+    expect(result).toMatchObject({ kind: "started", runId: 7, cancelToken: "tok" });
+  });
+
   it("says so when offline, without a request", async () => {
     const { fetch, calls } = scriptedFetch();
     const result = await startGenerate({ fetch, isOnline: () => false });
