@@ -14,6 +14,7 @@ Where each kind of fact lives. Each fact is kept in one place; the others link t
 | [design/sound-design.md](design/sound-design.md) | The sound system: recipes, levels and rules | Before changing a sound |
 | [design/podcast-structure.md](design/podcast-structure.md) | The modular script structure for every episode kind, with the owner's answers (D170, accepted, not built) | Before building the Preferences structure view |
 | [runbook.md](runbook.md) | Owner setup and operation | Setup, secrets, a broken deploy |
+| [engineering/code-review.md](engineering/code-review.md) | Which review a PR gets by tier, when CodeRabbit is asked, what each reviewer is for (D292) | Before opening, pushing to or merging a PR |
 | [engineering/delivery-failures.md](engineering/delivery-failures.md) | Why PRs, CI and deploys failed, and the rules that stop each one | Before pushing, and when a check is red |
 | [engineering/first-load-js.md](engineering/first-load-js.md) | First-load JavaScript per page and the cuts | Before adding first-load code |
 | [engineering/engagement-and-share-plan.md](engineering/engagement-and-share-plan.md) | Share links and the listen page on top of Simple Analytics (D154), in stages (D153) | Before building engagement or sharing |
