@@ -454,6 +454,15 @@ export class PlayerPage {
     await this.dockSettled();
   }
 
+  /** Closes the player a Play opened over the page (phone only), so the page can be used again. */
+  async shut(): Promise<void> {
+    if (this.barOnly()) return;
+    await this.expanded();
+    await this.finger.press(this.closeButton);
+    await this.collapsed();
+    await this.dockSettled();
+  }
+
   /** Starts narration from the hero button and, on a phone, leaves the player open over the page. */
   async playAndStay(): Promise<void> {
     await this.finger.press(this.cta);
@@ -485,7 +494,10 @@ export class PlayerPage {
   }
 
   async openPlayer(): Promise<void> {
-    await this.finger.press(this.openButton);
+    // A Play on a phone has opened it already.
+    if ((await this.root.getAttribute("data-player")) !== "open") {
+      await this.finger.press(this.openButton);
+    }
     await this.expanded();
   }
 
