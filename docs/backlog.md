@@ -7,7 +7,7 @@ Long-term project memory, future explorations, parked tasks, and shipped milesto
 Immediate priority tasks synchronized with `docs/state.md` ## Next:
 
 1. **Owner calls**: Decide on regenerating 3-story 2026-10-27 briefing; revoke old Vercel token pasted in chat; delete empty store `store_JmrDq8MB5Kwn3ejW`; resolve PWA open calls.
-2. **Firecrawl change check**: the yield report is delivered; the owner prunes. Next is a free change check before a scrape (a Firecrawl monitor costs the same as a scrape per check).
+2. **Firecrawl change check**: the yield report is delivered; the owner prunes. The free change check before a scrape is built (D341); a Firecrawl monitor costs the same as a scrape per check.
 3. **Lighthouse CSS**: parked. Critical CSS paints a cold phone in 1.0 s, not 3.2 s, but needs per-page CSP hashes and a flash check.
 4. **Topic to Category migration**: End-to-end migration (plan 14, about 6,500 occurrences) across readers, store sync, code, and workflow outputs.
 5. **Design system sweep**: Review `/settings/*`, category pages, player, create; audit light and dark modes at 390px and 1280px; one PR per component family.

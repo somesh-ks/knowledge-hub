@@ -5,6 +5,7 @@ import { type HttpClient, HttpError } from "../http.js";
 import { buildItems, type RawItem } from "../normalize/buildItem.js";
 import { fetchAlexandriaAnthropic, VIA_ALEXANDRIA_ANTHROPIC } from "./alexandriaSource.js";
 import { extractEntries } from "./firecrawlExtract.js";
+import { probeListing } from "./listingCheck.js";
 import { type SourceFetcher, SourceSkipped } from "./types.js";
 
 export const FIRECRAWL_BASE_URL = "https://api.firecrawl.dev";
@@ -138,6 +139,25 @@ async function viaAlexandria(
 export const fetchFirecrawl: SourceFetcher = async (source, window, deps): Promise<Item[]> => {
   const config = deps.firecrawl;
   if (!config?.apiKey) throw new SourceSkipped("FIRECRAWL_API_KEY is not set");
+  const memory = deps.listings;
+  if (!memory) return readListing(source, window, deps);
+  // A free direct read first: the same links as the last scrape mean no new article to find, and
+  // the run spends no credit. Remembered only once the scrape below succeeded.
+  const pageUrl = source.feed_url ?? source.url;
+  const probe = await probeListing(memory, source, pageUrl, deps.http, deps.now(), deps.signal);
+  if (probe.unchanged) return [];
+  const items = await readListing(source, window, deps);
+  if (probe.hash !== null) memory.remember(source.id, probe.hash, deps.now());
+  return items;
+};
+
+async function readListing(
+  source: Parameters<SourceFetcher>[0],
+  window: Parameters<SourceFetcher>[1],
+  deps: Parameters<SourceFetcher>[2],
+): Promise<Item[]> {
+  const config = deps.firecrawl;
+  if (!config?.apiKey) throw new SourceSkipped("FIRECRAWL_API_KEY is not set");
   const apiKey = config.apiKey;
   const pageUrl = source.feed_url ?? source.url;
   if (source.options.via === VIA_ALEXANDRIA_ANTHROPIC) {
@@ -183,4 +203,4 @@ export const fetchFirecrawl: SourceFetcher = async (source, window, deps): Promi
   if (summary === "") throw new Error(FIRECRAWL_NO_ITEMS);
   const whole: RawItem = { url: pageUrl, title: page.title ?? source.name, summary };
   return buildItems([whole], { source, window, fetchedAt, undated: "keep" });
-};
+}

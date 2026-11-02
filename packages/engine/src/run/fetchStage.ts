@@ -2,6 +2,7 @@ import { rm } from "node:fs/promises";
 import { type SourceStatsFile, stockholmDate, VOICE_LIMITS } from "@singularity/core";
 import { loadJudgments } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
+import { ListingMemory } from "../fetch/listingCheck.js";
 import { poolRelPath, writePool } from "../fetch/pool.js";
 import type { SourceResult } from "../fetch/types.js";
 import { DEFAULT_CAP } from "../prefilter/prefilter.js";
@@ -14,7 +15,14 @@ import {
 import { loadSchedule } from "../schedule/store.js";
 import { loadSources } from "../sources/registry.js";
 import { applySourceResults, overlayHealth, toHealthFile } from "../state/sourceHealth.js";
-import { readSeen, readSourceHealth, readSourceStats, writeSourceHealth } from "../state/store.js";
+import {
+  readListingFingerprints,
+  readSeen,
+  readSourceHealth,
+  readSourceStats,
+  writeListingFingerprints,
+  writeSourceHealth,
+} from "../state/store.js";
 import { withRunJudgments } from "./artifacts.js";
 import { StageFailure } from "./errors.js";
 import { type GatherResult, gatherPool } from "./gatherPool.js";
@@ -154,6 +162,12 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
       : plan.passes.find((pass) => pass.kind === "regular");
   const planned = samplePass ? await planSample(deps, deps.now()) : null;
   const schedule = await loadSchedule(deps.root);
+  // What the last scrape of each Firecrawl listing saw: a page whose links have not moved is not
+  // scraped again. Without a Firecrawl key nothing is scraped, so there is nothing to remember.
+  const listings = deps.fetch.firecrawlKey
+    ? new ListingMemory(await readListingFingerprints(deps.root))
+    : undefined;
+  const setup = listings ? { ...deps.fetch, listings } : deps.fetch;
   for (const pass of plan.passes) {
     const now = deps.now();
     const sampling = pass === samplePass && planned !== null;
@@ -173,7 +187,7 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
       id: pass.id,
       kind: pass.kind,
       window: { from: new Date(pass.window.from), to: new Date(pass.window.to) },
-      setup: deps.fetch,
+      setup,
       ...(sampling && planned ? { probeGeneral: planned.readPlan.probeGeneral } : {}),
       ...poolCapOf(lengthMinutesFor(schedule, pass.kind, plan.mode, plan.length_minutes)),
     });
@@ -205,6 +219,13 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
           ),
         ),
       );
+    }
+
+    if (!plan.dry_run && listings) {
+      const fingerprints = listings.toFile(gathered.sources.sources);
+      if (Object.keys(fingerprints.sources).length > 0) {
+        await writeListingFingerprints(deps.root, fingerprints);
+      }
     }
 
     const failed = gathered.results.filter((result) => !result.ok);
