@@ -22,7 +22,6 @@ import {
   composite,
   contrastRatio,
   oklchStringToRgb,
-  oklchToRgb,
   parseOklch,
   type Rgb,
   relativeLuminance,
@@ -33,29 +32,6 @@ import { type SpringParams, springCurve } from "./springCurve.js";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const doc: TokenDocument = loadTokens();
 const MODES: Mode[] = ["light", "dark"];
-
-/** CSS `color-mix(in oklab, base, over share)`: the share of `over` laid over `base`. */
-function mixOklab(base: Rgb, over: Rgb, share: number): Rgb {
-  const toOklab = (rgb: Rgb) => {
-    const lin = [rgb.r, rgb.g, rgb.b].map((v) =>
-      v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4,
-    );
-    const [r, g, b] = lin as [number, number, number];
-    const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
-    const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
-    const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
-    return [
-      0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
-      1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
-      0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
-    ] as const;
-  };
-  const a = toOklab(base);
-  const b = toOklab(over);
-  const lay = (from: number, to: number) => from * (1 - share) + to * share;
-  const [L, A, B] = [lay(a[0], b[0]), lay(a[1], b[1]), lay(a[2], b[2])];
-  return oklchToRgb({ l: L, c: Math.hypot(A, B), h: (Math.atan2(B, A) * 180) / Math.PI, alpha: 1 });
-}
 
 function colorOf(path: string, mode: Mode): Rgb {
   const literal = resolveLiteral(doc, path, mode);
@@ -128,7 +104,10 @@ describe("token structure", () => {
     for (const token of doc.tokens) {
       if (token.dark === undefined) continue;
       const target = aliasTarget(token.dark);
-      if (target) expect(doc.byPath.get(target)?.type, token.dotPath).toBe(token.type);
+      // A derived state color is a color to whoever reads it.
+      const kind = (type: string | undefined) =>
+        type === "singularity-state-color" ? "color" : type;
+      if (target) expect(kind(doc.byPath.get(target)?.type), token.dotPath).toBe(kind(token.type));
     }
   });
 
@@ -144,6 +123,28 @@ describe("token structure", () => {
         seen.set(declaration.name, token.dotPath);
       }
     }
+  });
+});
+
+describe("state direction (D317)", () => {
+  // A state steps toward or away from its label by what the label's contrast allows. A hand-set flag
+  // per style would need a new one for every new look; the build settles it from the style's own colours.
+  it("is settled by the build from the label, so no style writes a state by hand", () => {
+    const raw = JSON.parse(readFileSync(resolve(ROOT, "tokens/tokens.json"), "utf8"));
+    expect(JSON.stringify(raw.styles)).not.toContain('"step"');
+    const expressive = doc.styles.find((style) => style.name === "expressive");
+    const settled = expressive?.overrides.map((override) => override.token.dotPath) ?? [];
+    expect(settled).toContain("semantic.color.accent-container-high-pressed");
+  });
+
+  it("steps a mid-tone fill away from a dark label instead of into it", () => {
+    const lightness = (path: string, mode: Mode): number =>
+      parseOklch(String(resolveLiteral(doc, path, mode))).l;
+    const fill = lightness("semantic.color.accent-action", "dark");
+    expect(lightness("semantic.color.accent-action-pressed", "dark")).toBeGreaterThan(fill);
+    expect(lightness("semantic.color.accent-action-pressed", "light")).toBeLessThan(
+      lightness("semantic.color.accent-action", "light"),
+    );
   });
 });
 
@@ -251,19 +252,6 @@ describe("color contrast", () => {
         colorOf(`semantic.color.${fill}`, mode),
       );
       expect(ratio, `on-accent on ${fill} (${mode})`).toBeGreaterThanOrEqual(4.5);
-    }
-    // The Filled button, hero chip and fallback button lay the state layer of their label over the fill
-    // (color-mix in oklab); the label keeps its contrast on the mixed fill, not only on the accent tokens.
-    for (const layer of ["hover", "press"]) {
-      const share =
-        Number.parseFloat(String(resolveLiteral(doc, `primitive.state.${layer}`, mode))) / 100;
-      const fill = mixOklab(
-        colorOf("semantic.color.accent", mode),
-        colorOf("semantic.color.on-accent", mode),
-        share,
-      );
-      const ratio = contrastRatio(colorOf("semantic.color.on-accent", mode), fill);
-      expect(ratio, `on-accent on the ${layer} state layer (${mode})`).toBeGreaterThanOrEqual(4.5);
     }
     const toast = contrastRatio(
       colorOf("semantic.color.on-surface-inverse", mode),
@@ -394,6 +382,16 @@ describe.each(doc.styles.map((style) => style.name))("a style's colour contrast:
     "surface-overlay",
   ];
 
+  // The reader's hue (D315) turns every coloured value of a style, so the floors must hold at each hue
+  // the slider can reach, not only the one the style was designed at.
+  const SHIFTS = Array.from({ length: 72 }, (_, i) => i * 5);
+  const turn = (literal: string, shift: number): string =>
+    literal.replace(
+      /^oklch\(([\d.]+%?) ([\d.]+) (-?[\d.]+)(.*)\)$/,
+      (_whole, l: string, c: string, h: string, rest: string) =>
+        `oklch(${l} ${c} ${(Number(h) + (Number(c) === 0 ? 0 : shift)) % 360}${rest})`,
+    );
+
   it.each(MODES)("holds the base's text, action and graphic floors (%s)", (mode) => {
     const floors: [foreground: string, background: string, least: number][] = [
       ...["on-surface", "on-surface-muted", "on-surface-subtle", "accent"].flatMap((fg) =>
@@ -415,6 +413,16 @@ describe.each(doc.styles.map((style) => style.name))("a style's colour contrast:
       ["on-accent", "accent", 4.5],
       ["on-accent", "accent-hover", 4.5],
       ["on-accent", "accent-pressed", 4.5],
+      ...["hover", "pressed"].flatMap((state): [string, string, number][] => [
+        ["on-accent-container", `accent-container-${state}`, 4.5],
+        ["on-accent-container-high", `accent-container-high-${state}`, 4.5],
+        ["on-accent-action", `accent-action-${state}`, 4.5],
+        ["on-surface", `surface-${state}`, 4.5],
+        ["on-surface", `surface-container-${state}`, 4.5],
+        ["on-surface", `surface-raised-${state}`, 4.5],
+        ["on-surface", `surface-overlay-${state}`, 4.5],
+        ["on-surface-inverse", `surface-inverse-${state}`, 4.5],
+      ]),
       ["on-surface-inverse", "surface-inverse", 4.5],
       ...["accent", "focus-ring"].flatMap((fg) =>
         ["surface", "surface-raised", "surface-overlay"].map((bg): [string, string, number] => [
@@ -429,12 +437,19 @@ describe.each(doc.styles.map((style) => style.name))("a style's colour contrast:
         3,
       ]),
     ];
-    const failures = floors.flatMap(([foreground, background, least]) => {
-      const ratio = contrastRatio(color(foreground, mode), color(background, mode));
-      return ratio >= least
-        ? []
-        : [`${foreground} on ${background}: ${ratio.toFixed(2)}, needs ${least}`];
-    });
+    const turned = (role: string, shift: number): Rgb => {
+      const literal = resolveLiteral(styled, `semantic.color.${role}`, mode);
+      if (typeof literal !== "string") throw new Error(`${role} is not a color`);
+      return oklchStringToRgb(turn(literal, shift));
+    };
+    const failures = SHIFTS.flatMap((shift) =>
+      floors.flatMap(([foreground, background, least]) => {
+        const ratio = contrastRatio(turned(foreground, shift), turned(background, shift));
+        return ratio >= least
+          ? []
+          : [`hue +${shift}, ${foreground} on ${background}: ${ratio.toFixed(2)}, needs ${least}`];
+      }),
+    );
     expect(failures, `${name} (${mode})`).toEqual([]);
   });
 });
@@ -766,6 +781,29 @@ describe("styles", () => {
     const darkBody = dark.slice(0, dark.indexOf("}"));
     expect(darkBody).toContain("oklch(10% 0 0)");
     expect(darkBody).not.toContain("oklch(99% 0 0)");
+  });
+
+  // The reader's hue slider (D315) moves a style by `--hue-shift`; a colour written without it would
+  // stay put while the rest of the palette turned, and nothing else would notice.
+  it("turns every coloured value of a style with the reader's hue, and leaves greys", () => {
+    const css = buildCss(
+      withStyle({
+        semantic: {
+          color: {
+            surface: surface("oklch(96% 0.02 292)", "oklch(19% 0.05 292)"),
+            "on-surface": surface("oklch(20% 0 0)", "oklch(95% 0 0)"),
+            accent: surface("{primitive.color.violet.600}", "{primitive.color.violet.300}"),
+          },
+        },
+      }),
+    );
+    const block = css.slice(css.indexOf(':root[data-style="bold"] {'));
+    const body = block.slice(0, block.indexOf("}"));
+    expect(body).toContain("--color-surface: oklch(96% 0.02 calc(292 + var(--hue-shift, 0)));");
+    expect(body).toContain("--color-on-surface: oklch(20% 0 0);");
+    expect(body).toMatch(/--color-violet-600: oklch\([\d.]+% [\d.]+ calc\(292 \+ var\(--hue-shift/);
+    expect(body).toMatch(/--color-violet-300: oklch\([\d.]+% [\d.]+ calc\(292 \+ var\(--hue-shift/);
+    expect(body).not.toContain("--color-violet-500");
   });
 
   // Each of these would otherwise ship quietly: a light-only color lets the base's dark value show
