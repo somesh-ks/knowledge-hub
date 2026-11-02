@@ -1309,7 +1309,9 @@
       "usage": "Navigation, used like tabs (2026-10-20): a tonal track with no outline and no check, and one pill in the accent container that slides under the active label, by transform alone. The design is flat, so the pill is told apart by colour, not by a shadow (2026-10-21); the choice control is told apart by its outline and check. The active label takes the pill's text colour, the others stay muted. Buttons in a tablist: segmentedNav.ts moves aria-selected and the roving tabindex, and answers Left, Right, Home and End.",
       "tokens": [
         "--chip-height",
+        "--color-accent",
         "--color-accent-container",
+        "--color-border-hairline",
         "--color-focus-ring",
         "--color-on-accent-container",
         "--color-on-surface",
