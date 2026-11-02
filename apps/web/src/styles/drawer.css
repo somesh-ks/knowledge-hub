@@ -43,6 +43,15 @@
   transition-duration: 0ms;
 }
 
+/* A Drawer that a Menu pick opens takes over the scrim at once (2026-11-02), as dialog.sheet-side does
+   (sheet.css): the Menu's own scrim fades out under it, and one that began from zero left the page lit
+   between them. The app sets data-handoff when the open comes from a pick and clears it on close, so the
+   exit still fades. */
+.drawer-scrim[data-handoff]:not([data-ending-style]) {
+  opacity: calc(1 - var(--drawer-swipe-progress, 0));
+  transition: none;
+}
+
 /* On a phone the sheet rests on the bottom edge of the screen and only its top corners are round. */
 .drawer-viewport {
   position: fixed;
