@@ -22,7 +22,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-10: a lone IntersectionObserver threshold of 1 reports a target partly past the root edge as not intersecting and never calls back. To tell a sticky element is stuck, observe `[0, 1]` and compare `boundingClientRect.top` with `rootBounds.top`.
 - 2026-10-09: a WebGL canvas failed the player suite on every page: headless Chromium draws in software (SwiftShader), logs "GPU stall" each frame, and the suite fails on any warning. Read `WEBGL_debug_renderer_info` and skip WebGL on a software renderer.
 - 2026-10-09: The player suite can run its `site-*` projects in a worktree without a dev server: serve the fixture build and set `PLAYER_SITE_URL` to it.
-- 2026-11-02: a popover's exit loses its `:popover-open` rules but keeps `display`: set a layout (column) on the base rule.
+- 2026-11-02: lay a popover out on its base rule (exit drops `:popover-open`).
 
 ## Unit tests
 
