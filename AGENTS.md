@@ -1,6 +1,6 @@
 # Singularity
 
-Private design-engineering news briefing. A GitHub Actions engine writes a digest every second day, commits it under `Digests/`, and Vercel deploys the reader at news.someshks.work. Repo: somesh-ks/knowledge-hub.
+Private design-engineering news briefing. A GitHub Actions engine writes a digest every second day, saves it to the content store, not git (D300), and Vercel deploys the reader at news.someshks.work. Repo: somesh-ks/knowledge-hub.
 
 ## Read first
 
