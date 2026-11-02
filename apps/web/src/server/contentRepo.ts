@@ -1,3 +1,4 @@
+import { dangerouslyDeleteByTag } from "@vercel/functions";
 import type { ContentFiles } from "../lib/contentFiles";
 import { loadSite, readSiteFrom, type Site } from "../lib/site";
 import { type BlobFetch, readPublicText } from "./blobStore";
@@ -19,11 +20,38 @@ import { readTombstones, withoutTombstoned } from "./tombstones";
 export const MANIFEST_TTL_MS = 30_000;
 
 /**
- * How long Vercel's edge keeps a page rendered from the repository: a minute fresh, then served
- * while one request renders it again, so a visit seldom waits on the function. Browsers are not
- * told to keep it (vercel.json's no-cache stands), so a reload always asks the edge.
+ * How long Vercel's edge keeps a page rendered from the repository: five minutes fresh, then served
+ * at once while one request renders it again, for 30 days (D318). With a ten-minute window, 43% of
+ * the owner's page loads in a week (to 2026-11-01) missed the Stockholm edge and waited on the
+ * function in Washington. Freshness comes from the purge by CONTENT_CACHE_TAG when the content
+ * changes, not from the lifetime: a purge that fails costs one stale visit after five minutes.
+ * Browsers are not told to keep it (vercel.json's no-cache stands), so a reload always asks the edge.
  */
-export const CONTENT_CDN_CACHE = "max-age=60, stale-while-revalidate=600";
+export const CONTENT_CDN_CACHE = "max-age=300, stale-while-revalidate=2592000";
+
+/**
+ * The tag on every page drawn from the content (D318). Each content change deletes the edge's copies
+ * by it: `content.yml` after every sync, and purgeContentAtEdge when a delete writes a tombstone.
+ */
+export const CONTENT_CACHE_TAG = "content";
+
+/** Lets the edge keep a page drawn from the content until the content changes (D318). */
+export function keepAtEdge(headers: Headers): void {
+  headers.set("Vercel-CDN-Cache-Control", CONTENT_CDN_CACHE);
+  headers.set("Vercel-Cache-Tag", CONTENT_CACHE_TAG);
+}
+
+/**
+ * Deletes the edge's copies of every content page. Delete, not invalidate: an invalidated page is
+ * answered once more from its old copy, which would show a deleted episode again. Every instance
+ * holds the manifest and the tombstones for MANIFEST_TTL_MS, so a request inside that window can put
+ * the old page back. The second delete is not timed here (waitUntil ends with the function, after
+ * FUNCTION_MAX_DURATION_S): the delete starts the podcast run, whose content sync purges again past
+ * that window (content.yml). Outside Vercel it does nothing, and it never fails the caller.
+ */
+export function purgeContentAtEdge(): Promise<void> {
+  return dangerouslyDeleteByTag(CONTENT_CACHE_TAG).catch(() => undefined);
+}
 const MANIFEST_PATH = "content/manifest.json";
 /** Files a page can do without: the reader that asks for one handles its absence. */
 const OPTIONAL_STATE: ReadonlySet<string> = new Set(["state/last-run.json"]);

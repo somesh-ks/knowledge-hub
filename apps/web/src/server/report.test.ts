@@ -46,8 +46,9 @@ describe("handleReport", () => {
   // route template, a blocked origin and a message without the user's words, never an address.
   it("stores a fault by route template, blocked origin and a scrubbed message", async () => {
     const stored: ClientFault[] = [];
+    const lines: string[] = [];
     const deps = {
-      log: () => undefined,
+      log: (line: string) => lines.push(line),
       now: () => 1_000_000,
       storeFault: async (fault: ClientFault) => {
         stored.push(fault);
@@ -98,6 +99,19 @@ describe("handleReport", () => {
       deps,
       limiters(),
     );
+    // A headless browser's injected style: one bot sent 156 in three days (2026-11-01).
+    await handleReport(
+      JSON.stringify({
+        kind: "csp",
+        page: "/",
+        directive: "style-src-elem",
+        blocked: "inline",
+        source: "pptr",
+      }),
+      deps,
+      limiters(),
+    );
+    expect(lines).toHaveLength(2);
     expect(stored).toEqual([
       {
         kind: "error",

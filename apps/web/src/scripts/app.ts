@@ -130,15 +130,18 @@ watchPlatformFaults(window, location.origin, report);
 addEventListener("unhandledrejection", (event) =>
   report({ kind: "rejection", message: String(event.reason?.message ?? event.reason) }),
 );
-document.addEventListener("securitypolicyviolation", (event) =>
+// Code that is not on the web (a headless browser's injected style, an extension) is not the
+// site's fault, and each report is a function run; the server drops it too (server/report.ts).
+document.addEventListener("securitypolicyviolation", (event) => {
+  if (event.sourceFile && !/^https?:\/\//i.test(event.sourceFile)) return;
   report({
     kind: "csp",
     directive: event.effectiveDirective,
     blocked: event.blockedURI,
     source: event.sourceFile,
     line: event.lineNumber,
-  }),
-);
+  });
+});
 // A tab left open across a deploy asks for script files the deploy removed, and the import fails
 // (the player's controls, narration). One reload with the saved pages dropped gets the current
 // site; the flag stops a second one.

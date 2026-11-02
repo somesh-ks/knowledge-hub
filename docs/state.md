@@ -12,7 +12,7 @@ Updated 2026-11-01. Rewrite, never append.
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). Regenerate and Catch up queue with Cancel; ended runs stay for the day (D204, D231).
 - Saved copies, offline, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews a PR once when it is ready, by tier (D192, D292).
-- Styles (D306, D310, D314, D315): Halloween and Expressive (violet ramp, larger touch sizes, a `--shape-*` corner scale a test enforces, looping empty states), a Hue slider that turns a style, and covers as one live vector `cover.css` recolours from `tokens/covers.json`. closed when: Somesh OKs the stills (390 and 1280, light and dark) and a style change on his phone recolours every page, cover and header light, no flash.
+- Styles (D306, D310, D314, D315): Halloween and Expressive (violet ramp, larger touch sizes, a `--shape-*` corner scale a test enforces, looping empty states), a Hue slider, and covers as one live vector recoloured by `cover.css`. closed when: Somesh OKs the stills and a style change on his phone recolours every page, cover and header light, no flash.
 
 ## Tests
 
@@ -20,6 +20,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 
 ## Not working or unverified
 
+- D316 skew off, D318 edge cache. closed when: live home has preload links, no `?dpl=`, and a week of his loads is mostly HIT or STALE.
 - Blob on Pro trial since 10-30, ending 11-13 (D251, D256). Plan call (Pro, or Hobby with Blob under about 1,000 ops a month and under 70 deploys a day) at 11-06 to 11-08, read from the Vercel Usage tab, which is the only Blob op count (none in code). closed when: the plan is chosen and ops stay under 1,000 a month.
 - Bottom bar press ripple (D286). closed when: a tap on the bar on his iPhone shows the wave from the thumb, the pill eases in, and the move carries the wave.
 - Config snapshot (D300 step 1): `snapshot.yml` writes the config store to a private Blob store each Sunday and `config restore` reads it back; untried against a real store, which needs the second Blob store and `BLOB_PRIVATE_READ_WRITE_TOKEN` (runbook 1.5a). closed when: the workflow has run once, the snapshot is in the store, and `config restore --file` on a copy of it rebuilds the rows.
@@ -31,7 +32,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 - More menu (D214); Catch up album, Share circle, cards (D219); long press, haptics (D264, D273); push ping (D284). closed when: signed off.
 - Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused; a regenerate or delete uses none.
 - Three regenerations per podcast, counted in its own file (D212). closed when: the page shows "2 of 3 regenerations left".
-- The 10-31 scheduled daily published nothing: a 6-hour window (an on-demand briefing had moved the shared start), 11 Tech stories over the Tech allowance, 2 of 4 stories lost in writing, and a refill whose 3 Tech picks the allowance trimmed again. Fixed: the regular window starts at its own last window; a Tech-heavy day may air Tech past its allowance only to reach the floor (D297); the refill writes nothing the allowance will trim. closed when: the next two scheduled dailies publish.
+- The 10-31 scheduled daily published nothing (a 6-hour window after an on-demand briefing moved the shared start, Tech over its allowance, 2 of 4 stories lost in writing, a refill the allowance trimmed again). Fixed: the regular window starts at its own last window; a Tech-heavy day may air Tech past its allowance only to reach the floor (D297); the refill writes nothing the allowance will trim. closed when: the next two scheduled dailies publish.
 - Short podcasts (D204, D216 to D225). closed when: two dailies in a row air within 10% of length, and `singularity metrics` shows ten runs at `length_share` 0.9+, `failure_rate` 0.1 or less.
 - Haiku writes the first pass, Sonnet repairs (D308; `eval/writerModels.ts`, run 41348226002, 9 stories, one judge). The router is static (D209 chains), so no model is picked from feedback yet. closed when: two scheduled runs in a row show no more voice or grounding drops (`lost_reasons`) than the last Sonnet-only runs, and the writer's cost in the ledger is under a quarter of the Sonnet-only writer's.
 - Ingest in shadow (D233, D251). closed when: for 7 days the store holds 90% of each daily's stories and reads 90% of pages tried (`ingest --coverage`).
@@ -70,7 +71,7 @@ Unit (CI): 326 files, 5,171 tests, 86s. Site e2e: 411, 10 min. Player: 77, 6 min
 
 ## Next
 
-1. Free the lane in the hold ([D209](decisions/engine.md)): step 1 is built (#399); steps 2, 4 and 5 are not. Step 3, the batch, shipped as D294 inside the existing job, so it did not need step 2's split. Check the first scheduled run's ledger for `batch_*` units. A batch the wait gives up on, or that a cancel leaves running, is listed in `.cache/run/open-batches.json` and settled by run.yml's "Settle batches" step (`batch-settle`) before Commit; the step needs a manual merge and is unproven live. closed when: a scheduled run's write stage logs "Writer first pass by batch" with `back` above 0, and a run that gave up on a batch logs "Settled a batch the run had left open".
+1. Free the lane in the hold ([D209](decisions/engine.md)): step 1 is built (#399); steps 2, 4 and 5 are not. Step 3, the batch, shipped as D294 inside the existing job without step 2's split. Check the first run's ledger for `batch_*` units. A batch the wait gives up on, or a cancel leaves running, is listed in `.cache/run/open-batches.json` and settled by run.yml's "Settle batches" step (`batch-settle`) before Commit; the step needs a manual merge and is unproven live. closed when: a scheduled run's write stage logs "Writer first pass by batch" with `back` above 0, and a run that gave up on a batch logs "Settled a batch the run had left open".
 2. Owner: regenerate the 3-story 10-27 briefing? Revoke the Vercel token; delete empty store `store_JmrDq8MB5Kwn3ejW`; open calls: [PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md).
 3. Firecrawl: a per-source yield table for the owner to prune (21 sources gave 1 story per 4,460 credits a month); changelog providers once the pilot holds.
 4. Lighthouse: defer BaseLayout's 34 KiB CSS without breaking the bar; the 1.4 s chain.

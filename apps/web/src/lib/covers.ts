@@ -8,7 +8,6 @@ import {
   renderCoverPng,
   renderLiveCoverSvg,
 } from "@singularity/cover";
-import sharp from "sharp";
 import { loadCoverFonts } from "./coverFonts";
 
 /**
@@ -177,6 +176,9 @@ export async function coverWebp(
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
   const png = await coverPng(digest, size, options);
+  // Loaded here, not at the top: every page imports this module for cover addresses, and sharp
+  // (libvips) added about 50 ms to the function's cold start on every page, which never encodes.
+  const { default: sharp } = await import("sharp");
   const webp = new Uint8Array(await sharp(png).webp({ lossless: true, effort: 6 }).toBuffer());
   await writeCacheFile(file, webp);
   return webp;

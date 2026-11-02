@@ -128,11 +128,17 @@ export function entryScripts(page: string): string[] {
   );
 }
 
-/** The modules a file imports statically. Dynamic import() is lazy and not part of first load. */
+/**
+ * The modules a file imports statically, without any query string. Dynamic import() is lazy and not
+ * part of first load. A query is allowed after `.js` because Vercel's skew protection writes
+ * `./x.js?dpl=<deployment>` into every import: a pattern that ended at `.js"` read no imports at all,
+ * so the build added no preload links and this check passed a page it could no longer see
+ * (production, found 2026-11-01).
+ */
 export function staticImports(source: string): string[] {
   const specifiers = new Set<string>();
   for (const match of source.matchAll(
-    /(?:\bimport|\bexport)\s*(?:[^"'`;()]*?\bfrom\s*)?["']([^"']+\.js)["']/g,
+    /(?:\bimport|\bexport)\s*(?:[^"'`;()]*?\bfrom\s*)?["']([^"'?]+\.js)(?:\?[^"']*)?["']/g,
   )) {
     if (match[1]) specifiers.add(match[1]);
   }
