@@ -383,7 +383,7 @@ const FLIPPED: Record<StateDirection, StateDirection> = {
 };
 
 /**
- * Which way a state steps (D319: nothing about a style is set by hand). A fill that names its label
+ * Which way a state steps (D317: nothing about a style is set by hand). A fill that names its label
  * steps the way it prefers unless its press, the largest step, would drop the label under 4.5:1 at
  * any hue the slider can reach; then it steps the other way, which moves away from the label. So a
  * new style or hue needs no flag: the build judges it from the style's own fill and label.
