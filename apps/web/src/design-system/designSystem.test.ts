@@ -32,9 +32,21 @@ function markupFiles(dir: string): string[] {
 
 const sheet = (name: string) => readFileSync(join(STYLES, name), "utf8");
 const wholeClass = (name: string) => new RegExp(`(?<![\\w-])${name}(?![\\w-])`);
-/** The text inside quotes, where a class is written; a variable named `btn` is not a class. */
+/**
+ * The text inside quotes, where a class is written; a variable named `btn` is not a class. Comments
+ * go first (an apostrophe in one opens a string that swallows the code after it), and so does the
+ * path of an import (`../design-system/avatar` is a module, not a class).
+ */
 const quoted = (text: string) =>
-  [...text.matchAll(/(["'`])((?:\\.|(?!\1)[^\\])*)\1/g)].map((m) => m[2]).join("\n");
+  [
+    ...text
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*\/\/.*$/gm, "")
+      .replace(/\b(?:from|import)\s*\(?\s*(["'])[^"'\n]*\1/g, "")
+      .matchAll(/(["'`])((?:\\.|(?!\1)[^\\])*)\1/g),
+  ]
+    .map((m) => m[2])
+    .join("\n");
 
 describe("design-system components", () => {
   it.each(COMPONENTS)(
