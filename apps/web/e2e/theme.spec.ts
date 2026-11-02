@@ -128,6 +128,45 @@ test.describe("theme", () => {
     await expect(page.locator("html")).not.toHaveAttribute("data-style", /.*/);
   });
 
+  test("a style recolours the covers already on the page, with no cover fetched, and Default returns them", async ({
+    page,
+  }) => {
+    const fill = () =>
+      page.evaluate(() => {
+        const slot = document.querySelector(".cover-art .k");
+        return slot ? getComputedStyle(slot).fill : null;
+      });
+    const covers: string[] = [];
+    page.on("request", (request) => {
+      if (request.url().includes("/covers/")) covers.push(request.url());
+    });
+    await page.goto("/settings");
+    await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
+    await page
+      .getByRole("navigation", { name: "Primary" })
+      .getByRole("link", { name: "Library", exact: true })
+      .click();
+    await expect(page.locator(".cover-art").first()).toBeVisible();
+    const inDefault = await fill();
+    expect(inDefault).not.toBeNull();
+    // The covers are on the page when the style changes; the same elements take new colours.
+    const before = covers.length;
+    await page.evaluate(() => {
+      document.documentElement.dataset.style = "expressive";
+    });
+    await expect.poll(fill).not.toBe(inDefault);
+    expect(covers.length).toBe(before);
+    // The reader's hue turns them too.
+    const styled = await fill();
+    await page.evaluate(() => document.documentElement.style.setProperty("--hue-shift", "120"));
+    await expect.poll(fill).not.toBe(styled);
+    await page.evaluate(() => {
+      document.documentElement.style.removeProperty("--hue-shift");
+      delete document.documentElement.dataset.style;
+    });
+    await expect.poll(fill).toBe(inDefault);
+  });
+
   test("the Hue slider turns a style's colours, is there before first paint after a reload, and waits for a style", async ({
     page,
   }) => {

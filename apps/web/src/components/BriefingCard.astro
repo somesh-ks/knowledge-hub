@@ -10,7 +10,6 @@ import LibraryItemMenu from "./LibraryItemMenu.astro";
 interface Props {
   entry: DigestEntry;
   /** The first row of a grid loads its covers at once; the rest wait until they are near. */
-  priority?: boolean;
   /** The Library's card carries the menu; the shelf on a briefing page does not. */
   menu?: boolean;
   /** Settings > Downloads: the menu offers only what applies to a saved copy. */
@@ -19,7 +18,7 @@ interface Props {
   saved?: boolean;
 }
 
-const { entry, priority = false, menu = false, downloads = false, saved = false } = Astro.props;
+const { entry, menu = false, downloads = false, saved = false } = Astro.props;
 const { digest } = entry;
 const facts = cardFacts(entry);
 // Kind, story count, length: the count is its own span, so the narrow shelf on Today can leave it out,
@@ -52,7 +51,6 @@ const hasCount = segments.length > 2;
       size="card"
       source={digest}
       weekly={digest.kind === "weekly"}
-      priority={priority}
     />
     {/* A half-heard item: a bar along the bottom of the art, on its own track, so it reads on any cover. */}
     <span class="card-progress" data-cover-progress aria-hidden="true" hidden></span>
