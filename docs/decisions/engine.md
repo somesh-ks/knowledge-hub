@@ -611,7 +611,7 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Date: 2026-11-02 (the owner: "haiku medium for all by default").
 - Decision: `podcast_script` joins the other five Claude steps in `config/models.json`: Haiku medium, Haiku high, Sonnet medium, then Gemini. The escalation to Haiku high and then Sonnet happens only on a failed call, as in D333. Amends D333, which kept the script on Sonnet.
 - Why: the owner wants the default model for all work to be the cheapest one he already trusts for stories, and a later entry costs money only when an earlier call fails.
-- Limit: Haiku may write shorter scripts, and the chain does not move on a weak script. Watch `length_share` on the first Catch ups: below 0.9 on two in a row, put the script back on Sonnet medium. The Catch up thread tightens the length wording in the podcast prompts.
+- Limit: Haiku may write shorter scripts, and the chain does not move on a weak script. Watch `length_share` on the first Catch ups: below 0.9 on two in a row, report the numbers to the owner and propose Sonnet medium for the script; the owner chose Haiku, so nothing switches back on its own. The Catch up thread tightens the length wording in the podcast prompts.
 - Revisit if: a Haiku script is heard and judged worse by ear, or `length_share` falls as above.
 - Amends: D333.
 
