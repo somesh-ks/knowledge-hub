@@ -325,25 +325,32 @@ export default function PlayerMenu() {
                   </button>
                 </>
               ) : (
-                <div className={menuTilesClass()}>
+                <div className={menuTilesClass()} role="presentation">
                   <button
                     className={menuTileClass()}
                     type="button"
-                    aria-pressed={marks.downloaded}
+                    role="menuitem"
+                    data-on={marks.downloaded ? "" : undefined}
                     aria-disabled={marks.downloaded || !digest?.audio || undefined}
                     onClick={() => void download()}
                   >
                     <Icon name="download" />
                     {marks.downloaded ? "Downloaded" : "Download"}
                   </button>
-                  <button className={menuTileClass()} type="button" onClick={() => void share()}>
+                  <button
+                    className={menuTileClass()}
+                    type="button"
+                    role="menuitem"
+                    onClick={() => void share()}
+                  >
                     <Icon name="shareFat" />
                     Share
                   </button>
                   <button
                     className={menuTileClass()}
                     type="button"
-                    aria-pressed={marks.saved}
+                    role="menuitemcheckbox"
+                    aria-checked={marks.saved}
                     onClick={save}
                   >
                     <Icon name={marks.saved ? "bookmark" : "bookmarkOutline"} />

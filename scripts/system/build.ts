@@ -147,6 +147,10 @@ export function classTokens(text: string): Set<string> {
   ) {
     found.add("menu-item-danger");
   }
+  // The tiles and the value come by their class helpers.
+  if (/\bmenuTilesClass\(/.test(code)) found.add("menu-tiles");
+  if (/\bmenuTileClass\(/.test(code)) found.add("menu-tile");
+  if (/\bmenuItemValueClass\(/.test(code)) found.add("menu-item-value");
   // The Dialog: the tag, its actions row (stacked by its prop), its heading, or the class helpers.
   if (/<Dialog\b|\bdialogClass\(/.test(code)) {
     found.add("dialog-panel");
@@ -217,6 +221,9 @@ export function sourceFiles(): { path: string; text: string; tokens: Set<string>
       tokens.delete("menu-item");
       tokens.delete("menu-sheet");
       tokens.delete("menu-item-danger");
+      tokens.delete("menu-tiles");
+      tokens.delete("menu-tile");
+      tokens.delete("menu-item-value");
       for (const name of ["banner-notice", "banner-text", "banner-title", "banner-body"]) {
         tokens.delete(name);
       }
