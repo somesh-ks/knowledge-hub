@@ -130,7 +130,12 @@ test.describe("the first press of Play on a page with no audio yet", () => {
         document.dispatchEvent(new CustomEvent("singularity:queue-add", { detail: { id } }));
     });
     await player.play();
-    await page.evaluate(() => window.scrollTo({ top: 320, behavior: "instant" }));
+    // The reader scrolled to where they are reading, so the page's own podcast stops following its
+    // story down the page for a few seconds (a story change lands in this window on a slow runner).
+    await page.evaluate(() => {
+      window.scrollTo({ top: 320, behavior: "instant" });
+      window.dispatchEvent(new WheelEvent("wheel"));
+    });
     const scrolled = await page.evaluate(() => Math.round(window.scrollY));
     await player.openPlayer();
     await player.dialog.getByRole("tab", { name: "Up next" }).click();
