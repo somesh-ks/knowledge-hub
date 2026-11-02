@@ -150,8 +150,9 @@ test("a podcast without audio heard to the end says Played everywhere", async ({
 
   await page.goto("/library");
   await hydrated(page);
-  await expect(page.locator('[data-card][data-id="2026-10-05"] [data-card-length]')).toHaveText(
-    "Played",
+  await expect(page.locator('[data-card][data-id="2026-10-05"]')).toHaveAttribute(
+    "data-played",
+    "",
   );
 
   await page.goto("/");
@@ -186,7 +187,7 @@ test("a phone that saved before the rename keeps its theme and what it played", 
   });
   await page.goto("/library");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await expect(page.locator(".card-facts[data-played]")).toHaveCount(1);
+  await expect(page.locator("[data-card][data-played]")).toHaveCount(1);
   await page.reload();
-  await expect(page.locator(".card-facts[data-played]")).toHaveCount(1);
+  await expect(page.locator("[data-card][data-played]")).toHaveCount(1);
 });

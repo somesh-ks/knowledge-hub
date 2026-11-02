@@ -3,6 +3,7 @@ import type { DigestEntry } from "../lib/digests";
 import { longDate, longDateTitle } from "../lib/format";
 import { FACT_SEPARATOR } from "../lib/library";
 import { cardFacts } from "../lib/libraryCard";
+import CardMarks from "./CardMarks.astro";
 import Cover from "./Cover.astro";
 import CoverPlay from "./CoverPlay.astro";
 import LibraryItemMenu from "./LibraryItemMenu.astro";
@@ -57,6 +58,7 @@ const hasCount = segments.length > 2;
     <span class="card-title">{longDateTitle(digest.date)}</span>
     <span class="card-sub">
       <span class="card-facts" data-card-facts data-rest={facts.line}>{length === undefined ? facts.line : <Fragment>{kind}{hasCount && <span class="card-count">{FACT_SEPARATOR}{count}</span>}{FACT_SEPARATOR}<span data-card-length>{length}</span></Fragment>}</span>
+      {menu && <CardMarks />}
     </span>
   </a>
   <CoverPlay digestId={entry.id} href={`/d/${entry.id}`} title={longDate(digest.date)} />

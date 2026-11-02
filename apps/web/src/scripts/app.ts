@@ -9,6 +9,7 @@ import { installDeviceBanners } from "./deviceBanners";
 import { installDisabledGuard } from "./disabledGuard";
 import { captureInstallPrompt } from "./installPrompt";
 import { installIslandWake } from "./islandWake";
+import { installLibraryViewSwap } from "./libraryView";
 import { installNavigation } from "./navigation";
 import { installPersistedMotion } from "./persistedMotion";
 import { installQueueEntry } from "./queueEntry";
@@ -29,6 +30,8 @@ trackTyping();
 captureInstallPrompt();
 installNavigation();
 installPersistedMotion();
+// Before the morph: it measures the Library as the swap leaves it, and that must be the saved view.
+installLibraryViewSwap();
 installCoverMorph();
 installRipple();
 installRootState();

@@ -88,6 +88,7 @@ test("a podcast page's More menu downloads and queues the podcast, as its row in
 test("pressing a row's three dots moves nothing: not the card, its title or the dots' own glyph, and they sit beside the title", {
   tag: "@desktop",
 }, async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("singularity:library-view", "gallery"));
   await page.goto("/library");
   await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
   const card = row(page, AUDIO_ID);
@@ -160,9 +161,7 @@ test.describe("a podcast download", () => {
     await openMenu(page, AUDIO_ID);
     await row(page, AUDIO_ID).getByRole("menuitem", { name: "Download" }).click();
     await expect(row(page, AUDIO_ID)).toHaveAttribute("data-downloaded", "");
-    await expect(row(page, AUDIO_ID).locator(".card-sub .card-downloaded")).toContainText(
-      "Downloaded",
-    );
+    await expect(row(page, AUDIO_ID).locator(".card-sub .card-downloaded")).toBeVisible();
 
     // Still marked after a reload: the state comes from Cache Storage, not from the page.
     await page.reload();

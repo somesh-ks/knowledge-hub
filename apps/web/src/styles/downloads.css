@@ -9,8 +9,8 @@
   display: none;
 }
 
-/* Every row here is saved, so the Library's check-circle mark says nothing. */
-.downloads .card-downloaded {
+/* Every row here is saved, so the Library's download mark says nothing. */
+.downloads .card[data-downloaded] .card-downloaded {
   display: none;
 }
 

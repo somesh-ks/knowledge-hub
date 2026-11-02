@@ -233,6 +233,60 @@ test.describe("a cover carries you in and out", () => {
     expect(Math.abs((landed?.[1] ?? 0) - (hero?.y ?? 0))).toBeLessThan(1.5);
     expect(Math.abs((landed?.[2] ?? 0) - (hero?.width ?? 0))).toBeLessThan(1.5);
   });
+
+  // Bug it prevents (owner, 2026-11-02): going back, the cover flew to a gallery card's box while the
+  // page was still drawn as a gallery and then watched it turn into the list; from a scrolled gallery
+  // the saved offset was cut short (cards the page had not drawn counted as an estimate), so it landed
+  // low and the page then moved. The cover lands on the box its own card ends in.
+  for (const view of ["list", "gallery"]) {
+    test(`going back it lands on its own card, ${view}, and the card does not move after`, async ({
+      page,
+    }) => {
+      await page.addInitScript((chosen) => {
+        localStorage.setItem("singularity:library-view", chosen);
+      }, view);
+      await page.setViewportSize({ width: 390, height: 600 });
+      await page.goto("/library");
+      const card = page.locator("[data-card]").last();
+      await card.scrollIntoViewIfNeeded();
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      const cover = card.locator(".cover");
+      const before = await cover.boundingBox();
+      await page.evaluate(() => {
+        const w = window as unknown as { __flight: Array<[number, number, number]> };
+        w.__flight = [];
+        const remove = Element.prototype.remove;
+        Element.prototype.remove = function (this: Element) {
+          if (this.classList.contains("cover-morph")) {
+            const r = this.getBoundingClientRect();
+            w.__flight.push([r.left, r.top, r.width]);
+          }
+          remove.call(this);
+        };
+      });
+      await card.locator(".card-link").click();
+      await expect(page).toHaveURL(/\/d\//);
+      await expect(page.locator(".cover-morph")).toHaveCount(0);
+      await page.evaluate(() => {
+        (window as unknown as { __flight: unknown[] }).__flight = [];
+      });
+      await page.goBack();
+      await expect(page).toHaveURL(/\/library$/);
+      await expect(page.locator(".cover-morph")).toHaveCount(0);
+      const flight = await page.evaluate(
+        () => (window as unknown as { __flight: Array<[number, number, number]> }).__flight,
+      );
+      const landed = flight.at(-1);
+      expect(landed, "the cover flew home").toBeTruthy();
+      const after = await cover.boundingBox();
+      // The card is where it was, and the cover handed over on exactly that box.
+      expect(Math.abs((after?.y ?? 0) - (before?.y ?? 0))).toBeLessThan(1.5);
+      expect(Math.abs((after?.width ?? 0) - (before?.width ?? 0))).toBeLessThan(1.5);
+      expect(Math.abs((landed?.[0] ?? 0) - (after?.x ?? 0))).toBeLessThan(1.5);
+      expect(Math.abs((landed?.[1] ?? 0) - (after?.y ?? 0))).toBeLessThan(1.5);
+      expect(Math.abs((landed?.[2] ?? 0) - (after?.width ?? 0))).toBeLessThan(1.5);
+    });
+  }
 });
 
 test.describe("the whole bottom bar is the tab", () => {

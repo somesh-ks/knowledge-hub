@@ -20,6 +20,10 @@ const REST_FACTS = [
   "Weekly · 14 stories · 8 min",
 ];
 
+/** The Library as a gallery: the list is the default, so a test of the gallery chooses it first. */
+const asGallery = (page: Page) =>
+  page.addInitScript(() => localStorage.setItem("singularity:library-view", "gallery"));
+
 /** The page script has run: search, filter and sort only work from here. */
 async function ready(page: Page): Promise<void> {
   await expect(page.locator("[data-library]")).toHaveAttribute("data-ready", "");
@@ -70,6 +74,7 @@ test.describe("the library", () => {
   test("shows every podcast and episode as a cover card, newest first, with no month headings in the gallery", async ({
     page,
   }) => {
+    await asGallery(page);
     await page.goto("/library");
     await expect(page).toHaveTitle("Library, Singularity");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Library");
@@ -99,6 +104,7 @@ test.describe("the library", () => {
   test("lays the covers out two across on a phone and in a single row on a desktop", {
     tag: "@both",
   }, async ({ page, isMobile }) => {
+    await asGallery(page);
     await page.goto("/library");
     const tops = await page
       .locator("[data-card]")
@@ -116,25 +122,32 @@ test.describe("the library", () => {
   });
 });
 
+// Bug it prevents: a card narrower than its line dropped the story count in the gallery while the list
+// kept it, and "Played" took the minutes' place on some cards, so no two cards said the same things.
 for (const width of [360, 390]) {
-  test(`the Library gallery keeps each card's facts on one line at ${width}px`, async ({
+  test(`the Library says the same facts in the list and the gallery at ${width}px, played or not`, async ({
     page,
   }) => {
     await page.addInitScript(() => localStorage.setItem("singularity:played:2026-10-07", "1"));
     await page.setViewportSize({ width, height: 800 });
-    await page.goto("/library");
-    await ready(page);
-    await expect(page.locator(".card-facts[data-played]")).toHaveCount(1);
-    const lines = await page.locator("[data-card] .card-facts").evaluateAll((nodes) =>
-      nodes.map((node) => ({
-        text: node.textContent,
-        lines: Math.round(
-          node.getBoundingClientRect().height /
-            Number.parseFloat(getComputedStyle(node).lineHeight),
-        ),
-      })),
-    );
-    for (const line of lines) expect(line.lines, line.text ?? "").toBe(1);
+    const facts = async (view: string) => {
+      await page.goto("/library");
+      await ready(page);
+      await page.locator(`[data-library-view='${view}']`).click();
+      return page.locator("[data-card] .card-facts").evaluateAll((nodes) =>
+        nodes.map((node) => ({
+          text: node.textContent,
+          shown: [...node.children].every((child) => child.getClientRects().length > 0),
+        })),
+      );
+    };
+    const inList = await facts("list");
+    const inGallery = await facts("gallery");
+    expect(inGallery).toEqual(inList);
+    expect(inList.map((line) => line.text)).toEqual(REST_FACTS);
+    expect(inList.every((line) => line.shown)).toBe(true);
+    // Played is a mark after the facts, never a word in place of the minutes.
+    await expect(page.locator("[data-card][data-id='2026-10-07'][data-played]")).toHaveCount(1);
   });
 }
 
@@ -271,9 +284,10 @@ test.describe("library fixes", () => {
   });
 
   test("a focused card is painted whole, so its ring shows", async ({ page }) => {
+    await asGallery(page);
     await page.goto("/library");
     await ready(page);
-    await page.locator(".view-btn[data-library-view='list']").focus();
+    await page.locator(".view-btn[data-library-view='gallery']").focus();
     await page.keyboard.press("Tab");
     const link = page.locator("[data-card] .card-link").first();
     await expect(link).toBeFocused();
@@ -361,18 +375,23 @@ test.describe("library fixes", () => {
     await expect(order).toHaveAttribute("data-active", "");
   });
 
-  test("a finished item says Played, and a half-heard one shows its bar", async ({ page }) => {
+  test("a finished item says Played after its facts, and a half-heard one shows its bar", async ({
+    page,
+  }) => {
     await page.addInitScript(() => {
       localStorage.setItem("singularity:played:2026-10-07", "1");
       localStorage.setItem("singularity:resume:2026-10-05", "60");
     });
     await page.goto("/library");
     await ready(page);
-    // Played takes the length's place in the facts line, so it never wraps onto its own line.
-    const played = page.locator("[data-card][data-id='2026-10-07'] .card-facts");
-    await expect(played).toHaveText(/ · Played$/);
-    await expect(played).not.toContainText("min");
-    await expect(page.locator(".card-facts[data-played]")).toHaveCount(1);
+    // The facts keep their length and the mark follows them: Played is a state, not a replacement.
+    const played = page.locator("[data-card][data-id='2026-10-07']");
+    await expect(played).toHaveAttribute("data-played", "");
+    await expect(played.locator(".card-facts")).toHaveText("Daily · 12 stories · 1 min");
+    await expect(played.locator(".card-played")).toContainText("Played");
+    await expect(played.locator(".card-played")).toBeVisible();
+    await expect(played.locator(".card-downloaded")).toBeHidden();
+    await expect(page.locator("[data-card][data-played]")).toHaveCount(1);
     await expect(
       page.locator("[data-card][data-id='2026-10-05'] [data-cover-progress]"),
     ).toBeVisible();
@@ -393,7 +412,7 @@ test.describe("library fixes", () => {
     expect(new Set(gaps.map((card) => card.facts)).size, JSON.stringify(gaps)).toBe(1);
   });
 
-  test("a finished episode keeps its kind and only the length gives way to Played", async ({
+  test("a finished episode keeps its whole line, and heard again the mark goes", async ({
     page,
   }) => {
     await page.addInitScript(() => {
@@ -401,14 +420,16 @@ test.describe("library fixes", () => {
     });
     await page.goto("/library");
     await ready(page);
-    const facts = page.locator("[data-card][data-id='ep-20261007-1930'] .card-facts");
-    await expect(facts).toHaveText("Catch up · Played");
-    // Heard again from the start: the mark goes and the length comes back, with the kind.
+    const card = page.locator("[data-card][data-id='ep-20261007-1930']");
+    await expect(card.locator(".card-facts")).toHaveText("Catch up · 5 min");
+    await expect(card.locator(".card-played")).toBeVisible();
+    // Heard again from the start: the mark goes, and the line was never touched.
     await page.evaluate(() => {
       localStorage.removeItem("singularity:played:ep-20261007-1930");
       window.dispatchEvent(new Event("pageshow"));
     });
-    await expect(facts).toHaveText("Catch up · 5 min");
+    await expect(card.locator(".card-played")).toBeHidden();
+    await expect(card.locator(".card-facts")).toHaveText("Catch up · 5 min");
   });
 });
 
@@ -527,6 +548,7 @@ test.describe("library episodes", () => {
   test("a title the card cuts short carries the whole title as a tooltip, and a short one none", async ({
     page,
   }) => {
+    await asGallery(page);
     await page.goto("/library");
     await ready(page);
     const long = "A title that runs on and on, well past the two lines a card allows, to prove it";
@@ -547,9 +569,12 @@ test.describe("library episodes", () => {
     await ready(page);
     const gallery = page.getByRole("button", { name: "Gallery view" });
     const list = page.getByRole("button", { name: "List view" });
-    await expect(gallery).toHaveAttribute("aria-pressed", "true");
+    // The list is the default and comes first in the switch; the gallery is the second choice.
+    await expect(list).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator("[data-library]")).toHaveAttribute("data-view", "list");
     const grid = page.locator("[data-library-grid]");
-    await expect(grid).toHaveCSS("display", "grid");
+    await expect(grid).toHaveCSS("display", "block");
+    expect((await list.boundingBox())?.x).toBeLessThan((await gallery.boundingBox())?.x ?? 0);
     for (const button of [gallery, list]) {
       // The button is as tall as the selects beside it; a 44px target reaches past it (::after).
       const reach = await button.evaluate((node) => {
@@ -564,28 +589,29 @@ test.describe("library episodes", () => {
       });
       expect(reach).toBe(true);
     }
-    await list.click();
-    await expect(list).toHaveAttribute("aria-pressed", "true");
-    await expect(gallery).toHaveAttribute("aria-pressed", "false");
-    await expect(page.locator("[data-library]")).toHaveAttribute("data-view", "list");
-    await expect(grid).toHaveCSS("display", "block");
-    // Rows: each card is as wide as the column, with the same one facts line as the gallery.
+    await gallery.click();
+    await expect(gallery).toHaveAttribute("aria-pressed", "true");
+    await expect(list).toHaveAttribute("aria-pressed", "false");
+    await expect(page.locator("[data-library]")).toHaveAttribute("data-view", "gallery");
+    await expect(grid).toHaveCSS("display", "grid");
+    // The gallery says the same facts line as a list row does.
     const first = page.locator("[data-card]:not([hidden])").first();
     await expect(first.locator(".card-facts")).toBeVisible();
-    // Search, filters and sort still work in the list.
+    // Search, filters and sort still work in the gallery.
     await page.getByRole("searchbox").fill("quiet interfaces");
     expect(await titles(page)).toEqual([DISCUSSION]);
     await page.getByRole("searchbox").fill("");
     await page.reload();
     await ready(page);
-    await expect(page.locator("[data-library]")).toHaveAttribute("data-view", "list");
-    await page.getByRole("button", { name: "Gallery view" }).click();
-    await expect(grid).toHaveCSS("display", "grid");
+    await expect(page.locator("[data-library]")).toHaveAttribute("data-view", "gallery");
+    await page.getByRole("button", { name: "List view" }).click();
+    await expect(grid).toHaveCSS("display", "block");
   });
 
   test("a list's month label sits as far under the filters as a gallery cover, and holds under the app bar as the list scrolls", async ({
     page,
   }) => {
+    await asGallery(page);
     await page.goto("/library");
     await ready(page);
     // How far the thing sits under the filter chips.
