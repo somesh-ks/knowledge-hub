@@ -9,7 +9,7 @@ function reply(route: Route, status: number, body: Record<string, unknown>) {
 // above the navigation, where the player's bar is also standing (2026-10-27). Its journeys (the request,
 // the stages, the new briefing) are in e2e/briefingRun.spec.ts; what only the player can break is
 // that the dock and the bar do not sit on each other.
-test("Regenerate while a podcast plays: the queue's dock stands clear above the bar and its Start listening opens the new podcast", async ({
+test("Regenerate while a podcast plays: the queue's dock stands clear above the bar and its Start listening plays the new podcast in place", async ({
   player,
   page,
 }) => {
@@ -56,6 +56,10 @@ test("Regenerate while a podcast plays: the queue's dock stands clear above the 
   await player.finger.press(card.locator("[data-queue-toggle]"));
   const listen = card.getByRole("link", { name: /^Start listening/ });
   await expect(listen).toBeVisible();
+  const playing = (await player.dock.innerText()).split("\n")[0];
   await player.finger.press(listen);
-  await expect(page).toHaveURL(new RegExp(`/d/${SITE.earlier}$`));
+  // The new podcast plays in the bar, in place: the page the listener was on stays.
+  await expect(player.root).toHaveAttribute("data-player-state", "playing");
+  await expect(page).toHaveURL(new RegExp(`${SITE.path}$`));
+  await expect.poll(async () => (await player.dock.innerText()).split("\n")[0]).not.toBe(playing);
 });

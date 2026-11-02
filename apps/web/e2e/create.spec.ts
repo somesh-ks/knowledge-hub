@@ -477,6 +477,7 @@ test.describe("the Create page", () => {
         }),
       }),
     );
+    const asked = page.waitForRequest((request) => request.url().endsWith(EPISODE));
     await openCreate(page);
     await submit(page).click();
     await page.clock.runFor(4000);
@@ -487,14 +488,12 @@ test.describe("the Create page", () => {
     // The run is over but its row stays, and so does the room for the dock.
     await expect(queueDock(page)).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("data-run", /.*/);
+    // Start listening hands the podcast to the player where the listener is: no page change, and the
+    // podcast was read as soon as the run ended, so the press finds it ready.
+    await asked;
     await (await startListening(page)).click();
-    await expect(page).toHaveURL(new RegExp(`${EPISODE}$`));
-    // The episode is on screen: the record is forgotten, the day's row is not.
-    await expect
-      .poll(() => page.evaluate(() => localStorage.getItem("singularity:run")))
-      .toBeNull();
-    await expect(queueComplete(page)).toBeVisible();
-    await expect(queueDock(page)).toBeVisible();
+    await page.clock.runFor(1000);
+    await expect(page).toHaveURL(/\/create$/);
   });
 
   test("a finished run whose episode is on screen is forgotten as the record, and its row stays for the day", async ({

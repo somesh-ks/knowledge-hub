@@ -3,10 +3,32 @@ import { listenUrl, NOT_STORED_COPY } from "../lib/share";
 import { whenIdle } from "./idle";
 import { openShareDialog } from "./shareDialog";
 
-export type ShareOutcome = "copied" | "none";
+export type ShareOutcome = "shared" | "copied" | "none";
 
-/** Opens the share dialog on a finished address; counted when the link was copied from it. */
+/** A finger is the main pointer and the browser can open the system's own share sheet. */
+function hasSystemSheet(url: string, title: string): boolean {
+  if (typeof navigator.share !== "function") return false;
+  if (!window.matchMedia("(pointer: coarse)").matches) return false;
+  return navigator.canShare ? navigator.canShare({ title, url }) : true;
+}
+
+/**
+ * Sends a finished address: through the phone's own share sheet where there is one (Android, iPhone,
+ * iPad), else the small dialog with the address and a Copy link button (shareDialog.ts), which says
+ * its own "Copied". The sheet is called first and without an await before it, so it opens inside
+ * the press (iOS refuses one opened later). Counted when the link was sent or copied.
+ */
 async function send(title: string, url: string, kind: string, item: string): Promise<ShareOutcome> {
+  if (hasSystemSheet(url, title)) {
+    try {
+      await navigator.share({ title, url });
+      track("share", { kind, item, outcome: "shared" });
+      return "shared";
+    } catch (error) {
+      // The reader closed the sheet: nothing was sent. Any other refusal falls through to the dialog.
+      if (error instanceof DOMException && error.name === "AbortError") return "none";
+    }
+  }
   const outcome = await openShareDialog(title, url);
   if (outcome === "copied") track("share", { kind, item, outcome });
   return outcome;

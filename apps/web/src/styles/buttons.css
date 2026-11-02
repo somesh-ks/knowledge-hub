@@ -123,8 +123,9 @@
 }
 
 /* In a row of dialog actions (.dialog-actions) the block buttons hug their label instead of filling
-   what the text button leaves (owner, 2026-10-30). Stacked, the column stretches them again. */
-.dialog-actions > :is(.button-filled, .button-tonal) {
+   what the text button leaves (owner, 2026-10-30). Stacked, the column stretches them again. The
+   queue row's actions line is such a row (2026-11-02: Listen now was a full-width primary). */
+:is(.dialog-actions, .queue-actions) > :is(.button-filled, .button-tonal) {
   width: auto;
 }
 

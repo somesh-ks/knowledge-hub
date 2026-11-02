@@ -409,7 +409,7 @@ html[data-player="open"] .queue-dock {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: queue-sheen var(--queue-sheen) var(--ease-linear) infinite;
+  animation: queue-sheen var(--queue-sheen) var(--ease-linear) var(--queue-sheen-at, 0ms) infinite;
 }
 
 @keyframes queue-sheen {

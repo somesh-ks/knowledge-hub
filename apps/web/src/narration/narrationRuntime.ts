@@ -104,6 +104,15 @@ export function narrateDigest(digest: PlayerDigestData): void {
   void getController().play(digest);
 }
 
+/**
+ * Asks for the first segments of a briefing that is not on this page (a podcast just made), in the
+ * background. Silent whatever happens; once per briefing and tab, like a page's own prewarm.
+ */
+export function prewarmDigest(digest: PlayerDigestData): Promise<void> {
+  if (digest.audio || !startPrewarm(digest.id)) return Promise.resolve();
+  return getController().prewarm(digest);
+}
+
 /** Plays the briefing on this page, narrating what is missing. */
 export function narratePage(itemId?: string): void {
   const page = getPlayerStore().getPageDigest();

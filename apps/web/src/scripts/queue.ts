@@ -303,7 +303,9 @@ function paintRow(
   if (going) furthest.set(row.run_id, percent);
   const goingBox = li.querySelector<HTMLElement>(".queue-going");
   if (goingBox) goingBox.hidden = !going;
-  setText(li.querySelector("[data-queue-time]"), going ? view.eta : "");
+  // The time left, or the share done while no estimate can be made (a stage with no usual length,
+  // or one running long): the ring never sits with nothing under it.
+  setText(li.querySelector("[data-queue-time]"), going ? view.eta || `${percent}%` : "");
   if (ring) {
     ring.style.setProperty("--queue-p", String(percent));
     ring.style.setProperty("--queue-span", `${OPEN_POLL_MS / 1000}s`);
@@ -314,6 +316,10 @@ function paintRow(
     );
   }
   const href = item.ended === "done" ? (item.record?.href ?? "") : "";
+  if (href && item.record) {
+    const madeId = idFromHref(href);
+    if (madeId) warmFinished(madeId);
+  }
   const play = li.querySelector<HTMLAnchorElement>("[data-queue-play]");
   if (play) {
     play.hidden = !href;
@@ -343,6 +349,44 @@ function paintRow(
   const details = li.querySelector<HTMLElement>("[data-queue-details]");
   if (details) details.hidden = !(item.ended === "failed" && item.record);
   li.toggleAttribute("data-cancelling", li.hasAttribute("data-cancelling") && going);
+}
+
+/** The id a podcast's address carries: /d/<digest id> or /e/<episode id>. */
+function idFromHref(href: string | null): string | null {
+  const match = /^\/(?:d|e)\/([a-z0-9][a-z0-9-]*)\/?$/i.exec(href ?? "");
+  return match?.[1] ?? null;
+}
+
+/** Plays a made podcast now, in the persistent player; if that cannot start, opens its page. */
+async function playInPlace(id: string, fallbackHref: string): Promise<void> {
+  try {
+    const { playQueueItem } = await import("../player/core/playerRuntime");
+    playQueueItem(id);
+  } catch {
+    location.assign(fallbackHref);
+  }
+}
+
+/**
+ * Asks for a made podcast's first spoken segments as soon as its run ends, so the press on Start
+ * listening finds them ready and nothing says "Preparing audio" first. Only for a run this browser
+ * started (a listener who made it is likely to press play), once per podcast, and never when the
+ * page's own checks say a background request is unwelcome (prewarmPage.ts).
+ */
+const warmed = new Set<string>();
+function warmFinished(id: string): void {
+  if (warmed.has(id)) return;
+  warmed.add(id);
+  void (async () => {
+    const [{ loadQueueDigest }, narration] = await Promise.all([
+      import("../player/core/queueMeta"),
+      import("../narration/narrationRuntime"),
+    ]);
+    const digest = await loadQueueDigest(id);
+    if (digest) await narration.prewarmDigest(digest);
+  })().catch(() => {
+    // A prewarm is never worth an error.
+  });
 }
 
 /** Draw the rows into a list, keeping the nodes of rows that stay, so a press on one is not lost to a redraw. */
@@ -380,6 +424,20 @@ function paintList(
   }
 }
 
+/**
+ * The title's shimmer on one clock. The navigation is redrawn on every page and the dock's word comes and
+ * goes, so a band that starts from its own zero jumps each time; a negative delay puts every word at the
+ * same point of the cycle, wherever and whenever it is drawn.
+ */
+function markLive(word: HTMLElement | null | undefined, live: boolean): void {
+  if (!word) return;
+  const was = word.hasAttribute("data-live");
+  word.toggleAttribute("data-live", live);
+  if (!live || (was && word.style.getPropertyValue("--queue-sheen-at"))) return;
+  const cycle = Number.parseFloat(getComputedStyle(word).getPropertyValue("--queue-sheen")) || 2400;
+  word.style.setProperty("--queue-sheen-at", `${-(performance.now() % cycle)}ms`);
+}
+
 /** What the side column's row shows: "Podcast queue" with the ring while it goes, a check or an alert once it is over. */
 let lastTrigger = { shown: false, title: "", percent: 0, ended: "", live: false };
 
@@ -390,7 +448,7 @@ function paintTrigger(): void {
   trigger.hidden = !lastTrigger.shown;
   const title = trigger.querySelector<HTMLElement>("[data-queue-trigger-title]");
   setText(title, lastTrigger.title);
-  title?.toggleAttribute("data-live", lastTrigger.live);
+  markLive(title, lastTrigger.live);
   const ring = trigger.querySelector<HTMLElement>("[data-queue-trigger-ring]");
   ring?.style.setProperty("--queue-p", String(lastTrigger.percent));
   ring?.style.setProperty("--queue-span", `${OPEN_POLL_MS / 1000}s`);
@@ -458,7 +516,7 @@ function applyHead(): void {
   if (panel) {
     const label = panel.querySelector<HTMLElement>("[data-queue-title]");
     setText(label, title);
-    label?.toggleAttribute("data-live", live);
+    markLive(label, live);
     setText(panel.querySelector("[data-queue-percent]"), percent);
     const ring = panel.querySelector<HTMLElement>("[data-queue-fold-ring]");
     ring?.style.setProperty("--queue-p", String(head.percent));
@@ -744,10 +802,18 @@ export function mountQueue(startedHere = false): void {
       popover()?.hidePopover?.();
       void listenLive();
     }
-    // Start listening is a link to the podcast: the queue gets out of its way.
-    if (target.closest("[data-queue-play]")) {
+    // Start listening plays the podcast where the listener is (the player loads it in place, D277);
+    // the queue gets out of its way. A modified click or a middle click still opens the link.
+    const start = target.closest<HTMLAnchorElement>("[data-queue-play]");
+    if (start) {
       popover()?.hidePopover?.();
       setExpanded(false);
+      const id = idFromHref(start.getAttribute("href"));
+      const plain = !(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey);
+      if (id && plain && event.button === 0) {
+        event.preventDefault();
+        void playInPlace(id, start.href);
+      }
     }
     if (target.closest("[data-create-open]")) popover()?.hidePopover?.();
   });
