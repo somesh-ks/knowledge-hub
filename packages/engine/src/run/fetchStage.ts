@@ -163,10 +163,13 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
   const schedule = await loadSchedule(deps.root);
   // What the last scrape of each Firecrawl listing saw: a page whose links have not moved is not
   // scraped again. Without a Firecrawl key nothing is scraped, so there is nothing to remember. A
-  // replacement or an on-demand run asks for stories the last run already took from those pages, so
-  // it scrapes them all, as the weekly pass does.
+  // replacement, an on-demand run or a `--since` lookback asks for stories the last run already took
+  // from those pages, so it scrapes them all, as the weekly pass does.
   const listings =
-    deps.fetch.firecrawlKey && plan.replaces === undefined && plan.mode === "scheduled"
+    deps.fetch.firecrawlKey &&
+    plan.replaces === undefined &&
+    plan.mode === "scheduled" &&
+    plan.lookback !== true
       ? new ListingMemory(await readListingFingerprints(deps.root))
       : undefined;
   const setup = listings ? { ...deps.fetch, listings } : deps.fetch;

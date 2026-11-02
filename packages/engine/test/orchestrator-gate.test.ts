@@ -206,6 +206,8 @@ describe("gate: fetch windows", () => {
       "2026-10-01T00:00:00.000Z",
       "2026-10-01T00:00:00.000Z",
     ]);
+    // The lookback reaches past the last scrape, so the fetch stage reads every listing (D342).
+    expect((await readPlan(root))?.lookback).toBe(true);
   });
 
   it("rejects a --since that is not a date or lies in the future", async () => {
