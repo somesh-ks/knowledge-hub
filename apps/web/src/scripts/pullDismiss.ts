@@ -11,11 +11,11 @@
  * (`dismissOnScrim`); a popover has light dismiss of its own.
  */
 
-import { drawerHeadClass, drawerPanelClass } from "../design-system/drawer";
+import { drawerPanelClass } from "../design-system/drawer";
 import { MENU_SELECTORS } from "../design-system/menu";
 import { sheetBodyClass, sheetHeadClass } from "../design-system/sheet";
 
-const HEAD = `.${sheetHeadClass()}, .${drawerHeadClass()}`;
+const HEAD = `.${sheetHeadClass()}`;
 const BODY = `.${sheetBodyClass()}, ${MENU_SELECTORS.body}, .${drawerPanelClass()}, .emoji-body, .gen-body`;
 
 /** A pull this far down before the sheet follows, so a tap or a sideways swipe never moves it. */

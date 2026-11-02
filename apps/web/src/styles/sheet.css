@@ -185,7 +185,7 @@ dialog.sheet-side[data-scrolled] .sheet-head {
    it outranks the shared .icon-btn sizing wherever that loads. A full-screen sheet (dialog.sheet-side:
    New episode, the topic and source panel, Regenerate) is the exception and keeps its Close at the
    row's end, as on a desktop (owner, 2026-10-22): with no page left showing, there is nothing to tap
-   away to (D152), as is a Drawer drawn full (Regenerate), as is the small share dialog (2026-10-25), which has no sheet to pull. The sheets that are popovers (the Menu, its select sheets, the emoji picker) show their Close (D291). */
+   away to (D152), as is the Drawer (Regenerate), as is the small share dialog (2026-10-25), which has no sheet to pull. The sheets that are popovers (the Menu, its select sheets, the emoji picker) show their Close (D291). */
 @media (width < 40rem) {
   :not(dialog.sheet-side, dialog.share-dialog, [popover], [data-full])
     > .sheet-head

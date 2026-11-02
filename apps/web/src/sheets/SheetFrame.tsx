@@ -1,7 +1,6 @@
 import { Drawer } from "@base-ui/react/drawer";
 import { type ComponentProps, type ReactNode, useEffect, useRef } from "react";
 import {
-  drawerHeadClass,
   drawerPanelClass,
   drawerPopupClass,
   drawerScrimClass,
@@ -50,12 +49,6 @@ interface SheetFrameProps {
   closeLabel: string;
   /** Wraps the sheet in Base UI's virtual-keyboard handling, for sheets with a text field. */
   keyboardAware?: boolean;
-  /**
-   * A full sheet, as Catch up is (sheet.css): the whole screen on a phone, a panel at the right from
-   * 40rem, with the Sheet's header row and its button resting at the foot. For a form with room to
-   * fill in. Without it the Drawer is a bottom sheet on a phone and a centred dialog from 40rem.
-   */
-  full?: boolean;
   initialFocus?: InitialFocus;
   /** The open came from a Menu pick: the scrim takes over from the menu's at once (drawer.css). */
   handoff?: boolean;
@@ -74,7 +67,6 @@ export default function SheetFrame({
   title,
   closeLabel,
   keyboardAware = false,
-  full = false,
   initialFocus,
   handoff = false,
   children,
@@ -83,16 +75,13 @@ export default function SheetFrame({
   const portal = (
     <Drawer.Portal>
       <Drawer.Backdrop className={drawerScrimClass()} data-handoff={handoff || undefined} />
-      <Drawer.Viewport className={drawerViewportClass()} data-full={full ? "" : undefined}>
-        <Drawer.Popup
-          className={drawerPopupClass()}
-          data-full={full ? "" : undefined}
-          initialFocus={initialFocus}
-        >
+      <Drawer.Viewport className={drawerViewportClass()}>
+        <Drawer.Popup className={drawerPopupClass()} initialFocus={initialFocus}>
           {/* Content is what lets a mouse press land on a control inside: outside it, Base UI
-              treats the press as the start of a swipe and captures the pointer. */}
-          <Drawer.Content className={drawerPanelClass()} data-full={full ? "" : undefined}>
-            <div className={full ? sheetHeadClass() : drawerHeadClass()}>
+              treats the press as the start of a swipe and captures the pointer. data-full: a
+              full-screen sheet keeps its Close on a phone (sheet.css, the D144 exception). */}
+          <Drawer.Content className={drawerPanelClass()} data-full="">
+            <div className={sheetHeadClass()}>
               <Drawer.Title className={sheetTitleClass()}>{title}</Drawer.Title>
               <Drawer.Close className="icon-btn press" aria-label={closeLabel}>
                 <Icon name="close" size="lg" />
