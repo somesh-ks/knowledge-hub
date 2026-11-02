@@ -186,5 +186,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D334 | Every Claude step starts at Haiku medium, the podcast script included | amends D333 |
 | D336 | A cover no longer flies between its card and the page's hero | partly supersedes D271, D280; amended by D341 |
 | D341 | A page arrives from the side of the tab you came from | partly supersedes D280; amends D336 |
+| D342 | A Firecrawl listing is read free first and scraped only when its links moved | relates to D222, D302 |
 
 ---

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import {
   EMPTY_JUDGMENTS,
   EMPTY_LAST_RUN,
+  EMPTY_LISTING_FINGERPRINTS,
   EMPTY_SEEN,
   EMPTY_SOURCE_CANDIDATES,
   EMPTY_SOURCE_HEALTH,
@@ -12,6 +13,8 @@ import {
   JudgmentsFile as JudgmentsSchema,
   type LastRunFile,
   LastRunFile as LastRunSchema,
+  type ListingFingerprintsFile,
+  ListingFingerprintsFile as ListingFingerprintsSchema,
   type SeenFile,
   SeenFile as SeenSchema,
   type SourceCandidatesFile,
@@ -114,6 +117,16 @@ export const readSourceStats = (root: string): Promise<SourceStatsFile> =>
   );
 export const writeSourceStats = (root: string, file: SourceStatsFile): Promise<void> =>
   writeState(root, STATE_FILES.sourceStats, SourceStatsSchema, file);
+
+export const readListingFingerprints = (root: string): Promise<ListingFingerprintsFile> =>
+  readState(root, STATE_FILES.listingFingerprints, ListingFingerprintsSchema, () =>
+    structuredClone(EMPTY_LISTING_FINGERPRINTS),
+  );
+export const writeListingFingerprints = (
+  root: string,
+  file: ListingFingerprintsFile,
+): Promise<void> =>
+  writeState(root, STATE_FILES.listingFingerprints, ListingFingerprintsSchema, file);
 
 export const readSourceCandidates = (root: string): Promise<SourceCandidatesFile> =>
   readState(root, STATE_FILES.sourceCandidates, SourceCandidatesSchema, () =>

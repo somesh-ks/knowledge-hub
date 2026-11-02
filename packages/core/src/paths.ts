@@ -27,6 +27,7 @@ export const STATE_FILES = {
   topicJudgments: "state/topic-judgments.json",
   sourceStats: "state/source-stats.json",
   sourceCandidates: "state/source-candidates.json",
+  listingFingerprints: "state/listing-fingerprints.json",
 } as const;
 
 export const CONFIG_FILES = {
