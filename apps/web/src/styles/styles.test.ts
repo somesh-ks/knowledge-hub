@@ -335,18 +335,14 @@ const RULES: Rule[] = [
     // stays as Default draws it when Expressive or Halloween is on (the first Expressive missed the cards,
     // the menus, the sheets and the toast this way). Only the fully round pill is a primitive read.
     name: "reads the shape scale and the colour roles, never a primitive radius or a ramp colour",
-    // menu.css's tile (D309, #568) still reads --radius-xl. It is a design-system file, which an app
-    // PR cannot edit (the gate), so it waits for the D319 design-system PR; remove this line there.
     offenders: () =>
-      ownCss()
-        .filter(([file]) => file !== "menu.css")
-        .flatMap(([file, css]) =>
-          [
-            ...css.matchAll(
-              /var\(\s*--(?:radius-(?:xs|sm|md|lg|xl|2xl|sheet)|color-(?:white|(?:grey|blue|green|orange|red|violet)-\d+))\s*[,)]/g,
-            ),
-          ].map(([read]) => `${file}: ${read}`),
-        ),
+      ownCss().flatMap(([file, css]) =>
+        [
+          ...css.matchAll(
+            /var\(\s*--(?:radius-(?:xs|sm|md|lg|xl|2xl|sheet)|color-(?:white|(?:grey|blue|green|orange|red|violet)-\d+))\s*[,)]/g,
+          ),
+        ].map(([read]) => `${file}: ${read}`),
+      ),
   },
   {
     name: "takes spacing, type and radius from tokens, never a raw length",
