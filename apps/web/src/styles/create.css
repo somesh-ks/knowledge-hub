@@ -107,6 +107,33 @@
   border-radius: var(--shape-lg);
 }
 
+/* The questions open and close on the state time (2026-11-02): they were full height in the first frame
+   while the chevron turned. Height is the one layout property motion may use, and this is an accordion
+   (foundations.css sets interpolate-size on the root). A browser without ::details-content or
+   interpolate-size snaps, as before. The corner swap waits out the close, or the grey would turn into a
+   tall pill while the questions were still folding away. */
+@supports (interpolate-size: allow-keywords) and selector(::details-content) {
+  .create-more:not([data-pinned]) {
+    transition: border-radius 0s var(--duration-state);
+  }
+
+  .create-more[open]:not([data-pinned]) {
+    transition-delay: 0s;
+  }
+
+  .create-more:not([data-pinned])::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition:
+      block-size var(--duration-state) var(--ease-out),
+      content-visibility var(--duration-state) allow-discrete;
+  }
+
+  .create-more[open]:not([data-pinned])::details-content {
+    block-size: auto;
+  }
+}
+
 .create-more-body {
   padding-block-end: var(--space-4);
 }
@@ -197,8 +224,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .create-more-chevron {
+  .create-more-chevron,
+  .create-more:not([data-pinned])::details-content {
     transition: none;
+  }
+
+  .create-more:not([data-pinned]) {
+    transition-delay: 0s;
   }
 }
 

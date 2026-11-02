@@ -1286,7 +1286,7 @@
   height: var(--space-4);
   border-radius: var(--shape-sm);
   background: var(--color-surface-sunken);
-  animation: skeleton-pulse var(--duration-progress) var(--ease-out) infinite alternate;
+  animation: skeleton-pulse calc(var(--duration-progress) * 4) var(--ease-in-out) infinite alternate;
 }
 
 .skeleton-bar[data-wide] {
@@ -1299,7 +1299,7 @@
   height: var(--space-12);
   border-radius: var(--shape-md);
   background: var(--color-surface-sunken);
-  animation: skeleton-pulse var(--duration-progress) var(--ease-out) infinite alternate;
+  animation: skeleton-pulse calc(var(--duration-progress) * 4) var(--ease-in-out) infinite alternate;
 }
 
 @keyframes skeleton-pulse {
