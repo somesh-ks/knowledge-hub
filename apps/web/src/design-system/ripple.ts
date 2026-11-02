@@ -168,6 +168,8 @@ export function installRipple(): void {
       const control = (event.target as Element | null)?.closest<HTMLElement>("[data-ripple]");
       const layer = layerOf(control);
       if (!control || !layer || getComputedStyle(layer).display === "none") return;
+      // A control that does nothing shows nothing: no wave on a disabled control.
+      if (control.matches(':disabled, [aria-disabled="true"]')) return;
       const box = layer.getBoundingClientRect();
       const p: Press = {
         id: event.pointerId,

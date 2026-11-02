@@ -117,12 +117,12 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .menu-item:hover {
+  .menu-item:where(:not(:disabled, [aria-disabled="true"])):hover {
     background: var(--ghost-hover);
   }
 }
 
-.menu-item:active {
+.menu-item:where(:not(:disabled, [aria-disabled="true"])):active {
   background: var(--ghost-pressed);
 }
 
@@ -197,12 +197,12 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .menu-tile:hover {
+  .menu-tile:where(:not(:disabled, [aria-disabled="true"])):hover {
     background: var(--tile-fill-hover);
   }
 }
 
-.menu-tile:active {
+.menu-tile:where(:not(:disabled, [aria-disabled="true"])):active {
   background: var(--tile-fill-press);
 }
 

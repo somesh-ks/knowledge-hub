@@ -225,7 +225,7 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .create-view .field-input.create-title:hover {
+  .create-view .field-input.create-title:where(:enabled):hover {
     background: var(--color-surface-container-hover);
   }
 }

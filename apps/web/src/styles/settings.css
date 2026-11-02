@@ -388,13 +388,13 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .settings-row .value-select > select.field-input:hover {
+  .settings-row .value-select > select.field-input:where(:enabled):hover {
     border-color: transparent;
     background: var(--ghost-hover);
   }
 }
 
-.settings-row .value-select > select.field-input:active {
+.settings-row .value-select > select.field-input:where(:enabled):active {
   background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
 }
 
