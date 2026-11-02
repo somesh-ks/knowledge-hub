@@ -22,7 +22,7 @@ function keyOf(
 
 /**
  * A 200 answer that says it failed (Firecrawl's `success: false`, an error text, a page status of
- * 400 or more, or no data) is the caller's failure to retry, not an answer to share. Anything
+ * 400 or more, or no content) is the caller's failure to retry, not an answer to share. Anything
  * unsure is left out of the cache: that costs a repeat read, never a wrong answer.
  */
 function failedPayload(payload: unknown): boolean {
@@ -30,11 +30,16 @@ function failedPayload(payload: unknown): boolean {
   const body = payload as {
     success?: unknown;
     error?: unknown;
-    data?: { metadata?: { statusCode?: unknown } } | null;
+    data?: { markdown?: unknown; rawHtml?: unknown; metadata?: { statusCode?: unknown } } | null;
   };
   if (body.success === false) return true;
   if (typeof body.error === "string" && body.error !== "") return true;
-  if ("success" in body && (body.data === undefined || body.data === null)) return true;
+  if ("success" in body) {
+    // A scrape that returned neither format has nothing for the caller to use.
+    const data = body.data;
+    const hasContent = (value: unknown): boolean => typeof value === "string" && value !== "";
+    if (!data || !(hasContent(data.markdown) || hasContent(data.rawHtml))) return true;
+  }
   const status = body.data?.metadata?.statusCode;
   return typeof status === "number" && status >= 400;
 }

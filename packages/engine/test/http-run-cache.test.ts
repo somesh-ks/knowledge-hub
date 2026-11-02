@@ -78,6 +78,7 @@ describe("a run reads each address once", () => {
       { success: false, error: "timeout" },
       { success: true, data: { metadata: { statusCode: 404 } } },
       { success: true },
+      { success: true, data: {} },
     ]) {
       const { http, calls } = counting(failed);
       const cached = cacheForRun(http);
@@ -85,5 +86,10 @@ describe("a run reads each address once", () => {
       await cached.postJson("https://api.firecrawl.dev/v2/scrape", { url: "u" });
       expect(calls).toHaveLength(2);
     }
+    const { http, calls } = counting({ success: true, data: { rawHtml: "<rss/>" } });
+    const cached = cacheForRun(http);
+    await cached.postJson("https://api.firecrawl.dev/v2/scrape", { url: "u" });
+    await cached.postJson("https://api.firecrawl.dev/v2/scrape", { url: "u" });
+    expect(calls).toHaveLength(1);
   });
 });
