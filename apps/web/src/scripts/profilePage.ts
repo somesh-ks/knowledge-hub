@@ -9,10 +9,25 @@ import { currentShape, offeredShapes } from "./accountAvatar";
 
 const PICKER = "[data-avatar-picker]";
 
+/** Draws the picker. The buttons are built once per set of offered shapes, so a pick (or a volume
+ * write) only moves aria-pressed and keyboard focus stays on the button that was pressed. */
 function draw(picker: HTMLElement): void {
   const current = currentShape();
+  const ids = offeredShapes();
+  const same =
+    picker.children.length === ids.length &&
+    ids.every((id, at) => (picker.children[at] as HTMLElement).dataset.shape === id);
+  if (same) {
+    for (const choice of picker.children) {
+      choice.setAttribute(
+        "aria-pressed",
+        String((choice as HTMLElement).dataset.shape === current),
+      );
+    }
+    return;
+  }
   picker.replaceChildren(
-    ...offeredShapes().map((id) => {
+    ...ids.map((id) => {
       const shape = AVATAR_SHAPES[id];
       const choice = document.createElement("button");
       choice.type = "button";
@@ -31,14 +46,13 @@ function draw(picker: HTMLElement): void {
   );
 }
 
-export function installProfilePage(): void {
-  const picker = document.querySelector<HTMLElement>(PICKER);
-  if (!picker) return;
+function mount(picker: HTMLElement): () => void {
   draw(picker);
-  picker.addEventListener("click", (event) => {
+  const onClick = (event: Event): void => {
     const choice = (event.target as Element).closest<HTMLElement>("[data-shape]");
     if (choice?.dataset.shape) getPreferences().set({ avatar: choice.dataset.shape });
-  });
+  };
+  picker.addEventListener("click", onClick);
   // A pick, or a new mood (it has its own shapes), draws the row again.
   const stop = getPreferences().subscribe(() => draw(picker));
   const moodWatch = new MutationObserver(() => draw(picker));
@@ -46,12 +60,39 @@ export function installProfilePage(): void {
     attributes: true,
     attributeFilter: ["data-style"],
   });
-  document.addEventListener(
-    "astro:before-swap",
-    () => {
-      stop();
-      moodWatch.disconnect();
-    },
-    { once: true },
-  );
+  return () => {
+    picker.removeEventListener("click", onClick);
+    stop();
+    moodWatch.disconnect();
+  };
+}
+
+let installed = false;
+
+/**
+ * Call once from the page's script. A bundled module script runs once per session, and the profile
+ * can arrive by a client-side navigation, so the picker follows the router like the Settings pages:
+ * mount on astro:page-load, unmount before the page is swapped away.
+ */
+export function installProfilePage(): void {
+  if (installed) return;
+  installed = true;
+  let mounted: { picker: HTMLElement; stop: () => void } | null = null;
+
+  const unmount = (): void => {
+    mounted?.stop();
+    mounted = null;
+  };
+
+  const sync = (): void => {
+    const picker = document.querySelector<HTMLElement>(PICKER);
+    if (mounted && mounted.picker === picker) return;
+    unmount();
+    if (picker) mounted = { picker, stop: mount(picker) };
+  };
+
+  document.addEventListener("astro:page-load", sync);
+  document.addEventListener("astro:before-swap", unmount);
+  // On a full load the event waits for every resource. The markup is already here, so start now.
+  sync();
 }
