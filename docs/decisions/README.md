@@ -183,6 +183,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D323 | Regenerate is a full sheet like Catch up; Length has no Usual | amends D207 |
 | D324 | The Catch up script is written at medium effort | amends D181 |
 | D325 | List rows run edge to edge in the Menu, the select list and the picker | amends D275, D291 |
+| D326 | The Avatar is a design-system part: one flat shape, a face, two tones | active |
 | D328 | The hue slider paints the spectrum and shows the picked colour | amends D315 |
 | D329 | A Menu sheet over one safe row has no title and no Close | amends D291 |
 | D332 | A scheduled run waits at the gate when the last 24 hours cost over $5 | amends D139 |

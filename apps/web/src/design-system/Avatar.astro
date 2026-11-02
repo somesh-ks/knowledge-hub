@@ -1,0 +1,31 @@
+---
+import { AVATAR_SHAPES, type AvatarSize, avatarClass, avatarMarkup } from "./avatar";
+import "../styles/avatar.css";
+
+interface Props {
+  /** The shape's id (AVATAR_SHAPES). The app passes the one the reader picked, or the mood's first. */
+  shape?: string;
+  size?: AvatarSize;
+  /** The reader's photo, where there is one: round with an accent ring, in place of the shape. */
+  photo?: string;
+  /** A button that opens the profile, named for a screen reader. Without it the avatar is a picture. */
+  label?: string;
+  /** For placing the avatar where it stands. Never its look. */
+  class?: string;
+}
+
+const { shape = "cookie", size = "md", photo, label, class: placement } = Astro.props;
+const def = AVATAR_SHAPES[shape] ?? AVATAR_SHAPES.cookie;
+const tone = photo ? undefined : def?.tone;
+const classes = [avatarClass(size, Boolean(photo)), placement];
+const Tag = label ? "button" : "span";
+---
+
+<Tag
+  class:list={classes}
+  data-tone={tone}
+  type={label ? "button" : undefined}
+  aria-label={label}
+>
+  {photo ? <img src={photo} alt="" /> : <Fragment set:html={avatarMarkup(shape)} />}
+</Tag>

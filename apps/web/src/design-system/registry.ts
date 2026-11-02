@@ -4,6 +4,7 @@
  * designSystem.test.ts holds the app to them. A new component is added here in the PR that adds it;
  * a class not listed here is not part of the system.
  */
+import { AVATAR, AVATAR_CLASSES, AVATAR_RETIRED } from "./avatar";
 import { BADGE, BADGE_CLASSES, BADGE_RETIRED } from "./badge";
 import { BANNER, BANNER_CLASSES, BANNER_RETIRED } from "./banner";
 import { BUTTON, BUTTON_CLASSES, BUTTON_RETIRED } from "./button";
@@ -55,6 +56,17 @@ export const COMPONENTS: DesignSystemComponent[] = [
     useWhen: ICON.useWhen,
     dontUseWhen: ICON.dontUseWhen,
     parts: ICON.sizes,
+  },
+  {
+    name: "Avatar",
+    sheet: "avatar.css",
+    prefix: "avatar",
+    classes: AVATAR_CLASSES,
+    retired: AVATAR_RETIRED,
+    summary: AVATAR.summary,
+    useWhen: AVATAR.useWhen,
+    dontUseWhen: AVATAR.dontUseWhen,
+    parts: {},
   },
   {
     name: "Badge",

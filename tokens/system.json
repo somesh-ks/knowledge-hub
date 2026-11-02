@@ -3119,6 +3119,62 @@
       "light": "150ms"
     },
     {
+      "name": "--duration-avatar-hop",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "900ms",
+      "role": "The avatar's hop on a good moment."
+    },
+    {
+      "name": "--duration-avatar-spark",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "1100ms",
+      "role": "The spark that flares on a hop."
+    },
+    {
+      "name": "--duration-avatar-wiggle",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "800ms",
+      "role": "The avatar's wiggle."
+    },
+    {
+      "name": "--duration-avatar-look",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "1500ms",
+      "role": "The avatar glancing aside once."
+    },
+    {
+      "name": "--duration-avatar-blink",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "260ms",
+      "role": "One blink; it blinks twice."
+    },
+    {
+      "name": "--duration-avatar-shake",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "500ms",
+      "role": "The avatar's head shake on a refusal."
+    },
+    {
+      "name": "--duration-avatar-bob",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "1500ms",
+      "role": "One bob of the avatar while audio plays."
+    },
+    {
+      "name": "--duration-avatar-work",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "2400ms",
+      "role": "One glance of the avatar while something is being made."
+    },
+    {
       "name": "--duration-sheet-in",
       "tier": "primitive",
       "type": "duration",

@@ -1067,7 +1067,7 @@ describe("component stylesheets", () => {
       expect(css, `${file} steps lightness by hand`).not.toMatch(/--state-step-/);
       // The cover turns its own hue; the hue slider paints the style's accent at every turn (D328).
       // Neither steps a state.
-      if (file !== "cover.css" && file !== "slider.css")
+      if (!["cover.css", "slider.css", "avatar.css"].includes(file))
         expect(css, `${file} derives a color by hand`).not.toMatch(/oklch\(from /);
     }
   });

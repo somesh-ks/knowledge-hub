@@ -659,6 +659,16 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Revisit if: multi-select or the emoji picker should follow, or a list needs a row the owner wants rounded.
 - Amends: D275, D291.
 
+## D326: the Avatar is a design-system part: one flat shape, a face, two tones
+
+- Date: 2026-11-02 (the owner rejected the gradient and letter avatar and approved the redrawn flat shapes, "great!"; the avatar and Settings thread asked for the part).
+- Decision: `Avatar` (`design-system/Avatar.astro`, `avatar.ts`, `styles/avatar.css`) draws one flat shape with a face and two tones: no letter, no gradient, no shadow, no blush. The shape registry (`AVATAR_SHAPES`) holds the outlines; the markup carries classes only and the stylesheet fills them from tokens, so the hue engine drives every shape in every mood. A mood supplies tokens and nothing else: `--av-body`, `--av-mark`, `--av-shapes` (the ids it offers), `--av-shape-default`, and `--av-d-dots`, `--av-d-spark`, `--av-d-speckle`, `--av-d-stitch` (inline or none). Default and Expressive offer cookie, flower, clover, sunny, burst, squircle, heart, pebble and star (cookie and flower first); Halloween offers pumpkin, ghost, bat, cat, skull and cauldron (pumpkin first). Expressive's body is the accent at lightness 0.72 and its face the accent at 0.24, both derived from the accent. Sizes: 2.5rem in the bar (3rem in Expressive), `lg` 4rem, `xl` 6rem. Reactions are CSS on `data-play` (hop, wiggle, look, blink, shake) and `data-state` (playing, working, offline) and none run under reduced motion; `data-face` changes the mouth. Signed in, the Google photo replaces the shape, round with an accent ring (`photo`).
+- Why: a letter and a gradient said "account", not "you"; a flat shape with a face is the app's character, scales to any mood by tokens, and costs no per-colour art file. One registry in code keeps the shapes in one place for the bar, the profile page and the Mood picker.
+- Rejected: one SVG file per colour and mood (the hue engine could not turn them); per-mood shape files (a new mood would need code); the reactions in script (CSS on two attributes is enough for the app to drive).
+- Cost: `avatar.css` derives Expressive's colours with `oklch(from ...)`, which the guard test now allows for the cover, the slider and the avatar. Eight duration tokens (`--duration-avatar-*`) outside the UI limit, which the token policy test exempts by name: they are a character playing, not an interface answering. The app side (the avatar in the bar, the event wiring, the photo, the profile page) is the avatar thread's app PR.
+- Revisit if: a mood needs a shape that cannot be drawn from the registry's parts, or the reactions need to loop.
+- Amends: none.
+
 ## D328: the hue slider paints the spectrum and shows the picked colour
 
 - Date: 2026-11-02 (the owner chose option A from the hue slider options; the avatar and Settings thread asked for it in the design system).

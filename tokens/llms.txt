@@ -96,7 +96,7 @@ Read directly by components.
 - --radius-{round 9999px}
 - --shape-{xs, sm, md, lg, xl, sheet, 2xl}: corners, a style redraws them
 - --stroke-{hairline 1px, rail 2px, ring 2px, ring-gap 2px}
-- --duration-{press-in 100ms, press-out 160ms, hover 150ms, state 200ms, enter 250ms, exit 150ms, sheet-in 300ms, sheet-out 220ms, drawer-full 500ms, progress 250ms, stagger 40ms, theme 200ms, spin 800ms, spring-settle 650ms, spring-release 750ms, spring-pop 450ms, spring-spatial-fast 350ms, spring-spatial-default 420ms, spring-spatial-slow 570ms, spring-effects-fast 140ms, spring-effects-default 220ms, spring-effects-slow 310ms}
+- --duration-{press-in 100ms, press-out 160ms, hover 150ms, state 200ms, enter 250ms, exit 150ms, avatar-hop 900ms, avatar-spark 1100ms, avatar-wiggle 800ms, avatar-look 1500ms, avatar-blink 260ms, avatar-shake 500ms, avatar-bob 1500ms, avatar-work 2400ms, sheet-in 300ms, sheet-out 220ms, drawer-full 500ms, progress 250ms, stagger 40ms, theme 200ms, spin 800ms, spring-settle 650ms, spring-release 750ms, spring-pop 450ms, spring-spatial-fast 350ms, spring-spatial-default 420ms, spring-spatial-slow 570ms, spring-effects-fast 140ms, spring-effects-default 220ms, spring-effects-slow 310ms}
 - --ease-{out, in-out, drawer, hover, linear linear, spring-settle, spring-release, spring-pop, spring-spatial-fast, spring-spatial-default, spring-spatial-slow, spring-effects-fast, spring-effects-default, spring-effects-slow}
 
 ## Component tokens
