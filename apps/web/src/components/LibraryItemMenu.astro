@@ -2,6 +2,7 @@
 import Icon from "../design-system/Icon.astro";
 import Menu from "../design-system/Menu.astro";
 import MenuItem from "../design-system/MenuItem.astro";
+import { menuTilesClass } from "../design-system/menu";
 import { regenerationHint } from "../lib/regenerations";
 
 interface Props {
@@ -81,16 +82,23 @@ const menuId = `card-menu-${id}`;
     <Icon name="moreVert" />
   </button>
   <Menu id={menuId} title={title} subtitle={subtitle} class="card-menu-list">
-    {
-      audio && !only && (
-        <MenuItem data-menu="download">
-          <Icon name="download" class="dl-add" /><Icon name="downloadRemove" class="dl-remove" /><span data-menu-label>Download</span>
-        </MenuItem>
-      )
-    }
-    <MenuItem data-menu="queue">
-      <Icon name="queueAdd" />Add to queue
-    </MenuItem>
+    {/* The quick actions: on a phone's sheet they are tiles over the list, as the player's menu has them
+         (D291); from 40rem they are rows, in this order, so a mouse sees one list (menu.css). */}
+    <div class={menuTilesClass()} data-fold role="presentation">
+      {
+        audio && !only && (
+          <MenuItem data-menu="download">
+            <Icon name="download" class="dl-add" /><Icon name="downloadRemove" class="dl-remove" /><span data-menu-label>Download</span>
+          </MenuItem>
+        )
+      }
+      <MenuItem data-menu="share" data-share-item={id}>
+        <Icon name="shareFat" />Share
+      </MenuItem>
+      <MenuItem data-menu="queue">
+        <Icon name="queueAdd" />Add to queue
+      </MenuItem>
+    </div>
     {
       only ? null : kind === "episode" ? (
         <MenuItem
@@ -109,9 +117,6 @@ const menuId = `card-menu-${id}`;
         </MenuItem>
       )
     }
-    <MenuItem data-menu="share" data-share-item={id}>
-      <Icon name="shareFat" />Share
-    </MenuItem>
     {/* Put in by scripts/shareLink.ts once this device made the row's listen link (D153). */}
     {/* Not on the Downloads page, whose row menu is Add to queue, Share and Remove download (D281). */}
     {

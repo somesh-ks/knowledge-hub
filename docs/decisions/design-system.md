@@ -638,3 +638,14 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Cost: a container that paints its own surface carries two more lines; 62 rules moved off alpha layers.
 - Revisit if: a ghost control sits on a surface the container did not name (its hover then steps the page's tone), or the ripple moves onto a known fill.
 - Amends: D317.
+
+## D322: a Library card's menu opens its phone sheet with quick-action tiles
+
+- Date: 2026-11-02 (the owner, on a still of the card's sheet: it "used to have a quick action or shortcut section on the top", as the player's ⋮ sheet has)
+- Decision: the card menu's Download, Share and Add to queue sit in one `menu-tiles` row marked `data-fold`. On a phone's sheet they are the player's tiles, a glyph over a word on the container tone; from 40rem the row steps aside (`display: contents`) and they are three rows of one list, in that order. The rest (Regenerate, Stop sharing, Delete, and on Downloads Remove download) stay rows under the tiles. The rows are the same buttons with the same `data-menu` actions in both, so no script changes and no row is drawn twice.
+- Why: the sheet had a plain list while the player's own sheet led with tiles; the quick actions are what a finger comes for.
+- Cost: Share moves above Regenerate in the desktop popover. A tile word that wraps ("Remove download") makes the row taller for all three.
+- Rejected: two copies of the actions, one for the sheet and one for the popover (a script updating the first match would leave the other stale); rebuilding the player's React tiles in Astro.
+- Amends: D291.
+- Revisit if: a card gets a fourth quick action (the row would need a second line).
+

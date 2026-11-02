@@ -187,6 +187,45 @@
   cursor: pointer;
 }
 
+/* A Library card's quick actions are plain rows in the markup, wrapped in a tiles row marked data-fold
+   (D291): from 40rem the wrapper steps aside and they are rows of one list; on a phone's sheet they are
+   the same tiles as the player's, a glyph over a word on the container tone. */
+@media (width >= 40rem) {
+  .menu-tiles[data-fold] {
+    display: contents;
+  }
+}
+
+@media (width < 40rem) {
+  .menu-tiles[data-fold] > .menu-item {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: var(--space-1);
+    min-height: 0;
+    padding: var(--space-4) var(--space-2);
+    border-radius: var(--shape-xl);
+    background: var(--sheet-tile-bg);
+    text-align: center;
+  }
+
+  .menu-tiles[data-fold] > .menu-item:active {
+    background: var(--sheet-tile-bg-pressed);
+  }
+
+  .menu-tiles[data-fold] > .menu-item:focus-visible {
+    background: var(--sheet-tile-bg-pressed);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  @media (width < 40rem) {
+    .menu-tiles[data-fold] > .menu-item:hover {
+      background: var(--sheet-tile-bg-hover);
+    }
+  }
+}
+
 /* A tile that is on (Saved: aria-checked; Downloaded: data-on) takes the accent container, as a chosen segment does. */
 .menu-tile:is([aria-checked="true"], [data-on]) {
   --tile-fill: var(--color-accent-container);
