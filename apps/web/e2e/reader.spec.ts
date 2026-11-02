@@ -859,7 +859,9 @@ test.describe("the page's chrome", () => {
     page,
   }) => {
     await page.goto("/d/2026-10-07");
-    await expect(page.locator(".app-bar-back")).toHaveCount(0);
+    // Opened from nowhere it shows no Back; the button is in the page, hidden, for a visit that came
+    // from the Library (navSpeed.spec.ts).
+    await expect(page.locator(".app-bar-back")).toBeHidden();
     await expect(page.locator('.app-nav [aria-current="page"]')).toHaveAttribute("href", "/");
     // An older briefing is one level down from the Library, and leads back to it.
     await page.goto(SILENT_DIGEST);

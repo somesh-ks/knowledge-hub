@@ -47,6 +47,8 @@ function readPageTopics(): PageTopics | null {
 
 interface GenerateSheetProps {
   open: boolean;
+  /** Opened by a pick in a menu: the sheet's scrim takes over from the menu's. */
+  handoff?: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -60,7 +62,7 @@ const BUSY = "A podcast or an episode is still being made. You can start another
  * (scripts/queue.ts), above the navigation on a phone and at the foot of the side column from 64rem,
  * so it goes on across pages.
  */
-export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps) {
+export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateSheetProps) {
   const feedbackRef = useRef<HTMLTextAreaElement>(null);
   const [page, setPage] = useState<PageTopics | null>(null);
   const [ticked, setTicked] = useState<ReadonlySet<string>>(new Set());
@@ -149,12 +151,18 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
     <SheetFrame
       open={open}
       onOpenChange={onOpenChange}
+      handoff={handoff}
       title="Regenerate"
       closeLabel="Close"
       keyboardAware
       // A keyboard or a mouse lands in the note. A touch lands on the sheet, so the keyboard does
-      // not cover half of it before the listener has read it.
-      initialFocus={(openType) => (openType === "touch" ? true : (feedbackRef.current ?? true))}
+      // not cover half of it before the listener has read it. A pick in the More menu opens this
+      // sheet from a script, with no opener to say it was a touch: the device's pointer says it.
+      initialFocus={(openType) =>
+        openType === "touch" || matchMedia("(pointer: coarse)").matches
+          ? true
+          : (feedbackRef.current ?? true)
+      }
     >
       <form className="sheet-form" onSubmit={(event) => void onSubmit(event)} noValidate>
         {page ? (
