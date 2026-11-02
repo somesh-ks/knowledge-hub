@@ -919,14 +919,14 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .topics-panel select.field-input:enabled:hover,
+  .topics-panel select.field-input:where(:enabled):hover,
   .topics-panel .multiselect-trigger:hover,
   .topics-panel
     :is(input, textarea).field-input:not(
       :focus-visible,
       [readonly],
       [aria-invalid]:not([aria-invalid="false"])
-    ):enabled:hover {
+    ):where(:enabled):hover {
     border-color: transparent;
     background: var(--color-surface-container-hover);
   }
@@ -952,12 +952,12 @@
       :focus-visible,
       [readonly],
       [aria-invalid]:not([aria-invalid="false"])
-    ):enabled:hover {
+    ):where(:enabled):hover {
     background: var(--color-surface-hover);
   }
 }
 
-.topics-panel select.field-input:enabled:active,
+.topics-panel select.field-input:where(:enabled):active,
 .topics-panel .multiselect-trigger:is(:active, [aria-expanded="true"]) {
   border-color: transparent;
   background: var(--color-surface-container-pressed);
@@ -1440,12 +1440,12 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .source-plus-btn:enabled:hover::before {
+  .source-plus-btn:where(:enabled):hover::before {
     background: var(--ghost-hover);
   }
 }
 
-.source-plus-btn:enabled:active::before {
+.source-plus-btn:where(:enabled):active::before {
   background: var(--ghost-pressed);
 }
 

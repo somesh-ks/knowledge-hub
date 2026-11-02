@@ -61,11 +61,11 @@ textarea.field-input {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .field-input:enabled:hover {
+  .field-input:where(:enabled):hover {
     border-color: var(--color-on-surface);
   }
 
-  .field-input:enabled:hover:focus-visible {
+  .field-input:where(:enabled):hover:focus-visible {
     border-color: var(--color-accent);
   }
 }
@@ -89,11 +89,11 @@ select.field-input:focus-visible {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  select.field-input:enabled:hover {
+  select.field-input:where(:enabled):hover {
     border-color: var(--color-on-surface);
   }
 
-  select.field-input:enabled:hover:focus-visible {
+  select.field-input:where(:enabled):hover:focus-visible {
     border-color: var(--color-accent);
   }
 }
