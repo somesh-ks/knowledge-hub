@@ -20,8 +20,11 @@
 .player-speed-readout {
   inline-size: 5.5ch;
   text-align: center;
-  font-size: var(--font-size-display);
+  /* Twice the display size, so the number is the screen and the buttons are its edges (owner, 2026-11-02:
+     the number must be bigger than the buttons). The width follows it in ch. */
+  font-size: calc(var(--font-size-display) * 2);
   font-weight: var(--font-weight-medium);
+  line-height: 1;
   transition: color var(--duration-state) var(--ease-out);
 }
 
