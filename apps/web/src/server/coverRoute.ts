@@ -1,4 +1,3 @@
-import { COVER_MODES, type CoverMode } from "@singularity/cover";
 import { type CoverSize, type CoverSource, coverVersion, episodeCover } from "../lib/covers";
 import type { Site } from "../lib/site";
 
@@ -11,27 +10,22 @@ import type { Site } from "../lib/site";
 
 export interface CoverRequest {
   id: string;
+  /** The image's width; a live cover (`svg`) has none and is vector at any size. */
   size: CoverSize;
-  format: "webp" | "png";
-  /** Set for the theme variants (`dark/<id>-512.webp`); unset for the cover as authored. */
-  mode?: CoverMode;
+  format: "webp" | "png" | "svg";
 }
 
-const ADDRESS = /^(?:(light|dark)\/)?([A-Za-z0-9][A-Za-z0-9-]*)-(512|1024)\.(webp|png)$/;
+const ADDRESS = /^([A-Za-z0-9][A-Za-z0-9-]*)(?:-(512|1024)\.(webp|png)|\.svg)$/;
 
 /** What `/covers/<path>` asks for, or null for anything the build never served at that address. */
 export function parseCoverPath(path: string): CoverRequest | null {
   const match = ADDRESS.exec(path);
   if (!match) return null;
-  const [, mode, id, size, format] = match;
-  // The theme variants are WebP only, as in the build.
-  if (mode !== undefined && format !== "webp") return null;
-  if (mode !== undefined && !COVER_MODES.includes(mode as CoverMode)) return null;
+  const [, id, size, format] = match;
   return {
     id: id as string,
-    size: Number(size) as CoverSize,
-    format: format as "webp" | "png",
-    ...(mode ? { mode: mode as CoverMode } : {}),
+    size: size ? (Number(size) as CoverSize) : 512,
+    format: (format ?? "svg") as CoverRequest["format"],
   };
 }
 

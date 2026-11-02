@@ -197,35 +197,11 @@
   -webkit-user-select: none;
 }
 
-.player-cover-image {
+.player-cover-art {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
   -webkit-touch-callout: none;
-}
-
-/* Drawn for both themes, as the page's covers are (cover.css). */
-.player-cover-image[data-mode="dark"] {
-  display: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .player-cover-image[data-mode="light"] {
-    display: none;
-  }
-
-  :root:not([data-theme="light"]) .player-cover-image[data-mode="dark"] {
-    display: block;
-  }
-}
-
-:root[data-theme="dark"] .player-cover-image[data-mode="light"] {
-  display: none;
-}
-
-:root[data-theme="dark"] .player-cover-image[data-mode="dark"] {
-  display: block;
 }
 
 /* ------------------------------------------------------------------ the surface */
@@ -559,7 +535,7 @@
   will-change: transform, opacity;
 }
 
-.player-cover-glow-light .player-cover-image {
+.player-cover-glow-light .player-cover-art {
   width: 100%;
   height: 100%;
 }

@@ -768,10 +768,9 @@ test.describe("an episode page", () => {
       "Catch up",
       "2 stories",
     ]);
-    await expect(page.locator('.hero .cover img[data-mode="light"]')).toHaveAttribute(
-      "srcset",
-      new RegExp(EPISODE_ID),
-    );
+    await expect(
+      page.locator(`.hero .cover[data-cover-id="${EPISODE_ID}"] svg.cover-art`),
+    ).toBeVisible();
     await expect(page.locator(".hero [data-play-digest]")).toHaveAttribute(
       "data-play-digest",
       EPISODE_ID,
