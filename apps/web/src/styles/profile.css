@@ -41,8 +41,13 @@
   visibility: hidden;
 }
 
-/* The sheet is the menu's popover (menu.css), anchored through --menu-anchor (menu.css). From
-   40rem it hangs under the edit button, and this width is what it shrinks to fit. */
+/* The sheet is the menu's popover (menu.css), which anchors to the player bar's button. This names
+   the edit button instead; two classes outrank the menu's one. From 40rem it hangs under the
+   button, and the shapes' width below is what it shrinks to fit. */
+.profile .profile-picker {
+  position-anchor: --profile-edit;
+}
+
 .profile-shapes {
   min-inline-size: min(22rem, calc(100vw - var(--space-8)));
   display: grid;

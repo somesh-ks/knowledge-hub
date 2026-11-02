@@ -46,8 +46,7 @@
 
 @supports (top: anchor(bottom)) {
   .menu-list {
-    /* A page that owns the button hands its anchor in through --menu-anchor (the profile's sheet). */
-    position-anchor: var(--menu-anchor, --hero-more);
+    position-anchor: --hero-more;
     inset-block-start: anchor(bottom);
     inset-inline-end: anchor(right);
     margin-block-start: var(--space-2);
