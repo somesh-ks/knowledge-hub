@@ -63,25 +63,6 @@ html[data-player="open"] .queue-dock {
   align-items: center;
 }
 
-/* The X that clears the queue stands after the chevron; the folded row gives up its end padding to it
-   and the head takes the rows' own, so the X's ink lines up with a row's Cancel (the component's end
-   margin does the rest). */
-.queue-head .queue-clear {
-  flex: none;
-}
-
-.queue-head:has(.queue-clear:not([hidden])) {
-  padding-inline-end: max(var(--space-4), var(--safe-right));
-}
-
-.queue-clear[hidden] {
-  display: none;
-}
-
-.queue-head:has(.queue-clear:not([hidden])) .queue-fold {
-  padding-inline-end: 0;
-}
-
 .queue-fold {
   display: flex;
   align-items: center;
@@ -174,15 +155,11 @@ html[data-player="open"] .queue-dock {
    the X at the end while the run goes. The actions hang under the status. 16px above and below. */
 .queue-row {
   display: grid;
-  grid-template-columns: var(--size-touch) minmax(0, 1fr);
+  grid-template-columns: var(--size-touch) minmax(0, 1fr) var(--size-touch);
   align-items: center;
   column-gap: var(--space-4);
   padding-block: var(--space-4);
   padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-4), var(--safe-right));
-}
-
-.queue-row:is([data-state="queued"], [data-state="running"]) {
-  grid-template-columns: var(--size-touch) minmax(0, 1fr) var(--size-touch);
 }
 
 .queue-lead {
@@ -192,11 +169,11 @@ html[data-player="open"] .queue-dock {
   min-height: var(--size-touch);
 }
 
-/* A step between the name and its status, and the status at the body size the sheets' subtitles use
+/* A step (8px) between the name and its status, and the status at the body size the sheets' subtitles use
    (owner, 2026-11-02: too close, and too small). */
 .queue-main {
   display: grid;
-  row-gap: var(--space-1);
+  row-gap: var(--space-2);
   min-width: 0;
 }
 
@@ -259,7 +236,8 @@ html[data-player="open"] .queue-dock {
   visibility: hidden;
 }
 
-.queue-row:not([data-state="queued"], [data-state="running"]) .queue-cancel {
+.queue-row:not([data-state="queued"], [data-state="running"]) .queue-cancel,
+.queue-remove[hidden] {
   display: none;
 }
 

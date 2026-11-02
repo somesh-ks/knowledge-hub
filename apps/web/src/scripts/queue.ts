@@ -144,7 +144,7 @@ function dismissed(): Set<number> {
   }
 }
 
-/** A podcast made leaves the queue once it has played, and anything ended leaves it by the X. */
+/** A podcast made leaves the queue once it has played, and an ended one leaves it by its own X. */
 function letGo(ids: number[]): void {
   if (!ids.length) return;
   try {
@@ -374,6 +374,11 @@ function paintRow(
     // Only a run this browser started has a token (D242); another device's or the schedule's cannot be stopped from here.
     cancel.hidden = !(going && view.cancellable && cancelTokenOf(row.run_id) !== null);
     cancel.setAttribute("aria-label", fillTemplate(data.wordCancelLabel ?? "", { title: name }));
+  }
+  const remove = li.querySelector<HTMLButtonElement>("[data-queue-remove]");
+  if (remove) {
+    remove.hidden = going || item.ended === null;
+    remove.setAttribute("aria-label", fillTemplate(data.wordRemoveLabel ?? "", { title: name }));
   }
   const listen = li.querySelector<HTMLElement>("[data-queue-listen]");
   if (listen) listen.hidden = !(going && view.listen);
@@ -648,10 +653,6 @@ function render(): void {
 
   const panel = dock();
   if (panel) panel.hidden = entries.length === 0;
-  // The X appears once something has ended; what is still going has its own X (Cancel).
-  const clearable = entries.some(({ item }) => item.ended !== null);
-  for (const clear of root.querySelectorAll<HTMLElement>("[data-queue-clear]"))
-    clear.hidden = !clearable;
   applyHead();
 
   // The page keeps room for the dock (shell.css, --run-room), and the whole page knows a run is up.
@@ -858,12 +859,11 @@ export function mountQueue(startedHere = false): void {
         openQueueDetails(details, root?.dataset ?? {});
       }
     }
-    if (target.closest("[data-queue-clear]")) {
-      letGo(
-        currentItems()
-          .filter((item) => item.ended !== null)
-          .map((item) => item.row.run_id),
-      );
+    // The X on an ended row takes that one item out; the rest of the queue stays.
+    const remove = target.closest<HTMLElement>("[data-queue-remove]");
+    if (remove) {
+      const run = Number(remove.closest<HTMLElement>("[data-queue-row-item]")?.dataset.run);
+      if (Number.isFinite(run)) letGo([run]);
     }
     if (target.closest("[data-queue-listen]")) {
       popover()?.hidePopover?.();

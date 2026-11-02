@@ -262,8 +262,8 @@ test.describe("the podcast queue", () => {
   });
 
   // The 2026-11-02 owner ask: a podcast that has played has done its job in the queue, and with no row
-  // left the dock is gone; a plain X clears what ended by hand. Both hold across a reload.
-  test("a played podcast leaves the queue, the X clears the rest, and both stay gone after a reload", async ({
+  // left the dock is gone; a row's own X takes that one out by hand. Both hold across a reload.
+  test("a played podcast leaves the queue, a row's own X takes out that one, and both stay gone after a reload", async ({
     page,
   }) => {
     await mock(page, () => []);
@@ -301,10 +301,10 @@ test.describe("the podcast queue", () => {
       ),
     );
     await expect(rows).toHaveCount(1);
-    // The X clears the rest, and with nothing left the dock is gone.
-    await page
-      .getByRole("button", { name: "Clear the queue" })
-      .and(page.locator(":visible"))
+    // The X on the row takes that one out, and with nothing left the dock is gone.
+    await rows
+      .first()
+      .getByRole("button", { name: /^Remove .* from the queue$/ })
       .click();
     await expect(page.locator("[data-queue-dock]")).toBeHidden();
     await page.reload();

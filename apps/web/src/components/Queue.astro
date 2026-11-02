@@ -79,7 +79,7 @@ const words = {
   "data-word-catch-up": "Catch up",
   "data-word-expand": "Show the podcast queue",
   "data-word-collapse": "Hide the podcast queue",
-  "data-word-clear": "Clear the queue",
+  "data-word-remove-label": "Remove {title} from the queue",
   "data-word-progress-label": "{title}, {pct} percent",
   "data-word-cancel-label": "Cancel {title}",
   "data-word-listen-label": "Start listening to {title}",
@@ -123,10 +123,6 @@ const icons: Record<string, IconName> = {
         <span class="queue-fold-percent" data-queue-percent></span>
         <Icon name="chevronDown" size="lg" class="queue-chevron" />
       </button>
-      {/* A plain X: what was made or failed leaves the queue by hand, whatever is still going stays. */}
-      <button class="icon-btn icon-btn-end press queue-clear" type="button" data-queue-clear aria-label={words["data-word-clear"]} hidden>
-        <Icon name="close" size="lg" />
-      </button>
     </div>
     <div class="queue-body" data-queue-body>
       <ul class="queue-list" role="list" data-queue-list></ul>
@@ -146,9 +142,6 @@ const icons: Record<string, IconName> = {
   >
     <div class="queue-pop-head">
       <h2 class="queue-pop-title" id="queue-pop-title">{words["data-word-title"]}</h2>
-      <button class="icon-btn icon-btn-end press queue-clear" type="button" data-queue-clear aria-label={words["data-word-clear"]} hidden>
-        <Icon name="close" size="lg" />
-      </button>
     </div>
     <div class="queue-body">
       <ul class="queue-list" role="list" data-queue-list></ul>
@@ -185,8 +178,11 @@ const icons: Record<string, IconName> = {
         {/* One line: the stage while it goes; when it ended and how, once it has. */}
         <p class="queue-status"><span class="queue-when" data-queue-when></span><span data-queue-status></span></p>
       </div>
-      {/* Cancel is the X at the row's end, while the run goes. */}
+      {/* Cancel is the X at the row's end, while the run goes; once it has ended the same X takes the item out of the queue. */}
       <button class="icon-btn icon-btn-end press queue-cancel" type="button" data-queue-cancel hidden>
+        <Icon name="close" size="lg" />
+      </button>
+      <button class="icon-btn icon-btn-end press queue-remove" type="button" data-queue-remove hidden>
         <Icon name="close" size="lg" />
       </button>
       {/* What can be done to a run that ended or is lost, under the text. */}
