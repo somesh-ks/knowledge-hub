@@ -64,7 +64,12 @@ export default function QueueRowMenu({
       : menu.parentElement?.querySelector<HTMLElement>(".player-queue-grip");
     const box = opener?.getBoundingClientRect();
     if (!box) return;
-    menu.style.setProperty("--menu-top", `${box.bottom + MENU_GAP_PX}px`);
+    // The toggle comes after the open, so the menu has its height: one that would run off the
+    // bottom (a hold low on a tablet) opens above its opener instead.
+    const below = box.bottom + MENU_GAP_PX;
+    const fits = below + menu.offsetHeight <= document.documentElement.clientHeight;
+    const top = fits ? below : Math.max(0, box.top - MENU_GAP_PX - menu.offsetHeight);
+    menu.style.setProperty("--menu-top", `${top}px`);
     menu.style.setProperty("--menu-right", `${document.documentElement.clientWidth - box.right}px`);
   };
 
