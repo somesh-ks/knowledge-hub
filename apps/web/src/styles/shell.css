@@ -810,7 +810,7 @@ html[data-nav-arrived="pressed"] .app-nav-item[aria-current="page"] .app-nav-ind
    equal, and it does not jump sideways between destinations. A page with a contents list centres the column
    and the list together (below): a page without one leaves the margin as air on both sides (2026-10-29: the column used to share the pane with a reserved track, which left
    it left of the middle and the right margin four times the left). A page that wants more width (the
-   Library, Create) takes --column-wide, centred. */
+   Library) takes --column-wide, centred. */
 @media (width >= 80rem) {
   .shell {
     display: grid;

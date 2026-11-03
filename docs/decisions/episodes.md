@@ -326,3 +326,13 @@ What an episode or briefing is: kinds and structure, length, regenerate, Catch u
 - Revisit if: a person types a wish the match misses and cannot find the control (then add the missed word, or a quiet "More options").
 - Amends: D207, D323.
 
+## D345: Create's More options is a closed accordion at every width
+
+- Date: 2026-11-03 (the owner: "have more options as accordion on desktop").
+- Decision: More options is the same closed row on `/create` at every width: it names the current choices on its second line and opens in place, on the state time (the 2 Nov easing). The second column that held it open from 80rem is gone, with the pinned heading, the `data-pinned` state, the Tab-order reshuffle, and the wide layout (`--column-wide`, a non-sticky Generate foot). The page takes the column every other page has, and Generate keeps its sticky foot.
+- Context changed: the wide layout put the whole form in view at once. The owner prefers one form that behaves the same on a phone and a desktop, with the defaults folded away.
+- Why: the options hold what rarely changes (Format, Voices, Tone); showing them all the time on a desktop made the page feel heavier than the three questions that matter.
+- Rejected: keeping the column and adding a toggle (two states to explain for a setting used rarely).
+- Cost: on a wide screen the choices are one press away; the test that held the pinned layout is gone and the closed-row test runs on desktop too.
+- Revisit if: the owner misses seeing Format and Voices without a press.
+- Amends: D76 (the wide layout of its form).
