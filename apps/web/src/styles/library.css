@@ -588,7 +588,11 @@ main.library [data-library][data-view="list"] .library-grid {
 [data-library][data-view="list"] .card-progress {
   /* Here the bar sits on the cover's foot, so its rounded end clears the corner only when the side
      comes in by the corner less half the bar's height. */
-  --bar-inset: round(up, max(var(--space-2), min(var(--cover-radius-hero), var(--list-cover) / 4) - var(--space-1) / 2), var(--space-1));
+  --bar-inset: round(
+    up,
+    max(var(--space-2), min(var(--cover-radius-hero), var(--list-cover) / 4) - var(--space-1) / 2),
+    var(--space-1)
+  );
   grid-area: 1 / 1 / -1 / 2;
   align-self: center;
   margin: 0 var(--bar-inset);

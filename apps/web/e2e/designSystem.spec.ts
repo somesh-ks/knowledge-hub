@@ -479,7 +479,9 @@ test("a half-heard bar stays inside its cover's rounded corners in every mood", 
         // The corner is min(the mood's radius, 25%): the computed value keeps both terms.
         const terms = getComputedStyle(cover).borderTopLeftRadius.match(/[\d.]+(px|%)/g) ?? [];
         const r = Math.min(
-          ...terms.map((t) => (t.endsWith("%") ? (Number.parseFloat(t) * c.width) / 100 : Number.parseFloat(t))),
+          ...terms.map((t) =>
+            t.endsWith("%") ? (Number.parseFloat(t) * c.width) / 100 : Number.parseFloat(t),
+          ),
         );
         const points: [number, number][] = [
           [b.left, b.top],
@@ -499,7 +501,10 @@ test("a half-heard bar stays inside its cover's rounded corners in every mood", 
       });
       expect(found, `${style} ${view}: a library card with a progress bar`).not.toBeNull();
       // A round end's corner is not painted: a pixel of slack covers it.
-      if (found && found.worst > 1) outside.push(`${style} ${view}: ${found.worst.toFixed(1)}px beyond a ${found.radius}px corner`);
+      if (found && found.worst > 1)
+        outside.push(
+          `${style} ${view}: ${found.worst.toFixed(1)}px beyond a ${found.radius}px corner`,
+        );
     }
   }
   expect(outside).toEqual([]);
