@@ -4,6 +4,7 @@ import {
   carryNavigationKind,
   carryRootAttributes,
   isSamePage,
+  moveDirection,
   NAV_ATTRIBUTE,
   navigationKind,
 } from "./navigation";
@@ -212,5 +213,29 @@ describe("claimApply", () => {
     const store = memory();
     for (let attempt = 0; attempt < APPLY_ATTEMPTS; attempt += 1) claimApply("b2", store);
     expect(claimApply("b3", store)).toBe(true);
+  });
+});
+
+// Owner, 2026-11-02: the page should arrive from the side of the tab you came from. A wrong side
+// shows nothing wrong, only a page arriving from the side opposite to the move.
+describe("moveDirection", () => {
+  const bar = ["/", "/library", "/settings"];
+
+  it("follows the bar between tabs", () => {
+    expect(moveDirection("peer", "/", "/library", bar)).toBe("next");
+    expect(moveDirection("peer", "/", "/settings", bar)).toBe("next");
+    expect(moveDirection("peer", "/settings", "/library", bar)).toBe("prev");
+  });
+
+  it("goes in to the end side and out to the start side", () => {
+    expect(moveDirection("in", "/library", "/library", bar)).toBe("next");
+    expect(moveDirection("out", "/library", "/library", bar)).toBe("prev");
+  });
+
+  it("says nothing when the bar does not", () => {
+    expect(moveDirection("peer", "/library", "/library", bar)).toBeNull();
+    expect(moveDirection("peer", null, "/library", bar)).toBeNull();
+    expect(moveDirection("peer", "/library", "/offline", bar)).toBeNull();
+    expect(moveDirection("none", "/", "/library", bar)).toBeNull();
   });
 });

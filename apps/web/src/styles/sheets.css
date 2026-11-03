@@ -115,12 +115,14 @@ fieldset.sheet-field {
   touch-action: pan-y;
   opacity: 0;
   transform: translateY(var(--distance-medium));
+  /* Out in the exit time; the open state below comes in on the enter time (2026-11-02). The leave ran on
+     the press time, 100ms, and read as a cut. */
   transition:
-    opacity var(--duration-press-in) var(--ease-out),
-    transform var(--duration-press-in) var(--ease-out),
-    translate var(--duration-press-in) var(--ease-out),
-    overlay var(--duration-press-in) allow-discrete,
-    display var(--duration-press-in) allow-discrete;
+    opacity var(--duration-exit) var(--ease-out),
+    transform var(--duration-exit) var(--ease-out),
+    translate var(--duration-exit) var(--ease-out),
+    overlay var(--duration-exit) allow-discrete,
+    display var(--duration-exit) allow-discrete;
 }
 
 /* A toast that asks to stay on one line (oneLine, toastStore.ts; the time zone offer, D239) keeps
@@ -208,7 +210,7 @@ html[data-mini="visible"] .toast {
   display: flex;
   opacity: 1;
   transform: none;
-  transition-duration: var(--duration-hover);
+  transition-duration: var(--duration-enter);
 }
 
 @starting-style {

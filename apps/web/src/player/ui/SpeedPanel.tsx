@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { sliderClass } from "../../design-system/slider";
+import { sliderClass, sliderWaveFieldClass } from "../../design-system/slider";
 import "../../styles/slider.css";
 import "../../styles/speed-panel.css";
 import { MAX_PLAYBACK_RATE, MIN_PLAYBACK_RATE, PLAYBACK_RATE_STEP } from "../core/playerTypes";
@@ -61,7 +61,7 @@ export default function SpeedPanel({
         </button>
       </div>
       <div
-        className="player-speed-slider"
+        className={sliderWaveFieldClass()}
         style={{ "--range-fill": `${(fill * 100).toFixed(1)}%` } as CSSProperties}
       >
         <input

@@ -2,6 +2,7 @@ import type { Category, CoverSpec, DigestKind, Outcome, SourceType } from "@sing
 import type { Logger } from "../context.js";
 import type { ApiRuntime } from "../curate/apiRuntime.js";
 import type { FirecrawlGuard } from "../fetch/firecrawlBudget.js";
+import type { ListingMemory } from "../fetch/listingCheck.js";
 import type { SourceFetcher } from "../fetch/types.js";
 import type { RunMode } from "../gate/decideRun.js";
 import type { GitRunner } from "../git/runGit.js";
@@ -81,6 +82,10 @@ export interface FetchSetup {
   firecrawlKey?: string | undefined;
   /** Counts and limits Firecrawl requests for the run. Without it there is no ceiling (tests). */
   firecrawlGuard?: FirecrawlGuard | undefined;
+  /** Exa searches the week's budget leaves this run, read when the fetch stage starts. Without it there is no limit (tests). */
+  exaRoom?: (() => number) | undefined;
+  /** What the last scrape of each Firecrawl listing saw, so an unchanged page is not scraped (fetchStage sets it). */
+  listings?: ListingMemory | undefined;
   /**
    * False when there is no Jev key to judge the scoring sample (D70): its feed reads would be
    * thrown away, so the sample is not planned. Tests leave it out and get a sample.

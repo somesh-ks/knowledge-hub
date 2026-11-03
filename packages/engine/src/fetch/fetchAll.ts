@@ -22,7 +22,8 @@ export interface TypeLimit {
  * for one request every 3 seconds; Exa runs its own queries in parallel inside one source.
  */
 export const DEFAULT_TYPE_LIMITS: Partial<Record<SourceType, TypeLimit>> = {
-  firecrawl: { concurrency: 2, minIntervalMs: 6_500, timeoutMs: 45_000 },
+  // 50 s: the free read of a listing (5 s) comes first, then a scrape of up to 40 s.
+  firecrawl: { concurrency: 2, minIntervalMs: 6_500, timeoutMs: 50_000 },
   exa: { concurrency: 1, timeoutMs: 40_000 },
   arxiv: { concurrency: 1, minIntervalMs: 3_000 },
   crossref: { concurrency: 2 },

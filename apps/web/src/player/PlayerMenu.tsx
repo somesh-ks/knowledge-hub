@@ -22,6 +22,8 @@ import {
   sheetTitleClass,
 } from "../design-system/sheet";
 import { sendToast } from "../scripts/toastEvent";
+import "../styles/slider.css";
+import { downloadFailure } from "../lib/downloadCopy";
 import { longDateFromDigestId } from "./core/formatTime";
 import { recordingCaption } from "./core/playerCopy";
 import { getPlayerStore } from "./core/playerRuntime";
@@ -179,7 +181,7 @@ export default function PlayerMenu() {
       toast("Downloaded for offline listening", "success");
     } catch (error) {
       if (error instanceof NotReadyError) toast("Not ready offline yet");
-      else toast("Could not download. Check your connection and try again.", "error");
+      else toast(downloadFailure(error), "error");
     }
   };
 
@@ -199,7 +201,7 @@ export default function PlayerMenu() {
     const next = !marks.saved;
     // The tile says Saved or Save; a toast would cover the sheet. Only a refusal speaks.
     if (setSaved(deviceStorage(), id, next)) marks.setSaved(next);
-    else toast(next ? "Could not save on this device" : "Could not remove it from Saved", "error");
+    else toast(next ? "Couldn't save it on this device" : "Couldn't remove it from Saved", "error");
   };
 
   const removeDownload = async (): Promise<void> => {

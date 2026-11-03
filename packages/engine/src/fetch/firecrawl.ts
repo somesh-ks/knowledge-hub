@@ -5,6 +5,7 @@ import { type HttpClient, HttpError } from "../http.js";
 import { buildItems, type RawItem } from "../normalize/buildItem.js";
 import { fetchAlexandriaAnthropic, VIA_ALEXANDRIA_ANTHROPIC } from "./alexandriaSource.js";
 import { extractEntries } from "./firecrawlExtract.js";
+import { coversEntries, probeListing } from "./listingCheck.js";
 import { type SourceFetcher, SourceSkipped } from "./types.js";
 
 export const FIRECRAWL_BASE_URL = "https://api.firecrawl.dev";
@@ -48,6 +49,7 @@ async function requestScrape(
   http: HttpClient,
   signal: AbortSignal | undefined,
   retries?: number,
+  maxAgeMs: number = MAX_AGE_MS,
 ): Promise<ScrapeData> {
   const baseUrl = (config.baseUrl ?? FIRECRAWL_BASE_URL).replace(/\/+$/, "");
   const payload = await http.postJson(
@@ -56,7 +58,7 @@ async function requestScrape(
       url,
       formats: [format],
       ...(format === "markdown" ? { onlyMainContent: true } : {}),
-      maxAge: MAX_AGE_MS,
+      maxAge: maxAgeMs,
       timeout: SCRAPE_TIMEOUT_MS,
     },
     {
@@ -81,8 +83,9 @@ export async function scrapePage(
   config: { apiKey: string; baseUrl?: string | undefined },
   http: HttpClient,
   signal: AbortSignal | undefined,
+  maxAgeMs?: number,
 ): Promise<ScrapedPage> {
-  const data = await requestScrape(url, "markdown", config, http, signal);
+  const data = await requestScrape(url, "markdown", config, http, signal, undefined, maxAgeMs);
   const title = data.metadata?.title;
   return {
     markdown: data.markdown ?? "",
@@ -138,16 +141,56 @@ async function viaAlexandria(
 export const fetchFirecrawl: SourceFetcher = async (source, window, deps): Promise<Item[]> => {
   const config = deps.firecrawl;
   if (!config?.apiKey) throw new SourceSkipped("FIRECRAWL_API_KEY is not set");
+  const memory = deps.listings;
+  // Alexandria reads typed posts, not the page: a page that has not moved says nothing about them.
+  if (!memory || source.options.via === VIA_ALEXANDRIA_ANTHROPIC) {
+    return (await readListing(source, window, deps)).items;
+  }
+  // A free direct read first: the same links as the last scrape mean no new article to find, and
+  // the run spends no credit. Remembered only once the scrape below succeeded, and only when the
+  // links hold an article the scrape found (a page drawn in the browser shows navigation alone).
+  const pageUrl = source.feed_url ?? source.url;
+  const probe = await probeListing(memory, source, pageUrl, deps.http, deps.now(), deps.signal);
+  if (probe.unchanged) return [];
+  // A fingerprint is stored from a scrape made now: a copy up to an hour old could be the page
+  // from before the article the free read just saw.
+  const read = await readListing(source, window, deps, probe.hash !== null);
+  if (probe.hash !== null && probe.links && coversEntries(probe.links, read.entryUrls, pageUrl)) {
+    memory.remember(source.id, probe.hash, deps.now());
+  }
+  return read.items;
+};
+
+/** The items of a listing, and the addresses of every entry the scrape found on it (quiet or not). */
+interface ListingRead {
+  items: Item[];
+  entryUrls: string[];
+}
+
+async function readListing(
+  source: Parameters<SourceFetcher>[0],
+  window: Parameters<SourceFetcher>[1],
+  deps: Parameters<SourceFetcher>[2],
+  fresh = false,
+): Promise<ListingRead> {
+  const config = deps.firecrawl;
+  if (!config?.apiKey) throw new SourceSkipped("FIRECRAWL_API_KEY is not set");
   const apiKey = config.apiKey;
   const pageUrl = source.feed_url ?? source.url;
   if (source.options.via === VIA_ALEXANDRIA_ANTHROPIC) {
     // Opt-in per source (D-record in the PR): typed posts with real dates. Any failure falls
     // through to the page scrape below, so a provider outage costs one more listing, not the source.
     const typed = await viaAlexandria(source, window, deps, apiKey, config.baseUrl);
-    if (typed) return typed;
+    if (typed) return { items: typed, entryUrls: [] };
   }
   const load = (): Promise<ScrapedPage> =>
-    scrapePage(pageUrl, { apiKey, baseUrl: config.baseUrl }, deps.http, deps.signal);
+    scrapePage(
+      pageUrl,
+      { apiKey, baseUrl: config.baseUrl },
+      deps.http,
+      deps.signal,
+      fresh ? 0 : undefined,
+    );
   const guard = config.guard;
   let page: ScrapedPage | null;
   if (guard) {
@@ -172,15 +215,28 @@ export const fetchFirecrawl: SourceFetcher = async (source, window, deps): Promi
     ...buildItems(headings, { source, window, fetchedAt, keepFragment: true }),
     ...buildItems(undated, { source, window, fetchedAt, undated: "keep" }),
   ];
-  if (items.length > 0) return items;
+  // An entry dated after the window is dropped for now and would be taken by a later run's window.
+  // A page that holds one is scraped again until then, so no fingerprint is kept for it.
+  const ahead = [...dated, ...headings].some((entry) => {
+    const published = entry.publishedAt === undefined ? NaN : new Date(entry.publishedAt).getTime();
+    return published > window.to.getTime();
+  });
+  const found = [...dated, ...headings, ...undated].flatMap((entry) =>
+    entry.url ? [entry.url] : [],
+  );
+  const entryUrls = ahead ? [] : found;
+  if (items.length > 0) return { items, entryUrls };
   // Entries found but none in the window is a quiet source, not a broken one. Failing only when
   // the listing yields no candidates at all (empty, blocked or restructured) keeps health honest.
-  if (dated.length + headings.length + undated.length > 0) return items;
+  if (found.length > 0) return { items, entryUrls };
   if (page.markdown.trim() === "") throw new Error(FIRECRAWL_NO_ITEMS);
 
   const summary = cleanMarkdown(page.markdown);
   // A page of nothing but furniture cleans to nothing: a broken source, not an empty story.
   if (summary === "") throw new Error(FIRECRAWL_NO_ITEMS);
   const whole: RawItem = { url: pageUrl, title: page.title ?? source.name, summary };
-  return buildItems([whole], { source, window, fetchedAt, undated: "keep" });
-};
+  return {
+    items: buildItems([whole], { source, window, fetchedAt, undated: "keep" }),
+    entryUrls: [],
+  };
+}

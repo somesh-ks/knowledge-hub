@@ -1,0 +1,48 @@
+/*
+ * The Row exit (2026-11-02, design-system.ts RowExit): a row in a list that the reader removes
+ * (Undo is in the toast) fades out and then closes its gap, instead of leaving in one frame with
+ * every row below it jumping up. A page marks the row `row-exit` and sets data-removing or
+ * data-gone on it, as it did before; the page keeps no rule of its own.
+ *
+ * Two beats of --duration-exit: the row fades, then its height runs to nothing. The height is
+ * animated from `auto` (foundations.css sets interpolate-size on the root), so there is no margin
+ * trick and no height to know. A browser that cannot do that keeps the old behaviour, a row that is
+ * gone at once. Undo brings the row back at once.
+ */
+.row-exit:is([data-removing], [data-gone]) {
+  display: none;
+}
+
+@supports (interpolate-size: allow-keywords) and (transition-behavior: allow-discrete) {
+  /* The motion belongs to the exit state alone: a row that a filter or a tab hides (the hidden
+     attribute) must go at once, or `display` would wait out the transition and a tab would show the
+     old rows for 300 ms. Undo, which leaves this state, is instant for the same reason. overflow is
+     not animated: the row clips from the first frame, so its words do not spill as it closes. */
+  .row-exit:is([data-removing], [data-gone]) {
+    overflow: clip;
+    block-size: 0;
+    min-block-size: 0;
+    padding-block: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity var(--duration-exit) var(--ease-out),
+      block-size var(--duration-exit) var(--ease-out) var(--duration-exit),
+      min-block-size var(--duration-exit) var(--ease-out) var(--duration-exit),
+      padding-block var(--duration-exit) var(--ease-out) var(--duration-exit),
+      display calc(var(--duration-exit) * 2) allow-discrete;
+  }
+
+  /* Reduced motion keeps the fade and drops the close: the row holds its place while it fades, then
+     the gap goes in one step (a zero-length change that waits out the fade). */
+  @media (prefers-reduced-motion: reduce) {
+    .row-exit:is([data-removing], [data-gone]) {
+      transition:
+        opacity var(--duration-exit) var(--ease-out),
+        block-size 0s var(--duration-exit),
+        min-block-size 0s var(--duration-exit),
+        padding-block 0s var(--duration-exit),
+        display var(--duration-exit) allow-discrete;
+    }
+  }
+}

@@ -72,6 +72,10 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
   [".banner-notice > .button-text", "the action's hit area reaching into the banner's padding"],
   [".banner-body", "a banner's title onto its body, inside one banner"],
   [".menu-tile", "a glyph onto its word inside one tile: the icon-to-label gap is 4px, items 8px"],
+  [
+    ".menu-tiles[data-fold] > .menu-item",
+    "the Library card's quick actions are the same tiles on a phone: glyph to word 4px",
+  ],
   [".structure-row", "the dots' and pencil's ink, 28px in from the card's corner, not 24"],
   [
     ".structure-profile .profile-select",
@@ -886,6 +890,7 @@ const PAGE_OVERRIDES: string[] = [
   "menu.css: .menu-sheet .menu-item .icon-glyph",
   "menu.css: .menu-sheet > .sheet-head:not([data-has-back])",
   "menu.css: .menu-sheet > .sheet-head:not([data-has-back])",
+  "menu.css: .menu-sheet:has(> .menu-sheet-items > .menu-item:not([hidden], .menu-item-danger)):not( :has( > .menu-sheet-items > .menu-item:not([hidden]) ~ .menu-item:not([hidden]), > .menu-sheet-items > .menu-item-danger:not([hidden]), > .menu-sheet-items > .menu-tiles ) ) > .sheet-head:not([data-has-back])",
   "multiselect.css: .multiselect-trigger > .icon-glyph",
   "multiselect.css: .multiselect-trigger > .icon-glyph",
   'multiselect.css: .multiselect-trigger[aria-expanded="true"] > .icon-glyph',
@@ -954,10 +959,6 @@ const PAGE_OVERRIDES: string[] = [
   "shell.css: .app-nav-item .icon-glyph",
   "shell.css: .app-nav-item:active .icon-glyph",
   "speed-panel.css: .player-speed .slider-input",
-  'speed-panel.css: :root[data-style="expressive"] .player-speed-slider .slider-input',
-  'speed-panel.css: :root[data-style="expressive"] .player-speed-slider .slider-input::-moz-range-track, :root[data-style="expressive"] .player-speed-slider .slider-input::-moz-range-progress',
-  'speed-panel.css: :root[data-style="expressive"] .player-speed-slider .slider-input::-webkit-slider-runnable-track',
-  'speed-panel.css: :root[data-style="expressive"] .player-speed-slider .slider-input::-webkit-slider-thumb',
   "story-controls.css: .menu-list.story-menu-list",
   "story-controls.css: .menu-list.story-menu-list",
   "story-controls.css: .story-vote .icon-glyph",
@@ -1065,7 +1066,9 @@ describe("component stylesheets", () => {
         expect(mix, `${file}: a mix over a fill`).toMatch(/transparent\s*\)$/);
       }
       expect(css, `${file} steps lightness by hand`).not.toMatch(/--state-step-/);
-      if (file !== "cover.css")
+      // The cover turns its own hue; the hue slider paints the style's accent at every turn (D328).
+      // Neither steps a state.
+      if (!["cover.css", "slider.css", "avatar.css"].includes(file))
         expect(css, `${file} derives a color by hand`).not.toMatch(/oklch\(from /);
     }
   });

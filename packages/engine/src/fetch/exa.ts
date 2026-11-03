@@ -1,6 +1,7 @@
 import type { Item } from "@singularity/core";
 import { z } from "zod";
 import { buildItems, type RawItem } from "../normalize/buildItem.js";
+import { EXA_SKIP_WEEKLY } from "./exaBudget.js";
 import type { ExaQuery } from "./queries.js";
 import { type FetchDeps, type FetchWindow, type SourceFetcher, SourceSkipped } from "./types.js";
 
@@ -82,13 +83,17 @@ export const fetchExa: SourceFetcher = async (source, window, deps): Promise<Ite
   if (config.queries.length === 0) throw new SourceSkipped("no queries in config/queries.json");
   const baseUrl = (config.baseUrl ?? EXA_BASE_URL).replace(/\/+$/, "");
   const apiKey = config.apiKey;
+  // The week's budget can leave fewer searches than there are queries: the first ones run.
+  const room = Math.max(0, Math.floor(config.room ?? config.queries.length));
+  if (room === 0) throw new SourceSkipped(EXA_SKIP_WEEKLY);
+  const queries = config.queries.slice(0, room);
 
-  const results: (RawItem[] | Error)[] = new Array(config.queries.length);
+  const results: (RawItem[] | Error)[] = new Array(queries.length);
   let next = 0;
   const worker = async (): Promise<void> => {
     for (;;) {
       const index = next++;
-      const query = config.queries[index];
+      const query = queries[index];
       if (!query) return;
       try {
         results[index] = await searchOne(query, window, apiKey, baseUrl, deps);
@@ -98,7 +103,7 @@ export const fetchExa: SourceFetcher = async (source, window, deps): Promise<Ite
     }
   };
   await Promise.all(
-    Array.from({ length: Math.min(QUERY_CONCURRENCY, config.queries.length) }, () => worker()),
+    Array.from({ length: Math.min(QUERY_CONCURRENCY, queries.length) }, () => worker()),
   );
 
   const failures = results.filter((r): r is Error => r instanceof Error);
@@ -113,8 +118,8 @@ export const fetchExa: SourceFetcher = async (source, window, deps): Promise<Ite
           source,
           window,
           fetchedAt,
-          categoryHint: config.queries[index]?.category_hint,
-          topicIds: topicIdsOf(config.queries[index]),
+          categoryHint: queries[index]?.category_hint,
+          topicIds: topicIdsOf(queries[index]),
         }),
   );
 };

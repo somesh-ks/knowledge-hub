@@ -32,23 +32,23 @@ export function describeMediaError(
     case MEDIA_ERR_NETWORK:
       return {
         kind: "network",
-        message: "The audio stopped loading. Check your connection, then try again.",
+        message: "The audio stopped loading. Try again.",
       };
     case MEDIA_ERR_DECODE:
       return {
         kind: "decode",
-        message: "This audio could not be played. Try again in a few minutes.",
+        message: "Couldn't play this audio. Try again in a few minutes.",
       };
     case MEDIA_ERR_SRC_NOT_SUPPORTED:
       // A missing or expired file and an unsupported format look the same to the element.
       return {
         kind: "unavailable",
-        message: `Audio is not available for this ${noun}.`,
+        message: `Audio isn't available for this ${noun}.`,
       };
     default:
       return {
         kind: "unknown",
-        message: "The audio could not be played. Try again in a moment.",
+        message: "Couldn't play the audio. Try again in a moment.",
       };
   }
 }

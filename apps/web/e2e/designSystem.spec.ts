@@ -36,7 +36,6 @@ const EXEMPT = [
   ".sr-only",
   // A phone sheet's Close is visually hidden (D144), as the utility above.
   ".sheet-head > .icon-btn",
-  ".drawer-head > .icon-btn",
   ".chip-bars",
   ".story-menu",
   ".hero-more",
@@ -279,36 +278,152 @@ test("a picker's pill is concentric with the list around it @both", async ({ pag
   expect(concentric(m.outer, m.inner, m.gap), JSON.stringify(m)).toBe(true);
 });
 
-test("a Menu's rows are concentric with the Menu @desktop", async ({ page }) => {
+// Rows run edge to edge (owner, 2026-11-02): the list pads above and below only, so a row spans the
+// list's full inner width and the list's own corner clips the first and last row. Each list is
+// compared with its own rows, never with pinned numbers.
+test("a Menu's and a select's rows span the list, with no gap at the sides @desktop", async ({
+  page,
+}) => {
   await page.goto("/library");
   const row = page.locator(`[data-card][data-id="${AUDIO_DIGEST.split("/").pop()}"]`);
   await openRowMenu(page, row);
-  const m = await row.locator(".menu-list").evaluate((menu) => {
-    const item = menu.querySelector(".menu-item") as HTMLElement;
-    const menuStyle = getComputedStyle(menu);
-    return {
-      outer: Number.parseFloat(menuStyle.borderTopLeftRadius),
-      inner: Number.parseFloat(getComputedStyle(item).borderTopLeftRadius),
-      gap: Number.parseFloat(menuStyle.paddingLeft) + Number.parseFloat(menuStyle.borderLeftWidth),
-    };
+  const menu = await row.locator(".menu-list").evaluate((list) => {
+    const item = list.querySelector(".menu-item") as HTMLElement;
+    const box = list.getBoundingClientRect();
+    const rect = item.getBoundingClientRect();
+    return { left: rect.left - box.left, right: box.right - rect.right };
   });
-  expect(concentric(m.outer, m.inner, m.gap), JSON.stringify(m)).toBe(true);
-});
+  expect(Math.abs(menu.left) + Math.abs(menu.right), JSON.stringify(menu)).toBeLessThanOrEqual(2);
 
-test("a select's list rows are concentric with the list @desktop", async ({ page }) => {
   await page.goto("/settings");
   const select = page.locator("#settings-theme");
   await select.click();
-  const m = await select.evaluate((element) => {
-    const list = getComputedStyle(element, "::picker(select)");
-    const option = element.querySelector("option") as HTMLElement;
+  const list = await select.evaluate((element) => {
+    const style = getComputedStyle(element, "::picker(select)");
     return {
-      outer: Number.parseFloat(list.borderTopLeftRadius),
-      inner: Number.parseFloat(getComputedStyle(option).borderTopLeftRadius),
-      gap: Number.parseFloat(list.paddingLeft) + Number.parseFloat(list.borderLeftWidth),
+      left: Number.parseFloat(style.paddingLeft),
+      right: Number.parseFloat(style.paddingRight),
     };
   });
-  expect(concentric(m.outer, m.inner, m.gap), JSON.stringify(m)).toBe(true);
+  expect(list.left + list.right, JSON.stringify(list)).toBe(0);
+});
+
+// A pressed control keeps its label (owner, 2026-11-02: a tap on the navigation's segmented control hid
+// its text). A state fill is opaque since D317, so a press layer drawn above the label covers it where
+// the old alpha layer let it show through. The check is what a person sees, not a rule: each kind of
+// control on a page is held in its pressed and hovered state, drawn once as it is and once with its text
+// and glyph made transparent; when the two pictures match, nothing of the label was painted.
+test("a pressed or hovered control still shows its label @both", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("DOM.enable");
+  await cdp.send("CSS.enable");
+  const hidden: string[] = [];
+  for (const path of ["/settings/preferences", "/library", "/settings", "/create", AUDIO_DIGEST]) {
+    await page.goto(path);
+    await hydrated(page);
+    const kinds = await page.evaluate(() => {
+      const seen = new Set<string>();
+      const found: { index: number; kind: string }[] = [];
+      const all = document.querySelectorAll<HTMLElement>(
+        'button, a[href], [role="tab"], [role="menuitem"], summary',
+      );
+      for (const element of all) {
+        const box = element.getBoundingClientRect();
+        const painted = element.textContent?.trim() || element.querySelector("svg");
+        const kind = `${element.tagName}.${element.className}[${element.getAttribute("role")}]`;
+        const onScreen = box.right > 0 && box.left < innerWidth && box.bottom + scrollY > 0;
+        if (box.width < 8 || box.height < 8 || !onScreen || !painted || seen.has(kind)) continue;
+        if (element.matches(':disabled, [aria-disabled="true"], [hidden]')) continue;
+        if (getComputedStyle(element).visibility !== "visible") continue;
+        seen.add(kind);
+        element.dataset.pressProbe = String(found.length);
+        found.push({ index: found.length, kind });
+      }
+      return found;
+    });
+    const { root } = await cdp.send("DOM.getDocument", { depth: 0 });
+    for (const { index, kind } of kinds) {
+      const target = page.locator(`[data-press-probe="${index}"]`);
+      if (!(await target.isVisible())) continue;
+      await target.scrollIntoViewIfNeeded();
+      // A control under a fixed bar or toast is not what a person presses; skip it.
+      const covered = await target.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        const top = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+        return !top || !element.contains(top);
+      });
+      if (covered) continue;
+      // The pointer is over the control and the parts around it (a card shows its More button on
+      // hover), and the press is on the control.
+      await target.evaluate((element) => {
+        for (let node = element.parentElement; node && node !== document.body; ) {
+          node.setAttribute("data-press-chain", "");
+          node = node.parentElement;
+        }
+      });
+      const chain = await cdp.send("DOM.querySelectorAll", {
+        nodeId: root.nodeId,
+        selector: "[data-press-chain]",
+      });
+      for (const id of chain.nodeIds) {
+        await cdp.send("CSS.forcePseudoState", { nodeId: id, forcedPseudoClasses: ["hover"] });
+      }
+      const { nodeId } = await cdp.send("DOM.querySelector", {
+        nodeId: root.nodeId,
+        selector: `[data-press-probe="${index}"]`,
+      });
+      await cdp.send("CSS.forcePseudoState", {
+        nodeId,
+        forcedPseudoClasses: ["hover", "active"],
+      });
+      const shown = await target.screenshot({ animations: "disabled" });
+      // Set through the CSSOM: the page's policy refuses an injected style element.
+      const clear = (on: boolean) =>
+        target.evaluate((element, on) => {
+          for (const node of [element, ...element.querySelectorAll<HTMLElement>("*")]) {
+            for (const property of ["color", "-webkit-text-fill-color"]) {
+              if (on) (node as HTMLElement).style.setProperty(property, "transparent", "important");
+              else (node as HTMLElement).style.removeProperty(property);
+            }
+          }
+        }, on);
+      await clear(true);
+      const bare = await target.screenshot({ animations: "disabled" });
+      await clear(false);
+      await cdp.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: [] });
+      for (const id of chain.nodeIds) {
+        await cdp.send("CSS.forcePseudoState", { nodeId: id, forcedPseudoClasses: [] });
+      }
+      await page.evaluate(() => {
+        for (const node of document.querySelectorAll("[data-press-chain]")) {
+          node.removeAttribute("data-press-chain");
+        }
+      });
+      const differing = await page.evaluate(
+        async ([a, b]) => {
+          const draw = async (base64: string) => {
+            const bitmap = await createImageBitmap(
+              new Blob([Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))]),
+            );
+            const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+            const context = canvas.getContext("2d") as OffscreenCanvasRenderingContext2D;
+            context.drawImage(bitmap, 0, 0);
+            return context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+          };
+          const [one, two] = [await draw(a as string), await draw(b as string)];
+          let count = 0;
+          for (let i = 0; i < one.length; i += 4) {
+            if (Math.abs((one[i] ?? 0) - (two[i] ?? 0)) > 24) count += 1;
+          }
+          return count;
+        },
+        [shown.toString("base64"), bare.toString("base64")],
+      );
+      if (differing < 12) hidden.push(`${path} ${kind}`);
+    }
+  }
+  expect(hidden, "controls whose label is not painted while pressed").toEqual([]);
 });
 
 // A one-row card took the 32px card radius and read as a pill (owner, 2026-10-27). Each card is
