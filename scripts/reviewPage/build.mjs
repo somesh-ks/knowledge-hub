@@ -4,14 +4,15 @@
  * of its current version, grouped by change and numbered, in the app's own look, with comments that
  * land on a spot of a still.
  *
- *   node scripts/reviewPage/build.mjs <review-dir>
+ *   node scripts/reviewPage/build.mjs <review-dir> [--out <publish-dir>]
  *
  * <review-dir> holds review.json and the stills it names (paths relative to it). Writes
- * <review-dir>/index.html and prints the Artifact publish call. The app's tokens, font, icons and the
+ * <review-dir>/index.html and prints the Artifact publish call. The Artifact tool publishes only from
+ * the working directory or the session's scratchpad, so --out copies the page and its stills there. The app's tokens, font, icons and the
  * Button, Badge, Banner and Icon rules are read from apps/web at build time, so the page follows the
  * design system as it changes. Plain Node, no dependencies.
  */
-import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -113,9 +114,19 @@ export function build(dir) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const dir = resolve(process.argv[2] ?? fail("usage: node scripts/reviewPage/build.mjs <review-dir>"));
+  const args = process.argv.slice(2);
+  const outAt = args.indexOf("--out");
+  const out = outAt >= 0 ? resolve(args[outAt + 1] ?? fail("--out needs a folder")) : null;
+  const dir = resolve(args.find((a, i) => i !== outAt && i !== outAt + 1) ?? fail("usage: node scripts/reviewPage/build.mjs <review-dir> [--out <publish-dir>]"));
   const { review, files, bytes } = build(dir);
+  let publishDir = dir;
+  if (out) {
+    mkdirSync(out, { recursive: true });
+    cpSync(join(dir, "index.html"), join(out, "index.html"));
+    for (const f of Object.keys(files)) { mkdirSync(dirname(join(out, f)), { recursive: true }); cpSync(join(dir, f), join(out, f)); }
+    publishDir = out;
+  }
   console.log(`Built ${join(dir, "index.html")} (${Math.round(bytes / 1024)} KB, ${Object.keys(files).length} stills).`);
   console.log("Publish with the Artifact tool:");
-  console.log(JSON.stringify({ file_path: join(dir, "index.html"), root: dir, files, ...(review.artifact_url ? { url: review.artifact_url } : { icon: "review" }) }, null, 2));
+  console.log(JSON.stringify({ file_path: join(publishDir, "index.html"), root: publishDir, files, ...(review.artifact_url ? { url: review.artifact_url } : { icon: "review", capabilities: { comments: { customAnchors: true } } }) }, null, 2));
 }

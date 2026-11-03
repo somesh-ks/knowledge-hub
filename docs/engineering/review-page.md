@@ -14,8 +14,8 @@ How a thread shows the owner a visual change. One page per PR, built from `scrip
 ## Steps
 
 1. Put the stills and a `review.json` in `/mnt/project-files/reviews/pr-<n>/` (not in git; stills are per PR and heavy). Start from the example below.
-2. `node scripts/reviewPage/build.mjs /mnt/project-files/reviews/pr-<n>` writes `index.html` and prints the publish call.
-3. Publish with the Artifact tool: `file_path` the built `index.html`, `root` the folder, `files` as printed, `capabilities: {comments: {customAnchors: true}}`, and `icon: "review"` on the first publish. On a later version pass `url` (read the artifact first if another session published it) and leave `capabilities` out.
+2. `node scripts/reviewPage/build.mjs /mnt/project-files/reviews/pr-<n> --out <scratchpad>/pr-<n>` writes `index.html`, copies it and the stills to the scratchpad (the Artifact tool publishes only from the working directory or the scratchpad) and prints the publish call.
+3. Publish with the Artifact tool: `file_path` the copied `index.html`, `root` that folder, `files` as printed, `capabilities: {comments: {customAnchors: true}}`, and `icon: "review"` on the first publish. On a later version pass `url` (read the artifact first if another session published it) and leave `capabilities` out.
 4. Post the link once, saying the version and what to check. On a comment wake, read the thread, act, reply and resolve.
 
 ## review.json
@@ -43,7 +43,7 @@ How a thread shows the owner a visual change. One page per PR, built from `scrip
     }
   ],
   "history": [{ "version": 1, "date": "3 Nov", "summary": "Drag the playing row; clocks read forward." }],
-  "artifact_url": "https://claude.ai/artifact/..."
+  "artifact_url": "https://claude.ai/artifact/CEDVruftcepjTcV8xjgwGJ"
 }
 ```
 
