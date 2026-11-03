@@ -387,6 +387,12 @@
     padding-block-start: var(--space-2);
   }
 
+  /* Tiles are filled, so 8px under the line read as crowded; they stand 16px below it (owner,
+     2026-11-03: "add more padding below the divider so it doesnt look crowded"). */
+  .menu-sheet > .menu-sheet-items:has(> .menu-tiles:first-child) {
+    padding-block-start: var(--space-4);
+  }
+
   /* A select that opens as a wheel (wheel.css) has no rows to end the sheet; it ends a step lower. */
   .menu-sheet[data-wheel] {
     padding-block-end: max(var(--space-4), var(--safe-bottom));
