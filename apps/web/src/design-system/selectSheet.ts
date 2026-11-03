@@ -24,8 +24,14 @@ const KEYS = new Set(["Enter", " ", "F4"]);
 let installed = false;
 let view: View | null = null;
 let loading: Promise<View> | null = null;
+/**
+ * The sheet's code could not be fetched (offline before it arrived). Chromium fails every later import
+ * of a module whose fetch failed (docs/learnings.md), so the selects keep the browser's own list until
+ * the next page load.
+ */
+let unavailable = false;
 
-/** The sheet's code, fetched once. A failed fetch (offline before it arrived) is tried again next time. */
+/** The sheet's code, fetched once. */
 function loadView(): Promise<View> {
   loading ??= import("./selectSheetView").then(
     (module) => {
@@ -33,7 +39,7 @@ function loadView(): Promise<View> {
       return module;
     },
     (error: unknown) => {
-      loading = null;
+      unavailable = true;
       throw error;
     },
   );
@@ -44,6 +50,7 @@ function loadView(): Promise<View> {
 function sheetFor(target: EventTarget | null): HTMLSelectElement | null {
   const select = (target as Element | null)?.closest?.("select");
   if (!select || select.disabled || select.multiple) return null;
+  if (unavailable && !select.hasAttribute("data-opens")) return null;
   if (!select.closest("[data-select]") || select.classList.contains("picker-native")) return null;
   // A select that names a panel (data-opens) opens it at any width, in place of its list.
   if (select.hasAttribute("data-opens")) return select;
@@ -65,16 +72,19 @@ function open(select: HTMLSelectElement, byKey: boolean): void {
     view.openSheet(select, byKey);
     return;
   }
-  // The first open before the idle fetch landed: the field holds focus while the code arrives. If it
-  // cannot arrive (offline), the browser's own list opens instead, so the field still answers.
+  // The first open before the idle fetch landed: the field holds focus while the code arrives, and the
+  // sheet opens only if it still does (a reader who moved on is not handed a sheet seconds later). If
+  // the code cannot arrive, the browser's own list opens instead, and every later tap gets it too.
   select.focus({ preventScroll: true });
   loadView().then(
-    (module) => module.openSheet(select, byKey),
+    (module) => {
+      if (document.activeElement === select) module.openSheet(select, byKey);
+    },
     () => {
       try {
-        select.showPicker();
+        if (document.activeElement === select) select.showPicker();
       } catch {
-        // The tap's activation has lapsed: the next tap tries the fetch again.
+        // The tap's activation has lapsed: the next tap opens the browser's list itself.
       }
     },
   );

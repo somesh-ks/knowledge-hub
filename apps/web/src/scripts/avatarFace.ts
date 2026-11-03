@@ -11,8 +11,14 @@
  * through a third hue). Details that are not the outline (a stem, wings, whiskers, dots) fade out before
  * and back in after. The drawn shape changes under a blink halfway.
  */
-import { AVATAR_SHAPES, avatarParts, shapeFace, shapeOutline } from "../design-system/avatar";
-import { rootStyle, tokenMs } from "./accountAvatar";
+import {
+  AVATAR_SHAPES,
+  avatarParts,
+  rootStyle,
+  shapeFace,
+  shapeOutline,
+  tokenMs,
+} from "../design-system/avatar";
 import {
   alignRing,
   type Beat,

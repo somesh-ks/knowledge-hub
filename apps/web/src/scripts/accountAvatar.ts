@@ -16,7 +16,14 @@
  * list it starts, so each tap is the next one, never a repeat. A tap in the app bar goes to the profile
  * and the show carries on in the persisted avatar. A new pick plays one too. A tap during a show waits for it to end.
  */
-import { AVATAR_SHAPES, avatarMarkup, moodShapes, tokenWords } from "../design-system/avatar";
+import {
+  AVATAR_SHAPES,
+  avatarMarkup,
+  moodShapes,
+  rootStyle,
+  tokenMs,
+  tokenWords,
+} from "../design-system/avatar";
 import { getPreferences } from "../player/core/preferences";
 import { morphPath, pickReaction } from "./avatarReactions";
 import { warmWhenIdle } from "./idle";
@@ -25,6 +32,8 @@ import { warmWhenIdle } from "./idle";
 type Face = typeof import("./avatarFace");
 let face: Face | null = null;
 let loadingFace: Promise<Face> | null = null;
+/** A tap came before the show's code: it plays once the code lands, unless a show was ended since. */
+let waitingFace = false;
 
 function loadFace(): Promise<Face> {
   loadingFace ??= import("./avatarFace").then(
@@ -38,16 +47,6 @@ function loadFace(): Promise<Face> {
     },
   );
   return loadingFace;
-}
-
-export function rootStyle(name: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(name);
-}
-
-/** A duration token in ms (the build writes 1500ms as 1.5s). */
-export function tokenMs(token: string): number {
-  const value = rootStyle(token).trim();
-  return Number.parseFloat(value) * (value.endsWith("ms") ? 1 : 1000) || 0;
 }
 
 const SLOT = "[data-account]";
@@ -168,6 +167,7 @@ function cancelAct(): void {
   actTimers = [];
   busy = false;
   queued = false;
+  waitingFace = false;
   // No show has run before the face's code arrived, so there is nothing to stop.
   face?.stopAct(avatars());
 }
@@ -198,7 +198,19 @@ function react(): void {
   if (calm.matches || document.documentElement.hasAttribute("data-offline")) return;
   if (avatars().length === 0) return;
   if (!face) {
-    void loadFace().then(react, () => undefined);
+    // One tap is kept, as during a show; a mood or page change in the meantime drops it (cancelAct).
+    if (waitingFace) return;
+    waitingFace = true;
+    void loadFace().then(
+      () => {
+        if (!waitingFace) return;
+        waitingFace = false;
+        react();
+      },
+      () => {
+        waitingFace = false;
+      },
+    );
     return;
   }
   if (busy) {
