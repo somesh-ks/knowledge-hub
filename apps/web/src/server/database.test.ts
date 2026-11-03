@@ -7,11 +7,16 @@ describe("telemetryDatabaseUrl", () => {
   const URL = "postgres://prod";
 
   it("gives the database to a server running on Vercel", () => {
-    expect(telemetryDatabaseUrl({ VERCEL: "1", DATABASE_URL: URL })).toBe(URL);
+    expect(telemetryDatabaseUrl({ VERCEL: "1", VERCEL_ENV: "production", DATABASE_URL: URL })).toBe(
+      URL,
+    );
   });
 
   it("gives nothing to a server anywhere else, whatever URL its environment holds", () => {
     expect(telemetryDatabaseUrl({ DATABASE_URL: URL })).toBeUndefined();
     expect(telemetryDatabaseUrl({ VERCEL: "", DATABASE_URL: URL })).toBeUndefined();
+    expect(
+      telemetryDatabaseUrl({ VERCEL: "1", VERCEL_ENV: "development", DATABASE_URL: URL }),
+    ).toBeUndefined();
   });
 });

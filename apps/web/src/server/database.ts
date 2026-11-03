@@ -32,9 +32,11 @@ export interface DatabaseDeps {
  */
 export function telemetryDatabaseUrl(env: {
   VERCEL?: string | undefined;
+  VERCEL_ENV?: string | undefined;
   DATABASE_URL?: string | undefined;
 }): string | undefined {
-  return env.VERCEL ? env.DATABASE_URL : undefined;
+  // `vercel dev` sets VERCEL too, on a machine that is not a deployment.
+  return env.VERCEL && env.VERCEL_ENV !== "development" ? env.DATABASE_URL : undefined;
 }
 
 /** Runs `work` on the database, or answers `fallback` without it. Never throws. */
