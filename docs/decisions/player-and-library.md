@@ -357,6 +357,28 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Rejected: preset speed chips (the slider's stops carry them); tiles on a desktop popover (a list is shorter to scan); a star for Save (a bookmark reads as "come back to this").
 - Revisit if: Save needs an account, or listeners ask for speeds between the stops on the slider.
 
+## D330: one app-wide state model: route, connectivity, saved pages
+
+- Date: 2026-11-02 (the owner: old "You are offline" pages with no strip, flicker, Saved empty offline, a stuck page after the network returned, Try again landing on Latest, the app reloading itself; "a stricter state management across the app"). Amends D97, D98, D145, D202.
+- Decision: three states, each with one owner, and nothing else keeps a copy of them.
+  - **Route**: the address bar. Only a person's own move changes it. The stand-in page the worker serves for a page that was never opened keeps the address asked for; Try again and recovery load that address, by the router and replacing its own history entry, so the player keeps playing. Nothing sends a reader to Latest by default.
+  - **Connectivity**: `lib/connectivity.ts`. The browser's flag is a hint, confirmed by asking the site (`/build.json`); a return that does not answer is asked again on gaps of 2, 4, 8 and 15 s, so a premature `online` event cannot strand a page. The strip, the disabled controls, the settings outbox and the stand-in's recovery read or subscribe to it. The strip is the one notice about the connection: no page says "You are offline" in its own body.
+  - **Saved pages**: the worker answers a page load from its newest copy (opened pages first, then pages kept ready, then any cache). The page asks it to keep ready (`KEEP_READY`, never trimmed, survives deploys): every Settings page without an id, Saved, Downloads, the Library, the Library's newest eight, the latest briefing and episode, and each podcast saved. A page outside all of that stands in as "You are offline" with one Try again button. Saved is also saved at install.
+- Also: the strip's stack persists across moves (`transition:persist`) and `data-strip` is carried, so a swap never redraws it; no page reloads the app when the connection returns (a newer build waits for the reader's next move); settings changed offline are kept in the outbox even when the sending code could not be fetched, and go out on the confirmed return.
+- Why: five parts each decided "offline" for themselves (the browser flag, the worker, the strip, the stand-in page, the outbox) and disagreed in the gaps. Audits looked at each part online, or at the strip alone; none visited every route offline.
+- Cost: about 20 extra page requests at idle, once an hour at most, on a phone that is online and not on a data saver. A kept copy can be an hour old when offline; the newest opened copy wins.
+- Rejected: a polling timer on every page (a probe runs only while a return is unconfirmed); keeping every podcast ready (the Library's newest eight and what is saved cover what a reader opens next); a second offline page for Settings.
+- Revisit if: the idle requests show in the Vercel bill, or a reader reports a podcast they expected offline standing in.
+
+## D331: error and helper copy speaks in the reader's words, and a test holds it
+
+- Date: 2026-11-02 (the owner: "Couldn't reach the site. Not saved yet." is robotic; the helper "Off: no weekly podcast is made"; "keep it human"). Amends D299.
+- Decision: a message says what happened to the person's thing, then what happens next. No server talk (the server, crashed, turned down, request, a status), no host names, no "Could not" or "Failed to", and no "Not saved yet" as an error. A change made without a connection is kept and sent later, and is said as good news ("Saved. It will sync when you're back online."), then once more when it has reached the site ("Your changes are synced"). A switch needs no line saying what it already shows. Settings copy lives in `lib/saveCopy.ts`.
+- Why: copy written one message at a time drifted into the engine's voice. `lib/copyGuard.test.ts` scans every string a reader can see and fails on the phrases that read as a machine.
+- Cost: a new honest phrase that trips the list is changed or added to it with a reason. The test reads literals on one line; a message built from parts is not checked.
+- Rejected: a lint rule per phrase (the test names the fix in its failure); translating errors in one place (each message sits where its action is).
+- Revisit if: the list grows past what a reader of the test can hold, or messages are built from parts more often than written whole.
+
 ## D343: the player's views are tabs again, the queue has the two-bar handle and swipes both ways, the phone bar swipes between podcasts
 
 - Date: 2026-11-02 (the owner: the queue dock "snaps, no easing"; "swipe left and right on the playback dock to switch audio ... get rid of the next button"; "the album art is too close to the top"; "segmented selector is catching a lot of attention ... switch it to tabs"; more space under the play controls; Up next "scrolls to top"; "the reordering hamburger icon, I can't really reorder"; "swipe left and right in the queue to remove things")

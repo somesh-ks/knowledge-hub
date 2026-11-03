@@ -111,13 +111,19 @@ jobs:
         continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # The command loads config/ from the store when the files are not in git (D296); without
+          # the switch the first run failed with "config/ is missing ...".
+          SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE || vars.DISPATCH_CONFIG_STORE }}
         run: |
           {
             echo "## Ingest coverage"
             echo
             echo '```'
-            npm run --silent singularity -- ingest --coverage
+            status=0
+            npm run --silent singularity -- ingest --coverage 2>&1 || status=$?
+            echo "ingest --coverage exited with status $status"
             echo '```'
+            exit "$status"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Check

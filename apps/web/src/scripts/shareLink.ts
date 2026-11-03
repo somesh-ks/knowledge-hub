@@ -1,4 +1,5 @@
 import { sharedItem, sharedUrl, track } from "../lib/analytics";
+import { isOnline } from "../lib/connectivity";
 import { listenUrl, NOT_STORED_COPY } from "../lib/share";
 import { whenIdle } from "./idle";
 import { openShareDialog } from "./shareDialog";
@@ -189,7 +190,7 @@ export function prepareEarly(): void {
   // Offline there is no link to get, and a failed ask only logs an error: the press asks again.
   if (id)
     whenIdle(() => {
-      if (navigator.onLine) void prepareShare(id);
+      if (isOnline()) void prepareShare(id);
     });
 }
 

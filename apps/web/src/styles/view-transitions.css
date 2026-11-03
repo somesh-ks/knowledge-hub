@@ -83,59 +83,66 @@ html:is([data-nav-swap="peer"], [data-nav-swap="in"], [data-nav-swap="out"]) .sh
   animation: fade-in var(--duration-hover) var(--ease-out) both;
 }
 
-/* The page settles over the time the travelling things take, so the cover lands as the page does.
-   Into a briefing it settles 8px from the end side; back out of one, from the start side. Travel
-   takes the sheet's 300 ms on the hover curve: the out curve is done in a third of its time and
-   reads as a cut, and this one has the least speed in its fastest frame of any curve the system has
-   without an overshoot. The fade is an effect (the effects spring, no overshoot). A move between
-   tabs only fades, in the time of a press; the pill grows in place (shell.css). Reduced motion zeroes
-   the distance, which leaves the fade. */
+/* The page arrives from the side the move came from (owner, 2026-11-02: "fluid transitions from side
+   to indicate from which tab you came from"). navigation.ts marks the incoming page with
+   data-nav-dir: "next" for a tab further along the bar and for a way into a briefing, "prev" for one
+   before it and for the way out. Next the page comes in from the end side, prev from the start side.
+   The old page is gone in the frame the new one arrives, so the new one is drawn at once, a short way
+   to the side and fully there, and settles: a fade from nothing would leave a blank frame or two
+   between the pages, which read as a flicker. A slide of 36px on the drawer curve: it starts at speed,
+   so the page answers the press at once, and still shows its travel, which the strong ease-out spends
+   in the first 60 ms (a 24px slide on it was gone before it could be seen). A tab move is as short as a press, 150 ms
+   (navSpeed.spec.ts holds it to that: it happens tens of times a day); a way into a briefing or out of it takes the
+   quarter second of the other entrances. A key never moves the page (no
+   data-nav-dir), and reduced motion zeroes the distance, which leaves a plain swap. On a wide screen a
+   tab move rises instead, from below for a row further down the side column, from above for one
+   higher, as that column runs up and down. */
 @media (prefers-reduced-motion: no-preference) {
-  html[data-nav-swap="in"] .shell {
-    animation-name: fade-in, page-from-end;
+  html[data-nav-dir="next"] {
+    --page-slide: calc(var(--distance-medium) * 3);
+    --page-rise: var(--distance-medium);
   }
 
-  html[data-nav-swap="out"] .shell {
-    animation-name: fade-in, page-from-start;
+  html[data-nav-dir="prev"] {
+    --page-slide: calc(var(--distance-medium) * -3);
+    --page-rise: calc(var(--distance-medium) * -1);
   }
 
-  html:is([data-nav-swap="in"], [data-nav-swap="out"]) .shell {
-    animation-duration: var(--duration-spring-effects-default), var(--duration-sheet-in);
-    animation-timing-function: var(--ease-spring-effects-default), var(--ease-hover);
+  html[data-nav-swap][data-nav-dir] .shell {
+    animation: page-slide var(--duration-hover) var(--ease-drawer) both;
   }
 
-  html[data-nav-swap="peer"] .shell {
-    animation-duration: var(--duration-hover);
-    animation-timing-function: var(--ease-hover);
+  html[data-astro-nav][data-nav-dir]::view-transition-new(root) {
+    animation: page-slide var(--duration-hover) var(--ease-drawer) both;
   }
 
-  html[data-astro-nav="in"]::view-transition-new(root) {
-    animation-name: fade-in, page-from-end;
+  html:is([data-nav-swap="in"], [data-nav-swap="out"])[data-nav-dir] .shell {
+    animation-duration: var(--duration-enter);
   }
 
-  html[data-astro-nav="out"]::view-transition-new(root) {
-    animation-name: fade-in, page-from-start;
+  html:is([data-astro-nav="in"], [data-astro-nav="out"])[data-nav-dir]::view-transition-new(root) {
+    animation-duration: var(--duration-enter);
   }
 
-  html:is([data-astro-nav="in"], [data-astro-nav="out"])::view-transition-new(root) {
-    animation-duration: var(--duration-spring-effects-default), var(--duration-sheet-in);
-    animation-timing-function: var(--ease-spring-effects-default), var(--ease-hover);
-  }
-
-  html[data-astro-nav="peer"]::view-transition-new(root) {
-    animation-duration: var(--duration-hover);
-    animation-timing-function: var(--ease-hover);
-  }
-
-  @keyframes page-from-end {
+  @keyframes page-slide {
     from {
-      transform: translateX(var(--distance-base));
+      transform: translateX(var(--page-slide));
     }
   }
 
-  @keyframes page-from-start {
+  @keyframes page-rise {
     from {
-      transform: translateX(calc(var(--distance-base) * -1));
+      transform: translateY(var(--page-rise));
+    }
+  }
+
+  @media (width >= 64rem) {
+    html[data-nav-swap="peer"][data-nav-dir] .shell {
+      animation-name: page-rise;
+    }
+
+    html[data-astro-nav="peer"][data-nav-dir]::view-transition-new(root) {
+      animation-name: page-rise;
     }
   }
 }

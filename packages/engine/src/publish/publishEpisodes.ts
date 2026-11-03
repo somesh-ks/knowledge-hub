@@ -1,7 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { EpisodeId, episodeRelPath, STATE_FILES } from "@singularity/core";
-import { checkBudget, describeRefusal, loadUsage, recordUsage } from "../audio/budget.js";
+import { checkBudget, describeRefusal, fileUsageStore, recordUsage } from "../audio/budget.js";
 import {
   deriveSegmentMarks,
   type EpisodePlan,
@@ -234,7 +234,7 @@ async function processEpisode(
   const requested = missing.reduce((sum, segment) => sum + segment.text.length, 0);
   try {
     const decision = checkBudget({
-      usage: await loadUsage(deps.root, deps.now()),
+      usage: await (deps.usage ?? fileUsageStore(deps.root)).load(deps.now()),
       now: deps.now(),
       requested,
       monthlyChars: deps.monthlyChars,
@@ -262,6 +262,7 @@ async function processEpisode(
     try {
       await recordUsage({
         root: deps.root,
+        store: deps.usage,
         now: deps.now(),
         characters: narration.billableCharacters,
         ledger,
@@ -323,5 +324,5 @@ export async function publishEpisodeAudio(
       warnings.push(`${id}: audio failed at ${outcome.stage}: ${outcome.error}`);
     }
   }
-  return { outcomes, warnings, changedPaths: spent ? [STATE_FILES.usage] : [] };
+  return { outcomes, warnings, changedPaths: spent && !deps.usage ? [STATE_FILES.usage] : [] };
 }

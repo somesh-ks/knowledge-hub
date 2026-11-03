@@ -46,57 +46,36 @@ test.describe("empty states", () => {
     await expect(root.getByRole("link", { name: "Go to Latest" })).toHaveAttribute("href", "/");
   });
 
-  test("offline shows the cut signal, and back online the connected one", async ({ page }) => {
-    await page.addInitScript(() => {
-      Object.defineProperty(Navigator.prototype, "onLine", {
-        configurable: true,
-        get: () => false,
-      });
-    });
-    await page.goto("/offline");
-    const root = page.locator("#main .empty");
-    await expect(root.getByRole("heading", { level: 1 })).toHaveText("You are offline");
-    await expect(root).toHaveAttribute("data-state", "offline");
-    await expectPattern(page, root, 1, "offline");
-    await expect(root.locator('.empty-art[data-art="online"]')).toBeHidden();
-    // The connection returns: the words, the button and the scene change together.
-    await page.evaluate(() => {
-      Object.defineProperty(Navigator.prototype, "onLine", { configurable: true, get: () => true });
-      window.dispatchEvent(new Event("online"));
-    });
-    await expect(root.getByRole("heading", { level: 1 })).toHaveText("You are back online");
-    await expect(root).toHaveAttribute("data-state", "online");
-    await expect(root.locator('.empty-art[data-art="online"]')).toBeVisible();
-    await expect(root.locator('.empty-art[data-art="offline"]')).toBeHidden();
-    await expect(root.getByRole("link", { name: "Reload" })).toBeVisible();
-  });
-
-  test.describe("a stand-in that cannot reach the site", () => {
-    // The page asks the site itself, and the browser logs the request that fails.
+  test.describe("the stand-in for a page never opened", () => {
+    // The browser logs the requests that fail while offline.
     test.use({ allowNetworkErrors: true });
 
-    test("a page standing in for an address that cannot be fetched does not say back online", async ({
+    // Bug (owner, 2026-11-02): a page not saved on the device replaced the strip with its own
+    // "You are offline" page and lost the route (D330). The stand-in keeps the address, the strip and
+    // the tabs, and has one button.
+    test("keeps the address, the strip and the tabs, and has one way on", async ({
       page,
       context,
     }) => {
-      // The browser says it is online, as with a weak signal or a captive portal, but nothing answers.
-      await page.addInitScript(() => {
-        Object.defineProperty(navigator, "onLine", { configurable: true, get: () => true });
-      });
       await page.goto("/");
       await page.evaluate(() => navigator.serviceWorker.ready);
       await page.reload();
-      // The idle islands' stylesheets are preloaded after load; cut off mid-preload they throw
-      // "Unable to preload CSS", which is not what this test is about.
       await page.waitForLoadState("networkidle");
       await context.setOffline(true);
-      await page.goto("/d/2026-10-05");
+      await page.goto("/d/2026-10-04-weekly");
       const root = page.locator("#main .empty");
-      await expect(root.getByRole("heading", { level: 1 })).toHaveText("You are offline");
-      await page.waitForTimeout(1_000);
-      await expect(root.getByRole("heading", { level: 1 })).toHaveText("You are offline");
-      await expect(root).toHaveAttribute("data-state", "offline");
-      await expect(root.getByRole("link", { name: "Try again" })).toBeVisible();
+      await expect(page.locator("[data-stand-in]")).toBeVisible();
+      await expectPattern(page, root, 1, "offline");
+      await expect(page).toHaveURL(/\/d\/2026-10-04-weekly$/);
+      // One notice about the connection, and the app's own tabs still there with the right one marked.
+      await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
+      await expect(
+        page.locator("#main").getByRole("button").or(page.locator("#main a")),
+      ).toHaveCount(1);
+      await expect(page.locator('.app-nav a[href="/library"]')).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
     });
   });
 });
