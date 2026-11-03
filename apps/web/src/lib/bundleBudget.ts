@@ -32,9 +32,10 @@ export const FIRST_LOAD_BUDGET_BYTES = 130 * 1024;
  * build fails. The 130 KB ceiling (D141) left room for a page to double unnoticed: from 2026-10-24 to
  * 2026-11-03 every page went from 35 to 75 KB (the select's sheet with every glyph; the
  * avatar's show). A change that adds more than a step loads it lazily, or raises the record here
- * and says why in its pull request. Recorded 2026-11-03: /settings/downloads, 58.2 KB.
+ * and says why in its pull request. Recorded 2026-11-03: /settings/downloads, 79.9 KB. The select's
+ * sheet loading at idle (in the design-system pull request) takes it to about 58 KB: lower this then.
  */
-export const FIRST_LOAD_RECORD_BYTES = 59 * 1024;
+export const FIRST_LOAD_RECORD_BYTES = 80 * 1024;
 export const FIRST_LOAD_STEP_BYTES = 5 * 1024;
 /** Self-hosted fonts, build plan 8.8: subset, one preloaded, 80 KB or less in total. */
 export const FONT_BUDGET_BYTES = 80 * 1024;

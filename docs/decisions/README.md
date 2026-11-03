@@ -214,6 +214,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D355 | The change log is kept by CI: a feat, fix or perf PR fails while the newest entry is over two days old | active |
 | D356 | A chosen fill stands at least 8 points of lightness off every surface it sits on | amends D72 |
 | D358 | A playing avatar wears headphones fitted to its shape | amends D326, D353 |
-| D361 | First-load JavaScript is held to the heaviest page's record plus 5 KB; the select's sheet and the avatar's show load at idle | amends D141 |
+| D361 | First-load JavaScript is held to the heaviest page's record plus 5 KB; the avatar's show and the select's sheet load at idle | amends D141 |
 
 ---

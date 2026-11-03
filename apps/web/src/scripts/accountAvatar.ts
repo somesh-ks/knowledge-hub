@@ -16,17 +16,11 @@
  * list it starts, so each tap is the next one, never a repeat. A tap in the app bar goes to the profile
  * and the show carries on in the persisted avatar. A new pick plays one too. A tap during a show waits for it to end.
  */
-import {
-  AVATAR_SHAPES,
-  avatarMarkup,
-  moodShapes,
-  rootStyle,
-  tokenMs,
-  tokenWords,
-} from "../design-system/avatar";
+import { AVATAR_SHAPES, avatarMarkup, moodShapes, tokenWords } from "../design-system/avatar";
 import { getPreferences } from "../player/core/preferences";
 import { morphPath, pickReaction } from "./avatarReactions";
 import { warmWhenIdle } from "./idle";
+import { rootStyle, tokenMs } from "./rootTokens";
 
 /** The tap's show (avatarFace.ts), fetched at idle or on the first tap: it is not needed to draw. */
 type Face = typeof import("./avatarFace");
