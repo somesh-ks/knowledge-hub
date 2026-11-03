@@ -626,3 +626,29 @@ test("a phone's menu sheet drops its header over one safe row and keeps it other
   });
   await expect(head).toBeVisible();
 });
+
+// A card's cover carries three looping bars that show only for the episode that plays. They once ran on
+// every card all the time (motion audit, 2026-11-02): 15 hidden loops on five cards, hundreds on a real
+// Library. The bars are drawn on desktop only; on a phone the play button is not there.
+test("a Library card's bars loop only while its episode plays", { tag: "@desktop" }, async ({
+  page,
+}) => {
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  const running = () =>
+    page.evaluate(
+      () =>
+        document
+          .getAnimations()
+          .filter(
+            (a) =>
+              "animationName" in a && a.animationName === "chip-bar" && a.playState === "running",
+          ).length,
+    );
+  expect(await running()).toBe(0);
+  await page
+    .locator(".cover-over")
+    .first()
+    .evaluate((el) => el.setAttribute("data-playing", "true"));
+  await expect.poll(running).toBe(3);
+});
