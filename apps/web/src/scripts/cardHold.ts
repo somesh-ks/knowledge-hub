@@ -3,11 +3,19 @@
  * keyboard and a screen reader (library.css hides it from a finger only), and this opens the same
  * popover from a hold on the card. A tap still opens the card; a scroll, or a finger that drifts
  * past the slop, cancels the hold (the browser sends pointercancel when a scroll takes the touch).
+ *
+ * A queue row holds the same way (owner, 2026-11-03: "long press triggers the bottom sheet we have
+ * in the library page for each podcast"), so a phone reaches its actions without any dots: a tap on
+ * the row plays it, the handle alone moves it.
  */
 import { MENU_SELECTORS } from "../design-system/menu";
 
 /** Matches the CSS that hides the button (library.css): a finger is the primary input. */
 const TOUCH = "(hover: none) and (pointer: coarse)";
+/** What a hold opens a menu from: a Library card, and a queue row in the player. */
+const HELD = ".card-link, .player-queue-row";
+/** The button a hold's sheet belongs to, focused first as a tap on it would. */
+const OPENER = "[data-hero-more], .player-queue-more";
 const HOLD_MS = 450;
 /** How far a finger may drift and still be holding, in CSS px. */
 const SLOP = 10;
@@ -67,11 +75,13 @@ export function installCardHold(): void {
       held = false;
       release();
       if (event.pointerType !== "touch" || !event.isPrimary || !matchMedia(TOUCH).matches) return;
-      const link = (event.target as Element).closest<HTMLElement>(".card-link");
-      const list = link
-        ?.closest("[data-card]")
-        ?.querySelector<HTMLElement>(`[data-library-menu] ${MENU_SELECTORS.list}`);
-      if (!link || !list) return;
+      const row = (event.target as Element).closest<HTMLElement>(HELD);
+      const list = row?.matches(".player-queue-row")
+        ? row.parentElement?.querySelector<HTMLElement>(MENU_SELECTORS.list)
+        : row
+            ?.closest("[data-card]")
+            ?.querySelector<HTMLElement>(`[data-library-menu] ${MENU_SELECTORS.list}`);
+      if (!row || !list) return;
       start = { x: event.clientX, y: event.clientY, id: event.pointerId };
       const pointerId = event.pointerId;
       timer = window.setTimeout(() => {
@@ -79,9 +89,7 @@ export function installCardHold(): void {
         if (list.matches(":popover-open")) return;
         // As after a tap on the button: focus is on it first, so the sheet's first row, which the menu
         // focuses on open, takes no keyboard ring. Its own ring is the keyboard's (library.css).
-        list.parentElement
-          ?.querySelector<HTMLElement>("[data-hero-more]")
-          ?.focus({ preventScroll: true });
+        list.parentElement?.querySelector<HTMLElement>(OPENER)?.focus({ preventScroll: true });
         list.showPopover();
         held = true;
         opened = list;
@@ -103,16 +111,19 @@ export function installCardHold(): void {
     { passive: true },
   );
 
+  // On the way down, so a row that takes the gesture for itself still cancels the hold: a queue
+  // row's swipe stops the move from reaching the document (useRowSwipe.ts), and a sheet opened
+  // mid-swipe was the result.
   document.addEventListener(
     "pointermove",
     (event) => {
       if (!start || event.pointerId !== start.id) return;
       if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > SLOP) cancel();
     },
-    { passive: true },
+    { passive: true, capture: true },
   );
   for (const type of ["pointerup", "pointercancel"]) {
-    document.addEventListener(type, cancel, { passive: true });
+    document.addEventListener(type, cancel, { passive: true, capture: true });
   }
   // The lift of a hold is not a tap. The browser would follow it with mouse events: the press focuses
   // the card's link, which takes focus from the sheet (heroMenu.ts closes a menu that loses it),
@@ -159,6 +170,7 @@ export function installCardHold(): void {
   // has its own menu now. A mouse's right click keeps the browser's (copy link).
   document.addEventListener("contextmenu", (event) => {
     if (!matchMedia(TOUCH).matches) return;
-    if ((event.target as Element).closest?.("[data-card] .card-link")) event.preventDefault();
+    if ((event.target as Element).closest?.("[data-card] .card-link, .player-queue-row"))
+      event.preventDefault();
   });
 }

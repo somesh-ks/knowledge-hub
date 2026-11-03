@@ -167,6 +167,8 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     const strip = li.locator(".player-queue-delete");
     const resting = await face.evaluate((el) => getComputedStyle(el).backgroundColor);
     const stripAtRest = await player.boxOf(li);
+    // A hold's timer (cardHold.ts) runs on the page clock, so it can be hurried past.
+    await page.clock.install();
     const held = await finger.drag(line(right, { x: right.x + 300, y: right.y }, 6), 12, {
       hold: true,
     });
@@ -178,8 +180,29 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     );
     await expect(face.locator(".player-queue-row")).toBeVisible();
     expect(await player.boxOf(li)).toEqual(stripAtRest);
+    // A swipe is not a hold: kept down past the hold's time, it used to open the row's menu halfway
+    // through (cardHold.ts).
+    await page.clock.runFor(600);
+    await expect(li.locator(".player-queue-menu")).toBeHidden();
     await held.release();
     await expect.poll(queue).toBe('["2026-10-05","ep-20261006-0900"]');
+    // Held still, the row opens the menu the Library's cards open (owner, 2026-11-03), since a
+    // phone draws no dots.
+    const kept = player.dialog.locator('[data-queue-id="ep-20261006-0900"]');
+    const press = await finger.drag(
+      [center(await player.boxOf(kept.locator(".player-queue-row")))],
+      12,
+      {
+        hold: true,
+      },
+    );
+    await page.clock.runFor(600);
+    await expect(kept.locator(".player-queue-menu")).toBeVisible();
+    await press.release();
+    // A close inside the hold's lift grace reopens the sheet (cardHold.ts): run past it, then close.
+    await page.clock.runFor(500);
+    await kept.locator(".player-queue-menu").evaluate((menu: HTMLElement) => menu.hidePopover());
+    await expect(kept.locator(".player-queue-menu")).toBeHidden();
     const left = center(await player.boxOf(row("2026-10-05")));
     await finger.drag(line(left, { x: left.x - 300, y: left.y }, 6), 12);
     await expect.poll(queue).toBe('["ep-20261006-0900"]');

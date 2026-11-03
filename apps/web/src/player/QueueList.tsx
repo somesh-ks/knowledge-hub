@@ -103,6 +103,12 @@ export default function QueueList({ ids, lead }: { ids: readonly string[]; lead?
     if (lead) lastLead = lead;
   }, [lead]);
 
+  // A hold on a row opens its menu as the Library's cards do (owner, 2026-11-03), so a phone needs
+  // no dots. The script is the Library's own and installs once for the document.
+  useEffect(() => {
+    void import("../scripts/cardHold").then((hold) => hold.installCardHold());
+  }, []);
+
   /** Puts row `from` at place `to`, both counted in `all`, and says where it went. */
   const put = (from: number, to: number): void => {
     if (lead && from === 0) {
