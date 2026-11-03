@@ -10,7 +10,14 @@ import EmptyArtHalloween from "./EmptyArtHalloween.astro";
  * A style may draw its own scene (D306): EmptyArtHalloween follows this svg, and empty.css shows the one
  * the chosen style names.
  */
-export type ArtName = "today" | "library" | "results" | "offline" | "online" | "notfound";
+export type ArtName =
+  | "today"
+  | "library"
+  | "results"
+  | "offline"
+  | "online"
+  | "notfound"
+  | "haptics";
 
 interface Props {
   art: ArtName;
@@ -28,6 +35,7 @@ const VIEW: Record<ArtName, string> = {
   offline: "0 20 240 143",
   online: "0 20 240 143",
   notfound: "0 20 240 142",
+  haptics: "0 14 240 142",
 };
 ---
 
@@ -113,6 +121,19 @@ const VIEW: Record<ArtName, string> = {
           <path class="art-pop" d="M120 128c-14-16-20-26-20-36a20 20 0 0 1 40 0c0 10-6 20-20 36z" />
           <circle class="art-hero" cx="120" cy="92" r="7" />
         </g>
+      </>
+    )
+  }
+  {
+    art === "haptics" && (
+      <>
+        {/* A phone asleep, with dotted arcs where a buzz would be: this device has nothing to feel. */}
+        <rect class="art-hero d-breathe" x="84" y="20" width="72" height="124" rx="22" />
+        <path class="art-ink-line" d="M101 72q6 7 12 0M127 72q6 7 12 0" />
+        <path class="art-ink-line" d="M112 96q8 6 16 0" />
+        {["M62 56q-16 34 0 68", "M38 42q-28 48 0 96", "M178 56q16 34 0 68", "M202 42q28 48 0 96"].map((d) => (
+          <path class="art-glyph" d={d} stroke-dasharray="0.1 30" />
+        ))}
       </>
     )
   }
