@@ -88,7 +88,7 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D82 | Play keeps an early tap, a new episode is pre-narrated, the deploy is noticed in 2.5 s | active |
 | D83 | Settings shows a source's score as a word, its name opens its editor; Model default is called Default | amends D55's pips and D69's name links |
 | D84 | A failed run keeps its request and offers Try again; a finished run clears itself; one run at a time | active |
-| D85 | The player's chapters are timed and play their story; an unnamed discussion is named from its voices; one length rule | amends D74 |
+| D85 | The player's chapters are timed and play their story; an unnamed discussion is named from its voices; one length rule | amends D74; amended by D350 |
 | D86 | An action has its own tone, the player bar is one tonal block with the navigation, reading text keeps a 34rem measure | active; extends D72 |
 | D87 | New episode says when a choice changed the topics, with Undo; the Library searches with an excerpt around the match | amends D76 and D78 |
 | D88 | A reading page's section strip is opaque, a focused headline rings as one block, the playing hero Play is tonal, an old briefing offers Share | amends D77 |
