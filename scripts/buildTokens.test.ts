@@ -199,10 +199,10 @@ describe("color contrast", () => {
 
   it.each(MODES)("text on the accent container reaches 4.5:1 (%s)", (mode) => {
     const container = colorOf("semantic.color.accent-container", mode);
-    for (const foreground of ["on-accent-container", "on-surface", "on-surface-muted"]) {
-      const ratio = contrastRatio(colorOf(`semantic.color.${foreground}`, mode), container);
-      expect(ratio, `${foreground} on accent-container (${mode})`).toBeGreaterThanOrEqual(4.5);
-    }
+    // A chosen fill carries only its own ink, so the fill is free to stand off the surface under it
+    // (D356); no page's text sits on it in another colour.
+    const ratio = contrastRatio(colorOf("semantic.color.on-accent-container", mode), container);
+    expect(ratio, `on-accent-container on accent-container (${mode})`).toBeGreaterThanOrEqual(4.5);
   });
 
   it.each(MODES)(
@@ -346,7 +346,7 @@ interface Tree {
 }
 
 /**
- * The token document with one style's values laid over the base, as the page sees it under data-style.
+ * The token document with one style's values laid over the base, as the page sees it under data-mood.
  * The overrides come from the parsed document, so the colours a recipe writes (D319) are in it too.
  */
 function documentUnder(style: string): TokenDocument {
@@ -413,8 +413,6 @@ describe.each(doc.styles.map((style) => style.name))("a style's colour contrast:
         4.5,
       ]),
       ["on-accent-container", "accent-container", 4.5],
-      ["on-surface", "accent-container", 4.5],
-      ["on-surface-muted", "accent-container", 4.5],
       ["on-accent-container-high", "accent-container-high", 4.5],
       ["on-accent-action", "accent-action", 4.5],
       ["accent-action", "surface", 3],
@@ -465,6 +463,39 @@ describe.each(doc.styles.map((style) => style.name))("a style's colour contrast:
     );
     expect(failures, `${name} (${mode})`).toEqual([]);
   });
+});
+
+// A chosen tab, chip or segment was proven against the page only, so in Default light the phone's
+// current-tab pill sat 3 points of lightness from the nav bar under it and read as no pill at all
+// (owner, 2026-11-03). Lightness carries a fill for every eye; a hue turn (D315) keeps it, so one check
+// per mood holds at every hue.
+describe("a chosen fill stands off every surface it sits on (D356)", () => {
+  const FILL_FLOOR = 8;
+  const surfaces = [
+    "surface",
+    "surface-sunken",
+    "surface-container",
+    "surface-raised",
+    "surface-overlay",
+  ];
+  const moods: [string, TokenDocument][] = [
+    ["default", doc],
+    ...doc.styles.map((style): [string, TokenDocument] => [style.name, documentUnder(style.name)]),
+  ];
+  it.each(moods.flatMap(([name, d]) => MODES.map((mode) => [name, mode, d] as const)))(
+    "%s, %s",
+    (_name, mode, d) => {
+      const points = (role: string): number =>
+        parseOklch(String(resolveLiteral(d, `semantic.color.${role}`, mode))).l * 100;
+      const near = ["accent-container", "accent-container-high"].flatMap((fill) =>
+        surfaces.flatMap((surface) => {
+          const gap = Math.abs(points(fill) - points(surface));
+          return gap >= FILL_FLOOR ? [] : [`${fill} on ${surface}: ${gap.toFixed(1)} points`];
+        }),
+      );
+      expect(near).toEqual([]);
+    },
+  );
 });
 
 describe("scales", () => {
@@ -787,12 +818,12 @@ describe("styles", () => {
       }),
     );
     const at = (needle: string): number => css.indexOf(needle);
-    expect(at(':root[data-style="bold"] {')).toBeGreaterThan(at(':root[data-theme="dark"] {'));
-    expect(at(':root[data-style="bold"] {')).toBeLessThan(at("prefers-reduced-motion"));
-    expect(css).toContain(':root:not([data-theme="light"])[data-style="bold"] {');
-    expect(css).toContain(':root[data-theme="dark"][data-style="bold"] {');
+    expect(at(':root[data-mood="bold"] {')).toBeGreaterThan(at(':root[data-theme="dark"] {'));
+    expect(at(':root[data-mood="bold"] {')).toBeLessThan(at("prefers-reduced-motion"));
+    expect(css).toContain(':root:not([data-theme="light"])[data-mood="bold"] {');
+    expect(css).toContain(':root[data-theme="dark"][data-mood="bold"] {');
     expect(css).toContain("--card-radius: 2.5rem;");
-    const dark = css.slice(at(':root[data-theme="dark"][data-style="bold"] {'));
+    const dark = css.slice(at(':root[data-theme="dark"][data-mood="bold"] {'));
     const darkBody = dark.slice(0, dark.indexOf("}"));
     expect(darkBody).toContain("oklch(10% 0 0)");
     expect(darkBody).not.toContain("oklch(99% 0 0)");
@@ -812,7 +843,7 @@ describe("styles", () => {
         },
       }),
     );
-    const block = css.slice(css.indexOf(':root[data-style="bold"] {'));
+    const block = css.slice(css.indexOf(':root[data-mood="bold"] {'));
     const body = block.slice(0, block.indexOf("}"));
     expect(body).toContain("--color-surface: oklch(96% 0.02 calc(292 + var(--hue-shift, 0)));");
     expect(body).toContain("--color-on-surface: oklch(20% 0 0);");
