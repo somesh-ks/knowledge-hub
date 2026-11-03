@@ -73,10 +73,11 @@ test.describe("playback on a podcast", () => {
     await player.dock.getByRole("button", { name: "Pause", exact: true }).click();
     await expect(chip.locator("[data-chip-label]")).toHaveText("Paused");
     seen.paused = await measure();
-    // Played is earned by hearing the story out: from just before its end, play on into the next.
+    // Heard out (from just before its end, play on into the next), the button is a Play button again
+    // with its length, never Played (D351).
     await playOnOutOf(player, 0);
     await player.dock.getByRole("button", { name: "Play", exact: true }).click();
-    await expect(chip.locator("[data-chip-label]")).toHaveText("Played");
+    await expect(chip.locator("[data-chip-label]")).toHaveText(/^\d+:\d\d$/);
     seen.played = await measure();
     const places = new Set(Object.values(seen).map((s) => s.controls));
     const widths = new Set(Object.values(seen).map((s) => s.chip));

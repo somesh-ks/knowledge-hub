@@ -204,5 +204,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D346 | Swipe-to-delete is a red strip behind the row; the playing row heads Up next; a story's time runs to the next story | amends D343, D277 |
 | D347 | A step into a deeper page rises; a tab move takes a quarter second; a press draws one wave | amends D286, D341 |
 | D348 | A card shows a blue Downloaded mark, the podcast page shows Played and Downloaded; the play button never says Played | amends D78, D106 |
+| D351 | A story's Play button never says Played; it stays a plain Play button with its length | amends D348 |
 
 ---
