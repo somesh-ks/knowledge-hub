@@ -59,10 +59,13 @@ interface Choice {
 }
 
 /** A Phosphor glyph as an <svg>, for a control a script draws. */
-function glyph(name: "playOutline" | "pause"): SVGSVGElement {
+function glyph(name: "playOutline" | "pauseOutline"): SVGSVGElement {
   const ns = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(ns, "svg");
-  svg.setAttribute("class", `${iconClass()} picker-${name === "pause" ? "pause" : "play-glyph"}`);
+  svg.setAttribute(
+    "class",
+    `${iconClass()} picker-${name === "pauseOutline" ? "pause" : "play-glyph"}`,
+  );
   svg.setAttribute("data-icon", name);
   svg.setAttribute("viewBox", ICON_VIEW_BOX);
   svg.setAttribute("aria-hidden", "true");
@@ -342,7 +345,7 @@ function mountPicker(select: HTMLSelectElement): void {
         if (choice.sample === "") play.dataset.silent = "";
         else play.dataset.sample = choice.sample;
         play.dataset.row = choice.value;
-        play.append(glyph("playOutline"), glyph("pause"));
+        play.append(glyph("playOutline"), glyph("pauseOutline"));
         const words = element("span", "picker-option-name");
         const title = element("span", "picker-option-title");
         title.append(...titleNodes(choice));
