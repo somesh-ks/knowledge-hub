@@ -151,7 +151,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D283 | Read-first is AGENTS.md and state.md (20 KB), the Index is grep-only, the ledger is split by surface; "replaces" retires the old row | active |
 | D284 | Push pings | amends D11 |
 | D285 | Switch can be mixed | active |
-| D286 | Press ripple | |
+| D286 | Press ripple | amended by D347 |
 | D287 | Column and list centred together | amends D229 |
 | D288 | Library list: month labels, two columns | active |
 | D289 | Every press is felt | amends D273 |
@@ -196,12 +196,13 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D337 | Regenerate sheets open on the comment; Length and Categories appear as words reach for them | amends D207, D323 |
 | D338 | Settings sets the default speed on the player's speed screen | amends D309 |
 | D339 | The engine and the site keep one Speechify count, in Blob; Exa gets a weekly stop | amends D300 |
-| D341 | A page arrives from the side of the tab you came from | partly supersedes D280; amends D336 |
+| D341 | A page arrives from the side of the tab you came from | partly supersedes D280; amends D336; amended by D347 |
 | D342 | A Firecrawl listing is read free first and scraped only when its links moved | relates to D222, D302 |
 | D343 | Podcast-page tabs, two-bar queue handle, swipe both ways, phone bar swipes podcasts | amends D169, D277; amended by D346 |
 | D344 | The app no longer edits the podcast structure; Preferences holds autoplay and the default speed | partly supersedes D170, D182, D191; amends D335 |
 | D345 | Create's More options is a closed accordion at every width | amends D76 |
 | D346 | Swipe-to-delete is a red strip behind the row; the playing row heads Up next; a story's time runs to the next story | amends D343, D277 |
+| D347 | A step into a deeper page rises; a tab move takes a quarter second; a press draws one wave | amends D286, D341 |
 | D348 | A card shows a blue Downloaded mark, the podcast page shows Played and Downloaded; the play button never says Played | amends D78, D106 |
 
 ---
