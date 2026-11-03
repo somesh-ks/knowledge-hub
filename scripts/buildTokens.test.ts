@@ -346,7 +346,7 @@ interface Tree {
 }
 
 /**
- * The token document with one style's values laid over the base, as the page sees it under data-style.
+ * The token document with one style's values laid over the base, as the page sees it under data-mood.
  * The overrides come from the parsed document, so the colours a recipe writes (D319) are in it too.
  */
 function documentUnder(style: string): TokenDocument {
@@ -787,12 +787,12 @@ describe("styles", () => {
       }),
     );
     const at = (needle: string): number => css.indexOf(needle);
-    expect(at(':root[data-style="bold"] {')).toBeGreaterThan(at(':root[data-theme="dark"] {'));
-    expect(at(':root[data-style="bold"] {')).toBeLessThan(at("prefers-reduced-motion"));
-    expect(css).toContain(':root:not([data-theme="light"])[data-style="bold"] {');
-    expect(css).toContain(':root[data-theme="dark"][data-style="bold"] {');
+    expect(at(':root[data-mood="bold"] {')).toBeGreaterThan(at(':root[data-theme="dark"] {'));
+    expect(at(':root[data-mood="bold"] {')).toBeLessThan(at("prefers-reduced-motion"));
+    expect(css).toContain(':root:not([data-theme="light"])[data-mood="bold"] {');
+    expect(css).toContain(':root[data-theme="dark"][data-mood="bold"] {');
     expect(css).toContain("--card-radius: 2.5rem;");
-    const dark = css.slice(at(':root[data-theme="dark"][data-style="bold"] {'));
+    const dark = css.slice(at(':root[data-theme="dark"][data-mood="bold"] {'));
     const darkBody = dark.slice(0, dark.indexOf("}"));
     expect(darkBody).toContain("oklch(10% 0 0)");
     expect(darkBody).not.toContain("oklch(99% 0 0)");
@@ -812,7 +812,7 @@ describe("styles", () => {
         },
       }),
     );
-    const block = css.slice(css.indexOf(':root[data-style="bold"] {'));
+    const block = css.slice(css.indexOf(':root[data-mood="bold"] {'));
     const body = block.slice(0, block.indexOf("}"));
     expect(body).toContain("--color-surface: oklch(96% 0.02 calc(292 + var(--hue-shift, 0)));");
     expect(body).toContain("--color-on-surface: oklch(20% 0 0);");

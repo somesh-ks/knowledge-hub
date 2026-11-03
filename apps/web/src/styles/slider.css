@@ -228,7 +228,7 @@
   display: grid;
 }
 
-:root[data-style="expressive"] .slider-wave-field {
+:root[data-mood="expressive"] .slider-wave-field {
   --wave-length: 1.5rem;
   --wave-height: 0.75rem;
   /* How long the wave takes to drift one period. */
@@ -236,7 +236,7 @@
   --wave-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 12'%3E%3Cpath d='M0 6C4 0 8 0 12 6S20 12 24 6' fill='none' stroke='black' stroke-width='3.5' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
-:root[data-style="expressive"] .slider-wave-field::before {
+:root[data-mood="expressive"] .slider-wave-field::before {
   content: "";
   position: absolute;
   inset-inline-start: 0;
@@ -251,12 +251,12 @@
 }
 
 /* The input's own default (0%) would hide the field's fill; it follows the field. */
-:root[data-style="expressive"] .slider-wave-field > .slider-input {
+:root[data-mood="expressive"] .slider-wave-field > .slider-input {
   --range-fill: inherit;
 }
 
 /* The straight track begins where the fill ends; the engines' two pseudo-elements cannot share a rule. */
-:root[data-style="expressive"] .slider-wave-field > .slider-input::-webkit-slider-runnable-track {
+:root[data-mood="expressive"] .slider-wave-field > .slider-input::-webkit-slider-runnable-track {
   background: linear-gradient(
     to right,
     transparent var(--range-fill),
@@ -264,7 +264,7 @@
   );
 }
 
-:root[data-style="expressive"] .slider-wave-field > .slider-input::-moz-range-track {
+:root[data-mood="expressive"] .slider-wave-field > .slider-input::-moz-range-track {
   background: linear-gradient(
     to right,
     transparent var(--range-fill),
@@ -272,7 +272,7 @@
   );
 }
 
-:root[data-style="expressive"] .slider-wave-field > .slider-input::-moz-range-progress {
+:root[data-mood="expressive"] .slider-wave-field > .slider-input::-moz-range-progress {
   background: none;
 }
 
@@ -283,7 +283,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :root[data-style="expressive"] .slider-wave-field::before {
+  :root[data-mood="expressive"] .slider-wave-field::before {
     animation: none;
   }
 }

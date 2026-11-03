@@ -711,7 +711,7 @@
 }
 
 /* Style: expressive */
-:root[data-style="expressive"] {
+:root[data-mood="expressive"] {
   --color-accent: var(--color-violet-700);
   --color-accent-subtle: var(--color-violet-100);
   --color-accent-container: var(--color-violet-300);
@@ -797,7 +797,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"])[data-style="expressive"] {
+  :root:not([data-theme="light"])[data-mood="expressive"] {
     --color-accent: var(--color-violet-300);
     --color-accent-subtle: var(--color-violet-800);
     --color-accent-container: var(--color-violet-700);
@@ -829,7 +829,7 @@
   }
 }
 
-:root[data-theme="dark"][data-style="expressive"] {
+:root[data-theme="dark"][data-mood="expressive"] {
   --color-accent: var(--color-violet-300);
   --color-accent-subtle: var(--color-violet-800);
   --color-accent-container: var(--color-violet-700);
@@ -861,7 +861,7 @@
 }
 
 /* Style: halloween */
-:root[data-style="halloween"] {
+:root[data-mood="halloween"] {
   --color-accent: var(--color-orange-600);
   --color-accent-subtle: var(--color-orange-50);
   --color-accent-container: var(--color-orange-100);
@@ -924,7 +924,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"])[data-style="halloween"] {
+  :root:not([data-theme="light"])[data-mood="halloween"] {
     --color-accent: var(--color-orange-300);
     --color-accent-subtle: var(--color-orange-900);
     --color-accent-container: var(--color-orange-800);
@@ -974,7 +974,7 @@
   }
 }
 
-:root[data-theme="dark"][data-style="halloween"] {
+:root[data-theme="dark"][data-mood="halloween"] {
   --color-accent: var(--color-orange-300);
   --color-accent-subtle: var(--color-orange-900);
   --color-accent-container: var(--color-orange-800);
@@ -1024,7 +1024,7 @@
 }
 
 /* Album art per style (D314, tokens/covers.json): numbers for the cover math in cover.css. */
-:root[data-style="expressive"] {
+:root[data-mood="expressive"] {
   --cover-hue: 292;
   --cover-keep: 0.15;
   --cover-spread: 0.5;
@@ -1043,7 +1043,7 @@
   --cover-hi: 1;
 }
 
-:root[data-style="halloween"] {
+:root[data-mood="halloween"] {
   --cover-hue: 52;
   --cover-keep: 0.2;
   --cover-spread: 0.25;
@@ -1063,13 +1063,13 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"])[data-style="halloween"] {
+  :root:not([data-theme="light"])[data-mood="halloween"] {
     --cover-lo: 0.09;
     --cover-hi: 0.87;
   }
 }
 
-:root[data-theme="dark"][data-style="halloween"] {
+:root[data-theme="dark"][data-mood="halloween"] {
   --cover-lo: 0.09;
   --cover-hi: 0.87;
 }
