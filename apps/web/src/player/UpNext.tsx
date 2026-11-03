@@ -1,13 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { longDateFromDigestId } from "./core/formatTime";
 import { getPlayQueue, loadSuggested, playQueueItem } from "./core/playerRuntime";
 import { usePlayerState } from "./hooks/usePlayer";
 import { useQueueMeta, useQueueView } from "./hooks/useQueue";
 import QueueList from "./QueueList";
-import { QueueDeleteMark } from "./QueueRow";
 import Icon from "./ui/LazyIcon";
 import PlayerCover from "./ui/PlayerCover";
-import { useRowSwipe } from "./useRowSwipe";
 
 /**
  * The suggested items after what is playing, the list Autoplay draws from (core/suggested.ts).
@@ -78,65 +76,6 @@ function SuggestedSection({ ids, queued }: { ids: readonly string[]; queued: rea
   );
 }
 
-/** The item last shown as playing, kept across the view's mounts: a new one is what moves the list. */
-let lastCurrent: string | null = null;
-
-/**
- * The item playing now, first in the list (D346): what played before it is not listed, so a podcast
- * played from its page, or one tapped in the list, always heads Up next. It is swiped away like any
- * row; its handle only marks it, as it has nowhere to move to.
- */
-function CurrentRow({ id }: { id: string }) {
-  const meta = useQueueMeta(id);
-  const title = meta?.title ?? longDateFromDigestId(id);
-  const ref = useRef<HTMLLIElement>(null);
-  // The list moves to the item that has just begun, so the list does not stay scrolled below it. Not
-  // on opening the view: switching tabs keeps the page where it was (owner, 2026-11-02: Up next
-  // jumped to the top).
-  useEffect(() => {
-    if (lastCurrent !== id && lastCurrent !== null) ref.current?.scrollIntoView({ block: "start" });
-    lastCurrent = id;
-  }, [id]);
-  const swipe = useRowSwipe();
-  return (
-    <li
-      className="player-queue-item"
-      data-queue-id={id}
-      data-state="current"
-      aria-current="true"
-      ref={ref}
-      onPointerDown={(event) => swipe.onPointerDown(event, id)}
-      onPointerMove={swipe.onPointerMove}
-      onPointerUp={swipe.onPointerEnd}
-      onPointerCancel={swipe.onPointerEnd}
-    >
-      <QueueDeleteMark />
-      <div className="player-queue-face">
-        <button
-          className="player-queue-row"
-          type="button"
-          onClick={() => {
-            if (!swipe.swiped()) playQueueItem(id);
-          }}
-        >
-          <span className="player-queue-thumb">
-            {meta ? <PlayerCover cover={meta.cover} weekly={meta.weekly} size="thumb" /> : null}
-          </span>
-          <span className="player-upnext-text">
-            <span className="player-upnext-date">{title}</span>
-            <span className="player-upnext-hint">{meta?.caption ?? " "}</span>
-          </span>
-        </button>
-        {/* The two bars stand in the playing row's place too, so its end lines up with the rows under
-            it; the row that plays has nowhere to be moved to, so they only mark it (aria-hidden). */}
-        <span className="icon-btn player-queue-grip" data-still aria-hidden="true">
-          <Icon name="grip" />
-        </span>
-      </div>
-    </li>
-  );
-}
-
 /**
  * The player's Up next view: the queue, when the listener queued something, and the suggested items
  * under it, always. The queue starts by itself when a recording ends (the listener chose it); with an empty
@@ -149,18 +88,14 @@ export default function UpNext() {
   const { current, upcoming: queued } = useQueueView();
   const suggested = useSuggested(queued);
   const playingId = usePlayerState().track?.digest.id ?? null;
-  // The playing item heads the list, whatever else is queued or suggested (D346).
-  const passed =
-    current && current === playingId ? (
-      <ul className="player-queue-list" aria-label="Playing">
-        <CurrentRow key={current} id={current} />
-      </ul>
-    ) : null;
+  // The playing item heads the list, whatever else is queued or suggested (D346), and moves with
+  // the rows under it (D349).
+  const lead = current && current === playingId ? current : null;
+  const passed = lead ? <QueueList ids={[]} lead={lead} /> : null;
   if (queued.length > 0)
     return (
       <>
-        {passed}
-        <QueueList ids={queued} />
+        <QueueList ids={queued} lead={lead} />
         {suggested ? <SuggestedSection ids={suggested} queued={queued} /> : null}
       </>
     );

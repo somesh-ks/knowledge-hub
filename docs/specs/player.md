@@ -22,21 +22,21 @@ What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D
 - The speed button reads a fixed five characters ("1.00x") so its label does not slide.
 - The speed opens a slider from 0.5x to 2x in steps of 0.05, in a modal dialog (under the pill on a phone, above it with a mouse), with presets 1x, 1.25x, 1.5x and 2x. Any step is remembered; Preferences has a Default speed row (D193).
 - The desktop bar's line has a notch at the playhead. Timeline markers are one small dot per story.
-- The scrubber's time bubble and the bar's times hold still while the slider moves: each sits over a hidden copy of the widest time it can show, and the bubble moves in whole device pixels.
+- Under the scrubber: time played left, the length right, never a minus (D350). The bubble and the bar's times hold still: each sits over a hidden copy of its widest time; the bubble snaps to whole pixels.
 - Space plays and pauses on briefing and episode pages once the bar is there, unless focus is in a field, menu, dialog or slider (`playerKeys.ts`, D126); the hero's three-dots menu does not take focus when it closes from a tap elsewhere (`heroMenu.ts`). The first Play on a page with no audio starts by itself.
 - The player's two views (below) are a tablist. The podcast page's section tabs at every width (D343), sticking under the status bar below 64rem. Switching keeps the scroll position.
 
 ### Stories and transcript
-- The Stories view merges the chapters and the transcript. The story being read is open: its transcript (headline in its row, the host's words under it) shows with the same follow and word light as an episode's. Every other story is a chapter row that starts it when tapped.  A recording whose narration is not laid out yet shows its script whole (`StoryList`, `core/storyTranscript.ts`).
+- The Stories view merges the chapters and the transcript. The story being read is open: its transcript (headline in its row, the host's words under it) shows with the same follow and word light as an episode's. Every other story is a chapter row that starts it when tapped. Unlaid-out narration shows its script whole (`StoryList`, `core/storyTranscript.ts`).
 - A briefing's transcript is what the host says of each story (from the digest's spoken version).
 - Stories are timed rows that start the story; a story lasts until the next starts (D346); previous and next step between them (D85, D90). The rundown before story 1 is no story: Next goes to story 1, Previous to 0:00. A move made with the controls never scrolls the page (D92).
 - The transcript is a plain reading column with one Tab stop: said words in full ink, the rest muted, the spoken word on a soft fill, from Speechify's word marks, with an estimate where a segment has none. "Back to now" is drawn over the whole list.
 
 ### Queue and Up next (D126)
 - A play queue of ids (`singularity:queue` in localStorage, `core/playQueue.ts`) takes items from the Library menu's Add to queue (`singularity:queue-add`). When an item ends the first queued one starts. Rows (`QueueList`, `QueueRow`) reorder by the two-bar handle at their end (a finger or a mouse; Up and Down on it), and a swipe to either side, or Delete on the handle, removes one, the row sliding over a red strip (D346).
-- The playing item heads Up next and nothing sits above it (D346); what played is kept (`singularity:queue-played`, 30 at most) but not listed. A tap on any row plays it in place with no page move and the bar stays up (D277). The next three queued items with finished audio have their first 512 KB fetched at idle.
-- Scenario: WHEN the listener taps the third queued item THEN it plays at once, the page does not move, the bar never hides, and it heads the list alone.
-- Up next is the second view of the player's list, on a phone and on a wide screen (it stays selected when the item changes): the queue, or the next older item when the queue is empty. There is no peek strip and no pull-up queue sheet.
+- The playing item heads Up next and nothing sits above it (D346); dragged lower it plays on, skipping the rows it passed (D349). What played is kept (`singularity:queue-played`, 30 at most) but not listed. A tap on any row plays it in place with no page move and the bar stays up (D277). The next three queued items with finished audio have their first 512 KB fetched at idle.
+- Scenario: WHEN the listener taps the third queued item THEN it plays at once with no page move or hidden bar, and heads the list alone.
+- Up next is the player list's second view at every width (it stays selected when the item changes): the queue, or the next older item when the queue is empty. There is no peek strip and no pull-up queue sheet.
 - Scenario: WHEN a recording has ended and there is something to offer THEN the view turns to Up next; the listener can go back to Stories. With Podcast autoplay on (the default) the first suggested item starts by itself when the queue is empty (#334; D126 meant the queue only). Suggested sits under the queue and stays: one added leaves it and the list refills.
 
 ### Failure and memory

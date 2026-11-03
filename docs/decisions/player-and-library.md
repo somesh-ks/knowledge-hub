@@ -405,3 +405,18 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Cost: a story's length now includes the untagged turns after it; one revisited later is not cut into two chapters. Not seen on production data: the screenshot did not reach this thread.
 - Amends: D343 (the whole row turning red), D277 (played items listed above the playing one).
 
+
+## D349: The playing row drags like any queued row; let go lower, it plays on and what it passed is skipped
+
+- Date: 2026-11-03 (owner: "I cannt seem to reorder podcasts with currently playing podcast ... sometimes it triggers the page scroll instead"; on the card he chose "Keeps playing where dropped")
+- Decision: the playing row is row 0 of the queue list (`QueueList` `lead`), with a real handle. Let go lower, it plays on and the queued rows it passed are skipped (`PlayQueue.skip`): they join what played and leave the list, so it heads Up next again. Down on its focused handle skips one. A queued row lifted to the top stops under it. The playing row keeps the swipe and the ⋮ of any row.
+- Why: its handle only marked it (`pointer-events: none`), so a press there fell through to the page and scrolled it.
+- Rejected: the next row starts and the moved one waits; a playing row that cannot move.
+- Amends: D346 (the playing row's handle only marks it).
+
+## D350: The player's clocks read forward: time played, then the length
+
+- Date: 2026-11-03 (owner: "progress time on left, total time on right. eg. 3:02 is the played time so far, 5:03 is the total length. avoid negative values to be shown")
+- Decision: under the open player's scrubber the left clock is the time played and the right one the recording's whole length; no clock in the player shows time to go with a minus. The bar already read "0:02 / 0:36".
+- Why: "-2:10" on the right read as a random number next to the bar's "played / length".
+- Amends: D85 (the page's "-2:10").

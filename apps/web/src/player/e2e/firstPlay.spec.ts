@@ -184,6 +184,16 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     const left = center(await player.boxOf(row("2026-10-05")));
     await finger.drag(line(left, { x: left.x - 300, y: left.y }, 6), 12);
     await expect.poll(queue).toBe('["ep-20261006-0900"]');
+    // The playing row's grip lifts it too (owner, 2026-11-03: a press there scrolled the page). Let go
+    // under the row below, it plays on at the head and the row it passed is skipped (D349).
+    const lead = player.dialog.locator('[data-state="current"]');
+    const leadId = await lead.getAttribute("data-queue-id");
+    const from = center(await player.boxOf(lead.locator(".player-queue-grip")));
+    const under = center(await player.boxOf(grip("ep-20261006-0900")));
+    await finger.drag(line(from, { x: from.x, y: under.y + 20 }, 12), 24);
+    await expect.poll(queue).toBeNull();
+    await expect(lead).toHaveAttribute("data-queue-id", leadId ?? "");
+    await expect(player.root).toHaveAttribute("data-player-state", "playing");
     // The row that plays is swiped away the same way: it leaves the list, and the audio plays on.
     const playing = player.dialog.locator('[data-state="current"] .player-queue-row');
     const here = center(await player.boxOf(playing));
@@ -303,9 +313,10 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     // Nothing sits above the playing row (owner, 2026-11-03): it heads the list, and what was passed is
     // not listed. The queue the list reads from holds nothing more to come.
     await expect(player.dialog.locator('[data-state="played"]')).toHaveCount(0);
-    await expect(
-      player.dialog.getByRole("list", { name: "Playing" }).locator("[data-queue-id]"),
-    ).toHaveAttribute("data-queue-id", "2026-10-05");
+    await expect(player.dialog.locator("[data-queue-id]").first()).toHaveAttribute(
+      "data-state",
+      "current",
+    );
     expect(await page.evaluate(() => localStorage.getItem("singularity:queue"))).toBeNull();
   });
 });

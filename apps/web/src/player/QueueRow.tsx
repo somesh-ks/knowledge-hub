@@ -18,13 +18,18 @@ export interface QueueGestures {
   onGripKey(event: KeyboardEvent<HTMLElement>, index: number): void;
   /** True just after a swipe, so the row's click does not play what the finger meant to move. */
   swiped(): boolean;
-  onMove(index: number, to: number, title: string): void;
+  onMove(index: number, to: number): void;
 }
 
 interface QueueRowProps {
   id: string;
+  /** Its place in the list, the playing row included, as the gestures count it. */
   index: number;
+  /** Its place among the queued items, which is what it is called by (-1 for the playing one). */
+  place: number;
   count: number;
+  /** The item playing now, at the list's head (D346). */
+  playing?: boolean;
   gestures: QueueGestures;
 }
 
@@ -46,15 +51,21 @@ export function QueueDeleteMark() {
  * are its handle (owner, 2026-11-02, after D169's dots): a press on them lifts the row to a new
  * place, with a finger or a mouse, and Up and Down move it from the keyboard, Delete takes it off;
  * a swipe to either side takes it off too. A mouse also gets a ⋮ on hover (owner, 2026-11-03) with
- * the row's other actions; a phone never draws it (player.css).
+ * the row's other actions; a phone never draws it (player.css). The playing row is moved the same
+ * way (D349): its Down key and a drop lower skip what it passes.
  */
-export default function QueueRow({ id, index, count, gestures }: QueueRowProps) {
+export default function QueueRow({ id, index, place, count, playing, gestures }: QueueRowProps) {
   const meta = useQueueMeta(id);
   const title = meta?.title ?? longDateFromDigestId(id);
+  const name = playing
+    ? `Move ${title}, playing now. The Down arrow skips the one after it, Delete removes it`
+    : `Move ${title}, ${place + 1} of ${count}. Up and Down arrows move it, Delete removes it`;
   return (
     <li
       className="player-queue-item"
       data-queue-id={id}
+      data-state={playing ? "current" : undefined}
+      aria-current={playing ? "true" : undefined}
       onPointerDown={(event) => gestures.onPointerDown(event, index)}
       onPointerMove={gestures.onPointerMove}
       onPointerUp={gestures.onPointerEnd}
@@ -81,7 +92,7 @@ export default function QueueRow({ id, index, count, gestures }: QueueRowProps) 
         <button
           className="icon-btn player-queue-grip"
           type="button"
-          aria-label={`Move ${title}, ${index + 1} of ${count}. Up and Down arrows move it, Delete removes it`}
+          aria-label={name}
           onPointerDown={(event) => gestures.onGripDown(event, index)}
           onPointerMove={gestures.onGripMove}
           onPointerUp={gestures.onGripEnd}

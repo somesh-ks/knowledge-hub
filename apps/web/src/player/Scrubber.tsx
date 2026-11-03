@@ -263,7 +263,9 @@ export default function Scrubber() {
       </div>
       <div className="scrubber-times" aria-hidden="true">
         <Clock seconds={second} />
-        <Clock seconds={Math.max(0, duration - second)} negative />
+        {/* Played so far on the left, the whole length on the right; never a time to go with a minus
+            (owner, 2026-11-03, D350). */}
+        <Clock seconds={duration} />
       </div>
     </div>
   );

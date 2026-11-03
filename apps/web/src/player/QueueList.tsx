@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { announce } from "./core/announcerDom";
 import { TAP_SLOP_PX } from "./core/gestureMath";
 import { getPlayQueue } from "./core/playerRuntime";
@@ -8,6 +8,9 @@ import { useRowSwipe } from "./useRowSwipe";
 /** The edge of the scrolling column, within which a lifted row scrolls it, and the most it scrolls a frame. */
 const EDGE_PX = 56;
 const EDGE_MAX_STEP_PX = 14;
+
+/** The item last shown as playing, kept across the view's mounts: a new one is what moves the list. */
+let lastLead: string | null = null;
 
 /** A row lifted by its grip: where it began, and what it passes over. */
 interface Lift {
@@ -45,11 +48,42 @@ function scrollParent(node: HTMLElement): HTMLElement | null {
  * tap slop it follows the finger, and on release the shared rule (lib/swipeAway.ts) says whether a
  * swipe to either side takes the row off or it springs back. The dots' menu and the grip's Up and
  * Down keys do the same with the keyboard and say where the row went.
+ *
+ * The item playing now heads the list as row 0 (`lead`, D346) and is lifted the same way (owner,
+ * 2026-11-03): let go lower, it plays on and the rows it passed are skipped (D349), so it heads the
+ * list again. Nothing is put above it: a queued row lifted to the top stops under it.
  */
-export default function QueueList({ ids }: { ids: readonly string[] }) {
+export default function QueueList({ ids, lead }: { ids: readonly string[]; lead?: string | null }) {
   const listRef = useRef<HTMLUListElement>(null);
   const swipe = useRowSwipe();
   const lift = useRef<Lift | null>(null);
+  /** Every row in the list's order: the playing one first, when it is shown. */
+  const all = lead ? [lead, ...ids] : [...ids];
+  /** The first place a queued row may take: under the playing row, when it is shown. */
+  const top = lead ? 1 : 0;
+  // The list moves to the item that has just begun, so it does not stay scrolled below it. Not on
+  // opening the view: switching tabs keeps the page where it was (owner, 2026-11-02).
+  useEffect(() => {
+    if (lead && lastLead !== lead && lastLead !== null)
+      listRef.current
+        ?.querySelector<HTMLElement>('[data-state="current"]')
+        ?.scrollIntoView({ block: "start" });
+    if (lead) lastLead = lead;
+  }, [lead]);
+
+  /** Puts row `from` at place `to`, both counted in `all`, and says where it went. */
+  const put = (from: number, to: number): void => {
+    if (lead && from === 0) {
+      // The playing row let go lower: it plays on, and what it passed is skipped.
+      getPlayQueue().skip(to);
+      announce(to === 1 ? "Skipped 1 podcast" : `Skipped ${to} podcasts`);
+      return;
+    }
+    const at = Math.max(top, to);
+    getPlayQueue().move(from - top, at - top);
+    const title = rows()[from]?.querySelector(".player-upnext-date")?.textContent ?? "";
+    announce(`${title}, ${at - top + 1} of ${ids.length}`);
+  };
 
   const rows = (): HTMLElement[] => [
     ...(listRef.current?.querySelectorAll<HTMLElement>(".player-queue-item") ?? []),
@@ -62,7 +96,8 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
     // The place it would take is the number of rows whose centre it has passed.
     let to = current.from;
     current.centres.forEach((centre, index) => {
-      if (index < current.from && at < centre) to = Math.min(to, index);
+      // Nothing goes above the playing row.
+      if (index < current.from && index >= top && at < centre) to = Math.min(to, index);
       if (index > current.from && at > centre) to = Math.max(to, index);
     });
     current.to = to;
@@ -105,6 +140,7 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
     current.frame = requestAnimationFrame(() => autoScroll(current));
   };
 
+  const putRow = put;
   const endLift = (put: boolean): void => {
     const current = lift.current;
     if (!current) return;
@@ -122,11 +158,9 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
       row.removeAttribute("data-dragging");
     }
     if (put && current.to !== current.from) {
-      getPlayQueue().move(current.from, current.to);
-      const title = current.row.querySelector(".player-upnext-date")?.textContent ?? "";
-      announce(`${title}, ${current.to + 1} of ${ids.length}`);
+      putRow(current.from, current.to);
       // The row's elements are kept and moved, but a moved node can lose focus: give it back.
-      const id = ids[current.from];
+      const id = all[current.from];
       requestAnimationFrame(() => {
         listRef.current
           ?.querySelector<HTMLElement>(`[data-queue-id="${id}"] .player-queue-grip`)
@@ -137,7 +171,7 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
   };
 
   const gestures: QueueGestures = {
-    onPointerDown: (event, index) => swipe.onPointerDown(event, ids[index] ?? ""),
+    onPointerDown: (event, index) => swipe.onPointerDown(event, all[index] ?? ""),
     onPointerMove: swipe.onPointerMove,
     onPointerEnd: swipe.onPointerEnd,
     swiped: swipe.swiped,
@@ -189,21 +223,19 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
     onGripKey(event, index) {
       if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
-        const id = ids[index];
+        const id = all[index];
         if (id) getPlayQueue().remove(id);
         return;
       }
       const to = { ArrowUp: index - 1, ArrowDown: index + 1 }[event.key];
       if (to === undefined) return;
       event.preventDefault();
-      const title = rows()[index]?.querySelector(".player-upnext-date")?.textContent ?? "";
-      gestures.onMove(index, to, title);
+      gestures.onMove(index, to);
     },
-    onMove(index, to, title) {
-      if (to < 0 || to >= ids.length) return;
-      const id = ids[index];
-      getPlayQueue().move(index, to);
-      announce(`${title}, ${to + 1} of ${ids.length}`);
+    onMove(index, to) {
+      if (to < top || to >= all.length || (lead && index === 0 && to < 1)) return;
+      const id = all[index];
+      put(index, to);
       // The row's elements are kept and moved, but a moved node can lose focus: give it back.
       requestAnimationFrame(() => {
         listRef.current
@@ -215,8 +247,16 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
 
   return (
     <ul className="player-queue-list" ref={listRef}>
-      {ids.map((id, index) => (
-        <QueueRow key={id} id={id} index={index} count={ids.length} gestures={gestures} />
+      {all.map((id, index) => (
+        <QueueRow
+          key={id}
+          id={id}
+          index={index}
+          place={index - top}
+          count={ids.length}
+          playing={lead !== undefined && lead !== null && index === 0}
+          gestures={gestures}
+        />
       ))}
     </ul>
   );

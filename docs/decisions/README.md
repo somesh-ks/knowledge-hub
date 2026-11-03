@@ -201,6 +201,8 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D343 | Podcast-page tabs, two-bar queue handle, swipe both ways, phone bar swipes podcasts | amends D169, D277; amended by D346 |
 | D344 | The app no longer edits the podcast structure; Preferences holds autoplay and the default speed | partly supersedes D170, D182, D191; amends D335 |
 | D345 | Create's More options is a closed accordion at every width | amends D76 |
-| D346 | Swipe-to-delete is a red strip behind the row; the playing row heads Up next; a story's time runs to the next story | amends D343, D277 |
+| D346 | Swipe-to-delete is a red strip behind the row; the playing row heads Up next; a story's time runs to the next story | amends D343, D277; amended by D349 |
+| D349 | The playing row drags; let go lower it plays on and the rows it passed are skipped | amends D346 |
+| D350 | The player's clocks read forward: time played, then the length | amends D85 |
 
 ---

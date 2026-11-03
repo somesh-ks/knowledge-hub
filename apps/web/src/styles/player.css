@@ -2608,7 +2608,7 @@
     display: inline-flex;
   }
 
-  .player-queue-grip:not([data-still]) {
+  .player-queue-grip {
     cursor: move;
   }
 
@@ -2642,12 +2642,6 @@
 
 .player-queue-item[data-dragging] .player-queue-grip {
   cursor: grabbing;
-}
-
-/* The playing row's two bars only mark where the handle would stand. */
-.player-queue-grip[data-still] {
-  cursor: default;
-  pointer-events: none;
 }
 
 /* Suggested (2026-10-26): with nothing queued, Up next lists what Autoplay would play, in the
