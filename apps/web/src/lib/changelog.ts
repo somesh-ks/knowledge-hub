@@ -1,6 +1,6 @@
 /**
  * The app's change log, shown on its own Settings page. Add a version at the top: a number, the day it
- * landed (YYYY-MM-DD) and one or two plain sentences on what changed for the listener. The newest
+ * landed (YYYY-MM-DD, UTC) and one or two plain sentences on what changed for the listener. The newest
  * version is the app's version everywhere it is shown. The record behind each is in docs/history/.
  *
  * Numbering (2026-10-22): a new feature a listener can use raises the minor number (0.8 to 0.9); fixes

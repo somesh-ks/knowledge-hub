@@ -201,9 +201,11 @@ export function checkChangelog({ source, title, today }) {
   const newest = newestChangelogDate(source);
   if (!newest) return ["apps/web/src/lib/changelog.ts: no entry with a date"];
   const age = Math.round((Date.parse(today) - Date.parse(newest)) / 86_400_000);
-  if (age < 0)
+  // Authors date entries in UTC (the header of changelog.ts says so); one day of slack covers a local
+  // date that is already tomorrow in UTC, a typo further ahead fails.
+  if (age < -1)
     return [
-      `apps/web/src/lib/changelog.ts: the newest entry is dated ${newest}, after today (${today})`,
+      `apps/web/src/lib/changelog.ts: the newest entry is dated ${newest}, after today (${today}, UTC)`,
     ];
   if (age <= CHANGELOG_MAX_AGE_DAYS) return [];
   return [
@@ -213,7 +215,7 @@ export function checkChangelog({ source, title, today }) {
   ];
 }
 
-function pullRequestTitle(env) {
+export function pullRequestTitle(env) {
   if (env.PR_TITLE) return env.PR_TITLE;
   if (!env.GITHUB_EVENT_PATH || !existsSync(env.GITHUB_EVENT_PATH)) return "";
   try {

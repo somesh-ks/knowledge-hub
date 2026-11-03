@@ -10,3 +10,4 @@ export declare function checkChangelog(input: {
   title: string;
   today: string;
 }): string[];
+export declare function pullRequestTitle(env: Record<string, string | undefined>): string;
