@@ -108,8 +108,9 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await player.dialog.getByRole("tab", { name: "Stories" }).click();
     await expect(transcript.locator("[data-turn]")).toHaveCount(1);
     await page.reload();
-    await player.play();
-    await player.openPlayer();
+    // The reload brings the tab back with the player open, paused (sessionRestore.ts).
+    await expect(player.dialog).toBeVisible();
+    await player.finger.press(player.dialog.getByRole("button", { name: "Play", exact: true }));
     await player.scrubber.focus();
     await page.keyboard.press("End");
     await expect.poll(() => nowPlaying(page), { timeout: 10_000 }).toBe(SITE.earlier);
@@ -149,8 +150,9 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await expect.poll(queue).toBe('["ep-20261007-1930","2026-10-05","ep-20261006-0900"]');
     await page.reload();
     expect(await queue()).toBe('["ep-20261007-1930","2026-10-05","ep-20261006-0900"]');
-    await player.play();
-    await player.openPlayer();
+    // The reload brings the tab back with the player open, paused (sessionRestore.ts).
+    await expect(player.dialog).toBeVisible();
+    await player.finger.press(player.dialog.getByRole("button", { name: "Play", exact: true }));
     await player.dialog.getByRole("tab", { name: "Up next" }).click();
     // A swipe to the right and one to the left each take their row off.
     await player.sheet.evaluate((element) => {

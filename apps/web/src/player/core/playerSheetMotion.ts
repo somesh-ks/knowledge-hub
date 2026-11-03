@@ -2,6 +2,7 @@ import { playUiCue } from "../sound/soundController";
 import { cueForSheet } from "../sound/soundMap";
 import { INERT_MARKER } from "./modalScope";
 import { setRootAttribute } from "./rootAttributes";
+import { takeQuietOpen } from "./sessionRestore";
 import { createSurfaceController, type SurfaceController } from "./sheetController";
 import { createSurfaceView } from "./surfaceView";
 
@@ -30,7 +31,9 @@ export function createPlayerSheet(): SurfaceController {
     releaseBounce: () => readToken("--spring-release-bounce", 0),
     setRootAttribute,
     // A cue at the moment of commit: the pull that springs back is not a commit and stays silent.
-    onCommitOpen: () => playUiCue(cueForSheet(true)),
+    onCommitOpen: () => {
+      if (!takeQuietOpen()) playUiCue(cueForSheet(true));
+    },
     onCommitClose: () => playUiCue(cueForSheet(false)),
   });
 

@@ -26,7 +26,7 @@ Ledger section 3, one surface. Read [the core](../design-engineering-ledger.md) 
   - Light mode was "coloured but still faint", so the tint was remapped (0.6 light, 0.32 dark) rather than dropped (D77). The contrast proof loops every palette in both themes; the worst text is 4.78:1.
   - The field bleeds past the gutters by `min(space-12, gutter)` so the phone app bar never clips it, and hero chips sit on the surface colour (`ambient.css:32`).
   - Cost: 317 B gzip eager, 2 KB lazy on idle.
-- **The playing cover's light** (D123): "Light animation of album art when playing". The cover, blurred, glows behind the open player's cover while it plays, fades on pause, breathes on 4.2 s; still under reduced motion.
+- **The playing cover's light** (D123): "Light animation of album art when playing". The cover, blurred, glows behind the open player's cover while it plays, fades on pause, breathes on 4.2 s; still under reduced motion. It is the open page's alone: pulled or closed, it goes out quickly and never lights again on the way down (owner, 2026-11-03: a patch of it showed behind the bar).
 - **Launch screen** (D123): "Flash screen design animation for pwa - dark & light". Installed app only; the ringed dot sends out two rings and lifts away in about 0.9 s.
 - **Android bars** (D123): no manifest colours, so the navigation and status bars follow the system theme; a light theme_color had frozen a white bar that hid the buttons.
 - **Covers.**

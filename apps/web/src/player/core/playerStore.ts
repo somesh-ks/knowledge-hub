@@ -683,6 +683,13 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     publishTime("load", true);
   }
 
+  function restore(digest: PlayerDigestData): void {
+    if (disposed || state.hasStarted || !digest.audio) return;
+    load(digest);
+    // Paused, not idle: an idle track follows the page it is on (setPageDigest), a paused one stays.
+    commit({ status: "paused", hasStarted: true });
+  }
+
   function setPageDigest(digest: PlayerDigestData | null): void {
     if (disposed) return;
     pageDigest = digest;
@@ -1000,6 +1007,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     getPageDigest: () => pageDigest,
     setPageDigest,
     load,
+    restore,
     play,
     pause,
     toggle,
