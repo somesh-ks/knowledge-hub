@@ -19,7 +19,7 @@ function apply(host: HTMLElement): void {
     const slot = SLOTS[index % SLOTS.length];
     host.style.setProperty(
       `--ambient-${slot}-${dark ? "d" : "l"}`,
-      restyleHex(root.dataset.style, hex, centre, dark ? "dark" : "light", shift),
+      restyleHex(root.dataset.mood, hex, centre, dark ? "dark" : "light", shift),
     );
   });
 }
@@ -36,7 +36,7 @@ export function watchAmbientStyle(host: HTMLElement): void {
   const observer = new MutationObserver(() => apply(host));
   observer.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ["data-style", "style"],
+    attributeFilter: ["data-mood", "style"],
   });
   watching = { host, observer };
 }

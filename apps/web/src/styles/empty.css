@@ -334,11 +334,11 @@ main > .empty {
 }
 
 @media (forced-colors: none) {
-  :root[data-style="halloween"] .empty-art[data-look="halloween"] {
+  :root[data-mood="halloween"] .empty-art[data-look="halloween"] {
     display: block;
   }
 
-  :root[data-style="halloween"] .empty-art:not([data-look]) {
+  :root[data-mood="halloween"] .empty-art:not([data-look]) {
     display: none;
   }
 }
@@ -555,7 +555,7 @@ main > .empty {
    states", the owner, 2026-11-01). Each loop is slow and small: it breathes, it does not play. The
    timings are local properties so the duration rule reads them as tokens. */
 @media (prefers-reduced-motion: no-preference) {
-  :root[data-style="halloween"] .empty-art[data-look="halloween"] {
+  :root[data-mood="halloween"] .empty-art[data-look="halloween"] {
     --scene-breath: 4.6s;
     --scene-bob: 5.2s;
     --scene-flicker: 2.3s;
@@ -564,7 +564,7 @@ main > .empty {
     --scene-sway: 6s;
   }
 
-  :root[data-style="halloween"]
+  :root[data-mood="halloween"]
     .empty-art[data-look="halloween"]
     :is(.a-breathe, .a-flicker, .a-twinkle, .a-bob, .a-float, .a-sway, .a-rise > *, .a-flame) {
     transform-box: fill-box;
@@ -574,61 +574,61 @@ main > .empty {
     animation-direction: alternate;
   }
 
-  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-breathe {
+  :root[data-mood="halloween"] .empty-art[data-look="halloween"] .a-breathe {
     animation-name: scene-breathe;
     animation-duration: var(--scene-breath);
   }
 
-  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-flicker {
+  :root[data-mood="halloween"] .empty-art[data-look="halloween"] .a-flicker {
     animation-name: scene-flicker;
     animation-duration: var(--scene-flicker);
   }
 
-  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-flame {
+  :root[data-mood="halloween"] .empty-art[data-look="halloween"] .a-flame {
     animation-name: scene-flame;
     animation-duration: var(--scene-flicker);
     transform-origin: 50% 100%;
   }
 
-  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-twinkle {
+  :root[data-mood="halloween"] .empty-art[data-look="halloween"] .a-twinkle {
     animation-name: scene-twinkle;
     animation-duration: var(--scene-twinkle);
   }
 
-  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-bob {
+  :root[data-mood="halloween"] .empty-art[data-look="halloween"] .a-bob {
     animation-name: scene-bob;
     animation-duration: var(--scene-bob);
   }
 
-  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-float {
+  :root[data-mood="halloween"] .empty-art[data-look="halloween"] .a-float {
     animation-name: scene-float;
     animation-duration: var(--scene-bob);
   }
 
-  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-sway {
+  :root[data-mood="halloween"] .empty-art[data-look="halloween"] .a-sway {
     animation-name: scene-sway;
     animation-duration: var(--scene-sway);
     transform-origin: 50% 0;
   }
 
-  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-rise > * {
+  :root[data-mood="halloween"] .empty-art[data-look="halloween"] .a-rise > * {
     animation-name: scene-rise;
     animation-duration: var(--scene-rise);
   }
 
-  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-rise > :nth-child(2) {
+  :root[data-mood="halloween"] .empty-art[data-look="halloween"] .a-rise > :nth-child(2) {
     animation-delay: -1.1s;
   }
 
-  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-rise > :nth-child(3) {
+  :root[data-mood="halloween"] .empty-art[data-look="halloween"] .a-rise > :nth-child(3) {
     animation-delay: -2.2s;
   }
 
-  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-rise > :nth-child(4) {
+  :root[data-mood="halloween"] .empty-art[data-look="halloween"] .a-rise > :nth-child(4) {
     animation-delay: -0.6s;
   }
 
-  :root[data-style="halloween"] .empty-art[data-look="halloween"] .a-rise > :nth-child(5) {
+  :root[data-mood="halloween"] .empty-art[data-look="halloween"] .a-rise > :nth-child(5) {
     animation-delay: -1.7s;
   }
 

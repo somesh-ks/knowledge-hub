@@ -303,7 +303,7 @@
  * to `k7` for fills and `s0` to `s7` for strokes, each carrying its numbers for both themes as custom
  * properties on the svg (`--k0` the hex, `--l0 --x0 --h0` its lightness, chroma and hue; the `d`
  * variants are the dark theme's; `--ctr` is the month's hue centre, `--gl` the ground's lightness).
- * Default paints the hex. A style (`[data-style]`) recolours every slot by the formula below from its
+ * Default paints the hex. A style (`[data-mood]`) recolours every slot by the formula below from its
  * `--cover-*` numbers in tokens.css, so a new style, or a reader's `--hue-shift`, recolours every cover
  * on the page at once with no file drawn. `packages/cover/src/style.ts` holds the same formula in code
  * (for the rasters of the lock screen and the share card); its tests pin the numbers in tokens.css,
@@ -516,7 +516,7 @@
 }
 
 @supports (width: mod(5px, 2px)) and (color: oklch(from red l c h)) {
-  :root[data-style] .cover-art :is(.k, .s) {
+  :root[data-mood] .cover-art :is(.k, .s) {
     --anchor: calc(var(--cover-hue) + var(--hue-shift, 0));
     --lf: calc(
       var(--pl) *
@@ -557,7 +557,7 @@
 
   /* Type and figures keep the lightness gap they had to the ground, times the style's `hold` (a bit
      over 1), so they read as before. */
-  :root[data-style] .cover-art .h {
+  :root[data-mood] .cover-art .h {
     --gf: calc(
       var(--pg) *
       (1 - var(--cover-flip)) +

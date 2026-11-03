@@ -20,12 +20,16 @@ describe("tokens.css holds each style's cover numbers", () => {
     throw new Error(`tokens.css has no --cover-${property} for ${style}`);
   };
   const read = (style: string, property: string): number =>
-    readIn(new RegExp(`:root\\[data-style="${style}"\\] \\{([^}]*)\\}`, "g"), style, property);
+    readIn(
+      new RegExp(`:root\\[data-(?:style|mood)="${style}"\\] \\{([^}]*)\\}`, "g"),
+      style,
+      property,
+    );
   // A style's dark bounds are written twice: for the system theme and for a reader's chosen dark.
   const readDark = (style: string, property: string, chosen: boolean): number =>
     readIn(
       new RegExp(
-        `${chosen ? ':root\\[data-theme="dark"\\]' : ':root:not\\(\\[data-theme="light"\\]\\)'}\\[data-style="${style}"\\] \\{([^}]*)\\}`,
+        `${chosen ? ':root\\[data-theme="dark"\\]' : ':root:not\\(\\[data-theme="light"\\]\\)'}\\[data-(?:style|mood)="${style}"\\] \\{([^}]*)\\}`,
         "g",
       ),
       style,

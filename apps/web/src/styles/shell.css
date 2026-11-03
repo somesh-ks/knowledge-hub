@@ -870,7 +870,7 @@ html[data-nav-arrived] .app-nav-item:not([aria-current="page"]) .app-nav-indicat
   transform: scaleX(-1);
 }
 
-:root[data-style="halloween"] .cobweb {
+:root[data-mood="halloween"] .cobweb {
   display: block;
 }
 
@@ -882,7 +882,7 @@ html[data-nav-arrived] .app-nav-item:not([aria-current="page"]) .app-nav-indicat
 }
 
 @media (forced-colors: active), print {
-  :root[data-style="halloween"] .cobweb {
+  :root[data-mood="halloween"] .cobweb {
     display: none;
   }
 }
