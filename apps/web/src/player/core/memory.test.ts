@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cardProgress } from "./cardProgress";
+import { cardProgress, isPlayed } from "./cardProgress";
 import {
   createHeardTracker,
   fabLabel,
@@ -112,7 +112,7 @@ describe("a failed story", () => {
 });
 
 describe("a podcast without audio, from its page's estimate", () => {
-  it("offers the time left, Played, or its length", () => {
+  it("offers the time left or its length", () => {
     expect(rememberedChip({ seconds: 60, played: false, heard: [] }, 180, "podcast")).toEqual({
       state: "idle",
       playing: false,
@@ -120,7 +120,7 @@ describe("a podcast without audio, from its page's estimate", () => {
       name: "Resume the podcast, 2 min left",
     });
     expect(rememberedChip({ seconds: 0, played: true, heard: [] }, 180, "podcast").label).toBe(
-      "Played",
+      "3 min",
     );
     expect(rememberedChip(undefined, 180, "podcast")).toEqual(idleBriefingChip("3 min"));
   });
@@ -133,7 +133,7 @@ describe("the floating Play button", () => {
       fabLabel(rememberedChip({ seconds: 120, played: false, heard: [] }, 180, "podcast")),
     ).toBe("Resume · 1 min left");
     expect(fabLabel(rememberedChip({ seconds: 0, played: true, heard: [] }, 180, "podcast"))).toBe(
-      "Played",
+      "Play · 3 min",
     );
   });
 });
@@ -145,6 +145,12 @@ describe("a card's progress", () => {
   it("shows no bar for a finished card or when nothing is remembered", () => {
     expect(cardProgress({ seconds: 0, played: true, heard: [] }, 3)).toBe(0);
     expect(cardProgress({ seconds: 0, played: false, heard: [] }, 3)).toBe(0);
+  });
+  // Bug it prevents: a card heard to the end losing its green check, or keeping it when heard again.
+  it("marks a card Played when heard to the end and not begun again", () => {
+    expect(isPlayed({ seconds: 0, played: true, heard: [] })).toBe(true);
+    expect(isPlayed({ seconds: 40, played: true, heard: [] })).toBe(false);
+    expect(isPlayed({ seconds: 0, played: false, heard: [] })).toBe(false);
   });
   it("says nothing when the length is unknown", () => {
     expect(cardProgress({ seconds: 50, played: false, heard: [] }, Number.NaN)).toBe(0);
