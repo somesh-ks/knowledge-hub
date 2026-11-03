@@ -169,7 +169,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D302 | Pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked | active |
 | D306 | A seasonal style may change more than tokens | amends D268 |
 | D308 | Haiku writes the first pass of each story, Sonnet repairs and backs it up | amends D181; amended by D333 |
-| D309 | Player ⋮ menu: actions, speed screen, Save; Settings > Saved | amends D105, D127; supersedes D50's speed control |
+| D309 | Player ⋮ menu: actions, speed screen, Save; Settings > Saved | amends D105, D127; supersedes D50's speed control; amended by D338 |
 | D310 | Expressive is loud: a violet world, larger controls | amends D268 |
 | D311 | D300 amended: the config snapshot lives in a Neon table, not a private Blob store | supersedes D300 (snapshot clause) |
 | D314 | Album art follows the style, drawn live from the month's colours | amends D110, D121; fulfils D306 |
@@ -193,6 +193,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D334 | Every Claude step starts at Haiku medium, the podcast script included | amends D333 |
 | D336 | A cover no longer flies between its card and the page's hero | partly supersedes D271, D280; amended by D341 |
 | D337 | Regenerate sheets open on the comment; Length and Categories appear as words reach for them | amends D207, D323 |
+| D338 | Settings sets the default speed on the player's speed screen | amends D309 |
 | D339 | The engine and the site keep one Speechify count, in Blob; Exa gets a weekly stop | amends D300 |
 | D341 | A page arrives from the side of the tab you came from | partly supersedes D280; amends D336 |
 | D342 | A Firecrawl listing is read free first and scraped only when its links moved | relates to D222, D302 |
