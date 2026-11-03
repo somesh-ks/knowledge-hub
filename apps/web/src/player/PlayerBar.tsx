@@ -280,12 +280,16 @@ function useDockSwipe({ next, previous, shownId }: DockSwipeTargets) {
     // Not before the slide has landed, however fast the podcast came.
     const wait = Math.max(0, DOCK_SLIDE_MS - (performance.now() - pending.since));
     window.setTimeout(() => {
-      settling.current = false;
       target.dataset.swiping = "";
       target.style.removeProperty("--dock-swipe");
       delete target.dataset.swipeOut;
       setPeek(null);
-      requestAnimationFrame(() => requestAnimationFrame(() => delete target.dataset.swiping));
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          delete target.dataset.swiping;
+          settling.current = false;
+        }),
+      );
     }, wait);
   }, []);
   useEffect(() => {
