@@ -233,6 +233,15 @@
   color: var(--color-accent-pressed);
 }
 
+/* Under a finger the browser holds :active through the tap's click, so the tab the tap had just chosen
+   showed the chosen press step first and then eased to its own colour: another colour for a split
+   second (owner, 2026-11-03). A touch keeps the chosen state's own colour; the step stays for a pointer. */
+@media (hover: none) {
+  .tab:is([aria-current="true"], [aria-selected="true"]):active {
+    color: var(--color-accent);
+  }
+}
+
 /* Reduced motion: the indicator fades in at its full width instead of growing. */
 @media (prefers-reduced-motion: reduce) {
   .tab::after {
@@ -428,6 +437,13 @@
 
 .segmented-choice-item:has(input:checked):not(:has(input:disabled)):active {
   background-color: var(--color-accent-container-pressed);
+}
+
+/* A touch keeps the ticked fill: the tap's :active outlasts its click (see .tab, above). */
+@media (hover: none) {
+  .segmented-choice-item:has(input:checked):not(:has(input:disabled)):active {
+    background-color: var(--color-accent-container);
+  }
 }
 
 .segmented-choice-item:has(input:disabled) {
@@ -665,6 +681,13 @@
 /* The chosen tab's press steps the pill's own tone, not the track's. */
 .segmented-nav-tab[aria-selected="true"]:active::after {
   background: var(--color-accent-container-pressed);
+}
+
+/* A touch keeps the chosen pill's own tone: the tap's :active outlasts its click (see .tab, above). */
+@media (hover: none) {
+  .segmented-nav-tab[aria-selected="true"]:active::after {
+    background: transparent;
+  }
 }
 
 .segmented-nav-tab:focus-visible {
@@ -954,6 +977,14 @@
 
 .filter-chip:has(input:checked):not(:has(input:disabled)):active {
   background: var(--color-accent-container-pressed);
+}
+
+/* A touch keeps the ticked fill: the tap's :active outlasts its click, so a chip the tap had just
+   ticked showed the ticked press step first (see .tab, above). */
+@media (hover: none) {
+  .filter-chip:has(input:checked):not(:has(input:disabled)):active {
+    background: var(--color-accent-container);
+  }
 }
 
 @media (forced-colors: active) {

@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-11-03 | [The change log kept by CI](2026-11-03-change-log-kept-by-ci.md) | The log had stopped at 23 Oct; 0.10 to 0.19 backfilled and the docs check now fails a feat, fix or perf PR when the newest entry is over two days old (D355) |
 | 2026-11-03 | [Bottom tab double ripple](2026-11-03-bottom-tab-double-ripple.md) | A tab tap's second ripple was the carried wave redrawn behind on the new bar; deeper pages rise; tab moves take 250 ms (D347) |
 | 2026-11-03 | [Spend limits and the coverage reading](2026-11-03-spend-limits.md) | One Speechify count in Blob, a weekly Exa stop, a failed Regenerate's cost recorded, coverage printed to the log (D339) |
 | 2026-11-03 | [Regenerate hints and required comment](2026-11-03-regenerate-hints.md) | Regenerate opens on the comment, Length and Categories appear as words reach for them, the comment is required, the forms use the Create form's parts (D337, D340); the in-sheet notify switch was dropped |

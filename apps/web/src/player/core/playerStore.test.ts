@@ -235,6 +235,31 @@ describe("seeking and items", () => {
     expect(harness.storage.getItem(playedKey(digest.id))).toBeNull();
   });
 
+  // Owner, 2026-11-03: a reload dropped the track from the bar. A restored track is paused, so the
+  // page it lands on does not swap it for its own, and Play carries on from the kept place.
+  it("restores a track after a reload: on the bar, paused, kept against the page, played from the kept place", () => {
+    const harness = createHarness();
+    harness.storage.setItem(resumeKey("2026-10-07"), "42");
+    harness.store.setPageDigest(
+      makeDigest({ id: "2026-10-05", audio: { url: "/audio/old.mp3", duration_ms: 90_000 } }),
+    );
+    harness.store.restore(makeDigest());
+    expect(harness.store.getState()).toMatchObject({
+      digestId: "2026-10-07",
+      status: "paused",
+      hasStarted: true,
+    });
+    harness.store.setPageDigest(
+      makeDigest({ id: "2026-10-05", audio: { url: "/audio/old.mp3", duration_ms: 90_000 } }),
+    );
+    expect(harness.store.getState().digestId).toBe("2026-10-07");
+    expect(harness.audio.src).toBe("");
+    harness.store.play();
+    harness.audio.loadMetadata(120);
+    harness.audio.startPlaying();
+    expect(harness.audio.currentTime).toBeGreaterThanOrEqual(42);
+  });
+
   it("clamps seeks to the digest", () => {
     const harness = createHarness();
     startPlaying(harness);

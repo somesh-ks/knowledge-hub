@@ -49,7 +49,7 @@ export interface StyleOverride {
   dark?: TokenValue;
 }
 
-/** A named look, a set of token overrides applied under `data-style="<name>"` (D268). */
+/** A named look, a set of token overrides applied under `data-mood="<name>"` (D268). */
 export interface StyleDefinition {
   name: string;
   overrides: StyleOverride[];
@@ -675,7 +675,7 @@ function styleBlocks(style: StyleDefinition, doc: TokenDocument): string[] {
   };
   const light = lines((override) => override.value);
   const dark = lines((override) => override.dark);
-  const attr = `[data-style="${style.name}"]`;
+  const attr = `[data-mood="${style.name}"]`;
   const ramps = turnedRamps([...light, ...dark], doc);
   const out = [`/* Style: ${style.name} */`, `:root${attr} {`, ...light, ...ramps, "}", ""];
   if (dark.length > 0) {
@@ -754,7 +754,7 @@ export function coverStyleBlocks(
       `--cover-night-hue: ${night ? num(night.hue, "night.hue") : 0};`,
       `--cover-night-c: ${night ? num(night.chroma, "night.chroma") : 0};`,
     ];
-    const attr = `[data-style="${id}"]`;
+    const attr = `[data-mood="${id}"]`;
     out.push(
       `:root${attr} {`,
       ...lowerIndent(lines),
