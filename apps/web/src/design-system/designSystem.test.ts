@@ -143,8 +143,8 @@ describe("a menu drawn as a bottom sheet", () => {
   it("every one draws its header and its body", () => {
     const missing = drawing.flatMap(({ file, text }) => {
       const name = relative(join(SRC, "..", "..", ".."), file);
-      // A picker that is a dialog (the emoji picker) scrolls its own list; a menu wraps its rows.
-      const needsBody = !/role="dialog"/.test(text);
+      // The emoji picker scrolls its own grid; every other sheet menu wraps its rows.
+      const needsBody = !file.endsWith("EmojiPicker.astro");
       return [
         ...(HEADER.test(text) ? [] : [`${name}: no header (SheetHeader or sheetHeadHtml)`]),
         ...(!needsBody || BODY.test(text)
@@ -155,14 +155,25 @@ describe("a menu drawn as a bottom sheet", () => {
     expect(missing, "a sheet menu with no title and no Close, even over one row").toEqual([]);
   });
 
+  // shortcut: the search picker (scripts/picker.ts, the Create and Topics category picker) is a
+  // combobox popover of its own, not yet a DS part; fold it into Select and drop this entry.
+  const BUILT_OWN = ["scripts/picker.ts"];
+  // In a tag, a bare `popover` is auto too, and a script can set it.
+  const AUTO_POPOVER =
+    /<[A-Za-z][^<>]*\spopover(?:\s*=\s*(?:"(?:auto)?"|'(?:auto)?'|auto\b)|(?=[\s>/]))/;
+  const SET_AUTO_POPOVER = /setAttribute\(\s*(["'])popover\1\s*,\s*(["'])auto\2/;
+
   it("is the only popover and dialog a page opens", () => {
     // A hand-built panel is how the queue menu lost its header; every surface is a DS one.
     const stray = APPS.flatMap((root) => markupFiles(root)).flatMap((file) => {
       const text = readFileSync(file, "utf8");
       const name = relative(join(SRC, "..", "..", ".."), file);
-      const popover = /popover="auto"/.test(text) && !SHEET_MENU.test(text);
+      const popover =
+        (AUTO_POPOVER.test(text) || SET_AUTO_POPOVER.test(text)) &&
+        !/menuListClass\(/.test(text) &&
+        !BUILT_OWN.some((own) => file.endsWith(own));
       const dialog =
-        (/^\s*<dialog\b/m.test(text) || /createElement\(\s*"dialog"/.test(text)) &&
+        (/^\s*<dialog\b/m.test(text) || /createElement\(\s*(["'`])dialog\1/.test(text)) &&
         !/dialogClass\(|sheetHeadHtml\(|sheetHeadClass\(|<SheetHeader\b/.test(text);
       return [
         ...(popover ? [`${name}: an auto popover that is not menuListClass()`] : []),
