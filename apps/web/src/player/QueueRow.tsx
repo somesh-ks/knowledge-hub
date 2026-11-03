@@ -28,7 +28,11 @@ interface QueueRowProps {
   gestures: QueueGestures;
 }
 
-/** The bin that shows under a row being swiped away, on the side the row left (player.css). */
+/**
+ * The red strip behind a row being swiped away, with the bin on the side the row left (player.css).
+ * The row keeps its own look and slides over it (owner, 2026-11-03: "a red strip in the background,
+ * and not to change the row itself to turn red as I need visibility").
+ */
 export function QueueDeleteMark() {
   return (
     <span className="player-queue-delete" aria-hidden="true">
@@ -57,34 +61,36 @@ export default function QueueRow({ id, index, count, gestures }: QueueRowProps) 
       onPointerCancel={gestures.onPointerEnd}
     >
       <QueueDeleteMark />
-      <button
-        className="player-queue-row"
-        type="button"
-        onClick={() => {
-          if (!gestures.swiped()) playQueueItem(id);
-        }}
-      >
-        <span className="player-queue-thumb">
-          {meta ? <PlayerCover cover={meta.cover} weekly={meta.weekly} size="thumb" /> : null}
-        </span>
-        <span className="player-upnext-text">
-          <span className="player-upnext-date">{title}</span>
-          <span className="player-upnext-hint">{meta?.caption ?? " "}</span>
-        </span>
-      </button>
-      <QueueRowMenu id={id} title={title} />
-      <button
-        className="icon-btn player-queue-grip"
-        type="button"
-        aria-label={`Move ${title}, ${index + 1} of ${count}. Up and Down arrows move it, Delete removes it`}
-        onPointerDown={(event) => gestures.onGripDown(event, index)}
-        onPointerMove={gestures.onGripMove}
-        onPointerUp={gestures.onGripEnd}
-        onPointerCancel={gestures.onGripEnd}
-        onKeyDown={(event) => gestures.onGripKey(event, index)}
-      >
-        <Icon name="grip" />
-      </button>
+      <div className="player-queue-face">
+        <button
+          className="player-queue-row"
+          type="button"
+          onClick={() => {
+            if (!gestures.swiped()) playQueueItem(id);
+          }}
+        >
+          <span className="player-queue-thumb">
+            {meta ? <PlayerCover cover={meta.cover} weekly={meta.weekly} size="thumb" /> : null}
+          </span>
+          <span className="player-upnext-text">
+            <span className="player-upnext-date">{title}</span>
+            <span className="player-upnext-hint">{meta?.caption ?? " "}</span>
+          </span>
+        </button>
+        <QueueRowMenu id={id} title={title} />
+        <button
+          className="icon-btn player-queue-grip"
+          type="button"
+          aria-label={`Move ${title}, ${index + 1} of ${count}. Up and Down arrows move it, Delete removes it`}
+          onPointerDown={(event) => gestures.onGripDown(event, index)}
+          onPointerMove={gestures.onGripMove}
+          onPointerUp={gestures.onGripEnd}
+          onPointerCancel={gestures.onGripEnd}
+          onKeyDown={(event) => gestures.onGripKey(event, index)}
+        >
+          <Icon name="grip" />
+        </button>
+      </div>
     </li>
   );
 }

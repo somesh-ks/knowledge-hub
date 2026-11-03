@@ -1,3 +1,4 @@
+import { storyRuns } from "../../lib/storyRuns";
 import type { PlayerDigestData, PlayerTurn } from "../../types/contracts";
 import type { Timeline } from "./timeline";
 
@@ -36,14 +37,14 @@ const MIN_TURN_MS = 500;
 
 /**
  * Where each story of an episode is said, from its turns: a story starts at the first turn about it
- * and ends with the last. A turn that has been laid out on the narration keeps its real place; one
- * that has not is given the length its characters take at the narration's pace.
+ * and lasts until the next story starts. A turn that has been laid out on the narration keeps its
+ * real place; one that has not is given the length its characters take at the narration's pace.
  */
 export function turnStorySpans(
   turns: readonly Pick<PlayerTurn, "text" | "item_id" | "start_ms" | "end_ms">[],
   msPerCharacter = ESTIMATE_MS_PER_CHARACTER,
 ): Map<string, { start_ms: number; end_ms: number }> {
-  const spans = new Map<string, { start_ms: number; end_ms: number }>();
+  const firstStarts = new Map<string, number>();
   let cursor = 0;
   for (const turn of turns) {
     const placed = turn.start_ms !== null && turn.end_ms !== null && turn.end_ms >= turn.start_ms;
@@ -53,11 +54,9 @@ export function turnStorySpans(
       : start + Math.max(MIN_TURN_MS, Math.round(turn.text.length * msPerCharacter));
     cursor = end;
     const id = typeof turn.item_id === "string" ? turn.item_id : null;
-    if (id === null) continue;
-    const earlier = spans.get(id);
-    spans.set(id, { start_ms: earlier?.start_ms ?? start, end_ms: end });
+    if (id !== null && !firstStarts.has(id)) firstStarts.set(id, start);
   }
-  return spans;
+  return storyRuns(firstStarts, cursor);
 }
 
 /**
