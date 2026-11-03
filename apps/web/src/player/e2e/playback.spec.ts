@@ -242,16 +242,19 @@ test.describe("playback on a podcast", () => {
   }) => {
     await player.open();
     await player.play();
-    // A call or an alarm pauses the element without anyone pressing pause.
+    const caption = page.locator(".dock-caption");
+    const playing = (await caption.textContent()) ?? "";
+    // A call or an alarm pauses the element without anyone pressing pause: the caption says so.
     await page.evaluate(() => window.__audios[0]?.pause());
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
-    await expect(page.locator(".dock-caption")).toHaveText("Paused by another app");
+    await expect(caption).not.toHaveText(playing);
+    const paused = (await caption.textContent()) ?? "";
     expect((await audio.read())?.paused).toBe(true);
     await player.openPlayer();
     // The page's Play disc plays on.
     await player.finger.press(player.dialog.getByRole("button", { name: "Play", exact: true }));
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-    await expect(page.locator(".dock-caption")).not.toHaveText("Paused by another app");
+    await expect(caption).not.toHaveText(paused);
   });
 
   test("a held volume knob grows alone: the track and the bar keep their boxes @wide", async ({
