@@ -240,6 +240,16 @@
     transform-origin: center;
   }
 
+  /* The bars move only while they show. Held, three loops per card ran for nothing: a Library of 200
+     cards kept 600 animations alive (motion audit, 2026-11-02). */
+  .cover-over .cover-bars > i {
+    animation-play-state: paused;
+  }
+
+  .cover-over[data-playing="true"] .cover-bars > i {
+    animation-play-state: running;
+  }
+
   .cover-over[data-playing="true"] .cover-bars {
     opacity: 1;
   }
