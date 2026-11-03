@@ -26,8 +26,10 @@ describe("the ready row on a sheet", () => {
     });
   });
 
-  it("reports off when the browser refused the permission the press asked for", async () => {
+  it("answers with the row as it stands once the browser has refused the press", async () => {
     const refused = (async () => ({ daily: false, weekly: false, ready: false })) as never;
-    expect(await setReady(true, refused)).toBe(false);
+    // A refusal for good turns the browser's permission to denied, which takes the row away.
+    const denied = () => readyView({ ...base, permission: "denied" });
+    expect(await setReady(true, refused, denied)).toEqual({ show: false, checked: false });
   });
 });

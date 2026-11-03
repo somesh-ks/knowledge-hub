@@ -21,15 +21,18 @@ export const currentReadyView = (): ReadyView => readyView(readCapabilities());
 
 /**
  * Turns Podcast ready on or off for this browser, from the press that called it (the permission
- * prompt needs that). Returns what is now in force: off again when the browser said no.
+ * prompt needs that). Returns what the row shows now: off again when the browser said no, and gone
+ * when it refused for good.
  */
 export async function setReady(
   checked: boolean,
   apply: typeof applyPress = applyPress,
-): Promise<boolean> {
+  view: () => ReadyView = currentReadyView,
+): Promise<ReadyView> {
   try {
-    return (await apply("ready", checked)).ready;
+    await apply("ready", checked);
   } catch {
-    return false;
+    // The view below still reads what the browser allows.
   }
+  return view();
 }

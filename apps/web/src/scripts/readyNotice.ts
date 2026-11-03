@@ -17,9 +17,10 @@ export function installReadyNotice(root: ParentNode, dialog?: HTMLDialogElement 
   refresh();
   input.addEventListener("change", () => {
     input.disabled = true;
-    void setReady(input.checked).then((on) => {
+    void setReady(input.checked).then((view) => {
       input.disabled = false;
-      input.checked = on;
+      row.hidden = !view.show;
+      input.checked = view.checked;
     });
   });
   if (dialog) {

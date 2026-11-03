@@ -240,6 +240,9 @@ export async function watchRun(
   send: typeof fetch = (input, init) => fetch(input, init),
 ): Promise<void> {
   try {
+    // A switch pressed just before Start may still be waiting on the browser's permission prompt:
+    // the choice is read once it has settled, or the run would go without its message.
+    await queue;
     const token = cancelTokenOf(runId);
     const capabilities = readCapabilities();
     if (!token || !capabilities.chosen.ready || notificationState(capabilities) !== "on") return;

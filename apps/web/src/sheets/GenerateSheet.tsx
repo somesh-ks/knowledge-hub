@@ -311,7 +311,7 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
               onChange={(event) => {
                 const wanted = event.currentTarget.checked;
                 setReadyView({ show: true, checked: wanted });
-                void setReady(wanted).then((on) => setReadyView({ show: true, checked: on }));
+                void setReady(wanted).then(setReadyView);
               }}
             />
           </div>
