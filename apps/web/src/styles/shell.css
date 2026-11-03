@@ -479,9 +479,7 @@ html[data-mini="visible"] main {
    page and the cover (view-transitions.css, cover.css); it never travels between tabs (owner,
    2026-10-31, option 1 of three). A cold load shows it at rest. */
 @media (prefers-reduced-motion: no-preference) {
-  html[data-nav-arrived]:not([data-nav-arrived="pressed"])
-    .app-nav-item[aria-current="page"]
-    .app-nav-indicator::before {
+  html[data-nav-arrived] .app-nav-item[aria-current="page"] .app-nav-indicator::before {
     animation: nav-pill var(--duration-sheet-in) var(--ease-hover);
     /* A move that arrived mid-growth carries on at the instant the old bar's pill reached (navigation.ts). */
     /* The fill is the animation's, not the 150 ms hover fade: a press on this page marks its tab at once. */
@@ -498,9 +496,7 @@ html[data-mini="visible"] main {
 
 /* With reduced motion the pill fades in where it stands; it does not grow. */
 @media (prefers-reduced-motion: reduce) {
-  html[data-nav-arrived]:not([data-nav-arrived="pressed"])
-    .app-nav-item[aria-current="page"]
-    .app-nav-indicator::before {
+  html[data-nav-arrived] .app-nav-item[aria-current="page"] .app-nav-indicator::before {
     animation: nav-pill-fade var(--duration-enter) var(--ease-out);
   }
 }
@@ -508,20 +504,6 @@ html[data-mini="visible"] main {
 @keyframes nav-pill-fade {
   from {
     opacity: 0;
-  }
-}
-
-/* A finger has already drawn the pill under the tab (the press layer, D286): it keeps its place and
-   eases to the current tone. Growing from half its size again would show a second pill. The ease is
-   a colour change, so reduced motion keeps it. */
-html[data-nav-arrived="pressed"] .app-nav-item[aria-current="page"] .app-nav-indicator::before {
-  animation: nav-pill-tint var(--duration-state) var(--ease-hover);
-  transition: none;
-}
-
-@keyframes nav-pill-tint {
-  from {
-    background: var(--ghost-pressed);
   }
 }
 
@@ -585,8 +567,11 @@ html[data-nav-arrived="pressed"] .app-nav-item[aria-current="page"] .app-nav-ind
     transition-timing-function: var(--ease-hover);
   }
 
-  .app-nav-item[data-ripple-pressed]:not([aria-current="page"]) .app-nav-indicator::before {
-    background: var(--ghost-pressed);
+  /* The wave is the press: the pill under the icon stays bare until the page arrives, and then grows
+     once. Drawn grey in the same place, it was a second ripple inside the first (owner, 2026-11-03:
+     "double ripples on all bottom nav tabs"; D286 amended). */
+  .app-nav-item:not([aria-current="page"]):active .app-nav-indicator::before {
+    background: transparent;
   }
 
   .app-nav-item[data-ripple-pressed]:not([aria-current="page"]) {
