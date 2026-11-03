@@ -2673,6 +2673,39 @@
    column, so it fits by construction in a short window (a tablet held sideways, 1024x600 to
    1280x720) and nothing is cut below the edge. A mouse's column holds less (no scrubber, no story
    line) and keeps the plain share. */
+/* Full bleed on a phone (owner, 2026-11-03: "make the row full bleed in the queue"): the row's fill,
+   the held row's tonal fill and the red strip behind a swipe run to both edges of the screen instead
+   of sitting in the page's gutters as a pill. The words, the cover and the handle keep the gutter, so
+   nothing moves; only what is painted grows. A band at the screen's edge takes no corner radius. */
+@media (width < 64rem) {
+  .player-queue-item {
+    margin-inline: calc(max(var(--player-padding), var(--safe-left)) * -1)
+      calc(max(var(--player-padding), var(--safe-right)) * -1);
+    border-radius: 0;
+  }
+
+  .player-queue-row {
+    padding-inline: calc(max(var(--player-padding), var(--safe-left)) + var(--space-2))
+      calc(max(var(--player-padding), var(--safe-right)) + var(--space-2));
+  }
+
+  .player-queue-delete {
+    padding-inline: calc(max(var(--player-padding), var(--safe-left)) + var(--space-4))
+      calc(max(var(--player-padding), var(--safe-right)) + var(--space-4));
+  }
+
+  /* One hit area, not two (owner, 2026-11-03: "there's a nested second hit area, don't show the hit
+     area"): the press paints the whole band, including the handle's end, instead of a pill inside
+     it. The press still belongs to the button that plays the podcast. */
+  .player-queue-row:where(:not(:disabled, [aria-disabled="true"])):active {
+    background: none;
+  }
+
+  .player-queue-item:has(.player-queue-row:active) > .player-queue-face {
+    background: var(--color-surface-container-pressed);
+  }
+}
+
 @media (width >= 64rem) {
   :root {
     --player-cover-share: min(40cqb, 100cqb - var(--player-column-rest));

@@ -39,7 +39,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D166 | Firecrawl 100 a week | amends D42; limits superseded by D222 |
 | D167 | One shape per control | amends D72 |
 | D168 | Catch up, bolt, swipe toasts | amends D52 |
-| D169 | Queue gestures | amends D126; amended by D343 |
+| D169 | Queue gestures | amends D126; amended by D343, D354 |
 | D170 | Podcast structure | partly superseded by D344; built (D176, D182, D191); phase 3 closed by D241 |
 | D171 | Richer covers | amends D121 |
 | D172 | Store reads keep a copy | amends D149 |
@@ -130,7 +130,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D259 | Saves kept before sending | amends D79, D91, D115, D249 |
 | D262 | Sheet and Drawer split | amends D243 |
 | D263 | Cover version in URL | superseded by D293 |
-| D264 | Card long press | active |
+| D264 | Card long press | amended by D354 |
 | D265 | A select's phone list is the sheet | amends D167 |
 | D266 | Icon, Badge, type | amends D243 |
 | D267 | Card, Row | amends D243 |
@@ -208,5 +208,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D349 | The playing row drags; let go lower it plays on and the rows it passed are skipped | amends D346 |
 | D350 | The player's times read forward: played then length; chapter rows show start times | amends D85 |
 | D351 | A story's Play button never says Played; it stays a plain Play button with its length | amends D348 |
+| D354 | A queue row is one full-bleed band: tap plays, the handle moves it, a hold opens its menu | amends D169, D264 |
 
 ---

@@ -438,3 +438,10 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Why: D348 took Played off the podcast's buttons and left it on the stories on a reading that the subtitle does not cover single stories; the owner wants a Play button to start from any point and no per-story status on it.
 - Cost: a listener can no longer see on the page which single stories they heard.
 - Amends: D348 (a story's chip keeps Played).
+
+## D354: A queue row is one full-bleed band: tap plays, the handle moves, a hold opens its menu
+
+- Date: 2026-11-03 (owner: "make the row full bleed in the queue"; "there's a nested second hit area, dont show the hit area though. drag only works by tapping on the 2 line hamburger, the rest of the row plays the podcast, long press triggers the bottom sheet we have in the library page for each podcast").
+- Decision: under 64rem a queue row's fill, the tonal fill of a held row and the red strip behind a swipe run to both edges of the screen and take no corner radius; the cover, the words and the handle keep the page's gutter, so nothing moves. The press tone paints the whole band, never a pill inside it. A tap plays the item, the handle alone lifts it, a swipe takes it off, and a hold opens the row's menu as the bottom sheet a Library card opens (`cardHold.ts`, which now cancels a hold from the capture phase, since a row's swipe keeps the move to itself).
+- Why: the row read as a card with a second, smaller hit area inside it, and a phone had no way to the row's actions but the swipe (the ⋮ is a mouse's, D346).
+- Amends: D169 (a queue row's actions are its ⋮), D264 (a hold opens a Library card's menu; queue rows hold the same way).
