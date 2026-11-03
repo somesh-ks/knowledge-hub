@@ -753,3 +753,13 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Cost: dark chosen fills and the dark action tone are brighter and more saturated; the rail's current row is now a brighter blue beside Catch up.
 - Revisit if: the owner finds dark fills loud, or a page needs muted text on a chosen fill.
 - Amends: D72's tonal steps for `accent-container` and `accent-container-high`.
+
+## D358: a playing avatar wears headphones
+
+- Date: 2026-11-03 (the owner: while a podcast plays, the avatar wears headphones).
+- Decision: while `data-state="playing"`, every avatar shape wears headphones: a band drawn behind the head that shows over its top, and a rounded cup over each side, drawn after the body and under the face. Each shape places them with `phones` (the cups' distance from the middle, their height, the head's top); the round shapes share one default. They take `--av-phones`, a mood token: the page's ink (`--av-ink`), and the lit tone on an ink shape (ghost, bat, cat, cauldron), so they read on the body and on the page in light and dark. They fade in on the slow effects spring and settle 6px down onto the head on the default spatial spring, and fade out the same way; under reduced motion they are shown and hidden with no motion. The bob stays as it was; while playing it pivots where a show does (the view box at 50, 90), so a tap never shifts the head. A tap's show plays over them; a morph veils them with the other details and the new shape's pair comes back after; boo fades them with the body.
+- Why: the avatar says what the app is doing; headphones say "listening" at a glance where a bob alone reads as idle motion.
+- Rejected: one pair for every shape (it floats off a ghost, covers a bat's eyes); the face's ink (`--av-mark`: dark on a dark page, pale on Halloween's pumpkin); a beat-synced sway (no beat to sync to; the bob already sways 2 degrees).
+- Cost: every avatar draws two hidden groups (a path and two rects); no new design token.
+- Revisit if: the bob and the headphones together read as busy in the app bar.
+- Amends: D326, D353.
