@@ -38,7 +38,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-27: the runner has no ffmpeg with libopus, so Opus and its test skipped silently; ffprobe counts MP3 padding (52 ms a turn). Workflows install it and measure turns by decoding. The install hung 5 to 19 min behind `-qq`: bound apt, log, `continue-on-error` (#388).
 - 2026-10-25: `urlKey` (sources/import.ts) dropped the query string, so every YouTube feed (`?channel_id=`) matched every other: a second channel failed "Already a source", and the store's replay of an added channel could not read it. A feed's key keeps `channel_id`.
 - 2026-10-25: a Speechify request without `language` is detected per segment; a foreign name came back in another prosody, heard as a pitch shift. Pin `language` and hash it.
-- 2026-10-23: Vercel's Neon integration names variables `NEON_*`, which nothing reads; seed first. lightningcss rejects `::picker(select)::backdrop`: scrim: `0 0 0 100vmax` shadow. A long-press drag on a scrolling list needs `draggable`.
+- 2026-10-23: Vercel's Neon integration names its variables `NEON_*`, which nothing reads; seed before the GitHub variable goes on. lightningcss rejects `::picker(select)::backdrop`: scrim with a `0 0 0 100vmax` shadow. A long-press drag on a scrolling list needs `draggable`.
 - 2026-10-24: a 5-minute daily aired 3.0: 14 written, validation cut 7, nothing refilled. Validation refills once from `reserve.json`. Grounding never saw the title the writer read.
 - 2026-10-22: three review rounds of new `health` checks each found false faults (a waking Neon, an edit during a run, Dependabot merges Hobby never deploys, a regenerate read as late). A fault must be actionable and hold a day; make the rest warnings.
 - 2026-10-20: a group page saved its mix on a fallback home while the engine read the fixed one, and the outlet cap keyed by `source_id` let BBC's five feeds through; one helper (`groupHomeId`) and the story's host fix both. Review found both, no test did.
@@ -64,7 +64,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Site and service worker
 
-- 2026-11-02: offline showed a bare page, never recovered: the worker stood in for unopened pages, its script does not rerun on a router swap, and its reload fired on a premature `online` event. One connectivity state, recovery in the app script (D330).
+- 2026-11-02: offline showed a bare "You are offline" page and never recovered: the worker stood in for unopened pages, its script does not run again when the router swaps it in, and its reload fired on a premature `online` event. One connectivity state, recovery in the app script (D330).
 - 2026-11-02: `caches.match` walks the caches by age, so the install copy answered Latest offline. The router moved the address to a `#` link's own `#` before Try again ran: listen in capture.
 - 2026-11-02: a press rule before a hover rule of the same weight loses while the mouse is down; a control with no `:active` rule shows no press (Library view toggle). Press after hover; shoot rest, hover, press.
 - 2026-11-02: an opaque press fill on a bar's `::after` covers its content, which the old alpha hid. Use `z-index: var(--z-beneath)`.
@@ -96,7 +96,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-31: a Play control marked `aria-disabled` never reacted: `disabledGuard.ts` swallows clicks on `[aria-disabled="true"]`, so a voice without a sample is marked `data-silent` instead.
 - 2026-11-01: Downloads showed as a gallery after a Library visit: `libraryPage.ts` kept its `astro:page-load` listener and matched Downloads' `[data-library]`. Name the page (`#main.library`); a test must reach it by click, not `goto`.
 - 2026-11-01: a `.manage` rule for the voice page also reached Preferences: a row declares its `--row-reach`.
-- 2026-11-03: servers off Vercel with the real `DATABASE_URL` stored their own 5xx as production faults (~180 a day); telemetry takes `telemetryDatabaseUrl`. Astro's SSR header replaces vercel.json's CSP: `withFrameAncestors` adds `frame-ancestors`.
+- 2026-11-03: servers off Vercel with the real `DATABASE_URL` stored their own 5xx as production faults (~180 a day per route); telemetry takes `telemetryDatabaseUrl`. Astro's SSR header replaces vercel.json's CSP, so `frame-ancestors` is added in `withFrameAncestors` (a meta tag ignores it).
 
 ## Build and tooling
 
@@ -151,4 +151,3 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-11-02: `name: "5 min"` matches "15 min"; use `exact: true`.
 - 2026-11-02: the cloud image's Chromium is an older build than the repo's Playwright wants; point `PLAYWRIGHT_BROWSERS_PATH` at links named for the wanted build. A 2px negative margin fails the 8pt spec: size a target `max()` of both.
 - 2026-11-03: a step summary is not in the job log or API; `tee -a` what you must read.
-- 2026-11-03: the class guard reads a quote in a regex as a string; parse in `design-system/` (`tokenWords`).

@@ -10,21 +10,12 @@
  * Nothing loops by itself. A state shows while it is true, a one-shot plays once, and an idle blink,
  * glance or wiggle comes every 20 to 40 seconds while the page is visible. avatar.css plays none of it
  * under reduced motion, so this does not schedule the idle ones then.
- *
- * A tap is a small show (D353): a face, a hand that waves, binoculars, a spin, or a morph through other
- * shapes and back. The --av-plays token of the mood lists what it may do, and the hue says where in that
- * list it starts, so each tap is the next one, never a repeat. A tap in the app bar goes to the profile,
- * so the show waits there and plays on arrival.
  */
-import { AVATAR_SHAPES, avatarMarkup, moodShapes, tokenWords } from "../design-system/avatar";
+import { AVATAR_SHAPES, avatarMarkup, moodShapes } from "../design-system/avatar";
 import { getPreferences } from "../player/core/preferences";
-import { morphPath, pickReaction } from "./avatarReactions";
 
 const SLOT = "[data-account]";
 const ONE_SHOT_MS = 1400;
-const ACT_MS = 1600;
-const SHORT_MS = 1000;
-const POP_MS = 600;
 const FROWN_MS = 2600;
 const IDLE_MIN_MS = 20_000;
 const IDLE_SPAN_MS = 20_000;
@@ -58,7 +49,8 @@ function avatars(): HTMLElement[] {
   return [...document.querySelectorAll<HTMLElement>(`${SLOT} > *`)];
 }
 
-function show(id: string): void {
+function draw(): void {
+  const id = currentShape();
   const tone = AVATAR_SHAPES[id]?.tone;
   for (const avatar of avatars()) {
     if (avatar.dataset.shape !== id) {
@@ -71,14 +63,10 @@ function show(id: string): void {
   }
 }
 
-function draw(): void {
-  show(currentShape());
-}
-
 let frownTimer = 0;
 let playTimer = 0;
 
-function setFace(face: "frown" | "sleep" | "open" | null): void {
+function setFace(face: "frown" | "sleep" | null): void {
   for (const avatar of avatars()) {
     if (face) avatar.dataset.face = face;
     else avatar.removeAttribute("data-face");
@@ -103,7 +91,7 @@ function setState(): void {
   else if (!frownTimer) setFace(null);
 }
 
-function play(kind: string, ms = ONE_SHOT_MS): void {
+function play(kind: string): void {
   window.clearTimeout(playTimer);
   for (const avatar of avatars()) {
     avatar.removeAttribute("data-play");
@@ -113,7 +101,7 @@ function play(kind: string, ms = ONE_SHOT_MS): void {
   }
   playTimer = window.setTimeout(() => {
     for (const avatar of avatars()) avatar.removeAttribute("data-play");
-  }, ms);
+  }, ONE_SHOT_MS);
 }
 
 function frown(): void {
@@ -124,93 +112,6 @@ function frown(): void {
     frownTimer = 0;
     setState();
   }, FROWN_MS);
-}
-
-let taps = 0;
-let busy = false;
-let arrivalGreeting = 0;
-let actTimers: number[] = [];
-
-/** Ends a show now (a new mood, a new page) and leaves the plain face. */
-function cancelAct(): void {
-  for (const timer of actTimers) window.clearTimeout(timer);
-  actTimers = [];
-  busy = false;
-}
-
-function later(ms: number, fn: () => void): void {
-  actTimers.push(window.setTimeout(fn, ms));
-}
-
-function hue(): number {
-  return (
-    Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hue-shift")) ||
-    0
-  );
-}
-
-function plays(): string[] {
-  const token = getComputedStyle(document.documentElement).getPropertyValue("--av-plays");
-  return tokenWords(token);
-}
-
-function morph(): void {
-  const path = morphPath(offeredShapes(), currentShape(), hue(), taps);
-  busy = true;
-  path.forEach((id, step) => {
-    later(step * POP_MS, () => {
-      show(id);
-      play("pop", POP_MS);
-    });
-  });
-  later(path.length * POP_MS, cancelAct);
-}
-
-/** The show of one tap: skipped while one runs, offline, or when the reader asked for calm. */
-function react(): void {
-  if (calm.matches || busy || document.documentElement.hasAttribute("data-offline")) return;
-  if (avatars().length === 0) return;
-  const kind = pickReaction(plays(), hue(), taps);
-  taps += 1;
-  if (kind === "morph") {
-    morph();
-    return;
-  }
-  busy = true;
-  if (kind === "wow" || kind === "boo") setFace("open");
-  const ms = kind === "wave" || kind === "scout" ? ACT_MS : SHORT_MS;
-  play(kind, ms);
-  later(ms, () => {
-    cancelAct();
-    setState();
-  });
-}
-
-function onTap(event: MouseEvent): void {
-  const avatar = (event.target as Element | null)?.closest?.(`${SLOT} > *`);
-  if (!avatar?.querySelector("svg")) return;
-  if (!avatar.closest("a")) {
-    react();
-    return;
-  }
-  // The app bar holds the link to the profile: stay put on it, and elsewhere play on arrival.
-  if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
-  if (location.pathname === "/profile") {
-    react();
-    return;
-  }
-  window.clearTimeout(arrivalGreeting);
-  arrivalGreeting = window.setTimeout(() => {
-    arrivalGreeting = 0;
-  }, 2000);
-}
-
-/** Plays the greeting a tap in the app bar was waiting to give, once the profile has come in. */
-function greetOnArrival(): void {
-  if (!arrivalGreeting) return;
-  window.clearTimeout(arrivalGreeting);
-  arrivalGreeting = 0;
-  if (location.pathname === "/profile") window.setTimeout(react, 400);
 }
 
 let idleTimer = 0;
@@ -235,7 +136,6 @@ function scheduleIdle(): void {
 
 /** Turns a mood's name into the drawn shape on a page: also after the router swapped the document. */
 function sync(): void {
-  cancelAct();
   draw();
   setState();
 }
@@ -247,21 +147,13 @@ export function installAccountAvatar(): void {
   document.addEventListener("astro:page-load", sync);
   // A new mood changes the shapes; the other attributes change only what the avatar is doing.
   new MutationObserver((changes) => {
-    if (changes.some((change) => change.attributeName === "data-mood")) {
-      cancelAct();
-      draw();
-    }
+    if (changes.some((change) => change.attributeName === "data-mood")) draw();
     setState();
   }).observe(document.documentElement, {
     attributes: true,
     attributeFilter: ["data-mood", "data-offline", "data-run", "data-player-state"],
   });
-  getPreferences().subscribe(() => {
-    cancelAct();
-    draw();
-  });
-  document.addEventListener("click", onTap);
-  document.addEventListener("astro:page-load", greetOnArrival);
+  getPreferences().subscribe(draw);
   document.addEventListener("singularity:sound", (event) => {
     const cue = (event as CustomEvent<string>).detail;
     if (cue === "success") play("hop");
