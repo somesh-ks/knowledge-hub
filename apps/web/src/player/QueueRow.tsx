@@ -2,6 +2,7 @@ import type { KeyboardEvent, PointerEvent } from "react";
 import { longDateFromDigestId } from "./core/formatTime";
 import { playQueueItem } from "./core/playerRuntime";
 import { useQueueMeta } from "./hooks/useQueue";
+import QueueRowMenu from "./QueueRowMenu";
 import Icon from "./ui/LazyIcon";
 import PlayerCover from "./ui/PlayerCover";
 
@@ -38,9 +39,10 @@ export function QueueDeleteMark() {
 
 /**
  * One queued item: its cover, its title and what it is. The row plays it now. The two bars at its end
- * are its only control (owner, 2026-11-02, after D169's dots): a press on them lifts the row to a new
+ * are its handle (owner, 2026-11-02, after D169's dots): a press on them lifts the row to a new
  * place, with a finger or a mouse, and Up and Down move it from the keyboard, Delete takes it off;
- * a swipe to either side takes it off too. There is no menu.
+ * a swipe to either side takes it off too. A mouse also gets a ⋮ on hover (owner, 2026-11-03) with
+ * the row's other actions; a phone never draws it (player.css).
  */
 export default function QueueRow({ id, index, count, gestures }: QueueRowProps) {
   const meta = useQueueMeta(id);
@@ -70,6 +72,7 @@ export default function QueueRow({ id, index, count, gestures }: QueueRowProps) 
           <span className="player-upnext-hint">{meta?.caption ?? " "}</span>
         </span>
       </button>
+      <QueueRowMenu id={id} title={title} />
       <button
         className="icon-btn player-queue-grip"
         type="button"

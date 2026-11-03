@@ -165,6 +165,35 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await expect(player.dialog.locator('[data-state="current"]')).toHaveCount(0);
   });
 
+  // A mouse has no swipe to remove with (owner, 2026-11-03): the row shows a ⋮ on hover whose menu takes
+  // it off, beside Go to podcast, Share and Download.
+  test("a queued row shows its ⋮ under the mouse, and Remove from queue takes the row off @desktop", async ({
+    player,
+    page,
+  }) => {
+    await player.open();
+    await page.evaluate(() => {
+      for (const id of ["ep-20261006-0900", "2026-10-05"])
+        document.dispatchEvent(new CustomEvent("singularity:queue-add", { detail: { id } }));
+    });
+    await player.play();
+    await player.openPlayer();
+    await player.dialog.getByRole("tab", { name: "Up next" }).click();
+    const row = player.dialog.locator('[data-queue-id="ep-20261006-0900"]');
+    const dots = row.locator(".player-queue-more");
+    await expect(dots).toHaveCSS("opacity", "0");
+    await row.hover();
+    await expect(dots).toHaveCSS("opacity", "1");
+    await dots.click();
+    const menu = player.dialog.getByRole("menu");
+    for (const name of ["Go to podcast", "Share", "Download", "Remove from queue"])
+      await expect(menu.getByRole("menuitem", { name })).toBeVisible();
+    await menu.getByRole("menuitem", { name: "Remove from queue" }).click();
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem("singularity:queue")))
+      .toBe('["2026-10-05"]');
+  });
+
   test("switching between Stories and Up next keeps where the page was scrolled", async ({
     player,
     page,

@@ -33,7 +33,12 @@ export function useRowSwipe() {
     onPointerDown(event: PointerEvent<HTMLElement>, id: string): void {
       if (!event.isPrimary || event.button !== 0) return;
       // The handle has presses of its own.
-      if ((event.target as Element).closest(".player-queue-grip:not([data-still])")) return;
+      if (
+        (event.target as Element).closest(
+          ".player-queue-grip:not([data-still]), .player-queue-more, .player-queue-menu",
+        )
+      )
+        return;
       press.current = {
         pointerId: event.pointerId,
         row: event.currentTarget,

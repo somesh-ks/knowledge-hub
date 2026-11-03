@@ -2631,8 +2631,28 @@
 }
 
 .player-queue-grip,
+.player-queue-more,
 .player-queue-add {
   flex: none;
+}
+
+/* The row's ⋮ is a mouse's (owner, 2026-11-03): it shows while the pointer is over the row, the
+   keyboard is in it or its menu is open, and a phone never draws it (no visible dots on a phone). */
+.player-queue-more {
+  display: none;
+  color: var(--color-on-surface-muted);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .player-queue-more {
+    display: inline-flex;
+    opacity: 0;
+    transition: opacity var(--duration-press-out) var(--ease-out);
+  }
+
+  .player-queue-item:is(:hover, :focus-within, [data-menu-open]) > .player-queue-more {
+    opacity: 1;
+  }
 }
 
 /* The grip is the row's only handle for moving it: a press on it never scrolls the list, so a pull
