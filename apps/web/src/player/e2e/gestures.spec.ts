@@ -52,6 +52,11 @@ test.describe("opening by gesture", () => {
     // One tap is one press: it does not pause and play again.
     await page.waitForTimeout(600);
     expect((await audio.read())?.paused).toBe(true);
+    // A tap the browser clicks for itself is not clicked twice.
+    await finger.press(player.dialog.locator(".transport [data-primary]"));
+    await expect.poll(async () => (await audio.read())?.paused).toBe(false);
+    await page.waitForTimeout(600);
+    expect((await audio.read())?.paused).toBe(false);
   });
 
   test("a long pull up opens on release, and nothing behind is inert until then", async ({
