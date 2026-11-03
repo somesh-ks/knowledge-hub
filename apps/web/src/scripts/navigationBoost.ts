@@ -91,20 +91,6 @@ export function holdPress(card: Element): void {
 /** The most pages the Library fetches ahead in one visit to the app: the cards a person is looking at. */
 export const LOOKAHEAD_LIMIT = 8;
 
-/** How long after a finger leaves an item its click still counts as that press. */
-const PRESS_CLICK_MS = 800;
-/** The navigation item a finger or pen last pressed, and when it last touched it. */
-let fingerOn: { item: Element; at: number } | null = null;
-
-/**
- * The value of the arrival mark for a press on `item`: "pressed" when a finger went down on it a
- * moment ago, so its pill is already showing and eases from the press tone to the current one
- * instead of growing a second time; empty otherwise.
- */
-export function arrivalFor(item: Element, now: number): string {
-  return fingerOn?.item === item && now - fingerOn.at < PRESS_CLICK_MS ? "pressed" : "";
-}
-
 /** The transitions this module made, so a swap can tell whether the page or the browser draws it. */
 const immediate = new WeakSet<object>();
 
@@ -158,10 +144,11 @@ export function installNavigationBoost(): void {
     if (opened) holdPress(opened);
     const item = pressedDestination(event.sourceElement, document);
     if (item) {
-      // The pill grows under the item as it lights, here, and not again on the page that arrives.
+      // The pill comes in under the item as it lights, here, and not again on the page that arrives.
+      // Under a finger the press wave is the one growing shape, so the pill only fades in beside it.
       if (item.getAttribute("aria-current") !== "page") {
         const root = document.documentElement;
-        root.setAttribute(ARRIVED_ATTRIBUTE, arrivalFor(item, performance.now()));
+        root.setAttribute(ARRIVED_ATTRIBUTE, root.dataset.input === "keyboard" ? "" : "press");
       }
       markCurrent(item, document);
     }
@@ -191,20 +178,6 @@ export function installNavigationBoost(): void {
     const clear = (): void => document.documentElement.removeAttribute(SWAP_ATTRIBUTE);
     void event.viewTransition.finished.then(clear, clear);
   });
-
-  // Which item a finger is on, for the pill: see arrivalFor.
-  for (const type of ["pointerdown", "pointerup"] as const) {
-    document.addEventListener(
-      type,
-      (event) => {
-        if (event.pointerType === "mouse") return;
-        const target = event.target instanceof Element ? event.target : null;
-        const item = target?.closest(NAV_ITEM) ?? null;
-        fingerOn = item ? { item, at: performance.now() } : null;
-      },
-      { capture: true, passive: true },
-    );
-  }
 
   // Touch has no hover to prefetch on. The service worker shares this request with the router's.
   document.addEventListener(

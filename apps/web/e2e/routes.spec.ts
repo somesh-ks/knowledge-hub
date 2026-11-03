@@ -105,14 +105,17 @@ test.describe("routes and headers", () => {
           document.querySelector('#banners [data-banner="offline"]') !== null &&
             document.documentElement.hasAttribute("data-strip"),
         );
-        // Where the page sits in the layout: the desktop rise (D341) moves the shell on purpose, and is taken off.
+        // Where the page sits in the layout: the desktop rise (D341) and the lift into a podcast (D347) move the shell on purpose, and are taken off.
         const rise = new DOMMatrix(
           getComputedStyle(document.querySelector(".shell") ?? document.body).transform,
         ).m42;
         const main =
           (document.querySelector("#main")?.getBoundingClientRect().top ?? Number.NaN) - rise;
         const cover = document.querySelector(".hero .cover")?.getBoundingClientRect();
-        const box = cover ? [cover.top, cover.width, cover.height].join(",") : "";
+        const round = (value: number): number => Math.round(value * 100) / 100;
+        const box = cover
+          ? [round(cover.top - rise), round(cover.width), round(cover.height)].join(",")
+          : "";
         if (!Number.isNaN(main))
           seen.push([location.pathname, `${Math.round(main * 100) / 100}|${box}`]);
         requestAnimationFrame(tick);
@@ -136,7 +139,7 @@ test.describe("routes and headers", () => {
     expect(new Set(libraryTops)).toEqual(new Set([String(Math.round(landed * 100) / 100)]));
     expect(landed).toBeGreaterThanOrEqual(squeezed);
     // The reported case: a podcast opened from the Library. Its cover keeps its top and size from the
-    // first frame it exists, compared to itself (the page's own slide in moves it sideways, not down).
+    // first frame it exists, compared to itself (the page's own rise is taken off: it moves the page, the cover does not shift in it).
     await page.locator('a[href="/d/2026-10-05"]').first().click();
     await expect(page).toHaveURL(/\/d\/2026-10-05$/);
     await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
