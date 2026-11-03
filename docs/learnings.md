@@ -7,8 +7,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-28: `topics.spec.ts` "Add source" fails on a machine's first local run: it writes its untracked screenshot baseline (never commit it). `CI=1` skips it.
 - Two browser suites at once share `apps/web/dist` and give false failures.
 - 2026-10-22: in the cloud container Chromium goes through the agent proxy, so `--host-resolver-rules` (to serve a build under the production host) did nothing until launched with `--no-proxy-server`.
-- 2026-10-23: new card tokens let `.card-group`'s row padding beat the Costs card's (Costs is not in the grid spec). Screenshot every page using a primitive whose tokens change.
-- 2026-10-23: a story row passed its hold-still test while publishers kept 10px at 320. Measure what a layout's flexible part keeps at 320 and 360 first.
+- 2026-10-23: a changed card token reached a page outside the grid spec (Costs), and a hold-still test missed publishers keeping 10px at 320. Screenshot every page that uses the primitive; measure the flexible part at 320 and 360.
 - 2026-10-23: reduced motion in the tokens alone missed every raw travel on those durations (chip labels, nav pill, floating button). Sweep the CSS with the tokens; check with `document.getAnimations()` under emulated reduced motion.
 - 2026-10-12: a mocked route answers while the browser context is offline. A test of an offline save takes its mock offline with it (`route.abort`), and waits for the lazy chunk it needs before going offline.
 - 2026-10-12: `waitForLoadState("networkidle")` returns at once when the page has been idle before, so a test went offline while a lazy chunk was still on its way (one run in four). Wait for the response itself, then `finished()`.
@@ -19,9 +18,9 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-12: a leftover server or build makes a suite test the wrong build: Playwright reuses a listening server and skips the build (`taskkill`; Git Bash `kill $!` leaves a `node`). Stop old servers; use a fresh PORT after a page edit.
 - 2026-10-11: Playwright `addStyleTag` and injected axe scripts hit the fixture site's CSP; use `bypassCSP: true` for an audit, on a build in its own directory and port (a rebuilt `dist` read as "page has no title").
 - 2026-10-10: a lone IntersectionObserver threshold of 1 reports a target partly past the root edge as not intersecting and never calls back. To tell a sticky element is stuck, observe `[0, 1]` and compare `boundingClientRect.top` with `rootBounds.top`.
-- 2026-10-09: a WebGL canvas failed the player suite on every page: headless Chromium draws in software (SwiftShader), logs "GPU stall" each frame, and the suite fails on any warning. Read `WEBGL_debug_renderer_info` and skip WebGL on a software renderer.
-- 2026-10-09: The player suite can run its `site-*` projects in a worktree without a dev server: serve the fixture build and set `PLAYER_SITE_URL` to it.
+- 2026-10-09: headless Chromium draws WebGL in software and logs "GPU stall" each frame, which fails the player suite; skip WebGL on a software renderer (`WEBGL_debug_renderer_info`).
 - 2026-11-02: lay a popover out on its base rule (exit drops `:popover-open`).
+- 2026-11-03: a pill test read `NaN` on a busy runner: lengthen the animation in the test (`CSSStyleSheet`, not `<style>`: CSP). A box read mid-move is a transform value: wait for the move to end.
 
 ## Unit tests
 
@@ -92,6 +91,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-11-01: re-opening a popover the browser closed (cardHold) sounded as close then open, three cues per long press: mark the hold (`data-hold-until`), skip its echoes.
 - 2026-10-11: the voice sample button played Speechify's own URL, which `media-src` blocks, and its error handler hid the button. Check the CSP for a third-party media URL, or use `/api/voice-sample`.
 - 2026-10-09: a move took 400 ms though the page was ready after 70: Astro 7 keeps only its own root attributes, so the mark that picks the animation (`data-astro-nav`) was lost. Carry it onto `event.newDocument` in `astro:before-swap`.
+- 2026-11-03: tinted fills eased from the wrong hue on a tab tap: the swap wiped the root `style` (`--hue-shift`); it is in `CARRIED_ATTRIBUTES`.
 - 2026-10-09: The first press after opening blocks about 200 ms with the audio device idle, 75 ms warm: `new AudioContext()` inside the press. `latencyHint` and `sampleRate` do not help (the first context created pays); reverse the order as the control.
 - 2026-10-31: a Play control marked `aria-disabled` never reacted: `disabledGuard.ts` swallows clicks on `[aria-disabled="true"]`, so a voice without a sample is marked `data-silent` instead.
 - 2026-11-01: Downloads showed as a gallery after a Library visit: `libraryPage.ts` kept its `astro:page-load` listener and matched Downloads' `[data-library]`. Name the page (`#main.library`); a test must reach it by click, not `goto`.
