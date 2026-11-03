@@ -12,7 +12,7 @@ What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D
 - Below 64rem the bottom navigation slides away with the pull and stays above the rising page until gone; the bar's cover grows into the page's cover on the same progress (none from 64rem or under reduced motion; `core/coverMorph.ts`).
 - Any Play (a cover, a page's chip, Start listening in the queue) starts the podcast in the player: below 64rem the player opens over the page, from 64rem only the bar changes to playing and stays shut (`core/openOnPhone.ts`). A story's play button and autoplay never open it.
 - The playing cover lights the open player.
-- The bar's title is the story's chapter (at most 5 words and about 22 characters; the writer's `chapter` on a digest item, dropped past 26 characters or 5 words), so it fits a 360px phone; older stories show their headline. Under it: the clock, then the story's section ("0:02 / 0:36 · Top picks"), or what the recording is before story 1 and in an episode.
+- The bar's title is the story's chapter (the writer's `chapter`, at most 5 words and 26 characters), so it fits a 360px phone; older stories show their headline. Under it: the clock, then the story's section ("0:02 / 0:36 · Top picks"), or what the recording is before story 1 and in an episode.
 - The volume button holds the bar's right edge and its level opens to the left. The wide bar shows what is playing on the left, the transport in the centre and a volume slider that appears on hover or focus (D106).
 - Only Play is in full ink in the player (D54). A button's glyph says what it does: refresh for Try again, replay for Play again.
 
@@ -27,17 +27,16 @@ What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D
 - The player's two views (below) are a tablist. The podcast page's section tabs at every width (D343), sticking under the status bar below 64rem. Switching keeps the scroll position.
 
 ### Stories and transcript
-- The Stories view merges the chapters and the transcript. The story being read is open: its transcript (headline in its row, the host's words under it) shows with the same follow and word light as an episode's. Every other story is a chapter row that starts it when tapped. Unlaid-out narration shows its script whole (`StoryList`, `core/storyTranscript.ts`).
+- The Stories view merges the chapters and the transcript. The story being read is open: its transcript shows with an episode's follow and word light. Every other story is a chapter row that starts it when tapped. Unlaid-out narration shows its script whole (`StoryList`, `core/storyTranscript.ts`).
 - A briefing's transcript is what the host says of each story (from the digest's spoken version).
 - Story rows show their start time, rising, and start there (D350); a story ends where the next starts (D346); previous and next step between them (D85, D90). Before story 1 (the rundown) Next goes to story 1, Previous to 0:00. A move made with the controls never scrolls the page (D92).
 - The transcript is a plain reading column with one Tab stop: said words in full ink, the rest muted, the spoken word on a soft fill, from Speechify's word marks, with an estimate where a segment has none. "Back to now" is drawn over the whole list.
 
 ### Queue and Up next (D126)
-- A play queue of ids (`singularity:queue` in localStorage, `core/playQueue.ts`) takes items from the Library menu's Add to queue (`singularity:queue-add`). When an item ends the first queued one starts. Rows (`QueueList`, `QueueRow`) reorder by the two-bar handle at their end (a finger or a mouse; Up and Down on it), and a swipe to either side, or Delete on the handle, removes one, the row sliding over a red strip (D346).
+- A play queue of ids (`singularity:queue` in localStorage, `core/playQueue.ts`) takes items from the Library menu's Add to queue (`singularity:queue-add`). When an item ends the first queued one starts. Rows (`QueueList`, `QueueRow`) reorder by the two-bar handle at their end (Up and Down on it), and a swipe to either side, or Delete on the handle, removes one, the row sliding over a red strip (D346).
 - The playing item heads Up next and nothing sits above it (D346); dragged lower it plays on, skipping the rows it passed (D349). What played is kept (`singularity:queue-played`, 30 at most) but not listed. A tap on any row plays it in place with no page move and the bar stays up (D277). The next three queued items with finished audio have their first 512 KB fetched at idle.
-- Scenario: WHEN the listener taps the third queued item THEN it plays at once with no page move or hidden bar, and heads the list alone.
 - Up next is the player list's second view at every width (it stays selected when the item changes): the queue, or the next older item when the queue is empty. There is no peek strip and no pull-up queue sheet.
-- Scenario: WHEN a recording has ended and there is something to offer THEN the view turns to Up next; the listener can go back to Stories. With Podcast autoplay on (the default) the first suggested item starts by itself when the queue is empty (#334; D126 meant the queue only). Suggested sits under the queue and stays: one added leaves it and the list refills.
+- Scenario: WHEN a recording has ended and there is something to offer THEN the view turns to Up next; the listener can go back to Stories. With Podcast autoplay on (the default) the first suggested item starts by itself when the queue is empty. Suggested sits under the queue and stays: one added leaves it and the list refills.
 
 ### Failure and memory
 - A failure is told once, in the line under the title, and nothing below it moves.
@@ -45,6 +44,7 @@ What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D
 - Scenario: WHEN a refusal lands while the next file loads THEN it fails at that story's start; a press plays nothing of the story before it.
 - Scenario: WHEN offline and Play is pressed THEN the reason repeats and nothing loads.
 - A recording's position, whether it was heard to the end and which stories were heard (`singularity:resume:<id>`, `singularity:played:<id>`, `singularity:heard:<id>`) are read by one reader and shown the same on the hero chip, the floating Play, the Library's cards, the Earlier shelves and the story chips, for stored audio and for narration on Play (against the page's estimate) (D97).
+- A reload (deploy, refresh, a dropped tab) or a step through history restores the tab, not a new address: the track on the bar, paused at the kept place, the open player open again, silently (`sessionRestore.ts`). A deploy waits for the open player.
 - Heard to its end, a recording shows Played in its subtitle, not on its card; the hero, floating and story Play never say it (D348, D351).
 - Each story has like, dislike and "Stop hearing from" controls (see settings.md).
 
@@ -52,6 +52,7 @@ What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D
 - `apps/web/src/player` (surface, bar, scrubber, transcript, speed)
 - `apps/web/src/player/core/coverMorph.ts`
 - `apps/web/src/player/core/resume.ts`
+- `apps/web/src/player/core/sessionRestore.ts`
 - `apps/web/src/player/core/playQueue.ts`
 - `apps/web/src/player/UpNext.tsx`, `QueueSheet.tsx`
 - `apps/web/src/player/core/playerSheet.ts`
