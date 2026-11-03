@@ -95,8 +95,27 @@ test("a flick down on the header, a pull down on the cover or on the controls be
   page,
 }) => {
   const header = await opened(player);
+  // Owner, 2026-11-03: pulling the page down while it plays left a patch of the cover's blurred light
+  // behind the bar. The light was held off during the pull and faded in again as the page landed.
+  await page.evaluate(() => {
+    const seen: number[] = [];
+    (window as unknown as { __light: number[] }).__light = seen;
+    const sample = (): void => {
+      const closing =
+        document.querySelector("[data-player-surface]")?.getAttribute("data-state") ===
+        "collapsing";
+      const light = document.querySelector(".player-cover-glow");
+      if (closing && light) seen.push(Number(getComputedStyle(light).opacity));
+      requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  });
   await finger.drag(line(header, { x: header.x, y: header.y + 230 }, 3), 8);
   await player.collapsed();
+  const light = await page.evaluate(() => (window as unknown as { __light: number[] }).__light);
+  expect(light.length, "the page was seen closing").toBeGreaterThan(0);
+  for (const opacity of light) expect(opacity).toBeLessThanOrEqual((light[0] ?? 0) + 0.02);
+  expect(light.at(-1)).toBeLessThan(0.05);
   await expect(player.sheet).toBeHidden();
   await expect(player.openButton).toBeVisible();
   // The whole top of the page is the handle, the cover with it.
