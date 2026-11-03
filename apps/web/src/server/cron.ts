@@ -131,6 +131,7 @@ async function readScheduleCopy(
   deps: CronDeps,
   github: ReturnType<typeof createGitHubClient>,
   now: Date,
+  secrets: ReadonlyArray<string | undefined>,
 ): Promise<{ text: string; schedule: ScheduleFile } | null> {
   try {
     const copy = parseJson(await github.readVariable(RUN_SCHEDULE_VARIABLE), (value) => {
@@ -139,12 +140,15 @@ async function readScheduleCopy(
         schedule?: unknown;
       };
       const age = now.getTime() - Date.parse(String(checked_at));
-      return typeof schedule === "string" && age >= 0 && age <= COPY_MAX_AGE_MS ? schedule : null;
+      // A minute of room for another instance's clock running ahead of this one's.
+      return typeof schedule === "string" && age >= -60_000 && age <= COPY_MAX_AGE_MS
+        ? schedule
+        : null;
     });
     const schedule = parseJson(copy, (value) => ScheduleFile.safeParse(value).data ?? null);
     return copy !== null && schedule !== null ? { text: copy, schedule } : null;
   } catch (error) {
-    deps.log?.(`schedule copy unread: ${describeError(error, [])}`);
+    deps.log?.(`schedule copy unread: ${describeError(error, secrets)}`);
     return null;
   }
 }
@@ -244,16 +248,13 @@ export async function handleCron(
   const github = createGitHubClient(config, deps.fetch);
   try {
     const storeOn = configStoreUrl(deps.env) !== null;
-    const copy = storeOn ? await readScheduleCopy(deps, github, now) : null;
-    if (
-      copy &&
-      slotAt(copy.schedule, now) === null &&
-      now.getUTCHours() !== COPY_REFRESH_UTC_HOUR
-    ) {
+    const secrets = [...secretsOf(config), secret];
+    const copy = storeOn ? await readScheduleCopy(deps, github, now, secrets) : null;
+    const confirm = now.getUTCHours() === COPY_REFRESH_UTC_HOUR;
+    if (copy && slotAt(copy.schedule, now) === null && !confirm) {
       return { status: 200, body: { dispatched: false, reason: "not the schedule's hour" } };
     }
     const scheduleText = await readSchedule(deps, github);
-    const confirm = now.getUTCHours() === COPY_REFRESH_UTC_HOUR;
     if (storeOn && scheduleText !== null && (confirm || scheduleText !== copy?.text)) {
       // The store is the owner's schedule; the copy follows it, and a failed write only costs the
       // database reads the copy would have saved, once the copy is too old to use.

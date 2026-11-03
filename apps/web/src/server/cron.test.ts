@@ -263,7 +263,7 @@ describe("GET /api/cron/run", () => {
     expect((await call("2026-10-10T07:30:00Z")).body).toMatchObject({ dispatched: true });
     expect(opened).toBe(1);
     // The refresh hour reads the store whatever the copy says, so a stale copy heals within a day.
-    await call(`2026-10-10T0${COPY_REFRESH_UTC_HOUR}:30:00Z`);
+    await call(`2026-10-10T${String(COPY_REFRESH_UTC_HOUR).padStart(2, "0")}:30:00Z`);
     expect(opened).toBe(2);
     // A copy the store has not confirmed for over a day and a half (the token cannot write it) is
     // not trusted to skip an hour: the owner may have moved the schedule since.
