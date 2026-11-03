@@ -666,7 +666,7 @@
    them never stands alone. The cadence never shrinks (a fraction of a pixel cut "Posts daily" to
    "Posts dai..."); one longer than the room the address leaves is cut there. */
 .source-meta > .source-host:not(:empty) {
-  min-width: var(--space-8);
+  min-width: min(100%, var(--space-8));
 }
 
 .source-meta > .source-cadence {
