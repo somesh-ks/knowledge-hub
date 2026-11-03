@@ -7,7 +7,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-28: `topics.spec.ts` "Add source" fails on a machine's first local run: it writes its untracked screenshot baseline (never commit it). `CI=1` skips it.
 - Two browser suites at once share `apps/web/dist` and give false failures.
 - 2026-10-22: in the cloud container Chromium goes through the agent proxy, so `--host-resolver-rules` (to serve a build under the production host) did nothing until launched with `--no-proxy-server`.
-- 2026-10-23: a changed card token reached a page outside the grid spec (Costs), and a hold-still test missed publishers keeping 10px at 320. Screenshot every page that uses the primitive; measure the flexible part at 320 and 360.
+- 2026-10-23: a changed card token reached a page outside the grid spec (Costs), and a hold-still test missed 10px at 320. Screenshot every page using the primitive; measure at 320 and 360.
 - 2026-10-23: reduced motion in the tokens alone missed every raw travel on those durations (chip labels, nav pill, floating button). Sweep the CSS with the tokens; check with `document.getAnimations()` under emulated reduced motion.
 - 2026-10-12: a mocked route answers while the browser context is offline. A test of an offline save takes its mock offline with it (`route.abort`), and waits for the lazy chunk it needs before going offline.
 - 2026-10-12: `waitForLoadState("networkidle")` returns at once when the page has been idle before, so a test went offline while a lazy chunk was still on its way (one run in four). Wait for the response itself, then `finished()`.
@@ -22,7 +22,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-11-02: lay a popover out on its base rule (exit drops `:popover-open`).
 - 2026-11-03: a pill test read `NaN` on a busy CI: lengthen the animation (`CSSStyleSheet`, not `<style>`: CSP). A box read mid-move is a transform: wait for its end.
 - 2026-11-03: the class guard reads a regex quote as a string: parse in `design-system/`.
-- 2026-11-03: `pan-y` lets Chrome scroll a slanted swipe and cancel it. Test on a slant; hold with a non-passive `touchmove`.
+- 2026-11-03: `pan-y` lets Chrome scroll a slanted swipe and cancel it. Test slanted; hold via non-passive `touchmove`.
 
 ## Unit tests
 
