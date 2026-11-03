@@ -2704,7 +2704,8 @@
 /* Full bleed on a phone (owner, 2026-11-03: "make the row full bleed in the queue"): the row's fill,
    the held row's tonal fill and the red strip behind a swipe run to both edges of the screen instead
    of sitting in the page's gutters as a pill. The words, the cover and the handle keep the gutter, so
-   nothing moves; only what is painted grows. A band at the screen's edge takes no corner radius. */
+   nothing moves; only what is painted grows. A band at the screen's edge takes no corner radius.
+   From 40rem the centred column caps it, as it does the tab line. */
 @media (width < 64rem) {
   .player-queue-item {
     margin-inline: calc(max(var(--player-padding), var(--safe-left)) * -1)
