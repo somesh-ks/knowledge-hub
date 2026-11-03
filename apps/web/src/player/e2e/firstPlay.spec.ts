@@ -191,6 +191,8 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await expect.poll(queue).toBeNull();
     await expect(lead).toHaveAttribute("data-queue-id", leadId ?? "");
     await expect(player.root).toHaveAttribute("data-player-state", "playing");
+    // The drop glides the row into its place first.
+    await expect.poll(() => lead.evaluate((el) => el.getAnimations().length)).toBe(0);
     // The row that plays is swiped away the same way: it leaves the list, and the audio plays on.
     const playing = player.dialog.locator('[data-state="current"] .player-queue-row');
     const here = center(await player.boxOf(playing));

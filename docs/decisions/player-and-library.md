@@ -419,7 +419,7 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 ## D349: The playing row drags like any queued row; let go lower, it plays on and what it passed is skipped
 
 - Date: 2026-11-03 (owner: "I cannt seem to reorder podcasts with currently playing podcast ... sometimes it triggers the page scroll instead"; on the card he chose "Keeps playing where dropped")
-- Decision: the playing row is row 0 of the queue list (`QueueList` `lead`), with a real handle. Let go lower, it plays on and the queued rows it passed are skipped (`PlayQueue.skip`): they join what played and leave the list, so it heads Up next again. Down on its focused handle skips one. A queued row lifted to the top stops under it. The playing row keeps the swipe and the ⋮ of any row.
+- Decision: the playing row is row 0 of the queue list (`QueueList` `lead`), with a real handle. Let go lower, it plays on and the queued rows it passed are skipped (`PlayQueue.skip`): they join what played and leave the list, so it heads Up next again. Down on its focused handle skips one. A queued row lifted to the top stops under it. The playing row keeps the swipe and the ⋮ of any row. Any held row carries the floating shadow and ticks (`detent`) as it is lifted and at each new place; let go, the rows glide from where they stood into place on the settle spring instead of snapping (owner: "make the drag and swap interaction smoother"), except with reduced motion and for keyboard moves.
 - Why: its handle only marked it (`pointer-events: none`), so a press there fell through to the page and scrolled it.
 - Rejected: the next row starts and the moved one waits; a playing row that cannot move.
 - Amends: D346 (the playing row's handle only marks it).

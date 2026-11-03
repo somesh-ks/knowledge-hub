@@ -2556,20 +2556,25 @@
   justify-content: flex-end;
 }
 
-/* A row lifted by its grip rides above the others, on a tonal fill so it reads as held; the rows it
-   passes shift aside by their translate (QueueList.tsx), on the row's own transition. */
+/* A row lifted by its grip rides above the others, on a tonal fill and the floating shadow so it reads
+   as held; it follows the finger with no lag (translate untransitioned). The rows it passes shift
+   aside by their translate (QueueList.tsx), on the row's own transition. Let go, it glides into
+   place (glide() in QueueList.tsx) and the shadow settles back (owner, 2026-11-03: "make the drag
+   and swap interaction smoother"). */
 .player-queue-item[data-dragging] {
   z-index: var(--z-raised);
-  transition: none;
+  box-shadow: var(--shadow-floating);
+  transition: box-shadow var(--duration-press-in) var(--ease-out);
 }
 
 .player-queue-item[data-dragging] > .player-queue-face {
   background: var(--color-surface-container);
 }
 
-/* A lift's end puts every row at its own place at once; the list draws the new order next. */
+/* A lift's end puts every row at its own place at once (a glide then carries them in); only the
+   shadow eases off. */
 .player-queue-list[data-settling] .player-queue-item {
-  transition: none;
+  transition: box-shadow var(--duration-press-out) var(--ease-out);
 }
 
 /* D277: the list keeps what played (muted) and marks what plays now (accent, the active color). */

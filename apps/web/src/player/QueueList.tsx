@@ -1,13 +1,37 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { announce } from "./core/announcerDom";
 import { TAP_SLOP_PX } from "./core/gestureMath";
 import { getPlayQueue } from "./core/playerRuntime";
 import QueueRow, { type QueueGestures } from "./QueueRow";
+import { getHaptics } from "./sound/soundController";
 import { useRowSwipe } from "./useRowSwipe";
 
 /** The edge of the scrolling column, within which a lifted row scrolls it, and the most it scrolls a frame. */
 const EDGE_PX = 56;
 const EDGE_MAX_STEP_PX = 14;
+
+/** Where each row stood, by id, from the top of the window: what a drop glides the rows from. */
+type Places = Map<string, number>;
+
+/**
+ * Glides each row from where it stood to where the list now draws it (a FLIP): the dropped row
+ * from under the finger into its place, and the rows around it into theirs, on the spring that
+ * settles without overshoot (tokens.css). A drop that snapped into place read as a jump. Not
+ * with reduced motion, and never for a keyboard move, which is repeated and must not lag.
+ */
+function glide(list: HTMLElement | null, before: Places): void {
+  if (!list || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const root = getComputedStyle(document.documentElement);
+  const duration = Number.parseFloat(root.getPropertyValue("--duration-spring-settle")) || 0;
+  const easing = root.getPropertyValue("--ease-spring-settle").trim() || "ease-out";
+  for (const row of list.querySelectorAll<HTMLElement>(".player-queue-item")) {
+    const was = before.get(row.dataset.queueId ?? "");
+    if (was === undefined) continue;
+    const dy = was - row.getBoundingClientRect().top;
+    if (Math.abs(dy) < 1) continue;
+    row.animate([{ translate: `0 ${dy}px` }, { translate: "0 0" }], { duration, easing });
+  }
+}
 
 /** The item last shown as playing, kept across the view's mounts: a new one is what moves the list. */
 let lastLead: string | null = null;
@@ -57,6 +81,14 @@ export default function QueueList({ ids, lead }: { ids: readonly string[]; lead?
   const listRef = useRef<HTMLUListElement>(null);
   const swipe = useRowSwipe();
   const lift = useRef<Lift | null>(null);
+  /** Where the rows stood when a drop changed the order, for the glide once the list redraws. */
+  const pending = useRef<Places | null>(null);
+  useLayoutEffect(() => {
+    const before = pending.current;
+    if (!before) return;
+    pending.current = null;
+    glide(listRef.current, before);
+  });
   /** Every row in the list's order: the playing one first, when it is shown. */
   const all = lead ? [lead, ...ids] : [...ids];
   /** The first place a queued row may take: under the playing row, when it is shown. */
@@ -100,6 +132,8 @@ export default function QueueList({ ids, lead }: { ids: readonly string[]; lead?
       if (index < current.from && index >= top && at < centre) to = Math.min(to, index);
       if (index > current.from && at > centre) to = Math.max(to, index);
     });
+    // A tick for each place the held row moves to, as a wheel's detent.
+    if (to !== current.to) getHaptics().fire("detent");
     current.to = to;
     rows().forEach((row, index) => {
       if (index === current.from) return;
@@ -151,6 +185,10 @@ export default function QueueList({ ids, lead }: { ids: readonly string[]; lead?
     } catch {
       // The pointer was already let go (a cancel).
     }
+    // Where each row stands now, the held one under the finger, so the drop glides from there.
+    const before: Places = new Map(
+      rows().map((row) => [row.dataset.queueId ?? "", row.getBoundingClientRect().top]),
+    );
     // The rows go back to their own places at once: the list draws them in the new order next.
     listRef.current?.setAttribute("data-settling", "");
     for (const row of rows()) {
@@ -158,6 +196,7 @@ export default function QueueList({ ids, lead }: { ids: readonly string[]; lead?
       row.removeAttribute("data-dragging");
     }
     if (put && current.to !== current.from) {
+      pending.current = before;
       putRow(current.from, current.to);
       // The row's elements are kept and moved, but a moved node can lose focus: give it back.
       const id = all[current.from];
@@ -166,8 +205,15 @@ export default function QueueList({ ids, lead }: { ids: readonly string[]; lead?
           ?.querySelector<HTMLElement>(`[data-queue-id="${id}"] .player-queue-grip`)
           ?.focus({ preventScroll: true });
       });
+    } else {
+      // Let go where it was taken (or a cancel): it glides back home.
+      glide(listRef.current, before);
     }
-    requestAnimationFrame(() => listRef.current?.removeAttribute("data-settling"));
+    requestAnimationFrame(() => {
+      listRef.current?.removeAttribute("data-settling");
+      // A drop the list never redrew for (nothing changed after all) has nothing to glide.
+      pending.current = null;
+    });
   };
 
   const gestures: QueueGestures = {
@@ -205,6 +251,7 @@ export default function QueueList({ ids, lead }: { ids: readonly string[]; lead?
       };
       lift.current = current;
       row.dataset.dragging = "";
+      getHaptics().fire("detent");
       autoScroll(current);
     },
     onGripMove(event) {
