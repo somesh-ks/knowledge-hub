@@ -192,6 +192,20 @@ test.describe("the first press of Play on a page with no audio yet", () => {
       element.scrollTop = element.scrollHeight;
     });
     const row = (id: string) => player.dialog.locator(`[data-queue-id="${id}"] .player-queue-row`);
+    // The lock that keeps a slanted swipe from scrolling must not hold a scroll still: a near-upright
+    // drag on a row moves the list and takes nothing off (bug: rows filled Up next and it would not scroll).
+    const scrolledFrom = await player.sheet.evaluate((element) => element.scrollTop);
+    const upright = center(await player.boxOf(row("ep-20261007-1930")));
+    // Held still before the lift, so no fling runs on under the swipe that follows.
+    const end = { x: upright.x + 60, y: upright.y + 180 };
+    await finger.drag([...line(upright, end, 10), end, end, end, end], 30);
+    await expect
+      .poll(() => player.sheet.evaluate((element) => element.scrollTop))
+      .toBeLessThan(scrolledFrom);
+    expect(await queue()).toBe('["ep-20261007-1930","2026-10-05","ep-20261006-0900"]');
+    await player.sheet.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
     const right = center(await player.boxOf(row("ep-20261007-1930")));
     // Held past the point where it leaves (owner, 2026-11-03): the row keeps its own look, so it can
     // still be read, and the red lies behind it as a strip that stays where it is.
@@ -204,13 +218,16 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await page.clock.install();
     // A thumb's swipe starts on a slant: Chrome took those first pixels as a page scroll and cancelled
     // the press, so the strip never showed on the owner's phone while a level line passed here.
-    const slant = [right, { x: right.x + 3, y: right.y + 4 }, { x: right.x + 7, y: right.y + 9 }];
+    // Its first 15 px run at 45 degrees, where Chrome's pan-y reads a scroll; then it flattens out.
+    const bend = { x: right.x + 15, y: right.y + 15 };
     const held = await finger.drag(
       [
-        ...slant,
-        ...line({ x: right.x + 7, y: right.y + 9 }, { x: right.x + 300, y: right.y + 20 }, 6),
+        right,
+        { x: right.x + 5, y: right.y + 5 },
+        { x: right.x + 10, y: right.y + 10 },
+        ...line(bend, { x: right.x + 300, y: right.y + 55 }, 8),
       ],
-      12,
+      30,
       { hold: true },
     );
     await expect(strip).toBeVisible();
