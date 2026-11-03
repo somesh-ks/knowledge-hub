@@ -57,14 +57,6 @@
     100% center;
 }
 
-/* In Expressive the track up to the thumb is the wave, and the input's own track is clear there
-   (slider.css), so the stop dots showed through between its crests (owner, 2026-11-03: "the playback
-   slider has some dots visible where the waves are - no dots please"). Past the thumb the straight
-   track covers them as before. */
-:root[data-style="expressive"] .player-speed .slider-wave-field > .slider-input {
-  background-image: none;
-}
-
 /* On the phone's sheet the tonal fill (the container step) is the sheet's own colour in the dark
    theme and the circles vanish (owner review, 2026-11-02). They take the tiles' fill, one step up
    there (tokens: sheet.tile-bg). The popover from 40rem is the overlay step, so the plain fill shows. */
