@@ -35,7 +35,12 @@ export function installTapRecovery(): void {
   const send = (): void => {
     const tap = waiting;
     waiting = null;
-    if (!tap?.control.isConnected || tap.control.closest("[inert]")) return;
+    if (
+      !tap?.control.isConnected ||
+      tap.control.closest("[inert]") ||
+      tap.control.matches(":disabled")
+    )
+      return;
     sent = { control: tap.control, at: performance.now() };
     sending = true;
     try {
@@ -113,7 +118,7 @@ export function installTapRecovery(): void {
     (event) => {
       // A key's click (no count) is no part of a tap.
       if (sending || event.detail === 0) return;
-      if (waiting) {
+      if (waiting?.control.contains(event.target as Node)) {
         // The browser sent this tap's click itself.
         clearTimeout(waiting.timer);
         waiting = null;

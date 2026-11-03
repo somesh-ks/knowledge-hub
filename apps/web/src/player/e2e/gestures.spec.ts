@@ -40,6 +40,8 @@ test.describe("opening by gesture", () => {
     audio,
     finger,
   }) => {
+    // Time runs as usual until the test moves it on.
+    await page.clock.install();
     await player.open();
     await player.play();
     const start = center(await player.dockSettled());
@@ -50,12 +52,12 @@ test.describe("opening by gesture", () => {
     await finger.press(player.dialog.locator(".transport [data-primary]"));
     await expect.poll(async () => (await audio.read())?.paused).toBe(true);
     // One tap is one press: it does not pause and play again.
-    await page.waitForTimeout(600);
+    await page.clock.runFor(600);
     expect((await audio.read())?.paused).toBe(true);
     // A tap the browser clicks for itself is not clicked twice.
     await finger.press(player.dialog.locator(".transport [data-primary]"));
     await expect.poll(async () => (await audio.read())?.paused).toBe(false);
-    await page.waitForTimeout(600);
+    await page.clock.runFor(600);
     expect((await audio.read())?.paused).toBe(false);
   });
 

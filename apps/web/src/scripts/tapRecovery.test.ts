@@ -27,9 +27,21 @@ describe("a tap whose click never came", () => {
     );
     installTapRecovery();
     const clicks: Event[] = [];
+    // An event reaches the page first (its capture listeners may stop it), then the control.
+    const deliver = (event: Event): boolean => {
+      // A click made by the script has no target until it is sent: it is sent to the control.
+      const target = event.target ?? control;
+      page.dispatchEvent(event);
+      if (!event.cancelBubble && target === control) control.dispatchTo(event);
+      return true;
+    };
     const control = Object.assign(new EventTarget(), {
       isConnected: true,
       closest: (selector: string) => (selector.includes("button") ? control : null),
+      contains: (node: unknown) => node === control,
+      matches: () => false,
+      dispatchTo: (event: Event) => EventTarget.prototype.dispatchEvent.call(control, event),
+      dispatchEvent: deliver,
     });
     control.addEventListener("click", (event) => clicks.push(event));
     under = control;
@@ -44,9 +56,9 @@ describe("a tap whose click never came", () => {
         clientY: 10,
         ...extra,
       });
-      Object.defineProperty(event, "target", { value: control });
+      Object.defineProperty(event, "target", { value: (extra as { on?: unknown }).on ?? control });
       Object.defineProperty(event, "timeStamp", { value: at });
-      page.dispatchEvent(event);
+      deliver(event);
       return event;
     };
     const tap = (extra: object = {}, held = 60): void => {
@@ -64,11 +76,17 @@ describe("a tap whose click never came", () => {
     const late = fire("click");
     expect(late.defaultPrevented).toBe(true);
 
-    // The click comes with the tap: nothing is made.
+    // The click comes with the tap: it reaches the control, and none is made besides.
     tap();
     fire("click");
     vi.advanceTimersByTime(100);
-    expect(clicks).toHaveLength(1);
+    expect(clicks).toHaveLength(2);
+
+    // An earlier tap's late click, on another control, leaves this tap's own recovery alone.
+    tap();
+    fire("click", { on: {} });
+    vi.advanceTimersByTime(60);
+    expect(clicks).toHaveLength(3);
 
     // A drag off the control, a drift, a cancelled pointer, a hold and a mouse press click nothing.
     fire("pointerdown");
@@ -84,6 +102,6 @@ describe("a tap whose click never came", () => {
     tap({}, 600);
     tap({ pointerType: "mouse" });
     vi.advanceTimersByTime(100);
-    expect(clicks).toHaveLength(1);
+    expect(clicks).toHaveLength(3);
   });
 });
