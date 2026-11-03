@@ -102,10 +102,7 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await expect(transcript.locator("[data-turn]")).toHaveCount(1);
     // Up next is the other view: moved up by its row's handle and the arrow key, the briefing now comes first.
     await player.dialog.getByRole("tab", { name: "Up next" }).click();
-    await player.dialog
-      .getByRole("button", { name: /^Move / })
-      .nth(1)
-      .focus();
+    await player.dialog.getByRole("button", { name: /^Move .*, 2 of 2\./ }).focus();
     await page.keyboard.press("ArrowUp");
     // Back on Stories the open story is still the one being read.
     await player.dialog.getByRole("tab", { name: "Stories" }).click();

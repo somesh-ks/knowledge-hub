@@ -2608,7 +2608,8 @@
     display: inline-flex;
   }
 
-  .player-queue-grip {
+  /* Above the grab cursor further down, which has the same weight otherwise. */
+  .player-queue-item .player-queue-grip {
     cursor: move;
   }
 
