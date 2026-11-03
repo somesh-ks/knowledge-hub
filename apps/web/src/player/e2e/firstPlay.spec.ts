@@ -170,6 +170,7 @@ test.describe("the first press of Play on a page with no audio yet", () => {
   test("a queued row shows its handle and ⋮ only under the mouse, and Remove from queue takes the row off @desktop", async ({
     player,
     page,
+    hasTouch,
   }) => {
     await player.open();
     await page.evaluate(() => {
@@ -182,6 +183,12 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     const row = player.dialog.locator('[data-queue-id="ep-20261006-0900"]');
     const dots = row.locator(".player-queue-more");
     const grip = row.locator(".player-queue-grip");
+    if (hasTouch) {
+      // A phone has no hover: the handle stays in view and no dots are drawn.
+      await expect(grip).toBeVisible();
+      await expect(dots).toBeHidden();
+      return;
+    }
     await expect(dots).toHaveCSS("opacity", "0");
     await expect(grip).toHaveCSS("opacity", "0");
     await row.hover();
