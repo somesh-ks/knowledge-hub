@@ -67,7 +67,7 @@ describe("planNarration", () => {
       [
         turn("t0", null, 10),
         turn("t1", "s1", 20),
-        turn("t2", "s1", 30),
+        turn("t2", null, 30),
         turn("t3", "s2", 40),
         turn("t4", "s1", 10),
         turn("t5", null, 10),
@@ -83,8 +83,8 @@ describe("planNarration", () => {
       [10, 11],
       [11, 12],
     ]);
-    // Only t1 and t3 name a story, yet the stories tile the recording: what is said after a story's
-    // last tagged turn (t2, t4, the sign-off t5) stays with it, and none overlap.
+    // Only t1, t3 and t4 name a story. The untagged t2 stays with s1 and the untagged sign-off t5
+    // with s2; the later s1 turn t4 does not extend s1 past the start of s2, and none overlap.
     expect(plan.items.get("s1")).toEqual({ start_ms: 1_000, end_ms: 6_000 });
     expect(plan.items.get("s2")).toEqual({ start_ms: 6_000, end_ms: 12_000 });
     expect(plan.items.size).toBe(2);
