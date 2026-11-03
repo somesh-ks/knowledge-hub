@@ -49,7 +49,10 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     expect(await audio.count()).toBe(1);
   });
 
-  test("the plus on a suggested row adds it to the queue", async ({ player, page }) => {
+  test("the plus on a suggested row adds it to the queue, and Suggested stays under it", async ({
+    player,
+    page,
+  }) => {
     await player.open();
     await player.play();
     await player.openPlayer();
@@ -62,7 +65,12 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await expect
       .poll(() => page.evaluate(() => localStorage.getItem("singularity:queue")))
       .toContain("ep-20261007-1930");
-    await expect(player.dialog.getByText("Suggested", { exact: true })).toHaveCount(0);
+    // The section is always there (owner, 2026-11-03: it vanished at the first add): the added one has
+    // left it, and the rest stay to add.
+    await expect(player.dialog.getByText("Suggested", { exact: true })).toBeVisible();
+    await expect(
+      player.dialog.getByRole("button", { name: /^Add .* to the queue$/ }).first(),
+    ).toBeVisible();
   });
 
   // The queue is the listener's choice, so it does chain: a queued item that never started at the

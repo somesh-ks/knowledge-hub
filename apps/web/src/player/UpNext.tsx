@@ -56,6 +56,28 @@ function SuggestedRow({ id }: { id: string }) {
   );
 }
 
+/**
+ * What Autoplay would play after the queue, under it always (owner, 2026-11-03: adding one made the
+ * section vanish). A suggestion just queued leaves it at once, and the list is read again to fill
+ * the place it left.
+ */
+function SuggestedSection({ ids, queued }: { ids: readonly string[]; queued: readonly string[] }) {
+  const shown = ids.filter((id) => !queued.includes(id));
+  if (shown.length === 0) return null;
+  return (
+    <section aria-labelledby="player-suggested-head">
+      <p className="player-upnext-hint player-suggested-head" id="player-suggested-head">
+        Suggested
+      </p>
+      <ul className="player-queue-list">
+        {shown.map((id) => (
+          <SuggestedRow key={id} id={id} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 /** The item last shown as playing, kept across the view's mounts: a new one is what moves the list. */
 let lastCurrent: string | null = null;
 
@@ -116,8 +138,8 @@ function CurrentRow({ id }: { id: string }) {
 }
 
 /**
- * The player's Up next view: the queue, when the listener queued something, or else the suggested
- * items. The queue starts by itself when a recording ends (the listener chose it); with an empty
+ * The player's Up next view: the queue, when the listener queued something, and the suggested items
+ * under it, always. The queue starts by itself when a recording ends (the listener chose it); with an empty
  * queue Autoplay starts the first suggested item, unless the listener turned it off. Where the
  * site's list cannot be read (offline), the previous briefing is offered instead, and never starts
  * by itself.
@@ -139,22 +161,14 @@ export default function UpNext() {
       <>
         {passed}
         <QueueList ids={queued} />
+        {suggested ? <SuggestedSection ids={suggested} queued={queued} /> : null}
       </>
     );
   if (suggested && suggested.length > 0) {
     return (
       <>
         {passed}
-        <section aria-labelledby="player-suggested-head">
-          <p className="player-upnext-hint player-suggested-head" id="player-suggested-head">
-            Suggested
-          </p>
-          <ul className="player-queue-list">
-            {suggested.map((id) => (
-              <SuggestedRow key={id} id={id} />
-            ))}
-          </ul>
-        </section>
+        <SuggestedSection ids={suggested} queued={queued} />
       </>
     );
   }

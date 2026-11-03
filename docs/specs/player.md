@@ -37,7 +37,7 @@ What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D
 - The playing item heads Up next and nothing sits above it (D346); what played is kept (`singularity:queue-played`, 30 at most) but not listed. A tap on any row plays it in place with no page move and the bar stays up (D277). The next three queued items with finished audio have their first 512 KB fetched at idle.
 - Scenario: WHEN the listener taps the third queued item THEN it plays at once, the page does not move, the bar never hides, and it heads the list alone.
 - Up next is the second view of the player's list, on a phone and on a wide screen (it stays selected when the item changes): the queue, or the next older item when the queue is empty. There is no peek strip and no pull-up queue sheet.
-- Scenario: WHEN a recording has ended and there is something to offer THEN the view turns to Up next; the listener can go back to Stories. With Podcast autoplay on (the default) the first suggested item starts by itself when the queue is empty (#334; D126 meant the queue only).
+- Scenario: WHEN a recording has ended and there is something to offer THEN the view turns to Up next; the listener can go back to Stories. With Podcast autoplay on (the default) the first suggested item starts by itself when the queue is empty (#334; D126 meant the queue only). Suggested sits under the queue and stays: one added leaves it and the list refills.
 
 ### Failure and memory
 - A failure is told once, in the line under the title, and nothing below it moves.
