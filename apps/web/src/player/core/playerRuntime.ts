@@ -49,7 +49,7 @@ import { safeLocalStorage, safeSessionStorage } from "./resume";
 import { reapplyRootState, setRootAttribute, setRootProperty } from "./rootAttributes";
 import { isReturn, openQuietly, readSession, saveSession } from "./sessionRestore";
 import { getSpeedDefault } from "./speedDefaultRuntime";
-import { loadTimeline, skipper, suggestNext } from "./suggested";
+import { keepPlaces, loadTimeline, skipper, suggestNext } from "./suggested";
 import { tabShared } from "./tabSlot";
 import { reapplyTheme, startThemeSync } from "./themeRuntime";
 
@@ -152,6 +152,9 @@ function createQueue(): PlayQueue {
   });
 }
 
+/** The suggestions last listed, whose places a refill keeps. */
+let shownSuggestions: readonly string[] = [];
+
 /** The suggested items after what is playing: the list Up next shows and Autoplay draws from. */
 export async function loadSuggested(): Promise<string[] | null> {
   const ordered = await loadTimeline();
@@ -160,7 +163,9 @@ export async function loadSuggested(): Promise<string[] | null> {
   const queue = getPlayQueue();
   // A row put above the playing one is listed too (D357): it is not suggested again.
   const listed = [...queue.getAbove(), ...queue.getIds()];
-  return suggestNext(ordered, currentId, skipper(safeLocalStorage(), listed));
+  const fresh = suggestNext(ordered, currentId, skipper(safeLocalStorage(), listed));
+  shownSuggestions = keepPlaces(shownSuggestions, fresh);
+  return [...shownSuggestions];
 }
 
 /** Bumped when the listener picks an item, so an autoplay still loading its list gives way. */

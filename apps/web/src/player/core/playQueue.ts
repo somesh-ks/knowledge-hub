@@ -18,6 +18,12 @@ export const QUEUE_KEY = "singularity:queue";
 export const HISTORY_KEY = "singularity:queue-played";
 /** How many played items the list keeps behind the current one. */
 export const HISTORY_LIMIT = 30;
+/**
+ * What the listener took off the queue: Suggested and Autoplay leave it out until it is queued or
+ * played again (owner, 2026-11-03: a removed podcast came back on top of Suggested).
+ */
+export const REMOVED_KEY = "singularity:queue-removed";
+const REMOVED_LIMIT = 50;
 export const QUEUE_ADD_EVENT = "singularity:queue-add";
 export const QUEUE_CHANGED_EVENT = "singularity:queue-changed";
 
@@ -26,6 +32,16 @@ const ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/i;
 
 export function isQueueId(value: unknown): value is string {
   return typeof value === "string" && ID_PATTERN.test(value);
+}
+
+/** The removed ids, newest last; anything unreadable is nothing removed. */
+export function parseRemoved(raw: string | null): string[] {
+  try {
+    const value: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(value) ? value.filter(isQueueId) : [];
+  } catch {
+    return [];
+  }
 }
 
 /** The stored list, or an empty one when nothing is stored or what is there is not a list of ids. */
@@ -265,6 +281,20 @@ export function createPlayQueue(options: {
     }
   }
 
+  /** Notes `id` as taken off (or, `false`, as back), before the change is told: Suggested reads it. */
+  function markRemoved(id: string, removed: boolean): void {
+    try {
+      const was = parseRemoved(storage?.getItem(REMOVED_KEY) ?? null);
+      if (!removed && !was.includes(id)) return;
+      const rest = was.filter((entry) => entry !== id);
+      const next = removed ? [...rest, id].slice(-REMOVED_LIMIT) : rest;
+      if (next.length > 0) storage?.setItem(REMOVED_KEY, JSON.stringify(next));
+      else storage?.removeItem(REMOVED_KEY);
+    } catch {
+      // Full or blocked storage: the item may be suggested again.
+    }
+  }
+
   let view: QueueView = { played, current, upcoming: ids, above };
 
   function tell(): void {
@@ -293,6 +323,7 @@ export function createPlayQueue(options: {
     getView: () => view,
     add(id) {
       const before = ids.length;
+      markRemoved(id, false);
       if (above.includes(id)) {
         above = above.filter((entry) => entry !== id);
         persistHistory();
@@ -306,6 +337,7 @@ export function createPlayQueue(options: {
       return ids.length > before;
     },
     remove(id) {
+      markRemoved(id, true);
       // The item playing now leaves the list and plays on: nothing is queued behind it for it. The
       // rows above it keep their places, at the head of what is to come.
       if (id === current) {
@@ -354,6 +386,7 @@ export function createPlayQueue(options: {
       if (!sameAbove && before === ids) tell();
     },
     started(id) {
+      markRemoved(id, false);
       const next = startItem({ played, current, upcoming: ids, above }, id);
       const trimmed = next.played.slice(-HISTORY_LIMIT);
       const sameAbove =
