@@ -415,3 +415,11 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Why: the owner asked for it twice (2026-11-02 for the card marks, 2026-11-03 for the button); the status is the subtitle's job, so the button need not repeat it, and a mark scans faster than a word in a list.
 - Cost: the hero chip loses its checked, tonal face and its "Play again" hover.
 - Amends: D78 and D106 (the Played chip), and the card marks of 2026-11-02.
+
+## D351: A story's Play button never says Played
+
+- Date: 2026-11-03 (owner: "no per story state, but have a play button for user to start at any point").
+- Decision: a story's button inside a podcast page is the same Play button with the story's length whether or not the story was heard (`storyChipView` in `readerMath.ts`); it shows Playing, Paused or Loading only while it is the current story. Which stories were heard stays in storage and on the story's own `data-state`, which the player's lists and the queue read; the button does not show it.
+- Why: D348 took Played off the podcast's buttons and left it on the stories on a reading that the subtitle does not cover single stories; the owner wants a Play button to start from any point and no per-story status on it.
+- Cost: a listener can no longer see on the page which single stories they heard.
+- Amends: D348 (a story's chip keeps Played).
