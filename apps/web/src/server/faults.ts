@@ -5,7 +5,7 @@ import {
   recordClientFault,
 } from "@singularity/engine/faults-store";
 import { PLATFORM_CODE } from "../lib/platformFaults";
-import { type DatabaseDeps, guardedDatabase } from "./database";
+import { type DatabaseDeps, guardedDatabase, telemetryDatabaseUrl } from "./database";
 
 /**
  * Client faults (D158) on the server: `/api/report` hands a page's error, rejection or CSP
@@ -136,5 +136,5 @@ export function createFaultWriter(deps: DatabaseDeps): FaultWriter {
 
 /** The site's writer, one per instance. */
 export const storeFault: FaultWriter = createFaultWriter({
-  databaseUrl: process.env.DATABASE_URL,
+  databaseUrl: telemetryDatabaseUrl(process.env),
 });

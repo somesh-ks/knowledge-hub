@@ -136,7 +136,7 @@ test("a podcast without audio keeps the stories heard when its page opens", asyn
   }
 });
 
-test("a podcast without audio heard to the end says Played everywhere", async ({ page }) => {
+test("a podcast without audio heard to the end says Played on Today", async ({ page }) => {
   await seedStorage(page, { local: { "singularity:played:2026-10-05": "1" } });
   await page.goto(SILENT_DIGEST);
   await hydrated(page);
@@ -148,18 +148,6 @@ test("a podcast without audio heard to the end says Played everywhere", async ({
     "aria-label",
     "Play the podcast again, played",
   );
-
-  await page.goto("/library");
-  await hydrated(page);
-  await expect(page.locator('[data-card][data-id="2026-10-05"] [data-card-length]')).toHaveText(
-    "Played",
-  );
-
-  await page.goto("/");
-  await hydrated(page);
-  await expect(
-    page.locator('.earlier [data-card][data-id="2026-10-05"] [data-card-length]'),
-  ).toHaveText("Played");
 });
 
 test("the floating Play on Today follows the chip", async ({ page }) => {
@@ -185,9 +173,10 @@ test("a phone that saved before the rename keeps its theme and what it played", 
       "dispatch:played:2026-10-07": "1",
     },
   });
-  await page.goto("/library");
+  await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await expect(page.locator(".card-facts[data-played]")).toHaveCount(1);
+  const label = page.locator(".hero [data-play-digest] [data-chip-label]");
+  await expect(label).toHaveText("Played");
   await page.reload();
-  await expect(page.locator(".card-facts[data-played]")).toHaveCount(1);
+  await expect(label).toHaveText("Played");
 });

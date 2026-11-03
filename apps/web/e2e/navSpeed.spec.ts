@@ -213,6 +213,42 @@ test.describe("the chrome holds still on a move", () => {
     expect(before, "the pill was growing as the swap began").not.toBeNaN();
     expect(Math.abs(after - before)).toBeLessThan(2);
   });
+
+  // Bug it prevents (owner, 2026-11-02): from a scrolled gallery, going back cut the saved offset short
+  // (cards the page had not drawn counted as an estimate), so the page came back higher than it was
+  // left and then moved. The card the owner opened is where it was, in the list and the gallery.
+  for (const view of ["list", "gallery"]) {
+    test(`going back the Library is where it was left, ${view}, and the card does not move after`, async ({
+      page,
+    }) => {
+      await page.addInitScript((chosen) => {
+        localStorage.setItem("singularity:library-view", chosen);
+      }, view);
+      await page.setViewportSize({ width: 390, height: 600 });
+      await page.goto("/library");
+      const card = page.locator("[data-card]").last();
+      await card.scrollIntoViewIfNeeded();
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      const cover = card.locator(".cover");
+      const before = await cover.boundingBox();
+      await card.locator(".card-link").click();
+      await expect(page).toHaveURL(/\/d\//);
+      await page.goBack();
+      await expect(page).toHaveURL(/\/library$/);
+      const settled = await cover.boundingBox();
+      expect(Math.abs((settled?.y ?? 0) - (before?.y ?? 0))).toBeLessThan(1.5);
+      expect(Math.abs((settled?.width ?? 0) - (before?.width ?? 0))).toBeLessThan(1.5);
+      // And it stays: the page does not move again once it is back.
+      await page.evaluate(
+        () =>
+          new Promise((done) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(done))),
+          ),
+      );
+      const after = await cover.boundingBox();
+      expect(Math.abs((after?.y ?? 0) - (settled?.y ?? 0))).toBeLessThan(1.5);
+    });
+  }
 });
 
 test.describe("the whole bottom bar is the tab", () => {

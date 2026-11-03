@@ -2,8 +2,8 @@
 import type { DigestEntry } from "../lib/digests";
 import { airedMinutes } from "../lib/digestView";
 import { longDate, longDateTitle } from "../lib/format";
-import { FACT_SEPARATOR } from "../lib/library";
 import { cardFacts } from "../lib/libraryCard";
+import CardMarks from "./CardMarks.astro";
 import Cover from "./Cover.astro";
 import CoverPlay from "./CoverPlay.astro";
 import LibraryItemMenu from "./LibraryItemMenu.astro";
@@ -22,12 +22,6 @@ interface Props {
 const { entry, menu = false, downloads = false, saved = false } = Astro.props;
 const { digest } = entry;
 const facts = cardFacts(entry);
-// Kind, story count, length: the count is its own span, so the narrow shelf on Today can leave it out,
-// and the length is its own, so "Played" can take its place without touching the kind.
-const segments = facts.line.split(FACT_SEPARATOR);
-const length = segments.length > 1 ? segments.at(-1) : undefined;
-const [kind, count] = segments.slice(0, -1);
-const hasCount = segments.length > 2;
 ---
 
 {/* One briefing as album art: the cover, its date, and one quiet line. The whole card is the link.
@@ -57,7 +51,8 @@ const hasCount = segments.length > 2;
     <span class="card-progress" data-cover-progress aria-hidden="true" hidden></span>
     <span class="card-title">{longDateTitle(digest.date)}</span>
     <span class="card-sub">
-      <span class="card-facts" data-card-facts data-rest={facts.line}>{length === undefined ? facts.line : <Fragment>{kind}{hasCount && <span class="card-count">{FACT_SEPARATOR}{count}</span>}{FACT_SEPARATOR}<span data-card-length>{length}</span></Fragment>}</span>
+      <span class="card-facts" data-card-facts>{facts.line}</span>
+      {menu && <CardMarks />}
     </span>
   </a>
   <CoverPlay digestId={entry.id} href={`/d/${entry.id}`} title={longDate(digest.date)} />

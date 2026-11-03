@@ -6,13 +6,6 @@
  * components/EpisodeView.astro.
  */
 
-/* The Regenerate panel's field label (EpisodeActions.astro) starts at the field's edge. */
-.regen-form .regen-label {
-  display: block;
-  padding-inline: 0;
-  margin-block-end: var(--space-2);
-}
-
 /* Stories sit an item gap apart, half of it on each side of the hairline, as in a briefing. */
 .episode-highlight {
   padding-block: calc(var(--item-gap) / 2);

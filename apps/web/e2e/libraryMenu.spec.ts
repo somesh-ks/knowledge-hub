@@ -88,6 +88,7 @@ test("a podcast page's More menu downloads and queues the podcast, as its row in
 test("pressing a row's three dots moves nothing: not the card, its title or the dots' own glyph, and they sit beside the title", {
   tag: "@desktop",
 }, async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("singularity:library-view", "gallery"));
   await page.goto("/library");
   await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
   const card = row(page, AUDIO_ID);
@@ -160,9 +161,7 @@ test.describe("a podcast download", () => {
     await openMenu(page, AUDIO_ID);
     await row(page, AUDIO_ID).getByRole("menuitem", { name: "Download" }).click();
     await expect(row(page, AUDIO_ID)).toHaveAttribute("data-downloaded", "");
-    await expect(row(page, AUDIO_ID).locator(".card-sub .card-downloaded")).toContainText(
-      "Downloaded",
-    );
+    await expect(row(page, AUDIO_ID).locator(".card-sub .card-downloaded")).toBeVisible();
 
     // Still marked after a reload: the state comes from Cache Storage, not from the page.
     await page.reload();
@@ -585,6 +584,22 @@ test("Settings > Downloads stays a list with a working ⋮ when reached from the
   await expect(page.locator("[data-card]:visible")).toHaveCount(0);
 });
 
+// Bug it prevents: the ⋮ drawn on a phone's Library card (owner, three times by 2026-11-02): on touch the
+// menu opens by a long press only, so no card in the list or the gallery has a button to tap.
+test("a phone's Library cards have no ⋮ to tap, in the list or the gallery", async ({ page }) => {
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  for (const view of ["list", "gallery"]) {
+    await page.locator(`[data-library-view='${view}']`).click();
+    const dots = page.locator("[data-card]:visible .card-more");
+    await expect(dots).not.toHaveCount(0);
+    for (const dot of await dots.all()) {
+      await expect(dot).toHaveCSS("opacity", "0");
+      await expect(dot).toHaveCSS("pointer-events", "none");
+    }
+  }
+});
+
 // One safe row needs no title and no Close (D329, owner, 2026-11-02): the header would be taller than
 // the action, and a swipe or a tap on the scrim closes the sheet. Two rows, a tile row or a lone danger
 // row keep it. The cases are made from one card's menu by hiding rows, as a script does.
@@ -625,4 +640,30 @@ test("a phone's menu sheet drops its header over one safe row and keeps it other
     (rows[0] as HTMLElement).classList.add("menu-item-danger");
   });
   await expect(head).toBeVisible();
+});
+
+// A card's cover carries three looping bars that show only for the episode that plays. They once ran on
+// every card all the time (motion audit, 2026-11-02): 15 hidden loops on five cards, hundreds on a real
+// Library. The bars are drawn on desktop only; on a phone the play button is not there.
+test("a Library card's bars loop only while its episode plays", { tag: "@desktop" }, async ({
+  page,
+}) => {
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  const running = () =>
+    page.evaluate(
+      () =>
+        document
+          .getAnimations()
+          .filter(
+            (a) =>
+              "animationName" in a && a.animationName === "chip-bar" && a.playState === "running",
+          ).length,
+    );
+  expect(await running()).toBe(0);
+  await page
+    .locator(".cover-over")
+    .first()
+    .evaluate((el) => el.setAttribute("data-playing", "true"));
+  await expect.poll(running).toBe(3);
 });
