@@ -9,7 +9,7 @@ import ScriptView from "./ScriptView";
 import Clock from "./ui/Clock";
 
 /**
- * "Stories": every story, under its section, with its length. Tapping one plays it from its start.
+ * "Stories": every story, under its section, with where it starts. Tapping one plays it from its start.
  * The story being read is open: its transcript sits under its row, with the spoken word lit, and
  * every other story stays a chapter row. Before story 1 (an episode's rundown) the rundown's
  * transcript sits above the rows. An episode whose narration is not laid out yet places its stories
@@ -66,10 +66,11 @@ export default function StoryList({ turns }: { turns: readonly PlayerTurn[] }) {
               <ul className="story-rows" role="list">
                 {sectionItems.map((item) => {
                   const current = item === reading;
+                  // Where the story starts, so the times read in order (owner, 2026-11-03, D350).
                   const time =
-                    item.durationSec !== null ? (
+                    item.startSec !== null ? (
                       <span className="story-row-time">
-                        <Clock seconds={item.durationSec} />
+                        <Clock seconds={item.startSec} />
                       </span>
                     ) : null;
                   const placed = timed || (item.startSec !== null && digest !== undefined);

@@ -204,6 +204,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D346 | Swipe-to-delete is a red strip behind the row; the playing row heads Up next; a story's time runs to the next story | amends D343, D277; amended by D349 |
 | D347 | A step into a deeper page rises; a tab move takes a quarter second; a press draws one wave | amends D286, D341 |
 | D349 | The playing row drags; let go lower it plays on and the rows it passed are skipped | amends D346 |
-| D350 | The player's clocks read forward: time played, then the length | amends D85 |
+| D350 | The player's times read forward: played then length; chapter rows show start times | amends D85 |
 
 ---

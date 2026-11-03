@@ -29,7 +29,7 @@ What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D
 ### Stories and transcript
 - The Stories view merges the chapters and the transcript. The story being read is open: its transcript (headline in its row, the host's words under it) shows with the same follow and word light as an episode's. Every other story is a chapter row that starts it when tapped. Unlaid-out narration shows its script whole (`StoryList`, `core/storyTranscript.ts`).
 - A briefing's transcript is what the host says of each story (from the digest's spoken version).
-- Stories are timed rows that start the story; a story lasts until the next starts (D346); previous and next step between them (D85, D90). The rundown before story 1 is no story: Next goes to story 1, Previous to 0:00. A move made with the controls never scrolls the page (D92).
+- Story rows show their start time, rising, and start there (D350); a story ends where the next starts (D346); previous and next step between them (D85, D90). Before story 1 (the rundown) Next goes to story 1, Previous to 0:00. A move made with the controls never scrolls the page (D92).
 - The transcript is a plain reading column with one Tab stop: said words in full ink, the rest muted, the spoken word on a soft fill, from Speechify's word marks, with an estimate where a segment has none. "Back to now" is drawn over the whole list.
 
 ### Queue and Up next (D126)

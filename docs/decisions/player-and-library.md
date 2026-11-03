@@ -414,9 +414,9 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Rejected: the next row starts and the moved one waits; a playing row that cannot move.
 - Amends: D346 (the playing row's handle only marks it).
 
-## D350: The player's clocks read forward: time played, then the length
+## D350: The player's times read forward: time played, then the length; a chapter row shows where its story starts
 
-- Date: 2026-11-03 (owner: "progress time on left, total time on right. eg. 3:02 is the played time so far, 5:03 is the total length. avoid negative values to be shown")
-- Decision: under the open player's scrubber the left clock is the time played and the right one the recording's whole length; no clock in the player shows time to go with a minus. The bar already read "0:02 / 0:36".
-- Why: "-2:10" on the right read as a random number next to the bar's "played / length".
-- Amends: D85 (the page's "-2:10").
+- Date: 2026-11-03 (owner: "progress time on left, total time on right. eg. 3:02 is the played time so far, 5:03 is the total length. avoid negative values to be shown"; "the timestamps are still weird on chapters/stories in the player ui. it should be sequential"; on the card he chose "Start time")
+- Decision: under the open player's scrubber the left clock is the time played and the right one the recording's whole length; no clock in the player shows time to go with a minus. The bar already read "0:02 / 0:36". Each chapter row shows where its story starts (0:00, 1:12, 3:40), not its length, and an episode placed by its script lists its sections in the order the script reaches them, so the times only go up.
+- Why: "-2:10" on the right read as a random number next to the bar's "played / length", and lengths down the chapter list (1:12, 0:45, 2:10) read as random times.
+- Amends: D85 (the page's "-2:10"; chapters listed with their lengths).
