@@ -394,3 +394,14 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Rejected: a long-press pointer drag (it blocks scrolling); keeping the browser's drag and drop under the grip (touch never started it); hiding Next on every width (a mouse on a narrow window cannot swipe).
 - Amends: D169 (the pill, the row menu, swipe left only), D277 (the list opens at the playing item).
 
+
+## D346: Played and Downloaded are marks, and the play button never says Played
+
+- Date: 2026-11-03.
+- Decision:
+  - A card shows a green check circle once the recording was heard to its end and a blue download-arrow circle once it is saved offline, after its facts line, in words never (`CardMarks.astro`, `.status-mark` in `library.css`). Both show when both are true. Every card wears them: the Library's list and gallery, Favorites, Downloads and the Earlier shelf on Latest.
+  - A podcast page's facts line says the same with the word beside the mark ("Weekly · 14 stories · Played · Downloaded", `HeroMarks.astro`), each only while it is true.
+  - The hero Play chip and the floating Play never say Played, in any state: Play and the length, Resume and the time left, Loading. A story's own chip inside the page keeps Played. `readerMath.ts` has one test that no state or memory yields the word.
+- Why: the owner asked for it twice (2026-11-02 for the card marks, 2026-11-03 for the button); the status is the subtitle's job, so the button need not repeat it, and a mark scans faster than a word in a list.
+- Cost: the card's Played mark returns after #597 dropped it on a reading of "only indicate the downloaded ones"; the hero chip loses its checked, tonal face and its "Play again" hover.
+- Amends: D78 and D106 (the Played chip), and the card marks of 2026-11-02.

@@ -199,5 +199,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D342 | A Firecrawl listing is read free first and scraped only when its links moved | relates to D222, D302 |
 | D343 | Podcast-page tabs, two-bar queue handle, swipe both ways, phone bar swipes podcasts | amends D169, D277 |
 | D345 | Create's More options is a closed accordion at every width | amends D76 |
+| D346 | Played is a green check and Downloaded a blue arrow on every card and podcast subtitle; the play button never says Played | amends D78, D106 |
 
 ---

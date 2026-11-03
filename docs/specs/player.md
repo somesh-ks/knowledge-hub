@@ -45,7 +45,7 @@ What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D
 - Scenario: WHEN a refusal lands while the next file loads THEN it fails at that story's start; a press plays nothing of the story before it.
 - Scenario: WHEN offline and Play is pressed THEN the reason repeats and nothing loads.
 - A recording's position, whether it was heard to the end and which stories were heard (`singularity:resume:<id>`, `singularity:played:<id>`, `singularity:heard:<id>`) are read by one reader and shown the same on the hero chip, the floating Play, the Library's cards, the Earlier shelves and the story chips, for stored audio and for narration on Play (against the page's estimate) (D97).
-- A recording heard to its end says Played; a played chip reads Play again under the pointer (D78, D106).
+- Heard to its end, a recording shows Played in its subtitle and a green check on its card; the hero and floating Play never say it (D346).
 - Each story has like, dislike and "Stop hearing from" controls (see settings.md).
 
 ## Code

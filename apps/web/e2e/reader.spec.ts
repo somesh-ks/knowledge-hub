@@ -345,7 +345,7 @@ test.describe("sections and stories", () => {
     await expect(chip).toHaveAttribute("data-state", before ?? "");
   });
 
-  test("Today's podcast chip says what the Library's card says: time left, or Played", async ({
+  test("Today's podcast chip says the time left or the length, and Played is the subtitle's mark", async ({
     page,
   }) => {
     await seedStorage(page, { local: { "singularity:resume:2026-10-07": "20" } });
@@ -362,9 +362,10 @@ test.describe("sections and stories", () => {
     });
     await page.goto("/");
     await hydrated(page);
-    await expect(chip.locator("[data-chip-label]")).toHaveText("Played");
-    await expect(chip).toHaveAccessibleName("Play the podcast again, played");
-    await expect(chip).toHaveAttribute("data-state", "played");
+    await expect(page.locator(".hero-facts .hero-played")).toBeVisible();
+    await expect(chip.locator("[data-chip-label]")).not.toHaveText(/played|left/i);
+    await expect(chip).not.toHaveAccessibleName(/played/i);
+    await expect(chip).toHaveAttribute("data-state", "idle");
   });
 
   test("the page does not pull a reader who scrolled elsewhere back to the voice", async ({

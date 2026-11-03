@@ -161,7 +161,7 @@ test.describe("a podcast download", () => {
     await openMenu(page, AUDIO_ID);
     await row(page, AUDIO_ID).getByRole("menuitem", { name: "Download" }).click();
     await expect(row(page, AUDIO_ID)).toHaveAttribute("data-downloaded", "");
-    await expect(row(page, AUDIO_ID).locator(".card-sub .card-downloaded")).toBeVisible();
+    await expect(row(page, AUDIO_ID).locator(".card-sub > .status-mark-downloaded")).toBeVisible();
 
     // Still marked after a reload: the state comes from Cache Storage, not from the page.
     await page.reload();

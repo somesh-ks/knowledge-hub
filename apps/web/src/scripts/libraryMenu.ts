@@ -58,6 +58,12 @@ export async function syncDownloads(): Promise<void> {
   for (const root of document.querySelectorAll<HTMLElement>(ITEM_ROOT)) {
     setDownloaded(root, ids.has(root.dataset.id ?? ""));
   }
+  // A card with no menu of its own (the Earlier shelf) says so too: its mark follows the same file.
+  for (const card of document.querySelectorAll<HTMLElement>(
+    "[data-card]:not(:has([data-library-menu]))",
+  )) {
+    card.toggleAttribute("data-downloaded", ids.has(card.dataset.id ?? ""));
+  }
   // After the rows are marked: the scan of the whole cache never holds them up.
   if (!document.querySelector("[data-downloading]")) await sweepUnlisted();
 }

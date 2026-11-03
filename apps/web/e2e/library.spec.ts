@@ -370,7 +370,9 @@ test.describe("library fixes", () => {
     await expect(order).toHaveAttribute("data-active", "");
   });
 
-  test("a half-heard item shows its bar, a finished one shows none, and neither changes the facts", async ({
+  // Bug it prevents: the green check for a finished item, the word Played on a card, or a mark that
+  // makes its card taller than the others (owner, 2026-11-03, after #597 dropped the mark).
+  test("a half-heard item shows its bar, a finished one a green check, and neither changes the facts", async ({
     page,
   }) => {
     await page.addInitScript(() => {
@@ -386,6 +388,17 @@ test.describe("library fixes", () => {
     await expect(
       page.locator("[data-card][data-id='2026-10-07'] [data-cover-progress]"),
     ).toBeHidden();
+    // Only the finished card has the check, and it is a mark, not the word.
+    await expect(page.locator("[data-card] .card-sub > .status-mark-played:visible")).toHaveCount(
+      1,
+    );
+    await expect(
+      page.locator("[data-card][data-id='2026-10-07'] .card-sub > .status-mark-played"),
+    ).toBeVisible();
+    await expect(
+      page.locator("[data-card] .card-sub > .status-mark-downloaded:visible"),
+    ).toHaveCount(0);
+    await expect(page.locator("[data-card] .card-facts", { hasText: /played/i })).toHaveCount(0);
     // Neither state changes the card's height: the bar lies over the cover, and every card's title
     // starts the same distance under its cover and its facts stay one line.
     const gaps = await page.locator("[data-card]:not([hidden])").evaluateAll((cards) =>
@@ -396,11 +409,13 @@ test.describe("library fixes", () => {
         return {
           gap: Math.round((title?.top ?? 0) - (cover?.bottom ?? 0)),
           facts: Math.round(facts?.height ?? 0),
+          sub: Math.round(card.querySelector(".card-sub")?.getBoundingClientRect().height ?? 0),
         };
       }),
     );
     expect(new Set(gaps.map((card) => card.gap)).size, JSON.stringify(gaps)).toBe(1);
     expect(new Set(gaps.map((card) => card.facts)).size, JSON.stringify(gaps)).toBe(1);
+    expect(new Set(gaps.map((card) => card.sub)).size, JSON.stringify(gaps)).toBe(1);
   });
 });
 

@@ -136,18 +136,34 @@ test("a podcast without audio keeps the stories heard when its page opens", asyn
   }
 });
 
-test("a podcast without audio heard to the end says Played on Today", async ({ page }) => {
+// Bug it prevents: the podcast page's play button saying Played (owner, 2026-11-03). The status is the
+// facts line's green check; the button stays Play.
+test("a podcast heard to the end shows Played in its subtitle and its play button never says it", async ({
+  page,
+}) => {
   await seedStorage(page, { local: { "singularity:played:2026-10-05": "1" } });
   await page.goto(SILENT_DIGEST);
   await hydrated(page);
   const chip = page.locator(".hero [data-play-digest]");
-  await expect(chip.locator("[data-chip-label]")).toHaveText("Played");
-  await expect(chip).toHaveAttribute("data-state", "played");
-  await expect(page.locator(".play-fab [data-chip-label]")).toHaveText("Played");
-  await expect(page.locator(".play-fab")).toHaveAttribute(
-    "aria-label",
-    "Play the podcast again, played",
-  );
+  await expect(page.locator(".hero-facts .hero-played")).toBeVisible();
+  await expect(page.locator(".hero-facts .hero-played .status-mark-played")).toBeVisible();
+  await expect(chip).not.toHaveAttribute("data-state", "played");
+  await expect(chip.locator("[data-chip-label]")).not.toHaveText(/played/i);
+  await expect(chip).not.toHaveAccessibleName(/played/i);
+  await expect(page.locator(".play-fab [data-chip-label]")).not.toHaveText(/played/i);
+  await expect(page.locator(".play-fab")).not.toHaveAttribute("aria-label", /played/i);
+});
+
+// Bug it prevents: a shelf card (no menu of its own) missing the marks a Library row shows.
+test("an earlier podcast on Today's shelf shows the green check once heard to the end", async ({
+  page,
+}) => {
+  await seedStorage(page, { local: { "singularity:played:2026-10-05": "1" } });
+  await page.goto("/");
+  await hydrated(page);
+  const card = page.locator(".earlier [data-card][data-id='2026-10-05']");
+  await expect(card.locator(".status-mark-played")).toBeVisible();
+  await expect(card.locator(".status-mark-downloaded")).toBeHidden();
 });
 
 test("the floating Play on Today follows the chip", async ({ page }) => {
@@ -175,8 +191,8 @@ test("a phone that saved before the rename keeps its theme and what it played", 
   });
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  const label = page.locator(".hero [data-play-digest] [data-chip-label]");
-  await expect(label).toHaveText("Played");
+  const played = page.locator(".hero-facts .hero-played");
+  await expect(played).toBeVisible();
   await page.reload();
-  await expect(label).toHaveText("Played");
+  await expect(played).toBeVisible();
 });
