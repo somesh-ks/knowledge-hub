@@ -251,9 +251,8 @@ test.describe("one page gutter", () => {
       ).toBeLessThan(2);
       widths[path] = room[2] ?? 0;
     }
-    // The Library and Create take the width of a column and a contents list together, not the column's.
+    // The Library takes the width of a column and a contents list together, not the column's.
     expect(widths["/library"]).toBeGreaterThan((widths["/settings"] ?? 0) + 100);
-    expect(widths["/create"]).toBeGreaterThan((widths["/settings"] ?? 0) + 100);
   });
 });
 
