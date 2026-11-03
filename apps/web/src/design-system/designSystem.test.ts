@@ -157,6 +157,8 @@ describe("a menu drawn as a bottom sheet", () => {
 
   // shortcut: the search picker (scripts/picker.ts, the Create and Topics category picker) is a
   // combobox popover of its own, not yet a DS part; fold it into Select and drop this entry.
+  // shortcut: per file, like the header check: a file that draws a Menu passes with a second, hand-built
+  // popover beside it; upgrade to a rendered check (every open [popover] is a .menu-list) if one appears.
   const BUILT_OWN = ["scripts/picker.ts"];
   // In a tag, a bare `popover` is auto too, and a script can set it.
   const AUTO_POPOVER =
