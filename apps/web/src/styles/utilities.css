@@ -9,26 +9,32 @@
 /* A note or an error line that comes and goes (the hidden attribute) fades on the enter and exit
    times, and on a normal-motion device the gap it leaves opens and closes with it, so the lines below
    it slide instead of jumping (2026-11-02). One rule for every such line, by the class it already
-   wears; nothing at the call site. The size runs on interpolate-size (foundations.css); a browser
+   wears, or by .line-fade for a hint that shares its class with the static hints of a row (those must
+   not fade on page load, so they are not named here). The size runs on interpolate-size (foundations.css); a browser
    without it or without discrete display transitions shows and hides at once, as before. Under reduced
    motion only the fade runs and the lines below still jump, which is movement of the page, not of
    the line. The clip keeps a margin so a focus ring on a link inside a hint is not cut. */
 @supports (interpolate-size: allow-keywords) and (transition-behavior: allow-discrete) {
-  :is(.manage-error, .create-error, .manage-quiet, .settings-note, .create-hint) {
+  :is(.manage-error, .create-error, .manage-quiet, .settings-note, .create-hint, .line-fade) {
     transition:
       opacity var(--duration-enter) var(--ease-out),
       display var(--duration-enter) allow-discrete;
   }
 
-  :is(.manage-error, .create-error, .manage-quiet, .settings-note, .create-hint)[hidden]:not(
-    #shown
-  ) {
+  :is(
+    .manage-error,
+    .create-error,
+    .manage-quiet,
+    .settings-note,
+    .create-hint,
+    .line-fade
+  )[hidden]:not(#shown) {
     opacity: 0;
     transition-duration: var(--duration-exit);
   }
 
   @starting-style {
-    :is(.manage-error, .create-error, .manage-quiet, .settings-note, .create-hint):not(
+    :is(.manage-error, .create-error, .manage-quiet, .settings-note, .create-hint, .line-fade):not(
         [hidden],
         #shown
       ) {
@@ -37,7 +43,7 @@
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    :is(.manage-error, .create-error, .manage-quiet, .settings-note, .create-hint) {
+    :is(.manage-error, .create-error, .manage-quiet, .settings-note, .create-hint, .line-fade) {
       overflow: clip;
       overflow-clip-margin: var(--space-2);
       transition:
@@ -48,9 +54,14 @@
         display var(--duration-enter) allow-discrete;
     }
 
-    :is(.manage-error, .create-error, .manage-quiet, .settings-note, .create-hint)[hidden]:not(
-        #shown
-      ) {
+    :is(
+        .manage-error,
+        .create-error,
+        .manage-quiet,
+        .settings-note,
+        .create-hint,
+        .line-fade
+      )[hidden]:not(#shown) {
       block-size: 0;
       margin-block: 0;
       padding-block: 0;
@@ -58,10 +69,14 @@
     }
 
     @starting-style {
-      :is(.manage-error, .create-error, .manage-quiet, .settings-note, .create-hint):not(
-          [hidden],
-          #shown
-        ) {
+      :is(
+          .manage-error,
+          .create-error,
+          .manage-quiet,
+          .settings-note,
+          .create-hint,
+          .line-fade
+        ):not([hidden], #shown) {
         block-size: 0;
         margin-block: 0;
         padding-block: 0;
