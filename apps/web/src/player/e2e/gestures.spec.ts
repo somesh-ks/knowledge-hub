@@ -32,6 +32,35 @@ test.describe("opening by gesture", () => {
     expect(await player.progress()).toBeCloseTo(1, 2);
   });
 
+  // Bug it prevents (owner, 2026-11-03, Android Chrome): after swiping the bar up, the first tap on
+  // Play did nothing. Chrome sends the pointer events but no click for a tap soon after a fast flick.
+  test("the first tap after a flick up reaches the page's Play", async ({
+    player,
+    page,
+    audio,
+    finger,
+  }) => {
+    // Time runs as usual until the test moves it on.
+    await page.clock.install();
+    await player.open();
+    await player.play();
+    const start = center(await player.dockSettled());
+    await finger.drag(line(start, { x: start.x, y: start.y - 120 }, 3), 8);
+    await player.expanded();
+    const playing = await audio.read();
+    expect(playing?.paused).toBe(false);
+    await finger.press(player.dialog.locator(".transport [data-primary]"));
+    await expect.poll(async () => (await audio.read())?.paused).toBe(true);
+    // One tap is one press: it does not pause and play again.
+    await page.clock.runFor(600);
+    expect((await audio.read())?.paused).toBe(true);
+    // A tap the browser clicks for itself is not clicked twice.
+    await finger.press(player.dialog.locator(".transport [data-primary]"));
+    await expect.poll(async () => (await audio.read())?.paused).toBe(false);
+    await page.clock.runFor(600);
+    expect((await audio.read())?.paused).toBe(false);
+  });
+
   test("a long pull up opens on release, and nothing behind is inert until then", async ({
     player,
     page,

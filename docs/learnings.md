@@ -68,7 +68,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 - 2026-11-02: offline showed a bare "You are offline" page for good: the worker stood in for unopened pages, its script does not rerun on a router swap, and its reload fired on a premature `online`. One connectivity state, recovery in the app script (D330).
 - 2026-11-03: the open player vanished at an alert: a waiting deploy reloaded the hidden page (D202). It now waits for the open player; a reload restores the bar and player (`sessionRestore.ts`).
-- 2026-11-03: a tab tap showed its ripple and did nothing: Chrome sends no click for a tap that stops a fling. The bar opens on `pointerup`.
+- 2026-11-03: a tap showed its press and did nothing (a tab; Play after a flick up): Chrome sends no click for a tap that follows a fast flick or stops a fling. `tapRecovery.ts` clicks it.
 - 2026-11-02: `caches.match` walks the caches by age, so the install copy answered Latest offline. The router moved the address to a `#` link's own `#` before Try again ran: listen in capture.
 - 2026-11-02: a press rule before a hover rule of the same weight loses while the mouse is down; a control with no `:active` rule shows no press (Library view toggle). Press after hover; shoot rest, hover, press.
 - 2026-11-02: an opaque press fill on a bar's `::after` covers its content, which the old alpha hid. Use `z-index: var(--z-beneath)`.
