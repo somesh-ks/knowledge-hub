@@ -175,6 +175,14 @@ test.describe("the chrome holds still on a move", () => {
   test("a slow swap does not take the pill back", async ({ page }) => {
     await openWarm(page);
     await page.evaluate(() => {
+      // The growth lasts seconds here, so a busy machine cannot let it run out before the swap: the
+      // test is about where the new pill starts, not how long it lasts.
+      // A constructed sheet, which the page's style policy allows and a swap leaves in place.
+      const slow = new CSSStyleSheet();
+      slow.replaceSync(
+        'html[data-nav-arrived] .app-nav-item[aria-current="page"] .app-nav-indicator::before { animation-duration: 5s !important; }',
+      );
+      document.adoptedStyleSheets = [...document.adoptedStyleSheets, slow];
       const w = window as unknown as { __pill: { before: number; after: number } };
       const started = (): number => {
         const pill = document.querySelector(
@@ -235,6 +243,17 @@ test.describe("the chrome holds still on a move", () => {
       await expect(page).toHaveURL(/\/d\//);
       await page.goBack();
       await expect(page).toHaveURL(/\/library$/);
+      // The page drops into place for a quarter second (D347), and a box read on the way is that
+      // many pixels short of where it ends (CI read 2.93, a value no layout gives). Measure once
+      // the move is over: the page's mark is gone and nothing on the shell is still playing.
+      await expect(cover).toBeVisible();
+      await page.waitForFunction(
+        () =>
+          !document.documentElement.hasAttribute("data-nav-swap") &&
+          !(document.getAnimations() as CSSAnimation[]).some((animation) =>
+            (animation.effect as KeyframeEffect | null)?.target?.matches(".shell"),
+          ),
+      );
       const settled = await cover.boundingBox();
       expect(Math.abs((settled?.y ?? 0) - (before?.y ?? 0))).toBeLessThan(1.5);
       expect(Math.abs((settled?.width ?? 0) - (before?.width ?? 0))).toBeLessThan(1.5);

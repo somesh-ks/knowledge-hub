@@ -430,3 +430,11 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Decision: under the open player's scrubber the left clock is the time played and the right one the recording's whole length; no clock in the player shows time to go with a minus. The bar already read "0:02 / 0:36". Each chapter row shows where its story starts (0:00, 1:12, 3:40), not its length, and an episode placed by its script lists its sections in the order the script reaches them, so the times only go up.
 - Why: "-2:10" on the right read as a random number next to the bar's "played / length", and lengths down the chapter list (1:12, 0:45, 2:10) read as random times.
 - Amends: D85 (the page's "-2:10"; chapters listed with their lengths).
+
+## D351: A story's Play button never says Played
+
+- Date: 2026-11-03 (owner: "no per story state, but have a play button for user to start at any point").
+- Decision: a story's button inside a podcast page is the same Play button with the story's length whether or not the story was heard (`storyChipView` in `readerMath.ts`); it shows Playing, Paused or Loading only while it is the current story. Which stories were heard stays in storage and on the story's own `data-state`, which the player's lists and the queue read; the button does not show it.
+- Why: D348 took Played off the podcast's buttons and left it on the stories on a reading that the subtitle does not cover single stories; the owner wants a Play button to start from any point and no per-story status on it.
+- Cost: a listener can no longer see on the page which single stories they heard.
+- Amends: D348 (a story's chip keeps Played).
