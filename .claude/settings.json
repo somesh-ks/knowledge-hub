@@ -30,6 +30,18 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/lint-before-push.mjs\"",
+            "timeout": 60
+          }
+        ]
+      }
     ]
   },
   "enabledPlugins": {
