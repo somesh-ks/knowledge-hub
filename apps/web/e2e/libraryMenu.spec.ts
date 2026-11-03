@@ -546,7 +546,7 @@ test("Settings > Downloads stays a list with a working ⋮ when reached from the
   // The page shows the saved podcast and none of the rest of the Library. It is reached from the
   // Library without a reload: the Library's script lives on and once set its stored view, the
   // gallery, on this page, which showed Downloads as cards with a ⋮ (owner, 2026-11-01).
-  await page.getByRole("link", { name: "Settings", exact: true }).first().click();
+  await page.getByRole("link", { name: "Your profile", exact: true }).click();
   await page.getByRole("link", { name: "Downloads" }).click();
   await expect(page.locator("[data-downloads]")).toHaveAttribute("data-ready", "");
   await expect(page.locator("[data-card]:visible")).toHaveCount(1);
