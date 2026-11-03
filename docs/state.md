@@ -1,24 +1,24 @@
 # State
 
-Updated 2026-11-02. Rewrite, never append.
+Updated 2026-11-03. Rewrite, never append.
 
 ## Working
 
-- Engine live end to end: [engine](specs/engine.md). A run that loses stories or races a push degrades, not fails, and records health (D204): [resilience](engineering/generation-resilience.md), [metrics](engineering/metrics.md).
+- Engine live: [engine](specs/engine.md). A run that loses stories or races a push degrades, not fails, and records health (D204): [resilience](engineering/generation-resilience.md), [metrics](engineering/metrics.md).
 - Reader: [library](specs/library.md), [settings](specs/settings.md), [health](specs/health.md), [look](specs/look-and-sound.md).
 - Desktop layout: the column is centred in the pane, and a page with a contents list centres the column and the list together, the Library's width (D287).
-- Player as one surface: transcript, chapters, a queue that keeps played items (D277): [player](specs/player.md).
+- Player as one surface: transcript, chapters, a queue keeping played items (D277): [player](specs/player.md).
 - Narration on Play, per story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes (D198): [narration](specs/narration.md), [create](specs/create.md).
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). Regenerate and Catch up queue with Cancel; ended runs stay for the day (D204, D231).
 - Saved copies, offline, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews a PR once when it is ready, by tier (D192, D292).
-- Styles (D306, D310, D314, D315, D319): Halloween and Expressive (larger touch sizes, corner scale, looping empty states), a Hue slider, live covers, recipe neutrals. closed when: Somesh OKs the stills ([ghost states](https://claude.ai/artifact/MVNhZmVMk4kYNu2tJbHRPp), [disabled](https://claude.ai/artifact/Kc7RaKbskg5UeGULwwKtU8)) and a style change on his phone recolours every page with no flash and survives a restart, and a press on the Library view toggle and a toast action beats a hover.
+- Styles (D306, D310, D314, D315, D319): Halloween and Expressive, a Hue slider, live covers. closed when: Somesh OKs the stills ([ghost states](https://claude.ai/artifact/MVNhZmVMk4kYNu2tJbHRPp), [disabled](https://claude.ai/artifact/Kc7RaKbskg5UeGULwwKtU8)) and a style change on his phone recolours every page with no flash and survives a restart, and a press on the Library view toggle and a toast action beats hover.
 
 - Avatar, Settings (D335, D344), Mood (D327): merged. Avatar taps (D353): in review. closed when: his phone's shows come home.
 
 ## Tests
 
-Unit (CI): 357 files, 5,491 tests, about 2 min. Site e2e: 449, 14 min. Player: 80, 7 min.
+Unit (CI): 357 files, 5,491 tests, 2 min. Site e2e: 449, 14 min. Player: 80, 7 min.
 
 ## Not working or unverified
 
@@ -28,7 +28,7 @@ Unit (CI): 357 files, 5,491 tests, about 2 min. Site e2e: 449, 14 min. Player: 8
 - Config snapshot (D300 step 1): `snapshot.yml` writes the config store to the `config_snapshots` table each Sunday and `config restore --latest` reads it back; untried against real Neon. closed when: the workflow has run once, the row exists, and `config restore --file` on a copy rebuilds the rows.
 - Content out of git (D300 step 2b, #573): jobs `content pull --track` first and `content push` after the commit; `Digests/` and `Podcasts/` left `main`. closed when: the next scheduled daily's log shows `Load content` and `Save content` and its digest is on the site.
 - Edge purge waits from the run's last save (#590, D318). closed when: a Catch up's `content` log says `waiting N s` with N under 30 and its Library entry opens on the new page
-- Queue (D346). closed when: on his Android a swipe shows a red strip.
+- Queue (D346), dock swipes (D359). closed when: on his Android a swipe shows a red strip, the player's swipes are silent, and the bar's sideways pull shows its target.
 - Player ⋮ menu and Saved (D309, #580): checked in Chromium only. closed when: held press, the speed screen and Settings > Saved work on his Android Chrome.
 - Voice list (D276): closed when: a voice is heard from its list on his iPhone.
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily says "podcast".
