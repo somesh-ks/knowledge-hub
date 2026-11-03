@@ -76,7 +76,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D204 | Guards for a short or lost run, health metrics, one run card | active |
 | D205 | Settings paint the kept copy at once | amends D172 |
 | D206 | Stay on npm; pnpm spiked | active |
-| D207 | A Regenerate asks for its own length | amends D204; amended by D323 |
+| D207 | A Regenerate asks for its own length | amends D204; amended by D323, D337 |
 | D208 | A list of generations, with Cancel | partly superseded by D231 (the list); amends D204 |
 | D209 | Lane free in the hold | supersedes D135; amends D197; step 1 built (#399), steps 2 to 5 not built |
 | D210 | Typed HTML builders | active |
@@ -180,7 +180,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D319 | Colours are generated; a style is a recipe | amends D268, D310, D317 |
 | D321 | The ripple and a cover's press stay alpha layers, over artwork | amends D317 |
 | D322 | A Library card's phone sheet opens with quick-action tiles | amends D291 |
-| D323 | Regenerate is a full sheet like Catch up; Length has no Usual | amends D207 |
+| D323 | Regenerate is a full sheet like Catch up; Length has no Usual | amends D207; amended by D337 |
 | D324 | The Catch up script is written at medium effort | amends D181 |
 | D325 | List rows run edge to edge in the Menu, the select list and the picker | amends D275, D291 |
 | D326 | The Avatar is a design-system part: one flat shape, a face, two tones | active |
@@ -192,6 +192,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D333 | The short-text Claude steps run Haiku medium, then Haiku high, then Sonnet medium | amends D308, D324; amended by D334 |
 | D334 | Every Claude step starts at Haiku medium, the podcast script included | amends D333 |
 | D336 | A cover no longer flies between its card and the page's hero | partly supersedes D271, D280; amended by D341 |
+| D337 | Regenerate sheets open on the comment; Length and Categories appear as words reach for them | amends D207, D323 |
 | D339 | The engine and the site keep one Speechify count, in Blob; Exa gets a weekly stop | amends D300 |
 | D341 | A page arrives from the side of the tab you came from | partly supersedes D280; amends D336 |
 | D342 | A Firecrawl listing is read free first and scraped only when its links moved | relates to D222, D302 |
