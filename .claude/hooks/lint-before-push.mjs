@@ -8,7 +8,10 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 
-const GIT_WRITE = /(?:^|[\s;&|(])git\s+(?:-C\s+\S+\s+)?(?:commit|push)\b/;
+// `git` in command position: the start of the command or after ; & | (. `echo git commit` is not one.
+const GIT_WRITE = /(?:^|[;&|(])\s*git\s+(?:-C\s+\S+\s+)?(?:commit|push)\b/;
+// New files are checked only when the command can stage them.
+const STAGES_NEW = /(?:^|[;&|(])\s*git\s+(?:-C\s+\S+\s+)?add\b/;
 
 try {
   const payload = JSON.parse(readFileSync(0, "utf8") || "{}");
@@ -30,12 +33,17 @@ try {
   // staged error fixed only on disk passes; upgrade if that ever reaches CI.
   const base = run(root, "git", ["merge-base", "origin/main", "HEAD"]);
   if (base.status !== 0) process.exit(0);
-  const changed = run(root, "git", ["diff", "--name-only", "--diff-filter=d", base.stdout.trim()]);
-  const added = run(root, "git", ["ls-files", "--others", "--exclude-standard"]);
-  const files = `${changed.stdout}\n${added.stdout}`
-    .split("\n")
+  // -z: git quotes an unusual path (café.ts) unless the names are NUL-delimited.
+  const changed = run(root, "git", ["diff", "-z", "--name-only", "--diff-filter=d", base.stdout.trim()]);
+  const added = STAGES_NEW.test(command)
+    ? run(root, "git", ["ls-files", "-z", "--others", "--exclude-standard"])
+    : { stdout: "" };
+  const files = `${changed.stdout}\0${added.stdout}`
+    .split("\0")
     .filter((file) => /\.(?:[cm]?[jt]sx?|css|json|astro)$/.test(file));
   if (changed.status !== 0 || files.length === 0) process.exit(0);
+  // A rule change can fail files the branch did not touch, so CI's `biome check .` gets the whole tree.
+  const targets = files.includes("biome.json") ? ["."] : files;
 
   // Biome's own launcher run by Node, so no npx and no shell.
   const biome = createRequire(`${root}/package.json`).resolve("@biomejs/biome/bin/biome");
@@ -45,7 +53,7 @@ try {
     "--no-errors-on-unmatched",
     "--files-ignore-unknown=true",
     "--max-diagnostics=10",
-    ...files,
+    ...targets,
   ]);
   if (check.status === 0 || check.error) process.exit(0);
 
