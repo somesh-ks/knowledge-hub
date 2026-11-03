@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CARRIED_ATTRIBUTES,
   carryNavigationKind,
   carryRootAttributes,
+  installNavigation,
   isSamePage,
   moveDirection,
   NAV_ATTRIBUTE,
@@ -18,6 +19,9 @@ import {
 } from "./serviceWorker";
 
 const url = (path: string) => new URL(path, "https://news.someshks.work");
+
+const navigate = vi.hoisted(() => vi.fn());
+vi.mock("astro:transitions/client", () => ({ navigate }));
 
 describe("navigationKind", () => {
   it("fades through between destinations at the same level", () => {
@@ -248,5 +252,54 @@ describe("moveDirection", () => {
     expect(moveDirection("peer", null, "/library", bar)).toBeNull();
     expect(moveDirection("peer", "/library", "/offline", bar)).toBeNull();
     expect(moveDirection("none", "/", "/library", bar)).toBeNull();
+  });
+});
+
+describe("a bottom tab tap", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    navigate.mockClear();
+  });
+
+  // Bug it prevents (owner, 2026-11-03, Android Chrome): "the tap isn't registered even though I see
+  // the ripple". A tap while the page still glides from a flick stops the glide, and Chrome sends
+  // the pointer's down and up but no click, so a tab that opened on the click alone stayed put.
+  it("opens its tab on the lift, once, with or without the browser's click, and not after a scroll", async () => {
+    const page = Object.assign(new EventTarget(), { querySelector: () => null });
+    vi.stubGlobal("document", page);
+    vi.stubGlobal("location", url("/"));
+    installNavigation();
+    const tab = {
+      href: url("/library").href,
+      getAttribute: (name: string) => (name === "href" ? "/library" : null),
+      matches: () => false,
+      closest: (selector: string) => (selector === "a.app-nav-item" ? tab : null),
+    };
+    const fire = (type: string, pointerId = 1): Event => {
+      const event = Object.assign(new Event(type, { cancelable: true }), {
+        pointerId,
+        pointerType: "touch",
+        button: 0,
+        isPrimary: true,
+      });
+      Object.defineProperty(event, "target", { value: tab });
+      page.dispatchEvent(event);
+      return event;
+    };
+
+    fire("pointerdown");
+    fire("pointerup");
+    await vi.dynamicImportSettled();
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledWith(tab.href, { sourceElement: tab });
+    // The click a tap sends after its lift, when it sends one, must not reach the router as a second move.
+    expect(fire("click").defaultPrevented).toBe(true);
+
+    // A flick that starts on the bar is a scroll: the browser cancels the pointer.
+    fire("pointerdown", 2);
+    fire("pointercancel", 2);
+    fire("pointerup", 2);
+    await vi.dynamicImportSettled();
+    expect(navigate).toHaveBeenCalledTimes(1);
   });
 });

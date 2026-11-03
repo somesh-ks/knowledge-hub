@@ -299,6 +299,56 @@ export function installNavigation(): void {
     document.querySelector<HTMLElement>("main h1")?.focus({ preventScroll: true });
   });
 
+  // A tab opens when the finger lifts, as a native bottom bar's does. Android Chrome sends no click
+  // for a tap that lands while the page is still gliding from a flick: the touch stops the glide and
+  // the tap is dropped, after the ripple has shown the press (owner, 2026-11-03: "the tap isn't
+  // registered even though I see the ripple"). A move the browser takes for a scroll cancels the
+  // pointer and opens nothing. The tab on screen is left to the click below (its top).
+  let pressed: { id: number; item: HTMLAnchorElement } | null = null;
+  // The tab a lift opened: the browser's click for the same tap, if it sends one, goes nowhere again.
+  let lifted: string | null = null;
+  // Asked for on the press, so the lift does not wait on the bundle's preload of the module.
+  let router: Promise<typeof import("astro:transitions/client")> | undefined;
+  const touch = { capture: true, passive: true } as const;
+  document.addEventListener(
+    "pointerdown",
+    (event) => {
+      pressed = null;
+      lifted = null;
+      if (event.pointerType === "mouse" || event.button !== 0 || !event.isPrimary) return;
+      const item = (event.target as Element | null)?.closest?.<HTMLAnchorElement>(
+        NAV_ITEM_SELECTOR,
+      );
+      if (!item) return;
+      pressed = { id: event.pointerId, item };
+      router ??= import("astro:transitions/client");
+    },
+    touch,
+  );
+  document.addEventListener(
+    "pointercancel",
+    (event) => {
+      if (pressed?.id === event.pointerId) pressed = null;
+    },
+    touch,
+  );
+  document.addEventListener(
+    "pointerup",
+    (event) => {
+      if (pressed?.id !== event.pointerId) return;
+      const { item } = pressed;
+      pressed = null;
+      if (isSamePage(new URL(item.href), new URL(location.href)) || showsToday(item)) return;
+      lifted = item.getAttribute("href");
+      // The click is dropped from here on, so a router that cannot load leaves by a plain load.
+      void router?.then(
+        ({ navigate }) => navigate(item.href, { sourceElement: item }),
+        () => location.assign(item.href),
+      );
+    },
+    touch,
+  );
+
   // Pressing the destination you are already on takes you back to its top, as a native tab bar does,
   // instead of loading the same page again. From a page below it (a briefing under Library) the
   // press goes to the destination as usual. New episode on the Create page does the same, so the
@@ -307,6 +357,13 @@ export function installNavigation(): void {
   document.addEventListener(
     "click",
     (event) => {
+      const tab = (event.target as Element | null)?.closest?.(NAV_ITEM_SELECTOR);
+      if (lifted !== null && tab?.getAttribute("href") === lifted) {
+        // The lift already opened it. Prevented, so the router leaves it; the sound still hears it.
+        lifted = null;
+        event.preventDefault();
+        return;
+      }
       if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
         return;
       const link = (event.target as Element | null)?.closest<HTMLAnchorElement>(
