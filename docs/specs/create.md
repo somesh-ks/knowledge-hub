@@ -5,9 +5,9 @@ Catch up and custom episodes. What it does now. Reasons: D37, D43, D60, D66 to D
 ## Requirements
 
 ### Form
-- Catch up is the primary action (D76): a side button on wide screens, a floating button on phones, a panel for the form (full screen on a phone, a side panel on desktop) and a compact progress indicator.
-- `/create` is the same form as a page under the Library, with Back to it.
-- Fields: Title ("Optional" beside it), Categories (alphabetical), Max length, Look back. More options holds Format (Readout or Discussion, a segmented choice, no hint line), Voice or Voices (Primary and Secondary voice, each with a play button for its sample, dimmed while a voice has none, chosen from a searchable list with SVG flags) and Tone (Neutral or Energetic). Its line reads "Readout · Neutral tone" (D76, D114). The button reads "Generate catch up" (2026-10-25).
+- Catch up is the primary action (D76): a side button on wide screens, a floating button on phones, a panel for the form (full screen on a phone, a side panel on desktop) and a compact progress line.
+- `/create` is the same form as a page, with Back to the Library.
+- Fields: Title ("Optional" beside it), Categories (alphabetical), Max length, Look back. More options holds Format (Readout or Discussion, a segmented choice, no hint line), Voice or Voices (Primary and Secondary voice, each with a play button for its sample, dimmed while a voice has none, chosen from a searchable list with SVG flags) and Tone (Neutral or Energetic). Its line reads "Readout · Neutral tone" (D76, D114). More options is a closed accordion at every width (D345). The button reads "Generate catch up".
 - Every episode is written for the owner; there is no General audience (D114).
 - Regenerate's Length is 3, 5, 10 or 15, starts nearest the aired length, no Usual; it is to become a full sheet like Catch up (D323). The script is written at medium effort (D324).
 - No topic limit in the form (a guard of 50 in `PODCAST_MAX_TOPICS`). The button reads "Generate catch up".

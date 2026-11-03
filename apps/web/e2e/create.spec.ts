@@ -139,9 +139,9 @@ test.describe("the Create page", () => {
     });
   });
 
-  test("More options is one closed row that names its choices, and opens in place", async ({
-    page,
-  }) => {
+  test("More options is one closed row that names its choices, and opens in place", {
+    tag: "@both",
+  }, async ({ page }) => {
     await page.goto("/create");
     await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
     const more = page.locator("[data-create-more]");
@@ -160,45 +160,6 @@ test.describe("the Create page", () => {
     await expect(page.locator("[data-more-values]")).toHaveText("Discussion · Energetic tone");
     // The three tones that were offered are two: Dry is gone.
     await expect(segment(page, "Dry")).toHaveCount(0);
-  });
-
-  test("a wide page keeps More options open beside the main questions", {
-    tag: "@desktop",
-  }, async ({ page }) => {
-    await page.goto("/create");
-    await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
-    const more = page.locator("[data-create-more]");
-    await expect(more).toHaveAttribute("data-pinned", "");
-    await more.locator("summary").click();
-    await expect(more).toHaveAttribute("open", "");
-    // The whole form is in view: Generate needs no scrolling.
-    await expect(submit(page)).toBeInViewport();
-  });
-
-  test("a wide page's Tab goes down the main questions to Generate, then the options", {
-    tag: "@desktop",
-  }, async ({ page }) => {
-    await page.goto("/create");
-    await expect(page.locator("[data-create]")).toHaveAttribute("data-ready", "");
-    const summary = page.locator("[data-create-more] > summary");
-    // The pinned row is the column's heading, not a disclosure that does nothing.
-    await expect(summary).toHaveAttribute("tabindex", "-1");
-    await expect(page.getByRole("heading", { name: "More options", level: 2 })).toBeVisible();
-    // The look back's chosen segment, the last main question, then Tab: Generate, then the first
-    // choice under More options (the format).
-    await page.locator('input[name="window"]:checked').focus();
-    await page.keyboard.press("Tab");
-    await expect(submit(page)).toBeFocused();
-    await page.keyboard.press("Tab");
-    await expect(page.locator('input[name="format"]:checked')).toBeFocused();
-    // Narrow again, the row is a switch in the Tab order, before Generate.
-    await page.setViewportSize({ width: 900, height: 800 });
-    await expect(summary).not.toHaveAttribute("tabindex", "-1");
-    const order = await page.evaluate(() => {
-      const more = document.querySelector("[data-create-more]");
-      return more?.nextElementSibling?.classList.contains("create-submit");
-    });
-    expect(order).toBe(true);
   });
 
   // Bug it prevents: a press that opened a passphrase dialog, or sent one, after D160 removed it.
