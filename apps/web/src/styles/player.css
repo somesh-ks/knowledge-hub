@@ -553,10 +553,16 @@
   height: 100%;
 }
 
-:root[data-player-state="playing"]
-  .player:is([data-state="expanded"], [data-state="collapsing"])
-  .player-cover-glow {
+:root[data-player-state="playing"] .player[data-state="expanded"] .player-cover-glow {
   opacity: var(--glow-strength);
+}
+
+/* The light is the open page's alone. Once the page is pulled or closed it fades out quickly and is not
+   lit again on the way down: it had been held back while a finger pulled, then faded in as the page
+   landed, so a patch of blurred cover showed behind the bar and the Library tabs for a moment (owner,
+   2026-11-03: "very glitchy" while it plays). The page keeps its top edge on screen behind the bar. */
+.player:not([data-state="expanded"]) .player-cover-glow {
+  transition-duration: var(--duration-hover);
 }
 
 @media (prefers-reduced-motion: no-preference) {
