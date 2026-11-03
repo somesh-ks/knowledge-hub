@@ -14,7 +14,11 @@
 import type { PlayerState, PlayerStore } from "./playerTypes";
 import { peekTabShared } from "./tabSlot";
 
-/** The fade out before the sample, and the fade in after it. Short: a sample is a glance, not a track. */
+/**
+ * The fade out before the sample, and the fade in after it. Short: a sample is a glance, not a track.
+ * The volume follows a square of the time, not a straight line: loudness is heard on a curve, and a
+ * straight ramp sounds like it holds and then drops at the end.
+ */
 export const FADE_OUT_MS = 220;
 export const FADE_IN_MS = 450;
 const STEP_MS = 16;
@@ -103,7 +107,7 @@ export function beginBreak({ store, speaker }: BreakDeps): Break | null {
       step += 1;
       if (phase !== "out") return;
       if (step < steps) {
-        speaker.volume = target * (1 - step / steps);
+        speaker.volume = target * (1 - step / steps) ** 2;
         return;
       }
       stopTimer();
@@ -150,7 +154,7 @@ export function beginBreak({ store, speaker }: BreakDeps): Break | null {
           ramp = setInterval(() => {
             step += 1;
             if (step >= steps) done();
-            else speaker.volume = target * (step / steps);
+            else speaker.volume = target * (step / steps) ** 2;
           }, STEP_MS);
         } else if (state.status === "error" || state.status === "idle") {
           done();

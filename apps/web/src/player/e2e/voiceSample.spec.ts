@@ -26,6 +26,7 @@ test.describe("a voice sample over a playing podcast", () => {
   }) => {
     // Owner, 2026-11-03: previewing a voice while the podcast plays must pause it smoothly, play the
     // sample, then let the podcast carry on. The page moves by a link, as the listener's does.
+    // The fixture sample runs 36 s: generated silence ends the sample inside the test.
     await page.route("**/api/voice-sample**", (route) =>
       route.fulfill({ body: silence(2), contentType: "audio/wav" }),
     );
@@ -63,6 +64,7 @@ test.describe("a voice sample over a playing podcast", () => {
   });
 
   test("a podcast the listener paused stays paused through a sample", async ({ player, page }) => {
+    // The fixture sample runs 36 s: generated silence ends the sample inside the test.
     await page.route("**/api/voice-sample**", (route) =>
       route.fulfill({ body: silence(1), contentType: "audio/wav" }),
     );
