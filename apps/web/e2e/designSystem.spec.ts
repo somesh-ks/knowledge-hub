@@ -458,14 +458,21 @@ test("a half-heard bar stays inside its cover's rounded corners in every mood", 
   tag: "@both",
 }, async ({ page }) => {
   const outside: string[] = [];
-  for (const style of ["default", "expressive", "halloween"]) {
+  for (const mood of ["default", "expressive", "halloween"]) {
     for (const view of ["list", "gallery"]) {
       await page.goto("/library");
       await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
-      await page.evaluate((s) => {
-        if (s === "default") delete document.documentElement.dataset.style;
-        else document.documentElement.dataset.style = s;
-      }, style);
+      // Both attributes until the tokens read data-mood (D327, #638).
+      await page.evaluate((m) => {
+        const root = document.documentElement.dataset;
+        if (m === "default") {
+          delete root.mood;
+          delete root.style;
+        } else {
+          root.mood = m;
+          root.style = m;
+        }
+      }, mood);
       await page.locator(`.view-btn[data-library-view='${view}']`).click();
       await expect(page.locator("[data-library]")).toHaveAttribute("data-view", view);
       const found = await page.evaluate(() => {
@@ -499,11 +506,11 @@ test("a half-heard bar stays inside its cover's rounded corners in every mood", 
         });
         return { radius: Math.round(r), worst: Math.max(...beyond) };
       });
-      expect(found, `${style} ${view}: a library card with a progress bar`).not.toBeNull();
+      expect(found, `${mood} ${view}: a library card with a progress bar`).not.toBeNull();
       // A round end's corner is not painted: a pixel of slack covers it.
       if (found && found.worst > 1)
         outside.push(
-          `${style} ${view}: ${found.worst.toFixed(1)}px beyond a ${found.radius}px corner`,
+          `${mood} ${view}: ${found.worst.toFixed(1)}px beyond a ${found.radius}px corner`,
         );
     }
   }
