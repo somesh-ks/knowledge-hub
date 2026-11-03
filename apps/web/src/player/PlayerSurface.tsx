@@ -212,11 +212,10 @@ export default function PlayerSurface() {
                 {/* The story being read, and where it came from. A recording without stories says
                     what it is, and so does an episode's rundown, before story 1: no story is being
                     read, and the line is the one story 1 will fill, so nothing moves when it starts.
-                    A failure or an interruption takes the same room: its notice (PlayerNotice.tsx)
-                    is put here in their place, so nothing below the title moves when it comes or
-                    goes. */}
+                    A failure takes the same room: its notice (PlayerNotice.tsx) is put here in their
+                    place, so nothing below the title moves when it comes or goes. */}
                 <div className="player-meta-line" data-notice-slot>
-                  {state.error || state.interrupted ? null : (
+                  {state.error ? null : (
                     <>
                       <p className="player-story" key={item?.id ?? "story"}>
                         {item?.headline ?? recordingCaption(digest, state.duration)}

@@ -2753,9 +2753,7 @@
   /* One timeline: the bar's. The page keeps the cover, the title, the source, the skips. The story's headline is the bar's caption, so only its source stays here,
      the one way to open it. */
   .scrubber-wrap,
-  /* A pause by another app (PlayerNotice.tsx) stays: it is the page's status line, and a screen
-     reader reads the bar's caption only through the dock button's own label. */
-  .player-story:not([role="status"]) {
+  .player-story {
     display: none;
   }
 

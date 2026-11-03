@@ -248,12 +248,10 @@ test.describe("playback on a podcast", () => {
     await expect(page.locator(".dock-caption")).toHaveText("Paused by another app");
     expect((await audio.read())?.paused).toBe(true);
     await player.openPlayer();
-    const notice = page.getByRole("status").filter({ hasText: "Paused by another app" });
-    await expect(notice).toBeVisible();
-    // The page's Play disc plays on; the line gives the story its place back.
+    // The page's Play disc plays on.
     await player.finger.press(player.dialog.getByRole("button", { name: "Play", exact: true }));
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-    await expect(notice).toHaveCount(0);
+    await expect(page.locator(".dock-caption")).not.toHaveText("Paused by another app");
   });
 
   test("a held volume knob grows alone: the track and the bar keep their boxes @wide", async ({
