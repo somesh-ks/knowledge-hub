@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { checkDocs } from "./docsCheck.mjs";
+import { checkChangelog, checkDocs } from "./docsCheck.mjs";
 
 // The record drifts and nobody sees it: state grows into a log, an Index row loses its entry,
 // an open item never closes, a link points at a moved file. Each fixture breaks one of these.
@@ -195,5 +195,28 @@ describe("docs check", () => {
         }),
       ).fails,
     ).toEqual([expect.stringContaining('"superseded by D9" names a decision that does not exist')]);
+  });
+});
+
+// Bug: the change log stopped at 23 Oct while 390 pull requests merged, because its only rule was a
+// comment in the file (D355). A user-facing PR is held while the newest entry is over two days old.
+describe("change log freshness", () => {
+  const source = (date: string) => `export const CHANGELOG = [{ version: "1", date: "${date}" }];`;
+  const run = (title: string, newest: string, today = "2026-11-03") =>
+    checkChangelog({ source: source(newest), title, today });
+
+  it("holds a feat, fix or perf PR once the newest entry is over two days old", () => {
+    expect(run("fix(web): a thing", "2026-10-23")).toEqual([
+      expect.stringContaining("11 days old"),
+    ]);
+    expect(run("feat!: a thing", "2026-10-31")).toHaveLength(1);
+    expect(run("perf(web): a thing", "2026-10-31")).toHaveLength(1);
+  });
+
+  it("lets a fresh log, and docs, chore, test and ci PRs, through", () => {
+    expect(run("fix(web): a thing", "2026-11-01")).toEqual([]);
+    expect(run("docs: a note", "2026-10-23")).toEqual([]);
+    expect(run("chore(deps): bump", "2026-10-23")).toEqual([]);
+    expect(run("", "2026-10-23")).toEqual([]);
   });
 });

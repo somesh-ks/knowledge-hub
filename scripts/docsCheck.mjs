@@ -184,9 +184,54 @@ export function checkDocs(root) {
   return { fails, readFirst };
 }
 
+// The change log (apps/web/src/lib/changelog.ts) fell 11 days behind with no one noticing, because its
+// only rule lived in a comment (D355). A feat, fix or perf pull request now fails while the newest entry
+// is more than CHANGELOG_MAX_AGE_DAYS old; one entry a day means the first such PR after the gap writes
+// the missing days, and the PRs behind it only merge main. Docs, chore, test and ci PRs are never held.
+export const CHANGELOG_MAX_AGE_DAYS = 2;
+const USER_FACING = /^(feat|fix|perf)(\([^)]*\))?!?:/i;
+
+export function newestChangelogDate(source) {
+  return source.match(/\bdate:\s*"(\d{4}-\d{2}-\d{2})"/)?.[1] ?? null;
+}
+
+/** Problems with the change log for a pull request titled `title`, on the UTC day `today` (YYYY-MM-DD). */
+export function checkChangelog({ source, title, today }) {
+  if (!title || !USER_FACING.test(title.trim())) return [];
+  const newest = newestChangelogDate(source);
+  if (!newest) return ["apps/web/src/lib/changelog.ts: no entry with a date"];
+  const age = Math.round((Date.parse(today) - Date.parse(newest)) / 86_400_000);
+  if (age <= CHANGELOG_MAX_AGE_DAYS) return [];
+  return [
+    `apps/web/src/lib/changelog.ts: the newest entry is ${newest}, ${age} days old (limit ${CHANGELOG_MAX_AGE_DAYS}). ` +
+      `Add one plain entry per day since, newest first: see the numbering rule at the top of the file; ` +
+      `list the work with \`git fetch --shallow-since=${newest} origin main && git log --format=%s --since=${newest} origin/main\`.`,
+  ];
+}
+
+function pullRequestTitle(env) {
+  if (env.PR_TITLE) return env.PR_TITLE;
+  if (!env.GITHUB_EVENT_PATH || !existsSync(env.GITHUB_EVENT_PATH)) return "";
+  try {
+    return JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8")).pull_request?.title ?? "";
+  } catch {
+    return "";
+  }
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
   const { fails, readFirst } = checkDocs(root);
+  const changelogPath = join(root, "apps/web/src/lib/changelog.ts");
+  if (existsSync(changelogPath)) {
+    fails.push(
+      ...checkChangelog({
+        source: read(changelogPath),
+        title: pullRequestTitle(process.env),
+        today: new Date().toISOString().slice(0, 10),
+      }),
+    );
+  }
   for (const fail of fails) console.log(`FAIL  ${fail}`);
   console.log(
     `read-first: ${(readFirst / 1000).toFixed(1)} KB, about ${Math.round(readFirst / 4000)}k tokens (budget ${READ_FIRST_BUDGET / 1000} KB)`,
