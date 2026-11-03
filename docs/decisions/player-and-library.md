@@ -456,5 +456,6 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
   - The column scrolls under a held row only once the finger goes past where it pressed, and gently at first, so a row lifted near the bottom no longer races past every row.
 - Why: "nothing above the playing row" and D349's skipped rows, which vanished from the list, made the playing row's drag read as broken; rows snapped on add and remove; and pan-y alone gave a slanted thumb to the page.
 - Cost: rows put above the playing one stay until the listener clears them. Chrome's slop on the owner's phone is assumed, not measured.
+- Revisit if: the owner's phone shows a slanted swipe still scrolling the page or cancelling the press, or a measured touch slop falls under the 6 px axis threshold.
 - Rejected: the playing row's place as a mark only, the highest unplayed row playing next wherever it sits.
 - Amends: D349 (rows passed by the playing row leave the list; nothing goes above it), D346 (nothing is listed above the playing item).

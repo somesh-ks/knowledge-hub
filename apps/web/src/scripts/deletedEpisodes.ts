@@ -111,7 +111,7 @@ function dropFromDevice(accepted?: string): void {
       above.length !== history.above.length ||
       current !== history.current
     ) {
-      if (played.length || current)
+      if (played.length || current || above.length)
         localStorage.setItem(HISTORY_KEY, JSON.stringify({ played, current, above }));
       else localStorage.removeItem(HISTORY_KEY);
     }
