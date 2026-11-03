@@ -109,6 +109,21 @@ test("a swipe on the bar switches the podcast; a short one does not and opens no
   await expect(player.openButton).not.toHaveAttribute("data-swipe-out");
   expect(await playing()).toBe(first);
   await player.collapsed();
+  // Owner, 2026-11-03: the podcast a swipe goes to shows before the finger lifts. Held a third of the
+  // way left, the next one has come in from the right edge, inside the bar and clear of the words;
+  // pulled back to where it began, it is gone.
+  const bar = await player.boxOf(player.openButton);
+  const held = await finger.drag(line(spot, { x: spot.x - 100, y: spot.y }, 4), 8, { hold: true });
+  const peek = player.openButton.locator(".dock-peek");
+  await expect(peek).toHaveCount(1);
+  const coming = await player.boxOf(peek.locator(".player-thumb"));
+  expect(coming.x).toBeGreaterThan(spot.x - 100);
+  expect(coming.x + coming.width).toBeLessThanOrEqual(bar.x + bar.width + 1);
+  await held.move(line({ x: spot.x - 100, y: spot.y }, spot, 4));
+  await expect(peek).toHaveCount(0);
+  await held.release();
+  expect(await playing()).toBe(first);
+  await player.collapsed();
   // Left is the next queued podcast; right brings the one before back.
   await finger.drag(line(spot, { x: spot.x - 160, y: spot.y }, 4), 8);
   await expect.poll(playing, { timeout: 10_000 }).toBe("2026-10-05");
