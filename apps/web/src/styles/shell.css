@@ -496,6 +496,14 @@ html[data-mini="visible"] main {
   }
 }
 
+/* The tab a move leaves lets its pill go in the frame the next one lights. Its colour fade runs on the
+   main thread, which the page swap holds up: the old pill stood half-faded beside the new one, then
+   blinked out when the new bar came in (owner, 2026-11-03: "another color of highlight ... for a
+   split second"). */
+html[data-nav-arrived] .app-nav-item:not([aria-current="page"]) .app-nav-indicator::before {
+  transition: none;
+}
+
 @keyframes nav-pill {
   from {
     scale: 0.5 1;
