@@ -1133,6 +1133,16 @@
   }
 }
 
+/* A story's Play chip in a card is the filter chip's twin: the same container tone as the card, so it
+   read as bare text, light and dark (owner, 2026-11-03: the "Play 0:03" chip had an invisible fill).
+   It takes the same step up, through its own variables so its hover and press layers follow; the
+   current state keeps its accent container, and the hero's chip is not in a card. */
+.card-group .chip:not([data-state="current"]) {
+  --chip-bg: var(--color-surface-overlay);
+  --chip-bg-hover: var(--card-chip-hover);
+  --chip-bg-pressed: var(--color-surface-overlay-pressed);
+}
+
 /* Inside a card the dividers, where a page draws them, run the card's full width, edge to edge
    (owner, 2026-10-24, on the Structure sheet: "the divider should go full bleed"; until then they
    stopped at the content edge). */

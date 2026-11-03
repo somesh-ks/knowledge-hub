@@ -73,7 +73,7 @@ test.describe("theme", () => {
     await page.emulateMedia({ colorScheme: "light" });
     // Through the real control. Writing storage behind the app's back raced the player's own copy
     // of the preferences, and passed or failed by which loaded first.
-    await page.goto("/settings");
+    await page.goto("/settings/appearance");
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     await page.getByRole("combobox", { name: "Theme" }).selectOption("dark");
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
@@ -94,9 +94,9 @@ test.describe("theme", () => {
   test("a style chosen in Settings survives navigation and a reload, set before first paint", async ({
     page,
   }) => {
-    await page.goto("/settings");
+    await page.goto("/settings/appearance");
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
-    await page.getByRole("combobox", { name: "Style" }).selectOption("expressive");
+    await page.getByRole("combobox", { name: "Mood" }).selectOption("expressive");
     await expect(page.locator("html")).toHaveAttribute("data-style", "expressive");
     await page
       .getByRole("navigation", { name: "Primary" })
@@ -122,9 +122,9 @@ test.describe("theme", () => {
       ),
     ).toBe("expressive");
     // Back to Default removes the attribute rather than leaving a stale one.
-    await page.goto("/settings");
+    await page.goto("/settings/appearance");
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
-    await page.getByRole("combobox", { name: "Style" }).selectOption("default");
+    await page.getByRole("combobox", { name: "Mood" }).selectOption("default");
     await expect(page.locator("html")).not.toHaveAttribute("data-style", /.*/);
   });
 
@@ -140,7 +140,7 @@ test.describe("theme", () => {
     page.on("request", (request) => {
       if (request.url().includes("/covers/")) covers.push(request.url());
     });
-    await page.goto("/settings");
+    await page.goto("/settings/appearance");
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     await page
       .getByRole("navigation", { name: "Primary" })
@@ -167,16 +167,16 @@ test.describe("theme", () => {
     await expect.poll(fill).toBe(inDefault);
   });
 
-  test("the Hue slider turns a style's colours, is there before first paint after a reload, and waits for a style", async ({
+  test("the Hue slider turns a style's colours, is there before first paint after a reload, and is there only for a mood", async ({
     page,
   }) => {
-    await page.goto("/settings");
+    await page.goto("/settings/appearance");
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     const hue = page.getByRole("slider", { name: "Hue" });
-    // Default is blue and has no hue to turn.
-    await expect(hue).toBeDisabled();
-    await page.getByRole("combobox", { name: "Style" }).selectOption("expressive");
-    await expect(hue).toBeEnabled();
+    // Default is blue and has no hue to turn, so the row is not there.
+    await expect(hue).toBeHidden();
+    await page.getByRole("combobox", { name: "Mood" }).selectOption("expressive");
+    await expect(hue).toBeVisible();
     const surface = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     const designed = await surface();
     await hue.fill("180");
@@ -199,10 +199,10 @@ test.describe("theme", () => {
     ).toBe("180");
     expect(await surface()).toBe(turned);
     // Default carries no turn, and the slider waits again.
-    await page.goto("/settings");
+    await page.goto("/settings/appearance");
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
-    await page.getByRole("combobox", { name: "Style" }).selectOption("default");
-    await expect(hue).toBeDisabled();
+    await page.getByRole("combobox", { name: "Mood" }).selectOption("default");
+    await expect(hue).toBeHidden();
     expect(
       await page.evaluate(() => document.documentElement.style.getPropertyValue("--hue-shift")),
     ).toBe("");
@@ -211,9 +211,9 @@ test.describe("theme", () => {
   test("Halloween swaps in its own scene and a cobweb that takes no tap; Default shows only its own", async ({
     page,
   }) => {
-    await page.goto("/settings");
+    await page.goto("/settings/appearance");
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
-    await page.getByRole("combobox", { name: "Style" }).selectOption("halloween");
+    await page.getByRole("combobox", { name: "Mood" }).selectOption("halloween");
     await page.goto("/no/such/page");
     const root = page.locator("#main .empty");
     await expect(root.locator('.empty-art[data-look="halloween"]')).toBeVisible();
@@ -225,9 +225,9 @@ test.describe("theme", () => {
     );
     expect(corner).toBeNull();
     // Back to Default: its own scene returns and the ornament goes.
-    await page.goto("/settings");
+    await page.goto("/settings/appearance");
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
-    await page.getByRole("combobox", { name: "Style" }).selectOption("default");
+    await page.getByRole("combobox", { name: "Mood" }).selectOption("default");
     await page.goto("/no/such/page");
     await expect(root.locator('.empty-art[data-art="notfound"]')).toBeVisible();
     await expect(root.locator('.empty-art[data-look="halloween"]')).toBeHidden();

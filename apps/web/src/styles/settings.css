@@ -87,12 +87,6 @@
   padding-block-start: var(--space-6);
 }
 
-/* A group with no head (Downloads, first on the page until a profile page takes it, 2026-11-01) sits
-   as far under the title as a first group's head would (above). */
-.settings-view > .settings-lead {
-  padding-block-start: var(--space-6);
-}
-
 /* ------------------------------------------------------------------ rows */
 
 /* Label and description at the start, the control at the end. The row grammar adds the padding and
@@ -157,6 +151,11 @@
 
 .settings-note {
   padding-block-start: var(--space-2);
+}
+
+/* A note that is a page's whole body (Haptics on a device with no motor) starts on the title's gap. */
+.settings-view > .settings-note {
+  padding-block-start: 0;
 }
 
 /* A row that is one button: the ring follows the row's shape, and the glyph stays quiet. */
@@ -483,7 +482,16 @@
   padding-block-start: 0;
 }
 
-/* From 64rem "Last updated" lives at the foot of the side column (AppNav); a phone keeps it here. */
+/* The build's day under About (D326): one small line, centred, a card's gap clear of the rows. From 64rem
+   it lives at the foot of the side column (AppNav); a phone keeps it here. */
+.settings-updated {
+  margin: var(--space-6) 0 0;
+  text-align: center;
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
+}
+
 @media (width >= 64rem) {
   .settings-updated {
     display: none;
@@ -564,6 +572,44 @@
   to {
     visibility: visible;
   }
+}
+
+/* A page that keeps its settings inside a Manage root (Sound and voice) gives up the page padding the
+   .settings-view has as a page, and its first group's head sits the title's usual 24px below it. */
+.manage > .settings-view {
+  padding-block: 0;
+}
+
+.manage > .settings-view > section:first-of-type > .section-head {
+  padding-block-start: 0;
+}
+
+/* ------------------------------------------------------------------ the hue row (D326, D328) */
+
+/* Mood's hue is a row of its own, the name above a rail as wide as the card: the rail is the spectrum
+   and the swatch floats over it, so it wants the room a value-beside-the-name row does not give.
+   The card names its surface for the thumb's ring. Default has no hue to turn, so the row is hidden
+   there, not dimmed: <html> carries no data-style for Default, and the first frame already knows. */
+.settings-view .card-group > .settings-hue {
+  display: grid;
+  gap: var(--space-2);
+  margin-inline-end: 0;
+  --color-focus-gap: var(--color-surface-container);
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
+}
+
+:root:not([data-style]) .settings-view .card-group > .settings-hue {
+  display: none;
+}
+
+/* A row hidden by script (Haptics, on a device with no motor): .row-action's display would win. */
+.settings-view .card-group > .row-action[hidden] {
+  display: none;
+}
+
+.settings-view .settings-hue input[type="range"] {
+  max-inline-size: none;
 }
 
 /* Default playback speed: the value opens the player's speed screen in a Menu sheet, a popover hung

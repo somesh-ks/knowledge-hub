@@ -3,6 +3,7 @@ import { counted, installAnalytics } from "../lib/analytics";
 import { connectivity, isOnline } from "../lib/connectivity";
 import { watchPlatformFaults } from "../lib/platformFaults";
 import { hasOutbox } from "../lib/savedKey";
+import { installAccountAvatar } from "./accountAvatar";
 import { loadOtherBuildsInFull } from "./buildGuard";
 import { installCreateEntry } from "./createEntry";
 import { installDeviceBanners } from "./deviceBanners";
@@ -45,6 +46,7 @@ installThemeColor();
 installUiSound();
 installAnalytics();
 installIslandWake();
+installAccountAvatar();
 // How the last action was started, so motion stays with the pointer: what a key starts happens at
 // once (settings.css, player.css, hero.css). Captured, so it is set before the key or the press acts.
 const inputBy = (by: string) => (): void => {

@@ -1,12 +1,18 @@
 import { type PointerEvent, useRef } from "react";
-import { swipeLeaves } from "../lib/swipeAway";
+import { SWIPE_SHARE, swipeLeaves } from "../lib/swipeAway";
 import { createVelocityTracker, TAP_SLOP_PX } from "./core/gestureMath";
 import { getPlayQueue } from "./core/playerRuntime";
+import { getHaptics } from "./sound/soundController";
 
 /** How long a row slides out before the queue drops it: --duration-press-out and a frame. */
 const LEAVE_MS = 180;
 /** How long after a swipe the row's own click is not a play. */
 const SWIPE_CLICK_MS = 400;
+
+/** The part of the row that slides: the red strip behind it stays where it is. */
+function faceOf(row: HTMLElement): HTMLElement {
+  return row.querySelector<HTMLElement>(".player-queue-face") ?? row;
+}
 
 interface Press {
   pointerId: number;
@@ -15,14 +21,16 @@ interface Press {
   x0: number;
   y0: number;
   dx: number;
+  /** True once the row has been felt to pass the point where it would leave. */
+  felt: boolean;
   /** Undecided, a sideways swipe of ours, or a press the browser owns (a scroll or a drag). */
   mode: "idle" | "swipe" | "other";
 }
 
 /**
  * A queue row's sideways swipe, shared by the rows to come and the ones that played or play now: past
- * the tap slop the row follows the finger, turns red with a bin under it (player.css, data-swipe-dir),
- * and on release the shared rule (lib/swipeAway.ts) says whether it takes the row off the list or the
+ * the tap slop the row follows the finger over a red strip with a bin (player.css, data-swipe-dir),
+ * ticking as it passes the point it leaves from (a flick ticks on release), and on release the shared rule (lib/swipeAway.ts) says whether it takes the row off the list or the
  * row springs back. Either side takes it away.
  */
 export function useRowSwipe() {
@@ -46,6 +54,7 @@ export function useRowSwipe() {
         x0: event.clientX,
         y0: event.clientY,
         dx: 0,
+        felt: false,
         mode: "idle",
       };
       tracker.current.reset({ value: event.clientX, t: event.timeStamp });
@@ -68,7 +77,11 @@ export function useRowSwipe() {
       event.stopPropagation();
       current.dx = dx;
       current.row.dataset.swipeDir = dx < 0 ? "start" : "end";
-      current.row.style.translate = `${dx}px 0`;
+      faceOf(current.row).style.translate = `${dx}px 0`;
+      // A tick as the row passes the point it would leave from, again if it is pulled back and over.
+      const past = Math.abs(dx) > current.row.offsetWidth * SWIPE_SHARE;
+      if (past && !current.felt) getHaptics().fire("detent");
+      current.felt = past;
     },
     onPointerEnd(event: PointerEvent<HTMLElement>): void {
       const current = press.current;
@@ -84,10 +97,12 @@ export function useRowSwipe() {
         swipeLeaves(dx, row.offsetWidth, tracker.current.velocity())
       ) {
         row.dataset.leaving = "";
-        row.style.translate = `${Math.sign(dx) * row.offsetWidth * 1.2}px 0`;
+        // A flick that never passed the point has not been felt yet.
+        if (!current.felt) getHaptics().fire("tap");
+        faceOf(row).style.translate = `${Math.sign(dx) * row.offsetWidth * 1.2}px 0`;
         window.setTimeout(() => getPlayQueue().remove(id), LEAVE_MS);
       } else {
-        row.style.translate = "";
+        faceOf(row).style.translate = "";
         delete row.dataset.swipeDir;
       }
     },

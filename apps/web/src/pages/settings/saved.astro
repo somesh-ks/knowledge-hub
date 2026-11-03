@@ -27,20 +27,20 @@ const { entries, episodes } = await getSite();
 const items = libraryItems(entries, episodes);
 ---
 
-<BaseLayout title="Saved" view="settings" skipLabel="Skip to saved">
+<BaseLayout title="Favorites" view="settings" skipLabel="Skip to favorites">
   <main id="main" tabindex="-1">
     {/* What this device saved from a player's menu. Which items are saved is only known here, in
          localStorage, so the page carries every Library row (the same cards, in the List view) and
          savedPage.ts shows the saved ones, newest first. Each row has the Library's hover Play and
-         its menu, cut to Add to queue, Share and Remove from Saved. */}
+         its menu, cut to Add to queue, Share and Remove from Favorites. */}
     <div class="manage saved" data-saved-page>
-      <SettingsHead title="Saved" note="Kept on this device to come back to." />
+      <SettingsHead up={{ href: "/profile", label: "Profile" }} title="Favorites" />
       <noscript>
-        <p class="manage-note">The list of saved podcasts needs JavaScript, which is turned off in this browser.</p>
+        <p class="manage-note">Favorites need JavaScript.</p>
       </noscript>
 
       <section class="downloads-list" aria-labelledby="saved-head" data-section hidden>
-        <h2 class="section-head text-heading" id="saved-head" data-count>Nothing saved</h2>
+        <h2 class="section-head text-heading" id="saved-head" data-count>No favorites yet</h2>
         <div data-library data-view="list">
           <ul class="library-grid" role="list" aria-labelledby="saved-head" data-library-grid>
             {
@@ -58,8 +58,8 @@ const items = libraryItems(entries, episodes);
 
       <div class="blocked-empty empty" data-empty hidden>
         <EmptyArt art="library" size="compact" />
-        <p class="empty-title">Nothing saved</p>
-        <p class="empty-body">Choose Save in a podcast's player menu to keep it here.</p>
+        <p class="empty-title">No favorites yet</p>
+        <p class="empty-body">Favorite a podcast to see it here.</p>
       </div>
 
       <ManageChrome />

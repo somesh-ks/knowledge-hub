@@ -42,7 +42,7 @@ const items = libraryItems(entries, episodes);
          the Library's hover Play and its menu, cut to Add to queue, Share and Remove download; both
          Remove and Delete all ask first. */}
     <div class="manage downloads" data-downloads>
-      <SettingsHead title="Downloads" note="Saved on this device to listen offline.">
+      <SettingsHead up={{ href: "/profile", label: "Profile" }} title="Downloads" note="Saved on this device to listen offline.">
         {/* At the title's end, once there is something to delete: Delete all, which asks first. */}
         <div class="downloads-menu" slot="end" data-menu-wrap hidden>
           <button

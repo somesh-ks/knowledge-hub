@@ -12,7 +12,9 @@ Updated 2026-11-02. Rewrite, never append.
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). Regenerate and Catch up queue with Cancel; ended runs stay for the day (D204, D231).
 - Saved copies, offline, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews a PR once when it is ready, by tier (D192, D292).
-- Styles (D306, D310, D314, D315, D319): Halloween and Expressive (larger touch sizes, a `--shape-*` corner scale, looping empty states), a Hue slider, covers as one live vector recoloured by `cover.css`, and neutrals generated from a recipe per style (`styleRecipe.ts`). closed when: Somesh OKs the stills ([ghost states](https://claude.ai/artifact/MVNhZmVMk4kYNu2tJbHRPp), [disabled](https://claude.ai/artifact/Kc7RaKbskg5UeGULwwKtU8)) and a style change on his phone recolours every page, cover and header with no flash and survives a restart, and a press on the Library view toggle and a toast action is deeper than the hover.
+- Styles (D306, D310, D314, D315, D319): Halloween and Expressive (larger touch sizes, a corner scale, looping empty states), a Hue slider, live covers, and neutrals from a recipe per style. closed when: Somesh OKs the stills ([ghost states](https://claude.ai/artifact/MVNhZmVMk4kYNu2tJbHRPp), [disabled](https://claude.ai/artifact/Kc7RaKbskg5UeGULwwKtU8)) and a style change on his phone recolours every page, cover and header with no flash and survives a restart, and a press on the Library view toggle and a toast action is deeper than the hover.
+
+- Avatar, Settings regroup (D335, D344): merged. Open: Mood rename (D327).
 
 ## Tests
 
@@ -26,7 +28,7 @@ Unit (CI): 357 files, 5,491 tests, about 2 min. Site e2e: 449, 14 min. Player: 8
 - Config snapshot (D300 step 1): `snapshot.yml` writes the config store to the `config_snapshots` table each Sunday and `config restore --latest` reads it back; untried against real Neon. closed when: the workflow has run once, the row exists, and `config restore --file` on a copy rebuilds the rows.
 - Content out of git (D300 step 2b, #573): jobs `content pull --track` first and `content push` after the commit; `Digests/` and `Podcasts/` left `main`. closed when: the next scheduled daily's log shows `Load content` and `Save content` and its digest is on the site.
 - Edge purge waits from the run's last save (#590, D318). closed when: a Catch up's `content` log says `waiting N s` with N under 30 and its Library entry opens on the new page
-- Queue (D343). closed when: on his Android a swipe removes a row.
+- Queue (D346). closed when: on his Android a swipe shows a red strip.
 - Player ⋮ menu and Saved (D309, #580): checked in Chromium only. closed when: held press, the speed screen and Settings > Saved work on his Android Chrome.
 - Voice list (D276): closed when: a voice is heard from its list on his iPhone.
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily says "podcast".

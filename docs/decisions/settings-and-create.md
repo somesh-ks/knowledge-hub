@@ -369,6 +369,16 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Revisit if: two devices edit the same setting offline (the later send wins, with no conflict notice), or a 409 from another device's write is seen on drain.
 - Amends: D79, D91, D259.
 
+
+## D335: the avatar leads to a profile page, and Settings is Podcast settings, App settings and About
+
+- Date: 2026-11-02 (the owner: an avatar top right on phone and desktop, a page behind it with Downloads and Favorites, Settings regrouped, source-type sliders removed, user engagement to the admin app).
+- Decision: the avatar (D326) is the right end of the app bar below 64rem and the top right from 64rem, and links to `/profile`: the avatar, a picker of the shapes the mood offers, Downloads and Saved. Settings is Podcast settings (Daily, Weekly, Sources, Structure), App settings (Appearance, Sound and voice, Haptics, Notifications) and About as three rows with no head and the build's day under them. Appearance holds Theme, Mood and a Hue row shown for a mood only; Sound and voice holds the interface sounds, the podcast voices and Playback (autoplay, default speed); Haptics has a page. The source-type sliders and the User engagement link leave the app; a stored `format_mix` still applies. There is no sign-in until Google auth exists: the avatar is the whole control.
+- Why: Downloads and Saved belong to the person, not to a setting; one group of app settings reads better than five small sections; the sliders and the analytics link were a developer's controls in a reader's app.
+- Rejected: a Sign in button with no sign-in behind it (a dead control); keeping Autoplay and Default speed on Structure (a podcast's structure is not how playback starts); a tab for Hue (the row hides for Default).
+- Revisit if: Google sign-in lands (the account photo replaces the shape), or the Playback section on Sound and voice is not where the owner looks for it.
+- Amends: D129, D281, D299.
+
 ## D338: Settings sets the default playback speed on the player's speed screen
 
 - Date: 2026-11-02 (the owner: the speed was "a stepper big number and then the slider ... in the increments of 0.25"; Settings had a plain list of four speeds)
@@ -379,3 +389,13 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Amends: D309 (the speed screen is shared), the Settings default-speed row.
 - Revisit if: the page's first paint or its script weight shows the React root.
 
+## D344: the app no longer edits the podcast structure; Preferences holds autoplay and the default speed
+
+- Date: 2026-11-02 (the owner: "remove the podcast structure as a feature totally, and rename the structure list item on settings page to preferences, and then put both podcast autoplay and then default playback speed inside that").
+- Decision: the structure editor leaves the app: the Listener profile card, the block list, Reorder, Add section, the block sheet and its prompt, and the Daily and Weekly "Podcast structure" link. The Settings row Structure becomes Preferences, at the same address (`/settings/preferences`), and holds Podcast autoplay and Default playback speed, kept on the device as the player reads them. Sound and voice loses its Playback section. The engine and core are untouched: they keep reading the stored structure, now a fixed default, and `structure.set` and `structure.prompt` stay valid ops.
+- Why: a listener profile and a block list were a developer's controls in a reader's app; two playback settings need a home, and the row already exists.
+- Rejected: removing the structure from the engine as well (a pipeline change that alters every episode, wanted only on the owner's word); a new row for the two settings (the owner named the existing one).
+- Context changed: the owner no longer wants to shape episodes from the app.
+- Revisit if: he wants control over what an episode holds again; then the editor comes back from git history (`structureEditor.ts`, `structureView.ts`, `structurePage.ts` before this change).
+- Also: D335 rejected a Sign in button with no sign-in behind it; the owner later asked for a dummy Log in button under the avatar on the profile page, until Google auth exists, so the profile has one.
+- Supersedes: D170, D182 and D191 on the app side. Amends: D335; D338's default-speed row sits on Preferences now, with its speed sheet.

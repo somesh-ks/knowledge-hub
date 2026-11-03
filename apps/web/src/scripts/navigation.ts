@@ -17,8 +17,8 @@ export const CARRIED_ATTRIBUTES = [
 ] as const;
 
 /**
- * "peer": between two pages at the same level, a fade through. "in": into one dated briefing, the
- * page settles from the end side. "out": back out of one, from the start side. "none": no move.
+ * "peer": between two pages at the same level. "in": into a deeper page (a briefing, an episode, a
+ * Settings page), which rises from below. "out": back out of one, which drops from above. "none": no move.
  */
 export type NavigationKind = "peer" | "in" | "out" | "none";
 
@@ -31,14 +31,19 @@ function isBriefingPath(pathname: string): boolean {
   return pathname.startsWith("/d/") || pathname.startsWith("/e/");
 }
 
+/** A page one level below its tab: a briefing, an episode, or a page under Settings (Downloads, Voice, ...). */
+function isDeeperPath(pathname: string): boolean {
+  return isBriefingPath(pathname) || pathname.startsWith("/settings/");
+}
+
 export function navigationKind(from: URL, to: URL): NavigationKind {
   const fromPath = normalize(from.pathname);
   const toPath = normalize(to.pathname);
   if (fromPath === toPath) return "none";
-  const fromBriefing = isBriefingPath(fromPath);
-  const toBriefing = isBriefingPath(toPath);
-  if (toBriefing && !fromBriefing) return "in";
-  if (fromBriefing && !toBriefing) return "out";
+  const fromDeeper = isDeeperPath(fromPath);
+  const toDeeper = isDeeperPath(toPath);
+  if (toDeeper && !fromDeeper) return "in";
+  if (fromDeeper && !toDeeper) return "out";
   return "peer";
 }
 

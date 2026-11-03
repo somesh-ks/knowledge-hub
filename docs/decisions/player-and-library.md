@@ -394,6 +394,16 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Rejected: a long-press pointer drag (it blocks scrolling); keeping the browser's drag and drop under the grip (touch never started it); hiding Next on every width (a mouse on a narrow window cannot swipe).
 - Amends: D169 (the pill, the row menu, swipe left only), D277 (the list opens at the playing item).
 
+## D346: Swipe-to-delete is a red strip behind the row; the playing row heads Up next; a story's time runs to the next story
+
+- Date: 2026-11-03 (owner: "a red strip in the background, and not to change the row itself to turn red as I need visibility"; "the time stamps of different chapters in the player ui is wrong")
+- Decision:
+  - A queue row swiped to either side keeps its own look at every point, past the delete threshold included. It slides over a red strip (`--color-danger`) that stays where it is, with the bin on the side the row came from; the row then slides off and the queue drops it. The playing row swipes the same way. A tick (`detent`) is felt as the row passes the point it would leave from, and a flick that never passed it ticks (`tap`) on release (owner, 2026-11-03).
+  - The playing item heads Up next and nothing is listed above it, so a podcast played from its page or tapped in the list is first, and every row has the handle (the playing row's only marks it). What played is kept in storage but not listed. Suggested has room above its label.
+  - A story's time runs from its first turn (or segment) to where the next story starts, and the last to the end of the recording, as a briefing's own timeline ends an item where the next begins and as the transcript gives a story its untagged turns. Stories tile the recording and never overlap.
+- Why: a whole row turned red hid what was being deleted. A story ran only to its last tagged turn, so a story the model tagged on one turn showed that turn's length alone, and the links, reactions and sign-off after it counted for no story; the Stories list and the bar's chapter cuts disagreed with the transcript. The writer's check asks for one tagged turn in a whole script, so tagging varies.
+- Cost: a story's length now includes the untagged turns after it; one revisited later is not cut into two chapters. Not seen on production data: the screenshot did not reach this thread.
+- Amends: D343 (the whole row turning red), D277 (played items listed above the playing one).
 
 ## D348: Played and Downloaded are marks, and the play button never says Played
 

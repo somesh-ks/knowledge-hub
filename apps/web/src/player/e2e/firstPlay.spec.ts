@@ -153,7 +153,25 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     });
     const row = (id: string) => player.dialog.locator(`[data-queue-id="${id}"] .player-queue-row`);
     const right = center(await player.boxOf(row("ep-20261007-1930")));
-    await finger.drag(line(right, { x: right.x + 300, y: right.y }, 6), 12);
+    // Held past the point where it leaves (owner, 2026-11-03): the row keeps its own look, so it can
+    // still be read, and the red lies behind it as a strip that stays where it is.
+    const li = player.dialog.locator('[data-queue-id="ep-20261007-1930"]');
+    const face = li.locator(".player-queue-face");
+    const strip = li.locator(".player-queue-delete");
+    const resting = await face.evaluate((el) => getComputedStyle(el).backgroundColor);
+    const stripAtRest = await player.boxOf(li);
+    const held = await finger.drag(line(right, { x: right.x + 300, y: right.y }, 6), 12, {
+      hold: true,
+    });
+    await expect(strip).toBeVisible();
+    await expect(face).toHaveCSS("background-color", resting);
+    await expect(li).not.toHaveCSS(
+      "background-color",
+      await strip.evaluate((el) => getComputedStyle(el).backgroundColor),
+    );
+    await expect(face.locator(".player-queue-row")).toBeVisible();
+    expect(await player.boxOf(li)).toEqual(stripAtRest);
+    await held.release();
     await expect.poll(queue).toBe('["2026-10-05","ep-20261006-0900"]');
     const left = center(await player.boxOf(row("2026-10-05")));
     await finger.drag(line(left, { x: left.x - 300, y: left.y }, 6), 12);
@@ -230,9 +248,9 @@ test.describe("the first press of Play on a page with no audio yet", () => {
   });
 
   // D277: a tap on a queued item, even the third, starts it where the player stands. The bar never
-  // goes down and comes back (the old road collapsed the sheet and loaded the item's page), and the
-  // list keeps what was passed, as a music app's queue does.
-  test("a tap on the third queued item plays it with the bar up, and the list keeps what played", async ({
+  // goes down and comes back (the old road collapsed the sheet and loaded the item's page). What was
+  // passed is not listed (D346): the playing row heads the list.
+  test("a tap on the third queued item plays it with the bar up, and it heads the list alone", async ({
     player,
     audio,
     page,
@@ -274,19 +292,12 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     expect(
       await page.evaluate(() => (window as unknown as { __mini: unknown[] }).__mini),
     ).not.toContain("hidden");
-    // The two skipped items and the one that played first are still listed, behind the current one.
-    await expect(player.dialog.locator('[data-state="played"]')).toHaveCount(3);
+    // Nothing sits above the playing row (owner, 2026-11-03): it heads the list, and what was passed is
+    // not listed. The queue the list reads from holds nothing more to come.
+    await expect(player.dialog.locator('[data-state="played"]')).toHaveCount(0);
+    await expect(
+      player.dialog.getByRole("list", { name: "Playing" }).locator("[data-queue-id]"),
+    ).toHaveAttribute("data-queue-id", "2026-10-05");
     expect(await page.evaluate(() => localStorage.getItem("singularity:queue"))).toBeNull();
-    // The first item plays again from its row, and what followed it is to come again, in order.
-    await player.finger.press(
-      player.dialog.locator(`[data-state="played"] .player-queue-row`).first(),
-    );
-    await expect(player.dialog.locator(`[data-state="current"]`)).toHaveCount(1);
-    await expect(player.dialog.getByRole("button", { name: /^Move / })).toHaveCount(3);
-    expect(
-      await player.dialog
-        .locator("[data-queue-id]:not([data-state])")
-        .evaluateAll((rows) => rows.map((row) => row.getAttribute("data-queue-id"))),
-    ).toEqual(["ep-20261006-0900", "ep-20261007-1930", "2026-10-05"]);
   });
 });

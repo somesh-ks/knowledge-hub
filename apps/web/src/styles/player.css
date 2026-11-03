@@ -1991,14 +1991,6 @@
  * page"). The strip sits in its own bar with the hairline the page's strip has, and under 64rem the bar
  * sticks under the status bar (below).
  */
-/* Retired (D343): nothing wears .segmented-nav.player-tabs since the tabs became .tabs. The rule stays
-   only because tokens/system.json lists this file for the segmented nav, and a stylesheet change that
-   moves system.json is design-system work. The design-system sweep of dead structure CSS removes this
-   rule with that line in one pull request. */
-.segmented-nav.player-tabs {
-  flex: none;
-}
-
 .player-tabs-bar {
   flex: none;
   margin-block-end: var(--space-4);
@@ -2522,23 +2514,34 @@
     opacity var(--duration-press-out) var(--ease-out);
 }
 
-/* Under the finger the row follows at once; leaving, it fades as it slides out. */
-.player-queue-item[data-swiping] {
+/* The row's face (cover, words, handle) is what slides; the row itself stays put, with a red strip
+   behind the face (owner, 2026-11-03: "a red strip in the background, and not to change the row itself
+   to turn red as I need visibility"). The face keeps its own look at every point of the swipe. */
+.player-queue-face {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  border-radius: inherit;
+  background: var(--color-surface);
+  transition: translate var(--duration-press-out) var(--ease-out);
+}
+
+/* Under the finger the face follows at once; leaving, it slides out over the strip. */
+.player-queue-item[data-swiping] > .player-queue-face {
   transition: none;
 }
 
-/* Swiped, the whole row turns red and a bin shows where it came from (owner, 2026-11-03): the danger
-   colour with the surface's ink on it, and the row's own words and handle give way to the bin. */
+/* The strip is the danger colour with the surface's ink on the bin, on the side the face came from. */
 .player-queue-delete {
   position: absolute;
-  inset-block: 0;
+  inset: 0;
   display: none;
   align-items: center;
-  color: var(--color-surface);
-}
-
-.player-queue-item:is([data-swiping], [data-leaving]) {
+  padding-inline: var(--space-4);
+  border-radius: inherit;
   background: var(--color-danger);
+  color: var(--color-surface);
 }
 
 .player-queue-item:is([data-swiping], [data-leaving]) > .player-queue-delete {
@@ -2546,27 +2549,22 @@
 }
 
 .player-queue-item[data-swipe-dir="end"] > .player-queue-delete {
-  inset-inline-start: var(--space-4);
+  justify-content: flex-start;
 }
 
 .player-queue-item[data-swipe-dir="start"] > .player-queue-delete {
-  inset-inline-end: var(--space-4);
-}
-
-.player-queue-item:is([data-swiping], [data-leaving]) > :not(.player-queue-delete) {
-  opacity: 0;
-}
-
-.player-queue-item[data-leaving] {
-  opacity: 0;
+  justify-content: flex-end;
 }
 
 /* A row lifted by its grip rides above the others, on a tonal fill so it reads as held; the rows it
    passes shift aside by their translate (QueueList.tsx), on the row's own transition. */
 .player-queue-item[data-dragging] {
   z-index: var(--z-raised);
-  background: var(--color-surface-container);
   transition: none;
+}
+
+.player-queue-item[data-dragging] > .player-queue-face {
+  background: var(--color-surface-container);
 }
 
 /* A lift's end puts every row at its own place at once; the list draws the new order next. */
@@ -2615,7 +2613,7 @@
   }
 
   .player-queue-item:is(:hover, :focus-within, [data-menu-open], [data-dragging])
-    > :is(.player-queue-more, .player-queue-grip) {
+    :is(.player-queue-more, .player-queue-grip) {
     opacity: 1;
   }
 }
@@ -2655,7 +2653,7 @@
 /* Suggested (2026-10-26): with nothing queued, Up next lists what Autoplay would play, in the
    queue's own rows; the plus at a row's end queues it. */
 .player-suggested-head {
-  margin: 0 0 var(--space-2);
+  margin: var(--space-6) 0 var(--space-2);
   padding-inline: var(--space-2);
 }
 
