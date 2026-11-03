@@ -710,3 +710,14 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Cost: none in tokens or bytes beyond a few lines of script; the page is drawn 36px off for its first frame.
 - Revisit if: the owner wants the old page to leave as well (a push); then draw it from a view transition, not a copy of the page.
 - Supersedes: D280 (the 8px settle and the fade-only tab move). Amends: D336.
+
+## D347: a step into a deeper page rises; a tab move takes a quarter second; a press draws one wave
+
+- Date: 2026-11-03 (the owner: "double ripples on all bottom nav tabs"; "instead of the details page showing up from right to left like a glitch, we could transition from mid of the screen to top"; "sliding still makes sense when navigating between tabs"; "the side slide can be a bit slower so it is smoother and not almost instant"; "fix worked!!!").
+- Decision: amends D341 and D286. A step into a deeper page (a briefing, an episode, or a page under Settings) rises 36px from below and Back drops it 36px from above (`data-nav-swap` in or out, `page-lift` in `view-transitions.css`; `navigation.ts` `isDeeperPath`); moves between two deeper pages and between tabs are unchanged in kind. Every move takes `--duration-enter` (250 ms), a tab move included (was 150 ms); `navSpeed.spec.ts` holds that. A press on a bottom tab draws one growing shape: the wave over the cell. The pill under the icon only fades in beside it (`data-nav-arrived="press"`); a key press has no wave, so its pill still grows. The wave carried to the new bar takes its start time from the old wave on the document clock (`design-system/ripple.ts`, #629), not a count of milliseconds played.
+- Context changed: D286 chose a wave over the whole tab with the pill's layer easing in beneath it; D341 sent a way into a briefing in from the side and held a tab move to the time of a press.
+- Why: on a phone the double ripple was the carried wave grown twice (the compositor kept playing the old wave during the page swap, the page's clock stood still, so the redraw restarted behind it), after a grey pill under the wave and a growing pill had each added a shape of their own. A step into a page with no tab of its own reads as going deeper, not across; a tab move reads as across.
+- Rejected: a rise from the middle of the screen (it would run past a quarter second on a move made all day); deferring the pill to arrival (the tab stays bare for the whole load); counting milliseconds played across the swap (the cause above).
+- Cost: none in tokens; a tab move is 100 ms longer.
+- Revisit if: the owner finds 250 ms between tabs slow, or wants more travel on the rise.
+- Amends: D286 (the pill's layer under the wave), D341 (a way into a briefing, and the tab move's length).
