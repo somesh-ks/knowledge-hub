@@ -19,6 +19,7 @@ import { ICON_PATHS, ICON_VIEW_BOX } from "../lib/icons";
 import { matchesQuery, pickerCount, pickerNoMatch } from "../lib/pickerFilter";
 import { FLOATING, roomFloor } from "../lib/roomFloor";
 import { flagNode } from "../lib/voices";
+import { type Break, beginBreakOnTab } from "../player/core/sampleBreak";
 
 const GAP_PX = 8;
 const MIN_WIDTH_PX = 288;
@@ -91,10 +92,17 @@ const audition = {
   rowValue: "",
   /** Says a failure to the list that started the sample (its live region). */
   tell: null as ((text: string) => void) | null,
+  /** The podcast this sample yielded to (player/core/sampleBreak.ts), until the sample is over. */
+  yielded: null as Break | null,
   mark(control: HTMLElement | null): void {
     this.playing?.setAttribute("aria-pressed", "false");
     this.playing = control;
     control?.setAttribute("aria-pressed", "true");
+    // The sample is over, however it ended: the podcast it quieted comes back.
+    if (!control && this.yielded) {
+      this.yielded.end();
+      this.yielded = null;
+    }
   },
   toggle(control: HTMLElement, id: string, tell: (text: string) => void): void {
     const url = `/api/voice-sample?voice=${encodeURIComponent(id)}`;
@@ -130,13 +138,22 @@ const audition = {
     this.sampleId = id;
     this.rowValue = control.dataset.row ?? "";
     this.tell = tell;
-    this.audio.src = url;
     this.mark(control);
-    void this.audio.play().catch(() => {
-      if (attempt !== this.attempt) return;
-      this.tell?.("Couldn't play the sample");
-      this.mark(null);
-    });
+    // A podcast that is playing fades out first and the sample starts once it is quiet. A sample
+    // pressed again meanwhile has taken over (attempt); one stopped meanwhile is never started.
+    if (!this.yielded || this.yielded.over) this.yielded = beginBreakOnTab();
+    const start = (): void => {
+      const audio = this.audio;
+      if (attempt !== this.attempt || !audio) return;
+      audio.src = url;
+      void audio.play().catch(() => {
+        if (attempt !== this.attempt) return;
+        this.tell?.("Couldn't play the sample");
+        this.mark(null);
+      });
+    };
+    if (this.yielded) this.yielded.afterFade(start);
+    else start();
   },
   stop(): void {
     this.attempt += 1;
