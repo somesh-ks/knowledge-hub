@@ -5,12 +5,12 @@
  *
  * No colour is written here: the markup carries classes, and avatar.css fills them from tokens, so the
  * hue engine drives every shape in every mood. A mood supplies tokens and nothing else (--av-body,
- * --av-mark, --av-shapes, --av-shape-default, --av-plays, --av-d-dots, --av-d-spark, --av-d-speckle, --av-d-stitch);
+ * --av-mark, --av-phones, --av-shapes, --av-shape-default, --av-plays, --av-d-dots, --av-d-spark, --av-d-speckle, --av-d-stitch);
  * a new mood is a new block of those tokens, never a change to this file.
  *
  * The app reacts through two attributes it sets on the avatar: data-play for a one-shot (hop, wiggle,
  * look, blink, shake) and data-state for what
- * is really going on (playing, working, offline). Nothing loops by itself and none of it moves under
+ * is really going on (playing, working, offline; playing puts headphones on, D358). Nothing loops by itself and none of it moves under
  * reduced motion. data-face (open, frown, flat, sleep) changes the mouth. A tap picks its reaction from
  * the mood's --av-plays (D353); avatarFace.ts plays it on the face (cheeks, a moving mouth) and morphs the outline.
  */
@@ -55,6 +55,9 @@ export const AVATAR_CLASSES: string[] = [
   "avatar-speck",
   "avatar-stitch",
   "avatar-spark",
+  "avatar-phones",
+  "avatar-band",
+  "avatar-cup",
   "avatar-blend",
   "avatar-face",
   "avatar-eyes",
@@ -118,6 +121,8 @@ interface Shape {
   stitch?: string;
   /** The outline a morph flows from and to, where the body is more than one path. */
   outline?: string;
+  /** Where headphones sit (D358): the cups' distance from the middle, their height, the head's top. */
+  phones?: [x: number, y: number, top: number];
 }
 
 const GENERIC: Face = { ey: 44, ex: 12, my: 58, mw: 13 };
@@ -213,6 +218,7 @@ export const AVATAR_SHAPES: Record<string, Shape> = {
       body("M50 88 C12 60 6 36 21 23 C33 13 46 19 50 31 C54 19 67 13 79 23 C94 36 88 60 50 88Z"),
     ],
     face: { ey: 42, ex: 11, my: 55, mw: 10 },
+    phones: [41, 40, 13],
   },
   pebble: {
     name: "Pebble",
@@ -221,7 +227,12 @@ export const AVATAR_SHAPES: Record<string, Shape> = {
     ],
     face: { ey: 46, ex: 12, my: 60, mw: 12 },
   },
-  star: { name: "Star", parts: [body(lobed(5, 0.34))], face: { ey: 48, ex: 9, my: 60, mw: 10 } },
+  star: {
+    name: "Star",
+    parts: [body(lobed(5, 0.34))],
+    face: { ey: 48, ex: 9, my: 60, mw: 10 },
+    phones: [38, 46, 3],
+  },
   pumpkin: {
     name: "Pumpkin",
     parts: [
@@ -231,6 +242,7 @@ export const AVATAR_SHAPES: Record<string, Shape> = {
       { tag: "ellipse", attrs: 'cx="50" cy="58" rx="22" ry="33"', tone: "body" },
     ],
     face: { ey: 46, ex: 11, my: 70, mw: 20, er: 7 },
+    phones: [41, 54, 25],
     outline: unionOutline([
       [30, 58, 22, 31],
       [70, 58, 22, 31],
@@ -256,6 +268,7 @@ export const AVATAR_SHAPES: Record<string, Shape> = {
       ),
     ],
     face: { ey: 44, ex: 11, my: 60, mw: 8 },
+    phones: [32, 46, 10],
   },
   bat: {
     name: "Bat",
@@ -269,6 +282,7 @@ export const AVATAR_SHAPES: Record<string, Shape> = {
       body("M62 44 L63 22 L51 37Z"),
     ],
     face: { ey: 50, ex: 8, my: 62, mw: 6 },
+    phones: [21, 56, 36],
     outline: ellipsePath(50, 54, 18, 18),
     extras: '<path class="avatar-fang" d="M44 64 L46.5 70 L49 64Z M51 64 L53.5 70 L56 64Z"/>',
   },
@@ -282,6 +296,7 @@ export const AVATAR_SHAPES: Record<string, Shape> = {
       ),
     ],
     face: { ey: 56, ex: 12, my: 69, mw: 7 },
+    phones: [31, 52, 22],
     extras:
       '<path class="avatar-whisk" d="M8 64 L24 66 M8 72 L24 70 M92 64 L76 66 M92 72 L76 70"/>',
     stitch: "M62 76 Q70 80 78 74",
@@ -298,6 +313,7 @@ export const AVATAR_SHAPES: Record<string, Shape> = {
       eyes: '<ellipse class="avatar-eye" cx="36" cy="46" rx="8.5" ry="10"/><ellipse class="avatar-eye" cx="64" cy="46" rx="8.5" ry="10"/>',
     },
     face: { ey: 46, ex: 14, my: 76, mw: 11, er: 10 },
+    phones: [35, 44, 8],
     extras: '<path class="avatar-fang" d="M46 60 L54 60 L50 67Z"/>',
   },
   cauldron: {
@@ -314,6 +330,7 @@ export const AVATAR_SHAPES: Record<string, Shape> = {
       { tag: "ellipse", attrs: 'cx="50" cy="42" rx="36" ry="7"', tone: "shade" },
     ],
     face: { ey: 62, ex: 13, my: 74, mw: 11 },
+    phones: [41, 60, 30],
     outline: CAULDRON,
     stitch: "M20 80 Q50 90 80 80",
   },
@@ -375,6 +392,20 @@ function faceMarkup(shape: Shape): string {
   return `<g class="avatar-face">${eyes}${cheek(50 - face.ex)}${cheek(50 + face.ex)}${say}${mouths}</g>`;
 }
 
+/**
+ * Headphones for the playing state (D358), fitted to the shape: a band drawn behind the head that
+ * shows over its top, and a cup over each side, drawn after the body. Both wait hidden until playing.
+ */
+function phonesMarkup(shape: Shape): [band: string, cups: string] {
+  const [x, y, top] = shape.phones ?? [44, 50, 3];
+  // Both handles at one height put the band's peak a quarter of the way from its ends to them.
+  const lift = fixed((top - 3 - 0.25 * (y - 8)) / 0.75);
+  const band = `<g class="avatar-phones"><path class="avatar-band" d="M${50 - x} ${y - 8}C${50 - x} ${lift} ${50 + x} ${lift} ${50 + x} ${y - 8}"/></g>`;
+  const cup = (cx: number): string =>
+    `<rect class="avatar-cup" x="${cx - 6}" y="${y - 10}" width="12" height="20" rx="6"/>`;
+  return [band, `<g class="avatar-phones">${cup(50 - x)}${cup(50 + x)}</g>`];
+}
+
 let clips = 0;
 
 /**
@@ -395,7 +426,8 @@ export function avatarMarkup(id: string): string {
     .join("");
   const texture = `<clipPath id="${clip}">${bodies}</clipPath><g clip-path="url(#${clip})"><g class="avatar-dots">${DOTS}</g><g class="avatar-speck">${SPECK}</g></g>`;
   const stitch = shape.stitch ? `<path class="avatar-stitch" d="${shape.stitch}"/>` : "";
-  return `<svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><g class="avatar-rig">${shape.parts.map(partMarkup).join("")}${texture}${stitch}${shape.extras ?? ""}${faceMarkup(shape)}<path class="avatar-spark" d="${SPARK}"/></g></svg>`;
+  const [band, cups] = phonesMarkup(shape);
+  return `<svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><g class="avatar-rig">${band}${shape.parts.map(partMarkup).join("")}${texture}${stitch}${shape.extras ?? ""}${cups}${faceMarkup(shape)}<path class="avatar-spark" d="${SPARK}"/></g></svg>`;
 }
 
 /** A shape's face numbers, for a show that moves the face or glides it to another shape's. */
