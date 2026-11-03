@@ -252,6 +252,8 @@ function useDockSwipe({ next, previous, shownId }: DockSwipeTargets) {
   const swipedUntil = useRef(0);
   const button = useRef<HTMLElement | null>(null);
   const waiting = useRef<{ id: string; since: number } | null>(null);
+  // True from the switch's end until the slide has landed and been dropped: no new swipe meanwhile.
+  const settling = useRef(false);
   const [peek, setPeek] = useState<DockPeek | null>(null);
   // Both neighbours are read before a finger comes, so the one it peeks at is already drawn.
   useEffect(() => {
@@ -274,9 +276,11 @@ function useDockSwipe({ next, previous, shownId }: DockSwipeTargets) {
     const pending = waiting.current;
     if (!target || !pending) return;
     waiting.current = null;
+    settling.current = true;
     // Not before the slide has landed, however fast the podcast came.
     const wait = Math.max(0, DOCK_SLIDE_MS - (performance.now() - pending.since));
     window.setTimeout(() => {
+      settling.current = false;
       target.dataset.swiping = "";
       target.style.removeProperty("--dock-swipe");
       delete target.dataset.swipeOut;
@@ -292,7 +296,8 @@ function useDockSwipe({ next, previous, shownId }: DockSwipeTargets) {
     peek,
     swiped: () => performance.now() < swipedUntil.current,
     onPointerDown(event: ReactPointerEvent<HTMLElement>): void {
-      if (event.pointerType === "mouse" || !event.isPrimary || waiting.current) return;
+      if (event.pointerType === "mouse" || !event.isPrimary || waiting.current || settling.current)
+        return;
       press.current = {
         id: event.pointerId,
         x0: event.clientX,

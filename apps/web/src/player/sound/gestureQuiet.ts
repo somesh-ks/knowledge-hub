@@ -5,8 +5,11 @@
  * call it without pulling the sound engine in.
  */
 
-/** The close that follows a pull comes within the same turn of the page, a toggle event at most. */
-const PULL_CLOSE_MS = 800;
+/**
+ * The close that follows a pull comes within a frame or two (a toggle event at most). Short, so a
+ * pull that a dirty sheet refused (sheetGuard.ts) cannot silence the confirmation that follows it.
+ */
+const PULL_CLOSE_MS = 300;
 
 let quietUntil = 0;
 
