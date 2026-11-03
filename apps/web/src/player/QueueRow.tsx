@@ -88,7 +88,7 @@ export default function QueueRow({ id, index, place, count, playing, gestures }:
             <span className="player-upnext-hint">{meta?.caption ?? " "}</span>
           </span>
         </button>
-        <QueueRowMenu id={id} title={title} />
+        <QueueRowMenu id={id} title={title} subtitle={meta?.caption} />
         <button
           className="icon-btn player-queue-grip"
           type="button"
