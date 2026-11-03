@@ -405,3 +405,13 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Cost: a story's length now includes the untagged turns after it; one revisited later is not cut into two chapters. Not seen on production data: the screenshot did not reach this thread.
 - Amends: D343 (the whole row turning red), D277 (played items listed above the playing one).
 
+## D348: Played and Downloaded are marks, and the play button never says Played
+
+- Date: 2026-11-03.
+- Decision:
+  - A card shows a blue download-arrow circle once the recording is saved offline, after its facts line, in words never (`CardMarks.astro`, `.status-mark` in `library.css`; the circle is as tall as the text). Every card wears it: the Library's list and gallery, Favorites and the Earlier shelf on Latest; Downloads does not (every row there is saved). A card does not show Played (owner, 2026-11-03, after seeing the first build: a list of green and blue circles was loud).
+  - A podcast page's facts line says the same with the word beside the mark ("Weekly · 14 stories · Played · Downloaded", `HeroMarks.astro`), each only while it is true.
+  - The hero Play chip and the floating Play never say Played, in any state: Play and the length, Resume and the time left, Loading. A story's own chip inside the page keeps Played. `readerMath.ts` has one test that no state or memory yields the word.
+- Why: the owner asked for it twice (2026-11-02 for the card marks, 2026-11-03 for the button); the status is the subtitle's job, so the button need not repeat it, and a mark scans faster than a word in a list.
+- Cost: the hero chip loses its checked, tonal face and its "Play again" hover.
+- Amends: D78 and D106 (the Played chip), and the card marks of 2026-11-02.

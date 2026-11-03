@@ -165,9 +165,10 @@ export function idleBriefingChip(length: string, noun: ChipNoun = "podcast"): Ch
 }
 
 /**
- * The chip of a briefing the player is not holding: it offers what the Library's card says of it, the
- * time left where it was left, or Played, and otherwise its length. A briefing without audio counts
- * its length from the page's estimate, the minutes its card says.
+ * The chip of a briefing the player is not holding: it offers the time left where it was left, and
+ * otherwise its length. It never says Played, heard to the end or not: the facts line under the title
+ * and the card carry that as a green check (owner, 2026-11-03). A briefing without audio counts its
+ * length from the page's estimate, the minutes its card says.
  */
 export function rememberedChip(
   remembered: Remembered | undefined,
@@ -178,20 +179,12 @@ export function rememberedChip(
     const left = `${wholeMinutes(Math.max(0, totalSeconds - remembered.seconds) * 1000)} min left`;
     return { state: "idle", playing: false, label: left, name: `Resume the ${noun}, ${left}` };
   }
-  if (remembered?.played) {
-    return {
-      state: "played",
-      playing: false,
-      label: "Played",
-      name: `Play the ${noun} again, played`,
-    };
-  }
   return idleBriefingChip(briefingLengthLabel(totalSeconds * 1000), noun);
 }
 
 /**
  * The floating Play button's words, from the chip's: the verb of its name before a length or a time
- * left ("Resume · 1 min left"), a state alone ("Played").
+ * left ("Resume · 1 min left"), a state alone ("Loading").
  */
 export function fabLabel(view: ChipView): string {
   return view.state === "idle" || view.state === "current"
@@ -257,12 +250,8 @@ export function briefingChipView(
     case "paused":
       return { state: "current", ...resume };
     case "ended":
-      return {
-        state: "played",
-        playing: false,
-        label: "Played",
-        name: `Play the ${noun} again, played`,
-      };
+      // Heard to the end: the play face again, never the word Played.
+      return idle;
     case "error": {
       // A refusal that stands, or being offline (it plays on by itself), is not mended by trying
       // again: the play face, with the bar's reason (playerCopy.ts keepsPlayFace).

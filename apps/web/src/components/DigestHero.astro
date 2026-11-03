@@ -4,7 +4,7 @@ import { airedMinutes, type HeroView } from "../lib/digestView";
 import { sharedTarget } from "../lib/share";
 import AmbientLight from "./AmbientLight.astro";
 import Cover from "./Cover.astro";
-import HeroDownloaded from "./HeroDownloaded.astro";
+import HeroMarks from "./HeroMarks.astro";
 import HeroMenu from "./HeroMenu.astro";
 import PlayCta from "./PlayCta.astro";
 
@@ -33,7 +33,7 @@ const title = hero.title.replace(/(\d+) /, "$1 ");
   />
   <div class="hero-text">
     <h1 class="page-title text-display" id="page-title" tabindex="-1">{title}</h1>
-    <p class="meta hero-facts">{hero.meta.map((part) => <span>{part}</span>)}<HeroDownloaded /></p>
+    <p class="meta hero-facts" data-played-id={entry.id}>{hero.meta.map((part) => <span>{part}</span>)}<HeroMarks /></p>
   </div>
   {
     !shareToken && (

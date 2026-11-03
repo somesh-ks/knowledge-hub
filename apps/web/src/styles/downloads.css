@@ -10,7 +10,7 @@
 }
 
 /* Every row here is saved, so the Library's download mark says nothing. */
-.downloads .card[data-downloaded] .card-downloaded {
+.downloads .card[data-downloaded] .card-sub > .status-mark-downloaded {
   display: none;
 }
 
