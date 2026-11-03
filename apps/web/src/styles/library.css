@@ -54,13 +54,18 @@
 }
 
 .card-progress {
+  /* Half the cover's width, centred (owner, 2026-11-03), under the art's date line. The corner is
+     at most a quarter of the art (cover.css), so a bar that starts a quarter in clears it in every
+     mood (Expressive's 40px corner had taken a full-width bar's ends out of the art). */
   position: relative;
   z-index: var(--z-raised);
   display: block;
   grid-area: 1 / 1;
   align-self: end;
+  justify-self: center;
+  width: 50%;
   height: var(--space-1);
-  margin: 0 var(--space-2) calc(var(--space-2) * 2);
+  margin-bottom: calc(var(--space-2) * 2);
   overflow: hidden;
   border-radius: var(--radius-round);
   background: var(--rail-track);
@@ -393,6 +398,15 @@
   background: var(--color-accent-container-pressed);
 }
 
+/* A touch keeps the chosen view's fill: Chrome holds :active through the tap's click, so the view the
+   tap had just chosen showed the press step and eased back (owner, 2026-11-03; primitives.css does the
+   same for tabs and segmented choices). A pointer keeps the step. */
+@media (hover: none) {
+  .view-btn[aria-pressed="true"]:active {
+    background: var(--color-accent-container);
+  }
+}
+
 .library-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(9rem, 42%), 1fr));
@@ -580,9 +594,18 @@ main.library [data-library][data-view="list"] .library-grid {
 /* The cover is centred in a row that a match line can make taller than it, so the bar is centred
    with it and then moved down to the cover's foot, never to the row's. */
 [data-library][data-view="list"] .card-progress {
+  /* Here the bar sits on the cover's foot, so its rounded end clears the corner only when the side
+     comes in by the corner less half the bar's height. */
+  --bar-inset: round(
+    up,
+    max(var(--space-2), min(var(--cover-radius-hero), var(--list-cover) / 4) - var(--space-1) / 2),
+    var(--space-1)
+  );
   grid-area: 1 / 1 / -1 / 2;
   align-self: center;
-  margin: 0 var(--space-2);
+  justify-self: stretch;
+  width: auto;
+  margin: 0 var(--bar-inset);
   translate: 0 calc((var(--list-cover) - var(--space-1)) / 2);
 }
 
