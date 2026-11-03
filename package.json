@@ -41,7 +41,7 @@
     "vercel:env-list": "vercel env list"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.15",
+    "@biomejs/biome": "^2.6.4",
     "@phosphor-icons/core": "2.1.1",
     "@types/node": "^26.6.5",
     "emojibase-data": "18.0.0",
