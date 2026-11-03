@@ -27,7 +27,7 @@ interface Props {
   regenerations?: number | undefined;
   /** On Settings > Downloads: only what applies to a saved copy (Add to queue, Share, Remove download). */
   downloads?: boolean;
-  /** On Settings > Saved: Add to queue, Share and Remove from Saved. */
+  /** On Settings > Favorites: Add to queue, Share and Remove from Favorites. */
   saved?: boolean;
 }
 
@@ -140,7 +140,7 @@ const menuId = `card-menu-${id}`;
     {
       saved && (
         <MenuItem data-menu="unsave">
-          <Icon name="bookmarkOutline" />Remove from Saved
+          <Icon name="bookmarkOutline" />Remove from Favorites
         </MenuItem>
       )
     }

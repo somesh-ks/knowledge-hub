@@ -483,8 +483,7 @@
       "styles": [
         "episode-actions.css",
         "field.css",
-        "manage.css",
-        "topics.css"
+        "manage.css"
       ],
       "usage": "The text field, and the select and textarea that share its looks: a filled pill (D186; a textarea 24px), the one control with an outline, which shows on focus.",
       "tokens": [
@@ -496,7 +495,6 @@
         "--field-border",
         "--field-chevron-gap",
         "--field-height",
-        "--field-max-height-multiline",
         "--field-padding",
         "--field-radius",
         "--field-radius-multiline",
@@ -1295,7 +1293,6 @@
         "`mountSegmentedNav(list, onSelect)` runs it; `data-param` keeps the choice in the URL."
       ],
       "styles": [
-        "player.css",
         "primitives.css"
       ],
       "usage": "Navigation, used like tabs (2026-10-20): a tonal track with no outline and no check, and one pill in the accent container that slides under the active label, by transform alone. The design is flat, so the pill is told apart by colour, not by a shadow (2026-10-21); the choice control is told apart by its outline and check. The active label takes the pill's text colour, the others stay muted. Buttons in a tablist: segmentedNav.ts moves aria-selected and the roving tabindex, and answers Left, Right, Home and End.",

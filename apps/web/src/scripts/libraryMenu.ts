@@ -121,9 +121,9 @@ async function onPick(item: HTMLElement): Promise<void> {
       return;
     }
     case "unsave":
-      // Settings > Saved: the page hears the change (singularity:saved) and drops the row.
-      if (setSaved(deviceStorage(), id, false)) toast("Removed from Saved");
-      else toast("Couldn't remove it from Saved", "error");
+      // Settings > Favorites: the page hears the change (singularity:saved) and drops the row.
+      if (setSaved(deviceStorage(), id, false)) toast("Removed from Favorites");
+      else toast("Couldn't remove it from Favorites", "error");
       return;
     case "unshare":
       if (await stopSharing(id)) toast("Stopped sharing", "success");

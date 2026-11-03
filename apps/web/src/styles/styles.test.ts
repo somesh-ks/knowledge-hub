@@ -76,11 +76,6 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
     ".menu-tiles[data-fold] > .menu-item",
     "the Library card's quick actions are the same tiles on a phone: glyph to word 4px",
   ],
-  [".structure-row", "the dots' and pencil's ink, 28px in from the card's corner, not 24"],
-  [
-    ".structure-profile .profile-select",
-    "the chevron in the rows column: its ink 28px in, as the dots and pencil",
-  ],
   [".story", "an optical nudge: the row's bottom half-gap less the chips' hit-area overhang"],
   [".queue-going", "a ring onto its time or percent inside one lead: the icon-to-label gap is 4px"],
   [".create-fab-label", "the button's own inner gap at the label's end"],
@@ -971,12 +966,8 @@ const PAGE_OVERRIDES: string[] = [
   "topics.css: .menu-list.emoji-picker",
   "topics.css: .menu-list.emoji-picker:popover-open",
   "topics.css: .menu-list.menu-sheet.emoji-picker, .menu-list.menu-sheet.emoji-picker:popover-open",
-  "topics.css: .menu-list.structure-menu-list",
   "topics.css: .slider-input[data-stops]",
   "topics.css: .source-sheet-foot > .button-filled",
-  "topics.css: .structure-add > .button-tonal",
-  "topics.css: .structure-grip .icon-glyph",
-  "topics.css: .structure-prompt-foot > .button-text",
   "topics.css: .topic-weight > .slider-input",
   "topics.css: .topic-weight > .slider-input",
   "topics.css: .topics .row-action .icon-glyph",
@@ -989,7 +980,6 @@ const PAGE_OVERRIDES: string[] = [
   'topics.css: .topics-panel select.field-input:where(:enabled):active, .topics-panel .multiselect-trigger:is(:active, [aria-expanded="true"])',
   'topics.css: .topics-panel select.field-input:where(:enabled):hover, .topics-panel .multiselect-trigger:hover, .topics-panel :is(input, textarea).field-input:not( :focus-visible, [readonly], [aria-invalid]:not([aria-invalid="false"]) ):where(:enabled):hover',
   "topics.css: dialog.sheet-side.topics-panel",
-  "topics.css: textarea.field-input.structure-prompt",
 ];
 
 describe("design-system components in page stylesheets", () => {
