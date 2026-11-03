@@ -249,7 +249,8 @@
   block-size: var(--wave-height);
   translate: 0 -50%;
   background: var(--color-accent);
-  mask: var(--wave-mask) 0 center / calc(var(--wave-length) * var(--wave-periods)) var(--wave-height)
+  mask:
+    var(--wave-mask) 0 center / calc(var(--wave-length) * var(--wave-periods)) var(--wave-height)
     repeat-x;
   animation: slider-wave var(--wave-drift) var(--ease-linear) infinite;
   pointer-events: none;
