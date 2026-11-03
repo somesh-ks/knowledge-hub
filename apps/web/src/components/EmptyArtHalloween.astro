@@ -5,7 +5,15 @@
  * Colours are classes that empty.css maps to the `scene` tokens, as in EmptyArt. Decorative.
  */
 import type { ArtName } from "./EmptyArt.astro";
-import { batOffline, batOnline, cauldron, ghost, pumpkin, tombstone } from "./halloweenArt";
+import {
+  batOffline,
+  batOnline,
+  cauldron,
+  ghost,
+  ghostSleep,
+  pumpkin,
+  tombstone,
+} from "./halloweenArt";
 
 interface Props {
   art: ArtName;
@@ -22,6 +30,7 @@ const SCENES: Record<ArtName, { view: string; draw: () => string }> = {
   offline: { view: "0 8 240 146", draw: batOffline },
   online: { view: "0 8 240 156", draw: batOnline },
   notfound: { view: "0 14 240 146", draw: tombstone },
+  haptics: { view: "0 14 240 146", draw: ghostSleep },
 };
 const scene = SCENES[art];
 ---
