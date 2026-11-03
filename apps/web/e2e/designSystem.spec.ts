@@ -450,3 +450,57 @@ test("no settings card's corner reaches 40% of its height", {
     expect(over, path).toEqual([]);
   }
 });
+
+// Expressive's big corner took the half-heard bar's ends outside the art (owner, 2026-11-03: "the play
+// progress gets out of the bounding box of library album art"). The bar is held to its cover's own
+// rounded box in every mood and both views, never to a pinned inset.
+test("a half-heard bar stays inside its cover's rounded corners in every mood", {
+  tag: "@both",
+}, async ({ page }) => {
+  const outside: string[] = [];
+  for (const style of ["default", "expressive", "halloween"]) {
+    for (const view of ["list", "gallery"]) {
+      await page.goto("/library");
+      await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+      await page.evaluate((s) => {
+        if (s === "default") delete document.documentElement.dataset.style;
+        else document.documentElement.dataset.style = s;
+      }, style);
+      await page.locator(`.view-btn[data-library-view='${view}']`).click();
+      await expect(page.locator("[data-library]")).toHaveAttribute("data-view", view);
+      const found = await page.evaluate(() => {
+        const bar = document.querySelector<HTMLElement>(".card-progress");
+        const cover = bar?.closest(".card-link")?.querySelector<HTMLElement>(".cover");
+        if (!bar || !cover) return null;
+        bar.hidden = false;
+        bar.style.setProperty("--progress", "100%");
+        const b = bar.getBoundingClientRect();
+        const c = cover.getBoundingClientRect();
+        // The corner is min(the mood's radius, 25%): the computed value keeps both terms.
+        const terms = getComputedStyle(cover).borderTopLeftRadius.match(/[\d.]+(px|%)/g) ?? [];
+        const r = Math.min(
+          ...terms.map((t) => (t.endsWith("%") ? (Number.parseFloat(t) * c.width) / 100 : Number.parseFloat(t))),
+        );
+        const points: [number, number][] = [
+          [b.left, b.top],
+          [b.right, b.top],
+          [b.left, b.bottom],
+          [b.right, b.bottom],
+        ];
+        // How far a point lies beyond the rounded corner it is nearest, 0 when it is inside.
+        const beyond = points.map(([x, y]) => {
+          const dx = Math.min(x - c.left, c.right - x);
+          const dy = Math.min(y - c.top, c.bottom - y);
+          if (dx < 0 || dy < 0) return Math.max(-dx, -dy, 0) + 1;
+          if (dx >= r || dy >= r) return 0;
+          return Math.max(0, Math.hypot(r - dx, r - dy) - r);
+        });
+        return { radius: Math.round(r), worst: Math.max(...beyond) };
+      });
+      expect(found, `${style} ${view}: a library card with a progress bar`).not.toBeNull();
+      // A round end's corner is not painted: a pixel of slack covers it.
+      if (found && found.worst > 1) outside.push(`${style} ${view}: ${found.worst.toFixed(1)}px beyond a ${found.radius}px corner`);
+    }
+  }
+  expect(outside).toEqual([]);
+});
