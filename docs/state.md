@@ -12,7 +12,7 @@ Updated 2026-11-02. Rewrite, never append.
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). Regenerate and Catch up queue with Cancel; ended runs stay for the day (D204, D231).
 - Saved copies, offline, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews a PR once when it is ready, by tier (D192, D292).
-- Styles (D306, D310, D314, D315, D319): Halloween and Expressive (larger touch sizes, a `--shape-*` corner scale, looping empty states), a Hue slider, covers as one live vector recoloured by `cover.css`, and neutrals generated from a recipe per style (`styleRecipe.ts`). closed when: Somesh OKs the stills ([ghost states](https://claude.ai/artifact/MVNhZmVMk4kYNu2tJbHRPp)), a style change on his phone recolours every page, cover and header light with no flash and survives a restart, and a press on the Library view toggle and a toast action is deeper than the hover. Disabled controls stay still ([stills](https://claude.ai/artifact/Kc7RaKbskg5UeGULwwKtU8)).
+- Styles (D306, D310, D314, D315, D319): Halloween and Expressive (larger touch sizes, a `--shape-*` corner scale, looping empty states), a Hue slider, covers as one live vector recoloured by `cover.css`, and neutrals generated from a recipe per style (`styleRecipe.ts`). closed when: Somesh OKs the stills ([ghost states](https://claude.ai/artifact/MVNhZmVMk4kYNu2tJbHRPp), [disabled](https://claude.ai/artifact/Kc7RaKbskg5UeGULwwKtU8)) and a style change on his phone recolours every page, cover and header with no flash and survives a restart, and a press on the Library view toggle and a toast action is deeper than the hover.
 
 ## Tests
 
@@ -33,10 +33,11 @@ Unit (CI): 357 files, 5,491 tests, about 2 min. Site e2e: 449, 14 min. Player: 8
 - More menu (D214); Catch up album, Share circle, cards (D219); long press, haptics (D264, D273); push ping (D284). closed when: signed off.
 - Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused; a regenerate or delete uses none.
 - Three regenerations per podcast, counted in its own file (D212). closed when: the page shows "2 of 3 regenerations left".
-- The 10-31 scheduled daily published nothing (a moved window, Tech over its allowance, stories lost in writing, a trimmed refill). Fixed: the window starts at its own last window; Tech may pass its allowance only to reach the floor (D297); the refill writes nothing the allowance will trim. closed when: the next two scheduled dailies publish.
+- The 10-31 scheduled daily published nothing (moved window, Tech over its allowance, stories lost in writing, a trimmed refill); fixed in D297 and the window start. closed when: the next two scheduled dailies publish.
 - Short podcasts (D204, D216 to D225). closed when: two dailies in a row air within 10% of length, and `singularity metrics` shows ten runs at `length_share` 0.9+, `failure_rate` 0.1 or less.
-- Haiku writes the first pass, Sonnet repairs (D308; `eval/writerModels.ts`, run 41348226002, 9 stories, one judge). The router is static (D209 chains), so no model is picked from feedback yet. closed when: two scheduled runs in a row show no more voice or grounding drops (`lost_reasons`) than the last Sonnet-only runs, and the writer's cost in the ledger is under a quarter of the Sonnet-only writer's.
-- Ingest in shadow (D233, D251). closed when: for 7 days the store holds 90% of each daily's stories and reads 90% of pages tried (`ingest --coverage`).
+- Every Claude step starts at Haiku medium, then Haiku high, then Sonnet medium (D308, D333, D334). 11-03 daily: share 1.04, run 11 cents. closed when: two scheduled runs show no more voice or grounding drops (`lost_reasons`) than the last Sonnet-only runs, and a podcast script holds `length_share` 0.9+ (else tell the owner).
+- Ingest in shadow (D233, D251). 11-03: held 76% (rss 18/19, Exa 0/5), read 93%, not met. closed when: for 7 days the store holds 90% of each daily's stories and reads 90% of pages tried (`ingest --coverage`, in the health log).
+- One Speechify count in Blob, a weekly Exa stop (D339). closed when: health shows the shared count after a narration and 450 Exa requests in a week warn.
 - Trusted publishers (D234) and community lift (D240), shipped off. closed when: both on and a daily airs a lab story and a community-voted one, no source over 30%.
 - Run names (D217), Neon run log (D221). closed when: a scheduled daily is named `daily <date>`, is off the queue, and has its row.
 - `podcast.yml` no longer installs ffmpeg; its first stage starts 9 s in (29 s before). closed when: 9 s is accepted.
