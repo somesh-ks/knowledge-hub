@@ -5661,6 +5661,13 @@
       "role": "Space above and below an archive or settings row. Stories use item.gap."
     },
     {
+      "name": "--row-padding-inline",
+      "tier": "component",
+      "type": "dimension",
+      "light": "var(--space-4)",
+      "role": "Space from a filled row's side to its words. It grows with row.radius, so a big corner never closes in on the text (owner, 2026-11-03: \"the text is so close to the edge\")."
+    },
+    {
       "name": "--row-radius",
       "tier": "component",
       "type": "dimension",

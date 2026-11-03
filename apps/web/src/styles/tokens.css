@@ -522,6 +522,7 @@
   --tabs-indicator-height: 3px;
   --tabs-indicator-radius: 3px;
   --row-padding-block: var(--space-4);
+  --row-padding-inline: var(--space-4);
   --row-radius: var(--shape-md);
   --row-tile-radius: var(--radius-round);
   --slider-max-width: 10rem;
@@ -768,6 +769,7 @@
   --scrubber-thumb: 1.5rem;
   --row-radius: var(--shape-2xl);
   --row-padding-block: var(--space-6);
+  --row-padding-inline: var(--space-6);
   --button-padding: var(--space-6);
   --switch-width: 4rem;
   --switch-height: 2.5rem;
