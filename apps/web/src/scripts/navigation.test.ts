@@ -263,7 +263,11 @@ describe("a bottom tab tap", () => {
   // the ripple". A tap while the page still glides from a flick stops the glide, and Chrome sends
   // the pointer's down and up but no click, so a tab that opened on the click alone stayed put.
   it("opens its tab on the lift, once, with or without the browser's click, and not after a scroll", async () => {
-    const page = Object.assign(new EventTarget(), { querySelector: () => null });
+    let under: unknown = null;
+    const page = Object.assign(new EventTarget(), {
+      querySelector: () => null,
+      elementFromPoint: () => under,
+    });
     vi.stubGlobal("document", page);
     vi.stubGlobal("location", url("/"));
     installNavigation();
@@ -273,12 +277,15 @@ describe("a bottom tab tap", () => {
       matches: () => false,
       closest: (selector: string) => (selector === "a.app-nav-item" ? tab : null),
     };
-    const fire = (type: string, pointerId = 1): Event => {
+    under = tab;
+    const fire = (type: string, pointerId = 1, extra: object = {}): Event => {
       const event = Object.assign(new Event(type, { cancelable: true }), {
         pointerId,
         pointerType: "touch",
         button: 0,
         isPrimary: true,
+        detail: 1,
+        ...extra,
       });
       Object.defineProperty(event, "target", { value: tab });
       page.dispatchEvent(event);
@@ -297,7 +304,20 @@ describe("a bottom tab tap", () => {
     fire("pointerdown", 2);
     fire("pointercancel", 2);
     fire("pointerup", 2);
+    // A finger dragged off the tab and lifted elsewhere, and a modified tap, open nothing.
+    fire("pointerdown", 3);
+    under = null;
+    fire("pointerup", 3);
+    under = tab;
+    fire("pointerdown", 4);
+    fire("pointerup", 4, { shiftKey: true });
     await vi.dynamicImportSettled();
     expect(navigate).toHaveBeenCalledTimes(1);
+    // A tap whose click never came: a key's click later (no count) is not its echo and reaches the router.
+    fire("pointerdown", 5);
+    fire("pointerup", 5);
+    await vi.dynamicImportSettled();
+    expect(navigate).toHaveBeenCalledTimes(2);
+    expect(fire("click", 5, { detail: 0 }).defaultPrevented).toBe(false);
   });
 });

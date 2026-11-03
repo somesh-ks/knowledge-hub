@@ -337,6 +337,13 @@ export function installNavigation(): void {
       if (pressed?.id !== event.pointerId) return;
       const { item } = pressed;
       pressed = null;
+      // A modified tap is the browser's (the click guard below leaves it alone), and a finger lifted
+      // over something other than the tab it pressed was dragged away from it.
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      if (
+        document.elementFromPoint(event.clientX, event.clientY)?.closest(NAV_ITEM_SELECTOR) !== item
+      )
+        return;
       if (isSamePage(new URL(item.href), new URL(location.href)) || showsToday(item)) return;
       lifted = item.getAttribute("href");
       // The click is dropped from here on, so a router that cannot load leaves by a plain load.
@@ -357,7 +364,8 @@ export function installNavigation(): void {
     "click",
     (event) => {
       const tab = (event.target as Element | null)?.closest?.(NAV_ITEM_SELECTOR);
-      if (lifted !== null && tab?.getAttribute("href") === lifted) {
+      // A pointer's click has a count; a key's has none, so Enter on the same tab still goes through.
+      if (lifted !== null && event.detail > 0 && tab?.getAttribute("href") === lifted) {
         // The lift already opened it. Prevented, so the router leaves it; the sound still hears it.
         lifted = null;
         event.preventDefault();
