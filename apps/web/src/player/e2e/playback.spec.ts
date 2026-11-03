@@ -201,7 +201,10 @@ test.describe("playback on a podcast", () => {
     expect(audioRequests.length).toBeGreaterThan(0);
   });
 
-  test("remembers the position and restores it after a reload", async ({ player, page }) => {
+  test("comes back after a reload as it was, and a fresh launch offers the kept place", async ({
+    player,
+    page,
+  }) => {
     await player.open();
     await player.play();
     await player.openPlayer();
@@ -213,7 +216,16 @@ test.describe("playback on a podcast", () => {
     );
     expect(saved).toBeGreaterThan(9);
     await page.reload({ waitUntil: "networkidle" });
-    // Nothing is loaded yet, but the chip offers the place that was kept.
+    // Owner, 2026-11-03: a deploy reloaded the page and the open player vanished. The tab comes back
+    // as it was: the same track, the full player open, paused at the kept place.
+    await expect(player.dialog).toBeVisible();
+    await player.finger.press(player.dialog.getByRole("button", { name: "Play", exact: true }));
+    await expect(player.root).toHaveAttribute("data-player-state", "playing");
+    expect(await time(page)).toBeGreaterThan(saved - 1);
+    await player.finger.press(player.dialog.getByRole("button", { name: "Pause", exact: true }));
+    // A fresh launch (no tab to come back to) loads nothing, but the chip offers the place kept.
+    await page.evaluate(() => sessionStorage.clear());
+    await page.reload({ waitUntil: "networkidle" });
     await expect(player.cta).toHaveAttribute("data-state", "idle");
     await expect(player.cta.locator("[data-chip-label]")).toHaveText(/^\d+ min left$/);
     await expect(player.cta).toHaveAccessibleName(/^Resume the podcast, \d+ min left$/);

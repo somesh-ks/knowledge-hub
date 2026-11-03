@@ -25,7 +25,7 @@
 
 /* Expressive: the accent at a strong lightness for the body and a deep one for the face, both derived
    from the accent so a turn of the hue turns the avatar (no white eyes). */
-:root[data-style="expressive"] {
+:root[data-mood="expressive"] {
   --av-body: oklch(from var(--color-accent-action) 0.72 calc(c * 1.1) h);
   --av-mark: oklch(from var(--color-accent-action) 0.24 calc(c * 0.55) h);
   --av-shapes: "flower clover sunny burst star cookie squircle heart pebble";
@@ -35,7 +35,7 @@
   --av-size: 3rem;
 }
 
-:root[data-style="halloween"] {
+:root[data-mood="halloween"] {
   --av-body: var(--scene-pumpkin);
   --av-mark: var(--scene-glow);
   --av-shade: var(--scene-pumpkin-shade);
@@ -70,11 +70,11 @@ button.avatar {
   --av-size: 6rem;
 }
 
-:root[data-style="expressive"] .avatar-lg {
+:root[data-mood="expressive"] .avatar-lg {
   --av-size: 4.5rem;
 }
 
-:root[data-style="expressive"] .avatar-xl {
+:root[data-mood="expressive"] .avatar-xl {
   --av-size: 7rem;
 }
 

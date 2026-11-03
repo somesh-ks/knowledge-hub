@@ -270,9 +270,9 @@
   --color-accent-subtle: var(--color-blue-50);
   --color-accent-subtle-hover: oklch(from var(--color-accent-subtle) calc(l + var(--state-direction) * var(--state-step-hover-quiet)) c h);
   --color-accent-subtle-pressed: oklch(from var(--color-accent-subtle) calc(l + var(--state-direction) * var(--state-step-hover)) c h);
-  --color-accent-container: var(--color-blue-100);
+  --color-accent-container: var(--color-blue-200);
   --color-on-accent-container: var(--color-blue-800);
-  --color-accent-container-high: var(--color-blue-200);
+  --color-accent-container-high: var(--color-blue-300);
   --color-on-accent-container-high: var(--color-blue-900);
   --color-accent-action: var(--color-blue-500);
   --color-on-accent-action: var(--color-white);
@@ -522,6 +522,7 @@
   --tabs-indicator-height: 3px;
   --tabs-indicator-radius: 3px;
   --row-padding-block: var(--space-4);
+  --row-padding-inline: var(--space-4);
   --row-radius: var(--shape-md);
   --row-tile-radius: var(--radius-round);
   --slider-max-width: 10rem;
@@ -574,15 +575,17 @@
     --color-track: var(--color-grey-700);
     --color-track-strong: var(--color-grey-500);
     --color-accent: var(--color-blue-300);
+    --color-accent-container-hover: oklch(from var(--color-accent-container) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
+    --color-accent-container-pressed: oklch(from var(--color-accent-container) calc(l - var(--state-direction) * var(--state-step-press)) c h);
     --color-accent-action-hover: oklch(from var(--color-accent-action) calc(l + var(--state-step-hover)) c h);
     --color-accent-action-pressed: oklch(from var(--color-accent-action) calc(l + var(--state-step-press)) c h);
     --color-surface-inverse-action-hover: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
     --color-surface-inverse-action-pressed: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h);
     --color-accent-subtle: var(--color-blue-800);
-    --color-accent-container: var(--color-blue-800);
+    --color-accent-container: var(--color-blue-600);
     --color-on-accent-container: var(--color-blue-100);
-    --color-accent-container-high: var(--color-blue-700);
-    --color-on-accent-container-high: var(--color-blue-50);
+    --color-accent-container-high: var(--color-blue-400);
+    --color-on-accent-container-high: var(--color-blue-900);
     --color-accent-action: var(--color-blue-400);
     --color-on-accent-action: var(--color-blue-900);
     --color-on-accent: var(--color-grey-900);
@@ -652,15 +655,17 @@
   --color-track: var(--color-grey-700);
   --color-track-strong: var(--color-grey-500);
   --color-accent: var(--color-blue-300);
+  --color-accent-container-hover: oklch(from var(--color-accent-container) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
+  --color-accent-container-pressed: oklch(from var(--color-accent-container) calc(l - var(--state-direction) * var(--state-step-press)) c h);
   --color-accent-action-hover: oklch(from var(--color-accent-action) calc(l + var(--state-step-hover)) c h);
   --color-accent-action-pressed: oklch(from var(--color-accent-action) calc(l + var(--state-step-press)) c h);
   --color-surface-inverse-action-hover: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
   --color-surface-inverse-action-pressed: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h);
   --color-accent-subtle: var(--color-blue-800);
-  --color-accent-container: var(--color-blue-800);
+  --color-accent-container: var(--color-blue-600);
   --color-on-accent-container: var(--color-blue-100);
-  --color-accent-container-high: var(--color-blue-700);
-  --color-on-accent-container-high: var(--color-blue-50);
+  --color-accent-container-high: var(--color-blue-400);
+  --color-on-accent-container-high: var(--color-blue-900);
   --color-accent-action: var(--color-blue-400);
   --color-on-accent-action: var(--color-blue-900);
   --color-on-accent: var(--color-grey-900);
@@ -711,7 +716,7 @@
 }
 
 /* Style: expressive */
-:root[data-style="expressive"] {
+:root[data-mood="expressive"] {
   --color-accent: var(--color-violet-700);
   --color-accent-subtle: var(--color-violet-100);
   --color-accent-container: var(--color-violet-300);
@@ -737,6 +742,11 @@
   --text-display-weight: var(--font-weight-bold);
   --text-display-tracking: -0.03em;
   --text-display-leading: 1.05;
+  --text-heading-family: var(--font-ui);
+  --text-heading-size: var(--font-size-section);
+  --text-heading-weight: var(--font-weight-semibold);
+  --text-heading-tracking: var(--font-tracking-label-lg);
+  --text-heading-leading: var(--font-leading-label);
   --cover-radius-hero: 2.5rem;
   --cover-radius-large: 2.5rem;
   --cover-radius-thumb: 1rem;
@@ -759,6 +769,7 @@
   --scrubber-thumb: 1.5rem;
   --row-radius: var(--shape-2xl);
   --row-padding-block: var(--space-6);
+  --row-padding-inline: var(--space-6);
   --button-padding: var(--space-6);
   --switch-width: 4rem;
   --switch-height: 2.5rem;
@@ -797,13 +808,13 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"])[data-style="expressive"] {
+  :root:not([data-theme="light"])[data-mood="expressive"] {
     --color-accent: var(--color-violet-300);
     --color-accent-subtle: var(--color-violet-800);
-    --color-accent-container: var(--color-violet-700);
+    --color-accent-container: var(--color-violet-600);
     --color-on-accent-container: var(--color-violet-50);
-    --color-accent-container-high: var(--color-violet-600);
-    --color-on-accent-container-high: var(--color-violet-50);
+    --color-accent-container-high: var(--color-violet-400);
+    --color-on-accent-container-high: var(--color-violet-900);
     --color-accent-action: var(--color-violet-400);
     --color-on-accent-action: var(--color-violet-900);
     --color-accent-on-inverse: var(--color-violet-800);
@@ -822,20 +833,20 @@
     --color-border-control: oklch(64% 0.0909 calc(292 + var(--hue-shift, 0)));
     --color-track: oklch(35% 0.084 calc(292 + var(--hue-shift, 0)));
     --color-track-strong: oklch(49% 0.0955 calc(292 + var(--hue-shift, 0)));
-    --color-accent-container-high-hover: oklch(from var(--color-accent-container-high) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
-    --color-accent-container-high-pressed: oklch(from var(--color-accent-container-high) calc(l - var(--state-direction) * var(--state-step-press)) c h);
+    --color-accent-container-high-hover: oklch(from var(--color-accent-container-high) calc(l + var(--state-direction) * var(--state-step-hover)) c h);
+    --color-accent-container-high-pressed: oklch(from var(--color-accent-container-high) calc(l + var(--state-direction) * var(--state-step-press)) c h);
     --color-surface-inverse-action-hover: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
     --color-surface-inverse-action-pressed: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h);
   }
 }
 
-:root[data-theme="dark"][data-style="expressive"] {
+:root[data-theme="dark"][data-mood="expressive"] {
   --color-accent: var(--color-violet-300);
   --color-accent-subtle: var(--color-violet-800);
-  --color-accent-container: var(--color-violet-700);
+  --color-accent-container: var(--color-violet-600);
   --color-on-accent-container: var(--color-violet-50);
-  --color-accent-container-high: var(--color-violet-600);
-  --color-on-accent-container-high: var(--color-violet-50);
+  --color-accent-container-high: var(--color-violet-400);
+  --color-on-accent-container-high: var(--color-violet-900);
   --color-accent-action: var(--color-violet-400);
   --color-on-accent-action: var(--color-violet-900);
   --color-accent-on-inverse: var(--color-violet-800);
@@ -854,19 +865,19 @@
   --color-border-control: oklch(64% 0.0909 calc(292 + var(--hue-shift, 0)));
   --color-track: oklch(35% 0.084 calc(292 + var(--hue-shift, 0)));
   --color-track-strong: oklch(49% 0.0955 calc(292 + var(--hue-shift, 0)));
-  --color-accent-container-high-hover: oklch(from var(--color-accent-container-high) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
-  --color-accent-container-high-pressed: oklch(from var(--color-accent-container-high) calc(l - var(--state-direction) * var(--state-step-press)) c h);
+  --color-accent-container-high-hover: oklch(from var(--color-accent-container-high) calc(l + var(--state-direction) * var(--state-step-hover)) c h);
+  --color-accent-container-high-pressed: oklch(from var(--color-accent-container-high) calc(l + var(--state-direction) * var(--state-step-press)) c h);
   --color-surface-inverse-action-hover: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
   --color-surface-inverse-action-pressed: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h);
 }
 
 /* Style: halloween */
-:root[data-style="halloween"] {
+:root[data-mood="halloween"] {
   --color-accent: var(--color-orange-600);
   --color-accent-subtle: var(--color-orange-50);
-  --color-accent-container: var(--color-orange-100);
+  --color-accent-container: var(--color-orange-300);
   --color-on-accent-container: var(--color-orange-800);
-  --color-accent-container-high: var(--color-orange-200);
+  --color-accent-container-high: var(--color-orange-400);
   --color-on-accent-container-high: var(--color-orange-900);
   --color-accent-action: var(--color-orange-600);
   --color-on-accent-action: var(--color-white);
@@ -909,6 +920,10 @@
   --scene-stone: oklch(80% 0.0421 calc(302 + var(--hue-shift, 0)));
   --scene-stone-shade: oklch(70% 0.0505 calc(302 + var(--hue-shift, 0)));
   --scene-stone-lit: oklch(86% 0.0355 calc(302 + var(--hue-shift, 0)));
+  --color-accent-container-hover: oklch(from var(--color-accent-container) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
+  --color-accent-container-pressed: oklch(from var(--color-accent-container) calc(l - var(--state-direction) * var(--state-step-press)) c h);
+  --color-accent-container-high-hover: oklch(from var(--color-accent-container-high) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
+  --color-accent-container-high-pressed: oklch(from var(--color-accent-container-high) calc(l - var(--state-direction) * var(--state-step-press)) c h);
   --color-surface-inverse-action-hover: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
   --color-surface-inverse-action-pressed: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h);
   --color-orange-50: oklch(98.00% 0.0104 calc(47 + var(--hue-shift, 0)));
@@ -924,12 +939,12 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"])[data-style="halloween"] {
+  :root:not([data-theme="light"])[data-mood="halloween"] {
     --color-accent: var(--color-orange-300);
     --color-accent-subtle: var(--color-orange-900);
-    --color-accent-container: var(--color-orange-800);
+    --color-accent-container: var(--color-orange-700);
     --color-on-accent-container: var(--color-orange-100);
-    --color-accent-container-high: var(--color-orange-700);
+    --color-accent-container-high: var(--color-orange-600);
     --color-on-accent-container-high: var(--color-orange-50);
     --color-accent-action: var(--color-orange-400);
     --color-on-accent-action: var(--color-surface);
@@ -969,17 +984,21 @@
     --scene-stone: oklch(46% 0.0587 calc(302 + var(--hue-shift, 0)));
     --scene-stone-shade: oklch(36% 0.057 calc(302 + var(--hue-shift, 0)));
     --scene-stone-lit: oklch(54% 0.0579 calc(302 + var(--hue-shift, 0)));
+    --color-accent-container-hover: oklch(from var(--color-accent-container) calc(l + var(--state-direction) * var(--state-step-hover)) c h);
+    --color-accent-container-pressed: oklch(from var(--color-accent-container) calc(l + var(--state-direction) * var(--state-step-press)) c h);
+    --color-accent-container-high-hover: oklch(from var(--color-accent-container-high) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
+    --color-accent-container-high-pressed: oklch(from var(--color-accent-container-high) calc(l - var(--state-direction) * var(--state-step-press)) c h);
     --color-surface-inverse-action-hover: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
     --color-surface-inverse-action-pressed: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h);
   }
 }
 
-:root[data-theme="dark"][data-style="halloween"] {
+:root[data-theme="dark"][data-mood="halloween"] {
   --color-accent: var(--color-orange-300);
   --color-accent-subtle: var(--color-orange-900);
-  --color-accent-container: var(--color-orange-800);
+  --color-accent-container: var(--color-orange-700);
   --color-on-accent-container: var(--color-orange-100);
-  --color-accent-container-high: var(--color-orange-700);
+  --color-accent-container-high: var(--color-orange-600);
   --color-on-accent-container-high: var(--color-orange-50);
   --color-accent-action: var(--color-orange-400);
   --color-on-accent-action: var(--color-surface);
@@ -1019,12 +1038,16 @@
   --scene-stone: oklch(46% 0.0587 calc(302 + var(--hue-shift, 0)));
   --scene-stone-shade: oklch(36% 0.057 calc(302 + var(--hue-shift, 0)));
   --scene-stone-lit: oklch(54% 0.0579 calc(302 + var(--hue-shift, 0)));
+  --color-accent-container-hover: oklch(from var(--color-accent-container) calc(l + var(--state-direction) * var(--state-step-hover)) c h);
+  --color-accent-container-pressed: oklch(from var(--color-accent-container) calc(l + var(--state-direction) * var(--state-step-press)) c h);
+  --color-accent-container-high-hover: oklch(from var(--color-accent-container-high) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
+  --color-accent-container-high-pressed: oklch(from var(--color-accent-container-high) calc(l - var(--state-direction) * var(--state-step-press)) c h);
   --color-surface-inverse-action-hover: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
   --color-surface-inverse-action-pressed: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h);
 }
 
 /* Album art per style (D314, tokens/covers.json): numbers for the cover math in cover.css. */
-:root[data-style="expressive"] {
+:root[data-mood="expressive"] {
   --cover-hue: 292;
   --cover-keep: 0.15;
   --cover-spread: 0.5;
@@ -1043,7 +1066,7 @@
   --cover-hi: 1;
 }
 
-:root[data-style="halloween"] {
+:root[data-mood="halloween"] {
   --cover-hue: 52;
   --cover-keep: 0.2;
   --cover-spread: 0.25;
@@ -1063,13 +1086,13 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"])[data-style="halloween"] {
+  :root:not([data-theme="light"])[data-mood="halloween"] {
     --cover-lo: 0.09;
     --cover-hi: 0.87;
   }
 }
 
-:root[data-theme="dark"][data-style="halloween"] {
+:root[data-theme="dark"][data-mood="halloween"] {
   --cover-lo: 0.09;
   --cover-hi: 0.87;
 }
