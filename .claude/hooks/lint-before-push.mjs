@@ -5,6 +5,7 @@
 // Silent for any other command and when green. A hook that errors itself never blocks the agent.
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { resolve } from "node:path";
 
 const GIT_WRITE = /(?:^|[\s;&|(])git\s+(?:-C\s+\S+\s+)?(?:commit|push)\b/;
@@ -13,24 +14,33 @@ try {
   const payload = JSON.parse(readFileSync(0, "utf8") || "{}");
   const command = payload.tool_input?.command;
   if (typeof command !== "string" || !GIT_WRITE.test(command)) process.exit(0);
-  const root = resolve(process.env.CLAUDE_PROJECT_DIR || payload.cwd || process.cwd());
-  const run = (cmd, args) =>
-    spawnSync(cmd, args, {
-      cwd: root,
-      encoding: "utf8",
-      shell: process.platform === "win32",
-      timeout: 60_000,
-    });
+  // No shell: a file name reaches Biome as an argument and nothing else.
+  const run = (cwd, cmd, args) =>
+    spawnSync(cmd, args, { cwd, encoding: "utf8", timeout: 60_000 });
 
-  // What the branch changes against main, working tree included; a deleted file has nothing to lint.
-  const base = run("git", ["merge-base", "origin/main", "HEAD"]);
+  // The repository the command runs in: a worktree has its own root, not CLAUDE_PROJECT_DIR's.
+  // shortcut: a `git -C <other>` target is not followed, upgrade if agents start to use it.
+  const start = resolve(payload.cwd || process.env.CLAUDE_PROJECT_DIR || process.cwd());
+  const top = run(start, "git", ["rev-parse", "--show-toplevel"]);
+  if (top.status !== 0) process.exit(0);
+  const root = top.stdout.trim();
+
+  // What the branch changes against main, working tree and new files included; a deleted file has
+  // nothing to lint. shortcut: this reads the working tree, not the index or the pushed revision, so a
+  // staged error fixed only on disk passes; upgrade if that ever reaches CI.
+  const base = run(root, "git", ["merge-base", "origin/main", "HEAD"]);
   if (base.status !== 0) process.exit(0);
-  const diff = run("git", ["diff", "--name-only", "--diff-filter=d", base.stdout.trim()]);
-  const files = diff.stdout.split("\n").filter((file) => /\.(?:[cm]?[jt]sx?|css|json)$/.test(file));
-  if (diff.status !== 0 || files.length === 0) process.exit(0);
+  const changed = run(root, "git", ["diff", "--name-only", "--diff-filter=d", base.stdout.trim()]);
+  const added = run(root, "git", ["ls-files", "--others", "--exclude-standard"]);
+  const files = `${changed.stdout}\n${added.stdout}`
+    .split("\n")
+    .filter((file) => /\.(?:[cm]?[jt]sx?|css|json|astro)$/.test(file));
+  if (changed.status !== 0 || files.length === 0) process.exit(0);
 
-  const check = run("npx", [
-    "biome",
+  // Biome's own launcher run by Node, so no npx and no shell.
+  const biome = createRequire(`${root}/package.json`).resolve("@biomejs/biome/bin/biome");
+  const check = run(root, process.execPath, [
+    biome,
     "check",
     "--no-errors-on-unmatched",
     "--files-ignore-unknown=true",
