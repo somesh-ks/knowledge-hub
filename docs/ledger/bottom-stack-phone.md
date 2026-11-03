@@ -28,6 +28,7 @@ The navigation bar, the player bar, the floating button, the run indicator and t
   - Create on the Library only. Play on any page with audio, shown only once the hero's Play has scrolled away. Nothing at 64rem and wider.
   - Extended at the top and on scroll up, folded on scroll down.
   - It rides above the navigation, the dock and the run indicator through summed CSS variables, and hides under the open player.
+  - No outline: the tonal fill alone lifts it (owner, 2026-11-03: "the fab button has a thin outline that shouldnt be there"). Its border is transparent, so forced colours still draw an edge.
 - **Toasts** (2026-10-10 final audit, D90).
   - A toast sits 12px above whichever of the navigation, the dock or the floating button is highest.
   - It had kept the navigation's inset while the player covered it; that is fixed.
