@@ -18,7 +18,7 @@ Ledger section 3, one surface. Read [the core](../design-engineering-ledger.md) 
 - **Type.**
   - One family: Google Sans Flex variable, latin only, with a metric-matched Arial fallback.
   - Two weights, regular and medium; a test bans a third (D90).
-  - Story and summary 16px at every width; headline 18 to 20px; meta 14px; section headings 22px regular; display at most 32px; reading leading 1.55 (D73).
+  - Story and summary 16px at every width; headline 18 to 20px; meta 14px; section headings 22px regular, semibold in Expressive (owner, 2026-11-03: "the section titles not being even semibold in expressive style on settings page doesn't look good"); display at most 32px; reading leading 1.55 (D73).
   - A quiet line goes under its title, never above it (D31); a story's publisher is the one exception, above its headline (D161).
   - Summaries and highlight text take `on-surface-reading`, one ink step under the headline (light grey-700, dark grey-200): size and weight are fixed, so contrast lets the headline lead; AAA on the page, tested (2026-10-23).
   - `text-wrap: balance` on headings, kept working by `inline-block` rather than `nowrap` (D93).
