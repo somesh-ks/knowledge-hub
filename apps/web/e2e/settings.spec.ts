@@ -295,10 +295,80 @@ test.describe("profile page", () => {
     await second.click();
     await expect(sheet).toBeHidden();
     expect((await stored(page)).avatar).toBe(shape);
+    // A new pick answers with a show.
+    await expect(page.locator(".profile-face > *")).toHaveAttribute("data-play", /./);
 
     await settingsLink(page).click();
     await toProfile();
     await expect(sheet.locator("[data-shape]")).not.toHaveCount(0);
     await expect(sheet.locator(`[data-shape="${shape}"]`)).toHaveAttribute("aria-pressed", "true");
+  });
+
+  // The bug it prevents (D353): a tap in the app bar opens the profile and swaps the header, so the
+  // show it started was cut at once and the reader saw nothing happen on the avatar they tapped.
+  test("a tap on the app bar's avatar starts a show that goes on through the page change", async ({
+    page,
+  }) => {
+    await page.goto("/settings");
+    const bar = page.locator("a.account-bar > *");
+    await expect(bar).toHaveAttribute("data-shape", /./);
+    await bar.evaluate((el) => {
+      (el as HTMLElement & { kept?: boolean }).kept = true;
+    });
+    await page.getByRole("link", { name: "Your profile", exact: true }).click();
+    await expect(page).toHaveURL(/\/profile$/);
+    await expect(bar).toHaveAttribute("data-play", /./);
+    expect(await bar.evaluate((el) => (el as HTMLElement & { kept?: boolean }).kept)).toBe(true);
+  });
+
+  // The bug it prevents (D353): a tap that starts a show it never ends, a morph that leaves the avatar
+  // in another shape, or a show that plays for a reader who asked for calm.
+  test("a tap on the avatar plays shows, a morph comes home, and a calm reader gets none", async ({
+    page,
+  }) => {
+    const watch = () =>
+      page.evaluate(() => {
+        const seen = { plays: [] as string[], shapes: [] as string[] };
+        (window as unknown as { __avatar: typeof seen }).__avatar = seen;
+        const face = document.querySelector(".profile-face > *");
+        new MutationObserver((changes) => {
+          for (const change of changes) {
+            const value = (change.target as HTMLElement).getAttribute(change.attributeName ?? "");
+            if (!value) continue;
+            (change.attributeName === "data-play" ? seen.plays : seen.shapes).push(value);
+          }
+        }).observe(face as Element, {
+          attributes: true,
+          attributeFilter: ["data-play", "data-shape"],
+        });
+      });
+    const seen = () =>
+      page.evaluate(
+        () => (window as unknown as { __avatar: { plays: string[]; shapes: string[] } }).__avatar,
+      );
+
+    await page.clock.install();
+    await page.goto("/profile");
+    const face = page.locator(".profile-face > *");
+    await expect(face).toHaveAttribute("data-shape", /./);
+    const home = await face.getAttribute("data-shape");
+    await watch();
+    for (let tap = 0; tap < 5; tap++) {
+      await face.click();
+      await page.clock.runFor(2500);
+    }
+    const { plays, shapes } = await seen();
+    expect(new Set(plays).size, "five taps, five different shows").toBeGreaterThan(3);
+    expect(new Set(shapes).size, "a morph passed through other shapes").toBeGreaterThan(1);
+    await expect(face).toHaveAttribute("data-shape", home ?? "");
+    await expect(face).not.toHaveAttribute("data-play");
+
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.reload();
+    await expect(face).toHaveAttribute("data-shape", /./);
+    await watch();
+    await face.click();
+    await page.clock.runFor(2500);
+    expect((await seen()).plays).toEqual([]);
   });
 });

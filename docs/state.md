@@ -14,7 +14,7 @@ Updated 2026-11-02. Rewrite, never append.
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews a PR once when it is ready, by tier (D192, D292).
 - Styles (D306, D310, D314, D315, D319): Halloween and Expressive (larger touch sizes, corner scale, looping empty states), a Hue slider, live covers, recipe neutrals. closed when: Somesh OKs the stills ([ghost states](https://claude.ai/artifact/MVNhZmVMk4kYNu2tJbHRPp), [disabled](https://claude.ai/artifact/Kc7RaKbskg5UeGULwwKtU8)) and a style change on his phone recolours every page with no flash and survives a restart, and a press on the Library view toggle and a toast action beats a hover.
 
-- Avatar, Settings (D335, D344), Mood (D327): merged. Avatar taps (D353): DS PR, then app. closed when: his phone's shows come home.
+- Avatar, Settings (D335, D344), Mood (D327): merged. Avatar taps (D353): in review. closed when: his phone's shows come home.
 
 ## Tests
 
