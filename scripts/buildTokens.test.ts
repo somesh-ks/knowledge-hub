@@ -599,6 +599,20 @@ describe("scales", () => {
       checked += 1;
     }
     expect(checked).toBeGreaterThanOrEqual(4);
+    // In every mood a card's words sit its padding in and its content keeps the rest of the corner:
+    // Expressive once padded 32px under a 40px corner with 16px content, so its rows sat 8px further
+    // in than Default's (owner, 2026-11-03: "the padding on left and right is too much").
+    for (const [name, d] of [
+      ["default", doc] as const,
+      ...doc.styles.map((style) => [style.name, documentUnder(style.name)] as const),
+    ]) {
+      const rem = (reference: string): number =>
+        Number.parseFloat(String(resolveLiteral(d, reference, "light")));
+      expect(
+        rem("component.card.radius"),
+        `${name}: card radius = content radius + padding`,
+      ).toBeCloseTo(rem("component.card.content-radius") + rem("component.card.padding"), 4);
+    }
   });
 
   it("compiles fluid sizes to a clamp that hits both endpoints", () => {

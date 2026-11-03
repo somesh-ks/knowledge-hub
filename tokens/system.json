@@ -5886,7 +5886,7 @@
       "tier": "component",
       "type": "dimension",
       "light": "var(--space-6)",
-      "role": "From the card's edge to its rows' words, and to its chips. The page's title, heads and notes start the same distance in, so a page with cards has one left text edge (2026-10-22)."
+      "role": "From the card's edge to its rows' words, and to its chips. The page's title, heads and notes start the same distance in, so a page with cards has one left text edge (2026-10-22). The same in every mood: a mood's larger corner takes it out of the content radius, so the card's radius stays its content radius plus this (owner, 2026-11-03: Expressive's 32px read as \"too much\" padding and set its rows 8px in from Default's)."
     },
     {
       "name": "--card-inset",
