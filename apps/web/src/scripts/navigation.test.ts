@@ -166,7 +166,7 @@ describe("shouldCheckForUpdate", () => {
 // A deploy loads itself (D202), so the reload must never cost the reader anything: a listen, an
 // Undo, an open sheet, text typed and not yet saved.
 describe("canReloadNow", () => {
-  const idle = { playerState: "paused", overlayOpen: false, editing: false };
+  const idle = { playerState: "paused", overlayOpen: false, editing: false, playerOpen: false };
 
   it("loads the new build when nothing is in use", () => {
     expect(canReloadNow(idle)).toBe(true);
@@ -178,6 +178,8 @@ describe("canReloadNow", () => {
     expect(canReloadNow({ ...idle, playerState: "loading" })).toBe(false);
     expect(canReloadNow({ ...idle, overlayOpen: true })).toBe(false);
     expect(canReloadNow({ ...idle, editing: true })).toBe(false);
+    // A paused episode in the open player: the page hiding for a system alert used to reload it shut.
+    expect(canReloadNow({ ...idle, playerOpen: true })).toBe(false);
   });
 });
 

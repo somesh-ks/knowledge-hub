@@ -46,11 +46,18 @@ export interface Moment {
   overlayOpen: boolean;
   /** A text field has focus, or holds something the reader typed (not something the page filled in). */
   editing: boolean;
+  /** The full player is open: a reload would close it under the reader (owner, 2026-11-03). */
+  playerOpen: boolean;
 }
 
 /** A reload throws away the page's state, so it waits until the reader has nothing on it to lose. */
 export function canReloadNow(moment: Moment): boolean {
-  return shouldActivateUpdate(moment.playerState) && !moment.overlayOpen && !moment.editing;
+  return (
+    shouldActivateUpdate(moment.playerState) &&
+    !moment.overlayOpen &&
+    !moment.editing &&
+    !moment.playerOpen
+  );
 }
 
 const TEXT_FIELD =
@@ -71,7 +78,12 @@ function readMoment(): Moment {
     [...document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(TEXT_FIELD)].some(
       (field) => wasTypedIn(field) && field.value !== field.defaultValue,
     );
-  return { playerState: document.documentElement.dataset.playerState, overlayOpen, editing };
+  return {
+    playerState: document.documentElement.dataset.playerState,
+    overlayOpen,
+    editing,
+    playerOpen: document.documentElement.dataset.player === "open",
+  };
 }
 
 /** True while this build has been loaded for fewer than APPLY_ATTEMPTS times in the tab; counts this one. False when the tab cannot remember. */
