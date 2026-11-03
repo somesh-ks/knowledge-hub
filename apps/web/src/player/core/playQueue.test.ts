@@ -190,7 +190,9 @@ describe("the play queue", () => {
     expect(queue.add("b")).toBe(true);
     expect(queue.getView()).toMatchObject({ above: [], current: "c", upcoming: ["b"] });
     // The playing one deleted on the device (deletedEpisodes.ts): a row lifted, then removed, stays gone.
-    const left = memoryStorage({ [HISTORY_KEY]: JSON.stringify({ played: [], current: null, above: ["a"] }) });
+    const left = memoryStorage({
+      [HISTORY_KEY]: JSON.stringify({ played: [], current: null, above: ["a"] }),
+    });
     createPlayQueue({ storage: left, getCurrentId: () => null }).remove("a");
     expect(createPlayQueue({ storage: left, getCurrentId: () => null }).getIds()).toEqual([]);
   });
