@@ -81,7 +81,7 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D75 | Suggested sources are chosen from the source catalogue when the page is built, with no live lookup and no scores | active |
 | D76 | Create is the New episode form: three questions first, the defaults under More options | active |
 | D77 | A reading page: the headline is the link, Play is the one filled action, one hero for any title | active |
-| D78 | The Library has one facts line per card, finds dates, keeps its search in the address and remembers what was played | active |
+| D78 | The Library has one facts line per card, finds dates, keeps its search in the address and remembers what was played | amended by D348 |
 | D79 | A saved setting shows before the build, and a new topic stays on its list with its suggestions at once | active |
 | D80 | An episode is written to 95% of what its stories can carry, and a script a little under the floor is kept | active |
 | D81 | A workflow installs only what it runs; the audio job skips the Vercel pull with a Blob token | active; owner merges workflow files by hand |
@@ -109,7 +109,7 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D103 | Source scores as stars; source lists fold at seven; topic delete asks first; Regenerate takes feedback; first-load 150 KB | amends D55, D83, D53 |
 | D104 | Every briefing has Share, Regenerate and Delete; Regenerate replaces that digest over its window; Delete removes its file and timeline | amends D88, D103 |
 | D105 | A new episode plays from a live Blob copy while it is written; mobile sounds unlock on click; the spoken word lights at once | amends D82, D101 |
-| D106 | The wide bar leads with what is playing and hides its volume until hover; sheets lose the grabber; a played chip offers Play again | amends D46, D58, D101 |
+| D106 | The wide bar leads with what is playing and hides its volume until hover; sheets lose the grabber; a played chip offers Play again | amends D46, D58, D101; amended by D348 |
 | D107 | The transcript's highlight pauses while the host speaks words the page does not show | amends D101, D105 |
 | D108 | A user profile holds blocked domains and story votes; a block cuts an outlet on every fetch path; votes nudge ranking, listings and the writer, and are never shown | active |
 | D109 | Regenerate chooses the topics again and takes comments, for an episode and a briefing, for that run only | amends D44, D103, D104 |
