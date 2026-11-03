@@ -243,6 +243,17 @@ test.describe("the chrome holds still on a move", () => {
       await expect(page).toHaveURL(/\/d\//);
       await page.goBack();
       await expect(page).toHaveURL(/\/library$/);
+      // The page drops into place for a quarter second (D347), and a box read on the way is that
+      // many pixels short of where it ends (CI read 2.93, a value no layout gives). Measure once
+      // the move is over: the page's mark is gone and nothing on the shell is still playing.
+      await expect(cover).toBeVisible();
+      await page.waitForFunction(
+        () =>
+          !document.documentElement.hasAttribute("data-nav-swap") &&
+          !(document.getAnimations() as CSSAnimation[]).some((animation) =>
+            (animation.effect as KeyframeEffect | null)?.target?.matches(".shell"),
+          ),
+      );
       const settled = await cover.boundingBox();
       expect(Math.abs((settled?.y ?? 0) - (before?.y ?? 0))).toBeLessThan(1.5);
       expect(Math.abs((settled?.width ?? 0) - (before?.width ?? 0))).toBeLessThan(1.5);
