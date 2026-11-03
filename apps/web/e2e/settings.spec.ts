@@ -309,6 +309,7 @@ test.describe("profile page", () => {
   test("a tap on the app bar's avatar plays there alone, through the page change", async ({
     page,
   }) => {
+    await page.clock.install();
     await page.goto("/settings");
     const bar = page.locator("a.account-bar > *");
     await expect(bar).toHaveAttribute("data-shape", /./);
@@ -319,13 +320,12 @@ test.describe("profile page", () => {
     await expect(page).toHaveURL(/\/profile$/);
     await expect(bar).toHaveAttribute("data-play", /./);
     expect(await bar.evaluate((el) => (el as HTMLElement & { kept?: boolean }).kept)).toBe(true);
-    // Only the tapped avatar plays: the profile's own stays still. The show draws every frame, so two
-    // frames on the profile are enough for it to reach an avatar it should not touch.
+    // Only the tapped avatar plays: the profile's own stays still. The show draws every frame; a few
+    // frames on the frozen clock, while it still runs on the bar, would reach an avatar it should not.
     const face = page.locator(".profile-face > *");
     await expect(face).toHaveAttribute("data-shape", /./);
-    await page.evaluate(
-      () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
-    );
+    await page.clock.runFor(100);
+    expect(await bar.evaluate((el) => el.querySelector("svg")?.hasAttribute("style"))).toBe(true);
     await expect(face).not.toHaveAttribute("data-play");
     expect(await face.evaluate((el) => el.querySelector("svg")?.hasAttribute("style"))).toBe(false);
   });

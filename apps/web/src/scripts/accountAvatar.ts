@@ -114,7 +114,8 @@ function play(kind: string, ms = ONE_SHOT_MS, only = avatars()): void {
     avatar.dataset.play = kind;
   }
   playTimer = window.setTimeout(() => {
-    for (const avatar of only) avatar.removeAttribute("data-play");
+    // Every avatar: a tap may have cut short the timer of a show that played on all of them.
+    for (const avatar of avatars()) avatar.removeAttribute("data-play");
   }, ms);
 }
 
@@ -158,7 +159,8 @@ function finish(): void {
   // The return swap of a morph runs on a frame: a hidden tab may not have run it, so draw home here.
   draw();
   setState();
-  if (again) later(tokenMs("--duration-state"), () => react(tapped));
+  const next = tapped;
+  if (again) later(tokenMs("--duration-state"), () => react(next));
 }
 
 /**
@@ -168,7 +170,7 @@ function finish(): void {
  */
 function react(target?: HTMLElement): void {
   if (calm.matches || document.documentElement.hasAttribute("data-offline")) return;
-  if (avatars().length === 0) return;
+  if (avatars().length === 0 || (target && !target.isConnected)) return;
   if (busy) {
     queued = true;
     tapped = target;
