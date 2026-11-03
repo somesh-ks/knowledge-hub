@@ -12,14 +12,11 @@ export function applyTheme(theme: ThemePreference): void {
 }
 
 /**
- * The mood's attribute is absent for the default, so the base tokens apply. It is written under both
- * names, `data-style` and `data-mood`, while the stylesheets move from the first to the second (D327);
- * the old one goes when no stylesheet reads it.
+ * The mood's attribute is absent for the default, so the base tokens apply (D327).
  */
 export function applyMood(mood: MoodPreference): void {
   // A copy of the preferences store from before the rename, still held by an open tab, has no mood: that tab looks like Default until it reloads.
   const value = !mood || mood === DEFAULT_MOOD ? null : mood;
-  setRootAttribute("data-style", value);
   setRootAttribute("data-mood", value);
 }
 

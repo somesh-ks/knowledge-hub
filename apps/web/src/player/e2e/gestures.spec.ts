@@ -32,6 +32,35 @@ test.describe("opening by gesture", () => {
     expect(await player.progress()).toBeCloseTo(1, 2);
   });
 
+  // Bug it prevents (owner, 2026-11-03, Android Chrome): after swiping the bar up, the first tap on
+  // Play did nothing. Chrome sends the pointer events but no click for a tap soon after a fast flick.
+  test("the first tap after a flick up reaches the page's Play", async ({
+    player,
+    page,
+    audio,
+    finger,
+  }) => {
+    // Time runs as usual until the test moves it on.
+    await page.clock.install();
+    await player.open();
+    await player.play();
+    const start = center(await player.dockSettled());
+    await finger.drag(line(start, { x: start.x, y: start.y - 120 }, 3), 8);
+    await player.expanded();
+    const playing = await audio.read();
+    expect(playing?.paused).toBe(false);
+    await finger.press(player.dialog.locator(".transport [data-primary]"));
+    await expect.poll(async () => (await audio.read())?.paused).toBe(true);
+    // One tap is one press: it does not pause and play again.
+    await page.clock.runFor(600);
+    expect((await audio.read())?.paused).toBe(true);
+    // A tap the browser clicks for itself is not clicked twice.
+    await finger.press(player.dialog.locator(".transport [data-primary]"));
+    await expect.poll(async () => (await audio.read())?.paused).toBe(false);
+    await page.clock.runFor(600);
+    expect((await audio.read())?.paused).toBe(false);
+  });
+
   test("a long pull up opens on release, and nothing behind is inert until then", async ({
     player,
     page,
@@ -80,8 +109,29 @@ test("a swipe on the bar switches the podcast; a short one does not and opens no
   await expect(player.openButton).not.toHaveAttribute("data-swipe-out");
   expect(await playing()).toBe(first);
   await player.collapsed();
+  // Owner, 2026-11-03: the podcast a swipe goes to shows before the finger lifts. Held a third of the
+  // way left, the next one has come in from the right edge, inside the bar and clear of the words;
+  // pulled back to where it began, it is gone.
+  const bar = await player.boxOf(player.openButton);
+  const held = await finger.drag(line(spot, { x: spot.x - 100, y: spot.y }, 4), 8, { hold: true });
+  const peek = player.openButton.locator(".dock-peek");
+  await expect(peek).toHaveCount(1);
+  const coming = await player.boxOf(peek.locator(".player-thumb"));
+  expect(coming.x).toBeGreaterThan(spot.x - 100);
+  expect(coming.x + coming.width).toBeLessThanOrEqual(bar.x + bar.width + 1);
+  await held.move(line({ x: spot.x - 100, y: spot.y }, spot, 4));
+  await expect(peek).toHaveCount(0);
+  await held.release();
+  expect(await playing()).toBe(first);
+  await player.collapsed();
   // Left is the next queued podcast; right brings the one before back.
-  await finger.drag(line(spot, { x: spot.x - 160, y: spot.y }, 4), 8);
+  // A thumb that has gone sideways and then wanders up, past 45 degrees, is still switching: the
+  // page is not pulled open under it.
+  const turn = { x: spot.x - 50, y: spot.y - 5 };
+  await finger.drag(
+    [...line(spot, turn, 4), ...line(turn, { x: spot.x - 180, y: spot.y - 190 }, 6)],
+    30,
+  );
   await expect.poll(playing, { timeout: 10_000 }).toBe("2026-10-05");
   await player.collapsed();
   await finger.drag(line(spot, { x: spot.x + 160, y: spot.y }, 4), 8);

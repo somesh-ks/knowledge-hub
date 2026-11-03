@@ -4,18 +4,22 @@
  *
  * A mood supplies these tokens and nothing else (a new mood adds tokens only):
  *   --av-body, --av-mark          the body and the face
+ *   --av-phones                   the headphones a playing avatar wears (D358), the page's ink by default
  *   --av-shapes, --av-shape-default   the shape ids it offers (read by the app) and its first
+ *   --av-plays                    the reactions a tap picks from, in the order the hue starts them (D353)
  *   --av-d-dots, --av-d-spark, --av-d-speckle, --av-d-stitch   a decoration it switches on (inline) or not (none)
  */
 
 :root {
   --av-body: var(--color-accent-container-high);
   --av-mark: var(--color-on-accent-container-high);
+  --av-phones: var(--av-ink);
   --av-shade: color-mix(in oklch, var(--av-body), var(--av-mark) 26%);
   --av-ink: var(--color-on-surface);
   --av-paper: var(--color-surface);
   --av-shapes: "cookie flower clover sunny burst squircle heart pebble star";
   --av-shape-default: cookie;
+  --av-plays: "look happy wow morph";
   --av-d-dots: none;
   --av-d-spark: none;
   --av-d-speckle: none;
@@ -25,22 +29,24 @@
 
 /* Expressive: the accent at a strong lightness for the body and a deep one for the face, both derived
    from the accent so a turn of the hue turns the avatar (no white eyes). */
-:root[data-style="expressive"] {
+:root[data-mood="expressive"] {
   --av-body: oklch(from var(--color-accent-action) 0.72 calc(c * 1.1) h);
   --av-mark: oklch(from var(--color-accent-action) 0.24 calc(c * 0.55) h);
   --av-shapes: "flower clover sunny burst star cookie squircle heart pebble";
   --av-shape-default: flower;
+  --av-plays: "happy morph look wow";
   --av-d-dots: inline;
   --av-d-spark: inline;
   --av-size: 3rem;
 }
 
-:root[data-style="halloween"] {
+:root[data-mood="halloween"] {
   --av-body: var(--scene-pumpkin);
   --av-mark: var(--scene-glow);
   --av-shade: var(--scene-pumpkin-shade);
   --av-shapes: "pumpkin ghost bat cat skull cauldron";
   --av-shape-default: pumpkin;
+  --av-plays: "boo look morph happy wow";
   --av-d-speckle: inline;
   --av-d-stitch: inline;
 }
@@ -70,11 +76,11 @@ button.avatar {
   --av-size: 6rem;
 }
 
-:root[data-style="expressive"] .avatar-lg {
+:root[data-mood="expressive"] .avatar-lg {
   --av-size: 4.5rem;
 }
 
-:root[data-style="expressive"] .avatar-xl {
+:root[data-mood="expressive"] .avatar-xl {
   --av-size: 7rem;
 }
 
@@ -91,6 +97,7 @@ button.avatar {
   --av-body: var(--av-ink);
   --av-mark: var(--av-paper);
   --av-shade: color-mix(in oklch, var(--av-ink), var(--av-paper) 22%);
+  --av-phones: var(--scene-pumpkin-lit);
 }
 
 .avatar[data-tone="stone"] svg {
@@ -226,6 +233,82 @@ button.avatar:active svg {
 
 .avatar[data-face="sleep"] .avatar-rig {
   rotate: 6deg;
+}
+
+/* A tap's show (D353, avatarFace.ts) moves the face from script: a cheek in the body's tone that lifts
+   over an eye, a mouth path that runs from smile to grin to o, and a path that flows between two
+   outlines in a morph. Each waits hidden until a show (data-act) needs it. */
+.avatar-cheek {
+  display: none;
+  fill: var(--av-body);
+}
+
+.avatar-say {
+  display: none;
+  fill: var(--av-mark);
+  stroke: var(--av-mark);
+  stroke-width: 5;
+  stroke-linejoin: round;
+}
+
+.avatar[data-act] .avatar-say {
+  display: inline;
+}
+
+.avatar[data-act] .avatar-say ~ .avatar-mouth {
+  display: none;
+}
+
+.avatar-blend {
+  fill: var(--av-body);
+}
+
+/* A drawn mouth of its own (the pumpkin's grin) opens by scale from its middle. */
+.avatar[data-act] .avatar-smile {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.avatar[data-act] .avatar-rig {
+  transform-box: view-box;
+  transform-origin: 50px 90px;
+  opacity: var(--av-fade, 1);
+}
+
+/* A morph veils what is not the outline (a stem, wings, whiskers, dots) while the outline flows. */
+.avatar[data-act] .avatar-rig > :not(.avatar-blend, .avatar-face, .avatar-spark, .avatar-phones) {
+  opacity: calc(1 - var(--av-veil, 0));
+}
+
+/* Headphones while a podcast plays (D358): a band over the head and a cup on each side, in --av-phones
+   (the page's ink, or the lit tone on a dark shape: they show on the body and on the page, light or dark).
+   They fade in and settle down onto the head when the state starts and fade out when it ends; a morph
+   veils them with the details and the new shape's pair comes back after. */
+.avatar-phones {
+  --av-on: 0;
+  opacity: calc(var(--av-on) * (1 - var(--av-veil, 0)));
+  translate: 0 calc((1 - var(--av-on)) * -6px);
+}
+
+.avatar[data-state="playing"] .avatar-phones {
+  --av-on: 1;
+}
+
+/* The bob pivots where a show does, so a tap while playing never shifts the head. */
+.avatar[data-state="playing"] .avatar-rig {
+  transform-box: view-box;
+  transform-origin: 50px 90px;
+}
+
+.avatar-band {
+  fill: none;
+  stroke: var(--av-phones);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.avatar-cup {
+  fill: var(--av-phones);
 }
 
 /* The reader's own photo, round with an accent ring, where there is one. */
@@ -390,6 +473,17 @@ button.avatar:active svg {
 
   .avatar[data-state="playing"] .avatar-rig {
     animation: avatar-bob var(--duration-avatar-bob) var(--ease-in-out) infinite;
+  }
+
+  /* On and off calmly (D358); a show's veil moves them every frame, so it is not eased again. */
+  .avatar-phones {
+    transition:
+      opacity var(--duration-spring-effects-slow) var(--ease-spring-effects-slow),
+      translate var(--duration-spring-spatial-default) var(--ease-spring-spatial-default);
+  }
+
+  .avatar[data-act] .avatar-phones {
+    transition-property: translate;
   }
 
   .avatar[data-state="working"] .avatar-eyes {

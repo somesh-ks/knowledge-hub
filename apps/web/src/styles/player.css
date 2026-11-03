@@ -844,60 +844,79 @@
   gap: var(--space-1);
 }
 
-/* A sideways swipe on the bar's title (PlayerBar.tsx, useDockSwipe): while the finger is down the cover
-   and the words follow it at once; let go short of a swipe they spring back on the press curve; past
-   it they slide out the way it went, the story changes, and the new one comes in from the other side. */
-.dock-open > :is(.player-thumb, .dock-text) {
-  translate: var(--dock-swipe, 0px) 0;
-  transition:
-    translate var(--duration-press-out) var(--ease-out),
-    opacity var(--duration-press-out) var(--ease-out);
+/* A sideways swipe on the bar (PlayerBar.tsx, useDockSwipe): while the finger is down the cover and
+   the words follow it at once, and the podcast it would switch to comes in from the far side, so
+   the target shows before the finger lifts (2026-11-03). Let go short of a swipe, both spring back
+   on the press curve; past it the bar slides on to the new one, and the slide is dropped when the
+   player shows it. The bar is the window: neither the words nor the one waiting show past its edge,
+   so nothing passes under the transport. The peek takes the whole row with the bar's own two
+   columns, and waits one bar's width off to the side (--dock-span, set by the swipe). */
+.dock-open {
+  overflow: clip;
 }
 
-.dock-open[data-swiping] > :is(.player-thumb, .dock-text) {
+.dock-open > :is(.player-thumb, .dock-text) {
+  translate: var(--dock-swipe, 0px) 0;
+}
+
+/* Placed, so the peek laid over the same cells does not push them to a second row. */
+.dock-open > .player-thumb {
+  grid-area: 1 / 1;
+}
+
+.dock-open > .dock-text {
+  grid-area: 1 / 2;
+}
+
+.dock-open > :is(.player-thumb, .dock-text, .dock-peek) {
+  transition: translate var(--duration-press-out) var(--ease-out);
+}
+
+.dock-peek {
+  grid-area: 1 / 1 / 2 / 3;
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  align-self: stretch;
+  /* It takes the room the real words leave and asks for none: a long title never widens the bar. */
+  contain: size;
+  pointer-events: none;
+  translate: calc(var(--dock-swipe, 0px) + var(--peek-side) * var(--dock-span, 100%)) 0;
+}
+
+.dock-peek[data-peek="next"] {
+  --peek-side: 1;
+}
+
+.dock-peek[data-peek="previous"] {
+  --peek-side: -1;
+}
+
+.dock-peek > .player-thumb {
+  flex: none;
+}
+
+.dock-peek > .dock-text {
+  flex: 1 1 0;
+}
+
+/* It arrives drawn: the caption's fade is for a story that changes under the eye. */
+.dock-peek .dock-caption {
+  animation: none;
+}
+
+.dock-open[data-swiping] > :is(.player-thumb, .dock-text, .dock-peek) {
   transition: none;
 }
 
-.dock-open[data-swipe-out] > :is(.player-thumb, .dock-text) {
-  opacity: 0;
-  translate: calc(var(--swipe-dir) * var(--space-12)) 0;
-  transition:
-    translate var(--duration-exit) var(--ease-out),
-    opacity var(--duration-exit) var(--ease-out);
+.dock-open[data-swipe-out] > :is(.player-thumb, .dock-text, .dock-peek) {
+  transition: translate var(--duration-enter) var(--ease-out);
 }
 
-.dock-open[data-swipe-out="next"] {
-  --swipe-dir: -1;
-}
-
-.dock-open[data-swipe-out="previous"] {
-  --swipe-dir: 1;
-}
-
-@keyframes dock-swipe-in {
-  from {
-    opacity: 0;
-    translate: calc(var(--swipe-dir) * var(--space-12)) 0;
-  }
-}
-
-.dock-open[data-swipe-in] > :is(.player-thumb, .dock-text) {
-  animation: dock-swipe-in var(--duration-enter) var(--ease-out);
-}
-
-.dock-open[data-swipe-in="next"] {
-  --swipe-dir: 1;
-}
-
-.dock-open[data-swipe-in="previous"] {
-  --swipe-dir: -1;
-}
-
-/* Reduced motion: the words fade without travelling. */
+/* Reduced motion: the bar changes without sliding. */
 @media (prefers-reduced-motion: reduce) {
-  .dock-open[data-swipe-out],
-  .dock-open[data-swipe-in] {
-    --swipe-dir: 0;
+  .dock-open[data-swipe-out] > :is(.player-thumb, .dock-text, .dock-peek) {
+    transition: none;
   }
 }
 
@@ -1856,7 +1875,7 @@
   gap: var(--space-1);
   width: 100%;
   padding-block: var(--space-4);
-  padding-inline: var(--space-4);
+  padding-inline: var(--row-padding-inline);
   border-radius: var(--row-radius);
   text-align: start;
   /* A press or a pointer shows on the fill; the words keep their size and weight. */
@@ -2279,7 +2298,7 @@
   width: 100%;
   min-height: var(--size-touch-comfortable);
   padding-block: var(--space-2);
-  padding-inline: var(--space-4);
+  padding-inline: var(--row-padding-inline);
   border-radius: var(--row-radius);
   text-align: start;
   /* A press shows on the fill; the headline keeps its size. */
@@ -2332,17 +2351,18 @@
   line-height: var(--font-leading-body);
 }
 
+/* 88%, not 72% (2026-11-03): muted ink keeps 4.5:1 on every mood's chosen fill after D356 moved the fills; Default dark needs 87%, Halloween light 86%. */
 .story-rows
   > [data-open]
   .script-turns[data-following]
   .script-turn:not([data-said], [aria-current="true"])
   .script-text {
-  color: color-mix(in oklch, var(--color-on-accent-container) 72%, transparent);
+  color: color-mix(in oklch, var(--color-on-accent-container) 88%, transparent);
 }
 
 /* Names are told apart by the name itself, not by the accent, which the card's fill would swallow. */
 .story-rows > [data-open] .script-turns .script-turn .script-speaker {
-  color: color-mix(in oklch, var(--color-on-accent-container) 72%, transparent);
+  color: color-mix(in oklch, var(--color-on-accent-container) 88%, transparent);
 }
 
 .story-row[aria-current="true"] .story-row-time {
@@ -2651,6 +2671,14 @@
     anchor-name: var(--queue-anchor);
   }
 
+  /* A finger has no dots (display: none, which cannot anchor), so a hold's menu hangs under the
+     handle; from 40rem it is a popover there, not a sheet. */
+  @media (hover: none) {
+    .player-queue-grip {
+      anchor-name: var(--queue-anchor);
+    }
+  }
+
   .player-queue-item .player-queue-menu {
     position-anchor: var(--queue-anchor);
   }
@@ -2693,6 +2721,49 @@
    column, so it fits by construction in a short window (a tablet held sideways, 1024x600 to
    1280x720) and nothing is cut below the edge. A mouse's column holds less (no scrubber, no story
    line) and keeps the plain share. */
+/* Full bleed on a phone (owner, 2026-11-03: "make the row full bleed in the queue"): the row's fill,
+   the held row's tonal fill and the red strip behind a swipe run to both edges of the screen instead
+   of sitting in the page's gutters as a pill. The words, the cover and the handle keep the gutter, so
+   nothing moves; only what is painted grows. A band at the screen's edge takes no corner radius.
+   From 40rem the centred column caps it, as it does the tab line. */
+@media (width < 64rem) {
+  .player-queue-item {
+    margin-inline: calc(max(var(--player-padding), var(--safe-left)) * -1)
+      calc(max(var(--player-padding), var(--safe-right)) * -1);
+    border-radius: 0;
+  }
+
+  /* The row's start takes the gutter, so the whole band's left end still plays it; the face's end
+     takes it after the handle, which sits beside the row, not in it. */
+  .player-queue-row {
+    padding-inline-start: calc(max(var(--player-padding), var(--safe-left)) + var(--space-2));
+  }
+
+  .player-queue-face,
+  .player-queue-item:not(:has(> .player-queue-face)) {
+    padding-inline-end: max(var(--player-padding), var(--safe-right));
+  }
+
+  .player-queue-delete {
+    padding-inline: calc(max(var(--player-padding), var(--safe-left)) + var(--space-4))
+      calc(max(var(--player-padding), var(--safe-right)) + var(--space-4));
+  }
+
+  /* One hit area, not two (owner, 2026-11-03: "there's a nested second hit area, don't show the hit
+     area"): the press paints the whole band, including the handle's end, instead of a pill inside
+     it. The press still belongs to the button that plays the podcast. */
+  .player-queue-row:where(:not(:disabled, [aria-disabled="true"])):active {
+    background: none;
+  }
+
+  /* A queued row paints its face (the part that slides); a suggested row has no face, so the row
+     itself takes the tone. */
+  .player-queue-item:has(> .player-queue-row:active),
+  .player-queue-item:has(.player-queue-row:active) > .player-queue-face {
+    background: var(--color-surface-container-pressed);
+  }
+}
+
 @media (width >= 64rem) {
   :root {
     --player-cover-share: min(40cqb, 100cqb - var(--player-column-rest));

@@ -417,6 +417,17 @@
   color: var(--chip-fg-current);
 }
 
+/* A touch keeps the current fill: the tap's :active outlasts its click, so a chip the tap had just made
+   current showed the current press step first and then eased to its own tone (owner, 2026-11-03; its
+   glyph turning to play or pause answers the tap). The step stays for a pointer. */
+@media (hover: none) {
+  .chip[data-state="current"]:where(
+    :not(:disabled, [aria-disabled="true"], [data-state="unavailable"])
+  ):active {
+    background: var(--chip-bg-current);
+  }
+}
+
 /* Played: a check in the success colour and a quiet label. */
 .chip[data-state="played"] {
   color: var(--color-on-surface-muted);

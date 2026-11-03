@@ -462,16 +462,10 @@ test("a half-heard bar stays inside its cover's rounded corners in every mood", 
     for (const view of ["list", "gallery"]) {
       await page.goto("/library");
       await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
-      // Both attributes until the tokens read data-mood (D327, #638).
       await page.evaluate((m) => {
         const root = document.documentElement.dataset;
-        if (m === "default") {
-          delete root.mood;
-          delete root.style;
-        } else {
-          root.mood = m;
-          root.style = m;
-        }
+        if (m === "default") delete root.mood;
+        else root.mood = m;
       }, mood);
       await page.locator(`.view-btn[data-library-view='${view}']`).click();
       await expect(page.locator("[data-library]")).toHaveAttribute("data-view", view);

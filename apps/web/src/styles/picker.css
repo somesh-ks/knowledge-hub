@@ -479,11 +479,9 @@
   inline-size: var(--size-touch-comfortable);
   block-size: var(--size-touch-comfortable);
   margin: calc((var(--size-icon) - var(--size-touch-comfortable)) / 2);
-  color: var(--color-on-surface-muted);
-}
-
-.picker-play[aria-pressed="true"] {
-  color: var(--color-accent);
+  /* 2026-11-03: one grey for play and pause, a step stronger than muted so the thin line does not read
+     as disabled; the accent is for the chosen voice, not for a sample that is playing. */
+  color: var(--color-on-surface-reading);
 }
 
 .picker-play[aria-pressed="true"] .picker-play-glyph,
