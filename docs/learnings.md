@@ -97,6 +97,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-31: a Play control marked `aria-disabled` never reacted: `disabledGuard.ts` swallows clicks on `[aria-disabled="true"]`, so a voice without a sample is marked `data-silent` instead.
 - 2026-11-01: Downloads showed as a gallery after a Library visit: `libraryPage.ts` kept its `astro:page-load` listener and matched Downloads' `[data-library]`. Name the page (`#main.library`); a test must reach it by click, not `goto`.
 - 2026-11-01: a `.manage` rule for the voice page also reached Preferences: a row declares its `--row-reach`.
+- 2026-11-03: seven routes at ~180 server errors a day each came from servers off Vercel (build id a 13-digit start time) that held the real `DATABASE_URL` and wrote their own 5xx into `client_faults`; telemetry writers take the URL through `telemetryDatabaseUrl` (Vercel only). Astro's SSR header replaces vercel.json's CSP, so `frame-ancestors` lives in `withFrameAncestors` (it is ignored in a meta tag, so not in Astro's directives).
 
 ## Build and tooling
 
