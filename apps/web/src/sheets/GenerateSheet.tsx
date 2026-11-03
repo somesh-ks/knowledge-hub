@@ -2,7 +2,9 @@ import { Field } from "@base-ui/react/field";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { buttonClass } from "../design-system/button";
 import { fieldClass } from "../design-system/field";
+import { switchClass } from "../design-system/switch";
 import { rememberCancelToken } from "../lib/cancelTokens";
+import { currentReadyView, setReady } from "../lib/readyNotice";
 import { hintsFor } from "../lib/regenHints";
 import { DEFAULT_REGEN_LENGTH, nearestRegenLength, REGEN_LENGTHS } from "../lib/regenLength";
 import { idsOfChips, isChipOn, type RegenChip } from "../lib/regenTopics";
@@ -77,6 +79,8 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
   // The sheet opens on the comment alone; Length and Categories appear as the words reach for them
   // (D337) and stay once they have, so the form does not shift as the text is edited.
   const [shown, setShown] = useState({ length: false, topics: false });
+  // "Notify me when it's ready": shown where this browser can deliver, read again at each opening.
+  const [ready, setReadyView] = useState({ show: false, checked: false });
 
   // Each opening starts from the topics of the briefing on the page. Off a briefing's page (a
   // toast's Details) there are none, and the run keeps its own.
@@ -90,6 +94,7 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
     setTopicError(false);
     setFieldError(null);
     setLength(startLength());
+    setReadyView(currentReadyView());
     // Words kept from an earlier opening still call for their controls.
     setShown(
       hintsFor(feedbackRef.current?.value ?? "", topics?.chips.map((chip) => chip.label) ?? []),
@@ -289,6 +294,27 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
             <Icon name="alert" />
             <span>{fieldError}</span>
           </p>
+        ) : null}
+        {ready.show ? (
+          <div className="settings-row">
+            <label className="settings-label" htmlFor="regen-ready">
+              Notify me when it's ready
+            </label>
+            <input
+              id="regen-ready"
+              type="checkbox"
+              role="switch"
+              aria-checked={ready.checked}
+              className={switchClass()}
+              checked={ready.checked}
+              disabled={busy}
+              onChange={(event) => {
+                const wanted = event.currentTarget.checked;
+                setReadyView({ show: true, checked: wanted });
+                void setReady(wanted).then((on) => setReadyView({ show: true, checked: on }));
+              }}
+            />
+          </div>
         ) : null}
         <div className="sheet-actions">
           <button

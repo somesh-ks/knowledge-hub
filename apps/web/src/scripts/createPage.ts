@@ -3,6 +3,7 @@ import { rememberCancelToken } from "../lib/cancelTokens";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import { hasSaved, storeOn } from "../lib/savedKey";
 import type { Voice } from "../lib/voices";
+import { installReadyNotice } from "./readyNotice";
 import { startRun } from "./runStatus";
 
 /**
@@ -13,6 +14,7 @@ import { startRun } from "./runStatus";
 export function installCreate(root: HTMLElement, onStart?: () => void): void {
   if (root.dataset.ready !== undefined) return;
   root.dataset.ready = "";
+  installReadyNotice(root, root.closest("dialog"));
   const $ = (selector: string) => root.querySelector(selector) as HTMLElement;
   const form = $("[data-create-form]") as HTMLFormElement;
   // Read again once the saved settings are laid over the form, which can add a topic's chip.

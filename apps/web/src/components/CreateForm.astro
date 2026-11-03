@@ -17,6 +17,7 @@ import {
 } from "../lib/createForm";
 import { loadManage } from "../lib/manage";
 import { loadScheduleView } from "../lib/schedule";
+import ReadyNotice from "./ReadyNotice.astro";
 // The layout renders this form for the Create sheet on every page, so these styles are global. The
 // build links them before the layout's own stylesheets, so their rules never rely on coming last:
 // where one adjusts a shared rule, it does so with a more specific selector.
@@ -232,6 +233,8 @@ const COPY = {
 
     {/* The words are in their own span, so the length can change them without removing the spinner
          that shows while the request is out. */}
+    <ReadyNotice id="create-ready" />
+
     <div class="create-submit">
       <Button variant="filled" type="submit" data-submit>
         <span class="spinner" aria-hidden="true"></span>

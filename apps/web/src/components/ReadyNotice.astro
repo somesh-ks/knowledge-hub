@@ -1,0 +1,14 @@
+---
+import Switch from "../design-system/Switch.astro";
+
+interface Props {
+  id: string;
+}
+const { id } = Astro.props;
+---
+
+{/* Shown by scripts/readyNotice.ts when this browser can deliver a message; hidden until then. */}
+<div class="settings-row" data-ready-notice hidden>
+  <label class="settings-label" for={id}>Notify me when it's ready</label>
+  <Switch id={id} />
+</div>

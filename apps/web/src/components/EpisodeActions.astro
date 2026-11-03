@@ -10,6 +10,7 @@ import { briefingChips } from "../lib/briefingChips";
 import { topicOptions } from "../lib/createForm";
 import { loadManage } from "../lib/manage";
 import { isChipOn, type RegenChip } from "../lib/regenTopics";
+import ReadyNotice from "./ReadyNotice.astro";
 import "../styles/episode-actions.css";
 
 interface Props {
@@ -102,6 +103,7 @@ const COPY = {
                   ))}
                 </fieldset>
               </section>
+              <ReadyNotice id="regen-ready" />
               <div class="create-submit">
                 <Button variant="filled" type="submit" data-submit>
                   Regenerate episode

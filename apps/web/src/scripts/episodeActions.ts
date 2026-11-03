@@ -8,6 +8,7 @@ import { hasSaved, storeOn } from "../lib/savedKey";
 import { navigateTo } from "../player/core/navigation";
 import { libraryAddress } from "./libraryAddress";
 import { dismissOnScrim, sheetGestures } from "./pullDismiss";
+import { installReadyNotice } from "./readyNotice";
 import { forgetRunAbout, startRun } from "./runStatus";
 
 /**
@@ -57,6 +58,7 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
   const feedback = dialog.querySelector<HTMLTextAreaElement>('[name="feedback"]');
   const count = dialog.querySelector<HTMLElement>("[data-count]");
   if (!form || !submit) return;
+  installReadyNotice(dialog, dialog);
   const copy = (key: string) => dialog.querySelector(`[data-k="${key}"]`)?.textContent ?? "";
   const say = (text = "") => {
     const line = error?.querySelector("span");

@@ -101,6 +101,28 @@ test.describe("a Regenerate, followed in the podcast queue", () => {
 
   // Owner, 2026-11-02: the Android keyboard came up the moment the sheet opened. A pick in the More
   // menu opens the sheet from a script, which says nothing of a touch, so the note took the focus.
+  // The sheet's "Notify me when it's ready" is the Settings choice, not a second one: it opens as
+  // Settings keeps it, and turning it off there-and-then is what Settings shows afterwards.
+  test("the notify switch on the sheet is the Settings choice, read at opening and kept when flipped", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(Notification, "permission", { get: () => "granted" });
+      if (!sessionStorage.getItem("seeded")) {
+        sessionStorage.setItem("seeded", "1");
+        localStorage.setItem("singularity:notifications", JSON.stringify({ ready: true }));
+      }
+    });
+    await openRegenerate(page);
+    const notify = dialog(page).getByRole("switch", { name: "Notify me when it's ready" });
+    await expect(notify).toBeChecked();
+    await notify.click();
+    await expect(notify).not.toBeChecked();
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem("singularity:notifications")))
+      .toBeNull();
+  });
+
   // Owner, 2026-11-02 (D340): the comment says why, so a run does not start without one.
   test("Regenerate without a comment is refused, says so and sends nothing", async ({ page }) => {
     const bodies = await mock(page, []);
