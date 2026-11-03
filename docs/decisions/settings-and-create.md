@@ -368,3 +368,14 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Rejected: a warning when closing the page (cannot be shown on a phone's tab close, and loses the edit anyway); Retry as the only way out (the state it needs is gone after a reload); a background sync registration (iOS does not run it, and the page-load and `online` triggers cover the same ground); queuing while online with the site up (a refusal must reach the person at once).
 - Revisit if: two devices edit the same setting offline (the later send wins, with no conflict notice), or a 409 from another device's write is seen on drain.
 - Amends: D79, D91, D259.
+
+## D338: Settings sets the default playback speed on the player's speed screen
+
+- Date: 2026-11-02 (the owner: the speed was "a stepper big number and then the slider ... in the increments of 0.25"; Settings had a plain list of four speeds)
+- Decision: on Settings > Preferences the default speed's value is a button that opens the player's own speed screen (`SpeedPanel`: the readout, the stepper by 0.05, the slider on every 0.25 from 0.5x to 2x) in a Menu sheet, a bottom sheet on a phone and a popover under the value from 40rem. Each change is saved at once, snapped by `toPlaybackRate`, to the same preference the list wrote, so the player starts at it as before and a speed saved by the old slider still shows. `scripts/defaultSpeed.ts` mounts the panel the first time the sheet opens.
+- Why: one speed control, not two: the player's screen sets one speed and Settings a list of four, with nothing between 1x and 1.25x.
+- Cost: a React root on a page that had none, loaded with the page; the value is a button, not a native select, so a keyboard opens it with Enter or Space and not the arrows.
+- Rejected: a list with all seven 0.25 stops (the stepper's finer steps and the slider's feel are lost); a second copy of the panel in vanilla markup (two controls to keep alike).
+- Amends: D309 (the speed screen is shared), the Settings default-speed row.
+- Revisit if: the page's first paint or its script weight shows the React root.
+

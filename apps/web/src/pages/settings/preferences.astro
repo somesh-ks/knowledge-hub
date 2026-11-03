@@ -17,9 +17,11 @@ import DialogActions from "../../design-system/DialogActions.astro";
 import DialogTitle from "../../design-system/DialogTitle.astro";
 import Field from "../../design-system/Field.astro";
 import Icon from "../../design-system/Icon.astro";
+import Menu from "../../design-system/Menu.astro";
 import Select from "../../design-system/Select.astro";
 import Sheet from "../../design-system/Sheet.astro";
 import Switch from "../../design-system/Switch.astro";
+import { selectClass } from "../../design-system/select";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { loadManage } from "../../lib/manage";
 import { loadScheduleView } from "../../lib/schedule";
@@ -83,11 +85,25 @@ const offers = addOffers(structure.blocks, structure.sections);
                the player's other preferences, not through the config store. */}
           <div class="settings-row">
             <label class="settings-label" for="default-speed">Default playback speed</label>
-            <Select class="value-select" id="default-speed" autocomplete="off" data-needs-js data-default-speed>
+            {/* The value opens the player's speed screen (big number, stepper and slider in 0.25x
+                 steps) in the sheet below instead of a list: a phone's bottom sheet, a popover under
+                 the value from 40rem (data-opens, design-system/selectSheet.ts; scripts/defaultSpeed.ts, D338). */}
+            <Select
+              class="value-select speed-default"
+              id="default-speed"
+              autocomplete="off"
+              data-needs-js
+              data-default-speed
+              data-opens="default-speed-sheet"
+            >
               {PLAYBACK_RATES.map((rate) => <option value={rate}>{rate}x</option>)}
             </Select>
           </div>
         </div>
+        {/* Outside the row, so the row's cap on a slider (settings.css) does not reach the sheet. */}
+        <Menu id="default-speed-sheet" title="Default playback speed" class="speed-default-sheet">
+          <div data-speed-root></div>
+        </Menu>
       </div>
 
       <fieldset class="manage-fields" data-fields>
@@ -373,25 +389,7 @@ const offers = addOffers(structure.blocks, structure.sections);
 </script>
 
 <script>
-  import { isPlaybackRate } from "../../player/core/playerTypes";
-  import { getPreferences } from "../../player/core/preferences";
+  import { installDefaultSpeed } from "../../scripts/defaultSpeed";
 
-  // Read on each page load, so the select shows what the player will start at.
-  function installDefaultSpeed(): void {
-    const select = document.querySelector<HTMLSelectElement>("[data-default-speed]");
-    if (!select) return;
-    const preferences = getPreferences();
-    const current = preferences.get().rate;
-    // A speed saved when the slider set the default is not a preset: it still shows, and stays chosen.
-    if (![...select.options].some((o) => Number(o.value) === current)) {
-      select.add(new Option(`${current}x`, String(current)), 0);
-    }
-    select.value = String(current);
-    select.addEventListener("change", () => {
-      const rate = Number(select.value);
-      if (isPlaybackRate(rate)) preferences.set({ rate });
-    });
-  }
-
-  document.addEventListener("astro:page-load", installDefaultSpeed);
+  installDefaultSpeed();
 </script>

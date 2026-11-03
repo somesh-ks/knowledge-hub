@@ -297,8 +297,8 @@ test("a Menu's and a select's rows span the list, with no gap at the sides @desk
   });
   expect(Math.abs(menu.left) + Math.abs(menu.right), JSON.stringify(menu)).toBeLessThanOrEqual(2);
 
-  await page.goto("/settings/preferences");
-  const select = page.locator("#default-speed");
+  await page.goto("/settings");
+  const select = page.locator("#settings-theme");
   await select.click();
   const list = await select.evaluate((element) => {
     const style = getComputedStyle(element, "::picker(select)");

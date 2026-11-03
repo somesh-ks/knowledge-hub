@@ -959,6 +959,7 @@ const PAGE_OVERRIDES: string[] = [
   "shell.css: .app-nav-indicator > .icon-glyph",
   "shell.css: .app-nav-item .icon-glyph",
   "shell.css: .app-nav-item:active .icon-glyph",
+  "speed-panel.css: .player-speed .slider-input",
   "story-controls.css: .menu-list.story-menu-list",
   "story-controls.css: .menu-list.story-menu-list",
   "story-controls.css: .story-vote .icon-glyph",

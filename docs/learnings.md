@@ -66,7 +66,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Site and service worker
 
-- 2026-11-02: offline showed a "You are offline" page with no strip, lost Saved and Settings, and never came back: the worker stood in for any unopened page, the stand-in's script does not run again when the router swaps it in, and its one reload fired on a premature `online` event. One connectivity state, recovery in the app script, pages kept ready (D330).
+- 2026-11-02: offline showed a bare "You are offline" page and never recovered: the worker stood in for unopened pages, its script does not run again when the router swaps it in, and its reload fired on a premature `online` event. One connectivity state, recovery in the app script (D330).
 - 2026-11-02: `caches.match` walks the caches by age, so the install copy answered Latest offline. The router moved the address to a `#` link's own `#` before Try again ran: listen in capture.
 - 2026-11-02: a press rule before a hover rule of the same weight loses while the mouse is down; a control with no `:active` rule shows no press (Library view toggle). Press after hover; shoot rest, hover, press.
 - 2026-11-02: an opaque press fill on a bar's `::after` covers its content, which the old alpha hid. Use `z-index: var(--z-beneath)`.
@@ -97,7 +97,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-31: a Play control marked `aria-disabled` never reacted: `disabledGuard.ts` swallows clicks on `[aria-disabled="true"]`, so a voice without a sample is marked `data-silent` instead.
 - 2026-11-01: Downloads showed as a gallery after a Library visit: `libraryPage.ts` kept its `astro:page-load` listener and matched Downloads' `[data-library]`. Name the page (`#main.library`); a test must reach it by click, not `goto`.
 - 2026-11-01: a `.manage` rule for the voice page also reached Preferences: a row declares its `--row-reach`.
-- 2026-11-03: servers off Vercel with the real `DATABASE_URL` stored their own 5xx as production faults (~180 a day per route); telemetry takes the URL via `telemetryDatabaseUrl`. Astro's SSR header replaces vercel.json's CSP, so `frame-ancestors` is added in `withFrameAncestors` (a meta tag ignores it).
+- 2026-11-03: servers off Vercel with the real `DATABASE_URL` stored their own 5xx as production faults (~180 a day per route); telemetry takes `telemetryDatabaseUrl`. Astro's SSR header replaces vercel.json's CSP, so `frame-ancestors` is added in `withFrameAncestors` (a meta tag ignores it).
 
 ## Build and tooling
 
@@ -150,3 +150,4 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-11-02: a hover or press rule on a disableable class painted on disabled controls (native or aria-disabled). Write the exclusion in the component rule (`:where(:not(:disabled, [aria-disabled="true"]))`);
 - 2026-11-02: an exit on `--ease-drawer` looks done in 120 ms; use `--ease-in-out` when a sheet must stay while something arrives.
 - 2026-11-02: `name: "5 min"` matches "15 min"; use `exact: true`.
+- 2026-11-03: a step summary is not in the job log or API; `tee -a` what you must read.
