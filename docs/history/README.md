@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-11-03 | [Spend limits and the coverage reading](2026-11-03-spend-limits.md) | One Speechify count in Blob, a weekly Exa stop, a failed Regenerate's cost recorded, coverage printed to the log (D339) |
 | 2026-11-02 | [Page slide from the tab](2026-11-02-page-slide-from-the-tab.md) | Pages arrive from the side of the tab you came from; a tapped card keeps its press until its page arrives (D341) |
 | 2026-11-02 | [Cover flight removed](2026-11-02-cover-flight-removed.md) | A cover no longer flies between its card and the page's hero; the fade and settle stay (D336) |
 | 2026-11-02 | [Catch up exit, full Regenerate](2026-11-02-catchup-regenerate.md) | A smooth sheet exit, Regenerate as a full sheet with no Usual, the script at medium effort (D323, D324) |
