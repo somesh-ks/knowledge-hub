@@ -7,7 +7,7 @@ What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D
 ### Surface and bar
 - The player is one surface from the bottom bar to a full page. The whole bar opens it; a drag, the bar, Back or Escape close it. Back closes the open player instead of leaving the page.
 - The dock has a chevron beside volume from 64rem, none below (D102, D193). A "Close the player" chevron sits top left of the open player below 64rem (D126); from 64rem it shows only on keyboard focus. The open player has no drag handle and square top corners; the art keeps its room (D111). Bottom sheets have no grabber.
-- The bar and the navigation share one fill (D86); below 64rem a hairline along the bar's bottom edge parts them (2026-11-02; none under the queue's dock). A phone's bar swipes between stories, no Next (D343). The player is held by its bottom edge and is `100dvh` tall, so the bar, the navigation and the floating button move with the address bar as one.
+- The bar and the navigation share one fill (D86); below 64rem a hairline along the bar's bottom edge parts them (2026-11-02; none under the queue's dock). A phone's bar swipes between podcasts and shows the target, no Next (D343). The player is held by its bottom edge and is `100dvh` tall, so the bar, the navigation and the floating button move with the address bar as one.
 - The app bar's Back goes back one entry.
 - Below 64rem the bottom navigation slides away with the pull and stays above the rising page until gone; the bar's cover grows into the page's cover on the same progress (none from 64rem or under reduced motion; `core/coverMorph.ts`).
 - Any Play (a cover, a page's chip, Start listening in the queue) starts the podcast in the player: below 64rem the player opens over the page, from 64rem only the bar changes to playing and stays shut (`core/openOnPhone.ts`). A story's play button and autoplay never open it.
@@ -34,9 +34,9 @@ What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D
 
 ### Queue and Up next (D126)
 - A play queue of ids (`singularity:queue` in localStorage, `core/playQueue.ts`) takes items from the Library menu's Add to queue (`singularity:queue-add`). When an item ends the first queued one starts. Rows (`QueueList`, `QueueRow`) move by their handle (Up and Down on it too); a swipe either way, or Delete on the handle, removes one over a red strip (D346). Below 64rem a row is one band to the screen's edges and a hold opens its menu as a sheet (D354).
-- Up next plays top to bottom (D357): any row moves anywhere; rows above the playing one stay, muted, never starting by themselves. Changes glide. What played is kept (`singularity:queue-played`, 30 at most), not listed. A tap on a row plays it in place, the bar up (D277). The next three queued items with finished audio get their first 512 KB at idle.
+- Up next plays top to bottom (D357): any row moves anywhere; rows above the playing one stay, muted, never autoplaying; changes glide. What played is kept (`singularity:queue-played`, 30 at most), not listed. A tap on a row plays it in place, the bar up (D277). The next three queued items with finished audio get their first 512 KB at idle.
 - Up next is the player list's second view at every width (it stays selected when the item changes): the queue, or the next older item when the queue is empty. There is no peek strip and no pull-up queue sheet.
-- Scenario: WHEN a recording has ended and there is something to offer THEN the view turns to Up next; the listener can go back to Stories. With autoplay on (default) the first suggestion starts when the queue is empty. Suggested stays under the queue: one added leaves it, a refill goes last, one removed is not offered again.
+- Scenario: WHEN a recording has ended and there is something to offer THEN the view turns to Up next; Stories is a tap away. With autoplay on (default) the first suggestion starts when the queue is empty. Suggested stays under the queue: one added leaves it, a refill goes last, one removed is not offered again.
 
 ### Failure and memory
 - A failure is told once, in the line under the title, and nothing below it moves.

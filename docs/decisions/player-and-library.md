@@ -460,3 +460,12 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Revisit if: the owner's phone shows a slanted swipe still scrolling the page or cancelling the press, or a measured touch slop falls under the 6 px axis threshold.
 - Rejected: the playing row's place as a mark only, the highest unplayed row playing next wherever it sits.
 - Amends: D349 (rows passed by the playing row leave the list; nothing goes above it), D346 (nothing is listed above the playing item).
+
+## D359: A swipe is felt, never heard; the bar's sideways swipe shows the podcast it goes to
+
+- Date: 2026-11-03 (owner: "stop playing interface sounds for swipe gestures, especially when I swipe up and down the player dock"; "when I swipe left or right in the player dock to change podcasts, I should be able to see the next or previous podcast... a bit more predictable").
+- Decision: a gesture that commits an action by a lifted finger makes no interface sound: the player pulled open or shut (`onCommitOpen` and `onCommitClose` say `drag` or `command`; a drag is felt through the open or close haptic only) and a sheet pulled or swiped down (`quietNextClose`, set by `pullDismiss.ts` and by Base UI's `swipe` reason in `SheetFrame.tsx`). A tap, a key, a button and a close button keep their sounds. The bar's sideways swipe draws the next or previous podcast (cover, title, kind) coming in from the far side under the finger, inside the bar; past the swipe rule the bar slides on to it. Once the finger has gone sideways the page's own pull ends for that touch.
+- Why: a swipe is continuous; a tick at the lift read as noise on the most repeated gesture. The old swipe moved only the current words, so the target was a surprise.
+- Cost: the bar reads both neighbours' pages ahead (already read for the queue). The scrub detent while dragging the seek line still sounds (a drag over items, D273); asked of the owner.
+- Amends: D273, D289 (a commit by swipe is felt, not heard), D343 (the bar's swipe shows its target).
+
