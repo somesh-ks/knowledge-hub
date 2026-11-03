@@ -198,9 +198,15 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
           : (feedbackRef.current ?? true)
       }
     >
-      <form className="sheet-form" onSubmit={(event) => void onSubmit(event)} noValidate>
-        <Field.Root disabled={busy} className="sheet-field">
-          <Field.Label className="sheet-field-label">Comments</Field.Label>
+      <form
+        className="sheet-form create-view"
+        onSubmit={(event) => void onSubmit(event)}
+        noValidate
+      >
+        <Field.Root disabled={busy} className="create-group">
+          <h2 className="section-head text-heading">
+            <Field.Label>Comments</Field.Label>
+          </h2>
           <textarea
             ref={feedbackRef}
             className={fieldClass()}
@@ -218,18 +224,18 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
             }}
           />
           {noteError ? (
-            <p className="sheet-field-error" id="regen-note-error" role="alert">
+            <p className="create-error" id="regen-note-error" role="alert">
               <Icon name="alert" />
               <span>Say what to change.</span>
             </p>
           ) : null}
         </Field.Root>
         {page && shown.topics ? (
-          <fieldset className="sheet-field" disabled={busy} aria-labelledby="regen-topics-label">
-            <h3 className="sheet-field-label" id="regen-topics-label">
+          <section className="create-group" aria-labelledby="regen-topics-label">
+            <h2 className="section-head text-heading" id="regen-topics-label">
               Categories
-            </h3>
-            <div className="filter-chips">
+            </h2>
+            <fieldset className="filter-chips" disabled={busy} aria-labelledby="regen-topics-label">
               {page.chips.map((chip) => (
                 <label className="filter-chip" key={chip.value}>
                   <input
@@ -243,22 +249,22 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
                   <span>{chip.label}</span>
                 </label>
               ))}
-            </div>
+            </fieldset>
             {topicError ? (
-              <p className="sheet-field-error" role="alert">
+              <p className="create-error" role="alert">
                 <Icon name="alert" />
                 <span>Pick at least one category.</span>
               </p>
             ) : null}
-          </fieldset>
+          </section>
         ) : null}
         {shown.length ? (
-          <fieldset className="sheet-field" disabled={busy} aria-labelledby="regen-length-label">
-            <h3 className="sheet-field-label" id="regen-length-label">
+          <section className="create-group" aria-labelledby="regen-length-label">
+            <h2 className="section-head text-heading" id="regen-length-label">
               Length
-            </h3>
+            </h2>
             <div
-              className="segmented-choice"
+              className="segmented-choice create-choice"
               role="radiogroup"
               aria-labelledby="regen-length-label"
             >
@@ -268,6 +274,7 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
                     type="radio"
                     name="length"
                     value={choice.value}
+                    disabled={busy}
                     checked={length === choice.value}
                     onChange={() => setLength(choice.value)}
                   />
@@ -275,7 +282,7 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
                 </label>
               ))}
             </div>
-          </fieldset>
+          </section>
         ) : null}
         {fieldError ? (
           <p className="sheet-field-error" role="alert">

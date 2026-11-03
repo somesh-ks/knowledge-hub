@@ -60,15 +60,15 @@ const COPY = {
     <template id={templateId}>
       {kind === "regenerate" ? (
         <Sheet title="Regenerate this episode" titleId="regen-title" close="data-dialog-close">
-            <form class="regen-form" data-regen-form novalidate>
+            <form class="regen-form create-view" data-regen-form novalidate>
               <p class="create-hint regen-lede">
                 This replaces the episode and keeps its length and format.
               </p>
               <section class="create-group">
-                {/* A form label, not a second title under the panel's own. */}
-                <label class="sheet-field-label regen-label" for="regen-feedback">
-                  Comments
-                </label>
+                {/* The Create form's group heading, so both sheets read alike. */}
+                <h2 class="section-head text-heading">
+                  <label for="regen-feedback">Comments</label>
+                </h2>
                 <Field
                   multiline
                   class="regen-feedback"
@@ -85,8 +85,7 @@ const COPY = {
               </section>
               {/* Opens on the comment alone; shown as the typed words reach for a category (D337, scripts/episodeActions.ts). */}
               <section class="create-group" aria-labelledby="regen-topics-label" data-hint-topics hidden>
-                {/* A field label, as Comments is: not a second title under the panel's own. */}
-                <div class="sheet-field-label regen-label" id="regen-topics-label">Categories</div>
+                <h2 class="section-head text-heading" id="regen-topics-label">Categories</h2>
                 <fieldset class="filter-chips" aria-labelledby="regen-topics-label" data-built-topics={manageTopics.map((topic) => topic.id).join(" ")}>
                   {chips.map((chip) => (
                     <label class="filter-chip">
