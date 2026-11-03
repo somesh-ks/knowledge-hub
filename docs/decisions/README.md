@@ -208,5 +208,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D349 | The playing row drags; let go lower it plays on and the rows it passed are skipped | amends D346 |
 | D350 | The player's times read forward: played then length; chapter rows show start times | amends D85 |
 | D351 | A story's Play button never says Played; it stays a plain Play button with its length | amends D348 |
+| D352 | On touch a chosen control keeps its own fill under the tap | amends ledger rule 5 for touch |
 
 ---

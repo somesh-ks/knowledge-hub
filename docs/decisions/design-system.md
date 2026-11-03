@@ -721,3 +721,14 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Cost: none in tokens; a tab move is 100 ms longer.
 - Revisit if: the owner finds 250 ms between tabs slow, or wants more travel on the rise.
 - Amends: D286 (the pill's layer under the wave), D341 (a way into a briefing, and the tab move's length).
+
+## D352: on touch, a chosen control keeps its own fill under the tap
+
+- Date: 2026-11-03 (the owner, on the motion thread's card: "Yes, make the change", after the highlight-flash clips).
+- Decision: amends ledger rule 5 ("every control shows its own press") for touch only. Under `@media (hover: none)` a control that is already chosen keeps its chosen fill while `:active`: the selected `.tab`, a ticked segmented choice, the selected `.segmented-nav-tab` (no press layer), a ticked filter chip and the current story chip (`primitives.css`, `buttons.css`), the chosen Library view button (`library.css`) and the spoken script turn (`player.css`; none in the Stories list, where it has no fill). A pointer keeps the press step, and an unchosen control keeps its press everywhere.
+- Context changed: Chrome holds `:active` through a tap's click and for about 130 ms after, so a tap that chose a control showed the chosen press step, then eased back: a chosen segment at hue 120 went from L 0.756 to 0.656 and back over about 300 ms, which read as a colour flash.
+- Why: on touch the change of state is the answer to the tap; a darker step on top of it is a second, wrong colour. Dropping only the ease back made a hard flash.
+- Rejected: removing the transition (a harder flash); a script that clears `:active` (the browser owns it).
+- Cost: a few media blocks; no tokens.
+- Revisit if: a touch browser stops holding `:active` past the click, or the owner misses the press on a chosen control.
+- Amends: ledger rule 5 (phone section) for touch.
