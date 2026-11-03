@@ -415,9 +415,16 @@ test.describe("a touch on a tab shows at once and goes on across the move", () =
     });
     await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [point] });
     await expect(tab).toHaveAttribute("data-ripple-pressed", "");
-    await expect(tab.locator(".ripple-wave")).toHaveCount(1);
-    // Past the pill's own colour ease (the state clock): a tone that is coming would be showing by now.
-    await page.waitForTimeout(300);
+    // Held until every transition and animation under the tab has run out: a tone that was coming
+    // for the pill (its colour ease) would be showing by now.
+    await expect
+      .poll(() =>
+        tab.evaluate(
+          (el) =>
+            el.getAnimations({ subtree: true }).filter((a) => a.playState === "running").length,
+        ),
+      )
+      .toBe(0);
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await expect(heading(page)).toHaveText("Library");
     await expect(tab).toHaveAttribute("aria-current", "page");
