@@ -233,7 +233,11 @@
   --wave-height: 0.75rem;
   /* How long the wave takes to drift one period. */
   --wave-drift: 1600ms;
-  --wave-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 12'%3E%3Cpath d='M0 6C4 0 8 0 12 6S20 12 24 6' fill='none' stroke='black' stroke-width='3.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  /* One strip of 64 periods, not one period tiled: tiled, every period met the next at a seam the
+     drift slid across sub-pixel offsets, and each seam showed as a notch (owner, 2026-11-03: "the waves
+     have some breaks here and there"). A slider is never 64 periods (96rem) wide. */
+  --wave-periods: 64;
+  --wave-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1536 12'%3E%3Cpath d='M0 6C4 0 8 0 12 6S20 12 24 6S32 0 36 6S44 12 48 6S56 0 60 6S68 12 72 6S80 0 84 6S92 12 96 6S104 0 108 6S116 12 120 6S128 0 132 6S140 12 144 6S152 0 156 6S164 12 168 6S176 0 180 6S188 12 192 6S200 0 204 6S212 12 216 6S224 0 228 6S236 12 240 6S248 0 252 6S260 12 264 6S272 0 276 6S284 12 288 6S296 0 300 6S308 12 312 6S320 0 324 6S332 12 336 6S344 0 348 6S356 12 360 6S368 0 372 6S380 12 384 6S392 0 396 6S404 12 408 6S416 0 420 6S428 12 432 6S440 0 444 6S452 12 456 6S464 0 468 6S476 12 480 6S488 0 492 6S500 12 504 6S512 0 516 6S524 12 528 6S536 0 540 6S548 12 552 6S560 0 564 6S572 12 576 6S584 0 588 6S596 12 600 6S608 0 612 6S620 12 624 6S632 0 636 6S644 12 648 6S656 0 660 6S668 12 672 6S680 0 684 6S692 12 696 6S704 0 708 6S716 12 720 6S728 0 732 6S740 12 744 6S752 0 756 6S764 12 768 6S776 0 780 6S788 12 792 6S800 0 804 6S812 12 816 6S824 0 828 6S836 12 840 6S848 0 852 6S860 12 864 6S872 0 876 6S884 12 888 6S896 0 900 6S908 12 912 6S920 0 924 6S932 12 936 6S944 0 948 6S956 12 960 6S968 0 972 6S980 12 984 6S992 0 996 6S1004 12 1008 6S1016 0 1020 6S1028 12 1032 6S1040 0 1044 6S1052 12 1056 6S1064 0 1068 6S1076 12 1080 6S1088 0 1092 6S1100 12 1104 6S1112 0 1116 6S1124 12 1128 6S1136 0 1140 6S1148 12 1152 6S1160 0 1164 6S1172 12 1176 6S1184 0 1188 6S1196 12 1200 6S1208 0 1212 6S1220 12 1224 6S1232 0 1236 6S1244 12 1248 6S1256 0 1260 6S1268 12 1272 6S1280 0 1284 6S1292 12 1296 6S1304 0 1308 6S1316 12 1320 6S1328 0 1332 6S1340 12 1344 6S1352 0 1356 6S1364 12 1368 6S1376 0 1380 6S1388 12 1392 6S1400 0 1404 6S1412 12 1416 6S1424 0 1428 6S1436 12 1440 6S1448 0 1452 6S1460 12 1464 6S1472 0 1476 6S1484 12 1488 6S1496 0 1500 6S1508 12 1512 6S1520 0 1524 6S1532 12 1536 6' fill='none' stroke='black' stroke-width='3.5' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
 :root[data-mood="expressive"] .slider-wave-field::before {
@@ -245,7 +249,8 @@
   block-size: var(--wave-height);
   translate: 0 -50%;
   background: var(--color-accent);
-  mask: var(--wave-mask) 0 center / var(--wave-length) var(--wave-height) repeat-x;
+  mask: var(--wave-mask) 0 center / calc(var(--wave-length) * var(--wave-periods)) var(--wave-height)
+    repeat-x;
   animation: slider-wave var(--wave-drift) var(--ease-linear) infinite;
   pointer-events: none;
 }
