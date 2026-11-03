@@ -14,6 +14,12 @@ const KEY = "__singularityTab";
 
 type Slots = Record<string, unknown>;
 
+/** The tab's instance under `name` if one exists, without making it: a page that only needs to know whether the player is there. */
+export function peekTabShared<T>(name: string): T | undefined {
+  const scope = globalThis as unknown as Record<string, Slots | undefined>;
+  return scope[KEY]?.[name] as T | undefined;
+}
+
 /** The tab's one instance under `name`: `create` runs for the first copy to ask, never again. */
 export function tabShared<T>(name: string, create: () => T): T {
   const scope = globalThis as unknown as Record<string, Slots | undefined>;
