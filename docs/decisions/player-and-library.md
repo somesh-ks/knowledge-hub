@@ -379,3 +379,18 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Rejected: a lint rule per phrase (the test names the fix in its failure); translating errors in one place (each message sits where its action is).
 - Revisit if: the list grows past what a reader of the test can hold, or messages are built from parts more often than written whole.
 
+## D343: the player's views are tabs again, the queue has the two-bar handle and swipes both ways, the phone bar swipes between podcasts
+
+- Date: 2026-11-02 (the owner: the queue dock "snaps, no easing"; "swipe left and right on the playback dock to switch audio ... get rid of the next button"; "the album art is too close to the top"; "segmented selector is catching a lot of attention ... switch it to tabs"; more space under the play controls; Up next "scrolls to top"; "the reordering hamburger icon, I can't really reorder"; "swipe left and right in the queue to remove things")
+- Decision:
+  - The Stories and Up next switch is the podcast page's section tabs at every width (`.tabs` and `.tab`, `.tabs-in-card` for the first label's place): centred in the column, the chosen label in the accent with a bar under its words, a hairline under the strip. No page restyle. Below 64rem the strip sticks under the status bar and a step of room parts it from the play controls.
+  - Switching views keeps the page's scroll position. The list scrolls to the item that has just begun, not each time Up next opens.
+  - Below 64rem the open page's top band is 56px: the chevron and the ⋮ are centred in it and the art starts 16px under it (owner, twice).
+  - A queue row's control is the two-bar handle at its end (`grip`, Phosphor equals); a phone draws no dots. Under a mouse the handle (with the four-way move cursor) and a ⋮ show only while the pointer is over the row (2026-11-03); the ⋮'s Menu holds Go to podcast, Share, Download and Remove from queue. A press on it lifts the row under a finger or a mouse, the rows it passes make room, the column scrolls when it is held at an edge, Up and Down on the focused handle move it and Delete removes it. The browser's drag and drop is gone. A swipe to either side turns the whole row red with a bin and removes it; the playing row swipes the same way (it leaves the list and plays on) and shows the two bars as a mark that does not move.
+  - On a phone (width under 64rem, coarse pointer) a sideways swipe on the bar switches the podcast: left for the next one queued, right for the one before. The words slide out, the podcast is asked for, and its words come in from the other side. The bar's Next button is left out there; a mouse and a wide bar keep it.
+  - The mobile queue dock opens and folds on the drawer curve (a grid row from nothing to the list's height, 300 ms in, 220 ms out), the list fading with it; reduced motion jumps.
+- Why: the pill drew the eye the list should have had; a long press never lifted a row on his phone, and a grip says "movable" at a glance; a carousel swipe is what a mini player does, and the owner decided on 2026-11-01 that it moves between podcasts; a fold that snaps reads as a bug in an app that eases everywhere else.
+- Cost: the handle is a control on every queue row, which D169 had avoided as form-like, and a mouse has no visible remove (Delete on the handle, or a sideways drag of the row); the phone bar has no Next for a screen-reader or switch user (the open page has it).
+- Rejected: a long-press pointer drag (it blocks scrolling); keeping the browser's drag and drop under the grip (touch never started it); hiding Next on every width (a mouse on a narrow window cannot swipe).
+- Amends: D169 (the pill, the row menu, swipe left only), D277 (the list opens at the playing item).
+

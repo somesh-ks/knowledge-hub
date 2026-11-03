@@ -1,4 +1,4 @@
-import { expect, hydrated, test } from "./fixtures";
+import { closePlayer, expect, hydrated, test } from "./fixtures";
 
 test.describe("playback survives navigation", () => {
   test("the real player keeps narration going when a digest page is left", async ({ page }) => {
@@ -6,6 +6,7 @@ test.describe("playback survives navigation", () => {
     await hydrated(page);
     await page.locator(".hero [data-play-digest]").click();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
+    await closePlayer(page);
     await page.getByRole("link", { name: "See all" }).click();
     await expect(page).toHaveURL(/\/library$/);
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");

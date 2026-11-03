@@ -8,6 +8,7 @@
  */
 
 import { track } from "../../lib/analytics";
+import { STARTED_EVENT } from "../../lib/queueDay";
 import { narratedOrPage } from "../../narration/narrationRegistry";
 import { pageNeedsPrewarm, whenIdle } from "../../narration/prewarmPage";
 import { createSwitchableAudio, type SwitchableAudio } from "../../narration/switchableAudio";
@@ -359,7 +360,11 @@ export function startPlayerRuntime(): () => void {
     const id = track?.digest.id ?? null;
     if (status !== "playing" || id === startedId) return;
     startedId = id;
-    if (id) playQueue.started(id);
+    if (id) {
+      playQueue.started(id);
+      // The podcast queue's dock lets a made podcast go once it plays, wherever it was started.
+      document.dispatchEvent(new CustomEvent(STARTED_EVENT, { detail: { id } }));
+    }
   });
   // Queued items' first minutes are fetched at an idle moment, so a tap on any of the next three
   // starts at once (queuePrefetch.ts).

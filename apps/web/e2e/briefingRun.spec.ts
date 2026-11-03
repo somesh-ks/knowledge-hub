@@ -93,9 +93,10 @@ test.describe("a Regenerate, followed in the podcast queue", () => {
     await expect(queueDock(page)).toBeVisible();
     await expect(text(page)).toHaveText(/Waiting to start|Gathering stories/);
     await expect(text(page)).toHaveText("Writing the podcast", { timeout: 15_000 });
-    // Finished, it stays in the queue for the day: the folded row says Complete, and Start listening opens the new podcast.
+    // Finished, it stays in the queue for the day: the folded row says Complete, and Start listening plays the new podcast without leaving the page.
     await expect(queueComplete(page)).toBeVisible({ timeout: 15_000 });
     await (await startListening(page)).click();
+    // It plays where the listener is: the page it was made on stays.
     await expect(page).toHaveURL(new RegExp(`/d/${ID}$`));
   });
 

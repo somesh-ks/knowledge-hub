@@ -6,10 +6,10 @@ export interface PlayerTab<Value extends string> {
 }
 
 /**
- * The player's two views as a tablist. It reuses the navigation segmented control's markup
- * (primitives.css, .segmented-nav): from 64rem that control, and below it player.css draws the same
- * buttons as a full-bleed tab line with a bar under the chosen one, as YouTube Music's player does.
- * Left, Right, Home and End move between tabs; the chosen tab is the only one in the Tab order.
+ * The player's two views as a tablist, drawn as the podcast page's section tabs are (primitives.css,
+ * .tabs and .tab, as a filter's buttons are in a tablist): the chosen label in the accent with a bar
+ * under its words, the others muted, at every width (owner, 2026-11-02; amends D169). Left, Right,
+ * Home and End move between tabs; the chosen tab is the only one in the Tab order.
  */
 export default function PlayerTabs<Value extends string>({
   label,
@@ -37,17 +37,11 @@ export default function PlayerTabs<Value extends string>({
     document.getElementById(`${idBase}-tab-${next.value}`)?.focus();
   }
   return (
-    // biome-ignore lint/a11y/useAriaPropsSupportedByRole: a tablist's keys are on the list
-    <div
-      className="segmented-nav player-tabs"
-      role="tablist"
-      aria-label={label}
-      onKeyDown={onKeyDown}
-    >
+    <div className="tabs" role="tablist" aria-label={label} onKeyDown={onKeyDown}>
       {tabs.map((tab) => (
         <button
           key={tab.value}
-          className="segmented-nav-tab"
+          className="tab"
           type="button"
           role="tab"
           id={`${idBase}-tab-${tab.value}`}

@@ -5,7 +5,7 @@ import { guardedDatabase } from "../src/server/database";
 import { handleNarrationLookup } from "../src/server/narrate";
 import { handleShare, handleSharePlay, type MakeDeps, openListenLink } from "../src/server/share";
 import type { NarrateLookupResponse } from "../src/types/contracts";
-import { AUDIO_DIGEST, expect, hydrated, openRowMenu, test } from "./fixtures";
+import { AUDIO_DIGEST, closePlayer, expect, hydrated, openRowMenu, test } from "./fixtures";
 
 /**
  * The share journey (D153) on the site's own handlers: `/api/share`, `/api/share-play` and the
@@ -191,6 +191,7 @@ test("a shared link opens the app's page in a fresh browser, plays its stored au
   // The player fetches the link's stored files, which the play route answered.
   await expect.poll(() => asked.some((url) => url.startsWith(`${BLOB}/audio/${ID}/`))).toBe(true);
 
+  await closePlayer(listener);
   // The stranger's like shows on the control but never tunes the owner's feed, even on leaving.
   const like = listener.getByRole("button", { name: /^Like: / }).first();
   await like.click();

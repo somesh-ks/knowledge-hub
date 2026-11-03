@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from "react";
+import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { getPlayerStore } from "./core/playerRuntime";
 import { storyTurns } from "./core/storyTurns";
 import { swipeClickGuard } from "./core/swipeClickGuard";
@@ -26,6 +26,11 @@ const UP_NEXT_ONLY = LIST_VIEWS.filter((tab) => tab.value === "upnext");
  * row that jumps to it. Up next is the play queue (D126), and the only view once a recording has
  * ended with something to offer.
  */
+/** What scrolls the list: its own column from 64rem (the stories), the whole list below it. */
+const scrollerOfList = (): HTMLElement | null =>
+  document.querySelector<HTMLElement>(".list-scroll") ??
+  document.querySelector<HTMLElement>(".player-list");
+
 export default function PlayerPageContent() {
   const { track, status, upNextId } = usePlayerState();
   const queued = useQueue();
@@ -48,6 +53,27 @@ export default function PlayerPageContent() {
     : choice && (choice.id === id || choice.view === "upnext")
       ? choice.view
       : "stories";
+  // The page stays where it was when the other view takes its place: a list shorter than the one it
+  // replaces would otherwise clamp the scroll, and an effect of the new view could move it.
+  const kept = useRef<{ view: ListView; page: number; list: number } | null>(null);
+  useLayoutEffect(() => {
+    const was = kept.current;
+    if (was && was.view !== view) {
+      const page = document.querySelector<HTMLElement>("[data-player-page]");
+      const list = scrollerOfList();
+      if (page) page.scrollTop = was.page;
+      if (list) list.scrollTop = was.list;
+    }
+    kept.current = null;
+  }, [view]);
+  const choose = (next: ListView): void => {
+    kept.current = {
+      view,
+      page: document.querySelector<HTMLElement>("[data-player-page]")?.scrollTop ?? 0,
+      list: scrollerOfList()?.scrollTop ?? 0,
+    };
+    setChoice({ id, view: next });
+  };
   return (
     <>
       <div className="player-controls" data-player-drag {...controlsGuard}>
@@ -65,7 +91,7 @@ export default function PlayerPageContent() {
             idBase={idBase}
             tabs={ended ? UP_NEXT_ONLY : LIST_VIEWS}
             value={view}
-            onChange={(next) => setChoice({ id, view: next })}
+            onChange={choose}
           />
         </div>
         <div

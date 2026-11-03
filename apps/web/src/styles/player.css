@@ -329,6 +329,12 @@
   }
 }
 
+/* The band at the top of the open page that holds the chevron and the ⋮: both 44px targets centred in
+   it, with the art starting a step under it (owner, 2026-11-02, twice: the art sat too close to them). */
+.player {
+  --player-bar-room: calc(var(--space-12) + var(--space-2));
+}
+
 /* Starts a dismissal when the page is at the top. It takes no native pan; the controller scrolls
    the page under a finger that is not dismissing. */
 .player-drag {
@@ -341,6 +347,13 @@
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* After the rule above, so it wins at equal weight. */
+@media (width < 64rem) {
+  .player-drag {
+    padding-block-start: calc(var(--player-bar-room) + var(--space-4));
+  }
 }
 
 /* Out of sight until the keyboard reaches it, like a skip link. */
@@ -700,6 +713,21 @@
   view-transition-name: mini-player;
 }
 
+/* A hairline between the bar and the navigation under it: they share one fill, and a bar that runs into
+   the navigation read as one block (owner, 2026-11-02, amending the no-rule note above for the bottom
+   edge only; the queue's dock above has none). The navigation's own pixel under it stays. */
+@media (width < 64rem) {
+  .player-dock::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: 0;
+    block-size: var(--stroke-hairline);
+    background: var(--color-border-hairline);
+    pointer-events: none;
+  }
+}
+
 /* Before the first play: off the bottom, and out of the tab order. */
 .player[data-visible="false"] .player-dock {
   translate: 0 calc(100% + var(--space-2));
@@ -808,6 +836,70 @@
 
 .dock-text {
   gap: var(--space-1);
+}
+
+/* A sideways swipe on the bar's title (PlayerBar.tsx, useDockSwipe): while the finger is down the cover
+   and the words follow it at once; let go short of a swipe they spring back on the press curve; past
+   it they slide out the way it went, the story changes, and the new one comes in from the other side. */
+.dock-open > :is(.player-thumb, .dock-text) {
+  translate: var(--dock-swipe, 0px) 0;
+  transition:
+    translate var(--duration-press-out) var(--ease-out),
+    opacity var(--duration-press-out) var(--ease-out);
+}
+
+.dock-open[data-swiping] > :is(.player-thumb, .dock-text) {
+  transition: none;
+}
+
+.dock-open[data-swipe-out] > :is(.player-thumb, .dock-text) {
+  opacity: 0;
+  translate: calc(var(--swipe-dir) * var(--space-12)) 0;
+  transition:
+    translate var(--duration-exit) var(--ease-out),
+    opacity var(--duration-exit) var(--ease-out);
+}
+
+.dock-open[data-swipe-out="next"] {
+  --swipe-dir: -1;
+}
+
+.dock-open[data-swipe-out="previous"] {
+  --swipe-dir: 1;
+}
+
+@keyframes dock-swipe-in {
+  from {
+    opacity: 0;
+    translate: calc(var(--swipe-dir) * var(--space-12)) 0;
+  }
+}
+
+.dock-open[data-swipe-in] > :is(.player-thumb, .dock-text) {
+  animation: dock-swipe-in var(--duration-enter) var(--ease-out);
+}
+
+.dock-open[data-swipe-in="next"] {
+  --swipe-dir: 1;
+}
+
+.dock-open[data-swipe-in="previous"] {
+  --swipe-dir: -1;
+}
+
+/* Reduced motion: the words fade without travelling. */
+@media (prefers-reduced-motion: reduce) {
+  .dock-open[data-swipe-out],
+  .dock-open[data-swipe-in] {
+    --swipe-dir: 0;
+  }
+}
+
+/* A finger swipes for the next podcast, so the phone's bar leaves the button out. */
+@media (width < 64rem) and (pointer: coarse) {
+  .dock-btn.dock-next {
+    display: none;
+  }
 }
 
 /* Play and next, a clear 8px apart: two targets a thumb can tell from each other. */
@@ -1894,15 +1986,29 @@
 }
 
 /*
- * The list's two views, Stories and Up next, are a tablist in .segmented-nav's markup
- * (PlayerTabs.tsx). From 64rem it is that control as it is, above the list's column. Below 64rem it is
- * a tab line as YouTube Music's player has: it runs the page's full width (past the gutters, under
- * the status bar's room as the page scrolls) it sits in a sticky bar on the page's colour. Same
- * buttons, same arrow keys, the same look at every width (D169).
+ * The list's two views, Stories and Up next, are the podcast page's section tabs (PlayerTabs.tsx,
+ * .tabs and .tab in primitives.css; owner, 2026-11-02: "tabs that look like in the podcast details
+ * page"). The strip sits in its own bar with the hairline the page's strip has, and under 64rem the bar
+ * sticks under the status bar (below).
  */
+/* Retired (D343): nothing wears .segmented-nav.player-tabs since the tabs became .tabs. The rule stays
+   only because tokens/system.json lists this file for the segmented nav, and a stylesheet change that
+   moves system.json is design-system work. The design-system sweep of dead structure CSS removes this
+   rule with that line in one pull request. */
 .segmented-nav.player-tabs {
   flex: none;
+}
+
+.player-tabs-bar {
+  flex: none;
   margin-block-end: var(--space-4);
+  box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
+}
+
+/* Centred in the column (owner, 2026-11-03), where the page's strip starts at its edge. */
+.player-tabs-bar > .tabs {
+  justify-content: center;
+  padding-inline: 0;
 }
 
 .player-panel {
@@ -1924,22 +2030,20 @@
     min-height: 100cqb;
   }
 
-  /* The switch stays under the status bar's room while the list scrolls, on the page's own colour
-     so the words passing under it do not show; the control inside keeps its segmented look (owner,
-     2026-10-23, D169: a navigational switch, not a tab line, which drew a bar under the chosen tab
-     from 2026-10-21 to then). */
+  /* The tab line stays under the status bar's room while the list scrolls, on the page's own colour
+     so the words passing under it do not show, and runs the page's full width (owner, 2026-11-02:
+     tabs again, as from 2026-10-21 to 2026-10-23; D169 had made it a pill). A step of room above it
+     parts it from the play controls. */
   .player-tabs-bar {
     position: sticky;
     inset-block-start: var(--safe-top);
     z-index: calc(var(--z-raised) + 1);
+    margin-block-start: var(--space-6);
     margin-inline: calc(max(var(--player-padding), var(--safe-left)) * -1)
       calc(max(var(--player-padding), var(--safe-right)) * -1);
-    padding: var(--space-2) max(var(--player-padding), var(--safe-right)) var(--space-2)
+    padding: var(--space-2) max(var(--player-padding), var(--safe-right)) 0
       max(var(--player-padding), var(--safe-left));
     background: var(--color-surface);
-  }
-
-  .segmented-nav.player-tabs {
     margin-block-end: 0;
   }
 
@@ -2308,7 +2412,7 @@
    from 64rem until the keyboard reaches it. */
 @media (width < 64rem) {
   .player .player-collapse {
-    inset-block-start: calc((var(--space-8) + var(--space-2) - var(--size-touch)) / 2);
+    inset-block-start: calc((var(--player-bar-room) - var(--size-touch)) / 2);
     inset-inline-start: calc((var(--size-icon-lg) - var(--size-touch)) / 2);
     padding: 0;
     background: transparent;
@@ -2341,7 +2445,7 @@
 
 @media (width < 64rem) {
   .player .player-more {
-    inset-block-start: calc((var(--space-8) + var(--space-2) - var(--size-touch)) / 2);
+    inset-block-start: calc((var(--player-bar-room) - var(--size-touch)) / 2);
     inset-inline-end: calc((var(--size-icon-lg) - var(--size-touch)) / 2);
   }
 }
@@ -2361,9 +2465,9 @@
 
 /* ------------------------------------------------------------------ the queue */
 
-/* The queue (the Up next view): a row is the item's thumbnail and title, with its menu's dots after
-   it (D169). The row moves by the browser's own drag and drop (a long press with a finger, a press
-   and pull with a mouse) and slides left under a finger to leave; a vertical pan still scrolls. */
+/* The queue (the Up next view): a row is the item's thumbnail and title, with its grip and its menu's
+   dots after it (D169, the grip 2026-11-02). The grip lifts the row to a new place; the row slides to
+   either side under a finger to leave; a vertical pan on it still scrolls. */
 .player-queue-row {
   display: flex;
   flex: 1;
@@ -2423,21 +2527,51 @@
   transition: none;
 }
 
+/* Swiped, the whole row turns red and a bin shows where it came from (owner, 2026-11-03): the danger
+   colour with the surface's ink on it, and the row's own words and handle give way to the bin. */
+.player-queue-delete {
+  position: absolute;
+  inset-block: 0;
+  display: none;
+  align-items: center;
+  color: var(--color-surface);
+}
+
+.player-queue-item:is([data-swiping], [data-leaving]) {
+  background: var(--color-danger);
+}
+
+.player-queue-item:is([data-swiping], [data-leaving]) > .player-queue-delete {
+  display: flex;
+}
+
+.player-queue-item[data-swipe-dir="end"] > .player-queue-delete {
+  inset-inline-start: var(--space-4);
+}
+
+.player-queue-item[data-swipe-dir="start"] > .player-queue-delete {
+  inset-inline-end: var(--space-4);
+}
+
+.player-queue-item:is([data-swiping], [data-leaving]) > :not(.player-queue-delete) {
+  opacity: 0;
+}
+
 .player-queue-item[data-leaving] {
   opacity: 0;
 }
 
-/* The row being dragged dims where it was; the row it is over shows the edge it would join. */
+/* A row lifted by its grip rides above the others, on a tonal fill so it reads as held; the rows it
+   passes shift aside by their translate (QueueList.tsx), on the row's own transition. */
 .player-queue-item[data-dragging] {
-  opacity: var(--opacity-dim);
+  z-index: var(--z-raised);
+  background: var(--color-surface-container);
+  transition: none;
 }
 
-.player-queue-item[data-drop="before"] {
-  box-shadow: inset 0 var(--stroke-ring) 0 var(--color-accent);
-}
-
-.player-queue-item[data-drop="after"] {
-  box-shadow: inset 0 calc(var(--stroke-ring) * -1) 0 var(--color-accent);
+/* A lift's end puts every row at its own place at once; the list draws the new order next. */
+.player-queue-list[data-settling] .player-queue-item {
+  transition: none;
 }
 
 /* D277: the list keeps what played (muted) and marks what plays now (accent, the active color). */
@@ -2449,9 +2583,73 @@
   color: var(--color-accent);
 }
 
+.player-queue-grip,
 .player-queue-more,
 .player-queue-add {
   flex: none;
+}
+
+/* The row's ⋮ is a mouse's (owner, 2026-11-03): it shows while the pointer is over the row, the
+   keyboard is in it or its menu is open, and a phone never draws it (no visible dots on a phone). */
+.player-queue-more {
+  display: none;
+  color: var(--color-on-surface-muted);
+}
+
+/* Under a mouse the row's two controls, the handle and the ⋮, wait until the pointer is over the row
+   (owner, 2026-11-03), and the handle takes the move cursor, the four-way cross. A phone keeps the
+   handle in view: it has no hover to show it. */
+@media (hover: hover) and (pointer: fine) {
+  .player-queue-more,
+  .player-queue-grip {
+    opacity: 0;
+    transition: opacity var(--duration-press-out) var(--ease-out);
+  }
+
+  .player-queue-more {
+    display: inline-flex;
+  }
+
+  .player-queue-grip:not([data-still]) {
+    cursor: move;
+  }
+
+  .player-queue-item:is(:hover, :focus-within, [data-menu-open], [data-dragging])
+    > :is(.player-queue-more, .player-queue-grip) {
+    opacity: 1;
+  }
+}
+
+/* Each row names its own dots (--queue-anchor, QueueRowMenu.tsx), so its menu hangs under them and not
+   under the last row's. */
+@supports (top: anchor(bottom)) {
+  .player-queue-more {
+    anchor-name: var(--queue-anchor);
+  }
+
+  .player-queue-item .player-queue-menu {
+    position-anchor: var(--queue-anchor);
+  }
+}
+
+/* The grip is the row's only handle for moving it: a press on it never scrolls the list, so a pull
+   lifts the row instead (the row itself keeps up-and-down for scrolling). */
+.player-queue-grip {
+  color: var(--color-on-surface-muted);
+  cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.player-queue-item[data-dragging] .player-queue-grip {
+  cursor: grabbing;
+}
+
+/* The playing row's two bars only mark where the handle would stand. */
+.player-queue-grip[data-still] {
+  cursor: default;
+  pointer-events: none;
 }
 
 /* Suggested (2026-10-26): with nothing queued, Up next lists what Autoplay would play, in the
@@ -2459,13 +2657,6 @@
 .player-suggested-head {
   margin: 0 0 var(--space-2);
   padding-inline: var(--space-2);
-}
-
-/* The menu hangs under its own dots: the last --hero-more before it in the page (hero.css). */
-@supports (top: anchor(bottom)) {
-  .player-queue-more {
-    anchor-name: --hero-more;
-  }
 }
 
 @media (hover: hover) and (pointer: fine) {

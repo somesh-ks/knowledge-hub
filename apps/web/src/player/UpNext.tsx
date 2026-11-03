@@ -4,8 +4,10 @@ import { getPlayQueue, loadSuggested, playQueueItem } from "./core/playerRuntime
 import { usePlayerState } from "./hooks/usePlayer";
 import { useQueueMeta, useQueueView } from "./hooks/useQueue";
 import QueueList from "./QueueList";
+import { QueueDeleteMark } from "./QueueRow";
 import Icon from "./ui/LazyIcon";
 import PlayerCover from "./ui/PlayerCover";
+import { useRowSwipe } from "./useRowSwipe";
 
 /**
  * The suggested items after what is playing, the list Autoplay draws from (core/suggested.ts).
@@ -54,6 +56,9 @@ function SuggestedRow({ id }: { id: string }) {
   );
 }
 
+/** The item last shown as playing, kept across the view's mounts: a new one is what moves the list. */
+let lastCurrent: string | null = null;
+
 /**
  * An item that already played, or the one playing now (D277): the list keeps them, as a music app's
  * queue does, and a press plays one again. They are not moved or removed from here.
@@ -62,10 +67,15 @@ function PassedRow({ id, state }: { id: string; state: "played" | "current" }) {
   const meta = useQueueMeta(id);
   const title = meta?.title ?? longDateFromDigestId(id);
   const ref = useRef<HTMLLIElement>(null);
-  // The list opens at the item playing, so the played ones above it do not push what is next out of view.
+  // The list moves to the item that has just begun, so the played ones above it do not push what is
+  // next out of view. Not on opening the view: switching tabs keeps the page where it was (owner,
+  // 2026-11-02: Up next jumped to the top).
   useEffect(() => {
-    if (state === "current") ref.current?.scrollIntoView({ block: "start" });
-  }, [state]);
+    if (state !== "current") return;
+    if (lastCurrent !== id && lastCurrent !== null) ref.current?.scrollIntoView({ block: "start" });
+    lastCurrent = id;
+  }, [state, id]);
+  const swipe = useRowSwipe();
   return (
     <li
       className="player-queue-item"
@@ -73,8 +83,19 @@ function PassedRow({ id, state }: { id: string; state: "played" | "current" }) {
       data-state={state}
       aria-current={state === "current" ? "true" : undefined}
       ref={ref}
+      onPointerDown={(event) => swipe.onPointerDown(event, id)}
+      onPointerMove={swipe.onPointerMove}
+      onPointerUp={swipe.onPointerEnd}
+      onPointerCancel={swipe.onPointerEnd}
     >
-      <button className="player-queue-row" type="button" onClick={() => playQueueItem(id)}>
+      <QueueDeleteMark />
+      <button
+        className="player-queue-row"
+        type="button"
+        onClick={() => {
+          if (!swipe.swiped()) playQueueItem(id);
+        }}
+      >
         <span className="player-queue-thumb">
           {meta ? <PlayerCover cover={meta.cover} weekly={meta.weekly} size="thumb" /> : null}
         </span>
@@ -83,6 +104,13 @@ function PassedRow({ id, state }: { id: string; state: "played" | "current" }) {
           <span className="player-upnext-hint">{meta?.caption ?? " "}</span>
         </span>
       </button>
+      {state === "current" ? (
+        // The two bars stand in the playing row's place too, so its end lines up with the rows under
+        // it; the row that plays has nowhere to be moved to, so they only mark it (aria-hidden).
+        <span className="icon-btn player-queue-grip" data-still aria-hidden="true">
+          <Icon name="grip" />
+        </span>
+      ) : null}
     </li>
   );
 }

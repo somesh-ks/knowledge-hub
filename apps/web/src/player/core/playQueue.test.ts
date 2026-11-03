@@ -132,4 +132,13 @@ describe("the play queue", () => {
     expect(reloaded.getView()).toEqual({ played: ["a", "b"], current: "c", upcoming: [] });
     expect(storage.getItem(HISTORY_KEY)).not.toBeNull();
   });
+
+  // A swipe on the row that plays takes it off the list, not out of the audio (owner, 2026-11-03).
+  it("drops the playing item from the list when it is removed, and keeps the rest", () => {
+    const queue = createPlayQueue({ storage: memoryStorage(), getCurrentId: () => null });
+    for (const id of ["a", "b", "c"]) queue.add(id);
+    queue.started("b");
+    queue.remove("b");
+    expect(queue.getView()).toEqual({ played: ["a"], current: null, upcoming: ["c"] });
+  });
 });
