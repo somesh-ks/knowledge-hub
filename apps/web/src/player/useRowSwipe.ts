@@ -8,6 +8,11 @@ const LEAVE_MS = 180;
 /** How long after a swipe the row's own click is not a play. */
 const SWIPE_CLICK_MS = 400;
 
+/** The part of the row that slides: the red strip behind it stays where it is. */
+function faceOf(row: HTMLElement): HTMLElement {
+  return row.querySelector<HTMLElement>(".player-queue-face") ?? row;
+}
+
 interface Press {
   pointerId: number;
   row: HTMLElement;
@@ -21,7 +26,7 @@ interface Press {
 
 /**
  * A queue row's sideways swipe, shared by the rows to come and the ones that played or play now: past
- * the tap slop the row follows the finger, turns red with a bin under it (player.css, data-swipe-dir),
+ * the tap slop the row follows the finger over a red strip with a bin (player.css, data-swipe-dir),
  * and on release the shared rule (lib/swipeAway.ts) says whether it takes the row off the list or the
  * row springs back. Either side takes it away.
  */
@@ -68,7 +73,7 @@ export function useRowSwipe() {
       event.stopPropagation();
       current.dx = dx;
       current.row.dataset.swipeDir = dx < 0 ? "start" : "end";
-      current.row.style.translate = `${dx}px 0`;
+      faceOf(current.row).style.translate = `${dx}px 0`;
     },
     onPointerEnd(event: PointerEvent<HTMLElement>): void {
       const current = press.current;
@@ -84,10 +89,10 @@ export function useRowSwipe() {
         swipeLeaves(dx, row.offsetWidth, tracker.current.velocity())
       ) {
         row.dataset.leaving = "";
-        row.style.translate = `${Math.sign(dx) * row.offsetWidth * 1.2}px 0`;
+        faceOf(row).style.translate = `${Math.sign(dx) * row.offsetWidth * 1.2}px 0`;
         window.setTimeout(() => getPlayQueue().remove(id), LEAVE_MS);
       } else {
-        row.style.translate = "";
+        faceOf(row).style.translate = "";
         delete row.dataset.swipeDir;
       }
     },

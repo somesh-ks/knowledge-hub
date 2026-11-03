@@ -153,7 +153,25 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     });
     const row = (id: string) => player.dialog.locator(`[data-queue-id="${id}"] .player-queue-row`);
     const right = center(await player.boxOf(row("ep-20261007-1930")));
-    await finger.drag(line(right, { x: right.x + 300, y: right.y }, 6), 12);
+    // Held past the point where it leaves (owner, 2026-11-03): the row keeps its own look, so it can
+    // still be read, and the red lies behind it as a strip that stays where it is.
+    const li = player.dialog.locator('[data-queue-id="ep-20261007-1930"]');
+    const face = li.locator(".player-queue-face");
+    const strip = li.locator(".player-queue-delete");
+    const resting = await face.evaluate((el) => getComputedStyle(el).backgroundColor);
+    const stripAtRest = await player.boxOf(li);
+    const held = await finger.drag(line(right, { x: right.x + 300, y: right.y }, 6), 12, {
+      hold: true,
+    });
+    await expect(strip).toBeVisible();
+    await expect(face).toHaveCSS("background-color", resting);
+    await expect(li).not.toHaveCSS(
+      "background-color",
+      await strip.evaluate((el) => getComputedStyle(el).backgroundColor),
+    );
+    await expect(face.locator(".player-queue-row")).toBeVisible();
+    expect(await player.boxOf(li)).toEqual(stripAtRest);
+    await held.release();
     await expect.poll(queue).toBe('["2026-10-05","ep-20261006-0900"]');
     const left = center(await player.boxOf(row("2026-10-05")));
     await finger.drag(line(left, { x: left.x - 300, y: left.y }, 6), 12);

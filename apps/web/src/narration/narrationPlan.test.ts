@@ -56,7 +56,7 @@ describe("planNarration", () => {
     expect(plan.items.size).toBe(4);
   });
 
-  it("merges the segments of one story: it starts at its first and ends at its last", () => {
+  it("a story starts at its first segment and lasts until the next story starts", () => {
     const turn = (key: string, itemId: string | null, characters: number): SegmentInfo => ({
       key,
       item_id: itemId,
@@ -83,8 +83,10 @@ describe("planNarration", () => {
       [10, 11],
       [11, 12],
     ]);
-    expect(plan.items.get("s1")).toEqual({ start_ms: 1_000, end_ms: 11_000 });
-    expect(plan.items.get("s2")).toEqual({ start_ms: 6_000, end_ms: 10_000 });
+    // Only t1 and t3 name a story, yet the stories tile the recording: what is said after a story's
+    // last tagged turn (t2, t4, the sign-off t5) stays with it, and none overlap.
+    expect(plan.items.get("s1")).toEqual({ start_ms: 1_000, end_ms: 6_000 });
+    expect(plan.items.get("s2")).toEqual({ start_ms: 6_000, end_ms: 12_000 });
     expect(plan.items.size).toBe(2);
   });
 

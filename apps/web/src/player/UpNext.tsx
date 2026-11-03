@@ -89,28 +89,30 @@ function PassedRow({ id, state }: { id: string; state: "played" | "current" }) {
       onPointerCancel={swipe.onPointerEnd}
     >
       <QueueDeleteMark />
-      <button
-        className="player-queue-row"
-        type="button"
-        onClick={() => {
-          if (!swipe.swiped()) playQueueItem(id);
-        }}
-      >
-        <span className="player-queue-thumb">
-          {meta ? <PlayerCover cover={meta.cover} weekly={meta.weekly} size="thumb" /> : null}
-        </span>
-        <span className="player-upnext-text">
-          <span className="player-upnext-date">{title}</span>
-          <span className="player-upnext-hint">{meta?.caption ?? " "}</span>
-        </span>
-      </button>
-      {state === "current" ? (
-        // The two bars stand in the playing row's place too, so its end lines up with the rows under
-        // it; the row that plays has nowhere to be moved to, so they only mark it (aria-hidden).
-        <span className="icon-btn player-queue-grip" data-still aria-hidden="true">
-          <Icon name="grip" />
-        </span>
-      ) : null}
+      <div className="player-queue-face">
+        <button
+          className="player-queue-row"
+          type="button"
+          onClick={() => {
+            if (!swipe.swiped()) playQueueItem(id);
+          }}
+        >
+          <span className="player-queue-thumb">
+            {meta ? <PlayerCover cover={meta.cover} weekly={meta.weekly} size="thumb" /> : null}
+          </span>
+          <span className="player-upnext-text">
+            <span className="player-upnext-date">{title}</span>
+            <span className="player-upnext-hint">{meta?.caption ?? " "}</span>
+          </span>
+        </button>
+        {state === "current" ? (
+          // The two bars stand in the playing row's place too, so its end lines up with the rows under
+          // it; the row that plays has nowhere to be moved to, so they only mark it (aria-hidden).
+          <span className="icon-btn player-queue-grip" data-still aria-hidden="true">
+            <Icon name="grip" />
+          </span>
+        ) : null}
+      </div>
     </li>
   );
 }
