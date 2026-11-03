@@ -314,6 +314,11 @@ export const RUN_CRON_VARIABLE = "RUN_CRON";
  */
 export const RUN_SCHEDULE_VARIABLE = "RUN_SCHEDULE";
 
+/** RUN_SCHEDULE's text: the store's schedule as it was read, and when. */
+export function scheduleCopy(scheduleText: string, checkedAt: Date): string {
+  return JSON.stringify({ checked_at: checkedAt.toISOString(), schedule: scheduleText });
+}
+
 /**
  * Sets a repository Actions variable, creating it when it does not exist. Needs the token's
  * "Variables: write" permission; without it GitHub answers 403 and this throws a GitHubError (its

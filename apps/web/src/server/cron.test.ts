@@ -9,6 +9,7 @@ import {
   STORE_READ_TIMEOUT_MS,
   slotAt,
 } from "./cron";
+import { scheduleCopy } from "./github";
 
 const TOKEN = "github_pat_secret_value_123456";
 const SECRET = "cron-secret-of-enough-length";
@@ -237,7 +238,11 @@ describe("GET /api/cron/run", () => {
   it("with the config store on, leaves the database asleep in hours its schedule copy shows as free", async () => {
     const { github } = setup({ lastRun: lastRun("2026-10-08T11:58:00.000Z") });
     const stored = JSON.stringify({ ...DEFAULT_SCHEDULE, hour: 9 });
-    github.on("GET /actions/variables/RUN_SCHEDULE", { json: { value: stored } });
+    const copyAt = (at: string) =>
+      github.on("GET /actions/variables/RUN_SCHEDULE", {
+        json: { value: scheduleCopy(stored, new Date(at)) },
+      });
+    copyAt("2026-10-10T03:30:00Z");
     let opened = 0;
     const call = (at: string) =>
       handleCron(BEARER, {
@@ -260,6 +265,11 @@ describe("GET /api/cron/run", () => {
     // The refresh hour reads the store whatever the copy says, so a stale copy heals within a day.
     await call(`2026-10-10T0${COPY_REFRESH_UTC_HOUR}:30:00Z`);
     expect(opened).toBe(2);
+    // A copy the store has not confirmed for over a day and a half (the token cannot write it) is
+    // not trusted to skip an hour: the owner may have moved the schedule since.
+    copyAt("2026-10-08T03:30:00Z");
+    await call("2026-10-10T12:30:00Z");
+    expect(opened).toBe(3);
   });
 
   // The bug: a store that never answers held the call until Vercel killed it, with nothing logged.
