@@ -5,13 +5,14 @@
  *
  * No colour is written here: the markup carries classes, and avatar.css fills them from tokens, so the
  * hue engine drives every shape in every mood. A mood supplies tokens and nothing else (--av-body,
- * --av-mark, --av-shapes, --av-shape-default, --av-d-dots, --av-d-spark, --av-d-speckle, --av-d-stitch);
+ * --av-mark, --av-shapes, --av-shape-default, --av-plays, --av-d-dots, --av-d-spark, --av-d-speckle, --av-d-stitch);
  * a new mood is a new block of those tokens, never a change to this file.
  *
  * The app reacts through two attributes it sets on the avatar: data-play for a one-shot (hop, wiggle,
- * look, blink, shake) and data-state for what is really going on (playing, working, offline). Nothing
- * loops by itself and none of it moves under reduced motion. data-face (open, frown, flat, sleep)
- * changes the mouth.
+ * look, blink, shake) and data-state for what
+ * is really going on (playing, working, offline). Nothing loops by itself and none of it moves under
+ * reduced motion. data-face (open, frown, flat, sleep) changes the mouth. A tap picks its reaction from
+ * the mood's --av-plays (D353); avatarFace.ts plays it on the face (cheeks, a moving mouth) and morphs the outline.
  */
 import type { Guidance } from "./guidance";
 
@@ -54,9 +55,13 @@ export const AVATAR_CLASSES: string[] = [
   "avatar-speck",
   "avatar-stitch",
   "avatar-spark",
+  "avatar-blend",
+  "avatar-face",
   "avatar-eyes",
   "avatar-eye",
   "avatar-lit",
+  "avatar-cheek",
+  "avatar-say",
   "avatar-mouth",
   "avatar-smile",
   "avatar-open",
@@ -90,6 +95,8 @@ interface Face {
   ex: number;
   my: number;
   mw: number;
+  /** Half the eye's height, where it is not the plain oval's (a cheek sizes to it). */
+  er?: number;
 }
 
 interface Shape {
@@ -109,6 +116,8 @@ interface Shape {
   extras?: string;
   /** A stitched seam. */
   stitch?: string;
+  /** The outline a morph flows from and to, where the body is more than one path. */
+  outline?: string;
 }
 
 const GENERIC: Face = { ey: 44, ex: 12, my: 58, mw: 13 };
@@ -154,6 +163,36 @@ const body = (d: string, transform?: string): Part => ({
   ...(transform ? { transform } : {}),
 });
 
+const CAULDRON = "M16 42 H84 Q92 42 92 50 V60 Q92 90 54 90 H46 Q8 90 8 60 V50 Q8 42 16 42Z";
+
+/** An ellipse as a path, so a morph can sample it. */
+function ellipsePath(cx: number, cy: number, rx: number, ry: number): string {
+  return `M${cx - rx} ${cy}a${rx} ${ry} 0 1 0 ${2 * rx} 0a${rx} ${ry} 0 1 0 ${-2 * rx} 0Z`;
+}
+
+/** The outer edge of overlapping ellipses ([cx, cy, rx, ry]), traced round their middle: a pumpkin's lobes. */
+function unionOutline(ellipses: number[][]): string {
+  const [ox, oy] = [50, 58];
+  let d = "";
+  for (let i = 0; i < 120; i++) {
+    const t = (i / 120) * 2 * Math.PI - Math.PI / 2;
+    const [dx, dy] = [Math.cos(t), Math.sin(t)];
+    let reach = 0;
+    for (const [cx = 0, cy = 0, rx = 1, ry = 1] of ellipses) {
+      // Where the ray from the middle leaves this ellipse: the larger root of a quadratic.
+      const [px, py] = [(ox - cx) / rx, (oy - cy) / ry];
+      const [qx, qy] = [dx / rx, dy / ry];
+      const a = qx * qx + qy * qy;
+      const b = 2 * (px * qx + py * qy);
+      const c = px * px + py * py - 1;
+      const root = (-b + Math.sqrt(Math.max(0, b * b - 4 * a * c))) / (2 * a);
+      reach = Math.max(reach, root);
+    }
+    d += `${i ? "L" : "M"}${fixed(ox + reach * dx)} ${fixed(oy + reach * dy)}`;
+  }
+  return `${d}Z`;
+}
+
 const WING = "M34 50 C26 38 12 36 4 44 C10 46 12 52 12 58 C18 55 24 57 28 65 C30 60 34 61 36 66Z";
 
 /** Every shape an avatar can take. A mood lists the ids it offers in --av-shapes. */
@@ -191,6 +230,12 @@ export const AVATAR_SHAPES: Record<string, Shape> = {
       { tag: "ellipse", attrs: 'cx="70" cy="58" rx="22" ry="31"', tone: "body" },
       { tag: "ellipse", attrs: 'cx="50" cy="58" rx="22" ry="33"', tone: "body" },
     ],
+    face: { ey: 46, ex: 11, my: 70, mw: 20, er: 7 },
+    outline: unionOutline([
+      [30, 58, 22, 31],
+      [70, 58, 22, 31],
+      [50, 58, 22, 33],
+    ]),
     extras: '<path class="avatar-rib" d="M41 30 Q35 58 41 88 M59 30 Q65 58 59 88"/>',
     custom: {
       eyes: '<path class="avatar-eye" d="M31 52 L39 38 L47 52Z"/><path class="avatar-eye" d="M53 52 L61 38 L69 52Z"/>',
@@ -224,6 +269,7 @@ export const AVATAR_SHAPES: Record<string, Shape> = {
       body("M62 44 L63 22 L51 37Z"),
     ],
     face: { ey: 50, ex: 8, my: 62, mw: 6 },
+    outline: ellipsePath(50, 54, 18, 18),
     extras: '<path class="avatar-fang" d="M44 64 L46.5 70 L49 64Z M51 64 L53.5 70 L56 64Z"/>',
   },
   cat: {
@@ -251,7 +297,7 @@ export const AVATAR_SHAPES: Record<string, Shape> = {
     custom: {
       eyes: '<ellipse class="avatar-eye" cx="36" cy="46" rx="8.5" ry="10"/><ellipse class="avatar-eye" cx="64" cy="46" rx="8.5" ry="10"/>',
     },
-    face: { ey: 46, ex: 14, my: 76, mw: 11 },
+    face: { ey: 46, ex: 14, my: 76, mw: 11, er: 10 },
     extras: '<path class="avatar-fang" d="M46 60 L54 60 L50 67Z"/>',
   },
   cauldron: {
@@ -264,10 +310,11 @@ export const AVATAR_SHAPES: Record<string, Shape> = {
       { tag: "circle", attrs: 'cx="69" cy="30" r="5"', tone: "brew" },
       { tag: "rect", attrs: 'x="22" y="84" width="10" height="10" rx="3"', tone: "body" },
       { tag: "rect", attrs: 'x="68" y="84" width="10" height="10" rx="3"', tone: "body" },
-      body("M16 42 H84 Q92 42 92 50 V60 Q92 90 54 90 H46 Q8 90 8 60 V50 Q8 42 16 42Z"),
+      body(CAULDRON),
       { tag: "ellipse", attrs: 'cx="50" cy="42" rx="36" ry="7"', tone: "shade" },
     ],
     face: { ey: 62, ex: 13, my: 74, mw: 11 },
+    outline: CAULDRON,
     stitch: "M20 80 Q50 90 80 80",
   },
 };
@@ -307,6 +354,12 @@ function faceMarkup(shape: Shape): string {
   const eye = (x: number): string =>
     `<ellipse class="avatar-eye${lit}" cx="${x}" cy="${face.ey}" rx="4.8" ry="5.4"/>`;
   const eyes = `<g class="avatar-eyes">${custom.eyes ?? eye(50 - face.ex) + eye(50 + face.ex)}</g>`;
+  // A cheek waits under each eye in the body's tone; a happy face lifts it over the eye's lower half.
+  const er = face.er ?? 5.4;
+  const cheek = (x: number): string =>
+    `<circle class="avatar-cheek" cx="${x}" cy="${face.ey + 2 * er + 1.5}" r="${er + 1}"/>`;
+  // The mouth a show moves, drawn by the script from the face's numbers; a custom mouth has none.
+  const say = custom.mouths ? "" : '<path class="avatar-say"/>';
   const { mw: w, my: y } = face;
   const mouth = (kind: string, d: string, fill: boolean): string =>
     `<path class="avatar-mouth avatar-${kind}${fill ? " avatar-fill" : ""}" d="${d}"/>`;
@@ -319,7 +372,7 @@ function faceMarkup(shape: Shape): string {
       mouth("open", `M${50 - w} ${y - 2} Q50 ${y + 20} ${50 + w} ${y - 2}Z`, true) +
       mouth("frown", `M${50 - w} ${y + 7} Q50 ${y - 6} ${50 + w} ${y + 7}`, false) +
       mouth("flat", `M${50 - w * 0.7} ${y + 3} H${50 + w * 0.7}`, false);
-  return `<g>${eyes}${mouths}</g>`;
+  return `<g class="avatar-face">${eyes}${cheek(50 - face.ex)}${cheek(50 + face.ex)}${say}${mouths}</g>`;
 }
 
 let clips = 0;
@@ -345,11 +398,53 @@ export function avatarMarkup(id: string): string {
   return `<svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><g class="avatar-rig">${shape.parts.map(partMarkup).join("")}${texture}${stitch}${shape.extras ?? ""}${faceMarkup(shape)}<path class="avatar-spark" d="${SPARK}"/></g></svg>`;
 }
 
+/** A shape's face numbers, for a show that moves the face or glides it to another shape's. */
+export function shapeFace(id: string): Required<Face> {
+  const face = AVATAR_SHAPES[id]?.face ?? GENERIC;
+  return { er: 5.4, ...face };
+}
+
+/** The one outline a morph flows between: the shape's own, or its only body path. */
+export function shapeOutline(id: string): string {
+  const shape = AVATAR_SHAPES[id];
+  if (!shape) return "";
+  const only = shape.parts.find((part) => part.tone === "body" && part.tag === "path");
+  return shape.outline ?? only?.attrs.slice(3, -1) ?? "";
+}
+
+/**
+ * The parts a tap's show moves (avatarFace.ts), found here so no script writes the Avatar's classes.
+ * The blend, the path a morph flows, is added in the body's tone under the face the first time.
+ */
+export function avatarParts(root: Element) {
+  const one = <T extends Element>(name: string) => root.querySelector<T>(`.avatar-${name}`);
+  const all = (name: string) => [...root.querySelectorAll<SVGElement>(`.avatar-${name}`)];
+  const rig = one<SVGGElement>("rig");
+  const blend = (make = true): SVGPathElement | null => {
+    const found = one<SVGPathElement>("blend");
+    if (found || !rig || !make) return found;
+    const made = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    made.setAttribute("class", "avatar-blend");
+    return rig.insertBefore(made, rig.querySelector("clipPath"));
+  };
+  return {
+    rig,
+    blend,
+    face: one<SVGGElement>("face"),
+    eyes: one<SVGGElement>("eyes"),
+    eye: all("eye"),
+    cheek: all("cheek"),
+    say: one<SVGPathElement>("say"),
+    smile: one<SVGElement>("smile"),
+  };
+}
+
+/** The words of a mood's list token (--av-shapes, --av-plays): its text without the quotes. */
+export function tokenWords(token: string): string[] {
+  return token.replace(/["']/g, "").trim().split(/\s+/).filter(Boolean);
+}
+
 /** The shape ids a mood offers, from its --av-shapes token's text, keeping only shapes that exist. */
 export function moodShapes(token: string): string[] {
-  return token
-    .replace(/["']/g, "")
-    .trim()
-    .split(/\s+/)
-    .filter((id) => Object.hasOwn(AVATAR_SHAPES, id));
+  return tokenWords(token).filter((id) => Object.hasOwn(AVATAR_SHAPES, id));
 }
