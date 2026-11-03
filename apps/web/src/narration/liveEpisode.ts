@@ -8,6 +8,7 @@
  * says more may come, and the controller (narrationController.ts) hands this to the playlist.
  */
 import type { StreamDoc } from "../lib/liveStream";
+import { storyRuns } from "../lib/storyRuns";
 import type { PlayerDigestData } from "../types/contracts";
 import { type NarrationPlan, narratedDigest } from "./narrationPlan";
 import type { Playlist, TrackSegment } from "./trackAudio";
@@ -162,21 +163,18 @@ export function liveNarrated(
   now: Date,
 ): PlayerDigestData {
   const spans = new Map(segments.map((segment) => [segment.key, segment]));
-  const items = new Map<string, { start_ms: number; end_ms: number }>();
+  const firstStarts = new Map<string, number>();
   doc.turns.forEach((turn, idx) => {
     const span = spans.get(`t${idx}`);
-    if (!span || turn.item_id === undefined) return;
-    const earlier = items.get(turn.item_id);
-    items.set(turn.item_id, {
-      start_ms: earlier?.start_ms ?? Math.round(span.start * 1000),
-      end_ms: Math.round(span.end * 1000),
-    });
+    if (!span || turn.item_id === undefined || firstStarts.has(turn.item_id)) return;
+    firstStarts.set(turn.item_id, Math.round(span.start * 1000));
   });
   const last = segments[segments.length - 1];
+  const totalMs = Math.round((last?.end ?? 0) * 1000);
   const plan: NarrationPlan = {
     segments: [...segments],
-    total_ms: Math.round((last?.end ?? 0) * 1000),
-    items,
+    total_ms: totalMs,
+    items: storyRuns(firstStarts, totalMs),
     complete: false,
   };
   return narratedDigest(liveDigestFrom(doc, now), plan);

@@ -75,6 +75,24 @@ describe("storyEntries", () => {
     expect(first?.startSec).toBeCloseTo(0.744);
     expect(second?.startSec).toBeCloseTo(0.744 + 44 * 0.062);
     expect(first?.durationSec).toBeCloseTo(44 * 0.062);
+    expect(second?.durationSec).toBeCloseTo(13 * 0.062);
+  });
+
+  it("lasts a story through the turns after its tagged one, up to the next story", () => {
+    const episode = {
+      ...digest,
+      turns: [
+        turn("Hello there.", null),
+        turn("First story.", "a"),
+        turn("What a reaction.", null),
+        turn("And more detail.", null),
+        turn("Second story.", "b"),
+        turn("Goodbye.", null),
+      ],
+    } as unknown as PlayerDigestData;
+    const [first, second] = storyEntries(null, episode).items;
+    expect(first?.durationSec).toBeCloseTo((12 + 16 + 16) * 0.062);
+    expect(second?.durationSec).toBeCloseTo((13 + 8) * 0.062);
   });
 
   it("takes a turn's real place once it is known", () => {
