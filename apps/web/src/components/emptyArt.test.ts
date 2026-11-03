@@ -2,7 +2,15 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { cobweb } from "./cobweb";
-import { batOffline, batOnline, cauldron, ghost, pumpkin, tombstone } from "./halloweenArt";
+import {
+  batOffline,
+  batOnline,
+  cauldron,
+  ghost,
+  ghostSleep,
+  pumpkin,
+  tombstone,
+} from "./halloweenArt";
 
 /**
  * The fixture build always has briefings, so Today and the Library with nothing in them never render
@@ -39,9 +47,16 @@ describe("the empty-state art", () => {
   // (D306): a class empty.css does not define paints nothing, and the scene loses a part without a sound.
   it("draws the style's scenes with classes empty.css colours", () => {
     const css = read("..", "styles", "empty.css");
-    const drawn = [pumpkin, ghost, cauldron, batOffline, batOnline, tombstone, cobweb].map((draw) =>
-      draw(),
-    );
+    const drawn = [
+      pumpkin,
+      ghost,
+      ghostSleep,
+      cauldron,
+      batOffline,
+      batOnline,
+      tombstone,
+      cobweb,
+    ].map((draw) => draw());
     for (const svg of drawn) {
       for (const [, names = ""] of svg.matchAll(/class="([^"]+)"/g)) {
         for (const name of names.split(" ")) expect(css, name).toContain(`.${name}`);
