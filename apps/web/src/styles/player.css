@@ -2661,7 +2661,7 @@
 /* Suggested (2026-10-26): with nothing queued, Up next lists what Autoplay would play, in the
    queue's own rows; the plus at a row's end queues it. */
 .player-suggested-head {
-  margin: 0 0 var(--space-2);
+  margin: var(--space-6) 0 var(--space-2);
   padding-inline: var(--space-2);
 }
 
