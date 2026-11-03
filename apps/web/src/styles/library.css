@@ -398,6 +398,15 @@
   background: var(--color-accent-container-pressed);
 }
 
+/* A touch keeps the chosen view's fill: Chrome holds :active through the tap's click, so the view the
+   tap had just chosen showed the press step and eased back (owner, 2026-11-03; primitives.css does the
+   same for tabs and segmented choices). A pointer keeps the step. */
+@media (hover: none) {
+  .view-btn[aria-pressed="true"]:active {
+    background: var(--color-accent-container);
+  }
+}
+
 .library-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(9rem, 42%), 1fr));
