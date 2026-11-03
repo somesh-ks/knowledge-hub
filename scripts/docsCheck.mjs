@@ -201,6 +201,10 @@ export function checkChangelog({ source, title, today }) {
   const newest = newestChangelogDate(source);
   if (!newest) return ["apps/web/src/lib/changelog.ts: no entry with a date"];
   const age = Math.round((Date.parse(today) - Date.parse(newest)) / 86_400_000);
+  if (age < 0)
+    return [
+      `apps/web/src/lib/changelog.ts: the newest entry is dated ${newest}, after today (${today})`,
+    ];
   if (age <= CHANGELOG_MAX_AGE_DAYS) return [];
   return [
     `apps/web/src/lib/changelog.ts: the newest entry is ${newest}, ${age} days old (limit ${CHANGELOG_MAX_AGE_DAYS}). ` +
@@ -222,16 +226,15 @@ function pullRequestTitle(env) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
   const { fails, readFirst } = checkDocs(root);
+  // A moved or deleted file reads as empty, which fails a qualifying PR instead of skipping the check.
   const changelogPath = join(root, "apps/web/src/lib/changelog.ts");
-  if (existsSync(changelogPath)) {
-    fails.push(
-      ...checkChangelog({
-        source: read(changelogPath),
-        title: pullRequestTitle(process.env),
-        today: new Date().toISOString().slice(0, 10),
-      }),
-    );
-  }
+  fails.push(
+    ...checkChangelog({
+      source: existsSync(changelogPath) ? read(changelogPath) : "",
+      title: pullRequestTitle(process.env),
+      today: new Date().toISOString().slice(0, 10),
+    }),
+  );
   for (const fail of fails) console.log(`FAIL  ${fail}`);
   console.log(
     `read-first: ${(readFirst / 1000).toFixed(1)} KB, about ${Math.round(readFirst / 4000)}k tokens (budget ${READ_FIRST_BUDGET / 1000} KB)`,

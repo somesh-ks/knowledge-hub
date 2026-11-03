@@ -213,6 +213,15 @@ describe("change log freshness", () => {
     expect(run("perf(web): a thing", "2026-10-31")).toHaveLength(1);
   });
 
+  it("fails a future date and a missing log instead of passing them", () => {
+    expect(run("fix(web): a thing", "2027-11-03")).toEqual([
+      expect.stringContaining("after today"),
+    ]);
+    expect(checkChangelog({ source: "", title: "fix: a thing", today: "2026-11-03" })).toEqual([
+      expect.stringContaining("no entry with a date"),
+    ]);
+  });
+
   it("lets a fresh log, and docs, chore, test and ci PRs, through", () => {
     expect(run("fix(web): a thing", "2026-11-01")).toEqual([]);
     expect(run("docs: a note", "2026-10-23")).toEqual([]);

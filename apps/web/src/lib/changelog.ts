@@ -21,7 +21,7 @@ export const CHANGELOG: readonly Release[] = [
     version: "0.19",
     date: "2026-11-03",
     description:
-      "An avatar at the top right opens your profile, and Settings is regrouped. Play opens the player in place, played podcasts leave the queue, the playing row can be dragged, and one speed screen serves the player and Settings. Cards show a blue download mark, Saved is called Favorites, and More options on Create is a closed accordion.",
+      "A profile button at the top right opens your profile page, and Settings is regrouped. Play opens the player in place, played podcasts leave the queue, the playing row can be dragged, and one speed screen serves the player and Settings. Cards show a blue download mark, Saved is called Favorites, and More options on Create is a closed accordion.",
   },
   {
     version: "0.18",
