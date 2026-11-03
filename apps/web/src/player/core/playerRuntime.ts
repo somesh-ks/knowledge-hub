@@ -152,8 +152,9 @@ function createQueue(): PlayQueue {
   });
 }
 
-/** The suggestions last listed, whose places a refill keeps. */
+/** The suggestions last listed after `shownAfter`, whose places a refill keeps. */
 let shownSuggestions: readonly string[] = [];
+let shownAfter: string | null = null;
 
 /** The suggested items after what is playing: the list Up next shows and Autoplay draws from. */
 export async function loadSuggested(): Promise<string[] | null> {
@@ -164,7 +165,9 @@ export async function loadSuggested(): Promise<string[] | null> {
   // A row put above the playing one is listed too (D357): it is not suggested again.
   const listed = [...queue.getAbove(), ...queue.getIds()];
   const fresh = suggestNext(ordered, currentId, skipper(safeLocalStorage(), listed));
-  shownSuggestions = keepPlaces(shownSuggestions, fresh);
+  // A new item playing starts the list over, in timeline order: Autoplay takes the next one.
+  shownSuggestions = keepPlaces(shownAfter === currentId ? shownSuggestions : [], fresh);
+  shownAfter = currentId;
   return [...shownSuggestions];
 }
 

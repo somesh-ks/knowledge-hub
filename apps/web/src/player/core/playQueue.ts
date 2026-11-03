@@ -23,7 +23,6 @@ export const HISTORY_LIMIT = 30;
  * played again (owner, 2026-11-03: a removed podcast came back on top of Suggested).
  */
 export const REMOVED_KEY = "singularity:queue-removed";
-const REMOVED_LIMIT = 50;
 export const QUEUE_ADD_EVENT = "singularity:queue-add";
 export const QUEUE_CHANGED_EVENT = "singularity:queue-changed";
 
@@ -266,6 +265,13 @@ export function createPlayQueue(options: {
   if (!current && above.length > 0) {
     ids = [...above, ...ids];
     above = [];
+    // Stored where they now stand, or a reload would list a row removed since from the old history.
+    try {
+      storage?.setItem(QUEUE_KEY, JSON.stringify(ids));
+    } catch {
+      // Full or blocked storage: the queue still works until the page is reloaded.
+    }
+    persistHistory();
   }
 
   function persistHistory(): void {
@@ -287,7 +293,8 @@ export function createPlayQueue(options: {
       const was = parseRemoved(storage?.getItem(REMOVED_KEY) ?? null);
       if (!removed && !was.includes(id)) return;
       const rest = was.filter((entry) => entry !== id);
-      const next = removed ? [...rest, id].slice(-REMOVED_LIMIT) : rest;
+      // Unbounded: an id leaves only when it is queued or played again, and the catalogue is small.
+      const next = removed ? [...rest, id] : rest;
       if (next.length > 0) storage?.setItem(REMOVED_KEY, JSON.stringify(next));
       else storage?.removeItem(REMOVED_KEY);
     } catch {
