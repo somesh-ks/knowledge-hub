@@ -147,11 +147,11 @@ export function installAccountAvatar(): void {
   document.addEventListener("astro:page-load", sync);
   // A new mood changes the shapes; the other attributes change only what the avatar is doing.
   new MutationObserver((changes) => {
-    if (changes.some((change) => change.attributeName === "data-style")) draw();
+    if (changes.some((change) => change.attributeName === "data-mood")) draw();
     setState();
   }).observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ["data-style", "data-offline", "data-run", "data-player-state"],
+    attributeFilter: ["data-mood", "data-offline", "data-run", "data-player-state"],
   });
   getPreferences().subscribe(draw);
   document.addEventListener("singularity:sound", (event) => {

@@ -589,7 +589,7 @@
 /* Mood's hue is a row of its own, the name above a rail as wide as the card: the rail is the spectrum
    and the swatch floats over it, so it wants the room a value-beside-the-name row does not give.
    The card names its surface for the thumb's ring. Default has no hue to turn, so the row is hidden
-   there, not dimmed: <html> carries no data-style for Default, and the first frame already knows. */
+   there, not dimmed: <html> carries no data-mood for Default, and the first frame already knows. */
 .settings-view .card-group > .settings-hue {
   display: grid;
   gap: var(--space-2);
@@ -599,7 +599,7 @@
   --ghost-pressed: var(--color-surface-container-pressed);
 }
 
-:root:not([data-style]) .settings-view .card-group > .settings-hue {
+:root:not([data-mood]) .settings-view .card-group > .settings-hue {
   display: none;
 }
 

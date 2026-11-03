@@ -97,20 +97,20 @@ test.describe("theme", () => {
     await page.goto("/settings/appearance");
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     await page.getByRole("combobox", { name: "Mood" }).selectOption("expressive");
-    await expect(page.locator("html")).toHaveAttribute("data-style", "expressive");
+    await expect(page.locator("html")).toHaveAttribute("data-mood", "expressive");
     await page
       .getByRole("navigation", { name: "Primary" })
       .getByRole("link", { name: "Library", exact: true })
       .click();
     await expect(page).toHaveURL(/\/library$/);
-    await expect(page.locator("html")).toHaveAttribute("data-style", "expressive");
+    await expect(page.locator("html")).toHaveAttribute("data-mood", "expressive");
     // A reload: the attribute is on the document by the time the body exists, so nothing is painted
     // in Default first.
     await page.addInitScript(() => {
       const observer = new MutationObserver(() => {
         if (!document.body) return;
         (window as unknown as { __styleAtBody: string | null }).__styleAtBody =
-          document.documentElement.getAttribute("data-style");
+          document.documentElement.getAttribute("data-mood");
         observer.disconnect();
       });
       observer.observe(document, { childList: true, subtree: true });
@@ -125,7 +125,7 @@ test.describe("theme", () => {
     await page.goto("/settings/appearance");
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     await page.getByRole("combobox", { name: "Mood" }).selectOption("default");
-    await expect(page.locator("html")).not.toHaveAttribute("data-style", /.*/);
+    await expect(page.locator("html")).not.toHaveAttribute("data-mood", /.*/);
   });
 
   // Before D327 the choice was stored as `style`. The first-paint script and the Mood select must still
@@ -137,7 +137,7 @@ test.describe("theme", () => {
       localStorage.setItem("singularity:preferences", JSON.stringify({ style: "expressive" })),
     );
     await page.goto("/settings/appearance");
-    await expect(page.locator("html")).toHaveAttribute("data-style", "expressive");
+    await expect(page.locator("html")).toHaveAttribute("data-mood", "expressive");
     await expect(page.locator("html")).toHaveAttribute("data-mood", "expressive");
     await expect(page.getByRole("combobox", { name: "Mood" })).toHaveValue("expressive");
   });
@@ -166,6 +166,7 @@ test.describe("theme", () => {
     // The covers are on the page when the style changes; the same elements take new colours.
     const before = covers.length;
     await page.evaluate(() => {
+      document.documentElement.dataset.mood = "expressive";
       document.documentElement.dataset.style = "expressive";
     });
     await expect.poll(fill).not.toBe(inDefault);
@@ -176,6 +177,7 @@ test.describe("theme", () => {
     await expect.poll(fill).not.toBe(styled);
     await page.evaluate(() => {
       document.documentElement.style.removeProperty("--hue-shift");
+      delete document.documentElement.dataset.mood;
       delete document.documentElement.dataset.style;
     });
     await expect.poll(fill).toBe(inDefault);

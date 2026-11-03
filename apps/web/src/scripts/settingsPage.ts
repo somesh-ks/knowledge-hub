@@ -148,7 +148,7 @@ function mountSettings(root: HTMLElement): () => void {
       const turn = preferences.get().hue;
       hue.value = String(turn);
       // A mood is what has a hue to turn: Default stays blue, so its row is not shown (D328; the
-      // stylesheet hides it from the root's data-style, which is absent for Default).
+      // stylesheet hides it from the root's data-mood, which is absent for Default).
       hue.setAttribute("aria-valuetext", `${turn} degrees`);
       // The field around the slider draws the swatch from this; WebKit has no filled-part pseudo-element.
       (hue.parentElement ?? hue).style.setProperty("--range-fill", `${(turn / HUE_MAX) * 100}%`);
