@@ -39,7 +39,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D166 | Firecrawl 100 a week | amends D42; limits superseded by D222 |
 | D167 | One shape per control | amends D72 |
 | D168 | Catch up, bolt, swipe toasts | amends D52 |
-| D169 | Queue gestures | amends D126 |
+| D169 | Queue gestures | amends D126; amended by D343 |
 | D170 | Podcast structure | partly superseded by D344; built (D176, D182, D191); phase 3 closed by D241 |
 | D171 | Richer covers | amends D121 |
 | D172 | Store reads keep a copy | amends D149 |
@@ -143,7 +143,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D274 | Icon weight token | amends D268 |
 | D275 | Concentric picker | amends D167; amended by D325 |
 | D276 | Voice list | amends D101 |
-| D277 | Queue keeps played items; a tap plays in place | amends D126 |
+| D277 | Queue keeps played items; a tap plays in place | amends D126; amended by D343 |
 | D278 | Softer light covers | amends D121 |
 | D280 | Travel 300 ms | partly superseded by D336, D341; amends D271 |
 | D281 | Downloads page, no cap | amends D127, D264; amended by D335 |
@@ -198,6 +198,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D339 | The engine and the site keep one Speechify count, in Blob; Exa gets a weekly stop | amends D300 |
 | D341 | A page arrives from the side of the tab you came from | partly supersedes D280; amends D336 |
 | D342 | A Firecrawl listing is read free first and scraped only when its links moved | relates to D222, D302 |
+| D343 | Podcast-page tabs, two-bar queue handle, swipe both ways, phone bar swipes podcasts | amends D169, D277 |
 | D344 | The app no longer edits the podcast structure; Preferences holds autoplay and the default speed | partly supersedes D170, D182, D191; amends D335 |
 | D345 | Create's More options is a closed accordion at every width | amends D76 |
 

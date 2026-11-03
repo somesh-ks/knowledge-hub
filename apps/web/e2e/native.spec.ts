@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, hydrated, SILENT_DIGEST, test } from "./fixtures";
+import { closePlayer, expect, hydrated, SILENT_DIGEST, test } from "./fixtures";
 
 /**
  * Behaviour that makes the phone layout feel like a native app: one floating button where its action
@@ -169,6 +169,7 @@ test.describe("the floating button", () => {
     await pastHero(page);
     await playFab(page).click();
     await expect(root).toHaveAttribute("data-player-state", "playing");
+    await closePlayer(page);
     await expect(page.locator(".hero [data-play-digest]")).toHaveAttribute("data-state", "current");
     // One play control at a time: the bar is the page's control now, and the page gives back the
     // room it kept for the button.

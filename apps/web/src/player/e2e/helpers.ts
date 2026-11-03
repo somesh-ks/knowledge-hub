@@ -441,11 +441,39 @@ export class PlayerPage {
     return box;
   }
 
-  /** Starts narration from the hero button and waits for the bar to be in place. */
+  /**
+   * Starts narration from the hero button and waits for the bar to be in place. A phone opens the
+   * player over the page for any Play (owner, 2026-11-02); this closes it again, so a test goes on
+   * from the page with the bar playing. `playAndStay` keeps it open.
+   */
   async play(): Promise<void> {
+    await this.playAndStay();
+    if (this.barOnly()) return;
+    await this.finger.press(this.closeButton);
+    await this.collapsed();
+    await this.dockSettled();
+  }
+
+  /** Closes the player a Play opened over the page (phone only), so the page can be used again. */
+  async shut(): Promise<void> {
+    if (this.barOnly()) return;
+    await this.expanded();
+    await this.finger.press(this.closeButton);
+    await this.collapsed();
+    await this.dockSettled();
+  }
+
+  /** Starts narration from the hero button and, on a phone, leaves the player open over the page. */
+  async playAndStay(): Promise<void> {
     await this.finger.press(this.cta);
     await expect(this.root).toHaveAttribute("data-player-state", "playing");
-    await this.dockSettled();
+    if (this.barOnly()) await this.dockSettled();
+    else await this.expanded();
+  }
+
+  /** True from the width where the player is a bar that never opens by itself. */
+  private barOnly(): boolean {
+    return (this.page.viewportSize()?.width ?? 0) >= 1024;
   }
 
   /** The bar slides in; a gesture aimed at it needs it at rest. */
@@ -466,7 +494,10 @@ export class PlayerPage {
   }
 
   async openPlayer(): Promise<void> {
-    await this.finger.press(this.openButton);
+    // A Play on a phone has opened it already.
+    if ((await this.root.getAttribute("data-player")) !== "open") {
+      await this.finger.press(this.openButton);
+    }
     await this.expanded();
   }
 

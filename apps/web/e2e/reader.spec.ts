@@ -448,7 +448,10 @@ test.describe("sections and stories", () => {
     await expect(page.locator(".story")).toHaveCount(12);
     await expect(page.locator(".story .source-link").first()).toBeVisible();
     // The tabs are plain links to the sections, so they work without script.
-    await expect(page.locator(".tabs .tab").nth(3)).toHaveAttribute("href", "#c-research");
+    await expect(page.locator("[data-section-tabs] .tab").nth(3)).toHaveAttribute(
+      "href",
+      "#c-research",
+    );
     await expect(page.locator("#c-research")).toHaveText("Research");
     await context.close();
   });
@@ -496,7 +499,7 @@ test.describe("section tabs", () => {
     await last.focus();
     await expect
       .poll(async () => {
-        const strip = await page.locator(".tabs").boundingBox();
+        const strip = await page.locator("[data-section-tabs]").boundingBox();
         const tab = await last.boundingBox();
         return (
           !!strip &&
@@ -525,7 +528,9 @@ test.describe("section tabs", () => {
     await expect(current).toHaveText("Launches");
     await expect(current).toHaveCount(1);
     await expect(current).toBeInViewport({ ratio: 1 });
-    expect(await page.locator(".tabs").evaluate((node) => node.scrollLeft)).toBeGreaterThan(0);
+    expect(
+      await page.locator("[data-section-tabs]").evaluate((node) => node.scrollLeft),
+    ).toBeGreaterThan(0);
     // Scrolling the strip did not move the page sideways.
     expect(await page.evaluate(() => window.scrollX)).toBe(0);
     await page.evaluate(() => window.scrollTo(0, 0));
@@ -567,7 +572,7 @@ test.describe("section tabs", () => {
         rule: heading.closest(".chapter")?.getBoundingClientRect().top ?? 0,
       };
     });
-    const strip = await page.locator(".tabs").boundingBox();
+    const strip = await page.locator("[data-section-tabs]").boundingBox();
     const stripEnd = (strip?.y ?? 0) + (strip?.height ?? 0);
     expect(landing.words).toBeGreaterThanOrEqual(stripEnd);
     expect(landing.words).toBeLessThan(260);
@@ -585,7 +590,7 @@ test.describe("section tabs", () => {
       await page.keyboard.press("Shift+Tab");
       const covered = await page.evaluate(() => {
         const control = document.activeElement?.getBoundingClientRect();
-        const strip = document.querySelector<HTMLElement>(".tabs");
+        const strip = document.querySelector<HTMLElement>("[data-section-tabs]");
         if (!control || !strip) return 0;
         const box = strip.getBoundingClientRect();
         const stuck = box.top <= Number.parseFloat(getComputedStyle(strip).top) + 0.5;
@@ -653,12 +658,13 @@ test.describe("the section tabs with the app bar hidden", () => {
     await page.mouse.wheel(0, 200);
     await expect(root).toHaveAttribute("data-bar-hidden", "");
     await expect
-      .poll(async () => (await page.locator(".tabs").boundingBox())?.y ?? 99)
+      .poll(async () => (await page.locator("[data-section-tabs]").boundingBox())?.y ?? 99)
       .toBeLessThan(2);
     // Research's heading well below the reading line (a third down the space under the strip): the section above holds the mark.
     const placeUnderStrip = (gap: number) =>
       page.evaluate((room) => {
-        const strip = document.querySelector(".tabs")?.getBoundingClientRect().bottom ?? 0;
+        const strip =
+          document.querySelector("[data-section-tabs]")?.getBoundingClientRect().bottom ?? 0;
         const top = document.querySelector("#c-research")?.getBoundingClientRect().top ?? 0;
         window.scrollBy({ top: top - strip - room, behavior: "instant" });
       }, gap);
@@ -723,11 +729,14 @@ test.describe("a tab's jump with the app bar", () => {
     page.locator(id).evaluate((heading) => {
       const words = document.createRange();
       words.selectNodeContents(heading);
-      const strip = document.querySelector(".tabs")?.getBoundingClientRect().bottom ?? 0;
+      const strip =
+        document.querySelector("[data-section-tabs]")?.getBoundingClientRect().bottom ?? 0;
       return words.getBoundingClientRect().top - strip;
     });
   const stripRests = (page: Page) =>
-    expect.poll(async () => (await page.locator(".tabs").boundingBox())?.y ?? 99).toBeLessThan(2);
+    expect
+      .poll(async () => (await page.locator("[data-section-tabs]").boundingBox())?.y ?? 99)
+      .toBeLessThan(2);
 
   test("down: the bar goes first, so the heading lands by the strip where it ends", async ({
     page,

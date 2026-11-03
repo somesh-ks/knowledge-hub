@@ -78,6 +78,7 @@ const words = {
   "data-word-catch-up": "Catch up",
   "data-word-expand": "Show the podcast queue",
   "data-word-collapse": "Hide the podcast queue",
+  "data-word-remove-label": "Remove {title} from the queue",
   "data-word-progress-label": "{title}, {pct} percent",
   "data-word-cancel-label": "Cancel {title}",
   "data-word-listen-label": "Start listening to {title}",
@@ -112,14 +113,16 @@ const icons: Record<string, IconName> = {
   <span class="sr-only" role="status" data-run-announce></span>
 
   <section class="queue-dock" data-queue-dock aria-label="Podcast queue" hidden>
-    <button class="queue-fold" type="button" data-queue-toggle aria-expanded="false">
-      <QueueRing class="queue-ring-head" data-queue-fold-ring>
-        <span class="queue-stage-icon" data-queue-head-icon="fold"></span>
-      </QueueRing>
-      <span class="queue-fold-text queue-word" data-queue-title></span>
-      <span class="queue-fold-percent" data-queue-percent></span>
-      <Icon name="chevronDown" size="lg" class="queue-chevron" />
-    </button>
+    <div class="queue-head">
+      <button class="queue-fold" type="button" data-queue-toggle aria-expanded="false">
+        <QueueRing class="queue-ring-head" data-queue-fold-ring>
+          <span class="queue-stage-icon" data-queue-head-icon="fold"></span>
+        </QueueRing>
+        <span class="queue-fold-text queue-word" data-queue-title></span>
+        <span class="queue-fold-percent" data-queue-percent></span>
+        <Icon name="chevronDown" size="lg" class="queue-chevron" />
+      </button>
+    </div>
     <div class="queue-body" data-queue-body>
       <ul class="queue-list" role="list" data-queue-list></ul>
     </div>
@@ -172,15 +175,18 @@ const icons: Record<string, IconName> = {
       <div class="queue-main">
         <p class="queue-name" data-queue-name></p>
         {/* One line: the stage while it goes; when it ended and how, once it has. */}
-        <p class="queue-status"><span class="queue-when" data-queue-when></span><span data-queue-status></span></p>
+        <p class="queue-status"><span class="queue-when" data-queue-when></span><span class="queue-word" data-queue-status></span></p>
       </div>
-      {/* Cancel is the X at the row's end, while the run goes. */}
+      {/* Cancel is the X at the row's end, while the run goes; once it has ended the same X takes the item out of the queue. */}
       <button class="icon-btn icon-btn-end press queue-cancel" type="button" data-queue-cancel hidden>
+        <Icon name="close" size="lg" />
+      </button>
+      <button class="icon-btn icon-btn-end press queue-remove" type="button" data-queue-remove hidden>
         <Icon name="close" size="lg" />
       </button>
       {/* What can be done to a run that ended or is lost, under the text. */}
       <div class="queue-actions">
-        <Button variant="filled" class="queue-listen" data-queue-listen hidden>Listen now</Button>
+        <Button variant="text" class="queue-listen" data-queue-listen hidden>Listen now</Button>
         <Button variant="text" class="queue-retry" data-queue-retry hidden>Try again</Button>
         <Button variant="text" class="queue-check" data-queue-check hidden>Check again</Button>
         <Button variant="text" class="queue-details" data-queue-details hidden>Details</Button>

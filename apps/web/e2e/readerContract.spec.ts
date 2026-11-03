@@ -1,6 +1,6 @@
 import type { Locator } from "@playwright/test";
 import { computedColor } from "./colors";
-import { expect, hydrated, SILENT_DIGEST, test } from "./fixtures";
+import { closePlayer, expect, hydrated, SILENT_DIGEST, test } from "./fixtures";
 
 /**
  * The contract between the reader page and the player (readerSync.ts). The first half drives the
@@ -40,6 +40,7 @@ test.describe("what the player writes on a real page", () => {
     // Playing, the briefing's chip is the pause button with the time left (D77).
     await expect(chip.locator("[data-chip-label]")).toHaveText("1 min left");
     await expect(chip).toHaveAccessibleName("Pause the podcast, 1 min left");
+    await closePlayer(page);
 
     await chip.click();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
