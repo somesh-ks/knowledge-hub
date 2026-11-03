@@ -181,9 +181,8 @@
   background: var(--color-surface-container);
 }
 
-/* Downloaded, after the facts (owner, 2026-10-29): the filled check circle a Library card shows
-   (.card-downloaded, library.css) and the word. libraryMenu.ts puts it in the facts line once the
-   page is saved offline, so it takes no room before. */
+/* Downloaded, after the facts (owner, 2026-10-29): a filled check circle and the word. libraryMenu.ts
+   puts it in the facts line once the page is saved offline, so it takes no room before. */
 .hero-downloaded {
   display: inline-flex;
   align-items: center;

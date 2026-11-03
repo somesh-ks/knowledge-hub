@@ -1,0 +1,8 @@
+---
+import Icon from "../design-system/Icon.astro";
+---
+
+{/* What this device holds of a card's item, after its facts: only that it is downloaded, as a blue
+     circle with the download arrow (owner, 2026-11-02). Hidden until the card says so (library.css,
+     on data-downloaded), so it takes room only while it is shown. */}
+<span class="card-downloaded"><Icon name="arrowLineDown" /><span class="sr-only">Downloaded</span></span>
