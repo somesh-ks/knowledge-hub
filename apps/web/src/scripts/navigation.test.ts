@@ -85,11 +85,13 @@ describe("isSamePage", () => {
 });
 
 describe("carryRootAttributes", () => {
-  it("copies the theme, the style and the player's state onto the incoming page", () => {
+  it("copies the theme, the style, the reader's hue and the player's state onto the incoming page", () => {
     const live = fakeRoot({
       "data-theme": "dark",
       "data-style": "expressive",
       "data-mood": "expressive",
+      // The hue lives in the root's style: a page drawn once without it eases to it (owner, 2026-11-03).
+      style: "--hue-shift: 120",
       "data-mini": "visible",
       "data-player": "closed",
       "data-player-state": "playing",
@@ -99,6 +101,7 @@ describe("carryRootAttributes", () => {
     expect(incoming.getAttribute("data-theme")).toBe("dark");
     expect(incoming.getAttribute("data-style")).toBe("expressive");
     expect(incoming.getAttribute("data-mood")).toBe("expressive");
+    expect(incoming.getAttribute("style")).toBe(live.getAttribute("style"));
     expect(incoming.getAttribute("data-mini")).toBe("visible");
     expect(incoming.getAttribute("data-player")).toBe("closed");
     expect(incoming.getAttribute("data-player-state")).toBe("playing");

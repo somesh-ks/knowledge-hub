@@ -271,14 +271,8 @@ export function storyChipView(
   length: string,
   headline: string,
 ): ChipView {
-  if (visual === "played") {
-    return {
-      state: "played",
-      playing: false,
-      label: "Played",
-      name: `Play again, played: ${headline}`,
-    };
-  }
+  // Heard or not, an idle story is a Play button with its length: no per-story state on the button
+  // (owner, 2026-11-03). Which stories were heard stays on the story's own data-state.
   if (visual !== "current") return idleStoryChip(length, headline);
   if (playing && buffering) {
     return {

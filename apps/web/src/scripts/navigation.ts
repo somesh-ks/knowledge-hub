@@ -4,11 +4,12 @@
  * another destination, into one briefing, or back out of it.
  */
 
-/** Root attributes owned by the theme and style, the player and the connection check (the strip's own mark included, so a swap never lets the page up and down again). A swap would replace them with the new page's. */
+/** Root attributes owned by the theme and style, the player and the connection check (the strip's own mark included, so a swap never lets the page up and down again). A swap would replace them with the new page's. `style` holds the reader's hue (--hue-shift, themeApply.ts): put back only after the swap, the new page was styled once in the style's own hue, and every fill with a colour transition (the current tab's pill) eased from that hue to the reader's (owner, 2026-11-03). */
 export const CARRIED_ATTRIBUTES = [
   "data-theme",
   "data-style",
   "data-mood",
+  "style",
   "data-offline",
   "data-strip",
   "data-mini",
