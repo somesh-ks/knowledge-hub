@@ -41,16 +41,8 @@ function markHero(on: boolean): void {
 }
 
 function setDownloaded(root: HTMLElement, on: boolean): void {
+  // The card's own mark follows this attribute (library.css, CardMarks.astro); a page header's is put in.
   holderOf(root).toggleAttribute("data-downloaded", on);
-  const sub = root.closest("[data-card]")?.querySelector(".card-sub");
-  const marked = sub?.querySelector(".card-downloaded");
-  if (!on) marked?.remove();
-  else if (sub && !marked) {
-    const mark = root
-      .closest("[data-card]")
-      ?.querySelector<HTMLTemplateElement>("template[data-downloaded-mark]");
-    if (mark) sub.prepend(mark.content.cloneNode(true));
-  }
   if (holderOf(root) === root) markHero(on);
   const item = root.querySelector<HTMLElement>('[data-menu="download"]');
   const label = item?.querySelector("[data-menu-label]");

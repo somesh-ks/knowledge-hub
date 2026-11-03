@@ -28,8 +28,8 @@ import {
 } from "../lib/library";
 
 import { whenIdle } from "./idle";
+import { applyView, libraryRoot, storedView, VIEW_KEY } from "./libraryView";
 
-const VIEW_KEY = "singularity:library-view";
 /** The Library's address with its search, filter and order, kept for the visit (episodeActions.ts reads it). */
 const LIBRARY_URL_KEY = "singularity:library-url";
 
@@ -69,7 +69,7 @@ function allowed<T extends string>(
 function install(): void {
   // Only the Library page: this listener outlives it (astro:page-load), and Settings > Downloads wears the
   // same [data-library] rows. Wired there, it set the Library's stored view (the gallery) on it.
-  const root = document.querySelector<HTMLElement>("#main.library [data-library]");
+  const root = libraryRoot();
   if (!root || root.dataset.ready !== undefined) return;
   root.dataset.ready = "";
 
@@ -315,25 +315,16 @@ function install(): void {
     event.preventDefault();
     input?.blur();
   });
-  /** Gallery or list, remembered on this device. Storage that fails leaves the gallery. */
+  /** List or gallery, remembered on this device. Storage that fails leaves the list. */
   const viewButtons = [...root.querySelectorAll<HTMLButtonElement>("[data-library-view]")];
-  function showView(view: string): void {
-    if (root) root.dataset.view = view;
-    for (const button of viewButtons) {
-      button.setAttribute("aria-pressed", String(button.dataset.libraryView === view));
-    }
+  function showView(view: "list" | "gallery"): void {
+    if (root) applyView(root, view);
     requestAnimationFrame(markTruncated);
   }
-  let stored: string | null = null;
-  try {
-    stored = localStorage.getItem(VIEW_KEY);
-  } catch {
-    stored = null;
-  }
-  showView(stored === "list" ? "list" : "gallery");
+  showView(storedView());
   for (const button of viewButtons) {
     button.addEventListener("click", () => {
-      const view = button.dataset.libraryView === "list" ? "list" : "gallery";
+      const view = button.dataset.libraryView === "gallery" ? "gallery" : "list";
       showView(view);
       try {
         localStorage.setItem(VIEW_KEY, view);

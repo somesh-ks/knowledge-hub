@@ -56,7 +56,7 @@ const dateOf = (item: LibraryItem): string =>
           </div>
         </section>
       ) : (
-        <div data-library>
+        <div data-library data-view="list">
           <h1 class="page-title text-display library-title" id="page-title" tabindex="-1">
             Library
           </h1>
@@ -97,18 +97,18 @@ const dateOf = (item: LibraryItem): string =>
                   <option value={sort.id}>{sort.label}</option>
                 ))}
               </Select>
-              {/* How the library is laid out: covers in a grid, or compact rows. Remembered on this device. */}
+              {/* How the library is laid out: compact rows (the default) or covers in a grid. Remembered on this device. */}
               <div class="view-switch" role="group" aria-label="View">
-                <button class="view-btn press press-subtle" type="button" aria-pressed="true" aria-label="Gallery view" data-library-view="gallery">
-                  <Icon name="viewGrid" />
-                </button>
-                <button class="view-btn press press-subtle" type="button" aria-pressed="false" aria-label="List view" data-library-view="list">
+                <button class="view-btn press press-subtle" type="button" aria-pressed="true" aria-label="List view" data-library-view="list">
                   <Icon name="viewList" />
+                </button>
+                <button class="view-btn press press-subtle" type="button" aria-pressed="false" aria-label="Gallery view" data-library-view="gallery">
+                  <Icon name="viewGrid" />
                 </button>
               </div>
             </div>
           </form>
-          {/* After the view switch and before the first card: a saved List view is set here. */}
+          {/* After the view switch and before the first card: a saved Gallery view is set here. */}
           <script is:inline set:html={libraryViewInit.trim()} />
           <p class="sr-only" role="status" data-library-status>
             {resultSummary(items.length, items.length)}

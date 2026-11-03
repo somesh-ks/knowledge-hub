@@ -23,6 +23,22 @@ export interface DatabaseDeps {
   timeoutMs?: number;
 }
 
+/**
+ * The database the site's own telemetry (client and server faults, field Web Vitals) may write to:
+ * `DATABASE_URL` on Vercel only. A server anywhere else (a build served by a test run, a session's
+ * dev server) holds the same URL in its environment, and its 5xx answers to routes that lack a
+ * secret there were stored as production faults: 176 distinct builds a day, one row per route
+ * each, until `health` warned on seven routes at once.
+ */
+export function telemetryDatabaseUrl(env: {
+  VERCEL?: string | undefined;
+  VERCEL_ENV?: string | undefined;
+  DATABASE_URL?: string | undefined;
+}): string | undefined {
+  // `vercel dev` sets VERCEL too, on a machine that is not a deployment.
+  return env.VERCEL && env.VERCEL_ENV !== "development" ? env.DATABASE_URL : undefined;
+}
+
 /** Runs `work` on the database, or answers `fallback` without it. Never throws. */
 export type DatabaseCall = <T>(work: (sql: SqlClient) => Promise<T>, fallback: T) => Promise<T>;
 

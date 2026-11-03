@@ -1,8 +1,9 @@
 ---
 import { episodeCover } from "../lib/covers";
 import type { EpisodeEntry } from "../lib/episodes";
-import { EPISODE_KIND, FACT_SEPARATOR } from "../lib/library";
+import { EPISODE_KIND } from "../lib/library";
 import { episodeFacts } from "../lib/libraryCard";
+import CardMarks from "./CardMarks.astro";
 import Cover from "./Cover.astro";
 import CoverPlay from "./CoverPlay.astro";
 import LibraryItemMenu from "./LibraryItemMenu.astro";
@@ -19,12 +20,10 @@ interface Props {
 const { entry, downloads = false, saved = false } = Astro.props;
 const { episode } = entry;
 const facts = episodeFacts(entry);
-// Kind, length: the length is its own span, so "Played" can take its place and the kind stays.
-const [format, length] = facts.line.split(FACT_SEPARATOR);
 ---
 
 {/* One episode as album art, like a briefing's card: the cover, its title and one quiet line that
-     says the format and the length. The data attributes are what the Library's search, sort and
+     says the kind and how many stories. The data attributes are what the Library's search, sort and
      filter read. An episode has no recording until someone presses play, so it is never "with audio". */}
 <li
   class="card"
@@ -48,7 +47,8 @@ const [format, length] = facts.line.split(FACT_SEPARATOR);
     <span class="card-progress" data-cover-progress aria-hidden="true" hidden></span>
     <span class="card-title">{episode.title}</span>
     <span class="card-sub">
-      <span class="card-facts" data-card-facts data-rest={facts.line}>{length === undefined ? facts.line : <Fragment>{format}{FACT_SEPARATOR}<span data-card-length>{length}</span></Fragment>}</span>
+      <span class="card-facts" data-card-facts>{facts.line}</span>
+      <CardMarks />
     </span>
   </a>
   <CoverPlay digestId={entry.id} href={`/e/${entry.id}`} title={episode.title} />

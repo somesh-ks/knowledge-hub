@@ -87,6 +87,7 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
     await page.clock.install();
     const dialog = await player.openGenerate();
     await expectAccessible(page, "the Generate sheet");
+    await dialog.getByRole("textbox").fill("shorter");
     const start = dialog.getByRole("button", { name: "Regenerate" });
     await player.finger.press(start);
     await expect(dialog.getByRole("alert")).toContainText("Something broke on our side");
