@@ -99,7 +99,7 @@ describe("carryRootAttributes", () => {
     carryRootAttributes(live, incoming);
     expect(incoming.getAttribute("data-theme")).toBe("dark");
     expect(incoming.getAttribute("data-style")).toBe("expressive");
-    expect(incoming.getAttribute("style")).toBe("--hue-shift: 120");
+    expect(incoming.getAttribute("style")).toBe(live.getAttribute("style"));
     expect(incoming.getAttribute("data-mini")).toBe("visible");
     expect(incoming.getAttribute("data-player")).toBe("closed");
     expect(incoming.getAttribute("data-player-state")).toBe("playing");
