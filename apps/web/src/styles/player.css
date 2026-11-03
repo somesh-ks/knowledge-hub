@@ -1991,14 +1991,6 @@
  * page"). The strip sits in its own bar with the hairline the page's strip has, and under 64rem the bar
  * sticks under the status bar (below).
  */
-/* Retired (D343): nothing wears .segmented-nav.player-tabs since the tabs became .tabs. The rule stays
-   only because tokens/system.json lists this file for the segmented nav, and a stylesheet change that
-   moves system.json is design-system work. The design-system sweep of dead structure CSS removes this
-   rule with that line in one pull request. */
-.segmented-nav.player-tabs {
-  flex: none;
-}
-
 .player-tabs-bar {
   flex: none;
   margin-block-end: var(--space-4);
