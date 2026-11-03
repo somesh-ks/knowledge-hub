@@ -487,6 +487,15 @@ html[data-mini="visible"] main {
   }
 }
 
+/* Pressed with a finger or a mouse, the wave over the tab is the one growing shape and the pill under
+   the icon only fades in beside it: two circles opening from one spot read as a double ripple (owner,
+   2026-11-03, still after the grey pill went; D347). A key press has no wave, so its pill grows. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-nav-arrived="press"] .app-nav-item[aria-current="page"] .app-nav-indicator::before {
+    animation: nav-pill-fade var(--duration-enter) var(--ease-out);
+  }
+}
+
 @keyframes nav-pill {
   from {
     scale: 0.5 1;

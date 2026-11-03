@@ -144,10 +144,11 @@ export function installNavigationBoost(): void {
     if (opened) holdPress(opened);
     const item = pressedDestination(event.sourceElement, document);
     if (item) {
-      // The pill grows under the item as it lights, here, and not again on the page that arrives.
+      // The pill comes in under the item as it lights, here, and not again on the page that arrives.
+      // Under a finger the press wave is the one growing shape, so the pill only fades in beside it.
       if (item.getAttribute("aria-current") !== "page") {
         const root = document.documentElement;
-        root.setAttribute(ARRIVED_ATTRIBUTE, "");
+        root.setAttribute(ARRIVED_ATTRIBUTE, root.dataset.input === "keyboard" ? "" : "press");
       }
       markCurrent(item, document);
     }

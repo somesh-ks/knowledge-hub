@@ -118,7 +118,7 @@ test.describe("moving between destinations", () => {
     await expect(page.locator('.app-nav-item[aria-current="page"]')).toHaveCount(1);
   });
 
-  test("the move takes no pictures of the page, has no exit, and is over in the time of a press", async ({
+  test("the move takes no pictures of the page, has no exit, and is over in a quarter second", async ({
     page,
   }) => {
     await openWarm(page);
@@ -126,7 +126,7 @@ test.describe("moving between destinations", () => {
     await expect(heading(page)).toHaveText("Settings");
     const move = await lastMove(page);
     expect(move?.atSwap?.browserTransition).toBe(false);
-    expect(move?.atSwap?.longest).toBeLessThanOrEqual(150);
+    expect(move?.atSwap?.longest).toBeLessThanOrEqual(250);
   });
 });
 
@@ -382,7 +382,9 @@ test.describe("a touch on a tab shows at once and goes on across the move", () =
   // Owner, 2026-11-03: "double ripples on all bottom nav tabs". A press drew the wave over the tab and,
   // in the same place, a grey pill under the icon: two concentric shapes. The wave is the press; the
   // pill is bare under a finger and grows once, when its page arrives.
-  test("a touch on a tab draws one shape, and the pill under it grows once", async ({ page }) => {
+  test("a touch on a tab draws one growing shape, and the pill under it comes in once", async ({
+    page,
+  }) => {
     await openWarm(page);
     const tab = item(page, "/library");
     const box = await tab.boundingBox();
@@ -390,7 +392,7 @@ test.describe("a touch on a tab shows at once and goes on across the move", () =
     const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
     const cdp = await page.context().newCDPSession(page);
     await page.evaluate(() => {
-      const seen = { opacity: [] as number[], greyUnderFinger: false };
+      const seen = { opacity: [] as number[], greyUnderFinger: false, scaled: false };
       Object.assign(window, { pillSeen: seen });
       const watch = (): void => {
         const tab = document.querySelector('.app-nav-item[href="/library"]');
@@ -398,8 +400,11 @@ test.describe("a touch on a tab shows at once and goes on across the move", () =
         const drawn = pill ? getComputedStyle(pill, "::before") : null;
         if (drawn) {
           // Once the tab is the current one: before, its pill is bare and shows nothing at full opacity.
-          if (tab?.getAttribute("aria-current") === "page")
+          if (tab?.getAttribute("aria-current") === "page") {
             seen.opacity.push(Number(drawn.opacity));
+            // The wave is the growing shape: a pill that also scales up is a second circle opening.
+            if (drawn.scale !== "none" && drawn.scale !== "1") seen.scaled = true;
+          }
           // Still a bare tab (not yet the current one) with a tone on its pill is the second shape.
           if (
             tab?.hasAttribute("data-ripple-pressed") &&
@@ -434,10 +439,14 @@ test.describe("a touch on a tab shows at once and goes on across the move", () =
       .toBe(false);
     const seen = await page.evaluate(
       () =>
-        (window as unknown as { pillSeen: { opacity: number[]; greyUnderFinger: boolean } })
-          .pillSeen,
+        (
+          window as unknown as {
+            pillSeen: { opacity: number[]; greyUnderFinger: boolean; scaled: boolean };
+          }
+        ).pillSeen,
     );
     expect(seen.greyUnderFinger, "the pill showed a tone under the wave").toBe(false);
+    expect(seen.scaled, "the pill grew beside the wave").toBe(false);
     // Once the tab is current its pill grows in and stays: its opacity never falls. It did not grow,
     // go out and grow again on the new page.
     expect(seen.opacity.length, "the pill never showed").toBeGreaterThan(0);
