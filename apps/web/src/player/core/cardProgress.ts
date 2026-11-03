@@ -36,7 +36,6 @@ export function showCardProgress(): void {
   const storage = safeLocalStorage();
   for (const card of document.querySelectorAll<HTMLElement>("[data-card]")) {
     const remembered = readRemembered(storage, card.dataset.id ?? "");
-    card.toggleAttribute("data-played", isPlayed(remembered));
     const share = cardProgress(remembered, Number(card.dataset.minutes));
     const bar = card.querySelector<HTMLElement>("[data-cover-progress]");
     if (bar) {

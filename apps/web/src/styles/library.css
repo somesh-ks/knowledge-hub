@@ -910,18 +910,17 @@ html[data-library-page="empty"] {
   align-items: center;
 }
 
-/* What a card shows of what this device holds, after its facts (owner, 2026-11-03): a green circle with a
-   check once it was heard to the end, a blue circle with the download arrow once it is saved offline. A
-   card says neither with a word. CardMarks.astro renders both hidden and the card's own data-played
-   (cardProgress.ts) and data-downloaded (scripts/libraryMenu.ts) show them, so a mark takes room only
-   while it is shown and the facts before it never change. A page header wears the same marks beside the
-   word (hero.css). Both are sized from the line's own text, so they keep their proportion if it changes
-   (owner, 2026-11-02): the circle a quarter taller than the text, the glyph in it a little under its
-   height, with clear space all round. */
+/* What a card shows of what this device holds, after its facts (owner, 2026-11-03): a blue circle with the
+   download arrow once it is saved offline, never a word. Played is not on a card (a list of green and blue
+   circles was loud); the podcast page says it with the word, beside a green check (hero.css). CardMarks.astro
+   renders the mark hidden and the card's own data-downloaded (scripts/libraryMenu.ts) shows it, so it takes
+   room only while shown and the facts before it never change. Sized from the line's own text, so it keeps
+   its proportion if that changes (owner, 2026-11-02): the circle as tall as the text (owner, 2026-11-03:
+   smaller, to match the text's visual size), the glyph in it about 70% of that, with clear space all round. */
 .status-mark {
   /* Whole pixels, so the glyph has the same space on every side on any screen: a fractional circle
      and glyph (17.5 and 11.9 px) land on half pixels and look off centre (owner, 2026-11-02). */
-  --mark: round(1.25em, 1px);
+  --mark: round(1em, 1px);
   /* The bold twin of the glyph in every style: at this size the regular line is barely there. */
   --icon-bold: 1;
   display: inline-flex;
@@ -944,15 +943,14 @@ html[data-library-page="empty"] {
 }
 
 .status-mark .icon-glyph {
-  width: round(0.85em, 2px);
-  height: round(0.85em, 2px);
+  width: round(0.7em, 2px);
+  height: round(0.7em, 2px);
 }
 
 .card-sub > .status-mark {
   display: none;
 }
 
-.card[data-played] .card-sub > .status-mark-played,
 .card[data-downloaded] .card-sub > .status-mark-downloaded {
   display: inline-flex;
 }

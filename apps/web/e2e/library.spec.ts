@@ -388,13 +388,8 @@ test.describe("library fixes", () => {
     await expect(
       page.locator("[data-card][data-id='2026-10-07'] [data-cover-progress]"),
     ).toBeHidden();
-    // Only the finished card has the check, and it is a mark, not the word.
-    await expect(page.locator("[data-card] .card-sub > .status-mark-played:visible")).toHaveCount(
-      1,
-    );
-    await expect(
-      page.locator("[data-card][data-id='2026-10-07'] .card-sub > .status-mark-played"),
-    ).toBeVisible();
+    // A finished card says nothing of it, in marks or words: the podcast page does (D348).
+    await expect(page.locator("[data-card] .status-mark-played:visible")).toHaveCount(0);
     await expect(
       page.locator("[data-card] .card-sub > .status-mark-downloaded:visible"),
     ).toHaveCount(0);

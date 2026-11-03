@@ -154,18 +154,6 @@ test("a podcast heard to the end shows Played in its subtitle and its play butto
   await expect(page.locator(".play-fab")).not.toHaveAttribute("aria-label", /played/i);
 });
 
-// Bug it prevents: a shelf card (no menu of its own) missing the marks a Library row shows.
-test("an earlier podcast on Today's shelf shows the green check once heard to the end", async ({
-  page,
-}) => {
-  await seedStorage(page, { local: { "singularity:played:2026-10-05": "1" } });
-  await page.goto("/");
-  await hydrated(page);
-  const card = page.locator(".earlier [data-card][data-id='2026-10-05']");
-  await expect(card.locator(".status-mark-played")).toBeVisible();
-  await expect(card.locator(".status-mark-downloaded")).toBeHidden();
-});
-
 test("the floating Play on Today follows the chip", async ({ page }) => {
   await seedStorage(page, { local: { "singularity:resume:2026-10-07": "20" } });
   await page.goto("/");
