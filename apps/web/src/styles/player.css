@@ -1856,7 +1856,7 @@
   gap: var(--space-1);
   width: 100%;
   padding-block: var(--space-4);
-  padding-inline: var(--space-4);
+  padding-inline: var(--row-padding-inline);
   border-radius: var(--row-radius);
   text-align: start;
   /* A press or a pointer shows on the fill; the words keep their size and weight. */
@@ -2279,7 +2279,7 @@
   width: 100%;
   min-height: var(--size-touch-comfortable);
   padding-block: var(--space-2);
-  padding-inline: var(--space-4);
+  padding-inline: var(--row-padding-inline);
   border-radius: var(--row-radius);
   text-align: start;
   /* A press shows on the fill; the headline keeps its size. */
@@ -2332,17 +2332,18 @@
   line-height: var(--font-leading-body);
 }
 
+/* 88%, not 72% (2026-11-03): muted ink keeps 4.5:1 on every mood's chosen fill after D356 moved the fills; Default dark needs 87%, Halloween light 86%. */
 .story-rows
   > [data-open]
   .script-turns[data-following]
   .script-turn:not([data-said], [aria-current="true"])
   .script-text {
-  color: color-mix(in oklch, var(--color-on-accent-container) 72%, transparent);
+  color: color-mix(in oklch, var(--color-on-accent-container) 88%, transparent);
 }
 
 /* Names are told apart by the name itself, not by the accent, which the card's fill would swallow. */
 .story-rows > [data-open] .script-turns .script-turn .script-speaker {
-  color: color-mix(in oklch, var(--color-on-accent-container) 72%, transparent);
+  color: color-mix(in oklch, var(--color-on-accent-container) 88%, transparent);
 }
 
 .story-row[aria-current="true"] .story-row-time {
