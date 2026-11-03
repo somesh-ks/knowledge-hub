@@ -9,6 +9,7 @@ import {
   withModulePreloads,
   withoutStylesheets,
 } from "./lib/bundleBudget";
+import { withFrameAncestors } from "./lib/frameAncestors";
 import { findRepoRoot } from "./lib/repoRoot";
 
 /**
@@ -32,7 +33,7 @@ function moduleGraph(): Record<string, string[]> | null {
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  const response = await next();
+  const response = withFrameAncestors(await next());
   // Built pages have their links already; in development the graph is an older build's.
   if (context.isPrerendered || !import.meta.env.PROD) return response;
   if (!response.headers.get("content-type")?.startsWith("text/html")) return response;

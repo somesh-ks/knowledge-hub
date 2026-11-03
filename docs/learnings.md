@@ -18,7 +18,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-13: the voice-picker specs failed only beside others: a scroll after the press closed the open list (the trace's last frame); `openPicker` (`e2e/picker.ts`) presses until it stays open.
 - 2026-10-12: an axe scan after `emulateMedia` read colours mid-fade. Wait for the page's `CSSTransition`s to finish first, and cap that wait, because an infinite or paused animation never finishes.
 - 2026-10-12: a leftover server or build makes a suite test the wrong build: Playwright reuses a listening server and skips the build (`taskkill`; Git Bash `kill $!` leaves a `node`). Stop old servers; use a fresh PORT after a page edit.
-- 2026-10-11: Playwright `addStyleTag` and injected audit scripts (axe) are blocked by the fixture site's CSP (no 'unsafe-inline'); use `bypassCSP: true` on the context for a probe or audit, built into its own directory and port (a `dist` rebuilt mid-audit read as "page has no title").
+- 2026-10-11: Playwright `addStyleTag` and injected axe scripts hit the fixture site's CSP; use `bypassCSP: true` for an audit, on a build in its own directory and port (a rebuilt `dist` read as "page has no title").
 - 2026-10-10: a lone IntersectionObserver threshold of 1 reports a target partly past the root edge as not intersecting and never calls back. To tell a sticky element is stuck, observe `[0, 1]` and compare `boundingClientRect.top` with `rootBounds.top`.
 - 2026-10-09: a WebGL canvas failed the player suite on every page: headless Chromium draws in software (SwiftShader), logs "GPU stall" each frame, and the suite fails on any warning. Read `WEBGL_debug_renderer_info` and skip WebGL on a software renderer.
 - 2026-10-09: The player suite can run its `site-*` projects in a worktree without a dev server: serve the fixture build and set `PLAYER_SITE_URL` to it.
@@ -48,7 +48,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-24: YouTube refuses datacenter addresses: the player API says 429 and yt-dlp hits "Sign in to confirm you're not a bot"; cookies lift it, PO tokens do not (yt-dlp #15865). Firecrawl's `youtube-com/videos/video_transcript` makes the call from its network, 5 credits.
 - 2026-10-24: no YouTube video had reached the judge (25 fetched since 9 Oct, `asked` 0 in `state/source-stats.json`): the prefilter keeps only keyword, author, high-signal or tagged items, and titles name no keyword. Channels are high-signal now. Check `asked` first.
 - 2026-10-30: the judge flagged all 21 favorite-creator videos since 9 Oct: it read links and a sponsor line. The Judge step lacked `FIRECRAWL_API_KEY`, so 3 videos a run (Gemini cap) got a transcript; a stage reads only its own `env`.
-- 2026-10-19: a YouTube finalist reached the writer with only its description: `extractFullText` fetched a watch page with no speech. YouTube items go through `extract/youtubeText.ts` (cache, Firecrawl, then Gemini; `state/video-text.json`); failure falls back to the description.
+- 2026-10-19: a YouTube finalist reached the writer with only its description (a watch page has no speech). YouTube items go through `extract/youtubeText.ts` (cache, Firecrawl, then Gemini; `state/video-text.json`); failure falls back to the description.
 - 2026-10-07: `audio.yml` failed at the write guard ("changes outside the publish allowlist: .gitignore"): `vercel link` and `vercel env pull` edit `.gitignore` and write `.vercel`; run them in a scratch directory outside the checkout.
 - 2026-10-30: Hobby Blob allows 2,000 advanced ops a month (`put`, `copy`, `list`); over it the store is blocked. Ingest put once per story (D251): count a job's puts.
 - 2026-10-18: the 15-minute weekly aired 14 stories: the prefilter's fixed cap of 80 filled 27 of 52 slots and grounding dropped 11. `poolCapFor` now sizes it. Read a short episode's funnel from the stage lines first.
@@ -91,12 +91,13 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-14: on mobile Chrome a fixed element held by its bottom edge moves with the address bar in the same frame; one held by both edges (`inset: 0`) resizes only after the gesture (#120). Hold bottom-stack elements by the bottom edge; full-height boxes by `100dvh`.
 - 2026-10-11: Safari 27 has no `overlay`, so a closing dialog or popover leaves the top layer as its exit starts: give them their own `position` and a z-index, and close at once under `@supports not (overlay: auto)` where an ancestor has a transform.
 - 2026-11-01: re-opening a popover the browser closed (cardHold) sounded as close then open, three cues per long press: mark the hold (`data-hold-until`), skip its echoes.
-- 2026-10-11: the voice sample button never worked in production: Speechify's own URL is blocked by the page's `media-src`, and the error handler hid the button. Check a third-party media URL against the CSP, or use a same-origin route (`/api/voice-sample`).
+- 2026-10-11: the voice sample button played Speechify's own URL, which `media-src` blocks, and its error handler hid the button. Check the CSP for a third-party media URL, or use `/api/voice-sample`.
 - 2026-10-09: a move took 400 ms though the page was ready after 70: Astro 7 keeps only its own root attributes, so the mark that picks the animation (`data-astro-nav`) was lost. Carry it onto `event.newDocument` in `astro:before-swap`.
 - 2026-10-09: The first press after opening blocks about 200 ms with the audio device idle, 75 ms warm: `new AudioContext()` inside the press. `latencyHint` and `sampleRate` do not help (the first context created pays); reverse the order as the control.
 - 2026-10-31: a Play control marked `aria-disabled` never reacted: `disabledGuard.ts` swallows clicks on `[aria-disabled="true"]`, so a voice without a sample is marked `data-silent` instead.
 - 2026-11-01: Downloads showed as a gallery after a Library visit: `libraryPage.ts` kept its `astro:page-load` listener and matched Downloads' `[data-library]`. Name the page (`#main.library`); a test must reach it by click, not `goto`.
 - 2026-11-01: a `.manage` rule for the voice page also reached Preferences: a row declares its `--row-reach`.
+- 2026-11-03: servers off Vercel with the real `DATABASE_URL` stored their own 5xx as production faults (~180 a day per route); telemetry takes the URL via `telemetryDatabaseUrl`. Astro's SSR header replaces vercel.json's CSP, so `frame-ancestors` is added in `withFrameAncestors` (a meta tag ignores it).
 
 ## Build and tooling
 
@@ -139,7 +140,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-22: a worker lifted a rule a code comment tied to two dated owner asks (the release cap, #209) and logged it as a judgment call, and its bot review posted nothing. Before changing a rule whose comment cites the owner, ask.
 - 2026-10-22: another session's cleanup removed this worktree (no commits looks merged): commit a WIP early; remove only yours.
 - 2026-10-22: one `astro dev` per install, so a second worktree's is refused; never `--force` it (that kills the other): `PORT=47xx node e2e/run.mjs --serve-only`.
-- 2026-10-22: #160 merged without its review fixes: the commit carrying them was made on a detached HEAD, so `git push` said "Everything up-to-date" and another session merged the PR's older head. After a push, compare `git ls-remote origin <branch>` with `git rev-parse HEAD`.
+- 2026-10-22: #160 merged without its review fixes: they were on a detached HEAD, so `git push` said "Everything up-to-date". After a push, compare `git ls-remote origin <branch>` with `git rev-parse HEAD`.
 - 2026-10-16: a worktree's `node_modules` symlink was committed (the rule `node_modules/` matches directories only); merging it replaced the real `apps/web/node_modules`, as git overwrites ignored paths. The rule is now `node_modules`; after such a merge, run `npm ci`.
 - 2026-10-25: `scripts/worktreeLinks.mjs` found own packages by the literal scope `@dispatch`; #272 broke it. It reads `package.json` names now. Per package, never a scope (10-26).
 - 2026-10-14: squash-merged branches never pass `git branch -d`, and auto mode refuses `-D`. Match commit subjects against main's squash bodies, keep a bundle of the heads in `.git/`, and let the owner force delete.

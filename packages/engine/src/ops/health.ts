@@ -512,7 +512,7 @@ async function checkSite(
   } else if (home) {
     const missing = Object.entries(PAGE_HEADERS)
       .filter(([name, part]) => !(home.headers.get(name) ?? "").includes(part))
-      .map(([name]) => name);
+      .map(([name, part]) => (name === "content-security-policy" ? `${name} (${part})` : name));
     if (missing.length > 0) {
       sink.fault("site_headers", "security", `/ is missing ${missing.join(", ")}.`);
     } else {
