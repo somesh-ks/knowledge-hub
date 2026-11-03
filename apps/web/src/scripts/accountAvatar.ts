@@ -10,9 +10,16 @@
  * Nothing loops by itself. A state shows while it is true, a one-shot plays once, and an idle blink,
  * glance or wiggle comes every 20 to 40 seconds while the page is visible. avatar.css plays none of it
  * under reduced motion, so this does not schedule the idle ones then.
+ *
+ * A tap is a small, calm show on the face (D353, avatarFace.ts): a look round, a happy squint, a surprised
+ * o, a morph into another shape and back. The --av-plays token of the mood lists what it may do, and the hue says where in that
+ * list it starts, so each tap is the next one, never a repeat. A tap in the app bar goes to the profile,
+ * so the show waits there and plays on arrival. A tap during a show waits for it to end.
  */
-import { AVATAR_SHAPES, avatarMarkup, moodShapes } from "../design-system/avatar";
+import { AVATAR_SHAPES, avatarMarkup, moodShapes, tokenWords } from "../design-system/avatar";
 import { getPreferences } from "../player/core/preferences";
+import { playAct, rootStyle, stopAct, tokenMs } from "./avatarFace";
+import { morphPath, pickReaction } from "./avatarReactions";
 
 const SLOT = "[data-account]";
 const ONE_SHOT_MS = 1400;
@@ -49,8 +56,7 @@ function avatars(): HTMLElement[] {
   return [...document.querySelectorAll<HTMLElement>(`${SLOT} > *`)];
 }
 
-function draw(): void {
-  const id = currentShape();
+function show(id: string): void {
   const tone = AVATAR_SHAPES[id]?.tone;
   for (const avatar of avatars()) {
     if (avatar.dataset.shape !== id) {
@@ -61,6 +67,10 @@ function draw(): void {
     else avatar.removeAttribute("data-tone");
     avatar.closest(SLOT)?.setAttribute("data-ready", "");
   }
+}
+
+function draw(): void {
+  show(currentShape());
 }
 
 let frownTimer = 0;
@@ -91,7 +101,7 @@ function setState(): void {
   else if (!frownTimer) setFace(null);
 }
 
-function play(kind: string): void {
+function play(kind: string, ms = ONE_SHOT_MS): void {
   window.clearTimeout(playTimer);
   for (const avatar of avatars()) {
     avatar.removeAttribute("data-play");
@@ -101,7 +111,7 @@ function play(kind: string): void {
   }
   playTimer = window.setTimeout(() => {
     for (const avatar of avatars()) avatar.removeAttribute("data-play");
-  }, ONE_SHOT_MS);
+  }, ms);
 }
 
 function frown(): void {
@@ -112,6 +122,85 @@ function frown(): void {
     frownTimer = 0;
     setState();
   }, FROWN_MS);
+}
+
+let taps = 0;
+let busy = false;
+let queued = false;
+let arrivalGreeting = 0;
+let actTimers: number[] = [];
+
+/** Ends a show now (a new mood, a new page) and leaves the plain face. */
+function cancelAct(): void {
+  for (const timer of actTimers) window.clearTimeout(timer);
+  actTimers = [];
+  busy = false;
+  queued = false;
+  stopAct(avatars());
+}
+
+function later(ms: number, fn: () => void): void {
+  actTimers.push(window.setTimeout(fn, ms));
+}
+
+function hue(): number {
+  return Number.parseFloat(rootStyle("--hue-shift")) || 0;
+}
+
+/** A show is over: a tap that came while it ran plays the next show after a breath. */
+function finish(): void {
+  const again = queued;
+  cancelAct();
+  setState();
+  if (again) later(tokenMs("--duration-state"), react);
+}
+
+/**
+ * The show of one tap (avatarFace.ts): none offline or when the reader asked for calm. A tap during a
+ * show is kept (one, not a pile) and plays when it ends, so no show is cut off and none restarts cold.
+ */
+function react(): void {
+  if (calm.matches || document.documentElement.hasAttribute("data-offline")) return;
+  if (avatars().length === 0) return;
+  if (busy) {
+    queued = true;
+    return;
+  }
+  busy = true;
+  const kind = pickReaction(tokenWords(rootStyle("--av-plays")), hue(), taps);
+  const home = currentShape();
+  const [other] = morphPath(offeredShapes(), home, hue(), taps);
+  taps += 1;
+  const ms = playAct(kind, avatars, home, other === home ? undefined : other, show);
+  play(kind, ms);
+  later(ms, finish);
+}
+
+function onTap(event: MouseEvent): void {
+  const avatar = (event.target as Element | null)?.closest?.(`${SLOT} > *`);
+  if (!avatar?.querySelector("svg")) return;
+  if (!avatar.closest("a")) {
+    react();
+    return;
+  }
+  // The app bar holds the link to the profile: stay put on it, and elsewhere play on arrival.
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+  if (location.pathname === "/profile") {
+    react();
+    return;
+  }
+  window.clearTimeout(arrivalGreeting);
+  arrivalGreeting = window.setTimeout(() => {
+    arrivalGreeting = 0;
+  }, 2000);
+}
+
+/** Plays the greeting a tap in the app bar was waiting to give, once the profile has come in. */
+function greetOnArrival(): void {
+  if (!arrivalGreeting) return;
+  window.clearTimeout(arrivalGreeting);
+  arrivalGreeting = 0;
+  if (location.pathname === "/profile") window.setTimeout(react, 400);
 }
 
 let idleTimer = 0;
@@ -136,6 +225,7 @@ function scheduleIdle(): void {
 
 /** Turns a mood's name into the drawn shape on a page: also after the router swapped the document. */
 function sync(): void {
+  cancelAct();
   draw();
   setState();
 }
@@ -147,13 +237,21 @@ export function installAccountAvatar(): void {
   document.addEventListener("astro:page-load", sync);
   // A new mood changes the shapes; the other attributes change only what the avatar is doing.
   new MutationObserver((changes) => {
-    if (changes.some((change) => change.attributeName === "data-mood")) draw();
+    if (changes.some((change) => change.attributeName === "data-mood")) {
+      cancelAct();
+      draw();
+    }
     setState();
   }).observe(document.documentElement, {
     attributes: true,
     attributeFilter: ["data-mood", "data-offline", "data-run", "data-player-state"],
   });
-  getPreferences().subscribe(draw);
+  getPreferences().subscribe(() => {
+    cancelAct();
+    draw();
+  });
+  document.addEventListener("click", onTap);
+  document.addEventListener("astro:page-load", greetOnArrival);
   document.addEventListener("singularity:sound", (event) => {
     const cue = (event as CustomEvent<string>).detail;
     if (cue === "success") play("hop");
