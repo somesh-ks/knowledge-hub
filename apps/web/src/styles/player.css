@@ -1982,6 +1982,20 @@
   background: var(--color-accent-container-pressed);
 }
 
+/* A touch keeps the spoken turn's fill: the tap's :active outlasts its click, so a turn the tap had just
+   made current showed the press step and eased back (owner, 2026-11-03; see .tab in primitives.css). */
+@media (hover: none) {
+  .script-turn[aria-current="true"]:where(:not(:disabled, [aria-disabled="true"])):active {
+    background: var(--color-accent-container);
+  }
+
+  /* In the Stories list the turn has no fill of its own (above), so it keeps none. */
+  .story-list
+  .script-turn[aria-current="true"]:where(:not(:disabled, [aria-disabled="true"])):active {
+    background: transparent;
+  }
+}
+
 /* Said where a view has nothing to show, so a tab is never an empty page. */
 .player-empty {
   padding-block: var(--space-6);
