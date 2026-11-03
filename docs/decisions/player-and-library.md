@@ -395,7 +395,7 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Amends: D169 (the pill, the row menu, swipe left only), D277 (the list opens at the playing item).
 
 
-## D346: Played and Downloaded are marks, and the play button never says Played
+## D348: Played and Downloaded are marks, and the play button never says Played
 
 - Date: 2026-11-03.
 - Decision:
