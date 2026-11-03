@@ -22,7 +22,7 @@ What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D
 - The speed button reads a fixed five characters ("1.00x") so its label does not slide.
 - The speed opens a slider from 0.5x to 2x in steps of 0.05, in a modal dialog (under the pill on a phone, above it with a mouse), with presets 1x, 1.25x, 1.5x and 2x. Any step is remembered; Preferences has a Default speed row (D193).
 - The desktop bar's line has a notch at the playhead. Timeline markers are one small dot per story.
-- Under the scrubber: time played left, the length right, never a minus (D350). The bubble and the bar's times hold still: each sits over a hidden copy of its widest time; the bubble snaps to whole pixels.
+- Under the scrubber: time played left, the length right, never a minus (D350). The bubble and the bar's times hold still over a hidden copy of their widest time.
 - Space plays and pauses on briefing and episode pages once the bar is there, unless focus is in a field, menu, dialog or slider (`playerKeys.ts`, D126); the hero's three-dots menu does not take focus when it closes from a tap elsewhere (`heroMenu.ts`). The first Play on a page with no audio starts by itself.
 - The player's two views (below) are a tablist. The podcast page's section tabs at every width (D343), sticking under the status bar below 64rem. Switching keeps the scroll position.
 
@@ -45,7 +45,7 @@ What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D
 - Scenario: WHEN a refusal lands while the next file loads THEN it fails at that story's start; a press plays nothing of the story before it.
 - Scenario: WHEN offline and Play is pressed THEN the reason repeats and nothing loads.
 - A recording's position, whether it was heard to the end and which stories were heard (`singularity:resume:<id>`, `singularity:played:<id>`, `singularity:heard:<id>`) are read by one reader and shown the same on the hero chip, the floating Play, the Library's cards, the Earlier shelves and the story chips, for stored audio and for narration on Play (against the page's estimate) (D97).
-- A recording heard to its end says Played; a played chip reads Play again under the pointer (D78, D106).
+- Heard to its end, a recording shows Played in its subtitle, not on its card; the hero and floating Play never say it (D348).
 - Each story has like, dislike and "Stop hearing from" controls (see settings.md).
 
 ## Code

@@ -176,33 +176,19 @@
   display: none;
 }
 
-/* Heard to the end: the fill steps down to the tonal container, with the check, until it plays again. */
-.hero-actions > .chip[data-state="played"] {
-  background: var(--color-surface-container);
-}
-
-/* Downloaded, after the facts (owner, 2026-10-29): a filled check circle and the word. libraryMenu.ts
-   puts it in the facts line once the page is saved offline, so it takes no room before. */
-.hero-downloaded {
+/* Played and Downloaded, after the facts (owner, 2026-11-03): the Library card's own marks (a green check,
+   a blue download arrow; library.css) and the word. cardProgress.ts and libraryMenu.ts put them in the
+   facts line, so they take no room before. The play button never says Played; this is where it says so. */
+.hero-mark {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
 }
 
-.hero-downloaded .icon-glyph {
-  flex: none;
-  width: var(--size-icon-sm);
-  height: var(--size-icon-sm);
-  color: var(--color-accent);
-  /* Its ink starts a fraction of its box in (getBBox in the 256 grid: 24 of 256), so the dot sits as
-     far from the circle as from the words before it (owner, 2026-11-01). */
-  margin-inline-start: calc(var(--size-icon-sm) * -0.094);
-}
-
 /* The facts line's dot (primitives.css) is the first thing in this span, so the span's gap would
-   follow it and push the dot off the middle between "13 stories" and the check (owner, 2026-11-01).
-   The gap belongs between the check and the word only. */
-.hero-downloaded::before {
+   follow it and push the dot off the middle between "13 stories" and the mark (owner, 2026-11-01).
+   The gap belongs between the mark and the word only. */
+.hero-mark::before {
   margin-inline-end: calc(var(--space-2) * -1);
 }
 

@@ -1,0 +1,15 @@
+---
+import Icon from "../design-system/Icon.astro";
+---
+
+{/* The marks a page adds to the hero's facts line, as the Library's card does with its own
+     (CardMarks.astro): a green check and "Played" once it was heard to the end (cardProgress.ts), a blue
+     download arrow and "Downloaded" once it is saved offline (scripts/libraryMenu.ts). Both scripts copy
+     a template in and take it out again, so a page that is neither has nothing here. The templates are
+     no fact themselves. */}
+<template data-played-mark>
+  <span class="hero-mark hero-played"><span class="status-mark status-mark-played"><Icon name="check" /></span>Played</span>
+</template>
+<template data-downloaded-mark>
+  <span class="hero-mark hero-downloaded"><span class="status-mark status-mark-downloaded"><Icon name="arrowLineDown" /></span>Downloaded</span>
+</template>
