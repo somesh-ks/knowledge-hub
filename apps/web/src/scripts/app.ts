@@ -17,6 +17,7 @@ import { installPersistedMotion } from "./persistedMotion";
 import { installQueueEntry } from "./queueEntry";
 import { installRootState } from "./rootState";
 import { installStandIn } from "./standIn";
+import { installTapRecovery } from "./tapRecovery";
 import { installThemeColor } from "./themeColor";
 import { trackTyping } from "./typing";
 import { installUiSound } from "./uiSound";
@@ -32,6 +33,7 @@ installDisabledGuard();
 trackTyping();
 captureInstallPrompt();
 installNavigation();
+installTapRecovery();
 installPersistedMotion();
 // The saved Library view (list or gallery), set at every swap into it.
 installLibraryViewSwap();
