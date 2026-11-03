@@ -188,7 +188,7 @@ test.describe("theme", () => {
   }) => {
     await page.goto("/settings/appearance");
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
-    const hue = page.getByRole("slider", { name: "Hue" });
+    const hue = page.getByRole("slider", { name: "Color" });
     // Default is blue and has no hue to turn, so the row is not there.
     await expect(hue).toBeHidden();
     await page.getByRole("combobox", { name: "Mood" }).selectOption("expressive");
