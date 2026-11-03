@@ -49,7 +49,10 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     expect(await audio.count()).toBe(1);
   });
 
-  test("the plus on a suggested row adds it to the queue", async ({ player, page }) => {
+  test("the plus on a suggested row adds it to the queue, and Suggested stays under it", async ({
+    player,
+    page,
+  }) => {
     await player.open();
     await player.play();
     await player.openPlayer();
@@ -62,7 +65,12 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await expect
       .poll(() => page.evaluate(() => localStorage.getItem("singularity:queue")))
       .toContain("ep-20261007-1930");
-    await expect(player.dialog.getByText("Suggested", { exact: true })).toHaveCount(0);
+    // The section is always there (owner, 2026-11-03: it vanished at the first add): the added one has
+    // left it, and the rest stay to add.
+    await expect(player.dialog.getByText("Suggested", { exact: true })).toBeVisible();
+    await expect(
+      player.dialog.getByRole("button", { name: /^Add .* to the queue$/ }).first(),
+    ).toBeVisible();
   });
 
   // The queue is the listener's choice, so it does chain: a queued item that never started at the
@@ -94,10 +102,7 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await expect(transcript.locator("[data-turn]")).toHaveCount(1);
     // Up next is the other view: moved up by its row's handle and the arrow key, the briefing now comes first.
     await player.dialog.getByRole("tab", { name: "Up next" }).click();
-    await player.dialog
-      .getByRole("button", { name: /^Move / })
-      .nth(1)
-      .focus();
+    await player.dialog.getByRole("button", { name: /^Move .*, 2 of 2\./ }).focus();
     await page.keyboard.press("ArrowUp");
     // Back on Stories the open story is still the one being read.
     await player.dialog.getByRole("tab", { name: "Stories" }).click();
@@ -176,6 +181,18 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     const left = center(await player.boxOf(row("2026-10-05")));
     await finger.drag(line(left, { x: left.x - 300, y: left.y }, 6), 12);
     await expect.poll(queue).toBe('["ep-20261006-0900"]');
+    // The playing row's grip lifts it too (owner, 2026-11-03: a press there scrolled the page). Let go
+    // under the row below, it plays on at the head and the row it passed is skipped (D349).
+    const lead = player.dialog.locator('[data-state="current"]');
+    const leadId = await lead.getAttribute("data-queue-id");
+    const from = center(await player.boxOf(lead.locator(".player-queue-grip")));
+    const under = center(await player.boxOf(grip("ep-20261006-0900")));
+    await finger.drag(line(from, { x: from.x, y: under.y + 20 }, 12), 24);
+    await expect.poll(queue).toBeNull();
+    await expect(lead).toHaveAttribute("data-queue-id", leadId ?? "");
+    await expect(player.root).toHaveAttribute("data-player-state", "playing");
+    // The drop glides the row into its place first.
+    await expect.poll(() => lead.evaluate((el) => el.getAnimations().length)).toBe(0);
     // The row that plays is swiped away the same way: it leaves the list, and the audio plays on.
     const playing = player.dialog.locator('[data-state="current"] .player-queue-row');
     const here = center(await player.boxOf(playing));
@@ -295,9 +312,10 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     // Nothing sits above the playing row (owner, 2026-11-03): it heads the list, and what was passed is
     // not listed. The queue the list reads from holds nothing more to come.
     await expect(player.dialog.locator('[data-state="played"]')).toHaveCount(0);
-    await expect(
-      player.dialog.getByRole("list", { name: "Playing" }).locator("[data-queue-id]"),
-    ).toHaveAttribute("data-queue-id", "2026-10-05");
+    await expect(player.dialog.locator("[data-queue-id]").first()).toHaveAttribute(
+      "data-state",
+      "current",
+    );
     expect(await page.evaluate(() => localStorage.getItem("singularity:queue"))).toBeNull();
   });
 });

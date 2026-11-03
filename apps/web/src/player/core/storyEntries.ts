@@ -116,6 +116,12 @@ export function storyEntries(
   const named = new Set(sections.map((section) => section.slug));
   const orphans = [...known].filter((slug) => !named.has(slug));
   for (const slug of orphans) sections.push({ slug, title: "Stories" });
+  // Sections in the order the script reaches them, so the rows' start times only go up (D350).
+  if (spans) {
+    const first = (slug: string) =>
+      items.find((item) => item.section === slug)?.startSec ?? Number.POSITIVE_INFINITY;
+    sections.sort((a, b) => first(a.slug) - first(b.slug));
+  }
   return { timed: false, items, sections };
 }
 

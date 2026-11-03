@@ -43,7 +43,7 @@ export function useRowSwipe() {
       // The handle has presses of its own.
       if (
         (event.target as Element).closest(
-          ".player-queue-grip:not([data-still]), .player-queue-more, .player-queue-menu",
+          ".player-queue-grip, .player-queue-more, .player-queue-menu",
         )
       )
         return;

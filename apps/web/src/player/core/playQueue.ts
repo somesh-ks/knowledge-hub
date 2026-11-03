@@ -96,6 +96,11 @@ export interface PlayQueue {
   /** Moves a queued item to another place in the order. */
   move(from: number, to: number): void;
   /**
+   * The first `count` queued items are skipped: they join the played items and leave what is to
+   * come, while the current one plays on (the playing row dragged below them, D349).
+   */
+  skip(count: number): void;
+  /**
    * The item `id` has started. It becomes the current one and the list keeps its order: what was
    * current, and anything skipped to reach `id`, joins the played items; jumping back to a played
    * item puts the ones after it back to come. An item the list does not hold becomes current beside it.
@@ -270,6 +275,15 @@ export function createPlayQueue(options: {
       set(removeFromQueue(ids, id));
     },
     move: (from, to) => set(moveInQueue(ids, from, to)),
+    skip(count) {
+      const passed = ids.slice(0, Math.max(0, count));
+      if (passed.length === 0) return;
+      played = [...played.filter((entry) => !passed.includes(entry)), ...passed].slice(
+        -HISTORY_LIMIT,
+      );
+      persistHistory();
+      set(ids.slice(passed.length));
+    },
     started(id) {
       const next = startItem({ played, current, upcoming: ids }, id);
       const trimmed = next.played.slice(-HISTORY_LIMIT);

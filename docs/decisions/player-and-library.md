@@ -416,6 +416,21 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Cost: the hero chip loses its checked, tonal face and its "Play again" hover.
 - Amends: D78 and D106 (the Played chip), and the card marks of 2026-11-02.
 
+## D349: The playing row drags like any queued row; let go lower, it plays on and what it passed is skipped
+
+- Date: 2026-11-03 (owner: "I cannt seem to reorder podcasts with currently playing podcast ... sometimes it triggers the page scroll instead"; on the card he chose "Keeps playing where dropped")
+- Decision: the playing row is row 0 of the queue list (`QueueList` `lead`), with a real handle. Let go lower, it plays on and the queued rows it passed are skipped (`PlayQueue.skip`): they join what played and leave the list, so it heads Up next again. Down on its focused handle skips one. A queued row lifted to the top stops under it. The playing row keeps the swipe and the ⋮ of any row. Any held row carries the floating shadow and ticks (`detent`) as it is lifted and at each new place; let go, the rows glide from where they stood into place on the settle spring instead of snapping (owner: "make the drag and swap interaction smoother"), except with reduced motion and for keyboard moves.
+- Why: its handle only marked it (`pointer-events: none`), so a press there fell through to the page and scrolled it.
+- Rejected: the next row starts and the moved one waits; a playing row that cannot move.
+- Amends: D346 (the playing row's handle only marks it).
+
+## D350: The player's times read forward: time played, then the length; a chapter row shows where its story starts
+
+- Date: 2026-11-03 (owner: "progress time on left, total time on right. eg. 3:02 is the played time so far, 5:03 is the total length. avoid negative values to be shown"; "the timestamps are still weird on chapters/stories in the player ui. it should be sequential"; on the card he chose "Start time")
+- Decision: under the open player's scrubber the left clock is the time played and the right one the recording's whole length; no clock in the player shows time to go with a minus. The bar already read "0:02 / 0:36". Each chapter row shows where its story starts (0:00, 1:12, 3:40), not its length, and an episode placed by its script lists its sections in the order the script reaches them, so the times only go up.
+- Why: "-2:10" on the right read as a random number next to the bar's "played / length", and lengths down the chapter list (1:12, 0:45, 2:10) read as random times.
+- Amends: D85 (the page's "-2:10"; chapters listed with their lengths).
+
 ## D351: A story's Play button never says Played
 
 - Date: 2026-11-03 (owner: "no per story state, but have a play button for user to start at any point").
