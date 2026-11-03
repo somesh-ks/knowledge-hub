@@ -14,6 +14,7 @@
  *
  * With no playlist registered for a source, the adapter is a plain pass-through to the element.
  */
+import { clamp } from "../player/core/mathUtils";
 import type { AudioLike } from "../player/core/playerTypes";
 
 export interface TrackSegment {
@@ -95,10 +96,6 @@ type AudioEvent = (typeof FORWARDED)[number];
 
 function isFinitePositive(value: number): boolean {
   return Number.isFinite(value) && value > 0;
-}
-
-function clamp(value: number, low: number, high: number): number {
-  return Math.min(high, Math.max(low, value));
 }
 
 /** The segment that holds a moment of virtual time. The last segment also owns the very end. */

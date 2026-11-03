@@ -1,3 +1,4 @@
+import { isFieldRecord as isRecord } from "@singularity/core";
 import type { PodcastCreateResponse, PodcastRequest } from "../types/contracts";
 import { cancelTokenFor } from "./cancelToken";
 import { missingSettings, readServerConfig, secretsOf } from "./config";
@@ -63,10 +64,6 @@ const RUN_LOOKUP_DELAY_MS = 1500;
 
 const unavailable: PodcastResult = { status: 503, body: { status: 503, error: "unavailable" } };
 const invalid: PodcastResult = { status: 400, body: { status: 400, error: "invalid_request" } };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 
 /** One to MAX_TOPICS distinct section ids, or null. */
 function parseTopicIds(value: unknown): string[] | null {
