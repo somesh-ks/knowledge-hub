@@ -58,13 +58,14 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-12: Vercel's hourly cron cannot land on a half-hour slot (India, UTC+05:30). The route accepts a call whose UTC hour overlaps the slot, so a run can start up to 30 minutes early, and the gate dedupes it.
 - 2026-10-12: episode length: told a length in characters, a writer delivers a third to two-thirds; in words, per story and in total, 83 to 90%. A script is held to what its stories carry (D43). Asking for 90% gave 79 to 87% and doubled the writing: ask for 95%.
 - 2026-10-11: a missing briefing was GitHub, not the gate: the 07:13 entry ran 13:11 to 14:02 on 7 to 10 October. Before debugging a missed run, list `run.yml`'s schedule runs ("skipped" means no runner) and read the Gate log. Trigger now Vercel Cron (D61).
-- 2026-10-11: `singularity sources import` keeps an existing source's `enabled` and `options`, so a seed change reaches only new sources: write it into `config/sources.json` after (`--fresh` loses discovered feeds). Run `biome format` on it before linting.
-- 2026-10-11: a judge built with a fallback (Jev, then Nebius) shares the fallback's token budget with the writer, so work done for scores alone must use the primary judge alone: an outage would otherwise spend the briefing's budget on it.
+- 2026-10-11: `singularity sources import` keeps an existing source's `enabled` and `options`: write a seed change into `config/sources.json` after (`--fresh` loses discovered feeds). Run `biome format` on it.
+- 2026-10-11: a judge with a fallback (Jev, then Nebius) shares the fallback's token budget with the writer: score-only work uses the primary judge alone.
 - 2026-11-01: `content sync` mirrors a checkout and deletes what it lacks: safe only while git holds the content. Out of git, a job saves with `content push`, a diff against what it pulled.
 
 ## Site and service worker
 
-- 2026-11-02: offline showed a bare "You are offline" page and never recovered: the worker stood in for unopened pages, its script does not run again when the router swaps it in, and its reload fired on a premature `online` event. One connectivity state, recovery in the app script (D330).
+- 2026-11-02: offline showed a bare "You are offline" page for good: the worker stood in for unopened pages, its script does not rerun on a router swap, and its reload fired on a premature `online`. One connectivity state, recovery in the app script (D330).
+- 2026-11-03: the open player vanished at a system alert: a deploy waited and the hidden page reloaded (D202). `canReloadNow` now waits while `data-player="open"`.
 - 2026-11-02: `caches.match` walks the caches by age, so the install copy answered Latest offline. The router moved the address to a `#` link's own `#` before Try again ran: listen in capture.
 - 2026-11-02: a press rule before a hover rule of the same weight loses while the mouse is down; a control with no `:active` rule shows no press (Library view toggle). Press after hover; shoot rest, hover, press.
 - 2026-11-02: an opaque press fill on a bar's `::after` covers its content, which the old alpha hid. Use `z-index: var(--z-beneath)`.
