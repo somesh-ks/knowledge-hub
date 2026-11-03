@@ -175,6 +175,14 @@ test.describe("the chrome holds still on a move", () => {
   test("a slow swap does not take the pill back", async ({ page }) => {
     await openWarm(page);
     await page.evaluate(() => {
+      // The growth lasts seconds here, so a busy machine cannot let it run out before the swap: the
+      // test is about where the new pill starts, not how long it lasts.
+      // A constructed sheet, which the page's style policy allows and a swap leaves in place.
+      const slow = new CSSStyleSheet();
+      slow.replaceSync(
+        'html[data-nav-arrived] .app-nav-item[aria-current="page"] .app-nav-indicator::before { animation-duration: 5s !important; }',
+      );
+      document.adoptedStyleSheets = [...document.adoptedStyleSheets, slow];
       const w = window as unknown as { __pill: { before: number; after: number } };
       const started = (): number => {
         const pill = document.querySelector(
