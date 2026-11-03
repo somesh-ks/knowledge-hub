@@ -40,6 +40,16 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code 
 - Pipeline discipline: verify the core daily loop runs green in production before adding new intake types or audience matrices.
 - Vercel: the CLI is pinned. Read with `npm run vercel:list`, `vercel:inspect`, `vercel:logs`, `vercel:env-list`; a session never deploys or edits env.
 
+## Code
+
+The smallest complete change (from the Ponytail skill). First list every caller, test, fixture and config it must reach: that is scope, extra features are not. Then take the first option that fully works: skip it; reuse what the repo has, as it is used; the platform or an installed package (no new dependency for a few lines); one clear line; the minimum code.
+
+- No abstraction, wrapper, option, config or "for later" code nobody asked for. Deletion beats addition; keep the repo's structure.
+- Bug fix: grep every caller, then fix the root cause once in the shared code. Moved code keeps its validation and error handling.
+- A shortcut with a known limit gets `// shortcut: <the limit>, <when to upgrade>`.
+- Never cut validation at trust boundaries, data-loss guards, security or accessibility.
+- End the reply with what you skipped or did not check.
+
 ## Tests
 
 Few, one layer each, aimed at what fails silently ([evidence](docs/engineering/postmortem-test-suite.md)).

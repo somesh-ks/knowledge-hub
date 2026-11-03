@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 // Bytes. Read-first is what every session reads: AGENTS.md and state.md.
 export const BUDGETS = {
-  "AGENTS.md": 7_000,
+  "AGENTS.md": 8_000,
   "docs/state.md": 12_000,
   "docs/learnings.md": 25_000,
   "docs/specs/README.md": 4_000,
