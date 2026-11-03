@@ -39,6 +39,8 @@ export interface Preferences {
   rate: PlaybackRate;
   /** When an item ends with an empty queue, the next suggested one starts. On unless turned off. */
   autoplay: boolean;
+  /** The avatar's shape the reader picked (an id from design-system/avatar.ts); "" takes the mood's own. */
+  avatar: string;
 }
 
 export const DEFAULT_VOLUME = 0.8;
@@ -52,6 +54,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   volume: DEFAULT_VOLUME,
   rate: 1,
   autoplay: true,
+  avatar: "",
 };
 
 function isTheme(value: unknown): value is ThemePreference {
@@ -91,6 +94,8 @@ export function parsePreferences(raw: string | null): Preferences {
       : DEFAULT_PREFERENCES.volume,
     rate: isPlaybackRate(record.rate) ? record.rate : DEFAULT_PREFERENCES.rate,
     autoplay: typeof record.autoplay === "boolean" ? record.autoplay : DEFAULT_PREFERENCES.autoplay,
+    avatar:
+      typeof record.avatar === "string" && /^[a-z]{1,16}$/.test(record.avatar) ? record.avatar : "",
   };
 }
 

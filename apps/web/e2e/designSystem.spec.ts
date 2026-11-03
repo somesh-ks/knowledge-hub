@@ -297,7 +297,7 @@ test("a Menu's and a select's rows span the list, with no gap at the sides @desk
   });
   expect(Math.abs(menu.left) + Math.abs(menu.right), JSON.stringify(menu)).toBeLessThanOrEqual(2);
 
-  await page.goto("/settings");
+  await page.goto("/settings/appearance");
   const select = page.locator("#settings-theme");
   await select.click();
   const list = await select.evaluate((element) => {
@@ -337,6 +337,8 @@ test("a pressed or hovered control still shows its label @both", async ({ page }
         const onScreen = box.right > 0 && box.left < innerWidth && box.bottom + scrollY > 0;
         if (box.width < 8 || box.height < 8 || !onScreen || !painted || seen.has(kind)) continue;
         if (element.matches(':disabled, [aria-disabled="true"], [hidden]')) continue;
+        // The avatar is a picture drawn from tokens, not a label in the text colour.
+        if (element.querySelector(".avatar")) continue;
         if (getComputedStyle(element).visibility !== "visible") continue;
         seen.add(kind);
         element.dataset.pressProbe = String(found.length);

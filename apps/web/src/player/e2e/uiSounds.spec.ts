@@ -152,9 +152,9 @@ test.describe("interface cues by kind of action", () => {
     player,
     page,
   }) => {
-    await player.open("/settings/sounds");
+    await player.open("/settings/sound");
     await prime(page);
-    const sounds = page.getByRole("switch", { name: "Interface sounds", exact: true });
+    const sounds = page.getByRole("switch", { name: "Sounds", exact: true });
     await sounds.click();
     await expect(sounds).not.toBeChecked();
     // The switch sounds its own cue on the way off; the delegate stays out of its way.
@@ -203,7 +203,7 @@ test.describe("interface cues by kind of action", () => {
       })
       .toEqual(["open", "detent"]);
 
-    await page.goto("/settings/sounds");
+    await page.goto("/settings/haptics");
     await page.getByRole("switch", { name: "Haptics", exact: true }).uncheck();
     await page.reload();
     await expect(page.getByRole("switch", { name: "Haptics", exact: true })).not.toBeChecked();

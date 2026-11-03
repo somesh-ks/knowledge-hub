@@ -1,6 +1,7 @@
 ---
 import Icon from "../design-system/Icon.astro";
 import { getSite } from "../lib/site";
+import AccountSlot from "./AccountSlot.astro";
 import BrandMark from "./BrandMark.astro";
 
 interface Props {
@@ -31,6 +32,7 @@ const homeLabel =
       <BrandMark />
       <span>Singularity</span>
     </a>
+    <AccountSlot place="bar" />
   </div>
 </header>
 

@@ -1,0 +1,85 @@
+---
+import SheetHeader from "../components/SheetHeader.astro";
+import Avatar from "../design-system/Avatar.astro";
+import Button from "../design-system/Button.astro";
+import Icon from "../design-system/Icon.astro";
+import { menuBodyClass, menuListClass } from "../design-system/menu";
+import BaseLayout from "../layouts/BaseLayout.astro";
+// Linked before the layout's stylesheet, as the Settings pages do (settings.css).
+import "../styles/settings.css";
+import "../styles/profile.css";
+---
+
+<BaseLayout title="Profile" view="settings" nav={null} skipLabel="Skip to your profile">
+  <main id="main" tabindex="-1">
+    {/* Who the app is for: the avatar with a small edit button on its corner, a Log in button and the
+         two lists that are the reader's own. The shapes the mood offers open from the edit button in
+         a bottom sheet (profilePage.ts). Log in is a dummy until Google sign-in is built; it will put
+         the account photo in the avatar's place (D335). */}
+    <div class="settings-view profile" data-profile>
+      <h1 class="sr-only" id="page-title" tabindex="-1">Profile</h1>
+
+      <div class="profile-head">
+        <div class="profile-face" data-account>
+          <Avatar size="xl" />
+        </div>
+        {/* The edit button names the sheet it opens (popovertarget); data-hero-more is how the shared
+             menu script (heroMenu.ts) finds the button to return focus to and to place the sheet by. */}
+        <button
+          class="icon-btn icon-btn-tonal press profile-edit"
+          type="button"
+          aria-label="Change picture"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          popovertarget="profile-shapes"
+          data-hero-more
+          data-avatar-edit
+        >
+          <Icon name="pencilSimple" />
+        </button>
+
+        {/* The shapes this mood offers, in the menu's bottom sheet (menu.css): a phone's sheet with
+             its rounded top and Close, a popover under the button from 40rem. profilePage.ts fills
+             it; a pick closes it. */}
+        <div
+          class:list={[menuListClass(), "profile-picker"]}
+          id="profile-shapes"
+          popover
+          role="dialog"
+          aria-labelledby="profile-shapes-title"
+          data-avatar-panel
+        >
+          <SheetHeader title="Avatar" titleId="profile-shapes-title" close="data-menu-close" />
+          <div class={menuBodyClass()}>
+            <div class="profile-shapes" role="group" aria-label="Avatar shape" data-avatar-picker></div>
+          </div>
+        </div>
+      </div>
+
+      <Button variant="filled" class="profile-login" data-login>Log in</Button>
+
+      <section aria-label="Downloads and favorites">
+        <div class="rows card-group">
+          <a class="row-action" href="/settings/downloads">
+            <span class="settings-text">
+              <span class="settings-label">Downloads</span>
+            </span>
+            <Icon name="chevronRight" />
+          </a>
+          <a class="row-action" href="/settings/saved">
+            <span class="settings-text">
+              <span class="settings-label">Saved</span>
+            </span>
+            <Icon name="chevronRight" />
+          </a>
+        </div>
+      </section>
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { installProfilePage } from "../scripts/profilePage";
+
+  installProfilePage();
+</script>

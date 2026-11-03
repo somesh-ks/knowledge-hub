@@ -37,6 +37,7 @@ describe("parsePreferences", () => {
         volume: 4,
         rate: 1.5,
         autoplay: false,
+        avatar: "pebble",
       }),
     );
     expect(parsed).toEqual({
@@ -49,9 +50,16 @@ describe("parsePreferences", () => {
       volume: 1,
       rate: 1.5,
       autoplay: false,
+      avatar: "pebble",
     });
     const partial = parsePreferences(
-      JSON.stringify({ theme: "neon", style: "Halloween<script>", rate: 3, volume: "loud" }),
+      JSON.stringify({
+        theme: "neon",
+        style: "Halloween<script>",
+        rate: 3,
+        volume: "loud",
+        avatar: "<b>",
+      }),
     );
     expect(partial).toEqual(DEFAULT_PREFERENCES);
   });

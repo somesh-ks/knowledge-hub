@@ -398,31 +398,14 @@
     100% center;
 }
 
-/* Preferences keeps the settings rhythm (2026-10-27): the Podcast autoplay card 24px under the
-   title (.settings-head), the tabs' card one 24px step under it, as Daily's cards stand, and a card's
-   24px inset between the tabs and the first row. Its .settings-view is the switch's script hook, so
-   it gives up the page padding it has as a page. */
-.preferences-page > .settings-view {
-  padding-block: 0;
-}
-
+/* The Structure page keeps the settings rhythm (2026-10-27): its content 24px under the title
+   (.settings-head), as Daily's cards stand. */
 .preferences-page .topic {
   padding-block-start: 0;
 }
 
 .preferences-page .topic-panel {
-  margin-block-start: var(--space-6);
-}
-
-.preferences-page .topic-panel > .topic-view {
-  margin-block-end: var(--card-padding);
-}
-
-/* On the Preferences page a row has more air: 16px above and below, and 8px between the name and
-   its slider on a phone. */
-.preferences-page .topic .topic-weight {
-  row-gap: var(--space-2);
-  padding-block: var(--space-4);
+  margin-block-start: 0;
 }
 
 .topic-sources {
@@ -1767,10 +1750,13 @@ html:has(.source-filter[data-chips]) {
 
 /* ------------------------------------------------------------------ the podcast structure (D170) */
 
-/* Source types or Structure on the Preferences page, as a topic's page shows Sources or Preferences:
-   one pane at a time, read from ?view= (topicsPage.ts). */
-.preferences-page:not([data-view="structure"]) .pref-view-structure,
-.preferences-page[data-view="structure"] .pref-view-types {
+/* DEAD since D344 (2026-11-02): the app no longer edits the podcast structure, so nothing draws these
+   rules. They stay only so the rolling design-system PR can delete them with the generated system
+   file in one step; delete every selector from here to the weight-row note below. The removed page
+   set --row-anchor: --structure-add on its Add button, which is why the name appears here. */
+
+/* The Structure page's one pane shows once the page says so (data-view). */
+.preferences-page:not([data-view="structure"]) .pref-view-structure {
   display: none;
 }
 

@@ -119,6 +119,9 @@ function mountSettings(root: HTMLElement): () => void {
   const sounds = root.querySelector<HTMLInputElement>('input[name="sounds"]');
   const haptics = root.querySelector<HTMLInputElement>('input[name="haptics"]');
   const hapticsSection = root.querySelector<HTMLElement>("[data-haptics-section]");
+  // The index's Haptics row: hidden where the device has no motor, and it says On or Off.
+  const hapticsRow = root.querySelector<HTMLElement>("[data-haptics-row]");
+  const hapticsHint = root.querySelector<HTMLElement>("[data-haptics-hint]");
   const volume = root.querySelector<HTMLInputElement>('input[name="volume"]');
   const autoplay = root.querySelector<HTMLInputElement>('input[name="autoplay"]');
   const hint = root.querySelector<HTMLElement>("[data-install-hint]");
@@ -146,13 +149,15 @@ function mountSettings(root: HTMLElement): () => void {
     if (hue) {
       const turn = preferences.get().hue;
       hue.value = String(turn);
-      // A style is what has a hue to turn: Default stays blue, so the slider waits for one.
-      hue.disabled = !style || style.value === "default";
+      // A mood is what has a hue to turn: Default stays blue, so its row is not shown (D328; the
+      // stylesheet hides it from the root's data-style, which is absent for Default).
       hue.setAttribute("aria-valuetext", `${turn} degrees`);
-      hue.style.setProperty("--range-fill", `${(turn / HUE_MAX) * 100}%`);
+      // The field around the slider draws the swatch from this; WebKit has no filled-part pseudo-element.
+      (hue.parentElement ?? hue).style.setProperty("--range-fill", `${(turn / HUE_MAX) * 100}%`);
     }
     if (sounds) sounds.checked = state.sounds;
     if (haptics) haptics.checked = preferences.get().haptics;
+    if (hapticsHint) hapticsHint.textContent = preferences.get().haptics ? "On" : "Off";
     if (autoplay) autoplay.checked = preferences.get().autoplay;
     if (volume) {
       volume.value = state.volume;
@@ -247,6 +252,9 @@ function mountSettings(root: HTMLElement): () => void {
   if (style) style.inert = false;
   // Only a device that can answer is offered the choice (D273).
   if (hapticsSection) hapticsSection.hidden = getHaptics().support === "none";
+  const hapticsNone = root.querySelector<HTMLElement>("[data-haptics-none]");
+  if (hapticsNone) hapticsNone.hidden = getHaptics().support !== "none";
+  if (hapticsRow) hapticsRow.hidden = getHaptics().support === "none";
   root.dataset.ready = "true";
 
   // The Notifications row's state is the browser's (D284); its code loads only where the row is.

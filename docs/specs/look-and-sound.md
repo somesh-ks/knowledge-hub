@@ -24,7 +24,7 @@ Visual language, covers and the header light, empty states, interface sounds, st
 - Topic artwork generated from name and id (`packages/cover/src/topicArt.ts`).
 
 ### Empty states
-- Screens without content show one flat illustration, title, muted line, and one filled action (D96): Latest without briefing, empty Library, search/filter without result, offline/online transitions, 404, empty topic or Structure list.
+- Screens without content show one flat illustration, title, muted line, and one filled action (D96): Latest without briefing, empty Library, search/filter without result, offline/online transitions, 404, empty topic.
 - Art is inline SVG in `EmptyArt.astro`, styled via `empty.css` roles, `aria-hidden`, hidden in forced colors.
 - A style may draw its own scenes (D306): `EmptyArtHalloween.astro` sits beside the Default svg; `empty.css` shows the one the style names. Its scenes loop slowly unless motion is reduced; the cobweb takes no tap.
 

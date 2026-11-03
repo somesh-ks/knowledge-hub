@@ -1,0 +1,38 @@
+---
+import SettingsHead from "../../components/SettingsHead.astro";
+import Switch from "../../design-system/Switch.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import "../../styles/settings.css";
+
+const title = "Haptics";
+---
+
+<BaseLayout title={title} view="settings" skipLabel="Skip to the haptics settings">
+  <main id="main" tabindex="-1">
+    {/* Touch feedback (D273), kept in this browser: settingsPage.ts fills the switch in. Only a device
+         with a motor to ask is offered it (a desktop browser has none; neither has an iPhone before
+         iOS 18), so the section starts hidden and the script shows it there. */}
+    <div class="settings-view" data-settings>
+      <SettingsHead title={title} note="A small tap you feel as you use the app." />
+      <noscript>
+        <p class="settings-note">These settings need JavaScript, which is turned off in this browser.</p>
+      </noscript>
+      {/* Said on a device with no motor, so the page is never empty (settingsPage.ts). */}
+      <p class="settings-note" data-haptics-none hidden>This device cannot give touch feedback.</p>
+      <section data-haptics-section hidden>
+        <div class="rows card-group">
+          <div class="settings-row">
+            <label class="settings-label" for="settings-haptics">Haptics</label>
+            <Switch id="settings-haptics" name="haptics" />
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { installSettingsPage } from "../../scripts/settingsPage";
+
+  installSettingsPage();
+</script>
