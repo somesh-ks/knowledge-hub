@@ -10,6 +10,7 @@ import { installDisabledGuard } from "./disabledGuard";
 import { captureInstallPrompt } from "./installPrompt";
 import { installIslandWake } from "./islandWake";
 import { installKeepReady } from "./keepReady";
+import { installLibraryViewSwap } from "./libraryView";
 import { installNavigation } from "./navigation";
 import { installPersistedMotion } from "./persistedMotion";
 import { installQueueEntry } from "./queueEntry";
@@ -31,6 +32,8 @@ trackTyping();
 captureInstallPrompt();
 installNavigation();
 installPersistedMotion();
+// The saved Library view (list or gallery), set at every swap into it.
+installLibraryViewSwap();
 installRipple();
 installRootState();
 installCreateEntry();

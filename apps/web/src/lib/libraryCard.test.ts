@@ -26,7 +26,7 @@ const episodes = (...texts: string[]) =>
   buildEpisodeEntries(texts.map((text) => parseEpisodeFile(text)));
 
 describe("cardFacts", () => {
-  it("follows one pattern, kind then contents then length, for every podcast", () => {
+  it("follows one pattern, kind then story count, for every podcast, a Catch up included", () => {
     const entries = buildEntries([
       { digest: makeDigest({ id: "2026-10-04-weekly", kind: "weekly" }), timeline: null },
       { digest: makeDigest({ id: "2026-10-05" }), timeline: null },
@@ -37,12 +37,13 @@ describe("cardFacts", () => {
       return entry ? cardFacts(entry) : null;
     };
     expect(facts("weekly")).toMatchObject({
-      line: "Weekly \u00b7 4 stories \u00b7 4 min",
+      line: "Weekly \u00b7 4 stories",
       minutes: 4,
     });
-    expect(facts("regular")?.line).toBe("Daily \u00b7 4 stories \u00b7 4 min");
-    // A briefing made on request is a Catch up and follows an episode's pattern: kind, then length.
-    expect(facts("on-demand")?.line).toBe("Catch up \u00b7 4 min");
+    expect(facts("regular")?.line).toBe("Daily \u00b7 4 stories");
+    // A briefing made on request is a Catch up and says its stories like every other card (2026-11-02:
+    // it once said only its length). The length is not on the line.
+    expect(facts("on-demand")?.line).toBe("Catch up \u00b7 4 stories");
   });
 
   it("finds a podcast by its date in any form", () => {
@@ -67,10 +68,10 @@ describe("cardFacts", () => {
 });
 
 describe("episodeFacts", () => {
-  it("names the kind and the length on the quiet line, and keeps the format searchable", () => {
+  it("names the kind and the story count on the quiet line, and keeps the format searchable", () => {
     const [entry] = episodes(episodeText("ep-20261007-1930", "2026-10-07T17:30:00Z"));
     expect(entry && episodeFacts(entry)).toMatchObject({
-      line: "Catch up \u00b7 5 min",
+      line: "Catch up \u00b7 1 story",
       minutes: 5,
     });
     expect(entry && episodeFacts(entry).search).toContain("catch up episode Discussion");
@@ -78,7 +79,7 @@ describe("episodeFacts", () => {
       episodeText("ep-20261007-1930", "2026-10-07T17:30:00Z", "headlines"),
     );
     // Whatever the format, the card says Catch up; a stored headlines episode searches as a readout.
-    expect(headlines && episodeFacts(headlines).line).toBe("Catch up \u00b7 5 min");
+    expect(headlines && episodeFacts(headlines).line).toBe("Catch up \u00b7 1 story");
     expect(headlines && episodeFacts(headlines).search).toContain("catch up episode Readout");
   });
 

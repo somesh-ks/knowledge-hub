@@ -30,12 +30,12 @@ function storyLine(headline: string, source: string): string {
 
 /**
  * What a Library card says about one briefing, in the one pattern every card follows, kind then
- * contents then length: "Daily · 12 stories · 8 min". Search finds its date (in any form), its
- * title and kind, then each story.
+ * how many stories: "Daily · 12 stories", "Catch up · 5 stories". The length is not on the line
+ * (owner, 2026-11-02: it was heavy); it is on the page and in the sort. Search finds its date (in
+ * any form), its title and kind, then each story.
  */
 export function cardFacts(entry: DigestEntry): CardFacts {
   const { digest } = entry;
-  const length = listenLength(entry);
   const meta = [
     dateSearchLine(digest.date, longDate(digest.date)),
     entry.player.title,
@@ -47,17 +47,16 @@ export function cardFacts(entry: DigestEntry): CardFacts {
   const lines = [...meta];
   // One line per story, headline and publisher together, so a story counts once however it matches.
   for (const item of digest.items) lines.push(storyLine(item.headline, item.source));
-  const stories = digest.kind === "on-demand" ? undefined : storyCount(digest.items.length);
   return {
-    line: factsLine([briefingKindLabel(digest.kind), stories, length]),
-    minutes: Number.parseInt(length, 10) || digest.listen_minutes,
+    line: factsLine([briefingKindLabel(digest.kind), storyCount(digest.items.length)]),
+    minutes: Number.parseInt(listenLength(entry), 10) || digest.listen_minutes,
     search: lines.join("\n"),
     metaLines: meta.length,
   };
 }
 
 /**
- * What a Library card says about one episode, in the same pattern: "Catch up · 5 min". Its kind
+ * What a Library card says about one episode, in the same pattern: "Catch up · 5 stories". Its kind
  * says what it is, as a briefing's kind does, and the line stays short enough for the narrowest card
  * to hold it on one line. Search finds its date (in any form), its title, "catch up" and its format
  * (Readout, Discussion), then each story it covers.
@@ -73,7 +72,7 @@ export function episodeFacts(entry: EpisodeEntry): CardFacts {
   const lines = [...meta];
   for (const source of episode.sources) lines.push(storyLine(source.headline, source.source));
   return {
-    line: factsLine([CATCH_UP_LABEL, `${episode.listen_minutes} min`]),
+    line: factsLine([CATCH_UP_LABEL, storyCount(episode.sources.length)]),
     minutes: episode.listen_minutes,
     search: lines.join("\n"),
     metaLines: meta.length,
