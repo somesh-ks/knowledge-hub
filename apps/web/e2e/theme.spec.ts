@@ -128,6 +128,20 @@ test.describe("theme", () => {
     await expect(page.locator("html")).not.toHaveAttribute("data-style", /.*/);
   });
 
+  // Before D327 the choice was stored as `style`. The first-paint script and the Mood select must still
+  // read it, or every such device opens in Default.
+  test("a device that stored its mood under the old name keeps it, before first paint and in the select", async ({
+    page,
+  }) => {
+    await page.addInitScript(() =>
+      localStorage.setItem("singularity:preferences", JSON.stringify({ style: "expressive" })),
+    );
+    await page.goto("/settings/appearance");
+    await expect(page.locator("html")).toHaveAttribute("data-style", "expressive");
+    await expect(page.locator("html")).toHaveAttribute("data-mood", "expressive");
+    await expect(page.getByRole("combobox", { name: "Mood" })).toHaveValue("expressive");
+  });
+
   test("a style recolours the covers already on the page, with no cover fetched, and Default returns them", async ({
     page,
   }) => {
