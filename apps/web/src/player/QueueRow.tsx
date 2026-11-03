@@ -27,6 +27,15 @@ interface QueueRowProps {
   gestures: QueueGestures;
 }
 
+/** The bin that shows under a row being swiped away, on the side the row left (player.css). */
+export function QueueDeleteMark() {
+  return (
+    <span className="player-queue-delete" aria-hidden="true">
+      <Icon name="trash" />
+    </span>
+  );
+}
+
 /**
  * One queued item: its cover, its title and what it is. The row plays it now. The two bars at its end
  * are its only control (owner, 2026-11-02, after D169's dots): a press on them lifts the row to a new
@@ -45,6 +54,7 @@ export default function QueueRow({ id, index, count, gestures }: QueueRowProps) 
       onPointerUp={gestures.onPointerEnd}
       onPointerCancel={gestures.onPointerEnd}
     >
+      <QueueDeleteMark />
       <button
         className="player-queue-row"
         type="button"

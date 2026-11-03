@@ -1997,6 +1997,12 @@
   box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
 }
 
+/* Centred in the column (owner, 2026-11-03), where the page's strip starts at its edge. */
+.player-tabs-bar > .tabs {
+  justify-content: center;
+  padding-inline: 0;
+}
+
 .player-panel {
   display: flex;
   flex: 1 1 auto;
@@ -2560,6 +2566,36 @@
   transition: none;
 }
 
+/* Swiped, the whole row turns red and a bin shows where it came from (owner, 2026-11-03): the danger
+   colour with the surface's ink on it, and the row's own words and handle give way to the bin. */
+.player-queue-delete {
+  position: absolute;
+  inset-block: 0;
+  display: none;
+  align-items: center;
+  color: var(--color-surface);
+}
+
+.player-queue-item:is([data-swiping], [data-leaving]) {
+  background: var(--color-danger);
+}
+
+.player-queue-item:is([data-swiping], [data-leaving]) > .player-queue-delete {
+  display: flex;
+}
+
+.player-queue-item[data-swipe-dir="end"] > .player-queue-delete {
+  inset-inline-start: var(--space-4);
+}
+
+.player-queue-item[data-swipe-dir="start"] > .player-queue-delete {
+  inset-inline-end: var(--space-4);
+}
+
+.player-queue-item:is([data-swiping], [data-leaving]) > :not(.player-queue-delete) {
+  opacity: 0;
+}
+
 .player-queue-item[data-leaving] {
   opacity: 0;
 }
@@ -2603,6 +2639,12 @@
 
 .player-queue-item[data-dragging] .player-queue-grip {
   cursor: grabbing;
+}
+
+/* The playing row's two bars only mark where the handle would stand. */
+.player-queue-grip[data-still] {
+  cursor: default;
+  pointer-events: none;
 }
 
 /* Suggested (2026-10-26): with nothing queued, Up next lists what Autoplay would play, in the

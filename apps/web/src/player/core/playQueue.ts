@@ -254,6 +254,13 @@ export function createPlayQueue(options: {
       return ids.length > before;
     },
     remove(id) {
+      // The item playing now leaves the list and plays on: nothing is queued behind it for it.
+      if (id === current) {
+        current = null;
+        persistHistory();
+        tell();
+        return;
+      }
       if (played.includes(id)) {
         played = played.filter((entry) => entry !== id);
         persistHistory();

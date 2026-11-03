@@ -1,5 +1,6 @@
 import {
   type PointerEvent as ReactPointerEvent,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -250,7 +251,7 @@ function useDockSwipe({ next, previous, shownId }: DockSwipeTargets) {
 
   // A switch is whole when the podcast it asked for is the one the bar shows: the old words are
   // gone and the new ones come in from the far side.
-  const finish = (): void => {
+  const finish = useCallback((): void => {
     const target = button.current;
     const pending = waiting.current;
     waiting.current = null;
@@ -259,10 +260,10 @@ function useDockSwipe({ next, previous, shownId }: DockSwipeTargets) {
     target.style.removeProperty("--dock-swipe");
     delete target.dataset.swipeOut;
     window.setTimeout(() => delete target.dataset.swipeIn, 300);
-  };
+  }, []);
   useEffect(() => {
     if (waiting.current && waiting.current.id === shownId) finish();
-  }, [shownId]);
+  }, [shownId, finish]);
 
   return {
     swiped: () => performance.now() < swipedUntil.current,

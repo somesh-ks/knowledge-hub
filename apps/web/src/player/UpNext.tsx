@@ -4,8 +4,10 @@ import { getPlayQueue, loadSuggested, playQueueItem } from "./core/playerRuntime
 import { usePlayerState } from "./hooks/usePlayer";
 import { useQueueMeta, useQueueView } from "./hooks/useQueue";
 import QueueList from "./QueueList";
+import { QueueDeleteMark } from "./QueueRow";
 import Icon from "./ui/LazyIcon";
 import PlayerCover from "./ui/PlayerCover";
+import { useRowSwipe } from "./useRowSwipe";
 
 /**
  * The suggested items after what is playing, the list Autoplay draws from (core/suggested.ts).
@@ -73,6 +75,7 @@ function PassedRow({ id, state }: { id: string; state: "played" | "current" }) {
     if (lastCurrent !== id && lastCurrent !== null) ref.current?.scrollIntoView({ block: "start" });
     lastCurrent = id;
   }, [state, id]);
+  const swipe = useRowSwipe();
   return (
     <li
       className="player-queue-item"
@@ -80,8 +83,19 @@ function PassedRow({ id, state }: { id: string; state: "played" | "current" }) {
       data-state={state}
       aria-current={state === "current" ? "true" : undefined}
       ref={ref}
+      onPointerDown={(event) => swipe.onPointerDown(event, id)}
+      onPointerMove={swipe.onPointerMove}
+      onPointerUp={swipe.onPointerEnd}
+      onPointerCancel={swipe.onPointerEnd}
     >
-      <button className="player-queue-row" type="button" onClick={() => playQueueItem(id)}>
+      <QueueDeleteMark />
+      <button
+        className="player-queue-row"
+        type="button"
+        onClick={() => {
+          if (!swipe.swiped()) playQueueItem(id);
+        }}
+      >
         <span className="player-queue-thumb">
           {meta ? <PlayerCover cover={meta.cover} weekly={meta.weekly} size="thumb" /> : null}
         </span>
@@ -90,6 +104,13 @@ function PassedRow({ id, state }: { id: string; state: "played" | "current" }) {
           <span className="player-upnext-hint">{meta?.caption ?? " "}</span>
         </span>
       </button>
+      {state === "current" ? (
+        // The two bars stand in the playing row's place too, so its end lines up with the rows under
+        // it; the row that plays has nowhere to be moved to, so they only mark it (aria-hidden).
+        <span className="icon-btn player-queue-grip" data-still aria-hidden="true">
+          <Icon name="grip" />
+        </span>
+      ) : null}
     </li>
   );
 }

@@ -1,25 +1,9 @@
 import { useRef } from "react";
-import { swipeLeaves } from "../lib/swipeAway";
 import { announce } from "./core/announcerDom";
-import { createVelocityTracker, TAP_SLOP_PX } from "./core/gestureMath";
+import { TAP_SLOP_PX } from "./core/gestureMath";
 import { getPlayQueue } from "./core/playerRuntime";
 import QueueRow, { type QueueGestures } from "./QueueRow";
-
-/** How long a row slides out before the queue drops it: --duration-press-out and a frame. */
-const LEAVE_MS = 180;
-/** How long after a swipe the row's own click is not a play. */
-const SWIPE_CLICK_MS = 400;
-
-interface Press {
-  pointerId: number;
-  row: HTMLElement;
-  id: string;
-  x0: number;
-  y0: number;
-  dx: number;
-  /** Undecided, a sideways swipe of ours, or a press the browser owns (a scroll or a drag). */
-  mode: "idle" | "swipe" | "other";
-}
+import { useRowSwipe } from "./useRowSwipe";
 
 /** The edge of the scrolling column, within which a lifted row scrolls it, and the most it scrolls a frame. */
 const EDGE_PX = 56;
@@ -64,10 +48,8 @@ function scrollParent(node: HTMLElement): HTMLElement | null {
  */
 export default function QueueList({ ids }: { ids: readonly string[] }) {
   const listRef = useRef<HTMLUListElement>(null);
-  const press = useRef<Press | null>(null);
-  const swipedUntil = useRef(0);
+  const swipe = useRowSwipe();
   const lift = useRef<Lift | null>(null);
-  const tracker = useRef(createVelocityTracker());
 
   const rows = (): HTMLElement[] => [
     ...(listRef.current?.querySelectorAll<HTMLElement>(".player-queue-item") ?? []),
@@ -155,57 +137,10 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
   };
 
   const gestures: QueueGestures = {
-    onPointerDown(event, index) {
-      if (!event.isPrimary || event.button !== 0) return;
-      // The grip has presses of its own.
-      if ((event.target as Element).closest(".player-queue-grip")) return;
-      press.current = {
-        pointerId: event.pointerId,
-        row: event.currentTarget,
-        id: ids[index] ?? "",
-        x0: event.clientX,
-        y0: event.clientY,
-        dx: 0,
-        mode: "idle",
-      };
-      tracker.current.reset({ value: event.clientX, t: event.timeStamp });
-    },
-    onPointerMove(event) {
-      const current = press.current;
-      if (!current || current.pointerId !== event.pointerId) return;
-      const dx = event.clientX - current.x0;
-      const dy = event.clientY - current.y0;
-      tracker.current.push(event.clientX, event.timeStamp);
-      if (current.mode === "idle") {
-        if (Math.abs(dx) >= TAP_SLOP_PX && Math.abs(dx) > Math.abs(dy)) {
-          current.mode = "swipe";
-          current.row.setPointerCapture(event.pointerId);
-          current.row.dataset.swiping = "";
-        } else if (Math.abs(dy) >= TAP_SLOP_PX) current.mode = "other";
-      }
-      if (current.mode !== "swipe") return;
-      // Ours, not the player page's own pull.
-      event.stopPropagation();
-      current.dx = dx;
-      // Either side takes it away: the row goes where the finger goes.
-      current.row.style.translate = `${dx}px 0`;
-    },
-    onPointerEnd(event) {
-      const current = press.current;
-      if (!current || current.pointerId !== event.pointerId) return;
-      press.current = null;
-      if (current.mode !== "swipe") return;
-      event.stopPropagation();
-      const { row, dx, id } = current;
-      delete row.dataset.swiping;
-      swipedUntil.current = event.timeStamp + SWIPE_CLICK_MS;
-      if (swipeLeaves(dx, row.offsetWidth, tracker.current.velocity())) {
-        row.dataset.leaving = "";
-        row.style.translate = `${Math.sign(dx) * row.offsetWidth * 1.2}px 0`;
-        window.setTimeout(() => getPlayQueue().remove(id), LEAVE_MS);
-      } else row.style.translate = "";
-    },
-    swiped: () => performance.now() < swipedUntil.current,
+    onPointerDown: (event, index) => swipe.onPointerDown(event, ids[index] ?? ""),
+    onPointerMove: swipe.onPointerMove,
+    onPointerEnd: swipe.onPointerEnd,
+    swiped: swipe.swiped,
     onGripDown(event, index) {
       if (!event.isPrimary || (event.pointerType === "mouse" && event.button !== 0)) return;
       const row = event.currentTarget.closest<HTMLElement>(".player-queue-item");

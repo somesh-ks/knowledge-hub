@@ -37,7 +37,7 @@ export default function PlayerTabs<Value extends string>({
     document.getElementById(`${idBase}-tab-${next.value}`)?.focus();
   }
   return (
-    <div className="tabs tabs-in-card" role="tablist" aria-label={label} onKeyDown={onKeyDown}>
+    <div className="tabs" role="tablist" aria-label={label} onKeyDown={onKeyDown}>
       {tabs.map((tab) => (
         <button
           key={tab.value}

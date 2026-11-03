@@ -158,6 +158,11 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     const left = center(await player.boxOf(row("2026-10-05")));
     await finger.drag(line(left, { x: left.x - 300, y: left.y }, 6), 12);
     await expect.poll(queue).toBe('["ep-20261006-0900"]');
+    // The row that plays is swiped away the same way: it leaves the list, and the audio plays on.
+    const playing = player.dialog.locator('[data-state="current"] .player-queue-row');
+    const here = center(await player.boxOf(playing));
+    await finger.drag(line(here, { x: here.x + 300, y: here.y }, 6), 12);
+    await expect(player.dialog.locator('[data-state="current"]')).toHaveCount(0);
   });
 
   test("switching between Stories and Up next keeps where the page was scrolled", async ({
