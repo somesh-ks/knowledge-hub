@@ -737,6 +737,11 @@
   --text-display-weight: var(--font-weight-bold);
   --text-display-tracking: -0.03em;
   --text-display-leading: 1.05;
+  --text-heading-family: var(--font-ui);
+  --text-heading-size: var(--font-size-section);
+  --text-heading-weight: var(--font-weight-semibold);
+  --text-heading-tracking: var(--font-tracking-label-lg);
+  --text-heading-leading: var(--font-leading-label);
   --cover-radius-hero: 2.5rem;
   --cover-radius-large: 2.5rem;
   --cover-radius-thumb: 1rem;
