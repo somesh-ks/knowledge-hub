@@ -125,7 +125,13 @@ test("a swipe on the bar switches the podcast; a short one does not and opens no
   expect(await playing()).toBe(first);
   await player.collapsed();
   // Left is the next queued podcast; right brings the one before back.
-  await finger.drag(line(spot, { x: spot.x - 160, y: spot.y }, 4), 8);
+  // A thumb that has gone sideways and then wanders up, past 45 degrees, is still switching: the
+  // page is not pulled open under it.
+  const turn = { x: spot.x - 50, y: spot.y - 5 };
+  await finger.drag(
+    [...line(spot, turn, 4), ...line(turn, { x: spot.x - 180, y: spot.y - 190 }, 6)],
+    30,
+  );
   await expect.poll(playing, { timeout: 10_000 }).toBe("2026-10-05");
   await player.collapsed();
   await finger.drag(line(spot, { x: spot.x + 160, y: spot.y }, 4), 8);
