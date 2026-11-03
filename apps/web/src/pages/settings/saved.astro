@@ -27,14 +27,14 @@ const { entries, episodes } = await getSite();
 const items = libraryItems(entries, episodes);
 ---
 
-<BaseLayout title="Saved" view="settings" skipLabel="Skip to saved">
+<BaseLayout title="Favorites" view="settings" skipLabel="Skip to favorites">
   <main id="main" tabindex="-1">
     {/* What this device saved from a player's menu. Which items are saved is only known here, in
          localStorage, so the page carries every Library row (the same cards, in the List view) and
          savedPage.ts shows the saved ones, newest first. Each row has the Library's hover Play and
-         its menu, cut to Add to queue, Share and Remove from Saved. */}
+         its menu, cut to Add to queue, Share and Remove from Favorites. */}
     <div class="manage saved" data-saved-page>
-      <SettingsHead up={{ href: "/profile", label: "Profile" }} title="Saved" note="Kept on this device to come back to." />
+      <SettingsHead up={{ href: "/profile", label: "Profile" }} title="Favorites" note="Kept on this device to come back to." />
       <noscript>
         <p class="manage-note">The list of saved podcasts needs JavaScript, which is turned off in this browser.</p>
       </noscript>

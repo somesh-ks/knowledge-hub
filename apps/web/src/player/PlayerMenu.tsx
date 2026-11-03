@@ -310,7 +310,7 @@ export default function PlayerMenu() {
                     onClick={save}
                   >
                     <Icon name={marks.saved ? "bookmark" : "bookmarkOutline"} />
-                    {marks.saved ? "Saved" : "Save"}
+                    {marks.saved ? "Favorited" : "Favorite"}
                   </button>
                 </>
               ) : (
@@ -343,7 +343,7 @@ export default function PlayerMenu() {
                     onClick={save}
                   >
                     <Icon name={marks.saved ? "bookmark" : "bookmarkOutline"} />
-                    {marks.saved ? "Saved" : "Save"}
+                    {marks.saved ? "Favorited" : "Favorite"}
                   </button>
                 </div>
               )}

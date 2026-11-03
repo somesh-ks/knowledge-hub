@@ -121,7 +121,7 @@ async function onPick(item: HTMLElement): Promise<void> {
       return;
     }
     case "unsave":
-      // Settings > Saved: the page hears the change (singularity:saved) and drops the row.
+      // Settings > Favorites: the page hears the change (singularity:saved) and drops the row.
       if (setSaved(deviceStorage(), id, false)) toast("Removed from Saved");
       else toast("Couldn't remove it from Saved", "error");
       return;

@@ -166,7 +166,7 @@ test.describe("service worker", () => {
         .toEqual(expect.arrayContaining(["/settings/saved", "/settings/downloads", "/library"]));
       await context.setOffline(true);
       for (const [path, heading] of [
-        ["/settings/saved", "Saved"],
+        ["/settings/saved", "Favorites"],
         ["/settings/downloads", "Downloads"],
       ] as const) {
         await page.goto(path);
