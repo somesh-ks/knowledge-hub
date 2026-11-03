@@ -2643,15 +2643,39 @@
   color: var(--color-on-surface-muted);
 }
 
+/* Under a mouse the row's two controls, the handle and the ⋮, wait until the pointer is over the row
+   (owner, 2026-11-03), and the handle takes the move cursor, the four-way cross. A phone keeps the
+   handle in view: it has no hover to show it. */
 @media (hover: hover) and (pointer: fine) {
-  .player-queue-more {
-    display: inline-flex;
+  .player-queue-more,
+  .player-queue-grip {
     opacity: 0;
     transition: opacity var(--duration-press-out) var(--ease-out);
   }
 
-  .player-queue-item:is(:hover, :focus-within, [data-menu-open]) > .player-queue-more {
+  .player-queue-more {
+    display: inline-flex;
+  }
+
+  .player-queue-grip:not([data-still]) {
+    cursor: move;
+  }
+
+  .player-queue-item:is(:hover, :focus-within, [data-menu-open], [data-dragging])
+    > :is(.player-queue-more, .player-queue-grip) {
     opacity: 1;
+  }
+}
+
+/* Each row names its own dots (--queue-anchor, QueueRowMenu.tsx), so its menu hangs under them and not
+   under the last row's. */
+@supports (top: anchor(bottom)) {
+  .player-queue-more {
+    anchor-name: var(--queue-anchor);
+  }
+
+  .player-queue-item .player-queue-menu {
+    position-anchor: var(--queue-anchor);
   }
 }
 

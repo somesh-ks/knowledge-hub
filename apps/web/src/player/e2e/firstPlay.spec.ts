@@ -167,7 +167,7 @@ test.describe("the first press of Play on a page with no audio yet", () => {
 
   // A mouse has no swipe to remove with (owner, 2026-11-03): the row shows a ⋮ on hover whose menu takes
   // it off, beside Go to podcast, Share and Download.
-  test("a queued row shows its ⋮ under the mouse, and Remove from queue takes the row off @desktop", async ({
+  test("a queued row shows its handle and ⋮ only under the mouse, and Remove from queue takes the row off @desktop", async ({
     player,
     page,
   }) => {
@@ -181,9 +181,13 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await player.dialog.getByRole("tab", { name: "Up next" }).click();
     const row = player.dialog.locator('[data-queue-id="ep-20261006-0900"]');
     const dots = row.locator(".player-queue-more");
+    const grip = row.locator(".player-queue-grip");
     await expect(dots).toHaveCSS("opacity", "0");
+    await expect(grip).toHaveCSS("opacity", "0");
     await row.hover();
     await expect(dots).toHaveCSS("opacity", "1");
+    await expect(grip).toHaveCSS("opacity", "1");
+    await expect(grip).toHaveCSS("cursor", "move");
     await dots.click();
     const menu = player.dialog.getByRole("menu");
     for (const name of ["Go to podcast", "Share", "Download", "Remove from queue"])

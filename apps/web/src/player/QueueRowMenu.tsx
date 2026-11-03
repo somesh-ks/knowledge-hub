@@ -107,7 +107,7 @@ export default function QueueRowMenu({ id, title }: { id: string; title: string 
         popoverTarget={menuId}
         aria-haspopup="menu"
         aria-label={`More for ${title}`}
-        style={{ anchorName: anchor } as CSSProperties}
+        style={{ "--queue-anchor": anchor } as CSSProperties}
       >
         <Icon name="moreVert" />
       </button>
@@ -117,7 +117,7 @@ export default function QueueRowMenu({ id, title }: { id: string; title: string 
         popover="auto"
         role="menu"
         aria-label={title}
-        style={{ positionAnchor: anchor } as CSSProperties}
+        style={{ "--queue-anchor": anchor } as CSSProperties}
         onToggle={onToggle}
         onKeyDown={onKeyDown}
       >
