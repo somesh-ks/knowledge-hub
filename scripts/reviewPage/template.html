@@ -1,0 +1,463 @@
+<title>@TITLE@</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<!--
+  The review page (docs/engineering/review-page.md). Built by scripts/reviewPage/build.mjs from a
+  review.json; do not edit a built index.html by hand. The app's own tokens, font and Button, Badge
+  and Banner rules are inlined at build time, so the page reads as the app.
+-->
+<style>
+@FONT_FACE@
+/*@TOKENS@*/
+/*@DS@*/
+
+/* The page: one reading column, the stills grid wider. Everything below reads the app's semantic
+   tokens only, so light, dark and the viewer's theme toggle all follow tokens.css. */
+html { background: var(--color-surface); }
+body {
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-body);
+  line-height: var(--font-leading-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 var(--space-16);
+  -webkit-font-smoothing: antialiased;
+}
+* { box-sizing: border-box; }
+button { font: inherit; border: 0; background: none; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+main { max-width: 1120px; margin: 0 auto; display: grid; gap: var(--space-8); }
+.measure { max-width: 680px; }
+
+/* Top bar: the PR, the version, and Copy notes when the page keeps its own notes. */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--color-surface); }
+.topbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  display: flex; align-items: center; gap: var(--space-2);
+  min-height: 56px; margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px))) calc(-1 * max(16px, env(safe-area-inset-right, 0px)));
+  padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px));
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-surface-container);
+}
+.topbar .pr { font-weight: var(--font-weight-medium); font-size: var(--font-size-label); color: var(--color-on-surface); text-decoration: none; display: inline-flex; gap: var(--space-1); align-items: center; }
+.topbar .pr:hover { color: var(--color-accent); }
+.topbar .spacer { flex: 1; }
+.topbar .button-text { white-space: nowrap; }
+
+/* Header */
+header.intro { display: grid; gap: var(--space-4); padding-top: var(--space-6); }
+.eyebrow { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+h1 { margin: 0; font-size: var(--font-size-display); line-height: var(--font-leading-display); font-weight: var(--font-weight-medium); text-wrap: balance; }
+.meta { margin: 0; color: var(--color-on-surface-muted); font-size: var(--font-size-meta); }
+.badge-label.is-accent { background: var(--color-accent-container); color: var(--color-on-accent-container); }
+.badge-label.is-new { background: var(--color-accent); color: var(--color-on-accent, var(--color-white)); }
+
+.panel { display: grid; gap: var(--space-2); }
+.panel h2 { margin: 0; font-size: var(--font-size-title); line-height: var(--font-leading-title); font-weight: var(--font-weight-medium); }
+.panel ul, .panel ol { margin: 0; padding-inline-start: 1.25em; display: grid; gap: var(--space-2); }
+.checks li::marker { color: var(--color-accent); font-weight: var(--font-weight-medium); }
+.checks .refs { display: inline-flex; flex-wrap: wrap; gap: var(--space-1); margin-inline-start: var(--space-1); vertical-align: baseline; }
+.ref {
+  display: inline-grid; place-items: center; min-width: 28px; height: 24px; padding-inline: var(--space-2);
+  border-radius: var(--radius-round); background: var(--color-surface-container); color: var(--color-on-surface);
+  font-size: var(--font-size-caption); font-weight: var(--font-weight-medium); font-variant-numeric: tabular-nums; text-decoration: none;
+}
+.ref:hover { background: var(--color-accent-container); color: var(--color-on-accent-container); }
+
+/* Filters: the app's pill shape; the picked one takes the accent container. */
+.filters { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); align-items: center; }
+.filter { display: inline-flex; gap: var(--space-1); padding: 2px; border-radius: var(--radius-round); background: var(--color-surface-container); }
+.filter button { min-height: 36px; padding-inline: var(--space-4); border-radius: var(--radius-round); font-size: var(--font-size-label); font-weight: var(--font-weight-medium); color: var(--color-on-surface-muted); }
+.filter button[aria-pressed="true"] { background: var(--color-accent-container); color: var(--color-on-accent-container); }
+.count { color: var(--color-on-surface-muted); font-size: var(--font-size-meta); }
+
+/* A change: its title, one line, then its stills. */
+section.change { display: grid; gap: var(--space-4); scroll-margin-top: 72px; }
+.change-head { display: grid; gap: var(--space-1); }
+.change-head h2 { margin: 0; font-size: var(--font-size-section); line-height: var(--font-leading-title); font-weight: var(--font-weight-medium); text-wrap: balance; display: flex; gap: var(--space-2); align-items: baseline; }
+.change-head .num { color: var(--color-on-surface-muted); font-variant-numeric: tabular-nums; }
+.change-head p { margin: 0; color: var(--color-on-surface-reading); }
+.grid { display: grid; gap: var(--space-6) var(--space-4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); align-items: start; }
+
+/* A still: number, picture, caption, labels. Its picture is the comment target. */
+figure.still { margin: 0; display: grid; gap: var(--space-2); min-width: 0; scroll-margin-top: 72px; }
+figure.still.is-wide { grid-column: 1 / -1; }
+figure.still[hidden] { display: none; }
+.media {
+  position: relative; border-radius: var(--radius-md); overflow: hidden;
+  background: var(--color-surface-sunken); box-shadow: 0 0 0 1px var(--color-surface-container);
+}
+.media img, .media video { display: block; width: 100%; height: auto; max-width: 100%; }
+figure.still.is-flash .media { box-shadow: 0 0 0 3px var(--color-accent); transition: box-shadow 200ms; }
+.still-no {
+  position: absolute; top: var(--space-2); left: var(--space-2);
+  display: grid; place-items: center; min-width: 32px; height: 32px; padding-inline: var(--space-2);
+  border-radius: var(--radius-round); background: var(--color-surface-inverse); color: var(--color-on-surface-inverse);
+  font-size: var(--font-size-label); font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums; pointer-events: none;
+}
+.zoom-btn {
+  position: absolute; top: var(--space-2); right: var(--space-2);
+  display: grid; place-items: center; width: var(--size-touch); height: var(--size-touch);
+  border-radius: var(--radius-round); background: var(--color-surface-raised); color: var(--color-on-surface);
+  box-shadow: 0 1px 3px oklch(0% 0 0 / 0.2);
+}
+html[data-comment-mode] .zoom-btn { display: none; }
+html[data-comment-mode] .media { cursor: crosshair; }
+figcaption { display: grid; gap: var(--space-2); }
+.cap { margin: 0; font-size: var(--font-size-meta); line-height: var(--font-leading-caption); color: var(--color-on-surface); }
+.tags { display: flex; flex-wrap: wrap; gap: var(--space-1); align-items: center; }
+.tags .spacer { flex: 1; }
+.comment-btn { min-height: 36px; padding-inline: var(--space-2) var(--space-4); }
+
+/* Page notes, used only where claude.ai comments are off: numbered pins on the picture. */
+.pin {
+  position: absolute; transform: translate(-50%, -50%);
+  display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--radius-round);
+  background: var(--color-accent); color: var(--color-white); font-size: var(--font-size-caption); font-weight: var(--font-weight-semibold);
+  box-shadow: 0 0 0 2px var(--color-surface-raised); pointer-events: none;
+}
+.notes { display: grid; gap: var(--space-2); }
+.note { display: grid; grid-template-columns: 28px 1fr auto; gap: var(--space-2); align-items: start; }
+.note .pin { position: static; transform: none; }
+.note textarea { width: 100%; min-height: 44px; resize: vertical; padding: var(--space-2) var(--space-4); border-radius: var(--radius-sm); border: 1px solid var(--color-surface-container); background: var(--color-surface-raised); color: var(--color-on-surface); font: inherit; font-size: var(--font-size-meta); }
+
+/* Earlier versions: one line each, closed. */
+details.history { border-top: 1px solid var(--color-surface-container); padding-top: var(--space-4); }
+details.history summary { cursor: pointer; font-weight: var(--font-weight-medium); min-height: var(--size-touch); display: flex; align-items: center; }
+details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; display: grid; gap: var(--space-2); color: var(--color-on-surface-reading); }
+
+/* The viewer: full screen, pinch or wheel to zoom, drag to move. */
+.viewer { position: fixed; inset: 0; z-index: 20; display: grid; grid-template-rows: auto minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); background: var(--color-surface); }
+.viewer[hidden] { display: none; }
+.viewer-bar {
+  display: flex; align-items: center; gap: var(--space-2); min-height: 56px;
+  padding: env(safe-area-inset-top, 0px) max(8px, env(safe-area-inset-right, 0px)) 0 max(8px, env(safe-area-inset-left, 0px));
+  border-bottom: 1px solid var(--color-surface-container);
+}
+.viewer-bar .title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--font-size-label); font-weight: var(--font-weight-medium); }
+.stage { position: relative; overflow: hidden; touch-action: none; background: var(--color-surface-sunken); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.stage img, .stage video { position: absolute; left: 0; top: 0; transform-origin: 0 0; max-width: none; user-select: none; -webkit-user-drag: none; }
+@media (prefers-reduced-motion: no-preference) { figure.still .media { transition: box-shadow 200ms; } }
+</style>
+
+<div class="topbar">
+  <a class="pr" id="pr-link" target="_blank" rel="noopener"></a>
+  <span class="badge-label is-accent" id="ver-badge"></span>
+  <span class="spacer"></span>
+  <button class="button-text" id="notes-copy" type="button" hidden>Copy notes</button>
+</div>
+
+<main>
+  <header class="intro measure">
+    <div class="eyebrow" id="eyebrow"></div>
+    <h1 id="title"></h1>
+    <p class="meta" id="meta"></p>
+    <div id="howto"></div>
+  </header>
+
+  <div class="measure panel" id="new-panel"></div>
+  <div class="measure panel" id="check-panel"></div>
+  <div class="filters" id="filters"></div>
+  <div id="changes" style="display:grid;gap:var(--space-12)"></div>
+  <details class="history measure" id="history" hidden><summary>Earlier versions</summary><ul></ul></details>
+</main>
+
+<div class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-label="Still viewer">
+  <div class="viewer-bar">
+    <button class="icon-btn" id="v-close" type="button" aria-label="Close">@ICON_close@</button>
+    <span class="title" id="v-title"></span>
+    <button class="icon-btn" id="v-prev" type="button" aria-label="Previous still">@ICON_chevronLeft@</button>
+    <button class="icon-btn" id="v-next" type="button" aria-label="Next still">@ICON_chevronRight@</button>
+  </div>
+  <div class="stage" id="stage"></div>
+</div>
+
+<script type="application/json" id="review-data">/*@DATA@*/</script>
+<script>
+(() => {
+  "use strict";
+  const R = JSON.parse(document.getElementById("review-data").textContent);
+  const ICON = { comment: `@ICON_pencilSimple@`, zoom: `@ICON_search@`, open: `@ICON_openInNew@`, info: `@ICON_info@` };
+  const $ = (s, el = document) => el.querySelector(s);
+  const h = (tag, attrs = {}, ...kids) => {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === "html") el.innerHTML = v; else if (k.startsWith("on")) el.addEventListener(k.slice(2), v); else el.setAttribute(k, v === true ? "" : v);
+    }
+    for (const kid of kids.flat()) if (kid != null) el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+    return el;
+  };
+  const ic = (svg) => { const t = document.createElement("template"); t.innerHTML = svg.trim(); return t.content.firstElementChild; };
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  };
+
+  /* ---- Number every still once, in page order. The number is what a comment names. */
+  const stills = [];
+  R.changes.forEach((c, ci) => c.stills.forEach((s) => { s.n = stills.length + 1; s.change = c; s.changeNo = ci + 1; stills.push(s); }));
+  const byId = new Map(stills.map((s) => [s.id, s]));
+  const tagLine = (s) => [s.tags?.device, s.tags?.browser, s.tags?.theme, s.tags?.mood, s.tags?.hue, s.tags?.state].filter(Boolean).join(" · ");
+  const label = (s) => `Still ${s.n} · ${tagLine(s)} · ${s.change.title}`.slice(0, 120);
+
+  /* ---- Header */
+  const pr = $("#pr-link");
+  pr.href = R.pr_url; pr.innerHTML = `#${R.pr} ${ICON.open}`; pr.setAttribute("aria-label", `Pull request ${R.pr} on GitHub`);
+  $("#ver-badge").textContent = `Version ${R.version}`;
+  $("#eyebrow").append(h("span", { class: "badge-label" }, R.area || "Review"), R.status === "changes" ? h("span", { class: "badge-label" }, "Changes coming") : h("span", { class: "badge-label is-accent" }, "Ready for your look"));
+  $("#title").textContent = R.title;
+  const when = new Date(R.updated);
+  const whenText = isNaN(when) ? R.updated : when.toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  $("#meta").textContent = `Version ${R.version} · updated ${whenText} · ${stills.length} ${stills.length === 1 ? "still" : "stills"}`;
+
+  const refs = (ids) => h("span", { class: "refs" }, (ids || []).map((id) => byId.get(id)).filter(Boolean).map((s) =>
+    h("a", { class: "ref", href: `#${s.id.replace(/\./g, "-")}`, "aria-label": `Still ${s.n}`, onclick: (e) => { e.preventDefault(); reveal(s); } }, String(s.n))));
+  if (R.new?.length) $("#new-panel").append(h("h2", {}, `New in version ${R.version}`), h("ul", {}, R.new.map((t) => h("li", {}, t))));
+  else $("#new-panel").remove();
+  if (R.check?.length) $("#check-panel").append(h("h2", {}, "Check these"), h("ol", { class: "checks" }, R.check.map((c) => h("li", {}, c.text, refs(c.stills)))));
+  else $("#check-panel").remove();
+  if (R.history?.length) {
+    const d = $("#history"); d.hidden = false;
+    $("ul", d).append(...R.history.map((v) => h("li", {}, h("strong", {}, `Version ${v.version}`), v.date ? ` (${v.date}): ` : ": ", v.summary)));
+  }
+
+  /* ---- Filters, built from the labels the stills carry. Only a label with two or more values gets one. */
+  const FILTERS = ["theme", "device", "mood", "hue"];
+  const picked = {};
+  const filterRow = $("#filters");
+  for (const key of FILTERS) {
+    const values = [...new Set(stills.map((s) => s.tags?.[key]).filter(Boolean))];
+    if (values.length < 2) continue;
+    picked[key] = "All";
+    const group = h("div", { class: "filter", role: "group", "aria-label": key });
+    for (const v of ["All", ...values]) group.append(h("button", { type: "button", "aria-pressed": v === "All" ? "true" : "false", onclick: (e) => {
+      picked[key] = v; [...group.children].forEach((b) => b.setAttribute("aria-pressed", b === e.currentTarget ? "true" : "false")); applyFilters();
+    } }, v));
+    filterRow.append(group);
+  }
+  const countEl = h("span", { class: "count" });
+  if (filterRow.children.length) filterRow.append(countEl); else filterRow.remove();
+  const visible = (s) => Object.entries(picked).every(([k, v]) => v === "All" || !s.tags?.[k] || s.tags[k] === v);
+  function applyFilters() {
+    let shown = 0;
+    for (const s of stills) { s.fig.hidden = !visible(s); if (!s.fig.hidden) shown++; }
+    for (const c of R.changes) c.section.hidden = c.stills.every((s) => s.fig.hidden);
+    countEl.textContent = `${shown} of ${stills.length} shown`;
+    report();
+  }
+
+  /* ---- Changes and stills */
+  const changesEl = $("#changes");
+  R.changes.forEach((c, ci) => {
+    const grid = h("div", { class: "grid" });
+    c.section = h("section", { class: "change", id: c.id, "aria-labelledby": `${c.id}-h` },
+      h("div", { class: "change-head measure" }, h("h2", { id: `${c.id}-h` }, h("span", { class: "num" }, `${ci + 1}`), c.title), c.what ? h("p", {}, c.what) : null),
+      grid);
+    for (const s of c.stills) {
+      const isVideo = /\.(mp4|webm)$/i.test(s.file);
+      const media = isVideo
+        ? h("video", { src: s.file, controls: true, muted: true, loop: true, playsinline: true, preload: "metadata", "aria-label": s.caption })
+        : h("img", { src: s.file, alt: s.caption, loading: "lazy", decoding: "async", width: s.width, height: s.height });
+      media.dataset.still = s.id;
+      if (!isVideo) media.addEventListener("load", report);
+      const isNew = s.new_in === R.version;
+      const tags = h("div", { class: "tags" },
+        isNew ? h("span", { class: "badge-label is-new" }, s.new_in === 1 ? "New" : `New in v${R.version}`) : h("span", { class: "badge-label" }, `Same since v${s.new_in}`),
+        s.kind === "clip" ? h("span", { class: "badge-label" }, "Clip") : null,
+        [s.tags?.device, s.tags?.browser, s.tags?.theme, s.tags?.mood, s.tags?.hue, s.tags?.state].filter(Boolean).map((t) => h("span", { class: "badge-label" }, t)),
+        h("span", { class: "spacer" }),
+        h("button", { class: "button-text comment-btn", type: "button", "data-comment": s.id, onclick: () => commentOn(s) }, ic(ICON.comment), "Comment"));
+      s.mediaBox = h("div", { class: "media" }, media,
+        h("span", { class: "still-no", "aria-hidden": "true" }, String(s.n)),
+        h("button", { class: "zoom-btn", type: "button", "aria-label": `Open still ${s.n} full screen`, html: ICON.zoom, onclick: () => openViewer(s) }));
+      s.media = media;
+      s.notesEl = h("div", { class: "notes" });
+      s.fig = h("figure", { class: `still${s.width > s.height ? " is-wide" : ""}`, id: s.id.replace(/\./g, "-") },
+        s.mediaBox, h("figcaption", {}, h("p", { class: "cap" }, h("strong", {}, `${s.n}. `), s.caption), tags), s.notesEl);
+      grid.append(s.fig);
+    }
+    changesEl.append(c.section);
+  });
+
+  function reveal(s) {
+    if (s.fig.hidden) { for (const k of Object.keys(picked)) picked[k] = "All"; filterRow.querySelectorAll(".filter").forEach((g) => [...g.children].forEach((b, i) => b.setAttribute("aria-pressed", i === 0 ? "true" : "false"))); applyFilters(); }
+    const smooth = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+    s.fig.scrollIntoView({ block: "center", behavior: smooth ? "smooth" : "auto" });
+    s.fig.classList.add("is-flash"); setTimeout(() => s.fig.classList.remove("is-flash"), 1200);
+    setTimeout(report, smooth ? 600 : 0);
+  }
+
+  /* ---- The viewer */
+  const viewer = $("#viewer"), stage = $("#stage");
+  let vs = null, vz = { k: 1, x: 0, y: 0, fit: 1 }, vEl = null;
+  const order = () => stills.filter((s) => !s.fig.hidden);
+  function openViewer(s) {
+    vs = s; viewer.hidden = false; document.documentElement.style.overflow = "hidden";
+    $("#v-title").textContent = `${s.n}. ${s.caption}`;
+    stage.replaceChildren();
+    vEl = s.media.cloneNode(true); vEl.removeAttribute("loading"); vEl.removeAttribute("width"); vEl.removeAttribute("height");
+    vEl.dataset.still = s.id; stage.append(vEl);
+    const fit = () => {
+      const w = s.width || vEl.naturalWidth || vEl.videoWidth || 1, hh = s.height || vEl.naturalHeight || vEl.videoHeight || 1;
+      vEl.style.width = `${w}px`; vEl.style.height = `${hh}px`;
+      const r = stage.getBoundingClientRect();
+      vz.fit = Math.min(r.width / w, r.height / hh);
+      vz.k = vz.fit; vz.x = (r.width - w * vz.k) / 2; vz.y = Math.max(0, (r.height - hh * vz.k) / 2); apply();
+    };
+    if (vEl.complete || vEl.tagName === "VIDEO") requestAnimationFrame(fit); else vEl.addEventListener("load", fit, { once: true });
+    $("#v-close").focus();
+  }
+  function closeViewer() { const s = vs; viewer.hidden = true; vs = null; vEl = null; document.documentElement.style.overflow = ""; report(); s?.mediaBox.querySelector(".zoom-btn")?.focus(); }
+  function step(d) { const o = order(); const i = o.indexOf(vs); if (i < 0) return; openViewer(o[(i + d + o.length) % o.length]); }
+  function apply() { if (vEl) vEl.style.transform = `translate(${vz.x}px, ${vz.y}px) scale(${vz.k})`; report(); }
+  function zoomAt(cx, cy, k) {
+    const r = stage.getBoundingClientRect(); const px = cx - r.left, py = cy - r.top;
+    k = Math.min(Math.max(k, vz.fit * 0.5), vz.fit * 8);
+    vz.x = px - ((px - vz.x) * k) / vz.k; vz.y = py - ((py - vz.y) * k) / vz.k; vz.k = k; apply();
+  }
+  $("#v-close").onclick = closeViewer; $("#v-prev").onclick = () => step(-1); $("#v-next").onclick = () => step(1);
+  addEventListener("keydown", (e) => { if (viewer.hidden) return; if (e.key === "Escape") closeViewer(); if (e.key === "ArrowLeft") step(-1); if (e.key === "ArrowRight") step(1); });
+  stage.addEventListener("wheel", (e) => { e.preventDefault(); zoomAt(e.clientX, e.clientY, vz.k * Math.exp(-e.deltaY * 0.002)); }, { passive: false });
+  const pts = new Map(); let pinch = null, lastTap = 0, moved = false;
+  stage.addEventListener("pointerdown", (e) => { if (commentMode) return; stage.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = false;
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), k: vz.k }; } });
+  stage.addEventListener("pointermove", (e) => {
+    const p = pts.get(e.pointerId); if (!p) return;
+    if (pts.size === 2 && pinch) { pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); const [a, b] = [...pts.values()];
+      zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, pinch.k * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d); moved = true; return; }
+    vz.x += e.clientX - p.x; vz.y += e.clientY - p.y; if (Math.abs(e.clientX - p.x) + Math.abs(e.clientY - p.y) > 2) moved = true;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); apply();
+  });
+  const up = (e) => { pts.delete(e.pointerId); if (pts.size < 2) pinch = null;
+    if (e.type === "pointerup" && !moved && pts.size === 0) { const t = Date.now(); if (t - lastTap < 300) zoomAt(e.clientX, e.clientY, vz.k > vz.fit * 1.2 ? vz.fit : vz.fit * 2.5); lastTap = t; } };
+  stage.addEventListener("pointerup", up); stage.addEventListener("pointercancel", up);
+
+  /* ---- Comments.
+     claude.ai comments first: a pin dropped on a still is a thread on this page, named by the still and
+     its spot in percent ("queue-drag.phone-light@42.0,18.5"), so it stays on that spot at any size and
+     in the viewer, and Send to Claude reaches the thread that owns the page. Where comments are off,
+     the page keeps its own numbered notes and copies them as text. */
+  let comments = null, ca = null, commentMode = false, threads = [];
+  const ANCHOR = /^([a-z0-9][a-z0-9.-]*)(?:@(\d+(?:\.\d+)?),(\d+(?:\.\d+)?))?$/;
+  const rectOf = (s) => {
+    if (vs) return vs === s && vEl ? vEl.getBoundingClientRect() : null;
+    if (s.fig.hidden) return null;
+    return s.media.getBoundingClientRect();
+  };
+  function pointFor(anchor) {
+    const m = ANCHOR.exec(anchor); if (!m) return null;
+    const s = byId.get(m[1]); if (!s) return null;
+    const r = rectOf(s); if (!r || !r.width) return null;
+    const x = m[2] == null ? r.right - 20 : r.left + (r.width * +m[2]) / 100;
+    const y = m[3] == null ? r.top + 20 : r.top + (r.height * +m[3]) / 100;
+    return { x: x + scrollX, y: y + scrollY };
+  }
+  let reportQueued = false;
+  function report() {
+    if (!ca || reportQueued) { renderLocalPins(); return; }
+    reportQueued = true;
+    requestAnimationFrame(() => { reportQueued = false; const map = {}; for (const t of threads) map[t.id] = pointFor(t.anchor); try { ca.placed(map); } catch {} });
+    renderLocalPins();
+  }
+  addEventListener("resize", report);
+  new ResizeObserver(report).observe(document.body);
+
+  function hitStill(target) { const m = target.closest?.("[data-still]"); return m ? byId.get(m.dataset.still) : null; }
+  function pct(el, e) { const r = el.getBoundingClientRect(); return [((e.clientX - r.left) / r.width) * 100, ((e.clientY - r.top) / r.height) * 100].map((v) => Math.min(100, Math.max(0, v)).toFixed(1)); }
+
+  async function commentOn(s) {
+    if (ca) {
+      const r = rectOf(s); if (!r) return;
+      try { await ca.compose(s.id, { x: r.right - 20 + scrollX, y: r.top + 20 + scrollY }, { label: label(s), detail: s.caption }); } catch (e) { console.warn("compose", e?.code); }
+      return;
+    }
+    if (comments) { try { await comments.openComposer({ element: s.media }); } catch (e) { console.warn("openComposer", e?.code); } return; }
+    localPinMode = s; s.mediaBox.style.cursor = "crosshair";
+    s.notesEl.prepend(h("p", { class: "meta", "data-hint": "" }, "Tap the spot on the picture to drop a numbered note."));
+  }
+
+  document.addEventListener("click", async (e) => {
+    if (!ca || !commentMode) return;
+    const s = hitStill(e.target);
+    e.preventDefault(); e.stopPropagation();
+    try {
+      if (s) { const [x, y] = pct(e.target.closest("[data-still]"), e); await ca.compose(`${s.id}@${x},${y}`, { x: e.pageX, y: e.pageY }, { label: `${label(s)} · at ${x}%, ${y}%`, detail: s.caption }); }
+      else { const el = e.target.closest("h1,h2,li,p,figure,section") || e.target; const [a, at] = ca.domAnchor(el, e); await ca.compose(a, at); }
+    } catch (err) { console.warn("compose", err?.code); }
+  }, true);
+
+  (async () => {
+    try { comments = await window.claude?.use?.("comments"); } catch { comments = null; }
+    if (comments) {
+      try {
+        ca = await comments.customAnchors({
+          mode(on) { commentMode = on; document.documentElement.toggleAttribute("data-comment-mode", on); if (!on) threads = []; report(); },
+          threads(list) { threads = list; report(); },
+          reveal(id) { const t = threads.find((x) => x.id === id); const m = t && ANCHOR.exec(t.anchor); const s = m && byId.get(m[1]); if (s) { if (vs && vs !== s) closeViewer(); if (!vs) reveal(s); } else report(); },
+          composing() {},
+        });
+        report();
+      } catch (e) { ca = null; }
+    } else {
+      setupLocalNotes();
+    }
+    $("#howto").append(howto());
+  })();
+
+  function howto() {
+    const text = ca || comments
+      ? "Turn on comments (the speech bubble at the top of this page), then tap the exact spot on any still. Or press Comment under a still. Send to Claude sends it to the thread that made this page."
+      : "Tap Comment under a still, then the spot on the picture, and type your note. Copy notes at the top gives you all of them to paste in the thread.";
+    return h("div", { class: "banner-notice", "data-tone": "info", role: "status" },
+      ic(ICON.info),
+      h("div", { class: "banner-text" }, h("p", { class: "banner-title" }, "How to comment"), h("p", { class: "banner-body" }, text)));
+  }
+
+  /* ---- Page notes (only when claude.ai comments are off) */
+  const NOTES_KEY = `review-notes:${R.pr}:v${R.version}`;
+  let notes = [], localPinMode = null;
+  function setupLocalNotes() {
+    notes = store.get(NOTES_KEY, []);
+    const copy = $("#notes-copy"); copy.hidden = false;
+    copy.onclick = async () => {
+      const text = notesText();
+      try { await navigator.clipboard.writeText(text); copy.textContent = "Copied"; setTimeout(() => (copy.textContent = "Copy notes"), 1500); }
+      catch { const ta = h("textarea", { style: "position:fixed;inset:auto 0 0;height:40vh;z-index:30" }); ta.value = text; document.body.append(ta); ta.select(); ta.addEventListener("blur", () => ta.remove()); }
+    };
+    for (const s of stills) s.mediaBox.addEventListener("click", (e) => {
+      if (localPinMode !== s || e.target.closest("button")) return;
+      const [x, y] = pct(s.media, e);
+      notes.push({ still: s.id, x: +x, y: +y, text: "" }); localPinMode = null; s.mediaBox.style.cursor = "";
+      s.notesEl.querySelector("[data-hint]")?.remove(); save(); renderNotes(); s.notesEl.querySelector("textarea:last-of-type")?.focus();
+    });
+    renderNotes();
+  }
+  function save() { store.set(NOTES_KEY, notes); }
+  function renderNotes() {
+    for (const s of stills) {
+      s.notesEl.querySelectorAll(".note").forEach((n) => n.remove());
+      notes.forEach((n, i) => {
+        if (n.still !== s.id) return;
+        const ta = h("textarea", { "aria-label": `Note ${i + 1}`, maxlength: "2000", id: `note-${i}` }); ta.value = n.text;
+        ta.addEventListener("input", () => { n.text = ta.value; save(); });
+        s.notesEl.append(h("div", { class: "note" }, h("span", { class: "pin" }, String(i + 1)), ta,
+          h("button", { class: "icon-btn", type: "button", "aria-label": `Remove note ${i + 1}`, html: `@ICON_close@`, onclick: () => { notes.splice(i, 1); save(); renderNotes(); } })));
+      });
+    }
+    renderLocalPins();
+  }
+  function renderLocalPins() {
+    document.querySelectorAll(".media > .pin").forEach((p) => p.remove());
+    notes.forEach((n, i) => { const s = byId.get(n.still); if (!s) return; s.mediaBox.append(h("span", { class: "pin", style: `left:${n.x}%;top:${n.y}%` }, String(i + 1))); });
+  }
+  function notesText() {
+    const lines = [`Review notes: PR #${R.pr}, version ${R.version}`];
+    notes.forEach((n, i) => { const s = byId.get(n.still); if (s && n.text.trim()) lines.push(`${i + 1}. Still ${s.n} (${tagLine(s)}, ${s.change.title}) at ${n.x}%, ${n.y}%: ${n.text.trim()}`); });
+    return lines.join("\n");
+  }
+
+  applyFilters();
+})();
+</script>
