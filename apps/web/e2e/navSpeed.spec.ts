@@ -314,25 +314,30 @@ test.describe("a touch on a tab shows at once and goes on across the move", () =
 
     await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [point] });
     await expect(tab).toHaveAttribute("data-ripple-pressed", "");
-    await expect(tab.locator(".ripple-wave")).toHaveCount(1);
-    // A wave drawn again from zero must not pass for one carried on: wait until this one has played.
+    // The wave is an animation on the document clock; the bar a move brings must carry on the same one.
+    // A count of milliseconds played, taken before the swap and set again after it, runs behind by the
+    // length of the swap (the wave plays on the compositor meanwhile) and the wave grows a second time
+    // (owner, 2026-11-03: "double ripple" on a tap).
     await expect
       .poll(() =>
-        tab
-          .locator(".ripple-wave")
-          .evaluate((wave) => Number(wave.getAnimations()[0]?.currentTime ?? Number.NaN)),
+        page.evaluate(
+          () =>
+            document
+              .querySelector('.app-nav-item[href="/library"] .ripple-wave')
+              ?.getAnimations()[0]?.startTime ?? null,
+        ),
       )
-      .toBeGreaterThan(0);
+      .not.toBeNull();
     await page.evaluate(() => {
       const wave = (): HTMLElement | null =>
         document.querySelector<HTMLElement>('.app-nav-item[href="/library"] .ripple-wave');
-      const played = (): number => Number(wave()?.getAnimations()[0]?.currentTime ?? Number.NaN);
+      const started = (): number => Number(wave()?.getAnimations()[0]?.startTime ?? Number.NaN);
       const origin = (): string => `${wave()?.style.left},${wave()?.style.top}`;
-      const run = { before: played(), after: Number.NaN, from: origin(), to: "" };
+      const run = { before: started(), after: Number.NaN, from: origin(), to: "" };
       Object.assign(window, { rippleRun: run });
       document.addEventListener(
         "astro:after-swap",
-        () => Object.assign(run, { after: played(), to: origin() }),
+        () => Object.assign(run, { after: started(), to: origin() }),
         { once: true },
       );
     });
@@ -348,7 +353,7 @@ test.describe("a touch on a tab shows at once and goes on across the move", () =
         ).rippleRun,
     );
     expect(run.after, "the new bar has no wave").not.toBeNaN();
-    expect(run.after, "the wave started again on the new page").toBeGreaterThanOrEqual(run.before);
+    expect(run.after, "the wave started again on the new page").toBeCloseTo(run.before, 0);
     expect(run.to, "the wave moved to another origin").toBe(run.from);
   });
 
