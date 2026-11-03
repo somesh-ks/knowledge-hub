@@ -1906,7 +1906,6 @@
         "--color-accent-container-high",
         "--color-accent-container-high-hover",
         "--color-accent-container-high-pressed",
-        "--color-border-hairline",
         "--color-on-accent-container-high",
         "--color-on-surface-disabled",
         "--color-surface",
