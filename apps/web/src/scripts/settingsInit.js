@@ -5,7 +5,10 @@ try {
   const stored = JSON.parse(localStorage.getItem("singularity:preferences") ?? "null");
   for (const [id, value] of [
     ["settings-theme", stored?.theme],
-    ["settings-mood", stored?.mood ?? stored?.style ?? "default"],
+    [
+      "settings-mood",
+      /^[a-z][a-z-]{0,23}$/.test(stored?.mood) ? stored.mood : (stored?.style ?? "default"),
+    ],
   ]) {
     const select = document.getElementById(id);
     if (select && [...select.options].some((option) => option.value === value)) {

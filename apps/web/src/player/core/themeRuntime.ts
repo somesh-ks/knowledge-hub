@@ -6,7 +6,7 @@ let stop: (() => void) | null = null;
 let applied: { theme: ThemePreference; mood: MoodPreference; hue: number } | null = null;
 
 /**
- * Keeps <html data-theme>, <html data-style> and the hue turn in step with the preferences. The first application is instant; later
+ * Keeps <html data-theme>, the mood's attribute (<html data-style>) and the hue turn in step with the preferences. The first application is instant; later
  * changes crossfade through a view transition. Both islands call this and share one subscription,
  * so the theme works with either of them mounted.
  */

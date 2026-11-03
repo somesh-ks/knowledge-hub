@@ -173,7 +173,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D310 | Expressive is loud: a violet world, larger controls | amends D268 |
 | D311 | D300 amended: the config snapshot lives in a Neon table, not a private Blob store | supersedes D300 (snapshot clause) |
 | D314 | Album art follows the style, drawn live from the month's colours | amends D110, D121; fulfils D306 |
-| D315 | The reader's hue turns a style's whole palette | amends D268, D310; amended by D328 |
+| D315 | The reader's hue turns a style's whole palette | amends D268, D310; amended by D327, D328 |
 | D316 | Vercel skew protection stays off in the web build | active |
 | D317 | A state is an explicit OKLCH colour, never an alpha | amends D72, D238; amended by D321 |
 | D318 | Pages stay at the edge until their content changes, purged by tag | active |
@@ -184,6 +184,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D324 | The Catch up script is written at medium effort | amends D181 |
 | D325 | List rows run edge to edge in the Menu, the select list and the picker | amends D275, D291 |
 | D326 | The Avatar is a design-system part: one flat shape, a face, two tones | active |
+| D327 | A style is called a mood in code and storage; the attribute and token group follow in the design-system PR | amends D268, D315 |
 | D328 | The hue slider paints the spectrum and shows the picked colour | amends D315 |
 | D329 | A Menu sheet over one safe row has no title and no Close | amends D291 |
 | D330 | One app-wide state model: route, connectivity, saved pages | amends D97, D98, D145, D202 |
@@ -203,6 +204,5 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D345 | Create's More options is a closed accordion at every width | amends D76 |
 | D346 | Swipe-to-delete is a red strip behind the row; the playing row heads Up next; a story's time runs to the next story | amends D343, D277 |
 | D347 | A step into a deeper page rises; a tab move takes a quarter second; a press draws one wave | amends D286, D341 |
-| D327 | A style is called a mood in code and storage; the attribute and token group follow in the design-system PR | amends D268, D315 |
 
 ---

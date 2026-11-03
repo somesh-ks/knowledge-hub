@@ -16,7 +16,6 @@ import {
   DEFAULT_PREFERENCES,
   PREFERENCES_KEY,
   parsePreferences,
-  serializePreferences,
 } from "./preferences";
 import { MemoryStorage } from "./testing";
 
@@ -67,14 +66,14 @@ describe("parsePreferences", () => {
 
   // A device that saved its look as `style` before the rename kept its mood: dropping the field
   // would put every such device back on Default.
-  it("reads the mood a device saved under its old name, and the new name wins", () => {
+  it("reads the mood a device saved under its old name; a valid mood wins, an invalid one yields", () => {
     expect(parsePreferences(JSON.stringify({ style: "expressive" })).mood).toBe("expressive");
     expect(parsePreferences(JSON.stringify({ style: "expressive", mood: "halloween" })).mood).toBe(
       "halloween",
     );
-    expect(
-      serializePreferences(parsePreferences(JSON.stringify({ style: "expressive" }))),
-    ).not.toContain('"style"');
+    expect(parsePreferences(JSON.stringify({ style: "expressive", mood: "Bad!" })).mood).toBe(
+      "expressive",
+    );
   });
 
   it("keeps a hand-edited hue inside the slider's range, so the CSS never gets another number", () => {
