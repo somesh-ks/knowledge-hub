@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { checkDocs } from "./docsCheck.mjs";
+import { checkChangelog, checkDocs, pullRequestTitle } from "./docsCheck.mjs";
 
 // The record drifts and nobody sees it: state grows into a log, an Index row loses its entry,
 // an open item never closes, a link points at a moved file. Each fixture breaks one of these.
@@ -195,5 +195,47 @@ describe("docs check", () => {
         }),
       ).fails,
     ).toEqual([expect.stringContaining('"superseded by D9" names a decision that does not exist')]);
+  });
+});
+
+// Bug: the change log stopped at 23 Oct while 390 pull requests merged, because its only rule was a
+// comment in the file (D355). A user-facing PR is held while the newest entry is over two days old.
+describe("change log freshness", () => {
+  const source = (date: string) => `export const CHANGELOG = [{ version: "1", date: "${date}" }];`;
+  const run = (title: string, newest: string, today = "2026-11-03") =>
+    checkChangelog({ source: source(newest), title, today });
+
+  it("holds a feat, fix or perf PR once the newest entry is over two days old", () => {
+    expect(run("fix(web): a thing", "2026-10-23")).toEqual([
+      expect.stringContaining("11 days old"),
+    ]);
+    expect(run("feat!: a thing", "2026-10-31")).toHaveLength(1);
+    expect(run("perf(web): a thing", "2026-10-31")).toHaveLength(1);
+  });
+
+  it("fails a future date and a missing log instead of passing them", () => {
+    expect(run("fix(web): a thing", "2027-11-03")).toEqual([
+      expect.stringContaining("after today"),
+    ]);
+    // Entries are dated in UTC; a local date one day ahead of UTC is not a typo.
+    expect(run("fix(web): a thing", "2026-11-04")).toEqual([]);
+    expect(checkChangelog({ source: "", title: "fix: a thing", today: "2026-11-03" })).toEqual([
+      expect.stringContaining("no entry with a date"),
+    ]);
+  });
+
+  it("lets a fresh log, and docs, chore, test and ci PRs, through", () => {
+    expect(run("fix(web): a thing", "2026-11-01")).toEqual([]);
+    expect(run("docs: a note", "2026-10-23")).toEqual([]);
+    expect(run("chore(deps): bump", "2026-10-23")).toEqual([]);
+    expect(run("", "2026-10-23")).toEqual([]);
+  });
+
+  // Bug it prevents: a wrong path into the event JSON reads no title, and the whole check passes in silence.
+  it("reads the title from the PR event file, or from PR_TITLE", () => {
+    const root = repo({ "event.json": JSON.stringify({ pull_request: { title: "fix(web): x" } }) });
+    expect(pullRequestTitle({ GITHUB_EVENT_PATH: join(root, "event.json") })).toBe("fix(web): x");
+    expect(pullRequestTitle({ PR_TITLE: "feat: y" })).toBe("feat: y");
+    expect(pullRequestTitle({})).toBe("");
   });
 });
