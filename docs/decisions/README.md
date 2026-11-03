@@ -203,5 +203,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D345 | Create's More options is a closed accordion at every width | amends D76 |
 | D346 | Swipe-to-delete is a red strip behind the row; the playing row heads Up next; a story's time runs to the next story | amends D343, D277 |
 | D347 | A step into a deeper page rises; a tab move takes a quarter second; a press draws one wave | amends D286, D341 |
+| D327 | A style is called a mood in code and storage; the attribute and token group follow in the design-system PR | amends D268, D315 |
 
 ---

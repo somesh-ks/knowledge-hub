@@ -16,6 +16,7 @@ import {
   DEFAULT_PREFERENCES,
   PREFERENCES_KEY,
   parsePreferences,
+  serializePreferences,
 } from "./preferences";
 import { MemoryStorage } from "./testing";
 
@@ -31,7 +32,7 @@ describe("parsePreferences", () => {
     const parsed = parsePreferences(
       JSON.stringify({
         theme: "dark",
-        style: "expressive",
+        mood: "expressive",
         hue: 47,
         sounds: false,
         volume: 4,
@@ -42,7 +43,7 @@ describe("parsePreferences", () => {
     );
     expect(parsed).toEqual({
       theme: "dark",
-      style: "expressive",
+      mood: "expressive",
       // A turn is kept to the slider's steps of 5.
       hue: 45,
       sounds: false,
@@ -55,13 +56,25 @@ describe("parsePreferences", () => {
     const partial = parsePreferences(
       JSON.stringify({
         theme: "neon",
-        style: "Halloween<script>",
+        mood: "Halloween<script>",
         rate: 3,
         volume: "loud",
         avatar: "<b>",
       }),
     );
     expect(partial).toEqual(DEFAULT_PREFERENCES);
+  });
+
+  // A device that saved its look as `style` before the rename kept its mood: dropping the field
+  // would put every such device back on Default.
+  it("reads the mood a device saved under its old name, and the new name wins", () => {
+    expect(parsePreferences(JSON.stringify({ style: "expressive" })).mood).toBe("expressive");
+    expect(parsePreferences(JSON.stringify({ style: "expressive", mood: "halloween" })).mood).toBe(
+      "halloween",
+    );
+    expect(
+      serializePreferences(parsePreferences(JSON.stringify({ style: "expressive" }))),
+    ).not.toContain('"style"');
   });
 
   it("keeps a hand-edited hue inside the slider's range, so the CSS never gets another number", () => {

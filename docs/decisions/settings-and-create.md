@@ -399,3 +399,13 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Revisit if: he wants control over what an episode holds again; then the editor comes back from git history (`structureEditor.ts`, `structureView.ts`, `structurePage.ts` before this change).
 - Also: D335 rejected a Sign in button with no sign-in behind it; the owner later asked for a dummy Log in button under the avatar on the profile page, until Google auth exists, so the profile has one.
 - Supersedes: D170, D182 and D191 on the app side. Amends: D335; D338's default-speed row sits on Preferences now, with its speed sheet.
+
+## D327: a style is called a mood in the app's code and storage; the attribute and token group follow in the design-system PR
+
+- Date: 2026-11-03 (the owner: "mood is a go"; the copy already said Mood since D268's picker became Appearance > Mood).
+- Decision: the app stores the choice as `mood` in the `singularity:preferences` object, reads an older device's `style` when `mood` is absent, and writes only `mood` from then on. Types, functions and the Settings select (`id="settings-mood"`, `name="mood"`) say mood. The root attribute `data-style` and the token group `styles` stay for now: they are design-system files (`tokens/`, `tokens.css`, `avatar.css`), so they change in the rolling design-system PR, in one move with the app code that sets the attribute.
+- Why: one word for one idea; the storage fallback means no device loses its choice.
+- Rejected: dropping `style` with no fallback (every device returns to Default); renaming the attribute here (the design-system gate bars it from an app PR).
+- Context changed: the owner named the picker Mood (D335).
+- Revisit if: a device keeps showing Default after the update; then check the fallback in `parsePreferences`.
+- Amends: D268, D315.

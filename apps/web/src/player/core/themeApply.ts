@@ -1,7 +1,7 @@
 import {
-  DEFAULT_STYLE,
+  DEFAULT_MOOD,
   getPreferences,
-  type StylePreference,
+  type MoodPreference,
   type ThemePreference,
 } from "./preferences";
 import { setRootAttribute, setRootProperty } from "./rootAttributes";
@@ -11,36 +11,36 @@ export function applyTheme(theme: ThemePreference): void {
   setRootAttribute("data-theme", theme === "system" ? null : theme);
 }
 
-/** `data-style` is absent for the default, so the base tokens apply. */
-export function applyStyle(style: StylePreference): void {
-  setRootAttribute("data-style", style === DEFAULT_STYLE ? null : style);
+/** `data-style` (the mood's attribute) is absent for the default, so the base tokens apply. */
+export function applyMood(mood: MoodPreference): void {
+  setRootAttribute("data-style", mood === DEFAULT_MOOD ? null : mood);
 }
 
 /**
- * The reader's turn of a style's hue (D315) is `--hue-shift` on the root: the style's colours, the
+ * The reader's turn of a mood's hue (D315) is `--hue-shift` on the root: the mood's colours, the
  * covers and the header light add it to their hue. Default has no hue to turn, so it carries none.
  */
-export function applyHue(style: StylePreference, hue: number): void {
-  setRootProperty("--hue-shift", style === DEFAULT_STYLE || hue === 0 ? null : String(hue));
+export function applyHue(mood: MoodPreference, hue: number): void {
+  setRootProperty("--hue-shift", mood === DEFAULT_MOOD || hue === 0 ? null : String(hue));
 }
 
 /** Counts theme changes, so only the last one clears the crossfade's mark. */
 let changes = 0;
 
 /**
- * A theme or style change crossfades through the View Transitions API where it exists (the retired design-spec.md,
+ * A theme or mood change crossfades through the View Transitions API where it exists (the retired design-spec.md,
  * Settings). Without the API it is an instant swap, which is correct, only plainer. During the
  * crossfade `data-theme-change` is on the root, and the whole window fades as one picture
  * (view-transitions.css). Covers are vectors the page colours (D314), so nothing waits for them.
  */
-export function changeTheme(theme: ThemePreference, style: StylePreference): void {
+export function changeTheme(theme: ThemePreference, mood: MoodPreference): void {
   changes += 1;
   const change = changes;
   const apply = (): void => {
     applyTheme(theme);
-    applyStyle(style);
+    applyMood(mood);
     // The hue is read as the change lands, so a turn made meanwhile is not put back.
-    applyHue(style, getPreferences().get().hue);
+    applyHue(mood, getPreferences().get().hue);
   };
   if (typeof document.startViewTransition !== "function") {
     apply();
