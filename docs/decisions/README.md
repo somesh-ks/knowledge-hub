@@ -183,7 +183,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D323 | Regenerate is a full sheet like Catch up; Length has no Usual | amends D207; amended by D337 |
 | D324 | The Catch up script is written at medium effort | amends D181 |
 | D325 | List rows run edge to edge in the Menu, the select list and the picker | amends D275, D291 |
-| D326 | The Avatar is a design-system part: one flat shape, a face, two tones | active |
+| D326 | The Avatar is a design-system part: one flat shape, a face, two tones | amended by D353 |
 | D327 | A style is called a mood in code and storage; the attribute and token group follow in the design-system PR | amends D268, D315 |
 | D328 | The hue slider paints the spectrum and shows the picked colour | amends D315 |
 | D329 | A Menu sheet over one safe row has no title and no Close | amends D291 |
@@ -208,5 +208,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D349 | The playing row drags; let go lower it plays on and the rows it passed are skipped | amends D346 |
 | D350 | The player's times read forward: played then length; chapter rows show start times | amends D85 |
 | D351 | A story's Play button never says Played; it stays a plain Play button with its length | amends D348 |
+| D353 | A tap on the avatar plays a short show, picked by the mood and started by the hue | amends D326 |
 
 ---

@@ -5,13 +5,14 @@
  *
  * No colour is written here: the markup carries classes, and avatar.css fills them from tokens, so the
  * hue engine drives every shape in every mood. A mood supplies tokens and nothing else (--av-body,
- * --av-mark, --av-shapes, --av-shape-default, --av-d-dots, --av-d-spark, --av-d-speckle, --av-d-stitch);
+ * --av-mark, --av-shapes, --av-shape-default, --av-plays, --av-d-dots, --av-d-spark, --av-d-speckle, --av-d-stitch);
  * a new mood is a new block of those tokens, never a change to this file.
  *
  * The app reacts through two attributes it sets on the avatar: data-play for a one-shot (hop, wiggle,
- * look, blink, shake) and data-state for what is really going on (playing, working, offline). Nothing
- * loops by itself and none of it moves under reduced motion. data-face (open, frown, flat, sleep)
- * changes the mouth.
+ * look, blink, shake, and the tap's own: wave, scout, wink, wow, spin, boo, pop) and data-state for what
+ * is really going on (playing, working, offline). Nothing loops by itself and none of it moves under
+ * reduced motion. data-face (open, frown, flat, sleep) changes the mouth. A tap picks its reaction from
+ * the mood's --av-plays (D353); the hand and the binoculars are hidden props that only a play shows.
  */
 import type { Guidance } from "./guidance";
 
@@ -54,6 +55,12 @@ export const AVATAR_CLASSES: string[] = [
   "avatar-speck",
   "avatar-stitch",
   "avatar-spark",
+  "avatar-hand",
+  "avatar-arm",
+  "avatar-palm",
+  "avatar-scope",
+  "avatar-barrel",
+  "avatar-lens",
   "avatar-eyes",
   "avatar-eye",
   "avatar-lit",
@@ -322,6 +329,18 @@ function faceMarkup(shape: Shape): string {
   return `<g>${eyes}${mouths}</g>`;
 }
 
+/** The two props a tap can bring out (hidden until a play shows them): a waving hand and binoculars. */
+const HAND =
+  '<g class="avatar-hand"><path class="avatar-arm" d="M82 68 Q104 66 102 40"/><circle class="avatar-palm" cx="102" cy="33" r="9"/></g>';
+
+function scopeMarkup(shape: Shape): string {
+  const { ey, ex } = shape.face ?? GENERIC;
+  const dx = Math.max(ex, 12);
+  const barrel = (x: number): string =>
+    `<rect class="avatar-barrel" x="${x - 11}" y="${ey - 10}" width="22" height="20" rx="7"/><circle class="avatar-lens" cx="${x}" cy="${ey}" r="6"/>`;
+  return `<g class="avatar-scope">${barrel(50 - dx)}${barrel(50 + dx)}<rect class="avatar-barrel" x="46" y="${ey - 3}" width="8" height="6"/></g>`;
+}
+
 let clips = 0;
 
 /**
@@ -342,14 +361,15 @@ export function avatarMarkup(id: string): string {
     .join("");
   const texture = `<clipPath id="${clip}">${bodies}</clipPath><g clip-path="url(#${clip})"><g class="avatar-dots">${DOTS}</g><g class="avatar-speck">${SPECK}</g></g>`;
   const stitch = shape.stitch ? `<path class="avatar-stitch" d="${shape.stitch}"/>` : "";
-  return `<svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><g class="avatar-rig">${shape.parts.map(partMarkup).join("")}${texture}${stitch}${shape.extras ?? ""}${faceMarkup(shape)}<path class="avatar-spark" d="${SPARK}"/></g></svg>`;
+  return `<svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><g class="avatar-rig">${HAND}${shape.parts.map(partMarkup).join("")}${texture}${stitch}${shape.extras ?? ""}${faceMarkup(shape)}${scopeMarkup(shape)}<path class="avatar-spark" d="${SPARK}"/></g></svg>`;
+}
+
+/** The words of a mood's list token (--av-shapes, --av-plays): its text without the quotes. */
+export function tokenWords(token: string): string[] {
+  return token.replace(/["']/g, "").trim().split(/\s+/).filter(Boolean);
 }
 
 /** The shape ids a mood offers, from its --av-shapes token's text, keeping only shapes that exist. */
 export function moodShapes(token: string): string[] {
-  return token
-    .replace(/["']/g, "")
-    .trim()
-    .split(/\s+/)
-    .filter((id) => Object.hasOwn(AVATAR_SHAPES, id));
+  return tokenWords(token).filter((id) => Object.hasOwn(AVATAR_SHAPES, id));
 }

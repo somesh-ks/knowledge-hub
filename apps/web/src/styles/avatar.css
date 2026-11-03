@@ -5,6 +5,7 @@
  * A mood supplies these tokens and nothing else (a new mood adds tokens only):
  *   --av-body, --av-mark          the body and the face
  *   --av-shapes, --av-shape-default   the shape ids it offers (read by the app) and its first
+ *   --av-plays                    the reactions a tap picks from, in the order the hue starts them (D353)
  *   --av-d-dots, --av-d-spark, --av-d-speckle, --av-d-stitch   a decoration it switches on (inline) or not (none)
  */
 
@@ -16,6 +17,7 @@
   --av-paper: var(--color-surface);
   --av-shapes: "cookie flower clover sunny burst squircle heart pebble star";
   --av-shape-default: cookie;
+  --av-plays: "wave scout wink wow morph";
   --av-d-dots: none;
   --av-d-spark: none;
   --av-d-speckle: none;
@@ -30,6 +32,7 @@
   --av-mark: oklch(from var(--color-accent-action) 0.24 calc(c * 0.55) h);
   --av-shapes: "flower clover sunny burst star cookie squircle heart pebble";
   --av-shape-default: flower;
+  --av-plays: "spin hop wave wink scout morph";
   --av-d-dots: inline;
   --av-d-spark: inline;
   --av-size: 3rem;
@@ -41,6 +44,7 @@
   --av-shade: var(--scene-pumpkin-shade);
   --av-shapes: "pumpkin ghost bat cat skull cauldron";
   --av-shape-default: pumpkin;
+  --av-plays: "boo scout wink morph wave wow";
   --av-d-speckle: inline;
   --av-d-stitch: inline;
 }
@@ -170,7 +174,8 @@ button.avatar:active svg {
 
 .avatar-rig,
 .avatar-eye,
-.avatar-eyes {
+.avatar-eyes,
+.avatar-scope {
   transform-box: fill-box;
   transform-origin: center;
 }
@@ -181,6 +186,36 @@ button.avatar:active svg {
 
 .avatar-eye {
   fill: var(--av-mark);
+}
+
+/* The props a tap brings out (D353): a hand that waves and binoculars. Hidden until a play shows them. */
+.avatar-hand,
+.avatar-scope {
+  opacity: 0;
+}
+
+.avatar-hand {
+  transform-box: view-box;
+  transform-origin: 78px 72px;
+}
+
+.avatar-arm {
+  fill: none;
+  stroke: var(--av-body);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.avatar-palm {
+  fill: var(--av-body);
+}
+
+.avatar-barrel {
+  fill: var(--av-mark);
+}
+
+.avatar-lens {
+  fill: var(--av-body);
 }
 
 .avatar-eye.avatar-lit {
@@ -363,6 +398,143 @@ button.avatar:active svg {
   }
 }
 
+@keyframes avatar-wave {
+  0% {
+    opacity: 0;
+    rotate: 40deg;
+    scale: 0.6;
+  }
+  12%,
+  82% {
+    opacity: 1;
+    rotate: 0deg;
+    scale: 1;
+  }
+  26%,
+  54% {
+    rotate: -24deg;
+  }
+  40%,
+  68% {
+    rotate: 14deg;
+  }
+  100% {
+    opacity: 0;
+    rotate: 40deg;
+    scale: 0.6;
+  }
+}
+
+@keyframes avatar-lean {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  20%,
+  80% {
+    rotate: -5deg;
+  }
+}
+
+@keyframes avatar-scout {
+  0% {
+    opacity: 0;
+    scale: 0.5;
+    translate: 0 0;
+  }
+  12% {
+    opacity: 1;
+    scale: 1;
+  }
+  32% {
+    translate: -9px 0;
+  }
+  62% {
+    translate: 9px 0;
+  }
+  82% {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+    scale: 0.5;
+    translate: 0 0;
+  }
+}
+
+@keyframes avatar-wink {
+  0%,
+  100% {
+    scale: 1 1;
+  }
+  20%,
+  70% {
+    scale: 1 0.1;
+  }
+}
+
+@keyframes avatar-wow {
+  0%,
+  100% {
+    scale: 1;
+  }
+  15%,
+  80% {
+    scale: 1.4;
+  }
+}
+
+@keyframes avatar-spin {
+  0% {
+    rotate: 0deg;
+    scale: 1;
+  }
+  45% {
+    scale: 0.88;
+  }
+  100% {
+    rotate: 360deg;
+    scale: 1;
+  }
+}
+
+@keyframes avatar-boo {
+  0% {
+    scale: 1;
+  }
+  12%,
+  80% {
+    scale: 1.4;
+  }
+  25% {
+    rotate: -6deg;
+  }
+  40% {
+    rotate: 6deg;
+  }
+  55% {
+    rotate: -4deg;
+  }
+  100% {
+    rotate: 0deg;
+    scale: 1;
+  }
+}
+
+@keyframes avatar-pop {
+  0% {
+    scale: 0.6;
+  }
+  55% {
+    scale: 1.12;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .avatar[data-play="hop"] .avatar-rig {
     animation: avatar-hop var(--duration-avatar-hop) var(--ease-spring-pop) both;
@@ -410,5 +582,46 @@ button.avatar:active svg {
 
   .avatar-photo[data-state="playing"] img {
     animation: avatar-bob var(--duration-avatar-bob) var(--ease-in-out) infinite;
+  }
+}
+
+/* A tap's show (D353) comes after the states, so it plays over a bob while audio plays. */
+@media (prefers-reduced-motion: no-preference) {
+  .avatar[data-play="wave"] .avatar-hand {
+    animation: avatar-wave var(--duration-avatar-look) var(--ease-in-out) both;
+  }
+
+  .avatar[data-play="wave"] .avatar-rig {
+    animation: avatar-lean var(--duration-avatar-look) var(--ease-in-out) both;
+  }
+
+  .avatar[data-play="wink"] .avatar-rig {
+    animation: avatar-lean var(--duration-avatar-hop) var(--ease-in-out) both;
+  }
+
+  .avatar[data-play="scout"] .avatar-scope {
+    animation: avatar-scout var(--duration-avatar-look) var(--ease-in-out) both;
+  }
+
+  .avatar[data-play="wink"] .avatar-eyes > :nth-child(2) {
+    animation: avatar-wink var(--duration-avatar-hop) var(--ease-in-out) both;
+  }
+
+  .avatar[data-play="wow"] .avatar-eyes,
+  .avatar[data-play="boo"] .avatar-eyes {
+    animation: avatar-wow var(--duration-avatar-hop) var(--ease-spring-pop) both;
+  }
+
+  .avatar[data-play="spin"] .avatar-rig {
+    transform-origin: center;
+    animation: avatar-spin var(--duration-avatar-hop) var(--ease-spring-pop) both;
+  }
+
+  .avatar[data-play="boo"] .avatar-rig {
+    animation: avatar-boo var(--duration-avatar-hop) var(--ease-spring-pop) both;
+  }
+
+  .avatar[data-play="pop"] .avatar-rig {
+    animation: avatar-pop var(--duration-avatar-shake) var(--ease-spring-pop) both;
   }
 }

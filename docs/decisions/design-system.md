@@ -721,3 +721,13 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Cost: none in tokens; a tab move is 100 ms longer.
 - Revisit if: the owner finds 250 ms between tabs slow, or wants more travel on the rise.
 - Amends: D286 (the pill's layer under the wave), D341 (a way into a briefing, and the tab move's length).
+
+## D353: a tap on the avatar plays a short show, picked by the mood and started by the hue
+
+- Date: 2026-11-03 (the owner: avatars tapped should make faces, morph into other shapes and come back, or do something like say hi or look through binoculars, by mood and hue, lean but varied).
+- Decision: a tap on an avatar in the app bar, the side column or the profile page plays one show of about a second. The shows: wink, wow (wide eyes, open mouth), wave (a hand), scout (binoculars that look left and right), spin, hop (with the spark), boo (a quick swell and shake), and morph (two other shapes of the mood, then home). The wave's hand and the binoculars are hidden props in the markup (`avatar-hand`, `avatar-scope`); the rest are CSS on `data-play` and `data-face`. A mood lists its shows in `--av-plays` (Default: wave scout wink wow morph; Expressive: spin hop wave wink scout morph; Halloween: boo scout wink morph wave wow). The reader's hue turns the list's start (six bands of 60 degrees) and every tap steps to the next show, so a tap never repeats the last and two hues do not open alike. A tap in the app bar goes to the profile as before and the show plays there on arrival. Nothing plays under reduced motion, offline, or while a show runs. No new token: waves and scouts take `--duration-avatar-look`, the others `--duration-avatar-hop` and `--duration-avatar-shake`.
+- Why: the avatar is the app's character; a tap that answers makes it feel alive at the cost of a few CSS rules and two small drawn props. A fixed order per mood and hue needs no state and no random test.
+- Rejected: random picks (a repeat feels broken and cannot be tested); a show per mood in script (a mood adds tokens only, D326); a loop or an idle prop (D326: nothing loops by itself).
+- Cost: `avatar.ts` gains two hidden props, so every avatar draws a few more nodes; the show rules sit after the state rules in `avatar.css` so they play over a bob while audio plays.
+- Revisit if: a tap is made by accident often enough that a show gets in the way (then it waits for a long press), or a mood needs a show the list cannot name.
+- Amends: D326.
