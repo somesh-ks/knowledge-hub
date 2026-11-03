@@ -54,19 +54,18 @@
 }
 
 .card-progress {
-  /* The bar keeps clear of the cover's rounded corner in every mood (owner, 2026-11-03: Expressive's
-     40px corner took its ends out of the art). It keeps its height, under the art's date line, and its
-     sides come in instead: 8px above the cover's foot the curve of a corner up to 40px sits at most
-     0.4 of the corner in, so the inset is that, never less than 8px. cover.css caps the corner at a
-     quarter of the art, so a smaller cover only gets more room. */
-  --bar-inset: round(up, max(var(--space-2), var(--cover-radius-hero) * 0.4), var(--space-1));
+  /* Half the cover's width, centred (owner, 2026-11-03), under the art's date line. The corner is
+     at most a quarter of the art (cover.css), so a bar that starts a quarter in clears it in every
+     mood (Expressive's 40px corner had taken a full-width bar's ends out of the art). */
   position: relative;
   z-index: var(--z-raised);
   display: block;
   grid-area: 1 / 1;
   align-self: end;
+  justify-self: center;
+  width: 50%;
   height: var(--space-1);
-  margin: 0 var(--bar-inset) calc(var(--space-2) * 2);
+  margin-bottom: calc(var(--space-2) * 2);
   overflow: hidden;
   border-radius: var(--radius-round);
   background: var(--rail-track);
@@ -595,6 +594,8 @@ main.library [data-library][data-view="list"] .library-grid {
   );
   grid-area: 1 / 1 / -1 / 2;
   align-self: center;
+  justify-self: stretch;
+  width: auto;
   margin: 0 var(--bar-inset);
   translate: 0 calc((var(--list-cover) - var(--space-1)) / 2);
 }
