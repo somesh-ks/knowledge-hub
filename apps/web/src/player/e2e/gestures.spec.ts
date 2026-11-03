@@ -113,7 +113,9 @@ test("a swipe on the bar switches the podcast; a short one does not and opens no
   await finger.drag(line(spot, { x: spot.x - 160, y: spot.y }, 4), 8);
   await expect.poll(playing, { timeout: 10_000 }).toBe("2026-10-05");
   await player.collapsed();
-  await finger.drag(line(spot, { x: spot.x + 160, y: spot.y }, 4), 8);
+  // A thumb's swipe rises as it goes, here about 25 degrees over a quarter of a second: the bar keeps
+  // it, so it switches back and the page is not pulled open (sheetController.ts, the sideways wander).
+  await finger.drag(line(spot, { x: spot.x + 160, y: spot.y - 75 }, 8), 30);
   await expect.poll(playing, { timeout: 10_000 }).toBe(first);
   await player.collapsed();
 });
