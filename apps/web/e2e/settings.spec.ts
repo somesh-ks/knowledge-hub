@@ -295,11 +295,30 @@ test.describe("profile page", () => {
     await second.click();
     await expect(sheet).toBeHidden();
     expect((await stored(page)).avatar).toBe(shape);
+    // A new pick answers with a show.
+    await expect(page.locator(".profile-face > *")).toHaveAttribute("data-play", /./);
 
     await settingsLink(page).click();
     await toProfile();
     await expect(sheet.locator("[data-shape]")).not.toHaveCount(0);
     await expect(sheet.locator(`[data-shape="${shape}"]`)).toHaveAttribute("aria-pressed", "true");
+  });
+
+  // The bug it prevents (D353): a tap in the app bar opens the profile and swaps the header, so the
+  // show it started was cut at once and the reader saw nothing happen on the avatar they tapped.
+  test("a tap on the app bar's avatar starts a show that goes on through the page change", async ({
+    page,
+  }) => {
+    await page.goto("/settings");
+    const bar = page.locator("a.account-bar > *");
+    await expect(bar).toHaveAttribute("data-shape", /./);
+    await bar.evaluate((el) => {
+      (el as HTMLElement & { kept?: boolean }).kept = true;
+    });
+    await page.getByRole("link", { name: "Your profile", exact: true }).click();
+    await expect(page).toHaveURL(/\/profile$/);
+    await expect(bar).toHaveAttribute("data-play", /./);
+    expect(await bar.evaluate((el) => (el as HTMLElement & { kept?: boolean }).kept)).toBe(true);
   });
 
   // The bug it prevents (D353): a tap that starts a show it never ends, a morph that leaves the avatar

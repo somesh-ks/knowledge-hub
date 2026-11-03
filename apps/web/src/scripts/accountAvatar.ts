@@ -13,8 +13,8 @@
  *
  * A tap is a small, calm show on the face (D353, avatarFace.ts): a look round, a happy squint, a surprised
  * o, a morph into another shape and back. The --av-plays token of the mood lists what it may do, and the hue says where in that
- * list it starts, so each tap is the next one, never a repeat. A tap in the app bar goes to the profile,
- * so the show waits there and plays on arrival. A tap during a show waits for it to end.
+ * list it starts, so each tap is the next one, never a repeat. A tap in the app bar goes to the profile
+ * and the show carries on in the persisted avatar. A new pick plays one too. A tap during a show waits for it to end.
  */
 import { AVATAR_SHAPES, avatarMarkup, moodShapes, tokenWords } from "../design-system/avatar";
 import { getPreferences } from "../player/core/preferences";
@@ -69,8 +69,12 @@ function show(id: string): void {
   }
 }
 
+let shown = "";
+let lastMood = document.documentElement.dataset.mood ?? "";
+
 function draw(): void {
-  show(currentShape());
+  shown = currentShape();
+  show(shown);
 }
 
 let frownTimer = 0;
@@ -127,7 +131,6 @@ function frown(): void {
 let taps = 0;
 let busy = false;
 let queued = false;
-let arrivalGreeting = 0;
 let actTimers: number[] = [];
 
 /** Ends a show now (a new mood, a new page) and leaves the plain face. */
@@ -151,6 +154,8 @@ function hue(): number {
 function finish(): void {
   const again = queued;
   cancelAct();
+  // The return swap of a morph runs on a frame: a hidden tab may not have run it, so draw home here.
+  draw();
   setState();
   if (again) later(tokenMs("--duration-state"), react);
 }
@@ -183,24 +188,10 @@ function onTap(event: MouseEvent): void {
     react();
     return;
   }
-  // The app bar holds the link to the profile: stay put on it, and elsewhere play on arrival.
+  // The app bar holds the link to the profile: the show starts at once and goes on in the same avatar
+  // across the page change (AccountSlot persists it), and on the profile's own avatar.
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
-  if (location.pathname === "/profile") {
-    react();
-    return;
-  }
-  window.clearTimeout(arrivalGreeting);
-  arrivalGreeting = window.setTimeout(() => {
-    arrivalGreeting = 0;
-  }, 2000);
-}
-
-/** Plays the greeting a tap in the app bar was waiting to give, once the profile has come in. */
-function greetOnArrival(): void {
-  if (!arrivalGreeting) return;
-  window.clearTimeout(arrivalGreeting);
-  arrivalGreeting = 0;
-  if (location.pathname === "/profile") window.setTimeout(react, 400);
+  react();
 }
 
 let idleTimer = 0;
@@ -225,7 +216,8 @@ function scheduleIdle(): void {
 
 /** Turns a mood's name into the drawn shape on a page: also after the router swapped the document. */
 function sync(): void {
-  cancelAct();
+  // A show a tap started in the app bar goes on through the page change.
+  if (!busy) cancelAct();
   draw();
   setState();
 }
@@ -237,7 +229,10 @@ export function installAccountAvatar(): void {
   document.addEventListener("astro:page-load", sync);
   // A new mood changes the shapes; the other attributes change only what the avatar is doing.
   new MutationObserver((changes) => {
-    if (changes.some((change) => change.attributeName === "data-mood")) {
+    // The router writes the attribute again on every page change: only a new mood ends a show.
+    const mood = document.documentElement.dataset.mood ?? "";
+    if (changes.some((change) => change.attributeName === "data-mood") && mood !== lastMood) {
+      lastMood = mood;
       cancelAct();
       draw();
     }
@@ -247,11 +242,13 @@ export function installAccountAvatar(): void {
     attributeFilter: ["data-mood", "data-offline", "data-run", "data-player-state"],
   });
   getPreferences().subscribe(() => {
+    const before = shown;
     cancelAct();
     draw();
+    // A new pick answers with a show of its own.
+    if (before && shown !== before) later(tokenMs("--duration-state"), react);
   });
   document.addEventListener("click", onTap);
-  document.addEventListener("astro:page-load", greetOnArrival);
   document.addEventListener("singularity:sound", (event) => {
     const cue = (event as CustomEvent<string>).detail;
     if (cue === "success") play("hop");
