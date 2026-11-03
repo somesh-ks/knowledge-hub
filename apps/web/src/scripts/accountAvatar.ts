@@ -18,8 +18,37 @@
  */
 import { AVATAR_SHAPES, avatarMarkup, moodShapes, tokenWords } from "../design-system/avatar";
 import { getPreferences } from "../player/core/preferences";
-import { playAct, rootStyle, stopAct, tokenMs } from "./avatarFace";
 import { morphPath, pickReaction } from "./avatarReactions";
+import { warmWhenIdle } from "./idle";
+
+/** The tap's show (avatarFace.ts), fetched at idle or on the first tap: it is not needed to draw. */
+type Face = typeof import("./avatarFace");
+let face: Face | null = null;
+let loadingFace: Promise<Face> | null = null;
+
+function loadFace(): Promise<Face> {
+  loadingFace ??= import("./avatarFace").then(
+    (module) => {
+      face = module;
+      return module;
+    },
+    (error: unknown) => {
+      loadingFace = null;
+      throw error;
+    },
+  );
+  return loadingFace;
+}
+
+export function rootStyle(name: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name);
+}
+
+/** A duration token in ms (the build writes 1500ms as 1.5s). */
+export function tokenMs(token: string): number {
+  const value = rootStyle(token).trim();
+  return Number.parseFloat(value) * (value.endsWith("ms") ? 1 : 1000) || 0;
+}
 
 const SLOT = "[data-account]";
 const ONE_SHOT_MS = 1400;
@@ -139,7 +168,8 @@ function cancelAct(): void {
   actTimers = [];
   busy = false;
   queued = false;
-  stopAct(avatars());
+  // No show has run before the face's code arrived, so there is nothing to stop.
+  face?.stopAct(avatars());
 }
 
 function later(ms: number, fn: () => void): void {
@@ -167,6 +197,10 @@ function finish(): void {
 function react(): void {
   if (calm.matches || document.documentElement.hasAttribute("data-offline")) return;
   if (avatars().length === 0) return;
+  if (!face) {
+    void loadFace().then(react, () => undefined);
+    return;
+  }
   if (busy) {
     queued = true;
     return;
@@ -176,7 +210,7 @@ function react(): void {
   const home = currentShape();
   const [other] = morphPath(offeredShapes(), home, hue(), taps);
   taps += 1;
-  const ms = playAct(kind, avatars, home, other === home ? undefined : other, show);
+  const ms = face.playAct(kind, avatars, home, other === home ? undefined : other, show);
   play(kind, ms);
   later(ms, finish);
 }
@@ -258,4 +292,5 @@ export function installAccountAvatar(): void {
   window.addEventListener("online", () => play("hop"));
   scheduleIdle();
   calm.addEventListener("change", scheduleIdle);
+  warmWhenIdle(loadFace);
 }

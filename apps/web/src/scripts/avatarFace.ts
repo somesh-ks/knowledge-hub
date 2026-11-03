@@ -12,6 +12,7 @@
  * and back in after. The drawn shape changes under a blink halfway.
  */
 import { AVATAR_SHAPES, avatarParts, shapeFace, shapeOutline } from "../design-system/avatar";
+import { rootStyle, tokenMs } from "./accountAvatar";
 import {
   alignRing,
   type Beat,
@@ -47,16 +48,6 @@ type Script = {
 };
 
 const RING = 96;
-
-export function rootStyle(name: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(name);
-}
-
-/** A duration token in ms (the build writes 1500ms as 1.5s). */
-export function tokenMs(token: string): number {
-  const value = rootStyle(token).trim();
-  return Number.parseFloat(value) * (value.endsWith("ms") ? 1 : 1000) || 0;
-}
 
 /** The beats and lengths every show is made of, read from the tokens once per show. */
 function kit() {
