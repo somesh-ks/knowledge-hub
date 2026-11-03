@@ -157,7 +157,10 @@ export async function loadSuggested(): Promise<string[] | null> {
   const ordered = await loadTimeline();
   if (!ordered) return null;
   const currentId = getPlayerStore().getState().track?.digest.id ?? null;
-  return suggestNext(ordered, currentId, skipper(safeLocalStorage(), getPlayQueue().getIds()));
+  const queue = getPlayQueue();
+  // A row put above the playing one is listed too (D357): it is not suggested again.
+  const listed = [...queue.getAbove(), ...queue.getIds()];
+  return suggestNext(ordered, currentId, skipper(safeLocalStorage(), listed));
 }
 
 /** Bumped when the listener picks an item, so an autoplay still loading its list gives way. */

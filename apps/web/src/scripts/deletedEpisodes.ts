@@ -104,10 +104,15 @@ function dropFromDevice(accepted?: string): void {
     // The items that played, and the one playing, are listed too (D277).
     const history = parseHistory(localStorage.getItem(HISTORY_KEY));
     const played = history.played.filter((id) => !gone.has(id));
+    const above = history.above.filter((id) => !gone.has(id));
     const current = history.current && gone.has(history.current) ? null : history.current;
-    if (played.length !== history.played.length || current !== history.current) {
+    if (
+      played.length !== history.played.length ||
+      above.length !== history.above.length ||
+      current !== history.current
+    ) {
       if (played.length || current)
-        localStorage.setItem(HISTORY_KEY, JSON.stringify({ played, current }));
+        localStorage.setItem(HISTORY_KEY, JSON.stringify({ played, current, above }));
       else localStorage.removeItem(HISTORY_KEY);
     }
   } catch {

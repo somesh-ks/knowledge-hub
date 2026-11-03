@@ -391,7 +391,8 @@ export default function PlayerBar() {
   const queue = useQueueView();
   const swipe = useDockSwipe({
     next: queue.upcoming[0] ?? null,
-    previous: queue.played.at(-1) ?? null,
+    // The row over the playing one comes first (D357), then what played.
+    previous: queue.above.at(-1) ?? queue.played.at(-1) ?? null,
     shownId: digest?.id ?? null,
   });
 
