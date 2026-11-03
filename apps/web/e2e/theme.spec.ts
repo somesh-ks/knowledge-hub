@@ -167,7 +167,6 @@ test.describe("theme", () => {
     const before = covers.length;
     await page.evaluate(() => {
       document.documentElement.dataset.mood = "expressive";
-      document.documentElement.dataset.style = "expressive";
     });
     await expect.poll(fill).not.toBe(inDefault);
     expect(covers.length).toBe(before);
@@ -178,7 +177,6 @@ test.describe("theme", () => {
     await page.evaluate(() => {
       document.documentElement.style.removeProperty("--hue-shift");
       delete document.documentElement.dataset.mood;
-      delete document.documentElement.dataset.style;
     });
     await expect.poll(fill).toBe(inDefault);
   });
