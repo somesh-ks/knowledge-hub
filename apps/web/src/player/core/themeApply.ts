@@ -17,7 +17,8 @@ export function applyTheme(theme: ThemePreference): void {
  * the old one goes when no stylesheet reads it.
  */
 export function applyMood(mood: MoodPreference): void {
-  const value = mood === DEFAULT_MOOD ? null : mood;
+  // A copy of the preferences store from before the rename, still held by an open tab, has no mood: that tab looks like Default until it reloads.
+  const value = !mood || mood === DEFAULT_MOOD ? null : mood;
   setRootAttribute("data-style", value);
   setRootAttribute("data-mood", value);
 }
@@ -27,7 +28,7 @@ export function applyMood(mood: MoodPreference): void {
  * covers and the header light add it to their hue. Default has no hue to turn, so it carries none.
  */
 export function applyHue(mood: MoodPreference, hue: number): void {
-  setRootProperty("--hue-shift", mood === DEFAULT_MOOD || hue === 0 ? null : String(hue));
+  setRootProperty("--hue-shift", !mood || mood === DEFAULT_MOOD || hue === 0 ? null : String(hue));
 }
 
 /** Counts theme changes, so only the last one clears the crossfade's mark. */

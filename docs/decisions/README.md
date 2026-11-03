@@ -134,7 +134,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D265 | A select's phone list is the sheet | amends D167 |
 | D266 | Icon, Badge, type | amends D243 |
 | D267 | Card, Row | amends D243 |
-| D268 | Styles: token overrides | amends D125 |
+| D268 | Styles: token overrides | amends D125; amended by D327 |
 | D269 | Hour wheel | amends D265 |
 | D270 | Experiments settle on a read | amends D249, D259 |
 | D271 | Pill, cover travel | superseded by D280; partly superseded by D336 |

@@ -7,7 +7,7 @@ try {
     ["settings-theme", stored?.theme],
     [
       "settings-mood",
-      /^[a-z][a-z-]{0,23}$/.test(stored?.mood) ? stored.mood : (stored?.style ?? "default"),
+      [stored?.mood, stored?.style].find((value) => typeof value === "string") ?? "default",
     ],
   ]) {
     const select = document.getElementById(id);
