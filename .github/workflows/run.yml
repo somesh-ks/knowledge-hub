@@ -322,6 +322,7 @@ jobs:
           INSTALLED: ${{ steps.install.outcome }}
           MODE: ${{ inputs.mode || 'scheduled' }}
           FORCE: ${{ inputs.force }}
+          REPLACE: ${{ inputs.replace }}
           DRY: ${{ inputs.dry_run }}
           SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME || vars.DISPATCH_GIT_NAME }}
           SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL || vars.DISPATCH_GIT_EMAIL }}
@@ -329,6 +330,7 @@ jobs:
           [ "$INSTALLED" = "success" ] || npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
           args=(--mode "$MODE" --json)
           [ "$FORCE" = "true" ] && args+=(--force)
+          [ -n "$REPLACE" ] && args+=(--replace "$REPLACE")
           [ "$DRY" = "true" ] && args+=(--dry-run)
           npm run --silent singularity -- run --record-failed "${args[@]}"
 
