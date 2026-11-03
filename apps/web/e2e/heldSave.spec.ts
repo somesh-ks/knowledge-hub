@@ -1,4 +1,5 @@
 import type { Page, Route } from "@playwright/test";
+import { GENERIC, WAITING } from "../src/lib/saveCopy";
 import { GAP_MS } from "../src/scripts/managePageSave";
 import { expect, test } from "./fixtures";
 
@@ -9,7 +10,7 @@ import { expect, test } from "./fixtures";
  */
 
 const SAVED = "Settings saved";
-const NOT_SAVED_NOTE = "Not saved yet. It goes with your next change.";
+const NOT_SAVED_NOTE = WAITING;
 
 interface Sent {
   op: Record<string, unknown> | Record<string, unknown>[];
@@ -75,7 +76,7 @@ test.describe("a change held in the server's gap when its page is left", () => {
     await expect.poll(() => sent.length).toBe(2);
     await expect(note(page)).toBeVisible();
     await expect(note(page)).toHaveText(NOT_SAVED_NOTE);
-    const failure = "The server crashed before it could answer. Not saved yet.";
+    const failure = GENERIC;
     await expect(toastText(page)).toHaveText(failure);
     await expect(page.locator("[data-alert]")).toHaveText(failure);
     expect(await pendingStored(page)).toBe(false);
@@ -194,9 +195,7 @@ test.describe("a change held in the server's gap when its page is left", () => {
     await page.clock.runFor(GAP_MS);
     await expect.poll(() => sent.length).toBe(2);
     await expect(note(page)).toBeVisible();
-    await expect(toastText(page)).toHaveText(
-      "The server crashed before it could answer. Not saved yet.",
-    );
+    await expect(toastText(page)).toHaveText(GENERIC);
     await page.locator("[data-bar] [data-act=retry]").click();
     await page.clock.runFor(GAP_MS);
     await expect.poll(() => sent.length).toBe(3);

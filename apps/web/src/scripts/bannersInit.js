@@ -1,16 +1,17 @@
 // The offline strip before the page is first drawn, so the page is already squeezed down when it
-// shows and never moves after it. deviceBanners.ts keeps it in step from then on. The offline page
-// says it itself and asks for no strip (data-device-banner="off").
+// shows and never moves after it. deviceBanners.ts keeps it in step from then on. The stack persists
+// across moves inside the app, so on a swap it already holds the strip and this adds nothing.
 try {
   if (!navigator.onLine) {
     document.documentElement.setAttribute("data-offline", "");
-    if (document.documentElement.dataset.deviceBanner !== "off") {
+    const stack = document.getElementById("banners");
+    if (!stack.firstElementChild) {
       const banner = document
         .getElementById("banner-offline")
         .content.firstElementChild.cloneNode(true);
       banner.dataset.banner = "offline";
       banner.dataset.still = "";
-      document.getElementById("banners").prepend(banner);
+      stack.prepend(banner);
       document.documentElement.setAttribute("data-strip", "");
     }
   }

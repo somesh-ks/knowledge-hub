@@ -140,27 +140,18 @@ describe("the floating Play button", () => {
 
 describe("a card's progress", () => {
   it("shows a bar for a half-heard card", () => {
-    expect(cardProgress({ seconds: 90, played: false, heard: [] }, 3)).toEqual({
-      share: 0.5,
-      played: false,
-    });
+    expect(cardProgress({ seconds: 90, played: false, heard: [] }, 3)).toBe(0.5);
   });
-  it("says Played for a finished card", () => {
-    expect(cardProgress({ seconds: 0, played: true, heard: [] }, 3)).toEqual({
-      share: 0,
-      played: true,
-    });
+  it("shows no bar for a finished card or when nothing is remembered", () => {
+    expect(cardProgress({ seconds: 0, played: true, heard: [] }, 3)).toBe(0);
+    expect(cardProgress({ seconds: 0, played: false, heard: [] }, 3)).toBe(0);
   });
-  it("says nothing when nothing is remembered, or the length is unknown", () => {
-    expect(cardProgress({ seconds: 0, played: false, heard: [] }, 3)).toEqual({
-      share: 0,
-      played: false,
-    });
-    expect(cardProgress({ seconds: 50, played: false, heard: [] }, Number.NaN).share).toBe(0);
+  it("says nothing when the length is unknown", () => {
+    expect(cardProgress({ seconds: 50, played: false, heard: [] }, Number.NaN)).toBe(0);
   });
   it("ignores a bad stored value", () => {
     const storage = memory();
     storage.setItem(resumeKey("x"), "soon");
-    expect(cardProgress(readRemembered(storage, "x"), 3)).toEqual({ share: 0, played: false });
+    expect(cardProgress(readRemembered(storage, "x"), 3)).toBe(0);
   });
 });

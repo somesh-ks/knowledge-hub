@@ -4,8 +4,11 @@
  * (the server takes up to eight), and a change made while it is on its way goes in the next one.
  * Nothing here is needed to read or edit a page, so it stays out of the first-load budget.
  */
+
+import { browserOnline, connectivity } from "../lib/connectivity";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import { appendOutbox, dropOldest, readOutbox, removeOp } from "../lib/outbox";
+import { GENERIC, KEPT, REASONS, SAVED, SYNCED, TIME_REFUSED } from "../lib/saveCopy";
 import { SAVED_KEY, storeOn } from "../lib/savedKey";
 import { addSaved, parseSaved, withPending } from "../lib/savedOverlay";
 import type { ConfigOp, ConfigResponse } from "../types/contracts";
@@ -14,28 +17,11 @@ import { endedByLeaving } from "./pageLeaving";
 import { sendToast } from "./toastEvent";
 
 export const SAVING = "Saving";
-/** Spoken, never shown: a save that went through needs no toast, the control already shows it. */
-export const SAVED = "Settings saved";
 
-/**
- * Shown when the site could not be reached and the edit was kept on this device instead (lib/outbox.ts).
- * The control already shows the change; this says it is not on the server yet and what happens next.
- */
-export const KEPT = "Saved on this device. Sends when you're back online.";
-
-/** Shown when the edit went through but the site could not change the briefing time. */
-export const TIME_REFUSED = "Saved, except the time, which could not be changed.";
+export { KEPT, SAVED, TIME_REFUSED };
 
 /** What a source added on the page says once it is in the repository. */
 export const ADDED_SOURCE = "Added. Read from the next update.";
-
-const REASONS: Record<number, string> = {
-  0: "Couldn't reach the site.",
-  400: "The server turned that change down.",
-  429: "There were too many edits in a row.",
-  409: "Another device changed this first. Reload to see it.",
-  503: "The server ran into a problem.",
-};
 
 /**
  * What a refusal means. The change is still on the page, and Retry sends it again. A status with no
@@ -45,16 +31,16 @@ const REASONS: Record<number, string> = {
 export function failureText(status: number, body?: unknown): string {
   // A server failure's reference (lib/errorRef.ts) finds the real error in the function logs; a 5xx
   // that is not the site's own answer is the function crashing before it could save anything.
-  if (status >= 500 && body !== undefined && !isSiteAnswer(body)) {
-    return "The server crashed before it could answer. Not saved yet.";
-  }
-  const reason = refusalReason(body) ?? REASONS[status];
-  return withErrorRef(reason ? `${reason} Not saved yet.` : "Saving failed on the server.", body);
+  if (status >= 500 && body !== undefined && !isSiteAnswer(body)) return GENERIC;
+  return withErrorRef(
+    refusalReason(body) ?? (REASONS as Record<number, string>)[status] ?? GENERIC,
+    body,
+  );
 }
 
 /**
  * Why the server refused the edit, when it says (the config store's answer, D149): the engine's own
- * sentence, "Already a source: x." or "There is no topic y.", which beats "turned that change down".
+ * sentence, "Already a source: x." or "There is no topic y.", which beats the generic one.
  */
 function refusalReason(body: unknown): string | null {
   if (typeof body !== "object" || body === null || !("reason" in body)) return null;
@@ -517,7 +503,11 @@ async function post(ops: ConfigOp[]): Promise<Answer> {
       body,
     };
   } catch {
-    return { status: 0, wait: 0, timeRefused: false, unknown: await endedByLeaving() };
+    const unknown = await endedByLeaving();
+    // No answer while the browser says online: the connection is checked, so the strip says so and
+    // the kept change goes out the moment the site answers (lib/connectivity.ts).
+    if (!unknown) connectivity().reportUnreachable();
+    return { status: 0, wait: 0, timeRefused: false, unknown };
   }
 }
 
@@ -545,8 +535,15 @@ async function sendOutbox(): Promise<void> {
   let waits = 0;
   /** After a refusal that named no op: the oldest entry alone, to find the one at fault. */
   let solo = false;
+  /** Something kept reached the site in this run: the person is told once, when nothing is left. */
+  let synced = false;
+  /** An error was already said in this run: good news after it would only muddy it. */
+  let told = false;
   for (;;) {
-    if (readOutbox().length === 0) return;
+    if (readOutbox().length === 0) {
+      if (synced && !told) sendToast({ message: SYNCED, kind: "success" });
+      return;
+    }
     const hold = gapLeft(lastSent, Date.now());
     if (hold > 0) await new Promise((resolve) => setTimeout(resolve, hold));
     const entries = readOutbox();
@@ -571,6 +568,7 @@ async function sendOutbox(): Promise<void> {
     }
     if (answer.status === 202) {
       lastSent = Date.now();
+      synced = true;
       // Storage refusing the removal would send the same entries again: leave them for a later try.
       if (!dropOldest(count)) return;
       solo = false;
@@ -580,7 +578,10 @@ async function sendOutbox(): Promise<void> {
         heldOps(),
         (answer.body as { written_at?: unknown })?.written_at as number | undefined,
       );
-      if (answer.timeRefused) sendToast({ message: TIME_REFUSED, kind: "error" });
+      if (answer.timeRefused) {
+        told = true;
+        sendToast({ message: TIME_REFUSED, kind: "error" });
+      }
       try {
         if (storeOn()) afterOwnSave();
       } catch {
@@ -629,8 +630,9 @@ async function sendOutbox(): Promise<void> {
     // Storage refusing the removal would send the refused entry again, and toast again: stop here.
     if (refused && !removeOp(refused, offset)) return;
     solo = false;
-    const reason = failureText(answer.status, answer.body).replace(/ Not saved yet\.$/, "");
-    sendToast({ message: `A change made offline was not saved. ${reason}`, kind: "error" });
+    const reason = failureText(answer.status, answer.body);
+    told = true;
+    sendToast({ message: `A change you made offline didn't save. ${reason}`, kind: "error" });
   }
 }
 
@@ -651,7 +653,7 @@ export async function drainOutbox(): Promise<void> {
     drainQueued = true;
     return;
   }
-  if (readOutbox().length === 0 || globalThis.navigator?.onLine === false) return;
+  if (readOutbox().length === 0 || !browserOnline()) return;
   busy = true;
   try {
     await oneAtATime(sendOutbox);
@@ -729,8 +731,7 @@ export async function flush(context: SaveContext): Promise<void> {
   };
   try {
     // Edits kept from before go first, so a later change never lands before an earlier one.
-    if (readOutbox().length > 0 && globalThis.navigator?.onLine !== false)
-      await oneAtATime(sendOutbox);
+    if (readOutbox().length > 0 && browserOnline()) await oneAtATime(sendOutbox);
     while (going().size > 0) {
       // Inside the server's gap after the last request, wait it out first, quietly: nothing is on
       // its way yet, and whatever changes meanwhile goes in the one request sent after it.
