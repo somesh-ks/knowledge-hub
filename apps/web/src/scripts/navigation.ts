@@ -8,6 +8,7 @@
 export const CARRIED_ATTRIBUTES = [
   "data-theme",
   "data-style",
+  "data-mood",
   "data-offline",
   "data-strip",
   "data-mini",

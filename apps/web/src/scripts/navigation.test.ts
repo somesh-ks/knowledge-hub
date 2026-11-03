@@ -89,6 +89,7 @@ describe("carryRootAttributes", () => {
     const live = fakeRoot({
       "data-theme": "dark",
       "data-style": "expressive",
+      "data-mood": "expressive",
       "data-mini": "visible",
       "data-player": "closed",
       "data-player-state": "playing",
@@ -97,6 +98,7 @@ describe("carryRootAttributes", () => {
     carryRootAttributes(live, incoming);
     expect(incoming.getAttribute("data-theme")).toBe("dark");
     expect(incoming.getAttribute("data-style")).toBe("expressive");
+    expect(incoming.getAttribute("data-mood")).toBe("expressive");
     expect(incoming.getAttribute("data-mini")).toBe("visible");
     expect(incoming.getAttribute("data-player")).toBe("closed");
     expect(incoming.getAttribute("data-player-state")).toBe("playing");

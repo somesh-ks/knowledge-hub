@@ -11,9 +11,15 @@ export function applyTheme(theme: ThemePreference): void {
   setRootAttribute("data-theme", theme === "system" ? null : theme);
 }
 
-/** `data-style` (the mood's attribute) is absent for the default, so the base tokens apply. */
+/**
+ * The mood's attribute is absent for the default, so the base tokens apply. It is written under both
+ * names, `data-style` and `data-mood`, while the stylesheets move from the first to the second (D327);
+ * the old one goes when no stylesheet reads it.
+ */
 export function applyMood(mood: MoodPreference): void {
-  setRootAttribute("data-style", mood === DEFAULT_MOOD ? null : mood);
+  const value = mood === DEFAULT_MOOD ? null : mood;
+  setRootAttribute("data-style", value);
+  setRootAttribute("data-mood", value);
 }
 
 /**
