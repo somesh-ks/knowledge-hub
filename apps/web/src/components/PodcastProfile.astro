@@ -175,7 +175,7 @@ const inScope = (ids: readonly string[]): boolean =>
     }
     {
       topics.length > 0 && (
-        <p class="settings-hint podcast-hint" data-no-topics hidden={topics.some((topic) => inScope(topic.ids))}>
+        <p class="settings-hint podcast-hint line-fade" data-no-topics hidden={topics.some((topic) => inScope(topic.ids))}>
           Choose a category for {label.toLowerCase()} episodes to cover.
         </p>
       )
