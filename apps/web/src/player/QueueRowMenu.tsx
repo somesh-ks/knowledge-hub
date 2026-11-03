@@ -43,7 +43,11 @@ export default function QueueRowMenu({ id, title }: { id: string; title: string 
     });
     menu.querySelector<HTMLElement>(ITEM)?.focus({ preventScroll: true });
     if (CSS.supports("top", "anchor(bottom)")) return;
-    const box = dots?.getBoundingClientRect();
+    // A finger has no dots (player.css): a hold's menu hangs under the handle instead.
+    const opener = dots?.offsetParent
+      ? dots
+      : menu.parentElement?.querySelector<HTMLElement>(".player-queue-grip");
+    const box = opener?.getBoundingClientRect();
     if (!box) return;
     menu.style.setProperty("--menu-top", `${box.bottom + MENU_GAP_PX}px`);
     menu.style.setProperty("--menu-right", `${document.documentElement.clientWidth - box.right}px`);

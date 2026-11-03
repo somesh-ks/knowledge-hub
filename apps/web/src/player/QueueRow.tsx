@@ -1,4 +1,4 @@
-import type { KeyboardEvent, PointerEvent } from "react";
+import type { CSSProperties, KeyboardEvent, PointerEvent } from "react";
 import { longDateFromDigestId } from "./core/formatTime";
 import { playQueueItem } from "./core/playerRuntime";
 import { useQueueMeta } from "./hooks/useQueue";
@@ -92,6 +92,8 @@ export default function QueueRow({ id, index, place, count, playing, gestures }:
         <button
           className="icon-btn player-queue-grip"
           type="button"
+          // The anchor a hold's menu hangs from on a touch screen, where the dots are hidden (player.css).
+          style={{ "--queue-anchor": `--queue-more-${id}` } as CSSProperties}
           aria-label={name}
           onPointerDown={(event) => gestures.onGripDown(event, index)}
           onPointerMove={gestures.onGripMove}

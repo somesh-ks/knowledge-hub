@@ -62,6 +62,12 @@ export function useRowSwipe() {
     onPointerMove(event: PointerEvent<HTMLElement>): void {
       const current = press.current;
       if (!current || current.pointerId !== event.pointerId) return;
+      // A hold opened the row's menu (cardHold.ts): the press is the menu's now, and a drift of the
+      // finger before it lifts must not take the row off under the sheet.
+      if (current.mode === "idle" && current.row.hasAttribute("data-menu-open")) {
+        press.current = null;
+        return;
+      }
       const dx = event.clientX - current.x0;
       const dy = event.clientY - current.y0;
       tracker.current.push(event.clientX, event.timeStamp);

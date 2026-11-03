@@ -2631,6 +2631,14 @@
     anchor-name: var(--queue-anchor);
   }
 
+  /* A finger has no dots (display: none, which cannot anchor), so a hold's menu hangs under the
+     handle; from 40rem it is a popover there, not a sheet. */
+  @media (hover: none) {
+    .player-queue-grip {
+      anchor-name: var(--queue-anchor);
+    }
+  }
+
   .player-queue-item .player-queue-menu {
     position-anchor: var(--queue-anchor);
   }
@@ -2684,9 +2692,15 @@
     border-radius: 0;
   }
 
+  /* The row's start takes the gutter, so the whole band's left end still plays it; the face's end
+     takes it after the handle, which sits beside the row, not in it. */
   .player-queue-row {
-    padding-inline: calc(max(var(--player-padding), var(--safe-left)) + var(--space-2))
-      calc(max(var(--player-padding), var(--safe-right)) + var(--space-2));
+    padding-inline-start: calc(max(var(--player-padding), var(--safe-left)) + var(--space-2));
+  }
+
+  .player-queue-face,
+  .player-queue-item:not(:has(> .player-queue-face)) {
+    padding-inline-end: max(var(--player-padding), var(--safe-right));
   }
 
   .player-queue-delete {
@@ -2701,6 +2715,9 @@
     background: none;
   }
 
+  /* A queued row paints its face (the part that slides); a suggested row has no face, so the row
+     itself takes the tone. */
+  .player-queue-item:has(> .player-queue-row:active),
   .player-queue-item:has(.player-queue-row:active) > .player-queue-face {
     background: var(--color-surface-container-pressed);
   }
