@@ -11,6 +11,7 @@ import type { ConfigOp, ConfigReadBody, ConfigResponse } from "../types/contract
 import { type ServerConfig, type ServerEnv, secretsOf } from "./config";
 import { type ConfigDeps, configCooldownSeconds, scheduledTime, updateRunTime } from "./configEdit";
 import { builtHash, type ConfigFiles, storeChanges } from "./configView";
+import { createVariableWriter, RUN_SCHEDULE_VARIABLE } from "./github";
 import { guardedFetch, resolveAll } from "./sourcePreview";
 
 export type { ConfigReadBody };
@@ -111,6 +112,17 @@ export async function saveToStore(
     }
     if (!written || !result?.ok) {
       return { status: 409, body: { status: 409, error: "conflict" } };
+    }
+    // The hourly cron reads this copy to skip the hours with nothing scheduled (D360). A failed
+    // write leaves it stale until the cron's daily read of the store puts it right.
+    const scheduleWrite = result.writes.find((write) => write.path === "config/schedule.json");
+    if (scheduleWrite) {
+      await createVariableWriter(config, deps.fetch)(
+        RUN_SCHEDULE_VARIABLE,
+        scheduleWrite.content,
+      ).catch((error: unknown) =>
+        log(`schedule copy not written: ${describeError(error, secrets)}`),
+      );
     }
     // When it landed, by the database's clock: the page compares its copy of the edit with later
     // ones from other devices on that clock, not its own (savedOverlay.ts, withStore).

@@ -13,7 +13,12 @@ import {
 import { configStoreUrl, type SqlClient } from "@singularity/engine/config-paths";
 import { decideRun, GENERATE_AHEAD_HOURS } from "@singularity/engine/gate";
 import { readServerConfig, type ServerEnv, secretsOf } from "./config";
-import { createGitHubClient, type FetchLike } from "./github";
+import {
+  createGitHubClient,
+  createVariableWriter,
+  type FetchLike,
+  RUN_SCHEDULE_VARIABLE,
+} from "./github";
 import type { ApiResult } from "./http";
 import { describeError } from "./redact";
 
@@ -21,7 +26,8 @@ import { describeError } from "./redact";
  * GET /api/cron/run: what starts the scheduled briefing on time (D61). Since late August 2026
  * GitHub has started this repository's scheduled runs hours late (the 07:13 entry ran between 13:11
  * and 14:02), so Vercel Cron calls this route once in every UTC hour (vercel.json; on the Hobby plan
- * a call lands anywhere in its hour). Each call reads the schedule from the config store (D296), or config/schedule.json on main with the store off. In the
+ * a call lands anywhere in its hour). Each call reads the schedule from the config store (D296), or config/schedule.json on main with the store off;
+ * with the store on, an hour its copy (RUN_SCHEDULE, D360) shows as unscheduled ends there, so the database sleeps. In the
  * schedule's own hour, in its time zone, which is the daily hour or the weekly slot's hour on its day,
  * it asks the engine's gate, with state/last-run.json, whether anything is due, and only then
  * dispatches run.yml as a scheduled run. The workflow's gate decides again, so a second call in the
@@ -97,6 +103,34 @@ async function readSchedule(
     (await github.readFile("config/schedule.json", "main")) ??
     (await github.readFile("config/examples/schedule.json", "main"))
   );
+}
+
+/**
+ * The UTC hour the cron reads the store whatever its copy says, and puts the copy right: a schedule
+ * written to the store by something other than the site's save (`config push`, a seed) reaches the
+ * copy within a day.
+ */
+export const COPY_REFRESH_UTC_HOUR = 3;
+
+/**
+ * The schedule from its copy in a repository variable (D360), or null when there is none or it does
+ * not parse. The cron used to open the store every hour to learn that nothing was scheduled; the
+ * database (Neon's free plan, 100 compute hours a month) then stayed awake 5 minutes for each call,
+ * at least 2 hours a day. The copy only decides that an hour is not the schedule's: in the
+ * schedule's hours the store is read as before.
+ */
+async function readScheduleCopy(
+  deps: CronDeps,
+  github: ReturnType<typeof createGitHubClient>,
+): Promise<{ text: string; schedule: ScheduleFile } | null> {
+  try {
+    const text = await github.readVariable(RUN_SCHEDULE_VARIABLE);
+    const schedule = parseJson(text, (value) => ScheduleFile.safeParse(value).data ?? null);
+    return text !== null && schedule !== null ? { text, schedule } : null;
+  } catch (error) {
+    deps.log?.(`schedule copy unread: ${describeError(error, [])}`);
+    return null;
+  }
 }
 
 /** Vercel asks for at least 16 characters; anything shorter is treated as not configured. */
@@ -193,7 +227,24 @@ export async function handleCron(
   const now = deps.now();
   const github = createGitHubClient(config, deps.fetch);
   try {
+    const storeOn = configStoreUrl(deps.env) !== null;
+    const copy = storeOn ? await readScheduleCopy(deps, github) : null;
+    if (
+      copy &&
+      slotAt(copy.schedule, now) === null &&
+      now.getUTCHours() !== COPY_REFRESH_UTC_HOUR
+    ) {
+      return { status: 200, body: { dispatched: false, reason: "not the schedule's hour" } };
+    }
     const scheduleText = await readSchedule(deps, github);
+    if (storeOn && scheduleText !== null && scheduleText !== copy?.text) {
+      // The store is the owner's schedule; the copy follows it, and a failed write only costs the
+      // database reads the copy would have saved.
+      await createVariableWriter(config, deps.fetch)(RUN_SCHEDULE_VARIABLE, scheduleText).catch(
+        (error: unknown) =>
+          deps.log?.(`schedule copy not written: ${describeError(error, secretsOf(config))}`),
+      );
+    }
     const schedule =
       scheduleText === null
         ? DEFAULT_SCHEDULE

@@ -2,6 +2,7 @@ import { DEFAULT_SCHEDULE } from "@singularity/core";
 import { describe, expect, it, vi } from "vitest";
 import { createFakeGitHub, REPO } from "../testing/fakeGitHub";
 import {
+  COPY_REFRESH_UTC_HOUR,
   fallbackCronHour,
   handleCron,
   MIN_CRON_SECRET_CHARS,
@@ -51,7 +52,7 @@ function setup(files: { schedule?: string; lastRun?: string } = {}) {
 }
 
 const dispatches = (github: ReturnType<typeof createFakeGitHub>) =>
-  github.requests.filter((request) => request.method === "POST");
+  github.requests.filter((request) => `${request.method} ${request.path}` === DISPATCH);
 
 describe("a daily podcast that is switched off", () => {
   it("is not the daily slot, and the call dispatches nothing at its hour", async () => {
@@ -229,6 +230,36 @@ describe("GET /api/cron/run", () => {
     const down = await call("2026-10-10T03:30:00Z", false);
     expect(down.status).toBe(503);
     expect(dispatches(github)).toHaveLength(1);
+  });
+
+  // The bug (D360): the cron opened the store every hour to learn nothing was scheduled, keeping
+  // Neon awake at least 2 hours a day of its 100 free compute hours a month.
+  it("with the config store on, leaves the database asleep in hours its schedule copy shows as free", async () => {
+    const { github } = setup({ lastRun: lastRun("2026-10-08T11:58:00.000Z") });
+    const stored = JSON.stringify({ ...DEFAULT_SCHEDULE, hour: 9 });
+    github.on("GET /actions/variables/RUN_SCHEDULE", { json: { value: stored } });
+    let opened = 0;
+    const call = (at: string) =>
+      handleCron(BEARER, {
+        env: { ...env, DATABASE_URL: "postgres://fake", SINGULARITY_CONFIG_STORE: "postgres" },
+        fetch: github.fetch,
+        now: () => new Date(at),
+        connectConfigStore: async () => {
+          opened += 1;
+          return {
+            query: async () => [{ path: "config/schedule.json", content: stored, version: 1 }],
+          };
+        },
+      });
+    // Saturday 14:30 in Stockholm: not the copy's hours, and not the daily refresh hour.
+    expect((await call("2026-10-10T12:30:00Z")).body).toMatchObject({ dispatched: false });
+    expect(opened).toBe(0);
+    // 09:30 in Stockholm, the copy's hour: the store is still what decides.
+    expect((await call("2026-10-10T07:30:00Z")).body).toMatchObject({ dispatched: true });
+    expect(opened).toBe(1);
+    // The refresh hour reads the store whatever the copy says, so a stale copy heals within a day.
+    await call(`2026-10-10T0${COPY_REFRESH_UTC_HOUR}:30:00Z`);
+    expect(opened).toBe(2);
   });
 
   // The bug: a store that never answers held the call until Vercel killed it, with nothing logged.
