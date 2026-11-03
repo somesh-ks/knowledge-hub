@@ -37,7 +37,8 @@ function mount(root: HTMLElement): void {
       grid.append(card);
     }
     const shown = saved.length;
-    count.textContent = shown === 0 ? "Nothing saved" : shown === 1 ? "1 saved" : `${shown} saved`;
+    count.textContent =
+      shown === 0 ? "No favorites yet" : shown === 1 ? "1 favorite" : `${shown} favorites`;
     section.hidden = shown === 0;
     empty.hidden = shown > 0;
   };
