@@ -3809,13 +3809,15 @@
       "tier": "semantic",
       "type": "singularity-state-color",
       "light": "oklch(from var(--color-accent-container) calc(l + var(--state-direction) * var(--state-step-hover)) c h)",
-      "role": "A hover on the accent container: its lightness moves toward its text by state.step-hover."
+      "role": "A hover on the accent container: its lightness moves toward its text by state.step-hover.",
+      "dark": "oklch(from var(--color-accent-container) calc(l - var(--state-direction) * var(--state-step-hover)) c h)"
     },
     {
       "name": "--color-accent-container-pressed",
       "tier": "semantic",
       "type": "singularity-state-color",
-      "light": "oklch(from var(--color-accent-container) calc(l + var(--state-direction) * var(--state-step-press)) c h)"
+      "light": "oklch(from var(--color-accent-container) calc(l + var(--state-direction) * var(--state-step-press)) c h)",
+      "dark": "oklch(from var(--color-accent-container) calc(l - var(--state-direction) * var(--state-step-press)) c h)"
     },
     {
       "name": "--color-accent-container-high-hover",
@@ -3963,12 +3965,12 @@
       "name": "--color-accent-container",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-blue-100)",
+      "light": "var(--color-blue-200)",
       "role": "The selected state of a control: a chosen chip or segment, the current destination, a tonal button, the playing chip. Text on it is on-accent-container.",
-      "dark": "var(--color-blue-800)",
+      "dark": "var(--color-blue-600)",
       "hex": {
-        "light": "#d6e5fe",
-        "dark": "#162f59"
+        "light": "#afcdfe",
+        "dark": "#1755b9"
       }
     },
     {
@@ -3987,12 +3989,12 @@
       "name": "--color-accent-container-high",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-blue-200)",
+      "light": "var(--color-blue-300)",
       "role": "The tone of an action that is not a place: the New episode buttons. Stronger than accent-container, so it is not read as the current destination or a chosen chip beside it. Text on it is on-accent-container-high.",
-      "dark": "var(--color-blue-700)",
+      "dark": "var(--color-blue-400)",
       "hex": {
-        "light": "#afcdfe",
-        "dark": "#164087"
+        "light": "#82b0fd",
+        "dark": "#4f90fc"
       }
     },
     {
@@ -4001,10 +4003,10 @@
       "type": "color",
       "light": "var(--color-blue-900)",
       "role": "Text and icons on accent-container-high.",
-      "dark": "var(--color-blue-50)",
+      "dark": "var(--color-blue-900)",
       "hex": {
         "light": "#152236",
-        "dark": "#f5f9ff"
+        "dark": "#152236"
       }
     },
     {
@@ -5513,8 +5515,8 @@
       "type": "color",
       "light": "var(--color-accent-container)",
       "hex": {
-        "light": "#d6e5fe",
-        "dark": "#162f59"
+        "light": "#afcdfe",
+        "dark": "#1755b9"
       }
     },
     {
@@ -5523,8 +5525,8 @@
       "type": "color",
       "light": "var(--color-accent-container-hover)",
       "hex": {
-        "light": "#c5d5ee",
-        "dark": "#233d68"
+        "light": "#9fbded",
+        "dark": "#0346a9"
       }
     },
     {
@@ -5533,8 +5535,8 @@
       "type": "color",
       "light": "var(--color-accent-container-pressed)",
       "hex": {
-        "light": "#b6c5dd",
-        "dark": "#304a77"
+        "light": "#90addc",
+        "dark": "#003698"
       }
     },
     {
@@ -5608,8 +5610,8 @@
       "light": "var(--color-accent-container)",
       "role": "Fill behind the current destination: the pill in the bottom bar and the row in the side column.",
       "hex": {
-        "light": "#d6e5fe",
-        "dark": "#162f59"
+        "light": "#afcdfe",
+        "dark": "#1755b9"
       }
     },
     {
@@ -5618,8 +5620,8 @@
       "type": "color",
       "light": "var(--color-accent-container-hover)",
       "hex": {
-        "light": "#c5d5ee",
-        "dark": "#233d68"
+        "light": "#9fbded",
+        "dark": "#0346a9"
       }
     },
     {
@@ -5729,8 +5731,8 @@
       "light": "var(--color-accent-container-high)",
       "dark": "var(--color-accent-container-high)",
       "hex": {
-        "light": "#afcdfe",
-        "dark": "#164087"
+        "light": "#82b0fd",
+        "dark": "#4f90fc"
       }
     },
     {
@@ -5850,8 +5852,8 @@
       "light": "var(--color-accent-container)",
       "dark": "var(--color-accent-container)",
       "hex": {
-        "light": "#d6e5fe",
-        "dark": "#162f59"
+        "light": "#afcdfe",
+        "dark": "#1755b9"
       }
     },
     {
@@ -5861,8 +5863,8 @@
       "light": "var(--color-accent-container-high)",
       "dark": "var(--color-accent-container-high)",
       "hex": {
-        "light": "#afcdfe",
-        "dark": "#164087"
+        "light": "#82b0fd",
+        "dark": "#4f90fc"
       }
     },
     {

@@ -732,3 +732,14 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Cost: a few media blocks; no tokens.
 - Revisit if: a touch browser stops holding `:active` past the click, or the owner misses the press on a chosen control.
 - Amends: ledger rule 5 (phone section) for touch.
+
+## D356: a chosen fill stands at least 8 points of lightness off every surface it sits on
+
+- Date: 2026-11-03 (the owner: "in light mode, the nav bar active tab highlight on mobile has poor contrast with the navbar itself - the engine needs to look into such contrast issues throughout").
+- Decision: `accent-container` (a chosen chip, segment, view button, the current tab's pill and the current row) and `accent-container-high` (an action that is not a place) sit at least 8 points of OKLCH lightness from each of `surface`, `surface-sunken`, `surface-container`, `surface-raised` and `surface-overlay`, in every mood and both modes. `buildTokens.test.ts` holds it; a hue turn (D315) keeps lightness, so one check per mood covers every hue. New steps: Default blue-200 and blue-300 in light, blue-600 and blue-400 (blue-900 words) in dark; Expressive dark violet-600 and violet-400 (violet-900 words); Halloween orange-300 and orange-400 in light, orange-700 and orange-600 in dark. Expressive light already held.
+- Context changed: the chosen tone was proven only against the page. On the phone the pill sits on the nav bar (`surface-container`): 3 points in Default light, under 1 in Halloween light, 1 in Default dark; in dark every mood's chosen tone sat 1 to 4 points from a sheet.
+- Why: lightness is what every eye reads, in sunlight and without colour vision; chroma alone made a pill a tint, not a shape. A chosen fill carries only its own ink (`on-accent-container`): an audit of 13 pages at 390 and 1280 found no other text on it, so the old floors for `on-surface` and `on-surface-muted` on it, which pinned the fill near the page, are dropped.
+- Rejected: WCAG ratio as the measure (it compresses at the light end: 1.10 for the reported pill); a per-surface chosen tone (a second token for every host); lifting only light mode (dark pills were as faint on sheets).
+- Cost: dark chosen fills and the dark action tone are brighter and more saturated; the rail's current row is now a brighter blue beside Catch up.
+- Revisit if: the owner finds dark fills loud, or a page needs muted text on a chosen fill.
+- Amends: D72's tonal steps for `accent-container` and `accent-container-high`.
