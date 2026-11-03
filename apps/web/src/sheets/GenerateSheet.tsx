@@ -3,6 +3,7 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import { buttonClass } from "../design-system/button";
 import { fieldClass } from "../design-system/field";
 import { rememberCancelToken } from "../lib/cancelTokens";
+import { hintsFor } from "../lib/regenHints";
 import { DEFAULT_REGEN_LENGTH, nearestRegenLength, REGEN_LENGTHS } from "../lib/regenLength";
 import { idsOfChips, isChipOn, type RegenChip } from "../lib/regenTopics";
 import { playUiCue } from "../player/sound/soundController";
@@ -58,8 +59,8 @@ const BUSY = "A podcast or an episode is still being made. You can start another
 
 /**
  * Regenerate a briefing: its topics (this run only, ticked from the original), the length in
- * minutes (starting on the one it was made at) and optional comments for the writer. It is a full
- * sheet like Catch up: the whole screen on a phone, a side panel from 40rem. Pressing
+ * minutes (starting on the one it was made at) and the comment that says why (required, D340). It is a
+ * full sheet like Catch up: the whole screen on a phone, a side panel from 40rem. Pressing
  * Regenerate starts the run and closes the sheet; the run is followed by the podcast queue
  * (scripts/queue.ts), above the navigation on a phone and at the foot of the side column from 64rem,
  * so it goes on across pages.
@@ -69,9 +70,13 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
   const [page, setPage] = useState<PageTopics | null>(null);
   const [ticked, setTicked] = useState<ReadonlySet<string>>(new Set());
   const [topicError, setTopicError] = useState(false);
+  const [noteError, setNoteError] = useState(false);
   const [length, setLength] = useState(String(DEFAULT_REGEN_LENGTH));
   const [busy, setBusy] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
+  // The sheet opens on the comment alone; Length and Categories appear as the words reach for them
+  // (D337) and stay once they have, so the form does not shift as the text is edited.
+  const [shown, setShown] = useState({ length: false, topics: false });
 
   // Each opening starts from the topics of the briefing on the page. Off a briefing's page (a
   // toast's Details) there are none, and the run keeps its own.
@@ -85,7 +90,20 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
     setTopicError(false);
     setFieldError(null);
     setLength(startLength());
+    // Words kept from an earlier opening still call for their controls.
+    setShown(
+      hintsFor(feedbackRef.current?.value ?? "", topics?.chips.map((chip) => chip.label) ?? []),
+    );
   }, [open]);
+
+  function onNote(text: string): void {
+    const hints = hintsFor(text, page?.chips.map((chip) => chip.label) ?? []);
+    setShown((current) =>
+      (hints.length && !current.length) || (hints.topics && !current.topics)
+        ? { length: current.length || hints.length, topics: current.topics || hints.topics }
+        : current,
+    );
+  }
 
   function toggle(value: string): void {
     setTopicError(false);
@@ -99,10 +117,18 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
   async function onSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (busy) return;
+    // The comment is how the writer learns why this is being redone (D340): no comment, no run.
+    if (!feedbackRef.current?.value.trim()) {
+      setNoteError(true);
+      feedbackRef.current?.focus();
+      return;
+    }
     // Topics go only when they differ from the original's, and never touch the saved schedule.
     let topics: string[] | undefined;
     if (page) {
       if (ticked.size === 0) {
+        // The categories wait for a cue (D337); a refusal about them must show them.
+        setShown((current) => ({ ...current, topics: true }));
         setTopicError(true);
         return;
       }
@@ -172,13 +198,44 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
           : (feedbackRef.current ?? true)
       }
     >
-      <form className="sheet-form" onSubmit={(event) => void onSubmit(event)} noValidate>
-        {page ? (
-          <fieldset className="sheet-field" disabled={busy} aria-labelledby="regen-topics-label">
-            <h3 className="sheet-field-label" id="regen-topics-label">
+      <form
+        className="sheet-form create-view"
+        onSubmit={(event) => void onSubmit(event)}
+        noValidate
+      >
+        <Field.Root disabled={busy} className="create-group">
+          <h2 className="section-head text-heading">
+            <Field.Label>Comments</Field.Label>
+          </h2>
+          <textarea
+            ref={feedbackRef}
+            className={fieldClass()}
+            name="feedback"
+            rows={4}
+            maxLength={FEEDBACK_MAX}
+            placeholder="What should change?"
+            required
+            aria-invalid={noteError || undefined}
+            aria-describedby={noteError ? "regen-note-error" : undefined}
+            disabled={busy}
+            onChange={(event) => {
+              setNoteError(false);
+              onNote(event.currentTarget.value);
+            }}
+          />
+          {noteError ? (
+            <p className="create-error" id="regen-note-error" role="alert">
+              <Icon name="alert" />
+              <span>Say what to change.</span>
+            </p>
+          ) : null}
+        </Field.Root>
+        {page && shown.topics ? (
+          <section className="create-group" aria-labelledby="regen-topics-label">
+            <h2 className="section-head text-heading" id="regen-topics-label">
               Categories
-            </h3>
-            <div className="filter-chips">
+            </h2>
+            <fieldset className="filter-chips" disabled={busy} aria-labelledby="regen-topics-label">
               {page.chips.map((chip) => (
                 <label className="filter-chip" key={chip.value}>
                   <input
@@ -192,46 +249,41 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
                   <span>{chip.label}</span>
                 </label>
               ))}
-            </div>
+            </fieldset>
             {topicError ? (
-              <p className="sheet-field-error" role="alert">
+              <p className="create-error" role="alert">
                 <Icon name="alert" />
                 <span>Pick at least one category.</span>
               </p>
             ) : null}
-          </fieldset>
+          </section>
         ) : null}
-        <fieldset className="sheet-field" disabled={busy} aria-labelledby="regen-length-label">
-          <h3 className="sheet-field-label" id="regen-length-label">
-            Length
-          </h3>
-          <div className="segmented-choice" role="radiogroup" aria-labelledby="regen-length-label">
-            {LENGTHS.map((choice) => (
-              <label className="segmented-choice-item" key={choice.value}>
-                <input
-                  type="radio"
-                  name="length"
-                  value={choice.value}
-                  checked={length === choice.value}
-                  onChange={() => setLength(choice.value)}
-                />
-                <span>{choice.label}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        <Field.Root disabled={busy} className="sheet-field">
-          <Field.Label className="sheet-field-label">Comments (optional)</Field.Label>
-          <textarea
-            ref={feedbackRef}
-            className={fieldClass()}
-            name="feedback"
-            rows={4}
-            maxLength={FEEDBACK_MAX}
-            placeholder="For example: shorter summaries, more on design systems."
-            disabled={busy}
-          />
-        </Field.Root>
+        {shown.length ? (
+          <section className="create-group" aria-labelledby="regen-length-label">
+            <h2 className="section-head text-heading" id="regen-length-label">
+              Length
+            </h2>
+            <div
+              className="segmented-choice create-choice"
+              role="radiogroup"
+              aria-labelledby="regen-length-label"
+            >
+              {LENGTHS.map((choice) => (
+                <label className="segmented-choice-item" key={choice.value}>
+                  <input
+                    type="radio"
+                    name="length"
+                    value={choice.value}
+                    disabled={busy}
+                    checked={length === choice.value}
+                    onChange={() => setLength(choice.value)}
+                  />
+                  <span>{choice.label}</span>
+                </label>
+              ))}
+            </div>
+          </section>
+        ) : null}
         {fieldError ? (
           <p className="sheet-field-error" role="alert">
             <Icon name="alert" />

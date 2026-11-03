@@ -615,6 +615,16 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Revisit if: a Haiku script is heard and judged worse by ear, or `length_share` falls as above.
 - Amends: D333.
 
+## D339: the engine and the site keep one Speechify count, in Blob; Exa gets a weekly stop
+
+- Date: 2026-11-02 (audit item H7; autonomous mode, the coordinator's call after the SEC-03 check).
+- Decision: the month's Speechify characters live in one document, `state/usage-<YYYY-MM>.json` in the content store, which the site's narrate function already wrote. The engine's narration jobs (`publish`, `audio`) now read it for the 90 percent stop and add each recording to it, changing `speechify.characters` and leaving the site's per-digest charges as they were. A write carries the version it read, so a second writer in the same moment makes the first read again and retry. `state/usage.json` stays only where no Blob store exists (tests, a laptop). Health reads the shared count for the allowance. Exa gets a weekly stop like Firecrawl's (D222): each stage reads the 7 days of `exa` requests from the cost ledger, and when they pass 700 (about three normal weeks, 3.5 USD) the Exa source runs fewer queries or none, with health warning at 450.
+- Why: the engine stopped at 90 percent of its own count and the site at 90 percent of its own, so the two together could pass the plan's cap; health said so in its own message. The site's document is the one both can reach: the audio job has Blob credentials and, by design (SEC-03, D300), no database URL.
+- Rejected: Postgres for the Exa count (the ledger already holds it by request, and the Firecrawl stop reads it the same way); Postgres for the counter (gives the audio job `DATABASE_URL`, the boundary D300 kept, and a workflow change for the owner to merge by hand); keeping two counters and summing them in health (the stops still do not see each other).
+- Limit: the site writes without a version check, and creates a month's document without checking another writer did, so a site write landing between the engine's read and write can still lose one charge; the 10 percent below the cap absorbs it. The engine's characters from before this change stay in `state/usage.json` until the month turns; the engine's gate and health both add them to the Blob count, the site's own gate does not (only November, and the 10 percent below the cap absorbs it), and nothing writes the file any more. A ledger that does not read gives Exa no room for the run; Firecrawl keeps its own ceiling. The ledger records a run at its commit, so the run in progress is not in the week; the 700 is a guess at a safe margin, not a measured limit.
+- Revisit if: health shows the shared count over the 90 percent stop, or Speechify bills more than the document says.
+- Amends: D300 (the counter clause).
+
 ## D342: a Firecrawl listing is read free first and scraped only when its links moved
 
 - Date: 2026-11-02 (the owner chose "free check first" over a Firecrawl monitor).

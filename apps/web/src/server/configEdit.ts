@@ -605,8 +605,7 @@ export async function handleConfig(input: ConfigInput, deps: ConfigDeps): Promis
       body: {
         status: 400,
         error: "invalid_request",
-        reason:
-          "A value in that change is empty, too long or has a character the server cannot accept.",
+        reason: "A value in that change is empty, too long or has a character that isn't allowed.",
         op_index: unreadable,
       },
     };

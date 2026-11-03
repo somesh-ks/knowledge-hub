@@ -71,12 +71,12 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D199 | Live content and tombstones | amends D173 |
 | D200 | `fetch_via` through the store | active |
 | D201 | No write-route auth until OAuth | amends D160 |
-| D202 | A deploy loads itself | amends D146 |
+| D202 | A deploy loads itself | amends D146; amended by D330 |
 | D203 | Live Health page | active |
 | D204 | Guards for a short or lost run, health metrics, one run card | active |
 | D205 | Settings paint the kept copy at once | amends D172 |
 | D206 | Stay on npm; pnpm spiked | active |
-| D207 | A Regenerate asks for its own length | amends D204; amended by D323 |
+| D207 | A Regenerate asks for its own length | amends D204; amended by D323, D337 |
 | D208 | A list of generations, with Cancel | partly superseded by D231 (the list); amends D204 |
 | D209 | Lane free in the hold | supersedes D135; amends D197; step 1 built (#399), steps 2 to 5 not built |
 | D210 | Typed HTML builders | active |
@@ -164,12 +164,12 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D296 | Config store is the only home of owner config; examples in the repo | amends D149; supersedes D185 |
 | D297 | A section may stand over its allowance only as far as the floor needs | amends D35 |
 | D298 | Repository public, owner data moved out of git, history rewritten last | supersedes D9 |
-| D299 | Offline settings edits stay on the device and send when back online | amends D79, D91, D259; amended by D335 |
-| D300 | Digests and audio in Blob, state in Postgres, weekly private snapshot of the config store | partly superseded by D311; steps 1 and 2a built, 2b in review |
+| D299 | Offline settings edits stay on the device and send when back online | amends D79, D91, D259; amended by D331, D335 |
+| D300 | Digests and audio in Blob, state in Postgres, weekly private snapshot of the config store | partly superseded by D311; steps 1 and 2a built, 2b in review; amended by D339 |
 | D302 | Pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked | active |
 | D306 | A seasonal style may change more than tokens | amends D268 |
 | D308 | Haiku writes the first pass of each story, Sonnet repairs and backs it up | amends D181; amended by D333 |
-| D309 | Player ⋮ menu: actions, speed screen, Save; Settings > Saved | amends D105, D127; supersedes D50's speed control |
+| D309 | Player ⋮ menu: actions, speed screen, Save; Settings > Saved | amends D105, D127; supersedes D50's speed control; amended by D338 |
 | D310 | Expressive is loud: a violet world, larger controls | amends D268 |
 | D311 | D300 amended: the config snapshot lives in a Neon table, not a private Blob store | supersedes D300 (snapshot clause) |
 | D314 | Album art follows the style, drawn live from the month's colours | amends D110, D121; fulfils D306 |
@@ -180,19 +180,25 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D319 | Colours are generated; a style is a recipe | amends D268, D310, D317 |
 | D321 | The ripple and a cover's press stay alpha layers, over artwork | amends D317 |
 | D322 | A Library card's phone sheet opens with quick-action tiles | amends D291 |
-| D323 | Regenerate is a full sheet like Catch up; Length has no Usual | amends D207 |
+| D323 | Regenerate is a full sheet like Catch up; Length has no Usual | amends D207; amended by D337 |
 | D324 | The Catch up script is written at medium effort | amends D181 |
 | D325 | List rows run edge to edge in the Menu, the select list and the picker | amends D275, D291 |
 | D326 | The Avatar is a design-system part: one flat shape, a face, two tones | active |
 | D328 | The hue slider paints the spectrum and shows the picked colour | amends D315 |
 | D329 | A Menu sheet over one safe row has no title and no Close | amends D291 |
+| D330 | One app-wide state model: route, connectivity, saved pages | amends D97, D98, D145, D202 |
+| D331 | Error and helper copy speaks in the reader's words, and a test holds it | amends D299 |
 | D332 | A scheduled run waits at the gate when the last 24 hours cost over $5 | amends D139 |
 | D333 | The short-text Claude steps run Haiku medium, then Haiku high, then Sonnet medium | amends D308, D324; amended by D334 |
 | D334 | Every Claude step starts at Haiku medium, the podcast script included | amends D333 |
 | D335 | The avatar leads to a profile page; Settings is Podcast settings, App settings and About | amends D129, D281, D299; amended by D344 |
 | D336 | A cover no longer flies between its card and the page's hero | partly supersedes D271, D280; amended by D341 |
+| D337 | Regenerate sheets open on the comment; Length and Categories appear as words reach for them | amends D207, D323 |
+| D338 | Settings sets the default speed on the player's speed screen | amends D309 |
+| D339 | The engine and the site keep one Speechify count, in Blob; Exa gets a weekly stop | amends D300 |
 | D341 | A page arrives from the side of the tab you came from | partly supersedes D280; amends D336 |
 | D342 | A Firecrawl listing is read free first and scraped only when its links moved | relates to D222, D302 |
 | D344 | The app no longer edits the podcast structure; Preferences holds autoplay and the default speed | partly supersedes D170, D182, D191; amends D335 |
+| D345 | Create's More options is a closed accordion at every width | amends D76 |
 
 ---

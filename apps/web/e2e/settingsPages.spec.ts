@@ -114,3 +114,19 @@ test("a voice select shows a long voice name whole @desktop", async ({ page }) =
   });
   expect(clipped).toBe(false);
 });
+
+test("the default playback speed is set on the player's speed screen and is still there after a reload", async ({
+  page,
+}) => {
+  await page.goto("/settings/preferences");
+  const value = page.locator("#default-speed");
+  await expect(value).toHaveValue("1");
+  await value.click();
+  const slider = page.getByRole("slider", { name: "Playback speed" });
+  await slider.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.locator(".player-speed-readout")).toHaveText("1.25x");
+  await expect(value).toHaveValue("1.25");
+  await page.reload();
+  await expect(page.locator("#default-speed")).toHaveValue("1.25");
+});

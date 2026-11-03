@@ -2352,53 +2352,6 @@
   min-width: 20rem;
 }
 
-/* The menu's Playback speed screen: the stepper and the readout, then the slider under them (the
-   Slider, design-system/slider.ts), with the two ends named. The readout holds five characters in
-   tabular figures, so it never moves as the speed does. */
-.player-speed {
-  display: grid;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-4) var(--space-6);
-}
-
-.player-speed-stepper {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.player-speed-readout {
-  text-align: center;
-  font-size: var(--font-size-display);
-  font-weight: var(--font-weight-medium);
-}
-
-/* The speeds the slider stops on, as numbers under the track. Each stands under its own stop: the
-   thumb's centre travels the track less one thumb, so a stop is that travel times its place, from half
-   a thumb in. Their gap is only that, so the row needs no breakpoint. */
-.player-speed-stops {
-  position: relative;
-  block-size: var(--font-leading-caption);
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
-}
-
-.player-speed-stop {
-  position: absolute;
-  inset-inline-start: calc(
-    var(--scrubber-thumb) /
-    2 +
-    (100% - var(--scrubber-thumb)) *
-    var(--stop)
-  );
-  translate: -50% 0;
-}
-
-.player-speed-stop[data-on] {
-  color: var(--color-on-surface);
-}
-
 @media (hover: hover) and (pointer: fine) and (width < 64rem) {
   .player .player-collapse:hover:not(:active) {
     background: var(--ghost-hover);

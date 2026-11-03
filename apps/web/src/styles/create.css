@@ -107,6 +107,34 @@
   border-radius: var(--shape-lg);
 }
 
+/* The questions open and close on the state time (2026-11-02): they were full height in the first frame
+   while the chevron turned. Height is the one layout property motion may use, and this is an accordion
+   (foundations.css sets interpolate-size on the root). A browser without ::details-content or
+   interpolate-size snaps, as before. The corner swap waits out the close, or the grey would turn into a
+   tall pill while the questions were still folding away. */
+@supports (interpolate-size: allow-keywords) and selector(::details-content) {
+  .create-more {
+    transition: border-radius 0s var(--duration-state);
+  }
+
+  .create-more[open] {
+    transition-delay: 0s;
+  }
+
+  .create-more::details-content {
+    block-size: 0;
+    /* Down and up only: the Format and Tone controls draw their focus ring outside their edges. */
+    overflow-y: clip;
+    transition:
+      block-size var(--duration-state) var(--ease-out),
+      content-visibility var(--duration-state) allow-discrete;
+  }
+
+  .create-more[open]::details-content {
+    block-size: auto;
+  }
+}
+
 .create-more-body {
   padding-block-end: var(--space-4);
 }
@@ -135,12 +163,12 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .create-more:not([data-pinned]) > .create-more-summary:hover {
+  .create-more > .create-more-summary:hover {
     background: var(--ghost-hover);
   }
 }
 
-.create-more:not([data-pinned]) > .create-more-summary:active {
+.create-more > .create-more-summary:active {
   background: var(--ghost-pressed);
 }
 
@@ -187,17 +215,19 @@
   padding-block-end: 0;
 }
 
-/* Open beside the main questions (a wide /create page), the row is the column's heading. */
-.create-more[data-pinned] > .create-more-summary {
-  cursor: default;
-}
-
-.create-more[data-pinned] .create-more-chevron {
-  display: none;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .create-more-chevron {
+    transition: none;
+  }
+
+  .create-more {
+    transition-delay: 0s;
+  }
+}
+
+/* Its own rule: a browser without ::details-content drops a whole selector list that names it. */
+@media (prefers-reduced-motion: reduce) {
+  .create-more::details-content {
     transition: none;
   }
 }
@@ -357,72 +387,4 @@
 
 .create-view [hidden] {
   display: none;
-}
-
-/* ------------------------------------------------------------------ a wide /create page */
-
-/* From 80rem the page is as wide as the column and a contents list together, centred (--column-wide,
-   shell.css), and More options stands open in the room beside the main questions, so the whole form
-   is in view at once. The title keeps the place it has on every other page. */
-@media (width >= 80rem) {
-  .shell:has(.create-page) > main {
-    grid-column: 1 / -1;
-    justify-self: center;
-    inline-size: min(100%, var(--column-wide));
-  }
-
-  .create-page [data-create-form] {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 20rem;
-    /* Six rows for the main questions and the button, and a last one that takes up the rest of the
-       open options' height, so a tall column of options never spreads the main questions apart. */
-    grid-template-rows: repeat(6, auto) 1fr;
-    column-gap: var(--space-12);
-    align-items: start;
-  }
-
-  .create-page [data-create-form] > * {
-    grid-column: 1;
-  }
-
-  .create-page .create-more {
-    grid-column: 2;
-    grid-row: 1 / -1;
-    margin-block: 0;
-  }
-
-  .create-page .create-more-summary {
-    padding-block: var(--space-4) var(--space-4);
-    min-height: 0;
-  }
-
-  .create-page .create-more-values {
-    display: none;
-  }
-
-  /* The pinned heading labels the second column; it is not a question to answer, so it is as quiet
-     as a briefing's "Contents". */
-  .create-page .create-more-title {
-    color: var(--color-on-surface-muted);
-    font-size: var(--font-size-meta);
-  }
-
-  /* The button sits right under Format here, always in view: the foot does not stick, and has no
-     surface or line of its own. */
-  .create-page .create-submit {
-    position: static;
-    background: none;
-    box-shadow: none;
-    clip-path: none;
-  }
-
-  .create-page .create-submit::before {
-    content: none;
-  }
-
-  /* One rule for both columns: a segmented control hugs its options, and a question's label is the
-     body size, so the two columns read as one form. */
-  .create-page .create-more .create-choice {
-    inline-size: fit-content;
-  }
 }

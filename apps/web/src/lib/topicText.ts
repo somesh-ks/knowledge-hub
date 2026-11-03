@@ -36,12 +36,12 @@ export function webAddress(text: string): string | null {
 
 /** One sentence that says what to do about a refused preview. */
 export function problemText(status: number): string {
-  if (status === 400) return "That address cannot be used. Check it and try again.";
-  if (status === 422) return "The address could not be read. Try the site's home page instead.";
+  if (status === 400) return "That address doesn't look right. Check it and try again.";
+  if (status === 422) return "Couldn't read that address. Try the site's home page instead.";
   if (status === 429) return "That was a lot of lookups. Wait a minute, then try again.";
   if (status === 504) return "The site took too long to answer. Try again in a moment.";
-  if (status >= 500) return "The lookup failed on the server. Try again in a moment.";
-  return "Couldn't reach the site to look it up. Check your connection and try again.";
+  if (status >= 500) return "The lookup didn't work. Try again in a moment.";
+  return "No connection. Try again when you're back online.";
 }
 
 /**

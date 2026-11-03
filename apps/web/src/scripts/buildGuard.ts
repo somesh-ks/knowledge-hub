@@ -7,6 +7,8 @@
  * the new deploy at the first moment nothing is playing (the worker module stays out of the first load).
  */
 
+import { isOnline } from "../lib/connectivity";
+
 /** Whether a page named `incoming` must not be swapped under a bundle that loaded with `running`. */
 export function isOtherBuild(running: string | undefined, incoming: string | null | undefined) {
   return Boolean(running) && Boolean(incoming) && running !== incoming;
@@ -19,7 +21,7 @@ export function loadOtherBuildsInFull(running: string | undefined): void {
       .querySelector('meta[name="singularity-build"]')
       ?.getAttribute("content");
     // Offline there is nothing newer to load: the worker's copy is what any load would show.
-    if (!navigator.onLine || !isOtherBuild(running, incoming)) return;
+    if (!isOnline() || !isOtherBuild(running, incoming)) return;
     const state = document.documentElement.dataset.playerState;
     if (state === "playing" || state === "loading") return;
     event.swap = () => {};

@@ -75,15 +75,13 @@
   background: var(--color-accent);
 }
 
-.card-progress[hidden],
-/* A finished recording says Played in its facts line; the bar would repeat it. */
-.card-link:has([data-played]) .card-progress {
+.card-progress[hidden] {
   display: none;
 }
 
 /* Under the bar the art darkens toward its foot, so the bar reads on a pale cover as on a dark one.
    Only a card that holds a bar gets it, and only the foot: deeper, it dulled the art and its date. */
-.card-link:has(> .card-progress:not([hidden])):not(:has([data-played])) .cover::before {
+.card-link:has(> .card-progress:not([hidden])) .cover::before {
   content: "";
   position: absolute;
   inset: auto 0 0;
@@ -135,16 +133,8 @@
   font-weight: var(--font-weight-medium);
 }
 
-/* A card narrower than its whole line (Today's shelf, a 360px phone's gallery) leaves out the story
-   count, so "Weekly · 8 min" fits on one line and never breaks after a separator. */
 .card {
   container-type: inline-size;
-}
-
-@container (max-width: 10.5rem) {
-  .card-count {
-    display: none;
-  }
 }
 
 .card-facts {
@@ -412,6 +402,11 @@
 .library-grid > .card {
   content-visibility: auto;
   contain-intrinsic-size: auto 240px;
+}
+
+/* Every card drawn for one frame, so each remembers its real height (libraryView.ts, a move back). */
+[data-library][data-measuring] .library-grid > .card {
+  content-visibility: visible;
 }
 
 @media (width >= 40rem) {
@@ -797,15 +792,6 @@ html[data-library-page="empty"] {
   [data-library][data-view="list"] .card:has(> .card-menu) .card-match {
     padding-inline-end: calc(var(--size-touch) - var(--space-2));
   }
-
-  /* The menu's reserve takes 2.25rem from the quiet line, so a card that is not a little wider than
-     the narrow one (see the 10.5rem rule above) leaves out the story count too: "Daily · 1 min" on
-     one line, never two. */
-  @container (max-width: 12rem) {
-    [data-library][data-view="list"] .card:has(> .card-menu) .card-count {
-      display: none;
-    }
-  }
 }
 
 /* At the end of the title line, beside the card's text and never over the art (owner, 2026-10-21,
@@ -924,15 +910,34 @@ html[data-library-page="empty"] {
   align-items: center;
 }
 
-/* Downloaded: a filled check circle at the start of the quiet line, put there once by
-   scripts/libraryMenu.ts, so it takes room only while it is shown. */
+/* Downloaded, after the facts: a blue circle with the download arrow, the only state a card shows
+   (owner, 2026-11-02). Rendered hidden by CardMarks.astro and shown by the card's own data-downloaded
+   (scripts/libraryMenu.ts), so it takes room only while it is shown and the facts before it never
+   change. Both are sized from the line's own text, so they keep their proportion if it changes
+   (owner, 2026-11-02): the circle a quarter taller than the text, the arrow in it a little under
+   its height, with clear space all round. */
 .card-downloaded {
-  display: inline-flex;
+  /* Whole pixels, so the arrow has the same space on every side on any screen: a fractional circle
+     and arrow (17.5 and 11.9 px) land on half pixels and look off centre (owner, 2026-11-02). */
+  --mark: round(1.25em, 1px);
+  /* The bold twin of the arrow in every style: at this size the regular line is barely there. */
+  --icon-bold: 1;
+  display: none;
   flex: none;
-  color: var(--color-accent);
+  align-items: center;
+  justify-content: center;
+  width: var(--mark);
+  height: var(--mark);
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-on-accent-action);
+}
+
+.card[data-downloaded] .card-downloaded {
+  display: inline-flex;
 }
 
 .card-downloaded .icon-glyph {
-  width: 1rem;
-  height: 1rem;
+  width: round(0.85em, 2px);
+  height: round(0.85em, 2px);
 }

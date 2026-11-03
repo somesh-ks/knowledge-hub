@@ -73,8 +73,6 @@ interface Props {
   /** The page's own audio, an episode or a briefing, which the floating Play button plays. */
   audio?: PageAudio;
   skipLabel?: string;
-  /** false on the offline page, which says it itself: no banner repeats it above. */
-  deviceBanner?: boolean;
   /** The Library page alone, with or without anything in it ("empty" draws .library-none). */
   library?: "empty" | "items";
   /** The card a chat app draws when this page's link is pasted: briefings and episodes (D153). */
@@ -93,7 +91,6 @@ const {
   latestFallback,
   audio,
   skipLabel = "Skip to the podcast",
-  deviceBanner = true,
   library,
   card,
   tabs = false,
@@ -161,7 +158,6 @@ const back =
   data-layout={layout}
   data-digest-id={digestId}
   data-latest-fallback={latestFallback?.join(" ")}
-  data-device-banner={deviceBanner ? undefined : "off"}
   data-has-hero={audio ? "" : undefined}
   data-has-tabs={tabs ? "" : undefined}
   data-library-page={library}
@@ -232,7 +228,7 @@ const back =
     <template id="banner-online">
       <Banner variant="strip" tone="success" icon="wifi" title="Back online" />
     </template>
-    <div class="banner-stack" id="banners"></div>
+    <div class="banner-stack" id="banners" transition:persist="banners"></div>
     <script is:inline set:html={bannersInit.trim()} />
     <SiteHeader back={back} />
     <AppNav current={destination} />

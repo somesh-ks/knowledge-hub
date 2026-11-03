@@ -350,24 +350,24 @@ export function stopFailure(outlet: string, status: number): { message: string; 
   switch (status) {
     case 0:
       return {
-        message: `Could not reach the site to stop ${outlet}. Check the connection and try again.`,
+        message: `Couldn't stop ${outlet} without a connection. Try again when you're back online.`,
         retry: "now",
       };
     case 429:
       return {
-        message: `Could not stop ${outlet}: settings changed too often just now. Try again in a minute.`,
+        message: `Couldn't stop ${outlet} yet. Settings just changed a lot, so try again in a minute.`,
         retry: "later",
       };
     case 503:
       return {
-        message: `Could not stop ${outlet}: the site could not save settings. If it keeps failing, its GitHub access needs fixing.`,
+        message: `Couldn't stop ${outlet}. Settings can't be saved right now, so try again later.`,
         retry: "later",
       };
     case 400:
-      return { message: `Could not stop ${outlet}: its address was not accepted.`, retry: "no" };
+      return { message: `Couldn't stop ${outlet}. Its address isn't valid.`, retry: "no" };
     default:
       return {
-        message: `Could not stop ${outlet}: the site answered ${status}. Try again later.`,
+        message: `Couldn't stop ${outlet}. Try again later.`,
         retry: "later",
       };
   }

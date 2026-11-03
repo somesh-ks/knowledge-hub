@@ -100,8 +100,8 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D94 | Up next narrates a briefing without audio, a phone's page never scrolls itself, a failure is told once, the open page closes by mouse | amends D92 |
 | D95 | The Library's search finds the start of words, a list row keeps its title level, and a segmented choice keeps its width | amends D78 |
 | D96 | An empty screen is one simple illustration, a title, one line and one filled action | active |
-| D97 | What the device remembers reads the same everywhere, the worker keeps what a page fetches, and a refusal reads the same on every control | amends D92, D93 and D94 |
-| D98 | A lost held change is told to the open page, a failure notice replaces the story line, an empty scene draws an object, not a control | amends D94, D96 and D97 |
+| D97 | What the device remembers reads the same everywhere, the worker keeps what a page fetches, and a refusal reads the same on every control | amends D92, D93 and D94; amended by D330 |
+| D98 | A lost held change is told to the open page, a failure notice replaces the story line, an empty scene draws an object, not a control | amends D94, D96 and D97; amended by D330 |
 | D99 | The test suite protects what fails silently, in one layer, once; the dev lab is retired; refused, lost and failed actions are told | amends D91, D97 and D98 |
 | D100 | The time zone selector returns and the schedule counts in the chosen zone; a second voice; voice rows keep Play | amends D71, D89 and D91; Format ended in D215 |
 | D101 | A long list is a searchable list; the bar keeps its controls on a wide screen; every recording has a transcript; every topic is shown | amends D76, D90, D92 and D100 |
@@ -148,7 +148,7 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D142 | A new topic is a row at once and opens a page before the build; one save carries Jev's emoji; a removal leaves the page at once with Undo | amends D79 |
 | D143 | Every PR gets a code review before it merges, by hand once blocking findings are fixed | active; partly superseded by D254 for `[skip-review]` PRs; amended by D292 |
 | D144 | Phone sheets close by pull or tap outside and show no Close | amends D132 |
-| D145 | Network-first page loads; a build check on return | amends D47 |
+| D145 | Network-first page loads; a build check on return | amends D47; amended by D330 |
 | D146 | A deploy is offered in a toast; Vitals wait | amends D145 |
 | D147 | Lab probe, not field Vitals | amends D146 |
 | D148 | CI on pull requests only; browser suites by path, Dependabot or label | active |

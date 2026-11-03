@@ -39,6 +39,7 @@ async function finishRunBehindThePlayer(page: Page, player: PlayerPage): Promise
   // The store reads its timers from the page clock, so the background check can be hurried.
   await page.clock.install();
   const dialog = await player.openGenerate();
+  await dialog.getByRole("textbox").fill("shorter");
   await player.finger.press(dialog.getByRole("button", { name: "Regenerate" }));
   await page.clock.runFor(3_100);
   await page.keyboard.press("Escape");

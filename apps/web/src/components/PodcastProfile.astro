@@ -52,7 +52,8 @@ const inScope = (ids: readonly string[]): boolean =>
 
 <div class="podcast-profile" data-profile={id}>
   {/* The on/off switch (2026-10-26, Q16). Off, the controls below are disabled and dimmed, not
-       hidden, and a quiet line says why; the page script keeps the fieldset in step (podcastPage.ts). */}
+       hidden; the switch is the whole message, with no line repeating it (2026-11-02, D331). The page
+       script keeps the fieldset in step (podcastPage.ts). */}
   <section class="podcast-section" aria-label={`${label} podcast`}>
     <div class="rows card-group">
       <div class="settings-row">
@@ -65,9 +66,6 @@ const inScope = (ids: readonly string[]): boolean =>
         />
       </div>
     </div>
-    <p class="settings-hint podcast-hint" data-off-note hidden={values.enabled}>
-      Off: no {label.toLowerCase()} podcast is made
-    </p>
   </section>
 
   <fieldset class="manage-fields podcast-body" data-body disabled={!values.enabled}>
@@ -177,8 +175,8 @@ const inScope = (ids: readonly string[]): boolean =>
     }
     {
       topics.length > 0 && (
-        <p class="settings-hint podcast-hint" data-no-topics hidden={topics.some((topic) => inScope(topic.ids))}>
-          No categories chosen, so {label} episodes have nothing to cover.
+        <p class="settings-hint podcast-hint line-fade" data-no-topics hidden={topics.some((topic) => inScope(topic.ids))}>
+          Choose a category for {label.toLowerCase()} episodes to cover.
         </p>
       )
     }

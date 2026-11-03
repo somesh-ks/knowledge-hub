@@ -13,6 +13,7 @@ import {
 import { z } from "zod";
 import type { EpisodeVoiceEnv } from "../audio/segmentStore.js";
 import { loadAllCosts } from "../cost/ledger.js";
+import { EXA_WEEKLY_ALERT, EXA_WEEKLY_BUDGET } from "../fetch/exaBudget.js";
 import { FIRECRAWL_WEEKLY_ALERT, FIRECRAWL_WEEKLY_BUDGET } from "../fetch/firecrawlBudget.js";
 import { decideRun } from "../gate/decideRun.js";
 import { listDigestTargets } from "../publish/publishAudio.js";
@@ -342,13 +343,21 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
   const blob = options.site !== null && blobBase !== null ? { base: blobBase, get } : null;
 
   // Cost: the ledger's last 24 hours against the ceiling, and the speech allowance. Online, the
-  // site's own month count (apps/web narrationState.ts) is added to the allowance:
-  // state/usage.json holds only the engine's.
+  // month's count is the Blob document the engine and the site both write (D339). state/usage.json
+  // adds the engine's characters from before that change (it is frozen, and starts over with the
+  // month) or, where there is no Blob store, all of them.
   const site = blob ? await readSiteNarration(blob, now) : null;
   if (site && "error" in site) {
     warn("site_usage_unread", "cost", `The site's narration count did not read: ${site.error}.`);
   }
-  const siteCount = site && !("error" in site) ? site : { month: 0 };
+  if (options.site !== null && blob === null) {
+    warn(
+      "site_usage_unread",
+      "cost",
+      "The shared narration count was not read: no digest has an audio address to take the store from.",
+    );
+  }
+  const sharedCount = site && !("error" in site) ? site.month : 0;
   const since = now.getTime() - DAY_MS;
   const records = await loadAllCosts(root).catch((error: unknown) => {
     fault("state_invalid", "integrity", `state/costs-*.json: ${message(error)}`);
@@ -392,20 +401,38 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
   } else {
     passed.push(`Firecrawl used ${firecrawlWeek} requests in 7 days`);
   }
+  const exaWeek = records
+    .filter((record) => record.provider === "exa" && Date.parse(record.at) > weekAgo)
+    .reduce((sum, record) => sum + (record.units.requests ?? 0), 0);
+  if (exaWeek >= EXA_WEEKLY_BUDGET) {
+    fault(
+      "exa_week_stopped",
+      "cost",
+      `Exa made ${exaWeek} searches in 7 days, past the ${EXA_WEEKLY_BUDGET} stop: runs have stopped searching through it.`,
+    );
+  } else if (exaWeek > EXA_WEEKLY_ALERT) {
+    warn(
+      "exa_week_high",
+      "cost",
+      `Exa made ${exaWeek} searches in 7 days (a normal week is about 240; runs stop at ${EXA_WEEKLY_BUDGET}).`,
+    );
+  } else {
+    passed.push(`Exa made ${exaWeek} searches in 7 days`);
+  }
   const speech = status.budget.speechify;
-  const used = speech.used + siteCount.month;
+  const used = speech.used + sharedCount;
   const percent = Math.round((used / speech.monthly_chars) * 100);
   if (used >= speech.limit) {
     fault(
       "speech_budget",
       "cost",
-      `Speechify use this month is past the 90% stop (${speech.used} by the engine, ${siteCount.month} by the site, ${used} of ${speech.monthly_chars}). Each stop checks only its own counter, so neither sees the other and narration can go on past the plan's cap.`,
+      `Speechify use this month is past the 90% stop (${used} of ${speech.monthly_chars}). Narration stops until the month turns.`,
     );
   } else if (percent >= 75) {
     warn(
       "speech_budget",
       "cost",
-      `Speechify at ${percent}% this month (${siteCount.month} characters on the site).`,
+      `Speechify at ${percent}% this month (${used} of ${speech.monthly_chars} characters).`,
     );
   }
 
@@ -485,7 +512,7 @@ async function checkSite(
   } else if (home) {
     const missing = Object.entries(PAGE_HEADERS)
       .filter(([name, part]) => !(home.headers.get(name) ?? "").includes(part))
-      .map(([name]) => name);
+      .map(([name, part]) => (name === "content-security-policy" ? `${name} (${part})` : name));
     if (missing.length > 0) {
       sink.fault("site_headers", "security", `/ is missing ${missing.join(", ")}.`);
     } else {

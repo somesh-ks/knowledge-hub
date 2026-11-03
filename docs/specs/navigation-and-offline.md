@@ -1,6 +1,6 @@
 # Navigation and offline
 
-Service worker, saved copies, PWA, launch screen, offline. What it does now. Reasons: D47, D97, D98, D99, D102, D123, D127, D145; history: docs/history/.
+Service worker, saved copies, PWA, launch screen, offline. What it does now. Reasons: D47, D97, D98, D99, D102, D123, D127, D145, D330; history: docs/history/.
 
 ## Requirements
 
@@ -18,9 +18,13 @@ Service worker, saved copies, PWA, launch screen, offline. What it does now. Rea
 - Every page names the modules it loads at start in modulepreload links (a build step; `checkBundle` fails a page that loads one without a link) (D112). Modules a press needs are fetched at idle, never on the press. The player surface's motion loads after first paint behind a facade that holds early calls. The bundle budget is 130 KB (D141).
 
 ### Offline
-- The worker keeps every file a page fetches (a versioned cache, `VERSION` in `sw.js`, six levels deep), so a settings page opened offline in a later session still has its editor (D97). The offline shell is pruned and includes /library.
-- Offline and, for 2.5 s after the connection returns, back online are one Banner strip above the app bar and the side column (`#banners`, `shell.css`). It is in the layout: it squeezes the page down as it opens and the page rises as it closes, so a page opened under it lands where it stays. Offline becomes back online in the same band. After a navigation it is drawn again as it was, with no motion.
-- Offline is the one device banner. Offline and back online are one empty-state section; `data-state` shows the true scene.
+- Three states, one owner each (D330): the route is the address bar; connectivity is `lib/connectivity.ts`; saved pages are the worker's caches. Nothing else keeps a copy.
+- Connectivity: the browser's flag confirmed by asking the site (`/build.json`). A return that does not answer is asked again on gaps of 2, 4, 8 and 15 s. Coming back to the front asks too. `isOnline()` and `connectivity().subscribe` are the only reads (a test holds this).
+- Offline and, for 2.5 s after the connection returns, back online are one Banner strip above the app bar and the side column (`#banners`, `shell.css`). The stack persists across moves and `data-strip` is carried, so no move redraws it or lets the page up and down. It is the one notice about the connection: no page says "You are offline" in its body.
+- The worker answers a page load from its newest copy: opened pages, then pages kept ready, then any cache. The page asks it to keep ready (`KEEP_READY`, `apps/web/src/scripts/keepReady.ts`, at idle, online, not on a data saver, at most hourly per page): Settings pages without an id, Saved, Downloads, the Library, its newest eight, the latest briefing and episode, each saved podcast. They survive deploys and are never trimmed.
+- A page outside that stands in as "You are offline" with one Try again button (`offline.astro`), at the address asked for, under the strip, with the tab of its section marked. Saved is saved at install, so it opens offline from the first visit. `apps/web/src/scripts/standIn.ts` brings the real page in, in place and replacing its own history entry (the player keeps playing), when the connection is confirmed, by itself or on Try again. Try again never goes to Latest; five automatic tries at most per stand-in.
+- No page reloads the app when the connection returns. A newer build found right after a return waits for the reader's next move.
+- Settings changed offline are kept in the outbox, even when the sending code could not be fetched, and sent on the confirmed return: "Saved. It will sync when you're back online.", then "Your changes are synced".
 - Scenario: WHEN offline and Play is pressed THEN the reason repeats and nothing loads (D98, D99).
 - Offline listening is by Download in the Library (D127): the worker answers Range requests (206, 416) and the `/api/narrate` lookup from `singularity-audio-v1`, which has no cap (D281) and survives version bumps. Audio never downloaded is not available offline.
 
@@ -37,3 +41,7 @@ Service worker, saved copies, PWA, launch screen, offline. What it does now. Rea
 - `apps/web/src/pages/manifest.webmanifest.ts`
 - `apps/web/src/components/LaunchScreen.astro`
 - `apps/web/src/pages/offline.astro`
+- `apps/web/src/lib/connectivity.ts`
+- `apps/web/src/scripts/standIn.ts`
+- `apps/web/src/scripts/keepReady.ts`
+- `apps/web/src/scripts/deviceBanners.ts`

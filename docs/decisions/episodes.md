@@ -316,3 +316,23 @@ What an episode or briefing is: kinds and structure, length, regenerate, Catch u
 - Rejected: moving the briefing Regenerate onto the Astro Sheet (a rewrite of a working Drawer for no visible gain); keeping Usual as a default (the owner never agreed to it).
 - Revisit if: a phone shows the exit as a flash or the foot button hides behind the keyboard.
 - Amends: D207, which listed Usual.
+
+## D337: the Regenerate sheets open on the comment alone, and the other controls appear as the words reach for them
+
+- Date: 2026-11-02 (the owner: the hints "as we type the comments ... we start only with the comments. And then as they type, we showcase different UI elements. So we keep it natural").
+- Decision: both Regenerate sheets (the briefing's `GenerateSheet`, the episode's panel) open on Comments. Length (briefing only) and Categories appear when the typed words reach for them, by a local match in `lib/regenHints.ts`: length words and minutes for Length; topic cue words or a category's name for Categories. A control that has appeared stays. A hidden control still sends its default (the aired length, the original topics).
+- Why: a short form reads as one question; the controls are offered at the moment the person's words ask for them. A model call per keystroke would cost money and time for no gain over a word match.
+- Rejected: a model reading the comment (cost, delay); always showing everything (the old form); a "More options" button (the owner asked for the natural reveal).
+- Revisit if: a person types a wish the match misses and cannot find the control (then add the missed word, or a quiet "More options").
+- Amends: D207, D323.
+
+## D345: Create's More options is a closed accordion at every width
+
+- Date: 2026-11-03 (the owner: "have more options as accordion on desktop").
+- Decision: More options is the same closed row on `/create` at every width: it names the current choices on its second line and opens in place, on the state time (the 2 Nov easing). The second column that held it open from 80rem is gone, with the pinned heading, the `data-pinned` state, the Tab-order reshuffle, and the wide layout (`--column-wide`, a non-sticky Generate foot). The page takes the column every other page has, and Generate keeps its sticky foot.
+- Context changed: the wide layout put the whole form in view at once. The owner prefers one form that behaves the same on a phone and a desktop, with the defaults folded away.
+- Why: the options hold what rarely changes (Format, Voices, Tone); showing them all the time on a desktop made the page feel heavier than the three questions that matter.
+- Rejected: keeping the column and adding a toggle (two states to explain for a setting used rarely).
+- Cost: on a wide screen the choices are one press away; the test that held the pinned layout is gone and the closed-row test runs on desktop too.
+- Revisit if: the owner misses seeing Format and Voices without a press.
+- Amends: D76 (the wide layout of its form).

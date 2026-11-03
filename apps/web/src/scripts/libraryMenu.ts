@@ -8,6 +8,7 @@
  * (HeroMenu.astro, `data-page-menu`) offers the same Download and Add to queue and is wired here too.
  */
 import { track } from "../lib/analytics";
+import { downloadFailure } from "../lib/downloadCopy";
 import { NotReadyError } from "../lib/downloads";
 import { deviceStorage, setSaved } from "../player/core/saved";
 import { installCardHold } from "./cardHold";
@@ -40,16 +41,8 @@ function markHero(on: boolean): void {
 }
 
 function setDownloaded(root: HTMLElement, on: boolean): void {
+  // The card's own mark follows this attribute (library.css, CardMarks.astro); a page header's is put in.
   holderOf(root).toggleAttribute("data-downloaded", on);
-  const sub = root.closest("[data-card]")?.querySelector(".card-sub");
-  const marked = sub?.querySelector(".card-downloaded");
-  if (!on) marked?.remove();
-  else if (sub && !marked) {
-    const mark = root
-      .closest("[data-card]")
-      ?.querySelector<HTMLTemplateElement>("template[data-downloaded-mark]");
-    if (mark) sub.prepend(mark.content.cloneNode(true));
-  }
   if (holderOf(root) === root) markHero(on);
   const item = root.querySelector<HTMLElement>('[data-menu="download"]');
   const label = item?.querySelector("[data-menu-label]");
@@ -93,7 +86,7 @@ async function toggleDownload(root: HTMLElement): Promise<void> {
   } catch (error) {
     // A turn without its file yet: a download never spends narration to make it.
     if (error instanceof NotReadyError) toast("Not ready offline yet");
-    else toast("Could not download. Check your connection and try again.", "error");
+    else toast(downloadFailure(error), "error");
   } finally {
     card.removeAttribute("data-downloading");
     await syncDownloads();
@@ -130,11 +123,11 @@ async function onPick(item: HTMLElement): Promise<void> {
     case "unsave":
       // Settings > Saved: the page hears the change (singularity:saved) and drops the row.
       if (setSaved(deviceStorage(), id, false)) toast("Removed from Saved");
-      else toast("Could not remove it from Saved on this device", "error");
+      else toast("Couldn't remove it from Saved", "error");
       return;
     case "unshare":
       if (await stopSharing(id)) toast("Stopped sharing", "success");
-      else toast("Could not stop sharing. Try again.", "error");
+      else toast("Couldn't stop sharing. Try again.", "error");
       return;
   }
 }

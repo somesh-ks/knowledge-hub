@@ -20,7 +20,13 @@ export interface FetchDeps {
   now: () => Date;
   /** Deadline for the current source. Fetchers pass it to every request. */
   signal?: AbortSignal | undefined;
-  exa?: (ServiceConfig & { queries: readonly ExaQuery[] }) | undefined;
+  exa?:
+    | (ServiceConfig & {
+        queries: readonly ExaQuery[];
+        /** Searches the week's budget leaves this run (exaBudget.ts); fewer than the queries means the first ones run. */
+        room?: number | undefined;
+      })
+    | undefined;
   firecrawl?: (ServiceConfig & { guard?: FirecrawlGuard | undefined }) | undefined;
   /**
    * What the last scrape of each Firecrawl listing page saw. When set, a page whose links have not

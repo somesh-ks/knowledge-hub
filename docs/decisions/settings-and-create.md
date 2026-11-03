@@ -379,6 +379,16 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Revisit if: Google sign-in lands (the account photo replaces the shape), or the Playback section on Sound and voice is not where the owner looks for it.
 - Amends: D129, D281, D299.
 
+## D338: Settings sets the default playback speed on the player's speed screen
+
+- Date: 2026-11-02 (the owner: the speed was "a stepper big number and then the slider ... in the increments of 0.25"; Settings had a plain list of four speeds)
+- Decision: on Settings > Preferences the default speed's value is a button that opens the player's own speed screen (`SpeedPanel`: the readout, the stepper by 0.05, the slider on every 0.25 from 0.5x to 2x) in a Menu sheet, a bottom sheet on a phone and a popover under the value from 40rem. Each change is saved at once, snapped by `toPlaybackRate`, to the same preference the list wrote, so the player starts at it as before and a speed saved by the old slider still shows. `scripts/defaultSpeed.ts` mounts the panel the first time the sheet opens.
+- Why: one speed control, not two: the player's screen sets one speed and Settings a list of four, with nothing between 1x and 1.25x.
+- Cost: a React root on a page that had none, loaded with the page; the value is a button, not a native select, so a keyboard opens it with Enter or Space and not the arrows.
+- Rejected: a list with all seven 0.25 stops (the stepper's finer steps and the slider's feel are lost); a second copy of the panel in vanilla markup (two controls to keep alike).
+- Amends: D309 (the speed screen is shared), the Settings default-speed row.
+- Revisit if: the page's first paint or its script weight shows the React root.
+
 ## D344: the app no longer edits the podcast structure; Preferences holds autoplay and the default speed
 
 - Date: 2026-11-02 (the owner: "remove the podcast structure as a feature totally, and rename the structure list item on settings page to preferences, and then put both podcast autoplay and then default playback speed inside that").
@@ -388,4 +398,4 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Context changed: the owner no longer wants to shape episodes from the app.
 - Revisit if: he wants control over what an episode holds again; then the editor comes back from git history (`structureEditor.ts`, `structureView.ts`, `structurePage.ts` before this change).
 - Also: D335 rejected a Sign in button with no sign-in behind it; the owner later asked for a dummy Log in button under the avatar on the profile page, until Google auth exists, so the profile has one.
-- Supersedes: D170, D182 and D191 on the app side. Amends: D335.
+- Supersedes: D170, D182 and D191 on the app side. Amends: D335; D338's default-speed row sits on Preferences now, with its speed sheet.

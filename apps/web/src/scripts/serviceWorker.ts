@@ -5,6 +5,7 @@
  * (applyBuild), at the first moment nothing would be lost; there is no prompt to answer (D202).
  */
 
+import { automaticMove, connectivity, isOnline } from "../lib/connectivity";
 import { wasTypedIn } from "./typing";
 
 /** A waiting worker may take over unless audio is playing or buffering. */
@@ -97,7 +98,7 @@ export function claimApply(build: string, store?: Pick<Storage, "getItem" | "set
  * could not be answered.
  */
 async function newerBuild(pageBuild: string | undefined): Promise<string | null | undefined> {
-  if (!navigator.onLine) return undefined;
+  if (!isOnline()) return undefined;
   const response = await fetch("/build.json", { cache: "no-store" });
   if (!response.ok) return undefined;
   const siteBuild = ((await response.json()) as { build?: unknown }).build;
@@ -117,8 +118,14 @@ function watchForUpdates(registration: ServiceWorkerRegistration, pageBuild?: st
   // deploy has one, takes over at the next idle moment.
   let newer: string | undefined;
   let retry: ReturnType<typeof setInterval> | undefined;
+  // The connection coming back is not a moment to reload under the reader (D330): a build found now
+  // waits for the reader's own next move inside the app, which is when it loads.
+  let heldForMove = false;
+  connectivity().subscribe((link, was) => {
+    if (link === "online" && was === "offline") heldForMove = true;
+  });
   const applyBuild = (): void => {
-    if (!newer || !navigator.onLine || !canReloadNow(readMoment())) return;
+    if (heldForMove || !newer || !isOnline() || !canReloadNow(readMoment())) return;
     if (!claimApply(newer)) return;
     registration.update().catch(() => {});
     location.reload();
@@ -159,7 +166,10 @@ function watchForUpdates(registration: ServiceWorkerRegistration, pageBuild?: st
   }, BUILD_POLL_MS);
   // A move inside the app is the reader's own act: a stale bundle that is still here loads the
   // current one as soon as the new page is on screen.
-  document.addEventListener("astro:page-load", applyBuild);
+  document.addEventListener("astro:page-load", () => {
+    if (!automaticMove.active) heldForMove = false;
+    applyBuild();
+  });
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       activateWhenIdle(registration);

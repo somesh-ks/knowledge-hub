@@ -35,6 +35,8 @@ function sheetFor(target: EventTarget | null): HTMLSelectElement | null {
   const select = (target as Element | null)?.closest?.("select");
   if (!select || select.disabled || select.multiple) return null;
   if (!select.closest("[data-select]") || select.classList.contains("picker-native")) return null;
+  // A select that names a panel (data-opens) opens it at any width, in place of its list.
+  if (select.hasAttribute("data-opens")) return select;
   return matchMedia(PHONE).matches ? select : null;
 }
 
@@ -133,6 +135,16 @@ function saveWheel(sheet: HTMLElement, select: HTMLSelectElement): void {
 function open(select: HTMLSelectElement, byKey: boolean): void {
   const wrapper = select.closest<HTMLElement>("[data-select]");
   if (!wrapper) return;
+  // A select that stands for a panel (Default playback speed) opens that popover, a Menu the page
+  // drew, and keeps the value: the panel writes it back to the select.
+  if (select.dataset.opens) {
+    const panel = document.getElementById(select.dataset.opens);
+    if (panel && !panel.matches(":popover-open")) {
+      select.focus({ preventScroll: true });
+      panel.showPopover();
+    }
+    return;
+  }
   let list = listOf(wrapper);
   if (!list) {
     list = document.createElement("div");
