@@ -483,8 +483,7 @@
       "styles": [
         "episode-actions.css",
         "field.css",
-        "manage.css",
-        "topics.css"
+        "manage.css"
       ],
       "usage": "The text field, and the select and textarea that share its looks: a filled pill (D186; a textarea 24px), the one control with an outline, which shows on focus.",
       "tokens": [
@@ -496,7 +495,6 @@
         "--field-border",
         "--field-chevron-gap",
         "--field-height",
-        "--field-max-height-multiline",
         "--field-padding",
         "--field-radius",
         "--field-radius-multiline",
