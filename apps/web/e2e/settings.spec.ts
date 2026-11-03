@@ -305,10 +305,11 @@ test.describe("profile page", () => {
   });
 
   // The bug it prevents (D353): a tap in the app bar opens the profile and swaps the header, so the
-  // show it started was cut at once and the reader saw nothing happen on the avatar they tapped.
-  test("a tap on the app bar's avatar starts a show that goes on through the page change", async ({
+  // show it started was cut at once, and then played on the profile's avatar instead of the tapped one.
+  test("a tap on the app bar's avatar plays there alone, through the page change", async ({
     page,
   }) => {
+    await page.clock.install();
     await page.goto("/settings");
     const bar = page.locator("a.account-bar > *");
     await expect(bar).toHaveAttribute("data-shape", /./);
@@ -319,6 +320,14 @@ test.describe("profile page", () => {
     await expect(page).toHaveURL(/\/profile$/);
     await expect(bar).toHaveAttribute("data-play", /./);
     expect(await bar.evaluate((el) => (el as HTMLElement & { kept?: boolean }).kept)).toBe(true);
+    // Only the tapped avatar plays: the profile's own stays still. The show draws every frame; a few
+    // frames on the frozen clock, while it still runs on the bar, would reach an avatar it should not.
+    const face = page.locator(".profile-face > *");
+    await expect(face).toHaveAttribute("data-shape", /./);
+    await page.clock.runFor(100);
+    expect(await bar.evaluate((el) => el.querySelector("svg")?.hasAttribute("style"))).toBe(true);
+    await expect(face).not.toHaveAttribute("data-play");
+    expect(await face.evaluate((el) => el.querySelector("svg")?.hasAttribute("style"))).toBe(false);
   });
 
   // The bug it prevents (D353): a tap that starts a show it never ends, a morph that leaves the avatar
