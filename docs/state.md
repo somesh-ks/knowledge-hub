@@ -12,7 +12,9 @@ Updated 2026-11-02. Rewrite, never append.
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). Regenerate and Catch up queue with Cancel; ended runs stay for the day (D204, D231).
 - Saved copies, offline, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews a PR once when it is ready, by tier (D192, D292).
-- Styles (D306, D310, D314, D315, D319): Halloween and Expressive (larger touch sizes, a `--shape-*` corner scale, looping empty states), a Hue slider, covers as one live vector recoloured by `cover.css`, and neutrals generated from a recipe per style (`styleRecipe.ts`). closed when: Somesh OKs the stills ([ghost states](https://claude.ai/artifact/MVNhZmVMk4kYNu2tJbHRPp), [disabled](https://claude.ai/artifact/Kc7RaKbskg5UeGULwwKtU8)) and a style change on his phone recolours every page, cover and header with no flash and survives a restart, and a press on the Library view toggle and a toast action is deeper than the hover.
+- Styles (D306, D310, D314, D315, D319): Halloween and Expressive (larger touch sizes, a corner scale, looping empty states), a Hue slider, live covers, and neutrals from a recipe per style. closed when: Somesh OKs the stills ([ghost states](https://claude.ai/artifact/MVNhZmVMk4kYNu2tJbHRPp), [disabled](https://claude.ai/artifact/Kc7RaKbskg5UeGULwwKtU8)) and a style change on his phone recolours every page, cover and header with no flash and survives a restart, and a press on the Library view toggle and a toast action is deeper than the hover.
+
+- Avatar, Settings regroup (D335, D344): merging. Open: Mood (D327).
 
 ## Tests
 

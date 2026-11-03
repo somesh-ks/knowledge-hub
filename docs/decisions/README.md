@@ -40,7 +40,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D167 | One shape per control | amends D72 |
 | D168 | Catch up, bolt, swipe toasts | amends D52 |
 | D169 | Queue gestures | amends D126; amended by D343 |
-| D170 | Podcast structure | built (D176, D182, D191); phase 3 closed by D241 |
+| D170 | Podcast structure | partly superseded by D344; built (D176, D182, D191); phase 3 closed by D241 |
 | D171 | Richer covers | amends D121 |
 | D172 | Store reads keep a copy | amends D149 |
 | D173 | Content is data in one repository; builds ship code only | active |
@@ -51,7 +51,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D179 | Every name says Singularity; saved state moves once | active |
 | D180 | Eval on label only | amends D148 |
 | D181 | Claude writes only | active |
-| D182 | Block prompts | active |
+| D182 | Block prompts | partly superseded by D344; active |
 | D183 | Costs read the bill | active |
 | D184 | Podcast lookback | superseded by D215 |
 | D185 | Repo config to store | superseded by D296 |
@@ -60,7 +60,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D188 | Script-drawn markup | active |
 | D189 | Catalogue route | superseded by D224 |
 | D190 | Votes tune weights | partly superseded by D194 for topics |
-| D191 | Structure by profile | amends D170, D176 |
+| D191 | Structure by profile | partly superseded by D344; amends D170, D176 |
 | D192 | CodeRabbit review agent | amends D143; amended by D292 |
 | D193 | Dock chevron; one-episode speed | amends D102 |
 | D194 | Topic weight removed | supersedes D190 |
@@ -146,7 +146,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D277 | Queue keeps played items; a tap plays in place | amends D126; amended by D343 |
 | D278 | Softer light covers | amends D121 |
 | D280 | Travel 300 ms | partly superseded by D336, D341; amends D271 |
-| D281 | Downloads page, no cap | amends D127, D264 |
+| D281 | Downloads page, no cap | amends D127, D264; amended by D335 |
 | D282 | A page falls back to the content its build holds when the store cannot answer | amends D173, D251 |
 | D283 | Read-first is AGENTS.md and state.md (20 KB), the Index is grep-only, the ledger is split by surface; "replaces" retires the old row | active |
 | D284 | Push pings | amends D11 |
@@ -164,7 +164,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D296 | Config store is the only home of owner config; examples in the repo | amends D149; supersedes D185 |
 | D297 | A section may stand over its allowance only as far as the floor needs | amends D35 |
 | D298 | Repository public, owner data moved out of git, history rewritten last | supersedes D9 |
-| D299 | Offline settings edits stay on the device and send when back online | amends D79, D91, D259; amended by D331 |
+| D299 | Offline settings edits stay on the device and send when back online | amends D79, D91, D259; amended by D331, D335 |
 | D300 | Digests and audio in Blob, state in Postgres, weekly private snapshot of the config store | partly superseded by D311; steps 1 and 2a built, 2b in review; amended by D339 |
 | D302 | Pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked | active |
 | D306 | A seasonal style may change more than tokens | amends D268 |
@@ -191,6 +191,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D332 | A scheduled run waits at the gate when the last 24 hours cost over $5 | amends D139 |
 | D333 | The short-text Claude steps run Haiku medium, then Haiku high, then Sonnet medium | amends D308, D324; amended by D334 |
 | D334 | Every Claude step starts at Haiku medium, the podcast script included | amends D333 |
+| D335 | The avatar leads to a profile page; Settings is Podcast settings, App settings and About | amends D129, D281, D299; amended by D344 |
 | D336 | A cover no longer flies between its card and the page's hero | partly supersedes D271, D280; amended by D341 |
 | D337 | Regenerate sheets open on the comment; Length and Categories appear as words reach for them | amends D207, D323 |
 | D338 | Settings sets the default speed on the player's speed screen | amends D309 |
@@ -198,6 +199,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D341 | A page arrives from the side of the tab you came from | partly supersedes D280; amends D336 |
 | D342 | A Firecrawl listing is read free first and scraped only when its links moved | relates to D222, D302 |
 | D343 | Podcast-page tabs, two-bar queue handle, swipe both ways, phone bar swipes podcasts | amends D169, D277; amended by D346 |
+| D344 | The app no longer edits the podcast structure; Preferences holds autoplay and the default speed | partly supersedes D170, D182, D191; amends D335 |
 | D345 | Create's More options is a closed accordion at every width | amends D76 |
 | D346 | Swipe-to-delete is a red strip behind the row; a story's time runs to the next story | amends D343 |
 

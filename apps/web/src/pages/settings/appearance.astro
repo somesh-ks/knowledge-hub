@@ -1,0 +1,81 @@
+---
+import tokens from "../../../../../tokens/tokens.json";
+import SettingsHead from "../../components/SettingsHead.astro";
+import Select from "../../design-system/Select.astro";
+import Slider from "../../design-system/Slider.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { THEME_PREFERENCES, type ThemePreference } from "../../player/core/preferences";
+import settingsInit from "../../scripts/settingsInit.js?raw";
+import "../../styles/field.css";
+import "../../styles/settings.css";
+
+const title = "Appearance";
+
+const THEME_LABELS: Record<ThemePreference, string> = {
+  system: "System",
+  light: "Light",
+  dark: "Dark",
+};
+
+// Default, then every mood tokens.json holds (D268): a mood added there appears here with no change.
+const MOODS = [
+  { value: "default", label: "Default" },
+  ...Object.keys(tokens.styles ?? {})
+    .filter((name) => !name.startsWith("$"))
+    .map((name) => ({
+      value: name,
+      label: name.charAt(0).toUpperCase() + name.slice(1).replace(/-/g, " "),
+    })),
+];
+---
+
+<BaseLayout title={title} view="settings" skipLabel="Skip to the appearance settings">
+  <main id="main" tabindex="-1">
+    {/* Static markup with native controls. No option is selected and no value is set here: the stored
+         choice is only known in the browser, so settingsPage.ts fills the controls in and then marks
+         the page ready. Until then each control keeps its place and shows no state, which is why a
+         stored Dark never flashes System first. Each select is inert until that script has its change
+         listener in place: a choice made before would not be saved. */}
+    <div class="settings-view" data-settings>
+      <SettingsHead title={title} />
+      <noscript>
+        <p class="settings-note">These settings need JavaScript, which is turned off in this browser.</p>
+      </noscript>
+      <section>
+        <div class="rows card-group">
+          <div class="settings-row">
+            <label class="settings-label" for="settings-theme">Theme</label>
+            <Select class="value-select theme-select" id="settings-theme" name="theme" autocomplete="off" inert>
+              {THEME_PREFERENCES.map((theme) => <option value={theme}>{THEME_LABELS[theme]}</option>)}
+            </Select>
+          </div>
+          {/* Hidden while no mood exists but Default. */}
+          {MOODS.length > 1 && (
+            <div class="settings-row">
+              <label class="settings-label" for="settings-style">Mood</label>
+              <Select class="value-select style-select" id="settings-style" name="style" autocomplete="off" inert>
+                {MOODS.map((mood) => <option value={mood.value}>{mood.label}</option>)}
+              </Select>
+            </div>
+          )}
+          {/* Turns the chosen mood's colours, the covers, the avatar and the header light together (D315,
+               D328). Default has no hue to turn, so settingsPage.ts hides the row there. */}
+          {MOODS.length > 1 && (
+            <div class="settings-hue" data-hue-row>
+              <label class="settings-label" for="settings-hue">Hue</label>
+              <Slider hue id="settings-hue" name="hue" min="0" max="355" step="5" value="0" />
+            </div>
+          )}
+        </div>
+        {/* Runs before the rows are first drawn and puts this device's theme and mood in the selects. */}
+        <script is:inline data-astro-rerun set:html={settingsInit.trim()} />
+      </section>
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { installSettingsPage } from "../../scripts/settingsPage";
+
+  installSettingsPage();
+</script>
