@@ -213,5 +213,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D354 | A queue row is one full-bleed band: tap plays, the handle moves it, a hold opens its menu | amends D169, D264 |
 | D355 | The change log is kept by CI: a feat, fix or perf PR fails while the newest entry is over two days old | active |
 | D356 | A chosen fill stands at least 8 points of lightness off every surface it sits on | amends D72 |
+| D358 | A playing avatar wears headphones fitted to its shape | amends D326, D353 |
 
 ---
