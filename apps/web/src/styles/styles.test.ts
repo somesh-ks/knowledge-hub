@@ -55,7 +55,6 @@ const LABEL_CONTROLS = [
   "menu-item",
   "story-row",
   "player-upnext-row",
-  "player-fallback-action",
   "script-back",
   "speed-btn",
   "speed-preset",
@@ -217,7 +216,6 @@ const BESPOKE_CONTROLS: [name: string, reason: string][] = [
   ["toast-dismiss", "a toast's close control"],
   ["multiselect-trigger", "the multi-select's field-like trigger"],
   ["search-clear", "the clear control inside .search-field"],
-  ["player-fallback-action", "a text action in the player's fallback card"],
   [
     "queue-fold",
     "the podcast queue dock's whole-row button that folds and opens it: a row, not a control face",

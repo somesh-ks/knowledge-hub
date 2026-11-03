@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import { bannerClass, bannerText } from "../design-system/banner";
 import { buttonClass } from "../design-system/button";
 import { INTERRUPTED_LINE, noticeAction } from "./core/playerCopy";
-import { getPlayerStore } from "./core/playerRuntime";
 import { usePlayerState } from "./hooks/usePlayer";
 import Icon from "./ui/LazyIcon";
 
@@ -68,7 +67,7 @@ function keepFocus(): void {
 
 /**
  * The one place the player explains itself: a playback error, or a pause the system caused. A
- * status line is a `status` role; an error is an `alert`, so it is announced at once. A press on
+ * pause is a plain `status` line in the story's place; an error is an `alert`, so it is announced at once. A press on
  * Play in a refusal that stands sends nothing and reports the same reason as a new error: the
  * alert is put in again, so a screen reader says why again (the live region stays quiet while
  * the page is open).
@@ -114,23 +113,12 @@ export default function PlayerNotice({ onRetry }: PlayerNoticeProps) {
       </div>
     );
   } else if (state.interrupted) {
+    // Said in the story's own line, as the bar's caption says it: the Play disc already offers to
+    // play on, so a box with its own Resume repeated it (owner, 2026-11-03: "very badly styled").
     notice = (
-      <div className={bannerClass()} data-tone="info" role="status">
-        <Icon name="info" />
-        <div className={bannerText.column}>
-          <p className={bannerText.title}>{INTERRUPTED_LINE}</p>
-        </div>
-        <button
-          className={buttonClass("text")}
-          type="button"
-          onClick={() => {
-            keepFocus();
-            getPlayerStore().play();
-          }}
-        >
-          Resume
-        </button>
-      </div>
+      <p className="player-story" role="status">
+        {INTERRUPTED_LINE}
+      </p>
     );
   }
   const slot = notice ? document.querySelector("[data-player-page] [data-notice-slot]") : null;

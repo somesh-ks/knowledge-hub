@@ -1,4 +1,5 @@
 import { type PointerEvent, useDeferredValue, useEffect, useSyncExternalStore } from "react";
+import { buttonClass } from "../design-system/button";
 import { longDateFromDigestId } from "./core/formatTime";
 import { recordingCaption } from "./core/playerCopy";
 import { classifyKeyTarget, shouldToggleOnKey } from "./core/playerKeys";
@@ -54,7 +55,7 @@ function PageFallback({ status }: { status: PageContentSnapshot["status"] }) {
       <div className="player-fallback" role="alert">
         <p>The controls did not load. Check your connection.</p>
         <button
-          className="player-fallback-action"
+          className={buttonClass("filled")}
           type="button"
           onClick={() => void loadPageContent()}
         >

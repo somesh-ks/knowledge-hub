@@ -2010,10 +2010,6 @@
       "part": "search-field"
     },
     {
-      "class": "player-fallback-action",
-      "reason": "a text action in the player's fallback card"
-    },
-    {
       "class": "queue-fold",
       "reason": "the podcast queue dock's whole-row button that folds and opens it: a row, not a control face"
     },

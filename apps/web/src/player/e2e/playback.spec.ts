@@ -235,7 +235,7 @@ test.describe("playback on a podcast", () => {
     expect(await time(page)).toBeGreaterThan(saved - 1);
   });
 
-  test("remembers a pause the system caused and offers resume instead of playing again", async ({
+  test("remembers a pause the system caused and plays on from the Play disc", async ({
     player,
     audio,
     page,
@@ -250,7 +250,8 @@ test.describe("playback on a podcast", () => {
     await player.openPlayer();
     const notice = page.getByRole("status").filter({ hasText: "Paused by another app" });
     await expect(notice).toBeVisible();
-    await player.finger.press(player.dialog.getByRole("button", { name: "Resume" }));
+    // The page's Play disc plays on; the line gives the story its place back.
+    await player.finger.press(player.dialog.getByRole("button", { name: "Play", exact: true }));
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
     await expect(notice).toHaveCount(0);
   });
