@@ -13,21 +13,21 @@ export const THEME_PREFERENCES = ["system", "light", "dark"] as const;
 export type ThemePreference = (typeof THEME_PREFERENCES)[number];
 
 /**
- * The look this device chose: "default" or the name of a style in tokens.json (D268). Any
- * lowercase kebab-case word is kept, so a style added there needs no change here; a name no
- * style carries matches no CSS and looks like the default.
+ * The mood this device chose: "default" or the name of a mood in tokens.json (D268). Any
+ * lowercase kebab-case word is kept, so a mood added there needs no change here; a name no
+ * mood carries matches no CSS and looks like the default.
  */
-export type StylePreference = string;
-export const DEFAULT_STYLE: StylePreference = "default";
+export type MoodPreference = string;
+export const DEFAULT_MOOD: MoodPreference = "default";
 
-/** The reader's turn of the style's hue, in degrees (D315): 0 is the look as designed. */
+/** The reader's turn of the mood's hue, in degrees (D315): 0 is the look as designed. */
 export const HUE_STEP = 5;
 export const HUE_MAX = 355;
 
 export interface Preferences {
   theme: ThemePreference;
-  style: StylePreference;
-  /** Degrees the style's hue is turned, 0 to 355 in steps of 5. Only a style uses it; Default stays blue. */
+  mood: MoodPreference;
+  /** Degrees the mood's hue is turned, 0 to 355 in steps of 5. Only a mood uses it; Default stays blue. */
   hue: number;
   /** null until the listener chooses, so the reduced-motion default can apply. */
   sounds: boolean | null;
@@ -47,7 +47,7 @@ export const DEFAULT_VOLUME = 0.8;
 
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: "system",
-  style: DEFAULT_STYLE,
+  mood: DEFAULT_MOOD,
   hue: 0,
   sounds: null,
   haptics: true,
@@ -68,7 +68,7 @@ export function toHue(value: unknown): number {
   return Math.min(HUE_MAX, Math.max(0, stepped));
 }
 
-function isStyle(value: unknown): value is StylePreference {
+function isMood(value: unknown): value is MoodPreference {
   return typeof value === "string" && /^[a-z][a-z-]{0,23}$/.test(value);
 }
 
@@ -85,7 +85,8 @@ export function parsePreferences(raw: string | null): Preferences {
   const record = parsed as Record<string, unknown>;
   return {
     theme: isTheme(record.theme) ? record.theme : DEFAULT_PREFERENCES.theme,
-    style: isStyle(record.style) ? record.style : DEFAULT_STYLE,
+    // Before D327 the field was `style`; a device that saved it keeps its mood.
+    mood: isMood(record.mood) ? record.mood : isMood(record.style) ? record.style : DEFAULT_MOOD,
     hue: toHue(record.hue),
     sounds: typeof record.sounds === "boolean" ? record.sounds : null,
     haptics: typeof record.haptics === "boolean" ? record.haptics : DEFAULT_PREFERENCES.haptics,

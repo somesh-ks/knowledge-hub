@@ -52,8 +52,8 @@ const MOODS = [
           {/* Hidden while no mood exists but Default. */}
           {MOODS.length > 1 && (
             <div class="settings-row">
-              <label class="settings-label" for="settings-style">Mood</label>
-              <Select class="value-select style-select" id="settings-style" name="style" autocomplete="off" inert>
+              <label class="settings-label" for="settings-mood">Mood</label>
+              <Select class="value-select mood-select" id="settings-mood" name="mood" autocomplete="off" inert>
                 {MOODS.map((mood) => <option value={mood.value}>{mood.label}</option>)}
               </Select>
             </div>
