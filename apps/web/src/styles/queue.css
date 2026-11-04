@@ -598,10 +598,12 @@ html:has(.queue-pop:popover-open) .app-nav-queue-title.queue-word[data-live] {
   display: none;
 }
 
+/* A grey fill at rest says the row opens something (owner, 2026-11-04): the tonal fill of a control
+   on the page, a step deeper on hover and on press. */
 .app-nav-queue {
   width: 100%;
   border: 0;
-  background: none;
+  background: var(--color-surface-container);
   font-family: inherit;
   text-align: start;
   cursor: pointer;
@@ -613,6 +615,18 @@ html:has(.queue-pop:popover-open) .app-nav-queue-title.queue-word[data-live] {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .app-nav-item.app-nav-queue:not([aria-current="page"]):hover {
+    background: var(--color-surface-container-hover);
+  }
+}
+
+/* Open, it holds the press, as a select's trigger does while its list is open (picker.css). */
+.app-nav-item.app-nav-queue:not([aria-current="page"]):active,
+html:has(.queue-pop:popover-open) .app-nav-item.app-nav-queue {
+  background: var(--color-surface-container-pressed);
 }
 
 html[data-player="open"] .app-nav-queue {
