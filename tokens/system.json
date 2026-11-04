@@ -714,13 +714,10 @@
         "--banner-padding",
         "--banner-radius",
         "--banner-strip-danger",
-        "--banner-strip-info",
         "--banner-strip-success",
         "--banner-strip-warning",
         "--color-danger",
         "--color-danger-subtle",
-        "--color-info",
-        "--color-info-subtle",
         "--color-success",
         "--color-success-subtle",
         "--color-warning",
@@ -2017,10 +2014,6 @@
       "class": "search-clear",
       "reason": "the clear control inside .search-field",
       "part": "search-field"
-    },
-    {
-      "class": "player-fallback-action",
-      "reason": "a text action in the player's fallback card"
     },
     {
       "class": "queue-fold",
@@ -5444,13 +5437,6 @@
       "tier": "component",
       "type": "dimension",
       "light": "var(--space-4)"
-    },
-    {
-      "name": "--banner-strip-info",
-      "tier": "component",
-      "type": "singularity-mix-color",
-      "light": "color-mix(in oklab, var(--color-info) 22%, var(--color-surface))",
-      "role": "A strip's ground (offline, back online): the tone mixed into the page, firmer than a block's tint, since a band that is nearly white reads as a mistake. In oklab, so a grey page never swings the tone's hue."
     },
     {
       "name": "--banner-strip-warning",

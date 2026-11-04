@@ -12,12 +12,6 @@
   background: var(--tone-bg);
 }
 
-.banner-notice[data-tone="info"] {
-  --tone-bg: var(--color-info-subtle);
-  --tone: var(--color-info);
-  --tone-strip: var(--banner-strip-info);
-}
-
 .banner-notice[data-tone="warning"] {
   --tone-bg: var(--color-warning-subtle);
   --tone: var(--color-warning);

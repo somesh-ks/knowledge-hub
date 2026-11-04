@@ -2931,10 +2931,6 @@ html:is([data-player="open"], :has(dialog[open])) .player-dock {
     border-block-start: var(--stroke-hairline) solid CanvasText;
   }
 
-  .player-fallback-action {
-    border: var(--stroke-rail) solid ButtonText;
-  }
-
   /* Fills are dropped too, so each text control keeps an edge of its own. */
   .story-row,
   .script-back {

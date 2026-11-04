@@ -55,7 +55,6 @@ const LABEL_CONTROLS = [
   "menu-item",
   "story-row",
   "player-upnext-row",
-  "player-fallback-action",
   "script-back",
 ];
 
@@ -217,7 +216,6 @@ const BESPOKE_CONTROLS: [name: string, reason: string][] = [
   ["profile-shape", "a shape choice in the profile's avatar picker: the avatar is its face (D335)"],
   ["emoji-cell", "a cell of the topic emoji grid: a square tile, not a pill (D186)"],
   ["search-clear", "the clear control inside .search-field"],
-  ["player-fallback-action", "a text action in the player's fallback card"],
   [
     "queue-fold",
     "the podcast queue dock's whole-row button that folds and opens it: a row, not a control face",

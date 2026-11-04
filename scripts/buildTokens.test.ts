@@ -391,7 +391,8 @@ describe.each(MOODS)("a mood's colour contrast: %s", (name) => {
       ...["success", "warning", "info"].flatMap((tone) =>
         [...surfaces, `${tone}-subtle`].map((bg): [string, string, number] => [tone, bg, 3]),
       ),
-      ...["success", "warning", "danger", "info"].flatMap((tone): [string, string, number][] => [
+      // A banner comes in success, warning and danger (the info tone went with its last use, the paused notice).
+      ...["success", "warning", "danger"].flatMap((tone): [string, string, number][] => [
         [tone, `banner.strip-${tone}`, 3],
         ["on-surface", `${tone}-subtle`, 4.5],
         ["on-surface", `banner.strip-${tone}`, 4.5],

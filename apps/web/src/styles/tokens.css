@@ -493,7 +493,6 @@
   --toast-shadow: var(--shadow-popover);
   --banner-radius: var(--shape-lg);
   --banner-padding: var(--space-4);
-  --banner-strip-info: color-mix(in oklab, var(--color-info) 22%, var(--color-surface));
   --banner-strip-warning: color-mix(in oklab, var(--color-warning) 22%, var(--color-surface));
   --banner-strip-danger: color-mix(in oklab, var(--color-danger) 22%, var(--color-surface));
   --banner-strip-success: color-mix(in oklab, var(--color-success) 22%, var(--color-surface));
