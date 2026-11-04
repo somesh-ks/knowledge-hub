@@ -124,10 +124,9 @@ export async function updateCurrent(
     if (entry === null) {
       if (await blob.create(pathname, body, options)) return true;
     } else if (entry.etag === null) {
-      // shortcut: the store always sends an ETag; without one the write is held to nothing and a
-      // stale read can be written back. If a head ever comes without one, refuse here instead.
-      await blob.put(pathname, body, options);
-      return true;
+      // The store always sends an ETag. Without one nothing holds the write to the version read,
+      // and a stale read written back would erase another writer's change: refuse instead.
+      throw new Error(`${pathname} has no ETag to hold the write to`);
     } else if (await blob.replace(pathname, body, options, entry.etag)) {
       return true;
     }
