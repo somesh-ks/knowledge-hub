@@ -18,9 +18,11 @@ interface Props {
   share?: HeroShare;
   /** The day's Catch ups, earliest first, when it has two or more (D219): a select before Play. */
   album?: readonly AlbumOption[];
+  /** The item the heart adds to Favorites; absent on a shared page, which has no Favorites. */
+  favorite?: string | undefined;
 }
 
-const { digestId, mode, length, noun = "podcast", share, album } = Astro.props;
+const { digestId, mode, length, noun = "podcast", share, album, favorite } = Astro.props;
 const chip = idleBriefingChip(length, noun);
 const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
 ---
@@ -55,6 +57,22 @@ const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
     data-noun={noun}
     data-minutes={Number.parseInt(length, 10)}
   />
+  {/* Favorites (owner, 2026-11-04): a heart right after Play, the same tonal icon button as Share.
+       scripts/briefingPage.ts sets aria-pressed from this device's Favorites and toggles it with a
+       toast; the filled heart follows aria-pressed (hero.css). */}
+  {
+    favorite && (
+      <button
+        class="icon-btn icon-btn-tonal press hero-favorite"
+        type="button"
+        aria-label="Favorite"
+        aria-pressed="false"
+        data-favorite={favorite}
+      >
+        <Icon name="heartOutline" class="fav-add" /><Icon name="heart" class="fav-remove" />
+      </button>
+    )
+  }
   {/* Share, the page's second action (D153), a secondary icon button after the filled Play (.hero-share in hero.css).
        scripts/briefingPage.ts handles the press; the link is asked for once the page is idle
        (data-share-early, scripts/shareLink.ts), so the share sheet opens inside the first tap. */}

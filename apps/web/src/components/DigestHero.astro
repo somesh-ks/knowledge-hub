@@ -56,5 +56,6 @@ const title = hero.title.replace(/(\d+) /, "$1 ");
     mode={entry.audioMode}
     length={hero.length}
     share={sharedTarget(entry.id, "briefing", shareToken)}
+    favorite={shareToken ? undefined : entry.id}
   />
 </header>

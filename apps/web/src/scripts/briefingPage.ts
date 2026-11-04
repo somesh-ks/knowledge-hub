@@ -3,6 +3,7 @@
  * section tabs and the contents list, and it shares the briefing's address. Loaded by the briefing
  * view. A bundled module runs once per session, so the per-page work listens for astro:page-load.
  */
+import { deviceStorage, isSaved, setSaved } from "../player/core/saved";
 import { installHeroMenu } from "./heroMenu";
 import { warmWhenIdle } from "./idle";
 import { prepareEarly, shareItem, shareLink } from "./shareLink";
@@ -260,7 +261,34 @@ document.addEventListener("click", (event) => {
   }
   const button = event.target.closest<HTMLElement>("[data-share]");
   if (button) void share(button);
+  const heart = event.target.closest<HTMLElement>("[data-favorite]");
+  if (heart) toggleFavorite(heart);
 });
+
+/** The page's heart (PlayCta.astro) says whether this device keeps the item in Favorites. */
+function showFavorite(): void {
+  const heart = document.querySelector<HTMLElement>("[data-favorite]");
+  heart?.setAttribute(
+    "aria-pressed",
+    String(isSaved(deviceStorage(), heart.dataset.favorite ?? "")),
+  );
+}
+
+function toggleFavorite(heart: HTMLElement): void {
+  const on = heart.getAttribute("aria-pressed") !== "true";
+  // setSaved announces the change (singularity:saved), which redraws the heart.
+  if (setSaved(deviceStorage(), heart.dataset.favorite ?? "", on))
+    sendToast({ message: on ? "Added to favorites" : "Removed from favorites" });
+  else
+    sendToast({
+      message: on ? "Couldn't add it to favorites" : "Couldn't remove it from favorites",
+      kind: "error",
+    });
+}
+
+// Saved or removed from the player's menu or a menu on this page, or in another tab.
+window.addEventListener("singularity:saved", showFavorite);
+window.addEventListener("storage", showFavorite);
 
 const release = (): void => {
   held = false;
@@ -338,5 +366,7 @@ function wirePageMenu(): void {
 
 document.addEventListener("astro:page-load", watchPage);
 document.addEventListener("astro:page-load", wirePageMenu);
+document.addEventListener("astro:page-load", showFavorite);
 watchPage();
 wirePageMenu();
+showFavorite();
