@@ -386,6 +386,103 @@ function resolveStateColor(
   return `oklch(${trimNumber(l * 100)}% ${trimNumber(base.c)} ${trimNumber(base.h)}${alpha})`;
 }
 
+const MIX_COLOR = "singularity-mix-color";
+
+interface MixColor {
+  from: string;
+  /** The share of `from`, 0 to 1. */
+  share: number;
+  /** The other colour; absent is transparent, so the mix is `from` at that alpha. */
+  into?: string;
+  space: "oklch" | "oklab";
+}
+
+function mixColorOf(path: string, value: TokenValue): MixColor {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new Error(`${path}: a mix color needs {from, share}`);
+  }
+  const { from, share, into, space } = value;
+  if (aliasTarget(from) === null) throw new Error(`${path}: "from" must be a {reference}`);
+  if (typeof share !== "number" || !(share > 0 && share < 1)) {
+    throw new Error(`${path}: share is a number between 0 and 1`);
+  }
+  if (into !== undefined && aliasTarget(into) === null) {
+    throw new Error(`${path}: "into" must be a {reference}`);
+  }
+  if (space !== undefined && space !== "oklch" && space !== "oklab") {
+    throw new Error(`${path}: space is oklch or oklab`);
+  }
+  return {
+    from: String(from),
+    share,
+    ...(into !== undefined ? { into: String(into) } : {}),
+    space: space ?? "oklch",
+  };
+}
+
+/**
+ * A colour mixed from two roles, or one role at an alpha: `color-mix(in oklch, <from> 88%, transparent)`.
+ * It is a token so the contrast sweep measures it in every mood, mode and hue; a mix written in a page
+ * stylesheet is a colour no test sees (the open story's muted ink fell to 4.15:1 that way).
+ */
+function renderMixColor(path: string, value: TokenValue, doc: TokenDocument): string {
+  const { from, share, into, space } = mixColorOf(path, value);
+  const other = into === undefined ? "transparent" : renderValue("color", into, doc);
+  return `color-mix(in ${space}, ${renderValue("color", from, doc)} ${trimNumber(share * 100)}%, ${other})`;
+}
+
+/**
+ * What the browser draws for `color-mix(in <space>, a <share>, b)` (CSS Color 5): premultiplied by
+ * alpha, the hue on the shorter arc in oklch, and a hue a grey does not have taken from the other.
+ * `b` absent is transparent.
+ */
+export function mixColors(
+  a: Oklch,
+  share: number,
+  b: Oklch | undefined,
+  space: "oklch" | "oklab",
+): Oklch {
+  const other: Oklch = b ?? { l: 0, c: 0, h: 0, alpha: 0 };
+  const weights = [a.alpha * share, other.alpha * (1 - share)] as const;
+  const alpha = weights[0] + weights[1];
+  if (alpha === 0) return { l: 0, c: 0, h: 0, alpha: 0 };
+  const blend = (x: number, y: number): number => (x * weights[0] + y * weights[1]) / alpha;
+  const l = blend(a.l, other.l);
+  if (space === "oklab") {
+    const toLab = (color: Oklch): [number, number] => {
+      const angle = (color.h * Math.PI) / 180;
+      return [color.c * Math.cos(angle), color.c * Math.sin(angle)];
+    };
+    const [aA, aB] = toLab(a);
+    const [bA, bB] = toLab(other);
+    const labA = blend(aA, bA);
+    const labB = blend(aB, bB);
+    const h = ((Math.atan2(labB, labA) * 180) / Math.PI + 360) % 360;
+    return { l, c: Math.hypot(labA, labB), h, alpha };
+  }
+  const grey = (color: Oklch): boolean => color.c < 1e-6;
+  const from = grey(a) ? other.h : a.h;
+  const to = grey(other) ? from : other.h;
+  const arc = ((((to - from) % 360) + 540) % 360) - 180;
+  const h = (((from + arc * (1 - share)) % 360) + 360) % 360;
+  return { l, c: blend(a.c, other.c), h, alpha };
+}
+
+function formatOklch({ l, c, h, alpha }: Oklch): string {
+  const translucent = alpha < 1 ? ` / ${trimNumber(alpha)}` : "";
+  return `oklch(${trimNumber(l * 100)}% ${trimNumber(c)} ${trimNumber(h)}${translucent})`;
+}
+
+/** The mix as a literal, for contrast tests and the system file: both roles resolved in `mode`. */
+function resolveMixColor(doc: TokenDocument, path: string, value: TokenValue, mode: Mode): string {
+  const { from, share, into, space } = mixColorOf(path, value);
+  const literal = (reference: string): Oklch =>
+    parseOklch(String(resolveLiteral(doc, aliasTarget(reference) as string, mode)));
+  return formatOklch(
+    mixColors(literal(from), share, into === undefined ? undefined : literal(into), space),
+  );
+}
+
 /** The label floor a state must keep, and the hues a reader's slider (D315) can turn a style to. */
 const STATE_LABEL_FLOOR = 4.5;
 const STATE_HUE_TURNS = Array.from({ length: 72 }, (_, i) => i * 5);
@@ -494,6 +591,8 @@ export function renderValue(type: string, value: TokenValue, doc: TokenDocument)
   switch (type) {
     case STATE_COLOR:
       return renderStateColor("state color", value, doc);
+    case MIX_COLOR:
+      return renderMixColor("mix color", value, doc);
     case "color":
     case "dimension":
     case "duration":
@@ -581,6 +680,8 @@ export function resolveLiteral(doc: TokenDocument, dotPath: string, mode: Mode):
     if (!target && token.type === STATE_COLOR) {
       return resolveStateColor(doc, token.dotPath, value, mode);
     }
+    if (!target && token.type === MIX_COLOR)
+      return resolveMixColor(doc, token.dotPath, value, mode);
     if (!target) return value;
     current = target;
   }

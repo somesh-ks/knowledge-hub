@@ -258,6 +258,8 @@
       ],
       "usage": "Phosphor: every glyph is one filled path, so an icon is just its colour and its size.",
       "tokens": [
+        "--color-favorite",
+        "--color-on-surface-muted",
         "--icon-bold",
         "--size-icon",
         "--size-icon-lg"
@@ -365,7 +367,6 @@
         "--color-accent-pressed",
         "--color-border-control",
         "--color-on-accent",
-        "--color-on-surface",
         "--size-touch",
         "--switch-height",
         "--switch-padding",
@@ -373,6 +374,8 @@
         "--switch-thumb",
         "--switch-thumb-bg",
         "--switch-thumb-radius",
+        "--switch-track-hover",
+        "--switch-track-mixed",
         "--switch-width"
       ]
     },
@@ -505,7 +508,7 @@
       "id": "select",
       "name": "Select",
       "kind": "selection",
-      "summary": "A native select with its own chevron: a person picks one value from a list that is too long to show.",
+      "summary": "A native select with its own chevron.",
       "classes": [
         "select-outlined",
         "select-tonal"
@@ -712,13 +715,13 @@
       "tokens": [
         "--banner-padding",
         "--banner-radius",
+        "--banner-strip-danger",
+        "--banner-strip-success",
+        "--banner-strip-warning",
         "--color-danger",
         "--color-danger-subtle",
-        "--color-info",
-        "--color-info-subtle",
         "--color-success",
         "--color-success-subtle",
-        "--color-surface",
         "--color-warning",
         "--color-warning-subtle",
         "--size-icon"
@@ -1341,6 +1344,7 @@
         "Drawn only for two sections or more."
       ],
       "styles": [
+        "player.css",
         "primitives.css"
       ],
       "usage": "The bar sticks and carries the surface and the line under it; the strip inside it scrolls and fades its ends. A mask on the bar itself would fade its surface and line too, and what scrolls under a stuck strip would show through at its edges.",
@@ -1351,6 +1355,7 @@
         "--color-on-surface",
         "--color-on-surface-muted",
         "--color-surface",
+        "--player-padding",
         "--row-radius",
         "--tabs-height",
         "--tabs-indicator-height",
@@ -1951,14 +1956,6 @@
       "reason": "the player transport's skip variant"
     },
     {
-      "class": "speed-btn",
-      "reason": "the player's speed popover trigger"
-    },
-    {
-      "class": "speed-preset",
-      "reason": "a speed option in the player's popover"
-    },
-    {
       "class": "source-plus-btn",
       "reason": "the sources list's inline add control"
     },
@@ -2004,13 +2001,21 @@
       "part": "multiselect"
     },
     {
+      "class": "picker-trigger",
+      "reason": "the search picker's field-like trigger, drawn by scripts/picker.ts"
+    },
+    {
+      "class": "profile-shape",
+      "reason": "a shape choice in the profile's avatar picker: the avatar is its face (D335)"
+    },
+    {
+      "class": "emoji-cell",
+      "reason": "a cell of the topic emoji grid: a square tile, not a pill (D186)"
+    },
+    {
       "class": "search-clear",
       "reason": "the clear control inside .search-field",
       "part": "search-field"
-    },
-    {
-      "class": "player-fallback-action",
-      "reason": "a text action in the player's fallback card"
     },
     {
       "class": "queue-fold",
@@ -4195,6 +4200,18 @@
       }
     },
     {
+      "name": "--color-favorite",
+      "tier": "semantic",
+      "type": "color",
+      "light": "var(--color-red-500)",
+      "role": "The filled heart. Brighter than danger's red, which reads brown on a heart (owner, 2026-11-04: \"the heart fill can be red\"); only an icon, so it holds 3:1 on every surface.",
+      "dark": "var(--color-red-400)",
+      "hex": {
+        "light": "#ce3830",
+        "dark": "#ee5b4f"
+      }
+    },
+    {
       "name": "--color-info",
       "tier": "semantic",
       "type": "color",
@@ -4929,6 +4946,32 @@
       }
     },
     {
+      "name": "--player-spoken",
+      "tier": "component",
+      "type": "singularity-mix-color",
+      "light": "color-mix(in oklch, var(--color-on-accent-container) 18%, transparent)",
+      "role": "The fill behind the word being said where its turn sits on the page (the rundown before the first story): the chosen fill's ink at 18%, a tint over the page."
+    },
+    {
+      "name": "--player-spoken-chosen",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-container-pressed)",
+      "role": "The fill behind the word being said in the open story, on its chosen fill: the fill's own press step (D317), which steps away from the ink wherever a step toward it would cost the ink its 4.5:1, so the word reads at every hue. The page's tint (player.spoken) put the ink at 3.56:1 there in Expressive dark (2026-11-04).",
+      "hex": {
+        "light": "#90addc",
+        "dark": "#003698"
+      }
+    },
+    {
+      "name": "--player-story-fg-muted",
+      "tier": "component",
+      "type": "singularity-mix-color",
+      "light": "color-mix(in oklch, var(--color-on-accent-container) 88%, transparent)",
+      "role": "The quieter words on the open story's chosen fill (accent-container): its speaker names and the turns not yet said. The fill's own ink at 88%, not 72% (2026-11-03): muted ink keeps 4.5:1 on every mood's chosen fill after D356 moved the fills. Expressive dark takes 95% (2026-11-04): its card's own ink is 4.88:1 at hue +255, so 88% fell to 4.15:1.",
+      "dark": "color-mix(in oklch, var(--color-on-accent-container) 88%, transparent)"
+    },
+    {
       "name": "--player-tint-mix",
       "tier": "component",
       "type": "number",
@@ -5243,6 +5286,20 @@
       }
     },
     {
+      "name": "--switch-track-mixed",
+      "tier": "component",
+      "type": "singularity-mix-color",
+      "light": "color-mix(in oklch, var(--color-accent) 50%, var(--color-border-control))",
+      "role": "Mixed (a master over a group of which only some are on): the track halfway between the off grey and the accent, so it reads as between the two states (D285)."
+    },
+    {
+      "name": "--switch-track-hover",
+      "tier": "component",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-border-control) calc(l + var(--state-direction) * var(--state-step-hover)) c h)",
+      "role": "The off track under a pointer or a press: the control's edge stepped toward the page's text (D317), as every fill's state is."
+    },
+    {
       "name": "--sheet-radius",
       "tier": "component",
       "type": "dimension",
@@ -5394,6 +5451,24 @@
       "tier": "component",
       "type": "dimension",
       "light": "var(--space-4)"
+    },
+    {
+      "name": "--banner-strip-warning",
+      "tier": "component",
+      "type": "singularity-mix-color",
+      "light": "color-mix(in oklab, var(--color-warning) 22%, var(--color-surface))"
+    },
+    {
+      "name": "--banner-strip-danger",
+      "tier": "component",
+      "type": "singularity-mix-color",
+      "light": "color-mix(in oklab, var(--color-danger) 22%, var(--color-surface))"
+    },
+    {
+      "name": "--banner-strip-success",
+      "tier": "component",
+      "type": "singularity-mix-color",
+      "light": "color-mix(in oklab, var(--color-success) 22%, var(--color-surface))"
     },
     {
       "name": "--archive-row-padding",
@@ -5886,7 +5961,7 @@
       "tier": "component",
       "type": "dimension",
       "light": "var(--space-6)",
-      "role": "From the card's edge to its rows' words, and to its chips. The page's title, heads and notes start the same distance in, so a page with cards has one left text edge (2026-10-22)."
+      "role": "From the card's edge to its rows' words, and to its chips. The page's title, heads and notes start the same distance in, so a page with cards has one left text edge (2026-10-22). The same in every mood: a mood's larger corner takes it out of the content radius, so the card's radius stays its content radius plus this (owner, 2026-11-03: Expressive's 32px read as \"too much\" padding and set its rows 8px in from Default's)."
     },
     {
       "name": "--card-inset",

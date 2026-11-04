@@ -55,10 +55,7 @@ const LABEL_CONTROLS = [
   "menu-item",
   "story-row",
   "player-upnext-row",
-  "player-fallback-action",
   "script-back",
-  "speed-btn",
-  "speed-preset",
 ];
 
 /**
@@ -191,7 +188,8 @@ const SHARED_CONTROLS = [
   "segmented-nav-tab",
 ];
 
-/** Controls styled in their own sheet or built bespoke, each with why they are not a shared one. */
+/** Controls styled in their own sheet or built bespoke, each with why they are not a shared one. A new
+ * entry needs the design-system label (scripts/designSystemGate.mjs): any other PR may only shrink it. */
 const BESPOKE_CONTROLS: [name: string, reason: string][] = [
   [
     "create-fab",
@@ -204,8 +202,6 @@ const BESPOKE_CONTROLS: [name: string, reason: string][] = [
   ["dock-open", "the dock's whole-bar button that opens the player"],
   ["transport-btn", "the player transport: play, skip and seek on the player's own scale"],
   ["transport-skip", "the player transport's skip variant"],
-  ["speed-btn", "the player's speed popover trigger"],
-  ["speed-preset", "a speed option in the player's popover"],
   ["source-plus-btn", "the sources list's inline add control"],
   ["source-edit", "a text action on a source row"],
   ["source-remove", "a text action on a source row"],
@@ -216,8 +212,10 @@ const BESPOKE_CONTROLS: [name: string, reason: string][] = [
   ["toast-action", "a toast's text action"],
   ["toast-dismiss", "a toast's close control"],
   ["multiselect-trigger", "the multi-select's field-like trigger"],
+  ["picker-trigger", "the search picker's field-like trigger, drawn by scripts/picker.ts"],
+  ["profile-shape", "a shape choice in the profile's avatar picker: the avatar is its face (D335)"],
+  ["emoji-cell", "a cell of the topic emoji grid: a square tile, not a pill (D186)"],
   ["search-clear", "the clear control inside .search-field"],
-  ["player-fallback-action", "a text action in the player's fallback card"],
   [
     "queue-fold",
     "the podcast queue dock's whole-row button that folds and opens it: a row, not a control face",
@@ -233,6 +231,94 @@ const BESPOKE_CONTROLS: [name: string, reason: string][] = [
   ["script-turn", "a transcript turn that seeks on tap"],
 ];
 
+/** The field family, whose outline is its form (D54): the Field and Select components, and the
+ * field-like triggers of the multi-select and the search picker. */
+const FIELDS = [
+  ...COMPONENTS.filter(({ name }) => ["Field", "Select"].includes(name)).flatMap(
+    ({ classes }) => classes,
+  ),
+  "multiselect-trigger",
+  "picker-trigger",
+];
+
+/**
+ * The control rules that still draw an outline, as "file: selector", each with why. Outlines are for
+ * text fields (D54, D72), so each is the owner's call to keep or make tonal, and the list only shrinks:
+ * a new entry needs the design-system label (scripts/designSystemGate.mjs).
+ */
+const OUTLINED_CONTROLS: [rule: string, reason: string][] = [
+  [
+    'profile.css: .profile-shape[aria-pressed="true"]',
+    "the chosen shape in the profile's avatar picker, ringed in the accent (D335)",
+  ],
+  [
+    'topics.css: .emoji-cell[aria-current="true"]',
+    "the topic's own emoji in the emoji grid: a hairline ring on its tonal cell",
+  ],
+  [
+    "topics.css: .topic-add-source",
+    "Add source: outlined, not tonal, and a size down so it sits level with its heading (D103)",
+  ],
+];
+
+/**
+ * Every button a source file draws, with the class text it is given: a <button> tag's class
+ * attribute, the class a helper takes with the tag (`element("button", "picker-trigger")`), or what a
+ * script sets on a `createElement("button")`. Until 2026-11-04 the rules read only .astro and .tsx,
+ * so a script's buttons escaped them. `undefined` is a class the file computes where no rule can read
+ * it (`class={...}`, `class:list`, a template string's `${name}` alone).
+ */
+function buttonsIn(text: string): { tag: string; classes: string | undefined }[] {
+  const tags = [...text.matchAll(/<button\b[^>]*>/g)].map(([tag]) => {
+    const value = /class(?:Name)?="([^"]*)"/.exec(tag)?.[1] ?? "";
+    const computed =
+      /class(?:Name)?=\{|class:list/.test(tag) || /^\s*\$\{\s*\w+\s*\}\s*$/.test(value);
+    return { tag, classes: computed ? undefined : value };
+  });
+  const helpers = [
+    ...text.matchAll(/\w+\(\s*(["'])button\1\s*,\s*(["'`])((?:\\.|(?!\2)[^\\])*)\2/g),
+  ].map(([tag, , , classes]) => ({ tag, classes }));
+  const built = [
+    ...text.matchAll(/(\w+)\s*=\s*(?:document\.)?createElement\(\s*(["'])button\2\s*\)/g),
+  ].map(([tag, name]) => ({
+    tag,
+    classes: [
+      ...text.matchAll(
+        new RegExp(
+          `\\b${name}\\.(?:className\\s*=(?!=)|classList\\.add\\(|setAttribute\\(\\s*["']class["']\\s*,)([^;]*)`,
+          "g",
+        ),
+      ),
+    ]
+      .map(([, set]) => set)
+      .join(" "),
+  }));
+  return [...tags, ...helpers, ...built];
+}
+
+/** The class names in a button's class text, without the code of a template string's `${...}`. */
+const classWords = (classes: string) =>
+  classes.replace(/\$\{[^}]*\}/g, " ").match(/[a-z][\w-]*/g) ?? [];
+
+/** Whether a button's classes are the system's: a shared or named bespoke class, or a class helper's. */
+const systemButton = (classes: string) =>
+  /\b\w+Class\(/.test(classes) ||
+  classWords(classes).some(
+    (name) => SHARED_CONTROLS.includes(name) || BESPOKE_CONTROLS.some(([al]) => al === name),
+  );
+
+/** Every class a button wears in the source, with the classes a page hands a <Button> to draw on it. */
+const wornByButtons = () =>
+  sourceFiles().flatMap((file) => {
+    const text = readFileSync(file, "utf8");
+    return [
+      ...buttonsIn(text).map(({ classes }) => classes ?? ""),
+      ...[...text.matchAll(/<Button\b[^>]*>/g)].map(
+        ([tag]) => /\bclass(?:Name)?="([^"]*)"/.exec(tag)?.[1] ?? "",
+      ),
+    ].flatMap(classWords);
+  });
+
 /** A selector fragment as a whole name: `.aside` matches `.aside:hover`, not `.aside-x`. */
 const wholeName = (fragment: string) =>
   new RegExp(`${fragment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-])`);
@@ -242,6 +328,18 @@ const rulesOf = (css: string) =>
   [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(
     ([, selector = "", body = ""]) => [selector.trim(), body] as const,
   );
+
+/** A selector list's selectors, split at its own commas, not at those inside :is() or :not(). */
+function selectorsOf(list: string): string[] {
+  const parts = [""];
+  let depth = 0;
+  for (const character of list) {
+    depth += character === "(" ? 1 : character === ")" ? -1 : 0;
+    if (character === "," && depth === 0) parts.push("");
+    else parts[parts.length - 1] += character;
+  }
+  return parts;
+}
 
 /**
  * The root class of a top-level view. Its inline edges come from the page gutter (`.page`,
@@ -813,21 +911,71 @@ const RULES: Rule[] = [
       ),
   },
   {
-    // Prevents an unstyled or one-off button in markup: every <button> carries a shared control
-    // class or a named bespoke one, so it inherits the press, focus and hit-area rules.
+    // Prevents an unstyled or one-off button in markup or a script: every <button> carries a shared
+    // control class or a named bespoke one, so it inherits the press, focus and hit-area rules.
     name: "every <button> wears a shared control class or a named bespoke one",
     offenders: () =>
-      filesUnder(SRC, [".astro", ".tsx"]).flatMap((file) =>
-        [...readFileSync(file, "utf8").matchAll(/<button\b[^>]*>/g)].flatMap(([tag]) => {
-          if (/class(?:Name)?=\{|class:list/.test(tag)) return [];
-          const classes = /class(?:Name)?="([^"]*)"/.exec(tag)?.[1]?.split(/\s+/) ?? [];
-          const known = classes.some(
-            (name) =>
-              SHARED_CONTROLS.includes(name) || BESPOKE_CONTROLS.some(([al]) => al === name),
-          );
-          return known ? [] : [`${posix(file)}: ${tag.replace(/\s+/g, " ").slice(0, 80)}`];
-        }),
+      sourceFiles().flatMap((file) =>
+        buttonsIn(readFileSync(file, "utf8"))
+          .filter(({ classes }) => classes !== undefined && !systemButton(classes))
+          .map(({ tag }) => `${posix(file)}: ${tag.replace(/\s+/g, " ").slice(0, 80)}`),
       ),
+  },
+  {
+    // Prevents an outlined control (owner, 2026-11-03: the floating button had "a thin outline that
+    // shouldnt be there"): a control is a tonal shape, and an outline is a text field's (D54, D72). A
+    // rule that names a control's class (a shared, bespoke, label or control-named one, a Button's, or
+    // one a button wears) draws no visible border, resting outline or ring. Allowed: a focus ring, the
+    // field family, a transparent border (it holds the size where forced colours draw one), a system
+    // colour (the forced-colours edge) and a line on one side (a divider, as between segments).
+    name: "a control draws no outline: outlines are for text fields",
+    offenders: () => {
+      const controls = new Set([
+        ...SHARED_CONTROLS,
+        ...BESPOKE_CONTROLS.map(([name]) => name),
+        ...LABEL_CONTROLS,
+        ...(COMPONENTS.find(({ name }) => name === "Button")?.classes ?? []),
+        ...wornByButtons(),
+      ]);
+      const control = (name: string) =>
+        controls.has(name) || /-(?:btn|button|fab|chip|pill|toggle)$/.test(name);
+      const hidden = (value: string) =>
+        /^(?:0|none)(?:\s|$)|\btransparent\b|\b(?:ButtonText|ButtonBorder|CanvasText|Highlight(?:Text)?|GrayText)\b/.test(
+          value,
+        );
+      // What :not() and :has() test is not the element itself: `:not(:focus-visible)` is at rest.
+      const group = String.raw`\((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\)`;
+      const negated = new RegExp(`:not${group}`, "g");
+      const has = new RegExp(`:has${group}`, "g");
+      return ownCss().flatMap(([file, css]) =>
+        rulesOf(css).flatMap(([selector, body]) => {
+          const rule = `${file}: ${selector.replace(/\s+/g, " ")}`;
+          if (OUTLINED_CONTROLS.some(([allowed]) => allowed === rule)) return [];
+          const named = selectorsOf(selector).some((part) => {
+            const own = part.replace(negated, "");
+            if (/:focus/.test(own)) return false;
+            const classes = [...own.replace(has, "").matchAll(/\.([\w-]+)/g)].map(
+              ([, name = ""]) => name,
+            );
+            return classes.some(control) && !classes.some((name) => FIELDS.includes(name));
+          });
+          if (!named) return [];
+          return declarationsOf(body)
+            .filter(([property, value]) =>
+              /^(?:border|outline)(?:-(?:width|style|color))?$/.test(property)
+                ? !hidden(value)
+                : property === "box-shadow" &&
+                  value
+                    .split(/,(?![^(]*\))/)
+                    .some(
+                      (layer) =>
+                        /^(?:inset )?0 0 0 (?!0(?:\s|$))\S/.test(layer.trim()) && !hidden(layer),
+                    ),
+            )
+            .map(([property, value]) => `${rule} { ${property}: ${value.replace(/\s+/g, " ")} }`);
+        }),
+      );
+    },
   },
 ];
 
@@ -1096,6 +1244,35 @@ describe("component stylesheets", () => {
         );
       }
     }
+  });
+
+  it("mixes no colour for words or a fill in a page sheet, so the contrast sweep measures every one", () => {
+    // A `color-mix` written here is a colour scripts/buildTokens.test.ts never measures: the open
+    // story's muted ink (4.15:1) and its spoken word (3.56:1) fell under 4.5:1 in Expressive dark
+    // that way. Such a colour is a token (a `singularity-mix-color` when it is a mix); only art mixes
+    // here, where no token colour can stand in. A custom property counts, since a fill reads it.
+    const ART: [where: string, reason: string][] = [
+      ["avatar.css", "the avatar's own shading, mixed from its two tones (D326)"],
+      ["empty.css .empty-art", "the empty-state art's detail tone, between its hero and its ink"],
+      [
+        "library.css .card-link .cover::after",
+        "the press layer over a cover's art, which has no one colour",
+      ],
+      ["ripple.css .ripple-wave", "the press wave, which crosses the bar and its current pill"],
+    ];
+    const painted = /^(?:color|background(?:-color|-image)?|fill|--[\w-]+)$/;
+    const found = ownCss().flatMap(([file, css]) =>
+      rulesOf(css).flatMap(([raw, body]) => {
+        const selector = raw.replace(/\s+/g, " ");
+        if (ART.some(([where]) => where === file || where === `${file} ${selector}`)) return [];
+        return [...body.matchAll(/(?:^|;)\s*(--[\w-]+|[a-z-]+)\s*:\s*([^;]+)/g)]
+          .filter(
+            ([, property = "", value = ""]) => painted.test(property) && /color-mix\(/.test(value),
+          )
+          .map(([, property]) => `${file}: ${selector} { ${property} }`);
+      }),
+    );
+    expect(found).toEqual([]);
   });
 });
 

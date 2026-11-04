@@ -774,3 +774,22 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Cost: a feature that adds over 5 KB of eager code must raise one number in its PR.
 - Revisit if: raising the record becomes routine, or the owner wants the ceiling itself lower.
 - Amends: D141 (adds a ratchet under the ceiling).
+
+## D362: short of room, a row cuts its name and keeps its value
+
+- Date: 2026-11-03 (the owner: "when you run out of space, the topic name should truncate and not the number of sources. this should be a design system change").
+- Decision: a link row in Settings or Sources (`.row-action > .settings-text`), and a label-and-value row (`.settings-row > .settings-label + .settings-hint`), cut the name with an ellipsis and keep the value whole: "Software E... 33 sources". The name takes the room the value leaves and adds no width to the row's minimum (`contain: inline-size`), so a long one never widens a phone page. A value wider than the whole row is cut last. A suggested source's line follows the same order: the address gives way first and keeps its first letters, and the cadence keeps its words.
+- Why: the value is the row's answer (how many sources, when it runs); the name is known from the list around it and still reads from its first letters.
+- Rejected: keeping the 2026-10-22 order (the name stays whole and the value is cut), which hid the count the owner looks for.
+- Cost: none; the same rules, with the cut moved from one side to the other.
+- Revisit if: a name cut to a few letters becomes ambiguous between two rows.
+- Supersedes: the 2026-10-22 rule in `docs/ledger/settings-forms.md` (a long value is cut, the name never shrinks).
+
+## D363: every mood pads its cards 24px
+
+- Date: 2026-11-03 (the owner: "the padding on left and right is too much in expressive mood").
+- Decision: `component.card.padding` is 24px in every mood. A mood's larger corner comes out of the content radius (Expressive: 40 = 16 + 24), and `buildTokens.test.ts` holds radius = content radius + padding in each mood. Titles, heads and row words keep Default's edges in every mood.
+- Why: Expressive's 32px (#629, a Claude change on 2026-11-03, "the curve closed in on the first and last rows") set its rows 8px off Default's edges and broke the concentric rule; at a row's height a 40px corner pulls in under 1px, so the extra room bought nothing.
+- Rejected: 32px with an 8px content radius (the chips and fields inside would sharpen, against D167's one shape per control).
+- Cost: none.
+- Revisit if: a mood's corner grows past 48px, where the curve does reach the first row's words.
