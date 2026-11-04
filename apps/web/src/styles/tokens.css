@@ -423,6 +423,8 @@
   --mini-player-shadow: var(--shadow-floating);
   --player-padding: var(--space-6);
   --player-bg: var(--color-surface-raised);
+  --player-spoken: color-mix(in oklch, var(--color-on-accent-container) 18%, transparent);
+  --player-story-fg-muted: color-mix(in oklch, var(--color-on-accent-container) 88%, transparent);
   --player-tint-mix: 0;
   --player-dismiss-distance: 0.35;
   --player-dismiss-velocity: 0.5;
@@ -469,6 +471,8 @@
   --switch-radius: var(--radius-round);
   --switch-thumb-radius: var(--radius-round);
   --switch-thumb-bg: var(--color-surface-raised);
+  --switch-track-mixed: color-mix(in oklch, var(--color-accent) 50%, var(--color-border-control));
+  --switch-track-hover: oklch(from var(--color-border-control) calc(l + var(--state-direction) * var(--state-step-hover)) c h);
   --sheet-radius: var(--shape-2xl);
   --sheet-padding: var(--space-4);
   --sheet-bg: var(--color-surface-raised);
@@ -488,6 +492,10 @@
   --toast-shadow: var(--shadow-popover);
   --banner-radius: var(--shape-lg);
   --banner-padding: var(--space-4);
+  --banner-strip-info: color-mix(in oklab, var(--color-info) 22%, var(--color-surface));
+  --banner-strip-warning: color-mix(in oklab, var(--color-warning) 22%, var(--color-surface));
+  --banner-strip-danger: color-mix(in oklab, var(--color-danger) 22%, var(--color-surface));
+  --banner-strip-success: color-mix(in oklab, var(--color-success) 22%, var(--color-surface));
   --archive-row-padding: var(--space-2);
   --archive-row-radius: var(--shape-lg);
   --chip-height: 2.25rem;

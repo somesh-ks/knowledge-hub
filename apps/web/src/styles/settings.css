@@ -403,7 +403,7 @@
 }
 
 .settings-row .value-select > select.field-input:where(:enabled):active {
-  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+  background: var(--ghost-pressed);
 }
 
 /* Open, it holds its fill and flips its chevron, as the multi-select does, with no ring. */

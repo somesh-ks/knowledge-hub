@@ -1247,6 +1247,35 @@ describe("component stylesheets", () => {
       }
     }
   });
+
+  it("mixes no colour for words or a fill in a page sheet, so the contrast sweep measures every one", () => {
+    // A `color-mix` written here is a colour scripts/buildTokens.test.ts never measures: the open
+    // story's muted ink (4.15:1) and its spoken word (3.56:1) fell under 4.5:1 in Expressive dark
+    // that way. Such a colour is a token (a `singularity-mix-color` when it is a mix); only art mixes
+    // here, where no token colour can stand in. A custom property counts, since a fill reads it.
+    const ART: [where: string, reason: string][] = [
+      ["avatar.css", "the avatar's own shading, mixed from its two tones (D326)"],
+      ["empty.css .empty-art", "the empty-state art's detail tone, between its hero and its ink"],
+      [
+        "library.css .card-link .cover::after",
+        "the press layer over a cover's art, which has no one colour",
+      ],
+      ["ripple.css .ripple-wave", "the press wave, which crosses the bar and its current pill"],
+    ];
+    const painted = /^(?:color|background(?:-color|-image)?|fill|--[\w-]+)$/;
+    const found = ownCss().flatMap(([file, css]) =>
+      rulesOf(css).flatMap(([raw, body]) => {
+        const selector = raw.replace(/\s+/g, " ");
+        if (ART.some(([where]) => where === file || where === `${file} ${selector}`)) return [];
+        return [...body.matchAll(/(?:^|;)\s*(--[\w-]+|[a-z-]+)\s*:\s*([^;]+)/g)]
+          .filter(
+            ([, property = "", value = ""]) => painted.test(property) && /color-mix\(/.test(value),
+          )
+          .map(([, property]) => `${file}: ${selector} { ${property} }`);
+      }),
+    );
+    expect(found).toEqual([]);
+  });
 });
 
 describe("source files", () => {

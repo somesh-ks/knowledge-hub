@@ -1967,7 +1967,7 @@
 /* The fill grows a hair past the word on each side, so it reads as a highlight and not a box. It is
    the container's ink, so it reads on the current turn's fill in both themes. */
 .script-word[data-spoken] {
-  --spoken-fill: color-mix(in oklch, var(--color-on-accent-container) 18%, transparent);
+  --spoken-fill: var(--player-spoken);
   background: var(--spoken-fill);
   box-shadow: 0 0 0 0.125rem var(--spoken-fill);
   /* The fill arrives with the word; only its leaving fades. A fade in trails the voice by its length. */
@@ -2356,18 +2356,18 @@
   line-height: var(--font-leading-body);
 }
 
-/* 88%, not 72% (2026-11-03): muted ink keeps 4.5:1 on every mood's chosen fill after D356 moved the fills; Default dark needs 87%, Halloween light 86%. */
+/* 88%, not 72% (2026-11-03): muted ink keeps 4.5:1 on every mood's chosen fill after D356 moved the fills; Default dark needs 87%, Halloween light 86%. The share is the token's (player.story-fg-muted), so the contrast sweep holds it at every hue. */
 .story-rows
   > [data-open]
   .script-turns[data-following]
   .script-turn:not([data-said], [aria-current="true"])
   .script-text {
-  color: color-mix(in oklch, var(--color-on-accent-container) 88%, transparent);
+  color: var(--player-story-fg-muted);
 }
 
 /* Names are told apart by the name itself, not by the accent, which the card's fill would swallow. */
 .story-rows > [data-open] .script-turns .script-turn .script-speaker {
-  color: color-mix(in oklch, var(--color-on-accent-container) 88%, transparent);
+  color: var(--player-story-fg-muted);
 }
 
 .story-row[aria-current="true"] .story-row-time {
