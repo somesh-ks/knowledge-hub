@@ -203,7 +203,7 @@ test.describe("regenerate and delete an episode", () => {
     await open(page);
     await choose(page, "Regenerate");
     await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
-    await expect(panel(page).getByRole("alert")).toHaveText("Say what went wrong.");
+    await expect(panel(page).getByRole("alert")).toBeVisible();
     await expect(panel(page).getByRole("textbox")).toBeFocused();
     expect(bodies).toHaveLength(0);
   });

@@ -19,15 +19,24 @@ export function createCommentAsker(onHints: (hints: Hints) => void): {
   let pending: AbortController | undefined;
   let asked = "";
 
+  // An ask cut off before its answer is forgotten, so the same words can be asked again.
   const stop = (): void => {
     clearTimeout(timer);
-    pending?.abort();
+    if (!pending) return;
+    pending.abort();
+    pending = undefined;
+    asked = "";
   };
 
   const note = (text: string, labels: readonly string[], shown: Hints): void => {
-    stop();
     const comment = text.trim();
-    if (comment.length < MIN_CHARS || comment === asked || (shown.length && shown.topics)) return;
+    // The words already asked (a trailing space added) leave that ask in flight alone.
+    if (comment === asked) {
+      clearTimeout(timer);
+      return;
+    }
+    stop();
+    if (comment.length < MIN_CHARS || (shown.length && shown.topics)) return;
     timer = setTimeout(() => {
       asked = comment;
       const controller = new AbortController();
@@ -46,7 +55,10 @@ export function createCommentAsker(onHints: (hints: Hints) => void): {
             onHints({ length: length === true, topics: topics === true });
           }
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => {
+          if (pending === controller) pending = undefined;
+        });
     }, PAUSE_MS);
   };
 

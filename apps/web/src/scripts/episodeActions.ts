@@ -209,6 +209,7 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
     form.reset();
     if (count) count.hidden = true;
     if (topicsGroup) topicsGroup.hidden = true;
+    if (lengthGroup) lengthGroup.hidden = true;
     // It leaves the way Catch up does after a start (sheet.css), the queue rising as it goes.
     dialog.dataset.started = "";
     dialog.close();
