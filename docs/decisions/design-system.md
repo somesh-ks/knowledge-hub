@@ -809,6 +809,6 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 
 - Date: 2026-11-04 (the owner: "Why are you adding limitations to sign in to the command center on a new device to generate a catch-up? I don't want any limitations."). Supersedes D307.
 - Decision: `POST /api/generate`, `/api/podcast`, `/api/config` and `/api/narrate` answer without the command center's session, as before D307. The command center (`/admin` and its APIs, D257) stays signed in.
-- Why: a sign-in per device stood between the owner and Generate, Catch up, Delete and settings saves; he wants none.
-- Backstop: the D332 $5 a day ceiling and each route's per-minute cap bound what anyone can spend. A config overwrite has no second copy.
+- Context changed: D307 assumed one sign-in per device was a small price; in use it stood between the owner and Generate, Catch up, Delete and settings saves, and he wants none.
+- Backstop: each route's per-minute cap across instances (generate 8, podcast 10, config 12). The D332 $5 ceiling stops only scheduled runs; a run someone starts goes ahead, so on-demand spend from a stranger is bounded by the caps alone. A config overwrite has no second copy.
 - Revisit if: spend from strangers shows on the Costs page, or accounts (D303) arrive.
