@@ -24,6 +24,7 @@ export const CANNOT_KEEP = "That didn't save. Try again when you're back online.
 export const REASONS = {
   0: "That didn't save. Try again when you're back online.",
   400: "That change didn't go through.",
+  401: "Sign in to the command center on this device first.",
   429: "Too many changes at once. Give it a moment.",
   409: "Changed on another device. Reload to see it.",
   503: "Saving hit a snag. Try again.",

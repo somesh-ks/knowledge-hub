@@ -1,5 +1,6 @@
 import { del, head, put } from "@vercel/blob";
 import type { APIRoute } from "astro";
+import { guardAdmin } from "../../server/adminGuard";
 import { createVercelBlobStore } from "../../server/blobStore";
 import { withSecondVoice } from "../../server/config";
 import { contentDigests, contentEpisodes } from "../../server/contentSources";
@@ -46,6 +47,9 @@ const get: APIRoute = async ({ url }) =>
   );
 
 const post: APIRoute = async ({ request, url }) => {
+  // Owner only (D307): this is the call that spends. The lookup above stays open and free.
+  const refused = await guardAdmin(request);
+  if (refused) return refused;
   // Read at most a little more than the largest valid body, so a huge request cannot cost memory.
   const bodyText = (await request.text()).slice(0, MAX_BODY_CHARS + 1);
   const result = await handleNarrate(

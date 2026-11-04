@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { guardAdmin } from "../../server/adminGuard";
 import {
   contentDigestIds,
   contentDigestKind,
@@ -17,8 +18,11 @@ export const prerender = false;
 // spend, across instances. Above the delete pace.
 const STARTS_PER_MINUTE = 8;
 
-export const POST: APIRoute = ({ request, url }) =>
-  answerWithRef("api/generate", async (log) => {
+export const POST: APIRoute = async ({ request, url }) => {
+  // Owner only (D307): a briefing is the dearest thing the site starts, and a delete is a write.
+  const refused = await guardAdmin(request);
+  if (refused) return refused;
+  return answerWithRef("api/generate", async (log) => {
     // Read at most a little more than the largest valid body, so a huge request cannot cost memory.
     const bodyText = (await request.text()).slice(0, MAX_BODY_CHARS + 1);
     return handleGenerate(
@@ -36,6 +40,7 @@ export const POST: APIRoute = ({ request, url }) =>
       },
     );
   });
+};
 
 export const ALL: APIRoute = () =>
   toResponse({ status: 405, body: { error: "method_not_allowed" }, headers: { Allow: "POST" } });
