@@ -20,11 +20,18 @@ export function createCommentAsker(onHints: (hints: Hints) => void): {
   let asked = "";
 
   // An ask cut off before its answer is forgotten, so the same words can be asked again.
-  const stop = (): void => {
+  const cancel = (): void => {
     clearTimeout(timer);
     if (!pending) return;
     pending.abort();
     pending = undefined;
+    asked = "";
+  };
+
+  // A closed sheet starts afresh: the words it asked are forgotten too, so a comment typed again
+  // into the next opening is read again.
+  const stop = (): void => {
+    cancel();
     asked = "";
   };
 
@@ -35,7 +42,7 @@ export function createCommentAsker(onHints: (hints: Hints) => void): {
       clearTimeout(timer);
       return;
     }
-    stop();
+    cancel();
     if (comment.length < MIN_CHARS || (shown.length && shown.topics)) return;
     timer = setTimeout(() => {
       asked = comment;
