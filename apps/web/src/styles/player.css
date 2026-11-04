@@ -276,7 +276,7 @@
 /* While it moves, a hairline along its top edge sets it off from the page behind, which is the
    same colour. Drawn outside the box, so nothing inside shifts. */
 .player:is([data-state="dragging"], [data-state="expanding"], [data-state="collapsing"])
-.player-page {
+  .player-page {
   box-shadow: 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
 }
 
@@ -665,7 +665,7 @@
   /* One cover at a time. At rest it is the bar's or the page's; in between it is the one in flight,
      and the two at the ends are identical to it at the moment they swap. */
   .player:is([data-state="dragging"], [data-state="expanding"], [data-state="collapsing"])
-  .player-art {
+    .player-art {
     visibility: visible;
   }
 
@@ -2010,7 +2010,7 @@
 
   /* In the Stories list the turn has no fill of its own (above), so it keeps none. */
   .story-list
-  .script-turn[aria-current="true"]:where(:not(:disabled, [aria-disabled="true"])):active {
+    .script-turn[aria-current="true"]:where(:not(:disabled, [aria-disabled="true"])):active {
     background: transparent;
   }
 }
