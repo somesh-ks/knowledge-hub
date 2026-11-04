@@ -199,7 +199,12 @@ describe("a tab strip", () => {
     const strips: string[] = [];
     const outside = APPS.flatMap((root) => markupFiles(root)).flatMap((file) => {
       const name = relative(join(SRC, "..", "..", ".."), file);
-      const markup = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\/|<!--[\s\S]*?-->/g, "");
+      // Until nothing changes, so cutting one comment never joins the halves of another (CodeQL).
+      let markup = readFileSync(file, "utf8");
+      for (let last = ""; last !== markup; ) {
+        last = markup;
+        markup = markup.replace(/\/\*[\s\S]*?\*\/|<!--[\s\S]*?-->/g, "");
+      }
       let parent = "";
       return [...markup.matchAll(/<[a-z][\w-]*\b[^<>]*>/g)].flatMap(([tag]) => {
         const holder = parent;
