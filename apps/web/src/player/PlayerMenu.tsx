@@ -313,7 +313,7 @@ export default function PlayerMenu() {
                     aria-checked={marks.saved}
                     onClick={save}
                   >
-                    <Icon name={marks.saved ? "bookmark" : "bookmarkOutline"} />
+                    <Icon name={marks.saved ? "heart" : "heartOutline"} />
                     {marks.saved ? "Favorited" : "Favorite"}
                   </button>
                 </>
@@ -346,7 +346,7 @@ export default function PlayerMenu() {
                     aria-checked={marks.saved}
                     onClick={save}
                   >
-                    <Icon name={marks.saved ? "bookmark" : "bookmarkOutline"} />
+                    <Icon name={marks.saved ? "heart" : "heartOutline"} />
                     {marks.saved ? "Favorited" : "Favorite"}
                   </button>
                 </div>

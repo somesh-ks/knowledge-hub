@@ -477,3 +477,14 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Rejected: holding the clock until sound flows (the element's `currentTime` advances through the wake, so there is nothing to wait for); a silent sound kept playing so the output never sleeps (battery, and the Bluetooth link still drops on other apps' terms).
 - Cost: on a phone speaker, which wakes faster, about 2 s are heard twice.
 - Revisit if: the owner still loses words after a long pause on Bluetooth (raise the step), hears the repeat as a fault on the speaker, or a phone shows the silence after a pause under 10 s.
+
+## D365: Favorites from every podcast menu and a heart beside Play
+
+- Date: 2026-11-04 (owner: "we don't have add to favorites in the menu list or the bottom sheet ... that should be the trigger to add things into the favorites and we should be able to remove it also"; "on the podcast details page next to the play button we can have heart icon button ... I should get a little toast it says added to favorites").
+- Decision:
+  - Every podcast menu has one row, first under the quick actions, that reads "Add to favorites" or "Remove from favorites" with an outline or filled heart: a Library card's ⋮ and long press (list and gallery, Favorites, Downloads, the Earlier shelf) and a queue row's sheet (D354). A row, not a fourth tile, so a 360px sheet keeps three tiles. The pick closes the menu and a toast says "Added to favorites" or "Removed from favorites". On Settings > Favorites it is the row's way out (it replaces "Remove from Favorites").
+  - A podcast page has a heart icon button after Play (the tonal icon button Share uses), pressed while the item is in Favorites, with the same toast. Not on a shared page. The page's ⋮ does not repeat it.
+  - The player's Favorite tile keeps its words and no toast (the sheet stays open) and wears the heart.
+  - Favorites stay this device's (`singularity:saved:<id>` in local storage, `player/core/saved.ts`), so they work offline; every surface hears `singularity:saved` and another tab's `storage` event.
+- Why: Favorites could be filled only from the player's menu.
+- Amends: D354 (the queue sheet gains the row).

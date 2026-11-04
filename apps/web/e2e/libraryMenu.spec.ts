@@ -85,6 +85,37 @@ test("a podcast page's More menu downloads and queues the podcast, as its row in
   await expect(menu.getByRole("menuitem", { name: "Remove download" })).toBeVisible();
 });
 
+// Bug it prevents: a podcast could be added to Favorites only from the player's menu, and the page
+// heart, a row's menu and the Favorites page disagreed (owner, 2026-11-04).
+test("the page's heart adds a podcast to Favorites and a row's menu there takes it out, across pages and a reload", async ({
+  page,
+}) => {
+  await page.goto(`/d/${AUDIO_ID}`);
+  await hydrated(page);
+  const heart = page.locator("[data-favorite]");
+  await expect(heart).toHaveAttribute("aria-pressed", "false");
+  await heart.click();
+  await expect(page.getByText("Added to favorites")).toBeVisible();
+  await expect(heart).toHaveAttribute("aria-pressed", "true");
+  await page.reload();
+  await expect(heart).toHaveAttribute("aria-pressed", "true");
+
+  await page.goto("/settings/saved");
+  await expect(page.locator("[data-saved-page]")).toHaveAttribute("data-ready", "");
+  await expect(row(page, AUDIO_ID)).toBeVisible();
+  await openMenu(page, AUDIO_ID);
+  await row(page, AUDIO_ID).getByRole("menuitem", { name: "Remove from favorites" }).click();
+  await expect(page.getByText("Removed from favorites")).toBeVisible();
+  await expect(row(page, AUDIO_ID)).toBeHidden();
+
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  await openMenu(page, AUDIO_ID);
+  await expect(
+    row(page, AUDIO_ID).getByRole("menuitem", { name: "Add to favorites" }),
+  ).toBeVisible();
+});
+
 test("pressing a row's three dots moves nothing: not the card, its title or the dots' own glyph, and they sit beside the title", {
   tag: "@desktop",
 }, async ({ page }) => {

@@ -10,7 +10,7 @@
 import { track } from "../lib/analytics";
 import { downloadFailure } from "../lib/downloadCopy";
 import { NotReadyError } from "../lib/downloads";
-import { deviceStorage, setSaved } from "../player/core/saved";
+import { deviceStorage, isSaved, setSaved } from "../player/core/saved";
 import { installCardHold } from "./cardHold";
 import { installEpisodeActions } from "./episodeActionsEntry";
 import { installHeroMenu } from "./heroMenu";
@@ -48,6 +48,20 @@ function setDownloaded(root: HTMLElement, on: boolean): void {
   const label = item?.querySelector("[data-menu-label]");
   if (label) label.textContent = on ? "Remove download" : "Download";
   // The item's icon follows the card's data-downloaded (library.css, .dl-remove).
+}
+
+/**
+ * Marks the rows and the page this device keeps in Favorites (player/core/saved.ts): the holder's
+ * data-saved swaps the heart (library.css, hero.css) and the row says what a press does.
+ */
+export function syncFavorites(): void {
+  const storage = deviceStorage();
+  for (const root of document.querySelectorAll<HTMLElement>(ITEM_ROOT)) {
+    const on = isSaved(storage, root.dataset.id ?? "");
+    holderOf(root).toggleAttribute("data-saved", on);
+    const label = root.querySelector('[data-menu="favorite"] [data-menu-label]');
+    if (label) label.textContent = on ? "Remove from favorites" : "Add to favorites";
+  }
 }
 
 /** Marks the rows whose files are saved on this device. */
@@ -126,11 +140,15 @@ async function onPick(item: HTMLElement): Promise<void> {
       if (typeof outcome === "object") toast(outcome.refused);
       return;
     }
-    case "unsave":
-      // Settings > Favorites: the page hears the change (singularity:saved) and drops the row.
-      if (setSaved(deviceStorage(), id, false)) toast("Removed from Favorites");
-      else toast("Couldn't remove it from Favorites", "error");
+    case "favorite": {
+      // Settings > Favorites hears the change (singularity:saved) and drops a removed row.
+      const on = !isSaved(deviceStorage(), id);
+      if (setSaved(deviceStorage(), id, on))
+        toast(on ? "Added to favorites" : "Removed from favorites");
+      else
+        toast(on ? "Couldn't add it to favorites" : "Couldn't remove it from favorites", "error");
       return;
+    }
     case "unshare":
       if (await stopSharing(id)) toast("Stopped sharing", "success");
       else toast("Couldn't stop sharing. Try again.", "error");
@@ -180,8 +198,14 @@ export function installLibraryMenu(): void {
         item.removeAttribute("aria-disabled");
     }
     syncStopSharing();
+    syncFavorites();
     void syncDownloads();
   };
+  // Saved or removed elsewhere: the player's menu, the page's heart, another tab.
+  window.addEventListener("singularity:saved", syncFavorites);
+  window.addEventListener("storage", (event) => {
+    if (event.key === null || event.key.startsWith("singularity:saved:")) syncFavorites();
+  });
   document.addEventListener("astro:page-load", ready);
   ready();
 }
