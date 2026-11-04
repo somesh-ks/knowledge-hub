@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { isFieldRecord as isRecord } from "@singularity/core";
 import { loadAllCosts } from "../cost/ledger.js";
 import type { JobResult } from "../run/runLog.js";
 import type { RunOutcome, RunRecord, StageRecord } from "../store/runsStore.js";
@@ -12,9 +13,6 @@ async function readArtifact(dir: string, name: string): Promise<unknown> {
     return null;
   }
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
 
 /**
  * The record of the Catch up run in progress (D221), from what its steps left in the artifact

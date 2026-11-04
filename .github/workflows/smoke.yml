@@ -74,6 +74,37 @@ jobs:
           done
           exit 1
 
+      # The daily health check is the alarm for everything else (D360), so its silence is a fault
+      # of its own: no run of health.yml finished in 36 hours (a disabled schedule, a broken file).
+      # The `health` issue says so; the next green health run closes it.
+      - name: Is the daily check alive?
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          since=$(date -u -d '36 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+          if ! recent=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow health.yml --status completed --created ">=$since" --limit 1 --json databaseId --jq 'length'); then
+            echo "::warning::Could not list health.yml runs; the watchdog saw nothing."
+            exit 0
+          fi
+          [ "$recent" = "0" ] || exit 0
+          open_issue=$(gh issue list --repo "$GITHUB_REPOSITORY" --label health --state open --limit 1 --json number,title --jq '.[0] // empty') || exit 0
+          # Said once: an issue already named health_stale has heard it.
+          [[ "$open_issue" != *health_stale* ]] || exit 0
+          body="No daily health check finished since $since: health.yml's schedule may be off or the file broken. [run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})"
+          if [ -n "$open_issue" ]; then
+            number=$(jq -r '.number' <<<"$open_issue")
+            gh issue comment "$number" --repo "$GITHUB_REPOSITORY" --body "$body" &&
+              gh issue edit "$number" --repo "$GITHUB_REPOSITORY" --title "$(jq -r '.title' <<<"$open_issue") health_stale" ||
+              echo "::warning::Could not mark health issue #$number stale."
+          else
+            gh label create health --repo "$GITHUB_REPOSITORY" --color B60205 --description "Daily health check" --force >/dev/null &&
+              gh issue create --repo "$GITHUB_REPOSITORY" --title "Health: health_stale" --label health --body "$body" >/dev/null ||
+              echo "::warning::Could not open the health_stale issue."
+          fi
+          # A GitHub hiccup here is a warning, never the site's failure: the next step reads the job's status.
+          exit 0
+
       - name: Tell the owner
         if: always()
         env:

@@ -1,8 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
-import type { CommandRun } from "../context.js";
+import { type CommandRun, redact, secretsFromEnv } from "../context.js";
 import { DAILY_CEILING_USD } from "../cost/ceiling.js";
+import { freeKeyChecks } from "../ops/doctorOnline.js";
 import { collectHealth, formatHealth, type WorkflowRun } from "../ops/health.js";
+import { readGitHub, readNeonCompute } from "../ops/healthBudgets.js";
 import {
   readDeploymentCount,
   readStore,
@@ -10,7 +12,8 @@ import {
   SIDE_WORKFLOWS,
   type SideWorkflow,
 } from "../ops/healthChecks.js";
-import { configStoreUrl } from "../store/configPaths.js";
+import { configStoreUrl, connectConfigStore, databaseSecrets } from "../store/configPaths.js";
+import { saveHealthReport } from "../store/healthStore.js";
 
 /** What the checks read from a run: a malformed entry in a hand-made file fails the command, not a check. */
 const isRun = (value: unknown): value is WorkflowRun => {
@@ -26,8 +29,10 @@ const isRun = (value: unknown): value is WorkflowRun => {
 };
 
 const USAGE =
-  "Usage: singularity health [--offline] [--site <origin>] [--ceiling-usd <n>] [--runs <gh-run-list.json>] [--side-runs <json>] [--perf <perf.json>] [--json]";
+  "Usage: singularity health [--offline] [--site <origin>] [--ceiling-usd <n>] [--runs <gh-run-list.json>] [--side-runs <json>] [--perf <perf.json>] [--save] [--json]";
 const DEFAULT_SITE = "https://news.someshks.work";
+/** Each key check's request, as long as doctor's online checks wait. */
+const KEY_TIMEOUT_MS = 12_000;
 /** About three full runs a day: more in 24 hours is a loop or a runaway retry. */
 
 /**
@@ -42,6 +47,7 @@ export const run: CommandRun = async (argv, ctx) => {
     runs?: string;
     "side-runs"?: string;
     perf?: string;
+    save?: boolean;
   };
   try {
     values = parseArgs({
@@ -55,6 +61,7 @@ export const run: CommandRun = async (argv, ctx) => {
         runs: { type: "string" },
         "side-runs": { type: "string" },
         perf: { type: "string" },
+        save: { type: "boolean" },
       },
     }).values;
   } catch (error) {
@@ -137,6 +144,21 @@ export const run: CommandRun = async (argv, ctx) => {
   // Hobby's 100 deployments a day, read from Vercel when a token is set (D247).
   const deployments =
     site === null ? undefined : await readDeploymentCount(ctx.env.VERCEL_TOKEN, ctx.now());
+  // The budgets (D360): Neon's compute hours, the week on GitHub and the keys that cost nothing to try.
+  const secrets = [
+    ...secretsFromEnv(ctx.env),
+    ...[ctx.env.GITHUB_SINGULARITY_TOKEN, ctx.env.GITHUB_DISPATCH_TOKEN, ctx.env.GH_TOKEN].filter(
+      (value): value is string => value !== undefined,
+    ),
+  ];
+  const [neon, github, keys] =
+    site === null
+      ? [undefined, undefined, undefined]
+      : await Promise.all([
+          readNeonCompute(ctx.env.NEON_API_KEY, ctx.env.NEON_PROJECT_ID, ctx.now()),
+          readGitHub(ctx.env.GH_TOKEN, ctx.env.GITHUB_REPOSITORY, ctx.now()),
+          freeKeyChecks(ctx.env, { fetchImpl: fetch, timeoutMs: KEY_TIMEOUT_MS }, secrets),
+        ]);
   const report = await collectHealth({
     root: ctx.root,
     now: ctx.now(),
@@ -149,12 +171,29 @@ export const run: CommandRun = async (argv, ctx) => {
     ...(store ? { store } : {}),
     ...(main ? { main } : {}),
     ...(deployments ? { deployments } : {}),
+    ...(neon ? { neon } : {}),
+    ...(github ? { github } : {}),
+    ...(keys ? { keys } : {}),
     ...(site === null ? {} : { configStore: configStoreUrl(ctx.env) !== null }),
     voices: {
       SPEECHIFY_VOICE_ID: ctx.env.SPEECHIFY_VOICE_ID,
       SPEECHIFY_VOICE_ID_B: ctx.env.SPEECHIFY_VOICE_ID_B,
     },
   });
+  // The Health page reads the newest report from Neon: health.yml passes --save, a local run does not.
+  if (values.save && ctx.env.DATABASE_URL) {
+    const url = ctx.env.DATABASE_URL;
+    try {
+      await saveHealthReport(await connectConfigStore(url), report);
+    } catch (error) {
+      report.findings.push({
+        code: "health_unsaved",
+        aspect: "integrity",
+        severity: "warning",
+        message: `The report was not saved for the Health page: ${redact(error instanceof Error ? error.message : String(error), databaseSecrets(url))}.`,
+      });
+    }
+  }
   process.stdout.write(`${ctx.json ? JSON.stringify(report) : formatHealth(report)}\n`);
   return report.ok ? 0 : 1;
 };

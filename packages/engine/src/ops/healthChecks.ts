@@ -642,6 +642,8 @@ export async function readStore(
 export const DEPLOYS_PER_DAY_CAP = 100;
 /** Seventy a day leaves a day of headroom to find what is building too often. */
 export const DEPLOYS_WARN_PER_DAY = 70;
+/** Eighty is a fault (D360): a warning reaches the owner on Mondays, after the cap has struck. */
+export const DEPLOYS_FAULT_PER_DAY = 80;
 const DEPLOY_PAGE_SIZE = 100;
 const DEPLOY_MAX_PAGES = 5;
 
@@ -691,9 +693,10 @@ export async function readDeploymentCount(
 }
 
 /**
- * `deploy_rate` (D247), a warning only: at DEPLOYS_WARN_PER_DAY deployments in 24 hours something
- * builds more often than merges explain (on 2026-10-29 an app built every agent branch, 143 in a
- * day, and Vercel refused every deploy for a day). A count that did not read is `deploy_rate_unread`.
+ * `deploy_rate` (D247): at DEPLOYS_WARN_PER_DAY deployments in 24 hours something builds more often
+ * than merges explain (on 2026-10-29 an app built every agent branch, 143 in a day, and Vercel
+ * refused every deploy for a day); a warning, a fault from DEPLOYS_FAULT_PER_DAY (D360). A count
+ * that did not read is `deploy_rate_unread`.
  */
 export function checkDeploymentRate(reading: DeploymentReading, sink: Sink): void {
   if ("error" in reading) {
@@ -703,7 +706,7 @@ export function checkDeploymentRate(reading: DeploymentReading, sink: Sink): voi
       `Vercel's deployment count did not read: ${reading.error}. The ${DEPLOYS_PER_DAY_CAP} a day cap goes unwatched.`,
     );
   } else if (reading.count >= DEPLOYS_WARN_PER_DAY) {
-    sink.warn(
+    (reading.count >= DEPLOYS_FAULT_PER_DAY ? sink.fault : sink.warn)(
       "deploy_rate",
       "reliability",
       `${reading.count} Vercel deployments in 24 hours; Hobby stops every deploy at ${DEPLOYS_PER_DAY_CAP}, cancelled builds included. Find the project that builds more than merges explain.`,
@@ -719,7 +722,7 @@ export function checkDeploymentRate(reading: DeploymentReading, sink: Sink): voi
 const code = (text: string): string => `\`${text.replace(/`/g, "") || "none"}\``;
 
 /**
- * `client_faults` (D158), warnings only: the endpoint is open (D160), so anyone can forge a report,
+ * `client_faults` (D158), warnings but one: the endpoint is open (D160), so anyone can forge a report,
  * extensions inject scripts the CSP blocks, and a deploy or an upstream blip (Speechify, Anthropic)
  * raises a burst of server errors. Judged over the last 24 hours across builds (content commits
  * redeploy several times a day), naming the builds: SCRIPT_BLOCKS_PER_DAY blocked scripts,
@@ -727,6 +730,8 @@ const code = (text: string): string => `\`${text.replace(/`/g, "") || "none"}\``
  * SERVER_FAULTS_PER_DAY server faults (a 5xx a site function answered) or PLATFORM_FAULTS_PER_DAY
  * platform faults (a function Vercel killed, as the page saw it) on one route, naming the
  * route and its commonest message or step. No table yet is nothing measured: no finding, no pass.
+ * Blocked scripts at the line on each of the last two days are a fault (D360): a forger's burst is
+ * one day, a broken feature stays.
  */
 export function checkClientFaults(groups: readonly ClientFaultGroup[] | null, sink: Sink): void {
   if (groups === null) return;
@@ -737,9 +742,12 @@ export function checkClientFaults(groups: readonly ClientFaultGroup[] | null, si
     (group) => group.kind === "csp" && SCRIPT_DIRECTIVES.has(group.directive),
   );
   const blocked = blocks.reduce((sum, group) => sum + group.day, 0);
+  const before = groups
+    .filter((group) => group.kind === "csp" && SCRIPT_DIRECTIVES.has(group.directive))
+    .reduce((sum, group) => sum + group.yesterday, 0);
   if (blocked >= SCRIPT_BLOCKS_PER_DAY) {
     const top = [...blocks].sort((a, b) => b.day - a.day)[0];
-    sink.warn(
+    (before >= SCRIPT_BLOCKS_PER_DAY ? sink.fault : sink.warn)(
       "client_faults",
       "security",
       `${blocked} blocked scripts in 24 hours, most on ${code(top?.page ?? "")} from ${code(top?.blocked ?? "")} (builds ${builds(blocks)}): a feature broken, or something injecting.`,

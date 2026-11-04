@@ -41,8 +41,13 @@
      (an hour-long recording) on the left, the same on the right, so the middle stays centred and
      never reaches the clock or the volume. */
   --player-dock-side: 18rem;
-  /* The cover never takes more than this share of the window's height. */
-  --player-cover-share: 40cqb;
+  /* The cover never takes more than this share of the window's height, and on a short window it
+     gives way so the Stories and Up next tabs still show at the bottom of the first screen (owner,
+     2026-11-04: they tell people there is more below). The rest is everything else down to the tabs'
+     bottom edge, measured at 360x640: 27.5rem, and 29.5rem in Expressive's bigger controls; one
+     value on the 8pt grid serves every mood. */
+  --player-phone-rest: 30rem;
+  --player-cover-share: max(5rem, min(40cqb, 100cqb - var(--player-phone-rest)));
   /* From 64rem with a finger: what the left column holds besides the cover (the title, the story
      line and its source or a notice, the scrubber, the transport, their gaps and the
      bar), measured at 1024x600. */
@@ -276,7 +281,7 @@
 /* While it moves, a hairline along its top edge sets it off from the page behind, which is the
    same colour. Drawn outside the box, so nothing inside shifts. */
 .player:is([data-state="dragging"], [data-state="expanding"], [data-state="collapsing"])
-.player-page {
+  .player-page {
   box-shadow: 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
 }
 
@@ -493,27 +498,6 @@
   text-align: center;
 }
 
-.player-fallback-action {
-  min-height: var(--size-touch);
-  padding-inline: var(--space-6);
-  border-radius: var(--button-radius);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  font-weight: var(--font-weight-medium);
-  transition: background-color var(--duration-press-in) var(--ease-out);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .player-fallback-action:hover {
-    background: var(--color-accent-hover);
-  }
-}
-
-/* A press steps the fill, as on the primary buttons (D317); the words keep their size. */
-.player-fallback-action:active {
-  background: var(--color-accent-pressed);
-}
-
 .player-cover-box .player-cover-frame {
   box-shadow: var(--cover-shadow);
 }
@@ -665,7 +649,7 @@
   /* One cover at a time. At rest it is the bar's or the page's; in between it is the one in flight,
      and the two at the ends are identical to it at the moment they swap. */
   .player:is([data-state="dragging"], [data-state="expanding"], [data-state="collapsing"])
-  .player-art {
+    .player-art {
     visibility: visible;
   }
 
@@ -1967,7 +1951,7 @@
 /* The fill grows a hair past the word on each side, so it reads as a highlight and not a box. It is
    the container's ink, so it reads on the current turn's fill in both themes. */
 .script-word[data-spoken] {
-  --spoken-fill: color-mix(in oklch, var(--color-on-accent-container) 18%, transparent);
+  --spoken-fill: var(--player-spoken);
   background: var(--spoken-fill);
   box-shadow: 0 0 0 0.125rem var(--spoken-fill);
   /* The fill arrives with the word; only its leaving fades. A fade in trails the voice by its length. */
@@ -2010,7 +1994,7 @@
 
   /* In the Stories list the turn has no fill of its own (above), so it keeps none. */
   .story-list
-  .script-turn[aria-current="true"]:where(:not(:disabled, [aria-disabled="true"])):active {
+    .script-turn[aria-current="true"]:where(:not(:disabled, [aria-disabled="true"])):active {
     background: transparent;
   }
 }
@@ -2027,13 +2011,18 @@
 /*
  * The list's two views, Stories and Up next, are the podcast page's section tabs (PlayerTabs.tsx,
  * .tabs and .tab in primitives.css; owner, 2026-11-02: "tabs that look like in the podcast details
- * page"). The strip sits in its own bar with the hairline the page's strip has, and under 64rem the bar
- * sticks under the status bar (below).
+ * page"). The strip sits in the page's tab bar (primitives.css .tabs-bar), which draws the hairline the
+ * page's strip has. From 64rem the bar sits in the list's column, where the page's bar sticks under the
+ * app bar on its own surface; under 64rem it sticks under the status bar (below). Two classes, so the
+ * player's bar wins over the shared one whichever stylesheet loads first (learnings, 2026-10-31).
  */
-.player-tabs-bar {
+.tabs-bar.player-tabs-bar {
+  position: static;
+  z-index: auto;
   flex: none;
+  margin-inline: 0;
   margin-block-end: var(--space-4);
-  box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
+  background: none;
 }
 
 /* Centred in the column (owner, 2026-11-03), where the page's strip starts at its edge. */
@@ -2065,7 +2054,7 @@
      so the words passing under it do not show, and runs the page's full width (owner, 2026-11-02:
      tabs again, as from 2026-10-21 to 2026-10-23; D169 had made it a pill). A step of room above it
      parts it from the play controls. */
-  .player-tabs-bar {
+  .tabs-bar.player-tabs-bar {
     position: sticky;
     inset-block-start: var(--safe-top);
     z-index: calc(var(--z-raised) + 1);
@@ -2351,18 +2340,24 @@
   line-height: var(--font-leading-body);
 }
 
-/* 88%, not 72% (2026-11-03): muted ink keeps 4.5:1 on every mood's chosen fill after D356 moved the fills; Default dark needs 87%, Halloween light 86%. */
+/* 88%, not 72% (2026-11-03): muted ink keeps 4.5:1 on every mood's chosen fill after D356 moved the fills; Default dark needs 87%, Halloween light 86%. The share is the token's (player.story-fg-muted), so the contrast sweep holds it at every hue; Expressive dark takes 95% (2026-11-04). */
 .story-rows
   > [data-open]
   .script-turns[data-following]
   .script-turn:not([data-said], [aria-current="true"])
   .script-text {
-  color: color-mix(in oklch, var(--color-on-accent-container) 88%, transparent);
+  color: var(--player-story-fg-muted);
 }
 
 /* Names are told apart by the name itself, not by the accent, which the card's fill would swallow. */
 .story-rows > [data-open] .script-turns .script-turn .script-speaker {
-  color: color-mix(in oklch, var(--color-on-accent-container) 88%, transparent);
+  color: var(--player-story-fg-muted);
+}
+
+/* On the card the word being said takes the card's press step (player.spoken-chosen), not the page's
+   tint: over the chosen fill the tint put its ink at 3.56:1 in Expressive dark (2026-11-04). */
+.story-rows > [data-open] .script-word[data-spoken] {
+  --spoken-fill: var(--player-spoken-chosen);
 }
 
 .story-row[aria-current="true"] .story-row-time {
@@ -2617,9 +2612,37 @@
   transition: box-shadow var(--duration-press-out) var(--ease-out);
 }
 
-/* D277: the list keeps what played (muted) and marks what plays now (accent, the active color). */
-.player-queue-item[data-state="played"] .player-upnext-date {
+/* D277: the list keeps what played (muted) and marks what plays now (accent, the active color). A
+   row put above the playing one (D357) is behind it and never starts by itself: muted the same way. */
+.player-queue-item:is([data-state="played"], [data-state="before"]) .player-upnext-date {
   color: var(--color-on-surface-muted);
+}
+
+/* Up next's reflow (queueFlip.ts) moves rows itself: the browser's scroll anchoring would move the
+   page under them as well, and a row queued from Suggested would jump instead of glide. */
+.player-queue-item {
+  overflow-anchor: none;
+}
+
+/* A gliding row passes over the Suggested label, which glides the other way, never under it. */
+.player-queue-item[data-gliding] {
+  z-index: var(--z-raised);
+}
+
+/* The layer a row that leaves the list fades out on, over the panel and under its rows. A swiped
+   row's face has slid off; only its strip fades. */
+.player-panel:has(> .player-queue-ghosts) {
+  position: relative;
+}
+
+.player-queue-ghosts {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.player-queue-ghosts [data-leaving] > .player-queue-face {
+  visibility: hidden;
 }
 
 .player-queue-item[data-state="current"] .player-upnext-date {
@@ -2939,10 +2962,6 @@ html:is([data-player="open"], :has(dialog[open])) .player-dock {
 
   .player-dock {
     border-block-start: var(--stroke-hairline) solid CanvasText;
-  }
-
-  .player-fallback-action {
-    border: var(--stroke-rail) solid ButtonText;
   }
 
   /* Fills are dropped too, so each text control keeps an edge of its own. */

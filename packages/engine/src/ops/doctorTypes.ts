@@ -13,6 +13,10 @@ export interface Check {
   summary: string;
   /** What to do about a warn or fail. */
   hint?: string;
+  /** A token's days left, when its service says (GitHub): health faults under 14 (D360). */
+  expiresInDays?: number;
+  /** The service never answered (a timeout, the network): the key was not refused. */
+  unreachable?: boolean;
 }
 
 export interface DoctorReport {

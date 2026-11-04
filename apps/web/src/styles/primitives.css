@@ -161,6 +161,18 @@
   padding-inline: 0;
 }
 
+/* The bar inside a card's block that sticks on its own (the Topics filter, where the field and the
+   tabs stick as one, topics.css): the block sticks and paints, so the bar only draws the line under
+   the strip, out to the card's edges over the block's padding, the card's (owner, 2026-11-03: "a
+   divider line like every other tab implementation"; the strip had none, and the list slid under it
+   unparted). Markup: <div class="tabs-bar tabs-bar-in-card"><div class="tabs tabs-in-card" ...> */
+.tabs-bar-in-card {
+  position: static;
+  margin-inline: calc(var(--card-padding) * -1);
+  padding-inline: var(--card-padding);
+  background: none;
+}
+
 .tab {
   position: relative;
   display: inline-flex;

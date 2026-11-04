@@ -943,7 +943,7 @@ html[data-library-page="empty"] {
   align-items: center;
 }
 
-/* What a card shows of what this device holds, after its facts (owner, 2026-11-03): a blue circle with the
+/* What a card shows of what this device holds, after its facts (owner, 2026-11-03): a grey circle with the
    download arrow once it is saved offline, never a word. Played is not on a card (a list of green and blue
    circles was loud); the podcast page says it with the word, beside a green check (hero.css). CardMarks.astro
    renders the mark hidden and the card's own data-downloaded (scripts/libraryMenu.ts) shows it, so it takes
@@ -965,9 +965,12 @@ html[data-library-page="empty"] {
   border-radius: 50%;
 }
 
+/* Grey, the colour of the facts it sits with: a saved copy is a fact, not a call to act, and blue
+   drew the eye down every row (owner, 2026-11-03: "grey in color instead of blue ... to not grab too
+   much attention"). */
 .status-mark-downloaded {
-  background: var(--color-accent);
-  color: var(--color-on-accent-action);
+  background: var(--color-on-surface-muted);
+  color: var(--color-surface);
 }
 
 .status-mark-played {

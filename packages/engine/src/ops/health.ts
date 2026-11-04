@@ -28,6 +28,16 @@ import {
   readTopicJudgments,
   readUsage,
 } from "../state/store.js";
+import type { CardRow } from "../store/healthStore.js";
+import type { Check } from "./doctorTypes.js";
+import {
+  buildCard,
+  checkBrowserSuite,
+  checkKeys,
+  checkNeonCompute,
+  type GitHubReading,
+  type NeonReading,
+} from "./healthBudgets.js";
 import {
   checkConfig,
   checkConfigStore,
@@ -89,6 +99,8 @@ export interface HealthReport {
   findings: HealthFinding[];
   /** What was checked and found fine, one line each. */
   passed: string[];
+  /** One line per area for the Monday issue and the Health page (D360). */
+  card: CardRow[];
 }
 
 export interface HealthOptions {
@@ -122,6 +134,12 @@ export interface HealthOptions {
   deployments?: DeploymentReading;
   /** The voices episodes are narrated in, so their stored segments are found by address. */
   voices?: EpisodeVoiceEnv;
+  /** Neon's compute this period (the command reads it with NEON_API_KEY); absent skips `neon_compute`. */
+  neon?: NeonReading;
+  /** The week on GitHub (the command reads it with GH_TOKEN); absent skips `browser_suite_failed`. */
+  github?: GitHubReading;
+  /** Doctor's free key checks (the command runs them online); absent skips the keys. */
+  keys?: readonly Check[];
 }
 
 /** A story summary this short is a stub: a third of what the writer's lint asks for. */
@@ -449,6 +467,9 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
   if (options.deployments !== undefined) {
     checkDeploymentRate(options.deployments, { fault, warn, passed });
   }
+  if (options.neon !== undefined) checkNeonCompute(options.neon, { fault, warn, passed });
+  if (options.github !== undefined) checkBrowserSuite(options.github, { fault, warn, passed });
+  if (options.keys !== undefined) checkKeys(options.keys, { fault, warn, passed });
   if (options.store !== undefined) {
     checkStore(options.store, { fault, warn, passed });
     const documents = "documents" in options.store ? options.store.documents : undefined;
@@ -475,12 +496,26 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
     );
   }
 
+  const field =
+    options.store && "field" in options.store && "summaries" in options.store.field
+      ? options.store.field.summaries
+      : undefined;
   return {
     version: 1,
     now: now.toISOString(),
     ok: !findings.some((each) => each.severity === "fault"),
     findings,
     passed,
+    card: buildCard(findings, {
+      spentUsd: spent,
+      ceilingUsd: options.ceilingUsd,
+      ...(field ? { field } : {}),
+      ...(options.perf !== undefined ? { perf: options.perf } : {}),
+      ...(options.neon ? { neon: options.neon } : {}),
+      ...(options.deployments ? { deployments: options.deployments } : {}),
+      ...(options.github ? { github: options.github } : {}),
+      ...(options.keys ? { keys: options.keys } : {}),
+    }),
   };
 }
 
