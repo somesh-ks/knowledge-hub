@@ -26,6 +26,11 @@ export interface JsonRequest<T> {
   label: string;
   /** Epoch milliseconds by which the call, retries included, must end. */
   deadlineAt?: number;
+  /**
+   * Gets the reply's text as it streams (Claude only; Gemini answers whole and never calls it).
+   * Once it has been called nothing is sent again: a failure after it is a StreamInterruptedError.
+   */
+  onText?: (delta: string) => void;
 }
 
 export interface JsonResult<T> {

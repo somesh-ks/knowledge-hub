@@ -11,6 +11,8 @@ export interface ApiRequest {
   /** JSON Schema for structured output; null asks for JSON in the prompt alone. */
   schema: Record<string, unknown> | null;
   timeoutMs: number;
+  /** Claude streams the reply and passes each piece of text on as it comes; Gemini ignores it. */
+  onText?: (delta: string) => void;
 }
 
 export interface ApiReply {
@@ -49,6 +51,15 @@ export async function failure(provider: string, response: Response): Promise<Pro
   return new ProviderHttpError(provider, response.status, detail, response.headers);
 }
 
+/** A retryable timeout or connection error, named as withRetry expects. */
+function transportError(provider: string, timedOut: boolean): Error {
+  const wrapped = new Error(
+    timedOut ? `${provider} request timed out` : `${provider} connection failed`,
+  );
+  wrapped.name = timedOut ? "APITimeoutError" : "APIConnectionError";
+  return wrapped;
+}
+
 /** A fetch that ends as a retryable timeout or connection error, named as withRetry expects. */
 export async function send(
   provider: string,
@@ -60,12 +71,7 @@ export async function send(
   try {
     return await doFetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
   } catch (error) {
-    const timedOut = error instanceof Error && error.name === "TimeoutError";
-    const wrapped = new Error(
-      timedOut ? `${provider} request timed out` : `${provider} connection failed`,
-    );
-    wrapped.name = timedOut ? "APITimeoutError" : "APIConnectionError";
-    throw wrapped;
+    throw transportError(provider, error instanceof Error && error.name === "TimeoutError");
   }
 }
 
@@ -147,6 +153,97 @@ export function readAnthropicReply(json: AnthropicBody): ApiReply {
   };
 }
 
+/** After the first text, a stream this long without more is taken as dropped. */
+export const STREAM_IDLE_MS = 15_000;
+
+/** The JSON of one server-sent event, or null for a ping, a comment or a line that is not JSON. */
+function eventData(block: string): Record<string, unknown> | null {
+  const data = block
+    .split("\n")
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.slice(5).trim())
+    .join("\n");
+  if (!data) return null;
+  try {
+    const value: unknown = JSON.parse(data);
+    return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A streamed Messages API answer (server-sent events), each piece of text passed on as it comes.
+ * message_start carries the prompt's usage, message_delta the stop reason and the output tokens,
+ * and an error event fails the call as the HTTP error it stands for. Thinking is not passed on.
+ */
+async function readAnthropicStream(
+  response: Response,
+  onText: (delta: string) => void,
+): Promise<ApiReply> {
+  const reader = response.body?.getReader();
+  if (!reader) throw transportError("Anthropic", false);
+  const decoder = new TextDecoder();
+  const reply: AnthropicBody = {};
+  let text = "";
+  let buffer = "";
+  let stalled = false;
+  let idle: ReturnType<typeof setTimeout> | undefined;
+  const awake = (): void => {
+    clearTimeout(idle);
+    idle = setTimeout(() => {
+      stalled = true;
+      void reader.cancel().catch(() => {});
+    }, STREAM_IDLE_MS);
+  };
+  const read = async (): Promise<ReadableStreamReadResult<Uint8Array>> => {
+    try {
+      return await reader.read();
+    } catch (error) {
+      throw transportError("Anthropic", error instanceof Error && error.name === "TimeoutError");
+    }
+  };
+  try {
+    for (;;) {
+      const { done, value } = await read();
+      if (done) break;
+      buffer = (buffer + decoder.decode(value, { stream: true })).replace(/\r\n/g, "\n");
+      for (let end = buffer.indexOf("\n\n"); end >= 0; end = buffer.indexOf("\n\n")) {
+        const event = eventData(buffer.slice(0, end));
+        buffer = buffer.slice(end + 2);
+        if (event?.type === "message_start") {
+          reply.usage = (event.message as AnthropicBody | undefined)?.usage ?? {};
+        } else if (event?.type === "content_block_delta") {
+          const delta = event.delta as { type?: string; text?: unknown } | undefined;
+          if (delta?.type === "text_delta" && typeof delta.text === "string" && delta.text) {
+            text += delta.text;
+            onText(delta.text);
+            awake();
+          }
+        } else if (event?.type === "message_delta") {
+          const stop = (event.delta as { stop_reason?: unknown } | undefined)?.stop_reason;
+          if (typeof stop === "string") reply.stop_reason = stop;
+          const out = (event.usage as { output_tokens?: unknown } | undefined)?.output_tokens;
+          if (typeof out === "number") reply.usage = { ...reply.usage, output_tokens: out };
+        } else if (event?.type === "error") {
+          const error = event.error as { type?: string; message?: string } | undefined;
+          const status = error?.type === "overloaded_error" ? 529 : 500;
+          const detail = error?.message ?? error?.type ?? "";
+          throw new ProviderHttpError("Anthropic", status, detail, new Headers());
+        }
+      }
+    }
+  } catch (error) {
+    void reader.cancel().catch(() => {});
+    throw error;
+  } finally {
+    clearTimeout(idle);
+  }
+  // Quiet too long after it began, or closed before it said why it stopped: the reply is cut short.
+  if (stalled || reply.stop_reason === undefined) throw transportError("Anthropic", stalled);
+  return readAnthropicReply({ ...reply, content: [{ type: "text", text }] });
+}
+
 export const ANTHROPIC_HEADERS = (apiKey: string): Record<string, string> => ({
   "x-api-key": apiKey,
   "anthropic-version": ANTHROPIC_VERSION,
@@ -157,7 +254,7 @@ export const ANTHROPIC_HEADERS = (apiKey: string): Record<string, string> => ({
  * The Anthropic Messages API (official REST; the repo carries no SDK). Sends no temperature, top_p
  * or budget_tokens (Sonnet 5.5 and Haiku 5.5 answer 400), no prefill, and no forced tool choice;
  * tuning is `output_config.effort`, structured JSON is `output_config.format`. The key is only a
- * header.
+ * header. A request with `onText` is streamed.
  */
 export function createAnthropicApi(options: {
   apiKey: string;
@@ -177,11 +274,15 @@ export function createAnthropicApi(options: {
         {
           method: "POST",
           headers: ANTHROPIC_HEADERS(options.apiKey),
-          body: JSON.stringify(anthropicBody(request)),
+          // `stream` is added only here: anthropicBody is also each Batch entry's body.
+          body: JSON.stringify(
+            request.onText ? { ...anthropicBody(request), stream: true } : anthropicBody(request),
+          ),
         },
         request.timeoutMs,
       );
       if (!response.ok) throw await failure("Anthropic", response);
+      if (request.onText) return readAnthropicStream(response, request.onText);
       return readAnthropicReply((await response.json()) as AnthropicBody);
     },
   };

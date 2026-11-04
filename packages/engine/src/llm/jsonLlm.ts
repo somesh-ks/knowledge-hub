@@ -1,7 +1,13 @@
 import type { Effort } from "@singularity/core";
 import { z } from "zod";
 import type { Logger } from "../context.js";
-import { DeadlineExceededError, errorStatus, LlmOutputError, ModelRefusalError } from "./errors.js";
+import {
+  DeadlineExceededError,
+  errorStatus,
+  LlmOutputError,
+  ModelRefusalError,
+  StreamInterruptedError,
+} from "./errors.js";
 import { parseModelJson } from "./parseModelJson.js";
 import { type ModelApi, THINKING_HEADROOM } from "./providers.js";
 import { type RetryOptions, withRetry } from "./retry.js";
@@ -55,9 +61,10 @@ const totalChars = (messages: readonly ChatMessage[]): number =>
 /**
  * LlmClient over one model of one provider. Every reply is parsed and re-validated with Zod; one
  * failed validation gets a corrective retry. The stop reason is read before the content: a refusal
- * throws ModelRefusalError and a cut-off reply throws LlmOutputError, so the chain moves on. The
- * spend guard checks before each request and records reported usage after it. No temperature,
- * top_p or top_k is ever sent.
+ * throws ModelRefusalError and a cut-off reply throws LlmOutputError, so the chain moves on. A reply
+ * streamed to `onText` is never sent again once its text began: any failure after that is a
+ * StreamInterruptedError. The spend guard checks before each request and records reported usage
+ * after it. No temperature, top_p or top_k is ever sent.
  */
 /**
  * What a JSON request sends: the system prompt, and the messages with the schema stated in words
@@ -90,7 +97,7 @@ export function createJsonLlm(options: JsonLlmOptions): LlmClient {
     request: JsonRequest<T>,
     system: string,
     messages: ChatMessage[],
-  ): Promise<{ content: string; usage: LlmUsage }> {
+  ): Promise<{ content: string; usage: LlmUsage; streamed: boolean }> {
     const asked = request.maxTokens ?? DEFAULT_MAX_TOKENS;
     const maxTokens = options.maxTokens ? Math.min(asked, options.maxTokens) : asked;
     const now = options.now ?? Date.now;
@@ -101,27 +108,48 @@ export function createJsonLlm(options: JsonLlmOptions): LlmClient {
     // The Anthropic request adds the thinking headroom to max_tokens, and that is billed as output.
     const requested = maxTokens + (options.api.provider === "anthropic" ? THINKING_HEADROOM : 0);
     for (;;) {
-      options.budget.check(
-        estimateTokensForChars(totalChars(messages) + system.length) + requested,
-      );
+      const promptChars = totalChars(messages) + system.length;
+      options.budget.check(estimateTokensForChars(promptChars) + requested);
+      // The text streamed so far. Once there is any it may be heard already, so nothing is sent
+      // again: a failure from then on is the caller's to handle.
+      let streamed = "";
+      const onText = request.onText;
       try {
         const reply = await withRetry(
-          () => {
+          async () => {
             const left = deadlineAt - now();
             if (left <= 0) {
               throw new DeadlineExceededError(`${request.label}: out of time before the request`);
             }
-            return options.api.call({
-              model: options.model,
-              system,
-              messages: messages.filter(
-                (m): m is { role: "user" | "assistant"; content: string } => m.role !== "system",
-              ),
-              maxTokens,
-              effort: options.effort,
-              schema: structured ? jsonSchemaOf(request.schema) : null,
-              timeoutMs: Math.min(options.timeoutMs, left),
-            });
+            try {
+              return await options.api.call({
+                model: options.model,
+                system,
+                messages: messages.filter(
+                  (m): m is { role: "user" | "assistant"; content: string } => m.role !== "system",
+                ),
+                maxTokens,
+                effort: options.effort,
+                schema: structured ? jsonSchemaOf(request.schema) : null,
+                timeoutMs: Math.min(options.timeoutMs, left),
+                ...(onText
+                  ? {
+                      onText: (delta: string) => {
+                        streamed += delta;
+                        onText(delta);
+                      },
+                    }
+                  : {}),
+              });
+            } catch (error) {
+              if (!streamed) throw error;
+              // A broken stream reports no usage; what it streamed was billed all the same.
+              options.budget.record(estimateTokensForChars(promptChars + streamed.length));
+              const cause = error instanceof Error ? error.name : "error";
+              throw new StreamInterruptedError(
+                `${request.label}: the reply broke off after it began (${cause})`,
+              );
+            }
           },
           {
             ...options.retry,
@@ -144,7 +172,11 @@ export function createJsonLlm(options: JsonLlmOptions): LlmClient {
         });
         if (reply.stopReason === "refusal") throw new ModelRefusalError();
         if (reply.stopReason === "max_tokens") {
-          throw new LlmOutputError("The reply was cut off at the token limit.");
+          throw streamed
+            ? new StreamInterruptedError(
+                `${request.label}: the reply was cut off at the token limit`,
+              )
+            : new LlmOutputError("The reply was cut off at the token limit.");
         }
         return {
           content: reply.text,
@@ -153,6 +185,7 @@ export function createJsonLlm(options: JsonLlmOptions): LlmClient {
             completionTokens: reply.outputTokens,
             totalTokens: total,
           },
+          streamed: streamed.length > 0,
         };
       } catch (error) {
         if (structured && schemaRejected(error)) {
@@ -188,6 +221,12 @@ export function createJsonLlm(options: JsonLlmOptions): LlmClient {
         } catch (error) {
           if (!(error instanceof LlmOutputError)) throw error;
           lastProblem = error.message;
+        }
+        // A streamed reply may be heard already: it is not asked for again.
+        if (reply.streamed) {
+          throw new StreamInterruptedError(
+            `${request.label}: the streamed reply failed validation: ${lastProblem}`,
+          );
         }
         options.log?.warn(`${request.label}: reply failed validation`, { attempt: attempt + 1 });
         messages.push(
