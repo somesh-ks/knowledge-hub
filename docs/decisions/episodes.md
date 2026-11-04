@@ -336,3 +336,13 @@ What an episode or briefing is: kinds and structure, length, regenerate, Catch u
 - Cost: on a wide screen the choices are one press away; the test that held the pinned layout is gone and the closed-row test runs on desktop too.
 - Revisit if: the owner misses seeing Format and Voices without a press.
 - Amends: D76 (the wide layout of its form).
+
+## D370: Jev reads the Regenerate comment once the typing pauses, and the episode's Regenerate offers Length
+
+- Date: 2026-11-04 (the owner: "I tried length and I don't see the time length ... see how to use the Jev model in an intelligent way").
+- Decision: the word match in `lib/regenHints.ts` still answers at once. Once the typing rests 800 ms, the sheet asks `api/regen-hints`, where Jev answers two yes-or-no questions (does the comment ask for a different length, for different subjects) and can bring up a control the words missed. One ask per pause, the same words never twice; no sign-in (D368), the same-origin check and 20 a minute across instances bound the spend; with no key, past the cap, or when Jev fails or takes over 4 s, the words stand. The episode's Regenerate gains Length (3, 5, 10, 15, starting on the length it was made at), sent as `length_minutes` for that run only. Both sheets ask "What went wrong?" with examples in the hint, and lose the lede.
+- Why: the match missed wishes put in other words ("it dragged"), and the episode's sheet had no Length at all, so the control he asked for never came.
+- Cost: a paid Jev request per pause, a few per Regenerate; the price is not set in `config/prices.json` yet.
+- Rejected: Jev alone (nothing shows while it is slow or down); a model call per keystroke (cost, flicker).
+- Revisit if: the controls appear for comments that do not ask for them, or Jev's requests show up in the TypeSafe bill beyond a few a day.
+- Amends: D337.

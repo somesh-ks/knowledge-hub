@@ -188,18 +188,19 @@ describe("singularity podcast delete and regenerate", () => {
     expect(git(root, "status", "--porcelain")).toBe("");
   });
 
-  it("regenerate with chosen topics and no comments writes the new episode for those topics only", async () => {
+  it("regenerate with chosen topics, a length and no comments writes the new episode for those only", async () => {
     const { code, writer } = await run([
-      ...act({ action: "regenerate", id: OLD_ID, topic_ids: ["ai"] }),
+      ...act({ action: "regenerate", id: OLD_ID, topic_ids: ["ai"], length_minutes: 10 }),
       "--no-push",
     ]);
     expect(code).toBe(0);
     expect(writer.calls[0]?.input.feedback).toBeUndefined();
     expect(writer.calls[0]?.input.request.topic_ids).toEqual(["ai"]);
+    expect(writer.calls[0]?.input.request.length_minutes).toBe(10);
     expect(existsSync(join(root, OLD_PATH))).toBe(false);
     const episode = parseEpisodeFile(await readFile(join(root, NEW_PATH), "utf8"));
     expect(episode.replaces).toBe(OLD_ID);
-    expect(episode.request).toEqual({ ...REQUEST, topic_ids: ["ai"] });
+    expect(episode.request).toEqual({ ...REQUEST, topic_ids: ["ai"], length_minutes: 10 });
   });
 
   it("a failed regenerate leaves the old file and commits nothing", async () => {

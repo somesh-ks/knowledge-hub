@@ -19,6 +19,7 @@
     "./health-store": "./src/store/healthStore.ts",
     "./segments": "./src/audio/segmentStore.ts",
     "./source-preview": "./src/sources/preview.ts",
+    "./comment-hints": "./src/podcast/commentHints.ts",
     "./runs-store": "./src/store/runsStore.ts",
     "./vitals-store": "./src/store/vitalsStore.ts",
     "./share-store": "./src/store/shareStore.ts",
