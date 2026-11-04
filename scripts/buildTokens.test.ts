@@ -17,6 +17,7 @@ import {
   TOKENS_CSS_PATH,
   type Token,
   type TokenDocument,
+  type TokenValue,
 } from "./buildTokens.js";
 import {
   composite,
@@ -345,38 +346,69 @@ interface Tree {
   [key: string]: unknown;
 }
 
+const TOKENS_JSON = readFileSync(resolve(ROOT, "tokens/tokens.json"), "utf8");
+
+/** An oklch literal with the reader's hue (D315) added, as tokens.css adds it; a grey stays. */
+const turn = (literal: string, shift: number): string =>
+  literal.replace(
+    /^oklch\(([\d.]+%?) ([\d.]+) (-?[\d.]+)(.*)\)$/,
+    (_whole, l: string, c: string, h: string, rest: string) =>
+      `oklch(${l} ${c} ${(Number(h) + (Number(c) === 0 ? 0 : shift)) % 360}${rest})`,
+  );
+
 /**
- * The token document with one style's values laid over the base, as the page sees it under data-mood.
- * The overrides come from the parsed document, so the colours a recipe writes (D319) are in it too.
+ * The token document as the page sees it under data-mood, at a reader's hue (D315), turned the way
+ * tokens.css turns it. The mood's own values (the colours its recipe writes, D319, and the states the
+ * build settled for it among them) are laid over the base with each coloured literal turned, and so is
+ * every ramp step they point at: the mood's block writes that step again turned, so each use of it
+ * turns too. Every other colour keeps its hue, so a status colour on a ramp the mood never names stays
+ * as it is (turning every literal measured colours no page shows). Default has no slider
+ * (themeApply.ts), so it is the base.
  */
-function documentUnder(style: string): TokenDocument {
-  const base = JSON.parse(readFileSync(resolve(ROOT, "tokens/tokens.json"), "utf8"));
-  const found = doc.styles.find((candidate) => candidate.name === style);
-  if (!found) throw new Error(`No style ${style}`);
-  for (const { token, value, dark } of found.overrides) {
-    let node = base as Tree;
-    for (const key of token.path) node = node[key] as Tree;
-    node.$value = value;
+function documentAt(mood: string, shift = 0): TokenDocument {
+  if (mood === "default") return doc;
+  const style = doc.styles.find((candidate) => candidate.name === mood);
+  if (!style) throw new Error(`No mood ${mood}`);
+  const base = JSON.parse(TOKENS_JSON) as Tree;
+  const node = (path: string[]): Tree => path.reduce((parent, key) => parent[key] as Tree, base);
+  const steps = new Set(
+    style.overrides
+      .flatMap(({ token, value, dark }) =>
+        (dark === undefined ? [value] : [value, dark]).flatMap((written) =>
+          declarationsFor(token, written, doc),
+        ),
+      )
+      .flatMap(({ value }) =>
+        [...value.matchAll(/var\((--color-[a-z]+-\d+)\)/g)].map(([, name]) => name),
+      ),
+  );
+  for (const token of doc.tokens) {
+    if (token.tier === "primitive" && steps.has(cssName(token.path))) {
+      node(token.path).$value = turn(String(token.value), shift);
+    }
+  }
+  const turned = (value: TokenValue): TokenValue =>
+    typeof value === "string" ? turn(value, shift) : value;
+  for (const { token, value, dark } of style.overrides) {
+    const target = node(token.path);
+    target.$value = turned(value);
     if (dark !== undefined) {
-      const extensions = (node.$extensions ?? {}) as { singularity?: Record<string, unknown> };
-      node.$extensions = {
+      const extensions = (target.$extensions ?? {}) as { singularity?: Record<string, unknown> };
+      target.$extensions = {
         ...extensions,
-        singularity: { ...extensions.singularity, mode: { dark } },
+        singularity: { ...extensions.singularity, mode: { dark: turned(dark) } },
       };
     }
   }
   return parseTokens({ ...base, styles: {} });
 }
 
+const MOODS = ["default", ...doc.styles.map((style) => style.name)];
+
 // D268 says the contrast tests cover a style's colours; they ran on the base only until D306 added a style
 // whose palette is its own. Each style gets the base's text, action and graphic floors, in both modes.
-describe.each(doc.styles.map((style) => style.name))("a style's colour contrast: %s", (name) => {
-  const styled = documentUnder(name);
-  const color = (role: string, mode: Mode): Rgb => {
-    const literal = resolveLiteral(styled, `semantic.color.${role}`, mode);
-    if (typeof literal !== "string") throw new Error(`${role} is not a color`);
-    return oklchStringToRgb(literal);
-  };
+// Default is swept with them (2026-11-04), so a floor written here holds in every mood.
+describe.each(MOODS)("a mood's colour contrast: %s", (name) => {
   const surfaces = [
     "surface",
     "surface-sunken",
@@ -386,16 +418,13 @@ describe.each(doc.styles.map((style) => style.name))("a style's colour contrast:
   ];
 
   // The reader's hue (D315) turns every coloured value of a style, so the floors must hold at each hue
-  // the slider can reach, not only the one the style was designed at.
-  const SHIFTS = Array.from({ length: 72 }, (_, i) => i * 5);
-  const turn = (literal: string, shift: number): string =>
-    literal.replace(
-      /^oklch\(([\d.]+%?) ([\d.]+) (-?[\d.]+)(.*)\)$/,
-      (_whole, l: string, c: string, h: string, rest: string) =>
-        `oklch(${l} ${c} ${(Number(h) + (Number(c) === 0 ? 0 : shift)) % 360}${rest})`,
-    );
+  // the slider can reach, not only the one the style was designed at. Default is seen at its own hue.
+  const SHIFTS = name === "default" ? [0] : Array.from({ length: 72 }, (_, i) => i * 5);
+  const documents = SHIFTS.map((shift) => [shift, documentAt(name, shift)] as const);
 
-  it.each(MODES)("holds the base's text, action and graphic floors (%s)", (mode) => {
+  it.each(MODES)("holds the text, action and graphic floors (%s)", (mode) => {
+    // A floor names a semantic role (`on-surface`) or, dotted, a component's colour (`player.spoken`);
+    // `a over b` is a translucent fill as it is seen over the ground under it.
     const floors: [foreground: string, background: string, least: number][] = [
       ...["on-surface", "on-surface-muted", "on-surface-subtle", "accent"].flatMap((fg) =>
         surfaces.map((bg): [string, string, number] => [fg, bg, 4.5]),
@@ -447,20 +476,37 @@ describe.each(doc.styles.map((style) => style.name))("a style's colour contrast:
         bg,
         3,
       ]),
+      // The open story is one card on the chosen fill (StoryList.tsx): its quieter words (the names,
+      // the turns not yet said) and the word being said, on the fill it takes there. Muted words are
+      // held at rest and under a pointer; a press is a moment, and no muted word is held on one.
+      // Before the first story the rundown's turns sit on the page, under the spoken word's tint.
+      ...["accent-container", "accent-container-hover"].map((bg): [string, string, number] => [
+        "player.story-fg-muted",
+        bg,
+        4.5,
+      ]),
+      ["on-accent-container", "player.spoken-chosen over accent-container", 4.5],
+      ["on-surface", "player.spoken over surface", 4.5],
     ];
-    const turned = (role: string, shift: number): Rgb => {
-      const literal = resolveLiteral(styled, `semantic.color.${role}`, mode);
-      if (typeof literal !== "string") throw new Error(`${role} is not a color`);
-      return oklchStringToRgb(turn(literal, shift));
-    };
-    const failures = SHIFTS.flatMap((shift) =>
-      floors.flatMap(([foreground, background, least]) => {
-        const ratio = contrastRatio(turned(foreground, shift), turned(background, shift));
+    const failures = documents.flatMap(([shift, seen]) => {
+      const color = (role: string): Rgb => {
+        const path = role.includes(".") ? `component.${role}` : `semantic.color.${role}`;
+        const literal = resolveLiteral(seen, path, mode);
+        if (typeof literal !== "string") throw new Error(`${role} is not a color`);
+        return oklchStringToRgb(literal);
+      };
+      const ground = (layers: string): Rgb =>
+        layers
+          .split(" over ")
+          .map(color)
+          .reduceRight((under, top) => composite(top, under));
+      return floors.flatMap(([foreground, background, least]) => {
+        const ratio = contrastRatio(color(foreground), ground(background));
         return ratio >= least
           ? []
           : [`hue +${shift}, ${foreground} on ${background}: ${ratio.toFixed(2)}, needs ${least}`];
-      }),
-    );
+      });
+    });
     expect(failures, `${name} (${mode})`).toEqual([]);
   });
 });
@@ -478,11 +524,7 @@ describe("a chosen fill stands off every surface it sits on (D356)", () => {
     "surface-raised",
     "surface-overlay",
   ];
-  const moods: [string, TokenDocument][] = [
-    ["default", doc],
-    ...doc.styles.map((style): [string, TokenDocument] => [style.name, documentUnder(style.name)]),
-  ];
-  it.each(moods.flatMap(([name, d]) => MODES.map((mode) => [name, mode, d] as const)))(
+  it.each(MOODS.flatMap((name) => MODES.map((mode) => [name, mode, documentAt(name)] as const)))(
     "%s, %s",
     (_name, mode, d) => {
       const points = (role: string): number =>
@@ -602,10 +644,7 @@ describe("scales", () => {
     // In every mood a card's words sit its padding in and its content keeps the rest of the corner:
     // Expressive once padded 32px under a 40px corner with 16px content, so its rows sat 8px further
     // in than Default's (owner, 2026-11-03: "the padding on left and right is too much").
-    for (const [name, d] of [
-      ["default", doc] as const,
-      ...doc.styles.map((style) => [style.name, documentUnder(style.name)] as const),
-    ]) {
+    for (const [name, d] of MOODS.map((mood) => [mood, documentAt(mood)] as const)) {
       const rem = (reference: string): number =>
         Number.parseFloat(String(resolveLiteral(d, reference, "light")));
       expect(

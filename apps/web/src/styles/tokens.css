@@ -424,6 +424,7 @@
   --player-padding: var(--space-6);
   --player-bg: var(--color-surface-raised);
   --player-spoken: color-mix(in oklch, var(--color-on-accent-container) 18%, transparent);
+  --player-spoken-chosen: var(--color-accent-container-pressed);
   --player-story-fg-muted: color-mix(in oklch, var(--color-on-accent-container) 88%, transparent);
   --player-tint-mix: 0;
   --player-dismiss-distance: 0.35;
@@ -618,6 +619,7 @@
     --shadow-sheet: var(--shadow-sheet-dark);
     --shadow-popover: var(--shadow-popover-dark);
     --shadow-raised: var(--shadow-raised-dark);
+    --player-story-fg-muted: color-mix(in oklch, var(--color-on-accent-container) 88%, transparent);
     --segmented-selected-bg: var(--color-surface-overlay);
     --switch-thumb-bg: var(--color-on-surface);
     --sheet-tile-bg: var(--color-surface-overlay);
@@ -698,6 +700,7 @@
   --shadow-sheet: var(--shadow-sheet-dark);
   --shadow-popover: var(--shadow-popover-dark);
   --shadow-raised: var(--shadow-raised-dark);
+  --player-story-fg-muted: color-mix(in oklch, var(--color-on-accent-container) 88%, transparent);
   --segmented-selected-bg: var(--color-surface-overlay);
   --switch-thumb-bg: var(--color-on-surface);
   --sheet-tile-bg: var(--color-surface-overlay);
@@ -785,6 +788,7 @@
   --app-bar-height: 4rem;
   --control-size-lg: 5rem;
   --toast-min-height: 4rem;
+  --player-story-fg-muted: color-mix(in oklch, var(--color-on-accent-container) 88%, transparent);
   --color-surface: oklch(96% 0.0201 calc(292 + var(--hue-shift, 0)));
   --color-surface-sunken: oklch(93% 0.0327 calc(292 + var(--hue-shift, 0)));
   --color-surface-container: oklch(91% 0.046 calc(292 + var(--hue-shift, 0)));
@@ -825,6 +829,7 @@
     --color-accent-action: var(--color-violet-400);
     --color-on-accent-action: var(--color-violet-900);
     --color-accent-on-inverse: var(--color-violet-800);
+    --player-story-fg-muted: color-mix(in oklch, var(--color-on-accent-container) 95%, transparent);
     --color-surface: oklch(19% 0.0583 calc(292 + var(--hue-shift, 0)));
     --color-surface-sunken: oklch(15% 0.051 calc(292 + var(--hue-shift, 0)));
     --color-surface-container: oklch(27% 0.0723 calc(292 + var(--hue-shift, 0)));
@@ -857,6 +862,7 @@
   --color-accent-action: var(--color-violet-400);
   --color-on-accent-action: var(--color-violet-900);
   --color-accent-on-inverse: var(--color-violet-800);
+  --player-story-fg-muted: color-mix(in oklch, var(--color-on-accent-container) 95%, transparent);
   --color-surface: oklch(19% 0.0583 calc(292 + var(--hue-shift, 0)));
   --color-surface-sunken: oklch(15% 0.051 calc(292 + var(--hue-shift, 0)));
   --color-surface-container: oklch(27% 0.0723 calc(292 + var(--hue-shift, 0)));

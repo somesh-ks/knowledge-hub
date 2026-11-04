@@ -4940,11 +4940,23 @@
       "role": "The fill behind the word being said where its turn sits on the page (the rundown before the first story): the chosen fill's ink at 18%, a tint over the page."
     },
     {
+      "name": "--player-spoken-chosen",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-container-pressed)",
+      "role": "The fill behind the word being said in the open story, on its chosen fill: the fill's own press step (D317), which steps away from the ink wherever a step toward it would cost the ink its 4.5:1, so the word reads at every hue. The page's tint (player.spoken) put the ink at 3.56:1 there in Expressive dark (2026-11-04).",
+      "hex": {
+        "light": "#90addc",
+        "dark": "#003698"
+      }
+    },
+    {
       "name": "--player-story-fg-muted",
       "tier": "component",
       "type": "singularity-mix-color",
       "light": "color-mix(in oklch, var(--color-on-accent-container) 88%, transparent)",
-      "role": "The quieter words on the open story's chosen fill (accent-container): its speaker names and the turns not yet said. The fill's own ink at 88%, not 72% (2026-11-03): muted ink keeps 4.5:1 on every mood's chosen fill after D356 moved the fills."
+      "role": "The quieter words on the open story's chosen fill (accent-container): its speaker names and the turns not yet said. The fill's own ink at 88%, not 72% (2026-11-03): muted ink keeps 4.5:1 on every mood's chosen fill after D356 moved the fills. Expressive dark takes 95% (2026-11-04): its card's own ink is 4.88:1 at hue +255, so 88% fell to 4.15:1.",
+      "dark": "color-mix(in oklch, var(--color-on-accent-container) 88%, transparent)"
     },
     {
       "name": "--player-tint-mix",

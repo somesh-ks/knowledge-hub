@@ -2356,7 +2356,7 @@
   line-height: var(--font-leading-body);
 }
 
-/* 88%, not 72% (2026-11-03): muted ink keeps 4.5:1 on every mood's chosen fill after D356 moved the fills; Default dark needs 87%, Halloween light 86%. The share is the token's (player.story-fg-muted), so the contrast sweep holds it at every hue. */
+/* 88%, not 72% (2026-11-03): muted ink keeps 4.5:1 on every mood's chosen fill after D356 moved the fills; Default dark needs 87%, Halloween light 86%. The share is the token's (player.story-fg-muted), so the contrast sweep holds it at every hue; Expressive dark takes 95% (2026-11-04). */
 .story-rows
   > [data-open]
   .script-turns[data-following]
@@ -2368,6 +2368,12 @@
 /* Names are told apart by the name itself, not by the accent, which the card's fill would swallow. */
 .story-rows > [data-open] .script-turns .script-turn .script-speaker {
   color: var(--player-story-fg-muted);
+}
+
+/* On the card the word being said takes the card's press step (player.spoken-chosen), not the page's
+   tint: over the chosen fill the tint put its ink at 3.56:1 in Expressive dark (2026-11-04). */
+.story-rows > [data-open] .script-word[data-spoken] {
+  --spoken-fill: var(--player-spoken-chosen);
 }
 
 .story-row[aria-current="true"] .story-row-time {
