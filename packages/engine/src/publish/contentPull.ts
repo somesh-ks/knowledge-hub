@@ -15,7 +15,6 @@ import { CONTENT_PREFIX, sha256 } from "./contentSync.js";
 export interface PullInput {
   client: ConditionalBlobClient;
   root: string;
-  fetchText: (url: string) => Promise<string | null>;
   fetchBytes: (url: string) => Promise<Uint8Array | null>;
   /** Folders or files to pull, as repository paths ("Digests", "state/last-run.json"). */
   only: readonly string[];
@@ -32,7 +31,7 @@ const wanted = (path: string, only: readonly string[]): boolean =>
   only.some((item) => path === item || path.startsWith(`${item.replace(/\/$/, "")}/`));
 
 export async function pullContent(input: PullInput): Promise<PullResult> {
-  const stored = await readManifest(input.client, input.fetchText);
+  const stored = await readManifest(input.client);
   if (stored.base === null) throw new Error("the content store has no manifest to pull");
   const written: string[] = [];
   const listed: Record<string, string> = {};

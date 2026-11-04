@@ -415,7 +415,6 @@ describe("pullContent", () => {
       pullContent({
         client: store.client,
         root: target,
-        fetchText: store.fetchText,
         fetchBytes,
         only: ["Digests"],
       }),

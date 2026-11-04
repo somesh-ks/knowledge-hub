@@ -40,6 +40,8 @@ export interface BlobPutOptions {
 export interface BlobPutResult {
   url: string;
   pathname: string;
+  /** The ETag of what was just written, when the store reports it. */
+  etag?: string;
 }
 
 export interface BlobListItem {
@@ -62,9 +64,68 @@ export interface BlobClient {
   list(options: { prefix: string; cursor?: string }): Promise<BlobListPage>;
 }
 
+/** A public URL's text and the ETag of the copy that answered. */
+export interface TaggedText {
+  text: string;
+  etag: string;
+}
+
 /** What a conditional write needs on top of BlobClient: a blob's URL and ETag, or null when absent. */
 export interface ConditionalBlobClient extends BlobClient {
   head(pathname: string): Promise<{ url: string; etag: string } | null>;
+  /** The text at a public URL, or null on 404. The CDN may answer with an older copy: use readCurrent. */
+  fetchTagged(url: string): Promise<TaggedText | null>;
+}
+
+export interface StoreClock {
+  now(): number;
+  pause(ms: number): Promise<void>;
+}
+
+const realClock: StoreClock = {
+  now: () => Date.now(),
+  pause: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+};
+
+/** How long a read waits for the CDN to catch up with a write. Vercel documents up to 60 s. */
+export const CURRENT_WAIT_MS = 90_000;
+const CURRENT_POLL_MS = 5_000;
+
+const bareTag = (etag: string): string => etag.replace(/^W\//, "").replaceAll('"', "");
+
+/**
+ * A changing blob's current text. After an overwrite the CDN keeps serving its old copy for up to
+ * a minute, and a new query string does not get past it: on 11-04 a `?t=` URL nobody had asked for
+ * answered HIT with age 1912, and an audio job read a manifest 39 s old that lacked the episode
+ * just saved. Its ETag was head()'s, so a write on top of it would have passed the ETag check and
+ * dropped that episode. head() is current, so the read waits until the copy that answers carries
+ * head()'s ETag. `known` is a copy this job wrote itself: when head() still reports it, nothing is
+ * fetched.
+ */
+export async function readCurrent(
+  client: ConditionalBlobClient,
+  pathname: string,
+  known?: TaggedText,
+  clock: StoreClock = realClock,
+): Promise<{ url: string; etag: string; text: string } | null> {
+  const deadline = clock.now() + CURRENT_WAIT_MS;
+  for (;;) {
+    const found = await client.head(pathname);
+    if (found === null) return null;
+    if (known !== undefined && bareTag(known.etag) === bareTag(found.etag)) {
+      return { url: found.url, etag: found.etag, text: known.text };
+    }
+    const read = await client.fetchTagged(found.url);
+    if (read !== null && bareTag(read.etag) === bareTag(found.etag)) {
+      return { url: found.url, etag: found.etag, text: read.text };
+    }
+    if (clock.now() >= deadline) {
+      throw new Error(
+        `${pathname}: the CDN still serves an older copy after ${CURRENT_WAIT_MS / 1000} s`,
+      );
+    }
+    await clock.pause(CURRENT_POLL_MS);
+  }
 }
 
 /** True when a write was refused because the blob changed since its ETag was read (D300). */
@@ -101,7 +162,13 @@ export function createVercelBlobClient(auth: BlobAuth): ConditionalBlobClient {
           ...credentials,
         },
       );
-      return { url: result.url, pathname: result.pathname };
+      return { url: result.url, pathname: result.pathname, etag: result.etag };
+    },
+    async fetchTagged(url) {
+      const res = await fetch(url, { cache: "no-store" });
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(`Store read failed: HTTP ${res.status}`);
+      return { text: await res.text(), etag: res.headers.get("etag") ?? "" };
     },
     async head(pathname) {
       try {
