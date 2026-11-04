@@ -28,7 +28,7 @@ Unit (CI): 357 files, 5,491 tests, 2 min. Site e2e: 449, 14 min. Player: 80, 7 m
 - Bottom bar ripple (D286, D347) and tab state. closed when: on his Android Chrome Settings pages rise, tabs slide at 250 ms, and the latest podcast keeps its tab lit.
 - Config snapshot (D300 step 1): `snapshot.yml` writes the config store to the `config_snapshots` table each Sunday and `config restore --latest` reads it back; untried against real Neon. closed when: the workflow has run once, the row exists, and `config restore --file` on a copy rebuilds the rows.
 - Edge purge waits from the run's last save (#590, D318); after the 11-03 daily it waited 27 s. closed when: a Catch up's `content` log says `waiting N s` with N under 30 and its Library entry opens on the new page
-- Queue (D346), dock swipes (D359). closed when: on his Android a swipe shows a red strip, the player's swipes are silent, and the bar's sideways pull shows its target.
+- Queue (D346, D357), dock swipes (D359). The red strip's fix (#659) assumes Chrome's 8 px slop. closed when: on his Android a swipe shows a red strip, the player's swipes are silent, and the bar's sideways pull shows its target.
 - Player ⋮ menu and Saved (D309, #580): checked in Chromium only. closed when: held press, the speed screen and Settings > Saved work on his Android Chrome.
 - Voice list (D276): closed when: a voice is heard from its list on his iPhone.
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily says "podcast".
