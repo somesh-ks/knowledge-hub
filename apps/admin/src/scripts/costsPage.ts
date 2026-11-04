@@ -8,6 +8,13 @@
 import { buttonClass } from "../../../web/src/design-system/button";
 import { BRAND_MARKS } from "../../../web/src/lib/brandMarks";
 import { mountSegmentedNav } from "../../../web/src/scripts/segmentedNav";
+import {
+  answerProblem,
+  clearProblem,
+  type Problem,
+  reportProblem,
+  requestProblem,
+} from "../lib/problem";
 
 interface Rollup {
   usd: number;
@@ -661,6 +668,7 @@ const FAILED_PARTS =
   "[data-costs-plot], [data-costs-rank-head], [data-costs-rank], [data-costs-table], [data-costs-view]";
 
 let asked = 0;
+const COSTS_FAILED = "Costs didn't load";
 
 async function load(): Promise<void> {
   const range = pick<HTMLSelectElement>("#costs-range");
@@ -671,16 +679,23 @@ async function load(): Promise<void> {
   const ask = ++asked;
   // A refetch keeps the last frame, dimmed, so nothing jumps while the numbers change.
   body?.setAttribute("data-loading", "");
+  const url = `/api/costs?period=${period}&by=${by}&days=${days}`;
+  let problem: Problem | null = null;
   try {
     // The route answers within about 5 s; a call that never returns must not leave "Loading" up.
-    const response = await fetch(`/api/costs?period=${period}&by=${by}&days=${days}`, {
-      signal: AbortSignal.timeout(12_000),
-    });
-    if (!response.ok) throw new Error(String(response.status));
+    const response = await fetch(url, { signal: AbortSignal.timeout(12_000) });
+    if (!response.ok) {
+      problem = await answerProblem(COSTS_FAILED, url, "GET", response);
+      throw new Error(String(response.status));
+    }
     const data = (await response.json()) as CostResponse;
-    if (ask === asked) render(data, period, days, by);
-  } catch {
+    if (ask === asked) {
+      render(data, period, days, by);
+      clearProblem(COSTS_FAILED);
+    }
+  } catch (error) {
     if (ask !== asked) return;
+    reportProblem(problem ?? requestProblem(COSTS_FAILED, url, "GET", error));
     const total = pick("[data-costs-total]");
     if (total) total.textContent = "Unavailable";
     const stats = pick<HTMLElement>("[data-costs-stats]");
