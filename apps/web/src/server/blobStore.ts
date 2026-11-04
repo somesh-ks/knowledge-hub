@@ -1,3 +1,4 @@
+import { waitUntil } from "@vercel/functions";
 import type { BlobCredentials } from "./config";
 import { BLOB_CALL_TIMEOUT_MS } from "./functionLimits.mjs";
 
@@ -367,10 +368,15 @@ export function createVercelBlobStore(
     } finally {
       // shortcut: a copy whose delete fails, or whose copy call timed out after it landed, stays
       // under reads/; it holds what the public document holds. Sweep reads/ if they pile up.
-      // The answer does not wait on the delete.
-      void withLimit(BLOB_CALL_TIMEOUT_MS, (abortSignal) =>
+      // The answer does not wait on the delete; the platform keeps the function alive for it.
+      const cleanup = withLimit(BLOB_CALL_TIMEOUT_MS, (abortSignal) =>
         sdk.del(copied.url, { ...credentials, abortSignal }),
       ).catch(() => undefined);
+      try {
+        waitUntil(cleanup);
+      } catch {
+        // Not on Vercel: the promise runs on its own.
+      }
     }
   };
 
