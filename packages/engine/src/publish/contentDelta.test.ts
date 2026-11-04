@@ -394,7 +394,9 @@ describe("applyContentDelta", () => {
 describe("pullContent", () => {
   // The bug: a pull that trusts the CDN would write a stale or truncated object as a digest, and the
   // next sync would publish it. The manifest's hash is the check; a file that fails it stops the pull.
-  it("refuses a file whose bytes do not match the manifest, and never deletes local files", async () => {
+  // A file rewritten within the last minute can answer with its old copy at first (11-04), so the
+  // pull waits for the right bytes before it gives up.
+  it("waits out an old copy, refuses one that never matches, and never deletes local files", async () => {
     const store = fakeBlob();
     const source = await checkout({ "Digests/2026/11/a.md": "A", "Digests/2026/11/b.md": "B" });
     await applyContentDelta({
@@ -405,19 +407,27 @@ describe("pullContent", () => {
       put: ["Digests/2026/11/a.md", "Digests/2026/11/b.md"],
       remove: [],
     });
-    store.objects.set("content/Digests/2026/11/b.md", { text: "TRUNCATED", etag: 777 });
+    let stale = 2;
     const fetchBytes = async (url: string) => {
-      const text = store.objects.get(new URL(url).pathname.slice(1))?.text;
+      const path = new URL(url).pathname.slice(1);
+      const text = path.endsWith("b.md") && stale-- > 0 ? "OLD" : store.objects.get(path)?.text;
       return text === undefined ? null : new TextEncoder().encode(text);
     };
+    let now = 0;
+    const clock = {
+      now: () => now,
+      pause: async (ms: number) => {
+        now += ms;
+      },
+    };
+    const first = await checkout({});
+    await pullContent({ client: store.client, root: first, fetchBytes, only: ["Digests"], clock });
+    expect(await readFile(join(first, "Digests/2026/11/b.md"), "utf8")).toBe("B");
+
+    store.objects.set("content/Digests/2026/11/b.md", { text: "TRUNCATED", etag: 777 });
     const target = await checkout({ "Digests/2026/11/local-only.md": "L" });
     await expect(
-      pullContent({
-        client: store.client,
-        root: target,
-        fetchBytes,
-        only: ["Digests"],
-      }),
+      pullContent({ client: store.client, root: target, fetchBytes, only: ["Digests"], clock }),
     ).rejects.toThrow(/does not match its manifest hash/);
     expect(await readFile(join(target, "Digests/2026/11/a.md"), "utf8")).toBe("A");
     expect(await readFile(join(target, "Digests/2026/11/local-only.md"), "utf8")).toBe("L");

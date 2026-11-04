@@ -82,14 +82,14 @@ export interface StoreClock {
   pause(ms: number): Promise<void>;
 }
 
-const realClock: StoreClock = {
+export const systemClock: StoreClock = {
   now: () => Date.now(),
   pause: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 };
 
 /** How long a read waits for the CDN to catch up with a write. Vercel documents up to 60 s. */
 export const CURRENT_WAIT_MS = 90_000;
-const CURRENT_POLL_MS = 5_000;
+export const CURRENT_POLL_MS = 5_000;
 
 const bareTag = (etag: string): string => etag.replace(/^W\//, "").replaceAll('"', "");
 
@@ -106,7 +106,7 @@ export async function readCurrent(
   client: ConditionalBlobClient,
   pathname: string,
   known?: TaggedText,
-  clock: StoreClock = realClock,
+  clock: StoreClock = systemClock,
 ): Promise<{ url: string; etag: string; text: string } | null> {
   const deadline = clock.now() + CURRENT_WAIT_MS;
   for (;;) {
