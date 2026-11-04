@@ -10,12 +10,15 @@ inputs:
 runs:
   using: composite
   steps:
-    # The libraries come from this runner image's apt archive, so the key names the image's OS; a
-    # copy that no longer runs is replaced by a fresh install below.
+    # The libraries come from this runner image's apt archive, so the key names the image and its
+    # version: a cache entry is never replaced, so a copy keyed by the OS alone that stopped working
+    # would be restored, fail and reinstall on every run. A new image refills it once.
     - id: key
       shell: bash
-      run: echo "key=ffmpeg-${ImageOS:-unknown}-${RUNNER_ARCH}-v1" >> "$GITHUB_OUTPUT"
+      run: echo "key=ffmpeg-${ImageOS:-unknown}-${ImageVersion:-unknown}-${RUNNER_ARCH}-v1" >> "$GITHUB_OUTPUT"
+    # A cache service failure falls through to the install below instead of failing the step.
     - id: restore
+      continue-on-error: true
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.ffmpeg
