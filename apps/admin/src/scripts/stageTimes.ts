@@ -53,7 +53,9 @@ function cardFor(group: StageGroup): HTMLElement | null {
 function drawGroups(groups: StageGroup[]): void {
   if (!holder) return;
   for (const made of holder.querySelectorAll("[data-stage-card]")) made.remove();
-  const jobs = [...holder.querySelectorAll("[data-kind-card]")].at(-1)?.nextElementSibling ?? null;
+  // After the runs card, before the jobs.
+  const jobs =
+    holder.querySelector("[data-kind-card]")?.closest(".card-group")?.nextElementSibling ?? null;
   for (const group of groups) {
     const card = cardFor(group);
     if (!card) continue;
