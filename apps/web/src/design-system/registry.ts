@@ -31,7 +31,7 @@ export interface DesignSystemComponent extends Guidance {
   classes: string[];
   /** Classes it replaced, which no app may write again. */
   retired: string[];
-  /** Its variants and tones, each with its own guidance. */
+  /** Its variants, tones and sizes, each with its own guidance. */
   parts: Record<string, Guidance>;
 }
 
@@ -45,7 +45,7 @@ export const COMPONENTS: DesignSystemComponent[] = [
     summary: BUTTON.summary,
     useWhen: BUTTON.useWhen,
     dontUseWhen: BUTTON.dontUseWhen,
-    parts: { ...BUTTON.variants, ...BUTTON.tones },
+    parts: { ...BUTTON.variants, ...BUTTON.tones, ...BUTTON.sizes },
   },
   {
     name: "Icon",

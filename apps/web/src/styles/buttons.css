@@ -170,6 +170,24 @@
   background: var(--color-surface-container-pressed);
 }
 
+/* Button, small size (size="small" on any variant): a shorter pill with less padding and label-size
+   words, for a dense row or a popover where the full pill crowds the text around it (owner,
+   2026-11-04: Listen now in the queue). The pill is button.height-small; its target stays the touch
+   size, as the chip's does. After the variants, so it wins at their specificity. */
+.button-small {
+  position: relative;
+  min-height: var(--button-height-small);
+  padding-inline: var(--button-padding-small);
+  font-size: var(--font-size-label);
+}
+
+.button-small::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block: calc((var(--size-touch) - var(--button-height-small)) / -2);
+}
+
 /* Tonal action: the one creating action in the side column (Catch up, AppNav.astro). Usage: add it
    to the action's own element, which keeps its size and layout. It wears the primary fill, the
    filled button's and Play's (owner, 2026-11-04: "all should have the same color synchronized"); it

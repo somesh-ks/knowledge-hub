@@ -410,6 +410,8 @@
   --button-height-compact: var(--size-touch);
   --button-radius: var(--radius-round);
   --button-padding: var(--space-4);
+  --button-height-small: 2rem;
+  --button-padding-small: var(--space-2);
   --mini-player-inset: var(--space-2);
   --mini-player-radius: var(--shape-lg);
   --mini-player-control-radius: var(--shape-sm);
@@ -780,6 +782,8 @@
   --row-padding-block: var(--space-6);
   --row-padding-inline: var(--space-6);
   --button-padding: var(--space-6);
+  --button-height-small: 2.5rem;
+  --button-padding-small: var(--space-4);
   --switch-width: 4rem;
   --switch-height: 2.5rem;
   --switch-thumb: 2.125rem;

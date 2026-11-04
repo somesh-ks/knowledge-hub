@@ -213,6 +213,45 @@
       ]
     },
     {
+      "id": "button-small",
+      "name": "Small button",
+      "kind": "action",
+      "summary": "A shorter pill, same touch target.",
+      "classes": [
+        "button-small"
+      ],
+      "files": [
+        "design-system/Button.astro",
+        "design-system/button.ts"
+      ],
+      "when": [
+        "It sits in a dense row or a popover"
+      ],
+      "not": [
+        {
+          "when": "It commits a sheet",
+          "use": "button-filled"
+        }
+      ],
+      "keywords": [
+        "small button",
+        "compact button",
+        "smaller",
+        "dense row",
+        "button size"
+      ],
+      "markup": "<Button variant=\"text\" size=\"small\">Listen now</Button>",
+      "styles": [
+        "buttons.css"
+      ],
+      "usage": "Button, small size (size=\"small\" on any variant): a shorter pill with less padding and label-size words, for a dense row or a popover where the full pill crowds the text around it (owner, 2026-11-04: Listen now in the queue). The pill is button.height-small; its target stays the touch size, as the chip's does. After the variants, so it wins at their specificity.",
+      "tokens": [
+        "--button-height-small",
+        "--button-padding-small",
+        "--size-touch"
+      ]
+    },
+    {
       "id": "icon",
       "name": "Icon",
       "kind": "display",
@@ -4826,6 +4865,19 @@
       "tier": "component",
       "type": "dimension",
       "light": "var(--space-4)"
+    },
+    {
+      "name": "--button-height-small",
+      "tier": "component",
+      "type": "dimension",
+      "light": "2rem",
+      "role": "Visible height of a small button (Button size=\"small\"). The hit area extends to the touch size."
+    },
+    {
+      "name": "--button-padding-small",
+      "tier": "component",
+      "type": "dimension",
+      "light": "var(--space-2)"
     },
     {
       "name": "--mini-player-inset",

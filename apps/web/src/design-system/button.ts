@@ -7,12 +7,14 @@ import type { Guidance } from "./guidance";
 
 export type ButtonVariant = "filled" | "tonal" | "text";
 export type ButtonTone = "danger";
+export type ButtonSize = "small";
 
 export const BUTTON: Guidance & {
   variants: Record<ButtonVariant, Guidance & { label: string }>;
   tones: Record<ButtonTone, Guidance & { label: string; variant: ButtonVariant }>;
+  sizes: Record<ButtonSize, Guidance & { label: string }>;
 } = {
-  summary: "A labelled action: words on a 44px target that does something or goes somewhere.",
+  summary: "A labelled action: words on a touch-size target that does something or goes somewhere.",
   useWhen: [
     "The action has a word label: Save, Cancel, Add source, Try again, See all.",
     "It submits a form, opens or closes a dialog, or goes to a page (give it an href).",
@@ -89,17 +91,26 @@ export const BUTTON: Guidance & {
       ],
     },
   },
+  sizes: {
+    small: {
+      label: "Small",
+      summary: "A shorter pill, same touch target.",
+      useWhen: ["It sits in a dense row or a popover."],
+      dontUseWhen: [{ when: "It commits a sheet.", instead: "Button.filled" }],
+    },
+  },
 };
 
 /** Every class the Button draws, for the registry and its test. */
 export const BUTTON_CLASSES: string[] = [
   ...Object.keys(BUTTON.variants).map((variant) => `button-${variant}`),
   ...Object.keys(BUTTON.tones).map((tone) => `button-${tone}`),
+  ...Object.keys(BUTTON.sizes).map((size) => `button-${size}`),
 ];
 
 /** Classes the Button replaced; none may be written again, in any app that draws the system. */
 export const BUTTON_RETIRED: string[] = ["btn", "btn-primary", "btn-secondary", "confirm-delete"];
 
-/** The classes that draw a button of this variant (and tone). */
-export const buttonClass = (variant: ButtonVariant, tone?: ButtonTone): string =>
-  tone ? `button-${variant} button-${tone}` : `button-${variant}`;
+/** The classes that draw a button of this variant (and tone, and size). */
+export const buttonClass = (variant: ButtonVariant, tone?: ButtonTone, size?: ButtonSize): string =>
+  [`button-${variant}`, tone && `button-${tone}`, size && `button-${size}`].filter(Boolean).join(" ");
