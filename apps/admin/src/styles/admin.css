@@ -722,7 +722,7 @@
 .hl-strip {
   grid-area: strip;
   display: flex;
-  gap: calc(var(--space-1) / 2);
+  gap: var(--space-1);
   min-inline-size: 0;
   min-block-size: var(--space-4);
   overflow: hidden;
@@ -777,7 +777,7 @@
   grid-template-columns:
     calc(var(--good, 0.33) * 100%) calc((var(--poor, 0.66) - var(--good, 0.33)) * 100%)
     minmax(0, 1fr);
-  gap: calc(var(--space-1) / 2);
+  gap: var(--space-1);
   block-size: var(--space-2);
   margin-block: var(--space-1);
 }
