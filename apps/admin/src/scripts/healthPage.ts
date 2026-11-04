@@ -184,7 +184,7 @@ function paint(): void {
     if ("speed" in element.dataset) drawMeter(element, series?.vitals[key], row?.tone ?? "none");
     const week = element.querySelector<HTMLElement>("[data-week]");
     const errors = series?.errors[id];
-    if (week) week.textContent = errors ? `${errors.week} this week` : (row?.detail ?? "");
+    if (week) week.textContent = errors ? `Today, ${errors.week} this week` : (row?.detail ?? "");
   }
   for (const kind of ["daily", "weekly"] as const) {
     const holder = root.querySelector<HTMLElement>(`[data-runs="${kind}"]`);
