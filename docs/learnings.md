@@ -22,7 +22,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-11-02: lay a popover out on its base rule (exit drops `:popover-open`).
 - 2026-11-03: a pill test read `NaN` on a busy CI: lengthen the animation (`CSSStyleSheet`, not `<style>`: CSP). A box read mid-move is a transform: wait for its end.
 - 2026-11-03: the class guard reads a regex quote as a string: parse in `design-system/`.
-- 2026-11-03: `pan-y` lets Chrome scroll a slanted swipe and cancel it. Test slanted; hold via non-passive `touchmove`.
+- 2026-11-03: `pan-y` lets Chrome scroll and cancel a slanted swipe; hold it with a non-passive `touchmove`.
 
 ## Unit tests
 
