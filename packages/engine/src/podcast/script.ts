@@ -256,7 +256,10 @@ function tooShortProblem(
 /** What one reply is cut into as it streams. */
 interface Cut {
   onTurns: (rows: readonly ScriptRow[]) => void;
-  /** How many of the reply's own rows (after its opening) the parts took. */
+  /**
+   * How many of the reply's own rows (after its opening) the parts took; none while nothing is out,
+   * so a reply whose first part the checks emptied is judged with its opening, not without it.
+   */
   readonly covered: number;
   /** The reply's complete rows no part took, up to its last story turn. */
   unsent(): ScriptTurn[];
@@ -328,7 +331,7 @@ function createLive(deps: ScriptDeps, reach: number) {
       cleanRows(rows.slice(covered, to), deps.request, known);
     return {
       get covered() {
-        return covered;
+        return published.length > 0 ? covered : 0;
       },
       unsent: () => turnsOf(endingAt(rows)),
       onTurns(next) {

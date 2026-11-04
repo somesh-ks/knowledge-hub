@@ -239,7 +239,9 @@ describe("the first part of a script", () => {
     expect(parts.slice(0, -1).every((part) => part.ms === MINUTES_MS)).toBe(true);
   });
 
-  it("does not go out until it names the show", async () => {
+  // A first part the checks emptied still counted its rows as taken, so the reply was judged
+  // without its opening and every attempt failed for not naming the show.
+  it("does not go out until it names the show, and a first part the checks empty leaves the reply whole", async () => {
     let parts = 0;
     const writer = new FakeScriptWriter((i, call) => {
       const whole = scriptOf(i).turns;
@@ -260,5 +262,22 @@ describe("the first part of a script", () => {
     expect(writer.calls[1]?.input.opening).toBeUndefined();
     expect(result.turns[0]?.text).toMatch(/Singularity/);
     expect(parts).toBeGreaterThan(0);
+
+    // The hello, the rundown and the first story make the first part; none survives the checks.
+    const invented = new FakeScriptWriter((i) => ({
+      turns: scriptOf(i).turns.map((turn, index) =>
+        index < 3 ? { ...turn, text: `${turn.text} 8888.` } : turn,
+      ),
+    }));
+    const kept = await generateScript({
+      writer: invented,
+      request: REQUEST,
+      stories: STORIES,
+      budget_chars: budget,
+      now: () => 0,
+      onPart: async () => {},
+    });
+    expect(invented.calls).toHaveLength(1);
+    expect(kept.turns[0]?.text).toMatch(/Singularity/);
   });
 });
