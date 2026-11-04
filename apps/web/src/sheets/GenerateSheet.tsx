@@ -89,6 +89,11 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
   const [busy, setBusy] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
 
+  // The words answer at once; once the typing pauses, Jev and Haiku add what the words missed. The
+  // controls follow the comment both ways (D371): one appears when the words call for it and goes
+  // when they no longer do, unless the listener has touched it.
+  const [asker] = useState(() => createCommentAsker(setAnswer));
+
   // Each opening starts from the topics of the briefing on the page. Off a briefing's page (a
   // toast's Details) there are none, and the run keeps its own.
   useEffect(() => {
@@ -101,14 +106,12 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
     setFieldError(null);
     setAsked(startLength());
     setLengthPick(null);
-    // Words kept from an earlier opening still call for their controls.
-    setComment(feedbackRef.current?.value ?? "");
-  }, [open]);
+    // Words kept from an earlier opening still call for their controls, and are read again.
+    const kept = feedbackRef.current?.value ?? "";
+    setComment(kept);
+    asker.note(kept, topics?.chips.map((chip) => chip.label) ?? []);
+  }, [open, asker]);
 
-  // The words answer at once; once the typing pauses, Jev and Haiku add what the words missed. The
-  // controls follow the comment both ways (D371): one appears when the words call for it and goes
-  // when they no longer do, unless the listener has touched it.
-  const [asker] = useState(() => createCommentAsker(setAnswer));
   useEffect(() => {
     if (open) return;
     asker.stop();
