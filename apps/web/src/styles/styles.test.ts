@@ -1036,6 +1036,10 @@ const PAGE_OVERRIDES: string[] = [
   "multiselect.css: .settings-row .multiselect-trigger > .icon-glyph",
   "picker.css: .picker > .icon-glyph",
   "picker.css: .picker > .icon-glyph",
+  // The picker's rows place the Flag in their grid (D367): a column and the gap, not its look.
+  "picker.css: .picker-option > .flag-mark",
+  "picker.css: .picker-option:has(> .flag-mark)",
+  'picker.css: .picker-option[aria-selected="true"]:has(> .flag-mark)::after',
   'picker.css: .picker:has(> .picker-trigger[aria-expanded="true"]) > .icon-glyph',
   "player.css: .dock-btn[data-primary] .icon-glyph",
   "player.css: .dock-expand .icon-glyph",

@@ -10,8 +10,10 @@
  *
  * The pure parts are exported and tested; the rest is wiring.
  */
+
 import type { SourceFormat } from "@singularity/core";
 import { topicEmoji } from "@singularity/core/topicEmoji";
+import { shownText, showText } from "../design-system/flag";
 import { rowExitClass } from "../design-system/rowExit";
 import { pickEmoji } from "../lib/pickEmoji";
 import { readableUrl } from "../lib/readableUrl";
@@ -194,7 +196,7 @@ export function mountEditor(root: HTMLElement): Editor {
       if (emoji && op.topic.emoji === guess) {
         op.topic.emoji = emoji;
         const shown = row.querySelector(".topic-emoji");
-        if (shown) shown.textContent = emoji;
+        if (shown instanceof HTMLElement) showText(shown, emoji);
       }
       ready();
     });
@@ -513,7 +515,7 @@ export function mountEditor(root: HTMLElement): Editor {
       if (op.op === "topic.upsert" && op.topic.id === topic.id) op.topic.emoji = emoji;
     const op: Upsert = { op: "topic.upsert", topic };
     changes.set(`topic-edit:${topic.id}`, { op, el: trigger, now: JSON.stringify(op) });
-    button.textContent = emoji;
+    showText(button, emoji);
     autosave.now();
   };
 
@@ -530,9 +532,7 @@ export function mountEditor(root: HTMLElement): Editor {
   const changeEmoji = (button: HTMLElement): void => {
     const name = document.getElementById("page-title")?.textContent ?? "";
     void import("./emojiPicker").then((module) =>
-      module.openEmojiPicker(button, name, button.textContent?.trim() ?? "", (emoji) =>
-        setEmoji(button, emoji),
-      ),
+      module.openEmojiPicker(button, name, shownText(button), (emoji) => setEmoji(button, emoji)),
     );
   };
 

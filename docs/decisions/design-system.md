@@ -793,3 +793,13 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Rejected: 32px with an 8px content radius (the chips and fields inside would sharpen, against D167's one shape per control).
 - Cost: none.
 - Revisit if: a mood's corner grows past 48px, where the curve does reach the first row's words.
+
+## D367: every flag is the Flag, never an emoji
+
+- Date: 2026-11-04 (the owner: "the emoji doesn't get read in all platforms. That's why we had a flag library that was supposed to be used. And anywhere we have flags, we should use that instead of the emoji. Make it a rule").
+- Decision: a flag is the design system's Flag (`design-system/flag.ts`, `Flag.astro`, `styles/flag.css`): Flagpack art, one file per country in `public/flags/` (248 files, 1.4 MB on disk, each fetched only when drawn). It replaces the voice pickers' 37-flag sprite. Text that may hold a flag emoji (a place topic's emoji, the time zone toast, the emoji picker's flags) is drawn through it (`showText`, `flagParts`, `<Flag text>`), so stored emoji stay as data and never reach the system font. `.flag-mark` keeps the picker's 16 by 12; `.flag-inline` sizes the art to the words. A code without art shows the letter badge. `designSystem.test.ts` fails an app source that writes or builds a flag emoji.
+- Why: Windows has no flag emoji and draws two letters (2026-10-25, and the time zone toast on 2026-11-04).
+- Rejected: one sprite of every flag (about 800 KB fetched for one flag); `Intl` region data (no flags); keeping emoji where the sprite had no art.
+- Cost: 1.4 MB of art in the repo; no first-load JavaScript beyond the split helper in the toast.
+- Revisit if: a platform draws the art wrongly, or a flag is needed where an image cannot go (a notification's text).
+
