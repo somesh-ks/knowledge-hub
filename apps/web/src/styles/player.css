@@ -2596,9 +2596,37 @@
   transition: box-shadow var(--duration-press-out) var(--ease-out);
 }
 
-/* D277: the list keeps what played (muted) and marks what plays now (accent, the active color). */
-.player-queue-item[data-state="played"] .player-upnext-date {
+/* D277: the list keeps what played (muted) and marks what plays now (accent, the active color). A
+   row put above the playing one (D357) is behind it and never starts by itself: muted the same way. */
+.player-queue-item:is([data-state="played"], [data-state="before"]) .player-upnext-date {
   color: var(--color-on-surface-muted);
+}
+
+/* Up next's reflow (queueFlip.ts) moves rows itself: the browser's scroll anchoring would move the
+   page under them as well, and a row queued from Suggested would jump instead of glide. */
+.player-queue-item {
+  overflow-anchor: none;
+}
+
+/* A gliding row passes over the Suggested label, which glides the other way, never under it. */
+.player-queue-item[data-gliding] {
+  z-index: var(--z-raised);
+}
+
+/* The layer a row that leaves the list fades out on, over the panel and under its rows. A swiped
+   row's face has slid off; only its strip fades. */
+.player-panel:has(> .player-queue-ghosts) {
+  position: relative;
+}
+
+.player-queue-ghosts {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.player-queue-ghosts [data-leaving] > .player-queue-face {
+  visibility: hidden;
 }
 
 .player-queue-item[data-state="current"] .player-upnext-date {

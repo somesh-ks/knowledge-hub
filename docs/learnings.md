@@ -7,21 +7,22 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-28: `topics.spec.ts` "Add source" fails on a machine's first local run: it writes its untracked screenshot baseline (never commit it). `CI=1` skips it.
 - Two browser suites at once share `apps/web/dist` and give false failures.
 - 2026-10-22: in the cloud container Chromium goes through the agent proxy, so `--host-resolver-rules` (to serve a build under the production host) did nothing until launched with `--no-proxy-server`.
-- 2026-10-23: a changed card token reached a page outside the grid spec (Costs), and a hold-still test missed publishers keeping 10px at 320. Screenshot every page that uses the primitive; measure the flexible part at 320 and 360.
+- 2026-10-23: a changed card token reached a page outside the grid spec (Costs), and a hold-still test missed 10px at 320. Screenshot every page using the primitive; measure at 320 and 360.
 - 2026-10-23: reduced motion in the tokens alone missed every raw travel on those durations (chip labels, nav pill, floating button). Sweep the CSS with the tokens; check with `document.getAnimations()` under emulated reduced motion.
 - 2026-10-12: a mocked route answers while the browser context is offline. A test of an offline save takes its mock offline with it (`route.abort`), and waits for the lazy chunk it needs before going offline.
 - 2026-10-12: `waitForLoadState("networkidle")` returns at once when the page has been idle before, so a test went offline while a lazy chunk was still on its way (one run in four). Wait for the response itself, then `finished()`.
 - 2026-10-17: easing the open player's Play disc press scale (a `transform` transition) made a press in the error state reset the scroll to the top one run in five (noticeInView.spec); the disc keeps an instant press.
 - 2026-10-14: headless Chromium has no mobile address bar, so the bottom-stack drift cannot be reproduced in the browser suites or in screenshots. Reason from the anchors, and ask for a recording on a phone.
-- 2026-10-13: the voice-picker specs failed only beside others: a scroll after the press closed the open list (the trace's last frame); `openPicker` (`e2e/picker.ts`) presses until it stays open.
+- 2026-10-13: voice-picker specs failed beside others: a scroll after the press closed the list; `openPicker` (`e2e/picker.ts`) presses until it stays open.
 - 2026-10-12: an axe scan after `emulateMedia` read colours mid-fade. Wait for the page's `CSSTransition`s to finish first, and cap that wait, because an infinite or paused animation never finishes.
-- 2026-10-12: a leftover server or build makes a suite test the wrong build: Playwright reuses a listening server and skips the build (`taskkill`). Stop old servers; use a fresh PORT after a page edit.
+- 2026-10-12: Playwright reuses a listening server and skips the build, so a leftover one tests the wrong build. Stop old servers; use a fresh PORT after a page edit.
 - 2026-10-11: Playwright `addStyleTag` and injected axe scripts hit the fixture site's CSP; use `bypassCSP: true` for an audit, on a build in its own directory and port (a rebuilt `dist` read as "page has no title").
 - 2026-10-10: a lone IntersectionObserver threshold of 1 reports a target partly past the root edge as not intersecting and never calls back. To tell a sticky element is stuck, observe `[0, 1]` and compare its `top` with `rootBounds.top`.
 - 2026-10-09: headless Chromium draws WebGL in software, logs "GPU stall" each frame, failing the player suite; skip WebGL there (`WEBGL_debug_renderer_info`).
 - 2026-11-02: lay a popover out on its base rule (exit drops `:popover-open`).
 - 2026-11-03: a pill test read `NaN` on a busy CI: lengthen the animation (`CSSStyleSheet`, not `<style>`: CSP). A box read mid-move is a transform: wait for its end.
 - 2026-11-03: the class guard reads a regex quote as a string: parse in `design-system/`.
+- 2026-11-03: `pan-y` lets Chrome scroll and cancel a slanted swipe; hold it with a non-passive `touchmove`.
 
 ## Unit tests
 
@@ -99,7 +100,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-31: a Play control marked `aria-disabled` never reacted: `disabledGuard.ts` swallows clicks on `[aria-disabled="true"]`, so a voice without a sample is marked `data-silent` instead.
 - 2026-11-01: Downloads showed as a gallery after a Library visit: `libraryPage.ts` kept its `astro:page-load` listener and matched Downloads' `[data-library]`. Name the page (`#main.library`); a test must reach it by click, not `goto`.
 - 2026-11-01: a `.manage` rule for the voice page also reached Preferences: a row declares its `--row-reach`.
-- 2026-11-03: servers off Vercel with the real `DATABASE_URL` stored their own 5xx as production faults (~180 a day); telemetry takes `telemetryDatabaseUrl`. Astro's SSR header replaces vercel.json's CSP: `frame-ancestors` goes in `withFrameAncestors` (meta ignores it).
+- 2026-11-03: servers off Vercel with the real `DATABASE_URL` stored their own 5xx as production faults (~180 a day); telemetry takes `deploymentDatabaseUrl`. Astro's SSR header replaces vercel.json's CSP: `frame-ancestors` goes in `withFrameAncestors` (meta ignores it).
 
 ## Build and tooling
 

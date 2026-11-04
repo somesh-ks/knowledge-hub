@@ -7,7 +7,7 @@ import {
   vitalPage,
 } from "@singularity/core/vitals";
 import { recordVitals, type VitalsReport } from "@singularity/engine/vitals-store";
-import { type DatabaseDeps, guardedDatabase, telemetryDatabaseUrl } from "./database";
+import { type DatabaseDeps, deploymentDatabaseUrl, guardedDatabase } from "./database";
 
 /**
  * Field Web Vitals (D156) on the server: `/api/report` hands a page's `vitals` report here. Only
@@ -55,5 +55,5 @@ export function createVitalsWriter(deps: DatabaseDeps): VitalsWriter {
 
 /** The site's writer, one per instance. */
 export const storeVitals: VitalsWriter = createVitalsWriter({
-  databaseUrl: telemetryDatabaseUrl(process.env),
+  databaseUrl: deploymentDatabaseUrl(process.env),
 });
