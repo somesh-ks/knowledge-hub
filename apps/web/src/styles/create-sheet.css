@@ -18,9 +18,10 @@
    height. Its icon and words sit where the rows' do. A press shows in the fill, never by scaling the
    label.
    Its fill, words, 16px corners and states are the tonal action's (.btn-action-tonal, buttons.css):
-   the accent container means "you are here" alone, so the action takes a richer tone of its own
-   and a rounded rectangle, not the rows' pill (owner, 2026-10-27; it was surface-container with
-   accent words, 2026-10-22, which read as faded, and accent-container-high before that, D86). On
+   the accent container means "you are here" alone, so the action takes the primary fill, the
+   floating button's and Play's (owner, 2026-11-04), and a rounded rectangle, not the rows' pill
+   (owner, 2026-10-27; it was a saturated tone of its own then, surface-container with accent words
+   on 2026-10-22, which read as faded, and accent-container-high before that, D86). On
    /create it is the current place and takes the rows' current fill. */
 @media (width >= 64rem) {
   .app-nav-create {

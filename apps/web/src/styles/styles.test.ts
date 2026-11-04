@@ -1276,10 +1276,11 @@ describe("component stylesheets", () => {
   });
 
   it("paints every primary action with the one primary fill, so a floating button never drifts from Play", () => {
-    // The filled button, the hero's Play (hero.css, through --chip-bg) and the floating buttons are
-    // one action, so one colour: the floating ones wore the tonal step, a lighter fill beside the
-    // Play they repeat (owner, 2026-11-04). A disabled face is the only other fill.
-    const PRIMARY = ["button-filled", "create-fab", "play-fab"];
+    // The filled button, the hero's Play (hero.css, through --chip-bg), the floating buttons and the
+    // side column's Catch up are one action, so one colour: the floating ones wore the tonal step and
+    // Catch up a tone of its own, each a second primary beside Play (owner, 2026-11-04). A disabled
+    // face is the only other fill.
+    const PRIMARY = ["button-filled", "create-fab", "play-fab", "btn-action-tonal"];
     const groups = /:(?:where|not|is)\((?:[^()]|\([^()]*\))*\)/g;
     const found = ownCss().flatMap(([file, css]) =>
       rulesOf(css).flatMap(([list, body]) => {

@@ -984,14 +984,14 @@
       "styles": [
         "buttons.css"
       ],
-      "usage": "Tonal action: the one creating action in the side column (Catch up, AppNav.astro). Usage: add it to the action's own element, which keeps its size and layout. The owner found the neutral fill with accent words faded in both themes (2026-10-27), and the current row's accent-container must keep meaning \"you are here\", so this is a third tone, richer than the current row: a saturated blue in both themes (white words in light, the darkest blue's in dark), as the greyed blues before it looked muddy in light and desaturated in dark (owner, 2026-10-27). Its fill reaches 3:1 on the page, so it reads as a shape with no outline, and its words 4.5:1 at rest (buildTokens.test.ts). - A 16px rounded rectangle: the one recorded exception to the pill rule (D186), so its shape alone tells it from the pill-shaped current row beside it (--action-tonal-radius). - Flat: no elevation and no shadow (owner, 2026-10-27). - Hover and press fills --action-tonal-bg-hover and --action-tonal-bg-pressed: the fill with its lightness stepped away from its words (D317: darker in light, lighter in dark), so the state reads as depth, not as a new colour.",
+      "usage": "Tonal action: the one creating action in the side column (Catch up, AppNav.astro). Usage: add it to the action's own element, which keeps its size and layout. It wears the primary fill, the filled button's and Play's (owner, 2026-11-04: \"all should have the same color synchronized\"); it was a third, saturated tone of its own (owner, 2026-10-27), which read as a second primary beside Play. The current row's accent container still means \"you are here\" alone. - A 16px rounded rectangle: the one recorded exception to the pill rule (D186), so its shape alone tells it from the pill-shaped current row beside it (--action-tonal-radius). - Flat: no elevation and no shadow (owner, 2026-10-27). - Hover and press take the primary fill's own steps (--cta-bg-hover, --cta-bg-pressed).",
       "tokens": [
-        "--action-tonal-bg",
-        "--action-tonal-bg-hover",
-        "--action-tonal-bg-pressed",
-        "--action-tonal-fg",
         "--action-tonal-radius",
-        "--color-surface"
+        "--color-surface",
+        "--cta-bg",
+        "--cta-bg-hover",
+        "--cta-bg-pressed",
+        "--cta-fg"
       ]
     },
     {
@@ -4808,46 +4808,6 @@
       "type": "dimension",
       "light": "var(--shape-lg)",
       "role": "A 16px rounded rectangle, the one recorded exception to the pill rule (D186): the side column's Catch up, so its shape alone tells it from the pill-shaped current row beside it (owner, 2026-10-27)."
-    },
-    {
-      "name": "--action-tonal-bg",
-      "tier": "component",
-      "type": "color",
-      "light": "var(--color-accent-action)",
-      "hex": {
-        "light": "#2770e6",
-        "dark": "#4f90fc"
-      }
-    },
-    {
-      "name": "--action-tonal-fg",
-      "tier": "component",
-      "type": "color",
-      "light": "var(--color-on-accent-action)",
-      "hex": {
-        "light": "#ffffff",
-        "dark": "#152236"
-      }
-    },
-    {
-      "name": "--action-tonal-bg-hover",
-      "tier": "component",
-      "type": "color",
-      "light": "var(--color-accent-action-hover)",
-      "hex": {
-        "light": "#1560d4",
-        "dark": "#5ea0ff"
-      }
-    },
-    {
-      "name": "--action-tonal-bg-pressed",
-      "tier": "component",
-      "type": "color",
-      "light": "var(--color-accent-action-pressed)",
-      "hex": {
-        "light": "#0050c3",
-        "dark": "#6db0ff"
-      }
     },
     {
       "name": "--button-height",
