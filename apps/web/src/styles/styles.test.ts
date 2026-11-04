@@ -1113,7 +1113,6 @@ const PAGE_OVERRIDES: string[] = [
   "topics.css: .menu-list.emoji-picker",
   "topics.css: .menu-list.emoji-picker:popover-open",
   "topics.css: .menu-list.menu-sheet.emoji-picker, .menu-list.menu-sheet.emoji-picker:popover-open",
-  "topics.css: .slider-input[data-stops]",
   "topics.css: .source-sheet-foot > .button-filled",
   "topics.css: .topic-weight > .slider-input",
   "topics.css: .topic-weight > .slider-input",
@@ -1307,6 +1306,26 @@ describe("component stylesheets", () => {
       }),
     );
     expect(found).toEqual([]);
+  });
+
+  it("draws no stop marks on a slider's track, in any mood", () => {
+    // 2026-11-04: the "no dots please" fix (owner, 2026-11-03) went into the Expressive rule alone, so
+    // Default and Halloween still drew the speed and weight stops. A track is plain in every mood.
+    const marks = ownCss().flatMap(([file, css]) =>
+      rulesOf(css)
+        .filter(([list]) => /\.slider-input\b/.test(list))
+        .flatMap(([list, body]) =>
+          declarationsOf(body)
+            // A mark is a background image on the input itself, or a gradient kept in a variable for one.
+            .filter(
+              ([property, value]) =>
+                (property === "background-image" && value !== "none") ||
+                /radial-gradient\(/.test(value),
+            )
+            .map(([property]) => `${file}: ${list.replace(/\s+/g, " ")} { ${property} }`),
+        ),
+    );
+    expect(marks).toEqual([]);
   });
 });
 

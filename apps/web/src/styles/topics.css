@@ -376,28 +376,6 @@
   }
 }
 
-/* Five fixed stops under the thumb, each a small dot on the track (2026-10-21: tall tick lines read
-   as heavy; the owner asked for a calmer slider). Each dot is drawn in a thumb-sized box placed by
-   percent, which the browser measures over the track less one thumb: the same travel the thumb takes,
-   so a dot sits under the thumb's centre at its stop. */
-.slider-input[data-stops] {
-  --stop-dot: radial-gradient(
-    circle at center,
-    var(--color-on-surface-subtle) 0 calc(var(--stroke-hairline) * 3),
-    transparent calc(var(--stroke-hairline) * 3 + 0.5px)
-  );
-  background-image:
-    var(--stop-dot), var(--stop-dot), var(--stop-dot), var(--stop-dot), var(--stop-dot);
-  background-repeat: no-repeat;
-  background-size: var(--scrubber-thumb) var(--scrubber-thumb);
-  background-position:
-    0% center,
-    25% center,
-    50% center,
-    75% center,
-    100% center;
-}
-
 .topic-sources {
   display: flex;
   flex-direction: column;

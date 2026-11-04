@@ -260,9 +260,6 @@
 /* The input's own default (0%) would hide the field's fill; it follows the field. */
 :root[data-mood="expressive"] .slider-wave-field > .slider-input {
   --range-fill: inherit;
-  /* Under the wave the track is clear, so a slider's stop dots showed between the crests and nowhere
-     else (owner, 2026-11-03: "no dots please"). */
-  background-image: none;
 }
 
 /* The straight track begins where the fill ends; the engines' two pseudo-elements cannot share a rule. */

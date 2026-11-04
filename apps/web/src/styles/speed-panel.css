@@ -33,28 +33,10 @@
   color: var(--color-accent);
 }
 
-/* The slider stops on seven speeds: a dot for each, in the thumb-sized boxes the topic weights use, under
-   the thumb's centre at its stop. The track is a little thicker than the plain slider's. */
+/* The slider stops on seven speeds, with no mark for each (owner, 2026-11-03: "no dots please",
+   in every mood, 2026-11-04). The track is a little thicker than the plain slider's. */
 .player-speed .slider-input {
   --scrubber-track: calc(var(--space-1) * 1.5);
-  --stop-dot: radial-gradient(
-    circle at center,
-    var(--color-on-surface-subtle) 0 calc(var(--stroke-hairline) * 3),
-    transparent calc(var(--stroke-hairline) * 3 + 0.5px)
-  );
-  background-image:
-    var(--stop-dot), var(--stop-dot), var(--stop-dot), var(--stop-dot), var(--stop-dot),
-    var(--stop-dot), var(--stop-dot);
-  background-repeat: no-repeat;
-  background-size: var(--scrubber-thumb) var(--scrubber-thumb);
-  background-position:
-    0% center,
-    16.667% center,
-    33.333% center,
-    50% center,
-    66.667% center,
-    83.333% center,
-    100% center;
 }
 
 /* On the phone's sheet the tonal fill (the container step) is the sheet's own colour in the dark
