@@ -21,7 +21,7 @@ import {
 const NOTE: Record<NotificationState, string> = {
   on: "",
   off: "",
-  blocked: "Blocked in this browser's site settings.",
+  blocked: "Notifications are blocked in your browser settings.",
   needs_install:
     "Add Singularity to your Home Screen first. In Safari, tap Share, then Add to Home Screen.",
   unsupported: "This browser can't show notifications.",

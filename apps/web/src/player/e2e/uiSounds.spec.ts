@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { openRowMenu } from "../../../e2e/fixtures";
-import { expect, test } from "./helpers";
+import { center, expect, line, test } from "./helpers";
 
 declare global {
   interface Window {
@@ -172,6 +172,42 @@ test.describe("interface cues by kind of action", () => {
     );
     expect(await heard(page)).toEqual([]);
     expect(await oscillators(page)).toBe(0);
+  });
+
+  // Owner, 2026-11-03: swiping the player up and down played its open and close sounds. A swipe is
+  // felt and not heard; a tap on the bar or its close button still sounds. Dragging the seek line
+  // across stories ticked at each one; it is a drag too, so it is felt and not heard (D359).
+  test("the player's swipes and a seek drag make no sound and a tap on it does", async ({
+    player,
+    page,
+    finger,
+  }) => {
+    await player.open();
+    await prime(page);
+    await player.play();
+    // Paused, so the narration does not hush the cues this test counts.
+    await finger.press(page.locator("[data-player-dock] [data-primary]"));
+    await expect(player.root).toHaveAttribute("data-player-state", "paused");
+    const before = await oscillators(page);
+    await finger.press(player.openButton);
+    await player.expanded();
+    await expect.poll(() => oscillators(page)).toBeGreaterThan(before);
+    await finger.press(player.closeButton);
+    await player.collapsed();
+    const quiet = await oscillators(page);
+    const bar = center(await player.dockSettled());
+    await finger.drag(line(bar, { x: bar.x, y: bar.y - 400 }, 4), 8);
+    await player.expanded();
+    const seek = await player.boxOf(player.pageScrubber);
+    const mid = seek.y + seek.height / 2;
+    await finger.drag(
+      line({ x: seek.x + 4, y: mid }, { x: seek.x + seek.width - 4, y: mid }, 12),
+      16,
+    );
+    const header = center(await player.boxOf(player.dialog.locator(".player-title")));
+    await finger.drag(line(header, { x: header.x, y: header.y + 300 }, 4), 8);
+    await player.collapsed();
+    expect(await oscillators(page)).toBe(quiet);
   });
 
   test("Haptics keep their own choice: Off lasts a reload and a menu still sounds, and On is felt once per menu", async ({
