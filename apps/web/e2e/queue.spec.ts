@@ -119,9 +119,17 @@ test.describe("the podcast queue", () => {
     await hydrated(page);
     await expect(page.locator("[data-queue-trigger]")).toBeVisible();
     await expect(page.locator("[data-queue-dock]")).toBeHidden();
+    // The title shimmers while the popover is closed and rests once it opens. Its timing lived only
+    // inside the popover, so the side column's word never moved (owner, 2026-11-04).
+    const sheen = () =>
+      page
+        .locator("[data-queue-trigger-title]")
+        .evaluate((word) => word.getAnimations().some((a) => a.playState === "running"));
+    await expect.poll(sheen).toBe(true);
     await openQueue(page);
     await expect(page.getByRole("dialog", { name: "Podcast queue" })).toBeVisible();
     await expect(rows(page)).toHaveCount(1);
+    await expect.poll(sheen).toBe(false);
   });
 
   test.describe("when GitHub refuses", () => {

@@ -523,7 +523,7 @@ test.describe("a topic's page", () => {
       "design_engineering_craft",
     );
     await expect(
-      sheet.getByRole("link", { name: "Open Studio Notes in a new tab" }),
+      sheet.getByRole("link", { name: "Open studio-notes.example in a new tab" }),
     ).toHaveAttribute("href", "https://www.studio-notes.example/");
     const save = sheet.getByRole("button", { name: "Save" });
     await expect(save).toBeDisabled();

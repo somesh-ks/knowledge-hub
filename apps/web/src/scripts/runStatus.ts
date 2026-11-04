@@ -661,6 +661,10 @@ export async function retry(): Promise<void> {
         ? { kind: run.kind, episode: run.episode }
         : undefined;
     rememberCancelToken(reply.run_id, reply.cancel_token);
+    // Try again is a new run: the message when it is ready (if that is on here) needs a watch too.
+    void import("../lib/pushClient")
+      .then((push) => push.watchRun(reply.run_id, run.episode ? "regenerate" : "catch_up"))
+      .catch(() => {});
     startRun(reply.run_id, about, run.retry);
     focusCreate();
     return;

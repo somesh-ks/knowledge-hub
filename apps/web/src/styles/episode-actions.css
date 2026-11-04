@@ -18,10 +18,6 @@
   margin-block-start: auto;
 }
 
-.regen-lede {
-  padding-block: var(--space-4) var(--space-6);
-}
-
 /* Shown only near the limit, a quiet line under the field with air above it. */
 .regen-count {
   margin-block-start: var(--space-2);

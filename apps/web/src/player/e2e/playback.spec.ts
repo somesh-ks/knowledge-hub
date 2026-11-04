@@ -86,7 +86,7 @@ test.describe("playback on a podcast", () => {
     expect(widths.size, JSON.stringify(seen)).toBe(1);
   });
 
-  test("speed: set in the ⋮ menu by the stepper, the keys and the slider, and back at the default after a reload @desktop", async ({
+  test("speed: set in the ⋮ menu or from between the skips by the stepper, the keys and the slider, and back at the default after a reload @desktop", async ({
     player,
     audio,
     page,
@@ -152,6 +152,19 @@ test.describe("playback on a podcast", () => {
     await player.finger.pressAt({ x: 8, y: 8 });
     await expect(speedRow).toBeHidden();
     await expect(player.root).toHaveAttribute("data-player", "open");
+    // With a mouse on a wide screen the speed also sits between the skips (owner, 2026-11-04): it says
+    // the speed, opens the speed screen at once, and hands focus back when it closes.
+    if ((page.viewportSize()?.width ?? 0) >= 1024) {
+      const between = player.dialog.getByRole("button", { name: /^Playback speed/ });
+      await expect(between).toHaveText("1.5x");
+      await between.click();
+      await expect(readout).toHaveText("1.50x");
+      await expect(page.getByRole("button", { name: "Back", exact: true })).toBeHidden();
+      await slower.click();
+      await expect(between).toHaveText("1.45x");
+      await page.keyboard.press("Escape");
+      await expect(between).toBeFocused();
+    }
     await page.reload({ waitUntil: "networkidle" });
     await expect.poll(async () => (await audio.read())?.playbackRate).toBe(1);
   });

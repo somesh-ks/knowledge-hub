@@ -23,11 +23,21 @@ async function expectAccessible(page: Page, where: string): Promise<void> {
       ),
     );
     const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
-    const violations = results.violations.map((violation) => ({
-      id: violation.id,
-      impact: violation.impact,
-      nodes: violation.nodes.map((node) => node.target.join(" ")),
-    }));
+    const violations = results.violations
+      .map((violation) => ({
+        id: violation.id,
+        impact: violation.impact,
+        nodes: violation.nodes
+          .map((node) => node.target.join(" "))
+          // shortcut: the bar's button shows a running clock under the chapter (0:03 / 1:20), and a
+          // name that followed it would be read out again every second. Its name is the chapter and the story's
+          // headline instead (PlayerBar.tsx). Revisit if the clock moves out of the button.
+          .filter(
+            (target) =>
+              !(violation.id === "label-content-name-mismatch" && target === ".dock-open"),
+          ),
+      }))
+      .filter((violation) => violation.nodes.length > 0);
     expect(violations, `${where}, ${colorScheme}`).toEqual([]);
   }
   await page.emulateMedia({ colorScheme: "light" });
@@ -41,6 +51,11 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
   test("the page with the bar docked", async ({ player, page }) => {
     await player.open();
     await player.play();
+    // The scan below skips this button's clock; its chapter must still be in the name (WCAG 2.5.3).
+    const open = page.locator(".dock-open");
+    const chapter = (await open.locator(".dock-title").textContent()) ?? "";
+    expect(chapter).not.toBe("");
+    expect(await open.getAttribute("aria-label")).toContain(chapter);
     await expectAccessible(page, "the bar docked");
   });
 

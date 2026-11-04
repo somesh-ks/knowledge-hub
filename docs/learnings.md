@@ -16,6 +16,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-13: voice-picker specs failed beside others: a scroll after the press closed the list; `openPicker` (`e2e/picker.ts`) presses until it stays open.
 - 2026-10-12: an axe scan after `emulateMedia` read colours mid-fade. Wait for the page's `CSSTransition`s to finish first, and cap that wait, because an infinite or paused animation never finishes.
 - 2026-10-12: Playwright reuses a listening server and skips the build, so a leftover one tests the wrong build. Stop old servers; use a fresh PORT after a page edit.
+- 2026-11-04: axe 4.14 made label-in-name an A rule: a name holds the visible words in one run ("Play · 1 min" failed).
 - 2026-10-11: Playwright `addStyleTag` and injected axe scripts hit the fixture site's CSP; use `bypassCSP: true` for an audit, on a build in its own directory and port (a rebuilt `dist` read as "page has no title").
 - 2026-10-10: a lone IntersectionObserver threshold of 1 reports a target partly past the root edge as not intersecting and never calls back. To tell a sticky element is stuck, observe `[0, 1]` and compare its `top` with `rootBounds.top`.
 - 2026-10-09: headless Chromium draws WebGL in software, logs "GPU stall" each frame, failing the player suite; skip WebGL there (`WEBGL_debug_renderer_info`).
