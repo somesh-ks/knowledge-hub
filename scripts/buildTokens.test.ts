@@ -149,6 +149,8 @@ describe("state direction (D317)", () => {
   });
 });
 
+// The base's text, action and graphic floors are the mood sweep's (below), Default among the moods;
+// these are the relations between its colours that no floor states.
 describe("color contrast", () => {
   const surfaces = [
     "surface",
@@ -158,29 +160,14 @@ describe("color contrast", () => {
     "surface-overlay",
   ];
 
-  it.each(MODES)("text roles reach 4.5:1 on every surface (%s)", (mode) => {
-    for (const foreground of ["on-surface", "on-surface-muted", "on-surface-subtle", "accent"]) {
-      for (const surface of surfaces) {
-        const ratio = contrastRatio(
-          colorOf(`semantic.color.${foreground}`, mode),
-          colorOf(`semantic.color.${surface}`, mode),
-        );
-        expect(ratio, `${foreground} on ${surface} (${mode})`).toBeGreaterThanOrEqual(4.5);
-      }
-    }
-  });
-
   it.each(MODES)(
-    "the reading ink is AAA on the page, 4.5:1 on every surface, and a step under the headline's (%s)",
+    "keeps the reading ink a step under the headline's on every surface (%s)",
     (mode) => {
       for (const surface of surfaces) {
         const background = colorOf(`semantic.color.${surface}`, mode);
         const reading = contrastRatio(
           colorOf("semantic.color.on-surface-reading", mode),
           background,
-        );
-        expect(reading, `on-surface-reading on ${surface} (${mode})`).toBeGreaterThanOrEqual(
-          surface === "surface" ? 7 : 4.5,
         );
         expect(
           contrastRatio(colorOf("semantic.color.on-surface", mode), background),
@@ -190,48 +177,15 @@ describe("color contrast", () => {
     },
   );
 
-  it.each(MODES)("accent text and body text clear the accent tint (%s)", (mode) => {
-    const tint = colorOf("semantic.color.accent-subtle", mode);
-    for (const foreground of ["on-surface", "accent"]) {
-      const ratio = contrastRatio(colorOf(`semantic.color.${foreground}`, mode), tint);
-      expect(ratio, `${foreground} on accent-subtle (${mode})`).toBeGreaterThanOrEqual(4.5);
-    }
-  });
-
-  it.each(MODES)("text on the accent container reaches 4.5:1 (%s)", (mode) => {
-    const container = colorOf("semantic.color.accent-container", mode);
-    // A chosen fill carries only its own ink, so the fill is free to stand off the surface under it
-    // (D356); no page's text sits on it in another colour.
-    const ratio = contrastRatio(colorOf("semantic.color.on-accent-container", mode), container);
-    expect(ratio, `on-accent-container on accent-container (${mode})`).toBeGreaterThanOrEqual(4.5);
-  });
-
   it.each(MODES)(
-    "text on the action tone reaches 4.5:1, and the tone sits further from the page than the selected one (%s)",
+    "sets the action tone further from the page than the selected one (%s)",
     (mode) => {
-      const high = colorOf("semantic.color.accent-container-high", mode);
       const page = colorOf("semantic.color.surface", mode);
-      const ratio = contrastRatio(colorOf("semantic.color.on-accent-container-high", mode), high);
-      expect(
-        ratio,
-        `on-accent-container-high on accent-container-high (${mode})`,
-      ).toBeGreaterThanOrEqual(4.5);
       const chosen = contrastRatio(colorOf("semantic.color.accent-container", mode), page);
       expect(
-        contrastRatio(high, page),
+        contrastRatio(colorOf("semantic.color.accent-container-high", mode), page),
         `the New episode button reads as an action, not a current place (${mode})`,
       ).toBeGreaterThan(chosen + 0.2);
-      // The rail's Catch up: a shape at 3:1 on the page with no outline, its words at 4.5:1, and
-      // further from the page than the current row, so it never reads as faded or as selected.
-      const action = colorOf("semantic.color.accent-action", mode);
-      expect(
-        contrastRatio(colorOf("semantic.color.on-accent-action", mode), action),
-        `on-accent-action on accent-action (${mode})`,
-      ).toBeGreaterThanOrEqual(4.5);
-      expect(
-        contrastRatio(action, page),
-        `accent-action on the page (${mode})`,
-      ).toBeGreaterThanOrEqual(3);
     },
   );
 
@@ -243,50 +197,6 @@ describe("color contrast", () => {
     ] as const) {
       const ratio = contrastRatio(colorOf(`semantic.color.${container}`, mode), page);
       expect(ratio, `${container} on the page (${mode})`).toBeGreaterThanOrEqual(least);
-    }
-  });
-
-  it.each(MODES)("filled controls keep 4.5:1 label contrast in every state (%s)", (mode) => {
-    for (const fill of ["accent", "accent-hover", "accent-pressed"]) {
-      const ratio = contrastRatio(
-        colorOf("semantic.color.on-accent", mode),
-        colorOf(`semantic.color.${fill}`, mode),
-      );
-      expect(ratio, `on-accent on ${fill} (${mode})`).toBeGreaterThanOrEqual(4.5);
-    }
-    const toast = contrastRatio(
-      colorOf("semantic.color.on-surface-inverse", mode),
-      colorOf("semantic.color.surface-inverse", mode),
-    );
-    expect(toast, `toast text (${mode})`).toBeGreaterThanOrEqual(4.5);
-  });
-
-  it.each(MODES)("status colors read as text on surface, raised and their tint (%s)", (mode) => {
-    for (const status of ["success", "warning", "danger", "info"]) {
-      const foreground = colorOf(`semantic.color.${status}`, mode);
-      for (const background of ["surface", "surface-raised", `${status}-subtle`]) {
-        const ratio = contrastRatio(foreground, colorOf(`semantic.color.${background}`, mode));
-        expect(ratio, `${status} on ${background} (${mode})`).toBeGreaterThanOrEqual(4.5);
-      }
-    }
-  });
-
-  it.each(MODES)("non-text identifiers reach 3:1 (%s)", (mode) => {
-    for (const graphic of ["accent", "focus-ring"]) {
-      for (const surface of ["surface", "surface-raised", "surface-overlay"]) {
-        const ratio = contrastRatio(
-          colorOf(`semantic.color.${graphic}`, mode),
-          colorOf(`semantic.color.${surface}`, mode),
-        );
-        expect(ratio, `${graphic} on ${surface} (${mode})`).toBeGreaterThanOrEqual(3);
-      }
-    }
-    for (const surface of ["surface", "surface-raised", "surface-sunken"]) {
-      const ratio = contrastRatio(
-        colorOf("semantic.color.border-control", mode),
-        colorOf(`semantic.color.${surface}`, mode),
-      );
-      expect(ratio, `border-control on ${surface} (${mode})`).toBeGreaterThanOrEqual(3);
     }
   });
 
@@ -328,14 +238,6 @@ describe("color contrast", () => {
         const chroma = parseOklch(String(resolveLiteral(doc, `semantic.color.${role}`, mode))).c;
         expect(chroma, `${role} (${mode})`).toBeLessThanOrEqual(0.015);
       }
-    }
-  });
-
-  it("keeps the focus ring legible against the accent button it surrounds", () => {
-    for (const mode of MODES) {
-      const ring = colorOf("semantic.color.focus-ring", mode);
-      const gap = colorOf("semantic.color.focus-gap", mode);
-      expect(contrastRatio(ring, gap), `ring on gap (${mode})`).toBeGreaterThanOrEqual(3);
     }
   });
 });
@@ -441,8 +343,12 @@ describe.each(MOODS)("a mood's colour contrast: %s", (name) => {
         `accent-subtle-${state}`,
         4.5,
       ]),
+      // A chosen fill carries only its own ink, so the fill is free to stand off the surface under it
+      // (D356); no page's text sits on it in another colour.
       ["on-accent-container", "accent-container", 4.5],
       ["on-accent-container-high", "accent-container-high", 4.5],
+      // The rail's Catch up: a shape at 3:1 on the page with no outline, its words at 4.5:1, and
+      // further from the page than the current row, so it never reads as faded or as selected.
       ["on-accent-action", "accent-action", 4.5],
       ["accent-action", "surface", 3],
       ["on-accent", "accent", 4.5],
@@ -464,13 +370,33 @@ describe.each(MOODS)("a mood's colour contrast: %s", (name) => {
         `surface-inverse-action-${state}`,
         4.5,
       ]),
-      ...["accent", "focus-ring"].flatMap((fg) =>
-        ["surface", "surface-raised", "surface-overlay"].map((bg): [string, string, number] => [
-          fg,
-          bg,
-          3,
-        ]),
+      // The focus ring holds 3:1 on what it touches. Drawn outside a control it sits on the surface,
+      // past the gap that keeps it legible against an accent button; drawn inside a row (a menu's, the
+      // current story's) it sits on the row's fill, at rest or under a pointer, as a muted word does.
+      ...[
+        ...surfaces,
+        "focus-gap",
+        ...["surface", "surface-container", "surface-raised", "surface-overlay"].map(
+          (surface) => `${surface}-hover`,
+        ),
+        "accent-container",
+        "accent-container-hover",
+      ].map((bg): [string, string, number] => ["focus-ring", bg, 3]),
+      // Danger is also words (an error line, a Delete), so it reads as text on every surface and on
+      // its tint, the danger button's hover and press. Success, warning and info are only an icon (a
+      // banner's, a chip's check, the queue's ring), so they hold 3:1. A banner's words are full ink
+      // on its tint and on a strip's ground; a status fill carries the surface's colour as an icon (a
+      // played mark, the queue's delete).
+      ...[...surfaces, "danger-subtle"].map((bg): [string, string, number] => ["danger", bg, 4.5]),
+      ...["success", "warning", "info"].flatMap((tone) =>
+        [...surfaces, `${tone}-subtle`].map((bg): [string, string, number] => [tone, bg, 3]),
       ),
+      ...["success", "warning", "danger", "info"].flatMap((tone): [string, string, number][] => [
+        [tone, `banner.strip-${tone}`, 3],
+        ["on-surface", `${tone}-subtle`, 4.5],
+        ["on-surface", `banner.strip-${tone}`, 4.5],
+      ]),
+      ...["success", "danger"].map((fill): [string, string, number] => ["surface", fill, 3]),
       ...["surface", "surface-raised", "surface-sunken"].map((bg): [string, string, number] => [
         "border-control",
         bg,
@@ -619,34 +545,33 @@ describe("scales", () => {
     }
   });
 
-  it("holds the concentric radius rule where a token declares it", () => {
-    const toRem = (reference: string): number => {
-      const value = resolveLiteral(doc, reference, "light");
-      return Number.parseFloat(String(value));
-    };
-    let checked = 0;
-    for (const token of doc.tokens) {
+  it("holds the concentric radius rule where a token declares it, in every mood", () => {
+    const rules = doc.tokens.flatMap((token) => {
       const rule = token.extensions.concentric;
-      if (typeof rule !== "object" || rule === null) continue;
+      if (typeof rule !== "object" || rule === null) return [];
       const { inner, padding } = rule as { inner: string; padding: string };
       const innerTarget = aliasTarget(inner);
       const paddingTarget = aliasTarget(padding);
       if (!innerTarget || !paddingTarget)
         throw new Error(`Bad concentric rule on ${token.dotPath}`);
-      const outer = toRem(token.dotPath);
-      expect(outer, `${token.dotPath}: outer = inner + padding`).toBeCloseTo(
-        toRem(innerTarget) + toRem(paddingTarget),
-        4,
-      );
-      checked += 1;
-    }
-    expect(checked).toBeGreaterThanOrEqual(4);
+      return [[token.dotPath, innerTarget, paddingTarget] as const];
+    });
+    expect(rules.length).toBeGreaterThanOrEqual(4);
+    // The rule was held in the base only, so a mood that resized one of the three broke it unseen: in
+    // Expressive the mini player's, the toast's, the archive row's and the segmented track's corners
+    // came out 4 to 8px rounder than their content's corner and padding (2026-11-04).
     // In every mood a card's words sit its padding in and its content keeps the rest of the corner:
     // Expressive once padded 32px under a 40px corner with 16px content, so its rows sat 8px further
     // in than Default's (owner, 2026-11-03: "the padding on left and right is too much").
     for (const [name, d] of MOODS.map((mood) => [mood, documentAt(mood)] as const)) {
       const rem = (reference: string): number =>
         Number.parseFloat(String(resolveLiteral(d, reference, "light")));
+      for (const [outer, inner, padding] of rules) {
+        expect(rem(outer), `${name}: ${outer} = inner + padding`).toBeCloseTo(
+          rem(inner) + rem(padding),
+          4,
+        );
+      }
       expect(
         rem("component.card.radius"),
         `${name}: card radius = content radius + padding`,
