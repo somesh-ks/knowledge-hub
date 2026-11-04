@@ -1274,6 +1274,39 @@ describe("component stylesheets", () => {
     );
     expect(found).toEqual([]);
   });
+
+  it("paints every primary action with the one primary fill, so a floating button never drifts from Play", () => {
+    // The filled button, the hero's Play (hero.css, through --chip-bg) and the floating buttons are
+    // one action, so one colour: the floating ones wore the tonal step, a lighter fill beside the
+    // Play they repeat (owner, 2026-11-04). A disabled face is the only other fill.
+    const PRIMARY = ["button-filled", "create-fab", "play-fab"];
+    const groups = /:(?:where|not|is)\((?:[^()]|\([^()]*\))*\)/g;
+    const found = ownCss().flatMap(([file, css]) =>
+      rulesOf(css).flatMap(([list, body]) => {
+        const subjects = selectorsOf(list).filter((selector) => {
+          const subject =
+            selector
+              .trim()
+              .split(/[\s>+~]+/)
+              .pop() ?? "";
+          const own = subject.replace(groups, "");
+          return (
+            PRIMARY.some((name) => wholeName(`.${name}`).test(own)) &&
+            !/\[aria-disabled="true"\]|:disabled/.test(own)
+          );
+        });
+        if (subjects.length === 0) return [];
+        return declarationsOf(body)
+          .filter(([property]) => property === "background" || property === "background-color")
+          .filter(([, value]) => !/^var\(--cta-bg(?:-hover|-pressed)?\)$/.test(value))
+          .map(
+            ([property, value]) =>
+              `${file}: ${list.replace(/\s+/g, " ")} { ${property}: ${value} }`,
+          );
+      }),
+    );
+    expect(found).toEqual([]);
+  });
 });
 
 describe("source files", () => {

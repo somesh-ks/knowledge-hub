@@ -1908,13 +1908,13 @@
       ],
       "usage": "",
       "tokens": [
-        "--color-accent-container-high",
-        "--color-accent-container-high-hover",
-        "--color-accent-container-high-pressed",
-        "--color-on-accent-container-high",
         "--color-on-surface-disabled",
         "--color-surface",
         "--color-surface-sunken",
+        "--cta-bg",
+        "--cta-bg-hover",
+        "--cta-bg-pressed",
+        "--cta-fg",
         "--size-icon-lg"
       ]
     }
