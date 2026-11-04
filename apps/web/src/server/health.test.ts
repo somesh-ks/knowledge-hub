@@ -27,6 +27,7 @@ const input = (over: Partial<HealthInput>): HealthInput => ({
   vitals: [],
   faults: null,
   jobs: {},
+  budgets: null,
   ...over,
 });
 

@@ -24,6 +24,7 @@ import {
   SLOT_MISSED_AFTER_MS,
   THIN_DIGEST_ITEMS,
 } from "@singularity/engine/health-limits";
+import type { StoredHealth } from "@singularity/engine/health-store";
 import type { VitalSummary } from "@singularity/engine/vitals-store";
 import {
   HEALTH_DEVICES,
@@ -70,6 +71,8 @@ export interface HealthInput {
   faults: Maybe<readonly ClientFaultGroup[] | null>;
   /** Each workflow file's runs in the window. */
   jobs: Maybe<Record<string, readonly WorkflowRun[]>>;
+  /** The daily check's last saved report (D360); null when none is saved yet. */
+  budgets: Maybe<StoredHealth | null>;
 }
 
 // ---- words ---------------------------------------------------------------------------------
@@ -480,6 +483,31 @@ function serviceRows(input: HealthInput, now: Date): HealthRow[] {
   return rows;
 }
 
+// ---- budgets -------------------------------------------------------------------------------
+
+const CARD_TONE = { green: "good", amber: "warn", red: "bad" } as const;
+const CARD_WORD = { green: "Good", amber: "Warning", red: "Fault" } as const;
+const BUDGET_IDS = ["cost", "speed", "tests", "bugs", "security", "keys"] as const;
+
+/** The card `singularity health` saved: an area's tone and its numbers, read from Neon in the store's one read. */
+/** The check runs daily but starts hours late; a report older than this means it stopped saving. */
+const BUDGETS_STALE_MS = 36 * 3_600_000;
+
+function budgetRows(budgets: HealthInput["budgets"], now: Date): HealthRow[] {
+  return BUDGET_IDS.map((area) => {
+    const id = `budget_${area}`;
+    if (budgets === "off") return row(id, "Not set up", "No database for the daily check", "none");
+    if (budgets === UNAVAILABLE)
+      return row(id, "Unavailable", "The database did not answer", "none");
+    const card = budgets?.card.find((each) => each.area === area);
+    if (!card) return row(id, "No data", "The daily check has saved no report yet", "none");
+    if (budgets && now.getTime() - Date.parse(budgets.now) > BUDGETS_STALE_MS) {
+      return row(id, "Stale", `The daily check last saved ${budgets.now.slice(0, 10)}`, "warn");
+    }
+    return row(id, CARD_WORD[card.tone], card.numbers, CARD_TONE[card.tone]);
+  });
+}
+
 // ---- the answer ----------------------------------------------------------------------------
 
 export function healthBody(input: HealthInput, now: Date): HealthBody {
@@ -494,8 +522,12 @@ export function healthBody(input: HealthInput, now: Date): HealthBody {
     ...errors.rows,
     ...jobRows(input.jobs, now),
     ...serviceRows(input, now),
+    ...budgetRows(input.budgets, now),
   ];
-  const flagged = rows.filter((each) => each.tone === "warn" || each.tone === "bad");
+  // The budget card judges the same findings the other rows do, so it is not counted twice.
+  const flagged = rows.filter(
+    (each) => !each.id.startsWith("budget_") && (each.tone === "warn" || each.tone === "bad"),
+  );
 
   const published = [input.lastRun?.regular, input.lastRun?.weekly]
     .filter((record): record is RunRecord => record?.outcome === "published")
