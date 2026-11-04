@@ -8,7 +8,7 @@ import {
   type SourceHealthFile,
   scheduleZone,
 } from "@singularity/core";
-import { rateVital, type VitalMetric } from "@singularity/core/vitals";
+import { rateVital, VITAL_THRESHOLDS, type VitalMetric } from "@singularity/core/vitals";
 import { type ClientFaultGroup, OPAQUE_SCRIPT_ERROR } from "@singularity/engine/faults-store";
 import { decideRun } from "@singularity/engine/gate";
 import {
@@ -31,7 +31,9 @@ import {
   HEALTH_JOBS,
   HEALTH_SPEED,
   type HealthBody,
+  type HealthJobRun,
   type HealthRow,
+  type HealthSeries,
   type HealthTone,
 } from "../lib/healthRows";
 import type { WorkflowRun } from "./github";
@@ -336,36 +338,39 @@ function speedRows(vitals: HealthInput["vitals"]): HealthRow[] {
 
 // ---- errors --------------------------------------------------------------------------------
 
+/** The error rows: what each counts, and the daily count past which it is worth a look. */
+const ERROR_KINDS = [
+  {
+    id: "page_errors",
+    least: CLIENT_ERRORS_PER_DAY,
+    perRoute: true,
+    match: (group: ClientFaultGroup) =>
+      (group.kind === "error" || group.kind === "rejection") &&
+      group.message !== OPAQUE_SCRIPT_ERROR,
+  },
+  {
+    id: "blocked_scripts",
+    least: SCRIPT_BLOCKS_PER_DAY,
+    perRoute: false,
+    match: (group: ClientFaultGroup) =>
+      group.kind === "csp" && SCRIPT_DIRECTIVES.has(group.directive),
+  },
+  {
+    id: "server_errors",
+    least: SERVER_FAULTS_PER_DAY,
+    perRoute: true,
+    match: (group: ClientFaultGroup) => group.kind === "server",
+  },
+  {
+    id: "timeouts",
+    least: PLATFORM_FAULTS_PER_DAY,
+    perRoute: true,
+    match: (group: ClientFaultGroup) => group.kind === "platform",
+  },
+];
+
 function errorRows(faults: HealthInput["faults"]): { rows: HealthRow[]; today: number | null } {
-  const kinds = [
-    {
-      id: "page_errors",
-      least: CLIENT_ERRORS_PER_DAY,
-      perRoute: true,
-      match: (group: ClientFaultGroup) =>
-        (group.kind === "error" || group.kind === "rejection") &&
-        group.message !== OPAQUE_SCRIPT_ERROR,
-    },
-    {
-      id: "blocked_scripts",
-      least: SCRIPT_BLOCKS_PER_DAY,
-      perRoute: false,
-      match: (group: ClientFaultGroup) =>
-        group.kind === "csp" && SCRIPT_DIRECTIVES.has(group.directive),
-    },
-    {
-      id: "server_errors",
-      least: SERVER_FAULTS_PER_DAY,
-      perRoute: true,
-      match: (group: ClientFaultGroup) => group.kind === "server",
-    },
-    {
-      id: "timeouts",
-      least: PLATFORM_FAULTS_PER_DAY,
-      perRoute: true,
-      match: (group: ClientFaultGroup) => group.kind === "platform",
-    },
-  ];
+  const kinds = ERROR_KINDS;
   if (faults === "off" || faults === UNAVAILABLE) {
     const [value, detail] =
       faults === "off"
@@ -508,6 +513,68 @@ function budgetRows(budgets: HealthInput["budgets"], now: Date): HealthRow[] {
   });
 }
 
+// ---- the charts' readings ------------------------------------------------------------------
+
+/** The readings behind the rows, unworded: what the command center draws its charts from. */
+export function healthSeries(input: HealthInput): HealthSeries {
+  const timed = (kind: Digest["kind"]) =>
+    [...input.digests]
+      .filter((digest) => digest.kind === kind)
+      .sort(compareNewestFirst)
+      .slice(0, TIMED_RUNS)
+      .flatMap((digest) => {
+        const ms = briefingTime(digest);
+        return ms === null ? [] : [{ at: digest.generated_at, ms }];
+      })
+      .reverse();
+  const jobs: HealthSeries["jobs"] = {};
+  if (typeof input.jobs === "object") {
+    for (const [id, file] of Object.entries(HEALTH_JOBS)) {
+      const runs = input.jobs[file];
+      if (!runs) continue;
+      jobs[id] = runs
+        .filter(
+          (run) =>
+            run.status === "completed" && run.conclusion !== null && run.conclusion !== "skipped",
+        )
+        .map(
+          (run): HealthJobRun => ({
+            at: run.updatedAt ?? run.createdAt,
+            outcome: FAILED.has(run.conclusion ?? "")
+              ? "fail"
+              : run.conclusion === "cancelled"
+                ? "cancel"
+                : "pass",
+          }),
+        )
+        .reverse();
+    }
+  }
+  const vitals: HealthSeries["vitals"] = {};
+  if (typeof input.vitals === "object") {
+    for (const summary of input.vitals) {
+      const metric = summary.metric as VitalMetric;
+      if (!(metric in VITAL_THRESHOLDS) || summary.samples === 0) continue;
+      vitals[`${metric}.${summary.device}`] = {
+        p75: summary.p75,
+        visits: summary.samples,
+        lines: VITAL_THRESHOLDS[metric],
+      };
+    }
+  }
+  const errors: HealthSeries["errors"] = {};
+  if (typeof input.faults === "object") {
+    for (const kind of ERROR_KINDS) {
+      const groups = (input.faults ?? []).filter(kind.match);
+      errors[kind.id] = {
+        day: groups.reduce((sum, group) => sum + group.day, 0),
+        week: groups.reduce((sum, group) => sum + group.total, 0),
+      };
+    }
+  }
+  return { times: { daily: timed("regular"), weekly: timed("weekly") }, jobs, vitals, errors };
+}
+
 // ---- the answer ----------------------------------------------------------------------------
 
 export function healthBody(input: HealthInput, now: Date): HealthBody {
@@ -542,6 +609,7 @@ export function healthBody(input: HealthInput, now: Date): HealthBody {
       errors_today: errors.today === null ? "No data" : String(errors.today),
     },
     rows,
+    series: healthSeries(input),
     parts: {
       content: !input.stored ? "fallback" : input.saved ? "saved" : "ok",
       database:

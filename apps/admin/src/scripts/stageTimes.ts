@@ -5,6 +5,7 @@
  * A store that does not answer says so in the card's one line, and the page keeps the rest.
  */
 
+import { askKept } from "../lib/kept";
 import { href } from "../lib/sections";
 import { duration, groupTimings, type StageGroup, type StageTimingRow } from "../lib/stageTimings";
 
@@ -53,20 +54,18 @@ function drawCard(group: StageGroup): Node | null {
 
 async function load(): Promise<void> {
   if (!holder) return;
-  try {
-    const response = await fetch(href("/api/stages"), {
-      cache: "no-store",
-      headers: { accept: "application/json" },
-    });
-    if (response.status === 503) return say("Not connected");
-    if (!response.ok) throw new Error(String(response.status));
-    const body = (await response.json()) as { timings: StageTimingRow[] };
-    const groups = groupTimings(body.timings);
-    if (groups.length === 0) return say("No finished runs yet");
-    holder.replaceChildren(...groups.flatMap((group) => drawCard(group) ?? []));
-  } catch {
-    say("Unavailable");
-  }
+  // This device's last answer first, the fresh one when it lands (lib/kept.ts).
+  const asked = await askKept<{ timings: StageTimingRow[] }>(
+    href("/api/stages"),
+    "stages",
+    (body) => {
+      const groups = groupTimings(body.timings);
+      if (groups.length === 0) return say("No finished runs yet");
+      holder.replaceChildren(...groups.flatMap((group) => drawCard(group) ?? []));
+    },
+  );
+  if (asked.shown) return;
+  say(asked.status === 503 ? "Not connected" : "Unavailable");
 }
 
 void load();

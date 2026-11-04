@@ -29,6 +29,25 @@ export interface HealthBody {
     /** `partial`: GitHub answered for some workflows, not all. */
     github: "ok" | "partial" | "unavailable" | "off";
   };
+  /** The readings behind the rows, for the command center's charts; an older answer has none. */
+  series?: HealthSeries;
+}
+
+/** One finished run of a workflow: when it ended and how. */
+export interface HealthJobRun {
+  at: string;
+  outcome: "pass" | "fail" | "cancel";
+}
+
+export interface HealthSeries {
+  /** Each kind's last timed runs, oldest first: when it published and how long its run took. */
+  times: Record<"daily" | "weekly", Array<{ at: string; ms: number }>>;
+  /** Each Jobs row's finished runs this week, oldest first, by row id. */
+  jobs: Record<string, HealthJobRun[]>;
+  /** Each field reading by `<metric>.<device>`: the p75, its visits, and Google's two lines. */
+  vitals: Record<string, { p75: number; visits: number; lines: readonly [number, number] }>;
+  /** Each error row's count over the last 24 hours and the week, by row id. */
+  errors: Record<string, { day: number; week: number }>;
 }
 
 export const HEALTH_TILES = [
