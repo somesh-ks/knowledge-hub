@@ -622,6 +622,22 @@ test.describe("library episodes", () => {
     await expect.poll(gap).toBeCloseTo(0, 0);
     await page.evaluate(() => window.scrollBy(0, -120));
     await expect.poll(gap).toBeCloseTo(0, 0);
+
+    // The band behind a label is there only while the label is held (owner, 2026-11-04: a band behind
+    // every month showed over the Halloween web): none at the top of the list, one once it is held.
+    const band = (held: boolean) =>
+      page.evaluate((stuck) => {
+        const head = document.querySelector<HTMLElement>(
+          stuck
+            ? ".library-month[data-stuck]:not(:has(~ .library-month[data-stuck]))"
+            : ".library-month",
+        );
+        return head ? getComputedStyle(head, "::before").opacity : "none";
+      }, held);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect.poll(() => band(false)).toBe("0");
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect.poll(() => band(true)).toBe("1");
   });
 
   test("in a list the months head a date order, and the rows run two across only where there is room", {
