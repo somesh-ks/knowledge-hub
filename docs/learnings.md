@@ -32,6 +32,8 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Engine and workflows
 
+- 2026-11-04: Dependabot alerts need `vulnerability-alerts: read`, not `security-events`.
+- 2026-11-04: a Neon wake passed the cron's 5 s store read once (02:00); the schedule copy (D360) keeps idle hours off it.
 - 2026-11-01: no owner config in a checkout (D296): `config pull`.
 - 2026-11-01: a shared `last_fetch_at` let an on-demand briefing cut the daily's window to 6 h (each kind keeps `fetched_through`); the refill wrote Tech stories validation trimmed: offer a section only the room its allowance has left.
 - 2026-10-31: `serializeTopics` lists fields, `upsertTopic` branches by origin: a new `Topic` field needs both.
@@ -131,6 +133,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 ## Agents and worktrees
 
+- 2026-11-04: the cloud proxy refuses GraphQL and `actions/variables`; resolve a thread with `gh api -X POST repos/<repo>/pulls/<n>/ccr/comments/<id>/resolve`.
 - 2026-11-02: `git checkout <file>` threw away uncommitted token edits; the session transcript's edit scripts recovered them. Commit or stash first.
 - 2026-11-01: 40 of #525's 44 commits were unreviewed: CodeRabbit pauses after five reviewed commits, noted only in its summary ("Last reviewed commit"). Before a merge, that commit must be the head (D292).
 - 2026-10-27: a squash merge leaves a branch's commits off main, so `git branch --merged` and commit searches miss them: find a branch's fate through PR search.
@@ -144,8 +147,6 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-22: another session's cleanup removed this worktree (no commits looks merged): commit a WIP early; remove only yours.
 - 2026-10-22: one `astro dev` per install, so a second worktree's is refused; never `--force` it (that kills the other): `PORT=47xx node e2e/run.mjs --serve-only`.
 - 2026-10-22: #160 merged without its review fixes: they were on a detached HEAD, so `git push` said "Everything up-to-date". After a push, compare `git ls-remote origin <branch>` with `git rev-parse HEAD`.
-- 2026-10-16: a worktree's `node_modules` symlink was committed (the rule `node_modules/` matches directories only); merging it replaced the real `apps/web/node_modules`, as git overwrites ignored paths. The rule is now `node_modules`; after such a merge, run `npm ci`.
-- 2026-10-25: `scripts/worktreeLinks.mjs` found own packages by the literal scope `@dispatch`; #272 broke it. It reads `package.json` names now. Per package, never a scope (10-26).
 - 2026-10-14: squash-merged branches never pass `git branch -d`, and auto mode refuses `-D`. Match commit subjects against main's squash bodies, keep a bundle of the heads in `.git/`, and let the owner force delete.
 - 2026-10-12: cherry-pick a worker's non-merge commits (`git log --no-merges --reverse <lead>..<branch>`), then rerun `biome check`: formatting differences show on the combined tree.
 - 2026-10-21: workers hit the 90-call cap: one piece each, WIP commit after the first pass. A finished worker's worktree stays locked: `remove -f -f`.
