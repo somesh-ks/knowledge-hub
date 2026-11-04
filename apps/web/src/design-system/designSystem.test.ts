@@ -187,6 +187,38 @@ describe("a menu drawn as a bottom sheet", () => {
 });
 
 /**
+ * A tab strip (primitives.css .tabs, or a tablist that is not the segmented navigation) sits in the
+ * shared tab bar (.tabs-bar, with a modifier for where it is), which draws the line under the strip.
+ * 2026-11-03: the Topics page's tabs skipped the bar and showed no line (owner: "a divider line like
+ * every other tab implementation"), and the player's bar drew its own copy of it; no check read either.
+ * shortcut: the bar must be the strip's parent in the same file, and a strip a script builds with
+ * createElement is not read; upgrade to a rendered check (every .tabs has a .tabs-bar parent) if one is.
+ */
+describe("a tab strip", () => {
+  it("sits in the shared tab bar, which draws its line", () => {
+    const strips: string[] = [];
+    const outside = APPS.flatMap((root) => markupFiles(root)).flatMap((file) => {
+      const name = relative(join(SRC, "..", "..", ".."), file);
+      const markup = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\/|<!--[\s\S]*?-->/g, "");
+      let parent = "";
+      return [...markup.matchAll(/<[a-z][\w-]*\b[^<>]*>/g)].flatMap(([tag]) => {
+        const holder = parent;
+        parent = tag;
+        const classes = /\bclass(?:Name)?="([^"]*)"/.exec(tag)?.[1]?.split(/\s+/) ?? [];
+        const tablist = /\brole="tablist"/.test(tag) && !classes.includes("segmented-nav");
+        if (!classes.includes("tabs") && !tablist) return [];
+        strips.push(name);
+        return /\bclass(?:Name)?="[^"]*\btabs-bar\b/.test(holder)
+          ? []
+          : [`${name}: ${tag.replace(/\s+/g, " ").slice(0, 80)}`];
+      });
+    });
+    expect(strips.length, "the check reads no tab strip").toBeGreaterThan(0);
+    expect(outside, "put the strip in .tabs-bar (primitives.css)").toEqual([]);
+  });
+});
+
+/**
  * The classes still written by hand in markup, which the system will absorb one family at a time
  * (docs/design-engineering-ledger.md). The list only shrinks: a family's PR moves its classes into
  * a component and deletes them from here; the test fails for a class that is no longer written, so
