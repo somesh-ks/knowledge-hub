@@ -488,6 +488,8 @@ function serviceRows(input: HealthInput, now: Date): HealthRow[] {
 const CARD_TONE = { green: "good", amber: "warn", red: "bad" } as const;
 const CARD_WORD = { green: "Good", amber: "Warning", red: "Fault" } as const;
 const BUDGET_IDS = ["cost", "speed", "tests", "bugs", "security", "keys"] as const;
+/** Budget rows whose findings the Speed, Jobs and Errors rows already flag. */
+const DOUBLED_BUDGETS = new Set(["budget_speed", "budget_tests", "budget_bugs"]);
 
 /** The card `singularity health` saved: an area's tone and its numbers, read from Neon in the store's one read. */
 /** The check runs daily but starts hours late; a report older than this means it stopped saving. */
@@ -524,9 +526,10 @@ export function healthBody(input: HealthInput, now: Date): HealthBody {
     ...serviceRows(input, now),
     ...budgetRows(input.budgets, now),
   ];
-  // The budget card judges the same findings the other rows do, so it is not counted twice.
+  // Speed, tests and bugs have rows of their own above, so their budget rows are not counted twice;
+  // cost (Neon, deploys), security and keys show nowhere else.
   const flagged = rows.filter(
-    (each) => !each.id.startsWith("budget_") && (each.tone === "warn" || each.tone === "bad"),
+    (each) => !DOUBLED_BUDGETS.has(each.id) && (each.tone === "warn" || each.tone === "bad"),
   );
 
   const published = [input.lastRun?.regular, input.lastRun?.weekly]

@@ -205,15 +205,19 @@ export async function readGitHub(
   const base = `${API}/repos/${repo}`;
   const since = new Date(now.getTime() - 7 * DAY_MS).toISOString().slice(0, 10);
   // shortcut: one page, the newest 100 runs of the week; page on once ci.yml runs more than that.
-  const runs = (file: string) =>
+  const runs = (file: string, filter = "") =>
     read(async () => {
       const body = (await (
-        await get(`${base}/actions/workflows/${file}/runs?created=%3E%3D${since}&per_page=100`)
+        await get(
+          `${base}/actions/workflows/${file}/runs?created=%3E%3D${since}&per_page=100${filter}`,
+        )
       ).json()) as { workflow_runs?: GitHubRun[] };
       return body.workflow_runs ?? [];
     });
-  const [browser, ci, issues, alerts, flaky] = await Promise.all([
+  const [browser, nightly, ci, issues, alerts, flaky] = await Promise.all([
     runs("browser.yml"),
+    // Asked apart: a week of pushes to main fills the first page and would hide the nightlies.
+    runs("browser.yml", "&event=schedule&branch=main&status=completed"),
     runs("ci.yml"),
     read(async () => {
       const list = (await (
@@ -257,9 +261,9 @@ export async function readGitHub(
   ]);
   return {
     nightly:
-      "error" in browser
-        ? browser
-        : browser
+      "error" in nightly
+        ? nightly
+        : nightly
             .filter(
               (run) =>
                 run.event === "schedule" &&

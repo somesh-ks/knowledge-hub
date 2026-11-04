@@ -930,14 +930,13 @@ describe("singularity health", () => {
       run_started_at: `2026-11-0${day}T02:17:00Z`,
       updated_at: `2026-11-0${day}T02:23:00Z`,
     });
+    // A week of merges fills the first page of browser.yml's runs with pushes; the nightlies are
+    // asked for apart, or they fall off it and the fault goes silent.
     const routes = (newest: string) => ({
-      "browser.yml/runs": {
-        workflow_runs: [
-          run("schedule", newest, 3),
-          run("push", "success", 2),
-          run("schedule", "failure", 2),
-        ],
+      "browser.yml/runs?created=%3E%3D2026-10-27&per_page=100&event=schedule": {
+        workflow_runs: [run("schedule", newest, 3), run("schedule", "failure", 2)],
       },
+      "browser.yml/runs": { workflow_runs: [run("push", "success", 2)] },
       "ci.yml/runs": { workflow_runs: [run("pull_request", "success", 3)] },
       "/issues": [
         { created_at: "2026-10-20T00:00:00Z" },

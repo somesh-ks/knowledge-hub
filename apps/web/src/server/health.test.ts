@@ -82,6 +82,26 @@ describe("healthBody", () => {
     expect(body.attention.count).toBe(1);
   });
 
+  // Neon near its cap, a rejected key or open alerts show on no other row: the summary counted no
+  // budget row, so a red Neon budget left "nothing needs a look" (D360). Speed, tests and bugs have
+  // rows of their own and count there once.
+  it("counts a budget only the daily check sees, and calls a report that stopped saving stale", () => {
+    const card = (tone: "green" | "red") =>
+      (["cost", "speed", "tests", "bugs", "security", "keys"] as const).map((area) => ({
+        area,
+        label: area,
+        tone: area === "cost" || area === "speed" ? tone : "green",
+        numbers: `${area} numbers`,
+      }));
+    const saved = (at: string, tone: "green" | "red") =>
+      input({ budgets: { now: at, ok: tone === "green", findings: [], card: card(tone) } });
+    const red = healthBody(saved("2026-10-27T09:41:00Z", "red"), NOW);
+    expect(rowOf(red, "budget_cost")?.tone).toBe("bad");
+    expect(red.attention.count).toBe(1);
+    const old = healthBody(saved("2026-10-25T09:41:00Z", "green"), NOW);
+    expect(rowOf(old, "budget_cost")?.value).toBe("Stale");
+  });
+
   // run.yml ticks every hour and skips outside its slot: some 160 skipped runs a week must not read
   // as passes, nor hide the one that failed. One workflow's read failing must not read as quiet.
   it("counts only the workflow runs that did work", () => {
