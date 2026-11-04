@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MEDIA_ERR_NETWORK, MEDIA_ERR_SRC_NOT_SUPPORTED } from "./audioErrors";
-import { BUFFERING_DELAY_MS, RESUME_SAVE_INTERVAL_MS } from "./playerStore";
+import {
+  BUFFERING_DELAY_MS,
+  OUTPUT_SLEEP_MS,
+  RESUME_SAVE_INTERVAL_MS,
+  WAKE_REWIND_SECONDS,
+} from "./playerStore";
 import { playedKey, resumeKey } from "./resume";
 import { createHarness, makeDigest, makeDigestWithoutAudio } from "./testing";
 
@@ -257,7 +262,30 @@ describe("seeking and items", () => {
     harness.store.play();
     harness.audio.loadMetadata(120);
     harness.audio.startPlaying();
-    expect(harness.audio.currentTime).toBeGreaterThanOrEqual(42);
+    // Owner, 2026-11-04: the phone's output wakes late and its clock runs on, so the first words
+    // were lost to silence. Played after a while, it starts a moment before the kept place.
+    expect(harness.audio.currentTime).toBe(42 - WAKE_REWIND_SECONDS);
+  });
+
+  it("steps back after a long pause only, never on a quick pause or onto a place the listener chose", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.currentTime = 30;
+    harness.store.pause();
+    harness.clock.now += 1_000;
+    harness.store.play();
+    expect(harness.audio.currentTime).toBe(30);
+    harness.audio.startPlaying();
+    harness.store.pause();
+    harness.clock.now += OUTPUT_SLEEP_MS;
+    harness.store.play();
+    expect(harness.audio.currentTime).toBe(30 - WAKE_REWIND_SECONDS);
+    harness.audio.startPlaying();
+    harness.store.pause();
+    harness.store.seekTo(60_000);
+    harness.clock.now += OUTPUT_SLEEP_MS;
+    harness.store.play();
+    expect(harness.audio.currentTime).toBe(60);
   });
 
   it("clamps seeks to the digest", () => {

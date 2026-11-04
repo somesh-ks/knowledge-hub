@@ -57,6 +57,14 @@ export const PREVIOUS_RESTART_SECONDS = 3;
  * event is ours; outside it, the system did it (a call, an alarm, headphones unplugged).
  */
 const EXPECTED_PAUSE_WINDOW_MS = 1000;
+/**
+ * A phone's audio output sleeps once nothing has played for a few seconds, and a Bluetooth link
+ * drops its stream. Waking takes up to two seconds, and the element's clock runs through them, so a
+ * podcast played after a while lost its first words to silence (owner, 2026-11-04, Xiaomi on
+ * Chrome). Play after that long a quiet starts this far back, where the listener already was (D364).
+ */
+export const OUTPUT_SLEEP_MS = 10_000;
+export const WAKE_REWIND_SECONDS = 2;
 const HAVE_NOTHING = 0;
 /** The waits before a dropped connection is retried: twice, then the listener is told. */
 const NETWORK_RETRY_WAITS_MS = [1_000, 3_000];
@@ -140,6 +148,9 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   let wantsPlay = false;
   // Bumped by a seek or scrub: the 2 s advance check compares positions, so it is void after one.
   let seekGeneration = 0;
+  /** When the element last stopped sounding, and the seek count then: a move since is the listener's place. */
+  let quietSince = Number.NEGATIVE_INFINITY;
+  let quietGeneration = 0;
   let wasPlayingBeforeScrub = false;
   let expectedPauseUntil = 0;
   let pendingStart: number | null = null;
@@ -193,6 +204,10 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     if (!changed) return false;
     const previous = state;
     state = { ...next, time };
+    if (previous.status === "playing" && state.status !== "playing") {
+      quietSince = now();
+      quietGeneration = seekGeneration;
+    }
     for (const listener of stateListeners) listener(state, previous);
     const itemChanged = timeline !== null && previous.itemIndex !== itemIndex;
     if (itemChanged && cause !== "load") emit({ type: "itemChanged", index: itemIndex, cause });
@@ -723,6 +738,15 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     attachSource(url);
     expectedPauseUntil = pendingWindow;
     if (state.status === "ended") seekInternal(0, "seek");
+    else if (
+      (reason === "user" || reason === "deferred") &&
+      time > 0 &&
+      seekGeneration === quietGeneration &&
+      now() - quietSince >= OUTPUT_SLEEP_MS
+    ) {
+      // "load": the step back is no story change, so nothing announces the story before.
+      seekInternal(Math.max(0, time - WAKE_REWIND_SECONDS), "load");
+    }
     wantsPlay = true;
     // The cue first, so it lands in silence; then the audio.
     emit({ type: "willPlay", reason });
