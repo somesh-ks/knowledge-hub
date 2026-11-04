@@ -3,7 +3,8 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import { buttonClass } from "../design-system/button";
 import { fieldClass } from "../design-system/field";
 import { rememberCancelToken } from "../lib/cancelTokens";
-import { hintsFor } from "../lib/regenHints";
+import { createCommentAsker } from "../lib/regenAsk";
+import { type Hints, hintsFor } from "../lib/regenHints";
 import { DEFAULT_REGEN_LENGTH, nearestRegenLength, REGEN_LENGTHS } from "../lib/regenLength";
 import { idsOfChips, isChipOn, type RegenChip } from "../lib/regenTopics";
 import { playUiCue } from "../player/sound/soundController";
@@ -96,13 +97,26 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
     );
   }, [open]);
 
-  function onNote(text: string): void {
-    const hints = hintsFor(text, page?.chips.map((chip) => chip.label) ?? []);
+  function reveal(hints: Hints): void {
     setShown((current) =>
       (hints.length && !current.length) || (hints.topics && !current.topics)
         ? { length: current.length || hints.length, topics: current.topics || hints.topics }
         : current,
     );
+  }
+
+  // The words answer at once; Jev, once the typing pauses, can add what they missed.
+  const [asker] = useState(() => createCommentAsker((hints) => reveal(hints)));
+  useEffect(() => (open ? undefined : asker.stop()), [open, asker]);
+
+  function onNote(text: string): void {
+    const labels = page?.chips.map((chip) => chip.label) ?? [];
+    const hints = hintsFor(text, labels);
+    reveal(hints);
+    asker.note(text, labels, {
+      length: shown.length || hints.length,
+      topics: !page || shown.topics || hints.topics,
+    });
   }
 
   function toggle(value: string): void {
@@ -205,7 +219,7 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
       >
         <Field.Root disabled={busy} className="create-group">
           <h2 className="section-head text-heading">
-            <Field.Label>Comments</Field.Label>
+            <Field.Label>What went wrong?</Field.Label>
           </h2>
           <textarea
             ref={feedbackRef}
@@ -213,7 +227,7 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
             name="feedback"
             rows={4}
             maxLength={FEEDBACK_MAX}
-            placeholder="What should change?"
+            placeholder="Too short, missed business news, too much hype"
             required
             aria-invalid={noteError || undefined}
             aria-describedby={noteError ? "regen-note-error" : undefined}
@@ -226,7 +240,7 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
           {noteError ? (
             <p className="create-error" id="regen-note-error" role="alert">
               <Icon name="alert" />
-              <span>Say what to change.</span>
+              <span>Say what went wrong.</span>
             </p>
           ) : null}
         </Field.Root>

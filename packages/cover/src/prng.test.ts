@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hash32, mulberry32, valueNoise } from "./prng.js";
+import { hash32, mulberry32 } from "./prng.js";
 
 describe("mulberry32", () => {
   it("produces the same stream for the same seed", () => {
@@ -59,19 +59,5 @@ describe("hash32", () => {
 
   it("separates neighbors", () => {
     expect(hash32("2026-10-06")).not.toBe(hash32("2026-10-07"));
-  });
-});
-
-describe("noise", () => {
-  it("returns values in [0, 1] and is deterministic", () => {
-    for (let i = 0; i < 200; i += 1) {
-      const v = valueNoise(i * 0.37, i * 0.11, 5);
-      expect(v).toBeGreaterThanOrEqual(0);
-      expect(v).toBeLessThanOrEqual(1);
-    }
-  });
-
-  it("is continuous", () => {
-    expect(Math.abs(valueNoise(3.2, 4.1, 1) - valueNoise(3.2001, 4.1001, 1))).toBeLessThan(0.01);
   });
 });

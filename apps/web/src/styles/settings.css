@@ -171,8 +171,10 @@
 }
 
 /* A link row says its value at its end, before the chevron, as a list preference does on a phone
-   (2026-10-22, the owner: hints under the name read as squeezed). The name never wraps or shrinks; a
-   long value is cut instead. The value is the quiet ink at the body size, as a select's value is. */
+   (2026-10-22, the owner: hints under the name read as squeezed). The value is the quiet ink at the
+   body size, as a select's value is. Short of room the name is cut and the value stays whole (owner,
+   2026-11-03: "the topic name should truncate and not the number of sources"; from 2026-10-22 the
+   name stayed whole and the value was cut). A value wider than the whole row is cut last. */
 :is(.settings-view, .manage) .row-action > .settings-text {
   display: flex;
   align-items: baseline;
@@ -180,27 +182,34 @@
   gap: var(--space-4);
 }
 
-:is(.settings-view, .manage) .row-action > .settings-text > .settings-label {
-  flex: none;
-}
-
+:is(.settings-view, .manage) .row-action > .settings-text > .settings-label,
 :is(.settings-view, .manage) .row-action > .settings-text > .settings-hint,
+:is(.settings-view, .manage) .settings-row > .settings-label:has(+ .settings-hint),
 :is(.settings-view, .manage) .settings-row > .settings-label + .settings-hint {
   min-width: 0;
   overflow: hidden;
-  font-size: var(--text-body-size);
-  line-height: var(--font-leading-label);
-  text-align: end;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* The cut value adds no width to the row's minimum (2026-10-26): a long one in a grid column, as the
-   Podcast pages' Structure link is, made the page wider than a phone, the mobile viewport zoomed out
-   and the toast sat out of reach below the fold. */
-:is(.settings-view, .manage) .row-action > .settings-text > .settings-hint {
+:is(.settings-view, .manage) .row-action > .settings-text > .settings-hint,
+:is(.settings-view, .manage) .settings-row > .settings-label + .settings-hint {
+  font-size: var(--text-body-size);
+  line-height: var(--font-leading-label);
+  text-align: end;
+}
+
+/* The name takes the room the value leaves and adds no width to the row's minimum (2026-10-26, when
+   the value was the cut side: a long one in a grid column made the page wider than a phone, the mobile
+   viewport zoomed out and the toast sat out of reach below the fold). */
+:is(.settings-view, .manage) .row-action > .settings-text > .settings-label {
   flex: 1 1 0;
   contain: inline-size;
+}
+
+:is(.settings-view, .manage) .settings-row > .settings-label + .settings-hint {
+  flex: none;
+  max-width: 100%;
 }
 
 :is(.settings-view, .manage) .row-action .icon-glyph {
@@ -394,7 +403,7 @@
 }
 
 .settings-row .value-select > select.field-input:where(:enabled):active {
-  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+  background: var(--ghost-pressed);
 }
 
 /* Open, it holds its fill and flips its chevron, as the multi-select does, with no ring. */

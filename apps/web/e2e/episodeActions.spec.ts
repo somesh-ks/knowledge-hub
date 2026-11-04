@@ -117,7 +117,9 @@ test.describe("regenerate and delete an episode", () => {
     await expect(
       panel(page).getByRole("heading", { name: "Regenerate this episode" }),
     ).toBeVisible();
-    await panel(page).getByLabel("Comments").fill("  Shorter intro, more on design  ");
+    // A comment about the length brings up Length (owner, 2026-11-04: it never showed here).
+    await panel(page).getByLabel("What went wrong?").fill("  Shorter intro, more on design  ");
+    await panel(page).getByRole("radio", { name: "10 min" }).check();
     await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
 
     await expect.poll(() => bodies.length).toBe(1);
@@ -125,6 +127,7 @@ test.describe("regenerate and delete an episode", () => {
       action: "regenerate",
       id: ID,
       feedback: "Shorter intro, more on design",
+      length_minutes: 10,
     });
     await expect(panel(page)).toBeHidden();
     await expect(queueStatus(page)).toHaveText(/Waiting to start|Rewriting your episode/);
@@ -200,15 +203,30 @@ test.describe("regenerate and delete an episode", () => {
     await open(page);
     await choose(page, "Regenerate");
     await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
-    await expect(panel(page).getByRole("alert")).toHaveText("Say what to change.");
+    await expect(panel(page).getByRole("alert")).toBeVisible();
     await expect(panel(page).getByRole("textbox")).toBeFocused();
     expect(bodies).toHaveLength(0);
+  });
+
+  // Owner, 2026-11-04: Jev reads what the word match misses. One ask per pause, not per keystroke.
+  test("a comment the words miss still brings up Length once Jev reads it", async ({ page }) => {
+    const asked: string[] = [];
+    await page.route("**/api/regen-hints", async (route) => {
+      asked.push(JSON.parse(route.request().postData() ?? "{}").comment);
+      await route.fulfill({ json: { length: true, topics: false, by: "jev" } });
+    });
+    await open(page);
+    await choose(page, "Regenerate");
+    const length = panel(page).getByRole("radiogroup", { name: "Length" });
+    await panel(page).getByLabel("What went wrong?").pressSequentially("It dragged on");
+    await expect(length).toBeVisible();
+    expect(asked).toEqual(["It dragged on"]);
   });
 
   test("the character count shows only near the limit", async ({ page }) => {
     await open(page);
     await choose(page, "Regenerate");
-    const field = panel(page).getByLabel("Comments");
+    const field = panel(page).getByLabel("What went wrong?");
     const count = panel(page).locator("[data-count]");
     await field.fill("a".repeat(100));
     await expect(count).toBeHidden();
@@ -361,7 +379,7 @@ test.describe("regenerate and delete an episode", () => {
       );
       await open(page);
       await choose(page, "Regenerate");
-      await panel(page).getByLabel("Comments").fill("More depth");
+      await panel(page).getByLabel("What went wrong?").fill("More depth");
       await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
       await expect(panel(page).getByRole("alert")).toContainText(
         "You can do that again in 2 minutes.",

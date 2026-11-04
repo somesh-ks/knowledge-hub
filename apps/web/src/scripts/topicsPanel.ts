@@ -487,9 +487,11 @@ export function openPanel(
     const open = one<HTMLAnchorElement>("[data-edit-open]");
     const where = one<HTMLElement>(".edit-address");
     if (edited.url) {
+      // The visible words (the host) come first in the name (WCAG 2.5.3); the panel's title names the source.
+      const address = edited.host || edited.url;
       open.href = edited.url;
-      open.setAttribute("aria-label", `Open ${edited.name} in a new tab`);
-      one<HTMLElement>("[data-edit-host]").textContent = edited.host || edited.url;
+      open.setAttribute("aria-label", `Open ${address} in a new tab`);
+      one<HTMLElement>("[data-edit-host]").textContent = address;
     } else where.hidden = true;
     // "4.6/5" on the right of the title, said in full to a screen reader; a source too new for a
     // score has no rating and shows the empty state instead of its parts.

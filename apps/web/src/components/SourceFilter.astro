@@ -58,15 +58,17 @@ const shownChips = chips && formats.length > 1;
   </div>
   {
     shownChips && (
-      <div class="tabs tabs-in-card scroll-fade-inline" role="tablist" aria-label="Type">
-        <button class="tab" type="button" role="tab" aria-selected="true" data-tab="">
-          All
-        </button>
-        {formats.map((tab) => (
-          <button class="tab" type="button" role="tab" aria-selected="false" data-tab={tab.format}>
-            {tab.label}
+      <div class="tabs-bar tabs-bar-in-card">
+        <div class="tabs tabs-in-card scroll-fade-inline" role="tablist" aria-label="Type">
+          <button class="tab" type="button" role="tab" aria-selected="true" data-tab="">
+            All
           </button>
-        ))}
+          {formats.map((tab) => (
+            <button class="tab" type="button" role="tab" aria-selected="false" data-tab={tab.format}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
     )
   }

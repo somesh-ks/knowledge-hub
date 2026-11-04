@@ -43,7 +43,7 @@ function mount(root: HTMLElement): void {
     empty.hidden = shown > 0;
   };
 
-  // The Library's own menu code, which Add to queue, Share and Remove from Favorites need, comes at idle
+  // The Library's own menu code, which Add to queue, Share and Remove from favorites need, comes at idle
   // or at the first touch of a row's menu.
   let menusLoaded = false;
   const loadMenus = (): void => {

@@ -718,6 +718,23 @@
         "characters": 5517
       },
       "usd": 0.05517
+    },
+    {
+      "id": "ep-20261104-1405|on_demand|write|anthropic|claude-haiku-5-5|owner",
+      "at": "2026-11-04T13:07:01.352Z",
+      "run_id": "ep-20261104-1405",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "write",
+      "provider": "anthropic",
+      "product": "claude-haiku-5-5",
+      "units": {
+        "input_tokens": 21465,
+        "output_tokens": 18193
+      },
+      "usd": 0.011243
     }
   ]
 }

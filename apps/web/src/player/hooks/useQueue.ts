@@ -14,7 +14,7 @@ export function useQueue(): readonly string[] {
   );
 }
 
-const EMPTY_VIEW: QueueView = { played: EMPTY, current: null, upcoming: EMPTY };
+const EMPTY_VIEW: QueueView = { played: EMPTY, current: null, upcoming: EMPTY, above: EMPTY };
 
 /** What played, what plays now and what is to come (D277): the whole list, as one value. */
 export function useQueueView(): QueueView {

@@ -168,6 +168,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D300 | Digests and audio in Blob, state in Postgres, weekly private snapshot of the config store | partly superseded by D311; steps 1 and 2a built, 2b in review; amended by D339 |
 | D302 | Pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked | active |
 | D306 | A seasonal style may change more than tokens | amends D268 |
+| D307 | Write routes need the admin session | superseded by D368; amended D160, D201 |
 | D308 | Haiku writes the first pass of each story, Sonnet repairs and backs it up | amends D181; amended by D333 |
 | D309 | Player ⋮ menu: actions, speed screen, Save; Settings > Saved | amends D105, D127; supersedes D50's speed control; amended by D338 |
 | D310 | Expressive is loud: a violet world, larger controls | amends D268 |
@@ -194,7 +195,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D334 | Every Claude step starts at Haiku medium, the podcast script included | amends D333 |
 | D335 | The avatar leads to a profile page; Settings is Podcast settings, App settings and About | amends D129, D281, D299; amended by D344 |
 | D336 | A cover no longer flies between its card and the page's hero | partly supersedes D271, D280; amended by D341 |
-| D337 | Regenerate sheets open on the comment; Length and Categories appear as words reach for them | amends D207, D323 |
+| D337 | Regenerate sheets open on the comment; Length and Categories appear as words reach for them | amends D207, D323; amended by D370 |
 | D338 | Settings sets the default speed on the player's speed screen | amends D309 |
 | D339 | The engine and the site keep one Speechify count, in Blob; Exa gets a weekly stop | amends D300 |
 | D341 | A page arrives from the side of the tab you came from | partly supersedes D280; amends D336; amended by D347 |
@@ -202,19 +203,28 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D343 | Podcast-page tabs, two-bar queue handle, swipe both ways, phone bar swipes podcasts | amends D169, D277; amended by D346 |
 | D344 | The app no longer edits the podcast structure; Preferences holds autoplay and the default speed | partly supersedes D170, D182, D191; amends D335 |
 | D345 | Create's More options is a closed accordion at every width | amends D76 |
-| D346 | Swipe-to-delete is a red strip behind the row; the playing row heads Up next; a story's time runs to the next story | amends D343, D277; amended by D349 |
+| D346 | Swipe-to-delete is a red strip behind the row; the playing row heads Up next; a story's time runs to the next story | amends D343, D277; amended by D349, D357 |
 | D347 | A step into a deeper page rises; a tab move takes a quarter second; a press draws one wave | amends D286, D341 |
 | D348 | A card shows a blue Downloaded mark, the podcast page shows Played and Downloaded; the play button never says Played | amends D78, D106 |
-| D349 | The playing row drags; let go lower it plays on and the rows it passed are skipped | amends D346 |
+| D349 | The playing row drags; let go lower it plays on and the rows it passed are skipped | amends D346; amended by D357 |
 | D350 | The player's times read forward: played then length; chapter rows show start times | amends D85 |
 | D351 | A story's Play button never says Played; it stays a plain Play button with its length | amends D348 |
 | D352 | On touch a chosen control keeps its own fill under the tap | active; amends ledger rule 5 on touch |
 | D353 | A tap on the avatar plays a short show, picked by the mood and started by the hue | amends D326; amended by D358 |
-| D354 | A queue row is one full-bleed band: tap plays, the handle moves it, a hold opens its menu | amends D169, D264 |
+| D354 | A queue row is one full-bleed band: tap plays, the handle moves it, a hold opens its menu | amends D169, D264; amended by D365 |
 | D355 | The change log is kept by CI: a feat, fix or perf PR fails while the newest entry is over two days old | active |
 | D356 | A chosen fill stands at least 8 points of lightness off every surface it sits on | amends D72 |
+| D357 | Up next plays top to bottom: any row may go above the playing one; the list glides as it changes | amends D346, D349 |
 | D358 | A playing avatar wears headphones fitted to its shape | amends D326, D353 |
 | D359 | A swipe is felt, never heard; the bar's sideways swipe shows the podcast it goes to | amends D273, D289, D343 |
+| D360 | Guardrails alarm only on a breached budget; the cron spares Neon outside the schedule's hours | active |
 | D361 | First-load JavaScript is held to the heaviest page's record plus 5 KB; the avatar's show and the select's sheet load at idle | amends D141 |
+| D362 | Short of room, a row cuts its name and keeps its value | supersedes the 2026-10-22 row rule |
+| D363 | Every mood pads its cards 24px | active |
+| D364 | Play after a quiet starts two seconds back, so a waking output loses no words | active |
+| D365 | Favorites from every podcast menu and a heart beside Play; the heart replaces the bookmark | amends D354 |
+| D366 | Listen now streams the script in parts, each written once and final once out; one append-only continuation; the live timer shows the expected length | amends D105 |
+| D368 | The app's write routes need no sign-in; the command center stays signed in; per-minute caps are the backstop | supersedes D307 |
+| D370 | Jev reads the Regenerate comment on a pause; the episode's Regenerate offers Length | amends D337 |
 
 ---

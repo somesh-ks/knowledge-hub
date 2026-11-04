@@ -21,13 +21,13 @@ interface Props {
   deletable?: boolean;
   /** An episode's topic ids, so Regenerate starts with the ones it was made with. */
   topics?: readonly string[];
-  /** A briefing's aired minutes: its Regenerate starts on the nearest length (lib/regenLength.ts). */
+  /** A briefing's aired minutes, or the minutes an episode was made at: its Regenerate starts on the nearest length (lib/regenLength.ts). */
   minutes?: number;
   /** Times this podcast was regenerated, for the Regenerate item's counter (D212). */
   regenerations?: number | undefined;
   /** On Settings > Downloads: only what applies to a saved copy (Add to queue, Share, Remove download). */
   downloads?: boolean;
-  /** On Settings > Favorites: Add to queue, Share and Remove from Favorites. */
+  /** On Settings > Favorites: Add to queue, Share and Remove from favorites. */
   saved?: boolean;
 }
 
@@ -68,7 +68,7 @@ const menuId = `card-menu-${id}`;
   data-episode-actions=""
   data-episode={kind === "episode" ? id : undefined}
   data-library-briefing={kind === "briefing" ? id : undefined}
-  data-minutes={kind === "briefing" ? minutes : undefined}
+  data-minutes={minutes}
   data-topics={topics?.join(" ")}
 >
   <button
@@ -99,6 +99,12 @@ const menuId = `card-menu-${id}`;
         <Icon name="queueAdd" />Add to queue
       </MenuItem>
     </div>
+    {/* First under the quick actions, on every row's menu (owner, 2026-11-04). It reads "Remove from
+         favorites" once this device has it (libraryMenu.ts sets the card's data-saved; library.css
+         swaps the heart), so on Settings > Favorites it is the row's way out. */}
+    <MenuItem data-menu="favorite">
+      <Icon name="heartOutline" class="fav-add" /><Icon name="heart" class="fav-remove" /><span data-menu-label>Add to favorites</span>
+    </MenuItem>
     {
       only ? null : kind === "episode" ? (
         <MenuItem
@@ -134,13 +140,6 @@ const menuId = `card-menu-${id}`;
       downloads && (
         <MenuItem tone="danger" data-menu="download">
           <Icon name="download" class="dl-add" /><Icon name="downloadRemove" class="dl-remove" /><span data-menu-label>Remove download</span>
-        </MenuItem>
-      )
-    }
-    {
-      saved && (
-        <MenuItem data-menu="unsave">
-          <Icon name="bookmarkOutline" />Remove from Favorites
         </MenuItem>
       )
     }

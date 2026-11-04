@@ -661,6 +661,23 @@
   flex: 0 1 auto;
 }
 
+/* The address gives way first and the cadence keeps its words, as a row's name gives way before its
+   value (settings.css, owner, 2026-11-03). The address keeps its first letters, so the dot between
+   them never stands alone. The cadence never shrinks (a fraction of a pixel cut "Posts daily" to
+   "Posts dai..."); one longer than the room the address leaves is cut there. */
+.source-meta > .source-host:not(:empty) {
+  min-width: min(100%, var(--space-8));
+}
+
+.source-meta > .source-cadence {
+  flex-shrink: 0;
+  max-width: 100%;
+}
+
+.source-meta > .source-host:not(:empty) + .source-cadence {
+  max-width: calc(100% - var(--space-8));
+}
+
 /* A source's address, host and path, cut with an ellipsis (its row's title holds all of it), and
    under it the facts: stories in briefings and the score out of 3 with its word. The facts wrap
    to a second line on a narrow row rather than cut. */
@@ -701,8 +718,11 @@
   white-space: nowrap;
 }
 
+/* The cadence can be cut too, so a long one stays in its column and never runs under the row's +
+   (owner, 2026-11-03, Expressive: "Posts several times a week" overlapped the add glyph). */
 .source-host,
-.source-note {
+.source-note,
+.source-cadence {
   min-width: 0;
   overflow: hidden;
   color: var(--color-on-surface-muted);
@@ -1522,8 +1542,12 @@
   position: sticky;
   inset-block-start: calc(var(--sticky-top) - var(--stroke-hairline));
   z-index: calc(var(--z-header) - 1);
-  margin-inline: calc(var(--space-4) * -1);
-  padding: var(--space-2) var(--space-4);
+  /* Out to the card's edges by its padding, as the suggested divider is (it was 16px, the padding
+     before 2026-10-22, and fell 8px short since). No room under the tabs: their bar's line
+     (primitives.css .tabs-bar-in-card) is the block's foot, where the list goes under it (owner,
+     2026-11-03). */
+  margin-inline: calc(var(--card-padding) * -1);
+  padding: var(--space-2) var(--card-padding) 0;
   background: var(--color-surface-container);
 }
 

@@ -29,8 +29,10 @@
  * Writes go through one animation-frame writer.
  */
 
+import { narratedOrPage } from "../../narration/narrationRegistry";
 import type { PlayerDigestData } from "../../types/contracts";
 import { showCardProgress } from "./cardProgress";
+import { readDigestData } from "./digestData";
 import { openPlayerOnPhone } from "./openOnPhone";
 import { playPageChapter, togglePageDigest, togglePageItem } from "./pageActions";
 import type { PlayerStore } from "./playerTypes";
@@ -40,6 +42,7 @@ import {
   type ChipView,
   createHeardTracker,
   fabLabel,
+  fabName,
   type ItemVisualState,
   itemVisualState,
   rememberedChip,
@@ -92,7 +95,10 @@ function writeChip(chip: HTMLElement, view: ChipView, blocked = false): void {
   if (label) {
     const text = label.dataset.chipLabel ? fabLabel(view) : view.label;
     if (label.textContent !== text) label.textContent = text;
-    if (chip.getAttribute("aria-label") !== view.name) chip.setAttribute("aria-label", view.name);
+    const name = label.dataset.chipLabel
+      ? fabName(view, chip.dataset.noun === "episode" ? "episode" : "podcast")
+      : view.name;
+    if (chip.getAttribute("aria-label") !== name) chip.setAttribute("aria-label", name);
   }
   if (blocked) chip.setAttribute("aria-disabled", "true");
   else chip.removeAttribute("aria-disabled");
@@ -143,9 +149,8 @@ export function createReaderSync(
     return { items: new Map(), playDigest: [], playItem: [], coverPlay: [] };
   }
 
-  function isLive(): boolean {
+  function isLive(page = store.getPageDigest()): boolean {
     const state = store.getState();
-    const page = store.getPageDigest();
     return state.status !== "idle" && state.digestId !== null && state.digestId === page?.id;
   }
 
@@ -164,8 +169,15 @@ export function createReaderSync(
     doc.documentElement.toggleAttribute("data-fab", !held);
   }
 
+  /**
+   * The incoming page gets its faces before it is shown (owner, 2026-11-04: the podcast page's Play
+   * flashed its old colour at every tab switch). Written after the swap, a chip the page built idle
+   * was drawn once and then eased to its real state, loaded or played, in front of the reader. The
+   * page's own load reads it again, so the store learns the page only then.
+   */
   function onBeforeSwap(event: { newDocument: Document }): void {
-    markFab(event.newDocument);
+    const doc = event.newDocument;
+    writeCoarse(doc, collect(doc), narratedOrPage(readDigestData(doc)));
   }
 
   /** Where this briefing was left and whether it was heard to the end, from the device's storage. */
@@ -186,12 +198,14 @@ export function createReaderSync(
     );
   }
 
-  function writeCoarse(): void {
-    pendingWrite = 0;
-    markFab(document);
+  function writeCoarse(
+    doc: Document = document,
+    found: Elements = elements,
+    page = store.getPageDigest(),
+  ): void {
+    markFab(doc);
     const state = store.getState();
-    const page = store.getPageDigest();
-    const live = isLive();
+    const live = isLive(page);
     const timeline = state.track?.timeline ?? null;
     const ended = state.status === "ended";
     const playing = state.status === "playing" || state.status === "loading";
@@ -213,14 +227,14 @@ export function createReaderSync(
           );
     };
 
-    for (const [id, element] of elements.items) {
+    for (const [id, element] of found.items) {
       const value = visualOf(id);
       if (value) setDataset(element, "state", value);
       else delete element.dataset.state;
     }
 
     // A cover's button shows pause while its own item plays, on any page.
-    for (const button of elements.coverPlay) {
+    for (const button of found.coverPlay) {
       const on = state.digestId !== null && button.dataset.coverPlay === state.digestId && playing;
       if (button.parentElement) setDataset(button.parentElement, "playing", String(on));
       const verb = on ? "Pause" : "Play";
@@ -234,12 +248,12 @@ export function createReaderSync(
     // Audio that arrived after the page was built (narrated on Play): the story chips the page
     // rendered hidden now have something to play, and the note about making audio is done.
     if (audio) {
-      for (const chip of elements.playItem) if (chip.hidden) chip.hidden = false;
-      const note = document.getElementById("play-hint");
+      for (const chip of found.playItem) if (chip.hidden) chip.hidden = false;
+      const note = doc.getElementById("play-hint");
       if (note && !note.hidden) note.hidden = true;
     }
 
-    for (const chip of elements.playDigest) {
+    for (const chip of found.playDigest) {
       const noun = chip.dataset.noun === "episode" ? "episode" : "podcast";
       // Without audio, while narration makes the first file, the chip is narration's.
       if (!audio && chip.hasAttribute("aria-busy")) continue;
@@ -267,7 +281,7 @@ export function createReaderSync(
     }
     if (!audio) return;
 
-    for (const chip of elements.playItem) {
+    for (const chip of found.playItem) {
       const id = resolveItemId(
         chip.dataset.playItem,
         page,
@@ -290,7 +304,10 @@ export function createReaderSync(
 
   function scheduleWrite(): void {
     if (pendingWrite) return;
-    pendingWrite = requestAnimationFrame(writeCoarse);
+    pendingWrite = requestAnimationFrame(() => {
+      pendingWrite = 0;
+      writeCoarse();
+    });
   }
 
   function onMemory(): void {
@@ -410,15 +427,15 @@ export function createReaderSync(
 
   /* ------------------------------------------------------------------ lifecycle */
 
-  function collect(): Elements {
+  function collect(doc: Document = document): Elements {
     const found = emptyElements();
-    for (const element of document.querySelectorAll<HTMLElement>("[data-item-id]")) {
+    for (const element of doc.querySelectorAll<HTMLElement>("[data-item-id]")) {
       const id = element.dataset.itemId;
       if (id) found.items.set(id, element);
     }
-    found.playDigest = [...document.querySelectorAll<HTMLElement>("[data-play-digest]")];
-    found.playItem = [...document.querySelectorAll<HTMLElement>("[data-play-item]")];
-    found.coverPlay = [...document.querySelectorAll<HTMLElement>("[data-cover-play]")];
+    found.playDigest = [...doc.querySelectorAll<HTMLElement>("[data-play-digest]")];
+    found.playItem = [...doc.querySelectorAll<HTMLElement>("[data-play-item]")];
+    found.coverPlay = [...doc.querySelectorAll<HTMLElement>("[data-cover-play]")];
     return found;
   }
 

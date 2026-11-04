@@ -9,8 +9,8 @@ Catch up and custom episodes. What it does now. Reasons: D37, D43, D60, D66 to D
 - `/create` is the same form as a page, with Back to the Library.
 - Fields: Title ("Optional" beside it), Categories (alphabetical), Max length, Look back. More options holds Format (Readout or Discussion, a segmented choice, no hint line), Voice or Voices (Primary and Secondary voice, each with a play button for its sample, dimmed while a voice has none, chosen from a searchable list with SVG flags) and Tone (Neutral or Energetic). Its line reads "Readout · Neutral tone" (D76, D114). More options is always a closed accordion (D345). The button reads "Generate catch up".
 - Every episode is written for the owner (D114).
-- Regenerate's Length is 3, 5, 10 or 15, starts nearest the aired length, no Usual; the comment is required (D340); Length and Categories appear as words reach for them (D337); a full sheet is due (D323).
-- No topic limit in the form (a guard of 50 in `PODCAST_MAX_TOPICS`). The button reads "Generate catch up".
+- Regenerate (briefing or episode): Length 3, 5, 10 or 15 from the aired length; the comment is required (D340); Length and Categories appear as words reach for them (D337) or Jev reads them (D370).
+- No topic limit in the form (a guard of 50 in `PODCAST_MAX_TOPICS`).
 - Create shows one chip list: Design, AI, Technology, Software Engineering, World, Business, Science, Culture, Sports, then the owner's topics; the first four are ticked. Release news (Launches) matches no chip. An episode can mix briefing and general topics (D67, D114).
 - Scenario: WHEN Enter is pressed in Title THEN the keyboard goes away and no run starts.
 - Scenario: WHEN a press begins inside the panel and ends on the scrim THEN the panel stays open; it closes only on a press that began on its scrim.
@@ -22,7 +22,7 @@ Catch up and custom episodes. What it does now. Reasons: D37, D43, D60, D66 to D
 - Discussion episodes use a second voice by default (`dominic_32`). The two hosts take names that fit their voices (D74); the writer is told them. The transcript names a speaker only where the speaker changes; a readout names nobody.
 - Custom episodes are narrated in the voices of their request.
 - Two Catch ups in a rolling 24-hour window that came out or are being made (failed or cancelled runs do not count, D213); tries are two minutes apart and twelve a day.
-- The writer is told the length in words and a script is held to what its stories can carry. Since D80 the writer is asked for 95% of what the stories can carry and a script within 5% of the floor is kept, so most episodes are written once; a script attempt stops after 8 minutes. `singularity podcast --dry-run` measures one request without writing.
+- The writer is told the length in words and a script is held to what its stories can carry. Since D80 the writer is asked for 95% of what the stories can carry and a script within 5% of the floor is kept, so most episodes are written once; one under 90% gets a continuation adding turns before its close (D366). A script attempt stops after 8 minutes. `singularity podcast --dry-run` measures one request without writing.
 - Real dry runs put 5 and 10 minute episodes at 83 to 90% of the length asked for.
 
 ### Podcast queue
@@ -38,7 +38,7 @@ Catch up and custom episodes. What it does now. Reasons: D37, D43, D60, D66 to D
 - Opening the new episode, or having it on screen, forgets the finished run.
 - Scenario: WHEN an episode is still being made THEN Catch up says so instead of sending a second request.
 - After a publish the page reads `/latest.json` every 2.5 s and, when an episode goes live, pre-narrates its first two turns (D82).
-- A new episode can be heard from a live copy in Blob while it is written (Listen now on the queue's row, about 35 to 45 s) (D105). Until its cover is deployed, the player's cover box takes the cover's colour from that copy.
+- A Catch up or a regeneration can be heard from a live copy in Blob while it is written (Listen now; D105, D366). Until its cover is deployed, the player's cover box takes the cover's colour from that copy.
 - Toasts share one quiet style with an icon for success and failure.
 
 ## Code

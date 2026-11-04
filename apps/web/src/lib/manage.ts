@@ -5,6 +5,7 @@ import {
   deriveSourceFormat,
   generalTopics,
   isGeneralTopicId,
+  isFieldRecord as isRecord,
   MIX_STOPS,
   MUTED_WEIGHT,
   SECTION_TITLES,
@@ -218,10 +219,6 @@ export function qualityInWords(quality: number): string {
 export const STRUGGLING_FAILURES = 3;
 
 // ------------------------------------------------------------------------------------ safe reading
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 
 const asString = (value: unknown): string | null =>
   typeof value === "string" && value.trim() !== "" ? value.trim() : null;

@@ -774,3 +774,41 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Cost: a feature that adds over 5 KB of eager code must raise one number in its PR.
 - Revisit if: raising the record becomes routine, or the owner wants the ceiling itself lower.
 - Amends: D141 (adds a ratchet under the ceiling).
+
+## D362: short of room, a row cuts its name and keeps its value
+
+- Date: 2026-11-03 (the owner: "when you run out of space, the topic name should truncate and not the number of sources. this should be a design system change").
+- Decision: a link row in Settings or Sources (`.row-action > .settings-text`), and a label-and-value row (`.settings-row > .settings-label + .settings-hint`), cut the name with an ellipsis and keep the value whole: "Software E... 33 sources". The name takes the room the value leaves and adds no width to the row's minimum (`contain: inline-size`), so a long one never widens a phone page. A value wider than the whole row is cut last. A suggested source's line follows the same order: the address gives way first and keeps its first letters, and the cadence keeps its words.
+- Why: the value is the row's answer (how many sources, when it runs); the name is known from the list around it and still reads from its first letters.
+- Rejected: keeping the 2026-10-22 order (the name stays whole and the value is cut), which hid the count the owner looks for.
+- Cost: none; the same rules, with the cut moved from one side to the other.
+- Revisit if: a name cut to a few letters becomes ambiguous between two rows.
+- Supersedes: the 2026-10-22 rule in `docs/ledger/settings-forms.md` (a long value is cut, the name never shrinks).
+
+## D363: every mood pads its cards 24px
+
+- Date: 2026-11-03 (the owner: "the padding on left and right is too much in expressive mood").
+- Decision: `component.card.padding` is 24px in every mood. A mood's larger corner comes out of the content radius (Expressive: 40 = 16 + 24), and `buildTokens.test.ts` holds radius = content radius + padding in each mood. Titles, heads and row words keep Default's edges in every mood.
+- Why: Expressive's 32px (#629, a Claude change on 2026-11-03, "the curve closed in on the first and last rows") set its rows 8px off Default's edges and broke the concentric rule; at a row's height a 40px corner pulls in under 1px, so the extra room bought nothing.
+- Rejected: 32px with an 8px content radius (the chips and fields inside would sharpen, against D167's one shape per control).
+- Cost: none.
+- Revisit if: a mood's corner grows past 48px, where the curve does reach the first row's words.
+
+## D307: the write routes answer only the owner's session
+
+- Date: 2026-11-01 (the owner: "yes - go for it and fix", on the repo-wide audit's item 2). Amends D160, D201; follows D257, D298.
+- Decision: `POST /api/generate` (briefings, regenerate, delete), `POST /api/podcast` (Catch up, regenerate, delete), `POST /api/config` and `POST /api/narrate` (the segment call that spends) run `guardAdmin` before they read the body: 401 without the command center's session cookie, 503 while `ADMIN_SESSION_SECRET` is missing or under 32 characters. The free narration lookup (`GET /api/narrate`), the shared-link routes, the config read and the Cancel route stay open. Each device the owner presses these on signs in at `/admin` once (30 days).
+- Why: D160 and D201 left the writes open because only friends knew the URL. The repo is public (D298), the URLs are in it, and the audit counted about $19 a day of spend reachable by anyone, plus a config overwrite with no second copy.
+- Rejected: a shared secret in a header (every page script would hold it); gating the config read (the pages fall back to their built copy, which is public in Git anyway); gating Cancel (it stops spend and loses nothing Regenerate cannot remake).
+- Listeners: the free lookup still serves audio already stored (an episode is pre-narrated at publish, D128) to anyone; only a segment nobody has narrated yet needs the owner, and a signed-out listener is told to sign in instead of offered a retry.
+- Cost: until the reader's `ADMIN_SESSION_SECRET` is 32 or more characters (H6), Generate, Catch up, Delete and settings saves answer 503. A friend invited later cannot use them until accounts exist (D303, D305).
+- Revisit if: Google sign-in replaces the password (the cookie's meaning stays), or accounts (D303) give writes a per-user check.
+- Amends: D160, D201.
+
+## D368: the app's write routes need no sign-in
+
+- Date: 2026-11-04 (the owner: "Why are you adding limitations to sign in to the command center on a new device to generate a catch-up? I don't want any limitations."). Supersedes D307.
+- Decision: `POST /api/generate`, `/api/podcast`, `/api/config` and `/api/narrate` answer without the command center's session, as before D307. The command center (`/admin` and its APIs, D257) stays signed in.
+- Context changed: D307 assumed one sign-in per device was a small price; in use it stood between the owner and Generate, Catch up, Delete and settings saves, and he wants none.
+- Backstop: each route's per-minute cap across instances (generate 8, podcast 10, config 12). The D332 $5 ceiling stops only scheduled runs; a run someone starts goes ahead, so on-demand spend from a stranger is bounded by the caps alone. A config overwrite has no second copy.
+- Revisit if: spend from strangers shows on the Costs page, or accounts (D303) arrive.

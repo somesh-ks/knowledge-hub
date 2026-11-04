@@ -428,8 +428,8 @@ export default function PlayerBar() {
   const playing = isPlayingStatus(state.status);
   // After a failure nothing is being read: the bar names the recording, not its first story.
   const headline = (state.error ? null : item?.headline) ?? digest?.title ?? "";
-  // The bar's line is the story's chapter, a few words that fit; the full headline stays the
-  // button's name. A story written before chapters shows its headline.
+  // The bar's line is the story's chapter, a few words that fit; the button's name holds the chapter
+  // (WCAG 2.5.3) and the full headline. A story written before chapters shows its headline.
   const title = (state.error ? null : (item?.chapter ?? item?.headline)) ?? digest?.title ?? "";
 
   // Under the title: the clock, then the story's section, or what the recording is before story 1
@@ -454,7 +454,8 @@ export default function PlayerBar() {
   const queue = useQueueView();
   const swipe = useDockSwipe({
     next: queue.upcoming[0] ?? null,
-    previous: queue.played.at(-1) ?? null,
+    // The row over the playing one comes first (D357), then what played.
+    previous: queue.above.at(-1) ?? queue.played.at(-1) ?? null,
     shownId: digest?.id ?? null,
   });
 
@@ -485,7 +486,7 @@ export default function PlayerBar() {
         // The surface controller keeps this in step with the page; false is the collapsed truth.
         aria-expanded="false"
         aria-controls={PLAYER_PAGE_ID}
-        aria-label={`Player: ${headline}`}
+        aria-label={`Player: ${title === headline ? headline : `${title}, ${headline}`}`}
         onClick={(event) => {
           // The click some browsers still send after a swipe's lift is not a press.
           if (swipe.swiped()) return;

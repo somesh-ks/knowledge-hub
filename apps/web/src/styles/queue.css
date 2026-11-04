@@ -182,8 +182,20 @@ html[data-player="open"] .queue-dock {
 .queue {
   /* A row: the name, the status, the actions line, and the row's padding. Sizes the dock's scroll. */
   --queue-row-height: 7.5rem;
-  /* How long the word's light takes to cross it. */
+}
+
+/* How long the word's light takes to cross it. The side column's row sits outside .queue: without it
+   there the word's animation was invalid and the desktop title never shimmered (owner, 2026-11-04). */
+.queue,
+.app-nav-queue {
   --queue-sheen: 2400ms;
+}
+
+/* In the side column the word rests in the menus' own ink, so it reads as one of them, and the band
+   that crosses it is the muted ink (owner, 2026-11-04: the grey rest read lighter than the menus). */
+.app-nav-queue {
+  --queue-word-rest: var(--color-on-surface);
+  --queue-word-band: var(--color-on-surface-muted);
 }
 
 .queue-list {
@@ -456,9 +468,9 @@ html[data-player="open"] .queue-dock {
   background:
     linear-gradient(
       90deg,
-      var(--color-on-surface-muted) 40%,
-      var(--color-on-surface) 50%,
-      var(--color-on-surface-muted) 60%
+      var(--queue-word-rest, var(--color-on-surface-muted)) 40%,
+      var(--queue-word-band, var(--color-on-surface)) 50%,
+      var(--queue-word-rest, var(--color-on-surface-muted)) 60%
     )
     0 0 / 250% 100%;
   -webkit-background-clip: text;
@@ -586,10 +598,12 @@ html:has(.queue-pop:popover-open) .app-nav-queue-title.queue-word[data-live] {
   display: none;
 }
 
+/* A grey fill at rest says the row opens something (owner, 2026-11-04): the tonal fill of a control
+   on the page, a step deeper on hover and on press. */
 .app-nav-queue {
   width: 100%;
   border: 0;
-  background: none;
+  background: var(--color-surface-container);
   font-family: inherit;
   text-align: start;
   cursor: pointer;
@@ -601,6 +615,18 @@ html:has(.queue-pop:popover-open) .app-nav-queue-title.queue-word[data-live] {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .app-nav-item.app-nav-queue:not([aria-current="page"]):hover {
+    background: var(--color-surface-container-hover);
+  }
+}
+
+/* Open, it holds the press, as a select's trigger does while its list is open (picker.css). */
+.app-nav-item.app-nav-queue:not([aria-current="page"]):active,
+html:has(.queue-pop:popover-open) .app-nav-item.app-nav-queue {
+  background: var(--color-surface-container-pressed);
 }
 
 html[data-player="open"] .app-nav-queue {

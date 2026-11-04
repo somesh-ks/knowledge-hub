@@ -138,7 +138,7 @@ export function describeGeneration(row: GenerationRow, context: GenerationContex
     }),
     tint: live?.tint && HEX_COLOR.test(live.tint) ? live.tint : null,
     cover: DIGEST_ID.test(replacing) ? `/covers/${replacing}-512.webp` : null,
-    listen: running && row.what === "episode" && row.kind === "catch_up" && live !== null,
+    listen: running && row.what === "episode" && live !== null,
     cancellable: !voices && !waiting,
   };
 }

@@ -63,6 +63,28 @@
         "share": 0.91,
         "writer_calls": 1
       }
+    },
+    {
+      "at": "2026-11-04T13:07:04.626Z",
+      "run_id": "41834897897",
+      "format": "readout",
+      "length_minutes": 5,
+      "stages": {
+        "select": 533,
+        "cover": 1,
+        "script": 82635,
+        "publish": 22
+      },
+      "metrics": {
+        "stories": 12,
+        "matched": 209,
+        "empty_topics": 2,
+        "budget_chars": 4840,
+        "script_chars": 4218,
+        "share": 0.87,
+        "writer_calls": 1,
+        "first_turn_chars": 353
+      }
     }
   ]
 }

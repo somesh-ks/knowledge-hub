@@ -287,19 +287,25 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
         command.action === "regenerate" ? await readEpisode(ctx.root, command.id) : null;
       const stored = command.action === "create" ? command.request : replaced?.episode.request;
       if (!stored) throw new PodcastError("The request names no episode to replace.");
-      // Topics chosen in the dialog apply to this regeneration only: the new episode stores them.
+      // Topics and a length chosen in the dialog apply to this regeneration only: the new episode
+      // stores them.
       const request =
-        command.action === "regenerate" && command.topic_ids
-          ? { ...stored, topic_ids: command.topic_ids }
+        command.action === "regenerate"
+          ? {
+              ...stored,
+              ...(command.topic_ids ? { topic_ids: command.topic_ids } : {}),
+              ...(command.length_minutes ? { length_minutes: command.length_minutes } : {}),
+            }
           : stored;
       const feedback = command.action === "regenerate" ? command.feedback : undefined;
-      // A new episode's script is copied to Blob as it is written, so it can be heard before the
-      // commit is deployed. Best effort: without the token or the run id there is just no live copy.
+      // A new episode's script (Catch up or a regeneration) is copied to Blob as it is written, so it
+      // can be heard before the commit is deployed. Best effort: without the token or the run id
+      // there is just no live copy.
       const blobClient = deps.blob ?? blobClientFrom(ctx.env.BLOB_READ_WRITE_TOKEN);
       // Set by Actions on every run; the context's parsed env does not carry it.
       const runId = process.env.GITHUB_RUN_ID;
       const makeStream =
-        command.action === "create" && !dryRun && blobClient && runId
+        !dryRun && blobClient && runId
           ? (info: {
               id: string;
               request: PodcastRequest;
@@ -421,6 +427,9 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
             share: Math.round((episode.char_count / Math.max(1, budgetChars)) * 100) / 100,
             writer_calls: result.script.writer_calls,
             first_turn_chars: episode.turns[0]?.text.length ?? 0,
+            ...(result.script.first_part_ms === undefined
+              ? {}
+              : { first_part_ms: result.script.first_part_ms }),
           },
         });
       }

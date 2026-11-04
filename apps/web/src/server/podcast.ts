@@ -1,3 +1,4 @@
+import { isFieldRecord as isRecord } from "@singularity/core";
 import type { PodcastCreateResponse, PodcastRequest } from "../types/contracts";
 import { cancelTokenFor } from "./cancelToken";
 import { missingSettings, readServerConfig, secretsOf } from "./config";
@@ -63,10 +64,6 @@ const RUN_LOOKUP_DELAY_MS = 1500;
 
 const unavailable: PodcastResult = { status: 503, body: { status: 503, error: "unavailable" } };
 const invalid: PodcastResult = { status: 400, body: { status: 400, error: "invalid_request" } };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 
 /** One to MAX_TOPICS distinct section ids, or null. */
 function parseTopicIds(value: unknown): string[] | null {
@@ -140,7 +137,13 @@ const EPISODE_ID = /^ep-\d{8}-\d{4}$/;
 /** What the workflow's one input carries for an action on an episode that already exists. */
 export type EpisodeAction =
   | { action: "delete"; id: string }
-  | { action: "regenerate"; id: string; feedback?: string; topic_ids?: string[] };
+  | {
+      action: "regenerate";
+      id: string;
+      feedback?: string;
+      topic_ids?: string[];
+      length_minutes?: PodcastRequest["length_minutes"];
+    };
 
 /**
  * `resume_from`: the id of an earlier run of this workflow whose finished stages this run reuses
@@ -187,7 +190,7 @@ export function parsePodcastBody(bodyText: string): ParsedPodcastBody | null {
   if (typeof id !== "string" || !EPISODE_ID.test(id)) return null;
   if (action === "delete") return { action, id, ...resumeField };
   if (action === "regenerate") {
-    // Both are optional: blank comments mean none, and no topics keep the episode's own.
+    // All are optional: blank comments mean none, and no topics or length keep the episode's own.
     const blank =
       parsed.feedback === undefined ||
       parsed.feedback === null ||
@@ -200,11 +203,17 @@ export function parsePodcastBody(bodyText: string): ParsedPodcastBody | null {
       if (checked === null) return null;
       topicIds = checked;
     }
+    const length = parsed.length_minutes;
+    if (length !== undefined && (typeof length !== "number" || !LENGTHS.includes(length)))
+      return null;
     return {
       action,
       id,
       ...(feedback ? { feedback } : {}),
       ...(topicIds ? { topic_ids: topicIds } : {}),
+      ...(length !== undefined
+        ? { length_minutes: length as PodcastRequest["length_minutes"] }
+        : {}),
       ...resumeField,
     };
   }
