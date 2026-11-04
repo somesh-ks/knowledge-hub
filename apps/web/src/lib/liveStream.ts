@@ -108,20 +108,3 @@ export function parseStreamDoc(text: string): StreamDoc | null {
     updated_at: typeof raw.updated_at === "string" ? raw.updated_at : "",
   };
 }
-
-/** Where the narration can start: the first turns are there. */
-export const hasFirstTurns = (doc: StreamDoc): boolean => doc.turns.length > 0;
-
-/**
- * Whether a player that has reached the end of `have` turns should wait for more instead of ending:
- * the script is still being written. A finished or failed stream, or a fetch that found nothing,
- * ends the episode there.
- */
-export function shouldWaitForMore(status: StreamStatus | null): boolean {
-  return status === "writing";
-}
-
-/** The turns of a newer copy that a player holding `have` turns has not got yet. */
-export function newTurns(have: number, doc: StreamDoc): StreamTurn[] {
-  return doc.turns.slice(have);
-}

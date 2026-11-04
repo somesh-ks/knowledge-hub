@@ -469,3 +469,11 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Cost: the bar reads both neighbours' pages ahead (already read for the queue). The scrub detent while dragging the seek line still sounds (a drag over items, D273); asked of the owner.
 - Amends: D273, D289 (a commit by swipe is felt, not heard), D343 (the bar's swipe shows its target).
 
+## D364: Play after a quiet starts two seconds back, so a waking output loses no words
+
+- Date: 2026-11-04 (owner: "there is a audio silence of about 1 to 2 seconds until the audio becomes heard. But the progress continues"; Xiaomi 17, Chrome).
+- Decision: a Play by the listener (or a deferred one) after 10 s or more of quiet (wall time, so a sleeping phone counts) starts 2 s of real time before the playhead (2 s times the speed in media time) (`OUTPUT_SLEEP_MS`, `WAKE_REWIND_SECONDS` in `playerStore.ts`). A Play within 10 s of the last sound, after the listener moved the playhead (a seek, a story, a scrub), or the voice sample's resume starts exactly where it is.
+- Why: the player's clock is the element's own `currentTime`, and in Chromium the files are audible from the first frame after the resume seek (measured, Opus m4a and MP3, 1x and 1.5x). The silence is the device: an idle output sleeps and a Bluetooth link drops its stream, and waking takes 1 to 2 s while the element's clock runs on. A page cannot see that wake (the element reports frames consumed, not heard), so holding the clock is not possible; stepping back is what podcast apps do. Inferred, not reproduced on an Android phone.
+- Rejected: holding the clock until sound flows (the element's `currentTime` advances through the wake, so there is nothing to wait for); a silent sound kept playing so the output never sleeps (battery, and the Bluetooth link still drops on other apps' terms).
+- Cost: on a phone speaker, which wakes faster, about 2 s are heard twice.
+- Revisit if: the owner still loses words after a long pause on Bluetooth (raise the step), hears the repeat as a fault on the speaker, or a phone shows the silence after a pause under 10 s.

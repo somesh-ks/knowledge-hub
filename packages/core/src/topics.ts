@@ -3,7 +3,6 @@ import {
   CATEGORIES,
   type Category,
   DESIGN_TOPIC_ID,
-  hasOwnAllowance,
   homeSection,
   IdString,
   isBuiltinCategory,
@@ -123,14 +122,6 @@ export function mixStopOf(factor: number): MixStop {
   return best.name;
 }
 
-/** The perspective stops, -2 to 2; Even (0) changes nothing and is left out of the file. */
-export const PERSPECTIVE_STOPS = [
-  { name: "Left", value: -2 },
-  { name: "Centre-left", value: -1 },
-  { name: "Even", value: 0 },
-  { name: "Centre-right", value: 1 },
-  { name: "Right", value: 2 },
-] as const;
 /** The most a perspective can move a story's score, either way. */
 export const PERSPECTIVE_REACH = 0.15;
 export const Perspective = z.number().int().min(-2).max(2);
@@ -504,23 +495,12 @@ export function activeCustomTopics(file: TopicsFile): Topic[] {
 /**
  * Topics a briefing judges by fit: the owner's custom topics and the app's own (Design, Trending),
  * when switched on. The built-in categories are judged by the fixed question set instead, and the
- * general topics only on their own feeds' stories (activeGeneralTopics).
+ * general topics only on their own feeds' stories.
  */
 export function activeFitTopics(file: TopicsFile): Topic[] {
   return file.topics.filter(
     (topic) => topic.origin !== "builtin" && topic.origin !== "general" && topic.enabled,
   );
-}
-
-/** The general news topics (D66). They are always on: a stored `enabled` is not read. */
-export function activeGeneralTopics(file: TopicsFile): Topic[] {
-  return file.topics.filter((topic) => topic.origin === "general");
-}
-
-/** True when the id names a topic that ships with the app and the file has it switched off. */
-export function isDisabledAppTopic(file: TopicsFile | null | undefined, id: string): boolean {
-  if (!APP_TOPIC_IDS.includes(id)) return false;
-  return file?.topics.find((topic) => topic.id === id)?.enabled === false;
 }
 
 /**
@@ -564,24 +544,6 @@ export function topicSectionTitles(file: TopicsFile): Record<string, string> {
       file.topics.filter((topic) => topic.origin === "general").map((t) => [t.id, t.name]),
     ),
   };
-}
-
-/** True when an id publishes in a section of its own allowance (custom sections and Tech). */
-export function ownsAllowance(
-  topics: TopicsFile | null | undefined,
-  id: string,
-  sourceType: string,
-): boolean {
-  const home = homeSectionFor(topics, id, sourceType);
-  return home !== null && hasOwnAllowance(home);
-}
-
-/** Sections in digest order. Ties on `order` keep file order. */
-export function orderedTopicSections(file: TopicsFile): TopicSection[] {
-  return file.sections
-    .map((section, index) => ({ section, index }))
-    .sort((a, b) => a.section.order - b.section.order || a.index - b.index)
-    .map(({ section }) => section);
 }
 
 /** Lowercase id from a display name: letters and digits joined by underscores. */

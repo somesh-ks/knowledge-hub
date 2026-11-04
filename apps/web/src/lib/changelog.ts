@@ -18,6 +18,12 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: "0.19.1",
+    date: "2026-11-04",
+    description:
+      "A podcast played again after a pause starts two seconds back, so the first words are not lost while your headphones or speaker wake up.",
+  },
+  {
     version: "0.19",
     date: "2026-11-03",
     description:

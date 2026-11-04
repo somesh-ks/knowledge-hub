@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { WAKE_REWIND_SECONDS } from "../core/playerStore";
 import { center, expect, type PlayerPage, test } from "./helpers";
 
 /**
@@ -221,7 +222,8 @@ test.describe("playback on a podcast", () => {
     await expect(player.dialog).toBeVisible();
     await player.finger.press(player.dialog.getByRole("button", { name: "Play", exact: true }));
     await expect(player.root).toHaveAttribute("data-player-state", "playing");
-    expect(await time(page)).toBeGreaterThan(saved - 1);
+    // A moment before it: after a quiet the phone's output wakes late (WAKE_REWIND_SECONDS).
+    expect(await time(page)).toBeGreaterThan(saved - 1 - WAKE_REWIND_SECONDS);
     await player.finger.press(player.dialog.getByRole("button", { name: "Pause", exact: true }));
     // A fresh launch (no tab to come back to) loads nothing, but the chip offers the place kept.
     await page.evaluate(() => sessionStorage.clear());
@@ -231,8 +233,8 @@ test.describe("playback on a podcast", () => {
     await expect(player.cta).toHaveAccessibleName(/^Resume the podcast, \d+ min left$/);
     await player.finger.press(player.cta);
     await expect(player.root).toHaveAttribute("data-player-state", "playing");
-    // It plays on from the kept place, not from the top.
-    expect(await time(page)).toBeGreaterThan(saved - 1);
+    // It plays on from the kept place (each start a moment before it), not from the top.
+    expect(await time(page)).toBeGreaterThan(saved - 1 - 2 * WAKE_REWIND_SECONDS);
   });
 
   test("remembers a pause the system caused and plays on from the Play disc", async ({
