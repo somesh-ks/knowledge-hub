@@ -9,9 +9,9 @@
  * page edit that touches neither shows on the next such build; widen the list if every edit must count.
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { sourceFiles } from "../../../../scripts/system/build";
+import { classTokens } from "../../../../scripts/system/build";
 import type { BespokeControl, PartKind, System } from "../../../../scripts/system/types";
 
 export interface PartUse {
@@ -53,7 +53,38 @@ const stem = (path: string): string => (path.split("/").pop() ?? path).replace(/
 const importsModule = (text: string, name: string): boolean =>
   new RegExp(`from\\s+["'][^"']*/${name}(?:\\.\\w+)?["']`).test(text);
 
-export function countCoverage(system: System, sources = sourceFiles(repoRoot())): Coverage {
+interface Source {
+  path: string;
+  text: string;
+  tokens: Set<string>;
+}
+
+/**
+ * The apps' own files, as the system's reader reads them (sourceFiles in build.ts, which finds the
+ * repository from its own path and so cannot from this app's bundle). The design system's files are
+ * its definition, so a part one of them draws is not counted as the apps drawing it.
+ */
+export function appSources(root: string = repoRoot()): Source[] {
+  return ["apps/web/src", "apps/admin/src"]
+    .flatMap((dir) =>
+      readdirSync(join(root, dir), { recursive: true, encoding: "utf8" }).map((file) =>
+        join(root, dir, file).split("\\").join("/"),
+      ),
+    )
+    .filter(
+      (path) =>
+        /\.(astro|tsx|ts|js)$/.test(path) &&
+        !path.endsWith(".test.ts") &&
+        !path.includes("/pages/design/") &&
+        !path.includes("/design-system/"),
+    )
+    .map((path) => {
+      const text = readFileSync(path, "utf8");
+      return { path, text, tokens: classTokens(text) };
+    });
+}
+
+export function countCoverage(system: System, sources: Source[] = appSources()): Coverage {
   // A module more than one part names (Button.astro draws four) says nothing about which: those
   // parts are told apart by the classes the reader finds (a Button's variant is one).
   const owners = new Map<string, number>();

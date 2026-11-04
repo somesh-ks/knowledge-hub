@@ -193,63 +193,58 @@ export function classTokens(text: string): Set<string> {
   return found;
 }
 
-/**
- * The apps that draw the system's parts: the reader and the command center, which imports its sheets.
- * `root` is the repository's: a bundle (the command center's Coverage page) cannot find it from here.
- */
-export function sourceFiles(
-  root: string = ROOT,
-): { path: string; text: string; tokens: Set<string> }[] {
-  return [join(root, "apps/web/src"), join(root, "apps/admin/src")]
-    .flatMap((dir) =>
-      filesUnder(
-        dir,
-        [".astro", ".tsx", ".ts", ".js"],
-        (path) => path.endsWith(".test.ts") || posix(path).includes("/pages/design/"),
-      ),
-    )
-    .map((path) => {
-      const text = readFileSync(path, "utf8");
-      const tokens = classTokens(text);
-      // The component files define the two controls; only a caller outside them is a use.
-      if (posix(path).includes("/design-system/")) {
-        tokens.delete("badge-label");
-        tokens.delete("icon-glyph");
-        tokens.delete("icon-glyph-lg");
-        tokens.delete("switch-input");
-        tokens.delete("slider-input");
-        tokens.delete("field-input");
-        tokens.delete("select-outlined");
-        tokens.delete("select-tonal");
-        tokens.delete("menu-list");
-        tokens.delete("menu-item");
-        tokens.delete("menu-sheet");
-        tokens.delete("menu-item-danger");
-        tokens.delete("menu-tiles");
-        tokens.delete("menu-tile");
-        tokens.delete("menu-item-value");
-        for (const name of ["banner-notice", "banner-text", "banner-title", "banner-body"]) {
-          tokens.delete(name);
-        }
-        for (const name of [
-          "dialog-panel",
-          "dialog-body",
-          "dialog-actions",
-          "dialog-actions-stacked",
-          "sheet-side",
-          "sheet-head",
-          "sheet-body",
-          "sheet-title",
-          "drawer-scrim",
-          "drawer-viewport",
-          "drawer-popup",
-          "drawer-panel",
-        ]) {
-          tokens.delete(name);
-        }
+/** The apps that draw the system's parts: the reader and the command center, which imports its sheets. */
+const APP_SOURCES = [SRC, join(ROOT, "apps/admin/src")];
+
+export function sourceFiles(): { path: string; text: string; tokens: Set<string> }[] {
+  return APP_SOURCES.flatMap((dir) =>
+    filesUnder(
+      dir,
+      [".astro", ".tsx", ".ts", ".js"],
+      (path) => path.endsWith(".test.ts") || posix(path).includes("/pages/design/"),
+    ),
+  ).map((path) => {
+    const text = readFileSync(path, "utf8");
+    const tokens = classTokens(text);
+    // The component files define the two controls; only a caller outside them is a use.
+    if (posix(path).includes("/design-system/")) {
+      tokens.delete("badge-label");
+      tokens.delete("icon-glyph");
+      tokens.delete("icon-glyph-lg");
+      tokens.delete("switch-input");
+      tokens.delete("slider-input");
+      tokens.delete("field-input");
+      tokens.delete("select-outlined");
+      tokens.delete("select-tonal");
+      tokens.delete("menu-list");
+      tokens.delete("menu-item");
+      tokens.delete("menu-sheet");
+      tokens.delete("menu-item-danger");
+      tokens.delete("menu-tiles");
+      tokens.delete("menu-tile");
+      tokens.delete("menu-item-value");
+      for (const name of ["banner-notice", "banner-text", "banner-title", "banner-body"]) {
+        tokens.delete(name);
       }
-      return { path, text, tokens };
-    });
+      for (const name of [
+        "dialog-panel",
+        "dialog-body",
+        "dialog-actions",
+        "dialog-actions-stacked",
+        "sheet-side",
+        "sheet-head",
+        "sheet-body",
+        "sheet-title",
+        "drawer-scrim",
+        "drawer-viewport",
+        "drawer-popup",
+        "drawer-panel",
+      ]) {
+        tokens.delete(name);
+      }
+    }
+    return { path, text, tokens };
+  });
 }
 
 function derive(
