@@ -493,27 +493,6 @@
   text-align: center;
 }
 
-.player-fallback-action {
-  min-height: var(--size-touch);
-  padding-inline: var(--space-6);
-  border-radius: var(--button-radius);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  font-weight: var(--font-weight-medium);
-  transition: background-color var(--duration-press-in) var(--ease-out);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .player-fallback-action:hover {
-    background: var(--color-accent-hover);
-  }
-}
-
-/* A press steps the fill, as on the primary buttons (D317); the words keep their size. */
-.player-fallback-action:active {
-  background: var(--color-accent-pressed);
-}
-
 .player-cover-box .player-cover-frame {
   box-shadow: var(--cover-shadow);
 }
