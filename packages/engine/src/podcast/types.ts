@@ -36,6 +36,13 @@ export interface ScriptTurn {
   item_id?: string | undefined;
 }
 
+/** One turn as the writer's reply gives it, before script.ts cleans it. */
+export interface ScriptRow {
+  speaker: "a" | "b";
+  text: string;
+  item_id?: string | null | undefined;
+}
+
 export interface ScriptInput {
   request: PodcastRequest;
   stories: readonly PodcastStory[];
@@ -47,8 +54,10 @@ export interface ScriptInput {
   taste?: Taste | undefined;
   /** Epoch milliseconds by which the call, retries included, must end. */
   deadline_at?: number | undefined;
-  /** Turns already written and shown to the listener; the script continues right after them. */
+  /** Turns already live, which the listener may be hearing; the reply continues right after them. */
   opening?: readonly ScriptTurn[] | undefined;
+  /** Gets the reply's complete turns so far, each time one more is complete while it streams. */
+  onTurns?: ((rows: readonly ScriptRow[]) => void) | undefined;
   /** The Catch up structure's asks (D170); absent is the shape every episode had before it. */
   shape?: ScriptShape | undefined;
 }
@@ -68,22 +77,11 @@ export interface TurnRewrite {
  * errors always propagate; any other failure is thrown and handled by the retry in script.ts.
  */
 export interface ScriptWriter {
-  /** One call that returns the whole script as `{ turns }`. `problems` lists what a previous reply got wrong. */
+  /**
+   * One call that returns the whole script as `{ turns }`, starting with `input.opening` when it
+   * has one (the reply carries on after it). `problems` lists what a previous reply got wrong.
+   */
   writeScript(input: ScriptInput, problems: readonly string[]): Promise<unknown>;
-  /**
-   * One short call for the first turns only (the hello, the rundown, the lead story), so the
-   * listener can start while the rest is written. Optional; a writer without it has no opening.
-   */
-  writeOpening?(input: ScriptInput): Promise<unknown>;
-  /**
-   * One call that returns the whole script again, with the thinnest segments deepened from the
-   * material already in the story blocks. Optional; a writer without it is not asked to extend.
-   */
-  extendScript?(
-    input: ScriptInput,
-    turns: readonly ScriptTurn[],
-    problem: string,
-  ): Promise<unknown>;
   /** Rewrite one turn so it keeps to the facts. Null when the model could not. */
   rewriteTurn(input: TurnRewrite): Promise<string | null>;
 }

@@ -9,6 +9,7 @@ import {
   type Section,
   serializeDigestFile,
 } from "@singularity/core";
+import { ScriptReply } from "../src/podcast/llmScriptWriter.js";
 import type { ScriptInput, ScriptTurn, ScriptWriter, TurnRewrite } from "../src/podcast/types.js";
 
 export const NOW = new Date("2026-10-08T07:13:00Z");
@@ -100,7 +101,9 @@ export function dayAgo(days: number): { id: string; at: string } {
 
 /**
  * A scripted ScriptWriter. `script` receives the input and the call number and returns the raw
- * reply; the default writes a valid script for the format.
+ * reply; the default writes a valid script for the format. A reply to a call with an opening is a
+ * whole script whose first turns stand for the opening, as the model's reply comes back with the
+ * opening put in front of it. With `onTurns`, the reply's own turns stream one at a time.
  */
 export class FakeScriptWriter implements ScriptWriter {
   readonly calls: Array<{ input: ScriptInput; problems: readonly string[] }> = [];
@@ -118,7 +121,13 @@ export class FakeScriptWriter implements ScriptWriter {
 
   async writeScript(input: ScriptInput, problems: readonly string[]): Promise<unknown> {
     this.calls.push({ input, problems });
-    return this.script(input, this.calls.length - 1);
+    const reply = this.script(input, this.calls.length - 1);
+    const parsed = ScriptReply.safeParse(reply);
+    if (input.onTurns && parsed.success) {
+      const own = parsed.data.turns.slice(input.opening?.length ?? 0);
+      for (let count = 1; count <= own.length; count++) input.onTurns(own.slice(0, count));
+    }
+    return reply;
   }
 
   async rewriteTurn(input: TurnRewrite): Promise<string | null> {
@@ -127,13 +136,16 @@ export class FakeScriptWriter implements ScriptWriter {
   }
 }
 
-/** Filler per story turn that brings a default script to about 90% of its budget. */
+/**
+ * Filler per story turn that brings a default script to about 95% of its budget: over the 90% that
+ * gets a continuation, under the budget that drops stories.
+ */
 export function padFor(input: ScriptInput, duo: boolean): string {
-  const turnsPerStory = duo ? 2 : 1;
-  const count = Math.max(1, input.stories.length * turnsPerStory);
-  const base = 280 + input.stories.reduce((sum, s) => sum + s.headline.length * turnsPerStory, 0);
-  const each = Math.floor((input.budget_chars * 0.9 - base) / count);
-  return each > 0 ? "word ".repeat(Math.ceil(each / 5)).trim() : "";
+  const count = Math.max(1, input.stories.length * (duo ? 2 : 1));
+  const bare = scriptOf(input, "").turns.reduce((sum, turn) => sum + turn.text.length, 0);
+  // Each story turn gains a space and the fill, and "word " k times trimmed is 5k - 1 characters.
+  const words = Math.floor((input.budget_chars * 0.95 - bare) / count / 5);
+  return words > 0 ? "word ".repeat(words).trim() : "";
 }
 
 /**
@@ -143,7 +155,7 @@ export function padFor(input: ScriptInput, duo: boolean): string {
  */
 export function scriptOf(input: ScriptInput, explicitFill?: string): { turns: ScriptTurn[] } {
   const duo = input.request.format === "discussion";
-  // Unless a test asks for a fill, pad to 90% of the budget so the length floor is met.
+  // Unless a test asks for a fill, pad to 95% of the budget so the length is met.
   const fill = explicitFill ?? padFor(input, duo);
   const turns: ScriptTurn[] = [
     { speaker: "a", text: "Welcome to Singularity. Here is what moved." },
