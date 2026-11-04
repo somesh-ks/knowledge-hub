@@ -41,10 +41,15 @@
      (an hour-long recording) on the left, the same on the right, so the middle stays centred and
      never reaches the clock or the volume. */
   --player-dock-side: 18rem;
-  /* The cover never takes more than this share of the window's height. */
-  --player-cover-share: 40cqb;
+  /* The cover never takes more than this share of the window's height, and on a short window it
+     gives way so the Stories and Up next tabs still show at the bottom of the first screen (owner,
+     2026-11-04: they tell people there is more below). The rest is everything else down to the tabs'
+     bottom edge, measured at 360x640: 27.5rem, and 29.5rem in Expressive's bigger controls; one
+     value on the 8pt grid serves every mood. */
+  --player-phone-rest: 30rem;
+  --player-cover-share: max(5rem, min(40cqb, 100cqb - var(--player-phone-rest)));
   /* From 64rem with a finger: what the left column holds besides the cover (the title, the story
-     line and its source or a notice, the scrubber, the transport, the speed, their gaps and the
+     line and its source or a notice, the scrubber, the transport, their gaps and the
      bar), measured at 1024x600. */
   --player-column-rest: 30rem;
   --player-skip-glyph: 2rem;
@@ -146,7 +151,7 @@
 [data-playing="false"] .glyph-playing,
 [data-playing="true"] .glyph-paused {
   opacity: 0;
-  transform: scale(0.95);
+  transform: scale(var(--scale-enter));
   filter: blur(var(--blur-enter));
 }
 
@@ -189,7 +194,7 @@
   width: 100%;
   aspect-ratio: 1;
   overflow: hidden;
-  border-radius: var(--radius-sm);
+  border-radius: var(--shape-sm);
   background: var(--cover-fill);
   outline: var(--stroke-hairline) solid var(--cover-outline);
   outline-offset: calc(var(--stroke-hairline) * -1);
@@ -197,35 +202,11 @@
   -webkit-user-select: none;
 }
 
-.player-cover-image {
+.player-cover-art {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
   -webkit-touch-callout: none;
-}
-
-/* Drawn for both themes, as the page's covers are (cover.css). */
-.player-cover-image[data-mode="dark"] {
-  display: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .player-cover-image[data-mode="light"] {
-    display: none;
-  }
-
-  :root:not([data-theme="light"]) .player-cover-image[data-mode="dark"] {
-    display: block;
-  }
-}
-
-:root[data-theme="dark"] .player-cover-image[data-mode="light"] {
-  display: none;
-}
-
-:root[data-theme="dark"] .player-cover-image[data-mode="dark"] {
-  display: block;
 }
 
 /* ------------------------------------------------------------------ the surface */
@@ -300,7 +281,7 @@
 /* While it moves, a hairline along its top edge sets it off from the page behind, which is the
    same colour. Drawn outside the box, so nothing inside shifts. */
 .player:is([data-state="dragging"], [data-state="expanding"], [data-state="collapsing"])
-.player-page {
+  .player-page {
   box-shadow: 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
 }
 
@@ -353,6 +334,12 @@
   }
 }
 
+/* The band at the top of the open page that holds the chevron and the ⋮: both 44px targets centred in
+   it, with the art starting a step under it (owner, 2026-11-02, twice: the art sat too close to them). */
+.player {
+  --player-bar-room: calc(var(--space-12) + var(--space-2));
+}
+
 /* Starts a dismissal when the page is at the top. It takes no native pan; the controller scrolls
    the page under a finger that is not dismissing. */
 .player-drag {
@@ -365,6 +352,13 @@
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* After the rule above, so it wins at equal weight. */
+@media (width < 64rem) {
+  .player-drag {
+    padding-block-start: calc(var(--player-bar-room) + var(--space-4));
+  }
 }
 
 /* Out of sight until the keyboard reaches it, like a skip link. */
@@ -504,27 +498,6 @@
   text-align: center;
 }
 
-.player-fallback-action {
-  min-height: var(--size-touch);
-  padding-inline: var(--space-6);
-  border-radius: var(--button-radius);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  font-weight: var(--font-weight-medium);
-  transition: background-color var(--duration-press-in) var(--ease-out);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .player-fallback-action:hover {
-    background: var(--color-accent-hover);
-  }
-}
-
-/* A press darkens the fill, as on the primary buttons; the words keep their size. */
-.player-fallback-action:active {
-  background: var(--color-accent-pressed);
-}
-
 .player-cover-box .player-cover-frame {
   box-shadow: var(--cover-shadow);
 }
@@ -552,22 +525,28 @@
 .player-cover-glow-light {
   position: absolute;
   inset: 0;
-  border-radius: var(--radius-lg);
+  border-radius: var(--shape-lg);
   overflow: hidden;
   filter: blur(var(--blur-glow)) saturate(1.3);
   transform: scale(1.04);
   will-change: transform, opacity;
 }
 
-.player-cover-glow-light .player-cover-image {
+.player-cover-glow-light .player-cover-art {
   width: 100%;
   height: 100%;
 }
 
-:root[data-player-state="playing"]
-  .player:is([data-state="expanded"], [data-state="collapsing"])
-  .player-cover-glow {
+:root[data-player-state="playing"] .player[data-state="expanded"] .player-cover-glow {
   opacity: var(--glow-strength);
+}
+
+/* The light is the open page's alone. Once the page is pulled or closed it fades out quickly and is not
+   lit again on the way down: it had been held back while a finger pulled, then faded in as the page
+   landed, so a patch of blurred cover showed behind the bar and the Library tabs for a moment (owner,
+   2026-11-03: "very glitchy" while it plays). The page keeps its top edge on screen behind the bar. */
+.player:not([data-state="expanded"]) .player-cover-glow {
+  transition-duration: var(--duration-hover);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -652,7 +631,7 @@
      falls and the corners read the same on the bar, in flight and on the page. A clip and not a
      border radius, so only the clip changes from frame to frame. */
   .player-art .player-cover-frame {
-    clip-path: inset(0 round calc(var(--radius-sm) / var(--art-scale-now)));
+    clip-path: inset(0 round calc(var(--shape-sm) / var(--art-scale-now)));
   }
 
   /* The shadow the page's cover casts, fading in as the cover lifts off the bar, which casts none.
@@ -662,7 +641,7 @@
     content: "";
     position: absolute;
     inset: 0;
-    border-radius: var(--radius-sm);
+    border-radius: var(--shape-sm);
     box-shadow: var(--cover-shadow);
     opacity: var(--art-p);
   }
@@ -670,7 +649,7 @@
   /* One cover at a time. At rest it is the bar's or the page's; in between it is the one in flight,
      and the two at the ends are identical to it at the moment they swap. */
   .player:is([data-state="dragging"], [data-state="expanding"], [data-state="collapsing"])
-  .player-art {
+    .player-art {
     visibility: visible;
   }
 
@@ -711,6 +690,9 @@
   /* The tonal container, one block with the navigation under it: no rule along its top. */
   background: var(--mini-player-bg);
   --color-focus-gap: var(--mini-player-bg);
+  /* The dock's own tone is the container's, so its unfilled controls step that, not the page's. */
+  --ghost-hover: var(--color-surface-container-hover);
+  --ghost-pressed: var(--color-surface-container-pressed);
   pointer-events: auto;
   /* Shown and hidden with `translate`, so that transition never touches the travel in `transform`. */
   translate: 0 0;
@@ -719,6 +701,21 @@
     visibility 0s;
   /* Its own group during view transitions, so the bar stays put while the page crossfades. */
   view-transition-name: mini-player;
+}
+
+/* A hairline between the bar and the navigation under it: they share one fill, and a bar that runs into
+   the navigation read as one block (owner, 2026-11-02, amending the no-rule note above for the bottom
+   edge only; the queue's dock above has none). The navigation's own pixel under it stays. */
+@media (width < 64rem) {
+  .player-dock::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: 0;
+    block-size: var(--stroke-hairline);
+    background: var(--color-border-hairline);
+    pointer-events: none;
+  }
 }
 
 /* Before the first play: off the bottom, and out of the tab order. */
@@ -774,6 +771,9 @@
 .dock-open::after {
   position: absolute;
   inset: 0;
+  /* Behind the title and the artwork: a press fills the bar, and an opaque fill must not cover them.
+     The dock is its own stacking context, so the fill still lies over its background. */
+  z-index: var(--z-beneath);
   content: "";
 }
 
@@ -828,6 +828,89 @@
   gap: var(--space-1);
 }
 
+/* A sideways swipe on the bar (PlayerBar.tsx, useDockSwipe): while the finger is down the cover and
+   the words follow it at once, and the podcast it would switch to comes in from the far side, so
+   the target shows before the finger lifts (2026-11-03). Let go short of a swipe, both spring back
+   on the press curve; past it the bar slides on to the new one, and the slide is dropped when the
+   player shows it. The bar is the window: neither the words nor the one waiting show past its edge,
+   so nothing passes under the transport. The peek takes the whole row with the bar's own two
+   columns, and waits one bar's width off to the side (--dock-span, set by the swipe). */
+.dock-open {
+  overflow: clip;
+}
+
+.dock-open > :is(.player-thumb, .dock-text) {
+  translate: var(--dock-swipe, 0px) 0;
+}
+
+/* Placed, so the peek laid over the same cells does not push them to a second row. */
+.dock-open > .player-thumb {
+  grid-area: 1 / 1;
+}
+
+.dock-open > .dock-text {
+  grid-area: 1 / 2;
+}
+
+.dock-open > :is(.player-thumb, .dock-text, .dock-peek) {
+  transition: translate var(--duration-press-out) var(--ease-out);
+}
+
+.dock-peek {
+  grid-area: 1 / 1 / 2 / 3;
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  align-self: stretch;
+  /* It takes the room the real words leave and asks for none: a long title never widens the bar. */
+  contain: size;
+  pointer-events: none;
+  translate: calc(var(--dock-swipe, 0px) + var(--peek-side) * var(--dock-span, 100%)) 0;
+}
+
+.dock-peek[data-peek="next"] {
+  --peek-side: 1;
+}
+
+.dock-peek[data-peek="previous"] {
+  --peek-side: -1;
+}
+
+.dock-peek > .player-thumb {
+  flex: none;
+}
+
+.dock-peek > .dock-text {
+  flex: 1 1 0;
+}
+
+/* It arrives drawn: the caption's fade is for a story that changes under the eye. */
+.dock-peek .dock-caption {
+  animation: none;
+}
+
+.dock-open[data-swiping] > :is(.player-thumb, .dock-text, .dock-peek) {
+  transition: none;
+}
+
+.dock-open[data-swipe-out] > :is(.player-thumb, .dock-text, .dock-peek) {
+  transition: translate var(--duration-enter) var(--ease-out);
+}
+
+/* Reduced motion: the bar changes without sliding. */
+@media (prefers-reduced-motion: reduce) {
+  .dock-open[data-swipe-out] > :is(.player-thumb, .dock-text, .dock-peek) {
+    transition: none;
+  }
+}
+
+/* A finger swipes for the next podcast, so the phone's bar leaves the button out. */
+@media (width < 64rem) and (pointer: coarse) {
+  .dock-btn.dock-next {
+    display: none;
+  }
+}
+
 /* Play and next, a clear 8px apart: two targets a thumb can tell from each other. */
 .dock-transport {
   grid-row: 1;
@@ -867,7 +950,7 @@
   height: var(--space-4);
   margin: 0;
   padding: 0;
-  border-radius: var(--radius-xs);
+  border-radius: var(--shape-xs);
   background: none;
   appearance: none;
   cursor: pointer;
@@ -1152,7 +1235,7 @@
 }
 
 .dock-btn:not([aria-disabled="true"]):active {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 /* A press anywhere else on the bar opens the player, and shows on the whole bar as it does. */
@@ -1161,16 +1244,16 @@
 }
 
 .dock-open:active::after {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .dock-btn:not([aria-disabled="true"]):hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 
   .dock-btn:not([aria-disabled="true"]):hover:active {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+    background: var(--ghost-pressed);
   }
 
   .dock-seek:hover::-webkit-slider-thumb {
@@ -1317,14 +1400,13 @@
     color: var(--color-on-accent);
   }
 
-  .dock-btn[data-primary]:active {
-    background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
+  .dock-btn[data-primary]:where(:not(:disabled, [aria-disabled="true"])):active {
+    background: var(--color-accent-pressed);
   }
 }
 
 /* Under the open page the bar stays, and with a mouse on a wide screen it keeps its whole transport:
-   previous, play, next and the clock are where they were, and the page adds only the skips and the
-   speed (below). Elsewhere, where the bar stays under the open page, the page keeps its own transport,
+   previous, play, next and the clock are where they were, and the page adds only the skips (below). Elsewhere, where the bar stays under the open page, the page keeps its own transport,
    so the bar shows only what is playing: nothing said twice, and one filled play control. Hidden in
    place, so the middle group holds still. */
 @media (width >= 40rem) and (not ((width >= 64rem) and (hover: hover) and (pointer: fine))) {
@@ -1343,11 +1425,11 @@
 
 @media (hover: hover) and (pointer: fine) and (width >= 64rem) {
   .dock-btn[data-primary]:not([aria-disabled="true"]):hover {
-    background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-hover));
+    background: var(--color-accent-hover);
   }
 
   .dock-btn[data-primary]:not([aria-disabled="true"]):hover:active {
-    background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
+    background: var(--color-accent-pressed);
   }
 
   /* A mouse press on the bar is a quiet tonal layer, as light as a hover and eased in and out:
@@ -1357,7 +1439,7 @@
   }
 
   .dock-open:active::after {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 }
 
@@ -1527,7 +1609,7 @@
 .scrubber-track {
   height: var(--scrubber-track);
   margin-block-start: calc(var(--scrubber-track) / -2);
-  border-radius: var(--radius-xs);
+  border-radius: var(--shape-xs);
   background: var(--color-border-control);
   overflow: hidden;
   transition: transform var(--duration-press-out) var(--ease-out);
@@ -1659,17 +1741,7 @@
   grid-template-columns: repeat(5, auto);
   align-items: center;
   justify-content: space-between;
-  /* The speed pill belongs to the transport above it: one control's inner step, 8px. At 16px the
-     two-column player overflowed a 1024x768 window by 4px (2026-10-21). */
-  row-gap: var(--space-2);
   padding-block: var(--space-4) var(--space-2);
-}
-
-/* On the phone the five keep one axis, play in the middle, and the speed sits under play as a
-   quiet pill, so it reads as a control and not as a caption. */
-.transport > .speed {
-  grid-row: 2;
-  grid-column: 3;
 }
 
 .transport-btn {
@@ -1746,218 +1818,22 @@
 /* State layers: a share of the control's own ink over its fill (none, for the quiet ones). */
 @media (hover: hover) and (pointer: fine) {
   .transport-btn:not([aria-disabled="true"], [data-primary]):hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
     color: var(--color-on-surface);
   }
 
-  .transport-btn[data-primary]:hover {
-    background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-hover));
+  .transport-btn[data-primary]:where(:not(:disabled, [aria-disabled="true"])):hover {
+    background: var(--color-accent-hover);
   }
 }
 
 .transport-btn:not([aria-disabled="true"], [data-primary]):active {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
   color: var(--color-on-surface);
 }
 
-.transport-btn[data-primary]:active {
-  background: color-mix(in oklch, var(--color-accent), var(--color-on-accent) var(--state-press));
-}
-
-/* ------------------------------------------------------------------ speed */
-
-/* The speed it is at: under play on a phone, between the two skips with a mouse. One tap opens
-   the slider. */
-.speed {
-  display: grid;
-  place-items: center;
-}
-
-/* A quiet pill, so it reads as a control and not as a caption. Its label is always five characters
-   ("1.00x", SpeedControl.tsx) in tabular figures, so neither the label nor the skips either side
-   move as the speed changes. A press shows on the fill; the words keep their size. */
-.speed-btn {
-  display: grid;
-  place-items: center;
-  min-width: calc(5ch + var(--space-2) * 2);
-  min-height: var(--size-touch);
-  padding-inline: var(--space-2);
-  border-radius: var(--button-radius);
-  background: var(--color-surface-container);
-  color: var(--color-on-surface);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
-  transition:
-    background-color var(--duration-press-in) var(--ease-out),
-    color var(--duration-hover) var(--ease-hover);
-}
-
-/* Open, it is the selected state: the accent's container, as a chosen chip's. */
-.speed-btn[aria-expanded="true"] {
-  background: var(--color-accent-container);
-  color: var(--color-on-accent-container);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .speed-btn:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-surface-container),
-      var(--color-on-surface) var(--state-hover)
-    );
-  }
-}
-
-.speed-btn:active {
-  background: color-mix(
-    in oklch,
-    var(--color-surface-container),
-    var(--color-on-surface) var(--state-press)
-  );
-}
-
-/*
- * A modal dialog, so a press outside it lands on its backdrop, which closes it and reaches nothing
- * underneath. It sits in the top layer, centred on the button by script: below it with a finger and
- * above it with a mouse, on the other side when that one has no room, and inside the window. It
- * grows out of the button and shrinks back into it, quicker out than in.
- */
-.speed-panel {
-  --panel-top: 0px;
-  --panel-center: 50vw;
-  --panel-width: 16rem;
-  --panel-left: clamp(
-    var(--space-4),
-    var(--panel-center) -
-    var(--panel-width) /
-    2,
-    100vw -
-    var(--panel-width) -
-    var(--space-4)
-  );
-  --panel-scale: var(--scale-enter);
-  --color-focus-gap: var(--color-surface-overlay);
-  position: fixed;
-  inset: var(--panel-top) auto auto var(--panel-left);
-  width: var(--panel-width);
-  max-width: none;
-  max-height: none;
-  margin: 0;
-  padding: 0;
-  overflow: visible;
-  border: 0;
-  border-radius: var(--radius-md);
-  background: var(--color-surface-overlay);
-  color: var(--color-on-surface);
-  box-shadow: var(--shadow-popover);
-  opacity: 0;
-  pointer-events: none;
-  transform: scale(var(--panel-scale));
-  /* The button's centre, on the edge of the panel that faces it. */
-  transform-origin: calc(var(--panel-center) - var(--panel-left)) 100%;
-  transition:
-    opacity var(--duration-exit) var(--ease-out),
-    transform var(--duration-exit) var(--ease-out),
-    overlay var(--duration-exit) allow-discrete,
-    display var(--duration-exit) allow-discrete;
-}
-
-.speed-panel[data-side="below"] {
-  transform-origin: calc(var(--panel-center) - var(--panel-left)) 0;
-}
-
-.speed-panel[open] {
-  opacity: 1;
-  pointer-events: auto;
-  transform: none;
-  transition-duration: var(--duration-state);
-}
-
-@starting-style {
-  .speed-panel[open] {
-    opacity: 0;
-    transform: scale(var(--panel-scale));
-  }
-}
-
-/* Without overlay (Safari) a closing panel leaves the top layer at once, and the moving player page
-   becomes what it is placed against, so its fade would jump by the page's scroll. It closes at once
-   there instead. */
-@supports not (overlay: auto) {
-  .speed-panel:not([open]) {
-    transition: none;
-  }
-}
-
-/* No dim: the panel is small and sits by its button, and the player stays in view around it. */
-.speed-panel::backdrop {
-  background: transparent;
-}
-
-/* On its way out it is no longer modal, so a press goes straight through to what is under it. */
-.speed-panel:not([open])::backdrop {
-  pointer-events: none;
-}
-
-/* The panel's padding is here, so a press anywhere inside it lands on a child of the dialog and only
-   the backdrop is the dialog itself. */
-.speed-panel-body {
-  display: grid;
-  /* The slider's focus ring reaches past its box; the presets start below it. */
-  row-gap: var(--space-2);
-  /* The chosen speed's fill keeps the same distance from the bottom as from the sides. */
-  padding: var(--space-4);
-}
-
-/* The speed slider is the Slider (design-system/Slider.astro), as wide as the panel and on the panel's
-   own surface, so its thumb's ring takes that colour. */
-.speed-panel-body > .slider-input {
-  --slider-ring: var(--color-surface-overlay);
-  display: block;
-  width: 100%;
-}
-
-/* The common speeds under the slider, whose fine steps are hard to land on by finger: quiet pills,
-   the chosen one in the accent's container, as a chosen chip is. */
-.speed-presets {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-2);
-}
-
-.speed-preset {
-  min-height: var(--size-touch);
-  border-radius: var(--button-radius);
-  color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
-  transition:
-    background-color var(--duration-press-in) var(--ease-out),
-    color var(--duration-hover) var(--ease-hover);
-}
-
-.speed-preset[aria-pressed="true"] {
-  background: var(--color-accent-container);
-  color: var(--color-on-accent-container);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .speed-preset:not([aria-pressed="true"]):hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
-    color: var(--color-on-surface);
-  }
-}
-
-.speed-preset:not([aria-pressed="true"]):active {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
-}
-
-.speed-preset[aria-pressed="true"]:active {
-  background: color-mix(
-    in oklch,
-    var(--color-accent-container),
-    var(--color-on-accent-container) var(--state-press)
-  );
+.transport-btn[data-primary]:where(:not(:disabled, [aria-disabled="true"])):active {
+  background: var(--color-accent-pressed);
 }
 
 /* ------------------------------------------------------------------ the script */
@@ -1983,7 +1859,7 @@
   gap: var(--space-1);
   width: 100%;
   padding-block: var(--space-4);
-  padding-inline: var(--space-4);
+  padding-inline: var(--row-padding-inline);
   border-radius: var(--row-radius);
   text-align: start;
   /* A press or a pointer shows on the fill; the words keep their size and weight. */
@@ -2064,7 +1940,7 @@
 /* The fill and the hair of ring around it move together, so the highlight never shows as an empty
    outline as it passes from word to word. */
 .script-word {
-  border-radius: var(--radius-xs);
+  border-radius: var(--shape-xs);
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
   transition:
@@ -2075,7 +1951,7 @@
 /* The fill grows a hair past the word on each side, so it reads as a highlight and not a box. It is
    the container's ink, so it reads on the current turn's fill in both themes. */
 .script-word[data-spoken] {
-  --spoken-fill: color-mix(in oklch, var(--color-on-accent-container) 18%, transparent);
+  --spoken-fill: var(--player-spoken);
   background: var(--spoken-fill);
   box-shadow: 0 0 0 0.125rem var(--spoken-fill);
   /* The fill arrives with the word; only its leaving fades. A fade in trails the voice by its length. */
@@ -2085,19 +1961,15 @@
 /* State layers: the turn's ink over its fill. The spoken word keeps its own fill under the pointer. */
 @media (hover: hover) and (pointer: fine) {
   .script-turn:not([aria-disabled="true"], [aria-current="true"]):hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 
-  .script-turn[aria-current="true"]:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-accent-container),
-      var(--color-on-accent-container) var(--state-hover)
-    );
+  .script-turn[aria-current="true"]:where(:not(:disabled, [aria-disabled="true"])):hover {
+    background: var(--color-accent-container-hover);
   }
 
   .script-turn:not([aria-disabled="true"]) .script-word:not([data-spoken]):hover {
-    background: color-mix(in oklch, currentColor var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 }
 
@@ -2106,15 +1978,25 @@
 }
 
 .script-turn:not([aria-disabled="true"], [aria-current="true"]):active {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
-.script-turn[aria-current="true"]:active {
-  background: color-mix(
-    in oklch,
-    var(--color-accent-container),
-    var(--color-on-accent-container) var(--state-press)
-  );
+.script-turn[aria-current="true"]:where(:not(:disabled, [aria-disabled="true"])):active {
+  background: var(--color-accent-container-pressed);
+}
+
+/* A touch keeps the spoken turn's fill: the tap's :active outlasts its click, so a turn the tap had just
+   made current showed the press step and eased back (owner, 2026-11-03; see .tab in primitives.css). */
+@media (hover: none) {
+  .script-turn[aria-current="true"]:where(:not(:disabled, [aria-disabled="true"])):active {
+    background: var(--color-accent-container);
+  }
+
+  /* In the Stories list the turn has no fill of its own (above), so it keeps none. */
+  .story-list
+    .script-turn[aria-current="true"]:where(:not(:disabled, [aria-disabled="true"])):active {
+    background: transparent;
+  }
 }
 
 /* Said where a view has nothing to show, so a tab is never an empty page. */
@@ -2127,15 +2009,26 @@
 }
 
 /*
- * The list's two views, Stories and Up next, are a tablist in .segmented-nav's markup
- * (PlayerTabs.tsx). From 64rem it is that control as it is, above the list's column. Below 64rem it is
- * a tab line as YouTube Music's player has: it runs the page's full width (past the gutters, under
- * the status bar's room as the page scrolls) it sits in a sticky bar on the page's colour. Same
- * buttons, same arrow keys, the same look at every width (D169).
+ * The list's two views, Stories and Up next, are the podcast page's section tabs (PlayerTabs.tsx,
+ * .tabs and .tab in primitives.css; owner, 2026-11-02: "tabs that look like in the podcast details
+ * page"). The strip sits in the page's tab bar (primitives.css .tabs-bar), which draws the hairline the
+ * page's strip has. From 64rem the bar sits in the list's column, where the page's bar sticks under the
+ * app bar on its own surface; under 64rem it sticks under the status bar (below). Two classes, so the
+ * player's bar wins over the shared one whichever stylesheet loads first (learnings, 2026-10-31).
  */
-.segmented-nav.player-tabs {
+.tabs-bar.player-tabs-bar {
+  position: static;
+  z-index: auto;
   flex: none;
+  margin-inline: 0;
   margin-block-end: var(--space-4);
+  background: none;
+}
+
+/* Centred in the column (owner, 2026-11-03), where the page's strip starts at its edge. */
+.player-tabs-bar > .tabs {
+  justify-content: center;
+  padding-inline: 0;
 }
 
 .player-panel {
@@ -2157,22 +2050,20 @@
     min-height: 100cqb;
   }
 
-  /* The switch stays under the status bar's room while the list scrolls, on the page's own colour
-     so the words passing under it do not show; the control inside keeps its segmented look (owner,
-     2026-10-23, D169: a navigational switch, not a tab line, which drew a bar under the chosen tab
-     from 2026-10-21 to then). */
-  .player-tabs-bar {
+  /* The tab line stays under the status bar's room while the list scrolls, on the page's own colour
+     so the words passing under it do not show, and runs the page's full width (owner, 2026-11-02:
+     tabs again, as from 2026-10-21 to 2026-10-23; D169 had made it a pill). A step of room above it
+     parts it from the play controls. */
+  .tabs-bar.player-tabs-bar {
     position: sticky;
     inset-block-start: var(--safe-top);
     z-index: calc(var(--z-raised) + 1);
+    margin-block-start: var(--space-6);
     margin-inline: calc(max(var(--player-padding), var(--safe-left)) * -1)
       calc(max(var(--player-padding), var(--safe-right)) * -1);
-    padding: var(--space-2) max(var(--player-padding), var(--safe-right)) var(--space-2)
+    padding: var(--space-2) max(var(--player-padding), var(--safe-right)) 0
       max(var(--player-padding), var(--safe-left));
     background: var(--color-surface);
-  }
-
-  .segmented-nav.player-tabs {
     margin-block-end: 0;
   }
 
@@ -2219,20 +2110,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .script-back:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-surface-inverse),
-      var(--color-on-surface-inverse) var(--state-hover)
-    );
+    background: var(--color-surface-inverse-hover);
   }
 }
 
 .script-back:active {
-  background: color-mix(
-    in oklch,
-    var(--color-surface-inverse),
-    var(--color-on-surface-inverse) var(--state-press)
-  );
+  background: var(--color-surface-inverse-pressed);
 }
 
 /* ------------------------------------------------------------------ a list that scrolls on its own */
@@ -2360,7 +2243,7 @@
 }
 
 .player-source-link:active {
-  background: color-mix(in oklch, var(--color-accent) var(--state-press), transparent);
+  background: var(--ghost-accent-pressed);
 }
 
 .player-source-link span {
@@ -2404,7 +2287,7 @@
   width: 100%;
   min-height: var(--size-touch-comfortable);
   padding-block: var(--space-2);
-  padding-inline: var(--space-4);
+  padding-inline: var(--row-padding-inline);
   border-radius: var(--row-radius);
   text-align: start;
   /* A press shows on the fill; the headline keeps its size. */
@@ -2457,17 +2340,24 @@
   line-height: var(--font-leading-body);
 }
 
+/* 88%, not 72% (2026-11-03): muted ink keeps 4.5:1 on every mood's chosen fill after D356 moved the fills; Default dark needs 87%, Halloween light 86%. The share is the token's (player.story-fg-muted), so the contrast sweep holds it at every hue; Expressive dark takes 95% (2026-11-04). */
 .story-rows
   > [data-open]
   .script-turns[data-following]
   .script-turn:not([data-said], [aria-current="true"])
   .script-text {
-  color: color-mix(in oklch, var(--color-on-accent-container) 72%, transparent);
+  color: var(--player-story-fg-muted);
 }
 
 /* Names are told apart by the name itself, not by the accent, which the card's fill would swallow. */
 .story-rows > [data-open] .script-turns .script-turn .script-speaker {
-  color: color-mix(in oklch, var(--color-on-accent-container) 72%, transparent);
+  color: var(--player-story-fg-muted);
+}
+
+/* On the card the word being said takes the card's press step (player.spoken-chosen), not the page's
+   tint: over the chosen fill the tint put its ink at 3.56:1 in Expressive dark (2026-11-04). */
+.story-rows > [data-open] .script-word[data-spoken] {
+  --spoken-fill: var(--player-spoken-chosen);
 }
 
 .story-row[aria-current="true"] .story-row-time {
@@ -2477,51 +2367,39 @@
 /* State layers: the row's ink over its fill. */
 @media (hover: hover) and (pointer: fine) {
   .story-row:not([aria-current="true"], [data-static]):hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
   }
 
   .story-row[aria-current="true"]:hover,
   .story-rows > [data-open] .script-turn:not([aria-disabled="true"]):hover {
-    background: color-mix(
-      in oklch,
-      var(--color-on-accent-container) var(--state-hover),
-      transparent
-    );
+    background: var(--color-accent-container-hover);
   }
 
   .player-upnext-row:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-surface-container),
-      var(--color-on-surface) var(--state-hover)
-    );
+    background: var(--color-surface-container-hover);
   }
 
   .player-source-link:hover {
-    background: color-mix(in oklch, var(--color-accent) var(--state-hover), transparent);
+    background: var(--ghost-accent-hover);
   }
 
   .player-source-link:hover:active {
-    background: color-mix(in oklch, var(--color-accent) var(--state-press), transparent);
+    background: var(--ghost-accent-pressed);
   }
 }
 
 /* After the hovers, so a press shows under a mouse too. */
 .story-row:not([aria-current="true"], [data-static]):active {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+  background: var(--ghost-pressed);
 }
 
 .story-row[aria-current="true"]:active,
 .story-rows > [data-open] .script-turn:not([aria-disabled="true"]):active {
-  background: color-mix(in oklch, var(--color-on-accent-container) var(--state-press), transparent);
+  background: var(--color-accent-container-pressed);
 }
 
 .player-upnext-row:active {
-  background: color-mix(
-    in oklch,
-    var(--color-surface-container),
-    var(--color-on-surface) var(--state-press)
-  );
+  background: var(--color-surface-container-pressed);
 }
 
 .player-upnext-row {
@@ -2561,7 +2439,7 @@
    from 64rem until the keyboard reaches it. */
 @media (width < 64rem) {
   .player .player-collapse {
-    inset-block-start: calc((var(--space-8) + var(--space-2) - var(--size-touch)) / 2);
+    inset-block-start: calc((var(--player-bar-room) - var(--size-touch)) / 2);
     inset-inline-start: calc((var(--size-icon-lg) - var(--size-touch)) / 2);
     padding: 0;
     background: transparent;
@@ -2571,22 +2449,52 @@
   }
 
   .player .player-collapse:active {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+    background: var(--ghost-pressed);
   }
+}
+
+/* The ⋮ menu's button (PlayerMenu.tsx), at the top right of the open player: the chevron's mirror, on
+   the same line and with the same 44px target, its glyph on the page's right edge (owner,
+   2026-11-01: "a 3 dots button here"). From 64rem it sits in the left column's corner. */
+.player-more {
+  position: absolute;
+  inset-block-start: var(--space-2);
+  inset-inline-end: var(--space-2);
+  z-index: var(--z-raised);
+  color: var(--color-on-surface-muted);
+}
+
+@supports (top: anchor(bottom)) {
+  .player-more {
+    anchor-name: --hero-more;
+  }
+}
+
+@media (width < 64rem) {
+  .player .player-more {
+    inset-block-start: calc((var(--player-bar-room) - var(--size-touch)) / 2);
+    inset-inline-end: calc((var(--size-icon-lg) - var(--size-touch)) / 2);
+  }
+}
+
+/* The menu's popover on a wide screen is as wide for both screens, so the tiles' words fit and it does
+   not change width between them. A phone's sheet is the screen's width (menu.css). */
+.player-menu {
+  min-width: 20rem;
 }
 
 @media (hover: hover) and (pointer: fine) and (width < 64rem) {
   .player .player-collapse:hover:not(:active) {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
     color: var(--color-on-surface);
   }
 }
 
 /* ------------------------------------------------------------------ the queue */
 
-/* The queue (the Up next view): a row is the item's thumbnail and title, with its menu's dots after
-   it (D169). The row moves by the browser's own drag and drop (a long press with a finger, a press
-   and pull with a mouse) and slides left under a finger to leave; a vertical pan still scrolls. */
+/* The queue (the Up next view): a row is the item's thumbnail and title, with its grip and its menu's
+   dots after it (D169, the grip 2026-11-02). The grip lifts the row to a new place; the row slides to
+   either side under a finger to leave; a vertical pan on it still scrolls. */
 .player-queue-row {
   display: flex;
   flex: 1;
@@ -2616,7 +2524,7 @@
   width: var(--size-touch);
   height: var(--size-touch);
   overflow: hidden;
-  border-radius: var(--radius-sm);
+  border-radius: var(--shape-sm);
   background: var(--color-surface-sunken);
 }
 
@@ -2641,72 +2549,193 @@
     opacity var(--duration-press-out) var(--ease-out);
 }
 
-/* Under the finger the row follows at once; leaving, it fades as it slides out. */
-.player-queue-item[data-swiping] {
+/* The row's face (cover, words, handle) is what slides; the row itself stays put, with a red strip
+   behind the face (owner, 2026-11-03: "a red strip in the background, and not to change the row itself
+   to turn red as I need visibility"). The face keeps its own look at every point of the swipe. */
+.player-queue-face {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  border-radius: inherit;
+  background: var(--color-surface);
+  transition: translate var(--duration-press-out) var(--ease-out);
+}
+
+/* Under the finger the face follows at once; leaving, it slides out over the strip. */
+.player-queue-item[data-swiping] > .player-queue-face {
   transition: none;
 }
 
-.player-queue-item[data-leaving] {
-  opacity: 0;
+/* The strip is the danger colour with the surface's ink on the bin, on the side the face came from. */
+.player-queue-delete {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  padding-inline: var(--space-4);
+  border-radius: inherit;
+  background: var(--color-danger);
+  color: var(--color-surface);
 }
 
-/* The row being dragged dims where it was; the row it is over shows the edge it would join. */
+.player-queue-item:is([data-swiping], [data-leaving]) > .player-queue-delete {
+  display: flex;
+}
+
+.player-queue-item[data-swipe-dir="end"] > .player-queue-delete {
+  justify-content: flex-start;
+}
+
+.player-queue-item[data-swipe-dir="start"] > .player-queue-delete {
+  justify-content: flex-end;
+}
+
+/* A row lifted by its grip rides above the others, on a tonal fill and the floating shadow so it reads
+   as held; it follows the finger with no lag (translate untransitioned). The rows it passes shift
+   aside by their translate (QueueList.tsx), on the row's own transition. Let go, it glides into
+   place (glide() in QueueList.tsx) and the shadow settles back (owner, 2026-11-03: "make the drag
+   and swap interaction smoother"). */
 .player-queue-item[data-dragging] {
-  opacity: 0.5;
+  z-index: var(--z-raised);
+  box-shadow: var(--shadow-floating);
+  transition: box-shadow var(--duration-press-in) var(--ease-out);
 }
 
-.player-queue-item[data-drop="before"] {
-  box-shadow: inset 0 var(--stroke-ring) 0 var(--color-accent);
+.player-queue-item[data-dragging] > .player-queue-face {
+  background: var(--color-surface-container);
 }
 
-.player-queue-item[data-drop="after"] {
-  box-shadow: inset 0 calc(var(--stroke-ring) * -1) 0 var(--color-accent);
+/* A lift's end puts every row at its own place at once (a glide then carries them in); only the
+   shadow eases off. */
+.player-queue-list[data-settling] .player-queue-item {
+  transition: box-shadow var(--duration-press-out) var(--ease-out);
 }
 
-/* D277: the list keeps what played (muted) and marks what plays now (accent, the active color). */
-.player-queue-item[data-state="played"] .player-upnext-date {
+/* D277: the list keeps what played (muted) and marks what plays now (accent, the active color). A
+   row put above the playing one (D357) is behind it and never starts by itself: muted the same way. */
+.player-queue-item:is([data-state="played"], [data-state="before"]) .player-upnext-date {
   color: var(--color-on-surface-muted);
+}
+
+/* Up next's reflow (queueFlip.ts) moves rows itself: the browser's scroll anchoring would move the
+   page under them as well, and a row queued from Suggested would jump instead of glide. */
+.player-queue-item {
+  overflow-anchor: none;
+}
+
+/* A gliding row passes over the Suggested label, which glides the other way, never under it. */
+.player-queue-item[data-gliding] {
+  z-index: var(--z-raised);
+}
+
+/* The layer a row that leaves the list fades out on, over the panel and under its rows. A swiped
+   row's face has slid off; only its strip fades. */
+.player-panel:has(> .player-queue-ghosts) {
+  position: relative;
+}
+
+.player-queue-ghosts {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.player-queue-ghosts [data-leaving] > .player-queue-face {
+  visibility: hidden;
 }
 
 .player-queue-item[data-state="current"] .player-upnext-date {
   color: var(--color-accent);
 }
 
+.player-queue-grip,
 .player-queue-more,
 .player-queue-add {
   flex: none;
 }
 
+/* The row's ⋮ is a mouse's (owner, 2026-11-03): it shows while the pointer is over the row, the
+   keyboard is in it or its menu is open, and a phone never draws it (no visible dots on a phone). */
+.player-queue-more {
+  display: none;
+  color: var(--color-on-surface-muted);
+}
+
+/* Under a mouse the row's two controls, the handle and the ⋮, wait until the pointer is over the row
+   (owner, 2026-11-03), and the handle takes the move cursor, the four-way cross. A phone keeps the
+   handle in view: it has no hover to show it. */
+@media (hover: hover) and (pointer: fine) {
+  .player-queue-more,
+  .player-queue-grip {
+    opacity: 0;
+    transition: opacity var(--duration-press-out) var(--ease-out);
+  }
+
+  .player-queue-more {
+    display: inline-flex;
+  }
+
+  /* Above the grab cursor further down, which has the same weight otherwise. */
+  .player-queue-item .player-queue-grip {
+    cursor: move;
+  }
+
+  .player-queue-item:is(:hover, :focus-within, [data-menu-open], [data-dragging])
+    :is(.player-queue-more, .player-queue-grip) {
+    opacity: 1;
+  }
+}
+
+/* Each row names its own dots (--queue-anchor, QueueRowMenu.tsx), so its menu hangs under them and not
+   under the last row's. */
+@supports (top: anchor(bottom)) {
+  .player-queue-more {
+    anchor-name: var(--queue-anchor);
+  }
+
+  /* A finger has no dots (display: none, which cannot anchor), so a hold's menu hangs under the
+     handle; from 40rem it is a popover there, not a sheet. */
+  @media (hover: none) {
+    .player-queue-grip {
+      anchor-name: var(--queue-anchor);
+    }
+  }
+
+  .player-queue-item .player-queue-menu {
+    position-anchor: var(--queue-anchor);
+  }
+}
+
+/* The grip is the row's only handle for moving it: a press on it never scrolls the list, so a pull
+   lifts the row instead (the row itself keeps up-and-down for scrolling). */
+.player-queue-grip {
+  color: var(--color-on-surface-muted);
+  cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.player-queue-item[data-dragging] .player-queue-grip {
+  cursor: grabbing;
+}
+
 /* Suggested (2026-10-26): with nothing queued, Up next lists what Autoplay would play, in the
    queue's own rows; the plus at a row's end queues it. */
 .player-suggested-head {
-  margin: 0 0 var(--space-2);
+  margin: var(--space-6) 0 var(--space-2);
   padding-inline: var(--space-2);
 }
 
-/* The menu hangs under its own dots: the last --hero-more before it in the page (hero.css). */
-@supports (top: anchor(bottom)) {
-  .player-queue-more {
-    anchor-name: --hero-more;
-  }
-}
-
 @media (hover: hover) and (pointer: fine) {
-  .player-queue-row:hover {
-    background: color-mix(
-      in oklch,
-      var(--color-surface-container),
-      var(--color-on-surface) var(--state-hover)
-    );
+  .player-queue-row:where(:not(:disabled, [aria-disabled="true"])):hover {
+    background: var(--color-surface-container-hover);
   }
 }
 
-.player-queue-row:active {
-  background: color-mix(
-    in oklch,
-    var(--color-surface-container),
-    var(--color-on-surface) var(--state-press)
-  );
+.player-queue-row:where(:not(:disabled, [aria-disabled="true"])):active {
+  background: var(--color-surface-container-pressed);
 }
 
 /* ------------------------------------------------------------------ wide, with a mouse: nothing said twice */
@@ -2715,6 +2744,49 @@
    column, so it fits by construction in a short window (a tablet held sideways, 1024x600 to
    1280x720) and nothing is cut below the edge. A mouse's column holds less (no scrubber, no story
    line) and keeps the plain share. */
+/* Full bleed on a phone (owner, 2026-11-03: "make the row full bleed in the queue"): the row's fill,
+   the held row's tonal fill and the red strip behind a swipe run to both edges of the screen instead
+   of sitting in the page's gutters as a pill. The words, the cover and the handle keep the gutter, so
+   nothing moves; only what is painted grows. A band at the screen's edge takes no corner radius.
+   From 40rem the centred column caps it, as it does the tab line. */
+@media (width < 64rem) {
+  .player-queue-item {
+    margin-inline: calc(max(var(--player-padding), var(--safe-left)) * -1)
+      calc(max(var(--player-padding), var(--safe-right)) * -1);
+    border-radius: 0;
+  }
+
+  /* The row's start takes the gutter, so the whole band's left end still plays it; the face's end
+     takes it after the handle, which sits beside the row, not in it. */
+  .player-queue-row {
+    padding-inline-start: calc(max(var(--player-padding), var(--safe-left)) + var(--space-2));
+  }
+
+  .player-queue-face,
+  .player-queue-item:not(:has(> .player-queue-face)) {
+    padding-inline-end: max(var(--player-padding), var(--safe-right));
+  }
+
+  .player-queue-delete {
+    padding-inline: calc(max(var(--player-padding), var(--safe-left)) + var(--space-4))
+      calc(max(var(--player-padding), var(--safe-right)) + var(--space-4));
+  }
+
+  /* One hit area, not two (owner, 2026-11-03: "there's a nested second hit area, don't show the hit
+     area"): the press paints the whole band, including the handle's end, instead of a pill inside
+     it. The press still belongs to the button that plays the podcast. */
+  .player-queue-row:where(:not(:disabled, [aria-disabled="true"])):active {
+    background: none;
+  }
+
+  /* A queued row paints its face (the part that slides); a suggested row has no face, so the row
+     itself takes the tone. */
+  .player-queue-item:has(> .player-queue-row:active),
+  .player-queue-item:has(.player-queue-row:active) > .player-queue-face {
+    background: var(--color-surface-container-pressed);
+  }
+}
+
 @media (width >= 64rem) {
   :root {
     --player-cover-share: min(40cqb, 100cqb - var(--player-column-rest));
@@ -2731,7 +2803,7 @@
 @media (width >= 64rem) and (hover: hover) and (pointer: fine) {
   /* The bar stays under the page here, with previous, play, next, the clock and the volume, as it
      does when the page is closed. The page does not say them twice: it keeps what the bar has not,
-     the two skips and the speed between them. */
+     the two skips. */
   .player-controls {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -2741,8 +2813,7 @@
     align-items: center;
   }
 
-  /* One timeline: the bar's. The page keeps the cover, the title, the source, the skips and the
-     speed between them. The story's headline is the bar's caption, so only its source stays here,
+  /* One timeline: the bar's. The page keeps the cover, the title, the source, the skips. The story's headline is the bar's caption, so only its source stays here,
      the one way to open it. */
   .scrubber-wrap,
   .player-story {
@@ -2761,9 +2832,7 @@
     min-height: 0;
   }
 
-  /* Back ten, the speed, forward ten: the speed is the middle of the three, as a dial between two
-     steps. TransportControls puts it between them in the document here, so Tab follows what the eye
-     sees. */
+  /* Back ten and forward ten, side by side. */
   .transport {
     display: flex;
     grid-row: 1;
@@ -2858,13 +2927,6 @@ html:is([data-player="open"], :has(dialog[open])) .player-dock {
     transform: none;
     filter: none;
   }
-
-  /* The speed panel fades without growing. */
-  .speed-panel {
-    --panel-scale: 1;
-    /* The exit fade takes the hover time here; the open rule has its own duration and keeps it. */
-    transition-duration: var(--duration-hover);
-  }
 }
 
 @media (forced-colors: active) {
@@ -2902,24 +2964,10 @@ html:is([data-player="open"], :has(dialog[open])) .player-dock {
     border-block-start: var(--stroke-hairline) solid CanvasText;
   }
 
-  .player-fallback-action {
-    border: var(--stroke-rail) solid ButtonText;
-  }
-
   /* Fills are dropped too, so each text control keeps an edge of its own. */
-  .speed-btn,
-  .speed-preset,
   .story-row,
   .script-back {
     border: var(--stroke-hairline) solid ButtonText;
-  }
-
-  .speed-panel {
-    border: var(--stroke-hairline) solid CanvasText;
-  }
-
-  .speed-preset[aria-pressed="true"] {
-    border: var(--stroke-rail) solid Highlight;
   }
 
   /* An outline, so the turn keeps its size as the voice moves from one to the next. */

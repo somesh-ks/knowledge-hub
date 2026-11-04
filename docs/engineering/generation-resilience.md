@@ -24,5 +24,5 @@ Voice rewrites run four stories at once, grounding eight, and `podcast.yml` inst
 
 ## Known behaviour
 
-- A failed run's record commit (`--record-failed`) stages whatever the working tree changed inside the write guard's allowlist, as it always did for a scheduled run and now does for an on-demand one (its spend and metrics ride in it). If the Commit step wrote a digest and then failed before its own commit, the record commit carries that digest and the card says failed. The content is not lost; the report is.
+- A failed run's record commit (`--record-failed`) stages whatever the working tree changed inside the write guard's allowlist, as it always did for a scheduled run and now does for an on-demand one (its spend and metrics ride in it). If the Commit step wrote a digest and then failed before its own commit, the record commit carries that digest and the card says failed. The content is not lost; the report is. A failed Regenerate's record commit restores `state/seen.json`: the gate freed the old digest's stories there, and the old digest stays.
 - A Regenerate's Length sizes the fetch and write steps, the section counts of the write, validate and commit steps (`loadSectionPlan(..., asked)`), and nothing else: the narration limit and the digest's hard maximum still hold.

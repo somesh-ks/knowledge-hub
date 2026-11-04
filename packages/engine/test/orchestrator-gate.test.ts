@@ -206,6 +206,8 @@ describe("gate: fetch windows", () => {
       "2026-10-01T00:00:00.000Z",
       "2026-10-01T00:00:00.000Z",
     ]);
+    // The lookback reaches past the last scrape, so the fetch stage reads every listing (D342).
+    expect((await readPlan(root))?.lookback).toBe(true);
   });
 
   it("rejects a --since that is not a date or lies in the future", async () => {
@@ -264,5 +266,59 @@ describe("gate: the plan file", () => {
     const result = await runPipeline(deps(WED), opts({ stage: "gate" }));
     expect(result.code).toBe(1);
     expect(result.report).toMatchObject({ outcome: "failed", stage: "gate" });
+  });
+});
+
+describe("gate: spend ceiling (H7)", () => {
+  // Without the check a scheduled run starts on a day the ledger already shows $6 spent, and the
+  // ceiling only ever raised an alarm afterwards.
+  async function ledger(usd: number, at: string): Promise<void> {
+    await put(
+      "state/costs-2026-10.json",
+      JSON.stringify({
+        version: 1,
+        records: [
+          {
+            id: "a",
+            at,
+            run_id: "r",
+            kind: "daily",
+            timezone: "Europe/Stockholm",
+            user: "owner",
+            scope: "shared",
+            stage: "write",
+            provider: "anthropic",
+            product: "m",
+            units: {},
+            usd,
+          },
+        ],
+      }),
+    );
+  }
+
+  it("holds a scheduled run when the last 24 hours cost more than the ceiling", async () => {
+    await ledger(6, "2026-10-06T20:00:00Z");
+    const report = await gate(WED);
+    expect(report).toMatchObject({ due: false, passes: [] });
+    expect(report.reason).toContain("ceiling");
+  });
+
+  it("lets a run a person started, or forced, go ahead", async () => {
+    await ledger(6, "2026-10-06T20:00:00Z");
+    expect((await gate(WED, { mode: "on-demand" })).due).toBe(true);
+    expect((await gate(WED, { force: true })).due).toBe(true);
+  });
+
+  it("ignores spend older than 24 hours and spend under the ceiling", async () => {
+    await ledger(6, "2026-10-05T04:00:00Z");
+    expect((await gate(WED)).due).toBe(true);
+    await ledger(2, "2026-10-06T20:00:00Z");
+    expect((await gate(WED)).due).toBe(true);
+  });
+
+  it("does not count a record dated after the gate's clock", async () => {
+    await ledger(6, "2026-10-08T04:00:00Z");
+    expect((await gate(WED)).due).toBe(true);
   });
 });

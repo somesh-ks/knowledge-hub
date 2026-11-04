@@ -1,5 +1,7 @@
 # Podcast structure: a modular script for every kind of episode
 
+> Removed from the app on 2026-11-02 (D344): the editor this describes is gone; the engine still reads the stored structure as a fixed default. Kept for the engine's side and for the history.
+
 A design for the owner's ask of 2026-10-23: "In preferences page there must be a segmented selector, one for source types, another for podcast structure (making it modular, able to add and delete new sections). This will enable dynamic podcast structure for script generation. The scope is set for all kinds of podcasts. Evolve this idea to address all gaps before building it." Phase 1 is built (D176, which records where the build departs from this design: daily and weekly have no rundown or close by default, counts are optional, 32 blocks); D170 records the design as accepted, with the owner's answers of 2026-10-24 folded in below. Code and tests win where they differ once it is built. D191 later replaced the per-kind lists described below with one structure for every podcast, chosen by listener profile; read "each kind" as the first design.
 
 ## What exists today

@@ -18,10 +18,12 @@ const GITHUB_SECRETS = [
   "SPEECHIFY_API_KEY",
   "BLOB_READ_WRITE_TOKEN",
   // The private store the weekly config snapshot goes to (D300).
-  "BLOB_PRIVATE_READ_WRITE_TOKEN",
   "VERCEL_TOKEN",
   "GEMINI_API_KEY",
   "DATABASE_URL",
+  // The daily health check (D360): Neon's compute hours, and the site's GitHub token's end date.
+  "NEON_API_KEY",
+  "GITHUB_SINGULARITY_TOKEN",
 ];
 
 /** Plain configuration, stored as GitHub Actions variables so it stays visible in workflow runs. */
@@ -30,6 +32,8 @@ const GITHUB_VARIABLES = [
   "SPEECHIFY_MONTHLY_CHARS",
   "SINGULARITY_GIT_NAME",
   "SINGULARITY_GIT_EMAIL",
+  // The Neon project the daily health check reads compute hours from (D360); branches.yml too.
+  "NEON_PROJECT_ID",
 ];
 
 /**

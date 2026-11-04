@@ -1,4 +1,5 @@
 import { type DigestKind, type LastRunFile, scheduleZone } from "@singularity/core";
+import { spendCeilingStop } from "../cost/ceiling.js";
 import { allocateDigestId } from "../gate/allocateDigestId.js";
 import { decideRun, type RunDecision } from "../gate/decideRun.js";
 import { fetchWindow } from "../gate/fetchWindow.js";
@@ -54,7 +55,16 @@ export async function decideKinds(
 export async function gateStage(deps: RunDeps, options: RunOptions): Promise<GateReport> {
   if (options.replace !== undefined) return replaceGate(deps, options, options.replace);
   const now = deps.now();
-  const { lastRun, decision, kinds } = await decideKinds(deps, options, now);
+  const decided = await decideKinds(deps, options, now);
+  const { lastRun } = decided;
+  // A scheduled run waits when the last 24 hours already cost more than the ceiling (H7). A run a
+  // person started (on-demand, forced, a replacement) is their call and goes ahead.
+  const stop =
+    decided.kinds.length > 0 && options.mode !== "on-demand" && !options.force
+      ? await spendCeilingStop(deps.root, now)
+      : null;
+  const kinds = stop === null ? decided.kinds : [];
+  const decision = stop === null ? decided.decision : { ...decided.decision, reason: stop };
   const since = options.since === undefined ? undefined : parseSince(options.since, now);
   const lastFetchAt = lastRun.last_fetch_at ? new Date(lastRun.last_fetch_at) : undefined;
   // The regular digest's window starts where its own last window ended, not at the last fetch of
@@ -94,6 +104,7 @@ export async function gateStage(deps: RunDeps, options: RunOptions): Promise<Gat
     reason: decision.reason,
     passes,
     source: "gate",
+    ...(since === undefined ? {} : { lookback: true }),
     ...lengthOf(options),
     ...(decision.publishAt && !options.dryRun
       ? { publish_at: decision.publishAt.toISOString() }

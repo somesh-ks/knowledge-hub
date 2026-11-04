@@ -8,6 +8,8 @@ import { defineConfig } from "astro/config";
 import { ANALYTICS_QUEUE_ORIGIN, ANALYTICS_SCRIPT_ORIGIN } from "./src/lib/analytics.ts";
 import {
   importGraph,
+  SHARED_STYLES_KEY,
+  sharedIslandStylesheets,
   WAKE_STYLES_KEY,
   wakeStylesheets,
   withModulePreloads,
@@ -92,6 +94,7 @@ function preloadPageModules() {
           JSON.stringify({
             ...importGraph(urls, read),
             [WAKE_STYLES_KEY]: wakeStylesheets(files, read),
+            [SHARED_STYLES_KEY]: sharedIslandStylesheets(urls, read),
           }),
         );
       },
@@ -174,9 +177,19 @@ export default defineConfig({
   site: "https://news.someshks.work",
   // Static output. Only the routes that export `prerender = false` run on demand.
   output: "static",
+  // Skew protection stays off whatever the Vercel project says. It writes `?dpl=<deployment>` into
+  // every asset address and import, and Vite then drops the preload list from each lazy import, so
+  // production stopped matching the tested build: no modulepreload links, player.css linked twice,
+  // and the budget check reading 11 KB of a 75 KB first load (found 2026-11-01 by the performance
+  // audit). The service worker already keeps an open tab's files across a deploy, and buildGuard.ts
+  // turns a move into a page of another build into a full load.
   adapter: staticOnly
     ? undefined
-    : vercel({ maxDuration: FUNCTION_MAX_DURATION_S, includeFiles: FILES_PAGES_READ }),
+    : vercel({
+        maxDuration: FUNCTION_MAX_DURATION_S,
+        includeFiles: FILES_PAGES_READ,
+        skewProtection: false,
+      }),
   integrations: [
     react(),
     wakeDirective(),
@@ -199,6 +212,9 @@ export default defineConfig({
     "/settings/podcast/topics": { status: 308, destination: "/settings/categories" },
     "/settings/sources": { status: 308, destination: "/settings/categories" },
     "/settings/schedule": { status: 308, destination: "/settings/daily" },
+    // Sound and voice became one page, and Haptics its own (D326): the old addresses keep working.
+    "/settings/sounds": { status: 308, destination: "/settings/sound" },
+    "/settings/voice": { status: 308, destination: "/settings/sound" },
     // An episode on request is set up in the Create panel, which /create shows as a page.
     "/settings/custom": { status: 308, destination: "/create" },
     // The judge's finer topics have no page of their own since D69: each goes to the one of the

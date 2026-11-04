@@ -16,9 +16,11 @@ import {
 } from "../player/core/installHint";
 import {
   getPreferences,
+  HUE_MAX,
   type Preferences,
   THEME_PREFERENCES,
   type ThemePreference,
+  toHue,
 } from "../player/core/preferences";
 import { safeLocalStorage } from "../player/core/resume";
 import { startThemeSync } from "../player/core/themeRuntime";
@@ -112,10 +114,14 @@ function installHintApplies(): boolean {
 function mountSettings(root: HTMLElement): () => void {
   const preferences = getPreferences();
   const theme = root.querySelector<HTMLSelectElement>('select[name="theme"]');
-  const style = root.querySelector<HTMLSelectElement>('select[name="style"]');
+  const mood = root.querySelector<HTMLSelectElement>('select[name="mood"]');
+  const hue = root.querySelector<HTMLInputElement>('input[name="hue"]');
   const sounds = root.querySelector<HTMLInputElement>('input[name="sounds"]');
   const haptics = root.querySelector<HTMLInputElement>('input[name="haptics"]');
   const hapticsSection = root.querySelector<HTMLElement>("[data-haptics-section]");
+  // The index's Haptics row: hidden where the device has no motor, and it says On or Off.
+  const hapticsRow = root.querySelector<HTMLElement>("[data-haptics-row]");
+  const hapticsHint = root.querySelector<HTMLElement>("[data-haptics-hint]");
   const volume = root.querySelector<HTMLInputElement>('input[name="volume"]');
   const autoplay = root.querySelector<HTMLInputElement>('input[name="autoplay"]');
   const hint = root.querySelector<HTMLElement>("[data-install-hint]");
@@ -133,15 +139,23 @@ function mountSettings(root: HTMLElement): () => void {
   const render = (): void => {
     const state = controlState(preferences.get(), preferences.getSoundsEnabled());
     if (theme) theme.value = state.theme;
-    // A stored style tokens.json no longer holds looks like Default (the CSS has nothing for it).
-    if (style) {
-      const stored = preferences.get().style;
-      style.value = [...style.options].some((option) => option.value === stored)
-        ? stored
-        : "default";
+    // A stored mood tokens.json no longer holds looks like Default (the CSS has nothing for it).
+    if (mood) {
+      const stored = preferences.get().mood;
+      mood.value = [...mood.options].some((option) => option.value === stored) ? stored : "default";
+    }
+    if (hue) {
+      const turn = preferences.get().hue;
+      hue.value = String(turn);
+      // A mood is what has a hue to turn: Default stays blue, so its row is not shown (D328; the
+      // stylesheet hides it from the root's data-mood, which is absent for Default).
+      hue.setAttribute("aria-valuetext", `${turn} degrees`);
+      // The field around the slider draws the swatch from this; WebKit has no filled-part pseudo-element.
+      (hue.parentElement ?? hue).style.setProperty("--range-fill", `${(turn / HUE_MAX) * 100}%`);
     }
     if (sounds) sounds.checked = state.sounds;
     if (haptics) haptics.checked = preferences.get().haptics;
+    if (hapticsHint) hapticsHint.textContent = preferences.get().haptics ? "On" : "Off";
     if (autoplay) autoplay.checked = preferences.get().autoplay;
     if (volume) {
       volume.value = state.volume;
@@ -160,9 +174,9 @@ function mountSettings(root: HTMLElement): () => void {
       if (chosen) preferences.set({ theme: chosen });
       return;
     }
-    if (input === style && style) {
+    if (input === mood && mood) {
       // The same crossfade as a theme change; no sound.
-      preferences.set({ style: style.value });
+      preferences.set({ mood: mood.value });
       return;
     }
     if (input === haptics && haptics) {
@@ -189,6 +203,11 @@ function mountSettings(root: HTMLElement): () => void {
   };
 
   const onInput = (event: Event): void => {
+    if (hue && event.target === hue) {
+      // Follows the thumb, so the page, the covers and the light turn as it is dragged.
+      preferences.set({ hue: toHue(Number(hue.value)) });
+      return;
+    }
     if (!volume || event.target !== volume) return;
     const next = toVolume(volume.value);
     if (next !== null) preferences.set({ volume: next });
@@ -228,9 +247,12 @@ function mountSettings(root: HTMLElement): () => void {
   void root.offsetWidth;
   // The Theme select has waited inert for the listener above (settings.astro).
   if (theme) theme.inert = false;
-  if (style) style.inert = false;
+  if (mood) mood.inert = false;
   // Only a device that can answer is offered the choice (D273).
   if (hapticsSection) hapticsSection.hidden = getHaptics().support === "none";
+  const hapticsNone = root.querySelector<HTMLElement>("[data-haptics-none]");
+  if (hapticsNone) hapticsNone.hidden = getHaptics().support !== "none";
+  if (hapticsRow) hapticsRow.hidden = getHaptics().support === "none";
   root.dataset.ready = "true";
 
   // The Notifications row's state is the browser's (D284); its code loads only where the row is.

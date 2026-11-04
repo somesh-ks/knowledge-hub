@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { searchIndex } from "../lib/libraryCard";
 import { getSite } from "../lib/site";
-import { CONTENT_CDN_CACHE, readFromContentRepo } from "../server/contentRepo";
+import { CONTENT_CACHE_TAG, CONTENT_CDN_CACHE, readFromContentRepo } from "../server/contentRepo";
 
 // Rendered on request from the content repository (D173); the static test build prerenders it.
 export const prerender = false;
@@ -17,6 +17,7 @@ export const GET: APIRoute = async ({ isPrerendered }) => {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       "Vercel-CDN-Cache-Control": CONTENT_CDN_CACHE,
+      "Vercel-Cache-Tag": CONTENT_CACHE_TAG,
     },
   });
 };

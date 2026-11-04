@@ -1,11 +1,12 @@
 ---
 import Icon from "../design-system/Icon.astro";
 import { getSite } from "../lib/site";
+import AccountSlot from "./AccountSlot.astro";
 import BrandMark from "./BrandMark.astro";
 
 interface Props {
   /** A page one level down leads back: to the page the person came from, else to this address. */
-  back?: { href: string; label: string };
+  back?: { href: string; label: string; hidden: boolean };
 }
 
 const { back } = Astro.props;
@@ -14,7 +15,7 @@ const homeLabel =
   (await getSite()).entries.length > 0 ? "Singularity, latest podcast" : "Singularity, Latest";
 ---
 
-{/* The top app bar, shown below 64rem. The wordmark sits in the middle. A page one level down adds
+{/* The top app bar, shown below 64rem. The wordmark leads. A page one level down adds
      a Back button at the leading edge, a little in from the corner that iPadOS windowed apps use for
      their window controls. From 64rem the side navigation carries the wordmark and this bar is not
      rendered at all. */}
@@ -22,7 +23,7 @@ const homeLabel =
   <div class="app-bar-inner page">
     {
       back && (
-        <a class="icon-btn app-bar-back" href={back.href} aria-label={back.label} data-back>
+        <a class="icon-btn app-bar-back" href={back.href} aria-label={back.label} data-back hidden={back.hidden}>
           <Icon name="arrowBack" />
         </a>
       )
@@ -31,6 +32,7 @@ const homeLabel =
       <BrandMark />
       <span>Singularity</span>
     </a>
+    <AccountSlot place="bar" />
   </div>
 </header>
 

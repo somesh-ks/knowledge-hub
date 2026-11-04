@@ -15,7 +15,7 @@ dialog.dialog-panel {
   margin: auto;
   padding: var(--space-6);
   border: 0;
-  border-radius: var(--radius-lg);
+  border-radius: var(--shape-lg);
   background: var(--sheet-bg);
   box-shadow: var(--sheet-shadow);
   color: var(--color-on-surface);

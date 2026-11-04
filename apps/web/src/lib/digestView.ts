@@ -76,6 +76,14 @@ export function listenLength(entry: DigestEntry): string {
     : `${digest.listen_minutes} min`;
 }
 
+/** The minutes a Regenerate's Length starts from: the recording's own length once it exists, else the estimate. */
+export function airedMinutes(entry: DigestEntry): number {
+  const { digest } = entry;
+  return entry.audioMode === "ready" && digest.audio
+    ? digest.audio.duration_ms / 60_000
+    : digest.listen_minutes;
+}
+
 export function buildHero(entry: DigestEntry, title: string): HeroView {
   const { digest } = entry;
   const length = listenLength(entry);

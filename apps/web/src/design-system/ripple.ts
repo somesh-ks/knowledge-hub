@@ -8,7 +8,10 @@
  *
  * A control that moves the page is swapped for its twin on the page that arrives. The waves in
  * flight are drawn again there, at the point they had reached, so the press is one gesture across
- * the move and not a flash on the old page.
+ * the move and not a flash on the old page. The wave runs on the compositor, which keeps playing it
+ * while the main thread swaps the page, so the new wave takes the old one's start time on the one
+ * document clock: a count of milliseconds played, taken before the swap, set it back by the swap's
+ * length and it grew a second time on the new bar (owner, 2026-11-03: "double ripple" on a tab tap).
  *
  * Each press is its own: it knows its pointer, its control and its waves, so a second finger, or a
  * tap while an earlier wave is fading, never ends or restarts another. The pressed state is the
@@ -66,7 +69,7 @@ interface Timing {
 /** The presses still showing something: a finger down, or a wave still fading. */
 const presses = new Set<Press>();
 
-/** The animation clock: it advances by frames, so a stall while a page is swapped does not count. */
+/** The animation clock, the one the waves' start times are on. It stands still within a task. */
 function clock(): number {
   return Number(document.timeline.currentTime ?? performance.now());
 }
@@ -99,8 +102,8 @@ function settle(p: Press): void {
   if (p.lift !== null && p.waves.length === 0) presses.delete(p);
 }
 
-/** Draws a wave for `p` on `layer`, as far along as `now` puts it. */
-function draw(layer: HTMLElement, p: Press, now: number): void {
+/** Draws a wave for `p` on `layer`, started when the press started, so it is where any earlier wave of it had got to. */
+function draw(layer: HTMLElement, p: Press): void {
   // With reduced motion there is no wave: the control's pressed state says it alone.
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const t = timing(layer);
@@ -120,12 +123,12 @@ function draw(layer: HTMLElement, p: Press, now: number): void {
     easing: t.ease,
     fill: "forwards",
   });
-  grow.currentTime = now - p.start;
-  fade(wave, p, t, now);
+  grow.startTime = p.start;
+  fade(wave, p, t);
 }
 
 /** Starts the fade once the finger is up and the wave has grown a little; removes the wave after. */
-function fade(wave: HTMLElement, p: Press, t: Timing, now: number): void {
+function fade(wave: HTMLElement, p: Press, t: Timing): void {
   if (p.lift === null) return;
   const begins = Math.max(p.lift, p.start + t.grow * t.hold);
   const out = wave.animate([{ opacity: 1 }, { opacity: 0 }], {
@@ -134,7 +137,7 @@ function fade(wave: HTMLElement, p: Press, t: Timing, now: number): void {
     easing: t.ease,
     fill: "both",
   });
-  out.currentTime = now - p.start;
+  out.startTime = p.start;
   const done = (): void => {
     wave.remove();
     p.waves = p.waves.filter((w) => w !== wave);
@@ -150,7 +153,7 @@ function lift(p: Press): void {
   p.control.removeAttribute(RIPPLE_PRESSED);
   for (const wave of p.waves) {
     const layer = wave.parentElement;
-    if (layer) fade(wave, p, timing(layer), p.lift);
+    if (layer) fade(wave, p, timing(layer));
   }
   settle(p);
 }
@@ -168,6 +171,8 @@ export function installRipple(): void {
       const control = (event.target as Element | null)?.closest<HTMLElement>("[data-ripple]");
       const layer = layerOf(control);
       if (!control || !layer || getComputedStyle(layer).display === "none") return;
+      // A control that does nothing shows nothing: no wave on a disabled control.
+      if (control.matches(':disabled, [aria-disabled="true"]')) return;
       const box = layer.getBoundingClientRect();
       const p: Press = {
         id: event.pointerId,
@@ -181,7 +186,7 @@ export function installRipple(): void {
       };
       presses.add(p);
       control.setAttribute(RIPPLE_PRESSED, "");
-      draw(layer, p, p.start);
+      draw(layer, p);
     },
     { capture: true },
   );
@@ -189,36 +194,24 @@ export function installRipple(): void {
   document.addEventListener("pointercancel", end, { capture: true });
 
   // The page that arrives has the control again: each wave goes on there, from where it had got to.
-  let carried: { press: Press; played: number; lifted: number | null }[] = [];
+  let carried: Press[] = [];
   document.addEventListener("astro:before-swap", () => {
-    const now = clock();
-    carried = [...presses].map((press) => ({
-      press,
-      played: now - press.start,
-      lifted: press.lift === null ? null : press.lift - press.start,
-    }));
+    carried = [...presses];
   });
   document.addEventListener("astro:after-swap", () => {
-    const now = clock();
     const next = carried;
     carried = [];
     presses.clear();
-    for (const { press, played, lifted } of next) {
+    for (const press of next) {
       const twin = [...document.querySelectorAll<HTMLElement>("[data-ripple]")].find(
         (control) => keyOf(control) === press.key,
       );
       const layer = layerOf(twin);
       if (!twin || !layer) continue;
-      const p: Press = {
-        ...press,
-        control: twin,
-        start: now - played,
-        lift: lifted === null ? null : now - played + lifted,
-        waves: [],
-      };
+      const p: Press = { ...press, control: twin, waves: [] };
       presses.add(p);
       if (p.lift === null) twin.setAttribute(RIPPLE_PRESSED, "");
-      draw(layer, p, now);
+      draw(layer, p);
       settle(p);
     }
   });

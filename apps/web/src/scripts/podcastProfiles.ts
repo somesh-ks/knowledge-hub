@@ -6,11 +6,6 @@
 import type { Voice, VoiceDefaults } from "../lib/voices";
 import type { ConfigOp } from "../types/contracts";
 
-const LIST_TIMEOUT_MS = 10_000;
-
-/** Said in a voice list that could not be filled: the voice service did not answer, or has no voices. */
-const VOICES_UNAVAILABLE = "Couldn't load the voice list. Default and your saved voice stay.";
-
 /** What the schedule controls hold, by field: "daily.hour", "weekly.day", "weekly.voice_b". */
 export type FieldValues = Record<string, string>;
 
@@ -87,11 +82,16 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
     const selects = root.querySelectorAll<HTMLSelectElement>(".podcast-voice select");
     try {
       const lib = await import("../lib/voices");
-      const response = await fetch("/api/voices", { signal: AbortSignal.timeout(LIST_TIMEOUT_MS) });
-      const body: unknown = response.ok ? await response.json() : null;
+      const result = await lib.fetchVoiceList({
+        fetch,
+        online: () => navigator.onLine,
+        wait: (ms) => new Promise((done) => setTimeout(done, ms)),
+      });
+      const body: unknown = "body" in result ? result.body : null;
       voices = lib.parseVoices(body) ?? [];
       defaults = lib.parseVoiceDefaults(body);
-      note = voices.length === 0 ? VOICES_UNAVAILABLE : "";
+      note = "failure" in result ? lib.VOICE_LIST_NOTES[result.failure] : "";
+      if (!note && voices.length === 0) note = lib.VOICE_LIST_NOTES.unavailable;
       for (const select of selects) {
         const second = (select.dataset.f ?? "").endsWith("voice_b");
         const fallback = voices.find(
@@ -101,7 +101,7 @@ export function mountProfiles(root: HTMLElement, changed: () => void): void {
       }
     } catch {
       voices = [];
-      note = VOICES_UNAVAILABLE;
+      note = "Couldn't load the voice list. Default and your saved voice stay.";
     }
     for (const select of selects) {
       if (note) select.dataset.note = note;

@@ -1,8 +1,9 @@
 ---
 import type { DigestEntry } from "../lib/digests";
+import { airedMinutes } from "../lib/digestView";
 import { longDate, longDateTitle } from "../lib/format";
-import { FACT_SEPARATOR } from "../lib/library";
 import { cardFacts } from "../lib/libraryCard";
+import CardMarks from "./CardMarks.astro";
 import Cover from "./Cover.astro";
 import CoverPlay from "./CoverPlay.astro";
 import LibraryItemMenu from "./LibraryItemMenu.astro";
@@ -10,22 +11,17 @@ import LibraryItemMenu from "./LibraryItemMenu.astro";
 interface Props {
   entry: DigestEntry;
   /** The first row of a grid loads its covers at once; the rest wait until they are near. */
-  priority?: boolean;
   /** The Library's card carries the menu; the shelf on a briefing page does not. */
   menu?: boolean;
   /** Settings > Downloads: the menu offers only what applies to a saved copy. */
   downloads?: boolean;
+  /** On Settings > Favorites: the row's menu is cut to what applies to a saved item. */
+  saved?: boolean;
 }
 
-const { entry, priority = false, menu = false, downloads = false } = Astro.props;
+const { entry, menu = false, downloads = false, saved = false } = Astro.props;
 const { digest } = entry;
 const facts = cardFacts(entry);
-// Kind, story count, length: the count is its own span, so the narrow shelf on Today can leave it out,
-// and the length is its own, so "Played" can take its place without touching the kind.
-const segments = facts.line.split(FACT_SEPARATOR);
-const length = segments.length > 1 ? segments.at(-1) : undefined;
-const [kind, count] = segments.slice(0, -1);
-const hasCount = segments.length > 2;
 ---
 
 {/* One briefing as album art: the cover, its date, and one quiet line. The whole card is the link.
@@ -50,13 +46,13 @@ const hasCount = segments.length > 2;
       size="card"
       source={digest}
       weekly={digest.kind === "weekly"}
-      priority={priority}
     />
     {/* A half-heard item: a bar along the bottom of the art, on its own track, so it reads on any cover. */}
     <span class="card-progress" data-cover-progress aria-hidden="true" hidden></span>
     <span class="card-title">{longDateTitle(digest.date)}</span>
     <span class="card-sub">
-      <span class="card-facts" data-card-facts data-rest={facts.line}>{length === undefined ? facts.line : <Fragment>{kind}{hasCount && <span class="card-count">{FACT_SEPARATOR}{count}</span>}{FACT_SEPARATOR}<span data-card-length>{length}</span></Fragment>}</span>
+      <span class="card-facts" data-card-facts>{facts.line}</span>
+      <CardMarks />
     </span>
   </a>
   <CoverPlay digestId={entry.id} href={`/d/${entry.id}`} title={longDate(digest.date)} />
@@ -69,9 +65,11 @@ const hasCount = segments.length > 2;
         path={`/d/${entry.id}`}
         kind="briefing"
         audio={entry.audioMode === "ready" ? entry.player.audio?.url : undefined}
+        minutes={airedMinutes(entry)}
         deletable={digest.kind === "on-demand"}
         regenerations={digest.regenerations}
         downloads={downloads}
+        saved={saved}
       />
     )
   }

@@ -16,9 +16,10 @@ import type { BudgetRefusal } from "../audio/budget.js";
 import {
   checkBudget,
   describeRefusal,
-  loadUsage,
+  fileUsageStore,
   type RecordUsageInput,
   recordUsage,
+  type UsageStore,
 } from "../audio/budget.js";
 import type { Mp3OutputFormat, SpeechMark, SpeechSynthesizer } from "../audio/speechify.js";
 import {
@@ -42,6 +43,8 @@ export interface PublishAudioDeps {
   root: string;
   speech: SpeechSynthesizer;
   blob: BlobClient;
+  /** Where the month's Speechify count lives. Without it, state/usage.json under `root`. */
+  usage?: UsageStore;
   log: Logger;
   now: () => Date;
   /** Monthly character allowance; synthesis stops at 90 percent of it. */
@@ -272,6 +275,7 @@ export async function recordPartialSpend(
   try {
     await recordUsage({
       root: deps.root,
+      store: deps.usage,
       now: deps.now(),
       characters: error.partialCharacters,
       ledger,
@@ -343,7 +347,7 @@ async function processDigest(
 
   let decision: ReturnType<typeof checkBudget>;
   try {
-    const usage = await loadUsage(root, deps.now());
+    const usage = await (deps.usage ?? fileUsageStore(root)).load(deps.now());
     decision = checkBudget({
       usage,
       now: deps.now(),
@@ -386,6 +390,7 @@ async function processDigest(
   try {
     await recordUsage({
       root,
+      store: deps.usage,
       now: deps.now(),
       characters: narration.billableCharacters,
       ledger,
@@ -460,7 +465,7 @@ async function processDigest(
       characters: narration.billableCharacters,
       ...(resolved.degradedReason !== undefined ? { degradedReason: resolved.degradedReason } : {}),
     },
-    changed: [timelinePath, target.relPath, STATE_FILES.usage],
+    changed: [timelinePath, target.relPath, ...(deps.usage ? [] : [STATE_FILES.usage])],
   };
 }
 

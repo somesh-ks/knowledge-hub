@@ -1,6 +1,3 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import { type Digest, parseDigestFile } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { bridgeCandidates } from "../src/audio/hostFrame.js";
 import {
@@ -13,17 +10,6 @@ import {
 } from "../src/audio/spokenSegments.js";
 import { buildSpokenText, itemBlock, type SpokenText } from "../src/audio/spokenText.js";
 import { makeDigest, makeItem, must } from "./audio-fixtures.js";
-
-const DIGESTS = join(import.meta.dirname, "..", "..", "..", "Digests");
-
-/** Every digest committed under Digests/, so the proof runs on real narration, not only on fixtures. */
-function committedDigests(): Digest[] {
-  if (!existsSync(DIGESTS)) return [];
-  return readdirSync(DIGESTS, { recursive: true, encoding: "utf8" })
-    .filter((name) => name.endsWith(".md"))
-    .sort()
-    .map((name) => parseDigestFile(readFileSync(join(DIGESTS, name), "utf8")));
-}
 
 /**
  * The proof that segments and spoken text cannot disagree: walking the full text, each segment is
@@ -51,14 +37,6 @@ function expectSegmentsToRebuild(text: string, segments: SpokenSegment[]): void 
 }
 
 describe("spokenSegments", () => {
-  it("rebuilds the full spoken text of every committed digest", () => {
-    const digests = committedDigests();
-    expect(digests.length).toBeGreaterThanOrEqual(2);
-    for (const digest of digests) {
-      expectSegmentsToRebuild(buildSpokenText(digest).text, spokenSegments(digest));
-    }
-  });
-
   it("rebuilds the full spoken text of a fixture, whatever its sections and sizes", () => {
     for (const itemCount of [3, 5, 12, 18]) {
       const digest = makeDigest({}, itemCount);

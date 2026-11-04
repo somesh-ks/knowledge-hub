@@ -43,6 +43,8 @@ permissions:
   contents: read
   issues: write
   actions: write
+  # The budgets (D360) count open Dependabot alerts; refused, the card says "Dependabot alerts unread".
+  vulnerability-alerts: read
 
 jobs:
   health:
@@ -82,6 +84,13 @@ jobs:
           npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
           ${{ steps.probe.outputs.run == 'true' && '--workspace=apps/web' || '' }}
 
+      # Digests and episodes are in the content store, not in git (D300); the checks read them.
+      - name: Load content
+        shell: bash
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+        run: npm run --silent singularity -- content pull
+
       # The lab probe (D147, scripts/perfProbe.ts). One that fails (the site down, a timeout) writes
       # no perf.json and never fails the job: health reads the missing file as `perf_unmeasured`.
       - name: Probe performance
@@ -93,6 +102,31 @@ jobs:
         run: |
           npx playwright install --with-deps chromium
           npx tsx scripts/perfProbe.ts https://news.someshks.work --out "$RUNNER_TEMP/perf.json"
+
+      # The ingest shadow's reading (D233, D251): how many of the dailies' stories the store held and
+      # how many pages it read. It reads the dailies Load content pulled and Neon, and calls no model.
+      # It goes on the run's page and in its log on Mondays and on a manual run, never fails the job,
+      # and decides nothing: the cut-over is the owner's call once the shadow exit reads met.
+      - name: Ingest coverage
+        if: steps.probe.outputs.run == 'true'
+        shell: bash
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # The command loads config/ from the store when the files are not in git (D296); without
+          # the switch the first run failed with "config/ is missing ...".
+          SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE || vars.DISPATCH_CONFIG_STORE }}
+        run: |
+          {
+            echo "## Ingest coverage"
+            echo
+            echo '```'
+            status=0
+            npm run --silent singularity -- ingest --coverage 2>&1 || status=$?
+            echo "ingest --coverage exited with status $status"
+            echo '```'
+            exit "$status"
+          } 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Check
         shell: bash
@@ -108,6 +142,16 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           # The config store switch (D149): on, health compares the stored documents with git.
           SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE || vars.DISPATCH_CONFIG_STORE }}
+          # The budgets (D360): Neon's compute hours this month (unset, `neon_unmeasured`), and the
+          # keys that cost nothing to try, for a rejected key or a token near its end. An unset key
+          # is skipped.
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+          SPEECHIFY_API_KEY: ${{ secrets.SPEECHIFY_API_KEY }}
+          GITHUB_SINGULARITY_TOKEN: ${{ secrets.GITHUB_SINGULARITY_TOKEN }}
           # Empty on a day without the probe, which health reads as nothing to judge.
           PERF: ${{ steps.probe.outputs.run == 'true' && format('{0}/perf.json', runner.temp) || '' }}
         run: |
@@ -126,7 +170,8 @@ jobs:
           done
           side="$RUNNER_TEMP/side-runs.json"
           jq -n --slurpfile c "$RUNNER_TEMP/side-content.json" --slurpfile i "$RUNNER_TEMP/side-ingest.json" --slurpfile p "$RUNNER_TEMP/side-podcast.json" '{content: $c[0], ingest: $i[0], podcast: $p[0]}' > "$side" || { echo "::warning title=side_runs_unread::could not assemble the side-run history"; echo '{}' > "$side"; }
-          npm run --silent singularity -- health --json --ceiling-usd "$CEILING" --runs "$runs" --side-runs "$side" --perf "$PERF" | tee "$RUNNER_TEMP/health.json" >/dev/null
+          # --save keeps the report for the admin Health page's Budgets rows (D360).
+          npm run --silent singularity -- health --json --save --ceiling-usd "$CEILING" --runs "$runs" --side-runs "$side" --perf "$PERF" | tee "$RUNNER_TEMP/health.json" >/dev/null
           echo "exit=${PIPESTATUS[0]}"
           jq -r '.findings[] | "\(.severity) [\(.aspect)] \(.code): \(.message)"' "$RUNNER_TEMP/health.json" || true
           # Performance findings are mostly warnings, which open no issue (D147, D156), so they go on
@@ -134,7 +179,10 @@ jobs:
           jq -r '.findings[] | select(.aspect == "performance") | "::warning title=\(.code)::\(.message)"' "$RUNNER_TEMP/health.json" || true
           jq -r '"## Performance", "", (.findings[] | select(.aspect == "performance") | "- \(.code): \(.message)"), (.passed[] | select(test("lab budget|^field ")) | "- \(.)")' "$RUNNER_TEMP/health.json" >> "$GITHUB_STEP_SUMMARY" || true
 
+      # Always: a Load content that failed leaves no report, and the fallback below records that as a
+      # health_crashed fault, so a store outage is reported rather than skipped.
       - name: Report and heal
+        if: ${{ always() }}
         shell: bash
         env:
           DRILL: ${{ inputs.drill == true }}
@@ -208,12 +256,16 @@ jobs:
             local open_warn warn_codes
             open_warn=$(gh issue list --label health-warnings --state open --limit 1 --json number --jq '.[0].number // empty') || return 1
             warn_codes=$(jq -r '[.findings[] | select(.severity == "warning") | .code] | unique | join(" ")' "$report")
+            # The week's report card (D360): one row per area, coloured by the worst finding in it. It
+            # starts with a blank line, so it follows a sentence as its own block (two empty strings: one ends the line).
+            card=$(jq -r 'if (.card // [] | length) > 0 then ("", "", "| Area | State | This week |", "|---|---|---|", (.card[] | "| \(.label) | \(.tone) | \(.numbers) |")) else empty end' "$report") || card=""
             if [ -z "$warn_codes" ]; then
-              [ -z "$open_warn" ] || gh issue close "$open_warn" --comment "No standing warnings on $(date -u +%F) ([run]($run_url))."
+              [ -z "$open_warn" ] || gh issue close "$open_warn" --comment "No standing warnings on $(date -u +%F) ([run]($run_url)).$card"
               return 0
             fi
             {
               echo "Standing warnings on $(date -u +%F) ([run]($run_url)). Nothing heals these; faults go to the \`health\` issue."
+              [ -z "$card" ] || echo "$card"
               echo
               jq -r '.findings[] | select(.severity == "warning") | "- [\(.aspect)] `\(.code)`: \(.message)"' "$report"
             } > "$RUNNER_TEMP/warnings.md"

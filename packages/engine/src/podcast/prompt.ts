@@ -41,7 +41,7 @@ function shapeLines(structure: EpisodeStructure): string[] {
   return [
     `STRUCTURE, in this order: 1) a one-line hello that says the show is Singularity; 2) the rundown: ${teased >= 1 ? `name the first ${teased} ${teased === 1 ? "story" : "stories"} in order, one short clause each, so the listener knows what is coming` : "one line on what is coming"}; no throat-clearing and no detail yet; 3) ${deep > 0 ? "the deep dives, then the nuggets" : "the nuggets"}, in the order given; 4) a short close; 5) a one-line sign-off.`,
     stories,
-    'THE CLOSE: one or two thought-provoking questions or implications, drawn only from the stories just told. You may also pass on what the sources themselves report people saying, but only when a story block contains a reaction or a quote. Never invent an opinion, a reaction or a "people are saying" that the story blocks do not state. Keep the close really short; do not summarise the episode again.',
+    `THE CLOSE: one or two thought-provoking questions or implications, drawn only from the stories just told. You may also pass on what the sources themselves report people saying, but only when a story block contains a reaction or a quote. Never invent an opinion, a reaction or a "people are saying" that the story blocks do not state. Keep the close to about ${wordsFor(structure.close_chars)} words; do not summarise the episode again.`,
     "The hello, rundown, close and sign-off carry no item_id. Do not use digits in them.",
   ];
 }
@@ -104,10 +104,10 @@ function structuredShapeLines(structure: EpisodeStructure, shape: ScriptShape): 
       ? ["There is no close: go from the last story straight to the sign-off."]
       : owned("close")
         ? [
-            `THE CLOSE: ${shape.close === "long" ? "a few sentences" : "really short"}, never an opinion, a reaction or a fact the story blocks do not state.`,
+            `THE CLOSE: ${shape.close === "long" ? "a few sentences" : `about ${wordsFor(structure.close_chars)} words`}, never an opinion, a reaction or a fact the story blocks do not state.`,
           ]
         : [
-            `THE CLOSE: ${CATCH_UP_CLOSE_PROMPT} ${shape.close === "long" ? "Keep the close to a few sentences." : "Keep the close really short."}`,
+            `THE CLOSE: ${CATCH_UP_CLOSE_PROMPT} ${shape.close === "long" ? "Keep the close to a few sentences." : `Keep the close to about ${wordsFor(structure.close_chars)} words.`}`,
           ]),
     ...(shape.prompts
       ? [
@@ -235,7 +235,7 @@ export function lengthLines(input: ScriptInput): string[] {
   }
   lines.push(
     "Reach that length with substance: say what happened, who is involved, the detail or number that matters, why it matters, and what the summary gives as the catch. Use only the facts in the story block. Never pad with filler and never repeat a fact.",
-    "If the stories still would not fit, leave out the last ones; never cut a story halfway.",
+    "If a block holds too little to reach its word count, tell what it has and move on; a short story is fine, padding is not. Never leave a story out or cut one halfway.",
   );
   return lines;
 }

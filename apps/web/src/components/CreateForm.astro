@@ -64,17 +64,16 @@ const moreSummary = moreOptionsSummary(
 // script picks one by its key, which keeps it small. The run's own lines are in RunStatus.astro.
 const COPY = {
   topics: "Pick at least one category.",
-  "400": "The server turned that request down. Reload the page and try again.",
+  "400": "That didn't go through. Reload the page and try again.",
   cooldown: "You can make another episode in",
   daily_cap: "That's today's limit. Try again in",
   // Shown on the button while the request is out, in place of its words.
   starting: "Starting…",
   // A 5xx: the server logged why, and the reference it sent is added to this (lib/errorRef.ts).
-  "503": "The server ran into a problem, so no episode was started.",
+  "503": "Something broke on our side, so no episode was started.",
   // A 5xx that is not the site's own answer: the function crashed (lib/errorRef.ts).
-  crashed:
-    "The server crashed before it could answer, so nothing changed. Its log on Vercel has the error.",
-  network: "Couldn't reach the site. Check your connection, then try again.",
+  crashed: "Something broke on our side, and nothing changed. Try again in a moment.",
+  network: "No connection right now. Try again when you're back online.",
 } as const;
 ---
 
@@ -157,7 +156,7 @@ const COPY = {
     </section>
 
     {/* Everything with a sensible default, in place: one row that names the current choices and
-         opens to show them. On a wide /create page it stays open beside the main questions. */}
+         opens to show them, at every width (D345). */}
     <details class="create-more" data-create-more>
       <summary class="create-more-summary">
         <span class="create-more-text">

@@ -23,18 +23,25 @@ export type StartRejection =
   | "network";
 
 export type StartResult =
-  | { kind: "started"; runId: number; startedAt: string; request: GenerateRequest }
+  | {
+      kind: "started";
+      runId: number;
+      startedAt: string;
+      request: GenerateRequest;
+      /** The proof that this device started the run: Cancel and a push when it ends need it. */
+      cancelToken?: string;
+    }
   | { kind: "rejected"; reason: StartRejection; message: string; retryAfterSeconds?: number };
 
 export const MESSAGES = {
-  offline: "You are offline. Reconnect, then try again.",
+  offline: "You're offline. Try again when you're back online.",
   // The server logged why; the reference it sent is added to this (lib/errorRef.ts).
-  unavailable: "The server ran into a problem, so no podcast was started.",
-  crashed:
-    "The server crashed before it could answer, so nothing changed. Its log on Vercel has the error.",
-  invalid: "The server turned that request down. Reload the page and try again.",
+  unavailable:
+    "Something broke on our side. A podcast may have started, so check the queue before trying again.",
+  crashed: "Something broke on our side, and nothing changed. Try again in a moment.",
+  invalid: "That didn't go through. Reload the page and try again.",
   regenerationLimit: "This podcast has been regenerated 3 times, the most it takes.",
-  network: "Couldn't reach the site. Check your connection, then try again.",
+  network: "No connection right now. Try again when you're back online.",
 } as const;
 
 function pluralize(count: number, unit: string): string {
@@ -127,6 +134,7 @@ export async function startGenerate(
         runId,
         startedAt: typeof startedAt === "string" ? startedAt : new Date().toISOString(),
         request,
+        ...(typeof body?.cancel_token === "string" ? { cancelToken: body.cancel_token } : {}),
       };
     }
     case 400:
@@ -140,14 +148,14 @@ export async function startGenerate(
         return {
           kind: "rejected",
           reason: "dailyCap",
-          message: `Generate has reached its limit for today. Try again in ${wait}.`,
+          message: `That's today's limit. Try again in ${wait}.`,
           retryAfterSeconds: seconds,
         };
       }
       return {
         kind: "rejected",
         reason: "cooldown",
-        message: `Generate is on cooldown. Try again in ${wait}.`,
+        message: `Give it a moment. Try again in ${wait}.`,
         retryAfterSeconds: seconds,
       };
     }

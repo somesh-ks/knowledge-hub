@@ -241,7 +241,15 @@ export const componentParts = (): PartSource[] => [
     ],
   }),
   control("menu", "Menu", MENU, {
-    classes: ["menu-list", "menu-sheet", "menu-item", "menu-item-danger"],
+    classes: [
+      "menu-list",
+      "menu-sheet",
+      "menu-item",
+      "menu-item-danger",
+      "menu-tiles",
+      "menu-tile",
+      "menu-item-value",
+    ],
     keywords: [
       "popover",
       "dots menu",
@@ -318,13 +326,13 @@ export const componentParts = (): PartSource[] => [
   }),
   control("drawer", "Drawer", DRAWER, {
     kind: "container",
-    classes: ["drawer-scrim", "drawer-viewport", "drawer-popup", "drawer-panel", "drawer-head"],
+    classes: ["drawer-scrim", "drawer-viewport", "drawer-popup", "drawer-panel"],
     files: ["sheets/SheetFrame.tsx", "design-system/drawer.ts"],
     keywords: ["island sheet", "swipe to dismiss", "Base UI drawer", "react sheet"],
     markup:
       '<SheetFrame open={open} onOpenChange={setOpen} title="Create" closeLabel="Close">...</SheetFrame>',
     rules: [
-      "Mount SheetFrame; it draws the scrim, viewport, popup, panel and head from drawer.ts.",
+      "Mount SheetFrame; it draws the scrim, viewport, popup and panel from drawer.ts, and the Sheet's head.",
       "Motion uses --duration-sheet-in, --duration-sheet-out and --ease-drawer.",
     ],
   }),

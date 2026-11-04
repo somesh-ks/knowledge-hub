@@ -1,10 +1,8 @@
-import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { FONT_FILE_BASENAMES, setFontDirectory } from "@singularity/cover";
 import type { APIRoute, GetStaticPaths } from "astro";
-import { coverPng, coverWebp } from "../../lib/covers";
-import { findRepoRoot } from "../../lib/repoRoot";
+import { loadCoverFonts } from "../../lib/coverFonts";
+import { coverLiveSvg, coverPng, coverWebp } from "../../lib/covers";
 import {
   type ContentRepoDeps,
   expireContentManifest,
@@ -28,22 +26,14 @@ import {
  * which no route matched, so it answered an empty 404 (2026-11-01).
  */
 export const prerender = false;
-// The static test build prerenders every route; no cover is drawn on demand there.
-export const getStaticPaths = (() => []) satisfies GetStaticPaths;
-
-let fontsReady = false;
-
-/** The bundled code cannot find its fonts by their source path; the function carries them (includeFiles). */
-function loadShippedFonts(): void {
-  if (fontsReady) return;
-  const directory = join(findRepoRoot(), "packages", "cover", "fonts");
-  const missing = FONT_FILE_BASENAMES.filter((name) => !existsSync(join(directory, name)));
-  // Drawn without them a cover has no date, and the CDN would keep it: fail instead.
-  if (missing.length > 0)
-    throw new Error(`cover fonts missing from the function: ${missing.join(", ")}`);
-  setFontDirectory(directory);
-  fontsReady = true;
-}
+// The static test build prerenders every route and needs this; no cover is drawn on demand there.
+// On the function it must not exist: Astro throws PrerenderDynamicEndpointPathCollide, a 500, for
+// the bare /covers address of a rest endpoint that has one, before this handler can answer 404
+// (bots, 2026-11-01). A route of its own at /covers cannot fix it: the static build would write a
+// file where the covers directory goes.
+export const getStaticPaths = (__SINGULARITY_STATIC_ONLY__ ? () => [] : undefined) satisfies
+  | GetStaticPaths
+  | undefined;
 
 const CACHE = { cacheDir: join(tmpdir(), "singularity-covers"), fingerprint: "function" };
 
@@ -116,19 +106,22 @@ export const GET: APIRoute = async ({ params, url }) => {
       return new Response("This cover is not ready yet.", { status: 503, headers: BEHIND_HEADERS });
     }
     const { record } = resolution;
-    loadShippedFonts();
-    const source = request.mode ? { ...record.source, mode: request.mode } : record.source;
-    const draw = request.format === "png" ? coverPng : coverWebp;
-    const body = await draw(source, request.size, CACHE);
+    loadCoverFonts();
+    const type = { svg: "image/svg+xml", png: "image/png", webp: "image/webp" }[request.format];
+    const body =
+      request.format === "svg"
+        ? coverLiveSvg(record.source)
+        : await (request.format === "png" ? coverPng : coverWebp)(
+            record.source,
+            request.size,
+            CACHE,
+          );
     return new Response(body, {
-      headers: {
-        "Content-Type": request.format === "png" ? "image/png" : "image/webp",
-        ...coverCacheHeaders(version, record),
-      },
+      headers: { "Content-Type": type, ...coverCacheHeaders(version, record) },
     });
   } catch (error) {
     console.error(`[covers] ${request.id}: ${error instanceof Error ? error.message : "unknown"}`);
-    return new Response("This cover could not be drawn right now.", {
+    return new Response("Couldn't draw this cover right now.", {
       status: 503,
       headers: { ...NOT_FOUND_HEADERS, "Retry-After": "60" },
     });

@@ -1,13 +1,2 @@
-(() => {
-  try {
-    const { theme: t, style: s } =
-      JSON.parse(localStorage.getItem("singularity:preferences") || "0") || {};
-    const d = document.documentElement.dataset;
-    if (t === "light" || t === "dark") d.theme = t;
-    if (typeof s === "string" && s !== "default" && /^[a-z][a-z-]{0,23}$/.test(s)) d.style = s;
-  } catch {}
-})();
-addEventListener("popstate", (e) => {
-  if (!dispatchEvent(new Event("singularity:back", { cancelable: true })))
-    e.stopImmediatePropagation();
-});
+// biome-ignore format: size
+(()=>{try{const p=JSON.parse(localStorage.getItem("singularity:preferences"))||{},d=document.documentElement,s=[p.mood,p.style].find(v=>/^[a-z][a-z-]*$/.test(v)&&v+""===v),h=p.hue;if(/^(light|dark)$/.test(p.theme))d.dataset.theme=p.theme;if(s&&s!=="default"){d.dataset.mood=s;if(h>0&&h<360)d.style.setProperty("--hue-shift",+h)}}catch{}addEventListener("popstate",e=>{dispatchEvent(new Event("singularity:back",{cancelable:true}))||e.stopImmediatePropagation()})})();

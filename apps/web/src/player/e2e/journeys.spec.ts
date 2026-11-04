@@ -70,6 +70,7 @@ test("a listening journey across pages: A on Today, B from the Library, back to 
   await expect(page).toHaveURL(new RegExp(`/d/${SITE.earlier}$`));
   await player.finger.press(player.cta);
   await expect(player.root).toHaveAttribute("data-player-state", "playing", { timeout: 10_000 });
+  await player.shut();
   // Back to A, on Today.
   await player.finger.press(
     page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Latest" }),

@@ -24,7 +24,8 @@ const OLD = { episode_at: "2020-01-01T00:00:00Z", episode_id: "old" };
 function stubPage(id: number, episode: string) {
   const store = new Map<string, string>();
   const requests: { url: string; init: RequestInit | undefined }[] = [];
-  const page = { store, requests, live: false };
+  const events: CustomEvent[] = [];
+  const page = { store, requests, events, live: false };
   vi.stubGlobal("localStorage", {
     getItem: (key: string) => store.get(key) ?? null,
     setItem: (key: string, value: string) => store.set(key, value),
@@ -35,7 +36,7 @@ function stubPage(id: number, episode: string) {
     querySelector: () => null,
     querySelectorAll: () => [],
     documentElement: { dataset: {} },
-    dispatchEvent: () => true,
+    dispatchEvent: (event: Event) => events.push(event as CustomEvent) > 0,
   });
   vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
     requests.push({ url, init });
@@ -91,6 +92,10 @@ describe("waiting for the redeployed site", () => {
     await settle();
     expect(page.requests).toHaveLength(2);
     expect(JSON.parse(page.store.get("singularity:run") ?? "{}").phase).toBe("done");
+    // The finished podcast is heard once: nothing else played the success cue for a run that ends here.
+    expect(
+      page.events.filter((event) => event.type === "singularity:sound").map((e) => e.detail),
+    ).toEqual(["success"]);
     await vi.dynamicImportSettled();
     expect(prewarmEpisode).toHaveBeenCalledExactlyOnceWith("ep-20261011-1930");
     // Nothing more is asked once it has been seen.

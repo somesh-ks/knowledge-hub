@@ -31,6 +31,7 @@
 
 import type { PlayerDigestData } from "../../types/contracts";
 import { showCardProgress } from "./cardProgress";
+import { openPlayerOnPhone } from "./openOnPhone";
 import { playPageChapter, togglePageDigest, togglePageItem } from "./pageActions";
 import type { PlayerStore } from "./playerTypes";
 import {
@@ -367,11 +368,15 @@ export function createReaderSync(
     if (digestButton) {
       if (digestButton.getAttribute("aria-disabled") === "true") return;
       resumeFollow();
+      const { status, digestId } = store.getState();
+      const starting = !(digestId === page?.id && (status === "playing" || status === "loading"));
       if (page && !page.audio) {
         onNarrate?.();
+        if (starting) openPlayerOnPhone();
         return;
       }
       togglePageDigest(store);
+      if (starting) openPlayerOnPhone();
       return;
     }
 

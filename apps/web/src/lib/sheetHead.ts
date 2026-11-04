@@ -1,10 +1,10 @@
 /**
  * The markup of a sheet's header row and of an icon, written once for the Astro components
- * (SheetHeader.astro, Icon.astro) and for the lists a script redraws (structureView.ts), so a menu
- * a script builds is the same menu a page builds (the design-system audit, 2026-10-25).
+ * (SheetHeader.astro, Icon.astro) and for the sheets a script builds, so a sheet a script builds
+ * is the same sheet a page builds (the design-system audit, 2026-10-25).
  */
 import { type IconSize, iconClass } from "../design-system/icon";
-import { menuItemClass } from "../design-system/menu";
+import { MENU_BACK } from "../design-system/menu";
 import {
   sheetHeadClass,
   sheetHeadingClass,
@@ -47,6 +47,7 @@ export function sheetHeadHtml(
   close: SheetClose,
   titleData: Record<`data-${string}`, string | boolean> = {},
   subtitle?: string,
+  back = false,
 ): string {
   const data = Object.entries(titleData)
     .filter(([, value]) => value !== false)
@@ -56,86 +57,13 @@ export function sheetHeadHtml(
     .join("");
   const heading = `<h2 class="${sheetTitleClass()}" id="${titleId}"${data}>${escapeHtml(title)}</h2>`;
   return (
-    `<div class="${sheetHeadClass()}">` +
+    `<div class="${sheetHeadClass()}"${back ? " data-has-back" : ""}>` +
+    (back
+      ? `<button class="icon-btn press" type="button" aria-label="Back" ${MENU_BACK}>${iconHtml("chevronLeft", "lg")}</button>`
+      : "") +
     (!subtitle
       ? heading
       : `<div class="${sheetHeadingClass()}">${heading}<p class="${sheetSubtitleClass()}">${escapeHtml(subtitle)}</p></div>`) +
     `<button class="icon-btn press" type="button" aria-label="Close" ${close}>${iconHtml("close", "lg")}</button></div>`
   );
-}
-
-export interface MenuItemOptions {
-  act: string;
-  glyph: IconName;
-  label: string;
-  disabled?: boolean;
-  /** The danger tone, for the one row that destroys. */
-  tone?: "danger";
-  /** For placing the row where it stands. Never its look. */
-  extraClass?: string;
-}
-
-/**
- * A menu's row, as Menu.astro's slot holds them: its glyph at the start, then the word.
- * Carries role="menuitem" and data-act for click delegation.
- */
-export function menuItemHtml({
-  act,
-  glyph,
-  label,
-  disabled = false,
-  tone,
-  extraClass = "",
-}: MenuItemOptions): string {
-  const cls = [menuItemClass(tone), extraClass].filter(Boolean).map(escapeHtml).join(" ");
-  return `<button class="${cls}" type="button" role="menuitem" data-act="${escapeHtml(act)}"${disabled ? " disabled" : ""}>${iconHtml(glyph)}${escapeHtml(label)}</button>`;
-}
-
-export interface SettingsTextOptions {
-  label: string;
-  hint?: string;
-}
-
-/**
- * A row's text block (settings.css): the label and its quiet hint below it.
- * Escapes text safely.
- */
-export function settingsTextHtml({ label, hint }: SettingsTextOptions): string {
-  const hintHtml =
-    hint !== undefined ? `<span class="settings-hint">${escapeHtml(hint)}</span>` : "";
-  return `<div class="settings-text"><span class="settings-label">${escapeHtml(label)}</span>${hintHtml}</div>`;
-}
-
-export interface IconBtnOptions {
-  label: string;
-  glyph: IconName;
-  className?: string;
-  popoverTarget?: string;
-  describedBy?: string;
-  dataAttrs?: Record<string, string | boolean>;
-}
-
-/**
- * An icon button (buttons.css, .icon-btn.press): 44px target with ink margins and ARIA label.
- */
-export function iconBtnHtml({
-  label,
-  glyph,
-  className = "",
-  popoverTarget,
-  describedBy,
-  dataAttrs = {},
-}: IconBtnOptions): string {
-  const cls = ["icon-btn press", className].filter(Boolean).map(escapeHtml).join(" ");
-  const target = popoverTarget ? ` popovertarget="${escapeHtml(popoverTarget)}"` : "";
-  const desc = describedBy ? ` aria-describedby="${escapeHtml(describedBy)}"` : "";
-  const data = Object.entries(dataAttrs)
-    .filter(([, value]) => value !== false)
-    .map(([name, value]) =>
-      value === true || value === ""
-        ? ` ${escapeHtml(name)}`
-        : ` ${escapeHtml(name)}="${escapeHtml(String(value))}"`,
-    )
-    .join("");
-  return `<button class="${cls}" type="button" aria-label="${escapeHtml(label)}"${desc}${target}${data}>${iconHtml(glyph)}</button>`;
 }

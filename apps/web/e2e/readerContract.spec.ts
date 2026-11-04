@@ -1,6 +1,6 @@
 import type { Locator } from "@playwright/test";
 import { computedColor } from "./colors";
-import { expect, hydrated, SILENT_DIGEST, test } from "./fixtures";
+import { closePlayer, expect, hydrated, SILENT_DIGEST, test } from "./fixtures";
 
 /**
  * The contract between the reader page and the player (readerSync.ts). The first half drives the
@@ -40,6 +40,7 @@ test.describe("what the player writes on a real page", () => {
     // Playing, the briefing's chip is the pause button with the time left (D77).
     await expect(chip.locator("[data-chip-label]")).toHaveText("1 min left");
     await expect(chip).toHaveAccessibleName("Pause the podcast, 1 min left");
+    await closePlayer(page);
 
     await chip.click();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
@@ -89,8 +90,10 @@ test.describe("what the player writes on a real page", () => {
     await chip.click();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
     await expect(third).toHaveAttribute("data-state", "played", { timeout: 15_000 });
-    await expect(chip.locator("[data-chip-label]")).toHaveText("Played");
-    await expect(chip).toHaveAccessibleName(/^Play again, played: /);
+    // The story is played (its data-state), its button stays a Play button with the length.
+    await expect(chip).toHaveAttribute("data-state", "idle");
+    await expect(chip.locator("[data-chip-label]")).toHaveText(/^\d+:\d\d$/);
+    await expect(chip).not.toHaveAccessibleName(/played/i);
     await expect(stories.nth(0)).not.toHaveAttribute("data-state", /.*/);
     await expect(stories.nth(3)).toHaveAttribute("data-state", "current");
     await stories.nth(3).locator("[data-play-item]").click();

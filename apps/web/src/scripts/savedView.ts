@@ -13,6 +13,7 @@ import { topicEmoji } from "@singularity/core/topicEmoji";
 import { outletsSummary, savedBlocked } from "../lib/blockedOutlets";
 import { chosenSummary } from "../lib/multiSelect";
 import { outboxOps } from "../lib/outbox";
+import { WAITING } from "../lib/saveCopy";
 import { SAVED_KEY } from "../lib/savedKey";
 import {
   anyPending,
@@ -73,7 +74,7 @@ export function readSaved(now = Date.now()): ConfigOp[] {
  * The line under the title, once the run that held an edit shown here failed: the page took the edit
  * as its own (adopt, in managePageSave.ts), so the toast's Retry or the next change sends it.
  */
-export const NOT_SAVED_NOTE = "Not saved yet. It goes with your next change.";
+export const NOT_SAVED_NOTE = WAITING;
 
 /** Whether an edit shown is still on its way. */
 export function readPending(now = Date.now()): boolean {
@@ -134,7 +135,7 @@ export function followHeld(root: HTMLElement, note: HTMLElement): void {
 }
 
 /** What a row that waits for a refused add says (TOPIC_NOT_ADDED in topicsEditor.ts). */
-const TOPIC_NOT_ADDED = "Not added yet. It goes with your next change.";
+const TOPIC_NOT_ADDED = "Not added yet. It is tried again with your next change.";
 
 /** The lines on this page that say an edit was added: a new topic's row, a suggested source's. */
 function addedLines(root: HTMLElement, op: ConfigOp): [Element, string][] {

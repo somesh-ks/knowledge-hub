@@ -62,10 +62,10 @@ test.describe("a recording that fails", () => {
     await finger.press(player.cta);
     await expect(player.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
     await expect(player.cta.locator("[data-chip-label]")).toHaveText("Try again");
-    await expect(page.locator(".dock-caption")).toHaveText("Audio is not available");
+    await expect(page.locator(".dock-caption")).toHaveText("Audio isn't available");
     await player.openPlayer();
     const notice = player.dialog.getByRole("alert");
-    await expect(notice).toContainText("Audio is not available");
+    await expect(notice).toContainText("Audio isn't available");
     await expect(page.locator("body")).not.toContainText("MEDIA_ELEMENT_ERROR");
     const live = await page.locator("[aria-live]").allTextContents();
     expect(live.join(" ")).not.toContain("MEDIA_ELEMENT_ERROR");
@@ -92,7 +92,7 @@ test.describe("a recording that fails", () => {
     await player.open("/d/2026-10-05");
     await finger.press(player.cta);
     await expect.poll(() => asked).toBeGreaterThan(0);
-    await expect(page.getByText("Narration ran into a problem on the server.")).toBeVisible();
+    await expect(page.getByText("Narration hit a snag.")).toBeVisible();
     await expect(player.root).toHaveAttribute("data-player-state", "idle");
     await expect(player.cta).toHaveAttribute("data-state", "idle");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -154,7 +154,7 @@ test.describe("a recording that fails", () => {
     await player.dialog.getByRole("button", { name: "Next story" }).first().click();
     await expect(player.root).toHaveAttribute("data-player-state", "error", { timeout: 10_000 });
     const notice = player.dialog.getByRole("alert");
-    await expect(notice).toContainText("Narration ran into a problem on the server.");
+    await expect(notice).toContainText("Narration hit a snag.");
     // Still down: Enter on the notice's Try again retries, the notice leaves while it loads, and
     // focus stays on the page, on the Play disc.
     await notice.getByRole("button", { name: "Try again" }).focus();

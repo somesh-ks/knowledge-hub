@@ -70,6 +70,22 @@ jobs:
       - name: Install
         run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
 
+      # Digests and episodes are in the content store, not in git (D300). Copy them in first: the job
+      # reads them (the ids already taken, the audio still owed, the stories an episode draws on).
+      # --track records what the store held, so Save content below sends back only what this job
+      # changed. A job that cannot read the store stops here rather than run on an empty Digests/.
+      - name: Load content
+        id: content
+        shell: bash
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+        run: |
+          for attempt in 1 2 3; do
+            npm run --silent singularity -- content pull --track || { sleep $((attempt * 10)); continue; }
+            exit 0
+          done
+          exit 1
+
       # No ffmpeg here: nothing in this job transcodes. The voices are recorded, and their Opus copy
       # made, in the audio job below, which installs ffmpeg for itself (audio.yml). This step cost 17
       # seconds before the first stage of every Catch up.
@@ -97,8 +113,23 @@ jobs:
       # Writes the episode file, commits it with the stage timings and pushes. The voices follow in
       # the audio job below, whose step is named "Recording voices" through audio.yml's step_name.
       - name: Publishing
+        id: publishing
         shell: bash
         run: npm run --silent singularity -- podcast --request "$REQUEST" --stage publish --artifacts "$RUNNER_TEMP/podcast-stages"
+
+      # After the commit: the store never gets a digest whose run git did not record. A failed upload
+      # is tried three times; if it still fails the job is red and the next run, or a rerun, repeats it.
+      - name: Save content
+        if: ${{ !cancelled() && steps.content.outcome == 'success' && steps.publishing.outcome == 'success' }}
+        shell: bash
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+        run: |
+          for attempt in 1 2 3; do
+            npm run --silent singularity -- content push || { sleep $((attempt * 10)); continue; }
+            exit 0
+          done
+          exit 1
 
       # Writes this run to Neon with the time of each stage and the writer's cost, whatever its end
       # (D221), so a Catch up that failed is on record too. A delete is not logged. A measurement

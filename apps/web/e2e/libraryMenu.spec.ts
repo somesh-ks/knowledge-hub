@@ -85,9 +85,41 @@ test("a podcast page's More menu downloads and queues the podcast, as its row in
   await expect(menu.getByRole("menuitem", { name: "Remove download" })).toBeVisible();
 });
 
+// Bug it prevents: a podcast could be added to Favorites only from the player's menu, and the page
+// heart, a row's menu and the Favorites page disagreed (owner, 2026-11-04).
+test("the page's heart adds a podcast to Favorites and a row's menu there takes it out, across pages and a reload", async ({
+  page,
+}) => {
+  await page.goto(`/d/${AUDIO_ID}`);
+  await hydrated(page);
+  const heart = page.locator("[data-favorite]");
+  await expect(heart).toHaveAttribute("aria-pressed", "false");
+  await heart.click();
+  await expect(page.getByText("Added to favorites")).toBeVisible();
+  await expect(heart).toHaveAttribute("aria-pressed", "true");
+  await page.reload();
+  await expect(heart).toHaveAttribute("aria-pressed", "true");
+
+  await page.goto("/settings/saved");
+  await expect(page.locator("[data-saved-page]")).toHaveAttribute("data-ready", "");
+  await expect(row(page, AUDIO_ID)).toBeVisible();
+  await openMenu(page, AUDIO_ID);
+  await row(page, AUDIO_ID).getByRole("menuitem", { name: "Remove from favorites" }).click();
+  await expect(page.getByText("Removed from favorites")).toBeVisible();
+  await expect(row(page, AUDIO_ID)).toBeHidden();
+
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  await openMenu(page, AUDIO_ID);
+  await expect(
+    row(page, AUDIO_ID).getByRole("menuitem", { name: "Add to favorites" }),
+  ).toBeVisible();
+});
+
 test("pressing a row's three dots moves nothing: not the card, its title or the dots' own glyph, and they sit beside the title", {
   tag: "@desktop",
 }, async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("singularity:library-view", "gallery"));
   await page.goto("/library");
   await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
   const card = row(page, AUDIO_ID);
@@ -160,9 +192,7 @@ test.describe("a podcast download", () => {
     await openMenu(page, AUDIO_ID);
     await row(page, AUDIO_ID).getByRole("menuitem", { name: "Download" }).click();
     await expect(row(page, AUDIO_ID)).toHaveAttribute("data-downloaded", "");
-    await expect(row(page, AUDIO_ID).locator(".card-sub .card-downloaded")).toContainText(
-      "Downloaded",
-    );
+    await expect(row(page, AUDIO_ID).locator(".card-sub > .status-mark-downloaded")).toBeVisible();
 
     // Still marked after a reload: the state comes from Cache Storage, not from the page.
     await page.reload();
@@ -187,14 +217,17 @@ test.describe("a podcast download", () => {
       await context.route(`**${new URL(audio, "http://x").pathname}`, (route) => route.abort());
     await page.goto(`/d/${AUDIO_ID}`);
     await expect(page.locator("#main")).toHaveAttribute("data-digest-id", AUDIO_ID);
-    // The player wakes from the saved files too, and draws the 1024 cover the check below reads.
+    // The player wakes from the saved files too.
     await hydrated(page);
-    // Every cover the page may show for this item (each theme, the player's 1024 included) answers
-    // offline: a download once saved only the covers the page does not show.
+    // Every cover the page may show for this item answers offline: the vector the page and the player
+    // draw (D314), which holds every style's colours, and the 512 and 1024 images of the lock screen
+    // and share cards. A download once saved only the covers the page did not show.
     const covers = await page.evaluate(async (id) => {
-      const urls = new Set<string>();
-      for (const image of document.querySelectorAll<HTMLImageElement>(`img[srcset*="${id}"]`))
-        for (const part of image.srcset.split(",")) urls.add(part.trim().split(/\s+/)[0] ?? "");
+      const urls = new Set<string>([
+        `/covers/${id}.svg`,
+        `/covers/${id}-512.webp`,
+        `/covers/${id}-1024.webp`,
+      ]);
       const statuses = await Promise.all(
         [...urls].map((url) =>
           // Past the browser's HTTP cache, which a phone may have emptied: the worker must answer.
@@ -375,6 +408,40 @@ test("a phone's menu sheet shows a Close that closes it, a short pull springs ba
   await expect(dots).toBeFocused();
 });
 
+test("a phone's menu sheet holds its head and rows still while it slides out", async ({ page }) => {
+  // Owner, 2026-11-02, "the bottom sheet is so broken": the open-only column rule dropped at the first
+  // frame of the exit and the head and rows lay side by side, shifted right.
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  await openMenu(page, AUDIO_ID);
+  const sheet = row(page, AUDIO_ID).locator(".menu-list");
+  const { rest, leaving } = await sheet.evaluate(async (el) => {
+    await Promise.allSettled(el.getAnimations().map((animation) => animation.finished));
+    const marks = () => {
+      const top = el.getBoundingClientRect().y;
+      const at = (selector: string) => {
+        const box = el.querySelector(selector)?.getBoundingClientRect();
+        return box ? [Math.round(box.x), Math.round(box.y - top)] : [];
+      };
+      return { head: at(".sheet-head"), row: at("[role=menuitem]") };
+    };
+    // A close inside the hold's lift grace reopens the sheet (cardHold.ts): wait it out.
+    while (performance.now() < Number(el.getAttribute("data-hold-until") ?? 0)) {
+      await new Promise((done) => requestAnimationFrame(done));
+    }
+    const before = marks();
+    (el as HTMLElement).hidePopover();
+    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+    for (const animation of document.getAnimations()) {
+      if (animation.timeline !== document.timeline) continue;
+      animation.pause();
+      animation.currentTime = 0;
+    }
+    return { rest: before, leaving: marks() };
+  });
+  expect(leaving).toEqual(rest);
+});
+
 test("a long press on a card opens its menu and leaves the card unopened, and is felt once", async ({
   page,
 }) => {
@@ -385,6 +452,18 @@ test("a long press on a card opens its menu and leaves the card unopened, and is
     Object.assign(window, { felt });
     document.addEventListener("singularity:haptic", (event) =>
       felt.push((event as CustomEvent<string>).detail),
+    );
+    const heard: string[] = [];
+    Object.assign(window, { heard });
+    const Original = window.AudioContext;
+    window.AudioContext = class extends Original {
+      constructor(options?: AudioContextOptions) {
+        super(options);
+        Object.assign(window, { context: this });
+      }
+    } as typeof AudioContext;
+    document.addEventListener("singularity:cue", (event) =>
+      heard.push((event as CustomEvent<string>).detail),
     );
   });
   // The click that ends a hold lands on the card's link: without a guard the page opens under the sheet.
@@ -400,6 +479,23 @@ test("a long press on a card opens its menu and leaves the card unopened, and is
           requestAnimationFrame(tick);
         }),
     );
+  // A cue made before the sound engine has loaded is queued and never announced: a first gesture
+  // starts it, and the cues are counted from there.
+  const prime = async () => {
+    await expect(async () => {
+      await page.mouse.click(2, 2);
+      await expect
+        .poll(() =>
+          page.evaluate(() => (window as unknown as { context?: AudioContext }).context?.state),
+        )
+        .toBe("running");
+    }).toPass({ timeout: 10_000 });
+    await page.evaluate(() => {
+      const w = window as unknown as { heard: string[]; felt: string[] };
+      w.heard.length = 0;
+      w.felt.length = 0;
+    });
+  };
   // Counts closes, because the sheet opens again after one near the lift (below) and would hide them.
   await page.evaluate(() => {
     const w = window as unknown as { closes: number };
@@ -429,6 +525,7 @@ test("a long press on a card opens its menu and leaves the card unopened, and is
   // hold's own, so the sheet opens again; Chromium never closes it, so the close is made here.
   await page.reload();
   await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  await prime();
   const again = await holdFinger(page, row(page, AUDIO_ID).locator(".card-title"));
   await expect(menu).toBeVisible();
   // The close is made by the page at the lift itself, as Safari's would be, so a slow runner cannot
@@ -438,8 +535,18 @@ test("a long press on a card opens its menu and leaves the card unopened, and is
       once: true,
     }),
   );
+  // The iPhone's haptic tick is a click from script, made as the sheet opens: it must not end the hold.
+  await page.evaluate(() => document.body.click());
   await again();
   await expect.poll(() => menu.evaluate((list) => list.matches(":popover-open"))).toBe(true);
+  // The close and the reopen are one sheet staying open: heard and felt as one open, not a triple
+  // (open, close, open) on the owner's phone (2026-11-01).
+  await frames();
+  const echoes = await page.evaluate(() => {
+    const w = window as unknown as { heard: string[]; felt: string[] };
+    return { heard: w.heard, felt: w.felt };
+  });
+  expect(echoes).toEqual({ heard: ["sheetOpen"], felt: ["open"] });
 
   // A tap outside right after a lift is the person closing it: it closes, stays closed (opened
   // again, it would jump back up as it left) and reaches nothing underneath.
@@ -470,7 +577,7 @@ test("Settings > Downloads stays a list with a working ⋮ when reached from the
   // The page shows the saved podcast and none of the rest of the Library. It is reached from the
   // Library without a reload: the Library's script lives on and once set its stored view, the
   // gallery, on this page, which showed Downloads as cards with a ⋮ (owner, 2026-11-01).
-  await page.getByRole("link", { name: "Settings", exact: true }).first().click();
+  await page.getByRole("link", { name: "Your profile", exact: true }).click();
   await page.getByRole("link", { name: "Downloads" }).click();
   await expect(page.locator("[data-downloads]")).toHaveAttribute("data-ready", "");
   await expect(page.locator("[data-card]:visible")).toHaveCount(1);
@@ -506,4 +613,88 @@ test("Settings > Downloads stays a list with a working ⋮ when reached from the
   await page.reload();
   await expect(page.locator("[data-downloads]")).toHaveAttribute("data-ready", "");
   await expect(page.locator("[data-card]:visible")).toHaveCount(0);
+});
+
+// Bug it prevents: the ⋮ drawn on a phone's Library card (owner, three times by 2026-11-02): on touch the
+// menu opens by a long press only, so no card in the list or the gallery has a button to tap.
+test("a phone's Library cards have no ⋮ to tap, in the list or the gallery", async ({ page }) => {
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  for (const view of ["list", "gallery"]) {
+    await page.locator(`[data-library-view='${view}']`).click();
+    const dots = page.locator("[data-card]:visible .card-more");
+    await expect(dots).not.toHaveCount(0);
+    for (const dot of await dots.all()) {
+      await expect(dot).toHaveCSS("opacity", "0");
+      await expect(dot).toHaveCSS("pointer-events", "none");
+    }
+  }
+});
+
+// One safe row needs no title and no Close (D329, owner, 2026-11-02): the header would be taller than
+// the action, and a swipe or a tap on the scrim closes the sheet. Two rows, a tile row or a lone danger
+// row keep it. The cases are made from one card's menu by hiding rows, as a script does.
+test("a phone's menu sheet drops its header over one safe row and keeps it otherwise", async ({
+  page,
+}) => {
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  await openMenu(page, AUDIO_ID);
+  const sheet = row(page, AUDIO_ID).locator(".menu-sheet");
+  const head = sheet.locator("> .sheet-head");
+  await expect(head).toBeVisible();
+
+  // Left with one row, a safe one: no header, and the row is still there.
+  await sheet.evaluate((list) => {
+    list.querySelector(".menu-tiles")?.remove();
+    const body = list.querySelector(".menu-sheet-items") as HTMLElement;
+    // Two more rows of the same kind, so there is always something to show and hide.
+    const first = body.querySelector(".menu-item") as HTMLElement;
+    body.append(first.cloneNode(true), first.cloneNode(true));
+    const rows = [...body.querySelectorAll<HTMLElement>(":scope > .menu-item")];
+    for (const [index, item] of rows.entries()) item.hidden = index > 0;
+  });
+  await expect(head).toBeHidden();
+  await expect(sheet.getByRole("menuitem")).toHaveCount(1);
+
+  // A second visible row brings it back.
+  await sheet.evaluate((list) => {
+    const rows = [...list.querySelectorAll<HTMLElement>(".menu-sheet-items > .menu-item")];
+    (rows[1] as HTMLElement).hidden = false;
+  });
+  await expect(head).toBeVisible();
+
+  // A lone danger row keeps it, so the sheet names what the row destroys.
+  await sheet.evaluate((list) => {
+    const rows = [...list.querySelectorAll<HTMLElement>(".menu-sheet-items > .menu-item")];
+    (rows[1] as HTMLElement).hidden = true;
+    (rows[0] as HTMLElement).classList.add("menu-item-danger");
+  });
+  await expect(head).toBeVisible();
+});
+
+// A card's cover carries three looping bars that show only for the episode that plays. They once ran on
+// every card all the time (motion audit, 2026-11-02): 15 hidden loops on five cards, hundreds on a real
+// Library. The bars are drawn on desktop only; on a phone the play button is not there.
+test("a Library card's bars loop only while its episode plays", { tag: "@desktop" }, async ({
+  page,
+}) => {
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  const running = () =>
+    page.evaluate(
+      () =>
+        document
+          .getAnimations()
+          .filter(
+            (a) =>
+              "animationName" in a && a.animationName === "chip-bar" && a.playState === "running",
+          ).length,
+    );
+  expect(await running()).toBe(0);
+  await page
+    .locator(".cover-over")
+    .first()
+    .evaluate((el) => el.setAttribute("data-playing", "true"));
+  await expect.poll(running).toBe(3);
 });

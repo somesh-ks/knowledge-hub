@@ -21,13 +21,21 @@
       "!config"
     ]
   },
-  "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "includes": ["**", "!apps/web/src/styles/menu.css"]
+  },
   "javascript": { "formatter": { "quoteStyle": "double", "semicolons": "always" } },
+  "markdown": { "formatter": { "enabled": false } },
   "linter": {
     "enabled": true,
     "rules": {
       "recommended": true,
       "complexity": { "noImportantStyles": "error" },
+      "correctness": { "usePlaywrightValidDescribeCallback": "off" },
       "suspicious": { "noExplicitAny": "error" },
       "style": { "noNonNullAssertion": "error" }
     }

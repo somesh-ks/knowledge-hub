@@ -383,6 +383,17 @@ describe("fetchExa", () => {
     expect(items[0]?.source_type).toBe("exa");
   });
 
+  // The week's budget can leave fewer searches than there are queries; none left skips the source.
+  it("searches only as many queries as the week's budget leaves, and none when it is spent", async () => {
+    const fake = fakeFetch({ "https://api.exa.ai/search": fixture("fetch-exa.json") });
+    const limited = makeDeps(fake, { exa: { apiKey: "key-123456789", queries, room: 1 } });
+    await fetchExa(source, WIDE, limited);
+    expect(fake.calls).toHaveLength(1);
+    const spent = makeDeps(fake, { exa: { apiKey: "key-123456789", queries, room: 0 } });
+    await expect(fetchExa(source, WIDE, spent)).rejects.toBeInstanceOf(SourceSkipped);
+    expect(fake.calls).toHaveLength(1);
+  });
+
   it("honors a custom base URL", async () => {
     const fake = fakeFetch({ "https://proxy.test/search": fixture("fetch-exa.json") });
     const deps = makeDeps(fake, {

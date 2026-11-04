@@ -573,3 +573,232 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Amends: D144 (partial sheets hid Close: the Menu's now shows it), D275 (picker radius and inset).
 - Revisit if: a keyboard user cannot find the focused row on a phone, then give the fill a stronger layer, not the ring back.
 
+
+## D306: a seasonal style may change more than tokens
+
+- Date: 2026-11-01 (the owner, on decision cards: "Yes, full spooky" to Halloween changing more than colors; "Theme the covers too"; "Yes, Pirata One" for the title).
+- Decision: a style may carry, beyond token overrides (D268): its own empty-state scenes, one corner ornament, a title-only display face and its own cover art. Halloween is the first. Each part is scoped to the style and gone with it: the scenes sit beside the Default svg and `empty.css` shows the one the chosen style names (`data-look`), the cobweb is one element `shell.css` shows under `data-style="halloween"`, the face is a primitive `font.blackletter` that only the style's display role reads, and a style's scene colours are `component.scene.*` tokens (the Default gives them values from the semantic set and does not draw with them). Art markup holds no raw colour, as before (a class for each fill and stroke, a test that draws every scene). The contrast test now runs for every style, in both modes. Covers follow in their own change: drawn inline with colour variables, so a style recolours them without a request.
+- Why: the spooky look is the pictures and the title as much as the palette; colours alone left the Default's rounded squares in orange. Keeping each part scoped keeps Default as it is and keeps D268's rule that a style is data the guide can show.
+- Rejected: a per-style stylesheet (a flash, an extra request); auto-applying by date (D268); redrawing the Default scenes for every style; the cobweb as a page patch (D237, D253).
+- Cost: every page carries the cobweb (about 3 KB, hidden) and each empty state carries both svgs; the 9 KB Pirata One file is precached with the stylesheet though only its style fetches it.
+- Revisit if: a second style wants scenes (then they move to one file per style), the hidden markup shows in page weight, or a style needs to change a primitive ramp.
+- Amends: D268.
+
+
+## D310: Expressive is loud: a violet world, larger controls
+
+- Date: 2026-11-01 (the owner: "button sizes in expressive style is not changed", "I don't see much of a change", "touch targets to be bigger", "the style to be very visibly evident", "the color scheme should be very dominant", "not very conservative").
+- Decision: Expressive overrides the whole palette (a new `violet` ramp at hue 292 and the highest chroma the curve allows; the page, every surface and every text tone lean violet; the selected state is a saturated violet fill), the touch sizes (`size.touch` 52px, `size.touch-comfortable` and `size.option` 56px), and the part sizes that were literals (switch, scrubber thumb, play chip, bottom bar and its indicator, app bar, player controls, chip, cta, toast, row padding, button padding). Headings stay regular (D268). The corners are a new semantic scale, `shape.xs` to `shape.2xl`, that defaults to the primitive radii: components read it, never a primitive radius (only the fully round pill reads `radius.round`), and a style redraws the whole scale (Expressive's runs 8px to 40px, `sheet` and `2xl` both 40px), so a card, a menu, a sheet and a field follow Expressive without a token each. Two more roles replace a ramp read: `accent-on-inverse` (a toast's accent) and `on-scrim`.
+- Why: the first Expressive changed a weight and some corners, so it read as Default; an owner who picks a style expects to see it from across the room. Sizes and colour reach every part only through tokens, so each is a token a style overrides.
+- Rejected: a hue shift of the blue ramp (primitives are never replaced by a style); tinting only the accent (the grey surfaces carry the page, so the page stayed grey); one bigger button (a control that grows alone looks like a bug).
+- Cost: one primitive ramp (10 values); about 60 style tokens; the bottom bar, app bar and controls take more room on a phone, so a long label wraps sooner.
+- Revisit if: a part still ignores the switch (it reads a primitive or a literal, a component token is missing), or the owner finds the violet too far from the app's mark.
+- Amends: D268.
+
+## D314: album art follows the style, drawn live from the month's colours
+
+- Date: 2026-11-01 (the owner: "LOVE THE COVERS", "each month has a different color theme for the covers... this logic should also be reflected there", "take the base value from the default theme of a new month's cover theme and have some math to arrive at a different visual look for a expressive style or a Halloween style or any other style we have in the future"; then "can't you programmatically change tokens when the theme or style is switched? ... if in future we add more styles, it's very hard to keep up with generations").
+- Decision: a style redraws a cover from the month's dress, never from a second palette and never from a second set of files. A cover is one small vector (about 1 KB) in the page; its colours are CSS math over the month's base colours and the style's numbers. `tokens/covers.json` `style.<id>` holds one rule per style (anchor `hue`, `keep`, `spread`, `cap`, `chroma`, optional `flip` and `night`); `buildTokens` writes the numbers as `--cover-*` under `[data-style]`, and `cover.css` holds the one formula. A month's centre hue (the chroma-weighted mean of its scheme; a pre-October palette uses its own colours) keeps `keep` of its distance from the anchor and each colour keeps `spread` of its distance from the centre, so November's moss and December's orchid still differ inside one style while every month reads as that style. Type and figures keep the lightness gap they had on their ground, so contrast holds without a search. A style with no `data-style` (Default) draws the month's own colours, exactly. A future style is one more block of numbers and no file; a reader's hue (`--hue-shift`) moves `hue` only, live, on every cover at once. The lock screen and share images stay in the month's own colours: they are pictures, drawn once.
+- Why: a per-style palette per month would be a table to keep in step with every new scheme, and a per-style file set grows with every style (the owner's objection to the first build, which drew three images per cover). A rule over the month's colours follows each new month and each new style for free.
+- Rejected: a CSS `hue-rotate` filter (cannot flip lightness, shifts contrast unpredictably); a palette table per style and month; one fixed Expressive hue for every month (loses the month, which the owner asked to keep); a rendered image per style and theme (built first, replaced).
+- Cost: a cover is inline SVG, not an `<img>` of a cached file, so a list of 60 covers adds about 60 KB of markup; the cover lettering is outlines from a shared glyph sheet (`/covers/glyphs.svg`), not live text, so it never waits for a font. A browser without `oklch()` and `mod()` keeps Default's colours (`@supports`).
+- Revisit if: a month's scheme lands where a style's type loses contrast (the sweep in `packages/cover` fails first), or a page's cover count makes the markup heavy (then lists draw a cover once and `<use>` it).
+- Amends: D110, D121. Fulfils D306's covers clause ("drawn inline with colour variables, so a style recolours them without a request").
+- Status: the numbers and the formula land here; the cover renderer that reads them lands in the app change that follows, until which they have no reader and album art is unchanged.
+
+## D315: the reader's hue turns a style's whole palette
+
+- Date: 2026-11-01 (the owner: "The hue slider was supposed to be added"; "if we have the color hue slider, that could also have some influence on [the covers]").
+- Decision: a device may turn the hue of the style it is using, 0 to 355 degrees in steps of 5. The choice is `hue` in the device's preferences and `--hue-shift` (degrees, unitless) on the root; it is set only while a style is on, and Default's blue never moves. `buildTokens` adds `var(--hue-shift, 0)` to the hue of every coloured oklch literal a style writes, and writes the coloured primitive ramp steps a style points at again under that style with the same sum, so every use of the ramp turns with it (Expressive's violet, Halloween's orange). Greys keep their value. At 0 the sum is the hue as designed, so a style looks as shipped until the reader moves it. Covers and the header light read the same `--hue-shift`, so one slider turns the page, the album art and the light together. The Settings row is a Slider (the system's), shown under Style while a style is on.
+- Why: the reader owns the colour of a look they chose, and a number the tokens already carry costs one custom property, not a palette per hue. Doing it in the token build keeps one place that knows how a style is coloured (D268) and gives a future style the slider for free.
+- Rejected: a `hue-rotate` filter on the page (turns images and shifts contrast); one slider per style (state to keep for little); a spectrum-painted track (the Slider cannot draw one; a deviation to ask for if the owner wants it).
+- Cost: each style block carries `calc(H + var(--hue-shift, 0))` in place of H, and the ramp steps a style uses are written twice, about 1 KB per style in `tokens.css`. Equal lightness is not equal luminance: at cyan and blue hues the same lightness is brighter, and the first sweep failed five Expressive pairs there. So Expressive's `accent` (now 44%), `accent-action` (49%) and dark `on-surface-muted` (83%) sit a few points darker or lighter than the ramp step they replaced, and a test holds every text, action and graphic floor of every style at all 72 hues the slider reaches.
+- Revisit if: a hue makes a status colour or text hard to read on a real device, or a style needs hues that must not turn (then it opts out in `tokens.json`).
+- Amends: D268, D310.
+
+## D317: a state is an explicit OKLCH colour, never an alpha
+
+- Date: 2026-11-01 (the owner: "hover state and press state color change is not very different in the newer version", "since we use OKLCH values, maybe we can stick to colors. And not play with opacity too much", "if we eliminate or replace all the opacity-based color tokens, then we won't have any problem", "make sure everything is streamlined and consistent").
+- Decision: a hover or press fill is the resting fill with its OKLCH lightness moved by a fixed step, hue and chroma kept: `oklch(from <fill> calc(l - step) c h)`. Steps are tokens: hover 0.05, press 0.10, hover-quiet 0.025 (a white chip on a card in light). The direction is named per token: `darker` (accent fills, in both modes), `lighter`, `text` (toward the control's own text: down in light, up in dark, read from `semantic.state.direction`) and `inverse-text` (the toast). A fill names its label, and the build keeps the preferred direction only while the press step holds the label at 4.5:1 at every hue the reader's slider reaches; otherwise it steps the other way, away from the label (dark-mode `accent-action`, Expressive's container-high). No style writes a state by hand, so a new style needs no flag. Every fill role has its own `-hover` and `-pressed` token; a style no longer overrides them, the family derives from the style's fill. No state uses `color-mix` of the label over a fill, an alpha, or `opacity`. A guard test (`styles.test.ts`) fails a stylesheet that mixes `--state-hover` or `--state-press` into a solid fill, or uses `--state-step-` or `oklch(from` outside the token file and the cover.
+- Why: an 8% or 12% layer of the label colour over a fill moved a mid-tone by 3 to 5 lightness points, so hover and press hardly differed; mixing in OKLCH with white turned a blue toward purple and mixing in oklab dulled chroma. A lightness step is the one move that keeps the colour the same colour and is the same size in every hue. Material draws its state layer the same way (label over fill) but at a fixed alpha; the explicit colour gives that look and a number a test can check.
+- Rejected: a bigger alpha (still dulls chroma and still needs a base per surface); a second hand-picked hover colour per fill (the bright hover tokens D312 removed, 6 style overrides and no contrast guarantee); `filter: brightness()` (touches the label and the icon).
+- Cost: about 25 new derived tokens, each with a dark value only where its direction differs; the contrast sweep grew by those pairs. Pressed on a mid-tone fill under a dark label lands near 4.5:1 and the sweep fails first if a style moves it.
+- Revisit if: a state reads as a colour change instead of a depth change on a real phone, or a style needs a fill whose label has no headroom in either direction (the contrast sweep fails; the fix is the fill or the label tone, never a flag).
+- Amends: D72, D238. Folds in D312 (Filled button, switch and slider on the Material state layer), which was never merged. D313 (keep the colour ramps, delete only unread component, layout and shadow tokens, after the owner's OK of a recounted list) stands, and waits for this change and the styles PRs to merge.
+- Status: step 1 (solid fills: buttons, chips, cards, switch, slider, sheet, nav, toast) lands here. Step 2 sweeps the ghost controls (no fill; about 80 rules, hover and press drawn as `... transparent` mixes) onto the surface behind them, deletes `state.hover` and `state.press` (the percent tokens), and drops the ghost allowance in the guard test; it is the next rolling design-system PR.
+
+## D319: colours are generated, a style is a recipe
+
+- Date: 2026-11-02 (the owner: "remember to build the system of generating colors, because in the future we will have new styles and themes ... I don't want hard-coded values"; chose "generate, you check stills" on a decision card).
+- Decision: no colour is typed in a style. Hover and press direction is settled by the build from each fill's label (a fill steps away from its label where the press step would drop it under 4.5:1 at any hue the reader's slider reaches; no style flag). A style's neutral colours (surfaces, text, borders, tracks) come from one shared ladder of lightness plus the style's settings: page depth per mode, one hue and one chroma curve per family (paper, ink), in `scripts/styleRecipe.ts`. Accent roles are ramp steps (`colorRamp.ts`), never literals. No literal escape hatch: a style that needs a value adds a setting. Cover numbers stay in `tokens/covers.json`.
+- Why: Expressive wrote 27 colours by hand and Halloween 53, so each new style meant 30 to 50 guesses that drift when the shared curve changes. Fitted to those 80 values, the ladder and one curve per family land within 0.02 (OKLab, the least a person sees) on average (Expressive 0.019, Halloween 0.016) and within 0.04 at worst.
+- Rejected: fitting the generator to reproduce every value (needs per-role settings, which are literals in a table); a chroma floor for dark only (light ink needs the lift too); a literal escape hatch (drifts silently).
+- Cost: today's two styles shift a little when converted, so the owner checks stills first (`/mnt/project-files/design-audit-2026-11-01/d319/`). A dark ink at a green hue keeps only about 60% of its chroma (the gamut), so the invariant floor is half.
+- Revisit if: converted stills look flatter than the typed ones, or a style needs a role the ladder lacks.
+- Amends: D268, D310, D317.
+- Status: built in PR 581 (2026-11-02): the generator, its invariant tests and the conversion of Expressive and Halloween (`$recipe` in `tokens/tokens.json`); the fit script was deleted once no typed colours were left. Hover and press direction was settled by D317. See `docs/history/2026-11-02-style-recipes.md`.
+
+## D321: the ripple and a cover's press stay alpha layers, over artwork
+
+- Date: 2026-11-02 (the owner: "if we eliminate or replace all the opacity-based color tokens, then we won't have any problem"; settled by the coordinator and the design-system thread while the owner was away).
+- Decision: every hover and press uses D317's explicit OKLCH steps: a fill's own `-hover` and `-pressed` token, or, for a control with no fill, the surface behind it (`--ghost-hover` and `--ghost-pressed`, set by the container that paints that surface; the page's by default). Two layers stay as the label colour at `state.hover` and `state.press` over transparent: the tap ripple (`ripple.css`) and a cover's press (`library.css`, `.card-link .cover::after`). They lie over artwork or a moving wave, where no known fill exists to step from, and a solid colour would hide the picture. The guard test lists those two files and fails a layer anywhere else. A container that records another surface behind its controls (`--color-focus-gap`) must set its own ghost pair.
+- Why: a ghost control showed its state as 8% or 12% of the label colour over whatever lay behind it, which dulled it and differed per surface. Stepping the surface behind it keeps the tone of the place and uses the same lightness steps as a fill.
+- Rejected: one ghost pair for every surface (a hover on a card or a bar stepped the page's tone, so the pill sat darker than the bar in dark); deleting `state.hover` and `state.press` (the two artwork layers still read them); a solid cover press (it hid the cover).
+- Cost: a container that paints its own surface carries two more lines; 62 rules moved off alpha layers.
+- Revisit if: a ghost control sits on a surface the container did not name (its hover then steps the page's tone), or the ripple moves onto a known fill.
+- Amends: D317.
+
+## D322: a Library card's menu opens its phone sheet with quick-action tiles
+
+- Date: 2026-11-02 (the owner, on a still of the card's sheet: it "used to have a quick action or shortcut section on the top", as the player's ⋮ sheet has)
+- Decision: the card menu's Download, Share and Add to queue sit in one `menu-tiles` row marked `data-fold`. On a phone's sheet they are the player's tiles, a glyph over a word on the container tone; from 40rem the row steps aside (`display: contents`) and they are three rows of one list, in that order. The rest (Regenerate, Stop sharing, Delete, and on Downloads Remove download) stay rows under the tiles. The rows are the same buttons with the same `data-menu` actions in both, so no script changes and no row is drawn twice.
+- Why: the sheet had a plain list while the player's own sheet led with tiles; the quick actions are what a finger comes for.
+- Cost: Share moves above Regenerate in the desktop popover. A tile word that wraps ("Remove download") makes the row taller for all three.
+- Rejected: two copies of the actions, one for the sheet and one for the popover (a script updating the first match would leave the other stale); rebuilding the player's React tiles in Astro.
+- Amends: D291.
+- Revisit if: a card gets a fourth quick action (the row would need a second line).
+
+## D325: list rows run edge to edge in the Menu, the select list and the picker
+
+- Date: 2026-11-02 (the owner: "on the menu row or the drop down list, I don't like the padding around the list. It should be full bleed, and the padding for the entire list can be just in the top and the bottom").
+- Decision: a list that opens from a control (the ⋮ Menu popover and phone sheet, the select's drawn list, the searchable picker) pads above and below only. Its rows span the full width, are square and touch (no gap), and take a 24px inline padding so a row's words keep their column. The list's own corner clips the first and last row. The phone sheet's header rule runs the full width. Quick-action tiles and a picker's search field are controls, not rows, and keep their 8px inset. Hover and press fills reach both edges.
+- Why: rows inset 8px with pill corners, as D275 and D291 drew them, read as cards floating in a card; a list should read as one surface.
+- Rejected: keeping the 8px inset with square rows (a gutter with no reason); rows with a bleed but a rounded hover (the hover bar must reach the edge to read as full bleed).
+- Cost: the concentric math of D275 no longer applies to rows, only to the picker's search field; the e2e checks for row concentricity became one check that rows span the list. Multi-select options and the emoji picker are unchanged for now.
+- Revisit if: multi-select or the emoji picker should follow, or a list needs a row the owner wants rounded.
+- Amends: D275, D291.
+
+## D326: the Avatar is a design-system part: one flat shape, a face, two tones
+
+- Date: 2026-11-02 (the owner rejected the gradient and letter avatar and approved the redrawn flat shapes, "great!"; the avatar and Settings thread asked for the part).
+- Decision: `Avatar` (`design-system/Avatar.astro`, `avatar.ts`, `styles/avatar.css`) draws one flat shape with a face and two tones: no letter, no gradient, no shadow, no blush. The shape registry (`AVATAR_SHAPES`) holds the outlines; the markup carries classes only and the stylesheet fills them from tokens, so the hue engine drives every shape in every mood. A mood supplies tokens and nothing else: `--av-body`, `--av-mark`, `--av-shapes` (the ids it offers), `--av-shape-default`, and `--av-d-dots`, `--av-d-spark`, `--av-d-speckle`, `--av-d-stitch` (inline or none). Default and Expressive offer cookie, flower, clover, sunny, burst, squircle, heart, pebble and star (cookie and flower first); Halloween offers pumpkin, ghost, bat, cat, skull and cauldron (pumpkin first). Expressive's body is the accent at lightness 0.72 and its face the accent at 0.24, both derived from the accent. Sizes: 2.5rem in the bar (3rem in Expressive), `lg` 4rem, `xl` 6rem. Reactions are CSS on `data-play` (hop, wiggle, look, blink, shake) and `data-state` (playing, working, offline) and none run under reduced motion; `data-face` changes the mouth. Signed in, the Google photo replaces the shape, round with an accent ring (`photo`).
+- Why: a letter and a gradient said "account", not "you"; a flat shape with a face is the app's character, scales to any mood by tokens, and costs no per-colour art file. One registry in code keeps the shapes in one place for the bar, the profile page and the Mood picker.
+- Rejected: one SVG file per colour and mood (the hue engine could not turn them); per-mood shape files (a new mood would need code); the reactions in script (CSS on two attributes is enough for the app to drive).
+- Cost: `avatar.css` derives Expressive's colours with `oklch(from ...)`, which the guard test now allows for the cover, the slider and the avatar. Eight duration tokens (`--duration-avatar-*`) outside the UI limit, which the token policy test exempts by name: they are a character playing, not an interface answering. The app side (the avatar in the bar, the event wiring, the photo, the profile page) is the avatar thread's app PR.
+- Revisit if: a mood needs a shape that cannot be drawn from the registry's parts, or the reactions need to loop.
+- Amends: none.
+
+## D328: the hue slider paints the spectrum and shows the picked colour
+
+- Date: 2026-11-02 (the owner chose option A from the hue slider options; the avatar and Settings thread asked for it in the design system).
+- Decision: `Slider` takes `hue`. The rail is 1rem thick and painted with the whole spectrum: 13 stops 30 degrees apart (the last at 355), each the style's own `--color-accent-action` at one lightness and chroma (`--hue-lightness`, `--hue-chroma`), turned to that hue. The thumb is 1.75rem, in the picked colour (the accent already carries the reader's `--hue-shift`, so the same lightness and chroma on it is the colour under the thumb), with the surface ring. Holding the thumb floats a 4rem round swatch of that colour above it, as an overlay that moves nothing, in the spring-pop scale and fade; reduced motion fades it at size. The input is wrapped in a field that carries `--range-fill` for the swatch's place. No script: the swatch shows on `:active`.
+- Why: a plain track gave no sign of what a turn would do. Building the rail from the style's accent keeps one place that knows a style's colour (D268, D319) and gives a new style or mood a working rail with no work; it also keeps the colour tokens' rule that nothing is typed.
+- Rejected: three options at the owner's side (a lens that replaces the thumb: hides the rail under the finger; a capsule with a droplet printing the turn: a number nobody needs); a swatch kept by script and a timer for keyboard use (the thumb's colour already changes under the key); a hue slider as its own component (it is a Slider with another rail).
+- Cost: `slider.css` derives colours with `oklch(from ...)`, which the guard test allowed for the cover only; it now allows the slider too. Six tokens (`--hue-rail`, `--hue-thumb`, `--hue-swatch`, `--hue-swatch-lift`, `--hue-lightness`, `--hue-chroma`). The container the slider sits in names its surface with `--color-focus-gap` so the ring parts the thumb from it.
+- Revisit if: a style's accent has too little chroma at one lightness for a rail to read (Default's blue does not turn, so the slider is off there), or keyboard use needs the swatch.
+- Amends: D315.
+
+## D329: a Menu sheet over one safe row has no title and no Close
+
+- Date: 2026-11-02 (the owner, leaning to skip the title and X when a bottom sheet holds one option; settled by the coordinator).
+- Decision: on a phone, a Menu sheet whose list holds exactly one visible row, and that row is not danger, shows that row alone: its header (title, subtitle, Close) is hidden by `menu.css`, a rule on the sheet, so no menu sets it. A row marked `hidden` does not count. The sheet keeps its title for a screen reader as the list's `aria-label`. A lone danger row keeps the header, so the sheet says what the row destroys; a sheet with tiles or two visible rows keeps it too. A swipe down or a tap on the scrim still closes it.
+- Why: the header (title, rule and Close) is taller than the one row it sits over, and a swipe or a tap outside already closes the sheet.
+- Rejected: dropping the header on every one-row sheet (a lone Delete would not say what it deletes); a prop on the Menu (every caller would need to know how many rows it will show, and rows toggle with `hidden`).
+- Cost: a sheet that gains a second row at run time grows a header, so the sheet's height steps once.
+- Revisit if: a one-row sheet is opened by mistake more than it is wanted (a lone Close would then earn its place).
+- Amends: D291.
+
+## D336: a cover no longer flies between its card and the page's hero
+
+- Date: 2026-11-02 (the owner: "remove the morph animation as it doesnt make sense").
+- Decision: supersedes the cover's flight in D271 and D280 (the Library card, a shelf or Today's card to the page's hero and back; `scripts/coverMorph.ts`, `.cover-morph`, `[data-morphing]`). A drill move is the swap with the page fading up and settling 8px from the side (D280's page slide, fade and timing stand). The player's own mini to full cover morph (`player/core/coverMorph.ts`) stays.
+- Context changed: D271 and D280 shaped the flight so the cover would be the one thing the eye follows; on the owner's phone it reads as senseless, and it needed its own measuring, hiding and landing rules for every card, list and gallery.
+- Why: a copy of the cover crossed a page that was fading in under it; it moved the eye to something that was not the point of the move, and it needed its own measuring, hiding and landing rules for every card, list and gallery.
+- Rejected: keeping it for the gallery only; a shorter flight.
+- Cost: none in tokens; `coverMorph.ts`, its CSS and its test are gone.
+- Revisit if: a move needs an object to link two pages again; draw it then from one place, not per card.
+- Supersedes: D271 (cover travel), D280 (the flight).
+
+## D341: a page arrives from the side of the tab you came from
+
+- Date: 2026-11-02 (the owner: "the page transition animation should be something nice ... fluid transitions from side to indicate from which tab you came from - on mobile. find another way for desktop").
+- Decision: supersedes D280's 8px settle and its fade-only tab move. `navigation.ts` marks the incoming page with `data-nav-dir`: "next" for a tab further along the bar and for a way into a briefing or episode, "prev" for a tab before it and for the way out. On a phone the page arrives drawn at once, 36px (three of `--distance-medium`) to that side, and settles on `--ease-drawer`: 150 ms between tabs, 250 ms into a briefing and out. From 64rem a tab move rises 12px instead, from below for a row further down the side column and from above for one higher. A key press sets no mark: nothing moves. A Library card you tapped keeps its press (`data-pending`) until its page has arrived, so press, wait and page are one gesture. The old page is not kept: it is gone in the frame the new one arrives (D280). Slide and rise are transform only, and the distance token's existing zeroing leaves no travel where motion is turned down.
+- Context changed: D280 chose 8px and the hover curve so a settle would not read as a cut, and a tab move only faded. On the owner's phone neither said which way the move went, and a 24px slide on the strong ease-out was over in 60 ms. A fade from nothing under a slide left an empty frame or two between pages, which read as a flicker.
+- Why: a move along a bar has a direction, and showing it costs nothing the move does not already spend: no copy of the old page, no pictures, no wait. The drawer curve starts at speed, so the page answers the press, and still shows its travel.
+- Rejected: keeping the old page as a copy that pushes back (a clone of the whole page for a move made tens of times a day; a blank frame in the frame-by-frame check); a fade under the slide (the empty frames); the strong ease-out for the slide (the travel is spent in 60 ms); a new distance token (three steps of the existing one do); 250 ms between tabs (`navSpeed.spec.ts` holds a tab move to the time of a press).
+- Cost: none in tokens or bytes beyond a few lines of script; the page is drawn 36px off for its first frame.
+- Revisit if: the owner wants the old page to leave as well (a push); then draw it from a view transition, not a copy of the page.
+- Supersedes: D280 (the 8px settle and the fade-only tab move). Amends: D336.
+
+## D347: a step into a deeper page rises; a tab move takes a quarter second; a press draws one wave
+
+- Date: 2026-11-03 (the owner: "double ripples on all bottom nav tabs"; "instead of the details page showing up from right to left like a glitch, we could transition from mid of the screen to top"; "sliding still makes sense when navigating between tabs"; "the side slide can be a bit slower so it is smoother and not almost instant"; "fix worked!!!").
+- Decision: amends D341 and D286. A step into a deeper page (a briefing, an episode, or a page under Settings) rises 36px from below and Back drops it 36px from above (`data-nav-swap` in or out, `page-lift` in `view-transitions.css`; `navigation.ts` `isDeeperPath`); moves between two deeper pages and between tabs are unchanged in kind. Every move takes `--duration-enter` (250 ms), a tab move included (was 150 ms); `navSpeed.spec.ts` holds that. A press on a bottom tab draws one growing shape: the wave over the cell. The pill under the icon only fades in beside it (`data-nav-arrived="press"`); a key press has no wave, so its pill still grows. The wave carried to the new bar takes its start time from the old wave on the document clock (`design-system/ripple.ts`, #629), not a count of milliseconds played.
+- Context changed: D286 chose a wave over the whole tab with the pill's layer easing in beneath it; D341 sent a way into a briefing in from the side and held a tab move to the time of a press.
+- Why: on a phone the double ripple was the carried wave grown twice (the compositor kept playing the old wave during the page swap, the page's clock stood still, so the redraw restarted behind it), after a grey pill under the wave and a growing pill had each added a shape of their own. A step into a page with no tab of its own reads as going deeper, not across; a tab move reads as across.
+- Rejected: a rise from the middle of the screen (it would run past a quarter second on a move made all day); deferring the pill to arrival (the tab stays bare for the whole load); counting milliseconds played across the swap (the cause above).
+- Cost: none in tokens; a tab move is 100 ms longer.
+- Revisit if: the owner finds 250 ms between tabs slow, or wants more travel on the rise.
+- Amends: D286 (the pill's layer under the wave), D341 (a way into a briefing, and the tab move's length).
+
+## D352: on touch, a chosen control keeps its own fill under the tap
+
+- Date: 2026-11-03 (the owner, on the motion thread's card: "Yes, make the change", after the highlight-flash clips).
+- Decision: amends ledger rule 5 ("every control shows its own press") for touch only. Under `@media (hover: none)` a control that is already chosen keeps its chosen fill while `:active`: the selected `.tab`, a ticked segmented choice, the selected `.segmented-nav-tab` (no press layer), a ticked filter chip and the current story chip (`primitives.css`, `buttons.css`), the chosen Library view button (`library.css`) and the spoken script turn (`player.css`; none in the Stories list, where it has no fill). A pointer keeps the press step, and an unchosen control keeps its press everywhere.
+- Context changed: Chrome holds `:active` through a tap's click and for about 130 ms after, so a tap that chose a control showed the chosen press step, then eased back: a chosen segment at hue 120 went from L 0.756 to 0.656 and back over about 300 ms, which read as a colour flash.
+- Why: on touch the change of state is the answer to the tap; a darker step on top of it is a second, wrong colour. Dropping only the ease back made a hard flash.
+- Rejected: removing the transition (a harder flash); a script that clears `:active` (the browser owns it).
+- Cost: a few media blocks; no tokens.
+- Revisit if: a touch browser stops holding `:active` past the click, or the owner misses the press on a chosen control.
+- Amends: ledger rule 5 (phone section) for touch.
+
+## D353: a tap on the avatar plays a short show, picked by the mood and started by the hue
+
+- Date: 2026-11-03 (the owner: avatars tapped should make faces, morph into other shapes and come back, or do something like say hi or look through binoculars, by mood and hue, lean but varied).
+- Decision: a tap on an avatar in the app bar, the side column or the profile page plays one calm show on the face, by the motion spec's Calm by default: every beat takes a duration token and the 1.5% spatial springs (default, slow) for moves or the effects springs for fades, never the fast spatial spring or `--ease-spring-pop`. The eyes lead, the body follows a stagger (`--duration-stagger`) later, and a morph's outline a stagger after that. The shows: look (a glance left, then right, the head tilting after the eyes, a soft smile, a blink), happy (the cheeks rise over the eyes into a squint while the smile deepens and opens a little, a 2px lift, a 3 degree tilt), wow (eyes widen to 1.22, the mouth rounds to an o, a 3px lift), boo (Halloween: the lids shut and the body fades to 25%, then comes back wide-eyed with an o), and morph. A morph flows the outline: both outlines are sampled into rings of 96 points, turned clockwise from the top, and a path in the body tone runs point for point from one to the other on the default spatial spring, holds, and runs back; the face glides to the other shape's place, the colours mix in oklab, and the drawn shape changes under a blink part way through each leg. A shape of several parts names the outline it morphs (`outline`: the pumpkin's lobes as one union, the bat's body, the cauldron's pot); every part that is not the outline (stem, wings, whiskers, dots) fades out before and back after. The face is drawn by `avatarFace.ts` from one frame loop: the eyes' look, lids and width, a cheek in the body tone (`avatar-cheek`), and one closed mouth path (`avatar-say`), empty at rest while `avatar-smile` shows, that takes the smile's shape when a show starts and changes smoothly into a grin and an o; the pumpkin keeps its carved grin and opens it by scale. No props, hand or binoculars. A mood lists its shows in `--av-plays` (Default: look happy wow morph; Expressive: happy morph look wow; Halloween: boo look morph happy wow). The reader's hue turns the list's start (six bands of 60 degrees) and every tap steps to the next show. A tap in the app bar goes to the profile and the show plays there. A tap during a show is kept (one, not a pile) and plays when it ends. Nothing plays under reduced motion or offline. No new token.
+- Why: the avatar is the app's character; a face that answers a tap makes it feel alive, and expressions read as quality where stuck-on props did not. A fixed order per mood and hue needs no stored state (only the avatar's place in its list and one waiting tap, held while the page is open) and no random test.
+- Rejected: random picks (a repeat feels broken and cannot be tested); a show per mood in script (a mood adds tokens only, D326); a loop or an idle prop (D326: nothing loops by itself); props (a hand, binoculars: they read as stickers); a scale and fade swap for the morph (it reads as a cut, not a change of shape).
+- Cost: every avatar draws two cheeks and one empty mouth path, hidden until a show; the show script (`avatarFace.ts`, `avatarMotion.ts`) is about 16 KB of source (6.8 KB minified, 2.9 KB gzipped); the morph's path is a 96 point polyline, made only during a morph.
+- Revisit if: a tap is made by accident often enough that a show gets in the way (then it waits for a long press), or a mood needs a show the list cannot name.
+- Amends: D326.
+
+## D356: a chosen fill stands at least 8 points of lightness off every surface it sits on
+
+- Date: 2026-11-03 (the owner: "in light mode, the nav bar active tab highlight on mobile has poor contrast with the navbar itself - the engine needs to look into such contrast issues throughout").
+- Decision: `accent-container` (a chosen chip, segment, view button, the current tab's pill and the current row) and `accent-container-high` (an action that is not a place) sit at least 8 points of OKLCH lightness from each of `surface`, `surface-sunken`, `surface-container`, `surface-raised` and `surface-overlay`, in every mood and both modes. `buildTokens.test.ts` holds it; a hue turn (D315) keeps lightness, so one check per mood covers every hue. New steps: Default blue-200 and blue-300 in light, blue-600 and blue-400 (blue-900 words) in dark; Expressive dark violet-600 and violet-400 (violet-900 words); Halloween orange-300 and orange-400 in light, orange-700 and orange-600 in dark. Expressive light already held.
+- Context changed: the chosen tone was proven only against the page. On the phone the pill sits on the nav bar (`surface-container`): 3 points in Default light, under 1 in Halloween light, 1 in Default dark; in dark every mood's chosen tone sat 1 to 4 points from a sheet.
+- Why: lightness is what every eye reads, in sunlight and without colour vision; chroma alone made a pill a tint, not a shape. A chosen fill carries only its own ink (`on-accent-container`): an audit of 13 pages at 390 and 1280 found no other text on it, so the old floors for `on-surface` and `on-surface-muted` on it, which pinned the fill near the page, are dropped.
+- Rejected: WCAG ratio as the measure (it compresses at the light end: 1.10 for the reported pill); a per-surface chosen tone (a second token for every host); lifting only light mode (dark pills were as faint on sheets).
+- Cost: dark chosen fills and the dark action tone are brighter and more saturated; the rail's current row is now a brighter blue beside Catch up.
+- Revisit if: the owner finds dark fills loud, or a page needs muted text on a chosen fill.
+- Amends: D72's tonal steps for `accent-container` and `accent-container-high`.
+
+## D358: a playing avatar wears headphones
+
+- Date: 2026-11-03 (the owner: while a podcast plays, the avatar wears headphones).
+- Decision: while `data-state="playing"`, every avatar shape wears headphones: a band drawn behind the head that shows over its top, and a rounded cup over each side, drawn after the body and under the face. Each shape places them with `phones` (the cups' distance from the middle, their height, the head's top); the round shapes share one default. They take `--av-phones`, a mood token: the page's ink (`--av-ink`), and the lit tone on an ink shape (ghost, bat, cat, cauldron), so they read on the body and on the page in light and dark. They fade in on the slow effects spring and settle 6px down onto the head on the default spatial spring, and fade out the same way; under reduced motion they are shown and hidden with no motion. The bob stays as it was; while playing it pivots where a show does (the view box at 50, 90), so a tap never shifts the head. A tap's show plays over them; a morph veils them with the other details and the new shape's pair comes back after; boo fades them with the body.
+- Why: the avatar says what the app is doing; headphones say "listening" at a glance where a bob alone reads as idle motion.
+- Rejected: one pair for every shape (it floats off a ghost, covers a bat's eyes); the face's ink (`--av-mark`: dark on a dark page, pale on Halloween's pumpkin); a beat-synced sway (no beat to sync to; the bob already sways 2 degrees).
+- Cost: every avatar draws two hidden groups (a path and two rects); no new design token.
+- Revisit if: the bob and the headphones together read as busy in the app bar.
+- Amends: D326, D353.
+
+## D361: first-load JavaScript is held to the heaviest page's record plus 5 KB
+
+- Date: 2026-11-03 (the owner asked for performance numbers; the coordinator asked for a check that would have caught the growth).
+- Decision: `FIRST_LOAD_RECORD_BYTES` records the heaviest page's first load (80 KB; /settings/downloads is 79.9 KB) and `checkBundle` fails a build whose heaviest page is more than `FIRST_LOAD_STEP_BYTES` (5 KB) past it. A change that adds more loads the new code lazily, or raises the record and says why in its pull request. The 130 KB ceiling of D141 stays.
+- Context changed: every page's first load went from 35 KB (2026-10-24, D178) to 75 KB by 2026-11-03 with nothing failing. A rebuild of each merged commit found the steps: #500 put the select's sheet, its head and every glyph on every page (39 to 52 KB at once; the glyph table grew to 16 KB after it), and #608 brought the avatar's show eager (7 KB). Both now load at idle or on first use: the avatar's show here, the select's sheet in the design-system pull request the owner merges (D254), which takes every page to 52.2 KB and the record down to about 58 KB.
+- Why: a ceiling 70 KB above the code lets a page double unnoticed; a record moves only when someone writes it down.
+- Rejected: lowering D141's ceiling (the owner raised it for room to build); a per-page baseline file (every PR would rewrite it and conflict).
+- Cost: a feature that adds over 5 KB of eager code must raise one number in its PR.
+- Revisit if: raising the record becomes routine, or the owner wants the ceiling itself lower.
+- Amends: D141 (adds a ratchet under the ceiling).
+
+## D362: short of room, a row cuts its name and keeps its value
+
+- Date: 2026-11-03 (the owner: "when you run out of space, the topic name should truncate and not the number of sources. this should be a design system change").
+- Decision: a link row in Settings or Sources (`.row-action > .settings-text`), and a label-and-value row (`.settings-row > .settings-label + .settings-hint`), cut the name with an ellipsis and keep the value whole: "Software E... 33 sources". The name takes the room the value leaves and adds no width to the row's minimum (`contain: inline-size`), so a long one never widens a phone page. A value wider than the whole row is cut last. A suggested source's line follows the same order: the address gives way first and keeps its first letters, and the cadence keeps its words.
+- Why: the value is the row's answer (how many sources, when it runs); the name is known from the list around it and still reads from its first letters.
+- Rejected: keeping the 2026-10-22 order (the name stays whole and the value is cut), which hid the count the owner looks for.
+- Cost: none; the same rules, with the cut moved from one side to the other.
+- Revisit if: a name cut to a few letters becomes ambiguous between two rows.
+- Supersedes: the 2026-10-22 rule in `docs/ledger/settings-forms.md` (a long value is cut, the name never shrinks).
+
+## D363: every mood pads its cards 24px
+
+- Date: 2026-11-03 (the owner: "the padding on left and right is too much in expressive mood").
+- Decision: `component.card.padding` is 24px in every mood. A mood's larger corner comes out of the content radius (Expressive: 40 = 16 + 24), and `buildTokens.test.ts` holds radius = content radius + padding in each mood. Titles, heads and row words keep Default's edges in every mood.
+- Why: Expressive's 32px (#629, a Claude change on 2026-11-03, "the curve closed in on the first and last rows") set its rows 8px off Default's edges and broke the concentric rule; at a row's height a 40px corner pulls in under 1px, so the extra room bought nothing.
+- Rejected: 32px with an 8px content radius (the chips and fields inside would sharpen, against D167's one shape per control).
+- Cost: none.
+- Revisit if: a mood's corner grows past 48px, where the curve does reach the first row's words.

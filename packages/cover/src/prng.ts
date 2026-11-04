@@ -13,12 +13,6 @@ export interface Rng {
   pick<T>(items: readonly T[]): T;
   /** One element, weighted. */
   weighted<T>(items: readonly T[], weight: (item: T) => number): T;
-  /** Approximately normal, mean 0, deviation 1 (sum of uniforms). */
-  gauss(): number;
-  /** -1 or 1. */
-  sign(): 1 | -1;
-  /** A new generator whose stream depends on this one's state and a label. */
-  fork(label: string): Rng;
 }
 
 /** mulberry32: a small, fast 32-bit generator with good distribution for visual work. */
@@ -51,9 +45,6 @@ export function mulberry32(seed: number): Rng {
       }
       return items[items.length - 1] as (typeof items)[number];
     },
-    gauss: () => (next() + next() + next() + next() - 2) * 1.7320508,
-    sign: () => (next() < 0.5 ? -1 : 1),
-    fork: (label) => mulberry32(hash32(`${label}:${Math.floor(next() * 4294967296)}`)),
   };
   return rng;
 }
@@ -71,26 +62,4 @@ export function hash32(input: string): number {
   h = Math.imul(h, 0xc2b2ae35);
   h ^= h >>> 16;
   return h >>> 0;
-}
-
-function lattice(x: number, y: number, seed: number): number {
-  let h = Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(seed, 1442695041);
-  h = Math.imul(h ^ (h >>> 13), 1274126177);
-  h ^= h >>> 16;
-  return (h >>> 0) / 4294967296;
-}
-
-const smooth = (t: number): number => t * t * t * (t * (t * 6 - 15) + 10);
-
-/** Smooth value noise in [0, 1]. */
-export function valueNoise(x: number, y: number, seed: number): number {
-  const x0 = Math.floor(x);
-  const y0 = Math.floor(y);
-  const fx = smooth(x - x0);
-  const fy = smooth(y - y0);
-  const a = lattice(x0, y0, seed);
-  const b = lattice(x0 + 1, y0, seed);
-  const c = lattice(x0, y0 + 1, seed);
-  const d = lattice(x0 + 1, y0 + 1, seed);
-  return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
 }

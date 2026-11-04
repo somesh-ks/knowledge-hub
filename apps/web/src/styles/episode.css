@@ -6,13 +6,6 @@
  * components/EpisodeView.astro.
  */
 
-/* The Regenerate panel's field label (EpisodeActions.astro) starts at the field's edge. */
-.regen-form .regen-label {
-  display: block;
-  padding-inline: 0;
-  margin-block-end: var(--space-2);
-}
-
 /* Stories sit an item gap apart, half of it on each side of the hairline, as in a briefing. */
 .episode-highlight {
   padding-block: calc(var(--item-gap) / 2);
@@ -36,7 +29,7 @@
 .episode-highlight-title:has(> .story-link:focus-visible) {
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: var(--space-1);
-  border-radius: var(--radius-sm);
+  border-radius: var(--shape-sm);
 }
 
 /* The reading ink, as a story's summary has (briefing.css), so the highlight's headline leads. */

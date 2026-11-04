@@ -11,9 +11,16 @@ const routing = ModelRouting.parse({
   version: 1,
   families: {
     "claude-sonnet": { fallback_id: "claude-sonnet-5-5" },
+    "claude-haiku": { fallback_id: "claude-haiku-5-5" },
     "gemini-flash": { fallback_id: "gemini-3.8-flash" },
   },
   steps: {
+    story_rewrite: {
+      chain: [
+        { family: "claude-haiku", effort: "medium" },
+        { family: "claude-haiku", effort: "high" },
+      ],
+    },
     story_writer: {
       chain: [{ family: "claude-sonnet", effort: "medium" }, { family: "gemini-flash" }],
     },
@@ -59,6 +66,7 @@ function setup(
     routing,
     resolve: async () => ({
       "claude-sonnet": { family: "claude-sonnet", id: "claude-sonnet-5-5", source: "fallback" },
+      "claude-haiku": { family: "claude-haiku", id: "claude-haiku-5-5", source: "fallback" },
       "gemini-flash": { family: "gemini-flash", id: "gemini-3.8-flash", source: "fallback" },
     }),
     env,
@@ -97,6 +105,25 @@ describe("the model chain", () => {
     expect((await bad.router.callModel("story_writer", request)).served.family).toBe(
       "gemini-flash",
     );
+  });
+
+  // Haiku medium then Haiku high (D333) share a family and a model; a client cached by family and
+  // model alone sent the "high" retry at medium effort.
+  it("sends each entry of a chain at its own effort, even on the same model", async () => {
+    let n = 0;
+    const { router, calls } = setup(() => (n++ === 0 ? claude("refusal", "") : claude("end_turn")));
+    const result = await router.callModel("story_rewrite", request);
+    expect(result.served.fellBackFrom).toHaveLength(1);
+    const efforts = calls.map((c) => (c.body.output_config as { effort?: string }).effort);
+    expect(efforts).toEqual(["medium", "high"]);
+  });
+
+  // A model that timed out or answered 5xx fails the same at a higher effort; retrying it waited out
+  // a second full timeout for every batch (CodeRabbit on #598).
+  it("skips a later entry of the same model after a model-wide failure", async () => {
+    const { router, calls } = setup(() => json({}, 529));
+    await expect(router.callModel("story_rewrite", request)).rejects.toThrow(/server_error/);
+    expect(calls).toHaveLength(1);
   });
 
   // The Anthropic request sends max_tokens plus the thinking headroom, billed as output: a budget

@@ -49,7 +49,9 @@ describe("the client faults store", () => {
     const server: ClientFault = { ...fault, kind: "server", directive: "", blocked: "" };
     expect(await recordClientFault(sql, server, NOW, 1)).toBe(1);
     await db.query("delete from client_faults where kind = 'server'");
-    expect(await readClientFaults(sql, NOW)).toEqual([{ ...fault, total: 2, day: 1 }]);
+    expect(await readClientFaults(sql, NOW)).toEqual([
+      { ...fault, total: 2, day: 1, yesterday: 0 },
+    ]);
     await pruneClientFaults(sql, NOW + 6 * 24 * HOUR);
     const left = await db.query<{ n: number }>("select count(*)::int as n from client_faults");
     expect(left.rows[0]?.n).toBe(1);
