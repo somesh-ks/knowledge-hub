@@ -1345,6 +1345,7 @@
         "Drawn only for two sections or more."
       ],
       "styles": [
+        "player.css",
         "primitives.css"
       ],
       "usage": "The bar sticks and carries the surface and the line under it; the strip inside it scrolls and fades its ends. A mask on the bar itself would fade its surface and line too, and what scrolls under a stuck strip would show through at its edges.",
@@ -1355,6 +1356,7 @@
         "--color-on-surface",
         "--color-on-surface-muted",
         "--color-surface",
+        "--player-padding",
         "--row-radius",
         "--tabs-height",
         "--tabs-indicator-height",
@@ -1955,14 +1957,6 @@
       "reason": "the player transport's skip variant"
     },
     {
-      "class": "speed-btn",
-      "reason": "the player's speed popover trigger"
-    },
-    {
-      "class": "speed-preset",
-      "reason": "a speed option in the player's popover"
-    },
-    {
       "class": "source-plus-btn",
       "reason": "the sources list's inline add control"
     },
@@ -2006,6 +2000,18 @@
       "class": "multiselect-trigger",
       "reason": "the multi-select's field-like trigger",
       "part": "multiselect"
+    },
+    {
+      "class": "picker-trigger",
+      "reason": "the search picker's field-like trigger, drawn by scripts/picker.ts"
+    },
+    {
+      "class": "profile-shape",
+      "reason": "a shape choice in the profile's avatar picker: the avatar is its face (D335)"
+    },
+    {
+      "class": "emoji-cell",
+      "reason": "a cell of the topic emoji grid: a square tile, not a pill (D186)"
     },
     {
       "class": "search-clear",
