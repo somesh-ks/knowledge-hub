@@ -215,5 +215,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D356 | A chosen fill stands at least 8 points of lightness off every surface it sits on | amends D72 |
 | D358 | A playing avatar wears headphones fitted to its shape | amends D326, D353 |
 | D359 | A swipe is felt, never heard; the bar's sideways swipe shows the podcast it goes to | amends D273, D289, D343 |
+| D365 | Favorites from every podcast menu and a heart beside Play; the heart replaces the bookmark | amends D354 |
 
 ---

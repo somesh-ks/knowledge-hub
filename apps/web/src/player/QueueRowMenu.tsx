@@ -10,6 +10,7 @@ import { downloadFailure } from "../lib/downloadCopy";
 import { sendToast } from "../scripts/toastEvent";
 import { getPlayQueue } from "./core/playerRuntime";
 import { queueItemUrl } from "./core/playQueue";
+import { deviceStorage, isSaved, setSaved } from "./core/saved";
 import { loadQueueDigest } from "./core/queueMeta";
 import Icon from "./ui/LazyIcon";
 
@@ -35,6 +36,7 @@ export default function QueueRowMenu({
 }) {
   const menuId = `player-queue-menu-${id}`;
   const [downloaded, setDownloaded] = useState(false);
+  const [favorite, setFavorite] = useState(false);
   const kind = id.startsWith("ep-") ? "episode" : "briefing";
   // Each row names its own dots, so its menu hangs under them and not under the last row's.
   const anchor = `--queue-more-${id}`;
@@ -52,6 +54,7 @@ export default function QueueRowMenu({
         dots?.focus({ preventScroll: true });
       return;
     }
+    setFavorite(isSaved(deviceStorage(), id));
     void import("../scripts/libraryDownloads").then(async (library) => {
       const ids = (await library.readDownloads()).map((entry) => entry.id);
       setDownloaded(ids.includes(id));
@@ -97,6 +100,18 @@ export default function QueueRowMenu({
     const { shareItem } = await import("../scripts/shareLink");
     const outcome = await shareItem({ id, title, path: queueItemUrl(id), kind });
     if (typeof outcome === "object") sendToast({ message: outcome.refused });
+  };
+
+  const toggleFavorite = (): void => {
+    hide();
+    const on = !favorite;
+    if (setSaved(deviceStorage(), id, on))
+      sendToast({ message: on ? "Added to favorites" : "Removed from favorites" });
+    else
+      sendToast({
+        message: on ? "Couldn't add it to favorites" : "Couldn't remove it from favorites",
+        kind: "error",
+      });
   };
 
   const download = async (): Promise<void> => {
@@ -195,6 +210,16 @@ export default function QueueRowMenu({
               Remove from queue
             </button>
           </div>
+          {/* First under the quick actions, as on a Library card's sheet (LibraryItemMenu.astro). */}
+          <button
+            className={menuItemClass()}
+            type="button"
+            role="menuitem"
+            onClick={toggleFavorite}
+          >
+            <Icon name={favorite ? "heart" : "heartOutline"} />
+            {favorite ? "Remove from favorites" : "Add to favorites"}
+          </button>
           <button
             className={menuItemClass()}
             type="button"

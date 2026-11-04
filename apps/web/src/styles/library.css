@@ -920,6 +920,16 @@ html[data-library-page="empty"] {
   display: block;
 }
 
+/* The heart fills once the item is in Favorites, to go with "Remove from favorites". */
+.card-menu-list .fav-remove,
+[data-card][data-saved] .card-menu-list .fav-add {
+  display: none;
+}
+
+[data-card][data-saved] .card-menu-list .fav-remove {
+  display: block;
+}
+
 @media (width >= 40rem) {
   .menu-list.card-menu-list {
     margin-inline-end: var(--space-2);

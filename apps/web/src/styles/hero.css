@@ -103,17 +103,29 @@
  * select's fill (owner, 2026-10-29). It is as tall as the chip and the select beside it, and its
  * 44px target reaches past the circle as the chip's does.
  */
-.hero-share {
+.hero-share,
+.hero-favorite {
   --chip-height: calc(var(--size-touch) - var(--space-1));
   position: relative;
   min-width: var(--chip-height);
   min-height: var(--chip-height);
 }
 
-.hero-share::after {
+.hero-share::after,
+.hero-favorite::after {
   content: "";
   position: absolute;
   inset: calc((var(--size-touch) - var(--chip-height)) / -2);
+}
+
+/* The heart fills while the page's item is in Favorites. */
+.hero-favorite .fav-remove,
+.hero-favorite[aria-pressed="true"] .fav-add {
+  display: none;
+}
+
+.hero-favorite[aria-pressed="true"] .fav-remove {
+  display: block;
 }
 
 /*
