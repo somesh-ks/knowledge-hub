@@ -148,7 +148,10 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   let wantsPlay = false;
   // Bumped by a seek or scrub: the 2 s advance check compares positions, so it is void after one.
   let seekGeneration = 0;
-  /** When the element last stopped sounding, and the seek count then: a move since is the listener's place. */
+  /**
+   * When the element last stopped sounding, and the seek count then: a move since is the listener's
+   * place. Wall time: a phone asleep in a pocket stops `performance.now()`, and its output sleeps too.
+   */
   let quietSince = Number.NEGATIVE_INFINITY;
   let quietGeneration = 0;
   let wasPlayingBeforeScrub = false;
@@ -205,7 +208,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     const previous = state;
     state = { ...next, time };
     if (previous.status === "playing" && state.status !== "playing") {
-      quietSince = now();
+      quietSince = Date.now();
       quietGeneration = seekGeneration;
     }
     for (const listener of stateListeners) listener(state, previous);
@@ -654,6 +657,8 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
     if (track) saveResume();
     stopTimers();
+    // A seek on the track before is not a place chosen on this one.
+    quietGeneration = seekGeneration;
     skippedUrls.clear();
     networkRetries = 0;
     networkFailedAt = Number.NEGATIVE_INFINITY;
@@ -742,10 +747,11 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       (reason === "user" || reason === "deferred") &&
       time > 0 &&
       seekGeneration === quietGeneration &&
-      now() - quietSince >= OUTPUT_SLEEP_MS
+      Date.now() - quietSince >= OUTPUT_SLEEP_MS
     ) {
-      // "load": the step back is no story change, so nothing announces the story before.
-      seekInternal(Math.max(0, time - WAKE_REWIND_SECONDS), "load");
+      // In media seconds, so a faster speed steps back as far as the wake lasts. "load": the step
+      // back is no story change, so nothing announces the story before.
+      seekInternal(Math.max(0, time - WAKE_REWIND_SECONDS * rate), "load");
     }
     wantsPlay = true;
     // The cue first, so it lands in silence; then the audio.
