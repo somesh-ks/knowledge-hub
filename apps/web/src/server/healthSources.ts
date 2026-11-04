@@ -213,12 +213,6 @@ export async function buildHealth(now: Date): Promise<HealthBody> {
 let held: { at: number; body: HealthBody } | null = null;
 let building: Promise<HealthBody> | null = null;
 
-/** Forget the held answer. For tests. */
-export function resetHealthCache(): void {
-  held = null;
-  building = null;
-}
-
 /**
  * The held answer while it is fresh, else a new one. Requests that miss together share one build,
  * so a burst under the rate cap reads the content store, Neon and GitHub once, not once each.

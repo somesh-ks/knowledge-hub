@@ -11,10 +11,6 @@
  */
 let leaving = false;
 
-export function pageIsLeaving(): boolean {
-  return leaving;
-}
-
 /** Long enough for pagehide to be dispatched after the rejection it caused. */
 const LEAVE_GRACE_MS = 50;
 
