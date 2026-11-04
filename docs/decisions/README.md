@@ -222,5 +222,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D363 | Every mood pads its cards 24px | active |
 | D364 | Play after a quiet starts two seconds back, so a waking output loses no words | active |
 | D365 | Favorites from every podcast menu and a heart beside Play; the heart replaces the bookmark | amends D354 |
+| D366 | Listen now streams the script in parts, each written once and final once out; one append-only continuation; the live timer shows the expected length | amends D105 |
 
 ---
