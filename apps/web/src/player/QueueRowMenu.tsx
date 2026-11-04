@@ -7,11 +7,13 @@ import {
   sheetTitleClass,
 } from "../design-system/sheet";
 import { downloadFailure } from "../lib/downloadCopy";
+import { inPodcastOrder, type PodcastAction, TILE_COUNT, TILES_MIN } from "../lib/podcastActions";
 import { sendToast } from "../scripts/toastEvent";
 import { getPlayQueue } from "./core/playerRuntime";
 import { queueItemUrl } from "./core/playQueue";
 import { loadQueueDigest } from "./core/queueMeta";
 import { deviceStorage, isSaved, setSaved } from "./core/saved";
+import type { IconName } from "./ui/iconPathsLazy";
 import Icon from "./ui/LazyIcon";
 
 /** How far under its dots the menu opens where anchor positioning is missing (as PlayerMenu.tsx). */
@@ -20,7 +22,7 @@ const ITEM = '[role="menuitem"]:not(:disabled)';
 
 /**
  * The ⋮ a mouse reaches on a queue row (owner, 2026-11-03: "on hover we show the 3 dots icon button
- * with relevant options"): Go to podcast, Share, Download and Remove from queue. player.css shows the
+ * with relevant options"): the podcast's sheet, with Remove from queue and Go to podcast. player.css shows the
  * button only under a hovering pointer, so a phone keeps the handle alone and a swipe or a long press.
  * The list is the Menu: a popover under the dots, a bottom sheet under 40rem.
  */
@@ -140,6 +142,54 @@ export default function QueueRowMenu({
     }
   };
 
+  /** This row's actions, in every podcast sheet's one order (lib/podcastActions.ts, D369). */
+  const ACTIONS: Partial<
+    Record<PodcastAction, { icon: IconName; label: string; act: () => void }>
+  > = {
+    favorite: {
+      icon: favorite ? "heart" : "heartOutline",
+      label: favorite ? "Remove from favorites" : "Add to favorites",
+      act: toggleFavorite,
+    },
+    // Where a card has Add to queue. Not the danger tone: the podcast stays in the Library, so
+    // nothing is lost (owner, 2026-11-03).
+    queue: {
+      icon: "queueRemove",
+      label: "Remove from queue",
+      act: () => {
+        hide();
+        getPlayQueue().remove(id);
+      },
+    },
+    share: { icon: "shareFat", label: "Share", act: () => void share() },
+    download: {
+      icon: downloaded ? "trash" : "download",
+      label: downloaded ? "Remove download" : "Download",
+      act: () => void download(),
+    },
+    podcast: { icon: "library", label: "Go to podcast", act: () => void goToPodcast() },
+  };
+  const actions = inPodcastOrder(Object.keys(ACTIONS) as PodcastAction[]);
+  const tiles = actions.length >= TILES_MIN ? actions.slice(0, TILE_COUNT) : [];
+  const rows = actions.filter((action) => !tiles.includes(action));
+  const item = (action: PodcastAction) => {
+    const { icon, label, act } = ACTIONS[action] ?? {};
+    if (!icon || !act) return null;
+    return (
+      <button
+        key={action}
+        className={menuItemClass()}
+        type="button"
+        role="menuitem"
+        data-menu={action}
+        onClick={act}
+      >
+        <Icon name={icon} />
+        {label}
+      </button>
+    );
+  };
+
   return (
     <>
       <button
@@ -159,9 +209,8 @@ export default function QueueRowMenu({
         style={{ "--queue-anchor": anchor } as CSSProperties}
         onToggle={onToggle}
       >
-        {/* The Library card's sheet (LibraryItemMenu.astro): its header, its quick actions as tiles on
-            a phone and rows from 40rem, with Remove from queue where a card has Add to queue. Not the
-            danger tone: the podcast stays in the Library, so nothing is lost (owner, 2026-11-03). */}
+        {/* The Library card's sheet (PodcastMenuItems.astro): its header, then its actions in the one
+            order, the first three as tiles on a phone's sheet once there are enough (D369). */}
         <div className={sheetHeadClass()}>
           <div className={sheetHeadingClass()}>
             <h2 className={sheetTitleClass()} id={`${menuId}-title`}>
@@ -180,57 +229,12 @@ export default function QueueRowMenu({
           </button>
         </div>
         <div className={menuBodyClass()} role="menu" aria-label={title} onKeyDown={onKeyDown}>
-          <div className={menuTilesClass()} data-fold="" role="presentation">
-            <button
-              className={menuItemClass()}
-              type="button"
-              role="menuitem"
-              onClick={() => void download()}
-            >
-              <Icon name={downloaded ? "downloadRemove" : "download"} />
-              {downloaded ? "Remove download" : "Download"}
-            </button>
-            <button
-              className={menuItemClass()}
-              type="button"
-              role="menuitem"
-              onClick={() => void share()}
-            >
-              <Icon name="shareFat" />
-              Share
-            </button>
-            <button
-              className={menuItemClass()}
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                hide();
-                getPlayQueue().remove(id);
-              }}
-            >
-              <Icon name="queueRemove" />
-              Remove from queue
-            </button>
-          </div>
-          {/* First under the quick actions, as on a Library card's sheet (LibraryItemMenu.astro). */}
-          <button
-            className={menuItemClass()}
-            type="button"
-            role="menuitem"
-            onClick={toggleFavorite}
-          >
-            <Icon name={favorite ? "heart" : "heartOutline"} />
-            {favorite ? "Remove from favorites" : "Add to favorites"}
-          </button>
-          <button
-            className={menuItemClass()}
-            type="button"
-            role="menuitem"
-            onClick={() => void goToPodcast()}
-          >
-            <Icon name="library" />
-            Go to podcast
-          </button>
+          {tiles.length > 0 ? (
+            <div className={menuTilesClass()} data-fold="" role="presentation">
+              {tiles.map(item)}
+            </div>
+          ) : null}
+          {rows.map(item)}
         </div>
       </div>
     </>

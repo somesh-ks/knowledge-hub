@@ -1,0 +1,3 @@
+# 2026-11-04: one podcast sheet everywhere (D369)
+
+The owner found the podcast page's ⋮ and the Library card's sheet listed different actions for the same podcast, and the Downloads sheet had its own order. One list (`lib/podcastActions.ts`) now orders every podcast sheet, one component (`PodcastMenuItems.astro`) draws the Astro ones, the queue row's React sheet reads the same list, and a browser test checks each sheet against it. Tiles show only on a long sheet (the design system's threshold). Downloads lost its phone ⋮ for the hold and gained a swipe with a confirm; Remove download is the bin.

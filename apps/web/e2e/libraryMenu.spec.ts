@@ -1,4 +1,5 @@
-import { expect, holdFinger, hydrated, openRowMenu, test } from "./fixtures";
+import { PODCAST_ACTIONS } from "../src/lib/podcastActions";
+import { expect, holdFinger, hydrated, openRowMenu, swipeFinger, test } from "./fixtures";
 
 /** The podcast with an audio file: the only kind a row can download. */
 const AUDIO_ID = "2026-10-07";
@@ -563,7 +564,7 @@ test("a long press on a card opens its menu and leaves the card unopened, and is
   expect(new URL(page.url()).pathname).toBe("/library");
 });
 
-test("Settings > Downloads stays a list with a working ⋮ when reached from the Library, lists what was downloaded and removes it only after a confirm, for good", async ({
+test("Settings > Downloads stays a list when reached from the Library, a swipe asks before it removes, the sheet removes at once, for good", async ({
   page,
 }) => {
   await page.goto("/library");
@@ -582,20 +583,17 @@ test("Settings > Downloads stays a list with a working ⋮ when reached from the
   await expect(page.locator("[data-downloads]")).toHaveAttribute("data-ready", "");
   await expect(page.locator("[data-card]:visible")).toHaveCount(1);
   await expect(row(page, AUDIO_ID)).toBeVisible();
+  // A finger opens the row's sheet by a hold, as in the Library: no ⋮ to tap (D369, amends D281).
+  await expect(row(page, AUDIO_ID).locator(".card-more")).toHaveCSS("pointer-events", "none");
   const cover = await row(page, AUDIO_ID).locator(".cover").boundingBox();
   const title = await row(page, AUDIO_ID).locator(".card-title").boundingBox();
   expect(title?.x).toBeGreaterThan((cover?.x ?? 0) + (cover?.width ?? 0));
-  // Drawn and pressable, not only laid out: a phone hides the Library's ⋮ with opacity and pointer-events.
-  const more = row(page, AUDIO_ID).locator(".card-more");
-  await expect(more).toHaveCSS("opacity", "1");
-  await expect(more).toHaveCSS("pointer-events", "auto");
-
-  // Removing asks first: Cancel keeps it.
+  // A swipe asks first (D369): Cancel slides the row back.
   const dialog = page.getByRole("dialog", { name: "Remove download?" });
-  await openRowMenu(page, row(page, AUDIO_ID));
-  await row(page, AUDIO_ID).getByRole("menuitem", { name: "Remove download" }).click();
+  await swipeFinger(page, row(page, AUDIO_ID).locator(".card-title"), -260);
   await dialog.getByRole("button", { name: "Cancel" }).click();
   await expect(row(page, AUDIO_ID)).toBeVisible();
+  await expect(row(page, AUDIO_ID)).not.toHaveAttribute("data-swiped", "");
 
   // Delete all, from the ⋮ at the title, asks first too.
   await page.getByRole("button", { name: "More actions", exact: true }).click();
@@ -604,9 +602,10 @@ test("Settings > Downloads stays a list with a working ⋮ when reached from the
   await all.getByRole("button", { name: "Cancel" }).click();
   await expect(row(page, AUDIO_ID)).toBeVisible();
 
+  // The row's sheet, from a hold, removes at once: the pick is the answer.
   await openRowMenu(page, row(page, AUDIO_ID));
   await row(page, AUDIO_ID).getByRole("menuitem", { name: "Remove download" }).click();
-  await dialog.getByRole("button", { name: "Remove" }).click();
+  await expect(dialog).toBeHidden();
   await expect(page.getByText("No downloads", { exact: true }).last()).toBeVisible();
 
   // Gone after a reload too: the list is Cache Storage, not the page.
@@ -697,4 +696,41 @@ test("a Library card's bars loop only while its episode plays", { tag: "@desktop
     .first()
     .evaluate((el) => el.setAttribute("data-playing", "true"));
   await expect.poll(running).toBe(3);
+});
+
+/** A sheet's actions as the one list names them, in the order the sheet shows them. */
+async function actionsOf(menu: import("@playwright/test").Locator): Promise<string[]> {
+  return menu.locator("[role=menuitem]").evaluateAll((items) =>
+    items.map((item) => {
+      const el = item as HTMLElement;
+      if (el.dataset.episodeAction) return el.dataset.episodeAction;
+      if (el.dataset.open === "generate") return "regenerate";
+      return el.dataset.menu ?? "?";
+    }),
+  );
+}
+
+// Bug it prevents: the same podcast opened two different sheets, from a Library card and from its own
+// page's ⋮, and the Downloads sheet listed its actions in another order (owner, 2026-11-04: "technically
+// they should be the same thing, because it's the same podcast").
+test("every podcast sheet keeps the one order, and a podcast's page opens its Library card's sheet", async ({
+  page,
+}) => {
+  const inOrder = (actions: string[]) =>
+    expect(actions).toEqual(PODCAST_ACTIONS.filter((action) => actions.includes(action)));
+
+  await page.goto("/library");
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  await openMenu(page, AUDIO_ID);
+  const card = await actionsOf(row(page, AUDIO_ID).locator(".menu-list"));
+  inOrder(card);
+  expect(card).toContain("favorite");
+
+  await page.goto(`/d/${AUDIO_ID}`);
+  await hydrated(page);
+  await expect(page.locator("[data-page-menu]")).toHaveAttribute("data-menus-ready", "");
+  await page.locator("[data-page-menu] [data-hero-more]").click();
+  const sheet = page.locator("#hero-menu");
+  await expect(sheet).toBeVisible();
+  expect(await actionsOf(sheet)).toEqual(card);
 });

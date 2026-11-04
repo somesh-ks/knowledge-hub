@@ -1,5 +1,5 @@
 import { type PointerEvent, useRef } from "react";
-import { SWIPE_SHARE, swipeLeaves } from "../lib/swipeAway";
+import { AXIS_PX, SIDEWAYS_RATIO, SWIPE_SHARE, swipeLeaves } from "../lib/swipeAway";
 import { createVelocityTracker, TAP_SLOP_PX } from "./core/gestureMath";
 import { getPlayQueue } from "./core/playerRuntime";
 import { getHaptics } from "./sound/soundController";
@@ -8,13 +8,6 @@ import { getHaptics } from "./sound/soundController";
 const LEAVE_MS = 180;
 /** How long after a swipe the row's own click is not a play. */
 const SWIPE_CLICK_MS = 400;
-/**
- * How far a finger goes before the press has a direction: under Chrome's own touch slop (8 px on
- * Android), so the page has not begun to scroll when it is decided.
- */
-const AXIS_PX = 6;
-/** How much the sideways part may trail the upright one and still be a swipe (tan 37 degrees). */
-const SIDEWAYS_RATIO = 0.75;
 
 /** The part of the row that slides: the red strip behind it stays where it is. */
 function faceOf(row: HTMLElement): HTMLElement {

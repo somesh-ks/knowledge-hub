@@ -239,14 +239,16 @@
   display: block;
 }
 
-/* Download shows the cloud with a cross once the page's item is downloaded, to go with "Remove
-   download" (the Library row's is the same, library.css). */
-[data-page-menu] .dl-remove,
-[data-page-menu][data-downloaded] .dl-add {
+/* Download shows the bin once the page's item is downloaded, to go with "Remove download", and the
+   heart fills once it is in Favorites (the Library card's sheet is the same, library.css; D369). */
+[data-page-menu] :is(.dl-remove, .fav-remove),
+[data-page-menu][data-downloaded] .dl-add,
+[data-page-menu][data-saved] .fav-add {
   display: none;
 }
 
-[data-page-menu][data-downloaded] .dl-remove {
+[data-page-menu][data-downloaded] .dl-remove,
+[data-page-menu][data-saved] .fav-remove {
   display: block;
 }
 

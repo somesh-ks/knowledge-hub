@@ -1,11 +1,12 @@
 /**
  * The Downloads page: what this browser holds for offline listening. The page carries every
  * Library row; this marks the saved ones (data-downloaded, as the Library's menu does) and orders
- * them newest first. A row's menu removes one and Delete all removes every one, each after a confirm.
+ * them newest first. A row's sheet removes one at once; a swipe and Delete all ask first (D369).
  * Both go through `removeDownload`, so the shared scripts and styles the pages kept go with the last.
  */
 import { downloadsSummary, SEARCH_FROM } from "../lib/downloads";
 import { normalize, textHasWords } from "../lib/library";
+import { installDownloadsSwipe, restoreRow } from "./downloadsSwipe";
 import { whenIdle } from "./idle";
 import { readDownloads, removeAllDownloads, removeDownload } from "./libraryDownloads";
 import { sendToast } from "./toastEvent";
@@ -90,28 +91,34 @@ function mount(root: HTMLElement): void {
     confirm.showModal();
   };
 
-  // The Library's menu removes a download at once; here the pick asks first. This runs before the
-  // menu's own handler (document, bubbling) and keeps it from seeing the pick.
-  grid.addEventListener(
-    "click",
-    (event) => {
-      const item = (event.target as Element).closest<HTMLElement>('[data-menu="download"]');
-      const card = item?.closest<HTMLElement>("[data-card]");
-      if (!item || !card?.hasAttribute("data-downloaded")) return;
-      event.stopPropagation();
-      item.closest<HTMLElement>("[popover]")?.hidePopover();
-      const id = card.dataset.id ?? "";
-      const title = card.querySelector(".card-title")?.textContent?.trim() ?? "This podcast";
-      open({
-        title: "Remove download?",
-        lede: `${title} is removed from this device only. You can download it again.`,
-        go: "Remove",
-        run: () => removeDownload(id),
-        done: "Download removed",
-      });
-    },
-    true,
-  );
+  // A row's sheet removes a download at once, as the Library's does; a swipe asks first (D369).
+  /** The row a swipe sent out, while the confirm asks about it. */
+  let swiped: HTMLElement | null = null;
+  const strip = one<HTMLTemplateElement>("template[data-swipe-strip]");
+  installDownloadsSwipe(grid, (card) => {
+    swiped = card;
+    const id = card.dataset.id ?? "";
+    const title = card.querySelector(".card-title")?.textContent?.trim() ?? "This podcast";
+    open({
+      title: "Remove download?",
+      lede: `${title} is removed from this device only. You can download it again.`,
+      go: "Remove",
+      run: () => removeDownload(id),
+      done: "Download removed",
+    });
+  });
+  // The bin behind a row, put in on its first press so a page of rows carries none it never swipes.
+  grid.addEventListener("pointerdown", (event) => {
+    const card = (event.target as Element).closest<HTMLElement>("[data-card][data-downloaded]");
+    if (card && !card.querySelector(".downloads-strip"))
+      card.prepend(strip.content.cloneNode(true));
+  });
+  // Cancel, Escape or a tap outside: the row slides back.
+  confirm.addEventListener("close", () => {
+    if (swiped && confirm.returnValue !== "go") restoreRow(swiped);
+    swiped = null;
+    confirm.returnValue = "";
+  });
   one("[data-delete-all]").addEventListener("click", (event) => {
     (event.currentTarget as HTMLElement).closest<HTMLElement>("[popover]")?.hidePopover();
     open({
@@ -125,7 +132,8 @@ function mount(root: HTMLElement): void {
   confirm.querySelector("[data-dialog-close]")?.addEventListener("click", () => confirm.close());
   one("[data-confirm-go]").addEventListener("click", () => {
     const pending = ask;
-    confirm.close();
+    const gone = swiped;
+    confirm.close("go");
     if (!pending) return;
     void pending
       .run()
@@ -133,8 +141,11 @@ function mount(root: HTMLElement): void {
         () => sendToast({ message: pending.done }),
         () => sendToast({ message: "Couldn't remove it. Try again.", kind: "error" }),
       )
-      // Whatever happened, show what is left.
-      .then(sync);
+      // Whatever happened, show what is left; a swiped row that stays slides back.
+      .then(sync)
+      .then(() => {
+        if (gone) restoreRow(gone);
+      });
   });
 
   // The Library's own menu code, which Add to queue and Share need, comes at idle or at the first touch of a row's menu.

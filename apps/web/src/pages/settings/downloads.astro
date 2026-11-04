@@ -89,6 +89,9 @@ const items = libraryItems(entries, episodes);
             </button>
           </div>
         </form>
+        {/* The red strip with the bin a row slides over when a finger swipes it away
+             (downloadsSwipe.ts, D369); put into a row on its first press. */}
+        <template data-swipe-strip><span class="downloads-strip" aria-hidden="true"><Icon name="trash" /></span></template>
         <div data-library data-view="list">
           <ul class="library-grid" role="list" aria-labelledby="downloads-head" data-library-grid>
             {

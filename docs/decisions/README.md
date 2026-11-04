@@ -146,7 +146,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D277 | Queue keeps played items; a tap plays in place | amends D126; amended by D343, D346 |
 | D278 | Softer light covers | amends D121 |
 | D280 | Travel 300 ms | partly superseded by D336, D341; amends D271 |
-| D281 | Downloads page, no cap | amends D127, D264; amended by D335 |
+| D281 | Downloads page, no cap | amends D127, D264; amended by D335, D369 |
 | D282 | A page falls back to the content its build holds when the store cannot answer | amends D173, D251 |
 | D283 | Read-first is AGENTS.md and state.md (20 KB), the Index is grep-only, the ledger is split by surface; "replaces" retires the old row | active |
 | D284 | Push pings | amends D11 |
@@ -222,7 +222,8 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D362 | Short of room, a row cuts its name and keeps its value | supersedes the 2026-10-22 row rule |
 | D363 | Every mood pads its cards 24px | active |
 | D364 | Play after a quiet starts two seconds back, so a waking output loses no words | active |
-| D365 | Favorites from every podcast menu and a heart beside Play; the heart replaces the bookmark | amends D354 |
+| D365 | Favorites from every podcast menu and a heart beside Play; the heart replaces the bookmark | amends D354; amended by D369 |
 | D366 | Listen now streams the script in parts, each written once and final once out; one append-only continuation; the live timer shows the expected length | amends D105 |
+| D369 | One podcast sheet everywhere, in one order; tiles only on a long sheet; Downloads swipes away with a confirm | amends D281, D365 |
 
 ---
