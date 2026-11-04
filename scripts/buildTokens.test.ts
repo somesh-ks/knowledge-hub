@@ -17,6 +17,7 @@ import {
   TOKENS_CSS_PATH,
   type Token,
   type TokenDocument,
+  type TokenValue,
 } from "./buildTokens.js";
 import {
   composite,
@@ -148,6 +149,8 @@ describe("state direction (D317)", () => {
   });
 });
 
+// The base's text, action and graphic floors are the mood sweep's (below), Default among the moods;
+// these are the relations between its colours that no floor states.
 describe("color contrast", () => {
   const surfaces = [
     "surface",
@@ -157,29 +160,14 @@ describe("color contrast", () => {
     "surface-overlay",
   ];
 
-  it.each(MODES)("text roles reach 4.5:1 on every surface (%s)", (mode) => {
-    for (const foreground of ["on-surface", "on-surface-muted", "on-surface-subtle", "accent"]) {
-      for (const surface of surfaces) {
-        const ratio = contrastRatio(
-          colorOf(`semantic.color.${foreground}`, mode),
-          colorOf(`semantic.color.${surface}`, mode),
-        );
-        expect(ratio, `${foreground} on ${surface} (${mode})`).toBeGreaterThanOrEqual(4.5);
-      }
-    }
-  });
-
   it.each(MODES)(
-    "the reading ink is AAA on the page, 4.5:1 on every surface, and a step under the headline's (%s)",
+    "keeps the reading ink a step under the headline's on every surface (%s)",
     (mode) => {
       for (const surface of surfaces) {
         const background = colorOf(`semantic.color.${surface}`, mode);
         const reading = contrastRatio(
           colorOf("semantic.color.on-surface-reading", mode),
           background,
-        );
-        expect(reading, `on-surface-reading on ${surface} (${mode})`).toBeGreaterThanOrEqual(
-          surface === "surface" ? 7 : 4.5,
         );
         expect(
           contrastRatio(colorOf("semantic.color.on-surface", mode), background),
@@ -189,48 +177,15 @@ describe("color contrast", () => {
     },
   );
 
-  it.each(MODES)("accent text and body text clear the accent tint (%s)", (mode) => {
-    const tint = colorOf("semantic.color.accent-subtle", mode);
-    for (const foreground of ["on-surface", "accent"]) {
-      const ratio = contrastRatio(colorOf(`semantic.color.${foreground}`, mode), tint);
-      expect(ratio, `${foreground} on accent-subtle (${mode})`).toBeGreaterThanOrEqual(4.5);
-    }
-  });
-
-  it.each(MODES)("text on the accent container reaches 4.5:1 (%s)", (mode) => {
-    const container = colorOf("semantic.color.accent-container", mode);
-    // A chosen fill carries only its own ink, so the fill is free to stand off the surface under it
-    // (D356); no page's text sits on it in another colour.
-    const ratio = contrastRatio(colorOf("semantic.color.on-accent-container", mode), container);
-    expect(ratio, `on-accent-container on accent-container (${mode})`).toBeGreaterThanOrEqual(4.5);
-  });
-
   it.each(MODES)(
-    "text on the action tone reaches 4.5:1, and the tone sits further from the page than the selected one (%s)",
+    "sets the action tone further from the page than the selected one (%s)",
     (mode) => {
-      const high = colorOf("semantic.color.accent-container-high", mode);
       const page = colorOf("semantic.color.surface", mode);
-      const ratio = contrastRatio(colorOf("semantic.color.on-accent-container-high", mode), high);
-      expect(
-        ratio,
-        `on-accent-container-high on accent-container-high (${mode})`,
-      ).toBeGreaterThanOrEqual(4.5);
       const chosen = contrastRatio(colorOf("semantic.color.accent-container", mode), page);
       expect(
-        contrastRatio(high, page),
+        contrastRatio(colorOf("semantic.color.accent-container-high", mode), page),
         `the New episode button reads as an action, not a current place (${mode})`,
       ).toBeGreaterThan(chosen + 0.2);
-      // The rail's Catch up: a shape at 3:1 on the page with no outline, its words at 4.5:1, and
-      // further from the page than the current row, so it never reads as faded or as selected.
-      const action = colorOf("semantic.color.accent-action", mode);
-      expect(
-        contrastRatio(colorOf("semantic.color.on-accent-action", mode), action),
-        `on-accent-action on accent-action (${mode})`,
-      ).toBeGreaterThanOrEqual(4.5);
-      expect(
-        contrastRatio(action, page),
-        `accent-action on the page (${mode})`,
-      ).toBeGreaterThanOrEqual(3);
     },
   );
 
@@ -242,50 +197,6 @@ describe("color contrast", () => {
     ] as const) {
       const ratio = contrastRatio(colorOf(`semantic.color.${container}`, mode), page);
       expect(ratio, `${container} on the page (${mode})`).toBeGreaterThanOrEqual(least);
-    }
-  });
-
-  it.each(MODES)("filled controls keep 4.5:1 label contrast in every state (%s)", (mode) => {
-    for (const fill of ["accent", "accent-hover", "accent-pressed"]) {
-      const ratio = contrastRatio(
-        colorOf("semantic.color.on-accent", mode),
-        colorOf(`semantic.color.${fill}`, mode),
-      );
-      expect(ratio, `on-accent on ${fill} (${mode})`).toBeGreaterThanOrEqual(4.5);
-    }
-    const toast = contrastRatio(
-      colorOf("semantic.color.on-surface-inverse", mode),
-      colorOf("semantic.color.surface-inverse", mode),
-    );
-    expect(toast, `toast text (${mode})`).toBeGreaterThanOrEqual(4.5);
-  });
-
-  it.each(MODES)("status colors read as text on surface, raised and their tint (%s)", (mode) => {
-    for (const status of ["success", "warning", "danger", "info"]) {
-      const foreground = colorOf(`semantic.color.${status}`, mode);
-      for (const background of ["surface", "surface-raised", `${status}-subtle`]) {
-        const ratio = contrastRatio(foreground, colorOf(`semantic.color.${background}`, mode));
-        expect(ratio, `${status} on ${background} (${mode})`).toBeGreaterThanOrEqual(4.5);
-      }
-    }
-  });
-
-  it.each(MODES)("non-text identifiers reach 3:1 (%s)", (mode) => {
-    for (const graphic of ["accent", "focus-ring"]) {
-      for (const surface of ["surface", "surface-raised", "surface-overlay"]) {
-        const ratio = contrastRatio(
-          colorOf(`semantic.color.${graphic}`, mode),
-          colorOf(`semantic.color.${surface}`, mode),
-        );
-        expect(ratio, `${graphic} on ${surface} (${mode})`).toBeGreaterThanOrEqual(3);
-      }
-    }
-    for (const surface of ["surface", "surface-raised", "surface-sunken"]) {
-      const ratio = contrastRatio(
-        colorOf("semantic.color.border-control", mode),
-        colorOf(`semantic.color.${surface}`, mode),
-      );
-      expect(ratio, `border-control on ${surface} (${mode})`).toBeGreaterThanOrEqual(3);
     }
   });
 
@@ -329,14 +240,6 @@ describe("color contrast", () => {
       }
     }
   });
-
-  it("keeps the focus ring legible against the accent button it surrounds", () => {
-    for (const mode of MODES) {
-      const ring = colorOf("semantic.color.focus-ring", mode);
-      const gap = colorOf("semantic.color.focus-gap", mode);
-      expect(contrastRatio(ring, gap), `ring on gap (${mode})`).toBeGreaterThanOrEqual(3);
-    }
-  });
 });
 
 interface Tree {
@@ -345,38 +248,69 @@ interface Tree {
   [key: string]: unknown;
 }
 
+const TOKENS_JSON = readFileSync(resolve(ROOT, "tokens/tokens.json"), "utf8");
+
+/** An oklch literal with the reader's hue (D315) added, as tokens.css adds it; a grey stays. */
+const turn = (literal: string, shift: number): string =>
+  literal.replace(
+    /^oklch\(([\d.]+%?) ([\d.]+) (-?[\d.]+)(.*)\)$/,
+    (_whole, l: string, c: string, h: string, rest: string) =>
+      `oklch(${l} ${c} ${(Number(h) + (Number(c) === 0 ? 0 : shift)) % 360}${rest})`,
+  );
+
 /**
- * The token document with one style's values laid over the base, as the page sees it under data-mood.
- * The overrides come from the parsed document, so the colours a recipe writes (D319) are in it too.
+ * The token document as the page sees it under data-mood, at a reader's hue (D315), turned the way
+ * tokens.css turns it. The mood's own values (the colours its recipe writes, D319, and the states the
+ * build settled for it among them) are laid over the base with each coloured literal turned, and so is
+ * every ramp step they point at: the mood's block writes that step again turned, so each use of it
+ * turns too. Every other colour keeps its hue, so a status colour on a ramp the mood never names stays
+ * as it is (turning every literal measured colours no page shows). Default has no slider
+ * (themeApply.ts), so it is the base.
  */
-function documentUnder(style: string): TokenDocument {
-  const base = JSON.parse(readFileSync(resolve(ROOT, "tokens/tokens.json"), "utf8"));
-  const found = doc.styles.find((candidate) => candidate.name === style);
-  if (!found) throw new Error(`No style ${style}`);
-  for (const { token, value, dark } of found.overrides) {
-    let node = base as Tree;
-    for (const key of token.path) node = node[key] as Tree;
-    node.$value = value;
+function documentAt(mood: string, shift = 0): TokenDocument {
+  if (mood === "default") return doc;
+  const style = doc.styles.find((candidate) => candidate.name === mood);
+  if (!style) throw new Error(`No mood ${mood}`);
+  const base = JSON.parse(TOKENS_JSON) as Tree;
+  const node = (path: string[]): Tree => path.reduce((parent, key) => parent[key] as Tree, base);
+  const steps = new Set(
+    style.overrides
+      .flatMap(({ token, value, dark }) =>
+        (dark === undefined ? [value] : [value, dark]).flatMap((written) =>
+          declarationsFor(token, written, doc),
+        ),
+      )
+      .flatMap(({ value }) =>
+        [...value.matchAll(/var\((--color-[a-z]+-\d+)\)/g)].map(([, name]) => name),
+      ),
+  );
+  for (const token of doc.tokens) {
+    if (token.tier === "primitive" && steps.has(cssName(token.path))) {
+      node(token.path).$value = turn(String(token.value), shift);
+    }
+  }
+  const turned = (value: TokenValue): TokenValue =>
+    typeof value === "string" ? turn(value, shift) : value;
+  for (const { token, value, dark } of style.overrides) {
+    const target = node(token.path);
+    target.$value = turned(value);
     if (dark !== undefined) {
-      const extensions = (node.$extensions ?? {}) as { singularity?: Record<string, unknown> };
-      node.$extensions = {
+      const extensions = (target.$extensions ?? {}) as { singularity?: Record<string, unknown> };
+      target.$extensions = {
         ...extensions,
-        singularity: { ...extensions.singularity, mode: { dark } },
+        singularity: { ...extensions.singularity, mode: { dark: turned(dark) } },
       };
     }
   }
   return parseTokens({ ...base, styles: {} });
 }
 
+const MOODS = ["default", ...doc.styles.map((style) => style.name)];
+
 // D268 says the contrast tests cover a style's colours; they ran on the base only until D306 added a style
 // whose palette is its own. Each style gets the base's text, action and graphic floors, in both modes.
-describe.each(doc.styles.map((style) => style.name))("a style's colour contrast: %s", (name) => {
-  const styled = documentUnder(name);
-  const color = (role: string, mode: Mode): Rgb => {
-    const literal = resolveLiteral(styled, `semantic.color.${role}`, mode);
-    if (typeof literal !== "string") throw new Error(`${role} is not a color`);
-    return oklchStringToRgb(literal);
-  };
+// Default is swept with them (2026-11-04), so a floor written here holds in every mood.
+describe.each(MOODS)("a mood's colour contrast: %s", (name) => {
   const surfaces = [
     "surface",
     "surface-sunken",
@@ -386,16 +320,13 @@ describe.each(doc.styles.map((style) => style.name))("a style's colour contrast:
   ];
 
   // The reader's hue (D315) turns every coloured value of a style, so the floors must hold at each hue
-  // the slider can reach, not only the one the style was designed at.
-  const SHIFTS = Array.from({ length: 72 }, (_, i) => i * 5);
-  const turn = (literal: string, shift: number): string =>
-    literal.replace(
-      /^oklch\(([\d.]+%?) ([\d.]+) (-?[\d.]+)(.*)\)$/,
-      (_whole, l: string, c: string, h: string, rest: string) =>
-        `oklch(${l} ${c} ${(Number(h) + (Number(c) === 0 ? 0 : shift)) % 360}${rest})`,
-    );
+  // the slider can reach, not only the one the style was designed at. Default is seen at its own hue.
+  const SHIFTS = name === "default" ? [0] : Array.from({ length: 72 }, (_, i) => i * 5);
+  const documents = SHIFTS.map((shift) => [shift, documentAt(name, shift)] as const);
 
-  it.each(MODES)("holds the base's text, action and graphic floors (%s)", (mode) => {
+  it.each(MODES)("holds the text, action and graphic floors (%s)", (mode) => {
+    // A floor names a semantic role (`on-surface`) or, dotted, a component's colour (`player.spoken`);
+    // `a over b` is a translucent fill as it is seen over the ground under it.
     const floors: [foreground: string, background: string, least: number][] = [
       ...["on-surface", "on-surface-muted", "on-surface-subtle", "accent"].flatMap((fg) =>
         surfaces.map((bg): [string, string, number] => [fg, bg, 4.5]),
@@ -412,8 +343,12 @@ describe.each(doc.styles.map((style) => style.name))("a style's colour contrast:
         `accent-subtle-${state}`,
         4.5,
       ]),
+      // A chosen fill carries only its own ink, so the fill is free to stand off the surface under it
+      // (D356); no page's text sits on it in another colour.
       ["on-accent-container", "accent-container", 4.5],
       ["on-accent-container-high", "accent-container-high", 4.5],
+      // The rail's Catch up: a shape at 3:1 on the page with no outline, its words at 4.5:1, and
+      // further from the page than the current row, so it never reads as faded or as selected.
       ["on-accent-action", "accent-action", 4.5],
       ["accent-action", "surface", 3],
       ["on-accent", "accent", 4.5],
@@ -435,32 +370,70 @@ describe.each(doc.styles.map((style) => style.name))("a style's colour contrast:
         `surface-inverse-action-${state}`,
         4.5,
       ]),
-      ...["accent", "focus-ring"].flatMap((fg) =>
-        ["surface", "surface-raised", "surface-overlay"].map((bg): [string, string, number] => [
-          fg,
-          bg,
-          3,
-        ]),
+      // The focus ring holds 3:1 on what it touches. Drawn outside a control it sits on the surface,
+      // past the gap that keeps it legible against an accent button; drawn inside a row (a menu's, the
+      // current story's) it sits on the row's fill, at rest or under a pointer, as a muted word does.
+      ...[
+        ...surfaces,
+        "focus-gap",
+        ...["surface", "surface-container", "surface-raised", "surface-overlay"].map(
+          (surface) => `${surface}-hover`,
+        ),
+        "accent-container",
+        "accent-container-hover",
+      ].map((bg): [string, string, number] => ["focus-ring", bg, 3]),
+      // Danger is also words (an error line, a Delete), so it reads as text on every surface and on
+      // its tint, the danger button's hover and press. Success, warning and info are only an icon (a
+      // banner's, a chip's check, the queue's ring), so they hold 3:1. A banner's words are full ink
+      // on its tint and on a strip's ground; a status fill carries the surface's colour as an icon (a
+      // played mark, the queue's delete).
+      ...[...surfaces, "danger-subtle"].map((bg): [string, string, number] => ["danger", bg, 4.5]),
+      ...["success", "warning", "info"].flatMap((tone) =>
+        [...surfaces, `${tone}-subtle`].map((bg): [string, string, number] => [tone, bg, 3]),
       ),
+      // A banner comes in success, warning and danger (the info tone went with its last use, the paused notice).
+      ...["success", "warning", "danger"].flatMap((tone): [string, string, number][] => [
+        [tone, `banner.strip-${tone}`, 3],
+        ["on-surface", `${tone}-subtle`, 4.5],
+        ["on-surface", `banner.strip-${tone}`, 4.5],
+      ]),
+      ...["success", "danger"].map((fill): [string, string, number] => ["surface", fill, 3]),
       ...["surface", "surface-raised", "surface-sunken"].map((bg): [string, string, number] => [
         "border-control",
         bg,
         3,
       ]),
+      // The open story is one card on the chosen fill (StoryList.tsx): its quieter words (the names,
+      // the turns not yet said) and the word being said, on the fill it takes there. Muted words are
+      // held at rest and under a pointer; a press is a moment, and no muted word is held on one.
+      // Before the first story the rundown's turns sit on the page, under the spoken word's tint.
+      ...["accent-container", "accent-container-hover"].map((bg): [string, string, number] => [
+        "player.story-fg-muted",
+        bg,
+        4.5,
+      ]),
+      ["on-accent-container", "player.spoken-chosen over accent-container", 4.5],
+      ["on-surface", "player.spoken over surface", 4.5],
     ];
-    const turned = (role: string, shift: number): Rgb => {
-      const literal = resolveLiteral(styled, `semantic.color.${role}`, mode);
-      if (typeof literal !== "string") throw new Error(`${role} is not a color`);
-      return oklchStringToRgb(turn(literal, shift));
-    };
-    const failures = SHIFTS.flatMap((shift) =>
-      floors.flatMap(([foreground, background, least]) => {
-        const ratio = contrastRatio(turned(foreground, shift), turned(background, shift));
+    const failures = documents.flatMap(([shift, seen]) => {
+      const color = (role: string): Rgb => {
+        const path = role.includes(".") ? `component.${role}` : `semantic.color.${role}`;
+        const literal = resolveLiteral(seen, path, mode);
+        if (typeof literal !== "string") throw new Error(`${role} is not a color`);
+        return oklchStringToRgb(literal);
+      };
+      const ground = (layers: string): Rgb =>
+        layers
+          .split(" over ")
+          .map(color)
+          .reduceRight((under, top) => composite(top, under));
+      return floors.flatMap(([foreground, background, least]) => {
+        const ratio = contrastRatio(color(foreground), ground(background));
         return ratio >= least
           ? []
           : [`hue +${shift}, ${foreground} on ${background}: ${ratio.toFixed(2)}, needs ${least}`];
-      }),
-    );
+      });
+    });
     expect(failures, `${name} (${mode})`).toEqual([]);
   });
 });
@@ -478,11 +451,7 @@ describe("a chosen fill stands off every surface it sits on (D356)", () => {
     "surface-raised",
     "surface-overlay",
   ];
-  const moods: [string, TokenDocument][] = [
-    ["default", doc],
-    ...doc.styles.map((style): [string, TokenDocument] => [style.name, documentUnder(style.name)]),
-  ];
-  it.each(moods.flatMap(([name, d]) => MODES.map((mode) => [name, mode, d] as const)))(
+  it.each(MOODS.flatMap((name) => MODES.map((mode) => [name, mode, documentAt(name)] as const)))(
     "%s, %s",
     (_name, mode, d) => {
       const points = (role: string): number =>
@@ -577,28 +546,38 @@ describe("scales", () => {
     }
   });
 
-  it("holds the concentric radius rule where a token declares it", () => {
-    const toRem = (reference: string): number => {
-      const value = resolveLiteral(doc, reference, "light");
-      return Number.parseFloat(String(value));
-    };
-    let checked = 0;
-    for (const token of doc.tokens) {
+  it("holds the concentric radius rule where a token declares it, in every mood", () => {
+    const rules = doc.tokens.flatMap((token) => {
       const rule = token.extensions.concentric;
-      if (typeof rule !== "object" || rule === null) continue;
+      if (typeof rule !== "object" || rule === null) return [];
       const { inner, padding } = rule as { inner: string; padding: string };
       const innerTarget = aliasTarget(inner);
       const paddingTarget = aliasTarget(padding);
       if (!innerTarget || !paddingTarget)
         throw new Error(`Bad concentric rule on ${token.dotPath}`);
-      const outer = toRem(token.dotPath);
-      expect(outer, `${token.dotPath}: outer = inner + padding`).toBeCloseTo(
-        toRem(innerTarget) + toRem(paddingTarget),
-        4,
-      );
-      checked += 1;
+      return [[token.dotPath, innerTarget, paddingTarget] as const];
+    });
+    expect(rules.length).toBeGreaterThanOrEqual(4);
+    // The rule was held in the base only, so a mood that resized one of the three broke it unseen: in
+    // Expressive the mini player's, the toast's, the archive row's and the segmented track's corners
+    // came out 4 to 8px rounder than their content's corner and padding (2026-11-04).
+    // In every mood a card's words sit its padding in and its content keeps the rest of the corner:
+    // Expressive once padded 32px under a 40px corner with 16px content, so its rows sat 8px further
+    // in than Default's (owner, 2026-11-03: "the padding on left and right is too much").
+    for (const [name, d] of MOODS.map((mood) => [mood, documentAt(mood)] as const)) {
+      const rem = (reference: string): number =>
+        Number.parseFloat(String(resolveLiteral(d, reference, "light")));
+      for (const [outer, inner, padding] of rules) {
+        expect(rem(outer), `${name}: ${outer} = inner + padding`).toBeCloseTo(
+          rem(inner) + rem(padding),
+          4,
+        );
+      }
+      expect(
+        rem("component.card.radius"),
+        `${name}: card radius = content radius + padding`,
+      ).toBeCloseTo(rem("component.card.content-radius") + rem("component.card.padding"), 4);
     }
-    expect(checked).toBeGreaterThanOrEqual(4);
   });
 
   it("compiles fluid sizes to a clamp that hits both endpoints", () => {

@@ -218,6 +218,8 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D359 | A swipe is felt, never heard; the bar's sideways swipe shows the podcast it goes to | amends D273, D289, D343 |
 | D360 | Guardrails alarm only on a breached budget; the cron spares Neon outside the schedule's hours | active |
 | D361 | First-load JavaScript is held to the heaviest page's record plus 5 KB; the avatar's show and the select's sheet load at idle | amends D141 |
+| D362 | Short of room, a row cuts its name and keeps its value | supersedes the 2026-10-22 row rule |
+| D363 | Every mood pads its cards 24px | active |
 | D364 | Play after a quiet starts two seconds back, so a waking output loses no words | active |
 
 ---
