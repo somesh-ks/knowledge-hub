@@ -21,6 +21,9 @@ const GITHUB_SECRETS = [
   "VERCEL_TOKEN",
   "GEMINI_API_KEY",
   "DATABASE_URL",
+  // The daily health check (D360): Neon's compute hours, and the site's GitHub token's end date.
+  "NEON_API_KEY",
+  "GITHUB_SINGULARITY_TOKEN",
 ];
 
 /** Plain configuration, stored as GitHub Actions variables so it stays visible in workflow runs. */
