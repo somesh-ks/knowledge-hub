@@ -13,3 +13,7 @@ Somesh found a 5-minute Catch up slow. Timing of run 41484563424 (before the con
 - Narrating inside the podcast job. `audio.yml` has its own concurrency group because narration reads and writes the Speechify counter (`state/usage.json`, in git); two narrations at once lose an update. It also keeps the model keys and the database URL out of the narrating job (SEC-03).
 - A purge in parallel with narration. The briefing pages show whether audio is ready, so a write by the audio job needs its own purge.
 - Starting ffmpeg during the script step. The audio job is another runner; only a cached binary or a step that overlaps the 17 s with the install (6 s) would help, and neither is worth its risk yet.
+
+## 2026-11-04 follow-up
+
+The 11-04 Catch up (run 41834897897) took 3 min 45 s from tap to notification. The purge waited 30 s instead of 55 s, which is 25 s saved, less than estimated, because the audio job's teardown that day was 3 s and not 24 s. The script step ran 84 s, against 31 s before; that is D324's thread to judge. The audio job spent 17 s installing ffmpeg and then 1 s narrating, since a Catch up's voices are made on Play. `publish --pending` now prints how many digests and episodes still need narration, and `audio.yml` installs ffmpeg only when that count is above zero. A failed count still installs it.

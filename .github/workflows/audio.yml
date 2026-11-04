@@ -64,30 +64,6 @@ jobs:
       - name: Install
         run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
 
-      # The Opus transcode (packages/engine/src/audio/transcode.ts) needs ffmpeg with libopus, which
-      # the runner image does not carry: without it the Opus copy is skipped and the MP3 plays alone.
-      - name: ffmpeg
-        timeout-minutes: 5
-        # A failed or stalled install must never cost the episode: the MP3 still publishes alone.
-        continue-on-error: true
-        run: |
-          # Read in full first: under pipefail an early `grep -q` exit can fail ffmpeg with SIGPIPE.
-          encoders="$(ffmpeg -hide_banner -encoders </dev/null 2>/dev/null || true)"
-          if ! grep -q libopus <<<"$encoders"; then
-            # The man-db trigger can take minutes after an install on the runner image, and apt
-            # waits on a slow mirror unbounded: skip the one and bound the other. Not -qq, so a
-            # stall shows its stage in the log.
-            sudo rm -f /var/lib/man-db/auto-update
-            apt_opts=(-o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20)
-            sudo apt-get "${apt_opts[@]}" update -q
-            sudo DEBIAN_FRONTEND=noninteractive apt-get "${apt_opts[@]}" install -y -q --no-install-recommends ffmpeg
-            encoders="$(ffmpeg -hide_banner -encoders </dev/null 2>/dev/null || true)"
-          fi
-          if ! grep -q libopus <<<"$encoders"; then
-            echo "::warning::ffmpeg has no libopus encoder; episodes fall back to MP3"
-          fi
-          ffmpeg -hide_banner -version </dev/null | sed -n 1p
-
       # The Vercel CLI is the fallback for a missing long-lived Blob token. Its token lives in this
       # step alone, so no package the engine loads can read an account-wide Vercel token (SEC-03).
       - name: Blob credentials
@@ -137,6 +113,43 @@ jobs:
             exit 0
           done
           exit 1
+
+      # How many digests and episodes still need narration. A failed count reads as work to do, so
+      # ffmpeg is still installed.
+      - name: Narration due
+        id: due
+        continue-on-error: true
+        shell: bash
+        run: |
+          npm run --silent singularity -- publish --pending | tee "$RUNNER_TEMP/due.txt"
+          echo "count=$(cat "$RUNNER_TEMP/due.txt")" >> "$GITHUB_OUTPUT"
+
+      # The Opus transcode (packages/engine/src/audio/transcode.ts) needs ffmpeg with libopus, which
+      # the runner image does not carry: without it the Opus copy is skipped and the MP3 plays alone.
+      # Installed only when something is to be narrated: a Catch up's voices are mostly made on Play,
+      # and the install cost 17 s of a run that then narrated nothing (2026-11-04).
+      - name: ffmpeg
+        if: steps.due.outputs.count != '0'
+        timeout-minutes: 5
+        # A failed or stalled install must never cost the episode: the MP3 still publishes alone.
+        continue-on-error: true
+        run: |
+          # Read in full first: under pipefail an early `grep -q` exit can fail ffmpeg with SIGPIPE.
+          encoders="$(ffmpeg -hide_banner -encoders </dev/null 2>/dev/null || true)"
+          if ! grep -q libopus <<<"$encoders"; then
+            # The man-db trigger can take minutes after an install on the runner image, and apt
+            # waits on a slow mirror unbounded: skip the one and bound the other. Not -qq, so a
+            # stall shows its stage in the log.
+            sudo rm -f /var/lib/man-db/auto-update
+            apt_opts=(-o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20)
+            sudo apt-get "${apt_opts[@]}" update -q
+            sudo DEBIAN_FRONTEND=noninteractive apt-get "${apt_opts[@]}" install -y -q --no-install-recommends ffmpeg
+            encoders="$(ffmpeg -hide_banner -encoders </dev/null 2>/dev/null || true)"
+          fi
+          if ! grep -q libopus <<<"$encoders"; then
+            echo "::warning::ffmpeg has no libopus encoder; episodes fall back to MP3"
+          fi
+          ffmpeg -hide_banner -version </dev/null | sed -n 1p
 
       # Audio failures leave audio null and never block the text digest.
       - name: ${{ inputs.step_name || 'Audio' }}

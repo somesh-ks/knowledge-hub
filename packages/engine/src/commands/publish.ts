@@ -22,7 +22,7 @@ import type { AudioCommandDeps } from "./audio.js";
 import { defaultAudioDeps, usageDeps } from "./audio.js";
 
 const USAGE =
-  "usage: singularity publish [--digest <id> | --episode <ep-id>] [--prune <days> [--prune-now]] [--no-push]";
+  "usage: singularity publish [--digest <id> | --episode <ep-id>] [--prune <days> [--prune-now]] [--no-push] [--pending]";
 
 const fileExists = (path: string): Promise<boolean> =>
   access(path).then(
@@ -115,6 +115,7 @@ export function createPublishCommand(overrides: Partial<AudioCommandDeps> = {}):
       prune?: string;
       "prune-now"?: boolean;
       "no-push"?: boolean;
+      pending?: boolean;
     };
     try {
       ({ values } = parseArgs({
@@ -125,6 +126,7 @@ export function createPublishCommand(overrides: Partial<AudioCommandDeps> = {}):
           prune: { type: "string" },
           "prune-now": { type: "boolean" },
           "no-push": { type: "boolean" },
+          pending: { type: "boolean" },
         },
         strict: true,
         allowPositionals: false,
@@ -183,6 +185,12 @@ export function createPublishCommand(overrides: Partial<AudioCommandDeps> = {}):
         : [];
     const episodes =
       digestId === undefined ? await listEpisodeCandidates(ctx.root, ctx.now(), episodeId) : [];
+    // --pending prints how many digests and episodes need narration, and stops: audio.yml installs
+    // ffmpeg (17 s) only when this is above zero.
+    if (values.pending) {
+      deps.out(`${pending.length + episodes.length}\n`);
+      return 0;
+    }
     if (pending.length === 0 && episodes.length === 0 && pruneDays === undefined) {
       emit(
         ctx,

@@ -397,6 +397,24 @@ describe("singularity publish", () => {
       expect(git(pair.a, "rev-parse", "HEAD")).toBe(before);
     });
 
+    // audio.yml installs ffmpeg only when this count is above zero; a count of 0 with a digest still
+    // to narrate would publish it without its Opus copy.
+    it("--pending counts the digests still to narrate, without credentials", async () => {
+      await seed("2026-10-07");
+      const count = async (): Promise<string> => {
+        const out: string[] = [];
+        const code = await createPublishCommand({
+          ...forbidden,
+          out: (text) => void out.push(text),
+        })(["--pending"], ctx);
+        expect(code).toBe(0);
+        return out.join("").trim();
+      };
+      expect(await count()).toBe("1");
+      await createPublishCommand(rig().deps)([], ctx);
+      expect(await count()).toBe("0");
+    });
+
     it("exits 0 when there are no digests at all", async () => {
       const out: string[] = [];
       expect(
