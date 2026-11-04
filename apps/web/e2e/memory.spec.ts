@@ -96,7 +96,7 @@ test("a podcast without audio says where it was left, as its cards do", async ({
   await expect(chip).toHaveAccessibleName("Resume the podcast, 2 min left");
   await expect(page.locator(".play-fab")).toHaveAttribute(
     "aria-label",
-    "Resume the podcast, 2 min left",
+    "Resume · 2 min left, the podcast",
   );
   await expect(page.locator(".play-fab [data-chip-label]")).toHaveText("Resume · 2 min left");
 
@@ -163,7 +163,7 @@ test("the floating Play on Today follows the chip", async ({ page }) => {
   const fab = page.locator(".play-fab");
   await expect(chip.locator("[data-chip-label]")).toHaveText("1 min left");
   await expect(fab.locator("[data-chip-label]")).toHaveText("Resume · 1 min left");
-  await expect(fab).toHaveAttribute("aria-label", "Resume the podcast, 1 min left");
+  await expect(fab).toHaveAttribute("aria-label", "Resume · 1 min left, the podcast");
 });
 
 // Bug it prevents: the rename (D179) gave every saved key a new name, and a phone that saved under
