@@ -19,7 +19,6 @@ export type NarrationFailure =
   | "digest_not_found"
   | "segment_not_found"
   | "unavailable"
-  | "sign_in"
   | "offline"
   | "failed"
   // A shared page's link (D153): played its limit, the month's shared listening used up, or stopped.

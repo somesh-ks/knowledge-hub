@@ -164,11 +164,9 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
               ? copy("regeneration_limit")
               : res.status === 400
                 ? copy("400")
-                : res.status === 401
-                  ? copy("sign_in")
-                  : isSiteAnswer(reply)
-                    ? withErrorRef(copy("503"), reply)
-                    : copy("crashed"),
+                : isSiteAnswer(reply)
+                  ? withErrorRef(copy("503"), reply)
+                  : copy("crashed"),
       );
       return;
     }
