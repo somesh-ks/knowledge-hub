@@ -7,6 +7,7 @@ vi.mock("../narration/prewarmEpisode", () => ({ prewarmEpisode }));
 const {
   focusCreate,
   forgetRunAbout,
+  liveHint,
   readRun,
   refusal,
   resumeRun,
@@ -426,5 +427,45 @@ describe("a run that was cancelled", () => {
   it("ends as cancelled for a podcast and for an episode, with a plain line", async () => {
     expect(await endsAs(true, 61)).toEqual({ phase: "cancelled", line: "Cancelled" });
     expect(await endsAs(false, 62)).toEqual({ phase: "cancelled", line: "Cancelled" });
+  });
+});
+
+// Owner, 2026-11-04: a press on Listen now waited about 3 s for its first turn to be spoken.
+describe("Listen now on an episode being written", () => {
+  it("is offered once its first turns are spoken, so a press plays at once", async () => {
+    vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => {}, removeItem: () => {} });
+    vi.stubGlobal("sessionStorage", { getItem: () => null, removeItem: () => undefined });
+    vi.stubGlobal("document", {
+      querySelector: () => null,
+      querySelectorAll: () => [],
+      documentElement: { dataset: {} },
+      dispatchEvent: () => true,
+      hidden: false,
+    });
+    vi.stubGlobal("fetch", async (url: string) =>
+      Response.json(
+        url.startsWith("/api/stream")
+          ? {
+              id: "ep-20261104-1405",
+              title: "AI",
+              status: "writing",
+              format: "discussion",
+              turns: [{ speaker: "a", text: "Hi." }],
+            }
+          : { run_id: 41, state: "running" },
+      ),
+    );
+    let spoken: () => void = () => {};
+    prewarmEpisode.mockImplementationOnce(
+      () => new Promise<undefined>((resolve) => (spoken = () => resolve(undefined))),
+    );
+    startRun(41);
+    await vi.advanceTimersByTimeAsync(4_000);
+    await vi.dynamicImportSettled();
+    expect(prewarmEpisode).toHaveBeenCalledExactlyOnceWith("ep-20261104-1405");
+    expect(liveHint()).toBeNull();
+    spoken();
+    await settle();
+    expect(liveHint()?.runId).toBe(41);
   });
 });

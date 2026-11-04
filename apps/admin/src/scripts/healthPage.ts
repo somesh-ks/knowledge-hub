@@ -102,8 +102,8 @@ function drawRuns(holder: HTMLElement, runs: HealthSeries["times"]["daily"]): vo
 
 /** A workflow's week of finished runs, oldest first; a failure or cancel takes its tone. */
 function drawStrip(holder: HTMLElement, runs: HealthSeries["jobs"][string] | undefined): void {
-  // The week's last 40 runs, oldest first: 40 pips fit a 320px phone's strip.
-  const shown = (runs ?? []).slice(-40);
+  // The week's last 28 runs, oldest first: 28 pips and their 4px gaps fit a 320px phone's strip.
+  const shown = (runs ?? []).slice(-28);
   holder.replaceChildren(
     ...shown.map((run) => {
       const pip = el("span", "hl-pip");
