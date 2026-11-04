@@ -54,6 +54,15 @@ describe("a track that grows with the script", () => {
     expect(segments[2]?.start).toBe(segments[1]?.end);
   });
 
+  // A seek past the turns made waits for more while the wait it overtook is still asking (D366):
+  // the turns that arrive are news to both, or the seek sat buffering after they came.
+  it("tells every wait of the turns that arrive, so a seek that overtook a wait is not left buffering", async () => {
+    const { api } = growth([doc("writing", 1), doc("writing", 1), doc("writing", 3)]);
+    const overtaken = api.waitForMore();
+    const current = api.waitForMore();
+    await expect(Promise.all([overtaken, current])).resolves.toEqual([true, true]);
+  });
+
   it("ends the track when the script is finished and there is nothing more, so the player does not buffer forever", async () => {
     const { api } = growth([doc("done", 1)]);
     await expect(api.waitForMore()).resolves.toBe(false);

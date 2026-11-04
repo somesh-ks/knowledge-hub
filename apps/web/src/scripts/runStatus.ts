@@ -362,11 +362,11 @@ let watching = 0;
 let live: { runId: number; doc: Record<string, unknown> } | null = null;
 
 /**
- * Poll a new episode's live script and offer Listen now once turns exist. Briefings and episode
- * changes are ignored; fetch and JSON failures are retried within the polling limit.
+ * Poll a new episode's live script (a Catch up or a regeneration) and offer Listen now once turns
+ * exist. Briefings and removals are ignored; fetch and JSON failures are retried within the limit.
  */
 async function watchStream(run: Stored): Promise<void> {
-  if (watching === run.id || run.kind || run.what) return;
+  if (watching === run.id || run.kind === "delete" || run.what) return;
   watching = run.id;
   for (let turn = 0; turn < STREAM_POLLS && watching === run.id; turn += 1) {
     const res = await fetch(`/api/stream?run=${run.id}`, { cache: "no-store" }).catch(() => null);
