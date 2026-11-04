@@ -8,6 +8,9 @@
 # VERCEL_GIT_PREVIOUS_SHA is the last deployed commit; with none (first deploy) build.
 [ -z "$VERCEL_GIT_PREVIOUS_SHA" ] && exit 1
 git cat-file -e "$VERCEL_GIT_PREVIOUS_SHA" 2>/dev/null || exit 1
+# A redeploy of the deployed commit is asked for by hand (an env change, such as a new
+# ADMIN_SESSION_SECRET, reaches a deploy only through a build), so it always builds (2026-11-04).
+[ "$VERCEL_GIT_PREVIOUS_SHA" = "$VERCEL_GIT_COMMIT_SHA" ] && exit 1
 git diff --quiet "$VERCEL_GIT_PREVIOUS_SHA" HEAD -- \
   . \
   ../../tokens \
