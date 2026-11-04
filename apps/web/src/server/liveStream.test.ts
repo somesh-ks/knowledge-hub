@@ -40,39 +40,41 @@ function fakeStore(objects: Record<string, unknown>) {
 
 describe("GET /api/stream", () => {
   it("reads one object, named by the run id alone, so it cannot read anything else in the store", async () => {
-    const store = fakeStore({ "streams/run-77.json": doc("writing", 3), "audio/secret.mp3": {} });
+    const store = fakeStore({
+      "streams/run-77.opening.json": doc("writing", 3),
+      "audio/secret.mp3": {},
+    });
     const result = await handleStream("77/../../audio/secret.mp3", {
       env,
       fetch: store.fetch,
-      now: () => 1,
     });
     expect(result.status).toBe(400);
     expect(store.asked).toEqual([]);
   });
 
-  it("answers the turns written so far, and is never kept by the browser or the CDN", async () => {
-    const store = fakeStore({ "streams/run-77.json": doc("writing", 3) });
-    const result = await handleStream("77", { env, fetch: store.fetch, now: () => 5 });
+  // 2026-11-04: an overwritten copy was served from the CDN for up to a minute, so Listen now sat
+  // silent after the opening. Each stage is its own object; the latest one written wins.
+  it("answers the latest stage written, and is never kept by the browser", async () => {
+    const store = fakeStore({
+      "streams/run-77.opening.json": doc("writing", 3),
+      "streams/run-77.script.json": doc("writing", 9),
+    });
+    const result = await handleStream("77", { env, fetch: store.fetch });
     expect(result.status).toBe(200);
     expect(result.headers?.["Cache-Control"]).toBe(STREAM_CACHE_CONTROL);
-    expect("turns" in result.body && result.body.turns).toHaveLength(3);
-    // The CDN keeps an overwritten object for up to a minute; a new query is a URL it has not kept.
-    expect(store.asked[0]).toBe(`${BASE}/streams/run-77.json?t=5`);
+    expect("turns" in result.body && result.body.turns).toHaveLength(9);
+    expect(store.asked.every((url) => url.startsWith(`${BASE}/streams/run-77.`))).toBe(true);
   });
 
   it("says waiting, not an error, before the engine has written anything, and is unavailable without a store", async () => {
     const store = fakeStore({});
-    expect((await handleStream("77", { env, fetch: store.fetch, now: () => 1 })).body).toEqual({
+    expect((await handleStream("77", { env, fetch: store.fetch })).body).toEqual({
       status: "waiting",
       turns: [],
     });
     const { BLOB_READ_WRITE_TOKEN: _token, ...noStore } = env;
-    expect(
-      (await handleStream("77", { env: noStore, fetch: store.fetch, now: () => 1 })).status,
-    ).toBe(503);
-    expect((await handleStream("77", { env: {}, fetch: store.fetch, now: () => 1 })).status).toBe(
-      503,
-    );
+    expect((await handleStream("77", { env: noStore, fetch: store.fetch })).status).toBe(503);
+    expect((await handleStream("77", { env: {}, fetch: store.fetch })).status).toBe(503);
   });
 });
 
@@ -83,15 +85,14 @@ describe("narrating an episode that is not committed yet", () => {
       env,
       digests: { readDigest: async () => null, readTimeline: async () => null },
       episodes: { readEpisode: async () => (committed ? "not used" : null) },
-      liveEpisodes: (id: string) =>
-        readStreamForEpisode(id, { env, fetch: store.fetch, now: () => 9 }),
+      liveEpisodes: (id: string) => readStreamForEpisode(id, { env, fetch: store.fetch }),
     };
   };
   const lookup = (d: ReturnType<typeof deps>) =>
     handleNarrationLookup({ digest: ID, params: ["digest"] }, d);
 
   it("lists the turns written so far, one segment each, and is not cached at the edge", async () => {
-    const result = await lookup(deps({ [`streams/${ID}.json`]: doc("writing", 4) }));
+    const result = await lookup(deps({ [`streams/${ID}.opening.json`]: doc("writing", 4) }));
     expect(result.status).toBe(200);
     expect("segments" in result.body && result.body.segments.map((s) => s.key)).toEqual([
       "t0",

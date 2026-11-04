@@ -356,6 +356,8 @@ async function waitForSite(run: Stored): Promise<void> {
  */
 const STREAM_POLL_MS = 2500;
 const STREAM_POLLS = 100;
+/** The longest Listen now waits for its first turns to be spoken: a slow voice never hides it. */
+const LISTEN_WARM_MS = 8000;
 let watching = 0;
 let live: { runId: number; doc: Record<string, unknown> } | null = null;
 
@@ -371,9 +373,22 @@ async function watchStream(run: Stored): Promise<void> {
     const doc = res?.ok ? await res.json().catch(() => null) : null;
     if (watching !== run.id) return;
     if (Array.isArray(doc?.turns) && doc.turns.length > 0 && doc.status !== "failed") {
-      const first = live?.runId !== run.id;
-      live = { runId: run.id, doc };
-      if (first) show(read());
+      if (live?.runId === run.id) live = { runId: run.id, doc };
+      else {
+        // Its first turns are spoken before Listen now shows, so a press plays at once instead of
+        // after about 3 s of waiting for speech (owner, 2026-11-04). They are the turns the deployed
+        // episode's prewarm makes anyway; the script keeps them as they were aired.
+        const warm = import("../narration/prewarmEpisode").then((prewarm) =>
+          prewarm.prewarmEpisode(String(doc.id)),
+        );
+        await Promise.race([
+          warm.catch(() => undefined),
+          new Promise((resolve) => setTimeout(resolve, LISTEN_WARM_MS)),
+        ]);
+        if (watching !== run.id) return;
+        live = { runId: run.id, doc };
+        show(read());
+      }
     }
     if (doc && doc.status !== "writing" && doc.status !== "waiting") break;
     await new Promise((resolve) => setTimeout(resolve, STREAM_POLL_MS));

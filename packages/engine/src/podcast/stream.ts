@@ -14,10 +14,14 @@ import type { PodcastStory, ScriptTurn } from "./types.js";
  *
  * Two copies of one document are written, because two readers know different things. The run
  * indicator knows the workflow run id from the moment it asks for the episode; the narration route
- * knows only the episode id. `streams/run-<run id>.json` and `streams/<episode id>.json`.
+ * knows only the episode id. `streams/run-<run id>.<stage>.json` and `streams/<episode id>.<stage>.json`.
+ *
+ * Each stage is its own object, written once: the CDN serves an overwritten object for up to a
+ * minute whatever the query string (measured 2026-11-04), which left Listen now silent after the
+ * opening while the finished script sat in the store. A reader takes the latest stage there is.
  */
 export const STREAM_PREFIX = "streams/";
-/** Vercel Blob's floor for a cache lifetime. The site reads by a versioned URL, so it is never stale. */
+/** Vercel Blob's floor for a cache lifetime. Each stage is written once, so a cached copy is never stale. */
 const STREAM_CACHE_SECONDS = 60;
 /** A stream older than this belongs to a run that is long over; the next run removes it. */
 export const STREAM_KEEP_MS = 24 * 3_600_000;
@@ -46,8 +50,13 @@ export interface StreamDoc {
   updated_at: string;
 }
 
-export const streamKeyForEpisode = (id: string): string => `${STREAM_PREFIX}${id}.json`;
-export const streamKeyForRun = (runId: string): string => `${STREAM_PREFIX}run-${runId}.json`;
+/** The stages a live copy goes through, each in its own object (apps/web/src/server/liveStream.ts reads them). */
+export type StreamStage = "opening" | "script" | "done" | "failed";
+
+export const streamKeyForEpisode = (id: string, stage: StreamStage): string =>
+  `${STREAM_PREFIX}${id}.${stage}.json`;
+export const streamKeyForRun = (runId: string, stage: StreamStage): string =>
+  `${STREAM_PREFIX}run-${runId}.${stage}.json`;
 
 export interface StreamPublisher {
   /** The turns of the opening, written as soon as they are complete. */
@@ -114,14 +123,14 @@ export function createStreamPublisher(input: StreamPublisherInput): StreamPublis
     updated_at: input.now().toISOString(),
   });
 
-  function write(): Promise<void> {
+  function write(stage: StreamStage): Promise<void> {
     const body = new TextEncoder().encode(JSON.stringify(document()));
     const options = { contentType: "application/json", cacheControlMaxAge: STREAM_CACHE_SECONDS };
     const attempt = async (): Promise<void> => {
       try {
         await Promise.all([
-          client.put(streamKeyForEpisode(input.episodeId), body, options),
-          client.put(streamKeyForRun(input.runId), body, options),
+          client.put(streamKeyForEpisode(input.episodeId, stage), body, options),
+          client.put(streamKeyForRun(input.runId, stage), body, options),
         ]);
       } catch (error) {
         input.log?.warn("The live copy of the script could not be written", {
@@ -143,19 +152,19 @@ export function createStreamPublisher(input: StreamPublisherInput): StreamPublis
   return {
     opening(list) {
       turns = plain(list);
-      return write();
+      return write("opening");
     },
     script(list) {
       turns = plain(list);
-      return write();
+      return write("script");
     },
     done() {
       status = "done";
-      return write();
+      return write("done");
     },
     failed() {
       status = "failed";
-      return write();
+      return write("failed");
     },
   };
 }
