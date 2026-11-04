@@ -848,6 +848,8 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       } else {
         try {
           audio.currentTime = target;
+          // Metadata can be in before its event: the queued start must not undo this seek.
+          pendingStart = null;
         } catch {
           pendingStart = target;
         }

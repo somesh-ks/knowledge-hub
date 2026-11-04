@@ -215,14 +215,18 @@ describe("seeking and items", () => {
     expect(harness.store.getState().itemIndex).toBe(1);
   });
 
-  it("queues a seek made before metadata and applies it on loadedmetadata", () => {
+  it("queues a seek made before metadata and applies it on loadedmetadata, unless a later seek landed", () => {
     const harness = createHarness();
     harness.store.load(makeDigest());
     harness.store.seekTo(70_000);
     expect(harness.store.getTime()).toBe(70);
     expect(harness.audio.currentTime).toBe(0);
+    // The element knows its metadata a task before it says so: a seek in that gap (End on the
+    // scrubber right after Play, CI 2026-11-04) must not be undone by the queued one.
+    harness.audio.readyState = 1;
+    harness.store.seekTo(110_000);
     harness.audio.loadMetadata(120);
-    expect(harness.audio.currentTime).toBe(70);
+    expect(harness.audio.currentTime).toBe(110);
   });
 
   it("does not take the unlock primer's silence for the recording, so nothing is stored as played", () => {
