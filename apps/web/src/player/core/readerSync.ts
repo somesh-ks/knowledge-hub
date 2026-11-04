@@ -42,6 +42,7 @@ import {
   type ChipView,
   createHeardTracker,
   fabLabel,
+  fabName,
   type ItemVisualState,
   itemVisualState,
   rememberedChip,
@@ -94,7 +95,10 @@ function writeChip(chip: HTMLElement, view: ChipView, blocked = false): void {
   if (label) {
     const text = label.dataset.chipLabel ? fabLabel(view) : view.label;
     if (label.textContent !== text) label.textContent = text;
-    if (chip.getAttribute("aria-label") !== view.name) chip.setAttribute("aria-label", view.name);
+    const name = label.dataset.chipLabel
+      ? fabName(view, chip.dataset.noun === "episode" ? "episode" : "podcast")
+      : view.name;
+    if (chip.getAttribute("aria-label") !== name) chip.setAttribute("aria-label", name);
   }
   if (blocked) chip.setAttribute("aria-disabled", "true");
   else chip.removeAttribute("aria-disabled");
