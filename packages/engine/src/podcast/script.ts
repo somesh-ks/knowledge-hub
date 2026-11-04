@@ -204,7 +204,9 @@ export function validateReply(
  * rewrites it (owner, 2026-11-04: a merged opening moved every turn and Listen now skipped four).
  */
 function heldTurns(turns: readonly ScriptTurn[], opening: readonly ScriptTurn[] | null): number {
-  return opening?.every((turn, index) => turns[index]?.text === turn.text) ? opening.length : 0;
+  const same = (turn: ScriptTurn, index: number): boolean =>
+    turns[index]?.text === turn.text && turns[index]?.speaker === turn.speaker;
+  return opening?.every(same) ? opening.length : 0;
 }
 
 /** Ids of this many leading characters in common are taken to be the same id, mistyped. */

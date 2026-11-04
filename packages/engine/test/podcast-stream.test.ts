@@ -30,6 +30,7 @@ const TURNS: ScriptTurn[] = [
 /** A Blob that records what was written, and can hold the first write back. */
 function fakeBlob(options: { slowFirst?: boolean; failPuts?: boolean } = {}) {
   const store = new Map<string, StreamDoc>();
+  const writes = new Map<string, number>();
   const order: string[] = [];
   let puts = 0;
   const client: BlobClient = {
@@ -40,6 +41,7 @@ function fakeBlob(options: { slowFirst?: boolean; failPuts?: boolean } = {}) {
       const doc = JSON.parse(new TextDecoder().decode(body)) as StreamDoc;
       order.push(`${doc.status}:${doc.turns.length}`);
       store.set(pathname, doc);
+      writes.set(pathname, (writes.get(pathname) ?? 0) + 1);
       return { url: `https://blob.example/${pathname}`, pathname };
     },
     async del() {},
@@ -47,7 +49,7 @@ function fakeBlob(options: { slowFirst?: boolean; failPuts?: boolean } = {}) {
       return { blobs: [], hasMore: false };
     },
   };
-  return { client, store, order };
+  return { client, store, writes, order };
 }
 
 function publisher(client: BlobClient) {
@@ -102,7 +104,7 @@ describe("the live copy of the script", () => {
   // 2026-11-04: an object written again was served from the CDN as it was for up to a minute, so
   // the player sat silent after the opening. Each stage is its own object, written once.
   it("writes each stage once, to its own object, and a slow opening cannot cut a finished script back", async () => {
-    const { client, store } = fakeBlob({ slowFirst: true });
+    const { client, store, writes } = fakeBlob({ slowFirst: true });
     const stream = publisher(client);
     void stream.opening(TURNS.slice(0, 1));
     void stream.script([...TURNS, { speaker: "a", text: "That is all." }]);
@@ -114,6 +116,7 @@ describe("the live copy of the script", () => {
       expect(store.get(key(id, "done"))?.status).toBe("done");
       expect(store.get(key(id, "done"))?.turns).toHaveLength(3);
     }
+    expect([...writes.values()].every((count) => count === 1)).toBe(true);
   });
 
   it("marks the document failed, so the player stops waiting for turns that will not come", async () => {

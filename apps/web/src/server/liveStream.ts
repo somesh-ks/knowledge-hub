@@ -40,14 +40,19 @@ const STAGES = ["done", "failed", "script", "opening"] as const;
 
 /** The latest stage written under `stem` (streams/run-<id> or streams/<episode id>), or null. */
 async function readDoc(deps: StreamDeps, base: string, stem: string): Promise<StreamDoc | null> {
-  // A stage not written yet is a 404, which the CDN does not keep.
-  const texts = await Promise.all(
+  // A stage not written yet is a 404, which the CDN does not keep. One read that fails does not
+  // hide a stage that was read; only when none was is the failure passed on.
+  const reads = await Promise.allSettled(
     STAGES.map((stage) => readPublicText(`${base}/${stem}.${stage}.json`, deps.fetch)),
   );
-  for (const text of texts) {
-    const doc = text === null ? null : parseStreamDoc(text);
+  let failure: unknown = null;
+  for (const read of reads) {
+    if (read.status === "rejected") failure ??= read.reason;
+    const doc =
+      read.status === "fulfilled" && read.value !== null ? parseStreamDoc(read.value) : null;
     if (doc) return doc;
   }
+  if (failure !== null) throw failure;
   return null;
 }
 
