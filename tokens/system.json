@@ -258,6 +258,8 @@
       ],
       "usage": "Phosphor: every glyph is one filled path, so an icon is just its colour and its size.",
       "tokens": [
+        "--color-favorite",
+        "--color-on-surface-muted",
         "--icon-bold",
         "--size-icon",
         "--size-icon-lg"
@@ -506,7 +508,7 @@
       "id": "select",
       "name": "Select",
       "kind": "selection",
-      "summary": "A native select with its own chevron: a person picks one value from a list that is too long to show.",
+      "summary": "A native select with its own chevron.",
       "classes": [
         "select-outlined",
         "select-tonal"
@@ -4195,6 +4197,18 @@
       "hex": {
         "light": "#fff6f5",
         "dark": "#331916"
+      }
+    },
+    {
+      "name": "--color-favorite",
+      "tier": "semantic",
+      "type": "color",
+      "light": "var(--color-red-500)",
+      "role": "The filled heart. Brighter than danger's red, which reads brown on a heart (owner, 2026-11-04: \"the heart fill can be red\"); only an icon, so it holds 3:1 on every surface.",
+      "dark": "var(--color-red-400)",
+      "hex": {
+        "light": "#ce3830",
+        "dark": "#ee5b4f"
       }
     },
     {

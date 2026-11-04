@@ -391,6 +391,8 @@ describe.each(MOODS)("a mood's colour contrast: %s", (name) => {
       ...["success", "warning", "info"].flatMap((tone) =>
         [...surfaces, `${tone}-subtle`].map((bg): [string, string, number] => [tone, bg, 3]),
       ),
+      // A favorite's filled heart is only an icon.
+      ...surfaces.map((bg): [string, string, number] => ["favorite", bg, 3]),
       // A banner comes in success, warning and danger (the info tone went with its last use, the paused notice).
       ...["success", "warning", "danger"].flatMap((tone): [string, string, number][] => [
         [tone, `banner.strip-${tone}`, 3],
