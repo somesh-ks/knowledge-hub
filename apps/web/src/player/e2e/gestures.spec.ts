@@ -116,6 +116,22 @@ test("a swipe on the bar switches the podcast; a short one does not and opens no
   const held = await finger.drag(line(spot, { x: spot.x - 100, y: spot.y }, 4), 8, { hold: true });
   const peek = player.openButton.locator(".dock-peek");
   await expect(peek).toHaveCount(1);
+  // Owner, 2026-11-04: the bar flashed grey for the whole swipe. Chrome on a phone holds :active for
+  // a touch (emulated touch does not, so it is forced), and a finger's press must not tint the bar.
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("DOM.enable");
+  await cdp.send("CSS.enable");
+  const { root } = await cdp.send("DOM.getDocument");
+  const { nodeId } = await cdp.send("DOM.querySelector", {
+    nodeId: root.nodeId,
+    selector: ".dock-open",
+  });
+  await cdp.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: ["active"] });
+  const tint = await player.openButton.evaluate(
+    (el) => getComputedStyle(el, "::after").backgroundColor,
+  );
+  expect(tint).toBe("rgba(0, 0, 0, 0)");
+  await cdp.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: [] });
   const coming = await player.boxOf(peek.locator(".player-thumb"));
   expect(coming.x).toBeGreaterThan(spot.x - 100);
   expect(coming.x + coming.width).toBeLessThanOrEqual(bar.x + bar.width + 1);
