@@ -657,8 +657,9 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
     if (track) saveResume();
     stopTimers();
-    // A seek on the track before is not a place chosen on this one.
-    quietGeneration = seekGeneration;
+    // A seek on the track before is not a place chosen on this one; new audio for the same
+    // briefing keeps the place the listener chose.
+    if (!sameDigest) quietGeneration = seekGeneration;
     skippedUrls.clear();
     networkRetries = 0;
     networkFailedAt = Number.NEGATIVE_INFINITY;
