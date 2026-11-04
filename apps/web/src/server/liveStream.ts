@@ -14,8 +14,10 @@ import { parseRunId } from "./status";
  * Guards: the site must be configured (the same check every route makes), the run id must be a run
  * id, and only paths derived from it are read, so the route cannot be used to read any other object.
  * The CDN serves an overwritten object for up to a minute whatever the query string (measured
- * 2026-11-04: a new `?t=` was a cache hit 8 s old), so each stage is written once and the latest one
- * there is wins. Up to four SIMPLE operations per read, side by side, no token, no write.
+ * 2026-11-04: a new `?t=` was a cache hit 8 s old), and Blob's list is as stale, so each stage is
+ * written once under a name of its own: `part-1`, `part-2` and so on, then `done` or `failed`. The
+ * parts are walked up to the first that is missing, beside the two ends; done or failed wins (D366).
+ * SIMPLE operations only (one per part, and three more), no token, no write.
  */
 
 /** Nothing written yet: an answer, not an error, so a page polling for it logs nothing. */
@@ -35,21 +37,36 @@ export interface StreamDeps {
 /** A poll is every few seconds and the answer changes with each turn: the browser keeps none. */
 export const STREAM_CACHE_CONTROL = "private, no-store";
 
-/** The engine's stages (packages/engine/src/podcast/stream.ts), the latest first. */
-const STAGES = ["done", "failed", "script", "opening"] as const;
+/** An episode writes two to four parts (packages/engine/src/podcast/stream.ts); this caps a walk. */
+const MAX_PARTS = 20;
 
 /** The latest stage written under `stem` (streams/run-<id> or streams/<episode id>), or null. */
 async function readDoc(deps: StreamDeps, base: string, stem: string): Promise<StreamDoc | null> {
-  // A stage not written yet is a 404, which the CDN does not keep. One read that fails does not
-  // hide a stage that was read; only when none was is the failure passed on.
-  const reads = await Promise.allSettled(
-    STAGES.map((stage) => readPublicText(`${base}/${stem}.${stage}.json`, deps.fetch)),
-  );
+  // A stage not written yet is a 404, which the CDN does not keep.
+  const read = (stage: string): Promise<string | null> =>
+    readPublicText(`${base}/${stem}.${stage}.json`, deps.fetch);
+  // Each part holds every turn before it, so the last one before a gap is the latest.
+  const walk = async (): Promise<StreamDoc | null> => {
+    let latest: StreamDoc | null = null;
+    for (let part = 1; part <= MAX_PARTS; part++) {
+      const text = await read(`part-${part}`).catch((error: unknown) => {
+        if (latest === null) throw error;
+        return null;
+      });
+      if (text === null) break;
+      latest = parseStreamDoc(text) ?? latest;
+    }
+    return latest;
+  };
+  // One read that fails does not hide a stage that was read; only when none was is it passed on.
+  const reads = await Promise.allSettled([read("done"), read("failed"), walk()]);
   let failure: unknown = null;
-  for (const read of reads) {
-    if (read.status === "rejected") failure ??= read.reason;
-    const doc =
-      read.status === "fulfilled" && read.value !== null ? parseStreamDoc(read.value) : null;
+  for (const result of reads) {
+    if (result.status === "rejected") {
+      failure ??= result.reason;
+      continue;
+    }
+    const doc = typeof result.value === "string" ? parseStreamDoc(result.value) : result.value;
     if (doc) return doc;
   }
   if (failure !== null) throw failure;

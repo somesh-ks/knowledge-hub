@@ -10,6 +10,7 @@ import {
 } from "@singularity/core";
 import { boundaryLine, untrustedInstruction, wrapUntrusted } from "../llm/untrusted.js";
 import { tasteNote } from "../profile/tasteNote.js";
+import { charCount } from "./fit.js";
 import {
   type EpisodeStructure,
   HELLO_CHARS,
@@ -211,6 +212,7 @@ const RULES = [
 /**
  * The length, said in words and sentences. It aims at what the stories can carry (see
  * reachableChars), so the writer is never asked to stretch a few short summaries over a long episode.
+ * A call that carries on after turns already written is asked for the words still left.
  */
 export function lengthLines(input: ScriptInput): string[] {
   const stories = input.stories.length;
@@ -220,8 +222,11 @@ export function lengthLines(input: ScriptInput): string[] {
   const parts = partChars(reach, stories, format, minutes, input.shape);
   const nugget = wordsFor(parts.nugget);
   const sentences = (words: number): number => Math.max(1, Math.round(words / WORDS_PER_SENTENCE));
+  const written = charCount(input.opening ?? []);
   const lines = [
-    `Write about ${wordsFor(scriptTargetChars(reach))} words in total, all turns together: reach that length, and use the detail in the story blocks to get there. A script under ${wordsFor(scriptFloorChars(reach))} words is rejected as too short; ${wordsFor(reach)} words is the ceiling.`,
+    written > 0
+      ? `The turns already written come to about ${wordsFor(written)} words. Write about ${wordsFor(Math.max(0, scriptTargetChars(reach) - written))} more words, all your turns together: reach that length, and use the detail in the story blocks to get there. ${wordsFor(Math.max(0, reach - written))} more words is the ceiling.`
+      : `Write about ${wordsFor(scriptTargetChars(reach))} words in total, all turns together: reach that length, and use the detail in the story blocks to get there. A script under ${wordsFor(scriptFloorChars(reach))} words is rejected as too short; ${wordsFor(reach)} words is the ceiling.`,
   ];
   if (format === "headlines") {
     lines.push(
@@ -264,10 +269,6 @@ export function scriptSystemPrompt(input: ScriptInput): string {
     untrustedInstruction(),
   ].join("\n");
 }
-
-/** What the opening call is asked for, in addition to the script prompt. */
-export const OPENING_INSTRUCTION =
-  'THIS CALL WRITES THE OPENING ONLY, not the episode: the one-line hello that says the show is Singularity, the rundown, and the first turns of the first story. Four to six turns, about 120 words in all, ending where a longer script would carry on with that story. Do not write the close or a sign-off. Answer with JSON only in the same shape: {"turns":[...]}.';
 
 /**
  * One story: its id on a line of its own, then the story text between the markers. The id stays
@@ -387,7 +388,9 @@ export function scriptUserMessage(
   if (problems.length > 0) {
     lines.push(
       "",
-      "Your previous reply was rejected. Fix these problems and answer again with the whole script:",
+      input.opening?.length
+        ? "Your previous reply was rejected. Fix these problems, and answer only with the turns that come after OPENING DONE:"
+        : "Your previous reply was rejected. Fix these problems and answer again with the whole script:",
       ...problems.map((problem) => `- ${problem}`),
     );
   }

@@ -1,5 +1,6 @@
 import type { PodcastFormat, PodcastRequest } from "@singularity/core";
 import { describe, expect, it } from "vitest";
+import { charCount } from "../src/podcast/fit.js";
 import {
   deepDiveCount,
   NUGGET_CAPACITY_CHARS,
@@ -315,7 +316,8 @@ describe("the length floor", () => {
       scriptOf(i, call === 0 ? "A somewhat longer line than the others manage." : "short."),
     );
     const result = await run(input, writer);
-    expect(writer.calls).toHaveLength(3);
+    // Three tries at the whole script, then the continuation, which adds nothing here.
+    expect(writer.calls).toHaveLength(4);
     expect(result.turns.some((turn) => turn.text.includes("somewhat longer"))).toBe(true);
   });
 
@@ -323,41 +325,47 @@ describe("the length floor", () => {
     const input = inputFor("readout", 5, 4);
     const writer = new FakeScriptWriter((i) => scriptOf(i, "short."));
     const result = await run(input, writer);
-    expect(writer.calls).toHaveLength(3);
+    expect(writer.calls).toHaveLength(4);
     const chars = result.turns.reduce((sum, turn) => sum + turn.text.length, 0);
     expect(result.short_by_chars).toBe(scriptFloorChars(input.budget_chars) - chars);
     expect(result.short_by_chars).toBeGreaterThan(0);
     expect(result.turns.length).toBeGreaterThan(3);
   });
 
-  it("sends an under-delivered script back once to be extended, and keeps the longer one", async () => {
-    // ep-20261025-1746 aired at 72% of its length: the writer under-delivers and nothing asked again.
+  // ep-20261025-1746 aired at 72% of its length: the writer under-delivers. Lines heard live are
+  // final (D366), so the length is made up by turns put before the close, never by a rewrite.
+  it("makes up a short script with turns before its close, and keeps every turn before them", async () => {
     const input = inputFor("readout", 5, 4);
     const reach = reachableChars(input.budget_chars, 4, "readout", 5);
-    const long = { ...input, budget_chars: Math.floor(input.budget_chars * 1.05) };
-    const extended = scriptOf(input, padFor(long, false));
-    let extendCalls = 0;
-    const writer = Object.assign(new FakeScriptWriter((i) => scriptOf(i, "short.")), {
-      extendScript: async () => {
-        extendCalls += 1;
-        return extended;
-      },
-    });
+    const thin = { ...input, budget_chars: Math.floor(input.budget_chars * 0.88) };
+    const more = "word ".repeat(60).trim();
+    const writer = new FakeScriptWriter((i, call) =>
+      call === 0
+        ? scriptOf(i, padFor(thin, false))
+        : {
+            turns: [
+              ...(i.opening ?? []),
+              { speaker: "a", text: `More on the first story. ${more}`, item_id: itemId(1) },
+              { speaker: "a", text: `And the second. ${more}`, item_id: itemId(2) },
+              { speaker: "a", text: "That is all from us." },
+            ],
+          },
+    );
     const result = await run(input, writer);
-    const chars = result.turns.reduce((sum, turn) => sum + turn.text.length, 0);
-    expect(extendCalls).toBe(1);
-    expect(chars).toBeGreaterThanOrEqual(Math.floor(reach * 0.9));
-  });
-
-  it("drops an extension that leaves a story out of the accepted script", async () => {
-    const input = inputFor("readout", 5, 4);
-    const long = { ...input, budget_chars: Math.floor(input.budget_chars * 1.05) };
-    const fewer = { ...long, stories: long.stories.slice(0, 3) };
-    const writer = Object.assign(new FakeScriptWriter((i) => scriptOf(i, "short.")), {
-      extendScript: async () => scriptOf(fewer, padFor(fewer, false)),
-    });
-    const result = await run(input, writer);
-    expect(new Set(result.turns.map((turn) => turn.item_id).filter(Boolean)).size).toBe(4);
+    expect(writer.calls).toHaveLength(2);
+    expect(writer.calls[1]?.problems.join(" ")).toMatch(/too short by about \d+ words/);
+    const opening = writer.calls[1]?.input.opening ?? [];
+    expect(opening.length).toBeGreaterThan(0);
+    expect(result.turns.slice(0, opening.length)).toEqual(opening);
+    // The close the first reply wrote follows the new turns; the continuation's own sign-off is not used.
+    expect(result.turns.slice(opening.length).map((turn) => turn.item_id)).toEqual([
+      itemId(1),
+      itemId(2),
+      undefined,
+    ]);
+    expect(result.turns.at(-1)?.text).toMatch(/That is Singularity for now\.$/);
+    expect(result.turns.some((turn) => turn.text.includes("That is all from us"))).toBe(false);
+    expect(charCount(result.turns)).toBeGreaterThanOrEqual(Math.floor(reach * 0.9));
   });
 
   it("plans 12 stories for 15 minutes at 90% of the length or more", () => {
