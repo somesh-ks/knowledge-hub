@@ -33,6 +33,11 @@ export interface StreamDoc {
   stories: StreamStory[];
   /** The cover box's colour until the drawn cover is deployed; a hex colour, or absent. */
   cover_key?: string;
+  /**
+   * How long the episode should run, in milliseconds: the length picked while it is written, then
+   * the finished script's own. Absent in a copy written before D366.
+   */
+  expected_ms?: number;
   updated_at: string;
 }
 
@@ -104,6 +109,11 @@ export function parseStreamDoc(text: string): StreamDoc | null {
     stories: parsedStories,
     ...(typeof raw.cover_key === "string" && HEX_COLOR.test(raw.cover_key)
       ? { cover_key: raw.cover_key }
+      : {}),
+    ...(typeof raw.expected_ms === "number" &&
+    Number.isFinite(raw.expected_ms) &&
+    raw.expected_ms > 0
+      ? { expected_ms: raw.expected_ms }
       : {}),
     updated_at: typeof raw.updated_at === "string" ? raw.updated_at : "",
   };

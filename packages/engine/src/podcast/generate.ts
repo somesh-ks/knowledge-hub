@@ -56,7 +56,8 @@ export interface GenerateInput {
   onStage?: (stage: EpisodeStageId) => void;
   /**
    * Called once the stories are chosen and the episode id is known, before the script is written.
-   * The publisher it returns is given the opening and then the whole script as they are ready.
+   * The publisher it returns is given the script in parts as it is written, or, in a process that
+   * did not write it, the finished turns for its done or failed copy.
    */
   makeStream?: (info: {
     id: string;
@@ -413,11 +414,9 @@ export async function runEpisodeStages(raw: GenerateInput): Promise<StageOutcome
       ...(selection.shape ? { shape: selection.shape } : {}),
       taste: tasteHeadlines((await createFileProfileStore(input.root).read(OWNER_ID)).votes),
       ...(input.log ? { log: input.log } : {}),
-      ...(live ? { onOpening: (opening: readonly ScriptTurn[]) => live.opening(opening) } : {}),
+      // Awaited part by part, the last one included, so no write is cut off when the step exits.
+      ...(live ? { onPart: (list: readonly ScriptTurn[], ms: number) => live.part(list, ms) } : {}),
     });
-    // The whole script goes out now, not after the commit: the listener hears it while it is pushed.
-    // Not awaited; the publisher writes in order, and a failure to write is its own to report.
-    void live?.script(turns);
     return { turns, script };
   });
   if (only === "script") return outcome(selection.id);
@@ -425,8 +424,8 @@ export async function runEpisodeStages(raw: GenerateInput): Promise<StageOutcome
   const result = await run(
     "publish",
     async () => {
-      // A script made by an earlier step or run has not reached this process's live copy yet.
-      if (stream === undefined) void streamFor()?.script(scripted.turns);
+      // A script made by an earlier step or run is out already; done or failed needs its turns.
+      if (stream === undefined) streamFor()?.hold(scripted.turns);
       const episode = await buildEpisode({
         root: input.root,
         id: selection.id,

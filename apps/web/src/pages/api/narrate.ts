@@ -29,7 +29,7 @@ const log = (message: string): void => console.error(`[api/narrate] ${message}`)
 
 /** An episode still being written is read from its live copy in the store (server/liveStream.ts). */
 const liveEpisodesFor = () => (id: string) =>
-  readStreamForEpisode(id, { env: process.env, fetch, now: Date.now, log });
+  readStreamForEpisode(id, { env: process.env, fetch, log });
 
 // The lookup is given no store at all: anyone may call it, and it must not be able to spend.
 const get: APIRoute = async ({ url }) =>

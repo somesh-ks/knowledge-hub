@@ -356,24 +356,39 @@ async function waitForSite(run: Stored): Promise<void> {
  */
 const STREAM_POLL_MS = 2500;
 const STREAM_POLLS = 100;
+/** The longest Listen now waits for its first turns to be spoken: a slow voice never hides it. */
+const LISTEN_WARM_MS = 8000;
 let watching = 0;
 let live: { runId: number; doc: Record<string, unknown> } | null = null;
 
 /**
- * Poll a new episode's live script and offer Listen now once turns exist. Briefings and episode
- * changes are ignored; fetch and JSON failures are retried within the polling limit.
+ * Poll a new episode's live script (a Catch up or a regeneration) and offer Listen now once turns
+ * exist. Briefings and removals are ignored; fetch and JSON failures are retried within the limit.
  */
 async function watchStream(run: Stored): Promise<void> {
-  if (watching === run.id || run.kind || run.what) return;
+  if (watching === run.id || run.kind === "delete" || run.what) return;
   watching = run.id;
   for (let turn = 0; turn < STREAM_POLLS && watching === run.id; turn += 1) {
     const res = await fetch(`/api/stream?run=${run.id}`, { cache: "no-store" }).catch(() => null);
     const doc = res?.ok ? await res.json().catch(() => null) : null;
     if (watching !== run.id) return;
     if (Array.isArray(doc?.turns) && doc.turns.length > 0 && doc.status !== "failed") {
-      const first = live?.runId !== run.id;
-      live = { runId: run.id, doc };
-      if (first) show(read());
+      if (live?.runId === run.id) live = { runId: run.id, doc };
+      else {
+        // Its first turns are spoken before Listen now shows, so a press plays at once instead of
+        // after about 3 s of waiting for speech (owner, 2026-11-04). They are the turns the deployed
+        // episode's prewarm makes anyway; the script keeps them as they were aired.
+        const warm = import("../narration/prewarmEpisode").then((prewarm) =>
+          prewarm.prewarmEpisode(String(doc.id)),
+        );
+        await Promise.race([
+          warm.catch(() => undefined),
+          new Promise((resolve) => setTimeout(resolve, LISTEN_WARM_MS)),
+        ]);
+        if (watching !== run.id) return;
+        live = { runId: run.id, doc };
+        show(read());
+      }
     }
     if (doc && doc.status !== "writing" && doc.status !== "waiting") break;
     await new Promise((resolve) => setTimeout(resolve, STREAM_POLL_MS));
