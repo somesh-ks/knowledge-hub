@@ -29,5 +29,8 @@ export function narratedOrPage(digest: PlayerDigestData | null): PlayerDigestDat
   if (!digest) return null;
   // A page that carries finished audio is newer than anything narrated in this session.
   if (digest.audio) return digest;
-  return narrated.get(digest.id) ?? digest;
+  const kept = narrated.get(digest.id);
+  // The page's cover wins: an episode narrated while it was written had none drawn yet, and its
+  // copy kept the default art after the episode was saved (2026-11-04).
+  return kept ? { ...kept, cover: digest.cover } : digest;
 }

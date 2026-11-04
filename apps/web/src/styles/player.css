@@ -1288,6 +1288,16 @@
   .player[data-state="expanded"] .player-dock {
     visibility: hidden;
   }
+
+  /* Owner, 2026-11-04: the sideways swipe runs full bleed. The window the cover and words slide in
+     reaches the screen's left edge with square corners; at rest they keep the bar's inset, given
+     back as padding, so nothing moves until the finger does. */
+  .dock-open {
+    --dock-start: max(var(--mini-player-inset), var(--safe-left));
+    margin-inline-start: calc(-1 * var(--dock-start));
+    padding-inline-start: var(--dock-start);
+    border-radius: 0;
+  }
 }
 
 /* ------------------------------------------------------------------ wide: the page rises from behind the bar */

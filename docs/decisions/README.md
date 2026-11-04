@@ -168,6 +168,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D300 | Digests and audio in Blob, state in Postgres, weekly private snapshot of the config store | partly superseded by D311; steps 1 and 2a built, 2b in review; amended by D339 |
 | D302 | Pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked | active |
 | D306 | A seasonal style may change more than tokens | amends D268 |
+| D307 | Write routes need the admin session | superseded by D368; amended D160, D201 |
 | D308 | Haiku writes the first pass of each story, Sonnet repairs and backs it up | amends D181; amended by D333 |
 | D309 | Player ⋮ menu: actions, speed screen, Save; Settings > Saved | amends D105, D127; supersedes D50's speed control; amended by D338 |
 | D310 | Expressive is loud: a violet world, larger controls | amends D268 |
@@ -222,5 +223,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D363 | Every mood pads its cards 24px | active |
 | D364 | Play after a quiet starts two seconds back, so a waking output loses no words | active |
 | D365 | Favorites from every podcast menu and a heart beside Play; the heart replaces the bookmark | amends D354 |
+| D366 | Listen now streams the script in parts, each written once and final once out; one append-only continuation; the live timer shows the expected length | amends D105 |
+| D368 | The app's write routes need no sign-in; the command center stays signed in; per-minute caps are the backstop | supersedes D307 |
 
 ---
