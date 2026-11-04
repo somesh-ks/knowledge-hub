@@ -21,7 +21,7 @@ export const CHANGELOG: readonly Release[] = [
     version: "0.20",
     date: "2026-11-04",
     description:
-      "A heart beside Play on a podcast's page adds it to Favorites, and every podcast menu in the Library, Favorites, Downloads and the queue has Add to favorites and Remove from favorites.",
+      "A heart beside Play on a podcast's page adds it to Favorites, and every podcast menu in the Library, Favorites, Downloads and the queue has Add to favorites and Remove from favorites. Listen now on a podcast being made plays it whole, with its full length, and no longer goes quiet after the opening.",
   },
   {
     version: "0.19.1",

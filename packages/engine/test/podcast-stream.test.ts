@@ -74,7 +74,7 @@ describe("the live copy of the script", () => {
       now: () => new Date("2026-10-13T12:00:00Z"),
     });
     await stream.opening(TURNS);
-    const doc = store.get(streamKeyForEpisode("ep-20261013-1200")) as StreamDoc & {
+    const doc = store.get(streamKeyForEpisode("ep-20261013-1200", "opening")) as StreamDoc & {
       cover_key?: string;
     };
     expect(doc.cover_key).toMatch(/^#[0-9a-f]{6}$/i);
@@ -92,22 +92,27 @@ describe("the live copy of the script", () => {
       now: () => new Date("2026-10-13T12:00:00Z"),
     });
     await stream.opening(TURNS);
-    const doc = store.get(streamKeyForEpisode("ep-20261013-1200")) as StreamDoc & {
+    const doc = store.get(streamKeyForEpisode("ep-20261013-1200", "opening")) as StreamDoc & {
       cover_key?: string;
     };
     expect(doc.turns).toHaveLength(TURNS.length);
     expect(doc.cover_key).toBeUndefined();
   });
 
-  it("lands in the order it was written, so a slow opening cannot cut a finished script back", async () => {
+  // 2026-11-04: an object written again was served from the CDN as it was for up to a minute, so
+  // the player sat silent after the opening. Each stage is its own object, written once.
+  it("writes each stage once, to its own object, and a slow opening cannot cut a finished script back", async () => {
     const { client, store } = fakeBlob({ slowFirst: true });
     const stream = publisher(client);
-    void stream.opening(TURNS.slice(0, 2));
+    void stream.opening(TURNS.slice(0, 1));
     void stream.script([...TURNS, { speaker: "a", text: "That is all." }]);
     await stream.done();
-    for (const key of [streamKeyForEpisode("ep-20261013-1200"), streamKeyForRun("123")]) {
-      expect(store.get(key)?.status).toBe("done");
-      expect(store.get(key)?.turns).toHaveLength(3);
+    for (const key of [streamKeyForEpisode, streamKeyForRun]) {
+      const id = key === streamKeyForRun ? "123" : "ep-20261013-1200";
+      expect(store.get(key(id, "opening"))?.turns).toHaveLength(1);
+      expect(store.get(key(id, "script"))?.turns).toHaveLength(3);
+      expect(store.get(key(id, "done"))?.status).toBe("done");
+      expect(store.get(key(id, "done"))?.turns).toHaveLength(3);
     }
   });
 
@@ -116,8 +121,8 @@ describe("the live copy of the script", () => {
     const stream = publisher(client);
     await stream.opening(TURNS);
     await stream.failed();
-    expect(store.get(streamKeyForRun("123"))?.status).toBe("failed");
-    expect(store.get(streamKeyForRun("123"))?.turns).toHaveLength(2);
+    expect(store.get(streamKeyForRun("123", "failed"))?.status).toBe("failed");
+    expect(store.get(streamKeyForRun("123", "failed"))?.turns).toHaveLength(2);
   });
 
   it("never fails the run when the store is down", async () => {
@@ -184,13 +189,21 @@ describe("the opening of a script", () => {
       onOpening: async (turns) => void seen.push(`opening:${turns.length}`),
     });
 
-  it("is handed over before the rest is written, and the script continues after it", async () => {
+  // Owner, 2026-11-04: Listen now played the opening, then skipped to the fifth turn of the final
+  // script, and the length stopped short. The merge had joined the opening's turns, so every turn
+  // after it moved and the player, which adds turns by their place, lost the ones in between.
+  it("is handed over before the rest is written, and the script keeps its turns as they were", async () => {
+    const opening: ScriptTurn[] = [
+      { speaker: "a", text: "Welcome to Singularity." },
+      { speaker: "a", text: "Three stories today." },
+      ...TURNS.slice(1),
+    ];
     const seen: string[] = [];
-    const writer = new OpeningWriter({ turns: TURNS });
+    const writer = new OpeningWriter({ turns: opening });
     const result = await run(writer, seen);
-    expect(seen).toEqual(["opening:2"]);
-    expect(writer.calls[0]?.input.opening).toHaveLength(2);
-    expect(result.turns.slice(0, 2).map((turn) => turn.text)).toEqual(TURNS.map((t) => t.text));
+    expect(seen).toEqual(["opening:3"]);
+    expect(writer.calls[0]?.input.opening).toHaveLength(3);
+    expect(result.turns.slice(0, 3).map((turn) => turn.text)).toEqual(opening.map((t) => t.text));
   });
 
   it("is dropped when it does not name the show, instead of being spoken", async () => {

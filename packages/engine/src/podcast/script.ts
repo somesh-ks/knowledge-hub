@@ -145,6 +145,7 @@ export function validateReply(
   raw: unknown,
   request: PodcastRequest,
   stories: readonly PodcastStory[],
+  opening: readonly ScriptTurn[] | null = null,
 ): Validated {
   const parsed = ScriptReply.safeParse(raw);
   if (!parsed.success) {
@@ -192,9 +193,18 @@ export function validateReply(
     }
     if (turns[0]?.speaker === "b") problems.push('The first turn must be speaker "a".');
   }
-  return problems.length > 0
-    ? { ok: false, problems }
-    : { ok: true, turns: mergeNeighbours(turns) };
+  if (problems.length > 0) return { ok: false, problems };
+  const held = heldTurns(turns, opening);
+  return { ok: true, turns: [...turns.slice(0, held), ...mergeNeighbours(turns.slice(held))] };
+}
+
+/**
+ * How many leading turns are the opening, word for word. The opening may be on the air already
+ * (stream.ts), and the player adds the turns after it by their place, so nothing merges into it or
+ * rewrites it (owner, 2026-11-04: a merged opening moved every turn and Listen now skipped four).
+ */
+function heldTurns(turns: readonly ScriptTurn[], opening: readonly ScriptTurn[] | null): number {
+  return opening?.every((turn, index) => turns[index]?.text === turn.text) ? opening.length : 0;
 }
 
 /** Ids of this many leading characters in common are taken to be the same id, mistyped. */
@@ -294,7 +304,7 @@ async function requestTurns(
         },
         problems,
       );
-      const result = validateReply(raw, deps.request, deps.stories);
+      const result = validateReply(raw, deps.request, deps.stories, opening);
       if (result.ok) {
         // Held to what the stories can carry, not to a length they cannot fill.
         const chars = charCount(result.turns);
@@ -379,6 +389,7 @@ async function extendTurns(
           ),
           deps.request,
           deps.stories,
+          opening,
         );
         if (
           result.ok &&
@@ -432,14 +443,16 @@ export async function generateScript(deps: ScriptDeps): Promise<ScriptResult> {
   const { calls, rejected } = requested;
   const extended = await extendTurns(deps, requested.turns, opening);
   const raw = extended.turns;
+  // The checks and the merge leave the opening as it was aired.
+  const held = heldTurns(raw, opening);
   const checked = await checkTurns({
     request: deps.request,
-    turns: raw,
+    turns: raw.slice(held),
     stories: deps.stories,
     writer: deps.writer,
     ...(deps.log ? { log: deps.log } : {}),
   });
-  let turns = mergeNeighbours(checked.turns);
+  let turns = [...raw.slice(0, held), ...mergeNeighbours(checked.turns)];
   if (!/singularity/i.test(turns[0]?.text ?? "")) {
     turns = [{ speaker: "a", text: FALLBACK_OPENING }, ...turns];
   }
