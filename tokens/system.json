@@ -634,7 +634,8 @@
       ],
       "when": [
         "A card, header or row has more actions than room: Download, Add to queue, Share, Delete",
-        "Each action is one tap, with no choice of its own"
+        "Each action is one tap, with no choice of its own",
+        "It has five actions or more: on a phone's sheet the first three become a row of tiles above the rest (menuHasTiles). Fewer than five are all rows"
       ],
       "not": [
         {
