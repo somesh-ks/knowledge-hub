@@ -446,6 +446,21 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Why: the row read as a card with a second, smaller hit area inside it, and a phone had no way to the row's actions but the swipe (the ⋮ is a mouse's, D346).
 - Amends: D169 (a queue row's actions are its ⋮), D264 (a hold opens a Library card's menu; queue rows hold the same way).
 
+## D357: Up next plays top to bottom: any row may go above the playing one, and the list glides as it changes
+
+- Date: 2026-11-03 (owner: "I cannot put any other podcast above the currently playing podcast. I should be able to have full freedom and move around things as I want"; "when I add a suggested podcast into the queue, the transition should be very smooth. And when I remove it ... the transition must be smooth to readjust the queue"; "I still don't have the red strip when I try to swipe to delete a row").
+- Decision:
+  - Any row moves anywhere, the playing one included. The list plays top to bottom: rows above the playing one are behind it, muted like what played, and never start by themselves; they stay where they were put through every later start, a reload included (`above` in `singularity:queue-played`), until moved, removed or tapped. The playing row let go lower keeps the rows it passed listed above it. A tap on a row above plays it and the order holds; Previous on the bar goes to the row just above. Removing the playing row puts the rows above it at the head of what is to come. Add to queue on a row above brings it down to the end. With nothing put above, the playing row heads the list as before (D346).
+  - Every change glides (`queueFlip.ts`): the rows' places are read as the queue changes, before the list redraws, and each row travels from there on the settle spring, as a drop already did. A row queued from Suggested rises into the queue while the next suggestion stays under the finger; a row taken off fades where it stood as the rows under it close up; a refill fades in. Keyboard moves glide too. Nothing moves with reduced motion. Scroll anchoring is off on the rows so the page does not move under them.
+  - A swipe holds the page still until it has a direction (a non-passive `touchmove` on the list), decided at 6 px, under Chrome's own 8 px slop, and anything up to about 53 degrees from level is sideways. A thumb's slanted start had let Chrome scroll and cancel the press before the row moved.
+  - The column scrolls under a held row only once the finger goes past where it pressed, and gently at first, so a row lifted near the bottom no longer races past every row.
+  - Suggested keeps its rows in place: a refill joins at the end, never on top, and a podcast taken off the queue is not suggested (nor autoplayed) again until it is queued or played (`singularity:queue-removed`; owner: "if a podcast is removed from the queue - the same shall not appear in the suggested section").
+- Why: "nothing above the playing row" and D349's skipped rows, which vanished from the list, made the playing row's drag read as broken; rows snapped on add and remove; and pan-y alone gave a slanted thumb to the page.
+- Cost: rows put above the playing one stay until the listener clears them. Chrome's slop on the owner's phone is assumed, not measured.
+- Revisit if: the owner's phone shows a slanted swipe still scrolling the page or cancelling the press, or a measured touch slop falls under the 6 px axis threshold.
+- Rejected: the playing row's place as a mark only, the highest unplayed row playing next wherever it sits.
+- Amends: D349 (rows passed by the playing row leave the list; nothing goes above it), D346 (nothing is listed above the playing item).
+
 ## D359: A swipe is felt, never heard; the bar's sideways swipe shows the podcast it goes to
 
 - Date: 2026-11-03 (owner: "stop playing interface sounds for swipe gestures, especially when I swipe up and down the player dock"; "when I swipe left or right in the player dock to change podcasts, I should be able to see the next or previous podcast... a bit more predictable").
