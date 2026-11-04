@@ -41,7 +41,7 @@ function fakeStore(objects: Record<string, unknown>) {
 describe("GET /api/stream", () => {
   it("reads one object, named by the run id alone, so it cannot read anything else in the store", async () => {
     const store = fakeStore({
-      "streams/run-77.opening.json": doc("writing", 3),
+      "streams/run-77.part-1.json": doc("writing", 3),
       "audio/secret.mp3": {},
     });
     const result = await handleStream("77/../../audio/secret.mp3", {
@@ -53,17 +53,25 @@ describe("GET /api/stream", () => {
   });
 
   // 2026-11-04: an overwritten copy was served from the CDN for up to a minute, so Listen now sat
-  // silent after the opening. Each stage is its own object; the latest one written wins.
-  it("answers the latest stage written, and is never kept by the browser", async () => {
-    const store = fakeStore({
-      "streams/run-77.opening.json": doc("writing", 3),
-      "streams/run-77.script.json": doc("writing", 9),
-    });
+  // silent after the opening, and Blob's list is as stale. Each part is a name of its own, asked for
+  // directly: the latest one wins, and the finished copy wins over them all (D366).
+  it("answers the latest part, then the finished copy, and is never kept by the browser", async () => {
+    const parts = {
+      "streams/run-77.part-1.json": doc("writing", 3),
+      "streams/run-77.part-2.json": { ...doc("writing", 9), expected_ms: 300_000 },
+    };
+    const store = fakeStore(parts);
     const result = await handleStream("77", { env, fetch: store.fetch });
     expect(result.status).toBe(200);
     expect(result.headers?.["Cache-Control"]).toBe(STREAM_CACHE_CONTROL);
     expect("turns" in result.body && result.body.turns).toHaveLength(9);
+    // The player's timer shows the length picked while the script is written.
+    expect("expected_ms" in result.body && result.body.expected_ms).toBe(300_000);
     expect(store.asked.every((url) => url.startsWith(`${BASE}/streams/run-77.`))).toBe(true);
+    const finished = fakeStore({ ...parts, "streams/run-77.done.json": doc("done", 12) });
+    const body = (await handleStream("77", { env, fetch: finished.fetch })).body;
+    expect("turns" in body && body.status).toBe("done");
+    expect("turns" in body && body.turns).toHaveLength(12);
   });
 
   it("says waiting, not an error, before the engine has written anything, and is unavailable without a store", async () => {
@@ -92,7 +100,7 @@ describe("narrating an episode that is not committed yet", () => {
     handleNarrationLookup({ digest: ID, params: ["digest"] }, d);
 
   it("lists the turns written so far, one segment each, and is not cached at the edge", async () => {
-    const result = await lookup(deps({ [`streams/${ID}.opening.json`]: doc("writing", 4) }));
+    const result = await lookup(deps({ [`streams/${ID}.part-1.json`]: doc("writing", 4) }));
     expect(result.status).toBe(200);
     expect("segments" in result.body && result.body.segments.map((s) => s.key)).toEqual([
       "t0",

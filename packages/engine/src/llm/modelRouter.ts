@@ -2,7 +2,12 @@ import type { ChainEntry, Env, ModelFamily, ModelRouting, ModelStep } from "@sin
 import type { Logger } from "../context.js";
 import { type BatchApi, createAnthropicBatchApi } from "./anthropicBatch.js";
 import { runBatch } from "./batchRunner.js";
-import { BudgetExceededError, DeadlineExceededError, errorStatus } from "./errors.js";
+import {
+  BudgetExceededError,
+  DeadlineExceededError,
+  errorStatus,
+  StreamInterruptedError,
+} from "./errors.js";
 import { createJsonLlm, jsonPrompt, jsonSchemaOf } from "./jsonLlm.js";
 import type { ResolvedFamilies } from "./modelResolver.js";
 import { parseModelJson } from "./parseModelJson.js";
@@ -207,7 +212,12 @@ export function createModelRouter(options: ModelRouterOptions): ModelRouter {
         }
         return { ...result, served: record };
       } catch (error) {
-        if (error instanceof BudgetExceededError || error instanceof DeadlineExceededError) {
+        // A stream that broke off may be heard already: its caller goes on from it, not the chain.
+        if (
+          error instanceof BudgetExceededError ||
+          error instanceof DeadlineExceededError ||
+          error instanceof StreamInterruptedError
+        ) {
           throw error;
         }
         lastError = error;

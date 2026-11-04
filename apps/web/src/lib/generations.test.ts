@@ -107,12 +107,16 @@ describe("a row of the podcast queue", () => {
     expect(regenerating("ep-20261027-1405")).toBeNull();
   });
 
-  it("offers Listen now only for a Catch up with a live copy, and lets through a plain hex tint only", () => {
+  // D366: a new take is written live like a Catch up, so it can be heard as it is written too.
+  it("offers Listen now for an episode with a live copy, a new take too, and lets through a plain hex tint only", () => {
     const live = (tint: string | null) => ({ runId: 7, title: null, tint });
     expect(describeGeneration(row(), { now: NOW, words, live: live("#a1b2c3") })).toMatchObject({
       listen: true,
       tint: "#a1b2c3",
     });
+    expect(
+      describeGeneration(row({ kind: "regenerate" }), { now: NOW, words, live: live(null) }).listen,
+    ).toBe(true);
     expect(
       describeGeneration(row(), { now: NOW, words, live: live("red; background:url(x)") }).tint,
     ).toBeNull();
