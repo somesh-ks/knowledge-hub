@@ -445,7 +445,13 @@ describe("Listen now on an episode being written", () => {
     vi.stubGlobal("fetch", async (url: string) =>
       Response.json(
         url.startsWith("/api/stream")
-          ? { id: "ep-20261104-1405", title: "AI", status: "writing", turns: [{ text: "Hi." }] }
+          ? {
+              id: "ep-20261104-1405",
+              title: "AI",
+              status: "writing",
+              format: "discussion",
+              turns: [{ speaker: "a", text: "Hi." }],
+            }
           : { run_id: 41, state: "running" },
       ),
     );
