@@ -210,7 +210,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D351 | A story's Play button never says Played; it stays a plain Play button with its length | amends D348 |
 | D352 | On touch a chosen control keeps its own fill under the tap | active; amends ledger rule 5 on touch |
 | D353 | A tap on the avatar plays a short show, picked by the mood and started by the hue | amends D326; amended by D358 |
-| D354 | A queue row is one full-bleed band: tap plays, the handle moves it, a hold opens its menu | amends D169, D264 |
+| D354 | A queue row is one full-bleed band: tap plays, the handle moves it, a hold opens its menu | amends D169, D264; amended by D365 |
 | D355 | The change log is kept by CI: a feat, fix or perf PR fails while the newest entry is over two days old | active |
 | D356 | A chosen fill stands at least 8 points of lightness off every surface it sits on | amends D72 |
 | D357 | Up next plays top to bottom: any row may go above the playing one; the list glides as it changes | amends D346, D349 |

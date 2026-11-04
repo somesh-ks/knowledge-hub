@@ -104,8 +104,10 @@ export default function QueueRowMenu({
 
   const toggleFavorite = (): void => {
     hide();
-    const on = !favorite;
-    if (setSaved(deviceStorage(), id, on))
+    // Read now, not when the menu opened: another tab may have changed it since.
+    const storage = deviceStorage();
+    const on = !isSaved(storage, id);
+    if (setSaved(storage, id, on))
       sendToast({ message: on ? "Added to favorites" : "Removed from favorites" });
     else
       sendToast({
