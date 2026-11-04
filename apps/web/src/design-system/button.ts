@@ -113,4 +113,6 @@ export const BUTTON_RETIRED: string[] = ["btn", "btn-primary", "btn-secondary", 
 
 /** The classes that draw a button of this variant (and tone, and size). */
 export const buttonClass = (variant: ButtonVariant, tone?: ButtonTone, size?: ButtonSize): string =>
-  [`button-${variant}`, tone && `button-${tone}`, size && `button-${size}`].filter(Boolean).join(" ");
+  [`button-${variant}`, tone && `button-${tone}`, size && `button-${size}`]
+    .filter(Boolean)
+    .join(" ");
