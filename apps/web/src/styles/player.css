@@ -1803,6 +1803,15 @@
   color: var(--color-on-surface-disabled);
 }
 
+/* The speed between the skips: only on a wide screen with a mouse (below); elsewhere it is in the ⋮
+   menu. It wears the skips' size and ink, its words in the label size. */
+.transport-speed {
+  display: none;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+}
+
 /* A skip control: a circular arrow with its own numeral set in the arrow's open center. */
 .transport-skip {
   --transport-glyph: var(--player-skip-glyph);
@@ -2842,7 +2851,7 @@
     min-height: 0;
   }
 
-  /* Back ten and forward ten, side by side. */
+  /* Back ten, the speed and forward ten, side by side (the speed: owner, 2026-11-04). */
   .transport {
     display: flex;
     grid-row: 1;
@@ -2852,8 +2861,30 @@
     padding-block: 0;
   }
 
-  .transport-btn:not(.transport-skip) {
+  .transport-btn:not(.transport-skip, .transport-speed) {
     display: none;
+  }
+
+  .transport-speed {
+    display: grid;
+  }
+
+  /* Opened from the speed button, the ⋮ menu's speed screen hangs centred under it. */
+  .player-menu[data-from="speed"] {
+    transform-origin: top center;
+  }
+
+  @supports (top: anchor(bottom)) {
+    .transport-speed {
+      anchor-name: --player-speed;
+    }
+
+    .player-menu[data-from="speed"] {
+      position-anchor: --player-speed;
+      inset-inline-end: auto;
+      inset-inline-start: anchor(center);
+      translate: -50% 0;
+    }
   }
 }
 
