@@ -44,7 +44,7 @@ permissions:
   issues: write
   actions: write
   # The budgets (D360) count open Dependabot alerts; refused, the card says "Dependabot alerts unread".
-  security-events: read
+  vulnerability-alerts: read
 
 jobs:
   health:

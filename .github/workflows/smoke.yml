@@ -94,12 +94,16 @@ jobs:
           body="No daily health check finished since $since: health.yml's schedule may be off or the file broken. [run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})"
           if [ -n "$open_issue" ]; then
             number=$(jq -r '.number' <<<"$open_issue")
-            gh issue comment "$number" --repo "$GITHUB_REPOSITORY" --body "$body"
-            gh issue edit "$number" --repo "$GITHUB_REPOSITORY" --title "$(jq -r '.title' <<<"$open_issue") health_stale"
+            gh issue comment "$number" --repo "$GITHUB_REPOSITORY" --body "$body" &&
+              gh issue edit "$number" --repo "$GITHUB_REPOSITORY" --title "$(jq -r '.title' <<<"$open_issue") health_stale" ||
+              echo "::warning::Could not mark health issue #$number stale."
           else
-            gh label create health --repo "$GITHUB_REPOSITORY" --color B60205 --description "Daily health check" --force >/dev/null
-            gh issue create --repo "$GITHUB_REPOSITORY" --title "Health: health_stale" --label health --body "$body" >/dev/null
+            gh label create health --repo "$GITHUB_REPOSITORY" --color B60205 --description "Daily health check" --force >/dev/null &&
+              gh issue create --repo "$GITHUB_REPOSITORY" --title "Health: health_stale" --label health --body "$body" >/dev/null ||
+              echo "::warning::Could not open the health_stale issue."
           fi
+          # A GitHub hiccup here is a warning, never the site's failure: the next step reads the job's status.
+          exit 0
 
       - name: Tell the owner
         if: always()

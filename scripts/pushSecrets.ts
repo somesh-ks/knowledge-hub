@@ -32,6 +32,8 @@ const GITHUB_VARIABLES = [
   "SPEECHIFY_MONTHLY_CHARS",
   "SINGULARITY_GIT_NAME",
   "SINGULARITY_GIT_EMAIL",
+  // The Neon project the daily health check reads compute hours from (D360); branches.yml too.
+  "NEON_PROJECT_ID",
 ];
 
 /**
