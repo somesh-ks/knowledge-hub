@@ -32,6 +32,29 @@
   margin-inline-start: calc(var(--space-1) * -1);
 }
 
+/* Sign out sits at the end of the app bar on a phone; the side column has its own, in the nav foot. */
+.admin-signout {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* From 360px down the centred wordmark and Sign out cross (the wordmark is 193px, Back and Sign out
+   take 133px of a 320px bar): the wordmark moves up against Back and its tag steps aside, and the
+   bar's own name says where you are (2026-10-31, review on the Google sign-in PR). */
+@media (width < 24rem) {
+  .app-bar-inner {
+    justify-content: flex-start;
+    padding-inline-start: calc(var(--space-12) + var(--space-2));
+  }
+
+  .app-bar .admin-tag {
+    display: none;
+  }
+}
+
 /* ------------------------------------------------------------------ the overview */
 
 /* The Overview's two cards read at a glance: a status badge or a figure first, then marks, with
@@ -533,24 +556,281 @@
 
 /* ------------------------------------------------------------------ the health page */
 
-/* A row that needs a look carries its tone's glyph before its reading; a fine row draws none and the
-   reading stays at the row's end. */
-.health-value .ov-flag-icon:empty {
-  display: none;
+/* Health reads as marks first (2026-11-04, the owner: "so bad in data visualization, very
+   boring"): a kind's runs as columns, a workflow's week as a strip, a speed reading as a pin on
+   Google's bands. Cards stay neutral; only a glyph, a pin or a failed run takes a tone. */
+.card-group.hl-card {
+  display: grid;
+  gap: var(--space-8);
+  margin-block-start: 0;
+  padding: var(--card-padding);
 }
 
-/* The state at the card's head: its glyph, its word and the one quiet line, as the Overview's total
-   and its note sit. */
-.health-card .ov-answer {
+.hl-data {
+  transition: opacity var(--duration-state) var(--ease-out);
+}
+
+[data-loading] .hl-data {
+  opacity: 0.6;
+}
+
+.hl-card .ov-answer {
   align-items: baseline;
 }
 
-.health-card .ov-badge {
+.hl-card .ov-badge {
   align-self: center;
 }
 
-.health-card .ov-badge:empty {
+.hl-card .ov-badge:empty,
+.ov-flag-icon:empty {
   display: none;
+}
+
+.hl-flags[hidden] {
+  display: none;
+}
+
+/* A summary with flagged lines under its title sits them a step closer than the card's blocks. */
+.hl-card:has(.hl-flags:not([hidden])) {
+  gap: var(--space-4);
+}
+
+.hl-block {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.hl-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.hl-title {
+  margin: 0;
+  font-family: var(--text-title-family);
+  font-size: var(--text-title-size);
+  font-weight: var(--text-title-weight);
+  letter-spacing: var(--text-title-tracking);
+  line-height: var(--text-title-leading);
+}
+
+.hl-reading {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-on-surface-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.hl-reading .ov-flag-icon .icon-glyph {
+  inline-size: var(--size-icon);
+  block-size: var(--size-icon);
+}
+
+/* Run columns: ten slots, the newest at the right edge, so a kind with fewer runs reads as a
+   shorter history; the newest in ink, the rest a step quieter; the median a dashed line across. */
+.hl-columns {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  align-items: end;
+  gap: var(--space-1);
+  block-size: calc(var(--space-16) + var(--space-4));
+  border-block-end: var(--stroke-hairline) solid var(--color-surface-overlay);
+}
+
+.hl-column {
+  grid-row: 1;
+  block-size: max(var(--space-1), calc(var(--h) * 100%));
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  background: color-mix(in oklab, var(--color-on-surface-muted) 45%, var(--color-surface-overlay));
+}
+
+.hl-column[data-last] {
+  background: var(--color-on-surface);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hl-column {
+    transform-origin: bottom;
+    animation: hl-rise var(--duration-enter) var(--ease-out) backwards;
+  }
+}
+
+@keyframes hl-rise {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+.hl-median {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: calc(var(--h) * 100%);
+  border-block-start: var(--stroke-hairline) dashed var(--color-on-surface-muted);
+  pointer-events: none;
+}
+
+.hl-median[hidden] {
+  display: none;
+}
+
+.hl-lines .ov-flag {
+  min-block-size: var(--size-touch);
+}
+
+/* A line with no glyph keeps its reading at the end. */
+.ov-flag:has(> .ov-flag-icon:empty) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+/* Jobs: a name and how it stands, then the week's runs under them as pips, oldest first, a failed
+   or cancelled run in its tone. */
+.hl-jobs {
+  display: grid;
+  gap: var(--space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hl-job {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "name reading"
+    "strip strip";
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.hl-job-name {
+  grid-area: name;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hl-job .hl-reading {
+  grid-area: reading;
+}
+
+.hl-strip {
+  grid-area: strip;
+  display: flex;
+  gap: calc(var(--space-1) / 2);
+  min-inline-size: 0;
+  min-block-size: var(--space-4);
+  overflow: hidden;
+}
+
+.hl-pip {
+  flex: none;
+  inline-size: var(--space-1);
+  block-size: var(--space-4);
+  border-radius: var(--radius-round);
+  background: color-mix(in oklab, var(--color-on-surface-muted) 55%, var(--color-surface-overlay));
+}
+
+.hl-pip[data-outcome="fail"] {
+  background: var(--color-danger);
+}
+
+.hl-pip[data-outcome="cancel"] {
+  background: var(--color-warning);
+}
+
+/* Speed: a device at a time, then Google's three bands as one track, a pin at the p75 in its tone. */
+.hl-devices {
+  --segmented-nav-bg: var(--color-surface-overlay);
+
+  justify-self: start;
+  inline-size: 100%;
+}
+
+@media (width >= 40rem) {
+  .hl-devices {
+    inline-size: var(--settings-control-width);
+  }
+}
+
+.hl-meters {
+  display: grid;
+  gap: var(--space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hl-meter {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.hl-track {
+  position: relative;
+  display: grid;
+  grid-template-columns:
+    calc(var(--good, 0.33) * 100%) calc((var(--poor, 0.66) - var(--good, 0.33)) * 100%)
+    minmax(0, 1fr);
+  gap: calc(var(--space-1) / 2);
+  block-size: var(--space-2);
+  margin-block: var(--space-1);
+}
+
+.hl-band {
+  border-radius: var(--radius-round);
+  background: var(--color-surface-overlay);
+}
+
+.hl-band:first-child {
+  background: color-mix(in oklab, var(--color-success) 35%, var(--color-surface-overlay));
+}
+
+.hl-band:nth-child(2) {
+  background: color-mix(in oklab, var(--color-warning) 30%, var(--color-surface-overlay));
+}
+
+.hl-band:nth-child(3) {
+  background: color-mix(in oklab, var(--color-danger) 25%, var(--color-surface-overlay));
+}
+
+.hl-pin {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: calc(var(--at) * 100%);
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+  border: var(--stroke-ring) solid var(--color-surface-container);
+  border-radius: var(--radius-round);
+  background: var(--ov-tone, var(--color-on-surface));
+  translate: -50% -50%;
+}
+
+.hl-pin[hidden] {
+  display: none;
+}
+
+/* Error and budget tiles: the figure or word with its glyph; the week under the error count. */
+.hl-tile-value {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.hl-tile-value .ov-flag-icon .icon-glyph {
+  inline-size: var(--size-icon);
+  block-size: var(--size-icon);
+}
+
+@media (width >= 40rem) {
+  .stat-tiles.hl-budgets {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 /* Stage times: a card a kind of run, a bar a stage. The bar is as long as the stage's slowest tenth
