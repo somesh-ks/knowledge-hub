@@ -60,8 +60,12 @@ export interface Playlist {
   readonly growth?: {
     /** True while more segments may still arrive. */
     pending(): boolean;
-    /** Resolves true once a segment was added, false when the playlist is complete as it is. */
-    waitForMore(): Promise<boolean>;
+    /**
+     * Resolves true once a segment was added, false when the playlist is complete as it is. A wait
+     * whose `wanted` turns false (a newer seek or track) stops at its next look and gives nothing
+     * up, so only the wait in use polls.
+     */
+    waitForMore(wanted?: () => boolean): Promise<boolean>;
     /** How long the whole track is expected to run, in seconds; 0 when nobody said. */
     expected(): number;
   };
@@ -188,10 +192,11 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
    */
   function holdForMore(list: Playlist, growth: NonNullable<Playlist["growth"]>): void {
     const mine = hold;
+    const wanted = (): boolean => playlist === list && mine === hold;
     emit("waiting");
-    void growth.waitForMore().then(
+    void growth.waitForMore(wanted).then(
       (grew) => {
-        if (playlist !== list || mine !== hold) return;
+        if (!wanted()) return;
         if (!grew) {
           ended = true;
           wantsPlay = false;
@@ -207,7 +212,7 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
       },
       () => {
         // A wait that failed ends the track where it is; the episode that was committed is the way on.
-        if (playlist !== list || mine !== hold) return;
+        if (!wanted()) return;
         ended = true;
         wantsPlay = false;
         emit("ended");
@@ -396,12 +401,13 @@ export function createTrackAudio(real: AudioLike, options: TrackAudioOptions): A
     }
     emit("waiting");
     emit("timeupdate");
+    const wanted = (): boolean => playlist === list && mine === hold;
     const settle = (): void => {
-      if (playlist === list && mine === hold) seek(Math.min(target, total()));
+      if (wanted()) seek(Math.min(target, total()));
     };
     const wait = (): void => {
-      void growth.waitForMore().then((grew) => {
-        if (playlist !== list || mine !== hold) return;
+      void growth.waitForMore(wanted).then((grew) => {
+        if (!wanted()) return;
         if (grew && target > total() && growing()) wait();
         else settle();
       }, settle);

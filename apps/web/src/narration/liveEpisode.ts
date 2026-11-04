@@ -70,14 +70,15 @@ export function createGrowth(
       status = doc.status;
       return append(doc);
     },
-    async waitForMore() {
+    async waitForMore(wanted = () => true) {
       // Counted from this call: a wait the track gave up on (a seek overtook it) cannot use up the
       // news the current one is waiting for. A `sync` during the wait is news too.
       const seen = segments.length;
       const limit = deps.now() + (deps.giveUpMs ?? GROWTH_GIVE_UP_MS);
       for (;;) {
         if (segments.length > seen) return true;
-        if (status !== "writing") return false;
+        // A wait the track left behind stops here, so the polls do not add up.
+        if (status !== "writing" || !wanted()) return false;
         const doc = await deps.fetchDoc().catch(() => null);
         if (doc) {
           status = doc.status;
@@ -86,7 +87,8 @@ export function createGrowth(
           if (status !== "writing") return false;
         }
         if (deps.now() >= limit) {
-          status = "failed";
+          // Only the wait in use gives the episode up.
+          if (wanted()) status = "failed";
           return false;
         }
         await deps.delay(deps.pollMs ?? GROWTH_POLL_MS);
@@ -167,16 +169,13 @@ export function liveNarrated(
     if (!span || turn.item_id === undefined || firstStarts.has(turn.item_id)) return;
     firstStarts.set(turn.item_id, Math.round(span.start * 1000));
   });
-  const last = segments[segments.length - 1];
-  // While it is written, the episode runs as long as the engine expects (D366), not as far as it got.
-  const totalMs = Math.max(
-    Math.round((last?.end ?? 0) * 1000),
-    doc.status === "writing" ? Math.round(doc.expected_ms ?? 0) : 0,
-  );
+  const madeMs = Math.round((segments[segments.length - 1]?.end ?? 0) * 1000);
   const plan: NarrationPlan = {
     segments: [...segments],
-    total_ms: totalMs,
-    items: storyRuns(firstStarts, totalMs),
+    // While it is written, the episode runs as long as the engine expects (D366), not as far as it
+    // got. Its stories run only as far as the turns made, so the last chapter holds no unmade time.
+    total_ms: Math.max(madeMs, doc.status === "writing" ? Math.round(doc.expected_ms ?? 0) : 0),
+    items: storyRuns(firstStarts, madeMs),
     complete: false,
   };
   return narratedDigest(liveDigestFrom(doc, now), plan);

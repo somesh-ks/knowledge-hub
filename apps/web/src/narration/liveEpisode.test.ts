@@ -76,10 +76,19 @@ describe("a track that grows with the script", () => {
     expect(api.pending()).toBe(false);
   });
 
-  it("gives up when a run that says it is writing never adds a turn, so a dead run does not hold the player", async () => {
+  // A newer seek or track leaves a wait behind (D366). Asking on, the waits added up their polls,
+  // and the oldest gave the episode up while the one in use still had time.
+  it("gives up when a run that says it is writing never adds a turn, but a wait left behind stops asking and gives nothing up", async () => {
     const { api } = growth([doc("writing", 1)], first(), { giveUpMs: 10_000 });
     await expect(api.waitForMore()).resolves.toBe(false);
     expect(api.pending()).toBe(false);
+    const left = growth([doc("writing", 1)], first(), { giveUpMs: 10_000 });
+    let wanted = true;
+    const behind = left.api.waitForMore(() => wanted);
+    wanted = false;
+    await expect(behind).resolves.toBe(false);
+    expect(left.asked).toHaveLength(1);
+    expect(left.api.pending()).toBe(true);
   });
 
   it("stops waiting on a failed run", async () => {
@@ -129,7 +138,8 @@ describe("the player's copy of a live catch-up episode", () => {
 });
 
 describe("a live episode that keeps being written", () => {
-  it("shows a turn added after Listen now in the transcript and its story among the chapters", () => {
+  // The last chapter ran to the expected length (D366), over time no turn had been made for yet.
+  it("shows a turn added after Listen now in the transcript and its story among the chapters, ending where the turns made end", () => {
     const turn = (text: string, item_id?: string) => ({
       speaker: "a" as const,
       text,
@@ -143,6 +153,7 @@ describe("a live episode that keeps being written", () => {
       ...doc("writing", 0),
       turns: [turn("Welcome."), turn("First.", "i1")],
       stories,
+      expected_ms: 300_000,
     };
     const later: StreamDoc = { ...opened, turns: [...opened.turns, turn("Second.", "i2")] };
     const segments: TrackSegment[] = [
@@ -156,6 +167,9 @@ describe("a live episode that keeps being written", () => {
     const digest = liveNarrated(later, segments, now);
     expect(digest.turns?.map((t) => t.text)).toEqual(["Welcome.", "First.", "Second."]);
     expect(digest.turns?.[2]?.start_ms).toBe(8000);
-    expect(digest.items.find((item) => item.id === "i2")?.start_ms).toBe(8000);
+    const second = digest.items.find((item) => item.id === "i2");
+    expect(second?.start_ms).toBe(8000);
+    expect(second?.end_ms).toBe(Math.round((segments.at(-1)?.end ?? 0) * 1000));
+    expect(digest.audio?.duration_ms).toBe(300_000);
   });
 });

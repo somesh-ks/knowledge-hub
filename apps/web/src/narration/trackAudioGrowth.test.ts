@@ -10,6 +10,8 @@ function growing(expected = 0) {
   const list: TrackSegment[] = [{ key: "t0", start: 0, end: 10, url: "https://blob.test/t0.mp3" }];
   let pending = true;
   let wake: ((grew: boolean) => void) | null = null;
+  /** What each wait was told to ask about whether it is still wanted. */
+  const waits: Array<() => boolean> = [];
   const real = new FakeAudio();
   const playlist: Playlist = {
     segments: list,
@@ -17,7 +19,10 @@ function growing(expected = 0) {
     prepare: () => {},
     growth: {
       pending: () => pending,
-      waitForMore: () => new Promise((resolve) => (wake = resolve)),
+      waitForMore: (wanted = () => true) => {
+        waits.push(wanted);
+        return new Promise((resolve) => (wake = resolve));
+      },
       expected: () => expected,
     },
   };
@@ -31,6 +36,7 @@ function growing(expected = 0) {
     real,
     audio,
     events,
+    waits,
     async start() {
       audio.src = "narration:ep";
       await Promise.resolve();
@@ -94,6 +100,11 @@ describe("a script that is still being written", () => {
     expect(live.events).toContain("waiting");
     // The turn that was playing stops instead of running on under the wait.
     expect(live.real.paused).toBe(true);
+    // Seeking there again leaves the first wait behind, so one wait polls, not one per seek.
+    const first = live.waits.at(-1);
+    live.audio.currentTime = 25;
+    expect(first?.()).toBe(false);
+    expect(live.waits.at(-1)?.()).toBe(true);
     await live.add("t1");
     expect(live.audio.currentTime).toBe(25);
     await live.add("t2");
