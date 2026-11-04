@@ -919,3 +919,103 @@
 .settings-row [data-promote]:disabled {
   visibility: hidden;
 }
+
+/* ------------------------------------------------------------------ the coverage page */
+
+/* Coverage leads with one answer, the shared share, as a ring with its two counts beside it; then
+   bars: by kind, by part, by one-off, by token tier (2026-11-04, the owner: "very boring"). */
+.cov-hero {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-6);
+}
+
+@media (width >= 40rem) {
+  .cov-hero {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    justify-items: start;
+    gap: var(--space-12);
+  }
+}
+
+.cov-hero-legend {
+  inline-size: 100%;
+}
+
+.cov-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: calc(var(--space-16) * 3);
+  aspect-ratio: 1;
+}
+
+.cov-ring svg {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  rotate: -90deg;
+}
+
+.cov-arc {
+  fill: none;
+  stroke: var(--color-on-surface);
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+.cov-arc-other {
+  stroke: color-mix(in oklab, var(--color-on-surface-muted) 45%, var(--color-surface-overlay));
+}
+
+.cov-ring-centre {
+  display: grid;
+  justify-items: center;
+}
+
+.cov-swatch-shared {
+  background: var(--color-on-surface);
+}
+
+.cov-swatch-other {
+  background: color-mix(in oklab, var(--color-on-surface-muted) 45%, var(--color-surface-overlay));
+}
+
+/* A part's or a control's name is longer than a stage's: the name column takes the room it needs. */
+.cov-rows .st-row {
+  grid-template-columns: minmax(0, calc(var(--space-16) * 2 + var(--space-12))) minmax(0, 1fr) auto;
+}
+
+.cov-rows .st-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cov-class {
+  font-variant-numeric: tabular-nums;
+}
+
+.cov-rows .st-figure {
+  min-inline-size: var(--space-8);
+}
+
+.cov-more-head {
+  display: flex;
+  align-items: center;
+  min-block-size: var(--size-touch);
+  color: var(--color-accent);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  list-style: none;
+}
+
+.cov-more-head::-webkit-details-marker {
+  display: none;
+}
+
+.cov-more[open] > .cov-more-head {
+  display: none;
+}

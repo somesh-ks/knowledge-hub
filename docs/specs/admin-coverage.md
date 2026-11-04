@@ -1,19 +1,20 @@
 # Admin coverage
 
-`/admin/coverage` in the command center: what the design system holds and what is built outside it. Read at build from `tokens/system.json` (`npm run system`, which the gate keeps fresh), so the page has no script and no request, and a deploy shows the numbers of its own commit.
+`/admin/coverage` in the command center: how much of what the apps draw comes from the design system. Counted at build from `tokens/system.json` and the reader's and command center's sources (`apps/admin/src/lib/coverage.ts`, with the system's own class reader), so the page has no script and no request.
 
 ## Requirements
 
-- Four tiles: shared parts, one-off controls, semantic tokens, all tokens.
-- Parts: one row per kind (Actions, Selection, Navigation, Feedback, Containers, Fields, Layout) with the part names on its line and the count at its end.
-- One-off controls: each bespoke class that no part lists, with the reason the build allows it. A bespoke class a part lists is used through that part and is left out.
-- Tokens: a row per tier (primitive, semantic, component) with its count.
-- Rows are Health's shape (name and line at the start, reading at the end), tokens only, no colour.
+- The answer first: a ring with the share of control uses drawn with a shared part, and a legend with the parts and one-offs and their uses.
+- A use is a file that draws a control, counted once per control. A part is drawn by a file that writes one of its classes or imports one of its components; its own files are its definition, not a use. A component more than one part names (Button.astro) counts through the classes only.
+- Parts: one bar split by kind, the most drawn darkest, with a legend (parts and uses per kind); then the eight most drawn parts as bars against the most drawn, the rest behind "All N parts".
+- One-off controls: each bespoke class no part lists, as a bar of the files that write it; its reason on hover. A bespoke class a part lists is used through that part and is left out.
+- Tokens: the total, how many semantic roles a part reads, and a bar and legend by tier.
+- Marks only, tokens only; no tone colour, since nothing here is good or bad on its own.
 
 ## Not built
 
-How many files use each part, and which tokens nothing reads. Both need a scan of `apps/web/src` that moves with every UI edit,, so `system.json` leaves it out and a page that scanned would rebuild this app on every reader change. Build it when the owner wants the numbers.
+A rebuild on every reader edit. The admin app rebuilds when tokens, the design system or its shared sheets change (`apps/admin/ignore-build.sh`), so a page edit that changes no part shows on the next such build. Widen the ignore list if the owner wants each edit counted; it costs a deploy per reader change.
 
 ## Code
 
-`apps/admin/src/pages/coverage.astro`.
+`apps/admin/src/pages/coverage.astro`, `apps/admin/src/lib/coverage.ts`.
