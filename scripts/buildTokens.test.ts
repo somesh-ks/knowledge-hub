@@ -107,7 +107,7 @@ describe("token structure", () => {
       const target = aliasTarget(token.dark);
       // A derived state color is a color to whoever reads it.
       const kind = (type: string | undefined) =>
-        type === "singularity-state-color" ? "color" : type;
+        type === "singularity-state-color" || type === "singularity-mix-color" ? "color" : type;
       if (target) expect(kind(doc.byPath.get(target)?.type), token.dotPath).toBe(kind(token.type));
     }
   });
@@ -465,6 +465,24 @@ describe("a chosen fill stands off every surface it sits on (D356)", () => {
         }),
       );
       expect(near).toEqual([]);
+    },
+  );
+});
+
+/**
+ * The chosen fill is the secondary tone, Material's secondary container: quieter than the primary
+ * fill in every mood and mode. 2026-11-04: in dark the current destination drew blue 600 at chroma
+ * 0.170 beside Play at 0.122, so the selection outshouted the primary button; in light it was the
+ * other way round (owner: "the menu selection should always be secondary focus").
+ */
+describe("a chosen fill stays quieter than the primary fill", () => {
+  it.each(MOODS.flatMap((name) => MODES.map((mode) => [name, mode, documentAt(name)] as const)))(
+    "%s, %s",
+    (_name, mode, d) => {
+      const color = (role: string) =>
+        parseOklch(String(resolveLiteral(d, `semantic.color.${role}`, mode)));
+      const [chosen, primary] = [color("accent-container"), color("accent")];
+      expect(chosen.c, "chroma, against the primary fill's").toBeLessThan(primary.c * 0.6);
     },
   );
 });

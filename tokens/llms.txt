@@ -65,7 +65,6 @@ Components read only these (never a hex, never a primitive color).
 - --color-track-strong: Unplayed item ticks and upcoming nodes.
 - --color-accent: Lingonberry.
 - --color-accent-subtle: Tint behind the current row.
-- --color-accent-container: The selected state of a control: a chosen chip or segment, the current destination, a ton…
 - --color-on-accent-container: Text and icons on accent-container.
 - --color-accent-container-high: The tone of an action that is not a place: the New episode buttons.
 - --color-on-accent-container-high: Text and icons on accent-container-high.

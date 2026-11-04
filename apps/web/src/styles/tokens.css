@@ -270,7 +270,7 @@
   --color-accent-subtle: var(--color-blue-50);
   --color-accent-subtle-hover: oklch(from var(--color-accent-subtle) calc(l + var(--state-direction) * var(--state-step-hover-quiet)) c h);
   --color-accent-subtle-pressed: oklch(from var(--color-accent-subtle) calc(l + var(--state-direction) * var(--state-step-hover)) c h);
-  --color-accent-container: var(--color-blue-200);
+  --color-accent-container: color-mix(in oklab, var(--color-blue-200) 90%, var(--color-grey-200));
   --color-on-accent-container: var(--color-blue-800);
   --color-accent-container-high: var(--color-blue-300);
   --color-on-accent-container-high: var(--color-blue-900);
@@ -587,7 +587,7 @@
     --color-surface-inverse-action-hover: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
     --color-surface-inverse-action-pressed: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h);
     --color-accent-subtle: var(--color-blue-800);
-    --color-accent-container: var(--color-blue-600);
+    --color-accent-container: color-mix(in oklab, var(--color-blue-600) 30%, var(--color-grey-600));
     --color-on-accent-container: var(--color-blue-100);
     --color-accent-container-high: var(--color-blue-400);
     --color-on-accent-container-high: var(--color-blue-900);
@@ -669,7 +669,7 @@
   --color-surface-inverse-action-hover: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
   --color-surface-inverse-action-pressed: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h);
   --color-accent-subtle: var(--color-blue-800);
-  --color-accent-container: var(--color-blue-600);
+  --color-accent-container: color-mix(in oklab, var(--color-blue-600) 30%, var(--color-grey-600));
   --color-on-accent-container: var(--color-blue-100);
   --color-accent-container-high: var(--color-blue-400);
   --color-on-accent-container-high: var(--color-blue-900);
@@ -728,7 +728,7 @@
 :root[data-mood="expressive"] {
   --color-accent: var(--color-violet-700);
   --color-accent-subtle: var(--color-violet-100);
-  --color-accent-container: var(--color-violet-300);
+  --color-accent-container: color-mix(in oklab, var(--color-violet-300) 65%, var(--color-grey-300));
   --color-on-accent-container: var(--color-violet-900);
   --color-accent-container-high: var(--color-violet-400);
   --color-on-accent-container-high: var(--color-violet-900);
@@ -811,6 +811,8 @@
   --color-accent-container-high-pressed: oklch(from var(--color-accent-container-high) calc(l - var(--state-direction) * var(--state-step-press)) c h);
   --color-surface-inverse-action-hover: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
   --color-surface-inverse-action-pressed: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h);
+  --color-grey-300: oklch(75.56% 0.0088 calc(260 + var(--hue-shift, 0)));
+  --color-grey-600: oklch(47.44% 0.0096 calc(260 + var(--hue-shift, 0)));
   --color-violet-50: oklch(98.00% 0.0100 calc(292 + var(--hue-shift, 0)));
   --color-violet-100: oklch(91.85% 0.0415 calc(292 + var(--hue-shift, 0)));
   --color-violet-200: oklch(84.23% 0.0828 calc(292 + var(--hue-shift, 0)));
@@ -826,7 +828,7 @@
   :root:not([data-theme="light"])[data-mood="expressive"] {
     --color-accent: var(--color-violet-300);
     --color-accent-subtle: var(--color-violet-800);
-    --color-accent-container: var(--color-violet-600);
+    --color-accent-container: color-mix(in oklab, var(--color-violet-600) 35%, var(--color-grey-600));
     --color-on-accent-container: var(--color-violet-50);
     --color-accent-container-high: var(--color-violet-400);
     --color-on-accent-container-high: var(--color-violet-900);
@@ -860,7 +862,7 @@
 :root[data-theme="dark"][data-mood="expressive"] {
   --color-accent: var(--color-violet-300);
   --color-accent-subtle: var(--color-violet-800);
-  --color-accent-container: var(--color-violet-600);
+  --color-accent-container: color-mix(in oklab, var(--color-violet-600) 35%, var(--color-grey-600));
   --color-on-accent-container: var(--color-violet-50);
   --color-accent-container-high: var(--color-violet-400);
   --color-on-accent-container-high: var(--color-violet-900);
@@ -894,7 +896,7 @@
 :root[data-mood="halloween"] {
   --color-accent: var(--color-orange-600);
   --color-accent-subtle: var(--color-orange-50);
-  --color-accent-container: var(--color-orange-300);
+  --color-accent-container: color-mix(in oklab, var(--color-orange-300) 51%, var(--color-grey-300));
   --color-on-accent-container: var(--color-orange-800);
   --color-accent-container-high: var(--color-orange-400);
   --color-on-accent-container-high: var(--color-orange-900);
@@ -947,6 +949,8 @@
   --color-accent-container-high-pressed: oklch(from var(--color-accent-container-high) calc(l - var(--state-direction) * var(--state-step-press)) c h);
   --color-surface-inverse-action-hover: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h);
   --color-surface-inverse-action-pressed: oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h);
+  --color-grey-300: oklch(75.56% 0.0088 calc(260 + var(--hue-shift, 0)));
+  --color-grey-700: oklch(38.77% 0.0072 calc(260 + var(--hue-shift, 0)));
   --color-orange-50: oklch(98.00% 0.0104 calc(47 + var(--hue-shift, 0)));
   --color-orange-100: oklch(91.85% 0.0443 calc(47 + var(--hue-shift, 0)));
   --color-orange-200: oklch(84.23% 0.0913 calc(47 + var(--hue-shift, 0)));
@@ -963,7 +967,7 @@
   :root:not([data-theme="light"])[data-mood="halloween"] {
     --color-accent: var(--color-orange-300);
     --color-accent-subtle: var(--color-orange-900);
-    --color-accent-container: var(--color-orange-700);
+    --color-accent-container: color-mix(in oklab, var(--color-orange-700) 72%, var(--color-grey-700));
     --color-on-accent-container: var(--color-orange-100);
     --color-accent-container-high: var(--color-orange-600);
     --color-on-accent-container-high: var(--color-orange-50);
@@ -1019,7 +1023,7 @@
 :root[data-theme="dark"][data-mood="halloween"] {
   --color-accent: var(--color-orange-300);
   --color-accent-subtle: var(--color-orange-900);
-  --color-accent-container: var(--color-orange-700);
+  --color-accent-container: color-mix(in oklab, var(--color-orange-700) 72%, var(--color-grey-700));
   --color-on-accent-container: var(--color-orange-100);
   --color-accent-container-high: var(--color-orange-600);
   --color-on-accent-container-high: var(--color-orange-50);

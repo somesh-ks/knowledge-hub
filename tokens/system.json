@@ -416,8 +416,7 @@
         "WebKit paints the filled track from --range-fill, which starts at 0%: set it to (value - min) / (max - min) as a percentage and update it on input."
       ],
       "styles": [
-        "slider.css",
-        "topics.css"
+        "slider.css"
       ],
       "usage": "A value between two ends, set by dragging a thumb or with the arrow keys. A native range. WebKit has no pseudo-element for the filled part of the track, so the track paints it as a gradient up to --range-fill, which the script keeps at (value - min) / (max - min) as a percentage. Firefox has ::-moz-range-progress and ignores the gradient. The two engines' pseudo-elements cannot share a rule: a selector one engine does not know drops the whole rule in the other.",
       "tokens": [
@@ -426,7 +425,6 @@
         "--color-accent-hover",
         "--color-accent-pressed",
         "--color-border-control",
-        "--color-on-surface-subtle",
         "--color-surface",
         "--scrubber-thumb",
         "--scrubber-thumb-active-scale",
@@ -3968,14 +3966,10 @@
     {
       "name": "--color-accent-container",
       "tier": "semantic",
-      "type": "color",
-      "light": "var(--color-blue-200)",
-      "role": "The selected state of a control: a chosen chip or segment, the current destination, a tonal button, the playing chip. Text on it is on-accent-container.",
-      "dark": "var(--color-blue-600)",
-      "hex": {
-        "light": "#afcdfe",
-        "dark": "#1755b9"
-      }
+      "type": "singularity-mix-color",
+      "light": "color-mix(in oklab, var(--color-blue-200) 90%, var(--color-grey-200))",
+      "role": "The selected state of a control: a chosen chip or segment, the current destination, a tonal button, the playing chip. Text on it is on-accent-container. It is the secondary tone (Material's secondary container): the accent's own hue at about 0.4 of the primary fill's chroma (0.55 in a loud style), so a chosen or current fill never outshouts the primary button beside it in either mode (owner, 2026-11-04: the dark selection read more saturated than Play). Its lightness stays the mode's step; only its chroma drops.",
+      "dark": "color-mix(in oklab, var(--color-blue-600) 30%, var(--color-grey-600))"
     },
     {
       "name": "--color-on-accent-container",
@@ -4919,8 +4913,8 @@
       "light": "var(--color-accent-container-pressed)",
       "role": "The fill behind the word being said in the open story, on its chosen fill: the fill's own press step (D317), which steps away from the ink wherever a step toward it would cost the ink its 4.5:1, so the word reads at every hue. The page's tint (player.spoken) put the ink at 3.56:1 there in Expressive dark (2026-11-04).",
       "hex": {
-        "light": "#90addc",
-        "dark": "#003698"
+        "light": "#92add8",
+        "dark": "#2f415f"
       }
     },
     {
@@ -5549,8 +5543,8 @@
       "type": "color",
       "light": "var(--color-accent-container)",
       "hex": {
-        "light": "#afcdfe",
-        "dark": "#1755b9"
+        "light": "#b1cdf9",
+        "dark": "#495d7d"
       }
     },
     {
@@ -5559,8 +5553,8 @@
       "type": "color",
       "light": "var(--color-accent-container-hover)",
       "hex": {
-        "light": "#9fbded",
-        "dark": "#0346a9"
+        "light": "#a2bde8",
+        "dark": "#3c4f6e"
       }
     },
     {
@@ -5569,8 +5563,8 @@
       "type": "color",
       "light": "var(--color-accent-container-pressed)",
       "hex": {
-        "light": "#90addc",
-        "dark": "#003698"
+        "light": "#92add8",
+        "dark": "#2f415f"
       }
     },
     {
@@ -5644,8 +5638,8 @@
       "light": "var(--color-accent-container)",
       "role": "Fill behind the current destination: the pill in the bottom bar and the row in the side column.",
       "hex": {
-        "light": "#afcdfe",
-        "dark": "#1755b9"
+        "light": "#b1cdf9",
+        "dark": "#495d7d"
       }
     },
     {
@@ -5654,8 +5648,8 @@
       "type": "color",
       "light": "var(--color-accent-container-hover)",
       "hex": {
-        "light": "#9fbded",
-        "dark": "#0346a9"
+        "light": "#a2bde8",
+        "dark": "#3c4f6e"
       }
     },
     {
@@ -5893,8 +5887,8 @@
       "light": "var(--color-accent-container)",
       "dark": "var(--color-accent-container)",
       "hex": {
-        "light": "#afcdfe",
-        "dark": "#1755b9"
+        "light": "#b1cdf9",
+        "dark": "#495d7d"
       }
     },
     {
