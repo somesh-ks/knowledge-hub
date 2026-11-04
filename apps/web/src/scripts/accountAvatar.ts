@@ -78,9 +78,9 @@ function avatars(): HTMLElement[] {
   return [...document.querySelectorAll<HTMLElement>(`${SLOT} > *`)];
 }
 
-function show(id: string): void {
+function show(id: string, only = avatars()): void {
   const tone = AVATAR_SHAPES[id]?.tone;
-  for (const avatar of avatars()) {
+  for (const avatar of only) {
     if (avatar.dataset.shape !== id) {
       avatar.innerHTML = avatarMarkup(id);
       avatar.dataset.shape = id;
@@ -127,15 +127,16 @@ function setState(): void {
   else if (!frownTimer) setFace(null);
 }
 
-function play(kind: string, ms = ONE_SHOT_MS): void {
+function play(kind: string, ms = ONE_SHOT_MS, only = avatars()): void {
   window.clearTimeout(playTimer);
-  for (const avatar of avatars()) {
+  for (const avatar of only) {
     avatar.removeAttribute("data-play");
     // A reflow between the two writes lets the same one-shot play again straight away.
     void avatar.offsetWidth;
     avatar.dataset.play = kind;
   }
   playTimer = window.setTimeout(() => {
+    // Every avatar: a tap may have cut short the timer of a show that played on all of them.
     for (const avatar of avatars()) avatar.removeAttribute("data-play");
   }, ms);
 }
@@ -153,6 +154,7 @@ function frown(): void {
 let taps = 0;
 let busy = false;
 let queued = false;
+let tapped: HTMLElement | undefined;
 let actTimers: number[] = [];
 
 /** Ends a show now (a new mood, a new page) and leaves the plain face. */
@@ -181,16 +183,18 @@ function finish(): void {
   // The return swap of a morph runs on a frame: a hidden tab may not have run it, so draw home here.
   draw();
   setState();
-  if (again) later(tokenMs("--duration-state"), react);
+  const next = tapped;
+  if (again) later(tokenMs("--duration-state"), () => react(next));
 }
 
 /**
  * The show of one tap (avatarFace.ts): none offline or when the reader asked for calm. A tap during a
  * show is kept (one, not a pile) and plays when it ends, so no show is cut off and none restarts cold.
+ * A tap plays on the avatar that was tapped alone; a new pick (no target) plays on every avatar.
  */
-function react(): void {
+function react(target?: HTMLElement): void {
   if (calm.matches || document.documentElement.hasAttribute("data-offline")) return;
-  if (avatars().length === 0) return;
+  if (avatars().length === 0 || (target && !target.isConnected)) return;
   if (!face) {
     // One tap is kept, as during a show; a mood or page change in the meantime drops it (cancelAct).
     if (waitingFace) return;
@@ -199,7 +203,7 @@ function react(): void {
       () => {
         if (!waitingFace) return;
         waitingFace = false;
-        react();
+        react(target);
       },
       () => {
         waitingFace = false;
@@ -209,29 +213,34 @@ function react(): void {
   }
   if (busy) {
     queued = true;
+    tapped = target;
     return;
   }
   busy = true;
+  tapped = target;
+  const actors = () => (target ? [target].filter((el) => el.isConnected) : avatars());
   const kind = pickReaction(tokenWords(rootStyle("--av-plays")), hue(), taps);
   const home = currentShape();
   const [other] = morphPath(offeredShapes(), home, hue(), taps);
   taps += 1;
-  const ms = face.playAct(kind, avatars, home, other === home ? undefined : other, show);
-  play(kind, ms);
+  const ms = face.playAct(kind, actors, home, other === home ? undefined : other, (id) =>
+    show(id, actors()),
+  );
+  play(kind, ms, actors());
   later(ms, finish);
 }
 
 function onTap(event: MouseEvent): void {
-  const avatar = (event.target as Element | null)?.closest?.(`${SLOT} > *`);
+  const avatar = (event.target as Element | null)?.closest?.<HTMLElement>(`${SLOT} > *`);
   if (!avatar?.querySelector("svg")) return;
   if (!avatar.closest("a")) {
-    react();
+    react(avatar);
     return;
   }
   // The app bar holds the link to the profile: the show starts at once and goes on in the same avatar
-  // across the page change (AccountSlot persists it), and on the profile's own avatar.
+  // across the page change (AccountSlot persists it). The profile's own avatar stays still.
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
-  react();
+  react(avatar);
 }
 
 let idleTimer = 0;
