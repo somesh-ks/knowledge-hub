@@ -46,6 +46,16 @@ const ITEM = `[role^="menuitem"]:not(:disabled):not([aria-disabled="true"]), ${M
 
 type Screen = "menu" | "speed";
 
+const SPEED_EVENT = "singularity:player-speed";
+
+/** The transport's speed button (a wide screen with a mouse) opens this menu straight on its speed
+ *  screen, hung under that button. */
+export function openSpeed(button: HTMLElement): void {
+  window.dispatchEvent(new CustomEvent(SPEED_EVENT, { detail: button }));
+}
+
+export const PLAYER_MENU_ID = "player-menu";
+
 /** The Menu is a popover list from 40rem and a bottom sheet under it (menu.css). */
 const WIDE = "(width >= 40rem)";
 
@@ -103,9 +113,11 @@ export default function PlayerMenu() {
   const digest = state.track?.digest;
   const [open, setOpen] = useState(false);
   const [screen, setScreen] = useState<Screen>("menu");
+  // The speed button that opened the menu on its speed screen, or null when the ⋮ did.
+  const [opener, setOpener] = useState<HTMLElement | null>(null);
   const marks = useDeviceMarks(digest?.id, open);
   const wide = useWide();
-  const menuId = "player-menu";
+  const menuId = PLAYER_MENU_ID;
   const id = digest?.id ?? "";
   const title = digest ? digest.title || longDateFromDigestId(digest.id) : "Podcast";
   const rate = state.rate;
@@ -124,23 +136,36 @@ export default function PlayerMenu() {
     return () => window.removeEventListener("keydown", onEscape, true);
   }, [open]);
 
+  // The speed button's press arrives before the popover opens, so it opens on the speed screen.
+  useEffect(() => {
+    const onSpeed = (event: Event): void => {
+      setOpener((event as CustomEvent<HTMLElement>).detail);
+      setScreen("speed");
+    };
+    window.addEventListener(SPEED_EVENT, onSpeed);
+    return () => window.removeEventListener(SPEED_EVENT, onSpeed);
+  }, []);
+
   // A new screen replaces the control that had focus: focus moves to the first control on it (Back,
   // on the speed screen), so a keyboard or a screen reader stays in the menu.
   useEffect(() => {
     if (!open) return;
     const menu = document.getElementById(menuId);
     const first =
-      screen === "menu" ? menu?.querySelector(ITEM) : menu?.querySelector(`[${MENU_BACK}]`);
+      screen === "menu"
+        ? menu?.querySelector(ITEM)
+        : (menu?.querySelector(`[${MENU_BACK}]`) ?? menu?.querySelector(".player-speed button"));
     (first as HTMLElement | null | undefined)?.focus({ preventScroll: true });
   }, [screen, open]);
 
   const onToggle = (event: ToggleEvent<HTMLDivElement>): void => {
     const menu = event.currentTarget;
-    const button = menu.previousElementSibling as HTMLElement | null;
+    const button = opener ?? (menu.previousElementSibling as HTMLElement | null);
     const isOpen = event.newState === "open";
     setOpen(isOpen);
     if (!isOpen) {
       setScreen("menu");
+      setOpener(null);
       if (menu.contains(document.activeElement) || document.activeElement === document.body)
         button?.focus({ preventScroll: true });
       return;
@@ -150,7 +175,11 @@ export default function PlayerMenu() {
     const box = button?.getBoundingClientRect();
     if (!box) return;
     menu.style.setProperty("--menu-top", `${box.bottom + MENU_GAP_PX}px`);
-    menu.style.setProperty("--menu-right", `${document.documentElement.clientWidth - box.right}px`);
+    // Under the ⋮ the right edges are level; under the speed button the menu is centred on it.
+    const right = opener
+      ? box.left + box.width / 2 + menu.getBoundingClientRect().width / 2
+      : box.right;
+    menu.style.setProperty("--menu-right", `${document.documentElement.clientWidth - right}px`);
   };
 
   // Up and Down move between the actions, Home and End to the ends; Escape is the popover's own.
@@ -278,6 +307,7 @@ export default function PlayerMenu() {
       <div
         id={menuId}
         className={`${menuListClass()} player-menu`}
+        data-from={opener ? "speed" : undefined}
         popover="auto"
         onToggle={onToggle}
       >
@@ -389,7 +419,7 @@ export default function PlayerMenu() {
           </>
         ) : (
           <>
-            {head("Playback speed", null, true)}
+            {head("Playback speed", null, !opener)}
             <div className={menuBodyClass()}>
               <SpeedPanel rate={rate} onRate={setRate} />
             </div>

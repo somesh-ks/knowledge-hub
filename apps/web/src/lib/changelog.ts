@@ -21,7 +21,7 @@ export const CHANGELOG: readonly Release[] = [
     version: "0.20",
     date: "2026-11-04",
     description:
-      "A heart beside Play on a podcast's page adds it to Favorites, and every podcast menu in the Library, Favorites, Downloads and the queue has Add to favorites and Remove from favorites.",
+      "A heart beside Play on a podcast's page adds it to Favorites, and every podcast menu in the Library, Favorites, Downloads and the queue has Add to favorites and Remove from favorites. On a computer, the open player has the speed between its ten-second buttons, and the Podcast queue in the side column shimmers while a podcast is being made.",
   },
   {
     version: "0.19.1",

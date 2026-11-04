@@ -182,8 +182,20 @@ html[data-player="open"] .queue-dock {
 .queue {
   /* A row: the name, the status, the actions line, and the row's padding. Sizes the dock's scroll. */
   --queue-row-height: 7.5rem;
-  /* How long the word's light takes to cross it. */
+}
+
+/* How long the word's light takes to cross it. The side column's row sits outside .queue: without it
+   there the word's animation was invalid and the desktop title never shimmered (owner, 2026-11-04). */
+.queue,
+.app-nav-queue {
   --queue-sheen: 2400ms;
+}
+
+/* In the side column the word rests in the menus' own ink, so it reads as one of them, and the band
+   that crosses it is the muted ink (owner, 2026-11-04: the grey rest read lighter than the menus). */
+.app-nav-queue {
+  --queue-word-rest: var(--color-on-surface);
+  --queue-word-band: var(--color-on-surface-muted);
 }
 
 .queue-list {
@@ -456,9 +468,9 @@ html[data-player="open"] .queue-dock {
   background:
     linear-gradient(
       90deg,
-      var(--color-on-surface-muted) 40%,
-      var(--color-on-surface) 50%,
-      var(--color-on-surface-muted) 60%
+      var(--queue-word-rest, var(--color-on-surface-muted)) 40%,
+      var(--queue-word-band, var(--color-on-surface)) 50%,
+      var(--queue-word-rest, var(--color-on-surface-muted)) 60%
     )
     0 0 / 250% 100%;
   -webkit-background-clip: text;
