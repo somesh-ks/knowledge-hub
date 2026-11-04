@@ -27,9 +27,23 @@ textarea.field-input {
   padding-block: var(--field-padding);
 }
 
-/* It grows with what is typed, so it needs no grip to drag. Without auto-size, the grip stays. */
+/* It grows with what is typed, so it needs no grip to drag. Without auto-size, the grip stays. It
+   stops growing at --field-max-lines lines (Field's maxLines, 6 unless set) and scrolls inside from
+   there (owner, 2026-11-04: a comment kept growing down the sheet). 1lh is the field's own line, so
+   the cap holds at every text size and in every mood. */
 @supports (field-sizing: content) {
   textarea.field-input {
+    max-block-size: calc(
+      var(--field-max-lines, 6) *
+      1lh +
+      var(--field-padding) *
+      2 +
+      var(--stroke-hairline) *
+      2
+    );
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
     field-sizing: content;
     resize: none;
   }

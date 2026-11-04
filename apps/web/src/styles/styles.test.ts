@@ -1016,7 +1016,6 @@ const PAGE_OVERRIDES: string[] = [
   "create.css: .create-view .field-input.create-title:focus-visible",
   "create.css: .create-view .field-input.create-title:where(:enabled):hover",
   "empty.css: .empty-actions > .button-filled, .empty-actions > .button-tonal",
-  "episode-actions.css: .field-input.regen-feedback",
   "library.css: .card-more .icon-glyph",
   "library.css: .library-filters > .filter-chip > .icon-glyph",
   "library.css: .menu-list.card-menu-list",
