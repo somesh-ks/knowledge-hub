@@ -170,7 +170,13 @@ export function createJsonLlm(options: JsonLlmOptions): LlmClient {
           inputTokens: reply.inputTokens,
           outputTokens: reply.outputTokens,
         });
-        if (reply.stopReason === "refusal") throw new ModelRefusalError();
+        // A refusal after text began must not reach the next model: it would stream into the same
+        // listener, after turns that may be heard already.
+        if (reply.stopReason === "refusal") {
+          throw streamed
+            ? new StreamInterruptedError(`${request.label}: the reply was refused after it began`)
+            : new ModelRefusalError();
+        }
         if (reply.stopReason === "max_tokens") {
           throw streamed
             ? new StreamInterruptedError(

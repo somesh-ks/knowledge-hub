@@ -170,8 +170,9 @@ describe("the model chain", () => {
   });
 
   // The podcast script streams (D366). Once its text began the listener may be hearing it, so a
-  // reply that breaks off is neither sent again nor handed to the next model: its caller goes on.
-  it("streams Claude's reply as it comes, and gives a broken stream to no other model", async () => {
+  // reply that breaks off or is refused is neither sent again nor handed to the next model, whose
+  // reply would follow turns of another: its caller goes on.
+  it("streams Claude's reply as it comes, and gives a broken or refused stream to no other model", async () => {
     const start = {
       type: "message_start",
       message: { usage: { input_tokens: 5, output_tokens: 1 } },
@@ -201,6 +202,14 @@ describe("the model chain", () => {
       broken.router.callModel("story_writer", { ...request, onText: () => {} }),
     ).rejects.toBeInstanceOf(StreamInterruptedError);
     expect(broken.calls).toHaveLength(1);
+    const refusal = { type: "message_delta", delta: { stop_reason: "refusal" } };
+    const refused = setup((url) =>
+      url.includes("anthropic") ? claudeStream([start, textDelta('{"ok":'), refusal]) : gemini(),
+    );
+    await expect(
+      refused.router.callModel("story_writer", { ...request, onText: () => {} }),
+    ).rejects.toBeInstanceOf(StreamInterruptedError);
+    expect(refused.calls).toHaveLength(1);
   });
 
   it("never sends temperature, top_p, top_k or budget_tokens, and asks Claude for effort and a schema format", async () => {

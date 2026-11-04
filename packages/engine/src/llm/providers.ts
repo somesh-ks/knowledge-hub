@@ -156,6 +156,19 @@ export function readAnthropicReply(json: AnthropicBody): ApiReply {
 /** After the first text, a stream this long without more is taken as dropped. */
 export const STREAM_IDLE_MS = 15_000;
 
+/** The HTTP status of each error type a stream can send (Anthropic's errors page). */
+const STREAM_ERROR_STATUS: Record<string, number> = {
+  invalid_request_error: 400,
+  authentication_error: 401,
+  billing_error: 402,
+  permission_error: 403,
+  not_found_error: 404,
+  request_too_large: 413,
+  rate_limit_error: 429,
+  api_error: 500,
+  overloaded_error: 529,
+};
+
 /** The JSON of one server-sent event, or null for a ping, a comment or a line that is not JSON. */
 function eventData(block: string): Record<string, unknown> | null {
   const data = block
@@ -227,7 +240,8 @@ async function readAnthropicStream(
           if (typeof out === "number") reply.usage = { ...reply.usage, output_tokens: out };
         } else if (event?.type === "error") {
           const error = event.error as { type?: string; message?: string } | undefined;
-          const status = error?.type === "overloaded_error" ? 529 : 500;
+          // The status each error type answers as a plain response, so only those retry that would.
+          const status = STREAM_ERROR_STATUS[error?.type ?? ""] ?? 500;
           const detail = error?.message ?? error?.type ?? "";
           throw new ProviderHttpError("Anthropic", status, detail, new Headers());
         }

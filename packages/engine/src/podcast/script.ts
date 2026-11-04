@@ -575,7 +575,9 @@ async function continueScript(
     added_chars: charCount(kept),
     reachable_chars: reach,
   });
-  return { rest: [...kept, ...ending], calls: 1 };
+  // The ending is checked here too, so the caller checks nothing twice. It is merged apart from the
+  // kept turns, as a part is: at the seam one speaker can keep two turns in a row.
+  return { rest: [...kept, ...(await live.check(ending))], calls: 1 };
 }
 
 /**
@@ -598,8 +600,10 @@ export async function generateScript(deps: ScriptDeps): Promise<ScriptResult> {
     const requested = await requestTurns(deps, live, reach, deadline);
     const written = charCount(live.published) + charCount(requested.rest);
     const continued = await continueScript(deps, live, reach, deadline, requested.rest);
-    // The turns not out yet get the checks the parts had; the ones out are final.
-    let turns = [...live.published, ...(await live.check(continued.rest))];
+    // The turns not out yet get the checks the parts had (a continuation checked its own); the
+    // ones out are final.
+    const rest = continued.calls > 0 ? continued.rest : await live.check(continued.rest);
+    let turns = [...live.published, ...rest];
     if (live.published.length === 0 && !/singularity/i.test(turns[0]?.text ?? "")) {
       turns = [{ speaker: "a", text: FALLBACK_OPENING }, ...turns];
     }
