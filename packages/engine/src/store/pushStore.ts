@@ -81,6 +81,35 @@ on conflict (id) do nothing`,
   return (await read()) ?? made;
 }
 
+/** What the store holds, for the sync's log: a key pair made, browsers listed, runs watched. */
+export interface PushCounts {
+  keys: number;
+  devices: number;
+  watches: number;
+}
+
+async function countRows(
+  sql: SqlClient,
+  table: "push_keys" | "push_devices" | "push_watches",
+): Promise<number> {
+  try {
+    const rows = await sql.query(`select count(*)::int as n from ${table}`);
+    return Number(rows[0]?.n ?? 0);
+  } catch (error) {
+    if (missingTable(error)) return 0;
+    throw error;
+  }
+}
+
+/** Row counts only, never a key or an address: they tell "nobody asked" from "asked and not matched". */
+export async function pushCounts(sql: SqlClient): Promise<PushCounts> {
+  return {
+    keys: await countRows(sql, "push_keys"),
+    devices: await countRows(sql, "push_devices"),
+    watches: await countRows(sql, "push_watches"),
+  };
+}
+
 /** The stored pair, or null before any browser has asked for the public key. Never creates one. */
 export async function readPushKeys(sql: SqlClient): Promise<PushKeys | null> {
   try {
