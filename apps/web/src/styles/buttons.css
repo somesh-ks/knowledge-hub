@@ -136,11 +136,14 @@
   --color-focus-gap: var(--color-surface);
 }
 
-/* Button, tonal variant: the accent container under its own words, with no outline. Quieter than the filled button
-   and still a button, which an outlined box on the page's own surface was not. */
+/* Button, tonal variant: the mood's container tone under its own words, with no outline, as the tonal icon
+   button and the tonal select are. Quieter than the filled button and still a button, which an outlined
+   box on the page's own surface was not. The accent container means chosen or current alone (owner,
+   2026-11-04): a control at rest takes the mood's container, grey in Default and tinted in a coloured
+   mood, so no mood needs a grey it does not have. */
 .button-tonal {
-  background: var(--color-accent-container);
-  color: var(--color-on-accent-container);
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -149,7 +152,7 @@
   }
 
   .button-tonal:where(:not(:disabled, [aria-disabled="true"])):hover {
-    background: var(--color-accent-container-hover);
+    background: var(--color-surface-container-hover);
   }
 }
 
@@ -164,7 +167,7 @@
 }
 
 .button-tonal:where(:not(:disabled, [aria-disabled="true"])):active {
-  background: var(--color-accent-container-pressed);
+  background: var(--color-surface-container-pressed);
 }
 
 /* Tonal action: the one creating action in the side column (Catch up, AppNav.astro). Usage: add it

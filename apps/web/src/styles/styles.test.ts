@@ -255,10 +255,6 @@ const OUTLINED_CONTROLS: [rule: string, reason: string][] = [
     'topics.css: .emoji-cell[aria-current="true"]',
     "the topic's own emoji in the emoji grid: a hairline ring on its tonal cell",
   ],
-  [
-    "topics.css: .topic-add-source",
-    "Add source: outlined, not tonal, and a size down so it sits level with its heading (D103)",
-  ],
 ];
 
 /**

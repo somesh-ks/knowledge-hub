@@ -108,17 +108,16 @@
         "buttons.css",
         "foundations.css"
       ],
-      "usage": "Button, tonal variant: the accent container under its own words, with no outline. Quieter than the filled button and still a button, which an outlined box on the page's own surface was not.",
+      "usage": "Button, tonal variant: the mood's container tone under its own words, with no outline, as the tonal icon button and the tonal select are. Quieter than the filled button and still a button, which an outlined box on the page's own surface was not. The accent container means chosen or current alone (owner, 2026-11-04): a control at rest takes the mood's container, grey in Default and tinted in a coloured mood, so no mood needs a grey it does not have.",
       "tokens": [
         "--button-height",
         "--button-padding",
         "--button-radius",
-        "--color-accent-container",
-        "--color-accent-container-hover",
-        "--color-accent-container-pressed",
-        "--color-on-accent-container",
+        "--color-on-surface",
         "--color-on-surface-disabled",
-        "--color-surface-container"
+        "--color-surface-container",
+        "--color-surface-container-hover",
+        "--color-surface-container-pressed"
       ]
     },
     {
