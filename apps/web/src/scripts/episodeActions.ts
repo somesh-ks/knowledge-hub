@@ -3,7 +3,7 @@ import { PANEL_SHEET_SELECTOR } from "../design-system/sheet";
 import { rememberCancelToken } from "../lib/cancelTokens";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import { createCommentAsker } from "../lib/regenAsk";
-import { type Hints, hintsFor } from "../lib/regenHints";
+import { desiredChip, desiredLength, wantedControls } from "../lib/regenFollow";
 import { nearestRegenLength } from "../lib/regenLength";
 import { isChipOn } from "../lib/regenTopics";
 import { hasSaved, storeOn } from "../lib/savedKey";
@@ -81,28 +81,64 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
   if (dialog.matches(PANEL_SHEET_SELECTOR)) sheetGestures(dialog);
   else dismissOnScrim(dialog);
 
-  dialog.addEventListener("change", () => say());
-
-  // The categories and the length wait until the comment reaches for them (D337); once shown they stay.
+  // The categories and the length follow the comment (D337, D371): they appear as the words reach
+  // for them and go when the words go, and the values a model proposes are set on the ones the
+  // listener has not touched. A control the listener touched stays as they left it; so does one a
+  // refusal had to show. A change event is always the listener's: a script setting `checked` fires none.
   const topicsGroup = dialog.querySelector<HTMLElement>("[data-hint-topics]");
   const lengthGroup = dialog.querySelector<HTMLElement>("[data-hint-length]");
+  const touchedChips = new Set<Element>();
+  let lengthTouched = false;
+  const keep = { length: false, topics: false };
+  const radios = () => [...dialog.querySelectorAll<HTMLInputElement>('input[name="length"]')];
+  const topicChips = () => [...dialog.querySelectorAll<HTMLInputElement>('input[name="topic"]')];
+  const labelOf = (chip: HTMLInputElement) =>
+    chip.closest("label")?.querySelector("span")?.textContent?.trim() ?? "";
+  const forgetTouched = () => {
+    touchedChips.clear();
+    lengthTouched = false;
+    keep.length = false;
+    keep.topics = false;
+  };
+  dialog.addEventListener("change", (event) => {
+    say();
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) return;
+    if (input.name === "length") lengthTouched = true;
+    if (input.name === "topic") touchedChips.add(input);
+  });
+  let asker: ReturnType<typeof createCommentAsker> | undefined;
+  const follow = (): void => {
+    if (!feedback || !asker) return;
+    const chips = topicChips();
+    const labels = chips.map(labelOf);
+    const answer = asker.answer();
+    const wanted = wantedControls(feedback.value, labels, answer);
+    if (topicsGroup) topicsGroup.hidden = !(wanted.topics || keep.topics || touchedChips.size > 0);
+    if (lengthGroup) lengthGroup.hidden = !(wanted.length || keep.length || lengthTouched);
+    const lengths = radios();
+    const asked = Number(lengths.find((radio) => radio.defaultChecked)?.value);
+    if (!lengthTouched && Number.isFinite(asked)) {
+      const target = desiredLength(asked, answer.values);
+      for (const radio of lengths) radio.checked = Number(radio.value) === target;
+    }
+    chips.forEach((chip, at) => {
+      if (!chip.disabled && !touchedChips.has(chip)) {
+        chip.checked = desiredChip(labels[at] ?? "", chip.defaultChecked, answer.values);
+      }
+    });
+  };
   if (feedback) {
-    const show = (hints: Hints): void => {
-      if (topicsGroup && hints.topics) topicsGroup.hidden = false;
-      if (lengthGroup && hints.length) lengthGroup.hidden = false;
-    };
-    // The words answer at once; Jev, once the typing pauses, can add what they missed.
-    const asker = createCommentAsker(show);
-    dialog.addEventListener("close", asker.stop);
+    // The words answer at once; once the typing pauses, Jev and Haiku can add what they missed.
+    asker = createCommentAsker(follow);
+    dialog.addEventListener("close", () => {
+      asker?.stop();
+      forgetTouched();
+      follow();
+    });
     feedback.addEventListener("input", () => {
-      const labels = [...(topicsGroup?.querySelectorAll(".filter-chip span") ?? [])].map(
-        (label) => label.textContent ?? "",
-      );
-      show(hintsFor(feedback.value, labels));
-      asker.note(feedback.value, labels, {
-        length: !lengthGroup?.hidden,
-        topics: !topicsGroup?.hidden,
-      });
+      asker?.note(feedback.value, topicChips().map(labelOf));
+      follow();
     });
   }
   if (feedback && count) {
@@ -142,6 +178,7 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       if (chips.length > 0 && ticked.length === 0) {
         // The categories wait for a cue (D337); a refusal about them must show them.
         if (topicsGroup) topicsGroup.hidden = false;
+        keep.topics = true;
         say(copy("topics"));
         chips[0]?.focus();
         return;

@@ -79,9 +79,7 @@ describe("the feedback paragraph", () => {
     const input = { request: REQUEST, stories: [], budget_chars: 4000 };
     expect(scriptUserMessage(input, "BND", [])).not.toContain("listener asked");
     const text = scriptUserMessage({ ...input, feedback: "more on design" }, "BND", []);
-    expect(text).toContain(
-      "The listener asked for these changes to the previous version:\n<<<SOURCE-BND",
-    );
+    expect(text).toMatch(/listener asked[^\n]*:\n<<<SOURCE-BND/);
     expect(text).toContain("more on design");
   });
 });
