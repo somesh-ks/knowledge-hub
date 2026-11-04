@@ -7,6 +7,7 @@ import {
   SourceHealthFile,
 } from "@singularity/core";
 import { type ClientFaultGroup, readClientFaults } from "@singularity/engine/faults-store";
+import { readHealthReport, type StoredHealth } from "@singularity/engine/health-store";
 import { readVitals, type VitalSummary } from "@singularity/engine/vitals-store";
 import type { HealthBody } from "../lib/healthRows";
 import { HEALTH_JOBS } from "../lib/healthRows";
@@ -118,7 +119,12 @@ async function inTime<T>(work: Promise<T>, ms: number): Promise<T> {
   }
 }
 
-type Store = { vitals: readonly VitalSummary[]; faults: readonly ClientFaultGroup[] | null };
+type Store = {
+  vitals: readonly VitalSummary[];
+  faults: readonly ClientFaultGroup[] | null;
+  /** The daily check's saved report (D360), in the same wake of the store; UNAVAILABLE when it did not read. */
+  report: StoredHealth | null | typeof UNAVAILABLE;
+};
 
 const database = guardedDatabase({
   databaseUrl: process.env.DATABASE_URL,
@@ -132,6 +138,8 @@ async function readStore(now: number): Promise<Store | typeof UNAVAILABLE | "off
     async (sql) => ({
       vitals: await readVitals(sql, now),
       faults: await readClientFaults(sql, now),
+      // A report that does not read must not take the vitals and errors rows down with it.
+      report: await readHealthReport(sql).catch(() => UNAVAILABLE),
     }),
     UNAVAILABLE,
   );
@@ -195,6 +203,7 @@ export async function buildHealth(now: Date): Promise<HealthBody> {
       digests: digests.digests,
       vitals: typeof store === "string" ? store : store.vitals,
       faults: typeof store === "string" ? store : store.faults,
+      budgets: typeof store === "string" ? store : store.report,
       jobs,
     },
     now,

@@ -71,7 +71,9 @@ const PRUNE_SQL = `delete from client_faults
 where at <= to_timestamp($1::float8 / 1000) - $2::int * interval '1 day'`;
 
 const READ_SQL = `select kind, page, message, directive, blocked, source, build, count(*)::int as total,
-  (count(*) filter (where at > to_timestamp($1::float8 / 1000) - interval '1 day'))::int as day
+  (count(*) filter (where at > to_timestamp($1::float8 / 1000) - interval '1 day'))::int as day,
+  (count(*) filter (where at > to_timestamp($1::float8 / 1000) - interval '2 days'
+    and at <= to_timestamp($1::float8 / 1000) - interval '1 day'))::int as yesterday
 from client_faults
 where at > to_timestamp($1::float8 / 1000) - $2::int * interval '1 day'
 group by kind, page, message, directive, blocked, source, build`;
@@ -114,10 +116,11 @@ export async function pruneClientFaults(sql: SqlClient, now: number): Promise<vo
   }
 }
 
-/** One group of alike faults over the window: how many, and how many in the last 24 hours. */
+/** One group of alike faults over the window: how many, in the last 24 hours, and in the 24 before. */
 export interface ClientFaultGroup extends ClientFault {
   total: number;
   day: number;
+  yesterday: number;
 }
 
 /**
@@ -145,5 +148,6 @@ export async function readClientFaults(
     build: String(row.build),
     total: Number(row.total),
     day: Number(row.day),
+    yesterday: Number(row.yesterday),
   }));
 }

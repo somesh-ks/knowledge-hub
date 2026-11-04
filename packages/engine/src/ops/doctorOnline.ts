@@ -12,9 +12,12 @@ interface Probe {
   headers: Headers;
 }
 
+/** What a check that only sends a request needs: `health` runs these without the rest of doctor. */
+type ProbeDeps = Pick<DoctorDeps, "fetchImpl" | "timeoutMs">;
+
 /** One request with a timeout. A network failure throws an Error with a redacted one-line message. */
 async function probe(
-  deps: DoctorDeps,
+  deps: ProbeDeps,
   secrets: readonly string[],
   url: string,
   init: RequestInit,
@@ -66,11 +69,14 @@ function httpProblem(id: string, service: string, status: number, keyName: strin
 }
 
 function unreachable(id: string, service: string, error: unknown): Check {
-  return fail(
-    id,
-    `${service} is unreachable (${error instanceof Error ? error.message : "request failed"})`,
-    "Check the network, then run doctor again.",
-  );
+  return {
+    ...fail(
+      id,
+      `${service} is unreachable (${error instanceof Error ? error.message : "request failed"})`,
+      "Check the network, then run doctor again.",
+    ),
+    unreachable: true,
+  };
 }
 
 function skipped(id: string, keyName: string): Check {
@@ -86,7 +92,7 @@ async function listCheck(
   id: string,
   service: string,
   keyName: "ANTHROPIC_API_KEY" | "GEMINI_API_KEY",
-  deps: DoctorDeps,
+  deps: ProbeDeps,
   env: Env,
   secrets: readonly string[],
 ): Promise<Check> {
@@ -161,7 +167,7 @@ const FirecrawlCredits = z.object({
 
 async function firecrawlCheck(
   env: Env,
-  deps: DoctorDeps,
+  deps: ProbeDeps,
   secrets: readonly string[],
 ): Promise<Check> {
   const key = env.FIRECRAWL_API_KEY;
@@ -218,7 +224,7 @@ function nextVoiceCursor(body: unknown): string | undefined {
 
 async function speechifyCheck(
   env: Env,
-  deps: DoctorDeps,
+  deps: ProbeDeps,
   secrets: readonly string[],
 ): Promise<Check> {
   const key = env.SPEECHIFY_API_KEY;
@@ -284,7 +290,7 @@ async function blobCheck(env: Env, deps: DoctorDeps, secrets: readonly string[])
 /** The audio workflow runs `vercel link` with this token; a rejected one fails with "User not found". */
 async function vercelTokenCheck(
   env: Env,
-  deps: DoctorDeps,
+  deps: ProbeDeps,
   secrets: readonly string[],
 ): Promise<Check> {
   const token = env.VERCEL_TOKEN;
@@ -319,7 +325,7 @@ const TOKEN_EXPIRY_WARNING_DAYS = 14;
  */
 async function githubTokenCheck(
   env: Env,
-  deps: DoctorDeps,
+  deps: ProbeDeps,
   secrets: readonly string[],
 ): Promise<Check> {
   const id = "online.github";
@@ -388,16 +394,19 @@ async function githubTokenCheck(
     if (Number.isFinite(expires)) {
       const days = Math.floor((expires - Date.now()) / DAY_MS);
       if (days < TOKEN_EXPIRY_WARNING_DAYS) {
-        return warn(
-          id,
-          days < 0 ? "the token has expired" : `the token expires in ${days} days`,
-          "Create a new fine-grained token and run `npm run secrets:push`; after it expires every save from the site is dropped.",
-        );
+        return {
+          ...warn(
+            id,
+            days < 0 ? "the token has expired" : `the token expires in ${days} days`,
+            "Create a new fine-grained token and run `npm run secrets:push`; after it expires every save from the site is dropped.",
+          ),
+          expiresInDays: days,
+        };
       }
-      return ok(
-        id,
-        `token accepted, expires in ${days} days; Variables read works, write untested`,
-      );
+      return {
+        ...ok(id, `token accepted, expires in ${days} days; Variables read works, write untested`),
+        expiresInDays: days,
+      };
     }
     return ok(id, "token accepted, no expiry; Variables read works, write untested");
   } catch (error) {
@@ -424,4 +433,24 @@ export async function onlineChecks(
       githubTokenCheck(env, deps, secrets),
     ]);
   return [anthropic, gemini, jev, exa, firecrawl, speechify, blob, vercel, github];
+}
+
+/**
+ * The key checks that cost nothing, for the daily `health` run (D360): each lists, reads a balance
+ * or reads the token. Left out: Jev (it answers a question, a paid call), Exa (one search, about
+ * 0.007 USD) and Blob (a list is an advanced operation against the month's allowance).
+ */
+export function freeKeyChecks(
+  env: Env,
+  deps: ProbeDeps,
+  secrets: readonly string[],
+): Promise<Check[]> {
+  return Promise.all([
+    listCheck("online.anthropic", "Anthropic", "ANTHROPIC_API_KEY", deps, env, secrets),
+    listCheck("online.gemini", "Gemini", "GEMINI_API_KEY", deps, env, secrets),
+    firecrawlCheck(env, deps, secrets),
+    speechifyCheck(env, deps, secrets),
+    vercelTokenCheck(env, deps, secrets),
+    githubTokenCheck(env, deps, secrets),
+  ]);
 }

@@ -1,9 +1,18 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { deflateRawSync } from "node:zlib";
 import { digestRelPath, serializeDigestFile, VITAL_THRESHOLDS } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { freeKeyChecks } from "../src/ops/doctorOnline.js";
 import { collectHealth, type HealthFetch } from "../src/ops/health.js";
+import {
+  buildCard,
+  checkBrowserSuite,
+  checkNeonCompute,
+  readGitHub,
+  readNeonCompute,
+} from "../src/ops/healthBudgets.js";
 import {
   checkClientFaults,
   checkDeploymentRate,
@@ -376,6 +385,7 @@ describe("singularity health", () => {
       build,
       total: day,
       day,
+      yesterday: 0,
       ...extra,
     });
     const found: string[] = [];
@@ -415,6 +425,14 @@ describe("singularity health", () => {
     found.length = 0;
     checkClientFaults([group("csp", "build1", 2), group("error", "build1", 19)], sink);
     expect(found).toEqual([]);
+    // A forged burst is one day; blocked scripts on two days running are a feature broken (D360).
+    checkClientFaults([group("csp", "build1", 3, { yesterday: 3 })], sink);
+    checkClientFaults([group("csp", "build1", 3, { yesterday: 2 })], sink);
+    expect(found.map((line) => line.split(" ").slice(0, 2).join(" "))).toEqual([
+      "fault client_faults",
+      "warn client_faults",
+    ]);
+    found.length = 0;
     checkClientFaults(null, sink);
     expect(sink.passed).toHaveLength(1);
   });
@@ -817,6 +835,10 @@ describe("singularity health", () => {
     checkDeploymentRate({ count: 70 }, sink(warned));
     checkDeploymentRate({ count: 69 }, sink(warned));
     expect(warned).toEqual(["deploy_rate"]);
+    // At 80 a warning read on Monday came too late: Hobby stops every deploy at 100 (D360).
+    const faulted: string[] = [];
+    checkDeploymentRate({ count: 80 }, { ...sink([]), fault: (c: string) => void faulted.push(c) });
+    expect(faulted).toEqual(["deploy_rate"]);
     // No token is no reading; a refusal or a thrown token is a warning with the token taken out.
     expect(await readDeploymentCount(undefined, NOW, answer(200))).toBeUndefined();
     const refused = await readDeploymentCount("tok-secret-123", NOW, answer(403));
@@ -828,5 +850,178 @@ describe("singularity health", () => {
     const unread: string[] = [];
     checkDeploymentRate(broken as { error: string }, sink(unread));
     expect(unread).toEqual(["deploy_rate_unread"]);
+  });
+
+  /** Codes a check sent to the sink, as "fault code" or "warn code". */
+  const collect = () => {
+    const found: string[] = [];
+    return {
+      found,
+      sink: {
+        fault: (code: string) => void found.push(`fault ${code}`),
+        warn: (code: string) => void found.push(`warn ${code}`),
+        passed: [] as string[],
+      },
+    };
+  };
+  const answer = (routes: Record<string, unknown>) =>
+    (async (url: string) => {
+      const hit = Object.entries(routes).find(([part]) => url.includes(part));
+      if (!hit) return new Response("{}", { status: 404 });
+      const [, body] = hit;
+      if (typeof body === "number") return new Response("{}", { status: body });
+      if (body instanceof Uint8Array) return new Response(body as Uint8Array<ArrayBuffer>);
+      return new Response(JSON.stringify(body));
+    }) as unknown as typeof fetch;
+
+  // 8.9 CU-hours by 3 Nov read as nothing against a cap of 100, yet the month at that rate ends
+  // near 90 and Neon stops the database at 100 (D360).
+  it("faults a Neon pace that spends the free plan before the month ends, and says when it cannot read", async () => {
+    const project = (hours: number) =>
+      answer({
+        "/projects/p1": {
+          project: {
+            compute_time_seconds: hours * 3600,
+            consumption_period_start: "2026-11-01T00:00:00Z",
+            consumption_period_end: "2026-12-01T00:00:00Z",
+          },
+        },
+      });
+    const at = new Date("2026-11-03T23:09:00Z");
+    const today = await readNeonCompute("neon-key-123", "p1", at, project(8.9));
+    expect(today).toMatchObject({ pace: expect.closeTo(90, 0) });
+    const { found, sink } = collect();
+    checkNeonCompute(today, sink);
+    checkNeonCompute(await readNeonCompute("neon-key-123", "p1", at, project(7.4)), sink);
+    checkNeonCompute(await readNeonCompute(undefined, "p1", at, project(1)), sink);
+    expect(found).toEqual(["fault neon_compute", "warn neon_compute", "warn neon_unmeasured"]);
+    const broken = await readNeonCompute("neon-key-123", "p1", at, (async () => {
+      throw new Error("refused neon-key-123");
+    }) as unknown as typeof fetch);
+    expect(JSON.stringify(broken)).not.toContain("neon-key-123");
+  });
+
+  /** A one-file zip as upload-artifact writes it: deflated, its sizes only in the central directory. */
+  const zipOf = (name: string, text: string): Uint8Array => {
+    const data = deflateRawSync(Buffer.from(text));
+    const file = Buffer.from(name);
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(8, 8);
+    local.writeUInt16LE(file.length, 26);
+    const central = Buffer.alloc(46);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(8, 10);
+    central.writeUInt32LE(data.length, 20);
+    central.writeUInt16LE(file.length, 28);
+    const end = Buffer.alloc(22);
+    end.writeUInt32LE(0x06054b50, 0);
+    end.writeUInt32LE(30 + file.length + data.length, 16);
+    return Buffer.concat([local, file, data, central, file, end]);
+  };
+
+  // A nightly suite that fails every night said nothing: browser.yml only marks its own run red.
+  it("faults two nightly browser failures running, reads the newest main report's flaky count and says what it could not read", async () => {
+    const run = (event: string, conclusion: string, day: number) => ({
+      event,
+      head_branch: "main",
+      status: "completed",
+      conclusion,
+      created_at: `2026-11-0${day}T02:17:00Z`,
+      run_started_at: `2026-11-0${day}T02:17:00Z`,
+      updated_at: `2026-11-0${day}T02:23:00Z`,
+    });
+    // A week of merges fills the first page of browser.yml's runs with pushes; the nightlies are
+    // asked for apart, or they fall off it and the fault goes silent.
+    const routes = (newest: string) => ({
+      "browser.yml/runs?created=%3E%3D2026-10-27&per_page=100&event=schedule": {
+        workflow_runs: [run("schedule", newest, 3), run("schedule", "failure", 2)],
+      },
+      "browser.yml/runs": { workflow_runs: [run("push", "success", 2)] },
+      "ci.yml/runs": { workflow_runs: [run("pull_request", "success", 3)] },
+      "/issues": [
+        { created_at: "2026-10-20T00:00:00Z" },
+        { created_at: "2026-10-20T00:00:00Z", pull_request: {} },
+        { created_at: "2026-11-02T00:00:00Z" },
+      ],
+      "/dependabot/alerts": 403,
+      "/actions/artifacts?": {
+        artifacts: [
+          { workflow_run: { head_branch: "feature" }, archive_download_url: "https://x" },
+          {
+            workflow_run: { head_branch: "main" },
+            archive_download_url: "https://api.github.com/repos/o/r/actions/artifacts/9/zip",
+          },
+        ],
+      },
+      "/artifacts/9/zip": zipOf("results.json", JSON.stringify({ stats: { flaky: 2 } })),
+    });
+    const at = new Date("2026-11-03T12:00:00Z");
+    const reading = await readGitHub("gh-token", "o/r", at, answer(routes("failure")));
+    expect(reading).toMatchObject({
+      flaky: 2,
+      old_issues: 1,
+      dependabot: { error: "GitHub answered 403" },
+      suites: { "ci.yml": { passed: 1, failed: 0, median_ms: 360_000 } },
+    });
+    const { found, sink } = collect();
+    checkBrowserSuite(reading as NonNullable<typeof reading>, sink);
+    const green = await readGitHub("gh-token", "o/r", at, answer(routes("success")));
+    checkBrowserSuite(green as NonNullable<typeof green>, sink);
+    expect(found).toEqual(["fault browser_suite_failed"]);
+    expect(await readGitHub(undefined, "o/r", at, answer({}))).toBeUndefined();
+  });
+
+  // The Monday card and the Health page colour each area by its worst finding; a token that ends
+  // inside two weeks is a fault, so the owner hears before the site's saves stop (D360).
+  it("faults a token near its end and colours each card area by its worst finding", async () => {
+    const report = await collectHealth({
+      root,
+      now: NOW,
+      monthlyChars: 500_000,
+      ceilingUsd: 5,
+      site: null,
+      neon: { used: 3, pace: 75 },
+      keys: [
+        {
+          id: "online.github",
+          status: "warn",
+          summary: "the token expires in 9 days",
+          expiresInDays: 9,
+        },
+        { id: "online.anthropic", status: "ok", summary: "key accepted" },
+        // A service that did not answer read as a refused key and opened a fault issue.
+        ...(
+          await freeKeyChecks(
+            { GEMINI_API_KEY: "gemini-key" } as never,
+            {
+              fetchImpl: (async () => {
+                throw new Error("timed out");
+              }) as unknown as typeof fetch,
+              timeoutMs: 10,
+            },
+            [],
+          )
+        ).filter((check) => check.id === "online.gemini"),
+      ],
+    });
+    expect(codes(report.findings, "fault")).not.toContain("key_rejected");
+    expect(codes(report.findings, "warning")).toContain("key_unchecked");
+    expect(codes(report.findings, "fault")).toContain("token_expiring");
+    const tone = Object.fromEntries(report.card.map((row) => [row.area, row.tone]));
+    // The fixture's $7.50 day is over the $5 ceiling; Neon's pace alone would be amber.
+    expect(tone).toEqual({
+      cost: "red",
+      speed: "green",
+      tests: "green",
+      bugs: "red",
+      security: "green",
+      keys: "red",
+    });
+    const amber = buildCard([{ code: "neon_compute", aspect: "cost", severity: "warning" }], {
+      spentUsd: 1,
+      ceilingUsd: 5,
+    });
+    expect(amber[0]).toMatchObject({ area: "cost", tone: "amber" });
   });
 });
