@@ -215,6 +215,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D356 | A chosen fill stands at least 8 points of lightness off every surface it sits on | amends D72 |
 | D358 | A playing avatar wears headphones fitted to its shape | amends D326, D353 |
 | D359 | A swipe is felt, never heard; the bar's sideways swipe shows the podcast it goes to | amends D273, D289, D343 |
+| D360 | Guardrails alarm only on a breached budget; the cron spares Neon outside the schedule's hours | active |
 | D361 | First-load JavaScript is held to the heaviest page's record plus 5 KB; the avatar's show and the select's sheet load at idle | amends D141 |
 
 ---
