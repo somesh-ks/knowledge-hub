@@ -118,6 +118,8 @@ test.describe("axe, banners and live states", () => {
       const face = (chip: Element | null | undefined, state: string, label: string): void => {
         chip?.setAttribute("data-state", state);
         chip?.setAttribute("data-playing", String(label === "Playing"));
+        // The player writes the name with the words (readerMath.ts): a name holds the visible text.
+        chip?.setAttribute("aria-label", `${label}, ${chip.getAttribute("aria-label") ?? ""}`);
         const text = chip?.querySelector("[data-chip-label]");
         if (text) text.textContent = label;
       };
