@@ -763,3 +763,33 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Cost: every avatar draws two hidden groups (a path and two rects); no new design token.
 - Revisit if: the bob and the headphones together read as busy in the app bar.
 - Amends: D326, D353.
+
+## D361: first-load JavaScript is held to the heaviest page's record plus 5 KB
+
+- Date: 2026-11-03 (the owner asked for performance numbers; the coordinator asked for a check that would have caught the growth).
+- Decision: `FIRST_LOAD_RECORD_BYTES` records the heaviest page's first load (80 KB; /settings/downloads is 79.9 KB) and `checkBundle` fails a build whose heaviest page is more than `FIRST_LOAD_STEP_BYTES` (5 KB) past it. A change that adds more loads the new code lazily, or raises the record and says why in its pull request. The 130 KB ceiling of D141 stays.
+- Context changed: every page's first load went from 35 KB (2026-10-24, D178) to 75 KB by 2026-11-03 with nothing failing. A rebuild of each merged commit found the steps: #500 put the select's sheet, its head and every glyph on every page (39 to 52 KB at once; the glyph table grew to 16 KB after it), and #608 brought the avatar's show eager (7 KB). Both now load at idle or on first use: the avatar's show here, the select's sheet in the design-system pull request the owner merges (D254), which takes every page to 52.2 KB and the record down to about 58 KB.
+- Why: a ceiling 70 KB above the code lets a page double unnoticed; a record moves only when someone writes it down.
+- Rejected: lowering D141's ceiling (the owner raised it for room to build); a per-page baseline file (every PR would rewrite it and conflict).
+- Cost: a feature that adds over 5 KB of eager code must raise one number in its PR.
+- Revisit if: raising the record becomes routine, or the owner wants the ceiling itself lower.
+- Amends: D141 (adds a ratchet under the ceiling).
+
+## D362: short of room, a row cuts its name and keeps its value
+
+- Date: 2026-11-03 (the owner: "when you run out of space, the topic name should truncate and not the number of sources. this should be a design system change").
+- Decision: a link row in Settings or Sources (`.row-action > .settings-text`), and a label-and-value row (`.settings-row > .settings-label + .settings-hint`), cut the name with an ellipsis and keep the value whole: "Software E... 33 sources". The name takes the room the value leaves and adds no width to the row's minimum (`contain: inline-size`), so a long one never widens a phone page. A value wider than the whole row is cut last. A suggested source's line follows the same order: the address gives way first and keeps its first letters, and the cadence keeps its words.
+- Why: the value is the row's answer (how many sources, when it runs); the name is known from the list around it and still reads from its first letters.
+- Rejected: keeping the 2026-10-22 order (the name stays whole and the value is cut), which hid the count the owner looks for.
+- Cost: none; the same rules, with the cut moved from one side to the other.
+- Revisit if: a name cut to a few letters becomes ambiguous between two rows.
+- Supersedes: the 2026-10-22 rule in `docs/ledger/settings-forms.md` (a long value is cut, the name never shrinks).
+
+## D363: every mood pads its cards 24px
+
+- Date: 2026-11-03 (the owner: "the padding on left and right is too much in expressive mood").
+- Decision: `component.card.padding` is 24px in every mood. A mood's larger corner comes out of the content radius (Expressive: 40 = 16 + 24), and `buildTokens.test.ts` holds radius = content radius + padding in each mood. Titles, heads and row words keep Default's edges in every mood.
+- Why: Expressive's 32px (#629, a Claude change on 2026-11-03, "the curve closed in on the first and last rows") set its rows 8px off Default's edges and broke the concentric rule; at a row's height a 40px corner pulls in under 1px, so the extra room bought nothing.
+- Rejected: 32px with an 8px content radius (the chips and fields inside would sharpen, against D167's one shape per control).
+- Cost: none.
+- Revisit if: a mood's corner grows past 48px, where the curve does reach the first row's words.

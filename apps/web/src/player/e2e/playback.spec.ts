@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { WAKE_REWIND_SECONDS } from "../core/playerStore";
 import { center, expect, type PlayerPage, test } from "./helpers";
 
 /**
@@ -221,7 +222,8 @@ test.describe("playback on a podcast", () => {
     await expect(player.dialog).toBeVisible();
     await player.finger.press(player.dialog.getByRole("button", { name: "Play", exact: true }));
     await expect(player.root).toHaveAttribute("data-player-state", "playing");
-    expect(await time(page)).toBeGreaterThan(saved - 1);
+    // A moment before it: after a quiet the phone's output wakes late (WAKE_REWIND_SECONDS).
+    expect(await time(page)).toBeGreaterThan(saved - 1 - WAKE_REWIND_SECONDS);
     await player.finger.press(player.dialog.getByRole("button", { name: "Pause", exact: true }));
     // A fresh launch (no tab to come back to) loads nothing, but the chip offers the place kept.
     await page.evaluate(() => sessionStorage.clear());
@@ -231,28 +233,30 @@ test.describe("playback on a podcast", () => {
     await expect(player.cta).toHaveAccessibleName(/^Resume the podcast, \d+ min left$/);
     await player.finger.press(player.cta);
     await expect(player.root).toHaveAttribute("data-player-state", "playing");
-    // It plays on from the kept place, not from the top.
-    expect(await time(page)).toBeGreaterThan(saved - 1);
+    // It plays on from the kept place (each start a moment before it), not from the top.
+    expect(await time(page)).toBeGreaterThan(saved - 1 - 2 * WAKE_REWIND_SECONDS);
   });
 
-  test("remembers a pause the system caused and offers resume instead of playing again", async ({
+  test("remembers a pause the system caused and plays on from the Play disc", async ({
     player,
     audio,
     page,
   }) => {
     await player.open();
     await player.play();
-    // A call or an alarm pauses the element without anyone pressing pause.
+    const caption = page.locator(".dock-caption");
+    const playing = (await caption.textContent()) ?? "";
+    // A call or an alarm pauses the element without anyone pressing pause: the caption says so.
     await page.evaluate(() => window.__audios[0]?.pause());
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
-    await expect(page.locator(".dock-caption")).toHaveText("Paused by another app");
+    await expect(caption).not.toHaveText(playing);
+    const paused = (await caption.textContent()) ?? "";
     expect((await audio.read())?.paused).toBe(true);
     await player.openPlayer();
-    const notice = page.getByRole("status").filter({ hasText: "Paused by another app" });
-    await expect(notice).toBeVisible();
-    await player.finger.press(player.dialog.getByRole("button", { name: "Resume" }));
+    // The page's Play disc plays on.
+    await player.finger.press(player.dialog.getByRole("button", { name: "Play", exact: true }));
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-    await expect(notice).toHaveCount(0);
+    await expect(caption).not.toHaveText(paused);
   });
 
   test("a held volume knob grows alone: the track and the bar keep their boxes @wide", async ({

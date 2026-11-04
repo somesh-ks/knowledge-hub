@@ -15,7 +15,7 @@ Detail of one: `npm run ds -- part <id>`. Search by need: `npm run ds -- find "<
 - `switch` .switch-input: A track and a thumb for one setting that is on or off. Use: A setting is on or off and applies as soon as it is flipped: Sounds, Autoplay, a podcast's Enabled; It sits at the end of a settings row, with the row's label as its name. Not: The choice is one of several values, or needs a Save to apply → filter-chip.
 - `slider` .slider-input: A track with a thumb: a value between two ends, set by dragging or by the arrow keys. Use: The value is on a scale where nearby values are alike: Volume, Playback speed, a topic's weight. Not: There are two to five named options and none is between the others → filter-chip.
 - `field` .field-input: An outlined box for text a person types: one line, or several lines (multiline). Use: A person types a short value or a few lines: a title, a feed address, a prompt; It sits under its own label in a form or a settings row. Not: The value is one of two to four short options → filter-chip.
-- `select` .select-outlined .select-tonal: A native select with its own chevron: a person picks one value from a list that is too long to show. Use: A person picks one value from a list of five or more, or of names that are too long for a row of chips; It sits under its own label in a form, or in a toolbar as a sort or a filter. Not: the value is one of two to four short options → segmented-choice.
+- `select` .select-outlined .select-tonal: A native select with its own chevron. Use: A person picks one value from a list of five or more, or of names that are too long for a row of chips; It sits under its own label in a form, or in a toolbar as a sort or a filter. Not: the value is one of two to four short options → segmented-choice.
 - `menu` .menu-list .menu-sheet: A short list of actions that opens from an icon button: a row each, its glyph first. Use: A card, header or row has more actions than room: Download, Add to queue, Share, Delete; Each action is one tap, with no choice of its own. Not: The person picks one value from a list → select.
 - `banner` .banner-notice .banner-text: A tinted block with an icon, a title, an optional line and at most one text button. Use: A state a person must know about stays on screen: offline, a failed run, a playback error. Not: A banner in the page would be moved around by a page change (a cover between pages) → banner.
 - `dialog` .dialog-panel .dialog-body: A small centred box with a heading and a row of buttons: one question, one tap. Use: A person confirms what cannot be undone: Delete, Discard, Switch profile. Not: The question needs fields to answer → sheet.
@@ -86,6 +86,7 @@ Components read only these (never a hex, never a primitive color).
 - --color-warning-subtle
 - --color-danger
 - --color-danger-subtle
+- --color-favorite: The filled heart.
 - --color-info
 - --color-info-subtle
 - <fill>-hover and <fill>-pressed for --color-accent, --color-accent-container, --color-accent-container-high, --color-accent-action, --color-surface, --color-surface-sunken, --color-surface-container, --color-surface-raised, --color-surface-overlay, --color-surface-inverse, --color-surface-inverse-action, --color-accent-subtle: its state fills
@@ -100,7 +101,7 @@ Read directly by components.
 - --ease-{out, in-out, drawer, hover, linear linear, spring-settle, spring-release, spring-pop, spring-spatial-fast, spring-spatial-default, spring-spatial-slow, spring-effects-fast, spring-effects-default, spring-effects-slow}
 
 ## Component tokens
-Sizes and bindings per part: cover (10), rail (12), item (4), cta (7), action (5), button (4), mini (8), player (5), control (6), scrubber (10), hue (6), segmented (5), field (9), switch (7), sheet (11), toast (6), banner (2), archive (2), chip (17), app (1), nav (10), tabs (3), row (4), slider (1), picker (3), scene (16), card (6). List one with `npm run ds -- token <group>`.
+Sizes and bindings per part: cover (10), rail (12), item (4), cta (7), action (5), button (4), mini (8), player (8), control (6), scrubber (10), hue (6), segmented (5), field (9), switch (9), sheet (11), toast (6), banner (5), archive (2), chip (17), app (1), nav (10), tabs (3), row (4), slider (1), picker (3), scene (16), card (6). List one with `npm run ds -- token <group>`.
 
 ## Bespoke controls
 20 controls are built for one place (the player transport and dock, speed controls, source rows). They are not for reuse. 9 more belong to a part above and are used through it. `npm run ds -- part bespoke` lists all with the reason.

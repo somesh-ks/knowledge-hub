@@ -23,13 +23,11 @@ export interface QueueGestures {
 
 interface QueueRowProps {
   id: string;
-  /** Its place in the list, the playing row included, as the gestures count it. */
+  /** Its place in the list, the playing row included, as the gestures count it and it is called. */
   index: number;
-  /** Its place among the queued items, which is what it is called by (-1 for the playing one). */
-  place: number;
   count: number;
-  /** The item playing now, at the list's head (D346). */
-  playing?: boolean;
+  /** The item playing now (D346), or a row put above it, which does not start by itself (D357). */
+  state?: "current" | "before";
   gestures: QueueGestures;
 }
 
@@ -52,19 +50,18 @@ export function QueueDeleteMark() {
  * place, with a finger or a mouse, and Up and Down move it from the keyboard, Delete takes it off;
  * a swipe to either side takes it off too. A mouse also gets a ⋮ on hover (owner, 2026-11-03) with
  * the row's other actions; a phone never draws it (player.css). The playing row is moved the same
- * way (D349): its Down key and a drop lower skip what it passes.
+ * way (D349), and any row may go above it (D357).
  */
-export default function QueueRow({ id, index, place, count, playing, gestures }: QueueRowProps) {
+export default function QueueRow({ id, index, count, state, gestures }: QueueRowProps) {
   const meta = useQueueMeta(id);
   const title = meta?.title ?? longDateFromDigestId(id);
-  const name = playing
-    ? `Move ${title}, playing now. The Down arrow skips the one after it, Delete removes it`
-    : `Move ${title}, ${place + 1} of ${count}. Up and Down arrows move it, Delete removes it`;
+  const playing = state === "current";
+  const name = `Move ${title}, ${playing ? "playing now, " : ""}${index + 1} of ${count}. Up and Down arrows move it, Delete removes it`;
   return (
     <li
       className="player-queue-item"
       data-queue-id={id}
-      data-state={playing ? "current" : undefined}
+      data-state={state}
       aria-current={playing ? "true" : undefined}
       onPointerDown={(event) => gestures.onPointerDown(event, index)}
       onPointerMove={gestures.onPointerMove}
