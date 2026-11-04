@@ -6,14 +6,13 @@
  */
 
 import { askKept } from "../lib/kept";
+import { PILLARS, type Pillar } from "../lib/pillars";
 import { href } from "../lib/sections";
+import { drawRing, type HealthBody as RingBody } from "./healthRing";
 
-type Tone = "good" | "warn" | "bad" | "none";
-interface HealthBody {
-  attention: { count: number; tone: Tone };
+interface HealthBody extends RingBody {
   parts?: { content?: string; database?: string; github?: string };
   tiles: Record<string, string>;
-  rows: Array<{ id: string; value: string; detail: string; tone: Tone }>;
 }
 interface Rollup {
   usd: number;
@@ -43,8 +42,6 @@ const NAMES: Record<string, string> = {
 const DAYS = 30;
 /** The week strip: the last seven days, the most the phone's width gives a 44px press each. */
 const WEEK = 7;
-/** The ring's geometry in its 200 unit square: arcs on one radius, a stroke wide, with gaps. */
-const RING = { c: 100, r: 84, stroke: 5, groupGap: 12 };
 
 const usd = (n: number): string => (n > 0 && n < 0.005 ? "<$0.01" : `$${n.toFixed(2)}`);
 const nameOf = (key: string): string => NAMES[key] ?? key.charAt(0).toUpperCase() + key.slice(1);
@@ -60,12 +57,6 @@ const element = (tag: string, className: string, text?: string): HTMLElement => 
   if (text !== undefined) el.textContent = text;
   return el;
 };
-/** A copy of a status glyph from the page's template (index.astro), so no markup is drawn here. */
-const glyph = (tone: Tone | "more"): Node | null =>
-  pick<HTMLTemplateElement>("template[data-glyphs]")
-    ?.content.querySelector(`[data-glyph="${tone}"] > svg`)
-    ?.cloneNode(true) ?? null;
-
 const shift = (date: string, days: number): string => {
   const at = new Date(`${date}T00:00:00Z`);
   at.setUTCDate(at.getUTCDate() + days);
@@ -90,32 +81,7 @@ const dayLabel = (date: string): string =>
 
 // ---- health ----------------------------------------------------------------------------------
 
-interface Group {
-  id: string;
-  title: string;
-  rows: Array<{ id: string; label: string }>;
-}
-
-const WEIGHT: Record<Tone, number> = { bad: 0, warn: 1, good: 2, none: 3 };
-
-/** One flagged check on one line: its glyph, its name and its reading; the full line is its tooltip. */
-function flagged(label: string, r: HealthBody["rows"][number]): HTMLElement {
-  const item = element("a", "ov-flag");
-  item.setAttribute("href", href("/health"));
-  item.setAttribute("title", r.detail);
-  item.dataset.tone = r.tone;
-  const icon = element("span", "ov-flag-icon");
-  const mark = glyph(r.tone);
-  if (mark) icon.append(mark);
-  item.append(
-    icon,
-    element("span", "ov-flag-name", label),
-    element("span", "ov-flag-value", r.value),
-  );
-  return item;
-}
-
-function renderHealth(body: HealthBody, groups: Group[]): void {
+function renderHealth(body: HealthBody, pillars: Pillar[]): void {
   const root = pick<HTMLElement>("[data-overview-health]");
   if (!root) return;
   const missing = [
@@ -130,187 +96,9 @@ function renderHealth(body: HealthBody, groups: Group[]): void {
     note.textContent = missing.length ? `Partial: ${missing.join("; ")}.` : "";
     note.hidden = missing.length === 0;
   }
-  const byId = new Map(body.rows.map((r) => [r.id, r]));
-  const judged = groups.map((group) => ({
-    title: group.title,
-    items: group.rows
-      .map((g) => ({ label: g.label, row: byId.get(g.id) }))
-      .filter(
-        (x): x is { label: string; row: HealthBody["rows"][number] } =>
-          !!x.row && x.row.tone !== "none",
-      ),
-  }));
-  drawQuads(judged, body.attention.count === 0 ? "good" : body.attention.tone);
+  // A flagged line opens the Health page at its pillar's section.
+  drawRing(root, body, pillars, (pillar) => href(`/health#c-${pillar}`));
   root.removeAttribute("data-loading");
-}
-
-/** A point on the ring, `deg` clockwise from the top. */
-const at = (deg: number, r: number = RING.r): [number, number] => [
-  RING.c + r * Math.sin((deg * Math.PI) / 180),
-  RING.c - r * Math.cos((deg * Math.PI) / 180),
-];
-
-interface Judged {
-  title: string;
-  items: Array<{ label: string; row: HealthBody["rows"][number] }>;
-}
-
-const isFlag = (tone: Tone): boolean => tone === "warn" || tone === "bad";
-
-/** One check's line, or the line that opens the fine ones: a count and a chevron. */
-function fineLine(words: string, rows: HTMLElement[]): HTMLElement {
-  const box = element("details", "ov-fine");
-  const head = element("summary", "ov-fine-head");
-  const icon = element("span", "ov-flag-icon");
-  const mark = glyph("good");
-  if (mark) icon.append(mark);
-  const chevron = element("span", "ov-fine-chevron");
-  const more = glyph("more");
-  if (more) chevron.append(more);
-  head.append(icon, element("span", "ov-flag-name", words), chevron);
-  const list = element("ul", "ov-flags");
-  list.setAttribute("role", "list");
-  for (const row of rows) {
-    const li = element("li", "ov-flag-item");
-    li.append(row);
-    list.append(li);
-  }
-  box.append(head, list);
-  return box;
-}
-
-/**
- * The ring: one arc a judged group, in the tone of its worst check, its name and state beside it.
- * A press on an arc, or on its name, opens that group's report: what needs a look in full, the
- * fine ones behind one line (open when nothing needs a look). The worst group is open on arrival.
- * Nothing moves under it: the report keeps the room of the tallest group's first view.
- */
-function drawQuads(judged: Judged[], level: Tone): void {
-  const svg = pick<SVGSVGElement>("[data-ring-svg]");
-  const ring = pick<HTMLElement>("[data-ring]");
-  const holder = pick<HTMLElement>("[data-quads]");
-  const report = pick<HTMLElement>("[data-health-groups]");
-  if (!svg || !ring || !holder || !report) return;
-  const groups = judged.filter((g) => g.items.length);
-  if (!groups.length) {
-    const name = pick<HTMLElement>("[data-quad-name]");
-    if (name) name.textContent = "No checks";
-    return;
-  }
-  const tones = groups.map((g) =>
-    g.items.reduce<Tone>((w, i) => (WEIGHT[i.row.tone] < WEIGHT[w] ? i.row.tone : w), "good"),
-  );
-  const flaggedIn = groups.map((g) => g.items.filter((i) => isFlag(i.row.tone)).length);
-  const total = groups.reduce((sum, g) => sum + g.items.length, 0);
-  const flaggedTotal = flaggedIn.reduce((sum, n) => sum + n, 0);
-  holder.setAttribute(
-    "aria-label",
-    flaggedTotal
-      ? `Groups, ${flaggedTotal} of ${total} checks flagged`
-      : `Groups, all ${total} checks fine`,
-  );
-  const slice = 360 / groups.length;
-  const cap = (RING.stroke / 2 / RING.r) * (180 / Math.PI);
-  svg.querySelector(".ov-arcs")?.remove();
-  const arcs = svgEl("g", { class: "ov-arcs" });
-  groups.forEach((_, i) => {
-    const from = i * slice + RING.groupGap / 2 + cap;
-    const to = (i + 1) * slice - RING.groupGap / 2 - cap;
-    const [x0, y0] = at(from);
-    const [x1, y1] = at(to);
-    arcs.append(
-      svgEl("path", {
-        class: "ov-arc",
-        d: `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${RING.r} ${RING.r} 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`,
-        pathLength: 1,
-        "data-tone": tones[i] ?? "none",
-        style: `--i:${i}`,
-      }),
-    );
-  });
-  svg.append(arcs);
-  const paths = [...arcs.querySelectorAll<SVGElement>(".ov-arc")];
-
-  const nameEl = pick<HTMLElement>("[data-quad-name]");
-  const subEl = pick<HTMLElement>("[data-quad-sub]");
-  const radios: HTMLInputElement[] = [];
-  // The report's room: the most lines any group shows at first (its flags and the fine line), a touch target each.
-  const lines = flaggedIn.map((n) => n + 1);
-  report.style.setProperty("--rows", String(Math.max(...lines)));
-  const open = (i: number): void => {
-    const g = groups[i];
-    if (!g) return;
-    for (const [at2, p] of paths.entries()) p.toggleAttribute("data-on", at2 === i);
-    for (const [at2, r] of radios.entries()) r.checked = at2 === i;
-    const flags = g.items
-      .filter((x) => isFlag(x.row.tone))
-      .sort((a, b) => WEIGHT[a.row.tone] - WEIGHT[b.row.tone]);
-    const fine = g.items.filter((x) => !isFlag(x.row.tone));
-    if (nameEl) nameEl.textContent = g.title;
-    if (subEl)
-      subEl.textContent = flags.length
-        ? `${fine.length} of ${g.items.length} fine`
-        : `All ${g.items.length} fine`;
-    const list = element("ul", "ov-flags");
-    list.setAttribute("role", "list");
-    for (const item of flags) {
-      const li = element("li", "ov-flag-item");
-      li.append(flagged(item.label, item.row));
-      list.append(li);
-    }
-    const body: HTMLElement[] = [...(flags.length ? [list] : [])];
-    if (fine.length)
-      body.push(
-        fineLine(
-          flags.length ? `${fine.length} fine` : `All ${fine.length} fine`,
-          fine.map((x) => flagged(x.label, x.row)),
-        ),
-      );
-    report.replaceChildren(...body);
-  };
-  holder.replaceChildren(
-    ...groups.map((g, i) => {
-      const label = element("label", "ov-quad");
-      // The label sits where its arc does: out from the middle along the arc's own bearing.
-      const mid = (i + 0.5) * slice;
-      label.style.setProperty("--x", Math.sin((mid * Math.PI) / 180).toFixed(3));
-      label.style.setProperty("--y", (-Math.cos((mid * Math.PI) / 180)).toFixed(3));
-      const input = document.createElement("input");
-      input.type = "radio";
-      input.name = "ov-quad";
-      input.addEventListener("change", () => open(i));
-      radios.push(input);
-      const bad = g.items.filter((x) => x.row.tone === "bad").length;
-      const warn = (flaggedIn[i] ?? 0) - bad;
-      const state = !flaggedIn[i]
-        ? "Fine"
-        : bad && warn
-          ? `${flaggedIn[i]} flagged`
-          : bad
-            ? `${bad} failing`
-            : `${warn} to check`;
-      const sub = element("span", "ov-quad-sub");
-      sub.dataset.tone = flaggedIn[i] ? (tones[i] ?? "none") : "none";
-      // Colour is not the only sign: a group that needs a look carries its tone's glyph, a fine one none.
-      const mark = flaggedIn[i] ? glyph(tones[i] ?? "none") : null;
-      if (mark) sub.append(mark);
-      sub.append(state);
-      label.append(input, element("span", "ov-quad-name", g.title), sub);
-      return label;
-    }),
-  );
-  svg.onpointerdown = (event) => {
-    const box = svg.getBoundingClientRect();
-    const k = 200 / box.width;
-    const dx = (event.clientX - box.left) * k - RING.c;
-    const dy = (event.clientY - box.top) * k - RING.c;
-    if (Math.hypot(dx, dy) < 52) return;
-    const deg = ((Math.atan2(dx, -dy) * 180) / Math.PI + 360) % 360;
-    open(Math.min(groups.length - 1, Math.floor(deg / slice)));
-  };
-  const worst = tones.reduce((w, t, i) => (WEIGHT[t] < WEIGHT[tones[w] ?? "none"] ? i : w), 0);
-  open(level === "good" ? 0 : worst);
-  ring.dataset.drawn = "";
 }
 
 // ---- spend -----------------------------------------------------------------------------------
@@ -480,8 +268,9 @@ function renderSpend(body: CostBody): void {
 
 // ---- asking ----------------------------------------------------------------------------------
 
-/** A card whose ask failed says so where its answer would be, and drops what would have drawn on it. */
-function failed(selector: string, words: string): void {
+/** A card whose ask failed and has nothing kept says so where its answer would be; the banner above
+    says why (lib/problem.ts). */
+function failed(selector: string): void {
   const root = pick<HTMLElement>(selector);
   if (!root) return;
   root.removeAttribute("data-loading");
@@ -490,19 +279,17 @@ function failed(selector: string, words: string): void {
   if (title) title.textContent = "No answer";
   const sub = root.querySelector<HTMLElement>("[data-quad-sub], [data-spend-sub]");
   if (sub) sub.textContent = "";
-  root.querySelector(".card-group")?.append(element("p", "settings-note", words));
 }
 
 // Each card paints this device's last answer at once and the fresh one when it lands (lib/kept.ts);
 // only a card with neither says it did not answer.
-const groups = JSON.parse(pick<HTMLElement>("[data-overview]")?.dataset.groups ?? "[]") as Group[];
-void askKept<HealthBody>("/api/health", "health", (body) => renderHealth(body, groups)).then(
-  (asked) => {
-    if (!asked.shown) failed("[data-overview-health]", "The health checks did not answer.");
-  },
-);
-void askKept<CostBody>(`/api/costs?period=day&by=provider&days=${DAYS}`, "spend", renderSpend).then(
-  (asked) => {
-    if (!asked.shown) failed("[data-overview-spend]", "The costs did not answer.");
-  },
-);
+void askKept<HealthBody>("/api/health", "health", (body) => renderHealth(body, PILLARS), {
+  title: "Health checks didn't load",
+}).then((asked) => {
+  if (!asked.shown) failed("[data-overview-health]");
+});
+void askKept<CostBody>(`/api/costs?period=day&by=provider&days=${DAYS}`, "spend", renderSpend, {
+  title: "Spend didn't load",
+}).then((asked) => {
+  if (!asked.shown) failed("[data-overview-spend]");
+});

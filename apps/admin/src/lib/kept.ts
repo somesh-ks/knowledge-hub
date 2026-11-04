@@ -5,6 +5,14 @@
  * is blocked or full keeps nothing, and the page waits for its answer as before.
  */
 
+import {
+  answerProblem,
+  clearProblem,
+  type Problem,
+  reportProblem,
+  requestProblem,
+} from "./problem";
+
 const PREFIX = "singularity-admin:kept:";
 
 interface Kept<T> {
@@ -51,33 +59,47 @@ const unchanged = (body: unknown): string =>
 
 /**
  * Paints the kept answer for `key` (if any) with `stale: true`, then asks `url` and paints the fresh
- * one. Resolves with whether a fresh answer came; on a refusal or a failure the kept one stays up.
+ * one. Resolves with whether a fresh answer came; on a refusal or a failure the kept one stays up and
+ * the page's banner says what failed (lib/problem.ts), with the details to copy.
  */
 export async function askKept<T>(
   url: string,
   key: string,
   paint: (body: T, stale: boolean) => void,
-  init: RequestInit = {},
-  /** "always" draws a fresh answer that says the same, for a page that shows when it was checked. */
-  repaint: "changed" | "always" = "changed",
+  options: {
+    /** The banner's title when the ask fails: what did not load. */
+    title: string;
+    init?: RequestInit;
+    /** "always" draws a fresh answer that says the same, for a page that shows when it was checked. */
+    repaint?: "changed" | "always";
+  },
 ): Promise<{ fresh: boolean; status: number; shown: boolean }> {
+  const { title, init = {}, repaint = "changed" } = options;
+  const method = init.method ?? "GET";
   const kept = keptAnswer<T>(key);
   if (kept) paint(kept.body, true);
+  const failed = (problem: Problem): void =>
+    reportProblem(kept ? { ...problem, keptAt: kept.at } : problem);
   try {
     const response = await fetch(url, {
       cache: "no-store",
       ...init,
       headers: { accept: "application/json", ...init.headers },
     });
-    if (!response.ok) return { fresh: false, status: response.status, shown: kept !== null };
+    if (!response.ok) {
+      failed(await answerProblem(title, url, method, response));
+      return { fresh: false, status: response.status, shown: kept !== null };
+    }
     const body = (await response.json()) as T;
     keepAnswer(key, body);
+    clearProblem(title);
     // An answer that says what the kept one said is not drawn again: an arc's sweep plays once.
     if (!kept || repaint === "always" || unchanged(kept.body) !== unchanged(body)) {
       paint(body, false);
     }
     return { fresh: true, status: response.status, shown: true };
-  } catch {
+  } catch (error) {
+    failed(requestProblem(title, url, method, error));
     return { fresh: false, status: 0, shown: kept !== null };
   }
 }

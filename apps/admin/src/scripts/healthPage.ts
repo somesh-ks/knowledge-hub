@@ -2,8 +2,9 @@
  * Health page (/admin/health). Paints this device's last answer at once, then asks /api/health and
  * paints the fresh one (lib/kept.ts). Each reading the page drew at build is filled by id: a value,
  * a glyph on one that needs a look, and the marks the answer's series give (run columns, job
- * strips, speed meters). The Speed card shows one device at a time and repaints from the same
- * answer. A failed ask with nothing kept says so in the summary and leaves the shell as drawn.
+ * strips, speed meters). The summary is the Overview's ring (healthRing.ts), an arc a section of
+ * the page. The Speed card shows one device at a time and repaints from the same answer. A failed ask
+ * with nothing kept says so in the ring and the banner above, and leaves the shell as drawn.
  */
 import type {
   HealthBody,
@@ -13,6 +14,8 @@ import type {
 } from "../../../web/src/lib/healthRows";
 import { mountSegmentedNav, selectTab } from "../../../web/src/scripts/segmentedNav";
 import { askKept } from "../lib/kept";
+import { PILLARS } from "../lib/pillars";
+import { drawRing } from "./healthRing";
 
 const root = document.querySelector<HTMLElement>("[data-health]");
 const deviceTabs = document.querySelector<HTMLElement>("[data-device]");
@@ -20,10 +23,6 @@ let answer: HealthBody | null = null;
 let device = "mobile";
 
 const DEVICE_KEY = "singularity:health-device";
-const NAMES = JSON.parse(root?.dataset.names ?? "{}") as Record<string, string>;
-
-/** The title says how it stands, never what to do about it. */
-const STATES = { good: "Healthy", warn: "Degraded", bad: "Failing", none: "Healthy" } as const;
 /** The run columns' slots (TIMED_RUNS in server/health.ts): the newest run takes the last. */
 const SLOTS = 10;
 const OUTCOME_WORD = { pass: "passed", fail: "failed", cancel: "cancelled" } as const;
@@ -154,46 +153,13 @@ function drawMeter(
   );
 }
 
-function paintSummary(byId: Map<string, HealthRow>): void {
-  if (!root || !answer) return;
-  const { count, tone } = answer.attention;
-  const state = count === 0 ? "good" : tone;
-  const words = root.querySelector<HTMLElement>("[data-health-state]");
-  if (words) words.textContent = STATES[state];
-  setMark(root.querySelector("[data-health-state-mark]"), state);
-
+function paintSummary(): void {
+  const ring = root?.querySelector<HTMLElement>("[data-health-ring]");
+  if (!ring || !answer) return;
+  drawRing(ring, answer, PILLARS, (pillar) => `#c-${pillar}`);
   const at = new Date(answer.checked_at);
   const sameDay = at.toDateString() === new Date().toDateString();
   const checked = `${sameDay ? "" : `${shortDate(answer.checked_at)}, `}${at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
-  const sub = root.querySelector<HTMLElement>("[data-health-sub]");
-  if (sub)
-    sub.textContent = count > 0 ? `${count} flagged · checked ${checked}` : `Checked ${checked}`;
-
-  // What needs a look, worst first, one line each: the rest of the page says where.
-  const flags = root.querySelector<HTMLElement>("[data-health-flags]");
-  if (flags) {
-    const flagged = [...byId.values()]
-      .filter(
-        (row) => isFlag(row.tone) && !(row.id.includes(".") && !row.id.endsWith(`.${device}`)),
-      )
-      .sort((a, b) => (a.tone === b.tone ? 0 : a.tone === "bad" ? -1 : 1));
-    flags.replaceChildren(
-      ...flagged.map((row) => {
-        const line = el("li", "ov-flag");
-        const icon = el("span", "ov-flag-icon");
-        setMark(icon, row.tone);
-        line.title = row.detail;
-        line.append(
-          icon,
-          el("span", "ov-flag-name", NAMES[row.id] ?? row.id),
-          el("span", "ov-flag-value", row.value),
-        );
-        return line;
-      }),
-    );
-    flags.hidden = flagged.length === 0;
-  }
-
   const missing = [
     answer.parts.content === "fallback" && "the content store answered from this build's copy",
     answer.parts.content === "saved" && "the content store answered from its last saved list",
@@ -201,8 +167,9 @@ function paintSummary(byId: Map<string, HealthRow>): void {
     answer.parts.github === "unavailable" && "GitHub did not answer",
     answer.parts.github === "partial" && "GitHub answered for some workflows only",
   ].filter(Boolean);
-  const note = root.querySelector<HTMLElement>("[data-health-note]");
-  if (note) note.textContent = missing.length ? `Partial: ${missing.join("; ")}.` : "";
+  const note = ring.querySelector<HTMLElement>("[data-health-note]");
+  if (note)
+    note.textContent = `Checked ${checked}.${missing.length ? ` Partial: ${missing.join("; ")}.` : ""}`;
 }
 
 function paint(): void {
@@ -219,21 +186,14 @@ function paint(): void {
     const errors = series?.errors[id];
     if (week) week.textContent = errors ? `${errors.week} this week` : (row?.detail ?? "");
   }
-  // The run time's line under each kind's columns: its median and how many runs it is over.
   for (const kind of ["daily", "weekly"] as const) {
-    const runs = series?.times[kind] ?? [];
     const holder = root.querySelector<HTMLElement>(`[data-runs="${kind}"]`);
-    if (holder) drawRuns(holder, runs);
-    const line = root.querySelector<HTMLElement>(`[data-health-row="time_${kind}"] [data-detail]`);
-    const time = byId.get(`time_${kind}`);
-    if (line && time && runs.length > 0) {
-      line.textContent = `Median ${time.value} over ${runs.length} ${runs.length === 1 ? "run" : "runs"}`;
-    }
+    if (holder) drawRuns(holder, series?.times[kind] ?? []);
   }
   for (const holder of root.querySelectorAll<HTMLElement>("[data-strip]")) {
     drawStrip(holder, series?.jobs[holder.dataset.strip ?? ""]);
   }
-  paintSummary(byId);
+  paintSummary();
 }
 
 async function load(): Promise<void> {
@@ -246,13 +206,11 @@ async function load(): Promise<void> {
       paint();
       delete root.dataset.loading;
     },
-    {},
-    "always",
+    { title: "Health checks didn't load", repaint: "always" },
   );
   if (!asked.shown) {
-    const words = root.querySelector<HTMLElement>("[data-health-state]");
+    const words = root.querySelector<HTMLElement>("[data-quad-name]");
     if (words) words.textContent = "No answer";
-    setMark(root.querySelector("[data-health-state-mark]"), "none");
     delete root.dataset.loading;
   }
 }
