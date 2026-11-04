@@ -4,6 +4,7 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-11-04 | [Up next rework](2026-11-04-up-next-rework.md) | Any row may go above the playing one, the list glides on every change, a phone swipe shows the red strip, a removed podcast is not suggested again, and the player's tabs show on its first screen (D357) |
 | 2026-11-04 | [Guardrails](2026-11-04-guardrails.md) | The daily health check measures cost, speed, tests, bugs, security and keys against budgets, saves them for the admin Health page, posts a Monday card; smoke watches the check; the cron skips Neon in unscheduled hours (D360) |
 | 2026-11-03 | [Dock swipes](2026-11-03-dock-swipes.md) | A swipe on the player or a sheet is felt, not heard; the bar's sideways swipe shows the podcast it goes to (D359) |
 | 2026-11-03 | [The change log kept by CI](2026-11-03-change-log-kept-by-ci.md) | The log had stopped at 23 Oct; 0.10 to 0.19 backfilled and the docs check now fails a feat, fix or perf PR when the newest entry is over two days old (D355) |
