@@ -119,7 +119,7 @@ export function withFrozenFile(shared: UsageStore, file: UsageStore): UsageStore
 
 /** The shared count when the client can write conditionally (the real one can), else nothing: the file store applies. */
 export function usageStoreFor(blob: BlobClient, root: string): UsageStore | undefined {
-  return "head" in blob
+  return "fetchTagged" in blob
     ? withFrozenFile(blobUsageStore(blob as ConditionalBlobClient), fileUsageStore(root))
     : undefined;
 }

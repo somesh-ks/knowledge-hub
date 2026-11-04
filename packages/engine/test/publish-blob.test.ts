@@ -31,8 +31,6 @@ describe("audioKey", () => {
   );
 });
 
-// A regenerated narration was rewritten at the same URL, so a browser, the CDN or the service worker
-// could play the old MP3 (plan section 20, criterion 6).
 describe("readCurrent", () => {
   // The bug (11-04): the CDN served the manifest from before another job's write, under a fresh
   // query string. Read with head()'s current ETag, a write on top of it passes the ETag check and
@@ -70,6 +68,8 @@ describe("readCurrent", () => {
   });
 });
 
+// A regenerated narration was rewritten at the same URL, so a browser, the CDN or the service worker
+// could play the old MP3 (plan section 20, criterion 6).
 describe("uploadAudio", () => {
   const audio = new Uint8Array([1, 2, 3, 4]);
 

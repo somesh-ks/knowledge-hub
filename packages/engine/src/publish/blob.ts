@@ -95,9 +95,9 @@ const bareTag = (etag: string): string => etag.replace(/^W\//, "").replaceAll('"
 
 /**
  * A changing blob's current text. After an overwrite the CDN keeps serving its old copy for up to
- * a minute, and a new query string does not get past it: on 11-04 a `?t=` URL nobody had asked for
- * answered HIT with age 1912, and an audio job read a manifest 39 s old that lacked the episode
- * just saved. Its ETag was head()'s, so a write on top of it would have passed the ETag check and
+ * a minute (Vercel's documented bound), and a new query string does not get past it: on 11-04 a
+ * `?t=` URL nobody had asked for answered HIT from the cache, and an audio job read a manifest 39 s
+ * after a write that still lacked the episode just saved. Its ETag was head()'s, so a write on top of it would have passed the ETag check and
  * dropped that episode. head() is current, so the read waits until the copy that answers carries
  * head()'s ETag. `known` is a copy this job wrote itself: when head() still reports it, nothing is
  * fetched.
