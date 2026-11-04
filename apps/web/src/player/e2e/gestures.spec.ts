@@ -126,11 +126,11 @@ test("a swipe on the bar switches the podcast; a short one does not and opens no
     nodeId: root.nodeId,
     selector: ".dock-open",
   });
+  const layer = () =>
+    player.openButton.evaluate((el) => getComputedStyle(el, "::after").backgroundColor);
+  const atRest = await layer();
   await cdp.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: ["active"] });
-  const tint = await player.openButton.evaluate(
-    (el) => getComputedStyle(el, "::after").backgroundColor,
-  );
-  expect(tint).toBe("rgba(0, 0, 0, 0)");
+  expect(await layer()).toBe(atRest);
   await cdp.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: [] });
   const coming = await player.boxOf(peek.locator(".player-thumb"));
   expect(coming.x).toBeGreaterThan(spot.x - 100);
