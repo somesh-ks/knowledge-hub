@@ -122,8 +122,8 @@ async function inTime<T>(work: Promise<T>, ms: number): Promise<T> {
 type Store = {
   vitals: readonly VitalSummary[];
   faults: readonly ClientFaultGroup[] | null;
-  /** The daily check's saved report (D360), in the same wake of the store. */
-  report: StoredHealth | null;
+  /** The daily check's saved report (D360), in the same wake of the store; UNAVAILABLE when it did not read. */
+  report: StoredHealth | null | typeof UNAVAILABLE;
 };
 
 const database = guardedDatabase({
@@ -139,7 +139,7 @@ async function readStore(now: number): Promise<Store | typeof UNAVAILABLE | "off
       vitals: await readVitals(sql, now),
       faults: await readClientFaults(sql, now),
       // A report that does not read must not take the vitals and errors rows down with it.
-      report: await readHealthReport(sql).catch(() => null),
+      report: await readHealthReport(sql).catch(() => UNAVAILABLE),
     }),
     UNAVAILABLE,
   );

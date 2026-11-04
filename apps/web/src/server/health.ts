@@ -488,8 +488,6 @@ function serviceRows(input: HealthInput, now: Date): HealthRow[] {
 const CARD_TONE = { green: "good", amber: "warn", red: "bad" } as const;
 const CARD_WORD = { green: "Good", amber: "Warning", red: "Fault" } as const;
 const BUDGET_IDS = ["cost", "speed", "tests", "bugs", "security", "keys"] as const;
-/** Budget rows whose findings the Speed rows already flag. */
-const DOUBLED_BUDGETS = new Set(["budget_speed"]);
 
 /** The card `singularity health` saved: an area's tone and its numbers, read from Neon in the store's one read. */
 /** The check runs daily but starts hours late; a report older than this means it stopped saving. */
@@ -526,11 +524,9 @@ export function healthBody(input: HealthInput, now: Date): HealthBody {
     ...serviceRows(input, now),
     ...budgetRows(input.budgets, now),
   ];
-  // Speed has rows of its own above, so its budget row is not counted twice. The other areas'
-  // findings (Neon, deploys, the nightly suite, stale site, alerts, keys) show nowhere else.
-  const flagged = rows.filter(
-    (each) => !DOUBLED_BUDGETS.has(each.id) && (each.tone === "warn" || each.tone === "bad"),
-  );
+  // Budget rows count too: most of their findings (Neon, deploys, the nightly suite, a stale site,
+  // alerts, keys, the lab probe) show on no other row. A field-speed warning may count twice.
+  const flagged = rows.filter((each) => each.tone === "warn" || each.tone === "bad");
 
   const published = [input.lastRun?.regular, input.lastRun?.weekly]
     .filter((record): record is RunRecord => record?.outcome === "published")

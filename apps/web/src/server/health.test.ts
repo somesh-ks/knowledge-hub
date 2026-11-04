@@ -83,8 +83,7 @@ describe("healthBody", () => {
   });
 
   // Neon near its cap, a rejected key or open alerts show on no other row: the summary counted no
-  // budget row, so a red Neon budget left "nothing needs a look" (D360). Speed has rows of its own
-  // and counts there once.
+  // budget row, so a red Neon budget left "nothing needs a look" (D360).
   it("counts a budget only the daily check sees, and calls a report that stopped saving stale", () => {
     const card = (tone: "green" | "red") =>
       (["cost", "speed", "tests", "bugs", "security", "keys"] as const).map((area) => ({
@@ -97,7 +96,7 @@ describe("healthBody", () => {
       input({ budgets: { now: at, ok: tone === "green", findings: [], card: card(tone) } });
     const red = healthBody(saved("2026-10-27T09:41:00Z", "red"), NOW);
     expect(rowOf(red, "budget_cost")?.tone).toBe("bad");
-    expect(red.attention.count).toBe(1);
+    expect(red.attention.count).toBe(2);
     const old = healthBody(saved("2026-10-25T09:41:00Z", "green"), NOW);
     expect(rowOf(old, "budget_cost")?.value).toBe("Stale");
   });

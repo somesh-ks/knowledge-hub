@@ -357,6 +357,7 @@ const CODE_AREA: Record<string, CardArea> = {
   deploy_rate: "cost",
   deploy_rate_unread: "cost",
   browser_suite_failed: "tests",
+  browser_nightly_missing: "tests",
   github_unread: "tests",
   key_rejected: "keys",
   key_unchecked: "keys",
