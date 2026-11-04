@@ -437,7 +437,10 @@ async function findNarration(
   digests: DigestSource,
   id: string,
 ): Promise<Narration | null> {
-  const pointed = parseJson((await readStored(blob, audioPointerKey(id)))?.text);
+  // The pointer is overwritten when a narration is made again, so it is read as the store has it:
+  // a stale copy names the recording just replaced, and its missing timeline would charge again.
+  const pointer = await blob.head(audioPointerKey(id));
+  const pointed = parseJson(pointer === null ? null : await blob.textOf(pointer));
   const pointedUrl =
     pointed !== null && typeof pointed === "object" && "url" in pointed ? pointed.url : null;
   // A narration made before versioning has no pointer and sits at the fixed key.
