@@ -48,7 +48,6 @@ export default function TransportControls() {
         className="transport-btn transport-speed press num"
         type="button"
         popoverTarget={PLAYER_MENU_ID}
-        aria-haspopup="dialog"
         aria-label={`Playback speed, ${rateLabel(state.rate)}`}
         disabled={!state.track}
         onClick={(event) => openSpeed(event.currentTarget)}

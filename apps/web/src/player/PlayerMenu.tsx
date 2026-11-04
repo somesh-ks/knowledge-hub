@@ -154,7 +154,8 @@ export default function PlayerMenu() {
     const first =
       screen === "menu"
         ? menu?.querySelector(ITEM)
-        : (menu?.querySelector(`[${MENU_BACK}]`) ?? menu?.querySelector(".player-speed button"));
+        : (menu?.querySelector(`[${MENU_BACK}]`) ??
+          menu?.querySelector(".player-speed :is(button, input):not(:disabled)"));
     (first as HTMLElement | null | undefined)?.focus({ preventScroll: true });
   }, [screen, open]);
 
