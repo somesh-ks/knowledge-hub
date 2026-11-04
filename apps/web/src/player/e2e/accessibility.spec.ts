@@ -30,7 +30,7 @@ async function expectAccessible(page: Page, where: string): Promise<void> {
         nodes: violation.nodes
           .map((node) => node.target.join(" "))
           // shortcut: the bar's button shows a running clock under the chapter (0:03 / 1:20), and a
-          // name that followed it would be read out again every second. Its name is the story's
+          // name that followed it would be read out again every second. Its name is the chapter and the story's
           // headline instead (PlayerBar.tsx). Revisit if the clock moves out of the button.
           .filter(
             (target) =>
@@ -51,6 +51,11 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
   test("the page with the bar docked", async ({ player, page }) => {
     await player.open();
     await player.play();
+    // The scan below skips this button's clock; its chapter must still be in the name (WCAG 2.5.3).
+    const open = page.locator(".dock-open");
+    const chapter = (await open.locator(".dock-title").textContent()) ?? "";
+    expect(chapter).not.toBe("");
+    expect(await open.getAttribute("aria-label")).toContain(chapter);
     await expectAccessible(page, "the bar docked");
   });
 
