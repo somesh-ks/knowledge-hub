@@ -13,7 +13,6 @@ import {
   MS_PER_WORD,
   wordMarks,
 } from "../testing/fakeSpeechify";
-import { readFresh, versionedUrl } from "./blobStore";
 import { type BlobCredentials, MS_PER_CHARACTER, type ServerEnv } from "./config";
 import {
   BLOB_UPLOAD_TIMEOUT_MS,
@@ -952,7 +951,7 @@ describe("POST /api/narrate: the in-progress marker", () => {
     expect(markerReads).toBe(2);
     // One charge, one MP3, and the stale marker was deleted exactly once before the takeover.
     const changes = context.blob.changes();
-    expect(changes.filter((change) => change === `put ${usageKey(MONTH)}`)).toHaveLength(1);
+    expect(changes.filter((change) => change === `create ${usageKey(MONTH)}`)).toHaveLength(1);
     expect(changes.filter((change) => change === `put ${NARRATED}`)).toHaveLength(1);
     expect(changes.filter((change) => change === `create ${markerKey(ID)}`)).toHaveLength(1);
     expect(changes.slice(0, 2)).toEqual([`del ${markerKey(ID)}`, `create ${markerKey(ID)}`]);
@@ -975,7 +974,7 @@ describe("POST /api/narrate: narrating the whole digest", () => {
     expect(context.blob.changes()).toEqual([
       // The marker, then the charge before a character is synthesized, then what was paid for.
       `create ${markerKey(ID)}`,
-      `put ${usageKey(MONTH)}`,
+      `create ${usageKey(MONTH)}`,
       `put ${NARRATED}`,
       `put ${timelineKey(ID, versionOf(FAKE_AUDIO))}`,
       `put ${audioPointerKey(ID)}`,
@@ -1205,7 +1204,7 @@ describe("POST /api/narrate: when synthesis fails", () => {
     expect(context.blob.changes()).toEqual([
       `create ${markerKey(ID)}`,
       // The charge before synthesis, and the failed attempt counted after it.
-      `put ${usageKey(MONTH)}`,
+      `create ${usageKey(MONTH)}`,
       `put ${usageKey(MONTH)}`,
       `del ${markerKey(ID)}`,
     ]);
@@ -1242,7 +1241,7 @@ describe("POST /api/narrate: when synthesis fails", () => {
 
   it("does not count a failure that never reached Speechify", async () => {
     const context = setup();
-    context.blob.failNext("put", 1, { prefix: "state/usage-" });
+    context.blob.failNext("create", 1, { prefix: "state/usage-" });
     expect((await post(context)).status).toBe(503);
     expect(context.speech.calls).toHaveLength(0);
     expect(context.blob.has(usageKey(MONTH))).toBe(false);
@@ -1251,16 +1250,11 @@ describe("POST /api/narrate: when synthesis fails", () => {
 
   it("still answers when the failed attempt cannot be counted, and says so in the log", async () => {
     const context = setup({ speech: { kind: "http_error", status: 500, body: {} } });
-    // The charge is written; the count after the failure is not.
-    const put = context.blob.put.bind(context.blob);
-    let usageWrites = 0;
-    context.blob.put = async (pathname, bytes, options) => {
-      if (pathname === usageKey(MONTH)) {
-        usageWrites += 1;
-        if (usageWrites === 2) throw new Error(`${UPSTREAM} ${BLOB_TOKEN}`);
-      }
-      return put(pathname, bytes, options);
-    };
+    // The charge is written (the month's first write); the count after the failure is not.
+    context.blob.failNext("replace", 1, {
+      prefix: usageKey(MONTH),
+      error: new Error(`${UPSTREAM} ${BLOB_TOKEN}`),
+    });
     const result = await post(context);
     expect(result).toEqual({ status: 502, body: { status: 502, error: "synthesis_failed" } });
     expect(context.logs.join("\n")).toContain("could not be counted");
@@ -1291,7 +1285,7 @@ describe("POST /api/narrate: when synthesis fails", () => {
     expect(context.speech.calls[0]?.signal?.aborted).toBe(true);
     expect(context.blob.changes()).toEqual([
       `create ${markerKey(ID)}`,
-      `put ${usageKey(MONTH)}`,
+      `create ${usageKey(MONTH)}`,
       `put ${usageKey(MONTH)}`,
       `del ${markerKey(ID)}`,
     ]);
@@ -1434,7 +1428,7 @@ describe("POST /api/narrate: nothing leaks", () => {
       {
         status: 503,
         arrange: (context) =>
-          context.blob.failNext("put", 1, { prefix: "state/usage-", error: leaky }),
+          context.blob.failNext("create", 1, { prefix: "state/usage-", error: leaky }),
       },
       { status: 502, arrange: () => {}, speech: { kind: "throw", error: leaky } },
       {
@@ -1456,7 +1450,7 @@ describe("POST /api/narrate: nothing leaks", () => {
 
   it("does not synthesize anything when the charge cannot be written", async () => {
     const context = setup();
-    context.blob.failNext("put", 1, { prefix: "state/usage-" });
+    context.blob.failNext("create", 1, { prefix: "state/usage-" });
     expect((await post(context)).status).toBe(503);
     expect(context.speech.calls).toHaveLength(0);
     // The marker it took is given back.
@@ -1518,11 +1512,12 @@ describe("POST /api/narrate with a segment", () => {
     // The charge first, then the file and its word marks, side by side. No marker and no
     // whole-digest files.
     const marksPath = path.replace(/\.mp3$/, ".marks.json");
-    expect(context.blob.changes()[0]).toBe(`put ${usageKey(MONTH)}`);
+    expect(context.blob.changes()[0]).toBe(`create ${usageKey(MONTH)}`);
     expect([...context.blob.changes()].sort()).toEqual(
-      [`put ${usageKey(MONTH)}`, `put ${path}`, `put ${marksPath}`].sort(),
+      [`create ${usageKey(MONTH)}`, `put ${path}`, `put ${marksPath}`].sort(),
     );
-    expect(context.blob.operations()).toEqual({ advanced: 3, simple: 2, free: 0 });
+    // Heads for the file and the document, and one more for the document just before the charge.
+    expect(context.blob.operations()).toEqual({ advanced: 3, simple: 3, free: 0 });
     // One mark per word, from the start of the segment's own audio.
     const words = intro.text.split(/\s+/).filter((word) => word !== "");
     expect(JSON.parse(context.blob.text(marksPath) ?? "{}")).toEqual({
@@ -1562,7 +1557,7 @@ describe("POST /api/narrate with a segment", () => {
     expect(segmentPuts(context)).toHaveLength(keys.length);
     // Five segments, one digest, one charge, written once.
     expect(
-      context.blob.changes().filter((change) => change === `put ${usageKey(MONTH)}`),
+      context.blob.changes().filter((change) => change === `create ${usageKey(MONTH)}`),
     ).toHaveLength(1);
     expect(stateOf(context).speechify.characters).toBe(wholeChars(context.digest));
     // Two advanced operations per segment, its file and its word marks, and one for the charge.
@@ -1855,10 +1850,11 @@ describe("POST /api/narrate with a segment", () => {
       segmentBody(b).audio.url,
     );
     expect(segmentPuts(context)).toHaveLength(2);
-    // Both found the digest uncharged and both wrote the charge. It is the same charge.
-    expect(
-      context.blob.changes().filter((change) => change === `put ${usageKey(MONTH)}`),
-    ).toHaveLength(2);
+    // Both found the digest uncharged. The second to write found the first's charge on the
+    // document and wrote nothing.
+    expect(context.blob.changes().filter((change) => change.endsWith(usageKey(MONTH)))).toEqual([
+      `create ${usageKey(MONTH)}`,
+    ]);
     const whole = wholeChars(context.digest);
     expect(stateOf(context)).toEqual({
       version: 1,
@@ -1895,7 +1891,7 @@ describe("POST /api/narrate with a segment", () => {
     const result = await postSegment(context, "intro");
     expect(result).toEqual({ status: 502, body: { status: 502, error: "synthesis_failed" } });
     // The digest's charge, then this attempt's characters for the retry to come.
-    expect(context.blob.changes()).toEqual([`put ${usageKey(MONTH)}`, `put ${usageKey(MONTH)}`]);
+    expect(context.blob.changes()).toEqual([`create ${usageKey(MONTH)}`, `put ${usageKey(MONTH)}`]);
     const whole = wholeChars(context.digest);
     const intro = segmentOf(context.digest, "intro").text.length;
     expect(stateOf(context)).toEqual({
@@ -1968,7 +1964,7 @@ describe("POST /api/narrate with a segment", () => {
 
   it("does not synthesize anything when the charge cannot be written", async () => {
     const context = setup();
-    context.blob.failNext("put", 1, { prefix: "state/usage-" });
+    context.blob.failNext("create", 1, { prefix: "state/usage-" });
     expect(await postSegment(context, "intro")).toEqual({
       status: 503,
       body: { status: 503, error: "unavailable" },
@@ -1991,43 +1987,29 @@ describe("POST /api/narrate with a segment", () => {
   });
 });
 
-describe("POST /api/narrate: the month's document is always read fresh", () => {
+describe("POST /api/narrate: a charge is written on the current document", () => {
   const A = makeDigest({ id: "2026-10-05" });
   const B = makeDigest({ id: "2026-10-06" });
   const C = makeDigest({ id: ID });
   const firstSegment = (context: Setup, digest: string) =>
     postSegment(context, "intro", { digest });
 
-  it("loses no charge behind a CDN that answers a URL it has seen from its cache", async () => {
+  // The bug (2026-11-04): the CDN answers a path it has cached with the copy from before the last
+  // write, whatever the query, and a charge planned on it and written back erased the one before.
+  it("loses no charge behind a CDN that answers a path it has seen from its cache", async () => {
     const context = setup({ digests: [A, B, C], cdn: true });
-    for (const digest of [A, B, C]) {
-      expect((await firstSegment(context, digest.id)).status).toBe(200);
-    }
-    // Each request read the document its predecessor wrote, so all three charges are there.
+    expect((await firstSegment(context, A.id)).status).toBe(200);
+    expect((await firstSegment(context, B.id)).status).toBe(200);
+    // The engine counts a podcast's characters in the same document (D339), after the CDN cached it.
+    const engine = JSON.parse(context.blob.text(usageKey(MONTH)) ?? "{}");
+    engine.speechify.characters += 500;
+    context.blob.seed(usageKey(MONTH), JSON.stringify(engine));
+    expect((await firstSegment(context, C.id)).status).toBe(200);
+    // Each charge was written on the document as it was, so all three and the engine's are there.
     expect(stateOf(context).speechify.characters).toBe(
-      wholeChars(A) + wholeChars(B) + wholeChars(C),
+      wholeChars(A) + wholeChars(B) + wholeChars(C) + 500,
     );
     expect(Object.keys(stateOf(context).digests).sort()).toEqual([A.id, B.id, C.id]);
-  });
-
-  it("would have lost one by the plain URL, which is what the version in the URL prevents", async () => {
-    const context = setup({ digests: [A, B, C], cdn: true });
-    await firstSegment(context, A.id);
-    // The CDN sees the plain URL now, while the document holds one digest.
-    const plain = context.blob.url(usageKey(MONTH));
-    expect(JSON.parse((await context.blob.fetchText(plain)) ?? "{}").digests).toHaveProperty(A.id);
-    await firstSegment(context, B.id);
-    await firstSegment(context, C.id);
-
-    // The plain URL still answers with that first copy: two digests behind.
-    const stale = JSON.parse((await context.blob.fetchText(plain)) ?? "{}");
-    expect(Object.keys(stale.digests)).toEqual([A.id]);
-    // Read the way the function reads it, the document is current.
-    const fresh = await readFresh(context.blob, usageKey(MONTH));
-    if (!fresh) throw new Error("the month's document is missing");
-    expect(Object.keys(JSON.parse(fresh.text).digests).sort()).toEqual([A.id, B.id, C.id]);
-    // The difference is the version in the query, which the CDN has never seen before.
-    expect(versionedUrl(fresh.entry)).toBe(`${plain}?v=${fresh.entry.version}`);
   });
 
   it("reads an unchanged document from the CDN's cache, which costs nothing", async () => {
@@ -2067,8 +2049,9 @@ describe("what narrating a digest story by story costs the store", () => {
     // The month's charge, and twenty files with their word marks.
     expect(cost.advanced).toBe(41);
     expect(cost.advanced).toBeLessThanOrEqual(42);
-    // Two heads a request, and one read of the document that was not a cache hit.
-    expect(cost.simple).toBe(2 * 20 + 1);
+    // Two heads a request, one more before the charge, and one read of the document that was not
+    // a cache hit.
+    expect(cost.simple).toBe(2 * 20 + 2);
 
     // Listening again, lookups and all, costs no advanced operation and no characters.
     for (let visit = 0; visit < 3; visit += 1) {

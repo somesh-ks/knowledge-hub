@@ -5,8 +5,7 @@ import {
   type BlobSdk,
   createVercelBlobStore,
   MAX_TEXT_BYTES,
-  readFresh,
-  versionedUrl,
+  readStored,
 } from "./blobStore";
 import { BLOB_CALL_TIMEOUT_MS } from "./functionLimits.mjs";
 
@@ -34,6 +33,7 @@ function fakeSdk() {
       sdkBlob(pathname, { size: 10, etag: '"abc"' }),
     ),
     put: vi.fn<BlobSdk["put"]>(async (pathname) => ({ url: sdkBlob(pathname).url })),
+    copy: vi.fn<BlobSdk["copy"]>(async (_from, to) => ({ url: `${HOST}/${to}-r4nd` })),
     del: vi.fn<BlobSdk["del"]>(async () => {}),
   };
 }
@@ -101,6 +101,8 @@ describe("createVercelBlobStore", () => {
       "fetchText",
       "head",
       "put",
+      "replace",
+      "textOf",
     ]);
   });
 
@@ -321,27 +323,7 @@ describe("reading a blob by URL", () => {
   });
 });
 
-describe("readFresh", () => {
-  it("asks the store for the version, then reads the URL that names it", async () => {
-    const urls: string[] = [];
-    const sdk = {
-      ...fakeSdk(),
-      head: vi.fn<BlobSdk["head"]>(async (path) => sdkBlob(path, { size: 7, etag: '"e-42"' })),
-    };
-    const store = createVercelBlobStore(TOKEN, sdk, async (url) => {
-      urls.push(url);
-      return new Response('{"n":1}');
-    });
-    const fresh = await readFresh(store, "state/usage-2026-10.json");
-    if (!fresh) throw new Error("expected the document");
-    expect(fresh.text).toBe('{"n":1}');
-    expect(urls).toEqual([`${HOST}/state/usage-2026-10.json?v=e42`]);
-    // A new ETag is a URL the CDN has not seen, so it cannot answer with the old copy.
-    expect(versionedUrl({ ...fresh.entry, version: "e43" })).toBe(
-      `${HOST}/state/usage-2026-10.json?v=e43`,
-    );
-  });
-
+describe("readStored", () => {
   it("is null when there is no such object, and does not read by URL to find that out", async () => {
     const sdk = {
       ...fakeSdk(),
@@ -350,7 +332,7 @@ describe("readFresh", () => {
       }),
     };
     const store = createVercelBlobStore(TOKEN, sdk, neverFetched);
-    expect(await readFresh(store, "state/usage-2026-10.json")).toBeNull();
+    expect(await readStored(store, "state/usage-2026-10.json")).toBeNull();
   });
 
   it("fails, and is not 'nothing stored', when the store has the object but not its content", async () => {
@@ -359,8 +341,77 @@ describe("readFresh", () => {
       fakeSdk(),
       async () => new Response("", { status: 404 }),
     );
-    await expect(readFresh(store, "state/usage-2026-10.json")).rejects.toThrow(
+    await expect(readStored(store, "state/usage-2026-10.json")).rejects.toThrow(
       "exists but its content could not be read",
     );
+  });
+});
+
+describe("textOf, what a write builds on", () => {
+  const USAGE = "state/usage-2026-11.json";
+  const entry = {
+    pathname: USAGE,
+    url: `${HOST}/${USAGE}`,
+    uploadedAt: 0,
+    size: 0,
+    version: "new",
+    etag: '"new"',
+  };
+  const cdnAnswering = (etag: string, text: string, urls: string[]): BlobFetch => {
+    return async (url) => {
+      urls.push(url);
+      // The copy has a path the CDN has never seen, so it has to answer with the store's text.
+      if (url.endsWith("-r4nd")) return new Response('{"n":2}', { headers: { etag: '"x"' } });
+      return new Response(text, { headers: { etag } });
+    };
+  };
+
+  // The bug (2026-11-04): after an overwrite the CDN answers with the old copy for up to a minute,
+  // whatever the query, and a count planned on it and written back erased the charge in between.
+  it("never answers with the CDN's older copy: it reads a copy the store makes of itself", async () => {
+    const sdk = fakeSdk();
+    const urls: string[] = [];
+    const store = createVercelBlobStore(
+      TOKEN,
+      sdk,
+      cdnAnswering('W/"old"', '{"n":1}', urls),
+      new Map(),
+    );
+    expect(await store.textOf(entry)).toBe('{"n":2}');
+    expect(sdk.copy.mock.calls[0]?.[0]).toBe(entry.url);
+    expectBounded(sdk.copy.mock.calls[0]?.[2]);
+    // The copy is read once and deleted.
+    expect(urls).toEqual([entry.url, `${HOST}/reads/${USAGE}-r4nd`]);
+    expect(sdk.del.mock.calls[0]?.[0]).toBe(`${HOST}/reads/${USAGE}-r4nd`);
+  });
+
+  it("takes the CDN's copy when it is the version the store reported, and its own write as is", async () => {
+    const sdk = fakeSdk();
+    const urls: string[] = [];
+    const written = new Map<string, { etag: string; text: string }>();
+    const store = createVercelBlobStore(
+      TOKEN,
+      sdk,
+      cdnAnswering('W/"new"', '{"n":1}', urls),
+      written,
+    );
+    expect(await store.textOf(entry)).toBe('{"n":1}');
+    expect(sdk.copy).not.toHaveBeenCalled();
+
+    sdk.put.mockResolvedValueOnce({ url: entry.url, etag: '"mine"' });
+    await store.put(USAGE, '{"n":3}', { contentType: "application/json", cacheSeconds: 60 });
+    urls.length = 0;
+    expect(await store.textOf({ ...entry, version: "mine", etag: '"mine"' })).toBe('{"n":3}');
+    expect(urls).toEqual([]);
+  });
+
+  it("writes only over the version it was given, and says so when another got there first", async () => {
+    const sdk = fakeSdk();
+    const store = createVercelBlobStore(TOKEN, sdk, neverFetched, new Map());
+    const json = { contentType: "application/json", cacheSeconds: 60 };
+    expect(await store.replace(USAGE, "{}", json, '"new"')).toBe(true);
+    expect(sdk.put.mock.calls[0]?.[2]).toMatchObject({ ifMatch: '"new"', allowOverwrite: true });
+    sdk.put.mockRejectedValueOnce(new BlobPreconditionFailedError());
+    expect(await store.replace(USAGE, "{}", json, '"new"')).toBe(false);
   });
 });

@@ -35,7 +35,12 @@ import type {
   NarrateSegmentResponse,
   NarrationSegment,
 } from "../types/contracts";
-import { type BlobWriteOptions, type NarrateBlobStore, readFresh } from "./blobStore";
+import {
+  type BlobWriteOptions,
+  type NarrateBlobStore,
+  readStored,
+  updateCurrent,
+} from "./blobStore";
 import {
   type BlobCredentials,
   MS_PER_CHARACTER,
@@ -432,7 +437,7 @@ async function findNarration(
   digests: DigestSource,
   id: string,
 ): Promise<Narration | null> {
-  const pointed = parseJson((await readFresh(blob, audioPointerKey(id)))?.text);
+  const pointed = parseJson((await readStored(blob, audioPointerKey(id)))?.text);
   const pointedUrl =
     pointed !== null && typeof pointed === "object" && "url" in pointed ? pointed.url : null;
   // A narration made before versioning has no pointer and sits at the fixed key.
@@ -447,7 +452,7 @@ async function findNarration(
       : null;
   // A pointer that names a version is read with that version's timeline only; an older one with the
   // fixed key.
-  const stored = await readFresh(
+  const stored = await readStored(
     blob,
     typeof pointedVersion === "string" ? timelineKey(id, pointedVersion) : timelineKey(id),
   );
@@ -748,12 +753,32 @@ async function duringSetup<T>(session: Session, work: Promise<T>): Promise<T> {
 interface Charge {
   plan: ChargePlan;
   month: string;
+  /** What was asked for, so the write can plan again on the document as it is by then. */
+  characters: number;
+  mode: NarrationMode;
+  voice: string;
+}
+
+/** What this digest costs on the month's document as `text` has it. */
+function planOn(session: Session, text: string | null, charge: Omit<Charge, "plan">): ChargePlan {
+  return planCharge({
+    state: parseState(text, charge.month),
+    digest: session.id,
+    characters: charge.characters,
+    voice: charge.voice,
+    mode: charge.mode,
+    now: session.deps.now(),
+    monthlyChars: session.config.monthlyChars ?? DEFAULT_MONTHLY_CHARS,
+    dailyCap: NARRATE_DAILY_CAP,
+  });
 }
 
 /**
- * Reads the month's document, fresh, and works out what this digest costs now. Two SIMPLE
- * operations, and the read is a free cache hit while the document has not changed. A document that
- * exists but cannot be read is an error here, never an empty month.
+ * Reads the month's document and works out what this digest costs now. Two SIMPLE operations, and
+ * the read is a free cache hit while the document has not changed. The CDN's copy can be a minute
+ * old: good enough to refuse early or to find the digest paid for (a charge never shrinks), and
+ * `writeCharge` plans again on the current document before it writes. A document that exists but
+ * cannot be read is an error here, never an empty month.
  */
 async function planDigestCharge(
   session: Session,
@@ -761,21 +786,10 @@ async function planDigestCharge(
   mode: NarrationMode,
   voice: string = voiceOf(session.config),
 ): Promise<Charge> {
-  const { id, config, blob, deps } = session;
-  const now = deps.now();
-  const month = usageMonth(new Date(now));
-  const stored = await readFresh(blob, usageKey(month));
-  const plan = planCharge({
-    state: parseState(stored?.text ?? null, month),
-    digest: id,
-    characters,
-    voice,
-    mode,
-    now,
-    monthlyChars: config.monthlyChars ?? DEFAULT_MONTHLY_CHARS,
-    dailyCap: NARRATE_DAILY_CAP,
-  });
-  return { plan, month };
+  const month = usageMonth(new Date(session.deps.now()));
+  const stored = await readStored(session.blob, usageKey(month));
+  const asked = { month, characters, mode, voice };
+  return { ...asked, plan: planOn(session, stored?.text ?? null, asked) };
 }
 
 /** The answer to send when the plan is a refusal, or null when narrating may go ahead. */
@@ -790,15 +804,24 @@ function refusalOf(session: Session, plan: ChargePlan): NarrateResult | null {
 
 /**
  * Writes the charge, if there is one, and only returns once it is stored: nothing is synthesized
- * for a digest whose charge is not on record. One ADVANCED operation, once per digest per month in
- * the ordinary case.
+ * for a digest whose charge is not on record. It plans again on the current document, so a charge
+ * another request wrote a moment ago is kept, and answers that final plan: it can be a refusal, or
+ * find the digest paid for already. One ADVANCED operation, once per digest per month in the
+ * ordinary case.
  */
-async function writeCharge(session: Session, charge: Charge): Promise<void> {
-  if (charge.plan.kind !== "charge") return;
-  await session.blob.put(usageKey(charge.month), serializeState(charge.plan.next), JSON_FILE);
-  session.log(
-    `${session.label}: charged ${charge.plan.added} characters to ${charge.month} for the digest`,
-  );
+async function writeCharge(session: Session, charge: Charge): Promise<ChargePlan> {
+  if (charge.plan.kind !== "charge") return charge.plan;
+  let plan: ChargePlan = charge.plan;
+  await updateCurrent(session.blob, usageKey(charge.month), JSON_FILE, (text) => {
+    plan = planOn(session, text, charge);
+    return plan.kind === "charge" ? serializeState(plan.next) : null;
+  });
+  if (plan.kind === "charge") {
+    session.log(
+      `${session.label}: charged ${plan.added} characters to ${charge.month} for the digest`,
+    );
+  }
+  return plan;
 }
 
 /**
@@ -819,9 +842,9 @@ async function chargeFailedAttempt(session: Session, characters: number): Promis
   const counted = (async () => {
     const now = deps.now();
     const month = usageMonth(new Date(now));
-    const stored = await readFresh(blob, usageKey(month));
-    const next = addRepeat(parseState(stored?.text ?? null, month), id, characters, now);
-    await blob.put(usageKey(month), serializeState(next), JSON_FILE);
+    await updateCurrent(blob, usageKey(month), JSON_FILE, (text) =>
+      serializeState(addRepeat(parseState(text, month), id, characters, now)),
+    );
     log(`${label}: counted ${characters} more characters for the attempt that failed`);
   })().catch((error: unknown) => {
     log(
@@ -1129,7 +1152,8 @@ async function narrateWhole(session: Session): Promise<NarrateResult> {
     const finished = await duringSetup(session, findNarration(blob, deps.digests, id));
     if (finished) return ready(finished);
 
-    await duringSetup(session, writeCharge(session, charge));
+    const written = refusalOf(session, await duringSetup(session, writeCharge(session, charge)));
+    if (written) return written;
     session.setup.cancel();
     return await attempt(session, characters, () => synthesizeAndStore(session, script));
   } catch (error) {
@@ -1185,7 +1209,8 @@ async function narrateSegment(session: Session, key: string): Promise<NarrateRes
 
   // The digest's whole text is charged here, once, before anything is synthesized. Every later
   // segment of this digest finds the charge and skips this write.
-  await duringSetup(session, writeCharge(session, charge));
+  const written = refusalOf(session, await duringSetup(session, writeCharge(session, charge)));
+  if (written) return written;
   session.setup.cancel();
 
   return attempt(session, segment.text.length, () =>

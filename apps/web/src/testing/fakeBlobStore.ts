@@ -5,7 +5,7 @@ import type { BlobEntry, BlobWriteOptions, NarrateBlobStore } from "../server/bl
  * would cost on Vercel, can be told to fail or to hang, and can stand in for the CDN in front of
  * the store, which answers a URL it has seen before from its cache.
  */
-export type BlobOp = "head" | "fetch" | "put" | "create" | "del";
+export type BlobOp = "head" | "fetch" | "put" | "create" | "replace" | "copy" | "del";
 
 export interface BlobCall {
   op: BlobOp;
@@ -22,8 +22,8 @@ export interface OperationCount {
 
 export interface FakeBlobOptions {
   /**
-   * Behave like the CDN: remember what each exact URL returned and answer the same again, even
-   * after the object behind it has changed. Off, every read by URL is current.
+   * Behave like the CDN: remember what each path returned and answer the same again, whatever the
+   * query and even after the object behind it has changed. Off, every read by URL is current.
    */
   cdn?: boolean;
 }
@@ -76,7 +76,10 @@ export function createFakeBlobStore(
   options: FakeBlobOptions = {},
 ): FakeBlobStore {
   const objects = new Map<string, Stored>();
-  const cdn = new Map<string, string | null>();
+  /** The CDN's copy of each path: its text and the version it was. */
+  const cdn = new Map<string, { text: string | null; version: string | null }>();
+  /** What this store last wrote at each path, as the real adapter remembers its own writes. */
+  const own = new Map<string, string>();
   const calls: BlobCall[] = [];
   const changes: string[] = [];
   const traps: Trap[] = [];
@@ -98,6 +101,34 @@ export function createFakeBlobStore(
     objects.set(pathname, stored);
     return stored;
   };
+
+  const remember = (
+    pathname: string,
+    body: string | Uint8Array,
+    stored: Stored,
+    writeOptions: BlobWriteOptions,
+  ): void => {
+    stored.options = writeOptions;
+    if (typeof body === "string") own.set(pathname, stored.version);
+  };
+
+  /** A read by URL, through the CDN when it is on: the path's cached copy, or the store's. */
+  async function cdnRead(
+    pathname: string,
+  ): Promise<{ text: string | null; version: string | null } | null> {
+    const cached = options.cdn === true ? cdn.get(pathname) : undefined;
+    if (cached) count.free += 1;
+    else count.simple += 1;
+    await begin("fetch", pathname);
+    if (cached) return cached;
+    const stored = objects.get(pathname);
+    const read = {
+      text: stored ? new TextDecoder().decode(stored.body) : null,
+      version: stored?.version ?? null,
+    };
+    if (options.cdn === true) cdn.set(pathname, read);
+    return read;
+  }
 
   /** Records the call, then fails or hangs it when a matching trap is still armed. */
   async function begin(op: BlobOp, pathname: string): Promise<void> {
@@ -121,21 +152,26 @@ export function createFakeBlobStore(
       return stored ? entry(pathname, stored) : null;
     },
     async fetchText(url) {
-      const pathname = decodeURIComponent(new URL(url).pathname.slice(1));
-      const cached = options.cdn === true && cdn.has(url);
-      if (cached) count.free += 1;
-      else count.simple += 1;
-      await begin("fetch", pathname);
-      if (cached) return cdn.get(url) ?? null;
-      const stored = objects.get(pathname);
-      const text = stored ? new TextDecoder().decode(stored.body) : null;
-      if (options.cdn === true) cdn.set(url, text);
-      return text;
+      return (await cdnRead(decodeURIComponent(new URL(url).pathname.slice(1))))?.text ?? null;
+    },
+    async textOf(target) {
+      const current = objects.get(target.pathname);
+      if (current && own.get(target.pathname) === current.version) {
+        count.free += 1;
+        return new TextDecoder().decode(current.body);
+      }
+      const read = await cdnRead(target.pathname);
+      if (read !== null && read.text !== null && read.version === target.version) return read.text;
+      // The CDN is behind: the real store reads a copy of itself, one advanced operation more.
+      count.advanced += 1;
+      await begin("copy", target.pathname);
+      if (!current) throw new Error(`${target.pathname}: its fresh copy could not be read`);
+      return new TextDecoder().decode(current.body);
     },
     async put(pathname, body, writeOptions) {
       count.advanced += 1;
       await begin("put", pathname);
-      store(pathname, body, now()).options = writeOptions;
+      remember(pathname, body, store(pathname, body, now()), writeOptions);
       changes.push(`put ${pathname}`);
       return { url: urlOf(pathname) };
     },
@@ -143,8 +179,16 @@ export function createFakeBlobStore(
       count.advanced += 1;
       await begin("create", pathname);
       if (objects.has(pathname)) return false;
-      store(pathname, body, now()).options = writeOptions;
+      remember(pathname, body, store(pathname, body, now()), writeOptions);
       changes.push(`create ${pathname}`);
+      return true;
+    },
+    async replace(pathname, body, writeOptions, etag) {
+      count.advanced += 1;
+      await begin("replace", pathname);
+      if (`"${objects.get(pathname)?.version}"` !== etag) return false;
+      remember(pathname, body, store(pathname, body, now()), writeOptions);
+      changes.push(`put ${pathname}`);
       return true;
     },
     async del(pathname) {
