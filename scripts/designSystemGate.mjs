@@ -1,6 +1,7 @@
 // The design system is a product with one owner: its changes travel in pull requests of their own.
 // A pull request that touches the system carries the `design-system` label, and one that carries the
-// label holds nothing but the system, the app files that draw it, the guide and the record.
+// label holds nothing but the system, the app files that draw it, the guide and the record. An entry
+// added to a list that excuses code from a system check is a system change too.
 // Usage in CI: LABELS='["design-system"]' BASE=<sha> node scripts/designSystemGate.mjs
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
@@ -96,8 +97,72 @@ export const SYSTEM_NAMES =
 
 const startsWithAny = (file, prefixes) => prefixes.some((prefix) => file.startsWith(prefix));
 
-/** The problems with a pull request, given its changed files and labels. Empty means it may go on. */
-export function checkDesignSystemPr({ files, labels, namesSystem = () => false }) {
+/**
+ * The lists that excuse code from a design-system check, by the file that holds them. Any pull request
+ * may shrink one; an entry added is a design decision (a control drawn by hand, a page bending a
+ * component, an outlined control), so it needs the label and the owner's merge (2026-11-04: any pull
+ * request could add a bespoke class and silence the button rule). The lists in design-system/
+ * (NOT_YET_COMPONENTS) are not named here: every change there is a system change already.
+ */
+export const ALLOWLISTS = {
+  "apps/web/src/styles/styles.test.ts": [
+    "SHARED_CONTROLS",
+    "BESPOKE_CONTROLS",
+    "OUTLINED_CONTROLS",
+    "PAGE_OVERRIDES",
+  ],
+};
+
+/**
+ * The entries of the array a source text declares as `const <name> ... = [...]`: each string, or each
+ * tuple's first string. Undefined when the text declares no such list.
+ */
+export function listEntries(text, name) {
+  const head = new RegExp(`const ${name}\\b[^=]*=\\s*\\[`).exec(text);
+  if (!head) return undefined;
+  const entries = [];
+  let depth = 1;
+  let first = false;
+  for (let at = head.index + head[0].length; at < text.length && depth > 0; at += 1) {
+    const character = text[at];
+    if (character === "/" && text[at + 1] === "/") {
+      const end = text.indexOf("\n", at);
+      at = end < 0 ? text.length : end;
+    } else if (character === "[") {
+      depth += 1;
+      first = true;
+    } else if (character === "]") {
+      depth -= 1;
+    } else if (character === '"' || character === "'" || character === "`") {
+      let end = at + 1;
+      while (end < text.length && text[end] !== character) end += text[end] === "\\" ? 2 : 1;
+      if (depth === 1 || first) entries.push(text.slice(at + 1, end));
+      first = false;
+      at = end;
+    }
+  }
+  return entries;
+}
+
+/** What a change adds to a file's lists, as "LIST: entry": each entry beyond as many as it held. */
+export function allowlistAdditions(before, after, lists) {
+  return lists.flatMap((list) => {
+    const held = new Map();
+    for (const entry of listEntries(before, list) ?? [])
+      held.set(entry, (held.get(entry) ?? 0) + 1);
+    return (listEntries(after, list) ?? []).flatMap((entry) => {
+      const count = held.get(entry) ?? 0;
+      held.set(entry, count - 1);
+      return count > 0 ? [] : [`${list}: ${entry}`];
+    });
+  });
+}
+
+/**
+ * The problems with a pull request, given its changed files, its labels and what it adds to the
+ * allowlists. Empty means it may go on.
+ */
+export function checkDesignSystemPr({ files, labels, namesSystem = () => false, added = [] }) {
   const labelled = labels.includes(LABEL);
   const touched = files.filter((file) => startsWithAny(file, SYSTEM_PATHS));
   const problems = [];
@@ -106,6 +171,13 @@ export function checkDesignSystemPr({ files, labels, namesSystem = () => false }
       `This pull request changes the design system (${touched.slice(0, 3).join(", ")}` +
         `${touched.length > 3 ? `, and ${touched.length - 3} more` : ""}), so it needs the ` +
         `"${LABEL}" label and the owner's merge. Add the label, or move the system change to its own pull request.`,
+    );
+  }
+  if (added.length > 0 && !labelled) {
+    problems.push(
+      `This pull request adds to the lists that excuse code from the design system's checks ` +
+        `(${added.slice(0, 3).join("; ")}${added.length > 3 ? `; and ${added.length - 3} more` : ""}), ` +
+        `which only the owner grows. Draw it with the system instead, or add the "${LABEL}" label for the owner's merge.`,
     );
   }
   if (labelled) {
@@ -149,7 +221,10 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   };
   const namesSystem = (file) =>
     SYSTEM_NAMES.test(show("HEAD", file)) || SYSTEM_NAMES.test(show(before, file));
-  const problems = checkDesignSystemPr({ files, labels, namesSystem });
+  const added = Object.entries(ALLOWLISTS)
+    .filter(([file]) => files.includes(file))
+    .flatMap(([file, lists]) => allowlistAdditions(show(before, file), show("HEAD", file), lists));
+  const problems = checkDesignSystemPr({ files, labels, namesSystem, added });
   for (const problem of problems) console.log(`::error::${problem}`);
   console.log(
     problems.length
