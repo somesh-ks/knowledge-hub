@@ -418,7 +418,7 @@ function keepsScript(
   next: readonly ScriptTurn[],
   opening: readonly ScriptTurn[] | null,
 ): boolean {
-  if (opening?.some((turn, index) => next[index]?.text !== turn.text)) return false;
+  if (opening && heldTurns(next, opening) !== opening.length) return false;
   const order = (turns: readonly ScriptTurn[]): string[] => {
     const ids: string[] = [];
     for (const turn of turns) {
