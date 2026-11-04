@@ -3,8 +3,10 @@ import { type CommandContext, secretsFromEnv } from "../context.js";
 import { type ApiRuntime, createApiRuntime } from "../curate/apiRuntime.js";
 import { createGitRunner } from "../git/runGit.js";
 import { createHttpClient } from "../http.js";
+import { cacheForRun } from "../httpRunCache.js";
 import { trackOpenBatches } from "../llm/openBatches.js";
 import { meterExa } from "../llm/requestMeter.js";
+import { makeContentPublisher } from "../publish/contentWorkspace.js";
 import { configStoreUrl, connectConfigStore } from "../store/configPaths.js";
 import { recordExperimentHits } from "../store/experimentHits.js";
 import { loadVoice } from "../voice/voice.js";
@@ -45,10 +47,12 @@ export function buildDeps(ctx: CommandContext): RunDeps {
     log: ctx.log,
     secrets: secretsFromEnv(ctx.env),
     fetch: {
-      http: meterExa(createHttpClient({ retries: 2 }), spend.meter),
+      // One read of each address per run: the daily and weekly passes share their feeds.
+      http: cacheForRun(meterExa(createHttpClient({ retries: 2 }), spend.meter)),
       exaKey: ctx.env.EXA_API_KEY,
       firecrawlKey: ctx.env.FIRECRAWL_API_KEY,
       firecrawlGuard: spend.guard,
+      exaRoom: () => spend.exaRoom,
       sampleJudge: Boolean(ctx.env.TYPESAFE_API_KEY),
     },
     spend,
@@ -67,6 +71,7 @@ export function buildDeps(ctx: CommandContext): RunDeps {
     },
     pickCover,
     git: createGitRunner(ctx.root),
+    publishContent: makeContentPublisher(ctx.env, ctx.root, ctx.now),
     // With the config store on, the shadow counts go to Neon for the admin app; off, they stay in the log.
     recordExperimentHits: storeUrl
       ? async (hits) =>

@@ -1,5 +1,6 @@
 import { stockholmDate } from "@singularity/core";
 import { commitAndPush } from "../git/commit.js";
+import { gitOutput } from "../git/runGit.js";
 import { recordRunMetrics } from "../metrics/runMetrics.js";
 import { recordFailure } from "../state/runRecord.js";
 import { readLastRun, writeLastRun } from "../state/store.js";
@@ -154,6 +155,10 @@ async function recordFailedOnDemand(
     await recordSpend(deps.root, deps.spend, plan, at);
   }
   await recordFailedMetrics(deps, plan, at);
+  // The gate of a Regenerate frees the old digest's stories in state/seen.json, in the working tree
+  // only (the commit stage writes the new list). A failed run keeps the old digest, so that release
+  // must not ride in the failure commit: later runs would pick the same stories again.
+  if (plan.replaces !== undefined) await restoreSeen(deps);
   const message = `chore(state): run ${stockholmDate(deps.now())} failed`;
   const committed = await commitAndPush({
     root: deps.root,
@@ -164,6 +169,14 @@ async function recordFailedOnDemand(
   });
   const reason = "Recorded the failed on-demand run.";
   return reportCommit(committed, reason, message);
+}
+
+async function restoreSeen(deps: RunDeps): Promise<void> {
+  try {
+    await gitOutput(deps.git, ["checkout", "HEAD", "--", "state/seen.json"]);
+  } catch {
+    // Not in the tree (a repository with no seen list yet): nothing was released.
+  }
 }
 
 /**

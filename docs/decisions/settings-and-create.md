@@ -368,3 +368,44 @@ Settings (topics, sources, models, schedule, saving) and the Create form. Rules 
 - Rejected: a warning when closing the page (cannot be shown on a phone's tab close, and loses the edit anyway); Retry as the only way out (the state it needs is gone after a reload); a background sync registration (iOS does not run it, and the page-load and `online` triggers cover the same ground); queuing while online with the site up (a refusal must reach the person at once).
 - Revisit if: two devices edit the same setting offline (the later send wins, with no conflict notice), or a 409 from another device's write is seen on drain.
 - Amends: D79, D91, D259.
+
+
+## D335: the avatar leads to a profile page, and Settings is Podcast settings, App settings and About
+
+- Date: 2026-11-02 (the owner: an avatar top right on phone and desktop, a page behind it with Downloads and Favorites, Settings regrouped, source-type sliders removed, user engagement to the admin app).
+- Decision: the avatar (D326) is the right end of the app bar below 64rem and the top right from 64rem, and links to `/profile`: the avatar, a picker of the shapes the mood offers, Downloads and Saved. Settings is Podcast settings (Daily, Weekly, Sources, Structure), App settings (Appearance, Sound and voice, Haptics, Notifications) and About as three rows with no head and the build's day under them. Appearance holds Theme, Mood and a Hue row shown for a mood only; Sound and voice holds the interface sounds, the podcast voices and Playback (autoplay, default speed); Haptics has a page. The source-type sliders and the User engagement link leave the app; a stored `format_mix` still applies. There is no sign-in until Google auth exists: the avatar is the whole control.
+- Why: Downloads and Saved belong to the person, not to a setting; one group of app settings reads better than five small sections; the sliders and the analytics link were a developer's controls in a reader's app.
+- Rejected: a Sign in button with no sign-in behind it (a dead control); keeping Autoplay and Default speed on Structure (a podcast's structure is not how playback starts); a tab for Hue (the row hides for Default).
+- Revisit if: Google sign-in lands (the account photo replaces the shape), or the Playback section on Sound and voice is not where the owner looks for it.
+- Amends: D129, D281, D299.
+
+## D338: Settings sets the default playback speed on the player's speed screen
+
+- Date: 2026-11-02 (the owner: the speed was "a stepper big number and then the slider ... in the increments of 0.25"; Settings had a plain list of four speeds)
+- Decision: on Settings > Preferences the default speed's value is a button that opens the player's own speed screen (`SpeedPanel`: the readout, the stepper by 0.05, the slider on every 0.25 from 0.5x to 2x) in a Menu sheet, a bottom sheet on a phone and a popover under the value from 40rem. Each change is saved at once, snapped by `toPlaybackRate`, to the same preference the list wrote, so the player starts at it as before and a speed saved by the old slider still shows. `scripts/defaultSpeed.ts` mounts the panel the first time the sheet opens.
+- Why: one speed control, not two: the player's screen sets one speed and Settings a list of four, with nothing between 1x and 1.25x.
+- Cost: a React root on a page that had none, loaded with the page; the value is a button, not a native select, so a keyboard opens it with Enter or Space and not the arrows.
+- Rejected: a list with all seven 0.25 stops (the stepper's finer steps and the slider's feel are lost); a second copy of the panel in vanilla markup (two controls to keep alike).
+- Amends: D309 (the speed screen is shared), the Settings default-speed row.
+- Revisit if: the page's first paint or its script weight shows the React root.
+
+## D344: the app no longer edits the podcast structure; Preferences holds autoplay and the default speed
+
+- Date: 2026-11-02 (the owner: "remove the podcast structure as a feature totally, and rename the structure list item on settings page to preferences, and then put both podcast autoplay and then default playback speed inside that").
+- Decision: the structure editor leaves the app: the Listener profile card, the block list, Reorder, Add section, the block sheet and its prompt, and the Daily and Weekly "Podcast structure" link. The Settings row Structure becomes Preferences, at the same address (`/settings/preferences`), and holds Podcast autoplay and Default playback speed, kept on the device as the player reads them. Sound and voice loses its Playback section. The engine and core are untouched: they keep reading the stored structure, now a fixed default, and `structure.set` and `structure.prompt` stay valid ops.
+- Why: a listener profile and a block list were a developer's controls in a reader's app; two playback settings need a home, and the row already exists.
+- Rejected: removing the structure from the engine as well (a pipeline change that alters every episode, wanted only on the owner's word); a new row for the two settings (the owner named the existing one).
+- Context changed: the owner no longer wants to shape episodes from the app.
+- Revisit if: he wants control over what an episode holds again; then the editor comes back from git history (`structureEditor.ts`, `structureView.ts`, `structurePage.ts` before this change).
+- Also: D335 rejected a Sign in button with no sign-in behind it; the owner later asked for a dummy Log in button under the avatar on the profile page, until Google auth exists, so the profile has one.
+- Supersedes: D170, D182 and D191 on the app side. Amends: D335; D338's default-speed row sits on Preferences now, with its speed sheet.
+
+## D327: a style is called a mood in the app's code and storage; the attribute and token group follow in the design-system PR
+
+- Date: 2026-11-03 (the owner: "mood is a go"; the copy already said Mood since D268's picker became Appearance > Mood).
+- Decision: the app stores the choice as `mood` in the `singularity:preferences` object, reads an older device's `style` when `mood` is absent, and writes only `mood` from then on. Types, functions and the Settings select (`id="settings-mood"`, `name="mood"`) say mood. The root attribute `data-style` and the token group `styles` stay for now: they are design-system files (`tokens/`, `tokens.css`, `avatar.css`), so they change in the rolling design-system PR, in one move with the app code that sets the attribute.
+- Why: one word for one idea; the storage fallback means no device loses its choice.
+- Rejected: dropping `style` with no fallback (every device returns to Default); renaming the attribute here (the design-system gate bars it from an app PR).
+- Context changed: the owner named the picker Mood (D335).
+- Revisit if: a device keeps showing Default after the update; then check the fallback in `parsePreferences`.
+- Amends: D268, D315.

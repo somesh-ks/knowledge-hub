@@ -44,7 +44,7 @@
 
 /* Rows in a card are divided by a hairline, as in the other cards (manage.css turns them off). */
 .blocked-row:not([data-removing], [data-gone], [data-filtered])
-~ .blocked-row:not([data-removing], [data-gone], [data-filtered])::before {
+  ~ .blocked-row:not([data-removing], [data-gone], [data-filtered])::before {
   content: "";
 }
 
@@ -62,8 +62,9 @@
   flex: none;
 }
 
-/* Waiting to be removed (Undo is in the toast) or saved as removed: out of the list. */
-.blocked-row:is([data-removing], [data-gone], [data-filtered]) {
+/* Waiting to be removed (Undo is in the toast) or saved as removed: out of the list, by the Row exit
+   (row-exit.css). A row the filter leaves out goes at once. */
+.blocked-row[data-filtered] {
   display: none;
 }
 

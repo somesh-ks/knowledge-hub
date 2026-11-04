@@ -1,5 +1,5 @@
 ---
-import { coverSwatches } from "@singularity/cover";
+import { coverCentre, coverSwatches } from "@singularity/cover";
 import type { CoverSource } from "../lib/covers";
 import { tintColors } from "../scripts/ambientTint";
 import "../styles/ambient.css";
@@ -10,17 +10,18 @@ interface Props {
 }
 
 const { cover } = Astro.props;
-// The colours each theme's cover image shows, read from the image itself, at the lightness each
-// theme can carry; ambient.css picks the set.
+// The colours each theme's cover shows, at the lightness each theme can carry; ambient.css picks the
+// set. A style and a reader's hue recolour them in the browser (ambientLight.ts), from the month's centre.
 const meta = { id: cover.id, date: cover.date, kind: cover.kind };
 const light = tintColors(coverSwatches(cover.cover, { ...meta, mode: "light" }), "light");
 const dark = tintColors(coverSwatches(cover.cover, { ...meta, mode: "dark" }), "dark");
+const centre = coverCentre(cover.cover, meta).toFixed(2);
 const vars = `--ambient-a-l:${light[0]};--ambient-b-l:${light[1]};--ambient-c-l:${light[2]};--ambient-a-d:${dark[0]};--ambient-b-d:${dark[1]};--ambient-c-d:${dark[2]}`;
 ---
 
 {/* Light from the cover spilling onto the page behind the header. A CSS layer shows the same colors
      before any script runs and wherever WebGL is missing; the canvas fades in over it. */}
-<div class="ambient" aria-hidden="true" data-ambient={`${light.join(",")},${dark.join(",")}`} style={vars}>
+<div class="ambient" aria-hidden="true" data-ambient={`${light.join(",")},${dark.join(",")}`} data-ambient-centre={centre} style={vars}>
   <div class="ambient-still"></div>
   <canvas class="ambient-canvas"></canvas>
 </div>

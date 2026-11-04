@@ -7,6 +7,7 @@
  * their characters. The player is then handed an ordinary briefing with ordinary story marks, and
  * trackAudio.ts plays the files against those marks.
  */
+import { storyRuns } from "../lib/storyRuns";
 import type { PlayerDigestData } from "../types/contracts";
 import type { TrackSegment } from "./trackAudio";
 
@@ -59,7 +60,7 @@ export function planNarration(
   msPerCharacter: number,
 ): NarrationPlan {
   const laid: TrackSegment[] = [];
-  const items = new Map<string, { start_ms: number; end_ms: number }>();
+  const firstStarts = new Map<string, number>();
   let cursor = 0;
   for (const segment of segments) {
     const start = cursor;
@@ -71,17 +72,16 @@ export function planNarration(
       url: segment.audio?.url ?? null,
       unconfirmed: segment.audio?.confirmed === false,
     });
-    if (segment.item_id !== null) {
-      // Several segments can read one story (the turns of an episode). The story starts at its
-      // first and ends at its last, so the marks cover everything said about it.
-      const earlier = items.get(segment.item_id);
-      items.set(segment.item_id, { start_ms: earlier?.start_ms ?? start, end_ms: cursor });
+    // Several segments can read one story (the turns of an episode): it starts at its first.
+    if (segment.item_id !== null && !firstStarts.has(segment.item_id)) {
+      firstStarts.set(segment.item_id, start);
     }
   }
   return {
     segments: laid,
     total_ms: cursor,
-    items,
+    // It lasts until the next story starts, so the marks cover everything said about it.
+    items: storyRuns(firstStarts, cursor),
     complete:
       segments.length > 0 &&
       segments.every((segment) => segment.audio !== null && segment.audio.confirmed !== false),

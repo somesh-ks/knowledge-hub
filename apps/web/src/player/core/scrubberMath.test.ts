@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detentGain, dockSeekKeyValue, fractionOfTime, scrubberValueText } from "./scrubberMath";
+import { dockSeekKeyValue, fractionOfTime, scrubberValueText } from "./scrubberMath";
 import {
   bubbleLeft,
   crossedBoundary,
@@ -107,14 +107,6 @@ describe("detents", () => {
     expect(shouldFireDetent(30, 30, 0.02, 120)).toBe(false);
     expect(shouldFireDetent(31, 30, 0.02, 120)).toBe(false);
     expect(shouldFireDetent(60, 30, 0.02, 120)).toBe(true);
-  });
-
-  it("softens ticks as the pointer speeds up, never below 0.4", () => {
-    expect(detentGain(0.1)).toBe(1);
-    expect(detentGain(1.5)).toBeLessThan(1);
-    expect(detentGain(1.5)).toBeGreaterThan(0.4);
-    expect(detentGain(40)).toBe(0.4);
-    expect(detentGain(-0.1)).toBe(1);
   });
 });
 

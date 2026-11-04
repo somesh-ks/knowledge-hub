@@ -8,7 +8,9 @@
  * (HeroMenu.astro, `data-page-menu`) offers the same Download and Add to queue and is wired here too.
  */
 import { track } from "../lib/analytics";
+import { downloadFailure } from "../lib/downloadCopy";
 import { NotReadyError } from "../lib/downloads";
+import { deviceStorage, isSaved, setSaved } from "../player/core/saved";
 import { installCardHold } from "./cardHold";
 import { installEpisodeActions } from "./episodeActionsEntry";
 import { installHeroMenu } from "./heroMenu";
@@ -39,21 +41,27 @@ function markHero(on: boolean): void {
 }
 
 function setDownloaded(root: HTMLElement, on: boolean): void {
+  // The card's own mark follows this attribute (library.css, CardMarks.astro); a page header's is put in.
   holderOf(root).toggleAttribute("data-downloaded", on);
-  const sub = root.closest("[data-card]")?.querySelector(".card-sub");
-  const marked = sub?.querySelector(".card-downloaded");
-  if (!on) marked?.remove();
-  else if (sub && !marked) {
-    const mark = root
-      .closest("[data-card]")
-      ?.querySelector<HTMLTemplateElement>("template[data-downloaded-mark]");
-    if (mark) sub.prepend(mark.content.cloneNode(true));
-  }
   if (holderOf(root) === root) markHero(on);
   const item = root.querySelector<HTMLElement>('[data-menu="download"]');
   const label = item?.querySelector("[data-menu-label]");
   if (label) label.textContent = on ? "Remove download" : "Download";
   // The item's icon follows the card's data-downloaded (library.css, .dl-remove).
+}
+
+/**
+ * Marks the rows and the page this device keeps in Favorites (player/core/saved.ts): the holder's
+ * data-saved swaps the heart (library.css, hero.css) and the row says what a press does.
+ */
+export function syncFavorites(): void {
+  const storage = deviceStorage();
+  for (const root of document.querySelectorAll<HTMLElement>(ITEM_ROOT)) {
+    const on = isSaved(storage, root.dataset.id ?? "");
+    holderOf(root).toggleAttribute("data-saved", on);
+    const label = root.querySelector('[data-menu="favorite"] [data-menu-label]');
+    if (label) label.textContent = on ? "Remove from favorites" : "Add to favorites";
+  }
 }
 
 /** Marks the rows whose files are saved on this device. */
@@ -63,6 +71,12 @@ export async function syncDownloads(): Promise<void> {
   const ids = new Set((await readDownloads()).map((entry) => entry.id));
   for (const root of document.querySelectorAll<HTMLElement>(ITEM_ROOT)) {
     setDownloaded(root, ids.has(root.dataset.id ?? ""));
+  }
+  // A card with no menu of its own (the Earlier shelf) says so too: its mark follows the same file.
+  for (const card of document.querySelectorAll<HTMLElement>(
+    "[data-card]:not(:has([data-library-menu]))",
+  )) {
+    card.toggleAttribute("data-downloaded", ids.has(card.dataset.id ?? ""));
   }
   // After the rows are marked: the scan of the whole cache never holds them up.
   if (!document.querySelector("[data-downloading]")) await sweepUnlisted();
@@ -92,7 +106,7 @@ async function toggleDownload(root: HTMLElement): Promise<void> {
   } catch (error) {
     // A turn without its file yet: a download never spends narration to make it.
     if (error instanceof NotReadyError) toast("Not ready offline yet");
-    else toast("Could not download. Check your connection and try again.", "error");
+    else toast(downloadFailure(error), "error");
   } finally {
     card.removeAttribute("data-downloading");
     await syncDownloads();
@@ -126,9 +140,18 @@ async function onPick(item: HTMLElement): Promise<void> {
       if (typeof outcome === "object") toast(outcome.refused);
       return;
     }
+    case "favorite": {
+      // Settings > Favorites hears the change (singularity:saved) and drops a removed row.
+      const on = !isSaved(deviceStorage(), id);
+      if (setSaved(deviceStorage(), id, on))
+        toast(on ? "Added to favorites" : "Removed from favorites");
+      else
+        toast(on ? "Couldn't add it to favorites" : "Couldn't remove it from favorites", "error");
+      return;
+    }
     case "unshare":
       if (await stopSharing(id)) toast("Stopped sharing", "success");
-      else toast("Could not stop sharing. Try again.", "error");
+      else toast("Couldn't stop sharing. Try again.", "error");
       return;
   }
 }
@@ -175,8 +198,14 @@ export function installLibraryMenu(): void {
         item.removeAttribute("aria-disabled");
     }
     syncStopSharing();
+    syncFavorites();
     void syncDownloads();
   };
+  // Saved or removed elsewhere: the player's menu, the page's heart, another tab.
+  window.addEventListener("singularity:saved", syncFavorites);
+  window.addEventListener("storage", (event) => {
+    if (event.key === null || event.key.startsWith("singularity:saved:")) syncFavorites();
+  });
   document.addEventListener("astro:page-load", ready);
   ready();
 }

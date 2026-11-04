@@ -12,7 +12,9 @@
  * store; until then a stale offer is possible and harmless, since the switch it asks for is the one
  * already saved.
  */
-import { sameClock, scheduleZone, suggestZone } from "@singularity/core/time";
+import { sameClock, scheduleZone } from "@singularity/core/time";
+import { suggestZone } from "@singularity/core/zoneSuggest";
+import { isOnline } from "../lib/connectivity";
 import { SAVED_KEY } from "../lib/savedKey";
 import { parseSaved, savedFields, withStore } from "../lib/savedOverlay";
 import { cachedStore } from "./configStoreRead";
@@ -136,7 +138,7 @@ const deviceZone = (): string | undefined => {
 
 /** Compares the device's zone with the schedule's and offers the switch when they differ. */
 export function checkZone(): void {
-  if (!navigator.onLine) return;
+  if (!isOnline()) return;
   if (location.pathname.startsWith("/settings")) {
     // The toast outlives a client-side navigation; Settings is where the zone is set by hand.
     if (offered) sendToast({ dismiss: offered });
@@ -163,9 +165,7 @@ export function checkZone(): void {
     noteOutcome("dismissed");
     return;
   }
-  const message = suggestion.exact
-    ? `You're in ${place(suggestion)}`
-    : `You're on ${suggestion.label} time`;
+  const message = `You're in ${place(suggestion)}`;
   offered = message;
   sendToast(
     {

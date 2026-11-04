@@ -37,7 +37,11 @@
   transition: opacity var(--duration-press-out) var(--ease-out);
 }
 
-.card-link:active .cover::after {
+/* A press holds until the page it opened has arrived (data-pending, set in navigationBoost.ts): the
+   press, the wait and the page are one gesture, not a flash that fades out before the page comes
+   (owner, 2026-11-02: two ripples on opening a podcast, and a wait). */
+.card-link:active .cover::after,
+.card-link[data-pending] .cover::after {
   opacity: 1;
   transition-duration: var(--duration-press-in);
 }
@@ -50,13 +54,18 @@
 }
 
 .card-progress {
+  /* Half the cover's width, centred (owner, 2026-11-03), under the art's date line. The corner is
+     at most a quarter of the art (cover.css), so a bar that starts a quarter in clears it in every
+     mood (Expressive's 40px corner had taken a full-width bar's ends out of the art). */
   position: relative;
   z-index: var(--z-raised);
   display: block;
   grid-area: 1 / 1;
   align-self: end;
+  justify-self: center;
+  width: 50%;
   height: var(--space-1);
-  margin: 0 var(--space-2) calc(var(--space-2) * 2);
+  margin-bottom: calc(var(--space-2) * 2);
   overflow: hidden;
   border-radius: var(--radius-round);
   background: var(--rail-track);
@@ -71,15 +80,13 @@
   background: var(--color-accent);
 }
 
-.card-progress[hidden],
-/* A finished recording says Played in its facts line; the bar would repeat it. */
-.card-link:has([data-played]) .card-progress {
+.card-progress[hidden] {
   display: none;
 }
 
 /* Under the bar the art darkens toward its foot, so the bar reads on a pale cover as on a dark one.
    Only a card that holds a bar gets it, and only the foot: deeper, it dulled the art and its date. */
-.card-link:has(> .card-progress:not([hidden])):not(:has([data-played])) .cover::before {
+.card-link:has(> .card-progress:not([hidden])) .cover::before {
   content: "";
   position: absolute;
   inset: auto 0 0;
@@ -131,16 +138,8 @@
   font-weight: var(--font-weight-medium);
 }
 
-/* A card narrower than its whole line (Today's shelf, a 360px phone's gallery) leaves out the story
-   count, so "Weekly · 8 min" fits on one line and never breaks after a separator. */
 .card {
   container-type: inline-size;
-}
-
-@container (max-width: 10.5rem) {
-  .card-count {
-    display: none;
-  }
 }
 
 .card-facts {
@@ -245,6 +244,8 @@
 
 .search-field > input::placeholder {
   color: var(--color-on-surface-muted);
+  /* One hint size in every field (2026-11-02, field.css): a step under the typed text. */
+  font-size: var(--font-size-meta);
   opacity: 1;
 }
 
@@ -362,21 +363,47 @@
 /* Every control in the bar fills the same way under the pointer: the search field as the chip. */
 @media (hover: hover) and (pointer: fine) {
   .search-field:hover:not(:focus-within) {
-    background: color-mix(
-      in oklch,
-      var(--color-surface-container),
-      var(--color-on-surface) var(--state-hover)
-    );
+    background: var(--color-surface-container-hover);
   }
 
   .search-clear:hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
     color: var(--color-on-surface);
   }
 
   .view-btn[aria-pressed="false"]:hover {
-    background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+    background: var(--ghost-hover);
     color: var(--color-on-surface);
+  }
+
+  .view-btn[aria-pressed="true"]:hover {
+    background: var(--color-accent-container-hover);
+  }
+}
+
+/* A press goes one step deeper than the hover on the clear button and the view toggle (2026-11-02,
+   D317 step 2: the stills showed press equal to hover). Each rule weighs as much as its hover
+   rule above and comes after it, so it wins while a mouse is over the button. */
+.search-clear:active {
+  background: var(--ghost-pressed);
+  color: var(--color-on-surface);
+}
+
+.view-btn[aria-pressed="false"]:active {
+  background: var(--ghost-pressed);
+  color: var(--color-on-surface);
+}
+
+.view-btn[aria-pressed="true"]:active {
+  background: var(--color-accent-container-pressed);
+}
+
+/* A touch keeps the chosen view's fill: Chrome holds :active through the tap's click, so the view the
+   tap had just chosen showed the press step and eased back (owner, 2026-11-03; primitives.css does the
+   same for tabs and segmented choices). A pointer keeps the step. */
+@media (hover: none) {
+  .view-btn[aria-pressed="true"]:active {
+    background: var(--color-accent-container);
   }
 }
 
@@ -389,6 +416,11 @@
 .library-grid > .card {
   content-visibility: auto;
   contain-intrinsic-size: auto 240px;
+}
+
+/* Every card drawn for one frame, so each remembers its real height (libraryView.ts, a move back). */
+[data-library][data-measuring] .library-grid > .card {
+  content-visibility: visible;
 }
 
 @media (width >= 40rem) {
@@ -562,9 +594,18 @@ main.library [data-library][data-view="list"] .library-grid {
 /* The cover is centred in a row that a match line can make taller than it, so the bar is centred
    with it and then moved down to the cover's foot, never to the row's. */
 [data-library][data-view="list"] .card-progress {
+  /* Here the bar sits on the cover's foot, so its rounded end clears the corner only when the side
+     comes in by the corner less half the bar's height. */
+  --bar-inset: round(
+    up,
+    max(var(--space-2), min(var(--cover-radius-hero), var(--list-cover) / 4) - var(--space-1) / 2),
+    var(--space-1)
+  );
   grid-area: 1 / 1 / -1 / 2;
   align-self: center;
-  margin: 0 var(--space-2);
+  justify-self: stretch;
+  width: auto;
+  margin: 0 var(--bar-inset);
   translate: 0 calc((var(--list-cover) - var(--space-1)) / 2);
 }
 
@@ -577,7 +618,7 @@ main.library [data-library][data-view="list"] .library-grid {
   inset-inline: calc(var(--page-gutter-start) * -1) calc(var(--page-gutter-end) * -1);
   z-index: var(--z-beneath);
   border-radius: var(--row-radius);
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-hover), transparent);
+  background: var(--ghost-hover);
   opacity: 0;
   transition: opacity var(--duration-hover) var(--ease-hover);
 }
@@ -588,8 +629,8 @@ main.library [data-library][data-view="list"] .library-grid {
   }
 }
 
-[data-library][data-view="list"] .card-link:active::after {
-  background: color-mix(in oklch, var(--color-on-surface) var(--state-press), transparent);
+[data-library][data-view="list"] .card-link:is(:active, [data-pending])::after {
+  background: var(--ghost-pressed);
   opacity: 1;
 }
 
@@ -774,15 +815,6 @@ html[data-library-page="empty"] {
   [data-library][data-view="list"] .card:has(> .card-menu) .card-match {
     padding-inline-end: calc(var(--size-touch) - var(--space-2));
   }
-
-  /* The menu's reserve takes 2.25rem from the quiet line, so a card that is not a little wider than
-     the narrow one (see the 10.5rem rule above) leaves out the story count too: "Daily · 1 min" on
-     one line, never two. */
-  @container (max-width: 12rem) {
-    [data-library][data-view="list"] .card:has(> .card-menu) .card-count {
-      display: none;
-    }
-  }
 }
 
 /* At the end of the title line, beside the card's text and never over the art (owner, 2026-10-21,
@@ -888,6 +920,16 @@ html[data-library-page="empty"] {
   display: block;
 }
 
+/* The heart fills once the item is in Favorites, to go with "Remove from favorites". */
+.card-menu-list .fav-remove,
+[data-card][data-saved] .card-menu-list .fav-add {
+  display: none;
+}
+
+[data-card][data-saved] .card-menu-list .fav-remove {
+  display: block;
+}
+
 @media (width >= 40rem) {
   .menu-list.card-menu-list {
     margin-inline-end: var(--space-2);
@@ -901,15 +943,50 @@ html[data-library-page="empty"] {
   align-items: center;
 }
 
-/* Downloaded: a filled check circle at the start of the quiet line, put there once by
-   scripts/libraryMenu.ts, so it takes room only while it is shown. */
-.card-downloaded {
+/* What a card shows of what this device holds, after its facts (owner, 2026-11-03): a grey circle with the
+   download arrow once it is saved offline, never a word. Played is not on a card (a list of green and blue
+   circles was loud); the podcast page says it with the word, beside a green check (hero.css). CardMarks.astro
+   renders the mark hidden and the card's own data-downloaded (scripts/libraryMenu.ts) shows it, so it takes
+   room only while shown and the facts before it never change. Sized from the line's own text, so it keeps
+   its proportion if that changes (owner, 2026-11-02): the circle as tall as the text (owner, 2026-11-03:
+   smaller, to match the text's visual size), the glyph in it about 70% of that, with clear space all round. */
+.status-mark {
+  /* Whole pixels, so the glyph has the same space on every side on any screen: a fractional circle
+     and glyph (17.5 and 11.9 px) land on half pixels and look off centre (owner, 2026-11-02). */
+  --mark: round(1em, 1px);
+  /* The bold twin of the glyph in every style: at this size the regular line is barely there. */
+  --icon-bold: 1;
   display: inline-flex;
   flex: none;
-  color: var(--color-accent);
+  align-items: center;
+  justify-content: center;
+  width: var(--mark);
+  height: var(--mark);
+  border-radius: 50%;
 }
 
-.card-downloaded .icon-glyph {
-  width: 1rem;
-  height: 1rem;
+/* Grey, the colour of the facts it sits with: a saved copy is a fact, not a call to act, and blue
+   drew the eye down every row (owner, 2026-11-03: "grey in color instead of blue ... to not grab too
+   much attention"). */
+.status-mark-downloaded {
+  background: var(--color-on-surface-muted);
+  color: var(--color-surface);
+}
+
+.status-mark-played {
+  background: var(--color-success);
+  color: var(--color-surface);
+}
+
+.status-mark .icon-glyph {
+  width: round(0.7em, 2px);
+  height: round(0.7em, 2px);
+}
+
+.card-sub > .status-mark {
+  display: none;
+}
+
+.card[data-downloaded] .card-sub > .status-mark-downloaded {
+  display: inline-flex;
 }

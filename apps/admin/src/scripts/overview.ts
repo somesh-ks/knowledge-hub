@@ -5,6 +5,7 @@
  * own pages do it (costsPage.ts, healthPage.ts, beside this file).
  */
 
+import { askKept } from "../lib/kept";
 import { href } from "../lib/sections";
 
 type Tone = "good" | "warn" | "bad" | "none";
@@ -479,15 +480,6 @@ function renderSpend(body: CostBody): void {
 
 // ---- asking ----------------------------------------------------------------------------------
 
-async function ask<T>(url: string): Promise<T | null> {
-  try {
-    const response = await fetch(url, { headers: { accept: "application/json" } });
-    return response.ok ? ((await response.json()) as T) : null;
-  } catch {
-    return null;
-  }
-}
-
 /** A card whose ask failed says so where its answer would be, and drops what would have drawn on it. */
 function failed(selector: string, words: string): void {
   const root = pick<HTMLElement>(selector);
@@ -501,12 +493,16 @@ function failed(selector: string, words: string): void {
   root.querySelector(".card-group")?.append(element("p", "settings-note", words));
 }
 
+// Each card paints this device's last answer at once and the fresh one when it lands (lib/kept.ts);
+// only a card with neither says it did not answer.
 const groups = JSON.parse(pick<HTMLElement>("[data-overview]")?.dataset.groups ?? "[]") as Group[];
-void ask<HealthBody>("/api/health").then((body) =>
-  body
-    ? renderHealth(body, groups)
-    : failed("[data-overview-health]", "The health checks did not answer."),
+void askKept<HealthBody>("/api/health", "health", (body) => renderHealth(body, groups)).then(
+  (asked) => {
+    if (!asked.shown) failed("[data-overview-health]", "The health checks did not answer.");
+  },
 );
-void ask<CostBody>(`/api/costs?period=day&by=provider&days=${DAYS}`).then((body) =>
-  body ? renderSpend(body) : failed("[data-overview-spend]", "The costs did not answer."),
+void askKept<CostBody>(`/api/costs?period=day&by=provider&days=${DAYS}`, "spend", renderSpend).then(
+  (asked) => {
+    if (!asked.shown) failed("[data-overview-spend]", "The costs did not answer.");
+  },
 );

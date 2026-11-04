@@ -75,12 +75,12 @@ test.describe("keyboard operation of the player", () => {
       await page.keyboard.press("Tab");
       await expect(player.dock.getByRole("button", { name: "Previous story" })).toBeFocused();
     } else {
-      // A phone: the bar's own buttons in reading order.
+      // A phone: the bar's own buttons in reading order. It has no Next (a swipe on the bar switches
+      // podcast, D343), so Tab leaves the bar's transport after Pause.
       await player.openButton.focus();
       await page.keyboard.press("Tab");
       await expect(player.dock.getByRole("button", { name: "Pause", exact: true })).toBeFocused();
-      await page.keyboard.press("Tab");
-      await expect(player.dock.getByRole("button", { name: "Next story" })).toBeFocused();
+      await expect(player.dock.getByRole("button", { name: "Next story" })).toBeHidden();
     }
     // With a mouse from 64rem the timeline is the bar's, which the branch above drove.
     if (!hasTouch) return;

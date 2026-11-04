@@ -11,11 +11,12 @@
  * (`dismissOnScrim`); a popover has light dismiss of its own.
  */
 
-import { drawerHeadClass, drawerPanelClass } from "../design-system/drawer";
+import { drawerPanelClass } from "../design-system/drawer";
 import { MENU_SELECTORS } from "../design-system/menu";
 import { sheetBodyClass, sheetHeadClass } from "../design-system/sheet";
+import { quietNextClose } from "../player/sound/gestureQuiet";
 
-const HEAD = `.${sheetHeadClass()}, .${drawerHeadClass()}`;
+const HEAD = `.${sheetHeadClass()}`;
 const BODY = `.${sheetBodyClass()}, ${MENU_SELECTORS.body}, .${drawerPanelClass()}, .emoji-body, .gen-body`;
 
 /** A pull this far down before the sheet follows, so a tap or a sideways swipe never moves it. */
@@ -117,6 +118,7 @@ export function pullToDismiss(sheet: HTMLElement, close: () => void): void {
     const flicked = speed > FLICK && event.timeStamp - lastT < FLICK_WINDOW_MS;
     if (event.type === "touchend" && (pulled > sheet.clientHeight / 4 || flicked)) {
       // The sheet leaves from where the finger let go: its exit slide adds to this offset.
+      quietNextClose();
       close();
       return;
     }

@@ -1,0 +1,77 @@
+/* The menu's Playback speed screen: the stepper and the readout, then the slider under them (the
+   Slider, design-system/slider.ts). The readout holds five characters in
+   tabular figures, so it never moves as the speed does. */
+.player-speed {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-4) var(--space-6);
+}
+
+/* The two buttons stand either side of the readout as one centred cluster, close to it. The readout has
+   a fixed width, so the buttons keep their places as the speed changes (owner, 2026-11-02: tabular
+   figures, nothing shakes). Its digits are tabular (.num); "x" and the point are the same in every speed. */
+.player-speed-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.player-speed-readout {
+  inline-size: 5.5ch;
+  text-align: center;
+  /* Twice the display size, so the number is the screen and the buttons are its edges (owner, 2026-11-02:
+     the number must be bigger than the buttons). The width follows it in ch. */
+  font-size: calc(var(--font-size-display) * 2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  transition: color var(--duration-state) var(--ease-out);
+}
+
+/* Off 1x the number takes the accent, so the speed reads as a state, not only as a figure. */
+.player-speed-readout[data-off] {
+  color: var(--color-accent);
+}
+
+/* The slider stops on seven speeds: a dot for each, in the thumb-sized boxes the topic weights use, under
+   the thumb's centre at its stop. The track is a little thicker than the plain slider's. */
+.player-speed .slider-input {
+  --scrubber-track: calc(var(--space-1) * 1.5);
+  --stop-dot: radial-gradient(
+    circle at center,
+    var(--color-on-surface-subtle) 0 calc(var(--stroke-hairline) * 3),
+    transparent calc(var(--stroke-hairline) * 3 + 0.5px)
+  );
+  background-image:
+    var(--stop-dot), var(--stop-dot), var(--stop-dot), var(--stop-dot), var(--stop-dot),
+    var(--stop-dot), var(--stop-dot);
+  background-repeat: no-repeat;
+  background-size: var(--scrubber-thumb) var(--scrubber-thumb);
+  background-position:
+    0% center,
+    16.667% center,
+    33.333% center,
+    50% center,
+    66.667% center,
+    83.333% center,
+    100% center;
+}
+
+/* On the phone's sheet the tonal fill (the container step) is the sheet's own colour in the dark
+   theme and the circles vanish (owner review, 2026-11-02). They take the tiles' fill, one step up
+   there (tokens: sheet.tile-bg). The popover from 40rem is the overlay step, so the plain fill shows. */
+@media (width < 40rem) {
+  .player-speed-stepper > .icon-btn-tonal {
+    background: var(--sheet-tile-bg);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .player-speed-stepper > .icon-btn-tonal:where(:not(:disabled, [aria-disabled="true"])):hover {
+      background: var(--sheet-tile-bg-hover);
+    }
+  }
+
+  .player-speed-stepper > .icon-btn-tonal:where(:not(:disabled, [aria-disabled="true"])):active {
+    background: var(--sheet-tile-bg-pressed);
+  }
+}

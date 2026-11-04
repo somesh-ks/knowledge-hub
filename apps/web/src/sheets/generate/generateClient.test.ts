@@ -47,12 +47,20 @@ describe("startGenerate", () => {
     expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({});
   });
 
+  // The bug it prevents: the token the site sends with a run was dropped here, so a Regenerate from
+  // the sheet had no Cancel in the queue and could never ask for the message when it ended.
+  it("keeps the cancel token the site sends with the run", async () => {
+    const { fetch } = scriptedFetch(json(202, { run_id: 7, cancel_token: "tok" }));
+    const result = await startGenerate({ fetch, isOnline: online });
+    expect(result).toMatchObject({ kind: "started", runId: 7, cancelToken: "tok" });
+  });
+
   it("says so when offline, without a request", async () => {
     const { fetch, calls } = scriptedFetch();
     const result = await startGenerate({ fetch, isOnline: () => false });
     expect(result).toMatchObject({
       reason: "offline",
-      message: "You are offline. Reconnect, then try again.",
+      message: "You're offline. Try again when you're back online.",
     });
     expect(calls).toHaveLength(0);
   });
@@ -63,7 +71,7 @@ describe("startGenerate", () => {
     );
     expect(await startGenerate({ fetch, isOnline: online })).toMatchObject({
       reason: "cooldown",
-      message: "Generate is on cooldown. Try again in 5 hours 12 minutes.",
+      message: "Give it a moment. Try again in 5 hours 12 minutes.",
       retryAfterSeconds: 18_720,
     });
   });
@@ -72,7 +80,7 @@ describe("startGenerate", () => {
     const { fetch } = scriptedFetch(json(429, { error: "daily_cap" }, { "retry-after": "7200" }));
     expect(await startGenerate({ fetch, isOnline: online })).toMatchObject({
       reason: "dailyCap",
-      message: "Generate has reached its limit for today. Try again in 2 hours.",
+      message: "That's today's limit. Try again in 2 hours.",
     });
   });
 

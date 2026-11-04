@@ -1,9 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CARRIED_ATTRIBUTES,
   carryNavigationKind,
   carryRootAttributes,
+  installNavigation,
   isSamePage,
+  moveDirection,
   NAV_ATTRIBUTE,
   navigationKind,
 } from "./navigation";
@@ -17,6 +19,9 @@ import {
 } from "./serviceWorker";
 
 const url = (path: string) => new URL(path, "https://news.someshks.work");
+
+const navigate = vi.hoisted(() => vi.fn());
+vi.mock("astro:transitions/client", () => ({ navigate }));
 
 describe("navigationKind", () => {
   it("fades through between destinations at the same level", () => {
@@ -40,6 +45,10 @@ describe("navigationKind", () => {
     expect(navigationKind(url("/e/ep-20261007-1930"), url("/library"))).toBe("out");
     expect(navigationKind(url("/e/ep-20261007-1930"), url("/d/2026-10-05"))).toBe("peer");
     expect(navigationKind(url("/create"), url("/library"))).toBe("peer");
+    // A Settings page is a step in, from Settings or from anywhere, and the step back out.
+    expect(navigationKind(url("/settings"), url("/settings/downloads"))).toBe("in");
+    expect(navigationKind(url("/settings/downloads"), url("/settings"))).toBe("out");
+    expect(navigationKind(url("/settings/downloads"), url("/settings/voice"))).toBe("peer");
   });
 
   it("does not move for the page it is already on", () => {
@@ -80,10 +89,12 @@ describe("isSamePage", () => {
 });
 
 describe("carryRootAttributes", () => {
-  it("copies the theme, the style and the player's state onto the incoming page", () => {
+  it("copies the theme, the style, the reader's hue and the player's state onto the incoming page", () => {
     const live = fakeRoot({
       "data-theme": "dark",
-      "data-style": "expressive",
+      "data-mood": "expressive",
+      // The hue lives in the root's style: a page drawn once without it eases to it (owner, 2026-11-03).
+      style: "--hue-shift: 120",
       "data-mini": "visible",
       "data-player": "closed",
       "data-player-state": "playing",
@@ -91,7 +102,8 @@ describe("carryRootAttributes", () => {
     const incoming = fakeRoot({ "data-mini": "hidden", "data-player-state": "idle" });
     carryRootAttributes(live, incoming);
     expect(incoming.getAttribute("data-theme")).toBe("dark");
-    expect(incoming.getAttribute("data-style")).toBe("expressive");
+    expect(incoming.getAttribute("data-mood")).toBe("expressive");
+    expect(incoming.getAttribute("style")).toBe(live.getAttribute("style"));
     expect(incoming.getAttribute("data-mini")).toBe("visible");
     expect(incoming.getAttribute("data-player")).toBe("closed");
     expect(incoming.getAttribute("data-player-state")).toBe("playing");
@@ -156,7 +168,7 @@ describe("shouldCheckForUpdate", () => {
 // A deploy loads itself (D202), so the reload must never cost the reader anything: a listen, an
 // Undo, an open sheet, text typed and not yet saved.
 describe("canReloadNow", () => {
-  const idle = { playerState: "paused", overlayOpen: false, editing: false };
+  const idle = { playerState: "paused", overlayOpen: false, editing: false, playerOpen: false };
 
   it("loads the new build when nothing is in use", () => {
     expect(canReloadNow(idle)).toBe(true);
@@ -168,6 +180,8 @@ describe("canReloadNow", () => {
     expect(canReloadNow({ ...idle, playerState: "loading" })).toBe(false);
     expect(canReloadNow({ ...idle, overlayOpen: true })).toBe(false);
     expect(canReloadNow({ ...idle, editing: true })).toBe(false);
+    // A paused episode in the open player: the page hiding for a system alert used to reload it shut.
+    expect(canReloadNow({ ...idle, playerOpen: true })).toBe(false);
   });
 });
 
@@ -212,5 +226,98 @@ describe("claimApply", () => {
     const store = memory();
     for (let attempt = 0; attempt < APPLY_ATTEMPTS; attempt += 1) claimApply("b2", store);
     expect(claimApply("b3", store)).toBe(true);
+  });
+});
+
+// Owner, 2026-11-02: the page should arrive from the side of the tab you came from. A wrong side
+// shows nothing wrong, only a page arriving from the side opposite to the move.
+describe("moveDirection", () => {
+  const bar = ["/", "/library", "/settings"];
+
+  it("follows the bar between tabs", () => {
+    expect(moveDirection("peer", "/", "/library", bar)).toBe("next");
+    expect(moveDirection("peer", "/", "/settings", bar)).toBe("next");
+    expect(moveDirection("peer", "/settings", "/library", bar)).toBe("prev");
+  });
+
+  it("goes in to the end side and out to the start side", () => {
+    expect(moveDirection("in", "/library", "/library", bar)).toBe("next");
+    expect(moveDirection("out", "/library", "/library", bar)).toBe("prev");
+  });
+
+  it("says nothing when the bar does not", () => {
+    expect(moveDirection("peer", "/library", "/library", bar)).toBeNull();
+    expect(moveDirection("peer", null, "/library", bar)).toBeNull();
+    expect(moveDirection("peer", "/library", "/offline", bar)).toBeNull();
+    expect(moveDirection("none", "/", "/library", bar)).toBeNull();
+  });
+});
+
+describe("a bottom tab tap", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    navigate.mockClear();
+  });
+
+  // Bug it prevents (owner, 2026-11-03, Android Chrome): "the tap isn't registered even though I see
+  // the ripple". A tap while the page still glides from a flick stops the glide, and Chrome sends
+  // the pointer's down and up but no click, so a tab that opened on the click alone stayed put.
+  it("opens its tab on the lift, once, with or without the browser's click, and not after a scroll", async () => {
+    let under: unknown = null;
+    const page = Object.assign(new EventTarget(), {
+      querySelector: () => null,
+      elementFromPoint: () => under,
+    });
+    vi.stubGlobal("document", page);
+    vi.stubGlobal("location", url("/"));
+    installNavigation();
+    const tab = {
+      href: url("/library").href,
+      getAttribute: (name: string) => (name === "href" ? "/library" : null),
+      matches: () => false,
+      closest: (selector: string) => (selector === "a.app-nav-item" ? tab : null),
+    };
+    under = tab;
+    const fire = (type: string, pointerId = 1, extra: object = {}): Event => {
+      const event = Object.assign(new Event(type, { cancelable: true }), {
+        pointerId,
+        pointerType: "touch",
+        button: 0,
+        isPrimary: true,
+        detail: 1,
+        ...extra,
+      });
+      Object.defineProperty(event, "target", { value: tab });
+      page.dispatchEvent(event);
+      return event;
+    };
+
+    fire("pointerdown");
+    fire("pointerup");
+    await vi.dynamicImportSettled();
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledWith(tab.href, { sourceElement: tab });
+    // The click a tap sends after its lift, when it sends one, must not reach the router as a second move.
+    expect(fire("click").defaultPrevented).toBe(true);
+
+    // A flick that starts on the bar is a scroll: the browser cancels the pointer.
+    fire("pointerdown", 2);
+    fire("pointercancel", 2);
+    fire("pointerup", 2);
+    // A finger dragged off the tab and lifted elsewhere, and a modified tap, open nothing.
+    fire("pointerdown", 3);
+    under = null;
+    fire("pointerup", 3);
+    under = tab;
+    fire("pointerdown", 4);
+    fire("pointerup", 4, { shiftKey: true });
+    await vi.dynamicImportSettled();
+    expect(navigate).toHaveBeenCalledTimes(1);
+    // A tap whose click never came: a key's click later (no count) is not its echo and reaches the router.
+    fire("pointerdown", 5);
+    fire("pointerup", 5);
+    await vi.dynamicImportSettled();
+    expect(navigate).toHaveBeenCalledTimes(2);
+    expect(fire("click", 5, { detail: 0 }).defaultPrevented).toBe(false);
   });
 });

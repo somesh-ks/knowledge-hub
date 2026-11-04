@@ -4,9 +4,28 @@ One note per session, newest first. Read a note only to learn why something was 
 
 | Date | Note | Summary |
 | :--- | :--- | :--- |
+| 2026-11-04 | [Up next rework](2026-11-04-up-next-rework.md) | Any row may go above the playing one, the list glides on every change, a phone swipe shows the red strip, a removed podcast is not suggested again, and the player's tabs show on its first screen (D357) |
+| 2026-11-04 | [Guardrails](2026-11-04-guardrails.md) | The daily health check measures cost, speed, tests, bugs, security and keys against budgets, saves them for the admin Health page, posts a Monday card; smoke watches the check; the cron skips Neon in unscheduled hours (D360) |
+| 2026-11-03 | [Dock swipes](2026-11-03-dock-swipes.md) | A swipe on the player or a sheet is felt, not heard; the bar's sideways swipe shows the podcast it goes to (D359) |
+| 2026-11-03 | [The change log kept by CI](2026-11-03-change-log-kept-by-ci.md) | The log had stopped at 23 Oct; 0.10 to 0.19 backfilled and the docs check now fails a feat, fix or perf PR when the newest entry is over two days old (D355) |
+| 2026-11-03 | [Bottom tab double ripple](2026-11-03-bottom-tab-double-ripple.md) | A tab tap's second ripple was the carried wave redrawn behind on the new bar; deeper pages rise; tab moves take 250 ms (D347) |
+| 2026-11-03 | [Spend limits and the coverage reading](2026-11-03-spend-limits.md) | One Speechify count in Blob, a weekly Exa stop, a failed Regenerate's cost recorded, coverage printed to the log (D339) |
+| 2026-11-03 | [Regenerate hints and required comment](2026-11-03-regenerate-hints.md) | Regenerate opens on the comment, Length and Categories appear as words reach for them, the comment is required, the forms use the Create form's parts (D337, D340); the in-sheet notify switch was dropped |
+| 2026-11-02 | [Page slide from the tab](2026-11-02-page-slide-from-the-tab.md) | Pages arrive from the side of the tab you came from; a tapped card keeps its press until its page arrives (D341) |
+| 2026-11-02 | [Cover flight removed](2026-11-02-cover-flight-removed.md) | A cover no longer flies between its card and the page's hero; the fade and settle stay (D336) |
+| 2026-11-02 | [Catch up exit, full Regenerate](2026-11-02-catchup-regenerate.md) | A smooth sheet exit, Regenerate as a full sheet with no Usual, the script at medium effort (D323, D324) |
+| 2026-11-01 | [Content out of git](2026-11-01-content-out-of-git.md) | Digests and episodes load from the content store before a job and save after its commit; the snapshot moves to Neon (D300, D311) |
+| 2026-11-02 | [Catch-up speed](2026-11-02-catch-up-speed.md) | The edge purge waits 55 s from the run's last save, not from the notifier job's start (D318) |
+| 2026-11-02 | [Offline and app state](2026-11-02-offline-state.md) | One connectivity state, a stand-in that keeps the route and recovers in place, pages kept ready, plain error copy with a test (D330, D331) |
+| 2026-11-02 | [Ghost states](2026-11-02-ghost-states.md) | Controls with no fill show hover and press as the surface behind them; the ripple and a cover's press stay alpha (D317 step 2, D321) |
+| 2026-11-02 | [Player ⋮ menu](2026-11-02-player-menu.md) | A ⋮ menu replaces the speed button: tiles, a speed screen with stops, Save and Settings > Saved (D309) |
+| 2026-11-01 | [Performance audit](2026-11-01-performance-audit.md) | No skeleton; preload links back (D316), pages kept at the Stockholm edge until content changes (D318), shorter cold start |
+| 2026-11-01 | [Review rules](2026-11-01-review-rules.md) | Review by tier; CodeRabbit asked for once when a PR is ready, never per push (D292) |
+| 2026-11-01 | [Bottom bar press ripple](2026-11-01-bar-press-ripple.md) | A Ripple in the design system; the bar's tabs show the touch as a wave with the pill easing in beneath (D286) |
 | 2026-11-01 | [Half-built audit](2026-11-01-half-built-audit.md) | 41 decided or planned items found not built, unwired or unverified; docs and dead code fixed, the rest routed by owner |
 | 2026-11-01 | [Episode centring](2026-11-01-episode-centring.md) | A page with a contents list is centred as the column and the list together (D287) |
 | 2026-11-01 | [Library list by month](2026-11-01-library-list-months.md) | The list groups by month under a sticky label, two columns from 80rem (D288) |
+| 2026-11-01 | [Live covers](2026-11-01-live-covers.md) | One vector per cover, recoloured by the page for each style; no per-style images (D314) |
 | 2026-10-31 | [Ledger split](2026-10-31-ledger-split.md) | The design ledger split into a core and one file per surface; the Index grep-only; read-first 20 KB (D283) |
 | 2026-10-31 | [State trim](2026-10-31-state-trim.md) | Ten parked unverified items moved out of state.md; read-first headroom (D283) |
 | 2026-10-31 | [Downloads page](2026-10-31-downloads-page.md) | Settings > Downloads wears the Library's List rows, no cap, confirm on every remove (D281) |

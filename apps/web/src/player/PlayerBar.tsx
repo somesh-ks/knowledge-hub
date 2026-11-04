@@ -1,6 +1,16 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  type PointerEvent as ReactPointerEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { swipeLeaves } from "../lib/swipeAway";
 import { chapterMask } from "./core/chapterMask";
-import { formatClock } from "./core/formatTime";
+import { formatClock, longDateFromDigestId } from "./core/formatTime";
+import { createVelocityTracker, TAP_SLOP_PX } from "./core/gestureMath";
 import { heldTap } from "./core/heldTap";
 import {
   errorSummary,
@@ -10,12 +20,14 @@ import {
   recordingKind,
   toggleLabel,
 } from "./core/playerCopy";
-import { getPlayerStore } from "./core/playerRuntime";
+import { getPlayerStore, playQueueItem } from "./core/playerRuntime";
 import { playerSheet } from "./core/playerSheet";
+import { loadQueueMeta } from "./core/queueMeta";
 import { dockSeekKeyValue, fractionOfTime, scrubberValueText } from "./core/scrubberMath";
 import { itemIndexAt, storySectionName } from "./core/timeline";
 import { applyVolume, getVolume, setVolume } from "./core/volume";
 import { usePlayerFrame, usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
+import { useQueueMeta, useQueueView } from "./hooks/useQueue";
 import Clock from "./ui/Clock";
 import Icon from "./ui/Icon";
 import PlayerCover from "./ui/PlayerCover";
@@ -198,6 +210,191 @@ function DockVolume() {
   );
 }
 
+/** How long the bar takes to slide to the podcast a swipe chose: the sideways slide of a tab switch. */
+const DOCK_SLIDE_MS = 250;
+/** How long a switch waits for the podcast to load before the bar lets go of the old words. */
+const DOCK_SWITCH_WAIT_MS = 4000;
+
+/** The podcasts a swipe goes to, and the one the bar shows (which ends a switch when it is the one asked for). */
+interface DockSwipeTargets {
+  next: string | null;
+  previous: string | null;
+  shownId: string | null;
+}
+
+/** The podcast the finger is carrying the bar toward, and the side it comes in from. */
+interface DockPeek {
+  id: string;
+  dir: "next" | "previous";
+}
+
+/**
+ * A sideways swipe on the bar switches the podcast: left for the next one in the queue, right for
+ * the one before (owner, 2026-11-01 and 2026-11-02). The one it would switch to comes in from the
+ * side the finger is pulling from, so the target shows before the finger lifts (owner, 2026-11-03:
+ * "see the next or previous podcast depending on the swipe"). Past the swipe rule (lib/swipeAway.ts)
+ * the bar slides on to it, the podcast is asked for, and the bar lets go of the slide when the
+ * podcast it asked for is the one it shows; short of the rule, or with nowhere to go, the words
+ * spring back. A finger and a pen only: a mouse has the buttons on a wide bar. Once the finger has
+ * gone sideways it is the swipe's until it lifts, so a wander upward never turns it into a pull on
+ * the page. Returns the handlers for the open button, the podcast being peeked at, and whether its
+ * click was a swipe's echo.
+ */
+function useDockSwipe({ next, previous, shownId }: DockSwipeTargets) {
+  const tracker = useMemo(() => createVelocityTracker(), []);
+  const press = useRef<{
+    id: number;
+    x0: number;
+    y0: number;
+    dx: number;
+    mode: "idle" | "swipe" | "other";
+  } | null>(null);
+  const swipedUntil = useRef(0);
+  const button = useRef<HTMLElement | null>(null);
+  const waiting = useRef<{ id: string; since: number } | null>(null);
+  // True from the switch's end until the slide has landed and been dropped: no new swipe meanwhile.
+  const settling = useRef(false);
+  const [peek, setPeek] = useState<DockPeek | null>(null);
+  // Both neighbours are read before a finger comes, so the one it peeks at is already drawn.
+  useEffect(() => {
+    for (const id of [next, previous]) if (id) void loadQueueMeta(id);
+  }, [next, previous]);
+  const goesTo = (dx: number): string | null => (dx < 0 ? next : dx > 0 ? previous : null);
+
+  const follow = (target: HTMLElement, dx: number): void => {
+    // With nowhere to go the words give a little, then hold.
+    target.style.setProperty("--dock-swipe", `${goesTo(dx) ? dx : dx * 0.2}px`);
+    const id = goesTo(dx);
+    const dir = dx < 0 ? "next" : "previous";
+    setPeek((current) => (id ? (current?.id === id ? current : { id, dir }) : null));
+  };
+
+  // A switch is whole when the podcast it asked for is the one the bar shows: the bar has slid all
+  // the way over, and the slide is dropped in one step, because what it shows is what is there.
+  const finish = useCallback((): void => {
+    const target = button.current;
+    const pending = waiting.current;
+    if (!target || !pending) return;
+    waiting.current = null;
+    settling.current = true;
+    // Not before the slide has landed, however fast the podcast came.
+    const wait = Math.max(0, DOCK_SLIDE_MS - (performance.now() - pending.since));
+    window.setTimeout(() => {
+      target.dataset.swiping = "";
+      target.style.removeProperty("--dock-swipe");
+      delete target.dataset.swipeOut;
+      setPeek(null);
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          delete target.dataset.swiping;
+          settling.current = false;
+        }),
+      );
+    }, wait);
+  }, []);
+  useEffect(() => {
+    if (waiting.current && waiting.current.id === shownId) finish();
+  }, [shownId, finish]);
+
+  return {
+    peek,
+    swiped: () => performance.now() < swipedUntil.current,
+    onPointerDown(event: ReactPointerEvent<HTMLElement>): void {
+      if (event.pointerType === "mouse" || !event.isPrimary || waiting.current || settling.current)
+        return;
+      press.current = {
+        id: event.pointerId,
+        x0: event.clientX,
+        y0: event.clientY,
+        dx: 0,
+        mode: "idle",
+      };
+      tracker.reset({ value: event.clientX, t: event.timeStamp });
+    },
+    onPointerMove(event: ReactPointerEvent<HTMLElement>): void {
+      const current = press.current;
+      if (!current || current.id !== event.pointerId) return;
+      const dx = event.clientX - current.x0;
+      const dy = event.clientY - current.y0;
+      tracker.push(event.clientX, event.timeStamp);
+      if (current.mode === "idle") {
+        if (Math.abs(dx) >= TAP_SLOP_PX && Math.abs(dx) > Math.abs(dy)) {
+          current.mode = "swipe";
+          const target = event.currentTarget;
+          target.setPointerCapture(event.pointerId);
+          target.dataset.swiping = "";
+          // How far a podcast waits off the bar's side, so it shows only as the finger pulls it in.
+          target.style.setProperty("--dock-span", `${target.clientWidth}px`);
+          // The page's own pull ends here: this finger is going sideways.
+          void playerSheet.pointerEnd(
+            {
+              pointerId: event.pointerId,
+              x: event.clientX,
+              y: event.clientY,
+              t: event.timeStamp,
+              zone: "dock",
+              touch: true,
+            },
+            true,
+          );
+        } else if (Math.abs(dy) >= TAP_SLOP_PX) current.mode = "other";
+      }
+      if (current.mode !== "swipe") return;
+      current.dx = dx;
+      follow(event.currentTarget, dx);
+    },
+    onPointerEnd(event: ReactPointerEvent<HTMLElement>): void {
+      const current = press.current;
+      if (!current || current.id !== event.pointerId) return;
+      press.current = null;
+      if (current.mode !== "swipe") return;
+      const target = event.currentTarget;
+      button.current = target;
+      delete target.dataset.swiping;
+      swipedUntil.current = event.timeStamp + 400;
+      const to = goesTo(current.dx);
+      const goes =
+        to !== null &&
+        event.type !== "pointercancel" &&
+        swipeLeaves(current.dx, target.offsetWidth, tracker.velocity());
+      if (!goes || !to) {
+        target.style.removeProperty("--dock-swipe");
+        setPeek(null);
+        return;
+      }
+      const dir = current.dx < 0 ? "next" : "previous";
+      waiting.current = { id: to, since: performance.now() };
+      // The bar slides on, a whole width, to the podcast it was showing the way to.
+      target.dataset.swipeOut = dir;
+      target.style.setProperty(
+        "--dock-swipe",
+        `${(dir === "next" ? -1 : 1) * target.clientWidth}px`,
+      );
+      playQueueItem(to);
+      // A slow or failed load lets go too, so the bar is never left blank.
+      window.setTimeout(() => {
+        if (waiting.current?.id === to) finish();
+      }, DOCK_SWITCH_WAIT_MS);
+    },
+  };
+}
+
+/** The podcast a swipe is about to switch to, drawn as the bar draws one, waiting off to the side. */
+function DockPeekItem({ id, dir }: DockPeek) {
+  const meta = useQueueMeta(id);
+  return (
+    <span className="dock-peek" aria-hidden="true" data-peek={dir}>
+      <span className="player-thumb">
+        {meta ? <PlayerCover cover={meta.cover} weekly={meta.weekly} size="thumb" /> : null}
+      </span>
+      <span className="dock-text">
+        <span className="dock-title">{meta?.title ?? longDateFromDigestId(id)}</span>
+        <span className="dock-caption">{meta?.caption ?? " "}</span>
+      </span>
+    </span>
+  );
+}
+
 /**
  * The dock: the bar at the bottom of the screen, and the collapsed end of the player surface. A
  * tap or a pull up anywhere on it that is not another control grows it into the page (the open
@@ -254,6 +451,13 @@ export default function PlayerBar() {
     () => true,
   );
   const isLastItem = itemCount === 0 || state.itemIndex >= itemCount - 1;
+  const queue = useQueueView();
+  const swipe = useDockSwipe({
+    next: queue.upcoming[0] ?? null,
+    // The row over the playing one comes first (D357), then what played.
+    previous: queue.above.at(-1) ?? queue.played.at(-1) ?? null,
+    shownId: digest?.id ?? null,
+  });
 
   return (
     <section className="player-dock" aria-label="Audio player" data-player-dock>
@@ -283,12 +487,18 @@ export default function PlayerBar() {
         aria-expanded="false"
         aria-controls={PLAYER_PAGE_ID}
         aria-label={`Player: ${headline}`}
-        onClick={(event) =>
-          playerSheet.click({ t: event.timeStamp, fromPointer: event.detail > 0 })
-        }
+        onClick={(event) => {
+          // The click some browsers still send after a swipe's lift is not a press.
+          if (swipe.swiped()) return;
+          playerSheet.click({ t: event.timeStamp, fromPointer: event.detail > 0 });
+        }}
         onPointerDown={(event) => {
           pressedBy.current = event.pointerType;
+          swipe.onPointerDown(event);
         }}
+        onPointerMove={swipe.onPointerMove}
+        onPointerUp={swipe.onPointerEnd}
+        onPointerCancel={swipe.onPointerEnd}
         // A tap opens the page on the finger's lift, and focus moves into it. The mouse press a
         // browser sends after a tap would then take focus back to this button, which a wide window
         // keeps in reach under the open page, and the next Tab would start from nothing.
@@ -296,6 +506,7 @@ export default function PlayerBar() {
           if (pressedBy.current === "touch") event.preventDefault();
         }}
       >
+        {swipe.peek ? <DockPeekItem id={swipe.peek.id} dir={swipe.peek.dir} /> : null}
         <span className="player-thumb" data-player-thumb>
           {digest ? (
             <PlayerCover cover={digest.cover} weekly={digest.kind === "weekly"} size="thumb" />
@@ -344,8 +555,10 @@ export default function PlayerBar() {
           <PlayPauseGlyph status={state.status} error={state.error} />
           <span className="spinner" aria-hidden="true" />
         </button>
+        {/* A finger swipes the bar for the next podcast (useDockSwipe), so a phone's bar leaves
+            this out (player.css); a mouse, and a wide bar, keep it. */}
         <button
-          className="dock-btn press"
+          className="dock-btn dock-next press"
           type="button"
           aria-label="Next story"
           aria-disabled={isLastItem || undefined}

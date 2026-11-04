@@ -1,31 +1,56 @@
 {
   "version": 1,
-  "as_of": "2026-10-21",
+  "as_of": "2026-11-01",
   "prices": [
     {
       "provider": "anthropic",
       "product": "claude-sonnet-5-5",
       "units": {
         "input_tokens": {
-          "usd": 3,
+          "usd": 2,
           "per": 1000000
         },
         "output_tokens": {
-          "usd": 15,
+          "usd": 10,
           "per": 1000000
         },
         "batch_input_tokens": {
-          "usd": 1.5,
+          "usd": 1,
           "per": 1000000
         },
         "batch_output_tokens": {
-          "usd": 7.5,
+          "usd": 5,
           "per": 1000000
         }
       },
-      "as_of": "2026-10-21",
+      "as_of": "2026-11-01",
       "confirmed": false,
-      "note": "Sonnet-class list price assumed; check Anthropic's pricing page. Output includes thinking tokens."
+      "note": "2 and 10 USD per million tokens, as found 2026-11-01 (the 3 and 15 here were assumed). Batches are half. Output includes thinking tokens. Check Anthropic's pricing page."
+    },
+    {
+      "provider": "anthropic",
+      "product": "claude-haiku-5-5",
+      "units": {
+        "input_tokens": {
+          "usd": 0.1,
+          "per": 1000000
+        },
+        "output_tokens": {
+          "usd": 0.5,
+          "per": 1000000
+        },
+        "batch_input_tokens": {
+          "usd": 0.05,
+          "per": 1000000
+        },
+        "batch_output_tokens": {
+          "usd": 0.25,
+          "per": 1000000
+        }
+      },
+      "as_of": "2026-11-01",
+      "confirmed": false,
+      "note": "0.10 and 0.50 USD per million tokens, as found 2026-11-01. Batches are half. Output includes thinking tokens. Check Anthropic's pricing page."
     },
     {
       "provider": "anthropic",

@@ -28,7 +28,7 @@ test.describe("keyboard", { tag: "@desktop" }, () => {
   }) => {
     await page.goto("/");
     const seen: string[] = [];
-    for (let step = 0; step < 16; step += 1) {
+    for (let step = 0; step < 17; step += 1) {
       await page.keyboard.press("Tab");
       seen.push(await focused(page));
     }
@@ -40,9 +40,12 @@ test.describe("keyboard", { tag: "@desktop" }, () => {
       "a: Latest",
       "a: Library",
       "a: Settings",
+      // The avatar is the last stop of the side column, before the page itself (D335).
+      "a: Your profile",
       // The queue's row ends the side column only while something is being made.
       "button: More actions",
       "button: Play the podcast, 1 min",
+      "button: Favorite",
       "button: Share",
       // A story is its headline link, then its play chip, then its like, dislike and options; the
       // publisher beside the chip is only attribution, out of the tab order and hidden from screen
@@ -53,7 +56,6 @@ test.describe("keyboard", { tag: "@desktop" }, () => {
       "button: Dislike: Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity",
       "button: Story options: Springlet 2.0 retargets springs mid-flight, so interrupted drawers keep their velocity",
       "a: A dither shader that stays sharp at any pixel density (opens in a new tab)",
-      "button: Play from here, 0:03: A dither shader that stays sharp at any pixel density",
     ]);
   });
 

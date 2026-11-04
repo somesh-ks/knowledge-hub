@@ -19,13 +19,18 @@
   inset-inline-end: var(--menu-right, 0);
   min-width: 10rem;
   margin: 0;
-  padding: var(--space-2);
+  /* Rows run edge to edge: the list pads above and below only, and its corner clips the first and
+     last row (owner, 2026-11-02: "full bleed, padding just top and bottom"). */
+  padding: var(--space-2) 0;
+  overflow: hidden;
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: var(--shape-md);
   background: var(--color-surface-overlay);
   box-shadow: var(--shadow-popover);
   color: var(--color-on-surface);
   --color-focus-gap: var(--color-surface-overlay);
+  --ghost-hover: var(--color-surface-overlay-hover);
+  --ghost-pressed: var(--color-surface-overlay-pressed);
   /* Closed, a popover is display: none; the open state alone turns it on. */
   display: none;
   opacity: 0;
@@ -92,8 +97,8 @@
   align-items: center;
   width: 100%;
   min-height: var(--size-touch);
-  padding-inline: var(--space-4);
-  border-radius: var(--radius-sm);
+  padding-inline: var(--space-6);
+  border-radius: 0;
   color: var(--color-on-surface);
   font-size: var(--font-size-body);
   line-height: var(--font-leading-label);
@@ -102,26 +107,21 @@
 }
 
 /* On a wide screen the Menu is one popover family with the picker and the select list (owner,
-   2026-11-01): a 32px corner around rows 8px in, so a row's 24px corner shares its centre with the
-   corner around it. The phone's sheet (below 40rem) keeps its own rows. */
+   2026-11-01): a 32px corner. Its rows are full bleed (2026-11-02), so the corner clips them. */
 @media (width >= 40rem) {
   .menu-list {
-    border-radius: var(--radius-2xl);
-  }
-
-  .menu-list .menu-item {
-    border-radius: var(--radius-xl);
+    border-radius: var(--shape-2xl);
   }
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .menu-item:hover {
-    background: color-mix(in oklab, currentColor 8%, transparent);
+  .menu-item:where(:not(:disabled, [aria-disabled="true"])):hover {
+    background: var(--ghost-hover);
   }
 }
 
-.menu-item:active {
-  background: color-mix(in oklab, currentColor 12%, transparent);
+.menu-item:where(:not(:disabled, [aria-disabled="true"])):active {
+  background: var(--ghost-pressed);
 }
 
 /* The ring is drawn inside the row, so it never meets the panel's edge. */
@@ -146,6 +146,115 @@
   mask: var(--check-mask) center / contain no-repeat;
 }
 
+/* A row that opens a second screen says its state at the end: quiet, with the chevron after it. */
+.menu-item-value {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-inline-start: auto;
+  color: var(--color-on-surface-muted);
+}
+
+/* The quick actions at the top of a menu (the player's: Download, Share, Save): a few tiles, each a
+   glyph over a word on the container tone. The tiles keep an 8px inset and an 8px gap while the
+   rows under them run edge to edge. */
+.menu-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  grid-auto-flow: column;
+  gap: var(--space-2);
+  padding-block-end: var(--space-2);
+  padding-inline: var(--space-2);
+}
+
+.menu-tile {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-4) var(--space-2);
+  border: 0;
+  border-radius: var(--shape-xl);
+  --tile-fill: var(--sheet-tile-bg);
+  --tile-fill-hover: var(--sheet-tile-bg-hover);
+  --tile-fill-press: var(--sheet-tile-bg-pressed);
+  background: var(--tile-fill);
+  color: var(--color-on-surface);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+/* A Library card's quick actions are plain rows in the markup, wrapped in a tiles row marked data-fold
+   (D291): from 40rem the wrapper steps aside and they are rows of one list; on a phone's sheet they are
+   the same tiles as the player's, a glyph over a word on the container tone. */
+@media (width >= 40rem) {
+  .menu-tiles[data-fold] {
+    display: contents;
+  }
+}
+
+@media (width < 40rem) {
+  .menu-tiles[data-fold] > .menu-item {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: var(--space-1);
+    min-height: 0;
+    padding: var(--space-4) var(--space-2);
+    border-radius: var(--shape-xl);
+    background: var(--sheet-tile-bg);
+    text-align: center;
+  }
+
+  .menu-tiles[data-fold] > .menu-item:where(:not(:disabled, [aria-disabled="true"])):active {
+    background: var(--sheet-tile-bg-pressed);
+  }
+
+  .menu-tiles[data-fold] > .menu-item:focus-visible {
+    background: var(--sheet-tile-bg-pressed);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  @media (width < 40rem) {
+    /* Not while pressed or keyed: those fills are stronger and must show under a pointer (D317). */
+    .menu-tiles[data-fold]
+      > .menu-item:where(:not(:disabled, [aria-disabled="true"])):hover:not(
+        :active,
+        :focus-visible
+      ) {
+      background: var(--sheet-tile-bg-hover);
+    }
+  }
+}
+
+/* A tile that is on (Saved: aria-checked; Downloaded: data-on) takes the accent container, as a chosen segment does. */
+.menu-tile:is([aria-checked="true"], [data-on]) {
+  --tile-fill: var(--color-accent-container);
+  --tile-fill-hover: var(--color-accent-container-hover);
+  --tile-fill-press: var(--color-accent-container-pressed);
+  background: var(--tile-fill);
+  color: var(--color-on-accent-container);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .menu-tile:where(:not(:disabled, [aria-disabled="true"])):hover {
+    background: var(--tile-fill-hover);
+  }
+}
+
+.menu-tile:where(:not(:disabled, [aria-disabled="true"])):active {
+  background: var(--tile-fill-press);
+}
+
+/* An on tile keeps its own foreground when disabled (Downloaded is on and disabled at once). */
+.menu-tile:is(:disabled, [aria-disabled="true"]):not([aria-checked="true"], [data-on]) {
+  color: var(--color-on-surface-disabled);
+  cursor: default;
+}
+
 /* Red marks the one that destroys; the confirm still asks before anything is removed. */
 .menu-item-danger {
   color: var(--color-danger);
@@ -168,8 +277,9 @@
   height: var(--size-icon);
 }
 
-/* From 40rem the header is the sheet's alone. */
-.menu-sheet > .sheet-head {
+/* From 40rem the header is the sheet's alone. A second screen's head (Playback speed, with Back) stays
+   at every width: Back and the screen's name are what say where this is (sheet.css). */
+.menu-sheet > .sheet-head:not([data-has-back]) {
   display: none;
 }
 
@@ -185,11 +295,20 @@
     max-width: none;
     min-width: 0;
     margin: 0 auto;
-    padding: 0 var(--space-2) max(var(--space-2), var(--safe-bottom));
+    padding: 0 0 max(var(--space-2), var(--safe-bottom));
     border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
     background: var(--sheet-bg);
     box-shadow: var(--sheet-shadow);
     --color-focus-gap: var(--sheet-bg);
+    /* The rows' ghost states step the surface they lie on: the sheet's, not the popover's. */
+    --ghost-hover: var(--sheet-bg-hover);
+    --ghost-pressed: var(--sheet-bg-pressed);
+    /* A long list (a select's options) stops at 70% of the screen: the head stays, the rows scroll.
+       The column lives here, not only on :popover-open: while the sheet slides out, its display stays
+       flex for the exit but the open-only rules are gone, and a missing column laid the head and the
+       rows side by side for the length of the slide (owner, 2026-11-02, "so broken"). */
+    flex-direction: column;
+    max-block-size: 70dvh;
     opacity: 1;
     transform: translateY(105%);
     transform-origin: bottom;
@@ -199,11 +318,8 @@
       display var(--duration-sheet-out) allow-discrete;
   }
 
-  /* A long list (a select's options) stops at 70% of the screen: the head stays, the rows scroll. */
   .menu-list.menu-sheet:popover-open {
     display: flex;
-    flex-direction: column;
-    max-block-size: 70dvh;
     transform: none;
     transition-duration: var(--duration-sheet-in);
   }
@@ -220,19 +336,48 @@
     }
   }
 
+  /* The scrim fades out with the menu instead of vanishing (owner thread, 2026-11-02). A pick closes this
+     menu and opens the next sheet in the same frame (More > Regenerate). The menu's scrim was held at full
+     strength under the sheet's rising one, then dropped in one frame, a visible pop. Linear over the menu's
+     own exit, it ends with the popover (a longer fade would be cut mid-way) while the sheet's scrim eases
+     in, so the page never lacks a scrim and never stacks two. */
   .menu-sheet::backdrop {
     background: var(--color-scrim);
+    opacity: 0;
+    transition:
+      opacity var(--duration-sheet-out) var(--ease-linear),
+      overlay var(--duration-sheet-out) allow-discrete,
+      display var(--duration-sheet-out) allow-discrete;
   }
 
-  .menu-sheet > .sheet-head {
+  .menu-sheet:popover-open::backdrop {
+    opacity: 1;
+  }
+
+  /* A sheet with one visible, safe row is that row alone (D329, owner, 2026-11-02): a title and a Close
+     over a single action are taller than the action, and a swipe or a tap on the scrim already
+     closes it. The row's name still reaches a screen reader, as the list's aria-label. A lone danger
+     row keeps its title, so the sheet says what the row destroys; so does a sheet with tiles or two
+     rows. A row marked hidden does not count. */
+  .menu-sheet:has(> .menu-sheet-items > .menu-item:not([hidden], .menu-item-danger)):not(
+    :has(
+      > .menu-sheet-items > .menu-item:not([hidden]) ~ .menu-item:not([hidden]),
+      > .menu-sheet-items > .menu-item-danger:not([hidden]),
+      > .menu-sheet-items > .menu-tiles
+    )
+  ) > .sheet-head:not([data-has-back]) {
+    display: none;
+  }
+
+  .menu-sheet > .sheet-head:not([data-has-back]) {
     display: flex;
     flex: none;
-    /* The sheet's corner is 32px, so the title stands well in from it: 24px below the top and 8 + 16 =
-       24px from the edge, the column the rows' icons and words start on (owner, 2026-11-01: "the top
+    /* The sheet's corner is 32px, so the title stands well in from it: 24px below the top and 24px
+       from the edge, the column the rows' icons and words start on (owner, 2026-11-01: "the top
        left corner is too close"). The padding sets the height here, not the app bar's minimum. */
     min-block-size: 0;
     padding-block: var(--space-6) var(--space-2);
-    padding-inline: var(--space-4) var(--space-2);
+    padding-inline: var(--space-6) var(--space-4);
     border-block-end: var(--stroke-hairline) solid var(--color-border-hairline);
   }
 
@@ -242,23 +387,27 @@
     padding-block-start: var(--space-2);
   }
 
+  /* Tiles are filled, so 8px under the line read as crowded; they stand 16px below it (owner,
+     2026-11-03: "add more padding below the divider so it doesnt look crowded"). */
+  .menu-sheet > .menu-sheet-items:has(> .menu-tiles:first-child) {
+    padding-block-start: var(--space-4);
+  }
+
   /* A select that opens as a wheel (wheel.css) has no rows to end the sheet; it ends a step lower. */
   .menu-sheet[data-wheel] {
     padding-block-end: max(var(--space-4), var(--safe-bottom));
   }
 
-  /* The rows of the sheet are as tall as a select's and a picker's (--size-option) and as round: half
-     that height, so a press or a focus ring is a full pill like the picker's rows (owner, 2026-11-01). */
+  /* The rows of the sheet are as tall as a select's and a picker's (--size-option), edge to edge. */
   .menu-sheet .menu-item {
     min-height: var(--size-option);
-    border-radius: var(--radius-xl);
   }
 
   /* Keys and a screen reader's focus show as the press fill, not a ring, inside the sheet (owner,
-     2026-11-01): the row is a full pill on the sheet surface, so a tint reads and a ring crowds it. */
+     2026-11-01): a tint reads on the sheet surface and a ring crowds the row. */
   .menu-sheet .menu-item:focus-visible {
     outline: none;
-    background: color-mix(in oklab, currentColor 12%, transparent);
+    background: var(--ghost-pressed);
   }
 
   @media (prefers-reduced-motion: reduce) {

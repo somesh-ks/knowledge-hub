@@ -4,6 +4,7 @@
  * starts it there.
  */
 import { navigateTo } from "./navigation";
+import { openPlayerOnPhone } from "./openOnPhone";
 import { togglePageDigest } from "./pageActions";
 import type { PlayerStore } from "./playerTypes";
 
@@ -20,18 +21,25 @@ export interface CoverPress {
 export function pressCover({ store, onNarrate, expectPage, id, href }: CoverPress): void {
   const page = store.getPageDigest();
   if (page?.id === id) {
+    const { status, digestId: loaded } = store.getState();
+    const pausing = loaded === id && (status === "playing" || status === "loading");
     if (page.audio) togglePageDigest(store);
     else onNarrate?.();
+    if (!pausing) openPlayerOnPhone();
     return;
   }
-  const { digestId, status } = store.getState();
-  if (digestId === id && status !== "idle") {
-    if (status === "playing" || status === "loading") store.pause("user");
-    else store.play("user");
+  const { digestId, status: now } = store.getState();
+  if (digestId === id && now !== "idle") {
+    if (now === "playing" || now === "loading") store.pause("user");
+    else {
+      store.play("user");
+      openPlayerOnPhone();
+    }
     return;
   }
   if (!href) return;
   expectPage(id);
   store.playWhenPageLoads(id);
-  void navigateTo(href);
+  // The player opens once the page is there to play from, not over the page the press left.
+  void navigateTo(href).then(openPlayerOnPhone);
 }

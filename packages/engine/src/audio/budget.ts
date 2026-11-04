@@ -6,10 +6,13 @@ import { recordPaidCalls } from "../cost/ledger.js";
 import { loadScheduleZone } from "../schedule/store.js";
 import { writeJsonAtomic } from "./atomicFile.js";
 import { addUsage, emptyUsage, rollOver, usageMonth } from "./budgetMath.js";
+import type { UsageStore } from "./usageStore.js";
 
 // The rules live in budgetMath.ts, which the site's narrate function also imports. This file adds
-// the engine's storage for them: state/usage.json in the repository.
+// the engine's storage for them: the Blob document the site shares (usageBlob.ts), or
+// state/usage.json when there is no Blob store.
 export * from "./budgetMath.js";
+export type { UsageStore } from "./usageStore.js";
 
 export async function loadUsage(root: string, now: Date): Promise<UsageFile> {
   const month = usageMonth(now);
@@ -30,19 +33,31 @@ export async function saveUsage(root: string, usage: UsageFile): Promise<void> {
   await writeJsonAtomic(join(root, STATE_FILES.usage), UsageFile.parse(usage));
 }
 
+/** The count in state/usage.json: for tests and a machine with no Blob store (D339). */
+export function fileUsageStore(root: string): UsageStore {
+  return {
+    load: (now) => loadUsage(root, now),
+    async add(now, characters) {
+      const next = addUsage(await loadUsage(root, now), now, characters);
+      await saveUsage(root, next);
+      return next;
+    },
+  };
+}
+
 export interface RecordUsageInput {
   root: string;
+  /** Where the count lives. Without it, state/usage.json under `root`. */
+  store?: UsageStore;
   now: Date;
   characters: number;
   /** Also records the characters in the cost ledger, for this run and kind. */
   ledger?: { runId: string; kind: CostKind; product: string; user?: string };
 }
 
-/** Add billed characters to state/usage.json. Committed by `publish`, so it survives between runs. */
+/** Add billed characters to the month's count (the Blob document the site shares, or state/usage.json). */
 export async function recordUsage(input: RecordUsageInput): Promise<UsageFile> {
-  const current = await loadUsage(input.root, input.now);
-  const next = addUsage(current, input.now, input.characters);
-  await saveUsage(input.root, next);
+  const next = await (input.store ?? fileUsageStore(input.root)).add(input.now, input.characters);
   if (input.ledger && input.characters > 0) {
     try {
       await recordPaidCalls(input.root, [

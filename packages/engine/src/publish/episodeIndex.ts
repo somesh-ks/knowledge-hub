@@ -3,6 +3,7 @@ import { join } from "node:path";
 import {
   EPISODE_INDEX_KEY,
   EPISODE_INDEX_VERSION,
+  EpisodeId,
   type EpisodeIndex,
   type EpisodeIndexEntry,
   episodeRelPath,
@@ -29,13 +30,17 @@ export interface BuiltEpisodeIndex {
   skipped: string[];
 }
 
-export async function buildEpisodeIndex(root: string, now: Date): Promise<BuiltEpisodeIndex> {
+/** The index of the episode files given as repository path and text, newest first. */
+export function indexFromTexts(
+  texts: Iterable<readonly [relPath: string, text: string | null]>,
+  now: Date,
+): BuiltEpisodeIndex {
   const episodes: EpisodeIndexEntry[] = [];
   const skipped: string[] = [];
-  for (const id of await listEpisodeIds(root)) {
-    const relPath = episodeRelPath(id);
+  for (const [relPath, text] of texts) {
     try {
-      const episode = parseEpisodeFile(await readFile(join(root, relPath), "utf8"));
+      if (text === null) throw new Error("no text");
+      const episode = parseEpisodeFile(text);
       episodes.push({
         id: episode.id,
         title: episode.title,
@@ -57,13 +62,36 @@ export async function buildEpisodeIndex(root: string, now: Date): Promise<BuiltE
   };
 }
 
+/** Whether a repository path is an episode file, by the same rule listEpisodeIds applies on disk. */
+export function isEpisodePath(path: string): boolean {
+  const match = /^Podcasts\/\d{4}\/\d{2}\/(.+)\.md$/.exec(path);
+  const id = match?.[1];
+  return id !== undefined && EpisodeId.safeParse(id).success && episodeRelPath(id) === path;
+}
+
+export async function buildEpisodeIndex(root: string, now: Date): Promise<BuiltEpisodeIndex> {
+  const texts: Array<[string, string | null]> = [];
+  for (const id of await listEpisodeIds(root)) {
+    const relPath = episodeRelPath(id);
+    texts.push([relPath, await readFile(join(root, relPath), "utf8").catch(() => null)]);
+  }
+  return indexFromTexts(texts, now);
+}
+
 /** Rebuild the index from disk and upload it. Returns what was written. */
 export async function publishEpisodeIndex(
   client: BlobClient,
   root: string,
   now: Date,
 ): Promise<BuiltEpisodeIndex> {
-  const built = await buildEpisodeIndex(root, now);
+  return await uploadEpisodeIndex(client, await buildEpisodeIndex(root, now));
+}
+
+/** Upload an index already built, from disk or from the content store. */
+export async function uploadEpisodeIndex(
+  client: BlobClient,
+  built: BuiltEpisodeIndex,
+): Promise<BuiltEpisodeIndex> {
   await client.put(EPISODE_INDEX_KEY, new TextEncoder().encode(JSON.stringify(built.index)), {
     contentType: "application/json",
     cacheControlMaxAge: EPISODE_INDEX_CACHE_SECONDS,

@@ -114,6 +114,8 @@
         "--button-padding",
         "--button-radius",
         "--color-accent-container",
+        "--color-accent-container-hover",
+        "--color-accent-container-pressed",
         "--color-on-accent-container",
         "--color-on-surface-disabled",
         "--color-surface-container"
@@ -256,6 +258,8 @@
       ],
       "usage": "Phosphor: every glyph is one filled path, so an icon is just its colour and its size.",
       "tokens": [
+        "--color-favorite",
+        "--color-on-surface-muted",
         "--icon-bold",
         "--size-icon",
         "--size-icon-lg"
@@ -363,7 +367,6 @@
         "--color-accent-pressed",
         "--color-border-control",
         "--color-on-accent",
-        "--color-on-surface",
         "--size-touch",
         "--switch-height",
         "--switch-padding",
@@ -371,6 +374,8 @@
         "--switch-thumb",
         "--switch-thumb-bg",
         "--switch-thumb-radius",
+        "--switch-track-hover",
+        "--switch-track-mixed",
         "--switch-width"
       ]
     },
@@ -481,8 +486,7 @@
       "styles": [
         "episode-actions.css",
         "field.css",
-        "manage.css",
-        "topics.css"
+        "manage.css"
       ],
       "usage": "The text field, and the select and textarea that share its looks: a filled pill (D186; a textarea 24px), the one control with an outline, which shows on focus.",
       "tokens": [
@@ -494,7 +498,6 @@
         "--field-border",
         "--field-chevron-gap",
         "--field-height",
-        "--field-max-height-multiline",
         "--field-padding",
         "--field-radius",
         "--field-radius-multiline",
@@ -505,7 +508,7 @@
       "id": "select",
       "name": "Select",
       "kind": "selection",
-      "summary": "A native select with its own chevron: a person picks one value from a list that is too long to show.",
+      "summary": "A native select with its own chevron.",
       "classes": [
         "select-outlined",
         "select-tonal"
@@ -555,15 +558,21 @@
         "--chip-height",
         "--color-accent",
         "--color-accent-container",
+        "--color-accent-container-hover",
         "--color-border-hairline",
         "--color-focus-ring",
         "--color-on-accent-container",
         "--color-on-surface",
         "--color-on-surface-muted",
         "--color-surface-container",
+        "--color-surface-container-hover",
+        "--color-surface-container-pressed",
         "--color-surface-overlay",
+        "--color-surface-overlay-hover",
+        "--color-surface-overlay-pressed",
         "--field-chevron-gap",
         "--shadow-popover",
+        "--shape-2xl",
         "--size-icon",
         "--size-icon-sm",
         "--size-touch"
@@ -573,20 +582,23 @@
       "id": "menu",
       "name": "Menu",
       "kind": "selection",
-      "summary": "A short list of actions that opens from an icon button: a row each, with its glyph at the start.",
+      "summary": "A short list of actions that opens from an icon button: a row each, its glyph first.",
       "classes": [
         "menu-list",
         "menu-sheet",
         "menu-item",
-        "menu-item-danger"
+        "menu-item-danger",
+        "menu-tiles",
+        "menu-tile",
+        "menu-item-value"
       ],
       "files": [
         "design-system/Menu.astro",
         "design-system/menu.ts"
       ],
       "when": [
-        "A card, a header or a row has more actions than it has room for: Download, Add to queue, Share, Delete",
-        "Each action is one tap and needs no choice of its own"
+        "A card, header or row has more actions than room: Download, Add to queue, Share, Delete",
+        "Each action is one tap, with no choice of its own"
       ],
       "not": [
         {
@@ -594,7 +606,7 @@
           "use": "select"
         },
         {
-          "when": "The only action is the one the button already names",
+          "when": "The only action is the one the button names",
           "use": "button-text"
         }
       ],
@@ -621,17 +633,32 @@
       "usage": "A popover lives in the top layer, so it is placed against the viewport, not the row. Where anchor positioning exists it hangs under the button, right edges level; elsewhere heroMenu.ts writes --menu-top and --menu-right from the button's box when it opens.",
       "tokens": [
         "--color-accent",
+        "--color-accent-container",
+        "--color-accent-container-hover",
+        "--color-accent-container-pressed",
         "--color-border-hairline",
         "--color-danger",
+        "--color-on-accent-container",
         "--color-on-surface",
         "--color-on-surface-disabled",
+        "--color-on-surface-muted",
         "--color-scrim",
         "--color-surface-overlay",
+        "--color-surface-overlay-hover",
+        "--color-surface-overlay-pressed",
         "--layout-column",
         "--shadow-popover",
+        "--shape-2xl",
+        "--shape-md",
+        "--shape-xl",
         "--sheet-bg",
+        "--sheet-bg-hover",
+        "--sheet-bg-pressed",
         "--sheet-radius",
         "--sheet-shadow",
+        "--sheet-tile-bg",
+        "--sheet-tile-bg-hover",
+        "--sheet-tile-bg-pressed",
         "--size-icon",
         "--size-option",
         "--size-touch"
@@ -687,13 +714,14 @@
       "usage": "Banners, and the pages with nothing to list. A banner is flat: a tinted ground, an icon in the tone's colour, a title, a line of text and at most one text button. The tone sets the tint.",
       "tokens": [
         "--banner-padding",
+        "--banner-radius",
+        "--banner-strip-danger",
+        "--banner-strip-success",
+        "--banner-strip-warning",
         "--color-danger",
         "--color-danger-subtle",
-        "--color-info",
-        "--color-info-subtle",
         "--color-success",
         "--color-success-subtle",
-        "--color-surface",
         "--color-warning",
         "--color-warning-subtle",
         "--size-icon"
@@ -749,6 +777,7 @@
       "tokens": [
         "--color-on-surface",
         "--color-scrim",
+        "--shape-lg",
         "--sheet-bg",
         "--sheet-shadow"
       ]
@@ -757,7 +786,7 @@
       "id": "sheet",
       "name": "Sheet",
       "kind": "container",
-      "summary": "A panel that slides over the page for a form or a list: the whole screen on a phone, the right side from 40rem.",
+      "summary": "A panel over the page for a form or a list: full screen on a phone, at the right from 40rem.",
       "classes": [
         "sheet-side",
         "sheet-head",
@@ -771,8 +800,8 @@
         "lib/sheetHead.ts"
       ],
       "when": [
-        "A person fills in or edits something that needs room: New episode, a topic, a source",
-        "A list that opens over the page and is dismissed with a pull or a tap away"
+        "Something to fill in or edit that needs room: New episode, a topic, a source",
+        "A list over the page, dismissed by a pull or tap"
       ],
       "not": [
         {
@@ -817,7 +846,11 @@
         "--color-scrim",
         "--color-surface",
         "--color-surface-container",
+        "--color-surface-hover",
+        "--color-surface-pressed",
         "--sheet-bg",
+        "--sheet-bg-hover",
+        "--sheet-bg-pressed",
         "--sheet-radius",
         "--sheet-shadow"
       ]
@@ -826,20 +859,19 @@
       "id": "drawer",
       "name": "Drawer",
       "kind": "container",
-      "summary": "The island modal: a bottom sheet on a phone, a centred dialog from 40rem, pulled down to dismiss.",
+      "summary": "The island modal for a form: the whole screen on a phone, a panel at the right from 40rem, with Close in the header.",
       "classes": [
         "drawer-scrim",
         "drawer-viewport",
         "drawer-popup",
-        "drawer-panel",
-        "drawer-head"
+        "drawer-panel"
       ],
       "files": [
         "sheets/SheetFrame.tsx",
         "design-system/drawer.ts"
       ],
       "when": [
-        "A React island opens a form over the page, as Generate and Settings do"
+        "A React island opens a form over the page, as Regenerate does"
       ],
       "not": [
         {
@@ -859,7 +891,7 @@
       ],
       "markup": "<SheetFrame open={open} onOpenChange={setOpen} title=\"Create\" closeLabel=\"Close\">...</SheetFrame>",
       "rules": [
-        "Mount SheetFrame; it draws the scrim, viewport, popup, panel and head from drawer.ts.",
+        "Mount SheetFrame; it draws the scrim, viewport, popup and panel from drawer.ts, and the Sheet's head.",
         "Motion uses --duration-sheet-in, --duration-sheet-out and --ease-drawer."
       ],
       "styles": [
@@ -870,15 +902,14 @@
       "tokens": [
         "--color-on-surface",
         "--color-scrim",
-        "--color-surface-raised",
-        "--layout-column",
-        "--layout-dialog",
+        "--color-surface",
+        "--color-surface-hover",
+        "--color-surface-pressed",
         "--sheet-bg",
-        "--sheet-max-height",
-        "--sheet-padding",
+        "--sheet-bg-hover",
+        "--sheet-bg-pressed",
         "--sheet-radius",
-        "--sheet-shadow",
-        "--size-touch"
+        "--sheet-shadow"
       ]
     },
     {
@@ -953,12 +984,13 @@
       "styles": [
         "buttons.css"
       ],
-      "usage": "Tonal action: the one creating action in the side column (Catch up, AppNav.astro). Usage: add it to the action's own element, which keeps its size and layout. The owner found the neutral fill with accent words faded in both themes (2026-10-27), and the current row's accent-container must keep meaning \"you are here\", so this is a third tone, richer than the current row: a saturated blue in both themes (white words in light, the darkest blue's in dark), as the greyed blues before it looked muddy in light and desaturated in dark (owner, 2026-10-27). Its fill reaches 3:1 on the page, so it reads as a shape with no outline, and its words 4.5:1 at rest (buildTokens.test.ts). - A 16px rounded rectangle: the one recorded exception to the pill rule (D186), so its shape alone tells it from the pill-shaped current row beside it (--action-tonal-radius). - Flat: no elevation and no shadow (owner, 2026-10-27). - Hover and press layer --action-tonal-state, which moves the fill away from its words (toward the darkest blue in light, the palest in dark), so the label gains contrast in every state.",
+      "usage": "Tonal action: the one creating action in the side column (Catch up, AppNav.astro). Usage: add it to the action's own element, which keeps its size and layout. The owner found the neutral fill with accent words faded in both themes (2026-10-27), and the current row's accent-container must keep meaning \"you are here\", so this is a third tone, richer than the current row: a saturated blue in both themes (white words in light, the darkest blue's in dark), as the greyed blues before it looked muddy in light and desaturated in dark (owner, 2026-10-27). Its fill reaches 3:1 on the page, so it reads as a shape with no outline, and its words 4.5:1 at rest (buildTokens.test.ts). - A 16px rounded rectangle: the one recorded exception to the pill rule (D186), so its shape alone tells it from the pill-shaped current row beside it (--action-tonal-radius). - Flat: no elevation and no shadow (owner, 2026-10-27). - Hover and press fills --action-tonal-bg-hover and --action-tonal-bg-pressed: the fill with its lightness stepped away from its words (D317: darker in light, lighter in dark), so the state reads as depth, not as a new colour.",
       "tokens": [
         "--action-tonal-bg",
+        "--action-tonal-bg-hover",
+        "--action-tonal-bg-pressed",
         "--action-tonal-fg",
         "--action-tonal-radius",
-        "--action-tonal-state",
         "--color-surface"
       ]
     },
@@ -1048,7 +1080,9 @@
       "usage": "The secondary icon button (2026-10-29, owner: \"a circle as a secondary button\"): an .icon-btn on the fill of the select chip (--color-surface-container), so it sits beside Play and a dropdown as one row in both themes. Usage: add it with .icon-btn for the companion of a primary action (Share beside Play); a lone toolbar glyph stays a plain .icon-btn. Its ink is full strength, not muted, because the fill already marks it as a control.",
       "tokens": [
         "--color-on-surface",
-        "--color-surface-container"
+        "--color-surface-container",
+        "--color-surface-container-hover",
+        "--color-surface-container-pressed"
       ]
     },
     {
@@ -1095,6 +1129,10 @@
       "tokens": [
         "--chip-bg",
         "--chip-bg-current",
+        "--chip-bg-current-hover",
+        "--chip-bg-current-pressed",
+        "--chip-bg-hover",
+        "--chip-bg-pressed",
         "--chip-fg",
         "--chip-fg-current",
         "--chip-gap",
@@ -1104,7 +1142,6 @@
         "--chip-padding-start",
         "--chip-radius",
         "--color-accent-pressed",
-        "--color-on-surface",
         "--color-on-surface-disabled",
         "--color-on-surface-muted",
         "--color-success",
@@ -1160,10 +1197,14 @@
         "--chip-radius",
         "--chip-radius-selected",
         "--color-accent-container",
+        "--color-accent-container-hover",
+        "--color-accent-container-pressed",
         "--color-focus-ring",
         "--color-on-accent-container",
         "--color-on-surface",
         "--color-surface-container",
+        "--color-surface-container-hover",
+        "--color-surface-container-pressed",
         "--size-icon-sm",
         "--size-touch"
       ]
@@ -1206,6 +1247,8 @@
       "tokens": [
         "--chip-height",
         "--color-accent-container",
+        "--color-accent-container-hover",
+        "--color-accent-container-pressed",
         "--color-border-control",
         "--color-focus-ring",
         "--color-on-accent-container",
@@ -1253,13 +1296,13 @@
         "`mountSegmentedNav(list, onSelect)` runs it; `data-param` keeps the choice in the URL."
       ],
       "styles": [
-        "player.css",
         "primitives.css"
       ],
       "usage": "Navigation, used like tabs (2026-10-20): a tonal track with no outline and no check, and one pill in the accent container that slides under the active label, by transform alone. The design is flat, so the pill is told apart by colour, not by a shadow (2026-10-21); the choice control is told apart by its outline and check. The active label takes the pill's text colour, the others stay muted. Buttons in a tablist: segmentedNav.ts moves aria-selected and the roving tabindex, and answers Left, Right, Home and End.",
       "tokens": [
         "--chip-height",
         "--color-accent-container",
+        "--color-accent-container-pressed",
         "--color-focus-ring",
         "--color-on-accent-container",
         "--color-on-surface",
@@ -1301,6 +1344,7 @@
         "Drawn only for two sections or more."
       ],
       "styles": [
+        "player.css",
         "primitives.css"
       ],
       "usage": "The bar sticks and carries the surface and the line under it; the strip inside it scrolls and fades its ends. A mask on the bar itself would fade its surface and line too, and what scrolls under a stuck strip would show through at its edges.",
@@ -1311,6 +1355,7 @@
         "--color-on-surface",
         "--color-on-surface-muted",
         "--color-surface",
+        "--player-padding",
         "--row-radius",
         "--tabs-height",
         "--tabs-indicator-height",
@@ -1363,7 +1408,6 @@
       "usage": "A row that is one link or button: the whole row responds. Its fill is a rounded tile clear of the hairlines and reaching a little past the words, as a menu's options are, so a hovered row reads as one thing to press rather than a band across the page.",
       "tokens": [
         "--color-focus-ring",
-        "--color-on-surface",
         "--color-on-surface-muted",
         "--row-tile-radius",
         "--size-touch-comfortable"
@@ -1415,8 +1459,13 @@
         "--color-border-hairline",
         "--color-on-surface",
         "--color-surface-container",
+        "--color-surface-container-hover",
+        "--color-surface-container-pressed",
         "--color-surface-overlay",
-        "--row-padding-block"
+        "--color-surface-overlay-hover",
+        "--color-surface-overlay-pressed",
+        "--row-padding-block",
+        "--shape-xl"
       ]
     },
     {
@@ -1511,8 +1560,14 @@
       ],
       "usage": "One quiet message at a time: a flat, inverse surface with a hairline radius, an optional leading icon (a check or an alert, so the outcome is not told by colour alone), the message at the label size, at most one text action in the accent and, only while it stays until used, a close button. A top-layer popover above whatever is docked at the bottom: the navigation bar, and the player once it is showing. The fallbacks cover a page without the shell and a player that has not published its height yet.",
       "tokens": [
+        "--color-accent-on-inverse",
         "--color-surface-inverse",
+        "--color-surface-inverse-action-hover",
+        "--color-surface-inverse-action-pressed",
+        "--color-surface-inverse-hover",
+        "--color-surface-inverse-pressed",
         "--layout-dialog",
+        "--shape-md",
         "--size-touch",
         "--toast-bg",
         "--toast-fg"
@@ -1639,6 +1694,7 @@
         "--color-on-surface",
         "--color-on-surface-muted",
         "--color-surface-container",
+        "--color-surface-container-hover",
         "--color-surface-overlay",
         "--field-height",
         "--size-touch"
@@ -1853,7 +1909,8 @@
       "usage": "",
       "tokens": [
         "--color-accent-container-high",
-        "--color-border-hairline",
+        "--color-accent-container-high-hover",
+        "--color-accent-container-high-pressed",
         "--color-on-accent-container-high",
         "--color-on-surface-disabled",
         "--color-surface",
@@ -1897,14 +1954,6 @@
     {
       "class": "transport-skip",
       "reason": "the player transport's skip variant"
-    },
-    {
-      "class": "speed-btn",
-      "reason": "the player's speed popover trigger"
-    },
-    {
-      "class": "speed-preset",
-      "reason": "a speed option in the player's popover"
     },
     {
       "class": "source-plus-btn",
@@ -1952,13 +2001,21 @@
       "part": "multiselect"
     },
     {
+      "class": "picker-trigger",
+      "reason": "the search picker's field-like trigger, drawn by scripts/picker.ts"
+    },
+    {
+      "class": "profile-shape",
+      "reason": "a shape choice in the profile's avatar picker: the avatar is its face (D335)"
+    },
+    {
+      "class": "emoji-cell",
+      "reason": "a cell of the topic emoji grid: a square tile, not a pill (D186)"
+    },
+    {
       "class": "search-clear",
       "reason": "the clear control inside .search-field",
       "part": "search-field"
-    },
-    {
-      "class": "player-fallback-action",
-      "reason": "a text action in the player's fallback card"
     },
     {
       "class": "queue-fold",
@@ -2501,6 +2558,106 @@
       }
     },
     {
+      "name": "--color-violet-50",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(98.00% 0.0100 292)",
+      "hex": {
+        "light": "#f8f7ff",
+        "dark": "#f8f7ff"
+      }
+    },
+    {
+      "name": "--color-violet-100",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(91.85% 0.0415 292)",
+      "hex": {
+        "light": "#e4e0fe",
+        "dark": "#e4e0fe"
+      }
+    },
+    {
+      "name": "--color-violet-200",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(84.23% 0.0828 292)",
+      "hex": {
+        "light": "#ccc2fe",
+        "dark": "#ccc2fe"
+      }
+    },
+    {
+      "name": "--color-violet-300",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(75.56% 0.1330 292)",
+      "hex": {
+        "light": "#b29ffd",
+        "dark": "#b29ffd"
+      }
+    },
+    {
+      "name": "--color-violet-400",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(66.26% 0.1908 292)",
+      "hex": {
+        "light": "#9877fc",
+        "dark": "#9877fc"
+      }
+    },
+    {
+      "name": "--color-violet-500",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(56.74% 0.2378 292)",
+      "hex": {
+        "light": "#8049f3",
+        "dark": "#8049f3"
+      }
+    },
+    {
+      "name": "--color-violet-600",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(47.44% 0.2088 292)",
+      "hex": {
+        "light": "#6533c4",
+        "dark": "#6533c4"
+      }
+    },
+    {
+      "name": "--color-violet-700",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(38.77% 0.1568 292)",
+      "hex": {
+        "light": "#4a2a8f",
+        "dark": "#4a2a8f"
+      }
+    },
+    {
+      "name": "--color-violet-800",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(31.15% 0.0998 292)",
+      "hex": {
+        "light": "#33235e",
+        "dark": "#33235e"
+      }
+    },
+    {
+      "name": "--color-violet-900",
+      "tier": "primitive",
+      "type": "color",
+      "light": "oklch(25.00% 0.0534 292)",
+      "hex": {
+        "light": "#221c39",
+        "dark": "#221c39"
+      }
+    },
+    {
       "name": "--color-elevation-light-sunken",
       "tier": "primitive",
       "type": "color",
@@ -2746,6 +2903,13 @@
       "role": "Same family as the interface. Kept as its own token so story text can change voice without touching components."
     },
     {
+      "name": "--font-blackletter",
+      "tier": "primitive",
+      "type": "fontFamily",
+      "light": "\"Pirata One\", \"Google Sans Flex Variable\", \"Google Sans Flex Fallback\", system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif",
+      "role": "The Halloween style's page title face: blackletter, latin only, one 9 KB file. Only the display role takes it (D306); no component reads this token."
+    },
+    {
       "name": "--font-weight-regular",
       "tier": "primitive",
       "type": "fontWeight",
@@ -2945,6 +3109,62 @@
       "tier": "primitive",
       "type": "duration",
       "light": "150ms"
+    },
+    {
+      "name": "--duration-avatar-hop",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "900ms",
+      "role": "The avatar's hop on a good moment."
+    },
+    {
+      "name": "--duration-avatar-spark",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "1100ms",
+      "role": "The spark that flares on a hop."
+    },
+    {
+      "name": "--duration-avatar-wiggle",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "800ms",
+      "role": "The avatar's wiggle."
+    },
+    {
+      "name": "--duration-avatar-look",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "1500ms",
+      "role": "The avatar glancing aside once."
+    },
+    {
+      "name": "--duration-avatar-blink",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "260ms",
+      "role": "One blink; it blinks twice."
+    },
+    {
+      "name": "--duration-avatar-shake",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "500ms",
+      "role": "The avatar's head shake on a refusal."
+    },
+    {
+      "name": "--duration-avatar-bob",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "1500ms",
+      "role": "One bob of the avatar while audio plays."
+    },
+    {
+      "name": "--duration-avatar-work",
+      "tier": "primitive",
+      "type": "duration",
+      "light": "2400ms",
+      "role": "One glance of the avatar while something is being made."
     },
     {
       "name": "--duration-sheet-in",
@@ -3228,10 +3448,38 @@
       "light": "12%"
     },
     {
+      "name": "--state-step-hover",
+      "tier": "primitive",
+      "type": "number",
+      "light": "0.05",
+      "role": "How far a hover moves a fill's lightness in OKLCH (L runs 0 to 1): the fill keeps its hue and chroma and only deepens or lifts. Replaces the 8% layer (D317)."
+    },
+    {
+      "name": "--state-step-hover-quiet",
+      "tier": "primitive",
+      "type": "number",
+      "light": "0.025",
+      "role": "Half a hover step, for a white chip on a card in light, where a whole step would take it past the card's own tone."
+    },
+    {
+      "name": "--state-step-press",
+      "tier": "primitive",
+      "type": "number",
+      "light": "0.1",
+      "role": "How far a press moves a fill's lightness: twice the hover, so the two steps read as two."
+    },
+    {
       "name": "--opacity-disabled",
       "tier": "primitive",
       "type": "number",
       "light": "0.32"
+    },
+    {
+      "name": "--opacity-dim",
+      "tier": "primitive",
+      "type": "number",
+      "light": "0.6",
+      "role": "A thing that is busy or being moved stays where it is, quieter: a page that is loading, a row being cancelled or dragged."
     },
     {
       "name": "--opacity-ambient-light",
@@ -3335,6 +3583,14 @@
       "type": "singularity-haptic",
       "light": "android 12 108 20 ms; iphone 2 ticks, 120 ms apart",
       "role": "Two rising beats, one for each note of the ta-da: a podcast is ready to play."
+    },
+    {
+      "name": "--state-direction",
+      "tier": "semantic",
+      "type": "number",
+      "light": "-1",
+      "role": "Which way a neutral fill moves on hover and press: toward its text, so down in light (-1) and up in dark (1). Accent fills always deepen, and read this only when a state asks for the text direction.",
+      "dark": "1"
     },
     {
       "name": "--color-surface",
@@ -3541,24 +3797,147 @@
     {
       "name": "--color-accent-hover",
       "tier": "semantic",
-      "type": "color",
-      "light": "var(--color-blue-700)",
-      "dark": "var(--color-blue-200)",
-      "hex": {
-        "light": "#164087",
-        "dark": "#afcdfe"
-      }
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent) calc(l - var(--state-step-hover)) c h)",
+      "role": "A hover on the accent fill: the accent with its lightness stepped down by state.step-hover, same hue and chroma, so the fill stays the same blue and only deepens. Never an alpha or a mix (D317)."
     },
     {
       "name": "--color-accent-pressed",
       "tier": "semantic",
-      "type": "color",
-      "light": "var(--color-blue-800)",
-      "dark": "var(--color-blue-400)",
-      "hex": {
-        "light": "#162f59",
-        "dark": "#4f90fc"
-      }
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent) calc(l - var(--state-step-press)) c h)",
+      "role": "A press on the accent fill: the accent stepped down by state.step-press."
+    },
+    {
+      "name": "--color-accent-container-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent-container) calc(l + var(--state-direction) * var(--state-step-hover)) c h)",
+      "role": "A hover on the accent container: its lightness moves toward its text by state.step-hover.",
+      "dark": "oklch(from var(--color-accent-container) calc(l - var(--state-direction) * var(--state-step-hover)) c h)"
+    },
+    {
+      "name": "--color-accent-container-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent-container) calc(l + var(--state-direction) * var(--state-step-press)) c h)",
+      "dark": "oklch(from var(--color-accent-container) calc(l - var(--state-direction) * var(--state-step-press)) c h)"
+    },
+    {
+      "name": "--color-accent-container-high-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent-container-high) calc(l + var(--state-direction) * var(--state-step-hover)) c h)"
+    },
+    {
+      "name": "--color-accent-container-high-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent-container-high) calc(l + var(--state-direction) * var(--state-step-press)) c h)"
+    },
+    {
+      "name": "--color-accent-action-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent-action) calc(l - var(--state-step-hover)) c h)",
+      "dark": "oklch(from var(--color-accent-action) calc(l + var(--state-step-hover)) c h)"
+    },
+    {
+      "name": "--color-accent-action-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent-action) calc(l - var(--state-step-press)) c h)",
+      "dark": "oklch(from var(--color-accent-action) calc(l + var(--state-step-press)) c h)"
+    },
+    {
+      "name": "--color-surface-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface) calc(l + var(--state-direction) * var(--state-step-hover)) c h)",
+      "role": "A hover on a control that sits on the page: the page surface stepped toward its text. The surface roles below do the same for what sits on them."
+    },
+    {
+      "name": "--color-surface-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface) calc(l + var(--state-direction) * var(--state-step-press)) c h)"
+    },
+    {
+      "name": "--color-surface-sunken-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-sunken) calc(l + var(--state-direction) * var(--state-step-hover)) c h)"
+    },
+    {
+      "name": "--color-surface-sunken-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-sunken) calc(l + var(--state-direction) * var(--state-step-press)) c h)"
+    },
+    {
+      "name": "--color-surface-container-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-container) calc(l + var(--state-direction) * var(--state-step-hover)) c h)"
+    },
+    {
+      "name": "--color-surface-container-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-container) calc(l + var(--state-direction) * var(--state-step-press)) c h)"
+    },
+    {
+      "name": "--color-surface-raised-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-raised) calc(l + var(--state-direction) * var(--state-step-hover)) c h)"
+    },
+    {
+      "name": "--color-surface-raised-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-raised) calc(l + var(--state-direction) * var(--state-step-press)) c h)"
+    },
+    {
+      "name": "--color-surface-overlay-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-overlay) calc(l + var(--state-direction) * var(--state-step-hover)) c h)"
+    },
+    {
+      "name": "--color-surface-overlay-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-overlay) calc(l + var(--state-direction) * var(--state-step-press)) c h)"
+    },
+    {
+      "name": "--color-surface-inverse-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h)",
+      "role": "The inverse surface (toasts) is light where the page is dark, so its step runs the other way."
+    },
+    {
+      "name": "--color-surface-inverse-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h)"
+    },
+    {
+      "name": "--color-surface-inverse-action-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-inverse) calc(l + var(--state-direction) * var(--state-step-hover)) c h)",
+      "role": "A hover on a text action over the inverse surface (the toast's Undo): the same step as surface-inverse-hover, settled against the accent label instead of the plain one. The accent on inverse (L 80 in light) keeps 4.5:1 only on a fill that steps away from it.",
+      "dark": "oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-hover)) c h)"
+    },
+    {
+      "name": "--color-surface-inverse-action-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-inverse) calc(l + var(--state-direction) * var(--state-step-press)) c h)",
+      "role": "A press on that action: one step deeper than its hover, away from the accent label when the label would lose 4.5:1 toward the text.",
+      "dark": "oklch(from var(--color-surface-inverse) calc(l - var(--state-direction) * var(--state-step-press)) c h)"
     },
     {
       "name": "--color-accent-subtle",
@@ -3573,15 +3952,29 @@
       }
     },
     {
+      "name": "--color-accent-subtle-hover",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent-subtle) calc(l + var(--state-direction) * var(--state-step-hover-quiet)) c h)",
+      "role": "A hover on a no-fill accent text control: the accent tint (L 98 in light) stepped by half a hover step toward its text. The tint sits so near white that a whole step clamps at white and hover would equal press, and the accent label (L 47) keeps 4.5:1 only for the small steps, so these two tokens take the quiet and the hover step and carry no label to settle."
+    },
+    {
+      "name": "--color-accent-subtle-pressed",
+      "tier": "semantic",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-accent-subtle) calc(l + var(--state-direction) * var(--state-step-hover)) c h)",
+      "role": "A press on a no-fill accent text control: the accent tint stepped by a whole hover step toward its text, one step deeper than its hover."
+    },
+    {
       "name": "--color-accent-container",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-blue-100)",
+      "light": "var(--color-blue-200)",
       "role": "The selected state of a control: a chosen chip or segment, the current destination, a tonal button, the playing chip. Text on it is on-accent-container.",
-      "dark": "var(--color-blue-800)",
+      "dark": "var(--color-blue-600)",
       "hex": {
-        "light": "#d6e5fe",
-        "dark": "#162f59"
+        "light": "#afcdfe",
+        "dark": "#1755b9"
       }
     },
     {
@@ -3600,12 +3993,12 @@
       "name": "--color-accent-container-high",
       "tier": "semantic",
       "type": "color",
-      "light": "var(--color-blue-200)",
+      "light": "var(--color-blue-300)",
       "role": "The tone of an action that is not a place: the New episode buttons. Stronger than accent-container, so it is not read as the current destination or a chosen chip beside it. Text on it is on-accent-container-high.",
-      "dark": "var(--color-blue-700)",
+      "dark": "var(--color-blue-400)",
       "hex": {
-        "light": "#afcdfe",
-        "dark": "#164087"
+        "light": "#82b0fd",
+        "dark": "#4f90fc"
       }
     },
     {
@@ -3614,10 +4007,10 @@
       "type": "color",
       "light": "var(--color-blue-900)",
       "role": "Text and icons on accent-container-high.",
-      "dark": "var(--color-blue-50)",
+      "dark": "var(--color-blue-900)",
       "hex": {
         "light": "#152236",
-        "dark": "#f5f9ff"
+        "dark": "#152236"
       }
     },
     {
@@ -3642,18 +4035,6 @@
       "hex": {
         "light": "#ffffff",
         "dark": "#152236"
-      }
-    },
-    {
-      "name": "--color-accent-action-state",
-      "tier": "semantic",
-      "type": "color",
-      "light": "var(--color-blue-900)",
-      "role": "The ink accent-action's hover and press layers mix in. It moves the fill away from the words, so they gain contrast in every state: in light the words are white and the fill deepens toward the darkest blue; in dark the words are the darkest blue and the fill lightens toward blue-50, a white that keeps the blue's hue (pure white has none, and the oklch mix drifted toward violet).",
-      "dark": "var(--color-blue-50)",
-      "hex": {
-        "light": "#152236",
-        "dark": "#f5f9ff"
       }
     },
     {
@@ -3719,6 +4100,30 @@
       "type": "color",
       "light": "oklch(20% 0.005 260 / 0.42)",
       "dark": "oklch(8% 0.005 260 / 0.6)"
+    },
+    {
+      "name": "--color-on-scrim",
+      "tier": "semantic",
+      "type": "color",
+      "light": "var(--color-white)",
+      "role": "Words on the scrim over a cover. White in both themes.",
+      "dark": "var(--color-white)",
+      "hex": {
+        "light": "#ffffff",
+        "dark": "#ffffff"
+      }
+    },
+    {
+      "name": "--color-accent-on-inverse",
+      "tier": "semantic",
+      "type": "color",
+      "light": "var(--color-blue-300)",
+      "role": "The accent on the inverse surface (a toast), the other theme's step: 5.4:1.",
+      "dark": "var(--color-blue-800)",
+      "hex": {
+        "light": "#82b0fd",
+        "dark": "#162f59"
+      }
     },
     {
       "name": "--color-image-outline",
@@ -3792,6 +4197,18 @@
       "hex": {
         "light": "#fff6f5",
         "dark": "#331916"
+      }
+    },
+    {
+      "name": "--color-favorite",
+      "tier": "semantic",
+      "type": "color",
+      "light": "var(--color-red-500)",
+      "role": "The filled heart. Brighter than danger's red, which reads brown on a heart (owner, 2026-11-04: \"the heart fill can be red\"); only an icon, so it holds 3:1 on every surface.",
+      "dark": "var(--color-red-400)",
+      "hex": {
+        "light": "#ce3830",
+        "dark": "#ee5b4f"
       }
     },
     {
@@ -3920,6 +4337,48 @@
       "type": "number",
       "light": "0",
       "role": "0 draws the regular weight, 1 the bold weight (Phosphor's own bold, not a stroke on the regular). Every Icon holds both; this picks one. A style that wants heavier line icons sets it to 1 (D268)."
+    },
+    {
+      "name": "--shape-xs",
+      "tier": "semantic",
+      "type": "dimension",
+      "light": "var(--radius-xs)"
+    },
+    {
+      "name": "--shape-sm",
+      "tier": "semantic",
+      "type": "dimension",
+      "light": "var(--radius-sm)"
+    },
+    {
+      "name": "--shape-md",
+      "tier": "semantic",
+      "type": "dimension",
+      "light": "var(--radius-md)"
+    },
+    {
+      "name": "--shape-lg",
+      "tier": "semantic",
+      "type": "dimension",
+      "light": "var(--radius-lg)"
+    },
+    {
+      "name": "--shape-xl",
+      "tier": "semantic",
+      "type": "dimension",
+      "light": "var(--radius-xl)"
+    },
+    {
+      "name": "--shape-sheet",
+      "tier": "semantic",
+      "type": "dimension",
+      "light": "var(--radius-sheet)"
+    },
+    {
+      "name": "--shape-2xl",
+      "tier": "semantic",
+      "type": "dimension",
+      "light": "var(--radius-2xl)"
     },
     {
       "name": "--size-touch",
@@ -4108,19 +4567,19 @@
       "name": "--cover-radius-thumb",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-xs)"
+      "light": "var(--shape-xs)"
     },
     {
       "name": "--cover-radius-hero",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-sm)"
+      "light": "var(--shape-sm)"
     },
     {
       "name": "--cover-radius-large",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-sm)"
+      "light": "var(--shape-sm)"
     },
     {
       "name": "--cover-size-thumb",
@@ -4282,7 +4741,7 @@
       "name": "--item-play-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-sm)"
+      "light": "var(--shape-sm)"
     },
     {
       "name": "--cta-height",
@@ -4319,8 +4778,8 @@
       "type": "color",
       "light": "var(--color-accent-hover)",
       "hex": {
-        "light": "#164087",
-        "dark": "#afcdfe"
+        "light": "#0346a9",
+        "dark": "#73a0ec"
       }
     },
     {
@@ -4329,8 +4788,8 @@
       "type": "color",
       "light": "var(--color-accent-pressed)",
       "hex": {
-        "light": "#162f59",
-        "dark": "#4f90fc"
+        "light": "#003698",
+        "dark": "#6491db"
       }
     },
     {
@@ -4347,7 +4806,7 @@
       "name": "--action-tonal-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-lg)",
+      "light": "var(--shape-lg)",
       "role": "A 16px rounded rectangle, the one recorded exception to the pill rule (D186): the side column's Catch up, so its shape alone tells it from the pill-shaped current row beside it (owner, 2026-10-27)."
     },
     {
@@ -4371,13 +4830,23 @@
       }
     },
     {
-      "name": "--action-tonal-state",
+      "name": "--action-tonal-bg-hover",
       "tier": "component",
       "type": "color",
-      "light": "var(--color-accent-action-state)",
+      "light": "var(--color-accent-action-hover)",
       "hex": {
-        "light": "#152236",
-        "dark": "#f5f9ff"
+        "light": "#1560d4",
+        "dark": "#5ea0ff"
+      }
+    },
+    {
+      "name": "--action-tonal-bg-pressed",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-action-pressed)",
+      "hex": {
+        "light": "#0050c3",
+        "dark": "#6db0ff"
       }
     },
     {
@@ -4416,14 +4885,14 @@
       "name": "--mini-player-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-lg)",
+      "light": "var(--shape-lg)",
       "role": "Concentric: control radius (sm) plus inset padding."
     },
     {
       "name": "--mini-player-control-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-sm)"
+      "light": "var(--shape-sm)"
     },
     {
       "name": "--mini-player-control-size",
@@ -4477,6 +4946,32 @@
       }
     },
     {
+      "name": "--player-spoken",
+      "tier": "component",
+      "type": "singularity-mix-color",
+      "light": "color-mix(in oklch, var(--color-on-accent-container) 18%, transparent)",
+      "role": "The fill behind the word being said where its turn sits on the page (the rundown before the first story): the chosen fill's ink at 18%, a tint over the page."
+    },
+    {
+      "name": "--player-spoken-chosen",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-container-pressed)",
+      "role": "The fill behind the word being said in the open story, on its chosen fill: the fill's own press step (D317), which steps away from the ink wherever a step toward it would cost the ink its 4.5:1, so the word reads at every hue. The page's tint (player.spoken) put the ink at 3.56:1 there in Expressive dark (2026-11-04).",
+      "hex": {
+        "light": "#90addc",
+        "dark": "#003698"
+      }
+    },
+    {
+      "name": "--player-story-fg-muted",
+      "tier": "component",
+      "type": "singularity-mix-color",
+      "light": "color-mix(in oklch, var(--color-on-accent-container) 88%, transparent)",
+      "role": "The quieter words on the open story's chosen fill (accent-container): its speaker names and the turns not yet said. The fill's own ink at 88%, not 72% (2026-11-03): muted ink keeps 4.5:1 on every mood's chosen fill after D356 moved the fills. Expressive dark takes 95% (2026-11-04): its card's own ink is 4.88:1 at hue +255, so 88% fell to 4.15:1.",
+      "dark": "color-mix(in oklch, var(--color-on-accent-container) 88%, transparent)"
+    },
+    {
       "name": "--player-tint-mix",
       "tier": "component",
       "type": "number",
@@ -4506,7 +5001,7 @@
       "name": "--control-radius-lg",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-xl)"
+      "light": "var(--shape-xl)"
     },
     {
       "name": "--control-size-md",
@@ -4518,7 +5013,7 @@
       "name": "--control-radius-md",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-lg)"
+      "light": "var(--shape-lg)"
     },
     {
       "name": "--control-size-sm",
@@ -4530,7 +5025,7 @@
       "name": "--control-radius-sm",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-md)"
+      "light": "var(--shape-md)"
     },
     {
       "name": "--scrubber-hit",
@@ -4587,7 +5082,7 @@
       "name": "--scrubber-bubble-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-sm)"
+      "light": "var(--shape-sm)"
     },
     {
       "name": "--scrubber-detent-hysteresis",
@@ -4595,6 +5090,48 @@
       "type": "number",
       "light": "0.02",
       "role": "Fraction of an item's length a scrub must move back before the same detent re-arms."
+    },
+    {
+      "name": "--hue-rail",
+      "tier": "component",
+      "type": "dimension",
+      "light": "1rem",
+      "role": "The hue slider's rail: the whole spectrum, one rem thick."
+    },
+    {
+      "name": "--hue-thumb",
+      "tier": "component",
+      "type": "dimension",
+      "light": "1.75rem",
+      "role": "The hue slider's thumb, in the colour it has picked."
+    },
+    {
+      "name": "--hue-swatch",
+      "tier": "component",
+      "type": "dimension",
+      "light": "4rem",
+      "role": "The round swatch that floats above the thumb while it is held."
+    },
+    {
+      "name": "--hue-swatch-lift",
+      "tier": "component",
+      "type": "dimension",
+      "light": "3.25rem",
+      "role": "How far the swatch's centre rides above the rail's centre."
+    },
+    {
+      "name": "--hue-lightness",
+      "tier": "component",
+      "type": "number",
+      "light": "0.72",
+      "role": "OKLCH lightness of the rail and the thumb: one value, so every hue reads as equally bright."
+    },
+    {
+      "name": "--hue-chroma",
+      "tier": "component",
+      "type": "number",
+      "light": "0.17",
+      "role": "OKLCH chroma of the rail and the thumb."
     },
     {
       "name": "--segmented-height",
@@ -4613,14 +5150,14 @@
       "name": "--segmented-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-md)",
+      "light": "var(--shape-md)",
       "role": "Concentric: segment radius (sm) plus track padding."
     },
     {
       "name": "--segmented-segment-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-sm)"
+      "light": "var(--shape-sm)"
     },
     {
       "name": "--segmented-selected-bg",
@@ -4650,7 +5187,7 @@
       "name": "--field-radius-multiline",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-xl)",
+      "light": "var(--shape-xl)",
       "role": "A multi-line field cannot be a pill, so it takes half the field's height: its corners draw the same arc as a one-line field's."
     },
     {
@@ -4749,10 +5286,24 @@
       }
     },
     {
+      "name": "--switch-track-mixed",
+      "tier": "component",
+      "type": "singularity-mix-color",
+      "light": "color-mix(in oklch, var(--color-accent) 50%, var(--color-border-control))",
+      "role": "Mixed (a master over a group of which only some are on): the track halfway between the off grey and the accent, so it reads as between the two states (D285)."
+    },
+    {
+      "name": "--switch-track-hover",
+      "tier": "component",
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-border-control) calc(l + var(--state-direction) * var(--state-step-hover)) c h)",
+      "role": "The off track under a pointer or a press: the control's edge stepped toward the page's text (D317), as every fill's state is."
+    },
+    {
       "name": "--sheet-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-2xl)",
+      "light": "var(--shape-2xl)",
       "role": "A bottom sheet's top corners: 32px, the picker's, so every phone sheet shares one corner (owner, 2026-11-01)."
     },
     {
@@ -4772,6 +5323,60 @@
       }
     },
     {
+      "name": "--sheet-bg-hover",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-surface-raised-hover)",
+      "hex": {
+        "light": "#eeeeee",
+        "dark": "#3a3a3c"
+      }
+    },
+    {
+      "name": "--sheet-bg-pressed",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-surface-raised-pressed)",
+      "hex": {
+        "light": "#dedede",
+        "dark": "#474849"
+      }
+    },
+    {
+      "name": "--sheet-tile-bg",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-surface-container)",
+      "role": "A tile on a sheet (the Menu's Download, Share, Save): one step above the sheet. In dark the container equals the raised sheet, so the tile takes the overlay step.",
+      "dark": "var(--color-surface-overlay)",
+      "hex": {
+        "light": "#eeeeef",
+        "dark": "#353537"
+      }
+    },
+    {
+      "name": "--sheet-tile-bg-hover",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-surface-container-hover)",
+      "dark": "var(--color-surface-overlay-hover)",
+      "hex": {
+        "light": "#dddedf",
+        "dark": "#424244"
+      }
+    },
+    {
+      "name": "--sheet-tile-bg-pressed",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-surface-container-pressed)",
+      "dark": "var(--color-surface-overlay-pressed)",
+      "hex": {
+        "light": "#cdcecf",
+        "dark": "#4f5051"
+      }
+    },
+    {
       "name": "--sheet-shadow",
       "tier": "component",
       "type": "shadow",
@@ -4787,14 +5392,14 @@
       "name": "--sheet-row-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-md)",
+      "light": "var(--shape-md)",
       "role": "Rows inside a sheet panel."
     },
     {
       "name": "--toast-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-lg)",
+      "light": "var(--shape-lg)",
       "role": "Concentric: action radius (sm) plus padding."
     },
     {
@@ -4839,13 +5444,31 @@
       "name": "--banner-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-sm)"
+      "light": "var(--shape-lg)"
     },
     {
       "name": "--banner-padding",
       "tier": "component",
       "type": "dimension",
       "light": "var(--space-4)"
+    },
+    {
+      "name": "--banner-strip-warning",
+      "tier": "component",
+      "type": "singularity-mix-color",
+      "light": "color-mix(in oklab, var(--color-warning) 22%, var(--color-surface))"
+    },
+    {
+      "name": "--banner-strip-danger",
+      "tier": "component",
+      "type": "singularity-mix-color",
+      "light": "color-mix(in oklab, var(--color-danger) 22%, var(--color-surface))"
+    },
+    {
+      "name": "--banner-strip-success",
+      "tier": "component",
+      "type": "singularity-mix-color",
+      "light": "color-mix(in oklab, var(--color-success) 22%, var(--color-surface))"
     },
     {
       "name": "--archive-row-padding",
@@ -4857,7 +5480,7 @@
       "name": "--archive-row-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-lg)",
+      "light": "var(--shape-lg)",
       "role": "Concentric: cover thumb radius (sm) plus row padding."
     },
     {
@@ -4931,6 +5554,26 @@
       }
     },
     {
+      "name": "--chip-bg-hover",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-surface-container-hover)",
+      "hex": {
+        "light": "#dddedf",
+        "dark": "#3a3a3c"
+      }
+    },
+    {
+      "name": "--chip-bg-pressed",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-surface-container-pressed)",
+      "hex": {
+        "light": "#cdcecf",
+        "dark": "#474849"
+      }
+    },
+    {
       "name": "--chip-fg",
       "tier": "component",
       "type": "color",
@@ -4946,8 +5589,28 @@
       "type": "color",
       "light": "var(--color-accent-container)",
       "hex": {
-        "light": "#d6e5fe",
-        "dark": "#162f59"
+        "light": "#afcdfe",
+        "dark": "#1755b9"
+      }
+    },
+    {
+      "name": "--chip-bg-current-hover",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-container-hover)",
+      "hex": {
+        "light": "#9fbded",
+        "dark": "#0346a9"
+      }
+    },
+    {
+      "name": "--chip-bg-current-pressed",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-container-pressed)",
+      "hex": {
+        "light": "#90addc",
+        "dark": "#003698"
       }
     },
     {
@@ -5021,8 +5684,18 @@
       "light": "var(--color-accent-container)",
       "role": "Fill behind the current destination: the pill in the bottom bar and the row in the side column.",
       "hex": {
-        "light": "#d6e5fe",
-        "dark": "#162f59"
+        "light": "#afcdfe",
+        "dark": "#1755b9"
+      }
+    },
+    {
+      "name": "--nav-side-item-bg-hover",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-container-hover)",
+      "hex": {
+        "light": "#9fbded",
+        "dark": "#0346a9"
       }
     },
     {
@@ -5062,10 +5735,17 @@
       "role": "Space above and below an archive or settings row. Stories use item.gap."
     },
     {
+      "name": "--row-padding-inline",
+      "tier": "component",
+      "type": "dimension",
+      "light": "var(--space-4)",
+      "role": "Space from a filled row's side to its words. It grows with row.radius, so a big corner never closes in on the text (owner, 2026-11-03: \"the text is so close to the edge\")."
+    },
+    {
       "name": "--row-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-md)",
+      "light": "var(--shape-md)",
       "role": "A tappable row, a list option and the state layer over them."
     },
     {
@@ -5086,7 +5766,7 @@
       "name": "--picker-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-2xl)",
+      "light": "var(--shape-2xl)",
       "role": "Concentric: the inner radius plus the inset (24 + 8 = 32). The list's own outer radius, a popover's and a phone sheet's alike."
     },
     {
@@ -5100,15 +5780,188 @@
       "name": "--picker-inner-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-xl)",
+      "light": "var(--shape-xl)",
       "role": "The search field and each option, one inset in. 24px: a full pill on the 48px search field, the same on every row."
+    },
+    {
+      "name": "--scene-pumpkin",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent)",
+      "dark": "var(--color-accent)",
+      "hex": {
+        "light": "#1755b9",
+        "dark": "#82b0fd"
+      }
+    },
+    {
+      "name": "--scene-pumpkin-shade",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-hover)",
+      "dark": "var(--color-accent-hover)",
+      "hex": {
+        "light": "#0346a9",
+        "dark": "#73a0ec"
+      }
+    },
+    {
+      "name": "--scene-pumpkin-lit",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-container-high)",
+      "dark": "var(--color-accent-container-high)",
+      "hex": {
+        "light": "#82b0fd",
+        "dark": "#4f90fc"
+      }
+    },
+    {
+      "name": "--scene-stem",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-on-surface-muted)",
+      "dark": "var(--color-on-surface-muted)",
+      "hex": {
+        "light": "#595c62",
+        "dark": "#acb0b5"
+      }
+    },
+    {
+      "name": "--scene-glow",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-surface-raised)",
+      "dark": "var(--color-surface-raised)",
+      "hex": {
+        "light": "#ffffff",
+        "dark": "#2d2e2f"
+      }
+    },
+    {
+      "name": "--scene-bone",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-surface-raised)",
+      "dark": "var(--color-surface-raised)",
+      "hex": {
+        "light": "#ffffff",
+        "dark": "#2d2e2f"
+      }
+    },
+    {
+      "name": "--scene-bone-shade",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-surface-container)",
+      "dark": "var(--color-surface-container)",
+      "hex": {
+        "light": "#eeeeef",
+        "dark": "#2d2e2f"
+      }
+    },
+    {
+      "name": "--scene-iron",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-on-surface-muted)",
+      "dark": "var(--color-on-surface-muted)",
+      "hex": {
+        "light": "#595c62",
+        "dark": "#acb0b5"
+      }
+    },
+    {
+      "name": "--scene-iron-shade",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-on-surface)",
+      "dark": "var(--color-on-surface)",
+      "hex": {
+        "light": "#212223",
+        "dark": "#e3e4e6"
+      }
+    },
+    {
+      "name": "--scene-iron-lit",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-track-strong)",
+      "dark": "var(--color-track-strong)",
+      "hex": {
+        "light": "#acb0b5",
+        "dark": "#73777d"
+      }
+    },
+    {
+      "name": "--scene-stone",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-track-strong)",
+      "dark": "var(--color-track-strong)",
+      "hex": {
+        "light": "#acb0b5",
+        "dark": "#73777d"
+      }
+    },
+    {
+      "name": "--scene-stone-shade",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-border-control)",
+      "dark": "var(--color-border-control)",
+      "hex": {
+        "light": "#73777d",
+        "dark": "#8f939a"
+      }
+    },
+    {
+      "name": "--scene-stone-lit",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-track)",
+      "dark": "var(--color-track)",
+      "hex": {
+        "light": "#c9cbcf",
+        "dark": "#424548"
+      }
+    },
+    {
+      "name": "--scene-moon",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-container)",
+      "dark": "var(--color-accent-container)",
+      "hex": {
+        "light": "#afcdfe",
+        "dark": "#1755b9"
+      }
+    },
+    {
+      "name": "--scene-moon-shade",
+      "tier": "component",
+      "type": "color",
+      "light": "var(--color-accent-container-high)",
+      "dark": "var(--color-accent-container-high)",
+      "hex": {
+        "light": "#82b0fd",
+        "dark": "#4f90fc"
+      }
+    },
+    {
+      "name": "--scene-halo",
+      "tier": "component",
+      "type": "number",
+      "light": "0",
+      "role": "How strongly a scene's light glows round it, 0 to 1. Zero draws none.",
+      "dark": "0"
     },
     {
       "name": "--card-padding",
       "tier": "component",
       "type": "dimension",
       "light": "var(--space-6)",
-      "role": "From the card's edge to its rows' words, and to its chips. The page's title, heads and notes start the same distance in, so a page with cards has one left text edge (2026-10-22)."
+      "role": "From the card's edge to its rows' words, and to its chips. The page's title, heads and notes start the same distance in, so a page with cards has one left text edge (2026-10-22). The same in every mood: a mood's larger corner takes it out of the content radius, so the card's radius stays its content radius plus this (owner, 2026-11-03: Expressive's 32px read as \"too much\" padding and set its rows 8px in from Default's)."
     },
     {
       "name": "--card-inset",
@@ -5121,30 +5974,30 @@
       "name": "--card-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-2xl)",
+      "light": "var(--shape-2xl)",
       "role": "Concentric: a surface's inner radius plus its inset."
     },
     {
       "name": "--card-inner-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-sheet)",
+      "light": "var(--shape-sheet)",
       "role": "A row's hover tile, one inset in from the card's edge: the card's radius less the inset."
     },
     {
       "name": "--card-content-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--radius-sm)",
+      "light": "var(--shape-sm)",
       "role": "Content one padding in from the card's edge (a chip, a button, a field, a picture): the card's radius less its padding."
     },
     {
       "name": "--card-chip-hover",
       "tier": "component",
-      "type": "dimension",
-      "light": "4%",
-      "role": "The hover layer of a chip on a card: half the state layer in light, where the chip is white and the full 8% would take it past the card's own tone (L 94 on L 95) so it melted in; the full layer in dark, where hover lifts the chip away from the card (owner, 2026-10-24).",
-      "dark": "var(--state-hover)"
+      "type": "singularity-state-color",
+      "light": "oklch(from var(--color-surface-overlay) calc(l + var(--state-direction) * var(--state-step-hover-quiet)) c h)",
+      "role": "A chip on a card under the pointer: the overlay tone stepped toward its text by half a step in light, where the chip is white and a whole step would take it past the card's own tone (L 94 on L 95) so it melted in; a whole step in dark, where hover lifts the chip away from the card (owner, 2026-10-24).",
+      "dark": "oklch(from var(--color-surface-overlay) calc(l + var(--state-direction) * var(--state-step-hover)) c h)"
     }
   ]
 }

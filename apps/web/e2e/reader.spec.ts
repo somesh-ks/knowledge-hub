@@ -345,7 +345,7 @@ test.describe("sections and stories", () => {
     await expect(chip).toHaveAttribute("data-state", before ?? "");
   });
 
-  test("Today's podcast chip says what the Library's card says: time left, or Played", async ({
+  test("Today's podcast chip says the time left or the length, and Played is the subtitle's mark", async ({
     page,
   }) => {
     await seedStorage(page, { local: { "singularity:resume:2026-10-07": "20" } });
@@ -362,9 +362,10 @@ test.describe("sections and stories", () => {
     });
     await page.goto("/");
     await hydrated(page);
-    await expect(chip.locator("[data-chip-label]")).toHaveText("Played");
-    await expect(chip).toHaveAccessibleName("Play the podcast again, played");
-    await expect(chip).toHaveAttribute("data-state", "played");
+    await expect(page.locator(".hero-facts .hero-played")).toBeVisible();
+    await expect(chip.locator("[data-chip-label]")).not.toHaveText(/played|left/i);
+    await expect(chip).not.toHaveAccessibleName(/played/i);
+    await expect(chip).toHaveAttribute("data-state", "idle");
   });
 
   test("the page does not pull a reader who scrolled elsewhere back to the voice", async ({
@@ -448,7 +449,10 @@ test.describe("sections and stories", () => {
     await expect(page.locator(".story")).toHaveCount(12);
     await expect(page.locator(".story .source-link").first()).toBeVisible();
     // The tabs are plain links to the sections, so they work without script.
-    await expect(page.locator(".tabs .tab").nth(3)).toHaveAttribute("href", "#c-research");
+    await expect(page.locator("[data-section-tabs] .tab").nth(3)).toHaveAttribute(
+      "href",
+      "#c-research",
+    );
     await expect(page.locator("#c-research")).toHaveText("Research");
     await context.close();
   });
@@ -496,7 +500,7 @@ test.describe("section tabs", () => {
     await last.focus();
     await expect
       .poll(async () => {
-        const strip = await page.locator(".tabs").boundingBox();
+        const strip = await page.locator("[data-section-tabs]").boundingBox();
         const tab = await last.boundingBox();
         return (
           !!strip &&
@@ -525,7 +529,9 @@ test.describe("section tabs", () => {
     await expect(current).toHaveText("Launches");
     await expect(current).toHaveCount(1);
     await expect(current).toBeInViewport({ ratio: 1 });
-    expect(await page.locator(".tabs").evaluate((node) => node.scrollLeft)).toBeGreaterThan(0);
+    expect(
+      await page.locator("[data-section-tabs]").evaluate((node) => node.scrollLeft),
+    ).toBeGreaterThan(0);
     // Scrolling the strip did not move the page sideways.
     expect(await page.evaluate(() => window.scrollX)).toBe(0);
     await page.evaluate(() => window.scrollTo(0, 0));
@@ -567,7 +573,7 @@ test.describe("section tabs", () => {
         rule: heading.closest(".chapter")?.getBoundingClientRect().top ?? 0,
       };
     });
-    const strip = await page.locator(".tabs").boundingBox();
+    const strip = await page.locator("[data-section-tabs]").boundingBox();
     const stripEnd = (strip?.y ?? 0) + (strip?.height ?? 0);
     expect(landing.words).toBeGreaterThanOrEqual(stripEnd);
     expect(landing.words).toBeLessThan(260);
@@ -585,7 +591,7 @@ test.describe("section tabs", () => {
       await page.keyboard.press("Shift+Tab");
       const covered = await page.evaluate(() => {
         const control = document.activeElement?.getBoundingClientRect();
-        const strip = document.querySelector<HTMLElement>(".tabs");
+        const strip = document.querySelector<HTMLElement>("[data-section-tabs]");
         if (!control || !strip) return 0;
         const box = strip.getBoundingClientRect();
         const stuck = box.top <= Number.parseFloat(getComputedStyle(strip).top) + 0.5;
@@ -653,12 +659,13 @@ test.describe("the section tabs with the app bar hidden", () => {
     await page.mouse.wheel(0, 200);
     await expect(root).toHaveAttribute("data-bar-hidden", "");
     await expect
-      .poll(async () => (await page.locator(".tabs").boundingBox())?.y ?? 99)
+      .poll(async () => (await page.locator("[data-section-tabs]").boundingBox())?.y ?? 99)
       .toBeLessThan(2);
     // Research's heading well below the reading line (a third down the space under the strip): the section above holds the mark.
     const placeUnderStrip = (gap: number) =>
       page.evaluate((room) => {
-        const strip = document.querySelector(".tabs")?.getBoundingClientRect().bottom ?? 0;
+        const strip =
+          document.querySelector("[data-section-tabs]")?.getBoundingClientRect().bottom ?? 0;
         const top = document.querySelector("#c-research")?.getBoundingClientRect().top ?? 0;
         window.scrollBy({ top: top - strip - room, behavior: "instant" });
       }, gap);
@@ -723,11 +730,14 @@ test.describe("a tab's jump with the app bar", () => {
     page.locator(id).evaluate((heading) => {
       const words = document.createRange();
       words.selectNodeContents(heading);
-      const strip = document.querySelector(".tabs")?.getBoundingClientRect().bottom ?? 0;
+      const strip =
+        document.querySelector("[data-section-tabs]")?.getBoundingClientRect().bottom ?? 0;
       return words.getBoundingClientRect().top - strip;
     });
   const stripRests = (page: Page) =>
-    expect.poll(async () => (await page.locator(".tabs").boundingBox())?.y ?? 99).toBeLessThan(2);
+    expect
+      .poll(async () => (await page.locator("[data-section-tabs]").boundingBox())?.y ?? 99)
+      .toBeLessThan(2);
 
   test("down: the bar goes first, so the heading lands by the strip where it ends", async ({
     page,
@@ -811,7 +821,7 @@ test.describe("earlier podcasts", () => {
     const weekly = page.locator(".earlier .card", { hasText: "Weekly" });
     await expect(weekly).toHaveCount(1);
     await expect(weekly.locator(".card-title")).toHaveText("Sunday 4 October");
-    await expect(weekly.locator(".card-facts")).toHaveText("Weekly · 14 stories · 8 min");
+    await expect(weekly.locator(".card-facts")).toHaveText("Weekly · 14 stories");
     await expect(page.locator(".earlier .cover[data-weekly]")).toHaveCount(1);
   });
 
@@ -859,7 +869,9 @@ test.describe("the page's chrome", () => {
     page,
   }) => {
     await page.goto("/d/2026-10-07");
-    await expect(page.locator(".app-bar-back")).toHaveCount(0);
+    // Opened from nowhere it shows no Back; the button is in the page, hidden, for a visit that came
+    // from the Library (navSpeed.spec.ts).
+    await expect(page.locator(".app-bar-back")).toBeHidden();
     await expect(page.locator('.app-nav [aria-current="page"]')).toHaveAttribute("href", "/");
     // An older briefing is one level down from the Library, and leads back to it.
     await page.goto(SILENT_DIGEST);

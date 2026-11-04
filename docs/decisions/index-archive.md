@@ -53,7 +53,7 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D47 | A move between pages is answered from a saved copy and swapped at once | active |
 | D48 | One shader: a light in the cover's colours behind the header, on a GPU only | active |
 | D49 | One Podcast settings page: Daily, Weekly, Custom, writer, topics, sources | layout superseded by D51; the 0 to 5 score by D55 |
-| D50 | The open player: a speed slider, Chapters or a Speechify-style transcript, word marks stored beside each segment | active |
+| D50 | The open player: a speed slider, Chapters or a Speechify-style transcript, word marks stored beside each segment | partly superseded by D309; the speed control only |
 | D51 | Settings is two levels and saves itself; every select opens one drawn list | active; the Custom page superseded by D56 |
 | D52 | On a phone Create floats only on Today and the Library, extended till you scroll | superseded by D60: Create floats on the Library alone |
 | D53 | First-load JavaScript budget 110 KB, kept as low as the code allows | active |
@@ -81,14 +81,14 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D75 | Suggested sources are chosen from the source catalogue when the page is built, with no live lookup and no scores | active |
 | D76 | Create is the New episode form: three questions first, the defaults under More options | active |
 | D77 | A reading page: the headline is the link, Play is the one filled action, one hero for any title | active |
-| D78 | The Library has one facts line per card, finds dates, keeps its search in the address and remembers what was played | active |
+| D78 | The Library has one facts line per card, finds dates, keeps its search in the address and remembers what was played | amended by D348 |
 | D79 | A saved setting shows before the build, and a new topic stays on its list with its suggestions at once | active |
 | D80 | An episode is written to 95% of what its stories can carry, and a script a little under the floor is kept | active |
 | D81 | A workflow installs only what it runs; the audio job skips the Vercel pull with a Blob token | active; owner merges workflow files by hand |
 | D82 | Play keeps an early tap, a new episode is pre-narrated, the deploy is noticed in 2.5 s | active |
 | D83 | Settings shows a source's score as a word, its name opens its editor; Model default is called Default | amends D55's pips and D69's name links |
 | D84 | A failed run keeps its request and offers Try again; a finished run clears itself; one run at a time | active |
-| D85 | The player's chapters are timed and play their story; an unnamed discussion is named from its voices; one length rule | amends D74 |
+| D85 | The player's chapters are timed and play their story; an unnamed discussion is named from its voices; one length rule | amends D74; amended by D350 |
 | D86 | An action has its own tone, the player bar is one tonal block with the navigation, reading text keeps a 34rem measure | active; extends D72 |
 | D87 | New episode says when a choice changed the topics, with Undo; the Library searches with an excerpt around the match | amends D76 and D78 |
 | D88 | A reading page's section strip is opaque, a focused headline rings as one block, the playing hero Play is tonal, an old briefing offers Share | amends D77 |
@@ -100,8 +100,8 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D94 | Up next narrates a briefing without audio, a phone's page never scrolls itself, a failure is told once, the open page closes by mouse | amends D92 |
 | D95 | The Library's search finds the start of words, a list row keeps its title level, and a segmented choice keeps its width | amends D78 |
 | D96 | An empty screen is one simple illustration, a title, one line and one filled action | active |
-| D97 | What the device remembers reads the same everywhere, the worker keeps what a page fetches, and a refusal reads the same on every control | amends D92, D93 and D94 |
-| D98 | A lost held change is told to the open page, a failure notice replaces the story line, an empty scene draws an object, not a control | amends D94, D96 and D97 |
+| D97 | What the device remembers reads the same everywhere, the worker keeps what a page fetches, and a refusal reads the same on every control | amends D92, D93 and D94; amended by D330 |
+| D98 | A lost held change is told to the open page, a failure notice replaces the story line, an empty scene draws an object, not a control | amends D94, D96 and D97; amended by D330 |
 | D99 | The test suite protects what fails silently, in one layer, once; the dev lab is retired; refused, lost and failed actions are told | amends D91, D97 and D98 |
 | D100 | The time zone selector returns and the schedule counts in the chosen zone; a second voice; voice rows keep Play | amends D71, D89 and D91; Format ended in D215 |
 | D101 | A long list is a searchable list; the bar keeps its controls on a wide screen; every recording has a transcript; every topic is shown | amends D76, D90, D92 and D100 |
@@ -109,7 +109,7 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D103 | Source scores as stars; source lists fold at seven; topic delete asks first; Regenerate takes feedback; first-load 150 KB | amends D55, D83, D53 |
 | D104 | Every briefing has Share, Regenerate and Delete; Regenerate replaces that digest over its window; Delete removes its file and timeline | amends D88, D103 |
 | D105 | A new episode plays from a live Blob copy while it is written; mobile sounds unlock on click; the spoken word lights at once | amends D82, D101 |
-| D106 | The wide bar leads with what is playing and hides its volume until hover; sheets lose the grabber; a played chip offers Play again | amends D46, D58, D101 |
+| D106 | The wide bar leads with what is playing and hides its volume until hover; sheets lose the grabber; a played chip offers Play again | amends D46, D58, D101; amended by D348 |
 | D107 | The transcript's highlight pauses while the host speaks words the page does not show | amends D101, D105 |
 | D108 | A user profile holds blocked domains and story votes; a block cuts an outlet on every fetch path; votes nudge ranking, listings and the writer, and are never shown | active |
 | D109 | Regenerate chooses the topics again and takes comments, for an episode and a briefing, for that run only | amends D44, D103, D104 |
@@ -132,7 +132,7 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D126 | A play queue, an Up next peek and sheet, a collapse chevron, Space to play | amends D102, D111 |
 | D127 | Each Library row has a ⋮ menu (Download, Add to queue, Regenerate, Share, Delete); a download keeps audio and page in Cache Storage, max 10 | partly superseded by D281; amends D123 |
 | D128 | `dispatch publish` pre-narrates recent episodes (every turn and its marks, by hash), and `podcast.yml` calls `audio.yml` after an episode commit | amends D82 |
-| D129 | Settings restructured: Sources or Preferences per topic, one voice pair, Theme select | partly superseded by D195; amends D51, D87, D124, D125 |
+| D129 | Settings restructured: Sources or Preferences per topic, one voice pair, Theme select | partly superseded by D195; amends D51, D87, D124, D125; amended by D335 |
 | D130 | Kimi models are never offered; the Nebius five are ranked by EQ-Bench longform; a weekly scheduled check proposes a refresh by PR | superseded by D136 |
 | D131 | An 8pt spacing system (4px only for named fine cases), rows that carry their own rhythm, headings never bold, enforced by `npm run design-check` | amends D73 |
 | D132 | Two segmented controls (a choice with a check; a navigation tablist with a sliding pill) and one sheet header with Close at the end | amends D106 |
@@ -144,11 +144,11 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D138 | Alexandria enriches thin text, never replaces it | active |
 | D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, the site reports its errors | active |
 | D140 | Design system enforced in three layers (`design-check` hook, e2e, `design-audit` agent); icons only from Phosphor | amends D131 |
-| D141 | The first-load budget is 130 KB | amends D112's 109 KB budget |
+| D141 | The first-load budget is 130 KB | amends D112's 109 KB budget; amended by D361 |
 | D142 | A new topic is a row at once and opens a page before the build; one save carries Jev's emoji; a removal leaves the page at once with Undo | amends D79 |
-| D143 | Every PR gets a code review before it merges, by hand once blocking findings are fixed | active; partly superseded by D254 for `[skip-review]` PRs |
+| D143 | Every PR gets a code review before it merges, by hand once blocking findings are fixed | active; partly superseded by D254 for `[skip-review]` PRs; amended by D292 |
 | D144 | Phone sheets close by pull or tap outside and show no Close | amends D132 |
-| D145 | Network-first page loads; a build check on return | amends D47 |
+| D145 | Network-first page loads; a build check on return | amends D47; amended by D330 |
 | D146 | A deploy is offered in a toast; Vitals wait | amends D145 |
 | D147 | Lab probe, not field Vitals | amends D146 |
 | D148 | CI on pull requests only; browser suites by path, Dependabot or label | active |

@@ -397,7 +397,11 @@ export async function handleSharePlay(input: PlayRequest, deps: ShareDeps): Prom
     case "link_limit":
       return {
         status: 429,
-        body: { status: 429, error: "link_limit", message: "This link has been played its limit." },
+        body: {
+          status: 429,
+          error: "link_limit",
+          message: "This link has reached its play limit.",
+        },
       };
     case "month_limit":
       return {

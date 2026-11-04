@@ -37,17 +37,17 @@ export function errorSummary(error: Pick<PlayerError, "kind" | "summary">): stri
     case "network":
       return "Audio did not load";
     case "unavailable":
-      return "Audio is not available";
+      return "Audio isn't available";
     case "blocked":
       return "Playback was blocked";
     default:
       // Decode and unknown failures; a refusal always carries its reason as its summary.
-      return "Audio could not play";
+      return "Couldn't play the audio";
   }
 }
 
 /** The accessible name of the play toggle. Visible text and name always agree. */
-/** The one line for a pause another app caused, on the bar and in the open player's notice. */
+/** The one line for a pause another app caused, on the bar. */
 export const INTERRUPTED_LINE = "Paused by another app";
 
 /**

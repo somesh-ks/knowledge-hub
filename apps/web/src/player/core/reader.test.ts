@@ -7,6 +7,7 @@ import {
   briefingChipView,
   briefingLengthLabel,
   createHeardTracker,
+  fabLabel,
   idleBriefingChip,
   idleStoryChip,
   itemVisualState,
@@ -169,7 +170,7 @@ describe("the podcast chip", () => {
   it("tells what the device remembers while another recording is loaded, as the Library's card does", () => {
     const digest = makeDigest();
     const other = { ...stateFor("paused"), digestId: "another-recording" };
-    // Left half way: the time left. Heard to the end: Played. Neither: the length.
+    // Left half way: the time left. Heard to the end or not: the length. Never Played (owner, 2026-11-03).
     expect(
       briefingChipView(other, 30, digest, "podcast", { seconds: 60, played: false, heard: [] }),
     ).toMatchObject({
@@ -179,18 +180,48 @@ describe("the podcast chip", () => {
     });
     expect(
       briefingChipView(other, 30, digest, "podcast", { seconds: 0, played: true, heard: [] }),
-    ).toMatchObject({ state: "played", label: "Played", name: "Play the podcast again, played" });
+    ).toEqual(idleBriefingChip("2 min"));
     expect(
       briefingChipView(other, 30, digest, "podcast", { seconds: 0, played: false, heard: [] }),
     ).toEqual(idleBriefingChip("2 min"));
-    // Nothing loaded yet (a page just opened): Played is shown too.
+    // Nothing loaded yet (a page just opened): the length too.
     expect(
       briefingChipView(stateFor("idle"), 0, digest, "podcast", {
         seconds: 0,
         played: true,
         heard: [],
       }).label,
-    ).toBe("Played");
+    ).toBe("2 min");
+  });
+
+  // Bug it prevents: the podcast page's play button read "Played" (owner, 2026-11-03: the status is the
+  // facts line's green check, so the button is only ever Play, Resume, Loading or Try again).
+  it("never says Played, in any state and with any memory", () => {
+    const statuses = ["idle", "loading", "playing", "paused", "ended", "error"] as const;
+    const memories = [
+      undefined,
+      { seconds: 0, played: true, heard: [] },
+      { seconds: 60, played: true, heard: [] },
+      { seconds: 60, played: false, heard: [] },
+    ];
+    for (const status of statuses) {
+      for (const time of [0, 30, 120]) {
+        for (const remembered of memories) {
+          const own = briefingChipView(stateFor(status), time, makeDigest(), "podcast", remembered);
+          const other = briefingChipView(
+            { ...stateFor(status), digestId: "another-recording" },
+            time,
+            makeDigest(),
+            "podcast",
+            remembered,
+          );
+          for (const view of [own, other]) {
+            expect(view.state).not.toBe("played");
+            expect(`${view.label} ${view.name} ${fabLabel(view)}`).not.toMatch(/played/i);
+          }
+        }
+      }
+    }
   });
 
   it("rounds the time left as it rounds the length, so one recording has one length", () => {
@@ -221,12 +252,9 @@ describe("the podcast chip", () => {
       label: "2 min left",
       name: "Resume the podcast, 2 min left",
     });
-    expect(briefingChipView(stateFor("ended"), 120, makeDigest())).toEqual({
-      state: "played",
-      playing: false,
-      label: "Played",
-      name: "Play the podcast again, played",
-    });
+    expect(briefingChipView(stateFor("ended"), 120, makeDigest())).toEqual(
+      idleBriefingChip("2 min"),
+    );
     expect(briefingChipView(stateFor("error"), 86, makeDigest())).toEqual({
       state: "error",
       playing: false,
@@ -275,7 +303,7 @@ describe("the podcast chip", () => {
       "Resume the episode, 2 min left",
       "Pause the episode, 2 min left",
       "Resume the episode, 2 min left",
-      "Play the episode again, played",
+      "Play the episode, 2 min",
     ]);
     for (const name of names) expect(name).not.toContain("briefing");
   });
@@ -362,13 +390,13 @@ describe("a story chip", () => {
     });
   });
 
-  it("says Played once the playhead has passed it", () => {
-    expect(storyChipView("played", true, false, "0:30", headline)).toEqual({
-      state: "played",
-      playing: false,
-      label: "Played",
-      name: "Play again, played: The safe triangle, rebuilt",
-    });
+  // Bug it prevents: a story's button saying Played (owner, 2026-11-03: no per-story state, a Play
+  // button to start from any story).
+  it("is a plain Play button once the playhead has passed it", () => {
+    expect(storyChipView("played", true, false, "0:30", headline)).toEqual(
+      storyChipView("", true, false, "0:30", headline),
+    );
+    expect(storyChipView("played", false, false, "0:30", headline).label).toBe("0:30");
   });
 });
 

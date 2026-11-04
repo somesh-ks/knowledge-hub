@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { EpisodeId, readEpisodeScript } from "@singularity/core";
-import { audioVersion, episodeOpusKey } from "../publish/blob.js";
+import { audioVersion, episodeOpusKey } from "../publish/audioKeys.js";
 import { DEFAULT_LANGUAGE, DEFAULT_MODEL, DEFAULT_VOICE_ID, type SpeechMark } from "./speechify.js";
 
 /**

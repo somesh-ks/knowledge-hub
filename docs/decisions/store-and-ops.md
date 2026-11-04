@@ -286,3 +286,41 @@ Where data lives (Postgres, Blob, git), config, health, analytics, deploys, acce
 - Context changed: D296 took the config out of git; D298 made the repo public and left `Digests/`, `state/` and the audio as the open question, now answered.
 - Revisit if: Blob operations near the plan limit, or a state file outgrows a Postgres row.
 - Supersedes: nothing. Amends D173 (Blob becomes the home, not a mirror) when step two ships.
+
+## D311: D300 amended, the config snapshot lives in the Neon database
+
+- Date: 2026-11-01 (the owner, on a decision card: "In your existing database")
+- Decision: the weekly config snapshot is a row of `config_snapshots(key, body, taken_at)` in the same Neon database as the config, not an object in a second, private Blob store. `config snapshot` and `config restore --latest` use the table; `BLOB_PRIVATE_READ_WRITE_TOKEN` and the private-store code are removed. `config snapshot --out <file>` still makes a copy on the owner's machine.
+- Why: the owner asked why a second store and wanted no extra setup. The table needs no new store, key or cost, and Neon keeps its own restore window beside it.
+- Rejected: the private Blob store (a second store and key to make); an encrypted file in the public store (a leaked key would expose the config).
+- Context changed: D300 named a private Blob store for the snapshot.
+- Revisit if: the database itself is lost once and the table went with it; then keep the `--out` copy on a schedule elsewhere.
+- Supersedes: the snapshot clause of D300 only. The rest of D300 stands.
+
+## D316: Vercel skew protection stays off in the web build
+
+- Date: 2026-11-01 (the performance audit; autonomous mode)
+- Decision: the web app's Vercel adapter runs with `skewProtection: false`, whatever the project setting says, and `checkBundle` fails a page whose `/_astro/` addresses carry `?dpl=`.
+- Why: with skew protection on (it reads `VERCEL_SKEW_PROTECTION_ENABLED`), every asset address and import gains `?dpl=<deployment>`, Vite drops the preload list from each lazy import, and `bundleBudget.ts` read no imports at all. Production then had no modulepreload links and linked player.css twice while the budget check passed at 11 KB of a 75 KB first load. The tested build never had the query, so production was not the build the lab measured.
+- Cost: an open tab that lazily imports a chunk after a deploy no longer gets the old deployment's file from Vercel. The service worker already answers `/_astro/` from its cache, precached six imports deep, and `buildGuard.ts` turns a move into another build's page into a full load.
+- Rejected: keeping skew protection and teaching every reader the query (the preload links would name other module addresses than the imports, so each file would download twice, and Vite's lazy preload lists stay gone).
+- Revisit if: a deploy breaks an open tab's lazy import with a 404 that the service worker did not answer.
+
+## D318: pages stay at the edge until their content changes
+
+- Date: 2026-11-01 (the owner, on a decision card: "Both, cache first", after the performance audit)
+- Decision: every page drawn from the content (home, Library, a briefing, an episode, Downloads, the search index) carries `Vercel-Cache-Tag: content` and `Vercel-CDN-Cache-Control: max-age=300, stale-while-revalidate=2592000`. `content.yml` deletes the tag after a sync that sent anything, 55 s after it (past each instance's 30 s manifest window plus the 20 s a render may run) and before Notify; `/api/podcast` deletes it when a delete writes a tombstone, and the delete's podcast run syncs and deletes it again past the window (`waitUntil` cannot wait that long: it ends with the function). If that run is cancelled or fails before its commit, a page another instance drew inside the window shows the deleted episode for 5 minutes, and once more to the first visit after them (stale-while-revalidate answers with the old copy while it draws the new one), however late that visit comes; accepted for one reader. Delete, not invalidate, so the next visit never sees the old copy. The function's region moves to Europe later, after Neon (D304).
+- Why: with a ten-minute window, 43% of the owner's page loads in the week to 1 Nov missed the Stockholm edge and waited on the function in Washington, often from a cold start. A page only changes when the content does, so the edge can keep it until told.
+- Cost: a purge that fails or never runs shows the old page once, on the first visit after five minutes. A content write that bypasses `content.yml` and the tombstone path needs its own purge. The visit after a purge waits on the function. The Vercel token reaches one more workflow step (kept in that step alone, SEC-03).
+- Rejected: answering app opens from the service worker's saved page (the 2026-10-21 old-layout problem, and a "podcast ready" tap would open on the old home); a skeleton that streams the content in (two paints and a layout shift for the same bytes).
+- Revisit if: request logs still show most of the owner's page loads as MISS after a week, or a page shows content older than the store.
+
+## D360: guardrails tell the owner only when a budget breaks, and the cron spares Neon
+
+- Date: 2026-11-03 (the owner, on a decision card: "Build all of it", after an independent review)
+- Decision: every health and cost budget lives in one of three places: a merge check (what a change brings in), the daily health alarm (a self-closing `health` issue, for limits that can run out within days) or the Monday report card (drift). An alarm fires only on a breach. The admin Health page shows the same numbers from the same saved result. No code-coverage target; tests are judged by bugs that came back, flaky tests and suite time. First piece: the hourly `/api/cron/run` reads a copy of the stored schedule from the `RUN_SCHEDULE` repository variable and ends an hour the copy shows as unscheduled without opening the config store. The site's save and every store read write the copy; the cron reads the store at 03 UTC whatever the copy says; a copy not confirmed for 36 hours is not used.
+- Why: Neon's free plan has 100 compute hours a month and was on pace for about 90 (8.9 by 3 Nov); the cron's 24 store reads a day kept it awake at least 2 hours a day, about 15 compute hours a month, mostly to learn nothing was due. The owner asked for systems that keep cost, speed, tests, bugs and security in check without his asking.
+- Cost: a schedule written to the store by anything but the site's save (`config push`, a seed) reaches the copy only at the next 03 UTC read, so a new hour can be skipped for up to a day; a store outage no longer shows in the cron log outside the schedule's hours (the daily `store_degraded` check still sees it).
+- Rejected: a coverage percentage (rewards tests written for the number; the postmortem's 4,800 unit tests missed every P1); Sentry (the owner's call, 22 Oct); deferring the key, Blob and report-card checks (the owner asked for full coverage, and the Pro trial ends about 13 Nov).
+- Revisit if: Neon's pace stays above 70 compute hours a month after the cron change, or the cron log shows a scheduled hour skipped by a stale copy.
+

@@ -147,6 +147,10 @@ export function classTokens(text: string): Set<string> {
   ) {
     found.add("menu-item-danger");
   }
+  // The tiles and the value come by their class helpers.
+  if (/\bmenuTilesClass\(/.test(code)) found.add("menu-tiles");
+  if (/\bmenuTileClass\(/.test(code)) found.add("menu-tile");
+  if (/\bmenuItemValueClass\(/.test(code)) found.add("menu-item-value");
   // The Dialog: the tag, its actions row (stacked by its prop), its heading, or the class helpers.
   if (/<Dialog\b|\bdialogClass\(/.test(code)) {
     found.add("dialog-panel");
@@ -171,7 +175,6 @@ export function classTokens(text: string): Set<string> {
     ["drawerViewportClass", "drawer-viewport"],
     ["drawerPopupClass", "drawer-popup"],
     ["drawerPanelClass", "drawer-panel"],
-    ["drawerHeadClass", "drawer-head"],
   ] as const) {
     if (code.includes(`${helper}(`)) found.add(name);
   }
@@ -217,6 +220,9 @@ export function sourceFiles(): { path: string; text: string; tokens: Set<string>
       tokens.delete("menu-item");
       tokens.delete("menu-sheet");
       tokens.delete("menu-item-danger");
+      tokens.delete("menu-tiles");
+      tokens.delete("menu-tile");
+      tokens.delete("menu-item-value");
       for (const name of ["banner-notice", "banner-text", "banner-title", "banner-body"]) {
         tokens.delete(name);
       }
@@ -233,7 +239,6 @@ export function sourceFiles(): { path: string; text: string; tokens: Set<string>
         "drawer-viewport",
         "drawer-popup",
         "drawer-panel",
-        "drawer-head",
       ]) {
         tokens.delete(name);
       }
@@ -400,13 +405,34 @@ export function renderLlms(system: System): string {
       lines.push(
         token.role ? `- ${token.name}: ${firstSentence(token.role, 90)}` : `- ${token.name}`,
       );
+  // A fill's hover and press are derived colours (D317): one line names them, not 26.
+  const stated = new Set(
+    system.tokens
+      .filter((token) => token.tier === "semantic" && token.type === "singularity-state-color")
+      .map((token) => token.name.replace(/-(hover|pressed)$/, "")),
+  );
+  if (stated.size > 0)
+    lines.push(`- <fill>-hover and <fill>-pressed for ${[...stated].join(", ")}: its state fills`);
   lines.push("", "## Scales", "Read directly by components.");
   const scales = ["space", "radius", "stroke", "duration", "ease"];
   for (const scale of scales) {
+    // Corners are read through the semantic `--shape-*` scale, which a style redraws; only the
+    // round pill is read as a primitive.
+    const prefix = `--${scale}-`;
     const items = system.tokens
-      .filter((token) => token.tier === "primitive" && token.name.startsWith(`--${scale}-`))
-      .map((token) => (token.light.length > 24 ? token.name : `${token.name} ${token.light}`));
-    if (items.length > 0) lines.push(`- ${items.join(", ")}`);
+      .filter(
+        (token) =>
+          token.tier === "primitive" &&
+          token.name.startsWith(prefix) &&
+          (scale !== "radius" || token.name === "--radius-round"),
+      )
+      .map((token) => {
+        const name = token.name.slice(prefix.length);
+        return token.light.length > 24 ? name : `${name} ${token.light}`;
+      });
+    if (items.length > 0) lines.push(`- ${prefix}{${items.join(", ")}}`);
+    if (scale === "radius")
+      lines.push("- --shape-{xs, sm, md, lg, xl, sheet, 2xl}: corners, a style redraws them");
   }
   const groups = new Map<string, number>();
   for (const token of system.tokens)

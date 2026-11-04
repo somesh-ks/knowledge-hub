@@ -8,12 +8,17 @@ const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 async function expectAccessible(page: Page, where: string): Promise<void> {
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme });
-    // The colours ease to the new scheme; axe reads them once they are there.
+    // The colours ease to the new scheme, and the story under the title fades in when it changes;
+    // axe reads them once they are there.
     await page.evaluate(() =>
       Promise.all(
         document
           .getAnimations()
-          .filter((animation) => animation instanceof CSSTransition)
+          .filter(
+            (animation) =>
+              animation instanceof CSSTransition ||
+              (animation instanceof CSSAnimation && animation.animationName === "fade-in"),
+          )
           .map((animation) => animation.finished.catch(() => null)),
       ),
     );
@@ -47,7 +52,13 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
     await player.open();
     await player.play();
     await player.openPlayer();
+    // Paused, so the story under the title (it fades in on each change) holds while axe reads it.
+    await player.dialog.getByRole("button", { name: "Pause", exact: true }).press("Enter");
+    await expect(player.root).toHaveAttribute("data-player-state", "paused");
     await expectAccessible(page, "the open player");
+    // Playing again: only a podcast that plays to its end is ended.
+    await player.dialog.getByRole("button", { name: "Play", exact: true }).press("Enter");
+    await expect(player.root).toHaveAttribute("data-player-state", "playing");
     await player.pageScrubber.focus();
     await page.keyboard.press("End");
     await expect(player.root).toHaveAttribute("data-player-state", "ended");
@@ -87,9 +98,10 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
     await page.clock.install();
     const dialog = await player.openGenerate();
     await expectAccessible(page, "the Generate sheet");
+    await dialog.getByRole("textbox").fill("shorter");
     const start = dialog.getByRole("button", { name: "Regenerate" });
     await player.finger.press(start);
-    await expect(dialog.getByRole("alert")).toContainText("ran into a problem");
+    await expect(dialog.getByRole("alert")).toContainText("Something broke on our side");
     await expectAccessible(page, "the Generate sheet refused");
     await player.finger.press(start);
     // The sheet is only the form: the run is followed in the line above the navigation.
