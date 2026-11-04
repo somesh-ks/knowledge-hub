@@ -130,7 +130,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-09: Ports 4524 to 4623 are reserved by Windows on this machine (`listen EACCES`); `netsh interface ipv4 show excludedportrange protocol=tcp` lists them. Use 47xx.
 - 2026-10-08: `npx` can stall a minute before a local binary runs: read its output, do not rerun it. A full disk was another project's temp folder: measure before deleting.
 
-- 2026-10-25: Windows has no flag emoji; every flag is the DS Flag (`public/flags/`, D367), text with a flag emoji goes through `showText`.
+- 2026-10-25: Windows has no flag emoji; draw flags with the DS Flag (D367).
 
 ## Agents and worktrees
 
