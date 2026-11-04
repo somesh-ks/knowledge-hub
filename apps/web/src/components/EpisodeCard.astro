@@ -11,13 +11,9 @@ import LibraryItemMenu from "./LibraryItemMenu.astro";
 interface Props {
   entry: EpisodeEntry;
   /** The first row of a grid loads its covers at once; the rest wait until they are near. */
-  /** Settings > Downloads: the menu offers only what applies to a saved copy. */
-  downloads?: boolean;
-  /** On Settings > Favorites: the row's menu is cut to what applies to a saved item. */
-  saved?: boolean;
 }
 
-const { entry, downloads = false, saved = false } = Astro.props;
+const { entry } = Astro.props;
 const { episode } = entry;
 const facts = episodeFacts(entry);
 ---
@@ -61,7 +57,5 @@ const facts = episodeFacts(entry);
     audio={`/api/narrate?digest=${encodeURIComponent(entry.id)}`}
     topics={episode.request.topic_ids}
     regenerations={episode.regenerations}
-    downloads={downloads}
-    saved={saved}
   />
 </li>

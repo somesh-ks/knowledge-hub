@@ -710,10 +710,11 @@ async function actionsOf(menu: import("@playwright/test").Locator): Promise<stri
   );
 }
 
-// Bug it prevents: the same podcast opened two different sheets, from a Library card and from its own
-// page's ⋮, and the Downloads sheet listed its actions in another order (owner, 2026-11-04: "technically
-// they should be the same thing, because it's the same podcast").
-test("every podcast sheet keeps the one order, and a podcast's page opens its Library card's sheet", async ({
+// Bug it prevents: the same podcast opened different sheets from a Library card, its own page's ⋮,
+// Downloads and Favorites, in another order or with other actions (owner, 2026-11-04: "technically
+// they should be the same thing, because it's the same podcast"; "the options ... should be the same
+// in library, in downloads, and in favorite pages").
+test("every podcast sheet keeps the one order, and a podcast's page, Downloads and Favorites open its Library card's sheet", async ({
   page,
 }) => {
   const inOrder = (actions: string[]) =>
@@ -733,4 +734,28 @@ test("every podcast sheet keeps the one order, and a podcast's page opens its Li
   const sheet = page.locator("#hero-menu");
   await expect(sheet).toBeVisible();
   expect(await actionsOf(sheet)).toEqual(card);
+
+  // Downloads and Favorites list the podcast with the same sheet: the row is downloaded and favorited
+  // first, because each page shows only what this device holds.
+  await page.goto("/library");
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.reload();
+  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+  await openMenu(page, AUDIO_ID);
+  await row(page, AUDIO_ID).getByRole("menuitem", { name: "Download" }).click();
+  await expect(row(page, AUDIO_ID)).toHaveAttribute("data-downloaded", "");
+  await page.evaluate(
+    (id) => localStorage.setItem(`singularity:saved:${id}`, String(Date.now())),
+    AUDIO_ID,
+  );
+  for (const [path, ready] of [
+    ["/settings/downloads", "[data-downloads]"],
+    ["/settings/saved", "[data-saved-page]"],
+  ] as const) {
+    await page.goto(path);
+    await expect(page.locator(ready)).toHaveAttribute("data-ready", "");
+    await openRowMenu(page, row(page, AUDIO_ID));
+    expect(await actionsOf(row(page, AUDIO_ID).locator(".menu-list"))).toEqual(card);
+    await page.keyboard.press("Escape");
+  }
 });

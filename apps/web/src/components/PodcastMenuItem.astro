@@ -8,20 +8,19 @@ interface Props {
   action: PodcastAction;
   id: string;
   kind: "briefing" | "episode";
-  /** On Settings > Downloads, Download is the row's way out: Remove download, in the danger tone. */
-  removeOnly?: boolean;
   regenerations?: number | undefined;
   /** "true" while a page waits for libraryMenu.ts to wire its items. */
   pending?: "true" | undefined;
 }
 
-const { action, id, kind, removeOnly = false, regenerations, pending } = Astro.props;
+const { action, id, kind, regenerations, pending } = Astro.props;
 const regen = regenerationHint(regenerations);
 ---
 
 {/* One action of a podcast's sheet (PodcastMenuItems.astro). A toggle carries both glyphs and its
      holder's data-saved or data-downloaded picks one (library.css, hero.css); libraryMenu.ts sets the
-     words. Remove download is the bin everywhere (owner, 2026-11-04). */}
+     words. A downloaded podcast's Download reads Remove download with the bin, on every sheet,
+     Downloads' too (owner, 2026-11-04). */}
 {
   action === "favorite" ? (
     <MenuItem data-menu="favorite" aria-disabled={pending}>
@@ -34,10 +33,6 @@ const regen = regenerationHint(regenerations);
   ) : action === "share" ? (
     <MenuItem data-menu="share" data-share-item={id} aria-disabled={pending}>
       <Icon name="shareFat" />Share
-    </MenuItem>
-  ) : action === "download" && removeOnly ? (
-    <MenuItem tone="danger" data-menu="download">
-      <Icon name="trash" /><span data-menu-label>Remove download</span>
     </MenuItem>
   ) : action === "download" ? (
     <MenuItem data-menu="download" aria-disabled={pending}>

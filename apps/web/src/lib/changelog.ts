@@ -21,7 +21,7 @@ export const CHANGELOG: readonly Release[] = [
     version: "0.21",
     date: "2026-11-04",
     description:
-      "A podcast's page and its Library card open the same menu, and every podcast menu lists its actions in one order. Downloads opens a row's menu with a long press and removes a download with a swipe, after asking.",
+      "A podcast's page and its Library card open the same menu, and Library, Downloads and Favorites offer the same actions in one order. Downloads opens a row's menu with a long press and removes a download with a swipe, after asking.",
   },
   {
     version: "0.20",

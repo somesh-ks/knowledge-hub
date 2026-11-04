@@ -23,10 +23,6 @@ interface Props {
   minutes?: number;
   /** Times this podcast was regenerated, for the Regenerate item's counter (D212). */
   regenerations?: number | undefined;
-  /** On Settings > Downloads: only what applies to a saved copy (Add to favorites, Add to queue, Share, Remove download). */
-  downloads?: boolean;
-  /** On Settings > Favorites: Remove from favorites, Add to queue and Share. */
-  saved?: boolean;
 }
 
 const {
@@ -40,8 +36,6 @@ const {
   topics,
   minutes,
   regenerations,
-  downloads = false,
-  saved = false,
 } = Astro.props;
 const menuId = `card-menu-${id}`;
 ---
@@ -78,7 +72,6 @@ const menuId = `card-menu-${id}`;
     <PodcastMenuItems
       id={id}
       kind={kind}
-      place={downloads ? "downloads" : saved ? "saved" : "library"}
       audio={audio}
       deletable={deletable}
       regenerations={regenerations}

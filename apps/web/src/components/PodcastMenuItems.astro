@@ -6,23 +6,24 @@ import PodcastMenuItem from "./PodcastMenuItem.astro";
 interface Props {
   id: string;
   kind: "briefing" | "episode";
-  /** Where the sheet opens: a Library card, a podcast page, Settings > Downloads or > Favorites. */
-  place: "library" | "page" | "downloads" | "saved";
   /** The file to download: without it Download is not offered. */
   audio?: string | undefined;
   /** False on a Daily or Weekly briefing: only on-demand briefings and episodes can be deleted. */
   deletable?: boolean;
   /** Times this podcast was regenerated, for the Regenerate item's counter (D212). */
   regenerations?: number | undefined;
+  /** A page serves its items dimmed until libraryMenu.ts wires them (it lifts aria-disabled). */
+  pending?: boolean;
 }
 
-const { id, kind, place, audio, deletable = true, regenerations } = Astro.props;
-const full = place === "library" || place === "page";
+const { id, kind, audio, deletable = true, regenerations, pending = false } = Astro.props;
 
+// One podcast, one set of actions: a Library card, a podcast page, Downloads and Favorites list the
+// same, because it is the same podcast (owner, 2026-11-04). Only the podcast's own facts leave one out.
 const wanted: PodcastAction[] = ["favorite", "queue", "share"];
-if (place === "downloads" || (full && audio)) wanted.push("download");
-if (full) wanted.push("regenerate", "unshare");
-if (full && deletable) wanted.push("delete");
+if (audio) wanted.push("download");
+wanted.push("regenerate", "unshare");
+if (deletable) wanted.push("delete");
 const actions = inPodcastOrder(wanted);
 // Stop sharing is put in only once this device shared the item, so it never counts toward tiles.
 const counted = actions.filter((action) => action !== "unshare");
@@ -32,16 +33,15 @@ const item = {
   id,
   kind,
   regenerations,
-  removeOnly: place === "downloads",
-  // A page serves its items dimmed until libraryMenu.ts wires them (it lifts aria-disabled).
-  pending: place === "page" ? ("true" as const) : undefined,
+  pending: pending ? ("true" as const) : undefined,
 };
 ---
 
 {/* One podcast's actions, in the one order every podcast sheet keeps (lib/podcastActions.ts, D369).
      With enough of them the first three are the quick actions: tiles over the list on a phone's sheet,
      rows from 40rem (menu.css); a short sheet is a plain list. scripts/libraryMenu.ts wires the
-     data-menu items; Regenerate and Delete are the episode and briefing pages' own dialogs. */}
+     data-menu items; Regenerate and Delete are the episode and briefing pages' own dialogs
+     (EpisodeActions.astro, on every page that lists a podcast). */}
 {
   tiles.length > 0 && (
     <div class={menuTilesClass()} data-fold role="presentation">
