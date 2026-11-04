@@ -764,6 +764,17 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Revisit if: the bob and the headphones together read as busy in the app bar.
 - Amends: D326, D353.
 
+## D361: first-load JavaScript is held to the heaviest page's record plus 5 KB
+
+- Date: 2026-11-03 (the owner asked for performance numbers; the coordinator asked for a check that would have caught the growth).
+- Decision: `FIRST_LOAD_RECORD_BYTES` records the heaviest page's first load (80 KB; /settings/downloads is 79.9 KB) and `checkBundle` fails a build whose heaviest page is more than `FIRST_LOAD_STEP_BYTES` (5 KB) past it. A change that adds more loads the new code lazily, or raises the record and says why in its pull request. The 130 KB ceiling of D141 stays.
+- Context changed: every page's first load went from 35 KB (2026-10-24, D178) to 75 KB by 2026-11-03 with nothing failing. A rebuild of each merged commit found the steps: #500 put the select's sheet, its head and every glyph on every page (39 to 52 KB at once; the glyph table grew to 16 KB after it), and #608 brought the avatar's show eager (7 KB). Both now load at idle or on first use: the avatar's show here, the select's sheet in the design-system pull request the owner merges (D254), which takes every page to 52.2 KB and the record down to about 58 KB.
+- Why: a ceiling 70 KB above the code lets a page double unnoticed; a record moves only when someone writes it down.
+- Rejected: lowering D141's ceiling (the owner raised it for room to build); a per-page baseline file (every PR would rewrite it and conflict).
+- Cost: a feature that adds over 5 KB of eager code must raise one number in its PR.
+- Revisit if: raising the record becomes routine, or the owner wants the ceiling itself lower.
+- Amends: D141 (adds a ratchet under the ceiling).
+
 ## D362: short of room, a row cuts its name and keeps its value
 
 - Date: 2026-11-03 (the owner: "when you run out of space, the topic name should truncate and not the number of sources. this should be a design system change").

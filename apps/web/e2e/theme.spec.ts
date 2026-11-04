@@ -77,6 +77,28 @@ test.describe("theme", () => {
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     await page.getByRole("combobox", { name: "Theme" }).selectOption("dark");
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    // Bug it prevents (owner, 2026-11-04, Android): the status bar flashed at every tab switch. A swap
+    // took the theme colour out of the head and put the page's default back for a moment, and Chrome
+    // paints the status bar from each one it is given.
+    const offered = await page.evaluate(() => {
+      const current = () =>
+        document.querySelector<HTMLMetaElement>(
+          'meta[name="theme-color"][media="(prefers-color-scheme: light)"]',
+        )?.content ?? "none";
+      const seen = new Set<string>();
+      const record = window as unknown as { __offered: Set<string> };
+      record.__offered = seen;
+      new MutationObserver((changes) => {
+        for (const change of changes) {
+          for (const node of [...change.removedNodes, ...change.addedNodes]) {
+            if (node instanceof HTMLMetaElement && node.name === "theme-color")
+              seen.add(`moved ${node.content}`);
+          }
+        }
+        seen.add(current());
+      }).observe(document.head, { childList: true, subtree: true, attributes: true });
+      return current();
+    });
     await page
       .getByRole("navigation", { name: "Primary" })
       .getByRole("link", { name: "Library", exact: true })
@@ -90,6 +112,11 @@ test.describe("theme", () => {
       .click();
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    // The chrome was offered the dark page's colour, and only that one, all the way through.
+    const seen = await page.evaluate(() => [
+      ...((window as unknown as { __offered: Set<string> }).__offered ?? []),
+    ]);
+    expect(seen.filter((value) => value !== offered)).toEqual([]);
   });
   test("a style chosen in Settings survives navigation and a reload, set before first paint", async ({
     page,
