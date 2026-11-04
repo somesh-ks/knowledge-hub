@@ -4,11 +4,13 @@ import { fileURLToPath } from "node:url";
 import {
   entryScripts,
   FIRST_LOAD_BUDGET_BYTES,
+  FIRST_LOAD_RECORD_BYTES,
   FONT_BUDGET_BYTES,
   findRenderBlockingScripts,
   firstLoadReport,
   gzipBytes,
   overBudget,
+  pastRecord,
   unallowedInlineScripts,
   unhintedModules,
   wakeModules,
@@ -110,7 +112,10 @@ for (const entry of readdirSync(root, { recursive: true, withFileTypes: true }))
   }
 }
 
-console.log(`Largest first load: ${kilobytes(largest)} of ${kilobytes(FIRST_LOAD_BUDGET_BYTES)}`);
+console.log(
+  `Largest first load: ${kilobytes(largest)} of ${kilobytes(FIRST_LOAD_BUDGET_BYTES)} (recorded ${kilobytes(FIRST_LOAD_RECORD_BYTES)})`,
+);
+failures.push(...pastRecord(largest));
 if (failures.length > 0) {
   console.error(`\n${failures.length} problem(s):\n- ${failures.join("\n- ")}`);
   process.exit(1);
