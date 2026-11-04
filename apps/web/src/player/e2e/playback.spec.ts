@@ -237,24 +237,26 @@ test.describe("playback on a podcast", () => {
     expect(await time(page)).toBeGreaterThan(saved - 1 - 2 * WAKE_REWIND_SECONDS);
   });
 
-  test("remembers a pause the system caused and offers resume instead of playing again", async ({
+  test("remembers a pause the system caused and plays on from the Play disc", async ({
     player,
     audio,
     page,
   }) => {
     await player.open();
     await player.play();
-    // A call or an alarm pauses the element without anyone pressing pause.
+    const caption = page.locator(".dock-caption");
+    const playing = (await caption.textContent()) ?? "";
+    // A call or an alarm pauses the element without anyone pressing pause: the caption says so.
     await page.evaluate(() => window.__audios[0]?.pause());
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
-    await expect(page.locator(".dock-caption")).toHaveText("Paused by another app");
+    await expect(caption).not.toHaveText(playing);
+    const paused = (await caption.textContent()) ?? "";
     expect((await audio.read())?.paused).toBe(true);
     await player.openPlayer();
-    const notice = page.getByRole("status").filter({ hasText: "Paused by another app" });
-    await expect(notice).toBeVisible();
-    await player.finger.press(player.dialog.getByRole("button", { name: "Resume" }));
+    // The page's Play disc plays on.
+    await player.finger.press(player.dialog.getByRole("button", { name: "Play", exact: true }));
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-    await expect(notice).toHaveCount(0);
+    await expect(caption).not.toHaveText(paused);
   });
 
   test("a held volume knob grows alone: the track and the bar keep their boxes @wide", async ({
