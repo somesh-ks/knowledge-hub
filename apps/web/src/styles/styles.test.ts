@@ -189,7 +189,8 @@ const SHARED_CONTROLS = [
   "segmented-nav-tab",
 ];
 
-/** Controls styled in their own sheet or built bespoke, each with why they are not a shared one. */
+/** Controls styled in their own sheet or built bespoke, each with why they are not a shared one. A new
+ * entry needs the design-system label (scripts/designSystemGate.mjs): any other PR may only shrink it. */
 const BESPOKE_CONTROLS: [name: string, reason: string][] = [
   [
     "create-fab",
@@ -941,7 +942,7 @@ const RULES: Rule[] = [
       const control = (name: string) =>
         controls.has(name) || /-(?:btn|button|fab|chip|pill|toggle)$/.test(name);
       const hidden = (value: string) =>
-        /^(?:0|none)(?:\s|$)|\btransparent\b|\b(?:ButtonText|ButtonBorder|CanvasText|Highlight|GrayText)\b/.test(
+        /^(?:0|none)(?:\s|$)|\btransparent\b|\b(?:ButtonText|ButtonBorder|CanvasText|Highlight(?:Text)?|GrayText)\b/.test(
           value,
         );
       // What :not() and :has() test is not the element itself: `:not(:focus-visible)` is at rest.
