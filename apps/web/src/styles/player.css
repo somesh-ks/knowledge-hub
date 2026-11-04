@@ -41,8 +41,13 @@
      (an hour-long recording) on the left, the same on the right, so the middle stays centred and
      never reaches the clock or the volume. */
   --player-dock-side: 18rem;
-  /* The cover never takes more than this share of the window's height. */
-  --player-cover-share: 40cqb;
+  /* The cover never takes more than this share of the window's height, and on a short window it
+     gives way so the Stories and Up next tabs still show at the bottom of the first screen (owner,
+     2026-11-04: they tell people there is more below). The rest is everything else down to the tabs'
+     bottom edge, measured at 360x640: 27.5rem, and 29.5rem in Expressive's bigger controls; one
+     value on the 8pt grid serves every mood. */
+  --player-phone-rest: 30rem;
+  --player-cover-share: max(5rem, min(40cqb, 100cqb - var(--player-phone-rest)));
   /* From 64rem with a finger: what the left column holds besides the cover (the title, the story
      line and its source or a notice, the scrubber, the transport, their gaps and the
      bar), measured at 1024x600. */
