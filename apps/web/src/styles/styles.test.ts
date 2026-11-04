@@ -986,6 +986,62 @@ describe("house rules", () => {
 });
 
 /**
+ * Bug it prevents: the ⋮ back on a phone's podcast cards or queue rows (owner, four times by 2026-11-04).
+ * Two queries guarded the dots (`hover: none and pointer: coarse` on the Library, `hover: hover and
+ * pointer: fine` on the queue), so a phone that reports any other pair of values got dots on one and not
+ * the other. One query now draws them, and its complement is every phone: a rule on these buttons in
+ * any other media query fails here.
+ */
+describe("the ⋮ of a podcast card and a queue row", () => {
+  const DOTS = /\.(?:card-more|player-queue-more)\b/;
+  const MOUSE = "(hover: hover) and (pointer: fine)";
+  const ALLOWED = [MOUSE, `not (${MOUSE})`];
+
+  /** [file, selector, enclosing @media preludes] for every rule that names one of the buttons. */
+  function dotRules() {
+    const found: Array<[string, string, string[]]> = [];
+    for (const [file, css] of ownCss()) {
+      const stack: Array<{ prelude: string; media: boolean }> = [];
+      let start = 0;
+      for (let at = 0; at < css.length; at++) {
+        const char = css[at];
+        if (char === "{") {
+          const prelude = css.slice(start, at).trim().replace(/\s+/g, " ");
+          stack.push({ prelude, media: prelude.startsWith("@media") });
+          start = at + 1;
+        } else if (char === "}" || char === ";") {
+          if (char === "}") stack.pop();
+          start = at + 1;
+        } else continue;
+        const open = stack[stack.length - 1];
+        if (char === "{" && open && !open.prelude.startsWith("@") && DOTS.test(open.prelude)) {
+          const media = stack
+            .filter((entry) => entry.media)
+            .map((entry) =>
+              entry.prelude
+                .replace(/^@media\s*/, "")
+                .replace(/\(\s+/g, "(")
+                .replace(/\s+\)/g, ")"),
+            );
+          found.push([file, open.prelude, media]);
+        }
+      }
+    }
+    return found;
+  }
+
+  it("is drawn under the mouse query or its complement and no other", () => {
+    expect(dotRules().length).toBeGreaterThan(4); // the scan found the rules at all
+    const offenders = dotRules().flatMap(([file, selector, media]) =>
+      media
+        .filter((query) => !ALLOWED.includes(query))
+        .map((query) => `${file}: ${selector} @ ${query}`),
+    );
+    expect(offenders).toEqual([]);
+  });
+});
+
+/**
  * The page rules that still restyle a design-system component's classes, each as "file: selector".
  * A component is fixed in its own sheet, never bent on one page (AGENTS.md, D253, owner, 2026-10-30:
  * "whenever I ask you to fix a UI component, first attempt to fix/improve the centralized design

@@ -809,7 +809,7 @@ html[data-library-page="empty"] {
 
 /* Only where a button shows: a finger opens the menu by a long press (scripts/cardHold.ts, D264), so
    a touch screen reserves nothing and the title and the quiet line take the whole row. */
-@media not ((hover: none) and (pointer: coarse)) {
+@media (hover: hover) and (pointer: fine) {
   [data-library][data-view="list"] .card:has(> .card-menu) .card-title,
   [data-library][data-view="list"] .card:has(> .card-menu) .card-sub,
   [data-library][data-view="list"] .card:has(> .card-menu) .card-match {
@@ -828,15 +828,21 @@ html[data-library-page="empty"] {
   inset-inline-end: 0;
 }
 
-@media not ((hover: none) and (pointer: coarse)) {
+@media (hover: hover) and (pointer: fine) {
   .card:has(> .card-menu) .card-title {
     padding-inline-end: calc(var(--size-touch) - var(--space-4));
   }
 }
 
+/* One rule for every ⋮ on a card or a queue row (owner, 2026-11-04, "many times"): drawn and pressable only
+   where `(hover: hover) and (pointer: fine)` holds, a mouse. Anything else, a phone whatever it reports
+   for hover or pointer, gets the hold and no dots; styles.test.ts fails a card or row ⋮ under any other
+   query. The button stays in the page and the tab order: a screen reader finds it by its label. */
 .card-more {
   anchor-name: var(--card-anchor);
   color: var(--color-on-surface-muted);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .card-more .icon-glyph {
@@ -844,11 +850,10 @@ html[data-library-page="empty"] {
   height: 1.25rem;
 }
 
-/* A mouse sees the button when the row is hovered, a key press is inside it, or its menu is open;
-   touch has no hover, so it is always there. */
+/* A mouse sees the button when the row is hovered, a key press is inside it, or its menu is open. */
 @media (hover: hover) and (pointer: fine) {
   .card-more {
-    opacity: 0;
+    pointer-events: auto;
     transition: opacity var(--duration-hover) var(--ease-hover);
   }
 
@@ -860,15 +865,9 @@ html[data-library-page="empty"] {
 }
 
 /* A finger opens the menu by a long press on the card (scripts/cardHold.ts, D264), so the button is
-   not drawn or pressable there. It stays in the page and the tab order: a screen reader finds it by
-   its label, and a key press shows it (data-input, app.ts). The hold is not a text selection or a
-   link drag, and the link's own callout is off (foundations.css). */
-@media (hover: none) and (pointer: coarse) {
-  .card-more {
-    opacity: 0;
-    pointer-events: none;
-  }
-
+   not drawn or pressable there (the base rule above); a key press shows it (data-input, app.ts). The
+   hold is not a text selection or a link drag, and the link's own callout is off (foundations.css). */
+@media not ((hover: hover) and (pointer: fine)) {
   :root[data-input="keyboard"] .card-more:focus-visible {
     opacity: 1;
   }
@@ -885,7 +884,7 @@ html[data-library-page="empty"] {
    saved, and Remove must be findable without knowing the hold, which still works. The row keeps room
    for the button, as it does where a mouse shows it. Only in the list: a gallery card on a phone has
    no ⋮ anywhere (owner, 2026-11-01), so a page that fell back to the gallery would not draw one. */
-@media (hover: none) and (pointer: coarse) {
+@media not ((hover: hover) and (pointer: fine)) {
   [data-library][data-view="list"] .card-menu[data-manage-downloads] .card-more {
     opacity: 1;
     pointer-events: auto;

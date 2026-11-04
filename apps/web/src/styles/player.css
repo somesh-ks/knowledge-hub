@@ -2715,7 +2715,7 @@
 
   /* A finger has no dots (display: none, which cannot anchor), so a hold's menu hangs under the
      handle; from 40rem it is a popover there, not a sheet. */
-  @media (hover: none) {
+  @media not ((hover: hover) and (pointer: fine)) {
     .player-queue-grip {
       anchor-name: var(--queue-anchor);
     }
