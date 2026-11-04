@@ -1,5 +1,5 @@
 import type { Site } from "../lib/site";
-import { type BlobFetch, type NarrateBlobStore, readFresh, readPublicText } from "./blobStore";
+import { type BlobFetch, type NarrateBlobStore, readPublicText, updateCurrent } from "./blobStore";
 
 /**
  * Tombstones: the ids of episodes the owner deleted, written to the content store the moment the
@@ -56,9 +56,11 @@ export async function addTombstone(
   id: string,
   now: number,
 ): Promise<void> {
-  const stored = await readFresh(store, TOMBSTONES_PATH);
-  const kept = parse(stored?.text ?? null).filter(
-    (entry) => entry.id !== id && now - entry.at < TOMBSTONE_TTL_MS,
-  );
-  await store.put(TOMBSTONES_PATH, JSON.stringify([...kept, { id, at: now }]), WRITE);
+  // On the current list: a delete a moment before, read stale and written over, would come back.
+  await updateCurrent(store, TOMBSTONES_PATH, WRITE, (text) => {
+    const kept = parse(text).filter(
+      (entry) => entry.id !== id && now - entry.at < TOMBSTONE_TTL_MS,
+    );
+    return JSON.stringify([...kept, { id, at: now }]);
+  });
 }

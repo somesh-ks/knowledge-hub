@@ -699,7 +699,7 @@ async function readSiteNarration(
 ): Promise<{ month: number } | { error: string }> {
   const month = stockholmDate(now).slice(0, 7);
   try {
-    // The unique query skips the CDN's copy, as the site's readFresh does.
+    // The CDN ignores the query; a copy up to a minute old is fine for a daily figure.
     const answer = await blob.get(`${blob.base}/state/usage-${month}.json?v=${now.getTime()}`, {
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
