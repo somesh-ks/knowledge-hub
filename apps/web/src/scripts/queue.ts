@@ -499,7 +499,9 @@ function markLive(word: HTMLElement | null | undefined, live: boolean): void {
   const was = word.hasAttribute("data-live");
   word.toggleAttribute("data-live", live);
   if (!live || (was && word.style.getPropertyValue("--queue-sheen-at"))) return;
-  const cycle = Number.parseFloat(getComputedStyle(word).getPropertyValue("--queue-sheen")) || 2400;
+  // The build writes 2400ms as 2.4s; read as a bare number that was a 2.4 ms cycle and a phase near 0.
+  const raw = getComputedStyle(word).getPropertyValue("--queue-sheen").trim();
+  const cycle = Number.parseFloat(raw) * (raw.endsWith("ms") ? 1 : 1000) || 2400;
   word.style.setProperty("--queue-sheen-at", `${-(performance.now() % cycle)}ms`);
 }
 

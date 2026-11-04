@@ -9,9 +9,6 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
-      # Biome 2.6 adds rules that fail Lint in about 60 files (2026-11-03); take it in a pull request
-      # of its own that fixes them, then delete this entry.
-      - dependency-name: "@biomejs/biome"
     # One pull request a week for all minor and patch bumps: each pull request costs a review, both
     # browser runs and a deploy in three projects (2026-11-01 audit).
     groups:
