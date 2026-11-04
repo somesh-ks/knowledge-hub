@@ -4,7 +4,7 @@ The command center's front page: how the app stands and what it costs, at a glan
 
 ## Requirements
 
-- Health is one ring with an arc for each of five pillars, in the order Content, Pipeline, Site, Server, Budgets (`apps/admin/src/lib/pillars.ts`, shared with the Health page, whose sections they are). There is no verdict title: the ring's middle names the open pillar and the arcs say how it all stands.
+- Health is one ring with an arc for each of five pillars, in the order Content, Pipeline, Site, Server, Budgets (`apps/admin/src/lib/pillars.ts`, shared with the Health page, whose sections and pulse beats they are). There is no verdict title: the ring's middle names the open pillar and the arcs say how it all stands.
   - Content: whether briefings published (Daily, Weekly, Catch up, Narration).
   - Pipeline: what makes them (the workflow jobs, run times, model fallbacks, sources).
   - Site: what a browser sees (LCP, INP and CLS on phones and desktops, page errors, blocked scripts).
@@ -12,7 +12,7 @@ The command center's front page: how the app stands and what it costs, at a glan
   - Budgets: the daily check's areas (D360).
   - An error check sits with what it breaks, never in a pillar of its own.
 - An arc takes the tone of its worst check: fine, to check or failing. A flagged pillar's label carries a glyph in the tone beside its state text, which stays in ink, so tone never rests on colour alone and the words never rest on orange. The label text is "N failing", "N to check", "N flagged" or "Fine".
-- A press on an arc or its label (a radio in a radiogroup, so the arrow keys walk them) opens that pillar's report below: flagged rows first, the fine ones collapsed under "N fine", each a link to its section on the Health page. The worst pillar is open on arrival.
+- A press on an arc or its label (a radio in a radiogroup, so the arrow keys walk them) opens that pillar's report below: flagged rows first, the fine ones collapsed under "N fine", each a link to its section on the Health page. A row is its name, then its reading with the glyph right before it. The worst pillar is open on arrival.
 - A check with no judgement (too few visits, or its part did not answer) is left out of the arcs; the note names a part that did not answer. A pillar with no judged check draws no arc.
 - Spend is the 30-day total, a week strip of one ring a day (filled by that day's cost; a press shows what ran), and a split bar with its legend.
 - All spacing, radius and type come from the design tokens. The warning orange is `--color-warning` (D252).

@@ -141,9 +141,12 @@
 
 /* A flagged check is one line: glyph, name, reading. The fuller line is its tooltip and the Health
    page's. */
+/* A check's line: its name, then its reading with the glyph right before it, so every name starts on
+   one edge whether or not it is flagged (2026-11-04, the owner: the glyph "in the beginning of the
+   text" put one name out of line). */
 .ov-flag {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-2);
   min-block-size: var(--size-touch);
@@ -341,7 +344,7 @@
 /* What is fine is one line that opens: a count, a chevron. */
 .ov-fine > summary {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-2);
   min-block-size: var(--size-touch);
@@ -593,9 +596,9 @@ html:has(.hl-sections) {
   }
 }
 
-/* A section's pair of error tiles shares the card's width, at every size. */
-.hl-stack > .stat-tiles {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+/* Under the tabs the summary keeps the room a section head would. */
+.hl-sections > .tabs-bar + .hl-section {
+  padding-block-start: var(--space-6);
 }
 
 /* A kind's card with no stage times yet keeps no room for them. */
@@ -690,9 +693,10 @@ html:has(.hl-sections) {
   min-block-size: var(--size-touch);
 }
 
-/* A line with no glyph keeps its reading at the end. */
-.ov-flag:has(> .ov-flag-icon:empty) {
-  grid-template-columns: minmax(0, 1fr) auto;
+.ov-flag-value {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 /* Jobs: a name and how it stands, then the week's runs under them as pips, oldest first, a failed
@@ -752,7 +756,7 @@ html:has(.hl-sections) {
 }
 
 /* Speed: a device at a time, then Google's three bands as one track, a pin at the p75 in its tone. */
-.hl-devices {
+.hl-switch {
   --segmented-nav-bg: var(--color-surface-overlay);
 
   /* Centred in its card, under the card's title (2026-11-04, the owner). */
@@ -761,7 +765,7 @@ html:has(.hl-sections) {
 }
 
 @media (width >= 40rem) {
-  .hl-devices {
+  .hl-switch {
     inline-size: var(--settings-control-width);
   }
 }
@@ -856,7 +860,8 @@ html:has(.hl-sections) {
   grid-template-columns: calc(var(--space-6) * 3) minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-4);
-  min-block-size: var(--size-touch);
+  /* Not a control: a row as tall as its words need, so the card stays short. */
+  min-block-size: var(--space-8);
 }
 
 .st-figure {
@@ -909,4 +914,141 @@ html:has(.hl-sections) {
 
 .admin-problems:empty {
   display: none;
+}
+
+/* The pulse: a heartbeat trace, a beat a section, in its tone and its shape; the names under it are
+   the radios that open a section's checks below (healthRing.ts drawPulse). The trace draws in once. */
+.hl-pulse {
+  gap: var(--space-4);
+}
+
+.hl-pulse-svg {
+  display: block;
+  inline-size: 100%;
+  block-size: calc(var(--space-16) * 2);
+  overflow: visible;
+  touch-action: pan-y;
+}
+
+.hl-pulse-base,
+.hl-beat-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.hl-pulse-base {
+  stroke: var(--color-surface-overlay);
+}
+
+[data-drawn] .hl-pulse-base {
+  display: none;
+}
+
+.hl-beat-line {
+  stroke: var(--ov-tone, var(--color-on-surface-muted));
+  transition: stroke-width var(--duration-state) var(--ease-out);
+}
+
+/* The open section's beat is a stroke thicker, as the ring's open arc is. */
+.hl-beat-line[data-on] {
+  stroke-width: 3;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-drawn] .hl-beat-line {
+    stroke-dasharray: 1;
+    animation: ov-sweep var(--duration-enter) var(--ease-out) backwards;
+    animation-delay: calc(var(--i) * var(--duration-stagger));
+  }
+}
+
+.hl-beats {
+  display: grid;
+  grid-template-columns: repeat(var(--beats, 5), minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.hl-beat {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  min-block-size: var(--size-touch);
+  /* No side padding: five names share a phone's card. */
+  padding-block: var(--space-1);
+  border-radius: var(--card-content-radius);
+  color: var(--color-on-surface);
+  font-size: var(--text-meta-size);
+  line-height: var(--text-meta-leading);
+  text-align: center;
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+.hl-beat input {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  margin: 0;
+  appearance: none;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.hl-beat:has(input:checked) {
+  background-color: var(--color-accent-container);
+  color: var(--color-on-accent-container);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hl-beat:hover {
+    background-image: linear-gradient(
+      color-mix(in oklch, currentColor var(--state-hover), transparent),
+      color-mix(in oklch, currentColor var(--state-hover), transparent)
+    );
+  }
+}
+
+.hl-beat:has(input:focus-visible) {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+.hl-beat-name,
+.hl-beat-state {
+  max-inline-size: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hl-beat-state {
+  color: var(--color-on-surface-muted);
+}
+
+.hl-beat:has(input:checked) .hl-beat-state {
+  color: inherit;
+}
+
+/* Runs: a kind at a time under the switch, its run time, columns and stages. */
+.hl-kind {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.hl-kind[hidden] {
+  display: none;
+}
+
+/* From 40rem a job is one line: its name, its week of runs, how it stands. */
+@media (width >= 40rem) {
+  .hl-job {
+    grid-template-columns: calc(var(--space-16) * 2) minmax(0, 1fr) auto;
+    grid-template-areas: "name strip reading";
+  }
 }

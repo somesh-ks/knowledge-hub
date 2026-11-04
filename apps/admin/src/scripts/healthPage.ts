@@ -15,12 +15,14 @@ import type {
 import { mountSegmentedNav, selectTab } from "../../../web/src/scripts/segmentedNav";
 import { askKept } from "../lib/kept";
 import { PILLARS } from "../lib/pillars";
-import { drawRing } from "./healthRing";
+import { drawPulse } from "./healthRing";
 
 const root = document.querySelector<HTMLElement>("[data-health]");
 const deviceTabs = document.querySelector<HTMLElement>("[data-device]");
 let answer: HealthBody | null = null;
 let device = "mobile";
+/** The kind of run shown was picked by a press; an answer no longer moves it. */
+let kindPicked = false;
 
 const DEVICE_KEY = "singularity:health-device";
 /** The run columns' slots (TIMED_RUNS in server/health.ts): the newest run takes the last. */
@@ -154,9 +156,9 @@ function drawMeter(
 }
 
 function paintSummary(): void {
-  const ring = root?.querySelector<HTMLElement>("[data-health-ring]");
-  if (!ring || !answer) return;
-  drawRing(ring, answer, PILLARS, (pillar) => `#c-${pillar}`);
+  const summary = root?.querySelector<HTMLElement>("[data-health-summary]");
+  if (!summary || !answer) return;
+  drawPulse(summary, answer, PILLARS, (pillar) => `#c-${pillar}`);
   const at = new Date(answer.checked_at);
   const sameDay = at.toDateString() === new Date().toDateString();
   const checked = `${sameDay ? "" : `${shortDate(answer.checked_at)}, `}${at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
@@ -167,7 +169,7 @@ function paintSummary(): void {
     answer.parts.github === "unavailable" && "GitHub did not answer",
     answer.parts.github === "partial" && "GitHub answered for some workflows only",
   ].filter(Boolean);
-  const note = ring.querySelector<HTMLElement>("[data-health-note]");
+  const note = summary.querySelector<HTMLElement>("[data-health-note]");
   if (note)
     note.textContent = `Checked ${checked}.${missing.length ? ` Partial: ${missing.join("; ")}.` : ""}`;
 }
@@ -182,9 +184,12 @@ function paint(): void {
     const row = byId.get(key);
     paintRow(element, row);
     if ("speed" in element.dataset) drawMeter(element, series?.vitals[key], row?.tone ?? "none");
-    const week = element.querySelector<HTMLElement>("[data-week]");
+    // An error line reads its day and its week in one: "0 today, 2 this week".
     const errors = series?.errors[id];
-    if (week) week.textContent = errors ? `Today, ${errors.week} this week` : (row?.detail ?? "");
+    const value = element.querySelector<HTMLElement>("[data-value]");
+    if ("errors" in element.dataset && value && row && errors) {
+      value.textContent = `${row.value} today, ${errors.week} this week`;
+    }
   }
   for (const kind of ["daily", "weekly"] as const) {
     const holder = root.querySelector<HTMLElement>(`[data-runs="${kind}"]`);
@@ -203,17 +208,35 @@ async function load(): Promise<void> {
     "health",
     (body) => {
       answer = body;
+      const flagged = body.rows.find((row) => row.id.startsWith("time_") && isFlag(row.tone))?.id;
+      if (kindTabs && flagged && !kindPicked) {
+        selectTab(kindTabs, flagged.slice(5));
+        showKind(flagged.slice(5));
+      }
       paint();
       delete root.dataset.loading;
     },
     { title: "Health checks didn't load", repaint: "always" },
   );
   if (!asked.shown) {
-    const words = root.querySelector<HTMLElement>("[data-quad-name]");
+    const words = root.querySelector<HTMLElement>("[data-health-state]");
     if (words) words.textContent = "No answer";
     delete root.dataset.loading;
   }
 }
+
+// Runs: a kind at a time, the one whose run time needs a look first.
+const kindTabs = document.querySelector<HTMLElement>("[data-kinds]");
+function showKind(kind: string): void {
+  for (const panel of root?.querySelectorAll<HTMLElement>("[data-kind-card]") ?? []) {
+    panel.hidden = panel.dataset.kindCard !== kind;
+  }
+}
+if (kindTabs)
+  mountSegmentedNav(kindTabs, (kind) => {
+    kindPicked = true;
+    showKind(kind);
+  });
 
 if (deviceTabs) {
   // The device last chosen on this browser; a convenience, so a blocked storage changes nothing.
