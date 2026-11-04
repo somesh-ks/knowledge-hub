@@ -5,6 +5,8 @@ import {
   copiesOfShared,
   entryScripts,
   FIRST_LOAD_BUDGET_BYTES,
+  FIRST_LOAD_RECORD_BYTES,
+  FIRST_LOAD_STEP_BYTES,
   findRenderBlockingScripts,
   firstLoadReport,
   gzipBytes,
@@ -12,6 +14,7 @@ import {
   inlineScriptHashes,
   overBudget,
   parseScripts,
+  pastRecord,
   readFromGraph,
   sharedIslandStylesheets,
   staticImports,
@@ -314,5 +317,12 @@ describe("the first-load budget", () => {
     const problems = overBudget(pages);
     expect(problems).toHaveLength(1);
     expect(problems[0]).toMatch(/^\/past\/index\.html: /);
+  });
+
+  // 2026-11-03: the select's phone sheet put its code and every glyph on every page (+13 KB) and the avatar's
+  // show came eager (+7 KB), far under the ceiling, so nothing failed while the first load doubled.
+  it("fails a heaviest page that grew more than a step past the record, not one inside it", () => {
+    expect(pastRecord(FIRST_LOAD_RECORD_BYTES + FIRST_LOAD_STEP_BYTES)).toEqual([]);
+    expect(pastRecord(FIRST_LOAD_RECORD_BYTES + FIRST_LOAD_STEP_BYTES + 1)).toHaveLength(1);
   });
 });

@@ -18,8 +18,30 @@
  */
 import { AVATAR_SHAPES, avatarMarkup, moodShapes, tokenWords } from "../design-system/avatar";
 import { getPreferences } from "../player/core/preferences";
-import { playAct, rootStyle, stopAct, tokenMs } from "./avatarFace";
 import { morphPath, pickReaction } from "./avatarReactions";
+import { warmWhenIdle } from "./idle";
+import { rootStyle, tokenMs } from "./rootTokens";
+
+/** The tap's show (avatarFace.ts), fetched at idle or on the first tap: it is not needed to draw. */
+type Face = typeof import("./avatarFace");
+let face: Face | null = null;
+let loadingFace: Promise<Face> | null = null;
+/** A tap came before the show's code: it plays once the code lands, unless a show was ended since. */
+let waitingFace = false;
+
+function loadFace(): Promise<Face> {
+  loadingFace ??= import("./avatarFace").then(
+    (module) => {
+      face = module;
+      return module;
+    },
+    (error: unknown) => {
+      loadingFace = null;
+      throw error;
+    },
+  );
+  return loadingFace;
+}
 
 const SLOT = "[data-account]";
 const ONE_SHOT_MS = 1400;
@@ -141,7 +163,9 @@ function cancelAct(): void {
   actTimers = [];
   busy = false;
   queued = false;
-  stopAct(avatars());
+  waitingFace = false;
+  // No show has run before the face's code arrived, so there is nothing to stop.
+  face?.stopAct(avatars());
 }
 
 function later(ms: number, fn: () => void): void {
@@ -171,6 +195,22 @@ function finish(): void {
 function react(target?: HTMLElement): void {
   if (calm.matches || document.documentElement.hasAttribute("data-offline")) return;
   if (avatars().length === 0 || (target && !target.isConnected)) return;
+  if (!face) {
+    // One tap is kept, as during a show; a mood or page change in the meantime drops it (cancelAct).
+    if (waitingFace) return;
+    waitingFace = true;
+    void loadFace().then(
+      () => {
+        if (!waitingFace) return;
+        waitingFace = false;
+        react(target);
+      },
+      () => {
+        waitingFace = false;
+      },
+    );
+    return;
+  }
   if (busy) {
     queued = true;
     tapped = target;
@@ -183,7 +223,7 @@ function react(target?: HTMLElement): void {
   const home = currentShape();
   const [other] = morphPath(offeredShapes(), home, hue(), taps);
   taps += 1;
-  const ms = playAct(kind, actors, home, other === home ? undefined : other, (id) =>
+  const ms = face.playAct(kind, actors, home, other === home ? undefined : other, (id) =>
     show(id, actors()),
   );
   play(kind, ms, actors());
@@ -267,4 +307,5 @@ export function installAccountAvatar(): void {
   window.addEventListener("online", () => play("hop"));
   scheduleIdle();
   calm.addEventListener("change", scheduleIdle);
+  warmWhenIdle(loadFace);
 }

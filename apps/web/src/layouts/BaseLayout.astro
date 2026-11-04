@@ -169,8 +169,10 @@ const back =
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content={colors.surfaceLight} />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content={colors.surfaceDark} />
+    {/* Kept across navigations (2026-11-04): a swap that took these out and put the defaults back
+        flashed Android's status bar at every tab switch. themeColor.ts keeps their colour. */}
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content={colors.surfaceLight} transition:persist="theme-color-light" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content={colors.surfaceDark} transition:persist="theme-color-dark" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Singularity" />
