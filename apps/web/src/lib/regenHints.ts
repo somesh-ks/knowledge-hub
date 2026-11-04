@@ -1,7 +1,8 @@
 /**
  * Which Regenerate controls a comment calls for (D337): the sheet opens on the comment alone, and
  * the Length and Categories controls appear as the typed words reach for them. A local match on the
- * words, never a model call, so each keystroke costs nothing. Client-safe: no imports.
+ * words, never a model call, so each keystroke costs nothing; Jev reads the comment once the
+ * typing pauses and can add what this misses (D370, lib/regenAsk.ts). Client-safe: no imports.
  */
 export interface Hints {
   length: boolean;

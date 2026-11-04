@@ -9,6 +9,7 @@ import Sheet from "../design-system/Sheet.astro";
 import { briefingChips } from "../lib/briefingChips";
 import { topicOptions } from "../lib/createForm";
 import { loadManage } from "../lib/manage";
+import { DEFAULT_REGEN_LENGTH, REGEN_LENGTHS } from "../lib/regenLength";
 import { isChipOn, type RegenChip } from "../lib/regenTopics";
 import "../styles/episode-actions.css";
 
@@ -34,7 +35,7 @@ const MAX_FEEDBACK_CHARS = 500;
 // Every sentence the script can show is here, in the markup, not in the script.
 const COPY = {
   topics: "Pick at least one category.",
-  note: "Say what to change.",
+  note: "Say what went wrong.",
   left: "characters left",
   "400": "That didn't go through. Reload the page and try again.",
   regeneration_limit: "This podcast has been regenerated 3 times, the most it takes.",
@@ -61,13 +62,10 @@ const COPY = {
       {kind === "regenerate" ? (
         <Sheet title="Regenerate this episode" titleId="regen-title" close="data-dialog-close">
             <form class="regen-form create-view" data-regen-form novalidate>
-              <p class="create-hint regen-lede">
-                This replaces the episode and keeps its length and format.
-              </p>
               <section class="create-group">
                 {/* The Create form's group heading, so both sheets read alike. */}
                 <h2 class="section-head text-heading">
-                  <label for="regen-feedback">Comments</label>
+                  <label for="regen-feedback">What went wrong?</label>
                 </h2>
                 <Field
                   multiline
@@ -77,7 +75,7 @@ const COPY = {
                   rows="6"
                   maxlength={MAX_FEEDBACK_CHARS}
                   data-max={MAX_FEEDBACK_CHARS}
-                  placeholder="What should change?"
+                  placeholder="Too short, missed business news, too much hype"
                   required
                   aria-describedby="regen-count"
                 />
@@ -101,6 +99,18 @@ const COPY = {
                     </label>
                   ))}
                 </fieldset>
+              </section>
+              {/* Shown as the typed words reach for the length (D337); it starts on the episode's own. */}
+              <section class="create-group" aria-labelledby="regen-length-label" data-hint-length hidden>
+                <h2 class="section-head text-heading" id="regen-length-label">Length</h2>
+                <div class="segmented-choice create-choice" role="radiogroup" aria-labelledby="regen-length-label">
+                  {REGEN_LENGTHS.map((minutes) => (
+                    <label class="segmented-choice-item">
+                      <input type="radio" name="length" value={minutes} checked={minutes === DEFAULT_REGEN_LENGTH} />
+                      <span>{minutes} min</span>
+                    </label>
+                  ))}
+                </div>
               </section>
               <div class="create-submit">
                 <Button variant="filled" type="submit" data-submit>

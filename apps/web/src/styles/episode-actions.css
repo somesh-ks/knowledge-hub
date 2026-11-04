@@ -18,10 +18,6 @@
   margin-block-start: auto;
 }
 
-.regen-lede {
-  padding-block: var(--space-4) var(--space-6);
-}
-
 .field-input.regen-feedback {
   display: block;
   width: 100%;
