@@ -1,6 +1,6 @@
 # State
 
-Updated 2026-11-03. Rewrite, never append.
+Updated 2026-11-04. Rewrite, never append.
 
 ## Working
 
@@ -14,7 +14,7 @@ Updated 2026-11-03. Rewrite, never append.
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews a PR once when it is ready, by tier (D192, D292).
 - Styles (D306, D310, D314, D315, D319): Halloween and Expressive, a Hue slider, live covers. closed when: Somesh OKs the stills ([ghost states](https://claude.ai/artifact/MVNhZmVMk4kYNu2tJbHRPp), [disabled](https://claude.ai/artifact/Kc7RaKbskg5UeGULwwKtU8)) and a style change on his phone recolours every page with no flash and survives a restart, and a press on the Library view toggle and a toast action beats hover.
 
-- Avatar, Settings (D335, D344), Mood (D327): merged. Avatar taps (D353): in review. closed when: his phone's shows come home.
+- Avatar, Settings (D335, D344), Mood (D327), taps (D353): merged. closed when: his phone's shows come home.
 
 ## Tests
 
@@ -23,6 +23,7 @@ Unit (CI): 357 files, 5,491 tests, 2 min. Site e2e: 449, 14 min. Player: 80, 7 m
 ## Not working or unverified
 
 - D318 edge cache. closed when: a week of his loads is mostly HIT or STALE.
+- Guardrails (D360): #673 awaits his merge, `secrets:push`. closed when: Health's Budgets are fresh.
 - Blob on Pro trial since 10-30, ending 11-13 (D251, D256). Plan call 11-06 to 11-08 (Pro, or Hobby: 1.1K of 2,000 advanced Blob ops a month on 11-01, under 70 deploys a day), from the Usage tab, the only op count. closed when: the plan is chosen.
 - Bottom bar ripple (D286, D347) and tab state. closed when: on his Android Chrome Settings pages rise, tabs slide at 250 ms, and the latest podcast keeps its tab lit.
 - Config snapshot (D300 step 1): `snapshot.yml` writes the config store to the `config_snapshots` table each Sunday and `config restore --latest` reads it back; untried against real Neon. closed when: the workflow has run once, the row exists, and `config restore --file` on a copy rebuilds the rows.
@@ -62,7 +63,7 @@ Unit (CI): 357 files, 5,491 tests, 2 min. Site e2e: 449, 14 min. Player: 80, 7 m
 - Admin env (D257): the reader needs `ADMIN_SESSION_SECRET`. closed when: `/api/health` answers 401 signed out.
 - Owner config out of git (D296, merged). The 11-02 dry run's gate log said `config store:` and it published. closed when: the Vercel build log says `store on; from the store:`, audio publishing keeps the owner's voice, and the cron answers 200.
 - Config store (D149, D296): Vercel has `SINGULARITY_CONFIG_STORE` and `DATABASE_URL` (checked 11-01); the Actions variable is unreadable, so `health` faults `config_store_split` when the site and runs disagree. closed when: a phone's edit shows on a laptop and health passes the config-store line.
-- Production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 10-14 (`doctor --online` tests it and its expiry, not write access). closed when: `doctor --online` accepts it.
+- Live `GITHUB_SINGULARITY_TOKEN` write access untested. closed when: Generate dispatches.
 - 45 older items are parked in history (`#parked`; [2026-10-31 trim](history/2026-10-31-state-trim.md)). closed when: each closes.
 
 ## Known risks
