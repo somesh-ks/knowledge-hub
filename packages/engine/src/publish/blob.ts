@@ -168,7 +168,10 @@ export function createVercelBlobClient(auth: BlobAuth): ConditionalBlobClient {
       const res = await fetch(url, { cache: "no-store" });
       if (res.status === 404) return null;
       if (!res.ok) throw new Error(`Store read failed: HTTP ${res.status}`);
-      return { text: await res.text(), etag: res.headers.get("etag") ?? "" };
+      // Without one the copy cannot be matched to head(): say so now, not after the 90 s wait.
+      const etag = res.headers.get("etag");
+      if (etag === null) throw new Error(`Store read failed: no ETag on ${url}`);
+      return { text: await res.text(), etag };
     },
     async head(pathname) {
       try {
