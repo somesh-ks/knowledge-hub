@@ -1,8 +1,11 @@
 /* The menu's Playback speed screen: the stepper and the readout, then the slider under them (the
    Slider, design-system/slider.ts). The readout holds five characters in
-   tabular figures, so it never moves as the speed does. */
+   tabular figures, so it never moves as the speed does. The column is as wide as the stepper, so the
+   slider's ends line up with the outer edges of the two buttons (owner, 2026-11-04: "bound by the edges
+   of the two buttons, so it is optically consistent"). */
 .player-speed {
   display: grid;
+  justify-content: center;
   gap: var(--space-4);
   padding: var(--space-4) var(--space-4) var(--space-6);
 }
