@@ -2027,13 +2027,18 @@
 /*
  * The list's two views, Stories and Up next, are the podcast page's section tabs (PlayerTabs.tsx,
  * .tabs and .tab in primitives.css; owner, 2026-11-02: "tabs that look like in the podcast details
- * page"). The strip sits in its own bar with the hairline the page's strip has, and under 64rem the bar
- * sticks under the status bar (below).
+ * page"). The strip sits in the page's tab bar (primitives.css .tabs-bar), which draws the hairline the
+ * page's strip has. From 64rem the bar sits in the list's column, where the page's bar sticks under the
+ * app bar on its own surface; under 64rem it sticks under the status bar (below). Two classes, so the
+ * player's bar wins over the shared one whichever stylesheet loads first (learnings, 2026-10-31).
  */
-.player-tabs-bar {
+.tabs-bar.player-tabs-bar {
+  position: static;
+  z-index: auto;
   flex: none;
+  margin-inline: 0;
   margin-block-end: var(--space-4);
-  box-shadow: inset 0 calc(var(--stroke-hairline) * -1) 0 var(--color-border-hairline);
+  background: none;
 }
 
 /* Centred in the column (owner, 2026-11-03), where the page's strip starts at its edge. */
@@ -2065,7 +2070,7 @@
      so the words passing under it do not show, and runs the page's full width (owner, 2026-11-02:
      tabs again, as from 2026-10-21 to 2026-10-23; D169 had made it a pill). A step of room above it
      parts it from the play controls. */
-  .player-tabs-bar {
+  .tabs-bar.player-tabs-bar {
     position: sticky;
     inset-block-start: var(--safe-top);
     z-index: calc(var(--z-raised) + 1);
