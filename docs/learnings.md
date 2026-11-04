@@ -70,7 +70,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 
 - 2026-11-02: offline showed a bare "You are offline" page for good: the worker stood in for unopened pages, its script does not rerun on a router swap, and its reload fired on a premature `online`. One connectivity state, recovery in the app script (D330).
 - 2026-11-03: the open player vanished at an alert: a waiting deploy reloaded the hidden page (D202); it now waits, and a reload restores it.
-- 2026-11-03: no click comes for a tap after a fast flick or one that stops a fling: `tapRecovery.ts` clicks it. 2026-11-04: a swap re-adds each head `<meta>`, and each theme-color one flashes Android's status bar: they carry `transition:persist`.
+- 2026-11-03: no click comes for a tap after a fast flick or one that stops a fling (`tapRecovery.ts`). A swap re-adds head metas: theme-color ones carry `transition:persist`. State written after a swap eases in view: write the incoming page at `astro:before-swap`.
 - 2026-11-02: `caches.match` walks the caches by age, so the install copy answered Latest offline. The router moved the address to a `#` link's own `#` before Try again ran: listen in capture.
 - 2026-11-02: a press rule before a hover rule of the same weight loses while the mouse is down; a control with no `:active` rule shows no press (Library view toggle). Press after hover; shoot rest, hover, press.
 - 2026-11-02: an opaque press fill on a bar's `::after` covers its content, which the old alpha hid. Use `z-index: var(--z-beneath)`.
