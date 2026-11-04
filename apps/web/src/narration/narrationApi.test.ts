@@ -254,7 +254,7 @@ describe("failureCopy", () => {
   });
 
   it("names an episode as an episode", () => {
-    expect(failureCopy("not_narratable", "episode")).toBe("This episode cannot be read aloud.");
+    expect(failureCopy("not_narratable", "episode")).toBe("This episode can't be read aloud.");
     expect(failureCopy("digest_not_found", "episode")).toMatch(/^This episode /);
     for (const reason of reasons) expect(failureCopy(reason, "episode")).not.toMatch(/briefing/);
     expect(failureCopy("daily_cap", "episode")).toBe(
@@ -266,23 +266,21 @@ describe("failureCopy", () => {
 describe("describeNarrationFailure", () => {
   it("does not repeat a Try again the notice already offers", async () => {
     const { describeNarrationFailure } = await import("./narrationApi");
-    expect(describeNarrationFailure("failed", "podcast")?.message).toBe(
-      "The audio could not be made.",
-    );
+    expect(describeNarrationFailure("failed", "podcast")?.message).toBe("Couldn't make the audio.");
     expect(describeNarrationFailure("daily_cap", "podcast")?.standing).toBe(true);
     expect(describeNarrationFailure("failed", "podcast")?.standing).toBe(false);
   });
 
   it("says a failed file one way, in the notice and on the bar", async () => {
     const { describeNarrationFailure } = await import("./narrationApi");
-    expect(describeNarrationFailure("failed", "podcast")?.summary).toBe("Audio could not be made");
+    expect(describeNarrationFailure("failed", "podcast")?.summary).toBe("Couldn't make the audio");
   });
 
   it("treats the server's 503 as passing: Try again, not a refusal that stands", async () => {
     const { describeNarrationFailure } = await import("./narrationApi");
     expect(describeNarrationFailure("unavailable", "podcast")).toEqual({
-      message: "Narration ran into a problem on the server.",
-      summary: "Narration failed on the server",
+      message: "Narration hit a snag.",
+      summary: "Narration hit a snag",
       standing: false,
     });
   });

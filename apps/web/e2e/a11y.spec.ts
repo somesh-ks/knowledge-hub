@@ -123,7 +123,6 @@ test.describe("axe, banners and live states", () => {
       };
       const stories = document.querySelectorAll<HTMLElement>(".story");
       stories[0]?.setAttribute("data-state", "played");
-      face(stories[0]?.querySelector("[data-play-item]"), "played", "Played");
       stories[1]?.setAttribute("data-state", "current");
       face(stories[1]?.querySelector("[data-play-item]"), "current", "Playing");
       face(stories[2]?.querySelector("[data-play-item]"), "preparing", "Loading");

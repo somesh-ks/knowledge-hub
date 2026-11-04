@@ -14,7 +14,6 @@ export const Env = z.object({
   SPEECHIFY_VOICE_ID_B: optionalString,
   BLOB_READ_WRITE_TOKEN: optionalString,
   // The private store that holds the config snapshots (D300); the content store is public.
-  BLOB_PRIVATE_READ_WRITE_TOKEN: optionalString,
   /** Short-lived Blob credentials from `vercel env pull`; used when no long-lived token is set. */
   VERCEL_OIDC_TOKEN: optionalString,
   BLOB_STORE_ID: optionalString,
@@ -26,6 +25,12 @@ export const Env = z.object({
   GITHUB_DISPATCH_TOKEN: optionalString,
   /** "owner/repo"; `doctor --online` checks the site's token against it. */
   GITHUB_REPOSITORY: optionalString,
+  /** The Actions token health.yml runs with; `health` reads runs, issues, alerts and artifacts with it. */
+  GH_TOKEN: optionalString,
+  /** A project-scoped Neon API key; `health` reads the project's compute hours with it. */
+  NEON_API_KEY: optionalString,
+  /** The Neon project the key is scoped to (the key cannot list it). */
+  NEON_PROJECT_ID: optionalString,
   /** Gemini API key: transcribes a YouTube finalist that has no subtitles. */
   GEMINI_API_KEY: optionalString,
   /** Neon Postgres holding the owner's config (D149). Unset, the committed files are the config. */

@@ -80,12 +80,11 @@ test.describe("regenerate and delete an episode", () => {
     const items = menu(page).getByRole("menuitem");
     await expect(items).toHaveText(["Download", "Add to queue", "Regenerate", "Delete"]);
     await expect(items.first()).toBeFocused();
-    // The menu hangs under the button, not at the edge of the page.
+    // On a phone the menu is a bottom sheet below the button, its rows edge to edge across the screen.
     const m = await menu(page).boundingBox();
     expect(m?.y).toBeGreaterThanOrEqual((a?.y ?? 0) + (a?.height ?? 0));
-    expect(Math.abs((m?.x ?? 0) + (m?.width ?? 0) - ((a?.x ?? 0) + (a?.width ?? 0)))).toBeLessThan(
-      2,
-    );
+    expect(m?.x).toBeGreaterThanOrEqual(0);
+    expect((m?.x ?? 0) + (m?.width ?? 0)).toBeLessThanOrEqual(page.viewportSize()?.width ?? 0);
     await page.keyboard.press("ArrowDown");
     await expect(items.nth(1)).toBeFocused();
     await page.keyboard.press("ArrowUp");
@@ -118,7 +117,7 @@ test.describe("regenerate and delete an episode", () => {
     await expect(
       panel(page).getByRole("heading", { name: "Regenerate this episode" }),
     ).toBeVisible();
-    await panel(page).getByLabel("Comments (optional)").fill("  Shorter intro, more on design  ");
+    await panel(page).getByLabel("Comments").fill("  Shorter intro, more on design  ");
     await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
 
     await expect.poll(() => bodies.length).toBe(1);
@@ -167,12 +166,16 @@ test.describe("regenerate and delete an episode", () => {
     }
   });
 
-  test("topics start from the episode's own, one must stay, and a changed set is sent without comments", async ({
+  test("topics start from the episode's own, one must stay, and a changed set is sent with the comment", async ({
     page,
   }) => {
     const bodies = await mock(page, [{ run_id: 77, state: "queued", step: null }]);
     await open(page);
     await choose(page, "Regenerate");
+    // The panel opens on the comment alone; the categories appear when the words reach for one (D337).
+    await expect(panel(page).locator("label.filter-chip").first()).toBeHidden();
+    await panel(page).getByRole("textbox").fill("only a few topics");
+    await panel(page).getByRole("textbox").fill("only a few topics, fewer on the rest");
     const on = panel(page).locator("label.filter-chip:has(input:checked)");
     const off = panel(page).locator("label.filter-chip:has(input:not(:checked))");
     await expect(on.first()).toBeVisible();
@@ -182,19 +185,30 @@ test.describe("regenerate and delete an episode", () => {
     await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
     await expect(panel(page).getByRole("alert")).toHaveText("Pick at least one category.");
     expect(bodies).toHaveLength(0);
-    // One topic that was not ticked: sent as this regeneration's topics, comments left out.
+    // One topic that was not ticked: sent as this regeneration's topics with the comment.
     await panel(page).locator("label.filter-chip", { hasText: other }).click();
     await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
     await expect.poll(() => bodies.length).toBe(1);
     expect(bodies[0]).toMatchObject({ action: "regenerate", id: ID });
-    expect(bodies[0]).not.toHaveProperty("feedback");
+    expect(bodies[0]).toHaveProperty("feedback", "only a few topics, fewer on the rest");
     expect((bodies[0] as { topic_ids: string[] }).topic_ids.length).toBeGreaterThan(0);
+  });
+
+  // Owner, 2026-11-02 (D340): the comment says why, so a run does not start without one.
+  test("Regenerate without a comment is refused, says so and sends nothing", async ({ page }) => {
+    const bodies = await mock(page, [{ run_id: 77, state: "queued", step: null }]);
+    await open(page);
+    await choose(page, "Regenerate");
+    await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
+    await expect(panel(page).getByRole("alert")).toHaveText("Say what to change.");
+    await expect(panel(page).getByRole("textbox")).toBeFocused();
+    expect(bodies).toHaveLength(0);
   });
 
   test("the character count shows only near the limit", async ({ page }) => {
     await open(page);
     await choose(page, "Regenerate");
-    const field = panel(page).getByLabel("Comments (optional)");
+    const field = panel(page).getByLabel("Comments");
     const count = panel(page).locator("[data-count]");
     await field.fill("a".repeat(100));
     await expect(count).toBeHidden();
@@ -347,7 +361,7 @@ test.describe("regenerate and delete an episode", () => {
       );
       await open(page);
       await choose(page, "Regenerate");
-      await panel(page).getByLabel("Comments (optional)").fill("More depth");
+      await panel(page).getByLabel("Comments").fill("More depth");
       await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
       await expect(panel(page).getByRole("alert")).toContainText(
         "You can do that again in 2 minutes.",

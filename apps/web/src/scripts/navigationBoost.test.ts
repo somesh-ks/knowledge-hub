@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   destinationsToWarm,
+  holdPress,
   immediateTransition,
   isImmediate,
   markCurrent,
+  PENDING_MAX_MS,
   pressedDestination,
   shouldRefresh,
 } from "./navigationBoost";
@@ -54,6 +56,24 @@ function nav(current: string | null) {
 const asElement = (link: FakeLink) => link as unknown as HTMLAnchorElement;
 const currentHrefs = (items: FakeLink[]) =>
   items.filter((item) => item.getAttribute("aria-current") === "page").map((item) => item.href);
+
+describe("holdPress", () => {
+  it("a second press on the card restarts the wait, so the first timer cannot end it early", () => {
+    vi.useFakeTimers();
+    try {
+      const card = new FakeLink("other", "/e/1");
+      holdPress(card as unknown as Element);
+      vi.advanceTimersByTime(PENDING_MAX_MS - 1_000);
+      holdPress(card as unknown as Element);
+      vi.advanceTimersByTime(2_000);
+      expect(card.getAttribute("data-pending")).toBe("");
+      vi.advanceTimersByTime(PENDING_MAX_MS);
+      expect(card.getAttribute("data-pending")).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
 
 describe("pressedDestination", () => {
   it("is the navigation item that was pressed", () => {

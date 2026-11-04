@@ -134,20 +134,104 @@ test.describe("service worker", () => {
     await context.setOffline(false);
   });
 
-  test.describe("offline without a saved copy", () => {
+  test.describe("offline", () => {
     test.use({ allowNetworkErrors: true });
 
-    test("shows the offline page for a podcast it has never opened", async ({ page, context }) => {
+    /** Opens the site once so the worker is in charge and its first fetches have landed. */
+    async function warm(page: import("@playwright/test").Page): Promise<void> {
       await page.goto("/");
       await page.evaluate(() => navigator.serviceWorker.ready);
       // The worker stores the islands' stylesheets as the page fetches them at idle: going offline
       // before that left the offline page unable to preload one (a race seen on a slow runner).
       await page.reload();
       await page.waitForLoadState("networkidle");
+    }
+
+    // Bug (owner, 2026-11-02): Saved showed an offline page, with no podcasts, because the worker had
+    // never been asked for it. The pages a reader expects are kept ready on their own (D330).
+    test("opens Saved, Settings and the Library offline without a visit first", async ({
+      page,
+      context,
+    }) => {
+      await warm(page);
+      await expect
+        .poll(
+          () =>
+            page.evaluate(async () => {
+              const cache = await caches.open("singularity-kept-v1");
+              return (await cache.keys()).map((key) => new URL(key.url).pathname);
+            }),
+          { timeout: 20_000 },
+        )
+        .toEqual(expect.arrayContaining(["/settings/saved", "/settings/downloads", "/library"]));
+      await context.setOffline(true);
+      for (const path of ["/settings/saved", "/settings/downloads"]) {
+        await page.goto(path);
+        await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+        await expect(page.locator("[data-stand-in]")).toHaveCount(0);
+        await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
+      }
+      await context.setOffline(false);
+    });
+
+    // Bug (owner, 2026-11-02): the page stood in for an address and, once the network was back,
+    // stayed on its offline text; Try again then went to Latest. The page asked for is brought in
+    // where it stands, by itself, and Try again keeps the route.
+    test("a page never opened stands in at its address and comes in by itself when the network returns", async ({
+      page,
+      context,
+    }) => {
+      await warm(page);
+      await context.setOffline(true);
+      await page.goto("/library");
+      await page.evaluate(() => {
+        (window as unknown as { __kept: boolean }).__kept = true;
+      });
+      await page.locator('a[href="/d/2026-10-04-weekly"]').first().click();
+      await expect(page.locator("[data-stand-in]")).toBeVisible();
+      await expect(page).toHaveURL(/\/d\/2026-10-04-weekly$/);
+      await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
+      // Try again with the network still down: the same page, the same address, nothing lost.
+      const tryAgain = page
+        .getByRole("button", { name: "Try again" })
+        .or(page.getByRole("link", { name: "Try again" }));
+      await tryAgain.click();
+      // It shows it is asking, then the answer (still offline) leaves the page where it was.
+      await expect(tryAgain).not.toHaveAttribute("aria-busy", "true");
+      await expect(page.locator("[data-stand-in]")).toBeVisible();
+      await expect(page).toHaveURL(/\/d\/2026-10-04-weekly$/);
+      // The network returns: the real page comes in on its own, in place (no reload: the window's own
+      // state survives), at the same address, and the strip says so and lifts.
+      await context.setOffline(false);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Sunday 4 October", {
+        timeout: 15_000,
+      });
+      await expect(page).toHaveURL(/\/d\/2026-10-04-weekly$/);
+      expect(await page.evaluate(() => (window as unknown as { __kept?: boolean }).__kept)).toBe(
+        true,
+      );
+      await expect(page.locator('[data-banner="offline"]')).toHaveCount(0);
+    });
+
+    // The phone's `online` event can come before the network is usable. Nothing is lost by it.
+    test("an online event that comes early does not end the wait, and the network's return does", async ({
+      page,
+      context,
+    }) => {
+      await warm(page);
       await context.setOffline(true);
       await page.goto("/d/2026-10-04-weekly");
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText("You are offline");
+      await expect(page.locator("[data-stand-in]")).toBeVisible();
+      const asked = page.waitForRequest("**/build.json");
+      await page.evaluate(() => window.dispatchEvent(new Event("online")));
+      // The page asked the site, got no answer, and stays what it was.
+      await asked;
+      await expect(page.locator("[data-stand-in]")).toBeVisible();
+      await expect(page.locator('[data-banner="offline"]')).toHaveCount(1);
       await context.setOffline(false);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Sunday 4 October", {
+        timeout: 15_000,
+      });
     });
   });
 

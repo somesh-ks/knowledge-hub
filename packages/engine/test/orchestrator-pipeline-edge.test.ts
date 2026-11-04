@@ -192,6 +192,29 @@ describe("a run's health metrics", () => {
   });
 });
 
+// A Regenerate's gate frees the old digest's stories in state/seen.json (working tree only). If the
+// run then fails, the old digest stays, so the failure commit must not carry that release: the
+// next run would pick the same stories again.
+describe("a failed Regenerate", () => {
+  it("leaves the seen list as it was", LONG, async () => {
+    await seed(repo.root, {
+      "state/seen.json": json({ version: 1, items: { "story-a": "2026-10-06" } }),
+    });
+    const world = makeWorld(repo.root, { now: WED });
+    expect((await runStage(world, { stage: "gate", mode: "on-demand", force: true })).code).toBe(0);
+    const plan = await readPlan(repo.root);
+    await writePlan(repo.root, { ...(plan as NonNullable<typeof plan>), replaces: "2026-10-06" });
+    // What the gate of a Regenerate does to the working tree.
+    await writeFile(join(repo.root, "state/seen.json"), json({ version: 1, items: {} }));
+    expect((await runStage(world, { recordFailed: true })).code).toBe(0);
+    expect(git(repo.remote, "log", "-1", "--format=%s", "main")).toBe(
+      "chore(state): run 2026-10-07 failed",
+    );
+    const seen = JSON.parse(git(repo.remote, "show", "main:state/seen.json")) as SeenFile;
+    expect(Object.keys(seen.items)).toEqual(["story-a"]);
+  });
+});
+
 // A Regenerate can ask for its own length (3, 5, 10 or 15 minutes). Only the gate step is given
 // `--length`, so the plan keeps it for the fetch and write steps that size the run.
 describe("a run asked for its own length", () => {

@@ -1,14 +1,15 @@
 /**
- * The Drawer: the Base UI islands' modal, a bottom sheet on a phone and a centred dialog from 40rem,
- * for Generate and the Settings sheet. The one place its classes are written; sheets/SheetFrame.tsx
- * draws from it. The rules are in styles/drawer.css. A panel that slides in from the right is a Sheet.
+ * The Drawer: the Base UI islands' modal, Catch up's shape for a React form: the whole screen on a
+ * phone, a panel at the right from 40rem, the Sheet's header row and Close on top. The one place its
+ * classes are written; sheets/SheetFrame.tsx draws from it. The rules are in styles/drawer.css. A
+ * panel drawn by Astro or a script is a Sheet. There is no bottom-sheet Drawer (2026-11-02).
  */
 import type { Guidance } from "./guidance";
 
 export const DRAWER: Guidance = {
   summary:
-    "The island modal: a bottom sheet on a phone, a centred dialog from 40rem, pulled down to dismiss.",
-  useWhen: ["A React island opens a form over the page, as Generate and Settings do."],
+    "The island modal for a form: the whole screen on a phone, a panel at the right from 40rem, with Close in the header.",
+  useWhen: ["A React island opens a form over the page, as Regenerate does."],
   dontUseWhen: [
     { when: "The sheet is drawn by Astro or a script.", instead: "Sheet" },
     { when: "One question and its answers.", instead: "Dialog" },
@@ -21,7 +22,6 @@ export const DRAWER_CLASSES: string[] = [
   "drawer-viewport",
   "drawer-popup",
   "drawer-panel",
-  "drawer-head",
 ];
 
 /** Classes the Drawer replaced; none may be written again, in any app that draws the system. */
@@ -30,10 +30,10 @@ export const DRAWER_RETIRED: string[] = [
   "sheet-viewport",
   "sheet-popup",
   "sheet-panel",
+  "drawer-head",
 ];
 
 export const drawerScrimClass = (): string => "drawer-scrim";
 export const drawerViewportClass = (): string => "drawer-viewport";
 export const drawerPopupClass = (): string => "drawer-popup";
 export const drawerPanelClass = (): string => "drawer-panel";
-export const drawerHeadClass = (): string => "drawer-head";

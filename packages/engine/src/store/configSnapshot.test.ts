@@ -3,6 +3,7 @@ import { afterAll, describe, expect, it, vi } from "vitest";
 import { CONFIG_SCHEMA_SQL } from "./configDocs.js";
 import type { SqlClient } from "./configPaths.js";
 import {
+  createSqlSnapshotStore,
   parseSnapshot,
   restoreDocuments,
   SNAPSHOTS_KEEP,
@@ -88,6 +89,32 @@ describe("takeSnapshot", () => {
     expect(store.dropped.sort()).toEqual(old.slice(0, 3));
     expect(store.objects.has("config-snapshots/notes.txt")).toBe(true);
     expect(store.objects.has(result.key)).toBe(true);
+  });
+});
+
+describe("createSqlSnapshotStore", () => {
+  // The bug: the weekly job now writes into Neon, and its SQL (an upsert on the day's key, a delete
+  // by key list) runs only against a real Postgres. A rerun the same day must replace, not fail or
+  // add a row, and the prune must drop the old keys and nothing else.
+  it("replaces the day's snapshot on a rerun, reads it back and prunes by key", async () => {
+    const sql = await realStore();
+    await sql.query("insert into config_documents (path, content) values ($1, $2)", [
+      "config/topics.json",
+      '{"a":1}',
+    ]);
+    const store = createSqlSnapshotStore(sql);
+    await takeSnapshot({ sql, store, now: new Date("2026-10-25T04:00:00Z"), keep: 2 });
+    await takeSnapshot({ sql, store, now: new Date("2026-11-01T04:00:00Z"), keep: 2 });
+    await sql.query("update config_documents set content = $1", ['{"a":2}']);
+    await takeSnapshot({ sql, store, now: new Date("2026-11-01T05:00:00Z"), keep: 2 });
+    await takeSnapshot({ sql, store, now: new Date("2026-11-08T04:00:00Z"), keep: 2 });
+    expect((await store.keys()).sort()).toEqual([
+      "config-snapshots/2026-11-01.json",
+      "config-snapshots/2026-11-08.json",
+    ]);
+    const kept = parseSnapshot((await store.read("config-snapshots/2026-11-01.json")) ?? "");
+    expect(kept.documents.map((d) => d.content)).toEqual(['{"a":2}']);
+    expect(await store.read("config-snapshots/2026-01-01.json")).toBeNull();
   });
 });
 

@@ -14,7 +14,7 @@ import MenuItem from "../../design-system/MenuItem.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { libraryItems } from "../../lib/libraryCard";
 import { getSite } from "../../lib/site";
-import { CONTENT_CDN_CACHE, readFromContentRepo } from "../../server/contentRepo";
+import { keepAtEdge, readFromContentRepo } from "../../server/contentRepo";
 import "../../styles/settings.css";
 import "../../styles/manage.css";
 import "../../styles/blocked.css";
@@ -27,7 +27,7 @@ export const prerender = false;
 if (!Astro.isPrerendered) {
   const unavailable = await readFromContentRepo("library");
   if (unavailable) return unavailable;
-  Astro.response.headers.set("Vercel-CDN-Cache-Control", CONTENT_CDN_CACHE);
+  keepAtEdge(Astro.response.headers);
 }
 
 const { entries, episodes } = await getSite();
@@ -42,7 +42,7 @@ const items = libraryItems(entries, episodes);
          the Library's hover Play and its menu, cut to Add to queue, Share and Remove download; both
          Remove and Delete all ask first. */}
     <div class="manage downloads" data-downloads>
-      <SettingsHead title="Downloads" note="Saved on this device to listen offline.">
+      <SettingsHead up={{ href: "/profile", label: "Profile" }} title="Downloads">
         {/* At the title's end, once there is something to delete: Delete all, which asks first. */}
         <div class="downloads-menu" slot="end" data-menu-wrap hidden>
           <button
@@ -108,7 +108,7 @@ const items = libraryItems(entries, episodes);
       <div class="blocked-empty empty" data-empty hidden>
         <EmptyArt art="library" size="compact" />
         <p class="empty-title">No downloads</p>
-        <p class="empty-body">Choose Download in a podcast's menu to listen without a connection.</p>
+        <p class="empty-body">Your downloaded podcasts will show up here</p>
       </div>
 
       {/* One dialog for both asks; downloadsPage.ts writes the words and the button's label. */}

@@ -4,6 +4,9 @@
  * publishes (google-sans-flex-latin-wght-normal.woff2), unmodified, so the unicode-range below is
  * the standard Google Fonts latin range. Open source under the SIL Open Font License 1.1.
  *
+ * The Halloween style's page title is set in Pirata One (SIL Open Font License 1.1), latin subset, 9 KB:
+ * Fontsource's pirata-one-latin-400-normal.woff2, unmodified. It is fetched only when a title uses it.
+ *
  * A metric-matched fallback stops layout shift while the file loads. Its values are measured from
  * the font file against Arial, the same way capsize does it: the ratio of the two fonts'
  * frequency-weighted average advance widths gives the size adjustment, and the ascent and descent
@@ -27,4 +30,15 @@
   ascent-override: 94.85%;
   descent-override: 28.08%;
   line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Pirata One";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("../assets/fonts/pirata-one-latin-400-normal.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }

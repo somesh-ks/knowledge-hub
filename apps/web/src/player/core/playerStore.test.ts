@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MEDIA_ERR_NETWORK, MEDIA_ERR_SRC_NOT_SUPPORTED } from "./audioErrors";
-import { BUFFERING_DELAY_MS, RESUME_SAVE_INTERVAL_MS } from "./playerStore";
+import {
+  BUFFERING_DELAY_MS,
+  OUTPUT_SLEEP_MS,
+  RESUME_SAVE_INTERVAL_MS,
+  WAKE_REWIND_SECONDS,
+} from "./playerStore";
 import { playedKey, resumeKey } from "./resume";
 import { createHarness, makeDigest, makeDigestWithoutAudio } from "./testing";
 
@@ -210,14 +215,18 @@ describe("seeking and items", () => {
     expect(harness.store.getState().itemIndex).toBe(1);
   });
 
-  it("queues a seek made before metadata and applies it on loadedmetadata", () => {
+  it("queues a seek made before metadata and applies it on loadedmetadata, unless a later seek landed", () => {
     const harness = createHarness();
     harness.store.load(makeDigest());
     harness.store.seekTo(70_000);
     expect(harness.store.getTime()).toBe(70);
     expect(harness.audio.currentTime).toBe(0);
+    // The element knows its metadata a task before it says so: a seek in that gap (End on the
+    // scrubber right after Play, CI 2026-11-04) must not be undone by the queued one.
+    harness.audio.readyState = 1;
+    harness.store.seekTo(110_000);
     harness.audio.loadMetadata(120);
-    expect(harness.audio.currentTime).toBe(70);
+    expect(harness.audio.currentTime).toBe(110);
   });
 
   it("does not take the unlock primer's silence for the recording, so nothing is stored as played", () => {
@@ -233,6 +242,54 @@ describe("seeking and items", () => {
       audio: { url: "/audio/other.mp3", duration_ms: 120_000 },
     });
     expect(harness.storage.getItem(playedKey(digest.id))).toBeNull();
+  });
+
+  // Owner, 2026-11-03: a reload dropped the track from the bar. A restored track is paused, so the
+  // page it lands on does not swap it for its own, and Play carries on from the kept place.
+  it("restores a track after a reload: on the bar, paused, kept against the page, played from the kept place", () => {
+    const harness = createHarness();
+    harness.storage.setItem(resumeKey("2026-10-07"), "42");
+    harness.store.setPageDigest(
+      makeDigest({ id: "2026-10-05", audio: { url: "/audio/old.mp3", duration_ms: 90_000 } }),
+    );
+    harness.store.restore(makeDigest());
+    expect(harness.store.getState()).toMatchObject({
+      digestId: "2026-10-07",
+      status: "paused",
+      hasStarted: true,
+    });
+    harness.store.setPageDigest(
+      makeDigest({ id: "2026-10-05", audio: { url: "/audio/old.mp3", duration_ms: 90_000 } }),
+    );
+    expect(harness.store.getState().digestId).toBe("2026-10-07");
+    expect(harness.audio.src).toBe("");
+    harness.store.play();
+    harness.audio.loadMetadata(120);
+    harness.audio.startPlaying();
+    // Owner, 2026-11-04: the phone's output wakes late and its clock runs on, so the first words
+    // were lost to silence. Played after a while, it starts a moment before the kept place.
+    expect(harness.audio.currentTime).toBe(42 - WAKE_REWIND_SECONDS);
+  });
+
+  it("steps back after a long pause only, never on a quick pause or onto a place the listener chose", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.currentTime = 30;
+    harness.store.pause();
+    vi.advanceTimersByTime(1_000);
+    harness.store.play();
+    expect(harness.audio.currentTime).toBe(30);
+    harness.audio.startPlaying();
+    harness.store.pause();
+    vi.advanceTimersByTime(OUTPUT_SLEEP_MS);
+    harness.store.play();
+    expect(harness.audio.currentTime).toBe(30 - WAKE_REWIND_SECONDS);
+    harness.audio.startPlaying();
+    harness.store.pause();
+    harness.store.seekTo(60_000);
+    vi.advanceTimersByTime(OUTPUT_SLEEP_MS);
+    harness.store.play();
+    expect(harness.audio.currentTime).toBe(60);
   });
 
   it("clamps seeks to the digest", () => {
@@ -677,7 +734,7 @@ describe("errors", () => {
     const state = harness.store.getState();
     expect(state.status).toBe("error");
     expect(state.error?.kind).toBe("network");
-    expect(state.error?.message).toMatch(/connection/);
+    expect(state.error?.message).toMatch(/Try again/);
   });
 
   it("shows the reason a playlist gave for a file it could not make, as the one message", () => {
@@ -708,7 +765,7 @@ describe("errors", () => {
     harness.audio.emit("error");
     const error = harness.store.getState().error;
     expect(error?.kind).toBe("unavailable");
-    expect(error?.message).toBe("Audio is not available for this podcast.");
+    expect(error?.message).toBe("Audio isn't available for this podcast.");
   });
 
   it("in a standing refusal, a play tries the element again: a story whose file is made plays", () => {

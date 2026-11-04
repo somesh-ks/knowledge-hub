@@ -12,6 +12,7 @@
  * engine makes this a silent no-op.
  */
 import { WHEEL_DETENT } from "../../design-system/wheel";
+import { HOLD_UNTIL } from "../../scripts/cardHold";
 import { cuePlayedSince, getHaptics, playUiCue } from "./soundController";
 import type { Cue } from "./soundMap";
 import {
@@ -39,6 +40,15 @@ const SCRIPTED_CHOICE = "[data-multiselect]";
 
 /** A script's click right after a key (Enter in a field pressing its button) is that key's action. */
 const KEY_CLICK_MS = 150;
+
+/**
+ * The press that last picked an item in a menu, so the close it causes is not sounded too. It is kept
+ * only for a menu the pick closed (a pick that leaves the menu open, Playback speed, keeps nothing),
+ * and for the one close that follows.
+ */
+let menuPick: { popover: Element; at: number } | null = null;
+/** A popover's close follows its pick's click within the same turn of the page. */
+const MENU_CLOSE_MS = 400;
 
 /** A cue too soon after another is a double: a tap and its dialog, a toggle and its popover. */
 const ECHO_MS = 120;
@@ -123,6 +133,24 @@ function say(cue: Cue | null): void {
     document.dispatchEvent(new CustomEvent("singularity:cue", { detail: cue.name }));
 }
 
+/** Sheets a long press opened that have been heard once, until the hold lets go of them. */
+const heardHold = new WeakSet<Element>();
+
+/**
+ * A held card's sheet (cardHold.ts) is closed by some browsers at the lift and opened again by the
+ * hold: that close and reopen are one sheet staying open, so it is heard open once (2026-11-01, the
+ * owner: "a triple tap" on a long press).
+ */
+function isHoldEcho(popover: Element, opening: boolean): boolean {
+  if (!(Number(popover.getAttribute(HOLD_UNTIL)) > performance.now())) {
+    heardHold.delete(popover);
+    return false;
+  }
+  if (!opening || heardHold.has(popover)) return true;
+  heardHold.add(popover);
+  return false;
+}
+
 /** An open or close the press already sounded (or that follows one) is not sounded again. */
 function sayState(opening: boolean): void {
   // A close right after an open (or an open right after a close) is the person's, not an echo.
@@ -154,6 +182,23 @@ if (typeof document !== "undefined") {
     attributeOldValue: true,
     subtree: true,
   });
+  // A pick in a menu closes it, and the pick has its own cue (or the sheet it opens does): the close
+  // after it is the same action, not a second sound (owner, 2026-11-02: a triple tap on a pick).
+  document.addEventListener(
+    "click",
+    (event) => {
+      const popover = (event.target as Element | null)
+        ?.closest?.("[popover] [role=menuitem]")
+        ?.closest("[popover]");
+      if (!popover) return;
+      menuPick = { popover, at: event.timeStamp };
+      // By the next frame a menu the pick closed has told so; one still open was not closed by it.
+      requestAnimationFrame(() => {
+        if (menuPick?.popover === popover && popover.matches(":popover-open")) menuPick = null;
+      });
+    },
+    { capture: true, passive: true },
+  );
   // A popover closes by Escape or a press outside too. A manual one (the toast) is not a menu.
   document.addEventListener(
     "toggle",
@@ -161,7 +206,14 @@ if (typeof document !== "undefined") {
       const popover = event.target;
       if (!(popover instanceof HTMLElement) || !popover.matches("[popover]:not([popover=manual])"))
         return;
-      sayState((event as Event & { newState?: string }).newState === "open");
+      const opening = (event as Event & { newState?: string }).newState === "open";
+      if (!opening && menuPick?.popover === popover) {
+        const fresh = event.timeStamp - menuPick.at < MENU_CLOSE_MS;
+        menuPick = null;
+        if (fresh) return;
+      }
+      if (isHoldEcho(popover, opening)) return;
+      sayState(opening);
     },
     true,
   );

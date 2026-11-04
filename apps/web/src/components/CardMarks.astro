@@ -1,0 +1,10 @@
+---
+import Icon from "../design-system/Icon.astro";
+---
+
+{/* What this device holds of a card's item, after its facts: a grey download arrow once it is saved
+     offline, never in words. Played is not shown on a card (owner, 2026-11-03: a list of green and blue
+     circles was loud); the podcast page says it (HeroMarks.astro). Rendered hidden and shown by the
+     card's own data-downloaded (library.css; libraryMenu.ts sets it), so the mark takes room only
+     while it is shown and the facts before it never change. */}
+<span class="status-mark status-mark-downloaded"><Icon name="arrowLineDown" /><span class="sr-only">Downloaded</span></span>

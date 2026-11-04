@@ -31,26 +31,61 @@ describe("parsePreferences", () => {
     const parsed = parsePreferences(
       JSON.stringify({
         theme: "dark",
-        style: "expressive",
+        mood: "expressive",
+        hue: 47,
         sounds: false,
         volume: 4,
         rate: 1.5,
         autoplay: false,
+        avatar: "pebble",
       }),
     );
     expect(parsed).toEqual({
       theme: "dark",
-      style: "expressive",
+      mood: "expressive",
+      // A turn is kept to the slider's steps of 5.
+      hue: 45,
       sounds: false,
       haptics: true,
       volume: 1,
       rate: 1.5,
       autoplay: false,
+      avatar: "pebble",
     });
     const partial = parsePreferences(
-      JSON.stringify({ theme: "neon", style: "Halloween<script>", rate: 3, volume: "loud" }),
+      JSON.stringify({
+        theme: "neon",
+        mood: "Halloween<script>",
+        rate: 3,
+        volume: "loud",
+        avatar: "<b>",
+      }),
     );
     expect(partial).toEqual(DEFAULT_PREFERENCES);
+  });
+
+  // A device that saved its look as `style` before the rename kept its mood: dropping the field
+  // would put every such device back on Default.
+  it("reads the mood a device saved under its old name; a valid mood wins, an invalid one yields", () => {
+    expect(parsePreferences(JSON.stringify({ style: "expressive" })).mood).toBe("expressive");
+    expect(parsePreferences(JSON.stringify({ style: "expressive", mood: "halloween" })).mood).toBe(
+      "halloween",
+    );
+    expect(parsePreferences(JSON.stringify({ style: "expressive", mood: "Bad!" })).mood).toBe(
+      "expressive",
+    );
+  });
+
+  it("keeps a hand-edited hue inside the slider's range, so the CSS never gets another number", () => {
+    for (const [stored, kept] of [
+      [-40, 0],
+      [900, 355],
+      ["red", 0],
+      [null, 0],
+      [Number.NaN, 0],
+    ]) {
+      expect(parsePreferences(JSON.stringify({ hue: stored })).hue).toBe(kept);
+    }
   });
 
   it("clamps the volume to the slider's range", () => {

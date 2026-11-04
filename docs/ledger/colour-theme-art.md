@@ -26,7 +26,7 @@ Ledger section 3, one surface. Read [the core](../design-engineering-ledger.md) 
   - Light mode was "coloured but still faint", so the tint was remapped (0.6 light, 0.32 dark) rather than dropped (D77). The contrast proof loops every palette in both themes; the worst text is 4.78:1.
   - The field bleeds past the gutters by `min(space-12, gutter)` so the phone app bar never clips it, and hero chips sit on the surface colour (`ambient.css:32`).
   - Cost: 317 B gzip eager, 2 KB lazy on idle.
-- **The playing cover's light** (D123): "Light animation of album art when playing". The cover, blurred, glows behind the open player's cover while it plays, fades on pause, breathes on 4.2 s; still under reduced motion.
+- **The playing cover's light** (D123): "Light animation of album art when playing". The cover, blurred, glows behind the open player's cover while it plays, fades on pause, breathes on 4.2 s; still under reduced motion. It is the open page's alone: pulled or closed, it goes out quickly and never lights again on the way down (owner, 2026-11-03: a patch of it showed behind the bar).
 - **Launch screen** (D123): "Flash screen design animation for pwa - dark & light". Installed app only; the ringed dot sends out two rings and lifts away in about 0.9 s.
 - **Android bars** (D123): no manifest colours, so the navigation and status bars follow the system theme; a light theme_color had frozen a white bar that hid the buttons.
 - **Covers.**
@@ -44,3 +44,8 @@ Ledger section 3, one surface. Read [the core](../design-engineering-ledger.md) 
   - The ask was "beautiful empty state illustration with title and an action button", then "keep the illustrations simple" (D96, D98).
   - Each is one flat object of two to four shapes in theme tones, then a 22px title, one line and one filled action.
   - Inline SVG, no script.
+- **Halloween style** (D306): "make halloween to make ui, empty states, components, spooky", then "the spiderwebs can be designed well", "the empty states need better effort, the pumpkin looks shitty", "the radial gradients are to be softer", "the eye of the ghost needs to be aligned", "you can animate the zero states", "looks beautiful" (2026-11-01).
+  - Tokens recolour the whole app (violet-black and parchment, orange accent). Pirata One names the page title only; the player title stays regular.
+  - Six scenes (pumpkin, ghost with a magnifier, cauldron, roosting bat, flying bat, tombstone with a candle) replace the Default pictures under the style, plus one corner cobweb that takes no tap. Every colour is a scene token, so they switch off with the style.
+  - Glows fade in five eased steps, never a disc. Scenes loop slowly (candle, bob, sway, bubbles) and stand still under reduced motion.
+  - Album art keeps each day's own colours for now; a Halloween cover look is its own change.

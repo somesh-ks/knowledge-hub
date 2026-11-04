@@ -73,10 +73,32 @@ test.describe("theme", () => {
     await page.emulateMedia({ colorScheme: "light" });
     // Through the real control. Writing storage behind the app's back raced the player's own copy
     // of the preferences, and passed or failed by which loaded first.
-    await page.goto("/settings");
+    await page.goto("/settings/appearance");
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     await page.getByRole("combobox", { name: "Theme" }).selectOption("dark");
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    // Bug it prevents (owner, 2026-11-04, Android): the status bar flashed at every tab switch. A swap
+    // took the theme colour out of the head and put the page's default back for a moment, and Chrome
+    // paints the status bar from each one it is given.
+    const offered = await page.evaluate(() => {
+      const current = () =>
+        document.querySelector<HTMLMetaElement>(
+          'meta[name="theme-color"][media="(prefers-color-scheme: light)"]',
+        )?.content ?? "none";
+      const seen = new Set<string>();
+      const record = window as unknown as { __offered: Set<string> };
+      record.__offered = seen;
+      new MutationObserver((changes) => {
+        for (const change of changes) {
+          for (const node of [...change.removedNodes, ...change.addedNodes]) {
+            if (node instanceof HTMLMetaElement && node.name === "theme-color")
+              seen.add(`moved ${node.content}`);
+          }
+        }
+        seen.add(current());
+      }).observe(document.head, { childList: true, subtree: true, attributes: true });
+      return current();
+    });
     await page
       .getByRole("navigation", { name: "Primary" })
       .getByRole("link", { name: "Library", exact: true })
@@ -90,27 +112,32 @@ test.describe("theme", () => {
       .click();
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    // The chrome was offered the dark page's colour, and only that one, all the way through.
+    const seen = await page.evaluate(() => [
+      ...((window as unknown as { __offered: Set<string> }).__offered ?? []),
+    ]);
+    expect(seen.filter((value) => value !== offered)).toEqual([]);
   });
   test("a style chosen in Settings survives navigation and a reload, set before first paint", async ({
     page,
   }) => {
-    await page.goto("/settings");
+    await page.goto("/settings/appearance");
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
-    await page.getByRole("combobox", { name: "Style" }).selectOption("expressive");
-    await expect(page.locator("html")).toHaveAttribute("data-style", "expressive");
+    await page.getByRole("combobox", { name: "Mood" }).selectOption("expressive");
+    await expect(page.locator("html")).toHaveAttribute("data-mood", "expressive");
     await page
       .getByRole("navigation", { name: "Primary" })
       .getByRole("link", { name: "Library", exact: true })
       .click();
     await expect(page).toHaveURL(/\/library$/);
-    await expect(page.locator("html")).toHaveAttribute("data-style", "expressive");
+    await expect(page.locator("html")).toHaveAttribute("data-mood", "expressive");
     // A reload: the attribute is on the document by the time the body exists, so nothing is painted
     // in Default first.
     await page.addInitScript(() => {
       const observer = new MutationObserver(() => {
         if (!document.body) return;
         (window as unknown as { __styleAtBody: string | null }).__styleAtBody =
-          document.documentElement.getAttribute("data-style");
+          document.documentElement.getAttribute("data-mood");
         observer.disconnect();
       });
       observer.observe(document, { childList: true, subtree: true });
@@ -122,9 +149,129 @@ test.describe("theme", () => {
       ),
     ).toBe("expressive");
     // Back to Default removes the attribute rather than leaving a stale one.
-    await page.goto("/settings");
+    await page.goto("/settings/appearance");
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
-    await page.getByRole("combobox", { name: "Style" }).selectOption("default");
-    await expect(page.locator("html")).not.toHaveAttribute("data-style", /.*/);
+    await page.getByRole("combobox", { name: "Mood" }).selectOption("default");
+    await expect(page.locator("html")).not.toHaveAttribute("data-mood", /.*/);
+  });
+
+  // Before D327 the choice was stored as `style`. The first-paint script and the Mood select must still
+  // read it, or every such device opens in Default.
+  test("a device that stored its mood under the old name keeps it, before first paint and in the select", async ({
+    page,
+  }) => {
+    await page.addInitScript(() =>
+      localStorage.setItem("singularity:preferences", JSON.stringify({ style: "expressive" })),
+    );
+    await page.goto("/settings/appearance");
+    await expect(page.locator("html")).toHaveAttribute("data-mood", "expressive");
+    await expect(page.locator("html")).toHaveAttribute("data-mood", "expressive");
+    await expect(page.getByRole("combobox", { name: "Mood" })).toHaveValue("expressive");
+  });
+
+  test("a style recolours the covers already on the page, with no cover fetched, and Default returns them", async ({
+    page,
+  }) => {
+    const fill = () =>
+      page.evaluate(() => {
+        const slot = document.querySelector(".cover-art .k");
+        return slot ? getComputedStyle(slot).fill : null;
+      });
+    const covers: string[] = [];
+    page.on("request", (request) => {
+      if (request.url().includes("/covers/")) covers.push(request.url());
+    });
+    await page.goto("/settings/appearance");
+    await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
+    await page
+      .getByRole("navigation", { name: "Primary" })
+      .getByRole("link", { name: "Library", exact: true })
+      .click();
+    await expect(page.locator(".cover-art").first()).toBeVisible();
+    const inDefault = await fill();
+    expect(inDefault).not.toBeNull();
+    // The covers are on the page when the style changes; the same elements take new colours.
+    const before = covers.length;
+    await page.evaluate(() => {
+      document.documentElement.dataset.mood = "expressive";
+    });
+    await expect.poll(fill).not.toBe(inDefault);
+    expect(covers.length).toBe(before);
+    // The reader's hue turns them too.
+    const styled = await fill();
+    await page.evaluate(() => document.documentElement.style.setProperty("--hue-shift", "120"));
+    await expect.poll(fill).not.toBe(styled);
+    await page.evaluate(() => {
+      document.documentElement.style.removeProperty("--hue-shift");
+      delete document.documentElement.dataset.mood;
+    });
+    await expect.poll(fill).toBe(inDefault);
+  });
+
+  test("the Hue slider turns a style's colours, is there before first paint after a reload, and is there only for a mood", async ({
+    page,
+  }) => {
+    await page.goto("/settings/appearance");
+    await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
+    const hue = page.getByRole("slider", { name: "Color" });
+    // Default is blue and has no hue to turn, so the row is not there.
+    await expect(hue).toBeHidden();
+    await page.getByRole("combobox", { name: "Mood" }).selectOption("expressive");
+    await expect(hue).toBeVisible();
+    const surface = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    const designed = await surface();
+    await hue.fill("180");
+    await expect.poll(surface).not.toBe(designed);
+    const turned = await surface();
+    // A reload: the turn is on the root by the time the body exists, so the page is not drawn at the
+    // designed hue first.
+    await page.addInitScript(() => {
+      const observer = new MutationObserver(() => {
+        if (!document.body) return;
+        (window as unknown as { __hueAtBody: string }).__hueAtBody =
+          document.documentElement.style.getPropertyValue("--hue-shift");
+        observer.disconnect();
+      });
+      observer.observe(document, { childList: true, subtree: true });
+    });
+    await page.reload();
+    expect(
+      await page.evaluate(() => (window as unknown as { __hueAtBody: string }).__hueAtBody),
+    ).toBe("180");
+    expect(await surface()).toBe(turned);
+    // Default carries no turn, and the slider waits again.
+    await page.goto("/settings/appearance");
+    await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
+    await page.getByRole("combobox", { name: "Mood" }).selectOption("default");
+    await expect(hue).toBeHidden();
+    expect(
+      await page.evaluate(() => document.documentElement.style.getPropertyValue("--hue-shift")),
+    ).toBe("");
+  });
+
+  test("Halloween swaps in its own scene and a cobweb that takes no tap; Default shows only its own", async ({
+    page,
+  }) => {
+    await page.goto("/settings/appearance");
+    await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
+    await page.getByRole("combobox", { name: "Mood" }).selectOption("halloween");
+    await page.goto("/no/such/page");
+    const root = page.locator("#main .empty");
+    await expect(root.locator('.empty-art[data-look="halloween"]')).toBeVisible();
+    await expect(root.locator('.empty-art[data-art="notfound"]')).toBeHidden();
+    await expect(page.locator(".cobweb")).toBeVisible();
+    // The cobweb hangs in the top-right corner; a tap there reaches what is under it.
+    const corner = await page.evaluate(
+      () => document.elementFromPoint(window.innerWidth - 12, 12)?.closest(".cobweb") ?? null,
+    );
+    expect(corner).toBeNull();
+    // Back to Default: its own scene returns and the ornament goes.
+    await page.goto("/settings/appearance");
+    await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
+    await page.getByRole("combobox", { name: "Mood" }).selectOption("default");
+    await page.goto("/no/such/page");
+    await expect(root.locator('.empty-art[data-art="notfound"]')).toBeVisible();
+    await expect(root.locator('.empty-art[data-look="halloween"]')).toBeHidden();
+    await expect(page.locator(".cobweb")).toBeHidden();
   });
 });

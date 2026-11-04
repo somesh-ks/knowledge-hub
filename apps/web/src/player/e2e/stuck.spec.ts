@@ -39,6 +39,7 @@ async function finishRunBehindThePlayer(page: Page, player: PlayerPage): Promise
   // The store reads its timers from the page clock, so the background check can be hurried.
   await page.clock.install();
   const dialog = await player.openGenerate();
+  await dialog.getByRole("textbox").fill("shorter");
   await player.finger.press(dialog.getByRole("button", { name: "Regenerate" }));
   await page.clock.runFor(3_100);
   await page.keyboard.press("Escape");
@@ -104,11 +105,26 @@ test.describe("paths that used to leave the player stuck", () => {
     const dock = page.locator("[data-queue-dock]");
     await finger.press(dock.locator("[data-queue-toggle]"));
     await finger.press(dock.getByRole("link", { name: /^Start listening/ }));
-    await expect(page).toHaveURL(new RegExp(`/d/${SITE.earlier}`));
+    // A phone shows the podcast in the player at once (owner, 2026-11-02); its queue row has gone.
+    await player.expanded();
+    await expect(player.root).toHaveAttribute("data-player-state", "playing");
+    await expect(dock).toBeHidden();
+    await finger.press(player.closeButton);
     await player.collapsed();
     await player.dockSettled();
     await player.openPlayer();
     await expect(player.scrubber).toBeVisible();
+  });
+
+  test("Play opens the player over the page on a phone, and on a desktop only the bar changes @desktop", async ({
+    player,
+    page,
+  }) => {
+    await player.open();
+    await player.playAndStay();
+    const wide = (page.viewportSize()?.width ?? 0) >= 1024;
+    if (wide) await player.collapsed();
+    else await player.expanded();
   });
 
   test("a sloppy tap that drifts 10 to 12 px still opens the player", async ({
@@ -172,7 +188,7 @@ test.describe("when the player's lazy half cannot load", () => {
     failing = false;
     await finger.press(retry);
     // The lazy half is back: its controls are there (its scrubber is hidden on a wide screen).
-    await expect(player.dialog.getByRole("button", { name: /^Playback speed/ })).toBeVisible();
+    await expect(player.dialog.getByRole("button", { name: /^Back \d+ seconds$/ })).toBeVisible();
     await expect(retry).toHaveCount(0);
   });
 });

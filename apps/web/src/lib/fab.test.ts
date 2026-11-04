@@ -21,7 +21,7 @@ describe("which floating button a page shows", () => {
       expect(fabFor({ path, playable: false }), path).toBe("add");
     }
     expect(fabFor({ path: "/settings/blocked-outlets", playable: false })).toBeNull();
-    expect(fabFor({ path: "/settings/preferences", playable: false })).toBe("reorder");
+    expect(fabFor({ path: "/settings/preferences", playable: false })).toBeNull();
   });
 
   it("shows none on a page with nothing to play and nothing to make", () => {

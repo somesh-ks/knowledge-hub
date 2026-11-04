@@ -32,9 +32,35 @@ function markupFiles(dir: string): string[] {
 
 const sheet = (name: string) => readFileSync(join(STYLES, name), "utf8");
 const wholeClass = (name: string) => new RegExp(`(?<![\\w-])${name}(?![\\w-])`);
-/** The text inside quotes, where a class is written; a variable named `btn` is not a class. */
+/**
+ * The text inside quotes, where a class is written; a variable named `btn` is not a class. Comments
+ * go first (an apostrophe in one opens a string that swallows the code after it), and so does the
+ * path of an import (`../design-system/avatar` is a module, not a class).
+ */
 const quoted = (text: string) =>
-  [...text.matchAll(/(["'`])((?:\\.|(?!\1)[^\\])*)\1/g)].map((m) => m[2]).join("\n");
+  [
+    // One pass, left to right: a string is kept whole (so "image/*" is not a comment), a comment is dropped.
+    ...text
+      .replace(/\b(?:from|import)\s*\(?\s*(["'])[^"'\n]*\1/g, "")
+      .matchAll(/(["'`])((?:\\.|(?!\1)[^\\])*)\1|\/\*[\s\S]*?\*\/|(?<![:/\w])\/\/[^\n]*/g),
+  ]
+    .filter((m) => m[1] !== undefined)
+    .map((m) => m[2])
+    .join("\n");
+
+describe("quoted (the class guard's reader)", () => {
+  it("keeps a class after raw URL text or a glob string, and drops real comments", () => {
+    const page = [
+      '<a href="x" accept="image/*">https://example.com <b class="button-filled">',
+      '/* class="hidden-in-comment" */',
+      '// class="also-hidden"',
+    ].join("\n");
+    const text = quoted(page);
+    expect(text).toContain("button-filled");
+    expect(text).not.toContain("hidden-in-comment");
+    expect(text).not.toContain("also-hidden");
+  });
+});
 
 describe("design-system components", () => {
   it.each(COMPONENTS)(
@@ -95,6 +121,109 @@ describe("design-system components", () => {
 });
 
 /**
+ * A menu drawn as a bottom sheet carries its header (title, subtitle, Close) and its body (D329). The
+ * header may be hidden only by menu.css, and only over one visible row; the markup always holds it.
+ * 2026-11-03: the queue row's menu drew `menuListClass()` with bare rows, so a phone showed a sheet with
+ * no title and no Close, and no check read it. This one reads every file that draws a sheet menu.
+ * shortcut: the check is per file, so a file that draws two sheets passes if one of them has the header;
+ * upgrade to a rendered check (every `.menu-sheet` has a `.sheet-head`) if a file ever holds two.
+ */
+describe("a menu drawn as a bottom sheet", () => {
+  const HEADER = /<SheetHeader\b|sheetHeadClass\(|sheetHeadHtml\(/;
+  const BODY = /menuBodyClass\(/;
+  const SHEET_MENU = /menuListClass\(\s*(?:true\s*)?\)/;
+  const drawing = APPS.flatMap((root) => markupFiles(root))
+    .map((file) => ({ file, text: readFileSync(file, "utf8") }))
+    .filter(({ text }) => SHEET_MENU.test(text));
+
+  it("is found where the app draws one", () => {
+    expect(drawing.length, "the check reads no sheet menu").toBeGreaterThan(0);
+  });
+
+  it("every one draws its header and its body", () => {
+    const missing = drawing.flatMap(({ file, text }) => {
+      const name = relative(join(SRC, "..", "..", ".."), file);
+      // The emoji picker scrolls its own grid; every other sheet menu wraps its rows.
+      const needsBody = !file.endsWith("EmojiPicker.astro");
+      return [
+        ...(HEADER.test(text) ? [] : [`${name}: no header (SheetHeader or sheetHeadHtml)`]),
+        ...(!needsBody || BODY.test(text)
+          ? []
+          : [`${name}: no body (wrap the rows in menuBodyClass())`]),
+      ];
+    });
+    expect(missing, "a sheet menu with no title and no Close, even over one row").toEqual([]);
+  });
+
+  // shortcut: the search picker (scripts/picker.ts, the Create and Topics category picker) is a
+  // combobox popover of its own, not yet a DS part; fold it into Select and drop this entry.
+  // shortcut: per file, like the header check: a file that draws a Menu passes with a second, hand-built
+  // popover beside it; upgrade to a rendered check (every open [popover] is a .menu-list) if one appears.
+  const BUILT_OWN = ["scripts/picker.ts"];
+  // In a tag, a bare `popover` is auto too, and a script can set it.
+  const AUTO_POPOVER =
+    /<[A-Za-z][^<>]*\spopover(?:\s*=\s*(?:"(?:auto)?"|'(?:auto)?'|auto\b)|(?=[\s>/]))/;
+  const SET_AUTO_POPOVER = /setAttribute\(\s*(["'])popover\1\s*,\s*(["'])auto\2/;
+
+  it("is the only popover and dialog a page opens", () => {
+    // A hand-built panel is how the queue menu lost its header; every surface is a DS one.
+    const stray = APPS.flatMap((root) => markupFiles(root)).flatMap((file) => {
+      const text = readFileSync(file, "utf8");
+      const name = relative(join(SRC, "..", "..", ".."), file);
+      const popover =
+        (AUTO_POPOVER.test(text) || SET_AUTO_POPOVER.test(text)) &&
+        !/menuListClass\(/.test(text) &&
+        !BUILT_OWN.some((own) => file.endsWith(own));
+      const dialog =
+        (/^\s*<dialog\b/m.test(text) || /createElement\(\s*(["'`])dialog\1/.test(text)) &&
+        !/dialogClass\(|sheetHeadHtml\(|sheetHeadClass\(|<SheetHeader\b/.test(text);
+      return [
+        ...(popover ? [`${name}: an auto popover that is not menuListClass()`] : []),
+        ...(dialog ? [`${name}: a dialog with neither dialogClass() nor a sheet header`] : []),
+      ];
+    });
+    expect(stray, "draw it with Menu, Sheet or Dialog (design-system/)").toEqual([]);
+  });
+});
+
+/**
+ * A tab strip (primitives.css .tabs, or a tablist that is not the segmented navigation) sits in the
+ * shared tab bar (.tabs-bar, with a modifier for where it is), which draws the line under the strip.
+ * 2026-11-03: the Topics page's tabs skipped the bar and showed no line (owner: "a divider line like
+ * every other tab implementation"), and the player's bar drew its own copy of it; no check read either.
+ * shortcut: the bar must be the strip's parent in the same file, and a strip a script builds with
+ * createElement is not read; upgrade to a rendered check (every .tabs has a .tabs-bar parent) if one is.
+ */
+describe("a tab strip", () => {
+  it("sits in the shared tab bar, which draws its line", () => {
+    const strips: string[] = [];
+    const outside = APPS.flatMap((root) => markupFiles(root)).flatMap((file) => {
+      const name = relative(join(SRC, "..", "..", ".."), file);
+      // Until nothing changes, so cutting one comment never joins the halves of another (CodeQL).
+      let markup = readFileSync(file, "utf8");
+      for (let last = ""; last !== markup; ) {
+        last = markup;
+        markup = markup.replace(/\/\*[\s\S]*?\*\/|<!--[\s\S]*?-->/g, "");
+      }
+      let parent = "";
+      return [...markup.matchAll(/<[a-z][\w-]*\b[^<>]*>/g)].flatMap(([tag]) => {
+        const holder = parent;
+        parent = tag;
+        const classes = /\bclass(?:Name)?="([^"]*)"/.exec(tag)?.[1]?.split(/\s+/) ?? [];
+        const tablist = /\brole="tablist"/.test(tag) && !classes.includes("segmented-nav");
+        if (!classes.includes("tabs") && !tablist) return [];
+        strips.push(name);
+        return /\bclass(?:Name)?="[^"]*\btabs-bar\b/.test(holder)
+          ? []
+          : [`${name}: ${tag.replace(/\s+/g, " ").slice(0, 80)}`];
+      });
+    });
+    expect(strips.length, "the check reads no tab strip").toBeGreaterThan(0);
+    expect(outside, "put the strip in .tabs-bar (primitives.css)").toEqual([]);
+  });
+});
+
+/**
  * The classes still written by hand in markup, which the system will absorb one family at a time
  * (docs/design-engineering-ledger.md). The list only shrinks: a family's PR moves its classes into
  * a component and deletes them from here; the test fails for a class that is no longer written, so
@@ -112,7 +241,6 @@ const NOT_YET_COMPONENTS = [
   "add-fab",
   "dock-btn",
   "transport-btn",
-  "speed-btn",
   "view-btn",
   "source-plus-btn",
   "text-link",

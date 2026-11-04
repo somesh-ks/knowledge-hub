@@ -8,10 +8,10 @@ import {
 describe("audio error copy", () => {
   it("names an episode as an episode, and points to its transcript", () => {
     expect(describeMediaError(MEDIA_ERR_SRC_NOT_SUPPORTED, true, "episode")?.message).toBe(
-      "Audio is not available for this episode.",
+      "Audio isn't available for this episode.",
     );
     expect(describeMediaError(MEDIA_ERR_SRC_NOT_SUPPORTED, true)?.message).toBe(
-      "Audio is not available for this podcast.",
+      "Audio isn't available for this podcast.",
     );
   });
 

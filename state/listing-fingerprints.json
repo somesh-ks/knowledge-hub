@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "sources": {
+    "better-stack-blog": {
+      "hash": "e064b6d20ba1d4da",
+      "scraped_at": "2026-11-02T23:47:59.436Z"
+    },
+    "brutalist-report": {
+      "hash": "c9af79f57e047a90",
+      "scraped_at": "2026-11-02T23:47:59.436Z"
+    },
+    "darkroom-engineering": {
+      "hash": "25586d2b46f3009d",
+      "scraped_at": "2026-11-02T23:47:59.436Z"
+    },
+    "emil-kowalski": {
+      "hash": "8f0df7da974a2cc5",
+      "scraped_at": "2026-11-02T23:47:59.436Z"
+    },
+    "lee-robinson": {
+      "hash": "7d1f2c4d4a30a53a",
+      "scraped_at": "2026-11-02T23:47:59.436Z"
+    },
+    "meta-ai-blog": {
+      "hash": "9b908a6a87eff5f1",
+      "scraped_at": "2026-11-02T23:47:59.436Z"
+    }
+  }
+}

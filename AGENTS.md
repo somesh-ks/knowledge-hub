@@ -1,6 +1,6 @@
 # Singularity
 
-Private design-engineering news briefing. A GitHub Actions engine writes a digest every second day, commits it under `Digests/`, and Vercel deploys the reader at news.someshks.work. Repo: somesh-ks/knowledge-hub.
+Private design-engineering news briefing. A GitHub Actions engine writes a digest every second day, saves it to the content store, not git (D300), and Vercel deploys the reader at news.someshks.work. Repo: somesh-ks/knowledge-hub.
 
 ## Read first
 
@@ -29,8 +29,9 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code 
 - No em dashes. Persisted data is snake_case; docs and config files are lowercase kebab-case.
 - Do not edit `Digests/` or `state/` by hand.
 - Changes to `.github/workflows` need a manual merge (the auto-merge token cannot merge them).
-- Code review before every merge (D143, D192). CodeRabbit reviews PRs on GitHub; merge by hand once its review lands and findings are fixed. `[skip-review]` in the title (D254) only if every file is under `docs/` but not `decisions/`, `engineering/`, `design/` or the ledger, test data or fixtures, or a few-line typo or copy fix in code outside the pipeline, store, auth, billing, workflows and design system; merge on green CI. Large changes: run `/code-review` first.
+- Review before merge (D292): [code-review.md](docs/engineering/code-review.md). `[skip-review]` and green CI only if every file is Tier 0: docs outside `decisions/`, `engineering/`, `design/` and the ledger, test data, or a few-line copy fix outside Tier 2 (D254). Tier 2 (pipeline, store, auth, billing, workflows, design system, `AGENTS.md`, `.coderabbit.yaml`, gates): `cr review --deep` first; `/code-review` last. CodeRabbit reviews on open, then only on `@coderabbitai review`.
 - TypeScript stays on 6.x.
+- Change log (D355): CI fails a `feat`/`fix`/`perf` PR while `lib/changelog.ts` is over 2 days old.
 - UI keeps the 8pt grid (4px for named cases only) and the design system, in three layers: `npm run design-check` (a hook on each UI edit), e2e/designSystem.spec.ts (CI), the `design-audit` agent before the PR.
 - The design system is a product (D237, D253). A control is a component in `apps/web/src/design-system/` named for what it is (Button); a page draws it, never types its class. A UI fix starts at the component; every UI change is designed from the design system. If it cannot express the request, stop, propose a small deviation and wait for the owner's OK; never deviate silently. A page patch needs a PR reason and a `PAGE_OVERRIDES` entry. Changes join the one open `design-system` PR the owner merges (D254).
 - Design fixes are load-bearing. Markup or rules with a rationale comment (date, D-number, sizer, specificity bump) are never removed or rewritten to make another task work: extend or ask. Check history (`git log -L '/<selector>/,+20:<file>'`) and the ledger before changing shared CSS (`player.css`, `primitives.css`, `buttons.css`, tokens). CSS is checked by browser suites only.
@@ -40,6 +41,16 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code 
 - Pipeline discipline: verify the core daily loop runs green in production before adding new intake types or audience matrices.
 - Vercel: the CLI is pinned. Read with `npm run vercel:list`, `vercel:inspect`, `vercel:logs`, `vercel:env-list`; a session never deploys or edits env.
 
+## Code
+
+The smallest complete change (from the Ponytail skill). First list every caller, test, fixture and config it must reach: that is scope, extra features are not. Then take the first option that fully works: skip it; reuse what the repo has, as it is used; the platform or an installed package (no new dependency for a few lines); one clear line; the minimum code.
+
+- No abstraction, wrapper, option, config or "for later" code nobody asked for. Deletion beats addition; keep the repo's structure.
+- Bug fix: grep every caller, then fix the root cause once in the shared code. Moved code keeps its validation and error handling.
+- A shortcut with a known limit gets `// shortcut: <the limit>, <when to upgrade>`.
+- Never cut validation at trust boundaries, data-loss guards, security or accessibility.
+- End the reply with what you skipped or did not check.
+
 ## Tests
 
 Few, one layer each, aimed at what fails silently ([evidence](docs/engineering/postmortem-test-suite.md)).
@@ -48,13 +59,13 @@ Few, one layer each, aimed at what fails silently ([evidence](docs/engineering/p
 - A test names the bug it prevents: no sentence, no test. Search the unit, `apps/web/e2e` and `apps/web/src/player/e2e` suites for the behaviour first, and extend or replace a test instead of adding one.
 - Test journeys across pages, reload, offline and time, not states. Never pin copy, CSS, class names, markup, geometry or constants: screenshots and critics judge those.
 - Fake the clock, crypto and network; freeze fixtures; never sleep or read live config.
-- Delete or rewrite tests of changed/removed behaviour in the same commit. Streamline tests in the PR: drop old assertions, fold overlaps. Only add a test for a logic bug: show it red first, test where logic lives.
+- Delete or rewrite tests of changed/removed behaviour in the same commit. Streamline tests in the PR: drop old assertions, fold overlaps. A test guards a real failure mode (owner, 11-03): show it red first, test where logic lives; never add one for coverage.
 - A browser test runs once: on the phone unless it is tagged `@desktop` (desktop only) or `@both`. Counts and run times are in `docs/state.md`; a change that breaks the budget cuts first.
 
 ## Keeping the record
 
 Project agents (`singularity-verify`, `singularity-worker`) are in `.claude/agents/`; `/close-session` runs the steps below.
 
-After a large piece of work: clean up scratch files, servers, stashes and local branches; review the merged diff (CodeRabbit or code-review), fix findings, verify the Vercel production deploy.
+After a large piece of work: clean up scratch files, servers, stashes and local branches; review the merged diff (CodeRabbit), fix findings, verify the Vercel production deploy.
 
 At the end of a session: update `docs/state.md`, add a decision (next D-number, and a row in the Index) for anything that changes direction, add one line to `docs/learnings.md` per failure, and add a note under `docs/history/`.

@@ -3,6 +3,7 @@ import type { APIRoute } from "astro";
 import { guardAdmin } from "../../server/adminGuard";
 import { createVercelBlobStore } from "../../server/blobStore";
 import { readBlobCredentials } from "../../server/config";
+import { purgeContentAtEdge } from "../../server/contentRepo";
 import { contentEpisodeIds, contentEpisodeRegenerations } from "../../server/contentSources";
 import { MAX_BODY_CHARS } from "../../server/generate";
 import { answerWithRef, toResponse } from "../../server/http";
@@ -45,6 +46,8 @@ export const POST: APIRoute = async ({ request, url }) => {
             id,
             Date.now(),
           );
+          // The edge keeps pages until the content changes (D318): a delete is a change.
+          await purgeContentAtEdge();
         },
         log,
       },

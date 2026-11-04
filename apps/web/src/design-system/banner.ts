@@ -6,7 +6,7 @@
  */
 import type { Guidance } from "./guidance";
 
-export type BannerTone = "info" | "warning" | "danger" | "success";
+export type BannerTone = "warning" | "danger" | "success";
 
 /** A block sits in the page; a strip is a band above the app that squeezes the page down (banner.css), for a state of the device. */
 export type BannerVariant = "block" | "strip";
@@ -51,12 +51,6 @@ export const BANNER: Guidance & {
     },
   },
   tones: {
-    info: {
-      label: "Info",
-      summary: "A neutral fact: a new version is ready, playback paused for a call.",
-      useWhen: ["Nothing is wrong and nothing is lost."],
-      dontUseWhen: [{ when: "Something failed.", instead: "Banner.danger" }],
-    },
     warning: {
       label: "Warning",
       summary: "Something is limited but still works: offline, an old briefing.",
@@ -69,13 +63,13 @@ export const BANNER: Guidance & {
       label: "Danger",
       summary: "Something failed: a run, a download, playback. Announced at once as an alert.",
       useWhen: ["The thing a person asked for did not happen, and they can act on it."],
-      dontUseWhen: [{ when: "It is a state that is working as designed.", instead: "Banner.info" }],
+      dontUseWhen: [{ when: "It is a state that is working as designed: say nothing." }],
     },
     success: {
       label: "Success",
       summary: "Something recovered: back online.",
       useWhen: ["A problem a banner showed is over."],
-      dontUseWhen: [{ when: "An action simply worked.", instead: "Banner.info" }],
+      dontUseWhen: [{ when: "An action simply worked: the result shows it." }],
     },
   },
 };

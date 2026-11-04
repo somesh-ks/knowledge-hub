@@ -38,6 +38,7 @@ import {
   type ScriptWriter,
 } from "../podcast/types.js";
 import { type BlobClient, createVercelBlobClient } from "../publish/blob.js";
+import { hasWorkspaceBaseline } from "../publish/contentWorkspace.js";
 import { publishEpisodeIndex } from "../publish/episodeIndex.js";
 import { loadScheduleZone } from "../schedule/store.js";
 
@@ -129,10 +130,14 @@ async function refreshEpisodeIndex(
   }
 }
 
-function commitFailure(outcome: CommitOutcome): string | null {
+/**
+ * `tracked`: the checkout pulled its content from the store (D300), so an episode is never a git
+ * change and a commit of nothing is how a delete or a quiet episode ends, not a failure.
+ */
+function commitFailure(outcome: CommitOutcome, tracked: boolean): string | null {
   switch (outcome.status) {
     case "nothing_to_commit":
-      return "Nothing to commit: the episode file was not picked up by git";
+      return tracked ? null : "Nothing to commit: the episode file was not picked up by git";
     case "refused":
       return `Commit refused (${outcome.reason}): ${outcome.offending.join(", ")}`;
     case "push_failed":
@@ -235,6 +240,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
       }
     };
     try {
+      const tracked = await hasWorkspaceBaseline(ctx.root);
       const { request: requestJson, resumeFrom } = splitResumeFrom(values.request);
       const command = parseCommand(requestJson);
       if (command.action === "delete") {
@@ -255,7 +261,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
           command: "podcast",
           push: values["no-push"] !== true,
         });
-        const failure = commitFailure(outcome);
+        const failure = commitFailure(outcome, tracked);
         if (failure !== null) {
           await recordFailure(commitFailureReason(outcome) ?? undefined);
           ctx.log.error(
@@ -414,6 +420,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
             script_chars: episode.char_count,
             share: Math.round((episode.char_count / Math.max(1, budgetChars)) * 100) / 100,
             writer_calls: result.script.writer_calls,
+            first_turn_chars: episode.turns[0]?.text.length ?? 0,
           },
         });
       }
@@ -427,7 +434,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
         command: "podcast",
         push: values["no-push"] !== true,
       });
-      const failure = commitFailure(outcome);
+      const failure = commitFailure(outcome, tracked);
       if (failure !== null) {
         await live.stream?.failed();
         await recordFailure(commitFailureReason(outcome) ?? undefined);

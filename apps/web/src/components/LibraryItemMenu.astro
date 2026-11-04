@@ -2,6 +2,7 @@
 import Icon from "../design-system/Icon.astro";
 import Menu from "../design-system/Menu.astro";
 import MenuItem from "../design-system/MenuItem.astro";
+import { menuTilesClass } from "../design-system/menu";
 import { regenerationHint } from "../lib/regenerations";
 
 interface Props {
@@ -20,10 +21,14 @@ interface Props {
   deletable?: boolean;
   /** An episode's topic ids, so Regenerate starts with the ones it was made with. */
   topics?: readonly string[];
+  /** A briefing's aired minutes: its Regenerate starts on the nearest length (lib/regenLength.ts). */
+  minutes?: number;
   /** Times this podcast was regenerated, for the Regenerate item's counter (D212). */
   regenerations?: number | undefined;
   /** On Settings > Downloads: only what applies to a saved copy (Add to queue, Share, Remove download). */
   downloads?: boolean;
+  /** On Settings > Favorites: Add to queue, Share and Remove from favorites. */
+  saved?: boolean;
 }
 
 const {
@@ -35,10 +40,13 @@ const {
   audio,
   deletable = true,
   topics,
+  minutes,
   regenerations,
   downloads = false,
+  saved = false,
 } = Astro.props;
 const regen = regenerationHint(regenerations);
+const only = downloads || saved;
 const menuId = `card-menu-${id}`;
 ---
 
@@ -47,16 +55,12 @@ const menuId = `card-menu-${id}`;
      scripts/libraryMenu.ts. Regenerate and Delete are the episode page's own (EpisodeActions.astro,
      one set of dialogs for the whole Library) and a briefing's (the Generate sheet). Download is
      only offered where the item already has an audio file. A sibling of the card's link, never inside
-     it, so a press here cannot open the card. The template is the downloaded mark, which
-     scripts/libraryMenu.ts puts at the start of the quiet line while the item is downloaded. */}
-<template data-downloaded-mark>
-  <span class="card-downloaded"><Icon name="checkCircle" /><span class="sr-only">Downloaded</span></span>
-</template>
+     it, so a press here cannot open the card. */}
 <div
   class="card-menu"
   style={`--card-anchor: --cm-${id}`}
   data-library-menu
-  data-manage-downloads={downloads ? "" : undefined}
+  data-manage-downloads={only ? "" : undefined}
   data-id={id}
   data-path={path}
   data-title={title}
@@ -64,6 +68,7 @@ const menuId = `card-menu-${id}`;
   data-episode-actions=""
   data-episode={kind === "episode" ? id : undefined}
   data-library-briefing={kind === "briefing" ? id : undefined}
+  data-minutes={kind === "briefing" ? minutes : undefined}
   data-topics={topics?.join(" ")}
 >
   <button
@@ -77,18 +82,31 @@ const menuId = `card-menu-${id}`;
     <Icon name="moreVert" />
   </button>
   <Menu id={menuId} title={title} subtitle={subtitle} class="card-menu-list">
-    {
-      audio && !downloads && (
-        <MenuItem data-menu="download">
-          <Icon name="download" class="dl-add" /><Icon name="downloadRemove" class="dl-remove" /><span data-menu-label>Download</span>
-        </MenuItem>
-      )
-    }
-    <MenuItem data-menu="queue">
-      <Icon name="queueAdd" />Add to queue
+    {/* The quick actions: on a phone's sheet they are tiles over the list, as the player's menu has them
+         (D291); from 40rem they are rows, in this order, so a mouse sees one list (menu.css). */}
+    <div class={menuTilesClass()} data-fold role="presentation">
+      {
+        audio && !only && (
+          <MenuItem data-menu="download">
+            <Icon name="download" class="dl-add" /><Icon name="downloadRemove" class="dl-remove" /><span data-menu-label>Download</span>
+          </MenuItem>
+        )
+      }
+      <MenuItem data-menu="share" data-share-item={id}>
+        <Icon name="shareFat" />Share
+      </MenuItem>
+      <MenuItem data-menu="queue">
+        <Icon name="queueAdd" />Add to queue
+      </MenuItem>
+    </div>
+    {/* First under the quick actions, on every row's menu (owner, 2026-11-04). It reads "Remove from
+         favorites" once this device has it (libraryMenu.ts sets the card's data-saved; library.css
+         swaps the heart), so on Settings > Favorites it is the row's way out. */}
+    <MenuItem data-menu="favorite">
+      <Icon name="heartOutline" class="fav-add" /><Icon name="heart" class="fav-remove" /><span data-menu-label>Add to favorites</span>
     </MenuItem>
     {
-      downloads ? null : kind === "episode" ? (
+      only ? null : kind === "episode" ? (
         <MenuItem
           data-episode-action="regenerate"
           title={regen.title}
@@ -105,13 +123,10 @@ const menuId = `card-menu-${id}`;
         </MenuItem>
       )
     }
-    <MenuItem data-menu="share" data-share-item={id}>
-      <Icon name="shareArrow" />Share
-    </MenuItem>
     {/* Put in by scripts/shareLink.ts once this device made the row's listen link (D153). */}
     {/* Not on the Downloads page, whose row menu is Add to queue, Share and Remove download (D281). */}
     {
-      !downloads && (
+      !only && (
         <template data-share-stop-template>
           <MenuItem
             data-menu="unshare"
@@ -129,7 +144,7 @@ const menuId = `card-menu-${id}`;
       )
     }
     {
-      deletable && !downloads && (
+      deletable && !only && (
         <MenuItem tone="danger"
           data-episode-action="delete">
           <Icon name="trash" />Delete

@@ -103,17 +103,29 @@
  * select's fill (owner, 2026-10-29). It is as tall as the chip and the select beside it, and its
  * 44px target reaches past the circle as the chip's does.
  */
-.hero-share {
+.hero-share,
+.hero-favorite {
   --chip-height: calc(var(--size-touch) - var(--space-1));
   position: relative;
   min-width: var(--chip-height);
   min-height: var(--chip-height);
 }
 
-.hero-share::after {
+.hero-share::after,
+.hero-favorite::after {
   content: "";
   position: absolute;
   inset: calc((var(--size-touch) - var(--chip-height)) / -2);
+}
+
+/* The heart fills while the page's item is in Favorites. */
+.hero-favorite .fav-remove,
+.hero-favorite[aria-pressed="true"] .fav-add {
+  display: none;
+}
+
+.hero-favorite[aria-pressed="true"] .fav-remove {
+  display: block;
 }
 
 /*
@@ -125,6 +137,8 @@
  */
 .hero-actions > .chip {
   --chip-bg: var(--cta-bg);
+  --chip-bg-hover: var(--cta-bg-hover);
+  --chip-bg-pressed: var(--cta-bg-pressed);
   --chip-fg: var(--cta-fg);
   min-height: calc(var(--size-touch) - var(--space-1));
   padding-inline: var(--space-4) var(--space-6);
@@ -148,7 +162,7 @@
       [data-state="unavailable"],
       [aria-disabled="true"]
     ):hover {
-    background: color-mix(in oklch, var(--cta-bg), var(--cta-fg) var(--state-hover));
+    background: var(--cta-bg-hover);
   }
 }
 
@@ -160,7 +174,7 @@
     [aria-disabled="true"]
   ):active {
   border-radius: min(var(--cta-radius-pressed), calc((var(--size-touch) - var(--space-1)) / 2));
-  background: color-mix(in oklch, var(--cta-bg), var(--cta-fg) var(--state-press));
+  background: var(--cta-bg-pressed);
   color: var(--cta-fg);
 }
 
@@ -174,34 +188,19 @@
   display: none;
 }
 
-/* Heard to the end: the fill steps down to the tonal container, with the check, until it plays again. */
-.hero-actions > .chip[data-state="played"] {
-  background: var(--color-surface-container);
-}
-
-/* Downloaded, after the facts (owner, 2026-10-29): the filled check circle a Library card shows
-   (.card-downloaded, library.css) and the word. libraryMenu.ts puts it in the facts line once the
-   page is saved offline, so it takes no room before. */
-.hero-downloaded {
+/* Played and Downloaded, after the facts (owner, 2026-11-03): the Library card's own marks (a green check,
+   a blue download arrow; library.css) and the word. cardProgress.ts and libraryMenu.ts put them in the
+   facts line, so they take no room before. The play button never says Played; this is where it says so. */
+.hero-mark {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
 }
 
-.hero-downloaded .icon-glyph {
-  flex: none;
-  width: var(--size-icon-sm);
-  height: var(--size-icon-sm);
-  color: var(--color-accent);
-  /* Its ink starts a fraction of its box in (getBBox in the 256 grid: 24 of 256), so the dot sits as
-     far from the circle as from the words before it (owner, 2026-11-01). */
-  margin-inline-start: calc(var(--size-icon-sm) * -0.094);
-}
-
 /* The facts line's dot (primitives.css) is the first thing in this span, so the span's gap would
-   follow it and push the dot off the middle between "13 stories" and the check (owner, 2026-11-01).
-   The gap belongs between the check and the word only. */
-.hero-downloaded::before {
+   follow it and push the dot off the middle between "13 stories" and the mark (owner, 2026-11-01).
+   The gap belongs between the mark and the word only. */
+.hero-mark::before {
   margin-inline-end: calc(var(--space-2) * -1);
 }
 

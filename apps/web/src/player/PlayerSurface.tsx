@@ -1,4 +1,5 @@
 import { type PointerEvent, useDeferredValue, useEffect, useSyncExternalStore } from "react";
+import { buttonClass } from "../design-system/button";
 import { longDateFromDigestId } from "./core/formatTime";
 import { recordingCaption } from "./core/playerCopy";
 import { classifyKeyTarget, shouldToggleOnKey } from "./core/playerKeys";
@@ -9,6 +10,7 @@ import type { GestureZone, PointerInput } from "./core/sheetController";
 import { usePlayerState } from "./hooks/usePlayer";
 import { useQueue } from "./hooks/useQueue";
 import PlayerBar, { PLAYER_PAGE_ID } from "./PlayerBar";
+import PlayerMenu from "./PlayerMenu";
 import {
   getPageContent,
   getServerPageContent,
@@ -29,9 +31,9 @@ function zoneOf(target: EventTarget): GestureZone | null {
   if (target.closest("[data-player-open]")) return "dock";
   // The seek strip keeps its own drag: a scrub is sideways and must never start a dismissal.
   if (target.closest(".scrubber")) return null;
-  // The speed dialog sits inside the controls and has its own slider and presets: a pull there must
-  // not scroll the page or close the player under it.
-  if (target.closest(".speed-panel")) return null;
+  // The ⋮ menu sits inside the page and has its own slider and tiles: a pull there must not scroll
+  // the page or close the player under it.
+  if (target.closest(".player-menu, .player-more")) return null;
   if (target.closest("[data-player-drag]")) return "drag";
   return target.closest("[data-player-page]") ? "page" : null;
 }
@@ -53,7 +55,7 @@ function PageFallback({ status }: { status: PageContentSnapshot["status"] }) {
       <div className="player-fallback" role="alert">
         <p>The controls did not load. Check your connection.</p>
         <button
-          className="player-fallback-action"
+          className={buttonClass("text")}
           type="button"
           onClick={() => void loadPageContent()}
         >
@@ -190,6 +192,7 @@ export default function PlayerSurface() {
               >
                 <Icon name="chevronDown" />
               </button>
+              <PlayerMenu />
               <div className="player-cover-slot">
                 <div className="player-cover-box" data-player-cover>
                   {digest ? <PlayerCoverGlow cover={digest.cover} /> : null}
@@ -209,11 +212,10 @@ export default function PlayerSurface() {
                 {/* The story being read, and where it came from. A recording without stories says
                     what it is, and so does an episode's rundown, before story 1: no story is being
                     read, and the line is the one story 1 will fill, so nothing moves when it starts.
-                    A failure or an interruption takes the same room: its notice (PlayerNotice.tsx)
-                    is put here in their place, so nothing below the title moves when it comes or
-                    goes. */}
+                    A failure takes the same room: its notice (PlayerNotice.tsx) is put here in their
+                    place, so nothing below the title moves when it comes or goes. */}
                 <div className="player-meta-line" data-notice-slot>
-                  {state.error || state.interrupted ? null : (
+                  {state.error ? null : (
                     <>
                       <p className="player-story" key={item?.id ?? "story"}>
                         {item?.headline ?? recordingCaption(digest, state.duration)}

@@ -12,6 +12,7 @@
  */
 import type { SourceFormat } from "@singularity/core";
 import { topicEmoji } from "@singularity/core/topicEmoji";
+import { rowExitClass } from "../design-system/rowExit";
 import { pickEmoji } from "../lib/pickEmoji";
 import { readableUrl } from "../lib/readableUrl";
 import { sourcesSummary } from "../lib/settingsSummary";
@@ -35,9 +36,9 @@ import { bandOf, element, iconNode, starNode, topicRow } from "./topicsView";
 type Control = HTMLInputElement;
 
 /** What a suggested source's row says when its request was refused or did not go. */
-const NOT_ADDED = "Not added. Try again.";
+const NOT_ADDED = "Couldn't add that. Try again.";
 /** And a topic's row, which has no plus to press: the toast's Retry may be dismissed, the next change still sends it. */
-const TOPIC_NOT_ADDED = "Not added yet. It goes with your next change.";
+const TOPIC_NOT_ADDED = "Not added yet. It is tried again with your next change.";
 
 /**
  * What a control holds now. A pressed button is a boolean, a slider a number. A remove button keeps
@@ -217,7 +218,7 @@ export function mountEditor(root: HTMLElement): Editor {
   ): { row: HTMLElement; note: HTMLElement; key: string } => {
     added += 1;
     const key = `src${added}`;
-    const row = element("li", "source-row");
+    const row = element("li", `source-row ${rowExitClass()}`);
     row.dataset.key = key;
     row.dataset.band = bandOf(shown.score ?? null);
     row.dataset.score = String(shown.score ?? -1);

@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { resetConnectivity } from "../lib/connectivity";
 import { outboxOps, readOutbox } from "../lib/outbox";
+import { GENERIC, REASONS } from "../lib/saveCopy";
 import { OUTBOX_KEY, SAVED_KEY } from "../lib/savedKey";
 import { anyPending, parseSaved, savedOps } from "../lib/savedOverlay";
 import type { ConfigOp } from "../types/contracts";
@@ -113,6 +115,7 @@ describe("flush", () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    resetConnectivity();
     round += 1;
     vi.setSystemTime(Date.now() + round * 3_600_000);
     posted = [];
@@ -386,7 +389,9 @@ describe("a left page's held run", () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    resetConnectivity();
     round += 1;
+    resetConnectivity();
     vi.setSystemTime(Date.now() + round * 3_600_000);
     posted = [];
     heard = [];
@@ -437,7 +442,7 @@ describe("a left page's held run", () => {
     await run;
     const [held] = heard;
     expect(held?.ok).toBe(false);
-    expect(held?.failure).toBe("The server crashed before it could answer. Not saved yet.");
+    expect(held?.failure).toBe(GENERIC);
     expect(held?.lost.map(({ op }) => op)).toEqual([{ op: "schedule.set", length_minutes: 3 }]);
     // Nothing is pending any more, and the left page holds nothing.
     expect(anyPending(pending(), Date.now())).toBe(false);
@@ -452,7 +457,7 @@ describe("a left page's held run", () => {
       [{ op: "schedule.set", length_minutes: 3 }, true],
       [{ op: "schedule.set", hour: 8 }, undefined],
     ]);
-    expect(said).toEqual([["The server crashed before it could answer. Not saved yet.", "error"]]);
+    expect(said).toEqual([[GENERIC, "error"]]);
     // Taken once: another page takes nothing.
     const other = page();
     adopt(other.context);
@@ -532,10 +537,7 @@ describe("a left page's held run", () => {
     expect(heard).toEqual([]);
     expect(context.left).toBe(false);
     expect(changes.get("a")?.failed).toBe(true);
-    expect(said.at(-1)).toEqual([
-      "The server crashed before it could answer. Not saved yet.",
-      "error",
-    ]);
+    expect(said.at(-1)).toEqual([GENERIC, "error"]);
     expect(anyPending(pending(), Date.now())).toBe(false);
   });
 });
@@ -568,6 +570,7 @@ describe("a held change lost while no settings page is open", () => {
 
   async function loseHeld(settingsPage: boolean): Promise<void> {
     vi.useFakeTimers();
+    resetConnectivity();
     round += 10;
     vi.setSystemTime(Date.now() + round * 3_600_000);
     vi.stubGlobal("localStorage", memoryStorage());
@@ -628,7 +631,7 @@ describe("a held change lost while no settings page is open", () => {
 describe("edits kept on the device while the site cannot be reached (CFG-04)", () => {
   let posted: ConfigOp[][];
   let said: [string, string][];
-  let toasts: { message?: string }[];
+  let toasts: { message?: string; kind?: string }[];
   /** What the site answers: a status, or the connection failing. */
   let answer: number | "offline";
   /** Answers given first, in order, before `answer` applies: a status and its body. */
@@ -642,6 +645,7 @@ describe("edits kept on the device while the site cannot be reached (CFG-04)", (
 
   beforeEach(() => {
     vi.useFakeTimers();
+    resetConnectivity();
     round += 10;
     vi.setSystemTime(Date.now() + round * 3_600_000);
     posted = [];
@@ -693,7 +697,8 @@ describe("edits kept on the device while the site cannot be reached (CFG-04)", (
     expect(savedOps(parseSaved(localStorage.getItem(SAVED_KEY), Date.now()), Date.now())).toEqual([
       { op: "schedule.set", hour: 9 },
     ]);
-    expect(toasts).toEqual([]);
+    // Once back, the person hears the change reached the site, and only once.
+    expect(toasts).toEqual([expect.objectContaining({ kind: "success" })]);
   });
 
   it("sends a change made later after the kept ones, whatever the order of the answers", async () => {
@@ -729,7 +734,7 @@ describe("edits kept on the device while the site cannot be reached (CFG-04)", (
     });
     const changes = new Map([["hour", change({ op: "schedule.set", hour: 9 })]]);
     await flush(context(changes));
-    expect(said.at(-1)).toEqual(["Couldn't reach the site. Not saved yet.", "error"]);
+    expect(said.at(-1)).toEqual([REASONS[0], "error"]);
     expect([...changes.values()].map((each) => each.failed)).toEqual([true]);
   });
 
@@ -740,7 +745,7 @@ describe("edits kept on the device while the site cannot be reached (CFG-04)", (
     expect(readOutbox()).toEqual([]);
     expect(toasts).toEqual([
       expect.objectContaining({
-        message: "A change made offline was not saved. The server turned that change down.",
+        message: `A change you made offline didn't save. ${REASONS[400]}`,
         kind: "error",
       }),
     ]);
@@ -825,7 +830,7 @@ describe("edits kept on the device while the site cannot be reached (CFG-04)", (
     await done;
     expect(posted.map((ops) => ops.length)).toEqual([2, 1, 1]);
     expect(readOutbox()).toEqual([]);
-    expect(toasts).toEqual([]);
+    expect(toasts.map((toast) => toast.kind)).toEqual(["success"]);
   });
 
   it("keeps an edit made just ahead of a clock that was stepped back", () => {

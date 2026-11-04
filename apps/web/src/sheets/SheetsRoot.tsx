@@ -1,4 +1,13 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import {
+  type ComponentProps,
+  type ComponentType,
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import "../styles/player.css";
 import "../styles/drawer.css";
 import "../styles/sheets.css";
@@ -11,8 +20,13 @@ import { toastForEndedRun } from "./runEndToast";
 import { isSheetName, OPEN_SHEET_EVENT, type SheetName } from "./sheetEvents";
 import Toaster from "./Toaster";
 
-const loadGenerate = () => import("./GenerateSheet");
-const GenerateSheet = lazy(loadGenerate);
+/**
+ * The sheet's chunk, kept once it has loaded: a sheet opened by a menu pick must be on screen in
+ * the frame after the pick, and a lazy component that has to suspend costs it a few.
+ */
+let loadedGenerate: typeof import("./GenerateSheet") | null = null;
+const loadGenerate = () => import("./GenerateSheet").then((module) => (loadedGenerate = module));
+const LazyGenerateSheet = lazy(loadGenerate);
 
 function whenIdle(task: () => void): () => void {
   if (typeof requestIdleCallback === "function") {
@@ -32,8 +46,15 @@ export default function SheetsRoot() {
   const [active, setActive] = useState<SheetName | null>(null);
   const [mounted, setMounted] = useState<Record<SheetName, boolean>>({ generate: false });
 
-  const openSheet = useCallback((name: SheetName) => {
+  // A sheet opened by a pick in a menu takes over the menu's scrim.
+  const [handoff, setHandoff] = useState(false);
+  // The component is fixed when the sheet first mounts, so it is not replaced while it is open.
+  const generateRef = useRef<ComponentType<ComponentProps<typeof LazyGenerateSheet>> | null>(null);
+
+  const openSheet = useCallback((name: SheetName, fromMenu = false) => {
     setMounted((current) => (current[name] ? current : { ...current, [name]: true }));
+    generateRef.current ??= loadedGenerate?.default ?? LazyGenerateSheet;
+    setHandoff(fromMenu);
     setActive(name);
     playUiCue(cueForSheet(true));
   }, []);
@@ -41,6 +62,8 @@ export default function SheetsRoot() {
   const closeSheet = useCallback((name: SheetName, open: boolean) => {
     if (open) return;
     setActive((current) => (current === name ? null : current));
+    // The sheet's own exit fades; the hand-off is only for the way in.
+    setHandoff(false);
     playUiCue(cueForSheet(false));
   }, []);
 
@@ -54,7 +77,7 @@ export default function SheetsRoot() {
       const name = trigger?.dataset.openSheet ?? trigger?.dataset.open;
       if (!trigger || !isSheetName(name)) return;
       event.preventDefault();
-      openSheet(name);
+      openSheet(name, trigger.closest("[popover]") !== null);
     };
     document.addEventListener("click", onClick);
     // A press that woke this island (islandWake.ts) opens its sheet now.
@@ -92,12 +115,14 @@ export default function SheetsRoot() {
 
   useEffect(() => whenIdle(() => void loadGenerate()), []);
 
+  const Generate = generateRef.current;
   return (
     <>
       <Suspense fallback={null}>
-        {mounted.generate ? (
-          <GenerateSheet
+        {mounted.generate && Generate ? (
+          <Generate
             open={active === "generate"}
+            handoff={handoff}
             onOpenChange={(open) => closeSheet("generate", open)}
           />
         ) : null}

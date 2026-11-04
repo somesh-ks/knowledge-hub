@@ -75,6 +75,24 @@ describe("storyEntries", () => {
     expect(first?.startSec).toBeCloseTo(0.744);
     expect(second?.startSec).toBeCloseTo(0.744 + 44 * 0.062);
     expect(first?.durationSec).toBeCloseTo(44 * 0.062);
+    expect(second?.durationSec).toBeCloseTo(13 * 0.062);
+  });
+
+  it("lasts a story through the turns after its tagged one, up to the next story", () => {
+    const episode = {
+      ...digest,
+      turns: [
+        turn("Hello there.", null),
+        turn("First story.", "a"),
+        turn("What a reaction.", null),
+        turn("And more detail.", null),
+        turn("Second story.", "b"),
+        turn("Goodbye.", null),
+      ],
+    } as unknown as PlayerDigestData;
+    const [first, second] = storyEntries(null, episode).items;
+    expect(first?.durationSec).toBeCloseTo((12 + 16 + 16) * 0.062);
+    expect(second?.durationSec).toBeCloseTo((13 + 8) * 0.062);
   });
 
   it("takes a turn's real place once it is known", () => {
@@ -85,6 +103,29 @@ describe("storyEntries", () => {
     const [first, second] = storyEntries(null, episode).items;
     expect(first?.startSec).toBe(10);
     expect(second?.startSec).toBeCloseTo(10 + 6 * 0.062);
+  });
+
+  // Owner, 2026-11-03: the chapter times "should be sequential but not random numbers" (D350). A
+  // script that reaches a later section first must not list its stories under an earlier heading.
+  it("lists sections in the order the script reaches them, so start times only go up", () => {
+    const episode = {
+      ...digest,
+      items: [
+        { id: "a", headline: "First", section: "top", start_ms: null, end_ms: null },
+        { id: "b", headline: "Second", section: "news", start_ms: null, end_ms: null },
+      ],
+      sections: [
+        { slug: "top", title: "Top picks", start_ms: null },
+        { slug: "news", title: "News", start_ms: null },
+      ],
+      turns: [turn("Second story.", "b"), turn("First story.", "a")],
+    } as unknown as PlayerDigestData;
+    const entries = storyEntries(null, episode);
+    const listed = entries.sections.flatMap((section) =>
+      entries.items.filter((item) => item.section === section.slug),
+    );
+    const starts = listed.map((item) => item.startSec ?? Number.NaN);
+    expect(starts).toEqual([...starts].sort((x, y) => x - y));
   });
 
   it("leaves a briefing's untimed stories unplaced", () => {

@@ -4,6 +4,8 @@
  * (held at the edge, server/sourceRatings.ts) and redraws each row's score. A failed or offline read
  * leaves the built page as it is.
  */
+
+import { isOnline } from "../lib/connectivity";
 import { bandOf, element, starNode } from "./topicsView";
 
 export interface Rating {
@@ -54,7 +56,7 @@ function lay(row: HTMLElement, rating: Rating): void {
 }
 
 export async function layRatings(root: ParentNode): Promise<void> {
-  if (!navigator.onLine) return;
+  if (!isOnline()) return;
   const rows = [...root.querySelectorAll<HTMLElement>("li.source-row[data-id]")];
   if (rows.length === 0) return;
   try {

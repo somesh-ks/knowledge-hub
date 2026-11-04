@@ -8,6 +8,7 @@
  */
 
 import { track } from "../../lib/analytics";
+import { STARTED_EVENT } from "../../lib/queueDay";
 import { narratedOrPage } from "../../narration/narrationRegistry";
 import { pageNeedsPrewarm, whenIdle } from "../../narration/prewarmPage";
 import { createSwitchableAudio, type SwitchableAudio } from "../../narration/switchableAudio";
@@ -44,10 +45,11 @@ import { getPreferences } from "./preferences";
 import { loadQueueDigest, queueDigestFor } from "./queueMeta";
 import { startQueuePrefetch } from "./queuePrefetch";
 import { createReaderSync, type ReaderSync } from "./readerSync";
-import { safeLocalStorage } from "./resume";
+import { safeLocalStorage, safeSessionStorage } from "./resume";
 import { reapplyRootState, setRootAttribute, setRootProperty } from "./rootAttributes";
+import { isReturn, openQuietly, readSession, saveSession } from "./sessionRestore";
 import { getSpeedDefault } from "./speedDefaultRuntime";
-import { loadTimeline, skipper, suggestNext } from "./suggested";
+import { keepPlaces, loadTimeline, skipper, suggestNext } from "./suggested";
 import { tabShared } from "./tabSlot";
 import { reapplyTheme, startThemeSync } from "./themeRuntime";
 
@@ -150,12 +152,23 @@ function createQueue(): PlayQueue {
   });
 }
 
+/** The suggestions last listed after `shownAfter`, whose places a refill keeps. */
+let shownSuggestions: readonly string[] = [];
+let shownAfter: string | null = null;
+
 /** The suggested items after what is playing: the list Up next shows and Autoplay draws from. */
 export async function loadSuggested(): Promise<string[] | null> {
   const ordered = await loadTimeline();
   if (!ordered) return null;
   const currentId = getPlayerStore().getState().track?.digest.id ?? null;
-  return suggestNext(ordered, currentId, skipper(safeLocalStorage(), getPlayQueue().getIds()));
+  const queue = getPlayQueue();
+  // A row put above the playing one is listed too (D357): it is not suggested again.
+  const listed = [...queue.getAbove(), ...queue.getIds()];
+  const fresh = suggestNext(ordered, currentId, skipper(safeLocalStorage(), listed));
+  // A new item playing starts the list over, in timeline order: Autoplay takes the next one.
+  shownSuggestions = keepPlaces(shownAfter === currentId ? shownSuggestions : [], fresh);
+  shownAfter = currentId;
+  return [...shownSuggestions];
 }
 
 /** Bumped when the listener picks an item, so an autoplay still loading its list gives way. */
@@ -310,6 +323,9 @@ export function startPlayerRuntime(): () => void {
   const claim = tabShared("runtime", () => ({ running: false }));
   if (claim.running) return () => undefined;
   claim.running = true;
+  // Read before anything writes it: what the tab was showing before this page loaded.
+  const session = safeSessionStorage();
+  const before = isReturn() ? readSession(session) : null;
   const playerStore = getPlayerStore();
   const preferences = getPreferences();
   // Counted for the install hint on Settings; nothing on this page waits on it, so it loads late.
@@ -343,6 +359,32 @@ export function startPlayerRuntime(): () => void {
     if (starting && status === "playing") announce(starting);
     starting = null;
   });
+  let tornDown = false;
+  // The track on the bar and whether the full player is open are kept for a reload (sessionRestore.ts).
+  let lastSession = "";
+  const keepSession = (): void => {
+    const { hasStarted, track } = playerStore.getState();
+    const id = track?.digest.id;
+    if (!hasStarted || !id) return;
+    const open = playerIsOpen();
+    const key = `${id}|${open}`;
+    if (key === lastSession) return;
+    lastSession = key;
+    saveSession(session, { id, open });
+  };
+  const offSession = playerStore.subscribe(keepSession);
+  const offSessionSheet = playerSheet.subscribe(keepSession);
+  if (before && !playerStore.getState().hasStarted) {
+    const picks = selections().count;
+    const cached = queueDigestFor(before.id);
+    void (cached ? Promise.resolve(cached) : loadQueueDigest(before.id)).then((digest) => {
+      // The listener picked something while the track was being read: theirs stands.
+      if (!digest || tornDown || picks !== selections().count) return;
+      if (playerStore.getState().hasStarted) return;
+      playerStore.restore(narratedOrPage(digest));
+      if (before.open) openQuietly(() => void playerSheet.expand());
+    });
+  }
   // Before the queue's listener, so an end is counted for the item that ended, not the next one.
   const offListening = countListening(playerStore, track);
   const playQueue = getPlayQueue();
@@ -359,12 +401,15 @@ export function startPlayerRuntime(): () => void {
     const id = track?.digest.id ?? null;
     if (status !== "playing" || id === startedId) return;
     startedId = id;
-    if (id) playQueue.started(id);
+    if (id) {
+      playQueue.started(id);
+      // The podcast queue's dock lets a made podcast go once it plays, wherever it was started.
+      document.dispatchEvent(new CustomEvent(STARTED_EVENT, { detail: { id } }));
+    }
   });
   // Queued items' first minutes are fetched at an idle moment, so a tap on any of the next three
   // starts at once (queuePrefetch.ts).
   let stopPrefetch: (() => void) | null = null;
-  let tornDown = false;
   whenIdle(() => {
     if (tornDown) return;
     stopPrefetch = startQueuePrefetch(playQueue);
@@ -422,7 +467,8 @@ export function startPlayerRuntime(): () => void {
     if (open === wasOpen) return;
     wasOpen = open;
     if (open) {
-      history.pushState({ ...history.state, playerOpen: true }, "");
+      // A reload keeps the entry the open player took: reopening after it reuses that one.
+      if (!history.state?.playerOpen) history.pushState({ ...history.state, playerOpen: true }, "");
       entry = true;
       addEventListener("singularity:back", onBack);
     } else if (entry) {
@@ -486,6 +532,8 @@ export function startPlayerRuntime(): () => void {
     offState();
     offWake();
     offEntry();
+    offSession();
+    offSessionSheet();
     removeEventListener("singularity:back", onBack);
     stopTheme();
     stopSound();

@@ -1,0 +1,17 @@
+---
+/**
+ * The Halloween style's corner ornament (D306): a cobweb and its spider in the top-right corner, behind
+ * the page, never taking a tap. It is in every page and shown only by the style that names it (shell.css).
+ * Its colour is the page's quiet text. Decorative.
+ */
+import { cobweb } from "./cobweb";
+---
+
+<svg
+  class="cobweb"
+  data-look="halloween"
+  viewBox="0 0 200 200"
+  aria-hidden="true"
+  focusable="false"
+  set:html={cobweb()}
+/>

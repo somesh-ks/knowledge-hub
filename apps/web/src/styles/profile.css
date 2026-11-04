@@ -1,0 +1,84 @@
+/* The profile page (D335): the avatar large with its edit button on the corner, Log in under it, and
+   the shapes the mood offers as a row of choices behind the edit button. */
+
+/* The avatar and Log in stand in the middle; the two lists run the page's width. */
+.profile {
+  display: grid;
+  justify-items: center;
+}
+
+.profile > section {
+  justify-self: stretch;
+}
+
+.profile-head {
+  position: relative;
+  display: grid;
+  margin-block: var(--space-6) var(--space-4);
+}
+
+.profile-face {
+  display: grid;
+  place-items: center;
+}
+
+/* The edit button sits on the avatar's bottom right corner, half over it. From 40rem the shape sheet
+   hangs under it by its own anchor name: --hero-more is also the player bar's, so it is not shared. */
+.profile-edit {
+  anchor-name: --profile-edit;
+  position: absolute;
+  inset-inline-end: calc(var(--space-2) * -1);
+  inset-block-end: calc(var(--space-2) * -1);
+}
+
+/* The button hugs its label (owner, 2026-11-02); button.css fills the row, so this is one class up. */
+.profile .profile-login {
+  width: auto;
+  margin-block-end: var(--space-6);
+}
+
+.profile-face:not([data-ready]) {
+  visibility: hidden;
+}
+
+/* The sheet is the menu's popover (menu.css), which anchors to the player bar's button. This names
+   the edit button instead; two classes outrank the menu's one. From 40rem it hangs under the
+   button, and the shapes' width below is what it shrinks to fit. */
+.profile .profile-picker {
+  position-anchor: --profile-edit;
+}
+
+.profile-shapes {
+  min-inline-size: min(22rem, calc(100vw - var(--space-8)));
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5rem, 1fr));
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+
+.profile-shape {
+  display: grid;
+  place-items: center;
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-round);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.profile-shape[aria-pressed="true"] {
+  outline: var(--stroke-ring) solid var(--color-accent);
+  outline-offset: calc(var(--stroke-ring) * -1);
+}
+
+.profile-shape {
+  transition: scale var(--duration-press-out) var(--ease-out);
+}
+
+.profile-shape:active {
+  scale: var(--scale-press);
+  transition-duration: var(--duration-press-in);
+}

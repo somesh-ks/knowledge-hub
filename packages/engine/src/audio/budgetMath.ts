@@ -1,9 +1,9 @@
 import { stockholmDate, type UsageFile } from "@singularity/core";
 
 /**
- * The Speechify budget rules with no storage behind them. The engine keeps the count in
- * state/usage.json (budget.ts); the site's narrate function keeps it in a Blob counter. Both apply
- * these rules, so nothing here may read a file.
+ * The Speechify budget rules with no storage behind them. The engine and the site's narrate
+ * function keep the count in one Blob document (usageBlob.ts, D339) and both apply these rules, so
+ * nothing here may read a file.
  */
 
 /** Planning figure for the free plan; override with SPEECHIFY_MONTHLY_CHARS once confirmed. */

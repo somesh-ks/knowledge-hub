@@ -1,17 +1,23 @@
+import { installRipple } from "../design-system/ripple";
 import { counted, installAnalytics } from "../lib/analytics";
+import { connectivity, isOnline } from "../lib/connectivity";
 import { watchPlatformFaults } from "../lib/platformFaults";
 import { hasOutbox } from "../lib/savedKey";
+import { installAccountAvatar } from "./accountAvatar";
 import { loadOtherBuildsInFull } from "./buildGuard";
-import { installCoverMorph } from "./coverMorph";
 import { installCreateEntry } from "./createEntry";
 import { installDeviceBanners } from "./deviceBanners";
 import { installDisabledGuard } from "./disabledGuard";
 import { captureInstallPrompt } from "./installPrompt";
 import { installIslandWake } from "./islandWake";
+import { installKeepReady } from "./keepReady";
+import { installLibraryViewSwap } from "./libraryView";
 import { installNavigation } from "./navigation";
 import { installPersistedMotion } from "./persistedMotion";
 import { installQueueEntry } from "./queueEntry";
 import { installRootState } from "./rootState";
+import { installStandIn } from "./standIn";
+import { installTapRecovery } from "./tapRecovery";
 import { installThemeColor } from "./themeColor";
 import { trackTyping } from "./typing";
 import { installUiSound } from "./uiSound";
@@ -27,16 +33,22 @@ installDisabledGuard();
 trackTyping();
 captureInstallPrompt();
 installNavigation();
+installTapRecovery();
 installPersistedMotion();
-installCoverMorph();
+// The saved Library view (list or gallery), set at every swap into it.
+installLibraryViewSwap();
+installRipple();
 installRootState();
 installCreateEntry();
 installQueueEntry();
 installDeviceBanners();
+installStandIn();
+installKeepReady();
 installThemeColor();
 installUiSound();
 installAnalytics();
 installIslandWake();
+installAccountAvatar();
 // How the last action was started, so motion stays with the pointer: what a key starts happens at
 // once (settings.css, player.css, hero.css). Captured, so it is set before the key or the press acts.
 const inputBy = (by: string) => (): void => {
@@ -65,7 +77,7 @@ addEventListener("pointerdown", inputBy("pointer"), { capture: true, passive: tr
 // An installed app has no browser chrome to copy an address from, so a long press on its own
 // navigation opens no context menu. External story links are not listed and stay copyable.
 const IN_APP_NAV =
-  ".app-nav-item, .app-nav-create, .app-bar-back, .wordmark, .create-fab, .card-link, .cover-image";
+  ".app-nav-item, .app-nav-create, .app-bar-back, .wordmark, .create-fab, .card-link, .cover-art";
 if (matchMedia("(display-mode: standalone)").matches) {
   document.addEventListener("contextmenu", (event) => {
     if (event.target instanceof Element && event.target.closest(IN_APP_NAV)) event.preventDefault();
@@ -128,21 +140,24 @@ watchPlatformFaults(window, location.origin, report);
 addEventListener("unhandledrejection", (event) =>
   report({ kind: "rejection", message: String(event.reason?.message ?? event.reason) }),
 );
-document.addEventListener("securitypolicyviolation", (event) =>
+// Code that is not on the web (a headless browser's injected style, an extension) is not the
+// site's fault, and each report is a function run; the server drops it too (server/report.ts).
+document.addEventListener("securitypolicyviolation", (event) => {
+  if (event.sourceFile && !/^https?:\/\//i.test(event.sourceFile)) return;
   report({
     kind: "csp",
     directive: event.effectiveDirective,
     blocked: event.blockedURI,
     source: event.sourceFile,
     line: event.lineNumber,
-  }),
-);
+  });
+});
 // A tab left open across a deploy asks for script files the deploy removed, and the import fails
 // (the player's controls, narration). One reload with the saved pages dropped gets the current
 // site; the flag stops a second one.
 addEventListener("vite:preloadError", () => {
   // Offline, a failed import is the network's doing and a reload would lose the page.
-  if (!navigator.onLine) return;
+  if (!isOnline()) return;
   try {
     if (sessionStorage.getItem("singularity:reloaded")) return;
     sessionStorage.setItem("singularity:reloaded", "1");
@@ -156,25 +171,6 @@ addEventListener("vite:preloadError", () => {
     )
     .finally(() => location.reload());
 });
-// A cover that cannot be fetched (offline, one scrolled to for the first time) shows its palette, not the
-// browser's broken-image glyph. An image error does not bubble, so this listens on the way down, and
-// covers that failed before this script ran are swept up once.
-const hideBroken = (): void => {
-  for (const image of document.querySelectorAll<HTMLImageElement>(".cover-image")) {
-    if (image.complete && image.naturalWidth === 0) image.hidden = true;
-  }
-};
-document.addEventListener(
-  "error",
-  (event) => {
-    if ((event.target as Element).classList?.contains("cover-image")) {
-      (event.target as HTMLImageElement).hidden = true;
-    }
-  },
-  true,
-);
-document.addEventListener("astro:page-load", hideBroken);
-hideBroken();
 // The floating Create button is extended until the first scroll, so what folds it waits for one.
 addEventListener("scroll", () => void import("./fabScroll").then((fab) => fab.installFabScroll()), {
   once: true,
@@ -190,7 +186,7 @@ idle(() => {
 // comes back to the front, which is when a trip shows. Offline the import is left alone (Chromium
 // remembers a failed one, as navigationBoost's note says).
 const zone = (): void => {
-  if (navigator.onLine) void import("./zonePrompt").then((prompt) => prompt.checkZone());
+  if (isOnline()) void import("./zonePrompt").then((prompt) => prompt.checkZone());
 };
 idle(zone);
 // The first astro:page-load is the load just checked; every later one is a page replaced or entered.
@@ -199,18 +195,24 @@ document.addEventListener("astro:page-load", () => {
   if (firstPage) firstPage = false;
   else idle(zone);
 });
-addEventListener("online", zone);
+connectivity().subscribe((link) => {
+  if (link === "online") zone();
+});
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") zone();
 });
 // Settings edits kept on this device while the site could not be reached (CFG-04) go out as soon as it
 // can: on each page that loads online and when the connection returns. Nothing loads without a kept edit.
 const outbox = (): void => {
-  if (navigator.onLine && hasOutbox())
+  if (isOnline() && hasOutbox())
     void import("./managePageSave").then((save) => save.drainOutbox()).catch(() => {});
 };
 document.addEventListener("astro:page-load", outbox);
-addEventListener("online", outbox);
+// The confirmed return (lib/connectivity.ts), not the browser's first word: an event that comes before
+// the network is usable would send nothing and never come again.
+connectivity().subscribe((link) => {
+  if (link === "online") outbox();
+});
 // Field Web Vitals (D156), with the analytics opt-outs (the production host, no Do Not Track or
 // Global Privacy Control): a lazy module measures this page load and sends it once when the page is
 // first hidden. It loads at idle, or at the first visibility change if that comes sooner (a reader

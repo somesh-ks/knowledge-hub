@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { WAKE_REWIND_SECONDS } from "../core/playerStore";
 import { center, expect, type PlayerPage, test } from "./helpers";
 
 /**
@@ -73,10 +74,11 @@ test.describe("playback on a podcast", () => {
     await player.dock.getByRole("button", { name: "Pause", exact: true }).click();
     await expect(chip.locator("[data-chip-label]")).toHaveText("Paused");
     seen.paused = await measure();
-    // Played is earned by hearing the story out: from just before its end, play on into the next.
+    // Heard out (from just before its end, play on into the next), the button is a Play button again
+    // with its length, never Played (D351).
     await playOnOutOf(player, 0);
     await player.dock.getByRole("button", { name: "Play", exact: true }).click();
-    await expect(chip.locator("[data-chip-label]")).toHaveText("Played");
+    await expect(chip.locator("[data-chip-label]")).toHaveText(/^\d+:\d\d$/);
     seen.played = await measure();
     const places = new Set(Object.values(seen).map((s) => s.controls));
     const widths = new Set(Object.values(seen).map((s) => s.chip));
@@ -84,7 +86,7 @@ test.describe("playback on a podcast", () => {
     expect(widths.size, JSON.stringify(seen)).toBe(1);
   });
 
-  test("speed: from the keyboard, then a common speed in one press, back at the default after a reload @desktop", async ({
+  test("speed: set in the ⋮ menu by the stepper, the keys and the slider, and back at the default after a reload @desktop", async ({
     player,
     audio,
     page,
@@ -92,27 +94,30 @@ test.describe("playback on a podcast", () => {
     await player.open();
     await player.play();
     await player.openPlayer();
-    const speed = player.dialog.getByRole("button", { name: /^Playback speed / });
-    const panel = page.getByRole("dialog", { name: "Playback speed" });
+    const more = player.dialog.getByRole("button", { name: "More for this podcast" });
+    const speedRow = page.getByRole("menuitem", { name: /^Playback speed/ });
     const slider = page.getByRole("slider", { name: "Playback speed" });
-    await expect(speed).toHaveAccessibleName("Playback speed 1x");
+    const readout = page.locator(".player-speed-readout");
+    const slower = page.getByRole("button", { name: "Slower" });
+    const faster = page.getByRole("button", { name: "Faster" });
+    // The keyboard opens the menu, and the row opens the speed screen in the same sheet.
+    await more.focus();
+    await page.keyboard.press("Enter");
+    await expect(speedRow).toContainText("1x");
+    await speedRow.focus();
+    await page.keyboard.press("Enter");
+    await expect(readout).toHaveText("1.00x");
     // The owner saw the controls shake as the speed changed (2026-10-11, 2026-10-18): the label
-    // changed its length, so it slid inside its pill and moved the skips either side. The skips and
-    // the label's own text keep their boxes whatever the speed reads.
-    // Found by role and name, so the guard holds whatever the controls' markup becomes.
-    const steady = [
-      player.dialog.getByRole("button", { name: /^Back \d+ seconds$/ }),
-      player.dialog.getByRole("button", { name: /^Forward \d+ seconds$/ }),
-    ];
+    // changed its length and slid. The readout's text and the two steppers keep their boxes whatever
+    // the speed reads.
     const boxes = async () => [
       ...(await Promise.all(
-        steady.map(async (control) => {
+        [slower, faster].map(async (control) => {
           const box = await control.boundingBox();
           return `${box?.x.toFixed(1)},${box?.width.toFixed(1)}`;
         }),
       )),
-      // The label's own text: the box around it held while the words inside it slid.
-      await speed.evaluate((node) => {
+      await readout.evaluate((node) => {
         const range = document.createRange();
         range.selectNodeContents(node);
         const box = range.getBoundingClientRect();
@@ -120,46 +125,32 @@ test.describe("playback on a podcast", () => {
       }),
     ];
     const atOne = await boxes();
-    // The keyboard: Enter opens the panel on its slider, Tab stays inside, Escape closes only it.
-    await speed.focus();
-    await page.keyboard.press("Enter");
-    await expect(slider).toBeFocused();
-    await page.keyboard.press("ArrowRight");
-    await expect(speed).toHaveAccessibleName("Playback speed 1.05x");
+    await faster.click();
+    await expect(readout).toHaveText("1.05x");
     expect(await boxes()).toEqual(atOne);
-    await page.keyboard.press("Tab");
-    await expect(panel.getByRole("button", { name: "1x" })).toBeFocused();
-    await page.keyboard.press("Enter");
-    await expect(speed).toHaveAccessibleName("Playback speed 1x");
+    await slider.focus();
+    // The slider stops on whole quarters (the stepper goes between them): from 1.05 a key moves it to
+    // the next stop above where its thumb stands, 1.00, so 1.25.
+    await page.keyboard.press("ArrowRight");
+    await expect(readout).toHaveText("1.25x");
+    // Escape closes the menu alone: the player behind it stays, and focus returns to the button.
     await page.keyboard.press("Escape");
-    await expect(panel).toBeHidden();
-    await expect(speed).toBeFocused();
+    await expect(slider).toBeHidden();
+    await expect(more).toBeFocused();
     await expect(page.locator("[data-player-surface]")).toHaveAttribute("aria-modal", "true");
-    // A press: the slider, and the common speeds one more press away.
-    await player.finger.press(speed);
-    await expect(panel).toBeVisible();
-    await expect(slider).toBeFocused();
-    await expect(panel.getByRole("button")).toHaveText(["1x", "1.25x", "1.5x", "2x"]);
-    await expect(panel.getByRole("button", { name: "1x" })).toHaveAttribute("aria-pressed", "true");
-    await player.finger.press(panel.getByRole("button", { name: "1.5x" }));
-    await expect(panel.getByRole("button", { name: "1.5x" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    await expect(speed).toHaveAccessibleName("Playback speed 1.5x");
+    // A finger: the menu, the row, the stepper from the 1.25x the slider left to 1.5x, Back to the
+    // actions with the speed said.
+    await player.finger.press(more);
+    await player.finger.press(speedRow);
+    for (let press = 0; press < 5; press += 1) await player.finger.press(faster);
+    await expect(readout).toHaveText("1.50x");
     await expect.poll(async () => (await audio.read())?.playbackRate).toBe(1.5);
     expect((await audio.read())?.preservesPitch).toBe(true);
-    // Around it is its backdrop, so a press there closes it and reaches nothing underneath.
-    const corner = { x: 8, y: 8 };
-    expect(
-      await page.evaluate(
-        ({ x, y }) => document.elementFromPoint(x, y)?.classList.contains("speed-panel"),
-        corner,
-      ),
-    ).toBe(true);
-    await player.finger.pressAt(corner);
-    await expect(panel).toBeHidden();
-    await expect(speed).toBeFocused();
+    await player.finger.press(page.getByRole("button", { name: "Back", exact: true }));
+    await expect(speedRow).toContainText("1.5x");
+    // A press outside closes the menu and reaches nothing underneath.
+    await player.finger.pressAt({ x: 8, y: 8 });
+    await expect(speedRow).toBeHidden();
     await expect(player.root).toHaveAttribute("data-player", "open");
     await page.reload({ waitUntil: "networkidle" });
     await expect.poll(async () => (await audio.read())?.playbackRate).toBe(1);
@@ -170,7 +161,9 @@ test.describe("playback on a podcast", () => {
     page,
   }) => {
     await player.open();
-    await player.play();
+    // A phone's Play opens the player at once; closing it and opening it again would let the playhead
+    // pass story 2 before Pause, and Next would land on story 3.
+    await player.playAndStay();
     await player.openPlayer();
     const stories = await player.stories();
     const press = (name: string) =>
@@ -209,7 +202,10 @@ test.describe("playback on a podcast", () => {
     expect(audioRequests.length).toBeGreaterThan(0);
   });
 
-  test("remembers the position and restores it after a reload", async ({ player, page }) => {
+  test("comes back after a reload as it was, and a fresh launch offers the kept place", async ({
+    player,
+    page,
+  }) => {
     await player.open();
     await player.play();
     await player.openPlayer();
@@ -221,34 +217,46 @@ test.describe("playback on a podcast", () => {
     );
     expect(saved).toBeGreaterThan(9);
     await page.reload({ waitUntil: "networkidle" });
-    // Nothing is loaded yet, but the chip offers the place that was kept.
+    // Owner, 2026-11-03: a deploy reloaded the page and the open player vanished. The tab comes back
+    // as it was: the same track, the full player open, paused at the kept place.
+    await expect(player.dialog).toBeVisible();
+    await player.finger.press(player.dialog.getByRole("button", { name: "Play", exact: true }));
+    await expect(player.root).toHaveAttribute("data-player-state", "playing");
+    // A moment before it: after a quiet the phone's output wakes late (WAKE_REWIND_SECONDS).
+    expect(await time(page)).toBeGreaterThan(saved - 1 - WAKE_REWIND_SECONDS);
+    await player.finger.press(player.dialog.getByRole("button", { name: "Pause", exact: true }));
+    // A fresh launch (no tab to come back to) loads nothing, but the chip offers the place kept.
+    await page.evaluate(() => sessionStorage.clear());
+    await page.reload({ waitUntil: "networkidle" });
     await expect(player.cta).toHaveAttribute("data-state", "idle");
     await expect(player.cta.locator("[data-chip-label]")).toHaveText(/^\d+ min left$/);
     await expect(player.cta).toHaveAccessibleName(/^Resume the podcast, \d+ min left$/);
     await player.finger.press(player.cta);
     await expect(player.root).toHaveAttribute("data-player-state", "playing");
-    // It plays on from the kept place, not from the top.
-    expect(await time(page)).toBeGreaterThan(saved - 1);
+    // It plays on from the kept place (each start a moment before it), not from the top.
+    expect(await time(page)).toBeGreaterThan(saved - 1 - 2 * WAKE_REWIND_SECONDS);
   });
 
-  test("remembers a pause the system caused and offers resume instead of playing again", async ({
+  test("remembers a pause the system caused and plays on from the Play disc", async ({
     player,
     audio,
     page,
   }) => {
     await player.open();
     await player.play();
-    // A call or an alarm pauses the element without anyone pressing pause.
+    const caption = page.locator(".dock-caption");
+    const playing = (await caption.textContent()) ?? "";
+    // A call or an alarm pauses the element without anyone pressing pause: the caption says so.
     await page.evaluate(() => window.__audios[0]?.pause());
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "paused");
-    await expect(page.locator(".dock-caption")).toHaveText("Paused by another app");
+    await expect(caption).not.toHaveText(playing);
+    const paused = (await caption.textContent()) ?? "";
     expect((await audio.read())?.paused).toBe(true);
     await player.openPlayer();
-    const notice = page.getByRole("status").filter({ hasText: "Paused by another app" });
-    await expect(notice).toBeVisible();
-    await player.finger.press(player.dialog.getByRole("button", { name: "Resume" }));
+    // The page's Play disc plays on.
+    await player.finger.press(player.dialog.getByRole("button", { name: "Play", exact: true }));
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
-    await expect(notice).toHaveCount(0);
+    await expect(caption).not.toHaveText(paused);
   });
 
   test("a held volume knob grows alone: the track and the bar keep their boxes @wide", async ({

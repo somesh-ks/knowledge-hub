@@ -4,11 +4,13 @@ import { fileURLToPath } from "node:url";
 import {
   entryScripts,
   FIRST_LOAD_BUDGET_BYTES,
+  FIRST_LOAD_RECORD_BYTES,
   FONT_BUDGET_BYTES,
   findRenderBlockingScripts,
   firstLoadReport,
   gzipBytes,
   overBudget,
+  pastRecord,
   unallowedInlineScripts,
   unhintedModules,
   wakeModules,
@@ -65,6 +67,12 @@ for (const page of pagesIn(root)) {
   );
   failures.push(...overBudget([{ name, totalGzip: report.totalGzip }]));
   for (const problem of findRenderBlockingScripts(html)) failures.push(`${name}: ${problem}`);
+  // Skew protection's `?dpl=` query makes the preload links name other module addresses than the
+  // imports, and drops Vite's lazy preload lists: production stopped matching the tested build
+  // (found 2026-11-01). astro.config.mjs turns it off; this keeps it off.
+  if (/\/_astro\/[^"'\s]+\?dpl=/.test(html)) {
+    failures.push(`${name}: asset addresses carry a deployment query (skew protection is on)`);
+  }
   const unhinted = unhintedModules(html, read);
   if (unhinted.length > 0) {
     failures.push(
@@ -104,7 +112,10 @@ for (const entry of readdirSync(root, { recursive: true, withFileTypes: true }))
   }
 }
 
-console.log(`Largest first load: ${kilobytes(largest)} of ${kilobytes(FIRST_LOAD_BUDGET_BYTES)}`);
+console.log(
+  `Largest first load: ${kilobytes(largest)} of ${kilobytes(FIRST_LOAD_BUDGET_BYTES)} (recorded ${kilobytes(FIRST_LOAD_RECORD_BYTES)})`,
+);
+failures.push(...pastRecord(largest));
 if (failures.length > 0) {
   console.error(`\n${failures.length} problem(s):\n- ${failures.join("\n- ")}`);
   process.exit(1);

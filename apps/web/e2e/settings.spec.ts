@@ -17,10 +17,12 @@ async function openSettings(page: Page, path = "/settings"): Promise<void> {
   await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
 }
 
-/** The Interface sounds page, where the switch and the volume live. */
-const SOUNDS = "/settings/sounds";
+/** The Sound and voice page, where the switch and the volume live. */
+const SOUNDS = "/settings/sound";
+/** The Appearance page, where the theme, the mood and the hue live. */
+const APPEARANCE = "/settings/appearance";
 const theme = (page: Page) => page.getByRole("combobox", { name: "Theme" });
-const sounds = (page: Page) => page.getByRole("switch", { name: "Interface sounds", exact: true });
+const sounds = (page: Page) => page.getByRole("switch", { name: "Sounds", exact: true });
 const volume = (page: Page) => page.getByRole("slider", { name: "Volume" });
 const settingsLink = (page: Page) =>
   page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Settings" });
@@ -41,15 +43,19 @@ test.describe("settings page", () => {
   test("ships with no choice made, so a stored one never flashes the default first", async ({
     page,
   }) => {
-    const html = await (await page.request.get("/settings")).text();
-    const main = html.slice(html.indexOf("<main"), html.indexOf("</main>"));
+    const mainOf = async (path: string) => {
+      const html = await (await page.request.get(path)).text();
+      return html.slice(html.indexOf("<main"), html.indexOf("</main>"));
+    };
+    const main = await mainOf("/settings");
     expect(main).toContain("data-settings");
     expect(main).not.toMatch(/\schecked\b/);
-    // The Theme select ships with no option chosen; the model select's saved value is known here.
-    const themeSelect = main.slice(main.indexOf('id="settings-theme"'));
-    expect(themeSelect.slice(0, themeSelect.indexOf("</select>"))).not.toMatch(/\sselected\b/);
     expect(main).not.toContain("data-ready");
     expect(main).toMatch(/<section[^>]*data-install-hint[^>]*hidden/);
+    // The Theme select ships with no option chosen.
+    const appearance = await mainOf(APPEARANCE);
+    const themeSelect = appearance.slice(appearance.indexOf('id="settings-theme"'));
+    expect(themeSelect.slice(0, themeSelect.indexOf("</select>"))).not.toMatch(/\sselected\b/);
   });
 
   // The owner's report (2026-10-27): the Settings page took about a second to show the chosen theme.
@@ -57,14 +63,14 @@ test.describe("settings page", () => {
   // first paint, with that script not even loaded.
   test("shows the stored theme before the page's script has run", async ({ page }) => {
     // Served empty, not refused, so the suite's console check stays quiet: the page never wires up.
-    await page.route(/\/_astro\/settings\.astro_astro_type_script[^/]*\.js$/, (route) =>
+    await page.route(/\/_astro\/appearance\.astro_astro_type_script[^/]*\.js$/, (route) =>
       route.fulfill({ contentType: "text/javascript", body: "" }),
     );
     await page.addInitScript(
       ([key]) => localStorage.setItem(key as string, JSON.stringify({ theme: "dark" })),
       [PREFERENCES_KEY],
     );
-    await page.goto("/settings");
+    await page.goto(APPEARANCE);
     await expect(page.locator("[data-settings]")).not.toHaveAttribute("data-ready", /.*/);
     await expect(theme(page)).toHaveValue("dark");
     await expect(theme(page)).not.toHaveCSS("color", "rgba(0, 0, 0, 0)");
@@ -80,7 +86,7 @@ test.describe("settings page", () => {
 
   test("each theme choice sets the theme on the root and survives a reload", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "light" });
-    await openSettings(page);
+    await openSettings(page, APPEARANCE);
     const root = page.locator("html");
     await expect(theme(page)).toHaveValue("system");
     await expect(root).not.toHaveAttribute("data-theme", /.*/);
@@ -180,8 +186,11 @@ test.describe("settings page", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Settings" })).toBeFocused();
     await expect(settingsLink(page)).toHaveAttribute("aria-current", "page");
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await page.getByRole("link", { name: /^Appearance/ }).click();
+    await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     await expect(theme(page)).toHaveValue("dark");
-    await page.getByRole("link", { name: /^Sounds and haptics/ }).click();
+    await settingsLink(page).click();
+    await page.getByRole("link", { name: /^Sound and voice/ }).click();
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     await expect(sounds(page)).not.toBeChecked();
     await expect(volume(page)).toBeDisabled();
@@ -189,7 +198,7 @@ test.describe("settings page", () => {
   });
 
   test("the controls still work on a second visit in the same session", async ({ page }) => {
-    await openSettings(page);
+    await openSettings(page, APPEARANCE);
     await theme(page).selectOption("dark");
     await expect.poll(async () => (await stored(page)).theme).toBe("dark");
 
@@ -201,6 +210,8 @@ test.describe("settings page", () => {
     // The page's script has already run once; this time only the router's event can start it.
     await settingsLink(page).click();
     await expect(page).toHaveURL(/\/settings$/);
+    await page.getByRole("link", { name: /^Appearance/ }).click();
+    await expect(page).toHaveURL(/\/settings\/appearance$/);
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     await expect(theme(page)).toHaveValue("dark");
 
@@ -262,5 +273,111 @@ test.describe("settings page, axe", () => {
       await expect(page.locator("html")).toHaveAttribute("data-theme", choice);
       expect(await violations(page), `${choice} chosen`).toEqual([]);
     }
+  });
+});
+
+test.describe("profile page", () => {
+  // The bug it prevents: a bundled page script runs once per session, so the picker worked on the first
+  // visit to /profile and was an empty, dead row on every visit after it, reached by a link.
+  test("the edit button's sheet changes the avatar, on a first visit and on a second", async ({
+    page,
+  }) => {
+    await page.goto("/settings");
+    const toProfile = async () => {
+      await page.getByRole("link", { name: "Your profile", exact: true }).click();
+      await page.getByRole("button", { name: "Change picture" }).click();
+      await expect(page.getByRole("dialog", { name: "Avatar" })).toBeVisible();
+    };
+    await toProfile();
+    const sheet = page.getByRole("dialog", { name: "Avatar" });
+    const second = sheet.locator("[data-shape]").nth(1);
+    const shape = await second.getAttribute("data-shape");
+    await second.click();
+    await expect(sheet).toBeHidden();
+    expect((await stored(page)).avatar).toBe(shape);
+    // A new pick answers with a show.
+    await expect(page.locator(".profile-face > *")).toHaveAttribute("data-play", /./);
+
+    await settingsLink(page).click();
+    await toProfile();
+    await expect(sheet.locator("[data-shape]")).not.toHaveCount(0);
+    await expect(sheet.locator(`[data-shape="${shape}"]`)).toHaveAttribute("aria-pressed", "true");
+  });
+
+  // The bug it prevents (D353): a tap in the app bar opens the profile and swaps the header, so the
+  // show it started was cut at once, and then played on the profile's avatar instead of the tapped one.
+  test("a tap on the app bar's avatar plays there alone, through the page change", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    await page.goto("/settings");
+    const bar = page.locator("a.account-bar > *");
+    await expect(bar).toHaveAttribute("data-shape", /./);
+    await bar.evaluate((el) => {
+      (el as HTMLElement & { kept?: boolean }).kept = true;
+    });
+    await page.getByRole("link", { name: "Your profile", exact: true }).click();
+    await expect(page).toHaveURL(/\/profile$/);
+    await expect(bar).toHaveAttribute("data-play", /./);
+    expect(await bar.evaluate((el) => (el as HTMLElement & { kept?: boolean }).kept)).toBe(true);
+    // Only the tapped avatar plays: the profile's own stays still. The show draws every frame; a few
+    // frames on the frozen clock, while it still runs on the bar, would reach an avatar it should not.
+    const face = page.locator(".profile-face > *");
+    await expect(face).toHaveAttribute("data-shape", /./);
+    await page.clock.runFor(100);
+    expect(await bar.evaluate((el) => el.querySelector("svg")?.hasAttribute("style"))).toBe(true);
+    await expect(face).not.toHaveAttribute("data-play");
+    expect(await face.evaluate((el) => el.querySelector("svg")?.hasAttribute("style"))).toBe(false);
+  });
+
+  // The bug it prevents (D353): a tap that starts a show it never ends, a morph that leaves the avatar
+  // in another shape, or a show that plays for a reader who asked for calm.
+  test("a tap on the avatar plays shows, a morph comes home, and a calm reader gets none", async ({
+    page,
+  }) => {
+    const watch = () =>
+      page.evaluate(() => {
+        const seen = { plays: [] as string[], shapes: [] as string[] };
+        (window as unknown as { __avatar: typeof seen }).__avatar = seen;
+        const face = document.querySelector(".profile-face > *");
+        new MutationObserver((changes) => {
+          for (const change of changes) {
+            const value = (change.target as HTMLElement).getAttribute(change.attributeName ?? "");
+            if (!value) continue;
+            (change.attributeName === "data-play" ? seen.plays : seen.shapes).push(value);
+          }
+        }).observe(face as Element, {
+          attributes: true,
+          attributeFilter: ["data-play", "data-shape"],
+        });
+      });
+    const seen = () =>
+      page.evaluate(
+        () => (window as unknown as { __avatar: { plays: string[]; shapes: string[] } }).__avatar,
+      );
+
+    await page.clock.install();
+    await page.goto("/profile");
+    const face = page.locator(".profile-face > *");
+    await expect(face).toHaveAttribute("data-shape", /./);
+    const home = await face.getAttribute("data-shape");
+    await watch();
+    for (let tap = 0; tap < 5; tap++) {
+      await face.click();
+      await page.clock.runFor(2500);
+    }
+    const { plays, shapes } = await seen();
+    expect(new Set(plays).size, "five taps, five different shows").toBeGreaterThan(3);
+    expect(new Set(shapes).size, "a morph passed through other shapes").toBeGreaterThan(1);
+    await expect(face).toHaveAttribute("data-shape", home ?? "");
+    await expect(face).not.toHaveAttribute("data-play");
+
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.reload();
+    await expect(face).toHaveAttribute("data-shape", /./);
+    await watch();
+    await face.click();
+    await page.clock.runFor(2500);
+    expect((await seen()).plays).toEqual([]);
   });
 });

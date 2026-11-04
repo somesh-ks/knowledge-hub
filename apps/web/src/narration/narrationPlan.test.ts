@@ -56,7 +56,7 @@ describe("planNarration", () => {
     expect(plan.items.size).toBe(4);
   });
 
-  it("merges the segments of one story: it starts at its first and ends at its last", () => {
+  it("a story starts at its first segment and lasts until the next story starts", () => {
     const turn = (key: string, itemId: string | null, characters: number): SegmentInfo => ({
       key,
       item_id: itemId,
@@ -67,7 +67,7 @@ describe("planNarration", () => {
       [
         turn("t0", null, 10),
         turn("t1", "s1", 20),
-        turn("t2", "s1", 30),
+        turn("t2", null, 30),
         turn("t3", "s2", 40),
         turn("t4", "s1", 10),
         turn("t5", null, 10),
@@ -83,8 +83,10 @@ describe("planNarration", () => {
       [10, 11],
       [11, 12],
     ]);
-    expect(plan.items.get("s1")).toEqual({ start_ms: 1_000, end_ms: 11_000 });
-    expect(plan.items.get("s2")).toEqual({ start_ms: 6_000, end_ms: 10_000 });
+    // Only t1, t3 and t4 name a story. The untagged t2 stays with s1 and the untagged sign-off t5
+    // with s2; the later s1 turn t4 does not extend s1 past the start of s2, and none overlap.
+    expect(plan.items.get("s1")).toEqual({ start_ms: 1_000, end_ms: 6_000 });
+    expect(plan.items.get("s2")).toEqual({ start_ms: 6_000, end_ms: 12_000 });
     expect(plan.items.size).toBe(2);
   });
 

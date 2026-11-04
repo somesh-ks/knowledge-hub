@@ -13,6 +13,7 @@ import {
   PAGE_REGISTRY_PATH,
   PLAYER_REGISTRY_PATH,
   pathFromSvg,
+  rebuildGlyphs,
   serializeGlyphs,
   symbolFile,
   validateGlyphs,
@@ -91,7 +92,18 @@ describe("pathFromSvg", () => {
       dirname(fileURLToPath(import.meta.url)),
       "../node_modules/@phosphor-icons/core",
     );
-    const drifted = Object.entries(doc.glyphs)
+    // A derived glyph is cut from its Phosphor icon where the set has none for the need
+    // (owner, 2026-11-03: Remove from queue is list-plus less the plus's bar), and a fetch keeps it.
+    const sourced = Object.entries(doc.glyphs).filter(([, glyph]) => !glyph.derived);
+    const derived = Object.fromEntries(
+      Object.entries(doc.glyphs).filter(([, glyph]) => glyph.derived),
+    );
+    expect(
+      Object.fromEntries(
+        Object.entries(rebuildGlyphs(doc).glyphs).filter(([name]) => name in derived),
+      ),
+    ).toEqual(derived);
+    const drifted = sourced
       .filter(
         ([, glyph]) =>
           pathFromSvg(readFileSync(resolve(root, symbolFile(glyph)), "utf8")) !== glyph.d,
@@ -99,7 +111,7 @@ describe("pathFromSvg", () => {
       .map(([name]) => name);
     expect(drifted, "owner 2026-10-21: only real Phosphor paths").toEqual([]);
     // The bold twin, which a style shows through icon.bold, is Phosphor's bold SVG too (D268).
-    const driftedBold = Object.entries(doc.glyphs)
+    const driftedBold = sourced
       .filter(([, glyph]) => glyph.weight === "regular")
       .filter(
         ([, glyph]) =>

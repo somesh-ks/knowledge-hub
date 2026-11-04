@@ -67,10 +67,14 @@ export const test = base.extend<Options & { problems: Problems }>({
         if (message.type() !== "error") return;
         const text = message.text();
         if (expectedNotFound.has(message.location().url)) return;
-        // A page without audio asks for its narration shortly after it loads. The static fixture
-        // server has no API and answers 501, which the browser logs on the page's behalf. The
-        // client takes it as a quiet refusal; this one line is not a problem.
-        if (/status of 501/.test(text) && /\/api\/narrate(\?|$)/.test(message.location().url))
+        // A page without audio asks for its narration shortly after it loads, and an open player
+        // for the turn's word marks. The static fixture server has no API and answers 501, which the
+        // browser logs on the page's behalf. The client takes it as a quiet refusal; this one line is
+        // not a problem.
+        if (
+          /status of 501/.test(text) &&
+          /\/api\/narrate(-marks)?(\?|$)/.test(message.location().url)
+        )
           return;
         const isNetworkNoise =
           /Failed to load resource|net::ERR|Failed to fetch|Error hydrating/.test(text);
@@ -135,8 +139,10 @@ export const SITE_PAGES = [
   "/settings",
   "/settings/daily",
   "/settings/weekly",
-  "/settings/voice",
-  "/settings/sounds",
+  "/settings/sound",
+  "/settings/appearance",
+  "/settings/haptics",
+  "/profile",
   "/settings/preferences",
   "/settings/blocked-outlets",
   "/settings/categories",
@@ -271,6 +277,18 @@ export async function hydrated(page: Page): Promise<void> {
   await wakeIslands(page);
   await expect(page.locator("astro-island[ssr]")).toHaveCount(0);
   await coversSettled(page);
+}
+
+/**
+ * On a phone a Play opens the player over the page (2026-11-02, the owner's ask); a test that goes
+ * on to use the page closes it. From 1024px only the bar changes, so there is nothing to close.
+ */
+export async function closePlayer(page: Page): Promise<void> {
+  if ((page.viewportSize()?.width ?? 0) >= 1024) return;
+  const html = page.locator("html");
+  await expect(html).toHaveAttribute("data-player", "open");
+  await page.getByRole("button", { name: "Close the player" }).click();
+  await expect(html).toHaveAttribute("data-player", "closed");
 }
 
 /**

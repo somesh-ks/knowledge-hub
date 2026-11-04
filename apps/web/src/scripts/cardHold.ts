@@ -3,11 +3,19 @@
  * keyboard and a screen reader (library.css hides it from a finger only), and this opens the same
  * popover from a hold on the card. A tap still opens the card; a scroll, or a finger that drifts
  * past the slop, cancels the hold (the browser sends pointercancel when a scroll takes the touch).
+ *
+ * A queue row holds the same way (owner, 2026-11-03: "long press triggers the bottom sheet we have
+ * in the library page for each podcast"), so a phone reaches its actions without any dots: a tap on
+ * the row plays it, the handle alone moves it.
  */
 import { MENU_SELECTORS } from "../design-system/menu";
 
 /** Matches the CSS that hides the button (library.css): a finger is the primary input. */
 const TOUCH = "(hover: none) and (pointer: coarse)";
+/** What a hold opens a menu from: a Library card, and a queue row in the player. */
+const HELD = ".card-link, .player-queue-row";
+/** The button a hold's sheet belongs to, focused first as a tap on it would. */
+const OPENER = "[data-hero-more], .player-queue-more";
 const HOLD_MS = 450;
 /** How far a finger may drift and still be holding, in CSS px. */
 const SLOP = 10;
@@ -21,6 +29,13 @@ const SLOP = 10;
 const LIFT_GRACE_MS = 400;
 /** A hold opens its sheet again this often, never in a loop. */
 const MAX_REOPENS = 2;
+
+/**
+ * Set on a hold's sheet while the hold may still reopen it: the time (performance.now) the grace ends,
+ * Infinity while the finger is down. The interface sound reads it so a close and a reopen the hold
+ * makes itself are not heard as a sheet closing and opening again (uiClicks.ts).
+ */
+export const HOLD_UNTIL = "data-hold-until";
 
 let installed = false;
 
@@ -37,11 +52,20 @@ export function installCardHold(): void {
   let graceEnds = 0;
   let reopens = 0;
 
+  /** The sheet is the person's again: its closes and opens are theirs to hear. */
+  const release = (): void => {
+    opened?.removeAttribute(HOLD_UNTIL);
+    opened = null;
+  };
+
   const cancel = (): void => {
     clearTimeout(timer);
     start = null;
     // The finger is up (or the browser took the touch): the grace runs from here.
-    if (opened) graceEnds = performance.now() + LIFT_GRACE_MS;
+    if (opened) {
+      graceEnds = performance.now() + LIFT_GRACE_MS;
+      opened.setAttribute(HOLD_UNTIL, String(graceEnds));
+    }
   };
 
   document.addEventListener(
@@ -49,13 +73,15 @@ export function installCardHold(): void {
     (event) => {
       cancel();
       held = false;
-      opened = null;
+      release();
       if (event.pointerType !== "touch" || !event.isPrimary || !matchMedia(TOUCH).matches) return;
-      const link = (event.target as Element).closest<HTMLElement>(".card-link");
-      const list = link
-        ?.closest("[data-card]")
-        ?.querySelector<HTMLElement>(`[data-library-menu] ${MENU_SELECTORS.list}`);
-      if (!link || !list) return;
+      const row = (event.target as Element).closest<HTMLElement>(HELD);
+      const list = row?.matches(".player-queue-row")
+        ? row.parentElement?.querySelector<HTMLElement>(MENU_SELECTORS.list)
+        : row
+            ?.closest("[data-card]")
+            ?.querySelector<HTMLElement>(`[data-library-menu] ${MENU_SELECTORS.list}`);
+      if (!row || !list) return;
       start = { x: event.clientX, y: event.clientY, id: event.pointerId };
       const pointerId = event.pointerId;
       timer = window.setTimeout(() => {
@@ -63,13 +89,12 @@ export function installCardHold(): void {
         if (list.matches(":popover-open")) return;
         // As after a tap on the button: focus is on it first, so the sheet's first row, which the menu
         // focuses on open, takes no keyboard ring. Its own ring is the keyboard's (library.css).
-        list.parentElement
-          ?.querySelector<HTMLElement>("[data-hero-more]")
-          ?.focus({ preventScroll: true });
+        list.parentElement?.querySelector<HTMLElement>(OPENER)?.focus({ preventScroll: true });
         list.showPopover();
         held = true;
         opened = list;
         graceEnds = Number.POSITIVE_INFINITY;
+        list.setAttribute(HOLD_UNTIL, String(graceEnds));
         reopens = 0;
         // The finger is still down on the card. Lifted over it, it would light-dismiss the sheet the
         // moment it opened (the press began outside any popover). Held by the sheet, the lift ends
@@ -77,23 +102,28 @@ export function installCardHold(): void {
         try {
           list.setPointerCapture(pointerId);
         } catch {
-          // The touch already ended: nothing to hold.
+          // The touch already ended: nothing to hold, so the lift grace starts now. Left open-ended, it
+          // would reopen the sheet on any later close and keep its cues silent.
+          cancel();
         }
       }, HOLD_MS);
     },
     { passive: true },
   );
 
+  // On the way down, so a row that takes the gesture for itself still cancels the hold: a queue
+  // row's swipe stops the move from reaching the document (useRowSwipe.ts), and a sheet opened
+  // mid-swipe was the result.
   document.addEventListener(
     "pointermove",
     (event) => {
       if (!start || event.pointerId !== start.id) return;
       if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > SLOP) cancel();
     },
-    { passive: true },
+    { passive: true, capture: true },
   );
   for (const type of ["pointerup", "pointercancel"]) {
-    document.addEventListener(type, cancel, { passive: true });
+    document.addEventListener(type, cancel, { passive: true, capture: true });
   }
   // The lift of a hold is not a tap. The browser would follow it with mouse events: the press focuses
   // the card's link, which takes focus from the sheet (heroMenu.ts closes a menu that loses it),
@@ -111,7 +141,7 @@ export function installCardHold(): void {
       const list = opened;
       if (!list || event.target !== list || (event as ToggleEvent).newState !== "closed") return;
       if (performance.now() > graceEnds || reopens >= MAX_REOPENS) {
-        opened = null;
+        release();
         return;
       }
       reopens += 1;
@@ -121,21 +151,26 @@ export function installCardHold(): void {
   );
 
   // A key, or a click (the hold's own is cancelled above), is the person closing or picking: that
-  // close is theirs, whatever the clock says (Escape, a keyboard or screen reader activation).
-  for (const type of ["keydown", "click"]) {
-    document.addEventListener(
-      type,
-      () => {
-        opened = null;
-      },
-      true,
-    );
-  }
+  // close is theirs, whatever the clock says (Escape, a keyboard or screen reader activation). A
+  // click from script is not: the iPhone's haptic tick is one (design-system/haptics.ts), made as the
+  // sheet opens, and would end the hold before the lift it exists for. Older WebKit forwards that
+  // click to the switch inside as a trusted one, so the tick's own label (silent, hidden) is skipped.
+  document.addEventListener("keydown", release, true);
+  document.addEventListener(
+    "click",
+    (event) => {
+      if (!event.isTrusted) return;
+      if ((event.target as Element).closest?.('label.sr-only[data-sound="none"]')) return;
+      release();
+    },
+    true,
+  );
 
   // Android reads a hold on a link as its link menu, and iOS and Android as a drag of it: the card
   // has its own menu now. A mouse's right click keeps the browser's (copy link).
   document.addEventListener("contextmenu", (event) => {
     if (!matchMedia(TOUCH).matches) return;
-    if ((event.target as Element).closest?.("[data-card] .card-link")) event.preventDefault();
+    if ((event.target as Element).closest?.("[data-card] .card-link, .player-queue-row"))
+      event.preventDefault();
   });
 }

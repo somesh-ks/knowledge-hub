@@ -346,3 +346,145 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
 - Cost: the label is a list item in a list, so a screen reader counts it. A month of one row leaves an empty cell. Titles still repeat the month ("Friday 30 October").
 - Rejected: months in the gallery (the grid is for browsing); a rail (needs a wrapper per month that the sort script would rebuild, and takes 8rem of the column); a hairline under the label (the ledger marks sections by air alone).
 - Revisit if: titles drop their month, or two columns are wanted below 80rem.
+
+## D309: every podcast player has a ⋮ menu that holds Download, Share, Save, Playback speed and Go to podcast
+
+- Date: 2026-11-01 (the owner: "every podcast player ui should have a 3 dots button ... playback speed, download, share, delete if applicable"; picks: sheet C, stepper and slider; then "on desktop the menu must be a simple list without quick actions", a bookmark for Save, "share fat is good for icon").
+- Context changed: D50 put the speed control in the transport, between the skips; it is set once per podcast and crowded the row that must stay still. D50's Chapters, transcript and word marks stand.
+- Decision: a ⋮ at the top right of the open player, level with the collapse chevron, opens the Menu. On a phone it is the bottom sheet: Download, Share and Save as three tiles, then rows for Playback speed (with its value), Go to podcast, and Delete download when the item is downloaded. From 40rem it is the popover as a plain list of the same actions, no tiles. Playback speed leaves the transport and opens a second screen in the same sheet, with Back: a stepper (0.05) with a large readout and a slider that stops on 0.5 to 2 in quarters, each stop labelled. Save keeps a bookmark on this device (`singularity:saved:<id>`, the time saved) and Settings > Saved, under Downloads, lists them newest first in the Library's rows. Saved and Downloads take the Library's page width and two columns from 80rem. The Share glyph is Share fat everywhere, Save is a bookmark.
+- Why: the transport held a control that is set once per podcast and crowded the row that must stay still; a menu groups what a listener does with the item, and a bookmark gives a way back that a download does not (no copy kept).
+- Cost: Save is per device, not synced. The slider shows the nearest stop while the readout says the exact speed.
+- Rejected: preset speed chips (the slider's stops carry them); tiles on a desktop popover (a list is shorter to scan); a star for Save (a bookmark reads as "come back to this").
+- Revisit if: Save needs an account, or listeners ask for speeds between the stops on the slider.
+
+## D330: one app-wide state model: route, connectivity, saved pages
+
+- Date: 2026-11-02 (the owner: old "You are offline" pages with no strip, flicker, Saved empty offline, a stuck page after the network returned, Try again landing on Latest, the app reloading itself; "a stricter state management across the app"). Amends D97, D98, D145, D202.
+- Decision: three states, each with one owner, and nothing else keeps a copy of them.
+  - **Route**: the address bar. Only a person's own move changes it. The stand-in page the worker serves for a page that was never opened keeps the address asked for; Try again and recovery load that address, by the router and replacing its own history entry, so the player keeps playing. Nothing sends a reader to Latest by default.
+  - **Connectivity**: `lib/connectivity.ts`. The browser's flag is a hint, confirmed by asking the site (`/build.json`); a return that does not answer is asked again on gaps of 2, 4, 8 and 15 s, so a premature `online` event cannot strand a page. The strip, the disabled controls, the settings outbox and the stand-in's recovery read or subscribe to it. The strip is the one notice about the connection: no page says "You are offline" in its own body.
+  - **Saved pages**: the worker answers a page load from its newest copy (opened pages first, then pages kept ready, then any cache). The page asks it to keep ready (`KEEP_READY`, never trimmed, survives deploys): every Settings page without an id, Saved, Downloads, the Library, the Library's newest eight, the latest briefing and episode, and each podcast saved. A page outside all of that stands in as "You are offline" with one Try again button. Saved is also saved at install.
+- Also: the strip's stack persists across moves (`transition:persist`) and `data-strip` is carried, so a swap never redraws it; no page reloads the app when the connection returns (a newer build waits for the reader's next move); settings changed offline are kept in the outbox even when the sending code could not be fetched, and go out on the confirmed return.
+- Why: five parts each decided "offline" for themselves (the browser flag, the worker, the strip, the stand-in page, the outbox) and disagreed in the gaps. Audits looked at each part online, or at the strip alone; none visited every route offline.
+- Cost: about 20 extra page requests at idle, once an hour at most, on a phone that is online and not on a data saver. A kept copy can be an hour old when offline; the newest opened copy wins.
+- Rejected: a polling timer on every page (a probe runs only while a return is unconfirmed); keeping every podcast ready (the Library's newest eight and what is saved cover what a reader opens next); a second offline page for Settings.
+- Revisit if: the idle requests show in the Vercel bill, or a reader reports a podcast they expected offline standing in.
+
+## D331: error and helper copy speaks in the reader's words, and a test holds it
+
+- Date: 2026-11-02 (the owner: "Couldn't reach the site. Not saved yet." is robotic; the helper "Off: no weekly podcast is made"; "keep it human"). Amends D299.
+- Decision: a message says what happened to the person's thing, then what happens next. No server talk (the server, crashed, turned down, request, a status), no host names, no "Could not" or "Failed to", and no "Not saved yet" as an error. A change made without a connection is kept and sent later, and is said as good news ("Saved. It will sync when you're back online."), then once more when it has reached the site ("Your changes are synced"). A switch needs no line saying what it already shows. Settings copy lives in `lib/saveCopy.ts`.
+- Why: copy written one message at a time drifted into the engine's voice. `lib/copyGuard.test.ts` scans every string a reader can see and fails on the phrases that read as a machine.
+- Cost: a new honest phrase that trips the list is changed or added to it with a reason. The test reads literals on one line; a message built from parts is not checked.
+- Rejected: a lint rule per phrase (the test names the fix in its failure); translating errors in one place (each message sits where its action is).
+- Revisit if: the list grows past what a reader of the test can hold, or messages are built from parts more often than written whole.
+
+## D343: the player's views are tabs again, the queue has the two-bar handle and swipes both ways, the phone bar swipes between podcasts
+
+- Date: 2026-11-02 (the owner: the queue dock "snaps, no easing"; "swipe left and right on the playback dock to switch audio ... get rid of the next button"; "the album art is too close to the top"; "segmented selector is catching a lot of attention ... switch it to tabs"; more space under the play controls; Up next "scrolls to top"; "the reordering hamburger icon, I can't really reorder"; "swipe left and right in the queue to remove things")
+- Decision:
+  - The Stories and Up next switch is the podcast page's section tabs at every width (`.tabs` and `.tab`, `.tabs-in-card` for the first label's place): centred in the column, the chosen label in the accent with a bar under its words, a hairline under the strip. No page restyle. Below 64rem the strip sticks under the status bar and a step of room parts it from the play controls.
+  - Switching views keeps the page's scroll position. The list scrolls to the item that has just begun, not each time Up next opens.
+  - Below 64rem the open page's top band is 56px: the chevron and the ⋮ are centred in it and the art starts 16px under it (owner, twice).
+  - A queue row's control is the two-bar handle at its end (`grip`, Phosphor equals); a phone draws no dots. Under a mouse the handle (with the four-way move cursor) and a ⋮ show only while the pointer is over the row (2026-11-03); the ⋮'s Menu holds Go to podcast, Share, Download and Remove from queue. A press on it lifts the row under a finger or a mouse, the rows it passes make room, the column scrolls when it is held at an edge, Up and Down on the focused handle move it and Delete removes it. The browser's drag and drop is gone. A swipe to either side turns the whole row red with a bin and removes it; the playing row swipes the same way (it leaves the list and plays on) and shows the two bars as a mark that does not move.
+  - On a phone (width under 64rem, coarse pointer) a sideways swipe on the bar switches the podcast: left for the next one queued, right for the one before. The words slide out, the podcast is asked for, and its words come in from the other side. The bar's Next button is left out there; a mouse and a wide bar keep it.
+  - The mobile queue dock opens and folds on the drawer curve (a grid row from nothing to the list's height, 300 ms in, 220 ms out), the list fading with it; reduced motion jumps.
+- Why: the pill drew the eye the list should have had; a long press never lifted a row on his phone, and a grip says "movable" at a glance; a carousel swipe is what a mini player does, and the owner decided on 2026-11-01 that it moves between podcasts; a fold that snaps reads as a bug in an app that eases everywhere else.
+- Cost: the handle is a control on every queue row, which D169 had avoided as form-like, and a mouse has no visible remove (Delete on the handle, or a sideways drag of the row); the phone bar has no Next for a screen-reader or switch user (the open page has it).
+- Rejected: a long-press pointer drag (it blocks scrolling); keeping the browser's drag and drop under the grip (touch never started it); hiding Next on every width (a mouse on a narrow window cannot swipe).
+- Amends: D169 (the pill, the row menu, swipe left only), D277 (the list opens at the playing item).
+
+## D346: Swipe-to-delete is a red strip behind the row; the playing row heads Up next; a story's time runs to the next story
+
+- Date: 2026-11-03 (owner: "a red strip in the background, and not to change the row itself to turn red as I need visibility"; "the time stamps of different chapters in the player ui is wrong")
+- Decision:
+  - A queue row swiped to either side keeps its own look at every point, past the delete threshold included. It slides over a red strip (`--color-danger`) that stays where it is, with the bin on the side the row came from; the row then slides off and the queue drops it. The playing row swipes the same way. A tick (`detent`) is felt as the row passes the point it would leave from, and a flick that never passed it ticks (`tap`) on release (owner, 2026-11-03).
+  - The playing item heads Up next and nothing is listed above it, so a podcast played from its page or tapped in the list is first, and every row has the handle (the playing row's only marks it). What played is kept in storage but not listed. Suggested has room above its label.
+  - A story's time runs from its first turn (or segment) to where the next story starts, and the last to the end of the recording, as a briefing's own timeline ends an item where the next begins and as the transcript gives a story its untagged turns. Stories tile the recording and never overlap.
+- Why: a whole row turned red hid what was being deleted. A story ran only to its last tagged turn, so a story the model tagged on one turn showed that turn's length alone, and the links, reactions and sign-off after it counted for no story; the Stories list and the bar's chapter cuts disagreed with the transcript. The writer's check asks for one tagged turn in a whole script, so tagging varies.
+- Cost: a story's length now includes the untagged turns after it; one revisited later is not cut into two chapters. Not seen on production data: the screenshot did not reach this thread.
+- Amends: D343 (the whole row turning red), D277 (played items listed above the playing one).
+
+## D348: Played and Downloaded are marks, and the play button never says Played
+
+- Date: 2026-11-03.
+- Decision:
+  - A card shows a blue download-arrow circle once the recording is saved offline, after its facts line, in words never (`CardMarks.astro`, `.status-mark` in `library.css`; the circle is as tall as the text). Every card wears it: the Library's list and gallery, Favorites and the Earlier shelf on Latest; Downloads does not (every row there is saved). A card does not show Played (owner, 2026-11-03, after seeing the first build: a list of green and blue circles was loud).
+  - A podcast page's facts line says the same with the word beside the mark ("Weekly · 14 stories · Played · Downloaded", `HeroMarks.astro`), each only while it is true.
+  - The hero Play chip and the floating Play never say Played, in any state: Play and the length, Resume and the time left, Loading. A story's own chip inside the page keeps Played. `readerMath.ts` has one test that no state or memory yields the word.
+- Why: the owner asked for it twice (2026-11-02 for the card marks, 2026-11-03 for the button); the status is the subtitle's job, so the button need not repeat it, and a mark scans faster than a word in a list.
+- Cost: the hero chip loses its checked, tonal face and its "Play again" hover.
+- Amends: D78 and D106 (the Played chip), and the card marks of 2026-11-02.
+
+## D349: The playing row drags like any queued row; let go lower, it plays on and what it passed is skipped
+
+- Date: 2026-11-03 (owner: "I cannt seem to reorder podcasts with currently playing podcast ... sometimes it triggers the page scroll instead"; on the card he chose "Keeps playing where dropped")
+- Decision: the playing row is row 0 of the queue list (`QueueList` `lead`), with a real handle. Let go lower, it plays on and the queued rows it passed are skipped (`PlayQueue.skip`): they join what played and leave the list, so it heads Up next again. Down on its focused handle skips one. A queued row lifted to the top stops under it. The playing row keeps the swipe and the ⋮ of any row. Any held row carries the floating shadow and ticks (`detent`) as it is lifted and at each new place; let go, the rows glide from where they stood into place on the settle spring instead of snapping (owner: "make the drag and swap interaction smoother"), except with reduced motion and for keyboard moves.
+- Why: its handle only marked it (`pointer-events: none`), so a press there fell through to the page and scrolled it.
+- Rejected: the next row starts and the moved one waits; a playing row that cannot move.
+- Amends: D346 (the playing row's handle only marks it).
+
+## D350: The player's times read forward: time played, then the length; a chapter row shows where its story starts
+
+- Date: 2026-11-03 (owner: "progress time on left, total time on right. eg. 3:02 is the played time so far, 5:03 is the total length. avoid negative values to be shown"; "the timestamps are still weird on chapters/stories in the player ui. it should be sequential"; on the card he chose "Start time")
+- Decision: under the open player's scrubber the left clock is the time played and the right one the recording's whole length; no clock in the player shows time to go with a minus. The bar already read "0:02 / 0:36". Each chapter row shows where its story starts (0:00, 1:12, 3:40), not its length, and an episode placed by its script lists its sections in the order the script reaches them, so the times only go up.
+- Why: "-2:10" on the right read as a random number next to the bar's "played / length", and lengths down the chapter list (1:12, 0:45, 2:10) read as random times.
+- Amends: D85 (the page's "-2:10"; chapters listed with their lengths).
+
+## D351: A story's Play button never says Played
+
+- Date: 2026-11-03 (owner: "no per story state, but have a play button for user to start at any point").
+- Decision: a story's button inside a podcast page is the same Play button with the story's length whether or not the story was heard (`storyChipView` in `readerMath.ts`); it shows Playing, Paused or Loading only while it is the current story. Which stories were heard stays in storage and on the story's own `data-state`, which the player's lists and the queue read; the button does not show it.
+- Why: D348 took Played off the podcast's buttons and left it on the stories on a reading that the subtitle does not cover single stories; the owner wants a Play button to start from any point and no per-story status on it.
+- Cost: a listener can no longer see on the page which single stories they heard.
+- Amends: D348 (a story's chip keeps Played).
+
+## D354: A queue row is one full-bleed band: tap plays, the handle moves, a hold opens its menu
+
+- Date: 2026-11-03 (owner: "make the row full bleed in the queue"; "there's a nested second hit area, dont show the hit area though. drag only works by tapping on the 2 line hamburger, the rest of the row plays the podcast, long press triggers the bottom sheet we have in the library page for each podcast").
+- Decision: under 64rem a queue row's fill, the tonal fill of a held row and the red strip behind a swipe take no corner radius and run through the page's padding: to both edges of the screen on a phone, to the edges of the centred 40rem column from 40rem, where the tab line stops too; the cover, the words and the handle keep the page's gutter, so nothing moves. The press tone paints the whole band, never a pill inside it. A tap plays the item, the handle alone lifts it, a swipe takes it off, and a hold opens the row's menu as the bottom sheet a Library card opens (`cardHold.ts`, which now cancels a hold from the capture phase, since a row's swipe keeps the move to itself). That menu is the Library card's sheet: the podcast's title, its facts and Close, the quick actions Download, Share and Remove from queue (in place of Add to queue, not the danger tone and with a playlist glyph, since the podcast stays in the Library), then Go to podcast (owner, 17:43: "reuse the same bottomsheet from library page, but just add remove from queue").
+- Why: the row read as a card with a second, smaller hit area inside it, and a phone had no way to the row's actions but the swipe (the ⋮ is a mouse's, D346).
+- Amends: D169 (a queue row's actions are its ⋮), D264 (a hold opens a Library card's menu; queue rows hold the same way).
+
+## D357: Up next plays top to bottom: any row may go above the playing one, and the list glides as it changes
+
+- Date: 2026-11-03 (owner: "I cannot put any other podcast above the currently playing podcast. I should be able to have full freedom and move around things as I want"; "when I add a suggested podcast into the queue, the transition should be very smooth. And when I remove it ... the transition must be smooth to readjust the queue"; "I still don't have the red strip when I try to swipe to delete a row").
+- Decision:
+  - Any row moves anywhere, the playing one included. The list plays top to bottom: rows above the playing one are behind it, muted like what played, and never start by themselves; they stay where they were put through every later start, a reload included (`above` in `singularity:queue-played`), until moved, removed or tapped. The playing row let go lower keeps the rows it passed listed above it. A tap on a row above plays it and the order holds; Previous on the bar goes to the row just above. Removing the playing row puts the rows above it at the head of what is to come. Add to queue on a row above brings it down to the end. With nothing put above, the playing row heads the list as before (D346).
+  - Every change glides (`queueFlip.ts`): the rows' places are read as the queue changes, before the list redraws, and each row travels from there on the settle spring, as a drop already did. A row queued from Suggested rises into the queue while the next suggestion stays under the finger; a row taken off fades where it stood as the rows under it close up; a refill fades in. Keyboard moves glide too. Nothing moves with reduced motion. Scroll anchoring is off on the rows so the page does not move under them.
+  - A swipe holds the page still until it has a direction (a non-passive `touchmove` on the list), decided at 6 px, under Chrome's own 8 px slop, and anything up to about 53 degrees from level is sideways. A thumb's slanted start had let Chrome scroll and cancel the press before the row moved.
+  - The column scrolls under a held row only once the finger goes past where it pressed, and gently at first, so a row lifted near the bottom no longer races past every row.
+  - Suggested keeps its rows in place: a refill joins at the end, never on top, and a podcast taken off the queue is not suggested (nor autoplayed) again until it is queued or played (`singularity:queue-removed`; owner: "if a podcast is removed from the queue - the same shall not appear in the suggested section").
+- Why: "nothing above the playing row" and D349's skipped rows, which vanished from the list, made the playing row's drag read as broken; rows snapped on add and remove; and pan-y alone gave a slanted thumb to the page.
+- Cost: rows put above the playing one stay until the listener clears them. Chrome's slop on the owner's phone is assumed, not measured.
+- Revisit if: the owner's phone shows a slanted swipe still scrolling the page or cancelling the press, or a measured touch slop falls under the 6 px axis threshold.
+- Rejected: the playing row's place as a mark only, the highest unplayed row playing next wherever it sits.
+- Amends: D349 (rows passed by the playing row leave the list; nothing goes above it), D346 (nothing is listed above the playing item).
+
+## D359: A swipe is felt, never heard; the bar's sideways swipe shows the podcast it goes to
+
+- Date: 2026-11-03 (owner: "stop playing interface sounds for swipe gestures, especially when I swipe up and down the player dock"; "when I swipe left or right in the player dock to change podcasts, I should be able to see the next or previous podcast... a bit more predictable").
+- Decision: a gesture that commits an action by a lifted finger makes no interface sound: the player pulled open or shut (`onCommitOpen` and `onCommitClose` say `drag` or `command`; a drag is felt through the open or close haptic only) and a sheet pulled or swiped down (`quietNextClose`, set by `pullDismiss.ts` and by Base UI's `swipe` reason in `SheetFrame.tsx`). A tap, a key, a button and a close button keep their sounds. The bar's sideways swipe draws the next or previous podcast (cover, title, kind) coming in from the far side under the finger, inside the bar; past the swipe rule the bar slides on to it. Once the finger has gone sideways the page's own pull ends for that touch.
+- Why: a swipe is continuous; a tick at the lift read as noise on the most repeated gesture. The old swipe moved only the current words, so the target was a surprise.
+- Cost: the bar reads both neighbours' pages ahead (already read for the queue). The scrub detent while dragging the seek line still sounds (a drag over items, D273); asked of the owner.
+- Amends: D273, D289 (a commit by swipe is felt, not heard), D343 (the bar's swipe shows its target).
+
+## D364: Play after a quiet starts two seconds back, so a waking output loses no words
+
+- Date: 2026-11-04 (owner: "there is a audio silence of about 1 to 2 seconds until the audio becomes heard. But the progress continues"; Xiaomi 17, Chrome).
+- Decision: a Play by the listener (or a deferred one) after 10 s or more of quiet (wall time, so a sleeping phone counts) starts 2 s of real time before the playhead (2 s times the speed in media time) (`OUTPUT_SLEEP_MS`, `WAKE_REWIND_SECONDS` in `playerStore.ts`). A Play within 10 s of the last sound, after the listener moved the playhead (a seek, a story, a scrub), or the voice sample's resume starts exactly where it is.
+- Why: the player's clock is the element's own `currentTime`, and in Chromium the files are audible from the first frame after the resume seek (measured, Opus m4a and MP3, 1x and 1.5x). The silence is the device: an idle output sleeps and a Bluetooth link drops its stream, and waking takes 1 to 2 s while the element's clock runs on. A page cannot see that wake (the element reports frames consumed, not heard), so holding the clock is not possible; stepping back is what podcast apps do. Inferred, not reproduced on an Android phone.
+- Rejected: holding the clock until sound flows (the element's `currentTime` advances through the wake, so there is nothing to wait for); a silent sound kept playing so the output never sleeps (battery, and the Bluetooth link still drops on other apps' terms).
+- Cost: on a phone speaker, which wakes faster, about 2 s are heard twice.
+- Revisit if: the owner still loses words after a long pause on Bluetooth (raise the step), hears the repeat as a fault on the speaker, or a phone shows the silence after a pause under 10 s.
+
+## D365: Favorites from every podcast menu and a heart beside Play
+
+- Date: 2026-11-04 (owner: "we don't have add to favorites in the menu list or the bottom sheet ... that should be the trigger to add things into the favorites and we should be able to remove it also"; "on the podcast details page next to the play button we can have heart icon button ... I should get a little toast it says added to favorites").
+- Decision:
+  - Every podcast menu has one row, first under the quick actions, that reads "Add to favorites" or "Remove from favorites" with an outline or filled heart: a Library card's ⋮ and long press (list and gallery, Favorites, Downloads, the Earlier shelf) and a queue row's sheet (D354). A row, not a fourth tile, so a 360px sheet keeps three tiles. The pick closes the menu and a toast says "Added to favorites" or "Removed from favorites". On Settings > Favorites it is the row's way out (it replaces "Remove from Favorites").
+  - A podcast page has a heart icon button after Play (the tonal icon button Share uses), pressed while the item is in Favorites, with the same toast. Not on a shared page. The page's ⋮ does not repeat it.
+  - The player's Favorite tile keeps its words and no toast (the sheet stays open) and wears the heart.
+  - Favorites stay this device's (`singularity:saved:<id>` in local storage, `player/core/saved.ts`), so they work offline; every surface hears `singularity:saved` and another tab's `storage` event.
+- Why: Favorites could be filled only from the player's menu.
+- Amends: D354 (the queue sheet gains the row).

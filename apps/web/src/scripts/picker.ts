@@ -19,6 +19,7 @@ import { ICON_PATHS, ICON_VIEW_BOX } from "../lib/icons";
 import { matchesQuery, pickerCount, pickerNoMatch } from "../lib/pickerFilter";
 import { FLOATING, roomFloor } from "../lib/roomFloor";
 import { flagNode } from "../lib/voices";
+import { type Break, beginBreakOnTab } from "../player/core/sampleBreak";
 
 const GAP_PX = 8;
 const MIN_WIDTH_PX = 288;
@@ -58,10 +59,13 @@ interface Choice {
 }
 
 /** A Phosphor glyph as an <svg>, for a control a script draws. */
-function glyph(name: "playOutline" | "pause"): SVGSVGElement {
+function glyph(name: "playOutline" | "pauseOutline"): SVGSVGElement {
   const ns = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(ns, "svg");
-  svg.setAttribute("class", `${iconClass()} picker-${name === "pause" ? "pause" : "play-glyph"}`);
+  svg.setAttribute(
+    "class",
+    `${iconClass()} picker-${name === "pauseOutline" ? "pause" : "play-glyph"}`,
+  );
   svg.setAttribute("data-icon", name);
   svg.setAttribute("viewBox", ICON_VIEW_BOX);
   svg.setAttribute("aria-hidden", "true");
@@ -91,10 +95,17 @@ const audition = {
   rowValue: "",
   /** Says a failure to the list that started the sample (its live region). */
   tell: null as ((text: string) => void) | null,
+  /** The podcast this sample yielded to (player/core/sampleBreak.ts), until the sample is over. */
+  yielded: null as Break | null,
   mark(control: HTMLElement | null): void {
     this.playing?.setAttribute("aria-pressed", "false");
     this.playing = control;
     control?.setAttribute("aria-pressed", "true");
+    // The sample is over, however it ended: the podcast it quieted comes back.
+    if (!control && this.yielded) {
+      this.yielded.end();
+      this.yielded = null;
+    }
   },
   toggle(control: HTMLElement, id: string, tell: (text: string) => void): void {
     const url = `/api/voice-sample?voice=${encodeURIComponent(id)}`;
@@ -106,7 +117,7 @@ const audition = {
       audio.addEventListener("error", () => {
         if (this.playing) {
           this.playing.dataset.silent = "";
-          this.tell?.("The sample could not be played");
+          this.tell?.("Couldn't play the sample");
         }
         this.mark(null);
       });
@@ -130,13 +141,22 @@ const audition = {
     this.sampleId = id;
     this.rowValue = control.dataset.row ?? "";
     this.tell = tell;
-    this.audio.src = url;
     this.mark(control);
-    void this.audio.play().catch(() => {
-      if (attempt !== this.attempt) return;
-      this.tell?.("The sample could not be played");
-      this.mark(null);
-    });
+    // A podcast that is playing fades out first and the sample starts once it is quiet. A sample
+    // pressed again meanwhile has taken over (attempt); one stopped meanwhile is never started.
+    if (!this.yielded || this.yielded.over) this.yielded = beginBreakOnTab();
+    const start = (): void => {
+      const audio = this.audio;
+      if (attempt !== this.attempt || !audio) return;
+      audio.src = url;
+      void audio.play().catch(() => {
+        if (attempt !== this.attempt) return;
+        this.tell?.("Couldn't play the sample");
+        this.mark(null);
+      });
+    };
+    if (this.yielded) this.yielded.afterFade(start);
+    else start();
   },
   stop(): void {
     this.attempt += 1;
@@ -325,7 +345,7 @@ function mountPicker(select: HTMLSelectElement): void {
         if (choice.sample === "") play.dataset.silent = "";
         else play.dataset.sample = choice.sample;
         play.dataset.row = choice.value;
-        play.append(glyph("playOutline"), glyph("pause"));
+        play.append(glyph("playOutline"), glyph("pauseOutline"));
         const words = element("span", "picker-option-name");
         const title = element("span", "picker-option-title");
         title.append(...titleNodes(choice));

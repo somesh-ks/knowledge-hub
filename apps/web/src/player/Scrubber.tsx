@@ -8,7 +8,6 @@ import {
 } from "react";
 import { chapterMask } from "./core/chapterMask";
 import { clockParts, clockSizerParts } from "./core/formatTime";
-import { createVelocityTracker } from "./core/gestureMath";
 import { getPlayerStore } from "./core/playerRuntime";
 import { fractionOfTime, scrubberValueText } from "./core/scrubberMath";
 import {
@@ -21,8 +20,7 @@ import {
 } from "./core/scrubberPointer";
 import { itemPositionLabel, storySectionName } from "./core/timeline";
 import { usePlayerFrame, usePlayerSecond, usePlayerState } from "./hooks/usePlayer";
-import { playUiCue } from "./sound/soundController";
-import { cueForDetent } from "./sound/soundMap";
+import { getHaptics } from "./sound/soundController";
 import Clock from "./ui/Clock";
 
 /**
@@ -32,7 +30,7 @@ import Clock from "./ui/Clock";
  * - Pointer down anywhere on the 44px strip begins a scrub; the thumb jumps under the finger and
  *   follows it 1:1, even outside the strip (pointer capture).
  * - Narration pauses while the thumb is down and resumes on release. The seek happens on release.
- * - Crossing an item boundary fires one soft detent, softer at speed. Keys stay silent.
+ * - Crossing an item boundary is felt as one detent, never heard: a drag is silent (D359).
  * - The fill and the thumb are written straight to leaf elements; React renders once a second.
  */
 export default function Scrubber() {
@@ -54,7 +52,6 @@ export default function Scrubber() {
     lastItem: 0,
     lastDetentAt: null as number | null,
     hysteresis: 0.02,
-    tracker: createVelocityTracker(),
   });
 
   const track = state.track;
@@ -138,7 +135,6 @@ export default function Scrubber() {
       Number.parseFloat(
         getComputedStyle(document.documentElement).getPropertyValue("--scrubber-detent-hysteresis"),
       ) || 0.02;
-    current.tracker.reset({ value: event.clientX, t: event.timeStamp });
     event.currentTarget.setPointerCapture(event.pointerId);
     event.currentTarget.dataset.dragging = "true";
     store.beginScrub();
@@ -151,7 +147,6 @@ export default function Scrubber() {
   function onPointerMove(event: ReactPointerEvent<HTMLDivElement>): void {
     const current = drag.current;
     if (!current.active || event.pointerId !== current.pointerId) return;
-    current.tracker.push(event.clientX, event.timeStamp);
     const time = timeAt(event);
     const item = store.itemAt(time);
     if (item !== current.lastItem) {
@@ -162,7 +157,7 @@ export default function Scrubber() {
         shouldFireDetent(boundary, current.lastDetentAt, current.hysteresis, total)
       ) {
         current.lastDetentAt = boundary;
-        playUiCue(cueForDetent(fractionOfTime(boundary, total), current.tracker.velocity()));
+        getHaptics().fire("detent");
       }
       current.lastItem = item;
     }
@@ -263,7 +258,9 @@ export default function Scrubber() {
       </div>
       <div className="scrubber-times" aria-hidden="true">
         <Clock seconds={second} />
-        <Clock seconds={Math.max(0, duration - second)} negative />
+        {/* Played so far on the left, the whole length on the right; never a time to go with a minus
+            (owner, 2026-11-03, D350). */}
+        <Clock seconds={duration} />
       </div>
     </div>
   );

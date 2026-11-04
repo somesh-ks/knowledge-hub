@@ -1,0 +1,11 @@
+# 2026-11-03: Played and Downloaded marks on every card and podcast page
+
+The owner found the new build strange and said he had given this instruction before: a green check for played and a blue download icon for downloaded on the podcast rows, and the podcast page's play button must never say Played, since the subtitle carries both states.
+
+What I found. The word Played on the play button was the original design (D78, D106, 2026-10-12) and no commit ever removed it, so it did not come back; it was never taken out. The card's Played mark was removed by #597 (2026-11-02), on my reading of "only indicate the downloaded ones". I found no earlier instruction in the repository, the decisions or the project chat; if he gave it in another thread, it did not reach a decision or a test, which is why nothing held it.
+
+What changed (D348): `CardMarks.astro` has both marks and every card renders it (the Earlier shelf had no menu and so no marks); `cardProgress.ts` sets `data-played` on cards and puts a Played mark in the page subtitle; `libraryMenu.ts` marks a card without a menu as downloaded; `HeroMarks.astro` (was `HeroDownloaded`) holds both subtitle marks; `readerMath.ts` returns the play face in every state; the hero chip's played face in `hero.css` is gone. Tests: one unit test that no state or memory makes the briefing chip say Played, `isPlayed`, the Library card journey (check, no word, equal heights), the subtitle journey on a page and on the Earlier shelf.
+
+Same day, after seeing the first build: the owner found a list of green and blue circles overwhelming and asked for the circles a little smaller and for the status to be calmer. He chose: a card shows only the Downloaded mark (a circle as tall as its text); Played is shown on the podcast page only, as a green check and the word in the subtitle. So `CardMarks.astro` holds the Downloaded mark alone and `cardProgress.ts` no longer sets `data-played` on cards. The Library card test now asserts a finished card shows no mark and no word.
+
+Later the same day the owner decided story buttons never say Played either ("no per story state, but have a play button for user to start at any point"): D351. `storyChipView` returns the idle Play button with the length for a heard story; the story's own `data-state` still records it.

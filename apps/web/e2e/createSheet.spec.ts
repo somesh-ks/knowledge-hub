@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import {
+  closePlayer,
   expect,
   expectNoViolationsInEitherScheme,
   hydrated,
@@ -110,6 +111,7 @@ test.describe("Create as the primary action", () => {
     await hydrated(page);
     await page.locator(".hero [data-play-digest]").click();
     await expect(page.locator("html")).toHaveAttribute("data-mini", "visible");
+    await closePlayer(page);
     // Create floats on the Library, where the bar keeps playing.
     await page.locator(".app-nav-item", { hasText: "Library" }).click();
     await expect(page).toHaveURL(/\/library$/);
