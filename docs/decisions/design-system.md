@@ -813,3 +813,11 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Cost: until the reader's `ADMIN_SESSION_SECRET` is 32 or more characters (H6), Generate, Catch up, Delete and settings saves answer 503. A friend invited later cannot use them until accounts exist (D303, D305).
 - Revisit if: Google sign-in replaces the password (the cookie's meaning stays), or accounts (D303) give writes a per-user check.
 - Amends: D160, D201.
+
+## D368: the app's write routes need no sign-in
+
+- Date: 2026-11-04 (the owner: "Why are you adding limitations to sign in to the command center on a new device to generate a catch-up? I don't want any limitations."). Supersedes D307.
+- Decision: `POST /api/generate`, `/api/podcast`, `/api/config` and `/api/narrate` answer without the command center's session, as before D307. The command center (`/admin` and its APIs, D257) stays signed in.
+- Context changed: D307 assumed one sign-in per device was a small price; in use it stood between the owner and Generate, Catch up, Delete and settings saves, and he wants none.
+- Backstop: each route's per-minute cap across instances (generate 8, podcast 10, config 12). The D332 $5 ceiling stops only scheduled runs; a run someone starts goes ahead, so on-demand spend from a stranger is bounded by the caps alone. A config overwrite has no second copy.
+- Revisit if: spend from strangers shows on the Costs page, or accounts (D303) arrive.
