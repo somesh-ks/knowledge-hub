@@ -20,6 +20,9 @@ function fakeStore(initial?: string) {
       if (pathname !== KEY || text === null) return null;
       return { url: `https://blob.test/${KEY}`, etag: `v${version}` };
     },
+    async fetchTagged() {
+      return text === null ? null : { text, etag: `v${version}` };
+    },
     async put(pathname, body, options: BlobPutOptions) {
       calls.push({ ifMatch: options.ifMatch });
       if (options.createOnly && text !== null) {
@@ -37,10 +40,8 @@ function fakeStore(initial?: string) {
       return { blobs: [], hasMore: false };
     },
   };
-  const get = async () => ({ ok: text !== null, status: 200, text: async () => text ?? "" });
   return {
     client,
-    get,
     calls,
     stored: () => JSON.parse(text ?? "null"),
     /** Another writer (the site) changes the document between this one's read and write. */
@@ -63,7 +64,7 @@ describe("the shared Speechify count (D339)", () => {
   // dropped it would charge every digest again.
   it("adds the engine's characters to the site's document and keeps the digests", async () => {
     const store = fakeStore(SITE_DOC);
-    const usage = await blobUsageStore(store.client, store.get).add(NOW, 250);
+    const usage = await blobUsageStore(store.client).add(NOW, 250);
     expect(usage.speechify).toEqual({ month: "2026-11", characters: 1250 });
     expect(store.stored().speechify.characters).toBe(1250);
     expect(store.stored().digests["2026-11-01"].characters).toBe(1000);
@@ -71,7 +72,7 @@ describe("the shared Speechify count (D339)", () => {
 
   it("starts a month nobody has narrated in at zero", async () => {
     const store = fakeStore();
-    const reader = blobUsageStore(store.client, store.get);
+    const reader = blobUsageStore(store.client);
     expect((await reader.load(NOW)).speechify.characters).toBe(0);
     await reader.add(NOW, 40);
     expect(store.stored()).toMatchObject({
@@ -93,7 +94,7 @@ describe("the shared Speechify count (D339)", () => {
         return store.client.put(pathname, body, options);
       },
     };
-    const usage = await blobUsageStore(racing, store.get).add(NOW, 250);
+    const usage = await blobUsageStore(racing).add(NOW, 250);
     expect(usage.speechify.characters).toBe(1850);
     expect(store.stored().speechify.characters).toBe(1850);
   });
@@ -109,7 +110,7 @@ describe("the shared Speechify count (D339)", () => {
         return store.client.put(pathname, body, options);
       },
     };
-    const usage = await blobUsageStore(racing, store.get).add(NOW, 250);
+    const usage = await blobUsageStore(racing).add(NOW, 250);
     expect(usage.speechify.characters).toBe(1250);
     expect(store.stored().digests["2026-11-01"].characters).toBe(1000);
   });
@@ -125,7 +126,7 @@ describe("the shared Speechify count (D339)", () => {
         JSON.stringify({ version: 1, speechify: { month: "2026-11", characters: 300 } }),
       );
       const store = fakeStore(SITE_DOC);
-      const shared = withFrozenFile(blobUsageStore(store.client, store.get), fileUsageStore(root));
+      const shared = withFrozenFile(blobUsageStore(store.client), fileUsageStore(root));
       expect((await shared.load(NOW)).speechify.characters).toBe(1300);
       expect((await shared.add(NOW, 100)).speechify.characters).toBe(1400);
       expect(store.stored().speechify.characters).toBe(1100);
@@ -137,8 +138,6 @@ describe("the shared Speechify count (D339)", () => {
   // A document that exists but cannot be read must stop narration, not read as an empty month.
   it("refuses to treat an unreadable document as a month with no use", async () => {
     const store = fakeStore("{broken");
-    await expect(blobUsageStore(store.client, store.get).load(NOW)).rejects.toThrow(
-      /not valid JSON/,
-    );
+    await expect(blobUsageStore(store.client).load(NOW)).rejects.toThrow(/not valid JSON/);
   });
 });

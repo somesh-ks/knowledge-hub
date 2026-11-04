@@ -21,7 +21,11 @@ export function fakeBlob(beforeManifestWrite?: () => void) {
       }
       etag += 1;
       objects.set(pathname, { text: new TextDecoder().decode(body), etag });
-      return { url: `${BASE}/${pathname}`, pathname };
+      return { url: `${BASE}/${pathname}`, pathname, etag: String(etag) };
+    },
+    async fetchTagged(url) {
+      const found = objects.get(new URL(url).pathname.slice(1));
+      return found ? { text: found.text, etag: String(found.etag) } : null;
     },
     async head(pathname) {
       const found = objects.get(pathname);

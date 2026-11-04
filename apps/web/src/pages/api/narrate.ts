@@ -1,5 +1,6 @@
 import { del, head, put } from "@vercel/blob";
 import type { APIRoute } from "astro";
+import { guardAdmin } from "../../server/adminGuard";
 import { createVercelBlobStore } from "../../server/blobStore";
 import { withSecondVoice } from "../../server/config";
 import { contentDigests, contentEpisodes } from "../../server/contentSources";
@@ -28,7 +29,7 @@ const log = (message: string): void => console.error(`[api/narrate] ${message}`)
 
 /** An episode still being written is read from its live copy in the store (server/liveStream.ts). */
 const liveEpisodesFor = () => (id: string) =>
-  readStreamForEpisode(id, { env: process.env, fetch, now: Date.now, log });
+  readStreamForEpisode(id, { env: process.env, fetch, log });
 
 // The lookup is given no store at all: anyone may call it, and it must not be able to spend.
 const get: APIRoute = async ({ url }) =>
@@ -46,6 +47,9 @@ const get: APIRoute = async ({ url }) =>
   );
 
 const post: APIRoute = async ({ request, url }) => {
+  // Owner only (D307): this is the call that spends. The lookup above stays open and free.
+  const refused = await guardAdmin(request);
+  if (refused) return refused;
   // Read at most a little more than the largest valid body, so a huge request cannot cost memory.
   const bodyText = (await request.text()).slice(0, MAX_BODY_CHARS + 1);
   const result = await handleNarrate(

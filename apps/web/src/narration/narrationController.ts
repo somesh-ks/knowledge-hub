@@ -64,8 +64,14 @@ export interface ControllerDeps {
 
 export type PlayOutcome = "playing" | "cancelled" | "failed";
 
-/** What playing an episode that is still being written needs: where to read the live copy. */
-export type LiveSource = Omit<GrowthDeps, "msPerCharacter"> & { status: StreamStatus };
+/**
+ * What playing an episode that is still being written needs: where to read the live copy, and how
+ * long the episode is expected to run (D366: the timer shows it while the script is written).
+ */
+export type LiveSource = Omit<GrowthDeps, "msPerCharacter"> & {
+  status: StreamStatus;
+  expected_ms?: number;
+};
 
 export interface NarrationController {
   /**
@@ -349,7 +355,7 @@ export function createNarrationController(deps: ControllerDeps): NarrationContro
       const growth = live
         ? createGrowth(
             plan.segments,
-            { status: live.status },
+            { status: live.status, expected_ms: live.expected_ms },
             { ...live, msPerCharacter: FALLBACK_MS_PER_CHARACTER },
           )
         : null;
