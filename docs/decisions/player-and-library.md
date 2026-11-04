@@ -500,4 +500,4 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
   - Settings > Downloads draws no ⋮ on a phone; a hold opens the row's sheet, whose Remove download removes at once. A swipe slides the row over the red strip with the bin, as a queue row (D346), and asks first.
   - A browser test checks each sheet against the one order and the page's sheet against its card's.
 - Why: the page's ⋮ and the card's sheet had drifted, and the Downloads sheet listed its actions in another order.
-- Amends: D281 (the Downloads ⋮ on a phone), D365 (Favorites is the first action, not a row under the tiles).
+- Amends: D214 (the page's menu is the card's one sheet, one component for both, with Share, Add to favorites and Stop sharing), D281 (the Downloads ⋮ on a phone), D365 (Favorites is the first action, not a row under the tiles).

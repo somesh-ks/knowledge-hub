@@ -83,7 +83,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D211 | Copy says podcast, not briefing; code names keep briefing | active |
 | D212 | Three regenerations per podcast, no daily limit | active |
 | D213 | Two Catch ups a day that came out; failures do not count | active |
-| D214 | A page's More menu offers Download and Add to queue like its Library row | active |
+| D214 | A page's More menu offers Download and Add to queue like its Library row | amended by D369 |
 | D215 | Daily and Weekly have no Look back and no Format | supersedes D184 |
 | D216 | Ticked general topics get a length-sized section | amends D170, D191 |
 | D217 | `run.yml` names every run for what it is | amends D61, D213 |
@@ -225,6 +225,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D365 | Favorites from every podcast menu and a heart beside Play; the heart replaces the bookmark | amends D354; amended by D369 |
 | D366 | Listen now streams the script in parts, each written once and final once out; one append-only continuation; the live timer shows the expected length | amends D105 |
 | D368 | The app's write routes need no sign-in; the command center stays signed in; per-minute caps are the backstop | supersedes D307 |
-| D369 | One podcast sheet everywhere, in one order; tiles only on a long sheet; Downloads swipes away with a confirm | amends D281, D365 |
+| D369 | One podcast sheet everywhere, in one order; tiles only on a long sheet; Downloads swipes away with a confirm | amends D214, D281, D365 |
 
 ---
