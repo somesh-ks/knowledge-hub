@@ -21,7 +21,7 @@ export const CHANGELOG: readonly Release[] = [
     version: "0.19",
     date: "2026-11-03",
     description:
-      "A profile button at the top right opens your profile page, and Settings is regrouped. Play opens the player in place, played podcasts leave the queue, the playing row can be dragged, and one speed screen serves the player and Settings. Cards show a grey download mark, Saved is called Favorites, and More options on Create is a closed accordion. Swipes on the player and on sheets make no sound, and the player bar's sideways swipe shows the podcast it switches to.",
+      "A profile button at the top right opens your profile page, and Settings is regrouped. Play opens the player in place, played podcasts leave the queue, the playing row can be dragged, and one speed screen serves the player and Settings. Cards show a grey download mark, Saved is called Favorites, and More options on Create is a closed accordion. Swipes on the player and on sheets, and dragging the seek line, make no sound, and the player bar's sideways swipe shows the podcast it switches to.",
   },
   {
     version: "0.18",
