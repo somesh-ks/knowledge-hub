@@ -83,8 +83,8 @@ describe("healthBody", () => {
   });
 
   // Neon near its cap, a rejected key or open alerts show on no other row: the summary counted no
-  // budget row, so a red Neon budget left "nothing needs a look" (D360). Speed, tests and bugs have
-  // rows of their own and count there once.
+  // budget row, so a red Neon budget left "nothing needs a look" (D360). Speed has rows of its own
+  // and counts there once.
   it("counts a budget only the daily check sees, and calls a report that stopped saving stale", () => {
     const card = (tone: "green" | "red") =>
       (["cost", "speed", "tests", "bugs", "security", "keys"] as const).map((area) => ({

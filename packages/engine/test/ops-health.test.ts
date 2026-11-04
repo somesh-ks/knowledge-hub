@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { deflateRawSync } from "node:zlib";
 import { digestRelPath, serializeDigestFile, VITAL_THRESHOLDS } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { freeKeyChecks } from "../src/ops/doctorOnline.js";
 import { collectHealth, type HealthFetch } from "../src/ops/health.js";
 import {
   buildCard,
@@ -989,8 +990,23 @@ describe("singularity health", () => {
           expiresInDays: 9,
         },
         { id: "online.anthropic", status: "ok", summary: "key accepted" },
+        // A service that did not answer read as a refused key and opened a fault issue.
+        ...(
+          await freeKeyChecks(
+            { GEMINI_API_KEY: "gemini-key" } as never,
+            {
+              fetchImpl: (async () => {
+                throw new Error("timed out");
+              }) as unknown as typeof fetch,
+              timeoutMs: 10,
+            },
+            [],
+          )
+        ).filter((check) => check.id === "online.gemini"),
       ],
     });
+    expect(codes(report.findings, "fault")).not.toContain("key_rejected");
+    expect(codes(report.findings, "warning")).toContain("key_unchecked");
     expect(codes(report.findings, "fault")).toContain("token_expiring");
     const tone = Object.fromEntries(report.card.map((row) => [row.area, row.tone]));
     // The fixture's $7.50 day is over the $5 ceiling; Neon's pace alone would be amber.

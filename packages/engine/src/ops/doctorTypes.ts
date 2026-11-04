@@ -15,6 +15,8 @@ export interface Check {
   hint?: string;
   /** A token's days left, when its service says (GitHub): health faults under 14 (D360). */
   expiresInDays?: number;
+  /** The service never answered (a timeout, the network): the key was not refused. */
+  unreachable?: boolean;
 }
 
 export interface DoctorReport {

@@ -294,13 +294,22 @@ export function checkBrowserSuite(reading: GitHubReading, sink: Sink): void {
     return;
   }
   const [last, before] = reading.nightly;
+  if (last === undefined) {
+    // A schedule GitHub switched off, or a broken file, leaves the detector nothing to judge.
+    sink.warn(
+      "browser_nightly_missing",
+      "quality",
+      "No nightly browser.yml run on main finished this week: its schedule may be off.",
+    );
+    return;
+  }
   if (FAILED.has(last ?? "") && FAILED.has(before ?? "")) {
     sink.fault(
       "browser_suite_failed",
       "quality",
       "The last two nightly browser.yml runs on main failed: the site's layout or player is broken, or the suite is. Its traces are on the run.",
     );
-  } else if (last !== undefined) {
+  } else {
     sink.passed.push(`the last nightly browser suite ended ${last}`);
   }
 }
@@ -319,9 +328,12 @@ export function checkKeys(checks: readonly Check[], sink: Sink): void {
     const line = `${check.id.replace(/^online\./, "")}: ${check.summary}.${check.hint ? ` ${check.hint}` : ""}`;
     if (check.expiresInDays !== undefined && check.expiresInDays < KEY_EXPIRY_FAULT_DAYS) {
       sink.fault("token_expiring", "security", line);
-    } else if (check.status === "fail") {
+    } else if (check.status === "fail" && !check.unreachable) {
       sink.fault("key_rejected", "security", line);
-    } else if (check.status === "warn" && !check.summary.startsWith("skipped")) {
+    } else if (
+      check.unreachable ||
+      (check.status === "warn" && !check.summary.startsWith("skipped"))
+    ) {
       // An unset key is a choice (an optional provider), not a key in trouble.
       sink.warn("key_unchecked", "security", line);
     }

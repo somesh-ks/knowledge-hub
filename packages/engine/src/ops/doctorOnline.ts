@@ -69,11 +69,14 @@ function httpProblem(id: string, service: string, status: number, keyName: strin
 }
 
 function unreachable(id: string, service: string, error: unknown): Check {
-  return fail(
-    id,
-    `${service} is unreachable (${error instanceof Error ? error.message : "request failed"})`,
-    "Check the network, then run doctor again.",
-  );
+  return {
+    ...fail(
+      id,
+      `${service} is unreachable (${error instanceof Error ? error.message : "request failed"})`,
+      "Check the network, then run doctor again.",
+    ),
+    unreachable: true,
+  };
 }
 
 function skipped(id: string, keyName: string): Check {
