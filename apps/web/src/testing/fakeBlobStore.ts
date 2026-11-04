@@ -162,8 +162,9 @@ export function createFakeBlobStore(
       }
       const read = await cdnRead(target.pathname);
       if (read !== null && read.text !== null && read.version === target.version) return read.text;
-      // The CDN is behind: the real store reads a copy of itself, one advanced operation more.
+      // The CDN is behind: the real store copies itself (advanced) and reads the copy (simple).
       count.advanced += 1;
+      count.simple += 1;
       await begin("copy", target.pathname);
       if (!current) throw new Error(`${target.pathname}: its fresh copy could not be read`);
       return new TextDecoder().decode(current.body);
@@ -171,7 +172,7 @@ export function createFakeBlobStore(
     async put(pathname, body, writeOptions) {
       count.advanced += 1;
       await begin("put", pathname);
-      remember(pathname, body, store(pathname, body, now()), writeOptions);
+      store(pathname, body, now()).options = writeOptions;
       changes.push(`put ${pathname}`);
       return { url: urlOf(pathname) };
     },

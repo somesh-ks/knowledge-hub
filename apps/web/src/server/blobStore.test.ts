@@ -399,7 +399,8 @@ describe("textOf, what a write builds on", () => {
     expect(sdk.copy).not.toHaveBeenCalled();
 
     sdk.put.mockResolvedValueOnce({ url: entry.url, etag: '"mine"' });
-    await store.put(USAGE, '{"n":3}', { contentType: "application/json", cacheSeconds: 60 });
+    const json = { contentType: "application/json", cacheSeconds: 60 };
+    expect(await store.replace(USAGE, '{"n":3}', json, '"new"')).toBe(true);
     urls.length = 0;
     expect(await store.textOf({ ...entry, version: "mine", etag: '"mine"' })).toBe('{"n":3}');
     expect(urls).toEqual([]);

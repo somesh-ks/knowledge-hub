@@ -43,7 +43,8 @@ export interface NarrateBlobStore {
   fetchText(url: string): Promise<string | null>;
   /**
    * The text of the version `entry` describes, or of a later one, never an older copy the CDN still
-   * holds. Free or SIMPLE; one ADVANCED more when the CDN is behind. Throws when it cannot be had.
+   * holds. Free or SIMPLE; one ADVANCED and one SIMPLE more when the CDN is behind. Throws when it
+   * cannot be had.
    */
   textOf(entry: BlobEntry): Promise<string>;
   /** ADVANCED. Writes at a fixed pathname, replacing what was there, and returns the public URL. */
@@ -110,14 +111,20 @@ export async function updateCurrent(
   options: BlobWriteOptions,
   change: (text: string | null) => string | null,
 ): Promise<boolean> {
+  let tried: string | null = null;
   for (let attempt = 1; attempt <= UPDATE_ATTEMPTS; attempt += 1) {
     const entry = await blob.head(pathname);
-    const body = change(entry === null ? null : await blob.textOf(entry));
+    const text = entry === null ? null : await blob.textOf(entry);
+    // The last write landed after all: its answer was lost and the SDK's own retry was refused.
+    if (text !== null && text === tried) return true;
+    const body = change(text);
     if (body === null) return false;
+    tried = body;
     if (entry === null) {
       if (await blob.create(pathname, body, options)) return true;
     } else if (entry.etag === null) {
-      // The store always sends an ETag; without one there is nothing to hold the write to.
+      // shortcut: the store always sends an ETag; without one the write is held to nothing and a
+      // stale read can be written back. If a head ever comes without one, refuse here instead.
       await blob.put(pathname, body, options);
       return true;
     } else if (await blob.replace(pathname, body, options, entry.etag)) {
@@ -285,11 +292,13 @@ export async function readPublicText(
 const bareTag = (etag: string): string => etag.replace(/^W\//, "").replaceAll('"', "");
 
 /**
- * What this process last wrote at each URL, with the ETag the store gave it. A function instance
- * serves request after request, and the next turn of an episode often comes back to the instance
- * that charged the first: it reads its own write here, without the CDN or a copy.
+ * What this process last wrote at each URL by `create` or `replace`, with the ETag the store gave
+ * it. A function instance serves request after request, and the next turn of an episode often
+ * comes back to the instance that charged the first: it reads its own write here, without the CDN
+ * or a copy. Small documents only, and few of them.
  */
 const WRITTEN = new Map<string, { etag: string; text: string }>();
+const WRITTEN_LIMIT = 32;
 
 /**
  * Wraps `@vercel/blob` with the credentials passed on every call, so it never depends on what
@@ -308,6 +317,7 @@ export function createVercelBlobStore(
     options: BlobWriteOptions,
     allowOverwrite: boolean,
     ifMatch?: string,
+    remember = false,
   ): Promise<{ url: string }> => {
     const result = await withLimit(options.timeoutMs ?? BLOB_CALL_TIMEOUT_MS, (abortSignal) =>
       sdk.put(
@@ -327,7 +337,8 @@ export function createVercelBlobStore(
         },
       ),
     );
-    if (typeof body === "string" && result.etag) {
+    if (remember && typeof body === "string" && result.etag) {
+      if (written.size >= WRITTEN_LIMIT) written.clear();
       written.set(result.url, { etag: result.etag, text: body });
     }
     return result;
@@ -354,8 +365,10 @@ export function createVercelBlobStore(
       if (read === null) throw new Error(`${entry.pathname}: its fresh copy could not be read`);
       return read.text;
     } finally {
-      // A copy left behind is a few bytes nobody reads; the answer does not wait on it.
-      await withLimit(BLOB_CALL_TIMEOUT_MS, (abortSignal) =>
+      // shortcut: a copy whose delete fails, or whose copy call timed out after it landed, stays
+      // under reads/; it holds what the public document holds. Sweep reads/ if they pile up.
+      // The answer does not wait on the delete.
+      void withLimit(BLOB_CALL_TIMEOUT_MS, (abortSignal) =>
         sdk.del(copied.url, { ...credentials, abortSignal }),
       ).catch(() => undefined);
     }
@@ -395,7 +408,7 @@ export function createVercelBlobStore(
 
     async replace(pathname, body, options, etag) {
       try {
-        await write(pathname, body, options, true, etag);
+        await write(pathname, body, options, true, etag, true);
         return true;
       } catch (error) {
         if (error instanceof (await sdkErrors()).BlobPreconditionFailedError) return false;
@@ -405,7 +418,7 @@ export function createVercelBlobStore(
 
     async create(pathname, body, options) {
       try {
-        await write(pathname, body, options, false);
+        await write(pathname, body, options, false, undefined, true);
         return true;
       } catch (error) {
         if (await isAlreadyThere(error)) return false;
