@@ -104,7 +104,7 @@ const icons: Record<string, IconName> = {
 
 {/* The podcast queue (D231): what is being made, as a browser lists its downloads, and what was made
      today. Below 64rem a dock sits directly above the bottom bar, never a modal: one row when folded
-     (a small ring, "Podcast queue", the percent), the rows when opened, and the bar and the app bar
+     (a small ring, "Podcast queue"), the rows when opened, and the bar and the app bar
      stay usable either way. From 64rem a row at the foot of the side column (AppNav.astro)
      opens the same rows in a popover. One markup holds the words, the icons, the status region and
      both surfaces; scripts/queue.ts fills them. Persisted across navigations, so what the script put
@@ -119,8 +119,7 @@ const icons: Record<string, IconName> = {
           <span class="queue-stage-icon" data-queue-head-icon="fold"></span>
         </QueueRing>
         <span class="queue-fold-text queue-word" data-queue-title></span>
-        <span class="queue-fold-percent" data-queue-percent></span>
-        <Icon name="chevronDown" size="lg" class="queue-chevron" />
+        <Icon name="chevronDown" size="md" class="queue-chevron" />
       </button>
     </div>
     <div class="queue-body" data-queue-body>
@@ -176,6 +175,8 @@ const icons: Record<string, IconName> = {
         <p class="queue-name" data-queue-name></p>
         {/* One line: the stage while it goes; when it ended and how, once it has. */}
         <p class="queue-status"><span class="queue-when" data-queue-when></span><span class="queue-word" data-queue-status></span></p>
+        {/* The second line, only while a stage runs past its usual length: it never takes the stage's place. */}
+        <p class="queue-status queue-slow" data-queue-slow></p>
       </div>
       {/* Cancel is the X at the row's end, while the run goes; once it has ended the same X takes the item out of the queue. */}
       <button class="icon-btn icon-btn-end press queue-cancel" type="button" data-queue-cancel hidden>

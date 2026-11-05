@@ -18,6 +18,12 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: "0.21.1",
+    date: "2026-11-05",
+    description:
+      "On a phone, the podcast queue opens over the page, so the Catch up button stays where it is. It shows three and a half rows before it scrolls, opens and folds on a smoother, slower curve, has room under its last row, and a drag on its head no longer scrolls the page. A row keeps its stage on the first line and puts Taking longer than usual on a second line, and that note now appears only when a step really runs long. The shimmer stays on one steady beat.",
+  },
+  {
     version: "0.21",
     date: "2026-11-04",
     description:

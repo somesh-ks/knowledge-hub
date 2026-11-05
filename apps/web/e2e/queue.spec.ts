@@ -213,6 +213,51 @@ test.describe("the podcast queue", () => {
     expect(await height()).toBe(before);
   });
 
+  // Bugs it prevents (owner, 2026-11-04): the Catch up button shook as the queue grew, and the list showed
+  // whole rows with nothing to say that more were below. Phone only: the dock is below 64rem. (The swipe
+  // that scrolled the page behind the dock cannot be driven in the test browser: it never scrolls.)
+  test("the opened queue rises over the page without moving the Catch up button, and its list is cut mid-row", async ({
+    page,
+    hasTouch,
+  }) => {
+    test.skip(!hasTouch, "the dock is a phone's");
+    const ids = [41, 42, 43, 44, 45, 46];
+    await mock(page, () => ids.map((id) => row(id)));
+    await follow(page);
+    await page.goto("/library");
+    await hydrated(page);
+    await expect(page.locator("[data-queue-toggle]")).toBeVisible();
+    // What stands on the page holds still: the Catch up button's box is the same box once the dock is open.
+    const button = page.locator(".create-fab");
+    const dockTop = () =>
+      page.locator(".queue-dock").evaluate((node) => node.getBoundingClientRect().top);
+    await expect(button).toBeVisible();
+    const [boxFolded, topFolded] = [await button.boundingBox(), await dockTop()];
+
+    await openQueue(page);
+    await expect(rows(page).first()).toBeVisible();
+    await expect.poll(dockTop).toBeLessThan(topFolded);
+    expect(await button.boundingBox()).toEqual(boxFolded);
+
+    // The list scrolls, and the row where it is cut off shows only part of itself: the cue that there is
+    // more. Read once the opening has settled.
+    const list = page.locator(".queue-dock .queue-list");
+    await expect
+      .poll(() =>
+        list.evaluate((node) => {
+          const bottom = node.getBoundingClientRect().bottom;
+          const cut = [...node.querySelectorAll<HTMLElement>("[data-queue-row-item]")].filter(
+            (item) => {
+              const box = item.getBoundingClientRect();
+              return box.top < bottom - 1 && box.bottom > bottom + 1;
+            },
+          );
+          return node.scrollHeight > node.clientHeight && cut.length === 1;
+        }),
+      )
+      .toBe(true);
+  });
+
   test("a run that was cancelled stays as Cancelled for the day, with nothing to try again", async ({
     page,
   }) => {
