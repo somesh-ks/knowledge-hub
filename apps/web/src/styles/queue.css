@@ -408,10 +408,23 @@ html[data-player="open"] .queue-dock {
 }
 
 /* Start listening: the ring has become a play button, filled, in the ring's own place. A link to the
-   podcast, so it needs no script to work. */
-.queue-play {
-  background: var(--color-accent-action);
-  color: var(--color-on-accent-action);
+   podcast, so it needs no script to work. It is a Play, so it wears the one primary fill with its own
+   hover and press (owner, 2026-11-04: every primary button one colour); the icon button's ghost states
+   would turn it grey under a pointer. */
+.icon-btn.queue-play {
+  background: var(--cta-bg);
+  color: var(--cta-fg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .icon-btn.queue-play:hover {
+    background: var(--cta-bg-hover);
+    color: var(--cta-fg);
+  }
+}
+
+.icon-btn.queue-play:active {
+  background: var(--cta-bg-pressed);
 }
 
 .queue-end-icon {

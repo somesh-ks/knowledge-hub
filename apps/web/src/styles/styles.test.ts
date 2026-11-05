@@ -1334,7 +1334,7 @@ describe("component stylesheets", () => {
     // side column's Catch up are one action, so one colour: the floating ones wore the tonal step and
     // Catch up a tone of its own, each a second primary beside Play (owner, 2026-11-04). A disabled
     // face is the only other fill.
-    const PRIMARY = ["button-filled", "create-fab", "play-fab", "btn-action-tonal"];
+    const PRIMARY = ["button-filled", "create-fab", "play-fab", "btn-action-tonal", "queue-play"];
     const groups = /:(?:where|not|is)\((?:[^()]|\([^()]*\))*\)/g;
     const found = ownCss().flatMap(([file, css]) =>
       rulesOf(css).flatMap(([list, body]) => {
