@@ -475,6 +475,12 @@ function paintList(
   // The order is the entries': going first, then the day's, the newest first. A row already in place is
   // left alone: moving a node takes it out of the page and puts it back, which starts its shimmer again
   // (and drops a press on it), so only a row out of order is moved.
+  const wanted = new Set(entries.map(({ item }) => String(item.row.run_id)));
+  for (const [key, gone] of present) {
+    if (wanted.has(key)) continue;
+    gone.remove();
+    present.delete(key);
+  }
   let cursor = list.querySelector<HTMLElement>(":scope > [data-queue-row-item]");
   for (const { item, view, name } of entries) {
     const key = String(item.row.run_id);
@@ -490,7 +496,6 @@ function paintList(
     else list.insertBefore(li, cursor);
     paintRow(li, item, view, name, data, current);
   }
-  for (const gone of present.values()) gone.remove();
 }
 
 /**
@@ -979,6 +984,8 @@ export function mountQueue(startedHere = false): void {
   });
   matchMedia(WIDE).addEventListener("change", () => {
     keepRoom();
+    // The dock measures its rows only while it shows (fitList), so a narrower window draws them again.
+    render();
   });
   // A run was started here. On a wide screen the popover opens to show it, once the sheet that
   // started it has gone, as a browser shows a download it has begun.
