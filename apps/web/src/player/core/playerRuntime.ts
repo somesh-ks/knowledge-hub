@@ -283,7 +283,11 @@ function syncRootState(playerStore: PlayerStore): void {
 /** Reads the page's digest into the store and refreshes the reader coupling. */
 function readPage(playerStore: PlayerStore): void {
   // A briefing narrated earlier in this session comes back with its audio, not as the page built it.
-  playerStore.setPageDigest(narratedOrPage(readDigestData()));
+  const digest = narratedOrPage(readDigestData());
+  // Before setPageDigest: a press on a cover in the Library starts playing on arrival, inside it.
+  const url = digest?.audio?.url;
+  if (url) preconnectAudioHost(url);
+  playerStore.setPageDigest(digest);
 }
 
 /** A dialog or popover other than the player is open. The toast is a popover, but not a modal one. */
@@ -441,7 +445,6 @@ export function startPlayerRuntime(): () => void {
   const onPageLoad = (): void => {
     readPage(playerStore);
     reader.refresh();
-    warmAudioHost();
     // Only a briefing or an episode without audio, at the next idle moment rather than after a
     // fixed wait: the first Play after a page opens finds its first file sooner.
     if (pageNeedsPrewarm(playerStore.getPageDigest(), navigator.onLine)) {
