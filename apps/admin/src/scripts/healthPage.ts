@@ -16,7 +16,7 @@ import type {
 import { mountSegmentedNav, selectTab } from "../../../web/src/scripts/segmentedNav";
 import { askKept } from "../lib/kept";
 import { PILLARS } from "../lib/pillars";
-import { drawTiles } from "./healthRing";
+import { drawSummary } from "./healthSummary";
 
 const root = document.querySelector<HTMLElement>("[data-health]");
 const deviceTabs = document.querySelector<HTMLElement>("[data-device]");
@@ -162,7 +162,7 @@ function drawMeter(
 function paintSummary(): void {
   const summary = root?.querySelector<HTMLElement>("[data-health-summary]");
   if (!summary || !answer) return;
-  drawTiles(summary, answer, PILLARS, (pillar) => `#c-${pillar}`);
+  drawSummary(summary, answer, PILLARS, (pillar) => `#c-${pillar}`);
   const at = new Date(answer.checked_at);
   const sameDay = at.toDateString() === new Date().toDateString();
   const checked = `${sameDay ? "" : `${shortDate(answer.checked_at)}, `}${at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;

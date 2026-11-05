@@ -515,6 +515,10 @@ function budgetRows(budgets: HealthInput["budgets"], now: Date): HealthRow[] {
 
 // ---- the charts' readings ------------------------------------------------------------------
 
+/** The reports an error row quotes, and how much of each: enough to search the code for it. */
+const TOP_REPORTS = 3;
+const REPORT_CHARS = 300;
+
 /** The readings behind the rows, unworded: what the command center draws its charts from. */
 export function healthSeries(input: HealthInput): HealthSeries {
   const timed = (kind: Digest["kind"]) =>
@@ -569,6 +573,19 @@ export function healthSeries(input: HealthInput): HealthSeries {
       errors[kind.id] = {
         day: groups.reduce((sum, group) => sum + group.day, 0),
         week: groups.reduce((sum, group) => sum + group.total, 0),
+        top: [...groups]
+          .sort((a, b) => b.total - a.total)
+          .slice(0, TOP_REPORTS)
+          .map((group) => ({
+            // A blocked script's message is empty; what it blocked says it.
+            message: (group.message || `${group.directive} blocked ${group.blocked}`).slice(
+              0,
+              REPORT_CHARS,
+            ),
+            page: group.page,
+            week: group.total,
+            build: group.build,
+          })),
       };
     }
   }

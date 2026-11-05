@@ -131,11 +131,41 @@ export function problemText(problem: Problem): string {
 
 const COPIED_MS = 2000;
 
+/**
+ * A DS text button that copies `text()` when pressed and says so for a moment: "Copied", or "Copy
+ * blocked" when the browser refuses the clipboard.
+ */
+export function copyButton(label: string, text: () => string): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = buttonClass("text");
+  button.textContent = label;
+  button.addEventListener("click", () => {
+    navigator.clipboard.writeText(text()).then(
+      () => {
+        button.textContent = "Copied";
+        setTimeout(() => {
+          button.textContent = label;
+        }, COPIED_MS);
+      },
+      () => {
+        button.textContent = "Copy blocked";
+      },
+    );
+  });
+  return button;
+}
+
+/** The problems on screen now, by title: what a page's own "Copy for agent" adds to its text. */
+const shown = new Map<string, Problem>();
+export const currentProblems = (): Problem[] => [...shown.values()];
+
 /** Draws, or redraws, the banner for this problem's title in the page's problem slot (AdminHead). */
 export function reportProblem(problem: Problem): void {
   const slot = document.querySelector<HTMLElement>("[data-problems]");
   if (!slot) return;
   const key = problem.title;
+  shown.set(key, problem);
   const banner = document.createElement("div");
   banner.className = bannerClass();
   // An older answer still on the page: the page works in part (warning). Nothing on it: danger.
@@ -154,23 +184,7 @@ export function reportProblem(problem: Problem): void {
   body.className = bannerText.body;
   body.textContent = line(problem);
   column.append(title, body);
-  const copy = document.createElement("button");
-  copy.type = "button";
-  copy.className = buttonClass("text");
-  copy.textContent = "Copy details";
-  copy.addEventListener("click", () => {
-    navigator.clipboard.writeText(problemText(problem)).then(
-      () => {
-        copy.textContent = "Copied";
-        setTimeout(() => {
-          copy.textContent = "Copy details";
-        }, COPIED_MS);
-      },
-      () => {
-        copy.textContent = "Copy blocked";
-      },
-    );
-  });
+  const copy = copyButton("Copy details", () => problemText(problem));
   banner.append(...(icon ? [icon] : []), column, copy);
   const old = [...slot.children].find((each) => (each as HTMLElement).dataset.problem === key);
   if (old) old.replaceWith(banner);
@@ -179,6 +193,7 @@ export function reportProblem(problem: Problem): void {
 
 /** Takes the banner for this title down: the next ask answered. */
 export function clearProblem(title: string): void {
+  shown.delete(title);
   for (const each of document.querySelectorAll<HTMLElement>("[data-problems] [data-problem]")) {
     if (each.dataset.problem === title) each.remove();
   }
