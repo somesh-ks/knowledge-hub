@@ -116,10 +116,12 @@ export function createStreamPublisher(input: StreamPublisherInput): StreamPublis
   let last: Promise<void> = Promise.resolve();
   const hosts = request.format === "discussion" ? discussionHostNames(request) : null;
   const coverKey = coverKeyOf(input.cover);
+  // Named once, so a run that crosses Stockholm midnight keeps one title in every part.
+  const title = episodeTitle(request, input.now());
 
   const document = (): StreamDoc => ({
     id: input.episodeId,
-    title: episodeTitle(request),
+    title,
     status,
     turns,
     part,
