@@ -124,7 +124,7 @@ export function drawSummary(
   const rest = root.querySelector<HTMLElement>("[data-issues-rest]");
   if (rest)
     rest.textContent = issues.length
-      ? `The other ${total - issues.length} checks are fine. Prompts to fix them are in Actions.`
+      ? `Prompts to fix these are in Actions. The other ${total - issues.length} checks are fine.`
       : `All ${total} checks are fine.`;
   return issues;
 }
