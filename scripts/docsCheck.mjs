@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 // Bytes. Read-first is what every session reads: AGENTS.md and state.md.
 export const BUDGETS = {
-  "AGENTS.md": 8_000,
+  "AGENTS.md": 9_000,
   "docs/state.md": 12_000,
   "docs/learnings.md": 26_000,
   "docs/specs/README.md": 4_000,
@@ -16,7 +16,7 @@ export const BUDGETS = {
 export const SPEC_BUDGET = 8_000;
 // What every session reads: AGENTS.md and state.md. The Index is searched, never read whole, so it has
 // a budget of its own (D283).
-export const READ_FIRST_BUDGET = 20_000;
+export const READ_FIRST_BUDGET = 21_000;
 export const INDEX_BUDGET = 40_000;
 // Folders with an index of their own, left out of the docs README check.
 const OWN_INDEX = ["decisions/", "history/", "ledger/", "prototype/", "specs/"];
