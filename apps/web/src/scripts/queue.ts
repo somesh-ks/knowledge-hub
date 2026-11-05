@@ -583,7 +583,6 @@ function applyHead(): void {
   if (!root) return;
   const title = root.dataset.wordTitle ?? "";
   const live = head.going > 0;
-  const percent = live ? `${head.percent}%` : "";
   const ended = live
     ? ""
     : head.ended === "failed"
@@ -599,7 +598,6 @@ function applyHead(): void {
     const label = panel.querySelector<HTMLElement>("[data-queue-title]");
     setText(label, title);
     markLive(label, live);
-    setText(panel.querySelector("[data-queue-percent]"), percent);
     const ring = panel.querySelector<HTMLElement>("[data-queue-fold-ring]");
     ring?.style.setProperty("--queue-p", String(head.percent));
     ring?.style.setProperty("--queue-span", `${OPEN_POLL_MS / 1000}s`);

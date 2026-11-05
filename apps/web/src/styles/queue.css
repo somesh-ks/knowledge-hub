@@ -2,7 +2,7 @@
  * The podcast queue (components/Queue.astro, scripts/queue.ts): what is being made, and what was made
  * today, as a browser lists its downloads. Below 64rem a dock sits directly above the bottom bar,
  * never a modal or a sheet: no scrim, nothing inert, the bar and the app bar stay usable. Folded it is
- * one row (a small ring, "Podcast queue", the percent); opened it lists the rows. From 64rem a row at
+ * one row (a small ring, "Podcast queue"); opened it lists the rows. From 64rem a row at
  * the foot of the side column (shell.css, .app-nav-queue) opens the same rows in a popover beside it.
  *
  * Usage: a row is .queue-row: .queue-lead (the small .queue-ring with the time left under it while the
@@ -63,7 +63,7 @@ html[data-player="open"] .queue-dock {
 }
 
 /* An open dialog moves the window's edge out by the scrollbar's width (foundations.css): the dock
-   keeps that room, so its percent and chevron hold still. */
+   keeps that room, so its chevron holds still. */
 @media (width < 64rem) {
   html[data-dialog-open] .queue-dock {
     padding-inline-end: var(--gutter, 0px);
@@ -101,15 +101,6 @@ html[data-player="open"] .queue-dock {
   font-size: var(--font-size-label);
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* Four characters wide, whatever the number: the word never shifts as 9% becomes 10%. */
-.queue-fold-percent {
-  flex: none;
-  min-width: 4ch;
-  color: var(--color-on-surface-muted);
-  font-variant-numeric: tabular-nums;
-  text-align: end;
 }
 
 /* Folded it points up (open me), opened it points down (fold me). It turns on the body's own curve and
@@ -189,8 +180,8 @@ html[data-player="open"] .queue-dock {
 }
 
 /* Opened, the dock's list starts a little below the head, so the first row is not tight against it; and
-   while runs go the ring gives way to the percent alone (a finished or failed run keeps its check or
-   alert). The last row, scrolled to the end, has the room the first has under the head and a step more
+   while runs go the head's ring gives way, each row has its own (a finished or failed run keeps its check
+   or alert). The head shows no overall percent (owner, 2026-11-05). The last row, scrolled to the end, has the room the first has under the head and a step more
    (owner, 2026-11-05: the foot was tight against the bar). The cap above adds both. */
 .queue-dock .queue-list {
   padding-block: var(--space-2) var(--space-4);

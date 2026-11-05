@@ -104,7 +104,7 @@ const icons: Record<string, IconName> = {
 
 {/* The podcast queue (D231): what is being made, as a browser lists its downloads, and what was made
      today. Below 64rem a dock sits directly above the bottom bar, never a modal: one row when folded
-     (a small ring, "Podcast queue", the percent), the rows when opened, and the bar and the app bar
+     (a small ring, "Podcast queue"), the rows when opened, and the bar and the app bar
      stay usable either way. From 64rem a row at the foot of the side column (AppNav.astro)
      opens the same rows in a popover. One markup holds the words, the icons, the status region and
      both surfaces; scripts/queue.ts fills them. Persisted across navigations, so what the script put
@@ -119,7 +119,6 @@ const icons: Record<string, IconName> = {
           <span class="queue-stage-icon" data-queue-head-icon="fold"></span>
         </QueueRing>
         <span class="queue-fold-text queue-word" data-queue-title></span>
-        <span class="queue-fold-percent" data-queue-percent></span>
         <Icon name="chevronDown" size="md" class="queue-chevron" />
       </button>
     </div>
