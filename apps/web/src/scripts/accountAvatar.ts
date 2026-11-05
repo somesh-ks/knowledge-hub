@@ -15,6 +15,8 @@
  * o, a morph into another shape and back. The --av-plays token of the mood lists what it may do, and the hue says where in that
  * list it starts, so each tap is the next one, never a repeat. A tap in the app bar goes to the profile
  * and the show carries on in the persisted avatar. A new pick plays one too. A tap during a show waits for it to end.
+ * The profile's big avatar (data-account-still) mirrors none of the app's states, idles or taps: it plays only
+ * the show of a new pick.
  */
 import { AVATAR_SHAPES, avatarMarkup, moodShapes, tokenWords } from "../design-system/avatar";
 import { getPreferences } from "../player/core/preferences";
@@ -44,6 +46,8 @@ function loadFace(): Promise<Face> {
 }
 
 const SLOT = "[data-account]";
+/** A slot that only a new pick moves (the profile's big avatar): the bar's avatar carries every other show. */
+const STILL = "[data-account-still]";
 const ONE_SHOT_MS = 1400;
 const FROWN_MS = 2600;
 const IDLE_MIN_MS = 20_000;
@@ -78,6 +82,11 @@ function avatars(): HTMLElement[] {
   return [...document.querySelectorAll<HTMLElement>(`${SLOT} > *`)];
 }
 
+/** The avatars that mirror what the app is doing: all but a still one. */
+function ambient(): HTMLElement[] {
+  return avatars().filter((avatar) => !avatar.closest(STILL));
+}
+
 function show(id: string, only = avatars()): void {
   const tone = AVATAR_SHAPES[id]?.tone;
   for (const avatar of only) {
@@ -103,7 +112,7 @@ let frownTimer = 0;
 let playTimer = 0;
 
 function setFace(face: "frown" | "sleep" | null): void {
-  for (const avatar of avatars()) {
+  for (const avatar of ambient()) {
     if (face) avatar.dataset.face = face;
     else avatar.removeAttribute("data-face");
   }
@@ -118,7 +127,7 @@ function setState(): void {
       : root.dataset.playerState === "playing"
         ? "playing"
         : null;
-  for (const avatar of avatars()) {
+  for (const avatar of ambient()) {
     if (state) avatar.dataset.state = state;
     else avatar.removeAttribute("data-state");
   }
@@ -127,7 +136,7 @@ function setState(): void {
   else if (!frownTimer) setFace(null);
 }
 
-function play(kind: string, ms = ONE_SHOT_MS, only = avatars()): void {
+function play(kind: string, ms = ONE_SHOT_MS, only = ambient()): void {
   window.clearTimeout(playTimer);
   for (const avatar of only) {
     avatar.removeAttribute("data-play");
@@ -232,7 +241,7 @@ function react(target?: HTMLElement): void {
 
 function onTap(event: MouseEvent): void {
   const avatar = (event.target as Element | null)?.closest?.<HTMLElement>(`${SLOT} > *`);
-  if (!avatar?.querySelector("svg")) return;
+  if (!avatar?.querySelector("svg") || avatar.closest(STILL)) return;
   if (!avatar.closest("a")) {
     react(avatar);
     return;
@@ -254,7 +263,7 @@ function scheduleIdle(): void {
       const root = document.documentElement;
       // Only a quiet avatar fidgets: not while it plays, works or sleeps, nor on a page nobody sees.
       if (document.visibilityState === "visible" && !root.hasAttribute("data-offline")) {
-        const still = avatars().every((a) => !a.dataset.play && !a.dataset.state);
+        const still = ambient().every((a) => !a.dataset.play && !a.dataset.state);
         if (still) play(IDLE_PLAYS[Math.floor(Math.random() * IDLE_PLAYS.length)] ?? "blink");
       }
       scheduleIdle();

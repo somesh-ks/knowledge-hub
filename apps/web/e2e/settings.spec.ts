@@ -328,6 +328,15 @@ test.describe("profile page", () => {
     expect(await bar.evaluate((el) => el.querySelector("svg")?.hasAttribute("style"))).toBe(true);
     await expect(face).not.toHaveAttribute("data-play");
     expect(await face.evaluate((el) => el.querySelector("svg")?.hasAttribute("style"))).toBe(false);
+    // What the app does (a run under way, a save) moves the bar's avatar alone: the big one only
+    // animates for a new pick.
+    await page.evaluate(() => {
+      document.documentElement.setAttribute("data-run", "");
+      window.dispatchEvent(new Event("singularity:saved"));
+    });
+    await expect(bar).toHaveAttribute("data-state", "working");
+    await expect(face).not.toHaveAttribute("data-state");
+    await expect(face).not.toHaveAttribute("data-play");
   });
 
   // The bug it prevents (D353): a tap that starts a show it never ends, a morph that leaves the avatar
@@ -339,7 +348,7 @@ test.describe("profile page", () => {
       page.evaluate(() => {
         const seen = { plays: [] as string[], shapes: [] as string[] };
         (window as unknown as { __avatar: typeof seen }).__avatar = seen;
-        const face = document.querySelector(".profile-face > *");
+        const face = document.querySelector("a.account-bar > *");
         new MutationObserver((changes) => {
           for (const change of changes) {
             const value = (change.target as HTMLElement).getAttribute(change.attributeName ?? "");
@@ -357,11 +366,13 @@ test.describe("profile page", () => {
       );
 
     await page.clock.install();
-    await page.goto("/profile");
-    const face = page.locator(".profile-face > *");
+    await page.goto("/settings");
+    const face = page.locator("a.account-bar > *");
     await expect(face).toHaveAttribute("data-shape", /./);
     const home = await face.getAttribute("data-shape");
     await watch();
+    // The bar's avatar is the one a tap moves (the profile's big one only plays for a new pick); each
+    // tap opens the profile, and the persisted avatar carries on.
     for (let tap = 0; tap < 5; tap++) {
       await face.click();
       await page.clock.runFor(2500);
