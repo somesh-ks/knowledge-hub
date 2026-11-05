@@ -1,0 +1,32 @@
+---
+import Icon from "./Icon.astro";
+import "../styles/code.css";
+
+interface Props {
+  /** The text, copied exactly as it is. */
+  text: string;
+  /** The text's accessible name, e.g. "Prompt". */
+  label: string;
+  copy?: string;
+  copied?: string;
+  /** For placing the snippet where it stands (a margin, a grid area). Never its look. */
+  class?: string;
+}
+
+const { text, label, copy = "Copy", copied = "Copied", class: className = "" } = Astro.props;
+---
+
+<div class={["code-snippet", className].filter(Boolean).join(" ")} data-code data-copied-word={copied}>
+  <pre class="code-snippet-text" tabindex="0" aria-label={label}>{text}</pre>
+  <button class="icon-btn code-snippet-copy" type="button" aria-label={copy} title={copy} data-code-copy>
+    <Icon name="copy" size="lg" />
+    <Icon name="check" size="lg" />
+  </button>
+  <span class="sr-only" role="status" data-code-said></span>
+</div>
+
+<script>
+  import { wireCodeCopy } from "./code";
+
+  wireCodeCopy();
+</script>

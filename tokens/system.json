@@ -2943,6 +2943,13 @@
       "role": "Same family as the interface. Kept as its own token so story text can change voice without touching components."
     },
     {
+      "name": "--font-code",
+      "tier": "primitive",
+      "type": "fontFamily",
+      "light": "ui-monospace, \"SF Mono\", \"Cascadia Mono\", \"Roboto Mono\", Menlo, Consolas, \"Liberation Mono\", monospace",
+      "role": "Monospace for text a person copies as it is: a run's details, a prompt, an error. The system's own, so it costs no download; the same in every mood."
+    },
+    {
       "name": "--font-blackletter",
       "tier": "primitive",
       "type": "fontFamily",

@@ -1,0 +1,56 @@
+/*
+ * The Code snippet (design-system/code.ts, Code.astro): text a person copies as it is, in the
+ * monospace family (--font-code, the system's own in every mood), on the tonal box a field has, with
+ * a Copy button at its top end. The text wraps and keeps its line breaks, so a long line never
+ * scrolls sideways and nothing is cut. Pressed, the button's copy glyph turns to a check for two
+ * seconds (data-copied, set by code.ts).
+ */
+.code-snippet {
+  position: relative;
+  border-radius: var(--shape-lg);
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
+}
+
+/* On a card's fill it takes the page's own surface, as a field on a card does (topics.css), so it
+   reads against the card. */
+:is(.card-group, .topic-panel) .code-snippet {
+  background: var(--color-surface);
+}
+
+/* The text keeps clear of the button: the glyph's width and a gap past the padding. */
+.code-snippet-text {
+  margin: 0;
+  padding: var(--space-4);
+  padding-inline-end: calc(var(--space-4) + var(--size-icon-lg) + var(--space-2));
+  border-radius: inherit;
+  font-family: var(--font-code);
+  font-size: var(--font-size-label);
+  line-height: var(--font-leading-caption);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  tab-size: 2;
+}
+
+.code-snippet-text:focus-visible {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: calc(var(--stroke-ring) * -1);
+}
+
+/* The 44px target sits so its glyph's top and end meet the text's padding: the glyph is on the
+   first line, its ink as far in as the words are. */
+.code-snippet-copy {
+  position: absolute;
+  inset-block-start: calc(var(--space-4) - (var(--size-touch) - var(--size-icon-lg)) / 2);
+  inset-inline-end: calc(var(--space-4) - (var(--size-touch) - var(--size-icon-lg)) / 2);
+}
+
+.code-snippet-copy > [data-icon="check"],
+[data-copied] > .code-snippet-copy > [data-icon="copy"] {
+  display: none;
+}
+
+[data-copied] > .code-snippet-copy > [data-icon="check"] {
+  display: block;
+  color: var(--color-accent);
+}

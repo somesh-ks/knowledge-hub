@@ -8,6 +8,7 @@ import { AVATAR, AVATAR_CLASSES, AVATAR_RETIRED } from "./avatar";
 import { BADGE, BADGE_CLASSES, BADGE_RETIRED } from "./badge";
 import { BANNER, BANNER_CLASSES, BANNER_RETIRED } from "./banner";
 import { BUTTON, BUTTON_CLASSES, BUTTON_RETIRED } from "./button";
+import { CODE, CODE_CLASSES, CODE_RETIRED } from "./code";
 import { DIALOG, DIALOG_CLASSES, DIALOG_RETIRED } from "./dialog";
 import { DRAWER, DRAWER_CLASSES, DRAWER_RETIRED } from "./drawer";
 import { FIELD, FIELD_CLASSES, FIELD_RETIRED } from "./field";
@@ -101,6 +102,17 @@ export const COMPONENTS: DesignSystemComponent[] = [
     summary: FLAG.summary,
     useWhen: FLAG.useWhen,
     dontUseWhen: FLAG.dontUseWhen,
+    parts: {},
+  },
+  {
+    name: "Code",
+    sheet: "code.css",
+    prefix: "code-",
+    classes: CODE_CLASSES,
+    retired: CODE_RETIRED,
+    summary: CODE.summary,
+    useWhen: CODE.useWhen,
+    dontUseWhen: CODE.dontUseWhen,
     parts: {},
   },
   {
