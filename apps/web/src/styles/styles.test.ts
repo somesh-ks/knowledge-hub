@@ -69,6 +69,10 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
   [".banner-notice > .button-text", "the action's hit area reaching into the banner's padding"],
   [".banner-body", "a banner's title onto its body, inside one banner"],
   [".menu-tile", "a glyph onto its word inside one tile: the icon-to-label gap is 4px, items 8px"],
+  [".card-group", "the card's inset: its rows sit 4px inside it, concentric with its corners"],
+  [".blocked-add .filter-row", "the card's inset, as a card group's rows"],
+  [".segmented-nav-tab::after", "the segmented control's inset: the tab's fill sits 4px inside it"],
+  [".topic-add-source::after", "the button's hit area reaching 4px past it"],
   [
     ".menu-tiles[data-fold] > .menu-item",
     "the Library card's quick actions are the same tiles on a phone: glyph to word 4px",
@@ -370,6 +374,26 @@ interface Rule {
   offenders: () => string[];
 }
 
+/**
+ * Spacing that is off the grid on its own and puts what you see on it: a padding less the inset it
+ * sits in, a gap less the room kept for a focus ring. And one value the owner chose off the grid.
+ */
+const OFF_GRID_ALLOWED: [selector: string, reason: string][] = [
+  [".card-group > .row-action", "the card's 24px padding less its 4px inset: words stay 24px in"],
+  [".blocked-add .search-field", "the card's 24px padding less its 4px inset: words stay 24px in"],
+  [".blocked-add .filter-row > .topic-add-source", "the card's padding less its inset, as above"],
+  [
+    ".topic-panel .source-edit",
+    "the card's padding less its inset, reaching back to the card's edge",
+  ],
+  [".story", "the item's half gap less the chips' 4px hit-area overhang (ALLOWED_4PX)"],
+  [".hero-actions", "16px less the room kept for focus rings: Play sits 16px under the facts"],
+  [".shell > .aside", "48px less the rail's 4px hit area reaching past the column"],
+  [".filter-chip", "16px plus half the check's room, so a chip keeps its width as it ticks (D95)"],
+  [".manage-field", "--field-label-gap, 12px: the owner's step between 8 and 24 (2026-10-29)"],
+  [".sheet-field", "--field-label-gap, 12px: the owner's step between 8 and 24 (2026-10-29)"],
+];
+
 const RULES: Rule[] = [
   {
     name: "no element can show the browser's tap flash (a long press on a list row flashed blue)",
@@ -481,6 +505,72 @@ const RULES: Rule[] = [
                   return !(step === "1" && fine);
                 })
                 .map(([token]) => `${file}: ${selector} { ${property}: ${token} }`),
+            ),
+        ),
+      );
+    },
+  },
+  {
+    // The rule above reads the space tokens a stylesheet names. A component token (a field's label
+    // gap of 12px) or a calc() of space tokens (16px less 4px) reached the page off the grid unseen
+    // (owner, 2026-11-05: "why do we have odd numbered spacing?"). This one resolves each spacing
+    // value made of space and component tokens to pixels and holds the result to 8, 16, 24 and up,
+    // 4px where ALLOWED_4PX says. A value built from a dimension (an icon, a touch target, a stroke)
+    // is that part's geometry, centring or a hit area, and stays out, as widths do above.
+    name: "spacing tokens and calc() resolve to the 8pt grid",
+    offenders: () => {
+      const spacing =
+        /^(?:margin|padding|gap|row-gap|column-gap|inset|top|right|bottom|left|scroll-margin|scroll-padding)(?:-[a-z-]+)?$/;
+      const dimension =
+        /size|height|width|thumb|track|icon|touch|stroke|hairline|ring|cover|avatar|fab|glyph|radius|shape|font|leading|dock|bar|room|safe|keyboard|nav|sticky|measure|travel|ink|range|scrubber|switch|chip|player|gutter|top/;
+      const px = (expression: string, depth = 0): number | null => {
+        if (depth > 8) return null;
+        let failed = false;
+        const numeric = expression
+          .replace(/var\((--[\w-]+)(?:,[^()]*)?\)/g, (_, name: string) => {
+            if (dimension.test(name)) failed = true;
+            const value = tokenValue(`var(${name})`);
+            const resolved = value.startsWith("var(") ? null : px(value, depth + 1);
+            if (resolved === null) failed = true;
+            return `(${resolved ?? 0})`;
+          })
+          .replace(/calc\(/g, "(")
+          .replace(/(-?\d*\.?\d+)rem\b/g, (_, n: string) => `(${Number(n) * 16})`)
+          .replace(/(-?\d*\.?\d+)px\b/g, "($1)");
+        if (failed || !/^[\d\s.+\-*/()]+$/.test(numeric)) return null;
+        const value = Number(Function(`"use strict"; return (${numeric});`)());
+        return Number.isFinite(value) ? Math.round(value * 100) / 100 : null;
+      };
+      const terms = (value: string) => {
+        const out = [""];
+        let depth = 0;
+        for (const character of value) {
+          depth += character === "(" ? 1 : character === ")" ? -1 : 0;
+          if (/\s/.test(character) && depth === 0) out.push("");
+          else out[out.length - 1] += character;
+        }
+        return out.filter(Boolean);
+      };
+      return [
+        ...ownCss(),
+        ["foundations.css", withoutComments(read("foundations.css"))] as const,
+      ].flatMap(([file, css]) =>
+        rulesOf(css).flatMap(([selector, body]) =>
+          declarationsOf(body)
+            .filter(([property]) => spacing.test(property))
+            .flatMap(([property, value]) =>
+              terms(value)
+                .filter((term) => term.includes("var("))
+                .flatMap((term) => {
+                  const resolved = px(term);
+                  if (resolved === null) return [];
+                  const size = Math.abs(resolved);
+                  if (size % 8 === 0) return [];
+                  const fine = ALLOWED_4PX.some(([allowed]) => wholeName(allowed).test(selector));
+                  if (size === 4 && fine) return [];
+                  if (OFF_GRID_ALLOWED.some(([allowed]) => selector === allowed)) return [];
+                  return [`${file}: ${selector} { ${property}: ${term} } = ${resolved}px`];
+                }),
             ),
         ),
       );
