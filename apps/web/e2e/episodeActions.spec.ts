@@ -252,6 +252,13 @@ test.describe("regenerate and delete an episode", () => {
     await note.fill("");
     await expect(length).toBeVisible();
     expect((await lengths()).at(-1)?.[1]).toBe(true);
+    // The dialog keeps its words when closed; opened again, the models read them again.
+    await note.fill("It dragged on");
+    await expect.poll(() => asked.length).toBe(3);
+    await page.keyboard.press("Escape");
+    await expect(panel(page)).toBeHidden();
+    await choose(page, "Regenerate");
+    await expect.poll(() => asked.length).toBe(4);
   });
 
   test("the character count shows only near the limit", async ({ page }) => {

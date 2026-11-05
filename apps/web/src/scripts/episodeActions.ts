@@ -131,6 +131,11 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
   if (feedback) {
     // The words answer at once; once the typing pauses, Jev and Haiku can add what they missed.
     asker = createCommentAsker(follow);
+    // The dialog keeps its text when it closes; opening it again reads the kept words again.
+    dialog.addEventListener("regen-open", () => {
+      asker?.note(feedback.value, topicChips().map(labelOf));
+      follow();
+    });
     dialog.addEventListener("close", () => {
       asker?.stop();
       forgetTouched();
@@ -283,6 +288,7 @@ export function openEpisodeAction(trigger: HTMLElement): void {
       radio.checked = radio.defaultChecked = radio.value === start;
     }
   }
+  if (kind === "regenerate") dialog.dispatchEvent(new Event("regen-open"));
   // A pick from the menu hands focus back to the More button; the menu itself is closed by then.
   const back = () => {
     const target = trigger.closest("[popover]")
