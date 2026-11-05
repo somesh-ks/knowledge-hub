@@ -128,8 +128,10 @@
 
 /* Health: what needs a look is one line each, worst first; what is fine is one line that opens, so a
    page of good news is a ring and a line. */
+/* Its lines stack from the top: the room it keeps for its tallest view stays empty below them. */
 .ov-groups {
   display: grid;
+  align-content: start;
 }
 
 .ov-flags {
@@ -827,20 +829,49 @@ html:has(.hl-sections) {
   display: none;
 }
 
-/* Error and budget tiles: the figure or word with its glyph; the week under the error count. */
-.hl-tile-value {
+/* The summary's and Budgets' tiles: a DS stat tile (primitives.css) with a line on top, the name and
+   its glyph at the far edge, over its word and its numbers; three a row from 40rem. A tile that needs a
+   look takes its tone's subtle fill, the banner's (2026-11-05, the owner picked the tiles). */
+.hl-tile-head {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-2);
+  min-inline-size: 0;
+  line-height: var(--space-6);
 }
 
-.hl-tile-value .ov-flag-icon .icon-glyph {
+.hl-tile-name {
+  overflow: hidden;
+  color: var(--color-on-surface);
+  font-size: var(--text-meta-size);
+  font-weight: var(--font-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hl-tile .ov-flag-icon .icon-glyph {
   inline-size: var(--size-icon);
   block-size: var(--size-icon);
 }
 
+.hl-tile .stat-tile-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hl-tile[data-tone="warn"] {
+  background-color: var(--color-warning-subtle);
+}
+
+.hl-tile[data-tone="bad"] {
+  background-color: var(--color-danger-subtle);
+}
+
 @media (width >= 40rem) {
-  .stat-tiles.hl-budgets {
+  .stat-tiles.hl-budgets,
+  .stat-tiles.hl-tiles {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
@@ -1016,80 +1047,23 @@ html:has(.hl-sections) {
   display: none;
 }
 
-/* The pulse: a heartbeat trace, a beat a section, in its tone and its shape; the names under it are
-   the radios that open a section's checks below (healthRing.ts drawPulse). The trace draws in once. */
-.hl-pulse {
+/* The summary: the tiles above, Overall then one a section. Each is a radio that opens its checks under
+   the tiles; the open one takes the accent container, as every pick in the admin does. */
+.hl-summary {
   gap: var(--space-4);
 }
 
-.hl-pulse-svg {
-  display: block;
-  inline-size: 100%;
-  block-size: calc(var(--space-16) * 2);
-  overflow: visible;
-  touch-action: pan-y;
-}
-
-.hl-pulse-base,
-.hl-beat-line {
-  fill: none;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-}
-
-.hl-pulse-base {
-  stroke: var(--color-surface-overlay);
-}
-
-[data-drawn] .hl-pulse-base {
-  display: none;
-}
-
-.hl-beat-line {
-  stroke: var(--ov-tone, var(--color-on-surface-muted));
-  transition: stroke-width var(--duration-state) var(--ease-out);
-}
-
-/* The open section's beat is a stroke thicker, as the ring's open arc is. */
-.hl-beat-line[data-on] {
-  stroke-width: 3;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  [data-drawn] .hl-beat-line {
-    stroke-dasharray: 1;
-    animation: ov-sweep var(--duration-enter) var(--ease-out) backwards;
-    animation-delay: calc(var(--i) * var(--duration-stagger));
-  }
-}
-
-.hl-beats {
-  display: grid;
-  grid-template-columns: repeat(var(--beats, 5), minmax(0, 1fr));
-  margin: 0;
-  padding: 0;
+.hl-tiles {
+  min-inline-size: 0;
   border: 0;
 }
 
-.hl-beat {
+.hl-tile {
   position: relative;
-  display: grid;
-  justify-items: center;
-  align-content: center;
-  min-block-size: var(--size-touch);
-  /* No side padding: five names share a phone's card. */
-  padding-block: var(--space-1);
-  border-radius: var(--card-content-radius);
-  color: var(--color-on-surface);
-  font-size: var(--text-meta-size);
-  line-height: var(--text-meta-leading);
-  text-align: center;
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
-.hl-beat input {
+.hl-tile input {
   position: absolute;
   inset: 0;
   inline-size: 100%;
@@ -1100,13 +1074,22 @@ html:has(.hl-sections) {
   cursor: pointer;
 }
 
-.hl-beat:has(input:checked) {
+.hl-tile input:disabled {
+  cursor: default;
+}
+
+.hl-tile:has(input:checked) {
   background-color: var(--color-accent-container);
+}
+
+.hl-tile:has(input:checked) .stat-tile-value,
+.hl-tile:has(input:checked) .stat-tile-label,
+.hl-tile:has(input:checked) .hl-tile-name {
   color: var(--color-on-accent-container);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .hl-beat:hover {
+  .hl-tile:has(input:enabled):hover {
     background-image: linear-gradient(
       color-mix(in oklch, currentColor var(--state-hover), transparent),
       color-mix(in oklch, currentColor var(--state-hover), transparent)
@@ -1114,25 +1097,29 @@ html:has(.hl-sections) {
   }
 }
 
-.hl-beat:has(input:focus-visible) {
+.hl-tile:has(input:focus-visible) {
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: var(--stroke-ring-gap);
 }
 
-.hl-beat-name,
-.hl-beat-state {
-  max-inline-size: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.hl-beat-state {
+/* All's report: what needs a look under its section's name, then one line for the rest. */
+.hl-report-head {
+  margin: var(--space-2) 0 0;
   color: var(--color-on-surface-muted);
+  font-size: var(--text-meta-size);
+  line-height: var(--text-meta-leading);
 }
 
-.hl-beat:has(input:checked) .hl-beat-state {
-  color: inherit;
+.hl-report-head:first-child {
+  margin-block-start: 0;
+}
+
+.hl-report-rest {
+  display: flex;
+  align-items: center;
+  min-block-size: var(--size-touch);
+  margin: 0;
+  color: var(--color-on-surface-muted);
 }
 
 /* Runs: a kind at a time under the switch, its run time, columns and stages. */

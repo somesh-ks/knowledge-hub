@@ -2,9 +2,10 @@
  * Health page (/admin/health). Paints this device's last answer at once, then asks /api/health and
  * paints the fresh one (lib/kept.ts). Each reading the page drew at build is filled by id: a value,
  * a glyph on one that needs a look, and the marks the answer's series give (run columns, job
- * strips, speed meters). The summary is the Overview's ring (healthRing.ts), an arc a section of
- * the page. The Speed card shows one device at a time and repaints from the same answer. A failed ask
- * with nothing kept says so in the ring and the banner above, and leaves the shell as drawn.
+ * strips, speed meters). The summary is a tile a section of the page and one for all of them
+ * (healthRing.ts). The Speed card shows one device at a time and repaints from the same answer. A
+ * failed ask with nothing kept says so in the summary and the banner above, and leaves the shell as
+ * drawn.
  */
 import type {
   HealthBody,
@@ -15,7 +16,7 @@ import type {
 import { mountSegmentedNav, selectTab } from "../../../web/src/scripts/segmentedNav";
 import { askKept } from "../lib/kept";
 import { PILLARS } from "../lib/pillars";
-import { drawPulse } from "./healthRing";
+import { drawTiles } from "./healthRing";
 
 const root = document.querySelector<HTMLElement>("[data-health]");
 const deviceTabs = document.querySelector<HTMLElement>("[data-device]");
@@ -54,8 +55,11 @@ function paintRow(element: HTMLElement, row: HealthRow | undefined): void {
   const detail = element.querySelector<HTMLElement>("[data-detail]");
   if (value) value.textContent = row?.value ?? "No data";
   if (detail) detail.textContent = row?.detail ?? "Not checked";
-  if (!("speed" in element.dataset) && !detail) element.title = row?.detail ?? "";
+  if (!("speed" in element.dataset) && (!detail || "budget" in element.dataset))
+    element.title = row?.detail ?? "";
   const tone = row?.tone ?? "none";
+  // A budget tile takes its tone's fill when it needs a look, as the summary's tiles do.
+  if ("budget" in element.dataset) element.dataset.tone = tone;
   const shown = isFlag(tone) || ("budget" in element.dataset && tone === "good") ? tone : "none";
   setMark(element.querySelector("[data-mark]"), shown);
 }
@@ -158,7 +162,7 @@ function drawMeter(
 function paintSummary(): void {
   const summary = root?.querySelector<HTMLElement>("[data-health-summary]");
   if (!summary || !answer) return;
-  drawPulse(summary, answer, PILLARS, (pillar) => `#c-${pillar}`);
+  drawTiles(summary, answer, PILLARS, (pillar) => `#c-${pillar}`);
   const at = new Date(answer.checked_at);
   const sameDay = at.toDateString() === new Date().toDateString();
   const checked = `${sameDay ? "" : `${shortDate(answer.checked_at)}, `}${at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
