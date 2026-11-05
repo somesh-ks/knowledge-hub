@@ -1,5 +1,12 @@
 import { type CSSProperties, type KeyboardEvent, type ToggleEvent, useState } from "react";
-import { menuBodyClass, menuItemClass, menuListClass, menuTilesClass } from "../design-system/menu";
+import {
+  MENU_TILES_MAX,
+  menuBodyClass,
+  menuHasTiles,
+  menuItemClass,
+  menuListClass,
+  menuTilesClass,
+} from "../design-system/menu";
 import {
   sheetHeadClass,
   sheetHeadingClass,
@@ -7,7 +14,6 @@ import {
   sheetTitleClass,
 } from "../design-system/sheet";
 import { downloadFailure } from "../lib/downloadCopy";
-import { MENU_TILES_MAX, menuHasTiles } from "../design-system/menu";
 import { inPodcastOrder, type PodcastAction } from "../lib/podcastActions";
 import { sendToast } from "../scripts/toastEvent";
 import { getPlayQueue } from "./core/playerRuntime";
