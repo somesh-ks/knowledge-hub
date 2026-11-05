@@ -1243,11 +1243,15 @@
   transition: background-color var(--duration-press-in) var(--ease-out);
 }
 
-.dock-open:active::after {
-  background: var(--ghost-pressed);
-}
-
+/* A finger gets no layer: Chrome holds :active for the whole touch, so a swipe or a pull on the bar
+   dimmed all of it from touch-down to lift, a grey flash (owner, 2026-11-04: "I have a flash ... It
+   should be the same color"). A finger's tap is felt by its haptic and its sound, and the player
+   rising on the lift. */
 @media (hover: hover) and (pointer: fine) {
+  .dock-open:active::after {
+    background: var(--ghost-pressed);
+  }
+
   .dock-btn:not([aria-disabled="true"]):hover {
     background: var(--ghost-hover);
   }

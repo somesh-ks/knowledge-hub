@@ -130,9 +130,10 @@
 
 /*
  * The hero's chip is the page's primary button: filled with the accent, a size up from a story's
- * chip, so it is the strongest thing in the header and plainly not a tag. Once this page's audio is
- * loaded it steps down to the accent container (the chip's current state, buttons.css), so the
- * player's own Pause is the one filled control on screen; played, preparing and unavailable keep
+ * chip, so it is the strongest thing in the header and plainly not a tag. It keeps the primary fill
+ * once this page's audio is loaded (the chip's current state, buttons.css), as every primary button
+ * does (owner, 2026-11-04: "all should have the same color synchronized"); it stepped down to the
+ * accent container then, a second colour for the same Play. Played, preparing and unavailable keep
  * their meaning.
  */
 .hero-actions > .chip {
@@ -140,6 +141,10 @@
   --chip-bg-hover: var(--cta-bg-hover);
   --chip-bg-pressed: var(--cta-bg-pressed);
   --chip-fg: var(--cta-fg);
+  --chip-bg-current: var(--cta-bg);
+  --chip-bg-current-hover: var(--cta-bg-hover);
+  --chip-bg-current-pressed: var(--cta-bg-pressed);
+  --chip-fg-current: var(--cta-fg);
   min-height: calc(var(--size-touch) - var(--space-1));
   padding-inline: var(--space-4) var(--space-6);
   /* The press may change its corners (--cta-radius-pressed): the pill by default, so nothing moves.
@@ -239,14 +244,16 @@
   display: block;
 }
 
-/* Download shows the cloud with a cross once the page's item is downloaded, to go with "Remove
-   download" (the Library row's is the same, library.css). */
-[data-page-menu] .dl-remove,
-[data-page-menu][data-downloaded] .dl-add {
+/* Download shows the bin once the page's item is downloaded, to go with "Remove download", and the
+   heart fills once it is in Favorites (the Library card's sheet is the same, library.css; D369). */
+[data-page-menu] :is(.dl-remove, .fav-remove),
+[data-page-menu][data-downloaded] .dl-add,
+[data-page-menu][data-saved] .fav-add {
   display: none;
 }
 
-[data-page-menu][data-downloaded] .dl-remove {
+[data-page-menu][data-downloaded] .dl-remove,
+[data-page-menu][data-saved] .fav-remove {
   display: block;
 }
 

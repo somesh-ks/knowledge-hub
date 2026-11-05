@@ -71,7 +71,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D199 | Live content and tombstones | amends D173 |
 | D200 | `fetch_via` through the store | active |
 | D201 | No write-route auth until OAuth | amends D160 |
-| D202 | A deploy loads itself | amends D146; amended by D330 |
+| D202 | A deploy loads itself | amends D146; amended by D330, D373 |
 | D203 | Live Health page | active |
 | D204 | Guards for a short or lost run, health metrics, one run card | active |
 | D205 | Settings paint the kept copy at once | amends D172 |
@@ -83,7 +83,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D211 | Copy says podcast, not briefing; code names keep briefing | active |
 | D212 | Three regenerations per podcast, no daily limit | active |
 | D213 | Two Catch ups a day that came out; failures do not count | active |
-| D214 | A page's More menu offers Download and Add to queue like its Library row | active |
+| D214 | A page's More menu offers Download and Add to queue like its Library row | amended by D369 |
 | D215 | Daily and Weekly have no Look back and no Format | supersedes D184 |
 | D216 | Ticked general topics get a length-sized section | amends D170, D191 |
 | D217 | `run.yml` names every run for what it is | amends D61, D213 |
@@ -146,7 +146,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D277 | Queue keeps played items; a tap plays in place | amends D126; amended by D343, D346 |
 | D278 | Softer light covers | amends D121 |
 | D280 | Travel 300 ms | partly superseded by D336, D341; amends D271 |
-| D281 | Downloads page, no cap | amends D127, D264; amended by D335 |
+| D281 | Downloads page, no cap | amends D127, D264; amended by D335, D369 |
 | D282 | A page falls back to the content its build holds when the store cannot answer | amends D173, D251 |
 | D283 | Read-first is AGENTS.md and state.md (20 KB), the Index is grep-only, the ledger is split by surface; "replaces" retires the old row | active |
 | D284 | Push pings | amends D11 |
@@ -195,7 +195,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D334 | Every Claude step starts at Haiku medium, the podcast script included | amends D333 |
 | D335 | The avatar leads to a profile page; Settings is Podcast settings, App settings and About | amends D129, D281, D299; amended by D344 |
 | D336 | A cover no longer flies between its card and the page's hero | partly supersedes D271, D280; amended by D341 |
-| D337 | Regenerate sheets open on the comment; Length and Categories appear as words reach for them | amends D207, D323; amended by D370 |
+| D337 | Regenerate sheets open on the comment; Length and Categories appear as words reach for them | amends D207, D323; amended by D370, D371 |
 | D338 | Settings sets the default speed on the player's speed screen | amends D309 |
 | D339 | The engine and the site keep one Speechify count, in Blob; Exa gets a weekly stop | amends D300 |
 | D341 | A page arrives from the side of the tab you came from | partly supersedes D280; amends D336; amended by D347 |
@@ -222,9 +222,13 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D362 | Short of room, a row cuts its name and keeps its value | supersedes the 2026-10-22 row rule |
 | D363 | Every mood pads its cards 24px | active |
 | D364 | Play after a quiet starts two seconds back, so a waking output loses no words | active |
-| D365 | Favorites from every podcast menu and a heart beside Play; the heart replaces the bookmark | amends D354 |
+| D365 | Favorites from every podcast menu and a heart beside Play; the heart replaces the bookmark | amends D354; amended by D369 |
 | D366 | Listen now streams the script in parts, each written once and final once out; one append-only continuation; the live timer shows the expected length | amends D105 |
+| D367 | Every flag is the design system's Flag (Flagpack art per country), never an emoji | active |
 | D368 | The app's write routes need no sign-in; the command center stays signed in; per-minute caps are the backstop | supersedes D307 |
-| D370 | Jev reads the Regenerate comment on a pause; the episode's Regenerate offers Length | amends D337 |
+| D369 | One podcast sheet everywhere, in one order; tiles only on a long sheet; Downloads swipes away with a confirm | amends D214, D281, D365 |
+| D370 | Jev reads the Regenerate comment on a pause; the episode's Regenerate offers Length | amends D337; amended by D371 |
+| D371 | The Regenerate comment sets the controls both ways; Haiku proposes the values | amends D337, D370 |
+| D373 | An installed app back after five minutes loads a waiting build even with the player open | amends D202 |
 
 ---

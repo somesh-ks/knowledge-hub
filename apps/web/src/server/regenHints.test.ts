@@ -46,4 +46,33 @@ describe("handleRegenHints", () => {
     expect(failed.body).toEqual({ length: false, topics: false, by: "none" });
     expect(asked).toHaveLength(1);
   });
+
+  // Each values read is a paid Haiku call (D371): same origin, within its own cap, and a failure
+  // answers "nothing to set" so the sheet carries on.
+  it("answers the values only for a same-origin comment within the cap", async () => {
+    const asked: string[] = [];
+    const readValues = async (comment: string) => {
+      asked.push(comment);
+      return { length: "shorter" as const, add: ["AI"] };
+    };
+    const deps = { mayRead: async () => true, readValues, mayReadValues: async () => true };
+    const body = { comment: " it dragged ", categories: ["AI"], want: "values" };
+
+    expect((await handleRegenHints(ask(body), deps)).body).toEqual({
+      length: "shorter",
+      add: ["AI"],
+      by: "haiku",
+    });
+    expect(asked).toEqual(["it dragged"]);
+    expect((await handleRegenHints(ask(body, "https://evil.example"), deps)).status).toBe(400);
+    const none = { length: null, add: [], by: "none" };
+    expect(
+      (await handleRegenHints(ask(body), { ...deps, mayReadValues: async () => false })).body,
+    ).toEqual(none);
+    expect(
+      (await handleRegenHints(ask(body), { ...deps, readValues: async () => null })).body,
+    ).toEqual(none);
+    expect((await handleRegenHints(ask(body), { mayRead: async () => true })).body).toEqual(none);
+    expect(asked).toHaveLength(1);
+  });
 });

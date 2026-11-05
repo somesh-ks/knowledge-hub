@@ -136,11 +136,14 @@
   --color-focus-gap: var(--color-surface);
 }
 
-/* Button, tonal variant: the accent container under its own words, with no outline. Quieter than the filled button
-   and still a button, which an outlined box on the page's own surface was not. */
+/* Button, tonal variant: the mood's container tone under its own words, with no outline, as the tonal icon
+   button and the tonal select are. Quieter than the filled button and still a button, which an outlined
+   box on the page's own surface was not. The accent container means chosen or current alone (owner,
+   2026-11-04): a control at rest takes the mood's container, grey in Default and tinted in a coloured
+   mood, so no mood needs a grey it does not have. */
 .button-tonal {
-  background: var(--color-accent-container);
-  color: var(--color-on-accent-container);
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -149,7 +152,7 @@
   }
 
   .button-tonal:where(:not(:disabled, [aria-disabled="true"])):hover {
-    background: var(--color-accent-container-hover);
+    background: var(--color-surface-container-hover);
   }
 }
 
@@ -164,38 +167,51 @@
 }
 
 .button-tonal:where(:not(:disabled, [aria-disabled="true"])):active {
-  background: var(--color-accent-container-pressed);
+  background: var(--color-surface-container-pressed);
+}
+
+/* Button, small size (size="small" on any variant): a shorter pill with less padding and label-size
+   words, for a dense row or a popover where the full pill crowds the text around it (owner,
+   2026-11-04: Listen now in the queue). The pill is button.height-small; its target stays the touch
+   size, as the chip's does. After the variants, so it wins at their specificity. */
+.button-small {
+  position: relative;
+  min-height: var(--button-height-small);
+  padding-inline: var(--button-padding-small);
+  font-size: var(--font-size-label);
+}
+
+.button-small::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block: calc((var(--size-touch) - var(--button-height-small)) / -2);
 }
 
 /* Tonal action: the one creating action in the side column (Catch up, AppNav.astro). Usage: add it
-   to the action's own element, which keeps its size and layout. The owner found the neutral fill
-   with accent words faded in both themes (2026-10-27), and the current row's accent-container must
-   keep meaning "you are here", so this is a third tone, richer than the current row: a saturated
-   blue in both themes (white words in light, the darkest blue's in dark), as the greyed blues
-   before it looked muddy in light and desaturated in dark (owner, 2026-10-27). Its fill reaches
-   3:1 on the page, so it reads as a shape with no outline, and its words 4.5:1 at rest
-   (buildTokens.test.ts).
+   to the action's own element, which keeps its size and layout. It wears the primary fill, the
+   filled button's and Play's (owner, 2026-11-04: "all should have the same color synchronized"); it
+   was a third, saturated tone of its own (owner, 2026-10-27), which read as a second primary beside
+   Play. The current row's accent container still means "you are here" alone.
    - A 16px rounded rectangle: the one recorded exception to the pill rule (D186), so its shape
      alone tells it from the pill-shaped current row beside it (--action-tonal-radius).
    - Flat: no elevation and no shadow (owner, 2026-10-27).
-   - Hover and press fills --action-tonal-bg-hover and --action-tonal-bg-pressed: the fill with its
-     lightness stepped away from its words (D317: darker in light, lighter in dark), so the state
-     reads as depth, not as a new colour. */
+   - Hover and press take the primary fill's own steps (--cta-bg-hover, --cta-bg-pressed). */
 .btn-action-tonal {
   --color-focus-gap: var(--color-surface);
   border-radius: var(--action-tonal-radius);
-  background: var(--action-tonal-bg);
-  color: var(--action-tonal-fg);
+  background: var(--cta-bg);
+  color: var(--cta-fg);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .btn-action-tonal:where(:not(:disabled, [aria-disabled="true"])):hover {
-    background: var(--action-tonal-bg-hover);
+    background: var(--cta-bg-hover);
   }
 }
 
 .btn-action-tonal:where(:not(:disabled, [aria-disabled="true"])):active {
-  background: var(--action-tonal-bg-pressed);
+  background: var(--cta-bg-pressed);
 }
 
 /* Fills are dropped in forced colours, so the filled and the tonal button keep an edge of their own. */

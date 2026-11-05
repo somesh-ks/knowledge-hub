@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { flagBadgeClass, flagClass, flagParts, flagSrc, hasFlagArt } from "../design-system/flag";
 import { swipeLeaves } from "../lib/swipeAway";
 import { createVelocityTracker, TAP_SLOP_PX } from "../player/core/gestureMath";
 import Icon from "../player/ui/Icon";
@@ -106,7 +107,32 @@ export default function Toaster() {
       {shown?.kind ? (
         <Icon className="toast-icon" name={shown.kind === "error" ? "alert" : "check"} />
       ) : null}
-      <span className="toast-text">{shown?.message}</span>
+      <span className="toast-text">
+        {/* A place's flag is the Flag's art, never the emoji Windows draws as two letters (D367). */}
+        {flagParts(shown?.message ?? "").map((part, index) =>
+          typeof part === "string" ? (
+            part
+          ) : !hasFlagArt(part.region) ? (
+            <span
+              // biome-ignore lint/suspicious/noArrayIndexKey: the parts of one fixed message
+              key={index}
+              className={flagBadgeClass(true)}
+              data-code={part.region}
+              aria-hidden="true"
+            />
+          ) : (
+            <img
+              // biome-ignore lint/suspicious/noArrayIndexKey: the parts of one fixed message
+              key={index}
+              className={flagClass(true)}
+              src={flagSrc(part.region)}
+              alt=""
+              aria-hidden="true"
+              decoding="async"
+            />
+          ),
+        )}
+      </span>
       {shown?.actionLabel ? (
         <button
           className="toast-action"

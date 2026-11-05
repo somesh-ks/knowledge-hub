@@ -18,16 +18,22 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
-    version: "0.20.1",
+    version: "0.21.1",
     date: "2026-11-05",
     description:
-      "On a phone, the podcast queue opens over the page, so the Catch up button stays where it is. It shows three and a half rows before it scrolls, opens and folds more slowly, and a drag on its head no longer scrolls the page. A row keeps its stage on the first line and puts Taking longer than usual on a second line, and that note now appears only when a step really runs long. The shimmer stays on one steady beat.",
+      "On a phone, the podcast queue opens over the page, so the Catch up button stays where it is. It shows three and a half rows before it scrolls, opens and folds on a smoother, slower curve, has room under its last row, and a drag on its head no longer scrolls the page. A row keeps its stage on the first line and puts Taking longer than usual on a second line, and that note now appears only when a step really runs long. The shimmer stays on one steady beat.",
+  },
+  {
+    version: "0.21",
+    date: "2026-11-04",
+    description:
+      "A podcast's page and its Library card open the same menu, and Library, Downloads and Favorites offer the same actions in one order. Downloads opens a row's menu with a long press and removes a download with a swipe, after asking.",
   },
   {
     version: "0.20",
     date: "2026-11-04",
     description:
-      "A heart beside Play on a podcast's page adds it to Favorites, and every podcast menu in the Library, Favorites, Downloads and the queue has Add to favorites and Remove from favorites. Play on a podcast's page no longer flashes when you switch tabs. Listen now on a podcast being made, a regeneration too, plays it whole and keeps playing while the rest is written: its timer shows the length it will run, and a jump past what is written so far waits there until it is. On a phone the player bar's sideways swipe runs to the screen's edge. On a computer, the open player has the speed between its ten-second buttons, and the Podcast queue in the side column shimmers while a podcast is being made. The three dots on a podcast card or a queued row show only under a mouse, never on a phone, whatever that phone reports about its screen.",
+      "A heart beside Play on a podcast's page adds it to Favorites, and every podcast menu in the Library, Favorites, Downloads and the queue has Add to favorites and Remove from favorites. Play on a podcast's page no longer flashes when you switch tabs. Listen now on a podcast being made, a regeneration too, plays it whole and keeps playing while the rest is written: its timer shows the length it will run, and a jump past what is written so far waits there until it is. On a phone the player bar's sideways swipe runs to the screen's edge and the bar no longer flashes grey while you swipe it. On a computer, the open player has the speed between its ten-second buttons, and the Podcast queue in the side column shimmers while a podcast is being made. The three dots on a podcast card or a queued row show only under a mouse, never on a phone, whatever that phone reports about its screen.",
   },
   {
     version: "0.19.1",

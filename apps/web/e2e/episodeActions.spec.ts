@@ -11,7 +11,7 @@ import {
 const ID = "ep-20261007-1930";
 
 const more = (page: Page) => page.getByRole("button", { name: "More actions" });
-const menu = (page: Page) => page.getByRole("menu", { name: "More actions" });
+const menu = (page: Page) => page.locator("#hero-menu").getByRole("menu");
 const regenerate = (page: Page) => page.locator('[data-episode-action="regenerate"]');
 const remove = (page: Page) => page.locator('[data-episode-action="delete"]');
 
@@ -60,15 +60,15 @@ async function mock(page: Page, states: unknown[]): Promise<Array<Record<string,
 }
 
 test.describe("regenerate and delete an episode", () => {
-  test("one More button holds the far end of the title row and opens a menu of four items", async ({
+  test("one More button holds the far end of the title row and opens the podcast's sheet", async ({
     page,
   }) => {
     await open(page);
     const button = more(page);
     await expect(button).toHaveAttribute("aria-haspopup", "menu");
     await expect(menu(page)).toBeHidden();
-    // Share sits beside Play (D153, owner 2026-10-24), not in the menu. The button is a 44px target
-    // at the header's far end, level with the title.
+    // The button is a 44px target at the header's far end, level with the title. Its sheet is the
+    // Library card's (D369; libraryMenu.spec.ts checks the two match).
     const a = await button.boundingBox();
     const title = await page.locator(".hero h1").boundingBox();
     const row = await page.locator(".hero").boundingBox();
@@ -78,7 +78,6 @@ test.describe("regenerate and delete an episode", () => {
     await button.click();
     await expect(menu(page)).toBeVisible();
     const items = menu(page).getByRole("menuitem");
-    await expect(items).toHaveText(["Download", "Add to queue", "Regenerate", "Delete"]);
     await expect(items.first()).toBeFocused();
     // On a phone the menu is a bottom sheet below the button, its rows edge to edge across the screen.
     const m = await menu(page).boundingBox();
@@ -104,6 +103,26 @@ test.describe("regenerate and delete an episode", () => {
     await expect(menu(page)).toBeHidden();
     await page.keyboard.press("Escape");
     await expect(more(page)).toBeFocused();
+  });
+
+  // Owner, 2026-11-05: the page resizing under a keyboard that was still sliding up left a white strip
+  // for the whole slide. While the panel is open the keyboard overlays the page instead.
+  test("the keyboard overlays the open Regenerate panel and lets the page go again on close", async ({
+    page,
+  }) => {
+    const overlays = () =>
+      page.evaluate(
+        () =>
+          (navigator as Navigator & { virtualKeyboard?: { overlaysContent: boolean } })
+            .virtualKeyboard?.overlaysContent,
+      );
+    await open(page);
+    await choose(page, "Regenerate");
+    await expect(panel(page)).toBeVisible();
+    expect(await overlays()).toBe(true);
+    await page.keyboard.press("Escape");
+    await expect(panel(page)).toBeHidden();
+    expect(await overlays()).toBe(false);
   });
 
   test("Regenerate sends the exact body and the indicator takes over", async ({ page }) => {
@@ -208,19 +227,57 @@ test.describe("regenerate and delete an episode", () => {
     expect(bodies).toHaveLength(0);
   });
 
-  // Owner, 2026-11-04: Jev reads what the word match misses. One ask per pause, not per keystroke.
-  test("a comment the words miss still brings up Length once Jev reads it", async ({ page }) => {
+  // Owner, 2026-11-04 (D370, D371): Jev reveals what the word match misses and Haiku proposes the
+  // values; the controls follow the comment both ways, and one the listener touched stays.
+  test("the controls follow the comment: shown and set by the models, gone when the words go, kept once touched", async ({
+    page,
+  }) => {
     const asked: string[] = [];
     await page.route("**/api/regen-hints", async (route) => {
-      asked.push(JSON.parse(route.request().postData() ?? "{}").comment);
-      await route.fulfill({ json: { length: true, topics: false, by: "jev" } });
+      const { comment, want } = JSON.parse(route.request().postData() ?? "{}");
+      if (want === "show") asked.push(comment);
+      await route.fulfill({
+        json:
+          want === "values"
+            ? { length: "shorter", add: [], by: "haiku" }
+            : { length: true, topics: false, by: "jev" },
+      });
     });
     await open(page);
     await choose(page, "Regenerate");
     const length = panel(page).getByRole("radiogroup", { name: "Length" });
-    await panel(page).getByLabel("What went wrong?").pressSequentially("It dragged on");
+    const note = panel(page).getByLabel("What went wrong?");
+    const lengths = () =>
+      length
+        .locator("input")
+        .evaluateAll((all) =>
+          all.map((i) => [(i as HTMLInputElement).defaultChecked, (i as HTMLInputElement).checked]),
+        );
+    await note.pressSequentially("It dragged on");
     await expect(length).toBeVisible();
     expect(asked).toEqual(["It dragged on"]);
+    // Haiku moved the untouched control one step shorter than the length asked for.
+    await expect
+      .poll(async () => (await lengths()).findIndex(([, now]) => now))
+      .toBe((await lengths()).findIndex(([made]) => made) - 1);
+    // The words go: the control goes with them, and the length is back where it was.
+    await note.fill("");
+    await expect(length).toBeHidden();
+    expect((await lengths()).every(([made, now]) => made === now)).toBe(true);
+    // A length the listener picked stays when the words go.
+    await note.pressSequentially("It dragged on");
+    await expect(length).toBeVisible();
+    await length.locator("label").last().click();
+    await note.fill("");
+    await expect(length).toBeVisible();
+    expect((await lengths()).at(-1)?.[1]).toBe(true);
+    // The dialog keeps its words when closed; opened again, the models read them again.
+    await note.fill("It dragged on");
+    await expect.poll(() => asked.length).toBe(3);
+    await page.keyboard.press("Escape");
+    await expect(panel(page)).toBeHidden();
+    await choose(page, "Regenerate");
+    await expect.poll(() => asked.length).toBe(4);
   });
 
   test("the character count shows only near the limit", async ({ page }) => {

@@ -16,6 +16,7 @@ export const MENU: Guidance & {
   useWhen: [
     "A card, header or row has more actions than room: Download, Add to queue, Share, Delete.",
     "Each action is one tap, with no choice of its own.",
+    "It has five actions or more: on a phone's sheet the first three become a row of tiles above the rest (menuHasTiles). Fewer than five are all rows.",
   ],
   dontUseWhen: [
     {
@@ -79,6 +80,16 @@ export const menuBodyClass = (): string => "menu-sheet-items";
 
 /** The row of quick actions at the top of a menu: a few tiles, each a glyph over a word. */
 export const menuTilesClass = (): string => "menu-tiles";
+
+/** How many actions a menu needs before its first ones become tiles (owner, 2026-11-04: quick actions only
+ *  when the sheet is long; a short one reads best as plain rows). */
+export const MENU_TILES_MIN = 5;
+
+/** How many tiles the row holds at most: the first actions, in the menu's order. */
+export const MENU_TILES_MAX = 3;
+
+/** Whether a menu of this many actions shows tiles; a host builds its sheet from the answer. */
+export const menuHasTiles = (actions: number): boolean => actions >= MENU_TILES_MIN;
 
 /** One tile of that row. Saved says it with aria-checked, Downloaded with data-on. */
 export const menuTileClass = (): string => "menu-tile";

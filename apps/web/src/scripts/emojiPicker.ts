@@ -4,6 +4,8 @@
  * under sticky labels; a search narrows it by name and keyword. Arrow keys move through the grid,
  * Enter picks, Escape closes (the popover's own). Picking calls back with the emoji and closes.
  */
+
+import { showText } from "../design-system/flag";
 import { type EmojiGroup, type EmojiItem, searchEmoji, suggestedEmoji } from "../lib/emojiSearch";
 import { fitAboveKeyboard } from "./keyboardFit";
 import { element } from "./topicsView";
@@ -33,11 +35,8 @@ export function preloadEmoji(): void {
 const BATCH = 120;
 
 const cell = (emoji: string, name: string, current: string): HTMLButtonElement => {
-  const button = element(
-    "button",
-    "emoji-cell press press-subtle hover-fill",
-    emoji,
-  ) as HTMLButtonElement;
+  const button = element("button", "emoji-cell press press-subtle hover-fill") as HTMLButtonElement;
+  showText(button, emoji);
   button.type = "button";
   button.tabIndex = -1;
   button.dataset.emoji = emoji;

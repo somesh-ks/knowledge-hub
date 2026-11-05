@@ -412,7 +412,7 @@ export default function PlayerMenu() {
                   role="menuitem"
                   onClick={() => void removeDownload()}
                 >
-                  <Icon name="downloadRemove" />
+                  <Icon name="trash" />
                   Delete download
                 </button>
               ) : null}

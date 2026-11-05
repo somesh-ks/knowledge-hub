@@ -68,6 +68,10 @@ const words: Record<string, { keywords: string[]; markup: string; rules?: string
     keywords: ["delete", "destructive", "remove", "red"],
     markup: '<Button variant="text" tone="danger">Delete</Button>',
   },
+  small: {
+    keywords: ["small button", "compact button", "smaller", "dense row", "button size"],
+    markup: '<Button variant="text" size="small">Listen now</Button>',
+  },
 };
 
 /** The lookup file ends each situation itself, so the registry's full stops come off. */
@@ -155,6 +159,25 @@ export const componentParts = (): PartSource[] => [
       not: guidance.dontUseWhen.map((item) => ({
         when: item.when.replace(/\.$/, ""),
         use: partOf(item.instead, `button-${guidance.variant}`),
+      })),
+      keywords: extra?.keywords,
+      markup: extra?.markup,
+    };
+  }),
+  ...Object.entries(BUTTON.sizes).map(([size, guidance]): PartSource => {
+    const id = `button-${size}`;
+    const extra = words[size];
+    return {
+      id,
+      name: `${guidance.label} button`,
+      kind: "action",
+      summary: guidance.summary,
+      classes: [id],
+      files: FILES,
+      when: sentences(guidance.useWhen),
+      not: guidance.dontUseWhen.map((item) => ({
+        when: item.when.replace(/\.$/, ""),
+        use: partOf(item.instead, id),
       })),
       keywords: extra?.keywords,
       markup: extra?.markup,
