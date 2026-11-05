@@ -28,6 +28,7 @@ import {
 } from "../lib/library";
 
 import { whenIdle } from "./idle";
+import { installMonthBands } from "./libraryMonths";
 import { applyView, libraryRoot, storedView, VIEW_KEY } from "./libraryView";
 
 /** The Library's address with its search, filter and order, kept for the visit (episodeActions.ts reads it). */
@@ -352,6 +353,7 @@ function install(): void {
     { once: true },
   );
   apply();
+  installMonthBands(root, grid);
 }
 
 document.addEventListener("astro:page-load", install);
