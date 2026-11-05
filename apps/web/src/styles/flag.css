@@ -21,11 +21,11 @@
   vertical-align: -0.1em;
 }
 
-/* After words (the time zone snackbar's "You're in India", Toaster.tsx) a word space alone left the
-   flag tight on the name (owner, 2026-11-05): it keeps 4px more. A topic's emoji is a flag alone and
-   stays centred. */
+/* After words (the time zone snackbar's "You're in India", Toaster.tsx) the flag sits 8px from the
+   name, on the grid: flagParts drops the word space, which was the font's 3px and left the flag
+   tight (owner, 2026-11-05). A topic's emoji is a flag alone and stays centred. */
 .toast-text > .flag-inline {
-  margin-inline-start: var(--space-1);
+  margin-inline-start: var(--space-2);
 }
 
 .flag-badge {

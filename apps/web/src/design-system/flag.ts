@@ -81,17 +81,24 @@ export function flagRegion(text: string): string | null {
 }
 
 /**
- * Text split into its words and the flags it holds: "You're in India 🇮🇳" gives the words and
- * { region: "IN" }. A script or an island draws each part; a flag part is the Flag, never the emoji.
+ * Text split into its words and the flags it holds: "You're in India 🇮🇳" gives "You're in India"
+ * and { region: "IN" }. A script or an island draws each part; a flag part is the Flag, never the
+ * emoji. The space before a flag is dropped: flag.css sets that gap on the 8pt grid, where a word
+ * space is the font's width (3px in Google Sans Flex, owner 2026-11-05).
  */
 export function flagParts(text: string): Array<string | { region: string }> {
-  return text
+  const parts = text
     .split(FLAG_EMOJI)
     .filter(Boolean)
     .map((part) => {
       const region = flagRegion(part);
       return region ? { region } : part;
     });
+  return parts
+    .map((part, index) =>
+      typeof part === "string" && typeof parts[index + 1] === "object" ? part.trimEnd() : part,
+    )
+    .filter((part) => part !== "");
 }
 
 /**
