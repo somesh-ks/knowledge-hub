@@ -223,7 +223,7 @@ describe("singularity podcast --dry-run", () => {
     expect(errors).toEqual([]);
     expect(code).toBe(0);
     const out = lastJson(stdout);
-    expect(out).toMatchObject({ audience: "general", topic_ids: ["world"], title: "World" });
+    expect(out).toMatchObject({ audience: "general", topic_ids: ["world"], title: "Thursday 8 October" });
     expect(Object.keys(out)).toHaveLength(FIELDS.length);
     expect(existsSync(join(root, "Podcasts"))).toBe(false);
     expect(git(root, "status", "--porcelain")).toBe("");
