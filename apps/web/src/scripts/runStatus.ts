@@ -493,7 +493,8 @@ async function follow(run: Stored, now: boolean): Promise<void> {
       // Published: a new episode still has to reach the site. An answer without stages is an older
       // route's, and finishes at once.
       const cancelled = body.outcome === "cancelled";
-      const waiting = !failed && !cancelled && !run.kind && body.stages;
+      // A rewrite waits for the site too: its new episode is the one to open, the old one is gone.
+      const waiting = !failed && !cancelled && run.kind !== "delete" && body.stages;
       const phase: Phase = cancelled
         ? "cancelled"
         : failed

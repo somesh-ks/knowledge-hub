@@ -174,6 +174,18 @@ export function isAudioOnlyFailure(steps: readonly WorkflowStep[]): boolean {
   return failed.length > 0 && failed.every((step) => step.name === "Audio");
 }
 
+/**
+ * An episode's voices are recorded in a nested job after the episode is saved (podcast.yml), so
+ * when that is the only failure the episode is live and the next Play narrates what is missing. The
+ * page reads it as made: a failed rewrite there would offer a Try again for an episode that is gone.
+ */
+export function isVoicesOnlyFailure(steps: readonly WorkflowStep[]): boolean {
+  const failed = steps.filter(
+    (step) => step.conclusion === "failure" || step.conclusion === "timed_out",
+  );
+  return failed.length > 0 && failed.every((step) => step.name === "Recording voices");
+}
+
 interface OnDemandRecord {
   at: string;
   outcome: "published" | "nothing" | "gated" | "failed";
@@ -412,7 +424,7 @@ export async function handleStatus(
           },
         };
       }
-      const done = run.conclusion === "success";
+      const done = run.conclusion === "success" || isVoicesOnlyFailure(steps);
       const stage = done
         ? updatingStage("episode", hasNamedSteps(steps))
         : failedEpisodeStage(steps);

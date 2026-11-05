@@ -246,6 +246,29 @@ describe("handleStatus for an episode run", () => {
     expect(github.requests.some((request) => request.path.includes("/contents/"))).toBe(false);
   });
 
+  // The 2026-11-05 review: a rewrite whose voices failed after the episode was saved read as failed,
+  // and its Try again named an episode that no longer exists.
+  it("reads a run whose only failure is recording the voices as made", async () => {
+    const result = await handleStatus("4242", {
+      env,
+      fetch: episode({ status: "completed", conclusion: "failure" }, [
+        stepJson("Gathering stories", 3, "completed", "success"),
+        stepJson("Publishing", 4, "completed", "success"),
+        stepJson("Recording voices", 5, "completed", "failure"),
+      ]).fetch,
+    });
+    expect(result.body).toMatchObject({ outcome: "published" });
+    const other = await handleStatus("4242", {
+      env,
+      fetch: episode({ status: "completed", conclusion: "failure" }, [
+        stepJson("Gathering stories", 3, "completed", "success"),
+        stepJson("Publishing", 4, "completed", "failure"),
+        stepJson("Recording voices", 5, "completed", "failure"),
+      ]).fetch,
+    });
+    expect(other.body).toMatchObject({ outcome: "failed" });
+  });
+
   it("reports any other end as failed, with the run's address", async () => {
     const result = await handleStatus("4242", {
       env,
@@ -527,16 +550,7 @@ describe("handleStatus", () => {
     );
     github.on("GET /contents/state/last-run.json", { text: record() });
     const result = await handleStatus("4242", { env, fetch: github.fetch });
-    const allowed = [
-      "run_id",
-      "state",
-      "step",
-      "stage",
-      "stages",
-      "label",
-      "outcome",
-      "digest_id",
-    ];
+    const allowed = ["run_id", "state", "step", "stage", "stages", "label", "outcome", "digest_id"];
     expect(Object.keys(result.body).every((key) => allowed.includes(key))).toBe(true);
     expect(JSON.stringify(result.body)).not.toMatch(/private|login|secret/);
   });
