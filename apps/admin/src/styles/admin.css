@@ -977,46 +977,96 @@ a.hl-tile:focus-visible {
   outline-offset: var(--stroke-ring-gap);
 }
 
-/* What needs a look: a heading, then each check as its line (a link to its section) over what it
-   means, where to start and its commonest reports. Their prompts are in Actions. */
+/* What needs a look: its count with "Fix all" at the far edge, then a row a problem in a card (the
+   design system's row action): its name over its detail, its reading with its glyph, a chevron. The
+   row opens the page's sheet, which holds the words (2026-11-05, the owner: "a big wall of text"). */
 .hl-issues {
   display: grid;
   gap: var(--space-2);
 }
 
-.hl-issue-list {
+.hl-issues .hl-head {
+  align-items: center;
+  min-block-size: var(--size-touch);
+}
+
+/* A grid, so each row, a button, stretches across the card as a link row does: in a block a button
+   is only as wide as its words, and its name collapsed to nothing. */
+.hl-issue-rows {
   display: grid;
-  margin: 0;
-  padding: 0;
-  list-style: none;
 }
 
-.hl-issue + .hl-issue {
-  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+.hl-issue-rows:empty {
+  display: none;
 }
 
-.hl-issue-body {
+/* The name and the reading share one centre line: the glyph would set the reading's baseline. */
+.row-action.hl-issue-row > .settings-text {
+  align-items: center;
+}
+
+.hl-issue-row .settings-hint {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  overflow: visible;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The row's quiet chevron rule (settings.css) would grey the status glyph too: it keeps its tone. */
+.row-action.hl-issue-row .ov-flag-icon .icon-glyph {
+  margin-inline-end: 0;
+  color: inherit;
+}
+
+/* The sheet: the reading with its glyph, then a part each (what it means, where to start, the
+   commonest errors, the prompt), a heading over its words. */
+.hl-detail {
   display: grid;
-  justify-items: start;
-  gap: var(--space-1);
-  padding-block-end: var(--space-2);
-  color: var(--color-on-surface-muted);
-  font-size: var(--text-meta-size);
-  line-height: var(--text-meta-leading);
+  gap: var(--space-6);
+  padding-block: var(--space-2) var(--space-8);
 }
 
-.hl-issue-text,
-.hl-issue-start {
+.hl-detail-reading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   margin: 0;
 }
 
-.hl-issue-text {
-  color: var(--color-on-surface);
+.hl-detail-reading .ov-flag-icon {
+  flex: none;
+}
+
+.hl-detail-part {
+  display: grid;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.hl-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.hl-detail-head {
+  margin: 0;
+  font-family: var(--text-label-family);
+  font-size: var(--text-label-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--text-label-leading);
+}
+
+.hl-detail-text {
+  margin: 0;
 }
 
 .hl-reports {
   display: grid;
-  gap: var(--space-1);
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1029,69 +1079,29 @@ a.hl-tile:focus-visible {
 
 .hl-report-message {
   overflow-wrap: anywhere;
-  color: var(--color-on-surface);
 }
 
-.hl-issues-rest {
-  margin: 0;
+.hl-report-where {
   color: var(--color-on-surface-muted);
+  font-size: var(--text-meta-size);
+  line-height: var(--text-meta-leading);
 }
 
-/* Actions: each prompt its name and a Copy at the far edge, over its text whole as a snippet, set
-   in the platform's monospace and filled as a tile is (2026-11-05, the owner: "a little monospace
-   font component like a little code snippet"). A long one scrolls inside its own box. */
-.hl-prompts {
-  display: grid;
-  gap: var(--space-6);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.hl-prompts:empty {
-  display: none;
-}
-
-.hl-prompt {
-  display: grid;
-  gap: var(--space-2);
-  min-inline-size: 0;
-}
-
-.hl-prompt-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-}
-
-.hl-prompt-title {
-  min-inline-size: 0;
-  margin: 0;
-  font-family: var(--text-label-family);
-  font-size: var(--text-label-size);
-  font-weight: var(--font-weight-semibold);
-  line-height: var(--text-label-leading);
-}
-
+/* The prompt's whole text in the platform's monospace, filled as a tile is; the sheet scrolls, so
+   the snippet never does (2026-11-05, the owner: "a little monospace font component like a little
+   code snippet"). shortcut: drawn here until the design system's Snippet part lands (rolling DS PR
+   #705); then the sheet draws that part and this rule goes. */
 .hl-snippet {
-  max-block-size: 12rem;
   margin: 0;
   padding: var(--space-4);
-  overflow: auto;
   border-radius: var(--card-content-radius);
-  background: var(--color-surface-overlay);
+  background: var(--color-surface-container);
   color: var(--color-on-surface);
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: var(--text-meta-size);
   line-height: var(--text-meta-leading);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-}
-
-.hl-snippet:focus-visible {
-  outline: var(--stroke-ring) solid var(--color-focus-ring);
-  outline-offset: var(--stroke-ring-gap);
 }
 
 /* Runs: a kind at a time under the switch, its run time, columns and stages. */

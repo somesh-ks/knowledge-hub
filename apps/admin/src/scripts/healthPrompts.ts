@@ -1,15 +1,13 @@
 /**
- * The Health page's Actions (health.astro): every prompt that hands what the summary flags to an AI
- * agent, each a snippet to copy whole. "Fix all" first when there is more than one thing, then one a
- * flagged check, then one a part of the page that failed to load (lib/problem.ts). A prompt carries
- * the check, its reading, what it means and where to start (lib/healthHelp.ts), the week's commonest
- * reports, where the check is computed, the repo's rules and what to answer, so it works pasted into a
- * fresh session. 2026-11-05, the owner: "an Action section in which we have all the prompts to copy",
- * "in a little monospace font component like a little code snippet".
+ * The prompts that hand what the Health summary flags to an AI agent (healthSheet.ts shows them): one
+ * a flagged check, and "Fix all" with every check and every part of the page that failed to load
+ * (lib/problem.ts). A prompt opens with the check and its reading, then what it means and where to
+ * start (lib/healthHelp.ts), the week's commonest reports, where the check is computed, the repo, its
+ * rules and what to answer, so it works pasted into a fresh session (2026-11-05, the owner).
  */
 import { helpFor } from "../lib/healthHelp";
-import { copyButton, type Problem, problemText } from "../lib/problem";
-import { element, type Tone } from "./healthRing";
+import { type Problem, problemText } from "../lib/problem";
+import type { Tone } from "./healthRing";
 import { type Issue, nameOf } from "./healthSummary";
 
 const REPO = "somesh-ks/knowledge-hub";
@@ -20,7 +18,7 @@ const STATE: Record<Tone, string> = {
   none: "",
 };
 
-export interface ActionsInput {
+export interface PromptInput {
   issues: Issue[];
   /** When the answer on the page was made; null when none came. */
   checkedAt: string | null;
@@ -46,7 +44,7 @@ function how(many: boolean): string[] {
 }
 
 /** Where the answer stands, when it is not a fresh and whole one. */
-function caveats(input: ActionsInput): string[] {
+function caveats(input: PromptInput): string[] {
   return [
     input.stale &&
       "These readings are this device's last answer: the page could not get a fresh one, so check they still hold.",
@@ -72,24 +70,25 @@ function facts(issue: Issue, pad: string): string[] {
   ].filter((each): each is string => Boolean(each));
 }
 
-const reading = (issue: Issue): string =>
-  `${issue.row.value}. ${issue.row.detail}.`.replace(/\.\.$/, ".");
+/** A check's reading and its detail: "3 · 7 this week, most on /podcast/2026-11-03". */
+export const reading = (issue: Issue): string =>
+  issue.row.detail ? `${issue.row.value} · ${issue.row.detail}` : issue.row.value;
 
 /** When the answer was made, to the minute: "2026-11-04 13:30 UTC". */
 const when = (at: string): string =>
   `${new Date(at).toISOString().slice(0, 16).replace("T", " ")} UTC`;
 
 /** Where it was read: the repo, the page and when. */
-const source = (input: ActionsInput): string =>
+const source = (input: PromptInput): string =>
   `Repo ${REPO}.${input.checkedAt ? ` Health page read at ${when(input.checkedAt)}.` : ""}`;
 
 /**
  * One flagged check, as a prompt of its own. It opens with the check and its reading, so each
  * snippet on the page starts with what differs; the context and the rules follow.
  */
-export function issuePrompt(issue: Issue, input: ActionsInput): string {
+export function issuePrompt(issue: Issue, input: PromptInput): string {
   return [
-    `Fix the "${nameOf(issue)}" health check (${STATE[issue.row.tone]}): ${reading(issue)}`,
+    `Fix the "${nameOf(issue)}" health check (${STATE[issue.row.tone]}): ${reading(issue)}.`,
     ...facts(issue, ""),
     "",
     `Check id ${issue.row.id}, computed in apps/web/src/server/health.ts; confirm the reading there first.`,
@@ -108,22 +107,8 @@ function routeOf(url: string): string {
   return "";
 }
 
-/** A part of the page that failed to load, as a prompt of its own. */
-export function problemPrompt(problem: Problem): string {
-  const route = routeOf(problem.url);
-  return [
-    `Fix the failed request behind "${problem.title}" on the Singularity admin.`,
-    "",
-    problemText(problem),
-    ...(route ? [`Served by: ${route}`] : []),
-    `Repo ${REPO}.`,
-    "",
-    ...how(false),
-  ].join("\n");
-}
-
 /** Every flagged check and every failed load in one prompt. */
-export function allPrompt(input: ActionsInput): string {
+export function allPrompt(input: PromptInput): string {
   const { issues, problems } = input;
   const things = [
     issues.length && `${issues.length} ${issues.length === 1 ? "check" : "checks"}`,
@@ -139,7 +124,7 @@ export function allPrompt(input: ActionsInput): string {
           "Each check is computed in apps/web/src/server/health.ts by its id; confirm the reading there first.",
           "",
           ...issues.flatMap((issue, i) => [
-            `${i + 1}. ${nameOf(issue)} (id ${issue.row.id}), ${STATE[issue.row.tone]}: ${reading(issue)}`,
+            `${i + 1}. ${nameOf(issue)} (id ${issue.row.id}), ${STATE[issue.row.tone]}: ${reading(issue)}.`,
             ...facts(issue, "   "),
             "",
           ]),
@@ -157,40 +142,4 @@ export function allPrompt(input: ActionsInput): string {
       : []),
     ...how(true),
   ].join("\n");
-}
-
-/** A prompt on the page: its name and a Copy, then its text whole as a snippet. */
-function promptEl(id: string, title: string, text: string): HTMLElement {
-  const item = element("li", "hl-prompt");
-  const head = element("div", "hl-prompt-head");
-  const name = element("h3", "hl-prompt-title", title);
-  name.id = `prompt-${id}`;
-  const copy = copyButton("Copy", () => text);
-  copy.setAttribute("aria-describedby", name.id);
-  head.append(name, copy);
-  const snippet = element("pre", "hl-snippet", text);
-  // It scrolls when long, so a keyboard can reach it.
-  snippet.tabIndex = 0;
-  snippet.setAttribute("aria-labelledby", name.id);
-  item.append(head, snippet);
-  return item;
-}
-
-/** Draws the prompts into the Actions section, or says there is nothing to fix. */
-export function drawActions(root: HTMLElement, input: ActionsInput): void {
-  const { issues, problems } = input;
-  const count = issues.length + problems.length;
-  const items = [
-    ...(count > 1 ? [promptEl("all", `Fix all ${count}`, allPrompt(input))] : []),
-    ...issues.map((issue) => promptEl(issue.row.id, nameOf(issue), issuePrompt(issue, input))),
-    ...problems.map((problem, i) => promptEl(`load-${i}`, problem.title, problemPrompt(problem))),
-  ];
-  root.querySelector<HTMLElement>("[data-prompts]")?.replaceChildren(...items);
-  const note = root.querySelector<HTMLElement>("[data-prompts-note]");
-  if (note) {
-    note.hidden = count > 0;
-    note.textContent = input.checkedAt
-      ? "Nothing to fix. A prompt shows here when a check needs a look."
-      : "Checking";
-  }
 }
