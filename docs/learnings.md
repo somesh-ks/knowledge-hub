@@ -106,6 +106,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-11-01: a `.manage` rule for the voice page also reached Preferences: a row declares its `--row-reach`.
 - 2026-11-03: servers off Vercel with the real `DATABASE_URL` stored their own 5xx as production faults (~180 a day); telemetry takes `deploymentDatabaseUrl`. Astro's SSR header replaces vercel.json's CSP: `frame-ancestors` goes in `withFrameAncestors` (meta ignores it).
 - 2026-11-05: a white strip showed over the page while Android's keyboard slid up on the Regenerate and Catch up panels: Chrome resizes the page to its final height at once, and the native window behind it is white until the keyboard arrives. A native panel with a text field needs `fitAboveKeyboard` (overlays the keyboard instead); only Topics and Block sources had it.
+- 2026-11-05: a CSS animation restarts when its node is removed and put back, so a list that repaints rows each poll restarts every shimmer; move only rows out of order. The engine's timings (state/podcast-timings.json) cover its own work, not a workflow step: never use them alone as a stage's usual length.
 
 ## Build and tooling
 
