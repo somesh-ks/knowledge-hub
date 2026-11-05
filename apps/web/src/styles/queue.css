@@ -216,6 +216,10 @@ html[data-player="open"] .queue-dock {
   grid-template-columns: var(--size-touch) minmax(0, 1fr) var(--size-touch);
   align-items: center;
   column-gap: var(--space-4);
+  /* The actions line sits 8px under the status: a text button's hover and press surface is its whole
+     44px target, and with no gap it touched the stage words (owner, 2026-11-04: Listen now's hover
+     against "Recording voices"). A row with no actions has no second line, so the gap is not there. */
+  row-gap: var(--space-2);
   padding-block: var(--space-4);
   padding-inline: max(var(--space-4), var(--safe-left)) max(var(--space-4), var(--safe-right));
 }
@@ -317,9 +321,11 @@ html[data-player="open"] .queue-dock {
 }
 
 /* A text button's label lines up with the words above it; its padding stays as the touch target.
-   Listen now is one too (owner, 2026-11-02: filled and tonal were far too big for a row in a popover). */
+   Listen now is one too (owner, 2026-11-02: filled and tonal were far too big for a row in a popover).
+   They are the small size (owner, 2026-11-04: the full pill was too big for the row), so the pull is
+   the small button's padding. */
 .queue-actions :is(.queue-listen, .queue-retry, .queue-check, .queue-details) {
-  margin-inline-start: calc(var(--space-4) * -1);
+  margin-inline-start: calc(var(--button-padding-small) * -1);
 }
 
 .queue-actions [hidden] {

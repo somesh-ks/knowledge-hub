@@ -1,6 +1,8 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
+import { SUPPORTED_TIMEZONES } from "@singularity/core/time";
 import { describe, expect, it } from "vitest";
+import { flagParts, flagRegion, hasFlagArt } from "./flag";
 import { COMPONENTS } from "./registry";
 
 /**
@@ -260,5 +262,37 @@ describe("the controls not yet components", () => {
       .join("\n");
     const gone = NOT_YET_COMPONENTS.filter((name) => !wholeClass(name).test(text));
     expect(gone, "no longer written by hand: delete these entries").toEqual([]);
+  });
+});
+
+// Windows draws no flag emoji, only two letters (owner, 2026-10-25 and 2026-11-04: "the emoji doesn't
+// get read in all platforms"): every flag the app draws is the Flag's art (D367).
+describe("the Flag", () => {
+  it("draws a flag emoji in text as the Flag, and leaves other text as it is", () => {
+    expect(flagParts("You're in India 🇮🇳")).toEqual(["You're in India ", { region: "IN" }]);
+    expect(flagParts("🇸🇪")).toEqual([{ region: "SE" }]);
+    expect(flagParts("🎨 Design")).toEqual(["🎨 Design"]);
+  });
+
+  // A flag with neither art nor the badge is a 404 and an empty box (the emoji picker's flags).
+  it("has art, or draws the badge, for every flag the emoji list and the time zone list hold", () => {
+    const art = new Set(readdirSync(join(SRC, "..", "public", "flags")));
+    const emoji = readFileSync(join(SRC, "..", "public", "emoji.json"), "utf8");
+    const regions = [
+      ...[...emoji.matchAll(/[\u{1F1E6}-\u{1F1FF}]{2}/gu)].map((m) => flagRegion(m[0]) ?? ""),
+      ...SUPPORTED_TIMEZONES.flatMap((zone) => (zone.country ? [zone.country] : [])),
+    ];
+    const missing = regions.filter(
+      (region) => hasFlagArt(region) !== art.has(`${region.toLowerCase()}.svg`),
+    );
+    expect([...new Set(missing)]).toEqual([]);
+  });
+
+  it("is the only flag an app draws: no app writes a flag emoji or builds one", () => {
+    const drawn = APPS.flatMap(markupFiles).filter((file) => {
+      const text = readFileSync(file, "utf8");
+      return /[\u{1F1E6}-\u{1F1FF}]/u.test(quoted(text)) || /0x1f1(?:a5|e6)\b|127397/i.test(text);
+    });
+    expect(drawn.map((file) => relative(SRC, file))).toEqual([]);
   });
 });

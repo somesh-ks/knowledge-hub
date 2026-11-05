@@ -89,49 +89,13 @@ export function parseVoiceDefaults(body: unknown): VoiceDefaults | null {
     : null;
 }
 
-/** The regions public/flags.svg draws (Flagpack), as its symbol ids name them. */
-export const FLAG_REGIONS: ReadonlySet<string> = new Set(
-  "AE AR AU BR CA CL CN CO CZ DE DK ES FI FR GB GR IE IN IT JP KR MX NG NL NO NZ PE PH PL PT RU SE SG TR UA US ZA".split(
-    " ",
-  ),
-);
-
 /**
  * The region of a voice's accent, from its locale ("en-GB" gives "GB"), or "" when the locale names
- * none. The flag is drawn from it (flagNode); search and the accessible name read the words.
+ * none. The flag is drawn from it (the design system's Flag); search and the accessible name read the words.
  */
 export function voiceFlag(language: string | null): string {
   const region = language?.split(/[-_]/)[1]?.toUpperCase() ?? "";
   return /^[A-Z]{2}$/.test(region) ? region : "";
-}
-
-/** The sprite symbol id of a region's flag ("GB" gives "flag-gb"), or null when the sprite has none. */
-export function flagSymbolId(region: string): string | null {
-  return FLAG_REGIONS.has(region) ? `flag-${region.toLowerCase()}` : null;
-}
-
-/**
- * A region's flag as an SVG from the sprite, the same on every system (Windows draws no flag emoji).
- * A region the sprite lacks gets a small badge of its two letters. Hidden from assistive tech: the
- * option's words and its accent in the search keywords carry the meaning.
- */
-export function flagNode(region: string): Element {
-  const symbol = flagSymbolId(region);
-  if (symbol === null) {
-    const badge = document.createElement("span");
-    badge.className = "flag flag-badge";
-    badge.dataset.code = region;
-    badge.setAttribute("aria-hidden", "true");
-    return badge;
-  }
-  const ns = "http://www.w3.org/2000/svg";
-  const svg = document.createElementNS(ns, "svg");
-  svg.setAttribute("class", "flag");
-  svg.setAttribute("aria-hidden", "true");
-  const use = document.createElementNS(ns, "use");
-  use.setAttribute("href", `/flags.svg#${symbol}`);
-  svg.append(use);
-  return svg;
 }
 
 /** What an option reads, as plain text: "Sophia, female". The accent's flag is drawn beside it. */

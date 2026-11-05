@@ -15,6 +15,7 @@ import Button from "../../../design-system/Button.astro";
 import Dialog from "../../../design-system/Dialog.astro";
 import DialogActions from "../../../design-system/DialogActions.astro";
 import DialogTitle from "../../../design-system/DialogTitle.astro";
+import Flag from "../../../design-system/Flag.astro";
 import Icon from "../../../design-system/Icon.astro";
 import Menu from "../../../design-system/Menu.astro";
 import MenuItem from "../../../design-system/MenuItem.astro";
@@ -221,7 +222,8 @@ const facts = topic && {
                     data-topic-base={group ? homeUpsert : undefined}
                     data-home={group?.home}
                     data-needs-js
-                  >{pickedEmoji}</button>
+                    data-text={pickedEmoji}
+                  ><Flag text={pickedEmoji} /></button>
                 )
               }
             </div>

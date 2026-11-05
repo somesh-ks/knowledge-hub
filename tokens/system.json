@@ -108,17 +108,16 @@
         "buttons.css",
         "foundations.css"
       ],
-      "usage": "Button, tonal variant: the accent container under its own words, with no outline. Quieter than the filled button and still a button, which an outlined box on the page's own surface was not.",
+      "usage": "Button, tonal variant: the mood's container tone under its own words, with no outline, as the tonal icon button and the tonal select are. Quieter than the filled button and still a button, which an outlined box on the page's own surface was not. The accent container means chosen or current alone (owner, 2026-11-04): a control at rest takes the mood's container, grey in Default and tinted in a coloured mood, so no mood needs a grey it does not have.",
       "tokens": [
         "--button-height",
         "--button-padding",
         "--button-radius",
-        "--color-accent-container",
-        "--color-accent-container-hover",
-        "--color-accent-container-pressed",
-        "--color-on-accent-container",
+        "--color-on-surface",
         "--color-on-surface-disabled",
-        "--color-surface-container"
+        "--color-surface-container",
+        "--color-surface-container-hover",
+        "--color-surface-container-pressed"
       ]
     },
     {
@@ -211,6 +210,45 @@
         "--color-danger",
         "--color-danger-subtle",
         "--color-on-surface-disabled"
+      ]
+    },
+    {
+      "id": "button-small",
+      "name": "Small button",
+      "kind": "action",
+      "summary": "A shorter pill, same touch target.",
+      "classes": [
+        "button-small"
+      ],
+      "files": [
+        "design-system/Button.astro",
+        "design-system/button.ts"
+      ],
+      "when": [
+        "It sits in a dense row or a popover"
+      ],
+      "not": [
+        {
+          "when": "It commits a sheet",
+          "use": "button-filled"
+        }
+      ],
+      "keywords": [
+        "small button",
+        "compact button",
+        "smaller",
+        "dense row",
+        "button size"
+      ],
+      "markup": "<Button variant=\"text\" size=\"small\">Listen now</Button>",
+      "styles": [
+        "buttons.css"
+      ],
+      "usage": "Button, small size (size=\"small\" on any variant): a shorter pill with less padding and label-size words, for a dense row or a popover where the full pill crowds the text around it (owner, 2026-11-04: Listen now in the queue). The pill is button.height-small; its target stays the touch size, as the chip's does. After the variants, so it wins at their specificity.",
+      "tokens": [
+        "--button-height-small",
+        "--button-padding-small",
+        "--size-touch"
       ]
     },
     {
@@ -416,8 +454,7 @@
         "WebKit paints the filled track from --range-fill, which starts at 0%: set it to (value - min) / (max - min) as a percentage and update it on input."
       ],
       "styles": [
-        "slider.css",
-        "topics.css"
+        "slider.css"
       ],
       "usage": "A value between two ends, set by dragging a thumb or with the arrow keys. A native range. WebKit has no pseudo-element for the filled part of the track, so the track paints it as a gradient up to --range-fill, which the script keeps at (value - min) / (max - min) as a percentage. Firefox has ::-moz-range-progress and ignores the gradient. The two engines' pseudo-elements cannot share a rule: a selector one engine does not know drops the whole rule in the other.",
       "tokens": [
@@ -426,7 +463,6 @@
         "--color-accent-hover",
         "--color-accent-pressed",
         "--color-border-control",
-        "--color-on-surface-subtle",
         "--color-surface",
         "--scrubber-thumb",
         "--scrubber-thumb-active-scale",
@@ -484,7 +520,6 @@
         "A disabled field dims like a disabled switch; a disabled fieldset dims it the same way, on the same element."
       ],
       "styles": [
-        "episode-actions.css",
         "field.css",
         "manage.css"
       ],
@@ -598,7 +633,8 @@
       ],
       "when": [
         "A card, header or row has more actions than room: Download, Add to queue, Share, Delete",
-        "Each action is one tap, with no choice of its own"
+        "Each action is one tap, with no choice of its own",
+        "It has five actions or more: on a phone's sheet the first three become a row of tiles above the rest (menuHasTiles). Fewer than five are all rows"
       ],
       "not": [
         {
@@ -984,14 +1020,14 @@
       "styles": [
         "buttons.css"
       ],
-      "usage": "Tonal action: the one creating action in the side column (Catch up, AppNav.astro). Usage: add it to the action's own element, which keeps its size and layout. The owner found the neutral fill with accent words faded in both themes (2026-10-27), and the current row's accent-container must keep meaning \"you are here\", so this is a third tone, richer than the current row: a saturated blue in both themes (white words in light, the darkest blue's in dark), as the greyed blues before it looked muddy in light and desaturated in dark (owner, 2026-10-27). Its fill reaches 3:1 on the page, so it reads as a shape with no outline, and its words 4.5:1 at rest (buildTokens.test.ts). - A 16px rounded rectangle: the one recorded exception to the pill rule (D186), so its shape alone tells it from the pill-shaped current row beside it (--action-tonal-radius). - Flat: no elevation and no shadow (owner, 2026-10-27). - Hover and press fills --action-tonal-bg-hover and --action-tonal-bg-pressed: the fill with its lightness stepped away from its words (D317: darker in light, lighter in dark), so the state reads as depth, not as a new colour.",
+      "usage": "Tonal action: the one creating action in the side column (Catch up, AppNav.astro). Usage: add it to the action's own element, which keeps its size and layout. It wears the primary fill, the filled button's and Play's (owner, 2026-11-04: \"all should have the same color synchronized\"); it was a third, saturated tone of its own (owner, 2026-10-27), which read as a second primary beside Play. The current row's accent container still means \"you are here\" alone. - A 16px rounded rectangle: the one recorded exception to the pill rule (D186), so its shape alone tells it from the pill-shaped current row beside it (--action-tonal-radius). - Flat: no elevation and no shadow (owner, 2026-10-27). - Hover and press take the primary fill's own steps (--cta-bg-hover, --cta-bg-pressed).",
       "tokens": [
-        "--action-tonal-bg",
-        "--action-tonal-bg-hover",
-        "--action-tonal-bg-pressed",
-        "--action-tonal-fg",
         "--action-tonal-radius",
-        "--color-surface"
+        "--color-surface",
+        "--cta-bg",
+        "--cta-bg-hover",
+        "--cta-bg-pressed",
+        "--cta-fg"
       ]
     },
     {
@@ -1908,13 +1944,13 @@
       ],
       "usage": "",
       "tokens": [
-        "--color-accent-container-high",
-        "--color-accent-container-high-hover",
-        "--color-accent-container-high-pressed",
-        "--color-on-accent-container-high",
         "--color-on-surface-disabled",
         "--color-surface",
         "--color-surface-sunken",
+        "--cta-bg",
+        "--cta-bg-hover",
+        "--cta-bg-pressed",
+        "--cta-fg",
         "--size-icon-lg"
       ]
     }
@@ -3968,14 +4004,10 @@
     {
       "name": "--color-accent-container",
       "tier": "semantic",
-      "type": "color",
-      "light": "var(--color-blue-200)",
-      "role": "The selected state of a control: a chosen chip or segment, the current destination, a tonal button, the playing chip. Text on it is on-accent-container.",
-      "dark": "var(--color-blue-600)",
-      "hex": {
-        "light": "#afcdfe",
-        "dark": "#1755b9"
-      }
+      "type": "singularity-mix-color",
+      "light": "color-mix(in oklab, var(--color-blue-200) 90%, var(--color-grey-200))",
+      "role": "The selected state of a control: a chosen chip or segment, the current destination, a tonal button, the playing chip. Text on it is on-accent-container. It is the secondary tone (Material's secondary container): the accent's own hue at about 0.4 of the primary fill's chroma (0.55 in a loud style), so a chosen or current fill never outshouts the primary button beside it in either mode (owner, 2026-11-04: the dark selection read more saturated than Play). Its lightness stays the mode's step; only its chroma drops.",
+      "dark": "color-mix(in oklab, var(--color-blue-600) 30%, var(--color-grey-600))"
     },
     {
       "name": "--color-on-accent-container",
@@ -4810,46 +4842,6 @@
       "role": "A 16px rounded rectangle, the one recorded exception to the pill rule (D186): the side column's Catch up, so its shape alone tells it from the pill-shaped current row beside it (owner, 2026-10-27)."
     },
     {
-      "name": "--action-tonal-bg",
-      "tier": "component",
-      "type": "color",
-      "light": "var(--color-accent-action)",
-      "hex": {
-        "light": "#2770e6",
-        "dark": "#4f90fc"
-      }
-    },
-    {
-      "name": "--action-tonal-fg",
-      "tier": "component",
-      "type": "color",
-      "light": "var(--color-on-accent-action)",
-      "hex": {
-        "light": "#ffffff",
-        "dark": "#152236"
-      }
-    },
-    {
-      "name": "--action-tonal-bg-hover",
-      "tier": "component",
-      "type": "color",
-      "light": "var(--color-accent-action-hover)",
-      "hex": {
-        "light": "#1560d4",
-        "dark": "#5ea0ff"
-      }
-    },
-    {
-      "name": "--action-tonal-bg-pressed",
-      "tier": "component",
-      "type": "color",
-      "light": "var(--color-accent-action-pressed)",
-      "hex": {
-        "light": "#0050c3",
-        "dark": "#6db0ff"
-      }
-    },
-    {
       "name": "--button-height",
       "tier": "component",
       "type": "dimension",
@@ -4873,6 +4865,19 @@
       "tier": "component",
       "type": "dimension",
       "light": "var(--space-4)"
+    },
+    {
+      "name": "--button-height-small",
+      "tier": "component",
+      "type": "dimension",
+      "light": "2rem",
+      "role": "Visible height of a small button (Button size=\"small\"). The hit area extends to the touch size."
+    },
+    {
+      "name": "--button-padding-small",
+      "tier": "component",
+      "type": "dimension",
+      "light": "var(--space-2)"
     },
     {
       "name": "--mini-player-inset",
@@ -4959,8 +4964,8 @@
       "light": "var(--color-accent-container-pressed)",
       "role": "The fill behind the word being said in the open story, on its chosen fill: the fill's own press step (D317), which steps away from the ink wherever a step toward it would cost the ink its 4.5:1, so the word reads at every hue. The page's tint (player.spoken) put the ink at 3.56:1 there in Expressive dark (2026-11-04).",
       "hex": {
-        "light": "#90addc",
-        "dark": "#003698"
+        "light": "#92add8",
+        "dark": "#2f415f"
       }
     },
     {
@@ -5589,8 +5594,8 @@
       "type": "color",
       "light": "var(--color-accent-container)",
       "hex": {
-        "light": "#afcdfe",
-        "dark": "#1755b9"
+        "light": "#b1cdf9",
+        "dark": "#495d7d"
       }
     },
     {
@@ -5599,8 +5604,8 @@
       "type": "color",
       "light": "var(--color-accent-container-hover)",
       "hex": {
-        "light": "#9fbded",
-        "dark": "#0346a9"
+        "light": "#a2bde8",
+        "dark": "#3c4f6e"
       }
     },
     {
@@ -5609,8 +5614,8 @@
       "type": "color",
       "light": "var(--color-accent-container-pressed)",
       "hex": {
-        "light": "#90addc",
-        "dark": "#003698"
+        "light": "#92add8",
+        "dark": "#2f415f"
       }
     },
     {
@@ -5684,8 +5689,8 @@
       "light": "var(--color-accent-container)",
       "role": "Fill behind the current destination: the pill in the bottom bar and the row in the side column.",
       "hex": {
-        "light": "#afcdfe",
-        "dark": "#1755b9"
+        "light": "#b1cdf9",
+        "dark": "#495d7d"
       }
     },
     {
@@ -5694,8 +5699,8 @@
       "type": "color",
       "light": "var(--color-accent-container-hover)",
       "hex": {
-        "light": "#9fbded",
-        "dark": "#0346a9"
+        "light": "#a2bde8",
+        "dark": "#3c4f6e"
       }
     },
     {
@@ -5933,8 +5938,8 @@
       "light": "var(--color-accent-container)",
       "dark": "var(--color-accent-container)",
       "hex": {
-        "light": "#afcdfe",
-        "dark": "#1755b9"
+        "light": "#b1cdf9",
+        "dark": "#495d7d"
       }
     },
     {

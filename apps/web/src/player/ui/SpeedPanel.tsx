@@ -6,7 +6,7 @@ import { MAX_PLAYBACK_RATE, MIN_PLAYBACK_RATE, PLAYBACK_RATE_STEP } from "../cor
 import { rateFace, rateLabel } from "../rateLabels";
 import Icon from "./LazyIcon";
 
-/** The slider stops on every 0.25x, seven dots on its track. Between them the stepper goes by PLAYBACK_RATE_STEP. */
+/** The slider stops on every 0.25x, seven stops with no marks. Between them the stepper goes by PLAYBACK_RATE_STEP. */
 const STOP_STEP = 0.25;
 const nearestStop = (rate: number): number =>
   Math.min(
@@ -16,7 +16,7 @@ const nearestStop = (rate: number): number =>
 
 /**
  * The speed screen: a stepper around a big readout (exact, by PLAYBACK_RATE_STEP), a slider under
- * it that stops on every 0.25x (dots on the track, no labels; wavy in Expressive). It owns no speed: the caller
+ * it that stops on every 0.25x (no marks, no labels; a wave in Expressive, a zigzag in Halloween), as wide as the stepper. It owns no speed: the caller
  * passes the current one and hears every change, so the player's ⋮ menu sets the playing speed and
  * Settings sets the default with the same control. Mount it in a sheet or a card; its rules are in
  * styles/speed-panel.css.
