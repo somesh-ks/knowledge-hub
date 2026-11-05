@@ -4,6 +4,11 @@
  * Why this exists: the token pipeline must prove contrast in CI without a color library, and
  * the build also derives the sRGB hex values that `theme-color` meta tags and the web manifest
  * need (those cannot take OKLCH reliably across browsers).
+ *
+ * `packages/cover/src/color.ts` holds the same matrices for the covers. The two differ on purpose
+ * where a color falls outside sRGB: this file clips each channel, as a browser does, so the
+ * contrast it proves is the contrast on screen; the covers reduce chroma, which keeps a hue. For a
+ * color inside sRGB they must agree to the hex digit, and buildTokens.test.ts holds them to that.
  */
 
 export interface Oklch {
@@ -37,7 +42,12 @@ export function parseOklch(css: string): Oklch {
   const [, lRaw, lPercent, cRaw, hRaw, alphaRaw, alphaPercent] = match;
   const l = Number(lRaw) / (lPercent === "%" ? 100 : 1);
   const alpha = alphaRaw === undefined ? 1 : Number(alphaRaw) / (alphaPercent === "%" ? 100 : 1);
-  return { l, c: Number(cRaw), h: Number(hRaw), alpha };
+  const color = { l, c: Number(cRaw), h: Number(hRaw), alpha };
+  // `[\d.]+` also matches "1.2.3" and "..."; a NaN here would reach the build as a "#NaNNaNNaN" hex.
+  if (!Object.values(color).every(Number.isFinite)) {
+    throw new Error(`Invalid oklch() components: ${css}`);
+  }
+  return color;
 }
 
 function encodeGamma(linear: number): number {
