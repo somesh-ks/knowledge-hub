@@ -45,6 +45,7 @@ import {
   type Stored,
   statusLine,
 } from "./runStatus";
+import { syncShimmerClock } from "./shimmerClock";
 
 /** How often the list asks again while the queue is open, and while it is folded. */
 const OPEN_POLL_MS = 4000;
@@ -517,7 +518,11 @@ function fitList(list: HTMLElement): void {
 
 /** The title's shimmer: a word with data-live shimmers, on the document's one clock (scripts/shimmerClock.ts). */
 function markLive(word: HTMLElement | null | undefined, live: boolean): void {
-  word?.toggleAttribute("data-live", live);
+  if (!word) return;
+  const was = word.hasAttribute("data-live");
+  word.toggleAttribute("data-live", live);
+  // A word that has just gone live is put on the clock before its first frame (shimmerClock.ts).
+  if (live && !was) syncShimmerClock();
 }
 
 /** What the side column's row shows: "Podcast queue" with the ring while it goes, a check or an alert once it is over. */
@@ -987,8 +992,10 @@ export function mountQueue(startedHere = false): void {
   });
   // A run was started here. On a wide screen the popover opens to show it, once the sheet that
   // started it has gone, as a browser shows a download it has begun.
-  document.addEventListener(GENERATION_STARTED_EVENT, () => {
-    markArriving();
+  document.addEventListener(GENERATION_STARTED_EVENT, (event) => {
+    // A dock that was already up (Try again on a failed row, a run started with another one in view)
+    // stays as it is: only a dock that this run brings in rises (owner, 2026-11-05: it vanished and came back).
+    if (!(event as CustomEvent<{ dockWasUp?: boolean }>).detail?.dockWasUp) markArriving();
     openForNewRun();
   });
   // The first run of a page's life began before this script was loaded to hear it.

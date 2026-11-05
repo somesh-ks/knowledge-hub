@@ -63,6 +63,8 @@ The craft that makes components hold still and answer clearly. Each was a report
   - List edges fade only where more content exists (`player.css:2087-2173`); the create sheet's body fades 32px above its sticky foot the same way, by a scroll timeline (2026-10-22). A sideways scroller takes the shared `.scroll-fade-inline` (`primitives.css`, 2026-10-24, the Costs table first), 32px or its `--scroll-fade-size`; the section tabs and the Earlier shelf (40px) dropped their own copies for it the same day. A scroller that fits, or a browser without scroll timelines (Firefox before 159), shows no fade: the old copies rested with a fixed end fade there. A scroller a keyboard must reach is a tab stop only while it overflows, and its ring is drawn on its parent, since the mask clips its own (the Costs table, axe `scrollable-region-focusable`, 2026-10-24).
   - A source tile's hairline edge is drawn on `.source-icon::after`, so a loaded icon keeps it (2026-10-22).
   - The rail's rows keep 8px apart and each hit area reaches 4px into the gap, so a pointer never falls between them (2026-10-22).
+- **One glyph, one meaning.**
+  - A row's leading slot and a head say what the row is or its state; its trailing slot holds its action. A state never wears an action's glyph (a cancelled run was drawn with the X that also cancels and removes it, 2026-11-05). `lib/queueIcons.ts` keeps the two lists apart, a unit test holds them, and `e2e/queue.spec.ts` checks the rendered rows for a repeated glyph and an X in a leading slot.
 - **Speech and status.**
   - One element speaks each message: a polite region, an alert region for errors, and a toast with no role (2026-10-10).
   - The live region stays quiet whenever a visible notice already speaks (D90).

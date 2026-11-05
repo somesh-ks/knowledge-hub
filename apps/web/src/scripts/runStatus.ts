@@ -552,9 +552,11 @@ export function startRun(
     ...(retry ? { retry } : {}),
   };
   following = 0;
+  // Read before the record changes: a queue that was already up (Try again on a failed run) stays put.
+  const dockWasUp = document.querySelector("[data-queue-dock]:not([hidden])") !== null;
   set(run);
   // The generations list opens on a wide screen to show it (scripts/generations.ts).
-  document.dispatchEvent(new Event(GENERATION_STARTED_EVENT));
+  document.dispatchEvent(new CustomEvent(GENERATION_STARTED_EVENT, { detail: { dockWasUp } }));
   void follow(run, false);
 }
 

@@ -2,7 +2,7 @@
 import Button from "../design-system/Button.astro";
 import Icon from "../design-system/Icon.astro";
 import { menuListClass } from "../design-system/menu";
-import type { IconName } from "../lib/icons";
+import { QUEUE_ACTION_ICONS, QUEUE_STATUS_ICONS } from "../lib/queueIcons";
 import { UPDATING_LABEL } from "../lib/runStages";
 import QueueRing from "./QueueRing.astro";
 
@@ -94,12 +94,7 @@ const words = {
 
 // The icons the queue draws, for how a run ended (the head's check or alert, a row's end icon). Rendered
 // here, once, so the script (scripts/queue.ts) clones them and carries no paths of its own.
-const icons: Record<string, IconName> = {
-  done: "checkCircle",
-  failed: "alert",
-  started: "info",
-  cancelled: "close",
-};
+const icons = QUEUE_STATUS_ICONS;
 ---
 
 {/* The podcast queue (D231): what is being made, as a browser lists its downloads, and what was made
@@ -167,7 +162,7 @@ const icons: Record<string, IconName> = {
           <span class="queue-time" data-queue-time></span>
         </div>
         <a class="icon-btn press queue-play" href="#" data-queue-play hidden>
-          <Icon name="play" size="lg" />
+          <Icon name={QUEUE_ACTION_ICONS.play} size="lg" />
         </a>
         <span class="queue-end-icon" data-queue-end-icon hidden></span>
       </div>
@@ -180,10 +175,10 @@ const icons: Record<string, IconName> = {
       </div>
       {/* Cancel is the X at the row's end, while the run goes; once it has ended the same X takes the item out of the queue. */}
       <button class="icon-btn icon-btn-end press queue-cancel" type="button" data-queue-cancel hidden>
-        <Icon name="close" size="lg" />
+        <Icon name={QUEUE_ACTION_ICONS.cancel} size="lg" />
       </button>
       <button class="icon-btn icon-btn-end press queue-remove" type="button" data-queue-remove hidden>
-        <Icon name="close" size="lg" />
+        <Icon name={QUEUE_ACTION_ICONS.remove} size="lg" />
       </button>
       {/* What can be done to a run that ended or is lost, under the text. */}
       <div class="queue-actions">

@@ -60,6 +60,36 @@ async function follow(page: Page, status: Record<string, unknown> | null = null)
   });
 }
 
+/**
+ * One glyph, one meaning (lib/queueIcons.ts). A row never shows the same glyph twice, and no glyph that
+ * is an action's (the X) stands in a leading slot or in the folded head, where only a state can be.
+ * Owner, 2026-11-05: a cancelled run showed an X at its start, another in the head and the X that
+ * removes it, because Cancelled was drawn with Close. Checks the rendered rows, so a new state or
+ * action is held to it too.
+ */
+async function expectOneMeaningPerGlyph(page: Page): Promise<void> {
+  const found = await page.evaluate(() => {
+    const names = (scope: ParentNode) =>
+      [...scope.querySelectorAll<SVGElement>("svg[data-icon]:not([data-leaving])")]
+        .filter((svg) => svg.getClientRects().length > 0)
+        .map((svg) => svg.dataset.icon ?? "");
+    const rows = [...document.querySelectorAll<HTMLElement>("[data-queue-row-item]")].filter(
+      (row) => row.getClientRects().length > 0,
+    );
+    const twice = rows.flatMap((row) => {
+      const glyphs = names(row);
+      return glyphs.filter((glyph, at) => glyphs.indexOf(glyph) !== at);
+    });
+    const states = [
+      ...document.querySelectorAll(".queue-lead, .queue-ring-head, .queue-end-icon"),
+    ].flatMap((slot) => names(slot).filter((glyph) => glyph === "close"));
+    return { twice, states, seen: rows.length };
+  });
+  expect(found.seen).toBeGreaterThan(0);
+  expect(found.twice).toEqual([]);
+  expect(found.states).toEqual([]);
+}
+
 /** Opens the queue as the screen has it: the dock's head below 64rem, the side column's row above. */
 async function openQueue(page: Page): Promise<void> {
   const wide = (page.viewportSize()?.width ?? 0) >= 1024;
@@ -270,6 +300,7 @@ test.describe("the podcast queue", () => {
       timeout: 15_000,
     });
     await expect(rows(page).first().getByRole("button", { name: "Try again" })).toBeHidden();
+    await expectOneMeaningPerGlyph(page);
     await page.reload();
     await hydrated(page);
     await openQueue(page);
@@ -312,6 +343,7 @@ test.describe("the podcast queue", () => {
       .and(page.locator(":visible"));
     await expect(listen).toHaveAttribute("href", "/d/2026-10-07");
     await expect(page.getByRole("button", { name: "Clear queue" })).toHaveCount(0);
+    await expectOneMeaningPerGlyph(page);
   });
 
   // The 2026-11-02 owner ask: a podcast that has played has done its job in the queue, and with no row
@@ -367,6 +399,133 @@ test.describe("the podcast queue", () => {
 
   // The 2026-10-29 owner ask: the row's line is one line, and Details holds the whole story with a
   // snippet to copy.
+  // Owner, 2026-11-05: Try again on a failed run made the dock vanish and come back. The dock rises in
+  // only for a run that brought it in (data-arriving, 0 to 1 opacity after a pause); a run started while
+  // it was up used to run that rise again.
+  test("Try again on a failed run keeps the dock up while the new run starts", async ({
+    page,
+    hasTouch,
+  }) => {
+    test.skip(!hasTouch, "the dock is a phone's");
+    let started = false;
+    await mock(page, () => (started ? [row(44)] : []));
+    await page.route("**/api/podcast", (route) => {
+      started = true;
+      return route.fulfill({ status: 202, json: { run_id: 44, cancel_token: "token-44" } });
+    });
+    await page.route("**/api/status?**", (route) =>
+      route.fulfill({
+        status: 200,
+        json: { run_id: 44, state: "running", step: null, stage: 1, stages: 6, label: "Writing" },
+      }),
+    );
+    const now = Date.now();
+    await seedStorage(page, {
+      local: {
+        "singularity:run": JSON.stringify({
+          id: 43,
+          phase: "failed",
+          what: "briefing",
+          kind: "regenerate",
+          episode: "2026-10-09",
+          step: "writing",
+          retry: { body: { replace: "2026-10-09", feedback: "a bit longer" } },
+          t0: now - 120_000,
+          stageAt: now - 60_000,
+        }),
+      },
+    });
+    await page.goto("/library");
+    await hydrated(page);
+    const dock = page.locator("[data-queue-dock]");
+    await expect(dock).toHaveAttribute("data-expanded", "");
+    const again = rows(page).first().getByRole("button", { name: "Try again" });
+    await expect(again).toBeVisible();
+    await again.click();
+    // The dock's opacity is read on every frame while the new run replaces the failed one.
+    const lowest = await dock.evaluate(
+      (node) =>
+        new Promise<number>((done) => {
+          const t0 = performance.now();
+          let low = 1;
+          const tick = () => {
+            low = Math.min(
+              low,
+              (node as HTMLElement).hidden ? 0 : Number(getComputedStyle(node).opacity),
+            );
+            if (performance.now() - t0 < 900) requestAnimationFrame(tick);
+            else done(low);
+          };
+          tick();
+        }),
+    );
+    expect(lowest).toBe(1);
+    await expect(rowOf(page, 44)).toBeVisible();
+    await expect(dock).toHaveAttribute("data-expanded", "");
+  });
+
+  // Owner, 2026-11-05: the shimmer jumped on its first frame and again at the end of every loop. The
+  // gradient is a tile 2.5 widths wide, so a loop that travels any other distance ends where it did not begin.
+  test("the title's shimmer starts on the clock and its loop ends where it began", async ({
+    page,
+    hasTouch,
+  }) => {
+    test.skip(!hasTouch, "the dock is a phone's");
+    await page.addInitScript(() => {
+      const first: { current?: number; timeline?: number } = {};
+      (window as unknown as { __first: typeof first }).__first = first;
+      const tick = () => {
+        const word = document.querySelector("[data-queue-title][data-live]");
+        const sheen = word
+          ?.getAnimations()
+          .find((a) => (a as CSSAnimation).animationName === "queue-sheen");
+        if (sheen && first.current === undefined) {
+          first.current = Number(sheen.currentTime);
+          first.timeline = Number(document.timeline.currentTime);
+        } else requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    await mock(page, () => [row(41)]);
+    await follow(page);
+    await page.goto("/library");
+    await hydrated(page);
+    await expect(page.locator("[data-queue-title][data-live]")).toBeVisible();
+    // Its first frame already sits at the clock, not at the animation's own zero.
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const first = (window as unknown as { __first: { current?: number; timeline?: number } })
+            .__first;
+          return first.current === undefined
+            ? null
+            : Math.abs(first.current - (first.timeline ?? 0));
+        }),
+      )
+      .toBeLessThan(50);
+    // Its last instant and its first are the same place on the tiled gradient.
+    const gap = await page.locator("[data-queue-title][data-live]").evaluate((word) => {
+      const sheen = word
+        .getAnimations()
+        .find((a) => (a as CSSAnimation).animationName === "queue-sheen") as CSSAnimation;
+      const length = Number(sheen.effect?.getComputedTiming().duration);
+      sheen.pause();
+      const read = (at: number) => {
+        sheen.currentTime = at;
+        const style = getComputedStyle(word);
+        const tile = (parseFloat(style.backgroundSize) / 100) * word.clientWidth;
+        // A background-position percent is a share of the room the tile leaves.
+        const offset = ((word.clientWidth - tile) * parseFloat(style.backgroundPositionX)) / 100;
+        return { offset, tile };
+      };
+      const end = read(length - 0.001);
+      const start = read(0);
+      const apart = Math.abs(start.offset - end.offset) % start.tile;
+      return Math.min(apart, start.tile - apart);
+    });
+    expect(gap).toBeLessThan(1);
+  });
+
   test("a failed run's Details says what went wrong and copies the facts of the run", async ({
     page,
     context,
@@ -394,6 +553,7 @@ test.describe("the podcast queue", () => {
     // A failed run opens the phone's dock by itself; the desktop's popover is opened from the side column.
     if ((page.viewportSize()?.width ?? 0) >= 1024) await openQueue(page);
     else await expect(page.locator("[data-queue-dock]")).toHaveAttribute("data-expanded", "");
+    await expectOneMeaningPerGlyph(page);
     await rows(page).first().getByRole("button", { name: "Details" }).click();
     const dialog = page.getByRole("dialog", { name: "What went wrong" });
     await expect(dialog).toContainText("Run: 43");

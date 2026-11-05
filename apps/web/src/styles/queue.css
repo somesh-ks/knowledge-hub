@@ -44,6 +44,12 @@
   }
 }
 
+/* The player bar under the dock draws its own top edge (its progress track), so the dock's hairline is
+   not drawn a second time over it: the two lines read as one thick divider (owner, 2026-11-05). */
+html[data-mini="visible"] .queue-dock {
+  border-block-end: 0;
+}
+
 /* The dock arrives, it does not appear: a started Catch up or Regenerate sends its sheet down, and the
    queue rises from the bar a beat later, so the run is seen to land where it can be followed. Only a
    run started here marks the dock `data-arriving` (queue.ts): a restored dock appears at once. */
@@ -515,12 +521,17 @@ html:has(.queue-pop:popover-open) .app-nav-queue-title.queue-word[data-live] {
   color: var(--color-on-surface);
 }
 
+/* The gradient tiles across the word, one tile 250% of its width, so a loop must travel exactly one tile
+   to end where it began. A background-position percent is measured on the room the tile leaves
+   (100% - 250% = -150% of the width), so 100% rests the tile at -1.5 widths and -66.6667% at +1 width:
+   2.5 widths, one tile (owner, 2026-11-05: the band jumped at the end of every loop; it had travelled
+   3 widths against a 2.5-width tile). Change the tile's size and this end moves with it: 1 / (1 - size). */
 @keyframes queue-sheen {
   from {
     background-position: 100% 0;
   }
   to {
-    background-position: -100% 0;
+    background-position: -66.6667% 0;
   }
 }
 
