@@ -19,6 +19,8 @@ export function preconnectAudioHost(url: string, doc: Document = document): void
   } catch {
     return;
   }
+  // A narration:ID source has no host of its own, and the link already there stays.
+  if (origin === "null") return;
   // The same origin is already connected (a fixture or a local build).
   if (origin === doc.location.origin) return;
   // A fresh element asks the browser again; the old one would not.
