@@ -113,7 +113,7 @@ export const COMPONENTS: DesignSystemComponent[] = [
     summary: CODE.summary,
     useWhen: CODE.useWhen,
     dontUseWhen: CODE.dontUseWhen,
-    parts: CODE.variants,
+    parts: {},
   },
   {
     name: "Switch",

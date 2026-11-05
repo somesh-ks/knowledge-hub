@@ -1,10 +1,9 @@
 /*
  * The Code snippet (design-system/code.ts, Code.astro): text a person copies as it is, in the
  * monospace family (--font-code: Google Sans Code, the same in every mood), on the tonal box a
- * field has (or, the Surface variant, the page's surface for a card), with a Copy button at its
- * top end. The text wraps and keeps its line breaks, so a long line never
- * scrolls sideways and nothing is cut. Pressed, the button's copy glyph turns to a check for two
- * seconds (data-copied, set by code.ts).
+ * field has, with a Copy button at its top end. The text wraps and keeps its line breaks, so a long
+ * line never scrolls sideways and nothing is cut. Pressed, the button's copy glyph turns to a check
+ * for two seconds (data-copied, set by code.ts).
  */
 .code-snippet {
   position: relative;
@@ -13,10 +12,9 @@
   color: var(--color-on-surface);
 }
 
-/* Surface: on a card's fill it takes the page's own surface, as a field on a card does
-   (topics.css), so it reads against the card. The page picks it (code.ts); where a snippet sits
-   never switches it. */
-.code-snippet-surface {
+/* On a card's fill it takes the page's own surface, as a field on a card does (topics.css), so it
+   reads against the card: the switch is automatic, by where it sits (owner, 2026-11-05). */
+:is(.card-group, .topic-panel) .code-snippet {
   background: var(--color-surface);
 }
 
