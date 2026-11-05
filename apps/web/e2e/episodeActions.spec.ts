@@ -208,19 +208,57 @@ test.describe("regenerate and delete an episode", () => {
     expect(bodies).toHaveLength(0);
   });
 
-  // Owner, 2026-11-04: Jev reads what the word match misses. One ask per pause, not per keystroke.
-  test("a comment the words miss still brings up Length once Jev reads it", async ({ page }) => {
+  // Owner, 2026-11-04 (D370, D371): Jev reveals what the word match misses and Haiku proposes the
+  // values; the controls follow the comment both ways, and one the listener touched stays.
+  test("the controls follow the comment: shown and set by the models, gone when the words go, kept once touched", async ({
+    page,
+  }) => {
     const asked: string[] = [];
     await page.route("**/api/regen-hints", async (route) => {
-      asked.push(JSON.parse(route.request().postData() ?? "{}").comment);
-      await route.fulfill({ json: { length: true, topics: false, by: "jev" } });
+      const { comment, want } = JSON.parse(route.request().postData() ?? "{}");
+      if (want === "show") asked.push(comment);
+      await route.fulfill({
+        json:
+          want === "values"
+            ? { length: "shorter", add: [], by: "haiku" }
+            : { length: true, topics: false, by: "jev" },
+      });
     });
     await open(page);
     await choose(page, "Regenerate");
     const length = panel(page).getByRole("radiogroup", { name: "Length" });
-    await panel(page).getByLabel("What went wrong?").pressSequentially("It dragged on");
+    const note = panel(page).getByLabel("What went wrong?");
+    const lengths = () =>
+      length
+        .locator("input")
+        .evaluateAll((all) =>
+          all.map((i) => [(i as HTMLInputElement).defaultChecked, (i as HTMLInputElement).checked]),
+        );
+    await note.pressSequentially("It dragged on");
     await expect(length).toBeVisible();
     expect(asked).toEqual(["It dragged on"]);
+    // Haiku moved the untouched control one step shorter than the length asked for.
+    await expect
+      .poll(async () => (await lengths()).findIndex(([, now]) => now))
+      .toBe((await lengths()).findIndex(([made]) => made) - 1);
+    // The words go: the control goes with them, and the length is back where it was.
+    await note.fill("");
+    await expect(length).toBeHidden();
+    expect((await lengths()).every(([made, now]) => made === now)).toBe(true);
+    // A length the listener picked stays when the words go.
+    await note.pressSequentially("It dragged on");
+    await expect(length).toBeVisible();
+    await length.locator("label").last().click();
+    await note.fill("");
+    await expect(length).toBeVisible();
+    expect((await lengths()).at(-1)?.[1]).toBe(true);
+    // The dialog keeps its words when closed; opened again, the models read them again.
+    await note.fill("It dragged on");
+    await expect.poll(() => asked.length).toBe(3);
+    await page.keyboard.press("Escape");
+    await expect(panel(page)).toBeHidden();
+    await choose(page, "Regenerate");
+    await expect.poll(() => asked.length).toBe(4);
   });
 
   test("the character count shows only near the limit", async ({ page }) => {
