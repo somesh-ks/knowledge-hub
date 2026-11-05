@@ -191,12 +191,21 @@ export async function readWatchedHead(root: string): Promise<WatchedHead | undef
           return null;
         }
       },
-      // Exit 1 is "not an ancestor"; 128 (an unknown commit) and the rest cannot tell.
-      includes: (build) =>
-        git("merge-base", "--is-ancestor", sha, build).then(
-          () => true,
-          (error: unknown) => ((error as { code?: unknown }).code === 1 ? false : null),
-        ),
+      // Exit 1 is "not an ancestor"; 128 (an unknown commit) and the rest cannot tell. A build that
+      // lacks the commit still holds it when the watched files are identical (a change and its
+      // revert): the batch script skips that build too (D375).
+      includes: async (build) => {
+        const code = async (...args: string[]) =>
+          git(...args).then(
+            () => 0,
+            (error: unknown) => (error as { code?: unknown }).code,
+          );
+        const ancestor = await code("merge-base", "--is-ancestor", sha, build);
+        if (ancestor === 0) return true;
+        if (ancestor !== 1) return null;
+        const same = await code("diff", "--quiet", build, sha, "--", ...watched);
+        return same === 0 ? true : same === 1 ? false : null;
+      },
     };
   } catch {
     return undefined;

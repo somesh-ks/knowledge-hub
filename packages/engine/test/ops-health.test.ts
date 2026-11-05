@@ -373,6 +373,28 @@ describe("singularity health", () => {
     expect(await behind?.missingSince("0123456789ab")).toBeNull();
   });
 
+  // A merge and its revert leave the watched files as the build has them; the batch script skips
+  // that build (D375), so site_behind must not fault on it a day later.
+  it("counts a build as holding the head when only a reverted change separates them", async () => {
+    git(root, "init", "-q", "-b", "main");
+    await put(
+      "apps/web/vercel.json",
+      JSON.stringify({ ignoreCommand: "sh ../../scripts/deploy-batch.sh -- . ../../Digests" }),
+    );
+    await put("Digests/a.md", "a");
+    const built = await commitAll(root, "chore: built");
+    await put("Digests/a.md", "changed");
+    await commitAll(root, "fix: change");
+    await put("Digests/a.md", "a");
+    const reverted = await commitAll(root, "revert: change");
+    const head = await readWatchedHead(root);
+    expect(head?.sha).toBe(reverted);
+    expect(await head?.includes(built)).toBe(true);
+    await put("Digests/a.md", "other");
+    await commitAll(root, "fix: real change");
+    expect(await (await readWatchedHead(root))?.includes(built)).toBe(false);
+  });
+
   // Client signals are forgeable and extensions trip the CSP, so they only warn, past a threshold,
   // over 24 hours across builds (content commits redeploy several times a day), and a stored
   // message reaches the issue as inline code, so an @mention in it pings no one.
