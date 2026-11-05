@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { resetConnectivity } from "../lib/connectivity";
 import {
   CARRIED_ATTRIBUTES,
   carryNavigationKind,
@@ -11,8 +12,10 @@ import {
 } from "./navigation";
 import {
   APPLY_ATTEMPTS,
+  AWAY_MS,
   canReloadNow,
   claimApply,
+  registerServiceWorker,
   shouldActivateUpdate,
   shouldCheckForUpdate,
   UPDATE_CHECK_MS,
@@ -190,15 +193,81 @@ describe("canReloadNow", () => {
     expect(canReloadNow({ ...idle, playerOpen: true })).toBe(false);
   });
 
-  // Owner, 2026-11-05: the installed app kept an old build, since an app opened to listen keeps the
-  // full player open. Back after a long absence, the reload puts the open player back as it was.
-  it("loads the new build with the open player when the app comes back after a long absence, never over sound, a sheet or typing", () => {
-    expect(canReloadNow({ ...idle, playerOpen: true }, true)).toBe(true);
+  // A podcast narrated in this tab lives in memory: the reload could not put it back.
+  it("never lifts the open-player hold over sound, a sheet, typing or a narrated podcast", () => {
     expect(canReloadNow({ ...idle, playerOpen: true, playerState: "playing" }, true)).toBe(false);
     expect(canReloadNow({ ...idle, overlayOpen: true }, true)).toBe(false);
     expect(canReloadNow({ ...idle, editing: true }, true)).toBe(false);
-    // A podcast narrated in this tab lives in memory: the reload could not put it back.
     expect(canReloadNow({ ...idle, playerOpen: true, narrated: true }, true)).toBe(false);
+  });
+});
+
+// Owner, 2026-11-05: the installed app kept an old build, since an app opened to listen keeps the
+// full player open. Back after five minutes away, before a touch, the waiting build loads (D373).
+describe("an installed app with the full player open", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    resetConnectivity();
+  });
+
+  it("loads a deploy when it comes back after five minutes, not after a brief hide or once touched", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("PROD", true);
+    const page = Object.assign(new EventTarget(), {
+      hidden: false,
+      readyState: "complete",
+      activeElement: null,
+      documentElement: { dataset: { player: "open", playerState: "paused" } },
+      querySelector: () => null,
+      querySelectorAll: () => [],
+    });
+    const reload = vi.fn();
+    const kept = new Map<string, string>();
+    let answer = Promise.resolve("deploy-1");
+    vi.stubGlobal("document", page);
+    vi.stubGlobal("HTMLElement", class {});
+    vi.stubGlobal("location", { reload });
+    vi.stubGlobal("sessionStorage", {
+      getItem: (key: string) => kept.get(key) ?? null,
+      setItem: (key: string, value: string) => void kept.set(key, value),
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: true, json: async () => ({ build: await answer }) })),
+    );
+    const registration = { waiting: null, update: async () => undefined, addEventListener() {} };
+    vi.stubGlobal("navigator", {
+      onLine: true,
+      serviceWorker: { register: async () => registration },
+    });
+    const away = async (ms: number): Promise<void> => {
+      page.hidden = true;
+      page.dispatchEvent(new Event("visibilitychange"));
+      await vi.advanceTimersByTimeAsync(ms);
+      page.hidden = false;
+      page.dispatchEvent(new Event("visibilitychange"));
+      await vi.advanceTimersByTimeAsync(0);
+    };
+
+    registerServiceWorker("deploy-1");
+    await vi.advanceTimersByTimeAsync(0);
+    // Back after five minutes, but touched before the site named its new build: the reader is using it.
+    let answerNow = (_build: string): void => undefined;
+    answer = new Promise((resolve) => (answerNow = resolve));
+    await away(AWAY_MS);
+    page.dispatchEvent(new Event("pointerdown"));
+    answerNow("deploy-2");
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(reload).not.toHaveBeenCalled();
+    // A brief hide is not a return: the known build still waits.
+    await away(AWAY_MS - 1000);
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(reload).not.toHaveBeenCalled();
+
+    await away(AWAY_MS);
+    expect(reload).toHaveBeenCalled();
   });
 });
 
