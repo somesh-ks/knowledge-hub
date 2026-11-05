@@ -977,15 +977,11 @@ a.hl-tile:focus-visible {
   outline-offset: var(--stroke-ring-gap);
 }
 
-/* What needs a look: a heading with "Copy all", then each check as its line (a link to its
-   section) over what it means, where to start and its commonest reports, and its own copy. */
+/* What needs a look: a heading, then each check as its line (a link to its section) over what it
+   means, where to start and its commonest reports. Their prompts are in Actions. */
 .hl-issues {
   display: grid;
   gap: var(--space-2);
-}
-
-.hl-issues .hl-head {
-  align-items: center;
 }
 
 .hl-issue-list {
@@ -1014,11 +1010,6 @@ a.hl-tile:focus-visible {
   margin: 0;
 }
 
-/* Its copy sits at the far edge, as "Copy all" does above. */
-.hl-issue-body > button {
-  justify-self: end;
-}
-
 .hl-issue-text {
   color: var(--color-on-surface);
 }
@@ -1044,6 +1035,63 @@ a.hl-tile:focus-visible {
 .hl-issues-rest {
   margin: 0;
   color: var(--color-on-surface-muted);
+}
+
+/* Actions: each prompt its name and a Copy at the far edge, over its text whole as a snippet, set
+   in the platform's monospace and filled as a tile is (2026-11-05, the owner: "a little monospace
+   font component like a little code snippet"). A long one scrolls inside its own box. */
+.hl-prompts {
+  display: grid;
+  gap: var(--space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hl-prompts:empty {
+  display: none;
+}
+
+.hl-prompt {
+  display: grid;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.hl-prompt-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.hl-prompt-title {
+  min-inline-size: 0;
+  margin: 0;
+  font-family: var(--text-label-family);
+  font-size: var(--text-label-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--text-label-leading);
+}
+
+.hl-snippet {
+  max-block-size: 12rem;
+  margin: 0;
+  padding: var(--space-4);
+  overflow: auto;
+  border-radius: var(--card-content-radius);
+  background: var(--color-surface-overlay);
+  color: var(--color-on-surface);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: var(--text-meta-size);
+  line-height: var(--text-meta-leading);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.hl-snippet:focus-visible {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
 }
 
 /* Runs: a kind at a time under the switch, its run time, columns and stages. */

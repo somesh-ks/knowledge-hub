@@ -15,10 +15,11 @@ const group = (id: string): readonly Row[] =>
 const pick = (groupId: string, ...ids: string[]): Row[] =>
   ids.flatMap((id) => group(groupId).filter((row) => row.id === id));
 
-// The page's sections: the summary, then the pulse's pillars in its order (lib/pillars.ts). The
-// contents list (desktop) and the tabs (phone) go to each.
+// The page's sections: the summary, the prompts that fix what it flags, then the pulse's pillars in
+// its order (lib/pillars.ts). The contents list (desktop) and the tabs (phone) go to each.
 const sections = [
   { slug: "summary", title: "Summary" },
+  { slug: "actions", title: "Actions" },
   ...PILLARS.map((pillar) => ({ slug: pillar.id, title: pillar.title })),
 ];
 const kinds = [
@@ -42,7 +43,7 @@ const kinds = [
 
       {/* The summary (scripts/healthSummary.ts): a tile for all the sections, then one a section, its
            state in words, tinted when it needs a look, a link to its section; then every check that
-           needs a look, what it means and where to start, with a copy of it all for an AI agent. */}
+           needs a look, what it means and where to start. Actions holds the prompts. */}
       <section class="hl-section" id="c-summary" aria-label="Summary" data-health-summary>
         <div class="card-group hl-card hl-summary">
           <ul class="stat-tiles hl-tiles hl-data" role="list">
@@ -71,15 +72,23 @@ const kinds = [
             }
           </ul>
           <div class="hl-issues hl-data">
-            <div class="hl-head">
-              <h3 class="hl-title" data-issues-title data-health-state>Checking</h3>
-              <span data-copy-all></span>
-            </div>
+            <h3 class="hl-title" data-issues-title data-health-state>Checking</h3>
             <ul class="hl-issue-list" role="list" data-issues></ul>
             <p class="hl-issues-rest" data-issues-rest></p>
           </div>
         </div>
         <p class="settings-note" data-health-note>&nbsp;</p>
+      </section>
+
+      {/* Actions (scripts/healthActions.ts): a prompt for an AI agent a thing the summary flags, and
+           one for them all, each its text whole in a snippet with a Copy. */}
+      <section class="hl-section" id="c-actions" data-health-actions>
+        <h2 class="section-head text-heading">Actions</h2>
+        <div class="card-group hl-card">
+          <ul class="hl-prompts" role="list" data-prompts></ul>
+          <p class="hl-issues-rest" data-prompts-note>Checking</p>
+        </div>
+        <p class="settings-note">Copy a prompt and paste it into Claude Code.</p>
       </section>
 
       {/* Content: did readers get their podcasts. */}

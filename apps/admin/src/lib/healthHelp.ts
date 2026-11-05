@@ -1,6 +1,6 @@
 /**
  * What a flagged Health check means for readers, and where to start looking, by row id (a speed row by
- * its metric). The Health page says it under the check, and its "Copy for agent" text carries it, so
+ * its metric). The Health page says it under the check, and its prompt in Actions carries it, so
  * a person and an agent start from the same place (2026-11-05, the owner: "iterate until a human can
  * easily understand what is wrong"). A cause here is the likely one, not a diagnosis.
  */
@@ -90,7 +90,7 @@ export const HELP: Record<string, Help> = {
   },
   budget_cost: {
     means: "Spending, the database's compute or the deploy count is ahead of its budget.",
-    start: "The tile's numbers name which; Costs in this admin splits the spend by service.",
+    start: "The reading names which; the admin's Costs page splits the spend by service.",
   },
   budget_speed: {
     means: "Pages are slower than their budget.",

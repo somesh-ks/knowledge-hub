@@ -156,9 +156,12 @@ export function copyButton(label: string, text: () => string): HTMLButtonElement
   return button;
 }
 
-/** The problems on screen now, by title: what a page's own "Copy for agent" adds to its text. */
+/** The problems on screen now, by title: what a page's own prompts add (Health's Actions). */
 const shown = new Map<string, Problem>();
 export const currentProblems = (): Problem[] => [...shown.values()];
+/** Sent on the document when a banner goes up or comes down, so a page's prompts follow it. */
+export const PROBLEMS_CHANGED = "admin:problems";
+const changed = (): boolean => document.dispatchEvent(new Event(PROBLEMS_CHANGED));
 
 /** Draws, or redraws, the banner for this problem's title in the page's problem slot (AdminHead). */
 export function reportProblem(problem: Problem): void {
@@ -189,11 +192,12 @@ export function reportProblem(problem: Problem): void {
   const old = [...slot.children].find((each) => (each as HTMLElement).dataset.problem === key);
   if (old) old.replaceWith(banner);
   else slot.append(banner);
+  changed();
 }
 
 /** Takes the banner for this title down: the next ask answered. */
 export function clearProblem(title: string): void {
-  shown.delete(title);
+  if (shown.delete(title)) changed();
   for (const each of document.querySelectorAll<HTMLElement>("[data-problems] [data-problem]")) {
     if (each.dataset.problem === title) each.remove();
   }

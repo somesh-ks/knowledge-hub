@@ -3,7 +3,7 @@
  * paints the fresh one (lib/kept.ts). Each reading the page drew at build is filled by id: a value,
  * a glyph on one that needs a look, and the marks the answer's series give (run columns, job
  * strips, speed meters). The summary is a tile a section of the page and one for all of them
- * (healthRing.ts). The Speed card shows one device at a time and repaints from the same answer. A
+ * (healthRing.ts); Actions words what it flags as prompts for an agent (healthActions.ts). The Speed card shows one device at a time and repaints from the same answer. A
  * failed ask with nothing kept says so in the summary and the banner above, and leaves the shell as
  * drawn.
  */
@@ -16,11 +16,17 @@ import type {
 import { mountSegmentedNav, selectTab } from "../../../web/src/scripts/segmentedNav";
 import { askKept } from "../lib/kept";
 import { PILLARS } from "../lib/pillars";
-import { drawSummary } from "./healthSummary";
+import { currentProblems, PROBLEMS_CHANGED } from "../lib/problem";
+import { drawActions } from "./healthActions";
+import { drawSummary, type Issue } from "./healthSummary";
 
 const root = document.querySelector<HTMLElement>("[data-health]");
 const deviceTabs = document.querySelector<HTMLElement>("[data-device]");
 let answer: HealthBody | null = null;
+/** The answer on the page is this device's kept one, and no fresh one has come. */
+let stale = false;
+/** What the summary flagged last, which the Actions section words as prompts. */
+let issues: Issue[] = [];
 let device = "mobile";
 /** The kind of run shown was picked by a press; an answer no longer moves it. */
 let kindPicked = false;
@@ -159,20 +165,38 @@ function drawMeter(
   );
 }
 
+/** The parts of the answer that came back short, in words. */
+const partial = (body: HealthBody): string[] =>
+  [
+    body.parts.content === "fallback" && "the content store answered from this build's copy",
+    body.parts.content === "saved" && "the content store answered from its last saved list",
+    body.parts.database === "unavailable" && "the database did not answer",
+    body.parts.github === "unavailable" && "GitHub did not answer",
+    body.parts.github === "partial" && "GitHub answered for some workflows only",
+  ].filter((each): each is string => Boolean(each));
+
+/** The prompts: what the summary flagged and what failed to load, redrawn when either changes. */
+function paintActions(): void {
+  const actions = root?.querySelector<HTMLElement>("[data-health-actions]");
+  if (!actions) return;
+  drawActions(actions, {
+    issues,
+    checkedAt: answer?.checked_at ?? null,
+    stale,
+    partial: answer ? partial(answer) : [],
+    problems: currentProblems(),
+  });
+}
+
 function paintSummary(): void {
   const summary = root?.querySelector<HTMLElement>("[data-health-summary]");
   if (!summary || !answer) return;
-  drawSummary(summary, answer, PILLARS, (pillar) => `#c-${pillar}`);
+  issues = drawSummary(summary, answer, PILLARS, (pillar) => `#c-${pillar}`);
+  paintActions();
   const at = new Date(answer.checked_at);
   const sameDay = at.toDateString() === new Date().toDateString();
   const checked = `${sameDay ? "" : `${shortDate(answer.checked_at)}, `}${at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
-  const missing = [
-    answer.parts.content === "fallback" && "the content store answered from this build's copy",
-    answer.parts.content === "saved" && "the content store answered from its last saved list",
-    answer.parts.database === "unavailable" && "the database did not answer",
-    answer.parts.github === "unavailable" && "GitHub did not answer",
-    answer.parts.github === "partial" && "GitHub answered for some workflows only",
-  ].filter(Boolean);
+  const missing = partial(answer);
   const note = summary.querySelector<HTMLElement>("[data-health-note]");
   if (note)
     note.textContent = `Checked ${checked}.${missing.length ? ` Partial: ${missing.join("; ")}.` : ""}`;
@@ -210,8 +234,9 @@ async function load(): Promise<void> {
   const asked = await askKept<HealthBody>(
     "/api/health",
     "health",
-    (body) => {
+    (body, kept) => {
       answer = body;
+      stale = kept;
       const flagged = body.rows.find((row) => row.id.startsWith("time_") && isFlag(row.tone))?.id;
       if (kindTabs && flagged && !kindPicked) {
         selectTab(kindTabs, flagged.slice(5));
@@ -226,8 +251,12 @@ async function load(): Promise<void> {
     const words = root.querySelector<HTMLElement>("[data-health-state]");
     if (words) words.textContent = "No answer";
     delete root.dataset.loading;
+    paintActions();
   }
 }
+
+// A banner that goes up or comes down later (Stage times) changes the prompts with it.
+document.addEventListener(PROBLEMS_CHANGED, paintActions);
 
 // Runs: a kind at a time, the one whose run time needs a look first.
 const kindTabs = document.querySelector<HTMLElement>("[data-kinds]");
