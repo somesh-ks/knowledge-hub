@@ -266,7 +266,10 @@ function useDockSwipe({ next, previous, shownId }: DockSwipeTargets) {
     target.style.setProperty("--dock-swipe", `${goesTo(dx) ? dx : dx * 0.2}px`);
     const id = goesTo(dx);
     // The leaving words thin and the arriving ones fill in as the finger carries the bar over.
-    target.style.setProperty("--dock-fade", id ? String(Math.min(1, Math.abs(dx) / target.clientWidth)) : "0");
+    target.style.setProperty(
+      "--dock-fade",
+      id ? String(Math.min(1, Math.abs(dx) / target.clientWidth)) : "0",
+    );
     const dir = dx < 0 ? "next" : "previous";
     setPeek((current) => (id ? (current?.id === id ? current : { id, dir }) : null));
   };
