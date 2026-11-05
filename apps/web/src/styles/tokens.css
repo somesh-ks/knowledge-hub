@@ -473,6 +473,7 @@
   --switch-thumb-bg: var(--color-surface-raised);
   --switch-track-mixed: color-mix(in oklch, var(--color-accent) 50%, var(--color-border-control));
   --switch-track-hover: oklch(from var(--color-border-control) calc(l + var(--state-direction) * var(--state-step-hover)) c h);
+  --checkbox-size: 1.125rem;
   --sheet-radius: var(--shape-2xl);
   --sheet-padding: var(--space-4);
   --sheet-bg: var(--color-surface-raised);

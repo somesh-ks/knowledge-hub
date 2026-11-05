@@ -1029,8 +1029,8 @@
   position: relative;
   display: block;
   flex: none;
-  inline-size: 1.125rem;
-  block-size: 1.125rem;
+  inline-size: var(--checkbox-size);
+  block-size: var(--checkbox-size);
   border: var(--stroke-rail) solid var(--color-border-control);
   border-radius: var(--shape-xs);
   transition:

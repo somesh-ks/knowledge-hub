@@ -42,6 +42,8 @@ const EXEMPT = [
   ".hero-more",
   ".scrubber-track",
   ".player-dock",
+  // A 44px target around an 18px box, reaching past it so the box meets a card's edge (topics.css).
+  ".topic-panel .source-check",
   // An optical nudge sized by the glyph's own side bearing (--ink-end, D187), so its ink meets the
   // row's end: a row's chevron, a select's or a multi-select's in a row, Create's More options and
   // an icon button that ends a row.
@@ -117,13 +119,124 @@ async function offGrid(page: Page): Promise<string[]> {
   );
 }
 
+/**
+ * A card's rows that start off the edge its other content starts on, as `row starts +16px`. A
+ * topic's source rows once sat 16px inside the Sources heading, the search field and the count line
+ * above them, so the list looked squeezed (owner, 2026-11-05). A card is any rounded, filled box of
+ * the page; its section headings, hint lines, fields and rows are compared with each other, never
+ * with a pinned value. A row's edge is its first glyph, word or picture; a field's is its box.
+ */
+async function offCardEdge(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const shown = (element: Element) =>
+      element.checkVisibility?.({ visibilityProperty: true }) &&
+      element.getBoundingClientRect().width > 0;
+    const filled = (element: Element) =>
+      getComputedStyle(element).backgroundColor !== "rgba(0, 0, 0, 0)";
+    const name = (element: Element) =>
+      `${element.tagName.toLowerCase()}${[...element.classList].map((c) => `.${c}`).join("")}`;
+    const cards = [...document.querySelectorAll("main *")].filter((element) => {
+      const box = element.getBoundingClientRect();
+      return (
+        shown(element) &&
+        filled(element) &&
+        parseFloat(getComputedStyle(element).borderTopLeftRadius) >= 16 &&
+        box.width >= 240 &&
+        box.height >= 100 &&
+        !element.matches("a, button, input, select, textarea, label, img, .search-field")
+      );
+    });
+    const FIELD = ".search-wrap, .field-input, select, textarea";
+    const found: string[] = [];
+    for (const card of cards) {
+      const all = [
+        ...card.querySelectorAll(
+          `h2, h3, li, .settings-row, .row-action, .settings-hint, ${FIELD}`,
+        ),
+      ].filter(
+        (item) =>
+          shown(item) &&
+          !cards.some((inner) => inner !== card && card.contains(inner) && inner.contains(item)),
+      );
+      const items = all.filter(
+        (item) => !all.some((outer) => outer !== item && outer.contains(item)),
+      );
+      const starts = items.flatMap((item) => {
+        if (item.matches(FIELD)) return [{ item, left: item.getBoundingClientRect().left }];
+        const lefts: number[] = [];
+        const walker = document.createTreeWalker(
+          item,
+          NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+        );
+        for (let node: Node | null = walker.currentNode; node; node = walker.nextNode()) {
+          const element = node instanceof Element ? node : node.parentElement;
+          if (!element || !shown(element) || element.closest(".sr-only")) continue;
+          if (node instanceof Text && node.textContent?.trim()) {
+            const range = document.createRange();
+            range.selectNodeContents(node);
+            lefts.push(range.getBoundingClientRect().left);
+          } else if (
+            node instanceof Element &&
+            node.matches("img, svg, .suggest-box, .source-initial")
+          ) {
+            lefts.push(node.getBoundingClientRect().left);
+          }
+        }
+        return lefts.length ? [{ item, left: Math.min(...lefts) }] : [];
+      });
+      if (starts.length < 2) continue;
+      const tally = new Map<number, number>();
+      for (const { left } of starts)
+        tally.set(Math.round(left), (tally.get(Math.round(left)) ?? 0) + 1);
+      const edge = [...tally].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 0;
+      for (const { item, left } of starts) {
+        if (Math.abs(left - edge) > 1)
+          found.push(`${name(card)} > ${name(item)} starts ${Math.round(left - edge)}px`);
+      }
+    }
+    return [...new Set(found)];
+  });
+}
+
+/**
+ * Sideways scrollers whose cut ends have no fade, by name. The Library's kind chips once stopped
+ * hard at the view switch, so a chip cut in half read as broken (owner, 2026-11-05). A scroller is a
+ * box that scrolls sideways and lays its content out in one line, whether or not this window is
+ * narrow enough to cut it; its fade is .scroll-fade-inline (primitives.css), drawn as a mask.
+ */
+async function unfadedScrollers(page: Page): Promise<string[]> {
+  return page.evaluate(() =>
+    [...document.querySelectorAll("body *")]
+      .filter((element) => {
+        if (!element.checkVisibility?.({ visibilityProperty: true })) return false;
+        const style = getComputedStyle(element);
+        if (!/auto|scroll/.test(style.overflowX)) return false;
+        const oneLine =
+          style.display.includes("flex") &&
+          style.flexDirection.startsWith("row") &&
+          style.flexWrap === "nowrap";
+        return (
+          (oneLine || element.scrollWidth > element.clientWidth + 1) && style.maskImage === "none"
+        );
+      })
+      .map(
+        (element) =>
+          `${element.tagName.toLowerCase()}${[...element.classList].map((c) => `.${c}`).join("")}`,
+      ),
+  );
+}
+
 test.describe("the 8pt spacing system", () => {
-  test("every page spaces on the 4px grid", { tag: "@both" }, async ({ page }) => {
+  test("every page spaces on the 4px grid, lines a card's content up and fades its scrollers", {
+    tag: "@both",
+  }, async ({ page }) => {
     test.setTimeout(120_000);
     for (const path of PAGES) {
       await page.goto(path);
       await page.waitForLoadState("networkidle");
       expect.soft(await offGrid(page), path).toEqual([]);
+      expect.soft(await offCardEdge(page), `${path}: a card's edge`).toEqual([]);
+      expect.soft(await unfadedScrollers(page), `${path}: a scroller's cut ends`).toEqual([]);
     }
   });
 

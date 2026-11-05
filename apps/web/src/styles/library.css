@@ -298,7 +298,9 @@
 
 /* The kind chips: one row that scrolls sideways when it does not fit, with room inside it for the
    focus ring and the 44px targets. On a phone they share one line with the view switch, which sits
-   at its far end; there is no sort on a phone (2026-10-21). */
+   at its far end; there is no sort on a phone (2026-10-21). Where the row is cut, at the switch or
+   the page's edge, it fades (.scroll-fade-inline, primitives.css), as every sideways scroller does:
+   a chip cut off hard at the switch read as broken (owner, 2026-11-05). */
 .library-filters {
   flex: 1 1 0;
   min-width: 0;

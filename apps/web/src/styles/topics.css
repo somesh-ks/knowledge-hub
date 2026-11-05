@@ -506,6 +506,20 @@
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
+/* In the topic's card a row is laid out as a Settings card's row: its icon and check start and end on
+   the card's content edge, where the Sources heading, the search field and the count line do, and
+   only its tile reaches into the card's padding. The row's own padding put them 16px further in, a
+   margin the search field above did not have (owner, 2026-11-05). */
+.topic-panel .source-row {
+  padding-inline: 0;
+}
+
+/* Its check's drawn box ends on that edge too, as the suggestions' Add disc does: the touch target
+   reaches past the box by half of what it adds to the box (primitives.css .suggest-box). */
+.topic-panel .source-check {
+  margin-inline-end: calc((var(--size-touch) - var(--checkbox-size)) / -2);
+}
+
 /* In the topic's card, the tile sits one inset from the card's edges on both sides, as a Settings
    row's does, and takes the radius that makes it concentric with them (2026-10-22). */
 .topic-panel .source-edit {

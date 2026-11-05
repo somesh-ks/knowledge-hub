@@ -5310,6 +5310,13 @@
       "role": "The off track under a pointer or a press: the control's edge stepped toward the page's text (D317), as every fill's state is."
     },
     {
+      "name": "--checkbox-size",
+      "tier": "component",
+      "type": "dimension",
+      "light": "1.125rem",
+      "role": "The box's side, its 2px outline included. A row that ends on a check sets the target past the edge by half of what the target adds to it, so the box meets the edge."
+    },
+    {
       "name": "--sheet-radius",
       "tier": "component",
       "type": "dimension",
