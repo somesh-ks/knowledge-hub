@@ -100,15 +100,6 @@ function parseDotenv(text: string): Record<string, string> {
     }
     out[key] = value;
   }
-  if (!out.SINGULARITY_GIT_NAME && out.DISPATCH_GIT_NAME) {
-    out.SINGULARITY_GIT_NAME = out.DISPATCH_GIT_NAME;
-  }
-  if (!out.SINGULARITY_GIT_EMAIL && out.DISPATCH_GIT_EMAIL) {
-    out.SINGULARITY_GIT_EMAIL = out.DISPATCH_GIT_EMAIL;
-  }
-  if (!out.GITHUB_SINGULARITY_TOKEN && out.GITHUB_DISPATCH_TOKEN) {
-    out.GITHUB_SINGULARITY_TOKEN = out.GITHUB_DISPATCH_TOKEN;
-  }
   return out;
 }
 

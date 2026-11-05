@@ -30,7 +30,6 @@ async function addDigest(base: string, id: string): Promise<void> {
 describe("usesFixtures", () => {
   it("is on only for SINGULARITY_FIXTURES=1", () => {
     expect(usesFixtures({ SINGULARITY_FIXTURES: "1" })).toBe(true);
-    expect(usesFixtures({ DISPATCH_FIXTURES: "1" })).toBe(true);
     expect(usesFixtures({ SINGULARITY_FIXTURES: "true" })).toBe(false);
     expect(usesFixtures({})).toBe(false);
   });

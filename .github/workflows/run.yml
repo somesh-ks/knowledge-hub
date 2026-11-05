@@ -177,8 +177,8 @@ jobs:
         shell: bash
         env:
           DELETE_ID: ${{ inputs.delete }}
-          SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME || vars.DISPATCH_GIT_NAME }}
-          SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL || vars.DISPATCH_GIT_EMAIL }}
+          SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME }}
+          SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL }}
         run: npm run --silent singularity -- run --delete "$DELETE_ID" --json
 
       - name: Gate
@@ -196,7 +196,7 @@ jobs:
           # The config store (D149): with the switch on, the gate copies the stored config over
           # config/ before the run reads it. Either one unset leaves the run on the committed files.
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE || vars.DISPATCH_CONFIG_STORE }}
+          SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE }}
         run: |
           args=(--mode "$MODE" --json)
           [ "$FORCE" = "true" ] && args+=(--force)
@@ -299,8 +299,8 @@ jobs:
         shell: bash
         # Vercel Hobby deploys only commits authored by the team owner, so commit as the owner.
         env:
-          SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME || vars.DISPATCH_GIT_NAME }}
-          SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL || vars.DISPATCH_GIT_EMAIL }}
+          SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME }}
+          SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL }}
           # The digest is saved to the content store right before its git commit (D300).
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
         run: |
@@ -324,8 +324,8 @@ jobs:
           FORCE: ${{ inputs.force }}
           REPLACE: ${{ inputs.replace }}
           DRY: ${{ inputs.dry_run }}
-          SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME || vars.DISPATCH_GIT_NAME }}
-          SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL || vars.DISPATCH_GIT_EMAIL }}
+          SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME }}
+          SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL }}
         run: |
           [ "$INSTALLED" = "success" ] || npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
           args=(--mode "$MODE" --json)
