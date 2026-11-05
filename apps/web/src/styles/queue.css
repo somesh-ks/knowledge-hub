@@ -44,8 +44,9 @@
   }
 }
 
-/* The player bar under the dock draws its own top edge (its progress track), so the dock's hairline is
-   not drawn a second time over it: the two lines read as one thick divider (owner, 2026-11-05). */
+/* The player bar under the dock draws its own top edge (its progress track, in the hairline colour with
+   the accent fill over it), so the dock's hairline is not drawn a second time: the two lines would read
+   as one thick divider (owner, 2026-11-05). */
 html[data-mini="visible"] .queue-dock {
   border-block-end: 0;
 }

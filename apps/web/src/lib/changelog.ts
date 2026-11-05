@@ -21,7 +21,7 @@ export const CHANGELOG: readonly Release[] = [
     version: "0.21.1",
     date: "2026-11-05",
     description:
-      "On a phone, the podcast queue opens over the page, so the Catch up button stays where it is. It shows three and a half rows before it scrolls, opens and folds on a smoother, slower curve, has room under its last row, and a drag on its head no longer scrolls the page. A row keeps its stage on the first line and puts Taking longer than usual on a second line, and that note now appears only when a step really runs long. The shimmer is one steady loop with no jump at its start or its end, Try again on a failed run keeps the queue on screen while the new run starts, the line under the queue over the player bar is one thin line, and a cancelled run no longer shows an X at its start as well as its end.",
+      "On a phone, the podcast queue opens over the page, so the Catch up button stays where it is. It shows three and a half rows before it scrolls, opens and folds on a smoother, slower curve, has room under its last row, and a drag on its head no longer scrolls the page. A row keeps its stage on the first line and puts Taking longer than usual on a second line, and that note now appears only when a step really runs long. The shimmer is one steady loop with no jump at its start or its end, Try again on a failed run keeps the queue on screen while the new run starts, the edge between the queue and the player bar is one full-width line, grey for what is left to play and blue for what is played, and a cancelled run no longer shows an X at its start as well as its end.",
   },
   {
     version: "0.21",
