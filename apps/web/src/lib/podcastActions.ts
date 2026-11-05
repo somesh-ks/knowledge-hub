@@ -20,11 +20,3 @@ export type PodcastAction = (typeof PODCAST_ACTIONS)[number];
 /** Puts a sheet's actions in the one order. */
 export const inPodcastOrder = (actions: readonly PodcastAction[]): PodcastAction[] =>
   PODCAST_ACTIONS.filter((action) => actions.includes(action));
-
-/**
- * A sheet shows its first three actions as tiles only when it has this many or more (owner,
- * 2026-11-04: a short sheet is a plain list).
- * shortcut: a local copy of the Menu's own threshold, until the design system's menu.ts exports it.
- */
-export const TILES_MIN = 5;
-export const TILE_COUNT = 3;

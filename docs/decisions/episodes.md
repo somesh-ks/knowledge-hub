@@ -346,3 +346,14 @@ What an episode or briefing is: kinds and structure, length, regenerate, Catch u
 - Rejected: Jev alone (nothing shows while it is slow or down); a model call per keystroke (cost, flicker).
 - Revisit if: the controls appear for comments that do not ask for them, or Jev's requests show up in the TypeSafe bill beyond a few a day.
 - Amends: D337.
+
+## D371: The Regenerate comment sets the controls, both ways; Haiku proposes the values
+
+- Date: 2026-11-04 (the owner: Haiku medium beside Jev; controls follow the comment in real time, including going when the words go; "more robust").
+- Decision: Jev still reveals the controls fast (D370). In parallel `api/regen-hints` (`want: "values"`) asks Haiku medium, with `ANTHROPIC_API_KEY`, for the Length (one step shorter or longer than the length asked, never minutes) and the categories the comment says were missing. Code checks every value: the step against the offered lengths, the names against the list sent, and a failed or capped call answers nothing. Controls the listener has not touched follow the comment both ways: shown when the words, Jev or Haiku call for them, hidden and back to the made-with value when they no longer do (a cleared comment empties the answer). A control the listener touched stays as left. Chips are only ticked, never unticked. Both sheets share `lib/regenFollow.ts`. The podcast writer is told the stories and length are already set and that the note shapes wording, tone, emphasis and depth, never facts, numbers or length; "previous version" is gone from its clause.
+- Why: Jev says which controls matter, not what to set them to; a comment like "it dragged" left Length on its old value, and a shown control stayed after the comment was deleted.
+- Cost: a Haiku request per pause beside the Jev one, 20 a minute across instances (its own cap), a few cents a day at most.
+- Rejected: Haiku alone (nothing shows while it is slow); Haiku picking stories (selection is a ranked list that a longer length simply reads further down, no model needed); unticking categories from the comment (a wrong guess silently drops news).
+- Revisit if: the models set a value the comment did not ask for, or a listener fights the controls.
+- Amends: D337, D370.
+

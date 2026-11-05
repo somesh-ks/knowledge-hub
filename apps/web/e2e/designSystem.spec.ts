@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { TILE_COUNT, TILES_MIN } from "../src/lib/podcastActions";
+import { MENU_TILES_MAX, menuHasTiles } from "../src/design-system/menu";
 import { AUDIO_DIGEST, expect, hydrated, openRowMenu, ROUTES, SITE_PAGES, test } from "./fixtures";
 import { openPicker, pickerList } from "./picker";
 
@@ -313,7 +313,7 @@ test("a Menu's and a select's rows span the list, with no gap at the sides @desk
 
 // Quick-action tiles only on a long menu (owner, 2026-11-04: a Downloads row's sheet of four showed two
 // tiles over two rows). Every menu a page renders is held to the rule, so a new or edited menu that drifts
-// fails here: tiles mean TILES_MIN actions or more and at most TILE_COUNT of them; fewer actions mean no
+// fails here: tiles mean MENU_TILES_MIN actions or more and at most MENU_TILES_MAX of them; fewer actions mean no
 // tiles. The queue row's sheet is React, drawn only with the player open, and shares the list (D369).
 // shortcut: the constants are the app's own (lib/podcastActions.ts), until the Menu exports them (menu.ts).
 test("a menu shows quick-action tiles only when it is long", async ({ page }) => {
@@ -331,8 +331,8 @@ test("a menu shows quick-action tiles only when it is long", async ({ page }) =>
       }),
     );
     for (const menu of menus) {
-      const long = menu.actions >= TILES_MIN;
-      if (menu.tiles > TILE_COUNT || menu.tiles > 0 !== long) {
+      const long = menuHasTiles(menu.actions);
+      if (menu.tiles > MENU_TILES_MAX || menu.tiles > 0 !== long) {
         drift.push(`${path} ${menu.id}: ${menu.actions} actions, ${menu.tiles} tiles`);
       }
     }

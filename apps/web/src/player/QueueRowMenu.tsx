@@ -7,7 +7,8 @@ import {
   sheetTitleClass,
 } from "../design-system/sheet";
 import { downloadFailure } from "../lib/downloadCopy";
-import { inPodcastOrder, type PodcastAction, TILE_COUNT, TILES_MIN } from "../lib/podcastActions";
+import { MENU_TILES_MAX, menuHasTiles } from "../design-system/menu";
+import { inPodcastOrder, type PodcastAction } from "../lib/podcastActions";
 import { sendToast } from "../scripts/toastEvent";
 import { getPlayQueue } from "./core/playerRuntime";
 import { queueItemUrl } from "./core/playQueue";
@@ -170,7 +171,7 @@ export default function QueueRowMenu({
     podcast: { icon: "library", label: "Go to podcast", act: () => void goToPodcast() },
   };
   const actions = inPodcastOrder(Object.keys(ACTIONS) as PodcastAction[]);
-  const tiles = actions.length >= TILES_MIN ? actions.slice(0, TILE_COUNT) : [];
+  const tiles = menuHasTiles(actions.length) ? actions.slice(0, MENU_TILES_MAX) : [];
   const rows = actions.filter((action) => !tiles.includes(action));
   const item = (action: PodcastAction) => {
     const { icon, label, act } = ACTIONS[action] ?? {};

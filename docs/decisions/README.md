@@ -195,7 +195,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D334 | Every Claude step starts at Haiku medium, the podcast script included | amends D333 |
 | D335 | The avatar leads to a profile page; Settings is Podcast settings, App settings and About | amends D129, D281, D299; amended by D344 |
 | D336 | A cover no longer flies between its card and the page's hero | partly supersedes D271, D280; amended by D341 |
-| D337 | Regenerate sheets open on the comment; Length and Categories appear as words reach for them | amends D207, D323; amended by D370 |
+| D337 | Regenerate sheets open on the comment; Length and Categories appear as words reach for them | amends D207, D323; amended by D370, D371 |
 | D338 | Settings sets the default speed on the player's speed screen | amends D309 |
 | D339 | The engine and the site keep one Speechify count, in Blob; Exa gets a weekly stop | amends D300 |
 | D341 | A page arrives from the side of the tab you came from | partly supersedes D280; amends D336; amended by D347 |
@@ -224,8 +224,10 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D364 | Play after a quiet starts two seconds back, so a waking output loses no words | active |
 | D365 | Favorites from every podcast menu and a heart beside Play; the heart replaces the bookmark | amends D354; amended by D369 |
 | D366 | Listen now streams the script in parts, each written once and final once out; one append-only continuation; the live timer shows the expected length | amends D105 |
+| D367 | Every flag is the design system's Flag (Flagpack art per country), never an emoji | active |
 | D368 | The app's write routes need no sign-in; the command center stays signed in; per-minute caps are the backstop | supersedes D307 |
 | D369 | One podcast sheet everywhere, in one order; tiles only on a long sheet; Downloads swipes away with a confirm | amends D214, D281, D365 |
-| D370 | Jev reads the Regenerate comment on a pause; the episode's Regenerate offers Length | amends D337 |
+| D370 | Jev reads the Regenerate comment on a pause; the episode's Regenerate offers Length | amends D337; amended by D371 |
+| D371 | The Regenerate comment sets the controls both ways; Haiku proposes the values | amends D337, D370 |
 
 ---

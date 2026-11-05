@@ -5,7 +5,8 @@
  * (a percentage) at (value - min) / (max - min), because WebKit paints the filled part of the track from it.
  * A `hue` Slider (D328) draws its rail as the spectrum and wraps the input in a field; the caller keeps
  * --range-fill on that field, which the swatch above the held thumb reads. A `wavy` Slider wraps the input
- * in a field the same way and, in Expressive only, draws the part of the track up to the thumb as a wave.
+ * in a field the same way and draws the part of the track up to the thumb as a wave in Expressive and a
+ * zigzag in Halloween.
  */
 import type { Guidance } from "./guidance";
 
@@ -30,7 +31,7 @@ export const SLIDER: Guidance = {
 export const SLIDER_VARIANTS: Record<"hue" | "wavy", Guidance> = {
   wavy: {
     summary:
-      "A Slider whose track, up to the thumb, is a drifting wave in Expressive; the rest of the track stays straight. In other styles it is the plain Slider.",
+      "A Slider whose track, up to the thumb, drifts: a wave in Expressive, a sharp zigzag in Halloween; the rest of the track stays straight. In Default it is the plain Slider.",
     useWhen: ["The value is the point of its screen and the slider is large: Playback speed."],
     dontUseWhen: [
       {

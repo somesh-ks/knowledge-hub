@@ -12,6 +12,7 @@ export type ComponentName =
   | "Select"
   | "Menu"
   | "Badge"
+  | "Flag"
   | "Banner"
   | "Dialog"
   | "Sheet"

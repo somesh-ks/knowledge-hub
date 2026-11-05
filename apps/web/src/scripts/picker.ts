@@ -14,11 +14,11 @@
  * `picker:sync` to the select to bring the button's words up to date.
  */
 
+import { flagNode } from "../design-system/flag";
 import { iconClass } from "../design-system/icon";
 import { ICON_PATHS, ICON_VIEW_BOX } from "../lib/icons";
 import { matchesQuery, pickerCount, pickerNoMatch } from "../lib/pickerFilter";
 import { FLOATING, roomFloor } from "../lib/roomFloor";
-import { flagNode } from "../lib/voices";
 import { type Break, beginBreakOnTab } from "../player/core/sampleBreak";
 
 const GAP_PX = 8;

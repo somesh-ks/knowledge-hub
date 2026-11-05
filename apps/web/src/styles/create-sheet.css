@@ -18,9 +18,10 @@
    height. Its icon and words sit where the rows' do. A press shows in the fill, never by scaling the
    label.
    Its fill, words, 16px corners and states are the tonal action's (.btn-action-tonal, buttons.css):
-   the accent container means "you are here" alone, so the action takes a richer tone of its own
-   and a rounded rectangle, not the rows' pill (owner, 2026-10-27; it was surface-container with
-   accent words, 2026-10-22, which read as faded, and accent-container-high before that, D86). On
+   the accent container means "you are here" alone, so the action takes the primary fill, the
+   floating button's and Play's (owner, 2026-11-04), and a rounded rectangle, not the rows' pill
+   (owner, 2026-10-27; it was a saturated tone of its own then, surface-container with accent words
+   on 2026-10-22, which read as faded, and accent-container-high before that, D86). On
    /create it is the current place and takes the rows' current fill. */
 @media (width >= 64rem) {
   .app-nav-create {
@@ -94,14 +95,17 @@
   min-width: var(--fab-size);
   height: var(--fab-size);
   padding-inline: calc((var(--fab-size) - var(--size-icon-lg)) / 2 - var(--stroke-hairline));
-  /* Flat: the tonal step alone lifts it off the page, no shadow (owner, 2026-10-21) and no outline
+  /* Flat: its fill alone lifts it off the page, no shadow (owner, 2026-10-21) and no outline
      (owner, 2026-11-03: "the fab button has a thin outline that shouldnt be there"; outlines are for
      text fields, D54). The border stays transparent so forced colours still draw the button's edge. */
   border: var(--stroke-hairline) solid transparent;
   /* A pill, as every control is (D186): folded, a circle. */
   border-radius: var(--radius-round);
-  background: var(--color-accent-container-high);
-  color: var(--color-on-accent-container-high);
+  /* The primary fill, the filled button's and the hero's Play (owner, 2026-11-04: "the fab and
+     primary buttons like play have different colors which shouldnt be the case"); it was the
+     tonal step, accent-container-high, a lighter colour beside the Play it repeats. */
+  background: var(--cta-bg);
+  color: var(--cta-fg);
   text-decoration: none;
   /* The transform is the press's (.press) as well as the slide: in fast, out softer, like every
      pressable. This list replaces the utility's, so the press timing is spelt out here. The height
@@ -116,12 +120,12 @@
 
 @media (hover: hover) and (pointer: fine) {
   .create-fab:where(:not(:disabled, [aria-disabled="true"])):hover {
-    background: var(--color-accent-container-high-hover);
+    background: var(--cta-bg-hover);
   }
 }
 
 .create-fab:where(:not(:disabled, [aria-disabled="true"])):active {
-  background: var(--color-accent-container-high-pressed);
+  background: var(--cta-bg-pressed);
   transition-duration:
     var(--duration-state), var(--duration-press-in), var(--duration-hover), 0s,
     var(--duration-enter);
