@@ -1074,6 +1074,7 @@
       "styles": [
         "buttons.css",
         "foundations.css",
+        "queue.css",
         "story-controls.css"
       ],
       "usage": "The icon button: a glyph in a round 44px target. Quiet until used; the accent is for actions that have a label.",
@@ -1085,6 +1086,10 @@
         "--color-on-surface",
         "--color-on-surface-disabled",
         "--color-on-surface-muted",
+        "--cta-bg",
+        "--cta-bg-hover",
+        "--cta-bg-pressed",
+        "--cta-fg",
         "--size-icon-lg",
         "--size-touch"
       ]
