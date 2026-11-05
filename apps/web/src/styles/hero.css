@@ -62,16 +62,16 @@
 /* The day's Catch up select (D219), Play, and Share beside it (PlayCta.astro). The row scrolls
    sideways when they do not fit (a phone with the longest names: owner, 2026-10-29), and its padding
    holds the focus rings the scroll box would clip; the negative margins take the padding back, so
-   the row stands where it did. Nothing in it shrinks: Play and the select keep their width. */
+   the row stands where it did. 8px each, on the grid (owner, 2026-11-05; 4px before). Nothing in it shrinks: Play and the select keep their width. */
 .hero-actions {
   grid-area: actions;
   display: flex;
   align-items: center;
   gap: var(--space-2);
   min-height: var(--size-touch);
-  margin-block: calc(var(--space-4) - var(--space-1)) calc(var(--space-1) * -1);
-  margin-inline: calc(var(--space-1) * -1);
-  padding: var(--space-1);
+  margin-block: calc(var(--space-4) - var(--space-2)) calc(var(--space-2) * -1);
+  margin-inline: calc(var(--space-2) * -1);
+  padding: var(--space-2);
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: none;

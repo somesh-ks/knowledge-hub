@@ -848,8 +848,8 @@ html[data-nav-arrived] .app-nav-item:not([aria-current="page"]) .app-nav-indicat
     grid-column: 3;
     grid-row: 1;
     justify-self: start;
-    inline-size: calc(var(--layout-aside) + var(--space-1) * 2);
-    margin-inline-start: calc(var(--space-12) - var(--space-1));
+    inline-size: calc(var(--layout-aside) + var(--space-2) * 2);
+    margin-inline-start: calc(var(--space-12) - var(--space-2));
   }
 }
 

@@ -5211,8 +5211,8 @@
       "name": "--field-label-gap",
       "tier": "component",
       "type": "dimension",
-      "light": "0.75rem",
-      "role": "A label onto the field it names: 12px, a step over 8 so the label does not sit on the outline, and under the gap between two fields (24px) so it still belongs to its own (owner, 2026-10-29)."
+      "light": "var(--space-1)",
+      "role": "A label onto the field it names: 4px, the grid's named small step, so the label belongs to its own field and not the one above (24px apart). 12px from 2026-10-29 to 2026-11-05, when the owner put every spacing value on the grid."
     },
     {
       "name": "--field-padding",
@@ -5977,8 +5977,8 @@
       "name": "--card-inset",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--space-1)",
-      "role": "From the card's edge to a surface inside it, on every side: a row's hover tile, a select's fill. Two tiles sit the same distance apart. 4px, so a tile and its target are nearly the card's width (owner, 2026-10-24: \"4px padding is decent\")."
+      "light": "var(--space-2)",
+      "role": "From the card's edge to a surface inside it, on every side: a row's hover tile, a select's fill. Two tiles sit the same distance apart. 8px since 2026-11-05 (owner: every spacing value on the grid): a row's words, the card's 24px padding in, then sit 16px into their tile. 4px from 2026-10-24."
     },
     {
       "name": "--card-radius",

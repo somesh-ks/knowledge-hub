@@ -849,9 +849,10 @@
   gap: var(--space-1);
   height: var(--chip-height);
   /* The check takes no room of its own, so a chip keeps one width as it ticks and its neighbours
-     never move: the words sit centred with half the check's room on each side, and slide over by
-     that half as the check appears. */
-  padding-inline: calc(var(--space-4) + var(--space-1));
+     never move: the words sit 24px in on each side and slide over by 8px as the check appears, so
+     ticked they sit 8px past the check and 16px from the end, on the grid (owner, 2026-11-05; 20px
+     with a 4px slide before). */
+  padding-inline: var(--space-6);
   /* No outline: the transparent border keeps the size where forced colours draw one. */
   border: var(--stroke-hairline) solid transparent;
   /* A finite pill (half the height), so a change of shape interpolates from the pill instead of
