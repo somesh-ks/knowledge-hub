@@ -84,7 +84,7 @@ test.describe("opening by gesture", () => {
 
 // The bar is a carousel of podcasts (owner, 2026-11-01 and 2026-11-02): a swipe goes to the next
 // queued one or back to the one before, and a short one does neither nor opens the page.
-test("a swipe on the bar switches the podcast; a short one does not and opens nothing", async ({
+test("a swipe on the bar switches the podcast without tinting the bar; a short one does not and opens nothing", async ({
   player,
   page,
   finger,
