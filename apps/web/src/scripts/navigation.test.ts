@@ -168,7 +168,13 @@ describe("shouldCheckForUpdate", () => {
 // A deploy loads itself (D202), so the reload must never cost the reader anything: a listen, an
 // Undo, an open sheet, text typed and not yet saved.
 describe("canReloadNow", () => {
-  const idle = { playerState: "paused", overlayOpen: false, editing: false, playerOpen: false };
+  const idle = {
+    playerState: "paused",
+    overlayOpen: false,
+    editing: false,
+    playerOpen: false,
+    narrated: false,
+  };
 
   it("loads the new build when nothing is in use", () => {
     expect(canReloadNow(idle)).toBe(true);
@@ -191,6 +197,8 @@ describe("canReloadNow", () => {
     expect(canReloadNow({ ...idle, playerOpen: true, playerState: "playing" }, true)).toBe(false);
     expect(canReloadNow({ ...idle, overlayOpen: true }, true)).toBe(false);
     expect(canReloadNow({ ...idle, editing: true }, true)).toBe(false);
+    // A podcast narrated in this tab lives in memory: the reload could not put it back.
+    expect(canReloadNow({ ...idle, playerOpen: true, narrated: true }, true)).toBe(false);
   });
 });
 

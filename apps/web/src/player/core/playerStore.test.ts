@@ -246,9 +246,13 @@ describe("seeking and items", () => {
     harness.audio.currentTime = 100;
     harness.flushFrames();
     harness.store.pause();
+    // The element is somewhere else, and says nothing of it yet; it starts there unless told.
+    harness.audio.currentTime = 0;
+    harness.audio.readyState = 0;
     harness.store.load(makeDigest({ audio: { ...files, url: "/audio/2026-10-07.v2.mp3" } }));
     harness.store.play();
     harness.audio.startPlaying();
+    expect(harness.audio.currentTime).toBe(100);
     harness.audio.currentTime += 5;
     harness.flushFrames();
     expect(harness.store.getTime()).toBe(harness.audio.currentTime);
