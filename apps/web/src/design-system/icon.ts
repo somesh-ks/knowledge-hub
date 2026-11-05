@@ -15,6 +15,9 @@ export const ICON: Guidance & { sizes: Record<IconSize, Guidance & { label: stri
       when: "The picture is an illustration, a logo or a cover.",
     },
     {
+      when: "The glyph is a row's state (done, failed, cancelled) and the row also draws it as an action (Close, Remove): one glyph, one meaning, so the state takes its own.",
+    },
+    {
       when: "The glyph must act when pressed.",
       instead: "Icon button",
     },
