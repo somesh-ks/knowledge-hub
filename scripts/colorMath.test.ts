@@ -6,6 +6,7 @@ describe("colorMath", () => {
   it("refuses an oklch() whose digits are not numbers, rather than building a #NaNNaNNaN color", () => {
     expect(() => parseOklch("oklch(50% ... 10)")).toThrow(/Invalid oklch/);
     expect(() => parseOklch("oklch(50% 0.1 1.2.3)")).toThrow(/Invalid oklch/);
+    expect(() => parseOklch("oklch(0.5 0.1 30 / 1.2.3)")).toThrow(/Invalid oklch/);
   });
 
   it("gives the same hex as the covers' copy of the math for any color inside sRGB", () => {

@@ -6,9 +6,10 @@
  * need (those cannot take OKLCH reliably across browsers).
  *
  * `packages/cover/src/color.ts` holds the same matrices for the covers. The two differ on purpose
- * where a color falls outside sRGB: this file clips each channel, as a browser does, so the
- * contrast it proves is the contrast on screen; the covers reduce chroma, which keeps a hue. For a
- * color inside sRGB they must agree to the hex digit, and buildTokens.test.ts holds them to that.
+ * where a color falls outside sRGB: this file clips each channel and flags it `inGamut: false`
+ * (buildTokens.test.ts requires the primitive colour ramps to be inside, where clipping changes
+ * nothing); the covers reduce chroma, which keeps a hue. For a color inside sRGB they must agree to the hex
+ * digit, and colorMath.test.ts holds them to that.
  */
 
 export interface Oklch {
