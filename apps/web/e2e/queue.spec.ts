@@ -213,6 +213,53 @@ test.describe("the podcast queue", () => {
     expect(await height()).toBe(before);
   });
 
+  // Bugs it prevents (owner, 2026-11-04): the Catch up button shook as the queue grew, and the list showed
+  // whole rows with nothing to say that more were below. Phone only: the dock is below 64rem. (The swipe
+  // that scrolled the page behind the dock cannot be driven in the test browser: it never scrolls.)
+  test("the opened queue rises over the page and shows three and a half rows", async ({
+    page,
+    hasTouch,
+  }) => {
+    test.skip(!hasTouch, "the dock is a phone's");
+    const ids = [41, 42, 43, 44, 45, 46];
+    await mock(page, () => ids.map((id) => row(id)));
+    await follow(page);
+    await page.goto("/library");
+    await hydrated(page);
+    await expect(page.locator("[data-queue-toggle]")).toBeVisible();
+    const room = () =>
+      page.evaluate(() =>
+        getComputedStyle(document.documentElement).getPropertyValue("--run-room"),
+      );
+    const dockTop = () =>
+      page.locator(".queue-dock").evaluate((node) => node.getBoundingClientRect().top);
+    const [roomFolded, topFolded] = [await room(), await dockTop()];
+
+    await openQueue(page);
+    await expect(rows(page).first()).toBeVisible();
+    // The page keeps the room of the folded row: what stands on it (the Catch up button) holds still.
+    await expect.poll(dockTop).toBeLessThan(topFolded - 100);
+    expect(await room()).toBe(roomFolded);
+
+    // Three whole rows and half of the fourth; the rest is a scroll away. Read once the opening has settled.
+    const list = page.locator(".queue-dock .queue-list");
+    await expect
+      .poll(
+        () =>
+          list.evaluate((node) => {
+            const items = [...node.querySelectorAll<HTMLElement>("[data-queue-row-item]")];
+            const padding = Number.parseFloat(getComputedStyle(node).paddingBlockStart) * 2;
+            const heights = items.map((item) => item.offsetHeight);
+            const wanted =
+              (heights[0] ?? 0) + (heights[1] ?? 0) + (heights[2] ?? 0) + (heights[3] ?? 0) / 2;
+            const scrolls = node.scrollHeight > node.clientHeight;
+            return scrolls && Math.abs(node.clientHeight - padding - wanted) < wanted * 0.15;
+          }),
+        { timeout: 5000 },
+      )
+      .toBe(true);
+  });
+
   test("a run that was cancelled stays as Cancelled for the day, with nothing to try again", async ({
     page,
   }) => {

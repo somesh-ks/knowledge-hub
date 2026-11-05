@@ -55,6 +55,8 @@ const ARRIVE_MS = 3000;
 const CANCELLED_HIDE_MS = 45_000;
 /** The popover opens by itself for a run started here, after the sheet that started it has gone. */
 const OPEN_AFTER_START_MS = 450;
+/** How many rows the dock shows before its list scrolls: three and a half, so the half row says there is more below. */
+const VISIBLE_ROWS = 3.5;
 /** A swipe this long, in pixels, opens or folds the dock. */
 const SWIPE_PX = 32;
 /** How long an icon takes to turn out, before it is taken out of the slot. */
@@ -329,6 +331,8 @@ function paintRow(
   if (!li.hasAttribute("data-cancelling")) {
     setText(li.querySelector("[data-queue-status]"), statusOf(item, view, data));
   }
+  // "Taking longer than usual" is the second line, under the stage and never in its place.
+  setText(li.querySelector("[data-queue-slow]"), going && view.running ? view.slowNote : "");
   // The stage line shimmers while the run goes, on the same clock as the title's shimmer.
   markLive(li.querySelector<HTMLElement>("[data-queue-status]"), li.dataset.state === "running");
   // Once it ended the line starts with when ("14:32 · Podcast ready").
@@ -468,6 +472,10 @@ function paintList(
       li,
     ]),
   );
+  // The order is the entries': going first, then the day's, the newest first. A row already in place is
+  // left alone: moving a node takes it out of the page and puts it back, which starts its shimmer again
+  // (and drops a press on it), so only a row out of order is moved.
+  let cursor = list.querySelector<HTMLElement>(":scope > [data-queue-row-item]");
   for (const { item, view, name } of entries) {
     const key = String(item.row.run_id);
     let li = present.get(key);
@@ -476,33 +484,35 @@ function paintList(
       if (!fresh) continue;
       fresh.dataset.run = key;
       li = fresh;
-      list.append(li);
     }
     present.delete(key);
+    if (li === cursor) cursor = cursor.nextElementSibling as HTMLElement | null;
+    else list.insertBefore(li, cursor);
     paintRow(li, item, view, name, data, current);
   }
   for (const gone of present.values()) gone.remove();
-  // The order is the entries': going first, then the day's, the newest first.
-  for (const { item } of entries) {
-    const li = list.querySelector<HTMLElement>(`[data-run="${item.row.run_id}"]`);
-    if (li) list.append(li);
-  }
 }
 
 /**
- * The title's shimmer on one clock. The navigation is redrawn on every page and the dock's word comes and
- * goes, so a band that starts from its own zero jumps each time; a negative delay puts every word at the
- * same point of the cycle, wherever and whenever it is drawn.
+ * The dock's list shows VISIBLE_ROWS rows and scrolls past them, whatever each row holds (a stage line, a
+ * second line, buttons): its height is the first rows' own heights and half of the next one's.
  */
+function fitList(list: HTMLElement): void {
+  const rows = [...list.querySelectorAll<HTMLElement>(":scope > [data-queue-row-item]")];
+  const whole = Math.floor(VISIBLE_ROWS);
+  const next = rows[whole];
+  if (!next) {
+    list.style.removeProperty("--queue-list-max");
+    return;
+  }
+  const height = rows.slice(0, whole).reduce((sum, row) => sum + row.offsetHeight, 0);
+  const part = Math.round(next.offsetHeight * (VISIBLE_ROWS - whole));
+  list.style.setProperty("--queue-list-max", `${height + part}px`);
+}
+
+/** The title's shimmer: a word with data-live shimmers, on the document's one clock (scripts/shimmerClock.ts). */
 function markLive(word: HTMLElement | null | undefined, live: boolean): void {
-  if (!word) return;
-  const was = word.hasAttribute("data-live");
-  word.toggleAttribute("data-live", live);
-  if (!live || (was && word.style.getPropertyValue("--queue-sheen-at"))) return;
-  // The build writes 2400ms as 2.4s; read as a bare number that was a 2.4 ms cycle and a phase near 0.
-  const raw = getComputedStyle(word).getPropertyValue("--queue-sheen").trim();
-  const cycle = Number.parseFloat(raw) * (raw.endsWith("ms") ? 1 : 1000) || 2400;
-  word.style.setProperty("--queue-sheen-at", `${-(performance.now() % cycle)}ms`);
+  word?.toggleAttribute("data-live", live);
 }
 
 /** What the side column's row shows: "Podcast queue" with the ring while it goes, a check or an alert once it is over. */
@@ -630,6 +640,7 @@ function render(): void {
     const current = record();
     for (const list of root.querySelectorAll<HTMLElement>("[data-queue-list]")) {
       paintList(list, template, entries, data, current);
+      if (list.closest(".queue-dock")) fitList(list);
     }
   }
   for (const id of furthest.keys())
@@ -692,7 +703,7 @@ function render(): void {
   if (lead) seenGoing = true;
   const newest = entries[0];
   const said = lead
-    ? lead.view.status
+    ? [lead.view.status, lead.view.slowNote].filter(Boolean).join(". ")
     : alarm
       ? statusOf(alarm.item, alarm.view, data)
       : seenGoing && newest
@@ -706,22 +717,31 @@ function render(): void {
   syncPolling();
 }
 
-/** Below 64rem the dock is on top of the page's foot: its height is the room the page keeps. */
+/**
+ * Below 64rem the dock is on top of the page's foot: the room the page keeps is its folded row. Opened, the
+ * list rises over the page as an overlay (queue.css), so the Catch up button, the toasts and the page's foot
+ * hold still (owner, 2026-11-04: the button shook as the queue grew and shrank).
+ */
 let watching: ResizeObserver | null = null;
 function keepRoom(): void {
   const panel = dock();
   const page = document.documentElement;
   const wide = matchMedia(WIDE).matches;
-  if (!panel || panel.hidden || wide) {
+  const head = panel?.querySelector<HTMLElement>(".queue-head");
+  if (!panel || !head || panel.hidden || wide) {
     page.style.removeProperty("--run-room");
     return;
   }
+  const border = Number.parseFloat(getComputedStyle(panel).borderBlockEndWidth) || 0;
   const measure = () =>
-    page.style.setProperty("--run-room", `${Math.ceil(panel.getBoundingClientRect().height)}px`);
+    page.style.setProperty(
+      "--run-room",
+      `${Math.ceil(head.getBoundingClientRect().height + border)}px`,
+    );
   measure();
   if (!watching && typeof ResizeObserver === "function") {
     watching = new ResizeObserver(measure);
-    watching.observe(panel);
+    watching.observe(head);
   }
 }
 
@@ -789,7 +809,13 @@ async function stop(button: HTMLButtonElement): Promise<void> {
   render();
 }
 
-/** Swipe up on the dock opens it, swipe down folds it; a tap on the head does the same. */
+/**
+ * Swipe up on the dock opens it, swipe down folds it; a tap on the head does the same. The dock owns a
+ * vertical drag that starts on it: the page behind must not scroll with it (owner, 2026-11-04: a swipe
+ * down closed the queue and scrolled the page too). The head takes no scroll at all (touch-action,
+ * queue.css); inside the list, a drag the list cannot scroll any further is the dock's, so it is
+ * cancelled here (overscroll-behavior stops only a list that scrolls).
+ */
 function bindSwipe(panel: HTMLElement): void {
   let startY = 0;
   let tracking = false;
@@ -800,6 +826,24 @@ function bindSwipe(panel: HTMLElement): void {
       startY = event.touches[0]?.clientY ?? 0;
     },
     { passive: true },
+  );
+  panel.addEventListener(
+    "touchmove",
+    (event) => {
+      if (!tracking || !event.cancelable) return;
+      const dy = (event.touches[0]?.clientY ?? startY) - startY;
+      const list = panel.querySelector<HTMLElement>(".queue-list");
+      const inList = list?.contains(event.target as Node) ?? false;
+      if (inList && list) {
+        const room = list.scrollHeight - list.clientHeight;
+        const atTop = list.scrollTop <= 0;
+        const atEnd = list.scrollTop >= room - 1;
+        // The list's own scroll: down while it has gone up, up while there is more below.
+        if (room > 1 && ((dy > 0 && !atTop) || (dy < 0 && !atEnd))) return;
+      }
+      event.preventDefault();
+    },
+    { passive: false },
   );
   panel.addEventListener(
     "touchend",
