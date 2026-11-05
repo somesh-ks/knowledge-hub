@@ -40,14 +40,26 @@ const kinds = [
     <div class="hl-sections">
       <SectionTabs sections={sections} />
 
-      {/* The pulse (scripts/healthRing.ts): a heartbeat trace, a beat a section below, its shape and
-           tone its state; a press on one shows its checks under it, each a link to its section. */}
+      {/* The summary (scripts/healthRing.ts drawTiles): a tile for all the sections, then one a section,
+           its state in words, tinted when it needs a look; a press shows its checks under the tiles,
+           each a link to its section. All is open first: everything that needs a look, by section. */}
       <section class="hl-section" id="c-summary" aria-label="Summary" data-health-summary>
-        <div class="card-group hl-card hl-pulse" data-pulse>
-          <svg class="hl-pulse-svg" viewBox="0 0 500 120" preserveAspectRatio="none" aria-hidden="true" data-pulse-svg>
-            <path class="hl-pulse-base" d="M0 80 H500"></path>
-          </svg>
-          <fieldset class="hl-beats" role="radiogroup" aria-label="Section" data-beats></fieldset>
+        <div class="card-group hl-card hl-summary">
+          <fieldset class="stat-tiles hl-tiles hl-data" aria-label="Show the checks of">
+            {
+              [{ id: "all", title: "Overall" }, ...PILLARS].map((tile) => (
+                <label class="stat-tile hl-tile" data-tile={tile.id} data-tone="none">
+                  <input type="radio" name="hl-tile" value={tile.id} disabled />
+                  <span class="hl-tile-head">
+                    <span class="hl-tile-name">{tile.title}</span>
+                    <span class="ov-flag-icon" data-tone="none" data-mark></span>
+                  </span>
+                  <strong class="stat-tile-value" data-value>&nbsp;</strong>
+                  <span class="stat-tile-label" data-detail>&nbsp;</span>
+                </label>
+              ))
+            }
+          </fieldset>
           <div class="ov-groups hl-data" data-health-groups>
             <p class="ov-sub" data-health-state>Checking</p>
           </div>
@@ -265,18 +277,20 @@ const kinds = [
         </div>
       </section>
 
-      {/* Budgets: the daily check's card (D360), an area a tile, its glyph and word; its numbers on hover. */}
+      {/* Budgets: the daily check's card (D360), an area a tile as the summary's: its name and glyph,
+           its word, its numbers. */}
       <section class="hl-section" id="c-budgets">
         <h2 class="section-head text-heading">Budgets</h2>
         <ul class="stat-tiles hl-budgets hl-data" role="list">
           {
             group("budgets").map((row) => (
-              <li class="stat-tile" data-health-row={row.id} data-budget>
-                <strong class="stat-tile-value hl-tile-value">
+              <li class="stat-tile hl-tile" data-health-row={row.id} data-budget data-tone="none">
+                <span class="hl-tile-head">
+                  <span class="hl-tile-name">{row.label}</span>
                   <span class="ov-flag-icon" data-tone="none" data-mark></span>
-                  <span data-value>&nbsp;</span>
-                </strong>{" "}
-                <span class="stat-tile-label">{row.label}</span>
+                </span>
+                <strong class="stat-tile-value" data-value>&nbsp;</strong>
+                <span class="stat-tile-label" data-detail>&nbsp;</span>
               </li>
             ))
           }

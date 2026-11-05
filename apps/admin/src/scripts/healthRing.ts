@@ -2,9 +2,8 @@
  * The health summary: one mark a pillar (lib/pillars.ts) in the tone of its worst check, its name and
  * state with it; a press opens that pillar's report under it, and each line of the report links to
  * where the page shows that check (`linkFor`). Two marks draw the same judgement: the Overview's ring
- * (an arc a pillar) and the Health page's pulse (a heartbeat trace, a beat a pillar, 2026-11-04, the
- * owner: "something health-related"). Plain DOM and one inline SVG; the glyphs come from the page's
- * template (StatusGlyphs.astro).
+ * (an arc a pillar) and the Health page's tiles (a stat tile a pillar, after one for all of them).
+ * Plain DOM and one inline SVG; the glyphs come from the page's template (StatusGlyphs.astro).
  */
 import type { Pillar } from "../lib/pillars";
 
@@ -86,14 +85,14 @@ function fineLine(words: string, rows: HTMLElement[]): HTMLElement {
   return box;
 }
 
-/** A pillar's state in words: "Fine", "N to check", "N failing" or "N flagged" when both. */
+/** A pillar's state in words: "Fine", "N to check", "N failing" or "N to look at" when both. */
 function stateOf(g: Judged): string {
   const bad = g.items.filter((x) => x.row.tone === "bad").length;
   const warn = g.items.filter((x) => x.row.tone === "warn").length;
   return !bad && !warn
     ? "Fine"
     : bad && warn
-      ? `${bad + warn} flagged`
+      ? `${bad + warn} to look at`
       : bad
         ? `${bad} failing`
         : `${warn} to check`;
@@ -254,101 +253,108 @@ export function drawRing(
   ring.dataset.drawn = "";
 }
 
-/** A beat's state under it, in one word. */
-const BEAT_WORD: Record<Tone, string> = {
-  good: "Fine",
-  warn: "Check",
-  bad: "Failing",
-  none: "Fine",
-};
-
-/** The pulse's geometry: a beat a pillar, each in a box this wide, on one baseline, this tall at most. */
-const PULSE = { w: 100, base: 80, h: 70 };
+/** The first tile, Overall: every section at once, its report what needs a look on the whole page. */
+const ALL = "all";
 
 /**
- * One beat in a box from x, on the pulse's baseline. Its shape says its state as well as its tone:
- * fine is a clean spike with its small waves, a check is a low, uneven beat, failing is a sharp drop
- * and a flat line, so colour is never the only sign.
+ * The report for every section at once: what needs a look, under its section's name, worst first,
+ * then one line for the rest.
  */
-function beat(x: number, tone: Tone): string {
-  const { w, base: y, h } = PULSE;
-  const c = x + w / 2;
-  const p = (dx: number, dy: number): string =>
-    `${(c + dx * w).toFixed(1)} ${(y + dy * h).toFixed(1)}`;
-  if (tone === "bad")
-    return `M${x} ${y} L${p(-0.1, 0)} L${p(-0.04, -0.55)} L${p(0.02, 0.4)} L${p(0.06, 0)} L${x + w} ${y}`;
-  if (tone === "warn")
-    return `M${x} ${y} L${p(-0.18, 0)} L${p(-0.1, -0.3)} L${p(-0.04, 0.1)} L${p(0.02, -0.45)} L${p(0.08, 0.15)} L${p(0.14, 0)} L${x + w} ${y}`;
-  return `M${x} ${y} L${p(-0.22, 0)} Q${p(-0.17, -0.12)} ${p(-0.12, 0)} L${p(-0.05, 0)} L${p(-0.02, 0.12)} L${p(0.01, -0.85)} L${p(0.05, 0.3)} L${p(0.08, 0)} L${p(0.18, 0)} Q${p(0.25, -0.22)} ${p(0.32, 0)} L${x + w} ${y}`;
+function fillAll(report: HTMLElement, groups: Judged[], linkFor: (pillar: string) => string): void {
+  const parts: HTMLElement[] = [];
+  let fine = 0;
+  for (const g of groups) {
+    const flags = g.items
+      .filter((x) => isFlag(x.row.tone))
+      .sort((a, b) => WEIGHT[a.row.tone] - WEIGHT[b.row.tone]);
+    fine += g.items.length - flags.length;
+    if (!flags.length) continue;
+    const list = element("ul", "ov-flags");
+    list.setAttribute("role", "list");
+    for (const item of flags) {
+      const li = element("li", "ov-flag-item");
+      li.append(line(item.label, item.row, linkFor(g.id)));
+      list.append(li);
+    }
+    parts.push(element("p", "hl-report-head", g.title), list);
+  }
+  parts.push(
+    element(
+      "p",
+      "hl-report-rest",
+      parts.length ? `The other ${fine} checks are fine.` : `All ${fine} checks are fine.`,
+    ),
+  );
+  report.replaceChildren(...parts);
 }
 
 /**
- * Draws the pulse into `root` (health.astro's markup): one heartbeat trace across the card, a beat a
- * pillar in its tone and shape, its name and state under it as a radio; a press on a beat or its name
- * opens that pillar's report under it. The worst is open on arrival.
+ * Fills the summary's tiles (health.astro draws them, Overall then a tile a pillar, so nothing moves
+ * when the answer comes): each its name and its tone's glyph, its state in words, then how many of
+ * its checks are fine; a tile that needs a look is tinted. A press opens its checks in the report under
+ * the tiles, each a link to its section; Overall, open on arrival, lists what needs a look everywhere
+ * (2026-11-05, the owner picked the tiles: the heartbeat "doesnt convey the information easily").
  */
-export function drawPulse(
+export function drawTiles(
   root: HTMLElement,
   body: HealthBody,
   pillars: Pillar[],
   linkFor: (pillar: string) => string,
 ): void {
-  const pick = <T extends Element>(selector: string): T | null => root.querySelector<T>(selector);
-  const svg = pick<SVGSVGElement>("[data-pulse-svg]");
-  const holder = pick<HTMLElement>("[data-beats]");
-  const report = pick<HTMLElement>("[data-health-groups]");
-  if (!svg || !holder || !report) return;
+  const report = root.querySelector<HTMLElement>("[data-health-groups]");
+  if (!report) return;
   const groups = judge(body, pillars);
-  const tones = groups.map(toneOf);
-  svg.setAttribute("viewBox", `0 0 ${Math.max(1, groups.length) * PULSE.w} 120`);
-  const trace = svgEl("g", { class: "hl-trace" });
-  groups.forEach((_, i) => {
-    trace.append(
-      svgEl("path", {
-        class: "hl-beat-line",
-        d: beat(i * PULSE.w, tones[i] ?? "none"),
-        "data-tone": tones[i] ?? "none",
-        style: `--i:${i}`,
-      }),
-    );
-  });
-  svg.replaceChildren(trace);
-  const lines = [...trace.querySelectorAll<SVGElement>(".hl-beat-line")];
-  const radios: HTMLInputElement[] = [];
+  const byId = new Map(groups.map((g) => [g.id, g]));
+  const all: Judged = { id: ALL, title: "Overall", items: groups.flatMap((g) => g.items) };
+  const flagsIn = (g: Judged): number => g.items.filter((x) => isFlag(x.row.tone)).length;
+  // The report keeps the room of its tallest view, All's names included, so a press moves nothing.
   report.style.setProperty(
     "--rows",
-    String(Math.max(1, ...groups.map((g) => g.items.filter((x) => isFlag(x.row.tone)).length + 1))),
-  );
-  const open = (i: number): void => {
-    const g = groups[i];
-    if (!g) return;
-    for (const [at2, l] of lines.entries()) l.toggleAttribute("data-on", at2 === i);
-    for (const [at2, r] of radios.entries()) r.checked = at2 === i;
-    fillReport(report, g, linkFor(g.id));
-  };
-  holder.style.setProperty("--beats", String(groups.length));
-  holder.replaceChildren(
-    ...groups.map((g, i) => {
-      const label = element("label", "hl-beat");
-      const input = radio("hl-beat", () => open(i));
-      radios.push(input);
-      // One word, so five fit under the trace on a phone; the counts are in the report.
-      const state = element("span", "hl-beat-state", BEAT_WORD[tones[i] ?? "none"]);
-      label.append(input, element("span", "hl-beat-name", g.title), state);
-      return label;
-    }),
-  );
-  svg.onpointerdown = (event) => {
-    const box = svg.getBoundingClientRect();
-    open(
-      Math.min(
-        groups.length - 1,
-        Math.floor(((event.clientX - box.left) / box.width) * groups.length),
+    String(
+      Math.max(
+        flagsIn(all) + Math.ceil(groups.filter(flagsIn).length / 2) + 1,
+        ...groups.map((g) => flagsIn(g) + 1),
       ),
-    );
+    ),
+  );
+  const open = (id: string): void => {
+    const g = byId.get(id);
+    if (g) fillReport(report, g, linkFor(g.id));
+    else fillAll(report, groups, linkFor);
   };
-  open(worstOf(tones));
-  root.querySelector<HTMLElement>("[data-pulse]")?.setAttribute("data-drawn", "");
+  for (const tile of root.querySelectorAll<HTMLElement>("[data-tile]")) {
+    const id = tile.dataset.tile ?? "";
+    const g = id === ALL ? all : byId.get(id);
+    const input = tile.querySelector<HTMLInputElement>("input");
+    const value = tile.querySelector<HTMLElement>("[data-value]");
+    const mark = tile.querySelector<HTMLElement>("[data-mark]");
+    const detail = tile.querySelector<HTMLElement>("[data-detail]");
+    const tone: Tone = g?.items.length ? toneOf(g) : "none";
+    tile.dataset.tone = tone;
+    if (value) value.textContent = g?.items.length ? stateOf(g) : "No data";
+    if (mark) {
+      mark.dataset.tone = tone;
+      const copy = tone === "none" ? null : glyph(tone);
+      mark.replaceChildren(...(copy ? [copy] : []));
+    }
+    const fine = g ? g.items.length - flagsIn(g) : 0;
+    if (detail)
+      detail.textContent = !g?.items.length
+        ? "Not checked"
+        : fine === g.items.length
+          ? `All ${fine} fine`
+          : `${fine} of ${g.items.length} fine`;
+    if (input) {
+      input.disabled = !g?.items.length;
+      input.onchange = () => open(id);
+    }
+  }
+  // A repaint keeps the tile picked; the first paint opens All.
+  const kept = root.querySelector<HTMLInputElement>("[data-tile] input:checked:enabled");
+  const pick = kept ?? root.querySelector<HTMLInputElement>(`[data-tile="${ALL}"] input`);
+  if (!pick) return;
+  pick.checked = true;
+  open(pick.closest<HTMLElement>("[data-tile]")?.dataset.tile ?? ALL);
 }
 
 /** A point on the ring, `deg` clockwise from the top. */
