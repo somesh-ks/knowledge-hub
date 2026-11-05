@@ -21,6 +21,13 @@
   vertical-align: -0.1em;
 }
 
+/* After words (the time zone snackbar's "You're in India", Toaster.tsx) a word space alone left the
+   flag tight on the name (owner, 2026-11-05): it keeps 4px more. A topic's emoji is a flag alone and
+   stays centred. */
+.toast-text > .flag-inline {
+  margin-inline-start: var(--space-1);
+}
+
 .flag-badge {
   display: inline-grid;
   place-items: center;
