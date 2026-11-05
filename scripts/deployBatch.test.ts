@@ -76,11 +76,15 @@ describe("deploy-batch.sh", () => {
   });
 
   // The owner waits to try a fix on his phone: the marker ships it with whatever is pending.
-  it("builds at once when a commit since the last deploy says [deploy], even a docs-only one", () => {
+  it("builds at once when a subject since the last deploy ends with [deploy], even a docs-only one", () => {
     const { commit, push } = repo();
     commit("apps/web/fix.ts", "fix: the player");
     expect(push()).toBe(0);
-    commit("docs/state.md", "docs: deploy now [deploy]");
+    // A commit that only talks about the marker is not a request.
+    commit("docs/runbook.md", "docs: explain the [deploy] marker");
+    expect(push()).toBe(0);
+    // GitHub's squash adds the PR number after the title.
+    commit("docs/state.md", "docs: deploy now [deploy] (#718)");
     expect(push()).toBe(1);
   });
 

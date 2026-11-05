@@ -627,7 +627,7 @@ async function checkSite(
         sink.fault(
           "site_behind",
           "reliability",
-          `${text} Redeploy from Vercel; its log says whether the build failed or was skipped.`,
+          `${text} Its Vercel log says whether the build failed or was skipped; a merge waiting for the batch ships with a docs commit titled [deploy] (D375).`,
         );
       } else {
         sink.warn("site_behind", "reliability", text);
