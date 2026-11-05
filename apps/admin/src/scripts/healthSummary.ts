@@ -1,12 +1,13 @@
 /**
  * The Health page's summary (health.astro): the tiles, Overall then one a section, each a link to its
- * section; then every check that needs a look, each with what it means for readers and where to start
- * (lib/healthHelp.ts), an error row with the week's commonest reports. The prompts that hand them to an
- * AI agent are the Actions section's (healthActions.ts). 2026-11-05, the owner: "no blue boxes", "a
- * human can easily understand what is wrong ... and share it with the ai agent to fix".
+ * section; then a row a check that needs a look, its name, its reading and a glyph, which opens its
+ * sheet with what it means, where to start and its prompt for an agent (healthSheet.ts). The page
+ * keeps one line a problem; the words are in the sheet. 2026-11-05, the owner: "no blue boxes", "a
+ * human can easily understand what is wrong", then "a big wall of text ... hide them inside a bottom
+ * sheet on mobile and sidebar on desktop".
  */
 import type { HealthSeries } from "../../../web/src/lib/healthRows";
-import { helpFor } from "../lib/healthHelp";
+import { iconHtml } from "../../../web/src/lib/sheetHead";
 import type { Pillar } from "../lib/pillars";
 import {
   element,
@@ -15,7 +16,6 @@ import {
   isFlag,
   type Judged,
   judge,
-  line,
   stateOf,
   type Tone,
   toneOf,
@@ -62,43 +62,42 @@ function fillTiles(root: HTMLElement, groups: Judged[]): void {
   }
 }
 
-/** One issue on the page: its line (a link to its section), what it means, where to start, its reports. */
-function issueEl(issue: Issue, link: string): HTMLElement {
-  const item = element("li", "hl-issue");
-  const help = helpFor(issue.row.id);
-  item.append(line(nameOf(issue), issue.row, link));
-  const body = element("div", "hl-issue-body");
-  if (help) body.append(element("p", "hl-issue-text", help.means));
-  body.append(element("p", "hl-issue-start", `${issue.row.detail}.`));
-  if (help) body.append(element("p", "hl-issue-start", `Start: ${help.start}`));
-  if (issue.reports.length) {
-    const list = element("ul", "hl-reports");
-    list.setAttribute("role", "list");
-    for (const r of issue.reports) {
-      const li = element("li", "hl-report");
-      li.append(
-        element("span", "hl-report-message", `"${r.message}"`),
-        element("span", "hl-report-where", `${r.page}, ${r.week} this week`),
-      );
-      list.append(li);
-    }
-    body.append(list);
+/**
+ * A problem's row, the design system's row action: its name, then its reading with its glyph at the
+ * end, as a list row says its value (the name truncates, the reading never), and a chevron. It opens
+ * the sheet with the rest.
+ */
+function issueRow(issue: Issue, open: (issue: Issue) => void): HTMLElement {
+  const row = element("button", "row-action hl-issue-row");
+  (row as HTMLButtonElement).type = "button";
+  const text = element("span", "settings-text");
+  const value = element("span", "settings-hint");
+  const mark = glyph(issue.row.tone);
+  if (mark) {
+    const icon = element("span", "ov-flag-icon");
+    icon.dataset.tone = issue.row.tone;
+    icon.append(mark);
+    value.append(icon);
   }
-  item.append(body);
-  return item;
+  value.append(issue.row.value);
+  text.append(element("span", "settings-label", nameOf(issue)), value);
+  row.append(text);
+  row.insertAdjacentHTML("beforeend", iconHtml("chevronRight"));
+  row.title = issue.row.detail;
+  row.addEventListener("click", () => open(issue));
+  return row;
 }
 
 /**
- * Draws the summary from an answer of /api/health: the tiles, the count of what needs a look, and each
- * issue, worst first, in the page's section order. Returns the issues, which the Actions section words
- * as prompts.
+ * Draws the summary from an answer of /api/health: the tiles, the count of what needs a look, and a row
+ * an issue, worst first, in the page's section order. Returns the issues and how many checks are fine.
  */
 export function drawSummary(
   root: HTMLElement,
   body: HealthBody & { series?: HealthSeries },
   pillars: Pillar[],
-  linkFor: (pillar: string) => string,
-): Issue[] {
+  open: (issue: Issue) => void,
+): { issues: Issue[]; fine: number } {
   const groups = judge(body, pillars);
   fillTiles(root, groups);
   const issues: Issue[] = groups.flatMap((section) =>
@@ -120,11 +119,6 @@ export function drawSummary(
       : "Nothing needs you";
   root
     .querySelector<HTMLElement>("[data-issues]")
-    ?.replaceChildren(...issues.map((issue) => issueEl(issue, linkFor(issue.section.id))));
-  const rest = root.querySelector<HTMLElement>("[data-issues-rest]");
-  if (rest)
-    rest.textContent = issues.length
-      ? `Prompts to fix these are in Actions. The other ${total - issues.length} checks are fine.`
-      : `All ${total} checks are fine.`;
-  return issues;
+    ?.replaceChildren(...issues.map((issue) => issueRow(issue, open)));
+  return { issues, fine: total - issues.length };
 }

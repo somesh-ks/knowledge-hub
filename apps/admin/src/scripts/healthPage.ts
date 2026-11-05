@@ -3,10 +3,12 @@
  * paints the fresh one (lib/kept.ts). Each reading the page drew at build is filled by id: a value,
  * a glyph on one that needs a look, and the marks the answer's series give (run columns, job
  * strips, speed meters). The summary is a tile a section of the page and one for all of them
- * (healthRing.ts); Actions words what it flags as prompts for an agent (healthActions.ts). The Speed card shows one device at a time and repaints from the same answer. A
+ * (healthRing.ts); a flagged check opens a sheet with its detail and a prompt for an agent (healthSheet.ts). The Speed card shows one device at a time and repaints from the same answer. A
  * failed ask with nothing kept says so in the summary and the banner above, and leaves the shell as
  * drawn.
  */
+
+import { buttonClass } from "../../../web/src/design-system/button";
 import type {
   HealthBody,
   HealthRow,
@@ -17,7 +19,8 @@ import { mountSegmentedNav, selectTab } from "../../../web/src/scripts/segmented
 import { askKept } from "../lib/kept";
 import { PILLARS } from "../lib/pillars";
 import { currentProblems, PROBLEMS_CHANGED } from "../lib/problem";
-import { drawActions } from "./healthActions";
+import type { PromptInput } from "./healthPrompts";
+import { openAll, openIssue } from "./healthSheet";
 import { drawSummary, type Issue } from "./healthSummary";
 
 const root = document.querySelector<HTMLElement>("[data-health]");
@@ -25,7 +28,7 @@ const deviceTabs = document.querySelector<HTMLElement>("[data-device]");
 let answer: HealthBody | null = null;
 /** The answer on the page is this device's kept one, and no fresh one has come. */
 let stale = false;
-/** What the summary flagged last, which the Actions section words as prompts. */
+/** What the summary flagged last, which its sheet words as prompts. */
 let issues: Issue[] = [];
 let device = "mobile";
 /** The kind of run shown was picked by a press; an answer no longer moves it. */
@@ -175,31 +178,45 @@ const partial = (body: HealthBody): string[] =>
     body.parts.github === "partial" && "GitHub answered for some workflows only",
   ].filter((each): each is string => Boolean(each));
 
-/** The prompts: what the summary flagged and what failed to load, redrawn when either changes. */
-function paintActions(): void {
-  const actions = root?.querySelector<HTMLElement>("[data-health-actions]");
-  if (!actions) return;
-  drawActions(actions, {
-    issues,
-    checkedAt: answer?.checked_at ?? null,
-    stale,
-    partial: answer ? partial(answer) : [],
-    problems: currentProblems(),
-  });
+/** What a prompt is built from, read as its sheet opens, so a banner that went up since is in it. */
+const promptInput = (): PromptInput => ({
+  issues,
+  checkedAt: answer?.checked_at ?? null,
+  stale,
+  partial: answer ? partial(answer) : [],
+  problems: currentProblems(),
+});
+
+/** "Fix all N" beside the count when there are two things or more: flagged checks and failed loads. */
+function paintFixAll(): void {
+  const slot = root?.querySelector<HTMLElement>("[data-fix-all]");
+  if (!slot) return;
+  const count = issues.length + currentProblems().length;
+  if (count < 2) {
+    slot.replaceChildren();
+    return;
+  }
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = buttonClass("text");
+  button.textContent = `Fix all ${count}`;
+  button.addEventListener("click", () => openAll(promptInput()));
+  slot.replaceChildren(button);
 }
 
 function paintSummary(): void {
   const summary = root?.querySelector<HTMLElement>("[data-health-summary]");
   if (!summary || !answer) return;
-  issues = drawSummary(summary, answer, PILLARS, (pillar) => `#c-${pillar}`);
-  paintActions();
+  const drawn = drawSummary(summary, answer, PILLARS, (issue) => openIssue(issue, promptInput()));
+  issues = drawn.issues;
+  paintFixAll();
   const at = new Date(answer.checked_at);
   const sameDay = at.toDateString() === new Date().toDateString();
   const checked = `${sameDay ? "" : `${shortDate(answer.checked_at)}, `}${at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
   const missing = partial(answer);
   const note = summary.querySelector<HTMLElement>("[data-health-note]");
   if (note)
-    note.textContent = `Checked ${checked}.${missing.length ? ` Partial: ${missing.join("; ")}.` : ""}`;
+    note.textContent = `${issues.length ? `The other ${drawn.fine} checks are fine. ` : ""}Checked ${checked}.${missing.length ? ` Partial: ${missing.join("; ")}.` : ""}`;
 }
 
 function paint(): void {
@@ -251,12 +268,12 @@ async function load(): Promise<void> {
     const words = root.querySelector<HTMLElement>("[data-health-state]");
     if (words) words.textContent = "No answer";
     delete root.dataset.loading;
-    paintActions();
+    paintFixAll();
   }
 }
 
-// A banner that goes up or comes down later (Stage times) changes the prompts with it.
-document.addEventListener(PROBLEMS_CHANGED, paintActions);
+// A banner that goes up or comes down later (Stage times) changes Fix all's count with it.
+document.addEventListener(PROBLEMS_CHANGED, paintFixAll);
 
 // Runs: a kind at a time, the one whose run time needs a look first.
 const kindTabs = document.querySelector<HTMLElement>("[data-kinds]");
