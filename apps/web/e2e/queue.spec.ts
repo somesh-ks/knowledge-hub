@@ -267,7 +267,11 @@ test.describe("the podcast queue", () => {
     await openQueue(page);
     await expect(rows(page).first()).toBeVisible();
     await expect.poll(dockTop).toBeLessThan(topFolded);
-    expect(await button.boundingBox()).toEqual(boxFolded);
+    // Within half a pixel: the button's own settling can leave a 0.06 px remainder, which is not a move.
+    const boxOpen = await button.boundingBox();
+    for (const key of ["x", "y", "width", "height"] as const) {
+      expect(Math.abs((boxOpen?.[key] ?? Number.NaN) - (boxFolded?.[key] ?? 0))).toBeLessThan(0.5);
+    }
 
     // The list scrolls, and the row where it is cut off shows only part of itself: the cue that there is
     // more. Read once the opening has settled.
@@ -524,6 +528,28 @@ test.describe("the podcast queue", () => {
       return Math.min(apart, start.tile - apart);
     });
     expect(gap).toBeLessThan(1);
+
+    // Folding the dock restarts the title's animation: that first frame sits on the clock too.
+    const toggle = page.locator("[data-queue-toggle]");
+    if ((await page.locator(".queue-dock").getAttribute("data-expanded")) === null) {
+      await toggle.click();
+    }
+    await expect(page.locator(".queue-dock")).toHaveAttribute("data-expanded", "");
+    const afterFold = await page.evaluate(
+      () =>
+        new Promise<number>((resolve) => {
+          const dock = document.querySelector<HTMLElement>(".queue-dock");
+          dock?.querySelector<HTMLElement>("[data-queue-toggle]")?.click();
+          requestAnimationFrame(() => {
+            const sheen = document
+              .querySelector("[data-queue-title][data-live]")
+              ?.getAnimations()
+              .find((a) => (a as CSSAnimation).animationName === "queue-sheen");
+            resolve(Math.abs(Number(sheen?.currentTime) - Number(document.timeline.currentTime)));
+          });
+        }),
+    );
+    expect(afterFold).toBeLessThan(50);
   });
 
   test("a failed run's Details says what went wrong and copies the facts of the run", async ({

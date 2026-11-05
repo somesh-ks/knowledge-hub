@@ -580,6 +580,8 @@ function setExpanded(open: boolean): void {
     "aria-label",
     (open ? root?.dataset.wordCollapse : root?.dataset.wordExpand) ?? "",
   );
+  // Folding brings the title's animation back from "none", which starts it at its own zero (shimmerClock.ts).
+  if (!open) syncShimmerClock();
   syncPolling();
 }
 
