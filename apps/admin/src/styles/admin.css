@@ -1047,49 +1047,24 @@ html:has(.hl-sections) {
   display: none;
 }
 
-/* The summary: the tiles above, Overall then one a section. Each is a radio that opens its checks under
-   the tiles; the open one takes the accent container, as every pick in the admin does. */
+/* The summary: the tiles above, Overall then one a section, each a link to its section; nothing is
+   picked, so nothing is blue (2026-11-05, the owner). Under them, what needs a look. */
 .hl-summary {
-  gap: var(--space-4);
+  gap: var(--space-6);
 }
 
-.hl-tiles {
-  min-inline-size: 0;
-  border: 0;
+.hl-tile-item {
+  display: grid;
 }
 
-.hl-tile {
-  position: relative;
+a.hl-tile {
+  color: inherit;
+  text-decoration: none;
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
 
-.hl-tile input {
-  position: absolute;
-  inset: 0;
-  inline-size: 100%;
-  block-size: 100%;
-  margin: 0;
-  appearance: none;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.hl-tile input:disabled {
-  cursor: default;
-}
-
-.hl-tile:has(input:checked) {
-  background-color: var(--color-accent-container);
-}
-
-.hl-tile:has(input:checked) .stat-tile-value,
-.hl-tile:has(input:checked) .stat-tile-label,
-.hl-tile:has(input:checked) .hl-tile-name {
-  color: var(--color-on-accent-container);
-}
-
 @media (hover: hover) and (pointer: fine) {
-  .hl-tile:has(input:enabled):hover {
+  a.hl-tile:hover {
     background-image: linear-gradient(
       color-mix(in oklch, currentColor var(--state-hover), transparent),
       color-mix(in oklch, currentColor var(--state-hover), transparent)
@@ -1097,27 +1072,76 @@ html:has(.hl-sections) {
   }
 }
 
-.hl-tile:has(input:focus-visible) {
+a.hl-tile:focus-visible {
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: var(--stroke-ring-gap);
 }
 
-/* All's report: what needs a look under its section's name, then one line for the rest. */
-.hl-report-head {
-  margin: var(--space-2) 0 0;
+/* What needs a look: a heading with "Copy all", then each check as its line (a link to its
+   section) over what it means, where to start and its commonest reports, and its own copy. */
+.hl-issues {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.hl-issues .hl-head {
+  align-items: center;
+}
+
+.hl-issue-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hl-issue + .hl-issue {
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+}
+
+.hl-issue-body {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+  padding-block-end: var(--space-2);
   color: var(--color-on-surface-muted);
   font-size: var(--text-meta-size);
   line-height: var(--text-meta-leading);
 }
 
-.hl-report-head:first-child {
-  margin-block-start: 0;
+.hl-issue-text,
+.hl-issue-start {
+  margin: 0;
 }
 
-.hl-report-rest {
-  display: flex;
-  align-items: center;
-  min-block-size: var(--size-touch);
+/* Its copy sits at the far edge, as "Copy all" does above. */
+.hl-issue-body > button {
+  justify-self: end;
+}
+
+.hl-issue-text {
+  color: var(--color-on-surface);
+}
+
+.hl-reports {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hl-report {
+  display: grid;
+  min-inline-size: 0;
+}
+
+.hl-report-message {
+  overflow-wrap: anywhere;
+  color: var(--color-on-surface);
+}
+
+.hl-issues-rest {
   margin: 0;
   color: var(--color-on-surface-muted);
 }

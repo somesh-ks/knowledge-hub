@@ -40,28 +40,43 @@ const kinds = [
     <div class="hl-sections">
       <SectionTabs sections={sections} />
 
-      {/* The summary (scripts/healthRing.ts drawTiles): a tile for all the sections, then one a section,
-           its state in words, tinted when it needs a look; a press shows its checks under the tiles,
-           each a link to its section. All is open first: everything that needs a look, by section. */}
+      {/* The summary (scripts/healthSummary.ts): a tile for all the sections, then one a section, its
+           state in words, tinted when it needs a look, a link to its section; then every check that
+           needs a look, what it means and where to start, with a copy of it all for an AI agent. */}
       <section class="hl-section" id="c-summary" aria-label="Summary" data-health-summary>
         <div class="card-group hl-card hl-summary">
-          <fieldset class="stat-tiles hl-tiles hl-data" aria-label="Show the checks of">
+          <ul class="stat-tiles hl-tiles hl-data" role="list">
             {
-              [{ id: "all", title: "Overall" }, ...PILLARS].map((tile) => (
-                <label class="stat-tile hl-tile" data-tile={tile.id} data-tone="none">
-                  <input type="radio" name="hl-tile" value={tile.id} disabled />
-                  <span class="hl-tile-head">
-                    <span class="hl-tile-name">{tile.title}</span>
-                    <span class="ov-flag-icon" data-tone="none" data-mark></span>
-                  </span>
-                  <strong class="stat-tile-value" data-value>&nbsp;</strong>
-                  <span class="stat-tile-label" data-detail>&nbsp;</span>
-                </label>
-              ))
+              [{ id: "all", title: "Overall" }, ...PILLARS].map((tile) => {
+                const inner = (
+                  <>
+                    <span class="hl-tile-head">
+                      <span class="hl-tile-name">{tile.title}</span>
+                      <span class="ov-flag-icon" data-tone="none" data-mark></span>
+                    </span>
+                    <strong class="stat-tile-value" data-value>&nbsp;</strong>
+                    <span class="stat-tile-label" data-detail>&nbsp;</span>
+                  </>
+                );
+                return (
+                  <li class="hl-tile-item">
+                    {tile.id === "all" ? (
+                      <div class="stat-tile hl-tile" data-tile={tile.id} data-tone="none">{inner}</div>
+                    ) : (
+                      <a class="stat-tile hl-tile" href={`#c-${tile.id}`} data-tile={tile.id} data-tone="none">{inner}</a>
+                    )}
+                  </li>
+                );
+              })
             }
-          </fieldset>
-          <div class="ov-groups hl-data" data-health-groups>
-            <p class="ov-sub" data-health-state>Checking</p>
+          </ul>
+          <div class="hl-issues hl-data">
+            <div class="hl-head">
+              <h3 class="hl-title" data-issues-title data-health-state>Checking</h3>
+              <span data-copy-all></span>
+            </div>
+            <ul class="hl-issue-list" role="list" data-issues></ul>
+            <p class="hl-issues-rest" data-issues-rest></p>
           </div>
         </div>
         <p class="settings-note" data-health-note>&nbsp;</p>

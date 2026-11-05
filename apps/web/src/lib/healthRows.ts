@@ -46,8 +46,19 @@ export interface HealthSeries {
   jobs: Record<string, HealthJobRun[]>;
   /** Each field reading by `<metric>.<device>`: the p75, its visits, and Google's two lines. */
   vitals: Record<string, { p75: number; visits: number; lines: readonly [number, number] }>;
-  /** Each error row's count over the last 24 hours and the week, by row id. */
-  errors: Record<string, { day: number; week: number }>;
+  /**
+   * Each error row's count over the last 24 hours and the week, by row id, and its commonest reports
+   * this week: what the admin quotes when it explains the row. A report's text is the browser's or
+   * the server's, untrusted.
+   */
+  errors: Record<
+    string,
+    {
+      day: number;
+      week: number;
+      top: Array<{ message: string; page: string; week: number; build: string }>;
+    }
+  >;
 }
 
 export const HEALTH_TILES = [
