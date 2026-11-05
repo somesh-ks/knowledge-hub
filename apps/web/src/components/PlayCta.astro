@@ -35,7 +35,7 @@ const unavailable = mode === "expired" ? AUDIO_UNAVAILABLE_COPY.expired : null;
     album && album.length > 1 && (
       <Select variant="tonal" label="Catch up" class="hero-album" data-album-pick data-current={digestId}>
         {album.map((option) => (
-          <option value={option.id} data-at={option.at} selected={option.id === digestId}>
+          <option value={option.id} selected={option.id === digestId}>
             {option.label}
           </option>
         ))}

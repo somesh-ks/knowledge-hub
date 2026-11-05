@@ -15,7 +15,7 @@ What it does now. Reasons: D44, D59, D60, D77, D78, D88, D97, D104, D109, D127; 
 ### Episode pages
 - An episode's menu offers Share, Regenerate and Delete (D88, D44). Both actions go through `/api/podcast` and `podcast.yml`.
 - Scenario: WHEN an episode is deleted THEN it is hidden at once on the device that asked, while the workflow and the redeploy finish.
-- A day's Catch ups are one album (D219): a select of "Catch up at 14" names (the start hour in the browser's zone) stands before Play when the day has two or more; choosing one opens its page. The hero's row scrolls sideways when select, Play and Share do not fit.
+- A day's Catch ups are one album (D219): a select of "Version 1", "Version 2" names (the order they were made) stands before Play when the day has two or more; choosing one opens its page. The hero's row scrolls sideways when select, Play and Share do not fit.
 - A section's stories sit in one card under the section's header, on every podcast page. A downloaded page ends its facts line with a check circle and "Downloaded".
 - An episode page shows Highlights with links, not the script: a briefing's summary where the story is in one, else what the hosts said without segues and questions.
 
