@@ -169,9 +169,9 @@ test("a shared link opens the app's page in a fresh browser, plays its stored au
   await expect.poll(async () => (await copied()).length).toBe(1);
   await dialog.getByRole("button", { name: "Close" }).click();
   await expect(dialog).toBeHidden();
-  // Stop sharing is not in the briefing page's menu: it lives in the Library's.
+  // The page's sheet is the Library card's, so it offers Stop sharing once the link exists (D369).
   await page.getByRole("button", { name: "More actions" }).click();
-  await expect(page.getByRole("menuitem", { name: "Stop sharing" })).toHaveCount(0);
+  await expect(page.getByRole("menuitem", { name: "Stop sharing" })).toHaveCount(1);
   await page.keyboard.press("Escape");
   const link = (await copied())[0] ?? "";
   const token = tokenOf(link);

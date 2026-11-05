@@ -14,6 +14,52 @@
   display: none;
 }
 
+/* A finger swipes a row away (downloadsSwipe.ts, D369): the row's face slides by --swipe-x over a red
+   strip with the bin, on the side it came from, as a queue row does (player.css, owner 2026-11-03:
+   "a red strip in the background, and not to change the row itself to turn red"). A sideways press
+   is the row's; up and down stays the page's scroll. */
+.downloads [data-card] {
+  touch-action: pan-y;
+}
+
+.downloads [data-card] > :not(.downloads-strip) {
+  translate: var(--swipe-x, 0px) 0;
+  transition: translate var(--duration-press-out) var(--ease-out);
+}
+
+/* Under the finger the face follows at once. */
+.downloads [data-card][data-swiping] > :not(.downloads-strip) {
+  transition: none;
+}
+
+/* The face keeps the page's look while it slides, so the strip shows only beside it. */
+.downloads [data-card][data-swipe-dir] > .card-link {
+  background: var(--color-surface);
+}
+
+.downloads-strip {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-beneath);
+  display: none;
+  align-items: center;
+  padding-inline: var(--space-4);
+  background: var(--color-danger);
+  color: var(--color-surface);
+}
+
+.downloads [data-card][data-swipe-dir] > .downloads-strip {
+  display: flex;
+}
+
+.downloads [data-card][data-swipe-dir="end"] > .downloads-strip {
+  justify-content: flex-start;
+}
+
+.downloads [data-card][data-swipe-dir="start"] > .downloads-strip {
+  justify-content: flex-end;
+}
+
 /* The list and the Delete all card are two groups: the gap between them is a group's, not a row's. */
 .downloads-list {
   margin-block-end: var(--space-6);

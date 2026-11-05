@@ -1,8 +1,7 @@
 ---
 import Icon from "../design-system/Icon.astro";
 import Menu from "../design-system/Menu.astro";
-import MenuItem from "../design-system/MenuItem.astro";
-import { regenerationHint } from "../lib/regenerations";
+import PodcastMenuItems from "./PodcastMenuItems.astro";
 
 interface Props {
   /** Set on an episode page: Regenerate and Delete then act on this episode. */
@@ -16,24 +15,28 @@ interface Props {
   /** Times this podcast was regenerated, for the Regenerate item's counter (D212). */
   regenerations?: number | undefined;
   /**
-   * The page itself, so Download and Add to queue sit in the menu as they do in the Library row's
-   * (LibraryItemMenu.astro; scripts/libraryMenu.ts wires them). `audio` is the file to download;
-   * without it only Add to queue is offered.
+   * The page's podcast: its sheet is the Library card's (PodcastMenuItems.astro, D369), headed by its
+   * name and the card's facts line. `audio` is the file to download; without it Download is left out.
    */
-  page?: { id: string; title: string; path: string; audio?: string | undefined };
+  page: {
+    id: string;
+    title: string;
+    subtitle?: string | undefined;
+    path: string;
+    audio?: string | undefined;
+  };
 }
 
 const { episodeId, briefingId, minutes, deletable = true, regenerations, page } = Astro.props;
-const regen = regenerationHint(regenerations);
 ---
 
-{/* One More button beside the title and the small menu it opens: Download, Add to queue, Regenerate
-     and Delete, on a briefing and on an episode alike, in the order of the Library row's menu (Share
-     sits beside Play, PlayCta.astro; Stop sharing is in the Library's row menu only). The menu is a native popover, so light dismiss and Escape are
-     the browser's; scripts/heroMenu.ts adds the arrow keys and focus. On an episode
-     Regenerate opens the rewrite panel (scripts/episodeActionsEntry.ts); on a briefing it opens the
-     Generate sheet, which sends this digest's id so the new one replaces it. Delete opens the
-     confirm on both. The items wait, with a reason, while a run for this episode is going. */}
+{/* One More button beside the title and the sheet it opens: the podcast's one sheet, the same a
+     Library card's hold opens (PodcastMenuItems.astro, D369), headed by its name and facts. The menu
+     is a native popover, so light dismiss and Escape are the browser's; scripts/heroMenu.ts adds the
+     arrow keys and focus. On an episode Regenerate opens the rewrite panel
+     (scripts/episodeActionsEntry.ts); on a briefing it opens the Generate sheet, which sends this
+     digest's id so the new one replaces it. Delete opens the confirm on both. The items wait, with a
+     reason, while a run for this episode is going. */}
 <div
   class="hero-menu"
   data-share-host
@@ -41,11 +44,11 @@ const regen = regenerationHint(regenerations);
   data-episode={episodeId}
   data-briefing={briefingId}
   data-minutes={minutes}
-  data-page-menu={page ? "" : undefined}
-  data-id={page?.id}
-  data-path={page?.path}
-  data-title={page?.title}
-  data-audio={page?.audio}
+  data-page-menu=""
+  data-id={page.id}
+  data-path={page.path}
+  data-title={page.title}
+  data-audio={page.audio}
 >
   <button
     class="icon-btn hero-more press"
@@ -58,47 +61,15 @@ const regen = regenerationHint(regenerations);
     <Icon name="moreVert" class="more-icon" />
     <Icon name="check" class="more-done" />
   </button>
-  <Menu id="hero-menu" title="More actions">
-    {
-      page?.audio && (
-        <MenuItem data-menu="download" aria-disabled="true">
-          <Icon name="download" class="dl-add" /><Icon name="downloadRemove" class="dl-remove" /><span data-menu-label>Download</span>
-        </MenuItem>
-      )
-    }
-    {
-      page && (
-        <MenuItem data-menu="queue" aria-disabled="true">
-          <Icon name="queueAdd" />Add to queue
-        </MenuItem>
-      )
-    }
-    {
-      episodeId ? (
-        <MenuItem
-          data-episode-action="regenerate"
-          title={regen.title}
-          disabled={regen.exhausted}>
-          <Icon name="refresh" />Regenerate
-        </MenuItem>
-      ) : (
-        <MenuItem
-          data-open="generate"
-          aria-haspopup="dialog"
-          title={regen.title}
-          disabled={regen.exhausted}>
-          <Icon name="refresh" />Regenerate
-        </MenuItem>
-      )
-    }
-    {
-      deletable && (
-        <MenuItem tone="danger"
-          data-episode-action="delete">
-          <Icon name="trash" />Delete
-        </MenuItem>
-      )
-    }
+  <Menu id="hero-menu" title={page.title} subtitle={page.subtitle}>
+    <PodcastMenuItems
+      id={page.id}
+      kind={episodeId ? "episode" : "briefing"}
+      pending
+      audio={page.audio}
+      deletable={deletable}
+      regenerations={regenerations}
+    />
   </Menu>
   <span class="sr-only" role="status" data-share-status></span>
   {
