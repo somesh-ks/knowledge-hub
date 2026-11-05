@@ -8,7 +8,9 @@
 import { escapeHtml, iconHtml } from "../lib/sheetHead";
 import type { Guidance } from "./guidance";
 
-export const CODE: Guidance = {
+export type CodeVariant = "tonal" | "surface";
+
+export const CODE: Guidance & { variants: Record<CodeVariant, Guidance & { label: string }> } = {
   summary: "Text to copy exactly as it is, in monospace, with a Copy button.",
   useWhen: [
     "A person copies the text to paste elsewhere: a failed run's details, a prompt, an error.",
@@ -23,10 +25,35 @@ export const CODE: Guidance = {
       instead: "Field",
     },
   ],
+  // Two fills, picked by the page, never switched by where the snippet sits (owner, 2026-11-05:
+  // the on-page look is the one he likes, kept as a variant).
+  variants: {
+    tonal: {
+      label: "Tonal",
+      summary: "The tonal box a field has: the default.",
+      useWhen: ["The snippet sits on the page, a sheet or a dialog."],
+      dontUseWhen: [
+        { when: "It sits on a card, whose fill is the same tone.", instead: "Code.surface" },
+      ],
+    },
+    surface: {
+      label: "Surface",
+      summary: "The page's own surface, so it reads against a card.",
+      useWhen: ["The snippet sits on a card, as a field on a card does."],
+      dontUseWhen: [
+        { when: "It sits on the page, where it would not show.", instead: "Code.tonal" },
+      ],
+    },
+  },
 };
 
 /** Every class the Code snippet draws, for the registry and its test. */
-export const CODE_CLASSES: string[] = ["code-snippet", "code-snippet-text", "code-snippet-copy"];
+export const CODE_CLASSES: string[] = [
+  "code-snippet",
+  "code-snippet-surface",
+  "code-snippet-text",
+  "code-snippet-copy",
+];
 
 /** Classes the Code snippet replaced; none may be written again, in any app that draws the system. */
 export const CODE_RETIRED: string[] = [];
@@ -42,11 +69,19 @@ export interface CodeWords {
   copied?: string;
 }
 
+/** A snippet's classes: Tonal is the box alone; Surface adds its modifier. */
+export const codeClass = (variant: CodeVariant = "tonal"): string =>
+  variant === "surface" ? "code-snippet code-snippet-surface" : "code-snippet";
+
 /** A snippet's markup, for a script that builds a surface from a string (queueDetails.ts). */
-export function codeSnippetHtml(text: string, words: CodeWords): string {
+export function codeSnippetHtml(
+  text: string,
+  words: CodeWords,
+  variant: CodeVariant = "tonal",
+): string {
   const copy = escapeHtml(words.copy ?? "Copy");
   return (
-    `<div class="code-snippet" data-code data-copied-word="${escapeHtml(words.copied ?? "Copied")}">` +
+    `<div class="${codeClass(variant)}" data-code data-copied-word="${escapeHtml(words.copied ?? "Copied")}">` +
     `<pre class="code-snippet-text" tabindex="0" aria-label="${escapeHtml(words.label)}">${escapeHtml(text)}</pre>` +
     `<button class="icon-btn code-snippet-copy" type="button" aria-label="${copy}" title="${copy}" data-code-copy>` +
     `${iconHtml("copy", "lg")}${iconHtml("check", "lg")}</button>` +

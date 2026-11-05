@@ -1,4 +1,5 @@
 ---
+import { type CodeVariant, codeClass } from "./code";
 import Icon from "./Icon.astro";
 import "../styles/code.css";
 
@@ -9,14 +10,23 @@ interface Props {
   label: string;
   copy?: string;
   copied?: string;
+  /** Tonal on the page, a sheet or a dialog; Surface on a card. */
+  variant?: CodeVariant;
   /** For placing the snippet where it stands (a margin, a grid area). Never its look. */
   class?: string;
 }
 
-const { text, label, copy = "Copy", copied = "Copied", class: className = "" } = Astro.props;
+const {
+  text,
+  label,
+  copy = "Copy",
+  copied = "Copied",
+  variant = "tonal",
+  class: className = "",
+} = Astro.props;
 ---
 
-<div class={["code-snippet", className].filter(Boolean).join(" ")} data-code data-copied-word={copied}>
+<div class={[codeClass(variant), className].filter(Boolean).join(" ")} data-code data-copied-word={copied}>
   <pre class="code-snippet-text" tabindex="0" aria-label={label}>{text}</pre>
   <button class="icon-btn code-snippet-copy" type="button" aria-label={copy} title={copy} data-code-copy>
     <Icon name="copy" size="lg" />
