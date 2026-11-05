@@ -180,6 +180,20 @@ html[data-player="open"] .queue-dock {
   overscroll-behavior: contain;
 }
 
+/* Opened, the dock is an overlay on the page, and with no shadow its tone says so: the overlay surface the
+   app's raised menus use, a step off the bar below it (owner, 2026-11-05). Folded it stays the bar's own
+   tone. The colour is an effect, so it takes the effects spring, and its row states follow it. */
+.queue-dock {
+  transition: background-color var(--duration-spring-effects-default)
+    var(--ease-spring-effects-default);
+}
+
+.queue-dock[data-expanded] {
+  background: var(--color-surface-overlay);
+  --ghost-hover: var(--color-surface-overlay-hover);
+  --ghost-pressed: var(--color-surface-overlay-pressed);
+}
+
 /* The folded row is the dock's handle: a drag on it is the dock's, never the page's (scripts/queue.ts). */
 .queue-head {
   touch-action: none;
