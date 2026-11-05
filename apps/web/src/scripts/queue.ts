@@ -466,9 +466,9 @@ function paintList(
   data: DOMStringMap,
   current: Stored | null,
 ): void {
-  const present = new Map(
+  const present = new Map<string, HTMLElement>(
     [...list.querySelectorAll<HTMLElement>("[data-queue-row-item]")].map((li) => [
-      li.dataset.run,
+      li.dataset.run ?? "",
       li,
     ]),
   );
