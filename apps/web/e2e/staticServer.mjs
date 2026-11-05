@@ -155,6 +155,13 @@ export function startServer({ root, port, mounts = {}, api }) {
       response.end(JSON.stringify({ status: 200 }));
       return;
     }
+    if (pathname === "/api/regen-hints" && request.method === "POST") {
+      // No Jev here: the answer a site without its key gives, so a typed comment costs no test a
+      // console line. The Jev journey (episodeActions.spec.ts) answers this route itself.
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ length: false, topics: false, by: "none" }));
+      return;
+    }
     if (pathname.startsWith("/api/")) {
       response.writeHead(501, { "Content-Type": "application/json" });
       response.end(JSON.stringify({ error: "not served by the static test server" }));

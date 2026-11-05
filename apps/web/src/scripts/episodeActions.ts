@@ -2,7 +2,9 @@ import { DIALOG_SELECTOR } from "../design-system/dialog";
 import { PANEL_SHEET_SELECTOR } from "../design-system/sheet";
 import { rememberCancelToken } from "../lib/cancelTokens";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
-import { hintsFor } from "../lib/regenHints";
+import { createCommentAsker } from "../lib/regenAsk";
+import { type Hints, hintsFor } from "../lib/regenHints";
+import { nearestRegenLength } from "../lib/regenLength";
 import { isChipOn } from "../lib/regenTopics";
 import { hasSaved, storeOn } from "../lib/savedKey";
 import { navigateTo } from "../player/core/navigation";
@@ -81,15 +83,26 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
 
   dialog.addEventListener("change", () => say());
 
-  // The categories wait until the comment reaches for one (D337); once shown they stay.
+  // The categories and the length wait until the comment reaches for them (D337); once shown they stay.
   const topicsGroup = dialog.querySelector<HTMLElement>("[data-hint-topics]");
-  if (feedback && topicsGroup) {
+  const lengthGroup = dialog.querySelector<HTMLElement>("[data-hint-length]");
+  if (feedback) {
+    const show = (hints: Hints): void => {
+      if (topicsGroup && hints.topics) topicsGroup.hidden = false;
+      if (lengthGroup && hints.length) lengthGroup.hidden = false;
+    };
+    // The words answer at once; Jev, once the typing pauses, can add what they missed.
+    const asker = createCommentAsker(show);
+    dialog.addEventListener("close", asker.stop);
     feedback.addEventListener("input", () => {
-      if (!topicsGroup.hidden) return;
-      const labels = [...topicsGroup.querySelectorAll(".filter-chip span")].map(
+      const labels = [...(topicsGroup?.querySelectorAll(".filter-chip span") ?? [])].map(
         (label) => label.textContent ?? "",
       );
-      if (hintsFor(feedback.value, labels).topics) topicsGroup.hidden = false;
+      show(hintsFor(feedback.value, labels));
+      asker.note(feedback.value, labels, {
+        length: !lengthGroup?.hidden,
+        topics: !topicsGroup?.hidden,
+      });
     });
   }
   if (feedback && count) {
@@ -136,11 +149,15 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       const changed = chips.some((chip) => chip.checked !== chip.defaultChecked);
       const topics = [...new Set(ticked.flatMap((chip) => (chip.dataset.ids ?? "").split(" ")))];
       const text = feedback?.value.trim() ?? "";
+      // The length goes only when it differs from the one the episode was made at.
+      const length = dialog.querySelector<HTMLInputElement>('input[name="length"]:checked');
+      const minutes = length && !length.defaultChecked ? Number(length.value) : null;
       body = {
         action: "regenerate",
         id,
         feedback: text,
         ...(changed ? (briefing ? { topics } : { topic_ids: topics }) : {}),
+        ...(minutes && !briefing ? { length_minutes: minutes } : {}),
       };
     } else {
       body = { action: "delete", id };
@@ -192,6 +209,7 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
     form.reset();
     if (count) count.hidden = true;
     if (topicsGroup) topicsGroup.hidden = true;
+    if (lengthGroup) lengthGroup.hidden = true;
     // It leaves the way Catch up does after a start (sheet.css), the queue rising as it goes.
     dialog.dataset.started = "";
     dialog.close();
@@ -214,11 +232,18 @@ export function openEpisodeAction(trigger: HTMLElement): void {
     const noun = root.dataset.libraryBriefing || root.dataset.briefing ? "podcast" : "episode";
     const title = dialog.querySelector("#delete-title");
     if (title) title.textContent = `Delete this ${noun}?`;
-  } else if (root.dataset.topics !== undefined) {
-    const original = root.dataset.topics.split(" ").filter(Boolean);
-    for (const chip of dialog.querySelectorAll<HTMLInputElement>('input[name="topic"]')) {
-      const ids = (chip.dataset.ids ?? "").split(" ");
-      chip.checked = chip.defaultChecked = !chip.disabled && isChipOn({ ids }, original);
+  } else {
+    if (root.dataset.topics !== undefined) {
+      const original = root.dataset.topics.split(" ").filter(Boolean);
+      for (const chip of dialog.querySelectorAll<HTMLInputElement>('input[name="topic"]')) {
+        const ids = (chip.dataset.ids ?? "").split(" ");
+        chip.checked = chip.defaultChecked = !chip.disabled && isChipOn({ ids }, original);
+      }
+    }
+    // The length starts on the one this episode was made at.
+    const start = String(nearestRegenLength(root.dataset.minutes));
+    for (const radio of dialog.querySelectorAll<HTMLInputElement>('input[name="length"]')) {
+      radio.checked = radio.defaultChecked = radio.value === start;
     }
   }
   // A pick from the menu hands focus back to the More button; the menu itself is closed by then.

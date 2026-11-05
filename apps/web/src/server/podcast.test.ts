@@ -213,11 +213,17 @@ describe("parsePodcastBody for an episode action", () => {
     expect(parsePodcastBody(regen({ feedback: "x".repeat(501) }))).toBeNull();
   });
 
-  it("takes comments and topics as optional and drops blank comments", () => {
+  it("takes comments, topics and a length as optional and drops blank comments", () => {
     expect(parsePodcastBody(regen({ feedback: "  \n ", topic_ids: ["ai", "design"] }))).toEqual({
       action: "regenerate",
       id: EPISODE_ID,
       topic_ids: ["ai", "design"],
+    });
+    expect(parsePodcastBody(regen({ length_minutes: 10 }))).toEqual({
+      action: "regenerate",
+      id: EPISODE_ID,
+      feedback: "Shorter intro",
+      length_minutes: 10,
     });
     expect(parsePodcastBody(regen({ feedback: undefined }))).toEqual({
       action: "regenerate",
@@ -225,7 +231,7 @@ describe("parsePodcastBody for an episode action", () => {
     });
   });
 
-  it("rejects a bad id, an unknown action, bad comments and bad topics", () => {
+  it("rejects a bad id, an unknown action, bad comments, bad topics and a bad length", () => {
     for (const bad of [
       del({ id: "ep-2026100-0900" }),
       del({ id: "../ep-20261007-0900" }),
@@ -237,6 +243,8 @@ describe("parsePodcastBody for an episode action", () => {
       regen({ topic_ids: [] }),
       regen({ topic_ids: ["ai", "ai"] }),
       regen({ topic_ids: ["Bad Id"] }),
+      regen({ length_minutes: 7 }),
+      regen({ length_minutes: "5" }),
     ]) {
       expect(parsePodcastBody(bad), bad).toBeNull();
     }

@@ -23,18 +23,21 @@ const deps = (): DeviceDeps => ({ database, burst, now: Date.now });
 /** PUT: tell this browser about the Daily, the Weekly or both (D284). DELETE: stop. */
 const answer =
   (method: "PUT" | "DELETE"): APIRoute =>
-  async ({ request, url }) =>
-    toResponse(
-      await handlePushDevice(
-        {
-          method,
-          bodyText: (await request.text()).slice(0, MAX_DEVICE_BODY_CHARS + 1),
-          origin: request.headers.get("origin"),
-          expectedOrigin: url.origin,
-        },
-        deps(),
-      ),
+  async ({ request, url }) => {
+    const result = await handlePushDevice(
+      {
+        method,
+        bodyText: (await request.text()).slice(0, MAX_DEVICE_BODY_CHARS + 1),
+        origin: request.headers.get("origin"),
+        expectedOrigin: url.origin,
+      },
+      deps(),
     );
+    // Status and reason only: a refused request (a wrong token, a cooldown) leaves no other trace.
+    if (result.status >= 400)
+      console.error(`[api/push-device] refused ${result.status} ${JSON.stringify(result.body)}`);
+    return toResponse(result);
+  };
 
 export const PUT = recordingFaults("api/push-device", answer("PUT"));
 

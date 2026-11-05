@@ -19,6 +19,7 @@
     "./health-store": "./src/store/healthStore.ts",
     "./segments": "./src/audio/segmentStore.ts",
     "./source-preview": "./src/sources/preview.ts",
+    "./comment-hints": "./src/podcast/commentHints.ts",
     "./runs-store": "./src/store/runsStore.ts",
     "./vitals-store": "./src/store/vitalsStore.ts",
     "./share-store": "./src/store/shareStore.ts",
@@ -33,7 +34,7 @@
     "@singularity/core": "*",
     "@singularity/cover": "*",
     "@typesafe-ai/sdk": "^0.7.0",
-    "@vercel/blob": "^2.8.1",
+    "@vercel/blob": "^2.8.2",
     "fast-xml-parser": "^5.11.2",
     "linkedom": "^0.18.14",
     "web-push": "3.6.7",
@@ -41,7 +42,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "0.5.8",
+    "@electric-sql/pglite": "0.5.14",
     "@types/web-push": "3.6.4"
   }
 }

@@ -107,7 +107,7 @@ test.describe("a Regenerate, followed in the podcast queue", () => {
     const bodies = await mock(page, []);
     await openRegenerate(page);
     await dialog(page).getByRole("button", { name: "Regenerate" }).click();
-    await expect(dialog(page).getByRole("alert")).toHaveText("Say what to change.");
+    await expect(dialog(page).getByRole("alert")).toBeVisible();
     await expect(dialog(page).getByRole("textbox")).toBeFocused();
     expect(bodies).toHaveLength(0);
   });

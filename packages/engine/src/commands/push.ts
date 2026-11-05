@@ -11,6 +11,7 @@ import {
   isPushEndpoint,
   type NewScheduledRun,
   type PushTarget,
+  pushCounts,
   readPushKeys,
   removePushDevice,
   sweepPushWatches,
@@ -115,6 +116,8 @@ export function makePushCommand(deps: PushDeps = {}): CommandRun {
     try {
       const sql = await (deps.connect ?? connectConfigStore)(databaseUrl);
       const now = ctx.now().getTime();
+      // Counted before anything is sent or deleted: a watch that was stored shows here even when no run matched it.
+      const held = await pushCounts(sql);
       const ended = await endedPushWatches(sql);
       const scheduled = await claimNewScheduledRuns(sql, now);
       let send = deps.send;
@@ -163,9 +166,10 @@ export function makePushCommand(deps: PushDeps = {}): CommandRun {
       // differently from a run that was never claimed (the published row is missing), M9 of the audit.
       const endedRuns = new Set(ended.map((watch) => watch.run_id)).size;
       const seen = `${scheduled.length} scheduled run(s) claimed for ${addressed.size} device(s), ${endedRuns} watched run(s) ended`;
-      const line = `Push: ${sent} sent, ${failed} to retry, ${Math.max(0, done.length - sent)} dropped, ${swept} swept; ${seen}.`;
+      const onFile = `${held.keys > 0 ? "key pair made" : "no key pair"}, ${held.devices} device(s) and ${held.watches} watch(es) on file`;
+      const line = `Push: ${sent} sent, ${failed} to retry, ${Math.max(0, done.length - sent)} dropped, ${swept} swept; ${seen}; ${onFile}.`;
       process.stdout.write(
-        `${ctx.json ? JSON.stringify({ sent, retry: failed, swept, claimed: scheduled.length, addressed: addressed.size, ended: endedRuns }) : line}\n`,
+        `${ctx.json ? JSON.stringify({ sent, retry: failed, swept, claimed: scheduled.length, addressed: addressed.size, ended: endedRuns, keys: held.keys, devices: held.devices, watches: held.watches }) : line}\n`,
       );
     } catch (error) {
       // Redacted before describeError cuts the text, so a cut cannot leave half a secret readable.

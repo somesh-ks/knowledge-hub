@@ -19,7 +19,7 @@ interface Props {
   deletable?: boolean;
   /** An episode's topic ids, so Regenerate starts with the ones it was made with. */
   topics?: readonly string[];
-  /** A briefing's aired minutes: its Regenerate starts on the nearest length (lib/regenLength.ts). */
+  /** A briefing's aired minutes, or the minutes an episode was made at: its Regenerate starts on the nearest length (lib/regenLength.ts). */
   minutes?: number;
   /** Times this podcast was regenerated, for the Regenerate item's counter (D212). */
   regenerations?: number | undefined;
@@ -55,7 +55,7 @@ const menuId = `card-menu-${id}`;
   data-episode-actions=""
   data-episode={kind === "episode" ? id : undefined}
   data-library-briefing={kind === "briefing" ? id : undefined}
-  data-minutes={kind === "briefing" ? minutes : undefined}
+  data-minutes={minutes}
   data-topics={topics?.join(" ")}
 >
   <button

@@ -8,7 +8,7 @@ interface Props {
   episodeId?: string;
   /** Set on a briefing page: Regenerate replaces this digest and Delete removes it. */
   briefingId?: string;
-  /** The minutes a briefing aired at: Regenerate starts on the nearest length (lib/regenLength.ts). */
+  /** A briefing's aired minutes, or the minutes an episode was made at: Regenerate starts on the nearest length (lib/regenLength.ts). */
   minutes?: number;
   /** False on a Daily or Weekly briefing: only on-demand briefings and episodes can be deleted. */
   deletable?: boolean;
@@ -43,7 +43,7 @@ const { episodeId, briefingId, minutes, deletable = true, regenerations, page } 
   data-episode-actions=""
   data-episode={episodeId}
   data-briefing={briefingId}
-  data-minutes={briefingId ? minutes : undefined}
+  data-minutes={minutes}
   data-page-menu=""
   data-id={page.id}
   data-path={page.path}

@@ -1,9 +1,9 @@
 import { type CostRecord, dateInZone, type PriceTable, TIME_ZONE } from "@singularity/core";
-import { del, head, put } from "@vercel/blob";
+import { copy, del, head, put } from "@vercel/blob";
 import type { APIRoute } from "astro";
 import { guardAdmin } from "../../server/adminGuard";
 import { anthropicBilledDays } from "../../server/anthropicBilling";
-import { createVercelBlobStore, readFresh } from "../../server/blobStore";
+import { createVercelBlobStore, readStored } from "../../server/blobStore";
 import { readBlobCredentials } from "../../server/config";
 import { contentCostRecords, contentPrices } from "../../server/contentSources";
 import { bundledCostRecords, bundledPrices } from "../../server/costSource";
@@ -33,7 +33,7 @@ async function siteRecords(
 ): Promise<CostRecord[] | null> {
   const credentials = readBlobCredentials(process.env, () => request.headers.get(OIDC_HEADER));
   if (!credentials) return null;
-  const store = createVercelBlobStore(credentials, { head, put, del }, fetch);
+  const store = createVercelBlobStore(credentials, { head, put, copy, del }, fetch);
   const months = new Set<string>();
   for (let day = 0; day < days; day += 28) {
     const at = new Date(now.getTime() - day * 86_400_000).toISOString();
@@ -48,7 +48,7 @@ async function siteRecords(
   try {
     const documents = await Promise.all(
       [...months].map(async (month) => {
-        const stored = await readFresh(store, usageKey(month));
+        const stored = await readStored(store, usageKey(month));
         return stored ? narrationRecords(parseState(stored.text, month), prices) : [];
       }),
     );
