@@ -502,3 +502,13 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
   - A browser test checks each sheet against the one order and the page's, Downloads' and Favorites' sheets against the card's.
 - Why: the page's ⋮ and the card's sheet had drifted, and the Downloads sheet listed its actions in another order.
 - Amends: D214 (the page's menu is the card's one sheet, one component for both, with Share, Add to favorites and Stop sharing), D281 (the Downloads ⋮ on a phone), D365 (Favorites is the first action, not a row under the tiles).
+
+## D374: No podcast menu offers Stop sharing
+
+- Date: 2026-11-05 (owner: "there's no special sharing permissions for now, which means we don't need stop sharing as an option anywhere").
+- Decision:
+  - No podcast sheet or menu lists Stop sharing: not a Library card, a podcast page's ⋮, Downloads, Favorites or a queue row. It leaves the one action list (`lib/podcastActions.ts`), and the device's list of shared items (`singularity:shared-items`) and the code that read it go with it.
+  - `DELETE /api/share` and `revokeShareLinks` stay: a Regenerate stops an outdated link through `POST /api/share`, and the browser suite revokes through the route. Until sharing permissions exist a link ends after 30 days or on Regenerate.
+  - The Privacy page says so.
+- Why: the owner sees no use for it while there are no sharing permissions.
+- Amends: D153 (Stop sharing in the Library row's menu), D214 (the page's menu with Stop sharing), D369 (the action list).
