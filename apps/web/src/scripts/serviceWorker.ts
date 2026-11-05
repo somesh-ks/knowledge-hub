@@ -50,13 +50,25 @@ export interface Moment {
   playerOpen: boolean;
 }
 
-/** A reload throws away the page's state, so it waits until the reader has nothing on it to lose. */
-export function canReloadNow(moment: Moment): boolean {
+/**
+ * Hidden this long, the app's return is a new visit, not a glance at a system alert: a build that
+ * waited may load then even with the full player open, since the reload puts it back as it was.
+ */
+export const AWAY_MS = 5 * 60 * 1000;
+
+/**
+ * A reload throws away the page's state, so it waits until the reader has nothing on it to lose.
+ * `back` is the moment the app returns from a long absence, before the reader touches it: the open
+ * player is then no loss (sessionRestore.ts brings it back, paused at the kept place). Without it an
+ * app opened to listen kept its old build for the whole listen and after it (2026-11-05, the owner's
+ * installed app). A brief hide, such as a system alert, still never reloads the open player shut.
+ */
+export function canReloadNow(moment: Moment, back = false): boolean {
   return (
     shouldActivateUpdate(moment.playerState) &&
     !moment.overlayOpen &&
     !moment.editing &&
-    !moment.playerOpen
+    (back || !moment.playerOpen)
   );
 }
 
@@ -136,8 +148,17 @@ function watchForUpdates(registration: ServiceWorkerRegistration, pageBuild?: st
   connectivity().subscribe((link, was) => {
     if (link === "online" && was === "offline") heldForMove = true;
   });
+  // Set when the app comes back after AWAY_MS, until the reader's first touch or key.
+  let back = false;
+  let hiddenSince = document.hidden ? Date.now() : 0;
+  const settle = (): void => {
+    back = false;
+  };
+  for (const type of ["pointerdown", "keydown"]) {
+    document.addEventListener(type, settle, { capture: true, passive: true });
+  }
   const applyBuild = (): void => {
-    if (heldForMove || !newer || !isOnline() || !canReloadNow(readMoment())) return;
+    if (heldForMove || !newer || !isOnline() || !canReloadNow(readMoment(), back)) return;
     if (!claimApply(newer)) return;
     registration.update().catch(() => {});
     location.reload();
@@ -184,9 +205,16 @@ function watchForUpdates(registration: ServiceWorkerRegistration, pageBuild?: st
   });
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
+      hiddenSince = Date.now();
       activateWhenIdle(registration);
       applyBuild();
       return;
+    }
+    if (hiddenSince > 0 && Date.now() - hiddenSince >= AWAY_MS) {
+      // A new visit: the connection that came back while away no longer holds the build either.
+      back = true;
+      heldForMove = false;
+      applyBuild();
     }
     askBuild();
     if (shouldCheckForUpdate(Date.now(), lastCheck)) {

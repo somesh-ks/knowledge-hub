@@ -71,7 +71,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D199 | Live content and tombstones | amends D173 |
 | D200 | `fetch_via` through the store | active |
 | D201 | No write-route auth until OAuth | amends D160 |
-| D202 | A deploy loads itself | amends D146; amended by D330 |
+| D202 | A deploy loads itself | amends D146; amended by D330, D373 |
 | D203 | Live Health page | active |
 | D204 | Guards for a short or lost run, health metrics, one run card | active |
 | D205 | Settings paint the kept copy at once | amends D172 |
@@ -228,5 +228,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D368 | The app's write routes need no sign-in; the command center stays signed in; per-minute caps are the backstop | supersedes D307 |
 | D370 | Jev reads the Regenerate comment on a pause; the episode's Regenerate offers Length | amends D337; amended by D371 |
 | D371 | The Regenerate comment sets the controls both ways; Haiku proposes the values | amends D337, D370 |
+| D373 | An installed app back after five minutes loads a waiting build even with the player open | amends D202 |
 
 ---

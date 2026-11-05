@@ -183,6 +183,15 @@ describe("canReloadNow", () => {
     // A paused episode in the open player: the page hiding for a system alert used to reload it shut.
     expect(canReloadNow({ ...idle, playerOpen: true })).toBe(false);
   });
+
+  // Owner, 2026-11-05: the installed app kept an old build, since an app opened to listen keeps the
+  // full player open. Back after a long absence, the reload puts the open player back as it was.
+  it("loads the new build with the open player when the app comes back after a long absence, never over sound, a sheet or typing", () => {
+    expect(canReloadNow({ ...idle, playerOpen: true }, true)).toBe(true);
+    expect(canReloadNow({ ...idle, playerOpen: true, playerState: "playing" }, true)).toBe(false);
+    expect(canReloadNow({ ...idle, overlayOpen: true }, true)).toBe(false);
+    expect(canReloadNow({ ...idle, editing: true }, true)).toBe(false);
+  });
 });
 
 describe("claimApply", () => {
