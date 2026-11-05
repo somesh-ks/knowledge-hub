@@ -3,7 +3,7 @@ import { PodcastError } from "./types.js";
 
 /**
  * A failed run in one plain sentence for the run indicator (failure.json in Blob carries it to the
- * status route). The listener never sees a git word: the log on GitHub has those.
+ * status route). The listener never sees a git word or a link into the repository.
  */
 export function commitFailureReason(outcome: CommitOutcome): string | null {
   switch (outcome.status) {
@@ -24,5 +24,5 @@ export function commitFailureReason(outcome: CommitOutcome): string | null {
 export function errorFailureReason(error: unknown): string {
   return error instanceof PodcastError
     ? error.message.slice(0, 280)
-    : "Something unexpected stopped the run. Its log has the details.";
+    : "Something unexpected stopped the run. Try again; Details in the queue has the run to report.";
 }

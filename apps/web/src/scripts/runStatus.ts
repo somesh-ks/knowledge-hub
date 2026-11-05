@@ -76,8 +76,6 @@ export interface Stored {
   href?: string;
   /** Said instead of the failure after a Try again was refused (a cooldown names its wait). */
   note?: string;
-  /** A failed run's log on GitHub, from the status route: where the real error is. */
-  log?: string;
   /** When the run entered the stage it is in, for the time left. */
   stageAt?: number;
   /** The usual length of each stage in ms (the route's stage_estimates_ms), when it knows them. */
@@ -218,6 +216,8 @@ export function statusLine(run: Stored, words: Record<string, string | undefined
   if (run.phase === "failed") {
     if (run.note) return run.note;
     if (run.what) return briefingFailureLine(run.step) ?? word("briefingFailed");
+    // A rewrite that stopped for a reason the engine wrote ("There is no episode ...") says it.
+    if (run.kind === "regenerate" && run.reason) return run.reason;
     if (!run.kind) {
       const sentence = failureLine(run.failedStage, run.kept);
       if (sentence) return sentence;
@@ -483,7 +483,6 @@ async function follow(run: Stored, now: boolean): Promise<void> {
         ...(body.outcome === "published" && typeof body.digest_id === "string"
           ? { href: `/d/${body.digest_id}` }
           : {}),
-        ...(failed && typeof body.run_url === "string" ? { log: body.run_url } : {}),
       };
       set(next);
       return;
@@ -503,7 +502,6 @@ async function follow(run: Stored, now: boolean): Promise<void> {
             ? "updating"
             : "done";
       const next: Stored = { ...run, ...staged(body), phase, stageAt: Date.now() };
-      if (failed && typeof body.run_url === "string") next.log = body.run_url;
       if (waiting)
         next.label = document.querySelector<HTMLElement>("[data-run-status]")?.dataset.updating;
       set(next);

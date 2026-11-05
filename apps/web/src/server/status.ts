@@ -366,10 +366,6 @@ export async function progressOf(
   };
 }
 
-export function runUrlFor(config: ServerConfig, runId: number): string {
-  return `https://github.com/${config.repository}/actions/runs/${runId}`;
-}
-
 export async function handleStatus(
   runParam: string | null,
   deps: StatusDeps,
@@ -432,7 +428,6 @@ export async function handleStatus(
           ...(done
             ? {}
             : {
-                run_url: runUrlFor(config, runId),
                 ...failureFields(steps),
                 ...(await readFailure(deps, runId)),
               }),
@@ -449,7 +444,6 @@ export async function handleStatus(
     }
 
     const steps = await github.listSteps(runId);
-    const runUrl = runUrlFor(config, runId);
     if (run.conclusion === "cancelled") {
       return {
         status: 200,
@@ -473,7 +467,6 @@ export async function handleStatus(
           step: failedStep(steps),
           ...stageFields(briefingStage(failedStep(steps))),
           outcome: "failed",
-          run_url: runUrl,
         },
       };
     }
@@ -487,7 +480,7 @@ export async function handleStatus(
       return {
         status: 200,
         headers,
-        body: { run_id: runId, state, step: null, outcome: "failed", run_url: runUrl },
+        body: { run_id: runId, state, step: null, outcome: "failed" },
       };
     }
     return {
@@ -501,7 +494,6 @@ export async function handleStatus(
         ...(record.outcome === "published" && record.digestId
           ? { digest_id: record.digestId }
           : {}),
-        ...(record.outcome === "failed" ? { run_url: runUrl } : {}),
       },
     };
   } catch (error) {

@@ -454,6 +454,40 @@ describe("handlePodcast", () => {
     expect(github.requests.some((request) => request.method === "POST")).toBe(false);
   });
 
+  // GitHub keeps one waiting run per concurrency group and cancels the older one when another
+  // joins, which the queue showed as a cancel the person never pressed (2026-11-05).
+  it("refuses a request while another run is waiting for the line to clear", async () => {
+    const { deps, github } = setup();
+    github.on(RUNS, {
+      json: {
+        workflow_runs: [podcastRun({ id: 5, status: "pending", created_at: minutesAgo(5) })],
+      },
+    });
+    const result = await handlePodcast(input(body()), deps);
+    expect(result).toMatchObject({ status: 429, body: { error: "cooldown" } });
+    expect(github.requests.some((request) => request.method === "POST")).toBe(false);
+  });
+
+  it("resumes only a failed run of the same kind of request", async () => {
+    const { deps, github } = setup();
+    github.on(DISPATCH, { json: { workflow_run_id: 9 } });
+    const earlier = (fields: Record<string, unknown>) => ({
+      json: {
+        workflow_runs: [
+          podcastRun({ id: 5, status: "completed", created_at: minutesAgo(30), ...fields }),
+        ],
+      },
+    });
+    const resume = body({ resume_from: "5" });
+    // A run that came out, or that was another episode's rewrite, has nothing of this one to resume.
+    github.on(RUNS, earlier({ conclusion: "success" }));
+    expect((await handlePodcast(input(resume), deps)).status).toBe(400);
+    github.on(RUNS, earlier({ conclusion: "failure", display_title: `regenerate ${EPISODE_ID}` }));
+    expect((await handlePodcast(input(resume), deps)).status).toBe(400);
+    github.on(RUNS, earlier({ conclusion: "failure" }));
+    expect((await handlePodcast(input(resume), deps)).status).toBe(202);
+  });
+
   it("lets failed tries run up to twelve a day, then answers 429 for the next", async () => {
     const { deps, github } = setup();
     // Spread between one and five hours ago, the oldest exactly five hours back. A failed run

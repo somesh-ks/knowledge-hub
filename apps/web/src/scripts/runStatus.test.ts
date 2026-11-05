@@ -277,6 +277,13 @@ describe("what the card says for a run", () => {
       statusLine(run({ phase: "failed", failedStage: "publishing", kept: ["script"] }), words),
     ).toBe("The episode couldn't be published. The script is saved.");
     expect(statusLine(run({ phase: "failed" }), words)).toBe("Couldn't make the episode");
+    // A rewrite that stopped for a reason the engine wrote says it, not the generic line.
+    expect(
+      statusLine(
+        run({ kind: "regenerate", phase: "failed", reason: "There is no episode X." }),
+        words,
+      ),
+    ).toBe("There is no episode X.");
     expect(statusLine(run({ phase: "failed", note: "Wait 2 minutes." }), words)).toBe(
       "Wait 2 minutes.",
     );

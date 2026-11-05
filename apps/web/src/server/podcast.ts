@@ -62,6 +62,14 @@ const SECTION_ID = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const RUN_LOOKUP_ATTEMPTS = 3;
 const RUN_LOOKUP_DELAY_MS = 1500;
 
+/** A run of this workflow that has not started: GitHub holds it in the concurrency group or the queue. */
+const WAITING = new Set(["queued", "pending", "waiting", "requested"]);
+const BUSY_WAIT_S = 60;
+const busyRefusal: PodcastResult = {
+  status: 429,
+  headers: { "Retry-After": String(BUSY_WAIT_S) },
+  body: { status: 429, error: "cooldown", retry_after_s: BUSY_WAIT_S },
+};
 const unavailable: PodcastResult = { status: 503, body: { status: 503, error: "unavailable" } };
 const invalid: PodcastResult = { status: 400, body: { status: 400, error: "invalid_request" } };
 
@@ -260,6 +268,18 @@ export async function handlePodcast(
   const github = createGitHubClient(config, deps.fetch);
   try {
     const runs = await github.listWorkflowFileRuns(PODCAST_WORKFLOW_FILE);
+    // GitHub keeps one waiting run per concurrency group and cancels an older one when another joins,
+    // and a second rewrite of an episode fails once the first has replaced it. Either way the person
+    // would see a cancelled or failed run they did not cause, so a request waits for the line to clear.
+    if (runs.some((run) => WAITING.has(run.status))) return busyRefusal;
+    // shortcut: a run id older than the list GitHub returns is not found here, so it is not checked.
+    // Upgrade to a direct run lookup if a stale Try again ever resumes the wrong run.
+    if (body.resume_from) {
+      const earlier = runs.find((run) => String(run.id) === body.resume_from);
+      const expected = "action" in body ? `${body.action} ${body.id}` : "episode";
+      if (earlier && (earlier.title !== expected || earlier.conclusion !== "failure"))
+        return invalid;
+    }
     const times = (list: readonly WorkflowRun[]) =>
       list.map((run) => Date.parse(run.createdAt)).filter(Number.isFinite);
     // A new Catch up is held to the runs that made one; a regeneration or a delete is held to every

@@ -128,7 +128,6 @@ test.describe("a Regenerate, followed in the podcast queue", () => {
         state: "completed",
         step: "writing",
         outcome: "failed",
-        run_url: "https://github.com/somesh-ks/knowledge-hub/actions/runs/91",
       },
       {
         run_id: 92,
