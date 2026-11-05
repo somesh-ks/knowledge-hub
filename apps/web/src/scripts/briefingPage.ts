@@ -7,6 +7,7 @@ import { deviceStorage, isSaved, setSaved } from "../player/core/saved";
 import { installHeroMenu } from "./heroMenu";
 import { warmWhenIdle } from "./idle";
 import { prepareEarly, shareItem, shareLink } from "./shareLink";
+import { stickyTop } from "./stickyTop";
 import { sendToast } from "./toastEvent";
 
 installHeroMenu();
@@ -89,21 +90,6 @@ function watchStuck(bar: HTMLElement, edge: number): void {
     { rootMargin: `-${Math.round(edge)}px 0px 0px 0px`, threshold: [0, 1] },
   );
   stuckObserver.observe(bar);
-}
-
-/**
- * Where what sticks under the top chrome sticks now, in pixels: `--sticky-top`, resolved. Below 64rem
- * the app bar slides away on a scroll down and `--sticky-top` follows it (shell.css), and the strip's
- * own `top` eases between the two, so reading the strip mid-move would give a value in between. A
- * fixed probe with no transition resolves the end value at once.
- */
-function stickyTop(): number {
-  const probe = document.createElement("div");
-  probe.style.cssText = "position:fixed;top:var(--sticky-top);height:0;visibility:hidden";
-  document.body.append(probe);
-  const top = probe.getBoundingClientRect().top;
-  probe.remove();
-  return top;
 }
 
 /**
