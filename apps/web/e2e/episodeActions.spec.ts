@@ -106,6 +106,26 @@ test.describe("regenerate and delete an episode", () => {
     await expect(more(page)).toBeFocused();
   });
 
+  // Owner, 2026-11-05: the page resizing under a keyboard that was still sliding up left a white strip
+  // for the whole slide. While the panel is open the keyboard overlays the page instead.
+  test("the keyboard overlays the open Regenerate panel and lets the page go again on close", async ({
+    page,
+  }) => {
+    const overlays = () =>
+      page.evaluate(
+        () =>
+          (navigator as Navigator & { virtualKeyboard?: { overlaysContent: boolean } })
+            .virtualKeyboard?.overlaysContent,
+      );
+    await open(page);
+    await choose(page, "Regenerate");
+    await expect(panel(page)).toBeVisible();
+    expect(await overlays()).toBe(true);
+    await page.keyboard.press("Escape");
+    await expect(panel(page)).toBeHidden();
+    expect(await overlays()).toBe(false);
+  });
+
   test("Regenerate sends the exact body and the indicator takes over", async ({ page }) => {
     const bodies = await mock(page, [
       { run_id: 77, state: "running", step: null },
