@@ -15,11 +15,11 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code 
 ## Commands
 
 - `npm run singularity -- <command>`: engine CLI (`doctor`, `status`, `models`, `run`, `publish`).
-- `npm run gate -- --build`: typecheck, `astro check`, lint, unit tests, the docs check and the static build (80 s). `npm test`, `npm run typecheck`, `npm run lint` run alone.
+- `npm run gate -- --build`: typecheck, `astro check`, lint, unit tests, the docs check and the static build.
 - Run commands through PowerShell, not Git Bash ([learnings](docs/learnings.md)). Never stop the listener on port 4321 (owner's dev server); give browser suites a `PORT` above 4400.
 - A worktree gets packages from `node scripts/worktreeLinks.mjs <path>` and loses them with `--remove` before `git worktree remove`.
-- `npm run e2e -w @singularity/web` and `npm run e2e:player -w @singularity/web` (6 min each): the browser suites. Run both before a PR that touches the site, `packages` or the tokens; push once. Red check: [delivery failures](docs/engineering/delivery-failures.md) (D148).
-- `SINGULARITY_STATIC_ONLY=1 npm run build`: local site build (the Vercel adapter fails on Windows symlinks).
+- `npm run e2e -w @singularity/web` and `npm run e2e:player -w @singularity/web` : the browser suites. Run both before a PR that touches the site, `packages` or the tokens; push once. Red check: [delivery failures](docs/engineering/delivery-failures.md) (D148).
+- `SINGULARITY_STATIC_ONLY=1 npm run build`: local site build.
 - `npm run dev`: the site with the Agentation toolbar; `checkBundle` fails a build that contains it. Stop it when done (`npx astro dev stop` in `apps/web`).
 
 ## Rules
@@ -39,7 +39,7 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code 
 - UI parts: before you write a class, token or value, run `npm run ds -- find "<need>"`. Features: `.claude/skills/feature/`.
 - State authority: the config store owns the owner's config; its files are not in git (D296). Edit in the app, never a PR; `config pull` fills `config/` locally.
 - Pipeline discipline: verify the core daily loop runs green in production before adding new intake types or audience matrices.
-- Vercel: the CLI is pinned. Read with `npm run vercel:list`, `vercel:inspect`, `vercel:logs`, `vercel:env-list`; a session never deploys or edits env.
+- Vercel: the CLI is pinned. Read with `npm run vercel:list`, `vercel:inspect`, `vercel:logs`, `vercel:env-list`; a session never deploys or edits env. Production builds wait for 5 merges or 3 hours (D375); a PR title with `[deploy]` ships at once.
 
 ## Code
 

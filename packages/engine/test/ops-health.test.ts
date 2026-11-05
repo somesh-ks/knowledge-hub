@@ -236,11 +236,11 @@ describe("singularity health", () => {
     // A push whose last commit touched no watched path: Vercel skipped the one that did.
     const skipped = (oldestMissingHours: number) => ({
       sha: "fedcba9876543210",
-      at: NOW.getTime() - 3_600_000,
+      at: NOW.getTime() - oldestMissingHours * 3_600_000,
       includes: async () => false,
       missingSince: async () => NOW.getTime() - oldestMissingHours * 3_600_000,
     });
-    const report = await collectHealth({ ...options, main: skipped(1) });
+    const report = await collectHealth({ ...options, main: skipped(7) });
     expect(codes(report.findings, "fault")).toEqual(
       expect.arrayContaining([
         "site_headers",

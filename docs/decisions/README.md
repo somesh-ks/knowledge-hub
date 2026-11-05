@@ -230,5 +230,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D370 | Jev reads the Regenerate comment on a pause; the episode's Regenerate offers Length | amends D337; amended by D371 |
 | D371 | The Regenerate comment sets the controls both ways; Haiku proposes the values | amends D337, D370 |
 | D373 | An installed app back after five minutes loads a waiting build even with the player open | amends D202 |
+| D375 | Production deploys wait for five merges, three hours, or `[deploy]` | amends D173 |
 
 ---
