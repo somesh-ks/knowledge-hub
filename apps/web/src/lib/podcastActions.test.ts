@@ -10,7 +10,7 @@ function sources(dir = SRC): [string, string][] {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) return sources(path);
     return /\.(astro|tsx)$/.test(entry.name)
-      ? [[relative(SRC, path), readFileSync(path, "utf8")]]
+      ? [[relative(SRC, path).replaceAll("\\", "/"), readFileSync(path, "utf8")]]
       : [];
   });
 }
@@ -28,11 +28,19 @@ describe("podcast sheets", () => {
   it("are drawn only by the two files that read the one list", () => {
     const own = sources()
       .filter(([path]) => !DRAWS_PODCAST_ACTIONS.has(path))
-      .filter(([, text]) =>
-        /data-menu=|data-episode-action=|Add to queue|Add to favorites/.test(text),
-      )
+      .filter(([, text]) => /data-menu=|data-episode-action=/.test(text))
       .map(([path]) => path);
     expect(own).toEqual([]);
+  });
+
+  // PodcastMenuItems.astro picks and orders the items; a page that drew a PodcastMenuItem itself would
+  // show a partial menu without carrying any marker above.
+  it("reach a page only through PodcastMenuItems", () => {
+    const direct = sources()
+      .filter(([path]) => path !== "components/PodcastMenuItems.astro")
+      .filter(([, text]) => /from "[^"]*PodcastMenuItem\.astro"/.test(text))
+      .map(([path]) => path);
+    expect(direct).toEqual([]);
   });
 
   it("order their actions by the one list", () => {
