@@ -312,9 +312,6 @@ describe("runCli: streams", () => {
     expect((await cli(["stub", "--root", dir], run, { SINGULARITY_DEBUG: "1" })).err).toContain(
       "debug: details",
     );
-    expect((await cli(["stub", "--root", dir], run, { DISPATCH_DEBUG: "1" })).err).toContain(
-      "debug: details",
-    );
   });
 });
 

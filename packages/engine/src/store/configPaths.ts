@@ -47,9 +47,8 @@ export interface DocumentWrite {
 export function configStoreUrl(env: {
   DATABASE_URL?: string | undefined;
   SINGULARITY_CONFIG_STORE?: string | undefined;
-  DISPATCH_CONFIG_STORE?: string | undefined;
 }): string | null {
-  const store = env.SINGULARITY_CONFIG_STORE ?? env.DISPATCH_CONFIG_STORE;
+  const store = env.SINGULARITY_CONFIG_STORE;
   return env.DATABASE_URL !== undefined && env.DATABASE_URL !== "" && store === "postgres"
     ? env.DATABASE_URL
     : null;

@@ -17,7 +17,7 @@ try {
   // No .env, or one that cannot be read: the environment alone supplies the keys.
 }
 const env = process.env;
-const fixtures = env.SINGULARITY_FIXTURES === "1" || env.DISPATCH_FIXTURES === "1";
+const fixtures = env.SINGULARITY_FIXTURES === "1";
 const hasStore =
   Boolean(env.BLOB_READ_WRITE_TOKEN) || Boolean(env.VERCEL_OIDC_TOKEN && env.BLOB_STORE_ID);
 if (fixtures || !hasStore) {

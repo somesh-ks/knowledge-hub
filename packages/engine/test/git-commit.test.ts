@@ -746,11 +746,5 @@ describe("identityFromEnv", () => {
         SINGULARITY_GIT_EMAIL: "1+somesh@users.noreply.github.com",
       }),
     ).toEqual({ name: "Somesh", email: "1+somesh@users.noreply.github.com" });
-    expect(
-      identityFromEnv({
-        DISPATCH_GIT_NAME: " Somesh ",
-        DISPATCH_GIT_EMAIL: "1+somesh@users.noreply.github.com",
-      }),
-    ).toEqual({ name: "Somesh", email: "1+somesh@users.noreply.github.com" });
   });
 });
