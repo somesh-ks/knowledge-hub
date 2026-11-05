@@ -150,16 +150,16 @@ test.describe("a Regenerate, followed in the podcast queue", () => {
     // A failed run opens the dock, so its whole sentence and its three actions are in view.
     await expect(card.getByRole("button", { name: "Try again" })).toBeVisible();
     await expect(card.getByRole("button", { name: "Details" })).toBeVisible();
-    // Try again and Details sit on one row under the sentence.
-    const box = async (role: "button", name: string) =>
-      (await card.getByRole(role, { name }).boundingBox()) as {
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-      };
-    const [again, details] = [await box("button", "Try again"), await box("button", "Details")];
-    expect(Math.abs(again.y - details.y)).toBeLessThan(4);
+    // Try again and Details sit on one row under the sentence. Both are read in one frame: the dock is
+    // still settling from its spring when the failure lands, and two reads a frame apart straddle that.
+    const apart = await card.evaluate((node) => {
+      const top = (label: string) =>
+        [...node.querySelectorAll("button")]
+          .find((b) => b.textContent?.trim() === label && b.offsetParent)
+          ?.getBoundingClientRect().top ?? Number.NaN;
+      return Math.abs(top("Try again") - top("Details"));
+    });
+    expect(apart).toBeLessThan(4);
 
     await card.getByRole("button", { name: "Try again" }).click();
     await expect.poll(() => bodies.length).toBe(2);
