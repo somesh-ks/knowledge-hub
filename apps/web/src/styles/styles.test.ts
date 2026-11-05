@@ -1180,7 +1180,6 @@ const PAGE_OVERRIDES: string[] = [
   "topics.css: .topics-panel select.field-input:focus-visible, .topics-panel .multiselect-trigger:focus-visible",
   'topics.css: .topics-panel select.field-input:where(:enabled):active, .topics-panel .multiselect-trigger:is(:active, [aria-expanded="true"])',
   'topics.css: .topics-panel select.field-input:where(:enabled):hover, .topics-panel .multiselect-trigger:hover, .topics-panel :is(input, textarea).field-input:not( :focus-visible, [readonly], [aria-invalid]:not([aria-invalid="false"]) ):where(:enabled):hover',
-  "topics.css: dialog.sheet-side.topics-panel",
 ];
 
 describe("design-system components in page stylesheets", () => {

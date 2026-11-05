@@ -92,6 +92,17 @@ dialog.sheet-side[data-started]:not([open])::backdrop {
   }
 }
 
+/* On a phone the sheet fills the screen above the keyboard and no further, so its head stays at the
+   top while a field is typed in (2026-10-20, first on the topic panel; every full-screen sheet from
+   2026-11-05). scripts/keyboardFit.ts writes the two lengths while a sheet that holds fields is open;
+   unset, they are 0 and the sheet is the whole screen. */
+@media (width < 40rem) {
+  dialog.sheet-side {
+    inset-block: var(--keyboard-top, 0px) auto;
+    height: calc(100dvh - var(--keyboard, 0px) - var(--keyboard-top, 0px));
+  }
+}
+
 dialog.sheet-side:focus-visible {
   outline: none;
 }
