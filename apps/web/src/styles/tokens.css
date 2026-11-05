@@ -555,7 +555,7 @@
   --card-padding: var(--space-6);
   --card-inset: var(--space-2);
   --card-radius: var(--shape-2xl);
-  --card-inner-radius: var(--shape-sheet);
+  --card-inner-radius: var(--shape-xl);
   --card-content-radius: var(--shape-sm);
   --card-chip-hover: oklch(from var(--color-surface-overlay) calc(l + var(--state-direction) * var(--state-step-hover-quiet)) c h);
 
@@ -763,7 +763,7 @@
   --cover-radius-large: 2.5rem;
   --cover-radius-thumb: 1rem;
   --card-radius: 2.5rem;
-  --card-inner-radius: 2.25rem;
+  --card-inner-radius: 2rem;
   --card-content-radius: 1rem;
   --picker-radius: 2.25rem;
   --picker-inner-radius: 1.75rem;
