@@ -324,3 +324,11 @@ Where data lives (Postgres, Blob, git), config, health, analytics, deploys, acce
 - Rejected: a coverage percentage (rewards tests written for the number; the postmortem's 4,800 unit tests missed every P1); Sentry (the owner's call, 22 Oct); deferring the key, Blob and report-card checks (the owner asked for full coverage, and the Pro trial ends about 13 Nov).
 - Revisit if: Neon's pace stays above 70 compute hours a month after the cron change, or the cron log shows a scheduled hour skipped by a stale copy.
 
+
+## D373: an installed app back after five minutes loads a waiting build even with the player open
+
+- Date: 2026-11-05 (the owner: the installed app "doesn't load the latest version")
+- Decision: a build that is waiting for a safe moment also loads when the app comes back to the front after at least `AWAY_MS` (5 minutes) away, before the reader's first touch or key, even with the full player open. The reload puts the track and the open player back, paused at the kept place (`sessionRestore.ts`). Sound, an open sheet or menu, typing and a podcast narrated in this tab (it lives in memory, so no reload brings it back) still hold it, and a brief hide (a system alert) never reloads the open player. The return lifts the hold a reconnect puts on the build (D330), and a reconnect before the first touch adds none.
+- Why: an app opened to listen keeps the full player open, and #646 made the open player a reason to wait, so a listening session ran its old build for the whole listen and after it. Old code meeting new data is also how the player froze on the owner's phone the same night.
+- Amends: D202 (a new moment at which a deploy loads itself) and the #646 rule that the open player holds the reload.
+- Revisit if: the owner sees the player reopen after a return and calls it a jump, or a phone reports a return as a reload of its own.
