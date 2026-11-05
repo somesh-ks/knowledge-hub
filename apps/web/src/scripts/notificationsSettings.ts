@@ -27,8 +27,8 @@ const NOTE: Record<NotificationState, string> = {
   unsupported: "This browser can't show notifications.",
 };
 
-/** A switch that went back to what it was: the permission prompt was dismissed or the site did not take it. */
-const REFUSED = "Couldn't turn that on. Try again in a minute.";
+/** A switch that went back to what it was, on or off: the permission prompt was dismissed or the site did not take it. */
+const REFUSED = "That didn't save. Try again in a minute.";
 
 export function mountNotifications(root: HTMLElement): () => void {
   const all = root.querySelector<HTMLInputElement>('input[name="all"]');
