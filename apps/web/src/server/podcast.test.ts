@@ -491,6 +491,29 @@ describe("handlePodcast", () => {
     expect((await handlePodcast(input(regenerate), deps)).status).toBe(202);
   });
 
+  it("looks up a run older than the list before it resumes it", async () => {
+    const { deps, github } = setup();
+    github.on(DISPATCH, { json: { workflow_run_id: 9 } });
+    github.on(RUNS, { json: { workflow_runs: [] } });
+    const resume = body({ resume_from: "5" });
+    // Not found, or another workflow's run: nothing of this request to resume.
+    github.on("GET /actions/runs/5", { status: 404, json: {} });
+    expect((await handlePodcast(input(resume), deps)).status).toBe(400);
+    github.on("GET /actions/runs/5", {
+      json: podcastRun({
+        id: 5,
+        status: "completed",
+        conclusion: "failure",
+        path: ".github/workflows/run.yml",
+      }),
+    });
+    expect((await handlePodcast(input(resume), deps)).status).toBe(400);
+    github.on("GET /actions/runs/5", {
+      json: podcastRun({ id: 5, status: "completed", conclusion: "failure" }),
+    });
+    expect((await handlePodcast(input(resume), deps)).status).toBe(202);
+  });
+
   it("resumes only a failed run of the same kind of request", async () => {
     const { deps, github } = setup();
     github.on(DISPATCH, { json: { workflow_run_id: 9 } });

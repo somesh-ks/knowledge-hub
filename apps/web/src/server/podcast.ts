@@ -278,12 +278,19 @@ export async function handlePodcast(
       run.status === "in_progress" &&
       run.title === `regenerate ${body.id}`;
     if (runs.some((run) => WAITING.has(run.status) || sameRewrite(run))) return busyRefusal;
-    // shortcut: a run id older than the list GitHub returns is not found here, so it is not checked.
-    // Upgrade to a direct run lookup if a stale Try again ever resumes the wrong run.
+    // The run to resume must be a failed run of this workflow for the same kind of request; one
+    // older than the list GitHub returns is looked up directly.
     if (body.resume_from) {
-      const earlier = runs.find((run) => String(run.id) === body.resume_from);
+      const earlier =
+        runs.find((run) => String(run.id) === body.resume_from) ??
+        (await github.getRun(Number(body.resume_from)));
       const expected = "action" in body ? `${body.action} ${body.id}` : "episode";
-      if (earlier && (earlier.title !== expected || earlier.conclusion !== "failure"))
+      if (
+        !earlier ||
+        !earlier.path.startsWith(`.github/workflows/${PODCAST_WORKFLOW_FILE}`) ||
+        earlier.title !== expected ||
+        earlier.conclusion !== "failure"
+      )
         return invalid;
     }
     const times = (list: readonly WorkflowRun[]) =>
