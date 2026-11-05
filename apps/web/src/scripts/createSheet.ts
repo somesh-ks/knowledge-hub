@@ -1,5 +1,6 @@
 import { CREATE_SHEET_SELECTOR, sheetBodyClass } from "../design-system/sheet";
 import { installCreate } from "./createPage";
+import { fitAboveKeyboard } from "./keyboardFit";
 import { sheetGestures } from "./pullDismiss";
 
 /**
@@ -71,9 +72,13 @@ export function openCreateSheet(trigger: HTMLElement | null): void {
   };
   history.pushState({ ...history.state, createSheet: true }, "");
   addEventListener("singularity:back", onBack);
+  // On a phone the keyboard overlays the sheet instead of resizing the page under it, which left
+  // the strip the keyboard had not yet covered white (2026-11-05, keyboardFit.ts).
+  const unfit = matchMedia("(width < 40rem)").matches ? fitAboveKeyboard(sheet) : () => {};
   sheet.addEventListener(
     "close",
     () => {
+      unfit();
       refocus();
       // Closed any other way: give the entry back. The pop this causes is swallowed too.
       if (entry) history.go(-1);

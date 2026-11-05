@@ -15,3 +15,11 @@ export function swipeLeaves(dx: number, width: number, velocityPxPerMs: number):
   if (away < SWIPE_MIN_PX) return false;
   return away > width * SWIPE_SHARE || Math.abs(velocityPxPerMs) > SWIPE_SPEED;
 }
+
+/**
+ * How far a finger goes before the press has a direction: under Chrome's own touch slop (8 px on
+ * Android), so the page has not begun to scroll when it is decided.
+ */
+export const AXIS_PX = 6;
+/** How much the sideways part may trail the upright one and still be a swipe (tan 37 degrees). */
+export const SIDEWAYS_RATIO = 0.75;

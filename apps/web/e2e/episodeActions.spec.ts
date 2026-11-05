@@ -11,7 +11,7 @@ import {
 const ID = "ep-20261007-1930";
 
 const more = (page: Page) => page.getByRole("button", { name: "More actions" });
-const menu = (page: Page) => page.getByRole("menu", { name: "More actions" });
+const menu = (page: Page) => page.locator("#hero-menu").getByRole("menu");
 const regenerate = (page: Page) => page.locator('[data-episode-action="regenerate"]');
 const remove = (page: Page) => page.locator('[data-episode-action="delete"]');
 
@@ -60,15 +60,15 @@ async function mock(page: Page, states: unknown[]): Promise<Array<Record<string,
 }
 
 test.describe("regenerate and delete an episode", () => {
-  test("one More button holds the far end of the title row and opens a menu of four items", async ({
+  test("one More button holds the far end of the title row and opens the podcast's sheet", async ({
     page,
   }) => {
     await open(page);
     const button = more(page);
     await expect(button).toHaveAttribute("aria-haspopup", "menu");
     await expect(menu(page)).toBeHidden();
-    // Share sits beside Play (D153, owner 2026-10-24), not in the menu. The button is a 44px target
-    // at the header's far end, level with the title.
+    // The button is a 44px target at the header's far end, level with the title. Its sheet is the
+    // Library card's (D369; libraryMenu.spec.ts checks the two match).
     const a = await button.boundingBox();
     const title = await page.locator(".hero h1").boundingBox();
     const row = await page.locator(".hero").boundingBox();
@@ -78,7 +78,6 @@ test.describe("regenerate and delete an episode", () => {
     await button.click();
     await expect(menu(page)).toBeVisible();
     const items = menu(page).getByRole("menuitem");
-    await expect(items).toHaveText(["Download", "Add to queue", "Regenerate", "Delete"]);
     await expect(items.first()).toBeFocused();
     // On a phone the menu is a bottom sheet below the button, its rows edge to edge across the screen.
     const m = await menu(page).boundingBox();
@@ -104,6 +103,26 @@ test.describe("regenerate and delete an episode", () => {
     await expect(menu(page)).toBeHidden();
     await page.keyboard.press("Escape");
     await expect(more(page)).toBeFocused();
+  });
+
+  // Owner, 2026-11-05: the page resizing under a keyboard that was still sliding up left a white strip
+  // for the whole slide. While the panel is open the keyboard overlays the page instead.
+  test("the keyboard overlays the open Regenerate panel and lets the page go again on close", async ({
+    page,
+  }) => {
+    const overlays = () =>
+      page.evaluate(
+        () =>
+          (navigator as Navigator & { virtualKeyboard?: { overlaysContent: boolean } })
+            .virtualKeyboard?.overlaysContent,
+      );
+    await open(page);
+    await choose(page, "Regenerate");
+    await expect(panel(page)).toBeVisible();
+    expect(await overlays()).toBe(true);
+    await page.keyboard.press("Escape");
+    await expect(panel(page)).toBeHidden();
+    expect(await overlays()).toBe(false);
   });
 
   test("Regenerate sends the exact body and the indicator takes over", async ({ page }) => {

@@ -7,7 +7,7 @@ Catch up and custom episodes. What it does now. Reasons: D37, D43, D60, D66 to D
 ### Form
 - Catch up is the primary action (D76): a side button on wide screens, a floating button on phones, a panel for the form (full screen on a phone, a side panel on desktop) and a progress line.
 - `/create` is the same form as a page, with Back to the Library.
-- Fields: Title ("Optional" beside it), Categories (alphabetical), Max length, Look back. More options holds Format (Readout or Discussion, a segmented choice, no hint line), Voice or Voices (Primary and Secondary voice, each with a play button for its sample, dimmed while a voice has none, chosen from a searchable list with SVG flags) and Tone (Neutral or Energetic). Its line reads "Readout · Neutral tone" (D76, D114). More options is always a closed accordion (D345). The button reads "Generate catch up".
+- Fields: Title ("Optional", else the day made), Categories (alphabetical), Max length, Look back. More options holds Format (Readout or Discussion, segmented, no hint line), Voice or Voices (Primary and Secondary voice, each with a play button for its sample, dimmed while a voice has none, chosen from a searchable list with SVG flags) and Tone (Neutral or Energetic). Its line reads "Readout · Neutral tone" (D76, D114). More options is always a closed accordion (D345). The button reads "Generate catch up".
 - Every episode is written for the owner (D114).
 - Regenerate (briefing or episode): Length 3, 5, 10 or 15 from the aired length; the comment is required (D340); Length and Categories follow it (D337, D370, D371), going with the words unless touched.
 - No topic limit in the form (a guard of 50 in `PODCAST_MAX_TOPICS`).

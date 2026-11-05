@@ -8,6 +8,7 @@ import { nearestRegenLength } from "../lib/regenLength";
 import { isChipOn } from "../lib/regenTopics";
 import { hasSaved, storeOn } from "../lib/savedKey";
 import { navigateTo } from "../player/core/navigation";
+import { fitAboveKeyboard } from "./keyboardFit";
 import { libraryAddress } from "./libraryAddress";
 import { dismissOnScrim, sheetGestures } from "./pullDismiss";
 import { forgetRunAbout, startRun } from "./runStatus";
@@ -309,9 +310,16 @@ export function openEpisodeAction(trigger: HTMLElement): void {
   };
   history.pushState({ ...history.state, episodeAction: kind }, "");
   addEventListener("singularity:back", onBack);
+  // On a phone the keyboard overlays the panel instead of resizing the page under it: the resize
+  // left the strip the keyboard had not yet covered white for its whole slide (2026-11-05, keyboardFit.ts).
+  const unfit =
+    kind === "regenerate" && matchMedia("(width < 40rem)").matches
+      ? fitAboveKeyboard(dialog)
+      : () => {};
   dialog.addEventListener(
     "close",
     () => {
+      unfit();
       back();
       if (!entry) return;
       if (!leaving.delete(dialog)) {

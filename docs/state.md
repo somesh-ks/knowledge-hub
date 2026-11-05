@@ -36,10 +36,9 @@ Unit (CI): 367 files, 5,572 tests, 2 min. Site e2e: 449, 14 min. Player: 80, 7 m
 - More menu (D214); Catch up album, Share circle, cards (D219); long press, haptics (D264, D273); push ping (D284). closed when: signed off.
 - Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused; a regenerate or delete uses none.
 - Three regenerations per podcast, counted in its own file (D212). closed when: the page shows "2 of 3 regenerations left".
-- The 10-31 scheduled daily published nothing (moved window, Tech over its allowance, stories lost in writing, a trimmed refill); fixed in D297 and the window start. closed when: the next two scheduled dailies publish.
-- Short podcasts (D204, D216 to D225). closed when: two dailies in a row air within 10% of length, and `singularity metrics` shows ten runs at `length_share` 0.9+, `failure_rate` 0.1 or less.
+- Short podcasts (D204, D216 to D225). 11-05: dailies 1.04 and 1.02, metrics 7 of 10 runs at 1.02. closed when: two dailies in a row air within 10% of length, and `singularity metrics` shows ten runs at `length_share` 0.9+, `failure_rate` 0.1 or less.
 - Every Claude step starts at Haiku medium, then Haiku high, then Sonnet medium (D308, D333, D334). 11-03 daily: share 1.04, run 11 cents. closed when: two scheduled runs show no more voice or grounding drops (`lost_reasons`) than the last Sonnet-only runs, and a podcast script holds `length_share` 0.9+ (else tell the owner).
-- Ingest in shadow (D233, D251). 11-03: held 76% (rss 18/19, Exa 0/5), read 93%, not met. closed when: for 7 days the store holds 90% of each daily's stories and reads 90% of pages tried (`ingest --coverage`, in the health log).
+- Ingest in shadow (D233, D251). 11-05: held 50% (Exa blogs miss), read 93%, not met. closed when: for 7 days the store holds 90% of each daily's stories and reads 90% of pages tried (`ingest --coverage`, in the health log).
 - One Speechify count in Blob, a weekly Exa stop (D339). closed when: health shows the shared count after a narration and 450 Exa requests in a week warn.
 - Trusted publishers (D234) and community lift (D240), shipped off. closed when: both on and a daily airs a lab story and a community-voted one, no source over 30%.
 - Run names (D217), Neon run log (D221). closed when: a scheduled daily is named `daily <date>`, is off the queue, and has its row.

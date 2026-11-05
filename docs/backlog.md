@@ -6,12 +6,12 @@ Long-term project memory, future explorations, parked tasks, and shipped milesto
 
 Immediate priority tasks synchronized with `docs/state.md` ## Next:
 
-1. **Owner calls**: Decide on regenerating 3-story 2026-10-27 briefing; revoke old Vercel token pasted in chat; delete empty store `store_JmrDq8MB5Kwn3ejW`; resolve PWA open calls.
-2. **Firecrawl change check**: the yield report is delivered; the owner prunes. The free change check before a scrape is built (D342); a Firecrawl monitor costs the same as a scrape per check.
+1. **Owner calls**: Choose the Vercel plan (11-06 to 11-08; the Blob trial ends 11-13); decide on regenerating 3-story 2026-10-27 briefing; revoke old Vercel token pasted in chat; delete empty store `store_JmrDq8MB5Kwn3ejW`; resolve PWA open calls.
+2. **Firecrawl change check**: the yield report is delivered; the owner prunes. The free change check before a scrape is built (D342) and saved fingerprints on 11-02 and 11-05; a Firecrawl monitor costs the same as a scrape per check.
 3. **Lighthouse CSS**: parked. Critical CSS paints a cold phone in 1.0 s, not 3.2 s, but needs per-page CSP hashes and a flash check.
-4. **Topic to Category migration**: End-to-end migration (plan 14, about 6,500 occurrences) across readers, store sync, code, and workflow outputs.
-5. **Design system sweep**: Review `/settings/*`, category pages, player, create; audit light and dark modes at 390px and 1280px; one PR per component family.
-6. **Pipeline performance**: `first_turn_chars` is recorded; split a long first turn only if two runs show it long. A shared read of each source per run and a per-field rewrite are built.
+4. **Topic to Category migration**: End-to-end migration (plan 14, about 6,500 occurrences) across readers, store sync, code, and workflow outputs. The UI says Category since #312; the code and data still say topic. Only with no other PR open.
+5. **Design system sweep**: Controls still outside the system (D237: icon buttons, chips, FABs, dock and transport buttons; `NOT_YET_COMPONENTS`). Review `/settings/*`, category pages, player, create; audit light and dark modes at 390px and 1280px; one PR per component family.
+6. **Pipeline performance**: `first_turn_chars` read 353 and 394 on the first two episodes, which looks short; the owner decides whether to drop the split. Free the lane in the hold (D209): steps 2, 4 and 5 are not built. A shared read of each source per run and a per-field rewrite are built.
 
 ## Parked & Unfinished Tasks
 
@@ -54,8 +54,32 @@ Cold items offloaded from active state. Each item maintains an explicit testable
   - Closed when: briefing link pasted in WhatsApp, iMessage, and Slack displays full card preview.
 - **Critic rounds 5 to 9 polish**: Minor P3 visual polish items.
   - Closed when: owner selects items to address.
-- **Row removal jumps**: removing a row closes the gap in one frame (`display: none` in `blocked.css` `data-removing`/`data-gone` and `topics.css` `li[data-gone]`, `.source-row[data-gone]`), with Undo in a toast. From the motion audit (`motion-audit/findings.md`); batch with other small UI fixes, not its own PR.
-  - Closed when: a removed row fades in 100 to 150 ms, then collapses by `clip-path` or grid rows (not margin), tokens only, gentler under reduced motion, and the owner OKs it.
+
+## Owner Topics (added 2026-11-05)
+
+Asked for by the owner and not yet planned. Each needs a design or a decision before code.
+
+### Product
+- **Animated icons on tap**: an icon answers a press with a short move of its own (a heart fills, Play morphs to Pause, a tab icon bounces). Today only the avatar's tap show (D353) and the press ripple (D286, D347) exist.
+  - Closed when: the DS Icon has a tap animation per icon family on motion tokens, gentler under reduced motion, and the owner OKs it on his phone.
+- **Splash screen animation**: a richer first moment for the installed app. Today the launch screen (D123, `LaunchScreen.astro`, `launch.css`) shows the ringed dot sending out two rings, installed app only, and the Android splash hand-off is unverified on a device.
+  - Closed when: a new launch animation is designed from the DS, starts where Android's splash leaves the mark, adds no wait to the first paint, and the owner OKs it on his phone.
+- **Feedback sharing**: a way for the owner (and later users) to send feedback from inside the app: a note, the page, the device, optionally a screenshot. Today only story votes and the Regenerate comment (D337, D340) carry any.
+  - Closed when: a decision names where feedback lands (an admin inbox in Neon, or a GitHub issue) and a sent note shows there with its page and device.
+- **Google sign-in (OAuth)**: today the profile's Log in button is a dummy (D335), and admin Google sign-in waits as #496 (D261) for an OAuth client the owner makes in Google Cloud Console (runbook). Reader sign-in is Stage A of the multi-user plan; it would also let write routes require a session (D201) and give push a per-person identity.
+  - Closed when: the owner signs in with Google on his phone, his avatar and settings follow the account, and a signed-out visitor cannot write.
+- **Better push notifications**: Daily, Weekly and Podcast ready shipped (D284, #529). A ping has not yet been confirmed on his Android phone (4 Nov: Notify logged no watched run). Ideas: a "Send a test" button, the cover and Play or Later actions on the notification, a ping per device identity once sign-in exists, more kinds (asked, unanswered).
+  - Closed when: a Daily and a Podcast ready ping reach his phone and a tap opens the episode, then the owner picks which ideas to build.
+
+### Operations
+- **Better analytics**: Simple Analytics (D154) counts cookieless page views and a few named events on the reader; the admin Analytics page waits as #495 for `SIMPLE_ANALYTICS_API_KEY`. Missing: listening (plays, how far an episode is heard, skips), install and push opt-in counts, and a weekly summary.
+  - Closed when: a decision lists the events to add (nothing that names a person) and the admin page shows them for a week.
+- **Error reporting**: nothing collects a browser or server error today; Sentry was dropped by the owner's call on 10-22. Options: a small own endpoint that keeps `error` and `unhandledrejection` reports in Neon and shows them in admin Health, or a hosted tool.
+  - Closed when: the owner picks one, and a thrown error on his phone shows in admin with its page, build and device within a minute.
+- **npm to pnpm**: asked for on 10-24 for faster installs and builds. Today the repo uses npm workspaces and `package-lock.json`; every workflow, the Vercel builds, `worktreeLinks.mjs` and Dependabot use npm.
+  - Closed when: CI, the Vercel builds and the scheduled runs install with pnpm and a measured install is faster than npm's.
+- **History rewrite (D298)**: remove the owner's old data from git history.
+  - Closed when: it is done with no PR open, and a clone holds none of it.
 
 ## Future Ideas & Explorations
 
