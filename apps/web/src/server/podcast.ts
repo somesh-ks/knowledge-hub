@@ -271,7 +271,13 @@ export async function handlePodcast(
     // GitHub keeps one waiting run per concurrency group and cancels an older one when another joins,
     // and a second rewrite of an episode fails once the first has replaced it. Either way the person
     // would see a cancelled or failed run they did not cause, so a request waits for the line to clear.
-    if (runs.some((run) => WAITING.has(run.status))) return busyRefusal;
+    // The run that is going counts too when it is a rewrite of this same episode.
+    const sameRewrite = (run: WorkflowRun): boolean =>
+      "action" in body &&
+      body.action === "regenerate" &&
+      run.status === "in_progress" &&
+      run.title === `regenerate ${body.id}`;
+    if (runs.some((run) => WAITING.has(run.status) || sameRewrite(run))) return busyRefusal;
     // shortcut: a run id older than the list GitHub returns is not found here, so it is not checked.
     // Upgrade to a direct run lookup if a stale Try again ever resumes the wrong run.
     if (body.resume_from) {

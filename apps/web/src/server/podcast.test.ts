@@ -468,6 +468,29 @@ describe("handlePodcast", () => {
     expect(github.requests.some((request) => request.method === "POST")).toBe(false);
   });
 
+  it("refuses a second rewrite of an episode whose rewrite is still going", async () => {
+    const { deps, github } = setup();
+    const going = (title: string) => ({
+      json: {
+        workflow_runs: [
+          podcastRun({
+            id: 5,
+            status: "in_progress",
+            display_title: title,
+            created_at: minutesAgo(5),
+          }),
+        ],
+      },
+    });
+    const regenerate = JSON.stringify({ action: "regenerate", id: EPISODE_ID });
+    github.on(RUNS, going(`regenerate ${EPISODE_ID}`));
+    expect(await handlePodcast(input(regenerate), deps)).toMatchObject({ status: 429 });
+    // A different episode's rewrite, or a Catch up, does not hold this one back.
+    github.on(DISPATCH, { json: { workflow_run_id: 9 } });
+    github.on(RUNS, going("regenerate ep-20261001-0900"));
+    expect((await handlePodcast(input(regenerate), deps)).status).toBe(202);
+  });
+
   it("resumes only a failed run of the same kind of request", async () => {
     const { deps, github } = setup();
     github.on(DISPATCH, { json: { workflow_run_id: 9 } });
