@@ -234,9 +234,9 @@ describe("singularity health", () => {
       fetch: fake,
     };
     // A push whose last commit touched no watched path: Vercel skipped the one that did.
-    const skipped = (oldestMissingHours: number) => ({
+    const skipped = (oldestMissingHours: number, newestHours = oldestMissingHours) => ({
       sha: "fedcba9876543210",
-      at: NOW.getTime() - oldestMissingHours * 3_600_000,
+      at: NOW.getTime() - newestHours * 3_600_000,
       includes: async () => false,
       missingSince: async () => NOW.getTime() - oldestMissingHours * 3_600_000,
     });
@@ -258,6 +258,13 @@ describe("singularity health", () => {
     const dayOn = await collectHealth({ ...options, main: skipped(25) });
     expect(codes(dayOn.findings, "fault")).toContain("site_behind");
     expect(codes(dayOn.findings, "warning")).not.toContain("site_behind");
+    // A recent merge on top must not hide a day-old one that never shipped (D375 only excuses a wait).
+    const hidden = await collectHealth({ ...options, main: skipped(25, 1) });
+    expect(codes(hidden.findings, "fault")).toContain("site_behind");
+    // Inside the batch wait nothing is said.
+    const waiting = await collectHealth({ ...options, main: skipped(2) });
+    expect(codes(waiting.findings, "warning")).not.toContain("site_behind");
+    expect(codes(waiting.findings, "fault")).not.toContain("site_behind");
   });
 
   // #490's saves reach Neon only if Vercel has the config store on, and runs read it only if the Actions

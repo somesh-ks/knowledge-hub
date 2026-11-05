@@ -9,7 +9,7 @@
 # number BATCH_SIZE (a squash merge is one), or the oldest has waited MAX_WAIT_SECONDS, or a commit
 # since ends its subject with [deploy] (the PR title does). Content and pipeline pushes touch none
 # of the paths: they never build and never count. A branch other than main (preview/*) builds on
-# every change, as before. The age is judged only when some push to main runs this script.
+# any change to those paths, as before. The age is judged only when some push to main runs this script.
 # VERCEL_GIT_PREVIOUS_SHA is the last deployed commit; a skipped build leaves it where it was, so
 # the count keeps growing until a build runs.
 # Any doubt builds: a skipped deploy that should have run is the failure nobody sees.

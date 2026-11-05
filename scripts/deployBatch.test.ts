@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -10,8 +10,11 @@ import { afterEach, describe, expect, it } from "vitest";
 const SCRIPT = join(import.meta.dirname, "deploy-batch.sh");
 const roots: string[] = [];
 const HOUR = 3_600_000;
+// The clock is fixed: the script reads `date +%s`, which a stub first on PATH answers with NOW, and
+// every commit is dated from NOW, so no case depends on how long the suite takes.
+const NOW = 1_800_000_000_000;
 
-function git(root: string, args: string[], when = Date.now()): string {
+function git(root: string, args: string[], when = NOW): string {
   const date = new Date(when).toISOString();
   return execFileSync("git", args, {
     cwd: root,
@@ -28,9 +31,13 @@ function repo() {
   git(root, ["init", "-q", "-b", "main"]);
   git(root, ["config", "user.email", "t@example.com"]);
   git(root, ["config", "user.name", "t"]);
-  const commit = (file: string, message: string, when = Date.now()) => {
+  const stubs = join(root, ".stubs");
+  mkdirSync(stubs);
+  writeFileSync(join(stubs, "date"), `#!/bin/sh\necho ${NOW / 1000}\n`);
+  chmodSync(join(stubs, "date"), 0o755);
+  const commit = (file: string, message: string, when = NOW - 60_000) => {
     mkdirSync(dirname(join(root, file)), { recursive: true });
-    writeFileSync(join(root, file), `${message}${Math.random()}`);
+    writeFileSync(join(root, file), `${message}\n`);
     git(root, ["add", "-A"]);
     git(root, ["commit", "-q", "-m", message], when);
   };
@@ -42,6 +49,7 @@ function repo() {
       cwd: join(root, "apps/web"),
       env: {
         ...process.env,
+        PATH: `${stubs}:${process.env.PATH}`,
         VERCEL_GIT_PREVIOUS_SHA: deployed,
         VERCEL_GIT_COMMIT_SHA: git(root, ["rev-parse", "HEAD"]),
         VERCEL_GIT_COMMIT_REF: "main",
@@ -97,10 +105,10 @@ describe("deploy-batch.sh", () => {
   // A lone fix would otherwise sit until four more merges, a quiet weekend included.
   it("builds a merge that has waited three hours, and holds one that has not", () => {
     const fresh = repo();
-    fresh.commit("apps/web/a.ts", "fix: fresh", Date.now() - 10 * 60_000);
+    fresh.commit("apps/web/a.ts", "fix: fresh", NOW - 10 * 60_000);
     expect(fresh.push()).toBe(0);
     const old = repo();
-    old.commit("apps/web/a.ts", "fix: old", Date.now() - 4 * HOUR);
+    old.commit("apps/web/a.ts", "fix: old", NOW - 4 * HOUR);
     old.commit("state/last-run.json", "chore(digest): later");
     expect(old.push()).toBe(1);
   });

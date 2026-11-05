@@ -602,17 +602,13 @@ async function checkSite(
   }
   // The build carries the newest commit the site would deploy: a push whose last commit touches no
   // watched path skips the deploy, and a merge waits for the batch (D375), so this says so only once
-  // the wait is past DEPLOY_BATCH_LAG_MS.
+  // the oldest commit the build lacks has waited past DEPLOY_BATCH_LAG_MS. That age is judged from
+  // missingSince, not the newest commit: a recent merge must not hide an old one that never shipped.
   // A build named by its start time (no commit: the dev server, a build off Vercel) says nothing.
   // Such a name is all digits, so a commit prefix must hold a letter; an all-digit commit prefix
   // (rare) is skipped too. A warning at first, since the next push may clear it; a fault once the
   // oldest commit it lacks is a day old (DEPLOY_MISSING_FAULT_MS).
-  if (
-    main &&
-    typeof buildName === "string" &&
-    /^(?=.*[a-f])[0-9a-f]{7,40}$/.test(buildName) &&
-    now.getTime() - main.at > DEPLOY_BATCH_LAG_MS
-  ) {
+  if (main && typeof buildName === "string" && /^(?=.*[a-f])[0-9a-f]{7,40}$/.test(buildName)) {
     const holds = await main.includes(buildName);
     if (holds === true) {
       sink.passed.push(`the site's build holds ${main.sha.slice(0, 12)}`);
@@ -623,7 +619,9 @@ async function checkSite(
           ? `${Math.round(lag / 3_600_000)} hours`
           : `${Math.round(lag / 60_000)} minutes`;
       const text = `The site's build ${buildName} does not hold ${main.sha.slice(0, 12)}, nor commits from ${ago} ago on: those deploys did not happen.`;
-      if (lag > DEPLOY_MISSING_FAULT_MS) {
+      if (lag <= DEPLOY_BATCH_LAG_MS) {
+        // Still inside the batch wait (D375): expected, say nothing.
+      } else if (lag > DEPLOY_MISSING_FAULT_MS) {
         sink.fault(
           "site_behind",
           "reliability",
