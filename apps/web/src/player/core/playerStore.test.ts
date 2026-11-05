@@ -229,6 +229,31 @@ describe("seeking and items", () => {
     expect(harness.audio.currentTime).toBe(110);
   });
 
+  // Owner, 2026-11-05: "1 min left" on screen, the audio from the top, the player still. New data for
+  // the briefing named the same file, which stayed attached with its header read: the kept place
+  // waited for a loadedmetadata that never came, and the clock waited with it.
+  it("plays the kept place and keeps the clock moving when new data for the briefing keeps the same file", () => {
+    const harness = createHarness({ canPlayType: () => "probably" });
+    const files = {
+      url: "/audio/2026-10-07.mp3",
+      m4a_url: "/audio/2026-10-07.m4a",
+      duration_ms: 120_000,
+    };
+    harness.store.load(makeDigest({ audio: files }));
+    harness.store.play();
+    harness.audio.loadMetadata(120);
+    harness.audio.startPlaying();
+    harness.audio.currentTime = 100;
+    harness.flushFrames();
+    harness.store.pause();
+    harness.store.load(makeDigest({ audio: { ...files, url: "/audio/2026-10-07.v2.mp3" } }));
+    harness.store.play();
+    harness.audio.startPlaying();
+    harness.audio.currentTime += 5;
+    harness.flushFrames();
+    expect(harness.store.getTime()).toBe(harness.audio.currentTime);
+  });
+
   it("does not take the unlock primer's silence for the recording, so nothing is stored as played", () => {
     const harness = createHarness();
     const digest = makeDigest();
