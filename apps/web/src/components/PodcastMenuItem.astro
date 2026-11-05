@@ -46,13 +46,6 @@ const regen = regenerationHint(regenerations);
     <MenuItem data-open="generate" aria-haspopup="dialog" title={regen.title} disabled={regen.exhausted}>
       <Icon name="refresh" />Regenerate
     </MenuItem>
-  ) : action === "unshare" ? (
-    /* Put in by scripts/shareLink.ts once this device made the item's listen link (D153). */
-    <template data-share-stop-template>
-      <MenuItem data-menu="unshare" data-share-stop={id}>
-        <Icon name="blocked" />Stop sharing
-      </MenuItem>
-    </template>
   ) : action === "delete" ? (
     <MenuItem tone="danger" data-episode-action="delete">
       <Icon name="trash" />Delete

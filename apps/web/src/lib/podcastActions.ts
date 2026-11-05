@@ -11,7 +11,6 @@ export const PODCAST_ACTIONS = [
   "download",
   "regenerate",
   "podcast",
-  "unshare",
   "delete",
 ] as const;
 

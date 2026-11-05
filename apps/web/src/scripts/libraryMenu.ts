@@ -14,7 +14,7 @@ import { deviceStorage, isSaved, setSaved } from "../player/core/saved";
 import { installCardHold } from "./cardHold";
 import { installEpisodeActions } from "./episodeActionsEntry";
 import { installHeroMenu } from "./heroMenu";
-import { shareItem, stopSharing, syncStopSharing } from "./shareLink";
+import { shareItem } from "./shareLink";
 import { sendToast } from "./toastEvent";
 
 const ROOT = "[data-library-menu]";
@@ -149,10 +149,6 @@ async function onPick(item: HTMLElement): Promise<void> {
         toast(on ? "Couldn't add it to favorites" : "Couldn't remove it from favorites", "error");
       return;
     }
-    case "unshare":
-      if (await stopSharing(id)) toast("Stopped sharing", "success");
-      else toast("Couldn't stop sharing. Try again.", "error");
-      return;
   }
 }
 
@@ -197,7 +193,6 @@ export function installLibraryMenu(): void {
       for (const item of menu.querySelectorAll('[data-menu][aria-disabled="true"]'))
         item.removeAttribute("aria-disabled");
     }
-    syncStopSharing();
     syncFavorites();
     void syncDownloads();
   };
