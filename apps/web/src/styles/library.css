@@ -539,11 +539,12 @@ main.library [data-library][data-view="list"] .library-grid {
 
 /* The band behind a heading, once libraryMonths.ts is watching (a page without it keeps the opaque
    band above). It is a layer of its own, so it can fade: transparent at rest, there while the heading
-   is held (data-stuck). A heading within its own height of being held (data-near) lifts the ones above
-   it out of the way, so two labels never overlap on their way to the band that covers the earlier one
-   (2026-11-04, owner: the bands sat on the Halloween web). */
+   is held (data-stuck; 2026-11-04, owner: the bands sat on the Halloween web). The next heading pushes
+   the held one out of its slot: --push is the span the two overlap, set a frame at a time while they
+   do (2026-11-05, owner: a gap showed between one month's label and the next). */
 [data-library][data-month-bands][data-view="list"] .library-month {
   background: none;
+  transform: translateY(calc(var(--push, 0px) * -1));
 }
 
 [data-library][data-month-bands] .library-month::before {
@@ -559,29 +560,19 @@ main.library [data-library][data-view="list"] .library-grid {
   opacity: 1;
 }
 
-[data-library][data-month-bands] .library-month:has(~ .library-month[data-near]) {
-  opacity: 0;
-}
-
 /* The app bar slides away as the page is read and takes --sticky-top with it. A stuck heading
    follows with the bar's own duration and curve, so its top edge is the bar's bottom edge on every
    frame and it neither lags nor jumps. With reduced motion the bar never moves, nor does this. The
-   band and the fade of an earlier heading take the same duration and curve. */
+   band takes the same duration and curve. */
 @media (prefers-reduced-motion: no-preference) {
   [data-library][data-month-bands] .library-month::before {
-    transition: opacity var(--duration-state) var(--ease-out);
-  }
-
-  [data-library][data-view="list"] .library-month {
     transition: opacity var(--duration-state) var(--ease-out);
   }
 }
 
 @media (width < 64rem) and (prefers-reduced-motion: no-preference) {
   [data-library][data-view="list"] .library-month {
-    transition:
-      inset-block-start var(--duration-state) var(--ease-out),
-      opacity var(--duration-state) var(--ease-out);
+    transition: inset-block-start var(--duration-state) var(--ease-out);
   }
 }
 
