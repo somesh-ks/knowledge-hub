@@ -2946,8 +2946,8 @@
       "name": "--font-code",
       "tier": "primitive",
       "type": "fontFamily",
-      "light": "ui-monospace, \"SF Mono\", \"Cascadia Mono\", \"Roboto Mono\", Menlo, Consolas, \"Liberation Mono\", monospace",
-      "role": "Monospace for text a person copies as it is: a run's details, a prompt, an error. The system's own, so it costs no download; the same in every mood."
+      "light": "\"Google Sans Code\", ui-monospace, \"SF Mono\", \"Cascadia Mono\", \"Roboto Mono\", Menlo, Consolas, \"Liberation Mono\", monospace",
+      "role": "Monospace for text a person copies as it is: a run's details, a prompt, an error. Google Sans Code, the interface family's monospace (fonts.css, fetched only where a snippet is drawn), then the system's own; the same in every mood."
     },
     {
       "name": "--font-blackletter",

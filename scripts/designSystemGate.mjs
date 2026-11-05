@@ -17,6 +17,9 @@ export const SYSTEM_PATHS = [
   "apps/web/src/styles/badge.css",
   "apps/web/src/styles/flag.css",
   "apps/web/src/styles/code.css",
+  // The type families the tokens name, and their files (Google Sans Code for the Code snippet).
+  "apps/web/src/styles/fonts.css",
+  "apps/web/src/assets/fonts/",
   // The Flag's art (D367), one Flagpack file per country.
   // The prefix also takes the retired sprite, public/flags.svg.
   "apps/web/public/flags",
