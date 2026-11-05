@@ -117,31 +117,35 @@ html[data-player="open"] .queue-dock {
 .queue-chevron {
   flex: none;
   transform: rotate(180deg);
-  transition: transform var(--queue-open) var(--queue-ease);
+  transition: transform var(--queue-close) var(--queue-close-ease);
 }
 
 .queue-dock[data-expanded] .queue-chevron {
   transform: none;
+  transition: transform var(--queue-open) var(--queue-open-ease);
 }
 
 /* Opening and folding eases, as the app's sheets do (owner, 2026-11-02: it snapped; 2026-11-04: it was
-   jerky, the list faded out in 150 ms while the height was still going). The body is a grid whose one
-   row runs between its content's height and nothing, so the list grows from the fold on the drawer
-   curve, slower than a sheet because it is a smaller thing moving a longer way for the eye; folded it is
-   hidden from the view, the tab order and assistive technology once the fold has finished. The list's
-   own padding and its fade go with it on the same time, so nothing is left open or gone early. Reduced
-   motion collapses the durations (tokens.css). */
+   jerky, and the drawer curve starts at full speed; 2026-11-05: smoother, from the motion tokens). The
+   body is a grid whose one row runs between its content's height and nothing, so the list resizes: the
+   spatial spring (motion.md), which starts from rest and settles with a calm 1.5% pass, the slow one
+   opening and the default one folding. The list's fade is an effects spring, which never passes its
+   target. Folded it is hidden from the view, the tab order and assistive technology once the fold has
+   finished. Reduced motion collapses the spatial durations and keeps the fade (tokens.css). */
 .queue-dock {
-  --queue-open: var(--duration-drawer-full);
-  --queue-close: calc(var(--duration-drawer-full) * 0.8);
-  --queue-ease: var(--ease-drawer);
+  --queue-open: var(--duration-spring-spatial-slow);
+  --queue-open-ease: var(--ease-spring-spatial-slow);
+  --queue-close: var(--duration-spring-spatial-default);
+  --queue-close-ease: var(--ease-spring-spatial-default);
+  --queue-fade: var(--duration-spring-effects-slow);
+  --queue-fade-ease: var(--ease-spring-effects-slow);
 }
 
 .queue-dock .queue-body {
   display: grid;
   grid-template-rows: 1fr;
   transition:
-    grid-template-rows var(--queue-open) var(--queue-ease),
+    grid-template-rows var(--queue-open) var(--queue-open-ease),
     visibility 0s;
 }
 
@@ -149,15 +153,15 @@ html[data-player="open"] .queue-dock {
   grid-template-rows: 0fr;
   visibility: hidden;
   transition:
-    grid-template-rows var(--queue-close) var(--queue-ease),
+    grid-template-rows var(--queue-close) var(--queue-close-ease),
     visibility 0s var(--queue-close);
 }
 
 .queue-dock .queue-body > .queue-list {
   min-height: 0;
   transition:
-    padding-block var(--queue-open) var(--queue-ease),
-    opacity var(--queue-open) var(--queue-ease);
+    padding-block var(--queue-open) var(--queue-open-ease),
+    opacity var(--queue-fade) var(--queue-fade-ease);
 }
 
 .queue-dock:not([data-expanded]) .queue-body > .queue-list {
@@ -165,8 +169,8 @@ html[data-player="open"] .queue-dock {
   overflow: hidden;
   opacity: 0;
   transition:
-    padding-block var(--queue-close) var(--queue-ease),
-    opacity var(--queue-close) var(--queue-ease);
+    padding-block var(--queue-close) var(--queue-close-ease),
+    opacity var(--queue-fade) var(--queue-fade-ease);
 }
 
 /* The rows scroll past three and a half of them (scripts/queue.ts, VISIBLE_ROWS sets --queue-list-max
@@ -174,13 +178,9 @@ html[data-player="open"] .queue-dock {
    page. Opened, the dock rises over the page as an overlay: the page keeps room for the folded row only
    (--run-room), so the Catch up button and the toasts hold still. */
 .queue-dock .queue-list {
-  max-height: min(calc(var(--queue-list-max, 100dvh) + var(--space-4)), 50dvh);
+  max-height: min(calc(var(--queue-list-max, 100dvh) + var(--space-6)), 50dvh);
   overflow-y: auto;
   overscroll-behavior: contain;
-}
-
-.queue-dock[data-expanded] {
-  box-shadow: var(--shadow-sheet);
 }
 
 /* The folded row is the dock's handle: a drag on it is the dock's, never the page's (scripts/queue.ts). */
@@ -190,9 +190,10 @@ html[data-player="open"] .queue-dock {
 
 /* Opened, the dock's list starts a little below the head, so the first row is not tight against it; and
    while runs go the ring gives way to the percent alone (a finished or failed run keeps its check or
-   alert). */
+   alert). The last row, scrolled to the end, has the room the first has under the head and a step more
+   (owner, 2026-11-05: the foot was tight against the bar). The cap above adds both. */
 .queue-dock .queue-list {
-  padding-block: var(--space-2);
+  padding-block: var(--space-2) var(--space-4);
 }
 
 .queue-dock[data-expanded] .queue-ring-head:not([data-ended]) {
