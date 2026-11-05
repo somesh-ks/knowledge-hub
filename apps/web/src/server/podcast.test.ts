@@ -468,6 +468,18 @@ describe("handlePodcast", () => {
     expect(github.requests.some((request) => request.method === "POST")).toBe(false);
   });
 
+  // A run GitHub never started would otherwise lock every Catch up and rewrite out until it expired.
+  it("does not let a run stuck waiting for hours hold new requests back", async () => {
+    const { deps, github } = setup();
+    github.on(DISPATCH, { json: { workflow_run_id: 9 } });
+    github.on(RUNS, {
+      json: {
+        workflow_runs: [podcastRun({ id: 5, status: "queued", created_at: minutesAgo(120) })],
+      },
+    });
+    expect((await handlePodcast(input(body()), deps)).status).toBe(202);
+  });
+
   it("refuses a second rewrite of an episode whose rewrite is still going", async () => {
     const { deps, github } = setup();
     const going = (title: string) => ({
@@ -532,6 +544,11 @@ describe("handlePodcast", () => {
     expect((await handlePodcast(input(resume), deps)).status).toBe(400);
     github.on(RUNS, earlier({ conclusion: "failure" }));
     expect((await handlePodcast(input(resume), deps)).status).toBe(202);
+    // A run that timed out or was cancelled kept its finished stages too.
+    for (const conclusion of ["timed_out", "cancelled"]) {
+      github.on(RUNS, earlier({ conclusion }));
+      expect((await handlePodcast(input(resume), deps)).status).toBe(202);
+    }
   });
 
   it("lets failed tries run up to twelve a day, then answers 429 for the next", async () => {

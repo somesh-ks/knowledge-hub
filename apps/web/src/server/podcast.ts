@@ -65,6 +65,11 @@ const RUN_LOOKUP_DELAY_MS = 1500;
 /** A run of this workflow that has not started: GitHub holds it in the concurrency group or the queue. */
 const WAITING = new Set(["queued", "pending", "waiting", "requested"]);
 const BUSY_WAIT_S = 60;
+/** A run waiting longer than this is stuck, not in line: it no longer holds new requests back. */
+// shortcut: a fixed age, not read from GitHub; revisit if a rewrite ever queues longer than this.
+const STALE_WAIT_MS = 30 * 60_000;
+/** Conclusions of a run that did not finish, so a Try again may reuse its finished stages. */
+const RESUMABLE = new Set(["failure", "timed_out", "cancelled"]);
 const busyRefusal: PodcastResult = {
   status: 429,
   headers: { "Retry-After": String(BUSY_WAIT_S) },
@@ -277,7 +282,9 @@ export async function handlePodcast(
       body.action === "regenerate" &&
       run.status === "in_progress" &&
       run.title === `regenerate ${body.id}`;
-    if (runs.some((run) => WAITING.has(run.status) || sameRewrite(run))) return busyRefusal;
+    const waiting = (run: WorkflowRun): boolean =>
+      WAITING.has(run.status) && deps.now() - Date.parse(run.createdAt) < STALE_WAIT_MS;
+    if (runs.some((run) => waiting(run) || sameRewrite(run))) return busyRefusal;
     // The run to resume must be a failed run of this workflow for the same kind of request; one
     // older than the list GitHub returns is looked up directly.
     if (body.resume_from) {
@@ -289,7 +296,7 @@ export async function handlePodcast(
         !earlier ||
         !earlier.path.startsWith(`.github/workflows/${PODCAST_WORKFLOW_FILE}`) ||
         earlier.title !== expected ||
-        earlier.conclusion !== "failure"
+        !RESUMABLE.has(earlier.conclusion ?? "")
       )
         return invalid;
     }
