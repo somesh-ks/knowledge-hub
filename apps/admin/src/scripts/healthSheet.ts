@@ -6,6 +6,7 @@
  * readers, where to start (lib/healthHelp.ts), the week's commonest reports, then its prompt for an
  * AI agent with Copy (healthPrompts.ts).
  */
+import { sheetBodyClass } from "../../../web/src/design-system/sheet";
 import { sheetGestures } from "../../../web/src/scripts/pullDismiss";
 import { helpFor } from "../lib/healthHelp";
 import { copyButton } from "../lib/problem";
@@ -50,7 +51,7 @@ function show(title: string, parts: HTMLElement[]): void {
   const heading = sheet.querySelector<HTMLElement>("#hl-sheet-title");
   if (heading) heading.textContent = title;
   sheet.querySelector("[data-sheet-content]")?.replaceChildren(...parts);
-  sheet.querySelector(".sheet-body")?.scrollTo(0, 0);
+  sheet.querySelector(`.${sheetBodyClass()}`)?.scrollTo(0, 0);
   if (!sheet.open) sheet.showModal();
 }
 
