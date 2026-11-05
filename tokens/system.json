@@ -4521,7 +4521,8 @@
       "name": "--text-meta",
       "tier": "semantic",
       "type": "typography",
-      "light": "family: var(--font-ui); size: var(--font-size-meta); weight: var(--font-weight-regular); tracking: var(--font-tracking-caption); leading: var(--font-leading-caption)"
+      "light": "family: var(--font-ui); size: var(--font-size-body); weight: var(--font-weight-regular); tracking: var(--font-tracking-caption); leading: var(--font-leading-caption)",
+      "role": "A line of facts under a title. Body size since 2026-11-05 (owner: subtitles at 1rem everywhere); muted ink and the caption tracking keep it apart from body."
     },
     {
       "name": "--text-caption",

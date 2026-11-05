@@ -361,7 +361,7 @@
   --text-reading-tracking: var(--font-tracking-body);
   --text-reading-leading: var(--font-leading-reading);
   --text-meta-family: var(--font-ui);
-  --text-meta-size: var(--font-size-meta);
+  --text-meta-size: var(--font-size-body);
   --text-meta-weight: var(--font-weight-regular);
   --text-meta-tracking: var(--font-tracking-caption);
   --text-meta-leading: var(--font-leading-caption);
