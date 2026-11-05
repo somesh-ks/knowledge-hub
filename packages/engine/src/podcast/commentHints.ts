@@ -151,7 +151,7 @@ export class CommentValuesReader {
         maxTokens: 300,
         effort: "medium",
         schema: jsonSchemaOf(ValuesReply),
-        timeoutMs: 6_000,
+        timeoutMs: 10_000,
       });
       if (reply.stopReason !== "end") return null;
       const parsed = ValuesReply.parse(JSON.parse(reply.text));

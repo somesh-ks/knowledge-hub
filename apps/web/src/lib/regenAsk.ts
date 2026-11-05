@@ -83,18 +83,28 @@ export function createCommentAsker(onAnswer: (answer: Answer) => void): {
         })
           .then((res) => (res.ok ? res.json() : null))
           .catch(() => null);
-      void ask("show").then((body) => {
-        if (!controller.signal.aborted && isHints(body)) {
-          set({ ...answer, hints: { length: body.length === true, topics: body.topics === true } });
-        }
+      // A half that fails or says nothing leaves no answer behind: the words it read are gone.
+      const shown = ask("show").then((body) => {
+        if (controller.signal.aborted) return;
+        set({
+          ...answer,
+          hints: isHints(body)
+            ? { length: body.length === true, topics: body.topics === true }
+            : NO_ANSWER.hints,
+        });
       });
-      void ask("values").then((body) => {
-        if (!controller.signal.aborted && isValues(body)) {
-          set({
-            ...answer,
-            values: { length: body.length, add: body.add.filter((n) => typeof n === "string") },
-          });
-        }
+      const valued = ask("values").then((body) => {
+        if (controller.signal.aborted) return;
+        set({
+          ...answer,
+          values: isValues(body)
+            ? { length: body.length, add: body.add.filter((name) => typeof name === "string") }
+            : NO_ANSWER.values,
+        });
+      });
+      // A finished ask is not cancelled by the next edit, so the same words are never asked twice.
+      void Promise.all([shown, valued]).finally(() => {
+        if (pending === controller) pending = undefined;
       });
     }, PAUSE_MS);
   };
