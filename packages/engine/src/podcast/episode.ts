@@ -3,13 +3,13 @@ import { dirname, join } from "node:path";
 import {
   type Episode,
   episodeRelPath,
-  generalTopicTitle,
-  isGeneralTopicId,
+  longDate,
   PODCAST_CHARS_PER_MINUTE,
   type PodcastRequest,
   SECTION_TITLES,
   type Section,
   serializeEpisodeFile,
+  stockholmDate,
 } from "@singularity/core";
 import { createFallbackCoverPicker, loadCoverPalettes } from "../render/coverPicker.js";
 import type { PodcastStory, ScriptTurn } from "./types.js";
@@ -59,37 +59,11 @@ export function topicLabel(topic: string): string {
 }
 
 /**
- * The topic names a title reads out. A request now mixes section ids and general topic ids, and the
- * form sends two ids for Design, so ids that read the same are named once: "Design" for design and
- * ui-craft, "Technology" for tech and technology, "AI" for ai.
+ * The listener's title, or the day it was made, as a daily is named: "Wednesday 5 November". The
+ * day is Stockholm's, the one the episode's `date` uses.
  */
-const TITLE_NAMES: Record<string, string> = {
-  design: "Design",
-  "ui-craft": "Design",
-  ai: "AI",
-  tech: "Technology",
-};
-
-export function titleNames(topics: readonly string[]): string[] {
-  const names = topics.map(
-    (id) => TITLE_NAMES[id] ?? (isGeneralTopicId(id) ? generalTopicTitle(id) : topicLabel(id)),
-  );
-  return names.filter((name, index) => names.indexOf(name) === index);
-}
-
-/** How many topics a default title names before it says "and N more". */
-const TITLE_TOPICS = 2;
-
-/**
- * The listener's title, or a short one made of the topics: "AI and Design", or the first
- * two "and 2 more". It sits under album art in a grid, so it has to read in two short lines.
- */
-export function episodeTitle(request: PodcastRequest): string {
-  if (request.title) return request.title;
-  const names = titleNames(request.topic_ids);
-  if (names.length <= TITLE_TOPICS) return names.join(" and ");
-  const rest = names.length - TITLE_TOPICS;
-  return `${names.slice(0, TITLE_TOPICS).join(", ")} and ${rest} more`;
+export function episodeTitle(request: PodcastRequest, now: Date): string {
+  return request.title || longDate(stockholmDate(now));
 }
 
 export interface BuildEpisodeInput {
@@ -127,7 +101,7 @@ export async function buildEpisode(input: BuildEpisodeInput): Promise<Episode> {
   const charCount = input.turns.reduce((sum, turn) => sum + turn.text.length, 0);
   return {
     id: input.id,
-    title: episodeTitle(input.request),
+    title: episodeTitle(input.request, input.now),
     request: input.request,
     ...(input.replaces ? { replaces: input.replaces } : {}),
     ...(input.regenerations ? { regenerations: input.regenerations } : {}),

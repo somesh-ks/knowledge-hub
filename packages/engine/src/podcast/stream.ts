@@ -119,7 +119,7 @@ export function createStreamPublisher(input: StreamPublisherInput): StreamPublis
 
   const document = (): StreamDoc => ({
     id: input.episodeId,
-    title: episodeTitle(request),
+    title: episodeTitle(request, input.now()),
     status,
     turns,
     part,
