@@ -1,6 +1,7 @@
 #!/bin/sh
 # Vercel's ignoreCommand for the reader, the admin and (once its design-system PR lands) the style
-# guide (D375). Exit 0 skips the build, exit 1 runs it. Usage, from a project's root: sh ../../scripts/deploy-batch.sh -- <paths>
+# guide (D375). Exit 0 skips the build, exit 1 runs it. Usage, from a project's root:
+#   sh ../../scripts/deploy-batch.sh -- <paths>
 # The paths are what the project draws with. `readWatchedHead` (engine, `site_behind`) reads them
 # from apps/web/vercel.json after the ` -- `, so keep that command in this shape.
 #
