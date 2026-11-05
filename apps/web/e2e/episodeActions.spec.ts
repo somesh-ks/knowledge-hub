@@ -3,8 +3,10 @@ import {
   expect,
   expectNoViolationsInEitherScheme,
   hydrated,
+  queueComplete,
   queueDock,
   queueStatus,
+  startListening,
   test,
 } from "./fixtures";
 
@@ -159,10 +161,46 @@ test.describe("regenerate and delete an episode", () => {
       menu(page).getByRole("menuitem", { name: "Regenerate" }),
     ).toHaveAccessibleDescription("Unavailable while this episode is being updated.");
     await page.keyboard.press("Escape");
-    await expect(queueStatus(page)).toHaveText("Rewritten. Live in about a minute.", {
+    await expect(queueStatus(page)).toHaveText("Rewritten", {
       timeout: 15_000,
     });
     await expect(regenerate(page)).not.toHaveAttribute("aria-disabled", "true");
+  });
+
+  // The 2026-11-05 review: a finished rewrite left the listener on a page for an episode that was
+  // gone, with nothing to open. The route sends stages, so the run waits for the site like a Catch up.
+  test.describe("a finished rewrite", () => {
+    test.use({ serviceWorkers: "block" });
+    test("offers the new episode once the site lists it", async ({ page }) => {
+      await mock(page, [
+        { run_id: 77, state: "running", step: null },
+        { run_id: 77, state: "completed", step: null, stage: 4, stages: 6, outcome: "published" },
+      ]);
+      await page.route(/latest.json/, (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            episode_at: new Date(Date.now() + 3_600_000).toISOString(),
+            episode_id: "ep-20261008-0900",
+          }),
+        }),
+      );
+      // The new episode's page is read once it is found, so Start listening finds it ready.
+      await page.route(/\/e\/ep-20261008-0900$/, (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "text/html",
+          body: "<!doctype html><title>x</title>",
+        }),
+      );
+      await open(page);
+      await choose(page, "Regenerate");
+      await panel(page).getByLabel("What went wrong?").fill("Shorter intro");
+      await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
+      await expect(queueComplete(page)).toBeVisible({ timeout: 20_000 });
+      await expect(await startListening(page)).toBeVisible();
+    });
   });
 
   test("an episode reached while offline has both items disabled, with the reason, until the connection is back", async ({

@@ -397,9 +397,12 @@ test.describe("the podcast queue", () => {
     await rows(page).first().getByRole("button", { name: "Details" }).click();
     const dialog = page.getByRole("dialog", { name: "What went wrong" });
     await expect(dialog).toContainText("Run: 43");
-    await expect(dialog.getByRole("link", { name: "Open the log" })).toBeVisible();
+    // A run stored before 2026-11-05 still holds a GitHub link; the dialog neither links nor copies it.
+    await expect(dialog.getByRole("link")).toHaveCount(0);
     await dialog.getByRole("button", { name: "Copy details" }).click();
     await expect(dialog.getByRole("button", { name: "Copied" })).toBeVisible();
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("Run: 43");
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toContain("Run: 43");
+    expect(copied).not.toContain("github.com");
   });
 });
