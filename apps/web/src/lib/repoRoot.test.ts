@@ -24,9 +24,6 @@ describe("findRepoRoot", () => {
     expect(findRepoRoot("/anywhere", { SINGULARITY_REPO_ROOT: "/some/root" })).toBe(
       resolve("/some/root"),
     );
-    expect(findRepoRoot("/anywhere", { DISPATCH_REPO_ROOT: "/some/root" })).toBe(
-      resolve("/some/root"),
-    );
   });
 
   it("walks up to the directory that holds the core package", () => {

@@ -147,7 +147,7 @@ export const run: CommandRun = async (argv, ctx) => {
   // The budgets (D360): Neon's compute hours, the week on GitHub and the keys that cost nothing to try.
   const secrets = [
     ...secretsFromEnv(ctx.env),
-    ...[ctx.env.GITHUB_SINGULARITY_TOKEN, ctx.env.GITHUB_DISPATCH_TOKEN, ctx.env.GH_TOKEN].filter(
+    ...[ctx.env.GITHUB_SINGULARITY_TOKEN, ctx.env.GH_TOKEN].filter(
       (value): value is string => value !== undefined,
     ),
   ];

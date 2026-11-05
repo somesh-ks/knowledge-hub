@@ -115,7 +115,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           # The command loads config/ from the store when the files are not in git (D296); without
           # the switch the first run failed with "config/ is missing ...".
-          SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE || vars.DISPATCH_CONFIG_STORE }}
+          SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE }}
         run: |
           {
             echo "## Ingest coverage"
@@ -134,14 +134,14 @@ jobs:
           SPEECHIFY_MONTHLY_CHARS: ${{ vars.SPEECHIFY_MONTHLY_CHARS }}
           SPEECHIFY_VOICE_ID: ${{ vars.SPEECHIFY_VOICE_ID }}
           SPEECHIFY_VOICE_ID_B: ${{ vars.SPEECHIFY_VOICE_ID_B }}
-          CEILING: ${{ vars.SINGULARITY_DAILY_USD_CEILING || vars.DISPATCH_DAILY_USD_CEILING || '5' }}
+          CEILING: ${{ vars.SINGULARITY_DAILY_USD_CEILING || '5' }}
           # The Neon store: field Web Vitals (D156) and the site's shared rate counter. Unset, health
           # warns field_unmeasured; set and failing, it warns store_degraded.
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           # Vercel's deployment count against Hobby's 100 a day (D247). Unset, the check is skipped.
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           # The config store switch (D149): on, health compares the stored documents with git.
-          SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE || vars.DISPATCH_CONFIG_STORE }}
+          SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE }}
           # The budgets (D360): Neon's compute hours this month (unset, `neon_unmeasured`), and the
           # keys that cost nothing to try, for a rejected key or a token near its end. An unset key
           # is skipped.

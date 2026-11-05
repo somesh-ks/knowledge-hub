@@ -9,7 +9,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const fixtures = process.env.SINGULARITY_FIXTURES === "1" || process.env.DISPATCH_FIXTURES === "1";
+const fixtures = process.env.SINGULARITY_FIXTURES === "1";
 // The fixture build (CI, the browser suites) reads apps/web/src/fixtures for its pages, but the
 // config route still bundles the repository's config files, so they must exist: the examples fill
 // them, and the store is never asked.
@@ -17,7 +17,6 @@ const env = { ...process.env };
 if (fixtures) {
   // Empty, not deleted: a deleted variable would come back from a local .env.
   env.SINGULARITY_CONFIG_STORE = "";
-  env.DISPATCH_CONFIG_STORE = "";
 }
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const pulled = spawnSync(

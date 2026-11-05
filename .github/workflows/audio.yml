@@ -135,8 +135,8 @@ jobs:
           # stored under the name the site looks for. Unset reads as the default second voice.
           SPEECHIFY_VOICE_ID_B: ${{ vars.SPEECHIFY_VOICE_ID_B }}
           SPEECHIFY_MONTHLY_CHARS: ${{ vars.SPEECHIFY_MONTHLY_CHARS }}
-          SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME || vars.DISPATCH_GIT_NAME }}
-          SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL || vars.DISPATCH_GIT_EMAIL }}
+          SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME }}
+          SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL }}
           PRUNE_NOW: ${{ inputs.prune_now }}
         run: |
           prune_args=(--prune 120)

@@ -11,7 +11,7 @@ export const FIXTURE_AUDIO_HOST = "fixtures.singularity.invalid";
 export const FIXTURE_AUDIO_PATH = "/fixtures/audio.wav";
 
 export function usesFixtures(env: Record<string, string | undefined> = process.env): boolean {
-  return env.SINGULARITY_FIXTURES === "1" || env.DISPATCH_FIXTURES === "1";
+  return env.SINGULARITY_FIXTURES === "1";
 }
 
 export function rewriteFixtureAudioUrl(url: string): string {
@@ -41,7 +41,7 @@ export interface LoadSiteOptions {
 
 /**
  * Loads everything the pages need from the repository: digests from Digests/ (or the invented
- * fixtures when DISPATCH_FIXTURES=1) and the last run record. Fixtures are an explicit opt-in so a
+ * fixtures when SINGULARITY_FIXTURES=1) and the last run record. Fixtures are an explicit opt-in so a
  * production build can never show invented content.
  */
 export async function loadSite(options: LoadSiteOptions = {}): Promise<Site> {

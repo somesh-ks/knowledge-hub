@@ -123,9 +123,7 @@ const path = Astro.url.pathname.replace(/\/$/, "") || "/";
 // Vercel is the deployment's; without the switch no page asks. The tag names the config files the
 // page was built from, so a page from another build never takes edits made against this one.
 const configStore =
-  (process.env.SINGULARITY_CONFIG_STORE ?? process.env.DISPATCH_CONFIG_STORE) === "postgres"
-    ? await loadConfigHash()
-    : null;
+  process.env.SINGULARITY_CONFIG_STORE === "postgres" ? await loadConfigHash() : null;
 // The zone the schedule counts in as built, which the time zone prompt (scripts/zonePrompt.ts)
 // compares with the device's, after the edits saved since.
 const { timezone: scheduleTimezone } = await loadScheduleView();

@@ -111,7 +111,6 @@ function loadProcessEnvFile(root: string): void {
 const EXTRA_SECRET_NAMES = [
   "VERCEL_TOKEN",
   "GITHUB_SINGULARITY_TOKEN",
-  "GITHUB_DISPATCH_TOKEN",
   "GITHUB_TOKEN",
   "GH_TOKEN",
 ] as const;
@@ -124,7 +123,7 @@ function allSecrets(env: Env, source: Record<string, string | undefined>): strin
 }
 
 function quietDebug(log: Logger, source: Record<string, string | undefined>): Logger {
-  if (source.SINGULARITY_DEBUG === "1" || source.DISPATCH_DEBUG === "1") return log;
+  if (source.SINGULARITY_DEBUG === "1") return log;
   return { ...log, debug: () => {} };
 }
 
