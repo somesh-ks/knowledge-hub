@@ -265,6 +265,8 @@ function useDockSwipe({ next, previous, shownId }: DockSwipeTargets) {
     // With nowhere to go the words give a little, then hold.
     target.style.setProperty("--dock-swipe", `${goesTo(dx) ? dx : dx * 0.2}px`);
     const id = goesTo(dx);
+    // The leaving words thin and the arriving ones fill in as the finger carries the bar over.
+    target.style.setProperty("--dock-fade", id ? String(Math.min(1, Math.abs(dx) / target.clientWidth)) : "0");
     const dir = dx < 0 ? "next" : "previous";
     setPeek((current) => (id ? (current?.id === id ? current : { id, dir }) : null));
   };
@@ -282,6 +284,7 @@ function useDockSwipe({ next, previous, shownId }: DockSwipeTargets) {
     window.setTimeout(() => {
       target.dataset.swiping = "";
       target.style.removeProperty("--dock-swipe");
+      target.style.removeProperty("--dock-fade");
       delete target.dataset.swipeOut;
       setPeek(null);
       requestAnimationFrame(() =>
@@ -359,6 +362,7 @@ function useDockSwipe({ next, previous, shownId }: DockSwipeTargets) {
         swipeLeaves(current.dx, target.offsetWidth, tracker.velocity());
       if (!goes || !to) {
         target.style.removeProperty("--dock-swipe");
+        target.style.removeProperty("--dock-fade");
         setPeek(null);
         return;
       }
@@ -370,6 +374,7 @@ function useDockSwipe({ next, previous, shownId }: DockSwipeTargets) {
         "--dock-swipe",
         `${(dir === "next" ? -1 : 1) * target.clientWidth}px`,
       );
+      target.style.setProperty("--dock-fade", "1");
       playQueueItem(to);
       // A slow or failed load lets go too, so the bar is never left blank.
       window.setTimeout(() => {
