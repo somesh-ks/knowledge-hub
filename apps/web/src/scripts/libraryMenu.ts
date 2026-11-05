@@ -60,7 +60,7 @@ export function syncFavorites(): void {
     const on = isSaved(storage, root.dataset.id ?? "");
     holderOf(root).toggleAttribute("data-saved", on);
     const label = root.querySelector('[data-menu="favorite"] [data-menu-label]');
-    if (label) label.textContent = on ? "Remove from favorites" : "Add to favorites";
+    if (label) label.textContent = on ? "Unfavorite" : "Favorite";
   }
 }
 

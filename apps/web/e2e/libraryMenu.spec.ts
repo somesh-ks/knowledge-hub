@@ -105,7 +105,7 @@ test("the page's heart adds a podcast to Favorites and a row's menu there takes 
   await expect(page.locator("[data-saved-page]")).toHaveAttribute("data-ready", "");
   await expect(row(page, AUDIO_ID)).toBeVisible();
   await openMenu(page, AUDIO_ID);
-  await row(page, AUDIO_ID).getByRole("menuitem", { name: "Remove from favorites" }).click();
+  await row(page, AUDIO_ID).getByRole("menuitem", { name: "Unfavorite" }).click();
   await expect(page.getByText("Removed from favorites")).toBeVisible();
   await expect(row(page, AUDIO_ID)).toBeHidden();
 
@@ -113,7 +113,7 @@ test("the page's heart adds a podcast to Favorites and a row's menu there takes 
   await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
   await openMenu(page, AUDIO_ID);
   await expect(
-    row(page, AUDIO_ID).getByRole("menuitem", { name: "Add to favorites" }),
+    row(page, AUDIO_ID).getByRole("menuitem", { name: "Favorite", exact: true }),
   ).toBeVisible();
 });
 
