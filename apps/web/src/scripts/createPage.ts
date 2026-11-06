@@ -181,7 +181,8 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
       audience: data.get("audience"),
       topic_ids: topicIds(),
       length_minutes: Number(data.get("length")),
-      stories: storiesValue(String(data.get("stories") ?? "")),
+      // Auto is left out, as Default voices are: the run sizes the count from the length.
+      ...(data.get("stories") ? { stories: storiesValue(String(data.get("stories"))) } : {}),
       format: data.get("format"),
       window_days: Number(data.get("window")),
       tone: data.get("tone"),

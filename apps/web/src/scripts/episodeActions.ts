@@ -124,20 +124,20 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
     const chips = topicChips();
     const labels = chips.map(labelOf);
     const answer = asker.answer();
-    const wanted = wantedControls(feedback.value, labels, answer);
-    if (topicsGroup) topicsGroup.hidden = !(wanted.topics || keep.topics || touchedChips.size > 0);
-    if (lengthGroup) lengthGroup.hidden = !(wanted.length || keep.length || lengthTouched);
     const lengths = radios();
     const asked = Number(lengths.find((radio) => radio.defaultChecked)?.value);
+    const aired = Number((rootOf.get(dialog) ?? root).dataset.stories);
+    const wanted = wantedControls(feedback.value, labels, answer, asked, aired);
+    if (topicsGroup) topicsGroup.hidden = !(wanted.topics || keep.topics || touchedChips.size > 0);
+    if (lengthGroup) lengthGroup.hidden = !(wanted.length || keep.length || lengthTouched);
     if (!lengthTouched && Number.isFinite(asked)) {
-      const target = desiredLength(asked, answer.values, feedback.value);
+      const target = desiredLength(asked, answer.values, feedback.value, aired);
       for (const radio of lengths) radio.checked = Number(radio.value) === target;
     }
     // Stories follows the length's room and the words about the count (D377).
     if (storiesGroup) storiesGroup.hidden = !(wanted.stories || storiesTouched);
     if (storiesSelect) {
       const minutes = Number(lengths.find((radio) => radio.checked)?.value ?? asked);
-      const aired = Number((rootOf.get(dialog) ?? root).dataset.stories);
       if (!storiesTouched) {
         storiesSelect.value = desiredStories(aired, minutes, answer.values, feedback.value);
       }

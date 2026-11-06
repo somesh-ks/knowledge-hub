@@ -58,8 +58,11 @@ describe("regenFollow (D371)", () => {
     expect(wordStories("no more stories, please")).toBeNull();
     // No ask for a count leaves it on Auto, which sends nothing.
     expect(desiredStories(12, 5, NO_ANSWER.values, "too much hype")).toBe("");
-    // A step never goes past what the length holds: 3 minutes holds 14 at the shortest telling.
-    expect(desiredStories(12, 3, NO_ANSWER.values, "More stories")).toBe("12");
+    // More than the length holds takes the next length too, so the ask is never sent unchanged:
+    // 3 minutes holds 14 at the shortest telling, so 12 aired steps to 5 minutes and 15 stories.
+    expect(desiredLength(3, NO_ANSWER.values, "More stories", 12)).toBe(5);
+    expect(desiredStories(12, 5, NO_ANSWER.values, "More stories")).toBe("15");
+    expect(wantedControls("More stories", [], NO_ANSWER, 3, 12).length).toBe(true);
     // Haiku's answer beats the words once it comes.
     expect(desiredStories(12, 5, { length: null, stories: "fewer", add: [] }, "More stories")).toBe(
       "10",

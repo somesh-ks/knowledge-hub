@@ -265,25 +265,28 @@ test.describe("regenerate and delete an episode", () => {
     expect(bodies).toHaveLength(0);
   });
 
-  // Owner, 2026-11-06: "More stories" came back with the same 12 because only a model moved Length,
-  // and it had not answered. The words move it at once; the story count is the length.
-  test("'More stories' sets a longer Length before any model answers", async ({ page }) => {
+  // Owner, 2026-11-06: "More stories" came back with the same 12, since the length set the count.
+  // The count is its own control now (D377): the words step it from what aired before any model
+  // answers, the run gets it, and the length stays as made.
+  test("'More stories' sends more stories than aired, at the same length", async ({ page }) => {
     await page.route("**/api/regen-hints", (route) =>
-      route.fulfill({
-        json: { length: false, topics: false, length_step: null, add: [], by: "none" },
-      }),
+      route.fulfill({ json: { length: null, stories: null, add: [], by: "none" } }),
     );
+    const bodies = await mock(page, [{ run_id: 77, state: "queued", step: null }]);
     await open(page);
+    const aired = Number(
+      await page
+        .locator(`[data-episode-actions][data-episode="${ID}"]`)
+        .first()
+        .getAttribute("data-stories"),
+    );
     await choose(page, "Regenerate");
     await panel(page).getByLabel("What went wrong?").fill("More stories");
-    const length = panel(page).getByRole("radiogroup", { name: "Length" });
-    await expect(length).toBeVisible();
-    const lengths = await length
-      .locator("input")
-      .evaluateAll((all) =>
-        all.map((i) => [(i as HTMLInputElement).defaultChecked, (i as HTMLInputElement).checked]),
-      );
-    expect(lengths.findIndex(([, now]) => now)).toBe(lengths.findIndex(([made]) => made) + 1);
+    await expect(panel(page).getByLabel("Stories")).toBeVisible();
+    await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
+    await expect.poll(() => bodies.length).toBe(1);
+    expect(bodies[0]?.stories).toBeGreaterThan(aired);
+    expect(bodies[0]).not.toHaveProperty("length_minutes");
   });
 
   // Owner, 2026-11-04 (D370, D371): Jev reveals what the word match misses and Haiku proposes the

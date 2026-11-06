@@ -138,10 +138,12 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
     comment,
     chips.map((chip) => chip.label),
     answer,
+    Number(asked),
+    aired,
   );
   const shownTopics = Boolean(page) && (wanted.topics || keepTopics || picked.size > 0);
   const shownLength = wanted.length || lengthPick !== null;
-  const length = lengthPick ?? String(desiredLength(Number(asked), answer.values, comment));
+  const length = lengthPick ?? String(desiredLength(Number(asked), answer.values, comment, aired));
   // Stories (D377): Auto unless the comment asks for more or fewer than aired, or the listener picks.
   // A pick the length no longer holds shows the most it holds.
   const storyChoices = storyOptions(Number(length));

@@ -27,12 +27,20 @@ export const NO_ANSWER: Answer = {
 };
 
 /** The controls the comment calls for: its words, Jev, or a value Haiku proposed. */
-export function wantedControls(text: string, labels: readonly string[], answer: Answer): Hints {
+export function wantedControls(
+  text: string,
+  labels: readonly string[],
+  answer: Answer,
+  /** The length asked and the stories aired, when the sheet knows them: a full length shows Length. */
+  asked = Number.NaN,
+  aired = Number.NaN,
+): Hints {
   const words = hintsFor(text, labels);
   return {
     // The words that move the length show its control, so a value it sends is never hidden.
     length:
       words.length ||
+      (Number.isFinite(asked) && desiredLength(asked, answer.values, text, aired) !== asked) ||
       wordLength(text) !== null ||
       answer.hints.length ||
       answer.values.length !== null,
@@ -99,11 +107,20 @@ export function wordStories(text: string): "more" | "fewer" | null {
 
 /**
  * The length an untouched control shows: the asked one, a step along when the comment asks. What
- * Haiku proposed wins; the words decide when it has not answered.
+ * Haiku proposed wins; the words decide when it has not answered. More stories than `aired` that
+ * the asked length cannot hold take a longer one too, so the ask is never sent unchanged (D377).
  */
-export function desiredLength(asked: number, values: Values, text = ""): number {
+export function desiredLength(
+  asked: number,
+  values: Values,
+  text = "",
+  aired = Number.NaN,
+): number {
   const direction = values.length ?? wordLength(text);
-  return direction ? stepLength(asked, direction) : asked;
+  if (direction) return stepLength(asked, direction);
+  const full =
+    (values.stories ?? wordStories(text)) === "more" && stepStories(aired, "more", asked) <= aired;
+  return full ? stepLength(asked, "longer") : asked;
 }
 
 /**
