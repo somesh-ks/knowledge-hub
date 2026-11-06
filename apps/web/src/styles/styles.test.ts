@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { extname, join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
+import { SYSTEM_PATHS } from "../../../../scripts/designSystemGate.mjs";
 import { COMPONENTS } from "../design-system/registry";
 
 /**
@@ -64,26 +65,23 @@ const LABEL_CONTROLS = [
  * matches when it contains the entry as a whole name.
  */
 const ALLOWED_4PX: [selector: string, reason: string][] = [
-  [".aside", "the rail's hit area reaching past the column's edge"],
-  [".aside-rail", "the rail's track padding, around its own segments"],
   [".banner-notice > .button-text", "the action's hit area reaching into the banner's padding"],
   [".banner-body", "a banner's title onto its body, inside one banner"],
   [".menu-tile", "a glyph onto its word inside one tile: the icon-to-label gap is 4px, items 8px"],
+  [".manage-field", "a label onto its field (owner, 2026-11-05)"],
+  [".sheet-field", "a label onto its field (owner, 2026-11-05)"],
+  [".segmented-nav-tab::after", "the segmented control's inset: the tab's fill sits 4px inside it"],
+  [".topic-add-source::after", "the button's hit area reaching 4px past it"],
   [
     ".menu-tiles[data-fold] > .menu-item",
     "the Library card's quick actions are the same tiles on a phone: glyph to word 4px",
   ],
-  [".story", "an optical nudge: the row's bottom half-gap less the chips' hit-area overhang"],
   [".queue-going", "a ring onto its time or percent inside one lead: the icon-to-label gap is 4px"],
   [".create-fab-label", "the button's own inner gap at the label's end"],
   [".sheet-head", "the header's 44px buttons, offset to the edge as a hit area"],
   [".create-more-text", "title onto its subtitle inside one row"],
   [".episode-highlight-actions", "the chips' hit-area overhang under the highlight"],
   [".hero-text", "title onto its subtitle inside one block"],
-  [
-    ".hero-actions",
-    "room for the row's focus rings inside its scroller, taken back by its margins",
-  ],
   [".library-filters", "room for the chips' focus ring inside the scroller"],
   [".filter-chips-scroll", "room for the chips' focus ring inside the scroller"],
   ['[data-view="list"] .card-link::after', "the row's press layer, inset as a hit area"],
@@ -481,6 +479,71 @@ const RULES: Rule[] = [
                   return !(step === "1" && fine);
                 })
                 .map(([token]) => `${file}: ${selector} { ${property}: ${token} }`),
+            ),
+        ),
+      );
+    },
+  },
+  {
+    // The rule above reads the space tokens a stylesheet names. A component token (a field's label
+    // gap of 12px) or a calc() of space tokens (16px less 4px) reached the page off the grid unseen
+    // (owner, 2026-11-05: "every spacing value is to be on the grid"). This one resolves each spacing
+    // value made of space and component tokens to pixels and holds the result to 8, 16, 24 and up,
+    // 4px where ALLOWED_4PX says. A value built from a dimension (an icon, a touch target, a stroke)
+    // is that part's geometry, centring or a hit area, and stays out, as widths do above.
+    name: "spacing tokens and calc() resolve to the 8pt grid",
+    offenders: () => {
+      const spacing =
+        /^(?:margin|padding|gap|row-gap|column-gap|inset|top|right|bottom|left|scroll-margin|scroll-padding)(?:-[a-z-]+)?$/;
+      const dimension =
+        /size|height|width|thumb|track|icon|touch|stroke|hairline|ring|cover|avatar|fab|glyph|radius|shape|font|leading|dock|bar|room|safe|keyboard|nav|sticky|measure|travel|ink|range|scrubber|switch|chip|player|gutter|top/;
+      const px = (expression: string, depth = 0): number | null => {
+        if (depth > 8) return null;
+        let failed = false;
+        const numeric = expression
+          .replace(/var\((--[\w-]+)(?:,[^()]*)?\)/g, (_, name: string) => {
+            if (dimension.test(name)) failed = true;
+            const value = tokenValue(`var(${name})`);
+            const resolved = value.startsWith("var(") ? null : px(value, depth + 1);
+            if (resolved === null) failed = true;
+            return `(${resolved ?? 0})`;
+          })
+          .replace(/calc\(/g, "(")
+          .replace(/(-?\d*\.?\d+)rem\b/g, (_, n: string) => `(${Number(n) * 16})`)
+          .replace(/(-?\d*\.?\d+)px\b/g, "($1)");
+        if (failed || !/^[\d\s.+\-*/()]+$/.test(numeric)) return null;
+        const value = Number(Function(`"use strict"; return (${numeric});`)());
+        return Number.isFinite(value) ? Math.round(value * 100) / 100 : null;
+      };
+      const terms = (value: string) => {
+        const out = [""];
+        let depth = 0;
+        for (const character of value) {
+          depth += character === "(" ? 1 : character === ")" ? -1 : 0;
+          if (/\s/.test(character) && depth === 0) out.push("");
+          else out[out.length - 1] += character;
+        }
+        return out.filter(Boolean);
+      };
+      return [
+        ...ownCss(),
+        ["foundations.css", withoutComments(read("foundations.css"))] as const,
+      ].flatMap(([file, css]) =>
+        rulesOf(css).flatMap(([selector, body]) =>
+          declarationsOf(body)
+            .filter(([property]) => spacing.test(property))
+            .flatMap(([property, value]) =>
+              terms(value)
+                .filter((term) => term.includes("var("))
+                .flatMap((term) => {
+                  const resolved = px(term);
+                  if (resolved === null) return [];
+                  const size = Math.abs(resolved);
+                  if (size % 8 === 0) return [];
+                  const fine = ALLOWED_4PX.some(([allowed]) => wholeName(allowed).test(selector));
+                  if (size === 4 && fine) return [];
+                  return [`${file}: ${selector} { ${property}: ${term} } = ${resolved}px`];
+                }),
             ),
         ),
       );
@@ -1180,10 +1243,28 @@ const PAGE_OVERRIDES: string[] = [
   "topics.css: .topics-panel select.field-input:focus-visible, .topics-panel .multiselect-trigger:focus-visible",
   'topics.css: .topics-panel select.field-input:where(:enabled):active, .topics-panel .multiselect-trigger:is(:active, [aria-expanded="true"])',
   'topics.css: .topics-panel select.field-input:where(:enabled):hover, .topics-panel .multiselect-trigger:hover, .topics-panel :is(input, textarea).field-input:not( :focus-visible, [readonly], [aria-invalid]:not([aria-invalid="false"]) ):where(:enabled):hover',
-  "topics.css: dialog.sheet-side.topics-panel",
 ];
 
 describe("design-system components in page stylesheets", () => {
+  it("read a type size or a corner only through its role (D378)", () => {
+    // A direct read skips the role, so a change to the role never reaches it: the lines that read
+    // --font-size-meta kept 14px when the meta role moved to 1rem, and a --radius-* corner stays
+    // Default's in every mood. Pages read --text-*-size and --shape-*; the system's own sheets bind
+    // the primitives, and no sheet reads the meta size but through its role.
+    const STYLES_DIR = "apps/web/src/styles/";
+    const system = new Set(
+      SYSTEM_PATHS.filter((path) => path.startsWith(STYLES_DIR)).map((path) =>
+        path.slice(STYLES_DIR.length),
+      ),
+    );
+    const found = ownCss().flatMap(([file, css]) =>
+      [...css.matchAll(/var\(\s*(--(?:font-size|radius)-[\w-]+)/g)]
+        .filter(([, name]) => !system.has(file) || name === "--font-size-meta")
+        .map(([, name]) => `${file} reads ${name}`),
+    );
+    expect(found).toEqual([]);
+  });
+
   it("are restyled only where the debt list says", () => {
     const found: string[] = [];
     for (const component of COMPONENTS) {
@@ -1313,6 +1394,7 @@ describe("component stylesheets", () => {
         "the press layer over a cover's art, which has no one colour",
       ],
       ["ripple.css .ripple-wave", "the press wave, which crosses the bar and its current pill"],
+      ["glow.css .glow-halo", "the favorite glow, light that fades over whatever lies beneath it"],
     ];
     const painted = /^(?:color|background(?:-color|-image)?|fill|--[\w-]+)$/;
     const found = ownCss().flatMap(([file, css]) =>
@@ -1334,7 +1416,7 @@ describe("component stylesheets", () => {
     // side column's Catch up are one action, so one colour: the floating ones wore the tonal step and
     // Catch up a tone of its own, each a second primary beside Play (owner, 2026-11-04). A disabled
     // face is the only other fill.
-    const PRIMARY = ["button-filled", "create-fab", "play-fab", "btn-action-tonal"];
+    const PRIMARY = ["button-filled", "create-fab", "play-fab", "btn-action-tonal", "queue-play"];
     const groups = /:(?:where|not|is)\((?:[^()]|\([^()]*\))*\)/g;
     const found = ownCss().flatMap(([file, css]) =>
       rulesOf(css).flatMap(([list, body]) => {

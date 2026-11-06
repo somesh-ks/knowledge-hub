@@ -4,12 +4,12 @@
  * problem and the words wait here (2026-11-05, the owner: "a big wall of text", "hide them inside a
  * bottom sheet on mobile and sidebar on desktop"). A problem's sheet: its reading, what it means for
  * readers, where to start (lib/healthHelp.ts), the week's commonest reports, then its prompt for an
- * AI agent with Copy (healthPrompts.ts).
+ * AI agent in the design system's Code snippet, which has its own Copy (healthPrompts.ts).
  */
+import { codeSnippetHtml, wireCodeCopy } from "../../../web/src/design-system/code";
 import { sheetBodyClass } from "../../../web/src/design-system/sheet";
 import { sheetGestures } from "../../../web/src/scripts/pullDismiss";
 import { helpFor } from "../lib/healthHelp";
-import { copyButton } from "../lib/problem";
 import { allPrompt, issuePrompt, type PromptInput, reading } from "./healthPrompts";
 import { element, glyph } from "./healthRing";
 import { type Issue, nameOf } from "./healthSummary";
@@ -18,6 +18,7 @@ const sheet = document.querySelector<HTMLDialogElement>("dialog[data-health-shee
 if (sheet) {
   sheet.querySelector("[data-panel-close]")?.addEventListener("click", () => sheet.close());
   sheetGestures(sheet);
+  wireCodeCopy();
 }
 
 /** A part of the sheet: its heading, then what it holds. */
@@ -27,22 +28,11 @@ function part(title: string, ...children: Node[]): HTMLElement {
   return box;
 }
 
-/**
- * The prompt: its heading and Copy, then its whole text as a snippet.
- * shortcut: the snippet is drawn here until the design system's Snippet part lands (rolling DS PR
- * #705); then this draws that part.
- */
+/** The prompt: its heading, then its whole text in the design system's Code snippet, in the sheet's
+ * body and never in a card (2026-11-06, the owner). */
 function promptPart(text: string): HTMLElement {
-  const box = element("section", "hl-detail-part");
-  const head = element("div", "hl-detail-row");
-  const name = element("h3", "hl-detail-head", "Prompt for an AI agent");
-  name.id = "hl-prompt-head";
-  const copy = copyButton("Copy", () => text);
-  copy.setAttribute("aria-describedby", name.id);
-  head.append(name, copy);
-  const snippet = element("pre", "hl-snippet", text);
-  snippet.setAttribute("aria-labelledby", name.id);
-  box.append(head, snippet);
+  const box = part("Prompt for an AI agent");
+  box.insertAdjacentHTML("beforeend", codeSnippetHtml(text, { label: "Prompt for an AI agent" }));
   return box;
 }
 
@@ -51,8 +41,9 @@ function show(title: string, parts: HTMLElement[]): void {
   const heading = sheet.querySelector<HTMLElement>("#hl-sheet-title");
   if (heading) heading.textContent = title;
   sheet.querySelector("[data-sheet-content]")?.replaceChildren(...parts);
-  sheet.querySelector(`.${sheetBodyClass()}`)?.scrollTo(0, 0);
   if (!sheet.open) sheet.showModal();
+  // After it opens: a closed dialog has no box, so a scroll before would keep the last sheet's place.
+  sheet.querySelector(`.${sheetBodyClass()}`)?.scrollTo(0, 0);
 }
 
 /** A problem's sheet. */
