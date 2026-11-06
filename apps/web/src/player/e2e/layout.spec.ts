@@ -127,6 +127,10 @@ test.describe("layout at real window sizes", () => {
           )
           .toBeLessThanOrEqual(1);
       }
+      // The Stories and Up next tabs show whole on the first screen, so people see there is more
+      // below (owner, 2026-11-04). A phone on its side has no room for them.
+      if (size.width < 1024 && size.height > size.width)
+        await expect(player.dialog.getByRole("tablist")).toBeInViewport({ ratio: 1 });
       const report = await page.evaluate(LAYOUT_CHECK);
       expect(report.problems, JSON.stringify(report.parts)).toEqual([]);
       // The last control and the last row of the list can both be reached.

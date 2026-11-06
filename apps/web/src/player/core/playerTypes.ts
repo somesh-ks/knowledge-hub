@@ -168,6 +168,11 @@ export interface PlayerStore {
   /** Reads the page's digest. Attaches its audio when nothing has started yet. */
   setPageDigest(digest: PlayerDigestData | null): void;
   load(digest: PlayerDigestData): void;
+  /**
+   * Shows the track the listener was on before the page reloaded: paused where they left it, bar
+   * visible, no audio fetched until Play. Does nothing once something has started.
+   */
+  restore(digest: PlayerDigestData): void;
   play(reason?: PlayReason): void;
   pause(reason?: PauseReason): void;
   toggle(): void;

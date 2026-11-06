@@ -140,7 +140,7 @@ const signatures = new Map<string, string | null>();
  * zones that keep the same time, daylight saving included, have the same signature (Oslo and
  * Stockholm do, Phoenix and Denver do not). Null for a name Intl does not know.
  */
-function clockSignature(zone: string, at: Date): string | null {
+export function clockSignature(zone: string, at: Date): string | null {
   const key = `${zone}@${at.toISOString().slice(0, 10)}`;
   const kept = signatures.get(key);
   if (kept !== undefined) return kept;
@@ -163,45 +163,6 @@ export function sameClock(a: string, b: string, at: Date = new Date()): boolean 
   if (a === b) return true;
   const mine = clockSignature(a, at);
   return mine !== null && mine === clockSignature(b, at);
-}
-
-/** The zone the schedule could move to, from the one a device reports. */
-export interface ZoneSuggestion {
-  zone: string;
-  /** The place name the list uses for it. */
-  label: string;
-  /** False when the device's own zone is not on the list and this one only keeps the same time. */
-  exact: boolean;
-  /** The flag of an exact zone's country: a stand-in zone says nothing of where the device is. */
-  flag?: string;
-}
-
-/**
- * The zone to offer a device whose system zone is `device` while the schedule counts in `saved`
- * (D239), or null when there is nothing to offer: the same clock (a zone the list lacks, such as
- * Oslo, keeps Stockholm's time and asks for nothing), or a zone no entry of the list can stand for
- * (Kathmandu). A device zone on the list is offered as itself; one that is not, as the first entry
- * that keeps its time, and `exact` says which.
- */
-export function suggestZone(
-  device: string | undefined,
-  saved: string,
-  at: Date = new Date(),
-): ZoneSuggestion | null {
-  if (!device || device === saved) return null;
-  const mine = clockSignature(device, at);
-  if (mine === null || mine === clockSignature(saved, at)) return null;
-  const listed = SUPPORTED_TIMEZONES.find((option) => option.value === device);
-  const match =
-    listed ?? SUPPORTED_TIMEZONES.find((option) => clockSignature(option.value, at) === mine);
-  if (!match) return null;
-  const flag = listed?.country ? flagOf(listed.country) : undefined;
-  return {
-    zone: match.value,
-    label: match.label,
-    exact: listed !== undefined,
-    ...(flag ? { flag } : {}),
-  };
 }
 
 const dateFormats = new Map<string, Intl.DateTimeFormat>();

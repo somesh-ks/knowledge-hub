@@ -41,14 +41,15 @@ export interface GrowthDeps {
  */
 export function createGrowth(
   segments: TrackSegment[],
-  initial: Pick<StreamDoc, "status">,
+  initial: Pick<StreamDoc, "status" | "expected_ms">,
   deps: GrowthDeps,
 ): Growth & { sync(doc: StreamDoc): number } {
   let status = initial.status;
-  /** How many segments the track has been told about by a `waitForMore` that resolved. */
-  let told = segments.length;
+  /** How long the engine expects the episode to run (D366); 0 when its copy does not say. */
+  let expectedMs = initial.expected_ms ?? 0;
 
   function append(doc: StreamDoc): number {
+    expectedMs = doc.expected_ms ?? expectedMs;
     let added = 0;
     for (let idx = segments.length; idx < doc.turns.length; idx += 1) {
       const turn = doc.turns[idx];
@@ -63,32 +64,31 @@ export function createGrowth(
 
   return {
     pending: () => status === "writing",
+    expected: () => expectedMs / 1000,
     /** Takes a copy read elsewhere (the controller's own poll): turns past the last are added. */
     sync(doc) {
       status = doc.status;
       return append(doc);
     },
-    async waitForMore() {
+    async waitForMore(wanted = () => true) {
+      // Counted from this call: a wait the track gave up on (a seek overtook it) cannot use up the
+      // news the current one is waiting for. A `sync` during the wait is news too.
+      const seen = segments.length;
       const limit = deps.now() + (deps.giveUpMs ?? GROWTH_GIVE_UP_MS);
       for (;;) {
-        // Turns a `sync` added while the track was still playing are news to the track too.
-        if (segments.length > told) {
-          told = segments.length;
-          return true;
-        }
-        if (status !== "writing") return false;
+        if (segments.length > seen) return true;
+        // A wait the track left behind stops here, so the polls do not add up.
+        if (status !== "writing" || !wanted()) return false;
         const doc = await deps.fetchDoc().catch(() => null);
         if (doc) {
           status = doc.status;
           append(doc);
-          if (segments.length > told) {
-            told = segments.length;
-            return true;
-          }
+          if (segments.length > seen) return true;
           if (status !== "writing") return false;
         }
         if (deps.now() >= limit) {
-          status = "failed";
+          // Only the wait in use gives the episode up.
+          if (wanted()) status = "failed";
           return false;
         }
         await deps.delay(deps.pollMs ?? GROWTH_POLL_MS);
@@ -169,12 +169,13 @@ export function liveNarrated(
     if (!span || turn.item_id === undefined || firstStarts.has(turn.item_id)) return;
     firstStarts.set(turn.item_id, Math.round(span.start * 1000));
   });
-  const last = segments[segments.length - 1];
-  const totalMs = Math.round((last?.end ?? 0) * 1000);
+  const madeMs = Math.round((segments[segments.length - 1]?.end ?? 0) * 1000);
   const plan: NarrationPlan = {
     segments: [...segments],
-    total_ms: totalMs,
-    items: storyRuns(firstStarts, totalMs),
+    // While it is written, the episode runs as long as the engine expects (D366), not as far as it
+    // got. Its stories run only as far as the turns made, so the last chapter holds no unmade time.
+    total_ms: Math.max(madeMs, doc.status === "writing" ? Math.round(doc.expected_ms ?? 0) : 0),
+    items: storyRuns(firstStarts, madeMs),
     complete: false,
   };
   return narratedDigest(liveDigestFrom(doc, now), plan);

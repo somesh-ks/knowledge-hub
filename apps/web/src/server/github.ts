@@ -110,6 +110,8 @@ export interface GitHubClient {
   listSteps(runId: number): Promise<WorkflowStep[]>;
   /** The text of a file at `ref`, or null when it does not exist. */
   readFile(path: string, ref: string): Promise<string | null>;
+  /** A repository Actions variable's value, or null when it does not exist. */
+  readVariable(name: string): Promise<string | null>;
 }
 
 /**
@@ -290,6 +292,14 @@ export function createGitHubClient(config: ServerConfig, fetchImpl: FetchLike): 
       if (!response.ok) throw new GitHubError(response.status);
       return response.text();
     },
+
+    async readVariable(name) {
+      const response = await request(`/actions/variables/${encodeURIComponent(name)}`);
+      if (response.status === 404) return null;
+      if (!response.ok) throw new GitHubError(response.status);
+      const body = (await response.json()) as { value?: unknown };
+      return typeof body.value === "string" ? body.value : null;
+    },
   };
 }
 
@@ -297,6 +307,17 @@ export const CONFIG_WORKFLOW_FILE = "config.yml";
 
 /** The repository variable holding the one cron that run.yml acts on. */
 export const RUN_CRON_VARIABLE = "RUN_CRON";
+
+/**
+ * The repository variable holding a copy of the stored schedule (config/schedule.json), so the
+ * hourly cron can tell an hour with nothing scheduled without waking the database (D360).
+ */
+export const RUN_SCHEDULE_VARIABLE = "RUN_SCHEDULE";
+
+/** RUN_SCHEDULE's text: the store's schedule as it was read, and when. */
+export function scheduleCopy(scheduleText: string, checkedAt: Date): string {
+  return JSON.stringify({ checked_at: checkedAt.toISOString(), schedule: scheduleText });
+}
 
 /**
  * Sets a repository Actions variable, creating it when it does not exist. Needs the token's

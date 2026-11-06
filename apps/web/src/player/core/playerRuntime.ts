@@ -17,6 +17,7 @@ import type { PlayerDigestData } from "../../types/contracts";
 import { startSound } from "../sound/soundController";
 import { announcementForEvent } from "./announcements";
 import { announce } from "./announcerDom";
+import { preconnectAudioHost } from "./audioHost";
 
 /** The open player covers the page (html[data-player="open"]), so the page's own notices are inert. */
 function playerIsOpen(): boolean {
@@ -45,10 +46,11 @@ import { getPreferences } from "./preferences";
 import { loadQueueDigest, queueDigestFor } from "./queueMeta";
 import { startQueuePrefetch } from "./queuePrefetch";
 import { createReaderSync, type ReaderSync } from "./readerSync";
-import { safeLocalStorage } from "./resume";
+import { safeLocalStorage, safeSessionStorage } from "./resume";
 import { reapplyRootState, setRootAttribute, setRootProperty } from "./rootAttributes";
+import { isReturn, openQuietly, readSession, saveSession } from "./sessionRestore";
 import { getSpeedDefault } from "./speedDefaultRuntime";
-import { loadTimeline, skipper, suggestNext } from "./suggested";
+import { keepPlaces, loadTimeline, skipper, suggestNext } from "./suggested";
 import { tabShared } from "./tabSlot";
 import { reapplyTheme, startThemeSync } from "./themeRuntime";
 
@@ -151,12 +153,23 @@ function createQueue(): PlayQueue {
   });
 }
 
+/** The suggestions last listed after `shownAfter`, whose places a refill keeps. */
+let shownSuggestions: readonly string[] = [];
+let shownAfter: string | null = null;
+
 /** The suggested items after what is playing: the list Up next shows and Autoplay draws from. */
 export async function loadSuggested(): Promise<string[] | null> {
   const ordered = await loadTimeline();
   if (!ordered) return null;
   const currentId = getPlayerStore().getState().track?.digest.id ?? null;
-  return suggestNext(ordered, currentId, skipper(safeLocalStorage(), getPlayQueue().getIds()));
+  const queue = getPlayQueue();
+  // A row put above the playing one is listed too (D357): it is not suggested again.
+  const listed = [...queue.getAbove(), ...queue.getIds()];
+  const fresh = suggestNext(ordered, currentId, skipper(safeLocalStorage(), listed));
+  // A new item playing starts the list over, in timeline order: Autoplay takes the next one.
+  shownSuggestions = keepPlaces(shownAfter === currentId ? shownSuggestions : [], fresh);
+  shownAfter = currentId;
+  return [...shownSuggestions];
 }
 
 /** Bumped when the listener picks an item, so an autoplay still loading its list gives way. */
@@ -270,7 +283,11 @@ function syncRootState(playerStore: PlayerStore): void {
 /** Reads the page's digest into the store and refreshes the reader coupling. */
 function readPage(playerStore: PlayerStore): void {
   // A briefing narrated earlier in this session comes back with its audio, not as the page built it.
-  playerStore.setPageDigest(narratedOrPage(readDigestData()));
+  const digest = narratedOrPage(readDigestData());
+  // Before setPageDigest: a press on a cover in the Library starts playing on arrival, inside it.
+  const url = digest?.audio?.url;
+  if (url) preconnectAudioHost(url);
+  playerStore.setPageDigest(digest);
 }
 
 /** A dialog or popover other than the player is open. The toast is a popover, but not a modal one. */
@@ -311,6 +328,9 @@ export function startPlayerRuntime(): () => void {
   const claim = tabShared("runtime", () => ({ running: false }));
   if (claim.running) return () => undefined;
   claim.running = true;
+  // Read before anything writes it: what the tab was showing before this page loaded.
+  const session = safeSessionStorage();
+  const before = isReturn() ? readSession(session) : null;
   const playerStore = getPlayerStore();
   const preferences = getPreferences();
   // Counted for the install hint on Settings; nothing on this page waits on it, so it loads late.
@@ -344,6 +364,38 @@ export function startPlayerRuntime(): () => void {
     if (starting && status === "playing") announce(starting);
     starting = null;
   });
+  let tornDown = false;
+  // The track on the bar and whether the full player is open are kept for a reload (sessionRestore.ts).
+  let lastSession = "";
+  const keepSession = (): void => {
+    const { hasStarted, track } = playerStore.getState();
+    const id = track?.digest.id;
+    if (!hasStarted || !id) return;
+    const open = playerIsOpen();
+    const key = `${id}|${open}`;
+    if (key === lastSession) return;
+    lastSession = key;
+    saveSession(session, { id, open });
+  };
+  const offSession = playerStore.subscribe(keepSession);
+  const offSessionSheet = playerSheet.subscribe(keepSession);
+  // The track is the page's until the listener picks another, or the one a reload brings back.
+  const warmAudioHost = (): void => {
+    const url = playerStore.getState().track?.digest.audio?.url;
+    if (url) preconnectAudioHost(url);
+  };
+  if (before && !playerStore.getState().hasStarted) {
+    const picks = selections().count;
+    const cached = queueDigestFor(before.id);
+    void (cached ? Promise.resolve(cached) : loadQueueDigest(before.id)).then((digest) => {
+      // The listener picked something while the track was being read: theirs stands.
+      if (!digest || tornDown || picks !== selections().count) return;
+      if (playerStore.getState().hasStarted) return;
+      playerStore.restore(narratedOrPage(digest));
+      warmAudioHost();
+      if (before.open) openQuietly(() => void playerSheet.expand());
+    });
+  }
   // Before the queue's listener, so an end is counted for the item that ended, not the next one.
   const offListening = countListening(playerStore, track);
   const playQueue = getPlayQueue();
@@ -369,7 +421,6 @@ export function startPlayerRuntime(): () => void {
   // Queued items' first minutes are fetched at an idle moment, so a tap on any of the next three
   // starts at once (queuePrefetch.ts).
   let stopPrefetch: (() => void) | null = null;
-  let tornDown = false;
   whenIdle(() => {
     if (tornDown) return;
     stopPrefetch = startQueuePrefetch(playQueue);
@@ -427,7 +478,8 @@ export function startPlayerRuntime(): () => void {
     if (open === wasOpen) return;
     wasOpen = open;
     if (open) {
-      history.pushState({ ...history.state, playerOpen: true }, "");
+      // A reload keeps the entry the open player took: reopening after it reuses that one.
+      if (!history.state?.playerOpen) history.pushState({ ...history.state, playerOpen: true }, "");
       entry = true;
       addEventListener("singularity:back", onBack);
     } else if (entry) {
@@ -461,6 +513,11 @@ export function startPlayerRuntime(): () => void {
     if (playerIsOpen()) announce("You are offline.");
   };
 
+  // A tab brought back, or an app resumed, has lost the sockets it opened before.
+  const onVisible = (): void => {
+    if (document.visibilityState === "visible") warmAudioHost();
+  };
+  document.addEventListener("visibilitychange", onVisible);
   document.addEventListener("astro:page-load", onPageLoad);
   document.addEventListener("astro:before-preparation", onBeforeNavigation);
   document.addEventListener("astro:after-swap", onAfterSwap);
@@ -476,6 +533,7 @@ export function startPlayerRuntime(): () => void {
   return () => {
     tornDown = true;
     stopPrefetch?.();
+    document.removeEventListener("visibilitychange", onVisible);
     document.removeEventListener("astro:page-load", onPageLoad);
     document.removeEventListener("astro:before-preparation", onBeforeNavigation);
     document.removeEventListener("astro:after-swap", onAfterSwap);
@@ -491,6 +549,8 @@ export function startPlayerRuntime(): () => void {
     offState();
     offWake();
     offEntry();
+    offSession();
+    offSessionSheet();
     removeEventListener("singularity:back", onBack);
     stopTheme();
     stopSound();

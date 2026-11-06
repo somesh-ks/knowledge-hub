@@ -1,0 +1,68 @@
+name: ffmpeg
+description: >-
+  ffmpeg with the libopus encoder, which the runner image lacks. The first run installs it with apt
+  (about 17 seconds) and keeps the binary and every library it links, about 100 MB, in the Actions
+  cache. Later runs restore it in a few seconds.
+inputs:
+  required:
+    description: "'true' fails the step when no libopus encoder is found; otherwise it warns."
+    default: "false"
+runs:
+  using: composite
+  steps:
+    # The libraries come from this runner image's apt archive, so the key names the image and its
+    # version: a cache entry is never replaced, so a copy keyed by the OS alone that stopped working
+    # would be restored, fail and reinstall on every run. A new image refills it once.
+    - id: key
+      shell: bash
+      run: echo "key=ffmpeg-${ImageOS:-unknown}-${ImageVersion:-unknown}-${RUNNER_ARCH}-v1" >> "$GITHUB_OUTPUT"
+    # A cache service failure falls through to the install below instead of failing the step.
+    - id: restore
+      continue-on-error: true
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.ffmpeg
+        key: ${{ steps.key.outputs.key }}
+    - id: install
+      shell: bash
+      env:
+        REQUIRED: ${{ inputs.required }}
+      run: |
+        dir="$HOME/.ffmpeg"
+        # Read in full first: under pipefail an early `grep -q` exit can fail ffmpeg with SIGPIPE.
+        opus() { local out; out="$("$1" -hide_banner -encoders </dev/null 2>/dev/null || true)"; grep -q libopus <<<"$out"; }
+        if [ -x "$dir/bin/ffmpeg" ] && opus "$dir/bin/ffmpeg"; then
+          echo "$dir/bin" >> "$GITHUB_PATH"
+          "$dir/bin/ffmpeg" -hide_banner -version </dev/null | sed -n 1p
+          exit 0
+        fi
+        if ! opus ffmpeg; then
+          # The man-db trigger can take minutes after an install on the runner image, and apt
+          # waits on a slow mirror unbounded: skip the one and bound the other. Not -qq, so a
+          # stall shows its stage in the log.
+          sudo rm -f /var/lib/man-db/auto-update
+          apt_opts=(-o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20)
+          sudo apt-get "${apt_opts[@]}" update -q
+          sudo DEBIAN_FRONTEND=noninteractive apt-get "${apt_opts[@]}" install -y -q --no-install-recommends ffmpeg
+        fi
+        if ! opus ffmpeg; then
+          if [ "$REQUIRED" = "true" ]; then echo "::error::ffmpeg has no libopus encoder"; exit 1; fi
+          echo "::warning::ffmpeg has no libopus encoder; episodes fall back to MP3"
+          exit 0
+        fi
+        ffmpeg -hide_banner -version </dev/null | sed -n 1p
+        # Keep it for the next run: the binary, every library it links except glibc's (the image's
+        # own), and a launcher that shows those libraries to ffmpeg alone, never to other programs.
+        rm -rf "$dir" && mkdir -p "$dir/bin" "$dir/lib" "$dir/libexec"
+        cp "$(command -v ffmpeg)" "$dir/libexec/ffmpeg"
+        ldd "$dir/libexec/ffmpeg" | awk '/=> \//{print $3}' \
+          | grep -vE '/(libc|libm|libdl|libpthread|librt)\.so' | xargs -r cp -L -t "$dir/lib"
+        printf '%s\n' '#!/bin/sh' 'here="$(dirname "$0")/.."' \
+          'LD_LIBRARY_PATH="$here/lib" exec "$here/libexec/ffmpeg" "$@"' > "$dir/bin/ffmpeg"
+        chmod +x "$dir/bin/ffmpeg"
+        if opus "$dir/bin/ffmpeg"; then echo "save=true" >> "$GITHUB_OUTPUT"; fi
+    - if: steps.install.outputs.save == 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.ffmpeg
+        key: ${{ steps.key.outputs.key }}

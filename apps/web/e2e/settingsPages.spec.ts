@@ -41,9 +41,15 @@ test("every settings subpage shows the Settings crumb and the same gap from its 
         if (n.closest(".sr-only")) return false;
         const words = [...n.childNodes].some((c) => c.nodeType === 3 && c.textContent?.trim());
         return (
-          style.backgroundColor !== clear || Number.parseFloat(style.borderTopWidth) > 0 || words
+          style.backgroundColor !== clear ||
+          Number.parseFloat(style.borderTopWidth) > 0 ||
+          words ||
+          n.matches(".empty-art")
         );
       }) as HTMLElement;
+      // A page that holds only an empty state (Haptics on a device with no motor) centres it, so its
+      // gap is its own.
+      if (first.matches(".empty-art")) return -1;
       // Words start at their box's padding, as a group head's do.
       const style = getComputedStyle(first);
       const pad = style.backgroundColor === clear ? Number.parseFloat(style.paddingTop) : 0;
@@ -52,7 +58,7 @@ test("every settings subpage shows the Settings crumb and the same gap from its 
       );
     });
   }
-  expect(new Set(Object.values(gaps)).size, JSON.stringify(gaps)).toBe(1);
+  expect(new Set(Object.values(gaps).filter((gap) => gap >= 0)).size, JSON.stringify(gaps)).toBe(1);
 });
 
 // A select's fill (the box that shows under a pointer and while it is open) stood 4px from its card's

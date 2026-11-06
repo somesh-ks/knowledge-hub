@@ -87,6 +87,8 @@ function setup(overrides: { reducedMotion?: boolean } = {}) {
   let handle = 0;
   let now = 0;
   const cues: string[] = [];
+  /** How each commit was decided: a lifted finger is `drag` (silent, owner 2026-11-03), the rest `command`. */
+  const vias: string[] = [];
   const root = new Map<string, string>();
   const surface = createSurfaceController({
     view,
@@ -95,8 +97,14 @@ function setup(overrides: { reducedMotion?: boolean } = {}) {
     fadeMs: () => 200,
     releaseBounce: () => 0.15,
     setRootAttribute: (name, value) => root.set(name, value),
-    onCommitOpen: () => cues.push("open"),
-    onCommitClose: () => cues.push("close"),
+    onCommitOpen: (via) => {
+      cues.push("open");
+      vias.push(via);
+    },
+    onCommitClose: (via) => {
+      cues.push("close");
+      vias.push(via);
+    },
     requestFrame: (callback) => {
       handle += 1;
       frames.set(handle, callback);
@@ -120,7 +128,7 @@ function setup(overrides: { reducedMotion?: boolean } = {}) {
     for (let guard = 0; guard < 400 && frames.size > 0; guard += 1) run(16);
   };
   const state = (): string => surface.getSnapshot().state;
-  return { surface, view, cues, root, run, settle, state, pending: () => frames.size };
+  return { surface, view, cues, vias, root, run, settle, state, pending: () => frames.size };
 }
 
 let clock = 1_000;
@@ -365,12 +373,13 @@ describe("expanding and collapsing", () => {
 
 describe("taps", () => {
   it("opens from a tap on the bar", () => {
-    const { surface, settle, state, cues } = setup();
+    const { surface, settle, state, cues, vias } = setup();
     tap(surface, "dock", 1_000);
     expect(state()).toBe("expanding");
     settle();
     expect(state()).toBe("expanded");
     expect(cues).toEqual(["open"]);
+    expect(vias).toEqual(["command"]);
   });
 
   it("ends expanded after two taps 120 ms apart", () => {
@@ -481,7 +490,7 @@ describe("clicks on the bar", () => {
 
 describe("dragging the page open", () => {
   it("follows the finger from the slop without committing, then opens on release", () => {
-    const { surface, view, cues, settle, state } = setup();
+    const { surface, view, cues, vias, settle, state } = setup();
     const end = drag(surface, "dock", 780, 380, 600);
     expect(state()).toBe("dragging");
     expect(view.captured.has(1)).toBe(true);
@@ -492,6 +501,8 @@ describe("dragging the page open", () => {
     surface.pointerEnd(at("dock", 380, end + 200), false);
     expect(state()).toBe("expanding");
     expect(cues).toEqual(["open"]);
+    // A swipe that opens the page makes no sound (owner, 2026-11-03).
+    expect(vias).toEqual(["drag"]);
     expect(view.captured.has(1)).toBe(false);
     settle();
     expect(state()).toBe("expanded");
@@ -550,7 +561,8 @@ describe("dragging the page closed", () => {
   });
 
   it("dismisses on release after a long drag, never before the lift", () => {
-    const { surface, view, cues, settle, state } = opened();
+    const { surface, view, cues, vias, settle, state } = opened();
+    vias.length = 0;
     const end = drag(surface, "drag", 120, 620, 700);
     expect(state()).toBe("dragging");
     expect(surface.getSnapshot().open).toBe(true);
@@ -558,6 +570,7 @@ describe("dragging the page closed", () => {
     surface.pointerEnd(at("drag", 620, end + 200), false);
     expect(state()).toBe("collapsing");
     expect(cues).toEqual(["close"]);
+    expect(vias).toEqual(["drag"]);
     settle();
     expect(state()).toBe("collapsed");
   });

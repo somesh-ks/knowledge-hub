@@ -50,7 +50,7 @@ export function installThemeColor(): void {
   const system: ThemeColors = { light, dark };
 
   const apply = (): void => {
-    const styled = document.documentElement.dataset.style ? surfaceHex() : null;
+    const styled = document.documentElement.dataset.mood ? surfaceHex() : null;
     const next = themeColorsFor(document.documentElement.dataset.theme, system, styled);
     const lightMeta = meta("light");
     const darkMeta = meta("dark");
@@ -62,7 +62,7 @@ export function installThemeColor(): void {
   // The theme and the style live in attributes on the root, and the reader's hue in its style; the settings page and the player write them.
   new MutationObserver(apply).observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ["data-theme", "data-style", "style"],
+    attributeFilter: ["data-theme", "data-mood", "style"],
   });
   // A styled page in the system theme changes colour when the system does.
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", apply);

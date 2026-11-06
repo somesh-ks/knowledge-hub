@@ -389,6 +389,27 @@ export async function holdFinger(page: Page, target: Locator): Promise<() => Pro
   };
 }
 
+/** A finger's sideways swipe across the target, through Chromium's touch input, by dx CSS px. */
+export async function swipeFinger(page: Page, target: Locator, dx: number): Promise<void> {
+  await target.scrollIntoViewIfNeeded();
+  const box = await target.boundingBox();
+  if (!box) throw new Error("nothing to swipe: the target has no box");
+  const y = box.y + box.height / 2;
+  const x0 = box.x + box.width / 2;
+  const client = await page.context().newCDPSession(page);
+  await client.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ x: x0, y }],
+  });
+  for (let step = 1; step <= 10; step += 1) {
+    await page.waitForTimeout(16);
+    const point = { x: x0 + (dx * step) / 10, y };
+    await client.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [point] });
+  }
+  await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await client.detach();
+}
+
 /**
  * Opens a Library row's menu the way the device does (D264): a hold on a touch screen, where the
  * ⋮ is not pressable, and a press of the ⋮ with a mouse.

@@ -74,7 +74,7 @@ function mount(picker: HTMLElement): () => void {
   const moodWatch = new MutationObserver(() => draw(picker));
   moodWatch.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ["data-style"],
+    attributeFilter: ["data-mood"],
   });
   return () => {
     picker.removeEventListener("click", onClick);

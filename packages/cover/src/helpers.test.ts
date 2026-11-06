@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { circleHitsQuiet } from "./place.js";
-import { linePath, n, nonFiniteCount, pad, rectPath } from "./svg.js";
+import { n, nonFiniteCount, pad, rectPath } from "./svg.js";
 import type { Ctx, Rect } from "./types.js";
 
 /** Only the fields the placement helpers read. */
@@ -25,19 +25,6 @@ describe("number formatting", () => {
 });
 
 describe("path builders", () => {
-  const points = [
-    { x: 0, y: 0 },
-    { x: 10, y: 0 },
-    { x: 10, y: 10 },
-    { x: 0, y: 10 },
-  ];
-
-  it("builds polylines, open and closed", () => {
-    expect(linePath(points)).toBe("M0 0L10 0L10 10L0 10");
-    expect(linePath(points, true)).toBe("M0 0L10 0L10 10L0 10Z");
-    expect(linePath([])).toBe("");
-  });
-
   it("builds rectangles and padded rectangles", () => {
     expect(rectPath({ x: 1, y: 2, w: 3, h: 4 })).toBe("M1 2h3v4h-3Z");
     expect(pad({ x: 10, y: 10, w: 20, h: 20 }, 5)).toEqual({ x: 5, y: 5, w: 30, h: 30 });

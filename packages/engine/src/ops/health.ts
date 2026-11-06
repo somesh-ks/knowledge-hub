@@ -28,6 +28,16 @@ import {
   readTopicJudgments,
   readUsage,
 } from "../state/store.js";
+import type { CardRow } from "../store/healthStore.js";
+import type { Check } from "./doctorTypes.js";
+import {
+  buildCard,
+  checkBrowserSuite,
+  checkKeys,
+  checkNeonCompute,
+  type GitHubReading,
+  type NeonReading,
+} from "./healthBudgets.js";
 import {
   checkConfig,
   checkConfigStore,
@@ -89,6 +99,8 @@ export interface HealthReport {
   findings: HealthFinding[];
   /** What was checked and found fine, one line each. */
   passed: string[];
+  /** One line per area for the Monday issue and the Health page (D360). */
+  card: CardRow[];
 }
 
 export interface HealthOptions {
@@ -122,12 +134,24 @@ export interface HealthOptions {
   deployments?: DeploymentReading;
   /** The voices episodes are narrated in, so their stored segments are found by address. */
   voices?: EpisodeVoiceEnv;
+  /** Neon's compute this period (the command reads it with NEON_API_KEY); absent skips `neon_compute`. */
+  neon?: NeonReading;
+  /** The week on GitHub (the command reads it with GH_TOKEN); absent skips `browser_suite_failed`. */
+  github?: GitHubReading;
+  /** Doctor's free key checks (the command runs them online); absent skips the keys. */
+  keys?: readonly Check[];
 }
 
 /** A story summary this short is a stub: a third of what the writer's lint asks for. */
 export const SHORT_STORY_WORDS = Math.floor(VOICE_LIMITS.summaryMinWords / 3);
 /** A deploy that has not picked up a new digest after this long has failed (Hobby author check). */
 export const DEPLOY_LAG_MS = 45 * 60_000;
+/**
+ * How long a merge may wait for the batch before `site_behind` says so: the three hours
+ * scripts/deploy-batch.sh holds a merge, plus the wait for the next push to main that runs the
+ * check (D375).
+ */
+export const DEPLOY_BATCH_LAG_MS = 6 * 3_600_000;
 /**
  * A deploy missing this long will not clear by itself: a fault (D159). #220's vercel.json failed
  * Vercel's schema and every deploy for hours, and a warning reaches the owner only on Mondays (the
@@ -449,6 +473,9 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
   if (options.deployments !== undefined) {
     checkDeploymentRate(options.deployments, { fault, warn, passed });
   }
+  if (options.neon !== undefined) checkNeonCompute(options.neon, { fault, warn, passed });
+  if (options.github !== undefined) checkBrowserSuite(options.github, { fault, warn, passed });
+  if (options.keys !== undefined) checkKeys(options.keys, { fault, warn, passed });
   if (options.store !== undefined) {
     checkStore(options.store, { fault, warn, passed });
     const documents = "documents" in options.store ? options.store.documents : undefined;
@@ -475,12 +502,26 @@ export async function collectHealth(options: HealthOptions): Promise<HealthRepor
     );
   }
 
+  const field =
+    options.store && "field" in options.store && "summaries" in options.store.field
+      ? options.store.field.summaries
+      : undefined;
   return {
     version: 1,
     now: now.toISOString(),
     ok: !findings.some((each) => each.severity === "fault"),
     findings,
     passed,
+    card: buildCard(findings, {
+      spentUsd: spent,
+      ceilingUsd: options.ceilingUsd,
+      ...(field ? { field } : {}),
+      ...(options.perf !== undefined ? { perf: options.perf } : {}),
+      ...(options.neon ? { neon: options.neon } : {}),
+      ...(options.deployments ? { deployments: options.deployments } : {}),
+      ...(options.github ? { github: options.github } : {}),
+      ...(options.keys ? { keys: options.keys } : {}),
+    }),
   };
 }
 
@@ -560,17 +601,14 @@ async function checkSite(
     }
   }
   // The build carries the newest commit the site would deploy: a push whose last commit touches no
-  // watched path skips the deploy (vercel.json diffs HEAD^ only), and this says so.
+  // watched path skips the deploy, and a merge waits for the batch (D375), so this says so only once
+  // the oldest commit the build lacks has waited past DEPLOY_BATCH_LAG_MS. That age is judged from
+  // missingSince, not the newest commit: a recent merge must not hide an old one that never shipped.
   // A build named by its start time (no commit: the dev server, a build off Vercel) says nothing.
   // Such a name is all digits, so a commit prefix must hold a letter; an all-digit commit prefix
   // (rare) is skipped too. A warning at first, since the next push may clear it; a fault once the
   // oldest commit it lacks is a day old (DEPLOY_MISSING_FAULT_MS).
-  if (
-    main &&
-    typeof buildName === "string" &&
-    /^(?=.*[a-f])[0-9a-f]{7,40}$/.test(buildName) &&
-    now.getTime() - main.at > DEPLOY_LAG_MS
-  ) {
+  if (main && typeof buildName === "string" && /^(?=.*[a-f])[0-9a-f]{7,40}$/.test(buildName)) {
     const holds = await main.includes(buildName);
     if (holds === true) {
       sink.passed.push(`the site's build holds ${main.sha.slice(0, 12)}`);
@@ -581,11 +619,13 @@ async function checkSite(
           ? `${Math.round(lag / 3_600_000)} hours`
           : `${Math.round(lag / 60_000)} minutes`;
       const text = `The site's build ${buildName} does not hold ${main.sha.slice(0, 12)}, nor commits from ${ago} ago on: those deploys did not happen.`;
-      if (lag > DEPLOY_MISSING_FAULT_MS) {
+      if (lag <= DEPLOY_BATCH_LAG_MS) {
+        // Still inside the batch wait (D375): expected, say nothing.
+      } else if (lag > DEPLOY_MISSING_FAULT_MS) {
         sink.fault(
           "site_behind",
           "reliability",
-          `${text} Redeploy from Vercel; its log says whether the build failed or was skipped.`,
+          `${text} Its Vercel log says whether the build failed or was skipped; a merge waiting for the batch ships with a docs commit titled [deploy] (D375).`,
         );
       } else {
         sink.warn("site_behind", "reliability", text);
@@ -664,7 +704,7 @@ async function readSiteNarration(
 ): Promise<{ month: number } | { error: string }> {
   const month = stockholmDate(now).slice(0, 7);
   try {
-    // The unique query skips the CDN's copy, as the site's readFresh does.
+    // The CDN ignores the query; a copy up to a minute old is fine for a daily figure.
     const answer = await blob.get(`${blob.base}/state/usage-${month}.json?v=${now.getTime()}`, {
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });

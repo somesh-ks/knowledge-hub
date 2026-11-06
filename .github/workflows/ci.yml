@@ -106,24 +106,9 @@ jobs:
       - name: ffmpeg
         timeout-minutes: 5
         if: steps.diff.outputs.code == 'true'
-        run: |
-          # Read in full first: under pipefail an early `grep -q` exit can fail ffmpeg with SIGPIPE.
-          encoders="$(ffmpeg -hide_banner -encoders </dev/null 2>/dev/null || true)"
-          if ! grep -q libopus <<<"$encoders"; then
-            # The man-db trigger can take minutes after an install on the runner image, and apt
-            # waits on a slow mirror unbounded: skip the one and bound the other. Not -qq, so a
-            # stall shows its stage in the log.
-            sudo rm -f /var/lib/man-db/auto-update
-            apt_opts=(-o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20)
-            sudo apt-get "${apt_opts[@]}" update -q
-            sudo DEBIAN_FRONTEND=noninteractive apt-get "${apt_opts[@]}" install -y -q --no-install-recommends ffmpeg
-            encoders="$(ffmpeg -hide_banner -encoders </dev/null 2>/dev/null || true)"
-          fi
-          if ! grep -q libopus <<<"$encoders"; then
-            echo "::error::ffmpeg has no libopus encoder"
-            exit 1
-          fi
-          ffmpeg -hide_banner -version </dev/null | sed -n 1p
+        uses: ./.github/actions/ffmpeg
+        with:
+          required: "true"
       - name: Typecheck
         if: steps.diff.outputs.code == 'true'
         run: npm run typecheck

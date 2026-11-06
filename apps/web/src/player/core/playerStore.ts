@@ -40,6 +40,7 @@ import {
 import {
   clearResumePosition,
   readResumePosition,
+  recordingOf,
   type StorageLike,
   saveResumePosition,
 } from "./resume";
@@ -57,6 +58,14 @@ export const PREVIOUS_RESTART_SECONDS = 3;
  * event is ours; outside it, the system did it (a call, an alarm, headphones unplugged).
  */
 const EXPECTED_PAUSE_WINDOW_MS = 1000;
+/**
+ * A phone's audio output sleeps once nothing has played for a few seconds, and a Bluetooth link
+ * drops its stream. Waking takes up to two seconds, and the element's clock runs through them, so a
+ * podcast played after a while lost its first words to silence (owner, 2026-11-04, Xiaomi on
+ * Chrome). Play after that long a quiet starts this far back, where the listener already was (D364).
+ */
+export const OUTPUT_SLEEP_MS = 10_000;
+export const WAKE_REWIND_SECONDS = 2;
 const HAVE_NOTHING = 0;
 /** The waits before a dropped connection is retried: twice, then the listener is told. */
 const NETWORK_RETRY_WAITS_MS = [1_000, 3_000];
@@ -140,6 +149,12 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   let wantsPlay = false;
   // Bumped by a seek or scrub: the 2 s advance check compares positions, so it is void after one.
   let seekGeneration = 0;
+  /**
+   * When the element last stopped sounding, and the seek count then: a move since is the listener's
+   * place. Wall time: a phone asleep in a pocket stops `performance.now()`, and its output sleeps too.
+   */
+  let quietSince = Number.NEGATIVE_INFINITY;
+  let quietGeneration = 0;
   let wasPlayingBeforeScrub = false;
   let expectedPauseUntil = 0;
   let pendingStart: number | null = null;
@@ -193,6 +208,10 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     if (!changed) return false;
     const previous = state;
     state = { ...next, time };
+    if (previous.status === "playing" && state.status !== "playing") {
+      quietSince = Date.now();
+      quietGeneration = seekGeneration;
+    }
     for (const listener of stateListeners) listener(state, previous);
     const itemChanged = timeline !== null && previous.itemIndex !== itemIndex;
     if (itemChanged && cause !== "load") emit({ type: "itemChanged", index: itemIndex, cause });
@@ -256,7 +275,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   function saveResume(): void {
     if (!track) return;
     readAudioTime();
-    saveResumePosition(storage, track.digest.id, time, durationNow());
+    saveResumePosition(storage, track.digest.id, time, durationNow(), recordingOf(track.digest));
   }
 
   function startSaveTimer(): void {
@@ -312,6 +331,16 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       return;
     }
     stopBufferTimer();
+    // Sound is coming out, so the header is in: a start still queued lands now rather than holding
+    // the clock still while the element plays on from somewhere else.
+    if (pendingStart !== null && audio && audio.readyState !== HAVE_NOTHING) {
+      try {
+        audio.currentTime = clamp(pendingStart, 0, durationNow() || pendingStart);
+        pendingStart = null;
+      } catch {
+        // Keeps waiting for loadedmetadata.
+      }
+    }
     commit({
       status: "playing",
       hasStarted: true,
@@ -352,7 +381,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     stopTimers();
     wantsPlay = false;
     time = durationNow();
-    clearResumePosition(storage, track.digest.id);
+    clearResumePosition(storage, track.digest.id, recordingOf(track.digest));
     commit({ status: "ended", buffering: false, upNextId: track.digest.prev_id });
     publishTime("auto", true);
     emit({ type: "ended" });
@@ -639,6 +668,9 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
     if (track) saveResume();
     stopTimers();
+    // A seek on the track before is not a place chosen on this one; new audio for the same
+    // briefing keeps the place the listener chose.
+    if (!sameDigest) quietGeneration = seekGeneration;
     skippedUrls.clear();
     networkRetries = 0;
     networkFailedAt = Number.NEGATIVE_INFINITY;
@@ -648,7 +680,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
     const timeline = buildTimeline(digest);
     const duration = timeline?.durationSec ?? 0;
-    const restored = readResumePosition(storage, digest.id, duration);
+    const restored = readResumePosition(storage, digest.id, duration, recordingOf(digest));
     time = restored;
     pendingStart = restored > 0 ? restored : null;
     track = { digest, timeline };
@@ -660,6 +692,23 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     // is let go.
     if (!digest.audio || attachedUrl !== sourceOf(digest.audio)) releaseSource();
     if (digest.audio) ensureAudio();
+    // The same file stays attached (new data for this briefing that names the same file): its header
+    // was read long ago and no loadedmetadata will come for it. A start queued for that event would
+    // wait forever, and the clock with it, while the element played from wherever it was
+    // (2026-11-05, the owner's phone: "1 min left" on screen, the audio from the top, nothing moving).
+    if (
+      pendingStart !== null &&
+      audio &&
+      attachedUrl !== null &&
+      audio.readyState !== HAVE_NOTHING
+    ) {
+      try {
+        audio.currentTime = pendingStart;
+        pendingStart = null;
+      } catch {
+        // Some engines throw before the first frame. The start waits for the element's next event.
+      }
+    }
     applyRate();
 
     lastSecond = -1;
@@ -681,6 +730,13 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     );
     emit({ type: "loaded", digestId: digest.id });
     publishTime("load", true);
+  }
+
+  function restore(digest: PlayerDigestData): void {
+    if (disposed || state.hasStarted || !digest.audio) return;
+    load(digest);
+    // Paused, not idle: an idle track follows the page it is on (setPageDigest), a paused one stays.
+    commit({ status: "paused", hasStarted: true });
   }
 
   function setPageDigest(digest: PlayerDigestData | null): void {
@@ -716,6 +772,16 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     attachSource(url);
     expectedPauseUntil = pendingWindow;
     if (state.status === "ended") seekInternal(0, "seek");
+    else if (
+      (reason === "user" || reason === "deferred") &&
+      time > 0 &&
+      seekGeneration === quietGeneration &&
+      Date.now() - quietSince >= OUTPUT_SLEEP_MS
+    ) {
+      // In media seconds, so a faster speed steps back as far as the wake lasts. "load": the step
+      // back is no story change, so nothing announces the story before.
+      seekInternal(Math.max(0, time - WAKE_REWIND_SECONDS * rate), "load");
+    }
     wantsPlay = true;
     // The cue first, so it lands in silence; then the audio.
     emit({ type: "willPlay", reason });
@@ -811,6 +877,8 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       } else {
         try {
           audio.currentTime = target;
+          // Metadata can be in before its event: the queued start must not undo this seek.
+          pendingStart = null;
         } catch {
           pendingStart = target;
         }
@@ -1000,6 +1068,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     getPageDigest: () => pageDigest,
     setPageDigest,
     load,
+    restore,
     play,
     pause,
     toggle,

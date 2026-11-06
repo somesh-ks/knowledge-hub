@@ -40,6 +40,8 @@ import { runSpring, runTween, SPRING_DURATION_SECONDS, type SpringRun } from "./
 
 export type SurfaceState = "collapsed" | "dragging" | "expanding" | "expanded" | "collapsing";
 
+export type CommitVia = "drag" | "command";
+
 /** Where a pointer went down: on the bar's open button, on the page's drag zone, or on its body. */
 export type GestureZone = "dock" | "drag" | "page";
 
@@ -103,8 +105,9 @@ export interface SurfaceControllerOptions {
   /** Bounce of the spring that follows an opening gesture. A close never bounces. */
   releaseBounce(): number;
   setRootAttribute(name: string, value: string): void;
-  onCommitOpen?(): void;
-  onCommitClose?(): void;
+  /** `drag` when a lifted finger decided it; a tap, a key or a command is `command`. */
+  onCommitOpen?(via: CommitVia): void;
+  onCommitClose?(via: CommitVia): void;
   requestFrame?: (callback: (timestamp: number) => void) => number;
   cancelFrame?: (handle: number) => void;
 }
@@ -223,7 +226,7 @@ export function createSurfaceController(options: SurfaceControllerOptions): Surf
 
   /* ---------------------------------------------------------------- commits */
 
-  function commitOpen(): void {
+  function commitOpen(via: CommitVia = "command"): void {
     if (open) return;
     open = true;
     options.setRootAttribute("data-player", "open");
@@ -231,10 +234,10 @@ export function createSurfaceController(options: SurfaceControllerOptions): Surf
     view.enterModal(() => {
       void collapse();
     });
-    options.onCommitOpen?.();
+    options.onCommitOpen?.(via);
   }
 
-  function commitClose(silent = false): void {
+  function commitClose(via: CommitVia | "silent" = "command"): void {
     if (!open) return;
     open = false;
     options.setRootAttribute("data-player", "closed");
@@ -242,7 +245,7 @@ export function createSurfaceController(options: SurfaceControllerOptions): Surf
     // player with the page behind it still inert.
     view.leaveModal();
     publish();
-    if (!silent) options.onCommitClose?.();
+    if (via !== "silent") options.onCommitClose?.(via);
   }
 
   /* ---------------------------------------------------------------- motion */
@@ -343,7 +346,7 @@ export function createSurfaceController(options: SurfaceControllerOptions): Surf
     if (state === "collapsed" && !open) return;
     stopRun();
     landed = false;
-    commitClose(true);
+    commitClose("silent");
     p = 0;
     setState("collapsed");
     view.rest("collapsed");
@@ -461,8 +464,8 @@ export function createSurfaceController(options: SurfaceControllerOptions): Surf
       );
       handledAt = input.t;
       settle(target, "release", velocityToProgressPerSecond(velocity, distance));
-      if (target === 1) commitOpen();
-      else commitClose();
+      if (target === 1) commitOpen("drag");
+      else commitClose("drag");
       return;
     }
     if (current.mode === "scroll") {

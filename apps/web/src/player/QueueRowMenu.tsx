@@ -1,10 +1,26 @@
 import { type CSSProperties, type KeyboardEvent, type ToggleEvent, useState } from "react";
-import { menuItemClass, menuListClass } from "../design-system/menu";
+import {
+  MENU_TILES_MAX,
+  menuBodyClass,
+  menuHasTiles,
+  menuItemClass,
+  menuListClass,
+  menuTilesClass,
+} from "../design-system/menu";
+import {
+  sheetHeadClass,
+  sheetHeadingClass,
+  sheetSubtitleClass,
+  sheetTitleClass,
+} from "../design-system/sheet";
 import { downloadFailure } from "../lib/downloadCopy";
+import { inPodcastOrder, type PodcastAction } from "../lib/podcastActions";
 import { sendToast } from "../scripts/toastEvent";
 import { getPlayQueue } from "./core/playerRuntime";
 import { queueItemUrl } from "./core/playQueue";
 import { loadQueueDigest } from "./core/queueMeta";
+import { deviceStorage, isSaved, setSaved } from "./core/saved";
+import type { IconName } from "./ui/iconPathsLazy";
 import Icon from "./ui/LazyIcon";
 
 /** How far under its dots the menu opens where anchor positioning is missing (as PlayerMenu.tsx). */
@@ -13,13 +29,23 @@ const ITEM = '[role="menuitem"]:not(:disabled)';
 
 /**
  * The ⋮ a mouse reaches on a queue row (owner, 2026-11-03: "on hover we show the 3 dots icon button
- * with relevant options"): Go to podcast, Share, Download and Remove from queue. player.css shows the
+ * with relevant options"): the podcast's sheet, with Remove from queue and Go to podcast. player.css shows the
  * button only under a hovering pointer, so a phone keeps the handle alone and a swipe or a long press.
  * The list is the Menu: a popover under the dots, a bottom sheet under 40rem.
  */
-export default function QueueRowMenu({ id, title }: { id: string; title: string }) {
+export default function QueueRowMenu({
+  id,
+  title,
+  subtitle,
+}: {
+  id: string;
+  title: string;
+  /** The row's quiet line ("Daily · 6 min"), under the title on a phone's sheet. */
+  subtitle?: string | undefined;
+}) {
   const menuId = `player-queue-menu-${id}`;
   const [downloaded, setDownloaded] = useState(false);
+  const [favorite, setFavorite] = useState(false);
   const kind = id.startsWith("ep-") ? "episode" : "briefing";
   // Each row names its own dots, so its menu hangs under them and not under the last row's.
   const anchor = `--queue-more-${id}`;
@@ -37,15 +63,25 @@ export default function QueueRowMenu({ id, title }: { id: string; title: string 
         dots?.focus({ preventScroll: true });
       return;
     }
+    setFavorite(isSaved(deviceStorage(), id));
     void import("../scripts/libraryDownloads").then(async (library) => {
       const ids = (await library.readDownloads()).map((entry) => entry.id);
       setDownloaded(ids.includes(id));
     });
     menu.querySelector<HTMLElement>(ITEM)?.focus({ preventScroll: true });
     if (CSS.supports("top", "anchor(bottom)")) return;
-    const box = dots?.getBoundingClientRect();
+    // A finger has no dots (player.css): a hold's menu hangs under the handle instead.
+    const opener = dots?.offsetParent
+      ? dots
+      : menu.parentElement?.querySelector<HTMLElement>(".player-queue-grip");
+    const box = opener?.getBoundingClientRect();
     if (!box) return;
-    menu.style.setProperty("--menu-top", `${box.bottom + MENU_GAP_PX}px`);
+    // The toggle comes after the open, so the menu has its height: one that would run off the
+    // bottom (a hold low on a tablet) opens above its opener instead.
+    const below = box.bottom + MENU_GAP_PX;
+    const fits = below + menu.offsetHeight <= document.documentElement.clientHeight;
+    const top = fits ? below : Math.max(0, box.top - MENU_GAP_PX - menu.offsetHeight);
+    menu.style.setProperty("--menu-top", `${top}px`);
     menu.style.setProperty("--menu-right", `${document.documentElement.clientWidth - box.right}px`);
   };
 
@@ -75,6 +111,20 @@ export default function QueueRowMenu({ id, title }: { id: string; title: string 
     if (typeof outcome === "object") sendToast({ message: outcome.refused });
   };
 
+  const toggleFavorite = (): void => {
+    hide();
+    // Read now, not when the menu opened: another tab may have changed it since.
+    const storage = deviceStorage();
+    const on = !isSaved(storage, id);
+    if (setSaved(storage, id, on))
+      sendToast({ message: on ? "Added to favorites" : "Removed from favorites" });
+    else
+      sendToast({
+        message: on ? "Couldn't add it to favorites" : "Couldn't remove it from favorites",
+        kind: "error",
+      });
+  };
+
   const download = async (): Promise<void> => {
     hide();
     const library = await import("../scripts/libraryDownloads");
@@ -99,6 +149,54 @@ export default function QueueRowMenu({ id, title }: { id: string; title: string 
     }
   };
 
+  /** This row's actions, in every podcast sheet's one order (lib/podcastActions.ts, D369). */
+  const ACTIONS: Partial<
+    Record<PodcastAction, { icon: IconName; label: string; act: () => void }>
+  > = {
+    favorite: {
+      icon: favorite ? "heart" : "heartOutline",
+      label: favorite ? "Unfavorite" : "Favorite",
+      act: toggleFavorite,
+    },
+    // Where a card has Add to queue. Not the danger tone: the podcast stays in the Library, so
+    // nothing is lost (owner, 2026-11-03).
+    queue: {
+      icon: "queueRemove",
+      label: "Remove from queue",
+      act: () => {
+        hide();
+        getPlayQueue().remove(id);
+      },
+    },
+    share: { icon: "shareFat", label: "Share", act: () => void share() },
+    download: {
+      icon: downloaded ? "trash" : "download",
+      label: downloaded ? "Remove download" : "Download",
+      act: () => void download(),
+    },
+    podcast: { icon: "library", label: "Go to podcast", act: () => void goToPodcast() },
+  };
+  const actions = inPodcastOrder(Object.keys(ACTIONS) as PodcastAction[]);
+  const tiles = menuHasTiles(actions.length) ? actions.slice(0, MENU_TILES_MAX) : [];
+  const rows = actions.filter((action) => !tiles.includes(action));
+  const item = (action: PodcastAction) => {
+    const { icon, label, act } = ACTIONS[action] ?? {};
+    if (!icon || !act) return null;
+    return (
+      <button
+        key={action}
+        className={menuItemClass()}
+        type="button"
+        role="menuitem"
+        data-menu={action}
+        onClick={act}
+      >
+        <Icon name={icon} />
+        {label}
+      </button>
+    );
+  };
+
   return (
     <>
       <button
@@ -115,51 +213,36 @@ export default function QueueRowMenu({ id, title }: { id: string; title: string 
         id={menuId}
         className={`${menuListClass()} player-queue-menu`}
         popover="auto"
-        role="menu"
-        aria-label={title}
         style={{ "--queue-anchor": anchor } as CSSProperties}
         onToggle={onToggle}
-        onKeyDown={onKeyDown}
       >
-        <button
-          className={menuItemClass()}
-          type="button"
-          role="menuitem"
-          onClick={() => void goToPodcast()}
-        >
-          <Icon name="library" />
-          Go to podcast
-        </button>
-        <button
-          className={menuItemClass()}
-          type="button"
-          role="menuitem"
-          onClick={() => void share()}
-        >
-          <Icon name="shareFat" />
-          Share
-        </button>
-        <button
-          className={menuItemClass()}
-          type="button"
-          role="menuitem"
-          onClick={() => void download()}
-        >
-          <Icon name={downloaded ? "downloadRemove" : "download"} />
-          {downloaded ? "Remove download" : "Download"}
-        </button>
-        <button
-          className={menuItemClass("danger")}
-          type="button"
-          role="menuitem"
-          onClick={() => {
-            hide();
-            getPlayQueue().remove(id);
-          }}
-        >
-          <Icon name="trash" />
-          Remove from queue
-        </button>
+        {/* The Library card's sheet (PodcastMenuItems.astro): its header, then its actions in the one
+            order, the first three as tiles on a phone's sheet once there are enough (D369). */}
+        <div className={sheetHeadClass()}>
+          <div className={sheetHeadingClass()}>
+            <h2 className={sheetTitleClass()} id={`${menuId}-title`}>
+              {title}
+            </h2>
+            {subtitle ? <p className={sheetSubtitleClass()}>{subtitle}</p> : null}
+          </div>
+          <button
+            className="icon-btn press"
+            type="button"
+            aria-label="Close"
+            popoverTarget={menuId}
+            popoverTargetAction="hide"
+          >
+            <Icon name="close" size="lg" />
+          </button>
+        </div>
+        <div className={menuBodyClass()} role="menu" aria-label={title} onKeyDown={onKeyDown}>
+          {tiles.length > 0 ? (
+            <div className={menuTilesClass()} data-fold="" role="presentation">
+              {tiles.map(item)}
+            </div>
+          ) : null}
+          {rows.map(item)}
+        </div>
       </div>
     </>
   );

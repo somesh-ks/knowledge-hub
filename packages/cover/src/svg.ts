@@ -1,4 +1,4 @@
-import type { Point, Rect } from "./types.js";
+import type { Rect } from "./types.js";
 
 let nonFinite = 0;
 
@@ -15,13 +15,6 @@ export function n(value: number, digits = 1): string {
   }
   const rounded = Number(value.toFixed(digits));
   return Object.is(rounded, -0) ? "0" : String(rounded);
-}
-
-/** Polyline as an SVG path. */
-export function linePath(points: readonly Point[], closed = false, digits = 1): string {
-  if (points.length === 0) return "";
-  const parts = points.map((p, i) => `${i === 0 ? "M" : "L"}${n(p.x, digits)} ${n(p.y, digits)}`);
-  return parts.join("") + (closed ? "Z" : "");
 }
 
 export function rectPath(r: Rect, digits = 1): string {

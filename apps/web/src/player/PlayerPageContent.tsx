@@ -85,15 +85,13 @@ export default function PlayerPageContent() {
       </div>
       <div className="player-list">
         {/* On a phone the switch sticks under the status bar (player.css, .player-tabs-bar). */}
-        <div className="player-tabs-bar">
-          <PlayerTabs
-            label="Show"
-            idBase={idBase}
-            tabs={ended ? UP_NEXT_ONLY : LIST_VIEWS}
-            value={view}
-            onChange={choose}
-          />
-        </div>
+        <PlayerTabs
+          label="Show"
+          idBase={idBase}
+          tabs={ended ? UP_NEXT_ONLY : LIST_VIEWS}
+          value={view}
+          onChange={choose}
+        />
         <div
           className="player-panel"
           role="tabpanel"

@@ -77,6 +77,28 @@ test.describe("theme", () => {
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     await page.getByRole("combobox", { name: "Theme" }).selectOption("dark");
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    // Bug it prevents (owner, 2026-11-04, Android): the status bar flashed at every tab switch. A swap
+    // took the theme colour out of the head and put the page's default back for a moment, and Chrome
+    // paints the status bar from each one it is given.
+    const offered = await page.evaluate(() => {
+      const current = () =>
+        document.querySelector<HTMLMetaElement>(
+          'meta[name="theme-color"][media="(prefers-color-scheme: light)"]',
+        )?.content ?? "none";
+      const seen = new Set<string>();
+      const record = window as unknown as { __offered: Set<string> };
+      record.__offered = seen;
+      new MutationObserver((changes) => {
+        for (const change of changes) {
+          for (const node of [...change.removedNodes, ...change.addedNodes]) {
+            if (node instanceof HTMLMetaElement && node.name === "theme-color")
+              seen.add(`moved ${node.content}`);
+          }
+        }
+        seen.add(current());
+      }).observe(document.head, { childList: true, subtree: true, attributes: true });
+      return current();
+    });
     await page
       .getByRole("navigation", { name: "Primary" })
       .getByRole("link", { name: "Library", exact: true })
@@ -90,6 +112,11 @@ test.describe("theme", () => {
       .click();
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    // The chrome was offered the dark page's colour, and only that one, all the way through.
+    const seen = await page.evaluate(() => [
+      ...((window as unknown as { __offered: Set<string> }).__offered ?? []),
+    ]);
+    expect(seen.filter((value) => value !== offered)).toEqual([]);
   });
   test("a style chosen in Settings survives navigation and a reload, set before first paint", async ({
     page,
@@ -97,20 +124,20 @@ test.describe("theme", () => {
     await page.goto("/settings/appearance");
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     await page.getByRole("combobox", { name: "Mood" }).selectOption("expressive");
-    await expect(page.locator("html")).toHaveAttribute("data-style", "expressive");
+    await expect(page.locator("html")).toHaveAttribute("data-mood", "expressive");
     await page
       .getByRole("navigation", { name: "Primary" })
       .getByRole("link", { name: "Library", exact: true })
       .click();
     await expect(page).toHaveURL(/\/library$/);
-    await expect(page.locator("html")).toHaveAttribute("data-style", "expressive");
+    await expect(page.locator("html")).toHaveAttribute("data-mood", "expressive");
     // A reload: the attribute is on the document by the time the body exists, so nothing is painted
     // in Default first.
     await page.addInitScript(() => {
       const observer = new MutationObserver(() => {
         if (!document.body) return;
         (window as unknown as { __styleAtBody: string | null }).__styleAtBody =
-          document.documentElement.getAttribute("data-style");
+          document.documentElement.getAttribute("data-mood");
         observer.disconnect();
       });
       observer.observe(document, { childList: true, subtree: true });
@@ -125,7 +152,21 @@ test.describe("theme", () => {
     await page.goto("/settings/appearance");
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
     await page.getByRole("combobox", { name: "Mood" }).selectOption("default");
-    await expect(page.locator("html")).not.toHaveAttribute("data-style", /.*/);
+    await expect(page.locator("html")).not.toHaveAttribute("data-mood", /.*/);
+  });
+
+  // Before D327 the choice was stored as `style`. The first-paint script and the Mood select must still
+  // read it, or every such device opens in Default.
+  test("a device that stored its mood under the old name keeps it, before first paint and in the select", async ({
+    page,
+  }) => {
+    await page.addInitScript(() =>
+      localStorage.setItem("singularity:preferences", JSON.stringify({ style: "expressive" })),
+    );
+    await page.goto("/settings/appearance");
+    await expect(page.locator("html")).toHaveAttribute("data-mood", "expressive");
+    await expect(page.locator("html")).toHaveAttribute("data-mood", "expressive");
+    await expect(page.getByRole("combobox", { name: "Mood" })).toHaveValue("expressive");
   });
 
   test("a style recolours the covers already on the page, with no cover fetched, and Default returns them", async ({
@@ -152,7 +193,7 @@ test.describe("theme", () => {
     // The covers are on the page when the style changes; the same elements take new colours.
     const before = covers.length;
     await page.evaluate(() => {
-      document.documentElement.dataset.style = "expressive";
+      document.documentElement.dataset.mood = "expressive";
     });
     await expect.poll(fill).not.toBe(inDefault);
     expect(covers.length).toBe(before);
@@ -162,7 +203,7 @@ test.describe("theme", () => {
     await expect.poll(fill).not.toBe(styled);
     await page.evaluate(() => {
       document.documentElement.style.removeProperty("--hue-shift");
-      delete document.documentElement.dataset.style;
+      delete document.documentElement.dataset.mood;
     });
     await expect.poll(fill).toBe(inDefault);
   });
@@ -172,7 +213,7 @@ test.describe("theme", () => {
   }) => {
     await page.goto("/settings/appearance");
     await expect(page.locator("[data-settings]")).toHaveAttribute("data-ready", "true");
-    const hue = page.getByRole("slider", { name: "Hue" });
+    const hue = page.getByRole("slider", { name: "Color" });
     // Default is blue and has no hue to turn, so the row is not there.
     await expect(hue).toBeHidden();
     await page.getByRole("combobox", { name: "Mood" }).selectOption("expressive");

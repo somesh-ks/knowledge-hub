@@ -29,7 +29,7 @@ const lines = {
   // A rewrite or a removal of an episode that exists: data-<kind>-<state>.
   "data-regenerate-queued": "Rewrite queued",
   "data-regenerate-running": "Rewriting your episode",
-  "data-regenerate-done": "Rewritten. Live in about a minute.",
+  "data-regenerate-done": "Rewritten",
   "data-regenerate-started": "Lost track of this rewrite",
   "data-regenerate-failed": "Couldn't rewrite the episode",
   "data-delete-queued": "Removal queued",
@@ -86,7 +86,6 @@ const words = {
   "data-word-details-title": "What went wrong",
   "data-word-details-copy": "Copy details",
   "data-word-details-copied": "Copied",
-  "data-word-details-log": "Open the log",
   "data-word-details-hint":
     "You can try again from the queue. If it keeps failing, copy the details and send them along.",
   "data-word-details-close": "Close",
@@ -104,7 +103,7 @@ const icons: Record<string, IconName> = {
 
 {/* The podcast queue (D231): what is being made, as a browser lists its downloads, and what was made
      today. Below 64rem a dock sits directly above the bottom bar, never a modal: one row when folded
-     (a small ring, "Podcast queue", the percent), the rows when opened, and the bar and the app bar
+     (a small ring, "Podcast queue"), the rows when opened, and the bar and the app bar
      stay usable either way. From 64rem a row at the foot of the side column (AppNav.astro)
      opens the same rows in a popover. One markup holds the words, the icons, the status region and
      both surfaces; scripts/queue.ts fills them. Persisted across navigations, so what the script put
@@ -119,8 +118,7 @@ const icons: Record<string, IconName> = {
           <span class="queue-stage-icon" data-queue-head-icon="fold"></span>
         </QueueRing>
         <span class="queue-fold-text queue-word" data-queue-title></span>
-        <span class="queue-fold-percent" data-queue-percent></span>
-        <Icon name="chevronDown" size="lg" class="queue-chevron" />
+        <Icon name="chevronDown" size="md" class="queue-chevron" />
       </button>
     </div>
     <div class="queue-body" data-queue-body>
@@ -176,6 +174,8 @@ const icons: Record<string, IconName> = {
         <p class="queue-name" data-queue-name></p>
         {/* One line: the stage while it goes; when it ended and how, once it has. */}
         <p class="queue-status"><span class="queue-when" data-queue-when></span><span class="queue-word" data-queue-status></span></p>
+        {/* The second line, only while a stage runs past its usual length: it never takes the stage's place. */}
+        <p class="queue-status queue-slow" data-queue-slow></p>
       </div>
       {/* Cancel is the X at the row's end, while the run goes; once it has ended the same X takes the item out of the queue. */}
       <button class="icon-btn icon-btn-end press queue-cancel" type="button" data-queue-cancel hidden>
@@ -186,10 +186,10 @@ const icons: Record<string, IconName> = {
       </button>
       {/* What can be done to a run that ended or is lost, under the text. */}
       <div class="queue-actions">
-        <Button variant="text" class="queue-listen" data-queue-listen hidden>Listen now</Button>
-        <Button variant="text" class="queue-retry" data-queue-retry hidden>Try again</Button>
-        <Button variant="text" class="queue-check" data-queue-check hidden>Check again</Button>
-        <Button variant="text" class="queue-details" data-queue-details hidden>Details</Button>
+        <Button variant="text" size="small" class="queue-listen" data-queue-listen hidden>Listen now</Button>
+        <Button variant="text" size="small" class="queue-retry" data-queue-retry hidden>Try again</Button>
+        <Button variant="text" size="small" class="queue-check" data-queue-check hidden>Check again</Button>
+        <Button variant="text" size="small" class="queue-details" data-queue-details hidden>Details</Button>
       </div>
     </li>
   </template>

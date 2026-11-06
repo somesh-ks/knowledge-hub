@@ -14,7 +14,7 @@ const title = "Notifications";
          as settingsPage.ts does for the other pages. The first switch is the whole group's: mixed
          while only some of the three are on. */}
     <div class="settings-view" data-settings data-notifications-page>
-      <SettingsHead title={title} note="Hear when a podcast is ready." />
+      <SettingsHead title={title} />
       <noscript>
         <p class="settings-note">These settings need JavaScript, which is turned off in this browser.</p>
       </noscript>
@@ -25,24 +25,15 @@ const title = "Notifications";
             <Switch id="settings-notifications-all" name="all" />
           </div>
           <div class="settings-row">
-            <div class="settings-text">
-              <label class="settings-label" for="settings-notifications-daily">Daily</label>
-              <span class="settings-hint">When your Daily is ready.</span>
-            </div>
+            <label class="settings-label" for="settings-notifications-daily">Daily podcast</label>
             <Switch id="settings-notifications-daily" name="daily" />
           </div>
           <div class="settings-row">
-            <div class="settings-text">
-              <label class="settings-label" for="settings-notifications-weekly">Weekly</label>
-              <span class="settings-hint">When your Weekly is ready.</span>
-            </div>
+            <label class="settings-label" for="settings-notifications-weekly">Weekly podcast</label>
             <Switch id="settings-notifications-weekly" name="weekly" />
           </div>
           <div class="settings-row">
-            <div class="settings-text">
-              <label class="settings-label" for="settings-notifications-ready">Podcast ready</label>
-              <span class="settings-hint">When a podcast generation is ready.</span>
-            </div>
+            <label class="settings-label" for="settings-notifications-ready">Podcast ready to listen</label>
             <Switch id="settings-notifications-ready" name="ready" />
           </div>
         </div>

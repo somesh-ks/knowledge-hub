@@ -86,7 +86,6 @@ export async function pullWorkspace(input: WorkspaceInput): Promise<PullResult> 
   const result = await pullContent({
     client: input.client,
     root: input.root,
-    fetchText: input.fetchText,
     fetchBytes: input.fetchBytes ?? fetchBytes,
     only: [...CONTENT_DIRS],
   });

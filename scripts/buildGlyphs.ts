@@ -43,6 +43,11 @@ export interface Glyph {
    * (component.icon.bold) chooses which one shows, so a style can thicken every icon (D268).
    */
   bold?: string;
+  /**
+   * How the paths were cut from the Phosphor icon named above, when the set has no icon for the
+   * need. `--fetch` keeps a derived glyph's paths as written.
+   */
+  derived?: string;
 }
 
 export interface GlyphDocument {
@@ -218,6 +223,10 @@ export function rebuildGlyphs(doc: GlyphDocument): GlyphDocument {
   ).version;
   const glyphs: Record<string, Glyph> = {};
   for (const [name, glyph] of Object.entries(doc.glyphs)) {
+    if (glyph.derived) {
+      glyphs[name] = glyph;
+      continue;
+    }
     const twin = { phosphor: glyph.phosphor, weight: "bold" as const };
     // A bold twin left from an earlier weight would be written as an invalid record.
     const { bold: _stale, ...rest } = glyph;

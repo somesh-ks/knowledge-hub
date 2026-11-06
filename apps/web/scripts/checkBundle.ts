@@ -4,11 +4,13 @@ import { fileURLToPath } from "node:url";
 import {
   entryScripts,
   FIRST_LOAD_BUDGET_BYTES,
+  FIRST_LOAD_RECORD_BYTES,
   FONT_BUDGET_BYTES,
   findRenderBlockingScripts,
   firstLoadReport,
   gzipBytes,
   overBudget,
+  pastRecord,
   unallowedInlineScripts,
   unhintedModules,
   wakeModules,
@@ -28,7 +30,7 @@ import { linkCardProblems } from "../src/lib/linkCard";
 const HERE = dirname(fileURLToPath(import.meta.url));
 // A static-only build (local Windows runs, e2e) writes to dist; the Vercel adapter build to .vercel.
 const defaultOutput =
-  (process.env.SINGULARITY_STATIC_ONLY ?? process.env.DISPATCH_STATIC_ONLY) === "1"
+  process.env.SINGULARITY_STATIC_ONLY === "1"
     ? join(HERE, "..", "dist")
     : join(HERE, "..", ".vercel", "output", "static");
 const root = resolve(process.argv[2] ?? defaultOutput);
@@ -110,7 +112,10 @@ for (const entry of readdirSync(root, { recursive: true, withFileTypes: true }))
   }
 }
 
-console.log(`Largest first load: ${kilobytes(largest)} of ${kilobytes(FIRST_LOAD_BUDGET_BYTES)}`);
+console.log(
+  `Largest first load: ${kilobytes(largest)} of ${kilobytes(FIRST_LOAD_BUDGET_BYTES)} (recorded ${kilobytes(FIRST_LOAD_RECORD_BYTES)})`,
+);
+failures.push(...pastRecord(largest));
 if (failures.length > 0) {
   console.error(`\n${failures.length} problem(s):\n- ${failures.join("\n- ")}`);
   process.exit(1);

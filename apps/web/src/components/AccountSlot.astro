@@ -13,6 +13,6 @@ const { place } = Astro.props;
 {/* The reader's face, a link to the profile. The server draws the default shape; accountAvatar.ts puts
      the one the mood and the reader's pick call for before the first frame is painted. There is no
      sign-in yet (Google comes later), so the avatar is the whole control. */}
-<a class={`account-slot account-${place}`} href="/profile" aria-label="Your profile" data-account data-astro-prefetch="hover">
+<a class={`account-slot account-${place}`} href="/profile" aria-label="Your profile" data-account data-astro-prefetch="hover" transition:persist={`account-${place}`}>
   <Avatar />
 </a>

@@ -4,6 +4,7 @@ import {
   FETCH_VIA,
   type FetchVia,
   ID_MAX_LENGTH,
+  isFieldRecord as isRecord,
   isSupportedTimeZone,
   MAX_KEYWORD_CHARS,
   MAX_KEYWORDS,
@@ -93,10 +94,6 @@ const CADENCES = [1, 2, 3, 7] as const;
 type PodcastLength = PodcastRequest["length_minutes"];
 /** A new topic and the sources chosen for it: one topic, up to six sources, and room to spare. */
 export const MAX_OPS = 8;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 
 /**
  * Control characters have no place in a name or an address, and a line break could forge a log line.

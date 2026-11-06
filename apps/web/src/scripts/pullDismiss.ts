@@ -14,6 +14,7 @@
 import { drawerPanelClass } from "../design-system/drawer";
 import { MENU_SELECTORS } from "../design-system/menu";
 import { sheetBodyClass, sheetHeadClass } from "../design-system/sheet";
+import { quietNextClose } from "../player/sound/gestureQuiet";
 
 const HEAD = `.${sheetHeadClass()}`;
 const BODY = `.${sheetBodyClass()}, ${MENU_SELECTORS.body}, .${drawerPanelClass()}, .emoji-body, .gen-body`;
@@ -101,7 +102,11 @@ export function pullToDismiss(sheet: HTMLElement, close: () => void): void {
       if (elapsed > 0) speed = (touch.clientY - lastY) / elapsed;
       lastY = touch.clientY;
       lastT = event.timeStamp;
-      if (!still.matches) sheet.style.translate = `0 ${Math.max(0, dy)}px`;
+      if (!still.matches) {
+        sheet.style.translate = `0 ${Math.max(0, dy)}px`;
+        // A full-screen sheet rounds its top corners as it leaves the screen's top (sheet.css).
+        sheet.style.setProperty("--sheet-pull", `${Math.max(0, dy)}px`);
+      }
     },
     { passive: false },
   );
@@ -117,12 +122,21 @@ export function pullToDismiss(sheet: HTMLElement, close: () => void): void {
     const flicked = speed > FLICK && event.timeStamp - lastT < FLICK_WINDOW_MS;
     if (event.type === "touchend" && (pulled > sheet.clientHeight / 4 || flicked)) {
       // The sheet leaves from where the finger let go: its exit slide adds to this offset.
+      quietNextClose();
       close();
       return;
     }
+    const corner = getComputedStyle(sheet).borderStartStartRadius;
     sheet.style.translate = "";
+    sheet.style.removeProperty("--sheet-pull");
     if (still.matches) return;
-    sheet.animate([{ translate: `0 ${pulled}px` }, { translate: "0 0" }], {
+    // The corners square up again with the spring back, so they never snap.
+    const from = {
+      translate: `0 ${pulled}px`,
+      borderStartStartRadius: corner,
+      borderStartEndRadius: corner,
+    };
+    sheet.animate([from, { translate: "0 0" }], {
       duration: 240,
       easing: "cubic-bezier(0.2, 0, 0, 1)",
     });
@@ -137,7 +151,10 @@ export function pullToDismiss(sheet: HTMLElement, close: () => void): void {
       () => {
         const open =
           sheet instanceof HTMLDialogElement ? sheet.open : sheet.matches(":popover-open");
-        if (!open) sheet.style.translate = "";
+        if (!open) {
+          sheet.style.translate = "";
+          sheet.style.removeProperty("--sheet-pull");
+        }
       },
     );
   };

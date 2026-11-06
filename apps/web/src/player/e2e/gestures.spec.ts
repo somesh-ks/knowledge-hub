@@ -32,6 +32,35 @@ test.describe("opening by gesture", () => {
     expect(await player.progress()).toBeCloseTo(1, 2);
   });
 
+  // Bug it prevents (owner, 2026-11-03, Android Chrome): after swiping the bar up, the first tap on
+  // Play did nothing. Chrome sends the pointer events but no click for a tap soon after a fast flick.
+  test("the first tap after a flick up reaches the page's Play", async ({
+    player,
+    page,
+    audio,
+    finger,
+  }) => {
+    // Time runs as usual until the test moves it on.
+    await page.clock.install();
+    await player.open();
+    await player.play();
+    const start = center(await player.dockSettled());
+    await finger.drag(line(start, { x: start.x, y: start.y - 120 }, 3), 8);
+    await player.expanded();
+    const playing = await audio.read();
+    expect(playing?.paused).toBe(false);
+    await finger.press(player.dialog.locator(".transport [data-primary]"));
+    await expect.poll(async () => (await audio.read())?.paused).toBe(true);
+    // One tap is one press: it does not pause and play again.
+    await page.clock.runFor(600);
+    expect((await audio.read())?.paused).toBe(true);
+    // A tap the browser clicks for itself is not clicked twice.
+    await finger.press(player.dialog.locator(".transport [data-primary]"));
+    await expect.poll(async () => (await audio.read())?.paused).toBe(false);
+    await page.clock.runFor(600);
+    expect((await audio.read())?.paused).toBe(false);
+  });
+
   test("a long pull up opens on release, and nothing behind is inert until then", async ({
     player,
     page,
@@ -55,7 +84,7 @@ test.describe("opening by gesture", () => {
 
 // The bar is a carousel of podcasts (owner, 2026-11-01 and 2026-11-02): a swipe goes to the next
 // queued one or back to the one before, and a short one does neither nor opens the page.
-test("a swipe on the bar switches the podcast; a short one does not and opens nothing", async ({
+test("a swipe on the bar switches the podcast without tinting the bar and fades one track for the next; a short one does not and opens nothing", async ({
   player,
   page,
   finger,
@@ -80,11 +109,58 @@ test("a swipe on the bar switches the podcast; a short one does not and opens no
   await expect(player.openButton).not.toHaveAttribute("data-swipe-out");
   expect(await playing()).toBe(first);
   await player.collapsed();
+  // Owner, 2026-11-03: the podcast a swipe goes to shows before the finger lifts. Held a third of the
+  // way left, the next one has come in from the right edge, inside the bar and clear of the words;
+  // pulled back to where it began, it is gone.
+  const bar = await player.boxOf(player.openButton);
+  const held = await finger.drag(line(spot, { x: spot.x - 100, y: spot.y }, 4), 8, { hold: true });
+  const peek = player.openButton.locator(".dock-peek");
+  await expect(peek).toHaveCount(1);
+  // Owner, 2026-11-05: the track leaving fades out as the one arriving fades in, both ways. Held a
+  // third of the way over, the leaving cover is fainter than at rest and the arriving one has begun
+  // to show; back where it began, the leaving one is whole again and the arriving one is gone.
+  const own = player.openButton.locator(":scope > .player-thumb");
+  const opacity = (el: typeof own) => el.evaluate((node) => Number(getComputedStyle(node).opacity));
+  expect(await opacity(own)).toBeLessThan(1);
+  expect(await opacity(peek.locator(".player-thumb"))).toBeGreaterThan(0);
+  // Owner, 2026-11-04: the bar flashed grey for the whole swipe. Chrome on a phone holds :active for
+  // a touch (emulated touch does not, so it is forced), and a finger's press must not tint the bar.
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("DOM.enable");
+  await cdp.send("CSS.enable");
+  const { root } = await cdp.send("DOM.getDocument");
+  const { nodeId } = await cdp.send("DOM.querySelector", {
+    nodeId: root.nodeId,
+    selector: ".dock-open",
+  });
+  const layer = () =>
+    player.openButton.evaluate((el) => getComputedStyle(el, "::after").backgroundColor);
+  const atRest = await layer();
+  await cdp.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: ["active"] });
+  expect(await layer()).toBe(atRest);
+  await cdp.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: [] });
+  const coming = await player.boxOf(peek.locator(".player-thumb"));
+  expect(coming.x).toBeGreaterThan(spot.x - 100);
+  expect(coming.x + coming.width).toBeLessThanOrEqual(bar.x + bar.width + 1);
+  await held.move(line({ x: spot.x - 100, y: spot.y }, spot, 4));
+  await expect(peek).toHaveCount(0);
+  await expect.poll(() => opacity(own)).toBe(1);
+  await held.release();
+  expect(await playing()).toBe(first);
+  await player.collapsed();
   // Left is the next queued podcast; right brings the one before back.
-  await finger.drag(line(spot, { x: spot.x - 160, y: spot.y }, 4), 8);
+  // A thumb that has gone sideways and then wanders up, past 45 degrees, is still switching: the
+  // page is not pulled open under it.
+  const turn = { x: spot.x - 50, y: spot.y - 5 };
+  await finger.drag(
+    [...line(spot, turn, 4), ...line(turn, { x: spot.x - 180, y: spot.y - 190 }, 6)],
+    30,
+  );
   await expect.poll(playing, { timeout: 10_000 }).toBe("2026-10-05");
   await player.collapsed();
-  await finger.drag(line(spot, { x: spot.x + 160, y: spot.y }, 4), 8);
+  // A thumb's swipe rises as it goes, here about 25 degrees over a quarter of a second: the bar keeps
+  // it, so it switches back and the page is not pulled open (sheetController.ts, the sideways wander).
+  await finger.drag(line(spot, { x: spot.x + 160, y: spot.y - 75 }, 8), 30);
   await expect.poll(playing, { timeout: 10_000 }).toBe(first);
   await player.collapsed();
 });
@@ -95,8 +171,29 @@ test("a flick down on the header, a pull down on the cover or on the controls be
   page,
 }) => {
   const header = await opened(player);
+  // Owner, 2026-11-03: pulling the page down while it plays left a patch of the cover's blurred light
+  // behind the bar. The light was held off during the pull and faded in again as the page landed.
+  await page.evaluate(() => {
+    const seen: number[] = [];
+    (window as unknown as { __light: number[] }).__light = seen;
+    const sample = (): void => {
+      const state = document.querySelector("[data-player-surface]")?.getAttribute("data-state");
+      const light = document.querySelector(".player-cover-glow");
+      // From the first frame the page is no longer open, through its landing on the dock.
+      if (state && state !== "expanded" && light)
+        seen.push(Number(getComputedStyle(light).opacity));
+      requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  });
   await finger.drag(line(header, { x: header.x, y: header.y + 230 }, 3), 8);
   await player.collapsed();
+  await player.dockSettled();
+  const light = await page.evaluate(() => (window as unknown as { __light: number[] }).__light);
+  expect(light.length, "the page was seen closing").toBeGreaterThan(0);
+  // Compared with itself: once the page is pulled the light only fades, to the end of the landing.
+  for (const opacity of light) expect(opacity).toBeLessThanOrEqual(light[0] ?? 0);
+  expect(light.at(-1)).toBeLessThan(light[0] ?? 0);
   await expect(player.sheet).toBeHidden();
   await expect(player.openButton).toBeVisible();
   // The whole top of the page is the handle, the cover with it.

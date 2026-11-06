@@ -49,20 +49,61 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     expect(await audio.count()).toBe(1);
   });
 
-  test("the plus on a suggested row adds it to the queue", async ({ player, page }) => {
+  test("the plus on a suggested row adds it to the queue, and Suggested stays under it", async ({
+    player,
+    page,
+  }) => {
     await player.open();
     await player.play();
     await player.openPlayer();
     await player.dialog.getByRole("tab", { name: "Up next" }).click();
     await expect(player.dialog.getByText("Suggested", { exact: true })).toBeVisible();
-    await player.dialog
-      .getByRole("button", { name: /^Add .* to the queue$/ })
-      .first()
-      .click();
+    // The added row glides up from where it stood, and the next one stays under the finger (owner,
+    // 2026-11-03: "when I add a suggested podcast into the queue, the transition should be very
+    // smooth"; the row jumped into the queue and the list snapped).
+    const nextId = await player.dialog
+      .locator(".player-queue-add")
+      .nth(1)
+      .locator("xpath=..")
+      .getAttribute("data-queue-id");
+    const next = player.dialog.locator(`[data-queue-id="${nextId}"]`);
+    const stays = await player.boxOf(next);
+    const [id, was, soon] = await page.evaluate(async () => {
+      const plus = document.querySelector<HTMLElement>("[data-player-surface] .player-queue-add");
+      const queued = plus?.closest<HTMLElement>("[data-queue-id]")?.dataset.queueId ?? "";
+      const top = () =>
+        document
+          .querySelector(`[data-player-surface] [data-queue-id="${queued}"]`)
+          ?.getBoundingClientRect().top ?? 0;
+      const before = top();
+      plus?.click();
+      // A twelfth of the glide's way in, by the page's own clock: frames, not a sleep.
+      const start = Number(document.timeline.currentTime);
+      while (Number(document.timeline.currentTime) - start < 50)
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      return [queued, before, top()] as const;
+    });
     await expect
       .poll(() => page.evaluate(() => localStorage.getItem("singularity:queue")))
       .toContain("ep-20261007-1930");
-    await expect(player.dialog.getByText("Suggested", { exact: true })).toHaveCount(0);
+    const gliding = () =>
+      page.evaluate(
+        () =>
+          [...document.querySelectorAll("[data-player-surface] .player-queue-item")].flatMap(
+            (row) => row.getAnimations(),
+          ).length,
+      );
+    await expect.poll(gliding).toBe(0);
+    // That far in, it has covered less than half the way: it glides, it does not jump.
+    const end = (await player.boxOf(player.dialog.locator(`[data-queue-id="${id}"]`))).y;
+    expect(Math.abs(soon - was)).toBeLessThan(Math.abs(end - was) / 2);
+    expect(await player.boxOf(next)).toEqual(stays);
+    // The section is always there (owner, 2026-11-03: it vanished at the first add): the added one has
+    // left it, and the rest stay to add.
+    await expect(player.dialog.getByText("Suggested", { exact: true })).toBeVisible();
+    await expect(
+      player.dialog.getByRole("button", { name: /^Add .* to the queue$/ }).first(),
+    ).toBeVisible();
   });
 
   // The queue is the listener's choice, so it does chain: a queued item that never started at the
@@ -94,17 +135,15 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await expect(transcript.locator("[data-turn]")).toHaveCount(1);
     // Up next is the other view: moved up by its row's handle and the arrow key, the briefing now comes first.
     await player.dialog.getByRole("tab", { name: "Up next" }).click();
-    await player.dialog
-      .getByRole("button", { name: /^Move / })
-      .nth(1)
-      .focus();
+    await player.dialog.getByRole("button", { name: /^Move .*, 3 of 3\./ }).focus();
     await page.keyboard.press("ArrowUp");
     // Back on Stories the open story is still the one being read.
     await player.dialog.getByRole("tab", { name: "Stories" }).click();
     await expect(transcript.locator("[data-turn]")).toHaveCount(1);
     await page.reload();
-    await player.play();
-    await player.openPlayer();
+    // The reload brings the tab back with the player open, paused (sessionRestore.ts).
+    await expect(player.dialog).toBeVisible();
+    await player.finger.press(player.dialog.getByRole("button", { name: "Play", exact: true }));
     await player.scrubber.focus();
     await page.keyboard.press("End");
     await expect.poll(() => nowPlaying(page), { timeout: 10_000 }).toBe(SITE.earlier);
@@ -144,14 +183,29 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     await expect.poll(queue).toBe('["ep-20261007-1930","2026-10-05","ep-20261006-0900"]');
     await page.reload();
     expect(await queue()).toBe('["ep-20261007-1930","2026-10-05","ep-20261006-0900"]');
-    await player.play();
-    await player.openPlayer();
+    // The reload brings the tab back with the player open, paused (sessionRestore.ts).
+    await expect(player.dialog).toBeVisible();
+    await player.finger.press(player.dialog.getByRole("button", { name: "Play", exact: true }));
     await player.dialog.getByRole("tab", { name: "Up next" }).click();
     // A swipe to the right and one to the left each take their row off.
     await player.sheet.evaluate((element) => {
       element.scrollTop = element.scrollHeight;
     });
     const row = (id: string) => player.dialog.locator(`[data-queue-id="${id}"] .player-queue-row`);
+    // The lock that keeps a slanted swipe from scrolling must not hold a scroll still: a near-upright
+    // drag on a row moves the list and takes nothing off (bug: rows filled Up next and it would not scroll).
+    const scrolledFrom = await player.sheet.evaluate((element) => element.scrollTop);
+    const upright = center(await player.boxOf(row("ep-20261007-1930")));
+    // Held still before the lift, so no fling runs on under the swipe that follows.
+    const end = { x: upright.x + 60, y: upright.y + 180 };
+    await finger.drag([...line(upright, end, 10), end, end, end, end], 30);
+    await expect
+      .poll(() => player.sheet.evaluate((element) => element.scrollTop))
+      .toBeLessThan(scrolledFrom);
+    expect(await queue()).toBe('["ep-20261007-1930","2026-10-05","ep-20261006-0900"]');
+    await player.sheet.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
     const right = center(await player.boxOf(row("ep-20261007-1930")));
     // Held past the point where it leaves (owner, 2026-11-03): the row keeps its own look, so it can
     // still be read, and the red lies behind it as a strip that stays where it is.
@@ -160,9 +214,22 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     const strip = li.locator(".player-queue-delete");
     const resting = await face.evaluate((el) => getComputedStyle(el).backgroundColor);
     const stripAtRest = await player.boxOf(li);
-    const held = await finger.drag(line(right, { x: right.x + 300, y: right.y }, 6), 12, {
-      hold: true,
-    });
+    // A hold's timer (cardHold.ts) runs on the page clock, so it can be hurried past.
+    await page.clock.install();
+    // A thumb's swipe starts on a slant: Chrome took those first pixels as a page scroll and cancelled
+    // the press, so the strip never showed on the owner's phone while a level line passed here.
+    // Its first 15 px run at 45 degrees, where Chrome's pan-y reads a scroll; then it flattens out.
+    const bend = { x: right.x + 15, y: right.y + 15 };
+    const held = await finger.drag(
+      [
+        right,
+        { x: right.x + 5, y: right.y + 5 },
+        { x: right.x + 10, y: right.y + 10 },
+        ...line(bend, { x: right.x + 300, y: right.y + 55 }, 8),
+      ],
+      30,
+      { hold: true },
+    );
     await expect(strip).toBeVisible();
     await expect(face).toHaveCSS("background-color", resting);
     await expect(li).not.toHaveCSS(
@@ -171,11 +238,54 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     );
     await expect(face.locator(".player-queue-row")).toBeVisible();
     expect(await player.boxOf(li)).toEqual(stripAtRest);
+    // A swipe is not a hold: kept down past the hold's time, it used to open the row's menu halfway
+    // through (cardHold.ts).
+    await page.clock.runFor(600);
+    await expect(li.locator(".player-queue-menu")).toBeHidden();
     await held.release();
     await expect.poll(queue).toBe('["2026-10-05","ep-20261006-0900"]');
+    // Held still, the row opens the menu the Library's cards open (owner, 2026-11-03), since a
+    // phone draws no dots.
+    const kept = player.dialog.locator('[data-queue-id="ep-20261006-0900"]');
+    const press = await finger.drag(
+      [center(await player.boxOf(kept.locator(".player-queue-row")))],
+      12,
+      {
+        hold: true,
+      },
+    );
+    await page.clock.runFor(600);
+    await expect(kept.locator(".player-queue-menu")).toBeVisible();
+    await press.release();
+    // A close inside the hold's lift grace reopens the sheet (cardHold.ts): run past it, then close.
+    await page.clock.runFor(500);
+    await kept.locator(".player-queue-menu").evaluate((menu: HTMLElement) => menu.hidePopover());
+    await expect(kept.locator(".player-queue-menu")).toBeHidden();
     const left = center(await player.boxOf(row("2026-10-05")));
     await finger.drag(line(left, { x: left.x - 300, y: left.y }, 6), 12);
     await expect.poll(queue).toBe('["ep-20261006-0900"]');
+    // The playing row's grip lifts it too (owner, 2026-11-03: a press there scrolled the page). Let go
+    // under the row below, it plays on, and the row it passed stays listed above it (D357; D349 hid it).
+    const lead = player.dialog.locator('[data-state="current"]');
+    const leadId = await lead.getAttribute("data-queue-id");
+    const from = center(await player.boxOf(lead.locator(".player-queue-grip")));
+    const under = center(await player.boxOf(grip("ep-20261006-0900")));
+    await finger.drag(line(from, { x: from.x, y: under.y + 20 }, 12), 24);
+    await expect.poll(queue).toBeNull();
+    const rows = player.dialog.locator(".player-queue-list").first().locator(".player-queue-item");
+    await expect(rows.first()).toHaveAttribute("data-queue-id", "ep-20261006-0900");
+    await expect(rows.first()).toHaveAttribute("data-state", "before");
+    await expect(lead).toHaveAttribute("data-queue-id", leadId ?? "");
+    await expect(player.root).toHaveAttribute("data-player-state", "playing");
+    // The drop glides the row into its place first.
+    await expect.poll(() => lead.evaluate((el) => el.getAnimations().length)).toBe(0);
+    // And back over it: any row may go above the playing one, and below it again.
+    const back = center(await player.boxOf(grip("ep-20261006-0900")));
+    const below = center(await player.boxOf(lead));
+    await finger.drag(line(back, { x: back.x, y: below.y + 30 }, 12), 24);
+    await expect.poll(queue).toBe('["ep-20261006-0900"]');
+    await expect(rows.first()).toHaveAttribute("data-queue-id", leadId ?? "");
+    await expect.poll(() => lead.evaluate((el) => el.getAnimations().length)).toBe(0);
     // The row that plays is swiped away the same way: it leaves the list, and the audio plays on.
     const playing = player.dialog.locator('[data-state="current"] .player-queue-row');
     const here = center(await player.boxOf(playing));
@@ -295,9 +405,10 @@ test.describe("the first press of Play on a page with no audio yet", () => {
     // Nothing sits above the playing row (owner, 2026-11-03): it heads the list, and what was passed is
     // not listed. The queue the list reads from holds nothing more to come.
     await expect(player.dialog.locator('[data-state="played"]')).toHaveCount(0);
-    await expect(
-      player.dialog.getByRole("list", { name: "Playing" }).locator("[data-queue-id]"),
-    ).toHaveAttribute("data-queue-id", "2026-10-05");
+    await expect(player.dialog.locator("[data-queue-id]").first()).toHaveAttribute(
+      "data-state",
+      "current",
+    );
     expect(await page.evaluate(() => localStorage.getItem("singularity:queue"))).toBeNull();
   });
 });

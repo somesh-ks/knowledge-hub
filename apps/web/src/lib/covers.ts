@@ -51,11 +51,6 @@ export function coverLiveSvg(source: CoverSource): string {
   return svg;
 }
 
-/** Where a record's live cover is served: `/covers/<id>.svg`, versioned like the images. */
-export function coverLiveSrc(id: string, generatedAt?: string): string {
-  return `/covers/${id}.svg${coverVersion(generatedAt)}`;
-}
-
 /**
  * The `?v=` a cover address carries: when its record was generated, in base 36. A regenerated
  * briefing or episode keeps its id and gets a new version, so the browser, the CDN and the service

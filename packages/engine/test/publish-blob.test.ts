@@ -3,9 +3,12 @@ import {
   AUDIO_PREFIX,
   audioKey,
   audioVersion,
+  type ConditionalBlobClient,
+  CURRENT_WAIT_MS,
   DEFAULT_CACHE_MAX_AGE_SECONDS,
   isPruneDay,
   pruneAudio,
+  readCurrent,
   uploadAudio,
 } from "../src/publish/blob.js";
 import { makeFakeBlob, must } from "./audio-fixtures.js";
@@ -26,6 +29,43 @@ describe("audioKey", () => {
       expect(() => audioKey(id)).toThrow();
     },
   );
+});
+
+describe("readCurrent", () => {
+  // The bug (11-04): the CDN served the manifest from before another job's write, under a fresh
+  // query string. Read with head()'s current ETag, a write on top of it passes the ETag check and
+  // drops what the other job saved; a pull from it misses the episode just made.
+  it("waits for the CDN to serve head()'s copy and never returns the older one", async () => {
+    const cdn = [
+      { text: "old", etag: '"1"' },
+      { text: "old", etag: '"1"' },
+      { text: "new", etag: '"2"' },
+    ];
+    const client = {
+      head: async () => ({ url: "https://store.example/content/manifest.json", etag: '"2"' }),
+      fetchTagged: async () => cdn.shift() ?? null,
+    } as unknown as ConditionalBlobClient;
+    let now = 0;
+    const clock = {
+      now: () => now,
+      pause: async (ms: number) => {
+        now += ms;
+      },
+    };
+    expect((await readCurrent(client, "content/manifest.json", undefined, clock))?.text).toBe(
+      "new",
+    );
+
+    const stuck = {
+      ...client,
+      fetchTagged: async () => ({ text: "old", etag: '"1"' }),
+    } as unknown as ConditionalBlobClient;
+    now = 0;
+    await expect(readCurrent(stuck, "content/manifest.json", undefined, clock)).rejects.toThrow(
+      /older copy/,
+    );
+    expect(now).toBeGreaterThanOrEqual(CURRENT_WAIT_MS);
+  });
 });
 
 // A regenerated narration was rewritten at the same URL, so a browser, the CDN or the service worker

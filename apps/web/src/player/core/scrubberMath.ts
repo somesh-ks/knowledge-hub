@@ -51,15 +51,6 @@ export function dockSeekKeyValue(
   return Math.round(clamp(next, 0, last));
 }
 
-/**
- * A fast sweep across the track crosses many boundaries. Softer ticks at speed keep it a texture
- * instead of a rattle; a slow, deliberate drag gets the full detent.
- */
-export function detentGain(pointerSpeedPxPerMs: number): number {
-  const speed = Math.abs(pointerSpeedPxPerMs);
-  return clamp(1 - (speed - 0.6) / 3, 0.4, 1);
-}
-
 export function scrubberValueText(
   timeSeconds: number,
   durationSeconds: number,

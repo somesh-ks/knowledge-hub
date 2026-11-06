@@ -12,6 +12,7 @@ import {
 } from "../../design-system/haptics";
 import type { PlayerStore } from "../core/playerTypes";
 import type { PreferencesStore } from "../core/preferences";
+import { takeQuietClose } from "./gestureQuiet";
 import { type Cue, cueForPlayerEvent, playCue } from "./soundMap";
 
 let engine: SoundEngine | null = null;
@@ -142,6 +143,8 @@ export function startSound(wiring: SoundWiring): () => void {
 /** For the interface: sheets, switches, Generate, scrub detents. Silent until the engine is ready. */
 export function playUiCue(cue: Cue | null): boolean {
   if (!cue) return false;
+  // A sheet that a pull shut is felt and not heard (gestureQuiet.ts).
+  const pulled = cue.name === "sheetClose" && takeQuietClose();
   // Touch first, and whether or not Sounds is on or the engine has loaded: a phone on silent still
   // wants it. A haptic that went out counts as the cue's own for the echo guard (cuePlayedSince),
   // so a sheet's open and the toggle that follows it are not felt twice with Sounds off.
@@ -149,6 +152,7 @@ export function playUiCue(cue: Cue | null): boolean {
     lastCueAt = performance.now();
     lastCueName = cue.name;
   }
+  if (pulled) return false;
   if (!engine && wired) {
     // Not loaded yet (the first tap of a page): kept, and the load started if it has not been.
     pending = { cue, at: performance.now() };

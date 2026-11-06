@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MEDIA_ERR_NETWORK, MEDIA_ERR_SRC_NOT_SUPPORTED } from "./audioErrors";
-import { BUFFERING_DELAY_MS, RESUME_SAVE_INTERVAL_MS } from "./playerStore";
+import {
+  BUFFERING_DELAY_MS,
+  OUTPUT_SLEEP_MS,
+  RESUME_SAVE_INTERVAL_MS,
+  WAKE_REWIND_SECONDS,
+} from "./playerStore";
 import { playedKey, resumeKey } from "./resume";
 import { createHarness, makeDigest, makeDigestWithoutAudio } from "./testing";
 
@@ -210,14 +215,76 @@ describe("seeking and items", () => {
     expect(harness.store.getState().itemIndex).toBe(1);
   });
 
-  it("queues a seek made before metadata and applies it on loadedmetadata", () => {
+  it("queues a seek made before metadata and applies it on loadedmetadata, unless a later seek landed", () => {
     const harness = createHarness();
     harness.store.load(makeDigest());
     harness.store.seekTo(70_000);
     expect(harness.store.getTime()).toBe(70);
     expect(harness.audio.currentTime).toBe(0);
+    // The element knows its metadata a task before it says so: a seek in that gap (End on the
+    // scrubber right after Play, CI 2026-11-04) must not be undone by the queued one.
+    harness.audio.readyState = 1;
+    harness.store.seekTo(110_000);
     harness.audio.loadMetadata(120);
-    expect(harness.audio.currentTime).toBe(70);
+    expect(harness.audio.currentTime).toBe(110);
+  });
+
+  // Owner, 2026-11-05: "1 min left" on screen, the audio from the top, the player still. New data for
+  // the briefing named the same file, which stayed attached with its header read: the kept place
+  // waited for a loadedmetadata that never came, and the clock waited with it.
+  it("plays the kept place and keeps the clock moving when new data for the briefing keeps the same file", () => {
+    const harness = createHarness({ canPlayType: () => "probably" });
+    const files = {
+      url: "/audio/2026-10-07.mp3",
+      m4a_url: "/audio/2026-10-07.m4a",
+      duration_ms: 120_000,
+    };
+    harness.store.load(makeDigest({ audio: files }));
+    harness.store.play();
+    harness.audio.loadMetadata(120);
+    harness.audio.startPlaying();
+    harness.audio.currentTime = 100;
+    harness.flushFrames();
+    harness.store.pause();
+    // The element is somewhere else, and says nothing of it yet; it starts there unless told.
+    harness.audio.currentTime = 0;
+    harness.audio.readyState = 0;
+    harness.store.load(makeDigest({ audio: { ...files, url: "/audio/2026-10-07.v2.mp3" } }));
+    harness.store.play();
+    harness.audio.startPlaying();
+    expect(harness.audio.currentTime).toBe(100);
+    harness.audio.currentTime += 5;
+    harness.flushFrames();
+    expect(harness.store.getTime()).toBe(harness.audio.currentTime);
+  });
+
+  // Owner, 2026-11-06: a rewrite of a podcast began at 4 minutes. It keeps the digest's id and says
+  // something new, so the place saved for the old recording must not carry over.
+  it("starts a rewritten recording from the top, not where the old one was left", () => {
+    const harness = createHarness({ canPlayType: () => "probably" });
+    const files = (version: string) => ({
+      url: `/audio/2026-10-07.${version}.mp3`,
+      m4a_url: `/audio/2026-10-07.${version}.m4a`,
+      duration_ms: 120_000,
+    });
+    harness.store.load(makeDigest({ audio: files("v1") }));
+    harness.store.play();
+    harness.audio.loadMetadata(120);
+    harness.audio.startPlaying();
+    harness.audio.currentTime = 100;
+    harness.flushFrames();
+    harness.store.pause();
+    harness.audio.currentTime = 0;
+    harness.audio.readyState = 0;
+    // The rewrite tells the same stories anew.
+    const retold = makeDigest().items.map((entry) => ({
+      ...entry,
+      text: `${entry.headline}, again.`,
+    }));
+    harness.store.load(makeDigest({ audio: files("v2"), items: retold }));
+    harness.store.play();
+    harness.audio.startPlaying();
+    expect(harness.audio.currentTime).toBe(0);
   });
 
   it("does not take the unlock primer's silence for the recording, so nothing is stored as played", () => {
@@ -233,6 +300,54 @@ describe("seeking and items", () => {
       audio: { url: "/audio/other.mp3", duration_ms: 120_000 },
     });
     expect(harness.storage.getItem(playedKey(digest.id))).toBeNull();
+  });
+
+  // Owner, 2026-11-03: a reload dropped the track from the bar. A restored track is paused, so the
+  // page it lands on does not swap it for its own, and Play carries on from the kept place.
+  it("restores a track after a reload: on the bar, paused, kept against the page, played from the kept place", () => {
+    const harness = createHarness();
+    harness.storage.setItem(resumeKey("2026-10-07"), "42");
+    harness.store.setPageDigest(
+      makeDigest({ id: "2026-10-05", audio: { url: "/audio/old.mp3", duration_ms: 90_000 } }),
+    );
+    harness.store.restore(makeDigest());
+    expect(harness.store.getState()).toMatchObject({
+      digestId: "2026-10-07",
+      status: "paused",
+      hasStarted: true,
+    });
+    harness.store.setPageDigest(
+      makeDigest({ id: "2026-10-05", audio: { url: "/audio/old.mp3", duration_ms: 90_000 } }),
+    );
+    expect(harness.store.getState().digestId).toBe("2026-10-07");
+    expect(harness.audio.src).toBe("");
+    harness.store.play();
+    harness.audio.loadMetadata(120);
+    harness.audio.startPlaying();
+    // Owner, 2026-11-04: the phone's output wakes late and its clock runs on, so the first words
+    // were lost to silence. Played after a while, it starts a moment before the kept place.
+    expect(harness.audio.currentTime).toBe(42 - WAKE_REWIND_SECONDS);
+  });
+
+  it("steps back after a long pause only, never on a quick pause or onto a place the listener chose", () => {
+    const harness = createHarness();
+    startPlaying(harness);
+    harness.audio.currentTime = 30;
+    harness.store.pause();
+    vi.advanceTimersByTime(1_000);
+    harness.store.play();
+    expect(harness.audio.currentTime).toBe(30);
+    harness.audio.startPlaying();
+    harness.store.pause();
+    vi.advanceTimersByTime(OUTPUT_SLEEP_MS);
+    harness.store.play();
+    expect(harness.audio.currentTime).toBe(30 - WAKE_REWIND_SECONDS);
+    harness.audio.startPlaying();
+    harness.store.pause();
+    harness.store.seekTo(60_000);
+    vi.advanceTimersByTime(OUTPUT_SLEEP_MS);
+    harness.store.play();
+    expect(harness.audio.currentTime).toBe(60);
   });
 
   it("clamps seeks to the digest", () => {

@@ -102,6 +102,19 @@ export const HEALTH_GROUPS = [
       { id: "content", label: "Content store" },
     ],
   },
+  {
+    // The daily check's budget card (D360), as its last run saved it: one row per area.
+    id: "budgets",
+    title: "Budgets",
+    rows: [
+      { id: "budget_cost", label: "Cost" },
+      { id: "budget_speed", label: "Speed" },
+      { id: "budget_tests", label: "Tests" },
+      { id: "budget_bugs", label: "Bugs" },
+      { id: "budget_security", label: "Security" },
+      { id: "budget_keys", label: "Keys" },
+    ],
+  },
 ] as const;
 
 /** The workflow file each Jobs row reads from GitHub's run list. */

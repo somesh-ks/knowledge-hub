@@ -721,3 +721,103 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Cost: none in tokens; a tab move is 100 ms longer.
 - Revisit if: the owner finds 250 ms between tabs slow, or wants more travel on the rise.
 - Amends: D286 (the pill's layer under the wave), D341 (a way into a briefing, and the tab move's length).
+
+## D352: on touch, a chosen control keeps its own fill under the tap
+
+- Date: 2026-11-03 (the owner, on the motion thread's card: "Yes, make the change", after the highlight-flash clips).
+- Decision: amends ledger rule 5 ("every control shows its own press") for touch only. Under `@media (hover: none)` a control that is already chosen keeps its chosen fill while `:active`: the selected `.tab`, a ticked segmented choice, the selected `.segmented-nav-tab` (no press layer), a ticked filter chip and the current story chip (`primitives.css`, `buttons.css`), the chosen Library view button (`library.css`) and the spoken script turn (`player.css`; none in the Stories list, where it has no fill). A pointer keeps the press step, and an unchosen control keeps its press everywhere.
+- Context changed: Chrome holds `:active` through a tap's click and for about 130 ms after, so a tap that chose a control showed the chosen press step, then eased back: a chosen segment at hue 120 went from L 0.756 to 0.656 and back over about 300 ms, which read as a colour flash.
+- Why: on touch the change of state is the answer to the tap; a darker step on top of it is a second, wrong colour. Dropping only the ease back made a hard flash.
+- Rejected: removing the transition (a harder flash); a script that clears `:active` (the browser owns it).
+- Cost: a few media blocks; no tokens.
+- Revisit if: a touch browser stops holding `:active` past the click, or the owner misses the press on a chosen control.
+- Amends: ledger rule 5 (phone section) for touch.
+
+## D353: a tap on the avatar plays a short show, picked by the mood and started by the hue
+
+- Date: 2026-11-03 (the owner: avatars tapped should make faces, morph into other shapes and come back, or do something like say hi or look through binoculars, by mood and hue, lean but varied).
+- Decision: a tap on an avatar in the app bar, the side column or the profile page plays one calm show on the face, by the motion spec's Calm by default: every beat takes a duration token and the 1.5% spatial springs (default, slow) for moves or the effects springs for fades, never the fast spatial spring or `--ease-spring-pop`. The eyes lead, the body follows a stagger (`--duration-stagger`) later, and a morph's outline a stagger after that. The shows: look (a glance left, then right, the head tilting after the eyes, a soft smile, a blink), happy (the cheeks rise over the eyes into a squint while the smile deepens and opens a little, a 2px lift, a 3 degree tilt), wow (eyes widen to 1.22, the mouth rounds to an o, a 3px lift), boo (Halloween: the lids shut and the body fades to 25%, then comes back wide-eyed with an o), and morph. A morph flows the outline: both outlines are sampled into rings of 96 points, turned clockwise from the top, and a path in the body tone runs point for point from one to the other on the default spatial spring, holds, and runs back; the face glides to the other shape's place, the colours mix in oklab, and the drawn shape changes under a blink part way through each leg. A shape of several parts names the outline it morphs (`outline`: the pumpkin's lobes as one union, the bat's body, the cauldron's pot); every part that is not the outline (stem, wings, whiskers, dots) fades out before and back after. The face is drawn by `avatarFace.ts` from one frame loop: the eyes' look, lids and width, a cheek in the body tone (`avatar-cheek`), and one closed mouth path (`avatar-say`), empty at rest while `avatar-smile` shows, that takes the smile's shape when a show starts and changes smoothly into a grin and an o; the pumpkin keeps its carved grin and opens it by scale. No props, hand or binoculars. A mood lists its shows in `--av-plays` (Default: look happy wow morph; Expressive: happy morph look wow; Halloween: boo look morph happy wow). The reader's hue turns the list's start (six bands of 60 degrees) and every tap steps to the next show. A tap in the app bar goes to the profile and the show plays there. A tap during a show is kept (one, not a pile) and plays when it ends. Nothing plays under reduced motion or offline. No new token.
+- Why: the avatar is the app's character; a face that answers a tap makes it feel alive, and expressions read as quality where stuck-on props did not. A fixed order per mood and hue needs no stored state (only the avatar's place in its list and one waiting tap, held while the page is open) and no random test.
+- Rejected: random picks (a repeat feels broken and cannot be tested); a show per mood in script (a mood adds tokens only, D326); a loop or an idle prop (D326: nothing loops by itself); props (a hand, binoculars: they read as stickers); a scale and fade swap for the morph (it reads as a cut, not a change of shape).
+- Cost: every avatar draws two cheeks and one empty mouth path, hidden until a show; the show script (`avatarFace.ts`, `avatarMotion.ts`) is about 16 KB of source (6.8 KB minified, 2.9 KB gzipped); the morph's path is a 96 point polyline, made only during a morph.
+- Revisit if: a tap is made by accident often enough that a show gets in the way (then it waits for a long press), or a mood needs a show the list cannot name.
+- Amends: D326.
+
+## D356: a chosen fill stands at least 8 points of lightness off every surface it sits on
+
+- Date: 2026-11-03 (the owner: "in light mode, the nav bar active tab highlight on mobile has poor contrast with the navbar itself - the engine needs to look into such contrast issues throughout").
+- Decision: `accent-container` (a chosen chip, segment, view button, the current tab's pill and the current row) and `accent-container-high` (an action that is not a place) sit at least 8 points of OKLCH lightness from each of `surface`, `surface-sunken`, `surface-container`, `surface-raised` and `surface-overlay`, in every mood and both modes. `buildTokens.test.ts` holds it; a hue turn (D315) keeps lightness, so one check per mood covers every hue. New steps: Default blue-200 and blue-300 in light, blue-600 and blue-400 (blue-900 words) in dark; Expressive dark violet-600 and violet-400 (violet-900 words); Halloween orange-300 and orange-400 in light, orange-700 and orange-600 in dark. Expressive light already held.
+- Context changed: the chosen tone was proven only against the page. On the phone the pill sits on the nav bar (`surface-container`): 3 points in Default light, under 1 in Halloween light, 1 in Default dark; in dark every mood's chosen tone sat 1 to 4 points from a sheet.
+- Why: lightness is what every eye reads, in sunlight and without colour vision; chroma alone made a pill a tint, not a shape. A chosen fill carries only its own ink (`on-accent-container`): an audit of 13 pages at 390 and 1280 found no other text on it, so the old floors for `on-surface` and `on-surface-muted` on it, which pinned the fill near the page, are dropped.
+- Rejected: WCAG ratio as the measure (it compresses at the light end: 1.10 for the reported pill); a per-surface chosen tone (a second token for every host); lifting only light mode (dark pills were as faint on sheets).
+- Cost: dark chosen fills and the dark action tone are brighter and more saturated; the rail's current row is now a brighter blue beside Catch up.
+- Revisit if: the owner finds dark fills loud, or a page needs muted text on a chosen fill.
+- Amends: D72's tonal steps for `accent-container` and `accent-container-high`.
+
+## D358: a playing avatar wears headphones
+
+- Date: 2026-11-03 (the owner: while a podcast plays, the avatar wears headphones).
+- Decision: while `data-state="playing"`, every avatar shape wears headphones: a band drawn behind the head that shows over its top, and a rounded cup over each side, drawn after the body and under the face. Each shape places them with `phones` (the cups' distance from the middle, their height, the head's top); the round shapes share one default. They take `--av-phones`, a mood token: the page's ink (`--av-ink`), and the lit tone on an ink shape (ghost, bat, cat, cauldron), so they read on the body and on the page in light and dark. They fade in on the slow effects spring and settle 6px down onto the head on the default spatial spring, and fade out the same way; under reduced motion they are shown and hidden with no motion. The bob stays as it was; while playing it pivots where a show does (the view box at 50, 90), so a tap never shifts the head. A tap's show plays over them; a morph veils them with the other details and the new shape's pair comes back after; boo fades them with the body.
+- Why: the avatar says what the app is doing; headphones say "listening" at a glance where a bob alone reads as idle motion.
+- Rejected: one pair for every shape (it floats off a ghost, covers a bat's eyes); the face's ink (`--av-mark`: dark on a dark page, pale on Halloween's pumpkin); a beat-synced sway (no beat to sync to; the bob already sways 2 degrees).
+- Cost: every avatar draws two hidden groups (a path and two rects); no new design token.
+- Revisit if: the bob and the headphones together read as busy in the app bar.
+- Amends: D326, D353.
+
+## D361: first-load JavaScript is held to the heaviest page's record plus 5 KB
+
+- Date: 2026-11-03 (the owner asked for performance numbers; the coordinator asked for a check that would have caught the growth).
+- Decision: `FIRST_LOAD_RECORD_BYTES` records the heaviest page's first load (80 KB; /settings/downloads is 79.9 KB) and `checkBundle` fails a build whose heaviest page is more than `FIRST_LOAD_STEP_BYTES` (5 KB) past it. A change that adds more loads the new code lazily, or raises the record and says why in its pull request. The 130 KB ceiling of D141 stays.
+- Context changed: every page's first load went from 35 KB (2026-10-24, D178) to 75 KB by 2026-11-03 with nothing failing. A rebuild of each merged commit found the steps: #500 put the select's sheet, its head and every glyph on every page (39 to 52 KB at once; the glyph table grew to 16 KB after it), and #608 brought the avatar's show eager (7 KB). Both now load at idle or on first use: the avatar's show here, the select's sheet in the design-system pull request the owner merges (D254), which takes every page to 52.2 KB and the record down to about 58 KB.
+- Why: a ceiling 70 KB above the code lets a page double unnoticed; a record moves only when someone writes it down.
+- Rejected: lowering D141's ceiling (the owner raised it for room to build); a per-page baseline file (every PR would rewrite it and conflict).
+- Cost: a feature that adds over 5 KB of eager code must raise one number in its PR.
+- Revisit if: raising the record becomes routine, or the owner wants the ceiling itself lower.
+- Amends: D141 (adds a ratchet under the ceiling).
+
+## D362: short of room, a row cuts its name and keeps its value
+
+- Date: 2026-11-03 (the owner: "when you run out of space, the topic name should truncate and not the number of sources. this should be a design system change").
+- Decision: a link row in Settings or Sources (`.row-action > .settings-text`), and a label-and-value row (`.settings-row > .settings-label + .settings-hint`), cut the name with an ellipsis and keep the value whole: "Software E... 33 sources". The name takes the room the value leaves and adds no width to the row's minimum (`contain: inline-size`), so a long one never widens a phone page. A value wider than the whole row is cut last. A suggested source's line follows the same order: the address gives way first and keeps its first letters, and the cadence keeps its words.
+- Why: the value is the row's answer (how many sources, when it runs); the name is known from the list around it and still reads from its first letters.
+- Rejected: keeping the 2026-10-22 order (the name stays whole and the value is cut), which hid the count the owner looks for.
+- Cost: none; the same rules, with the cut moved from one side to the other.
+- Revisit if: a name cut to a few letters becomes ambiguous between two rows.
+- Supersedes: the 2026-10-22 rule in `docs/ledger/settings-forms.md` (a long value is cut, the name never shrinks).
+
+## D363: every mood pads its cards 24px
+
+- Date: 2026-11-03 (the owner: "the padding on left and right is too much in expressive mood").
+- Decision: `component.card.padding` is 24px in every mood. A mood's larger corner comes out of the content radius (Expressive: 40 = 16 + 24), and `buildTokens.test.ts` holds radius = content radius + padding in each mood. Titles, heads and row words keep Default's edges in every mood.
+- Why: Expressive's 32px (#629, a Claude change on 2026-11-03, "the curve closed in on the first and last rows") set its rows 8px off Default's edges and broke the concentric rule; at a row's height a 40px corner pulls in under 1px, so the extra room bought nothing.
+- Rejected: 32px with an 8px content radius (the chips and fields inside would sharpen, against D167's one shape per control).
+- Cost: none.
+- Revisit if: a mood's corner grows past 48px, where the curve does reach the first row's words.
+
+## D367: every flag is the Flag, never an emoji
+
+- Date: 2026-11-04 (the owner: "the emoji doesn't get read in all platforms. That's why we had a flag library that was supposed to be used. And anywhere we have flags, we should use that instead of the emoji. Make it a rule").
+- Decision: a flag is the design system's Flag (`design-system/flag.ts`, `Flag.astro`, `styles/flag.css`): Flagpack art, one file per country in `public/flags/` (248 files, 1.4 MB on disk, each fetched only when drawn). It replaces the voice pickers' 37-flag sprite. Text that may hold a flag emoji (a place topic's emoji, the time zone toast, the emoji picker's flags) is drawn through it (`showText`, `flagParts`, `<Flag text>`), so stored emoji stay as data and never reach the system font. `.flag-mark` keeps the picker's 16 by 12; `.flag-inline` sizes the art to the words. A code without art shows the letter badge. `designSystem.test.ts` fails an app source that writes or builds a flag emoji.
+- Why: Windows has no flag emoji and draws two letters (2026-10-25, and the time zone toast on 2026-11-04).
+- Rejected: one sprite of every flag (about 800 KB fetched for one flag); `Intl` region data (no flags); keeping emoji where the sprite had no art.
+- Cost: 1.4 MB of art in the repo; no first-load JavaScript beyond the split helper in the toast.
+- Revisit if: a platform draws the art wrongly, or a flag is needed where an image cannot go (a notification's text).
+
+## D307: the write routes answer only the owner's session
+
+- Date: 2026-11-01 (the owner: "yes - go for it and fix", on the repo-wide audit's item 2). Amends D160, D201; follows D257, D298.
+- Decision: `POST /api/generate` (briefings, regenerate, delete), `POST /api/podcast` (Catch up, regenerate, delete), `POST /api/config` and `POST /api/narrate` (the segment call that spends) run `guardAdmin` before they read the body: 401 without the command center's session cookie, 503 while `ADMIN_SESSION_SECRET` is missing or under 32 characters. The free narration lookup (`GET /api/narrate`), the shared-link routes, the config read and the Cancel route stay open. Each device the owner presses these on signs in at `/admin` once (30 days).
+- Why: D160 and D201 left the writes open because only friends knew the URL. The repo is public (D298), the URLs are in it, and the audit counted about $19 a day of spend reachable by anyone, plus a config overwrite with no second copy.
+- Rejected: a shared secret in a header (every page script would hold it); gating the config read (the pages fall back to their built copy, which is public in Git anyway); gating Cancel (it stops spend and loses nothing Regenerate cannot remake).
+- Listeners: the free lookup still serves audio already stored (an episode is pre-narrated at publish, D128) to anyone; only a segment nobody has narrated yet needs the owner, and a signed-out listener is told to sign in instead of offered a retry.
+- Cost: until the reader's `ADMIN_SESSION_SECRET` is 32 or more characters (H6), Generate, Catch up, Delete and settings saves answer 503. A friend invited later cannot use them until accounts exist (D303, D305).
+- Revisit if: Google sign-in replaces the password (the cookie's meaning stays), or accounts (D303) give writes a per-user check.
+- Amends: D160, D201.
+
+## D368: the app's write routes need no sign-in
+
+- Date: 2026-11-04 (the owner: "Why are you adding limitations to sign in to the command center on a new device to generate a catch-up? I don't want any limitations."). Supersedes D307.
+- Decision: `POST /api/generate`, `/api/podcast`, `/api/config` and `/api/narrate` answer without the command center's session, as before D307. The command center (`/admin` and its APIs, D257) stays signed in.
+- Context changed: D307 assumed one sign-in per device was a small price; in use it stood between the owner and Generate, Catch up, Delete and settings saves, and he wants none.
+- Backstop: each route's per-minute cap across instances (generate 8, podcast 10, config 12). The D332 $5 ceiling stops only scheduled runs; a run someone starts goes ahead, so on-demand spend from a stranger is bounded by the caps alone. A config overwrite has no second copy.
+- Revisit if: spend from strangers shows on the Costs page, or accounts (D303) arrive.

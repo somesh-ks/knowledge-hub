@@ -71,6 +71,19 @@ test("a listening journey across pages: A on Today, B from the Library, back to 
   await player.finger.press(player.cta);
   await expect(player.root).toHaveAttribute("data-player-state", "playing", { timeout: 10_000 });
   await player.shut();
+  // Bug it prevents (owner, 2026-11-04): Play flashed at every tab switch. The page arrived with the
+  // face it was built with and took its own a moment later, so it was drawn twice and eased between
+  // them. What it shows the moment it is swapped in is what it keeps.
+  await page.evaluate(() => {
+    document.addEventListener(
+      "astro:after-swap",
+      () => {
+        const chip = document.querySelector(".hero [data-play-digest]");
+        window.__arrived = `${chip?.getAttribute("data-state")} ${chip?.getAttribute("aria-label")}`;
+      },
+      { once: true },
+    );
+  });
   // Back to A, on Today.
   await player.finger.press(
     page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Latest" }),
@@ -78,6 +91,9 @@ test("a listening journey across pages: A on Today, B from the Library, back to 
   await expect(page).toHaveURL(/\/$/);
   // A offers the time left from where it stopped, not a fresh start.
   await expect(player.cta).toHaveAccessibleName(/^Resume the podcast, \d+ min left$/);
+  expect(await page.evaluate(() => window.__arrived)).toBe(
+    await player.cta.evaluate((chip) => `${chip.dataset.state} ${chip.getAttribute("aria-label")}`),
+  );
   // Played only on the story that was heard.
   await expect(page.locator(`[data-item-id="${first}"]`)).toHaveAttribute("data-state", "played");
   await expect(page.locator('[data-item-id][data-state="played"]')).toHaveCount(1);

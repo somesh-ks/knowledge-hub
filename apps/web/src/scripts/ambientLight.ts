@@ -262,7 +262,7 @@ export function mountAmbient(host: HTMLElement) {
   darkQuery.addEventListener("change", redraw);
   themed.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ["data-theme", "data-style", "style"],
+    attributeFilter: ["data-theme", "data-mood", "style"],
   });
   seen.observe(host);
   sized.observe(host);

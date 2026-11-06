@@ -22,7 +22,6 @@ import {
   serializeDigestFile,
   stockholmDate,
   stockholmHour,
-  suggestZone,
   Topic,
   VOICE_LIMITS,
   weekday,
@@ -30,6 +29,7 @@ import {
   zonedHour,
   zoneLabel,
 } from "./index.js";
+import { suggestZone } from "./zoneSuggest.js";
 
 /** Repository root, found from this file so the test never depends on the working directory. */
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -139,7 +139,6 @@ describe("time", () => {
       expect(suggestZone("Asia/Tokyo", "Europe/Stockholm", at)).toEqual({
         zone: "Asia/Tokyo",
         label: "Tokyo",
-        exact: true,
         flag: "\u{1F1EF}\u{1F1F5}",
       });
     });
@@ -152,13 +151,20 @@ describe("time", () => {
     it("tells a zone without daylight saving from one with it", () => {
       expect(suggestZone("America/Phoenix", "America/Denver", at)?.zone).toBe("America/Phoenix");
     });
-    it("stands in a listed zone with the same clock for one the list lacks", () => {
+    it("stands in a listed zone with the same clock for one the list lacks, named where the device is", () => {
       const offer = suggestZone("Europe/Oslo", "America/New_York", at);
-      expect(offer?.exact).toBe(false);
-      expect(offer?.flag).toBeUndefined();
+      expect(offer?.label).toBe("Oslo");
+      expect(offer?.flag).toBe("\u{1F1F3}\u{1F1F4}");
       expect(["Europe/Amsterdam", "Europe/Berlin", "Europe/Paris", "Europe/Stockholm"]).toContain(
         offer?.zone,
       );
+    });
+    it("knows a listed zone by the older name a browser reports (Chrome's Asia/Calcutta)", () => {
+      expect(suggestZone("Asia/Calcutta", "Europe/Stockholm", at)).toEqual({
+        zone: "Asia/Kolkata",
+        label: "India",
+        flag: "\u{1F1EE}\u{1F1F3}",
+      });
     });
     it("offers nothing it cannot stand for, or cannot read", () => {
       expect(suggestZone("Asia/Kathmandu", "Europe/Stockholm", at)).toBeNull();

@@ -275,9 +275,11 @@ test.describe("service worker", () => {
     expect(await build()).toBe(deploy);
     // An installed app comes back to the front with the page it left, a build behind the site.
     await context.clearCookies();
-    await page.reload();
+    // The page can beat this reload to it: to the page the site's build is another one, so it loads
+    // it by itself, and the test's reload is aborted (CI flake, 2026-11-02 and 2026-11-05).
+    await page.reload().catch(() => undefined);
+    await expect.poll(() => build().catch(() => deploy)).not.toBe(deploy);
     await page.waitForLoadState("networkidle");
-    expect(await build()).not.toBe(deploy);
     // A reload would drop this mark with the page.
     await page.evaluate(() => {
       (window as unknown as { kept: boolean }).kept = true;

@@ -34,6 +34,7 @@ import "../styles/fonts.css";
 import "../styles/shell.css";
 import "../styles/buttons.css";
 import "../styles/icon.css";
+import "../styles/flag.css";
 import "../styles/primitives.css";
 import "../styles/row-exit.css";
 import "../styles/cover.css";
@@ -122,9 +123,7 @@ const path = Astro.url.pathname.replace(/\/$/, "") || "/";
 // Vercel is the deployment's; without the switch no page asks. The tag names the config files the
 // page was built from, so a page from another build never takes edits made against this one.
 const configStore =
-  (process.env.SINGULARITY_CONFIG_STORE ?? process.env.DISPATCH_CONFIG_STORE) === "postgres"
-    ? await loadConfigHash()
-    : null;
+  process.env.SINGULARITY_CONFIG_STORE === "postgres" ? await loadConfigHash() : null;
 // The zone the schedule counts in as built, which the time zone prompt (scripts/zonePrompt.ts)
 // compares with the device's, after the edits saved since.
 const { timezone: scheduleTimezone } = await loadScheduleView();
@@ -169,8 +168,10 @@ const back =
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content={colors.surfaceLight} />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content={colors.surfaceDark} />
+    {/* Kept across navigations (2026-11-04): a swap that took these out and put the defaults back
+        flashed Android's status bar at every tab switch. themeColor.ts keeps their colour. */}
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content={colors.surfaceLight} transition:persist="theme-color-light" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content={colors.surfaceDark} transition:persist="theme-color-dark" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Singularity" />

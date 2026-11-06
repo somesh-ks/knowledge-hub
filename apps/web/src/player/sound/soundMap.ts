@@ -10,7 +10,6 @@
 import type { PlayOptions, SoundName } from "@singularity/sound";
 import type { HapticIntent } from "../../design-system/hapticTokens";
 import type { PlayerEvent } from "../core/playerTypes";
-import { detentGain } from "../core/scrubberMath";
 
 export interface Cue {
   name: SoundName;
@@ -49,15 +48,6 @@ export function cueForPlayerEvent(event: PlayerEvent): Cue | null {
     case "loaded":
       return null;
   }
-}
-
-/** A scrub crossing an item boundary: one detent, pitched by position, softer when fast. */
-export function cueForDetent(position: number, pointerSpeedPxPerMs: number): Cue {
-  return {
-    name: "scrubDetent",
-    options: { position, gain: detentGain(pointerSpeedPxPerMs) },
-    haptic: "detent",
-  };
 }
 
 export function cueForSheet(opening: boolean): Cue {

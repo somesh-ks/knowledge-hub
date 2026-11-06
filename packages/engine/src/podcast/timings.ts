@@ -37,6 +37,8 @@ export interface EpisodeMetrics {
   writer_calls: number;
   /** Characters in the first turn, to tell whether a long opening ever delays Play. Absent before. */
   first_turn_chars?: number;
+  /** Milliseconds from the start of the script to its first part in Blob (D366). Absent before. */
+  first_part_ms?: number;
 }
 
 export interface TimingsFile {

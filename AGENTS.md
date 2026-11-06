@@ -15,11 +15,11 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code 
 ## Commands
 
 - `npm run singularity -- <command>`: engine CLI (`doctor`, `status`, `models`, `run`, `publish`).
-- `npm run gate -- --build`: typecheck, `astro check`, lint, unit tests, the docs check and the static build, in parallel (80 s). `npm test`, `npm run typecheck`, `npm run lint` run alone.
+- `npm run gate -- --build`: typecheck, `astro check`, lint, unit tests, the docs check and the static build.
 - Run commands through PowerShell, not Git Bash ([learnings](docs/learnings.md)). Never stop the listener on port 4321 (owner's dev server); give browser suites a `PORT` above 4400.
 - A worktree gets packages from `node scripts/worktreeLinks.mjs <path>` and loses them with `--remove` before `git worktree remove`.
-- `npm run e2e -w @singularity/web` and `npm run e2e:player -w @singularity/web` (about 6 min each): the browser suites. Run both before a PR that touches the site, `packages` or the tokens; push once. Red check: [delivery failures](docs/engineering/delivery-failures.md) (D148).
-- `SINGULARITY_STATIC_ONLY=1 npm run build`: local site build (the Vercel adapter fails on Windows symlinks).
+- `npm run e2e -w @singularity/web` and `npm run e2e:player -w @singularity/web`: the browser suites. Run both before a PR that touches the site, `packages` or the tokens; push once. Red check: [delivery failures](docs/engineering/delivery-failures.md) (D148).
+- `SINGULARITY_STATIC_ONLY=1 npm run build`: local site build (adapter fails on Windows symlinks).
 - `npm run dev`: the site with the Agentation toolbar; `checkBundle` fails a build that contains it. Stop it when done (`npx astro dev stop` in `apps/web`).
 
 ## Rules
@@ -31,14 +31,25 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code 
 - Changes to `.github/workflows` need a manual merge (the auto-merge token cannot merge them).
 - Review before merge (D292): [code-review.md](docs/engineering/code-review.md). `[skip-review]` and green CI only if every file is Tier 0: docs outside `decisions/`, `engineering/`, `design/` and the ledger, test data, or a few-line copy fix outside Tier 2 (D254). Tier 2 (pipeline, store, auth, billing, workflows, design system, `AGENTS.md`, `.coderabbit.yaml`, gates): `cr review --deep` first; `/code-review` last. CodeRabbit reviews on open, then only on `@coderabbitai review`.
 - TypeScript stays on 6.x.
+- Change log (D355): CI fails a `feat`/`fix`/`perf` PR while `lib/changelog.ts` is over 2 days old.
 - UI keeps the 8pt grid (4px for named cases only) and the design system, in three layers: `npm run design-check` (a hook on each UI edit), e2e/designSystem.spec.ts (CI), the `design-audit` agent before the PR.
-- The design system is a product (D237, D253). A control is a component in `apps/web/src/design-system/` named for what it is (Button); a page draws it, never types its class. A UI fix starts at the component; every UI change is designed from the design system. If it cannot express the request, stop, propose a small deviation and wait for the owner's OK; never deviate silently. A page patch needs a PR reason and a `PAGE_OVERRIDES` entry. Changes join the one open `design-system` PR the owner merges (D254).
-- Design fixes are load-bearing. Markup or rules with a rationale comment (date, D-number, sizer, specificity bump) are never removed or rewritten to make another task work: extend or ask. Check history (`git log -L '/<selector>/,+20:<file>'`) and the ledger before changing shared CSS (`player.css`, `primitives.css`, `buttons.css`, tokens). CSS is checked by browser suites only.
-- Scope: one PR per task; review fixes and follow-ups go on its branch, never a new PR; batch small fixes (D254). Before a PR, `git diff --stat origin/main` must list only the task's files; name any shared stylesheet or component in it, and why, in the PR body.
+- The design system is a product (D237, D253). A control is a component in `apps/web/src/design-system/` named for what it is (Button); a page draws it, never types its class. A UI fix starts at the component. If the system cannot express the request, stop, propose a small deviation and wait for the owner's OK; never deviate silently. A page patch needs a PR reason and a `PAGE_OVERRIDES` entry. Changes join the one rolling `design-system` PR the owner merges (D254). No flag emoji: Flag (D367).
+- Design fixes are load-bearing: markup or rules with a rationale comment are never removed or rewritten for another task; extend or ask. Before changing shared CSS (`player.css`, `primitives.css`, `buttons.css`, tokens) check `git log -L '/<selector>/,+20:<file>'` and the ledger. `npm run design-check` checks CSS rules; browser suites verify rendered CSS.
+- Scope: one PR per task per thread; review fixes and follow-ups go on its branch, never a new PR; batch small fixes (D254). Limits: CodeRabbit about 10 reviews an hour, Vercel 100 deploys a day. Before a PR, `git diff --stat origin/main` must list only the task's files; name any shared stylesheet or component in it, and why, in the PR body.
 - UI parts: before you write a class, token or value, run `npm run ds -- find "<need>"`. Features: `.claude/skills/feature/`.
 - State authority: the config store owns the owner's config; its files are not in git (D296). Edit in the app, never a PR; `config pull` fills `config/` locally.
 - Pipeline discipline: verify the core daily loop runs green in production before adding new intake types or audience matrices.
-- Vercel: the CLI is pinned. Read with `npm run vercel:list`, `vercel:inspect`, `vercel:logs`, `vercel:env-list`; a session never deploys or edits env.
+- Vercel: the CLI is pinned. Read with `npm run vercel:list`, `vercel:inspect`, `vercel:logs`, `vercel:env-list`; a session never deploys or edits env. Production waits for 5 merges or 3 hours (D375); `[deploy]` ending a PR title ships now.
+
+## Code
+
+The smallest complete change (Ponytail skill). First list every caller, test, fixture and config it must reach: that is scope, extra features are not. Then take the first option that fully works: skip it; reuse what the repo has, as it is used; the platform or an installed package (no new dependency for a few lines); one clear line; the minimum code.
+
+- No abstraction, wrapper, option, config or "for later" code nobody asked for. Deletion beats addition; keep the repo's structure.
+- Bug fix: grep every caller, then fix the root cause once in the shared code, with tokens and shared components, never a one-off or hardcoded value, and a check that flags drift. Moved code keeps its validation and error handling.
+- A shortcut with a known limit gets `// shortcut: <the limit>, <when to upgrade>`.
+- Never cut validation at trust boundaries, data-loss guards, security or accessibility.
+- End the reply with what you skipped or did not check.
 
 ## Tests
 
@@ -48,7 +59,7 @@ Few, one layer each, aimed at what fails silently ([evidence](docs/engineering/p
 - A test names the bug it prevents: no sentence, no test. Search the unit, `apps/web/e2e` and `apps/web/src/player/e2e` suites for the behaviour first, and extend or replace a test instead of adding one.
 - Test journeys across pages, reload, offline and time, not states. Never pin copy, CSS, class names, markup, geometry or constants: screenshots and critics judge those.
 - Fake the clock, crypto and network; freeze fixtures; never sleep or read live config.
-- Delete or rewrite tests of changed/removed behaviour in the same commit. Streamline tests in the PR: drop old assertions, fold overlaps. Only add a test for a logic bug: show it red first, test where logic lives.
+- Delete or rewrite tests of changed/removed behaviour in the same commit. Streamline tests in the PR: drop old assertions, fold overlaps. A test guards a real failure mode (owner, 11-03): show it red first, test where logic lives; never add one for coverage.
 - A browser test runs once: on the phone unless it is tagged `@desktop` (desktop only) or `@both`. Counts and run times are in `docs/state.md`; a change that breaks the budget cuts first.
 
 ## Keeping the record

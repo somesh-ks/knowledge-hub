@@ -69,7 +69,7 @@
    halfway along it, so it reads as between the two states (owner, 2026-10-31: the first draw, a tonal
    track with an accent ring and thumb, "looks weird in color"). After the checked rules. */
 .switch-input:indeterminate {
-  background: color-mix(in oklch, var(--color-accent) 50%, var(--color-border-control));
+  background: var(--switch-track-mixed);
 }
 
 .switch-input:indeterminate::before {
@@ -89,7 +89,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .switch-input:enabled:hover {
-    background: color-mix(in oklch, var(--color-on-surface) 12%, var(--color-border-control));
+    background: var(--switch-track-hover);
   }
 
   .switch-input:enabled:checked:hover {
@@ -99,7 +99,7 @@
 
 /* A disabled switch never answers a hover or a press. After the hover rules and no less specific, so a press under a mouse still shows as a press. */
 .switch-input:enabled:active {
-  background: color-mix(in oklch, var(--color-on-surface) 12%, var(--color-border-control));
+  background: var(--switch-track-hover);
 }
 
 .switch-input:enabled:checked:active {

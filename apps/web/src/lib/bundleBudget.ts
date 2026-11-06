@@ -27,6 +27,16 @@ import { gzipSync } from "node:zlib";
  * ceiling, not a target.
  */
 export const FIRST_LOAD_BUDGET_BYTES = 130 * 1024;
+/**
+ * The heaviest page's first load as last recorded (D361), and how far it may grow past that before the
+ * build fails. The 130 KB ceiling (D141) left room for a page to double unnoticed: from 2026-10-24 to
+ * 2026-11-03 every page went from 35 to 75 KB (the select's sheet with every glyph; the
+ * avatar's show). A change that adds more than a step loads it lazily, or raises the record here
+ * and says why in its pull request. Recorded 2026-11-04, once the select's sheet loaded at idle:
+ * /settings/downloads, 59.0 KB (it was 79.9 KB before).
+ */
+export const FIRST_LOAD_RECORD_BYTES = 59 * 1024;
+export const FIRST_LOAD_STEP_BYTES = 5 * 1024;
 /** Self-hosted fonts, build plan 8.8: subset, one preloaded, 80 KB or less in total. */
 export const FONT_BUDGET_BYTES = 80 * 1024;
 /** The inline theme script runs before first paint, so it must stay tiny. */
@@ -334,6 +344,19 @@ export function overBudget(
       (page) =>
         `${page.name}: ${kilobytes(page.totalGzip)} of first-load JavaScript, budget ${kilobytes(budget)}`,
     );
+}
+
+/** One line when the heaviest page grew more than a step past the record (D361); empty otherwise. */
+export function pastRecord(
+  largest: number,
+  record: number = FIRST_LOAD_RECORD_BYTES,
+  step: number = FIRST_LOAD_STEP_BYTES,
+): string[] {
+  if (largest <= record + step) return [];
+  const kilobytes = (bytes: number) => `${(bytes / 1024).toFixed(1)} KB`;
+  return [
+    `The heaviest page loads ${kilobytes(largest)} of JavaScript, more than ${kilobytes(step)} past the recorded ${kilobytes(record)} (D361): load the new code lazily, or raise FIRST_LOAD_RECORD_BYTES in bundleBudget.ts and say why in the pull request`,
+  ];
 }
 
 /** `sha256-...` source expressions of the page's inline scripts that run (not JSON data blocks). */

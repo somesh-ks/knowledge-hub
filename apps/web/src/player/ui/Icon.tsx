@@ -11,7 +11,13 @@ export default function Icon({ name, size, className }: IconProps) {
   const bold = ICON_BOLD_PATHS[name];
   const classes = [iconClass(size), className ?? ""].filter(Boolean).join(" ");
   return (
-    <svg className={classes} viewBox={ICON_VIEW_BOX} aria-hidden="true" focusable="false">
+    <svg
+      className={classes}
+      data-icon={name}
+      viewBox={ICON_VIEW_BOX}
+      aria-hidden="true"
+      focusable="false"
+    >
       <path d={ICON_PATHS[name]} data-weight={bold ? "regular" : undefined} />
       {bold && <path d={bold} data-weight="bold" />}
     </svg>

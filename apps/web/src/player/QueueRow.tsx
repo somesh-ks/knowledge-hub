@@ -1,4 +1,4 @@
-import type { KeyboardEvent, PointerEvent } from "react";
+import type { CSSProperties, KeyboardEvent, PointerEvent } from "react";
 import { longDateFromDigestId } from "./core/formatTime";
 import { playQueueItem } from "./core/playerRuntime";
 import { useQueueMeta } from "./hooks/useQueue";
@@ -18,13 +18,16 @@ export interface QueueGestures {
   onGripKey(event: KeyboardEvent<HTMLElement>, index: number): void;
   /** True just after a swipe, so the row's click does not play what the finger meant to move. */
   swiped(): boolean;
-  onMove(index: number, to: number, title: string): void;
+  onMove(index: number, to: number): void;
 }
 
 interface QueueRowProps {
   id: string;
+  /** Its place in the list, the playing row included, as the gestures count it and it is called. */
   index: number;
   count: number;
+  /** The item playing now (D346), or a row put above it, which does not start by itself (D357). */
+  state?: "current" | "before";
   gestures: QueueGestures;
 }
 
@@ -46,15 +49,20 @@ export function QueueDeleteMark() {
  * are its handle (owner, 2026-11-02, after D169's dots): a press on them lifts the row to a new
  * place, with a finger or a mouse, and Up and Down move it from the keyboard, Delete takes it off;
  * a swipe to either side takes it off too. A mouse also gets a ⋮ on hover (owner, 2026-11-03) with
- * the row's other actions; a phone never draws it (player.css).
+ * the row's other actions; a phone never draws it (player.css). The playing row is moved the same
+ * way (D349), and any row may go above it (D357).
  */
-export default function QueueRow({ id, index, count, gestures }: QueueRowProps) {
+export default function QueueRow({ id, index, count, state, gestures }: QueueRowProps) {
   const meta = useQueueMeta(id);
   const title = meta?.title ?? longDateFromDigestId(id);
+  const playing = state === "current";
+  const name = `Move ${title}, ${playing ? "playing now, " : ""}${index + 1} of ${count}. Up and Down arrows move it, Delete removes it`;
   return (
     <li
       className="player-queue-item"
       data-queue-id={id}
+      data-state={state}
+      aria-current={playing ? "true" : undefined}
       onPointerDown={(event) => gestures.onPointerDown(event, index)}
       onPointerMove={gestures.onPointerMove}
       onPointerUp={gestures.onPointerEnd}
@@ -77,11 +85,13 @@ export default function QueueRow({ id, index, count, gestures }: QueueRowProps) 
             <span className="player-upnext-hint">{meta?.caption ?? " "}</span>
           </span>
         </button>
-        <QueueRowMenu id={id} title={title} />
+        <QueueRowMenu id={id} title={title} subtitle={meta?.caption} />
         <button
           className="icon-btn player-queue-grip"
           type="button"
-          aria-label={`Move ${title}, ${index + 1} of ${count}. Up and Down arrows move it, Delete removes it`}
+          // The anchor a hold's menu hangs from on a touch screen, where the dots are hidden (player.css).
+          style={{ "--queue-anchor": `--queue-more-${id}` } as CSSProperties}
+          aria-label={name}
           onPointerDown={(event) => gestures.onGripDown(event, index)}
           onPointerMove={gestures.onGripMove}
           onPointerUp={gestures.onGripEnd}

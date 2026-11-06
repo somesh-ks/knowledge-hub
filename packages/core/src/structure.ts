@@ -123,17 +123,6 @@ const SINGLETONS: readonly StructureBlockType[] = [
   "sign_off",
 ];
 
-/**
- * Drop the section blocks of topics that no longer exist, keeping the rest in order. A removed
- * topic is never an error when the structure is read, as `digestSections` already tolerates.
- */
-export function withKnownSections(
-  blocks: readonly StructureBlock[],
-  known: ReadonlySet<string>,
-): StructureBlock[] {
-  return blocks.filter((block) => block.type !== "section" || known.has(block.id));
-}
-
 /** The rules a structure holds, as messages for the person who sent it; empty when it is sound. */
 export function structureProblems(blocks: readonly StructureBlockInput[]): string[] {
   const problems: string[] = [];
@@ -556,11 +545,6 @@ export function withoutSection(file: StructureFile, section: string): StructureF
     ...(blocks === undefined ? {} : { blocks }),
     ...(custom_blocks ? { custom_blocks } : {}),
   };
-}
-
-/** The owner's prompt for a block, or null for the built-in one. */
-export function storedBlockPrompt(file: StructureFile | null, key: string): string | null {
-  return file?.prompts?.[key] ?? null;
 }
 
 /** A story block's own rules for a section, or none when no block names it or it sets none. */

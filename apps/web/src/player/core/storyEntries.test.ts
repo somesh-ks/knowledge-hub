@@ -105,6 +105,29 @@ describe("storyEntries", () => {
     expect(second?.startSec).toBeCloseTo(10 + 6 * 0.062);
   });
 
+  // Owner, 2026-11-03: the chapter times "should be sequential but not random numbers" (D350). A
+  // script that reaches a later section first must not list its stories under an earlier heading.
+  it("lists sections in the order the script reaches them, so start times only go up", () => {
+    const episode = {
+      ...digest,
+      items: [
+        { id: "a", headline: "First", section: "top", start_ms: null, end_ms: null },
+        { id: "b", headline: "Second", section: "news", start_ms: null, end_ms: null },
+      ],
+      sections: [
+        { slug: "top", title: "Top picks", start_ms: null },
+        { slug: "news", title: "News", start_ms: null },
+      ],
+      turns: [turn("Second story.", "b"), turn("First story.", "a")],
+    } as unknown as PlayerDigestData;
+    const entries = storyEntries(null, episode);
+    const listed = entries.sections.flatMap((section) =>
+      entries.items.filter((item) => item.section === section.slug),
+    );
+    const starts = listed.map((item) => item.startSec ?? Number.NaN);
+    expect(starts).toEqual([...starts].sort((x, y) => x - y));
+  });
+
   it("leaves a briefing's untimed stories unplaced", () => {
     expect(storyEntries(null, digest).items[0]?.startSec).toBeNull();
   });

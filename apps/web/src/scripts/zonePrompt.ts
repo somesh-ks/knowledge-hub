@@ -12,7 +12,8 @@
  * store; until then a stale offer is possible and harmless, since the switch it asks for is the one
  * already saved.
  */
-import { sameClock, scheduleZone, suggestZone } from "@singularity/core/time";
+import { sameClock, scheduleZone } from "@singularity/core/time";
+import { suggestZone } from "@singularity/core/zoneSuggest";
 import { isOnline } from "../lib/connectivity";
 import { SAVED_KEY } from "../lib/savedKey";
 import { parseSaved, savedFields, withStore } from "../lib/savedOverlay";
@@ -164,9 +165,7 @@ export function checkZone(): void {
     noteOutcome("dismissed");
     return;
   }
-  const message = suggestion.exact
-    ? `You're in ${place(suggestion)}`
-    : `You're on ${suggestion.label} time`;
+  const message = `You're in ${place(suggestion)}`;
   offered = message;
   sendToast(
     {

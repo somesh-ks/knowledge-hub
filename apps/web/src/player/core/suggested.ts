@@ -1,5 +1,5 @@
 import { DELETED_KEY, parseDeleted } from "../../lib/deletedEpisodes";
-import { isQueueId } from "./playQueue";
+import { isQueueId, parseRemoved, REMOVED_KEY } from "./playQueue";
 import { readRemembered, type StorageLike } from "./resume";
 
 /** How many suggestions Up next lists. Autoplay takes the first. */
@@ -23,7 +23,19 @@ export function suggestNext(
     .slice(0, limit);
 }
 
-/** An item the listener deleted on this device, queued already, or has played to the end. */
+/**
+ * `fresh` with the suggestions already shown first, in their places: a new one joins at the end,
+ * never on top (owner, 2026-11-03).
+ */
+export function keepPlaces(shown: readonly string[], fresh: readonly string[]): string[] {
+  const kept = shown.filter((id) => fresh.includes(id));
+  return [...kept, ...fresh.filter((id) => !kept.includes(id))];
+}
+
+/**
+ * An item the listener deleted on this device, took off the queue, queued already, or has played
+ * to the end.
+ */
 export function skipper(
   storage: StorageLike | null,
   queued: readonly string[],
@@ -31,6 +43,7 @@ export function skipper(
   let deleted = new Set<string>();
   try {
     deleted = new Set(parseDeleted(storage?.getItem(DELETED_KEY) ?? null).map((entry) => entry.id));
+    for (const id of parseRemoved(storage?.getItem(REMOVED_KEY) ?? null)) deleted.add(id);
   } catch {
     // Blocked storage: nothing is known to be deleted.
   }

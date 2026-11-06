@@ -33,6 +33,11 @@ export interface StreamDoc {
   stories: StreamStory[];
   /** The cover box's colour until the drawn cover is deployed; a hex colour, or absent. */
   cover_key?: string;
+  /**
+   * How long the episode should run, in milliseconds: the length picked while it is written, then
+   * the finished script's own. Absent in a copy written before D366.
+   */
+  expected_ms?: number;
   updated_at: string;
 }
 
@@ -105,23 +110,11 @@ export function parseStreamDoc(text: string): StreamDoc | null {
     ...(typeof raw.cover_key === "string" && HEX_COLOR.test(raw.cover_key)
       ? { cover_key: raw.cover_key }
       : {}),
+    ...(typeof raw.expected_ms === "number" &&
+    Number.isFinite(raw.expected_ms) &&
+    raw.expected_ms > 0
+      ? { expected_ms: raw.expected_ms }
+      : {}),
     updated_at: typeof raw.updated_at === "string" ? raw.updated_at : "",
   };
-}
-
-/** Where the narration can start: the first turns are there. */
-export const hasFirstTurns = (doc: StreamDoc): boolean => doc.turns.length > 0;
-
-/**
- * Whether a player that has reached the end of `have` turns should wait for more instead of ending:
- * the script is still being written. A finished or failed stream, or a fetch that found nothing,
- * ends the episode there.
- */
-export function shouldWaitForMore(status: StreamStatus | null): boolean {
-  return status === "writing";
-}
-
-/** The turns of a newer copy that a player holding `have` turns has not got yet. */
-export function newTurns(have: number, doc: StreamDoc): StreamTurn[] {
-  return doc.turns.slice(have);
 }

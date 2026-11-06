@@ -106,6 +106,8 @@ export async function serveNarration(
 declare global {
   interface Window {
     __audios: HTMLAudioElement[];
+    /** What the page's Play showed the moment a page move swapped it in (journeys.spec.ts). */
+    __arrived?: string;
   }
 }
 

@@ -112,6 +112,24 @@ export function ghost(): string {
   </g>`;
 }
 
+// ---------------------------------------------------------------- sleeping ghost
+// Haptics: a ghost asleep, with dotted arcs where a buzz would be (the phone's twin in the Default scene).
+export function ghostSleep(): string {
+  return `
+  <ellipse class="sf-ground" cx="120" cy="146" rx="46" ry="6"/>
+  <g class="a-bob">
+  <g transform="translate(12 0)">
+  <path class="sf-bone ss-line" d="M62 140 L62 78 C62 46 82 28 108 28 C134 28 154 46 154 78 L154 140 C148 134 143 134 138 140 C133 146 128 146 123 140 C118 134 113 134 108 140 C103 146 98 146 93 140 C88 134 83 134 78 140 C73 146 68 146 62 140Z" stroke-width="1.6" stroke-linejoin="round"/>
+  <path class="sf-bone-shade" d="M154 78 C154 46 134 28 108 28 C126 38 138 56 138 82 L138 134 C142 136 145 135 148 138 C150 139 152 139 154 140Z" opacity=".6"/>
+  <path class="sn ss-iron" d="M85 80 q7 7 14 0 M117 80 q7 7 14 0" stroke-width="3.2" stroke-linecap="round"/>
+  <ellipse class="sf-iron" cx="108" cy="102" rx="4.4" ry="3.4"/>
+  </g>
+  </g>
+  <g class="sn ss-pumpkin-lit">
+    <path d="M52 62 q-12 24 0 48 M34 50 q-20 38 0 72 M188 62 q12 24 0 48 M206 50 q20 38 0 72" stroke-width="5" stroke-linecap="round" stroke-dasharray="0.1 12"/>
+  </g>`;
+}
+
 // ---------------------------------------------------------------- cauldron
 export function cauldron(): string {
   return `

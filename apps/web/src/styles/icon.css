@@ -22,6 +22,17 @@
   opacity: var(--icon-bold);
 }
 
+/* A favorite's heart (owner, 2026-11-04): "the heart fill can be red, but the outlined state can
+   still be dark grey", since the full ink read near black. Keyed on the glyph, so every place that
+   draws the heart agrees. */
+.icon-glyph[data-icon="heart"] {
+  color: var(--color-favorite);
+}
+
+.icon-glyph[data-icon="heartOutline"] {
+  color: var(--color-on-surface-muted);
+}
+
 .icon-glyph-lg {
   width: var(--size-icon-lg);
   height: var(--size-icon-lg);

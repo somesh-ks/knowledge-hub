@@ -1,6 +1,7 @@
 import { loadEnv, ModelRouting } from "@singularity/core";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import { StreamInterruptedError } from "../src/llm/errors.js";
 import { pickNewest, resolveFamilies } from "../src/llm/modelResolver.js";
 import { createModelRouter } from "../src/llm/modelRouter.js";
 import { createAnthropicApi } from "../src/llm/providers.js";
@@ -43,6 +44,28 @@ const claude = (stop_reason: string, text = '{"ok":true}') =>
     content: [{ type: "text", text }],
     usage: { input_tokens: 5, output_tokens: 3 },
   });
+/** A streamed Claude answer: these events one read at a time, then the end or a dropped connection. */
+function claudeStream(events: readonly object[], drop = false): Response {
+  const chunks = events.map((event) =>
+    new TextEncoder().encode(`event: e\ndata: ${JSON.stringify(event)}\n\n`),
+  );
+  return new Response(
+    new ReadableStream({
+      pull(controller) {
+        const chunk = chunks.shift();
+        if (chunk) controller.enqueue(chunk);
+        else if (drop) controller.error(new TypeError("terminated"));
+        else controller.close();
+      },
+    }),
+    { status: 200, headers: { "content-type": "text/event-stream" } },
+  );
+}
+const textDelta = (text: string) => ({
+  type: "content_block_delta",
+  index: 0,
+  delta: { type: "text_delta", text },
+});
 const gemini = (text = '{"ok":true}') =>
   json({
     candidates: [{ finishReason: "STOP", content: { parts: [{ text }] } }],
@@ -144,6 +167,49 @@ describe("the model chain", () => {
     expect(fallbacks).toEqual([]);
     const warn = lines.find((l) => /falling back/i.test(l.message));
     expect(JSON.stringify(warn)).toContain('"to":null');
+  });
+
+  // The podcast script streams (D366). Once its text began the listener may be hearing it, so a
+  // reply that breaks off or is refused is neither sent again nor handed to the next model, whose
+  // reply would follow turns of another: its caller goes on.
+  it("streams Claude's reply as it comes, and gives a broken or refused stream to no other model", async () => {
+    const start = {
+      type: "message_start",
+      message: { usage: { input_tokens: 5, output_tokens: 1 } },
+    };
+    const stop = {
+      type: "message_delta",
+      delta: { stop_reason: "end_turn" },
+      usage: { output_tokens: 3 },
+    };
+    const pieces: string[] = [];
+    const whole = setup((url) =>
+      url.includes("anthropic")
+        ? claudeStream([start, textDelta('{"ok":'), textDelta("true}"), stop])
+        : gemini(),
+    );
+    const result = await whole.router.callModel("story_writer", {
+      ...request,
+      onText: (delta: string) => void pieces.push(delta),
+    });
+    expect(result.value).toEqual({ ok: true });
+    expect(pieces.join("")).toBe('{"ok":true}');
+    expect(whole.calls[0]?.body.stream).toBe(true);
+    const broken = setup((url) =>
+      url.includes("anthropic") ? claudeStream([start, textDelta('{"ok":')], true) : gemini(),
+    );
+    await expect(
+      broken.router.callModel("story_writer", { ...request, onText: () => {} }),
+    ).rejects.toBeInstanceOf(StreamInterruptedError);
+    expect(broken.calls).toHaveLength(1);
+    const refusal = { type: "message_delta", delta: { stop_reason: "refusal" } };
+    const refused = setup((url) =>
+      url.includes("anthropic") ? claudeStream([start, textDelta('{"ok":'), refusal]) : gemini(),
+    );
+    await expect(
+      refused.router.callModel("story_writer", { ...request, onText: () => {} }),
+    ).rejects.toBeInstanceOf(StreamInterruptedError);
+    expect(refused.calls).toHaveLength(1);
   });
 
   it("never sends temperature, top_p, top_k or budget_tokens, and asks Claude for effort and a schema format", async () => {

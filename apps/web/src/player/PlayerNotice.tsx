@@ -2,8 +2,7 @@ import { useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { bannerClass, bannerText } from "../design-system/banner";
 import { buttonClass } from "../design-system/button";
-import { INTERRUPTED_LINE, noticeAction } from "./core/playerCopy";
-import { getPlayerStore } from "./core/playerRuntime";
+import { noticeAction } from "./core/playerCopy";
 import { usePlayerState } from "./hooks/usePlayer";
 import Icon from "./ui/LazyIcon";
 
@@ -67,8 +66,10 @@ function keepFocus(): void {
 }
 
 /**
- * The one place the player explains itself: a playback error, or a pause the system caused. A
- * status line is a `status` role; an error is an `alert`, so it is announced at once. A press on
+ * The one place the player explains itself: a playback error, an `alert`, so it is announced at once.
+ * A pause another app caused has no notice here: the bar's caption says it, and the page's Play
+ * disc plays on (owner, 2026-11-03: "the paused by another app banner inside the player ui must be
+ * removed"). A press on
  * Play in a refusal that stands sends nothing and reports the same reason as a new error: the
  * alert is put in again, so a screen reader says why again (the live region stays quiet while
  * the page is open).
@@ -111,25 +112,6 @@ export default function PlayerNotice({ onRetry }: PlayerNoticeProps) {
             {action}
           </button>
         ) : null}
-      </div>
-    );
-  } else if (state.interrupted) {
-    notice = (
-      <div className={bannerClass()} data-tone="info" role="status">
-        <Icon name="info" />
-        <div className={bannerText.column}>
-          <p className={bannerText.title}>{INTERRUPTED_LINE}</p>
-        </div>
-        <button
-          className={buttonClass("text")}
-          type="button"
-          onClick={() => {
-            keepFocus();
-            getPlayerStore().play();
-          }}
-        >
-          Resume
-        </button>
       </div>
     );
   }

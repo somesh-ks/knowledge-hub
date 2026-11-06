@@ -827,11 +827,11 @@ describe("handleConfig with the config store on (D149)", () => {
     baseFiles: { "config/sources.json": JSON.stringify({ version: 1, sources: [] }) },
   });
 
-  const OWNER = (domains: string[]) =>
+  const ownerProfile = (domains: string[]) =>
     JSON.stringify({ user_id: "owner", blocked_domains: domains, votes: [], opens: [] });
   const builtFiles = {
     "config/preferences.json": PREFERENCES,
-    "config/profiles/owner.json": OWNER([]),
+    "config/profiles/owner.json": ownerProfile([]),
     "config/sources.json": JSON.stringify({ version: 1, sources: [] }),
   };
 
@@ -910,7 +910,7 @@ describe("handleConfig with the config store on (D149)", () => {
       if (reads > 1) return;
       store.rows.push({
         path: "config/profiles/owner.json",
-        content: OWNER(["other.example"]),
+        content: ownerProfile(["other.example"]),
         version: 1,
       });
     });
@@ -923,7 +923,7 @@ describe("handleConfig with the config store on (D149)", () => {
 
     const busy = fakeStore([
       { path: "config/preferences.json", content: PREFERENCES, version: 1 },
-      { path: "config/profiles/owner.json", content: OWNER([]), version: 1 },
+      { path: "config/profiles/owner.json", content: ownerProfile([]), version: 1 },
     ]);
     busy.onRead(() => {
       const row = busy.rows.find((entry) => entry.path === "config/profiles/owner.json");

@@ -174,6 +174,18 @@ export function isAudioOnlyFailure(steps: readonly WorkflowStep[]): boolean {
   return failed.length > 0 && failed.every((step) => step.name === "Audio");
 }
 
+/**
+ * An episode's voices are recorded in a nested job after the episode is saved (podcast.yml), so
+ * when that is the only failure the episode is live and the next Play narrates what is missing. The
+ * page reads it as made: a failed rewrite there would offer a Try again for an episode that is gone.
+ */
+export function isVoicesOnlyFailure(steps: readonly WorkflowStep[]): boolean {
+  const failed = steps.filter(
+    (step) => step.conclusion === "failure" || step.conclusion === "timed_out",
+  );
+  return failed.length > 0 && failed.every((step) => step.name === "Recording voices");
+}
+
 interface OnDemandRecord {
   at: string;
   outcome: "published" | "nothing" | "gated" | "failed";
@@ -366,10 +378,6 @@ export async function progressOf(
   };
 }
 
-export function runUrlFor(config: ServerConfig, runId: number): string {
-  return `https://github.com/${config.repository}/actions/runs/${runId}`;
-}
-
 export async function handleStatus(
   runParam: string | null,
   deps: StatusDeps,
@@ -416,7 +424,7 @@ export async function handleStatus(
           },
         };
       }
-      const done = run.conclusion === "success";
+      const done = run.conclusion === "success" || isVoicesOnlyFailure(steps);
       const stage = done
         ? updatingStage("episode", hasNamedSteps(steps))
         : failedEpisodeStage(steps);
@@ -432,7 +440,6 @@ export async function handleStatus(
           ...(done
             ? {}
             : {
-                run_url: runUrlFor(config, runId),
                 ...failureFields(steps),
                 ...(await readFailure(deps, runId)),
               }),
@@ -449,7 +456,6 @@ export async function handleStatus(
     }
 
     const steps = await github.listSteps(runId);
-    const runUrl = runUrlFor(config, runId);
     if (run.conclusion === "cancelled") {
       return {
         status: 200,
@@ -473,7 +479,6 @@ export async function handleStatus(
           step: failedStep(steps),
           ...stageFields(briefingStage(failedStep(steps))),
           outcome: "failed",
-          run_url: runUrl,
         },
       };
     }
@@ -487,7 +492,7 @@ export async function handleStatus(
       return {
         status: 200,
         headers,
-        body: { run_id: runId, state, step: null, outcome: "failed", run_url: runUrl },
+        body: { run_id: runId, state, step: null, outcome: "failed" },
       };
     }
     return {
@@ -501,7 +506,6 @@ export async function handleStatus(
         ...(record.outcome === "published" && record.digestId
           ? { digest_id: record.digestId }
           : {}),
-        ...(record.outcome === "failed" ? { run_url: runUrl } : {}),
       },
     };
   } catch (error) {

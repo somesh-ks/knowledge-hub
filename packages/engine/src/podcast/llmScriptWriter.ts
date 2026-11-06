@@ -5,33 +5,80 @@ import { CHARS_PER_TOKEN } from "../llm/tokenBudget.js";
 import type { LlmClient } from "../llm/types.js";
 import { newBoundary } from "../llm/untrusted.js";
 import {
-  OPENING_INSTRUCTION,
   rewriteSystemPrompt,
   rewriteUserMessage,
   scriptSystemPrompt,
   scriptUserMessage,
 } from "./prompt.js";
-import type { ScriptInput, ScriptTurn, ScriptWriter, TurnRewrite } from "./types.js";
+import type { ScriptInput, ScriptRow, ScriptWriter, TurnRewrite } from "./types.js";
 
 const REWRITE_MAX_TOKENS = 400;
 /** Per-turn JSON overhead and the model's own slack, on top of the speech itself. */
 const SCRIPT_TOKEN_OVERHEAD = 600;
 const SCRIPT_TOKEN_SLACK = 1.6;
-const OPENING_MAX_TOKENS = 700;
 
-/** What the model is asked for. Looser than the final turn: script.ts applies the format rules. */
-export const ScriptReply = z.object({
-  turns: z.array(
-    z.object({
-      speaker: z.enum(["a", "b"]),
-      text: z.string(),
-      item_id: z.string().nullish(),
-    }),
-  ),
+/** One turn of a reply. Looser than the final turn: script.ts applies the format rules. */
+const ScriptRowShape = z.object({
+  speaker: z.enum(["a", "b"]),
+  text: z.string(),
+  item_id: z.string().nullish(),
 });
+
+/** What the model is asked for. */
+export const ScriptReply = z.object({ turns: z.array(ScriptRowShape) });
 export type ScriptReply = z.infer<typeof ScriptReply>;
 
 const RewriteReply = z.object({ text: z.string() });
+
+function jsonOrNull(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Reads the turns of `{"turns":[...]}` as the reply streams: each object that closes inside the
+ * array is one complete turn, handed over with the ones before it. Strings and escapes are
+ * followed, so a brace or a quote inside a turn's text is never taken for structure.
+ */
+export function streamedTurns(
+  onTurns: (rows: readonly ScriptRow[]) => void,
+): (delta: string) => void {
+  let text = "";
+  let at = 0;
+  let inString = false;
+  let escaped = false;
+  const open: string[] = [];
+  let start = -1;
+  const rows: ScriptRow[] = [];
+  return (delta) => {
+    text += delta;
+    const before = rows.length;
+    for (; at < text.length; at += 1) {
+      const char = text[at];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (char === "\\") escaped = true;
+        else if (char === '"') inString = false;
+      } else if (char === '"') {
+        inString = true;
+      } else if (char === "{" || char === "[") {
+        open.push(char);
+        if (char === "{" && open.join("") === "{[{") start = at;
+      } else if (char === "}" || char === "]") {
+        if (char === "}" && start >= 0 && open.join("") === "{[{") {
+          const row = ScriptRowShape.safeParse(jsonOrNull(text.slice(start, at + 1)));
+          if (row.success) rows.push(row.data);
+          start = -1;
+        }
+        open.pop();
+      }
+    }
+    if (rows.length > before) onTurns(rows.slice());
+  };
+}
 
 export interface LlmScriptWriterOptions {
   llm: LlmClient;
@@ -67,42 +114,10 @@ export class LlmScriptWriter implements ScriptWriter {
       maxTokens,
       label: "podcast_script",
       ...(input.deadline_at === undefined ? {} : { deadlineAt: input.deadline_at }),
+      ...(input.onTurns ? { onText: streamedTurns(input.onTurns) } : {}),
     });
-    // The opening was written first and shown already: the whole script starts with it.
+    // The opening is live already: the whole script starts with it.
     return input.opening?.length ? { turns: [...input.opening, ...value.turns] } : value;
-  }
-
-  async extendScript(
-    input: ScriptInput,
-    turns: readonly ScriptTurn[],
-    problem: string,
-  ): Promise<unknown> {
-    const current = JSON.stringify({ turns });
-    // The current script already holds the opening; writeScript must not prepend it again.
-    const { opening: _held, ...rest } = input;
-    return this.writeScript(rest, [
-      `${problem} Return the whole script again: keep every turn that is long enough as it is and lengthen the shortest ones. This is the current script: ${current}`,
-    ]);
-  }
-
-  async writeOpening(input: ScriptInput): Promise<unknown> {
-    const boundary = newBoundary();
-    const { value } = await this.options.llm.completeJson({
-      schema: ScriptReply,
-      schemaName: "singularity_opening",
-      messages: [
-        {
-          role: "system",
-          content: `${scriptSystemPrompt(input)}\n${OPENING_INSTRUCTION}`,
-        },
-        { role: "user", content: scriptUserMessage(input, boundary, []) },
-      ],
-      step: "podcast_opening",
-      maxTokens: OPENING_MAX_TOKENS,
-      label: "podcast_opening",
-      ...(input.deadline_at === undefined ? {} : { deadlineAt: input.deadline_at }),
-    });
-    return value;
   }
 
   async rewriteTurn(input: TurnRewrite): Promise<string | null> {

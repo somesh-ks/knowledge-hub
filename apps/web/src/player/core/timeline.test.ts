@@ -3,7 +3,6 @@ import {
   clockParts,
   clockSizerParts,
   formatClock,
-  formatRemaining,
   longDateFromDigestId,
   monthLabelFromDate,
 } from "./formatTime";
@@ -148,11 +147,6 @@ describe("time formatting", () => {
     expect(clockSizerParts(754)).toEqual({ before: "00", after: "00" });
     expect(clockSizerParts(86)).toEqual({ before: "0", after: "00" });
     expect(clockSizerParts(3725)).toEqual({ before: "0:00", after: "00" });
-  });
-
-  it("shows the remaining time with a minus", () => {
-    expect(formatRemaining(86, 211)).toBe("-2:05");
-    expect(formatRemaining(300, 211)).toBe("-0:00");
   });
 
   it("writes dates the way the voice does", () => {

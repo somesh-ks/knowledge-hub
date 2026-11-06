@@ -48,6 +48,10 @@ jobs:
   gate:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # Adding the label needs write access to the pull request, and nothing else here does.
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -55,8 +59,19 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
+      # A pull request opens without a label, so the first run used to fail on "needs the label" (6 of
+      # the 26 red runs on 2026-11-03). This job runs only when the diff touches the system (the
+      # `paths` filter), so the label goes on at open; the scope check below still rejects a mixed pull
+      # request. A label later removed by hand is not put back: only `opened` and `reopened` add it.
+      - name: Label at open
+        if: github.event.action == 'opened' || github.event.action == 'reopened'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --add-label design-system
       - name: Label and scope
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
-          LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          # A label added with GITHUB_TOKEN starts no new run, so the step above hands it over here.
+          LABELS: ${{ (github.event.action == 'opened' || github.event.action == 'reopened') && '["design-system"]' || toJson(github.event.pull_request.labels.*.name) }}
         run: node scripts/designSystemGate.mjs

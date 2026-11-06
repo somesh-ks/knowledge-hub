@@ -1,13 +1,19 @@
-import { useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { announce } from "./core/announcerDom";
 import { TAP_SLOP_PX } from "./core/gestureMath";
 import { getPlayQueue } from "./core/playerRuntime";
+import { moveInQueue } from "./core/playQueue";
 import QueueRow, { type QueueGestures } from "./QueueRow";
+import { capture, measure, play, settleNow } from "./queueFlip";
+import { getHaptics } from "./sound/soundController";
 import { useRowSwipe } from "./useRowSwipe";
 
 /** The edge of the scrolling column, within which a lifted row scrolls it, and the most it scrolls a frame. */
 const EDGE_PX = 56;
 const EDGE_MAX_STEP_PX = 14;
+
+/** The item last shown as playing, kept across the view's mounts: a new one is what moves the list. */
+let lastLead: string | null = null;
 
 /** A row lifted by its grip: where it began, and what it passes over. */
 interface Lift {
@@ -45,11 +51,66 @@ function scrollParent(node: HTMLElement): HTMLElement | null {
  * tap slop it follows the finger, and on release the shared rule (lib/swipeAway.ts) says whether a
  * swipe to either side takes the row off or it springs back. The dots' menu and the grip's Up and
  * Down keys do the same with the keyboard and say where the row went.
+ *
+ * The item playing now (`lead`) is a row like the others (D349), and the list plays top to bottom
+ * (D357): any row may go above it, where it stays and never starts by itself (`above`), and the
+ * playing row let go lower keeps the rows it passed above it. With nothing put above, it heads the
+ * list (D346).
  */
-export default function QueueList({ ids }: { ids: readonly string[] }) {
+export default function QueueList({
+  above = [],
+  ids,
+  lead,
+}: {
+  above?: readonly string[];
+  ids: readonly string[];
+  lead?: string | null;
+}) {
   const listRef = useRef<HTMLUListElement>(null);
   const swipe = useRowSwipe();
   const lift = useRef<Lift | null>(null);
+  /** Every row in the list's order: above, the playing one, then what is to come. */
+  const all = [...above, ...(lead ? [lead] : []), ...ids];
+  /** The panel the list and Suggested share, whose rows glide together (queueFlip.ts). */
+  const panel = (): HTMLElement | null => listRef.current?.parentElement ?? null;
+  // The list moves to the item that has just begun, so it does not stay scrolled below it. Not on
+  // opening the view: switching tabs keeps the page where it was (owner, 2026-11-02).
+  useEffect(() => {
+    if (lead && lastLead !== lead && lastLead !== null)
+      listRef.current
+        ?.querySelector<HTMLElement>('[data-state="current"]')
+        ?.scrollIntoView({ block: "start" });
+    if (lead) lastLead = lead;
+  }, [lead]);
+  // The list changed under a held row (the playing item ended, another tab queued one): the places
+  // it was lifted among are gone, so it goes back home and nothing moves.
+  const order = all.join(" ");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only a new order ends the lift
+  useLayoutEffect(() => {
+    if (lift.current) endLift(false);
+  }, [order]);
+
+  // A sideways swipe keeps the page still (useRowSwipe.ts); React's own touch listeners are passive.
+  useEffect(() => {
+    const list = listRef.current;
+    list?.addEventListener("touchmove", swipe.onTouchMove, { passive: false });
+    return () => list?.removeEventListener("touchmove", swipe.onTouchMove);
+  }, [swipe.onTouchMove]);
+
+  // A hold on a row opens its menu as the Library's cards do (owner, 2026-11-03), so a phone needs
+  // no dots. The script is the Library's own and installs once for the document.
+  useEffect(() => {
+    void import("../scripts/cardHold").then((hold) => hold.installCardHold());
+  }, []);
+
+  /** Puts row `from` at place `to`, both counted in `all`, and says where it went. */
+  const put = (from: number, to: number): void => {
+    const target = Math.min(Math.max(to, 0), all.length - 1);
+    if (target === from) return;
+    const title = rows()[from]?.querySelector(".player-upnext-date")?.textContent ?? "";
+    getPlayQueue().arrange(moveInQueue(all, from, target));
+    announce(`${title}, ${target + 1} of ${all.length}`);
+  };
 
   const rows = (): HTMLElement[] => [
     ...(listRef.current?.querySelectorAll<HTMLElement>(".player-queue-item") ?? []),
@@ -65,6 +126,8 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
       if (index < current.from && at < centre) to = Math.min(to, index);
       if (index > current.from && at > centre) to = Math.max(to, index);
     });
+    // A tick for each place the held row moves to, as a wheel's detent.
+    if (to !== current.to) getHaptics().fire("detent");
     current.to = to;
     rows().forEach((row, index) => {
       if (index === current.from) return;
@@ -90,14 +153,18 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
     const scroller = current.scroller;
     if (!scroller || lift.current !== current) return;
     const box = scroller.getBoundingClientRect();
-    // Only toward the edge the finger is travelling to: pressing near one scrolls nothing by itself.
-    const travelled = current.y - current.y0;
-    const near =
-      travelled < -TAP_SLOP_PX && current.y < box.top + EDGE_PX
-        ? -(1 - Math.max(0, current.y - box.top) / EDGE_PX)
-        : travelled > TAP_SLOP_PX && current.y > box.bottom - EDGE_PX
-          ? 1 - Math.max(0, box.bottom - current.y) / EDGE_PX
+    // Only toward the edge the finger is travelling to, and only past where the press began: a row
+    // lifted near the bottom (the list sits low under the cover) used to scroll at once and pass
+    // every row on a short drag. The push grows with the square of the depth, so it starts gently.
+    const low = Math.max(box.bottom - EDGE_PX, current.y0 + TAP_SLOP_PX);
+    const high = Math.min(box.top + EDGE_PX, current.y0 - TAP_SLOP_PX);
+    const depth =
+      current.y > low
+        ? Math.min(1, (current.y - low) / Math.max(1, box.bottom - low))
+        : current.y < high
+          ? -Math.min(1, (high - current.y) / Math.max(1, high - box.top))
           : 0;
+    const near = Math.sign(depth) * depth * depth;
     if (near !== 0) {
       scroller.scrollTop += near * EDGE_MAX_STEP_PX;
       placeLifted(current);
@@ -105,6 +172,7 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
     current.frame = requestAnimationFrame(() => autoScroll(current));
   };
 
+  const putRow = put;
   const endLift = (put: boolean): void => {
     const current = lift.current;
     if (!current) return;
@@ -115,29 +183,33 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
     } catch {
       // The pointer was already let go (a cancel).
     }
+    // Where each row stands now, the held one under the finger, so the drop glides from there.
+    const before = measure(listRef.current);
     // The rows go back to their own places at once: the list draws them in the new order next.
     listRef.current?.setAttribute("data-settling", "");
     for (const row of rows()) {
       row.style.translate = "";
       row.removeAttribute("data-dragging");
     }
+    capture(panel(), before);
     if (put && current.to !== current.from) {
-      getPlayQueue().move(current.from, current.to);
-      const title = current.row.querySelector(".player-upnext-date")?.textContent ?? "";
-      announce(`${title}, ${current.to + 1} of ${ids.length}`);
+      putRow(current.from, current.to);
       // The row's elements are kept and moved, but a moved node can lose focus: give it back.
-      const id = ids[current.from];
+      const id = all[current.from];
       requestAnimationFrame(() => {
         listRef.current
           ?.querySelector<HTMLElement>(`[data-queue-id="${id}"] .player-queue-grip`)
           ?.focus({ preventScroll: true });
       });
+    } else {
+      // Let go where it was taken (or a cancel): it glides back home, with no redraw to wait for.
+      play(panel());
     }
     requestAnimationFrame(() => listRef.current?.removeAttribute("data-settling"));
   };
 
   const gestures: QueueGestures = {
-    onPointerDown: (event, index) => swipe.onPointerDown(event, ids[index] ?? ""),
+    onPointerDown: (event, index) => swipe.onPointerDown(event, all[index] ?? ""),
     onPointerMove: swipe.onPointerMove,
     onPointerEnd: swipe.onPointerEnd,
     swiped: swipe.swiped,
@@ -145,6 +217,8 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
       if (!event.isPrimary || (event.pointerType === "mouse" && event.button !== 0)) return;
       const row = event.currentTarget.closest<HTMLElement>(".player-queue-item");
       if (!row || lift.current) return;
+      // A glide still under way ends first, so the places the lift counts are the real ones.
+      settleNow(panel());
       const all = rows();
       const scroller = scrollParent(row);
       const box = row.getBoundingClientRect();
@@ -171,6 +245,7 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
       };
       lift.current = current;
       row.dataset.dragging = "";
+      getHaptics().fire("detent");
       autoScroll(current);
     },
     onGripMove(event) {
@@ -189,21 +264,19 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
     onGripKey(event, index) {
       if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
-        const id = ids[index];
+        const id = all[index];
         if (id) getPlayQueue().remove(id);
         return;
       }
       const to = { ArrowUp: index - 1, ArrowDown: index + 1 }[event.key];
       if (to === undefined) return;
       event.preventDefault();
-      const title = rows()[index]?.querySelector(".player-upnext-date")?.textContent ?? "";
-      gestures.onMove(index, to, title);
+      gestures.onMove(index, to);
     },
-    onMove(index, to, title) {
-      if (to < 0 || to >= ids.length) return;
-      const id = ids[index];
-      getPlayQueue().move(index, to);
-      announce(`${title}, ${to + 1} of ${ids.length}`);
+    onMove(index, to) {
+      if (to < 0 || to >= all.length) return;
+      const id = all[index];
+      put(index, to);
       // The row's elements are kept and moved, but a moved node can lose focus: give it back.
       requestAnimationFrame(() => {
         listRef.current
@@ -215,8 +288,15 @@ export default function QueueList({ ids }: { ids: readonly string[] }) {
 
   return (
     <ul className="player-queue-list" ref={listRef}>
-      {ids.map((id, index) => (
-        <QueueRow key={id} id={id} index={index} count={ids.length} gestures={gestures} />
+      {all.map((id, index) => (
+        <QueueRow
+          key={id}
+          id={id}
+          index={index}
+          count={all.length}
+          state={id === lead ? "current" : lead && index < above.length ? "before" : undefined}
+          gestures={gestures}
+        />
       ))}
     </ul>
   );

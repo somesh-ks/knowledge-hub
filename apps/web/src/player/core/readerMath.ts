@@ -192,6 +192,17 @@ export function fabLabel(view: ChipView): string {
     : view.label;
 }
 
+/**
+ * The floating Play button's accessible name: its visible words first ("Play · 1 min"), then what
+ * it plays, so a voice command that reads the button finds them (WCAG 2.5.3). A state shown alone
+ * ("Loading") is already inside the chip's name.
+ */
+export function fabName(view: ChipView, noun: ChipNoun): string {
+  return view.state === "idle" || view.state === "current"
+    ? `${fabLabel(view)}, the ${noun}`
+    : view.name;
+}
+
 /** A story's chip before it has played. `length` is empty while the briefing has no audio. */
 export function idleStoryChip(length: string, headline: string): ChipView {
   const action = length ? `Play from here, ${length}` : "Play from here";
@@ -271,14 +282,8 @@ export function storyChipView(
   length: string,
   headline: string,
 ): ChipView {
-  if (visual === "played") {
-    return {
-      state: "played",
-      playing: false,
-      label: "Played",
-      name: `Play again, played: ${headline}`,
-    };
-  }
+  // Heard or not, an idle story is a Play button with its length: no per-story state on the button
+  // (owner, 2026-11-03). Which stories were heard stays on the story's own data-state.
   if (visual !== "current") return idleStoryChip(length, headline);
   if (playing && buffering) {
     return {

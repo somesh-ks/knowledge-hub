@@ -13,6 +13,7 @@ import {
   drawerViewportClass,
 } from "../design-system/drawer";
 import { sheetHeadClass, sheetTitleClass } from "../design-system/sheet";
+import { quietNextClose } from "../player/sound/gestureQuiet";
 import Icon from "../player/ui/LazyIcon";
 import "../styles/drawer.css";
 
@@ -116,7 +117,15 @@ export default function SheetFrame({
     </Drawer.Portal>
   );
   return (
-    <Drawer.Root open={open} onOpenChange={onOpenChange} swipeDirection={wide ? "right" : "down"}>
+    <Drawer.Root
+      open={open}
+      onOpenChange={(next, details) => {
+        // A sheet the finger swiped shut is felt and not heard (gestureQuiet.ts).
+        if (!next && details.reason === "swipe") quietNextClose();
+        onOpenChange(next);
+      }}
+      swipeDirection={wide ? "right" : "down"}
+    >
       {keyboardAware ? (
         <Drawer.VirtualKeyboardProvider>{portal}</Drawer.VirtualKeyboardProvider>
       ) : (

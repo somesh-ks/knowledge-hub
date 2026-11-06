@@ -44,7 +44,7 @@
 
 /* Rows in a card are divided by a hairline, as in the other cards (manage.css turns them off). */
 .blocked-row:not([data-removing], [data-gone], [data-filtered])
-~ .blocked-row:not([data-removing], [data-gone], [data-filtered])::before {
+  ~ .blocked-row:not([data-removing], [data-gone], [data-filtered])::before {
   content: "";
 }
 

@@ -76,8 +76,6 @@ export interface Stored {
   href?: string;
   /** Said instead of the failure after a Try again was refused (a cooldown names its wait). */
   note?: string;
-  /** A failed run's log on GitHub, from the status route: where the real error is. */
-  log?: string;
   /** When the run entered the stage it is in, for the time left. */
   stageAt?: number;
   /** The usual length of each stage in ms (the route's stage_estimates_ms), when it knows them. */
@@ -218,6 +216,8 @@ export function statusLine(run: Stored, words: Record<string, string | undefined
   if (run.phase === "failed") {
     if (run.note) return run.note;
     if (run.what) return briefingFailureLine(run.step) ?? word("briefingFailed");
+    // A rewrite that stopped for a reason the engine wrote ("There is no episode ...") says it.
+    if (run.kind === "regenerate" && run.reason) return run.reason;
     if (!run.kind) {
       const sentence = failureLine(run.failedStage, run.kept);
       if (sentence) return sentence;
@@ -356,24 +356,39 @@ async function waitForSite(run: Stored): Promise<void> {
  */
 const STREAM_POLL_MS = 2500;
 const STREAM_POLLS = 100;
+/** The longest Listen now waits for its first turns to be spoken: a slow voice never hides it. */
+const LISTEN_WARM_MS = 8000;
 let watching = 0;
 let live: { runId: number; doc: Record<string, unknown> } | null = null;
 
 /**
- * Poll a new episode's live script and offer Listen now once turns exist. Briefings and episode
- * changes are ignored; fetch and JSON failures are retried within the polling limit.
+ * Poll a new episode's live script (a Catch up or a regeneration) and offer Listen now once turns
+ * exist. Briefings and removals are ignored; fetch and JSON failures are retried within the limit.
  */
 async function watchStream(run: Stored): Promise<void> {
-  if (watching === run.id || run.kind || run.what) return;
+  if (watching === run.id || run.kind === "delete" || run.what) return;
   watching = run.id;
   for (let turn = 0; turn < STREAM_POLLS && watching === run.id; turn += 1) {
     const res = await fetch(`/api/stream?run=${run.id}`, { cache: "no-store" }).catch(() => null);
     const doc = res?.ok ? await res.json().catch(() => null) : null;
     if (watching !== run.id) return;
     if (Array.isArray(doc?.turns) && doc.turns.length > 0 && doc.status !== "failed") {
-      const first = live?.runId !== run.id;
-      live = { runId: run.id, doc };
-      if (first) show(read());
+      if (live?.runId === run.id) live = { runId: run.id, doc };
+      else {
+        // Its first turns are spoken before Listen now shows, so a press plays at once instead of
+        // after about 3 s of waiting for speech (owner, 2026-11-04). They are the turns the deployed
+        // episode's prewarm makes anyway; the script keeps them as they were aired.
+        const warm = import("../narration/prewarmEpisode").then((prewarm) =>
+          prewarm.prewarmEpisode(String(doc.id)),
+        );
+        await Promise.race([
+          warm.catch(() => undefined),
+          new Promise((resolve) => setTimeout(resolve, LISTEN_WARM_MS)),
+        ]);
+        if (watching !== run.id) return;
+        live = { runId: run.id, doc };
+        show(read());
+      }
     }
     if (doc && doc.status !== "writing" && doc.status !== "waiting") break;
     await new Promise((resolve) => setTimeout(resolve, STREAM_POLL_MS));
@@ -468,7 +483,6 @@ async function follow(run: Stored, now: boolean): Promise<void> {
         ...(body.outcome === "published" && typeof body.digest_id === "string"
           ? { href: `/d/${body.digest_id}` }
           : {}),
-        ...(failed && typeof body.run_url === "string" ? { log: body.run_url } : {}),
       };
       set(next);
       return;
@@ -479,7 +493,8 @@ async function follow(run: Stored, now: boolean): Promise<void> {
       // Published: a new episode still has to reach the site. An answer without stages is an older
       // route's, and finishes at once.
       const cancelled = body.outcome === "cancelled";
-      const waiting = !failed && !cancelled && !run.kind && body.stages;
+      // A rewrite waits for the site too: its new episode is the one to open, the old one is gone.
+      const waiting = !failed && !cancelled && run.kind !== "delete" && body.stages;
       const phase: Phase = cancelled
         ? "cancelled"
         : failed
@@ -488,7 +503,6 @@ async function follow(run: Stored, now: boolean): Promise<void> {
             ? "updating"
             : "done";
       const next: Stored = { ...run, ...staged(body), phase, stageAt: Date.now() };
-      if (failed && typeof body.run_url === "string") next.log = body.run_url;
       if (waiting)
         next.label = document.querySelector<HTMLElement>("[data-run-status]")?.dataset.updating;
       set(next);
@@ -646,6 +660,10 @@ export async function retry(): Promise<void> {
         ? { kind: run.kind, episode: run.episode }
         : undefined;
     rememberCancelToken(reply.run_id, reply.cancel_token);
+    // Try again is a new run: the message when it is ready (if that is on here) needs a watch too.
+    void import("../lib/pushClient")
+      .then((push) => push.watchRun(reply.run_id, run.episode ? "regenerate" : "catch_up"))
+      .catch(() => {});
     startRun(reply.run_id, about, run.retry);
     focusCreate();
     return;

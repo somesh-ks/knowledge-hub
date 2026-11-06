@@ -363,13 +363,3 @@ function measureSpectrum(
   }
   return measured;
 }
-
-/** Per-layer peaks after the same processing, for tuning the balance between tone and felt. */
-export function layerPeaks(recipe: SoundRecipe, options: RenderOptions = {}): number[] {
-  return recipe.layers.map((layer) => {
-    const samples = renderLayers([layer], options, 20);
-    let peak = 0;
-    for (const sample of samples) peak = Math.max(peak, Math.abs(sample));
-    return peak;
-  });
-}

@@ -9,7 +9,8 @@
     "./structureChoice": "./src/structureChoice.ts",
     "./time": "./src/time.ts",
     "./topicEmoji": "./src/topicEmoji.ts",
-    "./vitals": "./src/vitals.ts"
+    "./vitals": "./src/vitals.ts",
+    "./zoneSuggest": "./src/zoneSuggest.ts"
   },
   "dependencies": {
     "yaml": "^2.9.1",

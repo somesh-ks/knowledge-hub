@@ -56,7 +56,7 @@ Numbers come from the offline renderer that the tests also use, at master volume
 | Narration stops | `pause` | 93 ms, audible 63 | A4, falling | -18.3 dBFS peak | Skipped |
 | Skip to the next item | `itemNext` | 109 ms, audible 88 | B4 to E5 | -18.9 dBFS peak | Ducked 9 dB |
 | Skip to the previous item | `itemPrev` | 109 ms, audible 88 | E5 to B4 | -18.7 dBFS peak | Ducked 9 dB |
-| Scrubber crosses an item boundary | `scrubDetent` | 42 ms, audible 27 | D4 to A5 by position | -25.5 dBFS peak | Ducked 9 dB |
+| Navigation tick and action tap (was the scrub detent, now felt only, D359) | `scrubDetent` | 42 ms, audible 27 | D4 to A5 by position | -25.5 dBFS peak | Ducked 9 dB |
 | Playback speed changes | `speedChange` | 103 ms, audible 70 | F#4 to F#5 by rate | -16.9 dBFS peak | Ducked 6 dB |
 | A sheet opens | `sheetOpen` | 99 ms, audible 67 | D4, rising | -17.6 dBFS peak | Skipped |
 | A sheet closes | `sheetClose` | 73 ms, audible 48 | D4, falling | -22.2 dBFS peak | Skipped |
@@ -75,7 +75,7 @@ At the default volume of 0.8 the master gain is 0.64 (-3.9 dB), so the signature
 | --- | --- |
 | `play`, `pause` | The play button swaps glyph with a scale and blur; the rail starts or stops filling |
 | `itemNext`, `itemPrev` | The current item node moves and the page scrolls to the item |
-| `scrubDetent` | A tick on the scrubber passes under the thumb and the bubble changes item number |
+| `scrubDetent` | The page or control changes (a scrub crossing an item is felt, not heard, D359) |
 | `speedChange` | The segmented control selection moves |
 | `sheetOpen`, `sheetClose` | The sheet slides, scrim fades |
 | `generateStart`, `generateDone` | The progress list starts, then the success banner appears |
@@ -85,7 +85,7 @@ At the default volume of 0.8 the master gain is 0.64 (-3.9 dB), so the signature
 
 ### Deliberately silent
 
-Scrolling, link taps, hover, theme changes, keyboard navigation (arrow-key seeking makes no scrub ticks), the 15-second skips, chapter list taps beyond the play cue they trigger, cancelled gestures and any repeat inside a sound's retrigger window.
+Scrolling, scrubbing (each item boundary is a detent haptic, D359), link taps, hover, theme changes, keyboard navigation (arrow-key seeking makes no scrub ticks), the 15-second skips, chapter list taps beyond the play cue they trigger, cancelled gestures and any repeat inside a sound's retrigger window.
 
 ## Recipes
 

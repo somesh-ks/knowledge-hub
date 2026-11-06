@@ -17,7 +17,11 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  reporter: [["list"]],
+  // In CI a JSON report too: browser.yml keeps it as the `browser-results` artifact, and the daily
+  // health check reads its count of tests that passed only on a retry (D360).
+  reporter: process.env.CI
+    ? [["list"], ["json", { outputFile: "test-results/results.json" }]]
+    : [["list"]],
   outputDir: "./test-results",
   use: {
     baseURL: `http://127.0.0.1:${PORT}`,

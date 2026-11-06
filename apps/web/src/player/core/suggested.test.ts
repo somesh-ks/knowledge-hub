@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { DELETED_KEY } from "../../lib/deletedEpisodes";
-import { skipper, suggestNext } from "./suggested";
+import { createPlayQueue } from "./playQueue";
+import type { StorageLike } from "./resume";
+import { keepPlaces, skipper, suggestNext } from "./suggested";
 
 function storageOf(entries: Record<string, string>) {
   return {
@@ -40,5 +42,36 @@ describe("suggested next item", () => {
       "ep-3",
       "ep-2",
     ]);
+  });
+
+  it("does not suggest a podcast taken off the queue until it is queued again", () => {
+    const values = new Map<string, string>();
+    const storage: StorageLike = {
+      getItem: (key) => values.get(key) ?? null,
+      setItem: (key, value) => void values.set(key, value),
+      removeItem: (key) => void values.delete(key),
+    };
+    const queue = createPlayQueue({ storage, getCurrentId: () => "ep-5" });
+    queue.add("ep-4");
+    queue.remove("ep-4");
+    expect(suggestNext(TIMELINE, "ep-5", skipper(storage, queue.getIds()))).toEqual([
+      "ep-3",
+      "ep-2",
+      "ep-1",
+    ]);
+    queue.add("ep-4");
+    queue.remove("ep-3");
+    queue.started("ep-3");
+    expect(suggestNext(TIMELINE, "ep-5", skipper(storage, []))).toEqual(TIMELINE.slice(1));
+  });
+
+  it("adds a refill at the end, never above the suggestions already shown", () => {
+    // ep-3 came back to the list (heard again from a position): it joins under ep-2 and ep-1.
+    expect(keepPlaces(["ep-2", "ep-1"], ["ep-3", "ep-2", "ep-1"])).toEqual([
+      "ep-2",
+      "ep-1",
+      "ep-3",
+    ]);
+    expect(keepPlaces(["ep-4", "ep-3"], ["ep-3", "ep-2"])).toEqual(["ep-3", "ep-2"]);
   });
 });

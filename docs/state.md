@@ -1,51 +1,53 @@
 # State
 
-Updated 2026-11-02. Rewrite, never append.
+Updated 2026-11-05. Rewrite, never append.
 
 ## Working
 
-- Engine live end to end: [engine](specs/engine.md). A run that loses stories or races a push degrades, not fails, and records health (D204): [resilience](engineering/generation-resilience.md), [metrics](engineering/metrics.md).
+- Engine live: [engine](specs/engine.md). A run that loses stories or races a push degrades, not fails, and records health (D204): [resilience](engineering/generation-resilience.md), [metrics](engineering/metrics.md).
 - Reader: [library](specs/library.md), [settings](specs/settings.md), [health](specs/health.md), [look](specs/look-and-sound.md).
 - Desktop layout: the column is centred in the pane, and a page with a contents list centres the column and the list together, the Library's width (D287).
-- Player as one surface: transcript, chapters, a queue that keeps played items (D277): [player](specs/player.md).
+- Player as one surface: transcript, chapters, a queue keeping played items (D277): [player](specs/player.md).
 - Narration on Play, per story; `audio.yml` pre-narrates briefings, `podcast.yml` episodes (D198): [narration](specs/narration.md), [create](specs/create.md).
 - Live content: creates, deletes (tombstones) and regenerates show without a deploy (D199). Regenerate and Catch up queue with Cancel; ended runs stay for the day (D204, D231).
 - Saved copies, offline, downloads, PWA: [navigation and offline](specs/navigation-and-offline.md).
 - Vercel deploys `main`. CI: checks, audit, browser suites by path (D148). CodeRabbit reviews a PR once when it is ready, by tier (D192, D292).
-- Styles (D306, D310, D314, D315, D319): Halloween and Expressive (larger touch sizes, a corner scale, looping empty states), a Hue slider, live covers, and neutrals from a recipe per style. closed when: Somesh OKs the stills ([ghost states](https://claude.ai/artifact/MVNhZmVMk4kYNu2tJbHRPp), [disabled](https://claude.ai/artifact/Kc7RaKbskg5UeGULwwKtU8)) and a style change on his phone recolours every page, cover and header with no flash and survives a restart, and a press on the Library view toggle and a toast action is deeper than the hover.
+- Styles (D306, D310, D314, D315, D319): Halloween and Expressive, a Hue slider, live covers. closed when: Somesh OKs the stills ([ghost states](https://claude.ai/artifact/MVNhZmVMk4kYNu2tJbHRPp), [disabled](https://claude.ai/artifact/Kc7RaKbskg5UeGULwwKtU8)) and a style change on his phone recolours every page with no flash and survives a restart, and a press on the Library view toggle and a toast action beats hover.
 
-- Avatar, Settings regroup (D335, D344): merged. Open: Mood rename (D327).
+- Avatar, Settings (D335, D344), Mood (D327), taps (D353): merged. closed when: his phone's shows come home.
 
 ## Tests
 
-Unit (CI): 357 files, 5,491 tests, about 2 min. Site e2e: 449, 14 min. Player: 80, 7 min.
+Unit (CI): 367 files, 5,572 tests, 2 min. Site e2e: 449, 14 min. Player: 80, 7 min.
 
 ## Not working or unverified
 
 - D318 edge cache. closed when: a week of his loads is mostly HIT or STALE.
-- Blob on Pro trial since 10-30, ending 11-13 (D251, D256). Plan call 11-06 to 11-08 (Pro, or Hobby: 1.1K of 2,000 advanced Blob ops a month on 11-01, under 70 deploys a day), from the Usage tab, the only op count. closed when: the plan is chosen.
+- Guardrails (D360): #673 awaits his merge, `secrets:push`. closed when: Health's Budgets are fresh.
+- Rewrite: 0:00 start, "More stories" lengthens, stories carried (D376). closed when: his next is 10 min, fetches in 1 min, plays at 0:00.
+- Listen now streams (D366): parts as the script is written, for Catch up and Regenerate. closed when: Somesh's first live Catch up plays on his phone without a pause.
+- Blob on Pro trial since 10-30, ending 11-13 (D251, D256). Plan call 11-08: keep Pro. closed when: chosen.
+- Deploy batching (D375): 5 merges, 3 hours or `[deploy]`. closed when: a merge day builds at most 8 times; `[deploy]` ships in minutes.
 - Bottom bar ripple (D286, D347) and tab state. closed when: on his Android Chrome Settings pages rise, tabs slide at 250 ms, and the latest podcast keeps its tab lit.
 - Config snapshot (D300 step 1): `snapshot.yml` writes the config store to the `config_snapshots` table each Sunday and `config restore --latest` reads it back; untried against real Neon. closed when: the workflow has run once, the row exists, and `config restore --file` on a copy rebuilds the rows.
-- Content out of git (D300 step 2b, #573): jobs `content pull --track` first and `content push` after the commit; `Digests/` and `Podcasts/` left `main`. closed when: the next scheduled daily's log shows `Load content` and `Save content` and its digest is on the site.
-- Edge purge waits from the run's last save (#590, D318). closed when: a Catch up's `content` log says `waiting N s` with N under 30 and its Library entry opens on the new page
-- Queue (D346). closed when: on his Android a swipe shows a red strip.
+- Edge purge waits from the run's last save (#590, D318); after the 11-03 daily it waited 27 s. closed when: a Catch up's `content` log says `waiting N s` with N under 30 and its Library entry opens on the new page
+- Queue (D346, D357), dock swipes (D359). The red strip's fix (#659) assumes Chrome's 8 px slop. closed when: on his Android a swipe shows a red strip, the player's swipes are silent, and the bar's sideways pull shows its target.
 - Player ⋮ menu and Saved (D309, #580): checked in Chromium only. closed when: held press, the speed screen and Settings > Saved work on his Android Chrome.
 - Voice list (D276): closed when: a voice is heard from its list on his iPhone.
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily says "podcast".
 - More menu (D214); Catch up album, Share circle, cards (D219); long press, haptics (D264, D273); push ping (D284). closed when: signed off.
 - Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused; a regenerate or delete uses none.
 - Three regenerations per podcast, counted in its own file (D212). closed when: the page shows "2 of 3 regenerations left".
-- The 10-31 scheduled daily published nothing (moved window, Tech over its allowance, stories lost in writing, a trimmed refill); fixed in D297 and the window start. closed when: the next two scheduled dailies publish.
-- Short podcasts (D204, D216 to D225). closed when: two dailies in a row air within 10% of length, and `singularity metrics` shows ten runs at `length_share` 0.9+, `failure_rate` 0.1 or less.
+- Short podcasts (D204, D216 to D225). 11-05: dailies 1.04 and 1.02, metrics 7 of 10 runs at 1.02. closed when: two dailies in a row air within 10% of length, and `singularity metrics` shows ten runs at `length_share` 0.9+, `failure_rate` 0.1 or less.
 - Every Claude step starts at Haiku medium, then Haiku high, then Sonnet medium (D308, D333, D334). 11-03 daily: share 1.04, run 11 cents. closed when: two scheduled runs show no more voice or grounding drops (`lost_reasons`) than the last Sonnet-only runs, and a podcast script holds `length_share` 0.9+ (else tell the owner).
-- Ingest in shadow (D233, D251). 11-03: held 76% (rss 18/19, Exa 0/5), read 93%, not met. closed when: for 7 days the store holds 90% of each daily's stories and reads 90% of pages tried (`ingest --coverage`, in the health log).
+- Ingest in shadow (D233, D251). 11-05: held 50% (Exa blogs miss), read 93%, not met. closed when: for 7 days the store holds 90% of each daily's stories and reads 90% of pages tried (`ingest --coverage`, in the health log).
 - One Speechify count in Blob, a weekly Exa stop (D339). closed when: health shows the shared count after a narration and 450 Exa requests in a week warn.
 - Trusted publishers (D234) and community lift (D240), shipped off. closed when: both on and a daily airs a lab story and a community-voted one, no source over 30%.
 - Run names (D217), Neon run log (D221). closed when: a scheduled daily is named `daily <date>`, is off the queue, and has its row.
 - `podcast.yml` no longer installs ffmpeg; its first stage starts 9 s in (29 s before). closed when: 9 s is accepted.
 - Regenerate (D207, D323, D337, D340): a 10-minute one airs within 10%; the comment is required; Length and Categories show as words reach for them; full sheet (#589). closed when: signed off on his phone.
 - Catch up script at medium effort (D324). closed when: two Catch ups air within 10% of length, faster; else high again.
-- Podcast queue (D231, D242): fakes only. closed when: a Catch up is cancelled and a failed run's Details read.
+- Podcast queue (D231, D242, #704): fakes only. closed when: a Catch up is cancelled, a failed run's Details read, and on his Android a head drag leaves the page still, the shimmer never restarts and a played-out run's ring completes.
 - Owner's eye: bar centring (over 1px), centred column and label gap (D229), Catch up (#385), card corners (#386), Costs tiles (#387). closed when: signed off.
 - Live content (plan 20): an open page elsewhere does not refresh in 60 s; `smokeLive.mjs --apply` never ran on production. closed when: checked.
 - Reload mid-write (D259). closed when: a phone flip, then reload, holds.
@@ -62,7 +64,7 @@ Unit (CI): 357 files, 5,491 tests, about 2 min. Site e2e: 449, 14 min. Player: 8
 - Admin env (D257): the reader needs `ADMIN_SESSION_SECRET`. closed when: `/api/health` answers 401 signed out.
 - Owner config out of git (D296, merged). The 11-02 dry run's gate log said `config store:` and it published. closed when: the Vercel build log says `store on; from the store:`, audio publishing keeps the owner's voice, and the cron answers 200.
 - Config store (D149, D296): Vercel has `SINGULARITY_CONFIG_STORE` and `DATABASE_URL` (checked 11-01); the Actions variable is unreadable, so `health` faults `config_store_split` when the site and runs disagree. closed when: a phone's edit shows on a laptop and health passes the config-store line.
-- Production's `GITHUB_SINGULARITY_TOKEN` is unchecked since 10-14 (`doctor --online` tests it and its expiry, not write access). closed when: `doctor --online` accepts it.
+- Live `GITHUB_SINGULARITY_TOKEN` write access untested. closed when: Generate dispatches.
 - 45 older items are parked in history (`#parked`; [2026-10-31 trim](history/2026-10-31-state-trim.md)). closed when: each closes.
 
 ## Known risks
@@ -76,7 +78,7 @@ Unit (CI): 357 files, 5,491 tests, about 2 min. Site e2e: 449, 14 min. Player: 8
 
 ## Next
 
-1. Free the lane in the hold ([D209](decisions/engine.md)): step 1 is built (#399); steps 2, 4 and 5 are not. Step 3, the batch, shipped as D294. A batch the wait gives up on, or a cancel leaves running, is listed in `.cache/run/open-batches.json` and settled by run.yml's "Settle batches" step (`batch-settle`) before Commit; the step needs a manual merge and is unproven live. closed when: a scheduled run's write stage logs "Writer first pass by batch" with `back` above 0, and a run that gave up on a batch logs "Settled a batch the run had left open".
+1. Free the lane in the hold ([D209](decisions/engine.md)): step 1 is built (#399); steps 2, 4 and 5 are not. Step 3, the batch, shipped as D294. A batch left open is listed in `.cache/run/open-batches.json` and settled by run.yml's "Settle batches" step (`batch-settle`); unproven live. closed when: a scheduled run's write stage logs "Writer first pass by batch" with `back` above 0, and a run that gave up on a batch logs "Settled a batch the run had left open".
 2. Owner: regenerate the 3-story 10-27 briefing? Revoke the Vercel token; delete empty store `store_JmrDq8MB5Kwn3ejW`; open calls: [PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md).
 3. Firecrawl: owner prunes from the yield report. The free change check (D342) skips unchanged listings. closed when: a run skips one, then scrapes a changed one.
 4. Lighthouse CSS defer parked: inlined critical CSS paints a cold phone in 1.0 s, not 3.2 s, but the CSP blocks it.

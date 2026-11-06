@@ -1,6 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { type ConditionalBlobClient, isPreconditionFailed } from "./blob.js";
+import {
+  type ConditionalBlobClient,
+  isPreconditionFailed,
+  readCurrent,
+  type TaggedText,
+} from "./blob.js";
 import {
   CONTENT_CACHE_SECONDS,
   CONTENT_DIRS,
@@ -50,18 +55,18 @@ export interface StoredManifest {
   files: Record<string, string>;
 }
 
-/** The manifest and the ETag to write it back against; empty when the store has none. */
+/**
+ * The manifest and the ETag to write it back against; empty when the store has none. `known` is a
+ * manifest this job wrote, used as is while the store still holds it.
+ */
 export async function readManifest(
   client: ConditionalBlobClient,
-  fetchText: (url: string) => Promise<string | null>,
+  known?: TaggedText,
 ): Promise<StoredManifest> {
-  const found = await client.head(CONTENT_MANIFEST_KEY);
+  const found = await readCurrent(client, CONTENT_MANIFEST_KEY, known);
   if (found === null) return { etag: null, base: null, files: {} };
-  // A fresh query string, so the CDN's copy of an older manifest is never read.
-  const text = await fetchText(`${found.url}?t=${Date.now()}`);
   const base = found.url.slice(0, found.url.length - CONTENT_MANIFEST_KEY.length - 1);
-  if (text === null) throw new Error("the content store lists a manifest it cannot read");
-  const parsed = JSON.parse(text) as Partial<ContentManifest>;
+  const parsed = JSON.parse(found.text) as Partial<ContentManifest>;
   if (parsed.version !== CONTENT_MANIFEST_VERSION || !parsed.files) {
     throw new Error("the content store's manifest is not version 1");
   }
@@ -102,9 +107,10 @@ async function publishIndexFromStore(
   root: string,
   now: Date,
   fetchText: (url: string) => Promise<string | null>,
+  known?: TaggedText,
 ): Promise<void> {
   for (let pass = 1; pass <= INDEX_PASSES; pass += 1) {
-    const stored = await readManifest(client, fetchText);
+    const stored = await readManifest(client, known);
     if (stored.base === null) return;
     const texts: Array<[string, string | null]> = [];
     let moved = false;
@@ -153,7 +159,7 @@ export async function applyContentDelta(input: DeltaInput): Promise<DeltaResult>
   const touchesPodcasts = [...input.put, ...input.remove].some((path) => path.startsWith(PODCASTS));
   const limit = input.attempts ?? DELTA_ATTEMPTS;
   for (let attempt = 1; attempt <= limit; attempt += 1) {
-    const stored = await readManifest(client, input.fetchText);
+    const stored = await readManifest(client);
     const files = { ...stored.files };
     const uploaded: string[] = [];
     const unchanged: string[] = [];
@@ -185,12 +191,16 @@ export async function applyContentDelta(input: DeltaInput): Promise<DeltaResult>
       updated_at: now.toISOString(),
       files,
     };
+    const text = JSON.stringify(manifest);
+    let written: TaggedText | undefined;
     try {
-      await client.put(CONTENT_MANIFEST_KEY, new TextEncoder().encode(JSON.stringify(manifest)), {
+      const result = await client.put(CONTENT_MANIFEST_KEY, new TextEncoder().encode(text), {
         contentType: "application/json",
         cacheControlMaxAge: CONTENT_CACHE_SECONDS,
         ...(stored.etag !== null ? { ifMatch: stored.etag } : {}),
       });
+      // This job's own manifest: reading it back would wait out the CDN for what is already here.
+      if (result.etag !== undefined) written = { text, etag: result.etag };
     } catch (error) {
       if (isPreconditionFailed(error) && attempt < limit) continue;
       throw error;
@@ -198,12 +208,12 @@ export async function applyContentDelta(input: DeltaInput): Promise<DeltaResult>
     if (removed.length > 0) {
       // After the manifest: a reader stops listing a path before its blob goes. A job that put the
       // path back since keeps its blob, so only paths the manifest still lacks are deleted.
-      const current = (await readManifest(client, input.fetchText)).files;
+      const current = (await readManifest(client, written)).files;
       const gone = removed.filter((path) => !(path in current));
       if (gone.length > 0) await client.del(gone.map((path) => `${CONTENT_PREFIX}${path}`));
     }
     if (touchesPodcasts) {
-      await publishIndexFromStore(client, root, now, input.fetchText);
+      await publishIndexFromStore(client, root, now, input.fetchText, written);
     }
     return { uploaded, removed, unchanged, attempts: attempt };
   }

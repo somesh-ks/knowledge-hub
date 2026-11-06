@@ -54,13 +54,18 @@
 }
 
 .card-progress {
+  /* Half the cover's width, centred (owner, 2026-11-03), under the art's date line. The corner is
+     at most a quarter of the art (cover.css), so a bar that starts a quarter in clears it in every
+     mood (Expressive's 40px corner had taken a full-width bar's ends out of the art). */
   position: relative;
   z-index: var(--z-raised);
   display: block;
   grid-area: 1 / 1;
   align-self: end;
+  justify-self: center;
+  width: 50%;
   height: var(--space-1);
-  margin: 0 var(--space-2) calc(var(--space-2) * 2);
+  margin-bottom: calc(var(--space-2) * 2);
   overflow: hidden;
   border-radius: var(--radius-round);
   background: var(--rail-track);
@@ -102,14 +107,14 @@
   line-clamp: 2;
 }
 
-/* The quiet line keeps its own leading, not the body's, so a line that wraps stays tight. */
+/* The quiet line reads the quiet-line size role (--text-meta-size, owner 2026-11-05: subtitles too small) and keeps its own leading, not the body's, so a line that wraps stays tight. */
 .card-sub {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0 var(--space-2);
   min-width: 0;
-  font-size: var(--font-size-label);
+  font-size: var(--text-meta-size);
   line-height: var(--font-leading-label);
   text-wrap: pretty;
 }
@@ -139,7 +144,7 @@
 
 .card-facts {
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-meta-size);
   line-height: var(--font-leading-label);
 }
 
@@ -393,6 +398,15 @@
   background: var(--color-accent-container-pressed);
 }
 
+/* A touch keeps the chosen view's fill: Chrome holds :active through the tap's click, so the view the
+   tap had just chosen showed the press step and eased back (owner, 2026-11-03; primitives.css does the
+   same for tabs and segmented choices). A pointer keeps the step. */
+@media (hover: none) {
+  .view-btn[aria-pressed="true"]:active {
+    background: var(--color-accent-container);
+  }
+}
+
 .library-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(9rem, 42%), 1fr));
@@ -490,7 +504,8 @@ main.library [data-library][data-view="list"] .library-grid {
    gallery hides them. A quiet label, so the covers lead. It sticks under the top chrome as a section's
    tabs do (--sticky-top), on an opaque band across the gutters so rows slide under it; its own air
    above is margin, outside the band, so every heading is the same height and one stuck over another
-   covers it whole. */
+   covers it whole. The band is drawn only while a heading is held under the top chrome, and eases
+   in then (below), so at rest a heading is a quiet label over whatever the page paints there. */
 .library-month {
   display: none;
   list-style: none;
@@ -522,9 +537,39 @@ main.library [data-library][data-view="list"] .library-grid {
   line-height: var(--text-label-leading);
 }
 
+/* The band behind a heading, once libraryMonths.ts is watching (a page without it keeps the opaque
+   band above). It is a layer of its own, so it can fade: transparent at rest, there while the heading
+   is held (data-stuck; 2026-11-04, owner: the bands sat on the Halloween web). The next heading pushes
+   the held one out of its slot: --push is the span the two overlap, set a frame at a time while they
+   do (2026-11-05, owner: a gap showed between one month's label and the next). */
+[data-library][data-month-bands][data-view="list"] .library-month {
+  background: none;
+  transform: translateY(calc(var(--push, 0px) * -1));
+}
+
+[data-library][data-month-bands] .library-month::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-beneath);
+  background: var(--color-surface);
+  opacity: 0;
+}
+
+[data-library][data-month-bands] .library-month[data-stuck]::before {
+  opacity: 1;
+}
+
 /* The app bar slides away as the page is read and takes --sticky-top with it. A stuck heading
    follows with the bar's own duration and curve, so its top edge is the bar's bottom edge on every
-   frame and it neither lags nor jumps. With reduced motion the bar never moves, nor does this. */
+   frame and it neither lags nor jumps. With reduced motion the bar never moves, nor does this. The
+   band takes the same duration and curve. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-library][data-month-bands] .library-month::before {
+    transition: opacity var(--duration-state) var(--ease-out);
+  }
+}
+
 @media (width < 64rem) and (prefers-reduced-motion: no-preference) {
   [data-library][data-view="list"] .library-month {
     transition: inset-block-start var(--duration-state) var(--ease-out);
@@ -580,9 +625,18 @@ main.library [data-library][data-view="list"] .library-grid {
 /* The cover is centred in a row that a match line can make taller than it, so the bar is centred
    with it and then moved down to the cover's foot, never to the row's. */
 [data-library][data-view="list"] .card-progress {
+  /* Here the bar sits on the cover's foot, so its rounded end clears the corner only when the side
+     comes in by the corner less half the bar's height. */
+  --bar-inset: round(
+    up,
+    max(var(--space-2), min(var(--cover-radius-hero), var(--list-cover) / 4) - var(--space-1) / 2),
+    var(--space-1)
+  );
   grid-area: 1 / 1 / -1 / 2;
   align-self: center;
-  margin: 0 var(--space-2);
+  justify-self: stretch;
+  width: auto;
+  margin: 0 var(--bar-inset);
   translate: 0 calc((var(--list-cover) - var(--space-1)) / 2);
 }
 
@@ -786,7 +840,7 @@ html[data-library-page="empty"] {
 
 /* Only where a button shows: a finger opens the menu by a long press (scripts/cardHold.ts, D264), so
    a touch screen reserves nothing and the title and the quiet line take the whole row. */
-@media not ((hover: none) and (pointer: coarse)) {
+@media (hover: hover) and (pointer: fine) {
   [data-library][data-view="list"] .card:has(> .card-menu) .card-title,
   [data-library][data-view="list"] .card:has(> .card-menu) .card-sub,
   [data-library][data-view="list"] .card:has(> .card-menu) .card-match {
@@ -805,15 +859,21 @@ html[data-library-page="empty"] {
   inset-inline-end: 0;
 }
 
-@media not ((hover: none) and (pointer: coarse)) {
+@media (hover: hover) and (pointer: fine) {
   .card:has(> .card-menu) .card-title {
     padding-inline-end: calc(var(--size-touch) - var(--space-4));
   }
 }
 
+/* One rule for every ⋮ on a card or a queue row (owner, 2026-11-04, "many times"): drawn and pressable only
+   where `(hover: hover) and (pointer: fine)` holds, a mouse. Anything else, a phone whatever it reports
+   for hover or pointer, gets the hold and no dots; styles.test.ts fails a card or row ⋮ under any other
+   query. The button stays in the page and the tab order: a screen reader finds it by its label. */
 .card-more {
   anchor-name: var(--card-anchor);
   color: var(--color-on-surface-muted);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .card-more .icon-glyph {
@@ -821,11 +881,10 @@ html[data-library-page="empty"] {
   height: 1.25rem;
 }
 
-/* A mouse sees the button when the row is hovered, a key press is inside it, or its menu is open;
-   touch has no hover, so it is always there. */
+/* A mouse sees the button when the row is hovered, a key press is inside it, or its menu is open. */
 @media (hover: hover) and (pointer: fine) {
   .card-more {
-    opacity: 0;
+    pointer-events: auto;
     transition: opacity var(--duration-hover) var(--ease-hover);
   }
 
@@ -837,15 +896,9 @@ html[data-library-page="empty"] {
 }
 
 /* A finger opens the menu by a long press on the card (scripts/cardHold.ts, D264), so the button is
-   not drawn or pressable there. It stays in the page and the tab order: a screen reader finds it by
-   its label, and a key press shows it (data-input, app.ts). The hold is not a text selection or a
-   link drag, and the link's own callout is off (foundations.css). */
-@media (hover: none) and (pointer: coarse) {
-  .card-more {
-    opacity: 0;
-    pointer-events: none;
-  }
-
+   not drawn or pressable there (the base rule above); a key press shows it (data-input, app.ts). The
+   hold is not a text selection or a link drag, and the link's own callout is off (foundations.css). */
+@media not ((hover: hover) and (pointer: fine)) {
   :root[data-input="keyboard"] .card-more:focus-visible {
     opacity: 1;
   }
@@ -855,23 +908,6 @@ html[data-library-page="empty"] {
     -webkit-user-select: none;
     user-select: none;
     -webkit-user-drag: none;
-  }
-}
-
-/* Settings > Downloads (D281, owner 2026-10-31) draws the ⋮ on a phone too: that page manages what is
-   saved, and Remove must be findable without knowing the hold, which still works. The row keeps room
-   for the button, as it does where a mouse shows it. Only in the list: a gallery card on a phone has
-   no ⋮ anywhere (owner, 2026-11-01), so a page that fell back to the gallery would not draw one. */
-@media (hover: none) and (pointer: coarse) {
-  [data-library][data-view="list"] .card-menu[data-manage-downloads] .card-more {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  [data-library][data-view="list"]
-    .card:has(> .card-menu[data-manage-downloads])
-    :is(.card-title, .card-sub, .card-match) {
-    padding-inline-end: calc(var(--size-touch) - var(--space-2));
   }
 }
 
@@ -887,13 +923,23 @@ html[data-library-page="empty"] {
   position-anchor: var(--card-anchor);
 }
 
-/* Download shows the cloud with a cross once the item is downloaded, to go with "Remove download". */
+/* Download shows the bin once the item is downloaded, to go with "Remove download" (D369). */
 .card-menu-list .dl-remove,
 [data-card][data-downloaded] .card-menu-list .dl-add {
   display: none;
 }
 
 [data-card][data-downloaded] .card-menu-list .dl-remove {
+  display: block;
+}
+
+/* The heart fills once the item is in Favorites, to go with "Unfavorite". */
+.card-menu-list .fav-remove,
+[data-card][data-saved] .card-menu-list .fav-add {
+  display: none;
+}
+
+[data-card][data-saved] .card-menu-list .fav-remove {
   display: block;
 }
 
@@ -910,7 +956,7 @@ html[data-library-page="empty"] {
   align-items: center;
 }
 
-/* What a card shows of what this device holds, after its facts (owner, 2026-11-03): a blue circle with the
+/* What a card shows of what this device holds, after its facts (owner, 2026-11-03): a grey circle with the
    download arrow once it is saved offline, never a word. Played is not on a card (a list of green and blue
    circles was loud); the podcast page says it with the word, beside a green check (hero.css). CardMarks.astro
    renders the mark hidden and the card's own data-downloaded (scripts/libraryMenu.ts) shows it, so it takes
@@ -932,9 +978,12 @@ html[data-library-page="empty"] {
   border-radius: 50%;
 }
 
+/* Grey, the colour of the facts it sits with: a saved copy is a fact, not a call to act, and blue
+   drew the eye down every row (owner, 2026-11-03: "grey in color instead of blue ... to not grab too
+   much attention"). */
 .status-mark-downloaded {
-  background: var(--color-accent);
-  color: var(--color-on-accent-action);
+  background: var(--color-on-surface-muted);
+  color: var(--color-surface);
 }
 
 .status-mark-played {

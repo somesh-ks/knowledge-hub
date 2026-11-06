@@ -118,12 +118,13 @@ test.describe("axe, banners and live states", () => {
       const face = (chip: Element | null | undefined, state: string, label: string): void => {
         chip?.setAttribute("data-state", state);
         chip?.setAttribute("data-playing", String(label === "Playing"));
+        // The player writes the name with the words (readerMath.ts): a name holds the visible text.
+        chip?.setAttribute("aria-label", `${label}, ${chip.getAttribute("aria-label") ?? ""}`);
         const text = chip?.querySelector("[data-chip-label]");
         if (text) text.textContent = label;
       };
       const stories = document.querySelectorAll<HTMLElement>(".story");
       stories[0]?.setAttribute("data-state", "played");
-      face(stories[0]?.querySelector("[data-play-item]"), "played", "Played");
       stories[1]?.setAttribute("data-state", "current");
       face(stories[1]?.querySelector("[data-play-item]"), "current", "Playing");
       face(stories[2]?.querySelector("[data-play-item]"), "preparing", "Loading");

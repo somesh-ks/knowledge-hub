@@ -21,17 +21,20 @@ export const Env = z.object({
   VERCEL_TOKEN: optionalString,
   /** The token the site dispatches workflows and writes the RUN_CRON variable with (D259). */
   GITHUB_SINGULARITY_TOKEN: optionalString,
-  /** The old name of that token, still honoured. */
-  GITHUB_DISPATCH_TOKEN: optionalString,
   /** "owner/repo"; `doctor --online` checks the site's token against it. */
   GITHUB_REPOSITORY: optionalString,
+  /** The Actions token health.yml runs with; `health` reads runs, issues, alerts and artifacts with it. */
+  GH_TOKEN: optionalString,
+  /** A project-scoped Neon API key; `health` reads the project's compute hours with it. */
+  NEON_API_KEY: optionalString,
+  /** The Neon project the key is scoped to (the key cannot list it). */
+  NEON_PROJECT_ID: optionalString,
   /** Gemini API key: transcribes a YouTube finalist that has no subtitles. */
   GEMINI_API_KEY: optionalString,
   /** Neon Postgres holding the owner's config (D149). Unset, the committed files are the config. */
   DATABASE_URL: optionalString,
   /** "postgres" switches the config store on (D149); the URL alone never does. */
   SINGULARITY_CONFIG_STORE: optionalString,
-  DISPATCH_CONFIG_STORE: optionalString,
   MAX_TOKENS_PER_RUN: z.coerce.number().int().positive().default(400_000),
   /** Monthly Speechify character allowance used by the 90 percent budget guard. */
   SPEECHIFY_MONTHLY_CHARS: z.coerce.number().int().positive().default(500_000),
@@ -43,12 +46,8 @@ const VERCEL_PLACEHOLDER = "[SENSITIVE]";
 
 /** Parse the process environment. Empty strings and Vercel's pull placeholder count as unset. */
 export function loadEnv(source: Record<string, string | undefined> = process.env): Env {
-  const merged = {
-    ...source,
-    SINGULARITY_CONFIG_STORE: source.SINGULARITY_CONFIG_STORE ?? source.DISPATCH_CONFIG_STORE,
-  };
   const cleaned = Object.fromEntries(
-    Object.entries(merged).filter(
+    Object.entries(source).filter(
       ([, value]) => value !== undefined && value !== "" && value !== VERCEL_PLACEHOLDER,
     ),
   );

@@ -90,8 +90,10 @@ test.describe("what the player writes on a real page", () => {
     await chip.click();
     await expect(page.locator("html")).toHaveAttribute("data-player-state", "playing");
     await expect(third).toHaveAttribute("data-state", "played", { timeout: 15_000 });
-    await expect(chip.locator("[data-chip-label]")).toHaveText("Played");
-    await expect(chip).toHaveAccessibleName(/^Play again, played: /);
+    // The story is played (its data-state), its button stays a Play button with the length.
+    await expect(chip).toHaveAttribute("data-state", "idle");
+    await expect(chip.locator("[data-chip-label]")).toHaveText(/^\d+:\d\d$/);
+    await expect(chip).not.toHaveAccessibleName(/played/i);
     await expect(stories.nth(0)).not.toHaveAttribute("data-state", /.*/);
     await expect(stories.nth(3)).toHaveAttribute("data-state", "current");
     await stories.nth(3).locator("[data-play-item]").click();

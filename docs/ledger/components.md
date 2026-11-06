@@ -50,6 +50,7 @@ The craft that makes components hold still and answer clearly. Each was a report
   - Icon swaps scale from 0.95, not 0.6 (2026-10-11 audit).
   - The transport: previous and next take the skips' Phosphor regular outline at their size, so the four helpers are one family and Play the one fill (2026-10-22).
   - Latest is Phosphor FireSimple, rest and current: a plain outline with no inner lick, as "simple outline ones and not have inner details" asked (D133; built 2026-10-22 in `tokens/glyphs.json`).
+  - Remove from queue is list-plus with the plus's vertical bar removed, the pair of Add to queue (owner, 2026-11-03: "have the same style icon for add to queue - list with plus"). Phosphor has no list-minus, so it is the one glyph cut from a Phosphor icon; `derived` in `tokens/glyphs.json` keeps a fetch from overwriting it.
   - Covers are `draggable="false"`, so a mouse flick closes the player instead of dragging an image (2026-10-10).
   - A cover that cannot load shows its palette, never the broken-image glyph (D93).
   - A headline keeps a hyphenated word whole with `inline-block`, so `text-wrap: balance` still works (D93).

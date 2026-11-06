@@ -347,7 +347,7 @@ describe("POST /api/narrate for an episode", () => {
     expect(narrated.audio.url).toBe(`${FAKE_BLOB_HOST}/${pathOf(turn, VOICE_B)}`);
     expect(context.speech.calls.map((call) => call.body.voice_id)).toEqual([VOICE, VOICE_B]);
     expect(
-      context.blob.changes().filter((change) => change === `put ${usageKey(MONTH)}`),
+      context.blob.changes().filter((change) => change === `create ${usageKey(MONTH)}`),
     ).toHaveLength(1);
   });
 

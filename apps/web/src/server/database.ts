@@ -24,13 +24,14 @@ export interface DatabaseDeps {
 }
 
 /**
- * The database the site's own telemetry (client and server faults, field Web Vitals) may write to:
- * `DATABASE_URL` on Vercel only. A server anywhere else (a build served by a test run, a session's
+ * The database the site's own bookkeeping (client and server faults, field Web Vitals, the shared
+ * rate counter) may use: `DATABASE_URL` on Vercel only. A server anywhere else (a build served by a test run, a session's
  * dev server) holds the same URL in its environment, and its 5xx answers to routes that lack a
  * secret there were stored as production faults: 176 distinct builds a day, one row per route
- * each, until `health` warned on seven routes at once.
+ * each, until `health` warned on seven routes at once. Each call also woke Neon, whose free plan
+ * has 100 compute hours a month (D360).
  */
-export function telemetryDatabaseUrl(env: {
+export function deploymentDatabaseUrl(env: {
   VERCEL?: string | undefined;
   VERCEL_ENV?: string | undefined;
   DATABASE_URL?: string | undefined;

@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { resetConnectivity } from "../lib/connectivity";
 import {
   CARRIED_ATTRIBUTES,
   carryNavigationKind,
   carryRootAttributes,
+  installNavigation,
   isSamePage,
   moveDirection,
   NAV_ATTRIBUTE,
@@ -10,14 +12,19 @@ import {
 } from "./navigation";
 import {
   APPLY_ATTEMPTS,
+  AWAY_MS,
   canReloadNow,
   claimApply,
+  registerServiceWorker,
   shouldActivateUpdate,
   shouldCheckForUpdate,
   UPDATE_CHECK_MS,
 } from "./serviceWorker";
 
 const url = (path: string) => new URL(path, "https://news.someshks.work");
+
+const navigate = vi.hoisted(() => vi.fn());
+vi.mock("astro:transitions/client", () => ({ navigate }));
 
 describe("navigationKind", () => {
   it("fades through between destinations at the same level", () => {
@@ -85,10 +92,12 @@ describe("isSamePage", () => {
 });
 
 describe("carryRootAttributes", () => {
-  it("copies the theme, the style and the player's state onto the incoming page", () => {
+  it("copies the theme, the style, the reader's hue and the player's state onto the incoming page", () => {
     const live = fakeRoot({
       "data-theme": "dark",
-      "data-style": "expressive",
+      "data-mood": "expressive",
+      // The hue lives in the root's style: a page drawn once without it eases to it (owner, 2026-11-03).
+      style: "--hue-shift: 120",
       "data-mini": "visible",
       "data-player": "closed",
       "data-player-state": "playing",
@@ -96,7 +105,8 @@ describe("carryRootAttributes", () => {
     const incoming = fakeRoot({ "data-mini": "hidden", "data-player-state": "idle" });
     carryRootAttributes(live, incoming);
     expect(incoming.getAttribute("data-theme")).toBe("dark");
-    expect(incoming.getAttribute("data-style")).toBe("expressive");
+    expect(incoming.getAttribute("data-mood")).toBe("expressive");
+    expect(incoming.getAttribute("style")).toBe(live.getAttribute("style"));
     expect(incoming.getAttribute("data-mini")).toBe("visible");
     expect(incoming.getAttribute("data-player")).toBe("closed");
     expect(incoming.getAttribute("data-player-state")).toBe("playing");
@@ -161,7 +171,13 @@ describe("shouldCheckForUpdate", () => {
 // A deploy loads itself (D202), so the reload must never cost the reader anything: a listen, an
 // Undo, an open sheet, text typed and not yet saved.
 describe("canReloadNow", () => {
-  const idle = { playerState: "paused", overlayOpen: false, editing: false };
+  const idle = {
+    playerState: "paused",
+    overlayOpen: false,
+    editing: false,
+    playerOpen: false,
+    narrated: false,
+  };
 
   it("loads the new build when nothing is in use", () => {
     expect(canReloadNow(idle)).toBe(true);
@@ -173,6 +189,85 @@ describe("canReloadNow", () => {
     expect(canReloadNow({ ...idle, playerState: "loading" })).toBe(false);
     expect(canReloadNow({ ...idle, overlayOpen: true })).toBe(false);
     expect(canReloadNow({ ...idle, editing: true })).toBe(false);
+    // A paused episode in the open player: the page hiding for a system alert used to reload it shut.
+    expect(canReloadNow({ ...idle, playerOpen: true })).toBe(false);
+  });
+
+  // A podcast narrated in this tab lives in memory: the reload could not put it back.
+  it("never lifts the open-player hold over sound, a sheet, typing or a narrated podcast", () => {
+    expect(canReloadNow({ ...idle, playerOpen: true, playerState: "playing" }, true)).toBe(false);
+    expect(canReloadNow({ ...idle, overlayOpen: true }, true)).toBe(false);
+    expect(canReloadNow({ ...idle, editing: true }, true)).toBe(false);
+    expect(canReloadNow({ ...idle, playerOpen: true, narrated: true }, true)).toBe(false);
+  });
+});
+
+// Owner, 2026-11-05: the installed app kept an old build, since an app opened to listen keeps the
+// full player open. Back after five minutes away, before a touch, the waiting build loads (D373).
+describe("an installed app with the full player open", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    resetConnectivity();
+  });
+
+  it("loads a deploy when it comes back after five minutes, not after a brief hide or once touched", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("PROD", true);
+    const page = Object.assign(new EventTarget(), {
+      hidden: false,
+      readyState: "complete",
+      activeElement: null,
+      documentElement: { dataset: { player: "open", playerState: "paused" } },
+      querySelector: () => null,
+      querySelectorAll: () => [],
+    });
+    const reload = vi.fn();
+    const kept = new Map<string, string>();
+    let answer = Promise.resolve("deploy-1");
+    vi.stubGlobal("document", page);
+    vi.stubGlobal("HTMLElement", class {});
+    vi.stubGlobal("location", { reload });
+    vi.stubGlobal("sessionStorage", {
+      getItem: (key: string) => kept.get(key) ?? null,
+      setItem: (key: string, value: string) => void kept.set(key, value),
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: true, json: async () => ({ build: await answer }) })),
+    );
+    const registration = { waiting: null, update: async () => undefined, addEventListener() {} };
+    vi.stubGlobal("navigator", {
+      onLine: true,
+      serviceWorker: { register: async () => registration },
+    });
+    const away = async (ms: number): Promise<void> => {
+      page.hidden = true;
+      page.dispatchEvent(new Event("visibilitychange"));
+      await vi.advanceTimersByTimeAsync(ms);
+      page.hidden = false;
+      page.dispatchEvent(new Event("visibilitychange"));
+      await vi.advanceTimersByTimeAsync(0);
+    };
+
+    registerServiceWorker("deploy-1");
+    await vi.advanceTimersByTimeAsync(0);
+    // Back after five minutes, but touched before the site named its new build: the reader is using it.
+    let answerNow = (_build: string): void => undefined;
+    answer = new Promise((resolve) => (answerNow = resolve));
+    await away(AWAY_MS);
+    page.dispatchEvent(new Event("pointerdown"));
+    answerNow("deploy-2");
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(reload).not.toHaveBeenCalled();
+    // A brief hide is not a return: the known build still waits.
+    await away(AWAY_MS - 1000);
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(reload).not.toHaveBeenCalled();
+
+    await away(AWAY_MS);
+    expect(reload).toHaveBeenCalled();
   });
 });
 
@@ -241,5 +336,74 @@ describe("moveDirection", () => {
     expect(moveDirection("peer", null, "/library", bar)).toBeNull();
     expect(moveDirection("peer", "/library", "/offline", bar)).toBeNull();
     expect(moveDirection("none", "/", "/library", bar)).toBeNull();
+  });
+});
+
+describe("a bottom tab tap", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    navigate.mockClear();
+  });
+
+  // Bug it prevents (owner, 2026-11-03, Android Chrome): "the tap isn't registered even though I see
+  // the ripple". A tap while the page still glides from a flick stops the glide, and Chrome sends
+  // the pointer's down and up but no click, so a tab that opened on the click alone stayed put.
+  it("opens its tab on the lift, once, with or without the browser's click, and not after a scroll", async () => {
+    let under: unknown = null;
+    const page = Object.assign(new EventTarget(), {
+      querySelector: () => null,
+      elementFromPoint: () => under,
+    });
+    vi.stubGlobal("document", page);
+    vi.stubGlobal("location", url("/"));
+    installNavigation();
+    const tab = {
+      href: url("/library").href,
+      getAttribute: (name: string) => (name === "href" ? "/library" : null),
+      matches: () => false,
+      closest: (selector: string) => (selector === "a.app-nav-item" ? tab : null),
+    };
+    under = tab;
+    const fire = (type: string, pointerId = 1, extra: object = {}): Event => {
+      const event = Object.assign(new Event(type, { cancelable: true }), {
+        pointerId,
+        pointerType: "touch",
+        button: 0,
+        isPrimary: true,
+        detail: 1,
+        ...extra,
+      });
+      Object.defineProperty(event, "target", { value: tab });
+      page.dispatchEvent(event);
+      return event;
+    };
+
+    fire("pointerdown");
+    fire("pointerup");
+    await vi.dynamicImportSettled();
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledWith(tab.href, { sourceElement: tab });
+    // The click a tap sends after its lift, when it sends one, must not reach the router as a second move.
+    expect(fire("click").defaultPrevented).toBe(true);
+
+    // A flick that starts on the bar is a scroll: the browser cancels the pointer.
+    fire("pointerdown", 2);
+    fire("pointercancel", 2);
+    fire("pointerup", 2);
+    // A finger dragged off the tab and lifted elsewhere, and a modified tap, open nothing.
+    fire("pointerdown", 3);
+    under = null;
+    fire("pointerup", 3);
+    under = tab;
+    fire("pointerdown", 4);
+    fire("pointerup", 4, { shiftKey: true });
+    await vi.dynamicImportSettled();
+    expect(navigate).toHaveBeenCalledTimes(1);
+    // A tap whose click never came: a key's click later (no count) is not its echo and reaches the router.
+    fire("pointerdown", 5);
+    fire("pointerup", 5);
+    await vi.dynamicImportSettled();
+    expect(navigate).toHaveBeenCalledTimes(2);
+    expect(fire("click", 5, { detail: 0 }).defaultPrevented).toBe(false);
   });
 });

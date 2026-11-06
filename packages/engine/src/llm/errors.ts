@@ -25,6 +25,18 @@ export class DeadlineExceededError extends Error {
   }
 }
 
+/**
+ * A streamed reply broke off after its first text: the stream dropped or sent an error, the reply
+ * hit its token limit, or it failed validation. Never retried and never passed to the next model:
+ * the text it streamed may be heard already, so the caller decides how to go on.
+ */
+export class StreamInterruptedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "StreamInterruptedError";
+  }
+}
+
 /** The model answered, but not in the shape we asked for, even after one corrective retry. */
 export class LlmOutputError extends Error {
   constructor(message: string) {

@@ -88,7 +88,7 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D82 | Play keeps an early tap, a new episode is pre-narrated, the deploy is noticed in 2.5 s | active |
 | D83 | Settings shows a source's score as a word, its name opens its editor; Model default is called Default | amends D55's pips and D69's name links |
 | D84 | A failed run keeps its request and offers Try again; a finished run clears itself; one run at a time | active |
-| D85 | The player's chapters are timed and play their story; an unnamed discussion is named from its voices; one length rule | amends D74 |
+| D85 | The player's chapters are timed and play their story; an unnamed discussion is named from its voices; one length rule | amends D74; amended by D350 |
 | D86 | An action has its own tone, the player bar is one tonal block with the navigation, reading text keeps a 34rem measure | active; extends D72 |
 | D87 | New episode says when a choice changed the topics, with Undo; the Library searches with an excerpt around the match | amends D76 and D78 |
 | D88 | A reading page's section strip is opaque, a focused headline rings as one block, the playing hero Play is tonal, an old briefing offers Share | amends D77 |
@@ -108,7 +108,7 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D102 | General topics play in Daily and Weekly; a topic is always on and has a summary card; the gate runs in parallel | amends D69, D87, D89, D90, D101 |
 | D103 | Source scores as stars; source lists fold at seven; topic delete asks first; Regenerate takes feedback; first-load 150 KB | amends D55, D83, D53 |
 | D104 | Every briefing has Share, Regenerate and Delete; Regenerate replaces that digest over its window; Delete removes its file and timeline | amends D88, D103 |
-| D105 | A new episode plays from a live Blob copy while it is written; mobile sounds unlock on click; the spoken word lights at once | amends D82, D101 |
+| D105 | A new episode plays from a live Blob copy while it is written; mobile sounds unlock on click; the spoken word lights at once | amends D82, D101; amended by D366 |
 | D106 | The wide bar leads with what is playing and hides its volume until hover; sheets lose the grabber; a played chip offers Play again | amends D46, D58, D101; amended by D348 |
 | D107 | The transcript's highlight pauses while the host speaks words the page does not show | amends D101, D105 |
 | D108 | A user profile holds blocked domains and story votes; a block cuts an outlet on every fetch path; votes nudge ranking, listings and the writer, and are never shown | active |
@@ -144,7 +144,7 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D138 | Alexandria enriches thin text, never replaces it | active |
 | D139 | Hardening: `dispatch health` reports silent faults, a daily workflow opens a `health` issue and retries once, the site reports its errors | active |
 | D140 | Design system enforced in three layers (`design-check` hook, e2e, `design-audit` agent); icons only from Phosphor | amends D131 |
-| D141 | The first-load budget is 130 KB | amends D112's 109 KB budget |
+| D141 | The first-load budget is 130 KB | amends D112's 109 KB budget; amended by D361 |
 | D142 | A new topic is a row at once and opens a page before the build; one save carries Jev's emoji; a removal leaves the page at once with Undo | amends D79 |
 | D143 | Every PR gets a code review before it merges, by hand once blocking findings are fixed | active; partly superseded by D254 for `[skip-review]` PRs; amended by D292 |
 | D144 | Phone sheets close by pull or tap outside and show no Close | amends D132 |

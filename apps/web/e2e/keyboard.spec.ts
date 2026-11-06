@@ -28,7 +28,7 @@ test.describe("keyboard", { tag: "@desktop" }, () => {
   }) => {
     await page.goto("/");
     const seen: string[] = [];
-    for (let step = 0; step < 16; step += 1) {
+    for (let step = 0; step < 17; step += 1) {
       await page.keyboard.press("Tab");
       seen.push(await focused(page));
     }
@@ -45,6 +45,7 @@ test.describe("keyboard", { tag: "@desktop" }, () => {
       // The queue's row ends the side column only while something is being made.
       "button: More actions",
       "button: Play the podcast, 1 min",
+      "button: Favorite",
       "button: Share",
       // A story is its headline link, then its play chip, then its like, dislike and options; the
       // publisher beside the chip is only attribution, out of the tab order and hidden from screen

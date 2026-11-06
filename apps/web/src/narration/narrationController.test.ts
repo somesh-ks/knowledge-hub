@@ -316,6 +316,17 @@ describe("createNarrationController", () => {
     const patched = narratedOrPage(again);
     expect(patched.audio?.url).toBe(narrationSource(page.id));
     expect(patched.items.every((item) => item.start_ms !== null)).toBe(true);
+    // An episode narrated while it was written had no cover yet: the saved page's cover wins, or the
+    // player kept the default art when the episode was played again from the queue (2026-11-04).
+    const drawn = {
+      ...again,
+      cover: {
+        src512: "/covers/x-512.webp?v=b",
+        src1024: "/covers/x-1024.webp?v=b",
+        key: "#a98d00",
+      },
+    };
+    expect(narratedOrPage(drawn).cover).toEqual(drawn.cover);
     // A page that was rebuilt with finished audio wins over the session's copy.
     const rebuilt = { ...again, audio: { url: "/audio/x.mp3", duration_ms: 1 } };
     expect(narratedOrPage(rebuilt)).toBe(rebuilt);

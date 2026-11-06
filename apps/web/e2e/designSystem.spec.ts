@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { MENU_TILES_MAX, menuHasTiles } from "../src/design-system/menu";
 import { AUDIO_DIGEST, expect, hydrated, openRowMenu, ROUTES, SITE_PAGES, test } from "./fixtures";
 import { openPicker, pickerList } from "./picker";
 
@@ -152,7 +153,7 @@ test.describe("the 8pt spacing system", () => {
     await page.goto(AUDIO_DIGEST);
     await hydrated(page);
     await page.getByRole("button", { name: "More actions" }).click();
-    await expect(page.getByRole("menu", { name: "More actions" })).toBeVisible();
+    await expect(page.locator("#hero-menu").getByRole("menu")).toBeVisible();
     expect.soft(await offGrid(page), "the More actions menu").toEqual([]);
 
     // A Library row's More actions menu.
@@ -310,6 +311,35 @@ test("a Menu's and a select's rows span the list, with no gap at the sides @desk
   expect(list.left + list.right, JSON.stringify(list)).toBe(0);
 });
 
+// Quick-action tiles only on a long menu (owner, 2026-11-04: a Downloads row's sheet of four showed two
+// tiles over two rows). Every menu a page renders is held to the rule, so a new or edited menu that drifts
+// fails here: tiles mean MENU_TILES_MIN actions or more and at most MENU_TILES_MAX of them; fewer actions mean no
+// tiles. The queue row's sheet is React, drawn only with the player open, and shares the list (D369).
+// shortcut: the constants are the app's own (lib/podcastActions.ts), until the Menu exports them (menu.ts).
+test("a menu shows quick-action tiles only when it is long", async ({ page }) => {
+  const drift: string[] = [];
+  for (const path of PAGES) {
+    await page.goto(path);
+    const menus = await page.evaluate(() =>
+      [...document.querySelectorAll(".menu-list")].map((menu) => {
+        const shown = (element: Element) => !element.closest("[hidden]");
+        const actions = [...menu.querySelectorAll(".menu-item, .menu-tile")].filter(shown);
+        const tiles = [...menu.querySelectorAll(".menu-tiles")]
+          .filter(shown)
+          .flatMap((row) => [...row.children].filter(shown));
+        return { id: menu.id || menu.className, actions: actions.length, tiles: tiles.length };
+      }),
+    );
+    for (const menu of menus) {
+      const long = menuHasTiles(menu.actions);
+      if (menu.tiles > MENU_TILES_MAX || menu.tiles > 0 !== long) {
+        drift.push(`${path} ${menu.id}: ${menu.actions} actions, ${menu.tiles} tiles`);
+      }
+    }
+  }
+  expect(drift).toEqual([]);
+});
+
 // A pressed control keeps its label (owner, 2026-11-02: a tap on the navigation's segmented control hid
 // its text). A state fill is opaque since D317, so a press layer drawn above the label covers it where
 // the old alpha layer let it show through. The check is what a person sees, not a rule: each kind of
@@ -449,4 +479,64 @@ test("no settings card's corner reaches 40% of its height", {
     );
     expect(over, path).toEqual([]);
   }
+});
+
+// Expressive's big corner took the half-heard bar's ends outside the art (owner, 2026-11-03: "the play
+// progress gets out of the bounding box of library album art"). The bar is held to its cover's own
+// rounded box in every mood and both views, never to a pinned inset.
+test("a half-heard bar stays inside its cover's rounded corners in every mood", {
+  tag: "@both",
+}, async ({ page }) => {
+  const outside: string[] = [];
+  for (const mood of ["default", "expressive", "halloween"]) {
+    for (const view of ["list", "gallery"]) {
+      await page.goto("/library");
+      await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
+      await page.evaluate((m) => {
+        const root = document.documentElement.dataset;
+        if (m === "default") delete root.mood;
+        else root.mood = m;
+      }, mood);
+      await page.locator(`.view-btn[data-library-view='${view}']`).click();
+      await expect(page.locator("[data-library]")).toHaveAttribute("data-view", view);
+      const found = await page.evaluate(() => {
+        const bar = document.querySelector<HTMLElement>(".card-progress");
+        const cover = bar?.closest(".card-link")?.querySelector<HTMLElement>(".cover");
+        if (!bar || !cover) return null;
+        bar.hidden = false;
+        bar.style.setProperty("--progress", "100%");
+        const b = bar.getBoundingClientRect();
+        const c = cover.getBoundingClientRect();
+        // The corner is min(the mood's radius, 25%): the computed value keeps both terms.
+        const terms = getComputedStyle(cover).borderTopLeftRadius.match(/[\d.]+(px|%)/g) ?? [];
+        const r = Math.min(
+          ...terms.map((t) =>
+            t.endsWith("%") ? (Number.parseFloat(t) * c.width) / 100 : Number.parseFloat(t),
+          ),
+        );
+        const points: [number, number][] = [
+          [b.left, b.top],
+          [b.right, b.top],
+          [b.left, b.bottom],
+          [b.right, b.bottom],
+        ];
+        // How far a point lies beyond the rounded corner it is nearest, 0 when it is inside.
+        const beyond = points.map(([x, y]) => {
+          const dx = Math.min(x - c.left, c.right - x);
+          const dy = Math.min(y - c.top, c.bottom - y);
+          if (dx < 0 || dy < 0) return Math.max(-dx, -dy, 0) + 1;
+          if (dx >= r || dy >= r) return 0;
+          return Math.max(0, Math.hypot(r - dx, r - dy) - r);
+        });
+        return { radius: Math.round(r), worst: Math.max(...beyond) };
+      });
+      expect(found, `${mood} ${view}: a library card with a progress bar`).not.toBeNull();
+      // A round end's corner is not painted: a pixel of slack covers it.
+      if (found && found.worst > 1)
+        outside.push(
+          `${mood} ${view}: ${found.worst.toFixed(1)}px beyond a ${found.radius}px corner`,
+        );
+    }
+  }
+  expect(outside).toEqual([]);
 });

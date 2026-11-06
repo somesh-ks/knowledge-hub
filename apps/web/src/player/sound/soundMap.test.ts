@@ -6,7 +6,6 @@ import { makeDigest } from "../core/testing";
 import { buildTimeline } from "../core/timeline";
 import {
   type CueSink,
-  cueForDetent,
   cueForGenerate,
   cueForPlayerEvent,
   cueForSheet,
@@ -80,17 +79,6 @@ describe("player events to sounds", () => {
 });
 
 describe("interface cues", () => {
-  it("pitches a scrub detent by position and softens it at speed", () => {
-    const slow = cueForDetent(0.4, 0.1);
-    const fast = cueForDetent(0.4, 6);
-    expect(slow).toEqual({
-      name: "scrubDetent",
-      options: { position: 0.4, gain: 1 },
-      haptic: "detent",
-    });
-    expect(fast.options?.gain).toBeLessThan(slow.options?.gain ?? 0);
-  });
-
   it("maps sheets, switches, the volume sample and the Generate run", () => {
     expect(cueForSheet(true).name).toBe("sheetOpen");
     expect(cueForSheet(false).name).toBe("sheetClose");
@@ -131,7 +119,6 @@ describe("interface cues", () => {
       cueForSheet(true),
       cueForSwitch(false),
       cueForGenerate("failed"),
-      cueForDetent(0.2, 0),
       ...(["willPlay", "didPause"] as const).map((type) =>
         cueForPlayerEvent(
           type === "willPlay"

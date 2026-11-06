@@ -390,13 +390,13 @@ describe("a story chip", () => {
     });
   });
 
-  it("says Played once the playhead has passed it", () => {
-    expect(storyChipView("played", true, false, "0:30", headline)).toEqual({
-      state: "played",
-      playing: false,
-      label: "Played",
-      name: "Play again, played: The safe triangle, rebuilt",
-    });
+  // Bug it prevents: a story's button saying Played (owner, 2026-11-03: no per-story state, a Play
+  // button to start from any story).
+  it("is a plain Play button once the playhead has passed it", () => {
+    expect(storyChipView("played", true, false, "0:30", headline)).toEqual(
+      storyChipView("", true, false, "0:30", headline),
+    );
+    expect(storyChipView("played", false, false, "0:30", headline).label).toBe("0:30");
   });
 });
 

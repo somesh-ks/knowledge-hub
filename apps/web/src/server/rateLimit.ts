@@ -1,5 +1,5 @@
 import { takeSharedSlot, windowOf } from "@singularity/engine/rate-counter";
-import { type DatabaseDeps, guardedDatabase } from "./database";
+import { type DatabaseDeps, deploymentDatabaseUrl, guardedDatabase } from "./database";
 
 /**
  * A fixed-window rate limit, one per function instance: a cold start resets it. For a route that
@@ -59,7 +59,7 @@ export function createSharedLimiter(deps: SharedLimiterDeps): SharedLimiter {
 
 /** The site's shared limiter, one per instance. */
 export const sharedLimit: SharedLimiter = createSharedLimiter({
-  databaseUrl: process.env.DATABASE_URL,
+  databaseUrl: deploymentDatabaseUrl(process.env),
 });
 
 /** The 429 a route answers while its burst cap is full. */

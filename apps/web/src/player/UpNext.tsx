@@ -1,26 +1,28 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { longDateFromDigestId } from "./core/formatTime";
 import { getPlayQueue, loadSuggested, playQueueItem } from "./core/playerRuntime";
 import { usePlayerState } from "./hooks/usePlayer";
 import { useQueueMeta, useQueueView } from "./hooks/useQueue";
 import QueueList from "./QueueList";
-import { QueueDeleteMark } from "./QueueRow";
+import { capture, play } from "./queueFlip";
 import Icon from "./ui/LazyIcon";
 import PlayerCover from "./ui/PlayerCover";
-import { useRowSwipe } from "./useRowSwipe";
 
 /**
  * The suggested items after what is playing, the list Autoplay draws from (core/suggested.ts).
  * Null until the site's list has been read; read again when the playing item changes.
  */
-function useSuggested(queued: readonly string[]): string[] | null {
+function useSuggested(queued: readonly string[], beforeChange: () => void): string[] | null {
   const currentId = usePlayerState().track?.digest.id ?? null;
   const [ids, setIds] = useState<string[] | null>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: the list is read again for each item and queue change
   useEffect(() => {
     let live = true;
     void loadSuggested().then((loaded) => {
-      if (live) setIds(loaded);
+      if (!live) return;
+      // The refill fades in, and the rows it pushes glide (queueFlip.ts).
+      beforeChange();
+      setIds(loaded);
     });
     return () => {
       live = false;
@@ -56,115 +58,71 @@ function SuggestedRow({ id }: { id: string }) {
   );
 }
 
-/** The item last shown as playing, kept across the view's mounts: a new one is what moves the list. */
-let lastCurrent: string | null = null;
-
 /**
- * The item playing now, first in the list (D346): what played before it is not listed, so a podcast
- * played from its page, or one tapped in the list, always heads Up next. It is swiped away like any
- * row; its handle only marks it, as it has nowhere to move to.
+ * What Autoplay would play after the queue, under it always (owner, 2026-11-03: adding one made the
+ * section vanish). A suggestion just queued leaves it at once, and the list is read again to fill
+ * the place it left.
  */
-function CurrentRow({ id }: { id: string }) {
-  const meta = useQueueMeta(id);
-  const title = meta?.title ?? longDateFromDigestId(id);
-  const ref = useRef<HTMLLIElement>(null);
-  // The list moves to the item that has just begun, so the list does not stay scrolled below it. Not
-  // on opening the view: switching tabs keeps the page where it was (owner, 2026-11-02: Up next
-  // jumped to the top).
-  useEffect(() => {
-    if (lastCurrent !== id && lastCurrent !== null) ref.current?.scrollIntoView({ block: "start" });
-    lastCurrent = id;
-  }, [id]);
-  const swipe = useRowSwipe();
+function SuggestedSection({ ids, queued }: { ids: readonly string[]; queued: readonly string[] }) {
+  const shown = ids.filter((id) => !queued.includes(id));
+  if (shown.length === 0) return null;
   return (
-    <li
-      className="player-queue-item"
-      data-queue-id={id}
-      data-state="current"
-      aria-current="true"
-      ref={ref}
-      onPointerDown={(event) => swipe.onPointerDown(event, id)}
-      onPointerMove={swipe.onPointerMove}
-      onPointerUp={swipe.onPointerEnd}
-      onPointerCancel={swipe.onPointerEnd}
-    >
-      <QueueDeleteMark />
-      <div className="player-queue-face">
-        <button
-          className="player-queue-row"
-          type="button"
-          onClick={() => {
-            if (!swipe.swiped()) playQueueItem(id);
-          }}
-        >
-          <span className="player-queue-thumb">
-            {meta ? <PlayerCover cover={meta.cover} weekly={meta.weekly} size="thumb" /> : null}
-          </span>
-          <span className="player-upnext-text">
-            <span className="player-upnext-date">{title}</span>
-            <span className="player-upnext-hint">{meta?.caption ?? " "}</span>
-          </span>
-        </button>
-        {/* The two bars stand in the playing row's place too, so its end lines up with the rows under
-            it; the row that plays has nowhere to be moved to, so they only mark it (aria-hidden). */}
-        <span className="icon-btn player-queue-grip" data-still aria-hidden="true">
-          <Icon name="grip" />
-        </span>
-      </div>
-    </li>
+    <section aria-labelledby="player-suggested-head">
+      <p className="player-upnext-hint player-suggested-head" id="player-suggested-head">
+        Suggested
+      </p>
+      <ul className="player-queue-list">
+        {shown.map((id) => (
+          <SuggestedRow key={id} id={id} />
+        ))}
+      </ul>
+    </section>
   );
 }
 
 /**
- * The player's Up next view: the queue, when the listener queued something, or else the suggested
- * items. The queue starts by itself when a recording ends (the listener chose it); with an empty
+ * The player's Up next view: the queue, when the listener queued something, and the suggested items
+ * under it, always. The queue starts by itself when a recording ends (the listener chose it); with an empty
  * queue Autoplay starts the first suggested item, unless the listener turned it off. Where the
  * site's list cannot be read (offline), the previous briefing is offered instead, and never starts
  * by itself.
  */
+const panelOf = (layer: HTMLElement | null): HTMLElement | null => layer?.parentElement ?? null;
+
 export default function UpNext() {
   const { upNextId: previous } = usePlayerState();
-  const { current, upcoming: queued } = useQueueView();
-  const suggested = useSuggested(queued);
+  const { current, upcoming: queued, above } = useQueueView();
+  /** An empty layer over the list for the rows that leave it (queueFlip.ts); its parent is the panel. */
+  const ghosts = useRef<HTMLDivElement>(null);
+  const suggested = useSuggested(queued, () => capture(panelOf(ghosts.current)));
+  // Every change glides the list from where it stood (queueFlip.ts): the places are read as the
+  // queue changes, before the list redraws, and played once it has.
+  useLayoutEffect(() => getPlayQueue().subscribe(() => capture(panelOf(ghosts.current))), []);
+  useLayoutEffect(() => play(panelOf(ghosts.current), ghosts.current));
   const playingId = usePlayerState().track?.digest.id ?? null;
-  // The playing item heads the list, whatever else is queued or suggested (D346).
-  const passed =
-    current && current === playingId ? (
-      <ul className="player-queue-list" aria-label="Playing">
-        <CurrentRow key={current} id={current} />
-      </ul>
-    ) : null;
-  if (queued.length > 0)
+  // The playing item heads the list unless the listener put rows above it (D346, D357), and moves
+  // with the rows around it (D349).
+  const lead = current && current === playingId ? current : null;
+  const listed = [...above, ...queued];
+  const rows =
+    lead || listed.length > 0 ? <QueueList above={above} ids={queued} lead={lead} /> : null;
+  const layer = <div className="player-queue-ghosts" aria-hidden="true" ref={ghosts} />;
+  if (listed.length > 0 || (suggested && suggested.length > 0))
     return (
       <>
-        {passed}
-        <QueueList ids={queued} />
+        {layer}
+        {rows}
+        {suggested ? <SuggestedSection ids={suggested} queued={listed} /> : null}
       </>
     );
-  if (suggested && suggested.length > 0) {
-    return (
-      <>
-        {passed}
-        <section aria-labelledby="player-suggested-head">
-          <p className="player-upnext-hint player-suggested-head" id="player-suggested-head">
-            Suggested
-          </p>
-          <ul className="player-queue-list">
-            {suggested.map((id) => (
-              <SuggestedRow key={id} id={id} />
-            ))}
-          </ul>
-        </section>
-      </>
-    );
-  }
   // A list that loaded but holds nothing eligible is empty; the previous briefing stands in only
   // where the list could not be read.
   // The playing row stays in every case; the empty line stands under it, or alone where nothing plays.
   if (suggested || !previous) {
     return (
       <>
-        {passed}
+        {layer}
+        {rows}
         <p className="player-empty">Nothing is queued.</p>
       </>
     );
@@ -174,7 +132,8 @@ export default function UpNext() {
   // narrated there, as a cover press does.
   return (
     <>
-      {passed}
+      {layer}
+      {rows}
       <button className="player-upnext-row" type="button" onClick={() => playQueueItem(previous)}>
         <span className="player-upnext-text">
           <span className="player-upnext-date">{longDateFromDigestId(previous)}</span>
