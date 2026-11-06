@@ -107,14 +107,14 @@
   line-clamp: 2;
 }
 
-/* The quiet line keeps its own leading, not the body's, so a line that wraps stays tight. */
+/* The quiet line reads the quiet-line size role (--text-meta-size, owner 2026-11-05: subtitles too small) and keeps its own leading, not the body's, so a line that wraps stays tight. */
 .card-sub {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0 var(--space-2);
   min-width: 0;
-  font-size: var(--font-size-label);
+  font-size: var(--text-meta-size);
   line-height: var(--font-leading-label);
   text-wrap: pretty;
 }
@@ -144,7 +144,7 @@
 
 .card-facts {
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-meta-size);
   line-height: var(--font-leading-label);
 }
 
@@ -933,7 +933,7 @@ html[data-library-page="empty"] {
   display: block;
 }
 
-/* The heart fills once the item is in Favorites, to go with "Remove from favorites". */
+/* The heart fills once the item is in Favorites, to go with "Unfavorite". */
 .card-menu-list .fav-remove,
 [data-card][data-saved] .card-menu-list .fav-add {
   display: none;
