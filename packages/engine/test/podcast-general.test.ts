@@ -367,7 +367,7 @@ describe("a general episode", () => {
     const text = await readFile(join(ctx.root, result.relPath), "utf8");
     expect(result.relPath).toMatch(/^Podcasts\/2026\/10\/ep-\d{8}-\d{4}\.md$/);
     const episode = parseEpisodeFile(text);
-    expect(episode.title).toBe("World and Business");
+    expect(episode.title).toBe("Thursday 8 October");
     expect(episode.request.audience).toBe("general");
     expect(episode.sources.length).toBeGreaterThan(0);
     expect(episode.sources.some((s) => /NPR|BBC News|ABC News|CBS News/.test(s.source))).toBe(true);

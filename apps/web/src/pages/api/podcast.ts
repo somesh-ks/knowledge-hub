@@ -1,4 +1,4 @@
-import { del, head, put } from "@vercel/blob";
+import { copy, del, head, put } from "@vercel/blob";
 import type { APIRoute } from "astro";
 import { createVercelBlobStore } from "../../server/blobStore";
 import { readBlobCredentials } from "../../server/config";
@@ -38,7 +38,7 @@ export const POST: APIRoute = ({ request, url }) =>
           );
           if (!credentials) return;
           await addTombstone(
-            createVercelBlobStore(credentials, { head, put, del }, fetch),
+            createVercelBlobStore(credentials, { head, put, copy, del }, fetch),
             id,
             Date.now(),
           );

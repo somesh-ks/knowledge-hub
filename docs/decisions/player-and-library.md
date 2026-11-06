@@ -488,3 +488,27 @@ The player, queue and transcript, the Library, reading pages, gestures, offline 
   - Favorites stay this device's (`singularity:saved:<id>` in local storage, `player/core/saved.ts`), so they work offline; every surface hears `singularity:saved` and another tab's `storage` event.
 - Why: Favorites could be filled only from the player's menu.
 - Amends: D354 (the queue sheet gains the row).
+
+## D369: One podcast sheet everywhere, in one order
+
+- Date: 2026-11-04 (owner: "the bottom sheet we see by pressing the three dots icon button inside a podcast details page is different. Technically, they should be the same thing, because it's the same podcast"; "We need to build systematic rules and systems that will make sure everything is consistent").
+- Decision:
+  - Every podcast sheet lists its actions in one order (`lib/podcastActions.ts`): Add to favorites, Add to queue, Share, Download or Remove download, Regenerate, Go to podcast, Stop sharing, Delete. A sheet leaves out what does not apply; it never reorders. `components/PodcastMenuItems.astro` draws it for a Library card, a podcast page's ⋮, Downloads and Favorites; the queue row's sheet reads the same list.
+  - A podcast page's ⋮ opens its Library card's sheet, headed by its name and facts.
+  - The set is the same on a Library card, a podcast page, Downloads and Favorites (owner, 2026-11-04: "the options that are available for a podcast item be the same in library, in downloads, and in favorite pages"). Only the podcast's own facts leave an action out (no audio: no Download; a Daily or Weekly: no Delete). Downloads and Favorites carry Regenerate and Delete's dialogs as the Library does (`EpisodeActions.astro`); a downloaded podcast's Download reads Remove download with the bin, in the normal tone, on every sheet.
+  - The first three actions are quick-action tiles only on a long sheet (the Menu's threshold, set in the design system); a short sheet is a plain list.
+  - Remove download is the bin everywhere.
+  - Settings > Downloads draws no ⋮ on a phone; a hold opens the row's sheet, whose Remove download removes at once. A swipe slides the row over the red strip with the bin, as a queue row (D346), and asks first.
+  - A browser test checks each sheet against the one order and the page's, Downloads' and Favorites' sheets against the card's.
+- Why: the page's ⋮ and the card's sheet had drifted, and the Downloads sheet listed its actions in another order.
+- Amends: D214 (the page's menu is the card's one sheet, one component for both, with Share, Add to favorites and Stop sharing), D281 (the Downloads ⋮ on a phone), D365 (Favorites is the first action, not a row under the tiles).
+
+## D374: No podcast menu offers Stop sharing
+
+- Date: 2026-11-05 (owner: "there's no special sharing permissions for now, which means we don't need stop sharing as an option anywhere").
+- Decision:
+  - No podcast sheet or menu lists Stop sharing: not a Library card, a podcast page's ⋮, Downloads, Favorites or a queue row. It leaves the one action list (`lib/podcastActions.ts`), and the device's list of shared items (`singularity:shared-items`) and the code that read it go with it.
+  - `DELETE /api/share` and `revokeShareLinks` stay: a Regenerate stops an outdated link through `POST /api/share`, and the browser suite revokes through the route. Until sharing permissions exist a link ends after 30 days or on Regenerate.
+  - The Privacy page says so.
+- Why: the owner sees no use for it while there are no sharing permissions.
+- Amends: D153 (Stop sharing in the Library row's menu), D214 (the page's menu with Stop sharing), D369 (the action list).

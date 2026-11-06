@@ -1,6 +1,7 @@
 ---
 import type { DigestEntry } from "../lib/digests";
 import { airedMinutes, type HeroView } from "../lib/digestView";
+import { cardFacts } from "../lib/libraryCard";
 import { sharedTarget } from "../lib/share";
 import AmbientLight from "./AmbientLight.astro";
 import Cover from "./Cover.astro";
@@ -45,6 +46,7 @@ const title = hero.title.replace(/(\d+) /, "$1 ");
         page={{
           id: entry.id,
           title,
+          subtitle: cardFacts(entry).line,
           path: `/d/${entry.id}`,
           audio: entry.audioMode === "ready" ? entry.player.audio?.url : undefined,
         }}

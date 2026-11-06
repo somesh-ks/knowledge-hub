@@ -20,9 +20,7 @@ import { FUNCTION_MAX_DURATION_S } from "./src/server/functionLimits.mjs";
 
 // The data layer reads Digests/ at build time. Page code is bundled into chunks whose import.meta.url
 // no longer points at the source tree, so the repository root is fixed here, where it is reliable.
-process.env.SINGULARITY_REPO_ROOT ??=
-  process.env.DISPATCH_REPO_ROOT ?? fileURLToPath(new URL("../../", import.meta.url));
-process.env.DISPATCH_REPO_ROOT ??= process.env.SINGULARITY_REPO_ROOT;
+process.env.SINGULARITY_REPO_ROOT ??= fileURLToPath(new URL("../../", import.meta.url));
 
 // The inline scripts must run before first paint, so they cannot be external files: the saved-key
 // move and the theme in the head, the device banners, the Library's saved view and the Settings
@@ -137,8 +135,7 @@ function wakeDirective() {
 // refuses without Developer Mode, and the e2e suite only needs the static output. The API routes
 // become static stubs there; their logic is covered by unit tests. A page rendered on request from
 // the content repository is prerendered from the checkout there, as it was before D173.
-const staticOnly =
-  (process.env.SINGULARITY_STATIC_ONLY ?? process.env.DISPATCH_STATIC_ONLY) === "1";
+const staticOnly = process.env.SINGULARITY_STATIC_ONLY === "1";
 
 function stubApiRoutesForStaticBuild() {
   return {

@@ -16,8 +16,11 @@ export const CONTENT_PREFIX = "content/";
 export const CONTENT_MANIFEST_KEY = `${CONTENT_PREFIX}manifest.json`;
 export const CONTENT_MANIFEST_VERSION = 1;
 
-/** The folders and files the site reads, settings aside (those are in Neon, D149). */
-export const CONTENT_DIRS = ["Digests", "Podcasts"] as const;
+/**
+ * The folders and files the site reads, settings aside (those are in Neon, D149), and the pools a
+ * rewrite carries (Pools/, D376), which only the engine's jobs pull.
+ */
+export const CONTENT_DIRS = ["Digests", "Podcasts", "Pools"] as const;
 export const CONTENT_FILES = [
   "state/last-run.json",
   "state/source-stats.json",
@@ -128,7 +131,9 @@ export async function syncContent(input: SyncContentInput): Promise<ContentSyncR
   // the store holds is one that never pulled, and mirroring it would empty that folder.
   const holds = (paths: Iterable<string>, dir: string): boolean =>
     [...paths].some((path) => path.startsWith(`${dir}/`));
+  // Pools/ is the exception: its files are disposable (D376) and a site-only pull leaves it out.
   for (const dir of CONTENT_DIRS) {
+    if (dir === "Pools") continue;
     if (holds(Object.keys(stored), dir) && !holds(files.keys(), dir)) {
       throw new Error(
         `this checkout holds nothing under ${dir}/ but the store does; a sync would delete it all. Use content put and remove, or pull first`,

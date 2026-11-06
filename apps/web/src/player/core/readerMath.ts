@@ -192,6 +192,17 @@ export function fabLabel(view: ChipView): string {
     : view.label;
 }
 
+/**
+ * The floating Play button's accessible name: its visible words first ("Play · 1 min"), then what
+ * it plays, so a voice command that reads the button finds them (WCAG 2.5.3). A state shown alone
+ * ("Loading") is already inside the chip's name.
+ */
+export function fabName(view: ChipView, noun: ChipNoun): string {
+  return view.state === "idle" || view.state === "current"
+    ? `${fabLabel(view)}, the ${noun}`
+    : view.name;
+}
+
 /** A story's chip before it has played. `length` is empty while the briefing has no audio. */
 export function idleStoryChip(length: string, headline: string): ChipView {
   const action = length ? `Play from here, ${length}` : "Play from here";

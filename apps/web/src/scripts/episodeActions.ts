@@ -2,10 +2,13 @@ import { DIALOG_SELECTOR } from "../design-system/dialog";
 import { PANEL_SHEET_SELECTOR } from "../design-system/sheet";
 import { rememberCancelToken } from "../lib/cancelTokens";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
-import { hintsFor } from "../lib/regenHints";
+import { createCommentAsker } from "../lib/regenAsk";
+import { desiredChip, desiredLength, wantedControls } from "../lib/regenFollow";
+import { nearestRegenLength } from "../lib/regenLength";
 import { isChipOn } from "../lib/regenTopics";
 import { hasSaved, storeOn } from "../lib/savedKey";
 import { navigateTo } from "../player/core/navigation";
+import { fitAboveKeyboard } from "./keyboardFit";
 import { libraryAddress } from "./libraryAddress";
 import { dismissOnScrim, sheetGestures } from "./pullDismiss";
 import { forgetRunAbout, startRun } from "./runStatus";
@@ -79,17 +82,69 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
   if (dialog.matches(PANEL_SHEET_SELECTOR)) sheetGestures(dialog);
   else dismissOnScrim(dialog);
 
-  dialog.addEventListener("change", () => say());
-
-  // The categories wait until the comment reaches for one (D337); once shown they stay.
+  // The categories and the length follow the comment (D337, D371): they appear as the words reach
+  // for them and go when the words go, and the values a model proposes are set on the ones the
+  // listener has not touched. A control the listener touched stays as they left it; so does one a
+  // refusal had to show. A change event is always the listener's: a script setting `checked` fires none.
   const topicsGroup = dialog.querySelector<HTMLElement>("[data-hint-topics]");
-  if (feedback && topicsGroup) {
+  const lengthGroup = dialog.querySelector<HTMLElement>("[data-hint-length]");
+  const touchedChips = new Set<Element>();
+  let lengthTouched = false;
+  const keep = { length: false, topics: false };
+  const radios = () => [...dialog.querySelectorAll<HTMLInputElement>('input[name="length"]')];
+  const topicChips = () => [...dialog.querySelectorAll<HTMLInputElement>('input[name="topic"]')];
+  const labelOf = (chip: HTMLInputElement) =>
+    chip.closest("label")?.querySelector("span")?.textContent?.trim() ?? "";
+  const forgetTouched = () => {
+    touchedChips.clear();
+    lengthTouched = false;
+    keep.length = false;
+    keep.topics = false;
+  };
+  dialog.addEventListener("change", (event) => {
+    say();
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) return;
+    if (input.name === "length") lengthTouched = true;
+    if (input.name === "topic") touchedChips.add(input);
+  });
+  let asker: ReturnType<typeof createCommentAsker> | undefined;
+  const follow = (): void => {
+    if (!feedback || !asker) return;
+    const chips = topicChips();
+    const labels = chips.map(labelOf);
+    const answer = asker.answer();
+    const wanted = wantedControls(feedback.value, labels, answer);
+    if (topicsGroup) topicsGroup.hidden = !(wanted.topics || keep.topics || touchedChips.size > 0);
+    if (lengthGroup) lengthGroup.hidden = !(wanted.length || keep.length || lengthTouched);
+    const lengths = radios();
+    const asked = Number(lengths.find((radio) => radio.defaultChecked)?.value);
+    if (!lengthTouched && Number.isFinite(asked)) {
+      const target = desiredLength(asked, answer.values, feedback.value);
+      for (const radio of lengths) radio.checked = Number(radio.value) === target;
+    }
+    chips.forEach((chip, at) => {
+      if (!chip.disabled && !touchedChips.has(chip)) {
+        chip.checked = desiredChip(labels[at] ?? "", chip.defaultChecked, answer.values);
+      }
+    });
+  };
+  if (feedback) {
+    // The words answer at once; once the typing pauses, Jev and Haiku can add what they missed.
+    asker = createCommentAsker(follow);
+    // The dialog keeps its text when it closes; opening it again reads the kept words again.
+    dialog.addEventListener("regen-open", () => {
+      asker?.note(feedback.value, topicChips().map(labelOf));
+      follow();
+    });
+    dialog.addEventListener("close", () => {
+      asker?.stop();
+      forgetTouched();
+      follow();
+    });
     feedback.addEventListener("input", () => {
-      if (!topicsGroup.hidden) return;
-      const labels = [...topicsGroup.querySelectorAll(".filter-chip span")].map(
-        (label) => label.textContent ?? "",
-      );
-      if (hintsFor(feedback.value, labels).topics) topicsGroup.hidden = false;
+      asker?.note(feedback.value, topicChips().map(labelOf));
+      follow();
     });
   }
   if (feedback && count) {
@@ -129,6 +184,7 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       if (chips.length > 0 && ticked.length === 0) {
         // The categories wait for a cue (D337); a refusal about them must show them.
         if (topicsGroup) topicsGroup.hidden = false;
+        keep.topics = true;
         say(copy("topics"));
         chips[0]?.focus();
         return;
@@ -136,11 +192,15 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       const changed = chips.some((chip) => chip.checked !== chip.defaultChecked);
       const topics = [...new Set(ticked.flatMap((chip) => (chip.dataset.ids ?? "").split(" ")))];
       const text = feedback?.value.trim() ?? "";
+      // The length goes only when it differs from the one the episode was made at.
+      const length = dialog.querySelector<HTMLInputElement>('input[name="length"]:checked');
+      const minutes = length && !length.defaultChecked ? Number(length.value) : null;
       body = {
         action: "regenerate",
         id,
         feedback: text,
         ...(changed ? (briefing ? { topics } : { topic_ids: topics }) : {}),
+        ...(minutes && !briefing ? { length_minutes: minutes } : {}),
       };
     } else {
       body = { action: "delete", id };
@@ -192,6 +252,7 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
     form.reset();
     if (count) count.hidden = true;
     if (topicsGroup) topicsGroup.hidden = true;
+    if (lengthGroup) lengthGroup.hidden = true;
     // It leaves the way Catch up does after a start (sheet.css), the queue rising as it goes.
     dialog.dataset.started = "";
     dialog.close();
@@ -214,13 +275,21 @@ export function openEpisodeAction(trigger: HTMLElement): void {
     const noun = root.dataset.libraryBriefing || root.dataset.briefing ? "podcast" : "episode";
     const title = dialog.querySelector("#delete-title");
     if (title) title.textContent = `Delete this ${noun}?`;
-  } else if (root.dataset.topics !== undefined) {
-    const original = root.dataset.topics.split(" ").filter(Boolean);
-    for (const chip of dialog.querySelectorAll<HTMLInputElement>('input[name="topic"]')) {
-      const ids = (chip.dataset.ids ?? "").split(" ");
-      chip.checked = chip.defaultChecked = !chip.disabled && isChipOn({ ids }, original);
+  } else {
+    if (root.dataset.topics !== undefined) {
+      const original = root.dataset.topics.split(" ").filter(Boolean);
+      for (const chip of dialog.querySelectorAll<HTMLInputElement>('input[name="topic"]')) {
+        const ids = (chip.dataset.ids ?? "").split(" ");
+        chip.checked = chip.defaultChecked = !chip.disabled && isChipOn({ ids }, original);
+      }
+    }
+    // The length starts on the one this episode was made at.
+    const start = String(nearestRegenLength(root.dataset.minutes));
+    for (const radio of dialog.querySelectorAll<HTMLInputElement>('input[name="length"]')) {
+      radio.checked = radio.defaultChecked = radio.value === start;
     }
   }
+  if (kind === "regenerate") dialog.dispatchEvent(new Event("regen-open"));
   // A pick from the menu hands focus back to the More button; the menu itself is closed by then.
   const back = () => {
     const target = trigger.closest("[popover]")
@@ -241,9 +310,16 @@ export function openEpisodeAction(trigger: HTMLElement): void {
   };
   history.pushState({ ...history.state, episodeAction: kind }, "");
   addEventListener("singularity:back", onBack);
+  // On a phone the keyboard overlays the panel instead of resizing the page under it: the resize
+  // left the strip the keyboard had not yet covered white for its whole slide (2026-11-05, keyboardFit.ts).
+  const unfit =
+    kind === "regenerate" && matchMedia("(width < 40rem)").matches
+      ? fitAboveKeyboard(dialog)
+      : () => {};
   dialog.addEventListener(
     "close",
     () => {
+      unfit();
       back();
       if (!entry) return;
       if (!leaving.delete(dialog)) {

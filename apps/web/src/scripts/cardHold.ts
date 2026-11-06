@@ -10,8 +10,8 @@
  */
 import { MENU_SELECTORS } from "../design-system/menu";
 
-/** Matches the CSS that hides the button (library.css): a finger is the primary input. */
-const TOUCH = "(hover: none) and (pointer: coarse)";
+/** The complement of the one query that draws a ⋮ (library.css): where there are no dots there is the hold. */
+const TOUCH = "not ((hover: hover) and (pointer: fine))";
 /** What a hold opens a menu from: a Library card, and a queue row in the player. */
 const HELD = ".card-link, .player-queue-row";
 /** The button a hold's sheet belongs to, focused first as a tap on it would. */

@@ -104,8 +104,10 @@ export function classTokens(text: string): Set<string> {
   for (const [, props = ""] of text.matchAll(/<Button\b([^>]*)>/g)) {
     const variant = /\bvariant="(\w+)"/.exec(props)?.[1];
     const tone = /\btone="(\w+)"/.exec(props)?.[1];
+    const size = /\bsize="(\w+)"/.exec(props)?.[1];
     if (variant) found.add(`button-${variant}`);
     if (tone) found.add(`button-${tone}`);
+    if (size) found.add(`button-${size}`);
   }
   for (const [, variant = "", tone] of text.matchAll(
     /\bbuttonClass\(\s*["'](\w+)["'](?:\s*,\s*["'](\w+)["'])?/g,

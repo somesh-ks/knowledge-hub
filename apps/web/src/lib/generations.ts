@@ -1,5 +1,5 @@
 import type { GenerationRow } from "../types/contracts";
-import { queuePercent } from "./queuePercent";
+import { hasPrior, queuePercent, stageLengths } from "./queuePercent";
 import { EPISODE_STAGES, NAMED_EPISODE_STAGES, NAMED_EPISODE_STEPS, timeLeftMs } from "./runStages";
 
 /**
@@ -66,9 +66,10 @@ export interface GenerationView {
   running: boolean;
   /** The time left ("3 min"), or "" when the engine has no estimate or the run is waiting. */
   eta: string;
-  /** The stage; "Taking longer than usual" leads it past one and a half times the usual; waiting while queued. */
+  /** The stage, always: "Taking longer than usual" is the second line (`slowNote`) and never replaces it; waiting while queued. */
   status: string;
-  /** The stage has run past one and a half times the usual. */
+  /** The stage has run past one and a half times its usual length: the second line, else "". */
+  slowNote: string;
   slow: boolean;
   /** The whole number in the queue's ring: 0 while queued, else 1 to 99 (lib/queuePercent.ts). */
   percent: number;
@@ -102,15 +103,19 @@ export function describeGeneration(row: GenerationRow, context: GenerationContex
     followed?.stageAt ?? context.stageSince?.(row.run_id, row.stage) ?? followed?.t0 ?? now;
   const elapsed = Math.max(0, now - since);
   const estimates = followed?.estimates ?? row.stage_estimates_ms;
+  // The prior is a floor under what the engine timed, and only a stage it timed can run slow: the
+  // voices and the wait for the site have no usual length of their own (lib/queuePercent.ts).
+  const usual = hasPrior(row.stages) ? stageLengths(row.stages, estimates) : estimates;
+  const timed = Number(estimates?.[row.stage]) > 0;
 
   let eta = "";
   let slow = false;
   if (running) {
-    const left = timeLeftMs(row.stage, estimates, elapsed);
-    if (left === "slow") slow = true;
-    else if (left !== null) eta = roundedLeft(left, words);
+    const left = timeLeftMs(row.stage, usual, elapsed);
+    if (left === "slow") slow = timed;
+    else if (left !== null && timed) eta = roundedLeft(left, words);
   }
-  const status = !running ? words.waiting : slow ? `${words.slow} · ${row.label}` : row.label;
+  const status = running ? row.label : words.waiting;
 
   // The last stage of a run's list is the wait for the site (a Catch up's; a briefing is live as it
   // commits), which the workflow cannot see: the run is over, so there is nothing to stop.
@@ -128,6 +133,7 @@ export function describeGeneration(row: GenerationRow, context: GenerationContex
     running,
     eta,
     status,
+    slowNote: slow ? words.slow : "",
     slow,
     percent: queuePercent({
       stage: row.stage,

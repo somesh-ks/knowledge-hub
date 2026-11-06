@@ -11,6 +11,7 @@ import { BUTTON, BUTTON_CLASSES, BUTTON_RETIRED } from "./button";
 import { DIALOG, DIALOG_CLASSES, DIALOG_RETIRED } from "./dialog";
 import { DRAWER, DRAWER_CLASSES, DRAWER_RETIRED } from "./drawer";
 import { FIELD, FIELD_CLASSES, FIELD_RETIRED } from "./field";
+import { FLAG, FLAG_CLASSES, FLAG_RETIRED } from "./flag";
 import type { Guidance } from "./guidance";
 import { ICON, ICON_CLASSES, ICON_RETIRED } from "./icon";
 import { MENU, MENU_CLASSES, MENU_RETIRED } from "./menu";
@@ -31,7 +32,7 @@ export interface DesignSystemComponent extends Guidance {
   classes: string[];
   /** Classes it replaced, which no app may write again. */
   retired: string[];
-  /** Its variants and tones, each with its own guidance. */
+  /** Its variants, tones and sizes, each with its own guidance. */
   parts: Record<string, Guidance>;
 }
 
@@ -45,7 +46,7 @@ export const COMPONENTS: DesignSystemComponent[] = [
     summary: BUTTON.summary,
     useWhen: BUTTON.useWhen,
     dontUseWhen: BUTTON.dontUseWhen,
-    parts: { ...BUTTON.variants, ...BUTTON.tones },
+    parts: { ...BUTTON.variants, ...BUTTON.tones, ...BUTTON.sizes },
   },
   {
     name: "Icon",
@@ -89,6 +90,17 @@ export const COMPONENTS: DesignSystemComponent[] = [
     summary: BADGE.summary,
     useWhen: BADGE.useWhen,
     dontUseWhen: BADGE.dontUseWhen,
+    parts: {},
+  },
+  {
+    name: "Flag",
+    sheet: "flag.css",
+    prefix: "flag-",
+    classes: FLAG_CLASSES,
+    retired: FLAG_RETIRED,
+    summary: FLAG.summary,
+    useWhen: FLAG.useWhen,
+    dontUseWhen: FLAG.dontUseWhen,
     parts: {},
   },
   {

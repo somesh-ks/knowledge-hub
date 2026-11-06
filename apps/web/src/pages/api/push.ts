@@ -35,18 +35,21 @@ const deps = (): PushDeps => ({
 /** POST: tell this browser when a run ends (D284). DELETE: stop. GET: the key to subscribe with. */
 const answer =
   (method: "POST" | "DELETE"): APIRoute =>
-  async ({ request, url }) =>
-    toResponse(
-      await handlePushWatch(
-        {
-          method,
-          bodyText: (await request.text()).slice(0, MAX_PUSH_BODY_CHARS + 1),
-          origin: request.headers.get("origin"),
-          expectedOrigin: url.origin,
-        },
-        deps(),
-      ),
+  async ({ request, url }) => {
+    const result = await handlePushWatch(
+      {
+        method,
+        bodyText: (await request.text()).slice(0, MAX_PUSH_BODY_CHARS + 1),
+        origin: request.headers.get("origin"),
+        expectedOrigin: url.origin,
+      },
+      deps(),
     );
+    // Status and reason only: a refused request (a wrong token, a cooldown) leaves no other trace.
+    if (result.status >= 400)
+      console.error(`[api/push] refused ${result.status} ${JSON.stringify(result.body)}`);
+    return toResponse(result);
+  };
 
 export const GET: APIRoute = async () => toResponse(await handlePushKey(deps()));
 

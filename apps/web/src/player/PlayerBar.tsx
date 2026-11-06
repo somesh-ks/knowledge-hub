@@ -265,6 +265,11 @@ function useDockSwipe({ next, previous, shownId }: DockSwipeTargets) {
     // With nowhere to go the words give a little, then hold.
     target.style.setProperty("--dock-swipe", `${goesTo(dx) ? dx : dx * 0.2}px`);
     const id = goesTo(dx);
+    // The leaving words thin and the arriving ones fill in as the finger carries the bar over.
+    target.style.setProperty(
+      "--dock-fade",
+      id ? String(Math.min(1, Math.abs(dx) / target.clientWidth)) : "0",
+    );
     const dir = dx < 0 ? "next" : "previous";
     setPeek((current) => (id ? (current?.id === id ? current : { id, dir }) : null));
   };
@@ -282,6 +287,7 @@ function useDockSwipe({ next, previous, shownId }: DockSwipeTargets) {
     window.setTimeout(() => {
       target.dataset.swiping = "";
       target.style.removeProperty("--dock-swipe");
+      target.style.removeProperty("--dock-fade");
       delete target.dataset.swipeOut;
       setPeek(null);
       requestAnimationFrame(() =>
@@ -359,6 +365,7 @@ function useDockSwipe({ next, previous, shownId }: DockSwipeTargets) {
         swipeLeaves(current.dx, target.offsetWidth, tracker.velocity());
       if (!goes || !to) {
         target.style.removeProperty("--dock-swipe");
+        target.style.removeProperty("--dock-fade");
         setPeek(null);
         return;
       }
@@ -370,6 +377,7 @@ function useDockSwipe({ next, previous, shownId }: DockSwipeTargets) {
         "--dock-swipe",
         `${(dir === "next" ? -1 : 1) * target.clientWidth}px`,
       );
+      target.style.setProperty("--dock-fade", "1");
       playQueueItem(to);
       // A slow or failed load lets go too, so the bar is never left blank.
       window.setTimeout(() => {
@@ -428,8 +436,8 @@ export default function PlayerBar() {
   const playing = isPlayingStatus(state.status);
   // After a failure nothing is being read: the bar names the recording, not its first story.
   const headline = (state.error ? null : item?.headline) ?? digest?.title ?? "";
-  // The bar's line is the story's chapter, a few words that fit; the full headline stays the
-  // button's name. A story written before chapters shows its headline.
+  // The bar's line is the story's chapter, a few words that fit; the button's name holds the chapter
+  // (WCAG 2.5.3) and the full headline. A story written before chapters shows its headline.
   const title = (state.error ? null : (item?.chapter ?? item?.headline)) ?? digest?.title ?? "";
 
   // Under the title: the clock, then the story's section, or what the recording is before story 1
@@ -486,7 +494,7 @@ export default function PlayerBar() {
         // The surface controller keeps this in step with the page; false is the collapsed truth.
         aria-expanded="false"
         aria-controls={PLAYER_PAGE_ID}
-        aria-label={`Player: ${headline}`}
+        aria-label={`Player: ${title === headline ? headline : `${title}, ${headline}`}`}
         onClick={(event) => {
           // The click some browsers still send after a swipe's lift is not a press.
           if (swipe.swiped()) return;

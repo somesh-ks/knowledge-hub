@@ -165,24 +165,14 @@ describe("ids and paths", () => {
 
 describe("the title", () => {
   it("uses the listener's title", () => {
-    expect(episodeTitle({ ...REQUEST, title: "Week in models" })).toBe("Week in models");
+    expect(episodeTitle({ ...REQUEST, title: "Week in models" }, NOW)).toBe("Week in models");
   });
 
-  it("names up to two topics and counts the rest, so it reads in two short lines", () => {
-    expect(episodeTitle({ ...REQUEST, topic_ids: ["ai"] })).toBe("AI");
-    expect(episodeTitle({ ...REQUEST, topic_ids: ["ai", "design"] })).toBe("AI and Design");
-    expect(episodeTitle({ ...REQUEST, topic_ids: ["ai", "design", "tech", "trending"] })).toBe(
-      "AI, Design and 2 more",
-    );
-    const long = episodeTitle({
-      ...REQUEST,
-      topic_ids: [
-        "design_engineering_craft",
-        "hci_empirical_research",
-        "ui_component_primitives",
-        "ai_ux_interaction_patterns",
-      ],
-    });
-    expect(long.length).toBeLessThanOrEqual(80);
+  it("is the day it was made, in Stockholm time, when no title was given", () => {
+    const withoutTitle = { ...REQUEST, topic_ids: ["ai", "design"] };
+    delete (withoutTitle as { title?: string }).title;
+    expect(episodeTitle(withoutTitle, new Date("2026-10-08T09:13:00Z"))).toBe("Thursday 8 October");
+    // 23:30 UTC is already the next day in Stockholm.
+    expect(episodeTitle(withoutTitle, new Date("2026-10-07T23:30:00Z"))).toBe("Thursday 8 October");
   });
 });

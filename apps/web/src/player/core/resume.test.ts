@@ -3,6 +3,9 @@ import {
   clearResumePosition,
   PLAYED_KEY_PREFIX,
   playedKey,
+  readRemembered,
+  readResumePosition,
+  recordingOf,
   resumeKey,
   type StorageLike,
   saveResumePosition,
@@ -81,5 +84,48 @@ describe("played", () => {
     };
     expect(() => clearResumePosition(failing, "ep-1")).not.toThrow();
     expect(() => saveResumePosition(failing, "ep-1", 119, 120)).not.toThrow();
+  });
+});
+
+describe("a rewritten recording", () => {
+  // The bug it prevents (2026-11-06, the owner's phone): a rewrite keeps the digest's id, so its new
+  // recording began where the old one was left, at 4 minutes, and the seek made Play wait.
+  it("starts over where the recording it was saved for is gone, and forgets its Played", () => {
+    const storage = memory();
+    saveResumePosition(storage, "2026-11-05", 250, 300, "audio/2026-11-05.v1.mp3");
+    expect(readResumePosition(storage, "2026-11-05", 330, "audio/2026-11-05.v1.mp3")).toBe(250);
+    expect(readResumePosition(storage, "2026-11-05", 330, "audio/2026-11-05.v2.mp3")).toBe(0);
+    expect(storage.getItem(resumeKey("2026-11-05"))).toBeNull();
+
+    clearResumePosition(storage, "2026-11-05", "audio/2026-11-05.v2.mp3");
+    expect(readRemembered(storage, "2026-11-05", 330, "audio/2026-11-05.v2.mp3").played).toBe(true);
+    expect(readRemembered(storage, "2026-11-05", 330, "audio/2026-11-05.v3.mp3").played).toBe(
+      false,
+    );
+  });
+
+  // Named by its file, an episode narrated on Play lost its place when its Opus file arrived, and a
+  // rewrite of the same stories in a new tone kept the old one's.
+  it("names the recording by what it says, not by the file that carries it", () => {
+    const story = {
+      id: "a1",
+      headline: "Springs",
+      text: "Springs settle.",
+      section: "craft",
+      source: "blog",
+      start_ms: null,
+      end_ms: null,
+    };
+    const said = recordingOf({ items: [story] });
+    expect(recordingOf({ items: [{ ...story, start_ms: 0, end_ms: 9_000 }] })).toBe(said);
+    expect(recordingOf({ items: [{ ...story, text: "Springs settle, at last." }] })).not.toBe(said);
+  });
+
+  it("keeps memory written before the recording was noted, and a reader that does not know it", () => {
+    const storage = memory();
+    storage.setItem(resumeKey("2026-11-05"), "90");
+    expect(readResumePosition(storage, "2026-11-05", 330, "audio/2026-11-05.v2.mp3")).toBe(90);
+    saveResumePosition(storage, "2026-11-06", 60, 300, "audio/2026-11-06.v1.mp3");
+    expect(readResumePosition(storage, "2026-11-06", 300)).toBe(60);
   });
 });

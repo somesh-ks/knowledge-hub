@@ -221,11 +221,11 @@
    Library and the Sources index: one control, one shape (owner, 2026-10-23, D167; from 2026-10-22 to
    then they took the card's radius less its padding). */
 
-/* On the card's fill the switch's track, the field, the Add button and the chips take the page's own
-   surface, so they read against the card. */
+/* On the card's fill the switch's track, the field, the Add buttons and the chips take the page's own
+   surface, so they read against the card (Add source by the heading too, once it was tonal, 2026-11-04). */
 .topic-panel > .topic-view,
 .topic-panel .search-field,
-.topic-panel .filter-row > .topic-add-source {
+.topic-panel .topic-add-source {
   background: var(--color-surface);
 }
 
@@ -376,28 +376,6 @@
   }
 }
 
-/* Five fixed stops under the thumb, each a small dot on the track (2026-10-21: tall tick lines read
-   as heavy; the owner asked for a calmer slider). Each dot is drawn in a thumb-sized box placed by
-   percent, which the browser measures over the track less one thumb: the same travel the thumb takes,
-   so a dot sits under the thumb's centre at its stop. */
-.slider-input[data-stops] {
-  --stop-dot: radial-gradient(
-    circle at center,
-    var(--color-on-surface-subtle) 0 calc(var(--stroke-hairline) * 3),
-    transparent calc(var(--stroke-hairline) * 3 + 0.5px)
-  );
-  background-image:
-    var(--stop-dot), var(--stop-dot), var(--stop-dot), var(--stop-dot), var(--stop-dot);
-  background-repeat: no-repeat;
-  background-size: var(--scrubber-thumb) var(--scrubber-thumb);
-  background-position:
-    0% center,
-    25% center,
-    50% center,
-    75% center,
-    100% center;
-}
-
 .topic-sources {
   display: flex;
   flex-direction: column;
@@ -446,8 +424,8 @@
   padding-block: 0;
 }
 
-/* Outline, not tonal: the page's own surface inside a control-weight border, as wide as its words,
-   and a size down from a block button so it sits level with the section heading (D103). */
+/* The tonal button (owner, 2026-11-04: one tonal tone; it was outlined, D103), as wide as its words and a
+   size down from a block button so it sits level with the section heading. */
 .topic-add-source {
   position: relative;
   flex: none;
@@ -455,9 +433,6 @@
   min-height: calc(var(--size-touch) - var(--space-2));
   padding-inline: var(--space-4);
   font-size: var(--font-size-label);
-  border: var(--stroke-hairline) solid var(--color-border-control);
-  background: transparent;
-  color: var(--color-on-surface);
 }
 
 /* The button is a size down; its target is still 44px. */
@@ -465,17 +440,7 @@
   content: "";
   position: absolute;
   inset-inline: 0;
-  inset-block: calc(var(--space-2) / -2 - var(--stroke-hairline));
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .topic-add-source:hover {
-    background: var(--ghost-hover);
-  }
-}
-
-.topic-add-source:active {
-  background: var(--ghost-pressed);
+  inset-block: calc(var(--space-2) / -2);
 }
 
 /* Delete, in the card's menu, for a topic of the owner's own: red marks the one that destroys (the
@@ -1514,20 +1479,12 @@
   min-width: 0;
 }
 
-/* Add source and Add match the field's height and shape (2026-10-21): the same pill, the same tonal
-   fill, so the row reads as one bar. Outweighs the outline button (.topic-add-source) below. */
+/* Add source and Add match the field's height and shape (2026-10-21): the same pill beside the field's
+   tonal fill, which the tonal button already has, so the row reads as one bar. */
 .filter-row > .topic-add-source {
   min-height: var(--field-height);
   padding-inline: var(--space-6);
-  border-color: transparent;
   border-radius: var(--radius-round);
-  background: var(--color-surface-container);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .filter-row > .topic-add-source:hover {
-    background: var(--color-surface-container-hover);
-  }
 }
 
 .filter-row > .topic-add-source::after {

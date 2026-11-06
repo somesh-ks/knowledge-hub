@@ -86,9 +86,9 @@ test.describe("the floating button", () => {
       await expect(playFab(page), path).toBeHidden();
       await pastHero(page);
       await expect(playFab(page), path).toBeVisible();
-      // It says what the hero chip says: its name, and its words after the verb.
+      // It says what the hero chip says: its words after the verb, which its name starts with.
       const length = await page.locator(".hero [data-chip-label]").textContent();
-      await expect(playFab(page), path).toHaveAccessibleName(`Play the ${noun}, ${length}`);
+      await expect(playFab(page), path).toHaveAccessibleName(`Play · ${length}, the ${noun}`);
       await expect(playFab(page), path).toContainText(`Play · ${length}`);
       await expect(createFab(page), path).toHaveCount(0);
       await expect(page.locator("html"), path).toHaveAttribute("data-fab", "");
@@ -177,7 +177,10 @@ test.describe("the floating button", () => {
     await expect(root).not.toHaveAttribute("data-fab");
     await expect(playFab(page)).toBeHidden();
     // The player writes the chip's face on it, its name too.
-    await expect(playFab(page)).toHaveAttribute("aria-label", /^Pause the podcast, \d+ min left$/);
+    await expect(playFab(page)).toHaveAttribute(
+      "aria-label",
+      /^Pause · \d+ min left, the podcast$/,
+    );
 
     // On a page whose audio the bar does not hold, Play is back, above the bar and clear of it.
     await page.locator('a[href="/d/2026-10-04-weekly"]').first().click();

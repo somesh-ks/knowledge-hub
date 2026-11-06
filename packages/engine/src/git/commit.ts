@@ -29,8 +29,8 @@ export const DEFAULT_BOT: BotIdentity = {
 export function identityFromEnv(
   env: Record<string, string | undefined> = process.env,
 ): BotIdentity | undefined {
-  const name = (env.SINGULARITY_GIT_NAME ?? env.DISPATCH_GIT_NAME)?.trim();
-  const email = (env.SINGULARITY_GIT_EMAIL ?? env.DISPATCH_GIT_EMAIL)?.trim();
+  const name = env.SINGULARITY_GIT_NAME?.trim();
+  const email = env.SINGULARITY_GIT_EMAIL?.trim();
   return name && email ? { name, email } : undefined;
 }
 

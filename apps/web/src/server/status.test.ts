@@ -10,7 +10,6 @@ import {
   parseOnDemandRecord,
   parseRunId,
   resetTimingsCaches,
-  runUrlFor,
   STATUS_CACHE_CONTROL,
 } from "./status";
 
@@ -247,6 +246,29 @@ describe("handleStatus for an episode run", () => {
     expect(github.requests.some((request) => request.path.includes("/contents/"))).toBe(false);
   });
 
+  // The 2026-11-05 review: a rewrite whose voices failed after the episode was saved read as failed,
+  // and its Try again named an episode that no longer exists.
+  it("reads a run whose only failure is recording the voices as made", async () => {
+    const result = await handleStatus("4242", {
+      env,
+      fetch: episode({ status: "completed", conclusion: "failure" }, [
+        stepJson("Gathering stories", 3, "completed", "success"),
+        stepJson("Publishing", 4, "completed", "success"),
+        stepJson("Recording voices", 5, "completed", "failure"),
+      ]).fetch,
+    });
+    expect(result.body).toMatchObject({ outcome: "published" });
+    const other = await handleStatus("4242", {
+      env,
+      fetch: episode({ status: "completed", conclusion: "failure" }, [
+        stepJson("Gathering stories", 3, "completed", "success"),
+        stepJson("Publishing", 4, "completed", "failure"),
+        stepJson("Recording voices", 5, "completed", "failure"),
+      ]).fetch,
+    });
+    expect(other.body).toMatchObject({ outcome: "failed" });
+  });
+
   it("reports any other end as failed, with the run's address", async () => {
     const result = await handleStatus("4242", {
       env,
@@ -263,7 +285,6 @@ describe("handleStatus for an episode run", () => {
       stages: 3,
       label: "Making the episode",
       outcome: "failed",
-      run_url: runUrlFor(config, 4242),
     });
   });
 });
@@ -407,7 +428,6 @@ describe("handleStatus", () => {
       stages: 7,
       label: "Writing the podcast",
       outcome: "failed",
-      run_url: runUrlFor(config, 4242),
     });
     expect(github.requests.some((request) => request.path.includes("contents"))).toBe(false);
   });
@@ -446,15 +466,16 @@ describe("handleStatus", () => {
     expect(result.body).toMatchObject({ outcome: "failed", step: null });
   });
 
-  it("builds the run link itself instead of trusting GitHub's field", async () => {
+  // The route is public: a failed run must not hand any visitor a link into the repository's
+  // Actions logs (2026-11-05), whether it is GitHub's field or one built here.
+  it("sends no link to a failed run's log", async () => {
     const github = setup({
       status: "completed",
       conclusion: "failure",
       html_url: "https://evil.example/phish",
     });
     const result = await handleStatus("4242", { env, fetch: github.fetch });
-    expect(JSON.stringify(result.body)).not.toContain("evil.example");
-    expect(result.body).toMatchObject({ run_url: `https://github.com/${REPO}/actions/runs/4242` });
+    expect(JSON.stringify(result.body)).not.toMatch(/evil\.example|github\.com|run_url/);
   });
 
   // A run the person stopped is neither made nor failed: it read "failed" with a log link, which
@@ -463,7 +484,6 @@ describe("handleStatus", () => {
     const podcast = setup({ status: "completed", conclusion: "cancelled" });
     const asked = await handleStatus("4242", { env, fetch: podcast.fetch });
     expect(asked.body).toMatchObject({ state: "completed", outcome: "cancelled" });
-    expect(asked.body).not.toHaveProperty("run_url");
 
     const episode = setup({
       path: ".github/workflows/podcast.yml",
@@ -472,7 +492,6 @@ describe("handleStatus", () => {
     });
     const answered = await handleStatus("4242", { env, fetch: episode.fetch });
     expect(answered.body).toMatchObject({ state: "completed", outcome: "cancelled" });
-    expect(answered.body).not.toHaveProperty("run_url");
   });
 
   it("gives a running podcast the usual length of each stage once the metrics have three runs", async () => {
@@ -531,17 +550,7 @@ describe("handleStatus", () => {
     );
     github.on("GET /contents/state/last-run.json", { text: record() });
     const result = await handleStatus("4242", { env, fetch: github.fetch });
-    const allowed = [
-      "run_id",
-      "state",
-      "step",
-      "stage",
-      "stages",
-      "label",
-      "outcome",
-      "digest_id",
-      "run_url",
-    ];
+    const allowed = ["run_id", "state", "step", "stage", "stages", "label", "outcome", "digest_id"];
     expect(Object.keys(result.body).every((key) => allowed.includes(key))).toBe(true);
     expect(JSON.stringify(result.body)).not.toMatch(/private|login|secret/);
   });

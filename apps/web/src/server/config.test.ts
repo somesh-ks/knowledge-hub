@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   blobSecretsOf,
-  missingSettings,
   narrateSecretsOf,
   readBlobCredentials,
   readNarrateConfig,
@@ -37,14 +36,6 @@ describe("readServerConfig", () => {
     for (const bad of ["dispatch", "a/b/c", "../etc/passwd", "owner/"]) {
       expect(readServerConfig({ ...GOOD, GITHUB_REPOSITORY: bad })).toBeNull();
     }
-  });
-
-  // Bug it prevents: on 2026-10-24 the token's name changed in Vercel before the code did (D179),
-  // and every action route answered "unavailable".
-  it("reads the token under its old name too, so a rename in either order keeps the site up", () => {
-    const { GITHUB_SINGULARITY_TOKEN: token, ...rest } = GOOD;
-    expect(readServerConfig({ ...rest, GITHUB_DISPATCH_TOKEN: token })?.token).toBe(token);
-    expect(missingSettings({ ...rest, GITHUB_DISPATCH_TOKEN: token })).toEqual([]);
   });
 
   it("trims stray whitespace from pasted values", () => {

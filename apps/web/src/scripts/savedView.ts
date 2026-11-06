@@ -10,6 +10,7 @@
 
 import type { SourceFormat } from "@singularity/core";
 import { topicEmoji } from "@singularity/core/topicEmoji";
+import { shownText, showText } from "../design-system/flag";
 import { outletsSummary, savedBlocked } from "../lib/blockedOutlets";
 import { chosenSummary } from "../lib/multiSelect";
 import { outboxOps } from "../lib/outbox";
@@ -469,7 +470,7 @@ export function fillShell(root: HTMLElement, ops = readSaved()): boolean {
     trigger.dataset.topicBase = JSON.stringify({ op: "topic.upsert", topic });
   }
   const pick = root.querySelector<HTMLElement>("[data-change-emoji]");
-  if (pick) pick.textContent = topicEmoji({ id, name: topic.name, emoji: topic.emoji });
+  if (pick) showText(pick, topicEmoji({ id, name: topic.name, emoji: topic.emoji }));
   root.dataset.taken = `${root.dataset.taken ?? ""} ${id}`;
   root.dataset.filled = "";
   const pane = root.querySelector<HTMLElement>("#topic-pane-sources");
@@ -542,9 +543,9 @@ function groupEmoji(root: HTMLElement, home: string, topic: Upsert): boolean {
   const kept: string | undefined = topic.emoji ?? base.topic?.emoji;
   for (const row of root.querySelectorAll<HTMLElement>(`a.row-action[data-home="${home}"]`)) {
     if (kept === undefined) break;
-    const mark = row.querySelector(".topic-emoji");
-    if (mark && mark.textContent !== kept) {
-      mark.textContent = kept;
+    const mark = row.querySelector<HTMLElement>(".topic-emoji");
+    if (mark && shownText(mark) !== kept) {
+      showText(mark, kept);
       shown = true;
     }
   }
@@ -570,8 +571,8 @@ function groupEmoji(root: HTMLElement, home: string, topic: Upsert): boolean {
       ...(kept ? { emoji: kept } : {}),
     },
   });
-  if (pick.textContent === emoji) return shown;
-  pick.textContent = emoji;
+  if (shownText(pick) === emoji) return shown;
+  showText(pick, emoji);
   return true;
 }
 
@@ -585,9 +586,11 @@ function renameTopic(root: HTMLElement, id: string, topic: Upsert): boolean {
   }
   // A saved emoji, or none (reset to the default), as the build would draw it.
   const emoji = topic.emoji ?? topicEmoji({ id, name: topic.name });
-  const mark = root.querySelector(`a.row-action[href="/settings/categories/${id}"] .topic-emoji`);
-  if (mark && mark.textContent !== emoji) {
-    mark.textContent = emoji;
+  const mark = root.querySelector<HTMLElement>(
+    `a.row-action[href="/settings/categories/${id}"] .topic-emoji`,
+  );
+  if (mark && shownText(mark) !== emoji) {
+    showText(mark, emoji);
     shown = true;
   }
   shown = groupEmoji(root, id, topic) || shown;
@@ -595,8 +598,8 @@ function renameTopic(root: HTMLElement, id: string, topic: Upsert): boolean {
   if (!byId(root, "[data-topic]", id) || !trigger) return shown;
   // A saved emoji shows on the list's row and on the topic's page, and its next edit keeps it.
   const pick = root.querySelector<HTMLElement>("[data-change-emoji]");
-  if (pick && pick.textContent !== emoji) {
-    pick.textContent = emoji;
+  if (pick && shownText(pick) !== emoji) {
+    showText(pick, emoji);
     const base = JSON.parse(trigger.dataset.topicBase ?? "{}");
     const { emoji: _, ...rest } = base.topic ?? {};
     trigger.dataset.topicBase = JSON.stringify({

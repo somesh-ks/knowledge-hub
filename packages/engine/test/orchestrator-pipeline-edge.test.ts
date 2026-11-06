@@ -561,7 +561,7 @@ describe("grounding and validation", () => {
 
   // The 2026-10-15 daily chose 14 stories for five minutes and aired 4: every story lost after
   // selection came off the owner's length.
-  it("fills the owner's length with a spare when grounding drops a story", LONG, async () => {
+  it("fills the owner's length when grounding drops stories", LONG, async () => {
     await seed(repo.root, { "config/schedule.json": SCHEDULE_3_MINUTES });
     const feeds = manyOutlets(45);
     const { writer, unsupported } = writerUnsupportedFirst(3);
@@ -571,8 +571,9 @@ describe("grounding and validation", () => {
     expect(result.report).toMatchObject({ outcome: "published", items: 12 });
     const digest = await readDigest(repo.root, DIGEST_PATH);
     expect(digest.items.some((item) => unsupported.includes(item.id))).toBe(false);
-    // The spares filled it, so no replacement was written.
-    expect(await validateReport()).toMatchObject({ refill_written: 0 });
+    // Spares, then the reserve's refill, made up the loss: what aired is the owner's length.
+    const report = await validateReport();
+    expect(report.aired_chars).toBeGreaterThanOrEqual(report.length_chars as number);
   });
 
   /**

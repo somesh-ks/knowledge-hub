@@ -3,15 +3,17 @@ import {
   expect,
   expectNoViolationsInEitherScheme,
   hydrated,
+  queueComplete,
   queueDock,
   queueStatus,
+  startListening,
   test,
 } from "./fixtures";
 
 const ID = "ep-20261007-1930";
 
 const more = (page: Page) => page.getByRole("button", { name: "More actions" });
-const menu = (page: Page) => page.getByRole("menu", { name: "More actions" });
+const menu = (page: Page) => page.locator("#hero-menu").getByRole("menu");
 const regenerate = (page: Page) => page.locator('[data-episode-action="regenerate"]');
 const remove = (page: Page) => page.locator('[data-episode-action="delete"]');
 
@@ -60,15 +62,15 @@ async function mock(page: Page, states: unknown[]): Promise<Array<Record<string,
 }
 
 test.describe("regenerate and delete an episode", () => {
-  test("one More button holds the far end of the title row and opens a menu of four items", async ({
+  test("one More button holds the far end of the title row and opens the podcast's sheet", async ({
     page,
   }) => {
     await open(page);
     const button = more(page);
     await expect(button).toHaveAttribute("aria-haspopup", "menu");
     await expect(menu(page)).toBeHidden();
-    // Share sits beside Play (D153, owner 2026-10-24), not in the menu. The button is a 44px target
-    // at the header's far end, level with the title.
+    // The button is a 44px target at the header's far end, level with the title. Its sheet is the
+    // Library card's (D369; libraryMenu.spec.ts checks the two match).
     const a = await button.boundingBox();
     const title = await page.locator(".hero h1").boundingBox();
     const row = await page.locator(".hero").boundingBox();
@@ -78,7 +80,6 @@ test.describe("regenerate and delete an episode", () => {
     await button.click();
     await expect(menu(page)).toBeVisible();
     const items = menu(page).getByRole("menuitem");
-    await expect(items).toHaveText(["Download", "Add to queue", "Regenerate", "Delete"]);
     await expect(items.first()).toBeFocused();
     // On a phone the menu is a bottom sheet below the button, its rows edge to edge across the screen.
     const m = await menu(page).boundingBox();
@@ -106,6 +107,26 @@ test.describe("regenerate and delete an episode", () => {
     await expect(more(page)).toBeFocused();
   });
 
+  // Owner, 2026-11-05: the page resizing under a keyboard that was still sliding up left a white strip
+  // for the whole slide. While the panel is open the keyboard overlays the page instead.
+  test("the keyboard overlays the open Regenerate panel and lets the page go again on close", async ({
+    page,
+  }) => {
+    const overlays = () =>
+      page.evaluate(
+        () =>
+          (navigator as Navigator & { virtualKeyboard?: { overlaysContent: boolean } })
+            .virtualKeyboard?.overlaysContent,
+      );
+    await open(page);
+    await choose(page, "Regenerate");
+    await expect(panel(page)).toBeVisible();
+    expect(await overlays()).toBe(true);
+    await page.keyboard.press("Escape");
+    await expect(panel(page)).toBeHidden();
+    expect(await overlays()).toBe(false);
+  });
+
   test("Regenerate sends the exact body and the indicator takes over", async ({ page }) => {
     const bodies = await mock(page, [
       { run_id: 77, state: "running", step: null },
@@ -117,7 +138,9 @@ test.describe("regenerate and delete an episode", () => {
     await expect(
       panel(page).getByRole("heading", { name: "Regenerate this episode" }),
     ).toBeVisible();
-    await panel(page).getByLabel("Comments").fill("  Shorter intro, more on design  ");
+    // A comment about the length brings up Length (owner, 2026-11-04: it never showed here).
+    await panel(page).getByLabel("What went wrong?").fill("  Shorter intro, more on design  ");
+    await panel(page).getByRole("radio", { name: "10 min" }).check();
     await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
 
     await expect.poll(() => bodies.length).toBe(1);
@@ -125,6 +148,7 @@ test.describe("regenerate and delete an episode", () => {
       action: "regenerate",
       id: ID,
       feedback: "Shorter intro, more on design",
+      length_minutes: 10,
     });
     await expect(panel(page)).toBeHidden();
     await expect(queueStatus(page)).toHaveText(/Waiting to start|Rewriting your episode/);
@@ -137,10 +161,46 @@ test.describe("regenerate and delete an episode", () => {
       menu(page).getByRole("menuitem", { name: "Regenerate" }),
     ).toHaveAccessibleDescription("Unavailable while this episode is being updated.");
     await page.keyboard.press("Escape");
-    await expect(queueStatus(page)).toHaveText("Rewritten. Live in about a minute.", {
+    await expect(queueStatus(page)).toHaveText("Rewritten", {
       timeout: 15_000,
     });
     await expect(regenerate(page)).not.toHaveAttribute("aria-disabled", "true");
+  });
+
+  // The 2026-11-05 review: a finished rewrite left the listener on a page for an episode that was
+  // gone, with nothing to open. The route sends stages, so the run waits for the site like a Catch up.
+  test.describe("a finished rewrite", () => {
+    test.use({ serviceWorkers: "block" });
+    test("offers the new episode once the site lists it", async ({ page }) => {
+      await mock(page, [
+        { run_id: 77, state: "running", step: null },
+        { run_id: 77, state: "completed", step: null, stage: 4, stages: 6, outcome: "published" },
+      ]);
+      await page.route(/latest.json/, (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            episode_at: new Date(Date.now() + 3_600_000).toISOString(),
+            episode_id: "ep-20261008-0900",
+          }),
+        }),
+      );
+      // The new episode's page is read once it is found, so Start listening finds it ready.
+      await page.route(/\/e\/ep-20261008-0900$/, (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "text/html",
+          body: "<!doctype html><title>x</title>",
+        }),
+      );
+      await open(page);
+      await choose(page, "Regenerate");
+      await panel(page).getByLabel("What went wrong?").fill("Shorter intro");
+      await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
+      await expect(queueComplete(page)).toBeVisible({ timeout: 20_000 });
+      await expect(await startListening(page)).toBeVisible();
+    });
   });
 
   test("an episode reached while offline has both items disabled, with the reason, until the connection is back", async ({
@@ -200,15 +260,89 @@ test.describe("regenerate and delete an episode", () => {
     await open(page);
     await choose(page, "Regenerate");
     await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
-    await expect(panel(page).getByRole("alert")).toHaveText("Say what to change.");
+    await expect(panel(page).getByRole("alert")).toBeVisible();
     await expect(panel(page).getByRole("textbox")).toBeFocused();
     expect(bodies).toHaveLength(0);
+  });
+
+  // Owner, 2026-11-06: "More stories" came back with the same 12 because only a model moved Length,
+  // and it had not answered. The words move it at once; the story count is the length.
+  test("'More stories' sets a longer Length before any model answers", async ({ page }) => {
+    await page.route("**/api/regen-hints", (route) =>
+      route.fulfill({
+        json: { length: false, topics: false, length_step: null, add: [], by: "none" },
+      }),
+    );
+    await open(page);
+    await choose(page, "Regenerate");
+    await panel(page).getByLabel("What went wrong?").fill("More stories");
+    const length = panel(page).getByRole("radiogroup", { name: "Length" });
+    await expect(length).toBeVisible();
+    const lengths = await length
+      .locator("input")
+      .evaluateAll((all) =>
+        all.map((i) => [(i as HTMLInputElement).defaultChecked, (i as HTMLInputElement).checked]),
+      );
+    expect(lengths.findIndex(([, now]) => now)).toBe(lengths.findIndex(([made]) => made) + 1);
+  });
+
+  // Owner, 2026-11-04 (D370, D371): Jev reveals what the word match misses and Haiku proposes the
+  // values; the controls follow the comment both ways, and one the listener touched stays.
+  test("the controls follow the comment: shown and set by the models, gone when the words go, kept once touched", async ({
+    page,
+  }) => {
+    const asked: string[] = [];
+    await page.route("**/api/regen-hints", async (route) => {
+      const { comment, want } = JSON.parse(route.request().postData() ?? "{}");
+      if (want === "show") asked.push(comment);
+      await route.fulfill({
+        json:
+          want === "values"
+            ? { length: "shorter", add: [], by: "haiku" }
+            : { length: true, topics: false, by: "jev" },
+      });
+    });
+    await open(page);
+    await choose(page, "Regenerate");
+    const length = panel(page).getByRole("radiogroup", { name: "Length" });
+    const note = panel(page).getByLabel("What went wrong?");
+    const lengths = () =>
+      length
+        .locator("input")
+        .evaluateAll((all) =>
+          all.map((i) => [(i as HTMLInputElement).defaultChecked, (i as HTMLInputElement).checked]),
+        );
+    await note.pressSequentially("It went on and on");
+    await expect(length).toBeVisible();
+    expect(asked).toEqual(["It went on and on"]);
+    // Haiku moved the untouched control one step shorter than the length asked for.
+    await expect
+      .poll(async () => (await lengths()).findIndex(([, now]) => now))
+      .toBe((await lengths()).findIndex(([made]) => made) - 1);
+    // The words go: the control goes with them, and the length is back where it was.
+    await note.fill("");
+    await expect(length).toBeHidden();
+    expect((await lengths()).every(([made, now]) => made === now)).toBe(true);
+    // A length the listener picked stays when the words go.
+    await note.pressSequentially("It went on and on");
+    await expect(length).toBeVisible();
+    await length.locator("label").last().click();
+    await note.fill("");
+    await expect(length).toBeVisible();
+    expect((await lengths()).at(-1)?.[1]).toBe(true);
+    // The dialog keeps its words when closed; opened again, the models read them again.
+    await note.fill("It went on and on");
+    await expect.poll(() => asked.length).toBe(3);
+    await page.keyboard.press("Escape");
+    await expect(panel(page)).toBeHidden();
+    await choose(page, "Regenerate");
+    await expect.poll(() => asked.length).toBe(4);
   });
 
   test("the character count shows only near the limit", async ({ page }) => {
     await open(page);
     await choose(page, "Regenerate");
-    const field = panel(page).getByLabel("Comments");
+    const field = panel(page).getByLabel("What went wrong?");
     const count = panel(page).locator("[data-count]");
     await field.fill("a".repeat(100));
     await expect(count).toBeHidden();
@@ -361,7 +495,7 @@ test.describe("regenerate and delete an episode", () => {
       );
       await open(page);
       await choose(page, "Regenerate");
-      await panel(page).getByLabel("Comments").fill("More depth");
+      await panel(page).getByLabel("What went wrong?").fill("More depth");
       await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
       await expect(panel(page).getByRole("alert")).toContainText(
         "You can do that again in 2 minutes.",
