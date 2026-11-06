@@ -184,7 +184,13 @@ self.addEventListener("message", (event) => {
   if (data.type === "SKIP_WAITING") self.skipWaiting();
   if (data.type === "DOWNLOADS_CHANGED") event.waitUntil(refreshDownloaded());
   // A download asks for the page's scripts and styles to be saved too, and hears when they are.
-  if (data.type === "WARM_PAGE" && typeof data.path === "string" && data.path.startsWith("/")) {
+  // Same origin only, as KEEP_READY: "//host/x" starts with "/" too and would fetch another site.
+  if (
+    data.type === "WARM_PAGE" &&
+    typeof data.path === "string" &&
+    data.path.startsWith("/") &&
+    !data.path.startsWith("//")
+  ) {
     const port = event.ports && event.ports[0];
     event.waitUntil(
       fetch(data.path)
