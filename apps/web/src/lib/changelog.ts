@@ -21,7 +21,7 @@ export const CHANGELOG: readonly Release[] = [
     version: "0.21.2",
     date: "2026-11-06",
     description:
-      "The details of a failed podcast show as the app's code box, with its own copy button, in place of a separate Copy details button.",
+      "The details of a failed podcast show as the app's code box, with its own copy button, in place of a separate Copy details button. Turning on Favorite glows pink from the heart, on a podcast's page, in its menu and in the player, and on a phone the menu stays open so you see it. The first action in every podcast menu now reads Favorite, or Unfavorite once it is one, and Stop sharing is gone from every podcast menu. On a phone the title sits a little further below the cover, and small lines of text are one size larger.",
   },
   {
     version: "0.21.1",

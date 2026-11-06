@@ -118,9 +118,12 @@ export function installHeroMenu(): void {
   });
 
   // A pick closes the menu first; what it opened (the share sheet, a panel) comes after. A disabled
-  // item never gets here: the shell's guard stops its click.
+  // item never gets here: the shell's guard stops its click. Favorite on a phone is the one pick that
+  // stays (owner, 2026-11-06): the tile turns its heart and glows where it is.
   document.addEventListener("click", (event) => {
     const item = (event.target as Element).closest?.<HTMLElement>(`${LIST} [role="menuitem"]`);
-    if (item) item.closest<HTMLElement>(LIST)?.hidePopover();
+    if (!item) return;
+    if (item.matches('[data-menu="favorite"]') && matchMedia("(width < 40rem)").matches) return;
+    item.closest<HTMLElement>(LIST)?.hidePopover();
   });
 }
