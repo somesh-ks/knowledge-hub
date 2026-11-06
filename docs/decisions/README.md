@@ -1,12 +1,12 @@
 # Decisions
 
-Each entry records what was decided, why, and what was rejected. Add a new entry at the end of the file that fits it, with the next number, and a row to the Index. Do not rewrite an old entry: if a decision changes, add a new entry that supersedes it and set the old status to "Superseded by Dn".
+Each entry records what was decided, why, and what was rejected. From D379 a new decision is its own file, `entries/D379.md`, whose `- Status:` line is its Index row (write no row below, so two pull requests that each add a decision never edit the same line). Earlier decisions stay in the area files with their rows. Do not rewrite an old entry: if a decision changes, add a new entry that supersedes it and set the old status to "Superseded by Dn".
 
 From D124 on, an entry that supersedes another adds `- Context changed:` (one sentence: what made the old decision wrong), and an entry whose reason can expire (a provider, a price, a budget, an unmeasured guess) adds `- Revisit if:` (the evidence that would reopen it). Current behaviour lives in [specs/](../specs/README.md).
 
 ## Files
 
-Entries live in one file per area, in number order. Find one with `grep -l "^## D123:" docs/decisions/*.md`. Find a row with `grep -rn "keyword" docs/decisions/`, which also searches the archive.
+Entries to D378 live in one file per area, in number order; later ones are in `entries/`, one file each. Find one with `grep -rl "^## D123:" docs/decisions/`. Find a row with `grep -rn "keyword" docs/decisions/`, which also searches the archive.
 
 - [foundations.md](foundations.md): Stack, repository, hosting, delivery, CI, pull requests, the docs and the tests.
 - [engine.md](engine.md): The pipeline that writes a briefing: sources, judge, writer, models, scheduling, costs, run guards.
@@ -43,7 +43,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D170 | Podcast structure | partly superseded by D344; built (D176, D182, D191); phase 3 closed by D241 |
 | D171 | Richer covers | amends D121 |
 | D172 | Store reads keep a copy | amends D149 |
-| D173 | Content is data in one repository; builds ship code only | active |
+| D173 | Content is data in one repository; builds ship code only | amended by D199, D256, D282, D375 |
 | D175 | Ruleset on `main` | amends D143 |
 | D176 | Structure phase 1 | amends D170 |
 | D177 | Phone Costs switch | amends D169 |
@@ -231,6 +231,8 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D371 | The Regenerate comment sets the controls both ways; Haiku proposes the values | amends D337, D370 |
 | D373 | An installed app back after five minutes loads a waiting build even with the player open | amends D202 |
 | D374 | No podcast menu offers Stop sharing | amends D153, D214, D369 |
+| D375 | Production deploys wait for five merges, three hours, or `[deploy]` | amends D173 |
 | D376 | A rewrite carries the stories its run gathered and reads only the quick sources again | active |
+| D378 | Stylesheets read type sizes and corners through their roles; one sheet corner, one pill | active |
 
 ---

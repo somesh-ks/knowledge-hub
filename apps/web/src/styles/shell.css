@@ -175,7 +175,7 @@ html[data-mini="visible"] main {
   min-height: var(--size-touch);
   border-radius: var(--button-radius);
   color: var(--color-on-surface);
-  font-size: var(--font-size-label-lg);
+  font-size: var(--app-bar-wordmark-size);
   font-weight: var(--font-weight-medium);
   letter-spacing: var(--font-tracking-label-lg);
   line-height: var(--font-leading-label);
@@ -388,7 +388,7 @@ html[data-mini="visible"] main {
   gap: var(--space-1);
   height: 100%;
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-caption);
+  font-size: var(--text-caption-size);
   font-weight: var(--font-weight-medium);
   letter-spacing: var(--font-tracking-caption);
   line-height: var(--font-leading-label);
@@ -418,7 +418,7 @@ html[data-mini="visible"] main {
   width: var(--nav-indicator-width);
   height: var(--nav-indicator-height);
   /* Half the height, so a change of shape starts from the pill. */
-  border-radius: min(var(--radius-round), calc(var(--nav-indicator-height) / 2));
+  border-radius: min(var(--shape-round), calc(var(--nav-indicator-height) / 2));
   /* The fill is a layer of its own under the icon, so it can grow without scaling the icon. */
   position: relative;
   isolation: isolate;
@@ -675,7 +675,7 @@ html[data-nav-arrived] .app-nav-item:not([aria-current="page"]) .app-nav-indicat
     /* One line: the date wrapped under "Last updated" (2026-10-21). */
     white-space: nowrap;
     color: var(--color-on-surface-muted);
-    font-size: var(--font-size-label);
+    font-size: var(--text-label-size);
     line-height: var(--font-leading-caption);
   }
 
@@ -707,7 +707,7 @@ html[data-nav-arrived] .app-nav-item:not([aria-current="page"]) .app-nav-indicat
     padding-inline: var(--space-4);
     border-radius: min(var(--button-radius), calc(var(--nav-side-item-height) / 2));
     color: var(--color-on-surface);
-    font-size: var(--font-size-label);
+    font-size: var(--text-label-size);
     letter-spacing: 0;
     outline-offset: var(--stroke-ring-gap);
     transition:
@@ -848,8 +848,8 @@ html[data-nav-arrived] .app-nav-item:not([aria-current="page"]) .app-nav-indicat
     grid-column: 3;
     grid-row: 1;
     justify-self: start;
-    inline-size: calc(var(--layout-aside) + var(--space-1) * 2);
-    margin-inline-start: calc(var(--space-12) - var(--space-1));
+    inline-size: calc(var(--layout-aside) + var(--space-2) * 2);
+    margin-inline-start: calc(var(--space-12) - var(--space-2));
   }
 }
 
@@ -864,7 +864,7 @@ html[data-nav-arrived] .app-nav-item:not([aria-current="page"]) .app-nav-indicat
   inline-size: 10rem;
   block-size: 10rem;
   overflow: visible;
-  color: var(--color-on-surface-subtle);
+  color: var(--color-on-surface-muted);
   opacity: 0.4;
   pointer-events: none;
   transform: scaleX(-1);

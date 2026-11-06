@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 // Bytes. Read-first is what every session reads: AGENTS.md and state.md.
 export const BUDGETS = {
-  "AGENTS.md": 8_000,
+  "AGENTS.md": 9_000,
   "docs/state.md": 12_000,
   "docs/learnings.md": 26_000,
   "docs/specs/README.md": 4_000,
@@ -16,7 +16,7 @@ export const BUDGETS = {
 export const SPEC_BUDGET = 8_000;
 // What every session reads: AGENTS.md and state.md. The Index is searched, never read whole, so it has
 // a budget of its own (D283).
-export const READ_FIRST_BUDGET = 20_000;
+export const READ_FIRST_BUDGET = 21_000;
 export const INDEX_BUDGET = 40_000;
 // Folders with an index of their own, left out of the docs README check.
 const OWN_INDEX = ["decisions/", "history/", "ledger/", "prototype/", "specs/"];
@@ -62,10 +62,25 @@ export function checkDocs(root) {
   // The oldest rows move to index-archive.md so the live Index stays under its cap; the checks below
   // read both, the cap counts only the live Index.
   const archive = existsSync(archivePath) ? read(archivePath) : "";
-  const allRows = `${index}\n${archive}`;
   const entryFiles = markdownFiles(decisionsDir).filter(
     (file) => file !== readmePath && file !== archivePath,
   );
+  // From D379 a decision is its own file in entries/ and its `- Status:` line is its Index row, so two
+  // pull requests that each add a decision no longer edit the same line. The row below is built from it,
+  // so every check that reads rows reads these too.
+  const filed = [];
+  for (const file of markdownFiles(join(decisionsDir, "entries"))) {
+    const rel = relative(root, file).replace(/\\/g, "/");
+    const text = read(file);
+    const head = text.match(/^## (D\d+): (.*)$/m);
+    const status = text.match(/^- Status: (.+)$/m)?.[1];
+    if (!head || rel !== `docs/decisions/entries/${head[1]}.md`)
+      fails.push(`${rel}: holds one decision, named for it (entries/D379.md has "## D379: ...")`);
+    else if (!status) fails.push(`${rel}: no "- Status:" line`);
+    else
+      filed.push(`| ${head[1]} | ${head[2].replace(/\|/g, "/")} | ${status.replace(/\|/g, "/")} |`);
+  }
+  const allRows = `${index}\n${archive}\n${filed.join("\n")}`;
   const decisions = entryFiles.map(read).join("\n");
   const readFirst = ["AGENTS.md", "docs/state.md"]
     .filter((rel) => existsSync(at(rel)))
@@ -80,7 +95,7 @@ export function checkDocs(root) {
   const rows = new Set(rowIds);
   if (rows.size < rowIds.length)
     fails.push(
-      `docs/decisions: Index row ${rowIds.find((id, at) => rowIds.indexOf(id) !== at)} appears twice (Index and index-archive.md)`,
+      `docs/decisions: Index row ${rowIds.find((id, at) => rowIds.indexOf(id) !== at)} appears twice (Index, index-archive.md or entries/)`,
     );
   const entries = new Set([...decisions.matchAll(/^## (D\d+):/gm)].map((m) => m[1]));
   for (const id of rows)

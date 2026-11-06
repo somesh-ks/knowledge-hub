@@ -296,7 +296,7 @@
     min-width: 0;
     margin: 0 auto;
     padding: 0 0 max(var(--space-2), var(--safe-bottom));
-    border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+    border-radius: var(--shape-sheet) var(--shape-sheet) 0 0;
     background: var(--sheet-bg);
     box-shadow: var(--sheet-shadow);
     --color-focus-gap: var(--sheet-bg);

@@ -87,7 +87,7 @@ function fill(list: HTMLElement, select: HTMLSelectElement, id: string): void {
     .join("");
 }
 
-/** Turns the sheet's list into a wheel at the select's value; Save sets the select to the row under the band. */
+/** Turns the sheet's list into a wheel at the select's value; Save sets the select to the row in the middle. */
 function openWheel(sheet: HTMLElement, select: HTMLSelectElement, byKey: boolean): void {
   const list = sheet.querySelector<HTMLElement>(`.${wheelListClass()}`);
   if (!list) return;
@@ -101,7 +101,7 @@ function openWheel(sheet: HTMLElement, select: HTMLSelectElement, byKey: boolean
   list.focus({ preventScroll: true, ...(byKey ? {} : { focusVisible: false }) } as FocusOptions);
 }
 
-/** Sets the select to the row under the wheel's band, as a pick does, and closes the sheet. */
+/** Sets the select to the row in the wheel's middle, as a pick does, and closes the sheet. */
 function saveWheel(sheet: HTMLElement, select: HTMLSelectElement): void {
   const places = Array.from(sheet.querySelectorAll<HTMLElement>("[data-index]"));
   const place = places[wheels.get(sheet)?.at() ?? -1];

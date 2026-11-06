@@ -1,12 +1,13 @@
 /**
- * The Wheel: a column of values that turns under a fixed band, as a phone's time picker does. It is
+ * The Wheel: a column of values on a drum, as a phone's time picker is. It is
  * the list inside a bottom sheet (selectSheet.ts draws the sheet around it) for a short run of values
  * a person is likelier to spin than to read: the hours of a day. The one place its classes are
  * written; the style guide lists WHEEL. The rules are in styles/wheel.css.
  *
- * It is a scroll-snap list. Each row's distance from the band, in rows, is set on it as `--wheel-d`
+ * It is a scroll-snap list. Each row's distance from the middle, in rows, is set on it as `--wheel-d`
  * as the list scrolls, and the stylesheet turns that distance into a tilt and a fade, so the rows
- * curve away from the band like a drum. When the row under the band changes, `wheeldetent` fires on
+ * curve away like a drum and the middle row, the value, is the one at full strength (no band marks
+ * it). When the row in the middle changes, `wheeldetent` fires on
  * the list, at most once a frame: the hook a haptic or a sound listens to (none is drawn here; the
  * cue pipeline maps it). The
  * wheel holds no value of its own: whoever mounts it reads `at()` when the person confirms.
@@ -15,9 +16,9 @@ import type { Guidance } from "./guidance";
 
 export const WHEEL: Guidance = {
   summary:
-    "A column of values that turns under a fixed band and snaps to a row: a person spins to a value and the band holds it.",
+    "A column of values on a drum that snaps to a row: a person spins to a value, and the middle row, at full strength while the rest fade, is the value.",
   useWhen: [
-    "A person sets a value from a short ordered run that they are likelier to spin to than to read: the hour a podcast is made.",
+    "A person sets a value from a short ordered run that they are likelier to spin to than to read: the hour a podcast is made, how many stories it tells.",
     "It opens in a bottom sheet from a Select (data-wheel) on a phone.",
   ],
   dontUseWhen: [
@@ -51,12 +52,12 @@ export interface WheelRow {
 
 /**
  * The hook a haptic listens to: fired on the list once per animation frame in which the row under
- * the band changed. A fast fling can cross several rows in a frame; the cue pipeline rate-limits.
+ * the middle changed. A fast fling can cross several rows in a frame; the cue pipeline rate-limits.
  */
 export const WHEEL_DETENT = "wheeldetent";
 
 export interface Wheel {
-  /** The row under the band, or the one the wheel is turning to. */
+  /** The row in the middle, or the one the wheel is turning to. */
   at(): number;
   /** Turns to a row. `smooth` glides; otherwise the wheel is there at once. */
   to(place: number, smooth?: boolean): void;
@@ -103,7 +104,7 @@ export function mountWheel(list: HTMLElement, first: number): Wheel {
 
   let frame = 0;
   let passing = -1;
-  // The first paint places the wheel; it is not a row passing the band, so it fires no detent.
+  // The first paint places the wheel; it is not a row passing the middle, so it fires no detent.
   let placed = false;
 
   const paint = (): void => {

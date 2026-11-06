@@ -34,7 +34,7 @@
   --ghost-hover: var(--color-surface-container-hover);
   --ghost-pressed: var(--color-surface-container-pressed);
   border-block-end: var(--stroke-hairline) solid var(--color-border-hairline);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-label);
 }
 
@@ -107,7 +107,7 @@ html[data-player="open"] .queue-dock {
   overflow: hidden;
   /* Body size and the page's ink, as the rows' names (owner, 2026-11-06: it read small and faded). While a
      podcast is made the light crossing it is the muted ink, as in the side column. */
-  font-size: var(--font-size-body);
+  font-size: var(--text-body-size);
   --queue-word-rest: var(--color-on-surface);
   --queue-word-band: var(--color-on-surface-muted);
   text-overflow: ellipsis;
@@ -282,7 +282,7 @@ html[data-player="open"] .queue-dock {
   margin: 0;
   min-width: 0;
   overflow: hidden;
-  font-size: var(--font-size-body);
+  font-size: var(--text-body-size);
   line-height: var(--font-leading-label);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -295,7 +295,7 @@ html[data-player="open"] .queue-dock {
   min-width: 0;
   overflow: hidden;
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-body);
+  font-size: var(--text-body-size);
   line-height: var(--font-leading-label);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -332,7 +332,7 @@ html[data-player="open"] .queue-dock {
 
 .queue-time {
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-caption);
+  font-size: var(--text-caption-size);
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
   white-space: nowrap;
@@ -460,10 +460,23 @@ html[data-player="open"] .queue-dock {
 }
 
 /* Start listening: the ring has become a play button, filled, in the ring's own place. A link to the
-   podcast, so it needs no script to work. */
-.queue-play {
-  background: var(--color-accent-action);
-  color: var(--color-on-accent-action);
+   podcast, so it needs no script to work. It is a Play, so it wears the one primary fill with its own
+   hover and press (owner, 2026-11-04: every primary button one colour); the icon button's ghost states
+   would turn it grey under a pointer. */
+.icon-btn.queue-play {
+  background: var(--cta-bg);
+  color: var(--cta-fg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .icon-btn.queue-play:hover {
+    background: var(--cta-bg-hover);
+    color: var(--cta-fg);
+  }
+}
+
+.icon-btn.queue-play:active {
+  background: var(--cta-bg-pressed);
 }
 
 .queue-end-icon {
@@ -597,7 +610,7 @@ html:has(.queue-pop:popover-open) .app-nav-queue-title.queue-word[data-live] {
 
 .queue-pop-title {
   margin: 0;
-  font-size: var(--font-size-label-lg);
+  font-size: var(--queue-title-size);
   font-weight: var(--text-heading-weight);
   line-height: var(--font-leading-title);
 }
@@ -628,7 +641,7 @@ html:has(.queue-pop:popover-open) .app-nav-queue-title.queue-word[data-live] {
   border-radius: var(--shape-sm);
   background: var(--color-surface-container);
   color: var(--color-on-surface);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-label);
   overflow-wrap: anywhere;
   white-space: pre-wrap;
