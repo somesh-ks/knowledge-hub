@@ -53,16 +53,24 @@ export async function keepPools(
   kept: readonly { digestId: string; storiesPath: string }[],
   now: Date,
 ): Promise<void> {
+  // One pass without its stories (an adopted agent run's fetch writes none) keeps the others and
+  // the clean-up; its digest's rewrite then fetches everything. The first failure is reported after.
+  let failure: unknown = null;
   for (const { digestId, storiesPath } of kept) {
-    const items = z.array(Item).parse(await readJsonIfExists(storiesPath, "slow stories"));
-    const file: KeptPool = { version: 1, saved_at: now.toISOString(), items };
-    await writeJson(keptPoolPath(root, digestId), file);
+    try {
+      const items = z.array(Item).parse(await readJsonIfExists(storiesPath, "slow stories"));
+      const file: KeptPool = { version: 1, saved_at: now.toISOString(), items };
+      await writeJson(keptPoolPath(root, digestId), file);
+    } catch (error) {
+      failure ??= error;
+    }
   }
   const names = await readdir(join(root, POOLS_DIR)).catch(() => [] as string[]);
   for (const name of names) {
     const path = join(root, POOLS_DIR, name);
     if (isStale(await savedAt(path), now)) await rm(path, { force: true });
   }
+  if (failure !== null) throw failure;
 }
 
 /** When a kept pool was saved, read without its stories; null when it cannot be read. */

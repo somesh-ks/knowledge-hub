@@ -41,6 +41,9 @@ describe("regenFollow (D371)", () => {
     // A topic or an aside is not a length.
     expect(wordLength("more stories about AI")).toBeNull();
     expect(wordLength("the AI story is no longer news")).toBeNull();
+    expect(wordLength("no more stories, please")).toBeNull();
+    expect(wordLength("Shorter intro")).toBeNull();
+    expect(wordLength("make it shorter")).toBe("shorter");
     expect(desiredLength(5, NO_ANSWER.values, "More stories")).toBe(10);
     // Haiku's answer beats the words once it comes.
     expect(desiredLength(5, { length: "shorter", add: [] }, "More stories")).toBe(3);

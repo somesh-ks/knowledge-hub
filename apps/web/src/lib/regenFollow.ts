@@ -48,11 +48,17 @@ export function stepLength(from: number, direction: "shorter" | "longer"): numbe
   );
 }
 
-// "More stories about AI" asks for a topic, and "no longer news" for nothing: neither moves the length.
-const WANTS_LONGER =
-  /\b(?:(?:more|extra|additional)\s+(?:stories|story|items|news|coverage)(?!\s+(?:about|on|from)\b)|not enough (?:stories|news|coverage)|(?<!\b(?:no|any)\s)longer|too short|more (?:time|depth|detail))\b/i;
-const WANTS_SHORTER =
-  /\b(?:(?:fewer|less)\s+(?:stories|story|items|news)(?!\s+(?:about|on|from)\b)|shorter|briefer|too long|dragged)\b/i;
+// "More stories about AI" asks for a topic, "no more stories" and "no longer news" for nothing, and
+// "shorter intro" for one part: none of them moves the length.
+const PART = String.raw`(?!\s+(?:intro|introduction|opening|outro|ending|sign-off|summaries|sentences|turns|bridges)\b)`;
+const WANTS_LONGER = new RegExp(
+  String.raw`\b(?:(?<!\bno\s)(?:more|extra|additional)\s+(?:stories|story|items|news|coverage)(?!\s+(?:about|on|from)\b)|not enough (?:stories|news|coverage)|(?<!\b(?:no|any)\s)longer${PART}|too short|more (?:time|depth|detail))\b`,
+  "i",
+);
+const WANTS_SHORTER = new RegExp(
+  String.raw`\b(?:(?:fewer|less)\s+(?:stories|story|items|news)(?!\s+(?:about|on|from)\b)|shorter${PART}|briefer${PART}|too long|dragged)\b`,
+  "i",
+);
 
 /**
  * What the words alone ask of the length: the story count is the length (a 5 minute podcast airs
