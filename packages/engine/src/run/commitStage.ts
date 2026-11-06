@@ -375,7 +375,12 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
       passData.flatMap((data, index) => {
         const report = reports[index];
         return report?.outcome === "published"
-          ? [{ digestId: report.id, poolPath: passFile(root, data.pass.id, "pool.json") }]
+          ? [
+              {
+                digestId: report.id,
+                storiesPath: passFile(root, data.pass.id, "slow-stories.json"),
+              },
+            ]
           : [];
       }),
       now,

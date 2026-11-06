@@ -147,10 +147,13 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
   const mode = input.kind === "weekly" ? "weekly" : "regular";
   const guard = setup.firecrawlGuard;
   const skip = new Map<string, string>();
-  // A rewrite that carries its pool reads none of them, nor YouTube or Exa (D376).
+  // A rewrite that carries its pool reads none of them, nor YouTube or Exa (D376). General feeds are
+  // read as usual: their stories are kept apart from the pool (D66), so none were carried.
   if (input.carried) {
     for (const source of runnable) {
-      if (CARRIED_TYPES.has(source.type)) skip.set(source.id, CARRIED_NOTE);
+      if (CARRIED_TYPES.has(source.type) && !generalSourceIds.has(source.id)) {
+        skip.set(source.id, CARRIED_NOTE);
+      }
     }
   } else if (guard) {
     const listed = selectSources(runnable, mode).filter(
@@ -179,7 +182,9 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
       ...(setup.sleep ? { sleep: setup.sleep } : {}),
     },
   );
-  const fetchedRaw = input.carried ? [...fetched, ...input.carried] : fetched;
+  // Only the stories of sources skipped above come back: one switched off or removed since stays out.
+  const carried = (input.carried ?? []).filter((item) => skip.get(item.source_id) === CARRIED_NOTE);
+  const fetchedRaw = [...fetched, ...carried];
   const { kept: fetchedItems, dropped: blocked } = dropBlocked(
     fetchedRaw,
     blockedDomains,

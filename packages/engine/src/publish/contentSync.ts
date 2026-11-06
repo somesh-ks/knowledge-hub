@@ -131,7 +131,9 @@ export async function syncContent(input: SyncContentInput): Promise<ContentSyncR
   // the store holds is one that never pulled, and mirroring it would empty that folder.
   const holds = (paths: Iterable<string>, dir: string): boolean =>
     [...paths].some((path) => path.startsWith(`${dir}/`));
+  // Pools/ is the exception: its files are disposable (D376) and a site-only pull leaves it out.
   for (const dir of CONTENT_DIRS) {
+    if (dir === "Pools") continue;
     if (holds(Object.keys(stored), dir) && !holds(files.keys(), dir)) {
       throw new Error(
         `this checkout holds nothing under ${dir}/ but the store does; a sync would delete it all. Use content put and remove, or pull first`,

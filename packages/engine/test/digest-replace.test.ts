@@ -1,10 +1,12 @@
 import { rm } from "node:fs/promises";
 import type { LastRunFile, Source } from "@singularity/core";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { CARRY_HOURS } from "../src/run/carriedPool.js";
 import { git } from "./git-testRepo.js";
 import {
   buildTemplate,
   exists,
+  goodFeeds,
   instantiate,
   json,
   makeWorld,
@@ -121,30 +123,36 @@ describe("replace a briefing", () => {
     await seed(repo.root, {
       "config/sources.json": json({ ...sources, sources: [...sources.sources, tube] }),
     });
+    const videos = Object.values(goodFeeds(3, "tube"))
+      .flat()
+      .map((item) => ({ ...item, source_id: "tube", source_type: "youtube" as const }));
     const world = makeWorld(repo.root, { now: WED });
     let tubeReads = 0;
     world.deps.fetch.fetchers = {
       ...world.deps.fetch.fetchers,
       youtube: async () => {
         tubeReads += 1;
-        return [];
+        return videos;
       },
     };
     await runStaged(world);
-    expect(tubeReads).toBe(1);
-    // Nothing new since: every story the rewrite can tell is one the run already gathered.
-    world.feeds = {};
     world.setNow(new Date(WED.getTime() + 2 * 3_600_000));
     const results = await runStaged(world, { replace: ID });
     expect(results.at(-1)?.report).toMatchObject({ outcome: "published" });
+    // YouTube was read once, by the run; the rewrite's pool still holds its videos.
     expect(tubeReads).toBe(1);
+    const pool = await readJson<{ items: { source_id: string }[] }>(
+      repo.root,
+      `.cache/run/${ID}/pool.json`,
+    );
+    expect(pool.items.some((item) => item.source_id === "tube")).toBe(true);
   });
 
   it("keeps the old digest when the replacement finds nothing", LONG, async () => {
     const world = makeWorld(repo.root, { now: WED });
     await runStaged(world);
     // A rewrite past the carried pool's two days reads everything again, and here finds nothing.
-    world.setNow(new Date(WED.getTime() + 49 * 3_600_000));
+    world.setNow(new Date(WED.getTime() + (CARRY_HOURS + 1) * 3_600_000));
     world.feeds = {};
     const results = await runStaged(world, { replace: ID });
     expect(results.at(-1)?.report).toMatchObject({ outcome: "nothing" });
