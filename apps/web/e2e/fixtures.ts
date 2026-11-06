@@ -153,6 +153,7 @@ export const SITE_PAGES = [
   // Left out until 2026-10-23, so a change to the card tokens reached the Costs card unchecked.
   "/admin/costs",
   "/admin/health",
+  "/admin/coverage",
 ];
 
 /** A frozen /api/stages answer: a daily run's stages out of pipeline order and a Catch up's. */

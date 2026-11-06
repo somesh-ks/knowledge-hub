@@ -1,0 +1,238 @@
+---
+import type { PartKind, System } from "../../../../scripts/system/types";
+import system from "../../../../tokens/system.json";
+import AdminHead from "../components/AdminHead.astro";
+import Shell from "../layouts/Shell.astro";
+import { countCoverage } from "../lib/coverage";
+
+const title = "Coverage";
+const typed = system as unknown as System;
+const { parts, oneOffs, partUses, oneOffUses } = countCoverage(typed);
+
+// How much of what the app draws comes from the design system: of every file that draws a control,
+// counted once per control, the share drawn with a shared part. Counted at build (lib/coverage.ts),
+// so the page has no script and no request, and a deploy shows the numbers of its own commit.
+const allUses = partUses + oneOffUses;
+const share = allUses === 0 ? 0 : partUses / allUses;
+const percent = Math.round(share * 100);
+
+const KINDS: Record<PartKind, string> = {
+  action: "Actions",
+  selection: "Selection",
+  navigation: "Navigation",
+  feedback: "Feedback",
+  container: "Containers",
+  field: "Fields",
+  layout: "Layout",
+  display: "Display",
+};
+// One bar split by kind, darkest for the most drawn, as the Overview splits spend by service.
+const kinds = (Object.keys(KINDS) as PartKind[])
+  .map((kind) => {
+    const held = parts.filter((part) => part.kind === kind);
+    return {
+      label: KINDS[kind],
+      parts: held.length,
+      uses: held.reduce((sum, part) => sum + part.files, 0),
+    };
+  })
+  .filter((kind) => kind.parts > 0)
+  .sort((a, b) => b.uses - a.uses);
+const tint = (rank: number, of: number): string =>
+  `${Math.round(100 - (rank / Math.max(1, of - 1)) * 70)}%`;
+
+const byUse = [...parts].sort((a, b) => b.files - a.files || a.name.localeCompare(b.name));
+const most = Math.max(1, ...byUse.map((part) => part.files));
+const TOP = 8;
+const oneOffsByUse = [...oneOffs].sort((a, b) => b.files - a.files || a.name.localeCompare(b.name));
+const mostOneOff = Math.max(1, ...oneOffs.map((control) => control.files));
+
+const TIERS = [
+  { id: "primitive", label: "Primitive" },
+  { id: "semantic", label: "Semantic" },
+  { id: "component", label: "Component" },
+] as const;
+const tiers = TIERS.map((tier) => ({
+  ...tier,
+  count: typed.tokens.filter((token) => token.tier === tier.id).length,
+}));
+const tokenTotal = typed.tokens.length;
+// A semantic token no part reads is a role the shared parts never take.
+const read = new Set(typed.parts.flatMap((part) => part.tokens));
+const semantic = typed.tokens.filter((token) => token.tier === "semantic");
+const semanticRead = semantic.filter((token) => read.has(token.name)).length;
+
+// The ring: the shared share as one arc and the one-off share as the other, a gap between.
+const R = 84;
+const C = 2 * Math.PI * R;
+const GAP = oneOffUses > 0 && partUses > 0 ? 6 : 0;
+const sharedArc = Math.max(0, share * C - GAP);
+const oneOffArc = Math.max(0, (1 - share) * C - GAP);
+---
+
+<Shell title={title} current="/coverage">
+  <div class="settings-view" data-settings>
+    <AdminHead title={title} />
+
+    {/* The answer first: the share of what is drawn that the design system draws. */}
+    <section class="card-group hl-card" aria-label="Summary">
+      <div class="cov-hero">
+        <div class="cov-ring" role="img" aria-label={`${percent}% of control uses are shared parts`}>
+          <svg viewBox="0 0 200 200" aria-hidden="true">
+            <circle class="cov-arc" cx="100" cy="100" r={R} stroke-dasharray={`${sharedArc} ${C}`}></circle>
+            <circle
+              class="cov-arc cov-arc-other"
+              cx="100"
+              cy="100"
+              r={R}
+              stroke-dasharray={`${oneOffArc} ${C}`}
+              stroke-dashoffset={-(sharedArc + GAP)}
+            ></circle>
+          </svg>
+          <div class="cov-ring-centre">
+            <p class="ov-figure">{percent}%</p>
+            <p class="ov-sub">shared</p>
+          </div>
+        </div>
+        <ul class="ov-legend cov-hero-legend" role="list">
+          <li class="ov-legend-item">
+            <span class="ov-swatch cov-swatch-shared"></span>
+            <span class="ov-legend-name">Shared parts</span>
+            <span class="ov-legend-value">{parts.length}</span>
+            <span class="ov-legend-share">{partUses} uses</span>
+          </li>
+          <li class="ov-legend-item">
+            <span class="ov-swatch cov-swatch-other"></span>
+            <span class="ov-legend-name">One-off controls</span>
+            <span class="ov-legend-value">{oneOffs.length}</span>
+            <span class="ov-legend-share">{oneOffUses} uses</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-head text-heading">Parts</h2>
+      <div class="card-group hl-card">
+        <div class="ov-block">
+          <div
+            class="ov-share"
+            role="img"
+            aria-label={`Uses by kind: ${kinds.map((kind) => `${kind.label} ${kind.uses}`).join(", ")}`}
+          >
+            {
+              kinds.map((kind, rank) => (
+                <span
+                  class="ov-share-seg"
+                  style={`flex-grow: ${kind.uses}; --tint: ${tint(rank, kinds.length)}`}
+                  title={`${kind.label}: ${kind.uses} uses`}
+                />
+              ))
+            }
+          </div>
+          <ul class="ov-legend" role="list">
+            {
+              kinds.map((kind, rank) => (
+                <li class="ov-legend-item">
+                  <span class="ov-swatch" style={`--tint: ${tint(rank, kinds.length)}`} />
+                  <span class="ov-legend-name">{kind.label}</span>
+                  <span class="ov-legend-value">{kind.parts}</span>
+                  <span class="ov-legend-share">{kind.uses} uses</span>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+        {/* Each part a bar, as long as the files that draw it against the most drawn. */}
+        <div class="ov-block">
+          <h3 class="hl-title">Most drawn</h3>
+          <ul class="st-list cov-rows" role="list">
+            {
+              byUse.slice(0, TOP).map((part) => (
+                <li class="st-row" title={part.summary}>
+                  <span class="st-name">{part.name}</span>
+                  <span class="st-bar" role="img" aria-label={`${part.files} files`}>
+                    <span class="st-median" style={`--median: ${part.files / most}`} />
+                  </span>
+                  <span class="st-figure">{part.files}</span>
+                </li>
+              ))
+            }
+          </ul>
+          <details class="cov-more">
+            <summary class="cov-more-head">All {parts.length} parts</summary>
+            <ul class="st-list cov-rows" role="list">
+              {
+                byUse.slice(TOP).map((part) => (
+                  <li class="st-row" title={part.summary}>
+                    <span class="st-name">{part.name}</span>
+                    <span class="st-bar" role="img" aria-label={`${part.files} files`}>
+                      <span class="st-median" style={`--median: ${part.files / most}`} />
+                    </span>
+                    <span class="st-figure">{part.files}</span>
+                  </li>
+                ))
+              }
+            </ul>
+          </details>
+        </div>
+      </div>
+      <p class="settings-note">A use is a file that draws the part.</p>
+    </section>
+
+    <section>
+      <h2 class="section-head text-heading">One-off controls</h2>
+      <div class="card-group hl-card">
+        <ul class="st-list cov-rows" role="list">
+          {
+            oneOffsByUse.map((control) => (
+              <li class="st-row" title={control.reason}>
+                <span class="st-name cov-class">.{control.name}</span>
+                <span class="st-bar" role="img" aria-label={`${control.files} files`}>
+                  <span class="st-median" style={`--median: ${control.files / mostOneOff}`} />
+                </span>
+                <span class="st-figure">{control.files}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+      <p class="settings-note">Each is allowed with a reason; hover one to read it.</p>
+    </section>
+
+    <section>
+      <h2 class="section-head text-heading">Tokens</h2>
+      <div class="card-group hl-card">
+        <div class="ov-block">
+          <div class="ov-answer">
+            <p class="ov-figure">{tokenTotal}</p>
+            <p class="ov-sub">{semanticRead} of {semantic.length} semantic roles read by a part</p>
+          </div>
+          <div class="ov-share" role="img" aria-label={tiers.map((tier) => `${tier.label} ${tier.count}`).join(", ")}>
+            {
+              tiers.map((tier, rank) => (
+                <span
+                  class="ov-share-seg"
+                  style={`flex-grow: ${tier.count}; --tint: ${tint(rank, tiers.length)}`}
+                  title={`${tier.label}: ${tier.count}`}
+                />
+              ))
+            }
+          </div>
+          <ul class="ov-legend" role="list">
+            {
+              tiers.map((tier, rank) => (
+                <li class="ov-legend-item">
+                  <span class="ov-swatch" style={`--tint: ${tint(rank, tiers.length)}`} />
+                  <span class="ov-legend-name">{tier.label}</span>
+                  <span class="ov-legend-value">{tier.count}</span>
+                  <span class="ov-legend-share">{Math.round((tier.count / tokenTotal) * 100)}%</span>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </div>
+    </section>
+  </div>
+</Shell>
