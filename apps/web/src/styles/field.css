@@ -53,7 +53,7 @@ textarea.field-input {
    size, which is what stops iOS zooming in, and only the placeholder shrinks. */
 .field-input::placeholder {
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
+  font-size: var(--text-meta-size);
   opacity: 1;
 }
 

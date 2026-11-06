@@ -32,7 +32,7 @@
 .settings-crumb {
   margin-block-end: var(--space-2);
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-caption);
 }
 
@@ -75,7 +75,7 @@
 :is(.settings-view, .manage) .section-head {
   padding-block: var(--space-8) var(--space-4);
   font-family: var(--text-heading-family);
-  font-size: var(--font-size-title);
+  font-size: var(--text-title-size);
   font-weight: var(--text-heading-weight);
   letter-spacing: var(--font-tracking-title);
   line-height: var(--font-leading-title);
@@ -141,7 +141,7 @@
 .settings-about,
 .settings-note {
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-caption);
 }
 
@@ -215,7 +215,7 @@
 :is(.settings-view, .manage) .row-action .icon-glyph {
   /* The glyph sits inside its box; this pulls its ink out to the switch's and the segments' edge. */
   margin-inline-end: calc(var(--size-icon) * var(--ink-end, 0) * -1);
-  color: var(--color-on-surface-subtle);
+  color: var(--color-on-surface-muted);
 }
 
 /* On a phone a segmented choice goes under its label and takes the row's width, so four speeds never
@@ -497,7 +497,7 @@
   margin: var(--space-6) 0 0;
   text-align: center;
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-caption);
 }
 
@@ -536,7 +536,7 @@
 
 .changelog-version {
   font-family: var(--text-heading-family);
-  font-size: var(--font-size-title);
+  font-size: var(--text-title-size);
   font-weight: var(--text-heading-weight);
   line-height: var(--font-leading-title);
 }

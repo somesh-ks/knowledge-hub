@@ -1,12 +1,12 @@
 # Decisions
 
-Each entry records what was decided, why, and what was rejected. Add a new entry at the end of the file that fits it, with the next number, and a row to the Index. Do not rewrite an old entry: if a decision changes, add a new entry that supersedes it and set the old status to "Superseded by Dn".
+Each entry records what was decided, why, and what was rejected. From D379 a new decision is its own file, `entries/D379.md`, whose `- Status:` line is its Index row (write no row below, so two pull requests that each add a decision never edit the same line). Earlier decisions stay in the area files with their rows. Do not rewrite an old entry: if a decision changes, add a new entry that supersedes it and set the old status to "Superseded by Dn".
 
 From D124 on, an entry that supersedes another adds `- Context changed:` (one sentence: what made the old decision wrong), and an entry whose reason can expire (a provider, a price, a budget, an unmeasured guess) adds `- Revisit if:` (the evidence that would reopen it). Current behaviour lives in [specs/](../specs/README.md).
 
 ## Files
 
-Entries live in one file per area, in number order. Find one with `grep -l "^## D123:" docs/decisions/*.md`. Find a row with `grep -rn "keyword" docs/decisions/`, which also searches the archive.
+Entries to D378 live in one file per area, in number order; later ones are in `entries/`, one file each. Find one with `grep -rl "^## D123:" docs/decisions/`. Find a row with `grep -rn "keyword" docs/decisions/`, which also searches the archive.
 
 - [foundations.md](foundations.md): Stack, repository, hosting, delivery, CI, pull requests, the docs and the tests.
 - [engine.md](engine.md): The pipeline that writes a briefing: sources, judge, writer, models, scheduling, costs, run guards.
@@ -26,7 +26,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | :--- | :--- | :--- |
 | D151 | CI fails on a high advisory | active |
 | D152 | Full-screen phone sheets show Close | amends D144 |
-| D153 | Engagement and sharing | active |
+| D153 | Engagement and sharing | amended by D374 |
 | D154 | Simple Analytics and a Privacy page | active |
 | D155 | Software Engineering topic | amends D69 |
 | D156 | Field Vitals in Neon | amends D147 |
@@ -43,7 +43,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D170 | Podcast structure | partly superseded by D344; built (D176, D182, D191); phase 3 closed by D241 |
 | D171 | Richer covers | amends D121 |
 | D172 | Store reads keep a copy | amends D149 |
-| D173 | Content is data in one repository; builds ship code only | active |
+| D173 | Content is data in one repository; builds ship code only | amended by D199, D256, D282, D375 |
 | D175 | Ruleset on `main` | amends D143 |
 | D176 | Structure phase 1 | amends D170 |
 | D177 | Phone Costs switch | amends D169 |
@@ -83,7 +83,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D211 | Copy says podcast, not briefing; code names keep briefing | active |
 | D212 | Three regenerations per podcast, no daily limit | active |
 | D213 | Two Catch ups a day that came out; failures do not count | active |
-| D214 | A page's More menu offers Download and Add to queue like its Library row | amended by D369 |
+| D214 | A page's More menu offers Download and Add to queue like its Library row | amended by D369, D374 |
 | D215 | Daily and Weekly have no Look back and no Format | supersedes D184 |
 | D216 | Ticked general topics get a length-sized section | amends D170, D191 |
 | D217 | `run.yml` names every run for what it is | amends D61, D213 |
@@ -226,11 +226,14 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D366 | Listen now streams the script in parts, each written once and final once out; one append-only continuation; the live timer shows the expected length | amends D105 |
 | D367 | Every flag is the design system's Flag (Flagpack art per country), never an emoji | active |
 | D368 | The app's write routes need no sign-in; the command center stays signed in; per-minute caps are the backstop | supersedes D307 |
-| D369 | One podcast sheet everywhere, in one order; tiles only on a long sheet; Downloads swipes away with a confirm | amends D214, D281, D365 |
+| D369 | One podcast sheet everywhere, in one order; tiles only on a long sheet; Downloads swipes away with a confirm | amends D214, D281, D365; amended by D374 |
 | D370 | Jev reads the Regenerate comment on a pause; the episode's Regenerate offers Length | amends D337; amended by D371 |
 | D371 | The Regenerate comment sets the controls both ways; Haiku proposes the values | amends D337, D370; amended by D377 |
 | D373 | An installed app back after five minutes loads a waiting build even with the player open | amends D202 |
+| D374 | No podcast menu offers Stop sharing | amends D153, D214, D369 |
+| D375 | Production deploys wait for five merges, three hours, or `[deploy]` | amends D173 |
 | D376 | A rewrite carries the stories its run gathered and reads only the quick sources again | active |
 | D377 | Stories is its own control beside Length; a pick above Auto shortens each telling | amends D371 |
+| D378 | Stylesheets read type sizes and corners through their roles; one sheet corner, one pill | active |
 
 ---

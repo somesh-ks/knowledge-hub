@@ -117,7 +117,6 @@
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
   --radius-xl: 1.5rem;
-  --radius-sheet: 1.75rem;
   --radius-2xl: 2rem;
   --radius-round: 9999px;
   --stroke-hairline: 1px;
@@ -126,6 +125,7 @@
   --stroke-ring-gap: 2px;
   --font-ui: "Google Sans Flex Variable", "Google Sans Flex Fallback", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-read: "Google Sans Flex Variable", "Google Sans Flex Fallback", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-code: "Google Sans Code", ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --font-blackletter: "Pirata One", "Google Sans Flex Variable", "Google Sans Flex Fallback", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-weight-regular: 400;
   --font-weight-medium: 500;
@@ -237,7 +237,6 @@
   --color-on-surface: var(--color-grey-900);
   --color-on-surface-reading: var(--color-grey-700);
   --color-on-surface-muted: var(--color-grey-600);
-  --color-on-surface-subtle: var(--color-grey-600);
   --color-on-surface-disabled: var(--color-grey-400);
   --color-on-surface-inverse: var(--color-grey-100);
   --color-border-hairline: var(--color-grey-100);
@@ -292,6 +291,7 @@
   --color-danger: var(--color-red-600);
   --color-danger-subtle: var(--color-red-50);
   --color-favorite: var(--color-red-500);
+  --color-favorite-glow: var(--color-red-300);
   --color-info: var(--color-blue-600);
   --color-info-subtle: var(--color-blue-50);
   --shadow-cover: var(--shadow-cover-light);
@@ -314,8 +314,9 @@
   --shape-md: var(--radius-md);
   --shape-lg: var(--radius-lg);
   --shape-xl: var(--radius-xl);
-  --shape-sheet: var(--radius-sheet);
+  --shape-sheet: var(--shape-2xl);
   --shape-2xl: var(--radius-2xl);
+  --shape-round: var(--radius-round);
   --size-touch: 2.75rem;
   --size-touch-comfortable: 3rem;
   --size-option: 3rem;
@@ -361,7 +362,7 @@
   --text-reading-tracking: var(--font-tracking-body);
   --text-reading-leading: var(--font-leading-reading);
   --text-meta-family: var(--font-ui);
-  --text-meta-size: var(--font-size-meta);
+  --text-meta-size: var(--font-size-body);
   --text-meta-weight: var(--font-weight-regular);
   --text-meta-tracking: var(--font-tracking-caption);
   --text-meta-leading: var(--font-leading-caption);
@@ -421,6 +422,7 @@
   --mini-player-bg: var(--color-surface-container);
   --mini-player-shadow: var(--shadow-floating);
   --player-padding: var(--space-6);
+  --player-speed-readout-size: 4rem;
   --player-bg: var(--color-surface-raised);
   --player-spoken: color-mix(in oklch, var(--color-on-accent-container) 18%, transparent);
   --player-spoken-chosen: var(--color-accent-container-pressed);
@@ -459,7 +461,7 @@
   --field-radius: var(--radius-round);
   --field-radius-multiline: var(--shape-xl);
   --field-max-height-multiline: 20rem;
-  --field-label-gap: 0.75rem;
+  --field-label-gap: var(--space-1);
   --field-padding: var(--space-4);
   --field-chevron-gap: var(--space-4);
   --field-border: var(--color-border-control);
@@ -473,7 +475,7 @@
   --switch-thumb-bg: var(--color-surface-raised);
   --switch-track-mixed: color-mix(in oklch, var(--color-accent) 50%, var(--color-border-control));
   --switch-track-hover: oklch(from var(--color-border-control) calc(l + var(--state-direction) * var(--state-step-hover)) c h);
-  --sheet-radius: var(--shape-2xl);
+  --checkbox-size: 1.125rem;
   --sheet-padding: var(--space-4);
   --sheet-bg: var(--color-surface-raised);
   --sheet-bg-hover: var(--color-surface-raised-hover);
@@ -515,6 +517,8 @@
   --chip-bg-current-pressed: var(--color-accent-container-pressed);
   --chip-fg-current: var(--color-on-accent-container);
   --app-bar-height: 3.5rem;
+  --app-bar-wordmark-size: var(--font-size-label-lg);
+  --queue-title-size: var(--font-size-label-lg);
   --nav-bar-height: 4rem;
   --nav-indicator-width: 4rem;
   --nav-indicator-radius-current: var(--radius-round);
@@ -553,9 +557,9 @@
   --scene-moon-shade: var(--color-accent-container-high);
   --scene-halo: 0;
   --card-padding: var(--space-6);
-  --card-inset: var(--space-1);
+  --card-inset: var(--space-2);
   --card-radius: var(--shape-2xl);
-  --card-inner-radius: var(--shape-sheet);
+  --card-inner-radius: var(--shape-xl);
   --card-content-radius: var(--shape-sm);
   --card-chip-hover: oklch(from var(--color-surface-overlay) calc(l + var(--state-direction) * var(--state-step-hover-quiet)) c h);
 
@@ -574,7 +578,6 @@
     --color-on-surface: var(--color-grey-100);
     --color-on-surface-reading: var(--color-grey-200);
     --color-on-surface-muted: var(--color-grey-300);
-    --color-on-surface-subtle: var(--color-grey-300);
     --color-on-surface-disabled: var(--color-grey-500);
     --color-on-surface-inverse: var(--color-grey-900);
     --color-border-hairline: var(--color-grey-700);
@@ -611,6 +614,7 @@
     --color-danger: var(--color-red-300);
     --color-danger-subtle: var(--color-red-900);
     --color-favorite: var(--color-red-400);
+    --color-favorite-glow: var(--color-red-300);
     --color-info: var(--color-blue-300);
     --color-info-subtle: var(--color-blue-800);
     --shadow-cover: var(--shadow-cover-dark);
@@ -656,7 +660,6 @@
   --color-on-surface: var(--color-grey-100);
   --color-on-surface-reading: var(--color-grey-200);
   --color-on-surface-muted: var(--color-grey-300);
-  --color-on-surface-subtle: var(--color-grey-300);
   --color-on-surface-disabled: var(--color-grey-500);
   --color-on-surface-inverse: var(--color-grey-900);
   --color-border-hairline: var(--color-grey-700);
@@ -693,6 +696,7 @@
   --color-danger: var(--color-red-300);
   --color-danger-subtle: var(--color-red-900);
   --color-favorite: var(--color-red-400);
+  --color-favorite-glow: var(--color-red-300);
   --color-info: var(--color-blue-300);
   --color-info-subtle: var(--color-blue-800);
   --shadow-cover: var(--shadow-cover-dark);
@@ -744,7 +748,7 @@
   --shape-md: 1.25rem;
   --shape-lg: 1.75rem;
   --shape-xl: 2.25rem;
-  --shape-sheet: 2.5rem;
+  --shape-sheet: 2.25rem;
   --shape-2xl: 2.5rem;
   --size-touch: 3.25rem;
   --size-touch-comfortable: 3.5rem;
@@ -763,11 +767,10 @@
   --cover-radius-large: 2.5rem;
   --cover-radius-thumb: 1rem;
   --card-radius: 2.5rem;
-  --card-inner-radius: 2.25rem;
+  --card-inner-radius: 2rem;
   --card-content-radius: 1rem;
   --picker-radius: 2.25rem;
   --picker-inner-radius: 1.75rem;
-  --sheet-radius: 2.25rem;
   --chip-radius-selected: var(--shape-md);
   --chip-height: 2.75rem;
   --cta-radius-pressed: var(--shape-lg);
@@ -805,7 +808,6 @@
   --color-on-surface: oklch(20% 0.0602 calc(292 + var(--hue-shift, 0)));
   --color-on-surface-reading: oklch(22% 0.0637 calc(292 + var(--hue-shift, 0)));
   --color-on-surface-muted: oklch(34% 0.0827 calc(292 + var(--hue-shift, 0)));
-  --color-on-surface-subtle: oklch(47% 0.0947 calc(292 + var(--hue-shift, 0)));
   --color-on-surface-inverse: oklch(94% 0.0298 calc(292 + var(--hue-shift, 0)));
   --color-border-hairline: oklch(85.5% 0.0528 calc(292 + var(--hue-shift, 0)));
   --color-border-control: oklch(53.5% 0.0961 calc(292 + var(--hue-shift, 0)));
@@ -850,7 +852,6 @@
     --color-on-surface: oklch(95% 0.0252 calc(292 + var(--hue-shift, 0)));
     --color-on-surface-reading: oklch(92.5% 0.0341 calc(292 + var(--hue-shift, 0)));
     --color-on-surface-muted: oklch(81.5% 0.0623 calc(292 + var(--hue-shift, 0)));
-    --color-on-surface-subtle: oklch(73.5% 0.0783 calc(292 + var(--hue-shift, 0)));
     --color-on-surface-inverse: oklch(20% 0.0602 calc(292 + var(--hue-shift, 0)));
     --color-border-hairline: oklch(32.5% 0.0807 calc(292 + var(--hue-shift, 0)));
     --color-border-control: oklch(64% 0.0909 calc(292 + var(--hue-shift, 0)));
@@ -884,7 +885,6 @@
   --color-on-surface: oklch(95% 0.0252 calc(292 + var(--hue-shift, 0)));
   --color-on-surface-reading: oklch(92.5% 0.0341 calc(292 + var(--hue-shift, 0)));
   --color-on-surface-muted: oklch(81.5% 0.0623 calc(292 + var(--hue-shift, 0)));
-  --color-on-surface-subtle: oklch(73.5% 0.0783 calc(292 + var(--hue-shift, 0)));
   --color-on-surface-inverse: oklch(20% 0.0602 calc(292 + var(--hue-shift, 0)));
   --color-border-hairline: oklch(32.5% 0.0807 calc(292 + var(--hue-shift, 0)));
   --color-border-control: oklch(64% 0.0909 calc(292 + var(--hue-shift, 0)));
@@ -932,7 +932,6 @@
   --color-on-surface: oklch(20% 0.046 calc(302 + var(--hue-shift, 0)));
   --color-on-surface-reading: oklch(22% 0.0483 calc(302 + var(--hue-shift, 0)));
   --color-on-surface-muted: oklch(34% 0.0563 calc(302 + var(--hue-shift, 0)));
-  --color-on-surface-subtle: oklch(47% 0.0587 calc(302 + var(--hue-shift, 0)));
   --color-on-surface-inverse: oklch(94% 0.0246 calc(82 + var(--hue-shift, 0)));
   --color-border-hairline: oklch(85.5% 0.0361 calc(82 + var(--hue-shift, 0)));
   --color-border-control: oklch(53.5% 0.058 calc(302 + var(--hue-shift, 0)));
@@ -1000,7 +999,6 @@
     --color-on-surface: oklch(95% 0.023 calc(82 + var(--hue-shift, 0)));
     --color-on-surface-reading: oklch(92.5% 0.0269 calc(82 + var(--hue-shift, 0)));
     --color-on-surface-muted: oklch(81.5% 0.0406 calc(302 + var(--hue-shift, 0)));
-    --color-on-surface-subtle: oklch(73.5% 0.0479 calc(302 + var(--hue-shift, 0)));
     --color-on-surface-inverse: oklch(20% 0.046 calc(302 + var(--hue-shift, 0)));
     --color-border-hairline: oklch(27.5% 0.0529 calc(302 + var(--hue-shift, 0)));
     --color-border-control: oklch(64% 0.0542 calc(302 + var(--hue-shift, 0)));
@@ -1056,7 +1054,6 @@
   --color-on-surface: oklch(95% 0.023 calc(82 + var(--hue-shift, 0)));
   --color-on-surface-reading: oklch(92.5% 0.0269 calc(82 + var(--hue-shift, 0)));
   --color-on-surface-muted: oklch(81.5% 0.0406 calc(302 + var(--hue-shift, 0)));
-  --color-on-surface-subtle: oklch(73.5% 0.0479 calc(302 + var(--hue-shift, 0)));
   --color-on-surface-inverse: oklch(20% 0.046 calc(302 + var(--hue-shift, 0)));
   --color-border-hairline: oklch(27.5% 0.0529 calc(302 + var(--hue-shift, 0)));
   --color-border-control: oklch(64% 0.0542 calc(302 + var(--hue-shift, 0)));
