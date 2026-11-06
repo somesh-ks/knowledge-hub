@@ -63,6 +63,8 @@ export function serializeSchedule(file: ScheduleFile): string {
       cadence_days: checked.cadence_days,
       skip_topics: checked.skip_topics,
       length_minutes: checked.length_minutes,
+      // A story count (D377) is written only once picked, so a file on Auto reads and writes as before.
+      ...(checked.stories === null ? {} : { stories: checked.stories }),
       voice_id: checked.voice_id,
       voice_id_b: checked.voice_id_b,
       weekly: {
@@ -71,6 +73,7 @@ export function serializeSchedule(file: ScheduleFile): string {
         hour: checked.weekly.hour,
         skip_topics: checked.weekly.skip_topics,
         length_minutes: checked.weekly.length_minutes,
+        ...(checked.weekly.stories === null ? {} : { stories: checked.weekly.stories }),
         voice_id: checked.weekly.voice_id,
         voice_id_b: checked.weekly.voice_id_b,
       },
@@ -78,6 +81,7 @@ export function serializeSchedule(file: ScheduleFile): string {
         skip_topics: checked.custom.skip_topics,
         format: checked.custom.format,
         length_minutes: checked.custom.length_minutes,
+        ...(checked.custom.stories === null ? {} : { stories: checked.custom.stories }),
         voice_id: checked.custom.voice_id,
         voice_id_b: checked.custom.voice_id_b,
       },

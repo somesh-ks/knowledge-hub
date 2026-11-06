@@ -545,6 +545,7 @@ function setSchedule(
     cadence_days: cadence,
     skip_topics: skip,
     length_minutes: op.length_minutes ?? current.length_minutes,
+    stories: op.stories !== undefined ? op.stories : (current.stories ?? null),
     voice_id: op.voice_id !== undefined ? op.voice_id : current.voice_id,
     voice_id_b: op.voice_id_b !== undefined ? op.voice_id_b : current.voice_id_b,
     weekly,

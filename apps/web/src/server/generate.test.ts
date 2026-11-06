@@ -157,6 +157,18 @@ describe("handleGenerate", () => {
     const plain = github.requests.filter((request) => request.method === "POST").at(-1);
     expect(JSON.stringify(plain?.body)).not.toContain("length_minutes");
     for (const bad of [7, 0, "10", 15.5, [10]]) expect((await send(bad)).status).toBe(400);
+    // The story count beside it (D377): Auto goes as "auto", a count outside 3 to 48 costs no run.
+    const stories = (count: unknown) =>
+      handleGenerate(input(JSON.stringify({ replace: "2026-10-07", stories: count })), deps);
+    expect((await stories(20)).status).toBe(202);
+    expect(
+      github.requests.filter((request) => request.method === "POST").at(-1)?.body,
+    ).toMatchObject({ inputs: { stories: "20" } });
+    expect((await stories(null)).status).toBe(202);
+    expect(
+      github.requests.filter((request) => request.method === "POST").at(-1)?.body,
+    ).toMatchObject({ inputs: { stories: "auto" } });
+    for (const bad of [2, 49, 12.5, "12"]) expect((await stories(bad)).status).toBe(400);
   });
 
   it("passes cleaned Regenerate feedback to run.yml and refuses a note over 500 characters", async () => {

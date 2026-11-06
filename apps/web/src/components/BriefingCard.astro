@@ -62,6 +62,7 @@ const facts = cardFacts(entry);
         kind="briefing"
         audio={entry.audioMode === "ready" ? entry.player.audio?.url : undefined}
         minutes={airedMinutes(entry)}
+        stories={digest.items.length}
         deletable={digest.kind === "on-demand"}
         regenerations={digest.regenerations}
       />

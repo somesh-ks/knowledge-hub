@@ -28,7 +28,13 @@ import { digestFromSelection } from "./digestFromSelection.js";
 import { StageFailure } from "./errors.js";
 import { loadPassPool } from "./passPool.js";
 import { markStage, type Plan, passFile, requireStage } from "./plan.js";
-import { STORY_CHARS, sparesOverLength, toldChars, withSpares } from "./scheduleSize.js";
+import {
+  STORY_CHARS,
+  sparesOverCount,
+  sparesOverLength,
+  toldChars,
+  withSpares,
+} from "./scheduleSize.js";
 import type { PassReport, RunDeps, StageReport } from "./types.js";
 import { writeFinalists } from "./writeStage.js";
 
@@ -187,7 +193,8 @@ interface ValidateDrop {
  */
 export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageReport> {
   const runtime = await deps.runtime();
-  const linter = createLinter(await loadVoice(deps.root));
+  const voice = await loadVoice(deps.root);
+  const linter = createLinter(voice);
   const [sources, lastRun] = await Promise.all([loadSources(deps.root), readLastRun(deps.root)]);
   const sourceNames = sourceNameMap(sources);
   const topics = await loadTopics(deps.root);
@@ -220,7 +227,9 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
         const saved = Selection.safeParse(raw).data;
         if (saved === undefined) return true;
         const refillable =
-          !reserve.refilled && reserve.items.length > 0 && saved.length_chars !== undefined;
+          !reserve.refilled &&
+          reserve.items.length > 0 &&
+          (saved.length_chars !== undefined || saved.stories !== undefined);
         return !refillable && saved.items.length === 0;
       }));
     if (unwritten) {
@@ -242,6 +251,9 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
       MaterialsFile,
     );
     const pool = await loadPassPool(file("pool.json"), file("general.json"));
+    // A picked story count shortened the tellings (D377): a rewrite and the voice check hold to it.
+    const passLinter =
+      selection.telling_words === undefined ? linter : createLinter(voice, selection.telling_words);
     const sectionPlan = await loadSectionPlan(deps.root, pass.kind, plan.length_minutes);
     const materials = new Map<string, SourceMaterial>(materialsFile.items.map((m) => [m.id, m]));
     const poolSourceOf = new Map(pool.items.map((item) => [item.id, item.source_id]));
@@ -257,7 +269,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
     const grounding = await groundAndRepair({
       grounder: runtime.grounder,
       writer: runtime.writer,
-      linter,
+      linter: passLinter,
       items: selection.items.map((entry) => ({ id: entry.id, ...writtenText(entry) })),
       materials,
     });
@@ -299,7 +311,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
         const report = validateDigest(digest, {
           pool: pool.items,
           sources,
-          linter,
+          linter: passLinter,
           topics,
           cap: VOICE_LIMITS.items.hardMax,
           plan: sectionPlan,
@@ -332,21 +344,28 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
         survivors = ranked.slice(0, VOICE_LIMITS.items.hardMax);
       }
 
-      // A briefing sized by the owner's length wrote spares: air the best survivors that fill it.
+      // A briefing sized by the owner's length wrote spares: air the best survivors that fill it,
+      // or as many as the owner picked (D377).
       const measured = validated;
+      const picked = selection.stories;
       const spare = new Set(
-        selection.length_chars === undefined
-          ? []
-          : sparesOverLength(
-              survivors.map((g) => ({
-                ...(entryOf.get(g.item.id) as SelectionItem),
-                chars: toldChars(writtenText(g.item)),
-              })),
-              selection.length_chars,
-              VOICE_LIMITS.items.floor,
-              // The narration these stories would make, as the audio stage builds it.
-              measured === null ? undefined : (ids) => narrationLength(measured, ids),
-            ),
+        picked !== undefined
+          ? sparesOverCount(
+              survivors.map((g) => entryOf.get(g.item.id) as SelectionItem),
+              picked,
+            )
+          : selection.length_chars === undefined
+            ? []
+            : sparesOverLength(
+                survivors.map((g) => ({
+                  ...(entryOf.get(g.item.id) as SelectionItem),
+                  chars: toldChars(writtenText(g.item)),
+                })),
+                selection.length_chars,
+                VOICE_LIMITS.items.floor,
+                // The narration these stories would make, as the audio stage builds it.
+                measured === null ? undefined : (ids) => narrationLength(measured, ids),
+              ),
       );
       for (const g of ranked.slice(VOICE_LIMITS.items.hardMax)) spare.add(g.item.id);
       const airing = survivors.filter((g) => !spare.has(g.item.id));
@@ -367,10 +386,17 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
     const refillFacts = new Map<string, WrittenFacts>();
     let refillDone = false;
     const lengthChars = selection.length_chars;
+    const picked = selection.stories;
     const room = VOICE_LIMITS.items.hardMax - fitted.survivors.length;
-    if (lengthChars !== undefined && fitted.chars < lengthChars && room > 0 && !reserve.refilled) {
+    // Short of the length, or of the stories the owner picked (D377).
+    const missing =
+      picked !== undefined
+        ? picked - fitted.survivors.length
+        : lengthChars !== undefined && fitted.chars < lengthChars
+          ? Math.ceil((lengthChars - fitted.chars) / STORY_CHARS)
+          : 0;
+    if (missing > 0 && room > 0 && !reserve.refilled) {
       const poolById = new Map(pool.items.map((item) => [item.id, item]));
-      const missing = Math.ceil((lengthChars - fitted.chars) / STORY_CHARS);
       // The section a story counts against: its category's home, as validation resolves it.
       const ownerOf = (category: string, source: string | undefined): string | undefined => {
         if (source === undefined) return undefined;
@@ -401,7 +427,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
             voice,
           } = await writeFinalists({
             runtime,
-            linter,
+            linter: passLinter,
             finalists: candidates.map((entry) => ({
               item: poolById.get(entry.id) as Item,
               category: entry.writer_category,
@@ -410,6 +436,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
             sourceNames,
             feedback: reserve.feedback,
             taste: reserve.taste,
+            ...(selection.telling_words === undefined ? {} : { telling: selection.telling_words }),
             airing: fitted.survivors.map((g) => g.item.headline),
             drop: (id, stage, reason) => refillDrops.push({ id, stage, reason }),
           });
@@ -432,7 +459,7 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
           const extra = await groundAndRepair({
             grounder: runtime.grounder,
             writer: runtime.writer,
-            linter,
+            linter: passLinter,
             items: voice.passed.map((p) => p.item),
             materials,
           });
@@ -470,8 +497,11 @@ export async function validateStage(deps: RunDeps, plan: Plan): Promise<StageRep
     for (const g of survivors) takenElsewhere.add(g.item.id);
     // A briefing far under the owner's length is not a quiet day: say so where the run log, the
     // report and the step summary show it (the 2026-10-27 daily aired 79 s of five minutes unnoticed).
+    // A picked count may air under the length by design (fewer stories, each told as usual).
     const underLength =
-      lengthChars !== undefined && fitted.chars < lengthChars * UNDER_LENGTH_SHARE
+      picked === undefined &&
+      lengthChars !== undefined &&
+      fitted.chars < lengthChars * UNDER_LENGTH_SHARE
         ? { aired_chars: fitted.chars, length_chars: lengthChars }
         : undefined;
     if (underLength) {

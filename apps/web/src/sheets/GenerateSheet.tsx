@@ -2,17 +2,21 @@ import { Field } from "@base-ui/react/field";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { buttonClass } from "../design-system/button";
 import { fieldClass } from "../design-system/field";
+import { selectClass } from "../design-system/select";
+import { installSelectSheet } from "../design-system/selectSheet";
 import { rememberCancelToken } from "../lib/cancelTokens";
 import { createCommentAsker } from "../lib/regenAsk";
 import {
   type Answer,
   desiredChip,
   desiredLength,
+  desiredStories,
   NO_ANSWER,
   wantedControls,
 } from "../lib/regenFollow";
 import { DEFAULT_REGEN_LENGTH, nearestRegenLength, REGEN_LENGTHS } from "../lib/regenLength";
 import { idsOfChips, isChipOn, type RegenChip } from "../lib/regenTopics";
+import { storiesValue, storyOptions } from "../lib/storyOptions";
 import { playUiCue } from "../player/sound/soundController";
 import { cueForGenerate } from "../player/sound/soundMap";
 import Icon from "../player/ui/LazyIcon";
@@ -42,6 +46,11 @@ interface PageTopics {
 function startLength(): string {
   const minutes = document.querySelector<HTMLElement>("[data-briefing]")?.dataset.minutes;
   return String(nearestRegenLength(minutes));
+}
+
+/** The stories the briefing aired, carried beside its minutes; Stories steps from it (D377). */
+function airedStories(): number {
+  return Number(document.querySelector<HTMLElement>("[data-briefing]")?.dataset.stories);
 }
 
 function readPageTopics(): PageTopics | null {
@@ -82,6 +91,8 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
   const [noteError, setNoteError] = useState(false);
   const [asked, setAsked] = useState(String(DEFAULT_REGEN_LENGTH));
   const [lengthPick, setLengthPick] = useState<string | null>(null);
+  const [aired, setAired] = useState(Number.NaN);
+  const [storiesPick, setStoriesPick] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [answer, setAnswer] = useState<Answer>(NO_ANSWER);
   // The categories a refusal had to show stay shown.
@@ -93,6 +104,8 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
   // controls follow the comment both ways (D371): one appears when the words call for it and goes
   // when they no longer do, unless the listener has touched it.
   const [asker] = useState(() => createCommentAsker(setAnswer));
+  // The Stories select opens the phone's bottom sheet, as every Select does (Select.astro installs it).
+  useEffect(() => installSelectSheet(), []);
 
   // Each opening starts from the topics of the briefing on the page. Off a briefing's page (a
   // toast's Details) there are none, and the run keeps its own.
@@ -106,6 +119,8 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
     setFieldError(null);
     setAsked(startLength());
     setLengthPick(null);
+    setAired(airedStories());
+    setStoriesPick(null);
     // Words kept from an earlier opening still call for their controls, and are read again.
     const kept = feedbackRef.current?.value ?? "";
     setComment(kept);
@@ -123,10 +138,21 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
     comment,
     chips.map((chip) => chip.label),
     answer,
+    Number(asked),
+    aired,
   );
   const shownTopics = Boolean(page) && (wanted.topics || keepTopics || picked.size > 0);
   const shownLength = wanted.length || lengthPick !== null;
-  const length = lengthPick ?? String(desiredLength(Number(asked), answer.values, comment));
+  const length = lengthPick ?? String(desiredLength(Number(asked), answer.values, comment, aired));
+  // Stories (D377): Auto unless the comment asks for more or fewer than aired, or the listener picks.
+  // A pick the length no longer holds shows the most it holds.
+  const storyChoices = storyOptions(Number(length));
+  const shownStories = wanted.stories || storiesPick !== null;
+  const wantedStories =
+    storiesPick ?? desiredStories(aired, Number(length), answer.values, comment);
+  const stories = storyChoices.some((entry) => entry.value === wantedStories && !entry.hidden)
+    ? wantedStories
+    : (storyChoices.filter((entry) => !entry.hidden).at(-1)?.value ?? "");
   const isOn = (chip: RegenChip): boolean =>
     picked.get(chip.value) ??
     desiredChip(chip.label, page ? isChipOn(chip, page.selected) : false, answer.values);
@@ -184,6 +210,9 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
         feedbackRef.current?.value ?? "",
         topics,
         Number(length),
+        // A shown Stories sends what it shows, Auto as null; a hidden one sends nothing, so the run
+        // keeps the schedule's count.
+        shownStories ? storiesValue(stories) : undefined,
       );
     } catch {
       // The indicator's chunk failed to load (offline, a stale deploy): say so, never stay busy.
@@ -313,6 +342,36 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
                 </label>
               ))}
             </div>
+          </section>
+        ) : null}
+        {shownStories ? (
+          <section className="create-group">
+            <h2 className="section-head text-heading">
+              <label htmlFor="regen-stories">Stories</label>
+            </h2>
+            <span className={selectClass("outlined")} data-select>
+              <select
+                id="regen-stories"
+                className={fieldClass()}
+                data-wheel=""
+                value={stories}
+                disabled={busy}
+                onChange={(event) => setStoriesPick(event.currentTarget.value)}
+              >
+                {storyChoices.map((entry) => (
+                  <option
+                    key={entry.value}
+                    value={entry.value}
+                    data-wheel-text={entry.wheel}
+                    hidden={entry.hidden}
+                    disabled={entry.hidden}
+                  >
+                    {entry.label}
+                  </option>
+                ))}
+              </select>
+              <Icon name="chevronDown" />
+            </span>
           </section>
         ) : null}
         {fieldError ? (

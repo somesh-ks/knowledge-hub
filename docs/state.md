@@ -24,7 +24,7 @@ Unit (CI): 367 files, 5,572 tests, 2 min. Site e2e: 449, 14 min. Player: 80, 7 m
 
 - D318 edge cache. closed when: a week of his loads is mostly HIT or STALE.
 - Guardrails (D360): #673 awaits his merge, `secrets:push`. closed when: Health's Budgets are fresh.
-- Rewrite: 0:00 start, "More stories" lengthens, stories carried (D376). closed when: his next is 10 min, fetches in 1 min, plays at 0:00.
+- Rewrite (D376), Stories (D377). closed when: his next rewrite fetches in 1 min, plays at 0:00; 20 stories at 5 min air 20 in 5.5 min.
 - Listen now streams (D366): parts as the script is written, for Catch up and Regenerate. closed when: Somesh's first live Catch up plays on his phone without a pause.
 - Blob on Pro trial since 10-30, ending 11-13 (D251, D256). Plan call 11-08: keep Pro. closed when: chosen.
 - Deploy batching (D375): 5 merges, 3 hours or `[deploy]`. closed when: a merge day builds at most 8 times; `[deploy]` ships in minutes.

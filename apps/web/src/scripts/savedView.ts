@@ -297,7 +297,7 @@ export function overlayCreate(
     if (value !== undefined) baked[`custom.${name}`] = value;
   }
   for (const select of selects)
-    if (select.name === "voice" || select.name === "voice_b")
+    if (select.name === "voice" || select.name === "voice_b" || select.name === "stories")
       baked[`custom.${select.name}`] = builtSelect(select);
   const saved = savedFields(baked, ops);
   let changed = false;

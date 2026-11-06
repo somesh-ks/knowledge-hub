@@ -14,6 +14,7 @@ export interface CommentHintsAnswer {
 
 export interface CommentValuesAnswer {
   length: "shorter" | "longer" | null;
+  stories: "more" | "fewer" | null;
   add: string[];
 }
 
@@ -38,7 +39,10 @@ export interface RegenHintsDeps {
 }
 
 const none = { status: 200 as const, body: { length: false, topics: false, by: "none" as const } };
-const noValues = { status: 200 as const, body: { length: null, add: [], by: "none" as const } };
+const noValues = {
+  status: 200 as const,
+  body: { length: null, stories: null, add: [], by: "none" as const },
+};
 
 /**
  * Which Regenerate controls a comment calls for, as Jev reads it (D370), or with `want: "values"`

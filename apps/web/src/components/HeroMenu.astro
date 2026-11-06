@@ -10,6 +10,8 @@ interface Props {
   briefingId?: string;
   /** A briefing's aired minutes, or the minutes an episode was made at: Regenerate starts on the nearest length (lib/regenLength.ts). */
   minutes?: number;
+  /** The stories it aired: Regenerate's Stories steps from it when the comment asks for more or fewer (D377). */
+  stories?: number;
   /** False on a Daily or Weekly briefing: only on-demand briefings and episodes can be deleted. */
   deletable?: boolean;
   /** Times this podcast was regenerated, for the Regenerate item's counter (D212). */
@@ -27,7 +29,15 @@ interface Props {
   };
 }
 
-const { episodeId, briefingId, minutes, deletable = true, regenerations, page } = Astro.props;
+const {
+  episodeId,
+  briefingId,
+  minutes,
+  stories,
+  deletable = true,
+  regenerations,
+  page,
+} = Astro.props;
 ---
 
 {/* One More button beside the title and the sheet it opens: the podcast's one sheet, the same a
@@ -44,6 +54,7 @@ const { episodeId, briefingId, minutes, deletable = true, regenerations, page } 
   data-episode={episodeId}
   data-briefing={briefingId}
   data-minutes={minutes}
+  data-stories={stories}
   data-page-menu=""
   data-id={page.id}
   data-path={page.path}

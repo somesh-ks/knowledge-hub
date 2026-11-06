@@ -1,37 +1,21 @@
-import type { DigestKind, ScheduleFile } from "@singularity/core";
+import {
+  BRIEFING_CHARS_PER_MINUTE,
+  type DigestKind,
+  EPISODE_FRAME_CHARS,
+  type ScheduleFile,
+  STORY_FRAME_CHARS,
+} from "@singularity/core";
 import type { RunMode } from "../gate/decideRun.js";
 
-/**
- * Spoken characters per story, its share of the frame (hello, section bridges, sign-off)
- * included: October 2026's seven briefings, 60 stories, 21,850 characters, 364 a story. The
- * writer's 40 to 95 word range keeps a story near this whatever the length.
- */
-export const STORY_CHARS = 364;
-
-/**
- * Narration characters in a minute of a briefing: the four briefings narrated 2026-10-18 to
- * 10-24 ran 1,057 to 1,073 (`text_chars` over `duration_ms` in their `.audio.json`). Sized at
- * the podcast's 968, a full five-minute briefing aired about 4.5 minutes.
- */
-export const BRIEFING_CHARS_PER_MINUTE = 1066;
-
-/**
- * How many stories, in every section together, fill a briefing of this many minutes at the
- * narration's measured pace. Never fewer than the floor below which nothing publishes, never more
- * than the digest's hard cap.
- */
-export function storiesForMinutes(minutes: number, floor: number, hardMax: number): number {
-  const stories = Math.round((minutes * BRIEFING_CHARS_PER_MINUTE) / STORY_CHARS);
-  return Math.max(floor, Math.min(hardMax, stories));
-}
-
-/**
- * Narration characters a story costs beyond its own telling (a connective or a section bridge),
- * and the episode beyond its stories (the hello and the sign-off). Measured generously from
- * `buildSpokenText`, so an episode that fits here fits the narration request.
- */
-export const STORY_FRAME_CHARS = 60;
-export const EPISODE_FRAME_CHARS = 600;
+// The pace and a story's share of it moved to core (storyCount.ts), where the Stories control reads
+// them too (D377).
+export {
+  BRIEFING_CHARS_PER_MINUTE,
+  EPISODE_FRAME_CHARS,
+  STORY_CHARS,
+  STORY_FRAME_CHARS,
+  storiesForMinutes,
+} from "@singularity/core";
 
 /**
  * The stories that fit one narration request, best first until the next would not fit. A 15-minute
@@ -109,6 +93,23 @@ export function lengthMinutesFor(
   return null;
 }
 
+/**
+ * The story count a person picked for a pass (D377): this run's own (a Regenerate's Stories), else
+ * the weekly podcast's for the weekly pass, the daily podcast's for a scheduled regular briefing.
+ * Null is Auto: the length sizes the count.
+ */
+export function storiesPickedFor(
+  schedule: Pick<ScheduleFile, "stories" | "weekly">,
+  kind: DigestKind,
+  mode: RunMode,
+  asked?: number | null,
+): number | null {
+  if (asked !== undefined) return asked;
+  if (kind === "weekly") return schedule.weekly.stories ?? null;
+  if (kind === "regular" && mode === "scheduled") return schedule.stories ?? null;
+  return null;
+}
+
 /** Narration characters a briefing of this many minutes holds at the measured pace. */
 export function charsForMinutes(minutes: number): number {
   return Math.round(minutes * BRIEFING_CHARS_PER_MINUTE);
@@ -139,12 +140,7 @@ export function sparesOverLength(
     left.reduce((sum, story) => sum + story.chars + STORY_FRAME_CHARS, EPISODE_FRAME_CHARS);
   const cut: string[] = [];
   while (left.length > floor) {
-    const perTopic = new Map<string, number>();
-    for (const story of left) perTopic.set(story.category, (perTopic.get(story.category) ?? 0) + 1);
-    const index = Math.max(
-      0,
-      left.findIndex((story) => (perTopic.get(story.category) ?? 0) > 1),
-    );
+    const index = nextCut(left);
     const next = left[index] as { id: string; chars: number };
     const without = measure
       ? measure(new Set(left.filter((story) => story !== next).map((story) => story.id)))
@@ -154,6 +150,34 @@ export function sparesOverLength(
     cut.push(next.id);
   }
   return cut;
+}
+
+/**
+ * The ids to leave out so the briefing airs the `count` stories the owner picked (D377), cut in the
+ * order `sparesOverLength` cuts: a topic's lowest-scored story while the topic has another, then
+ * the lowest-scored overall.
+ */
+export function sparesOverCount(
+  stories: readonly { id: string; category: string; score: number }[],
+  count: number,
+): string[] {
+  const left = [...stories].sort((a, b) => a.score - b.score);
+  const cut: string[] = [];
+  while (left.length > count) {
+    const [next] = left.splice(nextCut(left), 1);
+    if (next) cut.push(next.id);
+  }
+  return cut;
+}
+
+/** Where the next cut falls in stories sorted lowest score first: see `sparesOverLength`. */
+function nextCut(left: readonly { category: string }[]): number {
+  const perTopic = new Map<string, number>();
+  for (const story of left) perTopic.set(story.category, (perTopic.get(story.category) ?? 0) + 1);
+  return Math.max(
+    0,
+    left.findIndex((story) => (perTopic.get(story.category) ?? 0) > 1),
+  );
 }
 
 /** The narration a written story costs: its spoken telling, or the headline and summary it falls back to. */

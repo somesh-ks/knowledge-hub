@@ -7,10 +7,14 @@
 export interface Hints {
   length: boolean;
   topics: boolean;
+  /** The Stories control (D377): only the words and Haiku call for it; Jev is not asked. */
+  stories: boolean;
 }
 
 const LENGTH_CUES =
-  /\b(?:\d+\s*(?:min|mins|minutes?)|minutes?|longer|shorter|short|long|brief|briefer|quick|quicker|concise|length|trim|detail|detailed|deeper|(?:more|fewer|less|extra)\s+(?:stories|story|items|news))\b/i;
+  /\b(?:\d+\s*(?:min|mins|minutes?)|minutes?|longer|shorter|short|long|brief|briefer|quick|quicker|concise|length|trim|detail|detailed|deeper)\b/i;
+const STORY_CUES =
+  /\b(?:(?:more|fewer|less|extra|additional)\s+(?:stories|story|items|news)|(?:number of|how many|too many|too few|not enough)\s+(?:stories|items|news))\b/i;
 const TOPIC_CUES =
   /\b(?:topics?|categor(?:y|ies)|more on|less on|more about|less about|focus on|only|skip|drop|leave out|without|cover)\b/i;
 
@@ -34,6 +38,7 @@ export function hintsFor(text: string, labels: readonly string[] = []): Hints {
   const mine = labelCues(labels);
   return {
     length: LENGTH_CUES.test(text),
+    stories: STORY_CUES.test(text),
     topics: mine !== null && (TOPIC_CUES.test(text) || mine.test(text)),
   };
 }

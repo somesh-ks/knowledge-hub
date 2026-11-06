@@ -1,6 +1,20 @@
 import { parse, stringify } from "yaml";
 import { z } from "zod";
 import { CoverSpec, MAX_REGENERATIONS } from "./digest.js";
+import { VOICE_LIMITS } from "./voiceLimits.js";
+
+/**
+ * How many stories an episode tells (D377): a number the person picked, or null for Auto, which is
+ * as many as its length holds at the usual telling. A pick above Auto shortens each telling so the
+ * stories still fit the length; a pick below it tells each as usual and may end under the length.
+ */
+export const StoryCount = z
+  .number()
+  .int()
+  .min(VOICE_LIMITS.items.floor)
+  .max(VOICE_LIMITS.items.hardMax)
+  .nullable();
+export type StoryCount = z.infer<typeof StoryCount>;
 
 const isoDateTime = z.string().datetime({ offset: true });
 
@@ -41,6 +55,11 @@ export const StoredPodcastRequest = z.object({
   /** Section or category ids exactly as they appear in published digests. */
   topic_ids: z.array(z.string().min(1).max(64)).min(1).max(PODCAST_MAX_TOPICS),
   length_minutes: z.union([z.literal(3), z.literal(5), z.literal(10), z.literal(15)]),
+  /**
+   * How many stories the episode tells (D377): null or absent is Auto, as many as the length and the
+   * format hold. A number is held to what they hold.
+   */
+  stories: StoryCount.optional(),
   format: z.enum(PODCAST_FORMATS),
   window_days: z.union([z.literal(2), z.literal(7), z.literal(30)]),
   tone: z.enum(PODCAST_TONES),
@@ -112,6 +131,8 @@ export const PodcastCommand = z.preprocess(
       topic_ids: z.array(z.string().min(1).max(64)).min(1).max(PODCAST_MAX_TOPICS).optional(),
       /** The length for this regeneration only; absent keeps the episode's own. */
       length_minutes: StoredPodcastRequest.shape.length_minutes.optional(),
+      /** The story count for this regeneration only (null is Auto); absent keeps the episode's own. */
+      stories: StoryCount.optional(),
     }),
   ]),
 );

@@ -381,6 +381,18 @@ describe("the spoken field", () => {
     ]);
   });
 
+  // The bug it prevents: a picked story count (D377) asks for shorter tellings, and the usual
+  // range sent each one back to 40 words or dropped it for the longer summary, so the episode ran
+  // far past its length.
+  it("holds a telling to the shorter aim of a picked story count", () => {
+    const short =
+      "Google's new Pixel has a screen twice as bright, and it ships next week for the same price.";
+    expect(rules("spoken", short)).toContain("too_few_words");
+    const aimed = createLinter(voice, 20);
+    expect(aimed.lint("spoken", short)).toEqual([]);
+    expect(aimed.lint("spoken", GOOD).map((v) => v.rule)).toContain("too_many_words");
+  });
+
   it("flags a telling over the word, sentence or character ceiling", () => {
     const words = Array.from({ length: 96 }, () => "word").join(" ");
     expect(rules("spoken", `${words}.`)).toContain("too_many_words");

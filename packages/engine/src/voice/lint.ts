@@ -169,7 +169,30 @@ interface FieldLimits {
   sentenceWords?: number;
 }
 
-function limitsFor(field: VoiceField): FieldLimits {
+/**
+ * Words a picked story count (D377) lets a spoken telling run past or fall short of its aim, so a
+ * telling a sentence off its target still airs.
+ */
+const TELLING_SLACK = 10;
+
+/** The spoken text's limits when every story is told in about `telling` words (tellingWords). */
+function tellingLimits(telling: number): FieldLimits {
+  const most = Math.min(VOICE_LIMITS.spokenWords, telling + TELLING_SLACK);
+  return {
+    words: most,
+    chars: VOICE_LIMITS.spokenChars,
+    sentences: Math.min(VOICE_LIMITS.spokenSentences, Math.max(2, Math.ceil(most / 15))),
+    minWords: Math.min(
+      VOICE_LIMITS.spokenMinWords,
+      Math.max(TELLING_SLACK, telling - TELLING_SLACK),
+    ),
+    minSentences: 1,
+    sentenceWords: VOICE_LIMITS.sentenceWords,
+  };
+}
+
+function limitsFor(field: VoiceField, telling?: number): FieldLimits {
+  if (field === "spoken" && telling !== undefined) return tellingLimits(telling);
   switch (field) {
     case "headline":
       return { words: VOICE_LIMITS.headlineWords, sentences: null };
@@ -200,8 +223,11 @@ function limitsFor(field: VoiceField): FieldLimits {
   }
 }
 
-/** Compile the banned lists once and lint any number of fields. */
-export function createLinter(config: VoiceConfig): Linter {
+/**
+ * Compile the banned lists once and lint any number of fields. `telling` is the words a spoken
+ * telling aims at when a picked story count shortens it (D377); absent keeps the usual range.
+ */
+export function createLinter(config: VoiceConfig, telling?: number): Linter {
   const wordRegexes = config.bannedWords.map((entry) => ({ entry, regex: bannedWordRegex(entry) }));
   return {
     lint(field, rawText) {
@@ -261,7 +287,7 @@ export function createLinter(config: VoiceConfig): Linter {
         }
       }
 
-      const limits = limitsFor(field);
+      const limits = limitsFor(field, telling);
       const words = countWords(text);
       if (words > limits.words) {
         add("too_many_words", `The ${field} has ${words} words; the limit is ${limits.words}.`);

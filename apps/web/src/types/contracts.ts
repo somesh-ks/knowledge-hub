@@ -96,6 +96,8 @@ export interface GenerateRequest {
   topics?: string[];
   /** Regenerate: this run's length in minutes (3, 5, 10 or 15) in place of the schedule's. */
   length_minutes?: number;
+  /** Regenerate: this run's story count (D377), null for Auto; absent keeps the schedule's. */
+  stories?: number | null;
   /** Regenerate a briefing that exists: its digest id. The new digest replaces it. */
   replace?: string;
   /** Delete a briefing: with `id`, no feedback and no run of the writer. */
@@ -401,6 +403,8 @@ export type ConfigOp =
       skip_topics?: string[];
       /** Minutes the daily podcast runs. */
       length_minutes?: PodcastRequest["length_minutes"];
+      /** The daily podcast's story count (D377); null is Auto. */
+      stories?: number | null;
       /** Speechify voice ids of the daily podcast; null means the engine's default. */
       voice_id?: string | null;
       voice_id_b?: string | null;
@@ -413,6 +417,7 @@ export type ConfigOp =
         /** Topic ids the weekly podcast leaves out. */
         skip_topics?: string[];
         length_minutes?: PodcastRequest["length_minutes"];
+        stories?: number | null;
         voice_id?: string | null;
         voice_id_b?: string | null;
       };
@@ -422,6 +427,7 @@ export type ConfigOp =
         skip_topics?: string[];
         format?: "readout" | "discussion";
         length_minutes?: PodcastRequest["length_minutes"];
+        stories?: number | null;
         voice_id?: string | null;
         voice_id_b?: string | null;
       };
@@ -508,6 +514,8 @@ export interface PodcastRequest {
    */
   audience?: "general" | "custom";
   length_minutes: 3 | 5 | 10 | 15;
+  /** How many stories (D377): a whole number from 3 to 48, or null or absent for Auto, as many as the length holds. */
+  stories?: number | null;
   /** New requests take "readout" or "discussion"; a stored episode may still say "headlines". */
   format: "readout" | "discussion" | "headlines";
   /** Speechify voice id of the lead host, speaker "a"; absent means the engine's default. */
@@ -540,6 +548,9 @@ export type PodcastActionRequest =
       id: string;
       feedback?: string;
       topic_ids?: string[];
+      length_minutes?: PodcastRequest["length_minutes"];
+      /** This regeneration's story count (D377): null is Auto; absent keeps the episode's own. */
+      stories?: number | null;
     };
 
 /** POST /api/podcast responses. */
