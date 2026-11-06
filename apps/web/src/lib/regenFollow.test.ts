@@ -37,10 +37,14 @@ describe("regenFollow (D371)", () => {
     expect(wordLength("too long and it dragged")).toBe("shorter");
     expect(wordLength("more stories but shorter")).toBeNull();
     expect(wordLength("too much hype")).toBeNull();
+    // A topic or an aside is not a length.
+    expect(wordLength("more stories about AI")).toBeNull();
+    expect(wordLength("the AI story is no longer news")).toBeNull();
     expect(desiredLength(5, NO_ANSWER.values, "More stories")).toBe(10);
     // Haiku's answer beats the words once it comes.
     expect(desiredLength(5, { length: "shorter", add: [] }, "More stories")).toBe(3);
-    expect(wantedControls("More stories", [], NO_ANSWER).length).toBe(true);
+    // Whatever moves the length shows its control.
+    expect(wantedControls("it dragged", [], NO_ANSWER).length).toBe(true);
   });
 
   it("keeps a category the episode was made with and adds the one the comment wants", () => {

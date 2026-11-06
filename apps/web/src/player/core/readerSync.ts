@@ -192,7 +192,7 @@ export function createReaderSync(
       safeLocalStorage(),
       page.id,
       (page.audio?.duration_ms ?? 0) / 1000,
-      recordingOf(page.audio),
+      recordingOf(page),
     );
   }
 

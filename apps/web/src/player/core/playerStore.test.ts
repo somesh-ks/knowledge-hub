@@ -258,8 +258,8 @@ describe("seeking and items", () => {
     expect(harness.store.getTime()).toBe(harness.audio.currentTime);
   });
 
-  // Owner, 2026-11-06: a rewrite of a podcast began at 4 minutes. It keeps the digest's id and names
-  // new files, so the place saved for the old recording must not carry over.
+  // Owner, 2026-11-06: a rewrite of a podcast began at 4 minutes. It keeps the digest's id and says
+  // something new, so the place saved for the old recording must not carry over.
   it("starts a rewritten recording from the top, not where the old one was left", () => {
     const harness = createHarness({ canPlayType: () => "probably" });
     const files = (version: string) => ({
@@ -276,7 +276,12 @@ describe("seeking and items", () => {
     harness.store.pause();
     harness.audio.currentTime = 0;
     harness.audio.readyState = 0;
-    harness.store.load(makeDigest({ audio: files("v2") }));
+    // The rewrite tells the same stories anew.
+    const retold = makeDigest().items.map((entry) => ({
+      ...entry,
+      text: `${entry.headline}, again.`,
+    }));
+    harness.store.load(makeDigest({ audio: files("v2"), items: retold }));
     harness.store.play();
     harness.audio.startPlaying();
     expect(harness.audio.currentTime).toBe(0);

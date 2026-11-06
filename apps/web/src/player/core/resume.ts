@@ -1,3 +1,4 @@
+import type { PlayerDigestData } from "../../types/contracts";
 import { isFiniteNumber } from "./mathUtils";
 
 /** The slice of Storage the player uses, so tests can inject a map and private mode can inject nothing. */
@@ -34,10 +35,10 @@ export function playedKey(digestId: string): string {
 }
 
 /**
- * The recording a device's position (or "Played") belongs to: its audio address. A rewrite keeps the
- * digest's id and gets a new recording, so a position kept by id alone starts the new one where the
- * old one was left (2026-11-06, the owner's phone: a rewrite began at 4 minutes). Memory written
- * before this key existed has none and is taken as it stands.
+ * The recording a device's position (or "Played") belongs to. A rewrite keeps the digest's id and
+ * says something new, so a position kept by id alone starts the new one where the old one was left
+ * (2026-11-06, the owner's phone: a rewrite began at 4 minutes). Memory written before this key
+ * existed has none and is taken as it stands.
  */
 export const RECORDING_KEY_PREFIX = "singularity:resume-of:";
 
@@ -46,36 +47,45 @@ export function recordingKey(digestId: string): string {
 }
 
 /**
- * The address that names a digest's recording: the file the browser tries first. New data that names
- * the same file (a refresh of the page's facts) is the same recording; a rewrite names new files.
+ * Names a recording by what it says, not by its file: the same words reached another way (an
+ * episode's Opus file arriving after narration on Play, a pre-narrated file replacing it, new data
+ * for the page) keep their place, and a rewrite, even of the same stories in a new tone, does not.
+ * A 32-bit FNV-1a hash of the stories and the script.
  */
-export function recordingOf(
-  audio: { url: string; m4a_url?: string | undefined } | null | undefined,
-): string | undefined {
-  return audio ? (audio.m4a_url ?? audio.url) : undefined;
+export function recordingOf(digest: Pick<PlayerDigestData, "items" | "turns">): string {
+  const said = [
+    ...digest.items.map((item) => `${item.id}\n${item.headline}\n${item.text ?? ""}`),
+    ...(digest.turns ?? []).map((turn) => turn.text),
+  ].join("\n");
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < said.length; i++) {
+    hash ^= said.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(36);
 }
 
 /** Heard to the end: the position is forgotten and the item is marked played. */
-function markPlayed(storage: StorageLike, digestId: string, audioUrl?: string): void {
+function markPlayed(storage: StorageLike, digestId: string, recording?: string): void {
   storage.removeItem(resumeKey(digestId));
   storage.setItem(playedKey(digestId), "1");
-  rememberRecording(storage, digestId, audioUrl);
+  rememberRecording(storage, digestId, recording);
   announce(digestId);
 }
 
-function rememberRecording(storage: StorageLike, digestId: string, audioUrl?: string): void {
-  if (audioUrl) storage.setItem(recordingKey(digestId), audioUrl);
+function rememberRecording(storage: StorageLike, digestId: string, recording?: string): void {
+  if (recording) storage.setItem(recordingKey(digestId), recording);
 }
 
 /**
  * Drops what the device remembers of a recording that has since been replaced: its position, its
  * "Played" and the note of which recording it was. The stories heard stay (item ids outlive a rewrite).
  */
-function forgetReplaced(storage: StorageLike | null, digestId: string, audioUrl?: string): void {
-  if (!storage || !audioUrl) return;
+function forgetReplaced(storage: StorageLike | null, digestId: string, recording?: string): void {
+  if (!storage || !recording) return;
   try {
     const saved = storage.getItem(recordingKey(digestId));
-    if (saved === null || saved === audioUrl) return;
+    if (saved === null || saved === recording) return;
     storage.removeItem(resumeKey(digestId));
     storage.removeItem(playedKey(digestId));
     storage.removeItem(recordingKey(digestId));
@@ -98,9 +108,9 @@ export function readResumePosition(
   storage: StorageLike | null,
   digestId: string,
   durationSeconds: number,
-  audioUrl?: string,
+  recording?: string,
 ): number {
-  forgetReplaced(storage, digestId, audioUrl);
+  forgetReplaced(storage, digestId, recording);
   const raw = read(storage, resumeKey(digestId));
   if (raw === null) return 0;
   const seconds = Number(raw);
@@ -115,7 +125,7 @@ export function saveResumePosition(
   digestId: string,
   seconds: number,
   durationSeconds: number,
-  audioUrl?: string,
+  recording?: string,
 ): void {
   if (!storage) return;
   try {
@@ -123,13 +133,13 @@ export function saveResumePosition(
     // position 0 would otherwise read as the end.
     const finished =
       durationSeconds > FINISHED_TAIL_SECONDS && seconds >= durationSeconds - FINISHED_TAIL_SECONDS;
-    if (finished) markPlayed(storage, digestId, audioUrl);
+    if (finished) markPlayed(storage, digestId, recording);
     else if (seconds < MIN_RESTORE_SECONDS) storage.removeItem(resumeKey(digestId));
     else {
       // Listening again: a position of its own replaces "Played".
       storage.setItem(resumeKey(digestId), String(Math.floor(seconds)));
       storage.removeItem(playedKey(digestId));
-      rememberRecording(storage, digestId, audioUrl);
+      rememberRecording(storage, digestId, recording);
       announce(digestId);
     }
   } catch {
@@ -162,9 +172,9 @@ export function readRemembered(
   storage: StorageLike | null,
   digestId: string,
   durationSeconds = 0,
-  audioUrl?: string,
+  recording?: string,
 ): Remembered {
-  const seconds = readResumePosition(storage, digestId, durationSeconds, audioUrl);
+  const seconds = readResumePosition(storage, digestId, durationSeconds, recording);
   const played = read(storage, playedKey(digestId)) !== null;
   const heard = seconds > 0 || played ? read(storage, HEARD_KEY_PREFIX + digestId) : null;
   return { seconds, played, heard: heard ? heard.split(" ") : [] };
@@ -183,11 +193,11 @@ export function saveHeard(storage: StorageLike | null, digestId: string, ids: st
 export function clearResumePosition(
   storage: StorageLike | null,
   digestId: string,
-  audioUrl?: string,
+  recording?: string,
 ): void {
   if (!storage) return;
   try {
-    markPlayed(storage, digestId, audioUrl);
+    markPlayed(storage, digestId, recording);
   } catch {
     // Best effort.
   }

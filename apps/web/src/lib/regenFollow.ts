@@ -27,7 +27,12 @@ export const NO_ANSWER: Answer = {
 export function wantedControls(text: string, labels: readonly string[], answer: Answer): Hints {
   const words = hintsFor(text, labels);
   return {
-    length: words.length || answer.hints.length || answer.values.length !== null,
+    // The words that move the length show its control, so a value it sends is never hidden.
+    length:
+      words.length ||
+      wordLength(text) !== null ||
+      answer.hints.length ||
+      answer.values.length !== null,
     topics: words.topics || answer.hints.topics || answer.values.add.length > 0,
   };
 }
@@ -43,10 +48,11 @@ export function stepLength(from: number, direction: "shorter" | "longer"): numbe
   );
 }
 
+// "More stories about AI" asks for a topic, and "no longer news" for nothing: neither moves the length.
 const WANTS_LONGER =
-  /\b(?:(?:more|extra|additional)\s+(?:stories|story|items|news|coverage)|not enough (?:stories|news|coverage)|longer|too short|more (?:time|depth|detail))\b/i;
+  /\b(?:(?:more|extra|additional)\s+(?:stories|story|items|news|coverage)(?!\s+(?:about|on|from)\b)|not enough (?:stories|news|coverage)|(?<!\b(?:no|any)\s)longer|too short|more (?:time|depth|detail))\b/i;
 const WANTS_SHORTER =
-  /\b(?:(?:fewer|less)\s+(?:stories|story|items)|shorter|briefer|too long|dragged)\b/i;
+  /\b(?:(?:fewer|less)\s+(?:stories|story|items)(?!\s+(?:about|on|from)\b)|shorter|briefer|too long|dragged)\b/i;
 
 /**
  * What the words alone ask of the length: the story count is the length (a 5 minute podcast airs

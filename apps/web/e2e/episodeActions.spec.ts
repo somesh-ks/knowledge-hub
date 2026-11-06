@@ -312,9 +312,9 @@ test.describe("regenerate and delete an episode", () => {
         .evaluateAll((all) =>
           all.map((i) => [(i as HTMLInputElement).defaultChecked, (i as HTMLInputElement).checked]),
         );
-    await note.pressSequentially("It dragged on");
+    await note.pressSequentially("It went on and on");
     await expect(length).toBeVisible();
-    expect(asked).toEqual(["It dragged on"]);
+    expect(asked).toEqual(["It went on and on"]);
     // Haiku moved the untouched control one step shorter than the length asked for.
     await expect
       .poll(async () => (await lengths()).findIndex(([, now]) => now))
@@ -324,14 +324,14 @@ test.describe("regenerate and delete an episode", () => {
     await expect(length).toBeHidden();
     expect((await lengths()).every(([made, now]) => made === now)).toBe(true);
     // A length the listener picked stays when the words go.
-    await note.pressSequentially("It dragged on");
+    await note.pressSequentially("It went on and on");
     await expect(length).toBeVisible();
     await length.locator("label").last().click();
     await note.fill("");
     await expect(length).toBeVisible();
     expect((await lengths()).at(-1)?.[1]).toBe(true);
     // The dialog keeps its words when closed; opened again, the models read them again.
-    await note.fill("It dragged on");
+    await note.fill("It went on and on");
     await expect.poll(() => asked.length).toBe(3);
     await page.keyboard.press("Escape");
     await expect(panel(page)).toBeHidden();

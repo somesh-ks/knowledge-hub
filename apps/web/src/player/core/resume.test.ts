@@ -104,10 +104,21 @@ describe("a rewritten recording", () => {
     );
   });
 
-  it("names the recording by the file the browser tries first", () => {
-    expect(recordingOf({ url: "a.mp3", m4a_url: "a.m4a" })).toBe("a.m4a");
-    expect(recordingOf({ url: "a.mp3" })).toBe("a.mp3");
-    expect(recordingOf(null)).toBeUndefined();
+  // Named by its file, an episode narrated on Play lost its place when its Opus file arrived, and a
+  // rewrite of the same stories in a new tone kept the old one's.
+  it("names the recording by what it says, not by the file that carries it", () => {
+    const story = {
+      id: "a1",
+      headline: "Springs",
+      text: "Springs settle.",
+      section: "craft",
+      source: "blog",
+      start_ms: null,
+      end_ms: null,
+    };
+    const said = recordingOf({ items: [story] });
+    expect(recordingOf({ items: [{ ...story, start_ms: 0, end_ms: 9_000 }] })).toBe(said);
+    expect(recordingOf({ items: [{ ...story, text: "Springs settle, at last." }] })).not.toBe(said);
   });
 
   it("keeps memory written before the recording was noted, and a reader that does not know it", () => {

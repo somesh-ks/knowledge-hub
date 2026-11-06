@@ -280,7 +280,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       track.digest.id,
       time,
       durationNow(),
-      recordingOf(track.digest.audio),
+      recordingOf(track.digest),
     );
   }
 
@@ -387,7 +387,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     stopTimers();
     wantsPlay = false;
     time = durationNow();
-    clearResumePosition(storage, track.digest.id, recordingOf(track.digest.audio));
+    clearResumePosition(storage, track.digest.id, recordingOf(track.digest));
     commit({ status: "ended", buffering: false, upNextId: track.digest.prev_id });
     publishTime("auto", true);
     emit({ type: "ended" });
@@ -686,7 +686,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
     const timeline = buildTimeline(digest);
     const duration = timeline?.durationSec ?? 0;
-    const restored = readResumePosition(storage, digest.id, duration, recordingOf(digest.audio));
+    const restored = readResumePosition(storage, digest.id, duration, recordingOf(digest));
     time = restored;
     pendingStart = restored > 0 ? restored : null;
     track = { digest, timeline };
