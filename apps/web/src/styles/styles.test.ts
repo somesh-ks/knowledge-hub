@@ -1293,7 +1293,14 @@ describe("design-system components in page stylesheets", () => {
         .filter(
           ([selector, body]) =>
             /--color-focus-ring\s*:/.test(body) &&
-            !/^:root\b|data-input|field-input|textarea/.test(selector.trim()),
+            selector
+              .split(",")
+              .some(
+                (part) =>
+                  !/^:root(\[[^\]]*\]|:not\([^)]*\))*$|data-input|field-input|textarea/.test(
+                    part.trim(),
+                  ),
+              ),
         )
         .map(([selector]) => `${file}: ${selector.replace(/\s+/g, " ")}`),
     );
