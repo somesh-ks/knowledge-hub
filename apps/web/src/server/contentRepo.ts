@@ -73,6 +73,12 @@ function parseManifest(text: string): Manifest | null {
   }
 }
 
+const sha256Of = (text: string): string => createHash("sha256").update(text).digest("hex");
+
+/** Whether `text` is the body the manifest's hash names. The reader strips a leading BOM, the hash covers it. */
+const namedBy = (hash: string, text: string): boolean =>
+  sha256Of(text) === hash || sha256Of(`\uFEFF${text}`) === hash;
+
 /**
  * The store's files as the site's readers see them: repository paths, listed from the manifest.
  * `onMismatch` hears of a body that is not the one the manifest names: the Blob CDN ignores the
@@ -94,8 +100,7 @@ export function storeFiles(
       const hash = manifest.files[path];
       if (hash === undefined) return null;
       const text = await readPublicText(`${base}/content/${path}?v=${hash}`, doFetch);
-      if (text !== null && onMismatch && createHash("sha256").update(text).digest("hex") !== hash)
-        onMismatch();
+      if (text !== null && onMismatch && !namedBy(hash, text)) onMismatch();
       return text;
     },
   };
@@ -128,9 +133,10 @@ let heldSite: HeldSite | null = null;
 
 /** The CDN's old copy is gone within a minute: a site loaded on one is loaded again this often, this many times. */
 const STALE_RECHECK_MS = 20_000;
-// shortcut: a body whose text does not round-trip as UTF-8 always mismatches; after this many tries
-// the load is kept as it is, so such a file costs three more loads of that manifest, not one per window.
-const STALE_RECHECKS = 3;
+// shortcut: a body that is not valid UTF-8 always mismatches; after this many tries the load is kept as
+// it is, so such a file costs four more loads of that manifest, not one per window. Four tries over 80 s
+// outlast the CDN's minute from the first load.
+const STALE_RECHECKS = 4;
 
 /** Whether the site held for this manifest can answer, or a stale read of it is due another try. */
 function holdsCurrent(held: HeldSite, updatedAt: string, now: number): boolean {
@@ -268,29 +274,43 @@ export async function loadStoreSiteChecked(
     return loaded;
   });
   const previous = heldSite;
-  heldSite = {
+  const entry: HeldSite = {
     updatedAt: current.manifest.updated_at,
     site,
     loadedAt: deps.now(),
     stale,
     rechecks: previous?.updatedAt === current.manifest.updated_at ? previous.rechecks + 1 : 0,
   };
-  // A failed load is not kept, so the next request tries again; the site held before it stays.
-  site.catch(() => {
-    if (heldSite?.site === site) heldSite = previous;
-  });
+  heldSite = entry;
+  site.then(
+    // The window counts from the end of the load, not its start.
+    () => {
+      entry.loadedAt = deps.now();
+    },
+    // A failed load is not kept, so the next request tries again; the site held before it stays.
+    () => {
+      if (heldSite?.site === site) heldSite = previous;
+    },
+  );
   try {
     return { site: await site.then((loaded) => withoutTombstoned(loaded, ids)), saved };
   } catch (error) {
     // The newer content could not be read: the last site this instance loaded is fresher than the
     // build's copy, and says it is saved.
     if (previous === null) throw error;
-    const held = await previous.site
+    const kept = await previous.site
       .then((loaded) => withoutTombstoned(loaded, ids))
       .catch(() => null);
-    if (held === null) throw error;
+    if (kept === null) throw error;
+    // A load again of a manifest already shown only looked for a newer copy of a file. Its failure
+    // is not a saved site, and counts as a try, so a store that is down is not asked on every request.
+    if (previous.updatedAt === current.manifest.updated_at) {
+      previous.rechecks += 1;
+      previous.loadedAt = deps.now();
+      return { site: kept, saved };
+    }
     savedContent = true;
-    return { site: held, saved: true };
+    return { site: kept, saved: true };
   }
 }
 

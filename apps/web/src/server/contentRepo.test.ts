@@ -350,3 +350,38 @@ it("loads a manifest again while a file still answers with an older body, and ke
   now += 3 * MANIFEST_TTL_MS;
   expect(await titleOf()).toBe("Rewritten");
 });
+
+// Bug (review of the test above): a file the CDN never lets go of, or one saved with a byte-order mark
+// (the reader strips it, the hash covers it), must not make every window reload the whole site.
+it("stops loading a manifest again after a few tries, and a BOM is not a mismatch", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  const path = "content/Podcasts/2026/10/ep-20261007-1930.md";
+  const body = store.get(path) ?? "";
+  // Saved with a BOM: the manifest hashes the bytes, the reader sees the text without it.
+  const hash = createHash("sha256").update(`﻿${body}`).digest("hex");
+  const manifest = JSON.parse(store.get("content/manifest.json") ?? "{}");
+  manifest.files["Podcasts/2026/10/ep-20261007-1930.md"] = hash;
+  store.set("content/manifest.json", JSON.stringify(manifest));
+  let now = 0;
+  const deps = { env: ENV, fetch: fakeFetch, now: () => now };
+  await loadStoreSite(deps);
+  const afterFirst = fileReads;
+  now = 10 * MANIFEST_TTL_MS;
+  await loadStoreSite(deps);
+  expect(fileReads).toBe(afterFirst);
+
+  // Now the CDN answers with a body the manifest does not name, for good.
+  resetContentRepo();
+  const wrong = JSON.parse(store.get("content/manifest.json") ?? "{}");
+  wrong.files["Podcasts/2026/10/ep-20261007-1930.md"] = "0".repeat(64);
+  store.set("content/manifest.json", JSON.stringify(wrong));
+  now = 0;
+  await loadStoreSite(deps);
+  const perLoad = fileReads - afterFirst;
+  for (let window = 1; window <= 12; window += 1) {
+    now = window * 21_000;
+    await loadStoreSite(deps);
+  }
+  // The first load and four more, then it is kept as it is.
+  expect(fileReads - afterFirst).toBe(perLoad * 5);
+});
