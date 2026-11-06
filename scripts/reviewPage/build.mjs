@@ -13,7 +13,7 @@
  * design system as it changes. Plain Node, no dependencies.
  */
 import { cpSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -89,6 +89,7 @@ export function normalise(review, dir) {
   for (const key of ["pr", "pr_url", "title", "version", "updated", "changes"]) {
     if (review[key] == null) fail(`review.json needs "${key}"`);
   }
+  if (!/^https:\/\//.test(review.pr_url)) fail('"pr_url" must be an https link');
   const ids = new Set();
   const domIds = new Set(PAGE_IDS);
   const claim = (domId, what) => {
@@ -107,6 +108,9 @@ export function normalise(review, dir) {
       ids.add(still.id);
       claim(still.id.replaceAll(".", "-"), `still "${still.id}"`);
       const file = join(dir, still.file ?? "");
+      // --out copies each still to the same relative path, so it must stay inside the review dir.
+      if (relative(dir, file).startsWith("..") || /^[/\\]|^[a-z]:/i.test(still.file ?? ""))
+        fail(`still "${still.id}": file "${still.file}" must sit inside the review folder`);
       if (!still.file || !existsSync(file) || !statSync(file).isFile())
         fail(`still "${still.id}": file "${still.file}" not found`);
       for (const key of Object.keys(still.tags ?? {}))
@@ -152,7 +156,7 @@ export function build(dir) {
   const data = JSON.stringify(review).replace(/</g, "\\u003c");
   // Function replacers: the inlined CSS and data hold "$" sequences that a string replacement would read.
   let html = readFileSync(join(HERE, "template.html"), "utf8")
-    .replace("@TITLE@", () => `${review.short_title ?? "Review"} #${review.pr}`)
+    .replace("@TITLE@", () => escapeHtml(`${review.short_title ?? "Review"} #${review.pr}`))
     .replace("/*@FONT_FACE@*/", () => fontFace())
     .replace("/*@TOKENS@*/", () => readFileSync(join(STYLES, "tokens.css"), "utf8"))
     .replace("/*@DS@*/", () =>
