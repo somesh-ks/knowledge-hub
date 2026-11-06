@@ -310,3 +310,43 @@ it("skips an episode deleted a moment ago, before the sync drops it from the sto
   expect(after?.episodes.map((entry) => entry.id)).not.toContain(gone);
   expect(after?.episodes.length).toBe((before?.episodes.length ?? 0) - 1);
 });
+
+// Bug (2026-11-04): the Blob CDN ignores the query string, so a file overwritten in the last minute
+// can still answer with its old body. A site loaded on that body was held until the manifest next
+// changed, which could be days, and a new episode's cover answered "not ready" the whole time.
+it("loads a manifest again while a file still answers with an older body, and keeps the newer one", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  const path = "content/Podcasts/2026/10/ep-20261007-1930.md";
+  const old = store.get(path) ?? "";
+  let now = 0;
+  const deps = { env: ENV, fetch: fakeFetch, now: () => now };
+  const titleOf = async (): Promise<string | undefined> =>
+    (await loadStoreSite(deps))?.episodes.find((entry) => entry.id === "ep-20261007-1930")?.episode
+      .title;
+  const first = await titleOf();
+
+  // The file is rewritten and the manifest names the new body; the CDN still has the old one.
+  const fresh = old.replace(/^title: .*$/m, "title: Rewritten");
+  store.set(path, fresh);
+  const manifest = JSON.parse(store.get("content/manifest.json") ?? "{}");
+  manifest.updated_at = "2026-10-24T13:00:00Z";
+  manifest.files["Podcasts/2026/10/ep-20261007-1930.md"] = createHash("sha256")
+    .update(fresh)
+    .digest("hex");
+  store.set("content/manifest.json", JSON.stringify(manifest));
+  let cdnStale = true;
+  deps.fetch = async (url: string): Promise<Response> =>
+    cdnStale && url.includes("ep-20261007-1930") ? new Response(old) : fakeFetch(url);
+
+  now = 2 * MANIFEST_TTL_MS;
+  expect(await titleOf()).toBe(first);
+  // Inside the window the held load answers; no further object reads.
+  const reads = fileReads;
+  now += 1_000;
+  await titleOf();
+  expect(fileReads).toBe(reads);
+
+  cdnStale = false;
+  now += 3 * MANIFEST_TTL_MS;
+  expect(await titleOf()).toBe("Rewritten");
+});

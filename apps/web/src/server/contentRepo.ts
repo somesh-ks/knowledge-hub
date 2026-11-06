@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { dangerouslyDeleteByTag } from "@vercel/functions";
 import type { ContentFiles } from "../lib/contentFiles";
 import { loadSite, readSiteFrom, type Site } from "../lib/site";
@@ -72,8 +73,17 @@ function parseManifest(text: string): Manifest | null {
   }
 }
 
-/** The store's files as the site's readers see them: repository paths, listed from the manifest. */
-export function storeFiles(base: string, manifest: Manifest, doFetch: BlobFetch): ContentFiles {
+/**
+ * The store's files as the site's readers see them: repository paths, listed from the manifest.
+ * `onMismatch` hears of a body that is not the one the manifest names: the Blob CDN ignores the
+ * query string, so a path overwritten in the last minute can still answer with its old copy.
+ */
+export function storeFiles(
+  base: string,
+  manifest: Manifest,
+  doFetch: BlobFetch,
+  onMismatch?: () => void,
+): ContentFiles {
   const paths = Object.keys(manifest.files).sort();
   return {
     async list(directory) {
@@ -83,7 +93,10 @@ export function storeFiles(base: string, manifest: Manifest, doFetch: BlobFetch)
     async read(path) {
       const hash = manifest.files[path];
       if (hash === undefined) return null;
-      return readPublicText(`${base}/content/${path}?v=${hash}`, doFetch);
+      const text = await readPublicText(`${base}/content/${path}?v=${hash}`, doFetch);
+      if (text !== null && onMismatch && createHash("sha256").update(text).digest("hex") !== hash)
+        onMismatch();
+      return text;
     },
   };
 }
@@ -99,7 +112,35 @@ export interface ContentRepoDeps {
 
 let heldManifest: { at: number; base: string; manifest: Manifest } | null = null;
 let heldTombstones: { at: number; ids: Promise<ReadonlySet<string>> } | null = null;
-let heldSite: { updatedAt: string; site: Promise<Site> } | null = null;
+/**
+ * The site as loaded from one manifest. `stale` counts the bodies that were not the ones the manifest
+ * names (an old CDN copy, see storeFiles); `rechecks` how often this manifest was loaded again for it.
+ */
+interface HeldSite {
+  updatedAt: string;
+  site: Promise<Site>;
+  loadedAt: number;
+  stale: { count: number };
+  rechecks: number;
+}
+
+let heldSite: HeldSite | null = null;
+
+/** The CDN's old copy is gone within a minute: a site loaded on one is loaded again this often, this many times. */
+const STALE_RECHECK_MS = 20_000;
+// shortcut: a body whose text does not round-trip as UTF-8 always mismatches; after this many tries
+// the load is kept as it is, so such a file costs three more loads of that manifest, not one per window.
+const STALE_RECHECKS = 3;
+
+/** Whether the site held for this manifest can answer, or a stale read of it is due another try. */
+function holdsCurrent(held: HeldSite, updatedAt: string, now: number): boolean {
+  if (held.updatedAt !== updatedAt) return false;
+  return (
+    held.stale.count === 0 ||
+    held.rechecks >= STALE_RECHECKS ||
+    now - held.loadedAt < STALE_RECHECK_MS
+  );
+}
 
 /** Forget what this instance holds. For tests. */
 export function resetContentRepo(): void {
@@ -191,9 +232,13 @@ export async function loadStoreSiteChecked(
   if (current === null) return null;
   const ids = await currentTombstones(current.base, deps);
   const { saved } = current;
-  if (heldSite?.updatedAt === current.manifest.updated_at)
-    return { site: await heldSite.site.then((site) => withoutTombstoned(site, ids)), saved };
-  const files = storeFiles(current.base, current.manifest, deps.fetch);
+  const held = heldSite;
+  if (held !== null && holdsCurrent(held, current.manifest.updated_at, deps.now()))
+    return { site: await held.site.then((site) => withoutTombstoned(site, ids)), saved };
+  const stale = { count: 0 };
+  const files = storeFiles(current.base, current.manifest, deps.fetch, () => {
+    stale.count += 1;
+  });
   let failed: unknown = null;
   const site = loadSite({
     root: "",
@@ -223,7 +268,13 @@ export async function loadStoreSiteChecked(
     return loaded;
   });
   const previous = heldSite;
-  heldSite = { updatedAt: current.manifest.updated_at, site };
+  heldSite = {
+    updatedAt: current.manifest.updated_at,
+    site,
+    loadedAt: deps.now(),
+    stale,
+    rechecks: previous?.updatedAt === current.manifest.updated_at ? previous.rechecks + 1 : 0,
+  };
   // A failed load is not kept, so the next request tries again; the site held before it stays.
   site.catch(() => {
     if (heldSite?.site === site) heldSite = previous;
