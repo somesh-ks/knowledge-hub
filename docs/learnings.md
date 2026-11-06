@@ -41,7 +41,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-31: `serializeTopics` lists fields, `upsertTopic` branches by origin: a new `Topic` field needs both.
 - 2026-10-28: a run record's `at` is publish time (96 min for 3); time a run as `generated_at` less `window.to` (D203).
 - 2026-10-27: a briefing shipped 3 stories (79 s): grounding dropped 5 of 8 and the reserve was empty, since the structure's section caps capped it too (#373).
-- 2026-10-27: the runner has no ffmpeg with libopus, so Opus and its test skipped silently; ffprobe counts MP3 padding (52 ms a turn). Workflows install it and measure turns by decoding. The install hung 5 to 19 min behind `-qq`: bound apt, log it, `continue-on-error` (#388).
+- 2026-10-27: the runner has no ffmpeg with libopus, so Opus and its test skipped silently; ffprobe counts MP3 padding (52 ms a turn). Workflows install it and measure turns by decoding. The install hung behind `-qq`: bound apt, log it, `continue-on-error` (#388).
 - 2026-10-25: `urlKey` (sources/import.ts) dropped the query string, so every YouTube feed (`?channel_id=`) matched every other: a second channel failed "Already a source", and the store's replay of an added channel could not read it. A feed's key keeps `channel_id`.
 - 2026-10-23: Vercel's Neon integration names its variables `NEON_*`, which nothing reads: seed before the GitHub variable goes on. lightningcss rejects `::picker(select)::backdrop`: scrim with a `0 0 0 100vmax` shadow. A long-press drag on a scrolling list needs `draggable`.
 - 2026-10-24: a 5-minute daily aired 3.0: 14 written, validation cut 7, nothing refilled. Validation refills once from `reserve.json`. Grounding never saw the title the writer read.

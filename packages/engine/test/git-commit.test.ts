@@ -733,6 +733,66 @@ describe("commitAndPush: pushing", () => {
   });
 });
 
+describe("commitAndPush: the run state store (D381)", () => {
+  // The bug it prevents: a run whose digest is on the remote but whose seen/judgments never reached
+  // Postgres would end green, and the next run would write those stories again.
+  it("ends red when the commit is pushed but the state did not reach Postgres", async () => {
+    await put(pair.a, "state/seen.json", "{}\n");
+    const outcome = await commitAndPush({
+      root: pair.a,
+      message: MESSAGE,
+      command: "run",
+      push: true,
+      saveState: async () => {
+        throw new Error("connection refused");
+      },
+    });
+    expect(outcome).toMatchObject({ status: "push_failed", reason: "state_store" });
+    expect(outcome.status === "push_failed" && outcome.detail).toContain("connection refused");
+    expect(remoteHead()).toBe(head(pair.a));
+  });
+
+  // The bug it prevents: saving state for a digest the remote never got marks its stories seen.
+  it("saves nothing when the git push failed, or when nothing was asked to push", async () => {
+    const saved: string[] = [];
+    const saveState = async (root: string): Promise<void> => {
+      saved.push(root);
+    };
+    await put(pair.a, "state/seen.json", "{}\n");
+    await commitAndPush({ root: pair.a, message: MESSAGE, command: "run", push: false, saveState });
+    git(pair.a, "checkout", "-q", "--detach");
+    await put(pair.a, "state/seen.json", '{ "again": 1 }\n');
+    const failed = await commitAndPush({
+      root: pair.a,
+      message: MESSAGE,
+      command: "run",
+      push: true,
+      saveState,
+    });
+    expect(failed).toMatchObject({ status: "push_failed", reason: "detached_head" });
+    expect(saved).toEqual([]);
+  });
+
+  it("saves after a successful push, and only for the commands that write run state", async () => {
+    const saved: string[] = [];
+    const saveState = async (root: string): Promise<void> => {
+      saved.push(root);
+    };
+    await put(pair.a, "state/seen.json", "{}\n");
+    await commitAndPush({ root: pair.a, message: MESSAGE, command: "run", push: true, saveState });
+    expect(saved).toEqual([pair.a]);
+    await put(pair.a, "state/usage.json", "{}\n");
+    await commitAndPush({
+      root: pair.a,
+      message: "chore(audio): usage",
+      command: "publish",
+      push: true,
+      saveState,
+    });
+    expect(saved).toEqual([pair.a]);
+  });
+});
+
 describe("identityFromEnv", () => {
   it("returns the owner identity only when both variables are set", () => {
     expect(identityFromEnv({})).toBeUndefined();

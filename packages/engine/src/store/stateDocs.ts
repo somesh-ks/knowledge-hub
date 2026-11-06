@@ -101,6 +101,11 @@ async function readBaseline(root: string): Promise<Baseline | null> {
   }
 }
 
+/** Whether a pull has left a record here: a job that never pulled has nothing to push. */
+export async function hasPullRecord(root: string): Promise<boolean> {
+  return (await readBaseline(root)) !== null;
+}
+
 async function writeBaseline(root: string, baseline: Baseline): Promise<void> {
   await mkdir(join(root, ".cache"), { recursive: true });
   await writeFileAtomic(join(root, STATE_BASELINE_PATH), `${JSON.stringify(baseline)}\n`);

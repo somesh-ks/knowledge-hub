@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -421,5 +421,61 @@ describe("the owner's config is not in git (D296)", () => {
     const code = await runCli(["run", "--stage", "gate"], downIo({ value: 0 }, [], ran));
     expect(code).toBe(0);
     expect(ran).toEqual(["ran"]);
+  });
+});
+
+describe("the run state is in Postgres when its switch is on (D381)", () => {
+  const ENV = { DATABASE_URL: "postgres://fake", SINGULARITY_STATE_STORE: "postgres" };
+  const ioFor = (connect: () => Promise<{ query: () => Promise<unknown[]> }>, ran: string[]) => ({
+    cwd: dir,
+    env: ENV,
+    now: () => NOW,
+    stdout: () => {},
+    stderr: () => {},
+    connectConfigStore: connect as never,
+    commands: [
+      stub(async () => {
+        ran.push("ran");
+        return 0;
+      }, "run"),
+    ],
+  });
+  beforeEach(async () => {
+    execFileSync("git", ["init", "-q"], { cwd: dir });
+    for (const path of CONFIG_DOCUMENT_PATHS) {
+      await mkdir(dirname(join(dir, path)), { recursive: true });
+      await writeFile(join(dir, path), "{}\n");
+    }
+  });
+
+  it("copies the stored rows over state/ before the command runs", async () => {
+    const ran: string[] = [];
+    const rows = [{ path: "state/seen.json", content: '{"stored":true}\n', version: 3 }];
+    const code = await runCli(
+      ["run", "--stage", "gate"],
+      ioFor(async () => ({ query: async () => rows }), ran),
+    );
+    expect(code).toBe(0);
+    expect(await readFile(join(dir, "state/seen.json"), "utf8")).toBe('{"stored":true}\n');
+  });
+
+  // The bug it prevents: a run that goes on with the files in its checkout when the store is down
+  // would push them over newer rows, or publish from a seen list that is out of date.
+  it("stops the command when the state store cannot be read", async () => {
+    const ran: string[] = [];
+    const code = await runCli(
+      ["run", "--stage", "gate"],
+      ioFor(async () => {
+        throw new Error("connect ECONNREFUSED");
+      }, ran),
+    );
+    expect(code).toBe(1);
+    expect(ran).toEqual([]);
+  });
+
+  it("leaves state/ alone with the switch off", async () => {
+    const ran: string[] = [];
+    const io = { ...ioFor(async () => ({ query: async () => [] }), ran), env: {} };
+    expect(await runCli(["run", "--stage", "gate"], io)).toBe(0);
   });
 });

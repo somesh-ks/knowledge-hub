@@ -1,5 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { STATE_SAVING_COMMANDS, saveStateIfOn } from "../store/stateSave.js";
 import type { ChangedPath, GitCommand } from "./guard.js";
 import {
   ALLOWLISTS,
@@ -58,9 +59,17 @@ export interface CommitAndPushInput {
   identity?: BotIdentity;
   /** Injected for tests; defaults to real git in `root`. */
   git?: GitRunner;
+  /** Injected for tests; defaults to saving the run state to Postgres when that store is on (D381). */
+  saveState?: (root: string) => Promise<void>;
 }
 
-export type PushFailureReason = "rebase_conflict" | "rejected" | "error" | "detached_head";
+/** `state_store`: the commit is on the remote but the run state did not reach Postgres. */
+export type PushFailureReason =
+  | "rebase_conflict"
+  | "rejected"
+  | "error"
+  | "detached_head"
+  | "state_store";
 
 export type CommitOutcome =
   | { status: "nothing_to_commit" }
@@ -143,7 +152,7 @@ export async function commitAndPush(input: CommitAndPushInput): Promise<CommitOu
   const sha = (await gitOutput(run, ["rev-parse", "HEAD"])).trim();
 
   if (!input.push) return { status: "committed", sha, paths };
-  return pushWithRebase({
+  const pushed = await pushWithRebase({
     run,
     root: input.root,
     identity,
@@ -152,6 +161,24 @@ export async function commitAndPush(input: CommitAndPushInput): Promise<CommitOu
     sha,
     paths,
   });
+  if (pushed.status !== "pushed" || !STATE_SAVING_COMMANDS.has(input.command)) return pushed;
+  // The run state goes to Postgres only once the commit is on the remote: a failed push must not
+  // leave a story marked seen in the store with no digest. A failed save is a failed commit, so the
+  // run ends red and the caller marks it done as it does for any other push failure.
+  try {
+    await (input.saveState ?? saveStateIfOn)(input.root);
+  } catch (error) {
+    return {
+      status: "push_failed",
+      reason: "state_store",
+      sha,
+      paths,
+      retries: pushed.retries,
+      detail: `the run state was not saved to Postgres: ${error instanceof Error ? error.message : String(error)}`,
+      conflicts: [],
+    };
+  }
+  return pushed;
 }
 
 interface PushInput {

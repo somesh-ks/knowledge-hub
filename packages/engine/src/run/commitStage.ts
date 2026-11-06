@@ -496,7 +496,9 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
     const reason =
       committed.status === "refused"
         ? `The commit was refused (${committed.reason}): ${committed.offending.join(", ")}`
-        : `Committed ${committed.sha.slice(0, 7)} locally but the push failed (${committed.reason}). Run git push once the remote is reachable.`;
+        : committed.reason === "state_store"
+          ? `Committed and pushed ${committed.sha.slice(0, 7)} but ${committed.detail}. Run \`state push\` once the database is reachable.`
+          : `Committed ${committed.sha.slice(0, 7)} locally but the push failed (${committed.reason}). Run git push once the remote is reachable.`;
     return failedReport(false, reason, commit, finalReports);
   }
 
