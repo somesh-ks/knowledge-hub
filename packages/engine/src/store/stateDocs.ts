@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, readdir, readFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import type { Logger } from "../context.js";
 import { stateMergerFor } from "../git/stateMerge.js";
@@ -36,6 +36,12 @@ const CONFIG_PATHS: ReadonlySet<string> = new Set(CONFIG_DOCUMENT_PATHS);
 export function isStatePath(path: string): boolean {
   return STATE_PATH.test(path) && !CONFIG_PATHS.has(path);
 }
+
+/**
+ * Files whose merge subtracts the ancestor (the Speechify counter adds what this job added since the
+ * pull). Without one, both jobs' shared starting count would be added twice.
+ */
+const NEEDS_ANCESTOR: ReadonlySet<string> = new Set(["state/usage.json"]);
 
 /** Attempts to land a merged write before giving up; each loses only to another job's write. */
 const PUSH_ATTEMPTS = 4;
@@ -149,10 +155,13 @@ export async function pullState(root: string, sql: SqlClient): Promise<string[]>
       }
       baseline[row.path] = baselineOf(row);
     }
-  } finally {
-    // A failed pull still records the files it finished, so none is mistaken for this job's edit.
-    await writeBaseline(root, baseline);
+  } catch (error) {
+    // A pull that did not finish leaves no record at all: a partial one would let a push treat the
+    // files it never reached as new, and merge them without their ancestor.
+    await rm(join(root, STATE_BASELINE_PATH), { force: true });
+    throw error;
   }
+  await writeBaseline(root, baseline);
   return changed;
 }
 
@@ -286,6 +295,9 @@ async function pushOne(
     const merge = stateMergerFor(path);
     if (merge === undefined)
       throw new FileConflict("another job wrote it and it has no merge rule");
+    if (ancestor === null && NEEDS_ANCESTOR.has(path)) {
+      throw new FileConflict("another job wrote it and this job pulled before the row existed");
+    }
     const merged = merge({ base: ancestor, upstream: row.content, mine });
     if (merged === null) throw new FileConflict("a side could not be read to merge");
     content = merged;

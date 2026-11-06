@@ -188,4 +188,35 @@ describe("pullState and pushState", () => {
     await writeFile(join(root, "state/seen.json"), "1\n");
     expect(await pushState(root, sql)).toEqual({ written: ["state/seen.json"], merged: [] });
   });
+
+  // The bug: two checkouts pulled before usage.json had a row and both hold the same local count.
+  // The first push inserts it; merging the second one with no ancestor would add that shared count
+  // again and inflate the Speechify quota.
+  it("refuses to merge usage.json when the pull saw no row to take as the ancestor", async () => {
+    const sql = await realStore();
+    const usage = `${JSON.stringify({ speechify: { month: "2026-11", characters: 100 } })}\n`;
+    const a = await checkout({ "state/usage.json": usage });
+    const b = await checkout({ "state/usage.json": usage });
+    await pullState(a, sql);
+    await pullState(b, sql);
+    await pushState(a, sql);
+    await expect(pushState(b, sql)).rejects.toBeInstanceOf(StateConflictError);
+    const [row] = await sql.query("select content from state_documents");
+    expect(row?.content).toBe(usage);
+  });
+
+  // The bug: a pull whose row query fails must not leave a record that lets a push go ahead and
+  // treat every state file as new.
+  it("leaves no pull record when the pull fails, so a push refuses", async () => {
+    const sql = await realStore();
+    const root = await checkout({ "state/seen.json": "x\n" });
+    await pullState(root, sql);
+    const broken: SqlClient = {
+      query: async () => {
+        throw new Error("network down");
+      },
+    };
+    await expect(pullState(root, broken)).rejects.toThrow("network down");
+    await expect(pushState(root, sql)).rejects.toThrow(/state pull/);
+  });
 });
