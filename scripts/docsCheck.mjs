@@ -77,7 +77,8 @@ export function checkDocs(root) {
     if (!head || rel !== `docs/decisions/entries/${head[1]}.md`)
       fails.push(`${rel}: holds one decision, named for it (entries/D379.md has "## D379: ...")`);
     else if (!status) fails.push(`${rel}: no "- Status:" line`);
-    else filed.push(`| ${head[1]} | ${head[2].replace(/\|/g, "/")} | ${status} |`);
+    else
+      filed.push(`| ${head[1]} | ${head[2].replace(/\|/g, "/")} | ${status.replace(/\|/g, "/")} |`);
   }
   const allRows = `${index}\n${archive}\n${filed.join("\n")}`;
   const decisions = entryFiles.map(read).join("\n");
