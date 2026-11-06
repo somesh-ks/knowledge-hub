@@ -15,8 +15,9 @@
 
 .glow-halo {
   /* About the size of two and a half touch targets: the halo reads as the heart's light, past the
-     control on a round button, inside it on a tile. */
-  --glow-size: calc(var(--size-touch) * 2.5);
+     control on a round button, inside it on a tile. Smaller where a box that clips it is nearer
+     (--glow-room, glow.ts), so its fade never meets a cut edge. */
+  --glow-size: min(calc(var(--size-touch) * 2.5), var(--glow-room, 100vmax));
   position: absolute;
   inset-inline-start: calc(var(--glow-x, 50%) - var(--glow-size) / 2);
   inset-block-start: calc(var(--glow-y, 50%) - var(--glow-size) / 2);

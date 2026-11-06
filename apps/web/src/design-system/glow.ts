@@ -43,6 +43,10 @@ export function glowFavorite(control: HTMLElement): void {
   const y = glyph?.height ? glyph.top + glyph.height / 2 - box.top : box.height / 2;
   halo.style.setProperty("--glow-x", `${x}px`);
   halo.style.setProperty("--glow-y", `${y}px`);
+  const room = roomAround(control, box.left + x, box.top + y);
+  // The gradient is clear at 70% of the radius, so a halo up to room / 0.35 wide never meets the
+  // edge of a box that clips it (the hero's row scrolls sideways): a cut edge would read as a box.
+  if (room < Number.POSITIVE_INFINITY) halo.style.setProperty("--glow-room", `${room / 0.35}px`);
   control.removeAttribute(GLOWING);
   void control.offsetWidth;
   control.setAttribute(GLOWING, "");
@@ -51,4 +55,16 @@ export function glowFavorite(control: HTMLElement): void {
     halo.remove();
     control.removeAttribute(GLOWING);
   });
+}
+
+/** How far the point (x, y) is from the nearest edge of a box around `control` that clips it. */
+function roomAround(control: HTMLElement, x: number, y: number): number {
+  let room = Number.POSITIVE_INFINITY;
+  for (let box = control.parentElement; box; box = box.parentElement) {
+    const style = getComputedStyle(box);
+    const rect = box.getBoundingClientRect();
+    if (style.overflowX !== "visible") room = Math.min(room, x - rect.left, rect.right - x);
+    if (style.overflowY !== "visible") room = Math.min(room, y - rect.top, rect.bottom - y);
+  }
+  return Math.max(room, 0);
 }
