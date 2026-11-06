@@ -20,7 +20,14 @@ export async function saveStateIfOn(
   env: Record<string, string | undefined> = process.env,
 ): Promise<void> {
   const url = stateStoreUrl(env);
-  if (url === null || !(await hasPullRecord(root))) return;
+  if (url === null) return;
+  if (!(await hasPullRecord(root))) {
+    // A failure record after a gate that could not pull lands here too; both are worth one line.
+    process.stderr.write(
+      "singularity: the state store is on but this job did not pull from it, so its state was not saved.\n",
+    );
+    return;
+  }
   try {
     await pushState(root, await connectConfigStore(url));
   } catch (error) {
