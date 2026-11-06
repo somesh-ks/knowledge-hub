@@ -282,10 +282,19 @@ test.describe("regenerate and delete an episode", () => {
     );
     await choose(page, "Regenerate");
     await panel(page).getByLabel("What went wrong?").fill("More stories");
-    await expect(panel(page).getByLabel("Stories")).toBeVisible();
+    const field = panel(page).getByLabel("Stories");
+    await expect(field).toBeVisible();
+    // The step may land on Auto's count, shown as Auto and sent as null: either way it is sent.
+    const shown = Number(
+      (
+        await field.evaluate((select: HTMLSelectElement) => select.selectedOptions[0]?.text ?? "")
+      ).match(/\d+/)?.[0],
+    );
+    expect(shown).toBeGreaterThan(aired);
     await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
     await expect.poll(() => bodies.length).toBe(1);
-    expect(bodies[0]?.stories).toBeGreaterThan(aired);
+    expect(bodies[0]).toHaveProperty("stories");
+    expect(bodies[0]?.stories ?? shown).toBe(shown);
     expect(bodies[0]).not.toHaveProperty("length_minutes");
   });
 

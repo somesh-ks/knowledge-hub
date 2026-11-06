@@ -152,7 +152,7 @@ const COPY = {
       <Select id="create-stories" name="stories" data-saved={startStories} data-wheel autocomplete="off">
         {
           storyOptions(startLength).map((entry) => (
-            <option value={entry.value} hidden={entry.hidden} disabled={entry.hidden} selected={entry.value === startStories}>
+            <option value={entry.value} data-wheel-text={entry.wheel} hidden={entry.hidden} disabled={entry.hidden} selected={entry.value === startStories}>
               {entry.label}
             </option>
           ))

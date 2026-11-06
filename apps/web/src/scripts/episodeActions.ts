@@ -215,9 +215,10 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       // The length goes only when it differs from the one the episode was made at.
       const length = dialog.querySelector<HTMLInputElement>('input[name="length"]:checked');
       const minutes = length && !length.defaultChecked ? Number(length.value) : null;
-      // Untouched Auto sends nothing, so the episode keeps its count; a picked Auto sends null.
+      // A shown Stories sends what it shows, Auto as null (the words' step may land on Auto's
+      // count); a hidden one sends nothing, so the episode keeps its count.
       const stories = storiesValue(storiesSelect?.value ?? "");
-      const sendStories = !briefing && (stories !== null || storiesTouched);
+      const sendStories = !briefing && storiesGroup?.hidden === false;
       body = {
         action: "regenerate",
         id,

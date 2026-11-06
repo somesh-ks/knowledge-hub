@@ -123,7 +123,7 @@ const COPY = {
                 </h2>
                 <Select id="regen-stories" name="stories" data-wheel autocomplete="off">
                   {storyOptions(DEFAULT_REGEN_LENGTH).map((entry) => (
-                    <option value={entry.value} hidden={entry.hidden} disabled={entry.hidden} selected={entry.value === ""}>
+                    <option value={entry.value} data-wheel-text={entry.wheel} hidden={entry.hidden} disabled={entry.hidden} selected={entry.value === ""}>
                       {entry.label}
                     </option>
                   ))}

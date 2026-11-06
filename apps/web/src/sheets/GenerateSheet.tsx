@@ -210,8 +210,9 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
         feedbackRef.current?.value ?? "",
         topics,
         Number(length),
-        // Untouched Auto sends nothing, so the run keeps the schedule's count; a picked Auto sends null.
-        storiesPick === null && stories === "" ? undefined : storiesValue(stories),
+        // A shown Stories sends what it shows, Auto as null; a hidden one sends nothing, so the run
+        // keeps the schedule's count.
+        shownStories ? storiesValue(stories) : undefined,
       );
     } catch {
       // The indicator's chunk failed to load (offline, a stale deploy): say so, never stay busy.
@@ -361,6 +362,7 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
                   <option
                     key={entry.value}
                     value={entry.value}
+                    data-wheel-text={entry.wheel}
                     hidden={entry.hidden}
                     disabled={entry.hidden}
                   >

@@ -37,8 +37,11 @@ export function storiesForMinutes(minutes: number, floor: number, hardMax: numbe
   return Math.max(floor, Math.min(hardMax, stories));
 }
 
-/** The numbers the Stories control offers beside Auto, before those a length cannot hold are left out. */
-export const STORY_COUNTS = [5, 8, 10, 12, 15, 20, 25, 30, 40] as const;
+/**
+ * The numbers the Stories control offers beside Auto, in fives so a pick is easy (owner, 2026-11-06),
+ * before those a length cannot hold are left out. Auto and a Regenerate's step may land between them.
+ */
+export const STORY_COUNTS = [5, 10, 15, 20, 25, 30, 35, 40] as const;
 
 /**
  * English speech runs about six characters a word, spaces included: 364 characters a story is about

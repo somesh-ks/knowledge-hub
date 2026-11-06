@@ -1,3 +1,4 @@
+import { autoStories } from "@singularity/core/storyCount";
 import { type Hints, hintsFor } from "./regenHints";
 import { REGEN_LENGTHS } from "./regenLength";
 import { stepStories } from "./storyOptions";
@@ -125,11 +126,15 @@ export function desiredLength(
 
 /**
  * The count an untouched Stories control shows: a step from what aired when the comment asks for
- * more or fewer, else "" (Auto, which sends nothing). What Haiku proposed wins.
+ * more or fewer, else "" (Auto, which sends nothing), as it is when the step lands on Auto's count.
+ * What Haiku proposed wins.
  */
 export function desiredStories(aired: number, minutes: number, values: Values, text = ""): string {
   const way = values.stories ?? wordStories(text);
-  return way && Number.isFinite(aired) ? String(stepStories(aired, way, minutes)) : "";
+  if (!way || !Number.isFinite(aired)) return "";
+  // A step that lands on Auto's count is Auto: the list offers that count only as Auto.
+  const count = stepStories(aired, way, minutes);
+  return count === autoStories(minutes) ? "" : String(count);
 }
 
 /** Whether an untouched category is ticked: as it was made, or ticked because the comment wants it. */

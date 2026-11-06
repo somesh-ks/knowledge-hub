@@ -1,3 +1,4 @@
+import { autoStories } from "@singularity/core/storyCount";
 import { describe, expect, it } from "vitest";
 import {
   desiredChip,
@@ -45,7 +46,9 @@ describe("regenFollow (D371)", () => {
     expect(wordStories("More stories")).toBe("more");
     expect(wordLength("More stories")).toBeNull();
     expect(desiredLength(5, NO_ANSWER.values, "More stories")).toBe(5);
-    expect(desiredStories(12, 5, NO_ANSWER.values, "More stories")).toBe("15");
+    // At 5 minutes the step from 12 lands on Auto's count, which the list offers only as Auto.
+    const stepped = desiredStories(12, 5, NO_ANSWER.values, "More stories");
+    expect(Number(stepped || autoStories(5))).toBeGreaterThan(12);
     expect(wordStories("not enough news")).toBe("more");
     expect(wordStories("fewer stories please")).toBe("fewer");
     expect(wordStories("too many stories")).toBe("fewer");
@@ -61,7 +64,9 @@ describe("regenFollow (D371)", () => {
     // More than the length holds takes the next length too, so the ask is never sent unchanged:
     // 3 minutes holds 14 at the shortest telling, so 12 aired steps to 5 minutes and 15 stories.
     expect(desiredLength(3, NO_ANSWER.values, "More stories", 12)).toBe(5);
-    expect(desiredStories(12, 5, NO_ANSWER.values, "More stories")).toBe("15");
+    // At 5 minutes the step from 12 lands on Auto's count, which the list offers only as Auto.
+    const more = desiredStories(12, 5, NO_ANSWER.values, "More stories");
+    expect(Number(more || autoStories(5))).toBeGreaterThan(12);
     expect(wantedControls("More stories", [], NO_ANSWER, 3, 12).length).toBe(true);
     // Haiku's answer beats the words once it comes.
     expect(desiredStories(12, 5, { length: null, stories: "fewer", add: [] }, "More stories")).toBe(

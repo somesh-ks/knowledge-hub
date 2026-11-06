@@ -93,6 +93,7 @@ const inScope = (ids: readonly string[]): boolean =>
           {storyOptions(values.lengthMinutes).map((entry) => (
             <option
               value={entry.value}
+              data-wheel-text={entry.wheel}
               hidden={entry.hidden}
               disabled={entry.hidden}
               selected={entry.value === String(values.stories ?? "")}
