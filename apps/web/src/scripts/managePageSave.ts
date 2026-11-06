@@ -460,6 +460,8 @@ let lastSent = 0;
 let busy = false;
 /** The changes the request on its way carries: keepHeld leaves them to it. */
 let sending = new Set<Pending>();
+/** keepHeld moved newer edits to the outbox while that request was out: it goes ahead of them if it must be kept. */
+let overtaken = false;
 /** Another page's changes that came while a run was busy: sent once it is done. */
 const queued = new Set<SaveContext>();
 /** The outbox was asked to go while a run was busy: it goes once that run is done. */
@@ -692,6 +694,7 @@ export function keepHeld(context: SaveContext, now = Date.now()): void {
   // One write for every batch, so storage keeps all of them or none: a refusal leaves them all to
   // their run, in order, as before.
   if (!writeOutbox([...kept, ...batches.map((batch) => ({ at: now, ops: batch.ops }))])) return;
+  overtaken ||= sending.size > 0;
   for (const batch of batches) settle(batch, context.changes);
   try {
     context.settled?.();
@@ -756,8 +759,11 @@ export async function flush(context: SaveContext): Promise<void> {
    * Keeps a batch on this device for the connection to return, and settles it: the controls already
    * show the change. False when storage is refused, and the batch is then a failure to retry.
    */
-  const keep = (batch: Batch): boolean => {
-    if (!appendOutbox(batch.ops)) return false;
+  const keep = (batch: Batch, ahead = false): boolean => {
+    const stored = ahead
+      ? writeOutbox([{ at: Date.now(), ops: batch.ops }, ...readOutbox()])
+      : appendOutbox(batch.ops);
+    if (!stored) return false;
     kept = true;
     last = JSON.stringify(batch.ops);
     settle(batch, changes);
@@ -802,6 +808,11 @@ export async function flush(context: SaveContext): Promise<void> {
       }
       inFlight = [];
       sending = new Set();
+      const overtook = overtaken;
+      overtaken = false;
+      // Newer edits went to the outbox while this one was out: one that did not land goes ahead of
+      // them, and the outbox sends them all in order once this run ends.
+      if (overtook && (answer.status === 429 || answer.status === 0) && keep(batch, true)) continue;
       if (answer.status === 429 && waits < MAX_WAITS) {
         waits += 1;
         await new Promise((resolve) => setTimeout(resolve, answer.wait * 1000 + 250));
@@ -859,6 +870,7 @@ export async function flush(context: SaveContext): Promise<void> {
   } finally {
     busy = false;
     sending = new Set();
+    overtaken = false;
     // A page left with edits marked pending: the page open now hears how they went and takes what
     // failed, before another page's queued changes go (with them, when that page took them).
     if (!cut) {

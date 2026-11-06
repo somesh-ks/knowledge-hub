@@ -613,6 +613,35 @@ describe("a left page's held run", () => {
     ]);
     expect(outboxOps()).toEqual([]);
   });
+
+  it("keeps a held edit's older request ahead of it when that request is told to wait, so the two land in order", async () => {
+    let answer: (response: Response) => void = () => {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init: RequestInit) => {
+        const { op } = JSON.parse(String(init.body)) as { op: ConfigOp | ConfigOp[] };
+        posted.push([op].flat());
+        if (posted.length > 1) return Promise.resolve(new Response("{}", { status: 202 }));
+        return new Promise<Response>((resolve) => {
+          answer = resolve;
+        });
+      }),
+    );
+    const changes = new Map([["time", change({ op: "schedule.set", hour: 9 })]]);
+    const { context: left } = page(changes);
+    const run = flush(left);
+    await vi.advanceTimersByTimeAsync(0);
+    changes.set("length", change({ op: "schedule.set", length_minutes: 3 }));
+    keepHeld(left);
+    answer(new Response(JSON.stringify({ error: "too_soon", retry_after_s: 1 }), { status: 429 }));
+    await vi.advanceTimersByTimeAsync(GAP_MS * 3);
+    await run;
+    expect(posted.slice(1).flat()).toEqual([
+      { op: "schedule.set", hour: 9 },
+      { op: "schedule.set", length_minutes: 3 },
+    ]);
+    expect(outboxOps()).toEqual([]);
+  });
 });
 
 describe("remember", () => {
