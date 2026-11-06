@@ -184,16 +184,15 @@ self.addEventListener("message", (event) => {
   if (data.type === "SKIP_WAITING") self.skipWaiting();
   if (data.type === "DOWNLOADS_CHANGED") event.waitUntil(refreshDownloaded());
   // A download asks for the page's scripts and styles to be saved too, and hears when they are.
-  // Same origin only, as KEEP_READY: "//host/x" starts with "/" too and would fetch another site.
-  if (
-    data.type === "WARM_PAGE" &&
-    typeof data.path === "string" &&
-    data.path.startsWith("/") &&
-    !data.path.startsWith("//")
-  ) {
+  // Same origin only, resolved as fetch will: "//host" and "/\host" start with "/" and leave the site.
+  const warmUrl =
+    data.type === "WARM_PAGE" && typeof data.path === "string" && data.path.startsWith("/")
+      ? new URL(data.path, self.location.origin)
+      : null;
+  if (warmUrl && warmUrl.origin === self.location.origin) {
     const port = event.ports && event.ports[0];
     event.waitUntil(
-      fetch(data.path)
+      fetch(warmUrl.pathname + warmUrl.search)
         .then((response) => (response.ok ? warmAssets(response, AUDIO_CACHE) : undefined))
         .catch(() => undefined)
         .then(() => port?.postMessage("done")),

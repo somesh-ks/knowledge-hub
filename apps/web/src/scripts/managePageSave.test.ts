@@ -763,7 +763,7 @@ describe("edits kept on the device while the site cannot be reached (CFG-04)", (
     expect(readOutbox()).toEqual([]);
     expect(toasts).toEqual([
       expect.objectContaining({
-        message: `A change you made offline didn't save. ${REASONS[400]}`,
+        message: `A change you made earlier didn't save. ${REASONS[400]}`,
         kind: "error",
       }),
     ]);

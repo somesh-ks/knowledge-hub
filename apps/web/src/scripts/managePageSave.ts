@@ -638,7 +638,7 @@ async function sendOutbox(quiet: boolean): Promise<void> {
     solo = false;
     const reason = failureText(answer.status, answer.body);
     told = true;
-    sendToast({ message: `A change you made offline didn't save. ${reason}`, kind: "error" });
+    sendToast({ message: `A change you made earlier didn't save. ${reason}`, kind: "error" });
   }
 }
 
@@ -682,7 +682,13 @@ export function keepHeld(context: SaveContext, now = Date.now()): void {
   // shortcut: changes made while this page's request is out are left to its run (keepWaiting shows
   // them pending); upgrade if that is seen to lose edits.
   if (running === context && inFlight.length > 0) return;
-  const going = new Map([...context.changes].filter(([, pending]) => !pending.failed));
+  // An edit not final yet (a new topic's emoji, D142) stays with its run, which waits for it.
+  const going = new Map(
+    [...context.changes].filter(([, pending]) => !pending.failed && !pending.ready),
+  );
+  if (going.size === 0) return;
+  // Edits already kept (made offline) are told "synced" when they go; these alone are a plain save.
+  const quiet = readOutbox(now).length === 0;
   for (const batch of pack(buildQueue(going), going)) {
     if (!appendOutbox(batch.ops, now)) return;
     settle(batch, context.changes);
@@ -692,7 +698,7 @@ export function keepHeld(context: SaveContext, now = Date.now()): void {
       // The page is gone: nothing left to read again.
     }
   }
-  void drainOutbox(true);
+  void drainOutbox(quiet);
 }
 
 /**

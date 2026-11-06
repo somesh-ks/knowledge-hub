@@ -170,7 +170,7 @@ export function createApiRuntime(
     });
   } else {
     log.warn(
-      "TYPESAFE_API_KEY is not set: judging with the routed fallback judge (lower trust) and grounding with the routed models from config/models.json; the digest is still checked",
+      "TYPESAFE_API_KEY is not set: judging with the routed fallback judge (lower trust) and grounding with the routed models from config/models.json (a story they cannot check leaves the digest unverified)",
     );
     grounder = new JevGrounder({
       client: routedJev(router, "grounding"),

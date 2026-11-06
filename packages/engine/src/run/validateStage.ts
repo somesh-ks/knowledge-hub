@@ -183,7 +183,7 @@ interface ValidateDrop {
  * an item has one) is checked against its source text with Jev. groundAndRepair prunes an
  * unsupported sentence when the rest still passes voice lint, otherwise rewrites the item and
  * checks it again; its own notes list the ways an item is dropped. `verified` is true only when the grounder ran and every kept item passed
- * every check; without a Jev key the digest is kept and marked unverified. The surviving items
+ * every check; without a Jev key the routed models check it (curate/apiRuntime.ts). The surviving items
  * are then rendered as a digest and run through `validateDigest`: any item with an error drops,
  * and the floor of three is checked again, so the commit stage only ever sees a publishable
  * selection. Sections over their allowance lose their lowest-scored stories. A sized pass may
