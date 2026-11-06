@@ -48,7 +48,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D176 | Structure phase 1 | amends D170 |
 | D177 | Phone Costs switch | amends D169 |
 | D178 | No island at first load | amends D112 |
-| D179 | Every name says Singularity; saved state moves once | active |
+| D179 | Every name says Singularity; saved state moves once | partly superseded by D380 |
 | D180 | Eval on label only | amends D148 |
 | D181 | Claude writes only | active |
 | D182 | Block prompts | partly superseded by D344; active |

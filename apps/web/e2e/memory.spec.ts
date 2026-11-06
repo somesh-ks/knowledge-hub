@@ -165,22 +165,3 @@ test("the floating Play on Today follows the chip", async ({ page }) => {
   await expect(fab.locator("[data-chip-label]")).toHaveText("Resume · 1 min left");
   await expect(fab).toHaveAttribute("aria-label", "Resume · 1 min left, the podcast");
 });
-
-// Bug it prevents: the rename (D179) gave every saved key a new name, and a phone that saved under
-// the old one would have lost its theme and every Played mark.
-test("a phone that saved before the rename keeps its theme and what it played", async ({
-  page,
-}) => {
-  await seedStorage(page, {
-    local: {
-      "dispatch:preferences": JSON.stringify({ theme: "dark" }),
-      "dispatch:played:2026-10-07": "1",
-    },
-  });
-  await page.goto("/");
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  const played = page.locator(".hero-facts .hero-played");
-  await expect(played).toBeVisible();
-  await page.reload();
-  await expect(played).toBeVisible();
-});
