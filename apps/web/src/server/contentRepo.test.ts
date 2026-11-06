@@ -358,7 +358,7 @@ it("stops loading a manifest again after a few tries, and a BOM is not a mismatc
   const path = "content/Podcasts/2026/10/ep-20261007-1930.md";
   const body = store.get(path) ?? "";
   // Saved with a BOM: the manifest hashes the bytes, the reader sees the text without it.
-  const hash = createHash("sha256").update(`﻿${body}`).digest("hex");
+  const hash = createHash("sha256").update(`\uFEFF${body}`).digest("hex");
   const manifest = JSON.parse(store.get("content/manifest.json") ?? "{}");
   manifest.files["Podcasts/2026/10/ep-20261007-1930.md"] = hash;
   store.set("content/manifest.json", JSON.stringify(manifest));
