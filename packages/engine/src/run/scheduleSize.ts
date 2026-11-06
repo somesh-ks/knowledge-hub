@@ -58,12 +58,14 @@ export function overNarrationLimit(
  * writes beyond what it airs. Every story the writer, the voice check or grounding drops after
  * selection used to come off the owner's length: the 2026-10-15 daily chose 14 stories for five
  * minutes and published 4 (4 not written, 6 dropped by grounding). Validation keeps the best
- * survivors up to the length and leaves the rest unaired. Writing, grounding and validation lose
- * about 45% of what selection chose (2026-10-09: 6 of 15 written; the 2026-10-18 weekly: 13 of 27
- * selected), so a 0.3 share left the 15-minute weekly at 14 stories and 5 minutes. Covering a
- * 45% loss takes a share of at least 0.82.
+ * survivors up to the length and leaves the rest unaired. That loss was about 45% in October
+ * (0.85 covered it); the eight runs in state/run-metrics.json on 2026-11-06 lost 0 to grounding and
+ * 2 to 8 to validation, at most 22% of what was written (the 15-minute weekly: 8 of 37), while the
+ * daily wrote 19 to 28 stories and aired 12 or 13, the rest unaired spares paid for in writer and
+ * grounding calls and about 40 s of a regenerate. 0.4 covers a 28% loss (D119, revisited); a
+ * shortfall past it is refilled from the reserve once (validateStage).
  */
-export const SPARE_SHARE = 0.85;
+export const SPARE_SHARE = 0.4;
 
 /**
  * Stories a length-sized briefing may select and write, spares included. Above the digest's hard
