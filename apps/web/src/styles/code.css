@@ -3,19 +3,14 @@
  * monospace family (--font-code: Google Sans Code, the same in every mood), on the tonal box a
  * field has, with a Copy button at its top end. The text wraps and keeps its line breaks, so a long
  * line never scrolls sideways and nothing is cut. Pressed, the button's copy glyph turns to a check
- * for two seconds (data-copied, set by code.ts).
+ * for two seconds (data-copied, set by code.ts). It sits on the page or a sheet, never in a card: the
+ * card's padding around its own read as a frame in a frame (owner, 2026-11-06).
  */
 .code-snippet {
   position: relative;
   border-radius: var(--shape-lg);
   background: var(--color-surface-container);
   color: var(--color-on-surface);
-}
-
-/* On a card's fill it takes the page's own surface, as a field on a card does (topics.css), so it
-   reads against the card: the switch is automatic, by where it sits (owner, 2026-11-05). */
-:is(.card-group, .topic-panel) .code-snippet {
-  background: var(--color-surface);
 }
 
 /* The text keeps clear of the button: the glyph's width and a gap past the padding. */

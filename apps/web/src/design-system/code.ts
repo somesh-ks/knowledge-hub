@@ -10,7 +10,7 @@ import type { Guidance } from "./guidance";
 
 export const CODE: Guidance = {
   summary:
-    "Text to copy exactly as it is, in monospace, with a Copy button. Tonal on the page; on a card it takes the page's surface by itself.",
+    "Text to copy exactly as it is, in monospace, with a Copy button, on the page or a sheet.",
   useWhen: [
     "A person copies the text to paste elsewhere: a failed run's details, a prompt, an error.",
     "Lines must keep their breaks and characters: an id, a log line, a config value.",
@@ -18,6 +18,9 @@ export const CODE: Guidance = {
   dontUseWhen: [
     {
       when: "The text is read, not copied: a description, a status, an explanation.",
+    },
+    {
+      when: "The text would sit in a card: two paddings frame it twice. Put it on the page.",
     },
     {
       when: "The person types or edits the text.",
