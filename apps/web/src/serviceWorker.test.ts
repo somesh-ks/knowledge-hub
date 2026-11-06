@@ -701,21 +701,6 @@ describe("service worker: audio the person downloaded", () => {
     expect(worker.caches.stored()).toContain(AUDIO);
     expect(worker.caches.stored()).not.toContain(`${ORIGIN}/x`);
   });
-
-  // Bug it prevents: the rename (D179) moved the downloads to a new cache name, and the episodes a
-  // phone had downloaded would have stopped playing offline.
-  it("moves episodes downloaded under the old cache name and still plays them offline", async () => {
-    const worker = load(() => {
-      throw new TypeError("offline");
-    });
-    const old = await worker.caches.open("dispatch-audio-v1");
-    await old.put(AUDIO, new Response(body, { headers: { "content-type": "audio/mpeg" } }));
-    await old.put("/__downloads.json", new Response("[]"));
-    await worker.lifecycle("activate");
-    expect(await worker.caches.keys()).not.toContain("dispatch-audio-v1");
-    const { response } = await worker.dispatchFetch(ask());
-    expect(await response?.text()).toBe(body);
-  });
 });
 
 describe("service worker: pages offline (D330)", () => {

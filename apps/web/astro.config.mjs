@@ -22,8 +22,8 @@ import { FUNCTION_MAX_DURATION_S } from "./src/server/functionLimits.mjs";
 // no longer points at the source tree, so the repository root is fixed here, where it is reliable.
 process.env.SINGULARITY_REPO_ROOT ??= fileURLToPath(new URL("../../", import.meta.url));
 
-// The inline scripts must run before first paint, so they cannot be external files: the saved-key
-// move and the theme in the head, the device banners, the Library's saved view and the Settings
+// The inline scripts must run before first paint, so they cannot be external files: the theme
+// in the head, the device banners, the Library's saved view and the Settings
 // theme select. Their hashes go into the
 // Content-Security-Policy instead of allowing inline scripts in general.
 const inlineScriptHash = (path) => {
@@ -31,7 +31,6 @@ const inlineScriptHash = (path) => {
   return `sha256-${createHash("sha256").update(code).digest("base64")}`;
 };
 const inlineScriptHashes = [
-  inlineScriptHash("./src/scripts/storageRename.js"),
   inlineScriptHash("./src/scripts/themeInit.js"),
   inlineScriptHash("./src/scripts/bannersInit.js"),
   inlineScriptHash("./src/scripts/libraryViewInit.js"),

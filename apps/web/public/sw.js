@@ -39,8 +39,6 @@ const PAGES_CACHE = `singularity-pages-${VERSION}`;
 const MEDIA_CACHE = `singularity-media-${VERSION}`;
 /** Episodes saved for offline listening. Not versioned: a new worker keeps what the person downloaded. */
 const AUDIO_CACHE = "singularity-audio-v1";
-/** Where downloads were kept before the rename (D179); activation moves them to AUDIO_CACHE. */
-const OLD_AUDIO_CACHE = "dispatch-audio-v1";
 /**
  * Pages the page asked to keep ready (KEEP_READY): the app's own pages, the Saved list and every
  * podcast saved. Not versioned and never trimmed, so they are there offline whatever else was opened
@@ -206,26 +204,6 @@ self.addEventListener("message", (event) => {
 /* ------------------------------------------------------------------ activate */
 
 /**
- * Moves downloads saved under the old cache name (D179). A page of this build may have copied them
- * already (scripts/libraryDownloads.ts), and may have removed one since: then the old copy only goes.
- */
-async function moveOldDownloads() {
-  if (!(await caches.has(OLD_AUDIO_CACHE))) return;
-  const audio = await caches.open(AUDIO_CACHE);
-  if (!(await audio.match("/__downloads.json"))) {
-    const old = await caches.open(OLD_AUDIO_CACHE);
-    // The list goes last: once it is here the copy is whole.
-    const keys = await old.keys();
-    const isList = (key) => new URL(key.url).pathname === "/__downloads.json";
-    for (const key of [...keys.filter((key) => !isList(key)), ...keys.filter(isList)]) {
-      const saved = await old.match(key);
-      if (saved) await audio.put(key, saved);
-    }
-  }
-  await caches.delete(OLD_AUDIO_CACHE);
-}
-
-/**
  * Copies every file a downloaded page needs into the downloads cache, from whichever cache holds it,
  * before activation drops the old ones. Downloads made before their files were kept there are saved.
  */
@@ -257,7 +235,6 @@ async function keepDownloadAssets() {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
-      await moveOldDownloads().catch(() => {});
       await refreshDownloaded();
       await keepDownloadAssets().catch(() => {});
       const names = await caches.keys();

@@ -19,7 +19,7 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D13 | Accounts exist | active |
 | D14 | Docs and config filenames are lowercase kebab-case | active |
 | D15 | Persisted keys are snake_case and code follows them | active |
-| D16 | Personal skill `sk-dispatch`, built separately | active |
+| D16 | Personal skill `sk-dispatch`, built separately | superseded by D380 |
 | D17 | UI and sound design live in `docs/design/` | active |
 | D18 | UI sounds are procedural Web Audio from `@dispatch/sound` | active |
 | D19 | TypeScript 6 pinned repository-wide | active |

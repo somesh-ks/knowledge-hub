@@ -16,7 +16,6 @@ import {
   MANIFEST_KEY,
   marksAddress,
   NotReadyError,
-  OLD_AUDIO_CACHE,
   parseDownloads,
   segmentUrls,
   unlistedPayloads,
@@ -45,25 +44,6 @@ async function saveGlyphSheet(cache: Cache): Promise<void> {
 
 /** How long the worker gets to save the page's scripts before the download counts as done. */
 const WARM_MS = 15_000;
-
-/**
- * The downloads cache. Downloads made before the rename (D179) are copied in first, while the old
- * cache stays for the worker that may still be in charge; the new worker deletes it on activation.
- */
-async function openDownloads(): Promise<Cache> {
-  const cache = await caches.open(AUDIO_CACHE);
-  if ((await caches.has(OLD_AUDIO_CACHE)) && !(await cache.match(MANIFEST_KEY))) {
-    const old = await caches.open(OLD_AUDIO_CACHE);
-    // The list goes last: once it is here the copy is whole, and nothing copies again.
-    const keys = await old.keys();
-    const isList = (key: Request) => new URL(key.url).pathname === MANIFEST_KEY;
-    for (const key of [...keys.filter((key) => !isList(key)), ...keys.filter(isList)]) {
-      const saved = await old.match(key);
-      if (saved) await cache.put(key, saved);
-    }
-  }
-  return cache;
-}
 
 /**
  * The saved list. `sound` is false when the list is not a clean one: not a list, or an entry that is
@@ -103,8 +83,8 @@ async function savedListOrThrow(cache: Cache): Promise<Download[]> {
 export async function readDownloads(): Promise<Download[]> {
   try {
     if (!("caches" in globalThis)) return [];
-    if (!(await caches.has(AUDIO_CACHE)) && !(await caches.has(OLD_AUDIO_CACHE))) return [];
-    const cache = await openDownloads();
+    if (!(await caches.has(AUDIO_CACHE))) return [];
+    const cache = await caches.open(AUDIO_CACHE);
     const saved = await cache.match(MANIFEST_KEY);
     return saved ? parseDownloads(await saved.text()) : [];
   } catch {
@@ -284,7 +264,7 @@ export async function download(request: DownloadRequest): Promise<void> {
 
 async function saveDownload(request: DownloadRequest): Promise<void> {
   askToPersist();
-  const cache = await openDownloads();
+  const cache = await caches.open(AUDIO_CACHE);
   if (request.kind === "episode") {
     await downloadEpisode(cache, request);
     await warmPage(request.page);
@@ -339,7 +319,7 @@ export async function sweepUnlisted(): Promise<number> {
     if (!locks) return 0;
     const swept = await locks.request(DOWNLOAD_LOCK, { ifAvailable: true }, async (lock) => {
       if (!lock) return 0;
-      const cache = await openDownloads();
+      const cache = await caches.open(AUDIO_CACHE);
       const read = await readSavedList(cache);
       // A list that could not be read, or has an entry that cannot be, is not the whole list:
       // sweeping on it would delete downloads it cannot see.
@@ -360,7 +340,7 @@ export async function sweepUnlisted(): Promise<number> {
 }
 
 export async function removeDownload(id: string): Promise<void> {
-  const cache = await openDownloads();
+  const cache = await caches.open(AUDIO_CACHE);
   const list = await savedListOrThrow(cache);
   for (const old of list.filter((item) => item.id === id)) {
     for (const address of addressesOf(old)) await cache.delete(address);
@@ -377,6 +357,6 @@ export async function removeDownload(id: string): Promise<void> {
 
 /** Removes every download, orphans included. An unreadable list ends it before anything is removed. */
 export async function removeAllDownloads(): Promise<void> {
-  const cache = await openDownloads();
+  const cache = await caches.open(AUDIO_CACHE);
   for (const item of await savedListOrThrow(cache)) await removeDownload(item.id);
 }
