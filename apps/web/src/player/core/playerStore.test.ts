@@ -229,6 +229,64 @@ describe("seeking and items", () => {
     expect(harness.audio.currentTime).toBe(110);
   });
 
+  // Owner, 2026-11-05: "1 min left" on screen, the audio from the top, the player still. New data for
+  // the briefing named the same file, which stayed attached with its header read: the kept place
+  // waited for a loadedmetadata that never came, and the clock waited with it.
+  it("plays the kept place and keeps the clock moving when new data for the briefing keeps the same file", () => {
+    const harness = createHarness({ canPlayType: () => "probably" });
+    const files = {
+      url: "/audio/2026-10-07.mp3",
+      m4a_url: "/audio/2026-10-07.m4a",
+      duration_ms: 120_000,
+    };
+    harness.store.load(makeDigest({ audio: files }));
+    harness.store.play();
+    harness.audio.loadMetadata(120);
+    harness.audio.startPlaying();
+    harness.audio.currentTime = 100;
+    harness.flushFrames();
+    harness.store.pause();
+    // The element is somewhere else, and says nothing of it yet; it starts there unless told.
+    harness.audio.currentTime = 0;
+    harness.audio.readyState = 0;
+    harness.store.load(makeDigest({ audio: { ...files, url: "/audio/2026-10-07.v2.mp3" } }));
+    harness.store.play();
+    harness.audio.startPlaying();
+    expect(harness.audio.currentTime).toBe(100);
+    harness.audio.currentTime += 5;
+    harness.flushFrames();
+    expect(harness.store.getTime()).toBe(harness.audio.currentTime);
+  });
+
+  // Owner, 2026-11-06: a rewrite of a podcast began at 4 minutes. It keeps the digest's id and says
+  // something new, so the place saved for the old recording must not carry over.
+  it("starts a rewritten recording from the top, not where the old one was left", () => {
+    const harness = createHarness({ canPlayType: () => "probably" });
+    const files = (version: string) => ({
+      url: `/audio/2026-10-07.${version}.mp3`,
+      m4a_url: `/audio/2026-10-07.${version}.m4a`,
+      duration_ms: 120_000,
+    });
+    harness.store.load(makeDigest({ audio: files("v1") }));
+    harness.store.play();
+    harness.audio.loadMetadata(120);
+    harness.audio.startPlaying();
+    harness.audio.currentTime = 100;
+    harness.flushFrames();
+    harness.store.pause();
+    harness.audio.currentTime = 0;
+    harness.audio.readyState = 0;
+    // The rewrite tells the same stories anew.
+    const retold = makeDigest().items.map((entry) => ({
+      ...entry,
+      text: `${entry.headline}, again.`,
+    }));
+    harness.store.load(makeDigest({ audio: files("v2"), items: retold }));
+    harness.store.play();
+    harness.audio.startPlaying();
+    expect(harness.audio.currentTime).toBe(0);
+  });
+
   it("does not take the unlock primer's silence for the recording, so nothing is stored as played", () => {
     const harness = createHarness();
     const digest = makeDigest();

@@ -16,6 +16,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-13: voice-picker specs failed beside others: a scroll after the press closed the list; `openPicker` (`e2e/picker.ts`) presses until it stays open.
 - 2026-10-12: an axe scan after `emulateMedia` read colours mid-fade. Wait for the page's `CSSTransition`s to finish first, and cap that wait, because an infinite or paused animation never finishes.
 - 2026-10-12: Playwright reuses a listening server and skips the build, so a leftover one tests the wrong build. Stop old servers; use a fresh PORT after a page edit.
+- 2026-11-04: axe 4.14 made label-in-name an A rule: a name holds the visible words in one run ("Play · 1 min" failed).
 - 2026-10-11: Playwright `addStyleTag` and injected axe scripts hit the fixture site's CSP; use `bypassCSP: true` for an audit, on a build in its own directory and port (a rebuilt `dist` read as "page has no title").
 - 2026-10-10: a lone IntersectionObserver threshold of 1 reports a target partly past the root edge as not intersecting and never calls back. To tell a sticky element is stuck, observe `[0, 1]` and compare its `top` with `rootBounds.top`.
 - 2026-10-09: headless Chromium draws WebGL in software, logs "GPU stall" each frame, failing the player suite; skip WebGL there (`WEBGL_debug_renderer_info`).
@@ -100,10 +101,13 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-09: a move took 400 ms though the page was ready after 70: Astro 7 keeps only its own root attributes, so the mark that picks the animation (`data-astro-nav`) was lost. Carry it onto `event.newDocument` in `astro:before-swap`.
 - 2026-11-03: tinted fills eased from the wrong hue on a tab tap: the swap wiped the root `style` (`--hue-shift`); it is in `CARRIED_ATTRIBUTES`.
 - 2026-10-09: The first press after opening blocks about 200 ms with the audio device idle, 75 ms warm: `new AudioContext()` inside the press. `latencyHint` and `sampleRate` do not help (the first context created pays); reverse the order as the control.
-- 2026-10-31: a Play control marked `aria-disabled` never reacted: `disabledGuard.ts` swallows clicks on `[aria-disabled="true"]`, so a voice without a sample is marked `data-silent` instead.
+- 2026-10-31: a Play control marked `aria-disabled` never reacted (`disabledGuard.ts` swallows clicks): use `data-silent`.
 - 2026-11-01: Downloads showed as a gallery after a Library visit: `libraryPage.ts` kept its `astro:page-load` listener and matched Downloads' `[data-library]`. Name the page (`#main.library`); a test must reach it by click, not `goto`.
 - 2026-11-01: a `.manage` rule for the voice page also reached Preferences: a row declares its `--row-reach`.
 - 2026-11-03: servers off Vercel with the real `DATABASE_URL` stored their own 5xx as production faults (~180 a day); telemetry takes `deploymentDatabaseUrl`. Astro's SSR header replaces vercel.json's CSP: `frame-ancestors` goes in `withFrameAncestors` (meta ignores it).
+- 2026-11-05: a white strip showed while Android's keyboard slid up on the Regenerate and Catch up panels: Chrome resizes the page at once and the window behind is white until the keyboard arrives. A native panel with a text field needs `fitAboveKeyboard` (overlays the keyboard instead); only Topics and Block sources had it.
+- 2026-11-05: a CSS animation restarts when its node is removed and put back, so a list that repaints rows each poll restarts every shimmer; move only rows out of order. The engine's timings (state/podcast-timings.json) cover its own work, not a workflow step.
+- 2026-11-06: a rewrite played from 4 minutes: the place was keyed by the digest id, which a rewrite keeps; it is saved with the recording's file address (`resume-of`). "More stories" aired 12 again: the count is the Length, and only a model moved the control; `wordLength` does it at once.
 
 ## Build and tooling
 
@@ -130,7 +134,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-09: Ports 4524 to 4623 are reserved by Windows on this machine (`listen EACCES`); `netsh interface ipv4 show excludedportrange protocol=tcp` lists them. Use 47xx.
 - 2026-10-08: `npx` can stall a minute before a local binary runs: read its output, do not rerun it. A full disk was another project's temp folder: measure before deleting.
 
-- 2026-10-25: Windows has no flag emoji; flags are SVG from `public/flags.svg`.
+- 2026-10-25: Windows has no flag emoji; draw flags with the DS Flag (D367).
 
 ## Agents and worktrees
 

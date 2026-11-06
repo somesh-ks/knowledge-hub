@@ -287,10 +287,15 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
         command.action === "regenerate" ? await readEpisode(ctx.root, command.id) : null;
       const stored = command.action === "create" ? command.request : replaced?.episode.request;
       if (!stored) throw new PodcastError("The request names no episode to replace.");
-      // Topics chosen in the dialog apply to this regeneration only: the new episode stores them.
+      // Topics and a length chosen in the dialog apply to this regeneration only: the new episode
+      // stores them.
       const request =
-        command.action === "regenerate" && command.topic_ids
-          ? { ...stored, topic_ids: command.topic_ids }
+        command.action === "regenerate"
+          ? {
+              ...stored,
+              ...(command.topic_ids ? { topic_ids: command.topic_ids } : {}),
+              ...(command.length_minutes ? { length_minutes: command.length_minutes } : {}),
+            }
           : stored;
       const feedback = command.action === "regenerate" ? command.feedback : undefined;
       // A new episode's script (Catch up or a regeneration) is copied to Blob as it is written, so it

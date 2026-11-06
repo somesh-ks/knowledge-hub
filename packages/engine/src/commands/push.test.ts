@@ -185,7 +185,15 @@ values ('daily-1', 'run', 'daily', 'api', false, 'published', $1::text[], $2::ti
     const [summary] = await printed(() =>
       command(["notify"], context({ DATABASE_URL: "postgres://x" })),
     );
-    expect(summary).toMatchObject({ claimed: 1, addressed: 1, sent: 0 });
+    // The log also tells "nobody subscribed" from "subscribed, nothing matched": what the store holds.
+    expect(summary).toMatchObject({
+      claimed: 1,
+      addressed: 1,
+      sent: 0,
+      devices: 1,
+      watches: 0,
+      keys: 0,
+    });
   });
 
   it("does nothing, and does not fail the sync, when push is not set up", async () => {

@@ -160,7 +160,6 @@ export interface StatusResponse {
   /** Present once state is "completed". Read from state/last-run.json. */
   outcome?: "published" | "nothing" | "gated" | "failed" | "cancelled";
   digest_id?: string;
-  run_url?: string;
 }
 
 /** One generation under way, as GET /api/generations lists it. */

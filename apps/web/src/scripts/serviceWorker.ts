@@ -6,6 +6,7 @@
  */
 
 import { automaticMove, connectivity, isOnline } from "../lib/connectivity";
+import { peekTabShared } from "../player/core/tabSlot";
 import { wasTypedIn } from "./typing";
 
 /** A waiting worker may take over unless audio is playing or buffering. */
@@ -48,20 +49,41 @@ export interface Moment {
   editing: boolean;
   /** The full player is open: a reload would close it under the reader (owner, 2026-11-03). */
   playerOpen: boolean;
+  /** The bar's podcast was narrated in this tab: it lives in memory only, and a reload loses it. */
+  narrated: boolean;
 }
 
-/** A reload throws away the page's state, so it waits until the reader has nothing on it to lose. */
-export function canReloadNow(moment: Moment): boolean {
+/**
+ * Hidden this long, the app's return is a new visit, not a glance at a system alert: a build that
+ * waited may load then even with the full player open, since the reload puts it back as it was.
+ */
+export const AWAY_MS = 5 * 60 * 1000;
+
+/**
+ * A reload throws away the page's state, so it waits until the reader has nothing on it to lose.
+ * `back` is the moment the app returns from a long absence, before the reader touches it: the open
+ * player is then no loss (sessionRestore.ts brings it back, paused at the kept place). Without it an
+ * app opened to listen kept its old build for the whole listen and after it (2026-11-05, the owner's
+ * installed app). A brief hide, such as a system alert, still never reloads the open player shut.
+ */
+export function canReloadNow(moment: Moment, back = false): boolean {
   return (
     shouldActivateUpdate(moment.playerState) &&
     !moment.overlayOpen &&
     !moment.editing &&
-    !moment.playerOpen
+    ((back && !moment.narrated) || !moment.playerOpen)
   );
 }
 
 const TEXT_FIELD =
   'textarea, input:not([type="button"], [type="submit"], [type="reset"], [type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="file"], [type="color"])';
+
+/** The bar's track is in the tab's narration registry (narrationRegistry.ts), which no reload brings back. */
+function isNarrated(): boolean {
+  const id = peekTabShared<{ getState(): { digestId: string | null } }>("store")?.getState()
+    .digestId;
+  return id ? peekTabShared<Map<string, unknown>>("narrated")?.has(id) === true : false;
+}
 
 function readMoment(): Moment {
   let overlayOpen = false;
@@ -83,6 +105,7 @@ function readMoment(): Moment {
     overlayOpen,
     editing,
     playerOpen: document.documentElement.dataset.player === "open",
+    narrated: isNarrated(),
   };
 }
 
@@ -132,12 +155,22 @@ function watchForUpdates(registration: ServiceWorkerRegistration, pageBuild?: st
   let retry: ReturnType<typeof setInterval> | undefined;
   // The connection coming back is not a moment to reload under the reader (D330): a build found now
   // waits for the reader's own next move inside the app, which is when it loads.
+  // Set when the app comes back after AWAY_MS, until the reader's first touch or key.
+  let back = false;
   let heldForMove = false;
   connectivity().subscribe((link, was) => {
-    if (link === "online" && was === "offline") heldForMove = true;
+    // A return still untouched loads the build when the connection comes back (D373).
+    if (link === "online" && was === "offline" && !back) heldForMove = true;
   });
+  let hiddenSince = document.hidden ? Date.now() : 0;
+  const settle = (): void => {
+    back = false;
+  };
+  for (const type of ["pointerdown", "keydown"]) {
+    document.addEventListener(type, settle, { capture: true, passive: true });
+  }
   const applyBuild = (): void => {
-    if (heldForMove || !newer || !isOnline() || !canReloadNow(readMoment())) return;
+    if (heldForMove || !newer || !isOnline() || !canReloadNow(readMoment(), back)) return;
     if (!claimApply(newer)) return;
     registration.update().catch(() => {});
     location.reload();
@@ -184,9 +217,16 @@ function watchForUpdates(registration: ServiceWorkerRegistration, pageBuild?: st
   });
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
+      hiddenSince = Date.now();
       activateWhenIdle(registration);
       applyBuild();
       return;
+    }
+    if (hiddenSince > 0 && Date.now() - hiddenSince >= AWAY_MS) {
+      // A new visit: the connection that came back while away no longer holds the build either.
+      back = true;
+      heldForMove = false;
+      applyBuild();
     }
     askBuild();
     if (shouldCheckForUpdate(Date.now(), lastCheck)) {

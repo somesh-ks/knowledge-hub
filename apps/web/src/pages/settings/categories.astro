@@ -7,6 +7,7 @@ import SourceFilter from "../../components/SourceFilter.astro";
 import SourceRow from "../../components/SourceRow.astro";
 import TopicsPanel from "../../components/TopicsPanel.astro";
 import Button from "../../design-system/Button.astro";
+import Flag from "../../design-system/Flag.astro";
 import Icon from "../../design-system/Icon.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { outletsSummary } from "../../lib/blockedOutlets";
@@ -126,7 +127,7 @@ const choices = topicChoicesOf(layout);
                 data-home={row.home}
                 data-never={row.never}
               >
-                <span class="topic-emoji" aria-hidden="true">{row.emoji}</span>
+                <span class="topic-emoji" aria-hidden="true" data-text={row.emoji}><Flag text={row.emoji} /></span>
                 <span class="settings-text">
                   <span class="settings-label">{row.name}</span>
                   <span class="settings-hint" data-hint>{row.hint}</span>

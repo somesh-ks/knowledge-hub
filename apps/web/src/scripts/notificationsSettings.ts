@@ -27,6 +27,9 @@ const NOTE: Record<NotificationState, string> = {
   unsupported: "This browser can't show notifications.",
 };
 
+/** A switch that went back to what it was, on or off: the permission prompt was dismissed or the site did not take it. */
+const REFUSED = "That didn't save. Try again in a minute.";
+
 export function mountNotifications(root: HTMLElement): () => void {
   const all = root.querySelector<HTMLInputElement>('input[name="all"]');
   const switches = new Map<Kind, HTMLInputElement | null>(
@@ -79,7 +82,13 @@ export function mountNotifications(root: HTMLElement): () => void {
     const mine = latest;
     const result = await applyPress(pressed, target.checked);
     // A later press has its own answer coming; showing this one first would flicker.
-    if (mine === latest) show(result);
+    if (mine !== latest) return;
+    show(result);
+    // The switches went back: the browser or the site said no. Say so, unless the page already says why.
+    if (note && note.hidden && KINDS.some((kind) => result[kind] !== next[kind])) {
+      note.textContent = REFUSED;
+      note.hidden = false;
+    }
   };
   const listener = (event: Event): void => void onChange(event);
   root.addEventListener("change", listener);

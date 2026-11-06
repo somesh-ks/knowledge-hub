@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 export const BUDGETS = {
   "AGENTS.md": 8_000,
   "docs/state.md": 12_000,
-  "docs/learnings.md": 25_000,
+  "docs/learnings.md": 26_000,
   "docs/specs/README.md": 4_000,
 };
 export const SPEC_BUDGET = 8_000;

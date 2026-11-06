@@ -234,13 +234,13 @@ describe("singularity health", () => {
       fetch: fake,
     };
     // A push whose last commit touched no watched path: Vercel skipped the one that did.
-    const skipped = (oldestMissingHours: number) => ({
+    const skipped = (oldestMissingHours: number, newestHours = oldestMissingHours) => ({
       sha: "fedcba9876543210",
-      at: NOW.getTime() - 3_600_000,
+      at: NOW.getTime() - newestHours * 3_600_000,
       includes: async () => false,
       missingSince: async () => NOW.getTime() - oldestMissingHours * 3_600_000,
     });
-    const report = await collectHealth({ ...options, main: skipped(1) });
+    const report = await collectHealth({ ...options, main: skipped(7) });
     expect(codes(report.findings, "fault")).toEqual(
       expect.arrayContaining([
         "site_headers",
@@ -258,6 +258,13 @@ describe("singularity health", () => {
     const dayOn = await collectHealth({ ...options, main: skipped(25) });
     expect(codes(dayOn.findings, "fault")).toContain("site_behind");
     expect(codes(dayOn.findings, "warning")).not.toContain("site_behind");
+    // A recent merge on top must not hide a day-old one that never shipped (D375 only excuses a wait).
+    const hidden = await collectHealth({ ...options, main: skipped(25, 1) });
+    expect(codes(hidden.findings, "fault")).toContain("site_behind");
+    // Inside the batch wait nothing is said.
+    const waiting = await collectHealth({ ...options, main: skipped(2) });
+    expect(codes(waiting.findings, "warning")).not.toContain("site_behind");
+    expect(codes(waiting.findings, "fault")).not.toContain("site_behind");
   });
 
   // #490's saves reach Neon only if Vercel has the config store on, and runs read it only if the Actions
@@ -364,6 +371,28 @@ describe("singularity health", () => {
     expect(behind?.sha).toBe(newest);
     expect(await behind?.missingSince(onMain)).toBe(Date.parse("2026-10-20T07:00:00Z"));
     expect(await behind?.missingSince("0123456789ab")).toBeNull();
+  });
+
+  // A merge and its revert leave the watched files as the build has them; the batch script skips
+  // that build (D375), so site_behind must not fault on it a day later.
+  it("counts a build as holding the head when only a reverted change separates them", async () => {
+    git(root, "init", "-q", "-b", "main");
+    await put(
+      "apps/web/vercel.json",
+      JSON.stringify({ ignoreCommand: "sh ../../scripts/deploy-batch.sh -- . ../../Digests" }),
+    );
+    await put("Digests/a.md", "a");
+    const built = await commitAll(root, "chore: built");
+    await put("Digests/a.md", "changed");
+    await commitAll(root, "fix: change");
+    await put("Digests/a.md", "a");
+    const reverted = await commitAll(root, "revert: change");
+    const head = await readWatchedHead(root);
+    expect(head?.sha).toBe(reverted);
+    expect(await head?.includes(built)).toBe(true);
+    await put("Digests/a.md", "other");
+    await commitAll(root, "fix: real change");
+    expect(await (await readWatchedHead(root))?.includes(built)).toBe(false);
   });
 
   // Client signals are forgeable and extensions trip the CSP, so they only warn, past a threshold,

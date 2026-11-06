@@ -40,6 +40,7 @@ import {
 import {
   clearResumePosition,
   readResumePosition,
+  recordingOf,
   type StorageLike,
   saveResumePosition,
 } from "./resume";
@@ -274,7 +275,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   function saveResume(): void {
     if (!track) return;
     readAudioTime();
-    saveResumePosition(storage, track.digest.id, time, durationNow());
+    saveResumePosition(storage, track.digest.id, time, durationNow(), recordingOf(track.digest));
   }
 
   function startSaveTimer(): void {
@@ -330,6 +331,16 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
       return;
     }
     stopBufferTimer();
+    // Sound is coming out, so the header is in: a start still queued lands now rather than holding
+    // the clock still while the element plays on from somewhere else.
+    if (pendingStart !== null && audio && audio.readyState !== HAVE_NOTHING) {
+      try {
+        audio.currentTime = clamp(pendingStart, 0, durationNow() || pendingStart);
+        pendingStart = null;
+      } catch {
+        // Keeps waiting for loadedmetadata.
+      }
+    }
     commit({
       status: "playing",
       hasStarted: true,
@@ -370,7 +381,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     stopTimers();
     wantsPlay = false;
     time = durationNow();
-    clearResumePosition(storage, track.digest.id);
+    clearResumePosition(storage, track.digest.id, recordingOf(track.digest));
     commit({ status: "ended", buffering: false, upNextId: track.digest.prev_id });
     publishTime("auto", true);
     emit({ type: "ended" });
@@ -669,7 +680,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
     const timeline = buildTimeline(digest);
     const duration = timeline?.durationSec ?? 0;
-    const restored = readResumePosition(storage, digest.id, duration);
+    const restored = readResumePosition(storage, digest.id, duration, recordingOf(digest));
     time = restored;
     pendingStart = restored > 0 ? restored : null;
     track = { digest, timeline };
@@ -681,6 +692,23 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     // is let go.
     if (!digest.audio || attachedUrl !== sourceOf(digest.audio)) releaseSource();
     if (digest.audio) ensureAudio();
+    // The same file stays attached (new data for this briefing that names the same file): its header
+    // was read long ago and no loadedmetadata will come for it. A start queued for that event would
+    // wait forever, and the clock with it, while the element played from wherever it was
+    // (2026-11-05, the owner's phone: "1 min left" on screen, the audio from the top, nothing moving).
+    if (
+      pendingStart !== null &&
+      audio &&
+      attachedUrl !== null &&
+      audio.readyState !== HAVE_NOTHING
+    ) {
+      try {
+        audio.currentTime = pendingStart;
+        pendingStart = null;
+      } catch {
+        // Some engines throw before the first frame. The start waits for the element's next event.
+      }
+    }
     applyRate();
 
     lastSecond = -1;

@@ -84,7 +84,7 @@ test.describe("opening by gesture", () => {
 
 // The bar is a carousel of podcasts (owner, 2026-11-01 and 2026-11-02): a swipe goes to the next
 // queued one or back to the one before, and a short one does neither nor opens the page.
-test("a swipe on the bar switches the podcast; a short one does not and opens nothing", async ({
+test("a swipe on the bar switches the podcast without tinting the bar and fades one track for the next; a short one does not and opens nothing", async ({
   player,
   page,
   finger,
@@ -116,11 +116,35 @@ test("a swipe on the bar switches the podcast; a short one does not and opens no
   const held = await finger.drag(line(spot, { x: spot.x - 100, y: spot.y }, 4), 8, { hold: true });
   const peek = player.openButton.locator(".dock-peek");
   await expect(peek).toHaveCount(1);
+  // Owner, 2026-11-05: the track leaving fades out as the one arriving fades in, both ways. Held a
+  // third of the way over, the leaving cover is fainter than at rest and the arriving one has begun
+  // to show; back where it began, the leaving one is whole again and the arriving one is gone.
+  const own = player.openButton.locator(":scope > .player-thumb");
+  const opacity = (el: typeof own) => el.evaluate((node) => Number(getComputedStyle(node).opacity));
+  expect(await opacity(own)).toBeLessThan(1);
+  expect(await opacity(peek.locator(".player-thumb"))).toBeGreaterThan(0);
+  // Owner, 2026-11-04: the bar flashed grey for the whole swipe. Chrome on a phone holds :active for
+  // a touch (emulated touch does not, so it is forced), and a finger's press must not tint the bar.
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("DOM.enable");
+  await cdp.send("CSS.enable");
+  const { root } = await cdp.send("DOM.getDocument");
+  const { nodeId } = await cdp.send("DOM.querySelector", {
+    nodeId: root.nodeId,
+    selector: ".dock-open",
+  });
+  const layer = () =>
+    player.openButton.evaluate((el) => getComputedStyle(el, "::after").backgroundColor);
+  const atRest = await layer();
+  await cdp.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: ["active"] });
+  expect(await layer()).toBe(atRest);
+  await cdp.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: [] });
   const coming = await player.boxOf(peek.locator(".player-thumb"));
   expect(coming.x).toBeGreaterThan(spot.x - 100);
   expect(coming.x + coming.width).toBeLessThanOrEqual(bar.x + bar.width + 1);
   await held.move(line({ x: spot.x - 100, y: spot.y }, spot, 4));
   await expect(peek).toHaveCount(0);
+  await expect.poll(() => opacity(own)).toBe(1);
   await held.release();
   expect(await playing()).toBe(first);
   await player.collapsed();

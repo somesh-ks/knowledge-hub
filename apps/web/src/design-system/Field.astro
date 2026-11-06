@@ -6,6 +6,8 @@ import "../styles/field.css";
 interface FieldProps {
   /** Several lines that grow with the text; the corner arc is a pill's, shortened. */
   multiline?: boolean;
+  /** How many lines a multiline field grows to before it scrolls inside; 6 when left out. */
+  maxLines?: number;
   /** For placing the field where it stands (a width, a margin). Never its look. */
   class?: string;
 }
@@ -14,12 +16,16 @@ type Props = FieldProps &
   Omit<HTMLAttributes<"input">, keyof FieldProps> &
   Pick<HTMLAttributes<"textarea">, "rows" | "cols" | "wrap">;
 
-const { multiline = false, class: placement, value, ...rest } = Astro.props;
+const { multiline = false, maxLines, class: placement, value, ...rest } = Astro.props;
 ---
 
 {
   multiline ? (
-    <textarea class:list={[fieldClass(), placement]} {...rest}>{value}</textarea>
+    <textarea
+      class:list={[fieldClass(), placement]}
+      style={maxLines ? `--field-max-lines: ${maxLines}` : undefined}
+      {...rest}
+    >{value}</textarea>
   ) : (
     <input class:list={[fieldClass(), placement]} value={value} {...rest} />
   )

@@ -52,6 +52,7 @@ import { validateDigest } from "../validate/validateDigest.js";
 import { createLinter } from "../voice/lint.js";
 import { loadVoice } from "../voice/voice.js";
 import { withRunJudgments, withRunTopicJudgments } from "./artifacts.js";
+import { keepPools } from "./carriedPool.js";
 import { collectRunMetrics } from "./collectMetrics.js";
 import { makeCoverPicker } from "./cover.js";
 import { digestFromSelection } from "./digestFromSelection.js";
@@ -366,6 +367,29 @@ export async function commitStage(deps: RunDeps, options: RunOptions): Promise<C
   // The old digest goes only now that a new one is ready, so a replacement that finds nothing keeps it.
   if (replaces !== undefined && digests.length > 0) await removeDigestFiles(root, replaces);
   for (const digest of digests) await writeDigestFile(root, digest);
+  // Each published digest keeps the stories its pass gathered, for a rewrite to carry (D376). A
+  // pool not kept only makes a later rewrite fetch everything, so it never stops the commit.
+  try {
+    await keepPools(
+      root,
+      passData.flatMap((data, index) => {
+        const report = reports[index];
+        return report?.outcome === "published"
+          ? [
+              {
+                digestId: report.id,
+                storiesPath: passFile(root, data.pass.id, "slow-stories.json"),
+              },
+            ]
+          : [];
+      }),
+      now,
+    );
+  } catch (error) {
+    deps.log.warn("The run's stories were not kept for a rewrite", {
+      reason: error instanceof Error ? error.message : String(error),
+    });
+  }
   await writeSeen(root, seen);
   await writeJudgments(root, judgments);
   // New files are created only when there is something to keep, so a repository without custom

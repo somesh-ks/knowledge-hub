@@ -213,11 +213,17 @@ describe("parsePodcastBody for an episode action", () => {
     expect(parsePodcastBody(regen({ feedback: "x".repeat(501) }))).toBeNull();
   });
 
-  it("takes comments and topics as optional and drops blank comments", () => {
+  it("takes comments, topics and a length as optional and drops blank comments", () => {
     expect(parsePodcastBody(regen({ feedback: "  \n ", topic_ids: ["ai", "design"] }))).toEqual({
       action: "regenerate",
       id: EPISODE_ID,
       topic_ids: ["ai", "design"],
+    });
+    expect(parsePodcastBody(regen({ length_minutes: 10 }))).toEqual({
+      action: "regenerate",
+      id: EPISODE_ID,
+      feedback: "Shorter intro",
+      length_minutes: 10,
     });
     expect(parsePodcastBody(regen({ feedback: undefined }))).toEqual({
       action: "regenerate",
@@ -225,7 +231,7 @@ describe("parsePodcastBody for an episode action", () => {
     });
   });
 
-  it("rejects a bad id, an unknown action, bad comments and bad topics", () => {
+  it("rejects a bad id, an unknown action, bad comments, bad topics and a bad length", () => {
     for (const bad of [
       del({ id: "ep-2026100-0900" }),
       del({ id: "../ep-20261007-0900" }),
@@ -237,6 +243,8 @@ describe("parsePodcastBody for an episode action", () => {
       regen({ topic_ids: [] }),
       regen({ topic_ids: ["ai", "ai"] }),
       regen({ topic_ids: ["Bad Id"] }),
+      regen({ length_minutes: 7 }),
+      regen({ length_minutes: "5" }),
     ]) {
       expect(parsePodcastBody(bad), bad).toBeNull();
     }
@@ -444,6 +452,103 @@ describe("handlePodcast", () => {
       body: { status: 429, error: "cooldown", retry_after_s: wait },
     });
     expect(github.requests.some((request) => request.method === "POST")).toBe(false);
+  });
+
+  // GitHub keeps one waiting run per concurrency group and cancels the older one when another
+  // joins, which the queue showed as a cancel the person never pressed (2026-11-05).
+  it("refuses a request while another run is waiting for the line to clear", async () => {
+    const { deps, github } = setup();
+    github.on(RUNS, {
+      json: {
+        workflow_runs: [podcastRun({ id: 5, status: "pending", created_at: minutesAgo(5) })],
+      },
+    });
+    const result = await handlePodcast(input(body()), deps);
+    expect(result).toMatchObject({ status: 429, body: { error: "cooldown" } });
+    expect(github.requests.some((request) => request.method === "POST")).toBe(false);
+  });
+
+  // A run GitHub never started would otherwise lock every Catch up and rewrite out until it expired.
+  it("does not let a run stuck waiting for hours hold new requests back", async () => {
+    const { deps, github } = setup();
+    github.on(DISPATCH, { json: { workflow_run_id: 9 } });
+    github.on(RUNS, {
+      json: {
+        workflow_runs: [podcastRun({ id: 5, status: "queued", created_at: minutesAgo(120) })],
+      },
+    });
+    expect((await handlePodcast(input(body()), deps)).status).toBe(202);
+  });
+
+  it("refuses a second rewrite of an episode whose rewrite is still going", async () => {
+    const { deps, github } = setup();
+    const going = (title: string) => ({
+      json: {
+        workflow_runs: [
+          podcastRun({
+            id: 5,
+            status: "in_progress",
+            display_title: title,
+            created_at: minutesAgo(5),
+          }),
+        ],
+      },
+    });
+    const regenerate = JSON.stringify({ action: "regenerate", id: EPISODE_ID });
+    github.on(RUNS, going(`regenerate ${EPISODE_ID}`));
+    expect(await handlePodcast(input(regenerate), deps)).toMatchObject({ status: 429 });
+    // A different episode's rewrite, or a Catch up, does not hold this one back.
+    github.on(DISPATCH, { json: { workflow_run_id: 9 } });
+    github.on(RUNS, going("regenerate ep-20261001-0900"));
+    expect((await handlePodcast(input(regenerate), deps)).status).toBe(202);
+  });
+
+  it("looks up a run older than the list before it resumes it", async () => {
+    const { deps, github } = setup();
+    github.on(DISPATCH, { json: { workflow_run_id: 9 } });
+    github.on(RUNS, { json: { workflow_runs: [] } });
+    const resume = body({ resume_from: "5" });
+    // Not found, or another workflow's run: nothing of this request to resume.
+    github.on("GET /actions/runs/5", { status: 404, json: {} });
+    expect((await handlePodcast(input(resume), deps)).status).toBe(400);
+    github.on("GET /actions/runs/5", {
+      json: podcastRun({
+        id: 5,
+        status: "completed",
+        conclusion: "failure",
+        path: ".github/workflows/run.yml",
+      }),
+    });
+    expect((await handlePodcast(input(resume), deps)).status).toBe(400);
+    github.on("GET /actions/runs/5", {
+      json: podcastRun({ id: 5, status: "completed", conclusion: "failure" }),
+    });
+    expect((await handlePodcast(input(resume), deps)).status).toBe(202);
+  });
+
+  it("resumes only a failed run of the same kind of request", async () => {
+    const { deps, github } = setup();
+    github.on(DISPATCH, { json: { workflow_run_id: 9 } });
+    const earlier = (fields: Record<string, unknown>) => ({
+      json: {
+        workflow_runs: [
+          podcastRun({ id: 5, status: "completed", created_at: minutesAgo(30), ...fields }),
+        ],
+      },
+    });
+    const resume = body({ resume_from: "5" });
+    // A run that came out, or that was another episode's rewrite, has nothing of this one to resume.
+    github.on(RUNS, earlier({ conclusion: "success" }));
+    expect((await handlePodcast(input(resume), deps)).status).toBe(400);
+    github.on(RUNS, earlier({ conclusion: "failure", display_title: `regenerate ${EPISODE_ID}` }));
+    expect((await handlePodcast(input(resume), deps)).status).toBe(400);
+    github.on(RUNS, earlier({ conclusion: "failure" }));
+    expect((await handlePodcast(input(resume), deps)).status).toBe(202);
+    // A run that timed out or was cancelled kept its finished stages too.
+    for (const conclusion of ["timed_out", "cancelled"]) {
+      github.on(RUNS, earlier({ conclusion }));
+      expect((await handlePodcast(input(resume), deps)).status).toBe(202);
+    }
   });
 
   it("lets failed tries run up to twelve a day, then answers 429 for the next", async () => {
