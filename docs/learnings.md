@@ -106,7 +106,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-11-01: a `.manage` rule for the voice page also reached Preferences: a row declares its `--row-reach`.
 - 2026-11-03: servers off Vercel with the real `DATABASE_URL` stored their own 5xx as production faults (~180 a day); telemetry takes `deploymentDatabaseUrl`. Astro's SSR header replaces vercel.json's CSP: `frame-ancestors` goes in `withFrameAncestors` (meta ignores it).
 - 2026-11-05: a white strip showed while Android's keyboard slid up on the Regenerate and Catch up panels: Chrome resizes the page at once and the window behind is white until the keyboard arrives. A native panel with a text field needs `fitAboveKeyboard` (overlays the keyboard instead); only Topics and Block sources had it.
-- 2026-11-05: a CSS animation restarts when its node is removed and put back, so a list that repaints rows each poll restarts every shimmer; move only rows out of order. The engine's timings (state/podcast-timings.json) cover its own work, not a workflow step.
+- 2026-11-05: a CSS animation restarts when its node is re-inserted: repainting rows each poll restarts every shimmer. Engine timings (state/podcast-timings.json) cover engine work, not workflow steps.
 - 2026-11-06: a rewrite played from 4 minutes: the place was keyed by the digest id, which a rewrite keeps; it is saved with the recording's file address (`resume-of`). "More stories" aired 12 again: the count is the Length, and only a model moved the control; `wordLength` does it at once.
 
 ## Build and tooling
@@ -161,3 +161,4 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-11-02: `name: "5 min"` matches "15 min"; use `exact: true`.
 - 2026-11-02: the cloud image's Chromium is an older build than the repo's Playwright wants; point `PLAYWRIGHT_BROWSERS_PATH` at links named for the wanted build. A 2px negative margin fails the 8pt spec: size a target `max()` of both.
 - 2026-11-03: a step summary is not in the job log or API; `tee -a` what you must read.
+- 2026-11-06: a script-built DS part (`codeSnippetHtml`) needs its sheet imported by a page component; unstyled, it passed.
