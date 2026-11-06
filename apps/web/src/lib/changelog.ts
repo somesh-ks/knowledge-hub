@@ -18,6 +18,12 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: "0.22.1",
+    date: "2026-11-07",
+    description:
+      "A settings change made just before you close or switch away from the app is no longer lost: it is kept on the device and saved as soon as it can be.",
+  },
+  {
     version: "0.22",
     date: "2026-11-06",
     description:
