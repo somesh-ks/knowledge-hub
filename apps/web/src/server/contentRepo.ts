@@ -127,6 +127,8 @@ interface HeldSite {
   loadedAt: number;
   stale: { count: number };
   rechecks: number;
+  /** The load failed. A failed load is never answered from, whichever slot it is restored to. */
+  failed: boolean;
 }
 
 let heldSite: HeldSite | null = null;
@@ -140,7 +142,7 @@ const STALE_RECHECKS = 4;
 
 /** Whether the site held for this manifest can answer, or a stale read of it is due another try. */
 function holdsCurrent(held: HeldSite, updatedAt: string, now: number): boolean {
-  if (held.updatedAt !== updatedAt) return false;
+  if (held.failed || held.updatedAt !== updatedAt) return false;
   return (
     held.stale.count === 0 ||
     held.rechecks >= STALE_RECHECKS ||
@@ -280,6 +282,7 @@ export async function loadStoreSiteChecked(
     loadedAt: deps.now(),
     stale,
     rechecks: previous?.updatedAt === current.manifest.updated_at ? previous.rechecks + 1 : 0,
+    failed: false,
   };
   heldSite = entry;
   site.then(
@@ -289,6 +292,7 @@ export async function loadStoreSiteChecked(
     },
     // A failed load is not kept, so the next request tries again; the site held before it stays.
     () => {
+      entry.failed = true;
       if (heldSite?.site === site) heldSite = previous;
     },
   );
