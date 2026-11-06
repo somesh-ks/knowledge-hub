@@ -585,8 +585,12 @@ test.describe("the podcast queue", () => {
     await expect(dialog).toContainText("Run: 43");
     // A run stored before 2026-11-05 still holds a GitHub link; the dialog neither links nor copies it.
     await expect(dialog.getByRole("link")).toHaveCount(0);
-    await dialog.getByRole("button", { name: "Copy details" }).click();
-    await expect(dialog.getByRole("button", { name: "Copied" })).toBeVisible();
+    // The snippet is built by a script, so its stylesheet must come with the queue: unstyled, the Copy
+    // button drew its copy glyph and its check side by side.
+    const copy = dialog.getByRole("button", { name: "Copy details" });
+    await expect(copy.locator('[data-icon="check"]')).toBeHidden();
+    await copy.click();
+    await expect(dialog.getByRole("status")).toHaveText("Copied");
     const copied = await page.evaluate(() => navigator.clipboard.readText());
     expect(copied).toContain("Run: 43");
     expect(copied).not.toContain("github.com");

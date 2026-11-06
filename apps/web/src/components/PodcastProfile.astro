@@ -6,6 +6,7 @@ import Icon from "../design-system/Icon.astro";
 import Switch from "../design-system/Switch.astro";
 import { LENGTHS } from "../lib/createForm";
 import { CADENCES, hourLabel, WEEKDAYS } from "../lib/schedule";
+import { storyOptions } from "../lib/storyOptions";
 import "../styles/picker.css";
 
 interface Props {
@@ -23,6 +24,8 @@ interface Props {
     /** Topic ids the episode leaves out. */
     skipTopics: readonly string[];
     lengthMinutes: number;
+    /** The story count (D377); null is Auto. */
+    stories: number | null;
   };
   /**
    * Every topic. A person can put Design, AI and Technology, and their own, in or out of this
@@ -77,6 +80,24 @@ const inScope = (ids: readonly string[]): boolean =>
         <Select class="value-select" id={`${id}-length`} data-f={`${id}.length`} autocomplete="off">
           {LENGTHS.map((entry) => (
             <option value={String(entry.value)} selected={entry.value === values.lengthMinutes}>
+              {entry.label}
+            </option>
+          ))}
+        </Select>
+      </div>
+      {/* Beside Length (D377): a count above Auto shortens each story to fit; scripts/podcastProfiles.ts
+           keeps the list to what the length holds. */}
+      <div class="settings-row">
+        <label class="settings-label" for={`${id}-stories`}>Stories</label>
+        <Select class="value-select" id={`${id}-stories`} data-f={`${id}.stories`} data-wheel autocomplete="off">
+          {storyOptions(values.lengthMinutes).map((entry) => (
+            <option
+              value={entry.value}
+              data-wheel-text={entry.wheel}
+              hidden={entry.hidden}
+              disabled={entry.hidden}
+              selected={entry.value === String(values.stories ?? "")}
+            >
               {entry.label}
             </option>
           ))}

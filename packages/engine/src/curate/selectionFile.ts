@@ -44,6 +44,13 @@ export const Selection = z.object({
    * (scheduleSize.ts): validation airs survivors until they fill it. Absent airs every item.
    */
   length_chars: z.number().int().positive().optional(),
+  /**
+   * The stories the owner picked (D377): validation airs this many of the survivors instead of
+   * filling the length, and refills toward it. Absent when the length sizes the count (Auto).
+   */
+  stories: z.number().int().positive().optional(),
+  /** Words a spoken telling aimed at when the pick shortened it (tellingWords), for a refill and the voice check. */
+  telling_words: z.number().int().positive().optional(),
 });
 export type Selection = z.infer<typeof Selection>;
 

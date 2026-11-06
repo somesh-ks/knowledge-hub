@@ -127,9 +127,11 @@ export async function gateStage(deps: RunDeps, options: RunOptions): Promise<Gat
   };
 }
 
-/** The plan's length when the person asked for one. */
-const lengthOf = (options: RunOptions): Pick<Plan, "length_minutes"> =>
-  options.length === undefined ? {} : { length_minutes: options.length };
+/** The plan's length and story count when the person asked for them. */
+const lengthOf = (options: RunOptions): Pick<Plan, "length_minutes" | "stories"> => ({
+  ...(options.length === undefined ? {} : { length_minutes: options.length }),
+  ...(options.stories === undefined ? {} : { stories: options.stories }),
+});
 
 /**
  * Regenerate on a briefing: one pass with the old digest's id, kind and date, over its own window up

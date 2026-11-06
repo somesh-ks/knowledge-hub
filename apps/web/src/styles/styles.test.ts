@@ -1183,8 +1183,6 @@ const PAGE_OVERRIDES: string[] = [
   "queue.css: .menu-list.queue-pop",
   "queue.css: .menu-list.queue-pop, .menu-list.queue-pop:popover-open",
   "queue.css: .menu-list.queue-pop:popover-open",
-  "queue.css: .queue-details-actions .button-filled",
-  "queue.css: .queue-details-actions .button-text",
   "queue.css: .queue-end-icon .icon-glyph",
   "queue.css: .queue-ring[data-ended] .queue-stage-icon .icon-glyph",
   "queue.css: .queue-stage-icon > .icon-glyph",

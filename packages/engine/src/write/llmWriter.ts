@@ -187,7 +187,14 @@ export class LlmWriter implements Writer {
       schema: WriterOutput,
       schemaName: "singularity_items",
       messages: [
-        { role: "system", content: writerSystemPrompt(this.options.voice, batch[0]?.prompt) },
+        {
+          role: "system",
+          content: writerSystemPrompt(
+            this.options.voice,
+            batch[0]?.prompt,
+            batch[0]?.telling_words,
+          ),
+        },
         { role: "user", content: writerUserMessage(batch, boundary, feedback, taste, others) },
       ],
       step: "story_writer",
@@ -296,7 +303,11 @@ export class LlmWriter implements Writer {
           : [
               {
                 role: "system",
-                content: rewriteSystemPrompt(this.options.voice, request.material.prompt),
+                content: rewriteSystemPrompt(
+                  this.options.voice,
+                  request.material.prompt,
+                  request.material.telling_words,
+                ),
               },
               { role: "user", content: rewriteUserMessage(request, boundary) },
             ],

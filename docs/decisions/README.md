@@ -229,11 +229,12 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D368 | The app's write routes need no sign-in; the command center stays signed in; per-minute caps are the backstop | supersedes D307 |
 | D369 | One podcast sheet everywhere, in one order; tiles only on a long sheet; Downloads swipes away with a confirm | amends D214, D281, D365; amended by D374 |
 | D370 | Jev reads the Regenerate comment on a pause; the episode's Regenerate offers Length | amends D337; amended by D371 |
-| D371 | The Regenerate comment sets the controls both ways; Haiku proposes the values | amends D337, D370 |
+| D371 | The Regenerate comment sets the controls both ways; Haiku proposes the values | amends D337, D370; amended by D377 |
 | D373 | An installed app back after five minutes loads a waiting build even with the player open | amends D202 |
 | D374 | No podcast menu offers Stop sharing | amends D153, D214, D369 |
 | D375 | Production deploys wait for five merges, three hours, or `[deploy]` | amends D173 |
 | D376 | A rewrite carries the stories its run gathered and reads only the quick sources again | active |
+| D377 | Stories is its own control beside Length; a pick above Auto shortens each telling | amends D371 |
 | D378 | Stylesheets read type sizes and corners through their roles; one sheet corner, one pill | active |
 
 ---

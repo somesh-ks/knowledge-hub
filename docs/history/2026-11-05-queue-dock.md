@@ -26,3 +26,12 @@
 - The ring not reaching complete after every story is played: waiting for a screenshot of the stuck row.
 - 41 s under the ring against 4:44 in the dock: kept (the number is the time left to make it, not the length).
 - The head drag, the easing and the shimmer are unverified on his phone.
+
+## Round two (5 to 6 Nov, #727 and the Details snippet)
+
+- Shimmer: it jumped on its first frame (the clock was set on `animationstart`, a frame late) and at each loop end (a 2.5-wide tile travelled 3 widths). `syncShimmerClock` runs before the first frame, also after a fold; the loop travels one tile.
+- Try again kept the dock's arrival animation, so the dock faded out and back in: `startRun` says whether the dock was up (`GENERATION_STARTED_EVENT` detail).
+- A cancelled run drew Close at its start. `lib/queueIcons.ts` holds the state glyphs and the action glyphs apart (unit test, rendered-row check); the Icon guidance line is in the design system.
+- The player bar's top edge is the divider under the queue: the hairline colour as the progress track, the accent fill over it, so the dock draws no hairline of its own there. The open dock takes the overlay surface; the folded title is body size in full ink with a 16 px ring.
+- Failure details use the design system's Code snippet, in the sheet and never in a card. Its stylesheet is imported by `Queue.astro`, because a script-built snippet has no `Code.astro` on the page.
+- Two timing flakes fixed in tests: a sub-pixel box compare, and two awaited reads a frame apart while the dock settled.

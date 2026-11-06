@@ -24,6 +24,7 @@ export * from "./sourceCatalog.js";
 export * from "./sourceScore.js";
 export * from "./sources.js";
 export * from "./state.js";
+export * from "./storyCount.js";
 export * from "./structure.js";
 export * from "./structureChoice.js";
 export * from "./time.js";

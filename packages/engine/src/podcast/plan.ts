@@ -1,4 +1,6 @@
 import {
+  CHARS_PER_WORD,
+  mostStories,
   PODCAST_CHARS_PER_MINUTE,
   PODCAST_MAX_CHARS,
   type PodcastFormat,
@@ -167,8 +169,8 @@ export function aimedChars(structure: EpisodeStructure, format: PodcastFormat): 
   );
 }
 
-/** English speech runs about six characters a word, spaces included. */
-export const CHARS_PER_WORD = 6;
+// One value with the Stories control (core storyCount.ts, D377).
+export { CHARS_PER_WORD };
 /** A spoken sentence is about this many words. */
 export const WORDS_PER_SENTENCE = 15;
 
@@ -265,5 +267,13 @@ export function planPodcast(request: PodcastRequest, shape?: ScriptShape | null)
   ) {
     maxStories += 1;
   }
-  return { request, budget_chars: budget, max_stories: maxStories };
+  // A picked count (D377) replaces what the format holds: fewer stories are told at more length,
+  // more of them share the budget in shorter parts (partChars scales them down).
+  // shortcut: a pick above the format's count squeezes each part by partChars' scale, not a
+  // script written for headlines; upgrade if those episodes read thin.
+  const stories =
+    request.stories == null
+      ? maxStories
+      : Math.min(request.stories, mostStories(request.length_minutes));
+  return { request, budget_chars: budget, max_stories: stories };
 }

@@ -17,6 +17,10 @@ const isValues = (body: unknown): body is Values =>
   "length" in body &&
   (body.length === null || body.length === "shorter" || body.length === "longer");
 
+/** Haiku's step for the story count (D377); a server from before it sends none. */
+const storiesOf = (body: object): Values["stories"] =>
+  "stories" in body && (body.stories === "more" || body.stories === "fewer") ? body.stories : null;
+
 /**
  * Asks the site, once the typing pauses, what the comment calls for: which controls, as Jev reads
  * it (D370), and what to set them to, as Haiku reads it (D371, api/regen-hints). The word match
@@ -89,7 +93,7 @@ export function createCommentAsker(onAnswer: (answer: Answer) => void): {
         set({
           ...answer,
           hints: isHints(body)
-            ? { length: body.length === true, topics: body.topics === true }
+            ? { length: body.length === true, topics: body.topics === true, stories: false }
             : NO_ANSWER.hints,
         });
       });
@@ -98,7 +102,11 @@ export function createCommentAsker(onAnswer: (answer: Answer) => void): {
         set({
           ...answer,
           values: isValues(body)
-            ? { length: body.length, add: body.add.filter((name) => typeof name === "string") }
+            ? {
+                length: body.length,
+                stories: storiesOf(body),
+                add: body.add.filter((name) => typeof name === "string"),
+              }
             : NO_ANSWER.values,
         });
       });

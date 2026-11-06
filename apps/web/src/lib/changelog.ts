@@ -18,6 +18,18 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: "0.22",
+    date: "2026-11-06",
+    description:
+      "Stories sits beside Length for the daily and weekly podcasts, Catch up and Regenerate: leave it on Auto, or pick how many stories to hear, in fives, and each is told shorter to fit the length. On a phone it turns on a wheel like the time picker. Asking a Regenerate for more or fewer stories now changes the count, not the length. A regenerated podcast starts from the beginning, and it is ready sooner because it reuses the stories its first run gathered.",
+  },
+  {
+    version: "0.21.2",
+    date: "2026-11-06",
+    description:
+      "The details of a failed podcast show as the app's code box, with its own copy button, in place of a separate Copy details button. Turning on Favorite glows pink from the heart, on a podcast's page, in its menu and in the player, and on a phone the menu stays open so you see it. The first action in every podcast menu now reads Favorite, or Unfavorite once it is one, and Stop sharing is gone from every podcast menu. On a phone the title sits a little further below the cover, and small lines of text are one size larger.",
+  },
+  {
     version: "0.21.1",
     date: "2026-11-05",
     description:

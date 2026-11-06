@@ -19,7 +19,7 @@ export const WHEEL: Guidance = {
     "A column of values on a drum that snaps to a row: a person spins to a value, and the middle row, at full strength while the rest fade, is the value.",
   useWhen: [
     "A person sets a value from a short ordered run that they are likelier to spin to than to read: the hour a podcast is made, how many stories it tells.",
-    "It opens in a bottom sheet from a Select (data-wheel) on a phone.",
+    "It opens in a bottom sheet from a Select (data-wheel) on a phone. An option with data-wheel-text shows that on the wheel instead of its own text, so a column of numbers stays numbers.",
   ],
   dontUseWhen: [
     {
@@ -47,6 +47,8 @@ export const wheelOptionClass = (): string => "wheel-option";
 export interface WheelRow {
   index: number;
   text: string;
+  /** The option's own words when `text` is shorter (data-wheel-text): a screen reader hears these. */
+  label?: string;
   disabled: boolean;
 }
 
@@ -76,7 +78,8 @@ export function wheelHtml(
     .map(
       (row, place) =>
         `<div class="${wheelOptionClass()}" role="option" id="${id}-${place}" data-index="${row.index}"` +
-        `${row.disabled ? ' aria-disabled="true"' : ""}>${encode(row.text)}</div>`,
+        `${row.disabled ? ' aria-disabled="true"' : ""}` +
+        `${row.label && row.label !== row.text ? ` aria-label="${encode(row.label)}"` : ""}>${encode(row.text)}</div>`,
     )
     .join("");
   return (

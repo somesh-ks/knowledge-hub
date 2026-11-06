@@ -9,6 +9,8 @@ import {
   type ScheduleFile,
   type SourceStatsFile,
   sourceShift,
+  storiesFor,
+  tellingWords,
   VOICE_LIMITS,
 } from "@singularity/core";
 import { isThinText } from "../alexandria/alexandria.js";
@@ -76,7 +78,7 @@ import {
   withTrustedPublishers,
 } from "../trustedPublishers/trustedPublishers.js";
 import { createLinter, type Linter } from "../voice/lint.js";
-import { loadVoice } from "../voice/voice.js";
+import { loadVoice, type VoiceConfig } from "../voice/voice.js";
 import { enforceVoice } from "../write/enforceVoice.js";
 import { type WrittenText, writtenText } from "../write/text.js";
 import type { SourceMaterial } from "../write/types.js";
@@ -97,7 +99,7 @@ import {
   charsForMinutes,
   lengthMinutesFor,
   overNarrationLimit,
-  storiesForMinutes,
+  storiesPickedFor,
   WRITE_MAX,
   withSpares,
 } from "./scheduleSize.js";
@@ -130,6 +132,8 @@ interface PassContext {
   deps: RunDeps;
   runtime: ApiRuntime;
   linter: Linter;
+  /** The house voice, for a linter held to a shorter telling (D377). */
+  voice: VoiceConfig;
   preferences: Preferences;
   sourceNames: Record<string, string>;
   /** Each source's format and lean, for the type mix and perspective. */
@@ -172,6 +176,8 @@ interface PassContext {
   mode: RunMode;
   /** The minutes this run was asked to be, in place of the schedule's; undefined for none. */
   asked: number | undefined;
+  /** The stories this run was asked to tell (D377): a number, null for Auto, undefined for the schedule's. */
+  askedStories: number | null | undefined;
   /** What the owner asked to improve, for the writer prompt. */
   feedback: string | undefined;
   /**
@@ -195,7 +201,8 @@ export async function writeStage(
   chosenTopics?: readonly string[],
 ): Promise<StageReport> {
   const runtime = await deps.runtime();
-  const linter = createLinter(await loadVoice(deps.root));
+  const voice = await loadVoice(deps.root);
+  const linter = createLinter(voice);
   const [preferences, sources] = await Promise.all([
     loadPreferences(deps.root),
     loadSources(deps.root),
@@ -212,6 +219,7 @@ export async function writeStage(
     deps,
     runtime,
     linter,
+    voice,
     preferences,
     sourceNames: sourceNameMap(sources),
     sourceFacts: sourceFactsMap(sources),
@@ -234,6 +242,7 @@ export async function writeStage(
     schedule: fullSchedule,
     mode: plan.mode,
     asked: plan.length_minutes,
+    askedStories: plan.stories,
     feedback,
     batchUntil: batchDeadline(plan, deps.now()),
   };
@@ -442,11 +451,16 @@ async function writePass(
   // the weekly podcast's own length. Such a briefing also writes spares, so a story dropped after
   // selection does not come off the length; validation airs as many as fill it.
   // The same rule sizes the judge's pool in the fetch stage (fetchStage.ts).
+  // A picked story count (D377) replaces the count the length holds; more stories than that are
+  // told shorter (tellingWords), fewer are told as usual and the briefing may end under its length.
   const lengthOf = lengthMinutesFor(context.schedule, pass.kind, context.mode, context.asked);
-  const wanted =
-    lengthOf === null
-      ? undefined
-      : storiesForMinutes(lengthOf, VOICE_LIMITS.items.floor, VOICE_LIMITS.items.hardMax);
+  const picked = storiesPickedFor(context.schedule, pass.kind, context.mode, context.askedStories);
+  const wanted = lengthOf === null ? (picked ?? undefined) : storiesFor(lengthOf, picked);
+  const telling =
+    lengthOf === null || picked === null || wanted === undefined
+      ? null
+      : tellingWords(lengthOf, wanted);
+  const storyLinter = telling === null ? linter : createLinter(context.voice, telling);
   const selectArgs = {
     scored: [...scored, ...generalScored],
     kind: pass.kind,
@@ -519,6 +533,13 @@ async function writePass(
     ),
   });
 
+  // What validation sizes the briefing by: the length's characters, and a picked count with the
+  // telling it was written to.
+  const sized = {
+    ...(lengthOf === null ? {} : { length_chars: charsForMinutes(lengthOf) }),
+    ...(picked === null || wanted === undefined ? {} : { stories: wanted }),
+    ...(telling === null ? {} : { telling_words: telling }),
+  };
   /** Persist the pass's outputs and the stage marker. `survivors` empty means "nothing". */
   const finish = async (
     survivors: Array<{
@@ -535,12 +556,12 @@ async function writePass(
         ? {
             ...nothingSelection(pass),
             // Validation refills a sized pass from its reserve even when writing left too few.
-            ...(lengthOf === null ? {} : { length_chars: charsForMinutes(lengthOf) }),
+            ...sized,
           }
         : {
             ...nothingSelection(pass),
             outcome: "selected",
-            ...(lengthOf === null ? {} : { length_chars: charsForMinutes(lengthOf) }),
+            ...sized,
             items: survivors.map((s) => ({
               ...s,
               ...writtenText(texts.get(s.id) as WrittenText),
@@ -588,7 +609,7 @@ async function writePass(
   );
   const { materials, methods, writeResult, voice } = await writeFinalists({
     runtime,
-    linter,
+    linter: storyLinter,
     finalists: chosen.selected.map((sel) => ({
       item: sel.item,
       category: writerCategoryOf(sel),
@@ -597,6 +618,7 @@ async function writePass(
     sourceNames,
     feedback: context.feedback,
     taste: context.taste,
+    ...(telling === null ? {} : { telling }),
     ...(context.batchUntil === undefined ? {} : { batchUntil: context.batchUntil }),
     drop,
   });
@@ -739,6 +761,11 @@ export async function writeFinalists(args: {
   taste: Taste;
   /** Headlines the episode already airs, which the writer sees beside the finalists'. */
   airing?: readonly string[];
+  /**
+   * Words each spoken telling aims at when a picked story count shortens it (D377); `linter` must
+   * hold the same aim.
+   */
+  telling?: number;
   /** The writer's first pass is a Message Batch, waited for until this epoch ms (D294). */
   batchUntil?: number;
   drop: (id: string, stage: DropStage, reason: string) => void;
@@ -770,6 +797,7 @@ export async function writeFinalists(args: {
       text: text.text,
       ...(sel.item.source_type === "youtube" && text.method !== "snippet" ? { spoken: true } : {}),
       ...(sel.prompt === undefined ? {} : { prompt: sel.prompt }),
+      ...(args.telling === undefined ? {} : { telling_words: args.telling }),
     });
   }
 

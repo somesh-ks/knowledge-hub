@@ -644,3 +644,13 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Rejected: a narrower window (the slow sources cost the same whatever the window); the Actions artifact (a workflow change and a run id to find); listing memory on without the pool (the listings' stories would be lost).
 - Revisit if: a rewrite misses a story a listing posted after the run, or the store's Pools/ grows past a few MB.
 - Relates to: D209, D302, D342.
+
+## D377: Stories is its own control beside Length; a pick above Auto shortens each telling
+
+- Date: 2026-11-06 (the owner: "Podcast length cannot dictate number of stories"; picked "Stories beside Length").
+- Decision: the daily and weekly podcasts, Catch up and both Regenerates take a story count beside Length: Auto (null, as many as the length holds at the usual telling, `autoStories`) or a pick from 5 to 40 (`STORY_COUNTS`), offered only up to what the length holds at a 20-word telling (`mostStories`). Length stays the promise. A pick above Auto asks the writer for a shorter telling (`tellingWords`, the linter follows it) so the count fits; a pick below tells each story as usual and may end under the length. Validation airs the picked count (`sparesOverCount`) and refills toward it. Saved as `stories` in the schedule (daily, `weekly`, `custom`) and an episode's request; a briefing Regenerate sends run.yml a `stories` input (`auto` or the count). In a Regenerate comment "more stories" or "fewer stories" steps Stories from what aired; only words about time move Length. The arithmetic is in `@singularity/core/storyCount`, free of zod so the browser loads it.
+- Why: the count was derived from the length alone, so "more stories" could only mean a longer podcast, and a rewrite asked for more stories aired 12 again (2026-11-06).
+- Cost: none per run; a picked count above Auto writes more, shorter stories at the same length.
+- Rejected: Stories replacing Length (the length is what the owner plans their time around); a free number field (counts the length cannot hold).
+- Revisit if: picked counts air well under or over their length, or tellings at 20 to 30 words read as headlines.
+- Relates to: D119, D337, D371, D376.

@@ -37,11 +37,12 @@ function filedInFormerHome(item: { category: string; section: string }, date: st
   return former !== undefined && former.section === item.section && date <= former.until;
 }
 
-/** The lower bounds a summary gained with the four-beat voice. */
-const SUMMARY_MINIMUMS: ReadonlySet<ViolationRule> = new Set([
-  "too_few_words",
-  "too_few_sentences",
-]);
+/**
+ * The lower bounds of a summary (gained with the four-beat voice) and of a spoken telling. A
+ * telling's lower bound is the writer's aim, held when it is written: a picked story count (D377)
+ * aims shorter, and the digest does not record the aim, so the digest is not held to the usual one.
+ */
+const MINIMUMS: ReadonlySet<ViolationRule> = new Set(["too_few_words", "too_few_sentences"]);
 
 export type IssueSeverity = "error" | "warning";
 
@@ -338,7 +339,8 @@ export function validateDigest(input: unknown, context: ValidateContext): Valida
       // A digest in the four-beat voice has no why line; there is nothing to lint.
       if (text === undefined) continue;
       for (const violation of context.linter.lint(field, text)) {
-        if (legacy && field === "summary" && SUMMARY_MINIMUMS.has(violation.rule)) continue;
+        if (legacy && field === "summary" && MINIMUMS.has(violation.rule)) continue;
+        if (field === "spoken" && MINIMUMS.has(violation.rule)) continue;
         add("error", "voice", `${field}: ${violation.message}`, item.id);
       }
     }

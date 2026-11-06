@@ -1,5 +1,5 @@
 import { parseArgs } from "node:util";
-import { DigestId, PodcastFeedback, ScheduleLengthMinutes } from "@singularity/core";
+import { DigestId, PodcastFeedback, ScheduleLengthMinutes, StoryCount } from "@singularity/core";
 import type { CommandContext, CommandRun } from "../context.js";
 import { RUN_MODES, type RunMode } from "../gate/decideRun.js";
 import { buildDeps } from "../run/buildDeps.js";
@@ -36,6 +36,7 @@ function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
       topics: { type: "string" },
       replace: { type: "string" },
       length: { type: "string" },
+      stories: { type: "string" },
       delete: { type: "string" },
       "record-failed": { type: "boolean" },
       help: { type: "boolean", short: "h" },
@@ -76,6 +77,12 @@ function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
   if (length !== undefined && !ScheduleLengthMinutes.safeParse(length).success) {
     throw new Error("--length takes 3, 5, 10 or 15 (minutes)");
   }
+  // Blank means the schedule's count; "auto" asks for Auto whatever the schedule says.
+  const storiesText = values.stories?.trim().toLowerCase();
+  const stories = !storiesText ? undefined : storiesText === "auto" ? null : Number(storiesText);
+  if (stories != null && !StoryCount.safeParse(stories).success) {
+    throw new Error("--stories takes auto or a whole number from 3 to 48");
+  }
   for (const id of [values.replace, values.delete]) {
     if (id !== undefined && !DigestId.safeParse(id).success) {
       throw new Error(`--replace and --delete take a digest id such as 2026-10-11, not "${id}"`);
@@ -93,6 +100,7 @@ function parseOptions(argv: string[]): { options: RunOptions; help: boolean } {
       run: values.run,
       replace: values.replace,
       length,
+      stories,
       delete: values.delete,
       recordFailed: values["record-failed"] === true,
       feedback: feedback?.success ? feedback.data : undefined,

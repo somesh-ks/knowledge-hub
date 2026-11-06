@@ -30,6 +30,8 @@ export interface ScheduleView {
   /** Topic ids the daily briefing leaves out. */
   skipTopics: string[];
   lengthMinutes: number;
+  /** The daily podcast's story count (D377); null is Auto. */
+  stories: number | null;
   /** Speechify voice ids of every podcast (the Podcast voice page); null is the engine's default. */
   voiceId: string | null;
   voiceIdB: string | null;
@@ -65,6 +67,7 @@ export function scheduleViewOf(scheduleFile: unknown): ScheduleView {
     hour,
     cadence_days: cadenceDays,
     length_minutes: lengthMinutes,
+    stories,
     voice_id: voiceId,
     voice_id_b: voiceIdB,
     custom,
@@ -84,6 +87,7 @@ export function scheduleViewOf(scheduleFile: unknown): ScheduleView {
     cadenceDays,
     skipTopics,
     lengthMinutes,
+    stories,
     voiceId,
     voiceIdB,
     weekly,

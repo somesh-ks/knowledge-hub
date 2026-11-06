@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { DigestId, DigestKind } from "@singularity/core";
+import { DigestId, DigestKind, StoryCount } from "@singularity/core";
 import { z } from "zod";
 import { readJsonIfExists } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
@@ -38,6 +38,8 @@ export const Plan = z.object({
    * the gate step receives `--length`, so it lives here for the stages after it.
    */
   length_minutes: z.number().int().positive().optional(),
+  /** The stories the person asked this run to tell (D377, `--stories`): a number, or null for Auto. */
+  stories: StoryCount.optional(),
   /** Set when the person gave `--since`: the window reaches back past the last fetch, so no listing is skipped as unchanged. */
   lookback: z.boolean().optional(),
   /** "adopted" plans come from an agent-mode run directory; no gate ran. */

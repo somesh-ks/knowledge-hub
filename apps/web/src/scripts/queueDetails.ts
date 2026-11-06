@@ -1,9 +1,6 @@
-import { buttonClass } from "../design-system/button";
+import { codeSnippetHtml, wireCodeCopy } from "../design-system/code";
 import { escapeHtml, sheetHeadHtml } from "../lib/sheetHead";
 import { dismissOnScrim } from "./pullDismiss";
-
-/** How long the button says "Copied" before it offers the copy again. */
-const COPIED_MS = 2000;
 
 /** What a failed run's Details dialog shows (scripts/queue.ts builds it from the run's record). */
 export interface QueueDetails {
@@ -24,13 +21,12 @@ export const detailsSnippet = (fields: QueueDetails["fields"]): string =>
 
 /**
  * Details of a failed run (2026-10-29): what went wrong in plain words and what to do, then the facts of
- * the run as a snippet with a Copy button, so the person can paste them where they ask for help. The dialog is
- * the share dialog's own shape (shareDialog.ts), built on demand; the words come from the queue's
- * data attributes.
+ * the run as the design system's Code snippet (its own Copy button), so the person can paste them where they
+ * ask for help. The dialog is the share dialog's own shape (shareDialog.ts), built on demand; the words come
+ * from the queue's data attributes.
  */
 export function openQueueDetails(details: QueueDetails, words: DOMStringMap): void {
   document.querySelector("dialog.queue-details-dialog")?.remove();
-  const snippet = detailsSnippet(details.fields);
   const dialog = document.createElement("dialog");
   dialog.className = "share-dialog queue-details-dialog";
   dialog.setAttribute("aria-labelledby", "queue-details-title");
@@ -38,47 +34,16 @@ export function openQueueDetails(details: QueueDetails, words: DOMStringMap): vo
     `${sheetHeadHtml(words.wordDetailsTitle ?? "", "queue-details-title", "data-dialog-close")}` +
     `<p class="share-about">${escapeHtml([details.what, details.why].filter(Boolean).join(" "))}</p>` +
     `<p class="share-about">${escapeHtml(words.wordDetailsHint ?? "")}</p>` +
-    `<pre class="queue-snippet" tabindex="0" data-queue-snippet>${escapeHtml(snippet)}</pre>` +
-    `<div class="share-actions queue-details-actions">` +
-    `<button class="${buttonClass("filled")}" type="button" data-queue-copy>${escapeHtml(words.wordDetailsCopy ?? "")}</button></div>` +
-    `<span class="sr-only" role="status" data-queue-copied></span>`;
+    `<div class="queue-details-snippet">${codeSnippetHtml(detailsSnippet(details.fields), {
+      label: words.wordDetailsTitle ?? "",
+      copy: words.wordDetailsCopy,
+      copied: words.wordDetailsCopied,
+    })}</div>`;
   document.body.append(dialog);
-
-  const pre = dialog.querySelector<HTMLElement>("[data-queue-snippet]");
-  const copy = dialog.querySelector<HTMLButtonElement>("[data-queue-copy]");
-  const said = dialog.querySelector<HTMLElement>("[data-queue-copied]");
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  wireCodeCopy();
 
   dialog.querySelector("[data-dialog-close]")?.addEventListener("click", () => dialog.close());
   dismissOnScrim(dialog);
-  copy?.addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.writeText(snippet);
-    } catch {
-      // No clipboard here (an insecure origin, a denied permission): the snippet is selected to copy by hand.
-      if (pre) {
-        const range = document.createRange();
-        range.selectNodeContents(pre);
-        const selection = getSelection();
-        selection?.removeAllRanges();
-        selection?.addRange(range);
-      }
-      return;
-    }
-    const label = words.wordDetailsCopy ?? "";
-    copy.textContent = words.wordDetailsCopied ?? "";
-    if (said) said.textContent = words.wordDetailsCopied ?? "";
-    document.dispatchEvent(new CustomEvent("singularity:sound", { detail: "success" }));
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      copy.textContent = label;
-      if (said) said.textContent = "";
-    }, COPIED_MS);
-  });
-  dialog.addEventListener("close", () => {
-    clearTimeout(timer);
-    dialog.remove();
-  });
+  dialog.addEventListener("close", () => dialog.remove());
   dialog.showModal();
-  copy?.focus();
 }

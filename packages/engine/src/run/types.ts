@@ -42,6 +42,11 @@ export interface RunOptions {
   replace: string | undefined;
   /** Gate: the minutes this run is sized to, in place of the schedule's (Regenerate's Length). */
   length: number | undefined;
+  /**
+   * Gate: the stories this run tells (D377), in place of the schedule's: a number, or null for Auto.
+   * Undefined keeps the schedule's.
+   */
+  stories: number | null | undefined;
   /** Remove this digest, its timeline included, in one guarded commit. No other stage runs. */
   delete: string | undefined;
   /** The job died before the commit stage: record `failed` for what was due (run.yml). No stage runs. */
@@ -60,6 +65,7 @@ export const DEFAULT_RUN_OPTIONS: RunOptions = {
   run: undefined,
   replace: undefined,
   length: undefined,
+  stories: undefined,
   delete: undefined,
   recordFailed: false,
 };

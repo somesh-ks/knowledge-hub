@@ -1,6 +1,7 @@
 import {
   type CSSProperties,
   type KeyboardEvent,
+  type MouseEvent,
   type ToggleEvent,
   useEffect,
   useState,
@@ -23,6 +24,7 @@ import {
 } from "../design-system/sheet";
 import { sendToast } from "../scripts/toastEvent";
 import "../styles/slider.css";
+import { glowFavorite } from "../design-system/glow";
 import { downloadFailure } from "../lib/downloadCopy";
 import { longDateFromDigestId } from "./core/formatTime";
 import { recordingCaption } from "./core/playerCopy";
@@ -227,11 +229,15 @@ export default function PlayerMenu() {
     if (typeof outcome === "object") toast(outcome.refused);
   };
 
-  const save = (): void => {
+  const save = (event: MouseEvent<HTMLElement>): void => {
     const next = !marks.saved;
+    const tile = event.currentTarget;
     // The tile says Saved or Save; a toast would cover the sheet. Only a refusal speaks.
-    if (setSaved(deviceStorage(), id, next)) marks.setSaved(next);
-    else
+    if (setSaved(deviceStorage(), id, next)) {
+      marks.setSaved(next);
+      // After the tile draws its filled heart, so the halo opens from where the heart is.
+      if (next) requestAnimationFrame(() => glowFavorite(tile));
+    } else
       toast(
         next ? "Couldn't save it on this device" : "Couldn't remove it from Favorites",
         "error",

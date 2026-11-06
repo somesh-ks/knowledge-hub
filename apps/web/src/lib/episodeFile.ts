@@ -7,6 +7,7 @@ import {
   readEpisodeFrontmatter,
   readEpisodeTurns,
   readEpisodeVoice,
+  StoryCount,
   stockholmDate,
 } from "@singularity/core";
 import type { PodcastRequest } from "../types/contracts";
@@ -102,6 +103,9 @@ function readRequest(value: unknown, format: PodcastRequest["format"]): PodcastR
   return {
     topic_ids: topics,
     length_minutes: oneOf(raw.length_minutes, LENGTHS, 5),
+    ...(StoryCount.safeParse(raw.stories).success && raw.stories !== null
+      ? { stories: raw.stories as number }
+      : {}),
     format,
     window_days: oneOf(raw.window_days, WINDOWS, 2),
     tone: oneOf(raw.tone, TONES, "neutral"),
