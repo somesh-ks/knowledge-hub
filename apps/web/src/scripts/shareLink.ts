@@ -50,49 +50,6 @@ export async function shareLink(
   return send(title, url, kind, item);
 }
 
-/** The items this device made a link for, so their menus offer Stop sharing. Device only. */
-const SHARED_KEY = "singularity:shared-items";
-
-function sharedItems(): Set<string> {
-  try {
-    const raw = JSON.parse(localStorage.getItem(SHARED_KEY) ?? "[]") as unknown;
-    return new Set(Array.isArray(raw) ? raw.filter((id) => typeof id === "string") : []);
-  } catch {
-    return new Set();
-  }
-}
-
-function remember(id: string, on: boolean): void {
-  const items = sharedItems();
-  if (on) items.add(id);
-  else items.delete(id);
-  try {
-    localStorage.setItem(SHARED_KEY, JSON.stringify([...items]));
-  } catch {
-    // Storage is blocked: Stop sharing is simply not offered on this device.
-  }
-  syncStopSharing();
-}
-
-/**
- * Puts Stop sharing into the menus of the items this device shared, from the template beside each
- * menu's Share, and takes it out of the rest. Not drawn hidden: a menu lists only what it offers.
- */
-export function syncStopSharing(): void {
-  const items = sharedItems();
-  for (const template of document.querySelectorAll<HTMLTemplateElement>(
-    "template[data-share-stop-template]",
-  )) {
-    const button = template.content.querySelector<HTMLElement>("[data-share-stop]");
-    const placed = template.nextElementSibling?.matches("[data-share-stop]")
-      ? template.nextElementSibling
-      : null;
-    const wanted = items.has(button?.dataset.shareStop ?? "");
-    if (wanted && !placed && button) template.after(button.cloneNode(true));
-    if (!wanted) placed?.remove();
-  }
-}
-
 /** A listen link ready to share, the route's refusal, or null where the site cannot make one. */
 type Prepared = { url: string } | { refused: string } | null;
 
@@ -224,25 +181,5 @@ export async function shareItem(item: {
   const answer = ready !== undefined ? ready : await prepareShare(item.id);
   if (answer === null) return shareLink(item.title, item.path);
   if ("refused" in answer) return answer;
-  const outcome = send(item.title, answer.url, item.kind, item.id);
-  remember(item.id, true);
-  return outcome;
-}
-
-/** Stop sharing: every link of the item stops working within the CDN's five minutes. */
-export async function stopSharing(id: string): Promise<boolean> {
-  try {
-    const response = await fetch("/api/share", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ item: id }),
-    });
-    if (!response.ok) return false;
-    prepared.delete(id);
-    known.delete(id);
-    remember(id, false);
-    return true;
-  } catch {
-    return false;
-  }
+  return send(item.title, answer.url, item.kind, item.id);
 }

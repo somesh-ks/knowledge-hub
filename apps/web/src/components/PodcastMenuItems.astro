@@ -22,12 +22,10 @@ const { id, kind, audio, deletable = true, regenerations, pending = false } = As
 // same, because it is the same podcast (owner, 2026-11-04). Only the podcast's own facts leave one out.
 const wanted: PodcastAction[] = ["favorite", "queue", "share"];
 if (audio) wanted.push("download");
-wanted.push("regenerate", "unshare");
+wanted.push("regenerate");
 if (deletable) wanted.push("delete");
 const actions = inPodcastOrder(wanted);
-// Stop sharing is put in only once this device shared the item, so it never counts toward tiles.
-const counted = actions.filter((action) => action !== "unshare");
-const tiles: PodcastAction[] = menuHasTiles(counted.length) ? counted.slice(0, MENU_TILES_MAX) : [];
+const tiles: PodcastAction[] = menuHasTiles(actions.length) ? actions.slice(0, MENU_TILES_MAX) : [];
 const rows = actions.filter((action) => !tiles.includes(action));
 const item = {
   id,
