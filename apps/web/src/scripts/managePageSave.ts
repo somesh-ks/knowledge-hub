@@ -7,7 +7,7 @@
 
 import { browserOnline, connectivity } from "../lib/connectivity";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
-import { appendOutbox, dropOldest, readOutbox, removeOp } from "../lib/outbox";
+import { appendOutbox, dropOldest, readOutbox, removeOp, writeOutbox } from "../lib/outbox";
 import { GENERIC, KEPT, REASONS, SAVED, SYNCED, TIME_REFUSED } from "../lib/saveCopy";
 import { SAVED_KEY, storeOn } from "../lib/savedKey";
 import { addSaved, parseSaved, withPending } from "../lib/savedOverlay";
@@ -687,19 +687,19 @@ export function keepHeld(context: SaveContext, now = Date.now()): void {
     ),
   );
   if (going.size === 0) return;
-  // Edits already kept (made offline) are told "synced" when they go; these alone are a plain save.
-  const quiet = readOutbox(now).length === 0;
-  for (const batch of pack(buildQueue(going), going)) {
-    // Storage refused this one: it stays with its run, and the ones kept before it still go.
-    if (!appendOutbox(batch.ops, now)) break;
-    settle(batch, context.changes);
-    try {
-      context.settled?.();
-    } catch {
-      // The page is gone: nothing left to read again.
-    }
+  const kept = readOutbox(now);
+  const batches = pack(buildQueue(going), going);
+  // One write for every batch, so storage keeps all of them or none: a refusal leaves them all to
+  // their run, in order, as before.
+  if (!writeOutbox([...kept, ...batches.map((batch) => ({ at: now, ops: batch.ops }))])) return;
+  for (const batch of batches) settle(batch, context.changes);
+  try {
+    context.settled?.();
+  } catch {
+    // The page is gone: nothing left to read again.
   }
-  void drainOutbox(quiet);
+  // Edits already kept (made offline) are told "synced" when they go; these alone are a plain save.
+  void drainOutbox(kept.length === 0);
 }
 
 /**

@@ -559,6 +559,29 @@ describe("a left page's held run", () => {
     expect(outboxOps()).toEqual([]);
   });
 
+  it("leaves a held edit to its run when storage refuses to keep it, so it still goes once", async () => {
+    const changes = new Map([["time", change({ op: "schedule.set", hour: 9 })]]);
+    const { context: left } = page(changes);
+    await flush(left);
+    changes.set("length", change({ op: "schedule.set", length_minutes: 3 }));
+    const run = flush(left);
+    const storage = localStorage;
+    vi.stubGlobal("localStorage", {
+      ...storage,
+      getItem: (key: string) => storage.getItem(key),
+      setItem: () => {
+        throw new DOMException("full", "QuotaExceededError");
+      },
+    });
+    keepHeld(left);
+    expect(left.changes.size).toBe(1);
+    vi.stubGlobal("localStorage", storage);
+    await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+    await run;
+    expect(posted.slice(1)).toEqual([[{ op: "schedule.set", length_minutes: 3 }]]);
+    expect(outboxOps()).toEqual([]);
+  });
+
   it("keeps an edit made while the request before it is on its way, and sends it after that one", async () => {
     let answer: (response: Response) => void = () => {};
     vi.stubGlobal(
