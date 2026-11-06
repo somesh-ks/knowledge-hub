@@ -104,6 +104,24 @@ describe("docs check", () => {
     ]);
   });
 
+  // Bug: every decision appended a row to the README Index and an entry to an area file, so two pull
+  // requests that each added one conflicted and the owner met it in the merge button (D379). A decision
+  // in entries/ is its own row; the checks must still read it.
+  it("reads a decision filed in entries/ as its own Index row, and fails one without a status", () => {
+    const filed = (text: string, name = "D5") => ({ [`docs/decisions/entries/${name}.md`]: text });
+    const ok = "## D5: Five\n\n- Status: amends D2\n";
+    expect(checkDocs(repo(filed(ok))).fails).toEqual([]);
+    expect(checkDocs(repo(filed("## D5: Five\n\nBody.\n"))).fails).toEqual([
+      'docs/decisions/entries/D5.md: no "- Status:" line',
+      "docs/decisions/README.md: D5 has no Index row",
+    ]);
+    expect(checkDocs(repo(filed(ok, "D6"))).fails[0]).toContain("named for it");
+    // It still retires an old row only by naming it there.
+    expect(checkDocs(repo(filed("## D5: Five\n\n- Status: supersedes D2\n"))).fails).toEqual([
+      expect.stringContaining('D2\'s row is not "(partly) superseded by D5"'),
+    ]);
+  });
+
   // Bug: D136 "replaces D46, D58, D113, D130" while their rows still said active, so agents grepping
   // the Index status column built on dead decisions.
   it("fails a row that replaces a decision whose own row still says active", () => {
