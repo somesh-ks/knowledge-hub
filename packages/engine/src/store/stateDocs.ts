@@ -146,6 +146,8 @@ async function localStatePaths(root: string): Promise<string[]> {
 export async function pullState(root: string, sql: SqlClient): Promise<string[]> {
   const changed: string[] = [];
   const baseline: Baseline = {};
+  // The old record goes before any file changes, so it cannot outlive the files it described.
+  await rm(join(root, STATE_BASELINE_PATH), { force: true });
   try {
     for (const row of await readRows(sql)) {
       const file = join(root, row.path);
