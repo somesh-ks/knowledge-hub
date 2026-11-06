@@ -741,6 +741,10 @@
   height: var(--mini-player-progress-height);
   overflow: hidden;
   pointer-events: none;
+  /* The bar's top edge is the divider from the queue above it: the hairline colour as the track, the
+     accent fill painted over it as it plays, so the progress never cuts the divider (owner, 2026-11-05).
+     From the width where the line is the timeline, the stronger track below takes over. */
+  background: var(--color-border-hairline);
 }
 
 .dock-progress-fill {
