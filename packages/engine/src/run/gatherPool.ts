@@ -31,6 +31,7 @@ import {
   trustedPublisherMatcher,
   trustedPublisherQueries,
 } from "../trustedPublishers/trustedPublishers.js";
+import { CARRIED_NOTE, CARRIED_TYPES } from "./carriedPool.js";
 import { activeGeneralFrom, buildGeneralPool, type GeneralPoolFile } from "./generalNews.js";
 import { generalIdsFor } from "./generalScope.js";
 import type { FetchSetup } from "./types.js";
@@ -50,6 +51,11 @@ export interface GatherInput {
   probeGeneral?: readonly Source[];
   /** The prefilter's main cap, sized to the stories the pass writes; absent keeps its default. */
   poolCap?: number;
+  /**
+   * A rewrite's stories from the run it replaces (D376, carriedPool.ts): the slow and paid sources
+   * are not read again, and these join what the rest return before dedupe and the prefilter.
+   */
+  carried?: readonly Item[];
 }
 
 export interface GatherResult {
@@ -141,7 +147,15 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
   const mode = input.kind === "weekly" ? "weekly" : "regular";
   const guard = setup.firecrawlGuard;
   const skip = new Map<string, string>();
-  if (guard) {
+  // A rewrite that carries its pool reads none of them, nor YouTube or Exa (D376). General feeds are
+  // read as usual: their stories are kept apart from the pool (D66), so none were carried.
+  if (input.carried) {
+    for (const source of runnable) {
+      if (CARRIED_TYPES.has(source.type) && !generalSourceIds.has(source.id)) {
+        skip.set(source.id, CARRIED_NOTE);
+      }
+    }
+  } else if (guard) {
     const listed = selectSources(runnable, mode).filter(
       (source) => source.type === "firecrawl" && !guard.has(source.feed_url ?? source.url),
     );
@@ -150,7 +164,7 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
     guard.recordSkipped(plan.skipped);
   }
 
-  const { items: fetchedRaw, results } = await fetchAll(
+  const { items: fetched, results } = await fetchAll(
     runnable,
     input.window,
     {
@@ -168,6 +182,9 @@ export async function gatherPool(input: GatherInput): Promise<GatherResult> {
       ...(setup.sleep ? { sleep: setup.sleep } : {}),
     },
   );
+  // Only the stories of sources skipped above come back: one switched off or removed since stays out.
+  const carried = (input.carried ?? []).filter((item) => skip.get(item.source_id) === CARRIED_NOTE);
+  const fetchedRaw = [...fetched, ...carried];
   const { kept: fetchedItems, dropped: blocked } = dropBlocked(
     fetchedRaw,
     blockedDomains,

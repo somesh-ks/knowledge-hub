@@ -111,7 +111,6 @@ function loadProcessEnvFile(root: string): void {
 const EXTRA_SECRET_NAMES = [
   "VERCEL_TOKEN",
   "GITHUB_SINGULARITY_TOKEN",
-  "GITHUB_DISPATCH_TOKEN",
   "GITHUB_TOKEN",
   "GH_TOKEN",
 ] as const;
@@ -124,7 +123,7 @@ function allSecrets(env: Env, source: Record<string, string | undefined>): strin
 }
 
 function quietDebug(log: Logger, source: Record<string, string | undefined>): Logger {
-  if (source.SINGULARITY_DEBUG === "1" || source.DISPATCH_DEBUG === "1") return log;
+  if (source.SINGULARITY_DEBUG === "1") return log;
   return { ...log, debug: () => {} };
 }
 
@@ -264,8 +263,16 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
       // owner config, and a run on the loaders' defaults is not the owner's briefing.
       const missing = await missingConfigFiles(root);
       if (missing.length > 0 && spec.name !== "health") {
+        // Name the switch that is off: in Actions it is the repository variable or secret that is
+        // unset, which the run's log otherwise hides behind an empty env line.
+        const off = [
+          env.DATABASE_URL ? null : "DATABASE_URL is not set",
+          env.SINGULARITY_CONFIG_STORE === "postgres"
+            ? null
+            : "SINGULARITY_CONFIG_STORE is not 'postgres'",
+        ].filter((reason) => reason !== null);
         err(
-          `singularity: config/ is missing ${missing.join(", ")} and the config store is off. Run: npm run singularity -- config pull\n`,
+          `singularity: config/ is missing ${missing.join(", ")} and the config store is off (${off.join("; ")}). In GitHub Actions set the repository variable SINGULARITY_CONFIG_STORE=postgres and the secret DATABASE_URL; on a machine run: npm run singularity -- config pull\n`,
         );
         return 1;
       }

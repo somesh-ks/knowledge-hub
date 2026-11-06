@@ -120,7 +120,7 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
     const lengths = radios();
     const asked = Number(lengths.find((radio) => radio.defaultChecked)?.value);
     if (!lengthTouched && Number.isFinite(asked)) {
-      const target = desiredLength(asked, answer.values);
+      const target = desiredLength(asked, answer.values, feedback.value);
       for (const radio of lengths) radio.checked = Number(radio.value) === target;
     }
     chips.forEach((chip, at) => {

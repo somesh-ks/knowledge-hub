@@ -231,5 +231,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D371 | The Regenerate comment sets the controls both ways; Haiku proposes the values | amends D337, D370 |
 | D373 | An installed app back after five minutes loads a waiting build even with the player open | amends D202 |
 | D375 | Production deploys wait for five merges, three hours, or `[deploy]` | amends D173 |
+| D376 | A rewrite carries the stories its run gathered and reads only the quick sources again | active |
 
 ---

@@ -101,11 +101,13 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-09: a move took 400 ms though the page was ready after 70: Astro 7 keeps only its own root attributes, so the mark that picks the animation (`data-astro-nav`) was lost. Carry it onto `event.newDocument` in `astro:before-swap`.
 - 2026-11-03: tinted fills eased from the wrong hue on a tab tap: the swap wiped the root `style` (`--hue-shift`); it is in `CARRIED_ATTRIBUTES`.
 - 2026-10-09: The first press after opening blocks about 200 ms with the audio device idle, 75 ms warm: `new AudioContext()` inside the press. `latencyHint` and `sampleRate` do not help (the first context created pays); reverse the order as the control.
-- 2026-10-31: a Play control marked `aria-disabled` never reacted: `disabledGuard.ts` swallows clicks on `[aria-disabled="true"]`, so a voice without a sample is marked `data-silent` instead.
+- 2026-10-31: a Play control marked `aria-disabled` never reacted (`disabledGuard.ts` swallows clicks): use `data-silent`.
 - 2026-11-01: Downloads showed as a gallery after a Library visit: `libraryPage.ts` kept its `astro:page-load` listener and matched Downloads' `[data-library]`. Name the page (`#main.library`); a test must reach it by click, not `goto`.
 - 2026-11-01: a `.manage` rule for the voice page also reached Preferences: a row declares its `--row-reach`.
 - 2026-11-03: servers off Vercel with the real `DATABASE_URL` stored their own 5xx as production faults (~180 a day); telemetry takes `deploymentDatabaseUrl`. Astro's SSR header replaces vercel.json's CSP: `frame-ancestors` goes in `withFrameAncestors` (meta ignores it).
-- 2026-11-05: a white strip showed over the page while Android's keyboard slid up on the Regenerate and Catch up panels: Chrome resizes the page to its final height at once, and the native window behind it is white until the keyboard arrives. A native panel with a text field needs `fitAboveKeyboard` (overlays the keyboard instead); only Topics and Block sources had it.
+- 2026-11-05: a white strip showed while Android's keyboard slid up on the Regenerate and Catch up panels: Chrome resizes the page at once and the window behind is white until the keyboard arrives. A native panel with a text field needs `fitAboveKeyboard` (overlays the keyboard instead); only Topics and Block sources had it.
+- 2026-11-05: a CSS animation restarts when its node is removed and put back, so a list that repaints rows each poll restarts every shimmer; move only rows out of order. The engine's timings (state/podcast-timings.json) cover its own work, not a workflow step.
+- 2026-11-06: a rewrite played from 4 minutes: the place was keyed by the digest id, which a rewrite keeps; it is saved with the recording's file address (`resume-of`). "More stories" aired 12 again: the count is the Length, and only a model moved the control; `wordLength` does it at once.
 
 ## Build and tooling
 

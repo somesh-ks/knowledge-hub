@@ -1,14 +1,14 @@
 {
   "version": 1,
   "last_cover": {
-    "palette": "petrol-bone",
-    "template": "aperture"
+    "palette": "ink-bone",
+    "template": "orbit"
   },
   "last_fetch_at": "2026-11-05T04:01:03.981Z",
   "on_demand": {
-    "at": "2026-10-30T22:17:19.999Z",
-    "digest_id": "2026-10-30",
-    "generated_at": "2026-10-30T22:17:19.985Z",
+    "at": "2026-11-06T07:39:53.534Z",
+    "digest_id": "2026-11-05",
+    "generated_at": "2026-11-06T07:39:53.510Z",
     "items": 13,
     "outcome": "published"
   },
@@ -21,16 +21,15 @@
     "outcome": "published"
   },
   "spend": {
-    "at": "2026-11-05T05:57:00.358Z",
-    "firecrawl_rate_limited": 1,
+    "at": "2026-11-06T07:39:53.534Z",
+    "firecrawl_rate_limited": 0,
     "firecrawl_skipped": [],
     "requests": {
-      "anthropic": 22,
+      "anthropic": 15,
       "exa": 14,
-      "firecrawl_listing": 11,
-      "firecrawl_scrape": 12,
-      "gemini": 1,
-      "jev": 604
+      "firecrawl_listing": 15,
+      "firecrawl_scrape": 9,
+      "jev": 635
     }
   },
   "weekly": {
