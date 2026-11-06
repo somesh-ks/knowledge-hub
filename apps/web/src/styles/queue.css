@@ -44,6 +44,13 @@
   }
 }
 
+/* The player bar under the dock draws its own top edge (its progress track, in the hairline colour with
+   the accent fill over it), so the dock's hairline is not drawn a second time: the two lines would read
+   as one thick divider (owner, 2026-11-05). */
+html[data-mini="visible"] .queue-dock {
+  border-block-end: 0;
+}
+
 /* The dock arrives, it does not appear: a started Catch up or Regenerate sends its sheet down, and the
    queue rises from the bar a beat later, so the run is seen to land where it can be followed. Only a
    run started here marks the dock `data-arriving` (queue.ts): a restored dock appears at once. */
@@ -98,7 +105,11 @@ html[data-player="open"] .queue-dock {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
-  font-size: var(--text-label-size);
+  /* Body size and the page's ink, as the rows' names (owner, 2026-11-06: it read small and faded). While a
+     podcast is made the light crossing it is the muted ink, as in the side column. */
+  font-size: var(--text-body-size);
+  --queue-word-rest: var(--color-on-surface);
+  --queue-word-band: var(--color-on-surface-muted);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -172,6 +183,20 @@ html[data-player="open"] .queue-dock {
   max-height: min(calc(var(--queue-list-max, 100dvh) + var(--space-6)), 50dvh);
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+/* Opened, the dock is an overlay on the page, and with no shadow its tone says so: the overlay surface the
+   app's raised menus use, a step off the bar below it (owner, 2026-11-05). Folded it stays the bar's own
+   tone. The colour is an effect, so it takes the effects spring, and its row states follow it. */
+.queue-dock {
+  transition: background-color var(--duration-spring-effects-default)
+    var(--ease-spring-effects-default);
+}
+
+.queue-dock[data-expanded] {
+  background: var(--color-surface-overlay);
+  --ghost-hover: var(--color-surface-overlay-hover);
+  --ghost-pressed: var(--color-surface-overlay-pressed);
 }
 
 /* The folded row is the dock's handle: a drag on it is the dock's, never the page's (scripts/queue.ts). */
@@ -380,6 +405,13 @@ html[data-player="open"] .queue-dock {
   --queue-ring-stroke: 5;
 }
 
+/* Beside the dock's body-size title the ring is as tall as the words: 16px, the small icon (owner, 2026-11-06:
+   it was taller than the text). The stroke is 7 of 100 units, so its width stays about what it was in pixels. */
+.queue-dock .queue-ring-head {
+  --queue-ring-size: var(--size-icon-sm);
+  --queue-ring-stroke: 7;
+}
+
 .queue-ring > svg {
   position: absolute;
   inset: 0;
@@ -418,8 +450,8 @@ html[data-player="open"] .queue-dock {
 }
 
 .queue-ring[data-ended] .queue-stage-icon .icon-glyph {
-  width: var(--size-icon-lg);
-  height: var(--size-icon-lg);
+  width: var(--queue-ring-size);
+  height: var(--queue-ring-size);
 }
 
 .queue-play[hidden],
@@ -528,12 +560,17 @@ html:has(.queue-pop:popover-open) .app-nav-queue-title.queue-word[data-live] {
   color: var(--color-on-surface);
 }
 
+/* The gradient tiles across the word, one tile 250% of its width, so a loop must travel exactly one tile
+   to end where it began. A background-position percent is measured on the room the tile leaves
+   (100% - 250% = -150% of the width), so 100% rests the tile at -1.5 widths and -66.6667% at +1 width:
+   2.5 widths, one tile (owner, 2026-11-05: the band jumped at the end of every loop; it had travelled
+   3 widths against a 2.5-width tile). Change the tile's size and this end moves with it: 1 / (1 - size). */
 @keyframes queue-sheen {
   from {
     background-position: 100% 0;
   }
   to {
-    background-position: -100% 0;
+    background-position: -66.6667% 0;
   }
 }
 
@@ -593,40 +630,13 @@ html:has(.queue-pop:popover-open) .app-nav-queue-title.queue-word[data-live] {
 
 /* ------------------------------------------------------------------ Details of a failed run */
 
-/* The share dialog's own shape (create-sheet.css) with the run's facts as a snippet: on the tonal
-   ground the share dialog's link field has, wrapped, never wider than the dialog. */
-.queue-snippet {
-  display: block;
-  margin: 0 var(--space-4);
-  padding: var(--space-4);
+/* The share dialog's own shape (create-sheet.css) with the run's facts as the design system's Code snippet,
+   set in from the dialog's edges as its paragraphs are (a wrapper: the snippet's own class stays the design system's). */
+.queue-details-snippet {
+  margin-inline: var(--space-4);
+  /* A long record scrolls here, as the old facts box did, so the dialog never grows past the screen. */
   max-height: 40dvh;
   overflow: auto;
-  border-radius: var(--shape-sm);
-  background: var(--color-surface-container);
-  color: var(--color-on-surface);
-  font-size: var(--text-label-size);
-  line-height: var(--font-leading-label);
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-}
-
-.queue-snippet:focus-visible {
-  outline: var(--stroke-ring) solid var(--color-focus-ring);
-  outline-offset: var(--stroke-ring-gap);
-}
-
-.queue-details-actions {
-  gap: var(--space-2);
-}
-
-.queue-details-actions .button-text {
-  white-space: nowrap;
-}
-
-/* The filled button is full width by default; here it hugs its words. */
-.queue-details-actions .button-filled {
-  flex: none;
-  width: auto;
 }
 
 /* ------------------------------------------------------------------ the foot of the side column */

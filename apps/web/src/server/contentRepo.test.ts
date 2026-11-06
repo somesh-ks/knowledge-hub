@@ -310,3 +310,176 @@ it("skips an episode deleted a moment ago, before the sync drops it from the sto
   expect(after?.episodes.map((entry) => entry.id)).not.toContain(gone);
   expect(after?.episodes.length).toBe((before?.episodes.length ?? 0) - 1);
 });
+
+// Bug (2026-11-04): the Blob CDN ignores the query string, so a file overwritten in the last minute
+// can still answer with its old body. A site loaded on that body was held until the manifest next
+// changed, which could be days, and a new episode's cover answered "not ready" the whole time.
+it("loads a manifest again while a file still answers with an older body, and keeps the newer one", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  const path = "content/Podcasts/2026/10/ep-20261007-1930.md";
+  const old = store.get(path) ?? "";
+  let now = 0;
+  const deps = { env: ENV, fetch: fakeFetch, now: () => now };
+  const titleOf = async (): Promise<string | undefined> =>
+    (await loadStoreSite(deps))?.episodes.find((entry) => entry.id === "ep-20261007-1930")?.episode
+      .title;
+  const first = await titleOf();
+
+  // The file is rewritten and the manifest names the new body; the CDN still has the old one.
+  const fresh = old.replace(/^title: .*$/m, "title: Rewritten");
+  store.set(path, fresh);
+  const manifest = JSON.parse(store.get("content/manifest.json") ?? "{}");
+  manifest.updated_at = "2026-10-24T13:00:00Z";
+  manifest.files["Podcasts/2026/10/ep-20261007-1930.md"] = createHash("sha256")
+    .update(fresh)
+    .digest("hex");
+  store.set("content/manifest.json", JSON.stringify(manifest));
+  let cdnStale = true;
+  deps.fetch = async (url: string): Promise<Response> =>
+    cdnStale && url.includes("ep-20261007-1930") ? new Response(old) : fakeFetch(url);
+
+  now = 2 * MANIFEST_TTL_MS;
+  expect(await titleOf()).toBe(first);
+  // Inside the window the held load answers; no further object reads.
+  const reads = fileReads;
+  now += 1_000;
+  await titleOf();
+  expect(fileReads).toBe(reads);
+
+  cdnStale = false;
+  now += 3 * MANIFEST_TTL_MS;
+  expect(await titleOf()).toBe("Rewritten");
+});
+
+// Bug (review of the test above): a file the CDN never lets go of, or one saved with a byte-order mark
+// (the reader strips it, the hash covers it), must not make every window reload the whole site.
+it("stops loading a manifest again after a few tries, and a BOM is not a mismatch", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  const path = "content/Podcasts/2026/10/ep-20261007-1930.md";
+  const body = store.get(path) ?? "";
+  // Saved with a BOM: the manifest hashes the bytes, the reader sees the text without it.
+  const hash = createHash("sha256").update(`\uFEFF${body}`).digest("hex");
+  const manifest = JSON.parse(store.get("content/manifest.json") ?? "{}");
+  manifest.files["Podcasts/2026/10/ep-20261007-1930.md"] = hash;
+  store.set("content/manifest.json", JSON.stringify(manifest));
+  let now = 0;
+  const deps = { env: ENV, fetch: fakeFetch, now: () => now };
+  await loadStoreSite(deps);
+  const afterFirst = fileReads;
+  now = 10 * MANIFEST_TTL_MS;
+  await loadStoreSite(deps);
+  expect(fileReads).toBe(afterFirst);
+
+  // Now the CDN answers with a body the manifest does not name, for good.
+  resetContentRepo();
+  const wrong = JSON.parse(store.get("content/manifest.json") ?? "{}");
+  wrong.files["Podcasts/2026/10/ep-20261007-1930.md"] = "0".repeat(64);
+  store.set("content/manifest.json", JSON.stringify(wrong));
+  now = 0;
+  await loadStoreSite(deps);
+  const perLoad = fileReads - afterFirst;
+  for (let window = 1; window <= 12; window += 1) {
+    now = window * 21_000;
+    await loadStoreSite(deps);
+  }
+  // The first load and four more, then it is kept as it is.
+  expect(fileReads - afterFirst).toBe(perLoad * 5);
+});
+
+// Bug (CodeRabbit, #732): two loads overlap (the manifest changes while the first is still reading) and
+// both fail. The slot is restored to the first, which failed too; once the manifest names that copy
+// again, every request was answered from the rejected load instead of loading it again.
+it("loads again after overlapping loads fail and the manifest names the first copy again", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  let release!: (broken: boolean) => void;
+  const gate = new Promise<boolean>((resolve) => {
+    release = resolve;
+  });
+  let reading!: () => void;
+  const firstRead = new Promise<void>((resolve) => {
+    reading = resolve;
+  });
+  const hung = async (url: string): Promise<Response> => {
+    const { pathname } = new URL(url);
+    if (pathname === "/content/manifest.json" || !pathname.startsWith("/content/"))
+      return fakeFetch(url);
+    reading();
+    return (await gate) ? new Response(null, { status: 500 }) : fakeFetch(url);
+  };
+  let now = 0;
+  const deps = { env: ENV, fetch: hung, now: () => now };
+  const first = loadStoreSiteChecked(deps);
+  await firstRead;
+  await fillStore("2026-10-24T13:00:00Z");
+  now = 2 * MANIFEST_TTL_MS;
+  const second = loadStoreSiteChecked(deps);
+  release(true);
+  expect((await Promise.allSettled([first, second])).map((r) => r.status)).toEqual([
+    "rejected",
+    "rejected",
+  ]);
+  await fillStore("2026-10-24T12:00:00Z");
+  now = 4 * MANIFEST_TTL_MS;
+  const again = await loadStoreSiteChecked({ ...deps, fetch: fakeFetch });
+  expect(again?.site.entries.length).toBeGreaterThan(0);
+});
+
+// Bug (CodeRabbit, #732): a file the manifest lists but the CDN answers 404 for (a new object not yet
+// served) was skipped, and the site without it was held until the manifest changed.
+it("loads a manifest again while a file it lists is not served yet", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  const path = "content/Podcasts/2026/10/ep-20261007-1930.md";
+  const body = store.get(path) ?? "";
+  store.delete(path);
+  let now = 0;
+  const deps = { env: ENV, fetch: fakeFetch, now: () => now };
+  const without = await loadStoreSite(deps);
+  store.set(path, body);
+  now = 2 * MANIFEST_TTL_MS;
+  const withIt = await loadStoreSite(deps);
+  expect(withIt?.episodes.length).toBe((without?.episodes.length ?? -1) + 1);
+});
+
+// Bug (CodeRabbit, #732): a request that reused a load again while it was pending was refused when that
+// load failed, though the site held before it could answer, as it did for the request that started it.
+it("answers a request that joins a failing load again from the site held before it", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  const manifest = JSON.parse(store.get("content/manifest.json") ?? "{}");
+  manifest.files["Podcasts/2026/10/ep-20261007-1930.md"] = "0".repeat(64);
+  store.set("content/manifest.json", JSON.stringify(manifest));
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let hangFiles = false;
+  let reading!: () => void;
+  const started = new Promise<void>((resolve) => {
+    reading = resolve;
+  });
+  const flaky = async (url: string): Promise<Response> => {
+    const { pathname } = new URL(url);
+    if (!hangFiles || pathname === "/content/manifest.json" || !pathname.startsWith("/content/"))
+      return fakeFetch(url);
+    reading();
+    await gate;
+    return new Response(null, { status: 500 });
+  };
+  let now = 0;
+  const deps = { env: ENV, fetch: flaky, now: () => now };
+  const first = await loadStoreSiteChecked(deps);
+  expect(first?.site.entries.length).toBeGreaterThan(0);
+  hangFiles = true;
+  now = 25_000;
+  const starter = loadStoreSiteChecked(deps);
+  await started;
+  const joiner = loadStoreSiteChecked(deps);
+  release();
+  const [a, b] = await Promise.allSettled([starter, joiner]);
+  for (const result of [a, b]) {
+    expect(result.status).toBe("fulfilled");
+    if (result.status !== "fulfilled") continue;
+    expect(result.value?.saved).toBe(false);
+    expect(result.value?.site.entries.length).toBe(first?.site.entries.length);
+  }
+  expect(isShowingSavedContent()).toBe(false);
+});

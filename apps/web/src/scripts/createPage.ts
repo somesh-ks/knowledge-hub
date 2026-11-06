@@ -2,6 +2,7 @@ import { track } from "../lib/analytics";
 import { rememberCancelToken } from "../lib/cancelTokens";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import { hasSaved, storeOn } from "../lib/savedKey";
+import { fitStories, storiesValue } from "../lib/storyOptions";
 import type { Voice } from "../lib/voices";
 import { startRun } from "./runStatus";
 
@@ -167,6 +168,12 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     return [...new Set(ids)];
   }
 
+  /** Stories offers what the chosen length holds (D377). */
+  function fitCreateStories(): void {
+    const stories = form.querySelector<HTMLSelectElement>('select[name="stories"]');
+    if (stories) fitStories(stories, Number(new FormData(form).get("length")));
+  }
+
   function request() {
     const data = new FormData(form);
     const title = String(data.get("title")).trim();
@@ -174,6 +181,8 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
       audience: data.get("audience"),
       topic_ids: topicIds(),
       length_minutes: Number(data.get("length")),
+      // Auto is left out, as Default voices are: the run sizes the count from the length.
+      ...(data.get("stories") ? { stories: storiesValue(String(data.get("stories"))) } : {}),
       format: data.get("format"),
       window_days: Number(data.get("window")),
       tone: data.get("tone"),
@@ -259,6 +268,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
 
   form.addEventListener("change", (event) => {
     const name = (event.target as HTMLInputElement | null)?.name;
+    if (name === "length") fitCreateStories();
     if (
       (name === "voice" || name === "voice_b") &&
       new FormData(form).get("format") === "discussion"
@@ -326,6 +336,7 @@ export function installCreate(root: HTMLElement, onStart?: () => void): void {
     const changed = view.overlayCreate(form, view.readSaved());
     topics = [...form.querySelectorAll<HTMLInputElement>('input[name="topic"]')];
     if (!changed) return;
+    fitCreateStories();
     for (const select of voiceSelects) {
       select.dispatchEvent(new Event("picker:sync"));
     }

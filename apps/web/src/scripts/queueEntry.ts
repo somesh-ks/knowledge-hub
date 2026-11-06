@@ -24,8 +24,11 @@ export function installQueueEntry(): void {
     },
     true,
   );
-  // The event was sent before this script was here, so the queue is told it was started here.
-  document.addEventListener(GENERATION_STARTED_EVENT, () => void load(true));
+  // The event was sent before this script was here, so the queue is told it was started here; a queue that
+  // was already up is not told, so it is not brought in again (runStatus.ts, startRun).
+  document.addEventListener(GENERATION_STARTED_EVENT, (event) => {
+    void load(!(event as CustomEvent<{ dockWasUp?: boolean }>).detail?.dockWasUp);
+  });
   document.addEventListener("astro:page-load", () => {
     try {
       // An older tab still holds its run in sessionStorage until the page moves it.

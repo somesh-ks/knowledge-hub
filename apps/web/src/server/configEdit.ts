@@ -14,6 +14,7 @@ import {
   SCHEDULE_LENGTHS,
   ScheduleFile,
   SOURCE_FORMATS,
+  StoryCount,
   StructureBlocks,
   StructureProfile,
   scheduleZone,
@@ -180,6 +181,12 @@ function lengthOf(value: unknown): PodcastLength | null {
   return SCHEDULE_LENGTHS.find((minutes) => minutes === value) ?? null;
 }
 
+/** A podcast's story count (D377): undefined when absent, null for Auto, false when invalid. */
+function storiesOf(value: unknown): number | null | undefined | false {
+  if (value === undefined || value === null) return value;
+  return StoryCount.safeParse(value).success ? (value as number) : false;
+}
+
 /** The part `weekly` and `custom` share: length and the two voices. False when one is invalid. */
 function podcastParts(value: Record<string, unknown>, into: WeeklyOp | CustomOp): boolean {
   if (value.length_minutes !== undefined) {
@@ -187,6 +194,9 @@ function podcastParts(value: Record<string, unknown>, into: WeeklyOp | CustomOp)
     if (length === null) return false;
     into.length_minutes = length;
   }
+  const stories = storiesOf(value.stories);
+  if (stories === false) return false;
+  if (stories !== undefined) into.stories = stories;
   for (const key of ["voice_id", "voice_id_b"] as const) {
     const checked = voice(value[key]);
     if (checked === false) return false;
@@ -237,6 +247,9 @@ function parseScheduleSet(value: Record<string, unknown>): ConfigOp | null {
     if (length === null) return null;
     op.length_minutes = length;
   }
+  const stories = storiesOf(value.stories);
+  if (stories === false) return null;
+  if (stories !== undefined) op.stories = stories;
   for (const key of ["voice_id", "voice_id_b"] as const) {
     const checked = voice(value[key]);
     if (checked === false) return null;

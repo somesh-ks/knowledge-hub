@@ -1,4 +1,4 @@
-import { isFieldRecord as isRecord } from "@singularity/core";
+import { isFieldRecord as isRecord, StoryCount } from "@singularity/core";
 import type { PodcastCreateResponse, PodcastRequest } from "../types/contracts";
 import { cancelTokenFor } from "./cancelToken";
 import { missingSettings, readServerConfig, secretsOf } from "./config";
@@ -120,6 +120,11 @@ export function parsePodcastRequest(value: unknown): PodcastRequest | null {
     voices[key] = voice;
   }
 
+  const stories = value.stories;
+  if (stories !== undefined && stories !== null && !StoryCount.safeParse(stories).success) {
+    return null;
+  }
+
   let title: string | undefined;
   if (value.title !== undefined) {
     if (typeof value.title !== "string") return null;
@@ -133,6 +138,7 @@ export function parsePodcastRequest(value: unknown): PodcastRequest | null {
   return {
     topic_ids: chosen,
     length_minutes: length as PodcastRequest["length_minutes"],
+    ...(stories === undefined ? {} : { stories: stories as number | null }),
     format: format as PodcastRequest["format"],
     window_days: window as PodcastRequest["window_days"],
     tone: tone as PodcastRequest["tone"],
@@ -156,6 +162,8 @@ export type EpisodeAction =
       feedback?: string;
       topic_ids?: string[];
       length_minutes?: PodcastRequest["length_minutes"];
+      /** The story count for this regeneration (D377): null is Auto; absent keeps the episode's own. */
+      stories?: number | null;
     };
 
 /**
@@ -219,6 +227,10 @@ export function parsePodcastBody(bodyText: string): ParsedPodcastBody | null {
     const length = parsed.length_minutes;
     if (length !== undefined && (typeof length !== "number" || !LENGTHS.includes(length)))
       return null;
+    const stories = parsed.stories;
+    if (stories !== undefined && stories !== null && !StoryCount.safeParse(stories).success) {
+      return null;
+    }
     return {
       action,
       id,
@@ -227,6 +239,7 @@ export function parsePodcastBody(bodyText: string): ParsedPodcastBody | null {
       ...(length !== undefined
         ? { length_minutes: length as PodcastRequest["length_minutes"] }
         : {}),
+      ...(stories === undefined ? {} : { stories: stories as number | null }),
       ...resumeField,
     };
   }

@@ -94,6 +94,8 @@ export async function startGenerate(
   feedback = "",
   topics?: readonly string[],
   lengthMinutes?: number,
+  /** This run's story count (D377); null is Auto, absent keeps the schedule's. */
+  stories?: number | null,
 ): Promise<StartResult> {
   if (!deps.isOnline()) return { kind: "rejected", reason: "offline", message: MESSAGES.offline };
 
@@ -108,6 +110,7 @@ export async function startGenerate(
     ...(note ? { feedback: note } : {}),
     ...(topics && replace ? { topics: [...topics] } : {}),
     ...(lengthMinutes ? { length_minutes: lengthMinutes } : {}),
+    ...(stories !== undefined ? { stories } : {}),
     ...(replace ? { replace } : {}),
   };
   let response: Response;

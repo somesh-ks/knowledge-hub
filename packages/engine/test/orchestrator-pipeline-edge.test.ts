@@ -576,6 +576,26 @@ describe("grounding and validation", () => {
     expect(report.aired_chars).toBeGreaterThanOrEqual(report.length_chars as number);
   });
 
+  // The bug it prevents: "more stories" on a five-minute briefing aired the length's count again
+  // (2026-11-06). A picked count (D377) airs that many, and more than the length holds at the usual
+  // telling are written to a shorter aim so they still fit it.
+  it.each([5, 12])(
+    "airs the %i stories the owner picked, not the count the length holds",
+    LONG,
+    async (stories) => {
+      await seed(repo.root, {
+        "config/schedule.json": json({ ...JSON.parse(SCHEDULE_3_MINUTES), stories }),
+      });
+      const writer = fakeWriter();
+      const world = makeWorld(repo.root, { now: WED, feeds: manyOutlets(45), writer });
+      const result = await runStage(world);
+      expect(result.report).toMatchObject({ outcome: "published", items: stories });
+      // Fewer than the length holds are told as usual; more are written to a shorter aim.
+      const aims = new Set(writer.materials.map((m) => m.telling_words));
+      expect(aims.has(undefined)).toBe(stories === 5);
+    },
+  );
+
   /**
    * Feeds of `count` stories, each from an outlet of its own, so the two-per-outlet cap leaves
    * selection more qualifying stories than a three-minute briefing writes.

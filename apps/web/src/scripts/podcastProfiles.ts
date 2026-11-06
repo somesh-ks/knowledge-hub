@@ -3,6 +3,7 @@
  * first load stays small.
  */
 
+import { fitStories, storiesValue } from "../lib/storyOptions";
 import type { Voice, VoiceDefaults } from "../lib/voices";
 import type { ConfigOp } from "../types/contracts";
 
@@ -36,11 +37,13 @@ export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null 
     const number = ["hour", "day", "cadence", "length"].includes(field);
     const parsed = number
       ? Number(value)
-      : field === "enabled"
-        ? value === "true"
-        : field.startsWith("voice")
-          ? nullable(value)
-          : value;
+      : field === "stories"
+        ? storiesValue(value)
+        : field === "enabled"
+          ? value === "true"
+          : field.startsWith("voice")
+            ? nullable(value)
+            : value;
     const voice = field === "voice" ? "voice_id" : field === "voice_b" ? "voice_id_b" : name;
     (nested[profile] ?? top)[voice] = parsed;
   }
@@ -59,6 +62,23 @@ export function scheduleOp(was: FieldValues, now: FieldValues): ConfigOp | null 
  * again here, because the page was built at another time of year.
  */
 export function mountProfiles(root: HTMLElement, changed: () => void): void {
+  // Stories offers only the counts the length holds (D377); a pick it no longer holds moves down
+  // and is saved like any change.
+  root.addEventListener("change", (event) => {
+    const length = event.target;
+    if (!(length instanceof HTMLSelectElement) || !length.dataset.f?.endsWith(".length")) return;
+    const profile = length.dataset.f.split(".")[0];
+    const stories = root.querySelector<HTMLSelectElement>(`select[data-f="${profile}.stories"]`);
+    if (stories && fitStories(stories, Number(length.value))) {
+      stories.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  });
+  // A length saved since the build (savedView.ts) is in its select by now; Auto's count follows it.
+  for (const stories of root.querySelectorAll<HTMLSelectElement>('select[data-f$=".stories"]')) {
+    const profile = stories.dataset.f?.split(".")[0];
+    const length = root.querySelector<HTMLSelectElement>(`select[data-f="${profile}.length"]`);
+    if (length) fitStories(stories, Number(length.value));
+  }
   let voices: Voice[] = [];
   /** The voices Default stands for, from /api/voices; null until the list is in. */
   let defaults: VoiceDefaults | null = null;

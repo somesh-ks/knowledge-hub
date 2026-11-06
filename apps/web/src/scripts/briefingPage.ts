@@ -3,6 +3,7 @@
  * section tabs and the contents list, and it shares the briefing's address. Loaded by the briefing
  * view. A bundled module runs once per session, so the per-page work listens for astro:page-load.
  */
+import { glowFavorite } from "../design-system/glow";
 import { deviceStorage, isSaved, setSaved } from "../player/core/saved";
 import { installHeroMenu } from "./heroMenu";
 import { warmWhenIdle } from "./idle";
@@ -263,9 +264,10 @@ function showFavorite(): void {
 function toggleFavorite(heart: HTMLElement): void {
   const on = heart.getAttribute("aria-pressed") !== "true";
   // setSaved announces the change (singularity:saved), which redraws the heart.
-  if (setSaved(deviceStorage(), heart.dataset.favorite ?? "", on))
+  if (setSaved(deviceStorage(), heart.dataset.favorite ?? "", on)) {
     sendToast({ message: on ? "Added to favorites" : "Removed from favorites" });
-  else
+    if (on) glowFavorite(heart);
+  } else
     sendToast({
       message: on ? "Couldn't add it to favorites" : "Couldn't remove it from favorites",
       kind: "error",

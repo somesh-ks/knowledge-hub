@@ -726,6 +726,10 @@
   height: var(--mini-player-progress-height);
   overflow: hidden;
   pointer-events: none;
+  /* The bar's top edge is the divider from the queue above it: the hairline colour as the track, the
+     accent fill painted over it as it plays, so the progress never cuts the divider (owner, 2026-11-05).
+     From the width where the line is the timeline, the stronger track below takes over. */
+  background: var(--color-border-hairline);
 }
 
 .dock-progress-fill {
@@ -2472,7 +2476,12 @@
   font-weight: var(--font-weight-medium);
 }
 
+/* The hint holds its line while the item's facts load (the row draws " " until then, which
+   collapses): at the meta size two lines are taller than the thumb, so a row that grew when its
+   caption arrived pushed every row under it down (owner rule: nothing jumps; 2026-11-06, after the
+   meta size went to 1rem). */
 .player-upnext-hint {
+  min-height: 1lh;
   color: var(--color-on-surface-muted);
   font-size: var(--text-meta-size);
 }

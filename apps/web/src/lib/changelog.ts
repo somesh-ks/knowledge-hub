@@ -18,16 +18,22 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: "0.22",
+    date: "2026-11-06",
+    description:
+      "Stories sits beside Length for the daily and weekly podcasts, Catch up and Regenerate: leave it on Auto, or pick how many stories to hear, in fives, and each is told shorter to fit the length. On a phone it turns on a wheel like the time picker. Asking a Regenerate for more or fewer stories now changes the count, not the length. A regenerated podcast starts from the beginning, and it is ready sooner because it reuses the stories its first run gathered.",
+  },
+  {
     version: "0.21.2",
     date: "2026-11-06",
     description:
-      "On a phone, the player bar's title is the podcast's name again, with the story's short name after the clock, and its progress line sits along the bottom edge, where it also divides the bar from the navigation.",
+      "The details of a failed podcast show as the app's code box, with its own copy button, in place of a separate Copy details button. Turning on Favorite glows pink from the heart, on a podcast's page, in its menu and in the player, and on a phone the menu stays open so you see it. The first action in every podcast menu now reads Favorite, or Unfavorite once it is one, and Stop sharing is gone from every podcast menu. On a phone the title sits a little further below the cover, and small lines of text are one size larger. On a phone, the player bar's title is the podcast's name again, with the story's short name after the clock, and its progress line sits along the bottom edge, where it also divides the bar from the navigation.",
   },
   {
     version: "0.21.1",
     date: "2026-11-05",
     description:
-      "On a phone, the podcast queue opens over the page, so the Catch up button stays where it is. It shows three and a half rows before it scrolls, opens and folds on a smoother, slower curve, has room under its last row, and a drag on its head no longer scrolls the page. A row keeps its stage on the first line and puts Taking longer than usual on a second line, and that note now appears only when a step really runs long. The shimmer stays on one steady beat. Swiping the player bar to change track fades the one you leave out as the next fades in, in both directions.",
+      "On a phone, the podcast queue opens over the page, so the Catch up button stays where it is. It shows three and a half rows before it scrolls, opens and folds on a smoother, slower curve, has room under its last row, and a drag on its head no longer scrolls the page. A row keeps its stage on the first line and puts Taking longer than usual on a second line, and that note now appears only when a step really runs long. The shimmer is one steady loop with no jump at its start or its end, Try again on a failed run keeps the queue on screen while the new run starts, the edge between the queue and the player bar is one full-width line, grey for what is left to play and blue for what is played, and a cancelled run no longer shows an X at its start as well as its end. The folded queue's title is body size in the page's ink, and its ring is as tall as the words. Swiping the player bar to change track fades the one you leave out as the next fades in, in both directions.",
   },
   {
     version: "0.21",

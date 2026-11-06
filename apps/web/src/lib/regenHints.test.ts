@@ -7,7 +7,7 @@ describe("hintsFor (D337)", () => {
   // The bug it prevents: the form opening with every control, or the length control never
   // appearing for a person who writes "make it shorter".
   it("calls for the length control only when the words reach for it", () => {
-    expect(hintsFor("", labels)).toEqual({ length: false, topics: false });
+    expect(hintsFor("", labels)).toEqual({ length: false, topics: false, stories: false });
     expect(hintsFor("More on the new release", labels).length).toBe(false);
     expect(hintsFor("make it shorter", labels).length).toBe(true);
     expect(hintsFor("about 10 minutes please", labels).length).toBe(true);
@@ -25,6 +25,7 @@ describe("hintsFor (D337)", () => {
     expect(hintsFor("skip the funding news, only design systems")).toEqual({
       length: false,
       topics: false,
+      stories: false,
     });
   });
 });
