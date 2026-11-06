@@ -47,6 +47,8 @@ export const wheelOptionClass = (): string => "wheel-option";
 export interface WheelRow {
   index: number;
   text: string;
+  /** The option's own words when `text` is shorter (data-wheel-text): a screen reader hears these. */
+  label?: string;
   disabled: boolean;
 }
 
@@ -76,7 +78,8 @@ export function wheelHtml(
     .map(
       (row, place) =>
         `<div class="${wheelOptionClass()}" role="option" id="${id}-${place}" data-index="${row.index}"` +
-        `${row.disabled ? ' aria-disabled="true"' : ""}>${encode(row.text)}</div>`,
+        `${row.disabled ? ' aria-disabled="true"' : ""}` +
+        `${row.label && row.label !== row.text ? ` aria-label="${encode(row.label)}"` : ""}>${encode(row.text)}</div>`,
     )
     .join("");
   return (

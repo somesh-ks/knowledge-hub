@@ -69,6 +69,7 @@ function fill(list: HTMLElement, select: HTMLSelectElement, id: string): void {
       .map(({ option, index }) => ({
         index,
         text: option.dataset.wheelText ?? option.text,
+        label: option.text,
         disabled: isDisabled(option),
       }));
     // The wheel changes nothing until Save: closing any other way leaves the select as it was.
