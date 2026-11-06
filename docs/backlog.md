@@ -6,7 +6,7 @@ Long-term project memory, future explorations, parked tasks, and shipped milesto
 
 Immediate priority tasks synchronized with `docs/state.md` ## Next:
 
-1. **Owner calls**: Choose the Vercel plan (11-06 to 11-08; the Blob trial ends 11-13); decide on regenerating 3-story 2026-10-27 briefing; revoke old Vercel token pasted in chat; delete empty store `store_JmrDq8MB5Kwn3ejW`; resolve PWA open calls.
+1. **Owner calls**: Choose the Vercel plan (11-06 to 11-08; the Blob trial ends 11-13; verdict and costs under Operations: keep Pro); decide on regenerating 3-story 2026-10-27 briefing; revoke old Vercel token pasted in chat; delete empty store `store_JmrDq8MB5Kwn3ejW`; resolve PWA open calls.
 2. **Firecrawl change check**: the yield report is delivered; the owner prunes. The free change check before a scrape is built (D342) and saved fingerprints on 11-02 and 11-05; a Firecrawl monitor costs the same as a scrape per check.
 3. **Lighthouse CSS**: parked. Critical CSS paints a cold phone in 1.0 s, not 3.2 s, but needs per-page CSP hashes and a flash check.
 4. **Topic to Category migration**: End-to-end migration (plan 14, about 6,500 occurrences) across readers, store sync, code, and workflow outputs. The UI says Category since #312; the code and data still say topic. Only with no other PR open.
@@ -72,6 +72,17 @@ Asked for by the owner and not yet planned. Each needs a design or a decision be
   - Closed when: a Daily and a Podcast ready ping reach his phone and a tap opens the episode, then the owner picks which ideas to build.
 
 ### Operations
+- **Vercel plan: Pro or Hobby (verdict 2026-11-05: keep Pro)**: read from `vercel usage` (Pro trial, 30 Oct to 5 Nov) and the Hobby limits in `delivery-failures.md` class 15. Build CPU minutes were $11.97 of the week's $12.84; everything else (functions, CDN, Blob, storage) was $0.87.
+
+  | | Pro, per-merge deploys (this week's pace) | Pro, batched (D375) | Hobby |
+  |---|---|---|---|
+  | Seat | $20 | $20 | $0 |
+  | Usage | about $55 a month (builds $51, rest $4), $20 credit covers part | about $17 (builds cut by about three quarters), inside the credit | $0 |
+  | Monthly bill | about $55 | about $20 | $0 |
+  | Blocks | none | none | 100 deployments a day, cancelled ones included (98 hit on 29 Oct); 2,000 advanced Blob operations a month (hit on 30 Oct; this week ran 1.39K in 7 days, about 6,000 a month) |
+
+  Verdict: keep Pro. Hobby is free but breaks on Blob operations alone (D300 keeps content in Blob), so it needs the store moved, not just fewer deploys. Pro with batching costs about what the seat costs. A quiet month (Hobby, October) used $4.45 of usage. Estimates: the week was merge-heavy (25 to 36 merges a day), and the batched figure assumes a three-quarter cut in builds, to be read from `vercel usage` on 13 Nov.
+  - Closed when: the owner picks the plan by 8 Nov and the first full cycle's `vercel usage` shows infrastructure under $20, or he reverses to Hobby after the Blob store moves.
 - **Better analytics**: Simple Analytics (D154) counts cookieless page views and a few named events on the reader; the admin Analytics page waits as #495 for `SIMPLE_ANALYTICS_API_KEY`. Missing: listening (plays, how far an episode is heard, skips), install and push opt-in counts, and a weekly summary.
   - Closed when: a decision lists the events to add (nothing that names a person) and the admin page shows them for a week.
 - **Error reporting**: nothing collects a browser or server error today; Sentry was dropped by the owner's call on 10-22. Options: a small own endpoint that keeps `error` and `unhandledrejection` reports in Neon and shows them in admin Health, or a hosted tool.
@@ -92,7 +103,7 @@ The 31 Oct hardening audit's lower-priority items still open on main (checked 20
 - **Cost**: COST-04 the reader reads the manifest and tombstones every 30 s per warm instance (check Vercel's op count first); COST-05 cache writes booked at 1x though billed at 1.25x, replace runs skip Record failure, episode-eval spend unrecorded; COST-06 small unmeasured savings (cron schedule read, judged but never aired general items, prompt caching).
 - **Performance**: PERF-01 the middleware buffers every request-rendered page; PERF-03 narration prefetches three segments on cellular.
 - **Data**: DATA-01 restore covers git and Blob, not Neon (write down its restore window and a manual dump); DATA-02 ingest text packs are never pruned.
-- **CI**: CI-03 the web `ignoreCommand` diffs only `HEAD^`, and an expired admin session reads as an outage; CI-06 the browser suites are over their own time budget (ask before any test edit); CI-07 small workflow items.
+- **CI**: CI-03 an expired admin session reads as an outage (the web `ignoreCommand` now counts from the last deployed commit, D375); CI-06 the browser suites are over their own time budget (ask before any test edit); CI-07 small workflow items.
 - **Accessibility**: A11Y-01 the mute button says "Unmute, pressed"; A11Y-02 screen reader gaps (Create topic error, toasts without a live region, transcript words); A11Y-03 British spellings in UI copy ("Cancelled", "Centre", "colour").
 - **Docs**: DOC-03 the runbook and `.env.example` are stale; DOC-04 the controls guide names `scripts/heroMenu.ts` without its `apps/web/src/` folder; DOC-05 the browser suites default `PORT` to 4321; DOC-07 orphan prototype scripts and unused dependencies (confirm with knip).
 - **Design system**: DS-01 the design guide restyles reader components outside the override gate; DS-02 dead utilities and unreferenced tokens (owner confirms each).

@@ -43,7 +43,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D170 | Podcast structure | partly superseded by D344; built (D176, D182, D191); phase 3 closed by D241 |
 | D171 | Richer covers | amends D121 |
 | D172 | Store reads keep a copy | amends D149 |
-| D173 | Content is data in one repository; builds ship code only | active |
+| D173 | Content is data in one repository; builds ship code only | amended by D199, D256, D282, D375 |
 | D175 | Ruleset on `main` | amends D143 |
 | D176 | Structure phase 1 | amends D170 |
 | D177 | Phone Costs switch | amends D169 |
@@ -231,6 +231,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D371 | The Regenerate comment sets the controls both ways; Haiku proposes the values | amends D337, D370 |
 | D373 | An installed app back after five minutes loads a waiting build even with the player open | amends D202 |
 | D374 | No podcast menu offers Stop sharing | amends D153, D214, D369 |
+| D375 | Production deploys wait for five merges, three hours, or `[deploy]` | amends D173 |
 | D376 | A rewrite carries the stories its run gathered and reads only the quick sources again | active |
 
 ---
