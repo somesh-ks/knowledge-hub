@@ -18,6 +18,12 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: "0.21.2",
+    date: "2026-11-06",
+    description:
+      "The details of a failed podcast show as the app's code box, with its own copy button, in place of a separate Copy details button.",
+  },
+  {
     version: "0.21.1",
     date: "2026-11-05",
     description:
