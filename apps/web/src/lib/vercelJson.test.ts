@@ -11,6 +11,13 @@ describe("vercel.json", () => {
     expect(config.ignoreCommand?.length ?? 0).toBeLessThanOrEqual(256);
   });
 
+  // `site_behind` learns which paths Vercel watches by reading what follows ` -- ` in this command
+  // (engine readWatchedHead). A reshaped command reads as no paths and the check goes quiet.
+  it("keeps the watched paths after ' -- ' in the reader's ignoreCommand", () => {
+    const paths = (config.ignoreCommand?.split(" -- ")[1] ?? "").split(/\s+/).filter(Boolean);
+    expect(paths).toContain("../../packages");
+  });
+
   // singularity-admin built every agent branch push, 98 deployments on 2026-10-29, and Hobby's
   // 100 a day stopped every deploy, production included. A new app's file must carry the block.
   it("deploys only main and preview branches, and only on its own changes, in every app", () => {
