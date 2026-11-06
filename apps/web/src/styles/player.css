@@ -852,11 +852,21 @@
   grid-area: 1 / 2;
 }
 
+/* The words fade with the travel (owner, 2026-11-05: "the current track item ... slowly fade out and
+   the next on to fade in, in both directions"): --dock-fade is how far the finger has carried the bar,
+   0 to 1, so the one leaving thins as the one arriving fills in, and a swipe let go short fades back. */
+.dock-open > :is(.player-thumb, .dock-text) {
+  opacity: calc(1 - var(--dock-fade, 0));
+}
+
 .dock-open > :is(.player-thumb, .dock-text, .dock-peek) {
-  transition: translate var(--duration-press-out) var(--ease-out);
+  transition:
+    translate var(--duration-press-out) var(--ease-out),
+    opacity var(--duration-press-out) var(--ease-out);
 }
 
 .dock-peek {
+  opacity: var(--dock-fade, 0);
   grid-area: 1 / 1 / 2 / 3;
   display: flex;
   gap: var(--space-4);
@@ -894,13 +904,17 @@
 }
 
 .dock-open[data-swipe-out] > :is(.player-thumb, .dock-text, .dock-peek) {
-  transition: translate var(--duration-enter) var(--ease-out);
+  transition:
+    translate var(--duration-enter) var(--ease-out),
+    opacity var(--duration-enter) var(--ease-out);
 }
 
-/* Reduced motion: the bar changes without sliding. */
+/* Reduced motion: the bar changes without sliding, and the fade keeps its time (ledger: reduced
+   motion zeroes travel, never the fade): both stay where they are and cross-fade in place. */
 @media (prefers-reduced-motion: reduce) {
   .dock-open[data-swipe-out] > :is(.player-thumb, .dock-text, .dock-peek) {
-    transition: none;
+    translate: 0 0;
+    transition: opacity var(--duration-enter) var(--ease-out);
   }
 }
 

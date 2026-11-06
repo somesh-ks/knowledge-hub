@@ -10,7 +10,7 @@ export interface Hints {
 }
 
 const LENGTH_CUES =
-  /\b(?:\d+\s*(?:min|mins|minutes?)|minutes?|longer|shorter|short|long|brief|briefer|quick|quicker|concise|length|trim|detail|detailed|deeper)\b/i;
+  /\b(?:\d+\s*(?:min|mins|minutes?)|minutes?|longer|shorter|short|long|brief|briefer|quick|quicker|concise|length|trim|detail|detailed|deeper|(?:more|fewer|less|extra)\s+(?:stories|story|items|news))\b/i;
 const TOPIC_CUES =
   /\b(?:topics?|categor(?:y|ies)|more on|less on|more about|less about|focus on|only|skip|drop|leave out|without|cover)\b/i;
 

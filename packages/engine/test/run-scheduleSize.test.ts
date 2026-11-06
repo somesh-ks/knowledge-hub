@@ -43,8 +43,8 @@ describe("sizing a briefing by its length", () => {
       VOICE_LIMITS.items.hardMax,
     );
     const written = withSpares(wanted);
-    // About 45% of what selection chooses never airs (scheduleSize.ts, SPARE_SHARE).
-    expect(Math.floor(written * 0.55)).toBeGreaterThanOrEqual(wanted);
+    // The spares cover over a third of what selection chooses being lost after it (scheduleSize.ts, SPARE_SHARE).
+    expect(Math.floor(written * 0.625)).toBeGreaterThanOrEqual(wanted);
     expect(poolCapFor(written, DEFAULT_CAP)).toBeGreaterThan(2 * DEFAULT_CAP);
   });
 

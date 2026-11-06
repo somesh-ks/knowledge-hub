@@ -155,7 +155,7 @@ export default function QueueRowMenu({
   > = {
     favorite: {
       icon: favorite ? "heart" : "heartOutline",
-      label: favorite ? "Remove from favorites" : "Add to favorites",
+      label: favorite ? "Unfavorite" : "Favorite",
       act: toggleFavorite,
     },
     // Where a card has Add to queue. Not the danger tone: the podcast stays in the Library, so

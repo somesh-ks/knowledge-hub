@@ -1249,6 +1249,14 @@
       "topic_hash": "52215b733fd1",
       "topic_id": "design"
     },
+    "6bbb4a1d91cc:design:52215b733fd1:jev-1.14.0": {
+      "fit": 0.85,
+      "item_id": "6bbb4a1d91cc",
+      "judged_at": "2026-11-06T07:38:01.391Z",
+      "model": "jev-1.14.0",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
     "6ce978ddb501:design:52215b733fd1:jev-1.14.0": {
       "fit": 0.45,
       "item_id": "6ce978ddb501",
@@ -1517,6 +1525,14 @@
       "fit": 0.57,
       "item_id": "86343dbc9e50",
       "judged_at": "2026-10-24T12:50:55.746Z",
+      "model": "jev-1.14.0",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "8717546b7254:design:52215b733fd1:jev-1.14.0": {
+      "fit": 0.745,
+      "item_id": "8717546b7254",
+      "judged_at": "2026-11-06T07:38:01.397Z",
       "model": "jev-1.14.0",
       "topic_hash": "52215b733fd1",
       "topic_id": "design"
@@ -2313,6 +2329,14 @@
       "topic_hash": "52215b733fd1",
       "topic_id": "design"
     },
+    "ce2198b45ec8:design:52215b733fd1:jev-1.14.0": {
+      "fit": 0.82,
+      "item_id": "ce2198b45ec8",
+      "judged_at": "2026-11-06T07:38:01.398Z",
+      "model": "jev-1.14.0",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
     "cedd6af4d7e3:design:52215b733fd1:jev-1.14.0": {
       "fit": 0.64,
       "item_id": "cedd6af4d7e3",
@@ -2593,6 +2617,14 @@
       "topic_hash": "52215b733fd1",
       "topic_id": "design"
     },
+    "e4127b708b8e:design:52215b733fd1:jev-1.14.0": {
+      "fit": 0.685,
+      "item_id": "e4127b708b8e",
+      "judged_at": "2026-11-06T07:38:01.395Z",
+      "model": "jev-1.14.0",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
     "e53acac2ecfa:design:52215b733fd1:jev-latest": {
       "fit": 0.0525,
       "item_id": "e53acac2ecfa",
@@ -2862,6 +2894,14 @@
       "item_id": "fd3639deb7a7",
       "judged_at": "2026-10-15T09:56:45.748Z",
       "model": "jev-latest",
+      "topic_hash": "52215b733fd1",
+      "topic_id": "design"
+    },
+    "fe170aa28961:design:52215b733fd1:jev-1.14.0": {
+      "fit": 0.6775,
+      "item_id": "fe170aa28961",
+      "judged_at": "2026-11-06T07:38:01.397Z",
+      "model": "jev-1.14.0",
       "topic_hash": "52215b733fd1",
       "topic_id": "design"
     },

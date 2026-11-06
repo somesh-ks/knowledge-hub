@@ -13,8 +13,6 @@ export interface QueueDetails {
   why: string;
   /** What is known of the run, as `Name: value` lines in the snippet. */
   fields: [name: string, value: string][];
-  /** The run's log on GitHub, where the full error is; "" when there is none. */
-  log: string;
 }
 
 /** The snippet's text: one `Name: value` line for each field that has a value. */
@@ -42,9 +40,6 @@ export function openQueueDetails(details: QueueDetails, words: DOMStringMap): vo
     `<p class="share-about">${escapeHtml(words.wordDetailsHint ?? "")}</p>` +
     `<pre class="queue-snippet" tabindex="0" data-queue-snippet>${escapeHtml(snippet)}</pre>` +
     `<div class="share-actions queue-details-actions">` +
-    (details.log
-      ? `<a class="${buttonClass("text")}" href="${escapeHtml(details.log)}" target="_blank" rel="noopener noreferrer">${escapeHtml(words.wordDetailsLog ?? "")}</a>`
-      : "") +
     `<button class="${buttonClass("filled")}" type="button" data-queue-copy>${escapeHtml(words.wordDetailsCopy ?? "")}</button></div>` +
     `<span class="sr-only" role="status" data-queue-copied></span>`;
   document.body.append(dialog);
