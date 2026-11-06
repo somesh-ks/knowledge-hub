@@ -165,7 +165,10 @@ async function send(id: string, action: ExperimentAction): Promise<boolean> {
     const response = await ask({ id, action });
     if (!response.ok) reportProblem(await answerProblem(SAVE_FAILED, API, "POST", response));
     else clearProblem(SAVE_FAILED);
-    const body = (await response.json()) as { flags?: FlagRow[]; error?: string };
+    // A refusal's body may not be JSON (a proxy's page): its banner above keeps the details, so a
+    // parse failure must not repaint it as no connection. An ok answer's parse failure still throws.
+    const json = response.ok ? response.json() : response.json().catch(() => ({}));
+    const body = (await json) as { flags?: FlagRow[]; error?: string };
     // A write's answer does not settle the change: the next read may still be an old copy (the
     // worker's, a cache's), so only a read that shows it does (take).
     if (body.flags) adopt(body);
@@ -346,9 +349,15 @@ async function recheck(): Promise<void> {
   const asked = generation;
   try {
     const response = await ask();
-    const body = (await response.json()) as { flags?: FlagRow[] };
+    const body = (await response.json()) as {
+      flags?: FlagRow[];
+      hits?: Record<string, HitTotal>;
+    };
     if (!response.ok || asked !== generation) return;
     take(body);
+    // A page that started offline gets its hit counts now, and its load banner comes down.
+    for (const [id, total] of Object.entries(body.hits ?? {})) hits.set(id, total);
+    clearProblem(LOAD_FAILED);
     const note = document.querySelector<HTMLElement>("[data-note]");
     if (note) note.textContent = NOTE_DEFAULT;
     renderAll();

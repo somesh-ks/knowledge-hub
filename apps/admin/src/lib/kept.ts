@@ -76,12 +76,22 @@ export async function askKept<T>(
 ): Promise<{ fresh: boolean; status: number; shown: boolean }> {
   const { title, init = {}, repaint = "changed" } = options;
   const method = init.method ?? "GET";
-  const kept = keptAnswer<T>(key);
-  if (kept) paint(kept.body, true);
+  let kept = keptAnswer<T>(key);
+  if (kept) {
+    try {
+      paint(kept.body, true);
+    } catch (error) {
+      // A kept answer this page can no longer draw is dropped, so it never stops the ask below.
+      console.error(error);
+      kept = null;
+    }
+  }
   const failed = (problem: Problem): void =>
     reportProblem(kept ? { ...problem, keptAt: kept.at } : problem);
+  let body: T;
+  let response: Response;
   try {
-    const response = await fetch(url, {
+    response = await fetch(url, {
       cache: "no-store",
       ...init,
       headers: { accept: "application/json", ...init.headers },
@@ -90,16 +100,18 @@ export async function askKept<T>(
       failed(await answerProblem(title, url, method, response));
       return { fresh: false, status: response.status, shown: kept !== null };
     }
-    const body = (await response.json()) as T;
-    keepAnswer(key, body);
-    clearProblem(title);
-    // An answer that says what the kept one said is not drawn again: an arc's sweep plays once.
-    if (!kept || repaint === "always" || unchanged(kept.body) !== unchanged(body)) {
-      paint(body, false);
-    }
-    return { fresh: true, status: response.status, shown: true };
+    body = (await response.json()) as T;
   } catch (error) {
     failed(requestProblem(title, url, method, error));
     return { fresh: false, status: 0, shown: kept !== null };
   }
+  // Out of the ask's try: a page that fails to draw an answer is a bug in the page, not a lost
+  // connection, so it is neither reported as one nor kept for the next visit.
+  clearProblem(title);
+  // An answer that says what the kept one said is not drawn again: an arc's sweep plays once.
+  if (!kept || repaint === "always" || unchanged(kept.body) !== unchanged(body)) {
+    paint(body, false);
+  }
+  keepAnswer(key, body);
+  return { fresh: true, status: response.status, shown: true };
 }
