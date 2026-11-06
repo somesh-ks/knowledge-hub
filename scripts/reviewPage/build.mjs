@@ -65,7 +65,6 @@ export function normalise(review, dir) {
       if (!/^[a-z0-9][a-z0-9.-]{0,60}$/.test(still.id ?? "")) fail(`still id "${still.id}" must be lowercase letters, digits, dots and dashes`);
       if (ids.has(still.id)) fail(`still id "${still.id}" is used twice`);
       ids.add(still.id);
-      if (!still.caption) fail(`still "${still.id}" needs a caption`);
       const file = join(dir, still.file ?? "");
       if (!still.file || !existsSync(file) || !statSync(file).isFile()) fail(`still "${still.id}": file "${still.file}" not found`);
       for (const key of Object.keys(still.tags ?? {})) if (!TAG_KEYS.includes(key)) fail(`still "${still.id}": unknown tag "${key}"`);

@@ -104,11 +104,13 @@ figure.still.is-flash .media { box-shadow: 0 0 0 3px var(--color-accent); transi
 }
 html[data-comment-mode] .zoom-btn { display: none; }
 html[data-comment-mode] .media { cursor: crosshair; }
-figcaption { display: grid; gap: var(--space-2); }
+figcaption { display: grid; gap: 0; }
 .cap { margin: 0; font-size: var(--font-size-meta); line-height: var(--font-leading-caption); color: var(--color-on-surface); }
 .tags { display: flex; flex-wrap: wrap; gap: var(--space-1); align-items: center; }
 .tags .spacer { flex: 1; }
-.comment-btn { min-height: 36px; padding-inline: var(--space-2) var(--space-4); }
+.comment-btn { margin-inline-end: calc((var(--size-touch) - var(--size-icon-lg)) / -2); }
+.tagline { color: var(--color-on-surface-muted); font-size: var(--font-size-meta); }
+figcaption .cap { color: var(--color-on-surface-reading); }
 
 /* Page notes, used only where claude.ai comments are off: numbered pins on the picture. */
 .pin {
@@ -150,13 +152,10 @@ details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; d
 
 <main>
   <header class="intro measure">
-    <div class="eyebrow" id="eyebrow"></div>
     <h1 id="title"></h1>
     <p class="meta" id="meta"></p>
-    <div id="howto"></div>
   </header>
 
-  <div class="measure panel" id="new-panel"></div>
   <div class="measure panel" id="check-panel"></div>
   <div class="filters" id="filters"></div>
   <div id="changes" style="display:grid;gap:var(--space-12)"></div>
@@ -206,16 +205,13 @@ details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; d
   const pr = $("#pr-link");
   pr.href = R.pr_url; pr.innerHTML = `#${R.pr} ${ICON.open}`; pr.setAttribute("aria-label", `Pull request ${R.pr} on GitHub`);
   $("#ver-badge").textContent = `Version ${R.version}`;
-  $("#eyebrow").append(h("span", { class: "badge-label" }, R.area || "Review"), R.status === "changes" ? h("span", { class: "badge-label" }, "Changes coming") : h("span", { class: "badge-label is-accent" }, "Ready for your look"));
   $("#title").textContent = R.title;
   const when = new Date(R.updated);
-  const whenText = isNaN(when) ? R.updated : when.toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-  $("#meta").textContent = `Version ${R.version} · updated ${whenText} · ${stills.length} ${stills.length === 1 ? "still" : "stills"}`;
+  const whenText = isNaN(when) ? R.updated : when.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  $("#meta").textContent = [R.area, whenText].filter(Boolean).join(" · ");
 
   const refs = (ids) => h("span", { class: "refs" }, (ids || []).map((id) => byId.get(id)).filter(Boolean).map((s) =>
     h("a", { class: "ref", href: `#${s.id.replace(/\./g, "-")}`, "aria-label": `Still ${s.n}`, onclick: (e) => { e.preventDefault(); reveal(s); } }, String(s.n))));
-  if (R.new?.length) $("#new-panel").append(h("h2", {}, `New in version ${R.version}`), h("ul", {}, R.new.map((t) => h("li", {}, t))));
-  else $("#new-panel").remove();
   if (R.check?.length) $("#check-panel").append(h("h2", {}, "Check these"), h("ol", { class: "checks" }, R.check.map((c) => h("li", {}, c.text, refs(c.stills)))));
   else $("#check-panel").remove();
   if (R.history?.length) {
@@ -237,14 +233,12 @@ details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; d
     } }, v));
     filterRow.append(group);
   }
-  const countEl = h("span", { class: "count" });
-  if (filterRow.children.length) filterRow.append(countEl); else filterRow.remove();
+  if (!filterRow.children.length) filterRow.remove();
   const visible = (s) => Object.entries(picked).every(([k, v]) => v === "All" || !s.tags?.[k] || s.tags[k] === v);
   function applyFilters() {
     let shown = 0;
     for (const s of stills) { s.fig.hidden = !visible(s); if (!s.fig.hidden) shown++; }
     for (const c of R.changes) c.section.hidden = c.stills.every((s) => s.fig.hidden);
-    countEl.textContent = `${shown} of ${stills.length} shown`;
     report();
   }
 
@@ -258,24 +252,23 @@ details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; d
     for (const s of c.stills) {
       const isVideo = /\.(mp4|webm)$/i.test(s.file);
       const media = isVideo
-        ? h("video", { src: s.file, controls: true, muted: true, loop: true, playsinline: true, preload: "metadata", "aria-label": s.caption })
-        : h("img", { src: s.file, alt: s.caption, loading: "lazy", decoding: "async", width: s.width, height: s.height });
+        ? h("video", { src: s.file, controls: true, muted: true, loop: true, playsinline: true, preload: "metadata", "aria-label": s.caption || label(s) })
+        : h("img", { src: s.file, alt: s.caption || label(s), loading: "lazy", decoding: "async", width: s.width, height: s.height });
       media.dataset.still = s.id;
       if (!isVideo) media.addEventListener("load", report);
       const isNew = s.new_in === R.version;
       const tags = h("div", { class: "tags" },
-        isNew ? h("span", { class: "badge-label is-new" }, s.new_in === 1 ? "New" : `New in v${R.version}`) : h("span", { class: "badge-label" }, `Same since v${s.new_in}`),
-        s.kind === "clip" ? h("span", { class: "badge-label" }, "Clip") : null,
-        [s.tags?.device, s.tags?.browser, s.tags?.theme, s.tags?.mood, s.tags?.hue, s.tags?.state].filter(Boolean).map((t) => h("span", { class: "badge-label" }, t)),
+        isNew && R.version > 1 ? h("span", { class: "badge-label is-new" }, "Changed") : null,
+        h("span", { class: "tagline" }, tagLine(s)),
         h("span", { class: "spacer" }),
-        h("button", { class: "button-text comment-btn", type: "button", "data-comment": s.id, onclick: () => commentOn(s) }, ic(ICON.comment), "Comment"));
+        h("button", { class: "icon-btn comment-btn", type: "button", "data-comment": s.id, "aria-label": `Comment on still ${s.n}`, onclick: () => commentOn(s) }, ic(ICON.comment)));
       s.mediaBox = h("div", { class: "media" }, media,
         h("span", { class: "still-no", "aria-hidden": "true" }, String(s.n)),
         h("button", { class: "zoom-btn", type: "button", "aria-label": `Open still ${s.n} full screen`, html: ICON.zoom, onclick: () => openViewer(s) }));
       s.media = media;
       s.notesEl = h("div", { class: "notes" });
       s.fig = h("figure", { class: `still${s.width > s.height ? " is-wide" : ""}`, id: s.id.replace(/\./g, "-") },
-        s.mediaBox, h("figcaption", {}, h("p", { class: "cap" }, h("strong", {}, `${s.n}. `), s.caption), tags), s.notesEl);
+        s.mediaBox, h("figcaption", {}, tags, s.caption ? h("p", { class: "cap" }, s.caption) : null), s.notesEl);
       grid.append(s.fig);
     }
     changesEl.append(c.section);
@@ -295,7 +288,7 @@ details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; d
   const order = () => stills.filter((s) => !s.fig.hidden);
   function openViewer(s) {
     vs = s; viewer.hidden = false; document.documentElement.style.overflow = "hidden";
-    $("#v-title").textContent = `${s.n}. ${s.caption}`;
+    $("#v-title").textContent = `${s.n} · ${s.caption || tagLine(s)}`;
     stage.replaceChildren();
     vEl = s.media.cloneNode(true); vEl.removeAttribute("loading"); vEl.removeAttribute("width"); vEl.removeAttribute("height");
     vEl.dataset.still = s.id; stage.append(vEl);
@@ -370,12 +363,12 @@ details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; d
   async function commentOn(s) {
     if (ca) {
       const r = rectOf(s); if (!r) return;
-      try { await ca.compose(s.id, { x: r.right - 20 + scrollX, y: r.top + 20 + scrollY }, { label: label(s), detail: s.caption }); } catch (e) { console.warn("compose", e?.code); }
+      try { await ca.compose(s.id, { x: r.right - 20 + scrollX, y: r.top + 20 + scrollY }, { label: label(s), detail: s.caption || undefined }); } catch (e) { console.warn("compose", e?.code); }
       return;
     }
     if (comments) { try { await comments.openComposer({ element: s.media }); } catch (e) { console.warn("openComposer", e?.code); } return; }
     localPinMode = s; s.mediaBox.style.cursor = "crosshair";
-    s.notesEl.prepend(h("p", { class: "meta", "data-hint": "" }, "Tap the spot on the picture to drop a numbered note."));
+    s.notesEl.prepend(h("p", { class: "meta", "data-hint": "" }, "Tap the spot."));
   }
 
   document.addEventListener("click", async (e) => {
@@ -383,7 +376,7 @@ details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; d
     const s = hitStill(e.target);
     e.preventDefault(); e.stopPropagation();
     try {
-      if (s) { const [x, y] = pct(e.target.closest("[data-still]"), e); await ca.compose(`${s.id}@${x},${y}`, { x: e.pageX, y: e.pageY }, { label: `${label(s)} · at ${x}%, ${y}%`, detail: s.caption }); }
+      if (s) { const [x, y] = pct(e.target.closest("[data-still]"), e); await ca.compose(`${s.id}@${x},${y}`, { x: e.pageX, y: e.pageY }, { label: `${label(s)} · at ${x}%, ${y}%`, detail: s.caption || undefined }); }
       else { const el = e.target.closest("h1,h2,li,p,figure,section") || e.target; const [a, at] = ca.domAnchor(el, e); await ca.compose(a, at); }
     } catch (err) { console.warn("compose", err?.code); }
   }, true);
@@ -403,17 +396,7 @@ details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; d
     } else {
       setupLocalNotes();
     }
-    $("#howto").append(howto());
   })();
-
-  function howto() {
-    const text = ca || comments
-      ? "Turn on comments (the speech bubble at the top of this page), then tap the exact spot on any still. Or press Comment under a still. Send to Claude sends it to the thread that made this page."
-      : "Tap Comment under a still, then the spot on the picture, and type your note. Copy notes at the top gives you all of them to paste in the thread.";
-    return h("div", { class: "banner-notice", "data-tone": "info", role: "status" },
-      ic(ICON.info),
-      h("div", { class: "banner-text" }, h("p", { class: "banner-title" }, "How to comment"), h("p", { class: "banner-body" }, text)));
-  }
 
   /* ---- Page notes (only when claude.ai comments are off) */
   const NOTES_KEY = `review-notes:${R.pr}:v${R.version}`;

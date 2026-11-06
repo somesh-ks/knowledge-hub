@@ -6,8 +6,8 @@ How a thread shows the owner a visual change. One page per PR, built from `scrip
 
 - **One artifact per PR.** A new version republishes to the same URL (keep it in `artifact_url` in `review.json`). Never start a second page for the same PR, and never put two PRs on one page.
 - **Only the current version's stills.** Earlier versions are one line each in `history`. A still that did not change keeps its `id` and its `new_in`, so its comments stay on it and it reads "Same since vN".
-- **The top says what to look at.** `new` lists what changed since the last version, and `check` lists what the owner should check, in his words, each item pointing at still ids.
-- **Group stills by change, never by device.** Each change gets a title and one line. The page numbers the stills in page order, and the filters (theme, device, mood, hue) come from the tags.
+- **Few words.** The owner wants it clean (2026-11-06): a short title, `check` as at most three lines of a few words, each pointing at still ids, change titles of two or three words, and a caption only where the picture needs one. The tags say the device and theme; captions never repeat them.
+- **Group stills by change, never by device.** Each change gets a short title. The page numbers the stills in page order, and the filters (theme, device, mood, hue) come from the tags.
 - **Full-length stills of every page and sub-page** the change touches: phone and desktop, light and dark, Firefox (see the owner's stills rule in project memory). A clip is a still with `"kind": "clip"`: an animated WebP, or an MP4 or WebM.
 - **Comments come back by themselves.** The page declares `comments` with custom anchors. A comment the owner drops on a still is a thread named `<still id>@<x>,<y>` in percent, so it stays on its spot at any size. Send to Claude wakes the session that published the page, which reads it with `ArtifactComments` and replies, fixes or resolves it there. Where comments are off, the page keeps numbered notes and a Copy notes button.
 
@@ -25,20 +25,17 @@ How a thread shows the owner a visual change. One page per PR, built from `scrip
   "pr": 635,
   "pr_url": "https://github.com/somesh-ks/knowledge-hub/pull/635",
   "short_title": "Up next review",
-  "title": "Up next: drag the playing row, Suggested stays, clocks read forward",
+  "title": "Up next",
   "area": "Queue and player",
-  "status": "ready",
   "version": 2,
   "updated": "2026-11-03T14:00:00Z",
-  "new": ["Suggested stays after you tap + and refills."],
-  "check": [{ "text": "Tap + on a suggestion. Suggested should still be there.", "stills": ["suggested.phone-light"] }],
+  "check": [{ "text": "Tap + on a suggestion; Suggested stays", "stills": ["suggested.phone-light"] }],
   "changes": [
     {
       "id": "suggested",
-      "title": "Suggested stays after an add",
-      "what": "Before, Suggested vanished after one +.",
+      "title": "Suggested stays",
       "stills": [
-        { "id": "suggested.phone-light", "file": "stills/suggested-phone-light.webp", "caption": "After tapping + on a suggestion.", "tags": { "device": "Phone", "browser": "Chrome", "theme": "Light" }, "new_in": 2 }
+        { "id": "suggested.phone-light", "file": "stills/suggested-phone-light.webp", "caption": "After tapping +", "tags": { "device": "Phone", "browser": "Chrome", "theme": "Light" }, "new_in": 2 }
       ]
     }
   ],
@@ -47,7 +44,7 @@ How a thread shows the owner a visual change. One page per PR, built from `scrip
 }
 ```
 
-`status` is `ready` or `changes`. Tags are `device`, `browser`, `theme`, `mood`, `hue` and `state` (Before or After). Still ids are lowercase letters, digits, dots and dashes; keep them stable across versions. `new_in` defaults to the current version. The builder checks every field and file.
+Tags are `device`, `browser`, `theme`, `mood`, `hue` and `state` (Before or After). Still ids are lowercase letters, digits, dots and dashes; keep them stable across versions. `new_in` defaults to the current version. The builder checks every field and file.
 
 ## Why it is built this way
 
