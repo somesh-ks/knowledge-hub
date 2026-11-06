@@ -679,7 +679,8 @@ export async function drainOutbox(quiet = false): Promise<void> {
 export function keepHeld(context: SaveContext, now = Date.now()): void {
   if (context.changes.size === 0) return;
   if (!busy && gapLeft(lastSent, now) === 0) return;
-  // shortcut: changes made while the request on its way is out are left to its run (keepWaiting shows them pending), upgrade if that loses edits.
+  // shortcut: changes made while this page's request is out are left to its run (keepWaiting shows
+  // them pending); upgrade if that is seen to lose edits.
   if (running === context && inFlight.length > 0) return;
   const going = new Map([...context.changes].filter(([, pending]) => !pending.failed));
   for (const batch of pack(buildQueue(going), going)) {
