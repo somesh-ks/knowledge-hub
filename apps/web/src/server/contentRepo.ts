@@ -325,15 +325,17 @@ async function answerFrom(
   try {
     return { site: await entry.site.then((loaded) => withoutTombstoned(loaded, ids)), saved };
   } catch (error) {
-    const { previous } = entry;
-    if (previous === null) throw error;
-    const kept = await previous.site
-      .then((loaded) => withoutTombstoned(loaded, ids))
-      .catch(() => null);
-    if (kept === null) throw error;
-    if (previous.updatedAt === updatedAt) return { site: kept, saved };
-    savedContent = true;
-    return { site: kept, saved: true };
+    // The nearest site before this load that did load; loads that failed in between are skipped.
+    for (let before = entry.previous; before !== null; before = before.previous) {
+      const kept = await before.site
+        .then((loaded) => withoutTombstoned(loaded, ids))
+        .catch(() => null);
+      if (kept === null) continue;
+      if (before.updatedAt === updatedAt) return { site: kept, saved };
+      savedContent = true;
+      return { site: kept, saved: true };
+    }
+    throw error;
   }
 }
 

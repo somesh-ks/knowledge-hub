@@ -475,6 +475,11 @@ it("answers a request that joins a failing load again from the site held before 
   const joiner = loadStoreSiteChecked(deps);
   release();
   const [a, b] = await Promise.allSettled([starter, joiner]);
-  expect(a.status).toBe("fulfilled");
-  expect(b.status).toBe("fulfilled");
+  for (const result of [a, b]) {
+    expect(result.status).toBe("fulfilled");
+    if (result.status !== "fulfilled") continue;
+    expect(result.value?.saved).toBe(false);
+    expect(result.value?.site.entries.length).toBe(first?.site.entries.length);
+  }
+  expect(isShowingSavedContent()).toBe(false);
 });
