@@ -149,7 +149,7 @@ const COPY = {
       <h2 class="section-head text-heading" id="create-stories-label">
         <label for="create-stories">Stories</label>
       </h2>
-      <Select id="create-stories" name="stories" data-saved={startStories} autocomplete="off">
+      <Select id="create-stories" name="stories" data-saved={startStories} data-wheel autocomplete="off">
         {
           storyOptions(startLength).map((entry) => (
             <option value={entry.value} hidden={entry.hidden} disabled={entry.hidden} selected={entry.value === startStories}>

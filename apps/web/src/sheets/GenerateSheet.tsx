@@ -352,6 +352,7 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
               <select
                 id="regen-stories"
                 className={fieldClass()}
+                data-wheel=""
                 value={stories}
                 disabled={busy}
                 onChange={(event) => setStoriesPick(event.currentTarget.value)}

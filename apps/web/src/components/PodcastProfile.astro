@@ -89,7 +89,7 @@ const inScope = (ids: readonly string[]): boolean =>
            keeps the list to what the length holds. */}
       <div class="settings-row">
         <label class="settings-label" for={`${id}-stories`}>Stories</label>
-        <Select class="value-select" id={`${id}-stories`} data-f={`${id}.stories`} autocomplete="off">
+        <Select class="value-select" id={`${id}-stories`} data-f={`${id}.stories`} data-wheel autocomplete="off">
           {storyOptions(values.lengthMinutes).map((entry) => (
             <option
               value={entry.value}

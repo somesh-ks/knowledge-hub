@@ -1,9 +1,11 @@
 import { autoStories, mostStories, STORY_COUNTS } from "@singularity/core/storyCount";
 
 /**
- * The Stories control beside Length (D377), on every surface that sets a podcast's size: Auto,
- * which says how many the length holds, then the counts on offer. A count the length cannot hold
- * stays in the list hidden and disabled, so a change of length can bring it back. Client-safe.
+ * The Stories control beside Length (D377), on every surface that sets a podcast's size: the counts
+ * on offer, in order, with Auto among them where its count falls ("Auto (29)" between 25 and 30), so
+ * the list, and the wheel a phone turns it on, reads as one run of numbers. A count the length
+ * cannot hold stays in the list hidden and disabled, so a change of length can bring it back.
+ * Client-safe.
  */
 export interface StoryOption {
   /** "" is Auto. */
@@ -14,14 +16,19 @@ export interface StoryOption {
 
 export function storyOptions(minutes: number): StoryOption[] {
   const most = mostStories(minutes);
-  return [
-    { value: "", label: `Auto (${autoStories(minutes)})`, hidden: false },
-    ...STORY_COUNTS.map((count) => ({
-      value: String(count),
-      label: String(count),
-      hidden: count > most,
-    })),
-  ];
+  const auto = autoStories(minutes);
+  const counts = STORY_COUNTS.map((count) => ({
+    value: String(count),
+    label: String(count),
+    hidden: count > most,
+  }));
+  const at = STORY_COUNTS.findIndex((count) => count >= auto);
+  counts.splice(at < 0 ? counts.length : at, 0, {
+    value: "",
+    label: `Auto (${auto})`,
+    hidden: false,
+  });
+  return counts;
 }
 
 /** The value a Stories control sends: null for Auto, else the count. */
@@ -42,9 +49,9 @@ export function stepStories(from: number, direction: "more" | "fewer", minutes: 
 }
 
 /**
- * Keeps a Stories select to what `minutes` holds: Auto's count follows the length, a count it cannot
- * hold is hidden, and a pick of one moves to the most it holds. Returns whether the pick moved, so
- * a page that saves on change can send it.
+ * Keeps a Stories select to what `minutes` holds: Auto's count and place follow the length, a count
+ * it cannot hold is hidden, and a pick of one moves to the most it holds. Returns whether the pick
+ * moved, so a page that saves on change can send it.
  */
 export function fitStories(select: HTMLSelectElement, minutes: number): boolean {
   const options = storyOptions(minutes);
@@ -55,6 +62,11 @@ export function fitStories(select: HTMLSelectElement, minutes: number): boolean 
     option.hidden = fit.hidden;
     option.disabled = fit.hidden;
   }
+  // Auto moves to where its count now falls; a moved option keeps its selection.
+  const auto = Array.from(select.options).find((option) => option.value === "");
+  const after = options[options.findIndex((entry) => entry.value === "") + 1];
+  const next = after && Array.from(select.options).find((option) => option.value === after.value);
+  if (auto && auto.nextElementSibling !== (next ?? null)) select.insertBefore(auto, next ?? null);
   const moved = select.selectedOptions[0]?.disabled === true;
   if (moved) {
     const held = options.filter((entry) => !entry.hidden).at(-1);
