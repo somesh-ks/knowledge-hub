@@ -10,6 +10,16 @@
 /** The shimmering animations: the podcast queue's words (queue.css) and the sources list's loading rows (topics.css). */
 const SHIMMERS: ReadonlySet<string> = new Set(["queue-sheen", "source-shimmer"]);
 
+/**
+ * Puts every running shimmer on the clock now. A word that goes live is drawn for the first time in the
+ * next frame; the animationstart event arrives after that frame, so the band showed at its own zero for
+ * one frame and then jumped to the clock (owner, 2026-11-05: "a glitch in the beginning"). Reading the
+ * animations makes the browser create them at once, before that frame, and this puts them on the clock.
+ */
+export function syncShimmerClock(): void {
+  onTheClock();
+}
+
 function onTheClock(): void {
   for (const animation of document.getAnimations()) {
     if (!(animation instanceof CSSAnimation) || !SHIMMERS.has(animation.animationName)) continue;
