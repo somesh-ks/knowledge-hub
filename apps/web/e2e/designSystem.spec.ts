@@ -161,35 +161,61 @@ async function offCardEdge(page: Page): Promise<string[]> {
       const items = all.filter(
         (item) => !all.some((outer) => outer !== item && outer.contains(item)),
       );
-      const starts = items.flatMap((item) => {
-        if (item.matches(FIELD)) return [{ item, left: item.getBoundingClientRect().left }];
-        const lefts: number[] = [];
-        const walker = document.createTreeWalker(
-          item,
-          NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
-        );
-        for (let node: Node | null = walker.currentNode; node; node = walker.nextNode()) {
-          const element = node instanceof Element ? node : node.parentElement;
-          if (!element || !shown(element) || element.closest(".sr-only")) continue;
-          if (node instanceof Text && node.textContent?.trim()) {
-            const range = document.createRange();
-            range.selectNodeContents(node);
-            lefts.push(range.getBoundingClientRect().left);
-          } else if (
-            node instanceof Element &&
-            node.matches("img, svg, .suggest-box, .source-initial")
-          ) {
-            lefts.push(node.getBoundingClientRect().left);
-          }
+      // Where each piece of the card's content starts: a text's first letter, a glyph's slot (a
+      // glyph sits centred in its box, so a narrower mark is not off the edge), a field's or a
+      // filled tile's own box.
+      const marks: { left: number; top: number; bottom: number; node: Node }[] = [];
+      const walker = document.createTreeWalker(
+        card,
+        NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+      );
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const element = node instanceof Element ? node : node.parentElement;
+        if (!element || !shown(element) || element.closest(".sr-only, option")) continue;
+        let box: DOMRect | undefined;
+        if (node instanceof Text && node.textContent?.trim()) {
+          const range = document.createRange();
+          range.selectNodeContents(node);
+          box = range.getBoundingClientRect();
+        } else if (
+          node instanceof Element &&
+          node.matches(`${FIELD}, img, svg, .suggest-box, .source-initial`)
+        ) {
+          let slot: Element = node;
+          while (
+            slot.parentElement &&
+            slot.parentElement !== card &&
+            slot.parentElement.childElementCount === 1 &&
+            !slot.parentElement.textContent?.trim()
+          )
+            slot = slot.parentElement;
+          box = slot.getBoundingClientRect();
+        } else if (node instanceof Element && node !== card && filled(node)) {
+          box = node.getBoundingClientRect();
         }
-        return lefts.length ? [{ item, left: Math.min(...lefts) }] : [];
+        if (box?.width) marks.push({ left: box.left, top: box.top, bottom: box.bottom, node });
+      }
+      const starts = items.flatMap((item) => {
+        const own = marks.filter((mark) => item.contains(mark.node));
+        return own.length ? [{ item, left: Math.min(...own.map((mark) => mark.left)) }] : [];
       });
-      if (starts.length < 2) continue;
+      // A line's edge is its first piece's: tiles in a grid, or chips beside a total, sit further in.
+      const lineStarts = starts.filter(({ item, left }) => {
+        const box = item.getBoundingClientRect();
+        return !marks.some(
+          (mark) =>
+            !item.contains(mark.node) &&
+            mark.left < left - 1 &&
+            mark.top < box.bottom &&
+            mark.bottom > box.top,
+        );
+      });
+      if (lineStarts.length < 2) continue;
       const tally = new Map<number, number>();
-      for (const { left } of starts)
+      for (const { left } of lineStarts)
         tally.set(Math.round(left), (tally.get(Math.round(left)) ?? 0) + 1);
       const edge = [...tally].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 0;
-      for (const { item, left } of starts) {
+      for (const { item, left } of lineStarts) {
         if (Math.abs(left - edge) > 1)
           found.push(`${name(card)} > ${name(item)} starts ${Math.round(left - edge)}px`);
       }
