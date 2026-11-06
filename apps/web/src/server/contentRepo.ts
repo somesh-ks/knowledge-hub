@@ -100,7 +100,9 @@ export function storeFiles(
       const hash = manifest.files[path];
       if (hash === undefined) return null;
       const text = await readPublicText(`${base}/content/${path}?v=${hash}`, doFetch);
-      if (text !== null && onMismatch && !namedBy(hash, text)) onMismatch();
+      // A listed file that is missing is as stale as a wrong body; the optional run state may be missing.
+      if (onMismatch && !OPTIONAL_STATE.has(path) && (text === null || !namedBy(hash, text)))
+        onMismatch();
       return text;
     },
   };

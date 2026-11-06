@@ -423,3 +423,19 @@ it("loads again after overlapping loads fail and the manifest names the first co
   const again = await loadStoreSiteChecked({ ...deps, fetch: fakeFetch });
   expect(again?.site.entries.length).toBeGreaterThan(0);
 });
+
+// Bug (CodeRabbit, #732): a file the manifest lists but the CDN answers 404 for (a new object not yet
+// served) was skipped, and the site without it was held until the manifest changed.
+it("loads a manifest again while a file it lists is not served yet", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  const path = "content/Podcasts/2026/10/ep-20261007-1930.md";
+  const body = store.get(path) ?? "";
+  store.delete(path);
+  let now = 0;
+  const deps = { env: ENV, fetch: fakeFetch, now: () => now };
+  const without = await loadStoreSite(deps);
+  store.set(path, body);
+  now = 2 * MANIFEST_TTL_MS;
+  const withIt = await loadStoreSite(deps);
+  expect(withIt.episodes.length).toBe(without.episodes.length + 1);
+});
