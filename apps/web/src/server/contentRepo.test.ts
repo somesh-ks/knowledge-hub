@@ -385,3 +385,41 @@ it("stops loading a manifest again after a few tries, and a BOM is not a mismatc
   // The first load and four more, then it is kept as it is.
   expect(fileReads - afterFirst).toBe(perLoad * 5);
 });
+
+// Bug (CodeRabbit, #732): two loads overlap (the manifest changes while the first is still reading) and
+// both fail. The slot is restored to the first, which failed too; once the manifest names that copy
+// again, every request was answered from the rejected load instead of loading it again.
+it("loads again after overlapping loads fail and the manifest names the first copy again", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  let release!: (broken: boolean) => void;
+  const gate = new Promise<boolean>((resolve) => {
+    release = resolve;
+  });
+  let reading!: () => void;
+  const firstRead = new Promise<void>((resolve) => {
+    reading = resolve;
+  });
+  const hung = async (url: string): Promise<Response> => {
+    const { pathname } = new URL(url);
+    if (pathname === "/content/manifest.json" || !pathname.startsWith("/content/"))
+      return fakeFetch(url);
+    reading();
+    return (await gate) ? new Response(null, { status: 500 }) : fakeFetch(url);
+  };
+  let now = 0;
+  const deps = { env: ENV, fetch: hung, now: () => now };
+  const first = loadStoreSiteChecked(deps);
+  await firstRead;
+  await fillStore("2026-10-24T13:00:00Z");
+  now = 2 * MANIFEST_TTL_MS;
+  const second = loadStoreSiteChecked(deps);
+  release(true);
+  expect((await Promise.allSettled([first, second])).map((r) => r.status)).toEqual([
+    "rejected",
+    "rejected",
+  ]);
+  await fillStore("2026-10-24T12:00:00Z");
+  now = 4 * MANIFEST_TTL_MS;
+  const again = await loadStoreSiteChecked({ ...deps, fetch: fakeFetch });
+  expect(again?.site.entries.length).toBeGreaterThan(0);
+});
