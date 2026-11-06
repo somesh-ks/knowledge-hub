@@ -7,12 +7,12 @@ What it does now. Reasons: D32, D50, D54, D59, D85, D86, D90, D92, D97 to D99, D
 ### Surface and bar
 - The player is one surface from the bottom bar to a full page. The whole bar opens it; a drag, the bar, Back (staying on the page) or Escape close it.
 - The dock has a chevron beside volume from 64rem, none below (D102, D193). A "Close the player" chevron sits top left of the open player below 64rem (D126); from 64rem it shows only on keyboard focus. The open player has no drag handle and square top corners; the art keeps its room (D111). Bottom sheets have no grabber.
-- The bar and the navigation share one fill (D86); below 64rem a hairline along the bar's bottom edge parts them (2026-11-02; none under the queue's dock). A phone's bar swipes between podcasts and shows the target, no Next (D343). The player is held by its bottom edge and is `100dvh` tall, so the bar, the navigation and the floating button move with the address bar as one.
+- The bar and the navigation share one fill (D86); below 64rem the progress line is the bar's bottom edge and parts them (2026-11-06; none under the queue's dock). A phone's bar swipes between podcasts and shows the target, no Next (D343). The player is held by its bottom edge and is `100dvh` tall, so the bar, the navigation and the floating button move with the address bar as one.
 - The app bar's Back goes back one entry.
 - Below 64rem the bottom navigation slides away with the pull and stays above the rising page until gone; the bar's cover grows into the page's cover on the same progress (none from 64rem or under reduced motion; `core/coverMorph.ts`).
 - Any Play (a cover, a page's chip, Start listening in the queue) starts the podcast in the player: below 64rem the player opens over the page, from 64rem only the bar changes to playing and stays shut (`core/openOnPhone.ts`). A story's play button and autoplay never open it.
 - The playing cover lights the open player.
-- The bar's title is the story's chapter (the writer's `chapter`, at most 5 words and 26 characters), so it fits a 360px phone; older stories show their headline. Under it: the clock, then the story's section ("0:02 / 0:36 · Top picks"), or what the recording is before story 1 and in an episode.
+- The bar's title is the podcast's name. Under it: the clock, then the story's chapter (the writer's `chapter`, at most 5 words and 26 characters; older stories show their headline) ("0:02 / 0:36 · Quiet interfaces"), or what the recording is before story 1.
 - The volume button holds the bar's right edge and its level opens to the left. The wide bar shows what is playing on the left, the transport in the centre and a volume slider that appears on hover or focus (D106).
 - Only Play is in full ink in the player (D54). A button's glyph says what it does: refresh for Try again, replay for Play again.
 

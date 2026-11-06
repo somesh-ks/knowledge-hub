@@ -61,6 +61,9 @@ test.describe("an episode's rundown and the controls under the transcript", () =
   }) => {
     await startEpisode(player, finger, page);
     const caption = page.locator("[data-player-dock] .dock-caption");
+    const dockTitle = page.locator("[data-player-dock] .dock-title");
+    const podcast = (await dockTitle.textContent()) ?? "";
+    expect(podcast).not.toBe("");
     // While the rundown plays the bar says what the recording is, and no story is current.
     await expect(caption).not.toContainText("Story");
     await expect(caption).toContainText("Catch up");
@@ -81,6 +84,9 @@ test.describe("an episode's rundown and the controls under the transcript", () =
     await expect(player.scrubber).toHaveAttribute("aria-valuetext", /^0:18 of .*story 1 of /);
     // The clock leads the line once a story plays (its width sizer is in the text, not in view).
     await expect(caption).toHaveText(/^0:18/);
+    // The bar's line stays the podcast's name; the story is named after the clock, not the recording.
+    await expect(dockTitle).toHaveText(podcast);
+    await expect(caption).toHaveText(/ [0-9:]+ \u00b7 (?!Catch up)\S/);
     // Previous from the first seconds of story 1 goes back to the start, never forward.
     await finger.press(previous);
     await expect(player.scrubber).toHaveAttribute("aria-valuetext", /^0:00 of [0-9:]+$/);

@@ -45,9 +45,9 @@ test("one surface: the page waits collapsed and out of reach, then opens as one 
 });
 
 // The bar's controls read high (2026-10-27): they were centred in the bar's box, but the progress
-// line is drawn over its top edge, so the part that shows is centred lower. Each control, play and the
-// wide bar's expand chevron included, sits on the middle of the bar below that line. Within half a
-// pixel, because the error was one pixel.
+// line is drawn over its top edge (its bottom edge on a phone), so the part that shows is centred off
+// the box's middle. Each control, play and the wide bar's expand chevron included, sits on the middle
+// of the bar clear of that line. Within half a pixel, because the error was one pixel.
 test("the bar's controls sit in the middle of what shows of the bar @desktop", async ({
   player,
 }) => {
@@ -55,7 +55,11 @@ test("the bar's controls sit in the middle of what shows of the bar @desktop", a
   await player.play();
   const bar = await player.boxOf(player.dock);
   const line = await player.boxOf(player.dock.locator(".dock-progress"));
-  const middle = (line.y + line.height + bar.y + bar.height) / 2;
+  // The line is the bar's top edge on a wide bar and its bottom edge below 64rem.
+  const middle =
+    line.y > bar.y + bar.height / 2
+      ? (bar.y + line.y) / 2
+      : (line.y + line.height + bar.y + bar.height) / 2;
   const controls = player.dock.locator(".dock-transport .dock-btn, .dock-tools button");
   const names: string[] = [];
   for (const control of await controls.all()) {

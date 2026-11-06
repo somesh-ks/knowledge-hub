@@ -431,20 +431,19 @@ export default function PlayerBar() {
   const digest = state.track?.digest;
   const timeline = state.track?.timeline;
   const item = timeline?.items[state.itemIndex];
-  const section = timeline?.sections[state.sectionIndex];
   const itemCount = timeline?.items.length ?? 0;
   const playing = isPlayingStatus(state.status);
   // After a failure nothing is being read: the bar names the recording, not its first story.
   const headline = (state.error ? null : item?.headline) ?? digest?.title ?? "";
-  // The bar's line is the story's chapter, a few words that fit; the button's name holds the chapter
-  // (WCAG 2.5.3) and the full headline. A story written before chapters shows its headline.
-  const title = (state.error ? null : (item?.chapter ?? item?.headline)) ?? digest?.title ?? "";
+  // The bar's line is the podcast's name. The story under it is named in the caption, by its chapter:
+  // a few words that fit. A story written before chapters shows its headline. The button's name holds
+  // all three (WCAG 2.5.3).
+  const title = digest?.title ?? "";
+  const story = (state.error ? null : (item?.chapter ?? item?.headline)) ?? "";
 
-  // Under the title: the clock, then the story's section, or what the recording is before story 1
-  // and in an episode, which has no sections. A failure or an interruption takes the line.
-  const where =
-    (item && section ? storySectionName(digest, section) : "") ||
-    (digest ? recordingKind(digest) : "");
+  // Under the title: the clock, then the story's chapter, or what the recording is before story 1
+  // and in an episode's rundown. A failure or an interruption takes the line.
+  const where = story || (digest ? recordingKind(digest) : "");
   const notice = state.error
     ? errorSummary(state.error)
     : state.interrupted
@@ -494,7 +493,7 @@ export default function PlayerBar() {
         // The surface controller keeps this in step with the page; false is the collapsed truth.
         aria-expanded="false"
         aria-controls={PLAYER_PAGE_ID}
-        aria-label={`Player: ${title === headline ? headline : `${title}, ${headline}`}`}
+        aria-label={`Player: ${[...new Set([title, story, headline].filter(Boolean))].join(", ")}`}
         onClick={(event) => {
           // The click some browsers still send after a swipe's lift is not a press.
           if (swipe.swiped()) return;
@@ -521,10 +520,12 @@ export default function PlayerBar() {
           ) : null}
         </span>
         <span className="dock-text">
-          <span className="dock-title" key={item?.id ?? "title"}>
-            {title}
-          </span>
-          <span className="dock-caption" data-tone={state.error ? "danger" : undefined}>
+          <span className="dock-title">{title}</span>
+          <span
+            className="dock-caption"
+            key={item?.id ?? "caption"}
+            data-tone={state.error ? "danger" : undefined}
+          >
             {notice ??
               (state.duration > 0 ? (
                 <>

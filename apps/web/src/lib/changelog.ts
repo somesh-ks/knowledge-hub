@@ -18,6 +18,12 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: "0.21.2",
+    date: "2026-11-06",
+    description:
+      "On a phone, the player bar's title is the podcast's name again, with the story's short name after the clock, and its progress line sits along the bottom edge, where it also divides the bar from the navigation.",
+  },
+  {
     version: "0.21.1",
     date: "2026-11-05",
     description:
