@@ -458,10 +458,14 @@ globalThis.document?.addEventListener("astro:after-swap", dropUnclaimed);
 let lastSent = 0;
 /** True while a flush runs. A second call returns at once: the running one sends what is waiting. */
 let busy = false;
+/** The page whose run is busy, so keepHeld can tell its request on the way from its wait. */
+let running: SaveContext | null = null;
 /** Another page's changes that came while a run was busy: sent once it is done. */
 const queued = new Set<SaveContext>();
 /** The outbox was asked to go while a run was busy: it goes once that run is done. */
 let drainQueued = false;
+/** Every outbox ask that is queued was quiet (no "synced" toast): false once one was not. */
+let drainQuietly = false;
 
 /** After a run: what waited for it goes next. */
 function afterRun(): void {
@@ -469,8 +473,10 @@ function afterRun(): void {
   queued.clear();
   for (const other of next) void flush(other);
   if (drainQueued) {
+    const quiet = drainQuietly;
     drainQueued = false;
-    void drainOutbox();
+    drainQuietly = false;
+    void drainOutbox(quiet);
   }
 }
 
@@ -531,7 +537,7 @@ const MAX_WAITS = 6;
  * the site cannot take for good is dropped and said so; one it could not be asked about (offline, a
  * server fault) stays for the next time. Runs inside the busy flag and, across tabs, one lock.
  */
-async function sendOutbox(): Promise<void> {
+async function sendOutbox(quiet: boolean): Promise<void> {
   let waits = 0;
   /** After a refusal that named no op: the oldest entry alone, to find the one at fault. */
   let solo = false;
@@ -541,7 +547,7 @@ async function sendOutbox(): Promise<void> {
   let told = false;
   for (;;) {
     if (readOutbox().length === 0) {
-      if (synced && !told) sendToast({ message: SYNCED, kind: "success" });
+      if (synced && !told && !quiet) sendToast({ message: SYNCED, kind: "success" });
       return;
     }
     const hold = gapLeft(lastSent, Date.now());
@@ -648,19 +654,44 @@ async function oneAtATime(task: () => Promise<void>): Promise<void> {
  * online, when the connection returns and before a page's own changes go. Quiet, as a save is: a
  * refusal alone is said.
  */
-export async function drainOutbox(): Promise<void> {
+export async function drainOutbox(quiet = false): Promise<void> {
   if (busy) {
+    drainQuietly = quiet && (!drainQueued || drainQuietly);
     drainQueued = true;
     return;
   }
   if (readOutbox().length === 0 || !browserOnline()) return;
   busy = true;
   try {
-    await oneAtATime(sendOutbox);
+    await oneAtATime(() => sendOutbox(quiet));
   } finally {
     busy = false;
     afterRun();
   }
+}
+
+/**
+ * The document may be going away with changes still waiting in a run's gap (leave in autosave.ts).
+ * Those changes move to the outbox now, so a tab closed before the gap ends loses nothing; the run
+ * wakes to nothing, and the outbox is sent after it (quietly, as a save is). Left alone when no run
+ * is waiting, since the flush that the leave started sends at once.
+ */
+export function keepHeld(context: SaveContext, now = Date.now()): void {
+  if (context.changes.size === 0) return;
+  if (!busy && gapLeft(lastSent, now) === 0) return;
+  // shortcut: changes made while the request on its way is out are left to its run (keepWaiting shows them pending), upgrade if that loses edits.
+  if (running === context && inFlight.length > 0) return;
+  const going = new Map([...context.changes].filter(([, pending]) => !pending.failed));
+  for (const batch of pack(buildQueue(going), going)) {
+    if (!appendOutbox(batch.ops, now)) return;
+    settle(batch, context.changes);
+    try {
+      context.settled?.();
+    } catch {
+      // The page is gone: nothing left to read again.
+    }
+  }
+  void drainOutbox(true);
 }
 
 /**
@@ -687,6 +718,7 @@ export async function flush(context: SaveContext): Promise<void> {
     }
   };
   busy = true;
+  running = context;
   let failure = "";
   let timeRefused = false;
   let waits = 0;
@@ -731,7 +763,7 @@ export async function flush(context: SaveContext): Promise<void> {
   };
   try {
     // Edits kept from before go first, so a later change never lands before an earlier one.
-    if (readOutbox().length > 0 && browserOnline()) await oneAtATime(sendOutbox);
+    if (readOutbox().length > 0 && browserOnline()) await oneAtATime(() => sendOutbox(false));
     while (going().size > 0) {
       // Inside the server's gap after the last request, wait it out first, quietly: nothing is on
       // its way yet, and whatever changes meanwhile goes in the one request sent after it.
@@ -817,6 +849,7 @@ export async function flush(context: SaveContext): Promise<void> {
     }
   } finally {
     busy = false;
+    running = null;
     // A page left with edits marked pending: the page open now hears how they went and takes what
     // failed, before another page's queued changes go (with them, when that page took them).
     if (!cut) {

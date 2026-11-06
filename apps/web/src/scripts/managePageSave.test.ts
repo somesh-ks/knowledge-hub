@@ -16,6 +16,7 @@ import {
   HELD_EVENT,
   type Held,
   KEPT,
+  keepHeld,
   keepWaiting,
   MAX_BODY_CHARS,
   type Pending,
@@ -539,6 +540,23 @@ describe("a left page's held run", () => {
     expect(changes.get("a")?.failed).toBe(true);
     expect(said.at(-1)).toEqual([GENERIC, "error"]);
     expect(anyPending(pending(), Date.now())).toBe(false);
+  });
+
+  it("keeps a change held in the server's gap on the device when the page goes away, so a closed tab loses nothing", async () => {
+    const changes = new Map([["schedule", change({ op: "schedule.set", hour: 9 })]]);
+    const { context: left } = page(changes);
+    await flush(left);
+    changes.set("schedule", change({ op: "schedule.set", length_minutes: 3 }));
+    const run = flush(left);
+    keepHeld(left);
+    keepWaiting(left);
+    // The tab is killed now: the only copy of the edit must already be in storage.
+    expect(outboxOps()).toEqual([{ op: "schedule.set", length_minutes: 3 }]);
+    await vi.advanceTimersByTimeAsync(GAP_MS);
+    await run;
+    await vi.advanceTimersByTimeAsync(GAP_MS);
+    expect(posted.flat().filter((op) => "length_minutes" in op)).toHaveLength(1);
+    expect(outboxOps()).toEqual([]);
   });
 });
 
