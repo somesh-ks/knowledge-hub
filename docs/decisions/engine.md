@@ -634,3 +634,13 @@ The pipeline that writes a briefing: sources, judge, writer, models, selection, 
 - Revisit if: the logs show a new article missed after a skipped listing, or the direct reads draw a block.
 - Relates to: D222, D302.
 
+
+## D376: A rewrite carries the stories its run gathered and reads only the quick sources again
+
+- Date: 2026-11-06 (the owner: "Regeneration shouldn't go information collection fully, only get the latest and missing news").
+- Decision: the commit stage keeps each published pass's pool in the content store as `Pools/<digest id>.json` and drops pools older than 48 hours. A `--replace` run whose digest has a pool that fresh skips the Firecrawl, YouTube and Exa sources (noted, health untouched) and adds the pool's stories to what the feeds and APIs return, before dedupe and the prefilter. Without one it fetches everything, as before. Jobs pull `Pools/` with `--track`; the site build does not.
+- Why: a rewrite turned listing memory off and scraped every listing again through Firecrawl, 6.5 s apart, plus YouTube relays: Fetch was 2 min 12 s of the owner's 5.5-minute rewrite, and Firecrawl is parked for new spend (D302).
+- Cost: lower: no Firecrawl credits or Exa queries per rewrite; one Blob put a run and a delete two days later.
+- Rejected: a narrower window (the slow sources cost the same whatever the window); the Actions artifact (a workflow change and a run id to find); listing memory on without the pool (the listings' stories would be lost).
+- Revisit if: a rewrite misses a story a listing posted after the run, or the store's Pools/ grows past a few MB.
+- Relates to: D209, D302, D342.

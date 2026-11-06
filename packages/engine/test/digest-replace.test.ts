@@ -1,5 +1,5 @@
 import { rm } from "node:fs/promises";
-import type { LastRunFile } from "@singularity/core";
+import type { LastRunFile, Source } from "@singularity/core";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { git } from "./git-testRepo.js";
 import {
@@ -13,6 +13,7 @@ import {
   runStage,
   runStaged,
   seed,
+  sourcesFile,
   type TestRepo,
   WED,
 } from "./orchestrator-fixtures.js";
@@ -105,11 +106,46 @@ describe("replace a briefing", () => {
     },
   );
 
+  // The owner's rewrite of 2026-11-06 took 5.5 minutes, 2 min 12 s of it scraping again every
+  // listing the run had already read, through Firecrawl at 6.5 s apart (D376).
+  it("carries the stories its run gathered and reads no slow source again", LONG, async () => {
+    const sources = sourcesFile();
+    const tube: Source = {
+      ...(sources.sources[0] as Source),
+      id: "tube",
+      type: "youtube",
+      url: "https://www.youtube.com/@tube",
+      feed_url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCtubetubetubetubetubetu",
+      options: { channel_id: "UCtubetubetubetubetubetu" },
+    };
+    await seed(repo.root, {
+      "config/sources.json": json({ ...sources, sources: [...sources.sources, tube] }),
+    });
+    const world = makeWorld(repo.root, { now: WED });
+    let tubeReads = 0;
+    world.deps.fetch.fetchers = {
+      ...world.deps.fetch.fetchers,
+      youtube: async () => {
+        tubeReads += 1;
+        return [];
+      },
+    };
+    await runStaged(world);
+    expect(tubeReads).toBe(1);
+    // Nothing new since: every story the rewrite can tell is one the run already gathered.
+    world.feeds = {};
+    world.setNow(new Date(WED.getTime() + 2 * 3_600_000));
+    const results = await runStaged(world, { replace: ID });
+    expect(results.at(-1)?.report).toMatchObject({ outcome: "published" });
+    expect(tubeReads).toBe(1);
+  });
+
   it("keeps the old digest when the replacement finds nothing", LONG, async () => {
     const world = makeWorld(repo.root, { now: WED });
     await runStaged(world);
+    // A rewrite past the carried pool's two days reads everything again, and here finds nothing.
+    world.setNow(new Date(WED.getTime() + 49 * 3_600_000));
     world.feeds = {};
-    world.setNow(new Date(WED.getTime() + 2 * 3_600_000));
     const results = await runStaged(world, { replace: ID });
     expect(results.at(-1)?.report).toMatchObject({ outcome: "nothing" });
     expect(await exists(repo.root, PATH)).toBe(true);

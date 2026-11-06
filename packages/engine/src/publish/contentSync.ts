@@ -16,8 +16,11 @@ export const CONTENT_PREFIX = "content/";
 export const CONTENT_MANIFEST_KEY = `${CONTENT_PREFIX}manifest.json`;
 export const CONTENT_MANIFEST_VERSION = 1;
 
-/** The folders and files the site reads, settings aside (those are in Neon, D149). */
-export const CONTENT_DIRS = ["Digests", "Podcasts"] as const;
+/**
+ * The folders and files the site reads, settings aside (those are in Neon, D149), and the pools a
+ * rewrite carries (Pools/, D376), which only the engine's jobs pull.
+ */
+export const CONTENT_DIRS = ["Digests", "Podcasts", "Pools"] as const;
 export const CONTENT_FILES = [
   "state/last-run.json",
   "state/source-stats.json",
