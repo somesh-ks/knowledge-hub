@@ -1,6 +1,7 @@
 ---
 import BriefingCard from "../../components/BriefingCard.astro";
 import EmptyArt from "../../components/EmptyArt.astro";
+import EpisodeActions from "../../components/EpisodeActions.astro";
 import EpisodeCard from "../../components/EpisodeCard.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
@@ -32,7 +33,7 @@ const items = libraryItems(entries, episodes);
     {/* What this device saved from a player's menu. Which items are saved is only known here, in
          localStorage, so the page carries every Library row (the same cards, in the List view) and
          savedPage.ts shows the saved ones, newest first. Each row has the Library's hover Play and
-         its menu, cut to Add to queue, Share and Remove from favorites. */}
+         its menu, the same as the Library's (D369). */}
     <div class="manage saved" data-saved-page>
       <SettingsHead up={{ href: "/profile", label: "Profile" }} title="Favorites" />
       <noscript>
@@ -46,9 +47,9 @@ const items = libraryItems(entries, episodes);
             {
               items.map((item) =>
                 item.kind === "episode" ? (
-                  <EpisodeCard entry={item.entry} saved />
+                  <EpisodeCard entry={item.entry} />
                 ) : (
-                  <BriefingCard entry={item.entry} menu saved />
+                  <BriefingCard entry={item.entry} menu />
                 ),
               )
             }
@@ -61,6 +62,9 @@ const items = libraryItems(entries, episodes);
         <p class="empty-title">No favorites yet</p>
         <p class="empty-body">Favorite a podcast to see it here.</p>
       </div>
+
+      {/* Regenerate and Delete in a row's sheet open these, as the Library's do. */}
+      <EpisodeActions id="saved" />
 
       <ManageChrome />
     </div>

@@ -3,7 +3,14 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import { buttonClass } from "../design-system/button";
 import { fieldClass } from "../design-system/field";
 import { rememberCancelToken } from "../lib/cancelTokens";
-import { hintsFor } from "../lib/regenHints";
+import { createCommentAsker } from "../lib/regenAsk";
+import {
+  type Answer,
+  desiredChip,
+  desiredLength,
+  NO_ANSWER,
+  wantedControls,
+} from "../lib/regenFollow";
 import { DEFAULT_REGEN_LENGTH, nearestRegenLength, REGEN_LENGTHS } from "../lib/regenLength";
 import { idsOfChips, isChipOn, type RegenChip } from "../lib/regenTopics";
 import { playUiCue } from "../player/sound/soundController";
@@ -68,15 +75,24 @@ const BUSY = "A podcast or an episode is still being made. You can start another
 export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateSheetProps) {
   const feedbackRef = useRef<HTMLTextAreaElement>(null);
   const [page, setPage] = useState<PageTopics | null>(null);
-  const [ticked, setTicked] = useState<ReadonlySet<string>>(new Set());
+  // What the listener changed by hand: those categories and that length stay as they left them.
+  // Every other control follows the comment (D371).
+  const [picked, setPicked] = useState<ReadonlyMap<string, boolean>>(new Map());
   const [topicError, setTopicError] = useState(false);
   const [noteError, setNoteError] = useState(false);
-  const [length, setLength] = useState(String(DEFAULT_REGEN_LENGTH));
+  const [asked, setAsked] = useState(String(DEFAULT_REGEN_LENGTH));
+  const [lengthPick, setLengthPick] = useState<string | null>(null);
+  const [comment, setComment] = useState("");
+  const [answer, setAnswer] = useState<Answer>(NO_ANSWER);
+  // The categories a refusal had to show stay shown.
+  const [keepTopics, setKeepTopics] = useState(false);
   const [busy, setBusy] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
-  // The sheet opens on the comment alone; Length and Categories appear as the words reach for them
-  // (D337) and stay once they have, so the form does not shift as the text is edited.
-  const [shown, setShown] = useState({ length: false, topics: false });
+
+  // The words answer at once; once the typing pauses, Jev and Haiku add what the words missed. The
+  // controls follow the comment both ways (D371): one appears when the words call for it and goes
+  // when they no longer do, unless the listener has touched it.
+  const [asker] = useState(() => createCommentAsker(setAnswer));
 
   // Each opening starts from the topics of the briefing on the page. Off a briefing's page (a
   // toast's Details) there are none, and the run keeps its own.
@@ -84,34 +100,48 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
     if (!open) return;
     const topics = readPageTopics();
     setPage(topics);
-    setTicked(
-      new Set(topics?.chips.filter((c) => isChipOn(c, topics.selected)).map((c) => c.value)),
-    );
+    setPicked(new Map());
     setTopicError(false);
+    setKeepTopics(false);
     setFieldError(null);
-    setLength(startLength());
-    // Words kept from an earlier opening still call for their controls.
-    setShown(
-      hintsFor(feedbackRef.current?.value ?? "", topics?.chips.map((chip) => chip.label) ?? []),
-    );
-  }, [open]);
+    setAsked(startLength());
+    setLengthPick(null);
+    // Words kept from an earlier opening still call for their controls, and are read again.
+    const kept = feedbackRef.current?.value ?? "";
+    setComment(kept);
+    asker.note(kept, topics?.chips.map((chip) => chip.label) ?? []);
+  }, [open, asker]);
+
+  useEffect(() => {
+    if (open) return;
+    asker.stop();
+    setAnswer(NO_ANSWER);
+  }, [open, asker]);
+
+  const chips = page?.chips ?? [];
+  const wanted = wantedControls(
+    comment,
+    chips.map((chip) => chip.label),
+    answer,
+  );
+  const shownTopics = Boolean(page) && (wanted.topics || keepTopics || picked.size > 0);
+  const shownLength = wanted.length || lengthPick !== null;
+  const length = lengthPick ?? String(desiredLength(Number(asked), answer.values, comment));
+  const isOn = (chip: RegenChip): boolean =>
+    picked.get(chip.value) ??
+    desiredChip(chip.label, page ? isChipOn(chip, page.selected) : false, answer.values);
 
   function onNote(text: string): void {
-    const hints = hintsFor(text, page?.chips.map((chip) => chip.label) ?? []);
-    setShown((current) =>
-      (hints.length && !current.length) || (hints.topics && !current.topics)
-        ? { length: current.length || hints.length, topics: current.topics || hints.topics }
-        : current,
+    setComment(text);
+    asker.note(
+      text,
+      chips.map((chip) => chip.label),
     );
   }
 
-  function toggle(value: string): void {
+  function toggle(chip: RegenChip): void {
     setTopicError(false);
-    setTicked((current) => {
-      const next = new Set(current);
-      if (!next.delete(value)) next.add(value);
-      return next;
-    });
+    setPicked((current) => new Map(current).set(chip.value, !isOn(chip)));
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -126,9 +156,10 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
     // Topics go only when they differ from the original's, and never touch the saved schedule.
     let topics: string[] | undefined;
     if (page) {
+      const ticked = new Set(page.chips.filter(isOn).map((c) => c.value));
       if (ticked.size === 0) {
         // The categories wait for a cue (D337); a refusal about them must show them.
-        setShown((current) => ({ ...current, topics: true }));
+        setKeepTopics(true);
         setTopicError(true);
         return;
       }
@@ -205,7 +236,7 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
       >
         <Field.Root disabled={busy} className="create-group">
           <h2 className="section-head text-heading">
-            <Field.Label>Comments</Field.Label>
+            <Field.Label>What went wrong?</Field.Label>
           </h2>
           <textarea
             ref={feedbackRef}
@@ -213,7 +244,7 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
             name="feedback"
             rows={4}
             maxLength={FEEDBACK_MAX}
-            placeholder="What should change?"
+            placeholder="Too short, missed business news, too much hype"
             required
             aria-invalid={noteError || undefined}
             aria-describedby={noteError ? "regen-note-error" : undefined}
@@ -226,11 +257,11 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
           {noteError ? (
             <p className="create-error" id="regen-note-error" role="alert">
               <Icon name="alert" />
-              <span>Say what to change.</span>
+              <span>Say what went wrong.</span>
             </p>
           ) : null}
         </Field.Root>
-        {page && shown.topics ? (
+        {page && shownTopics ? (
           <section className="create-group" aria-labelledby="regen-topics-label">
             <h2 className="section-head text-heading" id="regen-topics-label">
               Categories
@@ -242,8 +273,8 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
                     type="checkbox"
                     name="topic"
                     value={chip.value}
-                    checked={ticked.has(chip.value)}
-                    onChange={() => toggle(chip.value)}
+                    checked={isOn(chip)}
+                    onChange={() => toggle(chip)}
                   />
                   <Icon name="check" className="filter-chip-check" />
                   <span>{chip.label}</span>
@@ -258,7 +289,7 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
             ) : null}
           </section>
         ) : null}
-        {shown.length ? (
+        {shownLength ? (
           <section className="create-group" aria-labelledby="regen-length-label">
             <h2 className="section-head text-heading" id="regen-length-label">
               Length
@@ -276,7 +307,7 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
                     value={choice.value}
                     disabled={busy}
                     checked={length === choice.value}
-                    onChange={() => setLength(choice.value)}
+                    onChange={() => setLengthPick(choice.value)}
                   />
                   <span>{choice.label}</span>
                 </label>

@@ -58,16 +58,18 @@ export function overNarrationLimit(
  * writes beyond what it airs. Every story the writer, the voice check or grounding drops after
  * selection used to come off the owner's length: the 2026-10-15 daily chose 14 stories for five
  * minutes and published 4 (4 not written, 6 dropped by grounding). Validation keeps the best
- * survivors up to the length and leaves the rest unaired. Writing, grounding and validation lose
- * about 45% of what selection chose (2026-10-09: 6 of 15 written; the 2026-10-18 weekly: 13 of 27
- * selected), so a 0.3 share left the 15-minute weekly at 14 stories and 5 minutes. Covering a
- * 45% loss takes a share of at least 0.82.
+ * survivors up to the length and leaves the rest unaired. 0.85 covered October's 45%. The dailies
+ * in state/run-metrics.json on 2026-11-06 wrote 54% to 100% of the 28 they chose (most of the loss
+ * at the writer), then validation dropped 2 to 4, and aired 12 or 13: the rest were spares paid for
+ * in writer and grounding calls and about 40 s of a regenerate. 0.6 fills the length on the first
+ * pass in four of those five runs; a shortfall past it is refilled from the reserve once
+ * (validateStage). D119, revisited.
  */
-export const SPARE_SHARE = 0.85;
+export const SPARE_SHARE = 0.6;
 
 /**
  * Stories a length-sized briefing may select and write, spares included. Above the digest's hard
- * maximum (48), which holds what airs: a 15-minute weekly wants 44 stories and writes 80.
+ * maximum (48), which holds what airs: a 15-minute weekly wants 44 stories and writes 71.
  */
 export const WRITE_MAX = 80;
 
@@ -80,9 +82,10 @@ export function withSpares(wanted: number, most = WRITE_MAX): number {
  * Candidates the prefilter sends to the judge per story a sized briefing writes: its fixed 60 for a
  * five-minute daily's 25. The pool was 60 whatever the length, so the 15-minute weekly of
  * 2026-10-18 had 99 qualifying stories (most of them general news and release notes held to their
- * own allowances) and filled 27 of its 52 slots.
+ * own allowances) and filled 27 of its 52 slots. 2.8 since the spare share fell to 0.6, so the judge
+ * sees as many candidates as it did at 2.4 with 0.85.
  */
-export const CANDIDATES_PER_STORY = 2.4;
+export const CANDIDATES_PER_STORY = 2.8;
 
 /** The prefilter's main cap for a briefing that writes `written` stories; never below `floor`. */
 export function poolCapFor(written: number, floor: number): number {

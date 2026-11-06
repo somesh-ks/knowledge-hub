@@ -793,3 +793,31 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Rejected: 32px with an 8px content radius (the chips and fields inside would sharpen, against D167's one shape per control).
 - Cost: none.
 - Revisit if: a mood's corner grows past 48px, where the curve does reach the first row's words.
+
+## D367: every flag is the Flag, never an emoji
+
+- Date: 2026-11-04 (the owner: "the emoji doesn't get read in all platforms. That's why we had a flag library that was supposed to be used. And anywhere we have flags, we should use that instead of the emoji. Make it a rule").
+- Decision: a flag is the design system's Flag (`design-system/flag.ts`, `Flag.astro`, `styles/flag.css`): Flagpack art, one file per country in `public/flags/` (248 files, 1.4 MB on disk, each fetched only when drawn). It replaces the voice pickers' 37-flag sprite. Text that may hold a flag emoji (a place topic's emoji, the time zone toast, the emoji picker's flags) is drawn through it (`showText`, `flagParts`, `<Flag text>`), so stored emoji stay as data and never reach the system font. `.flag-mark` keeps the picker's 16 by 12; `.flag-inline` sizes the art to the words. A code without art shows the letter badge. `designSystem.test.ts` fails an app source that writes or builds a flag emoji.
+- Why: Windows has no flag emoji and draws two letters (2026-10-25, and the time zone toast on 2026-11-04).
+- Rejected: one sprite of every flag (about 800 KB fetched for one flag); `Intl` region data (no flags); keeping emoji where the sprite had no art.
+- Cost: 1.4 MB of art in the repo; no first-load JavaScript beyond the split helper in the toast.
+- Revisit if: a platform draws the art wrongly, or a flag is needed where an image cannot go (a notification's text).
+
+## D307: the write routes answer only the owner's session
+
+- Date: 2026-11-01 (the owner: "yes - go for it and fix", on the repo-wide audit's item 2). Amends D160, D201; follows D257, D298.
+- Decision: `POST /api/generate` (briefings, regenerate, delete), `POST /api/podcast` (Catch up, regenerate, delete), `POST /api/config` and `POST /api/narrate` (the segment call that spends) run `guardAdmin` before they read the body: 401 without the command center's session cookie, 503 while `ADMIN_SESSION_SECRET` is missing or under 32 characters. The free narration lookup (`GET /api/narrate`), the shared-link routes, the config read and the Cancel route stay open. Each device the owner presses these on signs in at `/admin` once (30 days).
+- Why: D160 and D201 left the writes open because only friends knew the URL. The repo is public (D298), the URLs are in it, and the audit counted about $19 a day of spend reachable by anyone, plus a config overwrite with no second copy.
+- Rejected: a shared secret in a header (every page script would hold it); gating the config read (the pages fall back to their built copy, which is public in Git anyway); gating Cancel (it stops spend and loses nothing Regenerate cannot remake).
+- Listeners: the free lookup still serves audio already stored (an episode is pre-narrated at publish, D128) to anyone; only a segment nobody has narrated yet needs the owner, and a signed-out listener is told to sign in instead of offered a retry.
+- Cost: until the reader's `ADMIN_SESSION_SECRET` is 32 or more characters (H6), Generate, Catch up, Delete and settings saves answer 503. A friend invited later cannot use them until accounts exist (D303, D305).
+- Revisit if: Google sign-in replaces the password (the cookie's meaning stays), or accounts (D303) give writes a per-user check.
+- Amends: D160, D201.
+
+## D368: the app's write routes need no sign-in
+
+- Date: 2026-11-04 (the owner: "Why are you adding limitations to sign in to the command center on a new device to generate a catch-up? I don't want any limitations."). Supersedes D307.
+- Decision: `POST /api/generate`, `/api/podcast`, `/api/config` and `/api/narrate` answer without the command center's session, as before D307. The command center (`/admin` and its APIs, D257) stays signed in.
+- Context changed: D307 assumed one sign-in per device was a small price; in use it stood between the owner and Generate, Catch up, Delete and settings saves, and he wants none.
+- Backstop: each route's per-minute cap across instances (generate 8, podcast 10, config 12). The D332 $5 ceiling stops only scheduled runs; a run someone starts goes ahead, so on-demand spend from a stranger is bounded by the caps alone. A config overwrite has no second copy.
+- Revisit if: spend from strangers shows on the Costs page, or accounts (D303) arrive.

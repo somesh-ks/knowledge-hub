@@ -17,6 +17,7 @@ import type { PlayerDigestData } from "../../types/contracts";
 import { startSound } from "../sound/soundController";
 import { announcementForEvent } from "./announcements";
 import { announce } from "./announcerDom";
+import { preconnectAudioHost } from "./audioHost";
 
 /** The open player covers the page (html[data-player="open"]), so the page's own notices are inert. */
 function playerIsOpen(): boolean {
@@ -282,7 +283,11 @@ function syncRootState(playerStore: PlayerStore): void {
 /** Reads the page's digest into the store and refreshes the reader coupling. */
 function readPage(playerStore: PlayerStore): void {
   // A briefing narrated earlier in this session comes back with its audio, not as the page built it.
-  playerStore.setPageDigest(narratedOrPage(readDigestData()));
+  const digest = narratedOrPage(readDigestData());
+  // Before setPageDigest: a press on a cover in the Library starts playing on arrival, inside it.
+  const url = digest?.audio?.url;
+  if (url) preconnectAudioHost(url);
+  playerStore.setPageDigest(digest);
 }
 
 /** A dialog or popover other than the player is open. The toast is a popover, but not a modal one. */
@@ -374,6 +379,11 @@ export function startPlayerRuntime(): () => void {
   };
   const offSession = playerStore.subscribe(keepSession);
   const offSessionSheet = playerSheet.subscribe(keepSession);
+  // The track is the page's until the listener picks another, or the one a reload brings back.
+  const warmAudioHost = (): void => {
+    const url = playerStore.getState().track?.digest.audio?.url;
+    if (url) preconnectAudioHost(url);
+  };
   if (before && !playerStore.getState().hasStarted) {
     const picks = selections().count;
     const cached = queueDigestFor(before.id);
@@ -382,6 +392,7 @@ export function startPlayerRuntime(): () => void {
       if (!digest || tornDown || picks !== selections().count) return;
       if (playerStore.getState().hasStarted) return;
       playerStore.restore(narratedOrPage(digest));
+      warmAudioHost();
       if (before.open) openQuietly(() => void playerSheet.expand());
     });
   }
@@ -502,6 +513,11 @@ export function startPlayerRuntime(): () => void {
     if (playerIsOpen()) announce("You are offline.");
   };
 
+  // A tab brought back, or an app resumed, has lost the sockets it opened before.
+  const onVisible = (): void => {
+    if (document.visibilityState === "visible") warmAudioHost();
+  };
+  document.addEventListener("visibilitychange", onVisible);
   document.addEventListener("astro:page-load", onPageLoad);
   document.addEventListener("astro:before-preparation", onBeforeNavigation);
   document.addEventListener("astro:after-swap", onAfterSwap);
@@ -517,6 +533,7 @@ export function startPlayerRuntime(): () => void {
   return () => {
     tornDown = true;
     stopPrefetch?.();
+    document.removeEventListener("visibilitychange", onVisible);
     document.removeEventListener("astro:page-load", onPageLoad);
     document.removeEventListener("astro:before-preparation", onBeforeNavigation);
     document.removeEventListener("astro:after-swap", onAfterSwap);

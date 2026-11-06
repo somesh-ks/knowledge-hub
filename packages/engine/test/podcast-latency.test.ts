@@ -70,8 +70,10 @@ describe("a first script a little under the floor", () => {
     const writer = new FakeScriptWriter(() => scriptAt(input, target));
     const { log, lines } = captureLog();
     const result = await generateScript({ ...input, writer, log });
-    expect(writer.calls).toHaveLength(1);
-    expect(result.writer_calls).toBe(1);
+    // The second call carries on after the kept script instead of rewriting it (D366).
+    expect(writer.calls).toHaveLength(2);
+    expect(writer.calls[1]?.input.opening?.length).toBeGreaterThan(0);
+    expect(result.writer_calls).toBe(2);
     const kept = lines.find((line) => line.message.startsWith("Kept a script a little under"));
     expect(kept?.data).toMatchObject({
       attempt: 1,

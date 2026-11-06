@@ -86,6 +86,7 @@ export function prewarmPage(): Promise<void> {
 export function narrateLive(doc: StreamDoc, runId: number): void {
   void getController().play(liveDigestFrom(doc, new Date()), undefined, {
     status: doc.status,
+    expected_ms: doc.expected_ms,
     fetchDoc: async () => {
       // The run indicator's route: the same copy, by the run that is writing it.
       const res = await fetch(`/api/stream?run=${runId}`, { cache: "no-store" }).catch(() => null);

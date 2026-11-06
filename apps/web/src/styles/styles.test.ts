@@ -255,10 +255,6 @@ const OUTLINED_CONTROLS: [rule: string, reason: string][] = [
     'topics.css: .emoji-cell[aria-current="true"]',
     "the topic's own emoji in the emoji grid: a hairline ring on its tonal cell",
   ],
-  [
-    "topics.css: .topic-add-source",
-    "Add source: outlined, not tonal, and a size down so it sits level with its heading (D103)",
-  ],
 ];
 
 /**
@@ -986,6 +982,62 @@ describe("house rules", () => {
 });
 
 /**
+ * Bug it prevents: the ⋮ back on a phone's podcast cards or queue rows (owner, four times by 2026-11-04).
+ * Two queries guarded the dots (`hover: none and pointer: coarse` on the Library, `hover: hover and
+ * pointer: fine` on the queue), so a phone that reports any other pair of values got dots on one and not
+ * the other. One query now draws them, and its complement is every phone: a rule on these buttons in
+ * any other media query fails here.
+ */
+describe("the ⋮ of a podcast card and a queue row", () => {
+  const DOTS = /\.(?:card-more|player-queue-more)\b/;
+  const MOUSE = "(hover: hover) and (pointer: fine)";
+  const ALLOWED = [MOUSE, `not (${MOUSE})`];
+
+  /** [file, selector, enclosing @media preludes] for every rule that names one of the buttons. */
+  function dotRules() {
+    const found: Array<[string, string, string[]]> = [];
+    for (const [file, css] of ownCss()) {
+      const stack: Array<{ prelude: string; media: boolean }> = [];
+      let start = 0;
+      for (let at = 0; at < css.length; at++) {
+        const char = css[at];
+        if (char === "{") {
+          const prelude = css.slice(start, at).trim().replace(/\s+/g, " ");
+          stack.push({ prelude, media: prelude.startsWith("@media") });
+          start = at + 1;
+        } else if (char === "}" || char === ";") {
+          if (char === "}") stack.pop();
+          start = at + 1;
+        } else continue;
+        const open = stack[stack.length - 1];
+        if (char === "{" && open && !open.prelude.startsWith("@") && DOTS.test(open.prelude)) {
+          const media = stack
+            .filter((entry) => entry.media)
+            .map((entry) =>
+              entry.prelude
+                .replace(/^@media\s*/, "")
+                .replace(/\(\s+/g, "(")
+                .replace(/\s+\)/g, ")"),
+            );
+          found.push([file, open.prelude, media]);
+        }
+      }
+    }
+    return found;
+  }
+
+  it("is drawn under the mouse query or its complement and no other", () => {
+    expect(dotRules().length).toBeGreaterThan(4); // the scan found the rules at all
+    const offenders = dotRules().flatMap(([file, selector, media]) =>
+      media
+        .filter((query) => !ALLOWED.includes(query))
+        .map((query) => `${file}: ${selector} @ ${query}`),
+    );
+    expect(offenders).toEqual([]);
+  });
+});
+
+/**
  * The page rules that still restyle a design-system component's classes, each as "file: selector".
  * A component is fixed in its own sheet, never bent on one page (AGENTS.md, D253, owner, 2026-10-30:
  * "whenever I ask you to fix a UI component, first attempt to fix/improve the centralized design
@@ -1020,7 +1072,6 @@ const PAGE_OVERRIDES: string[] = [
   "create.css: .create-view .field-input.create-title:focus-visible",
   "create.css: .create-view .field-input.create-title:where(:enabled):hover",
   "empty.css: .empty-actions > .button-filled, .empty-actions > .button-tonal",
-  "episode-actions.css: .field-input.regen-feedback",
   "library.css: .card-more .icon-glyph",
   "library.css: .library-filters > .filter-chip > .icon-glyph",
   "library.css: .menu-list.card-menu-list",
@@ -1040,6 +1091,10 @@ const PAGE_OVERRIDES: string[] = [
   "multiselect.css: .settings-row .multiselect-trigger > .icon-glyph",
   "picker.css: .picker > .icon-glyph",
   "picker.css: .picker > .icon-glyph",
+  // The picker's rows place the Flag in their grid (D367): a column and the gap, not its look.
+  "picker.css: .picker-option > .flag-mark",
+  "picker.css: .picker-option:has(> .flag-mark)",
+  'picker.css: .picker-option[aria-selected="true"]:has(> .flag-mark)::after',
   'picker.css: .picker:has(> .picker-trigger[aria-expanded="true"]) > .icon-glyph',
   "player.css: .dock-btn[data-primary] .icon-glyph",
   "player.css: .dock-expand .icon-glyph",
@@ -1113,7 +1168,6 @@ const PAGE_OVERRIDES: string[] = [
   "topics.css: .menu-list.emoji-picker",
   "topics.css: .menu-list.emoji-picker:popover-open",
   "topics.css: .menu-list.menu-sheet.emoji-picker, .menu-list.menu-sheet.emoji-picker:popover-open",
-  "topics.css: .slider-input[data-stops]",
   "topics.css: .source-sheet-foot > .button-filled",
   "topics.css: .topic-weight > .slider-input",
   "topics.css: .topic-weight > .slider-input",
@@ -1273,6 +1327,60 @@ describe("component stylesheets", () => {
       }),
     );
     expect(found).toEqual([]);
+  });
+
+  it("paints every primary action with the one primary fill, so a floating button never drifts from Play", () => {
+    // The filled button, the hero's Play (hero.css, through --chip-bg), the floating buttons and the
+    // side column's Catch up are one action, so one colour: the floating ones wore the tonal step and
+    // Catch up a tone of its own, each a second primary beside Play (owner, 2026-11-04). A disabled
+    // face is the only other fill.
+    const PRIMARY = ["button-filled", "create-fab", "play-fab", "btn-action-tonal"];
+    const groups = /:(?:where|not|is)\((?:[^()]|\([^()]*\))*\)/g;
+    const found = ownCss().flatMap(([file, css]) =>
+      rulesOf(css).flatMap(([list, body]) => {
+        const subjects = selectorsOf(list).filter((selector) => {
+          const subject =
+            selector
+              .trim()
+              .split(/[\s>+~]+/)
+              .pop() ?? "";
+          const own = subject.replace(groups, "");
+          return (
+            PRIMARY.some((name) => wholeName(`.${name}`).test(own)) &&
+            !/\[aria-disabled="true"\]|:disabled/.test(own)
+          );
+        });
+        if (subjects.length === 0) return [];
+        return declarationsOf(body)
+          .filter(([property]) => property === "background" || property === "background-color")
+          .filter(([, value]) => !/^var\(--cta-bg(?:-hover|-pressed)?\)$/.test(value))
+          .map(
+            ([property, value]) =>
+              `${file}: ${list.replace(/\s+/g, " ")} { ${property}: ${value} }`,
+          );
+      }),
+    );
+    expect(found).toEqual([]);
+  });
+
+  it("draws no stop marks on a slider's track, in any mood", () => {
+    // 2026-11-04: the "no dots please" fix (owner, 2026-11-03) went into the Expressive rule alone, so
+    // Default and Halloween still drew the speed and weight stops. A track is plain in every mood.
+    const marks = ownCss().flatMap(([file, css]) =>
+      rulesOf(css)
+        .filter(([list]) => /\.slider-input\b/.test(list))
+        .flatMap(([list, body]) =>
+          declarationsOf(body)
+            // A mark is a background image on the input itself, or a gradient kept in a variable for one.
+            .filter(
+              ([property, value]) =>
+                (property === "background-image" && value !== "none") ||
+                /radial-gradient\(/.test(value),
+            )
+            .map(([property]) => `${file}: ${list.replace(/\s+/g, " ")} { ${property} }`),
+        ),
+    );
+    expect(marks).toEqual([]);
   });
 });
 

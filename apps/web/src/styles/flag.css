@@ -1,0 +1,39 @@
+/* The Flag (design-system/flag.ts, D367): Flagpack art from public/flags/, the same on every system
+   since Windows has no flag emoji. .flag-mark: an accent's flag before a voice's name, in the picker's
+   button and each option, 16 by 12 with small rounded corners. .flag-inline: a flag inside words (a
+   toast, a topic's emoji), sized from the text so it stands where the emoji would. A region without
+   art is a .flag-badge, its two letters (data-code) small and muted. Never alone: words follow it. */
+.flag-mark {
+  display: inline-block;
+  flex: none;
+  inline-size: var(--space-4);
+  block-size: calc(var(--space-4) * 0.75);
+  margin-inline-end: var(--space-2);
+  border-radius: var(--shape-xs);
+  vertical-align: middle;
+}
+
+/* 1.25em by 0.9375em: the 4:3 box of the art at an emoji's width; its corner stays the small one. */
+.flag-inline {
+  inline-size: 1.25em;
+  block-size: 0.9375em;
+  margin-inline-end: 0;
+  vertical-align: -0.1em;
+}
+
+.flag-badge {
+  display: inline-grid;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: auto;
+  min-inline-size: var(--space-4);
+  background: var(--ghost-hover);
+  color: var(--color-on-surface-muted);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  line-height: calc(var(--space-4) * 0.75);
+}
+
+.flag-badge::before {
+  content: attr(data-code);
+}

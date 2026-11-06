@@ -9,7 +9,6 @@ const get: APIRoute = async ({ url }) =>
     await handleStream(url.searchParams.get("run"), {
       env: process.env,
       fetch,
-      now: Date.now,
       log: (message) => console.error(`[api/stream] ${message}`),
     }),
   );

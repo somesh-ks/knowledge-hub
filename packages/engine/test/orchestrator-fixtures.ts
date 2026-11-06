@@ -355,7 +355,7 @@ export async function buildTemplate(): Promise<string> {
   git(base, "init", "-q", "--bare", "--initial-branch=main", remote);
   git(base, "clone", "-q", "-c", "core.autocrlf=false", remote, a);
   git(a, "checkout", "-q", "-b", "main");
-  await put(a, ".gitignore", ".cache/\nnode_modules/\n.env\n");
+  await put(a, ".gitignore", ".cache/\nnode_modules/\n.env\nPools/\n");
   await put(a, "README.md", "# Test repository\n");
   for (const file of ["config/preferences.json", "config/voice.md"]) {
     await put(a, file, await readFile(join(FIXTURE_CONFIG, basename(file)), "utf8"));

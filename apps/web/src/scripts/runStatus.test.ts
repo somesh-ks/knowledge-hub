@@ -7,6 +7,7 @@ vi.mock("../narration/prewarmEpisode", () => ({ prewarmEpisode }));
 const {
   focusCreate,
   forgetRunAbout,
+  liveHint,
   readRun,
   refusal,
   resumeRun,
@@ -276,6 +277,13 @@ describe("what the card says for a run", () => {
       statusLine(run({ phase: "failed", failedStage: "publishing", kept: ["script"] }), words),
     ).toBe("The episode couldn't be published. The script is saved.");
     expect(statusLine(run({ phase: "failed" }), words)).toBe("Couldn't make the episode");
+    // A rewrite that stopped for a reason the engine wrote says it, not the generic line.
+    expect(
+      statusLine(
+        run({ kind: "regenerate", phase: "failed", reason: "There is no episode X." }),
+        words,
+      ),
+    ).toBe("There is no episode X.");
     expect(statusLine(run({ phase: "failed", note: "Wait 2 minutes." }), words)).toBe(
       "Wait 2 minutes.",
     );
@@ -426,5 +434,45 @@ describe("a run that was cancelled", () => {
   it("ends as cancelled for a podcast and for an episode, with a plain line", async () => {
     expect(await endsAs(true, 61)).toEqual({ phase: "cancelled", line: "Cancelled" });
     expect(await endsAs(false, 62)).toEqual({ phase: "cancelled", line: "Cancelled" });
+  });
+});
+
+// Owner, 2026-11-04: a press on Listen now waited about 3 s for its first turn to be spoken.
+describe("Listen now on an episode being written", () => {
+  it("is offered once its first turns are spoken, so a press plays at once", async () => {
+    vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => {}, removeItem: () => {} });
+    vi.stubGlobal("sessionStorage", { getItem: () => null, removeItem: () => undefined });
+    vi.stubGlobal("document", {
+      querySelector: () => null,
+      querySelectorAll: () => [],
+      documentElement: { dataset: {} },
+      dispatchEvent: () => true,
+      hidden: false,
+    });
+    vi.stubGlobal("fetch", async (url: string) =>
+      Response.json(
+        url.startsWith("/api/stream")
+          ? {
+              id: "ep-20261104-1405",
+              title: "AI",
+              status: "writing",
+              format: "discussion",
+              turns: [{ speaker: "a", text: "Hi." }],
+            }
+          : { run_id: 41, state: "running" },
+      ),
+    );
+    let spoken: () => void = () => {};
+    prewarmEpisode.mockImplementationOnce(
+      () => new Promise<undefined>((resolve) => (spoken = () => resolve(undefined))),
+    );
+    startRun(41);
+    await vi.advanceTimersByTimeAsync(4_000);
+    await vi.dynamicImportSettled();
+    expect(prewarmEpisode).toHaveBeenCalledExactlyOnceWith("ep-20261104-1405");
+    expect(liveHint()).toBeNull();
+    spoken();
+    await settle();
+    expect(liveHint()?.runId).toBe(41);
   });
 });

@@ -1,6 +1,6 @@
 ---
 import Icon from "../design-system/Icon.astro";
-import { type ChipNoun, fabLabel, idleBriefingChip } from "../player/core/readerMath";
+import { type ChipNoun, fabLabel, fabName, idleBriefingChip } from "../player/core/readerMath";
 
 /** The page's own audio, which the floating Play button plays: what the hero chip calls it. */
 export interface PageAudio {
@@ -31,7 +31,7 @@ const chip = idleBriefingChip(length, noun);
 <button
   class="create-fab play-fab"
   type="button"
-  aria-label={chip.name}
+  aria-label={fabName(chip, noun)}
   aria-describedby={expired ? "play-hint" : undefined}
   data-play-digest={digestId}
   data-noun={noun}

@@ -1,4 +1,4 @@
-import { del, head, put } from "@vercel/blob";
+import { copy, del, head, put } from "@vercel/blob";
 import { SHAREABLE_KINDS } from "../lib/share";
 import type { NarrateLookupResponse } from "../types/contracts";
 import { createVercelBlobStore } from "./blobStore";
@@ -70,7 +70,9 @@ async function lookupFor(env: ServerEnv, itemId: string): Promise<NarrateLookupR
 export function makeDeps(requestOidcToken: () => string | null): MakeDeps {
   const env = process.env as ServerEnv;
   const credentials = readBlobCredentials(env, requestOidcToken);
-  const store = credentials ? createVercelBlobStore(credentials, { head, put, del }, fetch) : null;
+  const store = credentials
+    ? createVercelBlobStore(credentials, { head, put, copy, del }, fetch)
+    : null;
   return {
     ...base("share", SHARE_MAKES_PER_MINUTE),
     head: store ? (pathname) => store.head(pathname) : null,

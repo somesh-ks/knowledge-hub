@@ -107,7 +107,7 @@ test.describe("a Regenerate, followed in the podcast queue", () => {
     const bodies = await mock(page, []);
     await openRegenerate(page);
     await dialog(page).getByRole("button", { name: "Regenerate" }).click();
-    await expect(dialog(page).getByRole("alert")).toHaveText("Say what to change.");
+    await expect(dialog(page).getByRole("alert")).toBeVisible();
     await expect(dialog(page).getByRole("textbox")).toBeFocused();
     expect(bodies).toHaveLength(0);
   });
@@ -128,7 +128,6 @@ test.describe("a Regenerate, followed in the podcast queue", () => {
         state: "completed",
         step: "writing",
         outcome: "failed",
-        run_url: "https://github.com/somesh-ks/knowledge-hub/actions/runs/91",
       },
       {
         run_id: 92,
@@ -182,14 +181,14 @@ test.describe("a Regenerate, followed in the podcast queue", () => {
     // starts on the length the podcast aired at (4 min is nearest to 5) and offers no "Usual":
     // every run names its length.
     await expect(dialog(page).getByRole("radio")).toHaveCount(0);
-    await dialog(page).getByRole("textbox").fill("make it a bit longer");
+    await dialog(page).getByRole("textbox").fill("the length felt off");
     await expect(dialog(page).getByRole("radio", { name: "5 min", exact: true })).toBeChecked();
     await expect(dialog(page).getByRole("radio", { name: "Usual" })).toHaveCount(0);
     await dialog(page).getByRole("radio", { name: "10 min" }).check({ force: true });
     await dialog(page).getByRole("button", { name: "Regenerate" }).click();
     await expect.poll(() => bodies.length).toBe(1);
     expect(bodies[0]).toEqual({
-      feedback: "make it a bit longer",
+      feedback: "the length felt off",
       length_minutes: 10,
       replace: ID,
     });

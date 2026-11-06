@@ -3,7 +3,6 @@ import { join } from "node:path";
 import type { PodcastRequest, Source } from "@singularity/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { HttpClient } from "../src/http.js";
-import { titleNames } from "../src/podcast/episode.js";
 import { generateEpisode, mergeGroups, storyShares } from "../src/podcast/generate.js";
 import { PodcastError } from "../src/podcast/types.js";
 import {
@@ -158,7 +157,7 @@ describe("a mixed episode", () => {
     expect(sections).toContain("NPR");
     expect(sections).toContain("Example Wire");
     expect(result.episode.request.topic_ids).toEqual(["design", "ui-craft", "world"]);
-    expect(result.episode.title).toBe("Design and World");
+    expect(result.episode.title).toBe("Thursday 8 October");
   });
 
   it("reads a stored technology as the owner's Tech section", async () => {
@@ -231,18 +230,5 @@ describe("a mixed episode", () => {
     await expect(run).rejects.toBeInstanceOf(PodcastError);
     await expect(run).rejects.toThrow(/Design, Design Engineering and World/);
     expect(writer.calls).toHaveLength(0);
-  });
-});
-
-describe("titleNames", () => {
-  it("names the ids the new chips send once and sensibly", () => {
-    expect(titleNames(["design", "ui-craft", "ai", "tech", "world"])).toEqual([
-      "Design",
-      "AI",
-      "Technology",
-      "World",
-    ]);
-    expect(titleNames(["tech", "technology"])).toEqual(["Technology"]);
-    expect(titleNames(["audio_interfaces"])).toEqual(["Audio interfaces"]);
   });
 });

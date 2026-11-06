@@ -1,35 +1,35 @@
 {
   "version": 1,
   "last_cover": {
-    "palette": "bone-ink",
-    "template": "dither"
+    "palette": "ink-bone",
+    "template": "orbit"
   },
-  "last_fetch_at": "2026-11-02T23:47:58.283Z",
+  "last_fetch_at": "2026-11-05T04:01:03.981Z",
   "on_demand": {
-    "at": "2026-10-30T22:17:19.999Z",
-    "digest_id": "2026-10-30",
-    "generated_at": "2026-10-30T22:17:19.985Z",
+    "at": "2026-11-06T07:39:53.534Z",
+    "digest_id": "2026-11-05",
+    "generated_at": "2026-11-06T07:39:53.510Z",
     "items": 13,
     "outcome": "published"
   },
   "regular": {
-    "at": "2026-11-02T23:56:44.709Z",
-    "digest_id": "2026-11-03",
-    "fetched_through": "2026-11-02T23:47:58.283Z",
-    "generated_at": "2026-11-02T23:56:44.686Z",
+    "at": "2026-11-05T05:57:00.358Z",
+    "digest_id": "2026-11-05",
+    "fetched_through": "2026-11-05T04:01:03.981Z",
+    "generated_at": "2026-11-05T04:12:05.988Z",
     "items": 12,
     "outcome": "published"
   },
   "spend": {
-    "at": "2026-11-02T23:56:44.709Z",
+    "at": "2026-11-06T07:39:53.534Z",
     "firecrawl_rate_limited": 0,
     "firecrawl_skipped": [],
     "requests": {
-      "anthropic": 17,
+      "anthropic": 15,
       "exa": 14,
       "firecrawl_listing": 15,
-      "firecrawl_scrape": 8,
-      "jev": 613
+      "firecrawl_scrape": 9,
+      "jev": 635
     }
   },
   "weekly": {

@@ -166,6 +166,29 @@
   }
 }
 
+/* Swiped down on a phone, its top corners round with the mood's sheet radius as it leaves the
+   screen's top, as a pulled Catch up's do (sheet.css; owner, 2026-11-04). Base UI gives the pull as
+   --drawer-swipe-movement-y; the panel clips the form to the corners. On a spring back the corners
+   square up on the slide's own time. */
+@media (width < 40rem) {
+  .drawer-popup {
+    --drawer-corner: min(var(--sheet-radius), max(0px, var(--drawer-swipe-movement-y, 0px)));
+    border-start-start-radius: var(--drawer-corner);
+    border-start-end-radius: var(--drawer-corner);
+    overflow: hidden;
+    transition:
+      transform var(--duration-sheet-in) var(--ease-drawer),
+      opacity var(--duration-state) var(--ease-out),
+      border-start-start-radius var(--duration-sheet-in) var(--ease-drawer),
+      border-start-end-radius var(--duration-sheet-in) var(--ease-drawer);
+  }
+
+  /* Swiped away, it keeps its round corners to the end of the exit. */
+  .drawer-popup[data-swipe-dismiss] {
+    --drawer-corner: var(--sheet-radius);
+  }
+}
+
 /* From 40rem it is a panel at the right edge, full height, with round corners on its near side. */
 @media (width >= 40rem) {
   .drawer-viewport {

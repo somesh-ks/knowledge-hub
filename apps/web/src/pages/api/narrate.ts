@@ -1,4 +1,4 @@
-import { del, head, put } from "@vercel/blob";
+import { copy, del, head, put } from "@vercel/blob";
 import type { APIRoute } from "astro";
 import { createVercelBlobStore } from "../../server/blobStore";
 import { withSecondVoice } from "../../server/config";
@@ -28,7 +28,7 @@ const log = (message: string): void => console.error(`[api/narrate] ${message}`)
 
 /** An episode still being written is read from its live copy in the store (server/liveStream.ts). */
 const liveEpisodesFor = () => (id: string) =>
-  readStreamForEpisode(id, { env: process.env, fetch, now: Date.now, log });
+  readStreamForEpisode(id, { env: process.env, fetch, log });
 
 // The lookup is given no store at all: anyone may call it, and it must not be able to spend.
 const get: APIRoute = async ({ url }) =>
@@ -58,7 +58,8 @@ const post: APIRoute = async ({ request, url }) => {
     {
       env: withSecondVoice(process.env),
       // The store's files are read by URL with the plain fetch; everything else goes through the SDK.
-      openBlob: (credentials) => createVercelBlobStore(credentials, { head, put, del }, fetch),
+      openBlob: (credentials) =>
+        createVercelBlobStore(credentials, { head, put, copy, del }, fetch),
       digests: contentDigests(),
       episodes: contentEpisodes(),
       liveEpisodes: liveEpisodesFor(),

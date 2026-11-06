@@ -28,16 +28,25 @@ const WITHIN_CAP = 0.9;
 const FLOOR = 1;
 const CEILING = 99;
 
+/** Whether runs of this many stages have been measured. */
+export const hasPrior = (stages: number): boolean => stages in PRIORS;
+
 const usual = (value: unknown): number | null =>
   typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
 
-/** The length of each stage: the timed one, else the prior, else an even share for a shape nobody has measured. */
-function lengths(stages: number, estimates?: readonly unknown[]): number[] {
+/**
+ * The length of each stage: the timed one, else the prior, else an even share for a shape nobody has
+ * measured. For a shape that has a prior, the prior is also a floor: the engine times its own work in
+ * a stage (a cover takes 1 ms, the selection 40 ms), not the workflow step around it (checkout,
+ * install, upload), so a timed 36 ms for "Gathering" made a 15-second step look like a stall and the
+ * ring race through it (owner, 2026-11-04: "taking longer" shows too often, the bar stops at 30 to 50%).
+ */
+export function stageLengths(stages: number, estimates?: readonly unknown[]): number[] {
   const prior = PRIORS[stages];
   return Array.from({ length: stages }, (_, index) => {
     const timed = usual(estimates?.[index]);
-    if (timed !== null) return timed;
-    return prior ? (prior[index] ?? 0) : 1;
+    if (!prior) return timed ?? 1;
+    return Math.max(timed ?? 0, prior[index] ?? 0);
   });
 }
 
@@ -57,7 +66,7 @@ export interface PercentInput {
 export function queuePercent(input: PercentInput): number {
   if (input.queued || input.stages < 1) return 0;
   const stage = Math.min(Math.max(0, Math.floor(input.stage)), input.stages - 1);
-  const parts = lengths(input.stages, input.estimates);
+  const parts = stageLengths(input.stages, input.estimates);
   const total = parts.reduce((sum, part) => sum + part, 0);
   if (total <= 0) return FLOOR;
   const before = parts.slice(0, stage).reduce((sum, part) => sum + part, 0);

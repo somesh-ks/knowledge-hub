@@ -3,14 +3,17 @@ import { getPlayerStore } from "./core/playerRuntime";
 import { SKIP_BACK_SECONDS, SKIP_FORWARD_SECONDS } from "./core/playerTypes";
 import { usePlayerState } from "./hooks/usePlayer";
 import { useStoryStep } from "./hooks/useStoryStep";
+import { openSpeed, PLAYER_MENU_ID } from "./PlayerMenu";
 import { awaitNoticeAnswer } from "./PlayerNotice";
+import { rateLabel } from "./rateLabels";
 import Icon from "./ui/LazyIcon";
 import PlayPauseGlyph from "./ui/PlayPauseGlyph";
 
 /**
  * The transport, one control dominant: the previous story, back ten seconds, play and pause,
  * forward ten seconds, the next story. On a wide screen with a mouse the bar has previous, play and
- * next, so the page shows the two skips. The speed is in the ⋮ menu (PlayerMenu.tsx). The skip glyphs are plain circular arrows; each button
+ * next, so the page shows the two skips with the speed between them (owner, 2026-11-04), which opens
+ * the ⋮ menu's speed screen; everywhere else the speed is in the ⋮ menu (PlayerMenu.tsx). The skip glyphs are plain circular arrows; each button
  * draws its own numeral in the arrow's open center, and the name stays on the button.
  */
 export default function TransportControls() {
@@ -40,6 +43,16 @@ export default function TransportControls() {
         <span className="transport-skip-num num" aria-hidden="true">
           {SKIP_BACK_SECONDS}
         </span>
+      </button>
+      <button
+        className="transport-btn transport-speed press num"
+        type="button"
+        popoverTarget={PLAYER_MENU_ID}
+        aria-label={`Playback speed, ${rateLabel(state.rate)}`}
+        disabled={!state.track}
+        onClick={(event) => openSpeed(event.currentTarget)}
+      >
+        {rateLabel(state.rate)}
       </button>
       <button
         className="transport-btn press"

@@ -3,6 +3,7 @@
  * matches components/ScoreMeter.astro and SourceRow.astro, so topics.css styles both alike. Loaded
  * with the editor, never with the page.
  */
+import { showText } from "../design-system/flag";
 import { rowExitClass } from "../design-system/rowExit";
 import { ICON_PATHS, ICON_VIEW_BOX } from "../lib/icons";
 import { readableUrl } from "../lib/readableUrl";
@@ -116,7 +117,7 @@ export function topicRow(
   delete row.dataset.never;
   row.hidden = false;
   const emoji = row.querySelector(".topic-emoji");
-  if (emoji) emoji.textContent = topic.emoji;
+  if (emoji instanceof HTMLElement) showText(emoji, topic.emoji);
   const label = row.querySelector(".settings-label");
   if (label) label.textContent = topic.name;
   const line = row.querySelector("[data-hint]");

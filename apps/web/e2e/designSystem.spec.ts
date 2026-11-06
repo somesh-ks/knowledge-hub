@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { MENU_TILES_MAX, menuHasTiles } from "../src/design-system/menu";
 import { AUDIO_DIGEST, expect, hydrated, openRowMenu, ROUTES, SITE_PAGES, test } from "./fixtures";
 import { openPicker, pickerList } from "./picker";
 
@@ -152,7 +153,7 @@ test.describe("the 8pt spacing system", () => {
     await page.goto(AUDIO_DIGEST);
     await hydrated(page);
     await page.getByRole("button", { name: "More actions" }).click();
-    await expect(page.getByRole("menu", { name: "More actions" })).toBeVisible();
+    await expect(page.locator("#hero-menu").getByRole("menu")).toBeVisible();
     expect.soft(await offGrid(page), "the More actions menu").toEqual([]);
 
     // A Library row's More actions menu.
@@ -308,6 +309,35 @@ test("a Menu's and a select's rows span the list, with no gap at the sides @desk
     };
   });
   expect(list.left + list.right, JSON.stringify(list)).toBe(0);
+});
+
+// Quick-action tiles only on a long menu (owner, 2026-11-04: a Downloads row's sheet of four showed two
+// tiles over two rows). Every menu a page renders is held to the rule, so a new or edited menu that drifts
+// fails here: tiles mean MENU_TILES_MIN actions or more and at most MENU_TILES_MAX of them; fewer actions mean no
+// tiles. The queue row's sheet is React, drawn only with the player open, and shares the list (D369).
+// shortcut: the constants are the app's own (lib/podcastActions.ts), until the Menu exports them (menu.ts).
+test("a menu shows quick-action tiles only when it is long", async ({ page }) => {
+  const drift: string[] = [];
+  for (const path of PAGES) {
+    await page.goto(path);
+    const menus = await page.evaluate(() =>
+      [...document.querySelectorAll(".menu-list")].map((menu) => {
+        const shown = (element: Element) => !element.closest("[hidden]");
+        const actions = [...menu.querySelectorAll(".menu-item, .menu-tile")].filter(shown);
+        const tiles = [...menu.querySelectorAll(".menu-tiles")]
+          .filter(shown)
+          .flatMap((row) => [...row.children].filter(shown));
+        return { id: menu.id || menu.className, actions: actions.length, tiles: tiles.length };
+      }),
+    );
+    for (const menu of menus) {
+      const long = menuHasTiles(menu.actions);
+      if (menu.tiles > MENU_TILES_MAX || menu.tiles > 0 !== long) {
+        drift.push(`${path} ${menu.id}: ${menu.actions} actions, ${menu.tiles} tiles`);
+      }
+    }
+  }
+  expect(drift).toEqual([]);
 });
 
 // A pressed control keeps its label (owner, 2026-11-02: a tap on the navigation's segmented control hid

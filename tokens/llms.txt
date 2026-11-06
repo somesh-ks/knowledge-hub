@@ -10,6 +10,7 @@ Detail of one: `npm run ds -- part <id>`. Search by need: `npm run ds -- find "<
 - `button-tonal` .button-tonal: The accent container under its own words, with no outline; quieter than Filled. Use: It is the alternative beside a Filled button; It is a labelled add or reorder action on a list: Add source, Add section, Reorder. Not: It is the only action that commits the surface → button-filled.
 - `button-text` .button-text: An accent label with no container until it is hovered or pressed; the quietest button. Use: It dismisses, backs out or repeats: Cancel, Clear, Try again, Hide this; It sits beside a Filled button as the lesser choice. Not: The action must be found at a glance on its own → button-filled.
 - `button-danger` .button-danger: A Text button in the danger colour. Use: It is the confirm of a delete, in a dialog that asks first: Delete, Delete source. Not: The action is not destructive, or nobody has been asked to confirm → button-text.
+- `button-small` .button-small: A shorter pill, same touch target. Use: It sits in a dense row or a popover. Not: It commits a sheet → button-filled.
 - `icon` .icon-glyph .icon-glyph-lg: A filled Phosphor glyph in the colour of the text beside it. Use: A mark beside a label or alone in a button: a chevron, a plus, a check, Play. Not: The glyph must act when pressed → icon-btn.
 - `badge` .badge-label: A grey label holding one word or one number beside a name. Use: A short label names what the thing beside it is: Admin beside the wordmark; A count of what a section holds. Not: The state is good, worth a look or wrong → banner.
 - `switch` .switch-input: A track and a thumb for one setting that is on or off. Use: A setting is on or off and applies as soon as it is flipped: Sounds, Autoplay, a podcast's Enabled; It sits at the end of a settings row, with the row's label as its name. Not: The choice is one of several values, or needs a Save to apply → filter-chip.
@@ -65,7 +66,6 @@ Components read only these (never a hex, never a primitive color).
 - --color-track-strong: Unplayed item ticks and upcoming nodes.
 - --color-accent: Lingonberry.
 - --color-accent-subtle: Tint behind the current row.
-- --color-accent-container: The selected state of a control: a chosen chip or segment, the current destination, a ton…
 - --color-on-accent-container: Text and icons on accent-container.
 - --color-accent-container-high: The tone of an action that is not a place: the New episode buttons.
 - --color-on-accent-container-high: Text and icons on accent-container-high.
@@ -101,7 +101,7 @@ Read directly by components.
 - --ease-{out, in-out, drawer, hover, linear linear, spring-settle, spring-release, spring-pop, spring-spatial-fast, spring-spatial-default, spring-spatial-slow, spring-effects-fast, spring-effects-default, spring-effects-slow}
 
 ## Component tokens
-Sizes and bindings per part: cover (10), rail (12), item (4), cta (7), action (5), button (4), mini (8), player (8), control (6), scrubber (10), hue (6), segmented (5), field (9), switch (9), sheet (11), toast (6), banner (5), archive (2), chip (17), app (1), nav (10), tabs (3), row (4), slider (1), picker (3), scene (16), card (6). List one with `npm run ds -- token <group>`.
+Sizes and bindings per part: cover (10), rail (12), item (4), cta (7), action (1), button (6), mini (8), player (8), control (6), scrubber (10), hue (6), segmented (5), field (9), switch (9), sheet (11), toast (6), banner (5), archive (2), chip (17), app (1), nav (10), tabs (3), row (4), slider (1), picker (3), scene (16), card (6). List one with `npm run ds -- token <group>`.
 
 ## Bespoke controls
 20 controls are built for one place (the player transport and dock, speed controls, source rows). They are not for reuse. 9 more belong to a part above and are used through it. `npm run ds -- part bespoke` lists all with the reason.

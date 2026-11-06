@@ -9,7 +9,7 @@ export function findRepoRoot(
   startDir: string = process.cwd(),
   env: Record<string, string | undefined> = process.env,
 ): string {
-  const fromEnv = env.SINGULARITY_REPO_ROOT ?? env.DISPATCH_REPO_ROOT;
+  const fromEnv = env.SINGULARITY_REPO_ROOT;
   if (fromEnv) return resolve(fromEnv);
   let directory = resolve(startDir);
   for (;;) {

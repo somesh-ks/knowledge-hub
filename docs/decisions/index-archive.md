@@ -108,7 +108,7 @@ The oldest rows of the decisions Index (D1 to D150), moved here so the live Inde
 | D102 | General topics play in Daily and Weekly; a topic is always on and has a summary card; the gate runs in parallel | amends D69, D87, D89, D90, D101 |
 | D103 | Source scores as stars; source lists fold at seven; topic delete asks first; Regenerate takes feedback; first-load 150 KB | amends D55, D83, D53 |
 | D104 | Every briefing has Share, Regenerate and Delete; Regenerate replaces that digest over its window; Delete removes its file and timeline | amends D88, D103 |
-| D105 | A new episode plays from a live Blob copy while it is written; mobile sounds unlock on click; the spoken word lights at once | amends D82, D101 |
+| D105 | A new episode plays from a live Blob copy while it is written; mobile sounds unlock on click; the spoken word lights at once | amends D82, D101; amended by D366 |
 | D106 | The wide bar leads with what is playing and hides its volume until hover; sheets lose the grabber; a played chip offers Play again | amends D46, D58, D101; amended by D348 |
 | D107 | The transcript's highlight pauses while the host speaks words the page does not show | amends D101, D105 |
 | D108 | A user profile holds blocked domains and story votes; a block cuts an outlet on every fetch path; votes nudge ranking, listings and the writer, and are never shown | active |

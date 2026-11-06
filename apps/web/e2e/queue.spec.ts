@@ -119,9 +119,17 @@ test.describe("the podcast queue", () => {
     await hydrated(page);
     await expect(page.locator("[data-queue-trigger]")).toBeVisible();
     await expect(page.locator("[data-queue-dock]")).toBeHidden();
+    // The title shimmers while the popover is closed and rests once it opens. Its timing lived only
+    // inside the popover, so the side column's word never moved (owner, 2026-11-04).
+    const sheen = () =>
+      page
+        .locator("[data-queue-trigger-title]")
+        .evaluate((word) => word.getAnimations().some((a) => a.playState === "running"));
+    await expect.poll(sheen).toBe(true);
     await openQueue(page);
     await expect(page.getByRole("dialog", { name: "Podcast queue" })).toBeVisible();
     await expect(rows(page)).toHaveCount(1);
+    await expect.poll(sheen).toBe(false);
   });
 
   test.describe("when GitHub refuses", () => {
@@ -203,6 +211,51 @@ test.describe("the podcast queue", () => {
       },
     );
     expect(await height()).toBe(before);
+  });
+
+  // Bugs it prevents (owner, 2026-11-04): the Catch up button shook as the queue grew, and the list showed
+  // whole rows with nothing to say that more were below. Phone only: the dock is below 64rem. (The swipe
+  // that scrolled the page behind the dock cannot be driven in the test browser: it never scrolls.)
+  test("the opened queue rises over the page without moving the Catch up button, and its list is cut mid-row", async ({
+    page,
+    hasTouch,
+  }) => {
+    test.skip(!hasTouch, "the dock is a phone's");
+    const ids = [41, 42, 43, 44, 45, 46];
+    await mock(page, () => ids.map((id) => row(id)));
+    await follow(page);
+    await page.goto("/library");
+    await hydrated(page);
+    await expect(page.locator("[data-queue-toggle]")).toBeVisible();
+    // What stands on the page holds still: the Catch up button's box is the same box once the dock is open.
+    const button = page.locator(".create-fab");
+    const dockTop = () =>
+      page.locator(".queue-dock").evaluate((node) => node.getBoundingClientRect().top);
+    await expect(button).toBeVisible();
+    const [boxFolded, topFolded] = [await button.boundingBox(), await dockTop()];
+
+    await openQueue(page);
+    await expect(rows(page).first()).toBeVisible();
+    await expect.poll(dockTop).toBeLessThan(topFolded);
+    expect(await button.boundingBox()).toEqual(boxFolded);
+
+    // The list scrolls, and the row where it is cut off shows only part of itself: the cue that there is
+    // more. Read once the opening has settled.
+    const list = page.locator(".queue-dock .queue-list");
+    await expect
+      .poll(() =>
+        list.evaluate((node) => {
+          const bottom = node.getBoundingClientRect().bottom;
+          const cut = [...node.querySelectorAll<HTMLElement>("[data-queue-row-item]")].filter(
+            (item) => {
+              const box = item.getBoundingClientRect();
+              return box.top < bottom - 1 && box.bottom > bottom + 1;
+            },
+          );
+          return node.scrollHeight > node.clientHeight && cut.length === 1;
+        }),
+      )
+      .toBe(true);
   });
 
   test("a run that was cancelled stays as Cancelled for the day, with nothing to try again", async ({
@@ -344,9 +397,12 @@ test.describe("the podcast queue", () => {
     await rows(page).first().getByRole("button", { name: "Details" }).click();
     const dialog = page.getByRole("dialog", { name: "What went wrong" });
     await expect(dialog).toContainText("Run: 43");
-    await expect(dialog.getByRole("link", { name: "Open the log" })).toBeVisible();
+    // A run stored before 2026-11-05 still holds a GitHub link; the dialog neither links nor copies it.
+    await expect(dialog.getByRole("link")).toHaveCount(0);
     await dialog.getByRole("button", { name: "Copy details" }).click();
     await expect(dialog.getByRole("button", { name: "Copied" })).toBeVisible();
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("Run: 43");
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toContain("Run: 43");
+    expect(copied).not.toContain("github.com");
   });
 });

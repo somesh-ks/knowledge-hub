@@ -62,6 +62,19 @@ const SECTION_ID = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const RUN_LOOKUP_ATTEMPTS = 3;
 const RUN_LOOKUP_DELAY_MS = 1500;
 
+/** A run of this workflow that has not started: GitHub holds it in the concurrency group or the queue. */
+const WAITING = new Set(["queued", "pending", "waiting", "requested"]);
+const BUSY_WAIT_S = 60;
+/** A run waiting longer than this is stuck, not in line: it no longer holds new requests back. */
+// shortcut: a fixed age, not read from GitHub; revisit if a rewrite ever queues longer than this.
+const STALE_WAIT_MS = 30 * 60_000;
+/** Conclusions of a run that did not finish, so a Try again may reuse its finished stages. */
+const RESUMABLE = new Set(["failure", "timed_out", "cancelled"]);
+const busyRefusal: PodcastResult = {
+  status: 429,
+  headers: { "Retry-After": String(BUSY_WAIT_S) },
+  body: { status: 429, error: "cooldown", retry_after_s: BUSY_WAIT_S },
+};
 const unavailable: PodcastResult = { status: 503, body: { status: 503, error: "unavailable" } };
 const invalid: PodcastResult = { status: 400, body: { status: 400, error: "invalid_request" } };
 
@@ -137,7 +150,13 @@ const EPISODE_ID = /^ep-\d{8}-\d{4}$/;
 /** What the workflow's one input carries for an action on an episode that already exists. */
 export type EpisodeAction =
   | { action: "delete"; id: string }
-  | { action: "regenerate"; id: string; feedback?: string; topic_ids?: string[] };
+  | {
+      action: "regenerate";
+      id: string;
+      feedback?: string;
+      topic_ids?: string[];
+      length_minutes?: PodcastRequest["length_minutes"];
+    };
 
 /**
  * `resume_from`: the id of an earlier run of this workflow whose finished stages this run reuses
@@ -184,7 +203,7 @@ export function parsePodcastBody(bodyText: string): ParsedPodcastBody | null {
   if (typeof id !== "string" || !EPISODE_ID.test(id)) return null;
   if (action === "delete") return { action, id, ...resumeField };
   if (action === "regenerate") {
-    // Both are optional: blank comments mean none, and no topics keep the episode's own.
+    // All are optional: blank comments mean none, and no topics or length keep the episode's own.
     const blank =
       parsed.feedback === undefined ||
       parsed.feedback === null ||
@@ -197,11 +216,17 @@ export function parsePodcastBody(bodyText: string): ParsedPodcastBody | null {
       if (checked === null) return null;
       topicIds = checked;
     }
+    const length = parsed.length_minutes;
+    if (length !== undefined && (typeof length !== "number" || !LENGTHS.includes(length)))
+      return null;
     return {
       action,
       id,
       ...(feedback ? { feedback } : {}),
       ...(topicIds ? { topic_ids: topicIds } : {}),
+      ...(length !== undefined
+        ? { length_minutes: length as PodcastRequest["length_minutes"] }
+        : {}),
       ...resumeField,
     };
   }
@@ -248,6 +273,33 @@ export async function handlePodcast(
   const github = createGitHubClient(config, deps.fetch);
   try {
     const runs = await github.listWorkflowFileRuns(PODCAST_WORKFLOW_FILE);
+    // GitHub keeps one waiting run per concurrency group and cancels an older one when another joins,
+    // and a second rewrite of an episode fails once the first has replaced it. Either way the person
+    // would see a cancelled or failed run they did not cause, so a request waits for the line to clear.
+    // The run that is going counts too when it is a rewrite of this same episode.
+    const sameRewrite = (run: WorkflowRun): boolean =>
+      "action" in body &&
+      body.action === "regenerate" &&
+      run.status === "in_progress" &&
+      run.title === `regenerate ${body.id}`;
+    const waiting = (run: WorkflowRun): boolean =>
+      WAITING.has(run.status) && deps.now() - Date.parse(run.createdAt) < STALE_WAIT_MS;
+    if (runs.some((run) => waiting(run) || sameRewrite(run))) return busyRefusal;
+    // The run to resume must be a failed run of this workflow for the same kind of request; one
+    // older than the list GitHub returns is looked up directly.
+    if (body.resume_from) {
+      const earlier =
+        runs.find((run) => String(run.id) === body.resume_from) ??
+        (await github.getRun(Number(body.resume_from)));
+      const expected = "action" in body ? `${body.action} ${body.id}` : "episode";
+      if (
+        !earlier ||
+        !earlier.path.startsWith(`.github/workflows/${PODCAST_WORKFLOW_FILE}`) ||
+        earlier.title !== expected ||
+        !RESUMABLE.has(earlier.conclusion ?? "")
+      )
+        return invalid;
+    }
     const times = (list: readonly WorkflowRun[]) =>
       list.map((run) => Date.parse(run.createdAt)).filter(Number.isFinite);
     // A new Catch up is held to the runs that made one; a regeneration or a delete is held to every
