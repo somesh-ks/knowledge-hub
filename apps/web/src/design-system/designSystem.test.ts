@@ -269,7 +269,7 @@ describe("the controls not yet components", () => {
 // get read in all platforms"): every flag the app draws is the Flag's art (D367).
 describe("the Flag", () => {
   it("draws a flag emoji in text as the Flag, and leaves other text as it is", () => {
-    expect(flagParts("You're in India 🇮🇳")).toEqual(["You're in India ", { region: "IN" }]);
+    expect(flagParts("You're in India 🇮🇳")).toEqual(["You're in India", { region: "IN" }]);
     expect(flagParts("🇸🇪")).toEqual([{ region: "SE" }]);
     expect(flagParts("🎨 Design")).toEqual(["🎨 Design"]);
   });

@@ -23,7 +23,7 @@
 
 .manage-note {
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-caption);
 }
 
@@ -65,7 +65,7 @@
    looks, and the Add topic form sits among 16px rows. A group with no one control (a segmented
    choice) names itself with `.field-label` and the same looks. */
 .manage-field > :is(label, .field-label) {
-  font-size: var(--font-size-body);
+  font-size: var(--text-body-size);
   font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
 }
@@ -77,7 +77,7 @@
   gap: var(--space-2);
   margin: 0;
   color: var(--color-danger);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   font-weight: var(--font-weight-medium);
 }
 
@@ -92,7 +92,7 @@
 
 .manage-quiet {
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-caption);
   overflow-wrap: anywhere;
 }

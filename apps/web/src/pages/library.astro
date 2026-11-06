@@ -83,7 +83,7 @@ const dateOf = (item: LibraryItem): string =>
             <div class="library-bar">
               {/* What to show: one kind at a time, or everything while none is ticked. Each chip is
                    a checkbox (Tab and Space); the script unticks the others. */}
-              <fieldset class="filter-chips library-filters" aria-label="Show" data-library-filters>
+              <fieldset class="filter-chips library-filters scroll-fade-inline" aria-label="Show" data-library-filters>
                 {LIBRARY_FILTERS.filter((filter) => filter.id !== "all").map((filter) => (
                   <label class="filter-chip">
                     <input type="checkbox" name="show" value={filter.id} data-library-filter />

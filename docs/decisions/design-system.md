@@ -821,3 +821,11 @@ How the reader looks and feels: tokens, type, controls, covers, sounds, motion a
 - Context changed: D307 assumed one sign-in per device was a small price; in use it stood between the owner and Generate, Catch up, Delete and settings saves, and he wants none.
 - Backstop: each route's per-minute cap across instances (generate 8, podcast 10, config 12). The D332 $5 ceiling stops only scheduled runs; a run someone starts goes ahead, so on-demand spend from a stranger is bounded by the caps alone. A config overwrite has no second copy.
 - Revisit if: spend from strangers shows on the Costs page, or accounts (D303) arrive.
+
+## D378: stylesheets read a type size and a corner through its role; one name each for a sheet's corner and a pill
+
+- Date: 2026-11-06 (the owner, on the token naming map: the four cleanups are "okay", `text` is the family name for type, and "keep the 1 rem consistent").
+- Decision: `--color-on-surface-subtle` is folded into `--color-on-surface-muted`. A sheet's corner has one name, `--shape-sheet` (the 2xl corner; 2.25rem in Expressive); `--sheet-radius` and `--radius-sheet` are gone. A pill or circle reads the new `--shape-round`. A page stylesheet reads type sizes as `--text-{role}-size` and corners as `--shape-*`, never `--font-size-*` or `--radius-*`; only the system's own sheets bind primitives, and no sheet reads `--font-size-meta`, so every meta line (badges, field hints, the player's lines) takes the 1rem meta role (the subtitle size the owner approved on 5 Nov). Three sizes with no role become component tokens: `--app-bar-wordmark-size`, `--queue-title-size` and `--player-speed-readout-size`. `styles.test.ts` fails a page that reads a primitive size or corner.
+- Why: a direct read skips the role, so a change to the role never reaches it: the meta lines stayed 14px after the meta role moved to 1rem, and two tokens with one value (`muted`, `subtle`) left a choice that meant nothing.
+- Rejected: renaming `--font-size-label-lg`, dropping `default` from the spring names and `--hue-*` to `--hue-picker-*` (not approved); a `--text-*` role for the 1.25rem wordmark (new vocabulary for two uses).
+- Cost: in Expressive and Halloween the four lines that read `subtle` take `muted`'s stronger ink.

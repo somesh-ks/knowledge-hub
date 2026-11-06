@@ -109,6 +109,7 @@ The loop that produced the work the owner liked, and the misses that taught it.
 8. **Report guardrail moves.** When a budget or a rule has to move (the bundle ceiling crept 100, 102, 103, 104 KB), say so and offer the choices: keep it and lazy-load, raise it, or remove it (2026-10-09).
 9. **Measure before tuning speed.** Profile on a throttled phone (Pixel 7, 4x CPU, fast 3G, behind a gzip proxy, since the test server sends uncompressed files) and report move timings, LCP and time to a pressable bar. Never trade instant navigation or the early Play tap for bytes (2026-10-08, 2026-10-14).
 10. **When the owner is stuck on a manual step**, give numbered click paths with fixed landmarks, not options (2026-10-06).
+11. **Rules he should not have to repeat** (owner, 2026-11-05, moved here from the project instructions). One primary fill (`--cta-bg`) for every primary button. A change holds in every mood and mode, so check each before shipping. Colour is OKLCH tokens, none fixed to the default hue. Copy is plain American English, short, with no filler helper text. Fix things systemically: tokens and shared components, never a one-off or hardcoded value, and add a check that flags drift.
 
 ## 3. The ledger, by surface
 

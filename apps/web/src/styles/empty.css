@@ -28,7 +28,7 @@ main > .empty {
   margin-block-start: var(--space-6);
   overflow-wrap: anywhere;
   font-family: var(--text-heading-family);
-  font-size: var(--font-size-section);
+  font-size: var(--text-heading-size);
   font-weight: var(--font-weight-regular);
   letter-spacing: normal;
   line-height: var(--text-heading-leading);
@@ -66,13 +66,13 @@ main > .empty {
 
 .empty[data-compact] .empty-title {
   margin-block-start: var(--space-4);
-  font-size: var(--font-size-body);
+  font-size: var(--text-body-size);
   font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-body);
 }
 
 .empty[data-compact] .empty-body {
-  font-size: var(--font-size-meta);
+  font-size: var(--text-meta-size);
 }
 
 .empty[data-compact] .empty-actions {
