@@ -19,8 +19,8 @@
     display: block;
     align-self: stretch;
     /* A scrolling box clips what is drawn outside it. This much padding on the rail, taken back by the
-       margin, leaves room for an entry's focus ring. */
-    margin-inline: calc(var(--space-1) * -1);
+       margin, leaves room for an entry's focus ring: 8px, on the grid (owner, 2026-11-05; 4px before). */
+    margin-inline: calc(var(--space-2) * -1);
   }
 
   .aside-rail {
@@ -29,7 +29,7 @@
     display: grid;
     align-content: safe center;
     block-size: calc(100dvh - var(--sticky-top) - var(--dock-room));
-    padding: var(--space-1);
+    padding: var(--space-2);
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;

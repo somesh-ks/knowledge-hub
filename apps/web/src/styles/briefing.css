@@ -123,10 +123,11 @@ html[data-has-tabs] {
 
 /* ------------------------------------------------------------------ a story */
 
-/* Stories sit an item gap apart (48px), half of it on each side of the hairline. The action row at
-   the foot is a 44px target around a 36px chip, so it already carries 4px of air. */
+/* Stories sit an item gap apart (48px), half of it on each side of the hairline, on the grid (owner,
+   2026-11-05). The action row's 44px target round its 36px chip adds 4px of air under the chips; the
+   20px that took it back is gone. */
 .story {
-  padding-block: calc(var(--item-gap) / 2) calc(var(--item-gap) / 2 - var(--space-1));
+  padding-block: calc(var(--item-gap) / 2);
 }
 
 .story-title {

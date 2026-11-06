@@ -39,7 +39,7 @@
   max-width: 40rem;
   gap: var(--space-4);
   padding: var(--space-4);
-  border-radius: var(--sheet-radius);
+  border-radius: var(--shape-sheet);
   background: var(--color-surface-raised);
   box-shadow: var(--cover-shadow);
 }

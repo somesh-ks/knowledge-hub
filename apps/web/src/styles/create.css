@@ -12,7 +12,7 @@
 .create-note {
   padding-block-start: var(--space-4);
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
 }
 
 /* The form is also inside the Create sheet, outside .settings-view, so it carries its own width. */
@@ -33,7 +33,7 @@
   padding-block: var(--space-4) var(--space-4);
   color: var(--color-on-surface);
   font-family: inherit;
-  font-size: var(--font-size-body);
+  font-size: var(--text-body-size);
   font-weight: var(--font-weight-regular);
   letter-spacing: normal;
   line-height: var(--font-leading-label);
@@ -41,7 +41,7 @@
 
 .create-hint {
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-body);
 }
 
@@ -50,7 +50,7 @@
   align-items: flex-start;
   gap: var(--space-2);
   color: var(--color-danger);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-body);
 }
@@ -95,7 +95,7 @@
 .create-more {
   margin-block: var(--space-2) var(--space-4);
   /* The grey of the menu sections; the summary is a pill inside it (2026-10-25). */
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   background: var(--color-surface-container);
   --ghost-hover: var(--color-surface-container-hover);
   --ghost-pressed: var(--color-surface-container-pressed);
@@ -147,7 +147,7 @@
   min-height: var(--fab-size);
   margin-inline: calc(var(--space-4) * -1);
   padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   list-style: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -180,7 +180,7 @@
 }
 
 .create-more-title {
-  font-size: var(--font-size-body);
+  font-size: var(--text-body-size);
   font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
 }
@@ -188,7 +188,7 @@
 .create-more-values {
   overflow: hidden;
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-label);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -381,7 +381,7 @@
 
 .create-voice-name {
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-label);
 }
 

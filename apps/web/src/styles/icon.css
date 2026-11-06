@@ -33,6 +33,29 @@
   color: var(--color-on-surface-muted);
 }
 
+/* As Favorite turns on, the filled heart settles in under the glow's halo (glow.ts, glow.css). */
+[data-glow] .icon-glyph[data-icon="heart"] {
+  animation: icon-heart-settle var(--duration-enter) var(--ease-out) both;
+}
+
+@keyframes icon-heart-settle {
+  0% {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-glow] .icon-glyph[data-icon="heart"] {
+    animation: none;
+  }
+}
+
 .icon-glyph-lg {
   width: var(--size-icon-lg);
   height: var(--size-icon-lg);
