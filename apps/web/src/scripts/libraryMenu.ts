@@ -146,10 +146,12 @@ async function onPick(item: HTMLElement): Promise<void> {
       // Settings > Favorites hears the change (singularity:saved) and drops a removed row.
       const on = !isSaved(deviceStorage(), id);
       if (setSaved(deviceStorage(), id, on)) {
-        toast(on ? "Added to favorites" : "Removed from favorites");
-        // The sheet closes on the pick, so the page's own heart behind it glows too.
-        if (on) {
-          glowFavorite(item);
+        // A phone's sheet stays open (heroMenu.ts) and its tile says the new state, as the player's
+        // does, so only a wider screen's menu, which closes, needs the toast and the page's heart.
+        const stays = matchMedia("(width < 40rem)").matches;
+        if (!stays) toast(on ? "Added to favorites" : "Removed from favorites");
+        if (on) glowFavorite(item);
+        if (on && !stays) {
           const heart = document.querySelector<HTMLElement>("[data-favorite]");
           if (heart) glowFavorite(heart);
         }

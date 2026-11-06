@@ -106,7 +106,6 @@ test("the page's heart adds a podcast to Favorites and a row's menu there takes 
   await expect(row(page, AUDIO_ID)).toBeVisible();
   await openMenu(page, AUDIO_ID);
   await row(page, AUDIO_ID).getByRole("menuitem", { name: "Unfavorite" }).click();
-  await expect(page.getByText("Removed from favorites")).toBeVisible();
   await expect(row(page, AUDIO_ID)).toBeHidden();
 
   await page.goto("/library");
@@ -115,6 +114,16 @@ test("the page's heart adds a podcast to Favorites and a row's menu there takes 
   await expect(
     row(page, AUDIO_ID).getByRole("menuitem", { name: "Favorite", exact: true }),
   ).toBeVisible();
+  // Bug it prevents: the phone's sheet closed on Favorite, so its tile never showed the new state
+  // (owner, 2026-11-06). It stays open and the tile turns to Unfavorite.
+  await row(page, AUDIO_ID).getByRole("menuitem", { name: "Favorite", exact: true }).click();
+  // :popover-open flips the moment a close starts; the slide-out keeps the sheet "visible" for 220 ms.
+  expect(
+    await row(page, AUDIO_ID)
+      .locator(".menu-list")
+      .evaluate((list) => list.matches(":popover-open")),
+  ).toBe(true);
+  await expect(row(page, AUDIO_ID).getByRole("menuitem", { name: "Unfavorite" })).toBeVisible();
 });
 
 test("pressing a row's three dots moves nothing: not the card, its title or the dots' own glyph, and they sit beside the title", {

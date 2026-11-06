@@ -120,13 +120,22 @@ export default function QueueRowMenu({
 
   const toggleFavorite = (event: MouseEvent<HTMLElement>): void => {
     const row = event.currentTarget;
-    hide();
+    // A phone's sheet stays open on Favorite (owner, 2026-11-06): the tile says the new state and
+    // glows in place, as the player's does, so it needs no toast.
+    const stays = matchMedia("(width < 40rem)").matches;
+    if (!stays) hide();
     // Read now, not when the menu opened: another tab may have changed it since.
     const storage = deviceStorage();
     const on = !isSaved(storage, id);
     if (setSaved(storage, id, on)) {
-      sendToast({ message: on ? "Added to favorites" : "Removed from favorites" });
-      if (on) glowFavorite(row);
+      if (stays) {
+        setFavorite(on);
+        // After the tile draws its filled heart, so the halo opens from where the heart is.
+        if (on) requestAnimationFrame(() => glowFavorite(row));
+      } else {
+        sendToast({ message: on ? "Added to favorites" : "Removed from favorites" });
+        if (on) glowFavorite(row);
+      }
     } else
       sendToast({
         message: on ? "Couldn't add it to favorites" : "Couldn't remove it from favorites",
