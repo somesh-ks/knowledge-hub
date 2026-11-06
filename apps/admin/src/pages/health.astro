@@ -41,9 +41,11 @@ const kinds = [
     <div class="hl-sections">
       <SectionTabs sections={sections} />
 
-      {/* The summary (scripts/healthSummary.ts): a tile for all the sections, then one a section, its
-           state in words, tinted when it needs a look, a link to its section; then a row a check that
-           needs a look, which opens its sheet, and "Fix all" (scripts/healthSheet.ts). */}
+      {/* The summary (scripts/healthSummary.ts), one card: a tile for all the sections, then one a
+           section, its state in words, tinted when it needs a look, a link to its section; under a
+           hairline, a row a check that needs a look, which opens its sheet; then when it was checked
+           and "Fix all" (scripts/healthSheet.ts). Tiles and rows share one inset and one corner, so
+           every name starts on one edge and every glyph ends on one (2026-11-06, the owner). */}
       <section class="hl-section" id="c-summary" aria-label="Summary" data-health-summary>
         <div class="card-group hl-card hl-summary">
           <ul class="stat-tiles hl-tiles hl-data" role="list">
@@ -71,15 +73,12 @@ const kinds = [
               })
             }
           </ul>
-        </div>
-        <div class="hl-issues hl-data">
-          <div class="hl-head">
-            <h3 class="hl-title" data-issues-title data-health-state>Checking</h3>
+          <div class="rows hl-issue-rows hl-data" data-issues></div>
+          <div class="hl-summary-foot">
+            <p class="hl-summary-note" data-health-note data-health-state>Checking</p>
             <span data-fix-all></span>
           </div>
-          <div class="rows card-group hl-issue-rows" data-issues></div>
         </div>
-        <p class="settings-note" data-health-note>&nbsp;</p>
       </section>
 
       {/* Content: did readers get their podcasts. */}

@@ -1049,8 +1049,8 @@ html:has(.hl-sections) {
 
 /* The summary: the tiles above, Overall then one a section, each a link to its section; nothing is
    picked, so nothing is blue (2026-11-05, the owner). Under them, what needs a look. */
-.hl-summary {
-  gap: var(--space-6);
+.card-group.hl-summary {
+  gap: 0;
 }
 
 .hl-tile-item {
@@ -1077,23 +1077,17 @@ a.hl-tile:focus-visible {
   outline-offset: var(--stroke-ring-gap);
 }
 
-/* What needs a look: its count with "Fix all" at the far edge, then a row a problem in a card (the
-   design system's row action): its name over its detail, its reading with its glyph, a chevron. The
-   row opens the page's sheet, which holds the words (2026-11-05, the owner: "a big wall of text"). */
-.hl-issues {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.hl-issues .hl-head {
-  align-items: center;
-  min-block-size: var(--size-touch);
-}
-
-/* A grid, so each row, a button, stretches across the card as a link row does: in a block a button
-   is only as wide as its words, and its name collapsed to nothing. */
+/* What needs a look, in the same card under a hairline: a row a problem (the design system's row
+   action), its name, then its reading with its glyph at the far edge. A row sits one tile padding in
+   from the card's content edge and its fill takes a tile's corner, so a row's name and glyph line up
+   with a tile's and the hover fill is as wide as the tiles (2026-11-06, the owner: "the inset, border
+   radius should all be in sync"). It opens the page's sheet, which holds the words. */
 .hl-issue-rows {
+  --row-tile-radius: var(--card-content-radius);
   display: grid;
+  margin-block-start: var(--space-6);
+  padding: var(--space-2) var(--space-4);
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
 }
 
 .hl-issue-rows:empty {
@@ -1114,10 +1108,35 @@ a.hl-tile:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
-/* The row's quiet chevron rule (settings.css) would grey the status glyph too: it keeps its tone. */
+/* The row's quiet chevron rule (settings.css) would grey the status glyph: it keeps its tone. */
 .row-action.hl-issue-row .ov-flag-icon .icon-glyph {
   margin-inline-end: 0;
   color: inherit;
+}
+
+/* The card's last line, under a hairline of its own: when it was checked, from the names' edge, and
+   Fix all, whose label ends on the glyphs' edge. */
+.hl-summary-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-block-size: var(--size-touch);
+  margin-block-start: var(--space-6);
+  padding-block-start: var(--space-2);
+  padding-inline-start: var(--space-4);
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+}
+
+.hl-issue-rows:not(:empty) + .hl-summary-foot {
+  margin-block-start: 0;
+}
+
+.hl-summary-note {
+  margin: 0;
+  color: var(--color-on-surface-muted);
+  font-size: var(--text-meta-size);
+  line-height: var(--text-meta-leading);
 }
 
 /* The sheet: the reading with its glyph, then a part each (what it means, where to start, the
