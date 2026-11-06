@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import { type CommandContext, type CommandRun, redact, secretsFromEnv } from "../context.js";
-import { connectConfigStore, type SqlClient } from "../store/configPaths.js";
+import { connectConfigStore, databaseSecrets, type SqlClient } from "../store/configPaths.js";
 import { pullState, pushState, seedState } from "../store/stateDocs.js";
 
 const USAGE = `Usage: singularity state <command>
@@ -33,6 +33,7 @@ export function makeStateCommand(deps: StateDeps = {}): CommandRun {
       print(USAGE);
       return 2;
     }
+    const url = ctx.env.DATABASE_URL;
     try {
       const { values } = parseArgs({
         args: rest,
@@ -43,7 +44,6 @@ export function makeStateCommand(deps: StateDeps = {}): CommandRun {
         ctx.log.error("--dry-run is only for seed.");
         return 2;
       }
-      const url = ctx.env.DATABASE_URL;
       if (url === undefined || url === "") {
         ctx.log.error("DATABASE_URL is not set.");
         return 1;
@@ -74,7 +74,9 @@ export function makeStateCommand(deps: StateDeps = {}): CommandRun {
       return 0;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      ctx.log.error(redact(message, secretsFromEnv(ctx.env)));
+      ctx.log.error(
+        redact(message, [...secretsFromEnv(ctx.env), ...(url ? databaseSecrets(url) : [])]),
+      );
       const code = (error as NodeJS.ErrnoException).code;
       return typeof code === "string" && code.startsWith("ERR_PARSE_ARGS") ? 2 : 1;
     }

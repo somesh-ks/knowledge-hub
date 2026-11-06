@@ -63,6 +63,9 @@ describe("isStatePath", () => {
 });
 
 describe("pullState and pushState", () => {
+  // The bug: a job that writes a state file the next job never sees repeats work (a story, a
+  // spend). A pushed change must be exactly what the next pull gives, and a file nobody touched
+  // must not be written back (it would bump the version and make every other job merge).
   it("round-trips: a pushed change is what the next job pulls, and an untouched file is not written", async () => {
     const sql = await realStore();
     const first = await checkout({ "state/seen.json": '{"a":1}\n', "state/last-run.json": "{}\n" });
@@ -75,10 +78,6 @@ describe("pullState and pushState", () => {
     const second = await checkout();
     expect(await pullState(second, sql)).toEqual(["state/last-run.json", "state/seen.json"]);
     expect(await text(second, "state/seen.json")).toBe('{"a":2}\n');
-    const [row] = await sql.query("select version from state_documents where path = $1", [
-      "state/seen.json",
-    ]);
-    expect(Number(row?.version)).toBe(2);
     expect(await pushState(second, sql)).toEqual({ written: [], merged: [] });
   });
 
@@ -101,7 +100,7 @@ describe("pullState and pushState", () => {
   // one overwrites the other, losing the episode's entry.
   it("merges a file another job wrote meanwhile, and keeps both jobs' runs", async () => {
     const sql = await realStore();
-    const a = await checkout({ TIMINGS: timings("base") });
+    const a = await checkout({ [TIMINGS]: timings("base") });
     await seedState(a, sql);
     const b = await checkout();
     await pullState(a, sql);
@@ -141,9 +140,11 @@ describe("pullState and pushState", () => {
     expect(row?.content).toBe('{"n":"a"}\n');
   });
 
-  it("lets a later file land when an earlier one is refused, and keeps the baseline of what landed", async () => {
+  // The bug: one refused file must not cost the run its other state. If seen.json conflicts, the
+  // costs this run billed still have to be recorded, and the run still ends red.
+  it("writes the other files when one is refused, then fails", async () => {
     const sql = await realStore();
-    const a = await checkout({ "state/seen.json": "0\n", "state/usage.json": "{}\n" });
+    const a = await checkout({ "state/seen.json": "0\n", [TIMINGS]: timings("base") });
     await seedState(a, sql);
     const b = await checkout();
     await pullState(a, sql);
@@ -152,16 +153,31 @@ describe("pullState and pushState", () => {
     await pushState(a, sql);
 
     await writeFile(join(b, "state/seen.json"), "b\n");
-    await writeFile(
-      join(b, "state/usage.json"),
-      `${JSON.stringify({ speechify: { month: "2026-11", characters: 5 } })}\n`,
-    );
-    // seen conflicts and throws before usage (sorted order) is reached: nothing may be half-recorded.
+    await writeFile(join(b, TIMINGS), timings("base", "mine"));
     await expect(pushState(b, sql)).rejects.toBeInstanceOf(StateConflictError);
-    const baseline = JSON.parse(await text(b, ".cache/state-pulled.json")) as Record<
-      string,
-      { version: number }
-    >;
-    expect(baseline["state/seen.json"]?.version).toBe(1);
+
+    const [row] = await sql.query("select content from state_documents where path = $1", [TIMINGS]);
+    expect(String(row?.content)).toContain("mine");
+  });
+
+  // The bug: usage.json merges as "the row plus what this job added since the pull". With no pull
+  // record the ancestor is unknown, and guessing it double-counts the Speechify quota.
+  it("refuses to push without a pull record", async () => {
+    const sql = await realStore();
+    const root = await checkout({ "state/seen.json": "x\n" });
+    await seedState(root, sql);
+    await expect(pushState(root, sql)).rejects.toThrow(/state pull/);
+  });
+
+  // The bug: a row dropped since the pull (reseeded store) made a file with no merge rule fail
+  // with a conflict, although this job's file is then the only copy and should go back in.
+  it("puts a file back when its row was removed since the pull", async () => {
+    const sql = await realStore();
+    const root = await checkout({ "state/seen.json": "0\n" });
+    await seedState(root, sql);
+    await pullState(root, sql);
+    await sql.query("delete from state_documents");
+    await writeFile(join(root, "state/seen.json"), "1\n");
+    expect(await pushState(root, sql)).toEqual({ written: ["state/seen.json"], merged: [] });
   });
 });

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Logger } from "../context.js";
@@ -39,14 +40,14 @@ export function isStatePath(path: string): boolean {
 const PUSH_ATTEMPTS = 4;
 
 export class StateConflictError extends Error {
-  constructor(
-    readonly path: string,
-    reason: string,
-  ) {
-    super(`state conflict on ${path}: ${reason}`);
+  constructor(readonly conflicts: readonly { path: string; reason: string }[]) {
+    super(`state conflict: ${conflicts.map((c) => `${c.path} (${c.reason})`).join("; ")}`);
     this.name = "StateConflictError";
   }
 }
+
+/** One file that could not be written, thrown inside pushOne and collected by pushState. */
+class FileConflict extends Error {}
 
 interface StoredRow {
   path: string;
@@ -54,8 +55,21 @@ interface StoredRow {
   version: number;
 }
 
-/** What a pull left: each file's row version and text, so a push can tell a change and merge. */
-type Baseline = Record<string, { version: number; content: string }>;
+/**
+ * What a pull left: each file's row version and text hash, so a push can tell a change; the text
+ * itself only for a file with a merge rule, which needs it as the common ancestor.
+ */
+type Baseline = Record<string, { version: number; hash: string; content?: string }>;
+
+const sha256 = (text: string): string => createHash("sha256").update(text).digest("hex");
+
+function baselineOf(row: StoredRow): Baseline[string] {
+  return {
+    version: row.version,
+    hash: sha256(row.content),
+    ...(stateMergerFor(row.path) !== undefined ? { content: row.content } : {}),
+  };
+}
 
 async function readText(path: string): Promise<string | null> {
   try {
@@ -66,16 +80,17 @@ async function readText(path: string): Promise<string | null> {
   }
 }
 
-async function readBaseline(root: string): Promise<Baseline> {
+/** The record of the last pull, or null when there is none (or it cannot be read). */
+async function readBaseline(root: string): Promise<Baseline | null> {
   const text = await readText(join(root, STATE_BASELINE_PATH));
-  if (text === null) return {};
+  if (text === null) return null;
   try {
     const value = JSON.parse(text) as unknown;
     return typeof value === "object" && value !== null && !Array.isArray(value)
       ? (value as Baseline)
-      : {};
+      : null;
   } catch {
-    return {};
+    return null;
   }
 }
 
@@ -124,14 +139,19 @@ async function localStatePaths(root: string): Promise<string[]> {
 export async function pullState(root: string, sql: SqlClient): Promise<string[]> {
   const changed: string[] = [];
   const baseline: Baseline = {};
-  for (const row of await readRows(sql)) {
-    baseline[row.path] = { version: row.version, content: row.content };
-    const file = join(root, row.path);
-    if ((await readText(file)) === row.content) continue;
-    await writeFileAtomic(file, row.content);
-    changed.push(row.path);
+  try {
+    for (const row of await readRows(sql)) {
+      const file = join(root, row.path);
+      if ((await readText(file)) !== row.content) {
+        await writeFileAtomic(file, row.content);
+        changed.push(row.path);
+      }
+      baseline[row.path] = baselineOf(row);
+    }
+  } finally {
+    // A failed pull still records the files it finished, so none is mistaken for this job's edit.
+    await writeBaseline(root, baseline);
   }
-  await writeBaseline(root, baseline);
   return changed;
 }
 
@@ -194,8 +214,7 @@ export interface PushResult {
 /**
  * Send each state file that differs from what the pull left. The write names the version the pull
  * saw, so it lands only if no other job wrote since. If one did, the file's merger combines the two
- * versions; no merger, or one that cannot read a side, throws StateConflictError and the file is
- * not written. Files already written stay written. A merged file is also written to disk, so the
+ * versions; no merger, or one that cannot read a side, is refused (the file is not written). A conflicting file does not stop the others; the command throws StateConflictError after all are tried. A merged file is also written to disk, so the
  * checkout matches the store, and the baseline moves to the new versions even when a later file
  * throws.
  */
@@ -205,20 +224,30 @@ export async function pushState(
   log: Pick<Logger, "info" | "warn"> = { info() {}, warn() {} },
 ): Promise<PushResult> {
   const baseline = await readBaseline(root);
+  // Without a pull there is no ancestor to merge from, and the files here may be older than the rows.
+  if (baseline === null) throw new Error("no state pull record here; run `state pull` first");
   const result: PushResult = { written: [], merged: [] };
+  const conflicts: { path: string; reason: string }[] = [];
   try {
     for (const path of await localStatePaths(root)) {
       const mine = await readText(join(root, path));
       const base = baseline[path];
-      if (mine === null || mine === base?.content) continue;
-      const landed = await pushOne(sql, path, mine, base, result);
-      baseline[path] = landed;
-      if (landed.content !== mine) await writeFileAtomic(join(root, path), landed.content);
+      if (mine === null || (base !== undefined && sha256(mine) === base.hash)) continue;
+      try {
+        const landed = await pushOne(sql, path, mine, base, result);
+        if (landed.content !== mine) await writeFileAtomic(join(root, path), landed.content);
+        baseline[path] = baselineOf({ path, ...landed });
+      } catch (error) {
+        // The other files still land: a refused seen.json must not cost the run its costs.
+        if (!(error instanceof FileConflict)) throw error;
+        conflicts.push({ path, reason: error.message });
+      }
     }
   } finally {
     await writeBaseline(root, baseline);
   }
   for (const path of result.merged) log.info(`state: merged ${path} with a newer write`);
+  if (conflicts.length > 0) throw new StateConflictError(conflicts);
   return result;
 }
 
@@ -240,16 +269,20 @@ async function pushOne(
       return { version: landed, content };
     }
     const [row] = await readRows(sql, [path]);
+    // The row was removed since the pull: this job's file is the only copy, so it goes back in.
+    if (row === undefined) {
+      content = mine;
+      version = null;
+      continue;
+    }
     // The row moved: merge this job's file into what is there now, then try again on that version.
     const merge = stateMergerFor(path);
-    if (merge === undefined) {
-      throw new StateConflictError(path, "another job wrote it and it has no merge rule");
-    }
-    const merged =
-      row === undefined ? mine : merge({ base: ancestor, upstream: row.content, mine });
-    if (merged === null) throw new StateConflictError(path, "a side could not be read to merge");
+    if (merge === undefined)
+      throw new FileConflict("another job wrote it and it has no merge rule");
+    const merged = merge({ base: ancestor, upstream: row.content, mine });
+    if (merged === null) throw new FileConflict("a side could not be read to merge");
     content = merged;
-    version = row?.version ?? null;
+    version = row.version;
   }
-  throw new StateConflictError(path, `still moving after ${PUSH_ATTEMPTS} attempts`);
+  throw new FileConflict(`still moving after ${PUSH_ATTEMPTS} attempts`);
 }
