@@ -28,7 +28,7 @@ export interface RunSummary {
 }
 
 export interface StatusReport {
-  /** Bump when a field changes meaning; the sk-dispatch skill and scripts read this shape. */
+  /** Bump when a field changes meaning; the `digest` skill and scripts read this shape. */
   version: 1;
   now: string;
   timezone: string;

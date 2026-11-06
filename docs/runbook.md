@@ -226,8 +226,6 @@ gh run list -R somesh-ks/knowledge-hub --workflow run.yml --limit 1
 gh run watch <run id> -R somesh-ks/knowledge-hub
 ```
 
-3. **The `sk-dispatch` skill.** Ask it to run. It works from any directory, applies the same limits and watches the run (D16).
-
 Other inputs on `run.yml`: `mode` (`on-demand`, `scheduled`, `weekly`), `force`, `since` and `dry_run`. From a clone, `/digest` runs it locally, in agent mode, or remotely.
 
 A second run on the same day writes `YYYY-MM-DD-2`. It never overwrites a digest.
@@ -359,7 +357,7 @@ Models are resolved at run start from the providers' lists. Symptoms: the run lo
 
 ### 9.2 Teach with `/learn`
 
-1. In the repository, run `/learn` with one sentence, for example "more shaders, less VC funding". From any other folder, ask `sk-dispatch` to learn.
+1. In the repository, run `/learn` with one sentence, for example "more shaders, less VC funding".
 2. Read the diff. The change is bounded: at most 0.05 per weight and 0.15 in total per call.
 3. Accept it. The skill applies it through `singularity learn --apply`, which writes the config store (D296); nothing is committed.
 4. The next run uses the new weights. Cached judgments are re-scored with no new calls.
