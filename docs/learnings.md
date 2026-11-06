@@ -54,7 +54,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-10-19: a YouTube finalist reached the writer with only its description (a watch page has no speech). YouTube items go through `extract/youtubeText.ts` (cache, Firecrawl, then Gemini; `state/video-text.json`); failure falls back to the description.
 - 2026-10-07: `audio.yml` failed at the write guard ("changes outside the publish allowlist: .gitignore"): `vercel link` and `vercel env pull` edit `.gitignore` and write `.vercel`; run them in a scratch directory outside the checkout.
 - 2026-10-30: Hobby Blob allows 2,000 advanced ops a month (`put`, `copy`, `list`); over it the store is blocked. Ingest put once per story (D251): count a job's puts.
-- 2026-11-04: the Blob CDN serves an overwritten blob's old copy up to a minute and ignores the query (`?t=` HITs). Read with `readCurrent`.
+- 2026-11-04: the Blob CDN serves an overwritten blob's old copy up to a minute and ignores the query (`?t=` HITs). Read with `readCurrent`; the site checks bodies against the manifest hash.
 - 2026-10-18: the 15-minute weekly aired 14 stories: the prefilter's fixed cap of 80 filled 27 of 52 slots and grounding dropped 11. `poolCapFor` now sizes it. Read a short episode's funnel from the stage lines first.
 - 2026-10-15: Claude Sonnet 5.5 answers 400 "temperature is deprecated" to any request with `temperature`, and the writer chain fell through silently to Nebius from 2026-10-14 while Settings said Sonnet. The client sends none; show a failover, not only log it.
 - 2026-10-15: a source with 0 fetched items and OK health is not always broken: One Useful Thing and AUX First post monthly (newest items 2026-10-01 and 2026-09-21). Read the feed's newest date before calling a source dead.
@@ -106,7 +106,7 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-11-01: a `.manage` rule for the voice page also reached Preferences: a row declares its `--row-reach`.
 - 2026-11-03: servers off Vercel with the real `DATABASE_URL` stored their own 5xx as production faults (~180 a day); telemetry takes `deploymentDatabaseUrl`. Astro's SSR header replaces vercel.json's CSP: `frame-ancestors` goes in `withFrameAncestors` (meta ignores it).
 - 2026-11-05: a white strip showed while Android's keyboard slid up on the Regenerate and Catch up panels: Chrome resizes the page at once and the window behind is white until the keyboard arrives. A native panel with a text field needs `fitAboveKeyboard` (overlays the keyboard instead); only Topics and Block sources had it.
-- 2026-11-05: a CSS animation restarts when its node is removed and put back, so a list that repaints rows each poll restarts every shimmer; move only rows out of order. The engine's timings (state/podcast-timings.json) cover its own work, not a workflow step.
+- 2026-11-05: a CSS animation restarts when its node is re-inserted: repainting rows each poll restarts every shimmer. Engine timings (state/podcast-timings.json) cover engine work, not workflow steps.
 - 2026-11-06: a rewrite played from 4 minutes: the place was keyed by the digest id, which a rewrite keeps; it is saved with the recording's file address (`resume-of`). "More stories" aired 12 again: the count is the Length, and only a model moved the control; `wordLength` does it at once.
 
 ## Build and tooling
@@ -161,3 +161,4 @@ One line each: symptom, cause, fix. Search before debugging; older gotchas are i
 - 2026-11-02: `name: "5 min"` matches "15 min"; use `exact: true`.
 - 2026-11-02: the cloud image's Chromium is an older build than the repo's Playwright wants; point `PLAYWRIGHT_BROWSERS_PATH` at links named for the wanted build. A 2px negative margin fails the 8pt spec: size a target `max()` of both.
 - 2026-11-03: a step summary is not in the job log or API; `tee -a` what you must read.
+- 2026-11-06: a script-built DS part (`codeSnippetHtml`) needs its sheet imported by a page component; unstyled, it passed.
