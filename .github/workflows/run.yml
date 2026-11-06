@@ -99,6 +99,10 @@ on:
         description: "Regenerate a briefing: its length in minutes (3, 5, 10 or 15) in place of the schedule's, optional"
         type: string
         default: ""
+      stories:
+        description: "Regenerate a briefing: its story count (auto, or 3 to 48) in place of the schedule's, optional"
+        type: string
+        default: ""
       delete:
         description: "Delete a briefing: the digest id to remove with its narration timeline, optional"
         type: string
@@ -192,6 +196,7 @@ jobs:
           SINCE: ${{ inputs.since }}
           REPLACE: ${{ inputs.replace }}
           LENGTH: ${{ inputs.length_minutes }}
+          STORIES: ${{ inputs.stories }}
           DRY: ${{ inputs.dry_run }}
           # The config store (D149): with the switch on, the gate copies the stored config over
           # config/ before the run reads it. Either one unset leaves the run on the committed files.
@@ -203,6 +208,7 @@ jobs:
           [ -n "$SINCE" ] && args+=(--since "$SINCE")
           [ -n "$REPLACE" ] && args+=(--replace "$REPLACE")
           [ -n "$LENGTH" ] && args+=(--length "$LENGTH")
+          [ -n "$STORIES" ] && args+=(--stories "$STORIES")
           [ "$DRY" = "true" ] && args+=(--dry-run)
           npm run --silent singularity -- run --stage gate "${args[@]}" | tee "$RUNNER_TEMP/gate.json"
           echo "due=$(jq -r '.due' "$RUNNER_TEMP/gate.json")" >> "$GITHUB_OUTPUT"

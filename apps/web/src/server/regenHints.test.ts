@@ -53,19 +53,20 @@ describe("handleRegenHints", () => {
     const asked: string[] = [];
     const readValues = async (comment: string) => {
       asked.push(comment);
-      return { length: "shorter" as const, add: ["AI"] };
+      return { length: "shorter" as const, stories: null, add: ["AI"] };
     };
     const deps = { mayRead: async () => true, readValues, mayReadValues: async () => true };
     const body = { comment: " it dragged ", categories: ["AI"], want: "values" };
 
     expect((await handleRegenHints(ask(body), deps)).body).toEqual({
       length: "shorter",
+      stories: null,
       add: ["AI"],
       by: "haiku",
     });
     expect(asked).toEqual(["it dragged"]);
     expect((await handleRegenHints(ask(body, "https://evil.example"), deps)).status).toBe(400);
-    const none = { length: null, add: [], by: "none" };
+    const none = { length: null, stories: null, add: [], by: "none" };
     expect(
       (await handleRegenHints(ask(body), { ...deps, mayReadValues: async () => false })).body,
     ).toEqual(none);

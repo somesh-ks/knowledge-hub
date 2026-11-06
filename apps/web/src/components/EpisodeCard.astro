@@ -57,6 +57,7 @@ const facts = episodeFacts(entry);
     audio={`/api/narrate?digest=${encodeURIComponent(entry.id)}`}
     topics={episode.request.topic_ids}
     minutes={episode.request.length_minutes}
+    stories={episode.sources.length}
     regenerations={episode.regenerations}
   />
 </li>

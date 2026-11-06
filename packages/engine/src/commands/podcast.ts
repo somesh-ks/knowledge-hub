@@ -287,7 +287,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
         command.action === "regenerate" ? await readEpisode(ctx.root, command.id) : null;
       const stored = command.action === "create" ? command.request : replaced?.episode.request;
       if (!stored) throw new PodcastError("The request names no episode to replace.");
-      // Topics and a length chosen in the dialog apply to this regeneration only: the new episode
+      // Topics, a length and a story count chosen in the dialog apply to this regeneration only: the new episode
       // stores them.
       const request =
         command.action === "regenerate"
@@ -295,6 +295,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
               ...stored,
               ...(command.topic_ids ? { topic_ids: command.topic_ids } : {}),
               ...(command.length_minutes ? { length_minutes: command.length_minutes } : {}),
+              ...(command.stories !== undefined ? { stories: command.stories } : {}),
             }
           : stored;
       const feedback = command.action === "regenerate" ? command.feedback : undefined;

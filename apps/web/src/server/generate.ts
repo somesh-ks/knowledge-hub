@@ -1,4 +1,4 @@
-import { MAX_REGENERATIONS } from "@singularity/core";
+import { MAX_REGENERATIONS, StoryCount } from "@singularity/core";
 import type { GenerateResponse } from "../types/contracts";
 import { cancelTokenFor } from "./cancelToken";
 import { missingSettings, readServerConfig, type ServerEnv, secretsOf } from "./config";
@@ -134,6 +134,17 @@ export function parseLength(bodyText: string): number | null | undefined {
   return typeof raw === "number" && LENGTHS.includes(raw) ? raw : undefined;
 }
 
+/**
+ * The stories this one run is asked to tell (D377): absent means the schedule's, null is Auto,
+ * otherwise a whole number core's StoryCount allows. Anything else is invalid (false), so a request
+ * is refused before it costs a run.
+ */
+export function parseStories(bodyText: string): number | null | undefined | false {
+  const raw = (JSON.parse(bodyText) as { stories?: unknown }).stories;
+  if (raw === undefined || raw === null) return raw;
+  return StoryCount.safeParse(raw).success ? (raw as number) : false;
+}
+
 /** A digest id: a date, then `-weekly` or a same-day number (core's DigestId). */
 const DIGEST_ID = /^\d{4}-\d{2}-\d{2}(-weekly|-[2-9]|-[1-9]\d+)?$/;
 
@@ -186,6 +197,8 @@ export async function handleGenerate(
   if (topics === undefined) return invalid;
   const length = parseLength(input.bodyText);
   if (length === undefined) return invalid;
+  const stories = parseStories(input.bodyText);
+  if (stories === false) return invalid;
   const target = parseTarget(input.bodyText);
   if (target === undefined) return invalid;
   const id = target === null ? null : "delete" in target ? target.delete : target.replace;
@@ -246,6 +259,9 @@ export async function handleGenerate(
             ...(feedback ? { feedback } : {}),
             ...(topics && id ? { topics: topics.join(",") } : {}),
             ...(length ? { length_minutes: String(length) } : {}),
+            ...(stories === undefined
+              ? {}
+              : { stories: stories === null ? "auto" : String(stories) }),
             ...(id ? { replace: id } : {}),
           },
     );

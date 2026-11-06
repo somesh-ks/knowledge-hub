@@ -21,6 +21,8 @@ interface Props {
   topics?: readonly string[];
   /** A briefing's aired minutes, or the minutes an episode was made at: its Regenerate starts on the nearest length (lib/regenLength.ts). */
   minutes?: number;
+  /** The stories it aired: Regenerate's Stories steps from it when the comment asks for more or fewer (D377). */
+  stories?: number;
   /** Times this podcast was regenerated, for the Regenerate item's counter (D212). */
   regenerations?: number | undefined;
 }
@@ -35,6 +37,7 @@ const {
   deletable = true,
   topics,
   minutes,
+  stories,
   regenerations,
 } = Astro.props;
 const menuId = `card-menu-${id}`;
@@ -56,6 +59,7 @@ const menuId = `card-menu-${id}`;
   data-episode={kind === "episode" ? id : undefined}
   data-library-briefing={kind === "briefing" ? id : undefined}
   data-minutes={minutes}
+  data-stories={stories}
   data-topics={topics?.join(" ")}
 >
   <button

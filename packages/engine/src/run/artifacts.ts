@@ -57,6 +57,8 @@ export const MaterialsFile = z.object({
       text: z.string(),
       /** The owner's prompt for the story's block (D182), so a later rewrite keeps to it. */
       prompt: z.string().optional(),
+      /** The words a spoken telling aims at under a picked story count (D377), for a later rewrite. */
+      telling_words: z.number().int().positive().optional(),
     }),
   ),
 });

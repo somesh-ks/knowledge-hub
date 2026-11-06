@@ -5,12 +5,14 @@ import DialogActions from "../design-system/DialogActions.astro";
 import DialogTitle from "../design-system/DialogTitle.astro";
 import Field from "../design-system/Field.astro";
 import Icon from "../design-system/Icon.astro";
+import Select from "../design-system/Select.astro";
 import Sheet from "../design-system/Sheet.astro";
 import { briefingChips } from "../lib/briefingChips";
 import { topicOptions } from "../lib/createForm";
 import { loadManage } from "../lib/manage";
 import { DEFAULT_REGEN_LENGTH, REGEN_LENGTHS } from "../lib/regenLength";
 import { isChipOn, type RegenChip } from "../lib/regenTopics";
+import { storyOptions } from "../lib/storyOptions";
 import "../styles/episode-actions.css";
 
 interface Props {
@@ -111,6 +113,21 @@ const COPY = {
                     </label>
                   ))}
                 </div>
+              </section>
+              {/* Beside Length (D377): shown as the words ask for more or fewer stories, a step from
+                   what the episode aired; Auto sends nothing. scripts/episodeActions.ts keeps it to
+                   what the length holds. */}
+              <section class="create-group" data-hint-stories hidden>
+                <h2 class="section-head text-heading">
+                  <label for="regen-stories">Stories</label>
+                </h2>
+                <Select id="regen-stories" name="stories" autocomplete="off">
+                  {storyOptions(DEFAULT_REGEN_LENGTH).map((entry) => (
+                    <option value={entry.value} hidden={entry.hidden} disabled={entry.hidden} selected={entry.value === ""}>
+                      {entry.label}
+                    </option>
+                  ))}
+                </Select>
               </section>
               <div class="create-submit">
                 <Button variant="filled" type="submit" data-submit>

@@ -1,5 +1,5 @@
 import { rm } from "node:fs/promises";
-import { type SourceStatsFile, stockholmDate, VOICE_LIMITS } from "@singularity/core";
+import { type SourceStatsFile, stockholmDate, storiesFor } from "@singularity/core";
 import { loadJudgments } from "../curate/inputs.js";
 import { writeJson } from "../curate/output.js";
 import { ListingMemory } from "../fetch/listingCheck.js";
@@ -27,7 +27,7 @@ import { readCarried, slowStories } from "./carriedPool.js";
 import { StageFailure } from "./errors.js";
 import { type GatherResult, gatherPool } from "./gatherPool.js";
 import { markStage, type Plan, type PlanPass, passFile, runJudgmentsPath } from "./plan.js";
-import { lengthMinutesFor, poolCapFor, storiesForMinutes, withSpares } from "./scheduleSize.js";
+import { lengthMinutesFor, poolCapFor, storiesPickedFor, withSpares } from "./scheduleSize.js";
 import {
   answeredBefore,
   pickSample,
@@ -202,7 +202,10 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
       window: { from: new Date(pass.window.from), to: new Date(pass.window.to) },
       setup,
       ...(sampling && planned ? { probeGeneral: planned.readPlan.probeGeneral } : {}),
-      ...poolCapOf(lengthMinutesFor(schedule, pass.kind, plan.mode, plan.length_minutes)),
+      ...poolCapOf(
+        lengthMinutesFor(schedule, pass.kind, plan.mode, plan.length_minutes),
+        storiesPickedFor(schedule, pass.kind, plan.mode, plan.stories),
+      ),
       ...(carried ? { carried } : {}),
     });
     await writePool(passFile(deps.root, pass.id, "pool.json"), gathered.pool);
@@ -287,11 +290,11 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
 }
 
 /**
- * A pass sized by a length sends the judge candidates in proportion to the stories it writes, so a
- * 15-minute weekly is not chosen from the pool of a five-minute daily.
+ * A pass sized by a length or a picked count (D377) sends the judge candidates in proportion to the
+ * stories it writes, so a 15-minute weekly is not chosen from the pool of a five-minute daily.
  */
-function poolCapOf(minutes: number | null): { poolCap?: number } {
-  if (minutes === null) return {};
-  const wanted = storiesForMinutes(minutes, VOICE_LIMITS.items.floor, VOICE_LIMITS.items.hardMax);
+function poolCapOf(minutes: number | null, picked: number | null): { poolCap?: number } {
+  const wanted = minutes === null ? picked : storiesFor(minutes, picked);
+  if (wanted === null) return {};
   return { poolCap: poolCapFor(withSpares(wanted), DEFAULT_CAP) };
 }

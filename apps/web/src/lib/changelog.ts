@@ -18,6 +18,12 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: "0.22",
+    date: "2026-11-06",
+    description:
+      "Stories sits beside Length for the daily and weekly podcasts, Catch up and Regenerate: leave it on Auto, or pick how many stories to hear and each is told shorter to fit the length. Asking a Regenerate for more or fewer stories now changes the count, not the length. A regenerated podcast starts from the beginning, and it is ready sooner because it reuses the stories its first run gathered.",
+  },
+  {
     version: "0.21.1",
     date: "2026-11-05",
     description:

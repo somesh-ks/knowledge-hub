@@ -3,10 +3,11 @@ import { PANEL_SHEET_SELECTOR } from "../design-system/sheet";
 import { rememberCancelToken } from "../lib/cancelTokens";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import { createCommentAsker } from "../lib/regenAsk";
-import { desiredChip, desiredLength, wantedControls } from "../lib/regenFollow";
+import { desiredChip, desiredLength, desiredStories, wantedControls } from "../lib/regenFollow";
 import { nearestRegenLength } from "../lib/regenLength";
 import { isChipOn } from "../lib/regenTopics";
 import { hasSaved, storeOn } from "../lib/savedKey";
+import { fitStories, storiesValue } from "../lib/storyOptions";
 import { navigateTo } from "../player/core/navigation";
 import { fitAboveKeyboard } from "./keyboardFit";
 import { libraryAddress } from "./libraryAddress";
@@ -88,8 +89,11 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
   // refusal had to show. A change event is always the listener's: a script setting `checked` fires none.
   const topicsGroup = dialog.querySelector<HTMLElement>("[data-hint-topics]");
   const lengthGroup = dialog.querySelector<HTMLElement>("[data-hint-length]");
+  const storiesGroup = dialog.querySelector<HTMLElement>("[data-hint-stories]");
+  const storiesSelect = dialog.querySelector<HTMLSelectElement>('select[name="stories"]');
   const touchedChips = new Set<Element>();
   let lengthTouched = false;
+  let storiesTouched = false;
   const keep = { length: false, topics: false };
   const radios = () => [...dialog.querySelectorAll<HTMLInputElement>('input[name="length"]')];
   const topicChips = () => [...dialog.querySelectorAll<HTMLInputElement>('input[name="topic"]')];
@@ -98,14 +102,20 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
   const forgetTouched = () => {
     touchedChips.clear();
     lengthTouched = false;
+    storiesTouched = false;
     keep.length = false;
     keep.topics = false;
   };
   dialog.addEventListener("change", (event) => {
     say();
     const input = event.target;
+    if (input === storiesSelect) storiesTouched = true;
     if (!(input instanceof HTMLInputElement)) return;
-    if (input.name === "length") lengthTouched = true;
+    if (input.name === "length") {
+      lengthTouched = true;
+      // Stories offers what the new length holds.
+      follow();
+    }
     if (input.name === "topic") touchedChips.add(input);
   });
   let asker: ReturnType<typeof createCommentAsker> | undefined;
@@ -122,6 +132,16 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
     if (!lengthTouched && Number.isFinite(asked)) {
       const target = desiredLength(asked, answer.values, feedback.value);
       for (const radio of lengths) radio.checked = Number(radio.value) === target;
+    }
+    // Stories follows the length's room and the words about the count (D377).
+    if (storiesGroup) storiesGroup.hidden = !(wanted.stories || storiesTouched);
+    if (storiesSelect) {
+      const minutes = Number(lengths.find((radio) => radio.checked)?.value ?? asked);
+      const aired = Number((rootOf.get(dialog) ?? root).dataset.stories);
+      if (!storiesTouched) {
+        storiesSelect.value = desiredStories(aired, minutes, answer.values, feedback.value);
+      }
+      fitStories(storiesSelect, minutes);
     }
     chips.forEach((chip, at) => {
       if (!chip.disabled && !touchedChips.has(chip)) {
@@ -195,12 +215,15 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       // The length goes only when it differs from the one the episode was made at.
       const length = dialog.querySelector<HTMLInputElement>('input[name="length"]:checked');
       const minutes = length && !length.defaultChecked ? Number(length.value) : null;
+      // Auto sends nothing: the episode keeps the count it was made with.
+      const stories = storiesValue(storiesSelect?.value ?? "");
       body = {
         action: "regenerate",
         id,
         feedback: text,
         ...(changed ? (briefing ? { topics } : { topic_ids: topics }) : {}),
         ...(minutes && !briefing ? { length_minutes: minutes } : {}),
+        ...(stories && !briefing ? { stories } : {}),
       };
     } else {
       body = { action: "delete", id };
@@ -253,6 +276,7 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
     if (count) count.hidden = true;
     if (topicsGroup) topicsGroup.hidden = true;
     if (lengthGroup) lengthGroup.hidden = true;
+    if (storiesGroup) storiesGroup.hidden = true;
     // It leaves the way Catch up does after a start (sheet.css), the queue rising as it goes.
     dialog.dataset.started = "";
     dialog.close();

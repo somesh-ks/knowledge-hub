@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { IdString } from "./categories.js";
 import { GENERAL_TOPICS } from "./generalTopics.js";
-import { VoiceId } from "./podcast.js";
+import { StoryCount, VoiceId } from "./podcast.js";
 import { isSupportedTimeZone } from "./time.js";
 
 /** Days between scheduled briefings the owner can pick: every day, second day, third day, weekly. */
@@ -38,6 +38,8 @@ const WeeklyFields = z.object({
   hour: z.number().int().min(0).max(23),
   skip_topics: SkipTopics,
   length_minutes: ScheduleLengthMinutes,
+  /** How many stories it tells (D377); null is Auto, as many as its length holds. */
+  stories: StoryCount,
   voice_id: VoiceId,
   voice_id_b: VoiceId,
 });
@@ -51,6 +53,7 @@ const CustomFields = z.object({
   skip_topics: SkipTopics,
   format: ScheduleFormat,
   length_minutes: ScheduleLengthMinutes,
+  stories: StoryCount,
   voice_id: VoiceId,
   voice_id_b: VoiceId,
 });
@@ -62,6 +65,7 @@ export const DEFAULT_WEEKLY: Omit<WeeklySchedule, "hour"> = {
   day: 0,
   skip_topics: [],
   length_minutes: 10,
+  stories: null,
   voice_id: null,
   voice_id_b: null,
 };
@@ -69,6 +73,7 @@ export const DEFAULT_CUSTOM: CustomDefaults = {
   skip_topics: [],
   format: "readout",
   length_minutes: 5,
+  stories: null,
   voice_id: null,
   voice_id_b: null,
 };
@@ -77,7 +82,7 @@ export const DEFAULT_CUSTOM: CustomDefaults = {
  * Shape of config/schedule.json. `hour` is a whole hour in `timezone`. `skip_topics` lists the
  * topics the daily briefing leaves out (the weekly one has its own); empty covers them all. A file
  * from before topics could be left out (it had `sections`, always null in use) reads as empty.
- * `length_minutes`, `voice_id` and `voice_id_b` shape the daily podcast; `weekly` the
+ * `length_minutes`, `stories`, `voice_id` and `voice_id_b` shape the daily podcast; `weekly` the
  * weekly one; `custom` the defaults of the Create panel. A file written before any of these
  * existed parses with the defaults, and a partial `weekly` or `custom` is filled in. A top-level
  * `format`, a `lookback_hours` and a weekly `format` from an older file are read past and dropped:
@@ -94,6 +99,7 @@ export const ScheduleFile = z
     cadence_days: CadenceDays,
     skip_topics: SkipTopics.default([]),
     length_minutes: ScheduleLengthMinutes.default(10),
+    stories: StoryCount.default(null),
     voice_id: VoiceId.default(null),
     voice_id_b: VoiceId.default(null),
     weekly: WeeklyFields.partial().optional(),
@@ -128,6 +134,7 @@ export const DEFAULT_SCHEDULE: ScheduleFile = {
   cadence_days: 2,
   skip_topics: [],
   length_minutes: 10,
+  stories: null,
   voice_id: null,
   voice_id_b: null,
   weekly: { ...DEFAULT_WEEKLY, hour: 7 },
@@ -190,6 +197,7 @@ export const ScheduleSettings = z.object({
   cadence_days: CadenceDays,
   skip_topics: SkipTopics,
   length_minutes: ScheduleLengthMinutes,
+  stories: StoryCount,
   voice_id: VoiceId,
   voice_id_b: VoiceId,
   weekly: WeeklyFields,
@@ -206,6 +214,7 @@ export const ScheduleChange = z.object({
   cadence_days: CadenceDays.optional(),
   skip_topics: ScheduleSettings.shape.skip_topics.optional(),
   length_minutes: ScheduleLengthMinutes.optional(),
+  stories: StoryCount.optional(),
   voice_id: VoiceId.optional(),
   voice_id_b: VoiceId.optional(),
   weekly: WeeklyFields.partial().optional(),

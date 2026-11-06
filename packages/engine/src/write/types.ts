@@ -14,6 +14,11 @@ export interface SourceMaterial {
   spoken?: boolean;
   /** The owner's prompt for the block this story airs in (D182); absent for the built-in one. */
   prompt?: string;
+  /**
+   * Words the spoken telling aims at when a picked story count shortens it (D377, tellingWords);
+   * absent keeps the usual telling.
+   */
+  telling_words?: number;
 }
 
 export interface WrittenItem {

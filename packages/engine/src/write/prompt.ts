@@ -25,17 +25,35 @@ export function voiceBrief(voice: VoiceConfig): string {
 }
 
 /**
+ * The spoken length when a picked story count shortens every telling (D377): it follows the block's
+ * rules, so it holds whether the rules are the built-in ones or the owner's.
+ */
+function tellingRule(words: number | undefined): string[] {
+  if (words === undefined) return [];
+  return [
+    "",
+    "LENGTH FOR THIS EPISODE",
+    `It tells more stories than usual in the same minutes, so each spoken version runs about ${words} words: the news and the one fact that makes it matter, in as few sentences as that takes. This replaces the spoken length above; the summary keeps its own.`,
+  ];
+}
+
+/**
  * `rules` is the block's prompt (D182): the built-in fields and fact rules, or the owner's
  * replacement for the stories of one section. The voice, the source handling and the reply's
  * shape stay as they are, and the checks after writing still apply.
  */
-export function writerSystemPrompt(voice: VoiceConfig, rules = BRIEFING_STORY_PROMPT): string {
+export function writerSystemPrompt(
+  voice: VoiceConfig,
+  rules = BRIEFING_STORY_PROMPT,
+  telling?: number,
+): string {
   return [
     "You write items for Singularity, a private tech and design engineering briefing. The reader is sharp but may not know the topic.",
     "",
     voiceBrief(voice),
     "",
     rules,
+    ...tellingRule(telling),
     "",
     "SOURCE HANDLING",
     untrustedInstruction(),
@@ -112,13 +130,18 @@ export function writerUserMessage(
   ].join("\n\n");
 }
 
-export function rewriteSystemPrompt(voice: VoiceConfig, rules = BRIEFING_STORY_PROMPT): string {
+export function rewriteSystemPrompt(
+  voice: VoiceConfig,
+  rules = BRIEFING_STORY_PROMPT,
+  telling?: number,
+): string {
   return [
     "You fix one field of a Singularity item so that it follows the house voice.",
     "",
     voiceBrief(voice),
     "",
     rules,
+    ...tellingRule(telling),
     "Keep every fact of the current text that the source supports. Change only what the problems list requires.",
     "",
     "SOURCE HANDLING",

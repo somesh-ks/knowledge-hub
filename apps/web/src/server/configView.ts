@@ -203,15 +203,24 @@ function scheduleOps(
     set.cadence_days = stored.cadenceDays as ScheduleSet["cadence_days"];
   if (built.lengthMinutes !== stored.lengthMinutes)
     set.length_minutes = stored.lengthMinutes as ScheduleSet["length_minutes"];
+  if (built.stories !== stored.stories) set.stories = stored.stories;
   if (built.voiceId !== stored.voiceId) set.voice_id = stored.voiceId;
   if (built.voiceIdB !== stored.voiceIdB) set.voice_id_b = stored.voiceIdB;
   const weekly: NonNullable<ScheduleSet["weekly"]> = {};
-  for (const key of ["enabled", "day", "hour", "length_minutes", "voice_id", "voice_id_b"] as const)
+  for (const key of [
+    "enabled",
+    "day",
+    "hour",
+    "length_minutes",
+    "stories",
+    "voice_id",
+    "voice_id_b",
+  ] as const)
     if (built.weekly[key] !== stored.weekly[key])
       Object.assign(weekly, { [key]: stored.weekly[key] });
   if (Object.keys(weekly).length > 0) set.weekly = weekly;
   const custom: NonNullable<ScheduleSet["custom"]> = {};
-  for (const key of ["format", "length_minutes", "voice_id", "voice_id_b"] as const)
+  for (const key of ["format", "length_minutes", "stories", "voice_id", "voice_id_b"] as const)
     if (built.custom[key] !== stored.custom[key])
       Object.assign(custom, { [key]: stored.custom[key] });
   if (Object.keys(custom).length > 0) set.custom = custom;

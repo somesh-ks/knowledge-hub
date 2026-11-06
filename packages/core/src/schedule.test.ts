@@ -89,6 +89,7 @@ describe("ScheduleFile", () => {
       hour: 9,
       skip_topics: [],
       length_minutes: 10,
+      stories: null,
       voice_id: null,
       voice_id_b: null,
     });
@@ -96,6 +97,7 @@ describe("ScheduleFile", () => {
       skip_topics: [],
       format: "readout",
       length_minutes: 5,
+      stories: null,
       voice_id: null,
       voice_id_b: null,
     });

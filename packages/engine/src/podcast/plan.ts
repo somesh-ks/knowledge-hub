@@ -1,4 +1,5 @@
 import {
+  mostStories,
   PODCAST_CHARS_PER_MINUTE,
   PODCAST_MAX_CHARS,
   type PodcastFormat,
@@ -265,5 +266,13 @@ export function planPodcast(request: PodcastRequest, shape?: ScriptShape | null)
   ) {
     maxStories += 1;
   }
-  return { request, budget_chars: budget, max_stories: maxStories };
+  // A picked count (D377) replaces what the format holds: fewer stories are told at more length,
+  // more of them share the budget in shorter parts (partChars scales them down).
+  // shortcut: a pick above the format's count squeezes each part by partChars' scale, not a
+  // script written for headlines; upgrade if those episodes read thin.
+  const stories =
+    request.stories == null
+      ? maxStories
+      : Math.min(request.stories, mostStories(request.length_minutes));
+  return { request, budget_chars: budget, max_stories: stories };
 }
