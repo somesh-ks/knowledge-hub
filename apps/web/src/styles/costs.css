@@ -143,7 +143,7 @@
 .costs-svg text {
   fill: var(--color-on-surface-muted);
   font-family: var(--font-ui);
-  font-size: var(--font-size-caption);
+  font-size: var(--text-caption-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -209,7 +209,7 @@
   gap: var(--space-2);
   align-items: baseline;
   margin: 0;
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-label);
   white-space: nowrap;
 }
@@ -239,7 +239,7 @@
   place-items: center;
   margin: 0;
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-label);
   text-align: center;
 }
@@ -295,7 +295,7 @@
 
 .costs-rank-share {
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   font-variant-numeric: tabular-nums;
   text-align: end;
 }
@@ -303,7 +303,7 @@
 .costs-meter {
   grid-column: 1 / -1;
   block-size: var(--space-1);
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   background: var(--color-track);
 }
 
@@ -351,7 +351,7 @@
 .costs-table table {
   inline-size: 100%;
   border-collapse: collapse;
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   font-variant-numeric: tabular-nums;
 }
 

@@ -121,7 +121,7 @@
 }
 
 .guide-swatch-note {
-  color: var(--color-on-surface-subtle);
+  color: var(--color-on-surface-muted);
   font-size: var(--font-size-caption);
   line-height: var(--font-leading-caption);
 }

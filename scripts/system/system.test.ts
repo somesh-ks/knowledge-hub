@@ -185,7 +185,7 @@ describe("the lookup", () => {
       "--color-surface-container",
     );
     expect(names("bottom sheet slide-in duration")).toContain("--duration-sheet-in");
-    expect(names("round the top corners of a bottom sheet")).toContain("--sheet-radius");
+    expect(names("round the top corners of a bottom sheet")).toContain("--shape-sheet");
   });
 
   it("answers nothing for a need no part covers", () => {

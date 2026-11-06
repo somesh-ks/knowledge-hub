@@ -342,7 +342,7 @@
   }
 
   .text-subtle {
-    color: var(--color-on-surface-subtle);
+    color: var(--color-on-surface-muted);
   }
 }
 

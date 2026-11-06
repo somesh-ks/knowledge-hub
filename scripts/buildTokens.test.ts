@@ -328,7 +328,7 @@ describe.each(MOODS)("a mood's colour contrast: %s", (name) => {
     // A floor names a semantic role (`on-surface`) or, dotted, a component's colour (`player.spoken`);
     // `a over b` is a translucent fill as it is seen over the ground under it.
     const floors: [foreground: string, background: string, least: number][] = [
-      ...["on-surface", "on-surface-muted", "on-surface-subtle", "accent"].flatMap((fg) =>
+      ...["on-surface", "on-surface-muted", "accent"].flatMap((fg) =>
         surfaces.map((bg): [string, string, number] => [fg, bg, 4.5]),
       ),
       ...surfaces.map((bg): [string, string, number] => [
