@@ -207,8 +207,7 @@ function paintFixAll(): void {
 function paintSummary(): void {
   const summary = root?.querySelector<HTMLElement>("[data-health-summary]");
   if (!summary || !answer) return;
-  const drawn = drawSummary(summary, answer, PILLARS, (issue) => openIssue(issue, promptInput()));
-  issues = drawn.issues;
+  issues = drawSummary(summary, answer, PILLARS, (issue) => openIssue(issue, promptInput()));
   paintFixAll();
   const at = new Date(answer.checked_at);
   const sameDay = at.toDateString() === new Date().toDateString();
@@ -216,7 +215,7 @@ function paintSummary(): void {
   const missing = partial(answer);
   const note = summary.querySelector<HTMLElement>("[data-health-note]");
   if (note)
-    note.textContent = `${issues.length ? `The other ${drawn.fine} checks are fine. ` : ""}Checked ${checked}.${missing.length ? ` Partial: ${missing.join("; ")}.` : ""}`;
+    note.textContent = `Checked ${checked}.${missing.length ? ` Partial: ${missing.join("; ")}.` : ""}`;
 }
 
 function paint(): void {

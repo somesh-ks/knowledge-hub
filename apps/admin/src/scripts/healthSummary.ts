@@ -1,13 +1,12 @@
 /**
  * The Health page's summary (health.astro): the tiles, Overall then one a section, each a link to its
- * section; then a row a check that needs a look, its name, its reading and a glyph, which opens its
+ * section; then a row a check that needs a look, its name, its reading and its glyph, which opens its
  * sheet with what it means, where to start and its prompt for an agent (healthSheet.ts). The page
  * keeps one line a problem; the words are in the sheet. 2026-11-05, the owner: "no blue boxes", "a
  * human can easily understand what is wrong", then "a big wall of text ... hide them inside a bottom
  * sheet on mobile and sidebar on desktop".
  */
 import type { HealthSeries } from "../../../web/src/lib/healthRows";
-import { iconHtml } from "../../../web/src/lib/sheetHead";
 import type { Pillar } from "../lib/pillars";
 import {
   element,
@@ -64,14 +63,13 @@ function fillTiles(root: HTMLElement, groups: Judged[]): void {
 
 /**
  * A problem's row, the design system's row action: its name, then its reading with its glyph at the
- * end, as a list row says its value (the name truncates, the reading never), and a chevron. It opens
- * the sheet with the rest.
+ * far edge, where a tile's glyph sits (the name truncates, the reading never). It opens the sheet.
  */
 function issueRow(issue: Issue, open: (issue: Issue) => void): HTMLElement {
   const row = element("button", "row-action hl-issue-row");
   (row as HTMLButtonElement).type = "button";
   const text = element("span", "settings-text");
-  const value = element("span", "settings-hint");
+  const value = element("span", "settings-hint", issue.row.value);
   const mark = glyph(issue.row.tone);
   if (mark) {
     const icon = element("span", "ov-flag-icon");
@@ -79,10 +77,8 @@ function issueRow(issue: Issue, open: (issue: Issue) => void): HTMLElement {
     icon.append(mark);
     value.append(icon);
   }
-  value.append(issue.row.value);
   text.append(element("span", "settings-label", nameOf(issue)), value);
   row.append(text);
-  row.insertAdjacentHTML("beforeend", iconHtml("chevronRight"));
   row.title = issue.row.detail;
   row.addEventListener("click", () => open(issue));
   return row;
@@ -90,14 +86,14 @@ function issueRow(issue: Issue, open: (issue: Issue) => void): HTMLElement {
 
 /**
  * Draws the summary from an answer of /api/health: the tiles, the count of what needs a look, and a row
- * an issue, worst first, in the page's section order. Returns the issues and how many checks are fine.
+ * an issue, worst first, in the page's section order. Returns the issues.
  */
 export function drawSummary(
   root: HTMLElement,
   body: HealthBody & { series?: HealthSeries },
   pillars: Pillar[],
   open: (issue: Issue) => void,
-): { issues: Issue[]; fine: number } {
+): Issue[] {
   const groups = judge(body, pillars);
   fillTiles(root, groups);
   const issues: Issue[] = groups.flatMap((section) =>
@@ -111,14 +107,8 @@ export function drawSummary(
         reports: body.series?.errors[x.row.id]?.top ?? [],
       })),
   );
-  const total = groups.reduce((sum, g) => sum + g.items.length, 0);
-  const title = root.querySelector<HTMLElement>("[data-issues-title]");
-  if (title)
-    title.textContent = issues.length
-      ? `${issues.length === 1 ? "1 thing needs" : `${issues.length} things need`} you`
-      : "Nothing needs you";
   root
     .querySelector<HTMLElement>("[data-issues]")
     ?.replaceChildren(...issues.map((issue) => issueRow(issue, open)));
-  return { issues, fine: total - issues.length };
+  return issues;
 }
