@@ -193,6 +193,18 @@ nothing. Uses BLOB_READ_WRITE_TOKEN (D173).`,
     load: async () => (await import("./commands/content.js")).run,
   },
   {
+    name: "state",
+    summary: "Copy the run state (state/*.json) between Postgres and this checkout (D300 step 3)",
+    help: `Usage: singularity state pull | seed [--dry-run] | push
+
+pull copies each stored row over its state file and records what it wrote. push sends the files
+that differ from that record, on the row version the pull saw; a row another job moved meanwhile is
+merged with the file's merge rule, and a file without one (seen, judgments, last-run) stops the
+command. seed creates the state_documents table and adds a row for each state file that has none.
+Needs DATABASE_URL. No workflow calls it yet.`,
+    load: async () => (await import("./commands/state.js")).run,
+  },
+  {
     name: "podcast",
     summary: "Write one episode of Singularity from published digests and commit it",
     help: `Usage: singularity podcast --request '<json>' [--now <iso>] [--no-push]
