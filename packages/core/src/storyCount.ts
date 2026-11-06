@@ -40,8 +40,11 @@ export function storiesForMinutes(minutes: number, floor: number, hardMax: numbe
 /** The numbers the Stories control offers beside Auto, before those a length cannot hold are left out. */
 export const STORY_COUNTS = [5, 8, 10, 12, 15, 20, 25, 30, 40] as const;
 
-/** Spoken characters a word costs, its space included: 364 characters a story is about 58 words. */
-const CHARS_PER_WORD = 6.2;
+/**
+ * English speech runs about six characters a word, spaces included: 364 characters a story is about
+ * 60 words. One value for the Stories control and the episode planner (podcast/plan.ts).
+ */
+export const CHARS_PER_WORD = 6;
 
 /**
  * The shortest telling a picked count may squeeze a story to: about 20 words, one fact and why it

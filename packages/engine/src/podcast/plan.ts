@@ -1,4 +1,5 @@
 import {
+  CHARS_PER_WORD,
   mostStories,
   PODCAST_CHARS_PER_MINUTE,
   PODCAST_MAX_CHARS,
@@ -168,8 +169,8 @@ export function aimedChars(structure: EpisodeStructure, format: PodcastFormat): 
   );
 }
 
-/** English speech runs about six characters a word, spaces included. */
-export const CHARS_PER_WORD = 6;
+// One value with the Stories control (core storyCount.ts, D377).
+export { CHARS_PER_WORD };
 /** A spoken sentence is about this many words. */
 export const WORDS_PER_SENTENCE = 15;
 
