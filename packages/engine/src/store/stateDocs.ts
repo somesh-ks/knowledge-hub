@@ -155,13 +155,13 @@ export async function pullState(root: string, sql: SqlClient): Promise<string[]>
       }
       baseline[row.path] = baselineOf(row);
     }
+    await writeBaseline(root, baseline);
   } catch (error) {
     // A pull that did not finish leaves no record at all: a partial one would let a push treat the
     // files it never reached as new, and merge them without their ancestor.
     await rm(join(root, STATE_BASELINE_PATH), { force: true });
     throw error;
   }
-  await writeBaseline(root, baseline);
   return changed;
 }
 
