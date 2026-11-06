@@ -40,6 +40,9 @@ describe("regenFollow (D371)", () => {
     expect(wordLength("too much hype")).toBeNull();
     // A topic or an aside is not a length.
     expect(wordLength("more stories about AI")).toBeNull();
+    expect(wordLength("more stories in Sports")).toBeNull();
+    expect(wordLength("fewer stories in crypto")).toBeNull();
+    expect(wordLength("more stories in it")).toBe("longer");
     expect(wordLength("the AI story is no longer news")).toBeNull();
     expect(wordLength("no more stories, please")).toBeNull();
     expect(wordLength("Shorter intro")).toBeNull();
