@@ -13,6 +13,7 @@ import { DIALOG, DIALOG_CLASSES, DIALOG_RETIRED } from "./dialog";
 import { DRAWER, DRAWER_CLASSES, DRAWER_RETIRED } from "./drawer";
 import { FIELD, FIELD_CLASSES, FIELD_RETIRED } from "./field";
 import { FLAG, FLAG_CLASSES, FLAG_RETIRED } from "./flag";
+import { GLOW, GLOW_CLASSES, GLOW_RETIRED } from "./glow";
 import type { Guidance } from "./guidance";
 import { ICON, ICON_CLASSES, ICON_RETIRED } from "./icon";
 import { MENU, MENU_CLASSES, MENU_RETIRED } from "./menu";
@@ -234,6 +235,17 @@ export const COMPONENTS: DesignSystemComponent[] = [
     summary: RIPPLE.summary,
     useWhen: RIPPLE.useWhen,
     dontUseWhen: RIPPLE.dontUseWhen,
+    parts: {},
+  },
+  {
+    name: "Glow",
+    sheet: "glow.css",
+    prefix: "glow-",
+    classes: GLOW_CLASSES,
+    retired: GLOW_RETIRED,
+    summary: GLOW.summary,
+    useWhen: GLOW.useWhen,
+    dontUseWhen: GLOW.dontUseWhen,
     parts: {},
   },
 ];

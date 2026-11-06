@@ -6,6 +6,7 @@ export type ComponentName =
   | "FAB"
   | "Chip"
   | "Code"
+  | "Glow"
   | "Link"
   | "Switch"
   | "Slider"

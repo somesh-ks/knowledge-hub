@@ -1,0 +1,57 @@
+/*
+ * The favorite glow (design-system/glow.ts; owner, 2026-11-06, option A). As Favorite turns on, a
+ * halo of --color-favorite-glow opens from the heart's centre, a third of its size to all of it, and
+ * fades on the settle spring; the filled heart settles in on the enter clock (icon.css). The halo is light, not a
+ * fill: it is not clipped, so it spills past the control, and it sits beneath the control's glyph and
+ * label. The control keeps its size. Reduced motion: no halo (glow.ts draws none) and no settle.
+ */
+
+/* The halo needs a box to stand in and a layer beneath the glyph. Declared low, so a control that
+   places itself (absolute, fixed) keeps its own position. */
+:where([data-glow]) {
+  position: relative;
+  isolation: isolate;
+}
+
+.glow-halo {
+  /* About the size of two and a half touch targets: the halo reads as the heart's light, past the
+     control on a round button, inside it on a tile. */
+  --glow-size: calc(var(--size-touch) * 2.5);
+  position: absolute;
+  inset-inline-start: calc(var(--glow-x, 50%) - var(--glow-size) / 2);
+  inset-block-start: calc(var(--glow-y, 50%) - var(--glow-size) / 2);
+  inline-size: var(--glow-size);
+  block-size: var(--glow-size);
+  border-radius: var(--radius-round);
+  background: radial-gradient(
+    circle,
+    color-mix(in oklch, var(--color-favorite-glow) 70%, transparent) 0%,
+    color-mix(in oklch, var(--color-favorite-glow) 32%, transparent) 38%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: var(--z-beneath);
+  animation: glow-halo var(--duration-spring-settle) var(--ease-spring-settle) both;
+}
+
+@keyframes glow-halo {
+  0% {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+
+  25% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow-halo {
+    display: none;
+  }
+}

@@ -445,10 +445,10 @@ export function renderLlms(system: System): string {
   lines.push(
     "",
     "## Component tokens",
-    `Sizes and bindings per part: ${[...groups].map(([group, count]) => `${group} (${count})`).join(", ")}. List one with \`npm run ds -- token <group>\`.`,
+    `Sizes per part: ${[...groups].map(([group, count]) => `${group} (${count})`).join(", ")}. List one with \`npm run ds -- token <group>\`.`,
     "",
     "## Bespoke controls",
-    `${system.bespoke.filter((item) => !item.part).length} controls are built for one place (the player transport and dock, speed controls, source rows), not for reuse. ${system.bespoke.filter((item) => item.part).length} more belong to a part above and are used through it. \`npm run ds -- part bespoke\` lists all with the reason.`,
+    `${system.bespoke.filter((item) => !item.part).length} controls are built for one place (the player transport and dock, speed controls, source rows), not for reuse. ${system.bespoke.filter((item) => item.part).length} more are used through a part above. \`npm run ds -- part bespoke\` lists them.`,
     "",
   );
   return lines.join("\n");

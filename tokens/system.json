@@ -4255,6 +4255,18 @@
       }
     },
     {
+      "name": "--color-favorite-glow",
+      "tier": "semantic",
+      "type": "color",
+      "light": "var(--color-red-300)",
+      "role": "The heart's halo. Red-300, the pinkest red step (owner, 2026-11-06: no new pink); the same in every mood and mode, as it is light, not ink.",
+      "dark": "var(--color-red-300)",
+      "hex": {
+        "light": "#fd8a7c",
+        "dark": "#fd8a7c"
+      }
+    },
+    {
       "name": "--color-info",
       "tier": "semantic",
       "type": "color",

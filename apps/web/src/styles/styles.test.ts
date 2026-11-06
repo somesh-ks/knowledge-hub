@@ -1374,6 +1374,7 @@ describe("component stylesheets", () => {
         "the press layer over a cover's art, which has no one colour",
       ],
       ["ripple.css .ripple-wave", "the press wave, which crosses the bar and its current pill"],
+      ["glow.css .glow-halo", "the favorite glow, light that fades over whatever lies beneath it"],
     ];
     const painted = /^(?:color|background(?:-color|-image)?|fill|--[\w-]+)$/;
     const found = ownCss().flatMap(([file, css]) =>
