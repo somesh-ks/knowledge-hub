@@ -257,6 +257,7 @@
   --color-surface-sunken-hover: oklch(from var(--color-surface-sunken) calc(l + var(--state-direction) * var(--state-step-hover)) c h);
   --color-surface-sunken-pressed: oklch(from var(--color-surface-sunken) calc(l + var(--state-direction) * var(--state-step-press)) c h);
   --color-surface-container-hover: oklch(from var(--color-surface-container) calc(l + var(--state-direction) * var(--state-step-hover)) c h);
+  --color-surface-container-focus: oklch(from var(--color-surface-container) calc(l + var(--state-direction) * var(--state-step-hover-quiet)) c h);
   --color-surface-container-pressed: oklch(from var(--color-surface-container) calc(l + var(--state-direction) * var(--state-step-press)) c h);
   --color-surface-raised-hover: oklch(from var(--color-surface-raised) calc(l + var(--state-direction) * var(--state-step-hover)) c h);
   --color-surface-raised-pressed: oklch(from var(--color-surface-raised) calc(l + var(--state-direction) * var(--state-step-press)) c h);

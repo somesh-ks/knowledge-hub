@@ -1263,6 +1263,22 @@ describe("design-system components in page stylesheets", () => {
     expect(found).toEqual([]);
   });
 
+  it("lift a focused control within its own fill, never to a floating surface", () => {
+    // The overlay is the surface of a menu or sheet, white in every light mood: a focused search bar
+    // that took it glared white on the page in light while dark's step stayed calm (owner,
+    // 2026-11-06). A focus fill steps the control's own surface (surface-container-focus).
+    const found = ownCss().flatMap(([file, css]) =>
+      rulesOf(css)
+        .filter(
+          ([selector, body]) =>
+            /:focus/.test(selector) &&
+            /background(?:-color)?:[^;]*--color-surface-overlay\b/.test(body),
+        )
+        .map(([selector]) => `${file}: ${selector.replace(/\s+/g, " ")}`),
+    );
+    expect(found).toEqual([]);
+  });
+
   it("are restyled only where the debt list says", () => {
     const found: string[] = [];
     for (const component of COMPONENTS) {
