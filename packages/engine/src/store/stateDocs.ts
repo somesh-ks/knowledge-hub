@@ -5,6 +5,7 @@ import type { Logger } from "../context.js";
 import { stateMergerFor } from "../git/stateMerge.js";
 import { writeFileAtomic } from "../state/atomicWrite.js";
 import { CONFIG_DOCUMENT_PATHS, type SqlClient } from "./configPaths.js";
+import { missingTable } from "./pgErrors.js";
 
 /**
  * The engine's run state (`state/*.json`) in Postgres (D300 step 3): one row per file, holding the
@@ -165,7 +166,13 @@ export async function seedState(
   options: { dryRun?: boolean } = {},
 ): Promise<string[]> {
   if (!options.dryRun) await sql.query(STATE_SCHEMA_SQL);
-  const stored = options.dryRun ? await readRows(sql).catch(() => []) : await readRows(sql);
+  // A dry run may find the table missing; any other failure (permissions, network) must not read as "empty".
+  const stored = options.dryRun
+    ? await readRows(sql).catch((error: unknown) => {
+        if (missingTable(error)) return [];
+        throw error;
+      })
+    : await readRows(sql);
   const have = new Set(stored.map((row) => row.path));
   const written: string[] = [];
   for (const path of await localStatePaths(root)) {

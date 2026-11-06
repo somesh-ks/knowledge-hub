@@ -101,7 +101,7 @@ describe("pullState and pushState", () => {
   it("merges a file another job wrote meanwhile, and keeps both jobs' runs", async () => {
     const sql = await realStore();
     const a = await checkout({ [TIMINGS]: timings("base") });
-    await seedState(a, sql);
+    expect(await seedState(a, sql)).toEqual([TIMINGS]);
     const b = await checkout();
     await pullState(a, sql);
     await pullState(b, sql);
@@ -158,6 +158,14 @@ describe("pullState and pushState", () => {
 
     const [row] = await sql.query("select content from state_documents where path = $1", [TIMINGS]);
     expect(String(row?.content)).toContain("mine");
+    // The baseline moved for the file that landed and stayed for the refused one, so a retry
+    // does not mistake the landed file for an edit.
+    const baseline = JSON.parse(await text(b, ".cache/state-pulled.json")) as Record<
+      string,
+      { version: number }
+    >;
+    expect(baseline[TIMINGS]?.version).toBeGreaterThan(1);
+    expect(baseline["state/seen.json"]?.version).toBe(1);
   });
 
   // The bug: usage.json merges as "the row plus what this job added since the pull". With no pull
