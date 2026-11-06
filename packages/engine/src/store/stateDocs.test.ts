@@ -177,16 +177,18 @@ describe("pullState and pushState", () => {
     await expect(pushState(root, sql)).rejects.toThrow(/state pull/);
   });
 
-  // The bug: a row dropped since the pull (reseeded store) made a file with no merge rule fail
-  // with a conflict, although this job's file is then the only copy and should go back in.
-  it("puts a file back when its row was removed since the pull", async () => {
+  // The bug: a row dropped since the pull (a reset store) put back at its old version lets another
+  // checkout that pulled the same version overwrite it without a conflict. The push refuses and the
+  // owner pulls and seeds again.
+  it("refuses to put a file back when its row was removed since the pull", async () => {
     const sql = await realStore();
     const root = await checkout({ "state/seen.json": "0\n" });
     await seedState(root, sql);
     await pullState(root, sql);
     await sql.query("delete from state_documents");
     await writeFile(join(root, "state/seen.json"), "1\n");
-    expect(await pushState(root, sql)).toEqual({ written: ["state/seen.json"], merged: [] });
+    await expect(pushState(root, sql)).rejects.toBeInstanceOf(StateConflictError);
+    expect(await sql.query("select path from state_documents")).toEqual([]);
   });
 
   // The bug: two checkouts pulled before usage.json had a row and both hold the same local count.

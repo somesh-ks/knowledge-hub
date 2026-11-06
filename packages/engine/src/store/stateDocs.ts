@@ -230,9 +230,11 @@ export interface PushResult {
 /**
  * Send each state file that differs from what the pull left. The write names the version the pull
  * saw, so it lands only if no other job wrote since. If one did, the file's merger combines the two
- * versions; no merger, or one that cannot read a side, is refused (the file is not written). A conflicting file does not stop the others; the command throws StateConflictError after all are tried. A merged file is also written to disk, so the
- * checkout matches the store, and the baseline moves to the new versions even when a later file
- * throws.
+ * versions; no merger, or one that cannot read a side, is refused (the file is not written). A
+ * conflicting file does not stop the others; the command throws StateConflictError after all are
+ * tried. A merged file is also written to disk, so the checkout matches the store. The pull record
+ * is dropped first and written back with the new versions once the files match; any other failure
+ * leaves none, and the next push refuses until a pull.
  */
 export async function pushState(
   root: string,
@@ -242,26 +244,26 @@ export async function pushState(
   const baseline = await readBaseline(root);
   // Without a pull there is no ancestor to merge from, and the files here may be older than the rows.
   if (baseline === null) throw new Error("no state pull record here; run `state pull` first");
+  // The record is dropped while rows are written and put back once the files match them, so a
+  // push that dies half-way cannot be retried against versions it already moved past.
+  await rm(join(root, STATE_BASELINE_PATH), { force: true });
   const result: PushResult = { written: [], merged: [] };
   const conflicts: { path: string; reason: string }[] = [];
-  try {
-    for (const path of await localStatePaths(root)) {
-      const mine = await readText(join(root, path));
-      const base = baseline[path];
-      if (mine === null || (base !== undefined && sha256(mine) === base.hash)) continue;
-      try {
-        const landed = await pushOne(sql, path, mine, base, result);
-        if (landed.content !== mine) await writeFileAtomic(join(root, path), landed.content);
-        baseline[path] = baselineOf({ path, ...landed });
-      } catch (error) {
-        // The other files still land: a refused seen.json must not cost the run its costs.
-        if (!(error instanceof FileConflict)) throw error;
-        conflicts.push({ path, reason: error.message });
-      }
+  for (const path of await localStatePaths(root)) {
+    const mine = await readText(join(root, path));
+    const base = baseline[path];
+    if (mine === null || (base !== undefined && sha256(mine) === base.hash)) continue;
+    try {
+      const landed = await pushOne(sql, path, mine, base, result);
+      if (landed.content !== mine) await writeFileAtomic(join(root, path), landed.content);
+      baseline[path] = baselineOf({ path, ...landed });
+    } catch (error) {
+      // The other files still land: a refused seen.json must not cost the run its costs.
+      if (!(error instanceof FileConflict)) throw error;
+      conflicts.push({ path, reason: error.message });
     }
-  } finally {
-    await writeBaseline(root, baseline);
   }
+  await writeBaseline(root, baseline);
   for (const path of result.merged) log.info(`state: merged ${path} with a newer write`);
   if (conflicts.length > 0) throw new StateConflictError(conflicts);
   return result;
@@ -285,10 +287,10 @@ async function pushOne(
       return { version: landed, content };
     }
     const [row] = await readRows(sql, [path]);
-    // The row was removed since the pull: this job's file is the only copy, so it goes back in.
     if (row === undefined) {
-      content = mine;
-      version = null;
+      // A row removed since the pull must not be put back at a version another checkout may also
+      // hold; the store was reset, so the owner pulls and seeds again.
+      if (version !== null) throw new FileConflict("its row was removed since the pull");
       continue;
     }
     // The row moved: merge this job's file into what is there now, then try again on that version.
