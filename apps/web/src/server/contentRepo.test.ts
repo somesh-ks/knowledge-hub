@@ -437,5 +437,5 @@ it("loads a manifest again while a file it lists is not served yet", async () =>
   store.set(path, body);
   now = 2 * MANIFEST_TTL_MS;
   const withIt = await loadStoreSite(deps);
-  expect(withIt.episodes.length).toBe(without.episodes.length + 1);
+  expect(withIt?.episodes.length).toBe((without?.episodes.length ?? -1) + 1);
 });
