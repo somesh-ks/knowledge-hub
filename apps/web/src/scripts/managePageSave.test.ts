@@ -19,6 +19,7 @@ import {
   keepHeld,
   keepWaiting,
   MAX_BODY_CHARS,
+  MAX_OPS,
   type Pending,
   pack,
   remember,
@@ -559,26 +560,34 @@ describe("a left page's held run", () => {
     expect(outboxOps()).toEqual([]);
   });
 
-  it("leaves a held edit to its run when storage refuses to keep it, so it still goes once", async () => {
+  it("leaves held edits to their run when storage refuses to keep them, so each goes once, in order", async () => {
     const changes = new Map([["time", change({ op: "schedule.set", hour: 9 })]]);
     const { context: left } = page(changes);
     await flush(left);
-    changes.set("length", change({ op: "schedule.set", length_minutes: 3 }));
+    // One more than a request carries: two batches, kept together or not at all.
+    const held = Array.from({ length: MAX_OPS + 1 }, (_, at) => ({
+      op: "source.set" as const,
+      id: `s${at}`,
+      enabled: false,
+    }));
+    for (const op of held) changes.set(op.id, change(op));
     const run = flush(left);
     const storage = localStorage;
     vi.stubGlobal("localStorage", {
       ...storage,
       getItem: (key: string) => storage.getItem(key),
-      setItem: () => {
-        throw new DOMException("full", "QuotaExceededError");
+      // Room for the first batch, not the second: keeping it alone would send the second first.
+      setItem: (key: string, value: string) => {
+        if (value.includes(`"s${MAX_OPS}"`)) throw new DOMException("full", "QuotaExceededError");
+        storage.setItem(key, value);
       },
     });
     keepHeld(left);
-    expect(left.changes.size).toBe(1);
+    expect(left.changes.size).toBe(held.length);
     vi.stubGlobal("localStorage", storage);
-    await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+    await vi.advanceTimersByTimeAsync(GAP_MS * 3);
     await run;
-    expect(posted.slice(1)).toEqual([[{ op: "schedule.set", length_minutes: 3 }]]);
+    expect(posted.slice(1).flat()).toEqual(held);
     expect(outboxOps()).toEqual([]);
   });
 
