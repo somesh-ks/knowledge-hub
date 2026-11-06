@@ -214,7 +214,7 @@ const KEYS: readonly KeySpec[] = [
   {
     name: "TYPESAFE_API_KEY",
     missing:
-      "Jev is off: the Haiku or Flash-Lite fallback judge answers and digests are unverified. Get a key at console.typesafe.ai.",
+      "Jev is off: the Haiku or Flash-Lite fallback judge answers and grounding uses the routed models, so digests are checked with less trust. Get a key at console.typesafe.ai.",
   },
   {
     name: "ANTHROPIC_API_KEY",
