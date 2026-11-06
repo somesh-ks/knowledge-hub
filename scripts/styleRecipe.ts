@@ -79,7 +79,6 @@ export const NEUTRAL_ROLES: Record<string, RoleSpec> = {
   "on-surface": { family: TYPE, light: at(20), dark: at(95) },
   "on-surface-reading": { family: TYPE, light: at(22), dark: at(92.5) },
   "on-surface-muted": { family: MID, light: at(34), dark: at(81.5) },
-  "on-surface-subtle": { family: MID, light: at(47), dark: at(73.5) },
   "on-surface-inverse": { family: GROUND, light: at(94), dark: at(20) },
   "border-hairline": { family: GROUND, light: page(-10.5), dark: page(13.5) },
   "border-control": { family: MID, light: at(53.5), dark: at(64) },

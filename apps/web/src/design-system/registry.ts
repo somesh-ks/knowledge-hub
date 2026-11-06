@@ -8,10 +8,12 @@ import { AVATAR, AVATAR_CLASSES, AVATAR_RETIRED } from "./avatar";
 import { BADGE, BADGE_CLASSES, BADGE_RETIRED } from "./badge";
 import { BANNER, BANNER_CLASSES, BANNER_RETIRED } from "./banner";
 import { BUTTON, BUTTON_CLASSES, BUTTON_RETIRED } from "./button";
+import { CODE, CODE_CLASSES, CODE_RETIRED } from "./code";
 import { DIALOG, DIALOG_CLASSES, DIALOG_RETIRED } from "./dialog";
 import { DRAWER, DRAWER_CLASSES, DRAWER_RETIRED } from "./drawer";
 import { FIELD, FIELD_CLASSES, FIELD_RETIRED } from "./field";
 import { FLAG, FLAG_CLASSES, FLAG_RETIRED } from "./flag";
+import { GLOW, GLOW_CLASSES, GLOW_RETIRED } from "./glow";
 import type { Guidance } from "./guidance";
 import { ICON, ICON_CLASSES, ICON_RETIRED } from "./icon";
 import { MENU, MENU_CLASSES, MENU_RETIRED } from "./menu";
@@ -101,6 +103,17 @@ export const COMPONENTS: DesignSystemComponent[] = [
     summary: FLAG.summary,
     useWhen: FLAG.useWhen,
     dontUseWhen: FLAG.dontUseWhen,
+    parts: {},
+  },
+  {
+    name: "Code",
+    sheet: "code.css",
+    prefix: "code-",
+    classes: CODE_CLASSES,
+    retired: CODE_RETIRED,
+    summary: CODE.summary,
+    useWhen: CODE.useWhen,
+    dontUseWhen: CODE.dontUseWhen,
     parts: {},
   },
   {
@@ -222,6 +235,17 @@ export const COMPONENTS: DesignSystemComponent[] = [
     summary: RIPPLE.summary,
     useWhen: RIPPLE.useWhen,
     dontUseWhen: RIPPLE.dontUseWhen,
+    parts: {},
+  },
+  {
+    name: "Glow",
+    sheet: "glow.css",
+    prefix: "glow-",
+    classes: GLOW_CLASSES,
+    retired: GLOW_RETIRED,
+    summary: GLOW.summary,
+    useWhen: GLOW.useWhen,
+    dontUseWhen: GLOW.dontUseWhen,
     parts: {},
   },
 ];

@@ -89,6 +89,15 @@ Asked for by the owner and not yet planned. Each needs a design or a decision be
   - Closed when: the owner picks one, and a thrown error on his phone shows in admin with its page, build and device within a minute.
 - **npm to pnpm**: asked for on 10-24 for faster installs and builds. Today the repo uses npm workspaces and `package-lock.json`; every workflow, the Vercel builds, `worktreeLinks.mjs` and Dependabot use npm.
   - Closed when: CI, the Vercel builds and the scheduled runs install with pnpm and a measured install is faster than npm's.
+- **Protect `main` and make the repo enterprise grade** (asked 2026-11-06): each step below needs the owner's call before a setting changes, because several touch the auto-merge token, the self-merge flow and the engine's pushes to `main`.
+  - Import the ruleset: `.github/rulesets/main.json` (no deletion or force push, linear history, PR with resolved threads, squash only, required checks, the Actions app as bypass) is written but was never imported (runbook, branch protection; `state.md` known risk). #551 adds an always-run browser gate to it.
+  - Code owners: `.github/CODEOWNERS` covers the design system only. Add the Tier 2 paths (pipeline, store, auth, workflows, gates, `AGENTS.md`) and decide whether the ruleset requires code-owner review.
+  - Signed commits: decide whether `main` requires them; the engine's bot commits and the squash merges would need to be signed too.
+  - Secret scanning and push protection: confirm both are on in Settings > Code security (the repo is public, D298).
+  - Dependabot security updates: turn on alerts and security PRs; a push on 11-05 reported 27 open alerts on `main` (7 high).
+  - A `SECURITY.md` with how to report a vulnerability.
+  - Actions: every workflow sets top-level `permissions:` and pins every third-party action by SHA, so recheck least privilege per job and keep new actions pinned.
+  - Closed when: the rulesets API lists the imported ruleset, the owner has ruled on each step above, and a direct push to `main` from a person is refused.
 - **History rewrite (D298)**: remove the owner's old data from git history.
   - Closed when: it is done with no PR open, and a clone holds none of it.
 

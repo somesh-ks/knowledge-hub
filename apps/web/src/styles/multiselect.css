@@ -31,7 +31,7 @@
   border-radius: var(--button-radius);
   background: none;
   color: var(--color-on-surface);
-  font-size: var(--font-size-body);
+  font-size: var(--text-body-size);
   line-height: var(--font-leading-label);
   text-align: start;
   cursor: pointer;
@@ -230,14 +230,14 @@
 }
 
 .multiselect-label {
-  font-size: var(--font-size-body);
+  font-size: var(--text-body-size);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-label);
 }
 
 .multiselect-hint {
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-caption);
 }
 
@@ -294,7 +294,7 @@
     padding-block-end: max(var(--space-2), var(--safe-bottom));
     overflow-y: auto;
     border: 0;
-    border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+    border-radius: var(--shape-sheet) var(--shape-sheet) 0 0;
     background: var(--sheet-bg);
     box-shadow:
       var(--sheet-shadow),

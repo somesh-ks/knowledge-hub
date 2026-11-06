@@ -686,11 +686,11 @@
         "--shadow-popover",
         "--shape-2xl",
         "--shape-md",
+        "--shape-sheet",
         "--shape-xl",
         "--sheet-bg",
         "--sheet-bg-hover",
         "--sheet-bg-pressed",
-        "--sheet-radius",
         "--sheet-shadow",
         "--sheet-tile-bg",
         "--sheet-tile-bg-hover",
@@ -870,8 +870,7 @@
         "`sheet-field*`, `sheet-form` and `sheet-actions` are form layout in sheets.css, not the shell."
       ],
       "styles": [
-        "sheet.css",
-        "topics.css"
+        "sheet.css"
       ],
       "usage": "",
       "tokens": [
@@ -884,10 +883,10 @@
         "--color-surface-container",
         "--color-surface-hover",
         "--color-surface-pressed",
+        "--shape-sheet",
         "--sheet-bg",
         "--sheet-bg-hover",
         "--sheet-bg-pressed",
-        "--sheet-radius",
         "--sheet-shadow"
       ]
     },
@@ -941,10 +940,10 @@
         "--color-surface",
         "--color-surface-hover",
         "--color-surface-pressed",
+        "--shape-sheet",
         "--sheet-bg",
         "--sheet-bg-hover",
         "--sheet-bg-pressed",
-        "--sheet-radius",
         "--sheet-shadow"
       ]
     },
@@ -1074,6 +1073,7 @@
       "styles": [
         "buttons.css",
         "foundations.css",
+        "queue.css",
         "story-controls.css"
       ],
       "usage": "The icon button: a glyph in a round 44px target. Quiet until used; the accent is for actions that have a label.",
@@ -1085,6 +1085,10 @@
         "--color-on-surface",
         "--color-on-surface-disabled",
         "--color-on-surface-muted",
+        "--cta-bg",
+        "--cta-bg-hover",
+        "--cta-bg-pressed",
+        "--cta-fg",
         "--size-icon-lg",
         "--size-touch"
       ]
@@ -1604,6 +1608,7 @@
         "--color-surface-inverse-pressed",
         "--layout-dialog",
         "--shape-md",
+        "--shape-round",
         "--size-touch",
         "--toast-bg",
         "--toast-fg"
@@ -1733,6 +1738,7 @@
         "--color-surface-container-hover",
         "--color-surface-overlay",
         "--field-height",
+        "--shape-round",
         "--size-touch"
       ]
     },
@@ -1951,6 +1957,7 @@
         "--cta-bg-hover",
         "--cta-bg-pressed",
         "--cta-fg",
+        "--shape-round",
         "--size-icon-lg"
       ]
     }
@@ -2884,12 +2891,6 @@
       "light": "1.5rem"
     },
     {
-      "name": "--radius-sheet",
-      "tier": "primitive",
-      "type": "dimension",
-      "light": "1.75rem"
-    },
-    {
       "name": "--radius-2xl",
       "tier": "primitive",
       "type": "dimension",
@@ -2937,6 +2938,13 @@
       "type": "fontFamily",
       "light": "\"Google Sans Flex Variable\", \"Google Sans Flex Fallback\", system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif",
       "role": "Same family as the interface. Kept as its own token so story text can change voice without touching components."
+    },
+    {
+      "name": "--font-code",
+      "tier": "primitive",
+      "type": "fontFamily",
+      "light": "\"Google Sans Code\", ui-monospace, \"SF Mono\", \"Cascadia Mono\", \"Roboto Mono\", Menlo, Consolas, \"Liberation Mono\", monospace",
+      "role": "Monospace for text a person copies as it is: a run's details, a prompt, an error. Google Sans Code, the interface family's monospace (fonts.css, fetched only where a snippet is drawn), then the system's own; the same in every mood."
     },
     {
       "name": "--font-blackletter",
@@ -3736,18 +3744,6 @@
       }
     },
     {
-      "name": "--color-on-surface-subtle",
-      "tier": "semantic",
-      "type": "color",
-      "light": "var(--color-grey-600)",
-      "role": "Tertiary text. Still 4.5:1 on every surface; never lighter.",
-      "dark": "var(--color-grey-300)",
-      "hex": {
-        "light": "#595c62",
-        "dark": "#acb0b5"
-      }
-    },
-    {
       "name": "--color-on-surface-disabled",
       "tier": "semantic",
       "type": "color",
@@ -4244,6 +4240,18 @@
       }
     },
     {
+      "name": "--color-favorite-glow",
+      "tier": "semantic",
+      "type": "color",
+      "light": "var(--color-red-300)",
+      "role": "The heart's halo. Red-300, the pinkest red step (owner, 2026-11-06: no new pink); the same in every mood and mode, as it is light, not ink.",
+      "dark": "var(--color-red-300)",
+      "hex": {
+        "light": "#fd8a7c",
+        "dark": "#fd8a7c"
+      }
+    },
+    {
       "name": "--color-info",
       "tier": "semantic",
       "type": "color",
@@ -4404,13 +4412,21 @@
       "name": "--shape-sheet",
       "tier": "semantic",
       "type": "dimension",
-      "light": "var(--radius-sheet)"
+      "light": "var(--shape-2xl)",
+      "role": "A bottom sheet's top corners: the 2xl corner, the picker's, so every phone sheet shares one corner (owner, 2026-11-01). The one name for a sheet's rounding (D378)."
     },
     {
       "name": "--shape-2xl",
       "tier": "semantic",
       "type": "dimension",
       "light": "var(--radius-2xl)"
+    },
+    {
+      "name": "--shape-round",
+      "tier": "semantic",
+      "type": "dimension",
+      "light": "var(--radius-round)",
+      "role": "A pill or a circle."
     },
     {
       "name": "--size-touch",
@@ -4517,7 +4533,8 @@
       "name": "--text-meta",
       "tier": "semantic",
       "type": "typography",
-      "light": "family: var(--font-ui); size: var(--font-size-meta); weight: var(--font-weight-regular); tracking: var(--font-tracking-caption); leading: var(--font-leading-caption)"
+      "light": "family: var(--font-ui); size: var(--font-size-body); weight: var(--font-weight-regular); tracking: var(--font-tracking-caption); leading: var(--font-leading-caption)",
+      "role": "A line of facts under a title. Body size since 2026-11-05 (owner: subtitles at 1rem everywhere); muted ink and the caption tracking keep it apart from body."
     },
     {
       "name": "--text-caption",
@@ -4940,6 +4957,13 @@
       "light": "var(--space-6)"
     },
     {
+      "name": "--player-speed-readout-size",
+      "tier": "component",
+      "type": "dimension",
+      "light": "4rem",
+      "role": "The speed screen's number: twice Default's display size, so the number is the screen and the buttons its edges (owner, 2026-11-02). The same in every mood, so it fits between them."
+    },
+    {
       "name": "--player-bg",
       "tier": "component",
       "type": "color",
@@ -5206,8 +5230,8 @@
       "name": "--field-label-gap",
       "tier": "component",
       "type": "dimension",
-      "light": "0.75rem",
-      "role": "A label onto the field it names: 12px, a step over 8 so the label does not sit on the outline, and under the gap between two fields (24px) so it still belongs to its own (owner, 2026-10-29)."
+      "light": "var(--space-1)",
+      "role": "A label onto the field it names: 4px, the grid's named small step, so the label belongs to its own field and not the one above (24px apart). 12px from 2026-10-29 to 2026-11-05, when the owner put every spacing value on the grid."
     },
     {
       "name": "--field-padding",
@@ -5305,11 +5329,11 @@
       "role": "The off track under a pointer or a press: the control's edge stepped toward the page's text (D317), as every fill's state is."
     },
     {
-      "name": "--sheet-radius",
+      "name": "--checkbox-size",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--shape-2xl)",
-      "role": "A bottom sheet's top corners: 32px, the picker's, so every phone sheet shares one corner (owner, 2026-11-01)."
+      "light": "1.125rem",
+      "role": "The box's side, its 2px outline included. A row that ends on a check sets the target past the edge by half of what the target adds to it, so the box meets the edge."
     },
     {
       "name": "--sheet-padding",
@@ -5634,6 +5658,20 @@
       "type": "dimension",
       "light": "3.5rem",
       "role": "Top bar, before the top safe area is added."
+    },
+    {
+      "name": "--app-bar-wordmark-size",
+      "tier": "component",
+      "type": "dimension",
+      "light": "var(--font-size-label-lg)",
+      "role": "The wordmark's type size, a step over the body."
+    },
+    {
+      "name": "--queue-title-size",
+      "tier": "component",
+      "type": "dimension",
+      "light": "var(--font-size-label-lg)",
+      "role": "The open queue's title, the wordmark's size."
     },
     {
       "name": "--nav-bar-height",
@@ -5972,8 +6010,8 @@
       "name": "--card-inset",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--space-1)",
-      "role": "From the card's edge to a surface inside it, on every side: a row's hover tile, a select's fill. Two tiles sit the same distance apart. 4px, so a tile and its target are nearly the card's width (owner, 2026-10-24: \"4px padding is decent\")."
+      "light": "var(--space-2)",
+      "role": "From the card's edge to a surface inside it, on every side: a row's hover tile, a select's fill. Two tiles sit the same distance apart. 8px since 2026-11-05 (owner: every spacing value on the grid): a row's words, the card's 24px padding in, then sit 16px into their tile. 4px from 2026-10-24."
     },
     {
       "name": "--card-radius",
@@ -5986,7 +6024,7 @@
       "name": "--card-inner-radius",
       "tier": "component",
       "type": "dimension",
-      "light": "var(--shape-sheet)",
+      "light": "var(--shape-xl)",
       "role": "A row's hover tile, one inset in from the card's edge: the card's radius less the inset."
     },
     {
