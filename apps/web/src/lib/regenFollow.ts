@@ -43,9 +43,31 @@ export function stepLength(from: number, direction: "shorter" | "longer"): numbe
   );
 }
 
-/** The length an untouched control shows: the asked one, a step along when the comment asks. */
-export function desiredLength(asked: number, values: Values): number {
-  return values.length ? stepLength(asked, values.length) : asked;
+const WANTS_LONGER =
+  /\b(?:(?:more|extra|additional)\s+(?:stories|story|items|news|coverage)|not enough (?:stories|news|coverage)|longer|too short|more (?:time|depth|detail))\b/i;
+const WANTS_SHORTER =
+  /\b(?:(?:fewer|less)\s+(?:stories|story|items)|shorter|briefer|too long|dragged)\b/i;
+
+/**
+ * What the words alone ask of the length: the story count is the length (a 5 minute podcast airs
+ * about 13 stories, a 10 minute one about 26), so "more stories" can only be met by a longer one.
+ * Null when they ask for both or neither. This answers at once and without a model, so the length
+ * follows the comment even when Haiku is slow, rate-limited or wrong (2026-11-06: "More stories"
+ * was sent at the length it was made at and aired 12 again).
+ */
+export function wordLength(text: string): "shorter" | "longer" | null {
+  const longer = WANTS_LONGER.test(text);
+  const shorter = WANTS_SHORTER.test(text);
+  return longer === shorter ? null : longer ? "longer" : "shorter";
+}
+
+/**
+ * The length an untouched control shows: the asked one, a step along when the comment asks. What
+ * Haiku proposed wins; the words decide when it has not answered.
+ */
+export function desiredLength(asked: number, values: Values, text = ""): number {
+  const direction = values.length ?? wordLength(text);
+  return direction ? stepLength(asked, direction) : asked;
 }
 
 /** Whether an untouched category is ticked: as it was made, or ticked because the comment wants it. */

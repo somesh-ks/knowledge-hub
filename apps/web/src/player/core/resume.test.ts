@@ -3,6 +3,9 @@ import {
   clearResumePosition,
   PLAYED_KEY_PREFIX,
   playedKey,
+  readRemembered,
+  readResumePosition,
+  recordingOf,
   resumeKey,
   type StorageLike,
   saveResumePosition,
@@ -81,5 +84,37 @@ describe("played", () => {
     };
     expect(() => clearResumePosition(failing, "ep-1")).not.toThrow();
     expect(() => saveResumePosition(failing, "ep-1", 119, 120)).not.toThrow();
+  });
+});
+
+describe("a rewritten recording", () => {
+  // The bug it prevents (2026-11-06, the owner's phone): a rewrite keeps the digest's id, so its new
+  // recording began where the old one was left, at 4 minutes, and the seek made Play wait.
+  it("starts over where the recording it was saved for is gone, and forgets its Played", () => {
+    const storage = memory();
+    saveResumePosition(storage, "2026-11-05", 250, 300, "audio/2026-11-05.v1.mp3");
+    expect(readResumePosition(storage, "2026-11-05", 330, "audio/2026-11-05.v1.mp3")).toBe(250);
+    expect(readResumePosition(storage, "2026-11-05", 330, "audio/2026-11-05.v2.mp3")).toBe(0);
+    expect(storage.getItem(resumeKey("2026-11-05"))).toBeNull();
+
+    clearResumePosition(storage, "2026-11-05", "audio/2026-11-05.v2.mp3");
+    expect(readRemembered(storage, "2026-11-05", 330, "audio/2026-11-05.v2.mp3").played).toBe(true);
+    expect(readRemembered(storage, "2026-11-05", 330, "audio/2026-11-05.v3.mp3").played).toBe(
+      false,
+    );
+  });
+
+  it("names the recording by the file the browser tries first", () => {
+    expect(recordingOf({ url: "a.mp3", m4a_url: "a.m4a" })).toBe("a.m4a");
+    expect(recordingOf({ url: "a.mp3" })).toBe("a.mp3");
+    expect(recordingOf(null)).toBeUndefined();
+  });
+
+  it("keeps memory written before the recording was noted, and a reader that does not know it", () => {
+    const storage = memory();
+    storage.setItem(resumeKey("2026-11-05"), "90");
+    expect(readResumePosition(storage, "2026-11-05", 330, "audio/2026-11-05.v2.mp3")).toBe(90);
+    saveResumePosition(storage, "2026-11-06", 60, 300, "audio/2026-11-06.v1.mp3");
+    expect(readResumePosition(storage, "2026-11-06", 300)).toBe(60);
   });
 });

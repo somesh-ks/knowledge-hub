@@ -40,6 +40,7 @@ import {
 import {
   clearResumePosition,
   readResumePosition,
+  recordingOf,
   type StorageLike,
   saveResumePosition,
 } from "./resume";
@@ -274,7 +275,13 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   function saveResume(): void {
     if (!track) return;
     readAudioTime();
-    saveResumePosition(storage, track.digest.id, time, durationNow());
+    saveResumePosition(
+      storage,
+      track.digest.id,
+      time,
+      durationNow(),
+      recordingOf(track.digest.audio),
+    );
   }
 
   function startSaveTimer(): void {
@@ -380,7 +387,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
     stopTimers();
     wantsPlay = false;
     time = durationNow();
-    clearResumePosition(storage, track.digest.id);
+    clearResumePosition(storage, track.digest.id, recordingOf(track.digest.audio));
     commit({ status: "ended", buffering: false, upNextId: track.digest.prev_id });
     publishTime("auto", true);
     emit({ type: "ended" });
@@ -679,7 +686,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
 
     const timeline = buildTimeline(digest);
     const duration = timeline?.durationSec ?? 0;
-    const restored = readResumePosition(storage, digest.id, duration);
+    const restored = readResumePosition(storage, digest.id, duration, recordingOf(digest.audio));
     time = restored;
     pendingStart = restored > 0 ? restored : null;
     track = { digest, timeline };

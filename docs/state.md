@@ -24,6 +24,7 @@ Unit (CI): 367 files, 5,572 tests, 2 min. Site e2e: 449, 14 min. Player: 80, 7 m
 
 - D318 edge cache. closed when: a week of his loads is mostly HIT or STALE.
 - Guardrails (D360): #673 awaits his merge, `secrets:push`. closed when: Health's Budgets are fresh.
+- Rewrite starts at 0:00; "More stories" lengthens closed when: his "More stories" regeneration shows 10 min and plays at 0:00.
 - Listen now streams (D366): parts as the script is written, for Catch up and Regenerate. closed when: Somesh's first live Catch up plays on his phone without a pause.
 - Blob on Pro trial since 10-30, ending 11-13 (D251, D256). Plan call 11-06 to 11-08 (Pro, or Hobby: 1.1K of 2,000 advanced Blob ops a month on 11-01, under 70 deploys a day), from the Usage tab, the only op count. closed when: the plan is chosen.
 - Bottom bar ripple (D286, D347) and tab state. closed when: on his Android Chrome Settings pages rise, tabs slide at 250 ms, and the latest podcast keeps its tab lit.
@@ -76,7 +77,7 @@ Unit (CI): 367 files, 5,572 tests, 2 min. Site e2e: 449, 14 min. Player: 80, 7 m
 
 ## Next
 
-1. Free the lane in the hold ([D209](decisions/engine.md)): step 1 is built (#399); steps 2, 4 and 5 are not. Step 3, the batch, shipped as D294. A batch the wait gives up on, or a cancel leaves running, is listed in `.cache/run/open-batches.json` and settled by run.yml's "Settle batches" step (`batch-settle`) before Commit; the step needs a manual merge and is unproven live. closed when: a scheduled run's write stage logs "Writer first pass by batch" with `back` above 0, and a run that gave up on a batch logs "Settled a batch the run had left open".
+1. Free the lane in the hold ([D209](decisions/engine.md)): step 1 is built (#399); steps 2, 4 and 5 are not. Step 3, the batch, shipped as D294. A batch left open is listed in `.cache/run/open-batches.json` and settled by run.yml's "Settle batches" step (`batch-settle`); unproven live. closed when: a scheduled run's write stage logs "Writer first pass by batch" with `back` above 0, and a run that gave up on a batch logs "Settled a batch the run had left open".
 2. Owner: regenerate the 3-story 10-27 briefing? Revoke the Vercel token; delete empty store `store_JmrDq8MB5Kwn3ejW`; open calls: [PWA note](history/2026-10-16-pwa-launch-and-one-model-select.md).
 3. Firecrawl: owner prunes from the yield report. The free change check (D342) skips unchanged listings. closed when: a run skips one, then scrapes a changed one.
 4. Lighthouse CSS defer parked: inlined critical CSS paints a cold phone in 1.0 s, not 3.2 s, but the CSP blocks it.
