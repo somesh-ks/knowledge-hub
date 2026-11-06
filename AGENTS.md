@@ -68,4 +68,4 @@ Project agents (`singularity-verify`, `singularity-worker`) are in `.claude/agen
 
 After a large piece of work: clean up scratch files, servers, stashes and local branches; review the merged diff (CodeRabbit), fix findings, verify the Vercel production deploy.
 
-At the end of a session: update `docs/state.md`, add a decision (next D-number, and a row in the Index) for anything that changes direction, add one line to `docs/learnings.md` per failure, and add a note under `docs/history/`.
+At the end of a session: update `docs/state.md`, add a decision (next D-number, one file in `decisions/entries/`) for anything that changes direction, one line to `docs/learnings.md` per failure, and a note under `docs/history/`.
