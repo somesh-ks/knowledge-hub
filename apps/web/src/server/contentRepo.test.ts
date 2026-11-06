@@ -439,3 +439,42 @@ it("loads a manifest again while a file it lists is not served yet", async () =>
   const withIt = await loadStoreSite(deps);
   expect(withIt?.episodes.length).toBe((without?.episodes.length ?? -1) + 1);
 });
+
+// Bug (CodeRabbit, #732): a request that reused a load again while it was pending was refused when that
+// load failed, though the site held before it could answer, as it did for the request that started it.
+it("answers a request that joins a failing load again from the site held before it", async () => {
+  await fillStore("2026-10-24T12:00:00Z");
+  const manifest = JSON.parse(store.get("content/manifest.json") ?? "{}");
+  manifest.files["Podcasts/2026/10/ep-20261007-1930.md"] = "0".repeat(64);
+  store.set("content/manifest.json", JSON.stringify(manifest));
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let hangFiles = false;
+  let reading!: () => void;
+  const started = new Promise<void>((resolve) => {
+    reading = resolve;
+  });
+  const flaky = async (url: string): Promise<Response> => {
+    const { pathname } = new URL(url);
+    if (!hangFiles || pathname === "/content/manifest.json" || !pathname.startsWith("/content/"))
+      return fakeFetch(url);
+    reading();
+    await gate;
+    return new Response(null, { status: 500 });
+  };
+  let now = 0;
+  const deps = { env: ENV, fetch: flaky, now: () => now };
+  const first = await loadStoreSiteChecked(deps);
+  expect(first?.site.entries.length).toBeGreaterThan(0);
+  hangFiles = true;
+  now = 25_000;
+  const starter = loadStoreSiteChecked(deps);
+  await started;
+  const joiner = loadStoreSiteChecked(deps);
+  release();
+  const [a, b] = await Promise.allSettled([starter, joiner]);
+  expect(a.status).toBe("fulfilled");
+  expect(b.status).toBe("fulfilled");
+});

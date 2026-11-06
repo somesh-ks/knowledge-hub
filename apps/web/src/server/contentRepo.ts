@@ -131,6 +131,8 @@ interface HeldSite {
   rechecks: number;
   /** The load failed. A failed load is never answered from, whichever slot it is restored to. */
   failed: boolean;
+  /** The site held before this load, which answers for it while it is pending and if it fails. */
+  previous: HeldSite | null;
 }
 
 let heldSite: HeldSite | null = null;
@@ -244,7 +246,7 @@ export async function loadStoreSiteChecked(
   const { saved } = current;
   const held = heldSite;
   if (held !== null && holdsCurrent(held, current.manifest.updated_at, deps.now()))
-    return { site: await held.site.then((site) => withoutTombstoned(site, ids)), saved };
+    return answerFrom(held, current.manifest.updated_at, ids, saved);
   const stale = { count: 0 };
   const files = storeFiles(current.base, current.manifest, deps.fetch, () => {
     stale.count += 1;
@@ -285,36 +287,51 @@ export async function loadStoreSiteChecked(
     stale,
     rechecks: previous?.updatedAt === current.manifest.updated_at ? previous.rechecks + 1 : 0,
     failed: false,
+    previous,
   };
   heldSite = entry;
   site.then(
     // The window counts from the end of the load, not its start.
     () => {
       entry.loadedAt = deps.now();
+      entry.previous = null;
     },
     // A failed load is not kept, so the next request tries again; the site held before it stays.
     () => {
       entry.failed = true;
       if (heldSite?.site === site) heldSite = previous;
+      // A load again of a manifest already shown only looked for a newer copy of a file. Its failure
+      // counts as a try, once, so a store that is down is not asked on every request.
+      if (previous !== null && previous.updatedAt === entry.updatedAt) {
+        previous.rechecks += 1;
+        previous.loadedAt = deps.now();
+      }
     },
   );
+  return answerFrom(entry, current.manifest.updated_at, ids, saved);
+}
+
+/**
+ * Answers from a held load, for the request that started it and for those that reuse it while it is
+ * pending. When it fails, the site held before it answers: it is fresher than the build's copy, and
+ * says it is saved unless the failed load was only another look at the manifest it already showed.
+ */
+async function answerFrom(
+  entry: HeldSite,
+  updatedAt: string,
+  ids: ReadonlySet<string>,
+  saved: boolean,
+): Promise<{ site: Site; saved: boolean }> {
   try {
-    return { site: await site.then((loaded) => withoutTombstoned(loaded, ids)), saved };
+    return { site: await entry.site.then((loaded) => withoutTombstoned(loaded, ids)), saved };
   } catch (error) {
-    // The newer content could not be read: the last site this instance loaded is fresher than the
-    // build's copy, and says it is saved.
+    const { previous } = entry;
     if (previous === null) throw error;
     const kept = await previous.site
       .then((loaded) => withoutTombstoned(loaded, ids))
       .catch(() => null);
     if (kept === null) throw error;
-    // A load again of a manifest already shown only looked for a newer copy of a file. Its failure
-    // is not a saved site, and counts as a try, so a store that is down is not asked on every request.
-    if (previous.updatedAt === current.manifest.updated_at) {
-      previous.rechecks += 1;
-      previous.loadedAt = deps.now();
-      return { site: kept, saved };
-    }
+    if (previous.updatedAt === updatedAt) return { site: kept, saved };
     savedContent = true;
     return { site: kept, saved: true };
   }
