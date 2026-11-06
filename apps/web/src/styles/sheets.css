@@ -110,7 +110,6 @@ fieldset.sheet-field {
   --color-focus-gap: var(--color-surface-inverse);
   --ghost-hover: var(--color-surface-inverse-hover);
   --ghost-pressed: var(--color-surface-inverse-pressed);
-  --color-focus-ring: var(--toast-fg);
   /* A finger swipes it away sideways (Toaster.tsx); the page under it still scrolls up and down. */
   touch-action: pan-y;
   opacity: 0;
@@ -123,6 +122,12 @@ fieldset.sheet-field {
     translate var(--duration-exit) var(--ease-out),
     overlay var(--duration-exit) allow-discrete,
     display var(--duration-exit) allow-discrete;
+}
+
+/* The ring takes the toast's ink on its dark fill, after keys only: a tap clears the ring below the
+   root (foundations.css, data-input), and a colour set here would beat that and stay after a touch. */
+:root:not([data-input="pointer"]) .toast {
+  --color-focus-ring: var(--toast-fg);
 }
 
 /* A toast that asks to stay on one line (oneLine, toastStore.ts; the time zone offer, D239) keeps

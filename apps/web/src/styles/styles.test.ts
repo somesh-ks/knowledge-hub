@@ -1285,6 +1285,21 @@ describe("design-system components in page stylesheets", () => {
     expect(found).toEqual([]);
   });
 
+  it("set a component's own ring colour only past the tap guard", () => {
+    // A component that sets --color-focus-ring beats the root's tap clear (foundations.css): the
+    // toast's ring stayed after a touch until its colour waited for keys. Text fields keep a ring.
+    const found = ownCss().flatMap(([file, css]) =>
+      rulesOf(css)
+        .filter(
+          ([selector, body]) =>
+            /--color-focus-ring\s*:/.test(body) &&
+            !/^:root\b|data-input|field-input|textarea/.test(selector.trim()),
+        )
+        .map(([selector]) => `${file}: ${selector.replace(/\s+/g, " ")}`),
+    );
+    expect(found).toEqual([]);
+  });
+
   it("lift a focused control within its own fill, never to a floating surface", () => {
     // The overlay is the surface of a menu or sheet, white in every light mood: a focused search bar
     // that took it glared white on the page in light while dark's step stayed calm (owner,
