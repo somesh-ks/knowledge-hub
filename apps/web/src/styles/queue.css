@@ -634,6 +634,9 @@ html:has(.queue-pop:popover-open) .app-nav-queue-title.queue-word[data-live] {
    set in from the dialog's edges as its paragraphs are (a wrapper: the snippet's own class stays the design system's). */
 .queue-details-snippet {
   margin-inline: var(--space-4);
+  /* A long record scrolls here, as the old facts box did, so the dialog never grows past the screen. */
+  max-height: 40dvh;
+  overflow: auto;
 }
 
 /* ------------------------------------------------------------------ the foot of the side column */
