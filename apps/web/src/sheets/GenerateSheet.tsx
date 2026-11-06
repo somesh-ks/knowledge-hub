@@ -210,8 +210,8 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
         feedbackRef.current?.value ?? "",
         topics,
         Number(length),
-        // Auto sends nothing: the run keeps the schedule's count.
-        storiesValue(stories) ?? undefined,
+        // Untouched Auto sends nothing, so the run keeps the schedule's count; a picked Auto sends null.
+        storiesPick === null && stories === "" ? undefined : storiesValue(stories),
       );
     } catch {
       // The indicator's chunk failed to load (offline, a stale deploy): say so, never stay busy.

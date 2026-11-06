@@ -43,16 +43,19 @@ describe("scheduleOp", () => {
     });
   });
 
-  it("turns the default voice back into null and the cadence into days", () => {
+  // An Auto sent as "" fails the server's whole-number check, so the pick never saves (D377).
+  it("turns the default voice and Auto back into null and the cadence into days", () => {
     expect(
       scheduleOp(
-        { "daily.voice": "v1", "daily.cadence": "2" },
-        { "daily.voice": "", "daily.cadence": "7" },
+        { "daily.voice": "v1", "daily.cadence": "2", "daily.stories": "12", "weekly.stories": "" },
+        { "daily.voice": "", "daily.cadence": "7", "daily.stories": "", "weekly.stories": "8" },
       ),
     ).toEqual({
       op: "schedule.set",
       voice_id: null,
       cadence_days: 7,
+      stories: null,
+      weekly: { stories: 8 },
     });
   });
 });

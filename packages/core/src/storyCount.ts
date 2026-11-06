@@ -87,5 +87,5 @@ export function tellingWords(minutes: number, count: number): number | null {
   if (count <= autoStories(minutes)) return null;
   const room = minutes * BRIEFING_CHARS_PER_MINUTE - EPISODE_FRAME_CHARS;
   const share = room / count - STORY_FRAME_CHARS;
-  return Math.max(MIN_TELLING_WORDS, Math.round(share / CHARS_PER_WORD));
+  return Math.max(MIN_TELLING_WORDS, Math.floor(share / CHARS_PER_WORD));
 }

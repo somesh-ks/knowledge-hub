@@ -215,15 +215,16 @@ function bind(kind: Kind, dialog: HTMLDialogElement, root: HTMLElement): void {
       // The length goes only when it differs from the one the episode was made at.
       const length = dialog.querySelector<HTMLInputElement>('input[name="length"]:checked');
       const minutes = length && !length.defaultChecked ? Number(length.value) : null;
-      // Auto sends nothing: the episode keeps the count it was made with.
+      // Untouched Auto sends nothing, so the episode keeps its count; a picked Auto sends null.
       const stories = storiesValue(storiesSelect?.value ?? "");
+      const sendStories = !briefing && (stories !== null || storiesTouched);
       body = {
         action: "regenerate",
         id,
         feedback: text,
         ...(changed ? (briefing ? { topics } : { topic_ids: topics }) : {}),
         ...(minutes && !briefing ? { length_minutes: minutes } : {}),
-        ...(stories && !briefing ? { stories } : {}),
+        ...(sendStories ? { stories } : {}),
       };
     } else {
       body = { action: "delete", id };
