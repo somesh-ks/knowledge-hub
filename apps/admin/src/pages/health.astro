@@ -1,132 +1,330 @@
 ---
-import Select from "../../../web/src/design-system/Select.astro";
-import "../../../web/src/styles/field.css";
-import {
-  HEALTH_DEVICES,
-  HEALTH_GROUPS,
-  HEALTH_SPEED,
-  HEALTH_TILES,
-} from "../../../web/src/lib/healthRows";
+import ChapterAside from "../../../web/src/components/ChapterAside.astro";
+import SectionTabs from "../../../web/src/components/SectionTabs.astro";
+import Sheet from "../../../web/src/design-system/Sheet.astro";
+import "../../../web/src/styles/code.css";
+import { HEALTH_DEVICES, HEALTH_GROUPS, HEALTH_SPEED } from "../../../web/src/lib/healthRows";
 import AdminHead from "../components/AdminHead.astro";
+import StatusGlyphs from "../components/StatusGlyphs.astro";
 import Shell from "../layouts/Shell.astro";
+import { PILLARS } from "../lib/pillars";
 
 const title = "Health";
 
-// Briefings and Run times lead, then Speed, then the rest: what a reader notices first comes first.
-const [briefings, times, ...rest] = HEALTH_GROUPS;
-const leading = [briefings, times];
-
 type Row = { id: string; label: string };
+const group = (id: string): readonly Row[] =>
+  (HEALTH_GROUPS.find((each) => each.id === id)?.rows ?? []) as readonly Row[];
+const pick = (groupId: string, ...ids: string[]): Row[] =>
+  ids.flatMap((id) => group(groupId).filter((row) => row.id === id));
+
+// The page's sections: the summary, then the pulse's pillars in its order (lib/pillars.ts). The
+// contents list (desktop) and the tabs (phone) go to each.
+const sections = [
+  { slug: "summary", title: "Summary" },
+  ...PILLARS.map((pillar) => ({ slug: pillar.id, title: pillar.title })),
+];
+const kinds = [
+  { id: "daily", label: "Daily" },
+  { id: "weekly", label: "Weekly" },
+];
 ---
 
 <Shell title={title} current="/health">
-  {/* Static shell: every row and tile is drawn here with its label, so nothing moves when
-       /api/health answers; scripts/healthPage.ts fills each value, line and dot by id. A row's words
-       say what its dot says, so colour is never the only signal. */}
-  <div class="settings-view health" data-settings data-health data-loading>
-    <AdminHead title={title} note="How the podcasts, the pages and the services behind them are running." />
+  {/* Static shell: every card is drawn here with its names, so nothing moves when /api/health answers;
+       scripts/healthPage.ts fills readings, bars, strips and meters by id. A line is its name, then its
+       reading with the glyph right before it, and only a reading that needs a look carries one, so
+       the names keep one edge and colour is never the only signal (2026-11-04, the owner: "very hard
+       to get a complete picture", "a bit too long", the glyph "in the beginning of the text"). */}
+  <StatusGlyphs />
+  <div class="settings-view health" data-health data-loading>
+    <AdminHead title={title} />
 
-    <section class="card-group health-card" aria-label="Summary">
-      <p class="health-answer text-display health-data" aria-live="polite">
-        <span class="status-dot" data-health-attention-dot data-tone="none"></span>
-        <span data-health-attention>Checking</span>
-      </p>
-      <ul class="stat-tiles health-data" role="list" aria-label="Health figures">
-        {
-          HEALTH_TILES.map((tile) => (
-            <li class="stat-tile">
-              <strong class="stat-tile-value" data-health-tile={tile.id}>
-                &nbsp;
-              </strong>{" "}
-              <span class="stat-tile-label">{tile.label}</span>
-            </li>
-          ))
-        }
-      </ul>
-    </section>
+    <div class="hl-sections">
+      <SectionTabs sections={sections} />
 
-    {
-      leading.map((group) => (
-        <section>
-          <h2 class="section-head text-heading">{group.title}</h2>
-          <div class="rows card-group health-data">
-            {(group.rows as readonly Row[]).map((row) => (
-              <div class="settings-row health-row" data-health-row={row.id}>
-                <span class="settings-text">
-                  <span class="settings-label">{row.label}</span>
-                  <span class="settings-hint" data-detail>
-                    Checking
-                  </span>
-                </span>
-                <span class="health-value">
-                  <span class="status-dot" data-tone="none" />
-                  <span data-value />
-                </span>
-              </div>
-            ))}
+      {/* The summary (scripts/healthSummary.ts), one card: a tile for all the sections, then one a
+           section, its state in words, tinted when it needs a look, a link to its section; under a
+           hairline, a row a check that needs a look, which opens its sheet; then when it was checked
+           and "Fix all" (scripts/healthSheet.ts). Tiles and rows share one inset and one corner, so
+           every name starts on one edge and every glyph ends on one (2026-11-06, the owner). */}
+      <section class="hl-section" id="c-summary" aria-label="Summary" data-health-summary>
+        <div class="card-group hl-card hl-summary">
+          <ul class="stat-tiles hl-tiles hl-data" role="list">
+            {
+              [{ id: "all", title: "Overall" }, ...PILLARS].map((tile) => {
+                const inner = (
+                  <>
+                    <span class="hl-tile-head">
+                      <span class="hl-tile-name">{tile.title}</span>
+                      <span class="ov-flag-icon" data-tone="none" data-mark></span>
+                    </span>
+                    <strong class="stat-tile-value" data-value>&nbsp;</strong>
+                    <span class="stat-tile-label" data-detail>&nbsp;</span>
+                  </>
+                );
+                return (
+                  <li class="hl-tile-item">
+                    {tile.id === "all" ? (
+                      <div class="stat-tile hl-tile" data-tile={tile.id} data-tone="none">{inner}</div>
+                    ) : (
+                      <a class="stat-tile hl-tile" href={`#c-${tile.id}`} data-tile={tile.id} data-tone="none">{inner}</a>
+                    )}
+                  </li>
+                );
+              })
+            }
+          </ul>
+          <div class="rows hl-issue-rows hl-data" data-issues></div>
+          <div class="hl-summary-foot">
+            <p class="hl-summary-note" data-health-note data-health-state>Checking</p>
+            <span data-fix-all></span>
           </div>
-        </section>
-      ))
-    }
-
-    {/* One device at a time, picked by a select drawn as Theme's is (settings.astro). */}
-    <section>
-      <h2 class="section-head text-heading">Speed</h2>
-      <div class="rows card-group health-data">
-        <div class="settings-row">
-          <label class="settings-label" for="health-device">Device</label>
-          <Select class="value-select" id="health-device" name="device" autocomplete="off">
-            {HEALTH_DEVICES.map((device) => <option value={device.id}>{device.label}</option>)}
-          </Select>
         </div>
-        {
-          HEALTH_SPEED.map((metric) => (
-            <div class="settings-row health-row" data-health-row={metric.id} data-speed>
-              <span class="settings-text">
-                <span class="settings-label">{metric.label}</span>
-                <span class="settings-hint" data-detail>
-                  Checking
-                </span>
-              </span>
-              <span class="health-value">
-                <span class="status-dot" data-tone="none" />
-                <span data-value />
-              </span>
-            </div>
-          ))
-        }
-      </div>
-      <p class="settings-note">Real visits over the last 7 days, at the 75th percentile, judged by Google's lines.</p>
-    </section>
+      </section>
 
-    {
-      rest.map((group) => (
-        <section>
-          <h2 class="section-head text-heading">{group.title}</h2>
-          <div class="rows card-group health-data">
-            {(group.rows as readonly Row[]).map((row) => (
-              <div class="settings-row health-row" data-health-row={row.id}>
-                <span class="settings-text">
-                  <span class="settings-label">{row.label}</span>
-                  <span class="settings-hint" data-detail>
-                    Checking
-                  </span>
-                </span>
-                <span class="health-value">
-                  <span class="status-dot" data-tone="none" />
-                  <span data-value />
-                </span>
-              </div>
-            ))}
+      {/* Content: did readers get their podcasts. */}
+      <section class="hl-section" id="c-content">
+        <h2 class="section-head text-heading">Content</h2>
+        <div class="card-group hl-card hl-data">
+          <ul class="ov-flags hl-lines" role="list">
+            {
+              group("briefings")
+                .filter((row) => row.id !== "fallbacks")
+                .map((row) => (
+                  <li class="ov-flag" data-health-row={row.id}>
+                    <span class="ov-flag-name">{row.label}</span>
+                    <span class="ov-flag-value">
+                      <span class="ov-flag-icon" data-tone="none" data-mark></span>
+                      <span data-value>&nbsp;</span>
+                    </span>
+                  </li>
+                ))
+            }
+          </ul>
+        </div>
+      </section>
+
+      {/* Pipeline: what makes them. One card for the runs, a kind at a time: its last runs as columns,
+           the median a line, then its stages as bars (scripts/stageTimes.ts). Then the jobs. */}
+      <section class="hl-section" id="c-pipeline">
+        <h2 class="section-head text-heading">Pipeline</h2>
+        <div class="hl-stack" data-stage-groups>
+          <div class="card-group hl-card hl-data">
+            <div class="segmented-nav hl-switch" role="tablist" aria-label="Kind of run" data-kinds>
+              {
+                kinds.map((kind, index) => (
+                  <button
+                    class="segmented-nav-tab"
+                    type="button"
+                    role="tab"
+                    aria-selected={index === 0 ? "true" : "false"}
+                    tabindex={index === 0 ? 0 : -1}
+                    data-value={kind.id}
+                  >
+                    {kind.label}
+                  </button>
+                ))
+              }
+            </div>
+            {
+              kinds.map((kind, index) => (
+                <div class="hl-kind" data-kind-card={kind.id} hidden={index !== 0}>
+                  <div class="hl-block">
+                    <div class="hl-head">
+                      <h3 class="hl-title">Run time</h3>
+                      <span class="hl-reading" data-health-row={`time_${kind.id}`}>
+                        <span class="ov-flag-icon" data-tone="none" data-mark></span>
+                        <span data-value>&nbsp;</span>
+                      </span>
+                    </div>
+                    <div class="hl-columns" role="img" aria-label="No runs timed yet" data-runs={kind.id}>
+                      <span class="hl-median" hidden data-median></span>
+                    </div>
+                    <p class="ov-sub" data-health-row={`time_${kind.id}`}>
+                      <span data-detail>&nbsp;</span>
+                    </p>
+                  </div>
+                  <ul class="st-list" role="list" aria-label={`${kind.label} stages`} data-st-list></ul>
+                </div>
+              ))
+            }
           </div>
-          {group.id === "errors" && <p class="settings-note">The last 24 hours; the line under each counts the week.</p>}
-        </section>
-      ))
-    }
-    <p class="settings-note health-note" data-health-note></p>
+          <div class="card-group hl-card hl-data">
+            <h3 class="hl-title">Jobs</h3>
+            <ul class="hl-jobs" role="list">
+              {
+                group("jobs").map((row) => (
+                  <li class="hl-job" data-health-row={row.id}>
+                    <span class="hl-job-name">{row.label}</span>
+                    <span class="hl-strip" role="img" aria-label="No runs" data-strip={row.id}></span>
+                    <span class="hl-reading">
+                      <span class="ov-flag-icon" data-tone="none" data-mark></span>
+                      <span data-value>&nbsp;</span>
+                    </span>
+                  </li>
+                ))
+              }
+            </ul>
+            <ul class="ov-flags hl-lines" role="list">
+              {
+                [...pick("briefings", "fallbacks"), ...pick("services", "sources")].map((row) => (
+                  <li class="ov-flag" data-health-row={row.id}>
+                    <span class="ov-flag-name">{row.label}</span>
+                    <span class="ov-flag-value">
+                      <span class="ov-flag-icon" data-tone="none" data-mark></span>
+                      <span data-value>&nbsp;</span>
+                    </span>
+                  </li>
+                ))
+              }
+            </ul>
+          </div>
+        </div>
+        <p class="settings-note">
+          Columns: the last 10 runs, the dashed line their median. Stages: the last 14 days, the median
+          solid and the slowest tenth lighter.
+        </p>
+      </section>
+      <template data-stage-card>
+        <div class="card-group hl-card hl-data">
+          <div class="hl-head">
+            <h3 class="hl-title" data-st-title></h3>
+            <span class="hl-reading" data-st-runs></span>
+          </div>
+          <ul class="st-list" role="list" data-st-list></ul>
+        </div>
+      </template>
+      <template data-stage-row>
+        <li class="st-row">
+          <span class="st-name" data-st-name></span>
+          <span class="st-bar" role="img" data-st-bar>
+            <span class="st-reach"></span>
+            <span class="st-median"></span>
+          </span>
+          <span class="st-figure" data-st-figure></span>
+        </li>
+      </template>
+
+      {/* Site: what the browser sees. Google's three bands as a track, the p75 a pin on it, a device at
+           a time; then the browser's errors. */}
+      <section class="hl-section" id="c-site">
+        <h2 class="section-head text-heading">Site</h2>
+        <div class="card-group hl-card hl-data">
+          <div class="segmented-nav hl-switch" role="tablist" aria-label="Device" data-device>
+            {
+              HEALTH_DEVICES.map((device, index) => (
+                <button
+                  class="segmented-nav-tab"
+                  type="button"
+                  role="tab"
+                  aria-selected={index === 0 ? "true" : "false"}
+                  tabindex={index === 0 ? 0 : -1}
+                  data-value={device.id}
+                >
+                  {device.label}
+                </button>
+              ))
+            }
+          </div>
+          <ul class="hl-meters" role="list">
+            {
+              HEALTH_SPEED.map((metric) => (
+                <li class="hl-meter" data-health-row={metric.id} data-speed>
+                  <div class="hl-head">
+                    <span class="hl-meter-name">{metric.label}</span>
+                    <span class="hl-reading">
+                      <span class="ov-flag-icon" data-tone="none" data-mark></span>
+                      <span data-value>&nbsp;</span>
+                    </span>
+                  </div>
+                  <span class="hl-track" role="img" aria-label="No data" data-track>
+                    <span class="hl-band"></span>
+                    <span class="hl-band"></span>
+                    <span class="hl-band"></span>
+                    <span class="hl-pin" hidden data-pin></span>
+                  </span>
+                  <span class="ov-sub" data-detail>&nbsp;</span>
+                </li>
+              ))
+            }
+          </ul>
+          <ul class="ov-flags hl-lines" role="list">
+            {
+              pick("errors", "page_errors", "blocked_scripts").map((row) => (
+                <li class="ov-flag" data-health-row={row.id} data-errors>
+                  <span class="ov-flag-name">{row.label}</span>
+                  <span class="ov-flag-value">
+                    <span class="ov-flag-icon" data-tone="none" data-mark></span>
+                    <span data-value>&nbsp;</span>
+                  </span>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+        <p class="settings-note">Speed: real visits this week, at the 75th percentile.</p>
+      </section>
+
+      {/* Server: what answers the app. */}
+      <section class="hl-section" id="c-server">
+        <h2 class="section-head text-heading">Server</h2>
+        <div class="card-group hl-card hl-data">
+          <ul class="ov-flags hl-lines" role="list">
+            {
+              [
+                ...pick("services", "database", "content"),
+                ...pick("errors", "server_errors", "timeouts"),
+              ].map((row) => (
+                <li
+                  class="ov-flag"
+                  data-health-row={row.id}
+                  data-errors={row.id === "server_errors" || row.id === "timeouts" ? "" : undefined}
+                >
+                  <span class="ov-flag-name">{row.label}</span>
+                  <span class="ov-flag-value">
+                    <span class="ov-flag-icon" data-tone="none" data-mark></span>
+                    <span data-value>&nbsp;</span>
+                  </span>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </section>
+
+      {/* Budgets: the daily check's card (D360), an area a tile as the summary's: its name and glyph,
+           its word, its numbers. */}
+      <section class="hl-section" id="c-budgets">
+        <h2 class="section-head text-heading">Budgets</h2>
+        <ul class="stat-tiles hl-budgets hl-data" role="list">
+          {
+            group("budgets").map((row) => (
+              <li class="stat-tile hl-tile" data-health-row={row.id} data-budget data-tone="none">
+                <span class="hl-tile-head">
+                  <span class="hl-tile-name">{row.label}</span>
+                  <span class="ov-flag-icon" data-tone="none" data-mark></span>
+                </span>
+                <strong class="stat-tile-value" data-value>&nbsp;</strong>
+                <span class="stat-tile-label" data-detail>&nbsp;</span>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+    </div>
   </div>
+  {/* One sheet for every problem's detail and prompt, and for Fix all (scripts/healthSheet.ts): it
+       slides up on a phone and is a panel at the right from 40rem, so the page itself stays short
+       (2026-11-05, the owner: "a big wall of text", "hide them inside a bottom sheet on mobile and
+       sidebar on desktop"). */}
+  <Sheet title="Details" titleId="hl-sheet-title" close="data-panel-close" data-health-sheet>
+    <div class="hl-detail" data-sheet-content></div>
+  </Sheet>
+  <ChapterAside slot="aside" sections={sections} />
 </Shell>
 
 <script>
   import "../scripts/healthPage";
+  import "../scripts/stageTimes";
+  import "../scripts/sectionSpy";
 </script>

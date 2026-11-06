@@ -20,7 +20,8 @@ test.describe("when the costs cannot be fetched", () => {
   test.use({ allowNetworkErrors: true });
 
   // A failed refetch left the last range's chart and breakdown under the failure, and still offered
-  // the switch to a table of them (audit, 2026-10-24). The next good answer must bring them back.
+  // the switch to a table of them (audit, 2026-10-24). The next good answer must bring them back,
+  // and take down the failure's banner, which must not outlive it (2026-11-04).
   test("nothing of the last range stays under a failed refetch, and the next answer draws again", async ({
     page,
   }) => {
@@ -43,6 +44,8 @@ test.describe("when the costs cannot be fetched", () => {
     await expect(breakdown).toBeHidden();
     await expect(table).toBeHidden();
     await expect(views).toBeHidden();
+    const banner = page.locator("[data-problems] [data-problem]");
+    await expect(banner).toHaveCount(1);
 
     // Back to days, which the frozen report's buckets are.
     fail = false;
@@ -51,6 +54,7 @@ test.describe("when the costs cannot be fetched", () => {
     await expect(page.locator(".costs-mark")).toHaveCount(2);
     await expect(breakdown).toBeVisible();
     await expect(views).toBeVisible();
+    await expect(banner).toHaveCount(0);
   });
 });
 

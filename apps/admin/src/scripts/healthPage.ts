@@ -1,92 +1,307 @@
 /**
- * Health page (/admin/health). Asks /api/health once and fills the rows and tiles the page drew
- * at build (lib/healthRows.ts): a value, a line and a dot per row, by id. The Speed card shows one
- * device at a time; its select repaints from the same answer, with no second fetch. A failed fetch
- * says so in the summary and leaves the rows on "Checking".
+ * Health page (/admin/health). Paints this device's last answer at once, then asks /api/health and
+ * paints the fresh one (lib/kept.ts). Each reading the page drew at build is filled by id: a value,
+ * a glyph on one that needs a look, and the marks the answer's series give (run columns, job
+ * strips, speed meters). The summary is a tile a section of the page and one for all of them
+ * (healthRing.ts); a flagged check opens a sheet with its detail and a prompt for an agent (healthSheet.ts). The Speed card shows one device at a time and repaints from the same answer. A
+ * failed ask with nothing kept says so in the summary and the banner above, and leaves the shell as
+ * drawn.
  */
-import type { HealthBody, HealthRow } from "../../../web/src/lib/healthRows";
+
+import { buttonClass } from "../../../web/src/design-system/button";
+import type {
+  HealthBody,
+  HealthRow,
+  HealthSeries,
+  HealthTone,
+} from "../../../web/src/lib/healthRows";
+import { mountSegmentedNav, selectTab } from "../../../web/src/scripts/segmentedNav";
+import { askKept } from "../lib/kept";
+import { PILLARS } from "../lib/pillars";
+import { currentProblems, PROBLEMS_CHANGED } from "../lib/problem";
+import type { PromptInput } from "./healthPrompts";
+import { openAll, openIssue } from "./healthSheet";
+import { drawSummary, type Issue } from "./healthSummary";
 
 const root = document.querySelector<HTMLElement>("[data-health]");
-const device = document.querySelector<HTMLSelectElement>("#health-device");
+const deviceTabs = document.querySelector<HTMLElement>("[data-device]");
 let answer: HealthBody | null = null;
+/** The answer on the page is this device's kept one, and no fresh one has come. */
+let stale = false;
+/** What the summary flagged last, which its sheet words as prompts. */
+let issues: Issue[] = [];
+let device = "mobile";
+/** The kind of run shown was picked by a press; an answer no longer moves it. */
+let kindPicked = false;
 
 const DEVICE_KEY = "singularity:health-device";
+/** The run columns' slots (TIMED_RUNS in server/health.ts): the newest run takes the last. */
+const SLOTS = 10;
+const OUTCOME_WORD = { pass: "passed", fail: "failed", cancel: "cancelled" } as const;
+const isFlag = (tone: HealthTone): boolean => tone === "warn" || tone === "bad";
 
+const el = (tag: string, className: string, text?: string): HTMLElement => {
+  const node = document.createElement(tag);
+  node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+};
+
+/** A copy of a status glyph from the page's template (StatusGlyphs.astro), so no markup is drawn here. */
+function setMark(mark: Element | null, tone: HealthTone): void {
+  if (!mark) return;
+  mark.setAttribute("data-tone", tone);
+  const copy = document
+    .querySelector<HTMLTemplateElement>("template[data-glyphs]")
+    ?.content.querySelector(`[data-glyph="${tone}"] > svg`)
+    ?.cloneNode(true);
+  mark.replaceChildren(...(copy ? [copy] : []));
+}
+
+/** A reading: its value, and a glyph only when it needs a look (a budget tile shows its good one too). */
 function paintRow(element: HTMLElement, row: HealthRow | undefined): void {
   const value = element.querySelector<HTMLElement>("[data-value]");
   const detail = element.querySelector<HTMLElement>("[data-detail]");
-  const dot = element.querySelector<HTMLElement>(".status-dot");
   if (value) value.textContent = row?.value ?? "No data";
   if (detail) detail.textContent = row?.detail ?? "Not checked";
-  dot?.setAttribute("data-tone", row?.tone ?? "none");
+  if (!("speed" in element.dataset) && (!detail || "budget" in element.dataset))
+    element.title = row?.detail ?? "";
+  const tone = row?.tone ?? "none";
+  // A budget tile takes its tone's fill when it needs a look, as the summary's tiles do.
+  if ("budget" in element.dataset) element.dataset.tone = tone;
+  const shown = isFlag(tone) || ("budget" in element.dataset && tone === "good") ? tone : "none";
+  setMark(element.querySelector("[data-mark]"), shown);
+}
+
+const shortDate = (iso: string): string =>
+  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+const minutes = (ms: number): string =>
+  ms < 60_000 ? `${Math.round(ms / 1000)} s` : `${(ms / 60_000).toFixed(1)} min`;
+
+/** A kind's last runs as columns, each as tall as its run took against the longest; the median a line. */
+function drawRuns(holder: HTMLElement, runs: HealthSeries["times"]["daily"]): void {
+  const median = holder.querySelector<HTMLElement>("[data-median]");
+  for (const column of holder.querySelectorAll(".hl-column")) column.remove();
+  if (runs.length === 0) {
+    if (median) median.hidden = true;
+    holder.setAttribute("aria-label", "No runs timed yet");
+    return;
+  }
+  const longest = Math.max(...runs.map((run) => run.ms));
+  const sorted = runs.map((run) => run.ms).sort((a, b) => a - b);
+  const middle =
+    sorted.length % 2
+      ? (sorted[(sorted.length - 1) / 2] as number)
+      : ((sorted[sorted.length / 2 - 1] as number) + (sorted[sorted.length / 2] as number)) / 2;
+  holder.prepend(
+    ...runs.map((run, index) => {
+      const column = el("span", "hl-column");
+      column.style.setProperty("--h", String(run.ms / longest));
+      column.style.gridColumn = String(SLOTS - runs.length + index + 1);
+      if (index === runs.length - 1) column.dataset.last = "";
+      column.title = `${shortDate(run.at)}: ${minutes(run.ms)}`;
+      return column;
+    }),
+  );
+  if (median) {
+    median.hidden = false;
+    median.style.setProperty("--h", String(middle / longest));
+  }
+  const last = runs.at(-1);
+  holder.setAttribute(
+    "aria-label",
+    `${runs.length} runs, median ${minutes(middle)}${last ? `, last ${minutes(last.ms)}` : ""}`,
+  );
+}
+
+/** A workflow's week of finished runs, oldest first; a failure or cancel takes its tone. */
+function drawStrip(holder: HTMLElement, runs: HealthSeries["jobs"][string] | undefined): void {
+  // The week's last 28 runs, oldest first: 28 pips and their 4px gaps fit a 320px phone's strip.
+  const shown = (runs ?? []).slice(-28);
+  holder.replaceChildren(
+    ...shown.map((run) => {
+      const pip = el("span", "hl-pip");
+      pip.dataset.outcome = run.outcome;
+      pip.title = `${shortDate(run.at)}: ${OUTCOME_WORD[run.outcome]}`;
+      return pip;
+    }),
+  );
+  const failed = shown.filter((run) => run.outcome !== "pass").length;
+  holder.setAttribute(
+    "aria-label",
+    shown.length === 0
+      ? "No runs"
+      : failed === 0
+        ? `${shown.length} runs, all passed`
+        : `${shown.length} runs, ${failed} did not pass`,
+  );
+}
+
+/** Google's bands for a reading (good, needs work, poor) and its p75 as a pin, scaled to 1.5× poor. */
+function drawMeter(
+  element: HTMLElement,
+  reading: HealthSeries["vitals"][string] | undefined,
+  tone: HealthTone,
+): void {
+  const track = element.querySelector<HTMLElement>("[data-track]");
+  const pin = element.querySelector<HTMLElement>("[data-pin]");
+  if (!track || !pin) return;
+  if (!reading) {
+    pin.hidden = true;
+    track.setAttribute("aria-label", "No data");
+    return;
+  }
+  const [good, poor] = reading.lines;
+  const end = poor * 1.5;
+  track.style.setProperty("--good", String(good / end));
+  track.style.setProperty("--poor", String(poor / end));
+  pin.hidden = false;
+  pin.dataset.tone = tone;
+  pin.style.setProperty("--at", String(Math.min(reading.p75, end) / end));
+  track.setAttribute(
+    "aria-label",
+    reading.p75 <= good
+      ? "In the good band"
+      : reading.p75 <= poor
+        ? "In the needs-work band"
+        : "In the poor band",
+  );
+}
+
+/** The parts of the answer that came back short, in words. */
+const partial = (body: HealthBody): string[] =>
+  [
+    body.parts.content === "fallback" && "the content store answered from this build's copy",
+    body.parts.content === "saved" && "the content store answered from its last saved list",
+    body.parts.database === "unavailable" && "the database did not answer",
+    body.parts.github === "unavailable" && "GitHub did not answer",
+    body.parts.github === "partial" && "GitHub answered for some workflows only",
+  ].filter((each): each is string => Boolean(each));
+
+/** What a prompt is built from, read as its sheet opens, so a banner that went up since is in it. */
+const promptInput = (): PromptInput => ({
+  issues,
+  checkedAt: answer?.checked_at ?? null,
+  stale,
+  partial: answer ? partial(answer) : [],
+  problems: currentProblems(),
+});
+
+/** "Fix all N" beside the count when there are two things or more: flagged checks and failed loads. */
+function paintFixAll(): void {
+  const slot = root?.querySelector<HTMLElement>("[data-fix-all]");
+  if (!slot) return;
+  const count = issues.length + currentProblems().length;
+  if (count < 2) {
+    slot.replaceChildren();
+    return;
+  }
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = buttonClass("text");
+  button.textContent = `Fix all ${count}`;
+  button.addEventListener("click", () => openAll(promptInput()));
+  slot.replaceChildren(button);
+}
+
+function paintSummary(): void {
+  const summary = root?.querySelector<HTMLElement>("[data-health-summary]");
+  if (!summary || !answer) return;
+  issues = drawSummary(summary, answer, PILLARS, (issue) => openIssue(issue, promptInput()));
+  paintFixAll();
+  const at = new Date(answer.checked_at);
+  const sameDay = at.toDateString() === new Date().toDateString();
+  const checked = `${sameDay ? "" : `${shortDate(answer.checked_at)}, `}${at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
+  const missing = partial(answer);
+  const note = summary.querySelector<HTMLElement>("[data-health-note]");
+  if (note)
+    note.textContent = `Checked ${checked}.${missing.length ? ` Partial: ${missing.join("; ")}.` : ""}`;
 }
 
 function paint(): void {
   if (!root || !answer) return;
   const byId = new Map(answer.rows.map((row) => [row.id, row]));
-  const chosen = device?.value ?? "mobile";
+  const series = answer.series;
   for (const element of root.querySelectorAll<HTMLElement>("[data-health-row]")) {
     const id = element.dataset.healthRow ?? "";
-    paintRow(element, byId.get("speed" in element.dataset ? `${id}.${chosen}` : id));
+    const key = "speed" in element.dataset ? `${id}.${device}` : id;
+    const row = byId.get(key);
+    paintRow(element, row);
+    if ("speed" in element.dataset) drawMeter(element, series?.vitals[key], row?.tone ?? "none");
+    // An error line reads its day and its week in one: "0 today, 2 this week".
+    const errors = series?.errors[id];
+    const value = element.querySelector<HTMLElement>("[data-value]");
+    if ("errors" in element.dataset && value && row && errors) {
+      value.textContent = `${row.value} today, ${errors.week} this week`;
+    }
   }
-  for (const element of root.querySelectorAll<HTMLElement>("[data-health-tile]")) {
-    element.textContent =
-      answer.tiles[element.dataset.healthTile as keyof HealthBody["tiles"]] ?? "No data";
+  for (const kind of ["daily", "weekly"] as const) {
+    const holder = root.querySelector<HTMLElement>(`[data-runs="${kind}"]`);
+    if (holder) drawRuns(holder, series?.times[kind] ?? []);
   }
-  const { count, tone } = answer.attention;
-  const words = root.querySelector<HTMLElement>("[data-health-attention]");
-  if (words)
-    words.textContent =
-      count === 0 ? "All good" : `${count} ${count === 1 ? "needs" : "need"} a look`;
-  root
-    .querySelector("[data-health-attention-dot]")
-    ?.setAttribute("data-tone", count === 0 ? "good" : tone);
-
-  const checked = new Date(answer.checked_at).toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const missing = [
-    answer.parts.content === "fallback" && "the content store answered from this build's copy",
-    answer.parts.content === "saved" && "the content store answered from its last saved list",
-    answer.parts.database === "unavailable" && "the database did not answer",
-    answer.parts.github === "unavailable" && "GitHub did not answer",
-    answer.parts.github === "partial" && "GitHub answered for some workflows only",
-  ].filter(Boolean);
-  const note = root.querySelector<HTMLElement>("[data-health-note]");
-  if (note) {
-    note.textContent = `Checked at ${checked}.${missing.length ? ` Partial: ${missing.join("; ")}.` : ""}`;
+  for (const holder of root.querySelectorAll<HTMLElement>("[data-strip]")) {
+    drawStrip(holder, series?.jobs[holder.dataset.strip ?? ""]);
   }
+  paintSummary();
 }
 
 async function load(): Promise<void> {
   if (!root) return;
-  try {
-    const response = await fetch("/api/health", { cache: "no-store" });
-    if (!response.ok) throw new Error(String(response.status));
-    answer = (await response.json()) as HealthBody;
-    paint();
-  } catch {
-    const words = root.querySelector<HTMLElement>("[data-health-attention]");
-    if (words) words.textContent = "Could not check";
-    root.querySelector("[data-health-attention-dot]")?.setAttribute("data-tone", "none");
-  } finally {
+  const asked = await askKept<HealthBody>(
+    "/api/health",
+    "health",
+    (body, kept) => {
+      answer = body;
+      stale = kept;
+      const flagged = body.rows.find((row) => row.id.startsWith("time_") && isFlag(row.tone))?.id;
+      if (kindTabs && flagged && !kindPicked) {
+        selectTab(kindTabs, flagged.slice(5));
+        showKind(flagged.slice(5));
+      }
+      paint();
+      delete root.dataset.loading;
+    },
+    { title: "Health checks didn't load", repaint: "always" },
+  );
+  if (!asked.shown) {
+    const words = root.querySelector<HTMLElement>("[data-health-state]");
+    if (words) words.textContent = "No answer";
     delete root.dataset.loading;
+    paintFixAll();
   }
 }
 
-if (device) {
+// A banner that goes up or comes down later (Stage times) changes Fix all's count with it.
+document.addEventListener(PROBLEMS_CHANGED, paintFixAll);
+
+// Runs: a kind at a time, the one whose run time needs a look first.
+const kindTabs = document.querySelector<HTMLElement>("[data-kinds]");
+function showKind(kind: string): void {
+  for (const panel of root?.querySelectorAll<HTMLElement>("[data-kind-card]") ?? []) {
+    panel.hidden = panel.dataset.kindCard !== kind;
+  }
+}
+if (kindTabs)
+  mountSegmentedNav(kindTabs, (kind) => {
+    kindPicked = true;
+    showKind(kind);
+  });
+
+if (deviceTabs) {
   // The device last chosen on this browser; a convenience, so a blocked storage changes nothing.
   try {
     const stored = localStorage.getItem(DEVICE_KEY);
-    if (stored && [...device.options].some((option) => option.value === stored))
-      device.value = stored;
+    if (stored && deviceTabs.querySelector(`[data-value="${CSS.escape(stored)}"]`)) {
+      device = stored;
+      selectTab(deviceTabs, stored);
+    }
   } catch {
-    // Storage blocked: the first option stands.
+    // Storage blocked: the first device stands.
   }
-  device.addEventListener("change", () => {
+  mountSegmentedNav(deviceTabs, (value) => {
+    device = value;
     try {
-      localStorage.setItem(DEVICE_KEY, device.value);
+      localStorage.setItem(DEVICE_KEY, value);
     } catch {
       // Storage blocked: the choice lasts this page.
     }

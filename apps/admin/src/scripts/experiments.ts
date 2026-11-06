@@ -10,6 +10,13 @@ import { endedByLeaving } from "../../../web/src/scripts/pageLeaving";
 import { sendToast } from "../../../web/src/scripts/toastEvent";
 import type { ExperimentAction, FlagRow, HitTotal } from "../lib/experimentsApi";
 import { fresh, intended, type PendingMap, parsePending, unsettled } from "../lib/pendingFlags";
+import {
+  answerProblem,
+  clearProblem,
+  type Problem,
+  reportProblem,
+  requestProblem,
+} from "../lib/problem";
 import { href } from "../lib/sections";
 
 const API = href("/api/experiments");
@@ -18,6 +25,8 @@ const NOTE_OFFLINE = "The store cannot be reached. Showing the last deploy.";
 const PENDING_KEY = "experiments.pending";
 /** How often a page holding an unconfirmed change expires it and asks the store again. */
 const WATCH_MS = 1500;
+const LOAD_FAILED = "Experiments didn't load";
+const SAVE_FAILED = "A switch didn't save";
 
 const root = document.querySelector<HTMLElement>("[data-experiments]");
 const NOTE_DEFAULT = document.querySelector<HTMLElement>("[data-note]")?.textContent ?? "";
@@ -154,7 +163,12 @@ async function send(id: string, action: ExperimentAction): Promise<boolean> {
   let cut = false;
   try {
     const response = await ask({ id, action });
-    const body = (await response.json()) as { flags?: FlagRow[]; error?: string };
+    if (!response.ok) reportProblem(await answerProblem(SAVE_FAILED, API, "POST", response));
+    else clearProblem(SAVE_FAILED);
+    // A refusal's body may not be JSON (a proxy's page): its banner above keeps the details, so a
+    // parse failure must not repaint it as no connection. An ok answer's parse failure still throws.
+    const json = response.ok ? response.json() : response.json().catch(() => ({}));
+    const body = (await json) as { flags?: FlagRow[]; error?: string };
     // A write's answer does not settle the change: the next read may still be an old copy (the
     // worker's, a cache's), so only a read that shows it does (take).
     if (body.flags) adopt(body);
@@ -166,9 +180,12 @@ async function send(id: string, action: ExperimentAction): Promise<boolean> {
       body.error === "promoted" ? "A promoted experiment stays on." : "Could not save. Try again.",
       "error",
     );
-  } catch {
+  } catch (error) {
     cut = await endedByLeaving();
-    if (!cut) toast("Could not save. Try again.", "error");
+    if (!cut) {
+      toast("Could not save. Try again.", "error");
+      reportProblem(requestProblem(SAVE_FAILED, API, "POST", error));
+    }
   } finally {
     count(id, -1);
     // A refused or failed write puts the switch back, unless a later press for it is waiting. One
@@ -278,13 +295,18 @@ root?.addEventListener("click", (event) => {
 /** Without the store the page stays what the last deploy built, and its controls stay still. */
 async function start(): Promise<void> {
   const note = document.querySelector<HTMLElement>("[data-note]");
+  let problem: Problem | null = null;
   try {
     const response = await ask();
-    if (!response.ok) throw new Error(String(response.status));
+    if (!response.ok) {
+      problem = await answerProblem(LOAD_FAILED, API, "GET", response);
+      throw new Error(String(response.status));
+    }
     const body = (await response.json()) as { flags?: FlagRow[]; hits?: Record<string, HitTotal> };
     take(body);
     for (const [id, total] of Object.entries(body.hits ?? {})) hits.set(id, total);
-  } catch {
+  } catch (error) {
+    reportProblem(problem ?? requestProblem(LOAD_FAILED, API, "GET", error));
     if (note) note.textContent = NOTE_OFFLINE;
     renderAll();
     ready();
@@ -327,9 +349,15 @@ async function recheck(): Promise<void> {
   const asked = generation;
   try {
     const response = await ask();
-    const body = (await response.json()) as { flags?: FlagRow[] };
+    const body = (await response.json()) as {
+      flags?: FlagRow[];
+      hits?: Record<string, HitTotal>;
+    };
     if (!response.ok || asked !== generation) return;
     take(body);
+    // A page that started offline gets its hit counts now, and its load banner comes down.
+    for (const [id, total] of Object.entries(body.hits ?? {})) hits.set(id, total);
+    clearProblem(LOAD_FAILED);
     const note = document.querySelector<HTMLElement>("[data-note]");
     if (note) note.textContent = NOTE_DEFAULT;
     renderAll();

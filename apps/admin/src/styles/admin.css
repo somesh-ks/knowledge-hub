@@ -32,6 +32,29 @@
   margin-inline-start: calc(var(--space-1) * -1);
 }
 
+/* Sign out sits at the end of the app bar on a phone; the side column has its own, in the nav foot. */
+.admin-signout {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* From 360px down the centred wordmark and Sign out cross (the wordmark is 193px, Back and Sign out
+   take 133px of a 320px bar): the wordmark moves up against Back and its tag steps aside, and the
+   bar's own name says where you are (2026-10-31, review on the Google sign-in PR). */
+@media (width < 24rem) {
+  .app-bar-inner {
+    justify-content: flex-start;
+    padding-inline-start: calc(var(--space-12) + var(--space-2));
+  }
+
+  .app-bar .admin-tag {
+    display: none;
+  }
+}
+
 /* ------------------------------------------------------------------ the overview */
 
 /* The Overview's two cards read at a glance: a status badge or a figure first, then marks, with
@@ -84,18 +107,11 @@
   line-height: var(--text-meta-leading);
 }
 
-.ov-badge,
 .ov-flag-icon {
   display: inline-grid;
   flex: none;
   place-items: center;
   color: var(--ov-tone, var(--color-on-surface-muted));
-}
-
-/* The verdict is a glyph in its tone, on the card's own surface: no disc, no tinted card. */
-.ov-badge .icon-glyph {
-  inline-size: var(--space-8);
-  block-size: var(--space-8);
 }
 
 [data-tone="good"] {
@@ -112,8 +128,10 @@
 
 /* Health: what needs a look is one line each, worst first; what is fine is one line that opens, so a
    page of good news is a ring and a line. */
+/* Its lines stack from the top: the room it keeps for its tallest view stays empty below them. */
 .ov-groups {
   display: grid;
+  align-content: start;
 }
 
 .ov-flags {
@@ -125,9 +143,12 @@
 
 /* A flagged check is one line: glyph, name, reading. The fuller line is its tooltip and the Health
    page's. */
+/* A check's line: its name, then its reading with the glyph right before it, so every name starts on
+   one edge whether or not it is flagged (2026-11-04, the owner: the glyph "in the beginning of the
+   text" put one name out of line). */
 .ov-flag {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-2);
   min-block-size: var(--size-touch);
@@ -325,7 +346,7 @@
 /* What is fine is one line that opens: a count, a chevron. */
 .ov-fine > summary {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-2);
   min-block-size: var(--size-touch);
@@ -531,7 +552,570 @@
   display: none;
 }
 
+/* ------------------------------------------------------------------ the health page */
+
+/* Health reads as marks first (2026-11-04, the owner: "so bad in data visualization, very
+   boring"): a kind's runs as columns, a workflow's week as a strip, a speed reading as a pin on
+   Google's bands. Cards stay neutral; only a glyph, a pin or a failed run takes a tone. */
+.card-group.hl-card {
+  display: grid;
+  gap: var(--space-8);
+  margin-block-start: 0;
+  padding: var(--card-padding);
+}
+
+.hl-data {
+  transition: opacity var(--duration-state) var(--ease-out);
+}
+
+[data-loading] .hl-data {
+  opacity: 0.6;
+}
+
+.ov-flag-icon:empty {
+  display: none;
+}
+
+/* 2026-11-04, the owner: "very hard to get a complete picture": the Overview's ring first, then one
+   section a pillar of it, each a stack of cards; the section tabs (under 80rem) or the contents list
+   (from 80rem, aside.css) go to them. Anchors land under the sticky chrome and the tabs. */
+.hl-stack {
+  display: grid;
+  gap: var(--space-4);
+}
+
+html:has(.hl-sections) {
+  scroll-padding-block-start: calc(var(--sticky-top) + var(--tabs-height) + var(--space-4));
+}
+
+@media (width >= 80rem) {
+  .hl-sections > .tabs-bar {
+    display: none;
+  }
+
+  html:has(.hl-sections) {
+    scroll-padding-block-start: calc(var(--sticky-top) + var(--space-4));
+  }
+}
+
+/* Under the tabs the summary keeps the room a section head would. */
+.hl-sections > .tabs-bar + .hl-section {
+  padding-block-start: var(--space-6);
+}
+
+/* A kind's card with no stage times yet keeps no room for them. */
+.hl-card .st-list:empty {
+  display: none;
+}
+
+.hl-block {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.hl-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.hl-title {
+  margin: 0;
+  font-family: var(--text-title-family);
+  font-size: var(--text-title-size);
+  font-weight: var(--text-title-weight);
+  letter-spacing: var(--text-title-tracking);
+  line-height: var(--text-title-leading);
+}
+
+.hl-reading {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-on-surface-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.hl-reading .ov-flag-icon .icon-glyph {
+  inline-size: var(--size-icon);
+  block-size: var(--size-icon);
+}
+
+/* Run columns: ten slots, the newest at the right edge, so a kind with fewer runs reads as a
+   shorter history; the newest in ink, the rest a step quieter; the median a dashed line across. */
+.hl-columns {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  align-items: end;
+  gap: var(--space-1);
+  block-size: calc(var(--space-16) + var(--space-4));
+  border-block-end: var(--stroke-hairline) solid var(--color-surface-overlay);
+}
+
+.hl-column {
+  grid-row: 1;
+  block-size: max(var(--space-1), calc(var(--h) * 100%));
+  border-radius: var(--shape-xs) var(--shape-xs) 0 0;
+  background: color-mix(in oklab, var(--color-on-surface-muted) 45%, var(--color-surface-overlay));
+}
+
+.hl-column[data-last] {
+  background: var(--color-on-surface);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hl-column {
+    transform-origin: bottom;
+    animation: hl-rise var(--duration-enter) var(--ease-out) backwards;
+  }
+}
+
+@keyframes hl-rise {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+.hl-median {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: calc(var(--h) * 100%);
+  border-block-start: var(--stroke-hairline) dashed var(--color-on-surface-muted);
+  pointer-events: none;
+}
+
+.hl-median[hidden] {
+  display: none;
+}
+
+.hl-lines .ov-flag {
+  min-block-size: var(--size-touch);
+}
+
+.ov-flag-value {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Jobs: a name and how it stands, then the week's runs under them as pips, oldest first, a failed
+   or cancelled run in its tone. */
+.hl-jobs {
+  display: grid;
+  gap: var(--space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hl-job {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "name reading"
+    "strip strip";
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.hl-job-name {
+  grid-area: name;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hl-job .hl-reading {
+  grid-area: reading;
+}
+
+.hl-strip {
+  grid-area: strip;
+  display: flex;
+  gap: var(--space-1);
+  min-inline-size: 0;
+  min-block-size: var(--space-4);
+  overflow: hidden;
+}
+
+.hl-pip {
+  flex: none;
+  inline-size: var(--space-1);
+  block-size: var(--space-4);
+  border-radius: var(--shape-round);
+  background: color-mix(in oklab, var(--color-on-surface-muted) 55%, var(--color-surface-overlay));
+}
+
+.hl-pip[data-outcome="fail"] {
+  background: var(--color-danger);
+}
+
+.hl-pip[data-outcome="cancel"] {
+  background: var(--color-warning);
+}
+
+/* Speed: a device at a time, then Google's three bands as one track, a pin at the p75 in its tone. */
+.hl-switch {
+  --segmented-nav-bg: var(--color-surface-overlay);
+
+  /* Centred in its card, under the card's title (2026-11-04, the owner). */
+  justify-self: center;
+  inline-size: 100%;
+}
+
+@media (width >= 40rem) {
+  .hl-switch {
+    inline-size: var(--settings-control-width);
+  }
+}
+
+.hl-meters {
+  display: grid;
+  gap: var(--space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hl-meter {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.hl-track {
+  position: relative;
+  display: grid;
+  grid-template-columns:
+    calc(var(--good, 0.33) * 100%) calc((var(--poor, 0.66) - var(--good, 0.33)) * 100%)
+    minmax(0, 1fr);
+  gap: var(--space-1);
+  block-size: var(--space-2);
+  margin-block: var(--space-1);
+}
+
+.hl-band {
+  border-radius: var(--shape-round);
+  background: var(--color-surface-overlay);
+}
+
+.hl-band:first-child {
+  background: color-mix(in oklab, var(--color-success) 35%, var(--color-surface-overlay));
+}
+
+.hl-band:nth-child(2) {
+  background: color-mix(in oklab, var(--color-warning) 30%, var(--color-surface-overlay));
+}
+
+.hl-band:nth-child(3) {
+  background: color-mix(in oklab, var(--color-danger) 25%, var(--color-surface-overlay));
+}
+
+.hl-pin {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: calc(var(--at) * 100%);
+  inline-size: var(--space-4);
+  block-size: var(--space-4);
+  border: var(--stroke-ring) solid var(--color-surface-container);
+  border-radius: var(--shape-round);
+  background: var(--ov-tone, var(--color-on-surface));
+  translate: -50% -50%;
+}
+
+.hl-pin[hidden] {
+  display: none;
+}
+
+/* The summary's and Budgets' tiles: a DS stat tile (primitives.css) with a line on top, the name and
+   its glyph at the far edge, over its word and its numbers; three a row from 40rem. A tile that needs a
+   look takes its tone's subtle fill, the banner's (2026-11-05, the owner picked the tiles). */
+.hl-tile-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  line-height: var(--space-6);
+}
+
+.hl-tile-name {
+  overflow: hidden;
+  color: var(--color-on-surface);
+  font-size: var(--text-meta-size);
+  font-weight: var(--font-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hl-tile .ov-flag-icon .icon-glyph {
+  inline-size: var(--size-icon);
+  block-size: var(--size-icon);
+}
+
+.hl-tile .stat-tile-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hl-tile[data-tone="warn"] {
+  background-color: var(--color-warning-subtle);
+}
+
+.hl-tile[data-tone="bad"] {
+  background-color: var(--color-danger-subtle);
+}
+
+@media (width >= 40rem) {
+  .stat-tiles.hl-budgets,
+  .stat-tiles.hl-tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Stage times: a bar a stage, under its kind's run columns. The bar is as long as the stage's slowest
+   tenth against the longest in its card; the median is the solid part of it. Grey at rest: nothing
+   here is picked or flagged. */
+.st-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.st-row {
+  display: grid;
+  grid-template-columns: calc(var(--space-6) * 3) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  /* Not a control: a row as tall as its words need, so the card stays short. */
+  min-block-size: var(--space-8);
+}
+
+.st-figure {
+  min-inline-size: calc(var(--space-8) * 2);
+  color: var(--color-on-surface-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  white-space: nowrap;
+}
+
+.st-bar {
+  position: relative;
+  block-size: var(--space-2);
+  border-radius: var(--shape-round);
+  background: var(--color-surface-overlay);
+}
+
+/* Each part is its own pill, so a median of a few pixels is a dot, not a clipped edge. */
+.st-reach,
+.st-median {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  border-radius: var(--shape-round);
+}
+
+.st-reach {
+  /* One step wider than the median's floor, so a p90 past a tiny median still shows beyond it. */
+  inline-size: max(var(--space-2), calc(var(--reach) * 100%));
+  /* 65% ink on the track reads about 3:1 in both themes (35% read 1.8:1). */
+  background: color-mix(in oklab, var(--color-on-surface-muted) 65%, var(--color-surface-overlay));
+}
+
+.st-median {
+  inline-size: max(var(--space-1), calc(var(--median) * 100%));
+  background: var(--color-on-surface-muted);
+}
+
 /* Promote keeps its place in a row that cannot use it, so turning a switch never resizes the row. */
 .settings-row [data-promote]:disabled {
   visibility: hidden;
+}
+
+/* A failed ask's banners (lib/problem.ts), under the page's title. */
+.admin-problems {
+  display: grid;
+  gap: var(--space-2);
+  margin-block-end: var(--space-4);
+}
+
+.admin-problems:empty {
+  display: none;
+}
+
+/* The summary: the tiles above, Overall then one a section, each a link to its section; nothing is
+   picked, so nothing is blue (2026-11-05, the owner). Under them, what needs a look. */
+.card-group.hl-summary {
+  gap: 0;
+}
+
+.hl-tile-item {
+  display: grid;
+}
+
+a.hl-tile {
+  color: inherit;
+  text-decoration: none;
+  transition: background-color var(--duration-hover) var(--ease-hover);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  a.hl-tile:hover {
+    background-image: linear-gradient(
+      color-mix(in oklch, currentColor var(--state-hover), transparent),
+      color-mix(in oklch, currentColor var(--state-hover), transparent)
+    );
+  }
+}
+
+a.hl-tile:focus-visible {
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: var(--stroke-ring-gap);
+}
+
+/* What needs a look, in the same card under a hairline: a row a problem (the design system's row
+   action), its name, then its reading with its glyph at the far edge. A row starts on the card's
+   content edge, where the tiles' boxes start, as every card's rows do (D378's card edge); its fill
+   takes a tile's corner (2026-11-06, the owner: "the inset, border radius should all be in sync").
+   It opens the page's sheet, which holds the words. */
+.hl-issue-rows {
+  --row-tile-radius: var(--card-content-radius);
+  display: grid;
+  margin-block-start: var(--space-6);
+  padding-block: var(--space-2);
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+}
+
+.hl-issue-rows:empty {
+  display: none;
+}
+
+/* The name and the reading share one centre line: the glyph would set the reading's baseline. */
+.row-action.hl-issue-row > .settings-text {
+  align-items: center;
+}
+
+.hl-issue-row .settings-hint {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  overflow: visible;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The row's quiet chevron rule (settings.css) would grey the status glyph: it keeps its tone. */
+.row-action.hl-issue-row .ov-flag-icon .icon-glyph {
+  margin-inline-end: 0;
+  color: inherit;
+}
+
+/* The card's last line, under a hairline of its own: when it was checked, from the names' edge, and
+   Fix all, whose label reaches out by its padding to end on the glyphs' edge. */
+.hl-summary-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-block-size: var(--size-touch);
+  margin-block-start: var(--space-6);
+  padding-block-start: var(--space-2);
+  border-block-start: var(--stroke-hairline) solid var(--color-border-hairline);
+}
+
+.hl-summary-foot > [data-fix-all] {
+  margin-inline-end: calc(var(--space-4) * -1);
+}
+
+.hl-issue-rows:not(:empty) + .hl-summary-foot {
+  margin-block-start: 0;
+}
+
+.hl-summary-note {
+  margin: 0;
+  color: var(--color-on-surface-muted);
+  font-size: var(--text-meta-size);
+  line-height: var(--text-meta-leading);
+}
+
+/* The sheet: the reading with its glyph, then a part each (what it means, where to start, the
+   commonest errors, the prompt), a heading over its words. */
+.hl-detail {
+  display: grid;
+  gap: var(--space-6);
+  padding-block: var(--space-2) var(--space-8);
+}
+
+.hl-detail-reading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.hl-detail-reading .ov-flag-icon {
+  flex: none;
+}
+
+.hl-detail-part {
+  display: grid;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.hl-detail-head {
+  margin: 0;
+  font-family: var(--text-label-family);
+  font-size: var(--text-label-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--text-label-leading);
+}
+
+.hl-detail-text {
+  margin: 0;
+}
+
+.hl-reports {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hl-report {
+  display: grid;
+  min-inline-size: 0;
+}
+
+.hl-report-message {
+  overflow-wrap: anywhere;
+}
+
+.hl-report-where {
+  color: var(--color-on-surface-muted);
+  font-size: var(--text-meta-size);
+  line-height: var(--text-meta-leading);
+}
+
+/* Runs: a kind at a time under the switch, its run time, columns and stages. */
+.hl-kind {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.hl-kind[hidden] {
+  display: none;
+}
+
+/* From 40rem a job is one line: its name, its week of runs, how it stands. */
+@media (width >= 40rem) {
+  .hl-job {
+    grid-template-columns: calc(var(--space-16) * 2) minmax(0, 1fr) auto;
+    grid-template-areas: "name strip reading";
+  }
 }

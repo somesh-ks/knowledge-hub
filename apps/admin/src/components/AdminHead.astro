@@ -8,8 +8,10 @@ interface Props {
 const { title, note } = Astro.props;
 ---
 
-{/* A page's title and its one line, as a settings page draws them (settings.css). */}
+{/* A page's title and its one line, as a settings page draws them (settings.css). Under it, the
+     page's failed asks as banners (lib/problem.ts), so every page says them in the same place. */}
 <header class="settings-head">
   <h1 class="page-title text-display" id="page-title" tabindex="-1">{title}</h1>
   {note && <p class="settings-note">{note}</p>}
 </header>
+<div class="admin-problems" data-problems></div>
