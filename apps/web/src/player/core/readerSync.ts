@@ -51,7 +51,13 @@ import {
   storyChipView,
   storyLengthLabel,
 } from "./readerMath";
-import { type Remembered, readRemembered, safeLocalStorage, saveHeard } from "./resume";
+import {
+  type Remembered,
+  readRemembered,
+  recordingOf,
+  safeLocalStorage,
+  saveHeard,
+} from "./resume";
 import { findItemIndexById } from "./timeline";
 
 /** Auto-follow stays out of the way for this long after the reader scrolls. */
@@ -182,7 +188,12 @@ export function createReaderSync(
 
   /** Where this briefing was left and whether it was heard to the end, from the device's storage. */
   function rememberedFor(page: PlayerDigestData): Remembered {
-    return readRemembered(safeLocalStorage(), page.id, (page.audio?.duration_ms ?? 0) / 1000);
+    return readRemembered(
+      safeLocalStorage(),
+      page.id,
+      (page.audio?.duration_ms ?? 0) / 1000,
+      recordingOf(page),
+    );
   }
 
   /** The stories heard of the recording the player holds go beside its position (resume.ts). */
