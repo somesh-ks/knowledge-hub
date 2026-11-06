@@ -275,13 +275,7 @@ export function createPlayerStore(options: PlayerStoreOptions): PlayerStore {
   function saveResume(): void {
     if (!track) return;
     readAudioTime();
-    saveResumePosition(
-      storage,
-      track.digest.id,
-      time,
-      durationNow(),
-      recordingOf(track.digest),
-    );
+    saveResumePosition(storage, track.digest.id, time, durationNow(), recordingOf(track.digest));
   }
 
   function startSaveTimer(): void {

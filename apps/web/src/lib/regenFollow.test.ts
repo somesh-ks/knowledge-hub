@@ -34,6 +34,7 @@ describe("regenFollow (D371)", () => {
     expect(wordLength("More stories")).toBe("longer");
     expect(wordLength("it was too short, not enough news")).toBe("longer");
     expect(wordLength("fewer stories please")).toBe("shorter");
+    expect(wordLength("less news")).toBe("shorter");
     expect(wordLength("too long and it dragged")).toBe("shorter");
     expect(wordLength("more stories but shorter")).toBeNull();
     expect(wordLength("too much hype")).toBeNull();

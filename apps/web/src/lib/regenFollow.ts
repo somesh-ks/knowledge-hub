@@ -52,7 +52,7 @@ export function stepLength(from: number, direction: "shorter" | "longer"): numbe
 const WANTS_LONGER =
   /\b(?:(?:more|extra|additional)\s+(?:stories|story|items|news|coverage)(?!\s+(?:about|on|from)\b)|not enough (?:stories|news|coverage)|(?<!\b(?:no|any)\s)longer|too short|more (?:time|depth|detail))\b/i;
 const WANTS_SHORTER =
-  /\b(?:(?:fewer|less)\s+(?:stories|story|items)(?!\s+(?:about|on|from)\b)|shorter|briefer|too long|dragged)\b/i;
+  /\b(?:(?:fewer|less)\s+(?:stories|story|items|news)(?!\s+(?:about|on|from)\b)|shorter|briefer|too long|dragged)\b/i;
 
 /**
  * What the words alone ask of the length: the story count is the length (a 5 minute podcast airs
