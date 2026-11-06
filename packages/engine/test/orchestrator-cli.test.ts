@@ -33,7 +33,7 @@ function stub(run: CommandRun, name = "stub"): CommandSpec {
   return {
     name,
     summary: "A stub command",
-    help: `Usage: dispatch ${name}`,
+    help: `Usage: singularity ${name}`,
     load: async () => run,
   };
 }
@@ -173,7 +173,7 @@ describe("runCli: help", () => {
       return 0;
     });
     expect(result.code).toBe(0);
-    expect(result.out).toBe("Usage: dispatch stub\n");
+    expect(result.out).toBe("Usage: singularity stub\n");
     expect(called).toBe(false);
   });
 

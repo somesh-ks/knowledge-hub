@@ -135,7 +135,7 @@ Proof (vitest, 2026-10-15):
   cannot help. Same conflation as the stop, server side in `generate.ts`/`podcast.ts`.
 - `server/generate.ts`, `server/podcast.ts`: `readServerConfig` null returns 503 with no log (same
   silent branch fixed here for `/api/config`).
-- Open from the audit: `config.yml` shares the `dispatch` concurrency group with `run.yml`, so a
+- Open from the audit: `config.yml` shares the `singularity` concurrency group with `run.yml`, so a
   pending stop can be cancelled after a 202 (a stop that "worked" but never applies).
 
 ## Track A: episode quality

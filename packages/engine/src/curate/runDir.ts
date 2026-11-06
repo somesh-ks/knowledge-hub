@@ -53,7 +53,7 @@ export interface RunLocation {
 /**
  * Find a run's directory and pool. `run` names `.cache/run/<id>`; `pool` names the pool file
  * (and, without `run`, its folder is the run directory); with neither, the newest run that has
- * the marker file is used: the pool `singularity fetch` just wrote, or the selection `dispatch
+ * the marker file is used: the pool `singularity fetch` just wrote, or the selection `singularity
  * curate` just wrote when `marker` is "selection.json".
  */
 export async function resolveRunLocation(
