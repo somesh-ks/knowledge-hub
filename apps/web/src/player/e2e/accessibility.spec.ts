@@ -51,11 +51,17 @@ test.describe("axe, WCAG 2.2 AA, light and dark", () => {
   test("the page with the bar docked", async ({ player, page }) => {
     await player.open();
     await player.play();
-    // The scan below skips this button's clock; its chapter must still be in the name (WCAG 2.5.3).
+    // The scan below skips this button's clock; its podcast name and story must still be in the name (WCAG 2.5.3).
     const open = page.locator(".dock-open");
-    const chapter = (await open.locator(".dock-title").textContent()) ?? "";
-    expect(chapter).not.toBe("");
-    expect(await open.getAttribute("aria-label")).toContain(chapter);
+    const podcast = (await open.locator(".dock-title").textContent()) ?? "";
+    const story = ((await open.locator(".dock-caption").textContent()) ?? "").match(
+      / \u00b7 (.+)$/,
+    )?.[1];
+    expect(podcast).not.toBe("");
+    expect(story).toBeTruthy();
+    const name = await open.getAttribute("aria-label");
+    expect(name).toContain(podcast);
+    expect(name).toContain(story ?? "");
     await expectAccessible(page, "the bar docked");
   });
 
