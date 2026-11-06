@@ -21,7 +21,7 @@ export const CHANGELOG: readonly Release[] = [
     version: "0.22",
     date: "2026-11-06",
     description:
-      "Stories sits beside Length for the daily and weekly podcasts, Catch up and Regenerate: leave it on Auto, or pick how many stories to hear, in fives, and each is told shorter to fit the length. On a phone it turns on a wheel like the time picker. Asking a Regenerate for more or fewer stories now changes the count, not the length. A regenerated podcast starts from the beginning, and it is ready sooner because it reuses the stories its first run gathered.",
+      "Stories sits beside Length for the daily and weekly podcasts, Catch up and Regenerate: leave it on Auto, or pick how many stories to hear, in fives, and each is told shorter to fit the length. On a phone it turns on a wheel like the time picker. Asking a Regenerate for more or fewer stories now changes the count, not the length. A regenerated podcast starts from the beginning, and it is ready sooner because it reuses the stories its first run gathered. The player bar no longer keeps an outline once you use the app by touch.",
   },
   {
     version: "0.21.2",

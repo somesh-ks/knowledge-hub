@@ -740,6 +740,14 @@
   transform: scaleX(var(--player-progress, 0));
 }
 
+/* The bar shows its focus ring for a key only (owner, 2026-11-06: an outline on the dock). A ring a
+   key gave it, or one the page handed back with the focus, does not stay on while fingers use the
+   app; data-input is app.ts's, a keyboard keeps its ring. */
+:root:not([data-input="keyboard"]) .dock-open:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 .dock-open {
   grid-row: 1;
   grid-column: 1;

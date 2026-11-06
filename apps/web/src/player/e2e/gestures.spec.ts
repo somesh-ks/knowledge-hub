@@ -284,6 +284,24 @@ test.describe("closing the page", () => {
     await expect(player.openButton).toBeFocused();
   });
 
+  // Owner, 2026-11-06 ("what shit is this! an outline on the dock"): a ring the bar took from the
+  // keyboard stayed on it while fingers used the app.
+  test("the bar's focus ring, given by a key, goes once a finger is on the screen", async ({
+    player,
+    finger,
+    page,
+  }) => {
+    await opened(player);
+    await page.keyboard.press("Escape");
+    await player.collapsed();
+    const ring = () =>
+      player.openButton.evaluate((bar) => getComputedStyle(bar).outlineStyle !== "none");
+    await expect(player.openButton).toBeFocused();
+    expect(await ring()).toBe(true);
+    await finger.drag(line({ x: 195, y: 300 }, { x: 195, y: 200 }, 3), 8);
+    expect(await ring()).toBe(false);
+  });
+
   test("Tab never reaches anything behind the open page @desktop", async ({ player, page }) => {
     await opened(player);
     const seen = new Set<string>();
