@@ -362,6 +362,39 @@
 
 /* ------------------------------------------------------------------ focus ring */
 
+/* A tap never leaves a ring (owner, 2026-11-06: a ring stayed on the dock after a touch). Rings are
+   the keyboard's: once the last action was a pointer's (data-input, app.ts), the ring colour is
+   clear below the root, so the foundation ring and every component's own ring, all drawn in
+   --color-focus-ring (styles.test.ts holds them to it), vanish together. A text field keeps its
+   ring, since that is where the typing goes; it reads the root's colour. Before any input the
+   browser decides, as before. Outside the layers, so it holds over the component sheets; :where()
+   keeps it at no weight, so a field's own ring colour (an invalid field's danger) still wins. */
+:root {
+  --focus-ring-text: var(--color-focus-ring);
+}
+
+:where(:root[data-input="pointer"]) body {
+  --color-focus-ring: transparent;
+}
+
+:where(:root[data-input="pointer"])
+  :where(
+    textarea,
+    [contenteditable]:not([contenteditable="false"]),
+    input:not(
+      [type="checkbox"],
+      [type="radio"],
+      [type="range"],
+      [type="button"],
+      [type="submit"],
+      [type="reset"],
+      [type="file"],
+      [type="color"]
+    )
+  ) {
+  --color-focus-ring: var(--focus-ring-text);
+}
+
 @layer foundations.focus {
   /*
    * Two layers: an outer ring in the focus color and an inner gap in the local surface color,
