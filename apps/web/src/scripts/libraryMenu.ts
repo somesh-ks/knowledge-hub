@@ -7,6 +7,8 @@
  * read from Cache Storage on load and after every change. The briefing and episode pages' More menu
  * (HeroMenu.astro, `data-page-menu`) offers the same Download and Add to queue and is wired here too.
  */
+
+import { glowFavorite } from "../design-system/glow";
 import { track } from "../lib/analytics";
 import { downloadFailure } from "../lib/downloadCopy";
 import { NotReadyError } from "../lib/downloads";
@@ -143,9 +145,15 @@ async function onPick(item: HTMLElement): Promise<void> {
     case "favorite": {
       // Settings > Favorites hears the change (singularity:saved) and drops a removed row.
       const on = !isSaved(deviceStorage(), id);
-      if (setSaved(deviceStorage(), id, on))
+      if (setSaved(deviceStorage(), id, on)) {
         toast(on ? "Added to favorites" : "Removed from favorites");
-      else
+        // The sheet closes on the pick, so the page's own heart behind it glows too.
+        if (on) {
+          glowFavorite(item);
+          const heart = document.querySelector<HTMLElement>("[data-favorite]");
+          if (heart) glowFavorite(heart);
+        }
+      } else
         toast(on ? "Couldn't add it to favorites" : "Couldn't remove it from favorites", "error");
       return;
     }
