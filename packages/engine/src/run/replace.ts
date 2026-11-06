@@ -10,6 +10,7 @@ import {
 } from "@singularity/core";
 import { commitAndPush } from "../git/commit.js";
 import { readSeen, writeSeen } from "../state/store.js";
+import { forgetPool } from "./carriedPool.js";
 import { StageFailure } from "./errors.js";
 import type { PlanPass } from "./plan.js";
 import type { DeleteReport, RunDeps, RunMode } from "./types.js";
@@ -67,10 +68,14 @@ export async function releaseSeen(root: string, itemIds: readonly string[]): Pro
   await writeSeen(root, { ...seen, items });
 }
 
-/** Removes a digest's file and its narration timeline. The MP3 is overwritten by the next one of this id. */
+/**
+ * Removes a digest's file and its narration timeline, and its kept pool (outside git, D376). The MP3
+ * is overwritten by the next one of this id.
+ */
 export async function removeDigestFiles(root: string, id: DigestId): Promise<string[]> {
   const paths = [digestRelPath(id), audioTimelineRelPath(id)];
   for (const rel of paths) await rm(join(root, rel), { force: true });
+  await forgetPool(root, id);
   return paths;
 }
 

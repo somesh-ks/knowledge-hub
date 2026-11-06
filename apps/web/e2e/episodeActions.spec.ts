@@ -3,8 +3,10 @@ import {
   expect,
   expectNoViolationsInEitherScheme,
   hydrated,
+  queueComplete,
   queueDock,
   queueStatus,
+  startListening,
   test,
 } from "./fixtures";
 
@@ -159,10 +161,46 @@ test.describe("regenerate and delete an episode", () => {
       menu(page).getByRole("menuitem", { name: "Regenerate" }),
     ).toHaveAccessibleDescription("Unavailable while this episode is being updated.");
     await page.keyboard.press("Escape");
-    await expect(queueStatus(page)).toHaveText("Rewritten. Live in about a minute.", {
+    await expect(queueStatus(page)).toHaveText("Rewritten", {
       timeout: 15_000,
     });
     await expect(regenerate(page)).not.toHaveAttribute("aria-disabled", "true");
+  });
+
+  // The 2026-11-05 review: a finished rewrite left the listener on a page for an episode that was
+  // gone, with nothing to open. The route sends stages, so the run waits for the site like a Catch up.
+  test.describe("a finished rewrite", () => {
+    test.use({ serviceWorkers: "block" });
+    test("offers the new episode once the site lists it", async ({ page }) => {
+      await mock(page, [
+        { run_id: 77, state: "running", step: null },
+        { run_id: 77, state: "completed", step: null, stage: 4, stages: 6, outcome: "published" },
+      ]);
+      await page.route(/latest.json/, (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            episode_at: new Date(Date.now() + 3_600_000).toISOString(),
+            episode_id: "ep-20261008-0900",
+          }),
+        }),
+      );
+      // The new episode's page is read once it is found, so Start listening finds it ready.
+      await page.route(/\/e\/ep-20261008-0900$/, (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "text/html",
+          body: "<!doctype html><title>x</title>",
+        }),
+      );
+      await open(page);
+      await choose(page, "Regenerate");
+      await panel(page).getByLabel("What went wrong?").fill("Shorter intro");
+      await panel(page).getByRole("button", { name: "Regenerate episode" }).click();
+      await expect(queueComplete(page)).toBeVisible({ timeout: 20_000 });
+      await expect(await startListening(page)).toBeVisible();
+    });
   });
 
   test("an episode reached while offline has both items disabled, with the reason, until the connection is back", async ({
@@ -227,6 +265,27 @@ test.describe("regenerate and delete an episode", () => {
     expect(bodies).toHaveLength(0);
   });
 
+  // Owner, 2026-11-06: "More stories" came back with the same 12 because only a model moved Length,
+  // and it had not answered. The words move it at once; the story count is the length.
+  test("'More stories' sets a longer Length before any model answers", async ({ page }) => {
+    await page.route("**/api/regen-hints", (route) =>
+      route.fulfill({
+        json: { length: false, topics: false, length_step: null, add: [], by: "none" },
+      }),
+    );
+    await open(page);
+    await choose(page, "Regenerate");
+    await panel(page).getByLabel("What went wrong?").fill("More stories");
+    const length = panel(page).getByRole("radiogroup", { name: "Length" });
+    await expect(length).toBeVisible();
+    const lengths = await length
+      .locator("input")
+      .evaluateAll((all) =>
+        all.map((i) => [(i as HTMLInputElement).defaultChecked, (i as HTMLInputElement).checked]),
+      );
+    expect(lengths.findIndex(([, now]) => now)).toBe(lengths.findIndex(([made]) => made) + 1);
+  });
+
   // Owner, 2026-11-04 (D370, D371): Jev reveals what the word match misses and Haiku proposes the
   // values; the controls follow the comment both ways, and one the listener touched stays.
   test("the controls follow the comment: shown and set by the models, gone when the words go, kept once touched", async ({
@@ -253,9 +312,9 @@ test.describe("regenerate and delete an episode", () => {
         .evaluateAll((all) =>
           all.map((i) => [(i as HTMLInputElement).defaultChecked, (i as HTMLInputElement).checked]),
         );
-    await note.pressSequentially("It dragged on");
+    await note.pressSequentially("It went on and on");
     await expect(length).toBeVisible();
-    expect(asked).toEqual(["It dragged on"]);
+    expect(asked).toEqual(["It went on and on"]);
     // Haiku moved the untouched control one step shorter than the length asked for.
     await expect
       .poll(async () => (await lengths()).findIndex(([, now]) => now))
@@ -265,14 +324,14 @@ test.describe("regenerate and delete an episode", () => {
     await expect(length).toBeHidden();
     expect((await lengths()).every(([made, now]) => made === now)).toBe(true);
     // A length the listener picked stays when the words go.
-    await note.pressSequentially("It dragged on");
+    await note.pressSequentially("It went on and on");
     await expect(length).toBeVisible();
     await length.locator("label").last().click();
     await note.fill("");
     await expect(length).toBeVisible();
     expect((await lengths()).at(-1)?.[1]).toBe(true);
     // The dialog keeps its words when closed; opened again, the models read them again.
-    await note.fill("It dragged on");
+    await note.fill("It went on and on");
     await expect.poll(() => asked.length).toBe(3);
     await page.keyboard.press("Escape");
     await expect(panel(page)).toBeHidden();

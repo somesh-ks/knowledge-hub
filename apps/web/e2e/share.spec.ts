@@ -5,7 +5,7 @@ import { guardedDatabase } from "../src/server/database";
 import { handleNarrationLookup } from "../src/server/narrate";
 import { handleShare, handleSharePlay, type MakeDeps, openListenLink } from "../src/server/share";
 import type { NarrateLookupResponse } from "../src/types/contracts";
-import { AUDIO_DIGEST, closePlayer, expect, hydrated, openRowMenu, test } from "./fixtures";
+import { AUDIO_DIGEST, closePlayer, expect, hydrated, test } from "./fixtures";
 
 /**
  * The share journey (D153) on the site's own handlers: `/api/share`, `/api/share-play` and the
@@ -169,10 +169,6 @@ test("a shared link opens the app's page in a fresh browser, plays its stored au
   await expect.poll(async () => (await copied()).length).toBe(1);
   await dialog.getByRole("button", { name: "Close" }).click();
   await expect(dialog).toBeHidden();
-  // The page's sheet is the Library card's, so it offers Stop sharing once the link exists (D369).
-  await page.getByRole("button", { name: "More actions" }).click();
-  await expect(page.getByRole("menuitem", { name: "Stop sharing" })).toHaveCount(1);
-  await page.keyboard.press("Escape");
   const link = (await copied())[0] ?? "";
   const token = tokenOf(link);
   expect(token, link).not.toBe("");
@@ -203,16 +199,18 @@ test("a shared link opens the app's page in a fresh browser, plays its stored au
   for (const url of asked)
     expect(url, "nothing leaves for analytics in a test").not.toContain("simpleanalytics");
 
-  // The owner stops sharing: the link's play route and its page answer 410.
-  const stopped = page.waitForResponse(
-    (response) => response.url().endsWith("/api/share") && response.request().method() === "DELETE",
+  // A revoked link (the route has no menu item, but regenerating an item revokes too): its play route
+  // and its page answer 410.
+  const stopped = await page.evaluate(
+    (item) =>
+      fetch("/api/share", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ item }),
+      }).then((response) => response.status),
+    ID,
   );
-  await page.goto("/library");
-  await expect(page.locator("[data-library]")).toHaveAttribute("data-menus-ready", "");
-  const row = page.locator(`[data-card][data-id="${ID}"]`);
-  await openRowMenu(page, row);
-  await row.getByRole("menuitem", { name: "Stop sharing" }).click();
-  expect((await stopped).status()).toBe(200);
+  expect(stopped).toBe(200);
   const play = await listener.evaluate(
     (body) =>
       fetch("/api/share-play", {

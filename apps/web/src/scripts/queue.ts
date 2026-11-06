@@ -298,7 +298,6 @@ function detailsOf(item: Item, name: string, data: DOMStringMap): QueueDetails |
   const run = item.record;
   if (!run) return null;
   const iso = (ms: number | null | undefined): string => (ms ? new Date(ms).toISOString() : "");
-  const log = run.log?.startsWith("https://github.com/") ? run.log : "";
   return {
     what: statusLine(run, data),
     why: run.reason ?? "",
@@ -310,9 +309,7 @@ function detailsOf(item: Item, name: string, data: DOMStringMap): QueueDetails |
       ["Reason", run.reason ?? ""],
       ["Started", iso(run.t0)],
       ["Ended", iso(item.at)],
-      ["Log", log],
     ],
-    log,
   };
 }
 

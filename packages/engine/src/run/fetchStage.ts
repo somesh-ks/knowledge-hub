@@ -23,6 +23,7 @@ import {
   writeSourceHealth,
 } from "../state/store.js";
 import { withRunJudgments } from "./artifacts.js";
+import { readCarried, slowStories } from "./carriedPool.js";
 import { StageFailure } from "./errors.js";
 import { type GatherResult, gatherPool } from "./gatherPool.js";
 import { markStage, type Plan, type PlanPass, passFile, runJudgmentsPath } from "./plan.js";
@@ -188,6 +189,11 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
             fetchers: deps.fetch.fetchers,
           })
         : null;
+    // A rewrite reuses the stories its digest's run gathered (D376); without them it reads all.
+    const carried = plan.replaces === pass.id ? await readCarried(deps.root, pass.id, now) : null;
+    if (carried) {
+      deps.log.info("Carried the replaced run's stories", { pass: pass.id, items: carried.length });
+    }
     const gathered = await gatherPool({
       root: deps.root,
       now,
@@ -197,8 +203,14 @@ export async function fetchStage(deps: RunDeps, plan: Plan): Promise<StageReport
       setup,
       ...(sampling && planned ? { probeGeneral: planned.readPlan.probeGeneral } : {}),
       ...poolCapOf(lengthMinutesFor(schedule, pass.kind, plan.mode, plan.length_minutes)),
+      ...(carried ? { carried } : {}),
     });
     await writePool(passFile(deps.root, pass.id, "pool.json"), gathered.pool);
+    // What a rewrite of this pass's digest will carry (D376), kept by the commit stage.
+    await writeJson(
+      passFile(deps.root, pass.id, "slow-stories.json"),
+      slowStories(gathered.pool.items, gathered.leftovers),
+    );
     // The general stories live beside the pool, never in it. A file left by an earlier attempt
     // goes when this one read no general source.
     const generalPath = passFile(deps.root, pass.id, "general.json");
