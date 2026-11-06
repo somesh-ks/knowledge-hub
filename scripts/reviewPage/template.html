@@ -6,7 +6,7 @@
   and Banner rules are inlined at build time, so the page reads as the app.
 -->
 <style>
-@FONT_FACE@
+/*@FONT_FACE@*/
 /*@TOKENS@*/
 /*@DS@*/
 
@@ -89,7 +89,7 @@ figure.still[hidden] { display: none; }
   background: var(--color-surface-sunken); box-shadow: 0 0 0 1px var(--color-surface-container);
 }
 .media img, .media video { display: block; width: 100%; height: auto; max-width: 100%; }
-figure.still.is-flash .media { box-shadow: 0 0 0 3px var(--color-accent); transition: box-shadow 200ms; }
+.is-flash .media { box-shadow: 0 0 0 3px var(--color-accent); transition: box-shadow 200ms; }
 .still-no {
   position: absolute; top: var(--space-2); left: var(--space-2);
   display: grid; place-items: center; min-width: 32px; height: 32px; padding-inline: var(--space-2);
@@ -144,7 +144,7 @@ details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; d
 </style>
 
 <div class="topbar">
-  <a class="pr" id="pr-link" target="_blank" rel="noopener"></a>
+  <a class="pr" id="pr-link" href="@PR_URL@" target="_blank" rel="noopener" aria-label="Pull request @PR@ on GitHub">#@PR@ @ICON_openInNew@</a>
   <span class="badge-label is-accent" id="ver-badge"></span>
   <span class="spacer"></span>
   <button class="button-text" id="notes-copy" type="button" hidden>Copy notes</button>
@@ -152,7 +152,7 @@ details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; d
 
 <main>
   <header class="intro measure">
-    <h1 id="title"></h1>
+    <h1 id="title">@HEADING@</h1>
     <p class="meta" id="meta"></p>
   </header>
 
@@ -172,12 +172,12 @@ details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; d
   <div class="stage" id="stage"></div>
 </div>
 
-<script type="application/json" id="review-data">/*@DATA@*/</script>
+<script type="application/json" id="review-data">{"@DATA@":0}</script>
 <script>
 (() => {
   "use strict";
   const R = JSON.parse(document.getElementById("review-data").textContent);
-  const ICON = { comment: `@ICON_pencilSimple@`, zoom: `@ICON_search@`, open: `@ICON_openInNew@`, info: `@ICON_info@` };
+  const ICON = { comment: `@ICON_pencilSimple@`, zoom: `@ICON_search@` };
   const $ = (s, el = document) => el.querySelector(s);
   const h = (tag, attrs = {}, ...kids) => {
     const el = document.createElement(tag);
@@ -196,18 +196,15 @@ details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; d
 
   /* ---- Number every still once, in page order. The number is what a comment names. */
   const stills = [];
-  R.changes.forEach((c, ci) => c.stills.forEach((s) => { s.n = stills.length + 1; s.change = c; s.changeNo = ci + 1; stills.push(s); }));
+  R.changes.forEach((c, ci) => { for (const s of c.stills) { s.n = stills.length + 1; s.change = c; s.changeNo = ci + 1; stills.push(s); } });
   const byId = new Map(stills.map((s) => [s.id, s]));
   const tagLine = (s) => [s.tags?.device, s.tags?.browser, s.tags?.theme, s.tags?.mood, s.tags?.hue, s.tags?.state].filter(Boolean).join(" · ");
   const label = (s) => `Still ${s.n} · ${tagLine(s)} · ${s.change.title}`.slice(0, 120);
 
   /* ---- Header */
-  const pr = $("#pr-link");
-  pr.href = R.pr_url; pr.innerHTML = `#${R.pr} ${ICON.open}`; pr.setAttribute("aria-label", `Pull request ${R.pr} on GitHub`);
   $("#ver-badge").textContent = `Version ${R.version}`;
-  $("#title").textContent = R.title;
   const when = new Date(R.updated);
-  const whenText = isNaN(when) ? R.updated : when.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  const whenText = Number.isNaN(when.getTime()) ? R.updated : when.toLocaleDateString(undefined, { day: "numeric", month: "short" });
   $("#meta").textContent = [R.area, whenText].filter(Boolean).join(" · ");
 
   const refs = (ids) => h("span", { class: "refs" }, (ids || []).map((id) => byId.get(id)).filter(Boolean).map((s) =>
@@ -229,15 +226,14 @@ details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; d
     picked[key] = "All";
     const group = h("div", { class: "filter", role: "group", "aria-label": key });
     for (const v of ["All", ...values]) group.append(h("button", { type: "button", "aria-pressed": v === "All" ? "true" : "false", onclick: (e) => {
-      picked[key] = v; [...group.children].forEach((b) => b.setAttribute("aria-pressed", b === e.currentTarget ? "true" : "false")); applyFilters();
+      picked[key] = v; for (const b of group.children) b.setAttribute("aria-pressed", b === e.currentTarget ? "true" : "false"); applyFilters();
     } }, v));
     filterRow.append(group);
   }
   if (!filterRow.children.length) filterRow.remove();
   const visible = (s) => Object.entries(picked).every(([k, v]) => v === "All" || !s.tags?.[k] || s.tags[k] === v);
   function applyFilters() {
-    let shown = 0;
-    for (const s of stills) { s.fig.hidden = !visible(s); if (!s.fig.hidden) shown++; }
+    for (const s of stills) s.fig.hidden = !visible(s);
     for (const c of R.changes) c.section.hidden = c.stills.every((s) => s.fig.hidden);
     report();
   }
@@ -275,7 +271,7 @@ details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; d
   });
 
   function reveal(s) {
-    if (s.fig.hidden) { for (const k of Object.keys(picked)) picked[k] = "All"; filterRow.querySelectorAll(".filter").forEach((g) => [...g.children].forEach((b, i) => b.setAttribute("aria-pressed", i === 0 ? "true" : "false"))); applyFilters(); }
+    if (s.fig.hidden) { for (const k of Object.keys(picked)) picked[k] = "All"; for (const g of filterRow.querySelectorAll(".filter")) for (const [i, b] of [...g.children].entries()) b.setAttribute("aria-pressed", i === 0 ? "true" : "false"); applyFilters(); }
     const smooth = !matchMedia("(prefers-reduced-motion: reduce)").matches;
     s.fig.scrollIntoView({ block: "center", behavior: smooth ? "smooth" : "auto" });
     s.fig.classList.add("is-flash"); setTimeout(() => s.fig.classList.remove("is-flash"), 1200);
@@ -342,7 +338,7 @@ details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; d
   function pointFor(anchor) {
     const m = ANCHOR.exec(anchor); if (!m) return null;
     const s = byId.get(m[1]); if (!s) return null;
-    const r = rectOf(s); if (!r || !r.width) return null;
+    const r = rectOf(s); if (!r?.width) return null;
     const x = m[2] == null ? r.right - 20 : r.left + (r.width * +m[2]) / 100;
     const y = m[3] == null ? r.top + 20 : r.top + (r.height * +m[3]) / 100;
     return { x: x + scrollX, y: y + scrollY };
@@ -420,7 +416,7 @@ details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; d
   function save() { store.set(NOTES_KEY, notes); }
   function renderNotes() {
     for (const s of stills) {
-      s.notesEl.querySelectorAll(".note").forEach((n) => n.remove());
+      for (const n of s.notesEl.querySelectorAll(".note")) n.remove();
       notes.forEach((n, i) => {
         if (n.still !== s.id) return;
         const ta = h("textarea", { "aria-label": `Note ${i + 1}`, maxlength: "2000", id: `note-${i}` }); ta.value = n.text;
@@ -432,7 +428,7 @@ details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; d
     renderLocalPins();
   }
   function renderLocalPins() {
-    document.querySelectorAll(".media > .pin").forEach((p) => p.remove());
+    for (const p of document.querySelectorAll(".media > .pin")) p.remove();
     notes.forEach((n, i) => { const s = byId.get(n.still); if (!s) return; s.mediaBox.append(h("span", { class: "pin", style: `left:${n.x}%;top:${n.y}%` }, String(i + 1))); });
   }
   function notesText() {
